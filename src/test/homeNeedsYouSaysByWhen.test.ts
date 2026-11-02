@@ -4,13 +4,16 @@
  * next-step line does: "... · by Mon 8:00 AM" (Louisiana time), or for the review window "... · 23h 0m left".
  * Inventory: the Helpr's confirm-due row and the poster's approve row, the two clocks the audit named.
  *
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | applicants`) : withTodoBy(line.detail, line, now), | applicants`) : line.detail,
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | ON_THE_WAY_TASK : withTodoBy(line.detail, line, now), | ON_THE_WAY_TASK : line.detail,
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | applicants`) : todoTask(j, "poster", line, now, { pendingApplicants: n }), | applicants`) : line.detail,
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | ON_THE_WAY_TASK : todoTask(a.job!, "helpr", line, now, { application: a.status }), | ON_THE_WAY_TASK : line.detail,
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   if (!step \|\| step.who !== "you") return withTodoBy(line.detail, line, now); |   if (!step) return withTodoBy(line.detail, line, now);
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   return step.by ? `${step.text} · ${step.by}` : withTodoBy(step.text, line, now); |   return withTodoBy(line.detail, line, now);
+ * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   return step.by ? `${step.text} · ${step.by}` : withTodoBy(step.text, line, now); |   return step.text;
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   if (!Number.isFinite(at) \|\| at < now \|\| / by (Mon\|Tue\|Wed\|Thu\|Fri\|Sat\|Sun)\b/.test(task)) return task; |   if (!Number.isFinite(at) \|\| / by (Mon\|Tue\|Wed\|Thu\|Fri\|Sat\|Sun)\b/.test(task)) return task;
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   if (line.deadline!.source === "auto_complete") { |   if (false) {
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { deriveNeedsYouTodos, withTodoBy } from "@/pages/home/homeDashboard/needsYouTodos";
+import { deriveNeedsYouTodos, todoTask, withTodoBy } from "@/pages/home/homeDashboard/needsYouTodos";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import type { ShopOrder } from "@/lib/shops/orders";
 
@@ -39,6 +42,18 @@ describe("A3-17: Home's tasks say by when", () => {
     const todos = deriveNeedsYouTodos({ ...none, postedJobs: [done] }, NOW);
     expect(todos.length).toBeGreaterThan(0);
     expect(todos[0].title).toMatch(/ · 23h 0m left$/);
+  });
+
+  // A3-17 rest (B137): the task is the job page's next step (jobNextStep), not the card's second wording of it.
+  it("the poster's approve task reads the job page's step: Approve your Helpr's work, with the window left", () => {
+    const done = job({ customer_id: "me", status: "in_progress", helper_arrived_at: "2026-11-07T19:00:00Z", helper_completed_at: "2026-11-07T21:00:00Z" } as Partial<Job>);
+    expect(deriveNeedsYouTodos({ ...none, postedJobs: [done] }, NOW).map((t) => t.title)).toEqual(["Approve your Helpr's work · 23h 0m left"]);
+  });
+
+  it("a step that is not the member's own keeps the status line's words (todoTask)", () => {
+    const line = { id: "x", detail: "Waiting on the Helpr", deadline: null } as unknown as Parameters<typeof todoTask>[2];
+    const done = job({ customer_id: "me", status: "in_progress", helper_arrived_at: "2026-11-07T19:00:00Z", poster_confirmed_arrival_at: "2026-11-07T19:05:00Z", helper_completed_at: null } as Partial<Job>);
+    expect(todoTask(done, "poster", line, NOW)).toBe("Waiting on the Helpr");
   });
 
   it("a passed clock or no clock adds nothing; a task that already names a day keeps its words", () => {

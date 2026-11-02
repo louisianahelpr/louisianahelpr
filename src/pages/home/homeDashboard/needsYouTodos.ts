@@ -14,6 +14,8 @@ import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
 import { useFeature } from "@/hooks/useFeature";
 import { posterStatusLine, helperStatusLine, type JobStatusLine } from "@/components/job-card/jobStatusLine";
 import { jobStartTarget } from "@/components/job-card/CountdownRows";
+import { jobProgress } from "@/components/tracker/jobProgressState";
+import { jobNextStep } from "@/components/tracker/jobNextStep";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { continueDayNextStep, continueDayWords, type ContinueDay } from "@/lib/continueDayWords";
 import { inProgressJobIds, useContinueDays } from "@/hooks/useContinueDays";
@@ -250,6 +252,19 @@ export function withTodoBy(task: string, line: Pick<JobStatusLine, "deadline">, 
   return `${task} · by ${day.replace(",", "")}`;
 }
 
+/**
+ * A3-17 rest (audit 11-01): the task is the job's NEXT STEP, the words the job page and the cards print (jobNextStep
+ * from the one tracker, jobProgress), e.g. "Approve your Helpr's work · 23h 0m left", never a second wording of the
+ * same step. Home reads no names (the cores only), so the other person is "your Helpr" / "them". A step that is not
+ * the member's own (or none) keeps the status line's words.
+ */
+export function todoTask(job: Job, viewer: "poster" | "helpr", line: JobStatusLine, now: number, o: { pendingApplicants?: number; application?: string | null } = {}): string {
+  const progress = jobProgress(job, { viewer, now: new Date(now), pendingApplicants: o.pendingApplicants, application: o.application });
+  const step = jobNextStep(progress, { side: viewer, pendingApplicants: o.pendingApplicants });
+  if (!step || step.who !== "you") return withTodoBy(line.detail, line, now);
+  return step.by ? `${step.text} · ${step.by}` : withTodoBy(step.text, line, now);
+}
+
 /** A job's date for tier 4 ("everything else, by date"); undated last. */
 const jobDateMs = (job: Pick<Job, "date_needed" | "start_time">) => jobStartTarget(job.date_needed, job.start_time)?.getTime() ?? Infinity;
 
@@ -331,7 +346,7 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
       item: {
         id: `p-${j.id}`,
         section: "jobs",
-        title: n > 0 ? (n === 1 ? "Review 1 applicant" : `Review ${n} applicants`) : continueDayWords(cd[j.id], { side: "poster", otherFirst: null }) ?? withTodoBy(line.detail, line, now),
+        title: n > 0 ? (n === 1 ? "Review 1 applicant" : `Review ${n} applicants`) : continueDayWords(cd[j.id], { side: "poster", otherFirst: null }) ?? todoTask(j, "poster", line, now, { pendingApplicants: n }),
         meta: `${j.helper_id ? "You hired" : "You posted"} · ${j.title}`,
         // "Open job" opens THE job (audit #12, 2026-10-21); the applicant
         // review still lands on the Posted list where applicants are handled.
@@ -352,7 +367,7 @@ export function deriveNeedsYouTodos(i: NeedsYouInputs, now: number = Date.now())
         section: "jobs",
         // JA-39 (Jobs audit 11-01): on the way is not working yet. The task is the arrival tap, and the side word
         // says where they are ("You're on the way · Haul off..."), never "You're working" before they arrive.
-        title: continueDayWords(cd[a.job!.id], { side: "helpr", otherFirst: helprOther(a) }) ?? (line.id === "on_the_way" ? ON_THE_WAY_TASK : withTodoBy(line.detail, line, now)),
+        title: continueDayWords(cd[a.job!.id], { side: "helpr", otherFirst: helprOther(a) }) ?? (line.id === "on_the_way" ? ON_THE_WAY_TASK : todoTask(a.job!, "helpr", line, now, { application: a.status })),
         meta: `${helprSide(a.job!, line.id)} · ${a.job!.title}`,
         // JA-39: the button IS the arrival step ("I've arrived"), run by the Working card's tracker (not a crew: a
         // member's steps are on the roster), instead of "Open job" and a second tap on the page.

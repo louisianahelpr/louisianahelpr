@@ -15,6 +15,7 @@ import { EXPIRED_WORD, jobStartDateTime } from "@/lib/dateUtils";
 import { TODAY_ANY_TIME_LINE, hasStartTime } from "@/lib/anyTimeThatDay";
 import { jobIsUnfundedDraft, workIsBackWithHelper } from "@/components/job-card/activityFilters";
 import { JOB_STATUS_LABELS } from "@/lib/statusLabels";
+import { formatPrice } from "@/lib/format";
 import { EXPIRED_LISTING_DETAIL, autoCompleteAt, helperStatusLine, sanitizeCancellationReason, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { cardBar, type CardFace, type Stage, type StepTone } from "@/components/tracker/jobStepFromWait";
@@ -64,6 +65,8 @@ export type ProgressJob = {
   /** Who posted it and when it was cancelled: the cancelled line says who and when (JA-26). */
   customer_id?: string | null;
   cancelled_at?: string | null;
+  /** What a poster's late cancel kept for the Helpr's time (poster_cancel_job), in dollars: the poster's line says it (Q2671). */
+  cancellation_fee?: number | null;
   /** A crew job: its helper_id is null (the members are on group_job_helpers), so "hired" is read from the status. */
   is_group_job?: boolean | null;
   /** What the Helpr's card line reads past arrival (photo asks): the open card's tracker passes them too. */
@@ -350,8 +353,13 @@ function cancelledLine(job: ProgressJob, poster: boolean, other: string): string
     : helprDid ? (poster ? `${other} cancelled${stamp}` : `You cancelled${stamp}`)
     : "This job was cancelled";
   const reason = sanitizeCancellationReason(job.cancellation_reason);
-  const refund = poster && job.payment_status === "refunded" ? "Your payment was refunded" : null;
-  return [who, reason, refund].filter(Boolean).join(" · ");
+  // Q2671 (audit 1102e row 3): a late cancel kept part of the payment for the Helpr's time (the cancel sheet's amount),
+  // so the line never reads like a full refund. Guard: src/test/lateCancelByPosterSaysTheMoney.test.tsx.
+  const fee = Number(job.cancellation_fee ?? 0);
+  const kept = poster && posterDid && fee > 0 ? `$${formatPrice(fee)} was kept for ${other}'s time` : null;
+  const refunded = poster && job.payment_status === "refunded";
+  const refund = refunded ? (kept ? "The rest was refunded" : "Your payment was refunded") : null;
+  return [who, reason, kept, refund].filter(Boolean).join(" · ");
 }
 
 function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {

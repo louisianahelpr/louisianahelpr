@@ -13,7 +13,7 @@
  * @mutate src/lib/declutter/setupHelpr.ts |   move: { button: "Move it to my place", category: "moving", |   move: { button: "Move it to my place", category: "handyman",
  * @mutate src/lib/declutter/setupHelpr.ts |   const description = kind === "move" |   const description = false
  * @mutate src/lib/declutter/setupHelpr.ts |     title: fitWords(`${k.titleVerb} ${items[0]}`, 32), |     title: `${k.titleVerb} ${items[0]}`,
- * @mutate src/lib/declutter/setupHelpr.ts |       if (msg && Object.isExtensible(e)) e.userMessage = msg; |       if (false) e.userMessage = msg;
+ * @mutate src/lib/declutter/setupHelpr.ts |       if (msg && Object.isExtensible(e)) Object.assign(e, { userMessage: msg, designedRefusal: true }); |       if (false) Object.assign(e, { userMessage: msg, designedRefusal: true });
  * @mutate src/lib/declutter/setupHelpr.ts |   return data === true; |   return data !== false;
  * @mutate src/lib/declutter/setupHelpr.ts |    handover: raw.handover === "porch" \|\| raw.handover === "delivery" \|\| raw.handover === "seller_delivery" ? raw.handover : "pickup_home", |    handover: raw.handover === "porch" ? "porch" : "pickup_home",
  * @mutate src/lib/declutter/setupHelpr.ts |    handover: raw.handover === "porch" \|\| raw.handover === "delivery" \|\| raw.handover === "seller_delivery" ? raw.handover : "pickup_home", |    handover: raw.handover === "porch" \|\| raw.handover === "delivery" ? raw.handover : "pickup_home",

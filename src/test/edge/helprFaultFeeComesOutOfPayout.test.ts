@@ -95,7 +95,7 @@ const restoreCalls = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "r
 /** The un-claim of the one-time setup fee (profiles.onboarding_fee_paid back to false). */
 const onboardingUnclaims = () =>
   scenario.writes.filter((w) => w.table === "profiles" && w.op === "update" && (w.payload as { onboarding_fee_paid?: unknown })?.onboarding_fee_paid === false);
-/** The setup fee is still owed: the atomic claim wins (1 row). */
+/** The setup fee is still owed, and this payout wins the atomic claim. */
 function owesSetupFee(s: SupabaseScenario) {
   s.reads.profiles = { rows: [{ ...(s.reads.profiles?.rows?.[0] as Record<string, unknown>), onboarding_fee_paid: false }] };
   s.writeSelectRows.profiles = [{ user_id: "helper-1" }];

@@ -224,7 +224,7 @@ function ProblemItem({ row }: { row: ProblemRow }) {
         {helprNeverPickedUp ? " The Helpr's fault (they took it and never picked it up) = the whole payment back, delivery included; the Helpr isn't paid and owes the card fee." : ""}
       </p>
       <label className="flex min-h-11 items-center gap-2 text-sm">
-        <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} checked={strike && !falseOn} disabled={fault === "none" || falseOn} onChange={(e) => setStrike(e.target.checked)} />
+        <input type="checkbox" className="h-[18px] w-[18px] min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} checked={strike && !falseOn} disabled={fault === "none" || falseOn} onChange={(e) => setStrike(e.target.checked)} />
         Give the at-fault side a strike
       </label>
       {/* B48 (lead 10-31): the seller's no-show report already struck this Helpr for this delivery (one per delivery),

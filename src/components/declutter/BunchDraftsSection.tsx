@@ -84,7 +84,7 @@ export function BunchDraftsSection({ userId, exclude, busy, feeDue, onBusy, atte
                     <Link className="shrink-0 underline" to={`/declutter/sell?item=${d.id}`} aria-label={`Add photos to ${d.title}`}>Add photos</Link>
                   </>
                 ) : (
-                  <label className="flex min-w-0 flex-1 items-center gap-3">
+                  <label className="flex min-h-11 min-w-0 flex-1 items-center gap-3">
                     <Checkbox checked={!leftOut.has(d.id)} onCheckedChange={(v) => setLeftOut((s) => { const n = new Set(s); if (v === true) n.delete(d.id); else n.add(d.id); return n; })} />
                     <span className="min-w-0 break-words">{d.title}</span>
                   </label>

@@ -1,7 +1,7 @@
-// @mutate src/components/rentals/RentPanel.tsx | <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} checked | <input type="checkbox" checked
+// @mutate src/components/rentals/RentPanel.tsx | <input type="checkbox" className="h-[18px] w-[18px] min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} checked | <input type="checkbox" checked
 // @mutate src/components/admin/helprFault/HelprFaultFields.tsx | <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }} name="helpr-fault-kind" value="no_show" | <input type="radio" name="helpr-fault-kind" value="no_show"
-// @mutate src/components/admin/AdminExceptionQueue.tsx | className="h-4 w-4 min-h-0 min-w-0 accent-[hsl(var(--primary))]" | className="h-4 w-4 accent-[hsl(var(--primary))]"
-// @mutate src/components/admin/AdminIDVReview.tsx | className="h-4 w-4 min-h-0 min-w-0 accent-[hsl(var(--bark))]" | className="h-4 w-4 shrink-0 accent-[hsl(var(--bark))]"
+// @mutate src/components/admin/AdminExceptionQueue.tsx | className="h-[18px] w-[18px] min-h-0 min-w-0 accent-[hsl(var(--primary))]" | className="h-[18px] w-[18px] accent-[hsl(var(--primary))]"
+// @mutate src/components/admin/AdminIDVReview.tsx | className="h-[18px] w-[18px] min-h-0 min-w-0 accent-[hsl(var(--bark))]" | className="h-[18px] w-[18px] shrink-0 accent-[hsl(var(--bark))]"
 /**
  * A NATIVE checkbox or radio sized with h-/w- utilities must also say min-h-*
  * and min-w-* (Q?idv-phone-row, 2026-10-17).

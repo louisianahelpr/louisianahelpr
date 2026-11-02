@@ -32,7 +32,7 @@ export function Checks({ legend, options, value, onChange }: { legend: string; o
           <label key={k} className="flex min-h-11 items-center gap-2 text-sm">
             <input
               type="checkbox"
-              className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }}
+              className="h-[18px] w-[18px] min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }}
               checked={value.includes(k)}
               onChange={(e) => onChange(e.target.checked ? [...value, k] : value.filter((x) => x !== k))}
             />

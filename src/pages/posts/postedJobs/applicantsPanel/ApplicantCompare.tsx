@@ -34,7 +34,7 @@ export function CompareCheck({ id, name, ids, toggle, labelHidden }: { id: strin
     <label className={`inline-flex min-h-11 items-center gap-2 text-ds-13 font-semibold ${full ? "text-muted-foreground" : "text-foreground"}`}>
       <input
         type="checkbox"
-        className="h-4 w-4 min-h-0 min-w-0"
+        className="h-[18px] w-[18px] min-h-0 min-w-0"
         style={{ accentColor: "hsl(var(--primary))" }}
         checked={on}
         disabled={full}

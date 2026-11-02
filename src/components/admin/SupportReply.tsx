@@ -238,7 +238,7 @@ export function SupportReplyComposer({
             onCheckedChange={(v) => setResolve(v === true)}
             disabled={sending}
           />
-          <label htmlFor={resolveId} className="text-ds-11 text-foreground">Mark resolved when sent</label>
+          <label htmlFor={resolveId} className="flex min-h-11 flex-1 items-center text-ds-11 text-foreground">Mark resolved when sent</label>
         </div>
       )}
       <div className="flex flex-wrap gap-2">

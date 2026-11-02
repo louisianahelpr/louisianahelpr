@@ -310,7 +310,7 @@ export const UserAuditLog = ({ userId }: UserAuditLogProps) => {
               rows={3}
               aria-label="Reason for reversing this strike"
             />
-            <label className="flex items-start gap-2 text-ds-12 text-muted-foreground cursor-pointer">
+            <label className="flex min-h-11 items-start gap-2 text-ds-12 text-muted-foreground cursor-pointer">
               <Checkbox
                 checked={restoreAccess}
                 onCheckedChange={(v) => setRestoreAccess(v === true)}

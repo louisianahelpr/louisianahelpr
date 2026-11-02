@@ -272,7 +272,7 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
                 className="mt-0.5"
                 aria-describedby={`${consentId}-text`}
               />
-              <label id={`${consentId}-text`} htmlFor={consentId} className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep) / 0.85)" }}>
+              <label id={`${consentId}-text`} htmlFor={consentId} className="min-h-11 flex-1 text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep) / 0.85)" }}>
                 {SMS_CONSENT_TEXT_BEFORE_LINKS}{" "}
                 <Link to="/terms" className="underline underline-offset-2">Terms</Link> and{" "}
                 <Link to="/privacy" className="underline underline-offset-2">Privacy Policy</Link>.

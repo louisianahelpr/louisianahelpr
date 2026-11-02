@@ -53,7 +53,7 @@ function PartnerForm({ draft, onDone }: { draft: Draft; onDone: () => void }) {
         <label className="space-y-1 text-xs font-medium sm:col-span-2">What they take (optional)<input className={INPUT} value={d.takes} maxLength={300} onChange={set("takes")} placeholder="Furniture, clothes, housewares. No mattresses." /></label>
       </div>
       <label className="flex min-h-11 items-center gap-2 text-sm">
-        <input type="checkbox" className="h-4 w-4 min-h-0 min-w-0" style={{ accentColor: "hsl(var(--primary))" }} checked={d.active} onChange={(e) => setD({ ...d, active: e.target.checked })} /> Active (offered to sellers)
+        <input type="checkbox" className="h-[18px] w-[18px] min-h-0 min-w-0" style={{ accentColor: "hsl(var(--primary))" }} checked={d.active} onChange={(e) => setD({ ...d, active: e.target.checked })} /> Active (offered to sellers)
       </label>
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" disabled={!ready || save.isPending} onClick={() => save.mutate()}>{save.isPending ? "Saving…" : d.id ? "Save" : "Add partner"}</Button>

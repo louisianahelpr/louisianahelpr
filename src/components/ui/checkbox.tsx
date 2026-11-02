@@ -22,9 +22,10 @@ const Checkbox = React.forwardRef<
     <CheckboxPrimitive.Root
       ref={ref}
       className={cn(
-        // iOS-style checkbox: 20×20 px for a comfortable tap target feel
-        // with a rounded-sm shape and brand-token checked state.
-        "peer h-5 w-5 shrink-0 rounded-sm",
+        // An 18 px box with a 12 px tick (owner 2026-11-01: "The check boxes
+        // are quite large"). The tap target is the label row around it
+        // (min-h-11), never the box. Guard: src/test/checkboxesAreEighteenPx.test.ts.
+        "peer h-[18px] w-[18px] shrink-0 rounded-sm",
         "border border-[hsl(var(--ink-deep)/0.25)]",
         "ring-offset-background",
         // Checked: THE BRAND PRIMARY, and its own paired foreground.
@@ -54,8 +55,8 @@ const Checkbox = React.forwardRef<
       {...props}
     >
       <CheckboxPrimitive.Indicator className={cn("flex items-center justify-center text-current")}>
-        {/* Slightly bolder, tighter check for a crisp iOS look. */}
-        <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+        {/* A 12 px tick, slightly bolder for a crisp iOS look. */}
+        <Check className="h-3 w-3 stroke-[2.5]" />
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>
   );

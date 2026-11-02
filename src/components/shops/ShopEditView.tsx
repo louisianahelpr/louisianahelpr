@@ -264,7 +264,7 @@ export default function ShopEditView() {
         </div>
         <div className="flex items-start gap-2">
           <Checkbox id="shop-storefront" checked={form.storefront} onCheckedChange={(v) => set("storefront", v === true)} />
-          <Label htmlFor="shop-storefront" className="font-normal leading-snug">
+          <Label htmlFor="shop-storefront" className="block min-h-11 flex-1 font-normal leading-snug">
             I have a storefront people can visit (the pin shows its exact place)
           </Label>
         </div>
@@ -272,11 +272,11 @@ export default function ShopEditView() {
           <legend className="text-sm font-medium">What your shop offers</legend>
           <div className="flex items-center gap-2">
             <Checkbox id="shop-selling" checked={form.offersSelling} onCheckedChange={(v) => set("offersSelling", v === true)} />
-            <Label htmlFor="shop-selling" className="font-normal">Selling things I make or have</Label>
+            <Label htmlFor="shop-selling" className="flex min-h-11 flex-1 items-center font-normal">Selling things I make or have</Label>
           </div>
           <div className="flex items-center gap-2">
             <Checkbox id="shop-quotes" checked={form.offersQuotes} onCheckedChange={(v) => set("offersQuotes", v === true)} />
-            <Label htmlFor="shop-quotes" className="font-normal">Quotes for work</Label>
+            <Label htmlFor="shop-quotes" className="flex min-h-11 flex-1 items-center font-normal">Quotes for work</Label>
           </div>
         </fieldset>
         <fieldset className="space-y-2">
@@ -292,7 +292,7 @@ export default function ShopEditView() {
                     checked={on}
                     onCheckedChange={(v) => set("parishes", v === true ? [...form.parishes, p.name] : form.parishes.filter((x) => x !== p.name))}
                   />
-                  <Label htmlFor={id} className="font-normal truncate">{p.name}</Label>
+                  <Label htmlFor={id} className="block min-h-11 min-w-0 flex-1 truncate py-3 font-normal">{p.name}</Label>
                 </div>
               );
             })}
@@ -310,7 +310,7 @@ export default function ShopEditView() {
                     checked={h.open}
                     onCheckedChange={(v) => set("hours", { ...form.hours, [i]: { ...h, open: v === true } })}
                   />
-                  <Label htmlFor={`open-${i}`} className="font-normal">{day}</Label>
+                  <Label htmlFor={`open-${i}`} className="flex min-h-11 flex-1 items-center font-normal">{day}</Label>
                 </div>
                 {h.open && (
                   <>

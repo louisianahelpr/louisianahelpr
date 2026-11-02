@@ -159,7 +159,7 @@ export function SeriesDatesPanel({
         <label className="flex items-center gap-2 min-h-[44px] flex-1 cursor-pointer">
           <input
             type="checkbox"
-            className="h-4 w-4 min-h-0 min-w-0 shrink-0"
+            className="h-[18px] w-[18px] min-h-0 min-w-0 shrink-0"
             checked={picked.includes(d.date)}
             onChange={() => toggle(d.date)}
             aria-label={formatJobDate(d.date)}

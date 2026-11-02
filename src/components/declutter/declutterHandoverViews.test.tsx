@@ -1832,3 +1832,46 @@ describe("A3-63: a porch booking says its 2-hour window, not (30 minutes)", () =
     state.pickupTimes = [];
   });
 });
+
+// A3-63 follow-up (lead 11-01): "Move the pickup" on a porch order offers 2-hour windows, as checkout does; a door
+// order keeps its 30-minute times.
+// @mutate src/components/declutter/DeclutterPickupWindows.tsx |     () => (q.data ? (porch ? porchWindowDays : pickupDays)( |     () => (q.data ? (pickupDays)(
+// @mutate src/components/declutter/DeclutterHandoverViews.tsx | noTimes={booked ? null : noTimes} porch={porch} | noTimes={booked ? null : noTimes}
+// @mutate src/components/declutter/paidOrders.ts |   void qc.invalidateQueries({ queryKey: ["declutter", "order-pickup-times"] }); |
+describe("A3-63 follow-up: moving a porch pickup offers 2-hour windows", () => {
+  const windows = [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts: "09:00:00", ends: "13:00:00" }));
+  beforeEach(() => {
+    state.refundRequest = null;
+    state.handover = null;
+    state.porchDays = null;
+    state.meetup = null;
+    state.calls = [];
+    state.pickupTimes = [];
+    state.windows = { windows, latestPickupAt: new Date(Date.now() + 7 * 86_400_000).toISOString() };
+    state.bookings = [{ order_id: "o1", slot_start: new Date(Date.now() + 26 * 3600e3).toISOString(), slot_end: null,
+      porch_mode: null, porch_until: null, buyer_reschedules: 0, seller_reschedules: 0 }];
+  });
+  const chipsAfterMove = async () => {
+    fireEvent.click(await screen.findByRole("button", { name: "Move the pickup" }));
+    const day = within(screen.getByRole("group", { name: "Pickup day" })).getAllByRole("button")[1];
+    fireEvent.click(day);
+    return within(screen.getByRole("group", { name: `Pickup time on ${day.textContent}` })).getAllByRole("button").map((b) => b.textContent);
+  };
+
+  it("porch, buyer: the move's chips are windows, 9–11 AM and 11 AM–1 PM", async () => {
+    show([line({ handover: "porch", my_side: "buyer" })]);
+    expect(await chipsAfterMove()).toEqual(["9–11 AM", "11 AM–1 PM"]);
+  });
+
+  it("door pickup: the move keeps 30-minute times", async () => {
+    show([line({ handover: "pickup_home", my_side: "buyer" })]);
+    const chips = await chipsAfterMove();
+    expect(chips[0]).toBe("9:00 AM");
+    expect(chips).toHaveLength(8); // 9:00 AM to 12:30 PM
+  });
+
+  it("a booking or move refreshes the order's chosen time the card reads", async () => {
+    const src = blankComments(readFileSync("src/components/declutter/paidOrders.ts", "utf8"));
+    expect(src).toContain('void qc.invalidateQueries({ queryKey: ["declutter", "order-pickup-times"] });');
+  });
+});

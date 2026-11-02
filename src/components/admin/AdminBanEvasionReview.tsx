@@ -122,7 +122,8 @@ export function AdminBanEvasionReview() {
           .select("id, user_id, matched_on, original_ban_status, original_reason, original_recorded_at, created_at")
           // Q1416: every doubt-check kind (never the auto-ban kinds).
           .in("matched_on", [...DOUBT_CHECK_KINDS])
-          // An auto-ban ('phone' at signup, card, bank) is a review above, not a doubt-check.
+          // An auto-ban (email, identity, card, bank) is a review above, not a doubt-check. Since Q1714 a phone match
+          // is only ever a doubt-check, never an auto-ban (Q1903 comment fix).
           .eq("auto_banned", false)
           .eq("resolved", false)
           .order("created_at", { ascending: false })

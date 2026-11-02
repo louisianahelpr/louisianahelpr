@@ -84,6 +84,13 @@ export interface PreviewSample {
    * their cancel sheet lives (ConfirmedSection, helper_cancel_booking).
    */
   draws: "job_page" | "helpr_working_card";
+  /** The poster's cancel quote (create-payment cancel_quote), answered silently: it is a read. */
+  cancelQuote: { can_cancel: boolean; fee_cents: number; fee_percent: number; back_to_you_cents: number; charge_state: "hold" };
+  /**
+   * The final actions the preview answers with the success shape their screen expects (audit 1102e: "Cancelling…"
+   * never finished), by RPC name. The page then draws the stage after it (JobPreviewPage AFTER_ACTION).
+   */
+  actions: Record<string, unknown>;
 }
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -327,6 +334,7 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
     }
   }
 
+  const lateFeeCents = stage === "cancel_sheet" && job.helper_id ? Math.round(job.budget * 25) : 0;
   // The poster always reads their own row; a Helpr is a party once offered or hired (or on the crew).
   const party = viewer === "poster" || job.helper_id === PREVIEW_HELPR_ID || crew.includes(PREVIEW_HELPR_ID);
   return {
@@ -346,6 +354,8 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
       get_my_activity_cores: null,
       // The Helpr's Working card asks for the job's pets (JobPetCareSheet); the sample job has none.
       get_job_pets: [],
+      // Audit 1102e: a read some sheets make ("this would run declutter_my_refund_todos" showed as if an action).
+      declutter_my_refund_todos: [],
     },
     tables: {
       job_guarantee_claims: [],
@@ -364,6 +374,14 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
     // Both sides' cancel sheets: the poster's on the job page, the Helpr's on their Working card.
     opens: stage === "cancel_sheet" ? "Cancel job" : null,
     draws: stage === "cancel_sheet" && viewer === "helpr" ? "helpr_working_card" : "job_page",
+    // Inside 24 hours of the start (the Cancel sheet stage) a quarter of the job pays the Helpr for the time held, as
+    // the Late cancel by poster stage records (cancellation_fee 30); otherwise nothing is kept.
+    cancelQuote: { can_cancel: true, fee_cents: lateFeeCents, fee_percent: lateFeeCents ? 25 : 0, back_to_you_cents: job.budget * 100 - lateFeeCents, charge_state: "hold" },
+    actions: {
+      poster_cancel_job: { action: lateFeeCents ? "warning" : "none", cancellation_fee: lateFeeCents / 100, had_helper: !!job.helper_id },
+      // No action word: "Job cancelled. This counts as a reliability strike." (inside 24 hours); "none" outside them.
+      helper_cancel_booking: stage === "cancel_sheet" ? {} : { action: "none" },
+    },
     profiles: [
       { id: PREVIEW_POSTER_ID, full_name: "Lexi Landry", avatar_url: null, created_at: "2025-03-14T15:00:00Z" },
       { id: PREVIEW_HELPR_ID, full_name: "Eli Robichaux", avatar_url: null, created_at: "2025-06-02T15:00:00Z" },

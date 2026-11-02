@@ -73,7 +73,7 @@ describe("needs-you deadline reminders (A3-85)", () => {
   // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |     WHEN p_type = 'payment' AND p_title IN ('Check out within 24 hours', '2 hours left to check out') THEN 'needs_you' |     WHEN p_type = 'payment' AND p_title IN ('Check out within 24 hours') THEN 'needs_you'
   // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |     WHEN p_type = 'warning' AND p_title = 'Please review the work' THEN 'needs_you' |     WHEN p_type = 'warning' AND p_title = 'Please review the work' THEN 'job_update'
   // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |                      'declutter_offers', 'declutter_refunds', 'declutter_pickups')) |                      'declutter_refunds', 'declutter_pickups'))
-  // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |       OR (r.kind = 'needs_you' AND n.created_at < v_now - interval '1 hour') |       OR false
+  // @mutate supabase/migrations/20261102034632_sms_needs_you_step_done.sql |       OR (r.kind = 'needs_you' AND n.created_at < v_now - interval '1 hour') |       OR false
   it("every needs-you notice is texted as 'needs_you', the trigger wakes for its types, and a late text is dropped", () => {
     const kind = newestFunctionBody("sms_kind_for");
     expect(kind).toContain("WHEN p_type = 'warning' AND p_title = 'Please review the work' THEN 'needs_you'");
@@ -89,6 +89,26 @@ describe("needs-you deadline reminders (A3-85)", () => {
     for (const t of ["declutter_offers", "declutter_refunds", "declutter_pickups", "payment", "warning"]) expect(trg).toContain(`'${t}'`);
     const claim = newestFunctionBody("sms_claim_due");
     expect(claim).toContain("OR (r.kind = 'needs_you' AND n.created_at < v_now - interval '1 hour')");
+  });
+
+  // 20261102034632 (B137): a needs-you text whose step was done while it waited is dropped at claim time ('step_done'),
+  // matched to its reminder's claim row; behaviour (6 scenarios, planted defects) is
+  // src/test/pglite/smsNeedsYouStepDone.pglite.mjs. These are the rule's anchors in the newest sms_claim_due.
+  // @mutate supabase/migrations/20261102034632_sms_needs_you_step_done.sql |         v_reason := 'step_done'; |         v_reason := NULL;
+  // @mutate supabase/migrations/20261102034632_sms_needs_you_step_done.sql | o.status = 'open' AND o.respond_by = s.deadline | o.status = 'open'
+  // @mutate supabase/migrations/20261102034632_sms_needs_you_step_done.sql | q.status = 'offered' AND q.offer_answer_by = s.deadline | q.status = 'open' AND q.offer_answer_by = s.deadline
+  it("a needs-you text whose step is already done is dropped at claim time, matched to its own claim", () => {
+    const claim = newestFunctionBody("sms_claim_due").replace(/\s+/g, " ");
+    expect(claim).toContain("v_reason := 'step_done';");
+    expect(claim).toContain("FROM public.needs_you_reminder_sends s WHERE s.user_id = r.user_id AND s.step = v_step");
+    expect(claim).toContain("o.status = 'open' AND o.respond_by = s.deadline AND (CASE WHEN o.awaiting = 'seller' THEN o.seller_id ELSE o.buyer_id END) = s.user_id");
+    expect(claim).toContain("q.status = 'open' AND q.answer_by = s.deadline");
+    expect(claim).toContain("q.status = 'offered' AND q.offer_answer_by = s.deadline");
+    // Every title the sweep writes maps to its step here.
+    const sweep = newestFunctionBody("sweep_needs_you_reminders");
+    const titles = [...sweep.matchAll(/THEN '([A-Z][^']+)' ELSE '([A-Z][^']+)' END;/g)].flatMap((m) => [m[1], m[2]]);
+    expect(titles.length).toBe(6);
+    for (const t of titles) expect(claim, t).toMatch(new RegExp(`WHEN '${t}' THEN '(offer|refund_answer|refund_offer)'`));
   });
 
   // @mutate supabase/functions/_shared/smsPolicy.ts |   if (kind === "needs_you") return "/declutter"; |   if (kind === "needs_you") return "/jobs";

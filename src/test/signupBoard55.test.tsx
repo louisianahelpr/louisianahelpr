@@ -13,6 +13,7 @@
  * @mutate src/pages/auth/signup/SignupStep1.tsx |             setAgeConfirmed(checked === true);\n |             void 0;\n
  * @mutate src/pages/auth/signup/SignupStep1.tsx |           {t("login.submit")}\n        </Link> |           Log In\n        </Link>
  * @mutate src/pages/auth/signup/SignupStep1.tsx |         className="w-full rounded-full"\n        size="lg"\n        onClick={handleContinue} |         className="w-full rounded-ds-md"\n        size="lg"\n        onClick={handleContinue}
+ * @mutate src/lib/i18n/enScreens.ts | "signup.subtitle": "One account to hire help, find work, and buy or sell nearby." | "signup.subtitle": "One account to hire help or find work."
  * @mutate src/pages/auth/Signup.tsx |       title={step === 1 ? undefined : stepHeading.title} |       title={step === 1 ? "Create Account" : stepHeading.title}
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -51,10 +52,10 @@ describe("Create account matches board 55", () => {
     // Spanish option (2026-10-29): the words live in the dictionary (en.ts), read through t().
     expect(step1).toContain('>{t("signup.title")}</h1>');
     expect(en["signup.title"]).toBe("Create your account");
-    // A3-L6 (2026-10-29): buying and selling (Declutter, Shops) still say "Coming soon" to members,
-    // so the subhead promises only what is open, in the landing hero's words.
+    // A3-L6 (2026-10-29) kept buying and selling out while Declutter said "Coming soon". A3-93 (audit 11-01):
+    // Declutter is open to everyone (10-30), so the subhead names it; Shops stay out ("nearby" buying and selling).
     expect(step1).toContain('{subtitle ?? t("signup.subtitle")}');
-    expect(en["signup.subtitle"]).toBe("One account to hire help or find work.");
+    expect(en["signup.subtitle"]).toBe("One account to hire help, find work, and buy or sell nearby.");
     expect(step1).not.toMatch(/buy and sell/);
     expect(signup).toContain("title={step === 1 ? undefined : stepHeading.title}");
     expect(signup + step1).not.toMatch(/"Create Account"|"About You"|>Log in<|Did You Mean/);

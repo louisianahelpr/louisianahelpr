@@ -84,6 +84,11 @@ function PreviewBackend({ sample, children }: { sample: PreviewSample; children:
       setReady(false);
     };
   }, []);
+  // Audit 1102e: a new stage or side drops the shared reads too. The block read is kept 2 s (userBlocks.ts), so "After
+  // a block" opened within 2 s of another stage drew that stage's blocks (none), and Eli stayed in the inbox.
+  useLayoutEffect(() => {
+    forgetSharedReads();
+  }, [sample]);
   return ready ? <>{children}</> : null;
 }
 

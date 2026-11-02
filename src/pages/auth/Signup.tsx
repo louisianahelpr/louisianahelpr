@@ -495,28 +495,9 @@ const Signup = () => {
           {/* Liquid-glass card — matches the Login screen so the two auth
               screens read as one set (see Login.tsx's `.liquid-glass` card). */}
           <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6">
-            {/* No heading inside the card. Both steps' [back] [title] rows are
-                now AuthShell's `title` row above it. The subtitle stays — it is
-                supporting copy for the card, not a heading.
-
-                Rendered WITHOUT a wrapper div. It previously sat inside
-                `<div className="text-left space-y-1">`, which on step 1 (no
-                subtitle) rendered an EMPTY div that still counted as a child of
-                the card's `space-y-6` — so Create Account opened with 24px more
-                air above the Email field than Sign In did, on two cards that are
-                otherwise the same component. An empty element is invisible;
-                the gap it reserves is not. */}
-            {step === 2 && stepHeading.subtitle && (
-              <p
-                className="font-sans text-ds-15 text-left"
-                style={{
-                  color: "hsl(var(--olivewood) / 0.8)",
-                  letterSpacing: "0.01em",
-                }}
-              >
-                {stepHeading.subtitle}
-              </p>
-            )}
+            {/* No heading inside the card: both steps' [back] [title] rows are
+                AuthShell's `title` row above it, and step 2 has no subtitle
+                (Q2257: its subtitle block could never render and was removed). */}
 
         {/* Step 2: About you + ID */}
         {step === 2 && (

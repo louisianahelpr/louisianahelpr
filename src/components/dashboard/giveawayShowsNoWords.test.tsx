@@ -12,7 +12,7 @@
  * @mutate src/components/dashboard/helprTakeHome.tsx |       {!fixedPay && <span className="sr-only">Your pay </span>}<span className="font-semibold |       {"You take home "}<span className="font-semibold
  * @mutate src/components/dashboard/helprTakeHome.tsx |         {!fixedPay && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)} |         <span className="sr-only">Your pay </span>${formatPriceFloor(net)}
  * @mutate src/components/dashboard/applyConfirmDialog/ApplyEarningsBreakdown.tsx |       {!isGiveawayFixedPayJob(confirmApplyJob) && ( |       {true && (
- * @mutate src/components/messages/chatView/DealCard.tsx |       {!isGiveawayFixedPayJob(job) && <p className="font-sans text-ds-11 text-muted-foreground">you take home</p>} |       <p className="font-sans text-ds-11 text-muted-foreground">you take home</p>
+ * @mutate src/components/messages/chatView/DealCard.tsx | {!isGiveawayFixedPayJob(job) && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)} | <span className="sr-only">Your pay </span>${formatPriceFloor(net)}
  * @mutate src/pages/tips/TipMoment.tsx | isGiveawayFixedPayJob(job) ? "Job" : "Job, you take home" | "Job, you take home"
  * @mutate src/components/dashboard/CompactJobCard.tsx | isNet && !isGiveawayFixedPayJob(job) ? "you earn " | isNet ? "you earn "
  * @mutate src/components/profile/ScheduleTab.tsx |   const amountTitle = isPosted ? "Your budget for this job" : fixedPay ? undefined : |   const amountTitle = isPosted ? "Your budget for this job" :
@@ -84,7 +84,9 @@ describe("the giveaway shows $50 with no words; every other job keeps them", () 
   it("the chat's job card, the tip screen and the schedule's title drop their words on the giveaway (source: both need a full conversation or schedule to mount)", () => {
     const root = resolve(__dirname, "../../..");
     const deal = blankComments(readFileSync(resolve(root, "src/components/messages/chatView/DealCard.tsx"), "utf8"));
-    expect(deal).toContain('{!isGiveawayFixedPayJob(job) && <p className="font-sans text-ds-11 text-muted-foreground">you take home</p>}');
+    // Owner 11-01 (A3-87): the chat card's figure stands alone; only an ordinary job's screen reader hears "Your pay".
+    expect(deal).toContain('{!isGiveawayFixedPayJob(job) && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)}');
+    expect(deal).not.toMatch(/you take home|held safely/i);
     const tip = blankComments(readFileSync(resolve(root, "src/pages/tips/TipMoment.tsx"), "utf8"));
     expect(tip).toContain('isGiveawayFixedPayJob(job) ? "Job" : "Job, you take home"');
     const compact = blankComments(readFileSync(resolve(root, "src/components/dashboard/CompactJobCard.tsx"), "utf8"));

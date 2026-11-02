@@ -72,9 +72,9 @@ function HelprDealPrice({ job }: { job: TakeHomeJob }) {
   if (!(net > 0)) return null;
   return (
     <div className="shrink-0 text-right" data-deal-take-home="">
-      <p className="font-sans font-bold text-ds-16 tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>${formatPriceFloor(net)}</p>
-      {/* Owner 2026-10-30: the giveaway shows its $50 with no words. */}
-      {!isGiveawayFixedPayJob(job) && <p className="font-sans text-ds-11 text-muted-foreground">you take home</p>}
+      {/* Owner 11-01 (A3-87): "Remove you take home": the figure alone; a screen reader still hears "Your pay"
+          (the giveaway, owner 10-30, has no words at all). */}
+      <p className="font-sans font-bold text-ds-16 tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>{!isGiveawayFixedPayJob(job) && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)}</p>
     </div>
   );
 }
@@ -276,9 +276,9 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
           <HelprDealPrice job={{ ...job, budget: job.budget }} />
         )}
         {typeof job.budget === "number" && job.budget > 0 && viewerIsPoster && (
-          <div className="shrink-0 text-right">
+          // Owner 11-01 (A3-87): no "held safely" line under a paid job's price, as on the job page.
+          <div className="shrink-0 text-right" data-deal-paid="">
             <p className="font-sans font-bold text-ds-16 tabular-nums" style={{ color: "hsl(var(--burnt-sienna))" }}>${formatPrice(job.budget)}</p>
-            {stage.held && <p className="font-sans text-ds-11 text-muted-foreground">held safely</p>}
           </div>
         )}
       </div>

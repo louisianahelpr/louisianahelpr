@@ -7,9 +7,13 @@
  *
  * @mutate src/components/messages/chatView/DealCard.tsx |         {typeof job.budget === "number" && job.budget > 0 && viewerIsPoster && ( |         {typeof job.budget === "number" && job.budget > 0 && (
  * @mutate src/components/messages/chatView/DealCard.tsx |   const { net } = useHelprTakeHome(job); |   const net = job.budget;
+ * @mutate src/components/messages/chatView/DealCard.tsx | <div className="shrink-0 text-right" data-deal-paid=""> | <div className="shrink-0 text-right" data-deal-paid="">{stage.held && <p>held safely</p>}
+ *
+ * Owner 11-01 (A3-87): the card's figure stands alone ("You take home" gone; an sr-only "Your pay"), and the
+ * poster's price has no "held safely" line, as on the job page.
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Conversation } from "../types";
@@ -93,8 +97,8 @@ describe("chat job card: the Helpr sees their take-home (F2)", () => {
 
   it("the hired Helpr sees $35 (40 - 2.70 fee - the $2 setup fee, floored), not $40", async () => {
     const { container } = show(false);
-    await screen.findByText("you take home");
-    expect(container.querySelector("[data-deal-take-home]")?.textContent).toContain("$35");
+    await waitFor(() => expect(container.querySelector("[data-deal-take-home]")?.textContent).toBe("Your pay $35"));
+    expect(container.textContent).not.toMatch(/take home/i);
     expect(container.textContent).not.toContain("$40");
     expect(container.textContent).not.toContain("held safely");
   });
@@ -102,15 +106,14 @@ describe("chat job card: the Helpr sees their take-home (F2)", () => {
   it("with the setup fee already paid, the take-home is $37", async () => {
     state.owed = 0;
     const { container } = show(false);
-    await screen.findByText("you take home");
-    expect(container.querySelector("[data-deal-take-home]")?.textContent).toContain("$37");
+    await waitFor(() => expect(container.querySelector("[data-deal-take-home]")?.textContent).toBe("Your pay $37"));
   });
 
-  it("the poster still sees the $40 they paid, held safely", async () => {
+  it("the poster still sees the $40 they paid, with no 'held safely' line (owner 11-01)", async () => {
     const { container } = show(true);
-    await screen.findByText("held safely");
-    expect(container.textContent).toContain("$40");
-    // The card has loaded ("held safely" is on screen), so the absence is real, not a first paint.
+    await screen.findByText("$40");
+    expect(container.textContent).not.toMatch(/held safely/i);
+    // The card has loaded ("$40" is on screen), so the absence is real, not a first paint.
     expect(container.querySelector("[data-deal-take-home]")).toBeNull();
     expect(container.textContent).not.toContain("you take home");
   });

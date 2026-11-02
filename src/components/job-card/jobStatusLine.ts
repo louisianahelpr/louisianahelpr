@@ -22,7 +22,7 @@ import { PAYMENT_PROBLEM_COPY, cardPaymentProblem, type JobPaymentProblem } from
 import { APPROVAL_WINDOW_HOURS, hoursToMs } from "../../../supabase/functions/_shared/escrowTiming";
 import { confirmDeadlineMs, confirmOpensMs, posterConfirmClosesMs } from "@/lib/jobDate";
 import { EXPIRED_WORD, jobStartDateTime } from "@/lib/dateUtils";
-import { TODAY_ANY_TIME_LINE, hasStartTime } from "@/lib/anyTimeThatDay";
+import { CREW_TODAY_LINE, TODAY_ANY_TIME_LINE, hasStartTime } from "@/lib/anyTimeThatDay";
 import { workHasBegun } from "@/components/tracker/workHasBegun";
 
 /**
@@ -1039,7 +1039,7 @@ export function helperStatusLine(
     id,
     eyebrow: expired ? APPLICANT_CLOSED_EYEBROW : copy.eyebrow ?? BUCKET_LABEL[bucket],
     // Q2588: "It's time" never on a no-start-time job (anyTimeThatDay.ts): today, any time.
-    detail: expired ? APPLICANT_CLOSED_DETAIL : id === "today" && app.job && !hasStartTime(app.job) ? TODAY_ANY_TIME_LINE : named ?? copy.detail,
+    detail: expired ? APPLICANT_CLOSED_DETAIL : id === "today" && app.job?.is_group_job === true ? CREW_TODAY_LINE : id === "today" && app.job && !hasStartTime(app.job) ? TODAY_ANY_TIME_LINE : named ?? copy.detail,
     tone: copy.tone ?? BUCKET_TONE[bucket],
     owesConfirmation: id === "confirm_booking" || id === "confirm_spot",
     suffix:

@@ -6,13 +6,15 @@
  * never late and never "It's time" on its day; the face's I'm on my way from 8:00 AM, never the night before.
  *
  * @mutate src/components/tracker/jobProgressState.ts |   if (!hasStartTime(job)) return null; |   if (false) return null;
- * @mutate src/components/tracker/jobProgressState.ts |   const helprLine = !hasStartTime(job) ? (started ? TODAY_ANY_TIME_LINE : "Tap I'm on my way when you leave") : started | const helprLine = started
+ * @mutate src/components/tracker/jobProgressState.ts |     : !hasStartTime(job) ? (started ? TODAY_ANY_TIME_LINE : "Tap I'm on my way when you leave") : started |     : started
  * @mutate src/components/job-card/jobStatusLine.ts |         if (!hasStartTime(job)) return "confirmed"; |         if (false) return "confirmed";
  * @mutate src/components/job-card/jobStatusLine.ts | id === "today" && app.job && !hasStartTime(app.job) ? TODAY_ANY_TIME_LINE : | false ? TODAY_ANY_TIME_LINE :
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |       if (from && Date.now() < from.getTime()) return null; |       if (false) return null;
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |     if (!job.start_time) { |     if (false) {
  * @mutate src/components/job-card/collapsedClocks.ts |   if (job.helper_on_the_way_at) return []; |   if (false) return [];
  * @mutate src/components/job-card/collapsedClocks.ts |   if (!job.start_time && Date.now() >= jobDayStart(job.date_needed).getTime()) return []; |   if (false) return [];
+ * @mutate src/components/tracker/jobProgressState.ts |   const helprLine = job.is_group_job === true | const helprLine = false
+ * @mutate src/components/job-card/jobStatusLine.ts | id === "today" && app.job?.is_group_job === true ? CREW_TODAY_LINE : | false ? CREW_TODAY_LINE :
  * @mutate src/lib/anyTimeThatDay.ts | export const ANY_TIME_FACE_FROM = "08:00"; | export const ANY_TIME_FACE_FROM = "00:00";
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -84,5 +86,15 @@ describe("a job with no start time is any time that day: never late, never 'It's
     at(AT_3AM);
     expect(collapsedClocks({ ...j, start_time: "14:00" }, true).map((c) => c.id)).toContain("start");
     expect(collapsedClocks({ ...j, start_time: "14:00", helper_on_the_way_at: "2026-11-10T08:49:00Z" }, true)).toEqual([]);
+  });
+
+  // Q2602 (Jobs audit 1102b row 16, A3-33): the crew member read "It's time — tap I'm on my way" with no such button.
+  it("a crew member's line names See your crew steps, never a missing I'm on my way", () => {
+    at(AT_3AM);
+    const crew = { ...confirmed, is_group_job: true, helper_id: null, status: "in_progress", start_time: "02:00" } as unknown as ProgressJob;
+    const line = jobProgress(crew, { viewer: "helpr", otherFirst: "Lexi", now: AT_3AM }).next;
+    expect(line).not.toMatch(/I'm on my way/);
+    const card = helperStatusLine({ id: "a", job: { ...crew, status: "accepted" } as unknown as Job, job_id: "j1", helper_id: "h", status: "accepted", closed_reason: null, posterName: "Lexi" } as unknown as AppliedApp).detail;
+    expect(card).not.toMatch(/I'm on my way/);
   });
 });

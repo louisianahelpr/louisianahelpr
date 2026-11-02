@@ -1,4 +1,29 @@
-Helpr is a community-focused gig economy platform designed to connect Louisiana residents with local service providers. Whether you need a hand with household chores, lawn care, or professional services, Helpr makes it easy to find and book help nearby. Support local businesses and get your to-do list done faster with Helpr!
+Louisiana Helpr is the local app for getting things done and clearing things out. Hire someone nearby for a job, find work near you, and buy, sell or give away used household things. One account does all of it.
+
+JOBS
+Post what you need. Describe the job, add photos and set your price. Yard work, cleaning, moving help, handyman fixes, assembly, pet care, errands, storm prep, painting and more, plus skilled trades like electrical, plumbing and HVAC.
+
+Pick your Helpr. See who applied, read their profile and reviews, and chat before you hire.
+
+Pay when it's done. Your money is held safely until you approve the work.
+
+Looking for work? Browse jobs near you, see your take-home, then apply. Their payment is held safely, then released to you once the work is approved.
+
+DECLUTTER
+Sell what you don't use anymore. Snap a few photos, set a price and list it, or list a whole bunch at once. Moving? Run a moving out sale, then hire a Helpr to haul away what's left.
+
+Buy from people nearby. Browse used furniture, tools, baby and kids gear, home decor and more. Buy now or make an offer.
+
+Give it away. List things for free and pick who gets them. Looking for something? Post a Wanted and let sellers come to you.
+
+Pickup or delivery. Pick a pickup time with the seller, or have it delivered by the seller or a local Helpr.
+
+Pay in the app. The money is held until the handover is confirmed.
+
+BUILT FOR LOUISIANA
+Louisiana Helpr is made for Louisiana and nowhere else. Chat in the app, and pay through Stripe.
+
+Members must be 18 or older.
 
 Terms of Use: https://www.louisianahelpr.com/terms
 Privacy Policy: https://www.louisianahelpr.com/privacy

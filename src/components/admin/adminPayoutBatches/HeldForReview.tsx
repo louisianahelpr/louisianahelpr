@@ -13,6 +13,8 @@
  * A Shops refund (20261019071055, held because a refund was made in Stripe on its order) is
  * settled only for its WHOLE amount (the amount is fixed here; the SQL refuses any other), and
  * the SQL refuses to release a Shops row while that Stripe refund stands.
+ * Q1931 (20261102043754): a Declutter delivery payout or delivery-fee refund that used its 12 tries is listed
+ * here too (gave_up), with only "Mark settled by hand": send it in Stripe, then record it.
  */
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -39,6 +41,8 @@ export type HeldRow = {
   held_at: string | null;
   stripe_group: string | null;
   sibling_refs?: Array<{ kind: string; id: string; ref: string; amount_cents: number }> | null;
+  /** Q1931: a Declutter delivery row that used its 12 tries (still 'failed'): settled by hand only, never released. */
+  gave_up?: boolean;
 };
 
 const KIND_LABEL: Record<HeldRow["kind"], string> = {
@@ -162,7 +166,9 @@ export function HeldForReview() {
               </p>
             )}
             <div className="mt-1 flex flex-wrap gap-2">
-              <Button size="sm" variant="outline" onClick={() => setDraft({ row: r, action: "release", note: "", ref: "", amount: "", confirmed: false })}>Release to automatic</Button>
+              {!r.gave_up && (
+                <Button size="sm" variant="outline" onClick={() => setDraft({ row: r, action: "release", note: "", ref: "", amount: "", confirmed: false })}>Release to automatic</Button>
+              )}
               <Button size="sm" variant="outline"
                 onClick={() => setDraft({ row: r, action: "settle", note: "", ref: "", amount: (r.amount_cents / 100).toFixed(2), confirmed: false })}>
                 Mark settled by hand

@@ -170,6 +170,26 @@ describe("Held for review (admin money page)", () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/refund made in Stripe stands on this order/)));
   });
 
+  // Q1931 (20261102043754): a Declutter delivery row that used its 12 tries is listed with only "Mark settled by hand".
+  // @mutate src/components/admin/adminPayoutBatches/HeldForReview.tsx |               {!r.gave_up && ( |               {true && (
+  // @mutate src/components/admin/adminPayoutBatches/heldReason.ts |   gave_up: "Stopped after 12 failed tries. Send it by hand in Stripe, then mark it settled",\n |
+  it("a delivery row that gave up after 12 tries offers only Mark settled by hand, and says why in words", async () => {
+    const gaveUp: HeldRow = { kind: "delivery_refund", id: "0000000b-0000-4000-8000-0000000000dd", payee_id: "u1", payee_account: null,
+      amount_cents: 799, reason: "gave_up: card expired", held_at: "2026-10-30T07:00:00Z", stripe_group: "pi_x", gave_up: true };
+    rpcMock.mockImplementation(async (fn: string) => (fn === "admin_payouts_held_for_review" ? { data: [gaveUp], error: null } : { data: { result: "settled" }, error: null }));
+    mount();
+    expect(await screen.findByText("Delivery-fee refund · $7.99")).toBeTruthy();
+    expect(screen.getByText("Stopped after 12 failed tries. Send it by hand in Stripe, then mark it settled. Detail: card expired")).toBeTruthy();
+    expect(screen.queryByText("Release to automatic")).toBeNull();
+    fireEvent.click(screen.getByText("Mark settled by hand"));
+    fireEvent.change(screen.getByLabelText("Stripe id"), { target: { value: "re_hand1" } });
+    fireEvent.change(screen.getByLabelText("Note"), { target: { value: "sent in Stripe after the queue gave up" } });
+    fireEvent.click(screen.getByLabelText(/I checked this Stripe id/));
+    fireEvent.click(screen.getByText("Mark settled").closest("button") as HTMLButtonElement);
+    await waitFor(() => expect(rpcMock).toHaveBeenCalledWith("admin_payout_settle_by_hand",
+      { p_kind: "delivery_refund", p_id: gaveUp.id, p_ref: "re_hand1", p_amount_cents: 799, p_note: "sent in Stripe after the queue gave up" }));
+  });
+
   it("is mounted on the admin money page (floor)", () => {
     expect(readFileSync("src/components/admin/AdminPayoutBatches.tsx", "utf8")).toMatch(/<HeldForReview \/>/);
   });

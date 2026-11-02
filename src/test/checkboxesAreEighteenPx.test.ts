@@ -1,7 +1,7 @@
 // @mutate src/components/ui/checkbox.tsx | "peer h-[18px] w-[18px] shrink-0 rounded-sm", | "peer h-5 w-5 shrink-0 rounded-sm",
 // @mutate src/components/ui/checkbox.tsx | <Check className="h-3 w-3 stroke-[2.5]" /> | <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-// @mutate src/pages/auth/signup/SignupStep1.tsx | className="mt-px shrink-0" | className="h-5 w-5 mt-px shrink-0 [&_svg]:h-4 [&_svg]:w-4"
-// @mutate src/pages/auth/CompleteProfile.tsx | className="mt-px shrink-0" | className="h-3.5 w-3.5 mt-px shrink-0"
+// @mutate src/pages/auth/signup/SignupStep1.tsx | setMarketingConsent(checked === true)}\n          className="mt-px shrink-0" | setMarketingConsent(checked === true)}\n          className="h-5 w-5 mt-px shrink-0 [&_svg]:h-4 [&_svg]:w-4"
+// @mutate src/pages/auth/CompleteProfile.tsx | setAgeConfirmed(v === true)}\n                  className="mt-px shrink-0" | setAgeConfirmed(v === true)}\n                  className="h-3.5 w-3.5 mt-px shrink-0"
 // @mutate src/components/admin/AdminExceptionQueue.tsx | className="h-[18px] w-[18px] min-h-0 min-w-0 accent-[hsl(var(--primary))]" | className="h-4 w-4 min-h-0 min-w-0 accent-[hsl(var(--primary))]"
 // @mutate src/components/messages/ConversationRow.tsx | className="w-[18px] h-[18px] rounded-full | className="w-6 h-6 rounded-full
 // @mutate src/components/firstRun/FirstRun.tsx | className="shrink-0 w-[18px] h-[18px] rounded-full | className="shrink-0 w-7 h-7 rounded-full
@@ -77,9 +77,11 @@ function scan() {
       if (row === null) {
         const id = /\bid=(?:"([^"]+)"|\{([^}]+)\})/.exec(tag);
         if (id) {
+          // EVERY label naming this id (one Checkbox can be named by either of two labels, e.g. the tax box).
           const want = id[1] !== undefined ? `htmlFor="${id[1]}"` : `htmlFor={${id[2]}}`;
-          const i = code.indexOf(want);
-          if (i >= 0) row = classOf(openingTag(code, code.lastIndexOf("<", i)));
+          const rows: string[] = [];
+          for (let i = code.indexOf(want); i >= 0; i = code.indexOf(want, i + 1)) rows.push(classOf(openingTag(code, code.lastIndexOf("<", i))));
+          if (rows.length) row = rows.find((c) => !TAP_ROW.test(c)) ?? rows[0];
         }
       }
       if (!row || !TAP_ROW.test(row)) noTapRow.push(`${at} ${row ?? "(no label)"}`);

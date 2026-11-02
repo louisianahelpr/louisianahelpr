@@ -127,7 +127,8 @@ function HomeDashboardScreen() {
             <PayoutFailedCard />
 
             {/* Board 189: before a member's first job (never applied), the first-job checklist and jobs near them. */}
-            {firstJob?.isNew && <FirstJobHome profile={profile} alertsOff={firstJob.alertsOff} />}
+            {/* A3-82: not for a member who came to sell or buy on Declutter (a Jobs checklist above Next up is noise). */}
+            {firstJob?.isNew && !summary.usesDeclutter && <FirstJobHome profile={profile} alertsOff={firstJob.alertsOff} />}
             {/* UX-5: the poster's first week (posted, hired, approved) until a posted job is finished. */}
             {firstJob && !firstJob.isNew && <PosterFirstJobCard userId={user?.id} />}
 

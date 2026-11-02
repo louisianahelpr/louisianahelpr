@@ -283,6 +283,8 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     "function:rpc_instant_book": "no-return",
     "function:rpc_instant_book_decline": "no-return",
     "function:rpc_my_instant_bookings": "no-return",
+    // Q2604 (20261102103429): the poster withdraws their own offer; returns only { kind, open_to_everyone }.
+    "function:rpc_poster_withdraw_offer": "no-return",
   };
 
   const touching = (): Array<[string, DbObject]> =>

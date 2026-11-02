@@ -319,6 +319,8 @@ describe("fixture-job visibility — one switch, every surface", () => {
     ["public.block_user_and_settle", "the caller's own shared crews; 'open' marks a crew still filling"],
     ["public.helper_abort_job", "single-job mutation; status is a precondition"],
     ["public.helper_cancel_booking", "single-job mutation; status is a precondition"],
+    // Q2604, 20261102103429: the poster ends one unanswered offer on their own job; 'open' is a precondition.
+    ["public.rpc_poster_withdraw_offer", "single-job mutation by its poster; status is a precondition"],
     // Q407 (5)/(6), 20260927012806: each reads 'open' on the VISITS of one
     // series the caller is on (a vacated visit), never a browse list.
     ["public.claim_series_dates", "one series the caller is on; 'open' marks a vacated visit"],

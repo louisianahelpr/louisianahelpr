@@ -100,7 +100,7 @@ export const es: Record<MsgKey, string> = {
 
   // Sign up, step 1
   "signup.title": "Cree su cuenta",
-  "signup.subtitle": "Una cuenta para contratar ayuda o encontrar trabajo.",
+  "signup.subtitle": "Una cuenta para contratar ayuda, encontrar trabajo y comprar o vender cerca.",
   "signup.firstName": "Nombre",
   "signup.firstNameMissing": "Escriba su nombre",
   "signup.lastName": "Apellido",
@@ -111,7 +111,7 @@ export const es: Record<MsgKey, string> = {
   "signup.keepDomain": "Dejar {domain}",
   "signup.capsLock": "Las mayúsculas están activadas",
   "signup.passwordMissing": "Escriba una contraseña",
-  "signup.agreeLead": "Acepto los",
+  "signup.agreeLead": "Tengo 18 años o más y acepto los",
   "signup.terms": "Términos",
   "signup.rules": "Reglas",
   "signup.and": "y",

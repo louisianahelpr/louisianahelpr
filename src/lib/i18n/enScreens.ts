@@ -82,7 +82,7 @@ export const enScreens = {
 
   // Sign up, step 1
   "signup.title": "Create your account",
-  "signup.subtitle": "One account to hire help or find work.",
+  "signup.subtitle": "One account to hire help, find work, and buy or sell nearby.",
   "signup.firstName": "First name",
   "signup.firstNameMissing": "Add your first name",
   "signup.lastName": "Last name",
@@ -93,7 +93,7 @@ export const enScreens = {
   "signup.keepDomain": "Keep {domain}",
   "signup.capsLock": "Caps Lock is on",
   "signup.passwordMissing": "Add a password",
-  "signup.agreeLead": "I agree to the",
+  "signup.agreeLead": "I'm 18 or older and agree to the",
   "signup.terms": "Terms",
   "signup.rules": "Rules",
   "signup.and": "&",

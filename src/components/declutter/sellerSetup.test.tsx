@@ -95,6 +95,14 @@ describe("one-time setup before posting", () => {
     open();
     await screen.findByRole("heading", { name: "Set up selling" });
     expect(screen.getByText(/Buyers need to know where and when/)).toBeTruthy();
+    // Q2582 (audit 1102a): the column starts under the page title (not centred), and an odd number of way tiles never
+    // sits in two columns with a lone half-width tile.
+    // @mutate src/components/declutter/SellerSetup.tsx | <div className="w-full max-w-xl space-y-6" data-seller-setup=""> | <div className="mx-auto w-full max-w-xl space-y-6" data-seller-setup="">
+    // @mutate src/components/declutter/SellHandoverChoices.tsx | className={shown.length % 2 === 0 ? "grid gap-2 lg:grid-cols-2" : "grid gap-2"} | className="grid gap-2 lg:grid-cols-2"
+    expect(document.querySelector("[data-seller-setup]")!.className.split(/\s+/)).not.toContain("mx-auto");
+    const tiles = document.querySelector("[data-way-tiles]")!;
+    expect(tiles.children.length).toBeGreaterThan(0);
+    if (tiles.children.length % 2 === 1) expect(tiles.className).not.toMatch(/grid-cols-2/);
     expect(screen.queryByText("the posting form")).toBeNull();
     // Audit single-free #16: no day chosen for them, and no "Area buyers see" box.
     expect(screen.queryByLabelText("Area buyers see")).toBeNull();

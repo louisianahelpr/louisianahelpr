@@ -6,7 +6,7 @@
  * verification step shows, and that step's title was an h2, so the step had no h1.
  *
  * @mutate src/pages/auth/Login.tsx | className="col-start-2 row-start-1 justify-self-end min-h-[44px] | className="min-h-[44px]
- * @mutate src/pages/auth/Login.tsx | <h1\n                className="font-display font-bold leading-tight" | <h2\n                className="font-display font-bold leading-tight"
+ * @mutate src/pages/auth/Login.tsx | <h1 className="text-page-title text-foreground">{t("login.mfaTitle")}</h1> | <h2 className="text-page-title text-foreground">{t("login.mfaTitle")}</h2>
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

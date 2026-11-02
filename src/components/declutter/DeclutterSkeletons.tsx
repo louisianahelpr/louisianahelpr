@@ -14,7 +14,9 @@
  * the page's data will land. The 404 for a member without the switch still
  * comes after the switch's answer, never a flash of it for a tester.
  */
+import { Link } from "react-router-dom";
 import AppPage from "@/components/AppPage";
+import { Button } from "@/components/ui/button";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -151,11 +153,16 @@ export function isItemId(id: string | undefined): id is string {
  * photos would be a promise the page then breaks.
  */
 export function DeclutterItemUnavailable({ detail }: { detail?: string }) {
+  // Q2565 (Auditor 1, audit 1102a): a sold or taken-down item opened from a share, a notice or a saved link was a
+  // dead end (a notice and an empty screen). It now offers the way on, and the page is titled for where it is.
   return (
-    <AppPage title="Item" backTo="/declutter">
+    <AppPage title="Declutter" backTo="/declutter">
       <DeclutterNotice tone="warn" title="This item isn't available.">
         {detail ?? "It may have sold or been taken down."}
       </DeclutterNotice>
+      <Button asChild variant="primary" className="mt-4 w-full sm:w-auto" data-item-unavailable-onward="">
+        <Link to="/declutter">See more on Declutter</Link>
+      </Button>
     </AppPage>
   );
 }

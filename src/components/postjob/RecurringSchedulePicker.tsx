@@ -3,6 +3,7 @@ import { Repeat, Minus, Plus } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
 import { formatPriceExact } from "@/lib/format";
+import { formatJobDate } from "@/lib/dateUtils";
 import {
   MAX_RECURRENCE_WEEKS,
   WEEKDAY_LABELS,
@@ -232,6 +233,12 @@ export function RecurringSchedulePicker({
             {budget > 0 && (
               <> · <span className="text-primary">${formatPriceExact(total)}</span> in labor</>
             )}
+          </p>
+          {/* A3-107 (audit 11-01): the series starts on the first CHOSEN day, which can be after the start date
+              picked (Tue Nov 3 with Mon + Thu starts Thu Nov 5); say the first and last visit instead of moving it silently. */}
+          <p data-series-first-last="" className="text-ds-11 text-muted-foreground">
+            {dates.length === 1 ? `One visit, ${formatJobDate(dates[0])}` : `First visit ${formatJobDate(dates[0])} · last ${formatJobDate(dates[dates.length - 1])}`}
+            {dates[0] !== startDate && startDate ? ` (${formatJobDate(startDate)} isn't one of the days)` : ""}
           </p>
           {budget > 0 && (
             // Spelled out because the budget field says "$50" and the commitment

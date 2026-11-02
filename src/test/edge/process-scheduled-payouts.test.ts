@@ -939,6 +939,33 @@ describe("process-scheduled-payouts edge function", () => {
       expect((await json(res)).heldRedrive).toMatchObject({ tips_repaid: 1 });
     });
 
+    // Q2459: a Declutter delivery tip (helpr_task_tips, tip_source 'delivery') rides the same ledger. It has
+    // no job (its Stripe mode is the Helpr's own) and its Helpr was told when it was paid, so the re-pay
+    // reads no public.tips row and sends no second notice.
+    // @mutate supabase/functions/_shared/heldTipRepay.ts |   if (r.tip_source === "delivery") return null; |
+    // @mutate supabase/functions/_shared/heldTipRepay.ts |   if (!isDelivery) await notifyKept( |   await notifyKept(
+    // @mutate supabase/functions/_shared/heldTipRepay.ts | first_repay_attempt_at, tip_source") | first_repay_attempt_at")
+    it("Q2459: a reversed DELIVERY tip is re-paid in its own tip_ group with no job read and no second notice", async () => {
+      seedNoJobs();
+      scenario.reads.tip_hold_redrives = { rows: [heldTip({ tip_source: "delivery" })] };
+      scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper" }] };
+      stripeMock.transfers.list.mockResolvedValue({ data: [] });
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_repay" });
+      const res = await runCron();
+      expect(res.status).toBe(200);
+      expect(stripeMock.transfers.create).toHaveBeenCalledWith(
+        expect.objectContaining({ amount: 1500, destination: "acct_helper", transfer_group: "tip_tip-1", metadata: expect.objectContaining({ tip_id: "tip-1" }) }),
+        { idempotencyKey: "tip-hold-repay-tip-1" },
+      );
+      const updates = tipUpdates().map((w) => w.payload as Record<string, unknown>);
+      expect(updates[updates.length - 1]).toMatchObject({ status: "repaid", repay_transfer_id: "tr_repay" });
+      expect(scenario.readQueries.some((q) => q.table === "tips")).toBe(false);
+      // The mock hands back every column whatever is selected: the source must be in the projection itself.
+      expect(scenario.readQueries.some((q) => q.table === "tip_hold_redrives" && /\btip_source\b/.test(q.cols))).toBe(true);
+      expect(scenario.writes.some((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "helper-1")).toBe(false);
+      expect((await json(res)).heldRedrive).toMatchObject({ tips_repaid: 1 });
+    });
+
     // Lead 2026-10-23: a NEW tip re-payment waits when Stripe says the account
     // is not payable (an existing one would be adopted: no money moves).
     // @mutate supabase/functions/_shared/heldTipRepay.ts |       if (live.held) { |       if (false) {

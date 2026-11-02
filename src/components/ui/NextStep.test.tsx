@@ -1,7 +1,10 @@
 /**
  * The shared next-step line (owner 2026-11-01 12:05 PM) and the job's mapping onto it (jobNextStep).
- * @mutate src/components/ui/NextStep.tsx |   const lead = value.who === "you" ? `Next: ${lowerFirst(value.text)}` : value.text; |   const lead = value.text;
- * @mutate src/components/tracker/jobNextStep.ts |   return m ? { who, text: m[1], by: m[2] } : { who, text: line }; |   return { who, text: line };
+ * @mutate src/components/ui/NextStep.tsx |   const lead = value.who === "you" ? `Next: ${value.keepCase ? value.text : lowerFirst(value.text)}` : value.text; |   const lead = value.text;
+ * @mutate src/components/tracker/jobNextStep.ts |   const v: NextStepValue = m ? { who, text: m[1], by: m[2] } : { who, text: line }; |   const v: NextStepValue = { who, text: line };
+ * @mutate src/components/tracker/jobNextStep.ts |   return keepCase ? { ...v, keepCase } : v; |   return v;
+ * @mutate src/components/ui/NextStep.tsx | `Next: ${value.keepCase ? value.text : lowerFirst(value.text)}` | `Next: ${lowerFirst(value.text)}`
+ * @mutate src/lib/nextStepWords.ts | `Next: ${v.keepCase ? v.text : lowerFirst(v.text)}` | `Next: ${lowerFirst(v.text)}`
  */
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
@@ -37,6 +40,15 @@ describe("jobNextStep", () => {
     expect(nextStepWords(jobNextStep(p({ stage: 6, next: "Yusef is working" }), { side: "poster", otherFirst: "Yusef" })!)).toBe("Waiting on Yusef to mark it done");
     expect(nextStepWords(jobNextStep(p({ stage: 7, waitingOnYou: true, next: "Yusef marked it done. Check the work and approve" }), { side: "poster", otherFirst: "Yusef", approveLeft: "23h 52m left, then Helpr support steps in" })!))
       .toBe("Next: approve Yusef's work · 23h 52m left, then Helpr support steps in");
+  });
+  // Jobs audit 1102b row 4 (Q2590): "Next: lexi offered you this job" under "Lexi L.".
+  it("a 'you' line that starts with the other person's name keeps its capital", () => {
+    const v = jobNextStep(p({ stage: 1, waitingOnYou: true, next: "Lexi offered you this job" }), { side: "helpr", otherFirst: "Lexi" })!;
+    expect(nextStepWords(v)).toBe("Next: Lexi offered you this job");
+    const { container } = render(<NextStep value={v} />);
+    expect(container.textContent).toBe("Next: Lexi offered you this job");
+    // A verb first still reads as one sentence.
+    expect(nextStepWords(jobNextStep(p({ waitingOnYou: true, next: "Confirm the job is still on" }), { side: "poster", otherFirst: "Lexi" })!)).toBe("Next: confirm the job is still on");
   });
   it("off the path keeps the tracker's word and line", () => {
     expect(nextStepWords(jobNextStep(p({ stage: null, word: "Cancelled", next: "You cancelled Sat 9:00 AM" }), { side: "poster" })!)).toBe("Cancelled · You cancelled Sat 9:00 AM");

@@ -74,7 +74,7 @@ describe("the poster's confirmation survives the Helpr setting off", () => {
     render(poster());
     // Before the fix this component returned null outright and the poster's
     // card showed nothing at all where the confirmation had been.
-    expect(screen.getByRole("button", { name: /I'm still on/i })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Confirm it's still on/i })).toBeTruthy();
   });
 
   // Owner, 2026-10-21 (supersedes 2026-10-08's greyed next step): once the poster has confirmed there is no
@@ -87,7 +87,7 @@ describe("the poster's confirmation survives the Helpr setting off", () => {
     expect(screen.queryByText(/You: (Confirmed|Pending)/)).toBeNull();
     expect(screen.queryByText(/Helpr: (Confirmed|Pending)/)).toBeNull();
     // …and it must not still be inviting the tap it has already had.
-    expect(screen.queryByRole("button", { name: /I'm still on/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /Confirm it's still on/i })).toBeNull();
   });
 });
 

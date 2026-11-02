@@ -9,7 +9,7 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 // @mutate src/pages/posts/postedJobCard/steps/ScheduledStep.tsx | primary={<JobStepPrimaryButton icon={MessageSquare} | primary={false && <JobStepPrimaryButton icon={MessageSquare}
 // @mutate src/components/JobConfirmation.tsx |     if (variant === "inline" && isOwner) { |     if (false) {
-// @mutate src/components/JobConfirmation.tsx |           label={newSlot ? "Confirm" : isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"} |           label={isHelper ? HELPER_CONFIRM_LABEL : "I'm still on"}
+// @mutate src/components/JobConfirmation.tsx |           label={newSlot ? "Confirm" : isHelper ? HELPER_CONFIRM_LABEL : POSTER_CONFIRM_LABEL} |           label={newSlot ? "Confirm the old time" : isHelper ? HELPER_CONFIRM_LABEL : POSTER_CONFIRM_LABEL}
 // @mutate src/components/JobConfirmation.tsx |       {isOwner ? `Confirm the new time, ${newSlot}` : `Confirm you'll be there ${newSlot}`} |       {isOwner ? `Confirm the new time` : `Confirm you'll be there`}
 // @mutate src/components/JobConfirmation.tsx |     ? `Waiting for ${otherFirstName \|\| "your Helpr"} to confirm ${newSlot}` |     ? `Waiting for ${otherFirstName \|\| "your Helpr"} to confirm`
 // @mutate src/components/job-card/JobStepCard.tsx |           {moreChips.length > 1 ? ( |           {moreChips.length > 0 ? (
@@ -553,7 +553,7 @@ const CASES: Array<{
     name: "Posts · Accepted, window open, poster has not confirmed (I'm still on)",
     render: () => wrap(<ScheduledStep {...posterCtx(makeJob({ status: "accepted", helper_dayof_confirmed_at: null, poster_confirmed_at: null, helper_on_the_way_at: null, helper_arrived_at: null, date_needed: STARTS_SOON.date, start_time: STARTS_SOON.time }))} />),
     minControls: 2,
-    primary: ["I'm still on"],
+    primary: ["Confirm"], // owner 11-01: just "Confirm" (named "Confirm it's still on")
     primaryDisabled: false,
   },
   {

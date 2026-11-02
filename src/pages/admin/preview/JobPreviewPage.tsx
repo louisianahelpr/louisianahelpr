@@ -21,12 +21,32 @@ import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/ui/chipClasses";
 import { JobCardSkeleton } from "@/components/ui/skeletons/JobCardSkeleton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { cn } from "@/lib/utils";
+import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { PREVIEW_STAGES, isPreviewStage, previewSample, type PreviewSample, type PreviewStage, type PreviewViewer } from "./jobPreviewSamples";
 import { installPreviewFetch, jobPreviewChecks } from "./previewBackend";
 import { EYE_GLYPH, InertNavigation, PreviewErrorBoundary, PreviewGlyph, forgetSharedReads, installInertRealtime, sayWouldHave, usePageSheetOpen } from "./previewParts";
 
 // The member's job page itself: the same module /jobs/:id lazy-loads (JobDetail.tsx).
 const JobPage = lazy(() => import("@/pages/jobs/jobPage/JobPage"));
+// The Helpr's own Working card (Jobs > Working), whose "Cancel job" opens the Helpr's cancel sheet (helper_cancel_booking).
+// That sheet lives on the card, not on the job page (b177 handoff), so the Cancel sheet stage draws the card for the Helpr.
+const ConfirmedSection = lazy(() => import("@/pages/jobs/appliedJobCard/ConfirmedSection").then((m) => ({ default: m.ConfirmedSection })));
+
+/** The Helpr's Working card for the sample's job, as Jobs > Working draws it for a hired Helpr. */
+function HelprWorkingCard({ sample }: { sample: PreviewSample }) {
+  // Inside InertNavigation: every move the card makes (Message, after a cancel) stays here as a note.
+  const navigate = useNavigate();
+  const poster = sample.profiles.find((p) => p.id === sample.job.customer_id)?.full_name ?? null;
+  const job = sample.job as unknown as Job;
+  const app = { id: `${sample.jobId}-app`, job_id: sample.jobId, helper_id: sample.userId, status: "accepted", created_at: sample.job.helper_confirmed_at ?? null, job, posterName: poster } as unknown as AppliedApp;
+  return (
+    <div className="space-y-3 p-4 pb-56" data-preview-working-card="">
+      <p className="text-ds-13 text-muted-foreground">Jobs › Working: the Helpr's card for this job</p>
+      <h1 className="text-ds-18 font-semibold">{sample.job.title}</h1>
+      <ConfirmedSection app={app} job={job} userId={sample.userId} initialTracking={null} navigate={(to) => navigate(to)} />
+    </div>
+  );
+}
 
 const PHONE_WINDOW = "lh-job-preview-phone";
 
@@ -68,8 +88,9 @@ function PreviewBackend({ sample, children }: { sample: PreviewSample; children:
 }
 
 /**
- * Presses one control on the page once it has drawn (the Cancel sheet stage opens the poster's cancel quote). It looks
- * on the row first, then under "More options". Never inside the preview controls.
+ * Presses one control on the page once it has drawn (the Cancel sheet stage opens the poster's cancel quote, or the
+ * Helpr's own cancel sheet). It looks on the row first, then under "More options" (job page) or "More" (Working card).
+ * Never inside the preview controls.
  */
 function useOpenOnDraw(label: string | null, key: string) {
   useEffect(() => {
@@ -81,7 +102,8 @@ function useOpenOnDraw(label: string | null, key: string) {
       tries++;
       const target = find(label);
       if (target) { target.click(); window.clearInterval(t); return; }
-      const more = find("More options");
+      // The job page's menu is "More options"; the Working card's is "More" (JobStepCard).
+      const more = find("More options") ?? find("More");
       if (more && tries % 4 === 1) more.click();
       if (tries > 40) window.clearInterval(t);
     }, 150);
@@ -194,7 +216,9 @@ export default function JobPreviewPage() {
         <InertNavigation>
           <PreviewErrorBoundary resetKey={`${stage}-${viewer}`}>
             <Suspense fallback={<div role="status" aria-busy="true" aria-label="Loading job"><JobCardSkeleton /></div>}>
-              <JobPage key={`${stage}-${viewer}`} id={sample.jobId} userId={sample.userId} />
+              {sample.draws === "helpr_working_card"
+                ? <HelprWorkingCard key={`${stage}-${viewer}`} sample={sample} />
+                : <JobPage key={`${stage}-${viewer}`} id={sample.jobId} userId={sample.userId} />}
             </Suspense>
           </PreviewErrorBoundary>
         </InertNavigation>

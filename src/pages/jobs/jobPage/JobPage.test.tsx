@@ -227,7 +227,18 @@ vi.mock("@/hooks/useAwardBlockReason", async (orig) => ({
   useAcceptGate: () => ({ loading: false, reason: null, missing: [] }),
 }));
 
+// A3-44: the series state read (ended / split) and the dates panel; their own behaviour is the series tests.
+const seriesRead = vi.hoisted(() => ({ endedOn: null as string | null }));
+vi.mock("@/lib/jobSeriesState", () => ({
+  fetchJobSeriesState: async (ids: string[]) => new Map(ids.map((i) => [i, { series_ended_on: seriesRead.endedOn, series_split_ok: true }])),
+}));
+vi.mock("@/components/series/JobSeriesCardControls", async (orig) => ({
+  ...(await orig<typeof import("@/components/series/JobSeriesCardControls")>()),
+  SeriesDatesForJob: () => null,
+}));
+
 import JobPage from "./JobPage";
+import { withLeaveSeries } from "./HiredSeriesSection";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
@@ -1934,5 +1945,57 @@ describe("job page: a day set to finish, still ahead (Auditor 11, 11-01)", () =>
     expect(screen.queryByRole("button", { name: "Set a different day" })).toBeNull();
     expect(document.querySelector("[data-job-meta]")?.textContent).toMatch(new RegExp(`^Continuing ${formatJobDate(ahead)} · 9:00 AM`));
     expect(document.querySelector("[data-next-step]")?.textContent).toMatch(/^Rhonda confirmed /);
+  });
+});
+
+// A3-44 rest (audit 11-01, B137): the standing Helpr's "Leave series" is one more item in the row's More options
+// (owner 5:42 PM: a menu only when it holds 2+ items), with its confirm; never a second link beside the series line.
+// @mutate src/pages/jobs/jobPage/JobPage.tsx | extras={withLeave.extras} /> | extras={extras} />
+// @mutate src/pages/jobs/jobPage/HiredSeriesSection.tsx |               trigger={!leaveInMenu} |               trigger
+// @mutate src/pages/jobs/jobPage/JobPage.tsx | go: () => setLeaveOpen(true), danger: true | go: () => {}, danger: true
+// @mutate src/pages/jobs/jobPage/HiredSeriesSection.tsx |   const inMenu = canLeave && extras.length >= 1; |   const inMenu = canLeave;
+describe("A3-44: Leave series sits in the hired Helpr's More options", () => {
+  const TOMORROW = jobLocalDateISO(1);
+  const series = (over: Partial<JobPageRow> = {}) => row({
+    helper_id: ME, status: "accepted", helper_confirmed_at: "2026-10-27T12:00:00Z", date_needed: TOMORROW, start_time: "09:00",
+    parent_job_id: null, recurrence_interval: "weekly", recurrence_days: [6], recurrence_weeks: 4, recurring_helper_id: ME, ...over,
+  } as Partial<JobPageRow>);
+  beforeEach(() => { seriesRead.endedOn = null; state.party = true; });
+
+  it("the standing Helpr: More options lists Leave series and opens its confirm; no link beside the series line", async () => {
+    state.job = series();
+    renderPage();
+    await screen.findByRole("button", { name: "Confirm you'll be at the job" });
+    // Open the list once and wait for the series read (never a click inside waitFor: it loops on its own mutations).
+    fireEvent.click(screen.getByRole("button", { name: "More options" }));
+    const sheet = document.querySelector("[data-row-options]") as HTMLElement;
+    await within(sheet).findByRole("button", { name: "Leave series" });
+    fireEvent.click(within(sheet).getByRole("button", { name: "Close" }));
+    expect(pageActions()).toEqual(expect.arrayContaining(["Message Rhonda", "Open in working", "Leave series"]));
+    expect(within(document.querySelector("[data-job-series]") as HTMLElement).queryByRole("button", { name: "Leave series" })).toBeNull();
+    pressAction("Leave series");
+    expect(await screen.findByRole("alertdialog", { name: /Leave "Pressure wash driveway"\?/ })).toBeTruthy();
+  });
+
+  it("with no other extra, Leave series is never a lone menu item: it stays the link (withLeaveSeries)", () => {
+    const leave = { key: "leave-series" };
+    expect(withLeaveSeries([], true, leave)).toEqual({ extras: [], inMenu: false });
+    expect(withLeaveSeries([{ key: "message" }], true, leave)).toEqual({ extras: [{ key: "message" }, leave], inMenu: true });
+    expect(withLeaveSeries([{ key: "message" }], false, leave)).toEqual({ extras: [{ key: "message" }], inMenu: false });
+  });
+
+  it("a Helpr who is not the standing Helpr, or an ended series: no Leave series anywhere", async () => {
+    state.job = series({ recurring_helper_id: POSTER } as Partial<JobPageRow>);
+    const { unmount } = renderPage();
+    await screen.findByRole("button", { name: "Confirm you'll be at the job" });
+    expect(pageActions()).not.toContain("Leave series");
+    expect(screen.queryByRole("button", { name: "Leave series" })).toBeNull();
+    unmount();
+    seriesRead.endedOn = "2026-11-20";
+    state.job = series();
+    renderPage();
+    await screen.findByText(/ · ended /);
+    expect(pageActions()).not.toContain("Leave series");
+    expect(screen.queryByRole("button", { name: "Leave series" })).toBeNull();
   });
 });

@@ -234,6 +234,7 @@ const EXEMPT: Record<string, string> = {
   // Declutter (slice 3b): ids from the webhook event itself, read on the client of the event's own mode
   // (stripe-webhook builds the test-key client for a test-endpoint event), never a stored id.
   "stripe-webhook/handlers/declutterCheckout.ts::stripe.paymentIntents.retrieve(paymentIntentId)": "the paid session's own PaymentIntent, from the event, on the event's mode",
+  "stripe-webhook/handlers/declutterCheckout.ts::stripe.paymentIntents.retrieve(paymentIntentId)#2": "Shipping S3: a shipped order's held session's own PaymentIntent (session.payment_intent from the event), read on the event's mode to see the hold (requires_capture / canceled)",
   "stripe-webhook/handlers/declutterCheckout.ts::stripe.setupIntents.retrieve(setupIntentId)": "the setup session's own SetupIntent, from the event, on the event's mode",
   // Declutter (slice 4): a Declutter order's PaymentIntent, read on the client its parties pick (the mode it was paid
   // in). No Declutter order predates the 2026-09-27 live switch (prod had no declutter_orders table, 2026-10-15); a

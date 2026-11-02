@@ -30,7 +30,7 @@
  * @mutate src/components/tracker/JobProgress.tsx |   const pulses = detailed && tone === "progress" && stage < JOB_PROGRESS_STEPS.length && phase !== "waiting"; |   const pulses = false;
  * @mutate src/components/tracker/JobProgress.tsx |   const current: StepState = tone === "problem" ? (label === "Dispute" ? "alarm" : "problem") : waitingOnYou ? "you" : "them"; |   const current: StepState = tone === "problem" ? "problem" : waitingOnYou ? "you" : "them";
  * @mutate src/components/tracker/jobStepFromWait.ts |   if (job.date_needed && !(job.helper_dayof_confirmed_at && job.poster_confirmed_at)) return at(3); |   if (job.date_needed && !job.helper_dayof_confirmed_at) return at(3);
- * @mutate src/components/JobTracking.tsx |   { key: "arrived", label: "Arrived", action: "I've arrived", icon: MapPin, color: "text-primary" }, |   { key: "arrived", label: "Arrived", action: null, icon: MapPin, color: "text-primary" },
+ * @mutate src/components/job-card/trackerSteps.ts |   { key: "arrived", label: "Arrived", action: "I've arrived", icon: MapPin, color: "text-primary" }, |   { key: "arrived", label: "Arrived", action: null, icon: MapPin, color: "text-primary" },
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -44,9 +44,9 @@ import { blankComments } from "./helpers/blankNonCode";
 const ROOT = resolve(__dirname, "..", "..");
 const code = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8"));
 
-/** The old rail, as JobTracking still defines its steps (PRE_STATUSES + STATUSES). */
+/** The old rail, as JobTracking still defines its steps (PRE_STATUSES + STATUSES, in job-card/trackerSteps.ts). */
 function oldRail() {
-  const src = code("src/components/JobTracking.tsx");
+  const src = code("src/components/job-card/trackerSteps.ts");
   const rows = [...src.matchAll(/\{ key: "([a-z_]+)", label: "([^"]+)", action: (null|"[^"]+"), icon: (\w+),/g)];
   const byKey = new Map(rows.map((m) => [m[1], { label: m[2], action: m[3] === "null" ? null : m[3].slice(1, -1), icon: m[4] }]));
   const order = ["posted", "assigned", "confirmed", "job_confirmed", "on_the_way", "arrived", "working", "done"];

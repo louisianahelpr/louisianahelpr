@@ -12,7 +12,8 @@ import { subscribeJobRealtime } from "@/lib/jobRealtimeBus";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { APPROVAL_WINDOW_HOURS } from "../../supabase/functions/_shared/escrowTiming";
 import { haversineMiles } from "@/lib/geo";
-import { MapPin, Clock, CheckCircle2, Truck, Wrench, PartyPopper, CalendarCheck, FileText, AlertTriangle, type LucideIcon } from "lucide-react";
+import { MapPin, AlertTriangle } from "lucide-react";
+import { PRE_STATUSES, STATUSES, railDisplayIdx } from "@/components/job-card/trackerSteps";
 import { toast } from "sonner";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { jobStartDateTime } from "@/lib/dateUtils";
@@ -41,94 +42,6 @@ import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 const TrackingMap = lazy(() =>
   import("@/components/TrackingMap").then((m) => ({ default: m.TrackingMap }))
 );
-
-/**
- * `label` names the STEP; `action` is what the button that reaches it SAYS.
- *
- * The next-step CTA used to render `label`, so it read "Accepted", "On the
- * Way", "Arrived", "Working", "Done" — the same five nouns the completed steps
- * directly above it already display. Nothing told the reader the button did
- * anything, and "Done" is the money-critical one: it requests the payout.
- *
- * The labels are kept SHORT on purpose. `button.tsx` sets `whitespace-nowrap`,
- * so a label that outgrows its box spills instead of wrapping. On a 320px
- * phone this button has roughly 170px of text room (card px-4, tracker p-3,
- * size="sm" px-4, an 18px icon and its gap), which is ~20 characters of the
- * 14px bold sans it renders in. The Done action reads "Mark job complete"
- * (owner, 2026-09-14: name the event, not the money) — the same words as the
- * card's PayoutPrimary button, so the two controls for one action agree.
- *
- * Both step arrays are annotated with this ONE type so `displaySteps`
- * (`[...PRE_STATUSES, ...STATUSES]`) stays a single array type rather than a
- * union of two shapes the `.map` below would have to reconcile.
- */
-type TrackerStep = {
-  key: string;
-  label: string;
-  /** Action phrasing for the next-step CTA; `null` where the step is never a
-   *  button target. */
-  action: string | null;
-  icon: LucideIcon;
-  color: string;
-};
-
-/** Where the compact rail's cursor sits, given the same inputs the full rail
- *  derives from. One definition of the `includePostingSteps` offset, so the
- *  two rails cannot disagree about which step a job is on. */
-function railDisplayIdx({
-  currentStatusIdx,
-  includePostingSteps,
-  helperId,
-}: {
-  currentStatusIdx: number;
-  includePostingSteps: boolean;
-  helperId: string | null | undefined;
-}): number {
-  if (!includePostingSteps) return currentStatusIdx;
-  return helperId ? PRE_STATUSES.length + currentStatusIdx : 0;
-}
-
-const STATUSES: TrackerStep[] = [
-  // Step 0 is never the TARGET of the next-step button (nextIdx is always
-  // currentStatusIdx + 1 ≥ 1), so it has no action phrasing.
-  { key: "assigned", label: "Offered", action: null, icon: Clock, color: "text-muted-foreground" },
-  { key: "confirmed", label: "Accepted", action: "I've accepted", icon: CheckCircle2, color: "text-primary" },
-  // CalendarCheck, not ShieldCheck: at the 16px the step row draws these at,
-  // a shield-with-a-tick and the circle-with-a-tick above it were two dark
-  // rings with a check in them and read as the same step twice. This one means
-  // "both sides confirmed, the date is locked", which a calendar says plainly
-  // and cannot be confused with "Accepted".
-  { key: "job_confirmed", label: "Confirmed", action: "Confirm this job", icon: CalendarCheck, color: "text-primary" },
-  { key: "on_the_way", label: "On the way", action: "I'm on my way", icon: Truck, color: "text-primary" },
-  { key: "arrived", label: "Arrived", action: "I've arrived", icon: MapPin, color: "text-primary" },
-  { key: "working", label: "Working", action: "Start working", icon: Wrench, color: "text-primary" },
-  { key: "done", label: "Done", action: "Mark job complete", icon: PartyPopper, color: "text-primary" },
-];
-
-/**
- * The two steps that happen BEFORE anyone is offered the job. A poster's own
- * card starts life at "Posted" with nobody assigned, so without these the
- * tracker had nothing to say until a helper had already been picked — which is
- * why an open job showed no tracker at all. They are PREPENDED (never
- * substituted) so a job that advances keeps one continuous timeline, and they
- * reuse the exact step shape/styling of `STATUSES` rather than introducing a
- * second tracker.
- */
-/**
- * ONE pre-assignment step, not two (owner: "I think posted and applicants can
- * be merged").
- *
- * They were never two things that happen in sequence — a job is posted, and
- * applications arrive against that same posted job — so the tracker spent two
- * of its nine columns on one state, and the count they conveyed is already on
- * the card. The step's icon and caption carry the difference now: a file with
- * no caption while nobody has applied, and the people icon with "N applied"
- * underneath once they have.
- */
-const PRE_STATUSES: TrackerStep[] = [
-  // Pre-assignment, so never a helper button target — hence `action: null`.
-  { key: "posted", label: "Posted", action: null, icon: FileText, color: "text-primary" },
-];
 
 export { STATUS_IDX, deriveCurrentStatusIdx } from "@/lib/jobProgressIndex";
 import { STATUS_IDX, deriveCurrentStatusIdx } from "@/lib/jobProgressIndex";
@@ -1245,7 +1158,7 @@ export function JobTracking({
 
   const displaySteps = includePostingSteps ? [...PRE_STATUSES, ...STATUSES] : STATUSES;
   // ONE definition of the offset, shared with the collapsed card's compact
-  // rail — see `railDisplayIdx` at the top of this file. Inlined here until
+  // rail — see `railDisplayIdx` in job-card/trackerSteps.ts. Inlined here until
   // 2026-09-19, when a second rail started needing the same answer.
   const displayIdx = railDisplayIdx({ currentStatusIdx, includePostingSteps, helperId });
 
@@ -1759,7 +1672,7 @@ export function JobTracking({
         const ctaEl = (
           <JobStepPrimaryButton
             icon={nextStatus.icon}
-            // The ACTION, not the step's name — see STATUSES. After a
+            // The ACTION, not the step's name — see STATUSES (trackerSteps.ts). After a
             // refused arrival the same tap is a retry, so it says so.
             label={arrivalRefusedHere ? "Try my location again" : (nextStatus.action ?? nextStatus.label)}
             // Done asks first — see the dialog below. Every other step is a

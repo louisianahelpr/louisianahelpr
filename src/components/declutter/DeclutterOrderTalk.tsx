@@ -42,7 +42,8 @@ function OrderTalkLinkButton({ orderId, side }: { orderId: string; side: "buyer"
     setParams(next);
   };
   return (
-    <Button type="button" variant="outline" className="rounded-full" onClick={open}>
+    // Q2634 (audit 1102c R9): the card's other secondary button, Get help now, is the small outline; this matches it.
+    <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={open}>
       {side === "buyer" ? "Message the seller" : "Message the buyer"}
     </Button>
   );

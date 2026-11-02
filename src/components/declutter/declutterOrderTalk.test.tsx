@@ -17,6 +17,7 @@
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |             {open && (\n              <form |             {(\n              <form
  * @mutate src/components/declutter/DeclutterOrderTalk.tsx |           {open && (\n            <SheetPrimaryAction |           {(\n            <SheetPrimaryAction
  */
+import { OrderGetHelpNow } from "@/components/jobs/GetHelpNow";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -102,6 +103,19 @@ describe("D2-1: the paid-order chat", () => {
   it("the seller's button says Message the buyer", () => {
     renderAt("/declutter?tab=selling", <OrderTalkButton orderId={ORDER} side="seller" />);
     expect(screen.getByRole("button", { name: "Message the buyer" })).toBeTruthy();
+  });
+
+  // Q2634 (audit 1102c R9): "Message the buyer" (56 px, larger text) sat over "Get help now" (44 px): two secondary
+  // buttons of different sizes stacked on one card. Both are the outline button at the small size now.
+  // @mutate src/components/declutter/DeclutterOrderTalk.tsx |     <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={open}> |     <Button type="button" variant="outline" className="rounded-full" onClick={open}>
+  it("Q2634: Message the buyer is the same size as the card's Get help now", () => {
+    renderAt("/declutter?tab=selling", <><OrderTalkButton orderId={ORDER} side="seller" />
+      <OrderGetHelpNow order={{ orderId: ORDER, title: "Oak rocking chair", status: "paid" }} problemOpen={false} /></>);
+    const size = (el: HTMLElement) => el.className.split(/\s+/).filter((c) => /^(h-\d+|px-\d+|text-ds-\d+)$/.test(c)).sort();
+    const talk = size(screen.getByRole("button", { name: "Message the buyer" }));
+    const help = size(screen.getByRole("button", { name: /Get help now/ }));
+    expect(help.length).toBeGreaterThan(1);
+    expect(talk).toEqual(help);
   });
 
   it("?order_talk= opens the history oldest first, as You and The seller", async () => {

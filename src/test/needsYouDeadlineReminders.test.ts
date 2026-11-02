@@ -38,7 +38,16 @@ function newestTrigger(name: string): string {
   return stmt.replace(/\s+/g, " ");
 }
 
-const MIG = "supabase/migrations/20261102002011_needs_you_deadline_reminders.sql";
+/** The newest migration that (re)schedules the book-by job (A3-57's 20261102011547 restates its wrapper, not the job). */
+function newestScheduling(job: string): string {
+  const files = readdirSync(MIG_DIR).filter((f) => f.endsWith(".sql")).sort();
+  let sql = "";
+  for (const f of files) {
+    const s = blankSqlComments(readFileSync(resolve(MIG_DIR, f), "utf8"));
+    if (s.includes(`cron.schedule('${job}'`)) sql = s;
+  }
+  return sql;
+}
 
 describe("needs-you deadline reminders (A3-85)", () => {
   // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |      WHERE o.status = 'open' AND o.awaiting IN ('seller', 'buyer') |      WHERE o.awaiting IN ('seller', 'buyer')
@@ -94,7 +103,7 @@ describe("needs-you deadline reminders (A3-85)", () => {
 
   // @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql |       $c$SELECT public.cron_record_work('declutter-book-by-reminders', to_jsonb(public.sweep_deadline_reminders()));$c$); |       $c$SELECT public.cron_record_work('declutter-book-by-reminders', to_jsonb(public.declutter_book_by_reminder_sweep()));$c$);
   it("the cron runs both deadline sweeps on the book-by job's existing line", () => {
-    const sql = blankSqlComments(readFileSync(resolve(ROOT, MIG), "utf8"));
+    const sql = newestScheduling("declutter-book-by-reminders");
     expect(sql).toContain("PERFORM cron.schedule('declutter-book-by-reminders', '2-59/10 * * * *',");
     expect(sql).toContain("to_jsonb(public.sweep_deadline_reminders())");
     const wrap = newestFunctionBody("sweep_deadline_reminders");

@@ -644,7 +644,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
     // BUY-35: the shared pick-one list, and one letter isn't a report.
-    // @mutate src/components/declutter/DeclutterProblemForm.tsx | disabled={send.isPending \|\| note.trim().length < DISPUTE_DETAILS_MIN} onClick={() => send.mutate()}>Send | disabled={send.isPending \|\| !note.trim()} onClick={() => send.mutate()}>Send
+    // @mutate src/components/declutter/DeclutterProblemForm.tsx | disabled={send.isPending \|\| !reason \|\| note.trim().length < DISPUTE_DETAILS_MIN} onClick={() => send.mutate()}>Send | disabled={send.isPending \|\| !reason \|\| !note.trim()} onClick={() => send.mutate()}>Send
     fireEvent.click(screen.getByRole("radio", { name: "I didn't get it" }));
     fireEvent.change(screen.getByLabelText("Tell us what happened"), { target: { value: "x" } });
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
@@ -653,6 +653,27 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(document.querySelector("[data-problem-note-short]")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Send" }));
     await waitFor(() => expect(state.calls).toContainEqual(["problem", "o1", "not_received", "Nobody was there", []]));
+  });
+
+  // Q2627 (audit 1102c R2, lead 11-02): the seller's Report a problem opened with "The buyer didn't come" preselected,
+  // though that path is "They didn't show". Nothing is preselected; Send waits for the seller's own pick.
+  // @mutate src/components/declutter/DeclutterProblemForm.tsx | : side === "seller" ? null : reasons[0][0]; | : reasons[0][0];
+  // @mutate src/components/declutter/DeclutterProblemForm.tsx | disabled={send.isPending \|\| !reason \|\| note | disabled={send.isPending \|\| note
+  it("Q2627: the seller's Report a problem preselects nothing; Send waits for a pick", async () => {
+    state.bookings = [slot(20)];
+    state.handover = { side: "seller" };
+    show([line({ my_side: "seller" })]);
+    fireEvent.click(await screen.findByRole("button", { name: "Report a problem" }));
+    const radios = screen.getAllByRole("radio");
+    expect(radios.length).toBeGreaterThan(1);
+    expect(radios.filter((r) => r.getAttribute("aria-checked") === "true")).toHaveLength(0);
+    fireEvent.change(screen.getByLabelText("Tell us what happened"), { target: { value: "They never came to the door" } });
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+    expect(document.querySelector("[data-problem-pick]")).not.toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "I felt unsafe" }));
+    expect(document.querySelector("[data-problem-pick]")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+    await waitFor(() => expect(state.calls).toContainEqual(["problem", "o1", "safety", "They never came to the door", []]));
   });
 
   // Audit 1b D2-7: up to 3 photos on the problem form, uploaded on Send into the problem folder and sent with the

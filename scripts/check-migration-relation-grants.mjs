@@ -76,6 +76,26 @@ const QNAME = String.raw`(?:"?([a-z_][a-z0-9_$]*)"?\s*\.\s*)?"?([a-z_][a-z0-9_$]
 // metacharacter set — incl. backslash — so the escaper is correct for any input.
 const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+// Q2066: `GRANT ... ON [TABLE] a, b, c TO ...` grants every relation in the
+// list, so the whole list is read, not only its first name.
+const QNAME_NC = String.raw`(?:"?[a-z_][a-z0-9_$]*"?\s*\.\s*)?"?[a-z_][a-z0-9_$]*"?`;
+const QNAME_ONE = new RegExp(String.raw`^\s*${QNAME}\s*$`, "i");
+
+/** True when a GRANT in `sql` names relation `c` (exact name, schema public). */
+function grantsAfter(sql, c, inPublic) {
+  const grantRe = new RegExp(String.raw`\bgrant\s[^;]*?\bon\s+(?:table\s+)?(${QNAME_NC}(?:\s*,\s*${QNAME_NC})*)\s+to\b`, "gi");
+  let g;
+  while ((g = grantRe.exec(sql))) {
+    const list = g[1];
+    for (const rel of list.split(",")) {
+      const qm = rel.match(QNAME_ONE);
+      if (!qm) continue;
+      if (inPublic(qm[1]) && qm[2].toLowerCase() === c.name) return true;
+    }
+  }
+  return false;
+}
+
 /** Violations for one migration's SQL text. */
 export function violationsFor(sqlText) {
   const sql = stripComments(sqlText);
@@ -91,8 +111,7 @@ export function violationsFor(sqlText) {
   for (const c of creates) {
     const after = sql.slice(c.at);
     const name = esc(c.name);
-    const grant = new RegExp(String.raw`\bgrant\s[^;]*?\bon\s+(?:table\s+)?(?:"?public"?\s*\.\s*)?"?${name}"?(?![a-z0-9_$])[^;]*\bto\b`, "i");
-    if (!grant.test(after)) {
+    if (!grantsAfter(after, c, inPublic)) {
       out.push(`${c.kind} public.${c.name}: no GRANT after its CREATE (new relations get no client privileges by default since ${CUTOFF})`);
     }
     if (c.kind === "table") {

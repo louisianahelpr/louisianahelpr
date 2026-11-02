@@ -24,6 +24,7 @@
  * @mutate e2e/prod-audit/messyInputForms.ts |   "src/components/admin/DeleteUserDialog.tsx": "reachable | // "src/components/admin/DeleteUserDialog.tsx": "reachable
  * @mutate e2e/prod-audit/messyInputForms.ts |   "src/components/profile/SecurityTab.tsx", |
  * @mutate e2e/prod-audit/messyInputForms.ts |   "src/components/admin/AdminMarketing.tsx", |   "src/components/admin/AdminMarketing.tsx", "src/components/admin/DeleteUserDialog.tsx",
+ * @mutate e2e/prod-audit/messyInputForms.ts |   "src/components/postjob/MaterialsToggle.tsx": "the | // "src/components/postjob/MaterialsToggle.tsx": "the
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

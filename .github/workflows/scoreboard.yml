@@ -132,6 +132,14 @@ jobs:
         with:
           name: scoreboard
           path: ${{ runner.temp }}/measured
+      # Q2395: read the previous refresh PR's checks BEFORE this run force-pushes its branch (that resets them).
+      # The job used to go green as soon as the PR was opened, so a PR a red check kept from merging stayed silent
+      # for days (#3550: 10-22..10-29) while docs/SCOREBOARD.md went stale. The last step fails on it.
+      - name: Read the previous refresh PR's checks
+        id: prev
+        env:
+          GH_TOKEN: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
+        run: node scripts/ci/previous-refresh-pr-red.mjs bot/refresh/scoreboard
       - uses: ./.github/actions/refresh-pr
         with:
           id: scoreboard
@@ -145,6 +153,16 @@ jobs:
           regenerate: node scripts/open-sync-trackers.mjs --from "$MEASURED/docs/audit/open-feeds.json" && node scripts/queue-count.mjs --write && node scripts/scoreboard.mjs --live-from "$MEASURED"
           github-token: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
           check-workflows: ${{ vars.REFRESH_PR_CHECK_WORKFLOWS }}
+      # Q2395: still update the PR above, then go red (and file nightly-red through `notify`) while the previous
+      # refresh PR is open and red, or could not be read.
+      - name: Fail while the previous refresh PR is open and red
+        if: steps.prev.outputs.red != 'false'
+        env:
+          RED: ${{ steps.prev.outputs.red }}
+          MESSAGE: ${{ steps.prev.outputs.message }}
+        run: |
+          echo "::error::previous refresh PR red=$RED: $MESSAGE"
+          exit 1
 
   notify:
     name: Report result

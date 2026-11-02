@@ -33,7 +33,7 @@ import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
 import { checkoutAmounts } from "@/lib/declutter/money";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { photoPublicUrl } from "@/lib/declutter/api";
-import { WANTED_POST_PARAM } from "@/lib/declutter/sellChooser";
+import { WANTED_CATEGORY_PARAM, WANTED_POST_PARAM, WANTED_WHAT_PARAM } from "@/lib/declutter/sellChooser";
 import {
   WANTED_PHOTO_MAX,
   WANTED_RADIUS_CHOICES,
@@ -196,13 +196,14 @@ function WantedFormFields({ form, setForm, problems, onSubmit, photos, where }: 
 }
 
 /** "Post what you're looking for": the form in the shared bottom sheet (a side panel on the desktop website). */
-function WantedFormSheet({ open, at, userId, onClose, where, editing = null }: { open: boolean; at: { lat: number; lng: number }; userId: string; onClose: () => void; where: string; editing?: WantedPost | null }) {
+function WantedFormSheet({ open, at, userId, onClose, where, editing = null, prefill = null }: { open: boolean; at: { lat: number; lng: number }; userId: string; onClose: () => void; where: string; editing?: WantedPost | null; prefill?: Partial<WantedForm> | null }) {
   const webDesktop = useIsWebDesktop();
   const qc = useQueryClient();
   // Audit 10-30 #9: Edit opens this form on the post's own words. An edit never touches the new-post draft.
   const [form, setForm] = useState<WantedForm>(() => editing
     ? { what: editing.what, category: editing.category, maxPrice: String(editing.max_price_cents / 100), radius: WANTED_RADIUS_CHOICES.find((m) => m === editing.radius_miles) ?? EMPTY.radius }
-    : readWantedDraft());
+    // A3-99: a search that found nothing brings its words (and category) in over the saved draft's.
+    : { ...readWantedDraft(), ...prefill });
   useEffect(() => { if (!editing) saveWantedDraft(form); }, [form, editing]);
   const [files, setFiles] = useState<File[]>([]);
   const [problems, setProblems] = useState<WantedFormProblems>({});
@@ -477,11 +478,22 @@ export function WantedView() {
   // (it shows once the area is known, as the button does).
   const [params, setParams] = useSearchParams();
   const [posting, setPosting] = useState(() => params.get(WANTED_POST_PARAM) === "1");
+  // A3-99: Browse's "Ask for ..." under an empty search carries the words (and a category filter) into the form.
+  const [prefill] = useState<Partial<WantedForm> | null>(() => {
+    const what = (params.get(WANTED_WHAT_PARAM) ?? "").trim().slice(0, 60);
+    const category = params.get(WANTED_CATEGORY_PARAM) ?? "";
+    const out: Partial<WantedForm> = {};
+    if (what) out.what = what;
+    if (category && category in CATEGORY_LABEL) out.category = category;
+    return Object.keys(out).length ? out : null;
+  });
   // Audit 10-30 #13: the ask is used up once read, or Cancel, a reload or Back brings the form back.
   useEffect(() => {
-    if (!params.has(WANTED_POST_PARAM)) return;
+    if (!params.has(WANTED_POST_PARAM) && !params.has(WANTED_WHAT_PARAM) && !params.has(WANTED_CATEGORY_PARAM)) return;
     const next = new URLSearchParams(params);
     next.delete(WANTED_POST_PARAM);
+    next.delete(WANTED_WHAT_PARAM);
+    next.delete(WANTED_CATEGORY_PARAM);
     setParams(next, { replace: true });
   }, [params, setParams]);
   const [editing, setEditing] = useState<WantedPost | null>(null);
@@ -527,7 +539,7 @@ export function WantedView() {
       </section>
       {/* Q2267: other members' open posts near you that you can answer with one of your listings. */}
       {!underAge && user && at && <WantedNearSection at={at} userId={user.id} />}
-      {at && user && <WantedFormSheet key={editing?.id ?? "new"} open={posting || !!editing} editing={editing} at={at} userId={user.id} onClose={() => { setPosting(false); setEditing(null); }} where={wantedWhereWords(origin.status === "ready" ? origin.source : null)} />}
+      {at && user && <WantedFormSheet key={editing?.id ?? "new"} open={posting || !!editing} editing={editing} at={at} userId={user.id} prefill={editing ? null : prefill} onClose={() => { setPosting(false); setEditing(null); }} where={wantedWhereWords(origin.status === "ready" ? origin.source : null)} />}
     </div>
   );
 }

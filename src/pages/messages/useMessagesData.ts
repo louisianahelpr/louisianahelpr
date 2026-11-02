@@ -405,7 +405,7 @@ export function useMessagesData({
       const giftOrUnknown = !!giftRes.error || (giftRes.data ?? []).length > 0;
       const otherFirst = (convo.otherUserName ?? "").trim().split(/\s+/)[0] ?? "";
       setJobSystemEvents([
-        ...deriveJobSystemEvents(jobRes.data as JobTimestamps, convo.jobId, resolvedUserId),
+        ...deriveJobSystemEvents(jobRes.data as JobTimestamps, convo.jobId, resolvedUserId, { id: convo.otherUserId ?? null, first: otherFirst }),
         ...(tipsRes.error ? [] : deriveMoneyEvents(jobRes.data as unknown as JobCharge, tips, resolvedUserId, otherFirst, convo.jobId, { giftOrUnknown })),
       ]);
     }

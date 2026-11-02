@@ -213,6 +213,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
 
   // Every viewer state, one table (viewerState.ts): applied, offered, hired, declined, closed, own job.
   const viewer = jobPageViewerState({ isPoster, userId: userId ?? null, job, myApplication: myApplication.data, posterFirst, onCrew, offeredToMe });
+  // Q2595 (Jobs audit 1102b row 9): someone never hired, on a job that is over (expired, cancelled, filled by someone
+  // else), has no pay to read and no address coming: no money box, no address line, and a way on (Find other jobs).
+  const closedToMe = !isPoster && !isHired && !party && !open && !instantUntil && viewer.action.kind === "none";
   // The job's own Working card, in its live bucket, opened (F10): `?job=` names a job on Working (`?highlight=` there
   // is an application id), and `open=1` expands the card instead of only pulsing it.
   const highlight = `/jobs?tab=working&job=${encodeURIComponent(job.id)}&open=1`;
@@ -288,7 +291,9 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
           : viewer.action.kind === "apply" && canApply
             // The apply sheet opens over THIS page (F9), the flow Home runs (PageApplySheet).
             ? { label: "Apply", go: ageGate("apply", () => void apply.flow.handleApplyRequest(job.id)), gated: ageGatedProps("apply") }
-            : null;
+            : closedToMe
+              ? { label: "Find other jobs", go: () => navigate("/browse") }
+              : null;
 
   const share = open ? (
     <ShareJobButton
@@ -311,13 +316,13 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
   const posterDetails = job.description?.trim() ?? "";
   // On a phone the details read two lines with "Show more" (mockup 5); a short one has nothing more to show.
   const detailsLong = posterDetails.length > 90 || posterDetails.includes("\n");
-  const helprPrice = isPoster ? null : <HelprPrice job={job} noShow={myApplication.data?.closed_reason === "no_show"} />;
+  const helprPrice = isPoster || closedToMe ? null : <HelprPrice job={job} noShow={myApplication.data?.closed_reason === "no_show"} />;
   const price = isPoster ? <PosterPrice job={job} labelled={wide} /> : wide
     ? <div className="flex items-start justify-between gap-3"><p className="text-ds-16 font-semibold">Your pay</p>{helprPrice}</div>
     : helprPrice;
   const moneyNotes = isPoster
     ? <PosterMoneyNotes job={job} total={total} loading={applicants.isLoading} />
-    : <HelprMoneyNotes job={job} hired={isHired} noShow={myApplication.data?.closed_reason === "no_show"} />;
+    : closedToMe ? null : <HelprMoneyNotes job={job} hired={isHired} noShow={myApplication.data?.closed_reason === "no_show"} />;
 
   /*
    * JOB PAGE LAYOUT V2 (owner 2026-11-01 12:00 PM, mockups 4 and 5 in ~/Documents/Louisiana Helpr):
@@ -505,7 +510,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               <p data-sell-for-me-done-note="" className="text-center text-ds-13 text-muted-foreground">{SELL_FOR_ME_DONE_NOTE}</p>
             )}
             {/* Not beside an instant booking's "You're booked" (B80), nor to a Helpr already offered it (JA-50). */}
-            {!isPoster && !isHired && !instantUntil && viewer.action.kind !== "see_offer" && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>}
+            {!isPoster && !isHired && !closedToMe && !instantUntil && viewer.action.kind !== "see_offer" && <p className="text-ds-13 text-muted-foreground">The street address is shared once you're offered the job.</p>}
           </section>
           {/* Helpr Guarantee (owner 2026-10-27), small, under the card (mockups 4 and 5). */}
           <div data-job-guarantee="" className="empty:hidden">

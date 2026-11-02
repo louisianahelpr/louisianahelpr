@@ -21,9 +21,9 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  * 'cancelling' in its newest (effective) definition. Behaviour is proved in
  * PGlite by src/test/pglite/refundClaimPutBackIsNotANewPayment.pglite.mjs.
  *
- * @mutate supabase/migrations/20261005064123_refund_claim_put_back_is_not_a_new_payment.sql | AND OLD.payment_status IS DISTINCT FROM 'chargeback'\n     AND OLD.payment_status IS DISTINCT FROM 'cancelling' THEN\n    v_title | AND OLD.payment_status IS DISTINCT FROM 'chargeback' THEN\n    v_title
- * @mutate supabase/migrations/20261005064123_refund_claim_put_back_is_not_a_new_payment.sql | AND OLD.payment_status IS DISTINCT FROM 'cancelling' THEN\n    SELECT COALESCE | THEN\n    SELECT COALESCE
- * @mutate supabase/migrations/20261005064123_refund_claim_put_back_is_not_a_new_payment.sql | AND OLD.payment_status IS DISTINCT FROM 'cancelling' THEN\n    FOR v_member IN | THEN\n    FOR v_member IN
+ * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | AND OLD.payment_status IS DISTINCT FROM 'chargeback'\n     AND OLD.payment_status IS DISTINCT FROM 'cancelling' THEN\n    v_title | AND OLD.payment_status IS DISTINCT FROM 'chargeback' THEN\n    v_title
+ * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | AND OLD.payment_status IS DISTINCT FROM 'cancelling' THEN\n    SELECT COALESCE | THEN\n    SELECT COALESCE
+ * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | AND OLD.payment_status IS DISTINCT FROM 'cancelling' THEN\n    FOR v_member IN | THEN\n    FOR v_member IN
  */
 
 const REPO = resolve(__dirname, "../..");

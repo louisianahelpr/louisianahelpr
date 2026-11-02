@@ -56,7 +56,7 @@ export interface ShipLabelPorts {
 }
 
 /** The ops line for a label that will never be used. */
-export function voidLine(requested: boolean): string {
+function voidLine(requested: boolean): string {
   return requested
     // B134: once EasyPost settles the void, the void pass closes the order (declutter_ship_hold_released,
     // 20261102030530): nothing to do by hand.
@@ -73,7 +73,7 @@ export function nextAttemptDelayMs(attempts: number): number {
 }
 
 /** After this many tries ops is paged (the hold is still valid for days; nobody is charged meanwhile). */
-export const PAGE_AFTER_ATTEMPTS = 6;
+const PAGE_AFTER_ATTEMPTS = 6;
 
 export async function runShipLabel(s: ClaimedShipment, order: ShipOrder | null, p: ShipLabelPorts): Promise<LabelOutcome> {
   if (s.label_mode !== "test") return "skipped_live";

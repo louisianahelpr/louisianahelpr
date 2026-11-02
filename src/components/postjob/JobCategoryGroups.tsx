@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { useLanguage } from "@/lib/i18n/language";
 import "@/lib/i18n/enPostJob";
 import type { MsgKey } from "@/lib/i18n/en";
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { SuggestCategory } from "@/components/SuggestCategory";
 import { GROUP_EMOJI, categoryEmoji } from "@/lib/categoryEmoji";
 import { categoryFromTitle } from "@/lib/categoryFromTitle";
@@ -141,8 +142,14 @@ export function JobCategoryGroups({ category, setCategory, group, setGroup, onPi
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t("postJob.searchPlaceholder")}
-              className="min-w-0 flex-1 bg-transparent font-sans text-ds-16 text-foreground placeholder:text-muted-foreground focus:outline-none"
+              className="min-w-0 flex-1 bg-transparent font-sans text-ds-16 text-foreground placeholder:text-muted-foreground focus:outline-none [&::-webkit-search-cancel-button]:hidden"
             />
+            {query ? (
+              // Q2260: the live filter's own clear, as every permanent search field has (SectionSearchRow).
+              <Button type="button" variant="ghost" size="iconCompact" aria-label={t("postJob.clearSearch")} onClick={() => setQuery("")} className="-mr-2 shrink-0 text-muted-foreground ctl-exit [&_svg]:size-4">
+                <X aria-hidden />
+              </Button>
+            ) : null}
           </label>
 
           {matches ? (

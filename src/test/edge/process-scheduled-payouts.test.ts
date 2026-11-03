@@ -874,6 +874,19 @@ describe("process-scheduled-payouts edge function", () => {
       await runCron();
       expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(9000);
     });
+    // Q1728 follow-up: a legacy / fallback automatic_tax capture (no job_tax_cents): its Stripe Tax figure is no headroom.
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts | siteTaxCents > 0 ? siteTaxCents : await automaticTaxCentsFor(stripe, pi)); | siteTaxCents);
+    it("Q1728 follow-up: an automatic_tax capture's tax is not headroom (gift 3000 + card 5000 + tax 1000 < payout 9000)", async () => {
+      seedMixed();
+      scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 3000 };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_1", status: "succeeded", latest_charge: "ch_1", amount: 6000, amount_received: 6000, metadata: {},
+      });
+      stripeMock.checkout.sessions.list.mockResolvedValue({ data: [{ total_details: { amount_tax: 1000 }, metadata: {} }] });
+      const body = await json(await runCron());
+      expect((body.results as Array<Record<string, unknown>>)[0].status).toBe("exceeds_captured_escrow");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
     it("Q1728: a tax-only capture on a fully gift-paid job pays the whole payout", async () => {
       seedMixed();
       scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 10000 };

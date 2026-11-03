@@ -32,9 +32,10 @@
  *   - anon / authenticated can neither run the RPC nor read the table.
  * Review revisions (2026-10-05):
  *   - lh-authz-rls: what export_my_data returns for a flagged account (its
- *     fraud_flags and user_bans sections, cut verbatim from the newest
- *     export_my_data) holds NO other account's ban reason, date or retained
- *     id; the details are in admin-only ban_evasion_matches. RED before.
+ *     user_bans section, cut verbatim from the newest export_my_data) holds
+ *     NO other account's ban reason, date or retained id; the details are in
+ *     admin-only ban_evasion_matches. RED before. Since 2026-10-29 the export
+ *     holds no fraud_flags section at all (20261029145604, owner); checked.
  *   - owner "ban now, admin settles": a card/bank ban settles NO job (the
  *     settlement functions are not called), opens a ban_settlement_queue
  *     row, holds payouts, and admin_ban_settlement_reviews() lists every job
@@ -488,19 +489,25 @@ await newAccount(AFTER_SPENT, "after-spent@s.test", "Jordan Blue");
 }
 
 // ── EXPORT: a flagged account sees nothing about the OTHER account ──────────
-// The user_bans and fraud_flags sections, cut verbatim from the newest
-// export_my_data, run for each flagged account.
+// The user_bans section, cut verbatim from the newest export_my_data, run for each flagged account.
+// fraud_flags is NOT exported any more (owner 2026-10-29, 20261029145604_export_my_data_no_moderation: staff fraud
+// signals are left out of Download My Data, CCPA regs s. 7024(d)), so the newest export must hold no such section.
 {
   const { readdirSync } = await import("node:fs");
   const dir = new URL("../../../supabase/migrations/", import.meta.url).pathname;
   const latest = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()
     .filter((f) => /CREATE OR REPLACE FUNCTION public\.export_my_data/.test(readFileSync(dir + f, "utf8"))).pop();
-  const def = readFileSync(dir + latest, "utf8");
-  const sections = ["user_bans", "fraud_flags"].map((t) => {
-    const m = new RegExp(`jsonb_build_object\\('${t}', (\\(SELECT[\\s\\S]*?WHERE t\\.user_id = v_uid\\))\\)`).exec(def);
-    return m?.[1] ?? null;
-  });
-  check("both export sections were found in " + latest, sections.every(Boolean));
+  const file = readFileSync(dir + latest, "utf8");
+  // Only the export_my_data statement (the file may define other functions), up to its closing dollar tag.
+  const at = file.indexOf("CREATE OR REPLACE FUNCTION public.export_my_data");
+  const tag = /\bAS\s+(\$\w*\$)/i.exec(file.slice(at));
+  const bodyStart = at + tag.index + tag[0].length;
+  const def = file.slice(at, file.indexOf(tag[1], bodyStart) + tag[1].length);
+  const m = /jsonb_build_object\('user_bans', (\(SELECT[\s\S]*?WHERE t\.user_id = v_uid\))\)/.exec(def);
+  const sections = [m?.[1] ?? null];
+  check("the user_bans export section was found in " + latest, sections.every(Boolean));
+  check("the newest export_my_data (" + latest + ") exports NO fraud_flags section (owner 2026-10-29)",
+    !/jsonb_build_object\(\s*'fraud_flags'/.test(def));
   const offender = await tryQ(`SELECT id::text, to_char(retained_at AT TIME ZONE 'America/Chicago', 'YYYY-MM-DD') d
                                  FROM public.retained_bans WHERE email_sha256 = encode(sha256('offender@x.test'::bytea), 'hex')`);
   const rid = offender.rows?.[0]?.id ?? "no-row";

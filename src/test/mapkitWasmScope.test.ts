@@ -56,6 +56,7 @@ describe("MapKit's WebAssembly stays the hillshade decoder (Q2091)", () => {
 
   it("the nightly runs the probe", () => {
     const wf = readFileSync(".github/workflows/expiry-monitor.yml", "utf8");
+    expect(wf.split("\n").length).toBeGreaterThan(100); // floor: the real workflow, not an empty read
     expect(wf).toMatch(/^\s+run: node scripts\/probes\/mapkit-wasm-scope\.probe\.mjs\s*$/m);
   });
 });

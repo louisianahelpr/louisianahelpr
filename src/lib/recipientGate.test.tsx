@@ -23,7 +23,7 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 const toastError = vi.fn();
-vi.mock("sonner", () => ({ toast: { error: (...a: unknown[]) => toastError(...a), warning: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (...a: unknown[]) => toastError(...a), warning: vi.fn() }) }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn() }));
 

@@ -28,7 +28,7 @@ vi.mock("@/lib/webPushSupport", async (orig) => ({
 
 const toastInfoMock = vi.fn();
 vi.mock("sonner", () => ({
-  toast: { info: (...args: unknown[]) => toastInfoMock(...args) },
+  toast: Object.assign(vi.fn(), { info: (...args: unknown[]) => toastInfoMock(...args) }),
 }));
 
 const TIMEOUT_MS = 30 * 60 * 1000;

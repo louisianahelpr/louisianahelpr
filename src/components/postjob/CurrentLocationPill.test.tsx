@@ -31,7 +31,7 @@ vi.mock("@/lib/haptics", () => ({ hapticLight: vi.fn() }));
 
 const toastError = vi.fn();
 const toastSuccess = vi.fn();
-vi.mock("sonner", () => ({ toast: { error: (m: string) => toastError(m), success: (m: string) => toastSuccess(m) } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (m: string) => toastError(m), success: (m: string) => toastSuccess(m) }) }));
 
 vi.mock("@capacitor/core", () => ({ Capacitor: { isNativePlatform: () => false } }));
 

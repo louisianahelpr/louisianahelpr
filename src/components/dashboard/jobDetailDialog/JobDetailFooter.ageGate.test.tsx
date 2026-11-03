@@ -15,7 +15,7 @@ import { UNDER_18_APPLY_COPY } from "@/lib/ageGate";
 // of opening the apply step. An adult and a member with no birthday saved are
 // unchanged. RED before useAgeGate: the button was plain and the tap applied.
 const toastError = vi.hoisted(() => vi.fn());
-vi.mock("sonner", () => ({ toast: { error: toastError, success: vi.fn(), dismiss: vi.fn(), loading: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: toastError, success: vi.fn(), dismiss: vi.fn(), loading: vi.fn() }) }));
 
 const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const yearsAgo = (n: number, dayShift = 0) => {

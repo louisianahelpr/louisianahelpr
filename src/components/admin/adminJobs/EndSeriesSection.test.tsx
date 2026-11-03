@@ -26,7 +26,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 
 const toastError = vi.fn();
-vi.mock("sonner", () => ({ toast: { error: (...a: unknown[]) => toastError(...a) } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (...a: unknown[]) => toastError(...a) }) }));
 const confirmMock = vi.fn();
 vi.mock("@/lib/toastPolicy", () => ({ confirmConsequential: (...a: unknown[]) => confirmMock(...a) }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));

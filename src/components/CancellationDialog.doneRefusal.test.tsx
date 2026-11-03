@@ -18,7 +18,7 @@ const DONE_HINT = "Your Helpr already marked this job done. Approve it, ask for 
 const rpcMock = vi.hoisted(() => vi.fn());
 let rpcError: Record<string, unknown> = {};
 
-vi.mock("sonner", () => ({ toast: { error: (...a: unknown[]) => toastError(...a), success: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (...a: unknown[]) => toastError(...a), success: vi.fn(), warning: vi.fn() }) }));
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticSuccess: vi.fn(), hapticLight: vi.fn(), hapticMedium: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {

@@ -177,11 +177,11 @@ const toastError = vi.fn();
 const toastWarning = vi.fn();
 const toastSuccess = vi.fn();
 vi.mock("sonner", () => ({
-  toast: {
+  toast: Object.assign(vi.fn(), {
     error: (...a: unknown[]) => toastError(...a),
     warning: (...a: unknown[]) => toastWarning(...a),
     success: (...a: unknown[]) => toastSuccess(...a),
-  },
+  }),
 }));
 
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));

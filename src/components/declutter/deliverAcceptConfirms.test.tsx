@@ -30,7 +30,7 @@ vi.mock("@/components/DateTimeField", () => ({
   ),
 }));
 vi.mock("sonner", () => ({
-  toast: { success: (msg: string, opts?: { action?: { label: string } }) => { state.toasts.push({ msg, opts }); }, error: vi.fn() },
+  toast: Object.assign(vi.fn(), { success: (msg: string, opts?: { action?: { label: string } }) => { state.toasts.push({ msg, opts }); }, error: vi.fn() }),
 }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: undefined }) }));
 vi.mock("@/components/payouts/useHiredPayoutPrompt", () => ({ useHiredPayoutPrompt: () => ({ open: false, offer: async () => true, close: () => {} }) }));

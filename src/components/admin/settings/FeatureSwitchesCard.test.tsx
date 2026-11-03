@@ -32,7 +32,7 @@ vi.mock("@/lib/biometricGate", () => ({
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "admin-1" }, isReady: true }) }));
 const toastError = vi.fn();
 const toastSuccess = vi.fn();
-vi.mock("sonner", () => ({ toast: { error: (...a: unknown[]) => toastError(...a), success: (...a: unknown[]) => toastSuccess(...a) } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (...a: unknown[]) => toastError(...a), success: (...a: unknown[]) => toastSuccess(...a) }) }));
 
 let audience = "testers";
 let withDeclutter = false;

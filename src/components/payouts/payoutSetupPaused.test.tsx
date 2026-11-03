@@ -56,7 +56,7 @@ vi.mock("@/lib/analytics", () => ({
 const openIdentityCheckMock = vi.fn();
 vi.mock("@/lib/identityCheck", () => ({ openIdentityCheck: (...a: unknown[]) => openIdentityCheckMock(...a) }));
 const toastError = vi.fn();
-vi.mock("sonner", () => ({ toast: { error: (...a: unknown[]) => toastError(...a), success: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (...a: unknown[]) => toastError(...a), success: vi.fn(), warning: vi.fn() }) }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
 import { PayoutSetupForm } from "@/components/PayoutSetupForm";

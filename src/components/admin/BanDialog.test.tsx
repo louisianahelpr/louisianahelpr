@@ -27,10 +27,10 @@ vi.mock("@/integrations/supabase/client", () => ({
 const toastSuccess = vi.fn();
 const toastError = vi.fn();
 vi.mock("sonner", () => ({
-  toast: {
+  toast: Object.assign(vi.fn(), {
     success: (...args: unknown[]) => toastSuccess(...args),
     error: (...args: unknown[]) => toastError(...args),
-  },
+  }),
 }));
 
 const createNotificationMock = vi.fn();

@@ -6,9 +6,9 @@
  *
  * Read from the NEWEST definition (effectiveDefs: any dollar-quote tag), comments blanked.
  *
- * @mutate supabase/migrations/20261029173937_no_show_alert_says_the_start_time.sql | 'Has your Helpr arrived?', | 'Has your helpr arrived?',
- * @mutate supabase/migrations/20261029173937_no_show_alert_says_the_start_time.sql | If your Helpr hasn''t arrived, message them from the job.', rec.title | If your Helpr hasn''t arrived, you can mark this as a no-show in the app.', rec.title
- * @mutate supabase/migrations/20261029173937_no_show_alert_says_the_start_time.sql | and not everyone on the crew has checked in. If someone hasn''t arrived, message them from the job.' | and not everyone on the crew has checked in. Thirty minutes ago it was due.'
+ * @mutate supabase/migrations/20261103214229_continuing_job_admin_stalled_and_crew_no_show.sql | 'Has your Helpr arrived?', | 'Has your helpr arrived?',
+ * @mutate supabase/migrations/20261103214229_continuing_job_admin_stalled_and_crew_no_show.sql | If your Helpr hasn''t arrived, message them from the job.', rec.title | If your Helpr hasn''t arrived, you can mark this as a no-show in the app.', rec.title
+ * @mutate supabase/migrations/20261103214229_continuing_job_admin_stalled_and_crew_no_show.sql | and not everyone on the crew has checked in. If someone hasn''t arrived, message them from the job.' | and not everyone on the crew has checked in. Thirty minutes ago it was due.'
  */
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -22,7 +22,7 @@ describe("the no-show alert says the start time, Helpr, and no No-Show the card 
   const body = blankSqlComments(def?.stmt ?? "");
 
   it("reads the newest definition (inventory floor)", () => {
-    expect(def?.file).toBe("20261029173937_no_show_alert_says_the_start_time.sql");
+    expect(def?.file).toBe("20261103214229_continuing_job_admin_stalled_and_crew_no_show.sql");
     // Four messages: poster and Helpr, one-off and crew.
     expect(body.match(/was scheduled to start at %s/g)?.length).toBe(4);
   });

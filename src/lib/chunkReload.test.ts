@@ -362,7 +362,7 @@ describe("hardReloadBypassCache follow-ups", () => {
 // @mutate src/lib/chunkReload.ts | if (offline) return { reload: false }; | if (false) return { reload: false };
 // Fail-closed with no usable sessionStorage: without the counter there is no
 // cap across reloads, so the `_v` cache-buster is the only thing left.
-// @mutate src/lib/chunkReload.ts | if (state.count > 0 \|\| landedFromRecentRecoveryReload()) return false; | if (state.count > 0) return false;
+// @mutate src/lib/chunkReload.ts | if (state.count > 0 \|\| landedFromRecentRecoveryReload()) return declined( | if (state.count > 0) return declined(
 // Q199: while a retry waits, the caller must get true (quiet state), not the error card.
 // @mutate src/lib/chunkReload.ts | pendingRetry = setTimeout(fire, decision.delayMs);\n  }\n  return true; | pendingRetry = setTimeout(fire, decision.delayMs);\n  }\n  return false;
 // Q199: the watchdog's own copy of the decision (the 10s give-up was the bug).

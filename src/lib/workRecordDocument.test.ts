@@ -291,7 +291,8 @@ describe("the record does not contradict the app about the same person", () => {
     // instead. Ten live prod profiles were in exactly that state on
     // 2026-09-06: verified badge in the app, "Not verified" on the document
     // they hand a landlord.
-    const page = src("../pages/profile/WorkRecord.tsx");
+    // The read moved to workRecord/fetchWorkRecord.ts (Q806); the screen renders what it returns.
+    const page = src("../pages/profile/WorkRecord.tsx") + src("../pages/profile/workRecord/fetchWorkRecord.ts");
     expect(page).toMatch(/hasIdBadge\(profileRow\.idv_status\)/);
     expect(page).not.toMatch(/isIdentityVerified\(/);
     // The three places the verdict is rendered (badge, footer sentence, PDF

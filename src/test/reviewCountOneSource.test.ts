@@ -112,7 +112,7 @@ describe("Q321: a review count comes from one definition", () => {
 
   it("surfaces that show a count read it from the aggregate", () => {
     expect(code("src/hooks/useProfileTabData.ts")).toContain("reviewCount: publicRow ? publicRow.review_count ?? 0 : ratings.length,");
-    expect(code("src/pages/profile/WorkRecord.tsx")).toContain("await fetchRatingStats([userId])");
+    expect(code("src/pages/profile/workRecord/fetchWorkRecord.ts")).toContain("await fetchRatingStats([userId])");
     expect(code("src/pages/user/ReviewsSection.tsx")).toContain("count: Math.max(trueReviewCount, reviews.length), stars: 0");
     expect(code("src/components/job-card/activityActions/useApplicantsState.ts")).toContain("fetchRatingStats(");
   });

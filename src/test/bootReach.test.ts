@@ -9,7 +9,9 @@
  * is scripts/check-deferred-vendors.mjs ("signed-in-only shared module is on the
  * boot path"), which reads the real chunks' sourcemaps; this is the source half.
  *
- * @mutate scripts/perf/bootReach.mjs | const reach = staticReach(root, publicRoots(root)); | const reach = new Set();
+ * @mutate scripts/perf/bootReach.mjs | const reach = staticReach(root, [...publicRoots(root), ...GUEST_CHROME_ROOTS.map((r) => toPosix(path.join(root, r)))]); | const reach = new Set();
+ * @mutate scripts/perf/bootReach.mjs | const reach = staticReach(root, [...publicRoots(root), ...GUEST_CHROME_ROOTS.map((r) => toPosix(path.join(root, r)))]); | const reach = staticReach(root, publicRoots(root));
+ * @mutate scripts/perf/bootReach.mjs |   "src/components/PermissionRationaleMount.tsx", |   // PermissionRationaleMount dropped
  * @mutate vite.config.ts | name: "signed-in-shared", | name: "signed-in-shared-off",
  * @mutate vite.config.ts | includeDependenciesRecursively: false, | includeDependenciesRecursively: true,
  * @mutate scripts/perf/bootReach.mjs | const deep = new Set([...signedInOnly].filter((f) => !reach.has(f))); | const deep = new Set();
@@ -32,7 +34,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { firstScreenRoots, guestBrowseOnlyModules, guestBrowseSplit, homeFirstScreenRoots, publicRoots, signedInOnlyModules, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
+import { GUEST_CHROME_ROOTS, firstScreenRoots, guestBrowseOnlyModules, guestBrowseSplit, homeFirstScreenRoots, publicRoots, signedInOnlyModules, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
@@ -68,6 +70,45 @@ describe("bootReach: what a signed-out cold load can reach", () => {
   it("a dynamic import() is not an edge (that is the point of lazy code)", () => {
     // sentry.ts is loaded with import() from main.tsx; its module must not count as reached.
     expect(staticReach(ROOT, [abs("src/main.tsx")]).has(abs("src/lib/sentry.ts"))).toBe(false);
+  });
+});
+
+/**
+ * Q654 (B40, 11-03): App.tsx's lazy chrome that a GUEST mounts at once (outside SignedInChrome / SignedInOnly) is
+ * fetched on every public cold load, ~70 ms after main.tsx. Measured on a build of origin/main dca60fb752 (Chromium,
+ * cold `/`, no backend): ScrollToTop and PermissionRationaleMount pulled signed-in-shared (14.6 KB gz, 85% unused),
+ * signed-in-dock and browse-home-shared onto that boot, because their helpers counted as signed-in-only.
+ */
+describe("bootReach: the lazy chrome a guest mounts at once is public reach", () => {
+  const app = blankComments(readFileSync(join(ROOT, "src/App.tsx"), "utf8"));
+  const lazySpec = new Map([...app.matchAll(/const (\w+) = lazy\(\s*\(\)\s*=>\s*(?:\([^)]*\)\s*,\s*)?import\(\s*["']([^"']+)["']/g)].map((m) => [m[1], m[2]]));
+  const toFile = (spec: string) => {
+    const rel = spec.startsWith("@/") ? `src/${spec.slice(2)}` : `src/${spec.replace(/^\.\//, "")}`;
+    return [".tsx", ".ts"].map((ext) => rel + ext).find((f) => { try { readFileSync(join(ROOT, f)); return true; } catch { return false; } }) ?? rel;
+  };
+  // Spans of the signed-in wrappers: a lazy mount inside one never renders for a guest.
+  const spans = [...app.matchAll(/<(SignedInChrome|SignedInOnly)>[\s\S]*?<\/\1>/g)].map((m) => [m.index!, m.index! + m[0].length]);
+  const mounts = [...app.matchAll(/<Suspense fallback=\{null\}>\s*<(\w+)\s*\/>\s*<\/Suspense>/g)]
+    .filter((m) => lazySpec.has(m[1]))
+    .map((m) => ({ name: m[1], guest: !spans.some(([a, b]) => m.index! > a && m.index! < b) }));
+
+  it("inventory: App.tsx's lazy chrome mounts and its signed-in wrappers are read", () => {
+    expect(lazySpec.size).toBeGreaterThan(10);
+    expect(mounts.length).toBeGreaterThan(8); // 11 on 2026-11-03
+    expect(spans.length).toBeGreaterThan(1);
+  });
+
+  it("GUEST_CHROME_ROOTS is exactly the lazy chrome a guest mounts", () => {
+    const guest = [...new Set(mounts.filter((m) => m.guest).map((m) => toFile(lazySpec.get(m.name)!)))].sort();
+    expect(guest).toEqual([...GUEST_CHROME_ROOTS].sort());
+  });
+
+  it("no module that chrome reaches statically counts as signed-in-only", () => {
+    const { signedInOnly } = signedInOnlyModules(ROOT);
+    const reach = staticReach(ROOT, GUEST_CHROME_ROOTS.map(abs));
+    expect(reach.size).toBeGreaterThan(10);
+    expect([...reach].filter((f) => signedInOnly.has(f)).map((f) => f.slice(ROOT.length + 1))).toEqual([]);
+    for (const rel of ["src/lib/hideUnopenedInApp.ts", "src/lib/lazyModule.ts"]) expect(signedInOnly.has(abs(rel)), rel).toBe(false);
   });
 });
 

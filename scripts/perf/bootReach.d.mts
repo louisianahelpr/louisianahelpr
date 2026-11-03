@@ -9,6 +9,7 @@ export function signedInOnlyModules(root: string): {
   sharedModules: number;
 };
 export const EVERY_PAGE_ROOTS: string[];
+export const GUEST_CHROME_ROOTS: string[];
 export function firstScreenRoots(root: string): string[];
 export function signedInSplit(root: string): {
   signedInOnly: Set<string>;

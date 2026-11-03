@@ -406,29 +406,38 @@ serve(async (req) => {
      *     to 'paid' if a dispute is won (it is the row read here).
      * Null: unreadable, and the caller fails closed.
      */
-    const giftFeeFunding = async (
-      jobId: string,
-    ): Promise<{ cents: number; restored: boolean; donationReversed: boolean; disputeOpen: boolean; spentGiftId?: string } | null> => {
+    /**
+     * What a gift paid for `jobId` and still holds for it, in cents, from a dry run of the restore (the first
+     * half of giftFeeFunding below). 0 with restored false: no gift paid for this job. Null: unreadable.
+     */
+    const giftPaidCents = async (jobId: string): Promise<{ cents: number; restored: boolean } | null> => {
       const { data, error: dryErr } = await supabaseAdmin.rpc("restore_gift_card_for_job", {
         p_job_id: jobId,
         p_dry_run: true,
       });
       if (dryErr) return null;
       const d = (data ?? null) as { outcome?: string; applied_cents?: number | null; restore_cents?: number | null } | null;
-      let cents: number;
-      let restored = false;
       if (d?.outcome === "would_restore") {
-        cents = Math.max(0, Math.floor(Number(d.applied_cents ?? 0)));
+        return { cents: Math.max(0, Math.floor(Number(d.applied_cents ?? 0))), restored: false };
       } else if (d?.outcome === "already_restored") {
-        restored = true;
-        cents = d.applied_cents === undefined || d.applied_cents === null
-          ? 0
-          : Math.max(0, Math.floor(Number(d.applied_cents)) - Math.floor(Number(d.restore_cents ?? 0)));
+        return {
+          cents: d.applied_cents === undefined || d.applied_cents === null
+            ? 0
+            : Math.max(0, Math.floor(Number(d.applied_cents)) - Math.floor(Number(d.restore_cents ?? 0))),
+          restored: true,
+        };
       } else if (d?.outcome === "no_credit" || d?.outcome === "would_unreserve" || d?.outcome === "job_not_found") {
-        return { cents: 0, restored: false, donationReversed: false, disputeOpen: false };
-      } else {
-        return null;
+        return { cents: 0, restored: false };
       }
+      return null;
+    };
+
+    const giftFeeFunding = async (
+      jobId: string,
+    ): Promise<{ cents: number; restored: boolean; donationReversed: boolean; disputeOpen: boolean; spentGiftId?: string } | null> => {
+      const paid = await giftPaidCents(jobId);
+      if (paid === null) return null;
+      const { cents, restored } = paid;
       if (cents <= 0) return { cents, restored, donationReversed: false, disputeOpen: false };
       const { data: spent, error: spentErr } = await supabaseAdmin
         .from("gift_cards")
@@ -492,6 +501,66 @@ serve(async (req) => {
       }
       const disputeOpen = disputes.some((d) => GIFT_DISPUTE_NOT_FINAL.has(String(d.status ?? "")));
       return { cents, restored, donationReversed: true, disputeOpen, spentGiftId };
+    };
+
+    /**
+     * Q1913: a job with NO PaymentIntent pays its crew block fees only from what a gift paid for it. With no
+     * card and no gift money behind the job (a seed crew in escrow with no PaymentIntent, or a gift an earlier
+     * run gave back whole), payCrewBlockFees would send them from the platform's own balance (never absorb a
+     * fee, owner 2026-10-14). Those rows are voided instead and ops is told once a day: nobody paid for the job,
+     * so nothing was withheld from anyone for them. "pay": a gift paid something, so the fees go as before
+     * (the shortfall and chargeback checks above still apply). "not_settled": the gift could not be read, so
+     * nothing moves this run (fails closed).
+     */
+    const blockFeesOnUnfundedJob = async (
+      job: { id: string; title?: string | null; is_seed?: boolean | null },
+      rows: CrewBlockFeeRow[],
+    ): Promise<"pay" | "voided" | "not_settled"> => {
+      // A row with no member (account deleted) moves no money: payCrewBlockFees voids it itself.
+      const unpaid = rows.filter((r) => (r.status === "owed" || r.status === "failed") && r.helper_id);
+      if (unpaid.length === 0) return "pay";
+      const funding = await giftPaidCents(job.id);
+      if (funding === null) {
+        console.error(`[void-cancelled-payments] job ${job.id}: could not read what its gift paid; its crew block fees wait.`);
+        defects.record(`block fee funding read ${job.id}: unreadable — not paid`);
+        return "not_settled";
+      }
+      if (funding.cents > 0) return "pay";
+      const { data: voided, error: voidErr } = await supabaseAdmin
+        .from("crew_block_fees")
+        .update({ status: "void", failure_reason: "no card or gift paid for this job" })
+        .in("id", unpaid.map((r) => r.id))
+        .in("status", ["owed", "failed"])
+        .select("id");
+      if (voidErr) {
+        defects.record(`block fee void ${job.id}: ${voidErr.message}`);
+        return "not_settled";
+      }
+      const voidedIds = new Set(((voided ?? []) as Array<{ id: string }>).map((v) => v.id));
+      for (const r of rows) if (voidedIds.has(r.id)) r.status = "void";
+      const cents = unpaid.filter((r) => voidedIds.has(r.id)).reduce((sum, r) => sum + Math.max(0, Number(r.fee_cents) || 0), 0);
+      console.warn(`[void-cancelled-payments] job ${job.id}: ${voidedIds.size} crew block fee(s), ${cents}c, voided: no card or gift paid for this job.`);
+      // The members' first names, so a person can decide quickly. An unreadable name falls back to the id; the
+      // alert still goes.
+      const memberIds = [...new Set(unpaid.filter((r) => voidedIds.has(r.id)).map((r) => r.helper_id as string))];
+      const { data: memberRows, error: memberErr } = await supabaseAdmin
+        .from("profiles").select("user_id, full_name").in("user_id", memberIds);
+      if (memberErr) console.warn(`[void-cancelled-payments] job ${job.id}: crew member names unreadable for the block fee alert: ${memberErr.message}`);
+      const firstName = (id: string) => {
+        const full = ((memberRows ?? []) as Array<{ user_id?: string; full_name?: string | null }>).find((m) => m.user_id === id)?.full_name;
+        return (typeof full === "string" && full.trim() ? full.trim().split(/\s+/)[0] : null) ?? id;
+      };
+      const members = memberIds.map(firstName).join(", ");
+      await postSlackOpsAlert({
+        kind: "custom",
+        severity: "warning",
+        seed: job.is_seed === true,
+        title: "Crew block fee not paid: nothing paid for this job",
+        message: `Job ${job.id} ("${job.title ?? "untitled"}") owed $${(cents / 100).toFixed(2)} in crew block fees to ${members}, but no card and no gift paid for it, so they were not sent from the platform's own money. The rows are voided. Decide by hand whether ${memberIds.length === 1 ? "they are" : "any of them is"} owed it.`,
+        fields: { job_id: job.id, job_title: job.title ?? "untitled", members, block_fee_cents: cents, rows_voided: voidedIds.size, gift_restored: funding.restored ? "yes" : "no" },
+        oncePerDayKey: `crew-block-fee-unfunded:${job.id}`,
+      });
+      return "voided";
     };
 
     const settleCancelledJob = async (
@@ -2661,8 +2730,16 @@ serve(async (req) => {
           continue;
         }
         if (blockFeeRows.some((r) => r.status === "owed" || r.status === "failed")) {
-          const paidFirst = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", liveGates }, job, blockFeeRows, null);
-          for (const p of paidFirst.problems) defects.record(p);
+          // Q1913: only from money a gift paid for this job, never the platform's own.
+          const blockMoney = await blockFeesOnUnfundedJob(job, blockFeeRows);
+          if (blockMoney === "not_settled") {
+            results.push({ job_id: job.id, title: job.title, status: "block_fee_funding_unreadable" });
+            continue;
+          }
+          if (blockMoney === "pay") {
+            const paidFirst = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", liveGates }, job, blockFeeRows, null);
+            for (const p of paidFirst.problems) defects.record(p);
+          }
         }
         const giftBlockCents = crewBlockFeeCents(blockFeeRows);
         const giftKeptFor = [
@@ -3299,13 +3376,13 @@ serve(async (req) => {
         for (const r of (owedFees ?? []) as CrewBlockFeeRow[]) byJob.set(r.job_id, [...(byJob.get(r.job_id) ?? []), r]);
         const { data: feeJobs, error: feeJobErr } = await supabaseAdmin
           .from("jobs")
-          .select("id, title, helper_fee_percent, helper_fee_flat_cents, payment_status, stripe_payment_intent_id")
+          .select("id, title, helper_fee_percent, helper_fee_flat_cents, payment_status, stripe_payment_intent_id, is_seed")
           .in("id", [...byJob.keys()])
           .in("payment_status", ["released", "refunded", "cancelled"]);
         if (feeJobErr) {
           defects.record(`crew block fee sweep job read: ${feeJobErr.message}`);
         } else {
-          for (const fj of (feeJobs ?? []) as Array<{ id: string; title: string; helper_fee_percent: number | null; stripe_payment_intent_id: string | null }>) {
+          for (const fj of (feeJobs ?? []) as Array<{ id: string; title: string; helper_fee_percent: number | null; stripe_payment_intent_id: string | null; is_seed: boolean | null }>) {
             // The same gate every Part A job passes (Q231): an undecided or
             // unexecuted dispute decides where this job's money goes first.
             const feeSettlement = await checkUnsettledDispute(supabaseAdmin, fj.id);
@@ -3313,6 +3390,8 @@ serve(async (req) => {
               if (feeSettlement.readError) defects.record(`crew block fee sweep dispute check ${fj.id}: ${feeSettlement.readError}`);
               continue;
             }
+            // Q1913: a settled job with no PaymentIntent pays a left-owed block fee only from what its gift kept.
+            if (!fj.stripe_payment_intent_id && (await blockFeesOnUnfundedJob(fj, byJob.get(fj.id) ?? [])) !== "pay") continue;
             // Stripe mode for THIS job (owner 2026-10-12): test accounts on the test key.
             let stripe: Stripe;
             try {

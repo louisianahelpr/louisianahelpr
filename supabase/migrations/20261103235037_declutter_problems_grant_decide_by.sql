@@ -1,0 +1,20 @@
+-- declutter_problems.decide_by is readable by members and admins (Builder 81, 2026-11-03).
+--
+-- 20261015042253 gave `authenticated` column SELECT on every declutter_problems
+-- column but decided_by (members never learn which admin decided). A3-74
+-- (20261102041000) added decide_by ("Louisiana Helpr decides usually by then",
+-- display only) and src/lib/declutter/handover.ts withDecideBy() reads it, but
+-- no migration granted the new column: measured on prod 2026-11-03
+-- (information_schema.column_privileges), decide_by is missing, so the read
+-- answers 42501 and the admin refund queue loses its due-time order.
+--
+-- Only decide_by. decided_by stays hidden on purpose; other_side_at,
+-- other_side_note, other_side_photo_paths and withdrawn_at are also ungranted
+-- and are left as they are (the other_side_* columns reach the app through
+-- the SECURITY DEFINER readers declutter_order_problem and
+-- declutter_admin_open_problems; no client select names any of the four, which
+-- src/test/declutterProblemsSelectsAreGranted.test.ts checks). Rows are still limited by
+-- RLS "declutter problems: the two sides and admins read".
+-- Replay-safe: GRANT is idempotent, and decide_by is added by 20261102041000,
+-- which always runs first in a from-scratch rebuild.
+GRANT SELECT (decide_by) ON TABLE public.declutter_problems TO authenticated;

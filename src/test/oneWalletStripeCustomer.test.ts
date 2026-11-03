@@ -15,7 +15,7 @@
  * the resolver fails until it is removed from its list (slices 2-3 of the plan
  * drive both to empty).
  *
- * @mutate supabase/functions/declutter-card/index.ts | const customerId = await resolveStripeCustomer(admin, stripe, user, mode, { adoptTagged: true }); | const customerId = (await stripe.customers.create({ email: user.email ?? undefined })).id;
+ * @mutate supabase/functions/declutter-card/index.ts | withWalletCustomer(admin, stripe, user, mode, (customerId) => | withWalletCustomer(admin, stripe.customers.create({ email: user.email ?? undefined }) && stripe, user, mode, (customerId) =>
  * @mutate supabase/functions/declutter-checkout/index.ts | customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined; | customerId = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id;
  * @mutate supabase/functions/shop-checkout/index.ts | customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined; | customerId = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id;
  * @mutate supabase/functions/_shared/stripeCustomer.ts | .eq("wallet_mode", mode) | .eq("user_id", userId)
@@ -117,7 +117,9 @@ describe("one wallet: a member's Stripe customer comes from ONE place", () => {
 
   it("Declutter's card page and checkout use the wallet, not their own customer", () => {
     const card = code("supabase/functions/declutter-card/index.ts");
-    expect(card).toMatch(/resolveStripeCustomer\(admin, stripe, user, mode, \{ adoptTagged: true \}\)/);
+    // Q2140: through withWalletCustomer (resolve, plus one replace-and-retry when Stripe lost the customer).
+    expect(card).toMatch(/withWalletCustomer\(admin, stripe, user, mode, \(customerId\) => stripe\.checkout\.sessions\.create\(/);
+    expect(card).toMatch(/\}\), \{ adoptTagged: true \}\);/);
     expect(card).not.toMatch(/declutter_buyer_cards/);
     const checkout = code("supabase/functions/declutter-checkout/index.ts");
     expect(checkout).toMatch(/storedStripeCustomer\(admin, user\.id, mode\)/);

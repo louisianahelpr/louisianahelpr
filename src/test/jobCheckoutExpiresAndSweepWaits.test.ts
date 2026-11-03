@@ -23,7 +23,7 @@
  *
  * @mutate supabase/functions/create-payment/index.ts | expires_at: checkoutExpiresAt,\n        metadata: { job_id: jobId, customer_id: user.id, onboarding | metadata: { job_id: jobId, customer_id: user.id, onboarding
  * @mutate supabase/functions/create-payment/index.ts | expires_at: checkoutExpiresAt,\n          metadata: { job_id: jobId, customer_id: user.id, gift_card_id | metadata: { job_id: jobId, customer_id: user.id, gift_card_id
- * @mutate supabase/functions/create-payment/index.ts | idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${holdPlan ? "-h" : ""}${checkoutKeySuffix}` | idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${holdPlan ? "-h" : ""}${remintKeySuffix}`
+ * @mutate supabase/functions/create-payment/index.ts | idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${holdPlan ? "-h" : ""}${checkoutKeySuffix} | idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${holdPlan ? "-h" : ""}${remintKeySuffix}
  * @mutate supabase/functions/void-cancelled-payments/index.ts | if (session.status === "expired" && session.payment_status === "unpaid") { | if (session.payment_status === "unpaid") {
  * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionExpired.ts | const superseded = !!job?.stripe_session_id && job.stripe_session_id !== session.id; | const superseded = false;
  */
@@ -62,7 +62,8 @@ describe("Q770: job checkouts carry a short, idempotency-safe expires_at", () =>
 
   it.each(found.map((f, i) => [i, f] as const))("job checkout #%i sets expires_at and keys on its bucket", (_i, f) => {
     expect(f.block).toMatch(/expires_at:\s*checkoutExpiresAt/);
-    expect(f.block).toMatch(/idempotencyKey:\s*`[^`]*\$\{checkoutKeySuffix\}`/);
+    // Q2140: a wallet-replaced retry adds ":new-wallet" after the bucket (its params changed).
+    expect(f.block).toMatch(/idempotencyKey:\s*`[^`]*\$\{checkoutKeySuffix\}(\$\{walletRetry \? ":new-wallet" : ""\})?`/);
   });
 
   it("the expiry is bucketed and inside Stripe's 30 min..24h window", () => {

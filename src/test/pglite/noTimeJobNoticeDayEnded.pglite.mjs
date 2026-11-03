@@ -44,7 +44,7 @@ CREATE TABLE public.jobs (id uuid primary key, title text, customer_id uuid, hel
   status public.job_status default 'accepted', date_needed date, start_time time,
   helper_on_the_way_at timestamptz, helper_arrived_at timestamptz, poster_confirmed_arrival_at timestamptz,
   helper_completed_at timestamptz, proof_after_urls text[]);
-CREATE TABLE public.notifications (id uuid primary key default gen_random_uuid(), user_id uuid, title text not null, message text not null, type text, link text, job_id uuid, seq serial);
+CREATE TABLE public.notifications (id uuid primary key default gen_random_uuid(), user_id uuid, title text not null, message text not null, type text, link text, job_id uuid, created_at timestamptz NOT NULL DEFAULT clock_timestamp());
 CREATE TABLE public.notification_preferences (user_id uuid, transit_updates boolean default true, work_status boolean default true);
 CREATE TABLE public.profiles (user_id uuid, full_name text);
 CREATE FUNCTION public.member_display_name(p_full text, p_fallback text) RETURNS text LANGUAGE sql AS $$
@@ -70,7 +70,7 @@ async function job(cols) {
     [id, `Job ${n}`, P, H, cols.start_time ?? null]);
   return id;
 }
-const last = async (id) => (await db.query(`SELECT title, message FROM notifications WHERE job_id = $1 ORDER BY seq DESC LIMIT 1`, [id])).rows[0];
+const last = async (id) => (await db.query(`SELECT title, message FROM notifications WHERE job_id = $1 ORDER BY created_at DESC LIMIT 1`, [id])).rows[0];
 
 // 1. No start time, auto-started with no arrival: the day ended.
 const a = await job({});

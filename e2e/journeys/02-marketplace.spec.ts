@@ -846,9 +846,12 @@ test.describe.serial("marketplace chain", () => {
          24h-out slot rendered "I'm on my way" disabled under "Actions unlock
          at 9:40 PM on Sep 22" and this assertion passed on it. */
       const c = await card(hp, "/jobs?tab=working", scheduledTab());
-      const stillOn = c.getByRole("button", { name: /I'm still on/ }).first();
+      // The Helpr's day-of confirm is "Confirm you'll be at the job" (JobConfirmation HELPER_CONFIRM_LABEL; it shows
+      // just "Confirm", the full words are its name) and opens the "Confirm you'll be there" sheet. It was "I'm still
+      // on"; e2e-journeys 41653294881 (both legs) saw the open card offer only "Confirm you'll be at the job".
+      const stillOn = c.getByRole("button", { name: /^Confirm you'll be at the job$/ }).first();
       const onWay = c.getByRole("button", { name: /I'm on my way/ }).first();
-      await expect(stillOn.or(onWay).first(), "the helper card offers neither Still On nor On My Way").toBeVisible({ timeout: 45_000 });
+      await expect(stillOn.or(onWay).first(), "the helper card offers neither Confirm you'll be at the job nor I'm on my way").toBeVisible({ timeout: 45_000 });
       await expect(
         stillOn.or(onWay).first(),
         "the helper card's day-of control is painted but disabled — the tracker is locked until two hours before the start (JobTracking's isLocked), so this slot is too far out for the journey to walk",

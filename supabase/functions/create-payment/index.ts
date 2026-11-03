@@ -60,7 +60,7 @@ import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { formatExactDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { payoutPromiseSentence, readPromisedPayout } from "../_shared/payoutPromise.ts";
-import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
+import { helprFaultFeeCapCents, helprFaultFeeDeductedClause, ledgerHelprFaultFeeCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { arrivalEstablished, arrivalGateMessage } from "../_shared/arrivalRule.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { COME_BACK_PENDING_MESSAGE, isRefundRequestHoldRefusal, refundComeBackPending, REFUND_REQUEST_RELEASE_MESSAGE } from "../_shared/refundRequestHold.ts";
@@ -3915,6 +3915,9 @@ serve(async (req) => {
           // instead of quietly picking one.
           helper_payout_cents: settledTransfer.amountCents,
           computed_helper_payout_cents: roundPayoutDownCents(Math.round(helperPayout * 100)),
+          // Q2167: the computed figure is the share BEFORE a Helpr-fault card
+          // fee, so it differs from helper_payout_cents by exactly this.
+          helpr_fault_fee_cents: settledTransfer.helprFaultFeeCents,
           platform_fee_cents: Math.round((feeAmt / dpHelpersCount) * 100),
           helper_fee_percent: disputeFeePercent,
           payment_intent_id: captureResult.paymentIntentId,
@@ -3930,11 +3933,13 @@ serve(async (req) => {
         // floor formatter would hide. No ledger row read: no figure (a
         // recomputed one would be before the debt).
         const ledgerTransferredCents = settledTransfer.amountCents;
+        const faultClause = helprFaultFeeDeductedClause(settledTransfer.helprFaultFeeCents);
         await insertNotifications(supabaseAdmin, {
           user_id: job.helper_id,
           job_id: job.id,
           title: "Dispute resolved — payment released!",
-          message: `The dispute on "${job.title}" has been resolved in your favor. ${ledgerTransferredCents != null ? `$${formatExactDollars(ledgerTransferredCents / 100)} has been transferred` : "Your payment has been transferred"}.`,
+          // Q2167: and say so when a Helpr-fault card fee came off it.
+          message: `The dispute on "${job.title}" has been resolved in your favor. ${ledgerTransferredCents != null ? `$${formatExactDollars(ledgerTransferredCents / 100)} has been transferred` : "Your payment has been transferred"}${faultClause ? ` (${faultClause})` : ""}.`,
           type: "payment", link: "/profile?tab=earnings",
         });
       }
@@ -5502,12 +5507,13 @@ async function lookupSettledTransfer(
   supabaseAdmin: any,
   jobId: string,
   helperId: string | null,
-): Promise<{ transferId: string | null; amountCents: number | null }> {
-  const empty = { transferId: null, amountCents: null };
+): Promise<{ transferId: string | null; amountCents: number | null; helprFaultFeeCents: number }> {
+  const empty = { transferId: null, amountCents: null, helprFaultFeeCents: 0 };
   if (!helperId) return empty;
   const { data, error } = await supabaseAdmin
     .from("payout_transfers")
-    .select("stripe_transfer_id, amount_cents, status")
+    // metadata: the Helpr-fault card fee the row kept back (Q2167).
+    .select("stripe_transfer_id, amount_cents, status, metadata")
     .eq("job_id", jobId)
     .eq("helper_id", helperId)
     .in("status", ["pending", "paid"])
@@ -5523,6 +5529,7 @@ async function lookupSettledTransfer(
   return {
     transferId: (row.stripe_transfer_id as string | undefined) ?? null,
     amountCents: Number.isFinite(cents) && cents >= 0 ? Math.round(cents) : null,
+    helprFaultFeeCents: ledgerHelprFaultFeeCents(row.metadata),
   };
 }
 

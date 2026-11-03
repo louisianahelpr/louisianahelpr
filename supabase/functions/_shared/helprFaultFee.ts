@@ -18,11 +18,31 @@
  * `roundPayoutDownCents(<payout before the debt>) - helprFaultFeeCents`; the
  * old `roundPayoutDownCents(x - debt)` withheld up to 99c more or less.
  */
-import { roundPayoutDownCents } from "./money.ts";
+import { formatExactDollars, roundPayoutDownCents } from "./money.ts";
 import { releaseUnsentClaim } from "./payoutClaim.ts";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- supabase-js rpc builder (thenable), as in heldTipRepay.ts
 type Db = { rpc: (fn: string, args: Record<string, unknown>) => any };
+
+/**
+ * Q2167: the card fee a payout ledger row says it kept back
+ * (metadata.helpr_fault_fee_cents, written by every payout path; absent or
+ * malformed reads 0).
+ */
+export function ledgerHelprFaultFeeCents(metadata: unknown): number {
+  const raw = (metadata as { helpr_fault_fee_cents?: unknown } | null | undefined)?.helpr_fault_fee_cents;
+  const cents = Math.round(Number(raw));
+  return Number.isFinite(cents) && cents > 0 ? cents : 0;
+}
+
+/**
+ * Q2167: the clause a payout notice adds when a Helpr-fault card fee came off
+ * it, in process-scheduled-payouts' words, so every payout notice tells the
+ * Helpr the same thing. "" when none was taken.
+ */
+export function helprFaultFeeDeductedClause(cents: number): string {
+  return cents > 0 ? `$${formatExactDollars(cents / 100)} owed from a job you were ruled at fault on deducted` : "";
+}
 
 /** The payout every single-Helpr job path takes the debt under. */
 function helprFaultPayoutRef(jobId: string): string {

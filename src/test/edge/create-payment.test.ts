@@ -4311,6 +4311,50 @@ describe("create-payment edge function", () => {
         expect(String((helprNote?.payload as Record<string, unknown>)?.message)).toContain("$84.31 has been transferred");
       });
 
+      // Q2167 (lh-money-escrow@b1730c932#7): the Helpr is told the card fee came off, and the
+      // audit row books it beside the pre-debt computed figure. Both read the LEDGER row's metadata.
+      // @mutate supabase/functions/create-payment/index.ts | helprFaultFeeCents: ledgerHelprFaultFeeCents(row.metadata), | helprFaultFeeCents: 0,
+      // @mutate supabase/functions/create-payment/index.ts | : "Your payment has been transferred"}${faultClause ? ` (${faultClause})` : ""}.`, | : "Your payment has been transferred"}.`,
+      // @mutate supabase/functions/create-payment/index.ts | helpr_fault_fee_cents: settledTransfer.helprFaultFeeCents, | helpr_fault_fee_cents: 0,
+      it("Quick Release names a Helpr-fault card fee in the Helpr's notice and the audit row (Q2167)", async () => {
+        seedReleasable();
+        scenario.reads.payout_transfers = {
+          selectOverrides: [
+            { includes: "amount_cents", result: { rows: [{ stripe_transfer_id: "tr_d", amount_cents: 8431, status: "paid", metadata: { source: "admin_release_dispute", helpr_fault_fee_cents: 369 } }] } },
+            { includes: "status", result: { rows: [] } },
+          ],
+        };
+        scenario.rpc.take_helpr_fault_fee = 369;
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(200);
+        const helprNote = scenario.writes.find((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === HELPER.id);
+        expect(String((helprNote?.payload as Record<string, unknown>)?.message)).toContain(
+          "$84.31 has been transferred ($3.69 owed from a job you were ruled at fault on deducted).",
+        );
+        const audit = scenario.writes.find((w) => w.table === "admin_audit_log");
+        expect((audit?.payload as { details: Record<string, unknown> }).details).toMatchObject({
+          helper_payout_cents: 8431,
+          computed_helper_payout_cents: 8800,
+          helpr_fault_fee_cents: 369,
+        });
+      });
+
+      it("Quick Release with no Helpr-fault fee: no fee clause, and the audit books 0 (Q2167)", async () => {
+        seedReleasable();
+        const fn = await load();
+        const res = await fn.fetch(
+          fn.request({ headers: AUTH, body: { action: "admin_release_dispute", jobId: "job-1" } }),
+        );
+        expect(res.status).toBe(200);
+        const helprNote = scenario.writes.find((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === HELPER.id);
+        expect(String((helprNote?.payload as Record<string, unknown>)?.message)).not.toContain("ruled at fault");
+        const audit = scenario.writes.find((w) => w.table === "admin_audit_log");
+        expect((audit?.payload as { details: Record<string, unknown> }).details).toMatchObject({ helpr_fault_fee_cents: 0 });
+      });
+
       it("Quick Release moves nothing when the Helpr-fault debt cannot be read (Q2082 (b))", async () => {
         seedReleasable();
         scenario.rpcErrors = { take_helpr_fault_fee: { message: "connection reset" } };

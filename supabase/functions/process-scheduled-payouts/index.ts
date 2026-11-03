@@ -12,7 +12,7 @@ import { actualOrEstimatedFeeCents, actualStripeFeeCents, netUrgentFeeDollars, s
 import { crewFeeShareReturnCents, taxOnKeptCents } from "../_shared/refundAmount.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatExactDollars, formatPayoutDollars, isDefiniteStripeRefusal, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
-import { helprFaultFeeCapCents, releaseClaimAndRestoreFaultFee, restoreHelprFaultFee, resumedClaimHelprFaultFee, stampClaimHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
+import { helprFaultFeeCapCents, helprFaultFeeDeductedClause, releaseClaimAndRestoreFaultFee, restoreHelprFaultFee, resumedClaimHelprFaultFee, stampClaimHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { checkUnrecordedTransfers, claimPayout, classifyLedger, failClaim, settleClaim, type LedgerRow } from "../_shared/payoutClaim.ts";
 // The post-transfer flip and its transient-only retry are SHARED with
@@ -2311,7 +2311,7 @@ serve(async (req) => {
         const feeParts = [
           // Not on the giveaway: its setup fee came out of Louisiana Helpr's share, not the winner's $50.
           owesOnboardingFee && !isGiveawayFixedPayJob(job) ? `one-time $${onboardingFeeDollars.toFixed(2)} account setup fee deducted` : "",
-          helprFaultFeeCents > 0 ? `$${formatExactDollars(helprFaultFeeCents / 100)} owed from a job you were ruled at fault on deducted` : "",
+          helprFaultFeeDeductedClause(helprFaultFeeCents),
         ].filter(Boolean);
         const feeNote = feeParts.length > 0 ? ` (${feeParts.join("; ")})` : "";
         await insertNotifications(supabaseAdmin, {

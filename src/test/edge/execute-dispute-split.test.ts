@@ -455,7 +455,7 @@ describe("execute-dispute-split edge function", () => {
 
     // JOBS2-33 (Jobs audit 10-30): "a 60% share" was not the money (the commission comes off the share), and a
     // Helpr whose share came to $0 was told nothing.
-    // @mutate supabase/functions/execute-dispute-split/index.ts | : `The dispute on "${job.title}" is settled. Your share, $${helperAmount}, is on its way to your bank.`, | : `The dispute on "${job.title}" was settled with a ${Math.round(helperShare * 100)}% share to you. $${helperAmount} is on its way to your bank.`,
+    // @mutate supabase/functions/execute-dispute-split/index.ts | : `The dispute on "${job.title}" is settled. Your share, $${helperAmount}, is on its way to your bank${faultNote}.`, | : `The dispute on "${job.title}" was settled with a ${Math.round(helperShare * 100)}% share to you. $${helperAmount} is on its way to your bank${faultNote}.`,
     // @mutate supabase/functions/execute-dispute-split/index.ts |       : `The dispute on "${job.title}" is settled.`; |       : `The dispute on "${job.title}" was settled with a ${Math.round(posterShare * 100)}% share to you.`;
     // @mutate supabase/functions/execute-dispute-split/index.ts |   } else if (job.helper_id && !agreement) { |   } else if (false) {
     it("JOBS2-33: the notices name dollars, never a percent share", async () => {
@@ -2068,6 +2068,42 @@ describe("execute-dispute-split: a Helpr-fault card fee comes out of the Helpr l
     expect(row.metadata).toEqual(expect.objectContaining({ helpr_fault_fee_cents: 369, rounding_remainder_cents: 80 }));
     const note = (scenario.writes ?? []).find((w) => w.table === "notifications" && JSON.stringify(w.payload).includes("your share was sent"));
     expect(JSON.stringify(note?.payload)).toContain("$48.31, is on its way");
+    // Q2167: the Helpr is told the card fee came off this share.
+    expect(String((note?.payload as { message?: string })?.message)).toContain(
+      "is on its way to your bank ($3.69 owed from a job you were ruled at fault on deducted).",
+    );
+  });
+
+  // Q2167 (lh-money-escrow@b1730c932#7): the split's pay notice names a Helpr-fault card fee, on a
+  // first attempt (this run's take) and on a resume (the settled ledger row's metadata).
+  // @mutate supabase/functions/execute-dispute-split/index.ts |     movedHelprFaultFeeCents = helprFaultFeeCents; |     movedHelprFaultFeeCents = 0;
+  // @mutate supabase/functions/execute-dispute-split/index.ts | let movedHelprFaultFeeCents = settledTransfer ? ledgerHelprFaultFeeCents(settledTransfer.metadata) : 0; | let movedHelprFaultFeeCents = 0;
+  // @mutate supabase/functions/execute-dispute-split/index.ts | is on its way to your bank${faultNote}.`, | is on its way to your bank.`,
+  it("no debt: the pay notice carries no fee clause (Q2167)", async () => {
+    seedExecutable(scenario, { helperShare: 0.6 });
+    const fn = await load();
+    await invoke(fn);
+    const note = (scenario.writes ?? []).find((w) => w.table === "notifications" && JSON.stringify(w.payload).includes("your share was sent"));
+    expect(String((note?.payload as { message?: string })?.message)).toContain("is on its way to your bank.");
+    expect(String((note?.payload as { message?: string })?.message)).not.toContain("ruled at fault");
+  });
+
+  it("a resume names the fee the settled leg's ledger row kept back (Q2167)", async () => {
+    seedExecutable(scenario, {
+      helperShare: 0.6,
+      dispute: { execution_status: "failed", execution_transfer_id: "tr_prev" },
+    });
+    scenario.reads.payout_transfers = {
+      rows: [{ id: "pt-1", stripe_transfer_id: "tr_prev", status: "paid", amount_cents: 4831, metadata: { ...OWN_TRANSFER, helpr_fault_fee_cents: 369 } }],
+    };
+    const fn = await load();
+    const res = await invoke(fn);
+    expect(res.status).toBe(200);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    const note = (scenario.writes ?? []).find((w) => w.table === "notifications" && JSON.stringify(w.payload).includes("your share was sent"));
+    expect(String((note?.payload as { message?: string })?.message)).toContain(
+      "$48.31, is on its way to your bank ($3.69 owed from a job you were ruled at fault on deducted).",
+    );
   });
 
   it("an unreadable debt moves nothing (fails closed)", async () => {

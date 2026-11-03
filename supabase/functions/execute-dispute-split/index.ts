@@ -71,7 +71,7 @@ import { cardCostFeeCents, chargeTaxCentsFor, checkoutChargeTaxCents, refundToPa
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
-import { helprFaultFeeCapCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
+import { helprFaultFeeCapCents, helprFaultFeeDeductedClause, ledgerHelprFaultFeeCents, restoreHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
 import { checkIdentityHold, checkPayoutHold, checkJobPayoutHold, PAYOUT_HELD_CODE, PAYOUT_HOLD_SPLIT_ERROR, PAYOUT_JOB_HOLD_SPLIT_ERROR } from "../_shared/payoutHold.ts";
 import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
 import { CONNECT_HOLD_SPLIT_ERROR, CONNECT_NOT_PAYABLE_CODE, CONNECT_REJECTED_CODE, STRIPE_PLATFORM_REJECTED_CODE } from "../_shared/livePayoutGate.ts";
@@ -894,6 +894,8 @@ serve(async (req) => {
     status: string | null;
     amount_cents: number | null;
     platform_fee_cents: number | null;
+    // Q2167: carries helpr_fault_fee_cents (absent on a row recovered from Stripe).
+    metadata?: unknown;
   };
   const isOwnRow = (r: { metadata?: unknown }) =>
     (r.metadata as { dispute_id?: unknown } | null | undefined)?.dispute_id === disputeId;
@@ -1167,6 +1169,9 @@ serve(async (req) => {
   let movedHelperCents = settledTransfer && Number.isFinite(ledgerHelperCents)
     ? ledgerHelperCents
     : helperCents;
+  // Q2167: the Helpr-fault card fee that leg kept back, for the Helpr's notice
+  // (the ledger's on a resume; set by the Helpr leg below on a first attempt).
+  let movedHelprFaultFeeCents = settledTransfer ? ledgerHelprFaultFeeCents(settledTransfer.metadata) : 0;
   const movedPlatformFeeCents = settledTransfer && Number.isFinite(ledgerFeeCents)
     ? ledgerFeeCents
     : platformFeeCents;
@@ -1669,6 +1674,7 @@ serve(async (req) => {
     // what is withheld is exactly what is booked (no debt: helperCents).
     const helperTransferCents = roundPayoutDownCents(unroundedHelperCents) - helprFaultFeeCents;
     movedHelperCents = helperTransferCents;
+    movedHelprFaultFeeCents = helprFaultFeeCents;
     // The exits below that move NO money give the withheld fee back.
     const restoreHelprFault = async () => {
       if (helprFaultFeeCents > 0) await restoreHelprFaultFee(supabaseAdmin, job.helper_id, job.id, "execute-dispute-split");
@@ -2114,6 +2120,9 @@ serve(async (req) => {
   const refundDollars = refundCents / 100;
   if (job.helper_id && movedHelperCents > 0) {
     const helperAmount = movedHelperCents % 100 !== 0 ? formatExactDollars(helperDollars) : formatPayoutDollars(helperDollars);
+    // Q2167: a Helpr-fault card fee that came off this share is named.
+    const faultClause = helprFaultFeeDeductedClause(movedHelprFaultFeeCents);
+    const faultNote = faultClause ? ` (${faultClause})` : "";
     const { error: helperNoteErr } = await supabaseAdmin.from("notifications").insert({
       user_id: job.helper_id,
       job_id: job.id,
@@ -2123,8 +2132,8 @@ serve(async (req) => {
       // JOBS2-33 (Jobs audit 10-30): the dollars, never "a 50% share": the share is of the award, and the Helpr's
       // commission comes off it, so a percent never matched the money that arrives.
       message: agreement
-        ? `What you agreed on "${job.title}" is settled. $${helperAmount} is on its way to your bank.`
-        : `The dispute on "${job.title}" is settled. Your share, $${helperAmount}, is on its way to your bank.`,
+        ? `What you agreed on "${job.title}" is settled. $${helperAmount} is on its way to your bank${faultNote}.`
+        : `The dispute on "${job.title}" is settled. Your share, $${helperAmount}, is on its way to your bank${faultNote}.`,
       type: "payment",
       // `/profile?tab=earnings` is the earnings screen — `/earnings` and
       // `/analytics` both redirect here, and Dashboard reads no `tab` param.

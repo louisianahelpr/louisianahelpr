@@ -1,4 +1,4 @@
-// @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (failedJob && FUNDED_PAYMENT_STATES.has(String(failedJob.payment_status))) { | if (false) {
+// @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (failedJob && (FUNDED_PAYMENT_STATES.has(String(failedJob.payment_status)) \|\| failedJob.payment_status === "cancelling")) { | if (false) {
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (job.stripe_payment_intent_id !== piId) { | if (false) {
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (!liveStatus \|\| !FAILED_PI_STATUSES.has(liveStatus)) { | if (false) {
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const hired = Boolean(job.helper_id && job.helper_confirmed_at); | const hired = Boolean(job.helper_id);
@@ -290,6 +290,53 @@ describe("payment_intent.payment_failed on a job marked funded", () => {
     expect(res.status).toBe(500);
     expect(jobUpdates()).toHaveLength(0);
     expect(notices()).toHaveLength(0);
+  });
+
+  // Q1973: the job's ROW reads 'cancelling' (a poster refund holds it). It used to fall to the unpaid branch and be
+  // acked with no write; it now throws so Stripe retries, and a later delivery after the put-back to 'escrow'
+  // un-funds it. Both halves, the row as the webhook reads it.
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (failedJob && (FUNDED_PAYMENT_STATES.has(String(failedJob.payment_status)) \|\| failedJob.payment_status === "cancelling")) { | if (failedJob && FUNDED_PAYMENT_STATES.has(String(failedJob.payment_status))) {
+  it("Q1973: a failure while the row is 'cancelling' is retried (500), and the retry after the put-back to escrow un-funds it", async () => {
+    let fn = await loadConfigured();
+    failedEvent();
+    fundedJob({ status: "open", helper_id: null, payment_status: "cancelling" });
+    cancelAnswers("moved_on", { payment_status: "cancelling" });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+    let res = await fn.fetch(webhookRequest(fn));
+    expect(res.status, "mid-refund: Stripe must retry, never an ack").toBe(500);
+    expect(cancelCalls(), "inventory floor: the cancel RPC was asked under its lock").toHaveLength(1);
+    expect(jobUpdates()).toHaveLength(0);
+    expect(notices()).toHaveLength(0);
+
+    // The refund's put-back landed: the same event, redelivered, now finds 'escrow'.
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+    fn = await loadConfigured();
+    failedEvent();
+    fundedJob({ status: "open", helper_id: null, payment_status: "escrow" });
+    cancelAnswers("not_hired");
+    scenario.writeSelectRows.jobs = [{ id: "job-ach" }];
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method", amount_received: 0 });
+    res = await fn.fetch(webhookRequest(fn));
+    expect(res.status).toBe(200);
+    expect(jobUpdates().map((w) => w.payload)).toEqual([{ payment_status: "failed", stripe_session_id: null }]);
+    expect(notices().map((x) => x.user_id)).toEqual(["poster-1"]);
+  });
+
+  // Q1973: a finished refund ('refunded') is not routed: nothing to un-fund, acked, nothing written.
+  it("Q1973: a failure after the refund finished ('refunded') is acked with nothing written and no cancel asked", async () => {
+    const fn = await loadConfigured();
+    failedEvent();
+    fundedJob({ status: "cancelled", helper_id: null, payment_status: "refunded" });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: PI, status: "requires_payment_method" });
+    const res = await fn.fetch(webhookRequest(fn));
+    expect(res.status).toBe(200);
+    expect(cancelCalls()).toHaveLength(0);
+    // The unpaid branch's write is pinned to a null/unpaid row, so it cannot touch a refunded one.
+    for (const w of jobUpdates()) {
+      expect(JSON.stringify(w.filters)).toMatch(/payment_status\.is\.null,payment_status\.eq\.unpaid/);
+    }
   });
 
   // Q1971 + Q1876 (merged with the train's returnBouncedGift): a funded job

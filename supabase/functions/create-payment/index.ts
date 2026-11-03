@@ -996,6 +996,67 @@ serve(async (req) => {
         }
       }
 
+      // ─── Q2083 (b) / Q1727 (a): a taxable job is taxed at the JOB ADDRESS ───
+      // Louisiana sources a taxable service to where it is performed (the
+      // owner-adopted tax memo), not the poster's billing address, which is
+      // all automatic_tax can see. So Stripe prices the taxed lines at the job
+      // ZIP (the same call calculate-tax previews with), the figure is
+      // charged as its own "Sales tax" line with automatic_tax OFF, and
+      // stripe-webhook commits the calculation (createFromCalculation) once
+      // paid. The job site is never written onto the shared Customer (Q1727
+      // TRIED: it leaked into Pro/Plus subscriptions). No Louisiana job ZIP =
+      // no honest tax, so a taxable job is refused rather than charged untaxed.
+      // Q1728 (owner 11-03, "charge the tax on the card"): a gift-paid job is
+      // taxed the same way, on its FULL taxable price (a gift card is a way to
+      // pay, not a discount), so both checkouts share this one calculation.
+      const figureJobSiteTax = async (keyTag: string): Promise<{ calculationId: string; cents: number } | "no_zip"> => {
+        const taxAddress = jobTaxAddress(job.zip_code);
+        if (!taxAddress) return "no_zip";
+        const taxCode = laborTaxCode(job.category, job.tax_kind);
+        let calc: Stripe.Tax.Calculation;
+        try {
+          calc = await stripe.tax.calculations.create({
+            currency: "usd",
+            // The labor, the urgent bonus (Q1843) and a poster-fee job's
+            // service fee: every line create-payment taxes, each with the
+            // labor's code, exactly as the Checkout lines carry it.
+            line_items: [
+              { amount: Math.round(job.budget * 100), reference: "labor", tax_behavior: TAX_BEHAVIOR, tax_code: taxCode },
+              ...(urgentFeeCents > 0 ? [{ amount: urgentFeeCents, reference: "urgent_bonus", tax_behavior: TAX_BEHAVIOR, tax_code: taxCode }] : []),
+              ...(isPosterFee && posterFeeCents > 0 ? [{ amount: posterFeeCents, reference: "service_fee", tax_behavior: TAX_BEHAVIOR, tax_code: taxCode }] : []),
+            ],
+            customer_details: { address: taxAddress, address_source: JOB_TAX_ADDRESS_SOURCE },
+          }, { idempotencyKey: `job-tax-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${keyTag}${checkoutKeySuffix}` });
+        } catch (e) {
+          console.error(`[create-payment] job-site tax calculation failed for job ${jobId}; no checkout rather than an untaxed charge:`, e);
+          throw new PublicError("Could not figure the sales tax for this job — please try again");
+        }
+        const cents = Number(calc.tax_amount_exclusive);
+        if (!calc.id || !Number.isInteger(cents) || cents < 0) {
+          console.error(`[create-payment] job-site tax calculation for job ${jobId} returned no usable figure`, { id: calc.id, tax: calc.tax_amount_exclusive });
+          throw new PublicError("Could not figure the sales tax for this job — please try again");
+        }
+        return { calculationId: calc.id, cents };
+      };
+      // 400, not a thrown PublicError (the catch answers every PublicError 500 and logs it as a server
+      // fault, which pages Sentry): the job's own data is what's missing, and retrying never changes it.
+      const noJobZipResponse = () => {
+        console.warn(`[create-payment] 400 — taxable job ${jobId} has no Louisiana job ZIP; no tax call, no checkout`);
+        return new Response(
+          JSON.stringify({ error: "Add the job's Louisiana ZIP code before paying, so sales tax can be figured for where the work is done." }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+        );
+      };
+      const salesTaxLine = (cents: number) => ({
+        price_data: {
+          currency: "usd",
+          tax_behavior: TAX_BEHAVIOR,
+          product_data: { name: "Sales tax", description: "Louisiana sales tax for where the job is done", tax_code: NONTAXABLE_TAX_CODE },
+          unit_amount: cents,
+        },
+        quantity: 1,
+      });
+
       // ─── Gift card redemption ───
       // A recipient redeeming a directed gift funds the job from the
       // prepaid donation (already captured into the platform balance at
@@ -1008,6 +1069,13 @@ serve(async (req) => {
       // first (redeem_gift_card reads it from customer_fee_amount) and of the
       // shortfall. Either way this short-circuits before the pricing below.
       if (giftCardId) {
+        // Q1728: figured BEFORE the redeem, so a job with no Louisiana ZIP is refused with the gift untouched.
+        let giftJobTax: { calculationId: string; cents: number } | null = null;
+        if (isLaborTaxable(job.category, job.tax_kind)) {
+          const figured = await figureJobSiteTax("-gift");
+          if (figured === "no_zip") return noJobZipResponse();
+          giftJobTax = figured;
+        }
         const { data: redeem, error: redeemErr } = await supabaseAdmin.rpc("redeem_gift_card", {
           p_credit_id: giftCardId,
           p_job_id: jobId,
@@ -1073,20 +1141,26 @@ serve(async (req) => {
           },
           quantity: 1,
         }];
+        // Q1728 (owner 11-03): the sales tax on the job's full taxable price goes on the card, as its own line.
+        if (giftJobTax && giftJobTax.cents > 0) diffLineItems.push(salesTaxLine(giftJobTax.cents));
+        const giftTaxMetadata: Record<string, string> = giftJobTax
+          ? { [JOB_TAX_CALC_KEY]: giftJobTax.calculationId, [JOB_TAX_CENTS_KEY]: String(giftJobTax.cents) }
+          : {};
         const diffSession = await payerWallet((walletCustomer, walletRetry) => stripe.checkout.sessions.create({
           customer: walletCustomer,
-          customer_update: { address: "auto" },
+          // Q1728: a job-site-taxed shortfall carries its own "Sales tax" line, so no billing-address tax.
+          ...(giftJobTax ? {} : { customer_update: { address: "auto" as const } }),
           line_items: diffLineItems,
           mode: "payment",
           // Every job checkout names its methods (owner 2026-10-18) and
           // presents dollars only (no Adaptive Pricing conversion).
           payment_method_types: [...JOB_CHECKOUT_PAYMENT_METHOD_TYPES],
           adaptive_pricing: { enabled: false },
-          automatic_tax: { enabled: true },
+          automatic_tax: { enabled: !giftJobTax },
           // 3D Secure from $300 (Q202): the hosted page runs the challenge.
-          payment_method_options: threeDSecureOptions(differenceCents),
+          payment_method_options: threeDSecureOptions(differenceCents + (giftJobTax?.cents ?? 0)),
           payment_intent_data: {
-            metadata: { job_id: jobId, customer_id: user.id, gift_card_id: giftCardId },
+            metadata: { job_id: jobId, customer_id: user.id, gift_card_id: giftCardId, ...giftTaxMetadata },
             // Q734: honour "save my card" here too. A recurring series charges
             // each later visit to the card on the series' PaymentIntent
             // (charge-recurring-visits seriesCard), which for a gift-funded
@@ -1104,7 +1178,7 @@ serve(async (req) => {
           // one, unusable on anything else until the session expired.
           cancel_url: buildRedirectUrl(`/post-job?gift_card=${encodeURIComponent(giftCardId)}`, isNative),
           expires_at: checkoutExpiresAt,
-          metadata: { job_id: jobId, customer_id: user.id, gift_card_id: giftCardId,
+          metadata: { job_id: jobId, customer_id: user.id, gift_card_id: giftCardId, ...giftTaxMetadata,
             // wallet_save "1": stripe-webhook makes the saved card the wallet's
             // default card (Q2139) only on a session marked so ("" = unset).
             wallet_save: saveCardForFuture === true ? "1" : "" },
@@ -1453,54 +1527,12 @@ serve(async (req) => {
       // no honest tax, so a taxable job is refused rather than charged untaxed.
       let jobTax: { calculationId: string; cents: number } | null = null;
       if (laborTaxable) {
-        const taxAddress = jobTaxAddress(job.zip_code);
-        if (!taxAddress) {
-          // 400, not a thrown PublicError (the catch answers every PublicError 500 and logs it as a server
-          // fault, which pages Sentry): the job's own data is what's missing, and retrying never changes it.
-          console.warn(`[create-payment] 400 — taxable job ${jobId} has no Louisiana job ZIP; no tax call, no checkout`);
-          return new Response(
-            JSON.stringify({ error: "Add the job's Louisiana ZIP code before paying, so sales tax can be figured for where the work is done." }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
-          );
-        }
-        const taxCode = laborTaxCode(job.category, job.tax_kind);
-        let calc: Stripe.Tax.Calculation;
-        try {
-          calc = await stripe.tax.calculations.create({
-            currency: "usd",
-            // The labor, the urgent bonus (Q1843) and a poster-fee job's
-            // service fee: every line create-payment taxes, each with the
-            // labor's code, exactly as the Checkout lines above carry it.
-            line_items: [
-              { amount: Math.round(job.budget * 100), reference: "labor", tax_behavior: TAX_BEHAVIOR, tax_code: taxCode },
-              ...(urgentFeeCents > 0 ? [{ amount: urgentFeeCents, reference: "urgent_bonus", tax_behavior: TAX_BEHAVIOR, tax_code: taxCode }] : []),
-              ...(isPosterFee && posterFeeCents > 0 ? [{ amount: posterFeeCents, reference: "service_fee", tax_behavior: TAX_BEHAVIOR, tax_code: taxCode }] : []),
-            ],
-            customer_details: { address: taxAddress, address_source: JOB_TAX_ADDRESS_SOURCE },
-          }, { idempotencyKey: `job-tax-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${checkoutKeySuffix}` });
-        } catch (e) {
-          console.error(`[create-payment] job-site tax calculation failed for job ${jobId}; no checkout rather than an untaxed charge:`, e);
-          throw new PublicError("Could not figure the sales tax for this job — please try again");
-        }
-        const cents = Number(calc.tax_amount_exclusive);
-        if (!calc.id || !Number.isInteger(cents) || cents < 0) {
-          console.error(`[create-payment] job-site tax calculation for job ${jobId} returned no usable figure`, { id: calc.id, tax: calc.tax_amount_exclusive });
-          throw new PublicError("Could not figure the sales tax for this job — please try again");
-        }
-        jobTax = { calculationId: calc.id, cents };
-        if (cents > 0) {
-          lineItems.push({
-            price_data: {
-              currency: "usd",
-              tax_behavior: TAX_BEHAVIOR,
-              product_data: { name: "Sales tax", description: "Louisiana sales tax for where the job is done", tax_code: NONTAXABLE_TAX_CODE },
-              unit_amount: cents,
-            },
-            quantity: 1,
-          });
-        }
-        paymentIntentExtras.metadata[JOB_TAX_CALC_KEY] = calc.id;
-        paymentIntentExtras.metadata[JOB_TAX_CENTS_KEY] = String(cents);
+        const figured = await figureJobSiteTax("");
+        if (figured === "no_zip") return noJobZipResponse();
+        jobTax = figured;
+        if (jobTax.cents > 0) lineItems.push(salesTaxLine(jobTax.cents));
+        paymentIntentExtras.metadata[JOB_TAX_CALC_KEY] = jobTax.calculationId;
+        paymentIntentExtras.metadata[JOB_TAX_CENTS_KEY] = String(jobTax.cents);
       }
 
       // 3D Secure from $300 (Q202), on everything the poster pays. Since

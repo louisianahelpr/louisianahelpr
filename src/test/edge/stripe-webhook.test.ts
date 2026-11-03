@@ -253,6 +253,14 @@ describe("stripe-webhook edge function", () => {
       // Q2083 (b): a job taxed at the job address is LA by construction, so a
       // $0 job-site figure alerts whatever the billing state.
       // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |       const billingState = String((session.metadata as any)?.[JOB_TAX_CALC_KEY] ?? "").startsWith("taxcalc_")\n        ? "LA" |       const billingState = false\n        ? "LA"
+      // Q1728: a gift shortfall taxed at the job site is a taxed job, so its $0 figure alerts; a plain gift one does not.
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |     const isGiftShortfall = Boolean((session.metadata as any)?.gift_card_id) && !String( |     const isGiftShortfall = Boolean((session.metadata as any)?.gift_card_id) \|\| !String(
+      it("a gift shortfall with a $0 job-site figure alerts; a gift shortfall without one does not (Q1728)", async () => {
+        expect(await deliver("auto_repair", { gift_card_id: "gc-1", tax_calculation_id: "taxcalc_gz", job_tax_cents: "0" })).toHaveLength(1);
+        resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+        expect(await deliver("auto_repair", { gift_card_id: "gc-1" })).toHaveLength(0);
+      });
+
       it("a $0 job-site figure alerts even when the poster is billed out of state (Q2083 b)", async () => {
         expect(await deliver("auto_repair", { tax_calculation_id: "taxcalc_z", job_tax_cents: "0" }, "TX")).toHaveLength(1);
       });
@@ -362,7 +370,7 @@ describe("stripe-webhook edge function", () => {
     // amount_details.tax on a PaymentIntent, so the job kept the insert-time estimate. The Checkout Session's own
     // total_details.amount_tax is Stripe's figure; a gift difference session (non-taxable on purpose) is not.
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const taxCents = typeof sessionTaxForJob === "number" ? sessionTaxForJob : piTaxCents; | const taxCents = piTaxCents;
-    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const sessionTaxForJob = (session.metadata as any)?.gift_card_id ? undefined : (sessionJobTaxCents(session as any) ?? undefined); | const sessionTaxForJob = (sessionJobTaxCents(session as any) ?? undefined);
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const sessionTaxForJob = (session.metadata as any)?.gift_card_id && !jobSiteTaxed ? undefined : (sessionJobTaxCents(session as any) ?? undefined); | const sessionTaxForJob = (sessionJobTaxCents(session as any) ?? undefined);
     it("Q2152: a basil PaymentIntent (no amount_details.tax) records the SESSION's tax, 1105c -> 11.05; a gift difference session's $0 does not overwrite the estimate", async () => {
       const deliver = async (metadata: Record<string, string>, amountTax: number) => {
         const fn = await loadConfigured();
@@ -391,6 +399,12 @@ describe("stripe-webhook edge function", () => {
       const g = await deliver({ gift_card_id: "gc-1" }, 0);
       expect(g).toBeTruthy();
       expect(g).not.toHaveProperty("sales_tax_amount");
+      // Q1728 (owner 11-03): a gift shortfall that carries the job-site tax line records that tax.
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const sessionTaxForJob = (session.metadata as any)?.gift_card_id && !jobSiteTaxed ? undefined : | const sessionTaxForJob = (session.metadata as any)?.gift_card_id ? undefined :
+      resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+      const gt = await deliver({ gift_card_id: "gc-1", tax_calculation_id: "taxcalc_gift", job_tax_cents: "1000" }, 0);
+      expect(gt?.sales_tax_amount).toBe(10);
+      expect(gt?.sales_tax_rate).toBe(0.1);
     });
 
     // Q1996 (lh-money-escrow review of slice 3a, #5): on a poster-fee job in a

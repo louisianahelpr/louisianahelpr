@@ -87,6 +87,28 @@ export const KEEP_ONE_OPEN_TOAST = "Keep at least one open section on";
 /** Accounts whose row was read this app run (keyed by user id, so another account reads its own). */
 const pulled = new Set<string>();
 
+/**
+ * ...and this TAB session (B58, 2026-11-03, docs/OPEN.md Q104): the row is the member's own Customize choice, written
+ * through this file, so a reload in the same tab need not read it again (member_section_prefs went out on every
+ * signed-in page load: 104 calls in Journeys run 41665299005). Marked only after a read that answered, so a failed
+ * read is tried again; a new tab reads the account's row as before.
+ */
+const PULLED_THIS_TAB = "lh-section-prefs-read:";
+function pulledThisTab(userId: string): boolean {
+  try {
+    return sessionStorage.getItem(`${PULLED_THIS_TAB}${userId}`) === "1";
+  } catch {
+    return false; // storage unavailable: read as before
+  }
+}
+function markPulledThisTab(userId: string): void {
+  try {
+    sessionStorage.setItem(`${PULLED_THIS_TAB}${userId}`, "1");
+  } catch {
+    /* storage unavailable: the next load reads the row again */
+  }
+}
+
 function writeLocal(userId: string, prefs: SectionPrefs): void {
   try {
     safeStorage.setItem(`${KEY}:${userId}`, JSON.stringify(normalizePrefs(prefs)));
@@ -111,6 +133,7 @@ async function pullFromAccount(userId: string): Promise<void> {
     console.warn(`[sections] reading Customize from the account failed: ${error.message}`);
     return;
   }
+  markPulledThisTab(userId);
   if (data) {
     writeLocal(userId, { order: data.section_order as SectionKey[], hidden: data.sections_hidden as SectionKey[] });
     return;
@@ -129,7 +152,7 @@ export function useSectionPrefs() {
   const prefs = useSyncExternalStore(subscribe, () => read(userId));
 
   useEffect(() => {
-    if (!userId || pulled.has(userId)) return;
+    if (!userId || pulled.has(userId) || pulledThisTab(userId)) return;
     pulled.add(userId);
     void pullFromAccount(userId);
   }, [userId]);

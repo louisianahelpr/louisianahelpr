@@ -121,6 +121,12 @@ const bad = await ask("handyman", "70112", "massage");
 check("an unknown tax_kind is refused invalid_tax_kind / 22023", /invalid_tax_kind/.test(bad.error ?? "") && bad.code === "22023");
 check("no refused call inserted a request", (await count()) === before);
 
+// 3b. The open-request cap answers 400 (P0001), never 500 (54000 was PostgREST's 500 class).
+for (let i = (await count()); i < 6; i++) await ask("handyman", "70112", null);
+const capped = await ask("handyman", "70112", null);
+check("the 6th open request is refused too_many_open_requests / P0001 (400, not 500)",
+  /too_many_open_requests/.test(capped.error ?? "") && capped.code === "P0001");
+
 // 4. Exactly one create_quote_request, the 13-argument one; grants as before.
 const sigs = (await db.query(
   `SELECT p.oid::regprocedure::text AS sig, p.proacl::text AS acl FROM pg_proc p WHERE p.proname = 'create_quote_request'`)).rows;
@@ -141,4 +147,4 @@ check("an 11-named-argument call reaches the new function and is refused invalid
 
 const fails = checks.filter(([, ok]) => !ok).length;
 console.log(BEFORE ? `before: ${fails} of ${checks.length} failed (the gap must show)` : `after: ${checks.length - fails}/${checks.length} pass (3x applied)`);
-process.exit(BEFORE ? (fails >= 8 ? 0 : 1) : fails === 0 ? 0 : 1);
+process.exit(BEFORE ? (fails >= 9 ? 0 : 1) : fails === 0 ? 0 : 1);

@@ -3,13 +3,14 @@
 // a taxable job's sales tax at jobs.zip_code and refuses a taxable job with no Louisiana ZIP.
 //
 // Reads the NEWEST definitions (effectiveDefs: any dollar tag, later restatements win) and the client source
-// with comments blanked. Behaviour proof: src/test/pglite/quoteRequestZipTaxKind.pglite.mjs (13/13 after,
-// applied 3x; 10 of 13 fail with this migration left out).
+// with comments blanked. Behaviour proof: src/test/pglite/quoteRequestZipTaxKind.pglite.mjs (14/14 after,
+// applied 3x; 11 of 14 fail with this migration left out).
 //
 // @mutate supabase/migrations/20261103205121_quote_request_zip_tax_kind.sql |           p_req.zip_code, p_req.tax_kind) |           NULL, p_req.tax_kind)
 // @mutate supabase/migrations/20261103205121_quote_request_zip_tax_kind.sql |     RAISE EXCEPTION 'invalid_zip' USING ERRCODE = '22023', DETAIL | RAISE NOTICE 'invalid_zip' USING DETAIL
 // @mutate supabase/migrations/20261103205121_quote_request_zip_tax_kind.sql | DROP FUNCTION IF EXISTS public.create_quote_request(text, text, text, date, time, numeric, text, numeric, numeric, text, integer); | SELECT 1;
 // @mutate supabase/migrations/20261103205121_quote_request_zip_tax_kind.sql |   IF public.is_job_labor_taxable(v_category, NULL) THEN |   IF false THEN
+// @mutate supabase/migrations/20261103205121_quote_request_zip_tax_kind.sql |     RAISE EXCEPTION 'too_many_open_requests' USING ERRCODE = 'P0001', |     RAISE EXCEPTION 'too_many_open_requests' USING ERRCODE = '54000',
 // @mutate src/lib/quotes/api.ts |       p_zip_code: r.zipCode, |
 // @mutate src/pages/post-job/CheckoutStepView.tsx |     parish: form.parish, taxKind: form.taxKind, |     parish: form.parish, taxKind: null,
 import { describe, expect, it } from "vitest";
@@ -51,6 +52,8 @@ describe("a quote-booked job carries the job ZIP and tax_kind (Q2083 b)", () => 
     expect(b).toMatch(/p_zip_code text DEFAULT NULL,\s*p_tax_kind text DEFAULT NULL\s*\)/);
     expect(b).toMatch(/IF v_zip !~ '\^\(70\[0-9\]\|71\[0-4\]\)\[0-9\]\{2\}\$' THEN\s+RAISE EXCEPTION 'invalid_zip' USING ERRCODE = '22023'/);
     expect(b).toMatch(/RAISE EXCEPTION 'invalid_tax_kind' USING ERRCODE = '22023'/);
+    // PostgREST maps 54* (the old code) to 500; P0001 is 400.
+    expect(b).toMatch(/RAISE EXCEPTION 'too_many_open_requests' USING ERRCODE = 'P0001'/);
     expect(b).toMatch(/IF public\.is_job_labor_taxable\(v_category, NULL\) THEN\s+v_tax_kind := NULL;/);
     expect(b).toMatch(/is_seed,\s+zip_code, tax_kind\)/);
     expect(b).toMatch(/v_zip, v_tax_kind\)\s+RETURNING id INTO v_id;/);

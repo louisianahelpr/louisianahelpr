@@ -47,6 +47,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useUnblock } from "./useUnblock";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -379,7 +380,7 @@ const UserProfile = () => {
         _response_text: responseText.trim(),
       });
       if (error) {
-        if (error.code === "PGRST202") {
+        if (isMissingRpcNamed(error, "respond_to_review")) {
           toast.error("Couldn't save your response right now — try again?");
         } else {
           toast.error("Couldn't save your response — try again?");

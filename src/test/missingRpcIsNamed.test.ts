@@ -41,7 +41,10 @@ import { trackedFiles } from "./helpers/trackedFiles";
 // 49 since Q2190 slice 1 (Builder 14, 2026-11-02): reviewStats, useViewerCredentialTier, useHelperAnalytics,
 // JobPetCareSheet, useCrewClosedSpots, useJobAnalytics, deletedCounterparty, jobOfferTargets, publicShop,
 // SignupLeadsCard and useFillRate now ask isMissingRpcNamed about the RPC they called.
-const RAW_PGRST202_SITES = 49;
+// 39 since Q2190 slice 2 (Builder 14, 2026-11-02): CompleteProfileIntro, arrivalRefresh, UserProfile,
+// HelperAvailability, useProfileTabData, useUserProfileData (last active, repeat hire), useAdminUserSummaries
+// (last logins, last activity) and UserAuditLog.
+const RAW_PGRST202_SITES = 39;
 
 const ROOT = process.cwd();
 const isTest = (f: string) => /\.test\.tsx?$/.test(f) || f.startsWith("src/test/");

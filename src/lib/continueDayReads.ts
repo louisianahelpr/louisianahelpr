@@ -5,6 +5,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { report } from "@/lib/errorLogger";
 import type { ContinueDay } from "./continueDayWords";
 
 /** The row's columns plus its job's poster, so the row says who asked (Q2606: the other side answers). */
@@ -45,4 +46,51 @@ export async function fetchContinueDays(jobIds: readonly string[]): Promise<Reco
       .in("status", ["proposed", "set"]),
   ) as ContinueDayRead[] | null;
   return Object.fromEntries((rows ?? []).map((r) => [r.job_id, withProposer(r)]));
+}
+
+/** The open SET day of one job: what jobOnContinueDay needs to date the job by its next visit. */
+export type OpenContinueDay = Pick<ContinueDay, "job_id" | "status" | "new_date" | "new_start_time">;
+
+/** One read serves both Activity cores (Posted and Working ask together, like get_my_activity_cores). */
+let openDaysRead: { userId: string; p: Promise<Record<string, OpenContinueDay>>; served: Set<string>; doneAt: number | null } | null = null;
+
+/** Forget the shared read (the admin previews, previewParts.ts forgetSharedReads; tests). */
+export function forgetMyOpenContinueDaysRead(): void {
+  openDaysRead = null;
+}
+
+/**
+ * Owner bug 11-03: the OPEN set continue days (status 'set', closed_at null) of the jobs I posted or am the Helpr on,
+ * by job id, so Activity dates a continuing job by its next day and never calls it "Late". No id list (RLS scopes it),
+ * so it rides Activity's FIRST wave beside the cores; the two cores share one read (a part asking again
+ * is a refetch and reads afresh; an answer is shared for 2 s, ACTIVITY_CORES_SHARE_MS). Never throws: a refused or
+ * dropped read is reported and gives {} (the first date stands, as before).
+ */
+export function fetchMyOpenContinueDays(userId: string, part: "posted" | "applied"): Promise<Record<string, OpenContinueDay>> {
+  const r = openDaysRead;
+  if (r?.userId === userId && !r.served.has(part) && (r.doneAt === null || Date.now() - r.doneAt <= 2_000)) {
+    r.served.add(part);
+    return r.p;
+  }
+  const p = (async () => {
+    try {
+      const rows = unwrap(
+        await supabase
+          .from("job_continue_days")
+          // No id list and no join: the party policy scopes it to my jobs (poster or Helpr). An admin also reads
+          // other open days (20261103212624); only rows matching one of my cards' ids are ever used.
+          .select("job_id, status, new_date, new_start_time")
+          .eq("status", "set")
+          .is("closed_at", null),
+      ) as OpenContinueDay[] | null;
+      return Object.fromEntries((rows ?? []).map((r) => [r.job_id, r]));
+    } catch (e) {
+      report(e, { severity: "warning", tags: { source: "continueDayReads.fetchMyOpenContinueDays" } });
+      return {};
+    }
+  })();
+  const entry = { userId, p, served: new Set<string>([part]), doneAt: null as number | null };
+  openDaysRead = entry;
+  void p.then(() => { entry.doneAt = Date.now(); });
+  return p;
 }

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { forgetAllBlockReads } from "@/lib/userBlocks";
 import { forgetActivityCoresRead } from "@/lib/activityCores";
+import { forgetMyOpenContinueDaysRead } from "@/lib/continueDayReads";
 import { isChunkLoadError, isRecoveryReloadInFlight, recoverFromChunkError } from "@/lib/chunkReload";
 import { ChunkRecoveringState } from "@/components/ChunkRecoveringState";
 
@@ -22,6 +23,7 @@ import { ChunkRecoveringState } from "@/components/ChunkRecoveringState";
 export function forgetSharedReads(): void {
   forgetAllBlockReads();
   forgetActivityCoresRead();
+  forgetMyOpenContinueDaysRead();
 }
 
 function toText(to: To | number): string {

@@ -19,6 +19,8 @@ import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { fetchActivityCores, offerTargetMap } from "@/lib/activityCores";
 import { fetchJobSeriesState } from "@/lib/jobSeriesState";
 import { fetchClosedJobLabels } from "@/lib/closedJobLabels";
+import { fetchMyOpenContinueDays, type OpenContinueDay } from "@/lib/continueDayReads";
+import { jobOnContinueDay } from "@/lib/continueDayWords";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import { backoutNoticeApplies, useBackoutNotices } from "@/lib/backoutNotices";
 import { loadModule, untilReload } from "@/lib/loadModule";
@@ -168,6 +170,12 @@ const EMPTY_APPLIED_DETAIL: AppliedActivityDetail = {
   latestTracking: {},
 };
 
+/** Owner bug 11-03: a job under way with an open SET continue day is dated by that day (jobOnContinueDay, the tracker's
+    rule), so jobIsOverdue, the status lines and the poster's steps do not call it "Late" on its passed first date. */
+const onContinueDay = <J extends { id: string; status?: string | null; date_needed?: string | null; start_time?: string | null }>(
+  j: J, days: Record<string, OpenContinueDay>,
+): J => (j.status === "in_progress" ? jobOnContinueDay(j, days[j.id]) : j);
+
 const isActiveStatus = (s: string | null | undefined) =>
   s === "accepted" || s === "in_progress" || s === "disputed";
 
@@ -190,7 +198,8 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
   // one query per Activity load, forever, for a control nobody could see.
   // Both cores in one request when the database has get_my_activity_cores (Q104; src/lib/activityCores.ts).
   // Null: the three reads below, as before.
-  const cores = await fetchActivityCores(userId, "posted");
+  // Owner bug 11-03: the open continue days ride the same wave, so a continuing job is never "Late" for a moment.
+  const [cores, continueDays] = await Promise.all([fetchActivityCores(userId, "posted"), fetchMyOpenContinueDays(userId, "posted")]);
   const [jobsRes, appCountRes, offerTargets] = cores ? [
     { data: cores.posted_jobs, error: null },
     { data: cores.poster_applications, error: null },
@@ -272,7 +281,7 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
     rows.filter((j) => !j.parent_job_id && (j.recurrence_days?.length ?? 0) > 0).map((j) => j.id),
   );
   const postedJobs: Job[] = rows.map((j) => ({
-    ...j,
+    ...onContinueDay(j, continueDays),
     series_ended_on: null,
     series_split_ok: false,
     ...seriesState.get(j.id),
@@ -500,7 +509,7 @@ export async function fetchPostedActivityDetail(
 export async function fetchAppliedActivity(userId: string): Promise<AppliedActivity> {
   // Both cores in one request when the database has get_my_activity_cores (Q104; src/lib/activityCores.ts).
   // Null: the five reads below, as before.
-  const cores = await fetchActivityCores(userId, "applied");
+  const [cores, continueDays] = await Promise.all([fetchActivityCores(userId, "applied"), fetchMyOpenContinueDays(userId, "applied")]);
   const [appsRes, jobsRes, directOffersRes, violationsRes, helperReviewsRes] = cores ? [
     { data: cores.my_applications, error: null },
     { data: cores.application_jobs as Job[], error: null },
@@ -587,7 +596,7 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
     const closedLabels = await fetchClosedJobLabels(apps.some((a) => !jobMap.has(a.job_id)));
     appliedApps = apps.map((a) => {
       const job = jobMap.get(a.job_id);
-      return { ...a, job: job ? { ...job, ...appliedSeries.get(job.id) } : null, closed_job_label: job ? null : closedLabels.get(a.job_id) ?? null };
+      return { ...a, job: job ? { ...onContinueDay(job, continueDays), ...appliedSeries.get(job.id) } : null, closed_job_label: job ? null : closedLabels.get(a.job_id) ?? null };
     });
   }
 

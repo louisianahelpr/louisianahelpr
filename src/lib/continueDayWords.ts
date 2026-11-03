@@ -120,7 +120,7 @@ export function continueDayHeader(row: ContinueDay | null | undefined): string |
  */
 export function jobOnContinueDay<J extends { date_needed?: string | null; start_time?: string | null }>(
   job: J,
-  row: ContinueDay | null | undefined,
+  row: Pick<ContinueDay, "status" | "new_date" | "new_start_time"> | null | undefined,
 ): J {
   if (!row || row.status !== "set" || !row.new_date) return job;
   return { ...job, date_needed: row.new_date, start_time: row.new_start_time.slice(0, 5) };

@@ -226,11 +226,13 @@ describe("checkUnrecordedTransfers adopt-amount — MEDIUM-1", () => {
     },
   });
 
+  // Q2176: the adopt result carries Stripe's amount, which release-payout and process-scheduled-payouts settle with.
+  // @mutate supabase/functions/_shared/payoutClaim.ts | transferId: t.id, amountCents: Number(t.amount) }; | transferId: t.id, amountCents: args.amountCents };
   it("adopts the orphan whose amount matches the CLAIM's recorded net, not this run's gross", async () => {
     const db = makeDb({ readRows: [orphanClaim] });
     const stripe = stripeWith([{ id: "tr_net", amount: 4800, amount_reversed: 0, destination: "acct_helper", metadata: { job_id: "job-1" } }]);
     const res = await checkUnrecordedTransfers(db as never, stripe as never, { ...baseArgs });
-    expect(res).toEqual({ kind: "adopt", claimId: "led-orphan", transferId: "tr_net" });
+    expect(res).toEqual({ kind: "adopt", claimId: "led-orphan", transferId: "tr_net", amountCents: 4800 });
   });
 
   // LOW-3 (docs/OPEN.md): a row whose helper_id was SET NULL by an account

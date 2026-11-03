@@ -513,6 +513,26 @@ describe("process-scheduled-payouts edge function", () => {
       expect((settle?.payload as Record<string, unknown>)?.stripe_transfer_id).toBe("tr_release");
     });
 
+    // Q2176: the orphan's run withheld $2 more than this run would; the ledger records what Stripe sent.
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts |         if (adoptedTransferId && unrecorded.kind === "adopt") payoutCents = unrecorded.amountCents; |
+    it("Q2176: an adopted transfer settles the ledger with Stripe's amount, not this run's recompute", async () => {
+      seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
+      await run();
+      const recompute = stripeMock.transfers.create.mock.calls[0][0].amount as number;
+      resetSupabaseMock(); resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT); resetSharedMocks();
+
+      const sent = recompute - 200;
+      seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
+      scenario.reads.payout_transfers = { rows: [{ ...orphan(), amount_cents: sent }] };
+      stripeMock.transfers.list.mockResolvedValue({
+        data: [{ id: "tr_release", amount: sent, amount_reversed: 0, destination: "acct_helper", metadata: { job_id: "job-1", helper_id: "helper-1" } }],
+      });
+      await run();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      const settle = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "update" && (w.payload as Record<string, unknown>)?.stripe_transfer_id === "tr_release");
+      expect((settle?.payload as Record<string, unknown>)?.amount_cents).toBe(sent);
+    });
+
     it("an orphaned claim + a NON-matching unrecorded transfer: skipped, paged, no transfers.create", async () => {
       seedPayableJob(scenario);
       scenario.reads.payout_transfers = { rows: [orphan()] };

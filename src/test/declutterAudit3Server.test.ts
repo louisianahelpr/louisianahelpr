@@ -11,7 +11,7 @@
  */
 // @mutate supabase/migrations/20261103173728_q2390_haul_price_withdraw_guarantee_raise_refund_admin_delivery_cart_shops_rent_not_found_is_404.sql |     RETURN jsonb_build_object('available', false, 'reason', 'cart_empty', |     RAISE EXCEPTION 'cart_empty' USING ERRCODE = '55000'; RETURN jsonb_build_object('available', false, 'reason', 'cart_empty',
 // @mutate supabase/migrations/20261030174314_declutter_listings_one_summary_notice.sql |     IF v_prior IS NOT NULL THEN\n      -- A named notice |     IF v_prior IS NOT NULL THEN\n      RETURN NULL;\n      -- A named notice
-// @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql | 'Your listing is live',\n      '"' \|\| COALESCE(v_title, 'Your item') \|\| '" is approved. Buyers can see it now.',\n      '/declutter?tab=selling' | 'Your listing is live',\n      '"' \|\| COALESCE(v_title, 'Your item') \|\| '" is approved. Buyers can see it now.',\n      '/declutter?view=selling'
+// @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql | 'Your listing is live',\n      '"' \|\| COALESCE(v_title, 'Your item') \|\| '" is approved. Buyers can see it now.',\n      '/declutter?tab=selling' | 'Your listing is live',\n      '"' \|\| COALESCE(v_title, 'Your item') \|\| '" is approved. Buyers can see it now.',\n      '/declutter?view=selling'
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

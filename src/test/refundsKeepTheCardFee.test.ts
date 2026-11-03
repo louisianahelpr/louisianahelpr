@@ -737,7 +737,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // to_admin refund request 'withdrawn'; no amount, fee or payout is read or written.
       // T9 (20261031004529): taking back the buyer's no-show report also clears it, so the sweep can't refund on it; verdict owed.
       // LEAD-TAKENBACK-LINK (20261031103443): restated verbatim; only the "taken back" notice link reads ?tab=. Still records no refund.
-      declutter_withdraw_problem: "20261031103443_declutter_taken_back_notice_opens_the_tab.sql aaa47fe596998b22",
+      // Q2390 p36 (20261103221614): restated with its two not-found raises as PT404 only (ERRCODE only); still records no refund.
+      declutter_withdraw_problem: "20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql c10298c867a2c578",
       // T9 (20261031004529): names declutter_refunds only as its notice kind, since the notice moved to that switch; records no refund and moves no money (the seller's answer becomes an open problem, which holds the money).
       declutter_answer_no_show: "20261031004529_declutter_handover_both_confirm.sql 1def49eaa52f1de0",
       // BUY-2 (20261031133938, owner 10-31; money verdict owed): the buyer's cancel after no Helpr took the delivery. Its

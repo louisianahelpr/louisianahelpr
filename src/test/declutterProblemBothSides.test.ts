@@ -17,7 +17,7 @@
  * @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql |   IF p.reporter_id IS NOT DISTINCT FROM v_uid OR p.reporter_side = v_side THEN | IF false THEN
  * @mutate supabase/migrations/20261103173728_q2390_haul_price_withdraw_guarantee_raise_refund_admin_delivery_cart_shops_rent_not_found_is_404.sql |  COALESCE(r.photo_paths, '{}'))\n    RETURNING id INTO v_problem; |  '{}')\n    RETURNING id INTO v_problem;
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql |                            OR (split_part(p_name, '/', 3) = 'problem' AND o.status = 'handed_over' |                            OR (o.status = 'handed_over'
- * @mutate supabase/migrations/20261031100935_declutter_problem_notices_name_the_item.sql |   VALUES (o.id, p_reason, btrim(p_note), now() + interval '24 hours', COALESCE(p_photo_paths, '{}')) |   VALUES (o.id, p_reason, btrim(p_note), now() + interval '24 hours', '{}')
+ * @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql |   VALUES (o.id, p_reason, btrim(p_note), now() + interval '24 hours', COALESCE(p_photo_paths, '{}')) |   VALUES (o.id, p_reason, btrim(p_note), now() + interval '24 hours', '{}')
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";

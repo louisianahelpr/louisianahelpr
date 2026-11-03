@@ -17,7 +17,7 @@
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     '/declutter?view=sales', o.buyer_id); |     '/declutter?view=cart', o.buyer_id);
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |     '/declutter?view=sales', o.buyer_id); |     '/declutter?view=offers', o.buyer_id);
  * @mutate src/components/declutter/DeclutterHomeView.tsx | asked === "deliver" ? "deliver" | asked === "deliverx" ? "deliver"
- * @mutate supabase/migrations/20261031103443_declutter_taken_back_notice_opens_the_tab.sql |     '/declutter?tab=' \|\| CASE WHEN v_side = 'buyer' THEN 'selling' ELSE 'buying' END, v_uid); |     '/declutter?view=' \|\| CASE WHEN v_side = 'buyer' THEN 'selling' ELSE 'cart' END, v_uid);
+ * @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql |     '/declutter?tab=' \|\| CASE WHEN v_side = 'buyer' THEN 'selling' ELSE 'buying' END, v_uid); |     '/declutter?view=' \|\| CASE WHEN v_side = 'buyer' THEN 'selling' ELSE 'cart' END, v_uid);
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

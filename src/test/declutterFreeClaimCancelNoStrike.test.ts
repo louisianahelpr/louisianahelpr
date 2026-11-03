@@ -9,10 +9,10 @@
  * Reads the EFFECTIVE definition (helpers/effectiveFunctionDefs). Backend proof on a real database:
  * src/test/pglite/declutterFreeClaimCancelNoStrike.pglite.mjs (3x; 8 FAIL without the migration).
  */
-// @mutate supabase/migrations/20261030132149_declutter_free_claim_cancel_no_strike.sql |   IF v_line.price_cents = 0 THEN |   IF v_line.price_cents = -1 THEN
-// @mutate supabase/migrations/20261030132149_declutter_free_claim_cancel_no_strike.sql |     RETURN public.declutter_active_strike_count(v_uid); |     RETURN public.declutter_give_strike(v_uid, 'seller', 'cancelled_after_offers', p_item_id, 'x', v_line.id);
-// @mutate supabase/migrations/20261030132149_declutter_free_claim_cancel_no_strike.sql |       UPDATE public.declutter_items SET status = 'live', updated_at = now() |       UPDATE public.declutter_items SET status = 'withdrawn', updated_at = now()
-// @mutate supabase/migrations/20261030132149_declutter_free_claim_cancel_no_strike.sql | , so it went back up. Nothing was charged | . Nothing was charged
+// @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql |   IF v_line.price_cents = 0 THEN |   IF v_line.price_cents = -1 THEN
+// @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql |     RETURN public.declutter_active_strike_count(v_uid); |     RETURN public.declutter_give_strike(v_uid, 'seller', 'cancelled_after_offers', p_item_id, 'x', v_line.id);
+// @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql |       UPDATE public.declutter_items SET status = 'live', updated_at = now() |       UPDATE public.declutter_items SET status = 'withdrawn', updated_at = now()
+// @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql | , so it went back up. Nothing was charged | . Nothing was charged
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -33,7 +33,8 @@ function freeBranch(): string {
 describe("Declutter: cancelling a free claim gives no strike and puts it back up", () => {
   it("reads the newest definition (floor)", () => {
     expect(flat.length).toBeGreaterThan(2500);
-    expect(def?.file).toMatch(/20261030132149_declutter_free_claim_cancel_no_strike\.sql$/);
+    // Q2390 p36 (20261103221614) restated it verbatim with its not-found as PT404 only.
+    expect(def?.file).toMatch(/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404\.sql$/);
   });
 
   it("a free line returns before any strike, with the unchanged count", () => {

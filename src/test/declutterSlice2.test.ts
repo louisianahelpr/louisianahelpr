@@ -11,11 +11,11 @@
  * @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql |     WHEN v_ai_checked IS NOT NULL AND v_ai_flag IS NOT NULL THEN 'pending_review'\n | \n
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     AND NOT EXISTS (SELECT 1 FROM public.declutter_item_photos p WHERE p.storage_path = objects.name)\n | \n
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     AND (storage.foldername(name))[2] = 'declutter'\n | \n
- * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql |   IF NOT public.has_role(v_uid, 'admin'::public.app_role) THEN | IF false THEN
+ * @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql |   IF NOT public.has_role(v_uid, 'admin'::public.app_role) THEN | IF false THEN
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | REVOKE ALL ON FUNCTION public.declutter_area_label_problem(text, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_area_label_problem(text, text) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql | AFTER INSERT OR DELETE ON public.declutter_item_photos | AFTER INSERT ON public.declutter_item_photos
- * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql |   IF v_seller = v_uid THEN | IF false THEN
- * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql |        OR public.declutter_active_strike_count(v_seller) >= 3 |        OR false
+ * @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql |   IF v_seller = v_uid THEN | IF false THEN
+ * @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql |        OR public.declutter_active_strike_count(v_seller) >= 3 |        OR false
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |     OR v_item.category IS DISTINCT FROM p_category THEN\n    UPDATE public.declutter_item_private\n       SET ai_checked_at = NULL | OR v_item.category IS DISTINCT FROM p_category THEN\n    UPDATE public.declutter_item_private\n       SET ai_checked_at = ai_checked_at
  * @mutate supabase/migrations/20261031152545_declutter_check_after_post.sql |     RAISE EXCEPTION 'ai_check_stale' USING ERRCODE = '40001'; |     NULL;
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     NEW.is_seed := true;\n  END IF;\n  RETURN NEW;\nEND;\n$fn$;\nREVOKE ALL ON FUNCTION public.declutter_items_seed_from_seller | \n  END IF;\n  RETURN NEW;\nEND;\n$fn$;\nREVOKE ALL ON FUNCTION public.declutter_items_seed_from_seller

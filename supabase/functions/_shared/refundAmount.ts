@@ -142,11 +142,18 @@ export function chargeTaxCents(
   return cents(fallbackCents);
 }
 
+/** metadata[job_tax_cents] of a job taxed at the job address (Q2083 b), or null. */
+function jobSiteTaxCents(md: Record<string, string> | null | undefined): number | null {
+  const calc = md?.tax_calculation_id;
+  const raw = md?.job_tax_cents;
+  return typeof calc === "string" && calc.startsWith("taxcalc_") && typeof raw === "string" && /^\d+$/.test(raw) ? Number(raw) : null;
+}
+
 /** The one Stripe read chargeTaxCentsFor needs, typed structurally (this module has no imports). */
 export interface CheckoutSessionLister {
   checkout: {
     sessions: {
-      list(p: { payment_intent: string; limit: number }): Promise<{ data?: Array<{ total_details?: { amount_tax?: number | null } | null }> } | null | undefined>;
+      list(p: { payment_intent: string; limit: number }): Promise<{ data?: Array<{ total_details?: { amount_tax?: number | null } | null; metadata?: Record<string, string> | null }> } | null | undefined>;
     };
   };
 }
@@ -161,7 +168,7 @@ export interface CheckoutSessionLister {
  */
 export async function chargeTaxCentsFor(
   stripe: CheckoutSessionLister,
-  pi: { id?: string | null; amount_details?: unknown } | null | undefined,
+  pi: { id?: string | null; amount_details?: unknown; metadata?: Record<string, string> | null } | null | undefined,
 ): Promise<number> {
   const tax = await checkoutChargeTaxCents(stripe, pi);
   // A failed read keeps no tax (the old refund), never over-keeps the
@@ -177,13 +184,21 @@ export async function chargeTaxCentsFor(
  */
 export async function checkoutChargeTaxCents(
   stripe: CheckoutSessionLister,
-  pi: { id?: string | null; amount_details?: unknown } | null | undefined,
+  pi: { id?: string | null; amount_details?: unknown; metadata?: Record<string, string> | null } | null | undefined,
 ): Promise<number | null> {
+  // Q2083 (b): a job taxed at the JOB ADDRESS charged its tax as its own
+  // "Sales tax" line with automatic_tax off, so Stripe's tax fields read 0;
+  // the figure create-payment charged rides on the PaymentIntent (and the
+  // session) as job_tax_cents beside its taxcalc_ id. Read inline: this module
+  // has no imports (same rule as _shared/jobTaxAddress.ts sessionJobTaxCents).
+  const siteTax = jobSiteTaxCents(pi?.metadata);
+  if (siteTax !== null) return siteTax;
   const own = chargeTaxCents(pi);
   if (own > 0 || !pi?.id) return own;
   try {
     const page = await stripe.checkout.sessions.list({ payment_intent: pi.id, limit: 1 });
-    return cents(page?.data?.[0]?.total_details?.amount_tax ?? 0);
+    const session = page?.data?.[0];
+    return jobSiteTaxCents(session?.metadata) ?? cents(session?.total_details?.amount_tax ?? 0);
   } catch (e) {
     console.warn(`[refundAmount] could not read the Checkout Session tax for ${pi.id}`, e);
     return null;

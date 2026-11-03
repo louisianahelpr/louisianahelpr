@@ -110,7 +110,7 @@ describe("Q341: applicant list and counters share ONE blocked filter", () => {
       [
         "src/pages/jobs/AppliedJobsTab.tsx",
         // Admin reads the one application a report names (Q366), not a list.
-        "src/components/admin/AdminReports.tsx",
+        "src/components/admin/adminReports/fetchReports.ts",
         "src/components/admin/adminHealth/useHealthData.ts",
         "src/components/admin/useAdminUserSummaries.ts",
         // Admin Jobs → Active applicant counts (2026-10-09): admin-only policy, every row.

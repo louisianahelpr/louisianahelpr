@@ -59,7 +59,7 @@ const VIEWS: Record<string, Rule> = {
   disputes: { kind: "tags", render: [`${A}adminDisputes/DisputeCard.tsx`], resolve: [`${A}AdminDisputes.tsx`] },
   notifications: { kind: "none", why: "the signed-in admin's own notification preferences" },
   notiflogs: { kind: "tags", render: [`${A}AdminNotificationLogs.tsx`], resolve: [`${A}AdminNotificationLogs.tsx`] },
-  reports: { kind: "tags", render: [`${A}AdminReports.tsx`], resolve: [`${A}AdminReports.tsx`] },
+  reports: { kind: "tags", render: [`${A}AdminReports.tsx`], resolve: [`${A}adminReports/fetchReports.ts`] },
   support: { kind: "tags", render: [`${A}AdminSupport.tsx`], resolve: [`${A}AdminSupport.tsx`] },
   referrals: { kind: "tags", render: [`${A}AdminReferrals.tsx`], resolve: [`${A}AdminReferrals.tsx`] },
   subscriptions: { kind: "tags", render: [`${A}AdminSubscriptions.tsx`], resolve: [`${A}AdminSubscriptions.tsx`] },

@@ -97,7 +97,7 @@ describe("admin queues are visible from the left nav on every page (owner 2026-1
     const hook = rail.slice(rail.indexOf("export function useAdminPendingCounts("));
     // Q2532: through loadModule (a prevented preload resolves the import undefined), never a member read off it.
     expect(hook).toMatch(/queryKey: supportQueueKey\("pending"\),[\s\S]{0,300}?queryFn: \(\) => loadModule\(\(\) => import\("@\/components\/admin\/AdminSupport"\)\.then\(\(m\) => m\?\.fetchSupportTickets\)\)\.then\(\(fetch\) => \(fetch \? fetch\("pending"\) : untilReload\(\)\)\)/);
-    expect(hook).toMatch(/queryKey: reportsQueueKey\("pending"\),\s*queryFn: \(\) => loadModule\(\(\) => import\("@\/components\/admin\/AdminReports"\)\.then\(\(m\) => m\?\.fetchReports\)\)\.then\(\(fetch\) => \(fetch \? fetch\("pending"\) : untilReload\(\)\)\)/);
+    expect(hook).toMatch(/queryKey: reportsQueueKey\("pending"\),\s*queryFn: \(\) => loadModule\(\(\) => import\("@\/components\/admin\/adminReports\/fetchReports"\)\.then\(\(m\) => m\?\.fetchReports\)\)\.then\(\(fetch\) => \(fetch \? fetch\("pending"\) : untilReload\(\)\)\)/);
     // The screens list under the same keys.
     expect(read("src/components/admin/AdminSupport.tsx")).toMatch(/const queryKey = supportQueueKey\(filter\);[\s\S]*?fetcher: \(\) => fetchSupportTickets\(filter\)/);
     expect(read("src/components/admin/AdminReports.tsx")).toMatch(/const queryKey = reportsQueueKey\(filter\);[\s\S]*?fetcher: \(\) => fetchReports\(filter\)/);

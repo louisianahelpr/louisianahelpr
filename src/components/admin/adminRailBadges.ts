@@ -227,7 +227,7 @@ export function useAdminPendingCounts(enabled: boolean): { data: PendingCounts; 
   const reports = useQuery({
     ...opts,
     queryKey: reportsQueueKey("pending"),
-    queryFn: () => loadModule(() => import("@/components/admin/AdminReports").then((m) => m?.fetchReports)).then((fetch) => (fetch ? fetch("pending") : untilReload())),
+    queryFn: () => loadModule(() => import("@/components/admin/adminReports/fetchReports").then((m) => m?.fetchReports)).then((fetch) => (fetch ? fetch("pending") : untilReload())),
   });
   const disputes = useQuery({ ...opts, queryKey: ["admin-disputes", "open-count"], queryFn: fetchOpenDisputeCount });
   const supportN = support.data?.length;

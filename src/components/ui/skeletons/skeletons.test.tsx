@@ -22,7 +22,6 @@ import type { ReactElement } from "react";
 
 import { JobCardSkeleton, RecommendedJobCardSkeleton } from "./JobCardSkeleton";
 import { ApplicationCardSkeleton, PostedListBones, WorkingListBones } from "./ApplicationCardSkeleton";
-import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import { MessageThreadSkeleton } from "./MessageThreadSkeleton";
 import { JOB_CARD_FRAME } from "@/components/job/cardGeometry";
 import { JOB_CARD_SHELL_FRAME } from "@/components/job-card/JobCardShell";
@@ -45,19 +44,13 @@ const cases = [
   },
   {
     /*
-     * THE POSTED TAB'S PLACEHOLDER (/posts, and Activity's posted Suspense
-     * fallback). It was the last activity skeleton still hand-drawing a card:
-     * a `rounded-ds-md skeleton-glass p-4` box with no frame, no category rail
-     * and no category tab, standing in for a PostedJobCard built from the same
-     * JobCardShell + JobCardTitleBar + JobCardMetaRow + JobStatusStrip that
-     * AppliedJobCard is. Measured at 375 on prod, 2026-09-21: 106px of
-     * placeholder against a 151px row.
-     *
-     * Same frame constant as ApplicationCardSkeleton above, and deliberately
-     * so — one card, one drawing.
+     * THE POSTED TAB'S PLACEHOLDER (/posts). It was ActivityCardSkeleton, the old collapsed card, until Q833
+     * (2026-11-03): PostedJobCard is MineJobFace now, so PostedListBones draws ApplicationCardSkeleton in the
+     * posted shape (the bar, never the street address), and ActivityCardSkeleton, drawn by no list, was removed.
+     * Same frame constant as the applied card above: one card, one drawing.
      */
-    name: "ActivityCardSkeleton",
-    el: <ActivityCardSkeleton />,
+    name: "ApplicationCardSkeleton, posted shape",
+    el: <ApplicationCardSkeleton tracker address={false} />,
     frame: JOB_CARD_SHELL_FRAME,
     source: "PostedJobCard (JobCardShell)",
     minBones: 8,
@@ -110,8 +103,8 @@ describe("card-matching skeletons", () => {
    */
   /* Q833 (2026-11-03): the /jobs Working cards are MineJobFace now, so ApplicationCardSkeleton draws the face
      (src/test/mineFaceSkeletonMatchesFace.test.tsx holds its height) and no old-card meta line at all. */
-  /* Later on 11-03: PostedJobCard is MineJobFace too, so /posts draws the same face (PostedListBones); the old
-     collapsed card (ActivityCardSkeleton) keeps its two meta lines but no list draws it. */
+  /* Later on 11-03: PostedJobCard is MineJobFace too, so /posts draws the same face (PostedListBones). The old
+     collapsed card placeholder (ActivityCardSkeleton) was then drawn by no list, and was removed. */
   it("the /jobs and /posts placeholders are the MineJobFace drawing, each in its list's shape (Q700, Q833)", () => {
     const lines = (el: ReactElement) =>
       [...render(el).container.querySelectorAll<HTMLElement>("[data-skeleton-meta-line]")].map((l) => l.style.height);
@@ -119,7 +112,6 @@ describe("card-matching skeletons", () => {
       [...render(el).container.querySelectorAll("[data-mine-face-skeleton]")].map((e) => e.getAttribute("data-mine-face-skeleton"));
     expect(lines(<ApplicationCardSkeleton />)).toEqual([]);
     expect(render(<ApplicationCardSkeleton />).container.querySelector("[data-mine-face-skeleton]")).not.toBeNull();
-    expect(lines(<ActivityCardSkeleton />)).toEqual(["32px", "16px"]);
     // Working "All" opens on Needs You / Scheduled: hired or offered cards, the street address on the face and the bar.
     expect(faces(<WorkingListBones filter={null} />)).toEqual(Array(4).fill("bar address"));
     expect(faces(<WorkingListBones filter="waiting" />)).toEqual(Array(4).fill("no-bar"));
@@ -147,8 +139,6 @@ describe("card-matching skeletons", () => {
 // at a 76px pitch standing in for a flat 64px strip.
 // @mutate src/components/ui/skeletons/MessageThreadSkeleton.tsx | <div className={CONVERSATION_ROW_FRAME} aria-hidden> | <div className="p-3 rounded-ds-md liquid-glass" aria-hidden>
 // Q700/Q833: /jobs and /posts draw the face, each in its list's shape. Each mutation moves one list off its shape.
-// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <MineFaceSkeleton tracker={tracker} address={address} />; | return <CollapsedActivityCardSkeleton metaLines={1} />;
-// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <FaceListBones side="posted" filter={filter} />; | return <>{[1, 2, 3, 4].map((i) => <CollapsedActivityCardSkeleton key={i} />)}</>;
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <MineFaceSkeleton tracker={tracker} address={address} />; | return <div className={JOB_CARD_SHELL_FRAME} aria-hidden />;
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <FaceListBones side="posted" filter={filter} />; | return <FaceListBones side="applied" filter={filter} />;
 // @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | const address = side === "applied" && | const address = false &&
-// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | export function CollapsedActivityCardSkeleton({ metaLines = 2 } | export function CollapsedActivityCardSkeleton({ metaLines = 1 }
-// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | {metaLines === 2 && ( | {false && (

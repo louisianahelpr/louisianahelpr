@@ -36,8 +36,8 @@
  * @mutate supabase/migrations/20261102082018_phone_save_rpc_rate_limited.sql |   REVOKE UPDATE (phone) ON public.profiles FROM anon, authenticated; |   PERFORM 1;
  * @mutate supabase/migrations/20261102092917_phone_locked_against_grant_sync.sql |     'phone'\n  ]::text[]; |     'phone_number_unused'\n  ]::text[];
  * @mutate supabase/functions/complete-signup/index.ts |     // Q1586(a): the phone is NOT saved here. |     if (phone) updateData.phone = phone;
- * @mutate supabase/migrations/20261102082018_phone_save_rpc_rate_limited.sql |   IF v_refused >= 5 OR v_tries >= 20 THEN |   IF false THEN
- * @mutate supabase/migrations/20261102082018_phone_save_rpc_rate_limited.sql |       INSERT INTO public.phone_save_attempts (user_id, save_outcome) VALUES (v_uid, v_hint); |       NULL;
+ * @mutate supabase/migrations/20261103040713_save_my_phone_not_found_is_404.sql |   IF v_refused >= 5 OR v_tries >= 20 THEN |   IF false THEN
+ * @mutate supabase/migrations/20261103040713_save_my_phone_not_found_is_404.sql |       INSERT INTO public.phone_save_attempts (user_id, save_outcome) VALUES (v_uid, v_hint); |       NULL;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -134,7 +134,10 @@ describe("Q1586(a) the grants and the RPC", () => {
     expect(body).toMatch(/\bRAISE;/);
     const sql = blankSqlComments(readFileSync(join(MIG, d!.file), "utf8"));
     expect(sql).toMatch(/REVOKE\s+ALL\s+ON\s+FUNCTION\s+public\.save_my_phone\(text\)\s+FROM\s+PUBLIC,\s*anon;/i);
-    expect(sql).toMatch(/REVOKE\s+ALL\s+ON\s+public\.phone_save_attempts\s+FROM\s+PUBLIC,\s*anon,\s*authenticated;/i);
+    // The attempts table is made (and locked) once, in 20261102082018; a later restatement of the function
+    // (20261103040713, Q2390) does not repeat it.
+    const tableSql = blankSqlComments(readFileSync(join(MIG, "20261102082018_phone_save_rpc_rate_limited.sql"), "utf8"));
+    expect(tableSql).toMatch(/REVOKE\s+ALL\s+ON\s+public\.phone_save_attempts\s+FROM\s+PUBLIC,\s*anon,\s*authenticated;/i);
   });
 
   // Q1805 follow-up (20261102092917): the sync-profiles-update-grants cron re-grants authenticated UPDATE on

@@ -567,7 +567,7 @@ describe("void-cancelled-payments — a cancelled crew's block fee is paid befor
   });
 
   // Part F: a fee still owed on a settled job is paid by the sweep, once.
-  // @mutate supabase/functions/void-cancelled-payments/index.ts | const paid = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", settled: true, linkPi }, fj, byJob.get(fj.id) ?? [], chargeId); | const paid = { problems: [] as string[] };
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | const paid = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", settled: true, linkPi, liveGates }, fj, byJob.get(fj.id) ?? [], chargeId); | const paid = { problems: [] as string[] };
   it("Part F pays a block fee still owed on a settled job, keyed on its row", async () => {
     scenario.reads.jobs = {
       rows: [],
@@ -597,7 +597,7 @@ describe("void-cancelled-payments — a cancelled crew's block fee is paid befor
   // a source_transaction; the platform balance pays rather than failing hourly.
   // Q1806: the sweep hands payCrewBlockFees the PaymentIntent, whose
   // sourceChargeFor counts the refunded part as no room.
-  // @mutate supabase/functions/void-cancelled-payments/index.ts | fn: "void-cancelled-payments", settled: true, linkPi }, fj, | fn: "void-cancelled-payments", settled: true }, fj,
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | fn: "void-cancelled-payments", settled: true, linkPi, liveGates }, fj, | fn: "void-cancelled-payments", settled: true, liveGates }, fj,
   it("Part F never links a fully refunded charge to the fee transfer", async () => {
     scenario.reads.jobs = {
       rows: [],
@@ -686,7 +686,7 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
   // Review #7: the fees are tried first, as the card paths do, from the
   // platform balance (no charge to link); review #6: the gift notice says
   // what the gift kept.
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |           const paidFirst = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments" }, job, blockFeeRows, null); |           const paidFirst = { problems: [] as string[] };
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           const paidFirst = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", liveGates }, job, blockFeeRows, null); |           const paidFirst = { problems: [] as string[] };
   // @mutate supabase/functions/void-cancelled-payments/index.ts |                 ? ` $${formatExactDollars(Math.min(withholdCents, keptForBlockFees) / 100)} of it paid ${withholdReason}.` |                 ? ""
   it("pays the block fee first from the platform balance, and the gift notice names what it kept", async () => {
     seedGiftCrew([BLOCK]);

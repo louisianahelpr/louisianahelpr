@@ -18690,6 +18690,7 @@ export type Database = {
           role: string
           skills: string
           subscription_tier: string
+          tip_waits_on_id: boolean
           user_id: string
         }[]
       }

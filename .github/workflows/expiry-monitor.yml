@@ -142,6 +142,14 @@ jobs:
           # The verdict is the "Read every expiry" step's exit code; this only copies its report.
           if [ -f expiry-report.md ]; then cat expiry-report.md >> "$GITHUB_STEP_SUMMARY"; else echo "expiry-check wrote no report" >> "$GITHUB_STEP_SUMMARY"; fi
 
+      # Q2091: csp-report drops MapKit's wasm-eval reports as noise (Q1821),
+      # justified by mk-csr.js using WebAssembly only for the hillshade decoder.
+      # Apple updates the 1.x.x file in place; this fails the run (and so the
+      # nightly-red issue) the night that stops being true. One GET to Apple's CDN.
+      - name: MapKit's WebAssembly is still only the hillshade decoder
+        if: always()
+        run: node scripts/probes/mapkit-wasm-scope.probe.mjs
+
   # A red run lands in a `nightly-red` issue (closed by the next green run),
   # which the ops alert ledger sync and the scoreboard both read. Same shape as
   # every other scheduled workflow (src/test/everyScheduledWorkflowReportsItsResult.test.ts).

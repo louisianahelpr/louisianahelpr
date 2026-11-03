@@ -32,6 +32,7 @@
  * @mutate supabase/migrations/20261103043002_job_offers_arrival_continue_day_not_found_is_404.sql | WHERE j.id = p_job_id\n   FOR UPDATE;\n  IF v_job.id IS NULL THEN\n    RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'PT404'; | WHERE j.id = p_job_id\n   FOR UPDATE;\n  IF v_job.id IS NULL THEN\n    RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103043002_job_offers_arrival_continue_day_not_found_is_404.sql | RAISE EXCEPTION 'continue_day_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'continue_day_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103043002_job_offers_arrival_continue_day_not_found_is_404.sql | two verdicts against one row.\n  SELECT * INTO v_job FROM public.jobs WHERE id = p_job_id FOR UPDATE;\n  IF v_job.id IS NULL THEN\n    RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'PT404'; | two verdicts against one row.\n  SELECT * INTO v_job FROM public.jobs WHERE id = p_job_id FOR UPDATE;\n  IF v_job.id IS NULL THEN\n    RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103043845_cancel_quote_request_not_found_is_404.sql | IF NOT FOUND OR v_req.poster_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'PT404'; | IF NOT FOUND OR v_req.poster_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'P0002';
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -43,13 +44,14 @@ import { blankSqlComments } from "./helpers/blankNonCode";
  * switch_quote_request_to_set_price, get_quotes_for_request (20261103041633). Packet 3: book_accepted_quote,
  * confirm_job_continue_day, nudge_confirm (20261103042402). Packet 4: submit_job_quote, respond_to_job_quote,
  * helper_mark_on_the_way, propose_job_continue_day, answer_job_continue_day, mark_helper_arrival (20261103043002).
+ * Packet 5: cancel_quote_request (20261103043845).
  */
 const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
   "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm",
   "submit_job_quote", "respond_to_job_quote", "helper_mark_on_the_way", "propose_job_continue_day", "answer_job_continue_day",
-  "mark_helper_arrival"];
+  "mark_helper_arrival", "cancel_quote_request"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-const P0002_RAISERS = 290;
+const P0002_RAISERS = 289;
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");

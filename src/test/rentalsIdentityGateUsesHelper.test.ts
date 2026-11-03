@@ -16,7 +16,7 @@
  * Behaviour: src/test/pglite/rentalsMaintenance.pglite.mjs (Connect-verified
  * passes, Identity-verified passes, neither refused).
  */
-// @mutate supabase/migrations/20261019051407_rentals_landlord_id_review.sql |   IF NOT public.is_identity_verified(v_uid) THEN\n    RAISE EXCEPTION 'identity_not_verified' USING ERRCODE = '42501';\n  END IF;\n  IF v_status <> 'approved' THEN | IF NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = v_uid AND p.idv_status = 'verified') THEN\n    RAISE EXCEPTION 'identity_not_verified' USING ERRCODE = '42501';\n  END IF;\n  IF v_status <> 'approved' THEN
+// @mutate supabase/migrations/20261103141808_q2390_invite_setup_fee_no_show_faqs_return_offer_not_found_is_404.sql |   IF NOT public.is_identity_verified(v_uid) THEN\n    RAISE EXCEPTION 'identity_not_verified' USING ERRCODE = '42501';\n  END IF;\n  IF v_status <> 'approved' THEN | IF NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = v_uid AND p.idv_status = 'verified') THEN\n    RAISE EXCEPTION 'identity_not_verified' USING ERRCODE = '42501';\n  END IF;\n  IF v_status <> 'approved' THEN
 // @mutate supabase/migrations/20261019051407_rentals_landlord_id_review.sql |     SELECT public.identity_is_verified(p.idv_status, p.stripe_identity_verified) | SELECT p.idv_status = 'verified'
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";

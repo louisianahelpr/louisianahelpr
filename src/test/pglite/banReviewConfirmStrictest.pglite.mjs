@@ -14,6 +14,10 @@
  * review is open, so the profile is seeded 'banned' as on prod). Stubbed, and
  * said so: the job settlement and series ending a confirmed ban runs (no job
  * exists here).
+ *
+ * Q1415 (f1), 11-03: with the fix, 20261103225923_ban_review_floor_reads_the_match_stamp.sql is applied too (3x), so the floor reads the match's own auto_banned_at.
+ * seedMatch writes rows as they stand on prod (the stamp trigger off while seeding, a ban row stamped at its
+ * created_at); C4b/C4c run enforce_retained_ban's own statements with the trigger on.
  */
 import { readFileSync, readdirSync } from "node:fs";
 import os from "node:os";
@@ -22,6 +26,7 @@ const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const UNDER_TEST = "20261013001155_ban_review_confirm_keeps_strictest_retained_judgment.sql";
+const F1 = "20261103225923_ban_review_floor_reads_the_match_stamp.sql";
 const read = (f) => readFileSync(MIG_DIR + f, "utf8");
 const FIXED = process.env.NEW_MIGRATION !== "skip";
 
@@ -84,7 +89,7 @@ CREATE TABLE public.retained_bans (id uuid PRIMARY KEY, email_sha256 text NOT NU
   reason text NOT NULL DEFAULT 'r', expires_at timestamptz, retained_at timestamptz NOT NULL DEFAULT now(), reapplied_at timestamptz);
 CREATE TABLE public.ban_evasion_matches (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, matched_on text, retained_ban_id uuid,
   original_ban_status text, original_expires_at timestamptz, auto_banned boolean NOT NULL DEFAULT false, resolved boolean DEFAULT false,
-  cleared_at timestamptz, created_at timestamptz DEFAULT now());
+  cleared_at timestamptz, created_at timestamptz DEFAULT now(), UNIQUE (user_id, matched_on, retained_ban_id));
 CREATE TABLE public.payout_holds (helper_id uuid, held_by uuid, denied_by uuid, reason text);
 CREATE FUNCTION public.settle_one_off_jobs_for_banned_account(p uuid) RETURNS jsonb LANGUAGE sql AS $$ SELECT '{}'::jsonb $$;
 CREATE FUNCTION public.end_series_for_banned_account(p uuid) RETURNS void LANGUAGE sql AS $$ SELECT $$;
@@ -107,6 +112,7 @@ for (const [name, want] of Object.entries(LIVE_MD5)) {
 check("fixture: the confirm, the lift and the rank are prod's code (md5 of prosrc)", true);
 
 if (FIXED) for (let i = 0; i < 3; i++) await db.exec(read(UNDER_TEST));
+if (FIXED) for (let i = 0; i < 3; i++) await db.exec(read(F1));
 
 async function asAdmin(sql) {
   await db.exec(`SELECT set_config('request.uid', '${ADMIN}', false), set_config('request.role', 'authenticated', false);`);
@@ -133,8 +139,10 @@ async function seedMatch(u, rid, on, st, ex, { createdHoursAgo = 1, auto = true,
     await db.query(`INSERT INTO public.retained_bans (id, ban_status, expires_at, reapplied_at) VALUES ($1, $2, $3, $4)`,
       [rid, st, retained === "expired" ? ago(1) : ex, reappliedHoursAgo === null ? null : ago(reappliedHoursAgo)]);
   }
-  await db.query(`INSERT INTO public.ban_evasion_matches (user_id, matched_on, retained_ban_id, original_ban_status, original_expires_at, auto_banned, cleared_at, created_at)
-                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, [u, on, rid, st, ex, auto, cleared ? ago(0.5) : null, ago(createdHoursAgo)]);
+  if (FIXED) await db.exec(`ALTER TABLE public.ban_evasion_matches DISABLE TRIGGER trg_stamp_ban_evasion_match_auto_banned`);
+  await db.query(`INSERT INTO public.ban_evasion_matches (user_id, matched_on, retained_ban_id, original_ban_status, original_expires_at, auto_banned, cleared_at, created_at${FIXED ? ", auto_banned_at" : ""})
+                  VALUES ($1, $2, $3, $4, $5, $6, $7, $8${FIXED ? ", CASE WHEN $6 THEN $8::timestamptz END" : ""})`, [u, on, rid, st, ex, auto, cleared ? ago(0.5) : null, ago(createdHoursAgo)]);
+  if (FIXED) await db.exec(`ALTER TABLE public.ban_evasion_matches ENABLE TRIGGER trg_stamp_ban_evasion_match_auto_banned`);
 }
 
 // C1 — a permanent identity judgment applied during a temp card review survives the confirm.
@@ -165,7 +173,9 @@ async function seedMatch(u, rid, on, st, ex, { createdHoursAgo = 1, auto = true,
   await confirm(u);
   check("C3 a stale pre-review match with no retained row does not harden the confirm", (await prof(u))?.ban_status === "temp_banned", JSON.stringify(await prof(u)));
 }
-// C4 — a pre-review match whose retained row is live but was NOT re-applied since does not count; one re-applied since does.
+// C4 — a pre-review match whose retained row is live but was NOT re-applied since does not count. Q1415 (f1): nor does
+// one whose retained row SOMEONE ELSE re-applied since (reapplied_at is stamped for any account); the member's OWN
+// doubt-check flipped to a ban during the review does count.
 {
   const u = T(4);
   await seedReview(u, "temp_banned", days(7));
@@ -176,7 +186,18 @@ async function seedMatch(u, rid, on, st, ex, { createdHoursAgo = 1, auto = true,
   await seedReview(v, "temp_banned", days(7));
   await seedMatch(v, R(5), "phone", "permanently_banned", null, { createdHoursAgo: 24 * 30, reappliedHoursAgo: 1 });
   await confirm(v);
-  check("C4b an older doubt-check row re-applied during the review counts", (await prof(v))?.ban_status === "permanently_banned", JSON.stringify(await prof(v)));
+  check("C4b an old match whose retained row someone else re-applied during the review no longer counts (f1)", (await prof(v))?.ban_status === "temp_banned", JSON.stringify(await prof(v)));
+  const w = T(10);
+  await seedReview(w, "temp_banned", days(7));
+  await seedMatch(w, R(14), "phone", "permanently_banned", null, { createdHoursAgo: 24 * 30, auto: false });
+  // enforce_retained_ban's own writes when w signs in matching R(14) during the review: the flip, then reapplied_at.
+  await db.query(`INSERT INTO public.ban_evasion_matches (user_id, matched_on, retained_ban_id, original_ban_status, auto_banned)
+                  VALUES ($1, 'phone', $2, 'permanently_banned', true)
+                  ON CONFLICT (user_id, matched_on, retained_ban_id) DO UPDATE SET auto_banned = true
+                  WHERE NOT public.ban_evasion_matches.auto_banned`, [w, R(14)]);
+  await db.query(`UPDATE public.retained_bans SET reapplied_at = now() WHERE id = $1`, [R(14)]);
+  await confirm(w);
+  check("C4c the member's own old doubt-check flipped to a ban during the review counts", (await prof(w))?.ban_status === "permanently_banned", JSON.stringify(await prof(w)));
 }
 // C5 — no-end suspensions: a match with no end beats the review's dated end; the order of rows never matters.
 {

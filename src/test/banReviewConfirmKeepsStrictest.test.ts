@@ -14,20 +14,27 @@
  *     review_state to 'confirmed' or 'lifted') and writes profiles.ban_status
  *     takes ban_review_retained_floor(...) before that write;
  *   - the floor counts only standing judgments applied during the review:
- *     auto_banned, not cleared, a live retained row, recorded (or re-applied)
- *     since the review opened, and not a spent suspension; and it keeps a
- *     no-end suspension over a dated one.
+ *     auto_banned, not cleared, a live retained row, made a ban since the
+ *     review opened (the MATCH's own auto_banned_at, else its created_at;
+ *     Q1415 (f1): never the retained row's reapplied_at, which any account
+ *     stamps), and not a spent suspension; and it keeps a no-end suspension
+ *     over a dated one. The stamp is the trigger's alone: set on a ban insert
+ *     and on the doubt-check flip, on every insert and update.
+ *     Behaviour (f1): src/test/pglite/banReviewFloorReadsTheMatchStamp.pglite.mjs.
  * Behaviour (real Postgres, prod's bodies md5-checked; live 6 FAIL, fixed
  * ALL PASS applied 3x): src/test/pglite/banReviewConfirmStrictest.pglite.mjs.
  *
  * @mutate supabase/migrations/20261013001155_ban_review_confirm_keeps_strictest_retained_judgment.sql |   v_floor := public.ban_review_retained_floor(p_user_id, v_review.created_at);\n  IF v_floor IS NOT NULL THEN\n    IF public.ban_standing_rank(v_floor ->> 'ban_status') > public.ban_standing_rank(v_final) THEN |   v_floor := NULL;\n  IF v_floor IS NOT NULL THEN\n    IF public.ban_standing_rank(v_floor ->> 'ban_status') > public.ban_standing_rank(v_final) THEN
  * @mutate supabase/migrations/20261013001155_ban_review_confirm_keeps_strictest_retained_judgment.sql |   v_floor := public.ban_review_retained_floor(p_user_id, v_review.created_at);\n  IF v_floor IS NOT NULL THEN\n    IF public.ban_standing_rank(v_floor ->> 'ban_status') > public.ban_standing_rank(v_status) THEN |   v_floor := NULL;\n  IF v_floor IS NOT NULL THEN\n    IF public.ban_standing_rank(v_floor ->> 'ban_status') > public.ban_standing_rank(v_status) THEN
- * @mutate supabase/migrations/20261013001155_ban_review_confirm_keeps_strictest_retained_judgment.sql |        AND (m.created_at >= p_since OR rb.reapplied_at >= p_since) |        AND true
- * @mutate supabase/migrations/20261013001155_ban_review_confirm_keeps_strictest_retained_judgment.sql |        AND (rb.expires_at IS NULL OR rb.expires_at > now()) |        AND true
+ * @mutate supabase/migrations/20261103225923_ban_review_floor_reads_the_match_stamp.sql |        AND COALESCE(m.auto_banned_at, m.created_at) >= p_since |        AND true
+ * @mutate supabase/migrations/20261103225923_ban_review_floor_reads_the_match_stamp.sql |        AND COALESCE(m.auto_banned_at, m.created_at) >= p_since |        AND (COALESCE(m.auto_banned_at, m.created_at) >= p_since OR rb.reapplied_at >= p_since)
+ * @mutate supabase/migrations/20261103225923_ban_review_floor_reads_the_match_stamp.sql |        AND (rb.expires_at IS NULL OR rb.expires_at > now()) |        AND true
+ * @mutate supabase/migrations/20261103225923_ban_review_floor_reads_the_match_stamp.sql |   BEFORE INSERT OR UPDATE ON public.ban_evasion_matches |   BEFORE INSERT ON public.ban_evasion_matches
  */
 import { describe, it, expect } from "vitest";
 import { join, resolve } from "node:path";
-import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
+import { readFileSync } from "node:fs";
+import { effectiveDefs, migrationFiles } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
 
 const MIG = join(resolve(__dirname, "..", ".."), "supabase", "migrations");
@@ -68,9 +75,21 @@ describe("a ban review's decision keeps the strictest standing judgment (Q1415 f
     expect(body).toMatch(/m\.cleared_at\s+is\s+null/i);
     expect(body).toMatch(/join\s+public\.retained_bans\s+rb\s+on\s+rb\.id\s*=\s*m\.retained_ban_id/i);
     expect(body).toMatch(/\(\s*rb\.expires_at\s+is\s+null\s+or\s+rb\.expires_at\s*>\s*now\(\)\s*\)/i);
-    expect(body).toMatch(/\(\s*m\.created_at\s*>=\s*p_since\s+or\s+rb\.reapplied_at\s*>=\s*p_since\s*\)/i);
+    expect(body).toMatch(/coalesce\(\s*m\.auto_banned_at\s*,\s*m\.created_at\s*\)\s*>=\s*p_since/i);
+    // Q1415 (f1): the retained row's reapplied_at is stamped by ANY account matching it; it never counts here.
+    expect(body).not.toMatch(/reapplied_at/i);
     expect(body).toMatch(/original_expires_at\s*<=\s*now\(\)/i);
     // A no-end suspension is never replaced by a dated one.
     expect(body).toMatch(/v_until\s+is\s+not\s+null\s+and\s+\(\s*v_m\.ex\s+is\s+null\s+or\s+v_m\.ex\s*>\s*v_until\s*\)/i);
+  });
+
+  it("the match's auto_banned_at is stamped by its trigger on every insert and update (Q1415 f1)", () => {
+    const files = migrationFiles(MIG).filter((f) => /trg_stamp_ban_evasion_match_auto_banned/.test(readFileSync(join(MIG, f), "utf8")));
+    expect(files.length).toBeGreaterThan(0);
+    const sql = blankSqlComments(readFileSync(join(MIG, files.at(-1)!), "utf8"));
+    expect(sql).toMatch(/create\s+trigger\s+trg_stamp_ban_evasion_match_auto_banned\s+before\s+insert\s+or\s+update\s+on\s+public\.ban_evasion_matches\s+for\s+each\s+row\s+execute\s+function\s+public\.stamp_ban_evasion_match_auto_banned\(\)/i);
+    const fn = blankSqlComments(defs.get("stamp_ban_evasion_match_auto_banned")!.stmt);
+    expect(fn).toMatch(/if\s+new\.auto_banned\s+and\s+\(\s*tg_op\s*=\s*'INSERT'\s+or\s+not\s+coalesce\(\s*old\.auto_banned\s*,\s*false\s*\)\s*\)\s+then\s+new\.auto_banned_at\s*:=\s*now\(\)/i);
+    expect(fn).toMatch(/elsif\s+tg_op\s*=\s*'UPDATE'\s+then\s+new\.auto_banned_at\s*:=\s*old\.auto_banned_at/i);
   });
 });

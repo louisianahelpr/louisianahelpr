@@ -1,14 +1,14 @@
-Louisiana Helpr is a local services marketplace for Louisiana. Every account can both post jobs and apply to jobs - there is no separate role or account switch, so the demo account exercises both sides.
+Louisiana Helpr is a local marketplace for Louisiana: members hire local help for in-person jobs, and buy, sell or give away used household items with people nearby. Every account can do both; there is no separate role or account switch.
 
 Sign in with the demo email and password in Sign-In Information. Sign in with Apple and Google also work natively.
 
-To see the core flow: browse open jobs on the home screen, open one and apply, or post a job from the bottom navigation, then message the other party.
+Declutter (in the section switcher) shows live listings from members nearby. Browse the items, open one, save it, and start a purchase up to the payment sheet. The money is held until the handover is confirmed, and items are picked up in person or delivered locally.
 
-Payments are only for real-world services and goods exchanged in person: a job is work another member does in person (for example yard work or moving help), paid through Stripe, which is live. You do not need to complete a payment to review the app; please do not enter a real card. This version sells no digital goods and contains no in-app purchases or memberships.
+Jobs: post a job from the bottom navigation with the guided form, then message the other party once someone applies. Louisiana Helpr is a new regional marketplace, so Jobs may show "No jobs near you yet." when nobody nearby has posted. That empty state is expected.
 
-Declutter, in the section switcher, lets members sell, buy, give away or ask for (Wanted posts) their own used household items with people nearby. The buyer pays through Stripe for a physical item that is picked up in person or delivered locally by the seller or by another member; the money is held until the handover is confirmed. Gift cards are bought through Stripe and are spent when paying for a job, an in-person service; they buy nothing digital.
+Payments go through Stripe, which is live: purchases and job payments are real money. You do not need to complete a payment to review the app; please stop at the payment sheet and do not enter a real card. Payments are only for real-world services and physical goods exchanged in person. Gift cards are bought through Stripe and are spent when paying for a job. This version sells no digital goods and contains no in-app purchases or memberships.
 
-Location is optional. While the app is open it is used to show nearby jobs. Background location (UIBackgroundModes: location) is used for one feature only: after a Helpr has been hired for a job and taps "I'm On My Way", the app shares their position with the job's poster, including while the screen is off, so the poster can see them approaching. Sharing stops automatically as soon as the Helpr marks themselves arrived. The app never requests Always access and never uses location in the background at any other time.
+Location is optional. While the app is open it is used to show nearby jobs and items. Background location (UIBackgroundModes: location) is used for one feature only: after a Helpr has been hired for a job and taps "I'm On My Way", the app shares their position with the job's poster, including while the screen is off, so the poster can see them approaching. Sharing stops automatically as soon as the Helpr marks themselves arrived. The app never uses location in the background at any other time.
 
 Push notifications are optional and are requested with an explanation first.
 

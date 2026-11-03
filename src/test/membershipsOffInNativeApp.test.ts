@@ -55,7 +55,9 @@ describe("memberships are never shown or sold in the store app", () => {
     // 2026-10-29 (A3-C14): eight. MembershipPlansGate reads useMembershipsStatus so the
     // Membership tab shows no plan prices while memberships are off.
     // 2026-10-28 (audit F15): nine. PaymentLifecycleSteps reads it for the payment-success "Live now" line.
-    expect(readers.length).toBe(9);
+    // 2026-11-03 (Q1158, B41): eight. useDashboardData dropped its redundant early-access pre-filter (the feed waited
+    // on the profile for it); useDashboardFilters still drops the wait on what is shown, and the view gates the rows.
+    expect(readers.length).toBe(8);
   });
 
   it("the Profile row for a plan holder and the deep-linked plans are closed in the native app", () => {

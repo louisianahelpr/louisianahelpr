@@ -30,6 +30,9 @@
 // @mutate src/lib/posterSpend.ts | return Math.max(0, chargedCents - Math.max(0, refundedCents)); | return Math.max(0, chargedCents);
 // @mutate src/lib/posterSpend.ts | const chargedCents = Math.max(0, cents(posterPaidDollars(job)) - giftCents); | const chargedCents = Math.max(0, cents(posterPaidDollars(job)));
 // @mutate src/lib/posterSpend.ts | const giftCents = Math.min(workCents, Math.max(0, cents(giftDollars))); | const giftCents = Math.max(0, cents(giftDollars));
+// Q2263: on a poster-fee job the gift also paid the stamped service fee (redeem_gift_card's v_cost_cents).
+// @mutate src/lib/posterSpend.ts |   const posterFeeCents = job.poster_fee_flat_cents != null ? cents(job.customer_fee_amount ?? 0) : 0; |   const posterFeeCents = 0;
+// @mutate src/components/profile/earningsTab/usePosterSpendData.ts | onboarding_fee_amount, poster_fee_flat_cents, dispute_status | onboarding_fee_amount, dispute_status
 // @mutate src/lib/posterSpend.ts | if (c > 0 \|\| refundedInFull) rows.push( | rows.push(
 // AUD31-55: a job refunded in full stays (only a ledgered refund of a real charge, never a chargeback).
 // @mutate src/lib/posterSpend.ts | const refundedInFull = kept === 0 && refundedCents > 0 | const refundedInFull = false && refundedCents > 0
@@ -37,6 +40,7 @@
 // @mutate src/lib/posterSpend.ts |   if (r.job && r.refundedInFull) return " · Refunded in full"; |
 // @mutate src/lib/posterSpend.ts | export const CHARGED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released", "refunded", "cancelling"] as const; | export const CHARGED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released", "refunded", "cancelling", "chargeback", "cancelled"] as const;
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import { tipChargeBreakdown } from "../../supabase/functions/_shared/tipFees";
 import { posterSpentCents, tipSpentCents, spentRows, spentTotalCents, refundedReceiptNote, CHARGED_PAYMENT_STATUSES, type PosterSpendJob, type PosterTipRow, type PosterBlockFeeRow } from "./posterSpend";
 
@@ -109,6 +113,22 @@ describe("posterSpentCents — what the poster's card really paid for one job", 
     expect(posterSpentCents(job({ customer_fee_amount: null }), 0, 60)).toBe(4000);
     // A gift larger than the work never eats the fee or tax lines.
     expect(posterSpentCents(job({ sales_tax_amount: 2 }), 0, 500)).toBe(1400);
+  });
+
+  it("Q2263: on a poster-fee job the gift also covers the stamped service fee, as redeem_gift_card applies it", () => {
+    // $40 job, poster fee $2.70 (5% + $0.70), $42 gift: redeem_gift_card applies min(40 + 2.70, 42) = $42, the
+    // shortfall checkout charges $0.70. Spent is $0.70, not the $2.70 a budget-only cap left.
+    const pf = job({ budget: 40, customer_fee_amount: 2.7, poster_fee_flat_cents: 70 });
+    expect(posterSpentCents(pf, 0, 42)).toBe(70);
+    // The gift still never eats the tax line, and a gift above the whole cost leaves only the tax.
+    expect(posterSpentCents({ ...pf, sales_tax_amount: 1.5 }, 0, 500)).toBe(150);
+    // A legacy job (no poster_fee_flat_cents): the fee is the Helpr-side tier fee line, the cap stays budget + urgent.
+    expect(posterSpentCents(job({ budget: 40, customer_fee_amount: 2.7 }), 0, 42)).toBe(270);
+  });
+
+  it("Q2263: the Spent read selects poster_fee_flat_cents, so the cap can see a poster-fee job", () => {
+    const src = readFileSync("src/components/profile/earningsTab/usePosterSpendData.ts", "utf8");
+    expect(src).toMatch(/readJobsAheadOfDb\(\s*"[^"]*\bposter_fee_flat_cents\b[^"]*"/);
   });
 
   it("never goes below $0 (refund ledger larger than the charge)", () => {

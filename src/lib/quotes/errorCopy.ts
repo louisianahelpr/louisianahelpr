@@ -17,6 +17,9 @@ export const QUOTE_ERROR_COPY: Record<string, string> = {
   under_18: "You must be 18 or older to post or quote on jobs.",
   invalid_window: "Pick 24 hours, 48 hours or 3 days for quotes.",
   invalid_date: "Pick the date you need this done.",
+  // Q2083 (b): the job ZIP prices the sales tax at checkout.
+  invalid_zip: "Add the job's Louisiana ZIP code.",
+  invalid_tax_kind: "Something went wrong. Please try again.",
   job_start_too_soon: "This job starts too soon for quotes. Pick a later date, or set your own price.",
   too_many_open_requests: "You can ask for quotes on up to 5 jobs at a time.",
   rate_limited: "You've sent a lot of quotes today. Try again tomorrow.",

@@ -37,7 +37,7 @@
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |        AND q.quoter_id = p_helper\n |        AND true\n
  * @mutate supabase/migrations/20261021112534_block_closes_agreed_unbooked_quote.sql |        WHERE r.status = 'agreed'\n |        WHERE r.status = 'open'\n
  * @mutate supabase/migrations/20261102081647_quote_hire_catches_query_canceled.sql |   EXCEPTION WHEN OTHERS OR query_canceled THEN |   EXCEPTION WHEN OTHERS THEN
- * @mutate supabase/migrations/20261019005719_quote_cap_live_requests.sql |   v_close := LEAST(now() + make_interval(hours => v_window), v_start - interval '2 hours'); |   v_close := now() + make_interval(hours => v_window);
+ * @mutate supabase/migrations/20261103205121_quote_request_zip_tax_kind.sql |   v_close := LEAST(now() + make_interval(hours => v_window), v_start - interval '2 hours'); |   v_close := now() + make_interval(hours => v_window);
  */
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";

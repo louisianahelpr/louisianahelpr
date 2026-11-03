@@ -16007,8 +16007,10 @@ export type Database = {
           p_longitude?: number
           p_parish?: string
           p_start_time?: string
+          p_tax_kind?: string
           p_title: string
           p_window_hours?: number
+          p_zip_code?: string
         }
         Returns: string
       }

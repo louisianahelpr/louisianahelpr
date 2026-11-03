@@ -21,9 +21,9 @@
 //
 // @mutate supabase/migrations/20261001222911_remove_idv_requirement.sql |     AND business_id IS NULL\n | \n
 // @mutate supabase/migrations/20261103042402_booking_continue_day_nudge_not_found_is_404.sql |   IF public.are_users_blocked(v_uid, v_q.quoter_id) THEN\n    RAISE EXCEPTION 'applicant_blocked' USING ERRCODE = '42501';\n  END IF;\n\n  -- Whole dollars | \n  -- Whole dollars
-// @mutate supabase/migrations/20261015091114_job_quotes.sql |   VALUES (p_req.poster_id, p_req.title, | VALUES ((SELECT auth.uid()), p_req.title,
+// @mutate supabase/migrations/20261103205121_quote_request_zip_tax_kind.sql |   VALUES (p_req.poster_id, p_req.title, | VALUES ((SELECT auth.uid()), p_req.title,
 // @mutate supabase/migrations/20261103041633_quote_not_found_is_404.sql |   v_job := public.quote_insert_job(v_req, p_budget, NULL); |   v_job := public.quote_insert_job(v_req, p_budget, v_req.poster_id);
-// @mutate supabase/migrations/20261015091114_job_quotes.sql |                            offered_to_helper_id, direct_offer_expires_at) |                            offered_to_helper_id, direct_offer_expires_at, is_seed)
+// @mutate supabase/migrations/20261103205121_quote_request_zip_tax_kind.sql |                            offered_to_helper_id, direct_offer_expires_at, zip_code, tax_kind) |                            offered_to_helper_id, direct_offer_expires_at, zip_code, tax_kind, is_seed)
 // @mutate supabase/migrations/20261001222911_remove_idv_requirement.sql | DROP POLICY IF EXISTS "Customers can create jobs" ON public.jobs; | DROP POLICY IF EXISTS "Customers can create jobs" ON public.jobs;\nCREATE POLICY jobs_open_insert ON public.jobs FOR INSERT WITH CHECK (true);
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -105,6 +105,8 @@ describe("quote_insert_job mirrors the jobs INSERT policy (Q1868)", () => {
     expect(cols).toEqual([
       "customer_id", "title", "description", "category", "date_needed", "start_time", "estimated_hours",
       "location", "latitude", "longitude", "parish", "budget", "offered_to_helper_id", "direct_offer_expires_at",
+      // Q2083 (b), 20261103205121: the checkout prices sales tax at the job ZIP, from category or tax_kind.
+      "zip_code", "tax_kind",
     ]);
     expect(stmt).toMatch(/VALUES\s*\(\s*p_req\.poster_id\s*,/i);
   });

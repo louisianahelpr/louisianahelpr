@@ -14,8 +14,8 @@
  * chip stays (it is the route a helper who genuinely cannot continue needs);
  * the duplicate is gone. Owner, 2026-09-11: one primary + overflow.
  *
- * PGRST202 fallback: if job_revisions is not yet deployed, reads from
- * the legacy jobs.revision_note column instead.
+ * If the job_revisions read fails, the card falls back to the legacy
+ * jobs.revision_note column (and reports the failure).
  */
 import { useEffect, useState } from "react";
 import { useProofPhotoUrls } from "@/hooks/useProofPhotoUrls";
@@ -104,10 +104,7 @@ export function HelperRevisionCard({
       .limit(1)
       .then(({ data, error }) => {
         if (error) {
-          // PGRST202 = table not found (migration not pushed yet)
-          if (error.code !== "PGRST202") {
-            report(error, { tags: { source: "HelperRevisionCard.load" } });
-          }
+          report(error, { tags: { source: "HelperRevisionCard.load" } });
           // Fall back to the legacy note
           if (legacyRevisionNote) {
             setRevision({
@@ -154,22 +151,16 @@ export function HelperRevisionCard({
           .update({ status: "accepted" })
           .eq("id", revision.id)
           .select("id");
-        if (error && error.code !== "PGRST202") {
-          throw error;
-        }
-        // PGRST202 = the table isn't deployed yet; that path is the legacy
-        // fallback and deliberately keeps going. Anything else must have moved
-        // a row.
-        if (!error) {
-          unwrapMutation(
-            { data: rows, error: null },
-            {
-              action: "acknowledge this revision",
-              rejectedMessage: "This revision couldn't be acknowledged — it may have already been resolved. Refresh the page.",
-              context: { revisionId: revision.id },
-            },
-          );
-        }
+        if (error) throw error;
+        // A null error is not a write: it must have moved a row.
+        unwrapMutation(
+          { data: rows, error: null },
+          {
+            action: "acknowledge this revision",
+            rejectedMessage: "This revision couldn't be acknowledged — it may have already been resolved. Refresh the page.",
+            context: { revisionId: revision.id },
+          },
+        );
       }
 
       // Notify the poster — only when a job_revisions row was acknowledged

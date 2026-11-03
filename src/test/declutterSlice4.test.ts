@@ -182,7 +182,8 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     // problem_open for the three parties); the body checks below still read the newest definition.
     // Then audit 1c D3-5 (20261030031642: only the "Delivery done" words and link; the payout is as above).
     expect(DEFS.get("helpr_task_confirm")?.file).toBe("20261031231150_helpr_delivery_cant_finish.sql");
-    expect(DEFS.get("helpr_task_view")?.file).toBe("20261031231150_helpr_delivery_cant_finish.sql");
+    // helpr_task_view: restated by Q2390 packet 13 (20261103061500, ERRCODE-only) with every line kept.
+    expect(DEFS.get("helpr_task_view")?.file).toBe("20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql");
     expect(flat(body("helpr_task_confirm"))).toContain("IF p_by IS NULL OR p_by NOT IN ('customer', 'auto', 'admin') THEN");
     expect(flat(body("helpr_task_view"))).not.toMatch(/dropoff_code|code_locked/);
     expect(flat(body("helpr_task_delivered"))).not.toMatch(/dropoff_code|wrong_code|'confirmed', 'code'/);

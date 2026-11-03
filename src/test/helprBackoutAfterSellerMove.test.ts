@@ -36,7 +36,9 @@ describe("LEAD-MOVE-BACKOUT: backing out after the seller's move is free", () =>
     for (const name of ["helpr_task_accept", "helpr_route_suggestions"]) {
       const fn = newestFunction(name);
       const body = flat(fn.body);
-      expect(fn.file, name).toContain("20261031102758");
+      // helpr_route_suggestions: restated by Q2390 packet 13 (20261103061500, ERRCODE-only) with every line kept.
+      if (name === "helpr_route_suggestions") expect(fn.file >= "20261031102758", name).toBe(true);
+      else expect(fn.file, name).toContain("20261031102758");
       expect(body.length, name).toBeGreaterThan(2000);
       expect(body, name).toContain(PAUSE_COUNT);
       // The per-delivery "never take back what you backed out of" filters still count every release.

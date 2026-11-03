@@ -233,6 +233,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/declutter/DeclutterSellView.tsx` | input×1, textarea×1 | text | 80, 2000 | sell-title · e.g. Oak rocking chair · sell-desc · How buyers get it · sell-form-problem |
 | `src/components/declutter/SellFormParts.tsx` | input×2, checkbox/switch/radio×3 | text |  | sell-price · Price · sell-offers · sell-drops · sell-floor · e.g. 30 · sell-address · sell-pickup |
 | `src/components/declutter/SellSummaryCard.tsx` | input×1, textarea×1 | text | 80, 2000 | sell-summary-head · sell-title · e.g. Oak rocking chair · sell-desc |
+| `src/components/SuggestCategory.tsx` | input×1 | text |  | suggest-category-input · e.g. Tutoring · suggest-category-help |
 
 ## /declutter/sell, /declutter/settings
 
@@ -347,7 +348,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/postjob/LogisticsSection.tsx` | input×1, textarea×1 | number | 500 | job-type-label · One fewer Helpr · Number of Helprs needed · One more Helpr · when-label · flexible · need-it-today · need-it-today-note |
 | `src/components/postjob/MaterialsToggle.tsx` | textarea×1, checkbox/switch/radio×1 |  | 500 | include-materials · materials-note · e.g. 1 gallon of Sherwin-Williams  |
 | `src/components/postjob/SellForMeBlanks.tsx` | input×1 | text | 40 | About how many? · Suggested price |
-| `src/components/SuggestCategory.tsx` | input×1 | text |  | suggest-category-input · e.g. Tutoring · suggest-category-help |
 | `src/components/TimePickerWheel.tsx` | input×4, date/calendar×4 | time |  | time-pick-period |
 | `src/lib/offerResponseWindow.ts` | select×1 |  |  |  |
 | `src/pages/post-job/DirectOfferBanner.tsx` | select×1 |  |  | Cancel direct offer · direct-offer-window |

@@ -648,6 +648,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Q2259 return label (20261103212046, for verdict): the admin's request READS declutter_refunds only to check the
       // order was refunded as not_as_described; the worker's record books the return label's cost as ONE seller debt
       // (ship_label, source_ref = the return row). Neither records a refund nor changes a refund amount, card fee or policy.
+      // Owner 11-03 (claim rest sent by an admin by hand; 20261103214253, for verdict): marks a seller_due claim
+      // seller_paid once; it records no refund and changes no refund amount, card fee or policy, and moves no money.
+      declutter_admin_mark_ship_claim_sent: "20261103214253_shipping_claim_sent_by_hand.sql fea0a84d96e69772",
       declutter_admin_request_return_label: "20261103212046_shipping_return_label.sql bac4b30d7a02abca",
       declutter_ship_return_label_bought: "20261103212046_shipping_return_label.sql cad5519a0e8d1f81",
       // Q2259 S6 2d (20261102051521, shipping, testers only; for verdict): the shipping a buyer-fault close held back goes

@@ -19,7 +19,7 @@
  * Behaviour (each reader under the real roles, formatName parity, 3x replay):
  * src/test/pglite/memberNamesMaskedInResponses.pglite.mjs.
  *
- * @mutate supabase/migrations/20261021131322_member_names_first_and_initial.sql | p.user_id, public.display_name_for_viewer(p.full_name, p.user_id) AS full_name, p.avatar_url | p.user_id, p.full_name, p.avatar_url
+ * @mutate supabase/migrations/20261103154905_tip_waits_on_id_in_safe_profiles.sql | p.user_id, public.display_name_for_viewer(p.full_name, p.user_id) AS full_name, p.avatar_url | p.user_id, p.full_name, p.avatar_url
  * @mutate supabase/migrations/20261021131322_member_names_first_and_initial.sql | CROSS JOIN LATERAL (SELECT public.display_name_for_viewer(p.full_name, p.user_id) AS name) d | CROSS JOIN LATERAL (SELECT p.full_name AS name) d
  * @mutate supabase/migrations/20261103041633_quote_not_found_is_404.sql | SELECT q.id, q.quoter_id, public.display_name_for_viewer(p.full_name, q.quoter_id)::text, p.avatar_url::text, | SELECT q.id, q.quoter_id, p.full_name::text, p.avatar_url::text,
  * @mutate supabase/migrations/20261021131322_member_names_first_and_initial.sql |            ELSE public.member_display_name(p_full_name, NULL) |            ELSE p_full_name
@@ -71,6 +71,8 @@ const FIRST_NAME_READERS = ["helpr_task_view", "nudge_confirm", "record_backout_
 const MASKED_RESTATED_LATER: Record<string, string> = {
   // Q2390 packet 2: only the not-found ERRCODE changed (P0002 -> PT404); the name read is verbatim.
   get_quotes_for_request: "20261103041633_quote_not_found_is_404.sql",
+  // Blockers 10 (lead 2026-11-03): one column added (tip_waits_on_id); the name read is verbatim.
+  get_safe_profiles: "20261103154905_tip_waits_on_id_in_safe_profiles.sql",
 };
 
 const RESTATED_LATER: Record<string, string> = {

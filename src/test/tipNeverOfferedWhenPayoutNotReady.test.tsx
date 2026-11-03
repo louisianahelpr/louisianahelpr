@@ -12,7 +12,7 @@
  * the backstop.
  *
  * @mutate src/hooks/useHelprTakesTips.ts |   if (waitsOnId) return `Tips open once ${first \|\| "this Helpr"} finishes verifying.`; |   if (waitsOnId) return `${first \|\| "This Helpr"} can receive tips once verified. Nothing was charged.`;
- * @mutate src/hooks/useHelprTakesTips.ts |     return row ? { payoutReady: row.is_payout_ready === true, idVerified: row.is_id_verified === true } : null; |     return null;
+ * @mutate src/hooks/useHelprTakesTips.ts |     return row\n      ? { |     return null && row\n      ? {
  * @mutate src/hooks/useHelprTakesTips.ts |   return a.payoutReady && (!idCheckOn \|\| a.idVerified); |   return a.payoutReady;
  * @mutate src/components/TipDialog.tsx |         {takesTips === false ? ( |         {false ? (
  * @mutate src/pages/posts/postedJobCard/steps/CompletedStep.tsx |   const offerTip = tipOpen && takesTips !== false; |   const offerTip = tipOpen;

@@ -6,7 +6,7 @@
  * get_safe_profiles must exclude anonymised rows (verified 3x in PGlite:
  * anonymised row dropped, live row kept).
  *
- * @mutate supabase/migrations/20261021131322_member_names_first_and_initial.sql | AND p.anonymized_at IS NULL\n    -- Q552: a test account's profile is hidden | -- Q552: a test account's profile is hidden
+ * @mutate supabase/migrations/20261103154905_tip_waits_on_id_in_safe_profiles.sql | AND p.anonymized_at IS NULL\n    -- Q552: a test account's profile is hidden | -- Q552: a test account's profile is hidden
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";

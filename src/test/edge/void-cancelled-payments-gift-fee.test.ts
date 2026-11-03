@@ -413,6 +413,24 @@ describe("void-cancelled-payments: a fully gift-funded CREW's fee shares are pai
     const note = scenario.writes.find((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).title === "Your gift is back");
     expect(String((note?.payload as Record<string, unknown>)?.message)).toMatch(/\$175 of it paid your crew for their time and the crew members whose spots you closed close to the start\./);
   });
+  // Q2096 (closed as not reachable, lead 11-03): payCancellationFee resolves false only through the
+  // single-Helpr ledger (payHelperCancellationFee); a crew's payCrewCancellationFees resolves void on every
+  // path, a failed transfer list included, and block fees exist only on a crew. So "block fees paid, then the
+  // fee claim refused" cannot happen. This keeps it true: a crew whose fee-share transfer list fails sends no
+  // share, still settles, and the gift still keeps the shares (their rows exist, so Part D retries them).
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |         defects.record(`crew fee-transfer dedupe list ${job.id}: ${(listErr as Error).message}`);\n        return; |         defects.record(`crew fee-transfer dedupe list ${job.id}: ${(listErr as Error).message}`);\n        return false;
+  it("Q2096: a crew whose fee-share transfer list fails sends no share, settles, and the gift keeps the shares", async () => {
+    seedCrew();
+    // The escrow transfer check (first list) answers; the crew fee-share dedupe list (next) fails.
+    stripeMock.transfers.list.mockResolvedValueOnce({ data: [] }).mockRejectedValue(new Error("stripe down"));
+    const h = await load();
+    const body = await (await h.fetch(cronReq())).json();
+    // The crew fee path really reached its failed list (not an earlier stop).
+    expect(JSON.stringify(body.defectReasons ?? [])).toContain("crew fee-transfer dedupe list job-crew");
+    expect(feeTransferCalls()).toHaveLength(0);
+    expect(restoredCents()).toBe(APPLIED - FEE);
+    expect(jobSettles()).toHaveLength(1);
+  });
 });
 
 describe("void-cancelled-payments: Parts D/E retry a gift-funded job's fee with no PaymentIntent (Q1806)", () => {

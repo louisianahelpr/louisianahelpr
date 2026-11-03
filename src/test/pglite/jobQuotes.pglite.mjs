@@ -456,6 +456,32 @@ await step("grants: no anon EXECUTE on any quote RPC; helpers not client-callabl
   check("grants: no anon EXECUTE on any quote RPC; helpers not client-callable", rows.length === 14 && bad.length === 0, `rows=${rows.length} bad=${bad.map((r) => r.proname)}`);
 });
 
+// Q2390 packet 2 (20261103041633): a missing quote or request (or one that is not the caller's) is SQLSTATE PT404,
+// which PostgREST answers HTTP 404; P0002 answered 500. NOT_FOUND_MIGRATION=skip leaves 20261103041633 out (RED).
+await step("Q2390: a missing quote or request answers PT404 (HTTP 404), never P0002 (HTTP 500)", async () => {
+  if (!BEFORE && process.env.NOT_FOUND_MIGRATION !== "skip") {
+    const q2390 = readFileSync(DIR + "20261103041633_quote_not_found_is_404.sql", "utf8");
+    for (let i = 0; i < (REPLAY ? 3 : 1); i++) await db.exec(q2390);
+  }
+  const code = async (uid, sql) => {
+    try {
+      await as(uid, sql);
+      return "none";
+    } catch (e) {
+      return `${e.code}:${String(e.message)}`;
+    }
+  };
+  const NONE = "00000000-0000-4000-8000-0000000000ff";
+  const wd = await code(QB, `SELECT public.withdraw_job_quote('${NONE}')`);
+  const sw = await code(QB, `SELECT public.switch_quote_request_to_set_price('${NONE}', 50)`);
+  const gq = await code(QB, `SELECT * FROM public.get_quotes_for_request('${NONE}')`);
+  check(
+    "Q2390: a missing quote or request answers PT404 (HTTP 404), never P0002 (HTTP 500)",
+    wd === "PT404:unknown_quote" && sw === "PT404:unknown_request" && gq === "PT404:unknown_request",
+    `${wd} | ${sw} | ${gq}`,
+  );
+});
+
 const failed = results.filter((r) => !r.ok).length;
 console.log(`\n${BEFORE ? "BEFORE (no migration)" : REPLAY ? "AFTER (migration x3)" : "AFTER (migration x1)"}: ${results.length - failed}/${results.length} pass`);
 if (BEFORE) process.exit(failed === results.length ? 0 : 1);

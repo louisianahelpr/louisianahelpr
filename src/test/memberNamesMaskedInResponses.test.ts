@@ -21,7 +21,7 @@
  *
  * @mutate supabase/migrations/20261021131322_member_names_first_and_initial.sql | p.user_id, public.display_name_for_viewer(p.full_name, p.user_id) AS full_name, p.avatar_url | p.user_id, p.full_name, p.avatar_url
  * @mutate supabase/migrations/20261021131322_member_names_first_and_initial.sql | CROSS JOIN LATERAL (SELECT public.display_name_for_viewer(p.full_name, p.user_id) AS name) d | CROSS JOIN LATERAL (SELECT p.full_name AS name) d
- * @mutate supabase/migrations/20261021131322_member_names_first_and_initial.sql | SELECT q.id, q.quoter_id, public.display_name_for_viewer(p.full_name, q.quoter_id)::text, p.avatar_url::text, | SELECT q.id, q.quoter_id, p.full_name::text, p.avatar_url::text,
+ * @mutate supabase/migrations/20261103041633_quote_not_found_is_404.sql | SELECT q.id, q.quoter_id, public.display_name_for_viewer(p.full_name, q.quoter_id)::text, p.avatar_url::text, | SELECT q.id, q.quoter_id, p.full_name::text, p.avatar_url::text,
  * @mutate supabase/migrations/20261021131322_member_names_first_and_initial.sql |            ELSE public.member_display_name(p_full_name, NULL) |            ELSE p_full_name
  * @mutate supabase/migrations/20261021131322_member_names_first_and_initial.sql | REVOKE ALL ON FUNCTION public.display_name_for_viewer(text, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.display_name_for_viewer(text, uuid) FROM PUBLIC;
  */
@@ -67,6 +67,12 @@ const MASKED_READERS = ["get_safe_profiles", "search_profiles_by_name", "get_my_
 /** The first-name readers / builders: each takes the first word of member_display_name. */
 const FIRST_NAME_READERS = ["helpr_task_view", "nudge_confirm", "record_backout_notice", "notify_message_recipient"];
 /** A first-name reader restated verbatim by a later migration for another reason (its name line unchanged). EXACT. */
+/** Member-facing readers restated after THIS with the name read verbatim. name -> the migration that runs. */
+const MASKED_RESTATED_LATER: Record<string, string> = {
+  // Q2390 packet 2: only the not-found ERRCODE changed (P0002 -> PT404); the name read is verbatim.
+  get_quotes_for_request: "20261103041633_quote_not_found_is_404.sql",
+};
+
 const RESTATED_LATER: Record<string, string> = {
   // Whole-dollar delivery take-home (owner 2026-10-21); only take_home_cents changed.
   // Audit 1c #1/#4 (2026-10-29): handed_over_at and problem_open added; the name read is verbatim.
@@ -284,8 +290,9 @@ describe("members never see another member's last name in a response", () => {
   });
 
   it("the member-facing readers return display_name_for_viewer, the first-name readers member_display_name", () => {
+    expect(Object.keys(MASKED_RESTATED_LATER).every((n) => MASKED_READERS.includes(n))).toBe(true);
     for (const name of MASKED_READERS) {
-      expect(defs.get(name)!.file, name).toBe(THIS);
+      expect(defs.get(name)!.file, name).toBe(MASKED_RESTATED_LATER[name] ?? THIS);
       expect(bodyOf(defs.get(name)!.stmt), name).toMatch(/\bpublic\.display_name_for_viewer\(\s*\w+\.full_name\s*,/);
     }
     expect(Object.keys(RESTATED_LATER).every((n) => FIRST_NAME_READERS.includes(n))).toBe(true);

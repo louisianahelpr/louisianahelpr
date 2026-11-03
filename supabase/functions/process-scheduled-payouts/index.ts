@@ -9,7 +9,7 @@ import { readHelperFeePercentStrict, jobHelprCommissionDollars, DEFAULT_TIER_FEE
 import { flatFeePercentOf, isFlatFeeJob, isGiveawayFixedPayJob } from "../_shared/helprFlatFee.ts";
 import { isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import { actualOrEstimatedFeeCents, actualStripeFeeCents, netUrgentFeeDollars, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
-import { crewFeeShareReturnCents, taxOnKeptCents } from "../_shared/refundAmount.ts";
+import { automaticTaxCentsFor, crewFeeShareReturnCents, taxOnKeptCents } from "../_shared/refundAmount.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatExactDollars, formatPayoutDollars, isDefiniteStripeRefusal, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { helprFaultFeeCapCents, helprFaultFeeDeductedClause, releaseClaimAndRestoreFaultFee, restoreHelprFaultFee, resumedClaimHelprFaultFee, stampClaimHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
@@ -1569,7 +1569,10 @@ serve(async (req) => {
                 console.warn(`PI ${paymentIntentId} had no usable amount_received; falling back to amount (${captured.cents}c).`);
               }
               capturedCents = captured.cents;
-              capturedTaxCents = Math.min(captured.cents, jobSiteTaxOnIntent(pi as { metadata?: Record<string, string> | null }));
+              // Q1728 follow-up: a legacy / fallback automatic_tax charge carries no job_tax_cents;
+              // its Stripe Tax figure is the state's money too, so it is no payout headroom either.
+              const siteTaxCents = jobSiteTaxOnIntent(pi as { metadata?: Record<string, string> | null });
+              capturedTaxCents = Math.min(captured.cents, siteTaxCents > 0 ? siteTaxCents : await automaticTaxCentsFor(stripe, pi));
               stripeFeeCents = actualOrEstimatedFeeCents(pi, captured.cents);
               stripeFeeActual = actualStripeFeeCents(pi) !== null;
             }

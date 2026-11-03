@@ -179,7 +179,9 @@ function srcFiles() {
     const d = stack.pop();
     for (const e of fs.readdirSync(d, { withFileTypes: true })) {
       const p = path.join(d, e.name);
-      if (e.isDirectory()) stack.push(p);
+      // vacuityGate.test.ts plants and deletes src/test/fixtures/vacuitySelfTest-<pid>-<id>/ while the suite runs;
+      // reading it here races that delete (ENOENT in vacuityMountDepth, land 11-03). It is never app code.
+      if (e.isDirectory()) { if (!e.name.startsWith("vacuitySelfTest-")) stack.push(p); }
       else if (/\.tsx?$/.test(e.name)) out.push(path.relative(REPO, p).split(path.sep).join("/"));
     }
   }

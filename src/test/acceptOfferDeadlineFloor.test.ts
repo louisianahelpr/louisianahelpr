@@ -23,7 +23,7 @@
  * @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql | now() + interval '48 hours'), now() + interval '55 minutes'), | now() + interval '48 hours'), now() - interval '55 minutes'),
  * @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql | IF NEW.response_deadline IS DISTINCT FROM OLD.response_deadline THEN | IF false THEN
  * @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql | IF NEW.response_deadline IS DISTINCT FROM OLD.response_deadline THEN | IF NEW.response_deadline IS NOT NULL AND NEW.response_deadline IS DISTINCT FROM OLD.response_deadline THEN
- * @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | now() + interval '48 hours'), now() + interval '55 minutes'), v_cutoff); | now() + interval '48 hours'), now()), v_cutoff);
+ * @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql | now() + interval '48 hours'), now() + interval '55 minutes'), v_cutoff); | now() + interval '48 hours'), now()), v_cutoff);
  */
 import { describe, expect, it } from "vitest";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

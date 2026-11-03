@@ -13,7 +13,7 @@
  * definitions, so a later restatement cannot drop a layer silently.
  *
  * @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |                               - (SELECT count(*)::int FROM public.crew_block_fees b WHERE b.job_id = j.id)) |                               )
- * @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |      AND NOT EXISTS (SELECT 1 FROM public.crew_block_fees b WHERE b.job_id = v_job_id AND b.slot_no = s); |      AND true;
+ * @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql |      AND NOT EXISTS (SELECT 1 FROM public.crew_block_fees b WHERE b.job_id = v_job_id AND b.slot_no = s); |      AND true;
  * @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |         ON CONFLICT (job_id, slot_no) DO NOTHING; |         ;
  * @mutate supabase/migrations/20261103014109_crew_share_held_reason.sql |   v_out := v_out \|\| jsonb_build_object('crew_block_fees', |   v_out := v_out \|\| jsonb_build_object('crew_block_fees_x',
  * @mutate supabase/migrations/20261031000945_guests_get_no_poster_id_or_street.sql | - (SELECT count(*)::integer AS count FROM crew_block_fees b WHERE b.job_id = jobs.id)) ELSE 0 END) > 0)) | ) ELSE 0 END) > 0))
@@ -68,7 +68,8 @@ describe("a crew block fee is a ledger row and its spot stays closed (Q1390)", (
   it("every spot count treats a closed spot as taken, and no hire reuses its slot", () => {
     expect(EFFECTIVE.get("crew_spots_open")?.file).toBe(THIS);
     expect(body("crew_spots_open")).toMatch(/- \(SELECT count\(\*\)::int FROM public\.crew_block_fees b WHERE b\.job_id = j\.id\)\)/);
-    expect(EFFECTIVE.get("accept_group_application")?.file).toBe(THIS);
+    // Q1919 (20261103025348_crew_seat_takes_helpr_schedule_lock.sql) restates accept_group_application with the Helpr schedule lock; the closed-spot rules ride along.
+    expect(EFFECTIVE.get("accept_group_application")?.file).toBe("20261103025348_crew_seat_takes_helpr_schedule_lock.sql");
     const a = body("accept_group_application");
     expect(a).toMatch(/v_current := v_current \+ \(SELECT count\(\*\)::int FROM public\.crew_block_fees b WHERE b\.job_id = v_job_id\);\s+IF v_current >= v_needed THEN\s+RAISE EXCEPTION 'roster_full';/);
     expect(a).toMatch(/AND NOT EXISTS \(SELECT 1 FROM public\.crew_block_fees b WHERE b\.job_id = v_job_id AND b\.slot_no = s\);/);

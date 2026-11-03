@@ -192,6 +192,10 @@ CREATE TABLE public.shipments (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), de
 CREATE TABLE public.declutter_payouts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid UNIQUE, seller_id uuid,
   items_cents integer, debt_cents integer, amount_cents integer, status text, stripe_transfer_id text, attempts integer NOT NULL DEFAULT 0);
 CREATE TABLE public.payout_send_marks (payout_kind text, payout_id uuid);
+-- 20261101230509 (manager mode phase 2): the newest declutter_payout_unsent also checks the manager's share has
+-- not started to go (columns as that migration creates them).
+CREATE TABLE public.declutter_manager_payouts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid UNIQUE,
+  status text, stripe_transfer_id text, attempts integer NOT NULL DEFAULT 0);
 -- 20261031204932: the newest declutter_payout_unsent also reads an admin's manual release from the audit log.
 CREATE TABLE IF NOT EXISTS public.admin_audit_log (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), admin_id uuid, action text,
   target_id text, target_type text, details jsonb, created_at timestamptz NOT NULL DEFAULT now());

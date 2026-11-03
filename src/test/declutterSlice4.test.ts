@@ -26,7 +26,7 @@
  * @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'declutter_order_' \|\| o.id::text, o.items_cents + v_rate - v_share); |   v_debt := 0;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' |                       WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_card_fee'
  * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql |     v_kept := v_order.premium_cents; |     v_kept := 1;
- * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |                  ELSE b.slot_start + interval '15 minutes' END; |                  ELSE b.slot_start END;
+ * @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql |                  ELSE b.slot_start + interval '15 minutes' END; |                  ELSE b.slot_start END;
  * @mutate supabase/migrations/20261102040000_declutter_review_report.sql |     SELECT t.user_id, dr.stars::integer, false | SELECT t.user_id, dr.stars::integer, true
  * @mutate supabase/migrations/20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql |   v_done := public.declutter_complete_handover(o.id, 'porch'); |   v_done := '{}'::jsonb;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | REVOKE ALL ON FUNCTION public.declutter_complete_handover(uuid, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_complete_handover(uuid, text) FROM PUBLIC, anon;

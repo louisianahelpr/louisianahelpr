@@ -5,9 +5,9 @@
  * audit row but sent no notice. Reads the NEWEST definition, so a later
  * restatement that drops either notice turns this red.
  *
- * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql | 'Your listing is live', | 'Listing updated',
- * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql | 'Your listing needs a change', | 'Listing updated',
- * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql | '" wasn''t approved: ' \|\| v_note, | '" wasn''t approved.',
+ * @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql | 'Your listing is live', | 'Listing updated',
+ * @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql | 'Your listing needs a change', | 'Listing updated',
+ * @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql | '" wasn''t approved: ' \|\| v_note, | '" wasn''t approved.',
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";

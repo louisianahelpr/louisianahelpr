@@ -223,4 +223,4 @@ describe("Schedule card — Add to calendar sits in the meta row, no extra row",
 // is the emitted CSS: swap the explicit tracks for a plain two-column grid and
 // the compiled `grid-template-columns` no longer names the 320-480px calendar
 // track, even though the rendered markup is identical.
-// @mutate src/components/profile/ScheduleTab.tsx | min-[1024px]:grid-cols-[clamp(320px,42%,480px)_minmax(0,1fr)] | min-[1024px]:grid-cols-2
+// @mutate src/components/profile/scheduleLayout.ts | min-[1024px]:grid-cols-[clamp(320px,42%,480px)_minmax(0,1fr)] | min-[1024px]:grid-cols-2

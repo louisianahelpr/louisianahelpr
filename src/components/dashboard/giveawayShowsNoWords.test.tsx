@@ -15,7 +15,7 @@
  * @mutate src/components/messages/chatView/DealCard.tsx | {!isGiveawayFixedPayJob(job) && <span className="sr-only">Your pay </span>}${formatPriceFloor(net)} | <span className="sr-only">Your pay </span>${formatPriceFloor(net)}
  * @mutate src/pages/tips/TipMoment.tsx | isGiveawayFixedPayJob(job) ? "Job" : "Job, you take home" | "Job, you take home"
  * @mutate src/components/dashboard/CompactJobCard.tsx | isNet && !isGiveawayFixedPayJob(job) ? "you earn " | isNet ? "you earn "
- * @mutate src/components/profile/ScheduleTab.tsx |   const amountTitle = isPosted ? "Your budget for this job" : fixedPay ? undefined : |   const amountTitle = isPosted ? "Your budget for this job" :
+ * @mutate src/components/profile/schedule/ScheduleCard.tsx |   const amountTitle = isPosted ? "Your budget for this job" : fixedPay ? undefined : |   const amountTitle = isPosted ? "Your budget for this job" :
  */
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -91,7 +91,7 @@ describe("the giveaway shows $50 with no words; every other job keeps them", () 
     expect(tip).toContain('isGiveawayFixedPayJob(job) ? "Job" : "Job, you take home"');
     const compact = blankComments(readFileSync(resolve(root, "src/components/dashboard/CompactJobCard.tsx"), "utf8"));
     expect(compact).toContain('isNet && !isGiveawayFixedPayJob(job) ? "you earn "');
-    const schedule = blankComments(readFileSync(resolve(root, "src/components/profile/ScheduleTab.tsx"), "utf8"));
+    const schedule = blankComments(readFileSync(resolve(root, "src/components/profile/schedule/ScheduleCard.tsx"), "utf8"));
     expect(schedule).toContain('const amountTitle = isPosted ? "Your budget for this job" : fixedPay ? undefined :');
   });
 });

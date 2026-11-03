@@ -1469,7 +1469,7 @@ describe("card hold at posting (Q2399)", () => {
       expect(refundAmounts()[0]).toBeLessThan(captured);
     });
 
-    // Lead PASS 11-03: a real hire clears the mark (20261103110232 trigger on jobs.helper_confirmed_at and a crew
+    // Lead PASS 2026-11-03: a real hire clears the mark (20261103110232 trigger on jobs.helper_confirmed_at and a crew
     // seat's, proven in src/test/pglite/clearCapturedNotHiredOnHire.pglite.mjs), so a Helpr hired on that money and
     // then removed leaves the hold unmarked: the cancel keeps the card fee like any other.
     it("hired, then removed before the close: the hire cleared the mark, so the card fee is kept", async () => {

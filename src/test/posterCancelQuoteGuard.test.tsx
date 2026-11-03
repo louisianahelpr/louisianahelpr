@@ -16,7 +16,7 @@
 // @mutate src/components/CancellationDialog.tsx |         p_expected_fee_cents: expectedFeeCents, |         p_expected_fee_cents: undefined,
 // @mutate src/components/CancellationDialog.tsx |   const backToYouCents = typeof quote?.back_to_you_cents === "number" ? quote.back_to_you_cents : null; |   const backToYouCents = Math.round(jobBudget * 100) - (typeof quote?.fee_cents === "number" ? quote.fee_cents : 0);
 // @mutate src/components/CancellationDialog.tsx |         setQuoteNonce((n) => n + 1); |
-// @mutate src/components/CancellationDialog.tsx |       if (error && rpcErrorCode("poster_cancel_job", error) === "quote_changed") { |       if (error) await supabase.rpc("poster_cancel_job", { p_job_id: jobId, p_reason: reason.trim() \|\| undefined });\n      if (error && rpcErrorCode("poster_cancel_job", error) === "quote_changed") {
+// @mutate src/components/CancellationDialog.tsx |       if (error && (await rpcErrorCode("poster_cancel_job", error)) === "quote_changed") { |       if (error) await supabase.rpc("poster_cancel_job", { p_job_id: jobId, p_reason: reason.trim() \|\| undefined });\n      if (error && (await rpcErrorCode("poster_cancel_job", error)) === "quote_changed") {
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";

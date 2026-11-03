@@ -15308,6 +15308,13 @@ export type Database = {
         Args: { p_audience: string; p_key: string }
         Returns: string
       }
+      admin_payout_batch_money_modes: {
+        Args: never
+        Returns: {
+          helper_id: string
+          money_mode: string
+        }[]
+      }
       admin_payout_release: {
         Args: { p_confirm_no_transfer: boolean; p_id: string; p_kind: string; p_note: string }
         Returns: Json

@@ -380,7 +380,7 @@ describe("AdminPayoutBatches — the bulk payout run", () => {
  * The three tiles count one set (Q237, 2026-10-17): "Helprs awaiting" counted
  * every batch, so a lone test batch read "1 · 0 jobs · $0".
  *
- * @mutate src/components/admin/AdminPayoutBatches.tsx | const realReadyBatches = readyBatches.filter((b) => !b.is_seed); | const realReadyBatches = readyBatches;
+ * @mutate src/components/admin/AdminPayoutBatches.tsx | const realReadyBatches = readyBatches.filter((b) => !isTestMoney(b)); | const realReadyBatches = readyBatches;
  * @mutate src/components/admin/AdminPayoutBatches.tsx | const grandTotal = realReadyBatches.reduce( | const grandTotal = readyBatches.reduce(
  * @mutate src/components/admin/AdminPayoutBatches.tsx | const totalJobs = realReadyBatches.reduce( | const totalJobs = readyBatches.reduce(
  * @mutate src/components/admin/AdminPayoutBatches.tsx | const helprsAwaiting = realReadyBatches.length; | const helprsAwaiting = batches.length;
@@ -407,6 +407,25 @@ describe("AdminPayoutBatches: a test account's batch is not real money", () => {
     expect(screen.queryByText("Test Helpr")).toBeNull();
     expect(label.nextElementSibling?.textContent).toBe("$310.50");
     expect(screen.getByText("Total jobs").nextElementSibling?.textContent).toBe("2");
+    expect(screen.getByText("Helprs awaiting").nextElementSibling?.textContent).toBe("1");
+  });
+
+  /**
+   * Q2088: the tiles count what release-payout pays LIVE. A listed (non-seed) Helpr's batch whose every job pays in
+   * test mode (admin_payout_batch_money_modes says 'test') is not real money, so no tile counts it.
+   */
+  it("Q2088: a listed batch that pays in test mode counts in no money tile", async () => {
+    rpcMock.mockImplementation(async (fn: string) =>
+      fn === "get_payout_batches"
+        ? { data: [batch, { ...batch, helper_id: "helper-enrolled", helper_name: "Enrolled Helpr", total_payout: 999 }], error: null }
+        : fn === "admin_payout_batch_money_modes"
+          ? { data: [{ helper_id: HELPER_ID, money_mode: "live" }, { helper_id: "helper-enrolled", money_mode: "test" }], error: null }
+          : { data: [{ job_id: JOB_ID }], error: null },
+    );
+    renderScreen();
+    const label = await screen.findByText("Total queued");
+    await waitFor(() => expect(screen.getAllByRole("checkbox", { name: /for bulk payout/i })).toHaveLength(2));
+    expect(label.nextElementSibling?.textContent).toBe("$310.50");
     expect(screen.getByText("Helprs awaiting").nextElementSibling?.textContent).toBe("1");
   });
 

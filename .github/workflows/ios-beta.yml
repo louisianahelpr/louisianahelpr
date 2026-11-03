@@ -26,6 +26,14 @@ on:
         type: boolean
         required: false
         default: false
+      waive_checks:
+        description: "App Store build: release-gate checks the OWNER waived for this version (scripts/release-gate.mjs OWNER_WAIVERS; refused for any other check or version). 1.0.4: owner pop-up 11-03 ~11:50 AM."
+        type: choice
+        required: false
+        default: none
+        options:
+          - none
+          - press-every-control,a11y-prod
   # schedule:
   #   # 08:00 UTC ≈ 03:00 America/Chicago — keeps TestFlight no more than a
   #   # day behind main; the `check` job no-ops when main hasn't changed.
@@ -66,6 +74,9 @@ jobs:
         #   node scripts/release-gate.mjs <sha> --dispatch
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Owner waivers only (OWNER_WAIVERS in the script, scoped to the
+          # sha's MARKETING_VERSION); every other check stays enforced.
+          LH_RELEASE_GATE_WAIVE: "${{ inputs.waive_checks != 'none' && inputs.waive_checks || '' }}"
         run: node scripts/release-gate.mjs "$GITHUB_SHA"
       - name: Decide
         id: decide
@@ -120,6 +131,9 @@ jobs:
       # Fastfile release_gate!'s only bypass, set only by the TestFlight-only
       # input (owner 11-02 ~8:10 AM pop-up); empty otherwise, so the gate runs.
       LH_RELEASE_GATE_SKIP_REASON: "${{ inputs.skip_gate_testflight_only && 'owner 11-02 ~8:10 AM pop-up - skip checks for TestFlight only (App Store submit stays gated)' || '' }}"
+      # Same owner waiver for the lane's own release_gate! (it runs the script,
+      # which reads this and refuses anything not in OWNER_WAIVERS).
+      LH_RELEASE_GATE_WAIVE: "${{ inputs.waive_checks != 'none' && inputs.waive_checks || '' }}"
 
       FASTLANE_HIDE_CHANGELOG: "1"
       FASTLANE_SKIP_UPDATE_CHECK: "1"

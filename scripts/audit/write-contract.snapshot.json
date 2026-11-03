@@ -1,7 +1,7 @@
 {
  "appliedMigrations": {
-  "count": 1606,
-  "latest": "20261102092917",
+  "count": 1731,
+  "latest": "20261103112413",
   "versions": [
    "20260311000404",
    "20260311001514",
@@ -1586,6 +1586,7 @@
    "20261101175510",
    "20261101175628",
    "20261101180708",
+   "20261101181005",
    "20261101181129",
    "20261101181403",
    "20261101183017",
@@ -1596,19 +1597,143 @@
    "20261101200035",
    "20261101200349",
    "20261101200929",
+   "20261101201500",
    "20261101210500",
+   "20261101220810",
+   "20261101221604",
+   "20261101230509",
    "20261101230519",
    "20261101231015",
+   "20261101233256",
+   "20261101234732",
+   "20261101235806",
    "20261102002011",
    "20261102002217",
    "20261102005411",
    "20261102011547",
+   "20261102013630",
    "20261102013814",
    "20261102015348",
    "20261102015451",
+   "20261102022901",
+   "20261102023246",
+   "20261102023411",
+   "20261102025148",
+   "20261102025235",
    "20261102030000",
+   "20261102030012",
+   "20261102030530",
+   "20261102031000",
+   "20261102031228",
+   "20261102032514",
+   "20261102033237",
+   "20261102033426",
+   "20261102033730",
+   "20261102034632",
+   "20261102035139",
+   "20261102035736",
+   "20261102040000",
+   "20261102040952",
+   "20261102041000",
+   "20261102043018",
+   "20261102043115",
+   "20261102043754",
+   "20261102045035",
+   "20261102045334",
+   "20261102045504",
+   "20261102045553",
+   "20261102050858",
+   "20261102051521",
+   "20261102052443",
+   "20261102054153",
+   "20261102054411",
+   "20261102054848",
+   "20261102055222",
+   "20261102055653",
+   "20261102060324",
+   "20261102061022",
+   "20261102061755",
+   "20261102063312",
+   "20261102063343",
+   "20261102064215",
+   "20261102065446",
+   "20261102070238",
+   "20261102070622",
+   "20261102070659",
+   "20261102071109",
+   "20261102071213",
+   "20261102071347",
+   "20261102071958",
+   "20261102072106",
+   "20261102074244",
+   "20261102074248",
+   "20261102074317",
+   "20261102080407",
+   "20261102080936",
+   "20261102081647",
    "20261102082018",
-   "20261102092917"
+   "20261102084156",
+   "20261102084222",
+   "20261102092917",
+   "20261102095838",
+   "20261102100421",
+   "20261102102402",
+   "20261102103429",
+   "20261102103524",
+   "20261102110120",
+   "20261102113853",
+   "20261102124421",
+   "20261102131745",
+   "20261102150413",
+   "20261102152453",
+   "20261102161715",
+   "20261102161911",
+   "20261102162029",
+   "20261102225216",
+   "20261102230059",
+   "20261102230737",
+   "20261102235342",
+   "20261103010231",
+   "20261103011045",
+   "20261103014109",
+   "20261103021753",
+   "20261103022806",
+   "20261103023713",
+   "20261103025348",
+   "20261103032329",
+   "20261103032330",
+   "20261103040713",
+   "20261103041633",
+   "20261103042402",
+   "20261103043002",
+   "20261103043845",
+   "20261103044329",
+   "20261103044627",
+   "20261103044956",
+   "20261103050349",
+   "20261103052255",
+   "20261103053759",
+   "20261103055505",
+   "20261103060314",
+   "20261103061500",
+   "20261103062000",
+   "20261103071058",
+   "20261103071432",
+   "20261103072510",
+   "20261103073509",
+   "20261103075222",
+   "20261103082037",
+   "20261103083559",
+   "20261103084609",
+   "20261103085435",
+   "20261103091013",
+   "20261103095253",
+   "20261103100800",
+   "20261103102100",
+   "20261103103000",
+   "20261103110232",
+   "20261103111244",
+   "20261103112413"
   ]
  },
  "functions": {
@@ -1915,6 +2040,15 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 3
+   }
+  ],
+  "admin_payout_batch_money_modes": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "admin_payout_release": [
@@ -2508,6 +2642,19 @@
     "nargs": 1
    }
   ],
+  "bill_helpr_card_fee_debt": [
+   {
+    "anon": false,
+    "args": [
+     "p_visit_payment_id",
+     "p_card_fee_cents",
+     "p_refund_ref"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
   "bill_helpr_fault_card_fee": [
    {
     "anon": false,
@@ -2629,6 +2776,17 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 2
+   }
+  ],
+  "cancel_fee_payee_frozen": [
+   {
+    "anon": false,
+    "args": [
+     "p_user"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "cancel_job_after_failed_bank_payment": [
@@ -2937,6 +3095,19 @@
     "nargs": 3
    }
   ],
+  "clamp_helpr_fault_fee": [
+   {
+    "anon": false,
+    "args": [
+     "p_helper_id",
+     "p_job_id",
+     "p_cents"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
   "cleanup_observability_tables": [
    {
     "anon": false,
@@ -2964,6 +3135,15 @@
     "nargs": 0
    }
   ],
+  "clear_captured_not_hired_on_hire": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "clear_job_accept_pending": [
    {
     "anon": false,
@@ -2978,6 +3158,24 @@
     "anon": false,
     "args": [],
     "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "clear_promotions_undo_on_consent_change": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "clear_promotions_undo_on_promotions_change": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
     "nargdefaults": 0,
     "nargs": 0
    }
@@ -3102,6 +3300,17 @@
     "anon": false,
     "args": [
      "p_continue_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "confirm_sms_code": [
+   {
+    "anon": false,
+    "args": [
+     "p_code"
     ],
     "authenticated": true,
     "nargdefaults": 0,
@@ -3486,6 +3695,17 @@
     "nargs": 3
    }
   ],
+  "declutter_admin_fee_debts": [
+   {
+    "anon": false,
+    "args": [
+     "p_user"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "declutter_admin_open_problems": [
    {
     "anon": false,
@@ -3556,6 +3776,19 @@
     "nargs": 4
    }
   ],
+  "declutter_admin_remove_review": [
+   {
+    "anon": false,
+    "args": [
+     "p_review_id",
+     "p_note",
+     "p_report_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
   "declutter_admin_reported_items": [
    {
     "anon": false,
@@ -3572,6 +3805,17 @@
     "anon": false,
     "args": [
      "p_question_ids"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_admin_reported_reviews": [
+   {
+    "anon": false,
+    "args": [
+     "p_review_ids"
     ],
     "authenticated": true,
     "nargdefaults": 0,
@@ -3628,6 +3872,18 @@
     "nargs": 3
    }
   ],
+  "declutter_admin_waive_fee_debt": [
+   {
+    "anon": false,
+    "args": [
+     "p_debt_id",
+     "p_note"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
   "declutter_alert_overdue_checks": [
    {
     "anon": false,
@@ -3680,11 +3936,13 @@
     "args": [
      "p_request_id",
      "p_answer",
-     "p_offer_cents"
+     "p_offer_cents",
+     "p_note",
+     "p_photo_paths"
     ],
     "authenticated": true,
-    "nargdefaults": 0,
-    "nargs": 3
+    "nargdefaults": 2,
+    "nargs": 5
    }
   ],
   "declutter_answer_refund_offer": [
@@ -4075,6 +4333,19 @@
     "nargs": 1
    }
   ],
+  "declutter_card_fee_left": [
+   {
+    "anon": false,
+    "args": [
+     "p_card_fee_cents",
+     "p_total_cents",
+     "p_reserved_cents"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 3
+   }
+  ],
   "declutter_cart_item_keep_title": [
    {
     "anon": false,
@@ -4373,6 +4644,15 @@
    }
   ],
   "declutter_delivery_dropoffs_seed": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "declutter_delivery_gave_up_check": [
    {
     "anon": false,
     "args": [],
@@ -4846,6 +5126,15 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 11
+   }
+  ],
+  "declutter_fee_debt_source": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "declutter_first_screen": [
@@ -5584,6 +5873,15 @@
     "nargs": 2
    }
   ],
+  "declutter_lock_manager_share": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "declutter_lock_order": [
    {
     "anon": false,
@@ -5605,6 +5903,185 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 2
+   }
+  ],
+  "declutter_manage": [
+   {
+    "anon": false,
+    "args": [
+     "p_seller",
+     "p_action",
+     "p_args"
+    ],
+    "authenticated": true,
+    "nargdefaults": 1,
+    "nargs": 3
+   }
+  ],
+  "declutter_managed_overview": [
+   {
+    "anon": false,
+    "args": [
+     "p_seller"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_manager_approve": [
+   {
+    "anon": false,
+    "args": [
+     "p_item_id",
+     "p_bought_for_personal_use",
+     "p_not_in_the_business",
+     "p_not_a_frequent_seller",
+     "p_keeps_item_until_handover"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 5
+   }
+  ],
+  "declutter_manager_end": [
+   {
+    "anon": false,
+    "args": [
+     "p_grant_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_manager_first_name": [
+   {
+    "anon": false,
+    "args": [
+     "p_user"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_manager_grant_for": [
+   {
+    "anon": false,
+    "args": [
+     "p_seller",
+     "p_perm"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "declutter_manager_message_labels": [
+   {
+    "anon": true,
+    "args": [
+     "p_kind",
+     "p_ids"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "declutter_manager_offer": [
+   {
+    "anon": false,
+    "args": [
+     "p_manager",
+     "p_share_type",
+     "p_share_value",
+     "p_can_list",
+     "p_can_prices",
+     "p_can_offers",
+     "p_can_messages",
+     "p_can_pickups"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 8
+   }
+  ],
+  "declutter_manager_payout_executed": [
+   {
+    "anon": false,
+    "args": [
+     "p_payout_id",
+     "p_transfer_id",
+     "p_succeeded",
+     "p_error"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 4
+   }
+  ],
+  "declutter_manager_payouts_due": [
+   {
+    "anon": false,
+    "args": [
+     "p_limit"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_manager_respond": [
+   {
+    "anon": false,
+    "args": [
+     "p_grant_id",
+     "p_accept"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "declutter_manager_send_back": [
+   {
+    "anon": false,
+    "args": [
+     "p_item_id",
+     "p_note"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "declutter_manager_set_permissions": [
+   {
+    "anon": false,
+    "args": [
+     "p_grant_id",
+     "p_can_list",
+     "p_can_prices",
+     "p_can_offers",
+     "p_can_messages",
+     "p_can_pickups"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 6
+   }
+  ],
+  "declutter_manager_share_cents": [
+   {
+    "anon": false,
+    "args": [
+     "p_order_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "declutter_map_pins": [
@@ -5629,6 +6106,17 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 5
+   }
+  ],
+  "declutter_mark_packed": [
+   {
+    "anon": false,
+    "args": [
+     "p_order_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "declutter_mark_sold_elsewhere": [
@@ -5796,6 +6284,15 @@
     "nargs": 0
    }
   ],
+  "declutter_my_block_partners": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "declutter_my_cart": [
    {
     "anon": false,
@@ -5857,6 +6354,15 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 1
+   }
+  ],
+  "declutter_my_manager_grants": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "declutter_my_meetup_spots": [
@@ -5953,6 +6459,17 @@
     "nargs": 0
    }
   ],
+  "declutter_my_refunded_cents": [
+   {
+    "anon": false,
+    "args": [
+     "p_order_ids"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "declutter_my_reply_listings": [
    {
     "anon": false,
@@ -5971,6 +6488,28 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 0
+   }
+  ],
+  "declutter_my_ship_label": [
+   {
+    "anon": false,
+    "args": [
+     "p_order_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_my_ship_tracking": [
+   {
+    "anon": false,
+    "args": [
+     "p_order_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "declutter_my_wanted": [
@@ -6069,6 +6608,17 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 3
+   }
+  ],
+  "declutter_notice_ref": [
+   {
+    "anon": false,
+    "args": [
+     "p_ref"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "declutter_notice_type": [
@@ -6345,6 +6895,24 @@
     "nargs": 0
    }
   ],
+  "declutter_orders_ship_claim": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "declutter_orders_ship_frozen": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "declutter_paid_next_step": [
    {
     "anon": false,
@@ -6446,6 +7014,17 @@
      "p_limit"
     ],
     "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_photo_object_attached": [
+   {
+    "anon": false,
+    "args": [
+     "p_name"
+    ],
+    "authenticated": true,
     "nargdefaults": 0,
     "nargs": 1
    }
@@ -6720,6 +7299,15 @@
     "authenticated": true,
     "nargdefaults": 1,
     "nargs": 3
+   }
+  ],
+  "declutter_problem_refund_side": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "declutter_problem_window_open": [
@@ -7037,6 +7625,15 @@
     "nargs": 3
    }
   ],
+  "declutter_refund_seller_side_to_problem": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "declutter_refund_set_mode": [
    {
     "anon": false,
@@ -7261,6 +7858,27 @@
     "nargs": 3
    }
   ],
+  "declutter_restore_retained_strikes": [
+   {
+    "anon": false,
+    "args": [
+     "p_user_id",
+     "p_identity_sha256"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
+  "declutter_retain_strikes_on_delete": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "declutter_retire_order": [
    {
     "anon": false,
@@ -7272,6 +7890,15 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 3
+   }
+  ],
+  "declutter_retire_ref_notices": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
    }
   ],
   "declutter_return_backstop_at": [
@@ -7446,6 +8073,17 @@
     "nargs": 1
    }
   ],
+  "declutter_seller_can_ship": [
+   {
+    "anon": false,
+    "args": [
+     "p_seller_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "declutter_seller_cancel_delivery": [
    {
     "anon": false,
@@ -7549,6 +8187,15 @@
    }
   ],
   "declutter_seller_delivery_seed": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "declutter_seller_fault_sweep": [
    {
     "anon": false,
     "args": [],
@@ -8087,6 +8734,117 @@
     "nargs": 2
    }
   ],
+  "declutter_ship_by": [
+   {
+    "anon": false,
+    "args": [
+     "p_paid"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_ship_debt_blocks_sale": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "declutter_ship_hold_refund_released": [
+   {
+    "anon": false,
+    "args": [
+     "p_payment_intent_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_ship_hold_released": [
+   {
+    "anon": false,
+    "args": [
+     "p_order_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_ship_no_fault_label": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "declutter_ship_refund_after_void": [
+   {
+    "anon": false,
+    "args": [
+     "p_order_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_ship_setup_fee_at_capture": [
+   {
+    "anon": false,
+    "args": [
+     "p_order_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "declutter_ship_sweep": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "declutter_ship_void_rejected_debt": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "declutter_ship_voided_refund": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "declutter_shipping_reserved_cents": [
+   {
+    "anon": false,
+    "args": [
+     "p_order_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "declutter_slot_in_windows": [
    {
     "anon": false,
@@ -8106,11 +8864,12 @@
      "p_seller_id",
      "p_handover",
      "p_slot_start",
-     "p_handoff"
+     "p_handoff",
+     "p_quote_id"
     ],
     "authenticated": true,
-    "nargdefaults": 2,
-    "nargs": 4
+    "nargdefaults": 3,
+    "nargs": 5
    }
   ],
   "declutter_start_no_show_answer": [
@@ -11507,6 +12266,18 @@
     "nargs": 1
    }
   ],
+  "is_job_labor_taxable": [
+   {
+    "anon": false,
+    "args": [
+     "_category",
+     "_tax_kind"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 2
+   }
+  ],
   "is_late_cancellation": [
    {
     "anon": true,
@@ -11872,6 +12643,15 @@
    }
   ],
   "jobs_cancel_retires_direct_offer": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
+  "jobs_cancel_tells_offered_helpr": [
    {
     "anon": false,
     "args": [],
@@ -13371,6 +14151,28 @@
     "authenticated": false,
     "nargdefaults": 0,
     "nargs": 0
+   }
+  ],
+  "promotions_resubscribe": [
+   {
+    "anon": false,
+    "args": [
+     "p_user_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
+  "promotions_unsubscribe": [
+   {
+    "anon": false,
+    "args": [
+     "p_user_id"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 1
    }
   ],
   "propose_job_continue_day": [
@@ -15277,6 +16079,20 @@
     "nargs": 1
    }
   ],
+  "replace_stripe_customer": [
+   {
+    "anon": false,
+    "args": [
+     "p_user",
+     "p_mode",
+     "p_old",
+     "p_new"
+    ],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 4
+   }
+  ],
   "report_helper_no_show": [
    {
     "anon": false,
@@ -15479,11 +16295,12 @@
     "args": [
      "p_job_id",
      "p_share_bps",
-     "p_dry_run"
+     "p_dry_run",
+     "p_restore_cents"
     ],
     "authenticated": false,
-    "nargdefaults": 2,
-    "nargs": 3
+    "nargdefaults": 3,
+    "nargs": 4
    }
   ],
   "restore_helpr_fault_fee": [
@@ -15946,6 +16763,17 @@
     "nargs": 2
    }
   ],
+  "rpc_poster_withdraw_offer": [
+   {
+    "anon": false,
+    "args": [
+     "p_job_id"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 1
+   }
+  ],
   "rpc_record_application_attempt": [
    {
     "anon": false,
@@ -16154,6 +16982,15 @@
     "nargs": 0
    }
   ],
+  "scrub_departed_member_name_from_notifications": [
+   {
+    "anon": false,
+    "args": [],
+    "authenticated": false,
+    "nargdefaults": 0,
+    "nargs": 0
+   }
+  ],
   "search_profiles_by_name": [
    {
     "anon": false,
@@ -16163,6 +17000,18 @@
     "authenticated": true,
     "nargdefaults": 0,
     "nargs": 1
+   }
+  ],
+  "section_keys_ok": [
+   {
+    "anon": false,
+    "args": [
+     "keys",
+     "max_len"
+    ],
+    "authenticated": true,
+    "nargdefaults": 0,
+    "nargs": 2
    }
   ],
   "seed_hidden_for": [
@@ -19568,7 +20417,7 @@
   },
   "applications": {
    "checks": [
-    "CHECK (((closed_reason IS NULL) OR (closed_reason = ANY (ARRAY['job_cancelled'::text, 'party_blocked'::text, 'offer_expired'::text, 'not_confirmed'::text, 'no_show'::text, 'helper_cancelled'::text]))))",
+    "CHECK (((closed_reason IS NULL) OR (closed_reason = ANY (ARRAY['job_cancelled'::text, 'party_blocked'::text, 'offer_expired'::text, 'not_confirmed'::text, 'no_show'::text, 'helper_cancelled'::text, 'offer_withdrawn'::text]))))",
     "CHECK ((stake_status = ANY (ARRAY['none'::text, 'staked'::text, 'returned'::text, 'forfeited'::text])))",
     "CHECK (((suggested_start_time IS NULL) OR (suggested_date IS NOT NULL)))",
     "CHECK (((stake_amount IS NULL) OR (stake_amount >= (0)::numeric)))"
@@ -20244,7 +21093,18 @@
     "CHECK ((status = ANY (ARRAY['pending'::text, 'paid'::text, 'failed'::text, 'reversed'::text, 'waived'::text])))",
     "CHECK (((status <> 'waived'::text) OR ((helper_amount = (0)::numeric) AND (stripe_transfer_id IS NULL))))"
    ],
-   "columnGrants": {},
+   "columnGrants": {
+    "authenticated": {
+     "SELECT": [
+      "helper_amount",
+      "helper_id",
+      "id",
+      "job_id",
+      "paid_at",
+      "status"
+     ]
+    }
+   },
    "columns": {
     "commission_percent": {
      "enum": null,
@@ -20455,6 +21315,7 @@
    "checks": [
     "CHECK ((reversed_cents >= 0))",
     "CHECK ((status = ANY (ARRAY['reversing'::text, 'reversed'::text, 'reverse_failed'::text, 'repaying'::text, 'repaid'::text, 'repay_failed'::text, 'kept'::text])))",
+    "CHECK (((stripe_mode IS NULL) OR (stripe_mode = ANY (ARRAY['live'::text, 'test'::text]))))",
     "CHECK ((transfer_amount_cents >= 0))"
    ],
    "columnGrants": {},
@@ -20544,6 +21405,13 @@
      "type": "text"
     },
     "stripe_account_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "stripe_mode": {
      "enum": null,
      "generated": false,
      "hasDefault": false,
@@ -20884,7 +21752,24 @@
     "CHECK ((share_basis_cents >= 0))",
     "CHECK ((status = ANY (ARRAY['pending'::text, 'paid'::text, 'failed'::text, 'void'::text])))"
    ],
-   "columnGrants": {},
+   "columnGrants": {
+    "authenticated": {
+     "SELECT": [
+      "committed",
+      "created_at",
+      "failed_transfer_ids",
+      "fee_percent",
+      "helper_id",
+      "id",
+      "job_id",
+      "paid_at",
+      "share_amount",
+      "share_basis_cents",
+      "status",
+      "stripe_transfer_id"
+     ]
+    }
+   },
    "columns": {
     "committed": {
      "enum": null,
@@ -20906,6 +21791,13 @@
      "hasDefault": true,
      "notNull": true,
      "type": "text[]"
+    },
+    "failure_reason": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
     },
     "fee_percent": {
      "enum": null,
@@ -20971,11 +21863,7 @@
      "type": "text"
     }
    },
-   "grants": {
-    "authenticated": [
-     "SELECT"
-    ]
-   },
+   "grants": {},
    "kind": "table",
    "policies": [
     {
@@ -22157,6 +23045,8 @@
    ],
    "rls": true,
    "triggers": [
+    "after:delete",
+    "after:update",
     "before:insert",
     "before:insert|update",
     "before:insert|update|delete"
@@ -22330,6 +23220,13 @@
      "notNull": true,
      "type": "timestamp with time zone"
     },
+    "gave_up_notified_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
     "id": {
      "enum": null,
      "generated": false,
@@ -22490,7 +23387,7 @@
   "declutter_delivery_refunds": {
    "checks": [
     "CHECK (((attempts >= 0) AND (attempts <= 100)))",
-    "CHECK ((reason = ANY (ARRAY['no_helpr'::text, 'delivery_not_done'::text])))",
+    "CHECK ((reason = ANY (ARRAY['no_helpr'::text, 'delivery_not_done'::text, 'ship_void_refunded'::text])))",
     "CHECK ((refund_cents > 0))",
     "CHECK ((status = ANY (ARRAY['pending'::text, 'succeeded'::text, 'failed'::text, 'held_for_review'::text, 'settled_by_hand'::text])))"
    ],
@@ -22511,6 +23408,13 @@
      "type": "timestamp with time zone"
     },
     "executed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "gave_up_notified_at": {
      "enum": null,
      "generated": false,
      "hasDefault": false,
@@ -24315,6 +25219,563 @@
     "before:insert|update|delete"
    ]
   },
+  "declutter_manager_actions": {
+   "checks": [],
+   "columnGrants": {},
+   "columns": {
+    "action": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "grant_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "bigint"
+    },
+    "manager_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "seller_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "target_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "declutter_manager_grants": {
+   "checks": [
+    "CHECK ((seller_id <> manager_id))",
+    "CHECK ((((share_type = 'percent'::text) AND (share_pct IS NOT NULL) AND (share_cents IS NULL)) OR ((share_type = 'flat'::text) AND (share_cents IS NOT NULL) AND (share_pct IS NULL))))",
+    "CHECK (((share_cents >= 0) AND (share_cents <= 1000000)))",
+    "CHECK (((share_pct >= 0) AND (share_pct <= 100)))",
+    "CHECK ((share_type = ANY (ARRAY['percent'::text, 'flat'::text])))",
+    "CHECK ((can_list OR can_prices OR can_offers OR can_messages OR can_pickups))",
+    "CHECK ((status = ANY (ARRAY['offered'::text, 'active'::text, 'declined'::text, 'withdrawn'::text, 'ended'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "can_list": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "can_messages": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "can_offers": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "can_pickups": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "can_prices": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "ended_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "ended_by": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "manager_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "responded_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "seller_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "share_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "integer"
+    },
+    "share_pct": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "integer"
+    },
+    "share_type": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "updated_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "declutter manager grants: the two people read",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "declutter_manager_messages": {
+   "checks": [
+    "CHECK ((kind = ANY (ARRAY['answer'::text, 'order_talk'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "grant_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "kind": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "manager_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "message_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "seller_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "declutter_manager_payouts": {
+   "checks": [
+    "CHECK ((amount_cents <= share_cents))",
+    "CHECK ((amount_cents >= 0))",
+    "CHECK (((attempts >= 0) AND (attempts <= 100)))",
+    "CHECK (((status = 'nothing_due'::text) = (amount_cents = 0)))",
+    "CHECK ((share_cents >= 0))",
+    "CHECK ((status = ANY (ARRAY['pending'::text, 'succeeded'::text, 'failed'::text, 'nothing_due'::text, 'held_for_review'::text, 'settled_by_hand'::text])))",
+    "CHECK (((stripe_transfer_id IS NULL) OR (stripe_transfer_id ~ '^tr_'::text)))",
+    "CHECK (((status <> 'succeeded'::text) OR (stripe_transfer_id IS NOT NULL)))"
+   ],
+   "columnGrants": {
+    "authenticated": {
+     "SELECT": [
+      "amount_cents",
+      "created_at",
+      "executed_at",
+      "id",
+      "manager_id",
+      "order_id",
+      "seller_id",
+      "share_cents",
+      "status"
+     ]
+    }
+   },
+   "columns": {
+    "amount_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "attempts": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "integer"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "executed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "grant_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "held_notified_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "is_seed": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "last_error": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "manager_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "next_attempt_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "order_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "review_held_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "review_reason": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "seller_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "seller_payout_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "settled_by_hand_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "integer"
+    },
+    "settled_by_hand_note": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "settled_by_hand_ref": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "share_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "stripe_transfer_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "declutter_manager_payouts_read",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "before:insert",
+    "before:insert|update|delete"
+   ]
+  },
+  "declutter_manager_submissions": {
+   "checks": [
+    "CHECK (((note IS NULL) OR (length(note) <= 500)))",
+    "CHECK ((status = ANY (ARRAY['waiting'::text, 'approved'::text, 'sent_back'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "decided_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "grant_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "item_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "manager_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "note": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "seller_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "status": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
+    },
+    "submitted_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "declutter_manager_submissions_read",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
   "declutter_meetup_choices": {
    "checks": [],
    "columnGrants": {},
@@ -24730,6 +26191,8 @@
    ],
    "rls": true,
    "triggers": [
+    "after:delete",
+    "after:update",
     "before:insert",
     "before:insert|update|delete",
     "before:update"
@@ -24890,6 +26353,93 @@
    "grants": {},
    "kind": "table",
    "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "declutter_order_manager_shares": {
+   "checks": [
+    "CHECK ((((share_type = 'percent'::text) AND (share_pct IS NOT NULL) AND (share_cents IS NULL)) OR ((share_type = 'flat'::text) AND (share_cents IS NOT NULL) AND (share_pct IS NULL))))",
+    "CHECK (((share_cents >= 0) AND (share_cents <= 1000000)))",
+    "CHECK (((share_pct >= 0) AND (share_pct <= 100)))",
+    "CHECK ((share_type = ANY (ARRAY['percent'::text, 'flat'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "grant_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "locked_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "manager_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "order_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "seller_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "share_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "integer"
+    },
+    "share_pct": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "integer"
+    },
+    "share_type": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "declutter_order_manager_shares_read",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
    "rls": true,
    "triggers": [
     "before:insert|update|delete"
@@ -25217,6 +26767,7 @@
     "CHECK ((((fee_rule = 'f1'::text) AND (shipping_cents = 0) AND (premium_cents = ((round(((items_cents)::numeric * 0.05)))::integer + 70))) OR ((fee_rule = 'f1_ship'::text) AND (shipping_cents > 0) AND (premium_cents = ((round((((items_cents + shipping_cents))::numeric * 0.05)))::integer + 70))) OR ((fee_rule = 'f1_seller_delivery'::text) AND (shipping_cents = 0) AND (handover = 'seller_delivery'::text) AND (premium_cents = ((round((((items_cents + delivery_cents))::numeric * 0.05)))::integer + 70))) OR ((fee_rule = 'free'::text) AND (premium_cents = 0)) OR ((fee_rule = 'premium15'::text) AND (shipping_cents = 0) AND (premium_cents = GREATEST((round(((items_cents)::numeric * 0.15)))::integer, 100)))))",
     "CHECK (((setup_fee_cents >= 0) AND (setup_fee_cents <= 10000)))",
     "CHECK ((((setup_fee_state IS NULL) OR ((setup_fee_cents > 0) AND (setup_fee_state = ANY (ARRAY['claimed'::text, 'refund_due'::text, 'refunded'::text, 'not_charged'::text])))) AND ((setup_fee_refund_id IS NULL) OR (setup_fee_state = 'refunded'::text))))",
+    "CHECK ((((ship_capture IS NULL) OR ((handover = 'ship'::text) AND (ship_capture = ANY (ARRAY['held'::text, 'captured'::text, 'released'::text])))) AND ((shipping_quote_id IS NULL) OR (handover = 'ship'::text))))",
     "CHECK ((shipping_cents >= 0))",
     "CHECK ((status = ANY (ARRAY['awaiting_payment'::text, 'paid'::text, 'superseded'::text, 'expired'::text, 'refunded'::text, 'handed_over'::text])))",
     "CHECK ((tax_cents >= 0))",
@@ -25241,6 +26792,7 @@
       "pickup_slot_start",
       "premium_cents",
       "seller_id",
+      "ship_capture",
       "shipping_cents",
       "status",
       "tax_cents",
@@ -25424,12 +26976,26 @@
      "notNull": false,
      "type": "text"
     },
+    "ship_capture": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
     "shipping_cents": {
      "enum": null,
      "generated": false,
      "hasDefault": true,
      "notNull": true,
      "type": "integer"
+    },
+    "shipping_quote_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
     },
     "status": {
      "enum": null,
@@ -25488,6 +27054,7 @@
    ],
    "rls": true,
    "triggers": [
+    "after:delete",
     "after:insert|update",
     "after:update",
     "before:insert",
@@ -25498,11 +27065,12 @@
   },
   "declutter_payouts": {
    "checks": [
-    "CHECK (((amount_cents = (((items_cents + delivery_cents) - refunded_cents) - debt_cents)) AND (amount_cents >= 0)))",
+    "CHECK (((amount_cents = ((((items_cents + delivery_cents) - refunded_cents) - manager_share_cents) - debt_cents)) AND (amount_cents >= 0)))",
     "CHECK (((attempts >= 0) AND (attempts <= 100)))",
     "CHECK ((debt_cents >= 0))",
     "CHECK ((delivery_cents >= 0))",
     "CHECK ((items_cents > 0))",
+    "CHECK (((manager_share_cents >= 0) AND (manager_share_cents <= items_cents)))",
     "CHECK (((status = 'nothing_due'::text) = (amount_cents = 0)))",
     "CHECK (((refunded_cents >= 0) AND (refunded_cents <= (items_cents + delivery_cents))))",
     "CHECK (((setup_fee_cents >= 0) AND (setup_fee_cents <= 10000)))",
@@ -25521,6 +27089,7 @@
       "executed_at",
       "id",
       "items_cents",
+      "manager_share_cents",
       "order_id",
       "refunded_cents",
       "seller_id",
@@ -25606,6 +27175,13 @@
      "hasDefault": false,
      "notNull": false,
      "type": "text"
+    },
+    "manager_share_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "integer"
     },
     "next_attempt_at": {
      "enum": null,
@@ -26158,6 +27734,13 @@
      "notNull": true,
      "type": "timestamp with time zone"
     },
+    "decide_by": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
     "decided_at": {
      "enum": null,
      "generated": false,
@@ -26409,6 +27992,8 @@
     "CHECK ((reason = ANY (ARRAY['not_as_described'::text, 'damaged'::text, 'not_received'::text])))",
     "CHECK (\nCASE\n    WHEN (return_way IS NULL) THEN ((return_day IS NULL) AND (return_at IS NULL) AND (return_address IS NULL) AND (return_lat IS NULL) AND (return_lng IS NULL) AND (return_photo_path IS NULL) AND (return_dropped_off_at IS NULL))\n    WHEN (return_way = 'drop_off'::text) THEN ((return_day IS NOT NULL) AND (return_at IS NULL) AND (return_address IS NULL) AND (return_lat IS NULL) AND (return_lng IS NULL) AND ((return_photo_path IS NULL) = (return_dropped_off_at IS NULL)))\n    WHEN (return_way = 'collect'::text) THEN ((return_day IS NOT NULL) AND (return_at IS NOT NULL) AND ((return_address IS NULL) = (return_lat IS NULL)) AND ((return_lat IS NULL) = (return_lng IS NULL)) AND ((return_address IS NULL) OR ((char_length(btrim(return_address)) >= 1) AND (char_length(btrim(return_address)) <= 300))) AND ((return_lat IS NULL) OR (((return_lat >= ('-90'::integer)::numeric) AND (return_lat <= (90)::numeric)) AND ((return_lng >= ('-180'::integer)::numeric) AND (return_lng <= (180)::numeric)))) AND (return_photo_path IS NULL) AND (return_dropped_off_at IS NULL))\n    ELSE false\nEND)",
     "CHECK (((status = 'returning'::text) <= ((return_agreed_at IS NOT NULL) AND (return_by IS NOT NULL))))",
+    "CHECK (((seller_note IS NULL) OR ((char_length(btrim(seller_note)) >= 1) AND (char_length(btrim(seller_note)) <= 1000))))",
+    "CHECK ((cardinality(seller_photo_paths) <= 3))",
     "CHECK ((status = ANY (ARRAY['open'::text, 'offered'::text, 'returning'::text, 'agreed'::text, 'declined'::text, 'to_admin'::text, 'withdrawn'::text])))",
     "CHECK (((status = 'to_admin'::text) <= (problem_id IS NOT NULL)))"
    ],
@@ -26596,6 +28181,27 @@
      "notNull": false,
      "type": "text"
     },
+    "seller_note": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "seller_photo_paths": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text[]"
+    },
+    "seller_side_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
     "settled_at": {
      "enum": null,
      "generated": false,
@@ -26623,6 +28229,7 @@
    "policies": [],
    "rls": true,
    "triggers": [
+    "after:update",
     "before:insert",
     "before:insert|update|delete",
     "before:update"
@@ -26636,7 +28243,7 @@
     "CHECK ((fee_policy = ANY (ARRAY['full_platform_absorbs'::text, 'full_seller_pays_fee'::text, 'keep_card_fee'::text, 'keep_buyer_fee'::text, 'agreed_part'::text])))",
     "CHECK ((paid_cents > 0))",
     "CHECK ((fee_policy =\nCASE\n    WHEN (reason = ANY (ARRAY['seller_backed_out'::text, 'seller_out'::text, 'seller_no_show'::text, 'not_as_described'::text, 'helpr_fault'::text])) THEN 'full_seller_pays_fee'::text\n    WHEN (reason = ANY (ARRAY['buyer_cancelled'::text, 'buyer_restarted_checkout'::text, 'admin_no_fault'::text, 'refund_request_full'::text])) THEN 'keep_card_fee'::text\n    WHEN (reason = ANY (ARRAY['buyer_no_show'::text, 'admin_buyer_fault'::text])) THEN 'keep_buyer_fee'::text\n    WHEN (reason = 'refund_request_part'::text) THEN 'agreed_part'::text\n    ELSE 'full_platform_absorbs'::text\nEND))",
-    "CHECK ((reason = ANY (ARRAY['superseded'::text, 'order_closed'::text, 'amount_mismatch'::text, 'duplicate_payment'::text, 'order_missing'::text, 'sold_elsewhere'::text, 'seller_backed_out'::text, 'seller_out'::text, 'seller_no_show'::text, 'not_as_described'::text, 'buyer_cancelled'::text, 'buyer_restarted_checkout'::text, 'buyer_no_show'::text, 'admin_buyer_fault'::text, 'admin_no_fault'::text, 'delivery_damage'::text, 'refund_request_full'::text, 'refund_request_part'::text, 'helpr_fault'::text])))",
+    "CHECK ((reason = ANY (ARRAY['superseded'::text, 'order_closed'::text, 'amount_mismatch'::text, 'duplicate_payment'::text, 'order_missing'::text, 'sold_elsewhere'::text, 'seller_backed_out'::text, 'seller_out'::text, 'seller_no_show'::text, 'not_as_described'::text, 'buyer_cancelled'::text, 'buyer_restarted_checkout'::text, 'buyer_no_show'::text, 'admin_buyer_fault'::text, 'admin_no_fault'::text, 'delivery_damage'::text, 'refund_request_full'::text, 'refund_request_part'::text, 'helpr_fault'::text, 'delivery_never_booked'::text])))",
     "CHECK ((status = ANY (ARRAY['pending'::text, 'succeeded'::text, 'failed'::text, 'held_for_review'::text, 'settled_by_hand'::text])))",
     "CHECK ((stripe_payment_intent_id ~ '^pi_'::text))"
    ],
@@ -26852,6 +28459,72 @@
     "before:insert|update|delete"
    ]
   },
+  "declutter_retained_strikes": {
+   "checks": [
+    "CHECK ((expires_at > given_at))",
+    "CHECK ((identity_sha256 ~ '^[0-9a-f]{64}$'::text))",
+    "CHECK ((offender_side = ANY (ARRAY['buyer'::text, 'seller'::text])))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "expires_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "given_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "identity_sha256": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "offender_side": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "reason": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "retained_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
   "declutter_reviews": {
    "checks": [
     "CHECK (((comment IS NULL) OR (char_length(comment) <= 1000)))",
@@ -26895,6 +28568,13 @@
      "hasDefault": false,
      "notNull": true,
      "type": "uuid"
+    },
+    "removed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
     },
     "reviewee_id": {
      "enum": null,
@@ -27326,7 +29006,7 @@
   "declutter_seller_fee_debts": {
    "checks": [
     "CHECK (((remaining_cents >= 0) AND (remaining_cents <= amount_cents)))",
-    "CHECK ((num_nonnulls(refund_id, shop_refund_id, raise_id) = 1))",
+    "CHECK ((((source_kind = 'refund_card_fee'::text) AND (refund_id = source_ref) AND (num_nonnulls(refund_id, shop_refund_id, raise_id) = 1)) OR ((source_kind = 'shop_refund_card_fee'::text) AND (shop_refund_id = source_ref) AND (num_nonnulls(refund_id, shop_refund_id, raise_id) = 1)) OR ((source_kind = 'raise_card_fee'::text) AND (raise_id = source_ref) AND (num_nonnulls(refund_id, shop_refund_id, raise_id) = 1)) OR ((source_kind = ANY (ARRAY['ship_label'::text, 'ship_adjustment'::text, 'ship_hazmat_fee'::text, 'ship_void_rejected'::text])) AND (num_nonnulls(refund_id, shop_refund_id, raise_id) = 0))))",
     "CHECK ((amount_cents > 0))"
    ],
    "columnGrants": {
@@ -27354,6 +29034,13 @@
      "hasDefault": true,
      "notNull": true,
      "type": "timestamp with time zone"
+    },
+    "fee_estimated": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
     },
     "id": {
      "enum": null,
@@ -27403,6 +29090,48 @@
      "hasDefault": false,
      "notNull": false,
      "type": "uuid"
+    },
+    "source_kind": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    },
+    "source_ref": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "waive_note": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "waived_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
+    "waived_by": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "waived_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "integer"
     }
    },
    "grants": {},
@@ -27420,6 +29149,7 @@
    "rls": true,
    "triggers": [
     "before:insert",
+    "before:insert|update",
     "before:insert|update|delete"
    ]
   },
@@ -29685,6 +31415,7 @@
    "triggers": [
     "after:delete",
     "after:insert",
+    "after:insert|update",
     "after:update",
     "before:delete",
     "before:insert",
@@ -30246,6 +31977,174 @@
     "before:insert|update|delete"
    ]
   },
+  "helpr_card_fee_debt_deductions": {
+   "checks": [
+    "CHECK ((deducted_cents > 0))",
+    "CHECK (((char_length(payout_ref) >= 1) AND (char_length(payout_ref) <= 200)))"
+   ],
+   "columnGrants": {},
+   "columns": {
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "debt_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "deducted_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "payout_ref": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
+  "helpr_card_fee_debts": {
+   "checks": [
+    "CHECK (((remaining_cents >= 0) AND (remaining_cents <= card_fee_cents)))",
+    "CHECK ((card_fee_cents > 0))",
+    "CHECK (((refund_ref IS NULL) OR ((char_length(refund_ref) >= 1) AND (char_length(refund_ref) <= 200))))",
+    "CHECK ((source = 'series_visit_lapsed'::text))"
+   ],
+   "columnGrants": {
+    "authenticated": {
+     "SELECT": [
+      "card_fee_cents",
+      "created_at",
+      "helper_id",
+      "id",
+      "job_id",
+      "remaining_cents",
+      "source"
+     ]
+    }
+   },
+   "columns": {
+    "card_fee_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "created_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "helper_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "uuid"
+    },
+    "is_seed": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "boolean"
+    },
+    "job_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "recurring_visit_payment_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
+    },
+    "refund_ref": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "remaining_cents": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "integer"
+    },
+    "source": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "text"
+    }
+   },
+   "grants": {},
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "helpr card fee debts: admins read",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    },
+    {
+     "cmd": "SELECT",
+     "name": "helpr card fee debts: the Helpr reads own",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
   "helpr_delivery_online": {
    "checks": [
     "CHECK (((near_lat IS NULL) OR (((near_lat >= ('-90'::integer)::numeric) AND (near_lat <= (90)::numeric)) AND (near_lat = round(near_lat, 2)))))",
@@ -30577,6 +32476,13 @@
      "hasDefault": false,
      "notNull": true,
      "type": "integer"
+    },
+    "gave_up_notified_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
     },
     "held_notified_at": {
      "enum": null,
@@ -32039,7 +33945,9 @@
    ]
   },
   "job_cancel_id_waivers": {
-   "checks": [],
+   "checks": [
+    "CHECK ((reason = ANY (ARRAY['id_check'::text, 'payee_frozen'::text])))"
+   ],
    "columnGrants": {},
    "columns": {
     "created_at": {
@@ -32055,6 +33963,13 @@
      "hasDefault": false,
      "notNull": true,
      "type": "uuid"
+    },
+    "reason": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
     }
    },
    "grants": {},
@@ -34528,6 +36443,7 @@
     "CHECK ((NOT (COALESCE(is_group_job, false) AND (recurrence_days IS NOT NULL))))",
     "CHECK ((special_requirements IS NULL))",
     "CHECK ((COALESCE(is_flexible_schedule, false) OR (start_time IS NOT NULL) OR (is_seed AND (recurrence_days IS NULL))))",
+    "CHECK (((tax_kind IS NULL) OR (tax_kind = ANY (ARRAY['item_repair'::text, 'fabric_cleaning'::text, 'clothes_cleaning'::text, 'clothing_alterations'::text]))))",
     "CHECK ((char_length(title) <= 32))",
     "CHECK (((urgent_fee IS NULL) OR ((urgent_fee >= (0)::numeric) AND (urgent_fee <= (250)::numeric))))",
     "CHECK (((is_urgent IS NOT TRUE) OR ((urgent_fee IS NOT NULL) AND (urgent_fee >= (5)::numeric))))"
@@ -34654,6 +36570,7 @@
       "status",
       "stripe_payment_intent_id",
       "stripe_session_id",
+      "tax_kind",
       "title",
       "updated_at",
       "urgent_fee",
@@ -35531,6 +37448,13 @@
      "type": "text"
     },
     "stripe_session_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
+    "tax_kind": {
      "enum": null,
      "generated": false,
      "hasDefault": false,
@@ -37206,6 +39130,88 @@
     "before:insert|update|delete"
    ]
   },
+  "member_section_prefs": {
+   "checks": [
+    "CHECK (section_keys_ok(sections_hidden, 3))",
+    "CHECK (section_keys_ok(section_order, 4))"
+   ],
+   "columnGrants": {
+    "authenticated": {
+     "UPDATE": [
+      "section_order",
+      "sections_hidden",
+      "updated_at"
+     ]
+    }
+   },
+   "columns": {
+    "section_order": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text[]"
+    },
+    "sections_hidden": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text[]"
+    },
+    "updated_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "timestamp with time zone"
+    },
+    "user_id": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": true,
+     "type": "uuid"
+    }
+   },
+   "grants": {
+    "authenticated": [
+     "INSERT",
+     "SELECT"
+    ]
+   },
+   "kind": "table",
+   "policies": [
+    {
+     "cmd": "INSERT",
+     "name": "member section prefs: add own",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    },
+    {
+     "cmd": "UPDATE",
+     "name": "member section prefs: change own",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    },
+    {
+     "cmd": "SELECT",
+     "name": "member section prefs: read own",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
+   "rls": true,
+   "triggers": [
+    "before:insert|update|delete"
+   ]
+  },
   "member_signup_sources": {
    "checks": [
     "CHECK (((campaign IS NULL) OR (campaign ~ '^[a-z0-9._-]{1,64}$'::text)))",
@@ -38393,6 +40399,7 @@
    ],
    "rls": true,
    "triggers": [
+    "after:insert|update",
     "before:insert|update",
     "before:insert|update|delete",
     "before:update"
@@ -38462,6 +40469,13 @@
      "hasDefault": true,
      "notNull": true,
      "type": "timestamp with time zone"
+    },
+    "declutter_ref": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "uuid"
     },
     "id": {
      "enum": null,
@@ -39794,6 +41808,13 @@
      "notNull": true,
      "type": "uuid"
     },
+    "notified_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
     "resolved_at": {
      "enum": null,
      "generated": false,
@@ -39961,7 +41982,7 @@
   "payout_payee_waits": {
    "checks": [
     "CHECK (((char_length(last_reason) >= 1) AND (char_length(last_reason) <= 200)))",
-    "CHECK ((payout_kind = ANY (ARRAY['declutter'::text, 'helpr_task'::text, 'shop'::text, 'declutter_refund'::text, 'delivery_refund'::text])))"
+    "CHECK ((payout_kind = ANY (ARRAY['declutter'::text, 'helpr_task'::text, 'shop'::text, 'declutter_refund'::text, 'delivery_refund'::text, 'declutter_manager'::text])))"
    ],
    "columnGrants": {},
    "columns": {
@@ -40152,7 +42173,7 @@
   },
   "payout_send_marks": {
    "checks": [
-    "CHECK ((payout_kind = ANY (ARRAY['declutter'::text, 'helpr_task'::text, 'shop'::text])))"
+    "CHECK ((payout_kind = ANY (ARRAY['declutter'::text, 'helpr_task'::text, 'shop'::text, 'declutter_manager'::text])))"
    ],
    "columnGrants": {},
    "columns": {
@@ -40190,7 +42211,7 @@
    "checks": [
     "CHECK ((amount_cents > 0))",
     "CHECK (((off_stripe_note IS NULL) OR ((char_length(off_stripe_note) >= 3) AND (char_length(off_stripe_note) <= 300))))",
-    "CHECK ((row_kind = ANY (ARRAY['declutter'::text, 'helpr_task'::text, 'shop'::text, 'declutter_refund'::text, 'delivery_refund'::text, 'shop_refund'::text])))",
+    "CHECK ((row_kind = ANY (ARRAY['declutter'::text, 'helpr_task'::text, 'shop'::text, 'declutter_refund'::text, 'delivery_refund'::text, 'shop_refund'::text, 'raise_refund'::text, 'declutter_manager'::text])))",
     "CHECK (((stripe_ref IS NULL) OR (stripe_ref ~ '^(tr|re|pyr|po)_[A-Za-z0-9]+$'::text)))",
     "CHECK (((voided_reason IS NULL) OR (char_length(voided_reason) <= 300)))",
     "CHECK (((stripe_ref IS NULL) <> (off_stripe_note IS NULL)))"
@@ -44955,7 +46976,7 @@
   },
   "reports": {
    "checks": [
-    "CHECK ((reported_type = ANY (ARRAY['job'::text, 'message'::text, 'user'::text, 'support'::text, 'review'::text, 'application'::text, 'declutter_item'::text, 'declutter_wanted'::text, 'declutter_question'::text, 'declutter_answer'::text])))",
+    "CHECK ((reported_type = ANY (ARRAY['job'::text, 'message'::text, 'user'::text, 'support'::text, 'review'::text, 'application'::text, 'declutter_item'::text, 'declutter_wanted'::text, 'declutter_question'::text, 'declutter_answer'::text, 'declutter_review'::text])))",
     "CHECK ((status = ANY (ARRAY['pending'::text, 'new'::text, 'investigating'::text, 'reviewed'::text, 'resolved'::text, 'dismissed'::text])))"
    ],
    "columnGrants": {},
@@ -46250,6 +48271,13 @@
      "notNull": true,
      "type": "timestamp with time zone"
     },
+    "packed_at": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
     "parcel": {
      "enum": null,
      "generated": false,
@@ -46326,6 +48354,7 @@
    "policies": [],
    "rls": true,
    "triggers": [
+    "after:update",
     "before:insert",
     "before:insert|update|delete",
     "before:update"
@@ -49042,6 +51071,20 @@
      "notNull": false,
      "type": "timestamp with time zone"
     },
+    "confirm_tries": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "integer"
+    },
+    "confirm_tries_since": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "timestamp with time zone"
+    },
     "consent_text_version": {
      "enum": null,
      "generated": false,
@@ -50294,7 +52337,9 @@
   "tip_hold_redrives": {
    "checks": [
     "CHECK ((amount_cents > 0))",
-    "CHECK ((status = ANY (ARRAY['owed'::text, 'reversed'::text, 'repaying'::text, 'repaid'::text, 'failed'::text, 'not_reversed'::text, 'kept'::text])))"
+    "CHECK ((status = ANY (ARRAY['owed'::text, 'reversed'::text, 'repaying'::text, 'repaid'::text, 'failed'::text, 'not_reversed'::text, 'kept'::text])))",
+    "CHECK (((stripe_mode IS NULL) OR (stripe_mode = ANY (ARRAY['live'::text, 'test'::text]))))",
+    "CHECK ((tip_source = ANY (ARRAY['job'::text, 'delivery'::text])))"
    ],
    "columnGrants": {},
    "columns": {
@@ -50311,6 +52356,13 @@
      "hasDefault": true,
      "notNull": true,
      "type": "timestamp with time zone"
+    },
+    "delivery_tip_id": {
+     "enum": null,
+     "generated": true,
+     "hasDefault": true,
+     "notNull": false,
+     "type": "uuid"
     },
     "failure_reason": {
      "enum": null,
@@ -50331,6 +52383,13 @@
      "generated": false,
      "hasDefault": false,
      "notNull": true,
+     "type": "uuid"
+    },
+    "job_tip_id": {
+     "enum": null,
+     "generated": true,
+     "hasDefault": true,
+     "notNull": false,
      "type": "uuid"
     },
     "repay_transfer_id": {
@@ -50354,12 +52413,26 @@
      "notNull": true,
      "type": "text"
     },
+    "stripe_mode": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": false,
+     "notNull": false,
+     "type": "text"
+    },
     "tip_id": {
      "enum": null,
      "generated": false,
      "hasDefault": false,
      "notNull": true,
      "type": "uuid"
+    },
+    "tip_source": {
+     "enum": null,
+     "generated": false,
+     "hasDefault": true,
+     "notNull": true,
+     "type": "text"
     },
     "transfer_id": {
      "enum": null,

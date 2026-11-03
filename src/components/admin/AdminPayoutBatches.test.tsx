@@ -427,6 +427,52 @@ describe("AdminPayoutBatches: a test account's batch is not real money", () => {
     renderScreen();
     await waitFor(() => expect(screen.getAllByRole("checkbox", { name: /for bulk payout/i })).toHaveLength(1));
     expect(screen.queryByText("Test Helpr")).toBeNull();
-    expect(screen.queryByText(/\$999\.00/)).toBeNull();
+    // Q237: amounts read like the tiles ($999, $1,874.50), so match with or without cents.
+    expect(screen.queryByText(/\$999(?:\.00)?\b/)).toBeNull();
+  });
+});
+
+/**
+ * Q237 (bulk-approve bar at 375, Builder 28 2026-11-02, mocked-harness shots
+ * ~/.lh-shots/b28-1102/shots/{before,after}-bulkbar-end-375-*.png): with two
+ * batches ticked the money line takes the whole row, Clear stayed on it and
+ * Bulk Approve wrapped alone to the LEFT; scrolled to the end, the fixed bar
+ * covered the Held for review section because the room sat under the batch
+ * list instead of under the page.
+ *
+ * @mutate src/components/admin/AdminPayoutBatches.tsx | <div data-bulk-actions className="ml-auto flex items-center gap-2"> | <div data-bulk-actions className="contents">
+ * @mutate src/components/admin/AdminPayoutBatches.tsx | <HeldForReview />\n      {/* Q237 | {/* Q237
+ * @mutate src/components/admin/AdminPayoutBatches.tsx | {selected.size} Helpr{selected.size > 1 ? "s" : ""} selected | {selected.size} helper{selected.size > 1 ? "s" : ""} selected
+ * @mutate src/components/admin/AdminPayoutBatches.tsx | ${formatPriceExact(selectedMoney.real)} real money | ${selectedMoney.real.toFixed(2)} real money
+ * @mutate src/components/admin/adminPayoutBatches/BatchRow.tsx | ${formatPriceExact(Number(batch.total_payout))} | ${Number(batch.total_payout).toFixed(2)}
+ */
+describe("AdminPayoutBatches: the bulk-approve bar (Q237)", () => {
+  it("keeps Clear and Bulk Approve in one right-pushed group, Bulk Approve last; copy says Helprs; amounts match the tiles", async () => {
+    const big = { ...batch, helper_id: "helper-2", helper_name: "Ann Guidry", total_payout: 1874.5 };
+    rpcMock.mockImplementation(async (fn: string) =>
+      fn === "get_payout_batches" ? { data: [batch, big], error: null } : { data: [{ job_id: JOB_ID }], error: null },
+    );
+    const { container } = renderScreen();
+    const boxes = await screen.findAllByRole("checkbox", { name: /for bulk payout/i });
+    expect(boxes).toHaveLength(2);
+    for (const b of boxes) fireEvent.click(b);
+
+    const approve = await screen.findByRole("button", { name: /Bulk Approve/i });
+    const group = approve.closest("[data-bulk-actions]") as HTMLElement | null;
+    expect(group, "Bulk Approve sits in the action group").not.toBeNull();
+    expect(group!.className).toMatch(/\bml-auto\b/);
+    expect(group!.className).toMatch(/\bflex\b/);
+    const buttons = [...group!.querySelectorAll("button")].map((b) => b.textContent?.trim());
+    expect(buttons).toEqual(["Clear", "Bulk Approve"]);
+
+    expect(screen.getByText("2 Helprs selected")).toBeInTheDocument();
+    expect(screen.getByText(/^\$2,185 real money/)).toBeInTheDocument();
+    expect(screen.getByText("$1,874.50")).toBeInTheDocument();
+
+    // The room for the fixed bar comes AFTER the last section of the page.
+    const room = container.querySelector("[data-bulk-bar-room]");
+    expect(room, "room under the page while the bar shows").not.toBeNull();
+    const held = screen.getByRole("heading", { name: "Held for review" });
+    expect(held.compareDocumentPosition(room!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

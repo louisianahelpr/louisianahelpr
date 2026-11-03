@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { takeFirstScreenZipParish } from "@/lib/declutter/bootPrefetch";
+import { automationReason } from "@/lib/automatedBrowser";
 
 /**
  * Why this file returns a STATUS and not just a string.
@@ -71,10 +72,16 @@ export async function resolveParishByZip(
     // know) or a hole in `louisiana_zip_parishes` (urgent to know). Warning,
     // not error: it is a legitimate outcome for a Texas ZIP, and it must not
     // page anyone.
-    report(new Error(`ZIP ${cleaned} resolved to no Louisiana parish`), {
-      severity: "warning",
-      tags: { source: "parishLookup.unknownZip", zip: cleaned },
-    });
+    // Q2502: never from a test session (is_seed profile, Playwright, or the
+    // lh_automation flag). The journeys type the bad ZIP 99999 on purpose, and
+    // those reports reached the owner's alert ledger through Sentry. The
+    // screen still gets the unknown-zip status and shows its warning.
+    if (automationReason() === null) {
+      report(new Error(`ZIP ${cleaned} resolved to no Louisiana parish`), {
+        severity: "warning",
+        tags: { source: "parishLookup.unknownZip", zip: cleaned },
+      });
+    }
     return { status: "unknown-zip", zip: cleaned };
   } catch (err) {
     report(err, { severity: "warning", tags: { source: "parishLookup" } });

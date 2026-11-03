@@ -136,3 +136,55 @@ describe("resolveParishByZip", () => {
 // not have becomes indistinguishable from our own RPC falling over, so the UI
 // goes silent and an unreachable (NULL-parish) account is created.
 // @mutate src/lib/parishLookup.ts | return { status: "unknown-zip", zip: cleaned }; | return { status: "lookup-failed", zip: cleaned };
+
+// Q2502: test data never reaches the owner. Every "ZIP N resolved to no
+// Louisiana parish" row from a signed-in account on prod (6 of 8, 2026-10-09..30)
+// was the journeys' deliberate bad ZIP 99999 typed by an is_seed test account
+// in an automated browser (tags.automated = true), and Sentry mirrored it into
+// the owner's alert ledger (row 07e2a58f38a2). The operator report is for a
+// real person's ZIP; a test session keeps the inline warning (the status) but
+// sends no report.
+// @mutate src/lib/parishLookup.ts | if (automationReason() === null) { | if (true) {
+describe("resolveParishByZip in a test session (Q2502)", () => {
+  beforeEach(async () => {
+    rpcMock.mockReset();
+    reportMock.mockReset();
+    const { markTestProfileSession } = await import("@/lib/automatedBrowser");
+    markTestProfileSession(false);
+    localStorage.removeItem("lh_automation");
+    Object.defineProperty(navigator, "webdriver", { value: false, configurable: true });
+  });
+
+  const sessions: Array<[string, () => Promise<void>]> = [
+    ["a test profile (is_seed) is signed in", async () => {
+      const { markTestProfileSession } = await import("@/lib/automatedBrowser");
+      markTestProfileSession(true);
+    }],
+    ["the browser is driven by Playwright (navigator.webdriver)", async () => {
+      Object.defineProperty(navigator, "webdriver", { value: true, configurable: true });
+    }],
+    ["the harness set the lh_automation flag", async () => {
+      localStorage.setItem("lh_automation", "1");
+    }],
+  ];
+
+  it.each(sessions)("an unknown ZIP is not reported when %s, but still warns the screen", async (_label, enter) => {
+    await enter();
+    rpcMock.mockResolvedValue({ data: null, error: null });
+    expect(await resolveParishByZip("99999")).toEqual({ status: "unknown-zip", zip: "99999" });
+    expect(reportMock).not.toHaveBeenCalled();
+  });
+
+  it("a real person's unknown ZIP is still reported (the non-vacuous half)", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: null });
+    expect(await resolveParishByZip("78503")).toEqual({ status: "unknown-zip", zip: "78503" });
+    expect(reportMock).toHaveBeenCalledOnce();
+  });
+
+  it("a test session's broken lookup is still reported (a real defect, tagged automated)", async () => {
+    Object.defineProperty(navigator, "webdriver", { value: true, configurable: true });
+    rpcMock.mockResolvedValue({ data: null, error: new Error("boom") });
+    expect(await resolveParishByZip("70112")).toEqual({ status: "lookup-failed", zip: "70112" });
+    expect(reportMock).toHaveBeenCalledOnce();
+  });
+});

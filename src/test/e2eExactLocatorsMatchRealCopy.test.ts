@@ -119,5 +119,7 @@ describe("every exact-match e2e locator names copy the app actually renders", ()
 
 // The exact stale pair this guard was built from, restored in the one spec that
 // still carried it. Without the check, a locator waiting on a panel that has no
-// call sites is indistinguishable from a broken completion flow.
-// @mutate e2e/journeys/02-marketplace.spec.ts | const after = c.getByText("After photo", { exact: true }); | const after = c.getByText("Add an after photo", { exact: true });
+// call sites is indistinguishable from a broken completion flow. (The spec reads the photo ask as a button now, the
+// photo-first primary "Take after photo" or the chip "After photo — ..."; the mutation still plants the stale panel's
+// exact words on that line.)
+// @mutate e2e/journeys/02-marketplace.spec.ts | const after = c.getByRole("button", { name: /^(?:Take )?after photo\b/i }).first(); | const after = c.getByText("Add an after photo", { exact: true });

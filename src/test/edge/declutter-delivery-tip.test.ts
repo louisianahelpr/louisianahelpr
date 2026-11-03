@@ -24,7 +24,7 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |  if (hold.kind === "held" \|\| review.users.has(helprId)) { |  if (false) {
  * @mutate supabase/functions/declutter-checkout/index.ts |  if (!held && !account) { |  if (false) {
  * @mutate supabase/functions/declutter-checkout/index.ts |  if (review.users.has(user.id)) return | if (false) return
- * @mutate supabase/functions/declutter-checkout/index.ts |    }, { idempotencyKey: `delivery-tip-${tip.tip_id}-c${q.chargeCents}` }); |    });
+ * @mutate supabase/functions/declutter-checkout/index.ts |    }, { idempotencyKey: `delivery-tip-${tip.tip_id}-c${q.chargeCents}${walletRetry ? ":new-wallet" : ""}` })); |    }));
  * @mutate supabase/functions/declutter-checkout/index.ts |  const tipSwitchOff = await requireFeature(admin, "declutter", user, corsHeaders);\n  if (tipSwitchOff) return tipSwitchOff;\n |
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |  if (session.payment_status !== "paid") {\n    logStep("Declutter delivery tip session completed unpaid" |  if (false) {\n    logStep("Declutter delivery tip session completed unpaid"
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |    const back = await holdBackPaidTip(ctx.stripe, supabase, { |    const back = { kind: "not_held" }; void ({

@@ -12,10 +12,11 @@
  * Registered mutations - each turns this file RED on its own:
  * @mutate supabase/functions/shop-checkout/index.ts |       payment_intent_data: { metadata: meta, capture_method: "manual", transfer_group: `shop_order_${o.id}` }, |       payment_intent_data: { metadata: meta, transfer_group: `shop_order_${o.id}` },
  * @mutate supabase/functions/shop-checkout/index.ts |       automatic_tax: { enabled: true }, |
- * @mutate supabase/functions/shop-checkout/index.ts |     { idempotencyKey: `shop-order-${o.id}` }, |     {},
+ * @mutate supabase/functions/shop-checkout/index.ts |     { idempotencyKey: `shop-order-${o.id}${walletRetry ? ":new-wallet" : ""}` }, |     {},
  * @mutate supabase/functions/shop-checkout/index.ts |   if (session.amount_subtotal !== o.items_cents + o.premium_cents) { |   if (false) {
  * @mutate supabase/functions/shop-checkout/index.ts |   if (frozen.superseded_session_id) await expirePage(frozen.superseded_session_id); |
  * @mutate supabase/functions/shop-checkout/index.ts |     customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined; |     customerId = undefined;
+ * @mutate supabase/functions/shop-checkout/index.ts | await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (payer, walletRetry) => | await ((_a: unknown, _b: unknown, _c: unknown, _d: unknown, c: string \| undefined, f: (c: string \| undefined, r: boolean) => unknown) => f(c, false))(admin, stripe, user, mode, customerId, (payer, walletRetry) =>
  * @mutate supabase/functions/shop-checkout/index.ts |     return json({ error: TRY_AGAIN }, 503);\n  }\n\n  /** The order sheet's own name | }\n\n  /** The order sheet's own name
  * @mutate supabase/functions/_shared/shopHolds.ts |     const pi = await stripe.paymentIntents.capture(paymentIntentId, {}, { idempotencyKey: shopCaptureKey(orderId, attempt) }); |     const pi = await stripe.paymentIntents.capture(paymentIntentId);
  * @mutate supabase/functions/_shared/shopHolds.ts |   return `shop-capture-${orderId}-${Number.isInteger(attempt) && attempt >= 0 ? attempt : 0}`; |   return `shop-capture-${orderId}`;
@@ -174,6 +175,23 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     expect(p2.customer_email).toBe("buyer@test.dev");
     expect(stripeMock.customers.create).not.toHaveBeenCalled();
     expect(stripeMock.customers.list).not.toHaveBeenCalled();
+  });
+
+  it("Q2140: a stored customer Stripe no longer has is replaced once and the page retried on a ':new-wallet' key", async () => {
+    const fn = await load();
+    frozen();
+    scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_dead" }] };
+    scenario.rpc.replace_stripe_customer = "cus_fresh";
+    stripeMock.customers.create.mockResolvedValue({ id: "cus_fresh" });
+    stripeMock.checkout.sessions.create
+      .mockRejectedValueOnce(Object.assign(new Error("No such customer: 'cus_dead'"), { code: "resource_missing", param: "customer" }))
+      .mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6475 });
+    expect((await fn.fetch(ask(fn))).status).toBe(200);
+    const calls = stripeMock.checkout.sessions.create.mock.calls;
+    expect(calls).toHaveLength(2);
+    expect([calls[0][0].customer, calls[1][0].customer]).toEqual(["cus_dead", "cus_fresh"]);
+    expect([calls[0][1].idempotencyKey, calls[1][1].idempotencyKey]).toEqual([`shop-order-${ORDER}`, `shop-order-${ORDER}:new-wallet`]);
+    expect(rpcs("replace_stripe_customer")[0]?.args).toEqual({ p_user: BUYER, p_mode: "live", p_old: "cus_dead", p_new: "cus_fresh" });
   });
 
   it("one wallet: a failed wallet read opens no page (never a guessed customer)", async () => {

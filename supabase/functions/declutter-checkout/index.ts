@@ -81,7 +81,7 @@ import { requireFeature } from "../_shared/featureSwitch.ts";
 import { geocodeDropoff, plausibleAddress, type AppleMapsAccess } from "../_shared/geocodeDropoff.ts";
 import { mapkitKeyFromEnv, signMapkitJwt } from "../_shared/mapkitJwt.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { storedStripeCustomer } from "../_shared/stripeCustomer.ts";
+import { storedStripeCustomer, withStoredWalletCustomer } from "../_shared/stripeCustomer.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { declutterCheckoutLineName } from "../_shared/declutterCheckoutName.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
@@ -558,14 +558,15 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   // second share one page through the idempotency key, and a second page from
   // another second is expired when it loses the attach below.
   const expiresAt = Math.floor(Date.now() / 1000) + PAGE_LIFETIME_S;
-  const session = await stripe.checkout.sessions.create(
+  // Q2140: a stored customer Stripe no longer has is replaced once and the page retried (":new-wallet" key).
+  const session = await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (payer, walletRetry) => stripe.checkout.sessions.create(
     {
       mode: "payment",
       payment_method_types: ["card"],
       // Link hidden (audit 2026-10-28 #22): card-only still pre-ticked Link and asked for a phone.
       wallet_options: { link: { display: "never" } },
       line_items: lineItems,
-      ...(customerId ? { customer: customerId } : { customer_email: user.email ?? undefined }),
+      ...(payer ? { customer: payer } : { customer_email: user.email ?? undefined }),
       client_reference_id: order.order_id,
       metadata: meta,
       payment_intent_data: { metadata: meta, transfer_group: `declutter_order_${order.order_id}`,
@@ -578,8 +579,8 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       success_url: buildRedirectUrl(`/declutter?view=cart&paid=1&order=${order.order_id}`, native),
       cancel_url: buildRedirectUrl("/declutter?view=cart", native),
     },
-    { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}` },
-  );
+    { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}${walletRetry ? ":new-wallet" : ""}` },
+  ));
   if (session.amount_total !== chargeCents) {
     await expirePage(stripe, session.id);
     console.error(`[declutter-checkout] Stripe total ${session.amount_total} != order total ${chargeCents}`);
@@ -724,7 +725,8 @@ async function raisePay(body: Record<string, unknown>, user: { id: string; email
     seller_id: parties.seller_id ?? "",
   };
   const expiresAt = Math.floor(Date.now() / 1000) + PAGE_LIFETIME_S;
-  const session = await stripe.checkout.sessions.create(
+  // Q2140: a stored customer Stripe no longer has is replaced once and the page retried (":new-wallet" key).
+  const session = await withStoredWalletCustomer(admin, stripe, user, mode, payerCustomer, (payer, walletRetry) => stripe.checkout.sessions.create(
     {
       mode: "payment",
       payment_method_types: ["card"],
@@ -735,7 +737,7 @@ async function raisePay(body: Record<string, unknown>, user: { id: string; email
         { quantity: 1, price_data: { currency: "usd", unit_amount: raise.raise_cents + raise.card_fee_cents,
           product_data: { name: "Raise the delivery pay", tax_code: NONTAXABLE_TAX_CODE } } },
       ],
-      ...(payerCustomer ? { customer: payerCustomer } : { customer_email: user.email ?? undefined }),
+      ...(payer ? { customer: payer } : { customer_email: user.email ?? undefined }),
       client_reference_id: orderId,
       metadata: meta,
       // The order's own transfer group: the Helpr's payout draws the raise from this charge.
@@ -745,8 +747,8 @@ async function raisePay(body: Record<string, unknown>, user: { id: string; email
       success_url: buildRedirectUrl("/declutter?view=cart&raised=1", isNativeRequest(body)),
       cancel_url: buildRedirectUrl("/declutter?view=cart", isNativeRequest(body)),
     },
-    { idempotencyKey: `declutter-raise-${raise.raise_id}` },
-  );
+    { idempotencyKey: `declutter-raise-${raise.raise_id}${walletRetry ? ":new-wallet" : ""}` },
+  ));
   if (session.amount_total !== raise.total_cents) {
     await expirePage(stripe, session.id);
     console.error(`[declutter-checkout] Stripe total ${session.amount_total} != raise total ${raise.total_cents}`);
@@ -850,8 +852,9 @@ async function deliveryTip(body: Record<string, unknown>, user: { id: string; em
   }
   let session: Stripe.Checkout.Session;
   try {
-    session = await stripe.checkout.sessions.create({
-      ...(payerCustomer ? { customer: payerCustomer } : { customer_email: user.email }),
+    // Q2140: a stored customer Stripe no longer has is replaced once and the page retried (":new-wallet" key).
+    session = await withStoredWalletCustomer(admin, stripe, user, mode, payerCustomer, (payer, walletRetry) => stripe.checkout.sessions.create({
+      ...(payer ? { customer: payer } : { customer_email: user.email }),
       mode: "payment",
       line_items: [{
         quantity: 1,
@@ -879,7 +882,7 @@ async function deliveryTip(body: Record<string, unknown>, user: { id: string; em
       metadata: { kind: "declutter_delivery_tip", tip_id: tip.tip_id, task_id: taskId, tipper_id: user.id, helpr_id: helprId, tip_cents: String(q.tipCents), charge_cents: String(q.chargeCents) },
       success_url: buildRedirectUrl("/declutter?view=cart&tipped=1", isNativeRequest(body)),
       cancel_url: buildRedirectUrl("/declutter?view=cart", isNativeRequest(body)),
-    }, { idempotencyKey: `delivery-tip-${tip.tip_id}-c${q.chargeCents}` });
+    }, { idempotencyKey: `delivery-tip-${tip.tip_id}-c${q.chargeCents}${walletRetry ? ":new-wallet" : ""}` }));
   } catch (tipErr) {
     const refused = await noteDestinationChargeRefused(tipErr, {
       fn: "declutter-checkout", what: "A delivery tip checkout", helperId: helprId, fields: { task_id: taskId, tip_cents: tipCents, held: held ? "yes" : "no" },

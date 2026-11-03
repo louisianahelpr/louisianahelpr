@@ -81,7 +81,9 @@ describe("Customize saves update only the granted columns", () => {
   it("first save creates the row; every later save succeeds and changes it", async () => {
     expect(await saveSectionPrefsRow("u1", ["jobs", "declutter"], [])).toEqual({ error: null });
     expect(db.rows.get("u1")).toMatchObject({ user_id: "u1", section_order: ["jobs", "declutter"], sections_hidden: [] });
+    db.calls.length = 0;
     expect(await saveSectionPrefsRow("u1", ["declutter", "jobs"], ["shops"])).toEqual({ error: null });
+    expect(db.calls.map((c) => c.op)).toEqual(["update"]); // a row exists: one update, no insert attempt
     expect(await saveSectionPrefsRow("u1", ["declutter", "jobs"], ["homes"])).toEqual({ error: null });
     expect(db.rows.get("u1")).toMatchObject({ user_id: "u1", section_order: ["declutter", "jobs"], sections_hidden: ["homes"] });
   });

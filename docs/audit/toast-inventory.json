@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1120,
+    "calls": 1119,
     "files": 314,
-    "rendering": 1039,
+    "rendering": 1038,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 208,
-      "toast.error": 756,
+      "toast.error": 755,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 471,
       "template": 104,
-      "dynamic": 597,
+      "dynamic": 596,
       "jsx": 0
     }
   },
@@ -92,7 +92,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 285,
+      "line": 280,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -102,7 +102,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 342,
+      "line": 337,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -112,7 +112,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 344,
+      "line": 339,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -122,7 +122,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 389,
+      "line": 384,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -239,7 +239,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 403,
+      "line": 398,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -439,7 +439,7 @@
     },
     {
       "file": "src/components/EarningsExport.tsx",
-      "line": 109,
+      "line": 110,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -449,7 +449,7 @@
     },
     {
       "file": "src/components/EarningsExport.tsx",
-      "line": 113,
+      "line": 114,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -459,7 +459,7 @@
     },
     {
       "file": "src/components/EarningsExport.tsx",
-      "line": 150,
+      "line": 151,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -469,7 +469,7 @@
     },
     {
       "file": "src/components/EarningsExport.tsx",
-      "line": 157,
+      "line": 158,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1914,7 +1914,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 106,
+      "line": 107,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1924,7 +1924,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 143,
+      "line": 144,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1934,7 +1934,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 160,
+      "line": 161,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1944,7 +1944,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 285,
+      "line": 286,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1954,7 +1954,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 308,
+      "line": 309,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -1964,7 +1964,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 345,
+      "line": 346,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -1974,7 +1974,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 354,
+      "line": 355,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1984,7 +1984,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 367,
+      "line": 368,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
@@ -1994,7 +1994,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 376,
+      "line": 377,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2004,7 +2004,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 386,
+      "line": 387,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2014,7 +2014,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 414,
+      "line": 415,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2024,7 +2024,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 493,
+      "line": 494,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2886,7 +2886,7 @@
     },
     {
       "file": "src/components/admin/AdminSupport.tsx",
-      "line": 364,
+      "line": 363,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2896,7 +2896,7 @@
     },
     {
       "file": "src/components/admin/AdminSupport.tsx",
-      "line": 581,
+      "line": 580,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4648,7 +4648,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterEditListing.tsx",
-      "line": 84,
+      "line": 85,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4658,7 +4658,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterEditListing.tsx",
-      "line": 87,
+      "line": 88,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6747,17 +6747,7 @@
     },
     {
       "file": "src/components/declutter/SellPorchPlaces.tsx",
-      "line": 109,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "PLACE_HOURS_NOT_SAVED"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/SellPorchPlaces.tsx",
-      "line": 162,
+      "line": 160,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7697,7 +7687,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 155,
+      "line": 156,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7707,7 +7697,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 159,
+      "line": 160,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -7717,7 +7707,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 395,
+      "line": 396,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7827,7 +7817,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 611,
+      "line": 610,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7837,7 +7827,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 615,
+      "line": 617,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7847,7 +7837,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 628,
+      "line": 630,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7857,7 +7847,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 643,
+      "line": 645,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -7867,7 +7857,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 651,
+      "line": 653,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -7877,7 +7867,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 675,
+      "line": 677,
       "kind": "toast",
       "title": {
         "form": "literal",

@@ -151,6 +151,13 @@ const DECLUTTER_ROOTS = [
 ];
 /** /profile starts its page through src/boot/profileRoute.ts; the page itself is named so the walk reaches it. */
 const PROFILE_ROOT = "src/pages/profile/Profile.tsx";
+/**
+ * B52 (11-03): the Posted / Working lists, JobsSection's lazy chunk, which a list link starts through
+ * src/boot/jobsListRoute.ts (a dynamic import the walk does not follow). Named so its modules stay grouped as a first
+ * screen's: unnamed, they fell to signed-in-deep and the lists' chunk pulled signed-in-deep, declutter-first-screen
+ * and error-copy onto a list link (list-link closure 452 -> 554 KB gz, measured).
+ */
+export const JOB_LISTS_ROOT = "src/components/job-card/JobListPage.tsx";
 
 /**
  * Components App.tsx mounts beside EVERY page, each a lazy chunk fetched once
@@ -189,7 +196,8 @@ export function firstScreenRoots(root) {
   // /declutter and /profile start their pages through boot route files, dynamic imports
   // the walk does not follow, so each page itself is named.
   // HOME_DERIVE_ROOT (B51): Home's derivations, a dynamic import Home's chunk starts; see homeFirstScreenRoots.
-  return [...roots, toPosix(path.join(root, HOME_DERIVE_ROOT)), ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r))), ...DECLUTTER_ROOTS.map((r) => toPosix(path.join(root, r))), toPosix(path.join(root, PROFILE_ROOT))];
+  // JOB_LISTS_ROOT (B52): the Posted / Working lists, which src/boot/jobsListRoute.ts starts on a list link.
+  return [...roots, toPosix(path.join(root, HOME_DERIVE_ROOT)), ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r))), ...DECLUTTER_ROOTS.map((r) => toPosix(path.join(root, r))), toPosix(path.join(root, PROFILE_ROOT)), toPosix(path.join(root, JOB_LISTS_ROOT))];
 }
 
 /**

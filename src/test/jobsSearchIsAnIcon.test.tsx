@@ -24,8 +24,8 @@
  * @mutate src/pages/home/Dashboard.tsx | : { end: phoneBrowseEnd, onlySelected: phoneSearchOpen }) | : undefined)
  * @mutate src/pages/home/Dashboard.tsx |       <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" onOpenChange={setPhoneSearchOpen} fill /> |       <SectionSearchRow value={filters.searchQuery} onChange={filters.setSearchQuery} placeholder="Search jobs" />
  * @mutate src/components/job-card/embeddedActivity.tsx | header({ end: searchEnd, onlySelected: searchOpen && !desktop }) : header} | header() : header}
- * @mutate src/pages/jobs/JobsSection.tsx | <JobListPage key="posted" defaultTab="posted" embeddedHeader={makeHeader} /> | <JobListPage key="posted" defaultTab="posted" embeddedHeader={makeHeader()} />
- * @mutate src/pages/jobs/JobsSection.tsx | <JobListPage key="working" defaultTab="applied" embeddedHeader={makeHeader} /> | <JobListPage key="working" defaultTab="applied" embeddedHeader={makeHeader()} />
+ * @mutate src/pages/jobs/JobsSection.tsx | <JobListPage key={tab} defaultTab={list} embeddedHeader={makeHeader} /> | <JobListPage key={tab} defaultTab={list} embeddedHeader={makeHeader()} />
+ * @mutate src/pages/jobs/JobsSection.tsx | <JobListPage key={tab} defaultTab={list} embeddedHeader={makeHeader} /> | <JobListPage key={tab} defaultTab={list} embeddedHeader={() => makeHeader()} />
  * @mutate src/components/sections/StatusBoxes.tsx |       {end}\n |
  * @mutate src/components/sections/StatusBoxes.tsx | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-20px),transparent)]"
  * @mutate src/components/sections/StatusBoxes.tsx | "pl-1 pr-11 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]" | "px-1 [mask-image:linear-gradient(to_right,#000_calc(100%-44px),transparent)]"
@@ -43,7 +43,7 @@ vi.mock("@/lib/sectionPrefsRow", () => ({
   fetchSectionPrefsRow: async () => ({ data: null, error: null }),
   saveSectionPrefsRow: async () => ({ error: null }),
 }));
-import { render, cleanup, within } from "@testing-library/react";
+import { render, cleanup, within, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { MemoryRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -116,8 +116,10 @@ describe("Jobs: the search is an icon, never an expanded field", () => {
   });
 
   for (const tab of ["posted", "working"] as const) {
-    it(`${tab}: the search is a 40px icon at the END OF THE TABS ROW, right before the gear, never in the status chip row (owner 2026-10-31)`, () => {
+    it(`${tab}: the search is a 40px icon at the END OF THE TABS ROW, right before the gear, never in the status chip row (owner 2026-10-31)`, async () => {
       const { container } = wrap(<JobsSection />, `/jobs?tab=${tab}`);
+      // The lists are JobsSection's lazy chunk (B52): wait past its loading frame.
+      await waitFor(() => expect(container.querySelector("[data-jobs-search]")).not.toBeNull());
       const icons = [...container.querySelectorAll<HTMLElement>("[data-jobs-search]")];
       expect(icons, "one search icon").toHaveLength(1);
       const icon = icons[0];

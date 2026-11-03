@@ -113,7 +113,7 @@ describe("Jobs settings", () => {
   it.each([
     ["phone", "/jobs", false], ["phone", "/jobs?tab=posted", false], ["phone", "/jobs?tab=working", false],
     ["desktop", "/jobs", true], ["desktop", "/jobs?tab=posted", true], ["desktop", "/jobs?tab=working", true],
-  ] as const)("%s, %s: the gear is the LAST control at the tabs row's right end, never in the top bar, and opens /jobs/settings", (_w, url, onDesktop) => {
+  ] as const)("%s, %s: the gear is the LAST control at the tabs row's right end, never in the top bar, and opens /jobs/settings", async (_w, url, onDesktop) => {
     desktop.on = onDesktop;
     function Where() {
       return <output data-testid="where">{useLocation().pathname}</output>;
@@ -127,6 +127,8 @@ describe("Jobs settings", () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
+    // Posted / Working are JobsSection's lazy chunk (B52): wait for the list's own search before reading the row.
+    if (url !== "/jobs") await screen.findByRole("button", { name: "Search this list" });
     const gear = screen.getByRole("button", { name: "Jobs settings" });
     const row = screen.getByTestId("section-tabs");
     const controls = Array.from(row.querySelectorAll("button:not([role='tab'])"));

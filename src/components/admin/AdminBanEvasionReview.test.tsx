@@ -54,7 +54,7 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 const toastError = vi.fn();
-vi.mock("sonner", () => ({ toast: { error: (...a: unknown[]) => toastError(...a), success: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (...a: unknown[]) => toastError(...a), success: vi.fn() }) }));
 
 const USER = "aaaaaaaa-0000-4000-8000-0000000000aa";
 const REVIEW = {

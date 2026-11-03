@@ -15,11 +15,11 @@ const toastSuccess = vi.fn();
 const toastError = vi.fn();
 const toastInfo = vi.fn();
 vi.mock("sonner", () => ({
-  toast: {
+  toast: Object.assign(vi.fn(), {
     success: (...args: unknown[]) => toastSuccess(...args),
     error: (...args: unknown[]) => toastError(...args),
     info: (...args: unknown[]) => toastInfo(...args),
-  },
+  }),
 }));
 
 describe("AiJobBuilder", () => {

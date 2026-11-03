@@ -2,7 +2,7 @@ import { onlineManager } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const toastError = vi.fn();
-vi.mock("sonner", () => ({ toast: { error: (...a: unknown[]) => toastError(...a) } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (...a: unknown[]) => toastError(...a) }) }));
 
 // `isNativePlatform` is a module-level const evaluated at import time from
 // `window.Capacitor`, so it cannot be flipped after the fact — each test

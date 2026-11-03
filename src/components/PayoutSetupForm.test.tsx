@@ -97,11 +97,11 @@ vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 const toastError = vi.fn();
 const toastSuccess = vi.fn();
 vi.mock("sonner", () => ({
-  toast: {
+  toast: Object.assign(vi.fn(), {
     error: (...a: unknown[]) => toastError(...a),
     success: (...a: unknown[]) => toastSuccess(...a),
     warning: (...a: unknown[]) => toastError(...a),
-  },
+  }),
 }));
 
 vi.mock("@/lib/haptics", () => ({

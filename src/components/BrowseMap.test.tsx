@@ -71,7 +71,7 @@ vi.mock("@/hooks/useUserLocation", () => ({
 
 const toastError = vi.fn();
 vi.mock("sonner", () => ({
-  toast: { error: (...args: unknown[]) => toastError(...args) },
+  toast: Object.assign(vi.fn(), { error: (...args: unknown[]) => toastError(...args) }),
 }));
 
 // MapKit always authorizes in these tests — the degraded paths are the

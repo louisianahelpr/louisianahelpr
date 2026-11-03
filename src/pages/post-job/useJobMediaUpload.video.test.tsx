@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 
 const toastError = vi.fn();
-vi.mock("sonner", () => ({ toast: { error: (...a: unknown[]) => toastError(...a), success: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (...a: unknown[]) => toastError(...a), success: vi.fn() }) }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 // jsdom never loads video metadata; the length check itself is covered in src/lib/scopeVideo.test.ts.
 const duration = vi.fn(async (): Promise<number | null> => null);

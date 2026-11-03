@@ -45,7 +45,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const calls = { answer: [] as [string, string][], ask: [] as [string, string][], askRefusal: null as Error | null, answerRefusal: null as Error | null };
 const toasts = vi.hoisted(() => ({ error: [] as unknown[] }));
-vi.mock("sonner", () => ({ toast: { success: () => undefined, error: (m: unknown) => { toasts.error.push(m); } } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: () => undefined, error: (m: unknown) => { toasts.error.push(m); } }) }));
 const mineState = { ids: new Set<string>(), calls: 0, user: { id: "b1" } as { id: string } | null };
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: mineState.user, isReady: true }) }));
 const state = { questions: [] as unknown[], seller: { name: "Marie Thibodeaux", avatarUrl: null, joinedAt: null } as unknown };

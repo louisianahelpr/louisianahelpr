@@ -44,52 +44,7 @@ const offenders = mocking.filter(([, code]) => sonnerFactories(code).some(nonCal
 
 /** Still to move onto sonnerMock (2026-10-31). Shrink only: a file that moves leaves this list in the same commit. */
 // @two-way src/test/sonnerMocksAreCallable.test.ts:stale baseline entry in LEGACY
-const LEGACY: readonly string[] = [
-  "src/components/BrowseMap.test.tsx",
-  "src/components/CancellationDialog.doneRefusal.test.tsx",
-  "src/components/CancellationDialog.giftToast.test.tsx",
-  "src/components/InstantPayoutDialog.test.tsx",
-  "src/components/JobTracking.onTheWayGate.test.tsx",
-  "src/components/PayoutSetupForm.test.tsx",
-  "src/components/ReferralSection.test.tsx",
-  "src/components/__tests__/TipDialogBounds.test.tsx",
-  "src/components/admin/AdminBanEvasionReview.test.tsx",
-  "src/components/admin/AdminDisputes.biometricGate.test.tsx",
-  "src/components/admin/AdminDisputes.clearTestMode.test.tsx",
-  "src/components/admin/AdminDisputes.settleWithoutPayment.test.tsx",
-  "src/components/admin/AdminJobs.test.tsx",
-  "src/components/admin/AdminPayoutBatches.test.tsx",
-  "src/components/admin/AdminSettings.test.tsx",
-  "src/components/admin/AdminUserDetailDialog.test.tsx",
-  "src/components/admin/BanDialog.test.tsx",
-  "src/components/admin/DeleteUserDialog.test.tsx",
-  "src/components/admin/EditEmailDialog.test.tsx",
-  "src/components/admin/FormalWarningDialog.test.tsx",
-  "src/components/admin/ManualVerifyDialog.test.tsx",
-  "src/components/admin/ResetPasswordDialog.test.tsx",
-  "src/components/admin/adminJobs/EndSeriesSection.test.tsx",
-  "src/components/admin/adminJobs/adminJobsNotifications.test.tsx",
-  "src/components/admin/helprFault/helprFaultAdminButtons.test.tsx",
-  "src/components/admin/settings/FeatureSwitchesCard.test.tsx",
-  "src/components/dashboard/jobDetailDialog/JobDetailFooter.ageGate.test.tsx",
-  "src/components/declutter/declutterPickupDayCard.test.tsx",
-  "src/components/declutter/declutterQuestions.test.tsx",
-  "src/components/declutter/declutterTaskDelivered.test.tsx",
-  "src/components/declutter/deliverAcceptConfirms.test.tsx",
-  "src/components/payouts/payoutSetupPaused.test.tsx",
-  "src/components/postjob/AiJobBuilder.test.tsx",
-  "src/components/postjob/CurrentLocationPill.test.tsx",
-  "src/components/profile/SecurityTab.appLockGate.test.tsx",
-  "src/hooks/useSessionTimeout.test.tsx",
-  "src/lib/recipientGate.test.tsx",
-  "src/lib/requireOnline.test.ts",
-  "src/pages/auth/SignupPending.test.tsx",
-  "src/pages/home/useBoostReturn.test.tsx",
-  "src/pages/post-job/useJobMediaUpload.video.test.tsx",
-  "src/pages/posts/EditJobDialog.flexibleSchedule.test.tsx",
-  "src/test/heicProofPhotos.test.tsx",
-  "src/test/posterCancelQuoteGuard.test.tsx",
-];
+const LEGACY: readonly string[] = [];
 
 describe("every sonner mock keeps toast callable", () => {
   it("reads a real inventory", () => {

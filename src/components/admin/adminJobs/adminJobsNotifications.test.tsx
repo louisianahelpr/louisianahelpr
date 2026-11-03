@@ -127,12 +127,12 @@ const toastMessage = vi.fn();
 // The access-notes read (Q1461) is not under test here.
 vi.mock("@/hooks/useJobAccessNote", () => ({ useJobAccessNote: () => null, fetchJobAccessNote: async () => null }));
 vi.mock("sonner", () => ({
-  toast: {
+  toast: Object.assign(vi.fn(), {
     error: (...a: unknown[]) => toastError(...a),
     success: (...a: unknown[]) => toastSuccess(...a),
     warning: vi.fn(),
     message: (...a: unknown[]) => toastMessage(...a),
-  },
+  }),
 }));
 
 const reportMock = vi.fn();

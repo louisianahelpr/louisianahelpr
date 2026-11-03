@@ -23,7 +23,7 @@ vi.mock("@/integrations/supabase/client", () => ({
 }));
 const success = vi.fn();
 const error = vi.fn();
-vi.mock("sonner", () => ({ toast: { success: (...a: unknown[]) => success(...a), error: (...a: unknown[]) => error(...a) } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: (...a: unknown[]) => success(...a), error: (...a: unknown[]) => error(...a) }) }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 
 function run(userId: string, search = `boosted=${JOB}`) {

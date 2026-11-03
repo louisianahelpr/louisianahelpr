@@ -27,7 +27,7 @@ const toastSuccess = vi.fn();
 let giftRead: { data: Array<{ status: string; amount?: number; payment_status?: string }> | null; error: unknown } = { data: [], error: null };
 const giftQueries: Array<{ jobId?: unknown; statuses?: unknown; columns?: unknown }> = [];
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: (...a: unknown[]) => toastSuccess(...a), warning: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: (...a: unknown[]) => toastSuccess(...a), warning: vi.fn() }) }));
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticSuccess: vi.fn(), hapticLight: vi.fn(), hapticMedium: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {

@@ -78,12 +78,12 @@ const toastError = vi.fn();
 const toastSuccess = vi.fn();
 const toastWarning = vi.fn();
 vi.mock("sonner", () => ({
-  toast: {
+  toast: Object.assign(vi.fn(), {
     error: (...a: unknown[]) => toastError(...a),
     success: (...a: unknown[]) => toastSuccess(...a),
     warning: (...a: unknown[]) => toastWarning(...a),
     message: vi.fn(),
-  },
+  }),
 }));
 vi.mock("@/hooks/useJobAccessNote", () => ({ useJobAccessNote: () => null, fetchJobAccessNote: async () => null }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));

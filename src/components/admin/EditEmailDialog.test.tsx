@@ -37,10 +37,10 @@ vi.mock("@/lib/biometricGate", () => ({
 const toastSuccess = vi.fn();
 const toastError = vi.fn();
 vi.mock("sonner", () => ({
-  toast: {
+  toast: Object.assign(vi.fn(), {
     success: (...args: unknown[]) => toastSuccess(...args),
     error: (...args: unknown[]) => toastError(...args),
-  },
+  }),
 }));
 
 const sampleProfile = {

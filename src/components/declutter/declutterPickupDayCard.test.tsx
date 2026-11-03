@@ -28,7 +28,7 @@ const state = vi.hoisted(() => ({
   outAt: {} as Record<string, string | null>,
 }));
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: (m: string) => state.errors.push(m) } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: (m: string) => state.errors.push(m) }) }));
 vi.mock("@/lib/declutter/handover", () => ({
   fetchMyHandover: async (id: string) => ({ order_id: id, set_out_at: state.outAt[id] ?? null }),
   onMyWay: async (id: string) => { state.calls.push(id); return "on_way"; },

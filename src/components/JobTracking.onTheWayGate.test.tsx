@@ -37,7 +37,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { JobTracking, deriveCurrentStatusIdx, STATUS_IDX } from "./JobTracking";
 
 vi.mock("sonner", () => ({
-  toast: { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() },
+  toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), info: vi.fn(), warning: vi.fn() }),
 }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/notifications", () => ({ createNotification: vi.fn(), notifyJobParty: vi.fn() }));

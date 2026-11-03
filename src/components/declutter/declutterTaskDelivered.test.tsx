@@ -16,7 +16,7 @@ const state = vi.hoisted(() => ({
 }));
 
 vi.mock("@/components/DateTimeField", () => ({ DateTimeField: () => null }));
-vi.mock("sonner", () => ({ toast: { success: (m: string) => state.toasts.push(m), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: (m: string) => state.toasts.push(m), error: vi.fn() }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: undefined }) }));
 vi.mock("@/components/payouts/useHiredPayoutPrompt", () => ({ useHiredPayoutPrompt: () => ({ open: false, offer: async () => true, close: () => {} }) }));
 vi.mock("@/components/busyAreas/BusyAreasCard", () => ({ BusyAreasCard: () => null }));

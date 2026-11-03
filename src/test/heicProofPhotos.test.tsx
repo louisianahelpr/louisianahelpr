@@ -30,7 +30,7 @@ vi.mock("@/integrations/supabase/client", () => ({
     rpc: async () => ({ error: null }),
   },
 }));
-vi.mock("sonner", () => ({ toast: { error: toastError, success: vi.fn(), warning: vi.fn(), info: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: toastError, success: vi.fn(), warning: vi.fn(), info: vi.fn() }) }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 const clean = vi.hoisted(() => ({ fn: null as null | ((f: File) => Promise<File | null>) }));
 vi.mock("@/lib/cleanProofPhoto", async (orig) => {

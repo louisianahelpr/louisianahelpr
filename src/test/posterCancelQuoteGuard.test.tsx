@@ -26,7 +26,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 const toastError = vi.fn();
 const invoke = vi.hoisted(() => vi.fn());
 const rpc = vi.hoisted(() => vi.fn());
-vi.mock("sonner", () => ({ toast: { error: (...a: unknown[]) => toastError(...a), success: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (...a: unknown[]) => toastError(...a), success: vi.fn(), warning: vi.fn() }) }));
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticSuccess: vi.fn(), hapticLight: vi.fn(), hapticMedium: vi.fn() }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({

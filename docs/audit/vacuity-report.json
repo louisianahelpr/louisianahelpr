@@ -1,12 +1,13 @@
 {
-  "generated": "2026-11-03T06:41:04.450Z",
-  "guards": 3375,
-  "registered": 3375,
+  "generated": "2026-11-03T08:10:38.819Z",
+  "guards": 3382,
+  "registered": 3382,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/declutter/bundleDiscountOff.test.tsx",
     "src/test/desktopProfileButtonFocusRing.test.ts",
+    "src/test/failedBankCancelRepostsTheJob.test.ts",
     "src/test/shakeToReportLoadsOnlyInTheApp.test.ts",
     "src/test/shippingNeverShippedSweep.test.ts"
   ],

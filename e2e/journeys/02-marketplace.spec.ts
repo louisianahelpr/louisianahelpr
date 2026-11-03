@@ -948,6 +948,26 @@ test.describe.serial("marketplace chain", () => {
         expect(r.ok(), `backdating poster_confirmed_working_at: ${r.status()} ${await r.text()}`).toBe(true);
       }
       const seen: string[] = [];
+      /* The "Mark this job complete?" confirm (JobTracking's BrandConfirmDialog, role alertdialog; its button reads
+         "Mark it done", owner 2026-09-14; was "Yes, I'm Done"), taken the way the helper does. */
+      const confirmDone = async () => {
+        const yes = hp.getByRole("alertdialog").getByRole("button", { name: "Mark it done", exact: true });
+        await expect(yes, "Mark it done opened no confirmation").toBeVisible({ timeout: 15_000 });
+        await journey.milestone(hp, "request-payout-confirm");
+        await yes.click();
+        // The done write asks for location on its way out (JobTracking's
+        // updateStatus → getLocation), and "Not now" is deliberately NOT
+        // remembered — usePermissionRationale only marks a kind confirmed
+        // when the person says yes — so the rationale comes back here even
+        // though Start working already declined it once. e2e-journeys
+        // 34927100318 left that dialog open: every button had been pressed,
+        // `helper_completed_at` was never written, and the failure shot shows
+        // the "Location" alertdialog still up. Answer it, the same way the
+        // helper does everywhere else in this journey.
+        await hp.getByRole("button", { name: "Share location" }).waitFor({ state: "visible", timeout: 10_000 }).catch(() => {});
+        await declineLocation(hp);
+        await expect(yes).toBeHidden({ timeout: 30_000 });
+      };
       for (let i = 0; i < 8; i++) {
         const c = await card(hp, "/jobs?tab=working", "Needs You");
         // "Before photo" / "After photo" — the PhotoProofCaptureChip labels.
@@ -995,8 +1015,17 @@ test.describe.serial("marketplace chain", () => {
             label === "Before" ? before : after,
             `the ${label.toLowerCase()} photo ask is still on the card 30s after the upload dialog closed`,
           ).toBeHidden({ timeout: 30_000 });
-          await assertHealthy(hp, `${label} photo`);
           await journey.milestone(hp, `${label.toLowerCase()}-photo-uploaded`);
+          /* AFTER PHOTOS, THEN DONE IN ONE STEP (owner 11-01, HelperPhotoAsk afterThenDone): finishing the after-photo
+             upload at the Working step asks the tracker for Mark done, whose confirmation opens by itself. Take it
+             there, as the helper does; when it does not open (a gate still closed) the loop reloads and finds the
+             card's own next step. */
+          if (label === "After" && (await appears(hp.getByRole("alertdialog").getByRole("button", { name: "Mark it done", exact: true }), 15_000))) {
+            seen.push("Mark it done (after the after photo)");
+            await confirmDone();
+            break;
+          }
+          await assertHealthy(hp, `${label} photo`);
         } else if (await start.isVisible()) {
           seen.push("Start working");
           await start.click();
@@ -1012,22 +1041,7 @@ test.describe.serial("marketplace chain", () => {
           const payoutButtons = await c.getByRole("button", { name: /^Mark it done$/ }).count();
           test.info().annotations.push({ type: "payout-cta-count", description: String(payoutButtons) });
           await payout.click();
-          const yes = hp.getByRole("alertdialog").getByRole("button", { name: "Mark it done", exact: true });
-          await expect(yes, "Mark it done opened no confirmation").toBeVisible({ timeout: 15_000 });
-          await journey.milestone(hp, "request-payout-confirm");
-          await yes.click();
-          // The done write asks for location on its way out (JobTracking's
-          // updateStatus → getLocation), and "Not now" is deliberately NOT
-          // remembered — usePermissionRationale only marks a kind confirmed
-          // when the person says yes — so the rationale comes back here even
-          // though Start working already declined it once. e2e-journeys
-          // 34927100318 left that dialog open: every button had been pressed,
-          // `helper_completed_at` was never written, and the failure shot shows
-          // the "Location" alertdialog still up. Answer it, the same way the
-          // helper does everywhere else in this journey.
-          await hp.getByRole("button", { name: "Share location" }).waitFor({ state: "visible", timeout: 10_000 }).catch(() => {});
-          await declineLocation(hp);
-          await expect(yes).toBeHidden({ timeout: 30_000 });
+          await confirmDone();
           break;
         }
       }
@@ -1053,13 +1067,15 @@ test.describe.serial("marketplace chain", () => {
      * TIME TRAVEL: THE REVIEW WINDOW (was time-travel.spec.ts's "UNCOVERED:
      * Review window open → auto-release" placeholder, which could never run:
      * it needs an escrow job the Helpr has marked done, and this is that job,
-     * at that moment). SubmittedStep counts 24h down from helper_completed_at
-     * and then says the job is completing automatically, unless the poster
-     * releases instantly (profiles.auto_release_on_complete), when a 24h clock
-     * would be a lie and none is drawn. The flag is read the way the card
-     * reads it, as the Helpr; the expectation follows it both ways.
+     * at that moment). SubmittedStep counts APPROVAL_WINDOW_HOURS (24h) down
+     * from helper_completed_at, unless the poster releases instantly
+     * (profiles.auto_release_on_complete), when a 24h clock would be a lie and
+     * none is drawn. NOTHING RELEASES ON A TIMER (owner 2026-10-23, a53ccb8700):
+     * past the window the card says Helpr support is stepping in and the payment
+     * stays held; it used to say "completing automatically". The flag is read
+     * the way the card reads it, as the Helpr; the expectation follows it both ways.
      */
-    await test.step("time travel: the Helpr's review window runs out into automatic completion", async () => {
+    await test.step("time travel: the Helpr's review window runs out and Helpr support steps in", async () => {
       const job = await readJob(request, S.poster, S.jobId!);
       const end = Date.parse(job.helper_completed_at) + 24 * 3_600_000;
       const flag = await request.get(
@@ -1075,7 +1091,8 @@ test.describe.serial("marketplace chain", () => {
           await expect(c.getByText(/remaining$/), "an instant-release poster's card draws a 24h countdown").toHaveCount(0);
         } else {
           await expect(c.getByText("1m remaining").first(), "90s before the 24h mark the card does not read 1m remaining").toBeVisible({ timeout: 45_000 });
-          await expect(c.getByText(/The job completes automatically when this timer expires/).first()).toBeVisible();
+          // SubmittedStep's DeadlineCountdown consequenceText.
+          await expect(c.getByText("for them to answer. After that, Helpr support steps in.").first()).toBeVisible();
         }
         await assertHealthy(page, "review window 90s before it closes");
         await journey.milestone(page, "tt-review-window-1m-left");
@@ -1084,9 +1101,13 @@ test.describe.serial("marketplace chain", () => {
         const c = await card(page, "/jobs?tab=working", "Waiting");
         if (instant) {
           await expect(c.getByText(/They approve instantly/).first()).toBeVisible({ timeout: 45_000 });
-          await expect(c.getByText(/completing automatically/), "an instant-release poster's card says it is completing automatically").toHaveCount(0);
+          await expect(c.getByText(/Helpr support is stepping in/), "an instant-release poster's card says the 24h window ran out").toHaveCount(0);
         } else {
-          await expect(c.getByText(/24 hours passed — completing automatically/).first(), "past the 24h mark the card does not say the job is completing automatically").toBeVisible({ timeout: 45_000 });
+          // SubmittedStep's DeadlineCountdown expiredText.
+          await expect(
+            c.getByText("24 hours passed — Helpr support is stepping in. Your payment stays held.").first(),
+            "past the 24h mark the card does not say Helpr support is stepping in with the payment held",
+          ).toBeVisible({ timeout: 45_000 });
         }
         await assertHealthy(page, "review window a minute after it closed");
         await journey.milestone(page, "tt-review-window-closed");
@@ -1155,7 +1176,9 @@ test.describe.serial("marketplace chain", () => {
 
     await test.step("poster reviews the helper and tips", async () => {
       const c = await card(pp, "/jobs?tab=posted", "Done");
-      const review = pp.getByRole("dialog").filter({ hasText: "Your overall experience" });
+      /* The review sheet is the "Job done" moment (boards 35/36, 3385de3c8a): ReviewForm's one ReviewQuestionCard
+         asks "How did <first name> do?" (the poster rating the Helpr). "Your overall experience" went with the old form. */
+      const review = pp.getByRole("dialog").filter({ hasText: /How did .+ do\?/ });
       /* `^Review\b`, not `^Review$`. Every chip in a job step row composes its
          accessible name as "<label> — <ariaLabel>" (JobActionRow's
          composeAccessibleName), so the Done card's chips are named
@@ -1171,6 +1194,15 @@ test.describe.serial("marketplace chain", () => {
       await review.getByRole("textbox").first().fill(`Journey ${RUN}: great work.`);
       await journey.milestone(pp, "poster-review");
       await review.getByRole("button", { name: /Submit|Post Review|Send/ }).last().click();
+      /* A 5-STAR REVIEW ASKS FOR A TIP FIRST, when the Helpr can take one (ReviewForm: rating === 5 && canTip &&
+         takesTips !== false opens "Send <name> a tip?" and keeps the review open behind it). "No thanks" closes both;
+         the tip itself is taken below from the card's own Tip, so the two tip surfaces are not double-counted. */
+      const tipAsk = pp.getByRole("dialog").filter({ hasText: /Send .+ a tip\?/ }).filter({ has: pp.getByRole("button", { name: "No thanks", exact: true }) });
+      if (await appears(tipAsk, 5_000)) {
+        test.info().annotations.push({ type: "path", description: "the 5-star review offered a tip; declined here, tipped from the card" });
+        await journey.milestone(pp, "review-tip-ask");
+        await tipAsk.getByRole("button", { name: "No thanks", exact: true }).click();
+      }
       await expect(review).toBeHidden({ timeout: 30_000 });
       /* RELOAD UNTIL THE BADGE LANDS, not once. The chip flips on
          `completedJobMeta[job.id].reviewed`, which `useActivityData` builds
@@ -1207,6 +1239,13 @@ test.describe.serial("marketplace chain", () => {
         )
         .toBeGreaterThan(0);
       const c2 = await card(pp, "/jobs?tab=posted", "Done", false);
+      /* The Tip is offered only when the Helpr can take it (useHelprTakesTips: get_safe_profiles.is_payout_ready, AND
+         is_id_verified while identity_check is on). Otherwise the card shows tipsNotReadyLine instead: that is the
+         shared Helpr test account's setup, not a defect this step may step around. */
+      const notReady = c2.getByTestId("tips-not-ready");
+      if (await notReady.isVisible().catch(() => false)) {
+        throw new Error(`tip: the card offers no Tip and says "${(await notReady.innerText()).trim()}" — the shared Helpr test account is not tip-ready (payout setup, or ID verification while identity_check is on). Account setup, not a test or app fix.`);
+      }
       await press(pp, c2, /^Tip\b/, "tip");
       await journey.milestone(pp, "tip-sheet");
     });
@@ -1214,7 +1253,8 @@ test.describe.serial("marketplace chain", () => {
     await test.step("helper reviews the poster", async () => {
       const c = await card(hp, "/jobs?tab=working", "Done");
       await press(hp, c, /^Leave a review for/i, "helper review");
-      const review = hp.getByRole("dialog").filter({ hasText: "Your overall experience" });
+      // ReviewForm rating the poster asks "How was working for <first name>?" (ReviewQuestionCard).
+      const review = hp.getByRole("dialog").filter({ hasText: /How was working for .+\?/ });
       await expect(review).toBeVisible({ timeout: 30_000 });
       await review.getByRole("radio", { name: /5/ }).or(review.getByRole("button", { name: /5 stars?/i })).first().click();
       await review.getByRole("textbox").first().fill(`Journey ${RUN}: clear instructions.`);

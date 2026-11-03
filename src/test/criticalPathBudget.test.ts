@@ -22,7 +22,7 @@
  *      prefetch with its Save-Data / 2G exemption.
  */
 // @mutate index.html | <script type="module" src="/src/entry.ts"></script> | <script type="module" src="/src/main.tsx"></script>
-// @mutate vite.config.ts | resolveDependencies: (_filename, deps) => deps, | resolveDependencies: () => [],
+// @mutate vite.config.ts | hostType === "js" ? trimEntryRouteDeps(builtBundle, hostId, filename, deps) : deps, | [],
 // @mutate src/boot/routePreload.ts | if (!before.has(link)) link.setAttribute(PAGE_PRELOAD_ATTR, ""); | void link;
 // @mutate index.html |           if (t.hasAttribute("data-lh-page-preload")) return;\n | 
 // @mutate src/boot/routePreload.ts | guest: [() => import("@/pages/info/Index")], | guest: [],
@@ -181,7 +181,9 @@ describe("the page's own chunk is started by the entry, beside the app", () => {
 
   it("dynamic imports get their preload lists (vite.config.ts resolveDependencies is not emptied)", () => {
     const cfg = code("vite.config.ts");
-    expect(cfg).toMatch(/resolveDependencies:\s*\(_filename,\s*deps\)\s*=>\s*deps/);
+    // B48: the entry's route lists skip main's closure (scripts/perf/entryRouteDeps.mjs, entryRouteListsSkipMain.test.ts);
+    // every other list, and index.html's, is the whole closure.
+    expect(cfg).toMatch(/resolveDependencies:\s*\(filename,\s*deps,\s*\{\s*hostId,\s*hostType\s*\}\)\s*=>\s*hostType === "js" \? trimEntryRouteDeps\(builtBundle, hostId, filename, deps\) : deps/);
     expect(cfg).not.toMatch(/resolveDependencies:\s*\(\)\s*=>\s*\[\]/);
   });
 

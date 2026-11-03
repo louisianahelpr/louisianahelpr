@@ -124,7 +124,7 @@ type OrderRow = {
 
 /** An RPC refusal as the app's error code (the SQL message) + a status. */
 function rpcRefusal(error: { message?: string; code?: string; hint?: string }): Response {
-  const status = error.code === "P0002" ? 404 : error.code === "42501" ? 403 : error.code === "22023" ? 400 : 409;
+  const status = error.code === "P0002" || error.code === "PT404" ? 404 : error.code === "42501" ? 403 : error.code === "22023" ? 400 : 409;
   return json({ error: error.message ?? "refused", hint: error.hint ?? null }, status);
 }
 

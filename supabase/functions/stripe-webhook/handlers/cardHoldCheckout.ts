@@ -21,6 +21,7 @@ import { insertNotifications } from "../../_shared/insertNotifications.ts";
 import { effectiveSalesTaxRate, jobEscrowTaxableBaseCents } from "../../_shared/salesTax.ts";
 import { CARD_HOLD_COPY, LIVE_JOB_STATUSES, captureBeforeIso, notifyPosterOnce, readHold } from "../../_shared/cardHold.ts";
 import { caughtMessage } from "../../_shared/caughtMessage.ts";
+import { sessionJobTaxCents } from "../../_shared/jobTaxAddress.ts";
 
 export function isCardHoldSession(session: Stripe.Checkout.Session): boolean {
   return (session.metadata as Record<string, string> | null)?.card_hold === "1";
@@ -168,7 +169,9 @@ export async function settleCardHoldCheckout(
     return true;
   }
 
-  const taxCents = typeof session.total_details?.amount_tax === "number" ? session.total_details.amount_tax : null;
+  // Q2083 (b): a job taxed at the job address carries its tax as its own line
+  // (automatic_tax off); sessionJobTaxCents reads that figure, else Stripe's.
+  const taxCents = sessionJobTaxCents(session as any);
   const { data: jobRow, error: jobErr } = await supabase
     .from("jobs")
     .select("id, budget, category, tax_kind, customer_fee_amount, poster_fee_flat_cents, is_urgent, urgent_fee, helper_id, helper_confirmed_at, title, customer_id, offered_to_helper_id, direct_offer_status, stripe_payment_intent_id, payment_status")

@@ -30,7 +30,7 @@ import { readFileSync, statSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
-import { chargeTaxCents, chargeTaxCentsFor, refundToPayerCents, taxOnKeptCents } from "../../supabase/functions/_shared/refundAmount";
+import { chargeTaxCents, chargeTaxCentsFor, checkoutChargeTaxCents, refundToPayerCents, taxOnKeptCents } from "../../supabase/functions/_shared/refundAmount";
 
 /** What Stripe leaves collected after refunding `refund` of a charge `captured` that carried `tax` (proportional reversal). */
 function taxLeftCollected(captured: number, tax: number, refund: number): number {
@@ -114,6 +114,24 @@ describe("a refund keeps the tax on what it keeps (owner, 2026-10-18)", () => {
     expect(await chargeTaxCentsFor({ checkout: { sessions: { list: async () => ({ data: [] }) } } }, { id: "pi_1" })).toBe(0);
     // The PI's own figure wins without a read.
     expect(await chargeTaxCentsFor(lister(1, true), { id: "pi_1", amount_details: { tax: { total_tax_amount: 263 } } })).toBe(263);
+  });
+
+  // Q2083 (b): a job taxed at the job address charges its tax as its own line
+  // with automatic_tax off, so Stripe's figures read 0; the PI and session
+  // carry what was charged (job_tax_cents beside the taxcalc_ id).
+  // @mutate supabase/functions/_shared/refundAmount.ts |   if (siteTax !== null) return siteTax; |   if (false) return siteTax;
+  // @mutate supabase/functions/_shared/refundAmount.ts |     return jobSiteTaxCents(session?.metadata) ?? cents( |     return null ?? cents(
+  it("a job taxed at the job address: its job_tax_cents is the charge's tax, on the PI or the session (Q2083 b)", async () => {
+    const site = { tax_calculation_id: "taxcalc_1", job_tax_cents: "1100" };
+    const sessionWith = (metadata: Record<string, string> | null, amount_tax = 0) => ({
+      checkout: { sessions: { list: async () => ({ data: [{ total_details: { amount_tax }, metadata }] }) } },
+    });
+    expect(await chargeTaxCentsFor(sessionWith(null), { id: "pi_1", metadata: site })).toBe(1100);
+    expect(await chargeTaxCentsFor(sessionWith(site), { id: "pi_1", metadata: {} })).toBe(1100);
+    expect(await checkoutChargeTaxCents(sessionWith(site), { id: "pi_1" })).toBe(1100);
+    // Not a taxcalc_ id, or not digits: Stripe's figure as before.
+    expect(await chargeTaxCentsFor(sessionWith({ tax_calculation_id: "", job_tax_cents: "" }, 0), { id: "pi_1" })).toBe(0);
+    expect(await chargeTaxCentsFor(sessionWith({ tax_calculation_id: "x", job_tax_cents: "1100" }, 7), { id: "pi_1" })).toBe(7);
   });
 
   it("a legacy recurring visit: only the kept part inside the taxed labor carries tax (review of 461a6b724 #3)", () => {

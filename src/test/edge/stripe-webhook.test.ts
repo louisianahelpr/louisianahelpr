@@ -250,6 +250,20 @@ describe("stripe-webhook edge function", () => {
         expect((alerts[0] as unknown as { oncePerDayKey: string }).oncePerDayKey).toBe("taxable-zero-tax:test");
       });
 
+      // Q2083 (b): a job taxed at the job address is LA by construction, so a
+      // $0 job-site figure alerts whatever the billing state.
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |       const billingState = String((session.metadata as any)?.[JOB_TAX_CALC_KEY] ?? "").startsWith("taxcalc_")\n        ? "LA" |       const billingState = false\n        ? "LA"
+      it("a $0 job-site figure alerts even when the poster is billed out of state (Q2083 b)", async () => {
+        expect(await deliver("auto_repair", { tax_calculation_id: "taxcalc_z", job_tax_cents: "0" }, "TX")).toHaveLength(1);
+      });
+
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |     const sessionTaxCents = sessionJobTaxCents(session as any) ?? undefined; |     const sessionTaxCents = session.total_details?.amount_tax;
+      it("a job-site figure above $0 is the tax (total_details reads 0 with automatic_tax off), so no alert (Q2083 b)", async () => {
+        expect(await deliver("auto_repair", { tax_calculation_id: "taxcalc_t", job_tax_cents: "1100" })).toHaveLength(0);
+        const w = scenario.writes.find((x) => x.table === "jobs" && x.op === "update" && "sales_tax_amount" in (x.payload as Record<string, unknown>));
+        expect((w?.payload as Record<string, unknown>)?.sales_tax_amount).toBe(11);
+      });
+
       it("stays quiet on an exempt category, a non-LA address, and a gift-card shortfall", async () => {
         expect(await deliver("yard_work")).toHaveLength(0);
         resetSharedMocks();
@@ -1653,6 +1667,62 @@ describe("stripe-webhook edge function", () => {
 
   // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | payment_status.eq.failed | payment_status.eq.NEVER
   describe("payment_intent.succeeded", () => {
+    // ── Q2083 (b): a job taxed at the JOB ADDRESS is committed to Stripe Tax ──
+    // create-payment charged the tax as its own line with automatic_tax off, so
+    // Stripe Tax records nothing unless we commit the calculation. It is
+    // committed when the money is captured, and the transaction id stamped on
+    // the PI is what the refund/dispute reversal (_visitTaxReversal) reads.
+    describe("Q2083 (b): job-site sales tax", () => {
+      const SITE = { job_id: "job-site", tax_calculation_id: "taxcalc_site", job_tax_cents: "1100" };
+      async function deliverPi(metadata: Record<string, string>, extra: Record<string, unknown> = {}) {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: `evt_site_${Math.random()}`,
+          type: "payment_intent.succeeded",
+          data: { object: { id: "pi_site", amount: 12100, metadata, ...extra } },
+        });
+        scenario.reads.jobs = { rows: [{ id: "job-site", customer_id: "poster-1", title: "Job", payment_status: "escrow", sales_tax_amount: 0, is_seed: true }] };
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(200);
+      }
+
+      // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts |   await commitJobSiteTax({ stripe, pi, logStep, seed: taxJob?.is_seed === true }); | 
+      it("commits the job-site calculation on capture and stamps the transaction on the PI", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
+        await deliverPi(SITE);
+        expect(stripeMock.tax.transactions.createFromCalculation).toHaveBeenCalledTimes(1);
+        const [args, opts] = stripeMock.tax.transactions.createFromCalculation.mock.calls[0];
+        expect(args).toEqual({ calculation: "taxcalc_site", reference: "pi_site" });
+        expect(opts).toEqual({ idempotencyKey: "job-site-tax:pi_site" });
+        expect(stripeMock.paymentIntents.update).toHaveBeenCalledWith("pi_site", { metadata: { tax_transaction_id: "tax_txn_site" } });
+      });
+
+      // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts |     const taxAmountCents: number \| null = siteTax !== null ? siteTax : typeof | const taxAmountCents: number \| null = typeof
+      it("records the job-site figure as sales_tax_amount even when Stripe's own tax field reads 0", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
+        await deliverPi(SITE, { amount_details: { tax: { total_tax_amount: 0 } } });
+        const w = scenario.writes.find((x) => x.table === "jobs" && x.op === "update" && "sales_tax_amount" in (x.payload as Record<string, unknown>));
+        expect((w?.payload as Record<string, unknown>).sales_tax_amount).toBe(11);
+      });
+
+      it("does nothing for an untaxed job, a $0 figure, or a PI already stamped", async () => {
+        await deliverPi({ job_id: "job-site" });
+        await deliverPi({ ...SITE, job_tax_cents: "0" });
+        await deliverPi({ ...SITE, tax_transaction_id: "tax_txn_old" });
+        expect(stripeMock.tax.transactions.createFromCalculation).not.toHaveBeenCalled();
+      });
+
+      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |       title: "Job sales tax collected but NOT recorded in Stripe Tax", |       title: "x",
+      it("a failed commit pages ops (money_at_risk) and still answers 200", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockImplementation(() => { throw new Error("calculation expired"); });
+        await deliverPi(SITE);
+        const alerts = (slackAlerts as Array<{ title: string; kind: string }>).filter((a) => a.title === "Job sales tax collected but NOT recorded in Stripe Tax");
+        expect(alerts).toHaveLength(1);
+        expect(alerts[0].kind).toBe("money_at_risk");
+        expect(stripeMock.paymentIntents.update).not.toHaveBeenCalledWith("pi_site", expect.anything());
+      });
+    });
+
     it("promotes a card-declined-then-ACH-succeeded job from failed to escrow", async () => {
       // Bug 3 (ME-046): a card decline within the same checkout session marks the
       // job 'failed' first. When the poster retries with ACH and the debit settles,

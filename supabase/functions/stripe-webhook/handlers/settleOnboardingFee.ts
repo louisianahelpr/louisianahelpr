@@ -97,6 +97,51 @@ async function stampJobSetupFee(
   }
 }
 
+/**
+ * Q1904: did a cancel already send this duplicate setup fee back? The job-post
+ * checkout funds its job (payment_status 'escrow') and only later settles the
+ * fee, so a cancel_escrow or void-cancelled-payments run in that gap refunds
+ * everything the charge does not keep. The duplicate fee is not a kept part
+ * (setupFeeKeptCents reads the job's onboarding_fee_amount, which only the
+ * WINNING checkout stamps), so that refund already returned it; refunding it
+ * again comes out of the card fee kept. Both conditions must read true: the
+ * charge has a refund on it, and this session's job is in a cancel or refund
+ * state on this payment. An admin's partial refund leaves the job in escrow, so
+ * the fee is still refunded then. Any read that fails answers false: the
+ * refund goes out as it always did (the narrow double return, never a fee not
+ * returned), and the log says why.
+ */
+async function cancelAlreadyReturnedFee(
+  session: Stripe.Checkout.Session,
+  piId: string,
+  { stripe, supabase, logStep }: Pick<WebhookContext, "stripe" | "supabase" | "logStep">,
+): Promise<boolean> {
+  const jobId = (session.metadata as { job_id?: string } | null)?.job_id;
+  if (!jobId) return false;
+  let refundedCents = 0;
+  try {
+    const pi = await stripe.paymentIntents.retrieve(piId, { expand: ["latest_charge"] });
+    const charge = (pi as { latest_charge?: unknown } | null)?.latest_charge;
+    refundedCents = Number(charge && typeof charge === "object" ? (charge as { amount_refunded?: number }).amount_refunded ?? 0 : 0);
+  } catch (e) {
+    // Fail toward the customer: an unreadable charge refunds the $2 as before (logged, not silent).
+    logStep("WARNING: could not read the charge before the duplicate setup fee refund; refunding as usual", { piId, error: (e as Error).message });
+    return false;
+  }
+  if (!(refundedCents > 0)) return false;
+  const { data: job, error } = await supabase
+    .from("jobs").select("stripe_payment_intent_id, payment_status").eq("id", jobId).maybeSingle();
+  if (error || !job) {
+    logStep("WARNING: could not read the job before the duplicate setup fee refund; refunding as usual", { jobId, error: error?.message ?? "no row" });
+    return false;
+  }
+  const j = job as { payment_status?: string | null; stripe_payment_intent_id?: string | null };
+  return j.stripe_payment_intent_id === piId && CANCELLED_PAYMENT_STATES.has(String(j.payment_status));
+}
+
+/** Job payment states a cancel or full refund leaves (create-payment cancel_escrow, void-cancelled-payments). */
+const CANCELLED_PAYMENT_STATES: ReadonlySet<string> = new Set(["cancelling", "cancelled", "refunded"]);
+
 export async function settleOnboardingFee(
   session: Stripe.Checkout.Session,
   paymentIntentId: string,
@@ -135,6 +180,11 @@ export async function settleOnboardingFee(
       // Stripe idempotency key keyed on session.id so webhook
       // re-deliveries don't create multiple refunds for the same
       // duplicate charge.
+      if (await cancelAlreadyReturnedFee(session, piId, { stripe, supabase, logStep })) {
+        // Q1904: a cancel in the seconds before this ran already refunded the charge, $2 included.
+        logStep("Duplicate setup fee not refunded again: the cancel's refund already returned it", { posterId, sessionId: session.id, piId });
+        return;
+      }
       try {
         const ONBOARDING_FEE_CENTS = parseInt((session.metadata as any)?.onboarding_fee_cents || "200", 10);
         // own-mistake full refund (owner, 2026-10-14): we charged the one-time

@@ -312,5 +312,25 @@ check("7. a member cannot read the attempts table", !t7.ok && /permission denied
 const f7 = await one(`SELECT public.client_compat_floor() AS f`);
 check("7. the client floor is 3", f7.f === 3, JSON.stringify(f7));
 
+// 8. Q2390 (20261103040713): a caller with no profile row is told 404, not 500. PostgREST answers SQLSTATE P0002 as
+// HTTP 500 and PT404 as 404. NOT_FOUND_MIGRATION=skip runs this against 20261102082018's body alone (RED).
+if (MODE !== "skip") {
+  const Q2390 = "20261103040713_save_my_phone_not_found_is_404.sql";
+  if (process.env.NOT_FOUND_MIGRATION !== "skip") for (let i = 0; i < 3; i++) await db.exec(mig(Q2390));
+  const NOBODY = "00000000-0000-4000-8000-0000000000ff"; // no profiles row
+  let code = null;
+  let message = null;
+  await db.exec(`SET ROLE authenticated; SELECT set_config('request.jwt.claim.sub', '${NOBODY}', false);`);
+  try {
+    await db.query(`SELECT public.save_my_phone('(504) 555-3434')`);
+  } catch (e) {
+    code = e.code ?? null;
+    message = String(e.message ?? e);
+  } finally {
+    await db.exec(`RESET ROLE; SELECT set_config('request.jwt.claim.sub', '', false);`);
+  }
+  check("8. Q2390: no profile row answers profile_not_found as SQLSTATE PT404 (HTTP 404), never P0002 (HTTP 500)", code === "PT404" && /profile_not_found/.test(message ?? ""), `${code} ${message}`);
+}
+
 console.log(failures ? `\n${failures} FAILED` : "\nALL PASS");
 process.exit(failures ? 1 : 0);

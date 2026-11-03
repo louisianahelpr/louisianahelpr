@@ -9,8 +9,8 @@
  * Behaviour proof (PGlite, the real function): src/test/pglite/seriesClaimUnreadyHoldsOne.pglite.mjs
  * (ALL PASS; NEW_MIGRATION=skip: 6 FAILED; PLANT=nocap: 6 FAILED; PLANT=nocount: 4 FAILED).
  *
- * @mutate supabase/migrations/20261102230059_series_claim_unready_holds_one.sql |     IF v_block IS NOT NULL AND v_held_future + cardinality(v_claimed) >= 1 THEN | IF false THEN
- * @mutate supabase/migrations/20261102230059_series_claim_unready_holds_one.sql |    WHERE h.parent_job_id = v_job.id AND h.helper_id = v_uid AND h.visit_date >= v_today; |    WHERE false;
+ * @mutate supabase/migrations/20261103032330_series_claim_takes_helpr_schedule_lock.sql |     IF v_block IS NOT NULL AND v_held_future + cardinality(v_claimed) >= 1 THEN | IF false THEN
+ * @mutate supabase/migrations/20261103032330_series_claim_takes_helpr_schedule_lock.sql |    WHERE h.parent_job_id = v_job.id AND h.helper_id = v_uid AND h.visit_date >= v_today; |    WHERE false;
  */
 import { describe, it, expect } from "vitest";
 import { join } from "node:path";

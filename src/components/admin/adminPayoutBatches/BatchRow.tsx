@@ -95,7 +95,7 @@ export const BatchRow = ({
         )}
       </div>
       <div className="text-right shrink-0 space-y-1">
-        <p className="text-ds-17 font-bold text-primary">${formatPriceExact(Number(batch.total_payout))}</p>
+        <p className="text-ds-17 font-bold" style={{ color: "hsl(var(--accent-ink))" }}>${formatPriceExact(Number(batch.total_payout))}</p>
         {tab === "ready" ? (
           <div className="flex gap-1.5 justify-end flex-wrap">
             <Button

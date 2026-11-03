@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import type { Conversation } from "@/components/messages/types";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /** Read-only notice that replaces the composer in that thread. Role-neutral. */
 export const DELETED_ACCOUNT_NOTICE =
@@ -56,7 +57,7 @@ export async function fetchCounterpartyDeleted(
     _other: otherUserId,
   });
   if (error) {
-    if ((error as { code?: string }).code !== "PGRST202") {
+    if (!isMissingRpcNamed(error, "get_thread_counterparty_deleted")) {
       report(error, { severity: "warning", tags: { source: "deletedCounterparty.fetchCounterpartyDeleted" } });
     }
     return null;

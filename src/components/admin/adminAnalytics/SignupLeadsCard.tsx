@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { cn } from "@/lib/utils";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /**
  * Sign-up leads (Q1587, owner 2026-10-11): the emails saved at sign-up step 1
@@ -38,7 +39,7 @@ async function loadSignupLeads(): Promise<LeadsLoad> {
   const res = await supabase.rpc("admin_list_signup_leads");
   // PGRST202: the function is not deployed yet (db-deploy lag after merge).
   // Said on the card, never shown as "no leads".
-  if (res.error && (res.error as { code?: string }).code === "PGRST202") return { unavailable: true };
+  if (isMissingRpcNamed(res.error, "admin_list_signup_leads")) return { unavailable: true };
   return { unavailable: false, rows: (unwrap(res) ?? []) as SignupLead[] };
 }
 

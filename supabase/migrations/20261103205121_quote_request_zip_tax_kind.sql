@@ -27,8 +27,11 @@
 --      (is_job_labor_taxable(category, NULL): Auto Repair, Appliance Repair),
 --      as Post a Job's form clears it; a value outside the four kinds is
 --      refused 'invalid_tax_kind'. Both refusals are 22023 (PostgREST: 400).
+--      too_many_open_requests moves from ERRCODE 54000 to P0001: PostgREST
+--      maps 54* to 500 and P0001 to 400 (docs.postgrest.org v12 errors
+--      table, read 2026-11-03); the client reads the message, not the code.
 --      The rest of the body is prod's (md5 f0051ef282572e766e03516d48956894,
---      read 2026-11-03 2:5x PM CST), unchanged.
+--      read 2026-11-03 2:50 PM CST), unchanged.
 --   3. quote_insert_job also copies zip_code and tax_kind onto the job. Its
 --      body is otherwise prod's (md5 e0b4adf28f505ba18142821a8f46e902).
 --      enforce_jobs_insert_column_lock names neither column (B62, measured),
@@ -140,7 +143,7 @@ BEGIN
          -- cap limits what strangers can see and quote on (sentry + lh-authz-rls
          -- review on PR #3173).
          AND r.quotes_close_at > now()) >= 5 THEN
-    RAISE EXCEPTION 'too_many_open_requests' USING ERRCODE = '54000',
+    RAISE EXCEPTION 'too_many_open_requests' USING ERRCODE = 'P0001',
       DETAIL = 'You can ask for quotes on up to 5 jobs at a time.';
   END IF;
 

@@ -27,6 +27,8 @@ import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { feeTransferIdempotencyKey, formatPayoutDollars, isDefiniteStripeRefusal, roundPayoutDownCents, sourceChargeFor } from "../_shared/money.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
+import type { LivePayoutGate } from "../_shared/livePayoutGate.ts";
+import { noteHeldReason } from "../_shared/heldReason.ts";
 // The read-only half (row shape, read, cents, the admin refund refusal) lives
 // in crewBlockFeeRead.ts, so a reader that never pays does not import this
 // shared-guarded payer (Q231, decidedDisputeEscrowOnlyMovedBySplit).
@@ -52,6 +54,8 @@ export async function payCrewBlockFees(
      * one that does not goes from the platform balance.
      */
     linkPi?: Parameters<typeof sourceChargeFor>[0];
+    /** Q2440: the run's one-live-read-per-account map (holdUnlessPayable's cache). */
+    liveGates?: Map<string, Promise<LivePayoutGate>>;
   },
   job: { id: string; title?: string | null; helper_fee_percent?: number | string | null; helper_fee_flat_cents?: number | string | null },
   rows: CrewBlockFeeRow[],
@@ -212,10 +216,14 @@ export async function payCrewBlockFees(
       what: "a crew block fee",
       then: "The job keeps its escrow and the next run retries.",
       fields: { job_id: job.id, block_fee_id: row.id, amount: payoutCents / 100 },
+      cache: deps.liveGates,
     });
     if (live.held) {
       allPaid = false;
       if (live.defect) problems.push(`crew block fee ${row.id}: ${live.defect}`);
+      // Q2440: the row says why it waits (the single Helpr's fee row does).
+      const noted = await noteHeldReason(admin, "crew_block_fees", row.id, live.kind);
+      if (noted) problems.push(`crew block fee ${row.id}: held, but its reason was not written: ${noted}`);
       continue;
     }
     try {

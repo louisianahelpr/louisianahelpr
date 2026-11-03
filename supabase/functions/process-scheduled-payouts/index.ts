@@ -1133,7 +1133,7 @@ serve(async (req) => {
             console.warn(`[process-scheduled-payouts] could not link the charge for job ${job.id}'s block fees:`, e);
           }
         }
-        const paidFees = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "process-scheduled-payouts" }, job, blockFees.rows, chargeId);
+        const paidFees = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "process-scheduled-payouts", liveGates }, job, blockFees.rows, chargeId);
         for (const p of paidFees.problems) jobDefect(job.id, p);
       }
       const refund = await refundUnfilledCrewShares({ ...a, paidCents, blockFeeCents: crewBlockFeeCents(blockFees.rows) });

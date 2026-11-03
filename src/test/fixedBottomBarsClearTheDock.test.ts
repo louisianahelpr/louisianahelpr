@@ -32,6 +32,7 @@
 // @mutate src/pages/posts/BulkDismissBar.tsx | className="fixed inset-x-0 bottom-safe-nav z-40 px-4" | className="fixed inset-x-0 bottom-0 z-40 px-4"
 // @mutate src/index.css | html.dock-yield .mobile-nav-frame,\nhtml.dock-yield .mobile-nav-frame * { | html.dock-yield .mobile-nav-frame {
 // @mutate src/index.css |   transition: none !important;\n} |   transition-duration: 0.2s;\n}
+// @mutate src/components/admin/AdminPayoutBatches.tsx |             bottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))", |             bottom: "calc(var(--safe-area-bottom, 0px) + 4.5rem)",
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -49,10 +50,6 @@ const FILES = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "u
 
 // @two-way src/test/fixedBottomBarsClearTheDock.test.ts:stale fixed-bottom-bar exception
 const EXACT_EXCEPTIONS: Record<string, { count: number; why: string }> = {
-  "src/components/admin/AdminPayoutBatches.tsx": {
-    count: 1,
-    why: "an /admin page: /admin is in noNavPages (mobileNavHelpers.ts), so no dock renders there",
-  },
   "src/components/messages/ConversationList.tsx": {
     count: 1,
     why: "bulk-hide bar at a hand-typed safe-area + 80px, above the dock's 62px box (h-14 pill + mb-1.5); it does not read --bottom-nav-h",

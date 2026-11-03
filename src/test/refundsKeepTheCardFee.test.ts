@@ -463,7 +463,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // declutter_record_refund restated with ONE new reason, helpr_fault (the Helpr's fault in a delivery they could not
     // finish): everything goes back and the card fee becomes a debt on the at-fault Helpr, not the seller. Nothing
     // else in them changed (record_refund three-way merged from 20261031105148).
-    // Q2259 shipping lost sweep (20261103203204, B61 WIP, FOR VERDICT): the reason CHECK, the policy CHECK and
+    // Q2259 shipping lost sweep (20261103203204, B61, lead PASS lh-money-escrow 11-03): the reason CHECK, the policy CHECK and
     // declutter_record_refund restated verbatim (prod md5) with ONE new reason, ship_lost -> full_seller_pays_fee
     // (decision 5: lost in the mail = the seller; everything back, the card fee and the spent label are the seller's debt).
     migration: "20261103203204_shipping_lost_sweep.sql",
@@ -522,7 +522,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // the platform absorbs the card fee (no seller debt, no strike): neither side set a time, our checkout let the
       // slot go while the payment was in flight.
       delivery_never_booked: "full_platform_absorbs",
-      // Q2259 (20261103203204, FOR VERDICT): a parcel the carrier took and never delivered in 10 days. Everything back;
+      // Q2259 (20261103203204, lead PASS 11-03): a parcel the carrier took and never delivered in 10 days. Everything back;
       // the card fee Stripe kept is the seller's debt (decision 5), and the spent label too (declutter_ship_no_fault_label).
       ship_lost: "full_seller_pays_fee",
     } as Record<string, "full_platform_absorbs" | "full_seller_pays_fee" | "keep_card_fee" | "keep_buyer_fee" | "agreed_part">,
@@ -585,7 +585,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // fee restored; buyer_no_show / admin_no_fault become seller_out (full_seller_pays_fee) while the seller is out.
       // A3 reconcile (20261102084222, builder 166, lead verdict pending): 20261102063343 verbatim plus A3-72's two notice
       // lines on 'delivery_never_booked' (from 20261102031000, which 063343 dropped). Amount, fee, reasons unchanged.
-      // Q2259 lost sweep (20261103203204, FOR VERDICT): verbatim (prod md5 58bfd657); only ship_lost joins v_seller_fault.
+      // Q2259 lost sweep (20261103203204, lead PASS 11-03): verbatim (prod md5 58bfd657); only ship_lost joins v_seller_fault.
       declutter_close_paid_order: "20261103203204_shipping_lost_sweep.sql 3457a20c7372f9ed",
       // #26 (20261028204431): only the "It's yours" notice line changed; it still records no refund.
       // #37 (20261028223036): only the "Free item claimed" link changed; it still records no refund.
@@ -630,7 +630,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // as the seller's fee debt (ship_label / ship_void_rejected, once per shipment) or asks for a test label's void. It
       // records no refund and changes no refund amount, card fee or policy.
       // Re-pinned (Lander 36, train 1, 11-02): only its two notice links moved to ?tab=selling.
-      // Q2259 lost sweep (20261103203204, FOR VERDICT): verbatim (prod md5 01518c41); it also acts on ship_lost.
+      // Q2259 lost sweep (20261103203204, lead PASS 11-03): verbatim (prod md5 01518c41); it also acts on ship_lost.
       declutter_ship_no_fault_label: "20261103203204_shipping_lost_sweep.sql bf7c241b69db814f",
       // Q2259 S6 2d (20261102051521, shipping, testers only; for verdict): the shipping a buyer-fault close held back goes
       // back once the label is VOIDED: one declutter_delivery_refunds row ('ship_void_refunded', refund_cents = the order's
@@ -706,7 +706,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Based on Shipping S6 2d (20261102051521, wip/b126-ship): its keep_buyer_fee shipping hunks are kept; lands after it.
       // Q2556 (20261102080936): restated verbatim from 20261102061022; only the seller notice skips a seller_out refund
       // of a payment the order never took (mark_order_paid tells that seller). Amounts, policies and the debt row unchanged.
-      // Q2259 lost sweep (20261103203204, FOR VERDICT): verbatim (prod md5 ffe25aeb); only ship_lost joins full_seller_pays_fee.
+      // Q2259 lost sweep (20261103203204, lead PASS 11-03): verbatim (prod md5 ffe25aeb); only ship_lost joins full_seller_pays_fee.
       declutter_record_refund: "20261103203204_shipping_lost_sweep.sql e45624435670a008",
       // B100 (20261030134109): take back a problem report. Records no refund: it only marks the problem and the buyer's own
       // to_admin refund request 'withdrawn'; no amount, fee or payout is read or written.
@@ -853,7 +853,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // other arm unchanged), and declutter_refund_requests.refund_id referencing a refund row (no amount).
       // BUY-36: the reason CHECK and the reason -> policy CHECK swapped to add 'helpr_fault' (full_seller_pays_fee).
       // A3-72: the reason CHECK adds 'delivery_never_booked'; the policy CHECK statements hash the same as 20261031231150's.
-      // Q2259 lost sweep (FOR VERDICT): the reason CHECK and the policy CHECK each add ship_lost.
+      // Q2259 lost sweep (lead PASS 11-03): the reason CHECK and the policy CHECK each add ship_lost.
       "declutter_refunds 20261103203204_shipping_lost_sweep.sql": ["1192c0e245b11665", "586eca928b6d3894", "afb94a44f9fb4011", "95c01ec626194161"],
       "declutter_refunds 20261102031000_declutter_seller_delivery_book_by.sql": ["1192c0e245b11665", "ee6fde0ace2bcc93", "afb94a44f9fb4011", "a6c1e85c039a7127"],
       "declutter_refunds 20261031231150_helpr_delivery_cant_finish.sql": ["1192c0e245b11665", "dafbb2cea83bdc81", "afb94a44f9fb4011", "a6c1e85c039a7127"],

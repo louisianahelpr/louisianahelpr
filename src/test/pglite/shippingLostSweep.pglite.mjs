@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * PGlite proof for 20261103203204_shipping_lost_sweep (Q2259; spec 5.3 "ship_lost"). WIP: the world loads the
- * shipping migrations up to the newest restated bases; see the handoff for what is still unproven.
+ * PGlite proof for 20261103203204_shipping_lost_sweep (Q2259; spec 5.3 "ship_lost"). The world loads the
+ * shipping migrations up to the newest restated bases.
  * declutter_ship_sweep closes a captured ship order whose label was accepted 10+ days ago with no delivered scan:
  * one 'ship_lost' refund of EVERYTHING, full_seller_pays_fee, NO strike, item withdrawn, the spent label a ship_label
  * debt; it leaves alone: accepted 9 days ago, delivered, waiting for pickup, an open problem, a held hold.

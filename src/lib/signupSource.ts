@@ -13,7 +13,9 @@ import { signupLeadSource } from "@/lib/signupLead";
  *    never the link, the query string or anything about the person. The first one wins for 30 days.
  * 2. useSignupSourceReport: once someone is signed in, send that pair once per account to record_my_signup_source
  *    (20261031220447). The server keeps it only for an account made in the last 2 days, so an old member opening a
- *    tagged link is never counted as a new sign-up. The admin report (admin_signup_source_report) counts sign-ups and
+ *    tagged link is never counted as a new sign-up. An account the session already shows is older than that (plus an
+ *    hour for clock skew) is not sent at all: the server would return false, and the call was one request per cold
+ *    page load for every existing member (release gate request budget, 11-02: x32 in one E2E job). The admin report (admin_signup_source_report) counts sign-ups and
  *    first posts per source, real members only.
  *
  * Fire-and-forget: never throws, never blocks anything. A missing function (PGRST202, the web shipped before the
@@ -23,6 +25,8 @@ import { signupLeadSource } from "@/lib/signupLead";
 const TOUCH_KEY = "lh_first_touch";
 const SENT_KEY = "lh_signup_source_sent";
 const TOUCH_DAYS = 30;
+/** record_my_signup_source keeps a source only for an account made in the last 2 days; 1 h of slack for clock skew. */
+const NEW_ACCOUNT_MS = 2 * 86_400_000 + 3_600_000;
 
 export interface FirstTouch {
   source: string;
@@ -69,9 +73,12 @@ export function rememberFirstTouch(search: string, referrer: string, now = Date.
   return touch;
 }
 
-/** Send the kept source for this account once. Resolves; never rejects. */
-export async function reportSignupSource(userId: string): Promise<void> {
+/** Send the kept source for this account once. Resolves; never rejects. `createdAt` is the auth user's created_at:
+ *  an account plainly older than the server's 2-day window is skipped (no request); unknown means send. */
+export async function reportSignupSource(userId: string, createdAt?: string | null, now = Date.now()): Promise<void> {
   if (safeStorage.getItem(SENT_KEY) === userId) return;
+  const made = createdAt ? Date.parse(createdAt) : NaN;
+  if (Number.isFinite(made) && now - made > NEW_ACCOUNT_MS) return;
   const touch = readFirstTouch() ?? { source: "direct", campaign: null, at: Date.now() };
   try {
     const { error } = await supabase.rpc("record_my_signup_source", {
@@ -92,7 +99,7 @@ export async function reportSignupSource(userId: string): Promise<void> {
 }
 
 /** Mounted once in SessionManager: remembers the first touch at boot, then reports it when someone signs in. */
-export function useSignupSourceReport(userId: string | undefined) {
+export function useSignupSourceReport(userId: string | undefined, createdAt?: string | null) {
   useEffect(() => {
     try {
       rememberFirstTouch(window.location.search, document.referrer);
@@ -101,6 +108,6 @@ export function useSignupSourceReport(userId: string | undefined) {
     }
   }, []);
   useEffect(() => {
-    if (userId) void reportSignupSource(userId);
-  }, [userId]);
+    if (userId) void reportSignupSource(userId, createdAt);
+  }, [userId, createdAt]);
 }

@@ -35,6 +35,9 @@ export async function expectGateSendsToCompleteProfile(api: APIRequestContext, s
     named && finished,
     `the incomplete seed account is COMPLETE under isProfileComplete (full_name set, and ${row.location?.trim() ? "a city" : `accepted_terms_at ${row.accepted_terms_at}`}), ` +
       "so /complete-profile redirects it to /home. accepted_terms_at cannot be cleared (tr_preserve_first_consent keeps the first value), " +
-      "so re-applying the seed does not fix it: the account must be torn down and re-created (prod-seed.mjs) with no city and no accepted_terms_at.",
+      "so re-applying the seed does not fix it. Re-create THIS account only: delete auth user helpr-seed-incomplete-0912@mailinator.com " +
+      "(GoTrue admin DELETE; its profile rows cascade), then `SEED_PASSWORD_INCOMPLETE=<the PLAYWRIGHT_INCOMPLETE_PASSWORD secret> " +
+      "node scripts/audit/prod-seed.mjs --apply` re-creates it with no city and no accepted_terms_at; `--verify` checks it. " +
+      "Something submitted Complete Profile as this account: find and stop that writer too.",
   ).toBe(false);
 }

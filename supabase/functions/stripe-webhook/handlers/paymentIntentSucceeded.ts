@@ -3,6 +3,8 @@ import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { settleOnboardingFee } from "./settleOnboardingFee.ts";
 import { pageGiftLeftSpentOnCardFunding } from "./_giftLeftSpentOnCardFunding.ts";
+import { commitJobSiteTax } from "./_jobTaxCommit.ts";
+import { JOB_TAX_CALC_KEY, JOB_TAX_CENTS_KEY } from "../../_shared/jobTaxAddress.ts";
 
 /**
  * Q1975: the setup fee on a bank (ACH) checkout is settled HERE, when the
@@ -120,6 +122,11 @@ export async function handlePaymentIntentSucceeded(
     throw new Error(`Sales-tax job lookup failed for PI ${pi.id}: ${taxJobErr.message}`);
   }
 
+  // Q2083 (b): the money is captured, so a job-site tax is now owed: commit
+  // it to Stripe Tax. Read from the PaymentIntent alone, so it runs even when
+  // this event beats checkout.session.completed to the job row. Never throws.
+  await commitJobSiteTax({ stripe, pi, logStep, seed: taxJob?.is_seed === true });
+
   if (taxJob) {
     // Take Stripe's number whenever Stripe HAS one — including a genuine $0.
     // This was `taxAmountCents > 0 ? ... : existing`, which meant a real zero
@@ -129,8 +136,15 @@ export async function handlePaymentIntentSucceeded(
     // not the edge case. Fall back to the stored value ONLY when the field is
     // absent (older PI shape / Stripe Tax not applied), which is genuinely
     // "no information", not "zero".
+    // Q2083 (b): a job taxed at the JOB ADDRESS charged its tax as its own
+    // line (automatic_tax off), so Stripe's own tax figure is absent or 0;
+    // the figure charged is on the PaymentIntent as job_tax_cents.
+    const piMd = (pi.metadata ?? {}) as Record<string, string>;
+    const siteTax = String(piMd[JOB_TAX_CALC_KEY] ?? "").startsWith("taxcalc_") && /^\d+$/.test(String(piMd[JOB_TAX_CENTS_KEY] ?? ""))
+      ? Number(piMd[JOB_TAX_CENTS_KEY])
+      : null;
     const taxTotal = (pi.amount_details as any)?.tax?.total_tax_amount;
-    const taxAmountCents: number | null = typeof taxTotal === "number" ? taxTotal : null;
+    const taxAmountCents: number | null = siteTax !== null ? siteTax : typeof taxTotal === "number" ? taxTotal : null;
     const confirmedTax = taxAmountCents !== null
       ? taxAmountCents / 100
       : (taxJob.sales_tax_amount || 0);

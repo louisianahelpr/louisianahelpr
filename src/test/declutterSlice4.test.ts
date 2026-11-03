@@ -11,7 +11,7 @@
  * vs auto-pay vs problem vs no-show; two real sessions; the typed code is gone since 20261018183715): scripts/declutter/race-handover.mjs.
  *
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  o := public.declutter_lock_order(p_order_id); | 'invalid_method' USING ERRCODE = '22023';\n  END IF;\n  SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;
- * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |     'order_id', o.id, 'status', o.status, 'side', v_side,\n    'confirmed_by' |     'order_id', o.id, 'status', o.status, 'side', v_side,\n    'code', h.code, 'confirmed_by'
+ * @mutate supabase/migrations/20261103050349_declutter_orders_talk_admin_not_found_is_404.sql |     'order_id', o.id, 'status', o.status, 'side', v_side,\n    'confirmed_by' |     'order_id', o.id, 'status', o.status, 'side', v_side,\n    'code', h.code, 'confirmed_by'
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   IF p_method IS NULL OR p_method <> 'buyer' THEN |   IF p_method IS NULL OR p_method NOT IN ('code', 'buyer') THEN
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |   IF v_side <> 'buyer' THEN\n    -- the seller cannot tap | IF false THEN\n    -- the seller cannot tap
  * @mutate supabase/migrations/20261018183715_declutter_handover_no_qr_no_code.sql |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('code', 'buyer', 'seller', 'porch', 'auto', 'admin')); |   CHECK (confirmed_by IS NULL OR confirmed_by IN ('scan', 'code', 'buyer', 'porch', 'auto', 'admin'));
@@ -126,7 +126,8 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
   it("no QR and no 4-digit code (owner 2026-10-17 + 2026-10-18 pop-up): \"Left on porch\" with a photo, \"I got it\", the porch photo and the auto-pay only", () => {
     // Q2266 restated it with the porch note (20261021023158); still no code, read from the newest body below.
     // The handover money ruling (20261031004529) added the seller's word and the no-show clock to the read.
-    expect(DEFS.get("declutter_my_handover")?.file).toBe("20261031004529_declutter_handover_both_confirm.sql");
+    // Q2390 packet 9 (20261103050349) restated it verbatim but the not-found ERRCODE (P0002 -> PT404); still no code.
+    expect(DEFS.get("declutter_my_handover")?.file).toBe("20261103050349_declutter_orders_talk_admin_not_found_is_404.sql");
     // #7 (20261028202844) restated it verbatim but the seller-delivery day check; still no code (checked below).
     // Shipping S2 (20261030000030) restated it verbatim but the shipped-order delivered-scan check; still no code.
     // Audit 1030 DB-3 (20261030061753) restated it verbatim but the meetup hour check; still no code.

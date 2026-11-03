@@ -157,6 +157,8 @@ describe("asking for quotes", () => {
     longitude: null,
     parish: null,
     windowHours: 48,
+    zipCode: "70801",
+    taxKind: null,
   };
 
   it("sends the request, leaving unknown fields out, and answers the new id", async () => {
@@ -164,8 +166,14 @@ describe("asking for quotes", () => {
     await expect(createQuoteRequest(req)).resolves.toBe("req-1");
     const [name, args] = h.rpcs[0] as [string, Record<string, unknown>];
     expect(name).toBe("create_quote_request");
-    expect(args).toMatchObject({ p_title: "Fence fix", p_category: "handyman", p_date_needed: "2026-11-03", p_window_hours: 48 });
-    for (const k of ["p_start_time", "p_estimated_hours", "p_location", "p_latitude", "p_longitude", "p_parish"]) expect(args[k]).toBeUndefined();
+    expect(args).toMatchObject({ p_title: "Fence fix", p_category: "handyman", p_date_needed: "2026-11-03", p_window_hours: 48, p_zip_code: "70801" });
+    for (const k of ["p_start_time", "p_estimated_hours", "p_location", "p_latitude", "p_longitude", "p_parish", "p_tax_kind"]) expect(args[k]).toBeUndefined();
+  });
+
+  it("sends the poster's taxed-kind answer (Q2083 b)", async () => {
+    h.queue.push({ data: "req-2" });
+    await createQuoteRequest({ ...req, taxKind: "fabric_cleaning" });
+    expect((h.rpcs[0] as [string, Record<string, unknown>])[1]).toMatchObject({ p_zip_code: "70801", p_tax_kind: "fabric_cleaning" });
   });
 
   it("no id back is a throw, never an empty id", async () => {

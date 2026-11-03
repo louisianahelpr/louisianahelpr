@@ -16,7 +16,7 @@
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |                 WHERE o.seller_id = p_user_id AND o.status IN ('paid', 'handed_over')\n |                 WHERE o.seller_id = p_user_id\n
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |                   AND o.paid_with <> 'free') |                   )
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |                 WHERE so.seller_id = p_user_id AND so.captured_at IS NOT NULL\n |                 WHERE so.seller_id = p_user_id\n
- * @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |   -- Publish's own checks (authz review 7): a pickup time on file. (No payout | IF public.helper_award_block_reason(v_uid) IS NOT NULL THEN RAISE EXCEPTION 'payout_setup_incomplete'; END IF;\n  -- (No payout
+ * @mutate supabase/migrations/20261103085435_declutter_shops_listing_and_hours_not_found_is_404.sql | -- Publish's own checks (authz review 7): a pickup time on file. (No payout | IF public.helper_award_block_reason(v_uid) IS NOT NULL THEN RAISE EXCEPTION 'payout_setup_incomplete'; END IF;\n  -- (No payout
  * @mutate src/components/declutter/DeclutterSellView.tsx |         photoCount >= DECLUTTER_MIN_PHOTOS && ( |         photoCount >= DECLUTTER_MIN_PHOTOS && !payoutBlock && (
  * @mutate src/components/shops/ShopPayoutRow.tsx |   if (setupBlock === "needs_hire" && payoutPrompt.kind === "setup") return null; |
  * @mutate src/components/declutter/SellerPayoutPrompt.tsx |   if (!owed) return null; |   if (false) return null;
@@ -32,7 +32,9 @@ const read = (p: string) => blankComments(readFileSync(p, "utf8"));
 describe("payout setup only when money is owed", () => {
   it("reads the newest definitions (floor)", () => {
     for (const n of ["declutter_relist_listing", "shops_assert_owner_eligible", "shop_owner_sell_block_reason"]) {
-      expect(newestFunction(n).file, n).toContain("20261027163240");
+      // Q2390 packet 21 restates declutter_relist_listing (ERRCODE-only, md5-verified), keeping this file's body.
+      if (n === "declutter_relist_listing") expect(newestFunction(n).file, n).toContain("20261103085435");
+      else expect(newestFunction(n).file, n).toContain("20261027163240");
     }
     // Restated by item B (live on post, 20261030071816), which keeps this file's no-payout-gate body.
     // And by the check after posting (20261031152545), which keeps the same no-payout-gate body (row 23 stays dropped).

@@ -1,5 +1,6 @@
 import type { PostgrestError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { report } from "@/lib/errorLogger";
 import { loadModule } from "@/lib/loadModule";
 // The refusal copy (about 100 KB raw) loads only when the server refuses, not with every screen that can ask
@@ -183,7 +184,7 @@ export async function blockUser(
   if (error) {
     report(error, { severity: "warning", tags: { source: "userBlocks.blockUserAndSettle" } });
     const message =
-      String((error as { code?: string }).code ?? "") === "PGRST202"
+      isMissingRpcNamed(error, "block_user_and_settle")
         ? "Blocking is briefly unavailable while an update finishes deploying. Please try again in a minute."
         : ((await lifecycleErrors())?.rpcErrorMessage("block_user_and_settle", error) ?? (error.message || "Couldn't block this person — try again?"));
     return { ok: false, cancelledJobIds: [], settled: [], error: message };

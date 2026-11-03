@@ -126,7 +126,8 @@ export interface StripeMock {
     transactions: { createFromCalculation: ReturnType<typeof vi.fn>; createReversal: ReturnType<typeof vi.fn>; listLineItems: ReturnType<typeof vi.fn> };
   };
   /** `list`: instant-payout's fee return asks Stripe whether the attempt's payout really went. */
-  payouts: { create: ReturnType<typeof vi.fn>; list: ReturnType<typeof vi.fn> };
+  /** Q2225: admin-settle-ref-lookup reads a po_ on the payee's connected account (payouts.retrieve). */
+  payouts: { create: ReturnType<typeof vi.fn>; list: ReturnType<typeof vi.fn>; retrieve: ReturnType<typeof vi.fn> };
   charges: {
     retrieve: ReturnType<typeof vi.fn>;
   };
@@ -240,6 +241,7 @@ export const stripeMock: StripeMock = {
   payouts: {
     create: vi.fn(),
     list: vi.fn().mockResolvedValue({ data: [] }),
+    retrieve: vi.fn(),
   },
   charges: {
     retrieve: vi.fn(),

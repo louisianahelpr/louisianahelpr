@@ -25,7 +25,7 @@ import { moveSeedJobStart } from "../moveSeedJobStart";
 import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenarios";
 import { createThrowaway, deleteThrowaway, serviceKey, type Throwaway } from "./throwaway";
 import { srFetch } from "../serviceRoleFetch";
-import { cardByTitle, findChip } from "./cardChips";
+import { cardByTitle, findChip, openPostedCard } from "./cardChips";
 import { refundToPayerCents } from "../../src/lib/refundAmount";
 import { stripeProcessingCostCents } from "../../src/lib/stripeFees";
 
@@ -509,11 +509,11 @@ test.describe.serial("admin and safety journeys", () => {
     const pp = journey.track("poster", await pctx.newPage());
 
     await test.step("before the start, No-Show is not offered", async () => {
-      await openCard(pp, jobId, JOB_TITLE);
+      expect(await openCard(pp, jobId, JOB_TITLE), "before the start the card must open (More options), or the check below is vacuous").toBe(true);
       if (Date.now() < startAt.getTime() - 20_000) {
         // On the row OR in More: a count on the card alone would pass with the
         // chip parked in the overflow (journeyChipsReachOverflow.test.ts).
-        expect(await findChip(pp, cardByTitle(pp, JOB_TITLE), /^No-Show/, 3_000), "No-Show offered before the scheduled start").toBeNull();
+        expect(await findChip(pp, cardByTitle(pp, JOB_TITLE), NO_SHOW, 3_000), "No-Show offered before the scheduled start").toBeNull();
       }
       await journey.milestone(pp, "before-start");
     });
@@ -522,7 +522,7 @@ test.describe.serial("admin and safety journeys", () => {
       const wait = startAt.getTime() + 15_000 - Date.now();
       if (wait > 0) await pp.waitForTimeout(wait);
       await openCard(pp, jobId, JOB_TITLE);
-      const chip = await findChip(pp, cardByTitle(pp, JOB_TITLE), /^No-Show/, 30_000);
+      const chip = await findChip(pp, cardByTitle(pp, JOB_TITLE), NO_SHOW, 30_000);
       expect(chip, "No-Show is not offered after the start with no arrival, on the row or in More").not.toBeNull();
       await chip!.click();
       const dlg = pp.getByRole("dialog").filter({ hasText: "Report no-show" }).first();
@@ -554,8 +554,8 @@ test.describe.serial("admin and safety journeys", () => {
     });
 
     await test.step("the reopened job is back on the poster's desk", async () => {
-      await openCard(pp, jobId, JOB_TITLE);
-      expect(await findChip(pp, cardByTitle(pp, JOB_TITLE), /^No-Show/, 3_000), "the reopened job still offers No-Show").toBeNull();
+      expect(await openCard(pp, jobId, JOB_TITLE), "the reopened card must open (More options), or the check below is vacuous").toBe(true);
+      expect(await findChip(pp, cardByTitle(pp, JOB_TITLE), NO_SHOW, 3_000), "the reopened job still offers No-Show").toBeNull();
       await assertHealthy(pp, "reopened job");
       await journey.milestone(pp, "reopened");
     });
@@ -564,15 +564,17 @@ test.describe.serial("admin and safety journeys", () => {
 });
 
 /** My Posts deep link to one job card. */
-async function openCard(page: Page, jobId: string, jobTitle: string) {
+/** The poster's No-Show control: the open card's step chip ("No-Show", InProgressStep) or, once the start has passed
+ *  with no check-in, the face's own button ("Report no-show", posterFaceAction). Both call the card's onNoShow and
+ *  open the one "Report no-show" dialog; a "not offered" check must see either. */
+const NO_SHOW = /^(No-Show|Report no-show)/;
+
+async function openCard(page: Page, jobId: string, jobTitle: string): Promise<boolean> {
   await page.goto(`/posts?job=${jobId}`);
   await expect(page.getByText(jobTitle).first(), `${jobTitle} is missing from My Posts`).toBeVisible({ timeout: 60_000 });
-  // OPEN it, and prove it opened (02-marketplace's card()). Every card renders
-  // COLLAPSED and a collapsed card has no step chips, so No-Show could never be
-  // found on it: e2e-journeys 39073227265 failed "No-Show is not offered" on a
-  // shut card, and the before-start "not offered" check passed vacuously.
-  const card = cardByTitle(page, jobTitle);
-  const progress = card.locator("[data-job-progress]");
-  if (!(await progress.isVisible().catch(() => false))) await card.getByRole("heading", { name: jobTitle, level: 2 }).click();
-  await expect(progress, `${jobTitle}'s card did not open when its heading was clicked`).toBeVisible({ timeout: 30_000 });
+  // OPEN it, and prove it opened (openPostedCard: the "Close <title>" chevron). A shut card has no step chips, so
+  // No-Show could never be found on it: e2e-journeys 39073227265 failed "No-Show is not offered" on a shut card,
+  // and the before-start "not offered" check passed vacuously. Since the face rebuild the title links to /jobs/:id;
+  // the face's "More options" opens the card. False: the face's one button is the stage's own move (no More options).
+  return openPostedCard(page, jobTitle);
 }

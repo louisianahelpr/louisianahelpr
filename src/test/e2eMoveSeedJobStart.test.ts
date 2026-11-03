@@ -2,7 +2,7 @@
 // @mutate e2e/moveSeedJobStart.ts | rows[0].id !== jobId \|\| rows[0].is_seed !== true | rows[0].id !== jobId
 // @mutate e2e/moveSeedJobStart.ts | const ZONE = "America/Chicago"; | const ZONE = "UTC";
 // @mutate e2e/journeys/04-admin-safety.spec.ts | const slot = slotAhead(20); | const slot = slotAhead(4);
-// @mutate e2e/journeys/04-admin-safety.spec.ts | await expect(progress, `${jobTitle}'s card did not open when its heading was clicked`).toBeVisible({ timeout: 30_000 }); | void progress;
+// @mutate e2e/journeys/04-admin-safety.spec.ts | expect(await openCard(pp, jobId, JOB_TITLE), "before the start the card must open (More options), or the check below is vacuous").toBe(true); | await openCard(pp, jobId, JOB_TITLE);
 // @mutate e2e/journeys/04-admin-safety.spec.ts | startAt = await moveSeedJobStart(SUPABASE_URL, jobId, 90_000, "the no-show job"); | startAt = slot.at;
 
 /*
@@ -92,12 +92,18 @@ describe("the no-show journey hires outside the 15-minute window, then moves the
     expect(move, "the start moves after the Helpr's accept, never before the hire").toBeGreaterThan(hire);
   });
 
-  it("opens the card (its Job progress rail visible) before looking for No-Show: a shut card has no chips (e2e-journeys 39073227265)", () => {
+  it("opens the card (its Close chevron visible) before looking for No-Show: a shut card has no chips (e2e-journeys 39073227265)", () => {
     const open = src.slice(src.indexOf("async function openCard("));
     const fnBody = open.slice(0, open.indexOf("\n}\n") + 2);
     expect(fnBody.length).toBeGreaterThan(40);
-    // The ONE tracker (owner, 2026-10-21): JobProgress's [data-job-progress], not the retired "Job progress" rail.
-    expect(fnBody).toMatch(/locator\("\[data-job-progress\]"\)/);
-    expect(fnBody).toMatch(/expect\(progress[^)]*\)\.toBeVisible\(/);
+    // Since the face rebuild (owner 2026-10-31) the title links to /jobs/:id; the face's "More options" opens the card,
+    // and the open card is proven by its "Close <title>" chevron (cardChips.ts openPostedCard, e2e-journeys 41553090940).
+    expect(fnBody).toMatch(/return openPostedCard\(page, jobTitle\)/);
+    // The before-start "not offered" check needs the card OPEN, or it passes on a shut card.
+    const before = src.slice(src.indexOf('"before the start, No-Show is not offered"'));
+    expect(before.slice(0, before.indexOf("findChip("))).toMatch(/expect\(await openCard\(pp, jobId, JOB_TITLE\), "[^"]*"\)\.toBe\(true\)/);
+    const helper = blankComments(readFileSync(join(ROOT, "e2e/journeys/cardChips.ts"), "utf8"));
+    const fn = helper.slice(helper.indexOf("export async function openPostedCard("));
+    expect(fn.slice(0, fn.indexOf("\n}\n"))).toMatch(/await expect\(close, `[^`]*`\)\.toBeVisible\(/);
   });
 });

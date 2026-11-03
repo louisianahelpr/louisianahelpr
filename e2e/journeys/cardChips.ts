@@ -19,7 +19,7 @@
  * every journey file looks a chip up the same way.
  * Guarded by src/test/journeyChipsReachOverflow.test.ts.
  */
-import type { Locator, Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 
 /** The visible control named `name` on the card's row or in its More panel, or null by `timeout`. */
 export async function findChip(page: Page, scope: Locator, name: RegExp, timeout: number): Promise<Locator | null> {
@@ -42,7 +42,29 @@ export async function findChip(page: Page, scope: Locator, name: RegExp, timeout
   }
 }
 
-/** The one job card whose title heading is `title` (a card, not the whole list: other cards carry the same chips). */
+/** The one job card whose face is `title` (a card, not the whole list: other cards carry the same chips).
+ *  A Posted card's face is a LINK named "Open <title>" to /jobs/:id (MineJobFace), not a level-2 heading: the heading
+ *  went with the face rebuild, and e2e-journeys 41553090940 timed out on it (04-admin-safety no-show). */
 export function cardByTitle(page: Page, title: string): Locator {
-  return page.locator("div.liquid-glass").filter({ has: page.getByRole("heading", { name: title, level: 2 }) }).last();
+  return page.locator("div.liquid-glass").filter({ has: page.getByRole("link", { name: `Open ${title}`, exact: true }) }).last();
+}
+
+/**
+ * OPEN a Posted card in place, and prove it opened: the open card carries its "Close <title>" chevron (MineJobFace
+ * onCollapse) and its meta row and step row. The title no longer expands it (the face links to /jobs/:id, owner
+ * 2026-10-31); the face's "More options" button does (posterFaceAction: POSTER_CONTROLS_LABEL, manage = toggle).
+ * Returns false when the face offers no "More options" at all (its one button is the stage's own move, such as
+ * "Cancel job" or "Report no-show"): the caller decides whether that is allowed. Never a silent pass: a caller that
+ * needs the open card asserts the true.
+ */
+export async function openPostedCard(page: Page, title: string, timeout = 30_000): Promise<boolean> {
+  const card = cardByTitle(page, title);
+  const close = card.getByRole("button", { name: `Close ${title}`, exact: true });
+  await expect(card, `${title}'s card is not on screen`).toBeVisible({ timeout });
+  if (await close.isVisible().catch(() => false)) return true;
+  const more = card.getByRole("button", { name: "More options", exact: true }).filter({ visible: true }).first();
+  if (!(await more.isVisible().catch(() => false))) return false;
+  await more.click();
+  await expect(close, `${title}'s card did not open when its "More options" was pressed`).toBeVisible({ timeout });
+  return true;
 }

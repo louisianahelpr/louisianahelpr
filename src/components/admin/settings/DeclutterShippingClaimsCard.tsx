@@ -13,6 +13,7 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 import { AdminCard } from "../AdminViewShell";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 
 /**
  * Declutter shipping, the admin's hand steps (owner 11-03: the rest of a carrier claim reaches the seller BY AN ADMIN
@@ -102,9 +103,12 @@ function ClaimsDue() {
       {due.isPending ? (
         <p className="text-ds-13 text-muted-foreground">Loading…</p>
       ) : due.isError ? (
-        <p className="text-ds-13 text-destructive-ink" role="alert">
-          Couldn't load the claims to send. {(due.error as { userMessage?: string }).userMessage ?? ""}
-        </p>
+        <>
+          <ReportErrorScreen source="DeclutterShippingClaimsCard" title="Couldn't load the claims to send." />
+          <p className="text-ds-13 text-destructive-ink" role="alert">
+            Couldn't load the claims to send. {(due.error as { userMessage?: string }).userMessage ?? ""}
+          </p>
+        </>
       ) : due.data.rows.length === 0 ? (
         <p className="text-ds-13 text-muted-foreground">Nothing to send. Every recorded claim is settled.</p>
       ) : (

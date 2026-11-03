@@ -336,6 +336,9 @@ describe("every fixture literal could be inserted", () => {
     // Shipping S3 (B111, 2026-11-01): an EasyPost Rate object (`{ id, carrier, service, rate, currency }`, EasyPost's own
     // service names) is not a shipments row, but its `service` key reads as shipments.service.
     { file: "src/test/easypostLabels.test.ts", keys: ["carrier", "service", "rate", "currency"] },
+    // Return labels (B69, 20261103212046): the worker's return row as shipReturnLabel.ts reads it (`{ ..., outbound_shipment_id,
+    // cap_cents }`), not a shop_cottage_settings row, though `cap_cents` reads as that table's column.
+    { file: "src/test/shipReturnLabel.test.ts", keys: ["outbound_shipment_id", "cap_cents"] },
     // Slice 5 (20261017055505) gave declutter_problems a named decision CHECK, so the admin audit-log `details`
     // object of a dispute split (`{ decision: "split", helper_cents, refund_cents }`) became attributable to it.
     { file: "e2e/happy-path/seedData.ts", keys: ["decision", "helper_cents", "refund_cents"] },

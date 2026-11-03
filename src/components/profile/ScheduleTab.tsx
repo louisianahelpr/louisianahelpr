@@ -402,8 +402,7 @@ const UPCOMING_FILTERS: { value: UpcomingFilter; label: string }[] = [
  * the whole layout arrives at once. Pinned by ScheduleTab.layout.test.tsx,
  * which compiles this string through the real Tailwind config.
  */
-// Lives in ./scheduleLayout so the loading placeholder draws the same grid (Q2013); re-exported for the layout test.
-export { SCHEDULE_LAYOUT_CLASS };
+export { SCHEDULE_LAYOUT_CLASS }; // re-exported for the layout test; lives in ./scheduleLayout so the placeholder draws the same grid (Q2013)
 
 export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack, hideHeader = false }: ScheduleTabProps) {
   // The viewer's own tier rate — the fallback used for assigned jobs whose

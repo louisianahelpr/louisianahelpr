@@ -195,20 +195,12 @@ export function ApplicantsPanel({
   // own fixed frame) means the viewport again, whatever the page animates.
   return createPortal(
     <>
-      {/* Applicants full-screen comparison view — the shared <AppPage> shell
-          (AppShell + ProfileTabHeader), same as every other in-app sub-screen.
-          `onBack` (not `backTo`) because "back" here is closing the overlay
-          via local state, not a route change — same pattern as PostJob. This
-          wrapper only supplies the slide-in transition + stacking; AppShell
-          itself already fills the viewport (`fixed inset-x-0 bottom-0`,
-          100dvh) so it doesn't need `inset-0`/background of its own. */}
-      {/* THE WRAPPER TAKES NO CLICKS, ITS CHILDREN DO (Q2342). From 900px
-          AppShell's frame starts below the desktop top bar and right of the
-          rail, so both stay drawn; this inset-0 wrapper still covered them,
-          and every tap on Post a job, Help, the bell, the avatar or a rail
-          row landed on the empty wrapper (measured at 1440 with
-          elementFromPoint, mocked session). Nothing behind is inert (see
-          `region` below), so the chrome it shows stays live. */}
+      {/* Applicants full-screen comparison view: the shared <AppPage> shell (AppShell + ProfileTabHeader).
+          `onBack` (not `backTo`): "back" closes the overlay via local state, as in PostJob. This wrapper
+          only supplies the slide-in + stacking; AppShell already fills the viewport (100dvh).
+          It TAKES NO CLICKS, ITS CHILDREN DO (Q2342): from 900px AppShell starts below the desktop top
+          bar and right of the rail, and this inset-0 wrapper caught every tap on them (measured at 1440
+          with elementFromPoint, mocked session). Nothing behind is inert (see `region`). */}
       <div
         className="pointer-events-none [&>*]:pointer-events-auto fixed inset-0 z-50 motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-200"
         /* The screen's accessible NAME, and the one place the job it belongs to

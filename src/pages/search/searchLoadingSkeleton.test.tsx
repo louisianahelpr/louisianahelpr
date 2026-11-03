@@ -72,11 +72,12 @@ describe("Q2018: /search shows a skeleton in the real row shape while it loads",
     expect(screen.getByRole("status")).toHaveTextContent("Searching");
 
     await act(async () => { gate.release?.(); });
-    await waitFor(() => expect(screen.queryByTestId("search-loading")).toBeNull());
+    // Wait for the real rows (the data), then assert the bones are gone.
+    await waitFor(() => expect(container.querySelectorAll('section[aria-label="Declutter"] a').length).toBeGreaterThan(2));
+    expect(screen.queryByTestId("search-loading")).toBeNull();
 
     // Same box as what replaces it: every real row's classes (minus the press tint) equal the bone's.
     const realRows = Array.from(container.querySelectorAll('section[aria-label="Declutter"] a'));
-    expect(realRows.length).toBeGreaterThan(2);
     const boneClass = bones[0].className.trim().split(/\s+/).sort().join(" ");
     for (const a of realRows) {
       const cls = a.className.trim().split(/\s+/).filter((c) => c !== "ctl-tint").sort().join(" ");

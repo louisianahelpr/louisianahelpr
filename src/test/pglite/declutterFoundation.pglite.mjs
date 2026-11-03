@@ -73,7 +73,7 @@ CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY, enrolled_at timesta
 CREATE TABLE public.admin_audit_log (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), admin_id uuid, action text NOT NULL,
   target_type text, target_id text, details jsonb, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid UNIQUE, is_seed boolean DEFAULT false,
-  stripe_account_id text, stripe_payouts_enabled boolean DEFAULT false, date_of_birth date,
+  under_13_blocked_at timestamptz, /* prod 20261022002144: is_caller_banned() reads it */ stripe_account_id text, stripe_payouts_enabled boolean DEFAULT false, date_of_birth date,
   ban_status text DEFAULT 'active', auto_suspended_until timestamptz);
 `;
 

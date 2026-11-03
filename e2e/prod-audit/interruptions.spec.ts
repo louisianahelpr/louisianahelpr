@@ -587,7 +587,7 @@ test.describe("post a job", () => {
     await expect(review, "the submit button never became Review, then pay").toBeEnabled({ timeout: 20_000 });
     await review.click();
     await expect(page.getByText(/Payment breakdown/i)).toBeVisible({ timeout: 30_000 });
-    await page.getByRole("checkbox", { name: /reviewed all details/i }).click();
+    await page.getByRole("checkbox", { name: /checked the details above/i }).click();
     const submit = page.getByRole("button", { name: /Continue to payment|Post job/i });
     await expect(submit, "the final Post never became enabled after confirming the details").toBeEnabled({ timeout: 20_000 });
     await shoot(page, info, "post-step-checkout");

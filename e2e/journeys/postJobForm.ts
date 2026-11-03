@@ -29,6 +29,40 @@ export function slotAhead(minutesAhead: number) {
 
 export type Slot = ReturnType<typeof slotAhead>;
 
+/** Louisiana wall-clock minutes since midnight, written out here rather than imported from the app. */
+export function louisianaMinutesNow(now: Date = new Date()): number {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", { timeZone: ZONE, hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+      .formatToParts(now)
+      .map((x) => [x.type, x.value]),
+  );
+  return Number(p.hour) * 60 + Number(p.minute);
+}
+
+/**
+ * The app closes TODAY on Post a job once its soonest allowed start (now + 2 h
+ * notice + 10 min, up to the next half hour) is after 9:00 PM, i.e. after 6:50 PM
+ * in Louisiana (F19 / Q2438, src/lib/sameDayJob.ts sameDayStartTime). Restated
+ * here, never imported, so the test does not grade the app with its own rule.
+ */
+export const TODAY_CLOSES_AFTER_MIN = 18 * 60 + 50;
+
+/**
+ * Why `slot` cannot be posted on this clock, or null when it can: a slot on
+ * Louisiana's today while today is closed. For a slot ~2 h out (J2's, which J5's
+ * ladder needs: helper_mark_on_the_way refuses before start - 2 h on the server)
+ * that is every run between about 6:50 and 9:55 PM CT; after that the slot falls
+ * on tomorrow, which is open.
+ */
+export function slotDeadWindow(slot: Slot, now: Date = new Date()): string | null {
+  if (slot.isoDay !== isoDayIn(now, ZONE) || louisianaMinutesNow(now) <= TODAY_CLOSES_AFTER_MIN) return null;
+  return (
+    `no slot is both selectable and walkable between 6:50 and 9:55 PM CT; re-run outside this window. ` +
+    `The slot is ${slot.isoDay} ${slot.hh24} CT (today), but today is closed on Post a job after 6:50 PM (start after 9:00 PM, ` +
+    `sameDayStartTime), and J5's ladder needs a start within 2 h (helper_mark_on_the_way).`
+  );
+}
+
 /**
  * Set the post-job start time on whichever control this viewport renders.
  *

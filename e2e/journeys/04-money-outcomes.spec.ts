@@ -35,6 +35,7 @@ import {
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { centralDatePlus, fund, invoke, readRow, retireFundedJob, skipLivePay } from "../prod-audit/fundedOpenJob";
 import { settleJobForward } from "../../scripts/e2e/settleForward.mjs";
+import { captureHeldCard } from "../cardHold";
 import { OUTCOME_UNDRIVEN, filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 import { uncoveredAdminPaths } from "./adminWritePaths";
 import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
@@ -414,6 +415,14 @@ test.describe("money outcomes", () => {
       }),
       "poster hires the helper",
     );
+    // Q2399: on a held card (payment_status 'held', card_hold_at_post) the hire
+    // completes only at the Helpr's Accept, which charges the held card first:
+    // create-payment capture_hold, as the app's Accept does
+    // (src/lib/cardHoldCapture.ts). Without it the job stays accepted/held and
+    // settleJobForward refuses it (e2e-journeys 41553090940: "payment_status is
+    // held, not escrow"). "not_held": nothing held, and settleJobForward's own
+    // accept_job_offer completes the hire as before.
+    await captureHeldCard(request, helper, jobId);
 
     // 2. Settle it forward down the product's own doors (arrival, confirm,
     //    proof, Done, release). Never cancelled: that would strike the poster.

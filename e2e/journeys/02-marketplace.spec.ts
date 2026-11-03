@@ -27,7 +27,7 @@ import { skipLivePay } from "../prod-audit/fundedOpenJob";
 import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 import { findChip } from "./cardChips";
-import { ZONE, fillJobDetails, fillLogistics, fillBudget, slotAhead } from "./postJobForm";
+import { ZONE, fillJobDetails, fillLogistics, fillBudget, slotAhead, slotDeadWindow } from "./postJobForm";
 import { searchFeed } from "../feedSearch";
 
 /**
@@ -316,6 +316,9 @@ test.describe.serial("marketplace chain", () => {
       // Soon, not days out: the tracker's actions unlock at T-2h, so a slot
       // inside that window is the only one J5 can walk. See the SLOT comment
       // for why the bucket assertions derive from this rather than fix it.
+      // The evening dead window FAILS, never skips: a run there proves nothing about J2-J5 (lead, 2026-11-02).
+      const dead = slotDeadWindow(SLOT);
+      expect(dead, dead ?? "").toBeNull();
       const review = await fillLogistics(page, SLOT, journey.allowReport);
       await assertHealthy(page, "logistics");
       await journey.milestone(page, "post-form-complete");
@@ -326,7 +329,7 @@ test.describe.serial("marketplace chain", () => {
     });
 
     await test.step("continues to payment; the job exists with parish null", async () => {
-      await page.getByRole("checkbox", { name: /reviewed all details/i }).click();
+      await page.getByRole("checkbox", { name: /checked the details above/i }).click();
       const [resp] = await Promise.all([
         page.waitForResponse((r) => r.url().includes("/functions/v1/create-payment") && r.request().method() === "POST", { timeout: 60_000 }),
         page.getByRole("button", { name: /Continue to payment|Post job/i }).click(),

@@ -1,7 +1,7 @@
 import { devices, type Browser, type Locator, type Page } from "@playwright/test";
 import { test, expect, assertHealthy, getSession, sessionsAvailable, AUTH_STORAGE_KEY, type Session } from "./fixtures";
 import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenarios";
-import { fillBudget, fillJobDetails } from "./postJobForm";
+import { TODAY_CLOSES_AFTER_MIN, fillBudget, fillJobDetails, louisianaMinutesNow } from "./postJobForm";
 
 /**
  * Journey — on a phone, a TAP on Post a job's date and time controls takes,
@@ -160,16 +160,6 @@ async function bottomRowNeverUnderTheBar(page: Page, where: string, touch: boole
   return n;
 }
 
-/** Louisiana wall-clock minutes since midnight, written out here rather than imported from the app. */
-function louisianaMinutesNow(): number {
-  const p = Object.fromEntries(
-    new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
-      .formatToParts(new Date())
-      .map((x) => [x.type, x.value]),
-  );
-  return Number(p.hour) * 60 + Number(p.minute);
-}
-
 test(title, async ({ browser, request, journey }) => {
   test.skip(filteredOut(title), "SCENARIO pins another scenario");
   const avail = sessionsAvailable();
@@ -199,10 +189,10 @@ test(title, async ({ browser, request, journey }) => {
       const laMin = louisianaMinutesNow();
       if (await day.isDisabled()) {
         expect(i, `${name} is disabled, but only today's card ever closes`).toBe(0);
-        expect(laMin, `${name}: today closed at ${laMin} min past midnight in Louisiana, before the 6:50 PM cutoff`).toBeGreaterThanOrEqual(18 * 60 + 45);
+        expect(laMin, `${name}: today closed at ${laMin} min past midnight in Louisiana, before the 6:50 PM cutoff`).toBeGreaterThanOrEqual(TODAY_CLOSES_AFTER_MIN - 5);
         continue;
       }
-      if (i === 0) expect(laMin, `${name}: today is still open after the 6:50 PM cutoff`).toBeLessThanOrEqual(18 * 60 + 55);
+      if (i === 0) expect(laMin, `${name}: today is still open after the 6:50 PM cutoff`).toBeLessThanOrEqual(TODAY_CLOSES_AFTER_MIN + 5);
       await fingerTap(page, day, name);
       await expect.poll(() => isOn(day), { message: `${name}: the tap did not choose it`, timeout: 5_000 }).toBe(true);
       tapped++;

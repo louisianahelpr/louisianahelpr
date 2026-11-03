@@ -2,7 +2,7 @@ import { REPLY_BUCKET_COPY, isNewMember, trustLineParts, useMemberTrust, type Me
 
 /**
  * Q2478 (owner 2a/2b, 2026-10-29): the trust record as plain text under a Helpr's four profile tiles, e.g.
- * "12 jobs done · 92% on time · 3 repeat customers" and, when the server has a bucket, "Usually replies in
+ * "92% on time · 3 repeat customers" (no "12 jobs done": the tile shows it, AUD31-51) and, when the server has a bucket, "Usually replies in
  * a few hours". Not a tile and not a button: a quiet line, so the four tiles stay exactly as they are.
  */
 export function TrustLine({ stats, reply, className = "" }: { stats: TrustInputs; reply: ReplyBucket | null; className?: string }) {
@@ -10,9 +10,12 @@ export function TrustLine({ stats, reply, className = "" }: { stats: TrustInputs
   // "New", so a second "New" under the tiles says nothing. The reply speed still shows when the server has one.
   const isNew = isNewMember(stats);
   if (isNew && !reply) return null;
+  // AUD31-51 (OWNER DECIDED 2026-11-03): the Jobs completed tile above is the count, so no "N jobs done" here.
+  const record = isNew ? [] : trustLineParts(stats, { jobs: false });
+  if (!record.length && !reply) return null;
   return (
     <div data-trust-line className={`font-sans text-ds-13 leading-snug text-center ${className}`} style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-      {isNew ? null : <p>{trustLineParts(stats).join(" · ")}</p>}
+      {record.length ? <p>{record.join(" · ")}</p> : null}
       {reply ? <p data-reply-speed>{REPLY_BUCKET_COPY[reply]}</p> : null}
     </div>
   );

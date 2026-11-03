@@ -14,6 +14,8 @@
  *
  * LEAD-APPLICANT-TAG (owner 2026-10-31): a new member's "New" sits right of the name, never alone at the bottom
  * of the applicant card, and the distance sits under the name.
+ * @mutate src/components/TrustLine.tsx | trustLineParts(stats, { jobs: false }) | trustLineParts(stats)
+ * @mutate src/lib/trustLine.ts |   const parts = jobs ? [`${done} jobs done`] : []; |   const parts = [`${done} jobs done`];
  * @mutate src/components/TrustLine.tsx |   const parts = isNewMember(t.stats) ? [] : trustLineParts(t.stats); |   const parts = trustLineParts(t.stats);
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx |                               <ApplicantNewTag helperId={app.helper_id} helperIds={applications.map((a) => a.helper_id)} />\n | 
  */
@@ -90,9 +92,12 @@ describe("the public reply bucket (Q2478 2b)", () => {
     await waitFor(() => expect(client2.getQueryState(["reply-speed", ["y"]])?.status).toBe("error"));
   });
 
-  it("TrustLine renders the line and the reply bucket", () => {
+  // AUD31-51 (OWNER DECIDED 11-03): the profile's "N Jobs completed" tile is the count; the line under it no longer
+  // repeats "N jobs done". Applicant cards (no tile) keep it.
+  it("TrustLine renders the line without the job count, and the reply bucket", () => {
     render(<TrustLine stats={{ completedJobs: 12, onTimeRate: 92, repeatHirePercent: 43, repeatClientSample: 7 }} reply="few_hours" />);
-    expect(screen.getByText("12 jobs done · 92% on time · 3 repeat customers")).toBeTruthy();
+    expect(screen.getByText("92% on time · 3 repeat customers")).toBeTruthy();
+    expect(screen.queryByText(/jobs done/)).toBeNull();
     expect(screen.getByText("Usually replies in a few hours")).toBeTruthy();
   });
 });

@@ -220,7 +220,8 @@ describe("AtAGlanceCard — four tiles, most to least important", () => {
  * The reply speed is its own line and still shows when the server has a bucket.
  *
  * @mutate src/components/TrustLine.tsx |   if (isNew && !reply) return null; |   if (false) return null;
- * @mutate src/components/TrustLine.tsx |       {isNew ? null : <p>{trustLineParts(stats).join(" · ")}</p>} |       <p>{trustLineParts(stats).join(" · ")}</p>
+ * @mutate src/components/TrustLine.tsx |   if (!record.length && !reply) return null; | 
+ * @mutate src/components/TrustLine.tsx |   const record = isNew ? [] : trustLineParts(stats, { jobs: false }); |   const record = trustLineParts(stats, { jobs: false });
  */
 describe("AtAGlanceCard — the trust line under the tiles", () => {
   const line = () => document.querySelector("[data-trust-line]");
@@ -235,8 +236,13 @@ describe("AtAGlanceCard — the trust line under the tiles", () => {
     renderCard({ workedJobsCount: 2, replyBucket: "few_hours" });
     expect(line()?.textContent).toBe("Usually replies in a few hours");
   });
-  it("from 3 jobs done: the record line", () => {
+  // AUD31-51 (OWNER DECIDED 11-03): the Jobs completed tile is the count; the line never repeats "16 jobs done".
+  it("from 3 jobs done: the record line, without the job count the tile already shows", () => {
     renderCard({ workedJobsCount: 16, onTimeArrivalRate: 91.7 });
-    expect(line()?.textContent).toBe("16 jobs done · 92% on time");
+    expect(line()?.textContent).toBe("92% on time");
+  });
+  it("from 3 jobs done with no rate, no repeat customers and no reply speed: no line at all", () => {
+    renderCard({ workedJobsCount: 16 });
+    expect(line()).toBeNull();
   });
 });

@@ -695,7 +695,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - vacuity: issue #2894, newest red run: see the issue's latest comment. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
   - slow-network: issue #3454, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41599676917. feed: issue #3454 · feed: ledger a8ceee56bbd5
   - ui-sweep: issue #3491, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41045303398. feed: issue #3491 · feed: ledger 2e4f3e726722
-  - db-drift-detect: issue #3743, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41536121359. feed: issue #3743 · feed: ledger 8018e82cb167
+  - db-drift-detect: issue #3743, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41709358659. feed: issue #3743 · feed: ledger 8018e82cb167
   - staleness-watch: issue #3784, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41694061049. feed: issue #3784 · feed: ledger db0fb15c4ec3
   - e2e-real-backend: issue #3813, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41623278596. feed: issue #3813 · feed: ledger 3a3460b71be7
   - schedule-heartbeat: issue #3824, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41694077956. feed: issue #3824 · feed: ledger 4aa239aefeb6

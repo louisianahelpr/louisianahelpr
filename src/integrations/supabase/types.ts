@@ -5026,6 +5026,7 @@ export type Database = {
           recipient_id: string | null
           redeemed_at: string | null
           restored_from_job_id: string | null
+          split_for_job_id: string | null
           status: string
           stripe_payment_intent_id: string | null
           stripe_session_id: string | null
@@ -5049,6 +5050,7 @@ export type Database = {
           recipient_id?: string | null
           redeemed_at?: string | null
           restored_from_job_id?: string | null
+          split_for_job_id?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
@@ -5072,6 +5074,7 @@ export type Database = {
           recipient_id?: string | null
           redeemed_at?: string | null
           restored_from_job_id?: string | null
+          split_for_job_id?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
           stripe_session_id?: string | null
@@ -19633,6 +19636,7 @@ export type Database = {
           p_credit_id: string
           p_job_id: string
           p_retired_session?: string
+          p_tax_cents?: number
           p_user_id: string
         }
         Returns: Json

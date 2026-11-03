@@ -27,7 +27,7 @@
 // @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |   IF public.shop_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING | IF public.declutter_active_strike_count(v_uid) >= 3 THEN\n    RAISE EXCEPTION 'shop_strikes_blocked'\n      USING
 // @mutate supabase/migrations/20261027163240_payout_setup_only_when_owed.sql |   -- L3 (payout setup before opening) is dropped: owner 2026-10-27, the same |   PERFORM public.helper_award_block_reason(v_uid); -- L3 dropped: owner 2026-10-27, the same
 // @mutate supabase/migrations/20261017061155_shops_profiles.sql | VALUES ('shops', 'off', | VALUES ('shops', 'testers',
-// @mutate supabase/migrations/20261017061157_shops_items.sql |   IF EXISTS (SELECT 1 FROM public.shops WHERE owner_id = v_uid AND hidden_at IS NOT NULL) THEN | IF false THEN
+// @mutate supabase/migrations/20261103083559_shops_declutter_owner_actions_not_found_is_404.sql | IF EXISTS (SELECT 1 FROM public.shops WHERE owner_id = v_uid AND hidden_at IS NOT NULL) THEN | IF false THEN
 // @mutate supabase/migrations/20261017061155_shops_profiles.sql | REVOKE ALL ON FUNCTION public.shops_assert_owner_eligible() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shops_assert_owner_eligible() FROM PUBLIC, anon;
 // @mutate src/lib/shops/errors.ts |   invalid_hours: "Each time needs a day, and an opening time before its closing time.",\n | \n
 import { describe, expect, it } from "vitest";

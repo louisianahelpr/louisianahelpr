@@ -28,6 +28,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 interface UserAuditLogProps {
   userId: string;
@@ -92,7 +93,7 @@ export const UserAuditLog = ({ userId }: UserAuditLogProps) => {
       // so the bundle can reach an admin minutes before the function exists.
       // Say so, rather than letting it read as a permissions problem.
       toast.error(
-        error.code === "PGRST202"
+        isMissingRpcNamed(error, "admin_reverse_violation")
           ? "Reversal isn't live yet — this deploys with the next migration. Try again shortly."
           : (rpcErrorMessage("admin_reverse_violation", error) ??
             "Couldn't reverse that strike. Nothing was changed."),

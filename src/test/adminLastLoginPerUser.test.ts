@@ -1,7 +1,7 @@
 // @mutate supabase/migrations/20260927222725_admin_last_logins.sql |   GROUP BY l.user_id\n | GROUP BY l.user_id\n  LIMIT 500\n
 // @mutate supabase/migrations/20260927222725_admin_last_logins.sql |   WHERE public.has_role((SELECT auth.uid()), 'admin'::public.app_role)\n | \n
 // @mutate supabase/migrations/20260927222725_admin_last_logins.sql | FROM PUBLIC, anon; | FROM PUBLIC;
-// @mutate src/components/admin/useAdminUserSummaries.ts | supabase.rpc("admin_last_logins");\n    if (rpc.error?.code !== "PGRST202") { | supabase.rpc("admin_last_logins");\n    if (false) {
+// @mutate src/components/admin/useAdminUserSummaries.ts | supabase.rpc("admin_last_logins");\n    if (!isMissingRpcNamed(rpc.error, "admin_last_logins")) { | supabase.rpc("admin_last_logins");\n    if (false) {
 // @mutate src/components/admin/useAdminUserSummaries.ts |       loadLastLogins(userIds),\n |       supabase.from("login_history").select("user_id, created_at").in("user_id", userIds).order("created_at", { ascending: false }).limit(500),\n
 /*
  * Q428: Admin People said "Never logged in" about accounts that had logged in.
@@ -63,7 +63,8 @@ describe("Q428: one user's many logins cannot hide another user's last login", (
   it("the People list reads last logins from admin_last_logins, the bounded read only on PGRST202", () => {
     expect(hook).toMatch(/loadActivitySummary[\s\S]*?Promise\.all\(\[[\s\S]*?loadLastLogins\(userIds\)[\s\S]*?\]\)/);
     expect(hook).toMatch(/supabase\.rpc\(\s*"admin_last_logins"\s*\)/);
-    expect(hook).toMatch(/if\s*\(\s*rpc\.error\?\.code\s*!==\s*"PGRST202"\s*\)\s*\{[^}]*return\b/);
+    // Q2190: the not-deployed check names the RPC (isMissingRpcNamed), so a changed signature is not a fallback.
+    expect(hook).toMatch(/if\s*\(\s*!isMissingRpcNamed\(\s*rpc\.error\s*,\s*"admin_last_logins"\s*\)\s*\)\s*\{[^}]*return\b/);
   });
 
   it("no admin reader of login_history uses a bounded cross-user read outside the PGRST202 fallback", () => {
@@ -71,7 +72,7 @@ describe("Q428: one user's many logins cannot hide another user's last login", (
     for (const { f, src } of adminReaders) {
       for (const m of src.matchAll(/\.from\(\s*"login_history"\s*\)[^;]*?\.limit\(/g)) {
         const before = src.slice(Math.max(0, m.index! - 600), m.index!);
-        if (!/"PGRST202"/.test(before)) offenders.push(`${f}@${m.index}`);
+        if (!/"PGRST202"|isMissingRpcNamed\(\s*rpc\.error\s*,\s*"admin_last_logins"\s*\)/.test(before)) offenders.push(`${f}@${m.index}`);
       }
     }
     expect(offenders).toEqual([]);

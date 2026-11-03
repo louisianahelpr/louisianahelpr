@@ -4,6 +4,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
 import { enScreens } from "@/lib/i18n/enScreens";
 import { useLanguage } from "@/lib/i18n/language";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /** The owner's wording (2026-10-12, Q1286). */
 /** The owner's English wording (the Spanish is es.ts "profileGate.wiped"). */
@@ -31,7 +32,7 @@ function usePreVerificationWipe(): boolean {
     queryFn: async (): Promise<boolean> => {
       const { data: wiped, error } = await supabase.rpc("has_pre_verification_wipe");
       if (error) {
-        if ((error as { code?: string }).code !== "PGRST202") {
+        if (!isMissingRpcNamed(error, "has_pre_verification_wipe")) {
           report(error, { severity: "warning", tags: { source: "usePreVerificationWipe" } });
         }
         return false;

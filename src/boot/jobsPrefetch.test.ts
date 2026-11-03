@@ -18,12 +18,15 @@
 // @mutate src/hooks/jobsPrefetchTake.ts |   return { profile, isAdmin: x.admin[0]?.role === "admin" }; |   return { profile, isAdmin: x.admin.length > 0 \|\| x.profile.length > 0 };
 // @mutate src/hooks/jobsPrefetchTake.ts |   if (profile && profile.user_id !== userId) return null; |
 // @mutate src/boot/jobsPrefetch.ts |   admin.searchParams.set("role", "eq.admin"); |
+// @mutate src/boot/jobsPrefetch.ts |   const feed = list ? Promise.resolve(null) : get(urls.feed) |   const feed = get(urls.feed)
+// @mutate src/boot/jobsPrefetch.ts |   const ctx = list ? Promise.resolve(null) : Promise.all( |   const ctx = Promise.all(
+// @mutate src/boot/jobsPrefetch.ts |   return tab ? tab === "posted" \|\| tab === "working" : ["job", "filter", "highlight", "q", "quotes"].some((k) => p.has(k)); |   return tab ? tab === "posted" : ["job", "filter", "highlight", "q"].some((k) => p.has(k));
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
 
-import { JOBS_PREFETCH_KEY, crewSpotsUrl, currentUserUrls, jobsFeedUrls, startJobsPrefetch } from "./jobsPrefetch";
+import { JOBS_PREFETCH_KEY, crewSpotsUrl, currentUserUrls, jobsFeedUrls, jobsOpensOnList, startJobsPrefetch } from "./jobsPrefetch";
 import {
   JOBS_PREFETCH_MAX_AGE_MS,
   coversPosters,
@@ -235,4 +238,41 @@ describe("signed-in /jobs' first reads start from the entry (B43, Q1158)", () =>
 // Inventory floor: the boot module builds at least the four first-round URLs.
 it("jobsPrefetch builds every first-round URL", () => {
   expect(Object.keys(jobsFeedUrls(BASE, UID)).length).toBeGreaterThan(3);
+});
+
+describe("a link that opens on a list skips Browse's feed reads (B46, Q1158)", () => {
+  afterEach(() => window.history.replaceState(null, "", "/"));
+
+  it("the rule is JobsSection's own, for every link shape", async () => {
+    const { resolveJobsTab } = await import("@/pages/jobs/JobsSection");
+    const links = ["", "?tab=posted", "?tab=working", "?tab=browse", "?tab=nonsense", "?job=a", "?filter=hired", "?highlight=a1",
+      "?q=lawn", "?quotes=1", "?tab=browse&job=a", "?tab=posted&job=a", "?status=open", "?ref=email"];
+    let lists = 0;
+    for (const s of links) {
+      const params = new URLSearchParams(s);
+      const raw = params.get("tab");
+      const page = resolveJobsTab(params, raw === "posted" || raw === "working" ? raw : "browse");
+      if (page !== "browse") lists++;
+      expect(jobsOpensOnList(s), `${s || "(none)"} draws ${page}`).toBe(page !== "browse");
+    }
+    expect(lists).toBeGreaterThan(5);
+  }, 60_000);
+
+  it("?tab=posted reads only the member's own rows; plain /jobs still reads the feed", async () => {
+    signIn();
+    const f = answering();
+    vi.stubGlobal("fetch", f);
+    window.history.replaceState(null, "", "/jobs?tab=posted");
+    startJobsPrefetch("/jobs");
+    await new Promise((r) => setTimeout(r, 0));
+    const asked = f.mock.calls.map((c) => String(c[0]));
+    expect(asked.some((u) => u.includes("/profiles"))).toBe(true);
+    expect(asked.some((u) => u.includes("/open_jobs_browse") || u.includes("helper_availability") || u.includes("get_public_platform_settings"))).toBe(false);
+
+    f.mockClear();
+    window.history.replaceState(null, "", "/jobs");
+    startJobsPrefetch("/jobs");
+    await new Promise((r) => setTimeout(r, 0));
+    expect(f.mock.calls.map((c) => String(c[0])).some((u) => u.includes("/open_jobs_browse"))).toBe(true);
+  });
 });

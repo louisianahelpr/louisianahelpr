@@ -86,8 +86,13 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundl
         {photoPath && photoStage !== "failed" && (firstRow || laterOpen) && (
           // width/height: the photo's own square, so the browser knows its shape before a byte arrives (the tile is
           // aspect-square, so nothing moves either way); decoding="async" keeps decoding off the scroll.
+          // `loading` comes BEFORE src/srcSet on purpose: React 18 writes attributes in prop order, and WebKit starts
+          // the fetch the moment src is set on the new element, so a `loading="lazy"` written after it was ignored
+          // (a11y-prod-webkit 41598471444: 1536 card photos; locally all 200 of 200 cards' photos on one /declutter
+          // load in WebKit vs 14 in Chromium). Guard: src/test/declutterLazyPhotoBeforeSrc.test.tsx.
           <img
             ref={photoRef}
+            {...(firstRow ? FIRST_ROW_PHOTO : LATER_PHOTO)}
             src={photoStage === "card" ? photoCardUrl(photoPath) : photoPublicUrl(photoPath)}
             srcSet={photoStage === "card" ? cardPhotoSrcSet(photoPublicUrl(photoPath), photoCardUrl(photoPath), CARD_PHOTO_PX) : undefined}
             sizes={photoStage === "card" ? CARD_PHOTO_SIZES : undefined}
@@ -95,7 +100,6 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundl
             width={CARD_PHOTO_PX}
             height={CARD_PHOTO_PX}
             decoding="async"
-            {...(firstRow ? FIRST_ROW_PHOTO : LATER_PHOTO)}
             onLoad={photoSettled}
             onError={() => { photoSettled(); setPhotoStage((s) => (s === "card" ? "full" : "failed")); }}
             className="relative h-full w-full object-cover"

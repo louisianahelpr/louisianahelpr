@@ -150,7 +150,7 @@ export function ShopItemsGrid({ items }: { items: (Omit<ShopItem, "photos"> & { 
             <li key={item.id} className="overflow-hidden rounded-xl border border-border bg-background">
               <div className="flex aspect-square w-full items-center justify-center bg-muted">
                 {cover ? (
-                  <img src={itemSrc(cover)} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  <img loading="lazy" src={itemSrc(cover)} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <ShoppingBag className="h-8 w-8 text-muted-foreground" aria-hidden />
                 )}
@@ -184,7 +184,7 @@ export function ShopGallery({ photos }: { photos: Photo[] }) {
       <ul className="grid grid-cols-3 gap-2">
         {gallery.map((p) => (
           <li key={p.id} className="aspect-square overflow-hidden rounded-xl bg-muted">
-            <img src={shopSrc(p, 320)} alt="" loading="lazy" className="h-full w-full object-cover" />
+            <img loading="lazy" src={shopSrc(p, 320)} alt="" className="h-full w-full object-cover" />
           </li>
         ))}
       </ul>

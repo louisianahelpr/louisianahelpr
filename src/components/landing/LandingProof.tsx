@@ -45,11 +45,11 @@ export function LandingProof() {
     >
       <li className="flex items-center justify-center lg:justify-start gap-3 lg:gap-4 min-w-0">
         <img
+          loading="lazy"
           src="/landing/new-iberia-yard.jpg"
           alt="A freshly mowed yard in New Iberia"
           width={72}
           height={72}
-          loading="lazy"
           decoding="async"
           className="w-14 h-14 lg:w-[72px] lg:h-[72px] shrink-0 rounded-xl object-cover"
         />

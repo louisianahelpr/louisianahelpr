@@ -85,7 +85,7 @@ function QuoteCard({ quote, requestOpen, requestId }: { quote: RequestQuote; req
         <ul className="mt-3 grid grid-cols-4 gap-2" aria-label="Past work photos">
           {quote.photo_paths.map((p) => (
             <li key={p}>
-              <img src={quotePhotoUrl(p)} alt="Past work" loading="lazy" className="aspect-square w-full rounded-lg object-cover" />
+              <img loading="lazy" src={quotePhotoUrl(p)} alt="Past work" className="aspect-square w-full rounded-lg object-cover" />
             </li>
           ))}
         </ul>

@@ -89,12 +89,12 @@ function Gallery({ refs, listingId }: { refs: string[]; listingId: string }) {
       >
         {refs.map((p, i) => (
           <img
+            loading={i === 0 ? "eager" : "lazy"}
             key={p}
             src={listingPhotoUrl(p, 1200)}
             onError={() => refresh(p)}
             alt={`Photo ${i + 1} of ${refs.length}`}
             className="aspect-[16/10] w-full shrink-0 snap-center bg-muted object-cover"
-            loading={i === 0 ? "eager" : "lazy"}
           />
         ))}
       </div>

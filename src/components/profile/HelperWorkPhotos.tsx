@@ -48,9 +48,9 @@ export function HelperWorkPhotos({ urls }: { urls: string[] }) {
             className="relative aspect-square rounded-ds-md overflow-hidden border border-border/60 active:scale-[0.98] transition-transform"
           >
             <img
+              loading="lazy"
               src={url}
               alt={`Work sample ${i + 1}`}
-              loading="lazy"
               decoding="async"
               className="w-full h-full object-cover"
             />

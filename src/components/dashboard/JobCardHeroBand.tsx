@@ -10,7 +10,7 @@ export function JobCardHeroBand({ photo }: { photo: string | null | undefined })
   if (!photo) return null;
   return (
     <div className="relative aspect-[16/10] max-h-64 w-full overflow-hidden bg-muted" data-testid="job-card-hero">
-      <img src={photo} alt="" loading="lazy" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
+      <img loading="lazy" src={photo} alt="" decoding="async" className="absolute inset-0 h-full w-full object-cover" />
     </div>
   );
 }

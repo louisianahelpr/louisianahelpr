@@ -150,6 +150,7 @@ export const NOTIFICATION_PRODUCERS: Record<string, ProducerCoverage> = {
   },
   "sql:notify_helper_on_tip": { driven: { spec: MONEY, evidence: "type=eq.financial_alerts" } },
   "sql:notify_message_recipient": { driven: { spec: NOTIF, evidence: "type=eq.message" } },
+  "sql:jobs_cancel_tells_offered_helpr": { uncovered: "Q2011: tells the offered Helpr \"Offer closed\" when the poster cancels a listed job with a pending direct offer; an offer reaches the Helpr only on a funded job (Q2093) and a nightly never pays in LIVE mode (owner 2026-09-27). Proven in src/test/pglite/offerClosedOnCancel.pglite.mjs." },
   "sql:jobs_open_edit_tells_applicants": { uncovered: "tells a job's waiting applicants when its poster edits the date, time, place or details (at most hourly); the journeys never edit a job after someone applies. Proven in src/test/pglite/openJobEditTellsApplicants.pglite.mjs." },
   "sql:notify_on_application": { driven: { spec: MARKET, evidence: "poster gets a notification for the application" } },
   "sql:notify_on_job_update": { uncovered: GAP("the 02-marketplace hire and day-of ladder (jobs status updates)") },

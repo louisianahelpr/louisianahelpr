@@ -30,6 +30,7 @@
 // @mutate src/test/clockFunctionsProven.test.ts |   sms_dispatch_due: "smsDispatchClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_price_drop_sweep: "declutterPriceDropClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_pickup_reminder_sweep: "declutterPickupReminderClock.pglite.mjs",\n | \n
+// @mutate src/test/clockFunctionsProven.test.ts |   declutter_wanted_sweep: "declutterWantedSweepClock.pglite.mjs",\n | \n
 // @mutate src/test/pglite/userReportsLedgerClock.pglite.mjs | const { file, stmt } = newestFunction("check_user_reports_reach_ledger"); | const { file, stmt } = newestFunction("check_user_reports");
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -70,6 +71,7 @@ const PROVEN: Record<string, string> = {
   // Q1424, 11-02 (Builder 8): 14 PASS; PRICE_DROP_AS_UTC=1: 4 FAILED; PRICE_DROP_INCLUSIVE=1: 1 FAILED.
   declutter_price_drop_sweep: "declutterPriceDropClock.pglite.mjs",
   declutter_pickup_reminder_sweep: "declutterPickupReminderClock.pglite.mjs",
+  declutter_wanted_sweep: "declutterWantedSweepClock.pglite.mjs",
 };
 
 /** function -> why it has no fixed-clock probe yet. Each is open work under docs/OPEN.md Q1424. */
@@ -94,7 +96,6 @@ const NOT_PROVEN: Record<string, string> = {
   // Train D (2026-10-27), measured: neither probe imports fixedClock.mjs; both move row timestamps.
   declutter_haul_away_sweep: "named by declutterHaulAwaySweep.pglite.mjs (it moves jobs.updated_at / link and listing timestamps, not the clock: the 14-day notice, the 1-day abandoned job and the 7-day link undo); no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path (Q1962, 20261027165903).",
   declutter_ship_sweep: "named by shippingNeverShippedSweep.pglite.mjs and shippingS5DeliveredPayout.pglite.mjs (they move paid_at and shipments.delivered_at relative to now(), not the clock: the never-shipped close at declutter_ship_by(paid_at) and the 24 h after the delivered scan); no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path (shipping S5/S6, 20261102013630, 20261102045035).",
-  declutter_wanted_sweep: "named by declutterWantedMatchManage.pglite.mjs (it moves expires_at relative to now(), not the clock: the reminder 3 days before a post ends, once); no probe runs it on fixedClock.mjs at a 1 ms edge (posting audit 10-30, 20261030221255).",
   declutter_listing_rounds_sweep: "named by declutterListingRounds.pglite.mjs (it moves listed_until relative to now(), not the clock: the 3-day reminder, the 30-day round and the end after 4 rounds); no probe runs it on fixedClock.mjs at a 1 ms edge (owner 2026-10-28, Q2461, 20261028164424).",
   cron_http_tag: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
   cron_record_work: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",

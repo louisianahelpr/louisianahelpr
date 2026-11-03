@@ -29,6 +29,7 @@ import { ReviewQuestionCard } from "./ReviewQuestionCard";
 import { JobDoneSummary } from "@/components/jobDone/JobDoneSummary";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { quickTagsFor, safeImageSrc, type ReviewFormProps } from "./types";
+import { insertReviewWithTags } from "@/lib/reviewTags";
 import { userFacingError } from "@/lib/userFacingError";
 import { recordReviewInActivityCache } from "@/lib/reviewActivityCache";
 import { reviewIsLiveNow } from "./reviewLiveNow";
@@ -176,17 +177,20 @@ export const ReviewForm = ({ open, onClose, jobId, revieweeId, revieweeName, can
     // validity trigger RAISEs (so most refusals do surface as an error), but
     // an RLS-filtered insert is the case that would not — and this used to
     // report success on it.
-    const { data: inserted, error } = await supabase
-      .from("reviews")
-      .insert({
-        job_id: jobId,
-        reviewer_id: user.id,
-        reviewee_id: revieweeId,
-        rating,
-        feedback: feedback.trim() || null,
-        photo_urls: uploadedPhotoUrls,
-      })
-      .select("id");
+    // Q1088: the picked tags go to reviews.tags, the prose to feedback (src/lib/reviewTags.ts).
+    const { data: inserted, error } = await insertReviewWithTags(feedback, (fields) =>
+      supabase
+        .from("reviews")
+        .insert({
+          job_id: jobId,
+          reviewer_id: user.id,
+          reviewee_id: revieweeId,
+          rating,
+          ...fields,
+          photo_urls: uploadedPhotoUrls,
+        })
+        .select("id"),
+    );
 
     if (error || !inserted || inserted.length === 0) {
       hapticError();

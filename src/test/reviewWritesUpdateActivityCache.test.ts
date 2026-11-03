@@ -31,8 +31,8 @@
 // @mutate src/components/reviewPanel/ReviewForm.tsx | recordReviewInActivityCache(jobId);\n      // Brand-tinted | // Brand-tinted
 // @mutate src/components/CompletionPrompts.tsx | recordReviewInActivityCache(jobId);\n\n      // Repeat low ratings | // Repeat low ratings
 // @mutate src/lib/reviewActivityCache.ts | if (!old \|\| !meta \|\| meta.reviewed) return old; | return old;
-// @mutate src/components/CompletionPrompts.tsx | rating, feedback: feedback.trim() \|\| null,\n          })\n          .select("id"), | rating, feedback: feedback.trim() \|\| null,\n          }),
-// @mutate src/components/reviewPanel/ReviewForm.tsx | photo_urls: uploadedPhotoUrls,\n      })\n      .select("id"); | photo_urls: uploadedPhotoUrls,\n      });
+// @mutate src/components/CompletionPrompts.tsx | rating, ...fields,\n            })\n            .select("id"), | rating, ...fields,\n            }),
+// @mutate src/components/reviewPanel/ReviewForm.tsx | photo_urls: uploadedPhotoUrls,\n        })\n        .select("id"), | photo_urls: uploadedPhotoUrls,\n        }),
 // @mutate src/components/reviewPanel/ReviewForm.tsx | } else if (!error) {\n        toast.error( | } else if (!error) {\n        recordReviewInActivityCache(jobId);\n        toast.error(
 // @mutate src/components/CompletionPrompts.tsx | else { hapticError(); toast.error("We couldn't submit your review — please try again."); } | else { recordReviewInActivityCache(jobId); hapticError(); toast.error("We couldn't submit your review — please try again."); }
 

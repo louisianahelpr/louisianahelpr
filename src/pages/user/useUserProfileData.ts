@@ -20,6 +20,7 @@ import {
 import type { ProfileReview, ProfileJob, ReplyLatency } from "./types";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { reviewText, withReviewTags } from "@/lib/reviewTags";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -108,6 +109,8 @@ type ReviewRow = {
   id: string;
   rating: number;
   feedback: string | null;
+  /** Q1088: the picked tags (absent on a read that ran before the tags column existed). */
+  tags?: string[] | null;
   created_at: string;
   reviewer_id: string | null;
   job_id: string | null;
@@ -125,7 +128,7 @@ function enrichReviewRows(
     return {
       id: r.id,
       rating: r.rating,
-      feedback: r.feedback,
+      feedback: reviewText(r.feedback, r.tags),
       created_at: r.created_at,
       // Q369: a NULL reviewer_id is an author who deleted their account.
       reviewerName: r.reviewer_id ? nameMap.get(r.reviewer_id) || "a neighbor" : FORMER_MEMBER_LABEL,
@@ -250,7 +253,10 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // feedback_visible_at filter: anti-retaliation reveal — hidden until
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
-        supabase.from("reviews").select("id, rating, feedback, created_at, reviewer_id, job_id, response_text, response_at, jobs!inner(status)", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).neq("jobs.status", "cancelled").order("created_at", { ascending: false }).limit(20),
+        withReviewTags(
+          () => supabase.from("reviews").select("id, rating, feedback, tags, created_at, reviewer_id, job_id, response_text, response_at, jobs!inner(status)", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).neq("jobs.status", "cancelled").order("created_at", { ascending: false }).limit(20),
+          () => supabase.from("reviews").select("id, rating, feedback, created_at, reviewer_id, job_id, response_text, response_at, jobs!inner(status)", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).neq("jobs.status", "cancelled").order("created_at", { ascending: false }).limit(20),
+        ),
         // customer_id + helper_id: JobsList shows only rows the viewer was a
         // party to (A3-C8), never another poster's job on a public profile.
         supabase.from("jobs").select("id, title, status, category, budget, created_at, customer_id, helper_id, cancellation_reason, cancelled_by").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
@@ -1010,13 +1016,25 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         });
       }
 
-      const { data: moreRows, error } = await supabase
-        .from("reviews")
-        .select("id, rating, feedback, created_at, reviewer_id, job_id, response_text, response_at")
-        .eq("reviewee_id", userId)
-        .lte("feedback_visible_at", new Date().toISOString())
-        .order("created_at", { ascending: false })
-        .range(from, to);
+      const visibleBy = new Date().toISOString();
+      const { data: moreRows, error } = await withReviewTags(
+        () =>
+          supabase
+            .from("reviews")
+            .select("id, rating, feedback, tags, created_at, reviewer_id, job_id, response_text, response_at")
+            .eq("reviewee_id", userId)
+            .lte("feedback_visible_at", visibleBy)
+            .order("created_at", { ascending: false })
+            .range(from, to),
+        () =>
+          supabase
+            .from("reviews")
+            .select("id, rating, feedback, created_at, reviewer_id, job_id, response_text, response_at")
+            .eq("reviewee_id", userId)
+            .lte("feedback_visible_at", visibleBy)
+            .order("created_at", { ascending: false })
+            .range(from, to),
+      );
 
       if (error) {
         // PGRST202 or any other error — silently skip, don't append.

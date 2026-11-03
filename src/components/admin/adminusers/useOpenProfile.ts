@@ -11,6 +11,7 @@ import { formatName } from "@/lib/utils";
 import type { Profile } from "../adminUserHelpers";
 import type { Tables } from "@/integrations/supabase/types";
 import { REVIEW_COUNT_COLUMNS, countsTowardRating } from "@/lib/reviewStats";
+import { reviewText, withReviewTags } from "@/lib/reviewTags";
 
 /**
  * One row of the admin Jobs tab: exactly the columns `openProfile` selects.
@@ -61,8 +62,14 @@ export const makeOpenProfile = (deps: OpenProfileDeps) => {
     setProfileJobs([]);
 
     const [reviewsRes, reviewsLeftRes, violationsRes, bansRes, trackingRes, sendLogRes, jobsRes] = await Promise.all([
-      supabase.from("reviews").select(`feedback, reviewer_id, created_at, job_id, ${REVIEW_COUNT_COLUMNS}`).eq("reviewee_id", profile.user_id).order("created_at", { ascending: false }),
-      supabase.from("reviews").select("rating, feedback, reviewee_id, created_at, job_id").eq("reviewer_id", profile.user_id).order("created_at", { ascending: false }),
+      withReviewTags(
+        () => supabase.from("reviews").select(`feedback, tags, reviewer_id, created_at, job_id, ${REVIEW_COUNT_COLUMNS}`).eq("reviewee_id", profile.user_id).order("created_at", { ascending: false }),
+        () => supabase.from("reviews").select(`feedback, reviewer_id, created_at, job_id, ${REVIEW_COUNT_COLUMNS}`).eq("reviewee_id", profile.user_id).order("created_at", { ascending: false }),
+      ),
+      withReviewTags(
+        () => supabase.from("reviews").select("rating, feedback, tags, reviewee_id, created_at, job_id").eq("reviewer_id", profile.user_id).order("created_at", { ascending: false }),
+        () => supabase.from("reviews").select("rating, feedback, reviewee_id, created_at, job_id").eq("reviewer_id", profile.user_id).order("created_at", { ascending: false }),
+      ),
       supabase.from("user_violations").select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
       supabase.from("user_bans").select("*").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
       supabase.from("email_tracking").select("event_type, email_type, created_at").eq("user_id", profile.user_id).order("created_at", { ascending: false }),
@@ -126,7 +133,7 @@ export const makeOpenProfile = (deps: OpenProfileDeps) => {
 
     setProfileReviews((reviewsRes.data || []).map((r) => ({
       rating: r.rating,
-      feedback: r.feedback,
+      feedback: reviewText(r.feedback, r.tags),
       reviewer_name: nameMap.get(r.reviewer_id) || "User",
       created_at: r.created_at,
       job_title: r.job_id ? jobMap.get(r.job_id) : undefined,
@@ -135,7 +142,7 @@ export const makeOpenProfile = (deps: OpenProfileDeps) => {
     })));
     setProfileReviewsLeft((reviewsLeftRes.data || []).map((r) => ({
       rating: r.rating,
-      feedback: r.feedback,
+      feedback: reviewText(r.feedback, r.tags),
       reviewee_name: nameMap.get(r.reviewee_id) || "User",
       created_at: r.created_at,
       job_title: r.job_id ? jobMap.get(r.job_id) : undefined,

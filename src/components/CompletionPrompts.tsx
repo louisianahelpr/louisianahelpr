@@ -31,6 +31,7 @@ import { unwrapMutation, WriteRejectedError } from "@/lib/mutationResult";
 import { userFacingError } from "@/lib/userFacingError";
 import { ReviewQuestionCard } from "@/components/reviewPanel/ReviewQuestionCard";
 import { quickTagsFor } from "@/components/reviewPanel/types";
+import { insertReviewWithTags } from "@/lib/reviewTags";
 import { JobDoneSummary } from "@/components/jobDone/JobDoneSummary";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 
@@ -174,13 +175,16 @@ export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onD
     let error: (Error & { code?: string }) | null = null;
     try {
       unwrapMutation(
-        await supabase
-          .from("reviews")
-          .insert({
-            job_id: jobId, reviewer_id: userId, reviewee_id: revieweeId,
-            rating, feedback: feedback.trim() || null,
-          })
-          .select("id"),
+        // Q1088: the picked tags go to reviews.tags, the prose to feedback (src/lib/reviewTags.ts).
+        await insertReviewWithTags(feedback, (fields) =>
+          supabase
+            .from("reviews")
+            .insert({
+              job_id: jobId, reviewer_id: userId, reviewee_id: revieweeId,
+              rating, ...fields,
+            })
+            .select("id"),
+        ),
         {
           action: "post your review",
           rejectedMessage: "We couldn't post your review — this job may no longer be open for reviews. Refresh and try again.",

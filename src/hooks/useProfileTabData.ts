@@ -27,6 +27,7 @@ import {
 import { JOB_READABLE_COLUMNS, readableJobRows, type ReadableJobRow } from "@/lib/jobColumns";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { reviewText, withReviewTags } from "@/lib/reviewTags";
 
 // The row as a signed-in client can read it: jobs.offered_to_helper_id is not
 // selectable (20260915045110), so these reads name their columns.
@@ -155,14 +156,26 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
     enabled: !!userId && enabled,
     queryFn: async () => {
       const id = userId!;
+      const visibleBy = new Date().toISOString();
       const data = unwrap(
-        await supabase
-          .from("reviews")
-          .select("rating, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
-          .eq("reviewee_id", id)
-          .lte("feedback_visible_at", new Date().toISOString())
-          .neq("jobs.status", "cancelled")
-          .order("created_at", { ascending: false }),
+        await withReviewTags(
+          () =>
+            supabase
+              .from("reviews")
+              .select("rating, feedback, tags, created_at, reviewer_id, job_id, jobs!inner(status)")
+              .eq("reviewee_id", id)
+              .lte("feedback_visible_at", visibleBy)
+              .neq("jobs.status", "cancelled")
+              .order("created_at", { ascending: false }),
+          () =>
+            supabase
+              .from("reviews")
+              .select("rating, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
+              .eq("reviewee_id", id)
+              .lte("feedback_visible_at", visibleBy)
+              .neq("jobs.status", "cancelled")
+              .order("created_at", { ascending: false }),
+        ),
       );
       if (!data || data.length === 0) return [];
       // `reviewer_id` is nullable — an account deletion anonymises the review
@@ -197,7 +210,7 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
       const sideMap = new Map(jobsRes.data?.map((j) => [j.id, j.customer_id === id ? "poster" as const : "helpr" as const]) || []);
       return data.map((r) => ({
         rating: r.rating,
-        feedback: r.feedback,
+        feedback: reviewText(r.feedback, r.tags),
         created_at: r.created_at,
         // "a neighbor", not "User": every other consumer surface for this exact
         // state says "a neighbor" (ReviewList, PublicReviewWall, useActivityData,

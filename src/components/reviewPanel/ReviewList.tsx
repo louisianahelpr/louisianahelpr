@@ -8,6 +8,7 @@ import { safeImageSrc, type Review, type ReviewListProps } from "./types";
 import { formatShortDate } from "@/lib/format";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import { STAR_ON_CLS } from "@/lib/starColor";
+import { reviewText, withReviewTags } from "@/lib/reviewTags";
 
 export const ReviewList = ({ userId }: ReviewListProps) => {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -39,13 +40,25 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
       // exclusion. `jobs` is unreadable to a non-party, which is why
       // `get_public_profile_reviews` exists. Route through that RPC before
       // mounting this anywhere real.
-      const { data, error } = await supabase
-        .from("reviews")
-        .select("id, rating, feedback, created_at, reviewer_id, photo_urls")
-        .eq("reviewee_id", userId)
-        .eq("status", "published")
-        .lte("feedback_visible_at", new Date().toISOString())
-        .order("created_at", { ascending: false });
+      const visibleBy = new Date().toISOString();
+      const { data, error } = await withReviewTags(
+        () =>
+          supabase
+            .from("reviews")
+            .select("id, rating, feedback, tags, created_at, reviewer_id, photo_urls")
+            .eq("reviewee_id", userId)
+            .eq("status", "published")
+            .lte("feedback_visible_at", visibleBy)
+            .order("created_at", { ascending: false }),
+        () =>
+          supabase
+            .from("reviews")
+            .select("id, rating, feedback, created_at, reviewer_id, photo_urls")
+            .eq("reviewee_id", userId)
+            .eq("status", "published")
+            .lte("feedback_visible_at", visibleBy)
+            .order("created_at", { ascending: false }),
+      );
 
       if (error) {
         // Surface the failure instead of silently rendering an empty
@@ -74,7 +87,7 @@ export const ReviewList = ({ userId }: ReviewListProps) => {
         }
 
         const profileMap = new Map(profiles?.map((p) => [p.user_id, p.full_name || "User"]) || []);
-        setReviews(data.map((r) => ({ ...r, reviewerName: r.reviewer_id ? profileMap.get(r.reviewer_id) : FORMER_MEMBER_LABEL })));
+        setReviews(data.map((r) => ({ ...r, feedback: reviewText(r.feedback, r.tags), reviewerName: r.reviewer_id ? profileMap.get(r.reviewer_id) : FORMER_MEMBER_LABEL })));
       }
       setLoaded(true);
     };

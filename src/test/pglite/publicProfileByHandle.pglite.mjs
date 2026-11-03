@@ -20,6 +20,11 @@
  *   P7  no page for a test member (is_seed / test_accounts), banned, unverified, deleted or unknown handle
  *   P8  anon and a member get the same answer; anon holds EXECUTE
  *   P9  Declutter not open to everyone: no listings and no Wanted; declutter_wanted testers-only: no Wanted
+ *
+ * LH_PROFILE_THEN=<later migration file> also applies that migration after this one (3x with --replay) and adds its
+ * checks. Q1088 (11-03): LH_PROFILE_THEN=20261103224601_review_tags_column.sql adds
+ *   P16 a review whose tags sit in reviews.tags shows "prose, Tag, Tag" on the page and in get_public_profile_reviews,
+ *       exactly what the form used to store; a tag outside the form's list is refused by reviews_tags_known
  */
 import { readFileSync, readdirSync } from "node:fs";
 import os from "node:os";
@@ -30,6 +35,8 @@ const DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const THIS = "20261101041833_public_profile_by_handle.sql";
 const MIGRATION = readFileSync(DIR + THIS, "utf8");
 const REPLAY = process.argv.includes("--replay");
+const THEN = process.env.LH_PROFILE_THEN ?? "";
+const THEN_SQL = THEN ? readFileSync(THEN.includes("/") ? THEN : DIR + THEN, "utf8") : "";
 const BEFORE = process.argv.includes("--before");
 
 // The newest real definition of a helper (any dollar-quote tag), from the migrations before this one.
@@ -192,6 +199,10 @@ if (!BEFORE) {
     try {
       await db.exec(MIGRATION);
       console.log(`applied ${THIS} (run ${i})`);
+      if (THEN_SQL) {
+        await db.exec(THEN_SQL);
+        console.log(`applied ${THEN} (run ${i})`);
+      }
     } catch (e) {
       check(`migration applies (run ${i})`, false, e.message);
     }
@@ -344,6 +355,35 @@ check("P14 a banned, out, deleted or under-18 reviewer shows as 'A neighbor'; ot
 await db.exec(`INSERT INTO public.profile_handles_retired (handle, user_id) VALUES ('lou-gone', NULL)`);
 const gone = await page("lou-gone");
 check("P15 a deleted member's unlinked handle opens no page", !BEFORE && gone.v === null && !gone.error, JSON.stringify(gone));
+
+if (THEN_SQL && !BEFORE) {
+  // P16 (Q1088): new rows keep the prose in feedback and the picked tags in tags; every reader shows the old text.
+  await db.exec(`UPDATE public.reviews SET feedback = 'Came early.', tags = '{On time,Great work}' WHERE feedback = 'Great work'`);
+  const shown = (await page("eli-b")).v?.helpr?.reviews?.map((x) => x.feedback);
+  await as(ADMIN, "authenticated");
+  let rpc;
+  try {
+    rpc = (await db.query(`SELECT feedback FROM public.get_public_profile_reviews('${ELI}')`)).rows.map((x) => x.feedback);
+  } catch (e) {
+    rpc = e.message;
+  } finally {
+    await db.exec(`RESET ROLE; SELECT set_config('request.jwt.claim.sub', '', false);`);
+  }
+  let refused = "";
+  try {
+    await db.exec(`UPDATE public.reviews SET tags = '{On time,call me 225-555-0100}' WHERE feedback = 'Came early.'`);
+  } catch (e) {
+    refused = e.message;
+  }
+  const old = (await db.query(`SELECT public.review_text('Great job., On time', '{}') AS a, public.review_text(NULL, '{Friendly}') AS b, public.review_text(NULL, '{}') AS c`)).rows[0];
+  check("P16 tags in reviews.tags show as 'prose, Tag, Tag' on the page and in get_public_profile_reviews; an unknown tag is refused",
+    JSON.stringify(shown) === JSON.stringify(["Came early., On time, Great work"])
+      // (as an admin the RPC also lists test-account and seed-job reviews: its seed rule reads the caller)
+      && Array.isArray(rpc) && rpc.includes("Came early., On time, Great work") && !rpc.includes("Came early.")
+      && /reviews_tags_known/.test(refused)
+      && old.a === "Great job., On time" && old.b === "Friendly" && old.c === null,
+    JSON.stringify({ shown, rpc, refused: refused.slice(0, 80), old }));
+}
 
 if (BEFORE) {
   console.log(`--before: ${failures}/${checks} FAIL (expected ${checks})`);

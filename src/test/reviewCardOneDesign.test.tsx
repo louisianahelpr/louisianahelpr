@@ -320,4 +320,4 @@ describe("splitReviewTags", () => {
 });
 
 // @mutate src/pages/user/ReviewsSection.tsx | <ReviewCategoryChip category={r.jobCategory} /> | <p className="text-muted-foreground text-ds-11">For: {r.jobTitle}</p>
-// @mutate src/components/profile/reviewCard.tsx | while (cut > 0 && ALL_QUICK_TAGS.includes(parts[cut - 1])) cut -= 1; |
+// @mutate src/lib/reviewTags.ts | while (cut > 0 && ALL_QUICK_TAGS.includes(parts[cut - 1])) cut -= 1; |

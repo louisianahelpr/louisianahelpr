@@ -11873,6 +11873,7 @@ export type Database = {
           reviewee_id: string
           reviewer_id: string | null
           status: string
+          tags: string[]
         }
         Insert: {
           created_at?: string
@@ -11887,6 +11888,7 @@ export type Database = {
           reviewee_id: string
           reviewer_id?: string | null
           status?: string
+          tags?: string[]
         }
         Update: {
           created_at?: string
@@ -11901,6 +11903,7 @@ export type Database = {
           reviewee_id?: string
           reviewer_id?: string | null
           status?: string
+          tags?: string[]
         }
         Relationships: [
           {
@@ -20210,6 +20213,10 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      review_text: {
+        Args: { p_feedback: string; p_tags: string[] }
+        Returns: string
       }
       revoke_gift_card_for_refund: {
         Args: { p_payment_intent_id: string; p_reason?: string }

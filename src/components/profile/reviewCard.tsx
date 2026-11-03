@@ -1,6 +1,5 @@
 import { Star } from "lucide-react";
 import { formatCategory } from "@/lib/format";
-import { HELPER_QUICK_TAGS, POSTER_QUICK_TAGS, RETIRED_QUICK_TAGS } from "@/components/reviewPanel/types";
 import { STAR_ON_CLS } from "@/lib/starColor";
 
 /**
@@ -28,22 +27,18 @@ import { STAR_ON_CLS } from "@/lib/starColor";
  * is what the shared row uses.
  */
 
-/** Every one-tap tag the review form can write, both directions. */
-const ALL_QUICK_TAGS: readonly string[] = [...HELPER_QUICK_TAGS, ...POSTER_QUICK_TAGS, ...RETIRED_QUICK_TAGS];
-
 /**
  * Pull the one-tap tags back out of the free-text comment.
  *
- * `ReviewForm.toggleQuickOption` does not store tags anywhere of their own —
- * there IS no tags column on `reviews` (verified against prod 2026-09-19) — it
- * literally does `[...prev.split(", "), option].join(", ")` and writes the
- * result into `feedback`. On prod that produces rows like
+ * Until Q1088 the form stored no tags of their own: it joined them onto the
+ * free text (`[...prev.split(", "), option].join(", ")`) and wrote the result
+ * into `feedback`, giving prod rows like
  *
  *     "Quick, careful, and came back for the pollen without fuss., On time"
  *
- * — a structured choice comma-jammed onto the end of a sentence, full stop and
- * all. The durable fix is a `tags text[]` column and a write path that stops
- * concatenating; that is a schema change and a separate decision (reported).
+ * Since Q1088 new rows keep the tags in `reviews.tags` (src/lib/reviewTags.ts),
+ * and readers rebuild the old text with `reviewText(feedback, tags)`, so this
+ * peel serves old and new rows alike.
  * This is the display-side recovery of information the reviewer really did
  * choose, and it is deliberately conservative:
  *
@@ -54,19 +49,7 @@ const ALL_QUICK_TAGS: readonly string[] = [...HELPER_QUICK_TAGS, ...POSTER_QUICK
  *    prose comes back byte-identical. Nothing is rewritten, summarised, or
  *    invented — no model is called and no new sentence is produced.
  */
-export function splitReviewTags(feedback: string | null | undefined): {
-  prose: string | null;
-  tags: string[];
-} {
-  if (!feedback) return { prose: null, tags: [] };
-  const parts = feedback.split(", ");
-  let cut = parts.length;
-  while (cut > 0 && ALL_QUICK_TAGS.includes(parts[cut - 1])) cut -= 1;
-  // All tags and nothing else is a legitimate review — the form lets you
-  // submit with no prose at all — so `prose` goes null rather than "".
-  const prose = parts.slice(0, cut).join(", ").trim();
-  return { prose: prose.length > 0 ? prose : null, tags: parts.slice(cut) };
-}
+export { splitReviewTags } from "@/lib/reviewTags";
 
 /** The five-star display row. Not an input — see reviewPanel/StarRow for that. */
 export function ReviewStars({ rating }: { rating: number }) {

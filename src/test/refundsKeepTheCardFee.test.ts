@@ -662,7 +662,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // declutter_refunds only to label each debt's reason) and the admin waiver, which clears a debt's REMAINING
       // amount under consume_fee_debt's lock. Neither records a refund nor decides a refund amount or fee.
       declutter_admin_fee_debts: "20261102065446_declutter_fee_debt_waiver.sql b69b106b1c9b719e",
-      declutter_admin_waive_fee_debt: "20261102065446_declutter_fee_debt_waiver.sql 106523adcf6e41d5",
+      declutter_admin_waive_fee_debt: "20261103150842_q2390_returns_withdraw_fee_waiver_visit_lease_not_found_is_404.sql 0db1c3eb1c78c2de",
       // A3-85 (20261102002011) / 20261102034632 (read by Builder 151): the text-message queue and its kind map name
       // 'declutter_refunds' only as a NOTICE KIND (which refund-request reminders count as "needs you"). They write
       // sms_messages status/due_at only; no refund row, amount or fee.

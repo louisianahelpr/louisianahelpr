@@ -36,6 +36,12 @@ export function useWarmAvatar(avatarUrl: string | null | undefined) {
   useEffect(() => {
     if (!avatarUrl || typeof Image === "undefined") return;
     const img = new Image();
+    // Same CORS mode as UserAvatar's <img crossOrigin="anonymous">. A plain
+    // (no-cors) warm-up is a DIFFERENT cache entry, so the top bar fetched the
+    // photo a second time on every page load: 2 avatar GETs per load in the
+    // signed-in probe, and prod's public objects answer `private, no-cache`,
+    // so neither copy is reused across loads (B58, 2026-11-03, Q104).
+    img.crossOrigin = "anonymous";
     img.decoding = "async";
     img.src = transformedImageUrl(avatarUrl, { width: 72, height: 72 });
   }, [avatarUrl]);

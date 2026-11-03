@@ -69,7 +69,7 @@ CREATE TABLE public.job_quote_offers (id uuid PRIMARY KEY DEFAULT gen_random_uui
 
 // Prod's state first in both modes (the old 11-arg create_quote_request and quote_insert_job with prod's
 // grants), so the after run proves the migration REPLACES them, not that it works on an empty schema.
-await db.exec(`${fnStmt("create_quote_request")}\n${fnStmt("quote_insert_job")}\n${fnStmt("quote_request_follows_poster_deletion")}
+await db.exec(`${fnStmt("create_quote_request")}\n${fnStmt("quote_insert_job")}\n${fnStmt("quote_request_follows_poster_deletion")}\n${fnStmt("switch_quote_request_to_set_price")}
 CREATE TRIGGER trg_quote_request_poster_deleted BEFORE UPDATE OF poster_id ON public.job_quote_requests
   FOR EACH ROW EXECUTE FUNCTION public.quote_request_follows_poster_deletion();
 REVOKE ALL ON FUNCTION public.create_quote_request(text, text, text, date, time, numeric, text, numeric, numeric, text, integer) FROM PUBLIC, anon;
@@ -81,6 +81,12 @@ if (BEFORE) {
        FROM pg_proc p WHERE p.proname IN ('create_quote_request', 'quote_insert_job', 'quote_request_follows_poster_deletion') ORDER BY 1`);
   for (const r of md5s.rows) console.log(`before-def ${r.proname} md5 ${r.md5} (${r.len} chars)`);
 } else {
+  // A long-lived connection: the real caller switch_quote_request_to_set_price runs once on the OLD shape
+  // (caching its plan and its job_quote_requests%ROWTYPE), then the migration adds two columns under it.
+  await db.exec(`SET request.jwt.claim.sub = '${POSTER}'`);
+  const warm = await db.query(`SELECT public.create_quote_request('Warm the cache', 'Ten chars or more here', 'handyman', current_date + 5) AS id`);
+  await db.query(`SELECT public.switch_quote_request_to_set_price($1, 90)`, [warm.rows[0].id]);
+  await db.exec(`DELETE FROM public.jobs; DELETE FROM public.job_quote_requests;`);
   for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
 }
 
@@ -149,6 +155,15 @@ const old = await tryQ(
 check("an 11-named-argument call reaches the new function and is refused invalid_zip / 22023",
   /invalid_zip/.test(old.error ?? "") && old.code === "22023");
 
+// 5b. The real caller (switch to set price; book_accepted_quote calls quote_insert_job the same way, with
+// its v_req read by SELECT *) carries both onto the job, in the session that ran it before the migration.
+await db.exec(`UPDATE public.job_quote_requests SET status = 'closed'`); // 3b filled the 5-open cap
+const sw = await ask("cleaning", "70801", "fabric_cleaning");
+const swJob = sw.error ? sw : await tryQ(`SELECT public.switch_quote_request_to_set_price($1, 150) AS job`, [sw.rows[0].id]);
+const swRow = swJob.error ? null : (await db.query(`SELECT zip_code, tax_kind FROM public.jobs WHERE id = $1`, [swJob.rows[0].job])).rows[0];
+check("switch_quote_request_to_set_price (same session, plan cached before the migration) posts a job with the ZIP and tax_kind",
+  swRow?.zip_code === "70801" && swRow?.tax_kind === "fabric_cleaning");
+
 // 6. Account deletion (poster_id -> NULL) clears the request's ZIP with its address, as jobs.zip_code is cleared.
 const del = a.error ? null : a.rows[0].id;
 if (del) await db.query(`UPDATE public.job_quote_requests SET poster_id = NULL WHERE id = $1`, [del]);
@@ -157,4 +172,4 @@ check("a deleted poster's request loses its zip_code", !!gone && gone.zip_code =
 
 const fails = checks.filter(([, ok]) => !ok).length;
 console.log(BEFORE ? `before: ${fails} of ${checks.length} failed (the gap must show)` : `after: ${checks.length - fails}/${checks.length} pass (3x applied)`);
-process.exit(BEFORE ? (fails >= 10 ? 0 : 1) : fails === 0 ? 0 : 1);
+process.exit(BEFORE ? (fails >= 11 ? 0 : 1) : fails === 0 ? 0 : 1);

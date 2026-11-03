@@ -13,6 +13,7 @@
  * @mutate src/lib/continueDayReads.ts | const CONTINUE_DAY_COLUMNS = "id, job_id, proposed_by, new_date, new_start_time, note, status, helper_confirmed_at, job:jobs(customer_id)"; | const CONTINUE_DAY_COLUMNS = "id, job_id, proposed_by, new_date, new_start_time, note, status, helper_confirmed_at";
  */
 import { readFileSync } from "node:fs";
+import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, renderHook, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -111,7 +112,9 @@ describe("Q2606 the poster's sheet sends, never sets", () => {
 
 describe("Q2606 the server half this copy matches", () => {
   it("the newest propose_job_continue_day makes every pick 'proposed'; answer lets only the other side answer", () => {
-    const sql = blankSqlComments(readFileSync("supabase/migrations/20261102102402_poster_continue_day_goes_to_the_helpr.sql", "utf8"));
+    // The live definitions (first set by 20261102102402; restated with only the not-found ERRCODE changed by Q2390).
+    const defs = effectiveDefs("supabase/migrations");
+    const sql = ["propose_job_continue_day", "answer_job_continue_day"].map((n) => blankSqlComments(defs.get(n)?.stmt ?? "")).join("\n");
     expect(sql).toMatch(/v_status := 'proposed';/);
     expect(sql).toMatch(/v_answerer := CASE WHEN v_row\.proposed_by IS NOT NULL AND v_row\.proposed_by = v_job\.customer_id\s+THEN v_job\.helper_id ELSE v_job\.customer_id END;/);
     expect(sql).toMatch(/IF v_answerer IS NULL OR v_uid IS DISTINCT FROM v_answerer THEN\s+RAISE EXCEPTION 'not_authorized'/);

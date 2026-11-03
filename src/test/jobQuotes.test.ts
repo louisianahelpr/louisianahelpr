@@ -17,8 +17,8 @@
  * INSERT (create-payment then charges jobs.budget: one payment path, Q8), and
  * that the switch stays registered and created OFF.
  *
- * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = v_req_id FOR UPDATE; | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = v_req_id;
- * @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = p_request_id FOR SHARE; | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = p_request_id;
+ * @mutate supabase/migrations/20261103043002_job_offers_arrival_continue_day_not_found_is_404.sql | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = v_req_id FOR UPDATE; | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = v_req_id;
+ * @mutate supabase/migrations/20261103043002_job_offers_arrival_continue_day_not_found_is_404.sql | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = p_request_id FOR SHARE; | SELECT * INTO v_req FROM public.job_quote_requests WHERE id = p_request_id;
  * @mutate supabase/migrations/20261015091114_job_quotes.sql | VALUES ('quotes', 'off', | VALUES ('quotes', 'everyone',
  * @mutate supabase/migrations/20261021015146_quote_booked_job_locks_crew_shape.sql |                   WHERE r.job_id = OLD.id AND r.status IN ('agreed', 'cancelled')) THEN |                   WHERE false) THEN
  * @mutate supabase/migrations/20261021015146_quote_booked_job_locks_crew_shape.sql |       NEW.helpers_needed, NEW.is_group_job, NEW.is_urgent) |       NEW.helpers_needed, OLD.is_group_job, NEW.is_urgent)

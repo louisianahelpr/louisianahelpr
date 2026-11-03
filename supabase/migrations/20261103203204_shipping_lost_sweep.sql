@@ -485,7 +485,7 @@ BEGIN
       IF FOUND AND o.status = 'paid' AND o.handover = 'ship' AND o.ship_capture = 'captured'
          AND NOT EXISTS (SELECT 1 FROM public.declutter_problems p WHERE p.order_id = o.id AND p.status = 'open') THEN
         PERFORM public.declutter_close_paid_order(o.id, 'ship_lost', NULL, NULL,
-          'Your package was never delivered, 10 days after the carrier took it. The buyer got everything back, shipping included; the label and the card fee come out of your next Declutter payout.');
+          'Your package was never delivered, 10 days after the carrier took it. The buyer got everything back, shipping included; the label and what the buyer''s card payment cost come out of your next Declutter payout.');
         v_lost := v_lost + 1;
       END IF;
     EXCEPTION WHEN OTHERS THEN

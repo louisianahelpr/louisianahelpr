@@ -128,3 +128,23 @@ export const SIGNUP_ALREADY_FINISHED_COPY = "Your account is already set up: con
 export function isSignupAlreadyFinished(err: unknown): boolean {
   return err instanceof Error && SIGNUP_ALREADY_FINISHED.test(err.message);
 }
+
+/**
+ * Q2514 (Sentry JAVASCRIPT-48, 7 error_logs rows 10-22..10-24, measured 11-03 read-only): complete-signup's
+ * "Signup completion window expired. Please log in to finish your profile." comes from a person signing up AGAIN
+ * with an email whose account they made hours or days before and had not confirmed. For every one of the 7 rows,
+ * auth.users holds an account created 70 s to 9 days earlier whose confirmation_sent_at is 2-3 s before the error:
+ * signUp resent the confirmation email and returned that account, and the unauthenticated completion refuses an
+ * account older than 30 minutes (supabase/functions/complete-signup/index.ts). That refusal is the design, not
+ * a failure: confirming and logging in lands on /complete-profile behind the consent gate (7 of the 8 accounts
+ * the rows matched were confirmed and signed in afterwards). So it is not reported and the person is told what
+ * happened, kindly.
+ */
+export const SIGNUP_RESUMED_OLD_ACCOUNT = /^Signup completion window expired\b/;
+
+export const SIGNUP_RESUMED_OLD_ACCOUNT_COPY =
+  "You already started an account with this email. We sent the confirmation email again: confirm it, then log in to finish your profile.";
+
+export function isSignupResumedOldAccount(err: unknown): boolean {
+  return err instanceof Error && SIGNUP_RESUMED_OLD_ACCOUNT.test(err.message);
+}

@@ -219,6 +219,8 @@ describe("payout paths read the jobs fee-model stamp (F3)", () => {
     // it in either direction: 8 name the percent, 6 more name the pay inputs.
     const MEASURED_LISTS = [
       "src/boot/guestJobsPrefetch.ts",
+      // Q1158 (B43): the /jobs entry prefetch is a byte copy of useDashboardData's browse list, stamp included.
+      "src/boot/jobsPrefetch.ts",
       "src/components/admin/AdminDisputes.tsx",
       "src/components/admin/AdminDisputes.tsx",
       "src/components/admin/AdminDisputes.tsx",

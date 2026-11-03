@@ -22,6 +22,7 @@ const EXEMPT: Record<string, string> = {
   no_connect_account: "its own 'Payout account required' notice",
   payout_held: "a staff payout hold (Q764); the hold is staff's to explain",
   unsettled_dispute_hold: "an open dispute the Helpr is a party to",
+  dispute_closed_as_test: "a dispute an admin closed as a test; test data, no page by design (Q1910)",
   reversed_transfer_hold: "money already moved and was clawed back; staff reconcile",
   skipped_test_mode_object: "a test-mode object (test data)",
   stripe_mode_refused: "a job pairing a test account with a real one",

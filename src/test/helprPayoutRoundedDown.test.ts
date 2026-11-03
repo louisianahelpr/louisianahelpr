@@ -148,7 +148,11 @@ describe("Helpr payouts are whole dollars, rounded down (Q236)", () => {
       const assign = new RegExp(`\\b${v}\\s*=(?!=)\\s*([^;]*)`, "g");
       const rhs = [...src.matchAll(assign)].map((m) => m[1].trim());
       expect(rhs.length, `no assignment to ${v} found`).toBeGreaterThan(0);
-      for (const r of rhs) {
+      // Q2176 (lead PASS 11-03): an ADOPTED orphan transfer records the amount Stripe already sent (rounded
+      // when it was sent), so exactly one assignment per file may read unrecorded.amountCents, nothing else.
+      const adoptedRhs = rhs.filter((r) => r === "unrecorded.amountCents");
+      expect(adoptedRhs.length, `${file}: at most one adopted-amount assignment`).toBeLessThanOrEqual(1);
+      for (const r of rhs.filter((x) => x !== "unrecorded.amountCents")) {
         expect(r, `${file}: ${v} = ${r}`).toMatch(/^roundPayoutDownCents\(/);
       }
     });

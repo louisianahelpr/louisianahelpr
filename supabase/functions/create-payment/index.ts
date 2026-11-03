@@ -212,6 +212,8 @@ async function underBanReview(
   return null;
 }
 const PAYER_UNDER_REVIEW = "This payment can't go through right now. Please contact support.";
+/** Q1415 (c): a poster's own refund held by an open ban review. Names no review. */
+const REFUND_UNDER_REVIEW = "This refund can't go through right now. Your job and payment were not changed. Please contact support.";
 
 /**
  * Tax is ADDED to `unit_amount`, never carved out of it — pinned rather than
@@ -2916,6 +2918,27 @@ serve(async (req) => {
         return new Response(JSON.stringify({
           error: "This job's payment was charged, so it isn't a held card. Use Refund Poster instead. No money was moved.",
         }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+      }
+
+      // Q1415 (c), owner 11-03 ("HOLD THOSE TOO"): a refund to a poster under an
+      // open ban settlement review waits until an admin decides the review, the
+      // same rule void-cancelled-payments keeps for a cancelled job's refund.
+      // Refused before the claim, so nothing is moved and the job is unchanged.
+      // Only the charged path: a held card above releases a hold, which moves no
+      // money. A failed read refuses (fail closed). Neutral words: the poster is
+      // the one under review, and the reply never names it.
+      const posterReview = await loadBanReviewUsers(supabaseAdmin, [job.customer_id]);
+      if (!posterReview.ok) {
+        console.error(`[create-payment] cancel_escrow ban review read failed for job ${jobId}: ${posterReview.message}`);
+        return new Response(JSON.stringify({
+          error: "Couldn't check this job's payment right now. No money was moved — try again.",
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 503 });
+      }
+      if (posterReview.users.has(job.customer_id)) {
+        console.error(`[create-payment] cancel_escrow HELD on job ${jobId} (caller ${user.id}): poster under an open ban review`);
+        return new Response(JSON.stringify({ error: REFUND_UNDER_REVIEW }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409,
+        });
       }
 
       // Atomic state claim: only an escrow-held job may be refunded.

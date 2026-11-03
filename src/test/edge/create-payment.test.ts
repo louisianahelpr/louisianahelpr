@@ -2470,6 +2470,60 @@ describe("create-payment edge function", () => {
       });
     });
 
+    // Q1415 (c), owner 11-03 ("HOLD THOSE TOO"): a poster under an open ban
+    // review gets no refund until the review is decided. Refused before the
+    // claim: no Stripe call, no job write, neutral words.
+    // @mutate supabase/functions/create-payment/index.ts |       if (posterReview.users.has(job.customer_id)) { |       if (posterReview.users.has("nobody")) {
+    // @mutate supabase/functions/create-payment/index.ts |       if (!posterReview.ok) { |       if (false) {
+    describe("Q1415 (c): a poster under ban review", () => {
+      const seed = () => {
+        seedAuth(scenario, POSTER);
+        scenario.reads.jobs = {
+          rows: [{ id: "job-1", customer_id: POSTER.id, status: "open", payment_status: "escrow", stripe_payment_intent_id: "pi_live", budget: 100, customer_fee_amount: 10 }],
+        };
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_live", status: "succeeded", amount: 11000, amount_received: 11000 });
+        stripeMock.refunds.create.mockResolvedValue({ id: "re_1" });
+        scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+      };
+      const cancel = async () => {
+        const fn = await load();
+        return fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: "job-1" } }));
+      };
+      const noMoneyNoWrites = () => {
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+        expect(scenario.writes.some((w) => w.table === "jobs")).toBe(false);
+        expect(scenario.writes.some((w) => w.table === "job_refund_claims")).toBe(false);
+      };
+
+      it("holds the refund: 409 in neutral words, nothing moved or written", async () => {
+        seed();
+        scenario.reads.ban_settlement_queue = { rows: [{ user_id: POSTER.id }] };
+        const res = await cancel();
+        expect(res.status).toBe(409);
+        const body = await json(res);
+        expect(body.error).toBe("This refund can't go through right now. Your job and payment were not changed. Please contact support.");
+        expect(JSON.stringify(body)).not.toMatch(/ban|review|suspend/i);
+        noMoneyNoWrites();
+      });
+
+      it("an unreadable review list refuses (503, fail closed)", async () => {
+        seed();
+        scenario.reads.ban_settlement_queue = { error: { message: "connection reset", code: "08006" } };
+        const res = await cancel();
+        expect(res.status).toBe(503);
+        noMoneyNoWrites();
+      });
+
+      it("another account's review does not hold this poster's refund", async () => {
+        seed();
+        scenario.reads.ban_settlement_queue = { rows: [{ user_id: "someone-else" }] };
+        const res = await cancel();
+        expect(res.status).toBe(200);
+        expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+      });
+    });
+
     // @mutate supabase/functions/create-payment/index.ts | if ((crew?.length ?? 0) > 0) { | if (false) {
     it("refunds a succeeded payment intent minus the non-refundable service fee and cancels the job", async () => {
       seedAuth(scenario, POSTER);

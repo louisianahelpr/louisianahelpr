@@ -18,8 +18,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
 import { shouldRetryQuery } from "@/lib/queryRetry";
 import { TIER_PERKS, tierFeePercent } from "@/lib/subscriptionTiers";
-import { earlyAccessDelayMs, resolveEarlyAccessTier } from "@/lib/earlyAccess";
-import { useMembershipsOn } from "@/hooks/useMembershipsOn";
+import { resolveEarlyAccessTier } from "@/lib/earlyAccess";
 import { raceVisibleDeadlineRetrying } from "@/lib/visibleDeadline";
 
 // Cursor-based pagination over the open-jobs feed. Page size kept small so the
@@ -202,8 +201,6 @@ async function fetchDashboardContext(
 }
 
 export function useDashboardData() {
-  // Memberships off: no early-access wait for anyone (owner 2026-10-27).
-  const membershipsOn = useMembershipsOn();
   const queryClient = useQueryClient();
   const { user, profile, isAdmin, isLoading: userLoading, refresh: refreshCurrentUser } = useCurrentUser();
 
@@ -290,25 +287,15 @@ export function useDashboardData() {
       // free. DO NOT re-promote this line to "the gate" — if you need to
       // change who gets early access, change the SQL function.
       //
-      // The cutoff below stays only as a redundant PRE-filter. It can subtract
-      // rows the server already allowed, never add one, so at worst it agrees
-      // with the server and at best it keeps behaviour correct in the window
-      // between this commit landing and db-deploy finishing. It is computed
-      // from the same `resolveEarlyAccessTier` + `earlyAccessDelayMs` pair the
-      // SQL mirrors (null expiry = ACTIVE, matching tierFeePercent), so the two
-      // layers cannot disagree; Elite resolves to a 0ms delay (cutoff === now),
-      // which passes every already-created job.
-      //
-      // profile is read from the outer useDashboardData scope (always
-      // current-user's profile). Default to free-tier when profile is
-      // still loading — safer than accidentally granting early access.
-      const effectiveTier = resolveEarlyAccessTier(
-        profile?.subscription_tier,
-        profile?.subscription_expires_at,
-      );
-      const earlyAccessCutoff = new Date(
-        Date.now() - earlyAccessDelayMs(effectiveTier, membershipsOn),
-      ).toISOString();
+      // Q1158 (B41, 2026-11-03): the redundant client PRE-filter that stood
+      // here (`.lte("created_at", <cutoff from the viewer's profile tier>)`)
+      // is gone. It read `profile`, so this query waited for the profile read
+      // (`enabled: !userLoading`) and the feed's three rounds ran in series
+      // behind it: signed-in /jobs at 375 (cwv-lab, Slow 4G) asked for its
+      // feed only when the profile answered, ~0.85 s after the app drew. The
+      // view refuses early rows itself (`created_at <= early_access_cutoff()`,
+      // newest definition 20261031000945), and useDashboardFilters still
+      // applies the viewer's own cutoff to what is shown, reactively.
 
       // The browse view's row. `columns` is a runtime string, so PostgREST's
       // inferred type cannot follow it; the view's generated Row is the shape
@@ -371,9 +358,6 @@ export function useDashboardData() {
           .from("open_jobs_browse")
           .select(columns)
           .neq("payment_status", "abandoned")
-          // Redundant pre-filter, NOT the gate — see the long note above the
-          // cutoff. The view already refuses these rows server-side.
-          .lte("created_at", earlyAccessCutoff)
           .order("boosted_at", { ascending: false, nullsFirst: false })
           .order("created_at", { ascending: false })
           .range(offset, offset + PAGE_SIZE)
@@ -538,8 +522,9 @@ export function useDashboardData() {
     getNextPageParam: (lastPage) => lastPage.nextOffset ?? undefined,
     // NOTE: deliberately NOT gated on `!!ctx` — see the ensureQueryData race
     // in the queryFn above. Gating here made the feed wait a full round-trip
-    // for data it only uses to filter the response.
-    enabled: !!user && !userLoading,
+    // for data it only uses to filter the response. Nor on the profile read
+    // (`userLoading`, Q1158): the queryFn needs only the user's id.
+    enabled: !!user,
     // Spotty rural/coastal signal: a background refetch (window-focus,
     // pull-to-refresh) keeps the LAST successful feed on screen with a quiet
     // updating state instead of collapsing to skeletons mid-scroll. Only the

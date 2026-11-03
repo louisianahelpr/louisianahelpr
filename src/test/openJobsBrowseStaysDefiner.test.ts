@@ -27,6 +27,7 @@
 // Registered mutations - each turns this guard RED on its own:
 // @mutate supabase/migrations/20261031000945_guests_get_no_poster_id_or_street.sql | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = false) | CREATE OR REPLACE VIEW public.open_jobs_browse\nWITH (security_invoker = true)
 // @mutate supabase/migrations/20261031000945_guests_get_no_poster_id_or_street.sql |     round(latitude, 2) AS latitude, |     latitude,
+// @mutate supabase/migrations/20261031000945_guests_get_no_poster_id_or_street.sql | AND (created_at <= early_access_cutoff() OR | AND (early_access_cutoff() IS NOT NULL OR created_at <= now() OR
 // @mutate supabase/migrations/20261031000945_guests_get_no_poster_id_or_street.sql |     scope_video_url\n   FROM jobs |     scope_video_url,\n    is_seed\n   FROM jobs
 // @mutate supabase/migrations/20260312230239_44ebecc0-fa86-48da-af48-936d4c12e1a1.sql | USING (\n  auth.uid() = customer_id\n  OR auth.uid() = helper_id\n); | USING (\n  status = 'open'::job_status\n  OR auth.uid() = customer_id\n  OR auth.uid() = helper_id\n);
 // @mutate supabase/migrations/20261031000945_guests_get_no_poster_id_or_street.sql |     CASE WHEN CURRENT_USER = 'anon'::name THEN '00000000-0000-0000-0000-000000000000'::uuid ELSE customer_id END AS customer_id, |     customer_id,
@@ -187,7 +188,9 @@ describe("open_jobs_browse stays a pinned SECURITY DEFINER view (Q182)", () => {
     expect(where).toMatch(/status\s*=\s*'open'/i);
     expect(where).toMatch(/customer_id\s+is\s+not\s+null/i);
     expect(where).toMatch(/payment_status\s*=\s*any/i);
-    expect(where).toMatch(/early_access_cutoff\s*\(\)/i);
+    // The row's own clock against the cutoff, not just a mention of it (Q1158, B41): the signed-in feed dropped its
+    // client `.lte("created_at", ...)` pre-filter, so this conjunct is the only early-access gate on browse.
+    expect(where).toMatch(/\(?\s*created_at\s*<=\s*(?:public\.)?early_access_cutoff\s*\(\)/i);
     // Q552: the seed conjunct asks seed_hidden_in_discovery() (a test account keeps test jobs).
     expect(where).toMatch(/(?:seed_jobs_hidden_publicly|seed_hidden_in_discovery)\s*\(\)/i);
     expect(where).toMatch(/my_credential_tier\s*\(\)/i);

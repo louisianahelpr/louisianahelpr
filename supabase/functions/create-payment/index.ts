@@ -3804,6 +3804,7 @@ serve(async (req) => {
             feeAmt / dpHelpersCount, user.id,
             () => stampDisputeSettlementClaim(supabaseAdmin, jobId, releaseClaim.claim),
             isGiveawayFixedPayJob(job),
+            releaseClaim.claim?.token ?? null,
           );
         } catch (transferErr) {
           // Hand the claim back ONLY when no money left. transferToHelper also
@@ -6366,6 +6367,9 @@ async function transferToHelper(
   beforeTransfer?: () => Promise<boolean>,
   // Owner 2026-10-30: the giveaway job sends exactly its $50 (isGiveawayFixedPayJob).
   fixedPayGiveaway = false,
+  // Q2166: the settlement claim's token, which salts the Stripe idempotency
+  // key (see the transfer below). Each Quick Release attempt holds a fresh one.
+  claimToken: string | null = null,
 ) {
   // Get helper's connected account. Distinguish a READ ERROR from a missing
   // account so a transient failure doesn't send admins chasing "helper never
@@ -6542,12 +6546,21 @@ async function transferToHelper(
       throw new PublicError("The settlement lock on this dispute was lost before the transfer — no money was moved. Refresh and try again.");
     }
 
-    // Stripe-level idempotency: same dispute release = same transfer, so a
-    // retry never double-pays even if the ledger write below failed first.
+    // Stripe-level idempotency: one attempt = one transfer, so the SDK's own
+    // network retries never double-pay. Q2166: salted with the settlement
+    // claim's token, as release-payout salts with its failed-attempt count. A
+    // definite refusal hands the claim back and gives the Helpr-fault card fee
+    // back, so the next attempt (new claim, new token) may carry a different
+    // amount; under one fixed key Stripe answered that with an idempotency
+    // error, read below as "money may have moved", and the claim stuck with
+    // the fee never restored (and a refusal Stripe cached was replayed for
+    // 24h). A failure that may have moved money keeps its stamped claim, so no
+    // second attempt runs until a person reconciles; the caller's
+    // transfer_group check then refuses any transfer the ledger lacks.
     let transfer;
     try {
       transfer = await stripe.transfers.create(transferParams, {
-        idempotencyKey: `dispute-release-${jobId}`,
+        idempotencyKey: claimToken ? `dispute-release-${jobId}-c${claimToken}` : `dispute-release-${jobId}`,
       });
     } catch (stripeErr) {
       // Only a DEFINITE refusal proves no transfer exists. A timeout, a dropped

@@ -6,9 +6,9 @@
  * Behaviour proven in PGlite: src/test/pglite/shippingClaimPayout.pglite.mjs (73/73; NEW_MIGRATION=skip 25 FAIL;
  * 8 planted defects RED, oldest-first among them).
  *
- * @mutate supabase/migrations/20261103210119_shipping_claim_payout_pays_the_order_debt_first.sql | AND (x.refund_id IN (SELECT r.id FROM public.declutter_refunds r WHERE r.order_id = o.id) | AND (x.refund_id IS NOT NULL
- * @mutate supabase/migrations/20261103210119_shipping_claim_payout_pays_the_order_debt_first.sql | IF v_claimed + p_amount_cents > o.total_cents THEN | IF v_claimed + p_amount_cents > o.total_cents * 2 THEN
- * @mutate supabase/migrations/20261103210119_shipping_claim_payout_pays_the_order_debt_first.sql | PERFORM pg_advisory_xact_lock(hashtextextended('declutter_fee_debt:' \|\| o.seller_id::text, 0)); | NULL;
+ * @mutate supabase/migrations/20261103213005_shipping_claim_on_damaged_after_handover.sql | AND (x.refund_id IN (SELECT r.id FROM public.declutter_refunds r WHERE r.order_id = o.id) | AND (x.refund_id IS NOT NULL
+ * @mutate supabase/migrations/20261103213005_shipping_claim_on_damaged_after_handover.sql | IF v_claimed + p_amount_cents > o.total_cents THEN | IF v_claimed + p_amount_cents > o.total_cents * 2 THEN
+ * @mutate supabase/migrations/20261103213005_shipping_claim_on_damaged_after_handover.sql | PERFORM pg_advisory_xact_lock(hashtextextended('declutter_fee_debt:' \|\| o.seller_id::text, 0)); | NULL;
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -38,12 +38,13 @@ function newest(name: string): { file: string; body: string } {
 describe("a carrier claim payout pays that order's debt first", () => {
   const fn = newest("declutter_admin_record_ship_claim");
   it("is admin only, behind the switch, on a refunded ship order, capped at the order total", () => {
-    expect(fn.file >= "20261103210119").toBe(true);
+    expect(fn.file >= "20261103213005").toBe(true);
     for (const s of [
       "PERFORM public.require_feature('declutter_shipping');",
       "IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin') THEN RAISE EXCEPTION 'admin_only'",
       "o := public.declutter_lock_order(p_order_id);",
-      "IF o.status <> 'refunded' THEN",
+      // 20261103213005: or handed_over with a not_as_described refund (a damaged parcel refunded after the handover).
+      "IF o.status <> 'refunded' AND NOT (o.status = 'handed_over' AND EXISTS ( SELECT 1 FROM public.declutter_refunds r WHERE r.order_id = o.id AND r.reason = 'not_as_described')) THEN",
       "IF v_claimed + p_amount_cents > o.total_cents THEN",
     ]) expect(fn.body, s).toContain(s);
   });
@@ -51,7 +52,9 @@ describe("a carrier claim payout pays that order's debt first", () => {
     for (const s of [
       "PERFORM pg_advisory_xact_lock(hashtextextended('declutter_fee_debt:' || o.seller_id::text, 0));",
       "AND (x.refund_id IN (SELECT r.id FROM public.declutter_refunds r WHERE r.order_id = o.id)",
-      "AND x.source_ref IN (SELECT s.id FROM public.shipments s WHERE s.declutter_order_id = o.id)))",
+      "AND x.source_ref IN (SELECT s.id FROM public.shipments s WHERE s.declutter_order_id = o.id))",
+      // 20261103213005: and that order's return label debt.
+      "OR (x.source_kind = 'ship_label' AND x.source_ref IN (SELECT rl.id FROM public.shipping_return_labels rl WHERE rl.order_id = o.id)))",
       "VALUES (d.id, 'ship_claim:' || v_ref, v_take);",
       "UPDATE public.declutter_seller_fee_debts SET remaining_cents = remaining_cents - v_take WHERE id = d.id;",
       "CASE WHEN v_left = 0 THEN 'settled' ELSE 'seller_due' END",

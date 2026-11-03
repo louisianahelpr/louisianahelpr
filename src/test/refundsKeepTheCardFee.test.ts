@@ -642,7 +642,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Q2259 claim payout (20261103210119, lead PASS 11-03 lh-money-escrow): an admin records a carrier claim on a REFUNDED
       // ship order; it READS declutter_refunds only to find that order's card-cost debts and pays the order's open seller
       // debts from the claim. It records no refund and changes no refund amount, card fee or policy.
-      declutter_admin_record_ship_claim: "20261103210119_shipping_claim_payout_pays_the_order_debt_first.sql 76bb169911ce9316",
+      // 20261103213005 (lead 11-03): also on a handed_over order with a not_as_described refund, and it pays that order's
+      // return label debt too. Still records no refund and changes no refund amount, card fee or policy.
+      declutter_admin_record_ship_claim: "20261103213005_shipping_claim_on_damaged_after_handover.sql 13649681709643c1",
       // Q2259 return label (20261103212046, for verdict): the admin's request READS declutter_refunds only to check the
       // order was refunded as not_as_described; the worker's record books the return label's cost as ONE seller debt
       // (ship_label, source_ref = the return row). Neither records a refund nor changes a refund amount, card fee or policy.

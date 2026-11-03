@@ -36,7 +36,10 @@ import { trackedFiles } from "./helpers/trackedFiles";
 // the deployed declutter_save_porch_place still has only 7 arguments, saves the days alone. Same case as above: that
 // PGRST202 names declutter_save_porch_place in its hint (it exists with other parameters), so it stays a raw comparison
 // until 145652 is live (then drop the fallback and this back to 59).
-const RAW_PGRST202_SITES = 60;
+// 49 since Q2190 slice 1 (Builder 14, 2026-11-02): reviewStats, useViewerCredentialTier, useHelperAnalytics,
+// JobPetCareSheet, useCrewClosedSpots, useJobAnalytics, deletedCounterparty, jobOfferTargets, publicShop,
+// SignupLeadsCard and useFillRate now ask isMissingRpcNamed about the RPC they called.
+const RAW_PGRST202_SITES = 49;
 
 const ROOT = process.cwd();
 const isTest = (f: string) => /\.test\.tsx?$/.test(f) || f.startsWith("src/test/");

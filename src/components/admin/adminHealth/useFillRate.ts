@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { useInstantQuery } from "@/hooks/useInstantQuery";
 import type { FillRateRow, FillRateSummary, FillSortKey, FillDays } from "./types";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 export const useFillRate = () => {
   const [fillDays, setFillDays] = useState<FillDays>(30);
@@ -29,7 +30,7 @@ export const useFillRate = () => {
     fetcher: async () => {
       const result = await supabase.rpc("get_fill_rate_stats", { p_days: fillDays });
       // PGRST202 = function not deployed yet — hide the section gracefully.
-      if ((result.error as { code?: string } | null)?.code === "PGRST202") {
+      if (isMissingRpcNamed(result.error, "get_fill_rate_stats")) {
         return {
           total_jobs: 0, filled_jobs: 0, fill_rate_pct: null,
           median_minutes_to_first_app: null, parishes: [], available: false,

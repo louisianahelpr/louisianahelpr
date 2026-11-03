@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { type Job, type EnrichedApplication } from "../../../components/job-card/activityConstants";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 export type JobAnalytics = {
   viewCount: number;
@@ -37,7 +38,7 @@ export function useJobAnalytics(
       });
       if (error) {
         // PGRST202 = function not yet deployed to production — degrade gracefully
-        if (error.code === "PGRST202") return {};
+        if (isMissingRpcNamed(error, "get_job_view_counts")) return {};
         // Other errors: swallow so the feed still renders
         return {};
       }

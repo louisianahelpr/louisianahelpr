@@ -29,7 +29,7 @@
 // @mutate supabase/functions/shop-photo/index.ts |         alertStorage(upstream.status, "render refused a link-card image"); |         await alertStorage(upstream.status, "render refused a link-card image");
 // @mutate supabase/functions/shop-photo/index.ts |   const width = og ? (asked === OG_HEIGHT ? OG_HEIGHT : 1200) : | const width =
 // @mutate src/lib/shops/publicShop.ts |   if (!isShopId(shopId)) return null;\n |
-// @mutate src/lib/shops/publicShop.ts |   if ((error as { code?: string } \| null)?.code === "PGRST202") return null; |
+// @mutate src/lib/shops/publicShop.ts |   if (isMissingRpcNamed(error, "shops_public_shop")) return null; |
 // @mutate src/pages/shops/ShopPage.tsx |   const { settled, lastAnswer } = useFeatureStatus("shops"); |   const { lastAnswer } = useFeatureStatus("shops"); const settled = true;
 // @mutate src/pages/shops/ShopPage.tsx |   if (lastAnswer === true) return <ShopView />; |   if (useFeatureStatus("shops").on) return <ShopView />;
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql | GRANT EXECUTE ON FUNCTION public.shops_public_shop(uuid) TO anon, authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.shops_public_shop(uuid) TO authenticated, service_role;

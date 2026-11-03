@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /**
  * The single source of truth for "which reviews count toward a rating":
@@ -53,7 +54,7 @@ export async function fetchRatingStats(revieweeIds: string[]): Promise<RatingSta
   // that has not caught up (CLAUDE.md). Degrade to the direct read rather than
   // showing every helper as unrated, which is the very bug this replaces.
   // Any other error throws, through unwrap() so it keeps its HTTP status.
-  if ((statsRes.error as { code?: string } | null)?.code !== "PGRST202") {
+  if (!isMissingRpcNamed(statsRes.error, "get_public_profile_stats")) {
     const data = unwrap(statsRes);
     const map: RatingStats = new Map();
     for (const row of (data ?? []) as PublicProfileStatsRow[]) {

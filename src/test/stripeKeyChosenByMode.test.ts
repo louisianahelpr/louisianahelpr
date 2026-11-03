@@ -65,6 +65,8 @@ for (const [file, s] of sources) {
 
 /** Functions whose every Stripe client is chosen by mode (owner 2026-10-12). EXACT. */
 const ROUTED = [
+  // Q2225: a read-only lookup on the key the held row's payee decides ("read").
+  "admin-settle-ref-lookup/index.ts",
   "auto-release-payment/index.ts",
   "auto-tip-charge/index.ts",
   "card-hold-sweep/index.ts",
@@ -132,6 +134,7 @@ const LIVE_ONLY: Record<string, string> = { ...LIVE_ONLY_REFUSES_TEST, ...LIVE_O
  */
 // @two-way src/test/stripeKeyChosenByMode.test.ts:toEqual([...LENIENT_PARTY_CALLS].sort())
 const LENIENT_PARTY_CALLS = [
+  'admin-settle-ref-lookup/index.ts: ({ mode, stripe } = await modes.clientForParties([row.payee_id], "read"));',
   '_shared/refundNotice.ts: mode = await stripeModeForParties(supabase, [recipient], { kind: "read" });',
   'charge-recurring-visits/index.ts: : (await stripes.modeForParties([row.payer_id as string | null], "refund")) === "live" ? "live" : stored ?? "test";',
   'declutter-money/index.ts: const byParties = await modes.modeForParties([r.buyer_id, r.seller_id], "refund");',

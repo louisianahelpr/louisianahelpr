@@ -57,34 +57,64 @@ const SNAP = JSON.parse(read("./fixtures/ban-gate-inventory.live.json"));
 // rpc_settle_dispute_without_payment (20260923205812), its exemption reads as
 // stale, and this probe went red on a correct tree (2026-09-23).
 const SNAP_VERSION = SNAP.captured.replace(/\D/g, "").slice(0, 14);
-let lastBodies;
+// Bodies are kept PER OVERLOAD (name + argument count), and a DROP FUNCTION
+// removes one overload (or all, with no argument list): the same rule as
+// scanMigrationRpcs() and droppedSinceSnapshot() in
+// src/test/banGateCoverage.test.ts. Keyed by name alone, this probe read
+// helpr_set_vehicle's gated 4-argument overload, missed the delegating
+// 3-argument one prod still exposes (pg_proc 2026-11-02) and called its
+// exemption stale; and with no drop rule it kept
+// reject_other_applications_on_accept (dropped by 20261004193221, absent from
+// prod's pg_proc 2026-11-02) as an ungated stub. 3 FAILED on a correct tree.
+function argCount(sql, open) {
+  let depth = 0, commas = 0, any = false;
+  for (let i = open; i < sql.length; i++) {
+    const c = sql[i];
+    if (c === "(") depth++;
+    else if (c === ")") { depth--; if (depth === 0) break; }
+    else if (depth === 1) { if (c === ",") commas++; else if (!/\s/.test(c)) any = true; }
+  }
+  return any ? commas + 1 : 0;
+}
+const overloads = new Map();
 function postSnapshotUngatedRpcs() {
   const dir = new URL("../../supabase/migrations/", import.meta.url);
   const files = fs.readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
-  const lastBody = new Map();
   const granted = new Set();
   for (const f of files) {
     const sql = fs.readFileSync(new URL(f, dir), "utf8").replace(/--[^\n]*\n/g, "\n");
-    for (const m of sql.matchAll(/CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.([a-z0-9_]+)\s*\([\s\S]*?\$(\w*)\$([\s\S]*?)\$\2\$[^;]*/gi)) {
-      lastBody.set(m[1], m[0]);
+    const events = [];
+    for (const m of sql.matchAll(/CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.([a-z0-9_]+)\s*\([\s\S]*?\$(\w*)\$([\s\S]*?)\$\2\$[^;]*/gi)) {
+      events.push({ at: m.index, name: m[1], args: argCount(sql, m.index + m[0].indexOf("(")), stmt: m[0] });
+    }
+    for (const m of sql.matchAll(/DROP\s+FUNCTION\s+(?:IF\s+EXISTS\s+)?(?:public\.)?([a-z0-9_]+)\s*(\()?/gi)) {
+      events.push({ at: m.index, name: m[1].toLowerCase(), args: m[2] ? argCount(sql, m.index + m[0].length - 1) : null, stmt: null });
+    }
+    for (const e of events.sort((x, y) => x.at - y.at)) {
+      const byArgs = overloads.get(e.name) ?? new Map();
+      if (e.stmt !== null) byArgs.set(e.args, e.stmt);
+      else if (e.args === null) byArgs.clear();
+      else byArgs.delete(e.args);
+      overloads.set(e.name, byArgs);
     }
     if (f.slice(0, 14) <= SNAP_VERSION) continue;
     for (const m of sql.matchAll(/GRANT\s+EXECUTE\s+ON\s+FUNCTION\s+public\.([a-z0-9_]+)\s*\([^)]*\)\s+TO\s+([^;]+);/gi)) {
       if (/\bauthenticated\b/i.test(m[2])) granted.add(m[1]);
     }
   }
-  lastBodies = lastBody;
-  const volatile = (fn) => !/\b(STABLE|IMMUTABLE)\b/i.test((lastBody.get(fn) ?? "").replace(/\$(\w*)\$[\s\S]*?\$\1\$/, ""));
-  return [...granted].filter((fn) => volatile(fn) && !/is_caller_banned\s*\(/.test(lastBody.get(fn) ?? "")).sort();
+  const volatile = (stmt) => !/\b(STABLE|IMMUTABLE)\b/i.test(stmt.replace(/\$(\w*)\$[\s\S]*?\$\1\$/, ""));
+  return [...granted].filter((fn) => bodiesOf(fn).some((stmt) => volatile(stmt) && !callsBanGate(stmt))).sort();
 }
+const bodiesOf = (fn) => [...(overloads.get(fn)?.values() ?? [])];
+const callsBanGate = (stmt) => /is_caller_banned\s*\(/.test(stmt);
 const POST_SNAPSHOT = postSnapshotUngatedRpcs();
-// A snapshot RPC whose NEWEST migration body now calls is_caller_banned()
-// leaves the universe, same rule as gatedInRepo() in
-// src/test/banGateCoverage.test.ts. Without it block_user_and_settle (gated by
-// 20260923232809, Q301) stayed an ungated stub here and the probe reported
-// 3 FAILED on a correct tree (docs/OPEN.md Q418).
-const gatedInRepo = (fn) => /is_caller_banned\s*\(/.test(lastBodies.get(fn) ?? "");
-const RPCS = [...new Set([...SNAP.rpcs.filter((fn) => !gatedInRepo(fn)), ...POST_SNAPSHOT])];
+// A snapshot RPC is gated only when EVERY current overload calls
+// is_caller_banned() itself (Q301 block_user_and_settle, Q418); one whose every
+// overload a later migration dropped is gone from prod (Q1216). Either way it
+// leaves the universe.
+const gatedInRepo = (fn) => bodiesOf(fn).length > 0 && bodiesOf(fn).every(callsBanGate);
+const droppedInRepo = (fn) => overloads.has(fn) && bodiesOf(fn).length === 0;
+const RPCS = [...new Set([...SNAP.rpcs.filter((fn) => !gatedInRepo(fn) && !droppedInRepo(fn)), ...POST_SNAPSHOT])];
 
 const A = "0a0a0a0a-0000-4000-8000-00000000000a"; // banned (temp)
 const B = "0b0b0b0b-0000-4000-8000-00000000000b"; // active

@@ -167,6 +167,41 @@ export const ADMIN_RPC_ERROR_COPY = {
     invalid_note: "Say why you're clearing it, in under 500 characters.",
     nothing_owed: "This amount was already paid back from a payout. Refresh the list.",
   },
+  // Shipping claims sent by hand and return labels (20261103210119, 20261103214253, 20261103212046).
+  declutter_admin_ship_claims_due: {
+    admin_only: "Only an admin can see the shipping claims to send.",
+    feature_disabled: DC.feature_disabled,
+  },
+  declutter_admin_record_ship_claim: {
+    admin_only: "Only an admin can record a shipping claim.",
+    feature_disabled: DC.feature_disabled,
+    invalid_claim_ref: "Enter the claim number from EasyPost or the carrier.",
+    invalid_note: "Say what the claim was for, in under 500 characters.",
+    invalid_amount: "Enter the amount the claim paid, above $0.",
+    claim_ref_used: "This claim number is already recorded on another order or amount.",
+    not_a_shipped_order: "A shipping claim is only for an order that was shipped.",
+    order_not_refunded: "Record a claim after the order is refunded as lost or broken in the mail.",
+    claim_too_large: "Claims on this order can't add up to more than the buyer paid.",
+    item_not_found: "There's no order with that id. Check the order id.",
+  },
+  declutter_admin_mark_ship_claim_sent: {
+    admin_only: "Only an admin can mark a claim sent.",
+    feature_disabled: DC.feature_disabled,
+    invalid_sent_ref: "Say how you sent it: the transfer id or check number.",
+    claim_not_found: "That claim no longer exists. Refresh the list.",
+    claim_already_sent: "This claim was already marked sent with another reference.",
+    nothing_due: "This claim paid only what the seller owed; nothing is due to them.",
+  },
+  declutter_admin_request_return_label: {
+    admin_only: "Only an admin can ask for a return label.",
+    feature_disabled: DC.feature_disabled,
+    invalid_note: "Say why the item should come back, in under 500 characters.",
+    not_a_shipped_order: "A return label is only for an order that was shipped.",
+    return_not_allowed: "A return label is only for an order refunded as damaged or not as described.",
+    not_delivered: "The package was never delivered, so there is nothing to send back.",
+    return_label_test_only: "Return labels are test-only until shipping goes live. Arrange this return by hand.",
+    item_not_found: "There's no order with that id. Check the order id.",
+  },
   // Q2428 partner charities (20261027222743).
   admin_declutter_save_donation_partner: {
     admin_only: "Only an admin can add or edit partner charities.",

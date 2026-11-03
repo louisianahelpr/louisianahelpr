@@ -695,6 +695,11 @@ export const RPC_ERROR_COPY = {
     not_authenticated: DC.not_authenticated,
     order_not_found: "We couldn't find this shipped order. Refresh the page.",
   },
+  // Return label (20261103212046): the buyer's label for an item an admin asked to come back.
+  declutter_my_return_label: {
+    feature_disabled: DC.feature_disabled,
+    order_not_found: "There's no return label for this order.",
+  },
   declutter_my_ship_tracking: {
     feature_disabled: DC.feature_disabled,
     not_authenticated: DC.not_authenticated,

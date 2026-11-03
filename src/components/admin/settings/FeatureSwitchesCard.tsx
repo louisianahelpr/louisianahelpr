@@ -21,6 +21,7 @@ import { DeclutterReviewCard } from "./DeclutterReviewCard";
 import { ShopItemsReviewCard } from "./ShopItemsReviewCard";
 import { CategorySuggestionsCard } from "./CategorySuggestionsCard";
 import { DeclutterProblemsCard } from "./DeclutterProblemsCard";
+import { DeclutterShippingClaimsCard } from "./DeclutterShippingClaimsCard";
 import { MeetupSpotsCard } from "./MeetupSpotsCard";
 import { RentalsOwnershipCard } from "./RentalsOwnershipCard";
 import { HomesListingsCard } from "./HomesListingsCard";
@@ -176,6 +177,7 @@ export function FeatureSwitchesCard() {
     <DeclutterReviewCard showTest={declutterShowTest} onShowTestChange={setDeclutterShowTest} />
     <DeclutterProblemsCard includeTest={declutterShowTest} />
     <MeetupSpotsCard />
+    <DeclutterShippingClaimsCard />
     <DonationPartnersCard />
     <DeclutterPreviewCard />
     <ShopItemsReviewCard />

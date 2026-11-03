@@ -162,6 +162,7 @@ const CLASSIFIED: Record<string, string> = {
   // ups.com / tools.usps.com address with the tracking code URL-encoded (shipOrder.ts trackingUrl).
   "components/declutter/ShipOrderPanel.tsx::l.label_url as string": "the EasyPost label URL the ship-label worker stored, served to the seller by declutter_ship_order_view (20261102023246)",
   "components/declutter/ShipOrderPanel.tsx::trackingUrl(t.data.service, code)": "a fixed ups.com or tools.usps.com tracking address with the code encodeURIComponent-ed (lib/declutter/shipOrder.ts trackingUrl)",
+  "components/declutter/ReturnLabelPanel.tsx::url": "the EasyPost return-label URL the return-label worker stored (declutter_ship_return_label_bought), served only to the order's buyer by declutter_my_return_label (20261103212046)",
   // --- openExternalUrl callers: edge-function-returned Stripe URLs ---
   "components/AwardGateDialog.tsx::data.url": STRIPE_EDGE_URL,
   // Q2352: the one-time setup fee page (pay-onboarding-fee) for a refused first Declutter listing.

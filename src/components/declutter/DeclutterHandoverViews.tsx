@@ -81,6 +81,8 @@ import { NoShowAnswer, NoShowButton } from "./DeclutterNoShowAnswer";
 import { NoHelprChoice } from "./DeclutterNoHelpr";
 // B134: a shipped order's label (seller) and tracking (buyer) load with ship orders only (Q178).
 const ShipOrderPanel = lazy(() => import("./ShipOrderPanel").then((m) => ({ default: m.ShipOrderPanel })));
+// Return label (20261103212046): the buyer prints it here once an admin asked for the item back; ship orders only.
+const ReturnLabelPanel = lazy(() => import("./ReturnLabelPanel").then((m) => ({ default: m.ReturnLabelPanel })));
 const SellerDeliveryOrderPanel = lazy(() => import("./SellerDeliveryOrder").then((m) => ({ default: m.SellerDeliveryOrderPanel })));
 // Add a Helpr loads with the buyer's order card only (Q178: off /posts' critical path).
 const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel })));
@@ -206,6 +208,10 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
         onAction={() => { setOpen(true); setAskGot(order.handover === "delivery" && view.action === "I got it"); }} />}
       {problem && view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />}
       {done && !problem && <Suspense fallback={null}><DeclutterProblemDecided orderId={order.orderId} side={order.side} /></Suspense>}
+      {/* The buyer's notice says "Print it from your order": shown outside the folded body, so it is seen at once. */}
+      {order.side === "buyer" && order.handover === "ship" && (order.status === "handed_over" || order.status === "refunded") && (
+        <Suspense fallback={null}><ReturnLabelPanel orderId={order.orderId} /></Suspense>
+      )}
       {done && order.side === "buyer" && order.handover === "delivery" && order.deliveryTaskId && <Suspense fallback={null}><OrderDeliveryPanel taskId={order.deliveryTaskId} side="buyer" orderId={order.orderId} tipOnly /></Suspense>}
       {body && <div ref={bodyRef} className="space-y-3" data-order-body="">
       {/* DC-16: ONE sale card: every handover kind shows the tracker, where it stands and the money note (Helpr delivery's is in OrderDeliveryPanel). */}

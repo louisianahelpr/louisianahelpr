@@ -15959,6 +15959,23 @@ export type Database = {
         }[]
       }
       declutter_admin_waive_fee_debt: { Args: { p_debt_id: string; p_note: string }; Returns: Json }
+      declutter_admin_record_ship_claim: {
+        Args: { p_amount_cents: number; p_claim_ref: string; p_note: string; p_order_id: string }
+        Returns: Json
+      }
+      declutter_admin_ship_claims_due: {
+        Args: never
+        Returns: {
+          claim_id: string
+          claim_ref: string
+          created_at: string
+          order_id: string
+          seller_due_cents: number
+          seller_id: string
+        }[]
+      }
+      declutter_admin_mark_ship_claim_sent: { Args: { p_claim_id: string; p_sent_ref: string }; Returns: Json }
+      declutter_admin_request_return_label: { Args: { p_note: string; p_order_id: string }; Returns: Json }
       declutter_admin_open_problems: {
         Args: { p_include_test?: boolean }
         Returns: {
@@ -16827,6 +16844,7 @@ export type Database = {
       declutter_my_ship_label: { Args: { p_order_id: string }; Returns: Json }
       declutter_mark_packed: { Args: { p_order_id: string }; Returns: string }
       declutter_my_ship_tracking: { Args: { p_order_id: string }; Returns: Json }
+      declutter_my_return_label: { Args: { p_order_id: string }; Returns: Json }
       declutter_order_place: {
         Args: { p_order_id: string }
         Returns: { address: string; area: string; label: string; lat: number; lng: number; weekdays: number[] }[]

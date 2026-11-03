@@ -140,7 +140,7 @@ CREATE TABLE public.profiles (
   marketing_consent boolean, senior_mode boolean, terms_version_accepted text, terms_accepted_at timestamptz,
   accepted_terms_at timestamptz, updated_at timestamptz DEFAULT now());
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-GRANT SELECT, INSERT, UPDATE ON public.profiles TO authenticated;
+GRANT SELECT, UPDATE ON public.profiles TO authenticated; -- INSERT revoked by 20261102082018 (no client profile insert)
 CREATE POLICY own_ins ON public.profiles FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id AND coalesce(ban_status,'active') = 'active');
 CREATE POLICY own_upd ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = user_id);
 CREATE POLICY own_sel ON public.profiles FOR SELECT TO authenticated USING (true);

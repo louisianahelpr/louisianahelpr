@@ -86,8 +86,9 @@ WITH table_exempt(tbl, op, why) AS (
   ('pet_profiles', 'DELETE', 'removing own pet data shrinks the account footprint'),
   ('helper_availability', 'DELETE', 'clearing own weekly hours removes the account from availability, never adds it'),
   ('str_calendar_connections', 'DELETE', 'disconnecting an own calendar feed shrinks the account footprint'),
+  ('member_section_prefs', 'INSERT', 'the member own display preferences (section order and hidden sections); RLS limits rows to user_id = auth.uid(); no other member can see or be affected by them, so a banned member writing their own layout harms no one (lead lexilombas-25 11-02)'),
+  ('member_section_prefs', 'UPDATE', 'the member own display preferences (section order and hidden sections); RLS limits rows to user_id = auth.uid(); no other member can see or be affected by them, so a banned member writing their own layout harms no one (lead lexilombas-25 11-02)'),
   -- Refused by another rule already.
-  ('profiles', 'INSERT', 'policy WITH CHECK requires ban_status active, and a banned account already has its row'),
   ('stripe_webhook_events', 'INSERT', 'only policy is false: no client write exists'),
   ('stripe_webhook_events', 'UPDATE', 'only policy is false: no client write exists'),
   ('stripe_webhook_events', 'DELETE', 'only policy is false: no client write exists'),

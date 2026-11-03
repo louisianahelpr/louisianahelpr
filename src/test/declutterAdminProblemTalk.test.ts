@@ -18,7 +18,7 @@
  * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql | CASE WHEN m.sender_id = t.buyer_id THEN 'buyer' ELSE 'seller' END AS side, | m.sender_id::text AS side,
  * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql | AND t.opened_at >= COALESCE(v_from, v_order.created_at) |
  * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql |          WHERE q.item_id IN | WHERE q.removed_at IS NULL AND q.item_id IN
- * @mutate supabase/migrations/20261030042545_declutter_admin_problem_talk_order_chat.sql | REVOKE ALL ON FUNCTION public.declutter_admin_problem_talk(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_admin_problem_talk(uuid) FROM PUBLIC;
+ * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql | REVOKE ALL ON FUNCTION public.declutter_admin_problem_talk(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_admin_problem_talk(uuid) FROM PUBLIC;
  *   6. the chat after payment (D2-1, 20261030042545): that order's only, as the side kept on each message.
  * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql |          WHERE ot.order_id = v_order.id |          WHERE true
  * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql |                om.sender_side, |                om.sender_id::text,

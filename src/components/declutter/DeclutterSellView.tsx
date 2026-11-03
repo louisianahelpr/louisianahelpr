@@ -25,6 +25,7 @@ import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
+import { SuggestCategory } from "@/components/SuggestCategory";
 import { photoPublicUrl, type DeliverySize } from "@/lib/declutter/api";
 import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { ChipGroup, LISTING_LIFETIME, LISTING_LIFETIME_KEEP_UP, ReviewRow, StepHead, dropRunTime } from "./DeclutterSellSteps";
@@ -138,6 +139,8 @@ function SellSteps({ itemId }: { itemId: string }) {
             <input id="sell-title" className={SELL_INPUT} maxLength={80} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Oak rocking chair" />
           </div>
           <ChipGroup label="Category" options={Object.entries(CATEGORY_LABEL).map(([k, v]) => ({ value: k, label: v }))} groups={CATEGORY_GROUPS} value={form.category} onChange={(v) => set("category", v)} />
+          {/* I1 (Q1836 a): same link as the one-screen form (SellSummaryCard). */}
+          <SuggestCategory area="declutter" />
           <ChipGroup label="Condition" options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: CONDITION_LABEL[n] }))} value={String(form.conditionStars)} onChange={(v) => set("conditionStars", Number(v))} />
           <ChipGroup label="Size" options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: SIZE_LABEL[k] }))} value={form.deliverySize} onChange={(v) => set("deliverySize", v as DeliverySize)} />
           <div className="space-y-2">

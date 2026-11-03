@@ -156,6 +156,12 @@
  * @mutate supabase/migrations/20261103071058_helper_locks_not_found_is_404.sql | IF cardinality(v_ids) = 0 THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404'; | IF cardinality(v_ids) = 0 THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103071058_helper_locks_not_found_is_404.sql | IF (SELECT count(*) FROM public.declutter_items i WHERE i.id = ANY (v_ids) AND i.seller_id = p_uid) <> cardinality(v_ids) THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404'; | IF (SELECT count(*) FROM public.declutter_items i WHERE i.id = ANY (v_ids) AND i.seller_id = p_uid) <> cardinality(v_ids) THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103071058_helper_locks_not_found_is_404.sql | RAISE EXCEPTION 'lease_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'lease_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103071432_homes_tenancy_listing_settings_not_found_is_404.sql | IF NOT FOUND THEN\n    RAISE EXCEPTION 'tenancy_not_found' USING ERRCODE = 'PT404'; | IF NOT FOUND THEN\n    RAISE EXCEPTION 'tenancy_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103071432_homes_tenancy_listing_settings_not_found_is_404.sql | RAISE EXCEPTION 'property_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'property_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103071432_homes_tenancy_listing_settings_not_found_is_404.sql | RAISE EXCEPTION 'request_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'request_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103071432_homes_tenancy_listing_settings_not_found_is_404.sql | IF NOT FOUND OR v_t.tenant_id IS DISTINCT FROM v_uid OR v_t.status NOT IN ('active', 'ended') THEN\n    RAISE EXCEPTION 'tenancy_not_found' USING ERRCODE = 'PT404'; | IF NOT FOUND OR v_t.tenant_id IS DISTINCT FROM v_uid OR v_t.status NOT IN ('active', 'ended') THEN\n    RAISE EXCEPTION 'tenancy_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103071432_homes_tenancy_listing_settings_not_found_is_404.sql | IF p_listing_id IS NULL OR NOT public.rentals_listing_visible(p_listing_id) THEN\n    RAISE EXCEPTION 'listing_not_found' USING ERRCODE = 'PT404'; | IF p_listing_id IS NULL OR NOT public.rentals_listing_visible(p_listing_id) THEN\n    RAISE EXCEPTION 'listing_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103071432_homes_tenancy_listing_settings_not_found_is_404.sql | IF NOT FOUND THEN\n    RAISE EXCEPTION 'listing_not_found' USING ERRCODE = 'PT404'; | IF NOT FOUND THEN\n    RAISE EXCEPTION 'listing_not_found' USING ERRCODE = 'P0002';
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -178,6 +184,7 @@ import { blankSqlComments } from "./helpers/blankNonCode";
  * Packet 13 (regular, lead PASS): rentals_listing, declutter_my_reply_listings, declutter_order_problem, shops_shop_items, rentals_public_listing, rentals_deposit, helpr_task_pickup_windows, helpr_task_same_pickup_slot, declutter_setup_helpr, declutter_admin_problem_talk, declutter_haul_away_state, rentals_rent_ledger, declutter_refund_request_view, helpr_task_view, helpr_route_suggestions (20261103061500).
  * Packet 14 (regular): declutter_on_my_way, declutter_meetup_here (20261103062000).
  * Packet 15 (regular): rentals_lock_own_listing, shops_lock_own_item, declutter_list_for_seller_draft, declutter_donation_own_items, rentals_lease_for_action (20261103071058).
+ * Packet 16 (regular): rentals_end_tenancy, rentals_set_auto_approve, rentals_approve_request, rentals_set_forwarding_address, rentals_set_saved_home, rentals_remove_listing_photo (20261103071432).
  */
 const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
   "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm",
@@ -192,9 +199,10 @@ const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_s
   "shops_publish_item",
   "rentals_listing", "declutter_my_reply_listings", "declutter_order_problem", "shops_shop_items", "rentals_public_listing", "rentals_deposit", "helpr_task_pickup_windows", "helpr_task_same_pickup_slot", "declutter_setup_helpr", "declutter_admin_problem_talk", "declutter_haul_away_state", "rentals_rent_ledger", "declutter_refund_request_view", "helpr_task_view", "helpr_route_suggestions",
   "declutter_on_my_way", "declutter_meetup_here",
-  "rentals_lock_own_listing", "shops_lock_own_item", "declutter_list_for_seller_draft", "declutter_donation_own_items", "rentals_lease_for_action"];
+  "rentals_lock_own_listing", "shops_lock_own_item", "declutter_list_for_seller_draft", "declutter_donation_own_items", "rentals_lease_for_action",
+  "rentals_end_tenancy", "rentals_set_auto_approve", "rentals_approve_request", "rentals_set_forwarding_address", "rentals_set_saved_home", "rentals_remove_listing_photo"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-const P0002_RAISERS = 180;
+const P0002_RAISERS = 174;
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");

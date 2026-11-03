@@ -12,8 +12,10 @@
  * @mutate src/components/declutter/DeclutterAddHelpr.tsx |   if (info.isError && (info.error as { message?: string })?.message === "item_not_found") return null; | 
  * @mutate src/components/declutter/DeclutterAddHelpr.tsx |             {...gatedProps("post")}\n | \n
  * @mutate src/components/declutter/DeclutterAddHelpr.tsx |             onClick={(e) => { if (underAge) { e.preventDefault(); explain("post"); } }} |             onClick={() => {}}
- * @mutate src/components/declutter/DeclutterAddHelpr.tsx |   const kinds = setupKindsFor(info.data.item_details, info.data.handover); |   const kinds = setupKindsFor(info.data.item_details, "pickup_home");
+ * @mutate src/components/declutter/DeclutterAddHelpr.tsx |   const kinds = setupKindsFor(info.data.item_details, info.data.handover). |   const kinds = setupKindsFor(info.data.item_details, "pickup_home").
  * @mutate src/components/declutter/DeclutterAddHelpr.tsx | {kinds.includes("move") ? "Need help moving it?" : "Need a hand with it?"} | {"Need a hand with it?"}
+ * BUY-22 (audit, 11-03): once the buyer has the item, "Move it to my place" no longer fits; the set-up choices stay.
+ * @mutate src/components/declutter/DeclutterAddHelpr.tsx | .filter((k) => !(handedOver && k === "move")) | 
  * @mutate src/lib/declutter/setupHelpr.ts |   if (canMove && details.some((d) => d.delivery_size === "large" \|\| d.delivery_size === "xl")) fit.add("move"); |   if (canMove) fit.add("move");
  * @mutate src/lib/declutter/setupHelpr.ts |   const canMove = handover !== "delivery" && handover !== "seller_delivery"; |   const canMove = true;
  * @mutate src/lib/declutter/setupHelpr.ts |   const canMove = handover !== "delivery" && handover !== "seller_delivery"; |   const canMove = handover !== "delivery";
@@ -50,11 +52,11 @@ vi.mock("@/lib/declutter/setupHelpr", async (orig) => {
 import { AddHelprPanel } from "./DeclutterAddHelpr";
 
 let qc: QueryClient;
-function show() {
+function show(handedOver = false) {
   qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <MemoryRouter>
-      <QueryClientProvider client={qc}><AddHelprPanel orderId="o1" /></QueryClientProvider>
+      <QueryClientProvider client={qc}><AddHelprPanel orderId="o1" handedOver={handedOver} /></QueryClientProvider>
     </MemoryRouter>,
   );
 }
@@ -119,7 +121,7 @@ describe("Declutter Add a Helpr panel", () => {
   });
 
   // Audit #27: "Put it together" was offered on a mug. Only the choices the items can need show.
-  // @mutate src/components/declutter/DeclutterAddHelpr.tsx | const kinds = setupKindsFor(info.data.item_details, info.data.handover); | const kinds = setupKindsFor(undefined, info.data.handover);
+  // @mutate src/components/declutter/DeclutterAddHelpr.tsx | const kinds = setupKindsFor(info.data.item_details, info.data.handover). | const kinds = setupKindsFor(undefined, info.data.handover).
   it("a mug gets no Helpr panel; a bookshelf gets put together and hang, not set up", async () => {
     state.details = [{ title: "Blue mug", category: "kitchen", delivery_size: "small" }];
     const mug = show();
@@ -160,6 +162,18 @@ describe("Declutter Add a Helpr panel", () => {
     expect(names).toEqual(["Move it to my place", "Put it together", "Hang it on the wall"]);
     fireEvent.click(move);
     expect(await screen.findByText("Post a job page")).toBeTruthy();
+  });
+
+  // BUY-22 (audit 11-03): the move offer repeated on finished orders; a handed-over item is already at the buyer's.
+  it("a handed-over order: no Move it to my place, the set-up choices stay, under Need a hand with it?", async () => {
+    state.details = [{ title: "Sectional sofa", category: "furniture", delivery_size: "xl" }];
+    show(true);
+    expect(await screen.findByText("Need a hand with it?")).toBeTruthy();
+    expect(screen.queryByText("Need help moving it?")).toBeNull();
+    expect(screen.queryByRole("link", { name: "Move it to my place" })).toBeNull();
+    const names = screen.getAllByRole("link").map((l) => l.textContent);
+    expect(names.length).toBeGreaterThan(1);
+    expect(names).toEqual(["Put it together", "Hang it on the wall"]);
   });
 
   it("no moving choice on a Helpr or seller delivery (it is already brought) or for a small item", async () => {

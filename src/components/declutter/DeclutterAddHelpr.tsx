@@ -18,8 +18,10 @@ import { ErrorState } from "@/components/ui/ErrorState";
 
 const btn = "inline-flex min-h-11 items-center rounded-full border border-border px-4 py-2 text-sm font-semibold";
 
-export function AddHelprPanel({ orderId, bookedOnly = false }: {
+export function AddHelprPanel({ orderId, bookedOnly = false, handedOver = false }: {
   orderId: string;
+  /** BUY-22: the buyer has the item, so "Move it to my place" no longer fits; set-up choices stay. */
+  handedOver?: boolean;
   /** BUY-31: the item is going back or on hold, so no new offer; a Helpr already booked still shows. */
   bookedOnly?: boolean;
 }) {
@@ -41,7 +43,7 @@ export function AddHelprPanel({ orderId, bookedOnly = false }: {
   if (!info.data) return null;
   const booked = info.data.jobs.filter(isBookedSetupJob);
   // Only the choices these items can need (audit #27: "Put it together" on a mug); none and nothing booked = no panel.
-  const kinds = setupKindsFor(info.data.item_details, info.data.handover);
+  const kinds = setupKindsFor(info.data.item_details, info.data.handover).filter((k) => !(handedOver && k === "move"));
   if (booked.length === 0 && (bookedOnly || kinds.length === 0)) return null;
   return (
     <section className="space-y-2 rounded-xl border border-border p-3" aria-label="Add a Helpr">

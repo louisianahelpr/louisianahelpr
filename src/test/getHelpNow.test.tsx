@@ -10,8 +10,10 @@
  * @mutate src/components/jobs/GetHelpNow.tsx | <p className="text-ds-13 text-muted-foreground">{SUPPORT_REPLY_PROMISE}</p> | <p className="text-ds-13 text-muted-foreground">We'll get back to you.</p>
  * CMP-3 on Declutter orders: the same one tap, only while the order needs help.
  * @mutate src/components/jobs/GetHelpNow.tsx |   if (!active) return null; |   void active;
- * @mutate src/components/jobs/GetHelpNow.tsx | (order.status === "handed_over" && problemOpen) | order.status === "handed_over"
- * @mutate src/components/jobs/GetHelpNow.tsx | const active = order.status === "paid" \|\| | const active = order.status !== "handed_over" \|\|
+ * @mutate src/components/jobs/GetHelpNow.tsx | (order.status === "paid" \|\| order.status === "handed_over") | order.status !== "refunded"
+ * BUY-22 (audit 11-03): it repeated on every order card; it now shows only on an order with a problem open. Every
+ * other order has the top bar's help icon (AppTopBar's HelpEntry), so it shows once, where it fits.
+ * @mutate src/components/jobs/GetHelpNow.tsx | const active = problemOpen && | const active =
  * @mutate src/lib/supportSubject.ts |   return jobSubject("Help with ", order, "order"); |   return jobSubject("Help with ", order);
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       <OrderGetHelpNow order={{ orderId: order.orderId, title, status: order.status }} problemOpen={!!problem} /> | {null}
  * @mutate src/lib/supportSubject.ts |   return jobSubject("Help with ", job); |   return jobSubject("Dispute on ", job);
@@ -50,8 +52,8 @@ describe("Get help now on a Declutter order (CMP-3)", () => {
       </MemoryRouter>,
     );
 
-  it("a paid order: one tap opens /support with the order named, and the same promise", () => {
-    renderOrder("paid", false);
+  it("a paid order with a problem open: one tap opens /support with the order named, and the same promise", () => {
+    renderOrder("paid", true);
     expect(screen.getByText("We usually answer within a few hours.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Get help now" }));
     const url = new URL(screen.getByTestId("where").textContent ?? "", "https://x");
@@ -60,12 +62,15 @@ describe("Get help now on a Declutter order (CMP-3)", () => {
     expect(url.searchParams.get("subject")).toBe('Help with "Oak rocking chair" (order #9d2c1b0a)');
   });
 
-  it("handed over: gone, unless a problem is still open on the order", () => {
-    const done = renderOrder("handed_over", false);
-    expect(screen.queryByRole("button", { name: "Get help now" })).toBeNull();
-    done.unmount();
-    renderOrder("handed_over", true);
-    expect(screen.getByRole("button", { name: "Get help now" })).toBeTruthy();
+  it("paid or handed over: only while a problem is open on the order (BUY-22: not on every card)", () => {
+    for (const status of ["paid", "handed_over"]) {
+      const calm = renderOrder(status, false);
+      expect(screen.queryByRole("button", { name: "Get help now" }), `${status} no problem`).toBeNull();
+      calm.unmount();
+      const held = renderOrder(status, true);
+      expect(screen.getByRole("button", { name: "Get help now" }), `${status} problem`).toBeTruthy();
+      held.unmount();
+    }
   });
 
   // declutter_orders_status_check (20261015042253): every other status the order can hold. An open problem does not

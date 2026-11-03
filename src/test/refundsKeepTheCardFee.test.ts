@@ -756,7 +756,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Payout readiness (20261019070737): writes only a row still in the automatic path (status pending / failed),
       // never one an admin holds for review or settled by hand; the amount (refund_cents) is untouched, so the fee
       // policy recorded by declutter_record_refund stands.
-      declutter_refund_executed: "20261019070737_payout_waits_for_payee_setup.sql d56d6750b97358bc",
+      declutter_refund_executed: "20261103111244_money_webhooks_not_found_is_404.sql 36405fe18e499cd5", // Q2390 p25: ERRCODE-only restatement (md5-verified); records Stripe's answer, writes no amount
       declutter_refund_gave_up_check: "20261017055500_declutter_refund_hand_settle.sql 1fa348b4a38b6f7c",
       declutter_refund_paid_order: "20261014224914_declutter_slice3b_payments.sql d970c83965cd57c2",
       declutter_refund_reversed: "20261017055500_declutter_refund_hand_settle.sql df1710d5a746e90b",
@@ -944,7 +944,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shop_order_captured: "20261018164442_shops_orders_checkout.sql 3fe4dbb559a29a1f",
       shop_record_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 57f661acd2c47d64",
       shop_refund_amounts: "20261019071055_shops_refunds_cancels_strikes.sql e33a946acc47db26",
-      shop_refund_executed: "20261019071055_shops_refunds_cancels_strikes.sql c9dd716154e3d67f",
+      shop_refund_executed: "20261103111244_money_webhooks_not_found_is_404.sql e33914e554c0bfea", // Q2390 p25: ERRCODE-only restatement (md5-verified); records Stripe's answer, writes no amount
       shop_refund_fee_policy: "20261019071055_shops_refunds_cancels_strikes.sql f658275f8b61b0af",
       shop_refund_reversed: "20261019071055_shops_refunds_cancels_strikes.sql df880e58ddff9ccd",
       // 20261030150104 (lead lh-authz-rls approve "refunds ... unchanged"): only the admin alert skips test accounts.

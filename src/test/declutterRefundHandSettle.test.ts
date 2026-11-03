@@ -9,7 +9,7 @@
  * src/test/pglite/declutterRefundHandSettle.pglite.mjs. Edge side:
  * src/test/edge/declutter-payments.test.ts and src/test/edge/declutter-money.test.ts.
  *
- * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql |   ELSIF v_status = 'failed' THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id); |   ELSIF false THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id);
+ * @mutate supabase/migrations/20261103111244_money_webhooks_not_found_is_404.sql |   ELSIF v_status = 'failed' THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id); |   ELSIF false THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id);
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql |   IF v_attempts >= 12 THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id); |   IF false THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id);
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql |      WHERE d.status = 'failed' AND d.attempts >= 12 |      WHERE d.status = 'failed' AND d.attempts >= 13
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql | v_row.status <> 'succeeded' AND v_covered >= v_row.refund_cents; | v_row.status <> 'succeeded';
@@ -62,6 +62,12 @@ describe("Declutter refunds that give up, and refunds made by hand (202610170555
     expect(b).toMatch(/FOR UPDATE/);
     // No payout or refund queue is touched: only the refund row and the books.
     expect(b).not.toMatch(/declutter_payouts|declutter_orders SET|net\.http/i);
+  });
+
+  it("a hand refund Stripe fails reopens its row for the queue (failed, due now, gave-up alert re-armed)", () => {
+    expect(flat(body("declutter_hand_refund_failed"))).toMatch(
+      /UPDATE public\.declutter_refunds SET status = 'failed', next_attempt_at = now\(\), gave_up_notified_at = NULL,/,
+    );
   });
 
   it("the new functions are service-only", () => {

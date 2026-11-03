@@ -748,6 +748,30 @@ describe("card hold at posting (Q2399)", () => {
       expect(Number(held?.sales_tax_rate)).toBeCloseTo(0.1045, 3);
     });
 
+    // Q2083 (b): a job taxed at the JOB ADDRESS charged its tax as its own line
+    // (automatic_tax off, so total_details reads 0): the held job stores the
+    // job-site figure from the session's job_tax_cents.
+    // @mutate supabase/functions/stripe-webhook/handlers/cardHoldCheckout.ts |   const taxCents = sessionJobTaxCents(session as any); |   const taxCents = typeof session.total_details?.amount_tax === "number" ? session.total_details.amount_tax : null;
+    it("Q2083 (b): a held job taxed at the job address stores its job_tax_cents, not Stripe's 0", async () => {
+      const job = { id: JOB, budget: 100, category: "auto_repair", tax_kind: null, customer_fee_amount: 0, poster_fee_flat_cents: null, is_urgent: true, urgent_fee: 50,
+        title: "Fix the car", customer_id: POSTER.id, helper_id: null, helper_confirmed_at: null };
+      scenario.reads.jobs = { rows: [job] };
+      scenario.reads.job_card_holds = { rows: [holdRow({ notified_state: null, amount_cents: 16_650, onboarding_fee_cents: 0 })] };
+      scenario.writeSelectRows = { jobs: [{ id: JOB, customer_id: POSTER.id, title: "Fix the car", helper_id: null, helper_confirmed_at: null }] };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_hold", status: "requires_capture", amount: 16_650, customer: "cus_1", payment_method: "pm_1", metadata: { job_id: JOB },
+        latest_charge: { payment_method_details: { card: { capture_before: Math.floor(Date.now() / 1000) + 6 * 86_400 } } },
+      });
+      const base = session();
+      const res = await deliver({ ...base, total_details: { amount_tax: 0 }, metadata: { ...(base.metadata as Record<string, string>), tax_calculation_id: "taxcalc_h", job_tax_cents: "1650" } });
+      expect(res.status).toBe(200);
+      const held = updates("jobs").find((w) => (w.payload as Record<string, unknown>).payment_status === "held")?.payload as Record<string, unknown>;
+      expect(held?.sales_tax_amount).toBe(16.5);
+      expect(Number(held?.sales_tax_rate)).toBeCloseTo(0.11, 3);
+      // A hold reports no tax until it is captured (payment_intent.succeeded commits it).
+      expect(stripeMock.tax.transactions.createFromCalculation).not.toHaveBeenCalled();
+    });
+
     it("a bank payment on the hold checkout (captured, not held) takes today's path", async () => {
       scenario.reads.jobs = { rows: [{ id: JOB, budget: 40, category: "yard_work", is_seed: false }] };
       scenario.writeSelectRows = { jobs: [{ id: JOB }] };

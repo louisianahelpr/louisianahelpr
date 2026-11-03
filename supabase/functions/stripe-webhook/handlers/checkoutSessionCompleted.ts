@@ -24,6 +24,7 @@ import {
 import { insertNotifications } from "../../_shared/insertNotifications.ts";
 import { holdBackPaidTip } from "../../_shared/heldTipRepay.ts";
 import { effectiveSalesTaxRate, jobEscrowTaxableBaseCents, taxedZeroOnTaxableLouisianaLabor } from "../../_shared/salesTax.ts";
+import { sessionJobTaxCents, JOB_TAX_CALC_KEY } from "../../_shared/jobTaxAddress.ts";
 import { checkCheckoutCardFingerprint } from "./_checkoutCardFingerprint.ts";
 import { recordWalletDefaultCard } from "./_walletDefaultCard.ts";
 import { isDeclutterSession, settleDeclutterSession } from "./declutterCheckout.ts";
@@ -1184,7 +1185,9 @@ async function settleCheckoutSession(
       } catch (piErr) {
         logStep("WARN: PI retrieve failed in checkout handler — tax read from the session only", { piId, error: String(piErr) });
       }
-      const sessionTaxForJob = (session.metadata as any)?.gift_card_id ? undefined : session.total_details?.amount_tax;
+      // Q2083 (b): a job taxed at the job address carries its tax as its own
+      // line (automatic_tax off): sessionJobTaxCents reads that figure.
+      const sessionTaxForJob = (session.metadata as any)?.gift_card_id ? undefined : (sessionJobTaxCents(session as any) ?? undefined);
       const piTaxCents = (taxPi?.amount_details as any)?.tax?.total_tax_amount;
       // `> 0` here would never let a genuine $0 clear the estimate written at
       // insert time — and $0 is the normal outcome, since only assembly labor
@@ -1251,7 +1254,7 @@ async function settleCheckoutSession(
     // (create-payment), so it is not this signal; that path is its own open
     // question (docs/OPEN.md Q441). Seed jobs go to the digest. Never throws:
     // the read returns its error and postSlackOpsAlert swallows its own.
-    const sessionTaxCents = session.total_details?.amount_tax;
+    const sessionTaxCents = sessionJobTaxCents(session as any) ?? undefined;
     const isGiftShortfall = Boolean((session.metadata as any)?.gift_card_id);
     if (typeof sessionTaxCents === "number" && sessionTaxCents === 0 && !isGiftShortfall) {
       const { data: taxJob } = await supabase
@@ -1259,7 +1262,10 @@ async function settleCheckoutSession(
         .select("budget, category, tax_kind, is_seed")
         .eq("id", jobId)
         .maybeSingle();
-      const billingState = session.customer_details?.address?.state ?? null;
+      // Q2083 (b): a job taxed at the job address was priced in Louisiana by construction.
+      const billingState = String((session.metadata as any)?.[JOB_TAX_CALC_KEY] ?? "").startsWith("taxcalc_")
+        ? "LA"
+        : session.customer_details?.address?.state ?? null;
       const taxJobBudgetCents = Math.round(Number(taxJob?.budget ?? 0) * 100);
       // A taxed category, or the poster's taxed-kind answer (Q2083, owner Option 1).
       if (taxedZeroOnTaxableLouisianaLabor(sessionTaxCents, taxJobBudgetCents, taxJob?.category, billingState, taxJob?.tax_kind)) {

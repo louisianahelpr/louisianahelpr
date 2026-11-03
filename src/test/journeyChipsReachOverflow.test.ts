@@ -36,7 +36,7 @@
 // @mutate src/components/job-card/JobActionRow.tsx | data-job-step-overflow-panel="" | data-overflow-panel=""
 // @mutate e2e/journeys/02-marketplace.spec.ts | (await findChip(pp, await card(pp, "/jobs?tab=posted", "Done"), /^Reviewed\b/, 20_000)) ? 1 : 0, | (await card(pp, "/jobs?tab=posted", "Done")).getByRole("button", { name: /^Reviewed\b/ }).count(),
 // @mutate e2e/journeys/02-marketplace.spec.ts | const message = await findChip(pp, booked, /^Message\b/, 30_000); | const message = pp.getByRole("button", { name: "Message Helpr" }).first();
-// @mutate e2e/journeys/04-admin-safety.spec.ts | const chip = await findChip(pp, cardByTitle(pp, JOB_TITLE), /^No-Show/, 30_000); | const chip = pp.getByRole("button", { name: /^No-Show/ }).first();
+// @mutate e2e/journeys/04-admin-safety.spec.ts | const chip = await findChip(pp, cardByTitle(pp, JOB_TITLE), NO_SHOW, 30_000); | const chip = pp.getByRole("button", { name: NO_SHOW }).first();
 
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";

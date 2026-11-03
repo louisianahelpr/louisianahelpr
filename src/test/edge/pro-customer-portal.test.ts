@@ -128,6 +128,24 @@ describe("pro-customer-portal — the customer the member's subscription names, 
     expect(stripeMock.billingPortal.sessions.create).not.toHaveBeenCalled();
   });
 
+  // Q2140: a customer deleted in Stripe broke the Manage button for good (500 on every press).
+  it("Q2140: the stored customer was deleted in Stripe: 404 no billing, no portal; any other Stripe error is still a 500", async () => {
+    stripeMock.subscriptions.list.mockRejectedValue(
+      Object.assign(new Error(`No such customer: '${SUBSCRIBED_CUSTOMER}'`), { type: "StripeInvalidRequestError", code: "resource_missing", param: "customer" }),
+    );
+    let fn = await load();
+    let res = await fn.fetch(call(fn));
+    expect(res.status).toBe(404);
+    expect(await res.json()).toEqual({ error: "No membership billing found for this account." });
+    expect(stripeMock.billingPortal.sessions.create).not.toHaveBeenCalled();
+
+    stripeMock.subscriptions.list.mockRejectedValue(Object.assign(new Error("rate limited"), { type: "StripeRateLimitError", code: "rate_limit" }));
+    fn = await load();
+    res = await fn.fetch(call(fn));
+    expect(res.status).toBe(500);
+    expect(stripeMock.billingPortal.sessions.create).not.toHaveBeenCalled();
+  });
+
   it("the profile read fails: 500 (fail closed), never a portal and never \"no billing found\"", async () => {
     scenario.reads.profiles = { error: { message: "boom" } };
     const fn = await load();
@@ -143,3 +161,5 @@ describe("pro-customer-portal — the customer the member's subscription names, 
 // @mutate supabase/functions/pro-customer-portal/index.ts |       if (subs.data.length > 0) customerId = stored; |       customerId = stored;
 // @mutate supabase/functions/pro-customer-portal/index.ts |     if (profileError) throw new Error(`profile read failed: ${profileError.message}`); |
 // @mutate supabase/functions/pro-customer-portal/index.ts |       .eq("user_id", user.id) |       .eq("email", user.email)
+// @mutate supabase/functions/pro-customer-portal/index.ts |         if (!isMissingCustomerError(err, stored)) throw err; |         throw err;
+// @mutate supabase/functions/pro-customer-portal/index.ts |         if (!isMissingCustomerError(err, stored)) throw err; |

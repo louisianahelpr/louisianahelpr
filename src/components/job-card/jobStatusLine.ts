@@ -1110,6 +1110,18 @@ export function helperDeadline(id: HelperWait, job: Job, posterInstantRelease = 
 const firstName = (n: string) => n.trim().split(/\s+/)[0] || n;
 /** "Sat 1:00 PM" in Louisiana time. */
 const dayTime = (ms: number) => new Date(ms).toLocaleString("en-US", { timeZone: "America/Chicago", weekday: "short", hour: "numeric", minute: "2-digit" });
+/**
+ * Past the day-before confirm deadline (confirmDeadlineMs, 2 hours before the start) with the Helpr's confirm still
+ * missing: the line says the window passed, never "confirm by" a time already gone (lead 11-03: "by Fri 8:00 AM" after
+ * 8:00). What happens next is the app's existing promise ("Confirm by ..., or it's reposted to other Helprs",
+ * JobConfirmation and confirmationOpensClock), which sweep_confirm_reminders_and_repost (20261008205730, every 5 min)
+ * keeps; that sweep never reposts a crew job, so a crew line only says the window passed.
+ * `name` is the Helpr's first name for the poster's line, or null for the Helpr's own.
+ */
+export function confirmWindowPassedLine(name: string | null, isGroupJob: boolean | null | undefined): string {
+  if (isGroupJob) return name ? `Confirm window passed. ${name} hasn't confirmed` : "Confirm window passed";
+  return name ? `Confirm window passed. ${name} didn't confirm, so it's being reposted` : "Confirm window passed. It's being reposted to other Helprs";
+}
 /** When the offered Helpr's answer is due (the same column offerDeadline reads), or null; never a time already passed. */
 function offerAnswerByMs(job: Job): number | null {
   const at = Date.parse((job.response_deadline ?? job.direct_offer_expires_at ?? "") as string);
@@ -1129,7 +1141,9 @@ const POSTER_NAMED: Partial<Record<PosterWait, (name: string, job: Job) => strin
     if (!job.date_needed || Date.now() < confirmOpensMs(job.date_needed)) return `${f} accepted · confirms the day before`;
     // A2-C40: past the start the confirm deadline is gone; never "confirm by" a time already passed.
     if (Date.now() >= posterConfirmClosesMs(job.date_needed, job.start_time)) return `It's start time. ${f} hasn't confirmed`;
-    return `Waiting on ${f} to confirm by ${dayTime(confirmDeadlineMs(job.date_needed, job.start_time ?? null))}`;
+    const due = confirmDeadlineMs(job.date_needed, job.start_time ?? null);
+    if (Date.now() >= due) return confirmWindowPassedLine(f, job.is_group_job);
+    return `Waiting on ${f} to confirm by ${dayTime(due)}`;
   },
   confirm_still_on: (n, job) =>
     `${firstName(n)} ${job.helper_dayof_confirmed_at ? "confirmed" : "accepted"} · confirm the job is still on`,

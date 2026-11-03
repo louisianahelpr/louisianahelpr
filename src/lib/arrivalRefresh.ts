@@ -3,6 +3,7 @@ import { isNativePlatform } from "@/lib/nativeInit";
 import { arrivalVerdictFromRpc, type ArrivalVerdict } from "@/lib/arrivalGate";
 import { report } from "@/lib/errorLogger";
 import { rpcErrorCode } from "@/lib/lifecycleErrors";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /**
  * PULL-TO-REFRESH RE-CHECKS AN ARRIVAL THAT GPS NEVER CONFIRMED.
@@ -245,7 +246,7 @@ export async function upgradeUnverifiedArrival(
        through this helper, and matching on message text is how a call site
        ends up describing refusals the function stopped raising.) */
     const known = rpcErrorCode("mark_helper_arrival", error);
-    if (!known && (error as { code?: string }).code !== "PGRST202") {
+    if (!known && !isMissingRpcNamed(error, "mark_helper_arrival")) {
       report(error, { tags: { source: "arrivalRefresh.markHelperArrival" }, context: { job_id: job.id } });
     }
     return { outcome: "refused" };

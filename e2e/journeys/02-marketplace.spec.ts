@@ -1271,17 +1271,34 @@ test.describe.serial("marketplace chain", () => {
          repaint "Review" for up to 60s) is fixed in
          src/lib/reviewActivityCache.ts, guarded by
          src/test/reviewWritesUpdateActivityCache.test.ts. */
-      /* A SHUT CARD SAYS IT IN ITS LINE. Once reviewed, the face's button moves on to "Tip <name>" (posterFaceAction
-         done_tip_open), which has no "More options", so card() leaves the card shut and the "Reviewed" chip (inside
-         the open card's More) is not on screen. The shut card's status line reads "Reviewed — tip still open"
-         (jobStatusLine done_tip_open), from the same completedJobMeta[job.id].reviewed the chip reads. Either one. */
+      /* A SHUT CARD SAYS IT IN ITS STATE, NOT ITS WORDS. Once reviewed, the face's button moves on to "Tip <name>"
+         (posterFaceAction done_tip_open), which has no "More options", so card() leaves the card shut and the
+         "Reviewed" chip (inside the open card's More) is not on screen. The shut card's line USED to read "Reviewed —
+         tip still open"; since A3-15 (e8199c6fba, owner 11-01 "next step everywhere") PosterStatusStrip draws the
+         shared next step there instead, which on a Done card is "Finished <when>" (jobProgressState), and the strip
+         keeps the line's id as data-job-status-strip. So the reviewed fact is read three ways, each from the same
+         completedJobMeta[job.id].reviewed: (1) the shut face: data-job-status-strip="done_tip_open" (reviewed, tip
+         open; an unreviewed job past its window is done_tip_open_review_closed, which also shows Tip), the face
+         button "Tip <name>", and no "Leave a review"; (2) the old "Reviewed" line; (3) the "Reviewed" chip on an open
+         card (a face whose Tip is not offered shows "More options", and card() opens it). e2e-journeys 41713592858,
+         41685221879 and 41674087580 (chromium): the face read "Tip Hallie" and "Finished Tue 2:58 PM", and the old
+         line-or-chip poll found 0 for 120 s on a job whose review had landed. */
       await expect
         .poll(
           async () => {
             const done = await card(pp, "/jobs?tab=posted", "Done");
+            // (3) an open card's chip
+            if (await findChip(pp, done, /^Reviewed\b/, 3_000)) return 1;
+            // (1) the shut face since A3-15: the strip's id, the Tip on the face, and no review offered
+            const reviewedFace = done.locator('[data-job-status-strip="done_tip_open"]').first();
+            if (await reviewedFace.waitFor({ state: "visible", timeout: 20_000 }).then(() => true, () => false)) {
+              const tipOnFace = (await findChip(pp, done, /^Tip\b/, 5_000)) !== null;
+              const reviewStillOffered = await done.getByRole("button", { name: /^Leave a review\b/ }).filter({ visible: true }).count();
+              return tipOnFace && reviewStillOffered === 0 ? 1 : 0;
+            }
+            // (2) the old line
             const line = done.getByText(/^Reviewed\b/).first();
-            if (await line.waitFor({ state: "visible", timeout: 20_000 }).then(() => true, () => false)) return 1;
-            return (await findChip(pp, done, /^Reviewed\b/, 5_000)) ? 1 : 0;
+            return (await line.waitFor({ state: "visible", timeout: 5_000 }).then(() => true, () => false)) ? 1 : 0;
           },
           { timeout: 120_000, message: "the poster's card never showed the Reviewed badge after the review was submitted" },
         )

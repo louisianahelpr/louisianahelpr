@@ -9,6 +9,7 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import type { DeliverySize } from "@/lib/declutter/api";
 import { formatPrice } from "@/lib/declutter/distance";
+import { SuggestCategory } from "@/components/SuggestCategory";
 import { ChipGroup } from "./DeclutterSellSteps";
 import PriceHint from "./DeclutterPriceHint";
 import { AiPriceLine } from "./SellAiDraft";
@@ -120,6 +121,8 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems, setti
         </Row>
         <Row {...row("category")} title="Category" value={CATEGORY_LABEL[form.category] ?? form.category} empty={false}>
           <ChipGroup label="Category" options={Object.entries(CATEGORY_LABEL).map(([k, v]) => ({ value: k, label: v }))} groups={CATEGORY_GROUPS} value={form.category} onChange={(v) => set("category", v)} />
+          {/* I1 (Q1836 a): "Other" always works; this sends a missing category to the admin queue (hidden switch suggest_category). */}
+          <SuggestCategory area="declutter" />
         </Row>
         <Row {...row("condition")} title="Condition" value={CONDITION_LABEL[form.conditionStars] ?? ""} empty={false}>
           <ChipGroup label="Condition" options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: CONDITION_LABEL[n] }))} value={String(form.conditionStars)} onChange={(v) => set("conditionStars", Number(v))} />

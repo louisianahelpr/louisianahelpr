@@ -7,7 +7,7 @@
 // @mutate src/components/sections/useSectionPrefs.ts |       void pushToAccount(userId, next); |       void 0;
 // @mutate src/components/sections/useSectionPrefs.ts |   if (readRaw(userId)) await pushToAccount(userId, read(userId)); |   void 0;
 // @mutate src/components/sections/useSectionPrefs.ts |     pulled.delete(userId); // read again next mount |     // read again next mount
-// @mutate src/lib/sectionPrefsRow.ts |     { user_id: userId, section_order: order, sections_hidden: hidden, | { user_id: userId, section_order: order, sections_hidden: [],
+// @mutate src/lib/sectionPrefsRow.ts | .insert({ user_id: userId, section_order: order, sections_hidden: hidden, | .insert({ user_id: userId, section_order: order, sections_hidden: [],
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
 
@@ -32,8 +32,12 @@ vi.mock("@/integrations/supabase/client", () => ({
             },
           }),
         }),
-        upsert: async (row: Record<string, unknown>, opts: unknown) => {
-          db.upserts.push({ row, opts });
+        // saveSectionPrefsRow updates the granted columns first, then inserts when no row exists
+        // (sectionPrefsSaveUpdatesGrantedColumns.test.ts). Here no row exists, so each save is recorded once as
+        // the full row it inserts.
+        update: () => ({ eq: async () => ({ data: null, error: null, count: 0 }) }),
+        insert: async (row: Record<string, unknown>) => {
+          db.upserts.push({ row, opts: null });
           return { data: null, error: null };
         },
       };
@@ -74,7 +78,6 @@ describe("Q2199: Customize follows the account", () => {
     expect(result.current.prefs.hidden).toEqual(["homes"]);
     await waitFor(() => expect(db.upserts.length).toBe(1));
     expect(db.upserts[0].row).toMatchObject({ user_id: who.id, section_order: ["jobs", "declutter", "shops", "homes"], sections_hidden: ["homes"] });
-    expect(db.upserts[0].opts).toEqual({ onConflict: "user_id" });
   });
 
   it("no row yet: a choice made on this device is copied up once", async () => {

@@ -26,7 +26,9 @@ import { cardCostFeeCents } from "@/lib/refundAmount";
  *    money was collected. A job closed with no payment (payment_status
  *    'cancelled'/'unpaid'/'abandoned'/'failed', no PI) cost nothing.
  *  - A gift card: redeem_gift_card applies min(budget + urgent_fee, gift) to
- *    the job and the card pays only the rest, so that much is not card spend.
+ *    the job (plus the stamped service fee, customer_fee_amount, on a
+ *    poster-fee job: poster_fee_flat_cents set, Q2263) and the card pays only
+ *    the rest, so that much is not card spend.
  *    A job the gift covered in full has no PI and counts $0.
  *  - Refunds: the payment_refunds ledger (one row per Stripe refund; written
  *    by charge.refunded, create-payment, execute-dispute-split,
@@ -86,6 +88,8 @@ export interface PosterSpendJob extends PosterChargedJob {
   cancellation_fee?: number | null;
   /** 'charged' once void-cancelled-payments kept a cancellation fee. */
   cancellation_fee_status?: string | null;
+  /** Set on a poster-fee job (jobs_poster_fee): redeem_gift_card's gift then also covers customer_fee_amount (Q2263). */
+  poster_fee_flat_cents?: number | null;
 }
 
 export interface PosterRefundRow {
@@ -127,7 +131,10 @@ export function posterSpentCents(job: PosterSpendJob, refundedCents: number, gif
   const cancelledAfterCapture =
     job.payment_status === "cancelled" && (refundedCents > 0 || job.cancellation_fee_status === "charged");
   if (!cancelledAfterCapture && !(CHARGED_PAYMENT_STATUSES as readonly string[]).includes(job.payment_status ?? "")) return 0;
-  const workCents = cents((job.budget ?? 0) + (job.urgent_fee ?? 0));
+  // The most a gift paid on this job: redeem_gift_card's v_cost_cents (budget + urgent, plus the service fee on a
+  // poster-fee job, Q2263).
+  const posterFeeCents = job.poster_fee_flat_cents != null ? cents(job.customer_fee_amount ?? 0) : 0;
+  const workCents = cents((job.budget ?? 0) + (job.urgent_fee ?? 0)) + posterFeeCents;
   const giftCents = Math.min(workCents, Math.max(0, cents(giftDollars)));
   const chargedCents = Math.max(0, cents(posterPaidDollars(job)) - giftCents);
   if (job.payment_status === "refunded" && refundedCents <= 0) {

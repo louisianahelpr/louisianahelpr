@@ -433,6 +433,8 @@ describe("create-boost-payment — the PAID Stripe Checkout path", () => {
   // customer_update always rides with it.
   it("pays on the member's wallet customer (stored or new), never one found by email, and saves the address", async () => {
     stripeMock.checkout.sessions.create.mockResolvedValue({ url: "https://checkout.stripe.com/c/pay/cs_addr" });
+    // A by-email customer exists, so a by-email lookup would pick it: the wallet must not.
+    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_byemail" }] });
     seed("free");
     scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_wallet1" }] };
     let fn = await load();

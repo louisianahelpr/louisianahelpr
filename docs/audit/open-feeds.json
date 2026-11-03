@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-03T10:17Z",
+  "measured_at": "2026-11-03T15:15Z",
   "issues": {
     "readable": true,
     "open": [
@@ -36,14 +36,14 @@
         "number": 2375,
         "title": "nightly-red: a11y-webkit-prod",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41468173962",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41598471444",
         "runTruncated": false
       },
       {
         "number": 2436,
         "title": "nightly-red: e2e-journeys",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41553090940",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41638353577",
         "runTruncated": false
       },
       {
@@ -92,7 +92,7 @@
         "number": 3813,
         "title": "nightly-red: e2e-real-backend",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41553087594",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41623278596",
         "runTruncated": false
       },
       {
@@ -112,13 +112,6 @@
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41326452336",
-        "runTruncated": false
-      },
-      {
-        "number": 3875,
-        "title": "nightly-red: code-scanning-alerts",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41482166828",
         "runTruncated": false
       },
       {
@@ -146,7 +139,7 @@
         "number": 4054,
         "title": "nightly-red: race-runner",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41612669620",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41628288235",
         "runTruncated": false
       }
     ]
@@ -791,7 +784,6 @@
     "issue #3823": "Q2498",
     "issue #3824": "Q1816",
     "issue #3833": "Q1816",
-    "issue #3875": "Q1816",
     "issue #4008": "Q1816",
     "issue #4020": "Q1816",
     "issue #4032": "Q1816",

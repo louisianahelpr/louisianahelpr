@@ -23,6 +23,8 @@ import { blankComments } from "@/test/helpers/blankNonCode";
 // The Posted list and Browse stand in as markers: what matters is whether JobsSection mounts the list at all.
 vi.mock("@/components/job-card/JobListPage", () => ({ default: () => <p data-testid="posted-list">list</p> }));
 vi.mock("@/pages/home/Dashboard", () => ({ default: () => <p>browse</p> }));
+// The list's loading frame while its lazy chunk arrives (B52): its real header needs a query client this test has no use for.
+vi.mock("@/components/JobsSectionSkeleton", () => ({ JobsListLoadingFrame: () => <p>loading</p> }));
 vi.mock("@/components/refund/RefundsSwitch", () => ({ RefundsSwitchProvider: ({ children }: { children: ReactNode }) => <>{children}</> }));
 
 import JobsSection from "@/pages/jobs/JobsSection";
@@ -58,9 +60,10 @@ describe("an old Manage job link opens the job page (LEAD-JOBPAGE-LAYOUT)", () =
     expect(screen.queryByTestId("posted-list")).toBeNull();
   });
 
-  it("a Posted link without manage=1 still mounts the list", () => {
+  it("a Posted link without manage=1 still mounts the list", async () => {
     open("/jobs?tab=posted&highlight=job-3");
-    expect(screen.getByTestId("posted-list")).toBeTruthy();
+    // The list is JobsSection's lazy chunk (B52).
+    expect(await screen.findByTestId("posted-list")).toBeTruthy();
   });
 
   it("nothing in the app makes a &manage=1 link any more (the job page's card trip is gone too)", () => {

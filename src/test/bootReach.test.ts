@@ -253,7 +253,8 @@ describe("declutterItemSplit itemShared: the job lists do not download Declutter
   // (30 KB gz, Declutter's api and seller tools) for the error copy, offer clock and upload helpers it shares with the
   // item page. Static closure of /jobs, built: 465.7 -> 453.8 KB gz with the split.
   const { itemPages, itemShared } = declutterItemSplit(ROOT);
-  const jobs = staticReach(ROOT, [abs("src/pages/jobs/JobsSection.tsx")]);
+  // B52 (11-03): the Posted / Working lists are JobsSection's lazy chunk, a first screen of their own on a list link.
+  const jobs = staticReach(ROOT, [abs("src/pages/jobs/JobsSection.tsx"), abs("src/components/job-card/JobListPage.tsx")]);
 
   it("inventory: both sets are real and itemShared is part of itemPages", () => {
     expect(itemPages.size).toBeGreaterThan(15);

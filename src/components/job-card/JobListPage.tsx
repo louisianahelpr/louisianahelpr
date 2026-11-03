@@ -648,4 +648,10 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
   );
 };
 
+// JA-17 (B111): the job page's Accept / Decline panel is loaded FROM this chunk, which already holds the Working card's
+// handlers and offer card. Its own lazy chunk split useActivityActions into a new shared chunk that every route's
+// preload list in the entry named (entry 5366 -> 5396 B gz, over the 5 KB +5% budget; measured 2026-11-01). It lived
+// in JobsSection's chunk until B52 (11-03) made these lists lazy: there it kept the offer handlers on Browse's boot.
+export { PageOfferPanel } from "@/pages/jobs/jobPage/PageOfferPanel";
+
 export default Activity;

@@ -86,8 +86,8 @@ const OPEN_IN_JOBS = "Open in Jobs";
 const DisputeTimelineDialog = lazy(() => import("@/components/DisputeTimelineDialog").then((m) => ({ default: m.DisputeTimelineDialog })));
 const ReviewForm = lazy(() => import("@/components/ReviewPanel").then((m) => ({ default: m.ReviewForm })));
 // JA-17: the Working card's Accept / Decline on this page; loaded only for a Helpr with an offer.
-// From the Jobs section's chunk (it holds useActivityActions already), never a chunk of its own: see JobsSection.tsx.
-const PageOfferPanel = lazy(() => import("../JobsSection").then((m) => ({ default: m.PageOfferPanel })));
+// From the job lists' chunk (it holds useActivityActions already), never a chunk of its own: see JobListPage.tsx.
+const PageOfferPanel = lazy(() => import("@/components/job-card/JobListPage").then((m) => ({ default: m.PageOfferPanel })));
 
 /** "Sat, Oct 31 · 9:00 AM · Delcambre": only the parts the job really has. */
 function metaLine(job: JobPageRow): string {

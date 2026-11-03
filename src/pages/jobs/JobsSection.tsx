@@ -13,10 +13,10 @@
 // ?tab=, any of those params means the link was written for My Jobs, so it
 // lands on Working; a plain /jobs opens on Browse. /posts?... arrives here as
 // /jobs?tab=posted&... (App.tsx redirect), so it lands on Posted.
-import { useCallback, useState, type ReactNode } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import Dashboard from "@/pages/home/Dashboard";
-import JobListPage from "@/components/job-card/JobListPage";
+import { JobsListLoadingFrame } from "@/components/JobsSectionSkeleton";
 import { manageLinkOpensJobPage } from "@/components/job-card/useManageDeepLink";
 import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
 import { AppTopBar, SectionSettingsButton } from "@/components/sections/AppTopBar";
@@ -24,6 +24,17 @@ import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
 import { useLanguage } from "@/lib/i18n/language";
 import { navKey } from "@/lib/i18n/navLabels";
+import { loadModule, untilReload } from "@/lib/loadModule";
+import { JOB_LISTS_PREFETCH_KEY, prefetchRoutesWhenIdle } from "@/lib/routePrefetch";
+
+// Q1158/Q654 (B52, 11-03): the Posted and Working lists are their own chunk. Static, they put JobListPage and the
+// offer, activity and payment handlers only it runs on Browse's boot (the section opens on Browse). A cold link that
+// opens on a list starts this chunk from the entry beside the section's (src/boot/jobsListRoute.ts); Browse warms it
+// once the page has settled, so the first tap on Posted or Working finds it in hand. Same specifier everywhere, so all
+// share one module instance. Through loadModule (dynamicImportThenDoesNoWork): a prevented preload resolves null.
+const JobListPage = lazy(() =>
+  loadModule(() => import("@/components/job-card/JobListPage")).then((m) => (m ? { default: m.default } : untilReload())),
+);
 
 const JOBS_SETTINGS = { label: "Jobs settings", labelKey: "jobs.settings", path: "/jobs/settings" } as const;
 
@@ -53,6 +64,9 @@ const JobsSection = () => {
   const [openedOnLegacyLink] = useState(() => resolveJobsTab(params, picked) === "working" && !params.get("tab"));
   const tab = params.get("tab") ? resolveJobsTab(params, picked) : openedOnLegacyLink ? "working" : "browse";
   const section = sectionByKey("jobs");
+  // Browse warms the lists' chunk once the page has settled (prefetchRoutesWhenIdle waits for it, skips Save-Data).
+  const onBrowse = tab === "browse";
+  useEffect(() => (onBrowse ? prefetchRoutesWhenIdle([JOB_LISTS_PREFETCH_KEY]) : undefined), [onBrowse]);
   const { t: tr } = useLanguage();
 
   const onTab = useCallback(
@@ -104,14 +118,19 @@ const JobsSection = () => {
   const jobPage = tab === "posted" ? manageLinkOpensJobPage(params) : null;
   if (jobPage) return <Navigate replace to={jobPage} />;
   // Board 141: the refund_requests switch, read once for every job card in the list.
-  if (tab === "posted") return <RefundsSwitchProvider><JobListPage key="posted" defaultTab="posted" embeddedHeader={makeHeader} /></RefundsSwitchProvider>;
-  if (tab === "working") return <RefundsSwitchProvider><JobListPage key="working" defaultTab="applied" embeddedHeader={makeHeader} /></RefundsSwitchProvider>;
+  // While the lists' chunk arrives: the list's own loading frame (EmbeddedActivityLoading draws the same), so the only
+  // change a reader sees is still bones -> content.
+  if (tab === "posted" || tab === "working") {
+    const list = tab === "posted" ? "posted" : "applied";
+    return (
+      <RefundsSwitchProvider>
+        <Suspense fallback={<JobsListLoadingFrame header={makeHeader()} tab={list} />}>
+          <JobListPage key={tab} defaultTab={list} embeddedHeader={makeHeader} />
+        </Suspense>
+      </RefundsSwitchProvider>
+    );
+  }
   return <Dashboard embeddedHeader={makeHeader} />;
 };
-
-// JA-17 (B111): the job page's Accept / Decline panel is loaded FROM this chunk, which already holds the Working card's
-// handlers and offer card. Its own lazy chunk split useActivityActions into a new shared chunk that every route's
-// preload list in the entry named (entry 5366 -> 5396 B gz, over the 5 KB +5% budget; measured 2026-11-01).
-export { PageOfferPanel } from "./jobPage/PageOfferPanel";
 
 export default JobsSection;

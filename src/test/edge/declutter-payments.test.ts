@@ -23,6 +23,8 @@
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   const paidAt = new Date((facts.chargedAt ?? event.created) * 1000).toISOString(); |   const paidAt = new Date().toISOString();
  * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |   if (isDeclutterSession(session)) { |   if (false) {
  * @mutate supabase/functions/declutter-checkout/index.ts |   if (row!.superseded_session_id) await expirePage(stripeOf(row!.superseded_session_id), row!.superseded_session_id); |
+ * @mutate supabase/functions/_shared/stripeMode.ts |     if (meta.kind === "declutter_card") return true; |     return meta.kind === "declutter_card";
+ * @mutate supabase/functions/_shared/stripeMode.ts |       && meta.card_hold_plan === "schedule" && typeof meta.job_id | && typeof meta.job_id
  * @mutate supabase/functions/declutter-checkout/index.ts |     { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}${walletRetry ? ":new-wallet" : ""}` }, |     {},
  * @mutate supabase/functions/declutter-checkout/index.ts | await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (payer, walletRetry) => | await ((_a: unknown, _b: unknown, _c: unknown, _d: unknown, c: string \| undefined, f: (c: string \| undefined, r: boolean) => unknown) => f(c, false))(admin, stripe, user, mode, customerId, (payer, walletRetry) =>
  * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "complete") return json({ paid: true, order_id: open.id }); |
@@ -38,7 +40,7 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |         if (quoteErr) return rpcRefusal(quoteErr);\n      }\n      if (handover === "seller_delivery") { |         void quoteErr;\n      }\n      if (handover === "seller_delivery") {
  * @mutate supabase/functions/declutter-checkout/index.ts |   if (!deliveryShapeOk \|\| !shippingShapeOk\n      \|\| | if (
  * @mutate supabase/functions/declutter-card/index.ts |   const refused = await requireFeature(admin, "declutter", user, corsHeaders);\n  if (refused) return refused; |
- * @mutate supabase/functions/_shared/stripeMode.ts |   if (session.mode === "setup") return meta.kind === "declutter_card"; |   if (session.mode === "setup") return false;
+ * @mutate supabase/functions/_shared/stripeMode.ts |     if (meta.kind === "declutter_card") return true; |     if (meta.kind === "declutter_card") return false;
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     p_livemode: event.livemode === true, |     p_livemode: false,
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (modeErr) throw new Error(`declutter_refund_set_mode failed: ${modeErr.message}`); |
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (meta.kind === "declutter_refund") { |   if (false) {
@@ -692,6 +694,17 @@ describe("test mode routing", () => {
     expect(isRoutedTestCheckout({ mode: "setup", metadata: { kind: "something_else" } })).toBe(false);
     expect(isRoutedTestCheckout({ mode: "payment", metadata: { kind: "declutter_order", order_id: ORDER } })).toBe(true);
     expect(isRoutedTestCheckout({ mode: "subscription", metadata: { kind: "declutter_order" } })).toBe(false);
+  });
+
+  it("Q2446: create-payment's far-out card-hold setup page is routed; a setup page missing any of its marks is not", () => {
+    const hold = { job_id: "job-far", customer_id: BUYER, card_hold: "1", card_hold_plan: "schedule" };
+    expect(isRoutedTestCheckout({ mode: "setup", metadata: hold })).toBe(true);
+    expect(isRoutedTestCheckout({ mode: "setup", metadata: { ...hold, card_hold: "" } })).toBe(false);
+    expect(isRoutedTestCheckout({ mode: "setup", metadata: { ...hold, card_hold_plan: "post" } })).toBe(false);
+    expect(isRoutedTestCheckout({ mode: "setup", metadata: { ...hold, job_id: "" } })).toBe(false);
+    expect(isRoutedTestCheckout({ mode: "setup", metadata: { ...hold, kind: "something_else" } })).toBe(false);
+    expect(isRoutedTestCheckout({ mode: "setup", metadata: { ...hold, type: "tip" } })).toBe(false);
+    expect(isRoutedTestCheckout({ mode: "setup", metadata: { job_id: "job-far" } })).toBe(false);
   });
 });
 

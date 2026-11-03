@@ -210,6 +210,7 @@
     "supabase/functions/_shared/crewBlockFeeRead.ts",
     "supabase/functions/_shared/tipFees.ts",
     "supabase/functions/_shared/salesTax.ts",
+    "supabase/functions/_shared/jobTaxAddress.ts",
     "supabase/functions/_shared/shopTaxCodes.ts",
     "supabase/functions/_shared/recurringSchedule.ts",
     "supabase/functions/_shared/seriesRefund.ts",

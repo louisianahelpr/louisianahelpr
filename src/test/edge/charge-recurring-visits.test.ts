@@ -2068,6 +2068,29 @@ describe("charge-recurring-visits edge function", () => {
     });
   });
 
+  // Q2083 (b): a taxed visit is priced at the job address in the shape
+  // create-payment and calculate-tax send, and a series with no Louisiana job
+  // ZIP is skipped (never charged untaxed, never taxed somewhere else).
+  // @mutate supabase/functions/charge-recurring-visits/index.ts |           if (!taxAddress) { |           if (false) {
+  it("Q2083 (b): a taxed series with a non-Louisiana job ZIP is skipped with no tax call; an LA ZIP is priced there", async () => {
+    const fn = await loadConfigured();
+    seedHappyPath();
+    wirePosterSeries({ category: "auto_repair", budget: 100, zip_code: "77002" });
+    const skipped = await body(await runOn(fn, "2026-09-01"));
+    expect(skipped.funded ?? 0).toBe(0);
+    expect(stripeMock.tax.calculations.create).not.toHaveBeenCalled();
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+
+    const fn2 = await loadConfigured();
+    seedHappyPath();
+    wirePosterSeries({ category: "auto_repair", budget: 100, zip_code: "70503-1234" });
+    stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_z", tax_amount_exclusive: 1105 });
+    stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_z" });
+    await body(await runOn(fn2, "2026-09-01"));
+    const [calc] = stripeMock.tax.calculations.create.mock.calls[0];
+    expect(calc.customer_details).toEqual({ address: { postal_code: "70503", state: "LA", country: "US" }, address_source: "billing" });
+  });
+
   // @mutate supabase/functions/charge-recurring-visits/index.ts |               }, ...(posterFeeCents > 0 ? [{ |               }, ...(false ? [{
   it("a taxable poster-fee series taxes the fee with the labor, and the visit's rate divides by both", async () => {
     const fn = await loadConfigured();

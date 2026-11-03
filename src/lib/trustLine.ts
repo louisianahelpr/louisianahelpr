@@ -51,11 +51,14 @@ export function isNewMember(s: TrustInputs): boolean {
   return jobsDone(s) < NEW_UNDER_JOBS;
 }
 
-/** The trust line's parts, in order. "New" alone under 3 jobs done. */
-export function trustLineParts(s: TrustInputs): string[] {
+/**
+ * The trust line's parts, in order. "New" alone under 3 jobs done. `jobs: false` leaves out "N jobs done": the
+ * profile's Jobs completed tile already shows the count (AUD31-51, OWNER DECIDED 2026-11-03: the badge only).
+ */
+export function trustLineParts(s: TrustInputs, { jobs = true }: { jobs?: boolean } = {}): string[] {
   const done = jobsDone(s);
   if (isNewMember(s)) return ["New"];
-  const parts = [`${done} jobs done`];
+  const parts = jobs ? [`${done} jobs done`] : [];
   if (s.onTimeRate != null && Number.isFinite(s.onTimeRate)) parts.push(`${Math.round(s.onTimeRate)}% on time`);
   const back = repeatCustomers(s.repeatHirePercent, s.repeatClientSample);
   if (back > 0) parts.push(`${back} repeat customer${back === 1 ? "" : "s"}`);

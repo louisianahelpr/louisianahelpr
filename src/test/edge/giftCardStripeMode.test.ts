@@ -11,7 +11,7 @@
  * and the webhook refused every TEST-mode gift as not routed.
  *
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | if (stripeMode === "test") | if (stripeMode === "nope")
- * @mutate supabase/functions/create-gift-card-checkout/index.ts |     const customerId = await resolveStripeCustomer(supabaseAdmin, stripe, user, stripeMode, { adoptTagged: true }); |     const customerId = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id ?? "cus_byemail";
+ * @mutate supabase/functions/create-gift-card-checkout/index.ts | withWalletCustomer(supabaseAdmin, stripe, user, stripeMode, (customerId, walletRetry) => | ((_a: unknown, _b: unknown, _c: unknown, _d: unknown, f: (c: string, r: boolean) => unknown) => stripe.customers.list({ email: user.email, limit: 1 }).then((l: { data: Array<{ id: string }> }) => f(l.data[0]?.id ?? "cus_byemail", false)))(supabaseAdmin, stripe, user, stripeMode, (customerId, walletRetry) =>
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | if (!bothTest) | if (bothTest && false)
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | const stripe = new Stripe(stripeSecretKeyFor(stripeMode), | const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") \|\| "",
  * @mutate supabase/functions/create-gift-card-checkout/index.ts | recipientUserId = String(eligibleProfile.user_id); | recipientUserId = null;

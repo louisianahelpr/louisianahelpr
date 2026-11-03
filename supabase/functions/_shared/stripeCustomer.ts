@@ -141,3 +141,61 @@ export async function resolveStripeCustomer(
   }
   return data;
 }
+
+/**
+ * Q2140: Stripe refused `customerId` because it no longer exists (deleted in the Dashboard, or test data wiped):
+ * `resource_missing` naming the customer. Any other error is not this.
+ */
+export function isMissingCustomerError(err: unknown, customerId: string): boolean {
+  const e = err as { code?: unknown; param?: unknown; message?: unknown; raw?: { code?: unknown; param?: unknown } } | null;
+  const code = e?.code ?? e?.raw?.code;
+  if (code !== "resource_missing") return false;
+  const param = e?.param ?? e?.raw?.param;
+  return param === "customer" || (typeof e?.message === "string" && e.message.includes(customerId));
+}
+
+/**
+ * Q2140: run `fn` with the member's wallet customer. No extra Stripe call on the happy path (owner: nothing slow).
+ * ONLY when Stripe answers that the stored customer is missing does it make a new customer, swap it in with the
+ * guarded replace_stripe_customer (20261103053759: only while the dead id is still the stored one; the dead
+ * Declutter card goes with it), and run `fn` ONCE more. A failure while replacing throws StripeCustomerUnavailable
+ * ("try again"); any other error from `fn` is rethrown as it was.
+ */
+export async function withWalletCustomer<T>(
+  admin: WalletDb,
+  stripe: CustomerCreator,
+  user: { id: string; email?: string | null },
+  mode: WalletStripeMode,
+  /** `walletRetry` is true on the one retry: a caller with a fixed idempotency key changes it, as the params changed. */
+  fn: (customerId: string, walletRetry: boolean) => Promise<T>,
+  options: { adoptTagged?: boolean } = {},
+): Promise<T> {
+  const customerId = await resolveStripeCustomer(admin, stripe, user, mode, options);
+  try {
+    return await fn(customerId, false);
+  } catch (err) {
+    if (!isMissingCustomerError(err, customerId)) throw err;
+    console.warn(`[stripeCustomer] wallet customer ${customerId} (${mode}) is gone in Stripe; replacing it for ${user.id}.`);
+    let created: { id: string };
+    try {
+      created = await stripe.customers.create(
+        { email: user.email ?? undefined, metadata: { supabase_user_id: user.id, wallet_mode: mode } },
+        { idempotencyKey: `lh-wallet-customer-${user.id}-${mode}-after-${customerId}` },
+      );
+    } catch (createErr) {
+      throw new StripeCustomerUnavailable(`replacement wallet create failed: ${(createErr as { message?: unknown } | null)?.message ?? "unknown error"}`);
+    }
+    if (!created?.id || !CUSTOMER_ID_RE.test(created.id)) throw new StripeCustomerUnavailable("Stripe returned no replacement wallet id");
+    const { data, error } = await admin.rpc("replace_stripe_customer", {
+      p_user: user.id,
+      p_mode: mode,
+      p_old: customerId,
+      p_new: created.id,
+    });
+    if (error) throw new StripeCustomerUnavailable(`wallet replace failed: ${error.message}`);
+    if (typeof data !== "string" || !CUSTOMER_ID_RE.test(data) || data === customerId) {
+      throw new StripeCustomerUnavailable("wallet replace returned no new id");
+    }
+    return await fn(data, true);
+  }
+}

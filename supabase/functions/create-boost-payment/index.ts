@@ -11,7 +11,7 @@ import { TIER_DISPLAY_NAMES, tierDisplayName } from "../_shared/tierNames.ts";
 import { hasPerk, monthlyFreeBoostAllowance } from "../_shared/tierPerks.ts";
 import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
 import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
-import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
+import { withWalletCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -380,8 +380,8 @@ serve(async (req) => {
     // One wallet (Q2139, owner 2026-10-18 "verify ONCE, use EVERYWHERE"): the member's
     // one Stripe customer for this mode (_shared/stripeCustomer.ts), never a customer
     // found by email (an address can belong to someone else's old customer).
-    const customerId = await resolveStripeCustomer(supabaseAdmin, stripe, user, stripeMode, { adoptTagged: true });
-
+    // Q2140: a wallet customer Stripe no longer has is replaced once and the session retried (withWalletCustomer).
+    const session = await withWalletCustomer(supabaseAdmin, stripe, user, stripeMode, async (customerId) => {
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
       // automatic_tax needs a tax location. An existing Stripe Customer with no
@@ -441,9 +441,10 @@ serve(async (req) => {
       new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(sessionParams)))),
       (b) => b.toString(16).padStart(2, "0"),
     ).join("").slice(0, 16);
-    const session = await stripe.checkout.sessions.create(sessionParams, {
+    return await stripe.checkout.sessions.create(sessionParams, {
       idempotencyKey: `boost:${user.id}:${job_id}:${paramsDigest}`,
     });
+    }, { adoptTagged: true });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

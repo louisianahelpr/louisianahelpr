@@ -253,7 +253,7 @@ describe("void-cancelled-payments: a fully gift-funded job's late-cancellation f
     expect(jobSettles()).toHaveLength(0);
   });
 
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |           : Math.max(0, Math.floor(Number(d.applied_cents)) - Math.floor(Number(d.restore_cents ?? 0))); |           : Math.max(0, Math.floor(Number(d.applied_cents)));
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |             : Math.max(0, Math.floor(Number(d.applied_cents)) - Math.floor(Number(d.restore_cents ?? 0))), |             : Math.max(0, Math.floor(Number(d.applied_cents))),
   it("a gift an earlier run gave back WHOLE funds no fee (already_restored)", async () => {
     seedSingle();
     giftRpc({ outcome: "already_restored", credit_id: "gift-2", applied_cents: APPLIED, restore_cents: APPLIED });

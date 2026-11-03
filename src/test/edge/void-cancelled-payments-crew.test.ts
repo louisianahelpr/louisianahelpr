@@ -734,3 +734,121 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
   });
 });
 
+
+/**
+ * Q1913 (lh-money-escrow review of Q1806): a crew with NO PaymentIntent and NO
+ * gift money behind it (a seed crew in escrow with no PaymentIntent, or a gift
+ * an earlier run gave back whole) used to pay its owed crew block fees from the
+ * platform's own balance, both on the no-payment branch and later in Part F.
+ * Those rows are now voided and ops is told once a day; a gift that paid
+ * something still pays them as before (Q1490, above).
+ *
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |       if (funding.cents > 0) return "pay"; |       return "pay";
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |             if (!fj.stripe_payment_intent_id && (await blockFeesOnUnfundedJob(fj, byJob.get(fj.id) ?? [])) !== "pay") continue; |
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |          if (blockMoney === "not_settled") { |          if (false) {
+ * @mutate supabase/functions/void-cancelled-payments/index.ts | const members = memberIds.map(firstName).join(", "); | const members = memberIds.join(", ");
+ */
+describe("void-cancelled-payments: an unfunded crew's block fee is never paid from the platform (Q1913)", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetSupabaseMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
+    resetSharedMocks();
+  });
+
+  const BLOCK = { id: "bf-1", job_id: "job-crew", helper_id: "member-d", slot_no: 3, share_basis_cents: 10000, fee_percent: 25, fee_cents: 2500, status: "owed", stripe_transfer_id: null };
+  const blockFeeTransfers = () =>
+    stripeMock.transfers.create.mock.calls.filter(([p]) => (p as { metadata?: { type?: string } }).metadata?.type === "crew_block_fee");
+  const voidWrites = () =>
+    scenario.writes.filter((w) => w.table === "crew_block_fees" && (w.payload as Record<string, unknown>).status === "void");
+
+  /** A cancelled crew with no PaymentIntent; uncommitted members owe no late fee, so only the block fee is owed. */
+  const seedNoPaymentCrew = (dry: Record<string, unknown>) => {
+    seedCancelledCrew(MEMBERS.map((m, i) => ({
+      id: `share-${i + 1}`, helper_id: m, committed: false, share_basis_cents: 10000, share_amount: "0.00", status: "pending", stripe_transfer_id: null,
+    })));
+    const jobs = scenario.reads.jobs as { selectOverrides: Array<{ result: { rows: Array<Record<string, unknown>> } }> };
+    jobs.selectOverrides[0].result.rows[0].stripe_payment_intent_id = null;
+    scenario.reads.crew_block_fees = { rows: [{ ...BLOCK }] };
+    scenario.writeSelectRows.crew_block_fees = [{ id: "bf-1" }];
+    scenario.rpc.restore_gift_card_for_job = () => dry;
+    stripeMock.transfers.create.mockImplementation(async (params: { metadata: { helper_id: string } }) => ({ id: `tr_${params.metadata.helper_id}` }));
+  };
+
+  it("no card and no gift: the block fee is voided, not paid, the job settles, and ops is told", async () => {
+    seedNoPaymentCrew({ outcome: "no_credit" });
+    scenario.reads.profiles = { rows: [{ user_id: "member-d", full_name: "Dana Q. Smith", stripe_account_id: "acct_member", subscription_tier: null }] };
+    const h = await load();
+    const res = await h.fetch(cronReq());
+    expect(blockFeeTransfers()).toHaveLength(0);
+    expect(voidWrites()).toHaveLength(1);
+    // Lead 11-03: the alert names the job and the members' first names, so a person can decide quickly.
+    const alert = (slackAlerts as Array<{ title?: string; message?: string }>).find((a) => /Crew block fee not paid/.test(a.title ?? ""));
+    expect(alert?.message).toContain("Move a piano");
+    expect(alert?.message).toContain("to Dana,");
+    expect(alert?.message).not.toContain("Smith");
+    expect((voidWrites()[0].payload as Record<string, unknown>).failure_reason).toBe("no card or gift paid for this job");
+    expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "cancelled")).toBe(true);
+    expect((slackAlerts as Array<{ title?: string }>).some((a) => /Crew block fee not paid: nothing paid for this job/.test(a.title ?? ""))).toBe(true);
+    const body = (await res.json()) as { results?: Array<{ status?: string }> };
+    expect(body.results?.map((r) => r.status)).toContain("no_payment_found");
+  });
+
+  it("a gift an earlier run gave back WHOLE: the block fee is voided, not paid", async () => {
+    seedNoPaymentCrew({ outcome: "already_restored", credit_id: "gift-2", applied_cents: 30000, restore_cents: 30000 });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(blockFeeTransfers()).toHaveLength(0);
+    expect(voidWrites()).toHaveLength(1);
+  });
+
+  it("an unreadable gift settles nothing this run (fails closed)", async () => {
+    seedNoPaymentCrew({ outcome: "no_credit" });
+    scenario.rpcErrors = { restore_gift_card_for_job: { message: "boom" } };
+    const h = await load();
+    const res = await h.fetch(cronReq());
+    expect(blockFeeTransfers()).toHaveLength(0);
+    expect(voidWrites()).toHaveLength(0);
+    expect(scenario.writes.some((w) => w.table === "jobs" && (w.payload as Record<string, unknown>).payment_status === "cancelled")).toBe(false);
+    const body = (await res.json()) as { results?: Array<{ status?: string }> };
+    expect(body.results?.map((r) => r.status)).toEqual(["block_fee_funding_unreadable"]);
+  });
+
+  it("Part F: a block fee left owed on a settled job with no PaymentIntent and no gift is voided, not paid", async () => {
+    scenario.reads.jobs = {
+      rows: [],
+      selectOverrides: [{
+        includes: "helper_fee_percent, helper_fee_flat_cents, payment_status, stripe_payment_intent_id",
+        result: { rows: [{ id: "job-done", title: "Move a piano", helper_fee_percent: 10, payment_status: "cancelled", stripe_payment_intent_id: null, is_seed: false }] },
+      }],
+    };
+    scenario.reads.crew_block_fees = { rows: [{ ...BLOCK, job_id: "job-done", status: "failed" }] };
+    scenario.writeSelectRows.crew_block_fees = [{ id: "bf-1" }];
+    scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_member", subscription_tier: null }] };
+    scenario.rpc.restore_gift_card_for_job = () => ({ outcome: "no_credit" });
+    stripeMock.transfers.create.mockImplementation(async (params: { metadata: { helper_id: string } }) => ({ id: `tr_${params.metadata.helper_id}` }));
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(blockFeeTransfers()).toHaveLength(0);
+    expect(voidWrites()).toHaveLength(1);
+  });
+
+  it("control: Part F still pays a gift-funded settled job's left-owed block fee from what its gift kept", async () => {
+    scenario.reads.jobs = {
+      rows: [],
+      selectOverrides: [{
+        includes: "helper_fee_percent, helper_fee_flat_cents, payment_status, stripe_payment_intent_id",
+        result: { rows: [{ id: "job-done", title: "Move a piano", helper_fee_percent: 10, payment_status: "cancelled", stripe_payment_intent_id: null, is_seed: false }] },
+      }],
+    };
+    scenario.reads.crew_block_fees = { rows: [{ ...BLOCK, job_id: "job-done", status: "failed" }] };
+    scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_member", subscription_tier: null }] };
+    // The gift was restored LESS the block fee: 2500 still kept for it.
+    scenario.rpc.restore_gift_card_for_job = () => ({ outcome: "already_restored", credit_id: "gift-2", applied_cents: 30000, restore_cents: 27500 });
+    stripeMock.transfers.create.mockImplementation(async (params: { metadata: { helper_id: string } }) => ({ id: `tr_${params.metadata.helper_id}` }));
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(blockFeeTransfers()).toHaveLength(1);
+    expect(voidWrites()).toHaveLength(0);
+  });
+});

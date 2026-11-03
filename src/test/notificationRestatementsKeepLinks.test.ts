@@ -56,6 +56,9 @@ const Q194 = "20260923152630_notification_links_point_direct_not_at_redirects.sq
  * Two-way: each must actually change one.
  */
 const INTENDED_LINK_CHANGES = new Set([
+  // Q2076: the poster's failed-bank-payment cancel notice links to the Repost prefill of the cancelled job,
+  // '/post-job?rebook=<id>', instead of a blank '/post-job' (a 'failed' job is hidden from My Posts).
+  "20261103010231_failed_bank_cancel_reposts_the_job.sql::cancel_job_after_failed_bank_payment",
   // Q2606 (lead PASS 11-02): when the poster proposed the new day, the Helpr's answer now notifies the POSTER, on the
   // poster's link '/posts?job=<id>' (the same rule as propose_job_continue_day's CASE); the Helpr's '/jobs?job=' stays.
   "20261102102402_poster_continue_day_goes_to_the_helpr.sql::answer_job_continue_day",

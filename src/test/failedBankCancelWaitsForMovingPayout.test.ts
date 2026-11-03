@@ -6,9 +6,9 @@
  * Behaviour (real Postgres, base = prod's live definition by md5): src/test/pglite/payoutMovingBlocksFailedBankCancel.pglite.mjs
  * (9 PASS; 6 FAIL on prod's definition; 5 planted SQL defects each red).
  *
- * @mutate supabase/migrations/20261102055222_payout_moving_blocks_failed_bank_cancel.sql |               WHERE pt.job_id = v_job.id AND pt.status IS DISTINCT FROM 'failed') |               WHERE pt.job_id = v_job.id)
- * @mutate supabase/migrations/20261102055222_payout_moving_blocks_failed_bank_cancel.sql |     RETURN jsonb_build_object('outcome', 'payout_moving', 'payment_status', v_job.payment_status); |     NULL;
- * @mutate supabase/migrations/20261102055222_payout_moving_blocks_failed_bank_cancel.sql | FROM PUBLIC, anon, authenticated; | FROM PUBLIC;
+ * @mutate supabase/migrations/20261103010231_failed_bank_cancel_reposts_the_job.sql |               WHERE pt.job_id = v_job.id AND pt.status IS DISTINCT FROM 'failed') |               WHERE pt.job_id = v_job.id)
+ * @mutate supabase/migrations/20261103010231_failed_bank_cancel_reposts_the_job.sql |     RETURN jsonb_build_object('outcome', 'payout_moving', 'payment_status', v_job.payment_status); |     NULL;
+ * @mutate supabase/migrations/20261103010231_failed_bank_cancel_reposts_the_job.sql | FROM PUBLIC, anon, authenticated; | FROM PUBLIC;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -38,7 +38,7 @@ describe("Q1978: the failed-bank cancel waits for a moving payout", () => {
   });
 
   it("only service_role may call it (anon's default grant revoked by name)", () => {
-    const sql = blankSqlComments(readFileSync("supabase/migrations/20261102055222_payout_moving_blocks_failed_bank_cancel.sql", "utf8"));
+    const sql = blankSqlComments(readFileSync("supabase/migrations/20261103010231_failed_bank_cancel_reposts_the_job.sql", "utf8"));
     expect(sql).toContain(`REVOKE ALL ON FUNCTION public.${FN}(uuid, text, uuid) FROM PUBLIC, anon, authenticated;`);
     expect(sql).toContain(`GRANT EXECUTE ON FUNCTION public.${FN}(uuid, text, uuid) TO service_role;`);
   });

@@ -10,6 +10,7 @@ import { LEGAL_TERMS_VERSION, LEGAL_PRIVACY_VERSION } from "../_shared/legalVers
 import { SUPPORT_EMAIL } from "../_shared/resend.ts";
 import { isLockedOut } from "../_shared/banStatus.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { consentAlreadyRecorded, referralAlreadyRecorded } from "../_shared/signupRepeat.ts";
 import { alertWaitingOnMoney, deleteUnder13Account } from "../_shared/under13.ts";
 import { isFutureBirthday, isUnder13, UNDER_13_CODE, UNDER_13_MESSAGE } from "../_shared/under13Age.ts";
 import {
@@ -991,14 +992,23 @@ async function completeSignup(req: Request, claim: NoSessionClaim): Promise<Resp
     // in `profiles.marketing_consent` (written above), so nothing mis-mailed;
     // but the record that is supposed to EVIDENCE the opt-in disagreed with
     // it, which is worse than leaving the column out of the schema.
-    const { error: legalErr } = await supabase.from("legal_acceptances").insert({
-      user_id: userId,
-      terms_version: LEGAL_TERMS_VERSION,
-      privacy_version: LEGAL_PRIVACY_VERSION,
-      marketing_opted_in: marketingConsent === true,
-      ip_address: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
-      user_agent: req.headers.get("user-agent") ?? null,
-    });
+    //
+    // Q2089: a repeat of this same completion (Q1810's second send after a
+    // lost answer, with a session) does not write a second identical row.
+    const consentRepeat = await consentAlreadyRecorded(supabase, userId, LEGAL_TERMS_VERSION, LEGAL_PRIVACY_VERSION);
+    const { error: legalErr } = consentRepeat
+      ? { error: null }
+      : await supabase.from("legal_acceptances").insert({
+          user_id: userId,
+          terms_version: LEGAL_TERMS_VERSION,
+          privacy_version: LEGAL_PRIVACY_VERSION,
+          marketing_opted_in: marketingConsent === true,
+          ip_address: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+          user_agent: req.headers.get("user-agent") ?? null,
+        });
+    if (consentRepeat) {
+      console.log(`[complete-signup] consent row for ${userId} already written by this completion; not written twice`);
+    }
     if (legalErr) {
       console.error(`[complete-signup] legal_acceptances insert failed for ${userId}:`, legalErr);
     }
@@ -1054,7 +1064,9 @@ async function completeSignup(req: Request, claim: NoSessionClaim): Promise<Resp
       } else {
         // The RPC returns FALSE for an unknown code, a self-referral, or a
         // user who was already referred — all legitimate no-ops, not errors.
-        referralRecorded = referralOk === true;
+        // Q2089: FALSE also answers a repeat of this completion whose first
+        // run recorded the referral ("already referred"); that one WAS recorded.
+        referralRecorded = referralOk === true || (await referralAlreadyRecorded(supabase, userId));
         if (!referralRecorded) {
           console.log(
             `[complete-signup] referral code ${referralCode.trim().toUpperCase()} did not apply to ${userId} (unknown code, self-referral, or already referred)`,

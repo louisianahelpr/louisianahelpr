@@ -98,6 +98,8 @@
     "supabase/functions/_shared/supportGuest.ts",
     "supabase/functions/_shared/recentSignIn.ts",
     "supabase/functions/_shared/helprPayoutParts.ts",
+    // Q2089: complete-signup repeat reads, imported by src/test/signupRepeatIsNotWrittenTwice.test.ts.
+    "supabase/functions/_shared/signupRepeat.ts",
     "supabase/functions/_shared/easypostRates.ts",
     "supabase/functions/_shared/easypostTracking.ts",
     "supabase/functions/_shared/easypostLabels.ts",

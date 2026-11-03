@@ -2,7 +2,10 @@
 // @mutate supabase/functions/_shared/posterCancelSplit.ts |     actualFeeCents: noCardFee ? 0 : c.actualFeeCents, |     actualFeeCents: c.actualFeeCents,
 // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (faultErr && !notDeployed) { |         if (false) {
 // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (sellerFault) { |           if (sellerFault && refundAmount > 0 && !alreadyRefunded) {
-// @mutate supabase/functions/void-cancelled-payments/index.ts |         if (withheldForSeller > 0) { |         if (false) {
+// @mutate supabase/functions/void-cancelled-payments/index.ts |         sellerFaultHelprFee = sellerFault && job.helper_id && |         sellerFaultHelprFee = false && job.helper_id &&
+// @mutate supabase/functions/void-cancelled-payments/index.ts |               p_helpr_fee_cents: Math.round(sellerFaultHelprFee * 100), |               p_helpr_fee_cents: 0,
+// @mutate supabase/functions/void-cancelled-payments/index.ts |           if (sellerFaultHelprFee > 0 && !(await payHelperCancellationFee(job, sellerFaultHelprFee, null, singleFeePercent, stripe))) { |           if (sellerFaultHelprFee > 0 && !(await payHelperCancellationFee(job, sellerFaultHelprFee, null, singleFeePercent, stripe)) && false) {
+// @mutate supabase/functions/void-cancelled-payments/index.ts |            cancellation_fee_status: cancellationFee > 0 \|\| sellerFaultHelprFee > 0 ? "charged" : null, |            cancellation_fee_status: cancellationFee > 0 ? "charged" : null,
 // @mutate supabase/functions/void-cancelled-payments/index.ts |               results.push({ job_id: job.id, title: job.title, status: "seller_fee_debt_failed" });\n              continue; |               results.push({ job_id: job.id, title: job.title, status: "seller_fee_debt_failed" });
 // @mutate supabase/functions/void-cancelled-payments/index.ts |                 ...(sellerFault ? { seller_fault: "yes", seller_fee_cents: unbilledSellerFeeCents } : {}), |                 ...({}),
 // @mutate supabase/functions/void-cancelled-payments/index.ts |             const unbilledSellerFeeCents = sellerFault ? actualOrEstimatedFeeCents(pi, capturedCents) : 0; |             const unbilledSellerFeeCents = 0;
@@ -14,11 +17,15 @@
  * cancels the buyer's linked Helpr setup job (declutter_refund_cancels_setup_jobs,
  * 20261017073146) and marks declutter_order_jobs.seller_fault_refund_id. The
  * sweep recomputes the cancellation fee itself, so it must read that marker:
- *   - a marked job pays the Helpr NO cancellation fee and refunds the poster
- *     IN FULL, card fee included, keeping only a first job's one-time setup fee
- *     (lead decision: never refunded once onboarding is done);
- *   - the card fee Stripe kept is billed to the seller ONCE, after the refund,
- *     through declutter_setup_job_fee_debt; a failed bill leaves the job in
+ *   - a marked job refunds the poster IN FULL, card fee included, keeping only
+ *     a first job's one-time setup fee (lead decision: never refunded once
+ *     onboarding is done);
+ *   - Q1938 (owner 11-03, "whatever the rule is for jobs is the same for
+ *     declutter"): its committed Helpr is still paid the jobs late-cancel fee,
+ *     from the platform balance (unlinked: the charge went back in full), and
+ *     the job records that fee as a poster's own cancel would;
+ *   - the card fee Stripe kept AND that Helpr fee are billed to the seller
+ *     ONCE, after the refund, through declutter_setup_job_fee_debt; a failed bill leaves the job in
  *     escrow (the refund ledger stops a second refund) and pages ops, and a
  *     re-run with the refund already on the ledger bills it then;
  *   - a marker read error moves NO money; a marker table that is not deployed
@@ -112,18 +119,50 @@ describe("void-cancelled-payments: a setup job a Declutter seller's backing out 
     resetSharedMocks();
   });
 
-  it("pays no cancellation fee, refunds every cent (card fee included) and bills the seller the card fee once", async () => {
+  it("refunds every cent (card fee included), pays the Helpr the jobs late-cancel fee unlinked, and bills the seller both once", async () => {
     const captured = seed({ marker: MARKED });
     const h = await load();
     await h.fetch(cronReq());
-    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
       { payment_intent: "pi_a10", amount: captured },
       { idempotencyKey: "cancel-refund-job-a10" },
     );
-    expect(debtCalls().map((c) => c.args)).toEqual([{ p_job_id: "job-a10", p_card_fee_cents: STRIPE_FEE }]);
-    expect(settledRefunded()).toBe(true);
+    // Q1938: the $50 fee (25% tier) priced exactly as an ordinary poster cancel prices it (the unmarked case
+    // below sends the same 4400), from the platform balance.
+    expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+    const transfer = stripeMock.transfers.create.mock.calls[0][0] as Record<string, unknown>;
+    expect(transfer).toMatchObject({ amount: 4400, destination: "acct_helper", metadata: expect.objectContaining({ type: "cancellation_fee", job_id: "job-a10" }) });
+    expect(transfer.source_transaction).toBeUndefined();
+    expect(debtCalls().map((c) => c.args)).toEqual([{ p_job_id: "job-a10", p_card_fee_cents: STRIPE_FEE, p_helpr_fee_cents: 5000 }]);
+    const settle = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && (w.payload as { payment_status?: string }).payment_status === "refunded");
+    expect(settle?.payload).toMatchObject({ cancellation_fee_status: "charged", cancellation_fee: 50, late_cancellation: true });
+    expect((slackAlerts as Array<{ title: string }>).some((a) => /withheld/i.test(a.title))).toBe(false);
+  });
+
+  it("a Helpr fee that cannot be put on the ledger leaves the job in escrow after the refund and the seller's bill", async () => {
+    seed({ marker: MARKED });
+    scenario.reads.cancellation_fee_transfers = { rows: [], error: { message: "ledger down", code: "XX000" } };
+    const h = await load();
+    const res = await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(debtCalls()).toHaveLength(1);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(settledRefunded()).toBe(false);
+    expect(JSON.stringify(await res.json())).toContain("seller_fault_helpr_fee_not_claimed");
+  });
+
+  it("a Helpr who was only offered the job (not committed) gets nothing, and the seller is billed the card fee only", async () => {
+    const captured = seed({ marker: MARKED });
+    const rows = (scenario.reads.jobs as { selectOverrides: Array<{ result: { rows: Array<Record<string, unknown>> } }> }).selectOverrides[0].result.rows;
+    rows[0].helper_confirmed_at = null;
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith({ payment_intent: "pi_a10", amount: captured }, { idempotencyKey: "cancel-refund-job-a10" });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(debtCalls().map((c) => c.args)).toEqual([{ p_job_id: "job-a10", p_card_fee_cents: STRIPE_FEE, p_helpr_fee_cents: 0 }]);
+    const settle = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && (w.payload as { payment_status?: string }).payment_status === "refunded");
+    expect((settle?.payload as Record<string, unknown>).cancellation_fee_status).toBeNull();
   });
 
   it("keeps only a first job's one-time $2 setup fee (lead decision: never refunded once onboarding is done)", async () => {
@@ -149,23 +188,14 @@ describe("void-cancelled-payments: a setup job a Declutter seller's backing out 
     });
     const h = await load();
     await h.fetch(cronReq());
-    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
       { payment_intent: "pi_a10", amount: captured - 3000 - 200 },
       { idempotencyKey: "cancel-refund-job-a10" },
     );
-    expect(debtCalls().map((c) => c.args)).toEqual([{ p_job_id: "job-a10", p_card_fee_cents: STRIPE_FEE }]);
+    expect(debtCalls().map((c) => c.args)).toEqual([{ p_job_id: "job-a10", p_card_fee_cents: STRIPE_FEE, p_helpr_fee_cents: 5000 }]);
     expect(settledRefunded()).toBe(true);
-  });
-
-  it("the committed Helpr's withheld late-cancel fee is paged to ops, once a day per job", async () => {
-    seed({ marker: MARKED });
-    const h = await load();
-    await h.fetch(cronReq());
-    const page = (slackAlerts as Array<{ title: string; fields?: Record<string, unknown> }>).find((a) => /Declutter seller's fault cancelled/.test(a.title));
-    expect(page, JSON.stringify(slackAlerts)).toBeDefined();
-    expect(page!.fields).toMatchObject({ job_id: "job-a10", helper_id: "helper-1", withheld_fee: 50 });
   });
 
   it("an unmarked job keeps the ordinary rules: the Helpr's fee, the card fee kept, no seller bill", async () => {
@@ -173,6 +203,8 @@ describe("void-cancelled-payments: a setup job a Declutter seller's backing out 
     const h = await load();
     await h.fetch(cronReq());
     expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+    // Q1938: the same Helpr pay as the seller-fault case above (the jobs rule).
+    expect((stripeMock.transfers.create.mock.calls[0][0] as { amount: number }).amount).toBe(4400);
     expect(stripeMock.refunds.create).toHaveBeenCalledWith(
       { payment_intent: "pi_a10", amount: captured - 5000 - 2000 },
       { idempotencyKey: "cancel-refund-job-a10" },
@@ -209,6 +241,7 @@ describe("void-cancelled-payments: a setup job a Declutter seller's backing out 
     const h = await load();
     await h.fetch(cronReq());
     expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     expect(settledRefunded()).toBe(false);
     const page = (slackAlerts as Array<{ title: string; fields?: Record<string, unknown> }>).find((a) => /seller not billed/.test(a.title));
     expect(page, JSON.stringify(slackAlerts)).toBeDefined();

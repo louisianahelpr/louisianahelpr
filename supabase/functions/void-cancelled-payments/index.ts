@@ -7,7 +7,7 @@ import { boundedFetch } from "../_shared/boundedFetch.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { readHelperFeePercentStrict, DEFAULT_TIER_FEE_PERCENT } from "../_shared/helperFees.ts";
 import { flatFeePercentOf, helprFlatFeeCents, isFlatFeeJob } from "../_shared/helprFlatFee.ts";
-import { computeCancellationFee } from "../_shared/cancellationFee.ts";
+import { computeCancellationFee, hoursUntilJob } from "../_shared/cancellationFee.ts";
 import { crewCancellationFee, returnsToPoster } from "../_shared/crewShares.ts";
 import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { actualOrEstimatedFeeCents, highestPayInFourFeeCents, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
@@ -2332,6 +2332,17 @@ serve(async (req) => {
       /** Q1915: a share went back to the poster, so the stamped fee is restated at settlement. */
       let crewShareReturned = false;
       let jobCancellationFee: number;
+      /**
+       * Q1938 (owner 11-03: "whatever the rule is for jobs is the same for
+       * declutter"): a setup job a Declutter seller's backing out cancelled
+       * still pays its committed Helpr exactly the late-cancel fee a poster's
+       * own cancel would (computeCancellationFee, priced and split by
+       * payHelperCancellationFee as on any job). The buyer is still refunded
+       * in full (jobCancellationFee stays 0), so the Helpr is paid from the
+       * platform balance, unlinked, and the SELLER owes the fee beside the card
+       * fee (declutter_setup_job_fee_debt). Dollars; 0 when nothing is owed.
+       */
+      let sellerFaultHelprFee = 0;
       /** Q1390: this crew's block fees (closed spots), paid before the refund. */
       let blockFeeRows: CrewBlockFeeRow[] = [];
       // A crew cancelled BEFORE 20260925154606 has its "lead" in helper_id and
@@ -2398,22 +2409,10 @@ serve(async (req) => {
         }
         const noFeeRecorded = idWaivedJobs.has(job.id);
         jobCancellationFee = sellerFault || raceChargedNobodyHired || refundsSeriesVisitInFull(job) || noFeeRecorded ? 0 : computeCancellationFee(job);
-        // ... so a booked Helpr's late-cancel fee is withheld through no fault of
-        // theirs. Said out loud, once a day per job, like Q738 below
-        // (lh-money-escrow review of c57d948d0 #3); whether the seller should
-        // owe it too is an owner question (Q?addhelpr-helpr-fee).
-        const withheldForSeller = sellerFault && job.helper_id ? computeCancellationFee(job) : 0;
-        if (withheldForSeller > 0) {
-          console.warn(`[void-cancelled-payments] job ${job.id}: $${withheldForSeller.toFixed(2)} late-cancel fee withheld from Helpr ${job.helper_id}: a Declutter seller's fault cancelled it`);
-          await postSlackOpsAlert({
-            kind: "custom",
-            severity: "warning",
-            title: "Cancellation fee withheld: a Declutter seller's fault cancelled this setup job",
-            message: `A Helpr setup job cancelled because the Declutter seller failed (owner rule A10) carries no cancellation fee, so the booked Helpr is not paid the $${withheldForSeller.toFixed(2)} late-cancel fee they would otherwise be owed. Decide by hand whether to pay the Helpr.`,
-            fields: { job_id: job.id, helper_id: job.helper_id, poster_id: job.customer_id ?? null, withheld_fee: withheldForSeller },
-            oncePerDayKey: `declutter-seller-withheld-fee:${job.id}`,
-          });
-        }
+        // Q1938: what the jobs rule pays the booked Helpr, owed by the seller (see sellerFaultHelprFee).
+        sellerFaultHelprFee = sellerFault && job.helper_id && !raceChargedNobodyHired && !refundsSeriesVisitInFull(job) && !noFeeRecorded
+          ? computeCancellationFee(job)
+          : 0;
         // Q738: a visit a BAN ended is refunded in full, so a late-cancel fee
         // the booked Helpr would otherwise be owed is withheld. That was
         // silent; it is a judgement call (whose ban, what for), so admins
@@ -2451,7 +2450,7 @@ serve(async (req) => {
       // next run retries); priced after the refund, a failed read left the job
       // settled with no fee row for Part E to find.
       let singleFeePercent: number | undefined;
-      if (!crewShares && jobCancellationFee > 0 && job.helper_id) {
+      if (!crewShares && (jobCancellationFee > 0 || sellerFaultHelprFee > 0) && job.helper_id) {
         const frozen = job.helper_fee_percent === null || job.helper_fee_percent === undefined
           ? null
           : Number(job.helper_fee_percent);
@@ -2476,7 +2475,7 @@ serve(async (req) => {
       // a test account without being enrolled (isPartyRefusal), cannot be paid
       // from this escrow, so it is NOT withheld: the poster gets it back with the refund,
       // and admins are told (once a day per job).
-      if (jobCancellationFee > 0 || blockFeeRows.length > 0) {
+      if (jobCancellationFee > 0 || sellerFaultHelprFee > 0 || blockFeeRows.length > 0) {
         const feePayees = [job.helper_id, ...(crewShares ?? []).map((s) => s.helper_id), ...blockFeeRows.map((r) => r.helper_id)];
         const feeShareMode = await feePayeesShareMode(feePayees);
         if (feeShareMode === null) continue;
@@ -2491,6 +2490,7 @@ serve(async (req) => {
             oncePerDayKey: `cross-mode-fee:${job.id}`,
           });
           jobCancellationFee = 0;
+          sellerFaultHelprFee = 0;
           if (crewShares) crewShares = [];
           blockFeeRows = [];
         }
@@ -3300,6 +3300,8 @@ serve(async (req) => {
             const { error: debtErr } = await supabaseAdmin.rpc("declutter_setup_job_fee_debt", {
               p_job_id: job.id,
               p_card_fee_cents: cardFeeCents,
+              // Q1938: the Helpr's late-cancel fee is the seller's too, billed in the same once-per-job write.
+              p_helpr_fee_cents: Math.round(sellerFaultHelprFee * 100),
             });
             if (debtErr) {
               console.error(`[void-cancelled-payments] seller fee debt failed for job ${job.id}; refund is out, not settling this run:`, debtErr.message);
@@ -3326,10 +3328,24 @@ serve(async (req) => {
             results.push({ job_id: job.id, title: job.title, status: "gift_fee_not_claimed" });
             continue;
           }
+          // Q1938: the seller-fault Helpr fee, from the platform balance (pi null: the charge went back
+          // in full, so nothing is left on it to link). The seller was billed above. A fee with no ledger
+          // row yet (a failed read or claim) keeps the job in escrow so the next run claims it: settled
+          // without a row, Part E would never find it. The refund ledger stops a second refund and the
+          // debt is billed once per job.
+          if (sellerFaultHelprFee > 0 && !(await payHelperCancellationFee(job, sellerFaultHelprFee, null, singleFeePercent, stripe))) {
+            results.push({ job_id: job.id, title: job.title, status: "seller_fault_helpr_fee_not_claimed" });
+            continue;
+          }
 
           const settledRefund = await settleCancelledJob(job, {
             payment_status: "refunded",
-            cancellation_fee_status: cancellationFee > 0 ? "charged" : null,
+            cancellation_fee_status: cancellationFee > 0 || sellerFaultHelprFee > 0 ? "charged" : null,
+            // Q1938: the job records the fee its Helpr was paid and the late flag, as a poster's own cancel
+            // would (declutter_apply_seller_fault stamped 0 / not late), so money-reconciliation agrees.
+            ...(sellerFaultHelprFee > 0 && job.date_needed
+              ? { cancellation_fee: sellerFaultHelprFee, late_cancellation: hoursUntilJob(job.date_needed, job.cancelled_at, job.start_time) < 24 }
+              : {}),
             // Q2000: the job says the fee that was actually paid (Q1345's stamp;
             // money-reconciliation accepts it only for this case). Q1915: so
             // does a crew whose deleted member's share went back to the poster

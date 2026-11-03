@@ -17304,7 +17304,7 @@ export type Database = {
         Returns: string
       }
       declutter_setup_job_fee_debt: {
-        Args: { p_card_fee_cents: number; p_job_id: string }
+        Args: { p_card_fee_cents: number; p_helpr_fee_cents?: number; p_job_id: string }
         Returns: number
       }
       declutter_checkout_pickup_end: {

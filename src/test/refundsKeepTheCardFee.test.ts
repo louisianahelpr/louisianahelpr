@@ -786,7 +786,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // A10: adds the setup job's card fee to the seller's debt for that refund, once; never a refund amount.
       // Q1937 (20261027174633): capped at the order total across the order's linked jobs; still no refund amount.
       // + 20261027172503 (hide-fees) rewrites its notice literals only (lander re-pin, both reviewed).
-      declutter_setup_job_fee_debt: "20261017073146_declutter_add_a_helpr.sql 554baba27b88ddd1",
+      // Q1938 (20261103214533, Builder 71): adds the seller-fault Helpr late-cancel fee to the same debt row,
+      // under the same caps; it still decides no refund amount (the buyer's full refund is void-cancelled-payments').
+      declutter_setup_job_fee_debt: "20261103214533_declutter_seller_fault_pays_helpr.sql e3fac1112e34e309",
       // Shops M1: records the card fee Stripe kept when a held order is captured (or the 2.9% + 30c estimate),
       // for a later refund to keep; it records no refund and decides no refund amount.
       shop_order_captured: "20261103112014_money_records_and_buy_lock_not_found_is_404.sql d61e35bf36468766", // Q2390 p26: ERRCODE-only restatement (md5-verified); the card fee it records is unchanged

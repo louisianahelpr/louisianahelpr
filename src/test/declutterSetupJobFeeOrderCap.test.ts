@@ -43,7 +43,8 @@ describe("Add a Helpr: the seller's setup-job card-fee debt is capped per ORDER 
 
   it("the per-job cap stays, and comes first", () => {
     const b = body();
-    const perJob = b.indexOf("v_fee := least(p_card_fee_cents, COALESCE(v_cap, 0));");
+    // Q1938 (20261103214533): the per-job cap now covers the card fee plus the seller-fault Helpr fee.
+    const perJob = b.indexOf("v_fee := least(p_card_fee_cents + p_helpr_fee_cents, COALESCE(v_cap, 0));");
     expect(perJob).toBeGreaterThan(0);
     expect(b.indexOf("v_fee := least(v_fee, greatest(")).toBeGreaterThan(perJob);
   });

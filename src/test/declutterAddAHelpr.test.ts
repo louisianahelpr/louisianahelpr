@@ -49,7 +49,7 @@
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |              cancellation_fee = 0, |              cancellation_fee = 20,
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |       PERFORM set_config('app.sanctioned_cancel', v_prev, true);\n      UPDATE public.declutter_order_jobs |       PERFORM set_config('app.sanctioned_cancel', v_prev, true);\n      PERFORM public.apply_cancellation_violation_consequence(r.job_id);\n      UPDATE public.declutter_order_jobs
  * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |       IF rf.reason = 'seller_no_show' AND j.committed AND NOT p_include_committed THEN |       IF false THEN
- * @mutate supabase/migrations/20261017073146_declutter_add_a_helpr.sql |   IF l.seller_fee_billed_cents IS NOT NULL THEN\n    RETURN 0; |   IF false THEN\n    RETURN 0;
+ * @mutate supabase/migrations/20261103214533_declutter_seller_fault_pays_helpr.sql |   IF l.seller_fee_billed_cents IS NOT NULL THEN\n    RETURN 0; |   IF false THEN\n    RETURN 0;
  * @mutate supabase/functions/void-cancelled-payments/index.ts |           .select("seller_fault_refund_id") |           .select("id")
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "buyer" && order.handover !== "ship" && <Suspense fallback={null}><AddHelprPanel orderId={order.orderId} handedOver={done} bookedOnly={!!problem \|\| refundHoldsTheItem(refundStatus) \|\| refundTookItBack(refund.data?.request) \|\| fullRefund} /></Suspense>} |
  */

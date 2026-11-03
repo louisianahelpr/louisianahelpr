@@ -7,7 +7,7 @@
 // @mutate src/pages/post-job/EntryChoice.tsx | return ENTRY_BASE_CARD_COUNT + (known.draftCard ? 1 : 0) + (known.repostCard ? 1 : 0); | return 5;
 // @mutate src/components/profile/ProfileTabFallback.tsx |   if (tab === "reviews") return <ReviewRowReserve />;\n |
 // @mutate src/components/profile/ProfileTabFallback.tsx |     <Skeleton className="h-3.5 w-5/6" />\n  </div>\n);\n\nconst NotificationsReserve | </div>\n);\n\nconst NotificationsReserve
-// @mutate src/components/profile/ProfileTabFallback.tsx | wrapped: [{ h: 333 }], | wrapped: [{ h: 744 }],
+// @mutate src/components/profile/ProfileTabFallback.tsx | wrapped: [{ h: 333, maxW: 420 }], | wrapped: [{ h: 744, maxW: 420 }],
 // @mutate src/components/profile/ReviewsTab.tsx | {loading ? (reviewCount === 0 ? ( | {loading ? (false ? (
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -109,7 +109,7 @@ describe("cold visits draw the zero state, warm visits the list", () => {
   });
 
   it("wrapped reserves its ZERO state, one block", () => {
-    expect(TAB_SHAPES.wrapped).toEqual([{ h: 333 }]);
+    expect(TAB_SHAPES.wrapped).toEqual([{ h: 333, maxW: 420 }]); // Q2013: centred at the real card's 420px
   });
 
   // Owner 2026-11-02 (via the lead), superseding Q722 for loading: Reviews waits in ONE neutral review-row shape

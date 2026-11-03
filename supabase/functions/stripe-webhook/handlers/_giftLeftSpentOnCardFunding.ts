@@ -13,6 +13,10 @@
  * place). A gift with a replacement already minted for the job (restored_from_job_id, Q2077) is not owed. Seed
  * jobs go to the digest. Never throws: a failed read is logged and pages nothing (the reconciliation run is the
  * backstop for a redelivery).
+ *
+ * Also called from paymentIntentSucceeded (method "bank") when a bank (ACH) debit that settles later moves the
+ * job to escrow: that funding never passes the checkout handler's escrow write, so without this the same gift
+ * stayed spent unseen. paymentRef names the checkout session or, there, the PaymentIntent.
  */
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { memberDisplayName } from "../../_shared/memberDisplayName.ts";
@@ -21,9 +25,16 @@ type Db = { from: (t: string) => any };
 
 export async function pageGiftLeftSpentOnCardFunding(
   supabase: Db,
-  args: { jobId: string; sessionId: string; consumedGiftId: string | null; logStep: (m: string, d?: Record<string, unknown>) => void },
+  args: {
+    jobId: string;
+    sessionId: string;
+    consumedGiftId: string | null;
+    logStep: (m: string, d?: Record<string, unknown>) => void;
+    method?: "card" | "bank";
+  },
 ): Promise<"paged" | "none" | "unread"> {
   const { jobId, sessionId, consumedGiftId, logStep } = args;
+  const how = args.method === "bank" ? "bank payment" : "card";
   try {
     const { data: gifts, error: giftErr } = await supabase
       .from("gift_cards")
@@ -64,13 +75,14 @@ export async function pageGiftLeftSpentOnCardFunding(
         kind: "custom",
         severity: "critical",
         seed: job?.is_seed === true,
-        title: "Gift card still spent on a job the poster paid in full by card",
-        message: `Job ${jobId} ("${title}") was just paid in full by card, but ${poster}'s $${dollars} gift card ${g.id} is still marked spent on it from an earlier checkout that never funded the job (a bounced bank payment). ${poster} is owed the gift back. Return it by hand: status 'sent', job_id NULL, redeemed_at NULL, expires_at at least 90 days out, and tell ${poster} it is back.`,
-        fields: { job_id: jobId, job_title: title, poster, gift_card_id: g.id, gift_amount: `$${dollars}`, session_id: sessionId },
+        title: `Gift card still spent on a job the poster paid in full by ${how}`,
+        message: `Job ${jobId} ("${title}") was just paid in full by ${how}, but ${poster}'s $${dollars} gift card ${g.id} is still marked spent on it from an earlier checkout that never funded the job (a bounced bank payment). ${poster} is owed the gift back. Return it by hand: status 'sent', job_id NULL, redeemed_at NULL, expires_at at least 90 days out, and tell ${poster} it is back.`,
+        fields: { job_id: jobId, job_title: title, poster, gift_card_id: g.id, gift_amount: `$${dollars}`,
+          ...(args.method === "bank" ? { payment_intent: sessionId } : { session_id: sessionId }) },
         oncePerDayKey: `gift-spent-card-funded:${g.id}`,
       });
     }
-    logStep("Gift left spent on a job funded by card — ops paged", { jobId, gifts: stale.map((g) => g.id) });
+    logStep(`Gift left spent on a job funded by ${how} — ops paged`, { jobId, gifts: stale.map((g) => g.id) });
     return "paged";
   } catch (e) {
     // Logged, not rethrown, on purpose: this is a page about a gift, and the card payment that funded the job must

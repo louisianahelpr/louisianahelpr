@@ -2,6 +2,7 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { settleOnboardingFee } from "./settleOnboardingFee.ts";
+import { pageGiftLeftSpentOnCardFunding } from "./_giftLeftSpentOnCardFunding.ts";
 
 /**
  * Q1975: the setup fee on a bank (ACH) checkout is settled HERE, when the
@@ -208,6 +209,17 @@ export async function handlePaymentIntentSucceeded(
       if (escrowRow) {
         logStep("ACH payment settled — job moved to escrow", { jobId: taxJob.id, piId: pi.id });
         await settleDeferredSetupFee(pi, ctx, taxJob.id, taxJob.is_seed ?? false);
+        // Q1983 (bank half): a bank debit that settled later just funded a job that was not funded; a gift an
+        // earlier, never-funded checkout left 'redeemed' on it paid for nothing. Same alert-only check as the
+        // card path in checkoutSessionCompleted (never throws). The gift this payment consumed itself (a gift
+        // difference payment carries metadata.gift_card_id on its PaymentIntent) is not paged.
+        await pageGiftLeftSpentOnCardFunding(supabase, {
+          jobId: taxJob.id,
+          sessionId: pi.id,
+          consumedGiftId: ((pi.metadata as { gift_card_id?: string } | null)?.gift_card_id) || null,
+          logStep,
+          method: "bank",
+        });
         // Trigger helper match now that the job is actually funded.
         // Best-effort: a failure costs reach, not correctness (same contract as
         // the match call in checkoutSessionCompleted).

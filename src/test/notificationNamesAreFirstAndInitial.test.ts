@@ -48,6 +48,7 @@ const EDGE_RAW_NAME_OK: Record<string, string> = {
   "release-payout": "the Helpr's own profile for Stripe; no other member is named",
   "saved-helper-availability-push": "the saved Helpr's first name only (first word)",
   "stripe-connect": "the member's OWN name, split for their Stripe account",
+  "void-cancelled-payments": "Q1913 (b42): crew members' first names (first word) in an ops alert to staff only; no member notice names anyone",
   "stripe-idv-webhook": "the member's OWN ID-document name, sent to the verification RPC; no notice names it",
   "stripe-webhook/handlers/accountUpdated": "the member's own profile; no other member is named",
   "weekly-helper-report": "the member's OWN name in their own report",

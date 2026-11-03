@@ -23,7 +23,8 @@
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   const paidAt = new Date((facts.chargedAt ?? event.created) * 1000).toISOString(); |   const paidAt = new Date().toISOString();
  * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |   if (isDeclutterSession(session)) { |   if (false) {
  * @mutate supabase/functions/declutter-checkout/index.ts |   if (row!.superseded_session_id) await expirePage(stripeOf(row!.superseded_session_id), row!.superseded_session_id); |
- * @mutate supabase/functions/declutter-checkout/index.ts |     { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}` }, |     {},
+ * @mutate supabase/functions/declutter-checkout/index.ts |     { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}${walletRetry ? ":new-wallet" : ""}` }, |     {},
+ * @mutate supabase/functions/declutter-checkout/index.ts | await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (payer, walletRetry) => | await ((_a: unknown, _b: unknown, _c: unknown, _d: unknown, c: string \| undefined, f: (c: string \| undefined, r: boolean) => unknown) => f(c, false))(admin, stripe, user, mode, customerId, (payer, walletRetry) =>
  * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "complete") return json({ paid: true, order_id: open.id }); |
  * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "open" && (open.handover !== handover \|\| slotChanged \|\| spotChanged \|\| bundleChanged \|\| pickupChanged \|\| feeChanged \|\| quoteChanged)) { |     if (false) {
  * @mutate supabase/functions/declutter-checkout/index.ts |     bundleChanged = Number(off ?? 0) !== Number(open.bundle_discount_cents ?? 0); |     bundleChanged = false; void off;
@@ -833,6 +834,24 @@ describe("declutter-checkout: pay", () => {
     expect(p2.customer_email).toBe("buyer@test.dev");
     expect(stripeMock.customers.create).not.toHaveBeenCalled();
     expect(stripeMock.customers.list).not.toHaveBeenCalled();
+  });
+
+  it("Q2140: a stored customer Stripe no longer has is replaced once and the page retried on a ':new-wallet' key", async () => {
+    const fn = await load();
+    scenario.rpc.declutter_start_checkout = order();
+    scenario.rpc.declutter_attach_checkout_session = null;
+    scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_dead" }] };
+    scenario.rpc.replace_stripe_customer = "cus_fresh";
+    stripeMock.customers.create.mockResolvedValue({ id: "cus_fresh" });
+    stripeMock.checkout.sessions.create
+      .mockRejectedValueOnce(Object.assign(new Error("No such customer: 'cus_dead'"), { code: "resource_missing", param: "customer" }))
+      .mockResolvedValue({ id: "cs_live_new", url: "https://x/new", amount_total: 4600 });
+    expect((await fn.fetch(payReq(fn))).status).toBe(200);
+    const calls = stripeMock.checkout.sessions.create.mock.calls;
+    expect(calls).toHaveLength(2);
+    expect([calls[0][0].customer, calls[1][0].customer]).toEqual(["cus_dead", "cus_fresh"]);
+    expect(calls[1][1].idempotencyKey).toBe(`${calls[0][1].idempotencyKey}:new-wallet`);
+    expect(rpcs("replace_stripe_customer")[0]?.args).toEqual({ p_user: BUYER, p_mode: "live", p_old: "cus_dead", p_new: "cus_fresh" });
   });
 
   it("one wallet: a failed wallet read opens no page (never a guessed customer)", async () => {

@@ -60,7 +60,7 @@ import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { SHOP_KIND_TAX_CODE, shopTaxCode, splitBuyerFeeByTaxCode } from "../_shared/shopTaxCodes.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
-import { storedStripeCustomer } from "../_shared/stripeCustomer.ts";
+import { storedStripeCustomer, withStoredWalletCustomer } from "../_shared/stripeCustomer.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { captureShopHold, releaseShopHold, shopOrderMode } from "../_shared/shopHolds.ts";
 import { sendShopRefund, type ShopRefundRow } from "../_shared/shopRefunds.ts";
@@ -353,7 +353,8 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
     });
   }
   const expiresAt = Math.floor(Date.now() / 1000) + PAGE_LIFETIME_S;
-  const session = await stripe.checkout.sessions.create(
+  // Q2140: a stored customer Stripe no longer has is replaced once and the page retried (":new-wallet" key).
+  const session = await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (payer, walletRetry) => stripe.checkout.sessions.create(
     {
       mode: "payment",
       payment_method_types: ["card"],
@@ -361,7 +362,7 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       // O1: Stripe Tax. Each line is taxed at the pickup location; Stripe still needs the buyer's address.
       automatic_tax: { enabled: true },
       billing_address_collection: "required",
-      ...(customerId ? { customer: customerId, customer_update: { address: "auto" } } : { customer_email: user.email ?? undefined }),
+      ...(payer ? { customer: payer, customer_update: { address: "auto" } } : { customer_email: user.email ?? undefined }),
       client_reference_id: o.id,
       metadata: meta,
       payment_intent_data: { metadata: meta, capture_method: "manual", transfer_group: `shop_order_${o.id}` },
@@ -371,8 +372,8 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       success_url: buildRedirectUrl("/shops/orders?sent=1", native),
       cancel_url: buildRedirectUrl(`/shops/${shopId}`, native),
     },
-    { idempotencyKey: `shop-order-${o.id}` },
-  );
+    { idempotencyKey: `shop-order-${o.id}${walletRetry ? ":new-wallet" : ""}` },
+  ));
   if (session.amount_subtotal !== o.items_cents + o.premium_cents) {
     await expirePage(session.id);
     console.error(`[shop-checkout] Stripe subtotal ${session.amount_subtotal} != order ${o.items_cents + o.premium_cents}`);

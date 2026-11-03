@@ -7,6 +7,7 @@
 // @mutate src/components/sections/useSectionPrefs.ts |       void pushToAccount(userId, next); |       void 0;
 // @mutate src/components/sections/useSectionPrefs.ts |   if (readRaw(userId)) await pushToAccount(userId, read(userId)); |   void 0;
 // @mutate src/components/sections/useSectionPrefs.ts |     pulled.delete(userId); // read again next mount |     // read again next mount
+// @mutate src/components/sections/useSectionPrefs.ts | pulled.has(userId) \|\| pulledThisTab(userId)) return; | pulled.has(userId)) return;
 // @mutate src/lib/sectionPrefsRow.ts | .insert({ user_id: userId, section_order: order, sections_hidden: hidden, | .insert({ user_id: userId, section_order: order, sections_hidden: [],
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, renderHook, waitFor } from "@testing-library/react";
@@ -106,5 +107,24 @@ describe("Q2199: Customize follows the account", () => {
     const second = renderHook(() => useSectionPrefs());
     await waitFor(() => expect(second.result.current.prefs.hidden).toEqual([]));
     expect(db.reads).toEqual([who.id, who.id]);
+  });
+
+  // Q104 (B58): a reload in the same tab (a fresh app run, so the in-memory set is empty) does not read the row
+  // again once a read has answered; a new tab (sessionStorage empty) reads it as before.
+  it("a reload in the same tab does not read the account's row again", async () => {
+    db.row = { section_order: ["jobs", "declutter", "shops", "homes"], sections_hidden: [] };
+    const first = renderHook(() => useSectionPrefs());
+    await waitFor(() => expect(db.reads).toEqual([who.id]));
+    first.unmount();
+    vi.resetModules();
+    const { useSectionPrefs: afterReload } = await import("@/components/sections/useSectionPrefs");
+    renderHook(() => afterReload());
+    await new Promise((r) => setTimeout(r, 0));
+    expect(db.reads).toEqual([who.id]);
+    sessionStorage.clear();
+    vi.resetModules();
+    const { useSectionPrefs: newTab } = await import("@/components/sections/useSectionPrefs");
+    renderHook(() => newTab());
+    await waitFor(() => expect(db.reads).toEqual([who.id, who.id]));
   });
 });

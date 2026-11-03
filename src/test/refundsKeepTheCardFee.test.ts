@@ -627,14 +627,22 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Q2259 S6 2f (20261102055653, for verdict): restated verbatim; only 'admin_no_fault' joins its reason list (a rejected
       // void after a no-fault refund is the seller's, decision 6). Still records no refund and changes no amount or fee.
       // Re-pinned (Lander 36, train 1, 11-02): only its notice link moved to ?tab=selling (declutterNoticeLinksOneFormat).
-      declutter_ship_void_rejected_debt: "20261102055653_shipping_admin_no_fault_label_debt.sql b48eee5531c780a9",
+      // Q2259 seller-fault label debt (20261103211330, for verdict): restated verbatim (prod md5 1e5a85b6); only 'seller_out'
+      // joins its reason list (admin_no_fault while the seller is out). Still records no refund and changes no amount or fee.
+      declutter_ship_void_rejected_debt: "20261103211330_shipping_seller_fault_label_debt.sql 86c7e473428977ae",
       // Q2259 S6 2f (20261102055653, shipping, testers only; for verdict): AFTER INSERT trigger on declutter_refunds; for an
       // 'admin_no_fault' refund of a ship order it READS the refund row's reason and order only, then books a spent label
       // as the seller's fee debt (ship_label / ship_void_rejected, once per shipment) or asks for a test label's void. It
       // records no refund and changes no refund amount, card fee or policy.
       // Re-pinned (Lander 36, train 1, 11-02): only its two notice links moved to ?tab=selling.
       // Q2259 lost sweep (20261103203204, lead PASS 11-03): verbatim (prod md5 01518c41); it also acts on ship_lost.
-      declutter_ship_no_fault_label: "20261103203204_shipping_lost_sweep.sql bf7c241b69db814f",
+      // Q2259 seller-fault label debt (20261103211330, for verdict): verbatim; it also acts on not_as_described,
+      // seller_no_show, seller_backed_out and seller_out (spec 5.3: a spent label is the seller's). Same reads and writes.
+      declutter_ship_no_fault_label: "20261103211330_shipping_seller_fault_label_debt.sql d882488d3b079b5a",
+      // Q2259 claim payout (20261103210119, lead PASS 11-03 lh-money-escrow): an admin records a carrier claim on a REFUNDED
+      // ship order; it READS declutter_refunds only to find that order's card-cost debts and pays the order's open seller
+      // debts from the claim. It records no refund and changes no refund amount, card fee or policy.
+      declutter_admin_record_ship_claim: "20261103210119_shipping_claim_payout_pays_the_order_debt_first.sql 76bb169911ce9316",
       // Q2259 S6 2d (20261102051521, shipping, testers only; for verdict): the shipping a buyer-fault close held back goes
       // back once the label is VOIDED: one declutter_delivery_refunds row ('ship_void_refunded', refund_cents = the order's
       // shipping_cents, order_id UNIQUE), only when the order's refund row is buyer-fault and left the shipping out

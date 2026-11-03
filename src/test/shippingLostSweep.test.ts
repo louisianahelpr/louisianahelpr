@@ -63,6 +63,6 @@ describe("a parcel the carrier never delivered in 10 days is refunded on the sel
     const rr = newest("declutter_record_refund").body;
     expect(rr).toContain("'helpr_fault', 'ship_lost') THEN 'full_seller_pays_fee'");
     const label = newest("declutter_ship_no_fault_label").body;
-    expect(label).toContain("NEW.reason NOT IN ('admin_no_fault', 'ship_lost')");
+    expect(label).toContain("NEW.reason NOT IN ('admin_no_fault', 'ship_lost',");
   });
 });

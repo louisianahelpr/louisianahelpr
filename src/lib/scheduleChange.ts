@@ -5,6 +5,7 @@ import { loadModule } from "@/lib/loadModule";
 // (AUD31-60/66, the /home cut). Guard: src/test/homeLoadsSectionReadsLazily.test.ts.
 const lifecycleErrors = () => loadModule(() => import("@/lib/lifecycleErrors"));
 import { isNotDeployedYet } from "@/lib/notDeployedYet";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /**
  * A booked one-time job's date/time change request (Q407 (8),
@@ -56,8 +57,9 @@ export async function fetchScheduleChangesAskedOf(userId: string, now: Date = ne
   return rows.filter((r) => Date.parse(r.expires_at) > now.getTime()).map((r) => r.job_id);
 }
 
-function changeError(error: { code?: string | null; message?: string | null }, copy: string | null): Error {
-  if (isNotDeployedYet(error)) {
+/** `notDeployed`: the caller's isMissingRpcNamed answer for the RPC it called (Q2190). */
+function changeError(error: { code?: string | null; message?: string | null }, copy: string | null, notDeployed: boolean): Error {
+  if (notDeployed) {
     return new Error("This is briefly unavailable while an update finishes rolling out. Please try again in a few minutes.");
   }
   return new Error(copy ?? error.message ?? "Something went wrong. Please try again.");
@@ -76,14 +78,14 @@ export async function requestScheduleChange(jobId: string, date: string, startTi
   if (error) {
     // The RPC already ran: never wait here. No copy (a prevented preload) falls back to the generic words.
     const copy = await lifecycleErrors();
-    throw changeError(error, copy ? (copy.rpcErrorMessage("request_job_schedule_change", error) ?? copy.lifecycleErrorMessage(error)) : null);
+    throw changeError(error, copy ? (copy.rpcErrorMessage("request_job_schedule_change", error) ?? copy.lifecycleErrorMessage(error)) : null, isMissingRpcNamed(error, "request_job_schedule_change"));
   }
 }
 
 /** Take back a request THIS person made while it is pending (board 66/172 slice 3). Returns the resulting status. */
 export async function withdrawScheduleChange(requestId: string): Promise<string> {
   const { data, error } = await supabase.rpc("withdraw_job_schedule_change", { p_request_id: requestId });
-  if (error) throw changeError(error, (await lifecycleErrors())?.rpcErrorMessage("withdraw_job_schedule_change", error) ?? null);
+  if (error) throw changeError(error, (await lifecycleErrors())?.rpcErrorMessage("withdraw_job_schedule_change", error) ?? null, isMissingRpcNamed(error, "withdraw_job_schedule_change"));
   return String(((data as { status?: string } | null) ?? {}).status ?? "");
 }
 
@@ -97,7 +99,7 @@ export async function respondScheduleChange(requestId: string, accept: boolean):
     p_request_id: requestId,
     p_accept: accept,
   });
-  if (error) throw changeError(error, (await lifecycleErrors())?.rpcErrorMessage("respond_job_schedule_change", error) ?? null);
+  if (error) throw changeError(error, (await lifecycleErrors())?.rpcErrorMessage("respond_job_schedule_change", error) ?? null, isMissingRpcNamed(error, "respond_job_schedule_change"));
   const reply = (data as { status?: string; reason?: string } | null) ?? {};
   if (reply.status === "declined" && reply.reason === "schedule_change_clash") return "clash";
   // Q2326: a come-back offer (board 141) the poster declined goes on to Helpr.

@@ -14,16 +14,18 @@
  * THE FIX: the tables and the RPC behind those reads are on prod (measured
  * 2026-10-15, to_regclass / to_regprocedure), so the rail counts and the two
  * screens have no "not deployed" branch at all: every error reaches unwrap.
- * isMissingRpc (the Stuck Jobs screen's visible "not deployed yet" notice) is
- * PostgREST's PGRST202 with no hint only (measured on prod: a missing function
- * answers PGRST202 with a null hint; a changed signature carries a hint).
+ * The Stuck Jobs screen's visible "not deployed yet" notice asks
+ * isMissingRpcNamed (src/lib/missingRpc.ts, Q2190; stalledQueue.ts's own copy
+ * is gone) about the RPC it called: PostgREST's PGRST202 with no hint, or with
+ * a hint naming ANOTHER function (measured on prod: a missing function answers
+ * PGRST202 with a null hint; a changed signature carries a hint naming itself).
  *
  * THE CLASS, from the tree: every tracked non-test file under
  * src/components/admin and src/pages/admin. None may decide anything from an
  * error MESSAGE ("does not exist", "schema cache", "could not find the").
  *
- * @mutate src/components/admin/adminStalledJobs/stalledQueue.ts |   return e.code === "PGRST202" && !e.hint; |   return e.code === "PGRST202";
- * @mutate src/components/admin/adminStalledJobs/stalledQueue.ts |   return e.code === "PGRST202" && !e.hint; |   return e.code === "PGRST202" \|\| e.code === "42883";
+ * @mutate src/lib/missingRpc.ts |   return names(e.message) && !names(e.hint); |   return true;
+ * @mutate src/lib/missingRpc.ts |   if (e.code !== "PGRST202") return false; |   if (e.code !== "PGRST202" && e.code !== "42883") return false;
  * @mutate src/components/admin/adminRailBadges.ts |       const stalledRows = unwrap(res) ?? []; |       if (res.error && /does not exist/.test(res.error.message)) return 0;\n      const stalledRows = unwrap(res) ?? [];
  * @mutate src/components/admin/adminRailBadges.ts |       const res = await supabase.from("verification_exceptions").select("user_id").eq("status", "open"); |       const res = await supabase.from("verification_exceptions").select("user_id").eq("status", "open");\n      if (res.error && res.error.code === "PGRST205") return 0;
  * @mutate src/components/admin/AdminBanReview.tsx |       const pending = (unwrap(result) ?? []) as ViolationRow[]; |       if (result.error && result.error.message?.includes("does not exist")) return [];\n      const pending = (unwrap(result) ?? []) as ViolationRow[];
@@ -32,7 +34,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { isMissingRpc } from "@/components/admin/adminStalledJobs/stalledQueue";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { blankComments } from "./helpers/blankNonCode";
 import { trackedFiles } from "./helpers/trackedFiles";
 
@@ -58,11 +60,16 @@ describe("an admin count or queue never reads a real failure as 'not deployed' (
     expect(adminFiles.filter((f) => MESSAGE_TEST.test(read(f)))).toEqual([]);
   });
 
-  it("isMissingRpc is a missing function only: PGRST202 with no hint", () => {
-    expect(isMissingRpc({ code: "PGRST202", message: "Could not find the function", hint: null })).toBe(true);
-    expect(isMissingRpc({ code: "42703", message: "column x does not exist" })).toBe(false);
-    expect(isMissingRpc({ code: "42883", message: "function f() does not exist" })).toBe(false);
-    expect(isMissingRpc({ code: "PGRST202", message: "Could not find", hint: "Perhaps you meant to call ..." })).toBe(false);
+  it("the Stuck Jobs check is a missing function only: PGRST202 not naming itself in the hint", () => {
+    const isMissing = (e: unknown) => isMissingRpcNamed(e, "admin_stalled_job_queue");
+    expect(isMissing({ code: "PGRST202", message: "Could not find the function", hint: null })).toBe(true);
+    expect(isMissing({ code: "42703", message: "column x does not exist" })).toBe(false);
+    expect(isMissing({ code: "42883", message: "function f() does not exist" })).toBe(false);
+    expect(isMissing({
+      code: "PGRST202",
+      message: "Could not find the function public.admin_stalled_job_queue(p_nope) in the schema cache",
+      hint: "Perhaps you meant to call the function public.admin_stalled_job_queue(p_include_resolved)",
+    })).toBe(false);
   });
 
   it("the rail's Ban Review, Exception Queue and Stuck Jobs counts send every error to unwrap", () => {

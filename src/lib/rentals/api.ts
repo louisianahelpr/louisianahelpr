@@ -7,6 +7,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { unwrap } from "@/lib/supabaseResult";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { report } from "@/lib/errorLogger";
 import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { isStorageObjectPath } from "@/lib/storagePath";
@@ -193,18 +194,11 @@ export interface MyIdentity {
   submittedAt: string | null;
   reviewedAt: string | null;
 }
-/** Before db-deploy has created rentals_my_identity (20261019051407), PostgREST answers PGRST202
- *  with no hint (a hint means a function by that name exists with other arguments: a real bug). */
-function identityNotDeployed(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const e = error as { code?: unknown; hint?: unknown };
-  return e.code === "PGRST202" && !e.hint;
-}
-
 export async function fetchMyIdentity(): Promise<MyIdentity> {
   const res = await supabase.rpc("rentals_my_identity");
-  // Not deployed yet: read as not verified and nothing sent, never the screen's load error.
-  if (res.error && identityNotDeployed(res.error)) {
+  // Not deployed yet (before 20261019051407): read as not verified and nothing sent, never the screen's load error.
+  // Only rentals_my_identity missing counts; one that exists with other arguments is a real bug (Q2190).
+  if (res.error && isMissingRpcNamed(res.error, "rentals_my_identity")) {
     return { verified: false, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
   }
   const row = (unwrap(res) ?? [])[0];

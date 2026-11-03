@@ -806,6 +806,7 @@ export type Database = {
           committed: boolean
           created_at: string
           failed_transfer_ids: string[]
+          failure_reason: string | null
           fee_percent: number
           helper_id: string | null
           id: string
@@ -820,6 +821,7 @@ export type Database = {
           committed: boolean
           created_at?: string
           failed_transfer_ids?: string[]
+          failure_reason?: string | null
           fee_percent: number
           helper_id?: string | null
           id?: string
@@ -834,6 +836,7 @@ export type Database = {
           committed?: boolean
           created_at?: string
           failed_transfer_ids?: string[]
+          failure_reason?: string | null
           fee_percent?: number
           helper_id?: string | null
           id?: string
@@ -15031,6 +15034,10 @@ export type Database = {
       }
     }
     Functions: {
+      replace_stripe_customer: {
+        Args: { p_mode: string; p_new: string; p_old: string; p_user: string }
+        Returns: string
+      }
       accept_application: {
         Args: {
           p_application_id: string

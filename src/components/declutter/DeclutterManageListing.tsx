@@ -48,6 +48,7 @@ import { formatPrice, itemPriceLabel } from "@/lib/declutter/distance";
 import { centsToDollars, dollarsToCents } from "@/lib/declutter/money";
 import { ItemDeliveryRow } from "./SellerDeliverySettings";
 import { AutoFreeRow } from "./AutoFreeRow";
+import { ShipItRow } from "./ShipItRow";
 import { DeclutterOfferRules } from "./DeclutterOfferRules";
 import { KeepUpRow } from "./KeepUpRow";
 import { FallbackImg } from "./FallbackImg";
@@ -184,6 +185,8 @@ export function ManageListingSheet({
               <ItemDeliveryRow itemId={item.id} rowClassName={ROW} />
               {/* OWN-FREE: make it free after Never/7/14/21/30 days if unsold (only while it is live or paused and still priced). */}
               <AutoFreeRow itemId={item.id} rowClassName={ROW} />
+              {/* Shipping (Q2259): the box a small item ships in; testers only until the owner flips declutter_shipping. */}
+              <ShipItRow itemId={item.id} small={item.delivery_size === "small"} category={item.category} rowClassName={ROW} />
               </>)}
               {/* Owner 2026-10-29: renews every 30 days until it sells (free listings run in the same rounds). */}
               <KeepUpRow itemId={item.id} rowClassName={ROW} />

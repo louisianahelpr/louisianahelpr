@@ -380,11 +380,7 @@ const UserProfile = () => {
         _response_text: responseText.trim(),
       });
       if (error) {
-        if (isMissingRpcNamed(error, "respond_to_review")) {
-          toast.error("Couldn't save your response right now — try again?");
-        } else {
-          toast.error("Couldn't save your response — try again?");
-        }
+        toast.error(isMissingRpcNamed(error, "respond_to_review") ? "Couldn't save your response right now — try again?" : "Couldn't save your response — try again?");
         return;
       }
       // Optimistic update locally so the response appears immediately.

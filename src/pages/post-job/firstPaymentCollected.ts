@@ -7,7 +7,7 @@ import { report } from "@/lib/errorLogger";
  * have been ('cancelling' is on its way out of either state, so it counts as paid: a false "first" is worse than a
  * missed one). 'held' is a card hold, not a collection; 'unpaid', 'failed', 'cancelled', 'abandoned' never collected.
  */
-export const EVER_PAID_STATUSES = ["escrow", "payout_pending", "released", "refunded", "chargeback", "cancelling"] as const;
+const EVER_PAID_STATUSES = ["escrow", "payout_pending", "released", "refunded", "chargeback", "cancelling"] as const;
 
 /**
  * First-payment aha for a checkout return.

@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { blankComments } from "@/test/helpers/blankNonCode";
+
 import {
   CHUNK_RELOAD_EPISODE_MS,
   CHUNK_RELOAD_MAX_ATTEMPTS,
@@ -13,8 +15,11 @@ import {
   markChunkLoadSucceeded,
   PURGE_STEP_TIMEOUT_MS,
   hardReloadBypassCache,
+  isPageLeaving,
+  LEAVING_CLEAR_MS,
   recoverFromChunkError,
   trackFailedAssetLoads,
+  trackPageLeaving,
 } from "./chunkReload";
 
 /**
@@ -348,6 +353,101 @@ describe("hardReloadBypassCache follow-ups", () => {
   });
 });
 
+/**
+ * Journeys J8 on WebKit (run 41685221879, 2026-11-03): WebKit cancels the old
+ * document's in-flight dynamic imports when a hard navigation starts, with the
+ * stale-chunk message. Recovery reloaded the page being LEFT (/login?_v=...)
+ * and ate the navigation to /home. While the page is being left, recovery is a
+ * no-op; once it is plainly still alive, recovery works as before.
+ */
+describe("a hard navigation away does not trigger the recovery reload", () => {
+  const count = () => sessionStorage.getItem("helpr_chunk_reload_count");
+
+  it("a chunk error while leaving (beforeunload) does not reload and spends no attempt", async () => {
+    trackPageLeaving();
+    window.dispatchEvent(new Event("beforeunload"));
+    expect(isPageLeaving()).toBe(true);
+    expect(recoverFromChunkError()).toBe(false);
+    await flush();
+    await vi.advanceTimersByTimeAsync(PURGE_STEP_TIMEOUT_MS * 4);
+    expect(replace).not.toHaveBeenCalled();
+    expect(count()).toBeNull();
+    expect(isRecoveryReloadInFlight()).toBe(false);
+  });
+
+  it("pagehide counts as leaving too", async () => {
+    trackPageLeaving();
+    window.dispatchEvent(new Event("pagehide"));
+    expect(recoverFromChunkError()).toBe(false);
+    await flush();
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("the same error once the page is plainly still alive (LEAVING_CLEAR_MS later) recovers", async () => {
+    trackPageLeaving();
+    window.dispatchEvent(new Event("beforeunload"));
+    expect(recoverFromChunkError()).toBe(false);
+    await vi.advanceTimersByTimeAsync(LEAVING_CLEAR_MS + 1);
+    expect(isPageLeaving()).toBe(false);
+    expect(recoverFromChunkError()).toBe(true);
+    await flush();
+    expect(replace).toHaveBeenCalledTimes(1);
+    expect(count()).toBe("1");
+  });
+
+  it("pageshow (bfcache restore, cancelled unload) clears it at once", async () => {
+    trackPageLeaving();
+    window.dispatchEvent(new Event("pagehide"));
+    window.dispatchEvent(new Event("pageshow"));
+    expect(isPageLeaving()).toBe(false);
+    expect(recoverFromChunkError()).toBe(true);
+    await flush();
+    expect(replace).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaving that starts during the purge does not reload, and gives the attempt back", async () => {
+    trackPageLeaving();
+    const hung = new Promise<boolean>(() => {});
+    Object.defineProperty(window, "caches", {
+      value: { keys: async () => ["precache"], delete: () => hung },
+      configurable: true,
+    });
+    expect(recoverFromChunkError()).toBe(true);
+    expect(count()).toBe("1");
+    await flush();
+    window.dispatchEvent(new Event("beforeunload"));
+    await vi.advanceTimersByTimeAsync(PURGE_STEP_TIMEOUT_MS + 10);
+    await flush();
+    expect(replace).not.toHaveBeenCalled();
+    expect(count()).toBe("0");
+    expect(isRecoveryReloadInFlight()).toBe(false);
+    // @ts-expect-error test cleanup
+    delete window.caches;
+  });
+
+  it("main.tsx installs the leaving listeners at boot", () => {
+    const main = blankComments(readFileSync(path.resolve(__dirname, "../main.tsx"), "utf8"));
+    expect(main).toMatch(/^trackPageLeaving\(\);$/m);
+  });
+
+  it("a scheduled retry that fires while leaving spends nothing, and fires once the page is still alive", async () => {
+    trackPageLeaving();
+    sessionStorage.setItem("helpr_chunk_reload_at", String(Date.now()));
+    sessionStorage.setItem("helpr_chunk_reload_count", "1");
+    expect(recoverFromChunkError()).toBe(true);
+    await vi.advanceTimersByTimeAsync(CHUNK_RELOAD_SCHEDULE_MS[1] - 100);
+    window.dispatchEvent(new Event("beforeunload"));
+    await vi.advanceTimersByTimeAsync(200);
+    await flush();
+    expect(replace).not.toHaveBeenCalled();
+    expect(count()).toBe("1");
+    await vi.advanceTimersByTimeAsync(LEAVING_CLEAR_MS + 10);
+    await flush();
+    expect(replace).toHaveBeenCalledTimes(1);
+    expect(count()).toBe("2");
+  });
+});
+
 // Shown able to fail:
 // The WebKit replay refetch. Without it iOS Try again replays the cached 404 forever.
 // @mutate src/lib/chunkReload.ts | if (failedAssetUrls.size > 0 && typeof fetch === "function") { | if (false) {
@@ -367,3 +467,16 @@ describe("hardReloadBypassCache follow-ups", () => {
 // @mutate src/lib/chunkReload.ts | pendingRetry = setTimeout(fire, decision.delayMs);\n  }\n  return true; | pendingRetry = setTimeout(fire, decision.delayMs);\n  }\n  return false;
 // Q199: the watchdog's own copy of the decision (the 10s give-up was the bug).
 // @mutate index.html | var wait = count === 0 ? 0 : SCHEDULE[count] - (now - last); | var wait = count === 0 ? 0 : -1; return -1;
+// The leaving gate (J8, WebKit run 41685221879): without it a hard navigation's
+// cancelled imports reload the page being left and eat the navigation.
+// @mutate src/lib/chunkReload.ts | if (pageLeaving) return false;\n  const now = Date.now(); | const now = Date.now();
+// The same gate re-checked after the purge (leaving began mid-recovery).
+// @mutate src/lib/chunkReload.ts |   if (pageLeaving) {\n    refundAttempt(); |   if (false) {\n    refundAttempt();
+// A scheduled retry firing while leaving waits instead of spending an attempt.
+// @mutate src/lib/chunkReload.ts | if (pageLeaving) {\n        pendingRetry = setTimeout(fire, LEAVING_CLEAR_MS); | if (false) {\n        pendingRetry = setTimeout(fire, LEAVING_CLEAR_MS);
+// pageshow clears the flag (bfcache restore / cancelled unload).
+// @mutate src/lib/chunkReload.ts | window.addEventListener("pageshow", clearPageLeaving); | void clearPageLeaving;
+// The flag clears on its own when the page is still alive.
+// @mutate src/lib/chunkReload.ts | pageLeavingTimer = setTimeout(clearPageLeaving, LEAVING_CLEAR_MS); | pageLeavingTimer = null;
+// Without the boot call no listener exists, and the gate never closes in the app.
+// @mutate src/main.tsx | trackPageLeaving();\nwindow.addEventListener | window.addEventListener

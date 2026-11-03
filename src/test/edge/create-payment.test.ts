@@ -906,6 +906,7 @@ describe("create-payment edge function", () => {
             category: "auto_repair",
             title: "Build IKEA desk",
             payment_status: "unpaid",
+            zip_code: "70503",
           },
         ],
       };
@@ -914,6 +915,7 @@ describe("create-payment edge function", () => {
       };
       scenario.reads.profiles = { rows: [{ onboarding_fee_paid: true }] };
       stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_a", url: "u" });
+      stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_a", tax_amount_exclusive: 860 });
       const fn = await load();
       await fn.fetch(
         fn.request({
@@ -939,28 +941,39 @@ describe("create-payment edge function", () => {
         stripeMock.checkout.sessions.create.mockClear();
         seedAuth(scenario, POSTER);
         scenario.reads.jobs = {
-          rows: [{ id: "job-tc", customer_id: POSTER.id, budget: 80, category, tax_kind: taxKind, title: "T", payment_status: "unpaid", is_urgent: true, urgent_fee: 10 }],
+          rows: [{ id: "job-tc", customer_id: POSTER.id, budget: 80, category, tax_kind: taxKind, title: "T", payment_status: "unpaid", is_urgent: true, urgent_fee: 10, zip_code: "70503" }],
         };
         scenario.reads.platform_settings = {
           rows: [{ customer_fee_percent: 10, helper_fee_percent: 10, onboarding_fee_cents: 0 }],
         };
         scenario.reads.profiles = { rows: [{ onboarding_fee_paid: true }] };
         stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_tc", url: "u" });
+        stripeMock.tax.calculations.create.mockReset();
+        stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_tc", tax_amount_exclusive: 945 });
         const fn = await load();
         await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-tc" } }));
         const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
-        expect(args.automatic_tax).toEqual({ enabled: true });
-        expect(args.customer_update).toEqual({ address: "auto" });
-        // Labor + the urgent bonus. F3 (owner 2026-10-14/15): no service-fee
-        // line and no urgent card-fee line any more.
-        expect(args.line_items.length).toBe(2);
-        for (const li of args.line_items) {
+        const taxed = stripeMock.tax.calculations.create.mock.calls.length > 0;
+        // Q2083 (b): an untaxed job keeps Stripe's billing-address tax ($0);
+        // a taxed one carries its job-site "Sales tax" line, automatic_tax off.
+        if (taxed) {
+          expect(args.automatic_tax).toBeUndefined();
+          expect(args.customer_update).toBeUndefined();
+          expect(args.line_items.at(-1).price_data.product_data.name).toBe("Sales tax");
+        } else {
+          expect(args.automatic_tax).toEqual({ enabled: true });
+          expect(args.customer_update).toEqual({ address: "auto" });
+        }
+        // Labor + the urgent bonus (+ the tax line when taxed). F3 (owner
+        // 2026-10-14/15): no service-fee line and no urgent card-fee line any more.
+        expect(args.line_items.length).toBe(taxed ? 3 : 2);
+        for (const li of args.line_items.slice(0, 2)) {
           expect(li.price_data.tax_behavior).toBe("exclusive");
           expect(li.price_data.product_data.tax_code).toMatch(/^txcd_\d{8}$/);
         }
         // The urgent bonus is taxed like the labor (owner 2026-10-21, Q1843):
         // the same code as the labor line, taxable or exempt.
-        for (const li of args.line_items.slice(1)) {
+        for (const li of args.line_items.slice(1, 2)) {
           expect(li.price_data.product_data.tax_code).toBe(args.line_items[0].price_data.product_data.tax_code);
         }
         return args.line_items[0].price_data.product_data.tax_code;
@@ -986,7 +999,8 @@ describe("create-payment edge function", () => {
     // Q1658: the $300 3D Secure line counts a ceiling on the labor's sales
     // tax, so a taxable checkout just under $300 before tax asks for 3DS and
     // an exempt one at the same price does not.
-    // @mutate supabase/functions/create-payment/index.ts |         + salesTaxCeilingCents(Math.round(job.budget * 100) + urgentFeeCents, job.category, job.tax_kind); |         + 0;
+    // Q2083 (b): a taxed job's 3D Secure line counts its exact job-site tax.
+    // @mutate supabase/functions/create-payment/index.ts |         ? lineItemsCents + jobTax.cents | ? lineItemsCents
     it("asks for 3D Secure when a taxable checkout's tax can carry it past $300 (Q1658)", async () => {
       const optionsFor = async (category: string) => {
         resetSupabaseMock();
@@ -995,17 +1009,21 @@ describe("create-payment edge function", () => {
         scenario.reads.jobs = {
           // $270: under $300 before tax (F3: the job price is the whole
           // pre-tax charge), over it with the 15% tax ceiling ($310.50).
-          rows: [{ id: "job-3ds", customer_id: POSTER.id, budget: 270, category, title: "T", payment_status: "unpaid" }],
+          rows: [{ id: "job-3ds", customer_id: POSTER.id, budget: 270, category, title: "T", payment_status: "unpaid", zip_code: "70503" }],
         };
         scenario.reads.platform_settings = {
           rows: [{ customer_fee_percent: 10, helper_fee_percent: 10, onboarding_fee_cents: 0 }],
         };
         scenario.reads.profiles = { rows: [{ onboarding_fee_paid: true }] };
         stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_3ds", url: "u" });
+        // $270 at 11.45%: $30.92 tax, $300.92 in all (Q2083 b: the exact job-site tax).
+        stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_3ds", tax_amount_exclusive: 3092 });
         const fn = await load();
         await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-3ds" } }));
         const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
-        const preTax = args.line_items.reduce((n: number, li: any) => n + li.price_data.unit_amount * li.quantity, 0);
+        const preTax = args.line_items
+          .filter((li: any) => li.price_data.product_data.name !== "Sales tax")
+          .reduce((n: number, li: any) => n + li.price_data.unit_amount * li.quantity, 0);
         return { preTax, options: args.payment_method_options };
       };
       const exempt = await optionsFor("yard_work");
@@ -1014,6 +1032,102 @@ describe("create-payment edge function", () => {
       const taxable = await optionsFor("auto_repair");
       expect(taxable.preTax).toBe(exempt.preTax);
       expect(taxable.options).toEqual({ card: { request_three_d_secure: "any" } });
+    });
+
+    // ── Q2083 (b) / Q1727 (a): a taxed job is taxed at the JOB ADDRESS ──
+    // Checkout's automatic_tax sees only the poster's BILLING address, so a
+    // poster billed in another parish (or state) paid that place's rate. The
+    // tax is now priced by Stripe at the job ZIP, charged as its own line with
+    // automatic_tax off, and the calculation id rides on the session for the
+    // webhook to commit.
+    describe("Q2083 (b): job-site sales tax", () => {
+      beforeEach(() => { stripeMock.tax.calculations.create.mockReset(); });
+      const run = async (job: Record<string, unknown>) => {
+        resetSupabaseMock();
+        stripeMock.checkout.sessions.create.mockReset();
+        stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_site", url: "u" });
+        seedAuth(scenario, POSTER);
+        scenario.reads.jobs = {
+          rows: [{ id: "job-site", customer_id: POSTER.id, budget: 100, title: "T", payment_status: "unpaid", is_urgent: true, urgent_fee: 10, ...job }],
+        };
+        scenario.reads.platform_settings = { rows: [{ customer_fee_percent: 10, helper_fee_percent: 10, onboarding_fee_cents: 0 }] };
+        scenario.reads.profiles = { rows: [{ onboarding_fee_paid: true }] };
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-site" } }));
+        return { res, body: await res.json().catch(() => null) };
+      };
+
+      // @mutate supabase/functions/create-payment/index.ts |             customer_details: { address: taxAddress, address_source: JOB_TAX_ADDRESS_SOURCE }, |             customer_details: { address: { postal_code: "70112", state: "LA", country: "US" }, address_source: JOB_TAX_ADDRESS_SOURCE },
+      it("prices the taxed lines at the job ZIP and charges that figure as a Sales tax line, automatic_tax off", async () => {
+        stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_site", tax_amount_exclusive: 1100 });
+        const { res } = await run({ category: "auto_repair", zip_code: "70503" });
+        expect(res.status).toBe(200);
+        expect(stripeMock.tax.calculations.create).toHaveBeenCalledTimes(1);
+        const [calc, opts] = stripeMock.tax.calculations.create.mock.calls[0];
+        expect(calc.customer_details).toEqual({ address: { postal_code: "70503", state: "LA", country: "US" }, address_source: "billing" });
+        // Labor and the urgent bonus, each with the labor's code (Q1843).
+        expect(calc.line_items).toEqual([
+          { amount: 10000, reference: "labor", tax_behavior: "exclusive", tax_code: "txcd_20080005" },
+          { amount: 1000, reference: "urgent_bonus", tax_behavior: "exclusive", tax_code: "txcd_20080005" },
+        ]);
+        expect(opts.idempotencyKey).toMatch(/^job-tax-job-site/);
+        const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
+        expect(args.automatic_tax).toBeUndefined();
+        expect(args.customer_update).toBeUndefined();
+        const taxLine = args.line_items.find((li: any) => li.price_data.product_data.name === "Sales tax");
+        expect(taxLine.price_data.unit_amount).toBe(1100);
+        expect(taxLine.price_data.product_data.tax_code).toBe("txcd_00000000");
+        expect(args.metadata.tax_calculation_id).toBe("taxcalc_site");
+        expect(args.metadata.job_tax_cents).toBe("1100");
+        expect(args.payment_intent_data.metadata.tax_calculation_id).toBe("taxcalc_site");
+        expect(args.payment_intent_data.metadata.job_tax_cents).toBe("1100");
+      });
+
+      it("a $0 job-site figure adds no tax line but still records the calculation", async () => {
+        stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_zero", tax_amount_exclusive: 0 });
+        await run({ category: "auto_repair", zip_code: "70503" });
+        const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
+        expect(args.line_items.some((li: any) => li.price_data.product_data.name === "Sales tax")).toBe(false);
+        expect(args.automatic_tax).toBeUndefined();
+        expect(args.metadata.job_tax_cents).toBe("0");
+      });
+
+      // @mutate supabase/functions/create-payment/index.ts |         if (!taxAddress) { |         if (false) {
+      it("a taxed job with no Louisiana job ZIP is refused: no tax call, no checkout", async () => {
+        for (const zip_code of [null, "", "77002", "7050", "71500", "abcde"]) {
+          const { res, body } = await run({ category: "auto_repair", zip_code });
+          // PublicError: 500 with its own sentence (create-payment's catch).
+          expect(res.status, String(zip_code)).toBe(500);
+          expect(body.error).toMatch(/Louisiana ZIP code/);
+          expect(stripeMock.tax.calculations.create).not.toHaveBeenCalled();
+          expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+        }
+      });
+
+      // @mutate supabase/functions/create-payment/index.ts |           throw new PublicError("Could not figure the sales tax for this job — please try again");\n        }\n        const cents | }\n        const cents
+      it("a failed tax calculation opens no checkout (never an untaxed charge)", async () => {
+        stripeMock.tax.calculations.create.mockImplementation(() => { throw new Error("stripe down"); });
+        const { res, body } = await run({ category: "auto_repair", zip_code: "70503" });
+        expect(res.status).toBe(500);
+        expect(body.error).toMatch(/Could not figure the sales tax/);
+        expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+      });
+
+      it("an untaxed job makes no tax call and keeps automatic_tax", async () => {
+        await run({ category: "yard_work", zip_code: "77002" });
+        expect(stripeMock.tax.calculations.create).not.toHaveBeenCalled();
+        const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
+        expect(args.automatic_tax).toEqual({ enabled: true });
+        expect(args.metadata.tax_calculation_id).toBe("");
+      });
+
+      it("the poster's taxed-kind answer is taxed at the job site too (Q2083 part 2a)", async () => {
+        stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_k", tax_amount_exclusive: 990 });
+        await run({ category: "cleaning", tax_kind: "fabric_cleaning", zip_code: "70112-1234" });
+        const [calc] = stripeMock.tax.calculations.create.mock.calls[0];
+        expect(calc.customer_details.address.postal_code).toBe("70112");
+        expect(calc.line_items[0].tax_code).toBe("txcd_20010003");
+      });
     });
 
     // ── Server-authoritative urgent fee (silent-client H-001) ─────────────

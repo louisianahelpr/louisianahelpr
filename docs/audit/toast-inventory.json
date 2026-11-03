@@ -585,7 +585,7 @@
     },
     {
       "file": "src/components/HelperAvailability.tsx",
-      "line": 62,
+      "line": 63,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -595,7 +595,7 @@
     },
     {
       "file": "src/components/HelperAvailability.tsx",
-      "line": 145,
+      "line": 146,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -605,7 +605,7 @@
     },
     {
       "file": "src/components/HelperAvailability.tsx",
-      "line": 195,
+      "line": 196,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -615,7 +615,7 @@
     },
     {
       "file": "src/components/HelperAvailability.tsx",
-      "line": 198,
+      "line": 199,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4340,11 +4340,11 @@
     },
     {
       "file": "src/components/admin/userDetail/UserAuditLog.tsx",
-      "line": 94,
+      "line": 95,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "error.code === \"PGRST202\" ? \"Reversal isn't live yet — this deploys with the next migration. Try again shortly.\" : (rpcErrorMessage(\"admin_reverse_violation\", error) ?? \"Couldn't reverse that strike. Nothing was changed.\")",
+        "text": "isMissingRpcNamed(error, \"admin_reverse_violation\") ? \"Reversal isn't live yet — this deploys with the next migration. Try again shortly.\" : (rpcErrorMessage(\"admin_reverse_violation\", error) ?? \"Couldn't reverse that strike. Nothing was changed.\")",
         "branches": [
           {
             "form": "literal",
@@ -4360,7 +4360,7 @@
     },
     {
       "file": "src/components/admin/userDetail/UserAuditLog.tsx",
-      "line": 103,
+      "line": 104,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -14128,7 +14128,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 372,
+      "line": 373,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -14138,7 +14138,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 383,
+      "line": 384,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -14148,7 +14148,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 385,
+      "line": 386,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -14158,7 +14158,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 400,
+      "line": 401,
       "kind": "toast.error",
       "title": {
         "form": "literal",

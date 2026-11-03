@@ -3,8 +3,8 @@
 // a taxable job's sales tax at jobs.zip_code and refuses a taxable job with no Louisiana ZIP.
 //
 // Reads the NEWEST definitions (effectiveDefs: any dollar tag, later restatements win) and the client source
-// with comments blanked. Behaviour proof: src/test/pglite/quoteRequestZipTaxKind.pglite.mjs (15/15 after,
-// applied 3x; 12 of 15 fail with this migration left out).
+// with comments blanked. Behaviour proof: src/test/pglite/quoteRequestZipTaxKind.pglite.mjs (16/16 after,
+// applied 3x; 13 of 16 fail with this migration left out).
 //
 // @mutate supabase/migrations/20261103205121_quote_request_zip_tax_kind.sql |           p_req.zip_code, p_req.tax_kind) |           NULL, p_req.tax_kind)
 // @mutate supabase/migrations/20261103205121_quote_request_zip_tax_kind.sql |     RAISE EXCEPTION 'invalid_zip' USING ERRCODE = '22023', DETAIL | RAISE NOTICE 'invalid_zip' USING DETAIL

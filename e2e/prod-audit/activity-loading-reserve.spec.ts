@@ -63,9 +63,9 @@
 // SURVIVED because an appended duplicate `style` prop changed the source text and nothing else). Mutating the class
 // moves the real box: h-11 -> 96px takes the placeholder row 197px -> ~249px, far outside the 8px budget.
 // @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | <Skeleton className={`${B.button} h-11`} /> | <Skeleton className={`${B.button} h-[96px]`} />
-// Q833: /jobs draws the MineJobFace placeholder; put the OLD collapsed card back and both Working surfaces jump again
-// (130px against 197px cards on prod).
-// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <MineFaceSkeleton tracker={tracker} />; | return <CollapsedActivityCardSkeleton metaLines={1} />;
+// Q833: /jobs and /posts draw the MineJobFace placeholder; put the OLD collapsed card back and every surface jumps
+// again (130px against 197px cards on prod).
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <MineFaceSkeleton tracker={tracker} address={address} />; | return <CollapsedActivityCardSkeleton metaLines={1} />;
 // Re-pointed 2026-10-19 (Q2205): the old My Posts / My Jobs placeholder (ActivityPageSkeleton) and its folded
 // tab-row reservation went with those screens. Jobs > Posted / Working always show the four status boxes, and the
 // placeholder (JobsSectionSkeleton) must reserve them: without the bones the list starts ~76px high.

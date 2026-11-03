@@ -100,12 +100,14 @@ CREATE TABLE public.helper_credentials (id uuid PRIMARY KEY DEFAULT gen_random_u
 CREATE TABLE public.reviews (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, reviewer_id uuid, reviewee_id uuid NOT NULL,
   rating integer NOT NULL, status text NOT NULL DEFAULT 'published', feedback_visible_at timestamptz);
 CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid, helper_id uuid, status text NOT NULL,
-  date_needed date, start_time time, helper_arrived_at timestamptz, revision_count integer DEFAULT 0, is_group_job boolean DEFAULT false, is_seed boolean DEFAULT false);
+  date_needed date, start_time time, helper_arrived_at timestamptz, revision_count integer DEFAULT 0, is_group_job boolean DEFAULT false, is_seed boolean DEFAULT false,
+  cancelled_by uuid, cancellation_reason text); -- read by get_public_profile_stats (newest: 20261031234653)
 CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid, helper_arrived_at timestamptz);
 CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), status text NOT NULL, handed_over_at timestamptz,
   is_seed boolean NOT NULL DEFAULT false); -- read by get_public_profile_stats (newest), loaded before the ALTER below
 CREATE TABLE public.declutter_reviews (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid NOT NULL, reviewer_id uuid,
-  reviewee_id uuid, reviewer_side text NOT NULL, stars smallint NOT NULL, is_seed boolean NOT NULL DEFAULT false);
+  reviewee_id uuid, reviewer_side text NOT NULL, stars smallint NOT NULL, is_seed boolean NOT NULL DEFAULT false,
+  removed_at timestamptz); -- prod 20261102040000: get_public_profile_stats (newest) skips removed reviews
 CREATE FUNCTION public.seed_hidden_from_caller() RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 CREATE TABLE public.platform_settings (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), feature_flags jsonb NOT NULL DEFAULT '{}'::jsonb,
   updated_at timestamptz DEFAULT now());

@@ -101,7 +101,7 @@ CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY, enrolled_at timesta
 CREATE TABLE public.admin_audit_log (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), admin_id uuid, action text NOT NULL,
   target_type text, target_id text, details jsonb, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid UNIQUE, is_seed boolean DEFAULT false,
-  idv_status text, stripe_identity_verified boolean, date_of_birth date, ban_status text DEFAULT 'active', auto_suspended_until timestamptz,
+  under_13_blocked_at timestamptz, /* prod 20261022002144: is_caller_banned() reads it */ idv_status text, stripe_identity_verified boolean NOT NULL DEFAULT false /* prod's shape (read 11-02) */, date_of_birth date, ban_status text DEFAULT 'active', auto_suspended_until timestamptz,
   license_url text, insurance_url text);
 CREATE TABLE public.helper_credentials (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, document_url text);
 CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid, status text NOT NULL DEFAULT 'open',
@@ -224,11 +224,12 @@ ok(typeof prop === "string", "an ID-verified tester landlord adds a property");
 const connectProp = one(await as("authenticated", CONNECT, createProp("Connect landlord house")));
 ok(typeof connectProp === "string", "a landlord verified by Stripe Connect only (idv_status 'pending') adds a property");
 await svc(`DELETE FROM public.rental_properties WHERE owner_id = '${CONNECT}'`); // keeps the counts below about LANDLORD
-ok(one(await svc(`SELECT public.is_identity_verified('${CONNECT}')`)) === true
+// Stripe Identity only (owner 2026-10-21, 20261021081258): Connect's KYC flag no longer counts as an ID check.
+ok(one(await svc(`SELECT public.is_identity_verified('${CONNECT}')`)) === false
   && one(await svc(`SELECT public.is_identity_verified('${LANDLORD}')`)) === true
   && one(await svc(`SELECT public.is_identity_verified('${NOIDV}')`)) === false
   && one(await svc(`SELECT public.is_identity_verified('${U(99)}')`)) === false,
-  "is_identity_verified: Connect-verified true, Identity-verified true, neither false, no profile false");
+  "is_identity_verified: Connect-only false (owner 2026-10-21), Identity-verified true, neither false, no profile false");
 const idvAcl = one(await svc(`SELECT coalesce(proacl::text, '') FROM pg_proc WHERE oid = 'public.is_identity_verified(uuid)'::regprocedure`)) ?? "";
 ok(/service_role=X/.test(idvAcl) && !/(^|[{,])(anon|authenticated)?=X/.test(idvAcl),
   `is_identity_verified EXECUTE is service_role only (proacl ${idvAcl || "none"})`);
@@ -581,9 +582,11 @@ await svc(`UPDATE public.profiles SET idv_status = 'requires_input' WHERE user_i
 ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_invite_tenant('${unit}')`), /identity_not_verified/, "42501"),
   "a landlord whose ID is no longer verified cannot invite");
 await svc(`UPDATE public.profiles SET stripe_identity_verified = true WHERE user_id = '${LANDLORD}'`);
+ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_invite_tenant('${unit}')`), /identity_not_verified/, "42501"),
+  "Stripe Connect's verdict alone no longer lets the landlord invite (Stripe Identity only, owner 2026-10-21)");
+await svc(`UPDATE public.profiles SET idv_status = 'verified', stripe_identity_verified = false WHERE user_id = '${LANDLORD}'`);
 ok(typeof one(await as("authenticated", LANDLORD, `SELECT public.rentals_invite_tenant('${unit}') AS t`)) === "string",
-  "the same landlord with Stripe Connect's identity verdict invites again (either verdict)");
-await svc(`UPDATE public.profiles SET idv_status = 'verified', stripe_identity_verified = NULL WHERE user_id = '${LANDLORD}'`);
+  "verified again by Stripe Identity, the landlord invites again");
 
 // --- a tenant with an ACTIVE tenancy can delete their account
 const token3 = one(await as("authenticated", LANDLORD, `SELECT public.rentals_invite_tenant('${unit}') AS t`));
@@ -635,15 +638,26 @@ const newLink = one(await svc(`SELECT link FROM public.notifications WHERE user_
 ok(newLink === `/rentals/requests/${req1}?user=${TENANT}`, "the landlord's notice names the tenant who filed (link ?user=<actor>)");
 // The real boundary (newest definitions), with the tenant a test account and the landlord real:
 await svc(`ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS is_seed boolean`);
-for (const name of ["notification_job_id_from_link", "notification_crosses_seed_boundary"]) await svc(newestDefinition(name).stmt);
-await svc(`UPDATE public.profiles SET is_seed = (user_id = '${TENANT}')`);
+// Since 20261030015205 / 20261030143141 (test data never counts) an enrolled test account IS a test member, and
+// the boundary reads is_test_subject (profiles.is_seed, test_accounts, a fixture email). Every member here was
+// enrolled only to pass the 'testers' switch, so from here on the switch is open to everyone and test_accounts
+// mirrors is_seed: the one member marked test is the only test account (seedOnly below).
+await svc(`ALTER TABLE auth.users ADD COLUMN IF NOT EXISTS email text`);
+for (const name of ["is_fixture_email", "is_test_member", "is_test_subject", "notification_job_id_from_link", "notification_crosses_seed_boundary"]) await svc(newestDefinition(name).stmt);
+await svc(`UPDATE public.feature_switches SET audience = 'everyone' WHERE key = 'rentals'`);
+const seedOnly = async (uid) => {
+  await svc(`UPDATE public.profiles SET is_seed = (user_id = '${uid}')`);
+  await svc(`DELETE FROM public.test_accounts WHERE user_id <> '${uid}'`);
+  await svc(`INSERT INTO public.test_accounts (user_id) VALUES ('${uid}') ON CONFLICT DO NOTHING`);
+};
+await seedOnly(TENANT);
 ok(one(await svc(`SELECT public.notification_crosses_seed_boundary('${LANDLORD}', NULL, '${newLink}') AS x`)) === true,
   "a test tenant's notice to a real landlord crosses the seed boundary (the trigger drops it)");
 ok(typeof newLink === "string" && one(await svc(`SELECT public.notification_crosses_seed_boundary('${LANDLORD}', NULL, '/rentals/requests/${req1}') AS x`)) === false,
   "without the actor in the link the boundary could not tell (why the link carries it)");
 // A test ADMIN reviewing a real landlord's proof: the staff notice carries no actor, so rentals_notify judges
 // the boundary itself with auth.uid() and sends nothing (Q137 holds without naming the admin).
-await svc(`UPDATE public.profiles SET is_seed = (user_id = '${ADMIN}')`);
+await seedOnly(ADMIN);
 const staffProp = one(await svc(`INSERT INTO public.rental_properties (owner_id, label, street_address, city, zip_code, ownership_status, ownership_submitted_at)
   VALUES ('${ORDINARY}', 'Staff notice check', '9 Elm Street', 'Lafayette', '70501', 'pending_review', now()) RETURNING id`));
 ok(Array.isArray(await as("authenticated", ADMIN, `SELECT public.rentals_admin_review_property('${staffProp}', true, 'Matches')`)),
@@ -654,7 +668,7 @@ ok(one(await svc(`SELECT count(*)::int FROM public.notification_logs WHERE user_
   "and the drop is logged like the trigger's (notification_logs suppressed_seed)");
 // The ownership-proof alert (lh-authz-rls review of e4a59d029 #2): a TEST landlord's proof pages no real admin and never
 // holds a real alert open. (STRANGER is the test landlord here: LANDLORD's auth row was deleted above.)
-await svc(`UPDATE public.profiles SET is_seed = (user_id = '${STRANGER}')`);
+await seedOnly(STRANGER);
 const seedProp = one(await as("authenticated", STRANGER, createProp("Seed landlord place")));
 const alertsTo = (uid) => svc(`SELECT count(*)::int FROM public.notifications WHERE user_id = '${uid}' AND title = 'Ownership proof waits for review'`);
 const adminBefore = one(await alertsTo(ADMIN));
@@ -665,6 +679,7 @@ ok(Array.isArray(await as("authenticated", STRANGER,
 ok(one(await svc(`SELECT public.admin_queue_still_pending('rentals-ownership-review', '{}'::jsonb, now())`)) === false,
   "alert: and a test owner's waiting proof does not hold the alert open");
 await svc(`UPDATE public.profiles SET is_seed = false`);
+await svc(`DELETE FROM public.test_accounts`);
 ok(one(await svc(`SELECT public.admin_queue_still_pending('rentals-ownership-review', '{}'::jsonb, now())`)) === true,
   "alert: the same waiting proof from a real owner does");
 await svc(`UPDATE public.rental_properties SET ownership_status = 'approved' WHERE id = '${seedProp}'`);

@@ -293,6 +293,7 @@ const EDGE_READERS: Record<string, Kind> = {
   "stripe-connect/index.ts": "alerts",
   // SEED-ALERTS: a test job's, order's or gift donor's refund alert goes to the digest; both files only route alerts and an admin notice.
   "stripe-webhook/handlers/_giftCardRefund.ts": "alerts",
+  "stripe-webhook/handlers/_giftLeftSpentOnCardFunding.ts": "alerts", // Q1983: a seed job's gift-left-spent page goes to the digest
   "stripe-webhook/handlers/_visitTaxReversal.ts": "alerts", // Q1997 (6166e4e4a8): a zero-line visit tax reversal pages ops unless the job is is_seed or its people are test subjects
   "stripe-webhook/handlers/chargeRefunded.ts": "alerts",
   "stripe-webhook/handlers/checkoutSessionCompleted.ts": "alerts",

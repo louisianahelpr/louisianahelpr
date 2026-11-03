@@ -318,6 +318,8 @@ const EXEMPT: Record<string, string> = {
   "stripe-webhook/handlers/chargeRefunded.ts::stripe.paymentIntents.retrieve(refundPiId)": EVENT,
   // Q1940 (a): the duplicate-paid session's own PaymentIntent (checkoutSessionCompleted piId, from session.payment_intent).
   "stripe-webhook/handlers/refundDuplicateFunding.ts::stripe.paymentIntents.retrieve(args.pi)": EVENT,
+  // Q1904 (b42, a3fe57c479): the duplicate setup fee's own charge, read from this event session's PaymentIntent.
+  "stripe-webhook/handlers/settleOnboardingFee.ts::stripe.paymentIntents.retrieve(piId)": EVENT,
   "stripe-webhook/handlers/chargeDisputeClosed.ts::stripe.charges.retrieve(closedDispute.charge as string)": EVENT,
   "stripe-webhook/handlers/chargeDisputeCreated.ts::stripe.charges.retrieve(dispute.charge as string)": EVENT,
   // Q1829: the duplicate-funding redelivery reads the job's STORED funding PaymentIntent; a test

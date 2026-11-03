@@ -44,6 +44,7 @@
 // @mutate src/test/clockFunctionsProven.test.ts |   helpr_task_sweep: "helprTaskSweepClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_handover_sweep: "declutterHandoverSweepClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   send_job_match_roundups: "emailRoundupsClock.pglite.mjs",\n | \n
+// @mutate src/test/clockFunctionsProven.test.ts |   guarantee_sweep: "guaranteeSweepClock.pglite.mjs",\n | \n
 // @mutate src/test/pglite/userReportsLedgerClock.pglite.mjs | const { file, stmt } = newestFunction("check_user_reports_reach_ledger"); | const { file, stmt } = newestFunction("check_user_reports");
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -99,13 +100,13 @@ const PROVEN: Record<string, string> = {
   declutter_handover_sweep: "declutterHandoverSweepClock.pglite.mjs",
   send_application_roundups: "emailRoundupsClock.pglite.mjs",
   send_job_match_roundups: "emailRoundupsClock.pglite.mjs",
+  guarantee_sweep: "guaranteeSweepClock.pglite.mjs",
 };
 
 /** function -> why it has no fixed-clock probe yet. Each is open work under docs/OPEN.md Q1424. */
 // @two-way src/test/clockFunctionsProven.test.ts:NOT_PROVEN names a function that is gone, not cron-run, reads no clock, or is proven
 const NOT_PROVEN: Record<string, string> = {
   send_new_member_daily_summary: "LEAD-NOID21 daily new-member summary (20261031152136): newMemberDailySummary.pglite.mjs proves the queue by its summarized_at marks, not by moving the clock; it has no time window (it names everyone not yet summarized), so no fixedClock.mjs probe yet",
-  guarantee_sweep: "Helpr Guarantee (owner 2026-10-27): named by helprGuarantee.pglite.mjs, which moves the stored deadlines (helpr_answer_by, fix_date, poster_answer_by), not the clock; no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path (it lifts a payout hold).",
   // Measured 2026-10-13 (grep of src/test/pglite for `public.<fn>(` and for fixedClock.mjs imports).
   check_browse_view_definer: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
   check_stale_dispute_settlement_claims: "no PGlite probe names it. On the money path: lane A2 (money, auth and data).",

@@ -393,7 +393,10 @@ export function EntryChoice({ form }: EntryChoiceProps) {
     // jobs follow as the same card (counted by the skeleton above, so the column lands once).
     <div className="flex flex-col gap-3">
       {startHeader}
-      {showGiftBanner && giftCards.userId && <GiftCardTeaser userId={giftCards.userId} ids={giftCards.ids} />}
+      {/* Q2003 LOOK (owner pop-up pending, DO NOT LAND): one notice at a time. At the 5-open-job cap the
+          gift hint waits (nothing can be posted, so "ready to spend on your next job" is not true yet); it
+          comes back once a job closes. */}
+      {showGiftBanner && !atOpenJobLimit && giftCards.userId && <GiftCardTeaser userId={giftCards.userId} ids={giftCards.ids} />}
 
       {/* AT THE DOOR, not at the end of the wizard: the 5-open-job cap, before any work is done. */}
       {atOpenJobLimit && <OpenJobLimitNotice count={form.openJobCount ?? 5} />}

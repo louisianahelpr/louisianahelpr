@@ -43,6 +43,7 @@
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_haul_away_sweep: "declutterHaulAwayClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   helpr_task_sweep: "helprTaskSweepClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_handover_sweep: "declutterHandoverSweepClock.pglite.mjs",\n | \n
+// @mutate src/test/clockFunctionsProven.test.ts |   send_job_match_roundups: "emailRoundupsClock.pglite.mjs",\n | \n
 // @mutate src/test/pglite/userReportsLedgerClock.pglite.mjs | const { file, stmt } = newestFunction("check_user_reports_reach_ledger"); | const { file, stmt } = newestFunction("check_user_reports");
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -96,6 +97,8 @@ const PROVEN: Record<string, string> = {
   declutter_haul_away_sweep: "declutterHaulAwayClock.pglite.mjs",
   helpr_task_sweep: "helprTaskSweepClock.pglite.mjs",
   declutter_handover_sweep: "declutterHandoverSweepClock.pglite.mjs",
+  send_application_roundups: "emailRoundupsClock.pglite.mjs",
+  send_job_match_roundups: "emailRoundupsClock.pglite.mjs",
 };
 
 /** function -> why it has no fixed-clock probe yet. Each is open work under docs/OPEN.md Q1424. */
@@ -103,8 +106,6 @@ const PROVEN: Record<string, string> = {
 const NOT_PROVEN: Record<string, string> = {
   send_new_member_daily_summary: "LEAD-NOID21 daily new-member summary (20261031152136): newMemberDailySummary.pglite.mjs proves the queue by its summarized_at marks, not by moving the clock; it has no time window (it names everyone not yet summarized), so no fixedClock.mjs probe yet",
   guarantee_sweep: "Helpr Guarantee (owner 2026-10-27): named by helprGuarantee.pglite.mjs, which moves the stored deadlines (helpr_answer_by, fix_date, poster_answer_by), not the clock; no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path (it lifts a payout hold).",
-  send_application_roundups: "lead 2026-10-25: its 3-hour window is proven in emailRoundups.pglite.mjs by rewriting the stored timestamps (last_emailed_at), not by moving the clock",
-  send_job_match_roundups: "lead 2026-10-25: its Louisiana-day window is proven in emailRoundups.pglite.mjs by rewriting the stored day (last_emailed_day), not by moving the clock",
   // Measured 2026-10-13 (grep of src/test/pglite for `public.<fn>(` and for fixedClock.mjs imports).
   check_browse_view_definer: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
   check_stale_dispute_settlement_claims: "no PGlite probe names it. On the money path: lane A2 (money, auth and data).",

@@ -634,6 +634,56 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
     expect((slackAlerts as Array<{ severity?: string }>).filter((a) => a.severity === "critical")).toEqual([]);
   });
 
+  // Q2097 (owner, 2026-11-03, option A): a gift-plus-card job whose $200 card
+  // held every fee this cancel keeps ($150 fee + $6.10 card fee), until an
+  // EARLIER refund on it left it short. Before: the gift was never asked (the
+  // card was not short on its own), and the job paged "refunded past kept
+  // fees" and sat in escrow. Now the gift keeps exactly the gap and the job
+  // settles. Two refunds: one that leaves the card short of the fee itself
+  // (feesFitCard false) and one that leaves it short only of the card fee.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | } else if (cardShortCents === 0 && chargeRefundedCents > 0) { | } else if (false) {
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | if (giftOnJob && (giftOnJob.cents > 0 \|\| giftOnJob.restored)) giftAskCents = refundGapCents; | giftAskCents = refundGapCents;
+  const BIG_CARD = 20000;
+  const BIG_CARD_FEE = 610;
+  const bigCardPi = (refunded: number) => ({
+    id: "pi_1", status: "succeeded", amount: BIG_CARD, amount_received: BIG_CARD,
+    latest_charge: { id: "ch_1", amount: BIG_CARD, amount_refunded: refunded, balance_transaction: { fee: BIG_CARD_FEE } },
+  });
+  const refundedPastPaged = () =>
+    (slackAlerts as Array<{ title?: string }>).some((a) => /already refunded past what the cancel keeps/.test(String(a.title)));
+  for (const R of [6000, 4500]) {
+    it(`Q2097 A: a gap that comes only from an earlier $${(R / 100).toFixed(2)} card refund is kept from the gift, exactly, and the job settles with no page`, async () => {
+      seed();
+      stripeMock.paymentIntents.retrieve.mockResolvedValue(bigCardPi(R));
+      const h = await load();
+      await h.fetch(cronReq());
+
+      const gap = FEE + BIG_CARD_FEE - (BIG_CARD - R);
+      expect(gap).toBeGreaterThan(0);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(restoredCents()).toBe(GIFT - gap);
+      expect(feeClaims().map((c) => Number(c.fee_amount))).toEqual([FEE / 100]);
+      expect(jobFlips().map((w) => w.payload)).toEqual([
+        expect.objectContaining({ payment_status: "refunded", cancellation_fee_status: "charged" }),
+      ]);
+      expect(refundedPastPaged()).toBe(false);
+      expect(shortfallPaged()).toBe(false);
+    });
+  }
+  it("Q2097 A: the card-only twin (no gift) keeps today's rule: no settlement, the refunded-past page", async () => {
+    seed();
+    giftRpc({ outcome: "no_credit" });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(bigCardPi(6000));
+    const h = await load();
+    await h.fetch(cronReq());
+
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(restoreCalls().filter((c) => !c.p_dry_run)).toHaveLength(0);
+    expect(jobFlips()).toHaveLength(0);
+    expect(refundedPastPaged()).toBe(true);
+    expect(shortfallPaged()).toBe(false);
+  });
+
   // Delta re-review #2: a live gift can fund a test-mode job, so the
   // donation is read in the mode whose Stripe knows its PaymentIntent.
   // @mutate supabase/functions/void-cancelled-payments/index.ts | if ((e as { code?: string } \| null)?.code === "resource_missing") continue; | if ((e as { code?: string } \| null)?.code === "resource_missing") return null;

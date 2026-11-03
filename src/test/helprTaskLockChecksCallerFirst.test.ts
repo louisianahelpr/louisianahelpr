@@ -5,9 +5,9 @@
  * Backend proof: src/test/pglite/helprTaskLockChecksCallerFirst.pglite.mjs (3x; red on the 20261017055505 version and
  * on its planted defects).
  *
- * @mutate supabase/migrations/20261102045504_helpr_task_lock_checks_the_caller_first.sql |      AND v_uid IS DISTINCT FROM t.pickup_contact_id\n | \n
- * @mutate supabase/migrations/20261102045504_helpr_task_lock_checks_the_caller_first.sql | IF NOT public.is_server_context() AND t.status IS DISTINCT FROM 'open' | IF NOT public.is_server_context() AND false
- * @mutate supabase/migrations/20261102045504_helpr_task_lock_checks_the_caller_first.sql |      AND NOT public.has_role(v_uid, 'admin') THEN |      THEN
+ * @mutate supabase/migrations/20261103072510_declutter_checkout_reach_not_found_is_404.sql | AND v_uid IS DISTINCT FROM t.pickup_contact_id |
+ * @mutate supabase/migrations/20261103072510_declutter_checkout_reach_not_found_is_404.sql | IF NOT public.is_server_context() AND t.status IS DISTINCT FROM 'open' | IF NOT public.is_server_context() AND false
+ * @mutate supabase/migrations/20261103072510_declutter_checkout_reach_not_found_is_404.sql | AND NOT public.has_role(v_uid, 'admin') THEN | THEN
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
@@ -22,7 +22,7 @@ describe("helpr_task_lock refuses a stranger before it locks anything", () => {
   it("the caller check sits between the unlocked read and the first lock", () => {
     expect(defs.size).toBeGreaterThan(500);
     const lock = body("helpr_task_lock");
-    const check = lock.indexOf("IF NOT public.is_server_context() AND t.status IS DISTINCT FROM 'open' AND v_uid IS DISTINCT FROM t.helpr_id AND v_uid IS DISTINCT FROM t.customer_id AND v_uid IS DISTINCT FROM t.pickup_contact_id AND NOT public.has_role(v_uid, 'admin') THEN RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';");
+    const check = lock.indexOf("IF NOT public.is_server_context() AND t.status IS DISTINCT FROM 'open' AND v_uid IS DISTINCT FROM t.helpr_id AND v_uid IS DISTINCT FROM t.customer_id AND v_uid IS DISTINCT FROM t.pickup_contact_id AND NOT public.has_role(v_uid, 'admin') THEN RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'PT404';");
     expect(check).toBeGreaterThan(lock.indexOf("SELECT * INTO t FROM public.helpr_tasks WHERE id = p_task;"));
     expect(check).toBeLessThan(lock.indexOf("PERFORM public.declutter_lock_order(t.source_id);"));
     expect(check).toBeLessThan(lock.indexOf("FOR UPDATE"));

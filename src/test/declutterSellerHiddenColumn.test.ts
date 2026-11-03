@@ -24,7 +24,7 @@
 // @mutate supabase/migrations/20261021142959_declutter_seller_hidden_column.sql |   PERFORM pg_advisory_xact_lock(hashtextextended('declutter_seller_hidden:' \|\| p_seller::text, 0));\n | \n
 // @mutate supabase/migrations/20261021142959_declutter_seller_hidden_column.sql |     PERFORM pg_advisory_xact_lock(hashtextextended('declutter_seller_hidden:' \|\| NEW.seller_id::text, 0));\n | \n
 // @mutate supabase/migrations/20261021142959_declutter_seller_hidden_column.sql |   IF NEW.seller_id IS NOT NULL AND (TG_OP = 'INSERT' OR NEW.seller_id IS DISTINCT FROM OLD.seller_id) THEN |   IF NEW.seller_id IS NOT NULL THEN
-// @mutate supabase/migrations/20261021142959_declutter_seller_hidden_column.sql |                   WHERE c.buyer_id = v_uid AND c.seller_id = p_seller_id |                   WHERE c.seller_id = p_seller_id
+// @mutate supabase/migrations/20261103072510_declutter_checkout_reach_not_found_is_404.sql | WHERE c.buyer_id = v_uid AND c.seller_id = p_seller_id | WHERE c.seller_id = p_seller_id
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";

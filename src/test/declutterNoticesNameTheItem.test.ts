@@ -14,7 +14,7 @@
  * second order's notice is suppressed; red on 4 planted defects: no party check, the lock not recording the
  * order, a session-wide value, an item named twice).
  */
-// @mutate supabase/migrations/20261028191646_declutter_notices_name_the_item.sql |   PERFORM public.declutter_notice_about(o.id);\n  RETURN o; |   RETURN o;
+// @mutate supabase/migrations/20261103072510_declutter_checkout_reach_not_found_is_404.sql | PERFORM public.declutter_notice_about(o.id);\n  RETURN o; | RETURN o;
 // @mutate supabase/migrations/20261028191646_declutter_notices_name_the_item.sql |   SELECT set_config('declutter.notice_order', COALESCE(p_order_id::text, ''), true); |   SELECT set_config('declutter.notice_order', COALESCE(p_order_id::text, ''), false);
 // @mutate supabase/migrations/20261028191646_declutter_notices_name_the_item.sql |      AND ((o.buyer_id = p_user AND o.seller_id = p_other) OR (o.seller_id = p_user AND o.buyer_id = p_other)); | ;
 // @mutate supabase/migrations/20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql |           public.declutter_price_words(public.declutter_notice_names_item(p_user, p_other, v_link, p_message)), v_link); |           public.declutter_price_words(p_message), v_link);

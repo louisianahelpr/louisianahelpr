@@ -12,6 +12,8 @@ import { GUARANTEE_RULES } from "@/lib/guarantee/rules";
 import { HideOnSearch, TldrCard, PolicyFooter, TaxGuidanceLine } from "./LegalChrome";
 import { useOnboardingFeeCents, formatFeeLabel } from "@/hooks/useOnboardingFee";
 import { LAST_UPDATED } from "./legalSections";
+import { useFeature } from "@/hooks/useFeature";
+import { TERMS_SHIPPING_GET_ITEM, TERMS_SHIPPING_PARAGRAPHS } from "../declutterShippingCopy";
 // The approval window and the payout schedule are the platform's binding
 // promises about when money moves; derive them from the same config the cron
 // enforces rather than restating "24"/"3 days" as prose literals. Owner
@@ -55,6 +57,9 @@ export const TermsContent = () => {
   // surface still calling it an "onboarding fee". Null while loading or on
   // failure, in which case the row simply does not quote a number.
   const feeLabel = formatFeeLabel(useOnboardingFeeCents());
+  // Declutter shipping (switch declutter_shipping): its rules show only where it is on; elsewhere "Shipping is not
+  // offered." stays, and stays true (declutterShippingCopy.ts).
+  const shippingOn = useFeature("declutter_shipping");
   return (
   <div className="space-y-3">
     <TldrCard
@@ -271,7 +276,7 @@ export const TermsContent = () => {
             <p>These Declutter terms are part of these Terms. Everything else in the Terms, the Community Rules and the Privacy policy still applies in Declutter; where this section is more specific, it wins for Declutter.</p>
             <p>Declutter is where members sell their own used household items to other members. Each item has a price set by the seller. A buyer can buy it at that price or send the seller a private offer, and the seller decides.</p>
             <p><strong className="text-foreground">Declutter is not an auction.</strong> There is no bidding, no countdown and no &ldquo;highest bid wins&rdquo;. An item sells to the first buyer whose purchase or offer is accepted and who then pays.</p>
-            <p>You can get an item four ways: <strong className="text-foreground">porch pickup</strong> (the default: the seller leaves it on a porch or another safe place), <strong className="text-foreground">pickup at the seller&apos;s door</strong> (for items the seller doesn&apos;t leave out), <strong className="text-foreground">Helpr delivery</strong>, or <strong className="text-foreground">seller delivery</strong> when the seller offers it. Shipping is not offered.</p>
+            <p>You can get an item four ways: <strong className="text-foreground">porch pickup</strong> (the default: the seller leaves it on a porch or another safe place), <strong className="text-foreground">pickup at the seller&apos;s door</strong> (for items the seller doesn&apos;t leave out), <strong className="text-foreground">Helpr delivery</strong>, or <strong className="text-foreground">seller delivery</strong> when the seller offers it. {shippingOn ? TERMS_SHIPPING_GET_ITEM : "Shipping is not offered."}</p>
             <p><strong className="text-foreground">Free items.</strong> A seller can give an item away free. You ask for a free item with &ldquo;Ask for it&rdquo;; it is never bought or offered on, and nothing is charged to either of you: listing, asking for or receiving a free item never charges the one-time account setup fee. The seller picks who gets it from the people who asked. If you are picked, you have 48 hours to choose porch pickup or pickup at the seller&apos;s door; if you don&apos;t choose in time, the item goes back up and you get no strike. Delivery is not offered for free items. You can ask for or hold up to 3 free items at a time. The usual strike rules apply if you don&apos;t show up for a pickup, and a missed free pickup also pauses asking for free items for 30 days.</p>
             <p>Louisiana Helpr is the place where the sale happens. We are not the seller.</p>
           </>
@@ -380,6 +385,13 @@ export const TermsContent = () => {
           </>
         }
       />
+      {shippingOn && (
+        <PolicyRowItem
+          icon={Truck}
+          title="Shipping"
+          body={<>{TERMS_SHIPPING_PARAGRAPHS.map((p) => <p key={p}>{p}</p>)}</>}
+        />
+      )}
       <PolicyRowItem
         icon={Receipt}
         title="Refunds and when the sale is final"

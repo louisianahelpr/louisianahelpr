@@ -76,6 +76,9 @@ You can get your item four ways:
 - **Seller delivery**: the seller brings it to you, at a time you book, when the seller offers it (section 9).
 
 Shipping is not offered.
+<!-- Q2259 S8: where the declutter_shipping switch is on, the app shows instead "Small items can also be shipped to a
+Louisiana address when the seller turns shipping on" and a Shipping row (text: src/pages/info/declutterShippingCopy.ts,
+TERMS_SHIPPING_PARAGRAPHS). This line becomes that text when the owner flips the switch to everyone. -->
 <!-- spec rows 24, 101, 102; 20261017055504_declutter_porch_default.sql; seller delivery: MASTER-LIST.md:363, seller-delivery spec; shipping Q2259 paused (docs/OPEN.md) -->
 
 Declutter also has extras: booking a Helpr to put an item together or hang it (Add a Helpr), a Helpr

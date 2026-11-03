@@ -32,6 +32,8 @@ vi.mock("@/hooks/useOnboardingFee", async (orig) => ({
   ...(await orig<typeof import("@/hooks/useOnboardingFee")>()),
   useOnboardingFeeCents: () => null,
 }));
+// The Declutter shipping row reads the declutter_shipping switch (a query); off here, as for every non-tester.
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 
 import { LegalFullTextBody } from "@/pages/info/legal/LegalFullTextBody";
 import LegalFullText from "@/pages/info/LegalFullText";

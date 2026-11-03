@@ -19,8 +19,13 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: { auth: { onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }) } },
 }));
 
+// The Declutter shipping answers read the declutter_shipping switch (a query); off unless a test turns it on.
+const feature = vi.hoisted(() => ({ shipping: false }));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => k === "declutter_shipping" && feature.shipping }));
+
 // jsdom has no layout, so scrollIntoView is not implemented on the prototype.
 beforeEach(() => {
+  feature.shipping = false;
   Element.prototype.scrollIntoView = vi.fn();
   window.history.replaceState({}, "", "/help");
 });
@@ -241,3 +246,27 @@ describe("/help dispute answer matches the cards (VN-28)", () => {
 // a support reply pastes. Dropping the `targeted` term leaves the anchor inert:
 // the page loads with every section shut and nothing scrolled to.
 // @mutate src/pages/info/HelpCenter.tsx | const open = manualOpen \|\| (targeted && !dismissed); | const open = manualOpen;
+
+// Q2259 S8: the shipping answers show only where declutter_shipping is on; elsewhere "Shipping isn't offered." stays.
+// @mutate src/pages/info/HelpCenter.tsx | const sections = shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS; | const sections = FAQ_SECTIONS;
+describe("/help Declutter shipping answers follow the switch", () => {
+  const open = async () => {
+    window.history.replaceState({}, "", "/help#faq-declutter");
+    const view = renderHelp();
+    await waitFor(() => expect(view.container.querySelector("#faq-declutter button")?.getAttribute("aria-expanded")).toBe("true"));
+    return view;
+  };
+  it("off: says shipping isn't offered and has no shipping answer", async () => {
+    const { container } = await open();
+    const text = container.querySelector("#faq-declutter")?.textContent ?? "";
+    expect(text).toContain("How do I get the item?");
+    expect(screen.queryByText("How does shipping work when I buy?")).toBeNull();
+  });
+  it("on: shows the three shipping answers", async () => {
+    feature.shipping = true;
+    await open();
+    for (const q of ["How does shipping work when I buy?", "What if my package doesn't come, or arrives broken?", "How do I ship something I sold?"]) {
+      expect(screen.getByText(q)).toBeTruthy();
+    }
+  });
+});

@@ -6,7 +6,7 @@ Items for areas that have not launched (Homes / Rentals, Quotes, Shops) live in 
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 371** (209 to do, 162 fixed with protection pending; 1840 done). Feeds mirrored in: 46 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 20 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 369** (208 to do, 161 fixed with protection pending; 1842 done). Feeds mirrored in: 44 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 20 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 1 left of 34** (1 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 17 red, 15 stale, 3 unknown, 43 green of 78 — [SCOREBOARD](SCOREBOARD.md). _(2026-11-03T01:39Z)_
@@ -92,7 +92,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 2211 items — 1840 done, 162 partly done (fixed, protection pending), 209 open.**
+**Queue: 2211 items — 1842 done, 161 partly done (fixed, protection pending), 208 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -740,8 +740,6 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
 - [ ] **Q2536 MEDIUM error: error screen shown: we couldn't load your sales.** Mirrored 2026-10-31 from alert-ledger row 714c8b8667bc (sentry: sentry:assets/ErrorState; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 714c8b8667bc. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '714c8b8667bc7554dc022c095213028c'` => closed **CHECKED 11-02 (Builder 7, read-only prod SQL):** its one sighting (2026-10-30 19:52:08Z, a signed-in iPhone) is one phone losing the network (see Q2315: "TypeError: Load failed" to supabase.co 9 s later). No code defect found.
 - [ ] **Q2540 MEDIUM error: error screen shown: we couldn't load your donation receipts.** Mirrored 2026-10-31 from alert-ledger row 16925d0d35eb (sentry: sentry:assets/ErrorState; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 16925d0d35eb. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '16925d0d35eb6520504f8bc1e3ece900'` => closed **CHECKED 11-02 (Builder 7, read-only prod SQL):** its one sighting (2026-10-30 19:57:37Z) is the same iPhone as Q2315/Q2536, five minutes after its network failure. No code defect found.
 - [ ] **Q2544 MEDIUM /jobs · failed to fetch dynamically imported module: <url>.** Mirrored 2026-10-31 from alert-ledger row bf6860c13035 (user-error-screen: user-error-screen; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger bf6860c13035. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = 'bf6860c13035a95fdccbf8c10dd9edc7'` => closed
-- [~] **Q2554 MEDIUM guest marketplace is empty: no funded jobs (pre-launch).** Mirrored 2026-11-02 from alert-ledger row 0e88968519a2 (workflow: uptime; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 0e88968519a2. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '0e88968519a2dacc4d7e6d4201fc2534'` => closed **owner closed 11-02: intended notice, not a defect.** Ledger row closed on prod by the lead at 4:47 PM. Fixed at the source so it never comes back (Builder 8): uptime.yml's empty step is a run warning only, with no ledger record. Guard src/test/informationalAlertsNeverReachTheLedger.test.ts. Re-opened on prod after the 4:47 PM close (uptime re-recorded it before the source fix deployed; open-feeds.json 2026-11-03T01:57Z shows it open): close the row again after this batch deploys.
-- [ ] **Q2703 MEDIUM db-deploy failed on main.** Mirrored 2026-11-03 from alert-ledger row 54ef0bfdcec3 (workflow: db-deploy; `node scripts/ops-alert-ledger.mjs list`) by `scripts/open-sync-trackers.mjs`: find the root cause, fix it, re-run the source's own detector. feed: ledger 54ef0bfdcec3. done-when: sql `SELECT status FROM public.ops_alert_ledger WHERE fingerprint = '54ef0bfdcec3bbc35e6f8e9764306afc'` => closed
 
 ## CARRIED — still open from the sections archived 2026-09-23
 

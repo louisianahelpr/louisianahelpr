@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-03T04:50Z",
+  "measured_at": "2026-11-03T05:03Z",
   "issues": {
     "readable": true,
     "open": [
@@ -188,14 +188,6 @@
         "issue": 2601
       },
       {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
-        "issue": null
-      },
-      {
         "fingerprint": "0d3beba829aef2b190538db98a6a28d4",
         "source_kind": "error_logs",
         "source": "cron-http",
@@ -337,14 +329,6 @@
         "source": "sentry:assets/ErrorState",
         "status": "open",
         "title": "error: error screen shown: we couldn't load jobs.",
-        "issue": null
-      },
-      {
-        "fingerprint": "0e88968519a2dacc4d7e6d4201fc2534",
-        "source_kind": "workflow",
-        "source": "uptime",
-        "status": "open",
-        "title": "guest marketplace is empty: no funded jobs (pre-launch)",
         "issue": null
       },
       {
@@ -588,17 +572,17 @@
         "issue": null
       },
       {
-        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
+        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
         "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
+        "source": "sentry:assets/signed-in-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
       },
       {
-        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
+        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
         "source_kind": "sentry",
-        "source": "sentry:assets/signed-in-shared",
+        "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null

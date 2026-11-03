@@ -10,10 +10,9 @@
  *          `jobs.revision_note / revision_requested_at / status`, and
  *          notifies the helper via the notifications table.
  *
- * PGRST202 (table not found) is caught on the job_revisions insert —
- * if the migration hasn't been pushed to production yet, the action
- * falls back gracefully to the legacy `revision_note` + status update
- * path that already exists on the jobs row.
+ * A failed job_revisions insert is a failure (Q2190: the old "PGRST202 =
+ * table not deployed" skip could never fire on a table write, which answers
+ * PGRST205/42P01 for a missing table, and the table is on prod).
  */
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { storageExtFor } from "@/lib/storageExt";
@@ -220,7 +219,7 @@ export function CompletionChoiceSheet({
         );
       }
 
-      // Try the formal job_revisions table first (PGRST202 fallback below)
+      // The formal job_revisions row first.
       const { error: revErr } = await supabase.from("job_revisions").insert({
         job_id: jobId,
         requested_by: userId,
@@ -229,11 +228,7 @@ export function CompletionChoiceSheet({
         status: "pending",
       });
 
-      if (revErr && revErr.code !== "PGRST202") {
-        throw revErr;
-      }
-      // PGRST202 = table not yet deployed; silently fall through to the
-      // legacy jobs update below so the feature works pre-migration-push.
+      if (revErr) throw revErr;
 
       // Legacy path — always run to keep jobs.status in sync for all read paths
       const now = new Date().toISOString();

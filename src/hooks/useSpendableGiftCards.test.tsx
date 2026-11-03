@@ -80,14 +80,15 @@ describe("useSpendableGiftCards", () => {
     await waitFor(() => expect(orSpy).toHaveBeenCalledWith("recipient_id.eq.u2"));
   });
 
-  it("PGRST202 reads as no gifts, unreported", async () => {
+  // Q2190: gift_cards is a table, so PostgREST never answers PGRST202 for it
+  // (a missing table is PGRST205); the old silent skip is gone and any error
+  // code here is reported like the rest.
+  it("a PGRST202 on this table read is reported, not swallowed", async () => {
     user = { id: "u3" };
     result = { data: null, error: { code: "PGRST202", message: "missing" } };
     const { result: r } = renderHook(() => useSpendableGiftCards(), { wrapper });
-    await waitFor(() => expect(orSpy).toHaveBeenCalled());
-    await waitFor(() => expect(r.current.settled).toBe(true));
+    await waitFor(() => expect(report).toHaveBeenCalledTimes(1));
     expect(r.current.ids).toEqual([]);
-    expect(report).not.toHaveBeenCalled();
   });
 
   it("any other error is reported and reads as no gifts", async () => {

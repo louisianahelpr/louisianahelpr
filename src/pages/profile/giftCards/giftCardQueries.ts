@@ -22,7 +22,6 @@ export async function fetchSentGiftCards(userId: string): Promise<GiftCardRow[]>
     ) as GiftCardRow[];
     return rows;
   } catch (e: unknown) {
-    if (e instanceof Error && e.message.includes("PGRST202")) return [];
     report(e, { severity: "warning", tags: { source: "GiftCard.donated" } });
     throw e;
   }
@@ -82,7 +81,6 @@ export async function fetchReceivedGiftCards(userId: string, myEmail: string): P
     }
     return rows;
   } catch (e: unknown) {
-    if (e instanceof Error && e.message.includes("PGRST202")) return [];
     report(e, { severity: "warning", tags: { source: "GiftCard.received" } });
     throw e;
   }

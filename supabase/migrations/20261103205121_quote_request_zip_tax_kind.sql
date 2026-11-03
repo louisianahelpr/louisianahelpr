@@ -38,6 +38,11 @@
 --      so this SECURITY DEFINER insert of both is not column-locked.
 --      book_accepted_quote and switch_quote_request_to_set_price only call
 --      quote_insert_job and are not restated.
+--   4. quote_request_follows_poster_deletion also clears zip_code, as account
+--      deletion clears jobs.zip_code (20260901033011): the job-site ZIP is the
+--      poster's location, like location / latitude / longitude, which it
+--      already clears. Body otherwise prod's (md5
+--      76935f6ab3d9ab5a72bd782b6a204f0a, read 2026-11-03 3:10 PM CST).
 --
 -- Replay-safe: ADD COLUMN IF NOT EXISTS, the CHECK added only when missing,
 -- DROP FUNCTION IF EXISTS on the old signature, CREATE OR REPLACE, grants
@@ -195,3 +200,34 @@ $fn$;
 
 REVOKE ALL ON FUNCTION public.quote_insert_job(public.job_quote_requests, numeric, uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.quote_insert_job(public.job_quote_requests, numeric, uuid) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.quote_request_follows_poster_deletion()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+BEGIN
+  IF OLD.poster_id IS NOT NULL AND NEW.poster_id IS NULL THEN
+    NEW.location := NULL;
+    NEW.latitude := NULL;
+    NEW.longitude := NULL;
+    -- Q2083 (b): the job-site ZIP is the poster's location too (account
+    -- deletion clears jobs.zip_code the same way).
+    NEW.zip_code := NULL;
+    -- An agreed request that already has its job keeps its link (the job, and
+    -- any money on it, follows the account-deletion flow for jobs).
+    IF NEW.status = 'open' OR (NEW.status = 'agreed' AND NEW.job_id IS NULL) THEN
+      NEW.status := 'cancelled';
+      UPDATE public.job_quotes SET status = 'closed', updated_at = now()
+       WHERE request_id = NEW.id AND status IN ('pending', 'accepted');
+    END IF;
+    -- The deleted poster's own counter-offer notes go.
+    UPDATE public.job_quote_offers o SET note = NULL
+      FROM public.job_quotes q
+     WHERE q.request_id = NEW.id AND o.quote_id = q.id AND o.by_side = 'poster';
+  END IF;
+  RETURN NEW;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.quote_request_follows_poster_deletion() FROM PUBLIC, anon, authenticated;

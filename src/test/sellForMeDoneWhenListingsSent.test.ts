@@ -13,7 +13,7 @@
 // @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql | title text, price_cents integer, floor_price_cents integer, | title text, price_cents integer,
 // @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql | THEN pv.floor_price_cents END, | THEN pv.floor_price_cents ELSE pv.floor_price_cents END,
 // @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql |                  AND j.status::text IN ('accepted', 'in_progress', 'revision_requested')\n | 
-// @mutate supabase/migrations/20261101054258_declutter_photo_purge.sql |   v_link record;\nBEGIN\n  PERFORM public.require_feature('declutter');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n |   v_link record;\nBEGIN\n  PERFORM public.require_feature('declutter');\n
+// @mutate supabase/migrations/20261103162420_q2390_handover_paid_refund_shop_cancel_photo_no_show_decline_not_found_is_404.sql |   v_link record;\nBEGIN\n  PERFORM public.require_feature('declutter');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n |   v_link record;\nBEGIN\n  PERFORM public.require_feature('declutter');\n
 //
 // LEAD-LIST-FOR-SELLER (owner 10-31 ~10:30 PM, POST-H3; lead decision): a "Have a Helpr list it" job is done for the
 // Helpr once they have SENT its listings to the seller for approval (never stranded waiting for the seller). Mark done

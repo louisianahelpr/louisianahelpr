@@ -23,7 +23,7 @@
  *      the handler itself) never names user_violations or a reversal;
  *   3. poster_cancel_job still writes the strike (else this guard is vacuous).
  *
- * @mutate supabase/migrations/20261102055222_payout_moving_blocks_failed_bank_cancel.sql |   PERFORM set_config('app.sanctioned_cancel', 'on', true); |   DELETE FROM public.user_violations WHERE job_id = v_job.id AND violation_type = 'cancel_with_helper';\n  PERFORM set_config('app.sanctioned_cancel', 'on', true);
+ * @mutate supabase/migrations/20261103010231_failed_bank_cancel_reposts_the_job.sql |   PERFORM set_config('app.sanctioned_cancel', 'on', true); |   DELETE FROM public.user_violations WHERE job_id = v_job.id AND violation_type = 'cancel_with_helper';\n  PERFORM set_config('app.sanctioned_cancel', 'on', true);
  * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |   const cancelNotDeployed = |   await supabase.rpc("admin_reverse_violation", { p_job_id: job.id });\n  const cancelNotDeployed =
  */
 import { describe, it, expect } from "vitest";

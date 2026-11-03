@@ -643,6 +643,11 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // ship order; it READS declutter_refunds only to find that order's card-cost debts and pays the order's open seller
       // debts from the claim. It records no refund and changes no refund amount, card fee or policy.
       declutter_admin_record_ship_claim: "20261103210119_shipping_claim_payout_pays_the_order_debt_first.sql 76bb169911ce9316",
+      // Q2259 return label (20261103212046, for verdict): the admin's request READS declutter_refunds only to check the
+      // order was refunded as not_as_described; the worker's record books the return label's cost as ONE seller debt
+      // (ship_label, source_ref = the return row). Neither records a refund nor changes a refund amount, card fee or policy.
+      declutter_admin_request_return_label: "20261103212046_shipping_return_label.sql bac4b30d7a02abca",
+      declutter_ship_return_label_bought: "20261103212046_shipping_return_label.sql cad5519a0e8d1f81",
       // Q2259 S6 2d (20261102051521, shipping, testers only; for verdict): the shipping a buyer-fault close held back goes
       // back once the label is VOIDED: one declutter_delivery_refunds row ('ship_void_refunded', refund_cents = the order's
       // shipping_cents, order_id UNIQUE), only when the order's refund row is buyer-fault and left the shipping out

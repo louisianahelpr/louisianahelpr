@@ -5,6 +5,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders, jsonResponse, errorResponse } from "../_shared/cors.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { isLaborTaxable, laborTaxCode, TAXED_KINDS } from "../_shared/salesTax.ts";
+import { jobTaxAddress, JOB_TAX_ADDRESS_SOURCE } from "../_shared/jobTaxAddress.ts";
 
 /**
  * The sales tax the poster will ACTUALLY be charged — from Stripe, not from us.
@@ -84,7 +85,7 @@ serve(async (req: Request) => {
     const key = Deno.env.get("STRIPE_SECRET_KEY");
     if (!key) return errorResponse("Stripe is not configured", 503, corsHeaders);
 
-    const { budget, category, zip, state, taxKind: rawTaxKind } = await req.json();
+    const { budget, category, zip, taxKind: rawTaxKind } = await req.json();
     // The poster's taxed-kind answer on Post a Job (Q2083, owner Option 1);
     // anything but a known kind reads as none.
     const taxKind = typeof rawTaxKind === "string" && TAXED_KINDS.has(rawTaxKind) ? rawTaxKind : null;
@@ -93,7 +94,10 @@ serve(async (req: Request) => {
     if (!Number.isFinite(budgetCents) || budgetCents <= 0) {
       return errorResponse("A positive budget is required", 400, corsHeaders);
     }
-    if (!zip || typeof zip !== "string") {
+    // Q2083 (b): the same job-site address create-payment charges with, so
+    // preview == charge; a ZIP outside Louisiana has no honest answer either.
+    const taxAddress = jobTaxAddress(zip);
+    if (!taxAddress) {
       // No address, no jurisdiction, no honest answer. The client shows
       // "calculated at payment" rather than inventing one.
       return jsonResponse({ taxCents: null, reason: "no_address" }, 200, corsHeaders);
@@ -120,10 +124,7 @@ serve(async (req: Request) => {
           tax_code: laborTaxCode(category, taxKind),
         },
       ],
-      customer_details: {
-        address: { postal_code: zip, state: state || "LA", country: "US" },
-        address_source: "billing",
-      },
+      customer_details: { address: taxAddress, address_source: JOB_TAX_ADDRESS_SOURCE },
       // Required for the `jurisdiction` field below to exist at all — see the
       // note there. Sub-list expansion, not a second API call.
       expand: ["line_items"],

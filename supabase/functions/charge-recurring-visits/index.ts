@@ -99,6 +99,7 @@ import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
 import { createStripeModeResolver, sessionIdMode, StripeModeRefused } from "../_shared/stripeMode.ts";
+import { jobTaxAddress, JOB_TAX_ADDRESS_SOURCE } from "../_shared/jobTaxAddress.ts";
 
 /**
  * The client type these helpers accept.
@@ -1874,6 +1875,14 @@ serve(async (req) => {
         // A paid row carries the tax the payer was charged; no new calculation.
         // A taxed category, or the series' taxed-kind answer (Q2083, owner Option 1).
         if (!paidRow && isLaborTaxable(parent.category as string, parent.tax_kind as string | null)) {
+          // Q2083 (b): taxed at the job address, the same shape create-payment
+          // and calculate-tax send; no Louisiana ZIP = no honest tax, skipped.
+          const taxAddress = jobTaxAddress(parent.zip_code);
+          if (!taxAddress) {
+            console.error(`[charge-recurring-visits] series ${parent.id} (${parent.category}) has no Louisiana job ZIP; skipping rather than charging untaxed`);
+            fail(`series ${parent.id} ${visitDate}: no Louisiana job ZIP to tax at`);
+            continue;
+          }
           try {
             const calc = await stripe.tax.calculations.create({
               currency: "usd",
@@ -1888,14 +1897,7 @@ serve(async (req) => {
                 tax_behavior: "exclusive" as const,
                 tax_code: laborTaxCode(parent.category as string, parent.tax_kind as string | null),
               }] : [])],
-              customer_details: {
-                address: {
-                  postal_code: (parent.zip_code as string) ?? "",
-                  state: "LA",
-                  country: "US",
-                },
-                address_source: "billing",
-              },
+              customer_details: { address: taxAddress, address_source: JOB_TAX_ADDRESS_SOURCE },
             });
             taxCents = calc.tax_amount_exclusive ?? 0;
             taxCalculationId = calc.id ?? null;

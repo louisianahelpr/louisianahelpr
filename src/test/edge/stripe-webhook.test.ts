@@ -362,7 +362,7 @@ describe("stripe-webhook edge function", () => {
     // amount_details.tax on a PaymentIntent, so the job kept the insert-time estimate. The Checkout Session's own
     // total_details.amount_tax is Stripe's figure; a gift difference session (non-taxable on purpose) is not.
     // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const taxCents = typeof sessionTaxForJob === "number" ? sessionTaxForJob : piTaxCents; | const taxCents = piTaxCents;
-    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const sessionTaxForJob = (session.metadata as any)?.gift_card_id ? undefined : session.total_details?.amount_tax; | const sessionTaxForJob = session.total_details?.amount_tax;
+    // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const sessionTaxForJob = (session.metadata as any)?.gift_card_id ? undefined : (sessionJobTaxCents(session as any) ?? undefined); | const sessionTaxForJob = (sessionJobTaxCents(session as any) ?? undefined);
     it("Q2152: a basil PaymentIntent (no amount_details.tax) records the SESSION's tax, 1105c -> 11.05; a gift difference session's $0 does not overwrite the estimate", async () => {
       const deliver = async (metadata: Record<string, string>, amountTax: number) => {
         const fn = await loadConfigured();

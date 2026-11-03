@@ -91,6 +91,22 @@ describe("calculate-tax — cost gate", () => {
     expect(body).toEqual({ taxCents: 0, exempt: true });
   });
 
+  // Q2083 (b): the preview prices the job ZIP in the shape create-payment
+  // charges with; a ZIP outside Louisiana is no answer, never Stripe's guess.
+  // @mutate supabase/functions/calculate-tax/index.ts |     if (!taxAddress) { |     if (false) {
+  it("Q2083 (b): a non-Louisiana ZIP is 'no_address' with no Stripe call; an LA ZIP+4 is priced as its 5 digits", async () => {
+    scenario.authUser = { id: "u-1", email: "poster@test.dev" };
+    stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_z", tax_amount_exclusive: 1100, amount_total: 11_100, line_items: { data: [] } });
+    const fn = await load();
+    const out = await fn.fetch(fn.request({ headers: { Authorization: "Bearer good" }, body: { ...VALID_BODY, category: "auto_repair", zip: "77002" } }));
+    expect(JSON.parse(await out.text())).toEqual({ taxCents: null, reason: "no_address" });
+    expect(stripeMock.tax.calculations.create).not.toHaveBeenCalled();
+    const ok = await fn.fetch(fn.request({ headers: { Authorization: "Bearer good" }, body: { ...VALID_BODY, category: "auto_repair", zip: "70503-1234", state: "TX" } }));
+    expect(JSON.parse(await ok.text()).taxCents).toBe(1100);
+    const [calc] = stripeMock.tax.calculations.create.mock.calls[0];
+    expect(calc.customer_details).toEqual({ address: { postal_code: "70503", state: "LA", country: "US" }, address_source: "billing" });
+  });
+
   it("Q2083: an untaxed category the poster answered is taxed work (item_repair) is quoted by Stripe with that kind's code", async () => {
     scenario.authUser = { id: "u-1", email: "poster@test.dev" };
     stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_k", tax_amount_exclusive: 1045, amount_total: 11_045, line_items: { data: [] } });

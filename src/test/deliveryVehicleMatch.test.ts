@@ -23,7 +23,7 @@
  * @mutate supabase/migrations/20261028012406_helpr_vehicle_needs_a_car.sql |   p_has_car := p_has_car OR p_has_truck;\n |
  * @mutate supabase/migrations/20261028012406_helpr_vehicle_needs_a_car.sql |   PERFORM 1 FROM public.helpr_vehicles v WHERE v.user_id = v_uid FOR UPDATE;\n |
  * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql |   PERFORM 1 FROM public.helpr_vehicles v WHERE v.user_id = v_uid FOR SHARE;\n |
- * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql |        AND public.helpr_task_vehicle_fits(v_uid, x.size) |        AND true
+ * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql | AND v_uid IS DISTINCT FROM x.customer_id AND v_uid IS DISTINCT FROM x.pickup_contact_id\n       AND public.helpr_task_vehicle_fits(v_uid, x.size) | AND v_uid IS DISTINCT FROM x.customer_id AND v_uid IS DISTINCT FROM x.pickup_contact_id\n       AND true
  * @mutate supabase/migrations/20261027203030_helpr_go_online_for_deliveries.sql |        AND public.helpr_task_vehicle_fits(h.user_id, NEW.size)\n |        AND true\n
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   const noCar = vehicle.isSuccess && !vehicle.data?.has_car; |   const noCar = false;
  * @mutate src/components/declutter/DeliverVehicleForm.tsx | <Checkbox id={`helpr-truck-${userId}`} checked={hasTruck} | <input type="checkbox" id={`helpr-truck-${userId}`} checked={hasTruck}

@@ -8,7 +8,7 @@
  * @mutate supabase/migrations/20261102041000_declutter_refund_seller_side.sql |   NEW.decide_by := COALESCE(NEW.decide_by, now() + interval '48 hours'); |   NEW.decide_by := NEW.decide_by;
  * @mutate supabase/migrations/20261102041000_declutter_refund_seller_side.sql |   IF NEW.reporter_side = 'buyer' AND NEW.other_side_note IS NULL AND r.seller_side_at IS NOT NULL THEN |   IF NEW.reporter_side = 'buyer' AND r.seller_side_at IS NOT NULL THEN
  * @mutate supabase/migrations/20261102041000_declutter_refund_seller_side.sql | REVOKE ALL ON FUNCTION public.declutter_answer_refund(uuid, text, integer, text, text[]) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_answer_refund(uuid, text, integer, text, text[]) FROM PUBLIC;
- * @mutate supabase/migrations/20261102041000_declutter_refund_seller_side.sql |       'decide_by', (SELECT x.decide_by | 'decide_by_gone', (SELECT x.decide_by
+ * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql |       'decide_by', (SELECT x.decide_by | 'decide_by_gone', (SELECT x.decide_by
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

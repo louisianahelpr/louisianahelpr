@@ -744,7 +744,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // D2-3 (20261029225634): + the request's photo_paths; still reads the settled refund row's amount and status only.
       // Returns (20261030071818) add the return fields (way, day, time, collect address, drop-off time); still no write.
       // A3-74 (20261102041000): + the seller's side (note, photos), the problem id and its decide_by; still reads the settled refund row's amount and status only.
-      declutter_refund_request_view: "20261102041000_declutter_refund_seller_side.sql 4a15d543a35dd29f",
+      // Q2390 packet 13 (20261103061500): restated ERRCODE-only (not-found answers 404); still reads the settled refund row's amount and status only.
+      declutter_refund_request_view: "20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql cf8ba0d18651a755",
       // D2-3 (20261029225634, lh-authz-rls approve 2026-10-29): the other side's words and photos on an open problem; names declutter_refunds only as its notice kind; records no refund and moves no money.
       declutter_problem_add_side: "20261029225634_declutter_problem_both_sides_and_photos.sql d28dab3c3c9756cd",
       // Returns (20261030071818, builder 80; restated 20261030164712, Q2486: the distance reads the order's pickup points): names declutter_refunds only as its notice kind; records no refund and moves no money (the drop-off photo and time only).

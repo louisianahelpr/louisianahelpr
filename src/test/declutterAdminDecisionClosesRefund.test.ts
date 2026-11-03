@@ -17,7 +17,7 @@
  * @mutate supabase/migrations/20261101020052_helpr_task_released_helpr.sql |        SET status = CASE WHEN p_decision IN ('refund_buyer', 'refund_part') THEN 'agreed' ELSE 'declined' END, |        SET status = 'declined',
  * @mutate supabase/migrations/20261101020052_helpr_task_released_helpr.sql |           refund_id = CASE WHEN p_decision IN ('refund_buyer', 'refund_part') THEN (v_out->>'refund_id')::uuid ELSE refund_id END, |           refund_id = refund_id,
  * @mutate supabase/migrations/20261102063343_declutter_seller_out_after_payment.sql |                           WHEN v_policy = 'keep_card_fee' THEN ' That''s all you paid, less the small part the card network kept for the payment, which it doesn''t give back.'\n | \n
- * @mutate supabase/migrations/20261102041000_declutter_refund_seller_side.sql |       'admin_decided', r.status IN ('agreed', 'declined') | 'admin_decided', r.status IN ('agreed', 'declined', 'to_admin')
+ * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql |       'admin_decided', r.status IN ('agreed', 'declined') | 'admin_decided', r.status IN ('agreed', 'declined', 'to_admin')
  * @mutate supabase/migrations/20261102041000_declutter_refund_seller_side.sql | 'Give the item back to the seller; message the seller from your order. Your refund | 'Give the item back to the seller; arrange it in Messages. Your refund
  */
 import { describe, expect, it } from "vitest";

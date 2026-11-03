@@ -14,14 +14,14 @@
  *   3. the chat is the order's own: that buyer and seller, opened from its first cart line to the payment;
  *   4. every question on its items, removed ones included and marked (the history is kept);
  *   5. never PUBLIC or anon.
- * @mutate supabase/migrations/20261030042545_declutter_admin_problem_talk_order_chat.sql |   IF NOT public.has_role((SELECT auth.uid()), 'admin'::public.app_role) THEN | IF false THEN
- * @mutate supabase/migrations/20261030042545_declutter_admin_problem_talk_order_chat.sql | CASE WHEN m.sender_id = t.buyer_id THEN 'buyer' ELSE 'seller' END AS side, | m.sender_id::text AS side,
- * @mutate supabase/migrations/20261030042545_declutter_admin_problem_talk_order_chat.sql |            AND t.opened_at >= COALESCE(v_from, v_order.created_at)\n |
- * @mutate supabase/migrations/20261030042545_declutter_admin_problem_talk_order_chat.sql |          WHERE q.item_id IN | WHERE q.removed_at IS NULL AND q.item_id IN
+ * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql |   IF NOT public.has_role((SELECT auth.uid()), 'admin'::public.app_role) THEN | IF false THEN
+ * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql | CASE WHEN m.sender_id = t.buyer_id THEN 'buyer' ELSE 'seller' END AS side, | m.sender_id::text AS side,
+ * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql | AND t.opened_at >= COALESCE(v_from, v_order.created_at) |
+ * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql |          WHERE q.item_id IN | WHERE q.removed_at IS NULL AND q.item_id IN
  * @mutate supabase/migrations/20261030042545_declutter_admin_problem_talk_order_chat.sql | REVOKE ALL ON FUNCTION public.declutter_admin_problem_talk(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_admin_problem_talk(uuid) FROM PUBLIC;
  *   6. the chat after payment (D2-1, 20261030042545): that order's only, as the side kept on each message.
- * @mutate supabase/migrations/20261030042545_declutter_admin_problem_talk_order_chat.sql |          WHERE ot.order_id = v_order.id |          WHERE true
- * @mutate supabase/migrations/20261030042545_declutter_admin_problem_talk_order_chat.sql |                om.sender_side, |                om.sender_id::text,
+ * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql |          WHERE ot.order_id = v_order.id |          WHERE true
+ * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql |                om.sender_side, |                om.sender_id::text,
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -37,7 +37,8 @@ const grants = blankSqlComments(def ? readFileSync(join(MIG, def.file.split("/")
 
 describe("AL-6: an admin reads a reported problem's chat and questions, as sides only", () => {
   it("reads the newest definition (floor)", () => {
-    expect(def?.file ?? "").toContain("20261030042545_declutter_admin_problem_talk_order_chat.sql");
+    // Restated by Q2390 packet 13 (20261103061500, ERRCODE-only) with every line and its grants kept.
+    expect(def?.file ?? "").toContain("20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql");
     expect(flat.length).toBeGreaterThan(900);
   });
 

@@ -709,8 +709,7 @@ export function JobTracking({
         }
         report(arrivalErr, { tags: { source: "JobTracking.markArrival" } });
         toast.error(
-          isMissingRpcNamed(arrivalErr, "mark_helper_arrival")
-            // Short window between merge and the auto-deploy landing.
+          isMissingRpcNamed(arrivalErr, "mark_helper_arrival") // short window between merge and the auto-deploy landing
             ? "Arrival check-in is updating — try again in a minute."
             : (rpcErrorMessage("mark_helper_arrival", arrivalErr) ?? lifecycleErrorMessage(arrivalErr) ?? "Couldn't mark you arrived — try again?"),
         );

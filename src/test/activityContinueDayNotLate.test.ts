@@ -6,8 +6,9 @@
  * Held here:
  *   - fetchPostedActivity and fetchAppliedActivity swap in the continue day (jobOnContinueDay, the tracker's rule) for a
  *     job under way, so jobIsOverdue, derivePosterWait (jobStatusLine) and posterStepContract (isPastDue) see it;
- *   - the read rides the FIRST wave: it is issued with no job-id list, before the cores answer (no "Late" flash), and
- *     both cores asked together share ONE read;
+ *   - the open days come IN the cores payload ('open_continue_days', 20261103231310), so Activity is ONE request; only
+ *     an older database (no such key) or a failed cores read sends the direct read, with no job-id list, and both
+ *     cores asked together share ONE such read;
  *   - only an open SET day counts (the query asks for status 'set' and closed_at null), and only a job in progress;
  *   - a refused read degrades to the first date (never throws the screen).
  */
@@ -17,7 +18,18 @@
 // @mutate src/lib/continueDayReads.ts |           .is("closed_at", null), |           .not("job_id", "is", null),
 // @mutate src/lib/continueDayReads.ts |           .eq("status", "set") |           .in("status", ["proposed", "set"])
 // @mutate src/lib/continueDayReads.ts |   if (r?.userId === userId && !r.served.has(part) && | if (false &&
+// @mutate src/lib/continueDayReads.ts |     if (r && typeof r.job_id === "string") out[r.job_id] = r; |     if (r && typeof r.job_id !== "string") out[r.job_id] = r;
+// @mutate src/lib/continueDayReads.ts |   if (!Array.isArray(rows)) return null; |   if (!Array.isArray(rows)) return {};
+// @mutate src/hooks/useActivityData.ts |   const continueDays = openContinueDaysFrom(cores?.open_continue_days) ?? await fetchMyOpenContinueDays(userId, "posted"); |   const continueDays = await fetchMyOpenContinueDays(userId, "posted");
+// @mutate src/hooks/useActivityData.ts |   const continueDays = openContinueDaysFrom(cores?.open_continue_days) ?? await fetchMyOpenContinueDays(userId, "applied"); |   const continueDays = openContinueDaysFrom(cores?.open_continue_days) ?? {};
+// @mutate supabase/migrations/20261103231310_activity_cores_carry_open_continue_days.sql |        WHERE d.status = 'set' AND d.closed_at IS NULL | WHERE d.status IN ('proposed', 'set')
+// @mutate supabase/migrations/20261103231310_activity_cores_carry_open_continue_days.sql |          AND d.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid | AND d.job_id IN (SELECT j.id FROM public.jobs j
+// @mutate supabase/migrations/20261103231310_activity_cores_carry_open_continue_days.sql |     'open_continue_days', ( |     'open_days', (
+// @mutate supabase/migrations/20261103231310_activity_cores_carry_open_continue_days.sql |  STABLE SECURITY INVOKER\n SET search_path TO 'public' |  STABLE SECURITY DEFINER\n SET search_path TO 'public'
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { join } from "node:path";
+import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";
+import { blankSqlComments } from "@/test/helpers/blankNonCode";
 
 type Resp = { data: unknown; error: unknown };
 let issued: string[] = [];
@@ -77,6 +89,12 @@ const job = (over: Partial<Job> = {}) =>
     helper_arrived_at: "2026-11-01T10:00:00Z", poster_confirmed_arrival_at: "2026-11-01T10:00:00Z", ...over,
   }) as unknown as Job;
 
+/** A get_my_activity_cores payload (20261103231310 shape) with these posted jobs and open continue days. */
+const cores = (posted: Job[], openDays: unknown[]) => ({
+  posted_jobs: posted, poster_applications: [], offer_targets: [], my_applications: [], application_jobs: [],
+  direct_offers: [], violations: [], reviews: [], open_continue_days: openDays,
+});
+
 beforeEach(() => {
   issued = [];
   responses = {};
@@ -111,16 +129,33 @@ describe("Activity dates a continuing job by its open continue day (owner bug 11
     expect(issued.some((k) => k.startsWith("job_continue_days") && k.includes("in:job_id"))).toBe(false);
   });
 
-  it("rides the FIRST wave: issued before the cores answer", async () => {
-    let open!: () => void;
-    coresGate = new Promise<void>((r) => (open = r));
-    responses["jobs"] = { data: [job()], error: null };
-    const p = fetchPostedActivity("u1");
-    await new Promise((r) => setTimeout(r, 0));
-    expect(issued).toContain("rpc:get_my_activity_cores");
-    expect(issued).toContain(CONTINUE_KEY);
-    open();
-    await p;
+  it("ONE request: the cores payload carries the open days, so no continue-day read is sent", async () => {
+    responses["rpc:get_my_activity_cores"] = { data: cores([job()], [{ job_id: "j1", status: "set", new_date: AHEAD, new_start_time: "09:00:00" }]), error: null };
+    responses[CONTINUE_KEY] = { data: [], error: null };
+    const { postedJobs } = await fetchPostedActivity("u1");
+    expect(issued.filter((k) => !k.startsWith("rpc:get_job_series_state") && !k.startsWith("job_series"))).toEqual(["rpc:get_my_activity_cores"]);
+    expect(postedJobs[0].date_needed).toBe(AHEAD);
+    expect(jobIsOverdue(postedJobs[0])).toBe(false);
+  });
+
+  it("only a SET day in the payload counts; an empty list means none (no fallback read)", async () => {
+    responses["rpc:get_my_activity_cores"] = { data: cores([job()], [{ job_id: "j1", status: "proposed", new_date: AHEAD, new_start_time: "10:00:00" }]), error: null };
+    responses[CONTINUE_KEY] = continuing("j1");
+    const { postedJobs } = await fetchPostedActivity("u1");
+    expect(issued).not.toContain(CONTINUE_KEY);
+    expect(postedJobs[0].date_needed).toBe(PASSED);
+  });
+
+  it("My Jobs (the Helpr) through the cores payload: not Late, one request", async () => {
+    responses["rpc:get_my_activity_cores"] = {
+      data: { ...cores([], [{ job_id: "j1", status: "set", new_date: AHEAD, new_start_time: "09:00:00" }]),
+        my_applications: [{ id: "a1", job_id: "j1", helper_id: "u1", status: "accepted", created_at: "2026-11-01T00:00:00Z" }],
+        application_jobs: [job({ helper_id: "u1" })] },
+      error: null,
+    };
+    const { appliedApps } = await fetchAppliedActivity("u1");
+    expect(issued).not.toContain(CONTINUE_KEY);
+    expect(appliedApps[0].job?.date_needed).toBe(AHEAD);
   });
 
   it("both cores asked together send ONE continue-day read; a refetch reads again", async () => {
@@ -152,5 +187,22 @@ describe("Activity dates a continuing job by its open continue day (owner bug 11
     const { appliedApps } = await fetchAppliedActivity("u1");
     expect(appliedApps[0].job?.date_needed).toBe(AHEAD);
     expect(jobIsOverdue(appliedApps[0].job!)).toBe(false);
+  });
+});
+
+describe("get_my_activity_cores carries the open continue days (20261103231310: Activity is ONE request)", () => {
+  const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
+  const body = blankSqlComments(defs.get("get_my_activity_cores")?.stmt ?? "");
+
+  it("reads every function's newest definition (inventory floor)", () => {
+    expect(defs.size).toBeGreaterThan(1000);
+    expect(body.length).toBeGreaterThan(500);
+  });
+
+  it("the newest definition returns open_continue_days: open SET days of my posted or applied jobs, as the caller", () => {
+    expect(body).toMatch(/'open_continue_days',/);
+    expect(body).toMatch(/FROM public\.job_continue_days d\s+WHERE d\.status = 'set' AND d\.closed_at IS NULL/);
+    expect(body).toMatch(/d\.job_id IN \(SELECT j\.id FROM public\.jobs j WHERE j\.customer_id = v_uid\s+UNION SELECT a\.job_id FROM public\.applications a WHERE a\.helper_id = v_uid\)/);
+    expect(body).toMatch(/STABLE SECURITY INVOKER/);
   });
 });

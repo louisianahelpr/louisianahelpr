@@ -19,7 +19,7 @@ import { fetchJobOfferTargets } from "@/lib/jobOfferTargets";
 import { fetchActivityCores, offerTargetMap } from "@/lib/activityCores";
 import { fetchJobSeriesState } from "@/lib/jobSeriesState";
 import { fetchClosedJobLabels } from "@/lib/closedJobLabels";
-import { fetchMyOpenContinueDays, type OpenContinueDay } from "@/lib/continueDayReads";
+import { fetchMyOpenContinueDays, openContinueDaysFrom, type OpenContinueDay } from "@/lib/continueDayReads";
 import { jobOnContinueDay } from "@/lib/continueDayWords";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import { backoutNoticeApplies, useBackoutNotices } from "@/lib/backoutNotices";
@@ -198,8 +198,10 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
   // one query per Activity load, forever, for a control nobody could see.
   // Both cores in one request when the database has get_my_activity_cores (Q104; src/lib/activityCores.ts).
   // Null: the three reads below, as before.
-  // Owner bug 11-03: the open continue days ride the same wave, so a continuing job is never "Late" for a moment.
-  const [cores, continueDays] = await Promise.all([fetchActivityCores(userId, "posted"), fetchMyOpenContinueDays(userId, "posted")]);
+  // Owner bug 11-03: the open continue days come in the cores payload (20261103231310), so a continuing job is never
+  // "Late" and Activity stays ONE request; an older database or a failed cores read sends their own read.
+  const cores = await fetchActivityCores(userId, "posted");
+  const continueDays = openContinueDaysFrom(cores?.open_continue_days) ?? await fetchMyOpenContinueDays(userId, "posted");
   const [jobsRes, appCountRes, offerTargets] = cores ? [
     { data: cores.posted_jobs, error: null },
     { data: cores.poster_applications, error: null },
@@ -509,7 +511,8 @@ export async function fetchPostedActivityDetail(
 export async function fetchAppliedActivity(userId: string): Promise<AppliedActivity> {
   // Both cores in one request when the database has get_my_activity_cores (Q104; src/lib/activityCores.ts).
   // Null: the five reads below, as before.
-  const [cores, continueDays] = await Promise.all([fetchActivityCores(userId, "applied"), fetchMyOpenContinueDays(userId, "applied")]);
+  const cores = await fetchActivityCores(userId, "applied");
+  const continueDays = openContinueDaysFrom(cores?.open_continue_days) ?? await fetchMyOpenContinueDays(userId, "applied");
   const [appsRes, jobsRes, directOffersRes, violationsRes, helperReviewsRes] = cores ? [
     { data: cores.my_applications, error: null },
     { data: cores.application_jobs as Job[], error: null },

@@ -432,6 +432,7 @@ describe("both activity cores in one read (get_my_activity_cores)", () => {
     direct_offers: [{ id: "d1", customer_id: "poster-2", title: "Offer", created_at: "2026-01-03", updated_at: "2026-01-03" }],
     violations: [{ job_id: "j7" }],
     reviews: [{ job_id: "j1" }],
+    open_continue_days: [],
   };
   beforeEach(() => {
     // B46: an answer is shared with the other core for ACTIVITY_CORES_SHARE_MS after it lands; each test starts clean.
@@ -441,7 +442,8 @@ describe("both activity cores in one read (get_my_activity_cores)", () => {
 
   it("the badge's two cores, asked together, send one request and read the same rows", async () => {
     const [posted, applied] = await Promise.all([fetchPostedActivity("u1"), fetchAppliedActivity("u1")]);
-    expect(issued.filter((k) => !k.startsWith("rpc:get_job_series_state") && !k.startsWith("job_series"))).toEqual([CORES_KEY, CONTINUE_DAYS_KEY]);
+    // ONE request: the open continue days ride the cores payload (20261103231310).
+    expect(issued.filter((k) => !k.startsWith("rpc:get_job_series_state") && !k.startsWith("job_series"))).toEqual([CORES_KEY]);
     expect(posted.postedJobs.map((j) => j.id)).toEqual(["p1"]);
     expect(posted.postedJobs[0].offered_to_helper_id).toBe("h9");
     expect(posted.applicantCounts.p1).toBe(2);
@@ -450,6 +452,14 @@ describe("both activity cores in one read (get_my_activity_cores)", () => {
     expect(applied.appliedApps.find((a) => a.job_id === "j1")?.job?.customer_id).toBe("poster-1");
     expect(applied.declinedJobIds.has("j7")).toBe(true);
     expect(applied.helperReviewedJobIds.has("j1")).toBe(true);
+  });
+
+  it("an older database (no open_continue_days in the payload): the open days are read on their own, once", async () => {
+    const older: Partial<typeof payload> = { ...payload };
+    delete older.open_continue_days;
+    setResponse(CORES_KEY, { data: older, error: null });
+    await Promise.all([fetchPostedActivity("u1"), fetchAppliedActivity("u1")]);
+    expect(issued.filter((k) => !k.startsWith("rpc:get_job_series_state") && !k.startsWith("job_series"))).toEqual([CORES_KEY, CONTINUE_DAYS_KEY]);
   });
 
   it("a refetch after the first answer reads again: the same core never reuses a finished call", async () => {

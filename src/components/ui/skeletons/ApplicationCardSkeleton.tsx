@@ -231,12 +231,15 @@ export const MINE_FACE_BOXES = {
   seg: "block h-1.5 rounded-full",
   stepWord: "mt-1 flex min-w-0 items-center justify-center gap-0.5 text-ds-11 leading-tight",
   button: "order-3 mt-2 w-full rounded-full md:mt-0 md:w-auto md:min-w-40 md:px-6 md:shrink-0 md:order-none",
-  /** JobCardMetaRow's two wrappers: a hired card's street address replaces the date line and sits above the status. */
+  /** JobCardMetaRow's two wrappers: a hired card's street address replaces the date line and sits above the status.
+   *  The face passes `oneLine`, so address, date and time share ONE line at every width (measured, mocked harness:
+   *  28px at 375 and 1440). */
   metaOuter: "flex items-center text-ds-11",
   metaRow: "flex items-center min-w-0 flex-1 overflow-hidden",
-  metaWrap: "flex-wrap gap-y-1 md:flex-nowrap",
-  /** The full address takes a line of its own on a phone (JobCardMetaRow's `basis-full`). */
-  metaAddress: "basis-full shrink-0 max-w-full md:basis-auto md:shrink md:min-w-0",
+  metaWrap: "flex-nowrap",
+  /** That line's height: the press-to-map button's 44px floor (index.css: every button is min-height 44px) less its
+   *  `-my-2` (8px above and below) is 28px, taller than the 16px text beside it. */
+  metaLine: "h-7",
 } as const;
 
 /** One text row: the real line's type class holds a non-breaking space (its exact line-height), the bone sits over it. */
@@ -280,8 +283,7 @@ export function MineFaceSkeleton({ tracker = true, address = false }: { tracker?
             {address && (
               <div className={B.metaOuter} data-face-meta="">
                 <div className={`${B.metaRow} ${B.metaWrap}`}>
-                  <FaceLine type="text-ds-11" width="80%" className={`${B.metaAddress} md:w-64`} />
-                  <FaceLine type="text-ds-11" width="7rem" className="w-28" />
+                  <FaceLine type="text-ds-11" width="70%" className={`${B.metaLine} flex-1 md:flex-none md:w-80`} />
                 </div>
               </div>
             )}
@@ -339,7 +341,8 @@ export function FaceListBones({ side, filter }: { side: "applied" | "posted"; fi
   if ((filter || "all") !== "all") return cards;
   return (
     <div className="flex flex-col gap-2" data-skeleton-group-heading="">
-      <div className="flex items-baseline justify-between px-1">
+      {/* ActivityBucketGroups' heading row: 28px (min-h-7) whether or not it carries "See all". */}
+      <div className="flex min-h-7 items-center justify-between px-1">
         <FaceLine type="text-ds-13 font-bold uppercase" width="5.5rem" className="w-full" />
       </div>
       {cards}

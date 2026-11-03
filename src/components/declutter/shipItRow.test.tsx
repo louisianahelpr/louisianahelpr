@@ -5,7 +5,8 @@
  * only after the seller ticks "nothing restricted", and the tick goes to the server with it. The data module is
  * stubbed; the backend proof is src/test/pglite/shippingListingShipIt.pglite.mjs.
  *
- * @mutate src/components/declutter/ShipItRow.tsx |   if (!on \|\| !allowed \|\| state.data === "not_deployed") return null; |   if (state.data === "not_deployed") return null;
+ * @mutate src/components/declutter/ShipItRow.tsx | const on = useFeature("declutter_shipping"); | const on = true;
+ * @mutate src/components/declutter/ShipItRow.tsx | const allowed = small && !SHIP_PICKUP_ONLY_CATEGORIES.has(category); | const allowed = !SHIP_PICKUP_ONLY_CATEGORIES.has(category);
  * @mutate src/components/declutter/ShipItRow.tsx |     if (preset !== null && !confirmed) { |     if (false) {
  * @mutate src/components/declutter/ShipItRow.tsx |     mutationFn: (preset: ShipPreset \| null) => setShipOptions(itemId, preset, preset !== null), |     mutationFn: (preset: ShipPreset \| null) => setShipOptions(itemId, preset, false),
  * @mutate src/lib/declutter/shipOptions.ts | new Set(["electronics", "appliances"]) | new Set(["appliances"])

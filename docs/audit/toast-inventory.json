@@ -861,7 +861,7 @@
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "isMissingRpcNamed(arrivalErr, \"mark_helper_arrival\") // Short window between merge and the auto-deploy landing. ? \"Arrival check-in is updating — try again in a minute.\" : (rpcErrorMessage(\"mark_helper_arrival\", arrivalErr) ?? lifecycleErrorMessage(arrivalErr) ?? \"Couldn't mark you arrived — try again?\")",
+        "text": "isMissingRpcNamed(arrivalErr, \"mark_helper_arrival\") // short window between merge and the auto-deploy landing ? \"Arrival check-in is updating — try again in a minute.\" : (rpcErrorMessage(\"mark_helper_arrival\", arrivalErr) ?? lifecycleErrorMessage(arrivalErr) ?? \"Couldn't mark you arrived — try again?\")",
         "branches": [
           {
             "form": "literal",
@@ -877,7 +877,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 731,
+      "line": 730,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -887,7 +887,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 745,
+      "line": 744,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -992,7 +992,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 816,
+      "line": 815,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1002,7 +1002,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 830,
+      "line": 829,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1012,7 +1012,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 857,
+      "line": 856,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -1022,7 +1022,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 908,
+      "line": 907,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1032,7 +1032,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 952,
+      "line": 951,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1042,7 +1042,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1011,
+      "line": 1010,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1052,7 +1052,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1070,
+      "line": 1069,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -2024,7 +2024,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 494,
+      "line": 492,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

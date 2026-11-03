@@ -29,7 +29,7 @@
  */
 // @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |   IF v_admin_row AND (SELECT auth.uid()) IS NOT NULL |   IF false AND (SELECT auth.uid()) IS NOT NULL
 // @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql | AND v_actor <> p_recipient AND public.is_test_subject(v_actor) THEN | AND v_actor <> p_recipient AND public.is_test_member(v_actor) THEN
-// @mutate supabase/migrations/20261030143141_admin_alerts_skip_test_accounts.sql |     IF NOT (public.is_test_subject(o.buyer_id) OR public.is_test_subject(o.seller_id)) THEN |     IF true THEN
+// @mutate supabase/migrations/20261103173728_q2390_haul_price_withdraw_guarantee_raise_refund_admin_delivery_cart_shops_rent_not_found_is_404.sql |     IF NOT (public.is_test_subject(o.buyer_id) OR public.is_test_subject(o.seller_id)) THEN |     IF true THEN
 // @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |   IF v_seed OR public.is_test_subject(p_user_id) THEN |   IF v_seed THEN
 // @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |       IF NOT (o.is_seed OR public.is_test_subject(o.buyer_id) OR public.is_test_subject(o.seller_id)) THEN |       IF NOT (o.is_seed) THEN
 // @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |   IF NOT (public.is_test_subject(_uid) OR public.is_test_subject(_customer) OR public.is_test_subject(_helper)) THEN |   IF true THEN

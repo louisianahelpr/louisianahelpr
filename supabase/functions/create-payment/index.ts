@@ -2763,7 +2763,18 @@ serve(async (req) => {
       const { data: job, error: jobError } = await supabaseAdmin
         .from("jobs").select("*").eq("id", jobId).single();
       if (jobError || !job) throw new PublicError("Job not found");
-      if (job.customer_id !== user.id) throw new PublicError("Not authorized");
+      // Q2449: an ADMIN may run this cancel on a job whose card is only HELD (or a failed hold): nothing was
+      // charged, so it closes the job and releases the hold exactly as the poster's own cancel does (same
+      // allowlist below: open, nobody hired, no dispute). Never the refund half: an admin refunds charged money
+      // through admin_refund_general. The admin is recorded as cancelled_by and in admin_audit_log.
+      let adminHeldCancel = false;
+      if (job.customer_id !== user.id) {
+        if (job.payment_status !== "held" && job.payment_status !== "failed") throw new PublicError("Not authorized");
+        const { data: isAdmin, error: adminRoleErr } = await supabaseAdmin.rpc("has_role", { _user_id: user.id, _role: "admin" });
+        if (adminRoleErr) console.error("[create-payment] cancel_escrow admin has_role check failed:", adminRoleErr.message);
+        if (isAdmin !== true) throw new PublicError("Not authorized");
+        adminHeldCancel = true;
+      }
 
       // ── Only an unhired, undisputed job is the poster's to refund here ──
       // A group job's crew is its roster (group_job_helpers); jobs.helper_id is
@@ -2875,6 +2886,12 @@ serve(async (req) => {
           console.error(`[create-payment] cancel_escrow: job ${jobId} cancelled, hold release left to card-hold-sweep: ${caughtMessage(e)}`);
           released = "later";
         }
+        if (adminHeldCancel) {
+          await logAdminMoneyAction(supabaseAdmin, {
+            adminId: user.id, action: "admin_cancel_held_job", jobId,
+            details: { payment_status: job.payment_status, hold_release: released, reason: typeof body.reason === "string" ? body.reason.slice(0, 500) : null },
+          });
+        }
         if (released === "captured") {
           return new Response(JSON.stringify({ error: "This job's payment needs a look from our team. Support has the details." }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409,
@@ -2883,6 +2900,14 @@ serve(async (req) => {
         return new Response(JSON.stringify({ success: true, released: true, message: CARD_HOLD_COPY.releasedTitle }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
         });
+      }
+
+      // Q2449: an admin's cancel is the held branch above only; a failed hold the poster re-paid by bank is
+      // charged money, refunded through admin_refund_general, never here.
+      if (adminHeldCancel) {
+        return new Response(JSON.stringify({
+          error: "This job's payment was charged, so it isn't a held card. Use Refund Poster instead. No money was moved.",
+        }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
       }
 
       // Atomic state claim: only an escrow-held job may be refunded.

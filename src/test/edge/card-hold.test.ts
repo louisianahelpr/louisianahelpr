@@ -1423,7 +1423,7 @@ describe("card hold at posting (Q2399)", () => {
       const captured = seedExpired();
       await runVoid();
       expect(refundAmounts()).toEqual([captured]);
-      const ledger = inserts("payment_refunds").concat(scenario.writes.filter((w) => w.table === "payment_refunds" && w.op === "upsert"));
+      const ledger = scenario.writes.filter((w) => w.table === "payment_refunds");
       expect(JSON.stringify(ledger.map((w) => w.payload))).toMatch(/hire that was then refused, nobody hired \(Q2447\): full refund, card fee included/);
     });
 

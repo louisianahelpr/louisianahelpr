@@ -51,7 +51,10 @@ import { trackedFiles } from "./helpers/trackedFiles";
 // reads and writes, where PostgREST never answers PGRST202 (a missing table is PGRST205/42P01; gift_cards and
 // job_revisions are tables on prod, pg_class 2026-11-02): HelperRevisionCard (select, update), CompletionChoiceSheet
 // (insert), giftCardQueries (sent, received) and useSpendableGiftCards. Their real error handling stays.
-const RAW_PGRST202_SITES = 23;
+// 10 since Q2190's job-action slice (Builder 22, 2026-11-02): JobTracking (arrival, done, on the way), PostedJobActions
+// (escalate), EndSeriesControl, DisputeTimelineDialog, CompletionPrompts, logViolation and useUserProfileData (5) now
+// name the RPC they called. Left: the 2 deliberate old-arguments retries and 8 shared not-deployed helpers.
+const RAW_PGRST202_SITES = 10;
 
 const ROOT = process.cwd();
 const isTest = (f: string) => /\.test\.tsx?$/.test(f) || f.startsWith("src/test/");

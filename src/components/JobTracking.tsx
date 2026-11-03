@@ -51,6 +51,7 @@ import { STATUS_IDX, deriveCurrentStatusIdx } from "@/lib/jobProgressIndex";
 export { trackingProofCaption } from "./trackingProofCaption";
 export { shouldShowTrackingMap } from "./trackingMapGate";
 import { shouldShowTrackingMap } from "./trackingMapGate";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 
 /**
@@ -708,7 +709,7 @@ export function JobTracking({
         }
         report(arrivalErr, { tags: { source: "JobTracking.markArrival" } });
         toast.error(
-          arrivalErr.code === "PGRST202"
+          isMissingRpcNamed(arrivalErr, "mark_helper_arrival")
             // Short window between merge and the auto-deploy landing.
             ? "Arrival check-in is updating — try again in a minute."
             : (rpcErrorMessage("mark_helper_arrival", arrivalErr) ?? lifecycleErrorMessage(arrivalErr) ?? "Couldn't mark you arrived — try again?"),
@@ -791,7 +792,7 @@ export function JobTracking({
       });
       if (!doneRpcErr) {
         posterAlreadyConfirmed = !!(doneRes as { poster_completed_at?: string | null } | null | undefined)?.poster_completed_at;
-      } else if (doneRpcErr.code === "PGRST202") {
+      } else if (isMissingRpcNamed(doneRpcErr, "rpc_helper_mark_done")) {
         try {
           const [stamped] = unwrapMutation(
             await supabase
@@ -901,7 +902,7 @@ export function JobTracking({
       } else if (identityRefusal(otwErr) && openIdentityCheck("start")) {
         // Stripe Identity first (20261021081258): nothing was written; the ID sheet, not a toast.
         hapticError(); setUpdating(false); setTracking(trackingBeforeWrite); return; // a sheet that cannot open falls to the branch below, which reports and toasts
-      } else if (otwErr.code !== "PGRST202") {
+      } else if (!isMissingRpcNamed(otwErr, "helper_mark_on_the_way")) {
         report(otwErr, { tags: { source: "JobTracking.markOnTheWay" } });
         hapticError();
         toast.error(rpcErrorMessage("helper_mark_on_the_way", otwErr) ?? "Couldn't mark you on the way — try again?");

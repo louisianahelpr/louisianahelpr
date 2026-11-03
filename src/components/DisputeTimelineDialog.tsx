@@ -46,6 +46,7 @@ import { MoneyNote } from "@/components/money/MoneyNote";
 import { DisputeDecisionCard, DisputeTrack, cardCls, cardStyle, outcomeHeadline } from "@/components/disputeTimeline/DisputeDecisionCard";
 import { userFacingError } from "@/lib/userFacingError";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 interface DisputeRow {
   id: string;
@@ -247,7 +248,7 @@ export const DisputeTimelineDialog = ({
         if (rpcErr) {
           // PGRST202: the function is not deployed yet (migration lag). Say so
           // plainly; it is not a defect to report.
-          if ((rpcErr as { code?: string }).code === "PGRST202") {
+          if (isMissingRpcNamed(rpcErr, "rpc_add_dispute_evidence")) {
             throw new Error("Adding evidence here isn't available yet — try again in a few minutes.");
           }
           // A refusal the server explains is not a defect: say what it said.

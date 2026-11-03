@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /**
  * Reports a blocked (off-platform-contact) message to the server and tells the
@@ -44,9 +45,8 @@ export const logViolation = async (
     // scan_message_content trigger hides + fraud-flags anything that lands.
     // So degrade to "blocked, not recorded" rather than pretending otherwise,
     // and never fall back to a client-side ban.
-    const code = (error as { code?: string }).code;
     report(error, {
-      severity: code === "PGRST202" ? "warning" : "error",
+      severity: isMissingRpcNamed(error, "apply_message_violation_consequence") ? "warning" : "error",
       tags: { source: "Messages.logViolation.rpc" },
     });
     return;

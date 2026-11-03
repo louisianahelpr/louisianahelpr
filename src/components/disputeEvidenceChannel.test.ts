@@ -100,8 +100,8 @@ describe("disputeEvidenceChannel", () => {
     const src = readFileSync("src/components/DisputeTimelineDialog.tsx", "utf8");
     expect(src).toContain("disputeEvidenceChannel(");
     expect(src).toContain('"rpc_add_dispute_evidence"');
-    // Not deployed yet (PGRST202) is told plainly, not reported as a defect.
-    expect(src).toContain('"PGRST202"');
+    // Not deployed yet (a PGRST202 naming no other signature, Q2190) is told plainly, not reported as a defect.
+    expect(src).toContain('isMissingRpcNamed(rpcErr, "rpc_add_dispute_evidence")');
   });
 });
 

@@ -389,6 +389,12 @@ if (legHas("targeted")) test.describe("targeted rules", () => {
   // the box is not shown to it (CompleteProfile.tsx ageBoxShown).
   scoped("complete-profile: asks no birthday or phone; whitespace name and 4-digit ZIP refused; no profile write", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, FORMS.find((x) => x.name === "complete-profile")!);
+    // This is the SHARED `incomplete` seed account: a save that slipped past
+    // the client checks would complete it on prod and turn every Journeys leg
+    // that needs an incomplete account red until it is re-created (2026-11-03).
+    // So the write is refused at the wire as well as watched; `watchWrites`
+    // still sees a refused request, so the assertion below is unchanged.
+    await writeFirewall(ctx);
     const writes = watchWrites(page, /\/rest\/v1\/(profiles|rpc\/complete_profile)/);
     await expect(page.locator("#firstName"), "complete-profile did not render for the incomplete seed account").toBeVisible({ timeout: 15_000 });
     await expect(page.locator("#dob, #phone"), "Complete Profile asks a birthday or phone again (owner, 2026-10-14)").toHaveCount(0);

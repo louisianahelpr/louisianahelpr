@@ -3,14 +3,15 @@
 // a taxable job's sales tax at jobs.zip_code and refuses a taxable job with no Louisiana ZIP.
 //
 // Reads the NEWEST definitions (effectiveDefs: any dollar tag, later restatements win) and the client source
-// with comments blanked. Behaviour proof: src/test/pglite/quoteRequestZipTaxKind.pglite.mjs (14/14 after,
-// applied 3x; 11 of 14 fail with this migration left out).
+// with comments blanked. Behaviour proof: src/test/pglite/quoteRequestZipTaxKind.pglite.mjs (15/15 after,
+// applied 3x; 12 of 15 fail with this migration left out).
 //
 // @mutate supabase/migrations/20261103205121_quote_request_zip_tax_kind.sql |           p_req.zip_code, p_req.tax_kind) |           NULL, p_req.tax_kind)
 // @mutate supabase/migrations/20261103205121_quote_request_zip_tax_kind.sql |     RAISE EXCEPTION 'invalid_zip' USING ERRCODE = '22023', DETAIL | RAISE NOTICE 'invalid_zip' USING DETAIL
 // @mutate supabase/migrations/20261103205121_quote_request_zip_tax_kind.sql | DROP FUNCTION IF EXISTS public.create_quote_request(text, text, text, date, time, numeric, text, numeric, numeric, text, integer); | SELECT 1;
 // @mutate supabase/migrations/20261103205121_quote_request_zip_tax_kind.sql |   IF public.is_job_labor_taxable(v_category, NULL) THEN |   IF false THEN
 // @mutate supabase/migrations/20261103205121_quote_request_zip_tax_kind.sql |     RAISE EXCEPTION 'too_many_open_requests' USING ERRCODE = 'P0001', |     RAISE EXCEPTION 'too_many_open_requests' USING ERRCODE = '54000',
+// @mutate supabase/migrations/20261103205121_quote_request_zip_tax_kind.sql |     NEW.zip_code := NULL; |
 // @mutate src/lib/quotes/api.ts |       p_zip_code: r.zipCode, |
 // @mutate src/pages/post-job/CheckoutStepView.tsx |     parish: form.parish, taxKind: form.taxKind, |     parish: form.parish, taxKind: null,
 import { describe, expect, it } from "vitest";
@@ -67,6 +68,10 @@ describe("a quote-booked job carries the job ZIP and tax_kind (Q2083 b)", () => 
     const sig = "public.create_quote_request(text, text, text, date, time, numeric, text, numeric, numeric, text, integer, text, text)";
     expect(allSql).toContain(`REVOKE ALL ON FUNCTION ${sig} FROM PUBLIC, anon;`);
     expect(allSql).toContain(`GRANT EXECUTE ON FUNCTION ${sig} TO authenticated, service_role;`);
+  });
+
+  it("account deletion clears the request's ZIP with its address, as for jobs.zip_code", () => {
+    expect(body("quote_request_follows_poster_deletion")).toMatch(/NEW\.longitude := NULL;\s+NEW\.zip_code := NULL;/);
   });
 
   it("the client sends the ZIP and the Details answer from the quote ask", () => {

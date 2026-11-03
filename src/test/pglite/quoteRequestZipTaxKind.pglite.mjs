@@ -63,18 +63,22 @@ CREATE FUNCTION public.quote_require_member() RETURNS void LANGUAGE sql AS $$ SE
 CREATE FUNCTION public.is_caller_banned() RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
 ${tableStmt("20261015091114_job_quotes.sql", "job_quote_requests")}
 ${fnStmt("is_job_labor_taxable")}
+CREATE TABLE public.job_quotes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), request_id uuid, status text, updated_at timestamptz);
+CREATE TABLE public.job_quote_offers (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), quote_id uuid, by_side text, note text);
 `);
 
 // Prod's state first in both modes (the old 11-arg create_quote_request and quote_insert_job with prod's
 // grants), so the after run proves the migration REPLACES them, not that it works on an empty schema.
-await db.exec(`${fnStmt("create_quote_request")}\n${fnStmt("quote_insert_job")}
+await db.exec(`${fnStmt("create_quote_request")}\n${fnStmt("quote_insert_job")}\n${fnStmt("quote_request_follows_poster_deletion")}
+CREATE TRIGGER trg_quote_request_poster_deleted BEFORE UPDATE OF poster_id ON public.job_quote_requests
+  FOR EACH ROW EXECUTE FUNCTION public.quote_request_follows_poster_deletion();
 REVOKE ALL ON FUNCTION public.create_quote_request(text, text, text, date, time, numeric, text, numeric, numeric, text, integer) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.create_quote_request(text, text, text, date, time, numeric, text, numeric, numeric, text, integer) TO authenticated, service_role;
 REVOKE ALL ON FUNCTION public.quote_insert_job(public.job_quote_requests, numeric, uuid) FROM PUBLIC, anon, authenticated;`);
 if (BEFORE) {
   const md5s = await db.query(
     `SELECT p.proname, md5(pg_get_functiondef(p.oid)) AS md5, length(pg_get_functiondef(p.oid)) AS len
-       FROM pg_proc p WHERE p.proname IN ('create_quote_request', 'quote_insert_job') ORDER BY 1`);
+       FROM pg_proc p WHERE p.proname IN ('create_quote_request', 'quote_insert_job', 'quote_request_follows_poster_deletion') ORDER BY 1`);
   for (const r of md5s.rows) console.log(`before-def ${r.proname} md5 ${r.md5} (${r.len} chars)`);
 } else {
   for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
@@ -145,6 +149,12 @@ const old = await tryQ(
 check("an 11-named-argument call reaches the new function and is refused invalid_zip / 22023",
   /invalid_zip/.test(old.error ?? "") && old.code === "22023");
 
+// 6. Account deletion (poster_id -> NULL) clears the request's ZIP with its address, as jobs.zip_code is cleared.
+const del = a.error ? null : a.rows[0].id;
+if (del) await db.query(`UPDATE public.job_quote_requests SET poster_id = NULL WHERE id = $1`, [del]);
+const gone = del ? (await db.query(`SELECT zip_code, location FROM public.job_quote_requests WHERE id = $1`, [del])).rows[0] : null;
+check("a deleted poster's request loses its zip_code", !!gone && gone.zip_code === null);
+
 const fails = checks.filter(([, ok]) => !ok).length;
 console.log(BEFORE ? `before: ${fails} of ${checks.length} failed (the gap must show)` : `after: ${checks.length - fails}/${checks.length} pass (3x applied)`);
-process.exit(BEFORE ? (fails >= 9 ? 0 : 1) : fails === 0 ? 0 : 1);
+process.exit(BEFORE ? (fails >= 10 ? 0 : 1) : fails === 0 ? 0 : 1);

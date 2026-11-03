@@ -98,6 +98,7 @@ const TS_CLASSIFIED: Record<string, "listed" | "captured" | "exhaustive"> = {
   "src/components/admin/AdminAnalyticsDrilldowns.tsx": "captured",
   "src/pages/admin/Admin.tsx": "captured",
   "src/pages/post-job/PaymentSuccess.tsx": "captured", // "is held securely in escrow"; a held card has its own branch
+  "src/pages/post-job/firstPaymentCollected.ts": "captured", // Q2115: other jobs whose money was collected; a held card was not
   "src/lib/statusLabels.ts": "exhaustive", // every jobs_payment_status_check value, 'held' included
 };
 const FUNDED_TS = /["']escrow["']\s*,\s*["']payout_pending["']\s*,\s*["']released["']/;

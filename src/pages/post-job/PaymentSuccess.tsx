@@ -268,9 +268,17 @@ const PaymentSuccess = () => {
     // Funnel: customer returned from checkout — closes the customer funnel
     // that previously stopped at job_posted with no record of payment.
     track(AhaEvent.PaymentMade, { job_id: jobId, ...ppoProps });
+  }, [searchParams]);
 
-    // First-payment aha: only this poster's one paid job (Q2114).
-    void trackFirstPaymentCollected(jobId, ppoProps);
+  // First-payment aha (Q2114, Q2115): once, and only after the lookup has READ this job as paid (the webhook often
+  // lands after the first read, which is what the poll waits for), for the same well-formed checkout return.
+  const firstPaymentFired = useRef(false);
+  const fireFirstPayment = useCallback(() => {
+    if (firstPaymentFired.current) return;
+    const linkJobId = searchParams.get("job_id");
+    if (!linkJobId || !UUID_RE.test(linkJobId)) return;
+    firstPaymentFired.current = true;
+    void trackFirstPaymentCollected(linkJobId, ppoTrackingProps());
   }, [searchParams]);
 
   // ── The confirmation lookup ───────────────────────────────────────────
@@ -330,6 +338,7 @@ const PaymentSuccess = () => {
         // The offeree is never read from jobs by a client (offeredHelperPrivacy): the sanctioned RPC answers the poster.
 
         const status = data.payment_status;
+        if (status && HELD_STATUSES.has(status)) fireFirstPayment();
         if (status === "held" || (status && HELD_STATUSES.has(status))) {
           if (status === "released") setAlreadyReleased(true);
           if (status === "payout_pending") setPayingOut(true);
@@ -358,7 +367,7 @@ const PaymentSuccess = () => {
       setConfirmState("unknown");
     })();
     return () => { cancelled = true; };
-  }, [resolvedJobId, confirmAttempt, fireReturnEvents]);
+  }, [resolvedJobId, confirmAttempt, fireReturnEvents, fireFirstPayment]);
 
   // Celebrate only what we actually confirmed. The success haptic used to
   // fire on mount, i.e. also when every request behind this screen had died.

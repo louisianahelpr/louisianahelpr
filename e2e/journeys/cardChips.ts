@@ -42,6 +42,35 @@ export async function findChip(page: Page, scope: Locator, name: RegExp, timeout
   }
 }
 
+/**
+ * The JOB PAGE's own control named `name`, on its one row of buttons or in that row's "More options" sheet, or null by
+ * `timeout`. The page's actions (Message, Edit, Cancel job, ...) moved there from the card (owner 2026-10-31); the row
+ * is `[data-job-row="poster"|"helpr"]` and its sheet `[data-row-options=...]` (JobPageActionRow). Like a card's More
+ * panel, a control in the shut sheet is invisible to a row-scoped locator, so this opens it before saying "none".
+ * e2e-journeys 41642598669: hire-and-message looked for the poster's Message on the booked CARD, whose face now
+ * carries only its step.
+ */
+export async function findPageAction(page: Page, tag: "poster" | "helpr", name: RegExp, timeout: number): Promise<Locator | null> {
+  const deadline = Date.now() + timeout;
+  const row = page.locator(`[data-job-row="${tag}"]`);
+  const sheet = page.locator(`[data-row-options="${tag}"]`).filter({ visible: true });
+  for (;;) {
+    const inOpenSheet = sheet.getByRole("button", { name }).first();
+    if (await inOpenSheet.isVisible().catch(() => false)) return inOpenSheet;
+    const onRow = row.getByRole("button", { name }).filter({ visible: true }).first();
+    if (await onRow.isVisible().catch(() => false)) return onRow;
+    const more = row.getByRole("button", { name: "More options", exact: true }).filter({ visible: true }).first();
+    if (await more.isVisible().catch(() => false)) {
+      await more.click();
+      const inSheet = sheet.getByRole("button", { name }).first();
+      if (await inSheet.waitFor({ state: "visible", timeout: 3_000 }).then(() => true, () => false)) return inSheet;
+      await page.keyboard.press("Escape");
+    }
+    if (Date.now() >= deadline) return null;
+    await page.waitForTimeout(1_000);
+  }
+}
+
 /** The one job card whose face is `title` (a card, not the whole list: other cards carry the same chips).
  *  A Posted card's face is a LINK named "Open <title>" to /jobs/:id (MineJobFace), not a level-2 heading: the heading
  *  went with the face rebuild, and e2e-journeys 41553090940 timed out on it (04-admin-safety no-show). */

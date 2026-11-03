@@ -35,7 +35,8 @@ vi.mock("@/components/job-card/activityFilters", async (importOriginal) => ({
 }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 // badge = To-do (design-a2, 2026-10-20): the "need you" count is the shared to-do list; one job to-do here.
-vi.mock("./needsYouTodos", () => ({ useNeedsYouTodos: () => ({ todos: [{ id: "p-n1", section: "jobs" }] }) }));
+// B51: the hook lives in useNeedsYouTodos.ts beside the lazily loaded derivations (none needed for the tile counts).
+vi.mock("./useNeedsYouTodos", () => ({ useNeedsYouTodos: () => ({ todos: [{ id: "p-n1", section: "jobs" }] }), useHomeDerive: () => null }));
 
 import { useHomeSummary } from "./useHomeSummary";
 

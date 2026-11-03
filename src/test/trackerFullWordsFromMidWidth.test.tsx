@@ -17,7 +17,7 @@
  *
  * @mutate src/index.css | @container (min-width: 368px) {\n  .job-step-short { display: none; } | @container (min-width: 640px) {\n  .job-step-short { display: none; }
  * @mutate src/components/tracker/JobProgress.tsx | <span className="job-step-full min-w-0 text-center"> | <span className="job-step-full truncate">
- * @mutate src/components/tracker/jobProgressState.ts | "Con\u00ADfirmed", | "Confirmed",
+ * @mutate src/components/tracker/jobProgressSteps.ts | "Con\u00ADfirmed", | "Confirmed",
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

@@ -19,8 +19,7 @@ const handoverApi = () => loadModule(() => import("@/lib/declutter/handover"));
 const nearCountsApi = () => loadModule(() => import("./sectionNearCounts"));
 import { whenPageSettled } from "@/lib/routePrefetch";
 import { useFeature } from "@/hooks/useFeature";
-import { useNeedsYouTodos } from "./needsYouTodos";
-import { deriveLiveNow, deriveWaiting } from "./nextUpStates";
+import { useHomeDerive, useNeedsYouTodos } from "./useNeedsYouTodos";
 import { deriveComingUp, type ComingUpItem } from "./comingUp";
 import { inProgressJobIds, useContinueDays } from "@/hooks/useContinueDays";
 
@@ -97,6 +96,8 @@ export function useHomeSummary(user: SupaUser | null) {
   const orders = useQuery({ queryKey: ["shops", "my-orders", uid], queryFn: () => shopOrdersApi().then((m) => (m ? m.fetchMyOrders(uid) : untilReload())), enabled: !!uid && shopsOn });
   // The to-do list is the ONE the nav badges count (badge = To-do, owner 2026-10-20).
   const { todos } = useNeedsYouTodos(user);
+  // The live job and the waiting line come from the same lazily loaded derivations (useNeedsYouTodos.ts, B51).
+  const derive = useHomeDerive();
   const homes = useQuery({ queryKey: ["rentals", "my-properties", uid], queryFn: () => rentalsApi().then((m) => (m ? m.fetchMyProperties(uid) : untilReload())), enabled: !!uid && homesOn });
   // Coming up's Declutter pickups and shop orders: the SAME reads (keys and fetches) the Buying/Selling
   // tabs and the Shop dashboard make, so Home adds no query shape.
@@ -151,12 +152,12 @@ export function useHomeSummary(user: SupaUser | null) {
     const props = homes.data ?? [];
 
     // Board 165: a job happening now sits above Next up. Board 83: with nothing to do, who is up (never the live job again).
-    const liveNow = deriveLiveNow(pj, aa, posted.helperNames ?? {}, continueDays);
+    const liveNow = derive ? derive.deriveLiveNow(pj, aa, posted.helperNames ?? {}, continueDays) : null;
     return {
-      loading: posted.loading && applied.loading,
+      loading: (posted.loading && applied.loading) || !derive,
       todos,
       liveNow,
-      waiting: todos.length ? null : deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, liveNow?.jobId ?? null, posted.helperNames ?? {}, continueDays),
+      waiting: todos.length || !derive ? null : derive.deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, liveNow?.jobId ?? null, posted.helperNames ?? {}, continueDays),
       thisWeek,
       upcoming: upcoming.slice(0, COMING_UP_MAX),
       upcomingFailed,
@@ -188,5 +189,5 @@ export function useHomeSummary(user: SupaUser | null) {
         homes: countLine([[props.length, "property", "properties"]]),
       },
     };
-  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.helperNames, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, orders.data, orders.isError, todos, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError, jobsNear.data, declutterNear.data, continueDays]);
+  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.helperNames, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, orders.data, orders.isError, todos, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError, jobsNear.data, declutterNear.data, continueDays, derive]);
 }

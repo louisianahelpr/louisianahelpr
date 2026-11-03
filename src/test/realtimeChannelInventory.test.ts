@@ -254,7 +254,7 @@ describe("realtime channel inventory (Q105)", () => {
       "components/notificationPanel/notificationFeed.ts",
       "hooks/useActivityData.ts",
       "hooks/useRealtimePush.ts",
-      "pages/home/homeDashboard/needsYouTodos.ts",
+      "pages/home/homeDashboard/useNeedsYouTodos.ts",
       "pages/messages/useMessagesRealtime.ts",
     ]);
   });

@@ -28,6 +28,7 @@ import {
 import { fetchMyHandover, handoverPhotoUrl } from "@/lib/declutter/handover";
 import { safeBlobUrl } from "@/lib/safeBlobUrl";
 import { focusSheetItself } from "./focusSheetItself";
+import { Button } from "@/components/ui/button";
 
 const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
@@ -294,5 +295,19 @@ export function NoShowSheet({
         </SheetFooter>
       </SheetContent>
     </Sheet>
+  );
+}
+
+/**
+ * BUY-17 (owner 11-03): a porch buyer's "I got it" before the seller's porch photo, greyed out with its reason
+ * (porch_photo_not_in on the server, 20261103202118). "Report a problem" stays below, outside HandoverPanel.
+ * Moved out of DeclutterHandoverViews.tsx unchanged (componentSizeRatchet: that view stays at 600 lines).
+ */
+export function GotItWaitsForPorchPhoto({ orderId }: { orderId: string }) {
+  return (
+    <div className="space-y-1">
+      <Button type="button" size="sm" className="rounded-full" disabled aria-describedby={`dcl-got-it-wait-${orderId}`}>I got it</Button>
+      <p id={`dcl-got-it-wait-${orderId}`} className="text-sm text-muted-foreground" data-got-it-wait="">You can tap "I got it" once the seller posts the porch photo.</p>
+    </div>
   );
 }

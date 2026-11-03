@@ -55,8 +55,7 @@ import { ManagerSaleShareGate } from "./ManagerSaleShareGate";
 import { useOpenProblems } from "./useOpenProblems";
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
-import { Button } from "@/components/ui/button";
-import { GotItSheet, PickedUpPhotoSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
+import { GotItSheet, GotItWaitsForPorchPhoto, PickedUpPhotoSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
 import { MeetupPanel } from "./DeclutterMeetup";
 import { noShowFrom, pickupTimeOver, porchDayIsNow, PorchDayPanel, porchPhotoDay } from "./DeclutterPorchDay";
 import { OrderPorchPlace } from "./DeclutterPorchPlaces";
@@ -383,9 +382,8 @@ function BookingPanel({ order, booking, frozen = false, noTimes = null }: { orde
 
 function HandoverPanel({ order, userId, slotStart, anyProblem, who, problemOpen, onProblem }: { order: PaidOrder; userId: string; slotStart: string; anyProblem: boolean; who: string; problemOpen: boolean; onProblem: () => void }) {
   const qc = useQueryClient();
-  // BUY-17 (owner 11-03): the buyer's "I got it" on a porch pickup waits for the seller's porch photo (set_out_at),
-  // whatever the day (was A1-C2: the photo or the pickup day). The server refuses it too (porch_photo_not_in,
-  // 20261103202118). The same handover row and key PorchOutPhoto reads, so nothing is read twice.
+  // BUY-17 (owner 11-03): a porch buyer's "I got it" waits for the porch photo (set_out_at) whatever the day; see
+  // GotItWaitsForPorchPhoto. The same handover row and key PorchOutPhoto reads, so nothing is read twice.
   const porchBuyer = order.side === "buyer" && order.handover === "porch";
   const doorSeller = order.side === "seller" && (order.handover === "pickup_home" || order.handover === "meetup");
   const handoverRow = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId), enabled: porchBuyer || doorSeller });
@@ -460,13 +458,7 @@ function HandoverPanel({ order, userId, slotStart, anyProblem, who, problemOpen,
   // Audit 1030 DB-2: no "I got it" while a problem is open (the server refuses it: problem_open); the card's note says why.
   if (problemOpen) return null;
   if (!porchReady) {
-    // Greyed out with its reason (owner 11-03); "Report a problem" stays below, outside this panel.
-    return (
-      <div className="space-y-1">
-        <Button type="button" size="sm" className="rounded-full" disabled aria-describedby={`dcl-got-it-wait-${order.orderId}`}>I got it</Button>
-        <p id={`dcl-got-it-wait-${order.orderId}`} className="text-sm text-muted-foreground" data-got-it-wait="">You can tap "I got it" once the seller posts the porch photo.</p>
-      </div>
-    );
+    return <GotItWaitsForPorchPhoto orderId={order.orderId} />;
   }
   // Audit 1030 DB-3: at a safe meeting spot or a door pickup "I got it" opens an hour before the booked time, as
   // "I'm here" does (the server refuses it before then: got_it_too_early, 20261030061753; declutter_meetup_rules()
@@ -511,9 +503,8 @@ function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; u
   // Q2626: a porch TIME counts too: its day is the slot's (porchPhotoDay, the server's rule).
   const photoDay = porchPhotoDay(booking);
   const notYet = seller && !posted && !!photoDay && !porchDayIsNow(photoDay);
-  // BUY-5 (buying audit 10-30 #5): offered days early, it finished the sale. Same rule as HandoverPanel's porchReady.
-  // BUY-17 (owner 11-03): the buyer's pickup photo finishes the sale like "I got it", so it waits for the porch photo
-  // whatever the day (porch_photo_not_in on the server, 20261103202118).
+  // BUY-5/BUY-17: the buyer's pickup photo finishes the sale like "I got it", so it waits for the porch photo whatever
+  // the day, the same rule as HandoverPanel's porchReady (porch_photo_not_in on the server, 20261103202118).
   const buyerWaits = !seller && !handoverRow.data?.set_out_at;
   const [shot, setShot] = useState<File | null>(null);
   const timing = useMutation({

@@ -67,6 +67,25 @@ function ct(date: string, hhmm: string): Date {
   return new Date(t);
 }
 
+/**
+ * The first US DST Sunday on or after `fromIso` (YYYY-MM-DD): "fall" is the
+ * first Sunday of November (back to CST), "spring" the second Sunday of March
+ * (on to CDT), the rule in force since 2007 (15 U.S.C. 260a). Written out by
+ * hand for the same reason as ct(): never computed with the code under test.
+ */
+function nextUsDstSunday(kind: "fall" | "spring", fromIso: string): string {
+  const [fy] = fromIso.split("-").map(Number);
+  for (let y = fy; y <= fy + 1; y++) {
+    const month = kind === "fall" ? 10 : 2; // 0-based: November, March
+    const firstDow = new Date(Date.UTC(y, month, 1)).getUTCDay();
+    const firstSunday = 1 + ((7 - firstDow) % 7);
+    const day = kind === "fall" ? firstSunday : firstSunday + 7;
+    const iso = `${y}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    if (iso >= fromIso) return iso;
+  }
+  throw new Error(`no ${kind} DST Sunday found from ${fromIso}`);
+}
+
 function centralDate(offsetDays: number): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: CT, year: "numeric", month: "2-digit", day: "2-digit" }).format(
     new Date(Date.now() + offsetDays * 86_400_000),
@@ -297,8 +316,12 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
      */
     const D = centralDate(3);
     const job = await postJob(D, "09:00", "plain");
-    await postJob("2026-11-01", "06:00", "dst-fall");
-    await postJob("2027-03-14", "06:00", "dst-spring");
+    // The NEXT fall-back and spring-forward Sundays, never fixed dates: a row
+    // dated in the past has its expiry pulled to "now" by the server, so the
+    // literal "2026-11-01" turned this leg red the day after it (e2e-journeys
+    // 41553090940: expected 2026-11-01T12:00Z, stored 2026-11-03T02:54Z).
+    await postJob(nextUsDstSunday("fall", centralDate(1)), "06:00", "dst-fall");
+    await postJob(nextUsDstSunday("spring", centralDate(1)), "06:00", "dst-spring");
 
     /*
      * AN UNPAID JOB SHOWS NOWHERE (owner, 2026-09-27): "Unpaid jobs should not

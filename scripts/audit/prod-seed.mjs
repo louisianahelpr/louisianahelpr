@@ -1303,7 +1303,7 @@ async function verify() {
   for (const [k, spec] of Object.entries({ pending: OWNED.pending, denied: OWNED.denied, banned: OWNED.banned, restricted: OWNED.restricted })) {
     await check(`account ${k} (is_seed)`, `profiles?email=eq.${encodeURIComponent(spec.email)}&is_seed=eq.true&ban_status=eq.${spec.ban_status}&select=user_id`, 1);
   }
-  await check("account incomplete profile (seed, not legacy, no city)", `profiles?email=eq.${encodeURIComponent(OWNED.incomplete.email)}&is_seed=eq.true&avatar_url=is.null&location=is.null&is_legacy_user=eq.false&select=user_id`, 1);
+  await check("account incomplete profile (seed, not legacy, no city, no first consent)", `profiles?email=eq.${encodeURIComponent(OWNED.incomplete.email)}&is_seed=eq.true&avatar_url=is.null&location=is.null&accepted_terms_at=is.null&is_legacy_user=eq.false&select=user_id`, 1);
   // By (user_id, role), not by the seed id: a role granted at another id is
   // kept by --apply (dropRowsHeldByAnotherWriter) and is still the admin role.
   const adminAccount = await profileByEmail(OWNED.admin.email);

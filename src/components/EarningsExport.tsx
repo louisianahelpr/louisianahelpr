@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Skeleton } from "@/components/ui/skeleton";
 import { FileSpreadsheet, FileText, CalendarIcon, Loader2, Receipt } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -130,7 +131,7 @@ export const EarningsExport = ({ helperId, helperName, open: controlledOpen, onO
       // The RPC ships in a migration that may not be pushed to production
       // yet (migrations don't auto-deploy). Surface a friendly message
       // instead of Postgres's cryptic "function not found" error.
-      if (error.code === "PGRST202") {
+      if (isMissingRpcNamed(error, "get_helper_earnings_export")) {
         throw new Error("Earnings export isn't available just yet. Please try again soon.");
       }
       throw error;

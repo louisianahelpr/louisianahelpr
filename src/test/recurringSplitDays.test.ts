@@ -167,7 +167,7 @@ describe("recurring split days (Q407 4-6)", () => {
     // once more, adding only the Helpr's schedule lock.
     const setters = files.filter((f) => /set_config\('app\.series_claim_rpc',\s*'1'/.test(blankSqlComments(readFileSync(`${dir}/${f}`, "utf8"))));
     expect(setters).toEqual(["20260927012806_recurring_split_days.sql", "20261007051854_series_claim_is_an_accept.sql", "20261020043346_id_once_gates_every_accept.sql", "20261021061341_member_display_name.sql", "20261102230059_series_claim_unready_holds_one.sql", "20261103032330_series_claim_takes_helpr_schedule_lock.sql"]);
-    expect((allSql.match(/set_config\('app\.series_claim_rpc',\s*'1'/g) ?? []).length).toBe(5);
+    expect((allSql.match(/set_config\('app\.series_claim_rpc',\s*'1'/g) ?? []).length).toBe(6); // one per setter file above
   });
 
   it("the split choice is locked after hire, and hire seeds the holds", () => {

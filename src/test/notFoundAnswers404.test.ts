@@ -219,7 +219,8 @@ const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_s
   "declutter_delivery_quote", "declutter_set_delivery_dropoff", "declutter_lock_order", "helpr_task_lock",
   "shops_order_terms", "shops_cancel_order_request", "shops_decline_order", "shop_lock_open_charged_order"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-const P0002_RAISERS = 166;
+// 167 (L50 train 2, 11-03): replace_stripe_customer (20261103053759, money train #4047) raises P0002 for a missing profile; service_role only, never reached by app code.
+const P0002_RAISERS = 167;
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");

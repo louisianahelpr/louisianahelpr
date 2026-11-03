@@ -55,6 +55,9 @@ const NO_ACCEPT: Record<string, string> = {
   // REST/RPC calls as the test accounts to build state fixtures; it renders no
   // page, so no Terms dialog can stand in its way.
   "scripts/e2e/seedStateFixtures.mjs": "builds seed state fixtures over REST/RPC; renders no page",
+  // Settles one funded test job forward over REST/RPC as its two test seats (Q2073);
+  // it renders no page, so no Terms dialog can stand in its way.
+  "scripts/e2e/settle-job-by-email.mjs": "settles one test job over REST/RPC (Q2073); renders no page",
   // Answers a typed login's password grant from a route handler; the specs
   // using it (auth, slow-network, payment-lifecycle) assert the login itself.
   "e2e/helpers/mintedPasswordGrant.ts": "login-form specs, not a page sweep; not audited for the dialog (2026-10-07)",

@@ -196,6 +196,7 @@
  * @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | v_record  jsonb;\nBEGIN\n  SELECT p.marketing_consent, p.promotions_before_unsubscribe\n    INTO v_consent, v_saved\n    FROM public.profiles p\n   WHERE p.user_id = p_user_id\n     FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'PT404'; | v_record  jsonb;\nBEGIN\n  SELECT p.marketing_consent, p.promotions_before_unsubscribe\n    INTO v_consent, v_saved\n    FROM public.profiles p\n   WHERE p.user_id = p_user_id\n     FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | v_untouched boolean;\nBEGIN\n  SELECT p.marketing_consent, p.promotions_before_unsubscribe\n    INTO v_consent, v_saved\n    FROM public.profiles p\n   WHERE p.user_id = p_user_id\n     FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'PT404'; | v_untouched boolean;\nBEGIN\n  SELECT p.marketing_consent, p.promotions_before_unsubscribe\n    INTO v_consent, v_saved\n    FROM public.profiles p\n   WHERE p.user_id = p_user_id\n     FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | RAISE EXCEPTION 'shop_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'shop_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103150842_q2390_returns_withdraw_fee_waiver_visit_lease_not_found_is_404.sql | RAISE EXCEPTION 'no_visit_proposed' USING ERRCODE = '22023'; | RAISE EXCEPTION 'no_visit_proposed' USING ERRCODE = 'PT404';
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -234,6 +235,7 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
  * Packet 28 (regular): declutter_save_card, rentals_decide_rent_payment, declutter_seller_delivery_booking, declutter_cancel_after_no_helpr, declutter_set_delivery_handoff, declutter_payout_take_setup_fee (20261103130123); stripe-webhook throws on any declutter_save_card error, declutter-money treats every setup-fee error but PGRST202 alike, the app maps by message.
  * Packet 29 (regular): rentals_invite_tenant, helpr_task_payout_take_setup_fee, declutter_report_not_delivered, shops_set_my_faqs, declutter_set_return_address, declutter_answer_refund_offer (20261103141808); declutter-money treats every setup-fee error but PGRST202 alike, the app maps by message.
  * Packet 30 (regular): rentals_set_deposit, declutter_update_wanted, rentals_dispute_rent_payment, declutter_mark_sold_elsewhere, shops_admin_record_hand_refund, bill_helpr_fault_card_fee (20261103142625); create-payment turns any bill_helpr_fault_card_fee error into a money_at_risk alert, shop-checkout rpcRefusal already answers 404 for PT404, the app maps by message.
+ * Packet 31 (regular): declutter_refund_item_returned, declutter_admin_waive_fee_debt, declutter_withdraw_refund, rentals_propose_visit, rentals_confirm_visit, rentals_lease_save (20261103150842); the app maps by message. rentals_confirm_visit's 'no_visit_proposed' also used P0002 but is a state refusal, not a missing row: it is '22023' (400), lead 11-03 (STATE_REFUSALS below).
  */
 const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
   "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm",
@@ -269,9 +271,16 @@ const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_s
   "rentals_invite_tenant", "helpr_task_payout_take_setup_fee", "declutter_report_not_delivered", "shops_set_my_faqs",
   "declutter_set_return_address", "declutter_answer_refund_offer",
   "rentals_set_deposit", "declutter_update_wanted", "rentals_dispute_rent_payment", "declutter_mark_sold_elsewhere",
-  "shops_admin_record_hand_refund", "bill_helpr_fault_card_fee"];
+  "shops_admin_record_hand_refund", "bill_helpr_fault_card_fee",
+  "declutter_refund_item_returned", "declutter_admin_waive_fee_debt", "declutter_withdraw_refund", "rentals_propose_visit",
+  "rentals_confirm_visit", "rentals_lease_save"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-const P0002_RAISERS = 105;
+const P0002_RAISERS = 99;
+/**
+ * Refusals that used P0002 but name a state, not a missing row: they move to '22023' (400), never PT404 (lead 11-03).
+ * Function -> the exception message it raises with '22023'.
+ */
+const STATE_REFUSALS: [string, string][] = [["rentals_confirm_visit", "no_visit_proposed"]];
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");
@@ -299,6 +308,18 @@ describe("not found answers 404 (Q2390)", () => {
       expect(defs.has(name), name).toBe(true);
       expect(body(name), name).toMatch(/ERRCODE\s*=\s*'PT404'/);
       expect(body(name), name).not.toMatch(RAISES_P0002);
+    }
+  });
+
+  it("state refusals that left P0002 raise '22023', not PT404 (lead 11-03)", () => {
+    expect(STATE_REFUSALS.length).toBeGreaterThan(0);
+    for (const [name, message] of STATE_REFUSALS) {
+      const re = new RegExp(`RAISE\\s+EXCEPTION\\s+'${message}'\\s+USING\\s+ERRCODE\\s*=\\s*'([^']+)'`, "gi");
+      const src = body(name);
+      const codes: string[] = [];
+      for (let m = re.exec(src); m; m = re.exec(src)) codes.push(m[1]);
+      expect(codes.length, `${name} ${message}`).toBeGreaterThan(0);
+      expect([...new Set(codes)], `${name} ${message}`).toEqual(["22023"]);
     }
   });
 

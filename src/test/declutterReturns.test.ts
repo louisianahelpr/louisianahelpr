@@ -21,7 +21,7 @@
  * @mutate supabase/migrations/20261103141808_q2390_invite_setup_fee_no_show_faqs_return_offer_not_found_is_404.sql |   IF r.status <> 'returning' OR r.return_way IS DISTINCT FROM 'collect' THEN | IF r.status <> 'returning' THEN
  * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql |   v_show_address := COALESCE(r.status = 'returning' AND r.return_way = 'collect', false); |   v_show_address := true;
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql |   SELECT greatest(r.return_by, |   SELECT least(r.return_by,
- * @mutate supabase/migrations/20261030071818_declutter_returns.sql | CREATE OR REPLACE FUNCTION public.declutter_refund_item_returned(p_request_id uuid, p_photo_path text DEFAULT NULL) | CREATE OR REPLACE FUNCTION public.declutter_refund_item_returned(p_request_id uuid, p_photo_path text)
+ * @mutate supabase/migrations/20261103150842_q2390_returns_withdraw_fee_waiver_visit_lease_not_found_is_404.sql | CREATE OR REPLACE FUNCTION public.declutter_refund_item_returned(p_request_id uuid, p_photo_path text DEFAULT NULL) | CREATE OR REPLACE FUNCTION public.declutter_refund_item_returned(p_request_id uuid, p_photo_path text)
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | acceptRefundWithReturn(r.id, | answerRefund(r.id,
  */
 import { describe, expect, it } from "vitest";

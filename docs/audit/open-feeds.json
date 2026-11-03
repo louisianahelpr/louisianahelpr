@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-03T19:42Z",
+  "measured_at": "2026-11-03T20:01Z",
   "issues": {
     "readable": true,
     "open": [
@@ -50,7 +50,7 @@
         "number": 2601,
         "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41350588111",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41694924737",
         "runTruncated": false
       },
       {
@@ -146,7 +146,7 @@
         "number": 4065,
         "title": "nightly-red: main: Vitest",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41692794365",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41699549119",
         "runTruncated": false
       }
     ]
@@ -793,7 +793,6 @@
     "ledger 13c460ab330a": "Q1596",
     "ledger 144d5faeaf8f": "Q1596",
     "ledger 15cc2d7f63f3": "Q2347",
-    "ledger 16925d0d35eb": "Q2540",
     "ledger 16e6e91f6701": "Q1816",
     "ledger 18539240a894": "Q1816",
     "ledger 1b4eafb12222": "Q1596",
@@ -836,7 +835,6 @@
     "ledger 708048794e4c": "Q1596",
     "ledger 70c81dfc4f91": "Q1596",
     "ledger 70e7b0decb9a": "Q1816",
-    "ledger 714c8b8667bc": "Q2536",
     "ledger 7549f5452e44": "Q2512",
     "ledger 779af65c258e": "Q1596",
     "ledger 7e141f206640": "Q1816",
@@ -878,7 +876,6 @@
     "ledger c4af5413ec6a": "Q1596",
     "ledger c540527c8265": "Q2517",
     "ledger c5d2aafd1f77": "Q2410",
-    "ledger c93b8da828e7": "Q2534",
     "ledger caab19e71ae9": "Q1596",
     "ledger cae29df0662b": "Q2351",
     "ledger cd2127b53ee7": "Q1596",

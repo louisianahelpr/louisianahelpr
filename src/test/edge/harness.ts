@@ -879,6 +879,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/salesTax.ts";`,
   );
 
+  // Q2083 (b): `_shared/jobTaxAddress.ts` has ZERO imports (the job-site tax
+  // address and the session's tax figure), so the REAL module serves: which
+  // address Stripe prices and which figure the webhook records is the rule.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/jobTaxAddress\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/jobTaxAddress.ts";`,
+  );
+
   // Notification money formatting: `_shared/money.ts` is pure TypeScript
   // (Math.floor + toLocaleString, no Deno or remote imports), so the generated
   // file points at the REAL module. The FLOORING is the whole point of it — a

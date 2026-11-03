@@ -55,6 +55,7 @@ import { endCapturedNotHired } from "../_shared/instantBookSweep.ts";
 const BAN_REVIEW_RELEASE_MESSAGE =
   "This job's payment is on hold while our team reviews it, so it can't be released right now. You don't need to do anything: we'll finish it once the review is done.";
 import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE, salesTaxCeilingCents } from "../_shared/salesTax.ts";
+import { jobTaxAddress, JOB_TAX_ADDRESS_SOURCE, JOB_TAX_CALC_KEY, JOB_TAX_CENTS_KEY } from "../_shared/jobTaxAddress.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -1440,15 +1441,74 @@ serve(async (req) => {
       }
       if (holdPlan) paymentIntentExtras.metadata.card_hold = "1";
 
-      // 3D Secure from $300 (Q202), on the line items plus a CEILING on the
-      // labor's sales tax (Q1658). No card options on a Pay-in-4 session (no
-      // card can be used there). A taxable job's service fee is taxed too.
-      const threeDSCents = payInFour ? 0 : lineItemsCents
-        + (isPosterFee && laborTaxable ? salesTaxCeilingCents(posterFeeCents, job.category, job.tax_kind) : 0)
-        + salesTaxCeilingCents(Math.round(job.budget * 100) + urgentFeeCents, job.category, job.tax_kind);
+      // ─── Q2083 (b) / Q1727 (a): a taxable job is taxed at the JOB ADDRESS ───
+      // Louisiana sources a taxable service to where it is performed (the
+      // owner-adopted tax memo), not the poster's billing address, which is
+      // all automatic_tax can see. So Stripe prices the taxed lines at the job
+      // ZIP here (the same call calculate-tax previews with), the figure is
+      // charged as its own "Sales tax" line with automatic_tax OFF, and
+      // stripe-webhook commits the calculation (createFromCalculation) once
+      // paid. The job site is never written onto the shared Customer (Q1727
+      // TRIED: it leaked into Pro/Plus subscriptions). No Louisiana job ZIP =
+      // no honest tax, so a taxable job is refused rather than charged untaxed.
+      let jobTax: { calculationId: string; cents: number } | null = null;
+      if (laborTaxable) {
+        const taxAddress = jobTaxAddress(job.zip_code);
+        if (!taxAddress) {
+          throw new PublicError("Add the job's Louisiana ZIP code before paying, so sales tax can be figured for where the work is done.");
+        }
+        const taxCode = laborTaxCode(job.category, job.tax_kind);
+        const taxLines: Stripe.Tax.CalculationCreateParams.LineItem[] = [
+          { amount: Math.round(job.budget * 100), reference: "labor", tax_behavior: TAX_BEHAVIOR, tax_code: taxCode },
+        ];
+        if (urgentFeeCents > 0) taxLines.push({ amount: urgentFeeCents, reference: "urgent_bonus", tax_behavior: TAX_BEHAVIOR, tax_code: taxCode });
+        if (isPosterFee && posterFeeCents > 0) taxLines.push({ amount: posterFeeCents, reference: "service_fee", tax_behavior: TAX_BEHAVIOR, tax_code: taxCode });
+        let calc: Stripe.Tax.Calculation;
+        try {
+          calc = await stripe.tax.calculations.create({
+            currency: "usd",
+            line_items: taxLines,
+            customer_details: { address: taxAddress, address_source: JOB_TAX_ADDRESS_SOURCE },
+          }, { idempotencyKey: `job-tax-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${checkoutKeySuffix}` });
+        } catch (e) {
+          console.error(`[create-payment] job-site tax calculation failed for job ${jobId}; no checkout rather than an untaxed charge:`, e);
+          throw new PublicError("Could not figure the sales tax for this job — please try again");
+        }
+        const cents = Number(calc.tax_amount_exclusive);
+        if (!calc.id || !Number.isInteger(cents) || cents < 0) {
+          console.error(`[create-payment] job-site tax calculation for job ${jobId} returned no usable figure`, { id: calc.id, tax: calc.tax_amount_exclusive });
+          throw new PublicError("Could not figure the sales tax for this job — please try again");
+        }
+        jobTax = { calculationId: calc.id, cents };
+        if (cents > 0) {
+          lineItems.push({
+            price_data: {
+              currency: "usd",
+              tax_behavior: TAX_BEHAVIOR,
+              product_data: { name: "Sales tax", description: "Louisiana sales tax for where the job is done", tax_code: NONTAXABLE_TAX_CODE },
+              unit_amount: cents,
+            },
+            quantity: 1,
+          });
+        }
+        paymentIntentExtras.metadata[JOB_TAX_CALC_KEY] = calc.id;
+        paymentIntentExtras.metadata[JOB_TAX_CENTS_KEY] = String(cents);
+      }
+
+      // 3D Secure from $300 (Q202). A job taxed at the job site knows its tax
+      // exactly (the "Sales tax" line is in the line items). Otherwise the
+      // line items plus a CEILING on the labor's sales tax (Q1658). No card
+      // options on a Pay-in-4 session (no card can be used there).
+      const threeDSCents = payInFour ? 0 : jobTax
+        ? lineItemsCents + jobTax.cents
+        : lineItemsCents
+          + (isPosterFee && laborTaxable ? salesTaxCeilingCents(posterFeeCents, job.category, job.tax_kind) : 0)
+          + salesTaxCeilingCents(Math.round(job.budget * 100) + urgentFeeCents, job.category, job.tax_kind);
       const session = await payerWallet((walletCustomer, walletRetry) => stripe.checkout.sessions.create({
         customer: walletCustomer,
-        customer_update: { address: 'auto' },
+        // Billing-address tax only on an untaxed job (it computes $0 there);
+        // a taxed job carries its job-site "Sales tax" line instead (Q2083 b).
+        ...(jobTax ? {} : { customer_update: { address: 'auto' as const } }),
         line_items: lineItems,
         mode: "payment",
         // Explicit methods on every job checkout (owner 2026-10-18): card,
@@ -1457,7 +1517,9 @@ serve(async (req) => {
         // Dollars only: Adaptive Pricing would add a 2-4% conversion to what
         // the poster pays, so the charge would not be the total the app showed.
         adaptive_pricing: { enabled: false },
-        automatic_tax: { enabled: true },
+        // Q2083 (b): off when the tax was priced at the job site above, or
+        // Stripe would add a second, billing-address tax on top.
+        ...(jobTax ? {} : { automatic_tax: { enabled: true } }),
         // 3D Secure from $300 (Q202), on the line items plus a CEILING on the
         // labor's sales tax (Q1658: since Q1578 a taxable $270-$299 checkout
         // can pass $300 once Checkout adds the real tax; a ceiling only errs
@@ -1472,6 +1534,9 @@ serve(async (req) => {
         metadata: { job_id: jobId, customer_id: user.id, onboarding_fee_charged: owesOnboardingFee ? "true" : "false", onboarding_fee_cents: String(onboardingFeeCents),
           // card_hold "1": stripe-webhook settles this session as a card HOLD (Q2399); "" = unset, as wallet_save.
           card_hold: holdPlan ? "1" : "",
+          // Q2083 (b): the job-site tax calculation stripe-webhook commits, and its figure ("" = untaxed job).
+          [JOB_TAX_CALC_KEY]: jobTax?.calculationId ?? "",
+          [JOB_TAX_CENTS_KEY]: jobTax ? String(jobTax.cents) : "",
           // wallet_save "1": stripe-webhook makes the saved card the wallet's
           // default card (Q2139) only on a session marked so ("" = unset).
           wallet_save: paymentIntentExtras.setup_future_usage === "off_session" ? "1" : "" },

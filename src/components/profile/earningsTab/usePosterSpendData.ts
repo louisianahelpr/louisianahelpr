@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import { unwrap } from "@/lib/supabaseResult";
 import type { PosterBlockFeeRow, PosterGiftRow, PosterRefundRow, PosterSpendJob, PosterTipRow } from "@/lib/posterSpend";
@@ -68,7 +69,7 @@ export function usePosterSpendData(userId: string | undefined) {
         tips: (unwrap(tips) ?? []) as PosterTipRow[],
         // Deployed before its migration (functions and db deploy separately):
         // no rows, the Spent figure as it was. Any other error is thrown.
-        blockFees: blockFees.error?.code === "PGRST202" ? [] : ((unwrap(blockFees) ?? []) as PosterBlockFeeRow[]),
+        blockFees: isMissingRpcNamed(blockFees.error, "poster_crew_block_fee_cents") ? [] : ((unwrap(blockFees) ?? []) as PosterBlockFeeRow[]),
       };
     },
     enabled: !!userId,

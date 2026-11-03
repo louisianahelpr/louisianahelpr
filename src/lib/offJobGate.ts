@@ -21,6 +21,7 @@
  */
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { report } from "@/lib/errorLogger";
 import { isTeamThreadKey } from "@/lib/teamThread";
 import type { Conversation } from "@/components/messages/types";
@@ -56,7 +57,7 @@ export async function fetchOffJobState(
     _other: otherUserId ?? (null as unknown as string),
   });
   if (error) {
-    if ((error as { code?: string }).code !== "PGRST202") {
+    if (!isMissingRpcNamed(error, "get_off_job_thread_state")) {
       report(error, { severity: "warning", tags: { source: "offJobGate.fetchOffJobState" } });
     }
     return null;

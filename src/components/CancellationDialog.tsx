@@ -6,6 +6,7 @@ import { crewCancellationFeeQuote } from "../../supabase/functions/_shared/crewS
 import { CANCELLATION_LADDER_RUNGS, CANCEL_OVER_24H_NOT_A_STRIKE } from "@/lib/reliabilityLadder";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 // unwrapMutation is gone with the client-side UPDATE it guarded; isWriteRejected
 // stays so this dialog keeps rendering a rejected write's own message if any
 // future write lands here.
@@ -293,7 +294,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
         // during that same window the guarding trigger is also absent, so the
         // fallback would succeed AND skip the ladder — it would re-open the
         // exact hole this change closes, on a timer. Say so and stop.
-        if (String(error.code ?? "") === "PGRST202") {
+        if (isMissingRpcNamed(error, "poster_cancel_job")) {
           throw new Error(
             "Cancelling is briefly unavailable while an update finishes rolling out. Please try again in a few minutes.",
           );

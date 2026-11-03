@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { withCardHoldCapture } from "@/lib/cardHoldCapture";
 import { isUnder18Refusal, UNDER_18_APPLY_COPY } from "@/lib/ageGate";
 import { notifyJobParty } from "@/lib/notifications";
@@ -396,8 +397,7 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
         await refresh();
         return;
       }
-      const code = String((error as { code?: string }).code ?? "");
-      if (code === "PGRST202") {
+      if (isMissingRpcNamed(error, "respond_to_direct_offer")) {
         // Merge landed, migration hasn't deployed yet (db-deploy.yml runs on
         // the merge commit). Say so instead of blaming the user's tap.
         toast.error("Offer responses are updating right now — try again in a minute.");
@@ -590,10 +590,9 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       });
 
       if (rpcError) {
-        const msg = String(rpcError?.message ?? "");
-        const rpcMissing =
-          String(rpcError?.code ?? "") === "PGRST202" ||
-          /could not find the function|does not exist|schema cache/i.test(msg);
+        // Q2190: only a PGRST202 for decline_job_offer itself is the deploy window. A message match
+        // ("could not find the function ... schema cache") also matched a changed signature.
+        const rpcMissing = isMissingRpcNamed(rpcError, "decline_job_offer");
         if (!rpcMissing) {
           hapticError();
           const guard = rpcErrorMessage("decline_job_offer", rpcError);
@@ -612,6 +611,9 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
             await refresh();
             return;
           }
+          // Not a guard and not the deploy window (a changed signature, a missing inner
+          // function): a defect, so it is reported, as the old message match reported it.
+          report(rpcError, { tags: { source: "useOfferHandlers.declineFailed" } });
           toast.error("Couldn't record your response — please try again.");
           return;
         }

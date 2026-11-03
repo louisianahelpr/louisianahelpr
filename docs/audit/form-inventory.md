@@ -284,7 +284,6 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/DisputeDialog.tsx` | input×1, textarea×1 | file | 1000 | dispute-details · dispute-details-requirement · Remove file |
 | `src/components/feedback/NpsPrompt.tsx` | textarea×1 |  | 500 | Rate your experience, 1 to 5 · nps-comment |
 | `src/components/job-card/JobCardMetaRow.tsx` | date/calendar×1 |  |  |  |
-| `src/components/PhotoProof.tsx` | input×1 | file |  |  |
 | `src/components/rentals/RentalVisitHelpr.tsx` | input×1, date/calendar×1 | datetime-local |  | Visit time · Visit time to offer |
 | `src/components/ResponseDeadlineDialog.tsx` | textarea×1, select×1 |  |  | Response deadline · Message to Helpr (optional) |
 | `src/components/sections/InlineListSearch.tsx` | input×1 | search |  | Close search |
@@ -302,6 +301,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
+| `src/components/PhotoProof.tsx` | input×1 | file |  |  |
 | `src/components/reviewPanel/ReviewQuestionCard.tsx` | textarea×1 |  |  | Quick review tags · A few words (optional) · Add a few words (optional) |
 
 ## /legal, /terms, /privacy, /rules

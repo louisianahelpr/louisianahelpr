@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { warnIfGiftNotReturned } from "./giftRestoreWarning";
 import type { Job } from "./adminJobs/types";
 import { useApplicantCounts } from "./adminJobs/useApplicantCounts";
-import { detectFlags, isStaleOnly, isGhostJob, isActivePaidJob } from "./adminJobs/adminJobsHelpers";
+import { detectFlags, isStaleOnly, isGhostJob, isActivePaidJob, FLAG_LIVE_STATUSES, withHeldJobCancelled } from "./adminJobs/adminJobsHelpers";
 import { useResolvedFlags } from "./adminJobs/useResolvedFlags";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "./AdminViewShell";
 import { JobListItem } from "./adminJobs/JobListItem";
@@ -31,9 +31,6 @@ import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 import { userFacingError } from "@/lib/userFacingError";
 import { lifecycleErrorMessage } from "@/lib/lifecycleErrors";
 
-
-/** The job statuses whose flags count as open work in the Flagged tab (NOID-24, M5). */
-const FLAG_LIVE_STATUSES: ReadonlySet<string> = new Set(["open", "accepted", "in_progress"]);
 
 const AdminJobs = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -548,12 +545,7 @@ const AdminJobs = () => {
           setOverrideOpen(true);
         }}
         onOpenRefund={() => setRefundOpen(true)}
-        onHeldJobCancelled={(id) => {
-          setJobs((prev) => prev.map((j) => j.id === id
-            ? { ...j, status: "cancelled" as Job["status"], payment_status: "cancelled" as Job["payment_status"] }
-            : j));
-          setDetailJob(null);
-        }}
+        onHeldJobCancelled={(id) => { setJobs((prev) => withHeldJobCancelled(prev, id)); setDetailJob(null); }}
       />
 
       {/* Delete confirmation dialog */}

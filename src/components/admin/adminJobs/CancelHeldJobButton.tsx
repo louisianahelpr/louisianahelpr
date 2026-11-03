@@ -29,7 +29,7 @@ export const CancelHeldJobButton = ({ jobId, onCancelled }: { jobId: string; onC
       });
       if (error) throw await functionInvokeError(error);
       if ((data as { error?: string } | null)?.error) throw new Error((data as { error: string }).error);
-      toast.success("Job cancelled. The card hold is released and the poster was told they weren't charged.");
+      toast("Job cancelled. The card hold is released and the poster was told they weren't charged.");
       onCancelled();
     } catch (err: unknown) {
       report(err, { tags: { source: "money.adminCancelHeld", action: "cancel_escrow", screen: "/admin" }, context: { jobId } });
@@ -47,7 +47,7 @@ export const CancelHeldJobButton = ({ jobId, onCancelled }: { jobId: string; onC
       size="sm"
       onClick={cancel}
       disabled={sending}
-      className="gap-1.5 text-destructive-ink border-destructive/40 hover:bg-destructive/5"
+      className="ctl-tint-danger gap-1.5 text-destructive-ink border-destructive/40"
     >
       <XCircle className="w-3.5 h-3.5" /> {sending ? "Cancelling..." : confirming ? "Tap again to cancel and release the hold" : "Cancel job (card on hold)"}
     </Button>

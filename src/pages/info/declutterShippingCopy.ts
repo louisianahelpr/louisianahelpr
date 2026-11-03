@@ -40,7 +40,7 @@ export const HELP_SHIPPING_ITEMS: { q: string; a: string }[] = [
     // seller_backed_out + strike (19be83ce1e); ship_lost = no strike, label debt (20261103203204); debts come out of
     // the next payout (declutter_consume_fee_debt).
     q: "How do I ship something I sold?",
-    a: "In Manage listing, turn on Ship it: confirm nothing in it is on the USPS restricted list (no sprays, perfume, nail polish, batteries, matches or lighters) and pick the box it fits in. Only small items can ship, and electronics and appliances are pickup only. When it sells, the label is bought for you: print it from the order, pack the item and hand it to the carrier within 3 business days. You're paid once the buyer has had 2 days after delivery to report a problem. If it's lost or arrives broken, the buyer gets everything back and the label, plus a return label if we ask for the item back, comes out of your next payout. Missing the ship-by date cancels the sale and is a Declutter strike.",
+    a: "In Manage listing, turn on Ship it: confirm nothing in it is on the USPS restricted list (no sprays, perfume, nail polish, batteries, matches or lighters) and pick the box it fits in. Only small items can ship, and electronics and appliances are pickup only. When it sells, the label is bought for you: print it from the order, pack the item and hand it to the carrier within 3 business days. You're paid once the buyer has had 2 days after delivery to report a problem. If it's lost or arrives broken, the buyer gets everything back and the label comes out of your next payout. Missing the ship-by date cancels the sale and is a Declutter strike.",
   },
 ];
 
@@ -49,7 +49,7 @@ export const TERMS_SHIPPING_PARAGRAPHS: string[] = [
   "Shipping is for small items, to a Louisiana address. The seller turns it on for a listing and confirms nothing in it is on the USPS restricted list; electronics and appliances are pickup only. At checkout you see up to three postage choices, cheapest first, and you pay the postage shown, as its own line in your total.",
   "Your card is held, not charged, until the label is bought. If the label can't be bought, the hold is released and you are never charged. The seller hands the package to the carrier within 3 business days; if they don't, the sale is cancelled, you get everything back, and the seller gets a Declutter strike.",
   "After delivery you have 2 days to report a problem; the seller is paid only after that. If it arrived broken or isn't as described and you report it in those 2 days, Louisiana Helpr checks it and you get everything back. If it is never delivered 10 days after the carrier took it, you get everything back. If the carrier returns it or can't deliver it, the money stays held until Louisiana Helpr decides.",
-  "A parcel lost or broken in the mail is the seller's cost, never the buyer's: the spent label, and a return label if Louisiana Helpr asks for the item back, come out of the seller's next payouts. After the 2 days the sale is final.",
+  "A parcel lost or broken in the mail is the seller's cost, never the buyer's: the spent label comes out of the seller's next payouts. After the 2 days the sale is final.",
 ];
 
 /** The Help sections with shipping on: "Shipping isn't offered." becomes the shipping sentence and the three shipping

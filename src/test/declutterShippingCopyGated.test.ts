@@ -4,7 +4,7 @@
  * "How do I get the item?"; the Terms swap "Shipping is not offered." and add a Shipping row. Elsewhere both pages keep
  * the "not offered" line, which is true there (checkout and Ship it are testers-only, server-checked).
  * The "arrives broken" claim matches spec 5.3: reported in the 2-day (48 h) window -> everything back after an admin
- * check; the spent label (and any return label) is the seller's debt.
+ * check; the spent label is the seller's debt. No return-label promise: the admin cannot request one yet (lead 11-03).
  *
  * @mutate src/pages/info/HelpCenter.tsx | const sections = shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS; | const sections = withDeclutterShipping(FAQ_SECTIONS);
  * @mutate src/pages/info/legal/TermsSection.tsx | {shippingOn ? TERMS_SHIPPING_GET_ITEM : "Shipping is not offered."} | {TERMS_SHIPPING_GET_ITEM}
@@ -48,10 +48,16 @@ describe("Declutter shipping copy (S8), only where shipping is on", () => {
     expect(broken).toContain("report a problem on your order within those 2 days: we check, and you get everything back");
     expect(broken).toContain("seller's cost, never yours");
     const seller = HELP_SHIPPING_ITEMS.find((i) => i.q === "How do I ship something I sold?")?.a ?? "";
-    expect(seller).toContain("the label, plus a return label if we ask for the item back, comes out of your next payout");
+    expect(seller).toContain("the buyer gets everything back and the label comes out of your next payout");
     const terms = TERMS_SHIPPING_PARAGRAPHS.join(" ");
     expect(terms).toContain("report it in those 2 days, Louisiana Helpr checks it and you get everything back");
-    expect(terms).toContain("the spent label, and a return label if Louisiana Helpr asks for the item back, come out of the seller's next payouts");
+    expect(terms).toContain("the spent label comes out of the seller's next payouts");
+  });
+
+  it("no shipping copy promises a return label (the admin cannot request one yet)", () => {
+    const all = [...HELP_SHIPPING_ITEMS.map((i) => i.a), ...TERMS_SHIPPING_PARAGRAPHS].join(" ");
+    expect(all.length).toBeGreaterThan(500);
+    expect(all.toLowerCase()).not.toContain("return label");
   });
 
   it("HelpCenter and the Terms read the switch and keep the not-offered line when it is off", () => {

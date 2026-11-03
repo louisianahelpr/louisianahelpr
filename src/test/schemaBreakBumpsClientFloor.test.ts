@@ -184,6 +184,8 @@ describe("a migration that narrows authenticated privileges raises client_compat
   const NARROWS_NOTHING_A_CLIENT_USES: Record<string, string> = {
     "20261021184118_user_roles_table_grants.sql":
       "Q2305: authenticated keeps SELECT and DELETE on user_roles, the only two the client runs (grep 2026-10-21: useCurrentUser, AdminExport, AdminAnalytics, useHealthData, AdminSettings .select; AdminSettings .delete); INSERT, UPDATE, TRUNCATE, REFERENCES and TRIGGER were never used by any client (granting admin is admin-user-actions as service_role)",
+    "20261103014109_crew_share_held_reason.sql":
+      "Q2440: table SELECT on crew_cancellation_fee_shares becomes a column SELECT on the same 12 columns; no client selects this table (grep of src/ outside tests and types.ts, 2026-11-03: only a comment in src/lib/crewNobodyLeft.ts)",
   };
 
   it("every narrowing migration since the floor exists raises the floor in the same migration", () => {

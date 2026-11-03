@@ -46,7 +46,7 @@ CREATE TABLE public.jobs (
 CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid, helper_confirmed_at timestamptz, helper_completed_at timestamptz);
 CREATE TABLE public.payout_transfers (id uuid primary key default gen_random_uuid(), job_id uuid, status text);
 CREATE TABLE public.dispute_settlement_claims (job_id uuid primary key, action text);
-CREATE TABLE public.notifications (seq serial, id uuid primary key default gen_random_uuid(), user_id uuid, job_id uuid, title text, message text, type text, link text);
+CREATE TABLE public.notifications (id uuid primary key default gen_random_uuid(), user_id uuid, job_id uuid, title text, message text, type text, link text, created_at timestamptz NOT NULL DEFAULT clock_timestamp());
 `;
 
 async function world(applyNew) {
@@ -90,8 +90,8 @@ async function run(db) {
                                  cancellation_fee, cancellation_fee_status, direct_offer_status, direct_offer_expires_at,
                                  (cancelled_at is not null) cancelled
                             from jobs where id = $1`, [J]))[0];
-    const poster = await q(`select title, message, type, link from notifications where job_id = $1 and user_id = $2 order by seq`, [J, P]);
-    const helprs = await q(`select user_id, title, message, type, link from notifications where job_id = $1 and user_id <> $2 order by seq`, [J, P]);
+    const poster = await q(`select title, message, type, link from notifications where job_id = $1 and user_id = $2 order by created_at`, [J, P]);
+    const helprs = await q(`select user_id, title, message, type, link from notifications where job_id = $1 and user_id <> $2 order by created_at`, [J, P]);
     out.push({ J, s, r, job, poster, helprs });
   }
   return out;

@@ -106,7 +106,7 @@ export async function storedStripeCustomer(
 }
 
 /** The member's one Stripe customer in `mode`: the stored one, else a new one claimed for them. */
-export async function resolveStripeCustomer(
+async function resolveStripeCustomer(
   admin: WalletDb,
   stripe: CustomerCreator,
   user: { id: string; email?: string | null },
@@ -146,7 +146,7 @@ export async function resolveStripeCustomer(
  * Q2140: Stripe refused `customerId` because it no longer exists (deleted in the Dashboard, or test data wiped):
  * `resource_missing` naming the customer. Any other error is not this.
  */
-export function isMissingCustomerError(err: unknown, customerId: string): boolean {
+function isMissingCustomerError(err: unknown, customerId: string): boolean {
   const e = err as { code?: unknown; param?: unknown; message?: unknown; raw?: { code?: unknown; param?: unknown } } | null;
   const code = e?.code ?? e?.raw?.code;
   if (code !== "resource_missing") return false;

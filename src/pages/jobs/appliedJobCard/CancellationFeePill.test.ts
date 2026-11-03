@@ -44,11 +44,13 @@ describe("Q1916: the Helpr's cancellation line follows their own fee row", () =>
   });
 
   it("waived (row or job) and reversed: no payment", () => {
-    for (const [job, row] of [
+    const cases = [
       ["waived", null],
       ["charged", { status: "waived", helper_amount: 0 }],
       ["charged", { status: "reversed", helper_amount: 132 }],
-    ] as const) {
+    ] as const;
+    expect(cases.length).toBeGreaterThan(2);
+    for (const [job, row] of cases) {
       expect(cancellationFeeLine(job, row, EST)).toEqual({ label: "No payment for the cancelled job", sent: false });
     }
   });

@@ -1091,7 +1091,7 @@ describe("stripe-webhook edge function", () => {
         expect(consumes.length).toBeGreaterThan(0);
       });
 
-      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |   if (giftCardId && staleJobId && session.payment_status !== "paid") { |   if (giftCardId && staleJobId) {
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |   if (staleJobId && session.payment_status !== "paid" && sessionType !== "tip" && kind !== "job_boost") { |   if (staleJobId && sessionType !== "tip" && kind !== "job_boost") {
       it("never skips a CARD checkout (paid): a stale-but-paid session still consumes the gift it was priced against", async () => {
         const { consumes } = await deliver({ sessionPaid: true, piStatus: "requires_payment_method", jobRow: { stripe_session_id: "cs_d2", payment_status: "unpaid" } });
         expect(consumes.length).toBeGreaterThan(0);
@@ -1100,6 +1100,56 @@ describe("stripe-webhook edge function", () => {
       it("consumes as before when the bank checkout IS the job's current one", async () => {
         const { consumes } = await deliver({ piStatus: "requires_payment_method", jobRow: { stripe_session_id: "cs_d1", payment_status: "unpaid" } });
         expect(consumes.length).toBeGreaterThan(0);
+      });
+    });
+
+    // Q1980 (lh-money-escrow@b837455eb#1): the same stale bounced bank checkout with NO gift. Its retry
+    // used to run the job write and stamp its dead PaymentIntent over the newer checkout's, so
+    // paymentIntentSucceeded (which finds the job by it) could not find the job when D2 settled.
+    describe("a retried completion of a bounced plain bank checkout (no gift) that is no longer the job's current one", () => {
+      async function deliver(opts: { sessionPaid?: boolean; piStatus: string; jobRow: Record<string, unknown>; metadata?: Record<string, string> }) {
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+          id: "evt_q1980",
+          type: "checkout.session.completed",
+          data: { object: {
+            id: "cs_d1", mode: "payment", customer_email: "poster@test.com",
+            payment_status: opts.sessionPaid ? "paid" : "unpaid", payment_intent: "pi_d1",
+            metadata: opts.metadata ?? { job_id: "job-1" },
+          } },
+        });
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_d1", status: opts.piStatus, amount_details: { tax: { total_tax_amount: 0 } } });
+        scenario.reads.jobs = { rows: [{ id: "job-1", customer_id: "poster-1", title: "Job", ...opts.jobRow }] };
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        const jobWrites = scenario.writes.filter((w) => w.table === "jobs");
+        return { res, jobWrites };
+      }
+
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |   } else if (staleBouncedCheckout) { |   } else if (false) {
+      it("writes nothing to the job when another session is now the job's and the debit failed", async () => {
+        const { res, jobWrites } = await deliver({ piStatus: "requires_payment_method", jobRow: { stripe_session_id: "cs_d2", payment_status: "unpaid" } });
+        expect(res.status).toBe(200);
+        expect(jobWrites).toHaveLength(0);
+      });
+
+      it("writes nothing when no session is on the job (the bounce cleared it) and the debit failed", async () => {
+        const { jobWrites } = await deliver({ piStatus: "canceled", jobRow: { stripe_session_id: null, payment_status: "failed" } });
+        expect(jobWrites).toHaveLength(0);
+      });
+
+      it("still stamps the PaymentIntent when the stale bank checkout is still processing (its money may yet arrive)", async () => {
+        const { jobWrites } = await deliver({ piStatus: "processing", jobRow: { stripe_session_id: "cs_d2", payment_status: "unpaid" } });
+        expect(jobWrites.some((w) => (w.payload as Record<string, unknown>).stripe_payment_intent_id === "pi_d1")).toBe(true);
+      });
+
+      it("still stamps the PaymentIntent when the bank checkout IS the job's current one", async () => {
+        const { jobWrites } = await deliver({ piStatus: "requires_payment_method", jobRow: { stripe_session_id: "cs_d1", payment_status: "unpaid" } });
+        expect(jobWrites.some((w) => (w.payload as Record<string, unknown>).stripe_payment_intent_id === "pi_d1")).toBe(true);
+      });
+
+      it("never skips a paid CARD checkout", async () => {
+        const { jobWrites } = await deliver({ sessionPaid: true, piStatus: "requires_payment_method", jobRow: { stripe_session_id: "cs_d2", payment_status: "unpaid" } });
+        expect(jobWrites.length).toBeGreaterThan(0);
       });
     });
 

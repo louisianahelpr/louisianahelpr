@@ -872,7 +872,11 @@ async function settleCheckoutSession(
   let staleBouncedCheckout = false;
   let staleJobHasSession = true;
   const staleJobId = (session.metadata as any)?.job_id as string | undefined;
-  if (giftCardId && staleJobId && session.payment_status !== "paid") {
+  // Q1980 (lh-money-escrow@b837455eb#1): EVERY job checkout, not only a gift
+  // shortfall: a plain bank checkout D1 retried after its debit bounced and the
+  // poster opened D2 stamped D1's dead PaymentIntent over D2's. Same scope as
+  // the job write below (not a tip, not a boost).
+  if (staleJobId && session.payment_status !== "paid" && sessionType !== "tip" && kind !== "job_boost") {
     const { data: currentJob, error: currentJobErr } = await supabase
       .from("jobs")
       .select("stripe_session_id, payment_status")
@@ -923,6 +927,13 @@ async function settleCheckoutSession(
         oncePerDayKey: `gift-reserved-bounced:${giftCardId}`,
       });
     }
+    return;
+  } else if (staleBouncedCheckout) {
+    // Q1980: no gift, same rule: a checkout whose payment failed and that is
+    // no longer the job's current one writes nothing to the job.
+    logStep("Completion of a bank checkout whose payment failed and that is no longer the job's current one — nothing recorded", {
+      sessionId: session.id, jobId: staleJobId ?? null,
+    });
     return;
   } else if (giftCardId) {
     const consumeJobId = (session.metadata as any)?.job_id as string | undefined;

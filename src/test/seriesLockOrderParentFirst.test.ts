@@ -13,7 +13,7 @@
  *
  * @mutate supabase/migrations/20261031013445_helper_cancel_says_why.sql | WHERE pj.id = (SELECT c.parent_job_id FROM public.jobs c WHERE c.id = p_job_id)\n   FOR UPDATE; | WHERE pj.id = (SELECT c.parent_job_id FROM public.jobs c WHERE c.id = p_job_id);
  * @mutate supabase/migrations/20261031013445_helper_cancel_says_why.sql |   PERFORM 1 FROM public.jobs pj | SELECT 1 FROM public.jobs pj
- * @mutate supabase/migrations/20261102230059_series_claim_unready_holds_one.sql |      WHERE c.parent_job_id = v_job.id AND c.date_needed = v_d\n     FOR UPDATE; |      WHERE c.parent_job_id = v_job.id AND c.date_needed = v_d;
+ * @mutate supabase/migrations/20261103032330_series_claim_takes_helpr_schedule_lock.sql |      WHERE c.parent_job_id = v_job.id AND c.date_needed = v_d\n     FOR UPDATE; |      WHERE c.parent_job_id = v_job.id AND c.date_needed = v_d;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";

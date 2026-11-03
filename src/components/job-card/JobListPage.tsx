@@ -26,10 +26,12 @@ import { type Tab } from "@/components/job-card/activityConstants";
 // (cwv-lab, signed in, 375, Slow 4G, median of 3) on a cold /jobs?tab=posted:
 // get_my_activity_cores answered at ~7.5 s and only then PostedJobsTab and the
 // ~45 chunks under it downloaded (7.57 -> 9.6 s); the first card drew at ~9.7 s.
-const loadPostedTab = () => import("@/pages/posts/PostedJobsTab");
-const loadAppliedTab = () => import("@/pages/jobs/AppliedJobsTab");
-const PostedJobsTab = lazy(() => loadPostedTab().then((m) => ({ default: m.PostedJobsTab })));
-const AppliedJobsTab = lazy(() => loadAppliedTab().then((m) => ({ default: m.AppliedJobsTab })));
+// Through loadModule (src/test/dynamicImportThenDoesNoWork.test.ts): a prevented preload resolves null, and the lazy
+// waits on the recovery reload instead of reading a member off undefined.
+const loadPostedTab = () => loadModule(() => import("@/pages/posts/PostedJobsTab"));
+const loadAppliedTab = () => loadModule(() => import("@/pages/jobs/AppliedJobsTab"));
+const PostedJobsTab = lazy(() => loadPostedTab().then((m) => (m ? { default: m.PostedJobsTab } : untilReload())));
+const AppliedJobsTab = lazy(() => loadAppliedTab().then((m) => (m ? { default: m.AppliedJobsTab } : untilReload())));
 /** Start the open tab's chunk now; the lazy component's own import (the same module) owns any failure. */
 export function startTabChunk(tab: Tab): void {
   (tab === "posted" ? loadPostedTab : loadAppliedTab)().catch(() => {
@@ -59,6 +61,7 @@ import { toast } from "sonner";
 import { recheckUnverifiedArrival } from "@/components/job-card/recheckUnverifiedArrival";
 import SectionBoundary from "@/components/SectionBoundary";
 import { PAGE_COLUMN } from "@/lib/pageColumn";
+import { loadModule, untilReload } from "@/lib/loadModule";
 
 /** Jobs > Posted / Working (owner, 2026-10-19; embeddedActivity.tsx). `embeddedHeader` is the section's top bar +
  *  tabs; the status boxes sit under it. The old standalone My Posts / My Jobs headers (PostsHeader / JobsHeader,

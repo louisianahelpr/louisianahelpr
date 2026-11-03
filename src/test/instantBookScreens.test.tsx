@@ -15,7 +15,7 @@
  * @mutate src/components/jobs/InstantBookPanel.tsx |   const list = (candidates.data ?? []).slice(0, 3); |   const list = (candidates.data ?? []).slice(0, 4);
  * @mutate src/components/jobs/InstantBookPanel.tsx |         onPrimary={(e) => { e.preventDefault(); if (confirm) book.mutate(confirm.helper_id); }} |         onPrimary={(e) => { e.preventDefault(); }}
  * @mutate src/components/jobs/InstantBookingCard.tsx |     const { error: e } = await supabase.rpc("rpc_instant_book_decline", { p_job_id: jobId }); |     const { error: e } = await supabase.rpc("respond_to_direct_offer", { p_job_id: jobId, p_accept: false });
- * @mutate src/components/jobs/InstantBookingCard.tsx |     if (rpcErrorCode("rpc_instant_book_decline", e) === "decline_window_closed") return done("booked_now"); |     if (false) return done("booked_now");
+ * @mutate src/components/jobs/InstantBookingCard.tsx |     if ((await rpcErrorCode("rpc_instant_book_decline", e)) === "decline_window_closed") return done("booked_now"); |     if (false) return done("booked_now");
  * @mutate src/components/jobs/InstantBookingCard.tsx |       {left && ( |       {true && (
  * @mutate src/pages/profile/InstantBookTab.tsx | {Array.from({ length: Math.max(0, INSTANT_BOOK_MAX_CATEGORIES - rows.length) }, | {Array.from({ length: 0 },
  * @mutate src/components/profile/ProfileTabFallback.tsx |   instant_book: [{ h: 122 }, { h: 38 }, { h: 38 }, { h: 181 }, { h: 298 }], |   instant_book: [{ h: 122 }, { h: 38 }, { h: 38 }, { h: 298 }],
@@ -98,7 +98,8 @@ import InstantBookTab from "@/pages/profile/InstantBookTab";
 import { InstantBookPanel } from "@/components/jobs/InstantBookPanel";
 import { InstantBookingCard, INSTANT_OUTCOME_COPY } from "@/components/jobs/InstantBookingCard";
 import { BOOKING_ENDED_COPY, declineTimeLeft } from "@/lib/instantBook";
-import { RPC_ERROR_COPY, rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
+import { RPC_ERROR_COPY } from "@/lib/lifecycleErrorCopy";
 
 function wrap(node: ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });

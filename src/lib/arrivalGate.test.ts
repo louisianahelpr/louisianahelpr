@@ -371,7 +371,8 @@ describe("legacy refusal parsing (pre-20260919155016 servers and queued errors)"
 
 describe("server refusal copy (lifecycleErrors) — one stamp, named plainly", () => {
   it("maps the surviving arrival/completion refusals to copy that names the poster's tap", async () => {
-    const { lifecycleErrorMessage, RPC_ERROR_COPY } = await import("./lifecycleErrors");
+    const { lifecycleErrorMessage } = await import("./lifecycleErrors");
+    const { RPC_ERROR_COPY } = await import("./lifecycleErrorCopy");
     for (const code of ["completion_requires_confirmed_arrival", "tracker_requires_arrival"]) {
       const copy = lifecycleErrorMessage({ message: code });
       expect(copy, code).toBeTruthy();

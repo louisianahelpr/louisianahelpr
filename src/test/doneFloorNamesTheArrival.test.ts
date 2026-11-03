@@ -11,7 +11,7 @@
  * @mutate src/pages/jobs/appliedJobCard/ActiveJobSection.tsx |     const workingStart = doneFloorStart(job.poster_confirmed_working_at, job.helper_arrived_at); |     const workingStart = job.poster_confirmed_working_at ?? job.helper_arrived_at;
  * @mutate src/lib/doneFloor.ts | 30 minutes after you arrived, to ensure quality. | 30 minutes after work started, to ensure quality.
  * @mutate src/pages/jobs/appliedJobCard/steps/PayoutPrimary.tsx | {doneFloorNote(minutesLeft)} | Available in {minutesLeft} min, 30 minutes after work started, to ensure quality.
- * @mutate src/lib/lifecycleErrors.ts |     completion_min_work_time: "You can mark it done 30 minutes after you arrived.", |     completion_min_work_time: "A job can't be marked done within 30 minutes of starting.",
+ * @mutate src/lib/lifecycleErrorCopy.ts |     completion_min_work_time: "You can mark it done 30 minutes after you arrived.", |     completion_min_work_time: "A job can't be marked done within 30 minutes of starting.",
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

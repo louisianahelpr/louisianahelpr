@@ -44,7 +44,7 @@
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts |     if (accept && answer.action === "pending_setup") { |     if (false) {
 // @mutate src/lib/awardGate.ts |     missing.includes("stripe_id") ? "verify your ID with Stripe (a photo ID and a selfie)" : null, |     "verify your ID with Stripe (a photo ID and a selfie)",
 // @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | Declining isn't a strike." | Your Stripe setup isn't finished yet, so declining now isn't a strike."
-// @mutate src/lib/lifecycleErrors.ts |   accept_required:\n |   accept_required_retired:\n
+// @mutate src/lib/lifecycleErrorCopy.ts |   accept_required:\n |   accept_required_retired:\n
 // @mutate src/lib/seriesDates.ts | rpcErrorMessage("claim_series_dates", error) ?? awardBlockMessage(error) | rpcErrorMessage("claim_series_dates", error)
 // @mutate supabase/migrations/20261102110120_hire_offer_pending_accept_cleared_on_reopen.sql |           NEW.recurrence_end_date, NEW.series_split_ok, NEW.materials_note) THEN |           NEW.recurrence_end_date, NEW.series_split_ok, NEW.materials_note) AND false THEN
 // @mutate supabase/migrations/20261102110120_hire_offer_pending_accept_cleared_on_reopen.sql |   IF NEW.status::text = 'open'\n     AND (OLD.date_needed |   IF true\n     AND (OLD.date_needed

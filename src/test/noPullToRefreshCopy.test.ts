@@ -9,7 +9,7 @@
  * Inventory: every tracked .ts/.tsx under src/ that is not a test, comments blanked. The one exemption is the
  * pull indicator itself (PullToRefreshWrapper), drawn only while a finger is pulling.
  *
- * @mutate src/lib/lifecycleErrors.ts |     job_not_completable: "This job isn't active any more, so it can't be marked done. Refresh the page.", |     job_not_completable: "This job isn't active any more, so it can't be marked done. Pull to refresh.",
+ * @mutate src/lib/lifecycleErrorCopy.ts |     job_not_completable: "This job isn't active any more, so it can't be marked done. Refresh the page.", |     job_not_completable: "This job isn't active any more, so it can't be marked done. Pull to refresh.",
  * @mutate src/components/JobTracking.tsx | this job may have been cancelled. Refresh the page. | this job may have been cancelled. Pull to refresh.
  */
 import { describe, expect, it } from "vitest";

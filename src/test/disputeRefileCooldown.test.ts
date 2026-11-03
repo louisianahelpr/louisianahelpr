@@ -21,7 +21,7 @@
 // @mutate supabase/migrations/20261007040226_dispute_refile_cooldown_escalates.sql |       WHEN _withdrawn = 2 THEN interval '1 hour' |       WHEN _withdrawn = 2 THEN interval '10 minutes'
 // @mutate supabase/migrations/20261007040226_dispute_refile_cooldown_escalates.sql |       AND d.opener_id = _uid |       AND d.opener_id IS NOT NULL
 // @mutate supabase/migrations/20261007040226_dispute_refile_cooldown_escalates.sql |       RAISE EXCEPTION 'dispute_refile_cooldown' |       RAISE NOTICE 'dispute_refile_cooldown'
-// @mutate src/lib/lifecycleErrors.ts |     // Q1244 (20261005062746): no open/withdraw loop on one job.\n    dispute_refile_cooldown: |     // Q1244 (20261005062746): no open/withdraw loop on one job.\n    dispute_refile_cooldown_gone:
+// @mutate src/lib/lifecycleErrorCopy.ts |     // Q1244 (20261005062746): no open/withdraw loop on one job.\n    dispute_refile_cooldown: |     // Q1244 (20261005062746): no open/withdraw loop on one job.\n    dispute_refile_cooldown_gone:
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

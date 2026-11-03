@@ -9,7 +9,7 @@
  * @mutate src/components/job-card/JobActionRow.tsx |   const shown = buttonLabel(label); |   const shown = label;
  * @mutate src/components/job-card/jobStepMenu.tsx |     const shown = pair ? pairLabel(p.label) : buttonLabel(p.label); |     const shown = pair ? pairLabel(p.label) : p.label;
  * @mutate src/components/ui/pairLabel.ts | const CONFIRM_FULL = /^Confirm (they've arrived\|it's still on\|you'll be at the job\|I'll be there\|new day)$/; | const CONFIRM_FULL = /^Confirm (they've arrived\|it's still on\|you'll be at the job)$/;
- * @mutate src/lib/lifecycleErrors.ts |     helper_not_dayof_confirmed: "Tap Confirm first, then you can head out.", |     helper_not_dayof_confirmed: "Tap \"Confirm you'll be at the job\" first, then you can head out.",
+ * @mutate src/lib/lifecycleErrorCopy.ts |     helper_not_dayof_confirmed: "Tap Confirm first, then you can head out.", |     helper_not_dayof_confirmed: "Tap \"Confirm you'll be at the job\" first, then you can head out.",
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
@@ -18,7 +18,7 @@ import { JobPageActionRow } from "@/pages/jobs/jobPage/JobPageActionRow";
 import { JobStepPrimaryButton } from "@/components/job-card/JobActionRow";
 import { MenuAction } from "@/components/job-card/jobStepMenu";
 import { buttonLabel } from "@/components/ui/pairLabel";
-import { RPC_ERROR_COPY } from "@/lib/lifecycleErrors";
+import { RPC_ERROR_COPY } from "@/lib/lifecycleErrorCopy";
 
 const FULL = ["Confirm you'll be at the job", "Confirm it's still on", "Confirm they've arrived", "Confirm I'll be there", "Confirm new day"];
 const noop = () => {};

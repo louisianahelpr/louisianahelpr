@@ -332,4 +332,4 @@ describe("user-visible copy names what someone did on a job, never a role", () =
 
 // Proof this guard can fail: restore the owner-reported defect verbatim — the
 // lifecycle error that named a role instead of what the person did on the job.
-// @mutate src/lib/lifecycleErrors.ts |   not_authorized: "Only the person who posted this job can do that.", |   not_authorized: "Only the poster can do that.",
+// @mutate src/lib/lifecycleErrorCopy.ts |   not_authorized: "Only the person who posted this job can do that.", |   not_authorized: "Only the poster can do that.",

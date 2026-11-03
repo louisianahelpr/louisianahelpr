@@ -65,7 +65,7 @@ export function InstantBookingCard({ jobId, title, declineUntil, now: fixedNow }
     setBusy(null);
     setConfirmDecline(false);
     if (!e) return done("declined");
-    if (rpcErrorCode("rpc_instant_book_decline", e) === "decline_window_closed") return done("booked_now");
+    if ((await rpcErrorCode("rpc_instant_book_decline", e)) === "decline_window_closed") return done("booked_now");
     setError(rpcErrorMessage("rpc_instant_book_decline", e) ?? INSTANT_BOOK_GENERIC_ERROR);
   };
 

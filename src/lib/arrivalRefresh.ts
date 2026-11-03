@@ -245,7 +245,7 @@ export async function upgradeUnverifiedArrival(
        failed on it: the repo's rule is that every RPC call site reads its copy
        through this helper, and matching on message text is how a call site
        ends up describing refusals the function stopped raising.) */
-    const known = rpcErrorCode("mark_helper_arrival", error);
+    const known = await rpcErrorCode("mark_helper_arrival", error);
     if (!known && !isMissingRpcNamed(error, "mark_helper_arrival")) {
       report(error, { tags: { source: "arrivalRefresh.markHelperArrival" }, context: { job_id: job.id } });
     }

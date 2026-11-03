@@ -17,7 +17,7 @@ import { describe, expect, it } from "vitest";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { newestFunction } from "./helpers/parityReaders";
 import { DECLUTTER_ERROR_COPY } from "@/lib/declutter/errors";
-import { RPC_ERROR_COPY } from "@/lib/lifecycleErrors";
+import { RPC_ERROR_COPY } from "@/lib/lifecycleErrorCopy";
 
 const sql = (name: string) => blankSqlComments(newestFunction(name).body).replace(/\s+/g, " ");
 const LISTED = "v_item.status = 'live' OR (v_item.status = 'pending_review' AND v_item.live_at IS NOT NULL AND EXISTS ( SELECT 1 FROM public.declutter_item_private pv WHERE pv.item_id =";

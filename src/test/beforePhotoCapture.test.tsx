@@ -144,7 +144,7 @@ import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 // Read as TEXT, not imported: LIFECYCLE_REASONS is module-private on purpose,
 // and the thing being checked is that the CODE the trigger raises is a key in
 // that table — not that some string exists.
-const LIFECYCLE_COPY = readFileSync(resolve(__dirname, "../lib/lifecycleErrors.ts"), "utf8");
+const LIFECYCLE_COPY = readFileSync(resolve(__dirname, "../lib/lifecycleErrorCopy.ts"), "utf8");
 
 beforeAll(() => {
   Element.prototype.scrollTo = Element.prototype.scrollTo ?? (() => {});

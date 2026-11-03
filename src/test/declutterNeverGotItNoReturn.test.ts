@@ -6,7 +6,7 @@
 // @mutate supabase/migrations/20261102041000_declutter_refund_seller_side.sql |     IF r.reason = 'not_received' THEN\n      v_out := | IF false THEN\n      v_out :=
 // @mutate supabase/migrations/20261102041000_declutter_refund_seller_side.sql |       v_out := public.declutter_refund_after_handover(o.id, 'seller_no_show', NULL); |       v_out := public.declutter_refund_after_handover(o.id, 'refund_request_full', NULL);
 // @mutate supabase/migrations/20261031010243_declutter_never_got_it_no_return.sql |   IF p_way = 'drop_off' AND o.handover NOT IN ('pickup_home', 'porch') THEN |   IF false THEN
-// @mutate supabase/migrations/20261102041000_declutter_refund_seller_side.sql |   IF r.status = 'returning' AND r.return_way = 'drop_off' AND o.handover IN ('pickup_home', 'porch') THEN |   IF true THEN
+// @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql |   IF r.status = 'returning' AND r.return_way = 'drop_off' AND o.handover IN ('pickup_home', 'porch') THEN |   IF true THEN
 // @mutate src/components/declutter/DeclutterRefundRequest.tsx | const [choice, setChoice] = useState<Answer \| null>(null); | const [choice, setChoice] = useState<Answer \| null>("full");
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

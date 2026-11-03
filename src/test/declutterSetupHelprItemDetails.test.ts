@@ -5,7 +5,7 @@
  * Reads the EFFECTIVE definition. Backend proof: src/test/pglite/declutterSetupHelprItemDetails.pglite.mjs
  * (3x; 2 FAIL without the migration; RED on a wrong order and on the old key renamed).
  */
-// @mutate supabase/migrations/20261028201659_declutter_setup_helpr_item_details.sql | jsonb_build_object('title', i.title, 'category', i.category, 'delivery_size', i.delivery_size) | jsonb_build_object('title', i.title)
+// @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql | jsonb_build_object('title', i.title, 'category', i.category, 'delivery_size', i.delivery_size) | jsonb_build_object('title', i.title)
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

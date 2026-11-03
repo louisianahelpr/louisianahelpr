@@ -81,7 +81,7 @@ function inventory(): { readers: string[]; unfiltered: Record<string, number> } 
   return { readers: readers.sort(), unfiltered };
 }
 
-// @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql |   WHERE coalesce(e.tags ->> 'origin', '') <> 'client' AND e.id <> NEW.id |   WHERE e.id <> NEW.id
+// @mutate supabase/migrations/20261103203658_connect_record_only_rows_never_page.sql |   WHERE coalesce(e.tags ->> 'origin', '') <> 'client' AND e.id <> NEW.id |   WHERE e.id <> NEW.id
 // @mutate supabase/migrations/20261004004835_client_rows_cannot_mute_server_alerts.sql |      WHERE coalesce(e.tags ->> 'origin', '') <> 'client' AND e.tags->>'source' = 'cron-dead' |      WHERE e.tags->>'source' = 'cron-dead'
 describe("Q1159: server throttles and dedupes ignore client-written error_logs rows", () => {
   const { readers, unfiltered } = inventory();

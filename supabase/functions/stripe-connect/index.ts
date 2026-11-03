@@ -14,6 +14,7 @@ import { payoutSetupHireAllowed, payoutSetupNeedsHireResponse } from "../_shared
 import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { isRejectedAccount, isRejectedAccountError } from "../_shared/livePayoutGate.ts";
+import { recordConnectChange } from "../_shared/connectRecord.ts";
 
 /** Q863: clears recorded in the last hour before stripe-connect stops clearing. */
 const STALE_CLEAR_HOURLY_CAP = 5;
@@ -970,6 +971,9 @@ serve(async (req) => {
       }
 
       const { accountId } = await getOrCreateAccount();
+      // Q2368 (lead 11-03): the durable record of the reset (old and new account), which was a console line only.
+      // A record, not an alert (error_log_is_record_only); a failed insert is logged, never thrown.
+      await recordConnectChange(supabaseAdmin, { kind: "connect-reset", userId: user.id, oldAccountId, newAccountId: accountId });
 
       // Security alert: resetting the payout account deletes all saved bank
       // accounts and pending payout configuration — more destructive than

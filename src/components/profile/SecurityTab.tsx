@@ -541,11 +541,10 @@ export function SecurityTab({ email, onBack }: SecurityTabProps) {
                           current session predates login_history). */}
                       {isThisDevice && (
                         <span
-                          className="text-ds-10 font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
+                          className="text-ds-11 font-semibold px-1.5 py-0.5 rounded-full"
                           style={{
                             background: "hsl(var(--bark) / 0.12)",
                             color: "hsl(var(--bark))",
-                            letterSpacing: "0.06em",
                           }}
                         >
                           This device

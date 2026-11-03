@@ -233,8 +233,9 @@ export function ChatHeader({
               const label = threadJobChipLabel(status, activeConvo);
               return (
                 <span
-                  className="text-ds-9 font-sans font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full shrink-0 ml-auto"
-                  style={{ color: palette.text, backgroundColor: palette.bg, letterSpacing: "0.08em" }}
+                  // Sentence case, same recipe as the messages row chip (Q2001: no ALL-CAPS status pills).
+                  className="text-ds-11 font-sans font-semibold px-1.5 py-0.5 rounded-full shrink-0 ml-auto"
+                  style={{ color: palette.text, backgroundColor: palette.bg }}
                 >
                   {label}
                 </span>

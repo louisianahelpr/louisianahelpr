@@ -29,6 +29,12 @@ import { TAB_TITLES } from "@/pages/profile/types";
 
 const STRIKE_LABELS = ["Written warning", "Final warning", "7-day restriction"] as const;
 
+/** A warning's action in sentence case ("final_warning" -> "Final warning"), never ALL CAPS (Q2001). */
+function actionLabel(action: string): string {
+  const words = action.replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
   const strikeCount = violations.filter((v) => v.action_taken === "warning" || v.action_taken === "final_warning").length;
   const hasBan = violations.some((v) => v.action_taken === "permanent_ban");
@@ -186,14 +192,14 @@ export function WarningsTab({ violations, loading, onBack }: WarningsTabProps) {
                 <div key={v.id} className="rounded-ds-md liquid-glass p-card space-y-2 transition-all hover:-translate-y-0.5 hover:shadow-md">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-ds-10 font-bold uppercase tracking-wider shrink-0 ${
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-ds-11 font-semibold shrink-0 ${
                         /* `text-warning` (L53%) on a 10% tint measured 2.94:1 at 10px bold.
                            The darker same-hue value clears AA; --warning stays as-is because
                            it is correct for fills and icons, which have no text bar. */
                         v.action_taken === "permanent_ban" ? "bg-destructive/10 text-destructive-ink"
                         : "bg-warning/10 text-[hsl(33_35%_32%)] dark:text-[hsl(33_50%_78%)]"
                       }`}>
-                        {v.action_taken.replace(/_/g, " ")}
+                        {actionLabel(v.action_taken)}
                       </span>
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-ds-10 font-medium bg-[hsl(var(--burnt-sienna)/0.1)] text-[hsl(var(--burnt-sienna))] shrink-0">
                         {v.violation_type.replace(/_/g, " ")}

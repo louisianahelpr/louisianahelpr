@@ -112,11 +112,10 @@ export function TwoFactorCard() {
         </div>
         {!isLoading && !isError && verified && (
           <span
-            className="shrink-0 text-ds-10 font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+            className="shrink-0 text-ds-11 font-semibold px-2 py-0.5 rounded-full"
             style={{
               background: "hsl(var(--bark) / 0.12)",
               color: "hsl(var(--bark))",
-              letterSpacing: "0.06em",
             }}
           >
             On

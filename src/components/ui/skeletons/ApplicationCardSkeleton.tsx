@@ -193,26 +193,134 @@ export function CollapsedActivityCardSkeleton({ metaLines = 2 }: { metaLines?: 1
 }
 
 /**
- * BOTH activity tabs draw this one card.
+ * THE WORKING TAB'S PLACEHOLDER (/jobs?tab=working), Q833 (2026-11-03).
  *
- * `ApplicationCardSkeleton` is the applied side (/jobs) and
- * `ActivityCardSkeleton` (src/components/SkeletonLoaders.tsx) is the posted
- * side (/posts). They are the same name for the same box: PostedJobCard and
- * AppliedJobCard are both JobCardShell + JobCardTitleBar + JobCardMetaRow +
- * JobStatusStrip, and both measure 151px collapsed at 375. The posted tab used
- * to hand-draw its own 106px approximation, which is the 45px-per-row jump the
- * owner reported on 2026-09-21 — the same defect /jobs had, through a
- * different component.
+ * The Working cards are MineJobFace now (thumb, title, date, ONE status line,
+ * the 8-step bar, ONE button), not the old collapsed card this file draws
+ * above (category tab, title bar, status strip). Drawing the old card made
+ * every row jump when the list landed. Measured in the mocked harness at 375
+ * (helper, warm reload, route chunks held): placeholder 130px against real
+ * cards of 166 / 209px, and on prod (Builder 30, 11-03) 130px against done
+ * cards of 197px x50, a 67px row jump.
  *
- * Since Q700 (2026-09-27) the two tabs differ in ONE thing, the meta line
- * count: /jobs reserves one line, /posts two (see the note below).
+ * So it draws the FACE, in the face's own boxes. Every class string in
+ * `MINE_FACE_BOXES` is copied verbatim from MineJobFace.tsx and
+ * src/test/mineFaceSkeletonMatchesFace.test.ts fails when either side moves
+ * without the other. Text rows are `FaceLine`s: a non-breaking space in the
+ * real line's own type class, so the reserved height IS that line's
+ * line-height, with the bone laid over it. The button is a bone in the real
+ * button's box (`size="sm"` is h-11), never a control.
  *
- * The file keeps its name (and its path, which
- * e2e/prod-audit/activity-loading-reserve.spec.ts names in an @mutate
- * directive); the drawing above is what is shared.
+ * Two shapes, because a Working card is one of two by design:
+ *   - with the bar (hired, scheduled, live, done): 197px at 375, the done
+ *     bucket's one shape on prod;
+ *   - without it (`tracker={false}`): a pending application has no bar
+ *     (AppliedJobCard draws `faceProgress` only for the hired Helpr), 166px.
  */
-export function ApplicationCardSkeleton() {
-  return <CollapsedActivityCardSkeleton metaLines={1} />;
+export const MINE_FACE_BOXES = {
+  frame: "flex flex-col px-3.5 py-3 md:flex-row md:flex-wrap md:items-center md:gap-x-6 md:gap-y-2",
+  faceCol: "order-1 min-w-0 md:order-none md:flex-1",
+  thumb: "h-11 w-11 shrink-0 overflow-hidden rounded-xl",
+  titleRow: "flex items-start justify-between gap-3 md:justify-start md:gap-4",
+  title: "line-clamp-2 min-w-0 text-ds-16 font-bold leading-snug",
+  money: "block text-ds-17 font-bold leading-snug",
+  when: "mt-0.5 block text-ds-13",
+  under: "space-y-1 pl-[56px] pt-1",
+  status: "font-sans text-ds-13 font-semibold",
+  progress: "order-2 pt-2 md:order-none md:basis-full md:pt-0",
+  seg: "block h-1.5 rounded-full",
+  stepWord: "mt-1 flex min-w-0 items-center justify-center gap-0.5 text-ds-11 leading-tight",
+  button: "order-3 mt-2 w-full rounded-full md:mt-0 md:w-auto md:min-w-40 md:px-6 md:shrink-0 md:order-none",
+} as const;
+
+/** One text row: the real line's type class holds a non-breaking space (its exact line-height), the bone sits over it. */
+function FaceLine({ type, width, className = "" }: { type: string; width: string; className?: string }) {
+  return (
+    <div className={`relative ${type} ${className}`} data-face-line="">
+      {"\u00a0"}
+      <Skeleton className="absolute left-0 top-[22%] bottom-[22%] rounded" style={{ width }} />
+    </div>
+  );
+}
+
+export function MineFaceSkeleton({ tracker = true }: { tracker?: boolean } = {}) {
+  const B = MINE_FACE_BOXES;
+  return (
+    <div className={JOB_CARD_SHELL_FRAME} aria-hidden data-mine-face-skeleton={tracker ? "bar" : "no-bar"}>
+      <div className={B.frame}>
+        <div className={B.faceCol}>
+          <div className="flex min-w-0 items-start gap-3">
+            <Skeleton className={`${B.thumb} rounded-xl`} />
+            <div className="min-w-0 flex-1">
+              <div className={B.titleRow}>
+                {/* Two title lines on a phone (a real title wraps at ~22 characters there), one from 768px. */}
+                <div className="min-w-0 flex-1 md:flex-none md:w-[40%]">
+                  <FaceLine type={B.title} width="92%" />
+                  <FaceLine type={B.title} width="60%" className="md:hidden" />
+                </div>
+                <div className="shrink-0">
+                  <FaceLine type={B.money} width="100%" className="w-12" />
+                </div>
+              </div>
+              <FaceLine type={B.when} width="45%" />
+            </div>
+          </div>
+          <div className={B.under}>
+            <FaceLine type={B.status} width="62%" />
+          </div>
+        </div>
+        <Skeleton className={`${B.button} h-11`} />
+        {tracker && (
+          <div className={B.progress}>
+            <div className="grid grid-cols-8 gap-1">
+              {Array.from({ length: 8 }, (_, i) => (
+                <div key={i} className="min-w-0">
+                  <Skeleton className={B.seg} />
+                  <div className={B.stepWord}>{"\u00a0"}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The Working list's bones: four face cards, and on the grouped "All" view the
+ * first bucket's heading above them (ActivityBucketGroups: a `text-ds-13`
+ * heading, `gap-2` to its list), so the first card starts where the real one
+ * does. The Waiting bucket's cards have no bar.
+ */
+export function WorkingListBones({ filter }: { filter: string | null }) {
+  const f = filter || "all";
+  const cards = (
+    <div className="space-y-list">
+      {[1, 2, 3, 4].map((i) => (
+        <ApplicationCardSkeleton key={i} tracker={f !== "waiting"} />
+      ))}
+    </div>
+  );
+  if (f !== "all") return cards;
+  return (
+    <div className="flex flex-col gap-2" data-skeleton-group-heading="">
+      <div className="flex items-baseline justify-between px-1">
+        <FaceLine type="text-ds-13 font-bold uppercase" width="5.5rem" className="w-full" />
+      </div>
+      {cards}
+    </div>
+  );
+}
+
+/**
+ * The applied side's card placeholder. The name and path are kept (the prod
+ * spec e2e/prod-audit/activity-loading-reserve.spec.ts and listPitchToken name
+ * it); since Q833 it is the MineJobFace drawing above. /posts still draws
+ * `CollapsedActivityCardSkeleton` (ActivityCardSkeleton).
+ */
+export function ApplicationCardSkeleton({ tracker = true }: { tracker?: boolean } = {}) {
+  return <MineFaceSkeleton tracker={tracker} />;
 }
 
 /*

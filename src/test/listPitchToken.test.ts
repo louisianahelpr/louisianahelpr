@@ -169,7 +169,9 @@ describe("every job-card list uses the one --list-gap pitch (Q213a)", () => {
     // 10 on 2026-09-26: GuestBrowseSkeleton x2, JobListPage x2,
     // ActivityPageSkeleton x2, BrowseTasksFeed x2, DashboardGuest x2.
     // 2026-10-19 (Q2205): ActivityPageSkeleton x2 -> JobsSectionSkeleton x2.
-    expect(hits.length).toBeGreaterThan(9);
+    // 2026-11-03 (Q833): the two Working placeholder lists (JobListPage, JobsSectionSkeleton) became ONE,
+    // WorkingListBones in ApplicationCardSkeleton.tsx, which both render: 9.
+    expect(hits.length).toBeGreaterThan(8);
   });
 
   it.each(hits.map((h) => [h.where, h] as const))("%s stands its cards --list-gap apart", (_w, h) => {

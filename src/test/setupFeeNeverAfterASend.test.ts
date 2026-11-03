@@ -5,7 +5,7 @@
  * 10-31, finding (2). Behaviour: src/test/pglite/sellerSetupFeeFromPayout.pglite.mjs and
  * helprSetupFeeFromPayout.pglite.mjs (FOLLOWUP=skip is red on the new cases).
  *
- * @mutate supabase/migrations/20261031225132_setup_fee_never_after_a_send.sql | OR p.attempts > 0 OR p.send_tried\n     OR EXISTS (SELECT 1 FROM public.payout_send_marks m WHERE m.payout_kind = 'declutter' AND m.payout_id = p.id) THEN | OR p.attempts > 0 THEN
+ * @mutate supabase/migrations/20261103130123_money_card_rent_seller_delivery_setup_fee_not_found_is_404.sql | OR p.attempts > 0 OR p.send_tried\n     OR EXISTS (SELECT 1 FROM public.payout_send_marks m WHERE m.payout_kind = 'declutter' AND m.payout_id = p.id) THEN | OR p.attempts > 0 THEN
  * @mutate supabase/migrations/20261031225132_setup_fee_never_after_a_send.sql | OR p.helpr_id IS NULL OR p.send_tried\n     OR EXISTS (SELECT 1 FROM public.payout_send_marks m WHERE m.payout_kind = 'helpr_task' AND m.payout_id = p.id) THEN | OR p.helpr_id IS NULL THEN
  * @mutate supabase/migrations/20261031225132_setup_fee_never_after_a_send.sql |     OR (TG_OP = 'UPDATE' AND (OLD.send_tried OR COALESCE(OLD.attempts, 0) > 0)); | ;
  */

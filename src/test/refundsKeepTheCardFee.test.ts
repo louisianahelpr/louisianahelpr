@@ -706,7 +706,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // BUY-2 (20261031133938, owner 10-31; money verdict owed): the buyer's cancel after no Helpr took the delivery. Its
       // only refund is declutter_close_paid_order(o.id, 'buyer_cancelled'), already pinned (keep_card_fee: the buyer bears
       // the card fee, as the owner chose); it refuses once a pickup is booked or a problem is open, and a replay answers already.
-      declutter_cancel_after_no_helpr: "20261031133938_declutter_no_helpr_buyer_refund.sql e0426fab9dcc27c5",
+      // Q2390 p28 (2026-11-03): re-pinned to its ERRCODE-only restatement (P0002 -> PT404); the close call is byte-identical.
+      declutter_cancel_after_no_helpr: "20261103130123_money_card_rent_seller_delivery_setup_fee_not_found_is_404.sql 6946268ff71c97c2",
       // BUY-2 (20261031133938): STABLE read for the buyer's own order; shows keep_card_fee's sum (paid minus the card fee,
       // at least 1 cent back) and the delivery coming back. Writes nothing.
       declutter_no_helpr_choice: "20261031133938_declutter_no_helpr_buyer_refund.sql 7fc7a17d711295b0",

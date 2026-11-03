@@ -13,6 +13,7 @@ import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts"
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { checkPayoutHold, loadPayoutHolds, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { CONNECT_HELD_CODES } from "../_shared/livePayoutGate.ts";
+import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 
 /** Stripe-mode refusal reasons that are about a test-looking account (Q2397). */
 const TEST_ACCOUNT_REFUSALS: ReadonlySet<string> = new Set([
@@ -893,6 +894,16 @@ serve(async (req) => {
         defects.record(`payout hold read: ${holdLookup.message}`);
       }
 
+      // Q1910: the id of this job's dispute if an admin closed it as a Stripe TEST mode dispute
+      // (rpc_close_test_mode_dispute, 20261015061949), else null. That close moves the job to 'cancelled', so
+      // release-payout refuses it ("payment_status is cancelled"); a close landing after the due read above
+      // must be an outcome (no failed attempt, no page), as in process-scheduled-payouts. Any other block or a
+      // read error answers null: release-payout runs its own dispute check and stays the one that refuses.
+      const closedAsTest = async (jobId: string): Promise<string | null> => {
+        const check = await checkUnsettledDispute(supabaseAdmin, jobId);
+        return check.testClosed?.id ?? null;
+      };
+
       for (const job of holdLookup.ok ? dueJobs ?? [] : []) {
         if (holdLookup.ok && job.helper_id && holdLookup.holds.has(job.helper_id)) {
           payoutResults.push({ job_id: job.id, status: PAYOUT_HELD_CODE, detail: "Helpr is on a payout hold; not attempted" });
@@ -914,6 +925,13 @@ serve(async (req) => {
             status: "given_up",
             detail: `${priorFailures} failed attempts recorded; not retrying. Clear the failed payout_transfers rows for this job (set them to 'canceled') or invoke release-payout directly to resume.`,
           });
+          continue;
+        }
+
+        const testClosedBefore = await closedAsTest(job.id);
+        if (testClosedBefore) {
+          console.log(`[auto-release-payment] job ${job.id} skipped: dispute ${testClosedBefore} closed as a test`);
+          payoutResults.push({ job_id: job.id, status: "dispute_closed_as_test", detail: testClosedBefore });
           continue;
         }
 
@@ -963,6 +981,9 @@ serve(async (req) => {
             // day by release-payout: not a failed attempt, so no give-up page
             // per job while it waits (lh-money-escrow review #4).
             payoutResults.push({ job_id: job.id, status: "payee_not_payable", detail: `${json.code}: ${json.error ?? ""}` });
+          } else if (await closedAsTest(job.id)) {
+            // Q1910: the test close landed between the check above and release-payout's read. Same outcome.
+            payoutResults.push({ job_id: job.id, status: "dispute_closed_as_test", detail: json.error ?? `HTTP ${resp.status}` });
           } else {
             const detail = json.error ?? `HTTP ${resp.status}`;
             // release-payout writes its own failed row only when

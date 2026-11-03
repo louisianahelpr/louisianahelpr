@@ -68,9 +68,11 @@ describe("the Declutter Free section", () => {
     expect(newestFunction("declutter_close_paid_order").file).toContain("20261103203204_shipping_lost_sweep.sql");
     const names = ["declutter_free_rules",
       "declutter_buy_now",
-      "declutter_update_draft", "payout_setup_hire_allowed"];
+      "payout_setup_hire_allowed"];
     for (const n of names) expect(newestFunction(n).file, n).toContain(FILE);
-    expect(names.length).toBeGreaterThan(3);
+    // declutter_update_draft: Q2390 p38 (20261103224137) restated it verbatim with its not-found as PT404 only.
+    expect(newestFunction("declutter_update_draft").file).toContain("20261103224137");
+    expect(names.length).toBeGreaterThan(2);
     // declutter_setup_fee_before_list: LEAD-B49-REBUILD (20261031214749) restated it from 20261027170717 with one early
     // return while the ID check is on (the fee then comes out of the payout); the free rule is asserted below.
     expect(newestFunction("declutter_setup_fee_before_list").file).toContain("20261031214749_seller_setup_fee_from_payout_restated.sql");

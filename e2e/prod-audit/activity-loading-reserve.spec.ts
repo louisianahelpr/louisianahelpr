@@ -59,14 +59,13 @@
  *     activity-loading-reserve
  */
 // SHOWN ABLE TO FAIL: each fix, reverted, brings its own number back.
-// The money bone's own height CLASS, not an appended `style` prop: the bone
-// already carries a `style` for its background, and a second one appended after
-// `className` is a DUPLICATE JSX prop — React keeps the last, so the mutation
-// changed the source text and nothing else. It registered, ran, and SURVIVED on
-// main (placeholder row 150px, byte-identical to unmutated). Mutating the class
-// moves the real box: 26px -> 96px takes the row 150px -> ~220px, far outside
-// the 8px budget.
-// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | className="h-[26px] w-16 rounded-ds-md shrink-0 ml-3" | className="h-[96px] w-16 rounded-ds-md shrink-0 ml-3"
+// The placeholder button bone's own height CLASS (Q833; it was the old card's money bone, whose mutation once
+// SURVIVED because an appended duplicate `style` prop changed the source text and nothing else). Mutating the class
+// moves the real box: h-11 -> 96px takes the placeholder row 197px -> ~249px, far outside the 8px budget.
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | <Skeleton className={`${B.button} h-11`} /> | <Skeleton className={`${B.button} h-[96px]`} />
+// Q833: /jobs draws the MineJobFace placeholder; put the OLD collapsed card back and both Working surfaces jump again
+// (130px against 197px cards on prod).
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <MineFaceSkeleton tracker={tracker} />; | return <CollapsedActivityCardSkeleton metaLines={1} />;
 // Re-pointed 2026-10-19 (Q2205): the old My Posts / My Jobs placeholder (ActivityPageSkeleton) and its folded
 // tab-row reservation went with those screens. Jobs > Posted / Working always show the four status boxes, and the
 // placeholder (JobsSectionSkeleton) must reserve them: without the bones the list starts ~76px high.
@@ -156,7 +155,8 @@ interface Surface {
    * (`tabRowOpens`). Asserted on the loaded page, so the surface cannot go
    * quietly vacuous if the header stops opening the row.
    */
-  /** The loaded page must show the four status boxes (Jobs > Posted / Working, 2026-10-19), whose bones the placeholder reserves. */
+  /** The loaded page must show the status boxes (Jobs > Posted / Working, 2026-10-19; five since the chip row: All and the
+   *  four buckets a list shows), whose bones the placeholder reserves. */
   statusBoxes?: boolean;
   /**
    * A MEASURED row jump this surface is knowingly over ROW_BUDGET by, with the
@@ -173,12 +173,11 @@ const SURFACES: Surface[] = [
     url: "/jobs?tab=working",
     as: "helper",
     chunk: /\/assets\/(JobsSection|JobListPage)-[^/]+\.js(\?|$)/,
-    /* Q700 (owner, 2026-09-27): /jobs reserves the ONE-line card shape (130px).
-       That matched while helper-e2e's list was mostly one-line cards (131px x8,
-       151px x7). On 2026-09-28 00:43Z 18 of its applications became rejected on
-       cancelled jobs, and prod-audit 36744778439 (2026-09-30) measured 130 vs
-       151px x7: a 21px jump. Owner, 2026-09-30: keep Q700 and pin the jump. */
-    rowJump: { px: 21, owner: "docs/OPEN.md Q700 (one-line /jobs placeholder; list now 151px x7)" },
+    /* Q833 (2026-11-03): the Working cards are MineJobFace, and the placeholder draws the face
+       (MineFaceSkeleton, 197px at 375 with the 8-step bar), with the first bucket's heading on this
+       default "All" view. The Q700 21px pin went with the old 130px card. Prod before (Builder 30,
+       11-03, helper-e2e at 375): placeholder 130px x4 first-y 174, real 209/198/209/166/166/225px
+       first-y 227. */
   },
   /* THE TAB-ROW RESERVATION (2026-09-26). The two surfaces above open on the
      DEFAULT filter, where the phone tab row starts folded (owner, 2026-09-25)
@@ -207,7 +206,9 @@ const SURFACES: Surface[] = [
        375: 160px x20, 293px x24, 204px x6; /jobs itself 130 vs 131, 1px).
        The owner's answer named /jobs as a whole; a done-bucket placeholder of
        its own is filed as a follow-up in docs/OPEN.md Q833, not guessed. */
-    rowJump: { px: 30, owner: "docs/OPEN.md Q833 (one-line /jobs placeholder; done cards: 160/204/293px shapes)" },
+    /* Q833 (2026-11-03): this bucket's cards are one shape now, the face with its bar: 197px x50 on
+       prod (Builder 30, 11-03) against the old 130px placeholder, a 67px jump. The placeholder draws
+       that face, so the 30px pin is gone and the row is held to ROW_BUDGET like every surface. */
   },
   {
     name: "posts",
@@ -241,8 +242,9 @@ const SURFACES: Surface[] = [
  *      off a page whose cards are 151px.
  *
  * So the two frames are resolved by what identifies a row in each: a real job
- * card is the shell around a card TITLE (`h2.font-display`, JobCardTitleBar's
- * own heading), and a placeholder card is the outermost card-sized rounded box
+ * card is the shell around a card TITLE (`[data-mine-face-title]`, MineJobFace's
+ * title; it was JobCardTitleBar's `h2.font-display` until the cards became the face, and the
+ * stale selector timed every surface out at 45 s, Q833), and a placeholder card is the outermost card-sized rounded box
  * holding a placeholder BONE. Neither rule can wander inside a card.
  */
 async function rows(page: Page) {
@@ -267,7 +269,7 @@ async function rows(page: Page) {
     // LOADED: one row per card title.
     const real = [
       ...new Set(
-        [...document.querySelectorAll("h2.font-display")]
+        [...document.querySelectorAll("[data-mine-face-title]")]
           .map((h) => h.closest<HTMLElement>("div.rounded-2xl"))
           .filter((c): c is HTMLElement => !!c && !c.closest("nav")),
       ),
@@ -361,7 +363,7 @@ for (const surface of SURFACES) {
            3. measure the placeholder rows, release the chunks, measure the
               rows that replace them. */
       await page.goto(surface.url, { waitUntil: "commit" });
-      await page.waitForSelector("h2.font-display", { state: "visible", timeout: 45_000 });
+      await page.waitForSelector("[data-mine-face-title]", { state: "visible", timeout: 45_000 });
       // The persister writes at most once a second (queryPersister throttleTime).
       await page.waitForTimeout(2_500);
 
@@ -402,7 +404,7 @@ for (const surface of SURFACES) {
           const seen = await page.evaluate(() => ({
             url: location.pathname + location.search,
             testids: [...document.querySelectorAll("[data-testid]")].map((x) => x.getAttribute("data-testid")).filter((t) => /skeleton|empty/i.test(t ?? "")).slice(0, 6),
-            titles: document.querySelectorAll("h2.font-display").length,
+            titles: document.querySelectorAll("[data-mine-face-title]").length,
           }));
           release();
           throw new Error(`${surface.name}: no card placeholders on the warm reload (held: ${heldChunks.join(", ") || "nothing"}; frame: ${JSON.stringify(seen)}): ${e instanceof Error ? e.message : String(e)}`);
@@ -413,7 +415,7 @@ for (const surface of SURFACES) {
       await info.attach(`${surface.name}-loading.png`, { body: await page.screenshot(), contentType: "image/png" });
       release();
 
-      await page.waitForSelector("h2.font-display", { state: "visible", timeout: 45_000 });
+      await page.waitForSelector("[data-mine-face-title]", { state: "visible", timeout: 45_000 });
       await page.waitForTimeout(2_000);
       const loaded = await rows(page);
       await info.attach(`${surface.name}-loaded.png`, { body: await page.screenshot(), contentType: "image/png" });
@@ -423,7 +425,7 @@ for (const surface of SURFACES) {
           page.locator("[data-status-box]"),
           `${surface.name}: the loaded header shows no status boxes on ${surface.url} — ` +
             `this surface exists to measure their reservation, and measured nothing`,
-        ).toHaveCount(4);
+        ).toHaveCount(5);
       }
 
       // VACUITY FLOOR, both frames. An empty set passes every comparison

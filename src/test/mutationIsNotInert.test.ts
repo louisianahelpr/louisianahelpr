@@ -150,5 +150,6 @@ describe("no registered mutation is inert", () => {
 });
 
 // Proof this is able to fail: the appended-`style` mutation that survived on
-// main, restored on the guard it was registered against.
-// @mutate e2e/prod-audit/activity-loading-reserve.spec.ts | className="h-[96px] w-16 rounded-ds-md shrink-0 ml-3" | className="h-[26px] w-16 rounded-ds-md shrink-0 ml-3" style={{ height: 96 }}
+// main, restored on the guard it was registered against. Q833 moved that registration from the old card's money bone to
+// the face placeholder's button bone; the inert form is the same (a second prop appended to the bone).
+// @mutate e2e/prod-audit/activity-loading-reserve.spec.ts | <Skeleton className={`${B.button} h-[96px]`} /> | <Skeleton className={`${B.button} h-11`} className="h-[96px]" />

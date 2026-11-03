@@ -17,7 +17,7 @@
  * @mutate supabase/migrations/20261031220447_member_signup_source_report.sql |        AND NOT public.is_test_subject(s.user_id) |        AND true
  * @mutate supabase/migrations/20261031220447_member_signup_source_report.sql |   IF auth.uid() IS NULL OR NOT coalesce(public.has_role(auth.uid(), 'admin'::public.app_role), false) THEN |   IF auth.uid() IS NULL THEN
  * @mutate supabase/migrations/20261031220447_member_signup_source_report.sql |   recorded_at timestamptz NOT NULL DEFAULT now()\n); |   recorded_at timestamptz NOT NULL DEFAULT now(),\n  email text\n);
- * @mutate src/components/SessionManager.tsx |   useSignupSourceReport(user?.id); |
+ * @mutate src/components/SessionManager.tsx |   useSignupSourceReport(user?.id, user?.created_at); |
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -76,6 +76,6 @@ describe("sign-up sources are counted with no personal data (OPS-5)", () => {
 
   it("the app sends the source once someone is signed in (SessionManager)", () => {
     const src = blankComments(readFileSync(join(REPO, "src", "components", "SessionManager.tsx"), "utf8"));
-    expect(src).toMatch(/useSignupSourceReport\(user\?\.id\)/);
+    expect(src).toMatch(/useSignupSourceReport\(user\?\.id, user\?\.created_at\)/);
   });
 });

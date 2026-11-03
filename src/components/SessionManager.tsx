@@ -78,7 +78,7 @@ export const SessionManager = () => {
   // prompt only ever comes from its button). Both are no-ops in the native app.
   useWebPushBootSync(user?.id);
   // OPS-5: where this member came from (two short words, no personal data), sent once per new account.
-  useSignupSourceReport(user?.id);
+  useSignupSourceReport(user?.id, user?.created_at);
   useWebPushAskAfterJobAction();
   useEffect(() => {
     // null until the profile lands, so the cached account flag the first

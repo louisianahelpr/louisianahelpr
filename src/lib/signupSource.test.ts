@@ -13,6 +13,9 @@
  * @mutate src/lib/signupSource.ts |       if (!isMissingRpcNamed(error, "record_my_signup_source")) report(error, { tags: { source: "signup-source" } });\n      return; |       if (!isMissingRpcNamed(error, "record_my_signup_source")) report(error, { tags: { source: "signup-source" } });
  * @mutate src/lib/signupSource.ts |       if (!isMissingRpcNamed(error, "record_my_signup_source")) report | if (false) report
  * @mutate src/lib/signupSource.ts |       if (/^\s*email_unconfirmed\b/.test(String(error.message ?? ""))) return; |
+ * @mutate src/lib/signupSource.ts |   if (Number.isFinite(made) && now - made > NEW_ACCOUNT_MS) return; |
+ * @mutate src/lib/signupSource.ts | const NEW_ACCOUNT_MS = 2 * 86_400_000 + 3_600_000; | const NEW_ACCOUNT_MS = 2 * 86_400_000 * 365;
+ * @mutate src/lib/signupSource.ts |     if (userId) void reportSignupSource(userId, createdAt); |     if (userId) void reportSignupSource(userId);
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
@@ -117,6 +120,27 @@ describe("reportSignupSource", () => {
     expect(rpc).toHaveBeenCalledTimes(2);
     await reportSignupSource("u1");
     expect(rpc).toHaveBeenCalledTimes(2);
+  });
+
+  it("an account older than the server's 2-day window sends nothing (cold-load request budget, 11-02)", async () => {
+    rpc.mockResolvedValue({ data: false, error: null });
+    const now = Date.parse("2026-11-02T12:00:00Z");
+    await reportSignupSource("u-old", "2026-10-30T10:00:00Z", now); // 2 d 2 h old
+    await reportSignupSource("u-old", "2025-01-01T00:00:00Z", now);
+    expect(rpc).not.toHaveBeenCalled();
+    await reportSignupSource("u-new", "2026-10-31T13:00:00Z", now); // 1 d 23 h old: inside the window
+    await reportSignupSource("u-unknown", undefined, now); // no created_at: the server decides
+    await reportSignupSource("u-garbled", "not a date", now);
+    expect(rpc).toHaveBeenCalledTimes(3);
+  });
+
+  it("the hook passes the session's created_at, so an old account never sends on a page load", async () => {
+    const { renderHook } = await import("@testing-library/react");
+    const { useSignupSourceReport } = await import("./signupSource");
+    rpc.mockResolvedValue({ data: false, error: null });
+    renderHook(() => useSignupSourceReport("u-hook", "2024-01-01T00:00:00Z"));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(rpc).not.toHaveBeenCalled();
   });
 
   it("any other failure is reported, never thrown", async () => {

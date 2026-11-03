@@ -20,7 +20,7 @@
 // pin is moved here, on purpose.
 //
 // @mutate supabase/migrations/20261001222911_remove_idv_requirement.sql |     AND business_id IS NULL\n | \n
-// @mutate supabase/migrations/20261015091114_job_quotes.sql |   IF public.are_users_blocked(v_uid, v_q.quoter_id) THEN\n    RAISE EXCEPTION 'applicant_blocked' USING ERRCODE = '42501';\n  END IF;\n\n  -- Whole dollars | \n  -- Whole dollars
+// @mutate supabase/migrations/20261103042402_booking_continue_day_nudge_not_found_is_404.sql |   IF public.are_users_blocked(v_uid, v_q.quoter_id) THEN\n    RAISE EXCEPTION 'applicant_blocked' USING ERRCODE = '42501';\n  END IF;\n\n  -- Whole dollars | \n  -- Whole dollars
 // @mutate supabase/migrations/20261015091114_job_quotes.sql |   VALUES (p_req.poster_id, p_req.title, | VALUES ((SELECT auth.uid()), p_req.title,
 // @mutate supabase/migrations/20261103041633_quote_not_found_is_404.sql |   v_job := public.quote_insert_job(v_req, p_budget, NULL); |   v_job := public.quote_insert_job(v_req, p_budget, v_req.poster_id);
 // @mutate supabase/migrations/20261015091114_job_quotes.sql |                            offered_to_helper_id, direct_offer_expires_at) |                            offered_to_helper_id, direct_offer_expires_at, is_seed)

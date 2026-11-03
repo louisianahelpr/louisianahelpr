@@ -21,6 +21,9 @@
  * @mutate supabase/migrations/20261103041633_quote_not_found_is_404.sql | IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'unknown_quote' USING ERRCODE = 'PT404'; | IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'unknown_quote' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103041633_quote_not_found_is_404.sql | IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'PT404'; | IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103041633_quote_not_found_is_404.sql | r.poster_id = v_uid) THEN\n    RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'PT404'; | r.poster_id = v_uid) THEN\n    RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103042402_booking_continue_day_nudge_not_found_is_404.sql | RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103042402_booking_continue_day_nudge_not_found_is_404.sql | RAISE EXCEPTION 'continue_day_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'continue_day_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103042402_booking_continue_day_nudge_not_found_is_404.sql | RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002';
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -29,11 +32,13 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 
 /**
  * Functions Q2390 has moved to PT404. Packet 1: save_my_phone (20261103040713). Packet 2: withdraw_job_quote,
- * switch_quote_request_to_set_price, get_quotes_for_request (20261103041633).
+ * switch_quote_request_to_set_price, get_quotes_for_request (20261103041633). Packet 3: book_accepted_quote,
+ * confirm_job_continue_day, nudge_confirm (20261103042402).
  */
-const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request"];
+const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
+  "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-const P0002_RAISERS = 299;
+const P0002_RAISERS = 296;
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");

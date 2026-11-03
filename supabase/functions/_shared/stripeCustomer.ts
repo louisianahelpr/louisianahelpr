@@ -171,6 +171,35 @@ export async function withWalletCustomer<T>(
   options: { adoptTagged?: boolean } = {},
 ): Promise<T> {
   const customerId = await resolveStripeCustomer(admin, stripe, user, mode, options);
+  return await replacingDeadCustomer(admin, stripe, user, mode, customerId, fn);
+}
+
+/**
+ * Q2140, the pre-fill callers (declutter-checkout's order, raise and tip pages, shop-checkout): they never make a
+ * wallet customer, they only pre-fill the page with the stored one. `customerId` is the caller's own
+ * storedStripeCustomer read; with none stored, `fn` runs once with undefined and nothing is made in Stripe. A stored
+ * customer Stripe no longer has is replaced and `fn` retried once, exactly as withWalletCustomer does.
+ */
+export async function withStoredWalletCustomer<T>(
+  admin: WalletDb,
+  stripe: CustomerCreator,
+  user: { id: string; email?: string | null },
+  mode: WalletStripeMode,
+  customerId: string | undefined,
+  fn: (customerId: string | undefined, walletRetry: boolean) => Promise<T>,
+): Promise<T> {
+  if (!customerId) return await fn(undefined, false);
+  return await replacingDeadCustomer(admin, stripe, user, mode, customerId, fn);
+}
+
+async function replacingDeadCustomer<T>(
+  admin: WalletDb,
+  stripe: CustomerCreator,
+  user: { id: string; email?: string | null },
+  mode: WalletStripeMode,
+  customerId: string,
+  fn: (customerId: string, walletRetry: boolean) => Promise<T>,
+): Promise<T> {
   try {
     return await fn(customerId, false);
   } catch (err) {

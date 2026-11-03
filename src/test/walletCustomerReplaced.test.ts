@@ -10,11 +10,13 @@
  * @mutate supabase/functions/_shared/stripeCustomer.ts |     return await fn(data, true); |     return await fn(data, false);
  * @mutate supabase/functions/_shared/stripeCustomer.ts |     if (error) throw new StripeCustomerUnavailable(`wallet replace failed: ${error.message}`); |     if (error) return await fn(customerId, true);
  * @mutate supabase/functions/_shared/stripeCustomer.ts |         { idempotencyKey: `lh-wallet-customer-${user.id}-${mode}-after-${customerId}` }, |         { idempotencyKey: `lh-wallet-customer-${user.id}-${mode}` },
+ * @mutate supabase/functions/_shared/stripeCustomer.ts |   if (!customerId) return await fn(undefined, false); |   if (!customerId) return await fn(undefined, true);
+ * @mutate supabase/functions/declutter-checkout/index.ts | await withStoredWalletCustomer(admin, stripe, user, mode, payerCustomer, (payer, walletRetry) => stripe.checkout.sessions.create({ | await stripe.checkout.sessions.create({
  * @mutate supabase/functions/declutter-card/index.ts | withWalletCustomer(admin, stripe, user, mode, (customerId) => stripe.checkout.sessions.create( | ((_a: unknown, _b: unknown, _c: unknown, _d: unknown, f: (c: string) => unknown) => f("cus_x"))(admin, stripe, user, mode, (customerId) => stripe.checkout.sessions.create(
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { StripeCustomerUnavailable, withWalletCustomer } from "../../supabase/functions/_shared/stripeCustomer";
+import { StripeCustomerUnavailable, withStoredWalletCustomer, withWalletCustomer } from "../../supabase/functions/_shared/stripeCustomer";
 import { blankComments } from "./helpers/blankNonCode";
 
 const USER = { id: "00000000-0000-0000-0000-0000000000aa", email: "a@example.com" };
@@ -95,6 +97,35 @@ describe("Q2140: withWalletCustomer replaces a customer Stripe no longer has, on
     let n = 0;
     await expect(withWalletCustomer(w.admin, w.stripe, USER, "test", async (c) => { n++; throw missing(c); })).rejects.toBeInstanceOf(StripeCustomerUnavailable);
     expect(n).toBe(1);
+  });
+
+  it("pre-fill callers: none stored -> one call with undefined and nothing made; a dead stored one is replaced and retried once", async () => {
+    const w = world();
+    const seen: Array<[string | undefined, boolean]> = [];
+    expect(await withStoredWalletCustomer(w.admin, w.stripe, USER, "test", undefined, async (c, retry) => (seen.push([c, retry]), "page"))).toBe("page");
+    expect(seen).toEqual([[undefined, false]]);
+    expect(w.calls.created).toEqual([]);
+    expect(w.calls.rpc).toEqual([]);
+
+    const out = await withStoredWalletCustomer(w.admin, w.stripe, USER, "test", "cus_dead", async (c, retry) => {
+      seen.push([c, retry]);
+      if (c === "cus_dead") throw missing(c);
+      return "page";
+    });
+    expect(out).toBe("page");
+    expect(seen.slice(1)).toEqual([["cus_dead", false], ["cus_fresh", true]]);
+    expect(w.calls.rpc).toEqual([["replace_stripe_customer", { p_user: USER.id, p_mode: "test", p_old: "cus_dead", p_new: "cus_fresh" }]]);
+  });
+
+  it("every pre-fill page (declutter order, raise, tip; shop order) runs through withStoredWalletCustomer with a ':new-wallet' retry key", () => {
+    const pages: Record<string, number> = { "declutter-checkout": 3, "shop-checkout": 1 };
+    for (const [fn, n] of Object.entries(pages)) {
+      const src = blankComments(readFileSync(`supabase/functions/${fn}/index.ts`, "utf8"));
+      expect(src.match(/storedStripeCustomer\(/g)?.length, fn).toBe(n);
+      expect(src.match(/withStoredWalletCustomer\(admin, stripe, user, mode, /g)?.length, fn).toBe(n);
+      expect(src.match(/\$\{walletRetry \? ":new-wallet" : ""\}`/g)?.length, fn).toBe(n);
+    }
+    expect(Object.keys(pages).length).toBeGreaterThan(1);
   });
 
   it("every wallet Checkout caller goes through withWalletCustomer, none resolves the id itself", () => {

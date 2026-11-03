@@ -177,7 +177,9 @@ const SURFACES: Surface[] = [
        (MineFaceSkeleton, 197px at 375 with the 8-step bar), with the first bucket's heading on this
        default "All" view. The Q700 21px pin went with the old 130px card. Prod before (Builder 30,
        11-03, helper-e2e at 375): placeholder 130px x4 first-y 174, real 209/198/209/166/166/225px
-       first-y 227. */
+       first-y 227. After (Builder 35, 11-03, read-only, writes aborted): All draws the hired card with its
+       street address line, 209px x4 first-y 210, against real 209/198/209/166/166/225 first-y 211; the
+       "See all" button no longer makes the heading row 44px (ActivityBucketGroups min-h-7 + -my-2). */
   },
   /* THE TAB-ROW RESERVATION (2026-09-26). The two surfaces above open on the
      DEFAULT filter, where the phone tab row starts folded (owner, 2026-09-25)
@@ -215,12 +217,10 @@ const SURFACES: Surface[] = [
     url: "/jobs?tab=posted",
     as: "poster",
     chunk: /\/assets\/(JobsSection|JobListPage)-[^/]+\.js(\?|$)/,
-    /* The poster's default bucket renders the GROUPED view, so a section
-       heading ("Active", "Completed", …) sits above the first card and the
-       placeholder draws none. 64px, measured. */
-    offsetBudget: 72,
-    offsetNote:
-      "the grouped posted list puts a section heading above the first card (ActivitySectionedView); the placeholder draws a flat list, so 64px of heading is a legitimate offset, not a row lying about its size",
+    /* Q833 (2026-11-03): the poster's default bucket renders the GROUPED view, and the placeholder now
+       draws the face with the first group's 28px heading row (PostedListBones), so the 72px offset
+       allowance for a missing heading is gone and first-y is held to OFFSET_BUDGET. Prod (read-only,
+       writes aborted, poster-e2e at 375): placeholder 197px x4 first-y 210, real 201px x4 first-y 211. */
   },
 ];
 

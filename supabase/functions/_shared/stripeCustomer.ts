@@ -146,7 +146,7 @@ async function resolveStripeCustomer(
  * Q2140: Stripe refused `customerId` because it no longer exists (deleted in the Dashboard, or test data wiped):
  * `resource_missing` naming the customer. Any other error is not this.
  */
-function isMissingCustomerError(err: unknown, customerId: string): boolean {
+export function isMissingCustomerError(err: unknown, customerId: string): boolean {
   const e = err as { code?: unknown; param?: unknown; message?: unknown; raw?: { code?: unknown; param?: unknown } } | null;
   const code = e?.code ?? e?.raw?.code;
   if (code !== "resource_missing") return false;

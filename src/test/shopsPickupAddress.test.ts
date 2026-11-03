@@ -21,7 +21,7 @@
 // @mutate supabase/migrations/20261018210400_shops_pickup_address.sql |              AND o.status = 'accepted'\n | \n
 // @mutate supabase/migrations/20261018210400_shops_pickup_address.sql |              AND public.shop_local_today() <= o.ready_date + 7\n | \n
 // @mutate supabase/migrations/20261018210400_shops_pickup_address.sql |              AND NOT public.is_caller_banned())); | ));
-// @mutate supabase/migrations/20261018210400_shops_pickup_address.sql |   PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN | IF public.is_caller_banned() THEN
+// @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql |   PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN | IF public.is_caller_banned() THEN
 // @mutate supabase/migrations/20261018210400_shops_pickup_address.sql |   BEFORE INSERT ON public.shop_orders\n | BEFORE INSERT ON public.shop_order_lines\n
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

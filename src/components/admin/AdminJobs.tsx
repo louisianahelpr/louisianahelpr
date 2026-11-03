@@ -548,6 +548,12 @@ const AdminJobs = () => {
           setOverrideOpen(true);
         }}
         onOpenRefund={() => setRefundOpen(true)}
+        onHeldJobCancelled={(id) => {
+          setJobs((prev) => prev.map((j) => j.id === id
+            ? { ...j, status: "cancelled" as Job["status"], payment_status: "cancelled" as Job["payment_status"] }
+            : j));
+          setDetailJob(null);
+        }}
       />
 
       {/* Delete confirmation dialog */}

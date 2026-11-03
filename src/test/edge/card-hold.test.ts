@@ -562,6 +562,80 @@ describe("card hold at posting (Q2399)", () => {
     });
   });
 
+  // Q2449 (finding: lh-silent-failure@756b4e7602#9): an admin cancels a held job from Admin -> Jobs through the
+  // poster's own cancel (cancel_escrow's held branch): the job closes, the hold is released (no refund), the
+  // poster is told their card was not charged, and the admin is recorded. Never the refund half.
+  // @mutate supabase/functions/create-payment/index.ts |         if (isAdmin !== true) throw new PublicError("Not authorized"); |         void isAdmin;
+  // @mutate supabase/functions/create-payment/index.ts |         if (job.payment_status !== "held" && job.payment_status !== "failed") throw new PublicError("Not authorized"); |         void 0;
+  // @mutate supabase/functions/create-payment/index.ts |       if (adminHeldCancel) {\n        return new Response(JSON.stringify({\n          error: "This job's payment was charged | if (false) {\n        return new Response(JSON.stringify({\n          error: "This job's payment was charged
+  // @mutate supabase/functions/create-payment/index.ts |             adminId: user.id, action: "admin_cancel_held_job", jobId, |             adminId: user.id, action: "noop", jobId,
+  describe("Q2449: an admin cancels a held job", () => {
+    const ADMIN = { id: "admin-1", email: "admin@test.com" };
+    function seedAdminCancel(job: Record<string, unknown> = {}, isAdmin = true) {
+      scenario.authUser = ADMIN;
+      scenario.rpc.has_role = isAdmin;
+      scenario.reads.jobs = { rows: [heldJob({ status: "open", helper_id: null, ...job })] };
+      scenario.reads.job_card_holds = { rows: [holdRow()] };
+      scenario.reads.group_job_helpers = { rows: [] };
+      scenario.writeSelectRows = { jobs: [{ id: JOB }], job_card_holds: [{ job_id: JOB }], admin_audit_log: [{ id: "audit-1" }] };
+      stripeMock.paymentIntents.cancel.mockResolvedValue({ id: "pi_hold", status: "canceled" });
+    }
+    async function cancelAs(reason?: string) {
+      const fn = await loadEdgeFunction("create-payment");
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "cancel_escrow", jobId: JOB, ...(reason ? { reason } : {}) } }));
+      return { res, payload: JSON.parse(await res.text()) as Record<string, unknown> };
+    }
+
+    it("closes the job, releases the hold (no refund), tells the poster, and records the admin", async () => {
+      seedAdminCancel();
+      const { res, payload } = await cancelAs("leftover test job");
+      expect(res.status).toBe(200);
+      expect(payload.released).toBe(true);
+      expect(stripeMock.paymentIntents.cancel).toHaveBeenCalledWith("pi_hold", { cancellation_reason: "abandoned" }, expect.anything());
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(updates("jobs").find((w) => (w.payload as Record<string, unknown>).status === "cancelled")?.payload).toMatchObject({ cancelled_by: ADMIN.id });
+      expect(notices().find((x) => x.user_id === POSTER.id)?.title).toBe(CARD_HOLD_COPY.releasedTitle);
+      const audit = inserts("admin_audit_log").map((w) => w.payload as Record<string, unknown>);
+      expect(audit).toHaveLength(1);
+      expect(audit[0]).toMatchObject({ admin_id: ADMIN.id, action: "admin_cancel_held_job", target_type: "job", target_id: JOB });
+      expect((audit[0].details as Record<string, unknown>).reason).toBe("leftover test job");
+    });
+
+    it("someone who is neither the poster nor an admin is refused, and nothing moves", async () => {
+      seedAdminCancel({}, false);
+      const { payload } = await cancelAs();
+      expect(String(payload.error)).toMatch(/Not authorized/);
+      expect(stripeMock.paymentIntents.cancel).not.toHaveBeenCalled();
+      expect(updates("jobs")).toHaveLength(0);
+    });
+
+    it("an admin on a CHARGED job is refused here (that is Refund Poster), and nothing moves", async () => {
+      seedAdminCancel({ payment_status: "escrow", stripe_payment_intent_id: "pi_paid" });
+      const { payload } = await cancelAs();
+      expect(String(payload.error)).toMatch(/Not authorized/);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(updates("jobs")).toHaveLength(0);
+    });
+
+    it("an admin on a failed hold the poster re-paid by bank is refused (charged money), and nothing moves", async () => {
+      seedAdminCancel({ payment_status: "failed", stripe_payment_intent_id: "pi_bank" });
+      scenario.reads.job_card_holds = { rows: [holdRow({ state: "failed" })] };
+      const { res, payload } = await cancelAs();
+      expect(res.status).toBe(409);
+      expect(String(payload.error)).toMatch(/Use Refund Poster/);
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      expect(updates("jobs")).toHaveLength(0);
+    });
+
+    it("an admin on a held job with a Helpr already on it is refused like the poster (no money moves)", async () => {
+      seedAdminCancel({ status: "accepted", helper_id: HELPR.id });
+      const { res } = await cancelAs();
+      expect(res.status).toBe(409);
+      expect(stripeMock.paymentIntents.cancel).not.toHaveBeenCalled();
+      expect(updates("jobs").length).toBeLessThan(1);
+    });
+  });
+
   describe("Q2531: the poster's cancel and the sweep release one hold at once", () => {
     async function sweep() {
       const fn = await loadEdgeFunction("card-hold-sweep");

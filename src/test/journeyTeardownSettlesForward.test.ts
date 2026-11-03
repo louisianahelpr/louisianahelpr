@@ -38,7 +38,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { isSettleForwardRefusal, settleRefusalReason, heldReason, NO_CHECKOUT_SESSION } from "../../scripts/e2e/settleForward.mjs";
+import { isSettleForwardRefusal, settleRefusalReason, heldReason, NO_CHECKOUT_SESSION, HELD_CARD_EXPIRES } from "../../scripts/e2e/settleForward.mjs";
 
 const SPEC = resolve(process.cwd(), "e2e/journeys/02-marketplace.spec.ts");
 const source = readFileSync(SPEC, "utf8");
@@ -132,6 +132,14 @@ describe("settleRefusalReason", () => {
 
   it("admits a hired, funded, seeded leftover on the calling pair", () => {
     expect(settleRefusalReason(hiredAndFunded, seats)).toBeNull();
+  });
+
+  // Q2449 (lead 2026-11-03, option a): a held test leftover with a Helpr on it is left to the expiry sweep, which
+  // releases the hold; nothing was charged, so nothing is settled forward.
+  // @mutate scripts/e2e/settleForward.mjs |   if (job.payment_status === "held") return HELD_CARD_EXPIRES; |
+  it("a card only on hold is left to the expiry sweep, named as such (no money moves)", () => {
+    expect(settleRefusalReason({ ...hiredAndFunded, payment_status: "held" }, seats)).toBe(HELD_CARD_EXPIRES);
+    expect(HELD_CARD_EXPIRES).toMatch(/releases the hold, no money moves/);
   });
 
   it("refuses anything that is not a seed row", () => {

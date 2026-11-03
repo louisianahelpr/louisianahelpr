@@ -290,6 +290,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/mapkitJwt.ts";`,
   );
 
+  // Q2440: `_shared/heldReason.ts` has ZERO imports (the client is a parameter), so the REAL
+  // conditional write serves void-cancelled-payments and the walked crewBlockFees.ts.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/heldReason\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/heldReason.ts";`,
+  );
+
   // One wallet: `_shared/stripeCustomer.ts` has ZERO imports (it takes the
   // service-role client and the Stripe client as arguments), so the REAL
   // resolver runs against the supabase and Stripe doubles.

@@ -41,6 +41,8 @@ const UNTOLD_REFUND_SWEEP_FROM = "2026-10-12T12:00:00Z";
 const GIFT_DISPUTE_NOT_FINAL = new Set(["needs_response", "under_review", "warning_needs_response", "warning_under_review", "won"]);
 import { checkIdentityHold, checkPayoutHold } from "../_shared/payoutHold.ts";
 import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
+import type { LivePayoutGate } from "../_shared/livePayoutGate.ts";
+import { noteHeldReason } from "../_shared/heldReason.ts";
 import { payCrewBlockFees } from "../_shared/crewBlockFees.ts";
 import { readCrewBlockFees, crewBlockFeeCents, type CrewBlockFeeRow } from "../_shared/crewBlockFeeRead.ts";
 import { createStripeModeResolver, isPartyRefusal, jobMoneyMode, StripeModeRefused } from "../_shared/stripeMode.ts";
@@ -54,6 +56,8 @@ serve(async (req) => {
   // records here. Those are the worst defects this function can produce: Stripe
   // and Postgres disagree, and only a human can reconcile them.
   const defects = defectTracker();
+  /** Q2440: one live Connect read per payee account per run, for crew shares and block fees (holdUnlessPayable). */
+  const liveGates = new Map<string, Promise<LivePayoutGate>>();
 
   try {
     // Fail loud on missing config — previously masked by `?? ""` / `|| ""`
@@ -1406,9 +1410,13 @@ serve(async (req) => {
           then: "The run retries it while the share stays unpaid.",
           seed: job.is_seed === true,
           fields: { job_id: job.id, share_id: share.id, amount: memberPayout },
+          cache: liveGates,
         });
         if (shareLive.held) {
           if (shareLive.defect) defects.record(`crew fee share ${share.id}: ${shareLive.defect}`);
+          // Q2440: the share says why it waits, as the single Helpr's fee row does.
+          const noted = await noteHeldReason(supabaseAdmin, "crew_cancellation_fee_shares", share.id, shareLive.kind);
+          if (noted) defects.record(`crew fee share ${share.id}: held, but its reason was not written: ${noted}`);
           continue;
         }
 
@@ -2363,7 +2371,7 @@ serve(async (req) => {
       const payBlockFees = async (pi: Stripe.PaymentIntent): Promise<void> => {
         if (!blockFeeRows.some((r) => r.status === "owed" || r.status === "failed")) return;
         const chargeId = pi.latest_charge ? (typeof pi.latest_charge === "string" ? pi.latest_charge : pi.latest_charge.id) : null;
-        const paid = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", linkPi: pi }, job, blockFeeRows, chargeId);
+        const paid = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", linkPi: pi, liveGates }, job, blockFeeRows, chargeId);
         for (const p of paid.problems) defects.record(p);
       };
       /**
@@ -2631,7 +2639,7 @@ serve(async (req) => {
           continue;
         }
         if (blockFeeRows.some((r) => r.status === "owed" || r.status === "failed")) {
-          const paidFirst = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments" }, job, blockFeeRows, null);
+          const paidFirst = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", liveGates }, job, blockFeeRows, null);
           for (const p of paidFirst.problems) defects.record(p);
         }
         const giftBlockCents = crewBlockFeeCents(blockFeeRows);
@@ -3317,7 +3325,7 @@ serve(async (req) => {
                 console.warn(`[void-cancelled-payments] block fee sweep could not link job ${fj.id}'s charge:`, (e as Error).message);
               }
             }
-            const paid = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", settled: true, linkPi }, fj, byJob.get(fj.id) ?? [], chargeId);
+            const paid = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", settled: true, linkPi, liveGates }, fj, byJob.get(fj.id) ?? [], chargeId);
             for (const p of paid.problems) defects.record(p);
             blockFeesRetried++;
           }

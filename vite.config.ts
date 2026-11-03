@@ -5,7 +5,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { SHARED_DIR_RE, bootModules, declutterItemSplit, guestBrowseSplit, homeIconFiles, homePageRoots, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
+import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, bootModules, declutterItemSplit, guestBrowseSplit, homeIconFiles, homePageRoots, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -186,7 +186,7 @@ function restartOnDependencyChange(): Plugin {
 
 const { signedInOnly } = signedInOnlyModules(process.cwd());
 const { deep: signedInDeep, declutterOnly, homeOff, homeLate } = signedInSplit(process.cwd());
-const { itemDeep: declutterItemDeep, itemPages: declutterItemPages } = declutterItemSplit(process.cwd(), { deep: signedInDeep, homeOff });
+const { itemDeep: declutterItemDeep, itemPages: declutterItemPages, itemShared: declutterItemShared } = declutterItemSplit(process.cwd(), { deep: signedInDeep, homeOff });
 const { own: profileFirstScreen, shared: profileSharedLeaves } = profileFirstScreenModules(process.cwd(), { deep: signedInDeep, homeOff });
 const homeIcons = homeIconFiles(process.cwd());
 const bootSet = bootModules(process.cwd());
@@ -1140,6 +1140,17 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false
             },
+            // Q654/Q1158 (B41, 11-03): the declutter-item-pages modules the rest of signed-in-pages also runs (bootReach.mjs
+            // declutterItemSplit itemShared: the job lists' error copy, offer clock, upload helpers). In that chunk they
+            // put Declutter's api and seller tools on signed-in /jobs' first round (lab, 375). Above it (15.7), below
+            // profile-first-screen and leaves (15.8), which keep the few Profile shares. Short name: the entry names it.
+            {
+              name: "item-shared",
+              test: (id: string) => declutterItemShared.has(id.split("?")[0].replace(/\\/g, "/")),
+              priority: 15.75,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
             {
               name: "declutter-item-pages",
               // + useMarkTalkRead (0.2 KB gz; the order and handover chats share it, and it reads talkRead.ts, already
@@ -1148,7 +1159,7 @@ export default defineConfig(({ mode, command }) => ({
               // signed-in-pages they were the only reason Selling's trade cards (DeclutterOrderTalk, and the problem
               // form's TimePickerWheel) put that whole chunk and signed-in-dock (~23 KB gz) on /declutter?tab=selling.
               // Every other page that imports them already reaches this chunk through signed-in-pages.
-              test: (id: string) => declutterItemPages.has(id.split("?")[0].replace(/\\/g, "/")) || /[\\/]src[\\/](components[\\/]declutter[\\/]useMarkTalkRead|lib[\\/]declutter[\\/]orderTalk|hooks[\\/]useWheelStep)\.ts$/.test(id.split("?")[0]),
+              test: (id: string) => declutterItemPages.has(id.split("?")[0].replace(/\\/g, "/")) || ITEM_PAGES_PINNED_RE.test(id.split("?")[0]),
               minShareCount: 2,
               priority: 15.7,
               minSize: 0,

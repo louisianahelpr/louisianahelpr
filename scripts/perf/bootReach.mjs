@@ -236,14 +236,24 @@ export const DECLUTTER_ITEM_ROOT = "src/pages/declutter/DeclutterItemPage.tsx";
  */
 export function declutterItemSplit(root, split = signedInSplit(root)) {
   const reach = staticReach(root, [path.join(root, DECLUTTER_ITEM_ROOT)]);
+  const itemPages = new Set([...split.homeOff].filter((f) => reach.has(f)));
+  const restReach = staticReach(root, [...split.homeOff].filter((f) => !itemPages.has(f) && !ITEM_PAGES_PINNED_RE.test(f)));
   return {
     itemDeep: new Set([...split.deep].filter((f) => reach.has(f))),
     // The same for signed-in-pages (homeOff): the error copy and upload helpers the item page shares with the job
     // lists. In signed-in-pages they put ~50 KB gz of other screens' code on the item page; the screens that use
     // them fetch this chunk beside signed-in-pages, in the same round.
-    itemPages: new Set([...split.homeOff].filter((f) => reach.has(f))),
+    itemPages,
+    // Q654/Q1158 (B41, 11-03): the part of itemPages the REST of signed-in-pages also reaches (the job lists' error
+    // copy, offer clock and upload helpers). In declutter-item-pages they made signed-in /jobs (and every screen that
+    // fetches signed-in-pages) download that whole chunk, Declutter's api and seller tools included (lab, 375: 30 KB
+    // gz on /jobs' first round for these ~6 modules). Their own chunk; the item page fetches it beside its own.
+    itemShared: new Set([...itemPages].filter((f) => restReach.has(f))),
   };
 }
+
+/** Modules vite.config.ts pins into declutter-item-pages by path, whatever the split says (L32, L46). */
+export const ITEM_PAGES_PINNED_RE = /[\\/]src[\\/](components[\\/]declutter[\\/]useMarkTalkRead|lib[\\/]declutter[\\/]orderTalk|hooks[\\/]useWheelStep)\.ts$/;
 
 /**
  * Profile's page and its first-screen panels (B90, 11-01): Money's tab and bank card, Notifications' settings list.

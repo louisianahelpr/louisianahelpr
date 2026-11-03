@@ -13,6 +13,7 @@ import { JobNotes } from "@/components/job-card/JobNotes";
 import { useJobAccessNote } from "@/hooks/useJobAccessNote";
 import { EndSeriesSection } from "./EndSeriesSection";
 import { BillHelprFaultButton } from "../helprFault/BillHelprFaultButton";
+import { CancelHeldJobButton } from "./CancelHeldJobButton";
 
 interface JobDetailDialogProps {
   detailJob: Job | null;
@@ -27,6 +28,8 @@ interface JobDetailDialogProps {
   onOpenDelete: () => void;
   onOpenOverride: (job: Job) => void;
   onOpenRefund: () => void;
+  /** Q2449: a held job was cancelled from here (the list reflects it). */
+  onHeldJobCancelled?: (jobId: string) => void;
 }
 
 export const JobDetailDialog = ({
@@ -42,6 +45,7 @@ export const JobDetailDialog = ({
   onOpenDelete,
   onOpenOverride,
   onOpenRefund,
+  onHeldJobCancelled,
 }: JobDetailDialogProps) => {
   // Owner answer 2 (2026-10-06): admins read the Access & Parking notes
   // ("Admins read access notes" policy), e.g. for a "couldn't get in" dispute.
@@ -232,6 +236,10 @@ export const JobDetailDialog = ({
                   >
                     <DollarSign className="w-3.5 h-3.5" /> Refund Poster
                   </Button>
+                )}
+                {/* Q2449: a card only on hold was never charged: cancel the job and release the hold. */}
+                {detailJob.payment_status === "held" && detailJob.status === "open" && !detailJob.helper_id && onHeldJobCancelled && (
+                  <CancelHeldJobButton jobId={detailJob.id} onCancelled={() => onHeldJobCancelled(detailJob.id)} />
                 )}
                 {/* Q2170: billing the Helpr at fault failed after the refund; retry it. */}
                 {detailJob.payment_status === "refunded" && <BillHelprFaultButton jobId={detailJob.id} />}

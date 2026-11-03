@@ -169,6 +169,10 @@ export async function readJobRow({ base, anon, posterToken, jobId }) {
   return rows[0];
 }
 
+/** Q2449: why a held leftover is left alone: the expiry sweep releases the hold, nothing is charged. */
+export const HELD_CARD_EXPIRES =
+  "a card only on hold (nothing charged): the expiry sweep closes the job and card-hold-sweep releases the hold, no money moves";
+
 /**
  * The blast-radius gate. Returns a reason string when the row must NOT be
  * settled, or null when it may be. Separate from the walk so a caller (and a
@@ -195,6 +199,11 @@ export function settleRefusalReason(job, seats) {
   if (typeof job.stripe_session_id !== "string" || !job.stripe_session_id.startsWith("cs_test_")) {
     return `not funded through a test-mode Checkout Session (stripe_session_id ${String(job.stripe_session_id).slice(0, 8)}…)`;
   }
+  // Q2449 (lead decision 2026-11-03, option a): a card only HELD was never charged. A held leftover with a Helpr
+  // on it is not settled or cancelled here (cancel_escrow's held branch refuses a job with a Helpr, and retiring
+  // the offer is the poster's cancel); auto-expire closes it and card-hold-sweep releases the hold. No money
+  // moves either way. A held leftover with nobody on it the poster can cancel (or an admin, Admin > Jobs).
+  if (job.payment_status === "held") return HELD_CARD_EXPIRES;
   if (job.payment_status !== "escrow") return `payment_status is ${job.payment_status}, not escrow`;
   if (!SETTLEABLE_STATUSES.includes(job.status)) return `status is ${job.status}`;
   return null;

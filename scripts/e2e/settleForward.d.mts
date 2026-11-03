@@ -10,6 +10,8 @@
 
 export declare const SETTLEABLE_STATUSES: string[];
 export declare const SETTLED_PAYMENT_STATUSES: string[];
+/** Q2449: the refusal for a held leftover (the expiry sweep releases the hold). */
+export declare const HELD_CARD_EXPIRES: string;
 
 /** Title token a lane puts on a marker job it holds past one run. */
 export declare const E2E_HOLD_MARKER: string;

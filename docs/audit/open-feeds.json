@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-03T08:37Z",
+  "measured_at": "2026-11-03T10:07Z",
   "issues": {
     "readable": true,
     "open": [
@@ -141,6 +141,13 @@
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41562304920",
         "runTruncated": false
+      },
+      {
+        "number": 4054,
+        "title": "nightly-red: race-runner",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41612669620",
+        "runTruncated": false
       }
     ]
   },
@@ -234,6 +241,14 @@
         "status": "open",
         "title": "nightly-red: slow-network",
         "issue": 3454
+      },
+      {
+        "fingerprint": "4c89303184fbafc9613e873aa811fa3c",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: race-runner",
+        "issue": null
       },
       {
         "fingerprint": "4aa239aefeb61103e80bfe619710e65d",
@@ -780,6 +795,7 @@
     "issue #4008": "Q1816",
     "issue #4020": "Q1816",
     "issue #4032": "Q1816",
+    "issue #4054": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
@@ -820,6 +836,7 @@
     "ledger 4aa239aefeb6": "Q1816",
     "ledger 4ac3e9488b48": "Q2525",
     "ledger 4b5ace7af165": "Q1596",
+    "ledger 4c89303184fb": "Q1816",
     "ledger 5a28db44e912": "Q2410",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 5d35922623b5": "Q1596",

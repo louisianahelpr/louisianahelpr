@@ -7,8 +7,8 @@
  * Layers pinned here:
  *   - create-payment escrow (the REAL function through the edge harness): the
  *     "Urgent bonus" line's tax_code equals the labor line's, both ways, and
- *     the 3D Secure tax ceiling covers budget + bonus (a $200 + $61 auto repair
- *     job reaches $300 only once the bonus's tax is counted);
+ *     the job-site tax calculation (Q2083 b) prices the bonus with the labor's
+ *     code, so the bonus's tax is charged and counted toward 3D Secure;
  *   - jobEscrowTaxableBaseCents (the base the webhooks divide Stripe's tax by
  *     for jobs.sales_tax_rate): includes the CHARGED bonus (create-payment's
  *     $5 floor / cap) on a taxable category, never on an exempt one;
@@ -19,7 +19,7 @@
  * NONTAXABLE_TAX_CODE on every category.
  *
  * @mutate supabase/functions/create-payment/index.ts |               tax_code: laborTaxCode(job.category, job.tax_kind), // Q1843: taxed exactly like the labor line |               tax_code: NONTAXABLE_TAX_CODE,
- * @mutate supabase/functions/create-payment/index.ts |         + salesTaxCeilingCents(Math.round(job.budget * 100) + urgentFeeCents, job.category, job.tax_kind); |         + salesTaxCeilingCents(Math.round(job.budget * 100), job.category, job.tax_kind);
+ * @mutate supabase/functions/create-payment/index.ts | ...(urgentFeeCents > 0 ? [{ amount: urgentFeeCents, reference: "urgent_bonus" | ...(false ? [{ amount: urgentFeeCents, reference: "urgent_bonus"
  * @mutate supabase/functions/_shared/salesTax.ts |   const taxedLaborCents = laborCents + urgentBonusChargedCents(job); |   const taxedLaborCents = laborCents;
  * @mutate supabase/functions/_shared/salesTax.ts |   return Math.min(Math.max(safe, URGENT_BONUS_FLOOR_CENTS), MAX_URGENT_FEE_DOLLARS * 100); |   return safe;
  */
@@ -55,12 +55,16 @@ async function escrow(job: { category: string; budget: number; urgent_fee: numbe
   scenario.reads.jobs = {
     rows: [{
       id: "job-1", customer_id: POSTER.id, title: "Urgent job", payment_status: "unpaid",
-      is_urgent: true, ...job,
+      is_urgent: true, zip_code: "70503", ...job,
     }],
   };
   scenario.reads.platform_settings = { rows: [{ customer_fee_percent: 10, helper_fee_percent: 10, onboarding_fee_cents: 200 }] };
   scenario.reads.profiles = { rows: [{ onboarding_fee_paid: true, subscription_tier: "pro" }] };
   stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_new", url: "https://checkout.stripe.test/cs_new" });
+  // Q2083 (b): 11.5% of whatever lines the job-site calculation is sent.
+  stripeMock.tax.calculations.create.mockImplementation(async (p: { line_items: Array<{ amount: number }> }) => ({
+    id: "taxcalc_u", tax_amount_exclusive: Math.round(p.line_items.reduce((n, l) => n + l.amount, 0) * 0.115),
+  }));
   const fn = await load();
   const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer t" }, body: { action: "escrow", jobId: "job-1" } }));
   expect(res.status).toBe(200);
@@ -94,9 +98,13 @@ describe("the urgent bonus is taxed like the labor (Q1843)", () => {
     expect(bonus.price_data.product_data.tax_code).toBe(NONTAXABLE_TAX_CODE);
   });
 
-  it("3D Secure: the tax ceiling counts the bonus ($200 + $61 auto repair reaches $300 only with the bonus's tax)", async () => {
-    // lines 26,100c; ceiling 15% of 26,100 = 3,915 -> 30,015 (asks 3DS). On the budget alone: 3,000 -> 29,100.
-    const { args } = await escrow({ category: "auto_repair", budget: 200, urgent_fee: 61 });
+  it("3D Secure: the bonus is taxed at the job site, and its tax counts ($200 + $61 auto repair reaches $300 only with it)", async () => {
+    // $230 + $40: lines 27,000c + 11.5% of 27,000 = 3,105 -> 30,105 (asks 3DS).
+    // Tax on the budget alone would be 2,645 -> 29,645 (no 3DS).
+    const { args } = await escrow({ category: "auto_repair", budget: 230, urgent_fee: 40 });
+    const [calc] = stripeMock.tax.calculations.create.mock.calls[0];
+    expect(calc.line_items.map((l: { reference: string; amount: number }) => [l.reference, l.amount])).toEqual([["labor", 23_000], ["urgent_bonus", 4_000]]);
+    expect(args.line_items.find((l: Line) => l.price_data.product_data.name === "Sales tax")?.price_data.unit_amount).toBe(3_105);
     expect(args.payment_method_options?.card?.request_three_d_secure).toBe("any");
   });
 

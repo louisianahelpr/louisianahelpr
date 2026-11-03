@@ -124,7 +124,7 @@ describe("D2-1: the paid-order chat", () => {
   // @mutate src/components/declutter/DeclutterOrderTalk.tsx |     <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={open}> |     <Button type="button" variant="outline" className="rounded-full" onClick={open}>
   it("Q2634: Message the buyer is the same size as the card's Get help now", () => {
     renderAt("/declutter?tab=selling", <><OrderTalkButton orderId={ORDER} side="seller" />
-      <OrderGetHelpNow order={{ orderId: ORDER, title: "Oak rocking chair", status: "paid" }} problemOpen={false} /></>);
+      <OrderGetHelpNow order={{ orderId: ORDER, title: "Oak rocking chair", status: "paid" }} problemOpen /></>);
     const size = (el: HTMLElement) => el.className.split(/\s+/).filter((c) => /^(h-\d+|px-\d+|text-ds-\d+)$/.test(c)).sort();
     const talk = size(screen.getByRole("button", { name: "Message the buyer" }));
     const help = size(screen.getByRole("button", { name: /Get help now/ }));

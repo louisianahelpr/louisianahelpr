@@ -8,12 +8,13 @@ import { SUPPORT_REPLY_PROMISE } from "@/lib/supportTopics";
    HelpEntry on every back-arrow screen). Declutter orders keep their button below. */
 /**
  * The same one tap on a Declutter order (CMP-3; both sides of the order, never role-based). Only while the order
- * needs help: paid and not yet handed over, or handed over with a problem still open. Named as a list of what shows,
+ * needs help: a problem is open on a paid or handed-over order. BUY-22 (audit, 11-03): it showed on every paid card;
+ * every other order has the top bar's help icon (AppTopBar's HelpEntry), so it shows once. Named as a list of what shows,
  * so every other status stays off: a refunded, expired or superseded order is over, and a handed-over order with no
  * problem has its own "Something's not right" and refund window on the card.
  */
 export function OrderGetHelpNow({ order, problemOpen }: { order: { orderId: string; title: string; status: string | null }; problemOpen: boolean }) {
-  const active = order.status === "paid" || (order.status === "handed_over" && problemOpen);
+  const active = problemOpen && (order.status === "paid" || order.status === "handed_over");
   if (!active) return null;
   return <GetHelpButton subject={helpOrderSubject({ id: order.orderId, title: order.title })} />;
 }

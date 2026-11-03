@@ -170,22 +170,25 @@ describe("the seller's pickup places", () => {
     expect(screen.queryByRole("button", { name: "Add a pickup place" })).toBeNull();
   });
 
-  // Review 2026-10-31 (item 7): an older server takes the days alone; the seller is told the hours were not saved.
-  // @mutate src/components/declutter/SellPorchPlaces.tsx |       if (!r.hoursSaved) toast.error(PLACE_HOURS_NOT_SAVED); |
-  // @mutate src/lib/declutter/porchPlaces.ts |     return { id, hoursSaved: false }; |     return { id, hoursSaved: true };
-  it("an older server saves the days alone: the seller is told the hours were not saved", async () => {
+  // Q2190: 20261031145652 is live (prod pg_proc 2026-11-02: only the 8-argument declutter_save_porch_place), so a
+  // save sends the place's hours in ONE call, and a PGRST202 is an error: no days-only retry that drops the hours.
+  // @mutate src/lib/declutter/porchPlaces.ts | place.windows ? { ...args, p_windows: place.windows } : args); | args);
+  // @mutate src/lib/declutter/porchPlaces.ts |   return rpcData(res, (e) => rpcErrorMessage("declutter_save_porch_place", e)) as string; |   if (res.error) return rpcData(await supabase.rpc("declutter_save_porch_place", args), (e) => rpcErrorMessage("declutter_save_porch_place", e)) as string;\n  return rpcData(res, (e) => rpcErrorMessage("declutter_save_porch_place", e)) as string;
+  it("a save sends the hours in one call; a PGRST202 is an error, never a days-only retry", async () => {
     h.lookup.mockResolvedValue({ status: "exact", lat: 29.95, lng: -90.07 });
     h.rpc.mockImplementation((name: string, args: Record<string, unknown>) => builder(Promise.resolve(
       name === "declutter_my_porch_places" ? { data: [], error: null }
-        : name === "declutter_save_porch_place" && "p_windows" in args ? { data: null, error: { code: "PGRST202", message: "Could not find the function" } }
+        : name === "declutter_save_porch_place" && "p_windows" in args ? { data: null, error: { code: "PGRST202", message: "Could not find the function public.declutter_save_porch_place(p_address, p_area) in the schema cache" } }
           : { data: "new-id", error: null })));
     wrap(<SellPorchPlaces />);
     fireEvent.click(await screen.findByRole("button", { name: "Add a pickup place" }));
     fireEvent.change(screen.getByLabelText("Name"), { target: { value: "Camp" } });
     fireEvent.change(screen.getByLabelText("Address"), { target: { value: "99 Camp Road, New Orleans" } });
     fireEvent.click(screen.getByRole("button", { name: "Save place" }));
-    await waitFor(() => expect(h.toastError).toHaveBeenCalledWith("Place saved, but not its hours. Update the app, then set its hours again."));
-    expect(h.rpc.mock.calls.filter(([n]) => n === "declutter_save_porch_place")).toHaveLength(2);
+    await waitFor(() => expect(document.querySelector("[data-place-problem]")).not.toBeNull());
+    const saves = h.rpc.mock.calls.filter(([n]) => n === "declutter_save_porch_place");
+    expect(saves).toHaveLength(1);
+    expect(saves[0][1]).toHaveProperty("p_windows");
   });
 
   // Review 2026-10-31: the item page's places read failing says so with a retry.

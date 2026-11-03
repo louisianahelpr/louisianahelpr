@@ -59,7 +59,10 @@ import { trackedFiles } from "./helpers/trackedFiles";
 // and rentals/listings name the RPC they called; seriesDates, scheduleChange, scheduleClashes and refundRequests pass
 // isMissingRpcNamed for theirs, so notDeployedYet is tables and columns only. onboardingTourCompletion and nps read
 // tables only (no PGRST202 there). Left: the 2 deliberate old-arguments retries above (CancellationDialog, porchPlaces).
-const RAW_PGRST202_SITES = 2;
+// 0 since Q2190's last slice (Builder 24, 2026-11-02, lead PASS): both retries' condition is met on prod (pg_proc: only
+// poster_cancel_job(p_job_id, p_reason, p_expected_fee_cents) and the 8-argument declutter_save_porch_place;
+// schema_migrations holds 20261021130723 and 20261031145652), so CancellationDialog and porchPlaces call once.
+const RAW_PGRST202_SITES = 0;
 
 const ROOT = process.cwd();
 const isTest = (f: string) => /\.test\.tsx?$/.test(f) || f.startsWith("src/test/");

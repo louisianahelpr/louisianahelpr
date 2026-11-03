@@ -151,6 +151,8 @@ interface QuoteRequestFormFields {
   isFlexibleSchedule: boolean;
   estimatedHours: string;
   parish: string | null;
+  /** The poster's taxed-kind answer from Details (TaxKindQuestion; jobs.tax_kind, Q2083). */
+  taxKind: "item_repair" | "fabric_cleaning" | "clothes_cleaning" | "clothing_alterations" | null;
 }
 
 /** Sends the quote request from Review (A2-C32: Get quotes has a Review screen too, then "Ask for quotes"). */
@@ -191,6 +193,9 @@ export function useAskForQuotes(windowHours: QuoteWindowHours) {
         longitude: coords?.longitude ?? null,
         parish: f.parish,
         windowHours,
+        // Q2083 (b): the booked job's checkout prices sales tax at this ZIP; cut like Post a Job's (jobSubmitHelpers).
+        zipCode: f.zipCode.replace(/\D/g, "").slice(0, 5),
+        taxKind: f.taxKind,
       });
       void qc.invalidateQueries({ queryKey: ["quotes"] });
       toast("Your request is up", { description: "We'll let you know when quotes come in." });

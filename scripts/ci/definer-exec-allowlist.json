@@ -93,7 +93,7 @@
     "claim_series_dates(uuid, date[])": "client",
     "clear_available_now()": "client",
     "clear_thread_mute(uuid, uuid)": "client",
-    "create_quote_request(text, text, text, date, time without time zone, numeric, text, numeric, numeric, text, integer)": "reviewed 2026-10-15 (Q14): quotes slice 1 (20261015091114) client RPC behind the hidden 'quotes' switch (require_feature first); scoped to (SELECT auth.uid()), refuses banned / under-18 callers.",
+    "create_quote_request(text, text, text, date, time without time zone, numeric, text, numeric, numeric, text, integer, text, text)": "reviewed 2026-10-15 (Q14): quotes slice 1 (20261015091114) client RPC behind the hidden 'quotes' switch (require_feature first); scoped to (SELECT auth.uid()), refuses banned / under-18 callers. 2026-11-03 (Q2083 b, 20261103205121): + p_zip_code (Louisiana ZIP required) and p_tax_kind, written only to the caller's own request row.",
     "crew_closed_spot_count(uuid)": "client",
     "decline_job_offer(uuid)": "client",
     "declutter_admin_pending_items(boolean)": "reviewed 2026-10-14 (Q14): Declutter slice 2 RPC behind the hidden 'declutter' switch (require_feature first); admin queue: refuses anyone without the admin role (has_role(auth.uid())). 2026-10-28: p_include_test DEFAULT false shows test listings only when the admin asks.",

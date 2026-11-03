@@ -75,7 +75,7 @@ function form(over: Record<string, unknown> = {}) {
     title: "Paint the back fence", description: "About 60 feet of wood fence, two coats.", category: "painting",
     streetAddress: "100 Main St", city: "Baton Rouge", addrState: "LA", zipCode: "70801",
     dateNeeded: "2026-10-25", startTime: "09:00", isFlexibleSchedule: false, estimatedHours: "4",
-    parish: "East Baton Rouge", budgetNum: 0, scheduleInPast: false, streetAddressOk: true,
+    parish: "East Baton Rouge", taxKind: "item_repair", budgetNum: 0, scheduleInPast: false, streetAddressOk: true,
     categoryLabel: "Painting", imagePreviews: [], specialRequirements: "", recurrenceDays: [], recurrenceWeeks: 0,
     totalCharge: 0, customerFeeAmount: 0, onboardingFeeAmount: 0, urgentFeeNum: 0, isUrgent: false, helprActivity: null,
     ...over,
@@ -241,6 +241,9 @@ describe("Post a job: Set a price or Get quotes", () => {
       p_location: "100 Main St, Baton Rouge, LA 70801",
       p_parish: "East Baton Rouge",
       p_window_hours: 72,
+      // Q2083 (b): the booked job's checkout prices sales tax at this ZIP, from this answer.
+      p_zip_code: "70801",
+      p_tax_kind: "item_repair",
     });
   });
 });

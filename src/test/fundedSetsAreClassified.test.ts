@@ -153,7 +153,7 @@ function neverPaidSites(code: string): string[] {
   };
   const statusAt = (end: number) => code.slice(Math.max(0, end - 160), end).replace(/\s+/g, " ");
   // (a) a status array literal, with the declaration or call it sits in (up to the end of the line it opens on).
-  for (const m of code.matchAll(/\[\s*((?:["'][a-z_]+["']\s*,?\s*)+)\]/g)) {
+  for (const m of code.matchAll(/\[\s*((?:["'][a-z_]+["'][\s,]*)+)\]/g)) {
     if (!isNeverPaid(m[0])) continue;
     const lineStart = code.lastIndexOf("\n", code.lastIndexOf("\n", m.index! - 1) - 1) + 1;
     out.push(`${code.slice(lineStart, m.index! + m[0].length).replace(/\s+/g, " ")}`);

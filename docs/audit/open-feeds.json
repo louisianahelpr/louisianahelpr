@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-03T15:15Z",
+  "measured_at": "2026-11-03T19:42Z",
   "issues": {
     "readable": true,
     "open": [
@@ -85,7 +85,7 @@
         "number": 3784,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41522588913",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41694061049",
         "runTruncated": false
       },
       {
@@ -97,14 +97,14 @@
       },
       {
         "number": 3823,
-        "title": "🔴 4 scheduled workflow(s) have stopped running",
+        "title": "🔴 3 scheduled workflow(s) have stopped running",
         "label": "schedule-stalled"
       },
       {
         "number": 3824,
         "title": "nightly-red: schedule-heartbeat",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41522535064",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41694077956",
         "runTruncated": false
       },
       {
@@ -112,13 +112,6 @@
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41326452336",
-        "runTruncated": false
-      },
-      {
-        "number": 4008,
-        "title": "nightly-red: write-contract-refresh",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41553101510",
         "runTruncated": false
       },
       {
@@ -132,14 +125,28 @@
         "number": 4032,
         "title": "nightly-red: prod-errors",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41616594270",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41690239183",
         "runTruncated": false
       },
       {
         "number": 4054,
         "title": "nightly-red: race-runner",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41628288235",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41699548867",
+        "runTruncated": false
+      },
+      {
+        "number": 4062,
+        "title": "nightly-red: nightly-webkit",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41680707961",
+        "runTruncated": false
+      },
+      {
+        "number": 4065,
+        "title": "nightly-red: main: Vitest",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41692794365",
         "runTruncated": false
       }
     ]
@@ -170,6 +177,14 @@
         "status": "open",
         "title": "nightly-red: press-every-control",
         "issue": 2353
+      },
+      {
+        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: vitest",
+        "issue": null
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -274,6 +289,14 @@
         "status": "open",
         "title": "quota: sentry session replays sent: accepted + dropped by quota (this usage period) at or above #% of its limit",
         "issue": null
+      },
+      {
+        "fingerprint": "70e7b0decb9a9e19db5e1f2de4e52559",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: nightly-webkit",
+        "issue": 4062
       },
       {
         "fingerprint": "0bebf0385b3e217facd52bb36536de1f",
@@ -524,19 +547,19 @@
         "issue": null
       },
       {
-        "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ProtectedRoute",
-        "status": "open",
-        "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
-        "issue": null
-      },
-      {
         "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
         "source_kind": "sentry",
         "source": "sentry:assets/ErrorState",
         "status": "open",
         "title": "error: error screen shown: we couldn't load your account.",
+        "issue": null
+      },
+      {
+        "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ProtectedRoute",
+        "status": "open",
+        "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
         "issue": null
       },
       {
@@ -594,14 +617,6 @@
         "status": "open",
         "title": "a user report (read it on /admin?view=health)",
         "issue": null
-      },
-      {
-        "fingerprint": "c2e77e40435efc12778adbbdcb9fc240",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: code-scanning-alerts",
-        "issue": 3875
       },
       {
         "fingerprint": "99a77a9221e6c89e7182a9c199812094",
@@ -732,30 +747,6 @@
         "issue": null
       },
       {
-        "fingerprint": "c93b8da828e76d16c75ebeb0380b4287",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/rentals · error screen shown: we couldn't load this.",
-        "issue": null
-      },
-      {
-        "fingerprint": "714c8b8667bc7554dc022c095213028c",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ErrorState",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load your sales.",
-        "issue": null
-      },
-      {
-        "fingerprint": "16925d0d35eb6520504f8bc1e3ece900",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ErrorState",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load your donation receipts.",
-        "issue": null
-      },
-      {
         "fingerprint": "bf6860c13035a95fdccbf8c10dd9edc7",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
@@ -784,10 +775,11 @@
     "issue #3823": "Q2498",
     "issue #3824": "Q1816",
     "issue #3833": "Q1816",
-    "issue #4008": "Q1816",
     "issue #4020": "Q1816",
     "issue #4032": "Q1816",
     "issue #4054": "Q1816",
+    "issue #4062": "Q1816",
+    "issue #4065": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
@@ -843,6 +835,7 @@
     "ledger 65bd41ba4452": "Q1596",
     "ledger 708048794e4c": "Q1596",
     "ledger 70c81dfc4f91": "Q1596",
+    "ledger 70e7b0decb9a": "Q1816",
     "ledger 714c8b8667bc": "Q2536",
     "ledger 7549f5452e44": "Q2512",
     "ledger 779af65c258e": "Q1596",
@@ -882,7 +875,6 @@
     "ledger bd4c3063280b": "Q1596",
     "ledger bf6860c13035": "Q2544",
     "ledger c1ad0c081216": "Q1596",
-    "ledger c2e77e40435e": "Q1816",
     "ledger c4af5413ec6a": "Q1596",
     "ledger c540527c8265": "Q2517",
     "ledger c5d2aafd1f77": "Q2410",
@@ -908,6 +900,7 @@
     "ledger ec24ac4f76e6": "Q2516",
     "ledger ec743a639c38": "Q1596",
     "ledger ed3f34acc0e1": "Q1596",
+    "ledger f22e3275d50d": "Q1816",
     "ledger f3c752b3230f": "Q1596"
   }
 }

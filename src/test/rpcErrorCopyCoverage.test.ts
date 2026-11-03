@@ -196,6 +196,11 @@ const UNREACHABLE: Allowlist = {
   rpc_helper_mark_done: {
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
   },
+  // The nav badge's one read (20261103111254); useNeedsYouTodos asks it only signed in (enabled: !!uid), and any error
+  // falls back to the old single calls without words (src/lib/badgeReads.ts).
+  my_badge_reads: {
+    not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
+  },
   helper_abort_job: {
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
     reason_required: {

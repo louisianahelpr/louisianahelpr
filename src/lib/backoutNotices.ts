@@ -43,10 +43,11 @@ export function backoutNoticeApplies(kind: BackoutNotice["backout_kind"], jobSta
 export const backoutNoticesKey = (userId: string | null | undefined) => ["activity", "backout", userId] as const;
 
 /** The caller's open (not yet Got It) notices, by job. Under the activity prefix so its refreshes cover it. */
-export function useBackoutNotices(userId: string | null | undefined): Map<string, BackoutNotice> {
+/** `enabled: false` reads the cache only: the nav badge's one read (src/lib/badgeReads.ts) seeds this key. */
+export function useBackoutNotices(userId: string | null | undefined, opts: { enabled?: boolean } = {}): Map<string, BackoutNotice> {
   const { data } = useQuery({
     queryKey: backoutNoticesKey(userId),
-    enabled: !!userId,
+    enabled: !!userId && opts.enabled !== false,
     staleTime: 30_000,
     queryFn: async () =>
       unwrap(

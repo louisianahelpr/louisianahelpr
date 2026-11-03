@@ -4,8 +4,8 @@
  * how many asked; fetchMyRefundTodos calls declutter_my_refund_todos and, before that read is on the server
  * (PGRST202 naming it), returns none so Home shows what it showed before.
  *
- * @mutate src/lib/declutter/api.ts |     if (had) had.asked++; |     if (had) had.asked += 0;
- * @mutate src/lib/declutter/api.ts |       .eq("seller_id", userId).eq("status", "open").order("created_at", { ascending: true }),\n  ) ?? []) as unknown as { item_id: string; | .eq("seller_id", userId).order("created_at", { ascending: true }),\n  ) ?? []) as unknown as { item_id: string;
+ * @mutate src/lib/declutter/freeAsks.ts |     if (had) had.asked++; |     if (had) had.asked += 0;
+ * @mutate src/lib/declutter/api.ts |       .eq("seller_id", userId).eq("status", "open").order("created_at", { ascending: true }),\n  ) ?? []) as unknown as FreeAskRow[]; | .eq("seller_id", userId).order("created_at", { ascending: true }),\n  ) ?? []) as unknown as FreeAskRow[];
  * @mutate src/lib/declutter/refundRequests.ts |   if (res.error && isMissingRpcNamed(res.error, "declutter_my_refund_todos")) return []; |   if (false) return [];
  */
 import { describe, it, expect, vi } from "vitest";

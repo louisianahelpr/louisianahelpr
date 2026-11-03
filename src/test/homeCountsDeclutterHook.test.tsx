@@ -26,7 +26,8 @@ vi.mock("@/lib/backoutNotices", () => ({
   backoutNoticesKey: (u: string) => ["activity", "backout", u],
   useBackoutNotices: () => new Map(),
 }));
-vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => rig.flags.has(k) }));
+// useFeatureStatus: the to-do hook waits for the switches to answer before its one badge read (my_badge_reads).
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => rig.flags.has(k), useFeatureStatus: (k: string) => ({ on: rig.flags.has(k), settled: true, lastAnswer: rig.flags.has(k) }) }));
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
 // The real Declutter reads run (src/lib/declutter/api.ts, refundRequests.ts) against a fake client: the RPCs by name,
 // and the giver's open free asks from declutter_free_requests.

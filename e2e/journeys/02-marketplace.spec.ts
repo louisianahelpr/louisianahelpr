@@ -954,8 +954,13 @@ test.describe.serial("marketplace chain", () => {
         // The same stale pair had already cost the production money loop a
         // 30-second timeout that read like a broken completion flow. Guarded
         // now by src/test/e2eExactLocatorsMatchRealCopy.test.ts.
-        const before = c.getByText("Before photo", { exact: true });
-        const after = c.getByText("After photo", { exact: true });
+        // PHOTO FIRST (owner 2026-10-08, primaryPhotoAsk): on a one-Helpr job the owed photo IS the row's primary,
+        // a JobStepPrimaryButton named "Take before photo" / "Take after photo" (photoPrimaryLabel), so the exact
+        // text "Before photo" is not on the card at all then; the chip form is "Before photo — add the before photo
+        // for this job". Either, as a BUTTON; once a photo exists the chip reads "Before (1)" and neither matches.
+        // This job asks for proof: J2 never turns require_photo_proof off (photoProofRequired defaults true).
+        const before = c.getByRole("button", { name: /^(?:Take )?before photo\b/i }).first();
+        const after = c.getByRole("button", { name: /^(?:Take )?after photo\b/i }).first();
         const start = c.getByRole("button", { name: /^Start working$/ });
         // "Mark it done" (owner, 2026-09-14; was "Request My Payout"). Since
         // VN-21 the tracker's Done CTA is the card's ONE primary and the
@@ -977,14 +982,14 @@ test.describe.serial("marketplace chain", () => {
              accessible name is "<label> — add the <type> photo for this job",
              so it is matched by prefix, and it stops matching entirely once a
              photo exists (the label becomes "Before (1)"). */
-          await c.getByRole("button", { name: new RegExp(`^${label} Photo\\b`) }).first().click();
+          await (label === "Before" ? before : after).click();
           const dialog = hp.getByRole("dialog").filter({ hasText: `${label} photos` });
           await expect(dialog).toBeVisible();
           await dialog.locator('input[type="file"]').setInputFiles(join(S.fileDir, "job-photo.png"));
           await dialog.getByRole("button", { name: "Upload" }).click();
           await expect(dialog, `${label} photo dialog never closed`).toBeHidden({ timeout: 45_000 });
           await expect(
-            c.getByText(label === "Before" ? "Before photo" : "After photo", { exact: true }),
+            label === "Before" ? before : after,
             `the ${label.toLowerCase()} photo ask is still on the card 30s after the upload dialog closed`,
           ).toBeHidden({ timeout: 30_000 });
           await assertHealthy(hp, `${label} photo`);

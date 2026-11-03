@@ -34,7 +34,7 @@
 
 // @mutate e2e/journeys/cardChips.ts | const more = scope.locator("[data-job-step-overflow]") | const more = scope.locator("[data-no-such-overflow]")
 // @mutate src/components/job-card/JobActionRow.tsx | data-job-step-overflow-panel="" | data-overflow-panel=""
-// @mutate e2e/journeys/02-marketplace.spec.ts | return (await findChip(pp, done, /^Reviewed\b/, 5_000)) ? 1 : 0; | return done.getByRole("button", { name: /^Reviewed\b/ }).count();
+// @mutate e2e/journeys/02-marketplace.spec.ts | if (await findChip(pp, done, /^Reviewed\b/, 3_000)) return 1; | if (await done.getByRole("button", { name: /^Reviewed\b/ }).count()) return 1;
 // @mutate e2e/journeys/02-marketplace.spec.ts | const message = await findPageAction(pp, "poster", /^Message\b/, 30_000); | const message = pp.getByRole("button", { name: "Message Helpr" }).first();
 // @mutate e2e/journeys/cardChips.ts | const sheet = page.locator(`[data-row-options="${tag}"]`) | const sheet = page.locator(`[data-no-such-sheet="${tag}"]`)
 // @mutate e2e/journeys/04-admin-safety.spec.ts | const chip = await findChip(pp, cardByTitle(pp, JOB_TITLE), NO_SHOW, 30_000); | const chip = pp.getByRole("button", { name: /^(No-Show\|Report no-show)/ }).first();

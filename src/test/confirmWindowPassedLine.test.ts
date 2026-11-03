@@ -8,7 +8,7 @@
  * that never selected parent_job_id makes no repost claim (lead 11-03: never show a promise the code doesn't keep).
  *
  * @mutate src/components/tracker/jobProgressState.ts | const helprLate = !helprIn && !Number.isNaN(due) && now >= due; | const helprLate = false;
- * @mutate src/components/job-card/jobStatusLine.ts |     if (Date.now() >= due) return confirmWindowPassedLine(f, job.is_group_job); |     if (false) return confirmWindowPassedLine(f, job.is_group_job);
+ * @mutate src/components/job-card/jobStatusLine.ts |     if (Date.now() >= due) return confirmWindowPassedLine(f, job); |     if (false) return confirmWindowPassedLine(f, job);
  * @mutate src/components/job-card/jobStatusLine.ts |   const reposted = job.is_group_job !== true && job.parent_job_id === null; |   const reposted = job.is_group_job !== true;
  * @mutate src/components/job-card/jobStatusLine.ts |   const reposted = job.is_group_job !== true && job.parent_job_id === null; |   const reposted = job.parent_job_id === null;
  * @mutate src/components/job-card/jobStatusLine.ts |   const reposted = job.is_group_job !== true && job.parent_job_id === null; |   const reposted = job.is_group_job !== true && job.parent_job_id == null;

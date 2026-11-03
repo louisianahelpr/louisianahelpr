@@ -17538,6 +17538,11 @@ export type Database = {
         Returns: number
       }
       declutter_set_keep_up: { Args: { p_item_id: string; p_on: boolean }; Returns: boolean }
+      declutter_set_ship_options: {
+        Args: { p_item_id: string; p_nothing_restricted: boolean; p_preset: string }
+        Returns: Json
+      }
+      declutter_ship_options_state: { Args: { p_item_id: string }; Returns: Json }
       declutter_set_listing_drops: {
         Args: { p_item_id: string; p_on: boolean }
         Returns: boolean

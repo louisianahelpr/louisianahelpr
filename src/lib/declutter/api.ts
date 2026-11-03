@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage, unwrap } from "@/lib/supabaseResult";
 import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import type { ShipOptions, ShipPreset } from "@/lib/declutter/shipOptions";
 import { blobToBase64, cleanListingPhoto, listingPhotoPath, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { AI_DRAFT_PHOTOS } from "@/lib/declutter/photoRules";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
@@ -831,6 +832,26 @@ export async function setAutoFreeDays(itemId: string, days: number | null): Prom
   // The generated Args type has no null (Postgres arguments are all nullable); null is Never.
   const r = await supabase.rpc("declutter_set_auto_free_days", { p_item_id: itemId, p_days: days as number });
   return rpcData(r, (e) => rpcErrorMessage("declutter_set_auto_free_days", e)) as number | null;
+}
+
+/**
+ * Shipping (Q2259, docs/specs/shipping-draft.md sections 6 and 8): the box a small listing ships in, the seller's own
+ * listing only, behind the declutter_shipping switch (20261103201144). "not_deployed" before the migration reaches
+ * prod (PGRST202).
+ */
+export async function fetchShipOptions(itemId: string): Promise<ShipOptions | "not_deployed"> {
+  const r = await supabase.rpc("declutter_ship_options_state", { p_item_id: itemId });
+  if (isMissingRpcNamed(r.error, "declutter_ship_options_state")) return "not_deployed";
+  return rpcData(r, (e) => rpcErrorMessage("declutter_ship_options_state", e)) as ShipOptions;
+}
+
+/** Turning shipping on needs the seller's "nothing restricted" tick (section 8); a null preset turns it off. */
+export async function setShipOptions(itemId: string, preset: ShipPreset | null, nothingRestricted: boolean): Promise<ShipOptions> {
+  return rpcData(
+    // The generated Args type has no null (Postgres arguments are all nullable); null turns shipping off.
+    await supabase.rpc("declutter_set_ship_options", { p_item_id: itemId, p_preset: preset as string, p_nothing_restricted: nothingRestricted }),
+    (e) => rpcErrorMessage("declutter_set_ship_options", e),
+  ) as ShipOptions;
 }
 
 /**

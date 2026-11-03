@@ -148,6 +148,8 @@
  * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql | IF NOT FOUND THEN\n    RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'PT404'; | IF NOT FOUND THEN\n    RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql | OR NOT public.helpr_task_same_stripe_mode(v_uid, t.customer_id) THEN\n      RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'PT404'; | OR NOT public.helpr_task_same_stripe_mode(v_uid, t.customer_id) THEN\n      RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql | OR NOT public.helpr_task_same_stripe_mode(v_uid, w.customer_id) THEN\n      RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'PT404'; | OR NOT public.helpr_task_same_stripe_mode(v_uid, w.customer_id) THEN\n      RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103062000_declutter_on_my_way_meetup_here_not_found_is_404.sql | IF o.buyer_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404'; | IF o.buyer_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103062000_declutter_on_my_way_meetup_here_not_found_is_404.sql | IF v_side IS NULL THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404'; | IF v_side IS NULL THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -168,6 +170,7 @@ import { blankSqlComments } from "./helpers/blankNonCode";
  * Packet 11: rentals_lease, rentals_admin_review_property, declutter_leave_review, declutter_save_my_meetup_spot, admin_declutter_save_donation_partner, admin_declutter_save_meetup_spot, declutter_add_wanted_photo, shops_get_shop, admin_review_category_suggestion, rentals_submit_ownership_proof, declutter_admin_remove_question, rentals_tenant_answer_fixed, declutter_send_handover_message, helpr_task_send_message, declutter_send_order_message, declutter_save_porch_place, declutter_add_item_photo (20261103055505).
  * Packet 12: shops_publish_item (20261103060314).
  * Packet 13 (regular, lead PASS): rentals_listing, declutter_my_reply_listings, declutter_order_problem, shops_shop_items, rentals_public_listing, rentals_deposit, helpr_task_pickup_windows, helpr_task_same_pickup_slot, declutter_setup_helpr, declutter_admin_problem_talk, declutter_haul_away_state, rentals_rent_ledger, declutter_refund_request_view, helpr_task_view, helpr_route_suggestions (20261103061500).
+ * Packet 14 (regular): declutter_on_my_way, declutter_meetup_here (20261103062000).
  */
 const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
   "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm",
@@ -180,9 +183,10 @@ const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_s
   "declutter_admin_problem_case", "declutter_item_address", "declutter_ask_question", "shops_admin_set_hidden", "shops_save_my_pickup_address", "declutter_pause_listing", "declutter_reopen_wanted", "rentals_accept_invite", "shops_admin_give_strike", "declutter_porch_note", "declutter_order_pickup_windows", "rentals_decline_request", "declutter_manager_send_back", "declutter_admin_remove_review", "helpr_task_release", "declutter_manager_approve", "declutter_set_keep_up", "declutter_admin_release_wanted_photos", "declutter_admin_take_down_wanted",
   "rentals_lease", "rentals_admin_review_property", "declutter_leave_review", "declutter_save_my_meetup_spot", "admin_declutter_save_donation_partner", "admin_declutter_save_meetup_spot", "declutter_add_wanted_photo", "shops_get_shop", "admin_review_category_suggestion", "rentals_submit_ownership_proof", "declutter_admin_remove_question", "rentals_tenant_answer_fixed", "declutter_send_handover_message", "helpr_task_send_message", "declutter_send_order_message", "declutter_save_porch_place", "declutter_add_item_photo",
   "shops_publish_item",
-  "rentals_listing", "declutter_my_reply_listings", "declutter_order_problem", "shops_shop_items", "rentals_public_listing", "rentals_deposit", "helpr_task_pickup_windows", "helpr_task_same_pickup_slot", "declutter_setup_helpr", "declutter_admin_problem_talk", "declutter_haul_away_state", "rentals_rent_ledger", "declutter_refund_request_view", "helpr_task_view", "helpr_route_suggestions"];
+  "rentals_listing", "declutter_my_reply_listings", "declutter_order_problem", "shops_shop_items", "rentals_public_listing", "rentals_deposit", "helpr_task_pickup_windows", "helpr_task_same_pickup_slot", "declutter_setup_helpr", "declutter_admin_problem_talk", "declutter_haul_away_state", "rentals_rent_ledger", "declutter_refund_request_view", "helpr_task_view", "helpr_route_suggestions",
+  "declutter_on_my_way", "declutter_meetup_here"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-const P0002_RAISERS = 187;
+const P0002_RAISERS = 185;
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");

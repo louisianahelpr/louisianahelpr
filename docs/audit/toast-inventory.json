@@ -92,7 +92,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 285,
+      "line": 286,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -102,7 +102,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 342,
+      "line": 343,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -112,7 +112,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 344,
+      "line": 345,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -122,7 +122,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 389,
+      "line": 390,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -239,7 +239,7 @@
     },
     {
       "file": "src/components/CancellationDialog.tsx",
-      "line": 403,
+      "line": 404,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -439,7 +439,7 @@
     },
     {
       "file": "src/components/EarningsExport.tsx",
-      "line": 109,
+      "line": 110,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -449,7 +449,7 @@
     },
     {
       "file": "src/components/EarningsExport.tsx",
-      "line": 113,
+      "line": 114,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -459,7 +459,7 @@
     },
     {
       "file": "src/components/EarningsExport.tsx",
-      "line": 150,
+      "line": 151,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -469,7 +469,7 @@
     },
     {
       "file": "src/components/EarningsExport.tsx",
-      "line": 157,
+      "line": 158,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -585,7 +585,7 @@
     },
     {
       "file": "src/components/HelperAvailability.tsx",
-      "line": 62,
+      "line": 63,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -595,7 +595,7 @@
     },
     {
       "file": "src/components/HelperAvailability.tsx",
-      "line": 145,
+      "line": 146,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -605,7 +605,7 @@
     },
     {
       "file": "src/components/HelperAvailability.tsx",
-      "line": 195,
+      "line": 196,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -615,7 +615,7 @@
     },
     {
       "file": "src/components/HelperAvailability.tsx",
-      "line": 198,
+      "line": 199,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1914,7 +1914,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 106,
+      "line": 107,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1924,7 +1924,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 143,
+      "line": 144,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1934,7 +1934,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 160,
+      "line": 161,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1944,7 +1944,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 285,
+      "line": 286,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1954,7 +1954,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 308,
+      "line": 309,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -1964,7 +1964,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 345,
+      "line": 346,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -1974,7 +1974,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 354,
+      "line": 355,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -1984,7 +1984,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 367,
+      "line": 368,
       "kind": "confirmConsequential",
       "title": {
         "form": "template",
@@ -1994,7 +1994,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 376,
+      "line": 377,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2004,7 +2004,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 386,
+      "line": 387,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2014,7 +2014,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 414,
+      "line": 415,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2024,7 +2024,7 @@
     },
     {
       "file": "src/components/admin/AdminDisputes.tsx",
-      "line": 493,
+      "line": 494,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4340,11 +4340,11 @@
     },
     {
       "file": "src/components/admin/userDetail/UserAuditLog.tsx",
-      "line": 94,
+      "line": 95,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "error.code === \"PGRST202\" ? \"Reversal isn't live yet — this deploys with the next migration. Try again shortly.\" : (rpcErrorMessage(\"admin_reverse_violation\", error) ?? \"Couldn't reverse that strike. Nothing was changed.\")",
+        "text": "isMissingRpcNamed(error, \"admin_reverse_violation\") ? \"Reversal isn't live yet — this deploys with the next migration. Try again shortly.\" : (rpcErrorMessage(\"admin_reverse_violation\", error) ?? \"Couldn't reverse that strike. Nothing was changed.\")",
         "branches": [
           {
             "form": "literal",
@@ -4360,7 +4360,7 @@
     },
     {
       "file": "src/components/admin/userDetail/UserAuditLog.tsx",
-      "line": 103,
+      "line": 104,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",
@@ -7687,7 +7687,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 155,
+      "line": 156,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7697,7 +7697,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 159,
+      "line": 160,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -7707,7 +7707,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 395,
+      "line": 396,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7817,7 +7817,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 611,
+      "line": 610,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7827,7 +7827,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 615,
+      "line": 617,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7837,7 +7837,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 628,
+      "line": 630,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7847,7 +7847,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 643,
+      "line": 645,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -7857,7 +7857,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 651,
+      "line": 653,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -7867,7 +7867,7 @@
     },
     {
       "file": "src/components/job-card/activityActions/useOfferHandlers.ts",
-      "line": 675,
+      "line": 677,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -14128,7 +14128,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 372,
+      "line": 373,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -14138,7 +14138,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 383,
+      "line": 384,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -14148,7 +14148,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 385,
+      "line": 386,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -14158,7 +14158,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 400,
+      "line": 401,
       "kind": "toast.error",
       "title": {
         "form": "literal",

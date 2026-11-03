@@ -26,7 +26,7 @@ import { isoDayIn } from "../calendarPicker";
 import { skipLivePay } from "../prod-audit/fundedOpenJob";
 import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
-import { findChip } from "./cardChips";
+import { cardByTitle, findChip, openPostedCard } from "./cardChips";
 import { ZONE, fillJobDetails, fillLogistics, fillBudget, slotAhead, slotDeadWindow } from "./postJobForm";
 import { searchFeed } from "../feedSearch";
 
@@ -466,7 +466,9 @@ test.describe.serial("marketplace chain", () => {
       // e2e-journeys 41585440777's snapshot shows button "Review 1 applicant" and no "Applicants (1)".
       await pp.getByRole("button", { name: "Review 1 applicant", exact: true }).first().click();
       const panel = pp.getByRole("region", { name: new RegExp(`Applicants for`) }).or(pp.getByRole("dialog")).first();
-      await expect(panel.getByRole("button", { name: /^Select / }).first(), "no Hire button for the applicant").toBeVisible({ timeout: 30_000 });
+      // The applicant card's Hire is spoken "Hire <name>" since JOBS3-51 (4ef54651f8); the old "Select <name>" is gone:
+      // e2e-journeys 41599679895's snapshot shows button "Hire Hallie H." in region "Applicants for ...".
+      await expect(panel.getByRole("button", { name: /^Hire / }).first(), "no Hire button for the applicant").toBeVisible({ timeout: 30_000 });
       await expect(panel.getByText(NOTE).first(), "the applicant's note is not shown to the poster").toBeVisible();
       await assertHealthy(pp, "applicants panel");
       await journey.milestone(pp, "applicants-panel");
@@ -483,13 +485,13 @@ test.describe.serial("marketplace chain", () => {
 
     await test.step("poster hires the applicant", async () => {
       const panel = pp.getByRole("region", { name: /Applicants for/ }).or(pp.getByRole("dialog")).first();
-      if (!(await panel.getByRole("button", { name: /^Select / }).first().isVisible().catch(() => false))) {
+      if (!(await panel.getByRole("button", { name: /^Hire / }).first().isVisible().catch(() => false))) {
         await pp.goto("/jobs?tab=posted");
         await openStatusTab(pp, "Needs You");
         await pp.getByText(TITLE).first().click();
         await pp.getByRole("button", { name: "Review 1 applicant", exact: true }).first().click();
       }
-      await panel.getByRole("button", { name: /^Select / }).first().click();
+      await panel.getByRole("button", { name: /^Hire / }).first().click();
       // Hiring is an OFFER with a response deadline; the helper then accepts.
       await expect(pp.getByRole("heading", { name: "Set a response deadline" })).toBeVisible({ timeout: 20_000 });
       await pp.getByPlaceholder(/Say something to/).fill(`Offer for ${RUN}: see you Tuesday.`);
@@ -711,22 +713,41 @@ test.describe.serial("marketplace chain", () => {
     if (reload) await page.goto(path);
     await page.waitForTimeout(1_500);
     await declineLocation(page);
-    const heading = page.getByRole("heading", { name: TITLE, level: 2 });
+    // The card's face is a LINK "Open <title>" to /jobs/:id (MineJobFace, on Posted AND Working cards); the level-2
+    // heading this looked for went with the face rebuild (cardChips.cardByTitle; e2e-journeys 41553090940).
+    const face = page.getByRole("link", { name: `Open ${TITLE}`, exact: true });
     // The expected tab first; the job's bucket is recorded when it is elsewhere,
     // because which tab a job sits in is itself something a user relies on.
     const order = [tab, ...(["Needs You", "Scheduled", "Waiting", "Done", "Cancelled"] as const).filter((t) => t !== tab)];
     let found = "";
     for (const t of order) {
       await openStatusTab(page, t);
-      if (await appears(heading, t === tab ? 15_000 : 5_000)) {
+      if (await appears(face, t === tab ? 15_000 : 5_000)) {
         found = t;
         break;
       }
     }
     expect(found, `${TITLE} is on no ${path} tab`).not.toBe("");
     if (found !== tab) test.info().annotations.push({ type: "bucket", description: `${path}: expected ${tab}, found ${found}` });
-    const c = page.locator("div.liquid-glass").filter({ has: heading }).last();
-    if (!(await c.locator("[data-job-progress]").isVisible().catch(() => false))) await heading.click();
+    const c = cardByTitle(page, TITLE);
+    // OPEN it in place, proved by its "Close <title>" chevron (MineJobFace onCollapse). Clicking the title no longer
+    // opens a card: it goes to the job page (owner 2026-10-31).
+    const close = c.getByRole("button", { name: `Close ${TITLE}`, exact: true });
+    if (await close.isVisible().catch(() => false)) return c;
+    if (path === "/jobs?tab=posted") {
+      // The face's "More options" opens a Posted card. A face with none (its one button is the stage's own move, such
+      // as "Report no-show") stays shut; the caller's findChip reads that face row.
+      if (!(await openPostedCard(page, TITLE))) test.info().annotations.push({ type: "card", description: `${path} ${found}: no More options on the face; left shut` });
+    } else {
+      // A Working face's one button may BE the step ("I'm on my way"), so it is never pressed to open the card: the
+      // app's own link opens it in place, in whichever bucket it is (useOpenWorkingDeepLink; JobListPage resolves ?job=).
+      await page.goto(`/jobs?tab=working&job=${S.jobId}&open=1`);
+      await declineLocation(page);
+      await expect(close, `${TITLE}'s Working card did not open from tab=working&job=&open=1`).toBeVisible({ timeout: 45_000 });
+      // The ladder ("I'm on my way", "I've arrived", "Mark it done") lives in the open card's tracker
+      // (trackerControlsNeedAnExpandedCard). A cancelled card (the expired offer) is off the path and draws none.
+      if (found !== "Cancelled") await expect(c.locator("[data-job-progress]").first(), `${TITLE}'s open Working card shows no tracker`).toBeVisible({ timeout: 30_000 });
+    }
     return c;
   }
 

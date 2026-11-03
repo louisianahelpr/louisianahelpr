@@ -1020,6 +1020,22 @@ serve(async (req) => {
       }
       if (existing) out.refunds_reconciled++;
       else out.refunds_sent++;
+      // Q1934: a damaged-in-delivery refund no longer waits for good on the seller's payout (held,
+      // rejected or unusable at once; 3 days otherwise: declutter_refunds_due). One that went out before
+      // the seller was paid is paged once (this run is the one that recorded it); that seller payout is
+      // then sent from the platform balance (step 2 below).
+      if (r.reason === "delivery_damage" && r.order_id) {
+        const { data: sp, error: spErr } = await admin.from("declutter_payouts").select("status").eq("order_id", r.order_id).maybeSingle();
+        const spStatus = (sp as { status?: string } | null)?.status ?? null;
+        if (spErr || !spStatus || !["succeeded", "nothing_due", "settled_by_hand"].includes(spStatus)) {
+          await postSlackOpsAlert({
+            kind: "money_at_risk", severity: "warning", oncePerDayKey: `declutter-damage-refund-first-${r.order_id}`,
+            title: "A damaged-in-delivery refund went out before the seller was paid",
+            message: `Order ${r.order_id}: the buyer's refund went out while the seller's payout is ${spErr ? "unreadable" : spStatus ?? "missing"}. The seller's payout will be sent from the platform balance once it can go; nothing to do unless it stays stuck.`,
+            fields: { Refund: refund.id },
+          });
+        }
+      }
       // The queue only offers rows not yet succeeded, so this run is the one that recorded the refund:
       // tell the buyer now, whether this run created it or adopted one the webhook did not record.
       await tellBuyerRefunded(admin, r.buyer_id, r.refund_cents);
@@ -1087,6 +1103,16 @@ serve(async (req) => {
         // whole: paid, no refund beyond what the order recorded, no dispute (lh-money-escrow review 3.4).
         // Otherwise nothing moves. Then, and only then, the payee's readiness.
         if (await unpayableNow("declutter", p.payout_id, p.seller_id, p.stripe_account_id, p.amount_cents, mode)) continue;
+        // Q1934: once the order's damaged-in-delivery refund has gone back to the buyer (it no longer waits
+        // for this payout), the charge has nothing left to fund the transfer: it is sent from the platform
+        // balance, which absorbs that refund anyway, so the total is unchanged. Fails closed on a failed read.
+        const { data: damageRefund, error: damageErr } = await admin.from("declutter_refunds").select("id")
+          .eq("order_id", p.order_id).eq("reason", "delivery_damage").eq("status", "succeeded").limit(1);
+        if (damageErr) {
+          await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 15, "transient", `damage refund read failed: ${damageErr.message}`);
+          continue;
+        }
+        const fromPlatform = ((damageRefund ?? []) as unknown[]).length > 0;
         const charge = await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents);
         if (!(await payeeReadyNow(stripe, mode, "declutter", p.payout_id, p.seller_id, p.stripe_account_id as string, p.amount_cents))) continue;
         if (!(await stillPayableNow("declutter", p.payout_id, p.seller_id, p.amount_cents))) continue;
@@ -1113,7 +1139,7 @@ serve(async (req) => {
             currency: "usd",
             destination: p.stripe_account_id as string,
             transfer_group: group,
-            source_transaction: charge,
+            ...(fromPlatform ? {} : { source_transaction: charge }),
             metadata: { kind: "declutter_payout", payout_id: p.payout_id, order_id: p.order_id },
           },
           { idempotencyKey: `declutter-payout-${p.payout_id}` },

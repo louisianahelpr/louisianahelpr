@@ -98,7 +98,7 @@
  * @mutate supabase/migrations/20261102084222_a3_stack_reconcile.sql | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    0);
  * @mutate supabase/migrations/20261103173111_declutter_late_payment_buyer_block.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
- * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
+ * @mutate supabase/migrations/20261103225232_declutter_damage_refund_stops_waiting_on_seller.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_refunds SET card_fee_cents = 0, refund_cents = paid_cents WHERE fee_policy = 'keep_card_fee';\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | CREATE TRIGGER trg_zero_fee BEFORE INSERT ON public.declutter_refunds FOR EACH ROW EXECUTE FUNCTION public.declutter_zero_fee();\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_orders SET card_fee_cents = 0;\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
@@ -384,6 +384,9 @@ const TS_MONEY_TOUCHES: string[] = [
   'supabase/functions/declutter-checkout/index.ts: .from("declutter_orders") .select("buyer_id, seller_id").eq("id", orderId).maybeSingle()',
   "supabase/functions/declutter-checkout/index.ts: if (!raise?.raise_id || raise.raise_cents !== raiseCents || raise.raise_cents + raise.card_fee_cents !== raise.total_cents) {",
   'supabase/functions/declutter-checkout/index.ts: { quantity: 1, price_data: { currency: "usd", unit_amount: raise.raise_cents + raise.card_fee_cents,',
+  // Q1934: the seller payout READS whether the order's damaged-in-delivery refund already went (then it is sent from
+  // the platform balance, no source_transaction). No money column, no write.
+  'supabase/functions/declutter-money/index.ts: .from("declutter_refunds").select("id") .eq("order_id", p.order_id).eq("reason", "delivery_damage").eq("status", "succeeded").limit(1)',
   // Q1929 settleRaise: READS the order's buyer to check the raise page's payer. No money column, no write.
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id").eq("id", meta.order_id).maybeSingle()',
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("buyer_id, seller_id, handover, items_cents, delivery_cents").eq("id", orderId).maybeSingle()',
@@ -772,7 +775,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_refund_set_mode: "20261103103000_refund_mode_rent_waive_payout_deny_repair_cancel_not_found_is_404.sql 119efbd586cdbdc1", // Q2390 p24: ERRCODE-only restatement (md5-verified); stamps the Stripe mode, writes no amount
       // Payout readiness (20261019070737): a deferred pending refund waits for next_attempt_at, and a delivery_damage
       // refund also counts a seller payout settled by hand as paid; the projected refund_cents is unchanged.
-      declutter_refunds_due: "20261019070737_payout_waits_for_payee_setup.sql 42525eabe75fde8f",
+      declutter_refunds_due: "20261103225232_declutter_damage_refund_stops_waiting_on_seller.sql ec2ca25fe103f5d9", // Q1934: only WHEN a delivery_damage row is due changes; it records nothing and the amount (refund_cents) is untouched
       // Reads which order a refund belongs to and tells the seller the debt booked for it; writes no amount.
       declutter_seller_out_fee_notice: "20261017060455_declutter_seller_out_pays_fee.sql b469d8dcc79e1b10",
       // A10 (owner, 2026-10-17): the trigger on a seller-fault refund cancels the buyer's setup job (no fee) and

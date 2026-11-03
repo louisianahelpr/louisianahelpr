@@ -729,6 +729,59 @@ describe("declutter-money: a known partial refund (slice 5)", () => {
   });
 });
 
+// Q1934 (lead design 11-03): a damaged-in-delivery refund no longer waits for good on the seller's payout
+// (declutter_refunds_due decides when: held, rejected or unusable at once, 3 days otherwise; proven in
+// src/test/pglite/declutterDamageRefundStopsWaitingOnSeller.pglite.mjs). Here: one that goes out before the
+// seller was paid pages ops once, and that order's seller payout is then sent from the platform balance.
+// @mutate supabase/functions/declutter-money/index.ts |            ...(fromPlatform ? {} : { source_transaction: charge }), |            source_transaction: charge,
+// @mutate supabase/functions/declutter-money/index.ts |        if (damageErr) {\n          await skipRow( |        if (false) {\n          await skipRow(
+// @mutate supabase/functions/declutter-money/index.ts |      if (r.reason === "delivery_damage" && r.order_id) { |      if (false) {
+// @mutate supabase/functions/declutter-money/index.ts |        if (spErr \|\| !spStatus \|\| !["succeeded", "nothing_due", "settled_by_hand"].includes(spStatus)) { |        if (true) {
+describe("declutter-money: a damaged-in-delivery refund that went before the seller was paid (Q1934)", () => {
+  const damageTitle = "A damaged-in-delivery refund went out before the seller was paid";
+  const pages = () => slackAlerts.filter((a: any) => a.title === damageTitle);
+  it("the refund goes out while the seller payout is held: the buyer is refunded and ops are paged once", async () => {
+    scenario.reads.declutter_payouts = { rows: [{ status: "pending" }] };
+    const { body } = await run({ refunds: [refundRow({ reason: "delivery_damage", refund_cents: 5200 })] });
+    expect(body.refunds_sent).toBe(1);
+    expect(pages()).toHaveLength(1);
+    expect(String((pages()[0] as any).message)).toContain(ORDER);
+    expect(String((pages()[0] as any).message)).not.toMatch(/fee/i);
+  });
+  it("no page when the seller payout had already gone", async () => {
+    scenario.reads.declutter_payouts = { rows: [{ status: "succeeded" }] };
+    await run({ refunds: [refundRow({ reason: "delivery_damage" })] });
+    expect(pages()).toHaveLength(0);
+  });
+  it("no page for other refund reasons", async () => {
+    scenario.reads.declutter_payouts = { rows: [{ status: "pending" }] };
+    await run({ refunds: [refundRow()] });
+    expect(pages()).toHaveLength(0);
+  });
+  it("the seller payout after that refund is sent from the platform balance (no source_transaction), same amount and key", async () => {
+    scenario.reads.declutter_refunds = { rows: [{ id: REFUND }] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_order1", status: "succeeded", latest_charge: { id: "ch_order1", amount_refunded: 5200, disputed: false },
+    });
+    const { body } = await run({ payouts: [payoutRow({ refunds_recorded_cents: 5200 })] });
+    expect(body.payouts_sent).toBe(1);
+    const [params, opts] = stripeMock.transfers.create.mock.calls[0];
+    expect(params).toMatchObject({ amount: 3850, destination: "acct_seller1", transfer_group: `declutter_order_${ORDER}` });
+    expect(params).not.toHaveProperty("source_transaction");
+    expect(opts).toEqual({ idempotencyKey: `declutter-payout-${PAYOUT}` });
+  });
+  it("without a damage refund the payout still draws on the order's own charge", async () => {
+    scenario.reads.declutter_refunds = { rows: [] };
+    await run({ payouts: [payoutRow()] });
+    expect(stripeMock.transfers.create.mock.calls[0][0]).toMatchObject({ source_transaction: "ch_order1" });
+  });
+  it("an unreadable damage-refund check sends nothing this run", async () => {
+    scenario.reads.declutter_refunds = { error: { message: "db down" } } as never;
+    await run({ payouts: [payoutRow()] });
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+  });
+});
+
 describe("declutter-money: Helpr delivery payouts (slice 5, row 42)", () => {
   // Owner 2026-10-30: the delivery Helpr's one-time setup fee comes out right before the send, from the order's part only.
   // @mutate supabase/functions/declutter-money/index.ts |             parts = parts.map((part) => (!part.raiseId && !part.tipId ? { ...part, amountCents: part.amountCents - taken } : part)); |             void taken;

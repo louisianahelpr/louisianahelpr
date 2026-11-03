@@ -611,11 +611,10 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     // (HelperTrackerPanel), whose control is HELPER_CONFIRM_LABEL in
     // src/components/JobConfirmation.tsx; "I'm still on" is the poster's.
     const HELPER_CONFIRM = "Confirm you'll be at the job";
-    // Before the window opens the Helpr's primary is this SAME button, greyed,
-    // saying when it turns on (docs/JOB-LIFECYCLE.md step 4, owner 2026-10-08);
-    // from midnight the day before it is live (step 5). So "before-open" asserts
-    // a disabled button, never an absent one (Q1647: e2e-journeys 38157785191
-    // failed both engines asserting the greyed button away).
+    // Before the window opens there is NO Confirm button, greyed or not (lead
+    // ruling 2026-10-21, superseding the 2026-10-08 greyed button that Q1647
+    // asserted): the clock says when it opens. From midnight the day before it
+    // is live (docs/JOB-LIFECYCLE.md step 5).
     async function helperAt(tz: string, at: Date, want: RegExp, live: boolean, name: string) {
       const { ctx, page } = await openAt(browser, request, tz, at, "helper");
       try {
@@ -623,9 +622,16 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
         await page.getByText(title).first().click();
         await expect(page.getByText(want).first(), `${name}: at ${at.toISOString()} from ${tz}`).toBeVisible({ timeout: 45_000 });
         const answer = page.getByRole("button", { name: HELPER_CONFIRM });
-        await expect(answer, `${name}: the Helpr's primary is the day-before answer`).toBeVisible();
-        if (live) await expect(answer, `${name}: the day-before answer is live`).toBeEnabled();
-        else await expect(answer, `${name}: greyed until the window opens`).toBeDisabled();
+        if (live) {
+          await expect(answer, `${name}: the Helpr's primary is the day-before answer`).toBeVisible();
+          await expect(answer, `${name}: the day-before answer is live`).toBeEnabled();
+        } else {
+          // NO greyed Confirm before the window (lead ruling 2026-10-21, JobConfirmation.tsx "THE HELPR'S
+          // CARD NEVER SHOWS A GREYED CONFIRM EITHER"): the countdown asserted above says when it opens and
+          // the step's own primary holds the slot. This leg asserted the 10-08 greyed button until
+          // e2e-journeys 41553090940 (the trace: "4h 0m until you can confirm", no Confirm button).
+          await expect(answer, `${name}: a Confirm is offered before the window opens`).toHaveCount(0);
+        }
         await step(journey, page, `confirm-${name}`);
       } finally {
         await ctx.close();
@@ -683,6 +689,11 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     expect(((await set.json()) as unknown[]).length, "the membership fixture was not written").toBe(1);
     const endsLabel = `Ends ${ends.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: CT })}`;
 
+    // The tier card's pill reads "Your plan" (CSS-uppercased), matched EXACTLY: after the end the
+    // page rightly shows MembershipStillBilled's "Your plan has ended. ...", which a loose
+    // getByText("YOUR PLAN") (case-insensitive substring) counted as a plan claim
+    // (e2e-journeys 41553090940: the trace's after-end DOM had Free "Current" and that notice, no pill).
+    const planPill = (page: Page) => page.getByText("Your plan", { exact: true });
     async function planAt(at: Date, name: string, check: (page: Page) => Promise<void>) {
       const { ctx, page } = await openAt(browser, request, CT, at, "helper");
       try {
@@ -694,14 +705,14 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
       }
     }
     await planAt(new Date(ends.getTime() - 20 * 3_600_000), "day-before-end", async (page) => {
-      await expect(page.getByText("YOUR PLAN").first(), "the Pro card is marked as the member's plan").toBeVisible({ timeout: 45_000 });
+      await expect(planPill(page).first(), "the Pro card is marked as the member's plan").toBeVisible({ timeout: 45_000 });
       // A cancelled monthly plan ENDS; it must never claim it renews.
       await expect(page.getByText(endsLabel).first()).toBeVisible();
       await expect(page.getByText(/^Renews/)).toHaveCount(0);
     });
     await planAt(new Date(ends.getTime() + 3_600_000), "after-end", async (page) => {
       await expect(page.getByText("Current").first(), "after the end the account is on the free plan").toBeVisible({ timeout: 45_000 });
-      await expect(page.getByText("YOUR PLAN"), "no plan claims the member after it ended").toHaveCount(0);
+      await expect(planPill(page), "no plan claims the member after it ended").toHaveCount(0);
     });
   });
 });

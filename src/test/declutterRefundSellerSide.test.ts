@@ -4,7 +4,7 @@
  * problem's other side, and the problem carries decide_by. Reads the EFFECTIVE (newest) definitions; behaviour on a real
  * database is src/test/pglite/declutterRefundSellerSide.pglite.mjs (3x, Supabase's default anon grant emulated).
  *
- * @mutate supabase/migrations/20261102041000_declutter_refund_seller_side.sql |          OR split_part(v_path, '/', 1) IS DISTINCT FROM v_uid::text\n         OR split_part(v_path, '/', 2) IS DISTINCT FROM 'declutter' |          OR split_part(v_path, '/', 2) IS DISTINCT FROM 'declutter'
+ * @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql |          OR split_part(v_path, '/', 1) IS DISTINCT FROM v_uid::text\n         OR split_part(v_path, '/', 2) IS DISTINCT FROM 'declutter' |          OR split_part(v_path, '/', 2) IS DISTINCT FROM 'declutter'
  * @mutate supabase/migrations/20261102041000_declutter_refund_seller_side.sql |   NEW.decide_by := COALESCE(NEW.decide_by, now() + interval '48 hours'); |   NEW.decide_by := NEW.decide_by;
  * @mutate supabase/migrations/20261102041000_declutter_refund_seller_side.sql |   IF NEW.reporter_side = 'buyer' AND NEW.other_side_note IS NULL AND r.seller_side_at IS NOT NULL THEN |   IF NEW.reporter_side = 'buyer' AND r.seller_side_at IS NOT NULL THEN
  * @mutate supabase/migrations/20261102041000_declutter_refund_seller_side.sql | REVOKE ALL ON FUNCTION public.declutter_answer_refund(uuid, text, integer, text, text[]) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_answer_refund(uuid, text, integer, text, text[]) FROM PUBLIC;

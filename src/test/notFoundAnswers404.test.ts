@@ -205,6 +205,8 @@
  * @mutate supabase/migrations/20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql | RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103224137_q2390_edit_manage_offer_draft_wanted_reply_not_found_is_404.sql | RAISE EXCEPTION 'wanted_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'wanted_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql | RAISE EXCEPTION 'haul_away_job_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'haul_away_job_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql | RAISE EXCEPTION 'payout_missing' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'payout_missing' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql | RAISE EXCEPTION 'enforce_retained_payment_ban: no profile for %', p_user_id USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'enforce_retained_payment_ban: no profile for %', p_user_id USING ERRCODE = 'P0002';
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -252,6 +254,7 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
  * Packet 37 (regular, 6, Jobs and Declutter): declutter_helpr_answer_no_show, declutter_take_item, declutter_report_problem, declutter_answer_no_show, admin_rule_helpr_fault, report_message_party_and_copy (20261103222939); every raise is before any write, create-payment and the app map by message, no SQL caller catches P0002.
  * Packet 38 (regular, 5, Declutter): declutter_edit_listing, declutter_manage, declutter_respond_offer, declutter_update_draft, declutter_wanted_reply (20261103224137); every raise is before any write, the app maps by message.
  * Packet 39 (regular, 6, Declutter): declutter_create_move_drafts, declutter_link_haul_away, declutter_pick_free_request, declutter_record_ai_check, declutter_checkout_free, declutter_start_checkout (20261103224955); a raise rolls back the statement, declutter-ai-draft and the app map by message, declutter-checkout already answers 404 for PT404.
+ * Packet 40 (regular, 9, Jobs and Declutter money functions, ERRCODE only): declutter_accept_refund_with_return, declutter_answer_refund, declutter_admin_decide_problem, declutter_admin_decide_delivery_damage, declutter_admin_decide_stuck_delivery, declutter_rebook_payout, enforce_job_tracking_arrival_gate, admin_apply_account_action, enforce_retained_payment_ban (20261103230126); a raise rolls back the statement, every caller maps by message, no SQL caller catches P0002. declutter_apply_seller_fault, declutter_setup_job_fee_debt (wait for wip/b65-low) and redeem_gift_card (wait for wip/b71-tax) are left.
  */
 const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
   "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm",
@@ -306,9 +309,12 @@ const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_s
   "admin_rule_helpr_fault", "report_message_party_and_copy",
   "declutter_edit_listing", "declutter_manage", "declutter_respond_offer", "declutter_update_draft", "declutter_wanted_reply",
   "declutter_create_move_drafts", "declutter_link_haul_away", "declutter_pick_free_request", "declutter_record_ai_check",
-  "declutter_checkout_free", "declutter_start_checkout"];
+  "declutter_checkout_free", "declutter_start_checkout",
+  "declutter_accept_refund_with_return", "declutter_answer_refund", "declutter_admin_decide_problem",
+  "declutter_admin_decide_delivery_damage", "declutter_admin_decide_stuck_delivery", "declutter_rebook_payout",
+  "enforce_job_tracking_arrival_gate", "admin_apply_account_action", "enforce_retained_payment_ban"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-const P0002_RAISERS = 46;
+const P0002_RAISERS = 37;
 /**
  * Refusals that used P0002 but name a state, not a missing row: they move to '22023' (400), never PT404 (lead 11-03).
  * Function -> the exception message it raises with '22023'.
@@ -343,7 +349,7 @@ describe("not found answers 404 (Q2390)", () => {
   it("each moved function raises PT404 and no P0002", () => {
     for (const name of MOVED) {
       expect(defs.has(name), name).toBe(true);
-      expect(body(name), name).toMatch(/ERRCODE\s*=\s*'PT404'/);
+      expect(body(name), name).toMatch(/ERRCODE\s*=\s*'PT404'/i);
       expect(body(name), name).not.toMatch(RAISES_P0002);
     }
   });

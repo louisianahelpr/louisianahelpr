@@ -247,7 +247,7 @@ describe("board 115: quotes side by side", () => {
 describe("a missing quote request (nightly-red #2375)", () => {
   it("is a not-found message, never the load-error screen with Try again", async () => {
     state.rpc.get_my_quote_requests = [REQ];
-    // As on prod: get_quotes_for_request raises unknown_request (P0002) for an id that is not the caller's.
+    // As on prod: get_quotes_for_request raises unknown_request (PT404 since Q2390 20261103041633, was P0002) for an id that is not the caller's.
     state.rpc.get_quotes_for_request = new Error("unknown_request");
     at("/quotes/request/nope", <QuoteRequestPage />, "/quotes/request/:id");
     expect(await screen.findByText("We can't find this quote request.")).toBeInTheDocument();

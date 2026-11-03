@@ -17,16 +17,23 @@
  *      prod, lowering the number in the same commit; a new one fails.
  *
  * @mutate supabase/migrations/20261103040713_save_my_phone_not_found_is_404.sql | RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103041633_quote_not_found_is_404.sql | IF NOT FOUND THEN\n    RAISE EXCEPTION 'unknown_quote' USING ERRCODE = 'PT404'; | IF NOT FOUND THEN\n    RAISE EXCEPTION 'unknown_quote' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103041633_quote_not_found_is_404.sql | IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'unknown_quote' USING ERRCODE = 'PT404'; | IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'unknown_quote' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103041633_quote_not_found_is_404.sql | IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'PT404'; | IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103041633_quote_not_found_is_404.sql | r.poster_id = v_uid) THEN\n    RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'PT404'; | r.poster_id = v_uid) THEN\n    RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'P0002';
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
 
-/** Functions Q2390 has moved to PT404 (packet 1: save_my_phone, 20261103040713). */
-const MOVED = ["save_my_phone"];
+/**
+ * Functions Q2390 has moved to PT404. Packet 1: save_my_phone (20261103040713). Packet 2: withdraw_job_quote,
+ * switch_quote_request_to_set_price, get_quotes_for_request (20261103041633).
+ */
+const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-const P0002_RAISERS = 302;
+const P0002_RAISERS = 299;
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");

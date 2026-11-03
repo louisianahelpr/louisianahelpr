@@ -216,7 +216,7 @@ async function fillToCheckout(page: Page, title: string, allowReport: (m: RegExp
   const review = await fillLogistics(page, slotAhead(3 * 24 * 60), allowReport);
   await review.click();
   await expect(page.getByText(/Payment breakdown/i)).toBeVisible({ timeout: 60_000 });
-  await page.getByRole("checkbox", { name: /reviewed all details/i }).click();
+  await page.getByRole("checkbox", { name: /checked the details above/i }).click();
   return page.getByRole("button", { name: /Continue to payment|Post job/i });
 }
 
@@ -582,9 +582,9 @@ test(stepTitle("pay-start", "drop"), async ({ browser, request, journey }) => {
   await loseNextResponse(page, `${SUPABASE_URL}/functions/v1/create-payment**`);
   await submit.click();
   const firstJobId = ((await (await firstInsert).json().catch(() => ({}))) as { id?: string }).id;
-  // A payment failure clears the "reviewed all details" consent on purpose
+  // A payment failure clears the "I've checked the details above" consent on purpose
   // (useJobSubmit), so the person ticks it again before retrying, as they must.
-  const consent = page.getByRole("checkbox", { name: /reviewed all details/i });
+  const consent = page.getByRole("checkbox", { name: /checked the details above/i });
   await expect(consent, "the checkout step never came back after a lost create-payment response (hang)").toBeVisible({ timeout: 60_000 });
   // Read the box only once the attempt has settled: it is still ticked while
   // "Processing…" shows and is cleared ~2s later (run 35931277278 read it

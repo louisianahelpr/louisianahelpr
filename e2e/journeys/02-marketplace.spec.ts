@@ -493,11 +493,16 @@ test.describe.serial("marketplace chain", () => {
       }
       await panel.getByRole("button", { name: /^Hire / }).first().click();
       // Hiring is an OFFER with a response deadline; the helper then accepts.
-      await expect(pp.getByRole("heading", { name: "Set a response deadline" })).toBeVisible({ timeout: 20_000 });
-      await pp.getByPlaceholder(/Say something to/).fill(`Offer for ${RUN}: see you Tuesday.`);
+      // The sheet is titled "Hire <first name>" (hireBoard29: DialogHero title={`Hire ${them}`}),
+      // and the deadline is its "Response deadline" picker. e2e-journeys 41621990983 (both
+      // legs) waited for the retired "Set a response deadline" heading while this sheet was open.
+      const sheet = pp.getByRole("dialog").filter({ has: pp.getByRole("heading", { name: /^Hire / }) });
+      await expect(sheet, "the hire sheet did not open").toBeVisible({ timeout: 20_000 });
+      await expect(sheet.getByRole("combobox", { name: "Response deadline" }), "the hire sheet asks for no response deadline").toBeVisible();
+      await sheet.getByPlaceholder(/Say something to/).fill(`Offer for ${RUN}: see you Tuesday.`);
       await journey.milestone(pp, "offer-sheet");
-      await pp.getByRole("dialog").getByRole("button", { name: /^Hire / }).click();
-      await expect(pp.getByRole("heading", { name: "Set a response deadline" })).toBeHidden({ timeout: 20_000 });
+      await sheet.getByRole("button", { name: /^Hire / }).click();
+      await expect(sheet, "the hire sheet is still open after Hire").toBeHidden({ timeout: 20_000 });
       await assertHealthy(pp, "offer sent");
       await journey.milestone(pp, "offer-sent");
     });

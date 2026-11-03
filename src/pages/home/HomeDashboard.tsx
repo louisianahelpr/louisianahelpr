@@ -24,9 +24,10 @@ import { JobProgress } from "@/components/tracker/JobProgress";
 import { PayoutFailedCard } from "@/components/money/PayoutFailedCard";
 import { FirstJobHome, useFirstJobState } from "./homeDashboard/FirstJobHome";
 import { PosterFirstJobCard } from "./homeDashboard/PosterFirstJobCard";
+import { optionalLazy } from "@/lib/optionalLazy";
 // Loaded the first time it opens, never with Home's first screen (AUD31-60, B61): it brings Sheet and Switch.
 const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
-const SmsPhonePrompt = lazy(() => import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })));
+const SmsPhonePrompt = optionalLazy(() => import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })), "SmsPhonePrompt");
 
 function greeting(d = new Date()) {
   const h = d.getHours();

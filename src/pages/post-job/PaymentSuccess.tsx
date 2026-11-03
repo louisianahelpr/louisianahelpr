@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 // Derive the auto-release window rather than restating "48 hours" in prose.
 // This is checkout copy — a legally load-bearing promise about when money
@@ -41,6 +41,7 @@ import {
 } from "./paymentReturnCopy";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useTellPendingSetupLink } from "./useTellPendingSetupLink";
+import { optionalLazy } from "@/lib/optionalLazy";
 
 /**
  * TRUTHFULNESS CONTRACT FOR THIS SCREEN
@@ -88,7 +89,7 @@ import { useTellPendingSetupLink } from "./useTellPendingSetupLink";
 // wrong for a payment that not only succeeded but has already been paid out.
 // `released` means the charge succeeded at least as much as `escrow` did.
 const HELD_STATUSES = new Set(["escrow", "payout_pending", "released"]);
-const SmsPhonePrompt = lazy(() => import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })));
+const SmsPhonePrompt = optionalLazy(() => import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })), "SmsPhonePrompt");
 
 /** States that mean this job never got funded. */
 const NOT_HELD_STATUSES = new Set(["failed", "cancelled", "abandoned"]);

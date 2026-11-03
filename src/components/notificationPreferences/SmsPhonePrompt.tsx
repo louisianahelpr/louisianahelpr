@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -6,9 +6,10 @@ import { useFeature } from "@/hooks/useFeature";
 import { unwrap } from "@/lib/supabaseResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { loadModule } from "@/lib/loadModule";
+import { optionalLazy } from "@/lib/optionalLazy";
 // B87: the refusal words load only on a refusal, and the dialog (Radix, the opt-in card) only once it is due.
 const lifecycleErrors = () => loadModule(() => import("@/lib/lifecycleErrors"));
-const SmsPhonePromptDialog = lazy(() => import("./SmsPhonePromptDialog"));
+const SmsPhonePromptDialog = optionalLazy(() => import("./SmsPhonePromptDialog"), "SmsPhonePromptDialog");
 
 /**
  * The moments the prompt is offered at; the server decides whether it is due. "has_phone" (SMS-OPTIN, owner

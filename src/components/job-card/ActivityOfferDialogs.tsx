@@ -2,14 +2,17 @@ import { lazy, Suspense } from "react";
 import type { useActivityActions } from "@/components/job-card/useActivityActions";
 import { PaymentHeldDialog } from "@/components/job-card/PaymentHeldDialog";
 import { HelperDoneWhatNextHost } from "@/components/whatNext/HelperDoneWhatNext";
+import { optionalLazy } from "@/lib/optionalLazy";
 
 // Dialogs mount only on a user action, so lazy-loading keeps their subtrees
 // out of the initial chunk entirely.
 const AwardGateDialog = lazy(() =>
   import("@/components/AwardGateDialog").then((m) => ({ default: m.AwardGateDialog })),
 );
-const SmsPhonePrompt = lazy(() =>
-  import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })),
+// Q2544: optional (usually not due); a failed chunk draws nothing instead of breaking /jobs.
+const SmsPhonePrompt = optionalLazy(
+  () => import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })),
+  "SmsPhonePrompt",
 );
 const HiredPayoutSetupDialog = lazy(() =>
   import("@/components/payouts/HiredPayoutSetupDialog").then((m) => ({ default: m.HiredPayoutSetupDialog })),

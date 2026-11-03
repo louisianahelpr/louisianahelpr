@@ -7,7 +7,7 @@
  * server answers due for a few). Now SmsPhonePrompt.tsx is the gate (switch + due read; the words load on a refusal)
  * and SmsPhonePromptDialog.tsx, loaded when due, is the dialog.
  *
- * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx | const SmsPhonePromptDialog = lazy(() => import("./SmsPhonePromptDialog")); | import SmsPhonePromptDialog from "./SmsPhonePromptDialog";
+ * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx | const SmsPhonePromptDialog = optionalLazy(() => import("./SmsPhonePromptDialog"), "SmsPhonePromptDialog"); | import SmsPhonePromptDialog from "./SmsPhonePromptDialog";
  * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx | const lifecycleErrors = () => loadModule(() => import("@/lib/lifecycleErrors")); | import * as lifecycleNow from "@/lib/lifecycleErrors";\nconst lifecycleErrors = async () => lifecycleNow;
  * @mutate src/components/notificationPreferences/SmsPhonePrompt.tsx |   if (!enabled \|\| due.data !== true) return null; |   if (!enabled) return null;
  */
@@ -31,7 +31,7 @@ describe("SmsPhonePrompt", () => {
 
   it("renders the dialog only when due", () => {
     const gate = blankComments(readFileSync(resolve(root, GATE), "utf8"));
-    expect(gate).toContain('const SmsPhonePromptDialog = lazy(() => import("./SmsPhonePromptDialog"));');
+    expect(gate).toContain('const SmsPhonePromptDialog = optionalLazy(() => import("./SmsPhonePromptDialog"), "SmsPhonePromptDialog");');
     expect(gate).toContain("if (!enabled || due.data !== true) return null;");
     expect(gate).toContain("<SmsPhonePromptDialog moment={moment} />");
   });

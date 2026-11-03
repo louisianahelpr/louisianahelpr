@@ -531,7 +531,7 @@ const AdminJobs = () => {
 
       {/* Job Detail Dialog */}
       <JobDetailDialog
-        detailJob={detailJob}
+        detailJob={detailJob} continueDate={detailJob ? continueDates.get(detailJob.id) : undefined}
         deleteOpen={deleteOpen}
         jobFlags={jobFlags}
         resolvedFlags={resolvedFlags}

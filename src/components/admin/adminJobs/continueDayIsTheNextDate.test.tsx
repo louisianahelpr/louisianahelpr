@@ -13,6 +13,8 @@
 // @mutate src/components/admin/adminJobs/JobListItem.tsx | {formatJobDate(next.date)}{next.continues ? " · continues" : ""} | {formatJobDate(job.date_needed)}
 // @mutate src/components/admin/AdminJobs.tsx |           const detected = detectFlags(job, nextDates.get(job.id)); |           const detected = detectFlags(job);
 // @mutate src/components/admin/AdminJobs.tsx |  continueDate={continueDates.get(job.id)} |  continueDate={undefined}
+// @mutate src/components/admin/adminJobs/JobDetailDialog.tsx | {continueDate && <p className="text-ds-12 text-foreground" data-admin-continues="">Continues: {formatJobDate(continueDate)}</p>} | {null}
+// @mutate src/components/admin/AdminJobs.tsx |  continueDate={detailJob ? continueDates.get(detailJob.id) : undefined} |  continueDate={undefined}
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { render, screen } from "@testing-library/react";
@@ -89,5 +91,13 @@ describe("the admin card shows the next date", () => {
     expect(src).toContain("detectFlags(job, nextDates.get(job.id))");
     expect(src).toContain("continueDate={continueDates.get(job.id)}");
     expect(src.length).toBeGreaterThan(1000);
+  });
+
+  it("the job dialog keeps the first date and adds 'Continues: <day>' (lead 11-03)", () => {
+    const src = blankComments(readFileSync("src/components/admin/AdminJobs.tsx", "utf8"));
+    expect(src).toContain("continueDate={detailJob ? continueDates.get(detailJob.id) : undefined}");
+    const dialog = blankComments(readFileSync("src/components/admin/adminJobs/JobDetailDialog.tsx", "utf8"));
+    expect(dialog).toContain("{formatJobDate(detailJob.date_needed)}");
+    expect(dialog).toContain("Continues: {formatJobDate(continueDate)}");
   });
 });

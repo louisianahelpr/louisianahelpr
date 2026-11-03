@@ -30,6 +30,8 @@ interface JobDetailDialogProps {
   onOpenRefund: () => void;
   /** Q2449: a held job was cancelled from here (the list reflects it). */
   onHeldJobCancelled?: (jobId: string) => void;
+  /** Owner report 11-03: the job's open continue day ('set', not closed), shown under the first date. */
+  continueDate?: string;
 }
 
 export const JobDetailDialog = ({
@@ -46,6 +48,7 @@ export const JobDetailDialog = ({
   onOpenOverride,
   onOpenRefund,
   onHeldJobCancelled,
+  continueDate,
 }: JobDetailDialogProps) => {
   // Owner answer 2 (2026-10-06): admins read the Access & Parking notes
   // ("Admins read access notes" policy), e.g. for a "couldn't get in" dispute.
@@ -146,6 +149,7 @@ export const JobDetailDialog = ({
               <div className="rounded-ds-sm bg-secondary/30 p-3">
                 <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Date Needed</p>
                 <p className="font-semibold text-foreground">{formatJobDate(detailJob.date_needed)}</p>
+                {continueDate && <p className="text-ds-12 text-foreground" data-admin-continues="">Continues: {formatJobDate(continueDate)}</p>}
               </div>
               {/* ONE rule for "when" (src/lib/jobDate.ts): a clock time, the
                   word "Flexible" when the poster ticked the flag, else null

@@ -9,6 +9,9 @@
  * is scripts/check-deferred-vendors.mjs ("signed-in-only shared module is on the
  * boot path"), which reads the real chunks' sourcemaps; this is the source half.
  *
+ * @mutate scripts/perf/bootReach.mjs |     itemShared: new Set([...itemPages].filter((f) => restReach.has(f))), |     itemShared: new Set(),
+ * @mutate vite.config.ts |               name: "item-shared", |               name: "declutter-item-pages",
+ * @mutate vite.config.ts |               priority: 15.75, |               priority: 15.6,
  * @mutate scripts/perf/bootReach.mjs | const reach = staticReach(root, [...publicRoots(root), ...GUEST_CHROME_ROOTS.map((r) => toPosix(path.join(root, r)))]); | const reach = new Set();
  * @mutate scripts/perf/bootReach.mjs | const reach = staticReach(root, [...publicRoots(root), ...GUEST_CHROME_ROOTS.map((r) => toPosix(path.join(root, r)))]); | const reach = staticReach(root, publicRoots(root));
  * @mutate scripts/perf/bootReach.mjs |   "src/components/PermissionRationaleMount.tsx", |   // PermissionRationaleMount dropped
@@ -34,7 +37,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { GUEST_CHROME_ROOTS, firstScreenRoots, guestBrowseOnlyModules, guestBrowseSplit, homeFirstScreenRoots, publicRoots, signedInOnlyModules, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
+import { GUEST_CHROME_ROOTS, ITEM_PAGES_PINNED_RE, declutterItemSplit, firstScreenRoots, guestBrowseOnlyModules, guestBrowseSplit, homeFirstScreenRoots, publicRoots, signedInOnlyModules, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
@@ -245,3 +248,42 @@ describe("signed-in Home never downloads guest /browse's own chunk (10-31: /home
   });
 });
 
+describe("declutterItemSplit itemShared: the job lists do not download Declutter's item-page code (Q654/Q1158, B41)", () => {
+  // Measured 2026-11-03 (cwv-lab, signed in, 375): /jobs' first round fetched the whole declutter-item-pages chunk
+  // (30 KB gz, Declutter's api and seller tools) for the error copy, offer clock and upload helpers it shares with the
+  // item page. Static closure of /jobs, built: 465.7 -> 453.8 KB gz with the split.
+  const { itemPages, itemShared } = declutterItemSplit(ROOT);
+  const jobs = staticReach(ROOT, [abs("src/pages/jobs/JobsSection.tsx")]);
+
+  it("inventory: both sets are real and itemShared is part of itemPages", () => {
+    expect(itemPages.size).toBeGreaterThan(15);
+    expect(itemShared.size).toBeGreaterThan(5);
+    for (const f of itemShared) expect(itemPages.has(f), f).toBe(true);
+  });
+
+  it("every item-page module the /jobs first screen runs is in itemShared", () => {
+    const used = [...itemPages].filter((f) => jobs.has(f));
+    expect(used.length).toBeGreaterThan(4);
+    for (const f of used) expect(itemShared.has(f), `${f}: /jobs would fetch declutter-item-pages for it`).toBe(true);
+    for (const rel of ["src/lib/lifecycleErrors.ts", "src/lib/offerDeadline.ts"]) expect(itemShared.has(abs(rel)), rel).toBe(true);
+  });
+
+  it("Declutter's own item-page code stays out of itemShared", () => {
+    for (const rel of ["src/lib/declutter/api.ts", "src/lib/declutter/managerMode.ts"]) {
+      expect(itemPages.has(abs(rel)), `${rel} is item-page code`).toBe(true);
+      expect(itemShared.has(abs(rel)), rel).toBe(false);
+    }
+    for (const f of itemShared) expect(ITEM_PAGES_PINNED_RE.test(f), f).toBe(false);
+  });
+
+  it("vite.config.ts gives itemShared its own group between declutter-item-pages and leaves", () => {
+    const cfg = blankComments(readFileSync(join(ROOT, "vite.config.ts"), "utf8"));
+    const group = cfg.match(/name:\s*"item-shared"[\s\S]*?\n\s*\},/)?.[0] ?? "";
+    expect(group).toMatch(/declutterItemShared\.has\(/);
+    expect(cfg).toMatch(/itemShared:\s*declutterItemShared\s*\}\s*=\s*declutterItemSplit\(/);
+    const prio = Number(group.match(/priority:\s*([\d.]+)/)?.[1]);
+    const prioOf = (name: string) => Number(cfg.match(new RegExp(`name:\\s*"${name}"[\\s\\S]*?priority:\\s*([\\d.]+)`))?.[1]);
+    expect(prio).toBeGreaterThan(prioOf("declutter-item-pages"));
+    expect(prio).toBeLessThan(prioOf("leaves"));
+  });
+});

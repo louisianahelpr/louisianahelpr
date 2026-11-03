@@ -16,7 +16,7 @@ import { TODAY_ANY_TIME_LINE, hasStartTime } from "@/lib/anyTimeThatDay";
 import { jobIsUnfundedDraft, workIsBackWithHelper } from "@/components/job-card/activityFilters";
 import { JOB_STATUS_LABELS } from "@/lib/statusLabels";
 import { formatPrice } from "@/lib/format";
-import { EXPIRED_LISTING_DETAIL, autoCompleteAt, helperStatusLine, sanitizeCancellationReason, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
+import { EXPIRED_LISTING_DETAIL, autoCompleteAt, confirmWindowPassedLine, helperStatusLine, sanitizeCancellationReason, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { cardBar, type CardFace, type Stage, type StepTone } from "@/components/tracker/jobStepFromWait";
 import { posterFaceAction } from "@/pages/posts/postedJobCard/posterFaceAction";
@@ -478,10 +478,13 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
       // A3-9 (audit 11-01): every confirm line says by when ("Next: <what> · by <deadline>"). The poster's own confirm
       // stays open until the start (posterConfirmClosesMs, JobConfirmation's I'm still on), so both sides name that time.
       const posterBy = when(posterConfirmClosesMs(job.date_needed, job.start_time));
+      // Lead 11-03: past the Helpr's deadline the line said "by Fri 8:00 AM" after 8:00. It says the window passed and
+      // what the app already promised happens next (confirmWindowPassedLine: reposted, except a crew job).
+      const helprLate = !helprIn && !Number.isNaN(due) && now >= due;
       if (poster) {
-        return at(3, mine, "Confirmed", !posterIn ? `Confirm the job is still on by ${posterBy}` : `Waiting on ${otherLow} to confirm by ${when(due)}`, held);
+        return at(3, mine, "Confirmed", !posterIn ? `Confirm the job is still on by ${posterBy}` : helprLate ? confirmWindowPassedLine(other, job.is_group_job) : `Waiting on ${otherLow} to confirm by ${when(due)}`, held);
       }
-      return at(3, mine, "Confirmed", !helprIn ? `Confirm you'll be at the job by ${when(due)}` : `Waiting on ${otherLow} to confirm by ${posterBy}`, held);
+      return at(3, mine, "Confirmed", !helprIn ? (helprLate ? confirmWindowPassedLine(null, job.is_group_job) : `Confirm you'll be at the job by ${when(due)}`) : `Waiting on ${otherLow} to confirm by ${posterBy}`, held);
     }
   }
   // Both confirmed: setting out is the Helpr's move. AUD31-76: once the start has passed (or auto_start_due_jobs has

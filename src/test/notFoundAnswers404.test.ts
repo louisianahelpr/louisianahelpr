@@ -24,6 +24,14 @@
  * @mutate supabase/migrations/20261103042402_booking_continue_day_nudge_not_found_is_404.sql | RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103042402_booking_continue_day_nudge_not_found_is_404.sql | RAISE EXCEPTION 'continue_day_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'continue_day_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103042402_booking_continue_day_nudge_not_found_is_404.sql | RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103043002_job_offers_arrival_continue_day_not_found_is_404.sql | FOR SHARE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'PT404'; | FOR SHARE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103043002_job_offers_arrival_continue_day_not_found_is_404.sql | IF public.are_users_blocked(v_req.poster_id, v_uid) THEN\n    RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'PT404'; | IF public.are_users_blocked(v_req.poster_id, v_uid) THEN\n    RAISE EXCEPTION 'unknown_request' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103043002_job_offers_arrival_continue_day_not_found_is_404.sql | IF NOT FOUND THEN\n    RAISE EXCEPTION 'unknown_quote' USING ERRCODE = 'PT404'; | IF NOT FOUND THEN\n    RAISE EXCEPTION 'unknown_quote' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103043002_job_offers_arrival_continue_day_not_found_is_404.sql | the quote exists.\n    RAISE EXCEPTION 'unknown_quote' USING ERRCODE = 'PT404'; | the quote exists.\n    RAISE EXCEPTION 'unknown_quote' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103043002_job_offers_arrival_continue_day_not_found_is_404.sql | both run the transition.\n  SELECT * INTO v_job FROM public.jobs WHERE id = p_job_id FOR UPDATE;\n  IF v_job.id IS NULL THEN\n    RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'PT404'; | both run the transition.\n  SELECT * INTO v_job FROM public.jobs WHERE id = p_job_id FOR UPDATE;\n  IF v_job.id IS NULL THEN\n    RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103043002_job_offers_arrival_continue_day_not_found_is_404.sql | WHERE j.id = p_job_id\n   FOR UPDATE;\n  IF v_job.id IS NULL THEN\n    RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'PT404'; | WHERE j.id = p_job_id\n   FOR UPDATE;\n  IF v_job.id IS NULL THEN\n    RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103043002_job_offers_arrival_continue_day_not_found_is_404.sql | RAISE EXCEPTION 'continue_day_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'continue_day_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103043002_job_offers_arrival_continue_day_not_found_is_404.sql | two verdicts against one row.\n  SELECT * INTO v_job FROM public.jobs WHERE id = p_job_id FOR UPDATE;\n  IF v_job.id IS NULL THEN\n    RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'PT404'; | two verdicts against one row.\n  SELECT * INTO v_job FROM public.jobs WHERE id = p_job_id FOR UPDATE;\n  IF v_job.id IS NULL THEN\n    RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002';
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -33,12 +41,15 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 /**
  * Functions Q2390 has moved to PT404. Packet 1: save_my_phone (20261103040713). Packet 2: withdraw_job_quote,
  * switch_quote_request_to_set_price, get_quotes_for_request (20261103041633). Packet 3: book_accepted_quote,
- * confirm_job_continue_day, nudge_confirm (20261103042402).
+ * confirm_job_continue_day, nudge_confirm (20261103042402). Packet 4: submit_job_quote, respond_to_job_quote,
+ * helper_mark_on_the_way, propose_job_continue_day, answer_job_continue_day, mark_helper_arrival (20261103043002).
  */
 const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
-  "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm"];
+  "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm",
+  "submit_job_quote", "respond_to_job_quote", "helper_mark_on_the_way", "propose_job_continue_day", "answer_job_continue_day",
+  "mark_helper_arrival"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-const P0002_RAISERS = 296;
+const P0002_RAISERS = 290;
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");

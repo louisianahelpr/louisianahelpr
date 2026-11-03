@@ -12,7 +12,7 @@ type Db = any;
 
 export type HeldReasonTable = "crew_cancellation_fee_shares" | "crew_block_fees";
 
-export function heldReasonOf(kind: string): string {
+function heldReasonOf(kind: string): string {
   return `payee_not_payable: ${kind}`;
 }
 

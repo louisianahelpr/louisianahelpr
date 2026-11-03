@@ -68,7 +68,9 @@ import { execFileSync, spawnSync } from "node:child_process";
  */
 export const REQUIRED_CHECKS = [
   { id: "test", workflow: "Test", file: "test.yml", job: /^Lint, type-check, build, test/ },
-  { id: "e2e-real-backend", workflow: "E2E real backend", file: "e2e-real-backend.yml", job: /^Authenticated journeys/ },
+  // ownJobOnly (owner 11-03): the run also carries the money-loop and gift-card legs; a red in those
+  // legs must not hide or fake this check. It is judged by its own job alone.
+  { id: "e2e-real-backend", workflow: "E2E real backend", file: "e2e-real-backend.yml", job: /^Authenticated journeys/, ownJobOnly: true },
   { id: "journeys", workflow: "E2E user journeys", file: "e2e-journeys.yml", job: /^Journeys \(/ },
   { id: "press-every-control", workflow: "Press every control", file: "press-every-control.yml", job: /^Press every control/ },
   // The ONE a11y sweep: prod, Chromium + WebKit, then the engine diff. The
@@ -170,11 +172,19 @@ export function evaluate(sha, runs, jobsFor = jobsForRun) {
     if (!done) {
       return { ...check, state: inFlight ? "running" : "missing", run: inFlight ?? null };
     }
-    if (done.conclusion !== "success") {
+    const ownJobVerdict = check.ownJobOnly && done.conclusion === "failure";
+    if (done.conclusion !== "success" && !ownJobVerdict) {
       return { ...check, state: inFlight ? "running" : "red", run: done, conclusion: done.conclusion };
     }
     const jobs = jobsFor(done.databaseId);
     const auditJobs = jobs.filter((j) => check.job.test(j.name));
+    if (ownJobVerdict) {
+      // Green only when every one of its own jobs ran and succeeded; anything else stays red.
+      const ownGreen = auditJobs.length > 0 && auditJobs.every((j) => j.conclusion === "success");
+      return ownGreen
+        ? { ...check, state: "green", run: done, jobs: auditJobs.map((j) => `${j.name}=${j.conclusion}`), otherLegs: "failed (not this check)" }
+        : { ...check, state: inFlight ? "running" : "red", run: done, conclusion: done.conclusion };
+    }
     const ran = auditJobs.some((j) => j.conclusion === "success");
     return { ...check, state: ran ? "green" : "hollow", run: done, jobs: auditJobs.map((j) => `${j.name}=${j.conclusion}`) };
   });

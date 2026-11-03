@@ -32,6 +32,8 @@ import { REQUIRED_CHECKS, evaluate, applyWaivers, resolveWaivers, OWNER_WAIVERS 
  */
 // @mutate scripts/release-gate.mjs | "--limit", "1000", | "--limit", "100",
 // @mutate scripts/release-gate.mjs | const ran = auditJobs.some((j) => j.conclusion === "success"); | const ran = true;
+// @mutate scripts/release-gate.mjs | auditJobs.length > 0 && auditJobs.every((j) => j.conclusion === "success"); | true;
+// @mutate scripts/release-gate.mjs | check.ownJobOnly && done.conclusion === "failure"; | done.conclusion === "failure";
 // @mutate scripts/release-gate.mjs | const bad = ids.filter((id) => !entry.checks.includes(id)); | const bad = [];
 // @mutate scripts/release-gate.mjs | waived.has(v.id) && v.state !== "green" | v.state !== "green"
 
@@ -134,6 +136,23 @@ describe("release gate verdicts", () => {
     const jobs = (id: number) => (id === 77 ? [{ name: "Authenticated journeys (real account)", conclusion: "skipped" }] : allGreenJobs());
     const v = evaluate(SHA, [batchRun, ...green], jobs) as { id: string; state: string }[];
     expect(v.find((x) => x.id === "e2e-real-backend")?.state).toBe("green");
+  });
+
+  it("e2e-real-backend is judged by its own job: other legs failing do not turn it red (owner 11-03)", () => {
+    const runs = green.map((r) => (r.workflowName === "E2E real backend" ? { ...r, conclusion: "failure" } : r));
+    const legs = (ownConclusion: string) => (id: number) =>
+      runs.find((r) => r.databaseId === id)?.workflowName === "E2E real backend"
+        ? [{ name: "Authenticated journeys (real account)", conclusion: ownConclusion }, { name: "Full money loop", conclusion: "failure" }, { name: "Gift card", conclusion: "failure" }]
+        : allGreenJobs();
+    expect(evaluate(SHA, runs, legs("success")).find((v) => v.id === "e2e-real-backend")?.state).toBe("green");
+    expect(evaluate(SHA, runs, legs("failure")).find((v) => v.id === "e2e-real-backend")?.state).toBe("red");
+    expect(evaluate(SHA, runs, legs("skipped")).find((v) => v.id === "e2e-real-backend")?.state).toBe("red");
+    // Only e2e-real-backend has this rule: any other check's failed run stays red even if its job passed.
+    const testRed = green.map((r) => (r.workflowName === "Test" ? { ...r, conclusion: "failure" } : r));
+    expect(evaluate(SHA, testRed, () => allGreenJobs()).find((v) => v.id === "test")?.state).toBe("red");
+    // A cancelled run stays red.
+    const cancelled = green.map((r) => (r.workflowName === "E2E real backend" ? { ...r, conclusion: "cancelled" } : r));
+    expect(evaluate(SHA, cancelled, () => allGreenJobs()).find((v) => v.id === "e2e-real-backend")?.state).toBe("red");
   });
 
   it("RUNNING while a run is in flight and nothing completed", () => {

@@ -7345,7 +7345,7 @@
     },
     {
       "file": "src/components/job-card/JobListPage.tsx",
-      "line": 292,
+      "line": 285,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -7355,7 +7355,7 @@
     },
     {
       "file": "src/components/job-card/JobListPage.tsx",
-      "line": 294,
+      "line": 287,
       "kind": "toast",
       "title": {
         "form": "dynamic",

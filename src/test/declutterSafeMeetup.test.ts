@@ -10,7 +10,7 @@
  * planted out, Picked up door-only (2), and the admin check planted out).
  *
  * @mutate supabase/migrations/20261101194608_declutter_seller_meetup_spots.sql |           AND public.declutter_miles_between(i.area_lat, i.area_lng, s.lat, s.lng)\n              > (public.declutter_meetup_rules() ->> 'max_miles')::numeric); |           AND false);
- * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |   IF v_uid IS NULL OR NOT COALESCE(public.has_role(v_uid, 'admin'::public.app_role), false) THEN\n    RAISE EXCEPTION 'admin_only' |   IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'admin_only'
+ * @mutate supabase/migrations/20261103055505_declutter_shops_homes_messages_not_found_is_404.sql | p_kind text, p_note text, p_active boolean)\nRETURNS uuid\nLANGUAGE plpgsql\nSECURITY DEFINER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_uid uuid := auth.uid();\n  v_id uuid;\nBEGIN\n  IF v_uid IS NULL OR NOT COALESCE(public.has_role(v_uid, 'admin'::public.app_role), false) THEN\n    RAISE EXCEPTION 'admin_only' | p_kind text, p_note text, p_active boolean)\nRETURNS uuid\nLANGUAGE plpgsql\nSECURITY DEFINER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_uid uuid := auth.uid();\n  v_id uuid;\nBEGIN\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'admin_only'
  * @mutate supabase/migrations/20261027204500_declutter_safe_meetup.sql |   IF now() < v_slot - make_interval(mins => (public.declutter_meetup_rules() ->> 'here_from_minutes_before')::integer) THEN |   IF false THEN
  * @mutate supabase/migrations/20261101201500_shipping_s3_checkout_claim.sql |     AND (p_handover <> 'meetup' OR v_existing.meetup_spot IS NOT DISTINCT FROM v_spot.id) |     AND true
  * @mutate supabase/functions/declutter-checkout/index.ts |         if (!chosen) return json({ error: "meetup_spot_needed" }, 400); |
@@ -38,7 +38,8 @@ describe("Q2425 safe meetup spots: the server", () => {
     // meetup lines kept (asserted below).
     for (const n of names) {
       // declutter_meetup_spot_near_lines: restated by B110 (20261101194608, a seller's own spots) with the distance rule kept for admin spots.
-      if (n === "declutter_seller_picked_up" || n === "declutter_meetup_spot_near_lines") expect(newestFunction(n).file >= FILE, n).toBe(true);
+      // admin_declutter_save_meetup_spot: restated by Q2390 packet 11 (20261103055505, ERRCODE-only) with every line kept.
+      if (n === "declutter_seller_picked_up" || n === "declutter_meetup_spot_near_lines" || n === "admin_declutter_save_meetup_spot") expect(newestFunction(n).file >= FILE, n).toBe(true);
       else expect(newestFunction(n).file, n).toContain(FILE);
     }
     expect(names.length).toBeGreaterThan(5);

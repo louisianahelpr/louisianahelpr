@@ -9,7 +9,7 @@
  * repair", "Party rentals" in Shops) is not the section name and is allowed.
  *
  * @mutate src/components/rentals/RentalsHomeView.tsx |       <SectionScreen section="homes" title="Homes" tabs={tabs} globalSearch={false}>\n        <HomesBrowse /> |       <SectionScreen section="homes" title="Rentals" tabs={tabs} globalSearch={false}>\n        <HomesBrowse />
- * @mutate supabase/migrations/20261019044500_rentals_ownership_alert_homes_words.sql | Admin -> Settings -> Homes: ownership proof | Admin -> Settings -> Rentals: ownership proof
+ * @mutate supabase/migrations/20261103055505_declutter_shops_homes_messages_not_found_is_404.sql | Admin -> Settings -> Homes: ownership proof | Admin -> Settings -> Rentals: ownership proof
  *
  * Server-written words (notifications, alerts) are copy too: the NEWEST
  * definition of every public.rentals_* function (any dollar-quote tag,
@@ -129,7 +129,8 @@ describe("server-written Homes words (newest rentals_* SQL bodies)", () => {
 
   it("reads a real inventory: the rentals functions, each from its newest file", () => {
     expect(bodies.size).toBeGreaterThan(20);
-    expect(bodies.get("rentals_submit_ownership_proof")?.file).toBe("20261019044500_rentals_ownership_alert_homes_words.sql");
+    // Restated by Q2390 packet 11 (ERRCODE-only), so the newest copy is that file.
+    expect(bodies.get("rentals_submit_ownership_proof")?.file).toBe("20261103055505_declutter_shops_homes_messages_not_found_is_404.sql");
   });
 
   it("the parser keeps the newest body and any dollar tag; comments are not copy", () => {

@@ -9,7 +9,7 @@
 // If either ever lets HEIC in, this goes red: put a conversion back into sweepJudge before widening them.
 //
 // @mutate supabase/migrations/20260915055517_storage_bucket_limits.sql | 'image/jpeg', 'image/png', 'image/webp', 'image/gif', | 'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic',
-// @mutate supabase/migrations/20261030061927_declutter_live_listing_photos.sql | AND o.metadata ->> 'mimetype' IN ('image/jpeg', 'image/png', 'image/webp') | AND o.metadata ->> 'mimetype' IN ('image/jpeg', 'image/png', 'image/webp', 'image/heic')
+// @mutate supabase/migrations/20261103055505_declutter_shops_homes_messages_not_found_is_404.sql | IS DISTINCT FROM p_item_id::text\n     OR NOT EXISTS (\n       SELECT 1 FROM storage.objects o\n        WHERE o.bucket_id = 'job-photos'\n          AND o.name = p_storage_path\n          AND (o.owner_id = v_uid::text OR o.owner = v_uid)\n          -- Images only: job-photos also takes video, and a video keeps its\n          -- GPS atoms (the app's re-encode strips images only).\n          AND o.metadata ->> 'mimetype' IN ('image/jpeg', 'image/png', 'image/webp') | IS DISTINCT FROM p_item_id::text\n     OR NOT EXISTS (\n       SELECT 1 FROM storage.objects o\n        WHERE o.bucket_id = 'job-photos'\n          AND o.name = p_storage_path\n          AND (o.owner_id = v_uid::text OR o.owner = v_uid)\n          -- Images only: job-photos also takes video, and a video keeps its\n          -- GPS atoms (the app's re-encode strips images only).\n          AND o.metadata ->> 'mimetype' IN ('image/jpeg', 'image/png', 'image/webp', 'image/heic')
 import { describe, it, expect } from "vitest";
 import { computeState } from "./storageBucketLimits.test";
 import { newestFunction } from "./helpers/parityReaders";

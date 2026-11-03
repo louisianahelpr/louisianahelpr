@@ -5,8 +5,10 @@
  * switch: the Helpr asked sees the amount, the reason, the answer-by and Answer (Accept / Say no); the poster sees
  * what they asked and that Eli has until when to answer.
  *
- * Drawn through the admin job preview's "Refund asked" stage (made-up job, nothing sent), with the switch answered on,
- * and with it answered off (nothing about the refund shows: the switch still gates it).
+ * Switch on: drawn through the admin job preview's "Refund asked" stage (made-up job, nothing sent). Switch off: the
+ * preview forces refund_requests on for that stage (Q2683, admin preview only), so the off cases draw the job page
+ * itself (JobPage, as /jobs/:id draws it), fed the same made-up job by the preview backend with no switch forced, and
+ * the switch read answered off (nothing about the refund shows: the switch still gates it).
  *
  * @mutate src/pages/jobs/jobPage/JobPage.tsx |             {party && (isPoster \|\| isHired) && !!job.helper_id && !job.is_group_job && ( |             {false && (
  *
@@ -35,6 +37,8 @@ vi.mock("@/hooks/useAuthReady", () => ({
 }));
 
 import JobPreviewPage from "@/pages/admin/preview/JobPreviewPage";
+import JobPage from "@/pages/jobs/jobPage/JobPage";
+import { installPreviewFetch } from "@/pages/admin/preview/previewBackend";
 import { previewSample } from "@/pages/admin/preview/jobPreviewSamples";
 
 const realFetch = globalThis.fetch;
@@ -52,6 +56,8 @@ beforeEach(() => {
 });
 afterEach(() => {
   cleanup();
+  uninstallBackend?.();
+  uninstallBackend = null;
   globalThis.fetch = realFetch;
 });
 
@@ -61,6 +67,29 @@ function renderStage(viewer: "poster" | "helpr") {
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[`/admin/preview/job?stage=refund&viewer=${viewer}`]}>
         <Routes><Route path="/admin/preview/job" element={<JobPreviewPage />} /></Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
+
+/**
+ * The job page itself (no preview screen, so no forced switch): the refund stage's made-up job answers its reads, and
+ * the feature-switch read passes through to the test's fetch, answered with refundsOn.
+ */
+let uninstallBackend: (() => void) | null = null;
+function renderJobPageDirect(viewer: "poster" | "helpr") {
+  const sample = { ...previewSample("refund", viewer), switchesOn: [] as string[] };
+  ({ uninstall: uninstallBackend } = installPreviewFetch({
+    supabaseUrl: (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? "",
+    sample: () => sample,
+    ownUserId: () => null,
+    onBlocked: () => {},
+  }));
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <QueryClientProvider client={qc}>
+      <MemoryRouter initialEntries={[`/jobs/${sample.jobId}`]}>
+        <Routes><Route path="/jobs/:id" element={<JobPage id={sample.jobId} userId={sample.userId} />} /></Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -110,7 +139,7 @@ describe("the job page shows an open refund request (Q2694)", () => {
 
   it("with the switch off, the poster's approve step is back (the yield is the refund's, not the stage's)", async () => {
     refundsOn = false;
-    renderStage("poster");
+    renderJobPageDirect("poster");
     await screen.findAllByText(previewSample("refund", "poster").job.title, undefined, { timeout: 10000 });
     await waitFor(() => expect(document.querySelector("[data-job-steps]")?.textContent ?? "").toMatch(/approve/i), { timeout: 10000 });
     const approve = screen.queryAllByRole("button").filter((b) => /^approve/i.test((b.textContent ?? "").trim()));
@@ -120,7 +149,7 @@ describe("the job page shows an open refund request (Q2694)", () => {
 
   it("with the switch off, nothing about the refund shows", async () => {
     refundsOn = false;
-    renderStage("helpr");
+    renderJobPageDirect("helpr");
     await screen.findAllByText(previewSample("refund", "helpr").job.title, undefined, { timeout: 10000 });
     await new Promise((r) => setTimeout(r, 300));
     expect(document.body.textContent ?? "").not.toContain("the side yard was skipped");

@@ -1,5 +1,5 @@
 // @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql |                     WHERE p.user_id = v_uid AND nullif | WHERE p.id = v_uid AND nullif
-// @mutate supabase/migrations/20261101040158_profile_lookups_by_user_id.sql | FROM public.profiles p WHERE p.user_id = v_uid) | FROM public.profiles p WHERE p.id = v_uid)
+// @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql | FROM public.profiles p WHERE p.user_id = v_uid) | FROM public.profiles p WHERE p.id = v_uid)
 // @mutate supabase/migrations/20261103044956_shop_settings_declutter_wanted_not_found_is_404.sql | LEFT JOIN public.profiles p ON p.user_id = r.requester_id | LEFT JOIN public.profiles p ON p.id = r.requester_id
 //
 // Lead 10-31: three live lookups read a member's profile by profiles.id = <the member's auth id>. A member's id is

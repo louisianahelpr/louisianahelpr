@@ -1,4 +1,4 @@
-// @mutate supabase/migrations/20261031152545_declutter_check_after_post.sql |   IF v_photos < 1 OR v_photos > 12 THEN |   IF v_photos < 3 OR v_photos > 12 THEN
+// @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql |   IF v_photos < 1 OR v_photos > 12 THEN |   IF v_photos < 3 OR v_photos > 12 THEN
 // @mutate src/lib/declutter/photoRules.ts | export const DECLUTTER_MIN_PHOTOS = 1; | export const DECLUTTER_MIN_PHOTOS = 3;
 // @mutate src/components/declutter/DeclutterSellView.tsx | photoCount >= DECLUTTER_MIN_PHOTOS && ( | photoCount >= 3 && (
 //

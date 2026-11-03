@@ -8,7 +8,7 @@
  * (66 PASS; NEW_MIGRATION=skip 52 FAIL; 19 planted defects each caught,
  * measured 2026-10-14).
  *
- * @mutate supabase/migrations/20261031152545_declutter_check_after_post.sql |     WHEN v_ai_checked IS NOT NULL AND v_ai_flag IS NOT NULL THEN 'pending_review'\n | \n
+ * @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql |     WHEN v_ai_checked IS NOT NULL AND v_ai_flag IS NOT NULL THEN 'pending_review'\n | \n
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     AND NOT EXISTS (SELECT 1 FROM public.declutter_item_photos p WHERE p.storage_path = objects.name)\n | \n
  * @mutate supabase/migrations/20261014200728_declutter_slice2_followups.sql |     AND (storage.foldername(name))[2] = 'declutter'\n | \n
  * @mutate supabase/migrations/20261028200440_declutter_audit3_notices_and_empty_cart.sql |   IF NOT public.has_role(v_uid, 'admin'::public.app_role) THEN | IF false THEN

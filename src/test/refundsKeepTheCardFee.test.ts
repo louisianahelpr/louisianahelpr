@@ -786,9 +786,11 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Q2390 packet 13 (20261103061500): restated ERRCODE-only (not-found answers 404); still reads the settled refund row's amount and status only.
       declutter_refund_request_view: "20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql cf8ba0d18651a755",
       // D2-3 (20261029225634, lh-authz-rls approve 2026-10-29): the other side's words and photos on an open problem; names declutter_refunds only as its notice kind; records no refund and moves no money.
-      declutter_problem_add_side: "20261029225634_declutter_problem_both_sides_and_photos.sql d28dab3c3c9756cd",
+      // Q2390 p35 (20261103220428): restated with its not-found as PT404 only (ERRCODE only); no refund logic changed.
+      declutter_problem_add_side: "20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql f0e68e7879372488",
       // Returns (20261030071818, builder 80; restated 20261030164712, Q2486: the distance reads the order's pickup points): names declutter_refunds only as its notice kind; records no refund and moves no money (the drop-off photo and time only).
-      declutter_return_dropped_off: "20261030164712_declutter_porch_places.sql 93f622c906990eb9",
+      // Q2390 p35 (20261103220428): restated with its not-found as PT404 only (ERRCODE only, lead PASS); no refund logic changed.
+      declutter_return_dropped_off: "20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql 18906e3403526f4a",
       // Returns (20261030071818, builder 80): names declutter_refunds only as its notice kind; records no refund and moves no money (the collect address only).
       declutter_set_return_address: "20261103141808_q2390_invite_setup_fee_no_show_faqs_return_offer_not_found_is_404.sql dba08d6d41188c3e",
       declutter_refund_answer: "20261015042253_declutter_slice4_handover_payout.sql bf344cb7353cb326",

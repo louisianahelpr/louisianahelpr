@@ -32,14 +32,14 @@
 // @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql |   IF NOT FOUND OR public.are_users_blocked(v_seller, v_uid)\n     OR (v_seed AND public.seed_hidden_for(v_uid)) THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404';\n  END IF;\n  IF v_seller = v_uid THEN\n    RAISE EXCEPTION 'own_item' USING ERRCODE = '22023';\n  END IF;\n  -- One |   IF NOT FOUND\n     OR (v_seed AND public.seed_hidden_for(v_uid)) THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404';\n  END IF;\n  IF v_seller = v_uid THEN\n    RAISE EXCEPTION 'own_item' USING ERRCODE = '22023';\n  END IF;\n  -- One
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql |   IF p_selling IS NOT FALSE AND public.member_under_18(v_uid) THEN |   IF false THEN
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql |   IF public.declutter_active_strike_count(v_uid) >= 3 THEN |   IF public.declutter_active_strike_count(v_uid) >= 4 THEN
-// @mutate supabase/migrations/20261031152545_declutter_check_after_post.sql |   -- Row 23 (payout setup before the first listing) is dropped (owner |   PERFORM public.helper_award_block_reason(v_uid); -- Row 23 (owner
-// @mutate supabase/migrations/20261031152545_declutter_check_after_post.sql |   IF v_photos < 1 OR v_photos > 12 THEN |   IF v_photos < 0 OR v_photos > 12 THEN
-// @mutate supabase/migrations/20261031152545_declutter_check_after_post.sql |     ELSE 'live'\n  END;\n\n  UPDATE public.declutter_items | ELSE 'pending_review'\n  END;\n\n  UPDATE public.declutter_items
+// @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql |   -- Row 23 (payout setup before the first listing) is dropped (owner |   PERFORM public.helper_award_block_reason(v_uid); -- Row 23 (owner
+// @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql |   IF v_photos < 1 OR v_photos > 12 THEN |   IF v_photos < 0 OR v_photos > 12 THEN
+// @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql |     ELSE 'live'\n  END;\n\n  UPDATE public.declutter_items | ELSE 'pending_review'\n  END;\n\n  UPDATE public.declutter_items
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql | GRANT ALL ON TABLE public.declutter_item_private TO service_role; | GRANT ALL ON TABLE public.declutter_item_private TO service_role, authenticated;
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql | REVOKE ALL ON FUNCTION public.declutter_address_access(uuid, uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_address_access(uuid, uuid) FROM PUBLIC, anon;
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql |   area_label text NOT NULL CHECK | floor_price_cents integer, area_label text NOT NULL CHECK
 // @mutate supabase/migrations/20261014193955_declutter_foundation.sql | VALUES ('declutter', 'off', | VALUES ('declutter', 'testers',
-// @mutate supabase/migrations/20261031152545_declutter_check_after_post.sql |   IF v_item.sale_mode <> 'offers' THEN |   IF false THEN
+// @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql |   IF v_item.sale_mode <> 'offers' THEN |   IF false THEN
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";

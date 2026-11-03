@@ -18,6 +18,7 @@ describe("lookupParishByZip", () => {
   beforeEach(() => {
     rpcMock.mockReset();
     reportMock.mockReset();
+    sessionStorage.clear(); // a found ZIP answer is kept for the tab's session (parishLookup.ts)
   });
 
   it("returns null when zip is null/undefined/empty", async () => {
@@ -44,6 +45,23 @@ describe("lookupParishByZip", () => {
     rpcMock.mockResolvedValue({ data: "Orleans", error: null });
     expect(await lookupParishByZip("70112")).toBe("Orleans");
     expect(rpcMock).toHaveBeenCalledWith("get_parish_for_zip", { p_zip: "70112" });
+  });
+
+  // Q104 (B58): a found parish is fixed reference data, kept for the tab's session; every signed-in page load used
+  // to ask the server again for the member's own ZIP. An unknown ZIP is NOT kept (the next test).
+  // @mutate src/lib/parishLookup.ts | const known = zipAnswer("parish", cleaned); | const known = null as string \| null;
+  it("asks the server once per tab session for a ZIP it found", async () => {
+    rpcMock.mockResolvedValue({ data: "Orleans", error: null });
+    expect(await lookupParishByZip("70112")).toBe("Orleans");
+    expect(await lookupParishByZip("70112")).toBe("Orleans");
+    expect(rpcMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("asks again for a ZIP it could not place", async () => {
+    rpcMock.mockResolvedValue({ data: null, error: null });
+    await lookupParishByZip("99999");
+    await lookupParishByZip("99999");
+    expect(rpcMock).toHaveBeenCalledTimes(2);
   });
 
   it("returns null when RPC returns null (zip not in lookup)", async () => {
@@ -102,6 +120,7 @@ describe("resolveParishByZip", () => {
   beforeEach(() => {
     rpcMock.mockReset();
     reportMock.mockReset();
+    sessionStorage.clear(); // a found ZIP answer is kept for the tab's session (parishLookup.ts)
   });
 
   it("tells 'not a Louisiana ZIP' apart from 'the lookup broke'", async () => {
@@ -149,6 +168,7 @@ describe("resolveParishByZip in a test session (Q2502)", () => {
   beforeEach(async () => {
     rpcMock.mockReset();
     reportMock.mockReset();
+    sessionStorage.clear(); // a found ZIP answer is kept for the tab's session (parishLookup.ts)
     const { markTestProfileSession } = await import("@/lib/automatedBrowser");
     markTestProfileSession(false);
     localStorage.removeItem("lh_automation");

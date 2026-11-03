@@ -1144,7 +1144,11 @@ export default defineConfig(({ mode, command }) => ({
               name: "declutter-item-pages",
               // + useMarkTalkRead (0.2 KB gz; the order and handover chats share it, and it reads talkRead.ts, already
               // here): on its own it was one more chunk named in the entry, 5.3 KB gz, over its band (L32, 11-01).
-              test: (id: string) => declutterItemPages.has(id.split("?")[0].replace(/\\/g, "/")) || /[\\/]src[\\/]components[\\/]declutter[\\/]useMarkTalkRead\.ts$/.test(id.split("?")[0]),
+              // + the order chat's reads (lib/declutter/orderTalk.ts) and the time wheel's useWheelStep (L46, 11-02): in
+              // signed-in-pages they were the only reason Selling's trade cards (DeclutterOrderTalk, and the problem
+              // form's TimePickerWheel) put that whole chunk and signed-in-dock (~23 KB gz) on /declutter?tab=selling.
+              // Every other page that imports them already reaches this chunk through signed-in-pages.
+              test: (id: string) => declutterItemPages.has(id.split("?")[0].replace(/\\/g, "/")) || /[\\/]src[\\/](components[\\/]declutter[\\/]useMarkTalkRead|lib[\\/]declutter[\\/]orderTalk|hooks[\\/]useWheelStep)\.ts$/.test(id.split("?")[0]),
               minShareCount: 2,
               priority: 15.7,
               minSize: 0,

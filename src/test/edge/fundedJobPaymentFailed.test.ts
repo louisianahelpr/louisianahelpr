@@ -426,7 +426,7 @@ describe("payment_intent.payment_failed on a job marked funded", () => {
   // cancel RPC already cancelled reaches the train's gift-retry path (the job
   // is 'failed' with no checkout). It must not say "isn't posted ... load
   // your draft" about a cancelled job.
-  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (failedJob.status === "cancelled") { | if (false) {
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (failedJob.status === "cancelled" \|\| hiredOrWorked) { | if (false) {
   // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (back === "returned" && failedJob.customer_id) { | if (false) {
   it("a redelivery on an auto-cancelled gift job that returns the gift says only that the gift is back", async () => {
     for (const [giftOutcome, told] of [["returned", true], ["not_consumed", false]] as const) {
@@ -450,6 +450,33 @@ describe("payment_intent.payment_failed on a job marked funded", () => {
         expect(n[0].title).toBe("Gift card returned");
         expect(String(n[0].message)).toMatch(/is back in your account/);
       }
+    }
+  });
+
+  // Q2078: a hired or finished job the funded path left 'failed' (the cancel
+  // RPC answered not_cancellable) told its poster "Your bank payment failed"
+  // before the gift return threw. The redelivery's gift return must not add
+  // "isn't posted ... load your draft": the job is hired or its work is done.
+  // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (failedJob.status === "cancelled" \|\| hiredOrWorked) { | if (failedJob.status === "cancelled") {
+  it("a redelivery on a hired or finished gift job that returns the gift says only that the gift is back", async () => {
+    for (const over of [
+      { status: "completed", helper_id: "helper-1", helper_confirmed_at: "2026-11-01T10:00:00Z" },
+      { status: "in_progress", helper_id: "helper-1", helper_confirmed_at: "2026-11-01T10:00:00Z" },
+    ]) {
+      resetStripeMock();
+      resetSupabaseMock();
+      resetSharedMocks();
+      const fn = await loadConfigured();
+      failedEvent(PI, { gift_card_id: "gift-1" });
+      fundedJob({ ...over, payment_status: "failed", stripe_session_id: null });
+      scenario.writeSelectRows.jobs = [];
+      scenario.rpc.return_bounced_gift_card = { outcome: "returned", credit_id: "gift-1", payment_status: GIFT_CARD_PAID };
+      const res = await fn.fetch(webhookRequest(fn));
+      expect(res.status, over.status).toBe(200);
+      const n = notices();
+      expect(n.some((x) => /isn't posted|load your draft/.test(String(x.message))), over.status).toBe(false);
+      expect(n.length, over.status).toBe(1);
+      expect(n[0].title).toBe("Gift card returned");
     }
   });
 

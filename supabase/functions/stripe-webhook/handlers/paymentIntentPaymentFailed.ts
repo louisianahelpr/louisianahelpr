@@ -662,7 +662,13 @@ export async function handlePaymentIntentPaymentFailed(
       // checkout, so the notice would only confuse them.
       if (giftCardId && failedJob.payment_status === "failed") {
         const back = await returnBouncedGift(supabase, String(failedJob.id), giftCardId, pi.id, logStep);
-        if (failedJob.status === "cancelled") {
+        // Q2078: a hired or finished job that the funded path left 'failed'
+        // (cancel_job_after_failed_bank_payment answered not_cancellable) had
+        // its poster told "Your bank payment failed" before the gift return
+        // threw; "isn't posted ... load your draft" is false there too.
+        const hiredOrWorked = Boolean(failedJob.helper_id) ||
+          ["accepted", "in_progress", "completed", "disputed", "revision_requested"].includes(String(failedJob.status));
+        if (failedJob.status === "cancelled" || hiredOrWorked) {
           // Q1971 (review of 56346b5eb #6): a job cancel_job_after_failed_bank_payment
           // cancelled already told the poster it is cancelled; "isn't posted ...
           // load your draft" would be wrong. Only a usable gift is worth a word.

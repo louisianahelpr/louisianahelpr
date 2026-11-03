@@ -1,4 +1,5 @@
 import { defineConfig, loadEnv, type Plugin } from "vite";
+import { trimEntryRouteDeps, type EntryRouteBundle } from "./scripts/perf/entryRouteDeps.mjs";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { createRequire } from "module";
@@ -209,6 +210,30 @@ const HOME_DECLUTTER_READS = /[\\/]src[\\/]lib[\\/]declutter[\\/](myReads|minePr
 const HOME_SCHEDULE_READS = /[\\/]src[\\/]lib[\\/](scheduleChange|scheduleClashes|notDeployedYet)\.ts$/;
 const BROWSE_GROUP_SKIPS = /[\\/]src[\\/]components[\\/]ui[\\/]skeleton\.tsx$/;
 
+/**
+ * THE ENTRY'S ROUTE PRELOAD LISTS SKIP WHAT main.tsx's LIST ALREADY NAMES (B48, 11-03).
+ *
+ * src/entry.ts starts main.tsx and, in the same tick and after it, the route's page chunks (routePreload.ts). Vite
+ * writes each import's whole static closure into the entry's __vite__mapDeps lists, so every route list repeated
+ * main's shared chunks (rolldown runtime, preload helper, React, app-shared, tanstack, supabase, the toast facade...).
+ * The preload helper adds one <link rel="modulepreload"> per URL and skips a URL that already has one, and main's
+ * import runs first, so those repeats never added a link: they were bytes in the chunk every page downloads first
+ * (the entry, budget 5.0 KB gz +5% in scripts/perf/critical-path-budget.json). The route lists now name only what
+ * main's closure does not; the links the page gets, and their order, are the same. Only the entry chunk's own
+ * imports are trimmed, and never main's own list (scripts/perf/entryRouteDeps.mjs, src/test/entryRouteListsSkipMain.test.ts).
+ */
+let builtBundle: EntryRouteBundle | null = null;
+const captureBundle = (): Plugin => ({
+  name: "lh-capture-bundle",
+  // Before vite:build-import-analysis (a post plugin) writes the preload lists from the same bundle.
+  generateBundle: {
+    order: "pre",
+    handler(_opts, bundle) {
+      builtBundle = bundle as unknown as EntryRouteBundle;
+    },
+  },
+});
+
 export default defineConfig(({ mode, command }) => ({
   define: {
     __APP_COMMIT__: JSON.stringify(appCommit),
@@ -233,6 +258,7 @@ export default defineConfig(({ mode, command }) => ({
     },
   },
   plugins: [
+    captureBundle(),
     restartOnDependencyChange(),
     requireBuildEnv(mode),
     authJsNoPasskeys(),
@@ -649,7 +675,9 @@ export default defineConfig(({ mode, command }) => ({
     // Measured: withholding the list instead (a plain import()) cost the
     // landing +232 ms (2662 -> 2894 ms), its page-only deps walking 4 rounds.
     modulePreload: {
-      resolveDependencies: (_filename, deps) => deps,
+      // The entry's route lists skip main's closure (trimEntryRouteDeps above); every other list is whole.
+      resolveDependencies: (filename, deps, { hostId, hostType }) =>
+        hostType === "js" ? trimEntryRouteDeps(builtBundle, hostId, filename, deps) : deps,
     },
     // "hidden" = .map files are still emitted (so Sentry / DevTools can
     // symbolicate uploaded stacks) but no `//# sourceMappingURL=` comment

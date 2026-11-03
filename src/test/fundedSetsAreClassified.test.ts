@@ -57,6 +57,9 @@ const LISTED = [
   // Q2604 (20261102103429): the poster withdraws an unanswered offer on a listed job, a held card included (its
   // job_payment_is_listed decides whether a direct-offer Helpr is told); no money moves, the hold stays with the job.
   "rpc_poster_withdraw_offer",
+  // Q2011 (20261103075222): an AFTER UPDATE trigger tells the offered Helpr "Offer closed" when a cancel withdraws a
+  // pending offer, only on a listed job (its job_payment_is_listed, a held card included); no money moves.
+  "jobs_cancel_tells_offered_helpr",
   // the predicates themselves
   "job_payment_is_listed",
 ] as const;

@@ -256,6 +256,9 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
     // Q448 review: a BEFORE UPDATE trigger that retires a pending offer whose
     // target account is gone; reads OLD/NEW only, returns the row, tells the poster.
     "function:jobs_offer_target_gone_retires_offer": "no-return",
+    // Q2011 (20261103075222): an AFTER UPDATE trigger (returns NULL) that writes the "Offer closed" notice to the
+    // offered Helpr themselves; it returns nothing to any caller.
+    "function:jobs_cancel_tells_offered_helpr": "no-return",
     "function:notify_helper_on_direct_offer": "no-return",
     "function:notify_helpers_on_job_post": "no-return",
     "function:notify_saved_searches_on_new_job": "no-return",

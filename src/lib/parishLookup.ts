@@ -45,6 +45,28 @@ export type ParishResolution =
   | { status: "lookup-failed"; zip: string };
 
 /**
+ * A ZIP's parish and town are fixed reference data (public.louisiana_zip_parishes), so a FOUND answer is kept for
+ * the tab's session (B58, 2026-11-03, docs/OPEN.md Q104): every signed-in page load asked get_parish_for_zip and
+ * the town read again for the member's own ZIP (108 calls in Journeys run 41665299005). Only a found answer is
+ * kept: an unknown ZIP or a failed read is asked again next time, exactly as before.
+ */
+const ZIP_ANSWER_PREFIX = "lh-zip:";
+function zipAnswer(kind: "parish" | "city", zip: string): string | null {
+  try {
+    return sessionStorage.getItem(`${ZIP_ANSWER_PREFIX}${kind}:${zip}`);
+  } catch {
+    return null; // storage unavailable: read from the server as before
+  }
+}
+function rememberZipAnswer(kind: "parish" | "city", zip: string, value: string): void {
+  try {
+    sessionStorage.setItem(`${ZIP_ANSWER_PREFIX}${kind}:${zip}`, value);
+  } catch {
+    /* storage full or unavailable: the next lookup reads from the server */
+  }
+}
+
+/**
  * Resolves a Louisiana ZIP to its parish, distinguishing "not a Louisiana ZIP"
  * from "the lookup broke".
  *
@@ -55,6 +77,8 @@ export async function resolveParishByZip(
 ): Promise<ParishResolution> {
   const cleaned = (zip ?? "").replace(/\D/g, "").slice(0, 5);
   if (cleaned.length !== 5) return { status: "incomplete" };
+  const known = zipAnswer("parish", cleaned);
+  if (known) return { status: "resolved", parish: known };
   try {
     // A cold /declutter already asked, in one read with its first screen (src/boot/declutterPrefetch.ts).
     const fromBoot = await takeFirstScreenZipParish(cleaned);
@@ -65,7 +89,10 @@ export async function resolveParishByZip(
       return { status: "lookup-failed", zip: cleaned };
     }
     const parish = (data as string | null) || null;
-    if (parish) return { status: "resolved", parish };
+    if (parish) {
+      rememberZipAnswer("parish", cleaned, parish);
+      return { status: "resolved", parish };
+    }
     // The operator-facing half of the guard. The user gets an inline warning on
     // the field; this is how anyone ELSE finds out — a real person typed a ZIP
     // the table cannot place, which is either an out-of-state signup (useful to
@@ -111,6 +138,8 @@ export async function lookupParishByZip(zip: string | null | undefined): Promise
 export async function resolveCityByZip(zip: string | null | undefined): Promise<string | null> {
   const cleaned = (zip ?? "").replace(/\D/g, "").slice(0, 5);
   if (cleaned.length !== 5) return null;
+  const known = zipAnswer("city", cleaned);
+  if (known) return known;
   try {
     const { data, error } = await supabase
       .from("louisiana_zip_parishes")
@@ -122,6 +151,7 @@ export async function resolveCityByZip(zip: string | null | undefined): Promise<
       return null;
     }
     const city = (data as { city?: string | null } | null)?.city?.trim();
+    if (city) rememberZipAnswer("city", cleaned, city);
     return city || null;
   } catch (err) {
     report(err, { severity: "warning", tags: { source: "parishLookup.city" } });

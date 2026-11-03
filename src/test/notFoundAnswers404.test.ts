@@ -169,6 +169,11 @@
  * @mutate supabase/migrations/20261103072510_declutter_checkout_reach_not_found_is_404.sql | IF NOT FOUND THEN\n    RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'PT404'; | IF NOT FOUND THEN\n    RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103072510_declutter_checkout_reach_not_found_is_404.sql | AND NOT public.has_role(v_uid, 'admin') THEN\n    RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'PT404'; | AND NOT public.has_role(v_uid, 'admin') THEN\n    RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/functions/declutter-checkout/index.ts | const status = error.code === "P0002" \|\| error.code === "PT404" ? 404 : | const status = error.code === "P0002" ? 404 :
+ * @mutate supabase/migrations/20261103073509_shop_checkout_reach_not_found_is_404.sql | RAISE EXCEPTION 'shop_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'shop_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103073509_shop_checkout_reach_not_found_is_404.sql | IF NOT FOUND OR o.buyer_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'PT404'; | IF NOT FOUND OR o.buyer_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103073509_shop_checkout_reach_not_found_is_404.sql | IF NOT FOUND OR o.seller_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'PT404'; | IF NOT FOUND OR o.seller_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103073509_shop_checkout_reach_not_found_is_404.sql | IF NOT FOUND THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'PT404'; | IF NOT FOUND THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/functions/shop-checkout/index.ts | const status = error.code === "P0002" \|\| error.code === "PT404" ? 404 : | const status = error.code === "P0002" ? 404 :
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -194,6 +199,7 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
  * Packet 15 (regular): rentals_lock_own_listing, shops_lock_own_item, declutter_list_for_seller_draft, declutter_donation_own_items, rentals_lease_for_action (20261103071058).
  * Packet 16 (regular): rentals_end_tenancy, rentals_set_auto_approve, rentals_approve_request, rentals_set_forwarding_address, rentals_set_saved_home, rentals_remove_listing_photo (20261103071432).
  * Packet 17 (regular, with the declutter-checkout map): declutter_delivery_quote, declutter_set_delivery_dropoff, declutter_lock_order, helpr_task_lock (20261103072510).
+ * Packet 18 (regular, with the shop-checkout map): shops_order_terms, shops_cancel_order_request, shops_decline_order, shop_lock_open_charged_order (20261103073509).
  */
 const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
   "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm",
@@ -210,9 +216,10 @@ const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_s
   "declutter_on_my_way", "declutter_meetup_here",
   "rentals_lock_own_listing", "shops_lock_own_item", "declutter_list_for_seller_draft", "declutter_donation_own_items", "rentals_lease_for_action",
   "rentals_end_tenancy", "rentals_set_auto_approve", "rentals_approve_request", "rentals_set_forwarding_address", "rentals_set_saved_home", "rentals_remove_listing_photo",
-  "declutter_delivery_quote", "declutter_set_delivery_dropoff", "declutter_lock_order", "helpr_task_lock"];
+  "declutter_delivery_quote", "declutter_set_delivery_dropoff", "declutter_lock_order", "helpr_task_lock",
+  "shops_order_terms", "shops_cancel_order_request", "shops_decline_order", "shop_lock_open_charged_order"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-const P0002_RAISERS = 170;
+const P0002_RAISERS = 166;
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");
@@ -221,10 +228,9 @@ const RAISES_P0002 = /ERRCODE\s*=\s*'P0002'/i;
 /**
  * Edge functions that turn an RPC's SQLSTATE into their own HTTP status. Each one that answers P0002 as 404 must
  * answer PT404 as 404 too, or a moved function's not-found turns into that map's fallback (409). EXACT, both ways:
- * the edge functions still mapping P0002 only. Packet 17 moved declutter-checkout; shop-checkout follows with its
- * functions.
+ * the edge functions still mapping P0002 only. Packet 17 moved declutter-checkout, packet 18 shop-checkout.
  */
-const EDGE_MAPS_WITHOUT_PT404 = ["shop-checkout"];
+const EDGE_MAPS_WITHOUT_PT404: string[] = [];
 const FN_DIR = join(process.cwd(), "supabase/functions");
 const edgeMaps = readdirSync(FN_DIR)
   .filter((dir) => existsSync(join(FN_DIR, dir, "index.ts")))

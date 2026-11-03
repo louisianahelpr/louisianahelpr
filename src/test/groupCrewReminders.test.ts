@@ -42,9 +42,9 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |       ELSIF v_member_fee > 0 THEN |       ELSIF false THEN
 // @mutate supabase/migrations/20261103023713_expired_offer_says_too_late_to_rehire.sql |        AND g.response_deadline < now()\n  LOOP |        AND false\n  LOOP
 // @mutate supabase/migrations/20261103023713_expired_offer_says_too_late_to_rehire.sql |       DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id; |       PERFORM 1;
-// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |      SET response_deadline = v_crew_deadline |      SET response_deadline = NULL
+// @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql |      SET response_deadline = v_crew_deadline |      SET response_deadline = NULL
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     'proof_after_urls',\n    'response_deadline'\n  ]; |     'proof_after_urls'\n  ];
-// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | v_crew_deadline := LEAST(GREATEST(LEAST(COALESCE(p_deadline, now() + interval '48 hours'), now() + interval '48 hours'), now() + interval '55 minutes'), v_cutoff); | v_crew_deadline := p_deadline;
+// @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql | v_crew_deadline := LEAST(GREATEST(LEAST(COALESCE(p_deadline, now() + interval '48 hours'), now() + interval '48 hours'), now() + interval '55 minutes'), v_cutoff); | v_crew_deadline := p_deadline;
 // @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |        WHERE r.role = 'admin'\n         AND v_new_block; |        WHERE r.role = 'admin';
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |   IF v_row.helper_confirmed_at IS NULL THEN\n    RAISE EXCEPTION 'helper_not_confirmed' USING ERRCODE = '23514',\n      HINT = 'Confirm the job before marking arrival.'; |   IF false THEN\n    RAISE EXCEPTION 'helper_not_confirmed' USING ERRCODE = '23514',\n      HINT = 'Confirm the job before marking arrival.';
 // @mutate supabase/functions/auto-expire-jobs/index.ts |       .not("is_group_job", "is", true)\n      .lte("date_needed", tomorrow) |       .lte("date_needed", tomorrow)
@@ -197,9 +197,10 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
     // of a crew carry on) restates both with block_user_and_settle; the crew
     // rules below must survive every restatement.
     // 20261007073145 (Q1390, the crew block fee ledger) restates both once
-    // more; the crew rules below must survive it too.
+    // more; the crew rules below must survive it too. Q1919 (20261103025348_crew_seat_takes_helpr_schedule_lock.sql) restates
+    // accept_group_application with the Helpr schedule lock.
     // 20261012124103 (Q1380) restates block_user_and_settle once more. 20261102131745 (Q2675/Q2692) restates it again, crew path unchanged.
-    expect(EFFECTIVE.get("accept_group_application")?.file, "accept_group_application is not the newest crew-aware definition").toBe("20261007073145_crew_block_fee_ledger.sql");
+    expect(EFFECTIVE.get("accept_group_application")?.file, "accept_group_application is not the newest crew-aware definition").toBe("20261103025348_crew_seat_takes_helpr_schedule_lock.sql");
     expect(EFFECTIVE.get("block_user_and_settle")?.file, "block_user_and_settle is not the newest crew-aware definition").toBe("20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql");
     // 20261006022526 (the money review of Q1378) restates the sweep once more:
     // its crew pass also covers a started crew. 20261012184444 (Q1281: no

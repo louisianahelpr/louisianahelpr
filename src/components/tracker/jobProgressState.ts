@@ -69,6 +69,8 @@ export type ProgressJob = {
   cancellation_fee?: number | null;
   /** A crew job: its helper_id is null (the members are on group_job_helpers), so "hired" is read from the status. */
   is_group_job?: boolean | null;
+  /** A series visit (the repost sweep skips it): the past-deadline confirm line claims "reposted" only when this is read as null. */
+  parent_job_id?: string | null;
   /** What the Helpr's card line reads past arrival (photo asks): the open card's tracker passes them too. */
   id?: string | null;
   require_photo_proof?: boolean | null;
@@ -479,12 +481,12 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
       // stays open until the start (posterConfirmClosesMs, JobConfirmation's I'm still on), so both sides name that time.
       const posterBy = when(posterConfirmClosesMs(job.date_needed, job.start_time));
       // Lead 11-03: past the Helpr's deadline the line said "by Fri 8:00 AM" after 8:00. It says the window passed and
-      // what the app already promised happens next (confirmWindowPassedLine: reposted, except a crew job).
+      // what happens next only where the repost sweep keeps it (confirmWindowPassedLine).
       const helprLate = !helprIn && !Number.isNaN(due) && now >= due;
       if (poster) {
-        return at(3, mine, "Confirmed", !posterIn ? `Confirm the job is still on by ${posterBy}` : helprLate ? confirmWindowPassedLine(other, job.is_group_job) : `Waiting on ${otherLow} to confirm by ${when(due)}`, held);
+        return at(3, mine, "Confirmed", !posterIn ? `Confirm the job is still on by ${posterBy}` : helprLate ? confirmWindowPassedLine(other, job) : `Waiting on ${otherLow} to confirm by ${when(due)}`, held);
       }
-      return at(3, mine, "Confirmed", !helprIn ? (helprLate ? confirmWindowPassedLine(null, job.is_group_job) : `Confirm you'll be at the job by ${when(due)}`) : `Waiting on ${otherLow} to confirm by ${posterBy}`, held);
+      return at(3, mine, "Confirmed", !helprIn ? (helprLate ? confirmWindowPassedLine(null, job) : `Confirm you'll be at the job by ${when(due)}`) : `Waiting on ${otherLow} to confirm by ${posterBy}`, held);
     }
   }
   // Both confirmed: setting out is the Helpr's move. AUD31-76: once the start has passed (or auto_start_due_jobs has

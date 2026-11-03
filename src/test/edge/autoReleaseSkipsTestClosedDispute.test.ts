@@ -31,7 +31,7 @@ const failedAttempts = () =>
 const CLOSED = { id: "d-test", execution_error: `${TEST_MODE_CLOSE_PREFIX}, no real money moved: both test accounts` };
 
 /** One matured single-Helpr job; `closedRows` answer the test-close read (the decided-unexecuted read is empty). */
-function seed(closedRows: unknown[]) {
+function seed(closedRows: Array<Record<string, unknown>>) {
   scenario.reads.jobs = {
     rows: [],
     selectOverrides: [{

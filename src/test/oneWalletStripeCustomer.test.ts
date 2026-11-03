@@ -19,7 +19,7 @@
  * @mutate supabase/functions/declutter-checkout/index.ts | customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined; | customerId = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id;
  * @mutate supabase/functions/shop-checkout/index.ts | customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined; | customerId = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id;
  * @mutate supabase/functions/_shared/stripeCustomer.ts | .eq("wallet_mode", mode) | .eq("user_id", userId)
- * @mutate supabase/migrations/20261018090700_one_wallet_stripe_customers.sql | LANGUAGE plpgsql\nSECURITY INVOKER | LANGUAGE plpgsql\nSECURITY DEFINER
+ * @mutate supabase/migrations/20261103100800_stripe_customer_not_found_is_404.sql | RETURNS text\nLANGUAGE plpgsql\nSECURITY INVOKER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_id text; | RETURNS text\nLANGUAGE plpgsql\nSECURITY DEFINER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_id text;
  * @mutate supabase/migrations/20261018090700_one_wallet_stripe_customers.sql | GRANT SELECT, INSERT, DELETE ON TABLE public.stripe_customers TO service_role; | GRANT ALL ON TABLE public.stripe_customers TO service_role;
  * @mutate supabase/functions/_shared/stripeCustomer.ts | query: `metadata['supabase_user_id']:'${userId}'` | query: `email:'${userId}'`
  * @mutate supabase/functions/pro-customer-portal/index.ts |     let customerId: string \| null = null; |     let customerId: string \| null = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id ?? null;
@@ -142,10 +142,18 @@ describe("one wallet: a member's Stripe customer comes from ONE place", () => {
     expect(fn).toMatch(/SECURITY INVOKER/i);
     expect(fn).not.toMatch(/SECURITY DEFINER/i);
     expect(newest).toMatch(/REVOKE ALL ON FUNCTION public\.claim_stripe_customer\(uuid, text, text\) FROM PUBLIC, anon, authenticated;/);
-    expect(newest).toMatch(/REVOKE ALL ON TABLE public\.stripe_customers FROM PUBLIC, anon, authenticated, service_role;/);
-    expect(newest).toMatch(/GRANT SELECT, INSERT, DELETE ON TABLE public\.stripe_customers TO service_role;/);
-    expect(newest).not.toMatch(/GRANT[^;]*\b(ALL|UPDATE)\b[^;]*ON TABLE public\.stripe_customers/i);
-    expect(newest).not.toMatch(/GRANT[^;]*ON TABLE public\.stripe_customers TO[^;]*\b(anon|authenticated)\b/i);
+    // The table's ACL is read from the newest file that sets it (a later restatement of the function, such as
+    // Q2390 packet 23's ERRCODE-only one, does not touch the table), and no file may ever widen it.
+    const tableAcl = files.filter((f) => /ON\s+TABLE\s+public\.stripe_customers\b/i.test(blankSqlComments(readFileSync(join(dir, f), "utf8"))));
+    expect(tableAcl.length).toBeGreaterThan(0);
+    const table = blankSqlComments(readFileSync(join(dir, tableAcl[tableAcl.length - 1]), "utf8"));
+    expect(table).toMatch(/REVOKE ALL ON TABLE public\.stripe_customers FROM PUBLIC, anon, authenticated, service_role;/);
+    expect(table).toMatch(/GRANT SELECT, INSERT, DELETE ON TABLE public\.stripe_customers TO service_role;/);
+    for (const f of tableAcl) {
+      const sql = blankSqlComments(readFileSync(join(dir, f), "utf8"));
+      expect(sql, f).not.toMatch(/GRANT[^;]*\b(ALL|UPDATE)\b[^;]*ON TABLE public\.stripe_customers/i);
+      expect(sql, f).not.toMatch(/GRANT[^;]*ON TABLE public\.stripe_customers TO[^;]*\b(anon|authenticated)\b/i);
+    }
   });
 
   it("only the wallet save-card path sets a customer's default card (Q2141)", () => {

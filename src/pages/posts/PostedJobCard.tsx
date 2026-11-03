@@ -23,7 +23,7 @@ import { posterStatusLine, type PosterWait } from "@/components/job-card/jobStat
 import { JobCardMetaRow } from "../../components/job-card/JobCardMetaRow";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "../../components/job-card/jobCardPerson";
 import { PostedJobDetails } from "./postedJobCard/PostedJobDetails";
-import { formatPrice, formatPriceExact, formatRecurrenceInterval } from "@/lib/format";
+import { formatPrice, formatRecurrenceInterval } from "@/lib/format";
 import { type PostedJobCardProps } from "./postedJobCard/types";
 import { PostedJobApplicants } from "./postedJobCard/PostedJobApplicants";
 import { PostedJobActions } from "./postedJobCard/PostedJobActions";
@@ -31,6 +31,7 @@ import { useHighlightPulse } from "../../components/job-card/useHighlightPulse";
 import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
 import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
 import { useCardNotes } from "@/components/job-card/JobNotes";
+import { PosterCancelFeeLine } from "./postedJobCard/PosterCancelFeeLine";
 
 /**
  * PostedJobCard — one card in the poster's "my posts" feed: the job
@@ -441,28 +442,10 @@ function PostedJobCardInner({
                       produced the doubled "$ Fee $12.50" the owner reported. A
                       currency symbol is typography; it belongs in the same text
                       node as the digits, never beside them as an icon. */}
-                  {job.cancellation_fee != null && job.cancellation_fee > 0 && job.cancellation_fee_status && (() => {
-                    const feeAmt = `$${formatPriceExact(job.cancellation_fee)}`;
-                    const statusCopy: Record<string, string> = {
-                      pending: `${feeAmt} for your Helpr's time · pending`,
-                      charged: `${feeAmt} for your Helpr's time · charged`,
-                      waived:  `Nothing to your Helpr · waived`,
-                    };
-                    const label = statusCopy[job.cancellation_fee_status] ?? `${feeAmt} for your Helpr's time`;
-                    const isCharged = job.cancellation_fee_status === "charged";
-                    return (
-                      <p
-                        className="text-ds-11 font-medium tabular-nums"
-                        style={{
-                          color: isCharged
-                            ? "hsl(var(--destructive-ink))"
-                            : "hsl(var(--olivewood) / 0.85)",
-                        }}
-                      >
-                        {label}
-                      </p>
-                    );
-                  })()}
+                  {/* Q1916: "charged" only when a card paid it; a gift-funded fee says so (PosterCancelFeeLine). */}
+                  {job.cancellation_fee != null && job.cancellation_fee > 0 && job.cancellation_fee_status && (
+                    <PosterCancelFeeLine jobId={job.id} fee={job.cancellation_fee} status={job.cancellation_fee_status} posterId={userId} />
+                  )}
                   {/* Re-post CTA — all cancelled / expired jobs.
                       Navigates to /post-job?rebook=<id> which pre-fills
                       every field except the date (date must be in the

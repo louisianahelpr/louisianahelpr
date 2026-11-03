@@ -8,7 +8,10 @@
  * insert a row and each send the fee. The webhook and reconciliation key on
  * stripe_transfer_id, so it is UNIQUE too. A row may only be 'paid' or
  * 'reversed' with the transfer id that proves it. And it is service-role only:
- * RLS on, every client role revoked.
+ * RLS on, every client role revoked, except Q1916 (20261103021753): a signed-in
+ * Helpr reads six columns of their OWN row (status and amount, so the job card
+ * says "You received" only once it was sent), through one SELECT policy on
+ * helper_id = auth.uid(). Nothing else, and no client write.
  *
  * Reads EVERY migration in order (comments blanked), so a later migration that
  * drops a constraint, disables RLS or grants a client role turns this red.
@@ -18,6 +21,8 @@
  * @mutate supabase/migrations/20261002052502_cancellation_fee_transfers_ledger.sql | ALTER TABLE public.cancellation_fee_transfers ENABLE ROW LEVEL SECURITY; | SELECT 1;
  * @mutate supabase/migrations/20261002052502_cancellation_fee_transfers_ledger.sql | REVOKE ALL ON TABLE public.cancellation_fee_transfers FROM PUBLIC, anon, authenticated; | REVOKE ALL ON TABLE public.cancellation_fee_transfers FROM PUBLIC;
  * @mutate supabase/migrations/20261002052502_cancellation_fee_transfers_ledger.sql | CHECK (status NOT IN ('paid', 'reversed') OR stripe_transfer_id IS NOT NULL), | CHECK (true),
+ * @mutate supabase/migrations/20261103021753_helpr_reads_own_cancel_fee_row.sql | GRANT SELECT (id, job_id, helper_id, helper_amount, status, paid_at) | GRANT SELECT (id, job_id, helper_id, helper_amount, status, paid_at, failure_reason)
+ * @mutate supabase/migrations/20261103021753_helpr_reads_own_cancel_fee_row.sql |   USING (helper_id = (SELECT auth.uid())); |   USING (true);
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -99,10 +104,26 @@ describe("LOW-2: cancellation_fee_transfers keeps its claim, proof and access ru
       if (/\bpublic\b/.test(roles) && /\banon\b/.test(roles) && /\bauthenticated\b/.test(roles)) lastRevoke = m.index ?? -1;
     }
     expect(lastRevoke).toBeGreaterThan(-1);
-    const grant = new RegExp(String.raw`grant\s+[^;]*?\s+on\s+(?:table\s+)?${T}\s+to\s+([^;]+);`, "gi");
+    const grant = new RegExp(String.raw`grant\s+([^;]*?)\s+on\s+(?:table\s+)?${T}\s+to\s+([^;]+);`, "gi");
+    // Q1916: the one client grant allowed, exactly: authenticated SELECT on six columns.
+    const ALLOWED = "select (id, job_id, helper_id, helper_amount, status, paid_at)";
+    let allowedSeen = 0;
     for (const m of SQL.matchAll(grant)) {
       if ((m.index ?? 0) < lastRevoke) continue;
-      expect(norm(m[1]), "a client role was granted the fee ledger after the revoke").not.toMatch(/\b(public|anon|authenticated)\b/);
+      const roles = norm(m[2]);
+      if (!/\b(public|anon|authenticated)\b/.test(roles)) continue;
+      expect(roles, "anon or PUBLIC was granted the fee ledger after the revoke").toBe("authenticated");
+      expect(norm(m[1]), "authenticated may only SELECT the six Helpr-readable columns").toBe(ALLOWED);
+      allowedSeen++;
     }
+    expect(allowedSeen).toBe(1);
+  });
+
+  it("Q1916: the only client policy lets a Helpr SELECT their own row, nothing else", () => {
+    const pol = new RegExp(String.raw`create\s+policy\s+"([^"]+)"\s+on\s+${T}\s+([^;]+);`, "gi");
+    const found = [...SQL.matchAll(pol)].map((m) => ({ name: m[1], body: norm(m[2]) }));
+    expect(found).toEqual([
+      { name: "Helpr reads their own cancellation fee row", body: "for select to authenticated using (helper_id = (select auth.uid()))" },
+    ]);
   });
 });

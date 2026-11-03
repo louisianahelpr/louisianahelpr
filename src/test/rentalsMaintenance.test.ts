@@ -262,7 +262,11 @@ describe("Rentals S1: hidden, gated maintenance requests (20261017205605)", () =
     }
     for (const fn of LISTING_INTERNAL) {
       expect(callable.has(fn), `${fn} must not be client-callable`).toBe(false);
-      expect(ALL_MIG, fn).toMatch(new RegExp(String.raw`REVOKE ALL ON FUNCTION public\.${fn}\([^)]*\) FROM PUBLIC, anon, authenticated;`));
+      // The NEWEST REVOKE for the helper decides (rentals_listing_visible is revoked in 20261019043000 and again in
+      // 20261019061241): an older full REVOKE must not hide a later one that drops authenticated.
+      const revokes = [...ALL_MIG.matchAll(new RegExp(String.raw`REVOKE ALL ON FUNCTION public\.${fn}\([^)]*\) FROM ([^;]+);`, "g"))];
+      expect(revokes.length, fn).toBeGreaterThan(0);
+      expect(revokes[revokes.length - 1][1].trim(), fn).toBe("PUBLIC, anon, authenticated");
     }
     const live = flat(body("rentals_set_listing_status"));
     // 20261019061241: a sale listing runs the sale list (fair housing + no haggling), a rent listing the fair-housing list.

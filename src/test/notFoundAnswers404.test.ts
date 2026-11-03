@@ -232,6 +232,7 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
  * Packet 26 (regular): helpr_task_payout_executed, declutter_delivery_raise_refund_executed, shop_order_captured, declutter_setup_fee_refunded, declutter_admin_apply_seller_fault, declutter_lock_buyable_item (20261103112014); every caller handles the error by its message (declutter-money, stripe-webhook, _shared/shopHolds.ts) or passes it through (declutter_buy_now, declutter_make_offer).
  * Packet 27 (regular): declutter_set_auto_free_days, declutter_delivery_raise_status, shops_create_item, bill_helpr_card_fee_debt, declutter_set_handovers, declutter_set_auto_free (20261103124851); the app maps by message, _shared/helprFaultFee.ts turns any error into a retried problem, declutter_manage re-RAISEs.
  * Packet 28 (regular): declutter_save_card, rentals_decide_rent_payment, declutter_seller_delivery_booking, declutter_cancel_after_no_helpr, declutter_set_delivery_handoff, declutter_payout_take_setup_fee (20261103130123); stripe-webhook throws on any declutter_save_card error, declutter-money treats every setup-fee error but PGRST202 alike, the app maps by message.
+ * Packet 29 (regular): rentals_invite_tenant, helpr_task_payout_take_setup_fee, declutter_report_not_delivered, shops_set_my_faqs, declutter_set_return_address, declutter_answer_refund_offer (20261103141808); declutter-money treats every setup-fee error but PGRST202 alike, the app maps by message.
  */
 const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
   "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm",
@@ -263,9 +264,11 @@ const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_s
   "declutter_set_auto_free_days", "declutter_delivery_raise_status", "shops_create_item", "bill_helpr_card_fee_debt",
   "declutter_set_handovers", "declutter_set_auto_free",
   "declutter_save_card", "rentals_decide_rent_payment", "declutter_seller_delivery_booking", "declutter_cancel_after_no_helpr",
-  "declutter_set_delivery_handoff", "declutter_payout_take_setup_fee"];
+  "declutter_set_delivery_handoff", "declutter_payout_take_setup_fee",
+  "rentals_invite_tenant", "helpr_task_payout_take_setup_fee", "declutter_report_not_delivered", "shops_set_my_faqs",
+  "declutter_set_return_address", "declutter_answer_refund_offer"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-const P0002_RAISERS = 117;
+const P0002_RAISERS = 111;
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");

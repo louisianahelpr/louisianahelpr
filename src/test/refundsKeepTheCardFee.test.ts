@@ -756,7 +756,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Returns (20261030071818, builder 80; restated 20261030164712, Q2486: the distance reads the order's pickup points): names declutter_refunds only as its notice kind; records no refund and moves no money (the drop-off photo and time only).
       declutter_return_dropped_off: "20261030164712_declutter_porch_places.sql 93f622c906990eb9",
       // Returns (20261030071818, builder 80): names declutter_refunds only as its notice kind; records no refund and moves no money (the collect address only).
-      declutter_set_return_address: "20261030071818_declutter_returns.sql 43bb0b4a006506dd",
+      declutter_set_return_address: "20261103141808_q2390_invite_setup_fee_no_show_faqs_return_offer_not_found_is_404.sql dba08d6d41188c3e",
       declutter_refund_answer: "20261015042253_declutter_slice4_handover_payout.sql bf344cb7353cb326",
       // Payout readiness (20261019070737): writes only a row still in the automatic path (status pending / failed),
       // never one an admin holds for review or settled by hand; the amount (refund_cents) is untouched, so the fee

@@ -10,6 +10,7 @@
 // @mutate scripts/audit/press-every-control.mjs |               !isInlineValidationRefusal({ toast: t, selfValidated, formText }) && |               true &&
 // @mutate e2e/a11y-prod/abortProdWrites.ts | u.searchParams.get("tab") === e.tab && aborted.has(e.fn)); | u.searchParams.get("tab") === e.tab);
 // @mutate e2e/errorScreens.ts |   return findErrorScreen({ ...screen, text: screen.text.split(excusedCopy).join(" ") }, allow); |   return null;
+// @mutate e2e/a11y-prod/abortProdWrites.ts | tab: "payout_history", copy: | tab: "payouts", copy:
 /*
  * RELEASE GATE "Press every control", run 41553094625 on 3ebffa3aea
  * (2026-11-03), artifact ~/.lh-shots/l45/press-art: three classes of red, plus
@@ -150,6 +151,19 @@ describe("4. a11y-prod excuses the earnings error only when it aborted stripe-pa
     expect(abortExplainedError(URL_, new Set(["stripe-payouts"]))).toBe(COPY);
     expect(abortExplainedError(URL_, new Set())).toBeNull();
     expect(abortExplainedError("http://127.0.0.1:4843/profile?tab=account", new Set(["stripe-payouts"]))).toBeNull();
+  });
+
+  it("Money's other door (?tab=payment) and Payout history read the same stripe-payouts query (A11y 41598471444)", () => {
+    const aborted = new Set(["stripe-payouts"]);
+    expect(abortExplainedError("http://127.0.0.1:4843/profile?tab=payment", aborted)).toBe(COPY);
+    expect(abortExplainedError("http://127.0.0.1:4843/profile?tab=payout_history", aborted)).toBe("We couldn't load your payouts.");
+    expect(abortExplainedError("http://127.0.0.1:4843/profile?tab=payout_history", new Set())).toBeNull();
+    // The excuse rests on these screens really calling stripe-payouts; if either stops, the entry must go.
+    expect(code("src/pages/profile/ProfileTabPanels.tsx")).toMatch(/tab === "earnings" \|\| tab === "payment"\) && user/);
+    expect(code("src/pages/profile/PayoutHistory.tsx")).toMatch(/useEarningsData\(/);
+    expect(code("src/components/profile/earningsTab/useEarningsData.ts")).toMatch(/functions\.invoke<StripePayoutData>\("stripe-payouts"/);
+    // And the copy excused is the copy the screen shows.
+    expect(code("src/pages/profile/PayoutHistory.tsx")).toMatch(/title="We couldn't load your payouts\."/);
   });
 
   it("removes only that copy: another error on the same screen still fails", () => {

@@ -31,24 +31,25 @@
  *     mutation registered below can be shown red).
  */
 // The undo (promotions_resubscribe).
-// @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql |     RETURN 'nothing_to_undo';\n  END IF;\n\n  SELECT np.email_promotions INTO v_promo |     NULL;\n  END IF;\n\n  SELECT np.email_promotions INTO v_promo
-// @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql |        SET marketing_consent = (v_saved ->> 'marketing_consent')::boolean IS TRUE, |        SET marketing_consent = true,
-// @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql |     IF (v_saved ->> 'email_promotions')::boolean IS DISTINCT FROM false THEN |     IF true THEN
-// @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql | SET email_promotions = CASE WHEN (v_saved ->> 'email_promotions')::boolean THEN true END | SET email_promotions = true
-// @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql |   v_untouched := FOUND AND v_consent IS FALSE AND v_promo IS FALSE; |   v_untouched := true;
+// @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | RETURN 'nothing_to_undo';\n  END IF;\n\n  SELECT np.email_promotions INTO v_promo | NULL;\n  END IF;\n\n  SELECT np.email_promotions INTO v_promo
+// @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | SET marketing_consent = (v_saved ->> 'marketing_consent')::boolean IS TRUE, | SET marketing_consent = true,
+// @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | IF (v_saved ->> 'email_promotions')::boolean IS DISTINCT FROM false THEN | IF true THEN
+// @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | SET email_promotions = CASE WHEN (v_saved ->> 'email_promotions')::boolean THEN true END | SET email_promotions = true
+// @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | v_untouched := FOUND AND v_consent IS FALSE AND v_promo IS FALSE; | v_untouched := true;
 // The opt-out (promotions_unsubscribe).
-// @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql |   IF v_saved IS NOT NULL AND NOT (v_consent IS TRUE OR v_promo IS TRUE) THEN |   IF v_saved IS NOT NULL AND NOT (v_consent IS TRUE OR v_promo IS NOT FALSE) THEN
-// @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql |   IF v_saved IS NOT NULL AND NOT (v_consent IS TRUE OR v_promo IS TRUE) THEN |   IF v_saved IS NOT NULL THEN
-// @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql |   IF v_saved IS NOT NULL AND NOT (v_consent IS TRUE OR v_promo IS TRUE) THEN |   IF false THEN
-// @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql |   v_record := jsonb_build_object('marketing_consent', v_consent IS TRUE, |   v_record := jsonb_build_object('marketing_consent', true,
-// @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql |     v_promo := true;\n  END IF;\n\n  v_record |     v_promo := false;\n  END IF;\n\n  v_record
-// @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql |   PERFORM set_config('app.promotions_undo_write', '1', true);\n  UPDATE public.profiles\n     SET marketing_consent = false, |   UPDATE public.profiles\n     SET marketing_consent = false,
-// @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql |    WHERE p.user_id = p_user_id\n     FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'P0002';\n  END IF;\n\n  SELECT np.email_promotions INTO v_promo\n    FROM public.notification_preferences np\n   WHERE np.user_id = p_user_id\n     FOR UPDATE;\n  v_has_row |    WHERE p.user_id = p_user_id;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'P0002';\n  END IF;\n\n  SELECT np.email_promotions INTO v_promo\n    FROM public.notification_preferences np\n   WHERE np.user_id = p_user_id\n     FOR UPDATE;\n  v_has_row
+// @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | IF v_saved IS NOT NULL AND NOT (v_consent IS TRUE OR v_promo IS TRUE) THEN | IF v_saved IS NOT NULL AND NOT (v_consent IS TRUE OR v_promo IS NOT FALSE) THEN
+// @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | IF v_saved IS NOT NULL AND NOT (v_consent IS TRUE OR v_promo IS TRUE) THEN | IF v_saved IS NOT NULL THEN
+// @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | IF v_saved IS NOT NULL AND NOT (v_consent IS TRUE OR v_promo IS TRUE) THEN | IF false THEN
+// @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | v_record := jsonb_build_object('marketing_consent', v_consent IS TRUE, | v_record := jsonb_build_object('marketing_consent', true,
+// @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | v_promo := true;\n  END IF;\n\n  v_record | v_promo := false;\n  END IF;\n\n  v_record
+// @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | PERFORM set_config('app.promotions_undo_write', '1', true);\n  UPDATE public.profiles\n     SET marketing_consent = false, | UPDATE public.profiles\n     SET marketing_consent = false,
+// @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql |    WHERE p.user_id = p_user_id\n     FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'PT404';\n  END IF;\n\n  SELECT np.email_promotions INTO v_promo\n    FROM public.notification_preferences np\n   WHERE np.user_id = p_user_id\n     FOR UPDATE;\n  v_has_row |    WHERE p.user_id = p_user_id;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'PT404';\n  END IF;\n\n  SELECT np.email_promotions INTO v_promo\n    FROM public.notification_preferences np\n   WHERE np.user_id = p_user_id\n     FOR UPDATE;\n  v_has_row
 // The record is cleared by any other change.
 // @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql |     NEW.promotions_before_unsubscribe := NULL;\n  END IF;\n  RETURN NEW; |     NULL;\n  END IF;\n  RETURN NEW;
 // @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql |   AFTER INSERT OR UPDATE OF email_promotions ON public.notification_preferences |   AFTER INSERT ON public.notification_preferences
 // @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql |        SET promotions_before_unsubscribe = NULL\n     WHERE user_id = NEW.user_id\n       AND promotions_before_unsubscribe IS NOT NULL; |        SET full_name = full_name\n     WHERE user_id = NEW.user_id\n       AND promotions_before_unsubscribe IS NOT NULL;
-// @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql | REVOKE ALL ON FUNCTION public.promotions_resubscribe(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.promotions_resubscribe(uuid) FROM PUBLIC;
+// @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | REVOKE ALL ON FUNCTION public.promotions_resubscribe(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.promotions_resubscribe(uuid) FROM PUBLIC;
+// @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | REVOKE ALL ON FUNCTION public.promotions_unsubscribe(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.promotions_unsubscribe(uuid) FROM PUBLIC;
 // A client INSERT may not carry a record (Q2160).
 // @mutate supabase/migrations/20261102071347_pin_promotions_undo_on_profile_insert.sql |     AND is_seed = false\n    AND promotions_before_unsubscribe IS NULL\n |     AND is_seed = false\n
 // @mutate supabase/migrations/20261102071347_pin_promotions_undo_on_profile_insert.sql |     AND promotions_before_unsubscribe IS NULL\n |     OR promotions_before_unsubscribe IS NULL\n
@@ -194,7 +195,12 @@ describe("the newest definitions keep each rule", () => {
     const all = migrationFiles(dir).map((f) => blankSqlComments(readFileSync(join(dir, f), "utf8"))).join("\n").replace(/\s+/g, " ");
     for (const fn of ["promotions_unsubscribe", "promotions_resubscribe"]) {
       // Booleans, not toContain: a failure must not print every migration.
-      expect(all.includes(`REVOKE ALL ON FUNCTION public.${fn}(uuid) FROM PUBLIC, anon, authenticated;`), `${fn} revoked from anon and authenticated`).toBe(true);
+      // Read from the NEWEST migration that grants or revokes it (Q2390 packet 22 restated both): an older copy of the
+      // REVOKE must not satisfy this once a later file restates the grants.
+      const aclRe = new RegExp(`\\b(?:GRANT|REVOKE)\\b[^;]* ON FUNCTION public\\.${fn}\\(uuid\\)`);
+      const aclFiles = migrationFiles(dir).filter((f) => aclRe.test(blankSqlComments(readFileSync(join(dir, f), "utf8"))));
+      const newestAcl = blankSqlComments(readFileSync(join(dir, aclFiles[aclFiles.length - 1] ?? ""), "utf8")).replace(/\s+/g, " ");
+      expect(newestAcl.includes(`REVOKE ALL ON FUNCTION public.${fn}(uuid) FROM PUBLIC, anon, authenticated;`), `${fn} revoked from anon and authenticated (newest: ${aclFiles[aclFiles.length - 1]})`).toBe(true);
       expect(new RegExp(`GRANT EXECUTE ON FUNCTION public\\.${fn}\\(uuid\\) TO [^;]*\\b(anon|authenticated)\\b`).test(all), `${fn} granted to a client role`).toBe(false);
     }
   });

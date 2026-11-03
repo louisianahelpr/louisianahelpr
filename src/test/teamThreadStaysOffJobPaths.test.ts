@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { trackedFiles } from "./helpers/trackedFiles";
+import { readdirSync, trackedFiles } from "./helpers/trackedFiles";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import {
@@ -35,7 +35,7 @@ import {
 // @mutate src/lib/threadMutes.ts | if (isTeamThreadKey(jobId)) return false; | if (false) return false;
 // @mutate src/pages/messages/messagesData/sendHandlers.ts | if (teamUser !== null) {\n      await dispatchTeamMessage(optimistic, teamUser); | if (false) {\n      await dispatchTeamMessage(optimistic, teamUser);
 // @mutate supabase/migrations/20261012184600_scope_policy_helpers_to_caller.sql |    WHERE m.team_thread_user_id = v_me\n |    WHERE true\n
-// @mutate supabase/migrations/20261011161100_team_thread_direct_messages.sql | IF NOT COALESCE(public.has_role(v_admin, 'admin'::public.app_role), false) THEN | IF false THEN
+// @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | IF NOT COALESCE(public.has_role(v_admin, 'admin'::public.app_role), false) THEN | IF false THEN
 
 const REPO = join(__dirname, "../..");
 const read = (p: string) => readFileSync(join(REPO, p), "utf8");
@@ -164,11 +164,23 @@ describe("server: who may write a team-thread row (newest definitions)", () => {
       const own = blankSqlComments(read(`supabase/migrations/${file}`));
       expect(own, `${fn} (newest in ${file})`).toContain(`REVOKE ALL ON FUNCTION public.${fn}(${sig}) FROM PUBLIC, anon;`);
     }
-    const mig = blankSqlComments(read(`supabase/migrations/${defs.get("admin_send_team_message")?.file ?? ""}`));
-    expect(mig).toMatch(/CHECK \(\(job_id IS NULL\) <> \(team_thread_user_id IS NULL\)\)/);
+    // The table rules are read from the NEWEST migration that states them (Q2390 packet 22 restated
+    // admin_send_team_message alone, so its file no longer holds the table's CHECK or column grants).
+    const sqlFiles = readdirSync(join(REPO, "supabase/migrations")).filter((f) => f.endsWith(".sql")).sort();
+    expect(sqlFiles.length).toBeGreaterThan(1000);
+    const newestWith = (re: RegExp) => {
+      for (let i = sqlFiles.length - 1; i >= 0; i--) {
+        const sql = blankSqlComments(read(`supabase/migrations/${sqlFiles[i]}`));
+        if (re.test(sql)) return sql;
+      }
+      return "";
+    };
+    const check = newestWith(/\bCHECK \([^;]*team_thread_user_id|DROP CONSTRAINT[^;]*messages_job_xor_team_thread/);
+    expect(check).toMatch(/CHECK \(\(job_id IS NULL\) <> \(team_thread_user_id IS NULL\)\)/);
     // The client may read the column, never write it.
-    expect(mig).toMatch(/GRANT SELECT \(team_thread_user_id\) ON public\.messages TO authenticated;/);
-    expect(mig).not.toMatch(/GRANT (?:INSERT|UPDATE)[^;]*team_thread_user_id/);
+    const grants = newestWith(/\b(?:GRANT|REVOKE)\b[^;]*team_thread_user_id[^;]*;/);
+    expect(grants).toMatch(/GRANT SELECT \(team_thread_user_id\) ON public\.messages TO authenticated;/);
+    expect(grants).not.toMatch(/GRANT (?:INSERT|UPDATE)[^;]*team_thread_user_id/);
   });
 });
 

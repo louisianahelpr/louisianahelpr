@@ -26,7 +26,7 @@
  * @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql | np.email_promotions IS FALSE OR | np.email_promotions IS NOT TRUE OR
  * @mutate supabase/functions/engagement-automations/index.ts |         .filter((p) => p.email_promotions === false \|\| p.email_enabled === false) |         .filter((p) => p.email_promotions !== true \|\| p.email_enabled === false)
  * @mutate supabase/functions/send-marketing-blast/index.ts |           .filter((p) => p.email_promotions !== true \|\| p.email_enabled === false) |           .filter((p) => p.email_promotions === false \|\| p.email_enabled === false)
- * @mutate supabase/migrations/20261102063312_promotions_undo_record_cleared.sql | SET email_promotions = CASE WHEN (v_saved ->> 'email_promotions')::boolean THEN true END | SET email_promotions = true
+ * @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | SET email_promotions = CASE WHEN (v_saved ->> 'email_promotions')::boolean THEN true END | SET email_promotions = true
  * @mutate supabase/functions/email-unsubscribe/index.ts |     .upsert({ user_id: userId, email_promotions: on }, { onConflict: 'user_id' }) |     .upsert({ user_id: userId, email_promotions: true }, { onConflict: 'user_id' })
  * @mutate src/lib/promotionsEmail.ts |   return marketingConsent === true; |   return false;
  * @mutate src/components/notificationPreferences/constants.tsx | email_promotions: null, email_system_alerts: true, | email_promotions: false, email_system_alerts: true,

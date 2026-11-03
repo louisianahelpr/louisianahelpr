@@ -667,3 +667,53 @@ describe("void-cancelled-payments — an expired job's refund names only what wa
     expect(r.reason).toBe("cancellation refund (minus $7.20 service fee)");
   });
 });
+
+// Q1944: a re-run that finds this cancel's refund already on the ledger
+// (payment_refunds, source void_cancelled_payments) while the fee priced NOW
+// is larger than the one the refund withheld (it went out at a $0 fee and
+// returned $300 of $330; the fee now prices at $150). Paying the $150 would be
+// paying the Helpr out of money already back with the poster. The "refunded
+// past kept fees" stop (1879c6d8df) runs before the alreadyRefunded branch, so
+// the job is paged and left alone: no fee transfer, no settle.
+describe("void-cancelled-payments — Q1944: an earlier refund that did not withhold today's fee", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetSupabaseMock();
+    resetStripeMock(); stripeMock.accounts.retrieve.mockResolvedValue(PAYABLE_CONNECT_ACCOUNT);
+    resetSharedMocks();
+  });
+
+  const chargeRefunded = (refundedCents: number) => {
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_1", status: "succeeded", amount: 33000, amount_received: 33000,
+      latest_charge: { id: "ch_1", amount: 33000, amount_refunded: refundedCents, balance_transaction: { fee: 987 } },
+    });
+  };
+  const settled = () => scenario.writes.filter((w) => w.table === "jobs" && w.op === "update" &&
+    (w.payload as Record<string, unknown>).payment_status === "refunded");
+
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | && chargeRefundedCents > voidSplit.ceilingCents + 1) { | && false) {
+  it("the ledger shows the refund, the charge returned past today's fee: no fee transfer, no settle, paged", async () => {
+    seed();
+    scenario.reads.payment_refunds = { rows: [{ stripe_refund_id: "re_earlier" }] };
+    chargeRefunded(30000);
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(feeTransferCalls()).toHaveLength(0);
+    expect(feeWrites("insert")).toHaveLength(0);
+    expect(settled()).toHaveLength(0);
+    expect(slackAlerts.map((a) => (a as { title?: string }).title)).toContain("Cancelled job's charge was already refunded past what the cancel keeps");
+  });
+
+  it("control: the ledger shows the refund and it withheld today's fee: the fee is paid once, no second refund", async () => {
+    seed();
+    scenario.reads.payment_refunds = { rows: [{ stripe_refund_id: "re_earlier" }] };
+    chargeRefunded(15000);
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(feeTransferCalls()).toHaveLength(1);
+    expect(slackAlerts.map((a) => (a as { title?: string }).title)).not.toContain("Cancelled job's charge was already refunded past what the cancel keeps");
+  });
+});

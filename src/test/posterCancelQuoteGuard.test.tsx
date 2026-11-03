@@ -16,6 +16,7 @@
 // @mutate src/components/CancellationDialog.tsx |         p_expected_fee_cents: expectedFeeCents, |         p_expected_fee_cents: undefined,
 // @mutate src/components/CancellationDialog.tsx |   const backToYouCents = typeof quote?.back_to_you_cents === "number" ? quote.back_to_you_cents : null; |   const backToYouCents = Math.round(jobBudget * 100) - (typeof quote?.fee_cents === "number" ? quote.fee_cents : 0);
 // @mutate src/components/CancellationDialog.tsx |         setQuoteNonce((n) => n + 1); |
+// @mutate src/components/CancellationDialog.tsx |       if (error && rpcErrorCode("poster_cancel_job", error) === "quote_changed") { |       if (error) await supabase.rpc("poster_cancel_job", { p_job_id: jobId, p_reason: reason.trim() \|\| undefined });\n      if (error && rpcErrorCode("poster_cancel_job", error) === "quote_changed") {
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
@@ -117,6 +118,27 @@ describe("the dialog shows the server's number and nothing else", () => {
     const box = await screen.findByTestId("cancel-back-to-you");
     await waitFor(() => expect(box).toHaveTextContent("Your refund notice will show the exact amount."));
     expect(box.textContent).not.toMatch(/\$/);
+  });
+
+  it("one call with the quoted fee: a PGRST202 is never retried the old unchecked way (Q2190)", async () => {
+    // 20261021130723 is live: prod has only poster_cancel_job(p_job_id, p_reason, p_expected_fee_cents) (pg_proc 2026-11-02).
+    invoke.mockResolvedValue({ data: { can_cancel: true, fee_cents: 2500, fee_percent: 25, back_to_you_cents: 8317, unquoted_reason: null, charge_state: "captured" }, error: null });
+    rpc.mockResolvedValue({
+      data: null,
+      error: {
+        code: "PGRST202",
+        message: "Could not find the function public.poster_cancel_job(p_expected_fee_cents, p_job_id) in the schema cache",
+        hint: "Perhaps you meant to call the function public.poster_cancel_job(p_job_id, p_reason, p_expected_fee_cents)",
+      },
+    });
+    render(<CancellationDialog {...props} />);
+    await waitFor(() => expect(screen.getByTestId("cancel-back-to-you")).toHaveTextContent("$83.17"));
+    fireEvent.click(screen.getByRole("button", { name: /^cancel · pay \$25(\.00)?$/i }));
+    await waitFor(() => expect(toastError).toHaveBeenCalled());
+    const cancels = rpc.mock.calls.filter(([n]) => n === "poster_cancel_job");
+    expect(cancels).toHaveLength(1);
+    expect(cancels[0][1]).toMatchObject({ p_job_id: "job-1", p_expected_fee_cents: 2500 });
+    expect(props.onCancelled).not.toHaveBeenCalled();
   });
 
   it("quote_changed cancels nothing, says so, and asks the server again", async () => {

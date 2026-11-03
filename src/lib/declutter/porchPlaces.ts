@@ -68,7 +68,7 @@ export async function saveMyPorchPlace(place: {
   weekdays: number[];
   /** The place's days and hours; the server takes the days from them. */
   windows?: PickupWindow[];
-}): Promise<{ id: string; hoursSaved: boolean }> {
+}): Promise<string> {
   const args = {
     // A new place has no id yet: the RPC takes NULL for "add".
     p_place_id: place.id as string,
@@ -79,17 +79,11 @@ export async function saveMyPorchPlace(place: {
     p_lng: place.lng,
     p_weekdays: place.weekdays,
   };
-  const first = await supabase.rpc("declutter_save_porch_place", place.windows ? { ...args, p_windows: place.windows } : args);
-  // Before 20261031145652 is on the server the 8-argument call has no match (PGRST202): save the days alone, as before.
-  if (first.error?.code === "PGRST202" && place.windows) {
-    const id = rpcData(await supabase.rpc("declutter_save_porch_place", args), (e) => rpcErrorMessage("declutter_save_porch_place", e)) as string;
-    return { id, hoursSaved: false };
-  }
-  return { id: rpcData(first, (e) => rpcErrorMessage("declutter_save_porch_place", e)) as string, hoursSaved: !!place.windows };
+  // One call, no days-only retry (Q2190): 20261031145652 is live and prod has only the 8-argument function
+  // (pg_proc, 2026-11-02), so any error, a PGRST202 included, reaches the seller as an error.
+  const res = await supabase.rpc("declutter_save_porch_place", place.windows ? { ...args, p_windows: place.windows } : args);
+  return rpcData(res, (e) => rpcErrorMessage("declutter_save_porch_place", e)) as string;
 }
-
-/** Said when an older server saved a place's days but not its hours. */
-export const PLACE_HOURS_NOT_SAVED = "Place saved, but not its hours. Update the app, then set its hours again.";
 
 export async function deleteMyPorchPlace(id: string): Promise<string> {
   const r = await supabase.rpc("declutter_delete_porch_place", { p_place_id: id });

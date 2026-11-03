@@ -14,7 +14,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Input } from "@/components/ui/input";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import {
-  deleteMyPorchPlace, fetchMyPorchPlaces, MAX_PORCH_PLACES, MY_PORCH_PLACES_KEY, PLACE_HOURS_NOT_SAVED, PORCH_PLACES_NOT_DEPLOYED,
+  deleteMyPorchPlace, fetchMyPorchPlaces, MAX_PORCH_PLACES, MY_PORCH_PLACES_KEY, PORCH_PLACES_NOT_DEPLOYED,
   saveMyPorchPlace, type MyPorchPlace,
 } from "@/lib/declutter/porchPlaces";
 import { AddressNeedsExactSpot } from "./AddressNeedsExactSpot";
@@ -103,10 +103,8 @@ function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => vo
       return saveMyPorchPlace({ id: d.id, label: d.label.trim(), address, area: d.area.trim(), lat: point.lat, lng: point.lng, weekdays, windows: d.windows });
     },
     onMutate: () => setProblem(null),
-    onSuccess: (r) => {
+    onSuccess: () => {
       void qc.invalidateQueries({ queryKey: MY_PORCH_PLACES_KEY });
-      // Review 2026-10-31: an older server took the days alone; never report the hours as saved.
-      if (!r.hoursSaved) toast.error(PLACE_HOURS_NOT_SAVED);
       onDone();
     },
     onError: (err) => {

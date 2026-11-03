@@ -20347,7 +20347,16 @@
    },
    "grants": {},
    "kind": "table",
-   "policies": [],
+   "policies": [
+    {
+     "cmd": "SELECT",
+     "name": "Helpr reads their own cancellation fee row",
+     "permissive": "PERMISSIVE",
+     "roles": [
+      "authenticated"
+     ]
+    }
+   ],
    "rls": true,
    "triggers": [
     "before:insert|update|delete",

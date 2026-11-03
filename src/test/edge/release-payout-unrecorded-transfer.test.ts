@@ -152,6 +152,30 @@ describe("release-payout — a transfer at Stripe with no ledger row", () => {
     expect((settle?.payload as Record<string, unknown>)?.stripe_transfer_id).toBe("tr_sched");
   });
 
+  // Q2176: the orphan's run withheld $2 more than this run would (it took the onboarding fee, which now reads
+  // paid). The adopted transfer moved the orphan's amount; the ledger records that, not this run's recompute.
+  // @mutate supabase/functions/release-payout/index.ts |   if (adopted && unrecorded.kind === "adopt") payoutCents = unrecorded.amountCents; |
+  it("Q2176: an adopted transfer settles the ledger with Stripe's amount, not this run's recompute", async () => {
+    seedPayableJob(scenario);
+    await (await load()).fetch((await load()).request(req()));
+    const recompute = stripeMock.transfers.create.mock.calls[0][0].amount as number;
+    resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+
+    const sent = recompute - 200;
+    seedPayableJob(scenario);
+    scenario.reads.payout_transfers = { rows: [{ id: "led-orphan", helper_id: "helper-1", stripe_transfer_id: null, status: "pending", amount_cents: sent, created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString() }] };
+    stripeMock.transfers.list.mockResolvedValue({
+      data: [{ id: "tr_sched", amount: sent, amount_reversed: 0, destination: "acct_helper", metadata: { job_id: "job-1", helper_id: "helper-1" } }],
+    });
+    const fn = await load();
+    const res = await fn.fetch(fn.request(req()));
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
+    const settle = scenario.writes.find((w) => w.table === "payout_transfers" && w.op === "update" && (w.payload as Record<string, unknown>)?.stripe_transfer_id === "tr_sched");
+    expect((settle?.payload as Record<string, unknown>)?.amount_cents).toBe(sent);
+    expect((JSON.parse(await res.text()) as Record<string, unknown>).amount_cents).toBe(sent);
+  });
+
   it("an orphaned claim + a NON-matching unrecorded transfer: 409, page, no transfers.create", async () => {
     seedPayableJob(scenario);
     scenario.reads.payout_transfers = { rows: [{ id: "led-orphan", helper_id: "helper-1", stripe_transfer_id: null, status: "pending", created_at: new Date(Date.now() - 10 * 60 * 1000).toISOString() }] };

@@ -1239,6 +1239,10 @@ serve(async (req) => {
       }
     }
   }
+  // Q2176: an adopted transfer already moved its own amount. Everything after this (the ledger settle, the
+  // dispute stamp, the audit row, the response) records what Stripe sent, never this run's recompute, which
+  // differs when the onboarding fee or a Helpr-fault debt changed between the runs.
+  if (adopted && unrecorded.kind === "adopt") payoutCents = unrecorded.amountCents;
   try {
     transfer = adopted
       ? ({ id: adopted, transfer_group: `job_${job.id}` } as Stripe.Transfer)

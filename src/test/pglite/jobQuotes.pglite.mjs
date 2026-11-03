@@ -456,12 +456,12 @@ await step("grants: no anon EXECUTE on any quote RPC; helpers not client-callabl
   check("grants: no anon EXECUTE on any quote RPC; helpers not client-callable", rows.length === 14 && bad.length === 0, `rows=${rows.length} bad=${bad.map((r) => r.proname)}`);
 });
 
-// Q2390 packets 2-4 (20261103041633, 20261103042402, 20261103043002): a missing quote or request (or one that is not the caller's) is
+// Q2390 packets 2-5 (20261103041633, 20261103042402, 20261103043002, 20261103043845): a missing quote or request (or one that is not the caller's) is
 // SQLSTATE PT404, which PostgREST answers HTTP 404; P0002 answered 500. NOT_FOUND_MIGRATION=skip leaves both out (RED).
 await step("Q2390: a missing quote or request answers PT404 (HTTP 404), never P0002 (HTTP 500)", async () => {
   if (!BEFORE && process.env.NOT_FOUND_MIGRATION !== "skip") {
     const q2390 = ["20261103041633_quote_not_found_is_404.sql", "20261103042402_booking_continue_day_nudge_not_found_is_404.sql",
-      "20261103043002_job_offers_arrival_continue_day_not_found_is_404.sql"];
+      "20261103043002_job_offers_arrival_continue_day_not_found_is_404.sql", "20261103043845_cancel_quote_request_not_found_is_404.sql"];
     for (let i = 0; i < (REPLAY ? 3 : 1); i++) for (const f of q2390) await db.exec(readFileSync(DIR + f, "utf8"));
   }
   const code = async (uid, sql) => {
@@ -479,11 +479,12 @@ await step("Q2390: a missing quote or request answers PT404 (HTTP 404), never P0
   const bk = await code(QB, `SELECT public.book_accepted_quote('${NONE}')`);
   const sb = await code(QB, `SELECT public.submit_job_quote('${NONE}', 8000, 'ok', 'Friday')`);
   const rs = await code(QB, `SELECT public.respond_to_job_quote('${NONE}', 'accept')`);
+  const cq = await code(QB, `SELECT public.cancel_quote_request('${NONE}')`);
   check(
     "Q2390: a missing quote or request answers PT404 (HTTP 404), never P0002 (HTTP 500)",
     wd === "PT404:unknown_quote" && sw === "PT404:unknown_request" && gq === "PT404:unknown_request" && bk === "PT404:unknown_request" &&
-      sb === "PT404:unknown_request" && rs === "PT404:unknown_quote",
-    `${wd} | ${sw} | ${gq} | ${bk} | ${sb} | ${rs}`,
+      sb === "PT404:unknown_request" && rs === "PT404:unknown_quote" && cq === "PT404:unknown_request",
+    `${wd} | ${sw} | ${gq} | ${bk} | ${sb} | ${rs} | ${cq}`,
   );
 });
 

@@ -44,7 +44,10 @@ import { trackedFiles } from "./helpers/trackedFiles";
 // 39 since Q2190 slice 2 (Builder 14, 2026-11-02): CompleteProfileIntro, arrivalRefresh, UserProfile,
 // HelperAvailability, useProfileTabData, useUserProfileData (last active, repeat hire), useAdminUserSummaries
 // (last logins, last activity) and UserAuditLog.
-const RAW_PGRST202_SITES = 39;
+// 29 since Q2190 slice 3 (Builder 17, 2026-11-02, money/gate/authz): messagingLockout, offJobGate, recipientGate,
+// userBlocks, EarningsExport, usePosterSpendData, CancellationDialog (the unavailable message; the old-arguments retry
+// stays raw, above), AdminDisputes and useOfferHandlers (respond_to_direct_offer, decline_job_offer).
+const RAW_PGRST202_SITES = 29;
 
 const ROOT = process.cwd();
 const isTest = (f: string) => /\.test\.tsx?$/.test(f) || f.startsWith("src/test/");

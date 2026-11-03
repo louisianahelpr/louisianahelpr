@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import type { PostgrestError } from "@supabase/supabase-js";
 import { unwrapMutation } from "@/lib/mutationResult";
@@ -441,7 +442,7 @@ const AdminDisputes = () => {
         },
       );
 
-      if (rpcError && rpcError.code !== "PGRST202") {
+      if (rpcError && !isMissingRpcNamed(rpcError, "rpc_decide_dispute")) {
         // The disputes table may not exist yet (PGRST205) — fall back
         // to writing dispute_resolved_at on the job row + nothing
         // else. The decision text isn't persisted in that case but

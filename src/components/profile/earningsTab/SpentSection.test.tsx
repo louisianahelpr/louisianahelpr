@@ -23,7 +23,7 @@
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], data?.tips ?? [], data?.blockFees ?? []); | const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], [], data?.blockFees ?? []);
 // Q1736: the crew block fees an uncaptured hold's capture took.
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], data?.tips ?? [], data?.blockFees ?? []); | const allRows = spentRows(data?.jobs ?? [], data?.refunds ?? [], data?.gifts ?? [], data?.tips ?? []);
-// @mutate src/components/profile/earningsTab/usePosterSpendData.ts | blockFees: blockFees.error?.code === "PGRST202" ? [] : ((unwrap(blockFees) ?? []) as PosterBlockFeeRow[]), | blockFees: (unwrap(blockFees) ?? []) as PosterBlockFeeRow[],
+// @mutate src/components/profile/earningsTab/usePosterSpendData.ts | blockFees: isMissingRpcNamed(blockFees.error, "poster_crew_block_fee_cents") ? [] : ((unwrap(blockFees) ?? []) as PosterBlockFeeRow[]), | blockFees: (unwrap(blockFees) ?? []) as PosterBlockFeeRow[],
 // @mutate src/components/profile/earningsTab/SpentSection.tsx | {formatCents(r.cents)} | {formatCents(Math.round((r.job?.budget ?? 0) * 100))}
 // @mutate src/components/profile/earningsTab/usePosterSpendData.ts | supabase.from("jobs").select(columns).eq("customer_id", posterId), | supabase.from("jobs").select(columns).eq("customer_id", posterId).eq("status", "completed"),
 // @mutate src/components/profile/earningsTab/usePosterSpendData.ts | .eq("tipper_id", posterId), | .eq("helper_id", posterId),

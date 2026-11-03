@@ -41,6 +41,9 @@
  * @mutate supabase/functions/void-cancelled-payments/index.ts | cancellationFee = Math.min(Math.round(cancellationFee * 100), cardLeftCents + holdGiftKeptOnlyCents) / 100; | cancellationFee = cancellationFee;
  * @mutate supabase/functions/void-cancelled-payments/index.ts | ...(cardGiftGone \|\| crewShareReturned ? { cancellation_fee: cancellationFee } : {}), | ...(crewShareReturned ? { cancellation_fee: cancellationFee } : {}),
  * @mutate supabase/functions/void-cancelled-payments/index.ts | } else if (cardGift \|\| cardGiftGone) { | } else if (cardGift) {
+ * @mutate supabase/functions/void-cancelled-payments/index.ts | }, "refund", cardGiftKeptCents, giftKeptBreakdown( | }, "refund", cardGiftKeptCents, undefined && giftKeptBreakdown(
+ * @mutate supabase/functions/void-cancelled-payments/index.ts | }, "fee capture", holdGiftKeptCents, giftKeptBreakdown( | }, "fee capture", holdGiftKeptCents, undefined && giftKeptBreakdown(
+ * @mutate supabase/functions/void-cancelled-payments/index.ts | const costs = Math.max(0, total - feeCents - blockCents); | const costs = 0;
  * @mutate supabase/functions/_shared/money.ts | return total <= chargeCents ? chargeId : undefined; | return chargeId;
  * @mutate supabase/functions/_shared/money.ts | const total = linked + | const total = 0 +
  * @mutate supabase/functions/_shared/money.ts | const chargeCents = Math.min(...figures) - Math.max(0, Math.round(Number(charge?.amount_refunded ?? 0))); | const chargeCents = Math.min(...figures);
@@ -218,6 +221,31 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
     expect(restored!).toBeLessThanOrEqual(GIFT - SHORT);
     expect(restored!).toBeGreaterThan(GIFT - SHORT - 5);
   });
+
+  // Q2095: the poster's one notice states the fee the cancel dialog showed,
+  // the card costs a refund never returns, and what came from the card and
+  // what from the gift ($150 fee on a $50 card + $250 gift job).
+  for (const [label, held] of [["captured card leg", false], ["uncaptured hold", true]] as const) {
+    it(`Q2095 (${label}): the gift notice gives the fee, the card costs, the card part and the gift part`, async () => {
+      seed();
+      if (held) stripeMock.paymentIntents.retrieve.mockResolvedValueOnce(heldPi());
+      stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi());
+      const h = await load();
+      await h.fetch(cronReq());
+
+      const notes = scenario.writes.filter((w) => w.table === "notifications" && (w.payload as { title?: string }).title === "Your gift is back");
+      expect(notes, label).toHaveLength(1);
+      const msg = String((notes[0].payload as { message?: string }).message);
+      const kept = GIFT - (restoredCents() ?? GIFT);
+      expect(kept).toBeGreaterThan(0);
+      // formatExactDollars: whole dollars carry no cents.
+      const usd = (c: number) => (c % 100 === 0 ? `$${c / 100}` : `$${(c / 100).toFixed(2)}`);
+      expect(msg).toContain(`The cancellation kept ${usd(CARD + kept)}: ${usd(FEE)} for your Helpr's time and ${usd(CARD + kept - FEE)} in card and setup costs a refund can't return.`);
+      expect(msg).toContain(`${usd(CARD)} of it came from your card and ${usd(kept)} from the gift.`);
+      // The old wording folded the card fee into "the cancellation fee".
+      expect(msg).not.toMatch(/paid your Helpr/);
+    });
+  }
 
   it("review #1: the hold path and the captured path price the same shortfall (card fee above Stripe's, a kept setup fee)", async () => {
     // A $3 card-cost fee (more than Stripe's 175c) and a first job's $2 setup fee: both kept from the card.

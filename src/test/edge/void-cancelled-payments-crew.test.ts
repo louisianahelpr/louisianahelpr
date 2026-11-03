@@ -687,7 +687,7 @@ describe("void-cancelled-payments: a fully gift-funded crew's block fee is kept 
   // platform balance (no charge to link); review #6: the gift notice says
   // what the gift kept.
   // @mutate supabase/functions/void-cancelled-payments/index.ts |           const paidFirst = await payCrewBlockFees({ stripe, admin: supabaseAdmin, fn: "void-cancelled-payments", liveGates }, job, blockFeeRows, null); |           const paidFirst = { problems: [] as string[] };
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |                 ? ` $${formatExactDollars(Math.min(withholdCents, keptForBlockFees) / 100)} of it paid ${withholdReason}.` |                 ? ""
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |                   : ` $${formatExactDollars(Math.min(withholdCents, keptForBlockFees) / 100)} of it paid ${withholdReason}.` |                   : ""
   it("pays the block fee first from the platform balance, and the gift notice names what it kept", async () => {
     seedGiftCrew([BLOCK]);
     const h = await load();

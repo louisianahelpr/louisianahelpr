@@ -24,6 +24,7 @@ import { trackingProofCaption } from "./trackingProofCaption";
 import { railDisplayIdx } from "@/components/tracker/railDisplayIdx";
 import { report } from "@/lib/errorLogger";
 import { trackJobCompleted } from "@/lib/jobCompletedEvent";
+import { fireSuccessMoment } from "@/lib/successMoment";
 import { BEFORE_PHOTO_GATE_REASON, isExpectedLifecycleRefusal, lifecycleErrorMessage, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 import { hasRequiredProof, requiredProof } from "@/lib/photoProofPolicy";
@@ -857,7 +858,14 @@ export function JobTracking({
         } else {
           // Analytics (Q222): the Helpr's Done finished a job the poster had
           // already approved. Once per job.
-          trackJobCompleted(jobId, rel as { bothDone?: boolean } | null, "job_tracking", helperId);
+          // Success moment (Q2029): this Done finished the job, the same
+          // checkmark beat the poster's release plays (useLifecycleHandlers).
+          // trackJobCompleted is true only for a NEW completion, so a replayed
+          // release never plays it twice. The overlay respects Reduce Motion;
+          // the success haptic fires once below, with the step toast.
+          if (trackJobCompleted(jobId, rel as { bothDone?: boolean } | null, "job_tracking", helperId)) {
+            fireSuccessMoment({ label: "Job completed" });
+          }
         }
       }
     }

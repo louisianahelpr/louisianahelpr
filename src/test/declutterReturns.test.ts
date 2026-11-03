@@ -100,7 +100,7 @@ describe("Declutter returns: the two free ways, one atomic answer, one money pat
       "src/lib/declutter/refundReturns.ts",
       "src/components/declutter/DeclutterRefundReturn.tsx",
       "src/components/declutter/DeclutterRefundRequest.tsx",
-      "src/lib/lifecycleErrors.ts",
+      "src/lib/lifecycleErrorCopy.ts",
       "src/integrations/supabase/types.ts",
     ]);
     const marks = [...RETURN_RPCS, "refundReturns", "DeclutterRefundReturn", "drop-off photo", "Both ways are free"];

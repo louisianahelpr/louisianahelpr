@@ -8,7 +8,7 @@
  */
 // @mutate src/components/job-card/JobListPage.tsx |   useEffect(() => startTabChunk(tab), [tab]); |
 // @mutate src/components/job-card/JobListPage.tsx |   (tab === "posted" ? loadPostedTab : loadAppliedTab)().catch(() => { |   (tab === "posted" ? loadAppliedTab : loadPostedTab)().catch(() => {
-// @mutate src/components/job-card/JobListPage.tsx | const PostedJobsTab = lazy(() => loadPostedTab().then((m) => ({ default: m.PostedJobsTab }))); | const PostedJobsTab = lazy(() => import("@/pages/posts/PostedJobsTab").then((m) => ({ default: m.PostedJobsTab })));
+// @mutate src/components/job-card/JobListPage.tsx | const PostedJobsTab = lazy(() => loadPostedTab().then((m) => (m ? { default: m.PostedJobsTab } : untilReload()))); | const PostedJobsTab = lazy(() => import("@/pages/posts/PostedJobsTab").then((m) => ({ default: m.PostedJobsTab })));
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

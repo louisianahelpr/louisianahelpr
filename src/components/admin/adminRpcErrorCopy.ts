@@ -22,7 +22,8 @@
  */
 import { DECLUTTER_ERROR_COPY as DC } from "@/lib/declutter/errors";
 import { RENTALS_ERROR_COPY as RC } from "@/lib/rentals/errorCopy";
-import { codeNamedIn, RPC_ERROR_COPY, type MappedRpc } from "@/lib/lifecycleErrors";
+import { codeNamedIn, type MappedRpc } from "@/lib/lifecycleErrors";
+import { RPC_ERROR_COPY } from "@/lib/lifecycleErrorCopy";
 
 export const ADMIN_RPC_ERROR_COPY = {
   // UserAuditLog (admin).

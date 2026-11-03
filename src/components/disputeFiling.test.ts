@@ -182,7 +182,7 @@ describe("a dispute cannot be filed with no explanation", () => {
     // Without this the RPC's terse code reaches the toast verbatim — the exact
     // complaint that produced lifecycleErrors.ts in the first place ("I'm
     // trying to file a dispute but it's not letting me").
-    const errs = readFileSync(resolve(__dirname, "../lib/lifecycleErrors.ts"), "utf8");
+    const errs = readFileSync(resolve(__dirname, "../lib/lifecycleErrorCopy.ts"), "utf8");
     expect(errs).toContain("dispute_needs_description");
   });
 });

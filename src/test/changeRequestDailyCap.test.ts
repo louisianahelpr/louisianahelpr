@@ -12,7 +12,7 @@
  *
  * @mutate supabase/migrations/20261012045427_change_request_daily_cap.sql | IF v_count >= 5 THEN | IF false THEN
  * @mutate supabase/migrations/20261012045427_change_request_daily_cap.sql | CREATE TRIGGER change_request_daily_cap_tg\n  BEFORE INSERT ON public.job_schedule_change_requests | CREATE TRIGGER change_request_daily_cap_tg\n  BEFORE UPDATE ON public.job_schedule_change_requests
- * @mutate src/lib/lifecycleErrors.ts |   change_request_rate_limited: "You've asked | //   change_request_rate_limited: "You've asked
+ * @mutate src/lib/lifecycleErrorCopy.ts |   change_request_rate_limited: "You've asked | //   change_request_rate_limited: "You've asked
  * @mutate src/lib/scheduleChange.ts | rpcErrorMessage("request_job_schedule_change", error) ?? copy.lifecycleErrorMessage(error) | rpcErrorMessage("request_job_schedule_change", error)
  */
 import { describe, expect, it } from "vitest";

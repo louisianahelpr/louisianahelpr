@@ -7,7 +7,7 @@
 // @mutate supabase/migrations/20261021110531_jobs_address_in_louisiana.sql |   IF v_zip IS NOT NULL AND (v_zip < '70000' OR v_zip > '71499') THEN |   IF false THEN
 // @mutate supabase/migrations/20261021110531_jobs_address_in_louisiana.sql | CREATE TRIGGER zz_jobs_address_in_louisiana | CREATE TRIGGER aa_jobs_address_in_louisiana
 // @mutate supabase/migrations/20261021110531_jobs_address_in_louisiana.sql |   BEFORE INSERT OR UPDATE OF location, latitude, longitude ON public.jobs |   BEFORE UPDATE OF title ON public.jobs
-// @mutate src/lib/lifecycleErrors.ts |   job_address_not_louisiana: "Helpr is in Louisiana only for now. Use a Louisiana address.", |
+// @mutate src/lib/lifecycleErrorCopy.ts |   job_address_not_louisiana: "Helpr is in Louisiana only for now. Use a Louisiana address.", |
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

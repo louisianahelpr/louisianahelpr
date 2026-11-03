@@ -32,7 +32,7 @@ describe("Report and Block on a Wanted post", () => {
   });
 
   it("the block's refusal has words, and the card and the sheet both offer Report and Block", () => {
-    expect(code("src/lib/lifecycleErrors.ts")).toContain("wanted_block_shared_job: DC.wanted_block_shared_job");
+    expect(code("src/lib/lifecycleErrorCopy.ts")).toContain("wanted_block_shared_job: DC.wanted_block_shared_job");
     const replies = code("src/components/declutter/DeclutterWantedReplies.tsx");
     expect(replies.match(/<WantedPostSafety post=/g)?.length).toBe(2);
     expect(replies).toContain('reportedType="declutter_wanted"');

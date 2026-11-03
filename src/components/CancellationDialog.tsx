@@ -266,7 +266,7 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
         p_reason: reason.trim() || undefined,
         p_expected_fee_cents: expectedFeeCents,
       });
-      if (error && rpcErrorCode("poster_cancel_job", error) === "quote_changed") {
+      if (error && (await rpcErrorCode("poster_cancel_job", error)) === "quote_changed") {
         // Nothing was cancelled. Show the new fee and let the poster decide again.
         // Reported (lh-money-escrow review): a tier crossing clears on the
         // re-quote, so the same job reported twice in a row means the quote and
@@ -309,11 +309,9 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
         if (String(error.message ?? "").trim() === "not_cancellable" && /already marked this job done/i.test(doneHint)) {
           throw new Error(doneHint);
         }
-        throw new Error(
-          rpcErrorMessage("poster_cancel_job", error) ??
-            error.message ??
-            "Couldn't cancel — please try again",
-        );
+        // Never the error's own message: it is a raw code (lifecycleErrors.ts answers null for one it has no words
+        // for, and for every code while its words are still loading).
+        throw new Error(rpcErrorMessage("poster_cancel_job", error) ?? "Couldn't cancel — please try again");
       }
 
       const result = (verdict ?? {}) as {

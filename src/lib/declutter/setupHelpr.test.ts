@@ -18,8 +18,8 @@
  * @mutate src/lib/declutter/setupHelpr.ts |    handover: raw.handover === "porch" \|\| raw.handover === "delivery" \|\| raw.handover === "seller_delivery" ? raw.handover : "pickup_home", |    handover: raw.handover === "porch" ? "porch" : "pickup_home",
  * @mutate src/lib/declutter/setupHelpr.ts |    handover: raw.handover === "porch" \|\| raw.handover === "delivery" \|\| raw.handover === "seller_delivery" ? raw.handover : "pickup_home", |    handover: raw.handover === "porch" \|\| raw.handover === "delivery" ? raw.handover : "pickup_home",
  * @mutate src/lib/declutter/setupHelpr.ts |     const msg = rpcErrorMessage("declutter_link_setup_job", error); |     const msg = null;
- * @mutate src/lib/lifecycleErrors.ts |     job_already_funded: DC.job_already_funded,\n | \n
- * @mutate src/lib/lifecycleErrors.ts |   declutter_link_setup_job: {\n    account_restricted: DC.account_restricted,\n |   declutter_link_setup_job: {\n
+ * @mutate src/lib/lifecycleErrorCopy.ts |     job_already_funded: DC.job_already_funded,\n | \n
+ * @mutate src/lib/lifecycleErrorCopy.ts |   declutter_link_setup_job: {\n    account_restricted: DC.account_restricted,\n |   declutter_link_setup_job: {\n
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

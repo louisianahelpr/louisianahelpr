@@ -141,7 +141,7 @@ describe("Declutter Add a Helpr", () => {
   });
 
   it("the client has words for every refusal the link can give, and shows them when it fails", async () => {
-    const { RPC_ERROR_COPY } = await import("@/lib/lifecycleErrors");
+    const { RPC_ERROR_COPY } = await import("@/lib/lifecycleErrorCopy");
     const copy = RPC_ERROR_COPY.declutter_link_setup_job as Record<string, string>;
     const raised = [...fnBody("declutter_link_setup_job").matchAll(/RAISE EXCEPTION '([a-z_]+)'/g)].map((m) => m[1]);
     expect(raised.length).toBeGreaterThan(2);

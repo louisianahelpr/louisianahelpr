@@ -263,9 +263,11 @@ describe("declutterItemSplit itemShared: the job lists do not download Declutter
 
   it("every item-page module the /jobs first screen runs is in itemShared", () => {
     const used = [...itemPages].filter((f) => jobs.has(f));
-    expect(used.length).toBeGreaterThan(4);
+    // 4 since B48 (11-03): the refusal words (lifecycleErrorCopy.ts) and what only they read left the /jobs boot.
+    expect(used.length).toBeGreaterThan(3);
     for (const f of used) expect(itemShared.has(f), `${f}: /jobs would fetch declutter-item-pages for it`).toBe(true);
-    for (const rel of ["src/lib/lifecycleErrors.ts", "src/lib/offerDeadline.ts"]) expect(itemShared.has(abs(rel)), rel).toBe(true);
+    // offerDeadline.ts left the item page with the refusal words (B48): only lifecycleErrors.ts is pinned here now.
+    for (const rel of ["src/lib/lifecycleErrors.ts"]) expect(itemShared.has(abs(rel)), rel).toBe(true);
   });
 
   it("Declutter's own item-page code stays out of itemShared", () => {

@@ -81,7 +81,7 @@ import {
   withdrawJobQuote,
   type NewQuoteRequest,
 } from "./api";
-import { RPC_ERROR_COPY } from "@/lib/lifecycleErrors";
+import { RPC_ERROR_COPY } from "@/lib/lifecycleErrorCopy";
 
 type Thrown = Error & { userMessage?: string };
 

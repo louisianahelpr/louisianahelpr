@@ -12,7 +12,7 @@
 // @mutate supabase/functions/void-cancelled-payments/index.ts | const holdSplit = posterCancelSplit({ | const holdSplit = posterCancelSplitCopy({
 // @mutate supabase/functions/create-payment/index.ts |           const holdSplit = posterCancelSplit({ |           const holdSplit = posterCancelSplitCopy({
 // @mutate supabase/migrations/20261102074317_cancel_fee_waived_payee_under_review.sql |     RAISE EXCEPTION 'quote_changed' |     RAISE NOTICE 'quote_changed'
-// @mutate src/lib/lifecycleErrors.ts |     quote_changed: "The amount for your Helpr's time changed | quote_changed_old: "The amount for your Helpr's time changed
+// @mutate src/lib/lifecycleErrorCopy.ts |     quote_changed: "The amount for your Helpr's time changed | quote_changed_old: "The amount for your Helpr's time changed
 // @mutate src/components/CancellationDialog.tsx |         p_expected_fee_cents: expectedFeeCents, |         p_expected_fee_cents: undefined,
 // @mutate src/components/CancellationDialog.tsx |   const backToYouCents = typeof quote?.back_to_you_cents === "number" ? quote.back_to_you_cents : null; |   const backToYouCents = Math.round(jobBudget * 100) - (typeof quote?.fee_cents === "number" ? quote.fee_cents : 0);
 // @mutate src/components/CancellationDialog.tsx |         setQuoteNonce((n) => n + 1); |
@@ -83,7 +83,7 @@ describe("poster_cancel_job refuses a fee the poster was not shown", () => {
   });
 
   it("the refusal has words", () => {
-    expect(code("src/lib/lifecycleErrors.ts")).toMatch(/poster_cancel_job:\s*\{[\s\S]*?quote_changed:\s*"The amount for your Helpr's time changed/);
+    expect(code("src/lib/lifecycleErrorCopy.ts")).toMatch(/poster_cancel_job:\s*\{[\s\S]*?quote_changed:\s*"The amount for your Helpr's time changed/);
   });
 });
 

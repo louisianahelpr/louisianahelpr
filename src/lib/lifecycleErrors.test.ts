@@ -1,20 +1,13 @@
 import { afterEach, describe, it, expect, vi } from "vitest";
-import {
-  RPC_ERROR_COPY,
-  codeNamedIn,
-  isExpectedLifecycleRefusal,
-  lifecycleErrorMessage,
-  loadAdminRpcErrorCopy,
-  rpcErrorCode,
-  rpcErrorMessage,
-} from "./lifecycleErrors";
+import { codeNamedIn, isExpectedLifecycleRefusal, lifecycleErrorMessage, loadAdminRpcErrorCopy, rpcErrorCode, rpcErrorMessage } from "./lifecycleErrors";
+import { RPC_ERROR_COPY } from "./lifecycleErrorCopy";
 import { WriteRejectedError } from "./mutationResult";
 
 describe("rpcErrorMessage", () => {
-  it("a Cancel job that lands after the job was marked complete says so, not 'check your connection'", () => {
+  it("a Cancel job that lands after the job was marked complete says so, not 'check your connection'", async () => {
     // PostgREST hands the RAISE text back as the message, verbatim.
     const err = { code: "P0001", message: "job_already_completed", hint: "Once a job is marked done it is final." };
-    expect(rpcErrorCode("helper_abort_job", err)).toBe("job_already_completed");
+    await expect(rpcErrorCode("helper_abort_job", err)).resolves.toBe("job_already_completed");
     expect(rpcErrorMessage("helper_abort_job", err)).toBe("This job was just marked complete, so it can't be cancelled.");
   });
 
@@ -24,8 +17,8 @@ describe("rpcErrorMessage", () => {
     expect(rpcErrorMessage("helper_abort_job", err)).not.toMatch(/disput/i);
   });
 
-  it("matches whole codes only, and returns null for anything it has no words for", () => {
-    expect(rpcErrorCode("poster_cancel_job", { message: "not_authorized_extra" })).toBeNull();
+  it("matches whole codes only, and returns null for anything it has no words for", async () => {
+    await expect(rpcErrorCode("poster_cancel_job", { message: "not_authorized_extra" })).resolves.toBeNull();
     expect(rpcErrorMessage("helper_abort_job", { message: "new row violates row-level security policy" })).toBeNull();
     expect(rpcErrorMessage("helper_abort_job", null)).toBeNull();
     expect(rpcErrorMessage("apply_to_job", "rate_limit_day")).toBe("You've hit today's application limit — check back tomorrow.");
@@ -85,12 +78,12 @@ describe("codeNamedIn, and an RPC's own table", () => {
     expect(codeNamedIn(codes, null)).toBeNull();
   });
 
-  it("reads an RPC's own table, and nothing from another RPC's", () => {
+  it("reads an RPC's own table, and nothing from another RPC's", async () => {
     const rpc = "create_quote_request" as const;
     const table = RPC_ERROR_COPY[rpc] as Record<string, string>;
     const code = Object.keys(table)[0];
     expect(Object.keys(table).length).toBeGreaterThan(3);
-    expect(rpcErrorCode(rpc, new Error(code))).toBe(code);
+    await expect(rpcErrorCode(rpc, new Error(code))).resolves.toBe(code);
     expect(rpcErrorMessage(rpc, new Error(code))).toBe(table[code]);
     expect(rpcErrorMessage(rpc, new Error("a_code_no_table_has"))).toBeNull();
   });

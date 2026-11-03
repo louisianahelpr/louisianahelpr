@@ -87,6 +87,10 @@ vi.mock("@/integrations/supabase/client", () => ({
           }),
         };
       }
+      // Admin → Jobs reads the open continue days beside the jobs (owner report 11-03); none here.
+      if (table === "job_continue_days") {
+        return { select: () => ({ eq: () => ({ is: async () => ({ data: [], error: null }) }) }) };
+      }
       if (table === "profiles") {
         return {
           select: () => ({

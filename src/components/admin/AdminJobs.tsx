@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { warnIfGiftNotReturned } from "./giftRestoreWarning";
 import type { Job } from "./adminJobs/types";
 import { useApplicantCounts } from "./adminJobs/useApplicantCounts";
-import { detectFlags, isStaleOnly, isGhostJob, isActivePaidJob, FLAG_LIVE_STATUSES, withHeldJobCancelled } from "./adminJobs/adminJobsHelpers";
+import { detectFlags, fetchOpenContinueDates, isStaleOnly, isGhostJob, isActivePaidJob, FLAG_LIVE_STATUSES, withHeldJobCancelled } from "./adminJobs/adminJobsHelpers";
 import { useResolvedFlags } from "./adminJobs/useResolvedFlags";
 import { AdminViewShell, AdminCard, AdminFilterStrip } from "./AdminViewShell";
 import { JobListItem } from "./adminJobs/JobListItem";
@@ -81,18 +81,20 @@ const AdminJobs = () => {
   const [overriding, setOverriding] = useState(false);
   const [filter, setFilter] = useState<"all" | "flagged" | "resolved" | "ghost" | "active">("active");
   const [jobFlags, setJobFlags] = useState<Map<string, string[]>>(new Map());
+  const [continueDates, setContinueDates] = useState<Map<string, string>>(new Map()); // owner report 11-03
   const { resolvedFlags, markFlagResolved, reopenFlag } = useResolvedFlags();
 
   useEffect(() => {
     const load = async () => {
       // Q1461: + materials_note for the job dialog, through readJobsAheadOfDb
       // (a database behind this build answers 42703; it asks again without).
-      const { data, error } = await readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note`, (columns) => supabase
+      const [{ data, error }, nextDates] = await Promise.all([readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note`, (columns) => supabase
         .from("jobs")
         // Named columns: `*` includes offered_to_helper_id, which is not
         // selectable (20260915045110) and 42501s the whole read.
         .select(columns)
-        .order("created_at", { ascending: false }));
+        .order("created_at", { ascending: false })), fetchOpenContinueDates()]);
+      setContinueDates(nextDates);
       if (error) {
         console.error("[AdminJobs] load:", error);
         toast.error("Couldn't load jobs — refresh to retry.");
@@ -103,7 +105,7 @@ const AdminJobs = () => {
         const flagMap = new Map<string, string[]>();
         for (const job of rows) {
           const existingFlags = job.flag_reasons || [];
-          const detected = detectFlags(job);
+          const detected = detectFlags(job, nextDates.get(job.id));
           const allFlags = [...new Set([...existingFlags, ...detected])];
           if (allFlags.length > 0) flagMap.set(job.id, allFlags);
         }
@@ -499,7 +501,7 @@ const AdminJobs = () => {
             key={job.id}
             job={job}
             flags={jobFlags.get(job.id)}
-            isResolved={resolvedFlags.has(job.id)}
+            isResolved={resolvedFlags.has(job.id)} continueDate={continueDates.get(job.id)}
             onOpen={openJob}
             applicantCount={filter === "active" ? applicantCounts?.get(job.id) : undefined}
           />

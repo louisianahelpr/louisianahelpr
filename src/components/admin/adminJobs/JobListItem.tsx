@@ -5,10 +5,12 @@ import { jobPaymentStatusLabel } from "@/lib/statusLabels";
 import { categoryLabels, paymentColors, type Job } from "./types";
 import { formatJobDate } from "@/lib/dateUtils";
 import { formatPrice, formatCategory } from "@/lib/format";
-import { STALE_DATE_FLAG, moderationFlags } from "./adminJobsHelpers";
+import { STALE_DATE_FLAG, moderationFlags, nextJobDate } from "./adminJobsHelpers";
 
 interface JobListItemProps {
   job: Job;
+  /** The job's open continue day (owner report 11-03): shown, and checked, instead of date_needed. */
+  continueDate?: string;
   flags: string[] | undefined;
   isResolved: boolean;
   onOpen: (job: Job) => void;
@@ -31,7 +33,8 @@ interface JobListItemProps {
  * the single card with an actual moderation flag. Staleness is now a quiet
  * amber note and only real flags tint the card.
  */
-export const JobListItem = ({ job, flags, isResolved, onOpen, applicantCount }: JobListItemProps) => {
+export const JobListItem = ({ job, flags, isResolved, onOpen, applicantCount, continueDate }: JobListItemProps) => {
+  const next = nextJobDate(job, continueDate);
   const modFlags = moderationFlags(flags);
   const isStale = !!flags?.includes(STALE_DATE_FLAG);
   // Only MODERATION flags earn the destructive card treatment.
@@ -76,7 +79,7 @@ export const JobListItem = ({ job, flags, isResolved, onOpen, applicantCount }: 
 
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-ds-11 text-muted-foreground">
         <span className="flex items-center gap-1 min-w-0"><MapPin className="w-3 h-3 shrink-0" /> <span title={job.location ?? undefined} className="truncate">{job.location}</span></span>
-        <span className="flex items-center gap-1"><CalendarClock className="w-3 h-3 shrink-0" /> {formatJobDate(job.date_needed)}</span>
+        <span className="flex items-center gap-1"><CalendarClock className="w-3 h-3 shrink-0" /> {formatJobDate(next.date)}{next.continues ? " · continues" : ""}</span>
         <span className="font-medium text-foreground">${formatPrice(job.budget ?? 0)}</span>
         {applicantCount !== undefined && (
           <span className="flex items-center gap-1 font-medium text-foreground">

@@ -1,6 +1,8 @@
 import { safeStorage } from "@/lib/safeStorage";
 import type { Job } from "./types";
 import { isPastDue } from "@/lib/jobDate";
+import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 import { MAX_JOB_BUDGET_DOLLARS, formatDollarsWhole } from "@/lib/moneyLimits";
 import { LISTED_PAYMENT_STATUSES } from "../../../../supabase/functions/_shared/listedPaymentStatus";
 
@@ -97,8 +99,45 @@ export const moderationFlags = (flags: string[] | undefined): string[] =>
 export const isStaleOnly = (flags: string[] | undefined): boolean =>
   !!flags?.includes(STALE_DATE_FLAG) && moderationFlags(flags).length === 0;
 
+// ─── The job's next date (owner report 11-03) ─────────────
+/**
+ * A job under way can continue on another day (job_continue_days, owner 2026-11-01). Job 7b1da54b was dated Sun 11/1
+ * with an agreed Thu 11/5 continue day, and Admin → Jobs said "Date needed has passed" and counted it stale-dated,
+ * because the card and the stale check read only jobs.date_needed. The next date is the latest OPEN continue day
+ * (status 'set', not closed), else date_needed. Admins read job_continue_days since 20261103212624.
+ */
+export type ContinueDayRow = { job_id: string; new_date: string; status: string; closed_at: string | null };
+
+/** Pure: job id -> the latest open continue day's date ('set' and not closed). */
+export function openContinueDates(rows: readonly ContinueDayRow[]): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const r of rows) {
+    if (r.status !== "set" || r.closed_at) continue;
+    const prev = out.get(r.job_id);
+    if (!prev || r.new_date > prev) out.set(r.job_id, r.new_date);
+  }
+  return out;
+}
+
+/** Every open continue day, for Admin → Jobs. A failed read is reported and reads as none (the card falls back to date_needed). */
+export async function fetchOpenContinueDates(): Promise<Map<string, string>> {
+  try {
+    const { data, error } = await supabase.from("job_continue_days").select("job_id, new_date, status, closed_at").eq("status", "set").is("closed_at", null);
+    if (error) report(error, { severity: "warning", tags: { source: "AdminJobs.continueDays" } });
+    return openContinueDates((data ?? []) as ContinueDayRow[]);
+  } catch (e) {
+    // A thrown read must not blank the job list it only enriches: report it, and every card falls back to date_needed.
+    report(e, { severity: "warning", tags: { source: "AdminJobs.continueDays" } });
+    return new Map();
+  }
+}
+
+/** The date Admin → Jobs shows and checks: the open continue day when there is one, else date_needed. */
+export const nextJobDate = (job: Pick<Job, "date_needed">, continueDate?: string | null): { date: string; continues: boolean } =>
+  continueDate ? { date: continueDate, continues: true } : { date: job.date_needed, continues: false };
+
 // ─── Auto-flag logic ──────────────────────────────────────
-export function detectFlags(job: Job): string[] {
+export function detectFlags(job: Job, continueDate?: string | null): string[] {
   const flags: string[] = [];
   const desc = (job.description || "").toLowerCase();
   const title = (job.title || "").toLowerCase();
@@ -144,7 +183,8 @@ export function detectFlags(job: Job): string[] {
   // always "earlier than today" and the moderation queue flagged every
   // same-day job as overdue. Eight active jobs dated today on prod, zero
   // actually past.
-  if (isPastDue(job.date_needed)) {
+  // Owner report 11-03: a job continuing on another day is dated by that day, not by its first date.
+  if (isPastDue(nextJobDate(job, continueDate).date)) {
     flags.push(STALE_DATE_FLAG);
   }
 

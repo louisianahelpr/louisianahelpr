@@ -138,7 +138,7 @@ describe("create-payment edge function", () => {
   });
 
   // One wallet (Q2139): the payer's ONE stored Stripe customer, never one found by email.
-  // @mutate supabase/functions/create-payment/index.ts | resolveStripeCustomer(supabaseAdmin, stripe, user, stripeMode, { adoptTagged: true }) | resolveStripeCustomer(supabaseAdmin, stripe, user, stripeMode)
+  // @mutate supabase/functions/create-payment/index.ts | withWalletCustomer(supabaseAdmin, stripe, user, stripeMode, fn, { adoptTagged: true }) | withWalletCustomer(supabaseAdmin, stripe, user, stripeMode, fn)
   // @mutate supabase/functions/_shared/stripeCustomer.ts | !c.deleted && c.metadata?.supabase_user_id === userId && CUSTOMER_ID_RE.test(c.id) | !c.deleted && CUSTOMER_ID_RE.test(c.id)
   // @mutate supabase/functions/_shared/stripeCustomer.ts |       .sort((a, b) => (b.created ?? 0) - (a.created ?? 0)); |       ;
   // @mutate supabase/functions/_shared/stripeCustomer.ts |         && !c.invoice_settings?.default_payment_method) |         )
@@ -1548,7 +1548,7 @@ describe("create-payment edge function", () => {
 
       // Review of 91927c016 #1: the retry after a refused stamp is at a new
       // price and must not reuse the old session's idempotency key.
-      // @mutate supabase/functions/create-payment/index.ts | idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${holdPlan ? "-h" : ""}${checkoutKeySuffix}`, | idempotencyKey: `escrow-${jobId}-m${feeModel}${payInFour ? "4" : ""}${holdPlan ? "-h" : ""}${checkoutKeySuffix}`,
+      // @mutate supabase/functions/create-payment/index.ts | idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${holdPlan ? "-h" : ""}${checkoutKeySuffix} | idempotencyKey: `escrow-${jobId}-m${feeModel}${payInFour ? "4" : ""}${holdPlan ? "-h" : ""}${checkoutKeySuffix}
       it("the checkout's idempotency key carries the price, so a new price never replays an old session (Q1846)", async () => {
         const keys: string[] = [];
         for (const budget of [100, 150]) {

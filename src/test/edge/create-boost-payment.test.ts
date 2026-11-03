@@ -38,7 +38,7 @@
 //   change hit Stripe's idempotency-mismatch error.
 // @mutate supabase/functions/create-boost-payment/index.ts | idempotencyKey: `boost:${user.id}:${job_id}:${paramsDigest}`, | idempotencyKey: `boost:${user.id}:${job_id}`,
 // Q2139 one wallet + Q2084 card only:
-// @mutate supabase/functions/create-boost-payment/index.ts |     const customerId = await resolveStripeCustomer(supabaseAdmin, stripe, user, stripeMode, { adoptTagged: true }); |     const customerId = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id ?? "cus_byemail";
+// @mutate supabase/functions/create-boost-payment/index.ts | withWalletCustomer(supabaseAdmin, stripe, user, stripeMode, async (customerId) => | ((_a: unknown, _b: unknown, _c: unknown, _d: unknown, f: (c: string, r: boolean) => unknown) => stripe.customers.list({ email: user.email, limit: 1 }).then((l: { data: Array<{ id: string }> }) => f(l.data[0]?.id ?? "cus_byemail", false)))(supabaseAdmin, stripe, user, stripeMode, async (customerId) =>
 // @mutate supabase/functions/create-boost-payment/index.ts |     if (error instanceof StripeCustomerUnavailable) { |     if (false) {
 // @mutate supabase/functions/create-boost-payment/index.ts |       adaptive_pricing: { enabled: false }, |
 import { describe, it, expect, beforeEach } from "vitest";

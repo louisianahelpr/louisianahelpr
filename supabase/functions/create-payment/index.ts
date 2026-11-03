@@ -76,7 +76,7 @@ import { refundReasonWithKeptParts } from "../_shared/refundReason.ts";
 import { TIP_WAITS_ON_ID_CODE, TIP_WAITS_ON_ID_MESSAGE, checkIdentityHold, checkPayoutHold, checkJobPayoutHold, IDENTITY_HOLD_MESSAGE, JOB_PAYOUT_HELD_MESSAGE, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { holdUnlessPayable, noteDestinationChargeRefused, reportLiveGateDefect } from "../_shared/livePayoutHold.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
-import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
+import { withWalletCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
 import { clawBackReleasedPayout } from "../_shared/chargebackClawback.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
 import { paymentMethodFromCharge, refundNoticeProblem, sendRefundNotice, type RefundNoticeInput } from "../_shared/refundNotice.ts";
@@ -394,9 +394,10 @@ serve(async (req) => {
     // their old customer adopted by its exact metadata.supabase_user_id tag
     // (create-payment always set it), never by email, so a card they saved
     // stays theirs.
-    let walletCustomerId: string | null = null;
-    const payerWalletCustomer = async (): Promise<string> =>
-      walletCustomerId ??= await resolveStripeCustomer(supabaseAdmin, stripe, user, stripeMode, { adoptTagged: true });
+    // Q2140: every payer Checkout runs through withWalletCustomer, so a wallet customer Stripe no longer has is
+    // replaced once and the session retried; no extra Stripe call otherwise.
+    const payerWallet = <T,>(fn: (walletCustomer: string, walletRetry: boolean) => Promise<T>): Promise<T> =>
+      withWalletCustomer(supabaseAdmin, stripe, user, stripeMode, fn, { adoptTagged: true });
 
     // ─── ESCROW: Create checkout with manual capture ───
     if (action === "escrow") {
@@ -1064,8 +1065,8 @@ serve(async (req) => {
           },
           quantity: 1,
         }];
-        const diffSession = await stripe.checkout.sessions.create({
-          customer: await payerWalletCustomer(),
+        const diffSession = await payerWallet((walletCustomer, walletRetry) => stripe.checkout.sessions.create({
+          customer: walletCustomer,
           customer_update: { address: "auto" },
           line_items: diffLineItems,
           mode: "payment",
@@ -1100,8 +1101,8 @@ serve(async (req) => {
             // default card (Q2139) only on a session marked so ("" = unset).
             wallet_save: saveCardForFuture === true ? "1" : "" },
         }, {
-          idempotencyKey: `gift-card-diff-${jobId}${priceKey}${checkoutKeySuffix}`,
-        });
+          idempotencyKey: `gift-card-diff-${jobId}${priceKey}${checkoutKeySuffix}${walletRetry ? ":new-wallet" : ""}`,
+        }));
 
         // Record the session on the job, exactly as the full-escrow path below
         // does. Two things depend on it and BOTH were blind on this branch:
@@ -1398,8 +1399,8 @@ serve(async (req) => {
         // hold window. The amount is the line items: a taxed category's hold
         // is confirmed by the poster on a Checkout page (its tax is computed
         // there), so a saved card never carries an untaxed charge.
-        const setupSession = await stripe.checkout.sessions.create({
-          customer: await payerWalletCustomer(),
+        const setupSession = await payerWallet((walletCustomer, walletRetry) => stripe.checkout.sessions.create({
+          customer: walletCustomer,
           mode: "setup",
           currency: "usd",
           payment_method_types: ["card", "link"],
@@ -1418,8 +1419,8 @@ serve(async (req) => {
             wallet_save: saveCardForFuture === true ? "1" : "",
           },
         }, {
-          idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}-hs${checkoutKeySuffix}`,
-        });
+          idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}-hs${checkoutKeySuffix}${walletRetry ? ":new-wallet" : ""}`,
+        }));
         const setupStamp = await stampSession(setupSession.id, escrowModelStamp);
         if (!setupStamp.ok) {
           console.error(`[create-payment] card-hold setup session ${setupSession.id} created for job ${jobId} but jobs.update failed:`, setupStamp.reason);
@@ -1437,8 +1438,8 @@ serve(async (req) => {
       const threeDSCents = payInFour ? 0 : lineItemsCents
         + (isPosterFee && laborTaxable ? salesTaxCeilingCents(posterFeeCents, job.category) : 0)
         + salesTaxCeilingCents(Math.round(job.budget * 100) + urgentFeeCents, job.category);
-      const session = await stripe.checkout.sessions.create({
-        customer: await payerWalletCustomer(),
+      const session = await payerWallet((walletCustomer, walletRetry) => stripe.checkout.sessions.create({
+        customer: walletCustomer,
         customer_update: { address: 'auto' },
         line_items: lineItems,
         mode: "payment",
@@ -1473,10 +1474,10 @@ serve(async (req) => {
         // The fee model and Pay-in-4 choice are part of the price (owner
         // 2026-10-18): a session opened on one model is never replayed for
         // a request on the other.
-        idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${holdPlan ? "-h" : ""}${checkoutKeySuffix}`,
+        idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${holdPlan ? "-h" : ""}${checkoutKeySuffix}${walletRetry ? ":new-wallet" : ""}`,
         // Q2399: per-method capture on Checkout needs this API version (one call only).
         ...(holdPlan ? { apiVersion: CARD_HOLD_CHECKOUT_API_VERSION } : {}),
-      } as Stripe.RequestOptions);
+      } as Stripe.RequestOptions));
 
       // Store both fee structures on the job. Fail the request if this write
       // fails: without stripe_session_id the double-payment guard is blind and
@@ -2326,8 +2327,8 @@ serve(async (req) => {
       // (error_logs) once a day (_shared/livePayoutHold.ts).
       let session;
       try {
-        session = await stripe.checkout.sessions.create({
-        customer: await payerWalletCustomer(),
+        session = await payerWallet((walletCustomer, walletRetry) => stripe.checkout.sessions.create({
+        customer: walletCustomer,
         line_items: [
           {
             price_data: {
@@ -2386,9 +2387,9 @@ serve(async (req) => {
         // A crew tip names its member too, so tipping two members the same
         // amount in one attempt window is two sessions, not one replayed.
         idempotencyKey: tipAttemptId
-          ? `tip-${jobId}-${user.id}${job.is_group_job ? `-${helperId}` : ""}-${tipCents}-c${tipQuote.chargeCents}-${tipAttemptId}`
-          : `tip-${jobId}-${user.id}${job.is_group_job ? `-${helperId}` : ""}-${tipCents}-c${tipQuote.chargeCents}-${Math.floor(Date.now() / 600_000)}`,
-      });
+          ? `tip-${jobId}-${user.id}${job.is_group_job ? `-${helperId}` : ""}-${tipCents}-c${tipQuote.chargeCents}-${tipAttemptId}${walletRetry ? ":new-wallet" : ""}`
+          : `tip-${jobId}-${user.id}${job.is_group_job ? `-${helperId}` : ""}-${tipCents}-c${tipQuote.chargeCents}-${Math.floor(Date.now() / 600_000)}${walletRetry ? ":new-wallet" : ""}`,
+      }));
       } catch (tipErr) {
         const refused = await noteDestinationChargeRefused(tipErr, {
           fn: "create-payment",
@@ -2536,8 +2537,8 @@ serve(async (req) => {
         });
       }
 
-      const session = await stripe.checkout.sessions.create({
-        customer: await payerWalletCustomer(),
+      const session = await payerWallet((walletCustomer, walletRetry) => stripe.checkout.sessions.create({
+        customer: walletCustomer,
         line_items: lineItems,
         mode: "payment",
         payment_method_types: ["card"],
@@ -2561,8 +2562,8 @@ serve(async (req) => {
         cancel_url: buildRedirectUrl(`/posts`, isNative),
         metadata: { kind: "recurring_visit", recurring_visit_payment_id: row.id, payer_id: user.id },
       }, {
-        idempotencyKey: `recurring-visit-checkout:${row.id}:${row.stripe_session_id ?? "first"}:${bucketSec}`,
-      });
+        idempotencyKey: `recurring-visit-checkout:${row.id}:${row.stripe_session_id ?? "first"}:${bucketSec}${walletRetry ? ":new-wallet" : ""}`,
+      }));
 
       const { data: stored, error: storeErr } = await supabaseAdmin
         .from("recurring_visit_payments")

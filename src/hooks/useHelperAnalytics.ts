@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { queryKeys } from "@/lib/queryKeys";
 import type { HelperAnalyticsPayload } from "@/lib/helperAnalytics";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 export const ANALYTICS_RANGES = [90, 365, 730] as const;
 export type AnalyticsRange = (typeof ANALYTICS_RANGES)[number];
@@ -68,7 +69,7 @@ export function useHelperAnalytics(
       const res = await supabase.rpc("get_helper_analytics", {
         p_days: days,
       });
-      if (res.error && (res.error as { code?: string }).code === "PGRST202") {
+      if (isMissingRpcNamed(res.error, "get_helper_analytics")) {
         return ANALYTICS_PENDING_DEPLOY;
       }
       // Everything else throws, error intact — never swallow a Supabase error.

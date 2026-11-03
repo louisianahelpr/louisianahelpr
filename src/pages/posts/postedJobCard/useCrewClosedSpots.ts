@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { report } from "@/lib/errorLogger";
 import { crewSpotsNeeded } from "./crewRefill";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /**
  * Q1498: how many of a booked crew's spots a block closed (crew_block_fees),
@@ -27,7 +28,7 @@ export function useCrewClosedSpots(
       const res = await supabase.rpc("crew_closed_spot_count", { p_job_id: job.id });
       // Deployed before its migration (functions and db deploy separately):
       // the old answer, roster rows only.
-      if (res.error?.code === "PGRST202") return 0;
+      if (isMissingRpcNamed(res.error, "crew_closed_spot_count")) return 0;
       // Any other error fails CLOSED (no refill offered), reported so a
       // hidden Applicants button is seen somewhere.
       if (res.error) report(res.error, { tags: { source: "useCrewClosedSpots" } });

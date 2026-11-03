@@ -49,15 +49,18 @@ describe("Ship it in Manage listing", () => {
 
   it("is hidden while the switch is off, for a listing that is not small, and for electronics", async () => {
     state.on = false;
+    const settle = () => new Promise((r) => setTimeout(r, 30));
     const a = show();
+    await settle();
     expect(a.container.querySelector("[data-ship-it-row]")).toBeNull();
     a.unmount();
     state.on = true;
     const b = show(false);
+    await settle();
     expect(b.container.querySelector("[data-ship-it-row]")).toBeNull();
     b.unmount();
     const c = show(true, "electronics");
-    await new Promise((r) => setTimeout(r, 20));
+    await settle();
     expect(c.container.querySelector("[data-ship-it-row]")).toBeNull();
     c.unmount();
     show(true, "kitchen");

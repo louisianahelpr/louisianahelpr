@@ -96,7 +96,7 @@
  * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
  * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
  * @mutate supabase/migrations/20261102084222_a3_stack_reconcile.sql | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    0);
- * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
+ * @mutate supabase/migrations/20261103095253_declutter_late_payment_seller_block.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_refunds SET card_fee_cents = 0, refund_cents = paid_cents WHERE fee_policy = 'keep_card_fee';\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
@@ -646,7 +646,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // amount or fee changed.
       // B110 (20261101191500, for lh-money-escrow): after the order is PAID, a pickup time chosen at checkout is booked
       // and named in the seller's "Buyer paid" line. No reason, amount, fee or refund path changed.
-      declutter_mark_order_paid: "20261101191500_declutter_checkout_pickup_time.sql 521fd16163d444dd",
+      // Q1926 (20261103095253, for lh-money-escrow via the lead): on a late in-time payment a SELLER who blocked the buyer
+      // now reads 'seller_backed_out' (full refund, the seller pays the card fee) instead of 'order_closed' (we paid it),
+      // when the items alone would still let the sale stand. The buyer's refund amount is unchanged (every cent).
+      declutter_mark_order_paid: "20261103095253_declutter_late_payment_seller_block.sql f8f081feda9562e7",
       // Owner 11-01 (B103, 20261101181129; lh-money-escrow via the lead): the giver's pick turns the asked time into a
       // paid FREE order ($0, card_fee_cents = 0, no payment) with its booking; it records no refund and moves no money.
       // A3-57 (20261102011547, Builder 125; re-pinned by Builder 151 after a line diff against 20261101181129): ONE

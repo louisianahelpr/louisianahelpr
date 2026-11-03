@@ -23,7 +23,12 @@ export async function fetchCrewSpotsOpen(jobIds: readonly string[]): Promise<Map
     report(error, { severity: "warning", tags: { source: "crewSpots.fetchCrewSpotsOpen" } });
     return out;
   }
-  for (const row of data ?? []) {
+  return crewSpotsFromRows(data, out);
+}
+
+/** open_jobs_browse (id, crew_spots_open) rows as the map the feed reads (also the /jobs entry prefetch's answer). */
+export function crewSpotsFromRows(rows: unknown, out: Map<string, number> = new Map()): Map<string, number> {
+  for (const row of ((rows ?? []) as { id?: string | null; crew_spots_open?: unknown }[])) {
     if (row.id && typeof row.crew_spots_open === "number") out.set(row.id, row.crew_spots_open);
   }
   return out;

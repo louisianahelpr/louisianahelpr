@@ -9504,6 +9504,7 @@ export type Database = {
           failed_at: string
           failure_code: string | null
           id: string
+          notified_at: string | null
           resolved_at: string | null
           stripe_account_id: string
           stripe_event_id: string
@@ -9517,6 +9518,7 @@ export type Database = {
           failed_at?: string
           failure_code?: string | null
           id?: string
+          notified_at?: string | null
           resolved_at?: string | null
           stripe_account_id: string
           stripe_event_id: string
@@ -9530,6 +9532,7 @@ export type Database = {
           failed_at?: string
           failure_code?: string | null
           id?: string
+          notified_at?: string | null
           resolved_at?: string | null
           stripe_account_id?: string
           stripe_event_id?: string

@@ -17,9 +17,7 @@ import { JobCategoryTab } from "@/components/job/JobCategoryTab";
 export const JOB_CARD_SHELL_FRAME =
   "relative rounded-2xl liquid-glass overflow-hidden";
 /** Where the category tab sits, overlaying the card's top-left corner. */
-export const JOB_CARD_SHELL_TAB_SLOT = "absolute top-0 left-0 z-20 flex items-stretch";
-/** The title row's padding — `pt-6` is the clearance for that tab. */
-export const JOB_CARD_TITLE_PAD_WITH_TAB = "w-full px-4 pt-6 pb-2.5";
+const JOB_CARD_SHELL_TAB_SLOT = "absolute top-0 left-0 z-20 flex items-stretch";
 
 
 interface JobCardShellProps {

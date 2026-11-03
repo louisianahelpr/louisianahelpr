@@ -133,7 +133,7 @@ export function MineFaceSkeleton({ tracker = true, address = false }: { tracker?
  *   - Done carries the bar and prints the date, not the street.
  *   - Posted cards never put the address on the face (it is the poster's own; the meta row opens with the card).
  */
-export function faceShapeFor(side: "applied" | "posted", filter: string | null): { tracker: boolean; address: boolean } {
+function faceShapeFor(side: "applied" | "posted", filter: string | null): { tracker: boolean; address: boolean } {
   const f = filter || "all";
   const tracker = f !== "waiting" && f !== "cancelled";
   const address = side === "applied" && (f === "all" || f === "needs_you" || f === "scheduled");
@@ -145,7 +145,7 @@ export function faceShapeFor(side: "applied" | "posted", filter: string | null):
  * them (ActivityBucketGroups: a `text-ds-13` heading, `gap-2` to its list), so the first card starts where the real
  * one does.
  */
-export function FaceListBones({ side, filter }: { side: "applied" | "posted"; filter: string | null }) {
+function FaceListBones({ side, filter }: { side: "applied" | "posted"; filter: string | null }) {
   const shape = faceShapeFor(side, filter);
   const cards = (
     <div className="space-y-list">

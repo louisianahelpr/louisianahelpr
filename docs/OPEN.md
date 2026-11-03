@@ -6,7 +6,7 @@ Items for areas that have not launched (Homes / Rentals, Quotes, Shops) live in 
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 406** (271 to do, 135 fixed with protection pending; 1805 done). Feeds mirrored in: 46 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 21 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 371** (209 to do, 162 fixed with protection pending; 1840 done). Feeds mirrored in: 46 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 21 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 1 left of 34** (1 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 17 red, 15 stale, 3 unknown, 43 green of 78 — [SCOREBOARD](SCOREBOARD.md). _(2026-11-03T01:39Z)_
@@ -92,7 +92,7 @@ is the source of truth for its state; this sentence only orders them.
 ## QUEUE — owner-approved 2026-09-23 ("add all 10"): gaps found tonight
 
 <!-- generated: queue-count (node scripts/queue-count.mjs --write) -->
-**Queue: 2211 items — 1805 done, 135 partly done (fixed, protection pending), 271 open.**
+**Queue: 2211 items — 1840 done, 162 partly done (fixed, protection pending), 209 open.**
 <!-- /generated: queue-count -->
 
 RULE (owner, 2026-09-23): an item is [x] DONE only when it names the GUARD that stops it recurring (a test, check script, workflow or migration that exists), or states NO-GUARD: <reason>. Fixed but unprotected = [~]. Enforced by src/test/queueItemsNameTheirGuard.test.ts.
@@ -691,7 +691,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - press-every-control: issue #2353, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41457206922. notes: Q1374. feed: issue #2353 · feed: ledger 7e141f206640
   - branch-prune: issue #2366, newest red run: see the issue's latest comment. notes: Q1376. feed: issue #2366 · feed: ledger 7f88b9cc45df
   - a11y-webkit-prod: issue #2375, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41468173962. notes: Q593. feed: issue #2375 · feed: ledger 6205197429d4
-  - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41468163658. notes: Q1429, Q2150. feed: issue #2436 · feed: ledger 43d77e26f272
+  - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41553090940. notes: Q1429, Q2150. feed: issue #2436 · feed: ledger 43d77e26f272
   - loading-states-refresh: issue #2601, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41350588111. notes: Q1427. feed: issue #2601 · feed: ledger 6389f98a9f66
   - vacuity: issue #2894, newest red run: see the issue's latest comment. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
   - slow-network: issue #3454, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41018395640. feed: issue #3454 · feed: ledger a8ceee56bbd5
@@ -702,7 +702,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - schedule-heartbeat: issue #3824, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41522535064. feed: issue #3824 · feed: ledger 4aa239aefeb6
   - core-loop-canary: issue #3833, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41326452336. feed: issue #3833 · feed: ledger 18539240a894
   - code-scanning-alerts: issue #3875, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41482166828. feed: issue #3875 · feed: ledger c2e77e40435e
-  - main: Sensitive review record: issue #3967, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41565123311. feed: issue #3967 · feed: ledger e41c806b9175
+  - main: Sensitive review record: issue #3967, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41575837689. feed: issue #3967 · feed: ledger e41c806b9175
   - main: Supabase DB Deploy: issue #4006, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41557553564. feed: issue #4006
   - write-contract-refresh: issue #4008, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41553101510. feed: issue #4008 · feed: ledger 0bd7cd00f060
   - security-audit: issue #4020, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41494441708. feed: issue #4020 · feed: ledger 09cc91c48116

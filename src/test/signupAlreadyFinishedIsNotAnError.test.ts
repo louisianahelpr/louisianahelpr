@@ -19,7 +19,7 @@
  * @mutate src/pages/auth/signup/completeSignupError.ts | export const SIGNUP_ALREADY_FINISHED = /^Profile already completed\b/; | export const SIGNUP_ALREADY_FINISHED = /^(?:Profile already completed\|Account already active)\b/;
  * @mutate src/pages/auth/Signup.tsx | if (!finished && !resumed) { hapticError(); | if (!finished) { hapticError();
  * @mutate src/pages/auth/Signup.tsx | if (!finished && !resumed) { hapticError(); | if (true) { hapticError();
- * @mutate src/pages/auth/signup/completeSignupError.ts | export const SIGNUP_RESUMED_OLD_ACCOUNT = /^Signup completion window expired\b/; | export const SIGNUP_RESUMED_OLD_ACCOUNT = /^Signup completion window never\b/;
+ * @mutate src/pages/auth/signup/completeSignupError.ts | const SIGNUP_RESUMED_OLD_ACCOUNT = /^Signup completion window expired\b/; | const SIGNUP_RESUMED_OLD_ACCOUNT = /^Signup completion window never\b/;
  *
  * Q2514 (11-03): the window-expired answer (a second sign-up on an older, unconfirmed account; measured in
  * completeSignupError.ts) is not a failure either: not reported, an info toast that says what happened.

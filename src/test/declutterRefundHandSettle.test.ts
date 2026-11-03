@@ -11,7 +11,7 @@
  *
  * @mutate supabase/migrations/20261103111244_money_webhooks_not_found_is_404.sql |   ELSIF v_status = 'failed' THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id); |   ELSIF false THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id);
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql |   IF v_attempts >= 12 THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id); |   IF false THEN\n    PERFORM public.declutter_refund_gave_up_check(p_refund_id);
- * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql |      WHERE d.status = 'failed' AND d.attempts >= 12 |      WHERE d.status = 'failed' AND d.attempts >= 13
+ * @mutate supabase/migrations/20261103223546_declutter_gave_up_alert_names_debt_clear.sql |      WHERE d.status = 'failed' AND d.attempts >= 12 |      WHERE d.status = 'failed' AND d.attempts >= 13
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql | v_row.status <> 'succeeded' AND v_covered >= v_row.refund_cents; | v_row.status <> 'succeeded';
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql |      SET status = 'failed', next_attempt_at = now(), gave_up_notified_at = NULL, |      SET next_attempt_at = now(), gave_up_notified_at = NULL,
  * @mutate supabase/migrations/20261017055500_declutter_refund_hand_settle.sql | REVOKE ALL ON FUNCTION public.declutter_record_hand_refund(text, text, integer, boolean) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_record_hand_refund(text, text, integer, boolean) FROM PUBLIC;

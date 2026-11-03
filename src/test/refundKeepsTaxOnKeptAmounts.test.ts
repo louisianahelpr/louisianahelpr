@@ -18,7 +18,7 @@
  * @mutate supabase/functions/_shared/refundAmount.ts |   const ceilingCents = Math.max(0, captured - keptCents - taxKeptCents); |   const ceilingCents = Math.max(0, captured - keptCents);
  * @mutate supabase/functions/_shared/refundAmount.ts |   return Math.min(tax, Math.ceil((kept * tax) / (captured - tax))); |   return Math.min(tax, Math.floor((kept * tax) / captured));
  * @mutate supabase/functions/_shared/refundAmount.ts |   if (typeof t === "number" && Number.isFinite(t) && t > 0) return cents(t); |   if (typeof t === "number" && Number.isFinite(t)) return cents(t);
- * @mutate supabase/functions/_shared/refundAmount.ts |     return cents(page?.data?.[0]?.total_details?.amount_tax ?? 0); |     return 0;
+ * @mutate supabase/functions/_shared/refundAmount.ts |     return jobSiteTaxCents(session?.metadata) ?? cents(session?.total_details?.amount_tax ?? 0); |     return jobSiteTaxCents(session?.metadata) ?? 0;
  * @mutate supabase/functions/_shared/refundAmount.ts |   const keptInBase = Math.max(0, keptCents - (captured - taxBase)); |   const keptInBase = keptCents;
  * @mutate supabase/functions/create-payment/index.ts |             alreadyRefundedCents,\n            taxCents: await chargeTaxCentsFor(stripe, pi), |             alreadyRefundedCents,
  * @mutate supabase/functions/void-cancelled-payments/index.ts |               alreadyRefundedCents: chargeRefundedCents,\n              taxCents: await chargeTaxCentsFor(stripe, pi), |               alreadyRefundedCents: chargeRefundedCents, taxCents: 0,

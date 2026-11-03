@@ -35,7 +35,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/admin/AdminNotifications.tsx` | checkbox/switch/radio×4 |  |  | all-push · all-email |
 | `src/components/admin/AdminPayoutBatches.tsx` | textarea×2 |  |  | Payout queue · Hold reason · Denial reason |
 | `src/components/admin/adminPayoutBatches/BatchRow.tsx` | checkbox/switch/radio×1 |  |  |  |
-| `src/components/admin/adminPayoutBatches/HeldForReview.tsx` | input×3, textarea×1 | text, checkbox |  | held-loading · held-row · held-siblings · Stripe id · Amount · Note · Why |
+| `src/components/admin/adminPayoutBatches/HeldForReview.tsx` | input×3, textarea×1 | text, checkbox |  | held-loading · held-row · held-siblings · Stripe id · settle-ref-ok · settle-ref-warnings · Amount · Note |
 | `src/components/admin/AdminReferrals.tsx` | input×1 | search |  | Search referrals by name or code · Search by name or code… · Clear search · Copy referral code |
 | `src/components/admin/AdminReports.tsx` | textarea×1 |  |  | Message to user |
 | `src/components/admin/adminReports/DeclutterTakeDown.tsx` | textarea×1 |  | 500 | Reason the seller reads |

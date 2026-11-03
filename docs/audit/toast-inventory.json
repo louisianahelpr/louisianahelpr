@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1120,
-    "files": 314,
-    "rendering": 1039,
-    "suppressedByPolicy": 81,
+    "calls": 1122,
+    "files": 315,
+    "rendering": 1040,
+    "suppressedByPolicy": 82,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 208,
-      "toast.error": 756,
+      "toast.error": 757,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 87,
+      "toast.success": 88,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 471,
+      "literal": 472,
       "template": 104,
-      "dynamic": 597,
+      "dynamic": 598,
       "jsx": 0
     }
   },
@@ -2526,7 +2526,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 158,
+      "line": 164,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -2536,7 +2536,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 192,
+      "line": 198,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2546,7 +2546,7 @@
     },
     {
       "file": "src/components/admin/AdminPayoutBatches.tsx",
-      "line": 267,
+      "line": 273,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3353,6 +3353,26 @@
       "renders": true
     },
     {
+      "file": "src/components/admin/adminJobs/CancelHeldJobButton.tsx",
+      "line": 32,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Job cancelled. The card hold is released and the poster was told they weren't charged."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/adminJobs/CancelHeldJobButton.tsx",
+      "line": 36,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(err, \"Couldn't cancel this job. Try again.\")"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/admin/adminJobs/EndSeriesSection.tsx",
       "line": 71,
       "kind": "toast.error",
@@ -3470,7 +3490,7 @@
     },
     {
       "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
-      "line": 115,
+      "line": 142,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3480,7 +3500,7 @@
     },
     {
       "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
-      "line": 118,
+      "line": 145,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -3490,7 +3510,7 @@
     },
     {
       "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
-      "line": 129,
+      "line": 156,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -3500,7 +3520,7 @@
     },
     {
       "file": "src/components/admin/adminPayoutBatches/HeldForReview.tsx",
-      "line": 135,
+      "line": 162,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",

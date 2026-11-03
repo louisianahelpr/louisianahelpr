@@ -15,6 +15,10 @@
  * the SQL refuses to release a Shops row while that Stripe refund stands.
  * Q1931 (20261102043754): a Declutter delivery payout or delivery-fee refund that used its 12 tries is listed
  * here too (gave_up), with only "Mark settled by hand": send it in Stripe, then record it.
+ * Q2225: before confirming a settle, "Check this id in Stripe" reads a tr_ / po_ / re_ id through
+ * admin-settle-ref-lookup (read-only, audited) and shows any warning (another destination, another
+ * amount, reversed, failed, another payment or group, the other Stripe mode, not found). Warnings
+ * never block: the admin may still confirm.
  */
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -84,6 +88,14 @@ const money = (cents: number) => `$${formatPriceExact(cents / 100)}`;
 
 type Draft = { row: HeldRow; action: "release" | "settle"; note: string; ref: string; amount: string; confirmed: boolean };
 
+/** Q2225: what admin-settle-ref-lookup answered for the id typed (null until asked). */
+type RefCheck =
+  | { state: "checking" }
+  | { state: "done"; warnings: Array<{ code: string; text: string }> }
+  | { state: "error"; text: string };
+
+const LOOKUP_REF = /^\s*(tr|po|re)_[A-Za-z0-9]{6,}\s*$/;
+
 /** "12.34" -> 1234; anything else -> null. */
 function toCents(v: string): number | null {
   const m = /^\s*(\d+)(?:\.(\d{1,2}))?\s*$/.exec(v);
@@ -102,6 +114,21 @@ export function HeldForReview() {
   });
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
+  const [refCheck, setRefCheck] = useState<RefCheck | null>(null);
+
+  const checkRef = async (d: Draft) => {
+    setRefCheck({ state: "checking" });
+    const cents = toCents(d.amount);
+    const { data, error: err } = await supabase.functions.invoke("admin-settle-ref-lookup", {
+      body: { kind: d.row.kind, id: d.row.id, ref: d.ref.trim(), ...(cents && cents > 0 ? { amount_cents: cents } : {}) },
+    });
+    const warnings = (data as { warnings?: Array<{ code: string; text: string }> } | null)?.warnings;
+    if (err || !Array.isArray(warnings)) {
+      setRefCheck({ state: "error", text: "Couldn't check this id in Stripe. Check it by hand before you confirm." });
+      return;
+    }
+    setRefCheck({ state: "done", warnings });
+  };
 
   const submit = async () => {
     if (!draft) return;
@@ -174,7 +201,7 @@ export function HeldForReview() {
                 <Button size="sm" variant="outline" onClick={() => setDraft({ row: r, action: "release", note: "", ref: "", amount: "", confirmed: false })}>Release to automatic</Button>
               )}
               <Button size="sm" variant="outline"
-                onClick={() => setDraft({ row: r, action: "settle", note: "", ref: "", amount: (r.amount_cents / 100).toFixed(2), confirmed: false })}>
+                onClick={() => { setRefCheck(null); setDraft({ row: r, action: "settle", note: "", ref: "", amount: (r.amount_cents / 100).toFixed(2), confirmed: false }); }}>
                 Mark settled by hand
               </Button>
             </div>
@@ -183,7 +210,25 @@ export function HeldForReview() {
                 {draft.action === "settle" && (
                   <>
                     <Input aria-label="Stripe id" placeholder={r.kind === "raise_refund" ? "re_..." : r.kind.endsWith("refund") ? "re_... or other: how it was refunded" : "tr_... / po_... or other: how it was paid"}
-                      value={draft.ref} onChange={(e) => setDraft({ ...draft, ref: e.target.value })} />
+                      value={draft.ref} onChange={(e) => { setRefCheck(null); setDraft({ ...draft, ref: e.target.value }); }} />
+                    {LOOKUP_REF.test(draft.ref) && (
+                      <div className="space-y-1">
+                        <Button size="sm" variant="outline" disabled={refCheck?.state === "checking"} onClick={() => checkRef(draft)}>
+                          {refCheck?.state === "checking" ? "Checking…" : "Check this id in Stripe"}
+                        </Button>
+                        {refCheck?.state === "done" && refCheck.warnings.length === 0 && (
+                          <p className="text-xs text-muted-foreground" data-testid="settle-ref-ok">Stripe shows this id matches the row.</p>
+                        )}
+                        {refCheck?.state === "done" && refCheck.warnings.length > 0 && (
+                          <ul className="list-disc pl-4 text-xs text-destructive-ink" role="alert" data-testid="settle-ref-warnings">
+                            {refCheck.warnings.map((w) => <li key={w.code}>{w.text}</li>)}
+                          </ul>
+                        )}
+                        {refCheck?.state === "error" && (
+                          <p className="text-xs text-destructive-ink" role="alert">{refCheck.text}</p>
+                        )}
+                      </div>
+                    )}
                     <Input aria-label="Amount" inputMode="decimal" value={draft.amount} readOnly={WHOLE_AMOUNT_ONLY.has(r.kind)}
                       onChange={(e) => setDraft({ ...draft, amount: e.target.value })} />
                     {WHOLE_AMOUNT_ONLY.has(r.kind) && (

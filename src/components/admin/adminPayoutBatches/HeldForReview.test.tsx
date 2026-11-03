@@ -94,6 +94,48 @@ describe("Held for review (admin money page)", () => {
     expect(toast.success).toHaveBeenCalled();
   });
 
+  // Q2225: the Stripe lookup WARNS in the confirm step and never blocks the confirm.
+  // @mutate src/components/admin/adminPayoutBatches/HeldForReview.tsx |                    {LOOKUP_REF.test(draft.ref) && ( |                    {false && (
+  // @mutate src/components/admin/adminPayoutBatches/HeldForReview.tsx |                            {refCheck.warnings.map((w) => <li key={w.code}>{w.text}</li>)} |                            {null}
+  // @mutate src/components/admin/adminPayoutBatches/HeldForReview.tsx |       body: { kind: d.row.kind, id: d.row.id, ref: d.ref.trim(), | body: { kind: d.row.kind, id: d.row.id, ref: "", 
+  it("Q2225: 'Check this id in Stripe' shows each warning, and Mark settled stays enabled", async () => {
+    invokeMock.mockResolvedValue({ data: { ok: true, warnings: [
+      { code: "other_destination", text: "This transfer went to acct_x, not the payee's payout account acct_payee1." },
+      { code: "reversed", text: "$38.50 of this transfer was reversed." },
+    ] }, error: null });
+    mount();
+    fireEvent.click(await screen.findByText("Mark settled by hand"));
+    fireEvent.change(screen.getByLabelText("Stripe id"), { target: { value: "tr_1abcdefg" } });
+    fireEvent.change(screen.getByLabelText("Note"), { target: { value: "sent by hand in Stripe" } });
+    fireEvent.click(screen.getByText("Check this id in Stripe"));
+    const list = await screen.findByTestId("settle-ref-warnings");
+    expect(list.textContent).toMatch(/acct_x/);
+    expect(list.textContent).toMatch(/was reversed/);
+    expect(invokeMock).toHaveBeenCalledWith("admin-settle-ref-lookup", { body: { kind: "declutter", id: ROW.id, ref: "tr_1abcdefg", amount_cents: 3850 } });
+    fireEvent.click(screen.getByLabelText(/I checked this Stripe id/));
+    const go = screen.getByText("Mark settled").closest("button") as HTMLButtonElement;
+    expect(go.disabled).toBe(false);
+    fireEvent.click(go);
+    await waitFor(() => expect(rpcMock).toHaveBeenCalledWith("admin_payout_settle_by_hand", expect.objectContaining({ p_ref: "tr_1abcdefg" })));
+  });
+
+  it("Q2225: a clean id says it matches; a failed lookup says check by hand; neither blocks; 'other: ...' offers no lookup", async () => {
+    invokeMock.mockResolvedValueOnce({ data: { ok: true, warnings: [] }, error: null });
+    mount();
+    fireEvent.click(await screen.findByText("Mark settled by hand"));
+    fireEvent.change(screen.getByLabelText("Stripe id"), { target: { value: "other: paid by check" } });
+    expect(screen.queryByText("Check this id in Stripe")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Stripe id"), { target: { value: "po_1abcdefg" } });
+    fireEvent.click(screen.getByText("Check this id in Stripe"));
+    expect(await screen.findByTestId("settle-ref-ok")).toBeTruthy();
+    invokeMock.mockResolvedValueOnce({ data: null, error: { message: "Edge Function returned a non-2xx status code" } });
+    fireEvent.click(screen.getByText("Check this id in Stripe"));
+    expect(await screen.findByText(/Couldn't check this id in Stripe. Check it by hand/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Note"), { target: { value: "paid out by hand" } });
+    fireEvent.click(screen.getByLabelText(/I checked this Stripe id/));
+    expect((screen.getByText("Mark settled").closest("button") as HTMLButtonElement).disabled).toBe(false);
+  });
+
   it("Mark settled by hand sends the id, the amount in cents and the note, at once (no pending state)", async () => {
     mount();
     fireEvent.click(await screen.findByText("Mark settled by hand"));

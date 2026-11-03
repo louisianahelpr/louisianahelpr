@@ -215,6 +215,12 @@ const CONNECT_AT_CALLER: Record<string, RegExp> = {
 /** The retrieves that do NOT go through either classifier, each with why: EXACT. */
 // @two-way src/test/stripeStoredIdRetrieveClassified.test.ts:toEqual(Object.keys(EXEMPT).sort())
 const EXEMPT: Record<string, string> = {
+  // Q2225: an id the ADMIN typed (never a stored one), read only to warn before "Mark settled by hand". A missing
+  // id in the payee's mode is read once with the other key and reported as other_mode or not_found, so a test-mode
+  // id under the live key is answered, not thrown.
+  "admin-settle-ref-lookup/index.ts::stripe.payouts.retrieve(ref)": "Q2225: an admin-typed po_ id, read-only for a warning; a missing id is looked up under the other key and reported (other_mode / not_found)",
+  "admin-settle-ref-lookup/index.ts::stripe.refunds.retrieve(ref)": "Q2225: an admin-typed re_ id, read-only for a warning; a missing id is looked up under the other key and reported (other_mode / not_found)",
+  "admin-settle-ref-lookup/index.ts::stripe.transfers.retrieve(ref)": "Q2225: an admin-typed tr_ id, read-only for a warning; a missing id is looked up under the other key and reported (other_mode / not_found)",
   // Q2399 card hold at post (20261027185146, 2026-10-25): a job's own card hold. Every hold was minted after the
   // 2026-09-27 live switch (the feature did not exist before), and each is read on the client of the mode it was
   // placed in: create-payment's job money mode, card-hold-sweep's hold row stripe_mode, or the webhook event's own.

@@ -52,6 +52,9 @@ const FUNCTIONS_DIR = "supabase/functions";
 const ADMIN_ENDPOINTS = [
   "admin-delete-user",
   "admin-resend-verification",
+  // Q2225: a read-only Stripe lookup for "Mark settled by hand" (HeldForReview). It
+  // re-checks has_role, reads the held row AS THE CALLER, and audits every lookup.
+  "admin-settle-ref-lookup",
   // Owner 2026-10-23: an admin's reply to a support ticket. The recipient is the
   // ticket's reporter, read from `reports` on the server, never from the body.
   "admin-support-reply",

@@ -1,12 +1,16 @@
 /**
  * Board 143a: a member's bank payout that FAILS is recorded and the member is
  * told, on the real stripe-webhook source. Record and notice only: no money
- * moves. One record and one notice per payout; a failed notice undoes the
- * record and answers 500 so Stripe redelivers (never a recorded failure nobody
- * was told about). payout.paid closes the account's open failures.
+ * moves. One record and one notice per payout. A failed notice keeps the
+ * record unstamped (notified_at NULL, Q2276 (b)) and answers 500, and the
+ * redelivery tells the member (never a recorded failure nobody was told about). payout.paid closes the account's open failures.
  *
+ * @mutate supabase/migrations/20261103082037_payout_failure_notified_at.sql | CREATE UNIQUE INDEX IF NOT EXISTS profiles_stripe_account_id_unique | CREATE INDEX IF NOT EXISTS profiles_stripe_account_id_unique
+ * @mutate supabase/migrations/20261103082037_payout_failure_notified_at.sql |     ALTER TABLE public.payout_failures ADD COLUMN notified_at timestamptz; |     NULL;
  * @mutate supabase/functions/stripe-webhook/index.ts |   "payout.failed": handlePayoutFailed, |   "payout.failed_disabled": handlePayoutFailed,
- * @mutate supabase/functions/stripe-webhook/handlers/payoutFailed.ts |   if (!inserted \|\| inserted.length === 0) { |   if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/payoutFailed.ts |     if (!existing \|\| existing.notified_at) { |     if (!existing) {
+ * @mutate supabase/functions/stripe-webhook/handlers/payoutFailed.ts |     if (!existing \|\| existing.notified_at) { |     if (true) {
+ * @mutate supabase/functions/stripe-webhook/handlers/payoutFailed.ts |     .update({ notified_at: new Date().toISOString() }) |     .update({})
  * @mutate supabase/functions/stripe-webhook/handlers/payoutFailed.ts |   if (!sent) { |   if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/payoutPaid.ts |     .is("resolved_at", null) |     .not("resolved_at", "is", "x")
  * @mutate supabase/functions/stripe-webhook/index.ts |     const connectRefused = verifiedByConnectSecret && !CONNECT_EVENT_TYPES.has(event.type); |     const connectRefused = false;
@@ -18,6 +22,9 @@ import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks, slackAlerts } from "./mocks/shared";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { blankSqlComments } from "../helpers/blankNonCode";
 
 async function load(): Promise<EdgeHarness> {
   setEnv({
@@ -131,6 +138,10 @@ describe("payout.failed: recorded and the member is told (board 143a)", () => {
     expect(told).toHaveLength(1);
     expect(told[0]).toMatchObject({ user_id: "member-1", title: "Your payout didn't go through", link: "/profile?tab=earnings" });
     expect(told[0].message).toBe("Your payout of $84.80 didn't go through. Update your bank or card in You → Money.");
+    // Q2276 (b): the row is stamped told.
+    const stamps = writes("payout_failures", "update").map((w) => w.payload as Record<string, unknown>);
+    expect(stamps).toHaveLength(1);
+    expect(stamps[0].notified_at).toBeTruthy();
   });
 
   it("a payout already recorded sends no second notice", async () => {
@@ -138,17 +149,32 @@ describe("payout.failed: recorded and the member is told (board 143a)", () => {
     event("evt_f2", "payout.failed", payout());
     scenario.reads.profiles = { rows: [{ user_id: "member-1" }] };
     scenario.writeSelectRows["payout_failures:insert"] = [];
+    scenario.reads.payout_failures = { rows: [{ id: "pf-1", notified_at: "2026-11-03T08:00:00Z" }] };
     expect((await post(fn)).status).toBe(200);
     expect(notices()).toHaveLength(0);
   });
 
-  it("a notice that fails undoes the record and answers 500 so Stripe redelivers", async () => {
+  // Q2276 (b): the first delivery recorded the row but its notice failed; the
+  // redelivery finds the row unstamped and tells the member then.
+  it("a redelivery whose recorded failure was never told sends the notice and stamps it", async () => {
+    const fn = await load();
+    event("evt_f2b", "payout.failed", payout());
+    scenario.reads.profiles = { rows: [{ user_id: "member-1" }] };
+    scenario.writeSelectRows["payout_failures:insert"] = [];
+    scenario.reads.payout_failures = { rows: [{ id: "pf-1", notified_at: null }] };
+    expect((await post(fn)).status).toBe(200);
+    expect(notices()).toHaveLength(1);
+    expect(writes("payout_failures", "update")).toHaveLength(1);
+  });
+
+  it("a notice that fails keeps the record unstamped (no delete) and answers 500 so Stripe redelivers", async () => {
     const fn = await load();
     event("evt_f3", "payout.failed", payout());
     scenario.reads.profiles = { rows: [{ user_id: "member-1" }] };
     scenario.writeErrors.notifications = { message: "boom" };
     expect((await post(fn)).status).toBe(500);
-    expect(writes("payout_failures", "delete")).toHaveLength(1);
+    expect(writes("payout_failures", "delete")).toHaveLength(0);
+    expect(writes("payout_failures", "update")).toHaveLength(0);
   });
 
   it("a member lookup error answers 500 (never a silent skip)", async () => {
@@ -245,3 +271,20 @@ describe("the Connect endpoint's own signing secret (lead 10-21)", () => {
   });
 });
 
+// Q2276 (b), (c): the schema the handler relies on, read from the migrations
+// (comments blanked). Behaviour: src/test/pglite/payoutFailureNotifiedAt.pglite.mjs.
+describe("payout_failures schema (Q2276)", () => {
+  const dir = join(process.cwd(), "supabase/migrations");
+  const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+  const all = files.map((f) => blankSqlComments(readFileSync(join(dir, f), "utf8"))).join("\n");
+  it("reads the migrations", () => {
+    expect(files.length).toBeGreaterThan(100);
+  });
+  it("payout_failures gains notified_at (a redelivery tells an untold row)", () => {
+    expect(all).toMatch(/ALTER TABLE public\.payout_failures ADD COLUMN notified_at timestamptz;/);
+  });
+  it("one payout account links at most one profile, and nothing drops that index", () => {
+    expect(all).toMatch(/CREATE UNIQUE INDEX IF NOT EXISTS profiles_stripe_account_id_unique\s+ON public\.profiles \(stripe_account_id\)\s+WHERE stripe_account_id IS NOT NULL;/);
+    expect(all).not.toMatch(/DROP INDEX[^;]*profiles_stripe_account_id_unique/i);
+  });
+});

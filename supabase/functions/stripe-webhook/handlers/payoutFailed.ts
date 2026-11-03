@@ -118,9 +118,21 @@ export async function handlePayoutFailed(event: Stripe.Event, { supabase, logSte
     )
     .select("id");
   if (insErr) throw new Error(`payout.failed: could not record ${payout.id}: ${insErr.message}`);
-  if (!inserted || inserted.length === 0) {
-    logStep("payout.failed already recorded; no second notice", { payoutId: payout.id });
-    return;
+  let failureId = (inserted ?? [])[0]?.id as string | undefined;
+  if (!failureId) {
+    // Q2276 (b): already recorded. A row whose notice never went out (the
+    // first delivery's notice failed) is told now; one already told is not.
+    const { data: existing, error: readErr } = await supabase
+      .from("payout_failures")
+      .select("id, notified_at")
+      .eq("stripe_payout_id", payout.id)
+      .maybeSingle();
+    if (readErr) throw new Error(`payout.failed: could not read the recorded ${payout.id}: ${readErr.message}`);
+    if (!existing || existing.notified_at) {
+      logStep("payout.failed already recorded; no second notice", { payoutId: payout.id });
+      return;
+    }
+    failureId = existing.id as string;
   }
 
   const sent = await insertNotifications(supabase, {
@@ -131,11 +143,21 @@ export async function handlePayoutFailed(event: Stripe.Event, { supabase, logSte
     link: "/profile?tab=earnings",
   });
   if (!sent) {
-    // Undo the record so Stripe's redelivery writes both again; otherwise the
-    // retry would see the row, skip, and the member would never be told.
-    const { error: undoErr } = await supabase.from("payout_failures").delete().eq("id", inserted[0].id).select("id");
-    throw new Error(`payout.failed: notice for ${payout.id} not sent${undoErr ? ` (and undo failed: ${undoErr.message})` : ""}`);
+    // Q2276 (b): the row stays with notified_at NULL, so Stripe's redelivery
+    // (this throw rolls back the router's dedupe row) sends the notice. No
+    // delete: a failed undo used to leave a row that read "already told".
+    throw new Error(`payout.failed: notice for ${payout.id} not sent; the redelivery sends it`);
   }
+  // Only a row still unstamped: a concurrent redelivery that also told the
+  // member is not stamped twice. A failed stamp is not thrown (the member WAS
+  // told; a redelivery would tell them again), only logged loudly.
+  const { error: stampErr } = await supabase
+    .from("payout_failures")
+    .update({ notified_at: new Date().toISOString() })
+    .eq("id", failureId)
+    .is("notified_at", null)
+    .select("id");
+  if (stampErr) console.error(`[payout.failed] notice for ${payout.id} sent but notified_at not stamped: ${stampErr.message}`);
 
   logStep("Payout failure recorded and member told", { userId: profile.user_id, payoutId: payout.id, code: payout.failure_code });
   await postSlackOpsAlert({

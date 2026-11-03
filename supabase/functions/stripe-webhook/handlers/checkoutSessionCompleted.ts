@@ -1198,7 +1198,10 @@ async function settleCheckoutSession(
       }
       // Q2083 (b): a job taxed at the job address carries its tax as its own
       // line (automatic_tax off): sessionJobTaxCents reads that figure.
-      const sessionTaxForJob = (session.metadata as any)?.gift_card_id ? undefined : (sessionJobTaxCents(session as any) ?? undefined);
+      // Q1728: a gift shortfall taxed at the job site (its own "Sales tax" line, owner 11-03 "charge the tax
+      // on the card") carries the job's whole tax, so it is recorded like any other taxed job.
+      const jobSiteTaxed = String((session.metadata as any)?.[JOB_TAX_CALC_KEY] ?? "").startsWith("taxcalc_");
+      const sessionTaxForJob = (session.metadata as any)?.gift_card_id && !jobSiteTaxed ? undefined : (sessionJobTaxCents(session as any) ?? undefined);
       const piTaxCents = (taxPi?.amount_details as any)?.tax?.total_tax_amount;
       // `> 0` here would never let a genuine $0 clear the estimate written at
       // insert time — and $0 is the normal outcome, since only assembly labor
@@ -1266,7 +1269,8 @@ async function settleCheckoutSession(
     // question (docs/OPEN.md Q441). Seed jobs go to the digest. Never throws:
     // the read returns its error and postSlackOpsAlert swallows its own.
     const sessionTaxCents = sessionJobTaxCents(session as any) ?? undefined;
-    const isGiftShortfall = Boolean((session.metadata as any)?.gift_card_id);
+    // Q1728: a gift shortfall taxed at the job site is a taxed job like any other, so its $0 is the signal too.
+    const isGiftShortfall = Boolean((session.metadata as any)?.gift_card_id) && !String((session.metadata as any)?.[JOB_TAX_CALC_KEY] ?? "").startsWith("taxcalc_");
     if (typeof sessionTaxCents === "number" && sessionTaxCents === 0 && !isGiftShortfall) {
       const { data: taxJob } = await supabase
         .from("jobs")

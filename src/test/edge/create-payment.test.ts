@@ -1092,8 +1092,8 @@ describe("create-payment edge function", () => {
         expect(args.metadata.job_tax_cents).toBe("0");
       });
 
-      // @mutate supabase/functions/create-payment/index.ts |         if (!taxAddress) { |         if (false) {
-      // @mutate supabase/functions/create-payment/index.ts |            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },\n          );\n        }\n        const taxCode |            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 },\n          );\n        }\n        const taxCode
+      // @mutate supabase/functions/create-payment/index.ts |         if (!taxAddress) return "no_zip"; |         if (false) return "no_zip";
+      // @mutate supabase/functions/create-payment/index.ts |           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },\n        );\n      };\n      const salesTaxLine |           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 },\n        );\n      };\n      const salesTaxLine
       it("a taxed job with no Louisiana job ZIP is refused 400 (the member's fix, not a server fault): no tax call, no checkout", async () => {
         for (const zip_code of [null, "", "77002", "7050", "71500", "abcde"]) {
           const { res, body } = await run({ category: "auto_repair", zip_code });
@@ -1112,6 +1112,69 @@ describe("create-payment edge function", () => {
         expect(res.status).toBe(500);
         expect(body.error).toMatch(/Could not figure the sales tax/);
         expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+      });
+
+      // Q1728 (owner 11-03, "charge the tax on the card"): a gift-paid taxable job charges the sales tax on
+      // its FULL taxable price to the card, as its own line on the shortfall checkout, from the same job-site
+      // calculation (Q2083 b), which the webhook commits like any taxed job.
+      // @mutate supabase/functions/create-payment/index.ts |         if (giftJobTax && giftJobTax.cents > 0) diffLineItems.push(salesTaxLine(giftJobTax.cents)); |         void giftJobTax;
+      // @mutate supabase/functions/create-payment/index.ts |           automatic_tax: { enabled: !giftJobTax }, |           automatic_tax: { enabled: true },
+      // @mutate supabase/functions/create-payment/index.ts |             metadata: { job_id: jobId, customer_id: user.id, gift_card_id: giftCardId, ...giftTaxMetadata }, |             metadata: { job_id: jobId, customer_id: user.id, gift_card_id: giftCardId },
+      // @mutate supabase/functions/create-payment/index.ts |           if (figured === "no_zip") return noJobZipResponse();\n          giftJobTax = figured; |           if (figured === "no_zip") giftJobTax = null; else\n          giftJobTax = figured;
+      describe("Q1728: a gift-paid taxable job charges its tax on the card", () => {
+        const runGift = async (job: Record<string, unknown>, redeem: Record<string, unknown> = { outcome: "partial", difference_cents: 4000 }) => {
+          resetSupabaseMock();
+          stripeMock.checkout.sessions.create.mockReset();
+          stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_diff", url: "u" });
+          seedAuth(scenario, POSTER);
+          seedLiveGift(scenario);
+          scenario.reads.jobs = {
+            rows: [{ id: "job-g", customer_id: POSTER.id, budget: 100, title: "T", payment_status: "unpaid", ...job }],
+          };
+          scenario.rpc.redeem_gift_card = redeem;
+          scenario.writeSelectRows.jobs = [{ id: "job-g" }];
+          const fn = await load();
+          const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-g", giftCardId: "gift-1" } }));
+          return { res, body: await res.json().catch(() => null) };
+        };
+
+        it("the shortfall checkout adds the job-site tax on the FULL taxable price as its own line, automatic_tax off", async () => {
+          stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_gift", tax_amount_exclusive: 1000 });
+          const { res } = await runGift({ category: "auto_repair", zip_code: "70503" });
+          expect(res.status).toBe(200);
+          expect(stripeMock.tax.calculations.create).toHaveBeenCalledTimes(1);
+          const [calc, opts] = stripeMock.tax.calculations.create.mock.calls[0];
+          // The whole $100 labor, not the $40 the card pays: a gift is a way to pay, not a discount.
+          expect(calc.line_items).toEqual([{ amount: 10000, reference: "labor", tax_behavior: "exclusive", tax_code: "txcd_20080005" }]);
+          expect(calc.customer_details.address.postal_code).toBe("70503");
+          expect(opts.idempotencyKey).toMatch(/^job-tax-job-g.*-gift/);
+          const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
+          expect(args.line_items.map((li: any) => li.price_data.unit_amount)).toEqual([4000, 1000]);
+          const taxLine = args.line_items.find((li: any) => li.price_data.product_data.name === "Sales tax");
+          expect(taxLine.price_data.product_data.tax_code).toBe("txcd_00000000");
+          expect(args.automatic_tax).toEqual({ enabled: false });
+          expect(args.customer_update).toBeUndefined();
+          expect(args.metadata).toMatchObject({ gift_card_id: "gift-1", tax_calculation_id: "taxcalc_gift", job_tax_cents: "1000" });
+          expect(args.payment_intent_data.metadata).toMatchObject({ job_id: "job-g", gift_card_id: "gift-1", tax_calculation_id: "taxcalc_gift", job_tax_cents: "1000" });
+        });
+
+        it("a taxable gift job with no Louisiana job ZIP is refused 400 BEFORE the gift is redeemed", async () => {
+          const { res, body } = await runGift({ category: "auto_repair", zip_code: null });
+          expect(res.status).toBe(400);
+          expect(body.error).toMatch(/Louisiana ZIP code/);
+          expect((scenario.rpcCalls ?? []).some((c) => c.name === "redeem_gift_card")).toBe(false);
+          expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+        });
+
+        it("an untaxed gift job keeps the old shortfall: no tax call, no tax line, automatic_tax on", async () => {
+          const { res } = await runGift({ category: "yard_work", zip_code: "70503" });
+          expect(res.status).toBe(200);
+          expect(stripeMock.tax.calculations.create).not.toHaveBeenCalled();
+          const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
+          expect(args.line_items).toHaveLength(1);
+          expect(args.automatic_tax).toEqual({ enabled: true });
+          expect(args.metadata.tax_calculation_id).toBeUndefined();
+        });
       });
 
       it("an untaxed job makes no tax call and keeps automatic_tax", async () => {

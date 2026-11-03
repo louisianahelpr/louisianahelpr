@@ -46,6 +46,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { checkPayoutHold, loadPayoutHolds } from "../_shared/payoutHold.ts";
 import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
+import { modeFromLivemode, storedStripeMode, type StripeMode } from "../_shared/stripeMode.ts";
 
 // Q1223: lives in _shared (it was stripe-webhook/handlers/_chargebackClawback.ts)
 // so process-scheduled-payouts can re-run a won chargeback's re-payment once a
@@ -459,6 +460,8 @@ export async function clawBackReleasedPayout(
           transfer_amount_cents: t.amount ?? 0,
           reversed_cents: amount,
           status: "reversing",
+          // Q1908: where the disputed money sits (the Dispute's livemode); a won re-pay runs on it.
+          stripe_mode: modeFromLivemode((dispute as { livemode?: unknown }).livemode),
         })
         .select(ROW_COLS);
       if (claimErr) {
@@ -633,6 +636,8 @@ type OwedRow = {
   id: string; dispute_id: string; job_id: string; helper_id: string | null; status: string;
   held_repay_owed_at: string | null; updated_at: string | null; reversed_cents: number | null;
   held_repay_first_attempt_at?: string | null;
+  /** Q1908: the dispute's mode (NULL on a row written before 20261103112413). */
+  stripe_mode?: string | null;
 };
 
 /**
@@ -654,14 +659,17 @@ type OwedRow = {
  */
 export async function redriveHeldClawbackRepays(
   ctx: ClawbackContext & {
-    /** Q1753: the client for this job's money (its own Stripe mode); throws StripeModeRefused on a mix. */
-    stripeForJob?: (jobId: string | null, payees: string[]) => Promise<Stripe>;
+    /**
+     * Q1753: the client for this job's money (its own Stripe mode); throws StripeModeRefused on a mix.
+     * Q1908: given the dispute's stored mode, the caller uses it (payees still checked).
+     */
+    stripeForJob?: (jobId: string | null, payees: string[], storedMode?: StripeMode | null) => Promise<Stripe>;
   },
 ): Promise<HeldRepayRedrive> {
   const out: HeldRepayRedrive = { disputes: 0, repaidCents: 0, waiting: 0, defects: [] };
   const { data, error } = await ctx.supabase
     .from("chargeback_clawbacks")
-    .select("id, dispute_id, job_id, helper_id, status, held_repay_owed_at, held_repay_first_attempt_at, updated_at, reversed_cents")
+    .select("id, dispute_id, job_id, helper_id, status, held_repay_owed_at, held_repay_first_attempt_at, updated_at, reversed_cents, stripe_mode")
     .not("held_repay_owed_at", "is", null)
     .in("status", ["reversed", "repay_failed", "repaying"])
     .limit(200);
@@ -682,6 +690,7 @@ export async function redriveHeldClawbackRepays(
   }
   const ready = new Map<string, string>(); // dispute -> job
   const payees = new Map<string, Set<string>>(); // dispute -> Helprs this run re-pays
+  const modes = new Map<string, Set<StripeMode>>(); // dispute -> stored modes of its owed rows (Q1908)
   // Second review of Q1223 (double pay): the sweep acts ONLY on the owed rows
   // it read here, never on a sibling of the same dispute (a row Stripe
   // refused was handed to a person, who may have paid it by hand).
@@ -704,6 +713,8 @@ export async function redriveHeldClawbackRepays(
     }
     ready.set(r.dispute_id, r.job_id);
     if (r.helper_id) payees.set(r.dispute_id, (payees.get(r.dispute_id) ?? new Set<string>()).add(r.helper_id));
+    const m = storedStripeMode(r.stripe_mode);
+    if (m) modes.set(r.dispute_id, (modes.get(r.dispute_id) ?? new Set<StripeMode>()).add(m));
     const mine = owned.get(r.dispute_id) ?? new Map<string, SweepRow>();
     mine.set(r.id, { firstAttemptAt: r.held_repay_first_attempt_at ?? null });
     owned.set(r.dispute_id, mine);
@@ -711,8 +722,12 @@ export async function redriveHeldClawbackRepays(
   for (const [disputeId, jobId] of ready) {
     try {
       const { data: job } = await ctx.supabase.from("jobs").select("id, title").eq("id", jobId).maybeSingle();
-      // Q1753: the re-pay runs on the key of the job's own Stripe mode.
-      const stripe = ctx.stripeForJob ? await ctx.stripeForJob(jobId, [...(payees.get(disputeId) ?? [])]) : ctx.stripe;
+      // Q1753: the re-pay runs on the key of the job's own Stripe mode; Q1908:
+      // on the dispute's stored mode when its rows recorded one. One dispute is
+      // one mode, so rows that disagree are a defect and nothing is paid.
+      const stored = [...(modes.get(disputeId) ?? [])];
+      if (stored.length > 1) throw new Error(`its owed rows record different Stripe modes (${stored.join(", ")}); nothing re-paid`);
+      const stripe = ctx.stripeForJob ? await ctx.stripeForJob(jobId, [...(payees.get(disputeId) ?? [])], stored[0] ?? null) : ctx.stripe;
       const res = await repayClawback({ ...ctx, stripe }, { id: disputeId } as Stripe.Dispute, { id: jobId, title: job?.title ?? null }, { fromSweep: true, owned: owned.get(disputeId) });
       out.disputes++;
       out.repaidCents += res.repaidNowCents;

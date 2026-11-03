@@ -1215,6 +1215,29 @@ describe("stripe-webhook edge function", () => {
         expect(scenario.writes.some((w) => w.table === "notifications" && (w.payload as Record<string, unknown>).user_id === "helper-1")).toBe(false);
       });
 
+      // Q1908: the claim row records where the tip's money sits (the PaymentIntent's livemode), so the
+      // re-pay runs on that mode even if an enrolment changes before the hold is released.
+      // @mutate supabase/functions/_shared/heldTipRepay.ts |         stripe_mode: modeFromLivemode(pi.livemode), |         stripe_mode: null, void modeFromLivemode,
+      it.each([
+        [false, "test"],
+        [true, "live"],
+        [undefined, null],
+      ])("Q1908: a PaymentIntent with livemode %s records stripe_mode %s on the claim row", async (livemode, mode) => {
+        const fn = await loadConfigured();
+        scenario.reads.payout_holds = { rows: [HOLD] };
+        scenario.reads.tips = { rows: [{ id: "tip-1" }] };
+        scenario.reads.tip_hold_redrives = { rows: [] };
+        scenario.writeSelectRows.tips = [{ id: "tip-1" }];
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tip", livemode, latest_charge: { id: "ch_tip", transfer: "tr_tip" } });
+        stripeMock.transfers.retrieve.mockResolvedValue({ id: "tr_tip", amount: 1500 });
+        stripeMock.transfers.createReversal.mockResolvedValue({ id: "trr_tip" });
+        heldTipEvent("evt_tip_held_mode");
+        const res = await fn.fetch(webhookRequest(fn, "{}"));
+        expect(res.status).toBe(200);
+        const claim = scenario.writes.find((w) => w.table === "tip_hold_redrives" && w.op === "insert");
+        expect((claim?.payload as Record<string, unknown>).stripe_mode).toBe(mode);
+      });
+
       // @mutate supabase/functions/_shared/heldTipRepay.ts | if (hold.kind === "error") throw new Error(`payout hold read failed for a paid tip | if (false) throw new Error(`payout hold read failed for a paid tip
       it("an unreadable hold fails the delivery (Stripe redelivers); nothing is reversed", async () => {
         const fn = await loadConfigured();

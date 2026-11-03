@@ -14,11 +14,19 @@
  *
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |         ({ stripe } = await stripes.clientForJob(job.id, "payout", [helperId])); |         ({ stripe } = { stripe: stripes.clientFor("live") });
  * @mutate supabase/functions/process-scheduled-payouts/index.ts |         ({ stripe } = await stripes.clientForJob(job.id, "payout", [helperId])); |         ({ stripe } = await stripes.clientForJob(job.id, "read", []));
- * @mutate supabase/functions/process-scheduled-payouts/index.ts |       (await stripes.clientForJob(jobId, "payout", payees)).stripe; |       stripes.clientFor("live");
- * @mutate supabase/functions/_shared/heldTipRepay.ts |       rowStripe = await stripeForJob!(await tipJobId(supabase, r), [r.helper_id]); |       rowStripe = liveStripe;
- * @mutate supabase/functions/_shared/chargebackClawback.ts |       const stripe = ctx.stripeForJob ? await ctx.stripeForJob(jobId, [...(payees.get(disputeId) ?? [])]) : ctx.stripe; |       const stripe = ctx.stripe;
- * @mutate supabase/functions/_shared/chargebackClawback.ts | await ctx.stripeForJob(jobId, [...(payees.get(disputeId) ?? [])]) | await ctx.stripeForJob(jobId, [])
+ * @mutate supabase/functions/process-scheduled-payouts/index.ts |         : (await stripes.clientForJob(jobId, "payout", payees)).stripe; |         : stripes.clientFor("live");
+ * @mutate supabase/functions/_shared/heldTipRepay.ts |         : await stripeForJob!(await tipJobId(supabase, r), [r.helper_id]); |         : liveStripe;
+ * @mutate supabase/functions/_shared/chargebackClawback.ts |       const stripe = ctx.stripeForJob ? await ctx.stripeForJob(jobId, [...(payees.get(disputeId) ?? [])], stored[0] ?? null) : ctx.stripe; |       const stripe = ctx.stripe;
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | await ctx.stripeForJob(jobId, [...(payees.get(disputeId) ?? [])], stored[0] ?? null) | await ctx.stripeForJob(jobId, [], stored[0] ?? null)
  * @mutate supabase/functions/auto-tip-charge/index.ts |         ({ stripe, mode } = await stripes.clientForJob(jobId, "new", [c.customer_id as string \| null, c.helper_id as string \| null])); |         ({ stripe, mode } = { stripe: stripes.clientFor("live"), mode: "live" });
+ * Q1908 (stored mode wins over today's enrolment; payees still checked; rows that disagree pay nothing):
+ * @mutate supabase/functions/_shared/heldTipRepay.ts |       const stored = storedStripeMode(r.stripe_mode); |       const stored = null as StripeMode \| null; void storedStripeMode;
+ * @mutate supabase/functions/_shared/heldTipRepay.ts | first_repay_attempt_at, tip_source, stripe_mode") | first_repay_attempt_at, tip_source")
+ * @mutate supabase/functions/_shared/chargebackClawback.ts | updated_at, reversed_cents, stripe_mode") | updated_at, reversed_cents")
+ * @mutate supabase/functions/_shared/chargebackClawback.ts |     if (m) modes.set(r.dispute_id, | if (false) modes.set(r.dispute_id,
+ * @mutate supabase/functions/_shared/chargebackClawback.ts |       if (stored.length > 1) throw new Error( |       if (false) throw new Error(
+ * @mutate supabase/functions/process-scheduled-payouts/index.ts |         ? (await stripes.clientForStoredMode(storedMode, payees)).stripe |         ? (await stripes.clientForJob(jobId, "payout", payees)).stripe
+ * @mutate supabase/functions/_shared/stripeMode.ts |       if (off.length > 0) {\n        throw new StripeModeRefused("mixed_parties", `stored-mode payout | if (false) {\n        throw new StripeModeRefused("mixed_parties", `stored-mode payout
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -246,6 +254,109 @@ describe("money crons choose each job's Stripe client by its mode (owner 2026-10
       expect(text).toContain("tip job read");
       // Resolved BEFORE the claim: a refusal does not leave the row claimed (repaying).
       expect(scenario.writes.some((w) => w.table === "tip_hold_redrives")).toBe(false);
+    });
+  });
+
+  // Q1908: a re-drive row that recorded where its money sits (stripe_mode,
+  // from the Stripe object's livemode) runs on that mode, whatever anyone's
+  // enrolment says today; each payee must still be of it. The job here has no
+  // cs_ prefix (gift-funded), the case where today's enrolment used to decide.
+  describe("process-scheduled-payouts re-drives run on the row's stored mode (Q1908)", () => {
+    const DAY = 86_400_000;
+    const GIFT_JOB = "99999999-9999-4999-8999-999999999999";
+    function base(job: { customer_id: string; helper_id: string }) {
+      scenario.reads.jobs = {
+        rows: [],
+        eqOverrides: [{ column: "id", value: GIFT_JOB, result: { rows: [{ id: GIFT_JOB, title: "Gutters", stripe_session_id: null, ...job }] } }],
+      };
+      scenario.reads.platform_settings = { rows: [{ onboarding_fee_cents: 200 }] };
+      scenario.reads.payout_transfers = { rows: [] };
+      scenario.reads.chargeback_clawbacks = { rows: [] };
+      scenario.reads.tip_hold_redrives = { rows: [] };
+      scenario.reads.payout_holds = { rows: [] };
+      scenario.reads.group_job_helpers = { rows: [] };
+      scenario.reads.tips = { rows: [{ job_id: GIFT_JOB }] };
+      scenario.reads.profiles = { ...(scenario.reads.profiles ?? {}), rows: [{ stripe_account_id: "acct_helper" }] };
+      stripeMock.transfers.list.mockResolvedValue({ data: [] });
+      stripeMock.transfers.create.mockResolvedValue({ id: "tr_repay" });
+    }
+    const heldTip = (helperId: string, stripe_mode: string | null) => ({
+      tip_id: "tip-1", helper_id: helperId, transfer_id: "tr_tip", amount_cents: 1500, status: "reversed", stripe_mode,
+      updated_at: new Date(Date.now() - 3600_000).toISOString(), created_at: new Date(Date.now() - DAY).toISOString(),
+    });
+    const owedClawback = (helperId: string, stripe_mode: string | null, over: Record<string, unknown> = {}) => ({
+      id: "cb-1", dispute_id: "dp_1", job_id: GIFT_JOB, helper_id: helperId, original_transfer_id: "tr_1",
+      stripe_account_id: "acct_helper", transfer_amount_cents: 9000, reversed_cents: 9000,
+      stripe_reversal_id: "trr_1", repay_transfer_id: null, status: "reversed", stripe_mode,
+      failure_reason: "payout_hold: re-pay owed once the hold is released",
+      held_repay_owed_at: new Date(Date.now() - DAY).toISOString(), updated_at: new Date(Date.now() - DAY).toISOString(),
+      ...over,
+    });
+    async function run() {
+      env();
+      const fn = await loadEdgeFunction("process-scheduled-payouts");
+      const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }));
+      return { status: res.status, text: await res.text() };
+    }
+
+    it("a test-mode held tip is re-paid on the TEST key after its poster was un-enrolled (today's parties would refuse a mix)", async () => {
+      base({ customer_id: REAL_POSTER, helper_id: TEST_HELPR });
+      scenario.reads.tip_hold_redrives = { rows: [heldTip(TEST_HELPR, "test")] };
+      enrol(TEST_HELPR);
+      await run();
+      expect(callsOn(TEST_KEY, "transfers.create")).toHaveLength(1);
+      expect(callsOn(LIVE_KEY, "transfers.create")).toHaveLength(0);
+      // The re-drive reads must ask for the stored mode (a mock returns every column regardless).
+      const cols = (t: string) => (scenario.readQueries ?? []).filter((r) => r.table === t).map((r) => r.cols);
+      expect(cols("tip_hold_redrives").some((c) => /\bstripe_mode\b/.test(c))).toBe(true);
+      expect(cols("chargeback_clawbacks").some((c) => /\bheld_repay_owed_at\b.*\bstripe_mode\b/.test(c))).toBe(true);
+    });
+
+    it("a test-mode held tip whose Helpr is no longer enrolled goes to NEITHER key (today's parties would send it live), and is not claimed", async () => {
+      base({ customer_id: REAL_POSTER, helper_id: REAL_HELPR });
+      scenario.reads.tip_hold_redrives = { rows: [heldTip(REAL_HELPR, "test")] };
+      enrol(TEST_POSTER);
+      const { text } = await run();
+      expect(stripeMock.__calls.filter((c) => c.method.startsWith("transfers."))).toEqual([]);
+      expect(scenario.writes.some((w) => w.table === "tip_hold_redrives")).toBe(false);
+      expect(text).toContain("tip tip-1");
+    });
+
+    it("a held tip with no stored mode (an older row) still falls back to the job's parties", async () => {
+      base({ customer_id: TEST_POSTER, helper_id: TEST_HELPR });
+      scenario.reads.tip_hold_redrives = { rows: [heldTip(TEST_HELPR, null)] };
+      enrol(TEST_POSTER, TEST_HELPR);
+      await run();
+      expect(callsOn(TEST_KEY, "transfers.create")).toHaveLength(1);
+      expect(callsOn(LIVE_KEY, "transfers.create")).toHaveLength(0);
+    });
+
+    it("a test-mode won-chargeback re-pay runs on the TEST key after its poster was un-enrolled", async () => {
+      base({ customer_id: REAL_POSTER, helper_id: TEST_HELPR });
+      scenario.reads.chargeback_clawbacks = { rows: [owedClawback(TEST_HELPR, "test")] };
+      enrol(TEST_HELPR);
+      await run();
+      expect(callsOn(TEST_KEY, "transfers.create")).toHaveLength(1);
+      expect(callsOn(LIVE_KEY, "transfers.create")).toHaveLength(0);
+    });
+
+    it("a test-mode won-chargeback re-pay to a Helpr no longer enrolled goes to neither key and is a defect", async () => {
+      base({ customer_id: REAL_POSTER, helper_id: REAL_HELPR });
+      scenario.reads.chargeback_clawbacks = { rows: [owedClawback(REAL_HELPR, "test")] };
+      enrol(TEST_POSTER);
+      const { text } = await run();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(text).toContain("clawback re-pay dp_1");
+      expect(scenario.writes.some((w) => w.table === "chargeback_clawbacks")).toBe(false);
+    });
+
+    it("one dispute whose owed rows record different modes pays nothing and says why", async () => {
+      base({ customer_id: TEST_POSTER, helper_id: TEST_HELPR });
+      scenario.reads.chargeback_clawbacks = { rows: [owedClawback(TEST_HELPR, "test"), owedClawback(TEST_HELPR, "live", { id: "cb-2", original_transfer_id: "tr_2" })] };
+      enrol(TEST_POSTER, TEST_HELPR);
+      const { text } = await run();
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(text).toContain("record different Stripe modes");
     });
   });
 

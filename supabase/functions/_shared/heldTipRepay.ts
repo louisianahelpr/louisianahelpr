@@ -42,6 +42,7 @@ import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { memberDisplayNameOf } from "../_shared/memberDisplayName.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
+import { modeFromLivemode, storedStripeMode, type StripeMode } from "../_shared/stripeMode.ts";
 
 type Db = {
   from: (t: string) => any;
@@ -199,6 +200,8 @@ export async function holdBackPaidTip(
       .insert({
         tip_id: args.tipId, helper_id: args.helperId, transfer_id: transferId, amount_cents: amountCents, status: "owed",
         tip_source: source,
+        // Q1908: where the tip's money sits (the PaymentIntent's livemode); the re-pay runs on it.
+        stripe_mode: modeFromLivemode(pi.livemode),
       });
     if (insErr && (insErr as { code?: string }).code !== "23505") {
       throw new Error(`tip_hold_redrives insert failed for tip ${args.tipId}: ${insErr.message}`);
@@ -255,6 +258,8 @@ type RedriveRow = {
   first_repay_attempt_at?: string | null;
   /** Q2459: absent on a row read before 20261102052443 means 'job'. */
   tip_source?: string | null;
+  /** Q1908: the mode the tip was charged in (NULL on a row written before 20261103112413). */
+  stripe_mode?: string | null;
 };
 
 /** The tip's job, which decides its Stripe mode. A delivery tip (helpr_task_tips) has none. */
@@ -272,13 +277,16 @@ async function tipJobId(supabase: Db, r: RedriveRow): Promise<string | null> {
 export async function redriveHeldTips(
   liveStripe: Stripe,
   supabase: Db,
-  /** Q1753: the client for this job's money (its own Stripe mode); throws StripeModeRefused on a mix. */
-  stripeForJob?: (jobId: string | null, payees: string[]) => Promise<Stripe>,
+  /**
+   * Q1753: the client for this job's money (its own Stripe mode); throws StripeModeRefused on a mix.
+   * Q1908: given the row's stored mode, the caller uses it (payees still checked) and reads no job.
+   */
+  stripeForJob?: (jobId: string | null, payees: string[], storedMode?: StripeMode | null) => Promise<Stripe>,
 ): Promise<RedriveResult> {
   const out: RedriveResult = { repaid: 0, kept: 0, waiting: 0, defects: [] };
   const { data, error } = await supabase
     .from("tip_hold_redrives")
-    .select("tip_id, helper_id, transfer_id, amount_cents, status, updated_at, created_at, first_repay_attempt_at, tip_source")
+    .select("tip_id, helper_id, transfer_id, amount_cents, status, updated_at, created_at, first_repay_attempt_at, tip_source, stripe_mode")
     .in("status", ["owed", "reversed", "repaying"])
     .limit(200);
   if (error) {
@@ -301,8 +309,12 @@ export async function redriveHeldTips(
     let rowStripe: Stripe | null = stripeForJob ? null : liveStripe;
     const stripeForRow = async (): Promise<Stripe> => {
       if (rowStripe) return rowStripe;
-      // A delivery tip has no job: the Helpr's own mode decides (stripeForJob(null, [helper])).
-      rowStripe = await stripeForJob!(await tipJobId(supabase, r), [r.helper_id]);
+      // Q1908: the mode the tip was charged in, when the row recorded it; else
+      // the job decides (a delivery tip has no job: the Helpr's own mode).
+      const stored = storedStripeMode(r.stripe_mode);
+      rowStripe = stored
+        ? await stripeForJob!(null, [r.helper_id], stored)
+        : await stripeForJob!(await tipJobId(supabase, r), [r.helper_id]);
       return rowStripe;
     };
     try {

@@ -10,11 +10,13 @@
  * src/test/pglite/declutterSellerOutPaysFee.pglite.mjs. The reason -> policy
  * map itself is pinned in src/test/refundsKeepTheCardFee.test.ts.
  *
- * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql |     ELSIF o.close_reason = 'seller_out' THEN | ELSIF false THEN
- * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql | v_reason := CASE WHEN v_items_ok AND v_cant | v_reason := CASE WHEN v_cant
+ * @mutate supabase/migrations/20261103095253_declutter_late_payment_seller_block.sql |     ELSIF o.close_reason = 'seller_out' THEN | ELSIF false THEN
+ * @mutate supabase/migrations/20261103095253_declutter_late_payment_seller_block.sql | WHEN v_items_ok AND v_cant THEN 'seller_out' | WHEN v_cant THEN 'seller_out'
  * lh-money-escrow review of 905501cb2 #1: (b) judges seller_out on the items alone, so a buyer's block does not hand the fee to us.
- * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql |       v_reason := CASE WHEN v_items_ok AND v_cant | v_items_ok := v_items_ok AND NOT EXISTS (SELECT 1 FROM public.user_blocks b WHERE b.blocked_id = o.seller_id OR b.blocker_id = o.seller_id);\n      v_reason := CASE WHEN v_items_ok AND v_cant
- * @mutate supabase/migrations/20261101191500_declutter_checkout_pickup_time.sql | WHEN v_cant AND v_items_ok THEN 'seller_out' | WHEN v_cant THEN 'seller_out'
+ * @mutate supabase/migrations/20261103095253_declutter_late_payment_seller_block.sql |       v_reason := CASE WHEN v_items_ok AND EXISTS | v_items_ok := v_items_ok AND NOT EXISTS (SELECT 1 FROM public.user_blocks b WHERE b.blocked_id = o.seller_id OR b.blocker_id = o.seller_id);\n      v_reason := CASE WHEN v_items_ok AND EXISTS
+ * Q1926: on (b) a SELLER's block reads seller_backed_out (the seller pays the card fee), as on (c), not order_closed.
+ * @mutate supabase/migrations/20261103095253_declutter_late_payment_seller_block.sql | THEN 'seller_backed_out'\n                       WHEN v_items_ok AND v_cant | THEN 'order_closed'\n                       WHEN v_items_ok AND v_cant
+ * @mutate supabase/migrations/20261103095253_declutter_late_payment_seller_block.sql | WHEN v_cant AND v_items_ok THEN 'seller_out' | WHEN v_cant THEN 'seller_out'
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |   IF o.seller_id IS NULL OR v_debt IS NULL OR v_debt <= 0 THEN |   IF true THEN
  */
 import { describe, expect, it } from "vitest";
@@ -48,8 +50,9 @@ describe("Declutter: a seller who can no longer sell owes the card fee (20261017
     // (b) a late in-time payment that cannot be honoured: only when being out is the sole blocker.
     // BUY-1 (20261101030040): a late in-time payment is never honoured now (the hold was released), so it is always
     // refunded; 'seller_out' still only when being out is the sole blocker, judged on the items alone (lh-money-escrow
-    // review of 905501cb2 #1): a seller who is out wins over a buyer who blocked them; a seller's own block is not.
-    expect(b).toContain("v_reason := CASE WHEN v_items_ok AND v_cant AND NOT EXISTS (SELECT 1 FROM public.user_blocks b WHERE b.blocker_id = o.seller_id AND b.blocked_id = o.buyer_id) THEN 'seller_out' ELSE 'order_closed' END;");
+    // review of 905501cb2 #1): a seller who is out wins over a buyer who blocked them. Q1926 (20261103095253): a
+    // seller's own block reads seller_backed_out first (the seller pays the card fee), as on (c), on the items alone.
+    expect(b).toContain("v_reason := CASE WHEN v_items_ok AND EXISTS (SELECT 1 FROM public.user_blocks b WHERE b.blocker_id = o.seller_id AND b.blocked_id = o.buyer_id) THEN 'seller_backed_out' WHEN v_items_ok AND v_cant THEN 'seller_out' ELSE 'order_closed' END;");
     expect(b).not.toContain("v_honour");
     // The items part is computed once per path and never folded with the blocks part afterwards.
     expect(b.match(/v_items_ok :=/g)?.length).toBe(2);

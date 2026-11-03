@@ -26,11 +26,15 @@
 // @mutate supabase/migrations/20261015051141_category_suggestions.sql |   PERFORM pg_advisory_xact_lock(hashtext('suggest_category'), hashtext(v_uid::text)); |   PERFORM 1;
 // @mutate supabase/migrations/20261015051141_category_suggestions.sql |   SELECT * INTO v_row FROM public.category_suggestions WHERE id = p_id;\n |   SELECT * INTO v_row FROM public.category_suggestions WHERE id = p_id FOR UPDATE;\n
 // @mutate src/components/SuggestCategory.tsx |   if (!on) return null; |   if (false) return null;
+// @mutate src/components/declutter/SellSummaryCard.tsx |           <SuggestCategory area="declutter" /> | {null}
+// @mutate src/components/declutter/DeclutterSellView.tsx |           <SuggestCategory area="declutter" /> | {null}
+// @mutate src/components/declutter/DeclutterEditListing.tsx |       <SuggestCategory area="declutter" /> | {null}
+// @mutate src/components/postjob/JobCategoryGroups.tsx |           <SuggestCategory area="jobs" /> | {null}
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { render, cleanup } from "@testing-library/react";
-import { blankSqlComments } from "./helpers/blankNonCode";
+import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
 let featureOn = false;
@@ -125,4 +129,30 @@ describe("Suggest a category: hidden, gated, closed (20261015051141)", () => {
     const on1 = render(<SuggestCategory area="jobs" />);
     expect(on1.container.textContent).toMatch(/Suggest a category/);
   });
+});
+
+/**
+ * Q1836 (a): every category picker carries the link, Declutter's included.
+ * The list is explicit (no directory walk); each file must still draw its
+ * picker, so a moved picker fails here instead of silently dropping the link.
+ */
+const PICKERS: ReadonlyArray<{ file: string; picker: RegExp; area: "jobs" | "declutter" }> = [
+  { file: "src/components/postjob/JobCategoryGroups.tsx", picker: /JOB_CATEGORY_GROUPS\.map\(groupTile\)/, area: "jobs" },
+  { file: "src/components/declutter/SellSummaryCard.tsx", picker: /<ChipGroup label="Category"/, area: "declutter" },
+  { file: "src/components/declutter/DeclutterSellView.tsx", picker: /<ChipGroup label="Category"/, area: "declutter" },
+  { file: "src/components/declutter/DeclutterEditListing.tsx", picker: /<ChipGroup label="Category"/, area: "declutter" },
+];
+
+describe("Suggest a category: every category picker renders the link (Q1836 a)", () => {
+  it("reads a real inventory (floor)", () => {
+    expect(PICKERS.length).toBeGreaterThan(3);
+  });
+
+  for (const { file, picker, area } of PICKERS) {
+    it(`${file} draws its picker and <SuggestCategory area="${area}" />`, () => {
+      const src = blankComments(readFileSync(join(ROOT, file), "utf8"));
+      expect(src, "picker").toMatch(picker);
+      expect(src).toContain(`<SuggestCategory area="${area}" />`);
+    });
+  }
 });

@@ -212,6 +212,11 @@ export function declutterPreviewSample(stage: DeclutterPreviewStage, side: Declu
           dropoff_address: null, dropoff_lat: null, dropoff_lng: null, pickup_photo_path: null, dropoff_photo_path: null, handed_over_at: null, problem_open: false,
         },
         declutter_delivery_raise_status: { order_id: ORDER_ID, task_status: "accepted", open_until: hoursFrom(now, 20), delivery_cents: 900, raised_cents: 0, can_raise: false, room_cents: 0, raises: [] },
+        // No no-show report on an accepted delivery (src/lib/declutter/noHelpr.ts reads null as none).
+        helpr_task_no_show_report: null,
+      }, {
+        // The Helpr has not tapped Start: no live position yet (DeliveryLiveMap shows nothing).
+        helpr_task_live_positions: [],
       });
     case "handed_over":
       return withReads({ ...base, cart: [paid("pickup_home", { order_status: "handed_over" })],

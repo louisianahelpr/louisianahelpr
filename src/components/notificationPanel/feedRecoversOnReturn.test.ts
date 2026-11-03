@@ -8,7 +8,7 @@
  * the visit. RED on origin/main 8ca225a0e3: the focus and online tests fail
  * (one load, no reload).
  */
-// @mutate src/components/notificationPanel/notificationFeed.ts | void load(ensureFreshNotificationFeed), INITIAL_LOAD_DELAY_MS | void load(), INITIAL_LOAD_DELAY_MS
+// @mutate src/components/notificationPanel/notificationFeed.ts | () => void load((id) => (listHeldFor(id) ? ensureFreshNotificationFeed(id) : loadBadgeFeed(id))), | () => void load(loadNotificationFeed),
 // @mutate src/components/notificationPanel/notificationFeed.ts | const unsubscribeFocus = focusManager.subscribe((focused) => { if (focused) reloadIfFailed(); }); | const unsubscribeFocus = () => {};
 // @mutate src/components/notificationPanel/notificationFeed.ts | const unsubscribeOnline = onlineManager.subscribe((online) => { if (online) reloadIfFailed(); }); | const unsubscribeOnline = () => {};
 // @mutate src/components/notificationPanel/notificationFeed.ts | lastLoadFailed = true;\n        report(err, { tags: { source: "notificationFeed.load" } }); | report(err, { tags: { source: "notificationFeed.load" } });
@@ -43,8 +43,9 @@ async function mountWithFailedFirstLoad() {
   await act(async () => {
     await vi.advanceTimersByTimeAsync(900);
   });
-  // Two list selects per load (recent + unread).
-  expect(calls.lists).toBe(2);
+  // The page-load (badge) read is the unread page alone; the recency page
+  // waits for the panel (Q104).
+  expect(calls.lists).toBe(1);
   return hook;
 }
 
@@ -71,7 +72,7 @@ describe("the bell recovers a failed load on return", () => {
       focusManager.setFocused(true);
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(calls.lists).toBeGreaterThan(2);
+    expect(calls.lists).toBeGreaterThan(1);
     hook.unmount();
   });
 
@@ -83,7 +84,7 @@ describe("the bell recovers a failed load on return", () => {
       onlineManager.setOnline(true);
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(calls.lists).toBeGreaterThan(2);
+    expect(calls.lists).toBeGreaterThan(1);
     hook.unmount();
   });
 
@@ -94,7 +95,7 @@ describe("the bell recovers a failed load on return", () => {
       await vi.advanceTimersByTimeAsync(900);
     });
     const after = calls.lists;
-    expect(after).toBe(2);
+    expect(after).toBe(1);
     await act(async () => {
       focusManager.setFocused(false);
       focusManager.setFocused(true);
@@ -127,6 +128,6 @@ describe("the bell recovers a failed load on return", () => {
       focusManager.setFocused(true);
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(calls.lists).toBe(2);
+    expect(calls.lists).toBe(1);
   });
 });

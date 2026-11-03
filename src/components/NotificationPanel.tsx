@@ -4,7 +4,7 @@ import type { MotionProps } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { ensureFreshNotificationFeed, loadNotificationFeed, onFeedRecoveryLoad, onNotificationArrival } from "@/components/notificationPanel/notificationFeed";
+import { ensureFreshNotificationFeed, LIST_REUSE_MS, loadNotificationFeed, onFeedRecoveryLoad, onNotificationArrival, prefetchNotificationList } from "@/components/notificationPanel/notificationFeed";
 import { useReducedMotion } from "@/lib/accessibility";
 import { AlertTriangle, BellRing, CheckCheck, Loader2 } from "lucide-react";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
@@ -208,7 +208,9 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
     // show. A background refresh failure with prior data on screen
     // stays silent so a transient hiccup doesn't blow away a list the
     // user is mid-reading.
-    const hasRowsOnScreen = notificationsRef.current.length > 0;
+    // Unread rows from the badge load are not a list on screen: until the
+    // full list has loaded, a failure here is the panel's error card.
+    const hasRowsOnScreen = getNotificationSnapshot().listLoaded && notificationsRef.current.length > 0;
     setLoadError((prev) => (hasRowsOnScreen ? prev : true));
     // ONE OUTAGE, ONE MESSAGE.
     //
@@ -261,7 +263,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
     // The load itself (recency page + unread page + head count) is the bell's
     // shared feed (Q756, ./notificationPanel/notificationFeed.ts): it THROWS on
     // a failed list, which the caller turns into this panel's error card.
-    await (force ? loadNotificationFeed(session.user.id) : ensureFreshNotificationFeed(session.user.id)); // mount reuses the feed's first load (Q1183)
+    await (force ? loadNotificationFeed(session.user.id) : ensureFreshNotificationFeed(session.user.id, LIST_REUSE_MS)); // an open reuses a fresh list, e.g. the hover prefetch (Q1183, Q104)
     setLoadError(false);
   };
 
@@ -272,9 +274,19 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
     onRefresh: async () => { await loadNotifications(); },
   });
 
+  /* THE LIST LOADS WHEN THE PANEL OPENS, NOT WHEN IT MOUNTS (Q104, lead
+     decision 2026-11-02, option b). The panel mounts on every signed-in page
+     once it settles, and its 800 ms mount load put the recency page on every
+     page load although nobody had opened anything. The badge needs only the
+     unread page, which the shared feed reads. Opening (and, earlier, a hover,
+     focus or touch on the bell: prefetchNotificationList) loads the list; a
+     list loaded in the last LIST_REUSE_MS is reused, kept live by realtime.
+     A panel swapped in by a tap mounts open (defaultOpen) and loads at once. */
   useEffect(() => {
-    // Defer initial notification load to avoid blocking page render
-    const timer = setTimeout(() => loadNotifications(false), 800);
+    if (open) void loadNotifications(false);
+  }, [open]);
+
+  useEffect(() => {
 
     // Check push support
     const supported = isPushSupported();
@@ -322,7 +334,6 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
     });
 
     return () => {
-      clearTimeout(timer);
       off();
       offRecovery();
     };
@@ -372,6 +383,11 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
     setFilter(notifications.some((n) => !n.read) ? "unread" : "all");
   }, [notifications, filter]);
 
+  /* WHAT THE STORE HOLDS BEFORE THE LIST LOADS is the badge's unread page
+     (Q104): complete for Unread, not for All. So Unread may show it while All
+     waits for the full list (spinner, or the error card), and never shows the
+     unread rows as if they were everything. */
+  const listShowable = listLoaded || (filter === "unread" && notifications.length > 0);
   const visibleNotifications = useMemo(
     () => (filter === "unread" ? notifications.filter((n) => !n.read) : notifications),
     [notifications, filter],
@@ -500,7 +516,15 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
        for touch. */
     <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
-        <NotificationTrigger ref={triggerRef} unreadCount={unreadCount} className={triggerClassName} />
+        <NotificationTrigger
+          ref={triggerRef}
+          unreadCount={unreadCount}
+          className={triggerClassName}
+          // About to open: start the list now so the tap opens onto it (Q104).
+          onPointerEnter={prefetchNotificationList}
+          onFocus={prefetchNotificationList}
+          onTouchStart={prefetchNotificationList}
+        />
       </PopoverTrigger>
       {/* On phone/native, positioned against a measured SCREEN BAND, not
           against the bell: a zero-height rect spanning the viewport at the
@@ -599,7 +623,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
           canTrigger={canTrigger}
           className="flex-1 min-h-0 no-scrollbar overscroll-contain"
         >
-          {loadError && notifications.length === 0 ? (
+          {loadError && (!listShowable || notifications.length === 0) ? (
             /* A failed initial load takes precedence over the "All caught up"
                empty state — the user must be able to tell "nothing happened"
                from "we couldn't ask".
@@ -644,7 +668,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
                 Try again
               </button>
             </div>
-          ) : !listLoaded && notifications.length === 0 ? (
+          ) : !listShowable ? (
             /* NOT ANSWERED YET. Before the first successful load an empty list
                means "we haven't heard back", and the empty state below is a
                claim about the account. Same compact shape as the two states

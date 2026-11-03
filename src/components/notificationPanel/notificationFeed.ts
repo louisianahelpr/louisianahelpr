@@ -80,13 +80,39 @@ export const ensureFreshNotificationFeed = (userId: string, maxAgeMs = 5_000): P
 };
 
 /** Tests only: forget a load left in flight by a previous test's fake clock. */
-export const __resetNotificationFeedLoad = () => { inFlight = null; lastLoaded = null; };
+export const __resetNotificationFeedLoad = () => { inFlight = null; badgeInFlight = null; lastLoaded = null; };
 
 const stillBound = (userId: string) => getNotificationSnapshot().userId === userId;
 /** The store is bound to `userId` and holds a loaded list (not one emptied by a sign-out or user switch). */
 const listHeldFor = (userId: string) => {
   const snap = getNotificationSnapshot();
   return snap.userId === userId && snap.listLoaded;
+};
+
+/* The unread page. `count: "exact"` rides on this read (Content-Range), so
+   the badge's total needs no third request (Q104 budget, release gate
+   2026-11-01). Shared by the badge load and the full list load. */
+const unreadPage = (userId: string) =>
+  supabase
+    .from("notifications")
+    .select("*", { count: "exact" })
+    .eq("user_id", userId)
+    .eq("read", false)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+/** Merge pages, dedupe by id (the later page wins), newest first. */
+const mergeRows = (...pages: (readonly Notification[] | null | undefined)[]): Notification[] =>
+  [...new Map(pages.flatMap((p) => p ?? []).map((n) => [n.id, n])).values()].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+  );
+
+const applyUnreadCount = (count: number | null | undefined) => {
+  // Counted, not paged: the list is a page, the badge is a fact. The count
+  // comes back with the unread read (every unread row, not the 50 it
+  // returns). No count leaves unreadTotal null and the UI falls back to the
+  // page-derived count.
+  if (typeof count === "number") setUnreadTotal(count);
 };
 
 const loadOnce = async (userId: string) => {
@@ -104,15 +130,7 @@ const loadOnce = async (userId: string) => {
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(50),
-    // count: "exact" rides on this read (Content-Range), so the badge's
-    // total needs no third request (Q104 budget, release gate 2026-11-01).
-    supabase
-      .from("notifications")
-      .select("*", { count: "exact" })
-      .eq("user_id", userId)
-      .eq("read", false)
-      .order("created_at", { ascending: false })
-      .limit(50),
+    unreadPage(userId),
   ]));
   // Either failing is a failed load: a recency page without its unread rows
   // is the defect above, and unread rows without the page is not a list.
@@ -121,19 +139,64 @@ const loadOnce = async (userId: string) => {
   // Signed out or switched account while the request was out: these rows
   // belong to nobody on screen now.
   if (!stillBound(userId)) return;
-  const data = [...new Map(
-    [...(recent.data ?? []), ...(unread.data ?? [])].map((n) => [n.id, n]),
-  ).values()].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-  );
-  setNotifications(data as Notification[]);
+  setNotifications(mergeRows(recent.data as Notification[] | null, unread.data as Notification[] | null));
   markNotificationsLoaded();
+  applyUnreadCount(unread.count);
+};
 
-  // Counted, not paged: the list is a page, the badge is a fact. The count
-  // comes back with the unread read above (every unread row, not the 50 it
-  // returns). No count leaves unreadTotal null and the UI falls back to the
-  // page-derived count.
-  if (typeof unread.count === "number") setUnreadTotal(unread.count);
+/* THE BADGE LOAD (Q104, lead decision 2026-11-02, option b). A page load with
+   the panel shut needs the unread count and nothing else, so the feed reads
+   only the unread page (rows + exact count). The recency page ("All") is read
+   by loadNotificationFeed when the panel is about to open: hover, focus or a
+   touch on the bell (prefetchNotificationList), or the open itself. This load
+   never marks the list loaded, so the panel's All view waits for the real
+   list instead of showing the unread rows as if they were everything. */
+let badgeInFlight: { userId: string; promise: Promise<void> } | null = null;
+
+const loadBadgeOnce = async (userId: string) => {
+  setNotificationUser(userId);
+  const unread = await withLoadTimeout(unreadPage(userId));
+  if (unread.error) throw unread.error;
+  if (!stillBound(userId)) return;
+  // Merged into what the store holds (a realtime arrival, or a full list
+  // loaded meanwhile), never replacing it.
+  setNotifications((prev) => mergeRows(prev, unread.data as Notification[] | null));
+  applyUnreadCount(unread.count);
+};
+
+/**
+ * Keep the bell's NUMBER current for `userId`: once the full list is held,
+ * a refresh reloads the list (it carries the unread page); before that only
+ * the unread page is read. Joins a full load already in flight.
+ */
+export const loadBadgeFeed = (userId: string): Promise<void> => {
+  if (listHeldFor(userId)) return loadNotificationFeed(userId);
+  if (inFlight?.userId === userId) return inFlight.promise;
+  if (badgeInFlight?.userId === userId) return badgeInFlight.promise;
+  const promise = loadBadgeOnce(userId).finally(() => {
+    if (badgeInFlight?.promise === promise) badgeInFlight = null;
+  });
+  badgeInFlight = { userId, promise };
+  return promise;
+};
+
+/** How long a loaded list is reused when the panel opens; realtime keeps it live meanwhile. */
+export const LIST_REUSE_MS = 60_000;
+
+/**
+ * Start the full list for the bell's bound user BEFORE the panel opens
+ * (pointerenter, focus, touchstart on the bell), so a tap opens onto the
+ * list, not a spinner. Reuses a fresh list and joins a load in flight. A
+ * failure here is not lost: it leaves no stamp, so the open loads again and
+ * shows the panel's own error card.
+ */
+export const prefetchNotificationList = () => {
+  const userId = getNotificationSnapshot().userId;
+  if (!userId) return;
+  ensureFreshNotificationFeed(userId, LIST_REUSE_MS).catch((err: unknown) => {
+    // Reported, not shown: nobody opened anything yet; the open retries.
+    report(err, { severity: "warning", tags: { source: "notificationFeed.prefetch" } });
+  });
 };
 
 /** Side effects a mounted bell adds to a live arrival (chime, local push). */
@@ -172,7 +235,7 @@ function openFeed(userId: string): Feed {
   // (TanStack's focusManager / onlineManager: the browser events on the web,
   // Capacitor's appStateChange / Network on native, src/lib/appLifecycle.ts).
   let lastLoadFailed = false;
-  const load = (read: (id: string) => Promise<void> = loadNotificationFeed) =>
+  const load = (read: (id: string) => Promise<void> = loadBadgeFeed) =>
     read(userId).then(
       () => { lastLoadFailed = false; },
       (err) => {
@@ -185,10 +248,14 @@ function openFeed(userId: string): Feed {
   };
   const unsubscribeFocus = focusManager.subscribe((focused) => { if (focused) reloadIfFailed(); });
   const unsubscribeOnline = onlineManager.subscribe((online) => { if (online) reloadIfFailed(); });
-  // Deferred so the first paint is not competing with it (same delay the
-  // panel always used). A bell on the page may have loaded the list already
-  // (a launch into Declutter opens this feed late), so a fresh list is reused.
-  const timer = setTimeout(() => void load(ensureFreshNotificationFeed), INITIAL_LOAD_DELAY_MS);
+  // Deferred so the first paint is not competing with it. Only the badge's
+  // unread page: the All list waits for the panel (Q104). A bell on the page
+  // may have loaded the list already (a launch into Declutter opens this feed
+  // late), so a fresh list is reused.
+  const timer = setTimeout(
+    () => void load((id) => (listHeldFor(id) ? ensureFreshNotificationFeed(id) : loadBadgeFeed(id))),
+    INITIAL_LOAD_DELAY_MS,
+  );
   // The binding (notifications INSERT, user_id=eq.<me>) lives on the ONE
   // shared per-user channel (src/lib/userRealtimeBus.ts, Q105).
   const unsubscribe = subscribeUserRealtime(
@@ -215,7 +282,7 @@ function openFeed(userId: string): Feed {
       // frozen on a count that is no longer true, so re-read the list rather
       // than resuming from whatever arrives next.
       onRecovered: () =>
-        void loadNotificationFeed(userId).then(
+        void loadBadgeFeed(userId).then(
           () => {
             lastLoadFailed = false;
             for (const l of [...recoveryListeners]) l(null);

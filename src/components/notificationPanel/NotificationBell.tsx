@@ -7,6 +7,7 @@ import {
   bellUnreadCount,
 } from "./notificationStore";
 import { whenPageSettled } from "@/lib/routePrefetch";
+import { prefetchNotificationList } from "./notificationFeed";
 import { report } from "@/lib/errorLogger";
 
 /**
@@ -18,8 +19,10 @@ import { report } from "@/lib/errorLogger";
  * trigger, with the same shared unread count (notificationStore, fed by
  * useNavUnreadCount on every route), and swaps in the real panel once the
  * page has settled, or at once on the first tap (which then opens it).
- * Until then the panel's own extras (the chime, the first 800 ms list load)
- * have not started; the feed and the badge do not depend on them.
+ * Until then the panel's own extras (the chime) have not started; the feed
+ * and the badge do not depend on them. The All list itself loads only when
+ * the panel is about to open (Q104): a hover, focus or touch on either bell
+ * starts it, and so does the tap, before the panel's chunk has arrived.
  */
 type Panel = ComponentType<{ triggerClassName?: string; defaultOpen?: boolean }>;
 
@@ -77,7 +80,11 @@ export default function NotificationBell({ triggerClassName }: { triggerClassNam
       aria-haspopup="dialog"
       aria-expanded={false}
       data-state="closed"
+      onPointerEnter={prefetchNotificationList}
+      onFocus={prefetchNotificationList}
+      onTouchStart={prefetchNotificationList}
       onClick={async () => {
+        prefetchNotificationList();
         setOpenOnLoad(true);
         const p = await loadPanel();
         if (p) setPanel(() => p);

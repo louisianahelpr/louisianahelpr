@@ -13,7 +13,7 @@
  *     could never hand its counts over and every mocked /home read its first card twice.
  */
 // @mutate src/components/notificationPanel/notificationFeed.ts |       .select("*", { count: "exact" }) |       .select("*")
-// @mutate src/components/notificationPanel/notificationFeed.ts |   if (typeof unread.count === "number") setUnreadTotal(unread.count); |   const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("read", false); setUnreadTotal(count ?? 0);
+// @mutate src/components/notificationPanel/notificationFeed.ts |   markNotificationsLoaded();\n  applyUnreadCount(unread.count); |   markNotificationsLoaded();\n  const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("read", false); setUnreadTotal(count ?? 0);
 // @mutate src/components/StrikeBanner.tsx |   const { profile } = useCurrentUser(); |   const { profile } = useCurrentUser(); void import("@/integrations/supabase/client").then(({ supabase }) => supabase.from("profiles").select("ban_status, auto_suspended_until"));
 // @mutate e2e/happy-path/fixtures.ts |     headers: { "access-control-expose-headers": PROD_REST_EXPOSE_HEADERS, ...(resp.headers ?? {}) }, |     headers: resp.headers ?? {},
 import { describe, it, expect, vi, beforeEach } from "vitest";

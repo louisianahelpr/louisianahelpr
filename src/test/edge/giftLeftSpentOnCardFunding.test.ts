@@ -6,13 +6,20 @@
  * this checkout consumed itself (a gift difference payment), a gift with a replacement already minted for the job,
  * a bank checkout still settling, and a failed gift read (it never blocks the funding).
  *
+ * Bank half: a bank (ACH) debit that settles later reaches escrow in paymentIntentSucceeded, never through the
+ * checkout handler's escrow write; that path now runs the same alert-only check (method "bank").
+ *
  * Runs the REAL stripe-webhook source via the edge harness.
+ *
+ * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts |         await pageGiftLeftSpentOnCardFunding(supabase, { |         if (false) await pageGiftLeftSpentOnCardFunding(supabase, {
+ * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts |           consumedGiftId: ((pi.metadata as { gift_card_id?: string } \| null)?.gift_card_id) \|\| null, |           consumedGiftId: null,
+ * @mutate supabase/functions/stripe-webhook/handlers/_giftLeftSpentOnCardFunding.ts |   const how = args.method === "bank" ? "bank payment" : "card"; |   const how = "card";
  *
  * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |       if (!isAsyncPayment) {\n        await pageGiftLeftSpentOnCardFunding( |       if (false) {\n        await pageGiftLeftSpentOnCardFunding(
  * @mutate supabase/functions/stripe-webhook/handlers/_giftLeftSpentOnCardFunding.ts | && g.id !== consumedGiftId); | );
  * @mutate supabase/functions/stripe-webhook/handlers/_giftLeftSpentOnCardFunding.ts |     if (Array.isArray(replacements) && replacements.length > 0) return "none"; |
  * @mutate supabase/functions/stripe-webhook/handlers/_giftLeftSpentOnCardFunding.ts |         seed: job?.is_seed === true, |         seed: false,
- * @mutate supabase/functions/stripe-webhook/handlers/_giftLeftSpentOnCardFunding.ts | Job ${jobId} ("${title}") was just paid in full by card, but ${poster}'s $${dollars} | Job ${jobId} was just paid in full by card, but the poster's
+ * @mutate supabase/functions/stripe-webhook/handlers/_giftLeftSpentOnCardFunding.ts | Job ${jobId} ("${title}") was just paid in full by ${how}, but ${poster}'s $${dollars} | Job ${jobId} was just paid in full by ${how}, but the poster's
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
@@ -134,5 +141,108 @@ describe("Q1983: a gift left spent by a never-funded checkout is paged when a ca
   it("reads a real inventory (floor)", async () => {
     await deliver({ gifts: [STALE, { ...STALE, id: "gift-old-2", amount: 10 }] });
     expect(giftAlerts().length).toBeGreaterThan(1);
+  });
+});
+
+const bankGiftAlerts = () =>
+  (slackAlerts as Alert[]).filter((a) => a.title === "Gift card still spent on a job the poster paid in full by bank payment");
+
+async function deliverBankSettled(opts: {
+  gifts?: Array<{ id: string; amount: number; status: string; job_id: string }>;
+  replacements?: Array<{ id: string }>;
+  giftReadFails?: boolean;
+  isSeed?: boolean;
+  piGiftId?: string;
+  jobPaymentStatus?: string;
+}) {
+  const fn = await loadConfigured();
+  stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+    id: "evt_q1983_ach",
+    type: "payment_intent.succeeded",
+    data: {
+      object: {
+        id: "pi_q1983_ach", amount: 5200, amount_details: { tax: { total_tax_amount: 0 } },
+        metadata: { job_id: "job-1", customer_id: "poster-1", ...(opts.piGiftId ? { gift_card_id: opts.piGiftId } : {}) },
+      },
+    },
+  });
+  scenario.reads.gift_cards = {
+    rows: [],
+    selectOverrides: [
+      { includes: "id, amount, status, job_id", result: opts.giftReadFails ? { rows: [], error: { message: "boom" } } : { rows: opts.gifts ?? [] } },
+      { includes: "id", result: { rows: opts.replacements ?? [] } },
+    ],
+  } as never;
+  scenario.reads.jobs = {
+    rows: [{ id: "job-1", customer_id: "poster-1", title: "Move a couch", payment_status: opts.jobPaymentStatus ?? "failed", status: "open", sales_tax_amount: 0, is_seed: opts.isSeed ?? false }],
+    selectOverrides: [{ includes: "title, is_seed, customer_id", result: { rows: [{ title: "Move a couch", is_seed: opts.isSeed ?? false, customer_id: "poster-1" }] } }],
+  } as never;
+  scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+  scenario.reads.profiles = {
+    rows: [],
+    selectOverrides: [{ includes: "full_name", result: { rows: [{ full_name: "Dana Poster" }] } }],
+  } as never;
+  return fn.fetch(fn.request({ rawBody: "{}", headers: { "stripe-signature": "t=1,v1=abc", "content-type": "application/json" } }));
+}
+
+const escrowFlip = () =>
+  scenario.writes.some((w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "escrow");
+
+describe("Q1983 bank half: a bank debit that settles later and funds the job runs the same check", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetStripeMock();
+    resetSupabaseMock();
+    resetSharedMocks();
+  });
+
+  it("pages once, naming the job, the poster's first name, the amount and the PaymentIntent", async () => {
+    const res = await deliverBankSettled({ gifts: [STALE] });
+    expect(res.status).toBe(200);
+    expect(escrowFlip()).toBe(true);
+    const a = bankGiftAlerts();
+    expect(a).toHaveLength(1);
+    expect(a[0].severity).toBe("critical");
+    expect(a[0].seed).toBe(false);
+    expect(a[0].message).toContain('Job job-1 ("Move a couch") was just paid in full by bank payment');
+    expect(a[0].message).toContain("Dana's $25.00 gift card gift-old");
+    expect(a[0].fields).toMatchObject({ job_id: "job-1", job_title: "Move a couch", poster: "Dana", gift_card_id: "gift-old", gift_amount: "$25.00", payment_intent: "pi_q1983_ach" });
+    expect(a[0].oncePerDayKey).toBe("gift-spent-card-funded:gift-old");
+    expect(giftAlerts()).toHaveLength(0);
+  });
+
+  it("a seed job's page goes to the digest", async () => {
+    await deliverBankSettled({ gifts: [STALE], isSeed: true });
+    expect(bankGiftAlerts()).toHaveLength(1);
+    expect(bankGiftAlerts()[0].seed).toBe(true);
+  });
+
+  it("the gift this payment consumed itself (a gift difference payment paid by bank) is not paged", async () => {
+    await deliverBankSettled({ gifts: [STALE], piGiftId: "gift-old" });
+    expect(escrowFlip()).toBe(true);
+    expect(bankGiftAlerts()).toHaveLength(0);
+  });
+
+  it("a gift with a replacement already minted for the job is not paged", async () => {
+    await deliverBankSettled({ gifts: [STALE], replacements: [{ id: "gift-new" }] });
+    expect(bankGiftAlerts()).toHaveLength(0);
+  });
+
+  it("a job already in escrow (no escrow write here) is not checked", async () => {
+    await deliverBankSettled({ gifts: [STALE], jobPaymentStatus: "escrow" });
+    expect(escrowFlip()).toBe(false);
+    expect(bankGiftAlerts()).toHaveLength(0);
+  });
+
+  it("a failed gift read pages nothing and never blocks the funding", async () => {
+    const res = await deliverBankSettled({ gifts: [STALE], giftReadFails: true });
+    expect(res.status).toBe(200);
+    expect(escrowFlip()).toBe(true);
+    expect(bankGiftAlerts()).toHaveLength(0);
+  });
+
+  it("reads a real inventory (floor)", async () => {
+    await deliverBankSettled({ gifts: [STALE, { ...STALE, id: "gift-old-2", amount: 10 }] });
+    expect(bankGiftAlerts().length).toBeGreaterThan(1);
   });
 });

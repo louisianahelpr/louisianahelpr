@@ -13,7 +13,7 @@ import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { AdminCard } from "@/components/admin/AdminViewShell";
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { toneBadgeClasses } from "@/components/admin/tones";
-import { isMissingRpc } from "@/components/admin/adminStalledJobs/stalledQueue";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
 import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 import { requireBiometric } from "@/lib/biometricGate";
@@ -89,7 +89,7 @@ export function AdminApprovalEscalations() {
     fallback: EMPTY,
     fetcher: async () => {
       const res = await supabase.rpc("admin_approval_escalation_queue", { p_include_resolved: includeResolved });
-      if (res.error && isMissingRpc(res.error)) return { ...EMPTY, deployed: false };
+      if (res.error && isMissingRpcNamed(res.error, "admin_approval_escalation_queue")) return { ...EMPTY, deployed: false };
       const rows = (unwrap(res) ?? []) as ApprovalEscalationRow[];
       const ids = [...new Set(rows.flatMap((r) => [r.customer_id, r.helper_id]).filter(Boolean) as string[])];
       const names: Record<string, string> = {};
@@ -127,7 +127,7 @@ export function AdminApprovalEscalations() {
           : "Approved for the poster.");
       } else {
         const res = await supabase.rpc("resolve_approval_escalation", { p_job_id: row.job_id });
-        if (res.error && isMissingRpc(res.error)) {
+        if (res.error && isMissingRpcNamed(res.error, "resolve_approval_escalation")) {
           toast.error("This queue's functions aren't deployed yet — nothing was recorded.");
           return;
         }

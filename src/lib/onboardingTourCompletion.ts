@@ -17,8 +17,8 @@
  *
  * DEPLOY-LAG. Migrations land on merge to main and the bundle can reach a
  * browser before `db push` finishes. In that window PostgREST does not know the
- * column and answers 42703 / PGRST204 (and PGRST202 for a not-yet-deployed
- * function). That must never throw and must never be read as "not completed" —
+ * column and answers 42703 / PGRST204 (these are plain profiles reads and
+ * writes, so PGRST202, a missing FUNCTION, never applies here; Q2190). That must never throw and must never be read as "not completed" —
  * so it is reported as `"unavailable"` and the caller falls back to the device
  * hint, which is exactly today's behaviour. Every OTHER error is reported as
  * `"error"`; the caller treats that as "don't know", and the tour stays hidden
@@ -31,7 +31,7 @@ import { unwrapMutation } from "@/lib/mutationResult";
 import { report } from "@/lib/errorLogger";
 
 /** PostgREST/Postgres codes that mean "the schema change hasn't deployed yet". */
-const SCHEMA_NOT_DEPLOYED = new Set(["42703", "PGRST204", "PGRST202"]);
+const SCHEMA_NOT_DEPLOYED = new Set(["42703", "PGRST204"]);
 
 const COLUMN = "onboarding_tour_completed_at";
 

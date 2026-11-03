@@ -10,6 +10,7 @@ import { loadModule } from "@/lib/loadModule";
 const lifecycleErrors = () => loadModule(() => import("@/lib/lifecycleErrors"));
 import { awardBlockMessage, type AcceptMissing } from "@/lib/awardGate";
 import { isNotDeployedYet } from "@/lib/notDeployedYet";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /** A relation, column or RPC the database does not have yet: src/lib/notDeployedYet.ts. */
 export { isNotDeployedYet };
@@ -119,8 +120,9 @@ export async function fetchSeriesDates(args: {
   return { dates, offered, offeredTo };
 }
 
-function seriesRpcError(error: { code?: string | null; message?: string | null }, copy: string | null): Error {
-  if (isNotDeployedYet(error)) {
+/** `notDeployed`: the caller's isMissingRpcNamed answer for the RPC it called (Q2190). */
+function seriesRpcError(error: { code?: string | null; message?: string | null }, copy: string | null, notDeployed: boolean): Error {
+  if (notDeployed) {
     return new Error("This is briefly unavailable while an update finishes rolling out. Please try again in a few minutes.");
   }
   return new Error(copy ?? error.message ?? "Something went wrong. Please try again.");
@@ -148,7 +150,7 @@ export async function claimSeriesDates(jobId: string, dates: string[]): Promise<
   // The accept gate judges each visit the dates confirm, from a trigger, so
   // its refusal is not one of the RPC's own codes (Q1180 re-review #10).
   // Q1586(c): a saved birthday under 18 is refused by the applications trigger too.
-  if (error) throw seriesRpcError(error, (await lifecycleErrors())?.rpcErrorMessage("claim_series_dates", error) ?? awardBlockMessage(error) ?? (isUnder18Refusal(error) ? UNDER_18_APPLY_COPY : null));
+  if (error) throw seriesRpcError(error, (await lifecycleErrors())?.rpcErrorMessage("claim_series_dates", error) ?? awardBlockMessage(error) ?? (isUnder18Refusal(error) ? UNDER_18_APPLY_COPY : null), isMissingRpcNamed(error, "claim_series_dates"));
   const r = (data ?? {}) as {
     claimed?: string[]; taken?: string[]; refused?: string[]; already_yours?: string[];
     needs_setup?: string[]; missing?: AcceptMissing[];
@@ -184,7 +186,7 @@ export function claimSetupStep(r: Pick<ClaimResult, "missing" | "needsSetup">, s
 /** Hand dates back to the series. `strike` = one started within 24 hours. */
 export async function giveUpSeriesDates(jobId: string, dates: string[]): Promise<{ released: string[]; strike: boolean }> {
   const { data, error } = await supabase.rpc("give_up_series_dates", { p_job_id: jobId, p_dates: dates });
-  if (error) throw seriesRpcError(error, (await lifecycleErrors())?.rpcErrorMessage("give_up_series_dates", error) ?? null);
+  if (error) throw seriesRpcError(error, (await lifecycleErrors())?.rpcErrorMessage("give_up_series_dates", error) ?? null, isMissingRpcNamed(error, "give_up_series_dates"));
   const r = (data ?? {}) as { released?: string[]; strike?: boolean };
   return { released: r.released ?? [], strike: r.strike === true };
 }
@@ -192,6 +194,6 @@ export async function giveUpSeriesDates(jobId: string, dates: string[]): Promise
 /** The poster offers the open dates to someone who applied. */
 export async function offerSeriesDates(jobId: string, helperId: string): Promise<{ openDates: number }> {
   const { data, error } = await supabase.rpc("offer_series_dates", { p_job_id: jobId, p_helper_id: helperId });
-  if (error) throw seriesRpcError(error, (await lifecycleErrors())?.rpcErrorMessage("offer_series_dates", error) ?? null);
+  if (error) throw seriesRpcError(error, (await lifecycleErrors())?.rpcErrorMessage("offer_series_dates", error) ?? null, isMissingRpcNamed(error, "offer_series_dates"));
   return { openDates: Number((data as { open_dates?: number } | null)?.open_dates ?? 0) };
 }

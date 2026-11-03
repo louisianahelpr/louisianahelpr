@@ -4,8 +4,8 @@
  * sent", never the screen's load error. A PGRST202 WITH a hint (the function exists
  * with other arguments) and any other error still throw.
  *
- * @mutate src/lib/rentals/api.ts |   return e.code === "PGRST202" && !e.hint; |   return false;
- * @mutate src/lib/rentals/api.ts |   return e.code === "PGRST202" && !e.hint; |   return e.code === "PGRST202";
+ * @mutate src/lib/rentals/api.ts |   if (res.error && isMissingRpcNamed(res.error, "rentals_my_identity")) { |   if (false) {
+ * @mutate src/lib/rentals/api.ts |   if (res.error && isMissingRpcNamed(res.error, "rentals_my_identity")) { |   if (res.error && res.error.code === "PGRST202") {
  */
 import { describe, expect, it, vi } from "vitest";
 

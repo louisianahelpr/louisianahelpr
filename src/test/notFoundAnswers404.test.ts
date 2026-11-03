@@ -226,6 +226,7 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
  * Packet 20 (regular): shops_set_follow, declutter_set_watch, shops_record_item_ai_check, declutter_wanted_hold_photos, declutter_record_wanted_ai_check (20261103084609).
  * Packet 21 (regular): declutter_free_still_available, shops_set_hours, declutter_relist_listing, declutter_set_listing_drops (20261103085435).
  * Packet 22 (regular): shops_order_cancel_quote, admin_send_team_message, promotions_unsubscribe, promotions_resubscribe, shop_pickup_addresses_owner_is_shop_owner (20261103091013).
+ * Packet 23 (regular): replace_stripe_customer, claim_stripe_customer (20261103100800); service_role only, their one caller (_shared/stripeCustomer.ts) ignores the SQLSTATE.
  */
 const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
   "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm",
@@ -247,10 +248,10 @@ const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_s
   "declutter_helpr_remove_listing_photo", "shops_confirm_pickup", "declutter_set_item_seller_delivery", "shops_remove_item_photo", "shops_withdraw_item", "shops_close_my_shop",
   "shops_set_follow", "declutter_set_watch", "shops_record_item_ai_check", "declutter_wanted_hold_photos", "declutter_record_wanted_ai_check",
   "declutter_free_still_available", "shops_set_hours", "declutter_relist_listing", "declutter_set_listing_drops",
-  "shops_order_cancel_quote", "admin_send_team_message", "promotions_unsubscribe", "promotions_resubscribe", "shop_pickup_addresses_owner_is_shop_owner"];
+  "shops_order_cancel_quote", "admin_send_team_message", "promotions_unsubscribe", "promotions_resubscribe", "shop_pickup_addresses_owner_is_shop_owner",
+  "replace_stripe_customer", "claim_stripe_customer"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-// Includes (L50 train 2, 11-03) replace_stripe_customer (20261103053759, money train #4047) raises P0002 for a missing profile; service_role only, never reached by app code.
-const P0002_RAISERS = 147;
+const P0002_RAISERS = 145;
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");

@@ -17,6 +17,7 @@ import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakd
 import { POSTER_SERVICE_FEE_PERCENT, setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
 import { cardCostFeeCents, chargeTaxCentsFor, checkoutChargeTaxCents, posterCancelKeptFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { crewBlockFeeRefusal } from "../_shared/crewBlockFeeRead.ts";
+import { readCrewCancelFee } from "../_shared/crewCancelQuote.ts";
 import { jobFlatFeeTotalCents } from "../_shared/crewShares.ts";
 import { POSTER_JOB_FEE_CENTS, POSTER_JOB_FEE_DESCRIPTION, isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import {
@@ -2661,8 +2662,15 @@ serve(async (req) => {
       let feePercent: number | null = null;
       const unquoted = (reason: string, feeCents: number | null) =>
         quoteJson({ can_cancel: true, fee_cents: feeCents, fee_percent: feePercent, back_to_you_cents: null, unquoted_reason: reason, charge_state: null, quoted_at: nowIso });
-      // A crew prices from its roster ledger, written only by the cancel itself.
-      if (qJob.is_group_job) return unquoted("crew", null);
+      // A crew prices from its roster ledger, written only by the cancel itself, so no "Back to you". Q2557: its fee
+      // is quoted the way poster_cancel_job prices it (a member waiting on their ID or frozen by a ban counts 0), so
+      // the dialog never shows a higher fee than the cancel records. The total only: no member is named. Any failed
+      // read quotes no fee (the dialog keeps its own estimate). A crew cancel still sends no p_expected_fee_cents.
+      if (qJob.is_group_job) {
+        const crewFee = await readCrewCancelFee(supabaseAdmin, qJob, nowIso);
+        if (crewFee) feePercent = crewFee.percent;
+        return unquoted("crew", crewFee ? crewFee.cents : null);
+      }
       // THE ladder poster_cancel_job records and checks p_expected_fee_cents
       // against (_shared/cancellationFee.ts, cent for cent with the SQL).
       // Owner 2026-10-30: a hired Helpr who has not verified their ID and has not headed out carries

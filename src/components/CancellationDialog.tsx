@@ -196,8 +196,11 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
   // A crew's fee is one equal share per member who confirmed (Q407); the
   // helper-share lines below then describe ONE member's share.
   const crewQuote = crew ? crewCancellationFeeQuote(crew.members, jobBudget, crew.needed, hoursUntilJob) : null;
+  // Q2557: the server's crew fee (cancel_quote) wins when it has one: it also sees a member waiting on their ID or
+  // frozen by a ban, whom poster_cancel_job charges nothing for. Display only; a crew cancel sends no expected fee.
+  const crewServerFeeCents = crew && typeof quote?.fee_cents === "number" ? quote.fee_cents : null;
   const cancellationFee = crewQuote
-    ? crewQuote.total
+    ? (crewServerFeeCents !== null ? crewServerFeeCents / 100 : crewQuote.total)
     : quotedFeeCents !== null
       ? quotedFeeCents / 100
       : Math.round(jobBudget * cancellationFeePercent) / 100;

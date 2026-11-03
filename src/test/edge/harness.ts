@@ -1080,6 +1080,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/crewBlockFeeRead.ts";`,
   );
 
+  // Crew cancel quote (Q2557): `_shared/crewCancelQuote.ts` imports only the sibling pure modules
+  // cancellationFee.ts and crewShares.ts (both served real above) and takes the client as a parameter, so the
+  // REAL module serves: it is the quote's twin of poster_cancel_job's crew pricing.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/crewCancelQuote\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/crewCancelQuote.ts";`,
+  );
+
   // Stripe mode (owner 2026-10-12, test mode for test accounts):
   // `_shared/stripeMode.ts` has ZERO imports and decides which Stripe key a
   // payment runs on. A stub would be the one gate between a test account and

@@ -152,7 +152,8 @@ describe("a payment failure un-funds every funded state (B)", () => {
     const handlerStates = [...m![1].matchAll(/"([a-z_]+)"/g)].map((x) => x[1]).sort();
     expect(handlerStates).toEqual(dbStates);
     // ...and the funded branch runs before the unpaid-only CAS path.
-    expect(handler).toMatch(/if \(failedJob && FUNDED_PAYMENT_STATES\.has\(String\(failedJob\.payment_status\)\)\) \{\s*await unfundFailedEscrow\(/);
+    // Q1973: a row mid-refund ('cancelling') takes the funded branch too (the RPC answers moved_on and it retries).
+    expect(handler).toMatch(/if \(failedJob && \(FUNDED_PAYMENT_STATES\.has\(String\(failedJob\.payment_status\)\) \|\| failedJob\.payment_status === "cancelling"\)\) \{\s*await unfundFailedEscrow\(/);
   });
 
   it("it is the handler wired to payment_intent.payment_failed", () => {

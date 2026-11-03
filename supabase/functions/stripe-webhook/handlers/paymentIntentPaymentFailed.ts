@@ -573,7 +573,17 @@ export async function handlePaymentIntentPaymentFailed(
   // Q1971: the same giftCardId (create-payment stamps it on a gift-shortfall
   // PaymentIntent and no other); the cancel RPC gives it back in SQL, the
   // not-hired un-fund through returnBouncedGift.
-  if (failedJob && FUNDED_PAYMENT_STATES.has(String(failedJob.payment_status))) {
+  // Q1973: 'cancelling' (a poster refund holds the job mid-claim) goes the
+  // funded way too. It used to fall to the unpaid branch below, match 0 rows
+  // and be acked with no write, and when the refund's put-back returned the
+  // job to 'escrow' it was 7440a72d again with this event spent. Through
+  // unfundFailedEscrow the cancel RPC answers moved_on + 'cancelling', which
+  // throws, so Stripe retries until the claim settles: a put-back to 'escrow'
+  // is then un-funded by the retry (full cancel and notices); a finished
+  // refund leaves 'refunded', which the retry acks with nothing to do.
+  // 'chargeback' is deliberately NOT here (a dispute outlasts Stripe's 3-day
+  // retries, so a throw would only delay the drop; lead 11-03).
+  if (failedJob && (FUNDED_PAYMENT_STATES.has(String(failedJob.payment_status)) || failedJob.payment_status === "cancelling")) {
     await unfundFailedEscrow(failedJob, pi.id, ctx, giftCardId);
     return;
   }

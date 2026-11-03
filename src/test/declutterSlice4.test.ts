@@ -132,7 +132,8 @@ describe("Declutter slice 4: handover, payout once, problems, no-shows (20261015
     // Shipping S2 (20261030000030) restated it verbatim but the shipped-order delivered-scan check; still no code.
     // Audit 1030 DB-3 (20261030061753) restated it verbatim but the meetup hour check; still no code.
     // The handover money ruling (20261031004529) restated it verbatim but the 60-day problem stepping aside; still no code.
-    expect(DEFS.get("declutter_confirm_handover")?.file).toBe("20261031004529_declutter_handover_both_confirm.sql");
+    // BUY-17 (20261103202118) restated it verbatim but the porch-photo check (porch_photo_not_in); still no code.
+    expect(DEFS.get("declutter_confirm_handover")?.file).toBe("20261103202118_declutter_porch_got_it_waits_for_photo.sql");
     const h = flat(body("declutter_my_handover"));
     expect(h).not.toMatch(/'qr'|lhdeclutter:|'code'/);
     const c = flat(body("declutter_confirm_handover"));

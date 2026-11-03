@@ -108,10 +108,13 @@ describe("card-matching skeletons", () => {
    * declared heights are what is held here; the pixel row is measured at 375
    * by e2e/prod-audit/activity-loading-reserve.spec.ts.
    */
-  it("the /jobs placeholder reserves ONE meta line and the /posts placeholder TWO (Q700)", () => {
+  /* Q833 (2026-11-03): the /jobs Working cards are MineJobFace now, so ApplicationCardSkeleton draws the face
+     (src/test/mineFaceSkeletonMatchesFace.test.tsx holds its height) and no old-card meta line at all. */
+  it("the /jobs placeholder is the MineJobFace drawing and the /posts placeholder keeps TWO meta lines (Q700, Q833)", () => {
     const lines = (el: ReactElement) =>
       [...render(el).container.querySelectorAll<HTMLElement>("[data-skeleton-meta-line]")].map((l) => l.style.height);
-    expect(lines(<ApplicationCardSkeleton />)).toEqual(["32px"]);
+    expect(lines(<ApplicationCardSkeleton />)).toEqual([]);
+    expect(render(<ApplicationCardSkeleton />).container.querySelector("[data-mine-face-skeleton]")).not.toBeNull();
     expect(lines(<ActivityCardSkeleton />)).toEqual(["32px", "16px"]);
   });
 
@@ -131,7 +134,7 @@ describe("card-matching skeletons", () => {
 // Same contract on the inbox row, whose bones were once a raised glass CARD
 // at a 76px pitch standing in for a flat 64px strip.
 // @mutate src/components/ui/skeletons/MessageThreadSkeleton.tsx | <div className={CONVERSATION_ROW_FRAME} aria-hidden> | <div className="p-3 rounded-ds-md liquid-glass" aria-hidden>
-// Q700: /jobs one meta line, /posts two. Each mutation moves one tab off its shape.
-// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <CollapsedActivityCardSkeleton metaLines={1} />; | return <CollapsedActivityCardSkeleton metaLines={2} />;
+// Q700/Q833: /jobs draws the face, /posts two meta lines. Each mutation moves one tab off its shape.
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <MineFaceSkeleton tracker={tracker} />; | return <CollapsedActivityCardSkeleton metaLines={1} />;
 // @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | export function CollapsedActivityCardSkeleton({ metaLines = 2 } | export function CollapsedActivityCardSkeleton({ metaLines = 1 }
-// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | {metaLines === 2 && ( | {true && (
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | {metaLines === 2 && ( | {false && (

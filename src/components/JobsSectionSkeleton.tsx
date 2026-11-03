@@ -3,7 +3,7 @@ import { SectionAddButton } from "@/components/sections/AppTopBar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JOBS_TOOLBAR_ROW } from "@/components/sections/jobsToolbar";
 import { ActivityCardSkeleton, DashboardSkeleton } from "@/components/SkeletonLoaders";
-import { ApplicationCardSkeleton } from "@/components/ui/skeletons/ApplicationCardSkeleton";
+import { WorkingListBones } from "@/components/ui/skeletons/ApplicationCardSkeleton";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { PageTitleBar, useHeaderInDesktopBar } from "@/components/header/PageTitleBar";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -96,7 +96,7 @@ function JobsListBodyBones({ tab }: { tab: "posted" | "applied" }) {
   return (
     <div className="flex-1 min-h-0 px-0 lg:px-4 pt-1 lg:pt-3 pb-0 space-y-list" aria-hidden>
       {tab === "applied"
-        ? [1, 2, 3, 4].map((i) => <ApplicationCardSkeleton key={i} />)
+        ? <WorkingListBones filter={filterFromUrl()} />
         : [1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}
     </div>
   );
@@ -159,6 +159,12 @@ function BrowseFrame({ header }: { header: ReactNode }) {
       )}
     </PageScaffold>
   );
+}
+
+/** The Working list's status filter from the URL (JobListPage reads `filter` the same way; absent is "all"). Q833. */
+function filterFromUrl(): string | null {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get("filter");
 }
 
 /** Which tab a cold /jobs URL will open on — JobsSection.resolveJobsTab's rule, read before its chunk exists. */

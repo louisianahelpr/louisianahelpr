@@ -138,10 +138,11 @@ async function unfundFailedEscrow(
       seed: job.is_seed ?? false,
     });
     // A gift the checkout spent goes back inside the RPC (exactly once, same
-    // transaction). Anything but returned / not_consumed means it is still
-    // spent on a cancelled job: a person must put it back.
+    // transaction). Anything but returned / not_consumed / already_restored
+    // (Q2077: a cancel's refund already minted the poster a replacement gift)
+    // means it is still spent on a cancelled job: a person must put it back.
     const gift = (cancelVerdict as { gift?: { outcome?: string } | null }).gift ?? null;
-    if (giftCardId && gift?.outcome !== "returned" && gift?.outcome !== "not_consumed") {
+    if (giftCardId && gift?.outcome !== "returned" && gift?.outcome !== "not_consumed" && gift?.outcome !== "already_restored") {
       await postSlackOpsAlert({
         kind: "money_at_risk",
         severity: "critical",
@@ -366,7 +367,9 @@ type BouncedGiftOutcome = "returned" | "returned_unspendable" | "none" | "held";
  * the job is unfunded, has no open checkout and was never paid out; a second
  * call answers 'not_consumed', so a redelivery is a no-op.
  *   returned -> the gift is back
- *   none     -> nothing of this gift was spent on the job (or already back)
+ *   none     -> nothing of this gift was spent on the job (or already back,
+ *               including Q2077's already_restored: a cancel's refund minted
+ *               the poster a replacement gift for this job)
  *   held     -> the gift is still spent and ops was paged to return it by hand
  * A database error pages ops and throws, so Stripe retries the event.
  */
@@ -408,7 +411,7 @@ async function returnBouncedGift(
     // (redeem_gift_card refuses it): do not tell the recipient it is usable.
     return answer?.payment_status === "paid" ? "returned" : "returned_unspendable";
   }
-  if (outcome === "not_consumed") return "none";
+  if (outcome === "not_consumed" || outcome === "already_restored") return "none";
   // checkout_open / job_not_failed / paid_out / job_not_found: the gift is
   // still spent on a job whose payment just failed, and the database refused
   // to put it back on its own. A person decides; only an open checkout is

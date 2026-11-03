@@ -10,6 +10,8 @@ import { usePageMeta } from "@/hooks/usePageMeta";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { MEMBERSHIPS_HIDDEN_IN_THIS_APP } from "@/hooks/useMembershipsOn";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
+import { useFeature } from "@/hooks/useFeature";
+import { withDeclutterShipping } from "./declutterShippingCopy";
 import {
   TOPICS,
   FAQ_SECTIONS,
@@ -205,6 +207,10 @@ const HelpCenter = () => {
   usePageMeta(PUBLIC_PAGE_META["/help"]);
   // An answer that names the ID check reads the identity_check switch (helpCenterContent's getter); re-render when it changes.
   useIdentityCheckOnStore();
+  // Shipping answers show only where Declutter shipping is on (switch declutter_shipping); elsewhere "Shipping isn't
+  // offered." stays, and stays true (declutterShippingCopy.ts).
+  const shippingOn = useFeature("declutter_shipping");
+  const sections = shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS;
 
   return (
     // Shared shell (PublicHeaderPage) — same component Legal, Jobs and
@@ -232,7 +238,7 @@ const HelpCenter = () => {
           <div className="space-y-3 sm:space-y-4">
             {/* The store app never shows memberships (useMembershipsOn), so
                 their plans, prices and billing answers are left out there. */}
-            {FAQ_SECTIONS.filter((section) => !(MEMBERSHIPS_HIDDEN_IN_THIS_APP && section.topic === "Membership & Billing")).map((section) => (
+            {sections.filter((section) => !(MEMBERSHIPS_HIDDEN_IN_THIS_APP && section.topic === "Membership & Billing")).map((section) => (
               <TopicSection
                 key={section.topic}
                 section={section}

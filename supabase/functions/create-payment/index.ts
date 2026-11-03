@@ -1455,7 +1455,13 @@ serve(async (req) => {
       if (laborTaxable) {
         const taxAddress = jobTaxAddress(job.zip_code);
         if (!taxAddress) {
-          throw new PublicError("Add the job's Louisiana ZIP code before paying, so sales tax can be figured for where the work is done.");
+          // 400, not a thrown PublicError (the catch answers every PublicError 500 and logs it as a server
+          // fault, which pages Sentry): the job's own data is what's missing, and retrying never changes it.
+          console.warn(`[create-payment] 400 — taxable job ${jobId} has no Louisiana job ZIP; no tax call, no checkout`);
+          return new Response(
+            JSON.stringify({ error: "Add the job's Louisiana ZIP code before paying, so sales tax can be figured for where the work is done." }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },
+          );
         }
         const taxCode = laborTaxCode(job.category, job.tax_kind);
         let calc: Stripe.Tax.Calculation;

@@ -87,6 +87,11 @@ export const ROLE_COPY_ALLOWLIST: readonly RoleCopyException[] = [
   },
   {
     file: "supabase/functions/create-payment/index.ts",
+    text: "Use Refund Poster instead",
+    reason: "Q2449: the 409 an ADMIN gets from Admin -> Jobs cancel (adminHeldCancel, has_role admin) on a charged job; \"Refund Poster\" is the name of the admin button to use instead.",
+  },
+  {
+    file: "supabase/functions/create-payment/index.ts",
     text: "refunding the poster",
     reason: "admin dispute-settlement refusal (same admin-only screen as above).",
   },

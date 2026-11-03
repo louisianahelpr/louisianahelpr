@@ -545,7 +545,7 @@ async function completePendingAccept(deps: Deps, job: HoldJob, defects: Defects)
     const marked = await markCapturedNotHired(db, job.id, `card-hold-sweep: the pending accept was refused after the capture: ${why.slice(0, 300)}`);
     if (!marked) defects.record(`job ${job.id}: captured hold not marked captured_not_hired (no automatic full refund if nobody is hired)`);
     const helprName = await firstNameForPage(db, helperId, "the Helpr");
-    const posterName = await firstNameForPage(db, job.customer_id, "the poster");
+    const posterName = await firstNameForPage(db, job.customer_id, "the person who posted it");
     await postSlackOpsAlert({
       kind: "money_at_risk",
       severity: "warning",

@@ -1,5 +1,6 @@
 import { isTestObjectUnderLiveKey, logTestObjectUnderLiveKey } from "../_shared/stripeAccountUsable.ts";
 import { serve } from "../_shared/buildStamp.ts";
+import { loadBanReviewUsers } from "../_shared/banReview.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { boundedFetch } from "../_shared/boundedFetch.ts";
@@ -2012,7 +2013,26 @@ serve(async (req) => {
       }
     }
 
-    for (const job of [...(jobs || []), ...crewRetryJobs, ...feeRetryJobs] as any[]) {
+    // Q1415 (c), owner 11-03 ("HOLD THOSE TOO"): a refund to a poster under an
+    // open ban settlement review waits until the review is decided, like its
+    // payouts. Only Part A's jobs (the ones that refund the poster): a crew
+    // share or fee retry pays a Helpr, so a poster's review never delays it
+    // (lead 11-03). One read for those posters; a failed read settles none of
+    // them this run (fail closed), and the next run retries.
+    const settleJobs = [...(jobs || []), ...crewRetryJobs, ...feeRetryJobs] as any[];
+    const refundsPoster = (j: any) => j.crew_share_retry !== true && j.fee_transfer_retry !== true;
+    const reviewPosterIds = [...new Set(settleJobs.filter(refundsPoster).map((j) => j.customer_id).filter((id): id is string => typeof id === "string" && id.length > 0))];
+    const posterReviews = reviewPosterIds.length > 0 ? await loadBanReviewUsers(supabaseAdmin, reviewPosterIds) : { ok: true as const, users: new Set<string>() };
+    if (!posterReviews.ok) defects.record(`ban review read: ${posterReviews.message} — cancelled jobs not settled this run`);
+    for (const job of settleJobs) {
+      if (refundsPoster(job) && !posterReviews.ok) {
+        results.push({ job_id: job.id, title: job.title, status: "ban_review_unreadable" });
+        continue;
+      }
+      if (refundsPoster(job) && job.customer_id && posterReviews.users.has(job.customer_id)) {
+        results.push({ job_id: job.id, title: job.title, status: "ban_review" });
+        continue;
+      }
       // Stripe mode for THIS job (owner 2026-10-12): test accounts on the test key.
       let stripe: Stripe;
       try {

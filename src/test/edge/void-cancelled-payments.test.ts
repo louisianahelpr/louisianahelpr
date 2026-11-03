@@ -525,6 +525,48 @@ describe("void-cancelled-payments: an ID-check waiver row waives the fee", () =>
 // pi.amount_received does not go down after it, so this cancellation refunded
 // the $2 a second time out of platform money. The charge's amount_refunded is
 // now subtracted (lh-money-escrow@c4e1df1bb#4).
+// Q1415 (c), owner 11-03 ("HOLD THOSE TOO"): a refund to a poster under an open ban settlement review waits
+// until the review is decided, like its payouts. Nothing moves; the next run retries. A failed read moves nothing.
+// @mutate supabase/functions/void-cancelled-payments/index.ts |       if (refundsPoster(job) && job.customer_id && posterReviews.users.has(job.customer_id)) { |       if (false) {
+// @mutate supabase/functions/void-cancelled-payments/index.ts |       if (refundsPoster(job) && !posterReviews.ok) { |       if (false) {
+describe("void-cancelled-payments — a poster under ban review is not refunded until it is decided (Q1415 c)", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetSupabaseMock();
+    resetStripeMock();
+    resetSharedMocks();
+  });
+  afterEach(() => resetEnv());
+
+  it("a poster under an open review: no refund, the job left for the next run", async () => {
+    seedCancelledEscrowJob();
+    scenario.reads.ban_settlement_queue = { rows: [{ user_id: "poster-1" }] };
+    const h = await load();
+    const body = await (await h.fetch(cronReq())).json() as { results?: Array<{ job_id: string; status: string }> };
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(scenario.writes.filter((w) => w.table === "jobs" && w.op === "update")).toHaveLength(0);
+    expect((body.results ?? []).find((r) => r.job_id === "job-decided")?.status).toBe("ban_review");
+  });
+
+  it("an unreadable review: no refund this run (fail closed)", async () => {
+    seedCancelledEscrowJob();
+    scenario.reads.ban_settlement_queue = { error: { message: "connection reset" } };
+    const h = await load();
+    const body = await (await h.fetch(cronReq())).json() as { results?: Array<{ job_id: string; status: string }> };
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect((body.results ?? []).find((r) => r.job_id === "job-decided")?.status).toBe("ban_review_unreadable");
+  });
+
+  it("a poster not under review is refunded as before", async () => {
+    seedCancelledEscrowJob();
+    scenario.reads.ban_settlement_queue = { rows: [] };
+    scenario.writeSelectRows.notifications = [{ id: "notice-v" }];
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("void-cancelled-payments — Q1675: a charge already partly refunded", () => {
   beforeEach(() => {
     resetEnv();

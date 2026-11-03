@@ -288,6 +288,29 @@ describe("void-cancelled-payments — a crew's cancellation fee is split, one tr
     expect(slackAlerts).toHaveLength(0);
   });
 
+  // Q1415 (c), lead 11-03: a poster's open ban review holds only the poster's refund. A crew share retry pays a
+  // Helpr, so it still goes out for a poster under review.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |     const refundsPoster = (j: any) => j.crew_share_retry !== true && j.fee_transfer_retry !== true; |     const refundsPoster = (_j: any) => true;
+  it("a crew share retry still pays the Helpr while the poster is under ban review (Q1415 c)", async () => {
+    scenario.reads.jobs = {
+      selectOverrides: [
+        { includes: "cancellation_fee,", result: { rows: [] } },
+        { includes: "cancellation_fee_status", result: { rows: [{ id: "job-crew", title: "Move a piano", helper_fee_percent: 10, payment_status: "refunded", cancellation_fee_status: "charged", stripe_payment_intent_id: "pi_crew", customer_id: "poster-under-review" }] } },
+      ],
+      rows: [],
+    };
+    scenario.reads.ban_settlement_queue = { rows: [{ user_id: "poster-under-review" }] };
+    scenario.reads.crew_cancellation_fee_shares = {
+      rows: [{ id: "share-2", job_id: "job-crew", helper_id: "member-b", committed: true, share_basis_cents: 10000, share_amount: "50.00", status: "failed", stripe_transfer_id: null }],
+    };
+    scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_member", subscription_tier: null }] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_crew", status: "succeeded", latest_charge: "ch_crew" });
+    stripeMock.transfers.create.mockImplementation(async (params: { metadata: { helper_id: string } }) => ({ id: `tr_${params.metadata.helper_id}` }));
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(feeTransfers()).toEqual([{ helper: "member-b", cents: 4400, key: expect.stringMatching(/^cancel-fee-job-crew-member-b-h\d+$/) }]);
+  });
+
   // Q2356: a crew share's failed transfer (the webhook marked the share failed and remembered it) is not a
   // payment: Part D sends a NEW transfer instead of marking the share paid with the failed one.
   // @mutate supabase/functions/void-cancelled-payments/index.ts | .filter((t) => t.metadata?.type === "cancellation_fee" && !t.reversed && t.metadata?.helper_id && !knownFailed.has(t.id)) | .filter((t) => t.metadata?.type === "cancellation_fee" && !t.reversed && t.metadata?.helper_id)

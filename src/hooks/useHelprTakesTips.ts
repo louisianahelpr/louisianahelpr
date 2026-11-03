@@ -32,7 +32,9 @@ import { pickRequestedProfile } from "@/lib/safeProfiles";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 
 const CACHE_MS = 60_000;
-type TipAnswer = { payoutReady: boolean; idVerified: boolean } | null;
+/** tipWaitsOnId: the server's own answer (get_safe_profiles.tip_waits_on_id = payout_waits_on_identity), null when
+ *  the RPC predates it or the caller is signed out; then the old computation from idVerified stands. */
+type TipAnswer = { payoutReady: boolean; idVerified: boolean; tipWaitsOnId: boolean | null } | null;
 const cache = new Map<string, { at: number; value: Promise<TipAnswer> }>();
 
 function readTakesTips(helperId: string): Promise<TipAnswer> {
@@ -46,8 +48,14 @@ function readTakesTips(helperId: string): Promise<TipAnswer> {
       cache.delete(helperId);
       return null;
     }
-    const row = pickRequestedProfile(data as { user_id: string; is_payout_ready: boolean | null; is_id_verified?: boolean | null }[] | null, helperId);
-    return row ? { payoutReady: row.is_payout_ready === true, idVerified: row.is_id_verified === true } : null;
+    const row = pickRequestedProfile(data as { user_id: string; is_payout_ready: boolean | null; is_id_verified?: boolean | null; tip_waits_on_id?: boolean | null }[] | null, helperId);
+    return row
+      ? {
+          payoutReady: row.is_payout_ready === true,
+          idVerified: row.is_id_verified === true,
+          tipWaitsOnId: typeof row.tip_waits_on_id === "boolean" ? row.tip_waits_on_id : null,
+        }
+      : null;
   })();
   cache.set(helperId, { at: Date.now(), value });
   return value;
@@ -80,6 +88,10 @@ export function useHelprTakesTips(helperId: string | null | undefined, enabled =
   const a = useTipAnswer(helperId, enabled);
   const idCheckOn = useIdentityCheckOnStore();
   if (!a) return null;
+  // THE SERVER'S ANSWER WHEN IT GIVES ONE (Blockers 10, lead 2026-11-03): create-payment's tip gate decides on
+  // payout_waits_on_identity, which also exempts a payee the switch is off for, or an enrolled test fixture; the
+  // viewer's switch and is_id_verified alone hid a tip the server takes. An older RPC (no field): the old rule.
+  if (a.tipWaitsOnId !== null) return a.payoutReady && !a.tipWaitsOnId;
   return a.payoutReady && (!idCheckOn || a.idVerified);
 }
 
@@ -88,7 +100,9 @@ export function useTipWaitsOnId(helperId: string | null | undefined, enabled = t
   const idCheckOn = useIdentityCheckOnStore();
   // No read at all while the switch is off.
   const a = useTipAnswer(helperId, enabled && idCheckOn);
-  return idCheckOn && a !== null && !a.idVerified;
+  if (!idCheckOn || a === null) return false;
+  // The server's answer when the RPC gives one (see useHelprTakesTips), else the old rule.
+  return a.tipWaitsOnId !== null ? a.tipWaitsOnId : !a.idVerified;
 }
 
 /**

@@ -55,6 +55,7 @@ import {
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { checkUnrecordedTransfers, claimPayout, classifyLedger, failClaim, settleClaim, type LedgerRow } from "../_shared/payoutClaim.ts";
 import { jobSiteTaxOnIntent, resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
+import { automaticTaxCentsFor } from "../_shared/refundAmount.ts";
 // The post-transfer flip and its transient-only retry are SHARED with
 // process-scheduled-payouts — see _shared/releaseFlip.ts for TC-008, the
 // stranded payout that made a retry non-optional.
@@ -829,7 +830,10 @@ serve(async (req) => {
         );
       }
       escrowAmountReceivedCents = captured.cents;
-      escrowTaxCents = Math.min(captured.cents, jobSiteTaxOnIntent(pi as { metadata?: Record<string, string> | null }));
+      // Q1728 follow-up: a legacy / fallback automatic_tax charge carries no job_tax_cents;
+      // its Stripe Tax figure is the state's money too, so it is no payout headroom either.
+      const siteTaxCents = jobSiteTaxOnIntent(pi as { metadata?: Record<string, string> | null });
+      escrowTaxCents = Math.min(captured.cents, siteTaxCents > 0 ? siteTaxCents : await automaticTaxCentsFor(stripe, pi));
       // Never the transfer source on a gift job (see Q1210 above).
       escrowChargeId = giftFunded
         ? null

@@ -820,7 +820,14 @@ test.describe.serial("marketplace chain", () => {
 
   const j5 = title("do-the-job", "revision");
   test(j5, async ({ browser, request, journey }) => {
-    test.setTimeout(12 * 60_000);
+    /* THE LADDER UNLOCKS AT START - 2 H, and J2 had to post at least 2 h ahead (the posting notice), so the job is
+       posted 125-130 min out (SLOT: 125, rounded UP to 5 min) and On My Way unlocks 5-10 min after J2. When the chain
+       gets here sooner, the helper waits for the app's own unlock time ("This button turns on at <time>", JobTracking
+       isLocked; the server's helper_mark_on_the_way refuses before it too) instead of failing on a locked button:
+       e2e-journeys 41665299005 reached it at 2h 3m out, under "This button turns on at 9:45 AM". The wait is added to
+       the budget, never taken out of the steps. */
+    const unlockWait = Math.max(0, SLOT.at.getTime() - 2 * 3_600_000 + 15_000 - Date.now());
+    test.setTimeout(12 * 60_000 + unlockWait);
     test.skip(filteredOut(j5), "SCENARIO pins another scenario");
     if (S.livePay) skipLivePay(`J5 needs J4's hired, funded job — ${S.livePay}`);
     test.skip(!S.jobId || !S.funded, "needs J4's hired, funded job");
@@ -887,7 +894,12 @@ test.describe.serial("marketplace chain", () => {
     });
 
     await test.step("helper heads over and arrives; poster confirms arrival", async () => {
-      let c = await card(hp, "/jobs?tab=working", scheduledTab(), false);
+      const untilUnlock = SLOT.at.getTime() - 2 * 3_600_000 + 15_000 - Date.now();
+      if (untilUnlock > 0) {
+        test.info().annotations.push({ type: "unlock-wait", description: `${Math.round(untilUnlock / 1000)}s until On My Way unlocks (start - 2 h)` });
+        await hp.waitForTimeout(untilUnlock);
+      }
+      let c = await card(hp, "/jobs?tab=working", scheduledTab(), untilUnlock > 0);
       await press(hp, c, /I'm on my way/, "on my way");
       // The location rationale on the way: this helper declines here (en-route
       // tracking is optional).

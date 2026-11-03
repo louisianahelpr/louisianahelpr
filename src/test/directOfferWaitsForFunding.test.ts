@@ -54,7 +54,7 @@
  * @mutate supabase/migrations/20261102070622_late_cancel_notice_whole_dollars.sql |            v_job.id\n           WHERE public.job_payment_is_funded(v_job.payment_status); |            v_job.id\n           WHERE true;
  * @mutate supabase/migrations/20261102070622_late_cancel_notice_whole_dollars.sql |          CASE WHEN public.job_payment_is_funded(v_job.payment_status) THEN\n            format('The person you offered |          CASE WHEN true THEN\n            format('The person you offered
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |              CASE WHEN public.job_payment_is_listed(NEW.payment_status) THEN |              CASE WHEN true THEN
- * @mutate supabase/migrations/20261101071621_instant_book_decline_race.sql |          CASE WHEN public.job_payment_is_listed(payment_status) THEN\n           'Your direct offer |          CASE WHEN true THEN\n           'Your direct offer
+ * @mutate supabase/migrations/20261103075222_offer_closed_on_cancel.sql |          CASE WHEN public.job_payment_is_listed(payment_status) THEN\n           'Your direct offer |          CASE WHEN true THEN\n           'Your direct offer
  * @mutate supabase/migrations/20261029162907_poster_own_reopen_files_no_backout_notice.sql |      AND public.job_payment_is_listed(NEW.payment_status) THEN\n    v_recipient := OLD.customer_id; |      AND true THEN\n    v_recipient := OLD.customer_id;
  * Behaviour (real Postgres): src/test/pglite/offerNoticesWaitForFunding.pglite.mjs
  * (12 PASS on the fix; with --before U1-U5 FAIL, and G: the fixture grants
@@ -141,9 +141,11 @@ describe("a direct offer waits for the money (owner, 2026-10-17)", () => {
       }
     }
     // 2026-10-18: the ban settlement's two notices, the retire trigger's and
-    // the offered Helpr's own decline (Q2131).
+    // the offered Helpr's own decline (Q2131); 2026-11-03 the cancel's
+    // "Offer closed" to the offered Helpr (Q2011).
     expect(gated.length).toBeGreaterThan(3);
     expect(gated.sort()).toEqual([
+      "jobs_cancel_tells_offered_helpr",
       "jobs_offer_target_gone_retires_offer",
       "respond_to_direct_offer",
       "settle_one_off_jobs_for_banned_account",

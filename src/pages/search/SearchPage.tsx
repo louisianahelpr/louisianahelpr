@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Search, X, type LucideIcon } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -95,10 +96,20 @@ function useItemHits(q: string, on: boolean) {
   });
 }
 
+/* Shared by Row and RowSkeleton so the placeholder cannot drift from the row it stands in for (Q2018). */
+const ROW_CLASS = "flex items-center gap-3 px-4 py-3 min-h-[56px] border-b border-border last:border-b-0";
+const THUMB_CLASS = "shrink-0 w-11 h-11 rounded-xl";
+/* 28px with or without "See all" (Q2018, as Q833 did for ActivityBucketGroups): the button's 44px floor
+   (index.css) made the row 44px only when a group held more than PER_SECTION rows, so no placeholder could
+   match both. `-my-2` keeps its 44px target reaching 8px past the row: the group's space-y-2 below, half the
+   page's space-y-4 above, so it covers no row. */
+const GROUP_HEAD_CLASS = "flex min-h-7 items-center justify-between px-1";
+const GROUP_CARD_CLASS = "rounded-2xl overflow-hidden";
+
 /** The 44px square that leads every row: an item's cover photo, a job's category icon. */
 function Thumb({ photo, icon, seed }: { photo?: string | null; icon: LucideIcon; seed: string | null }) {
   return (
-    <span className="shrink-0 w-11 h-11 rounded-xl overflow-hidden bg-photo-empty" aria-hidden>
+    <span className={`${THUMB_CLASS} overflow-hidden bg-photo-empty`} aria-hidden>
       {photo ? <img src={photoPublicUrl(photo)} alt="" loading="lazy" className="w-full h-full object-cover" /> : <PhotoPlaceholder icon={icon} seed={seed} className="w-full h-full" />}
     </span>
   );
@@ -110,7 +121,7 @@ function Row({ to, title, sub, price, thumb }: { to: string; title: string; sub?
       to={to}
       // The title and line clip at 375; the full text stays reachable.
       title={sub ? `${title} · ${sub}` : title}
-      className="flex items-center gap-3 px-4 py-3 min-h-[56px] border-b border-border last:border-b-0 ctl-tint"
+      className={`${ROW_CLASS} ctl-tint`}
     >
       {thumb}
       <span className="flex-1 min-w-0">
@@ -125,17 +136,55 @@ function Row({ to, title, sub, price, thumb }: { to: string; title: string; sub?
 function Group({ title, count, onSeeAll, children }: { title: string; count: number; onSeeAll?: () => void; children: React.ReactNode }) {
   return (
     <section aria-label={title} className="space-y-2">
-      <div className="flex items-baseline justify-between px-1">
+      <div className={GROUP_HEAD_CLASS}>
         <h2 className="font-sans font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>{title}</h2>
         {onSeeAll && count > PER_SECTION && (
-          <button type="button" onClick={onSeeAll} className="font-sans font-semibold text-ds-13 min-h-[44px]" style={{ color: "hsl(var(--bark))" }}>
+          <button type="button" onClick={onSeeAll} className="-my-2 font-sans font-semibold text-ds-13 min-h-[44px]" style={{ color: "hsl(var(--bark))" }}>
             {/* Q2644: "See 20 of 59" read like a count of what is shown, not an action. */}
             {count > MAX_ROWS ? "See more" : `See all ${count}`}
           </button>
         )}
       </div>
-      <div className="rounded-2xl overflow-hidden" style={{ background: "hsl(var(--card))" }}>{children}</div>
+      <div className={GROUP_CARD_CLASS} style={{ background: "hsl(var(--card))" }}>{children}</div>
     </section>
+  );
+}
+
+/**
+ * Q2018: while the first answer is on its way the page showed nothing under
+ * the search box. This is one result group (head line + PER_SECTION rows;
+ * ChipsSkeleton holds the chip row) in the SAME classes as Group and Row, so the rows that
+ * land replace it in place (measured: 0px row and group shift at 375 and 1440).
+ */
+function GroupSkeleton() {
+  return (
+    <div className="space-y-2" aria-hidden data-testid="search-loading">
+      <div className={`${GROUP_HEAD_CLASS} font-sans font-bold text-ds-15`}>
+        <Skeleton className="h-3.5 w-24" />
+      </div>
+      <div className={GROUP_CARD_CLASS} style={{ background: "hsl(var(--card))" }}>
+        {Array.from({ length: PER_SECTION }, (_, i) => (
+          <div key={i} className={ROW_CLASS} data-testid="search-loading-row">
+            <Skeleton className={THUMB_CLASS} />
+            <span className="flex-1 min-w-0 space-y-2">
+              <Skeleton className="h-3.5 w-3/5" />
+              <Skeleton className="h-3 w-2/5" />
+            </span>
+            <Skeleton className="shrink-0 h-3.5 w-10" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** The section chips (All / Jobs · n / Declutter · n), in their own slot above "Save this search". */
+function ChipsSkeleton() {
+  return (
+    <div className="flex flex-wrap gap-2" aria-hidden data-testid="search-loading-chips">
+      <Skeleton className="h-10 w-14 rounded-full" />
+      <Skeleton className="h-10 w-28 rounded-full" />
+    </div>
   );
 }
 
@@ -231,6 +280,7 @@ export default function SearchPage() {
           )}
         </form>
 
+        {q && loading && !failed && <ChipsSkeleton />}
         {q && chips.length > 1 && (
           <div className="flex flex-wrap gap-2" role="group" aria-label="Show results from">
             {chips.map((c) => {
@@ -269,6 +319,12 @@ export default function SearchPage() {
               Try again
             </button>
           </div>
+        )}
+        {q && loading && !failed && (
+          <>
+            <p role="status" className="sr-only">Searching…</p>
+            <GroupSkeleton />
+          </>
         )}
         {q && !loading && !failed && jobCount === 0 && itemCount === 0 && (
           // A real empty state (audit #27): what happened, and the way on.

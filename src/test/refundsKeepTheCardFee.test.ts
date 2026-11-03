@@ -961,7 +961,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shops_admin_refund_order: "20261019071055_shops_refunds_cancels_strikes.sql a7df4ee33cc5ef18",
       shops_admin_settle_held_refund: "20261019071055_shops_refunds_cancels_strikes.sql 6d0001f095b1ff76",
       shops_buyer_cancel_order: "20261019071055_shops_refunds_cancels_strikes.sql 69cdd0dcef74aa6b",
-      shops_order_cancel_quote: "20261019071055_shops_refunds_cancels_strikes.sql fdc45c450183721c",
+      shops_order_cancel_quote: "20261103091013_shops_promotions_team_message_not_found_is_404.sql d028eafd729cb911", // Q2390 p22: ERRCODE-only restatement (md5-verified), read-only quote
       shops_shop_cancel_order: "20261019071055_shops_refunds_cancels_strikes.sql c7cabc81cc0fc3e4",
     },
     statements: {

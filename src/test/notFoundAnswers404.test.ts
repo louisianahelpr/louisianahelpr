@@ -191,6 +191,11 @@
  * @mutate supabase/migrations/20261103085435_declutter_shops_listing_and_hours_not_found_is_404.sql | v_uid := public.declutter_assert_member(true);\n\n  SELECT * INTO v_item FROM public.declutter_items WHERE id = p_item_id AND seller_id = v_uid FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404'; | v_uid := public.declutter_assert_member(true);\n\n  SELECT * INTO v_item FROM public.declutter_items WHERE id = p_item_id AND seller_id = v_uid FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103085435_declutter_shops_listing_and_hours_not_found_is_404.sql | END IF;\n\n  SELECT * INTO v_item FROM public.declutter_items WHERE id = p_item_id AND seller_id = v_uid FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404'; | END IF;\n\n  SELECT * INTO v_item FROM public.declutter_items WHERE id = p_item_id AND seller_id = v_uid FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103085435_declutter_shops_listing_and_hours_not_found_is_404.sql | WHERE item_id = p_item_id;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404'; | WHERE item_id = p_item_id;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | RAISE EXCEPTION 'user_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'user_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | v_record  jsonb;\nBEGIN\n  SELECT p.marketing_consent, p.promotions_before_unsubscribe\n    INTO v_consent, v_saved\n    FROM public.profiles p\n   WHERE p.user_id = p_user_id\n     FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'PT404'; | v_record  jsonb;\nBEGIN\n  SELECT p.marketing_consent, p.promotions_before_unsubscribe\n    INTO v_consent, v_saved\n    FROM public.profiles p\n   WHERE p.user_id = p_user_id\n     FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | v_untouched boolean;\nBEGIN\n  SELECT p.marketing_consent, p.promotions_before_unsubscribe\n    INTO v_consent, v_saved\n    FROM public.profiles p\n   WHERE p.user_id = p_user_id\n     FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'PT404'; | v_untouched boolean;\nBEGIN\n  SELECT p.marketing_consent, p.promotions_before_unsubscribe\n    INTO v_consent, v_saved\n    FROM public.profiles p\n   WHERE p.user_id = p_user_id\n     FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103091013_shops_promotions_team_message_not_found_is_404.sql | RAISE EXCEPTION 'shop_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'shop_not_found' USING ERRCODE = 'P0002';
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -220,6 +225,7 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
  * Packet 19 (regular): declutter_helpr_remove_listing_photo, shops_confirm_pickup, declutter_set_item_seller_delivery, shops_remove_item_photo, shops_withdraw_item, shops_close_my_shop (20261103083559).
  * Packet 20 (regular): shops_set_follow, declutter_set_watch, shops_record_item_ai_check, declutter_wanted_hold_photos, declutter_record_wanted_ai_check (20261103084609).
  * Packet 21 (regular): declutter_free_still_available, shops_set_hours, declutter_relist_listing, declutter_set_listing_drops (20261103085435).
+ * Packet 22 (regular): shops_order_cancel_quote, admin_send_team_message, promotions_unsubscribe, promotions_resubscribe, shop_pickup_addresses_owner_is_shop_owner (20261103091013).
  */
 const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
   "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm",
@@ -240,10 +246,11 @@ const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_s
   "shops_order_terms", "shops_cancel_order_request", "shops_decline_order", "shop_lock_open_charged_order",
   "declutter_helpr_remove_listing_photo", "shops_confirm_pickup", "declutter_set_item_seller_delivery", "shops_remove_item_photo", "shops_withdraw_item", "shops_close_my_shop",
   "shops_set_follow", "declutter_set_watch", "shops_record_item_ai_check", "declutter_wanted_hold_photos", "declutter_record_wanted_ai_check",
-  "declutter_free_still_available", "shops_set_hours", "declutter_relist_listing", "declutter_set_listing_drops"];
+  "declutter_free_still_available", "shops_set_hours", "declutter_relist_listing", "declutter_set_listing_drops",
+  "shops_order_cancel_quote", "admin_send_team_message", "promotions_unsubscribe", "promotions_resubscribe", "shop_pickup_addresses_owner_is_shop_owner"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
 // Includes (L50 train 2, 11-03) replace_stripe_customer (20261103053759, money train #4047) raises P0002 for a missing profile; service_role only, never reached by app code.
-const P0002_RAISERS = 152;
+const P0002_RAISERS = 147;
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");

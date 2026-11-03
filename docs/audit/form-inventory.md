@@ -383,7 +383,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/profile/ProfileLinkRow.tsx` | input×1 | text | 30 | profile-link-panel · profile-handle · profile-handle-hint |
 | `src/components/profile/SavedHelpersTab.tsx` | input×1 | search |  | Search saved Helprs · Search saved Helprs… · Close search · Filter saved Helprs by skill · Sort saved Helprs |
 | `src/components/profile/savedHelpersTab/SavedHelperCard.tsx` | textarea×1 |  | 500 | Private note about this Helpr · Remove from saved |
-| `src/components/profile/ScheduleTab.tsx` | date/calendar×1 |  |  | schedule-card-body · schedule-card-meta-row · Add to calendar · schedule-layout · schedule-calendar · Previous month · Next month · schedule-list |
+| `src/components/profile/schedule/ScheduleCard.tsx` | date/calendar×1 |  |  | schedule-card-body · schedule-card-meta-row · Add to calendar |
 | `src/components/profile/SecurityTab.tsx` | input×1, select×1, checkbox/switch/radio×1 | email |  | new-email-input · Change email address · Require Face ID to open Helpr |
 | `src/components/profile/SettingsTab.tsx` | checkbox/switch/radio×3 |  |  |  |
 | `src/components/profile/ShakeToReportCard.tsx` | checkbox/switch/radio×1 |  |  | Shake to report a problem |

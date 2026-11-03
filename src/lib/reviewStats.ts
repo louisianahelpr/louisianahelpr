@@ -41,6 +41,16 @@ interface PublicProfileStatsRow {
   avg_rating: number | null;
 }
 
+/** get_public_profile_stats rows as the map every caller reads (also the /jobs entry prefetch's answer). */
+export function ratingStatsFromRows(rows: unknown): RatingStats {
+  const map: RatingStats = new Map();
+  for (const row of ((rows ?? []) as PublicProfileStatsRow[])) {
+    const count = Number(row.review_count ?? 0);
+    if (count > 0) map.set(row.user_id, { count, avg: Number(row.avg_rating ?? 0) });
+  }
+  return map;
+}
+
 export async function fetchRatingStats(revieweeIds: string[]): Promise<RatingStats> {
   const ids = [...new Set(revieweeIds)].filter(Boolean);
   if (ids.length === 0) return new Map();
@@ -55,13 +65,7 @@ export async function fetchRatingStats(revieweeIds: string[]): Promise<RatingSta
   // showing every helper as unrated, which is the very bug this replaces.
   // Any other error throws, through unwrap() so it keeps its HTTP status.
   if (!isMissingRpcNamed(statsRes.error, "get_public_profile_stats")) {
-    const data = unwrap(statsRes);
-    const map: RatingStats = new Map();
-    for (const row of (data ?? []) as PublicProfileStatsRow[]) {
-      const count = Number(row.review_count ?? 0);
-      if (count > 0) map.set(row.user_id, { count, avg: Number(row.avg_rating ?? 0) });
-    }
-    return map;
+    return ratingStatsFromRows(unwrap(statsRes));
   }
 
   // ── Fallback: direct read, deliberately WITHOUT the jobs join ────────────

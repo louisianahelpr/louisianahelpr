@@ -12,8 +12,8 @@
 // @mutate src/pages/home/homeDashboard/homePrefetchTake.ts |   if (!s \|\| now - s.at > HOME_PREFETCH_MAX_AGE_MS \|\| s.userId !== userId) return null; |   if (!s \|\| now - s.at > HOME_PREFETCH_MAX_AGE_MS) return null;
 // @mutate src/pages/home/homeDashboard/FirstJobHome.tsx |       if (pre) return firstJobState(pre.appCount, pre.jobCount, pre.prefs); |
 // @mutate src/boot/signedInPrefetch.ts |   startHomePrefetch(pathname); |
-// @mutate src/entry.ts | /^\/(declutter\|home)?\/?$/.test(window.location.pathname) | /^\/(declutter)?\/?$/.test(window.location.pathname)
-// @mutate src/entry.ts | /^\/(declutter\|home)?\/?$/.test(window.location.pathname) | /^\/(declutter\|home)\/?$/.test(window.location.pathname)
+// @mutate src/entry.ts | /^\/(declutter\|home\|jobs)?\/?$/.test(window.location.pathname) | /^\/(declutter\|jobs)?\/?$/.test(window.location.pathname)
+// @mutate src/entry.ts | /^\/(declutter\|home\|jobs)?\/?$/.test(window.location.pathname) | /^\/(declutter\|home\|jobs)\/?$/.test(window.location.pathname)
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -98,7 +98,7 @@ describe("Home's first-card reads start from the entry (B78)", () => {
 
   it("the entry starts it only for a member on /home or /, and only the entry imports the boot module", () => {
     const entry = code("src/entry.ts");
-    expect(entry).toMatch(/if \(hasToken\(\) && \/\^\\\/\(declutter\|home\)\?\\\/\?\$\/\.test\(window\.location\.pathname\)\) \{\s*void signedInPrefetch\(\)\s*\.then\(\(m\) => m\?\.startSignedInPrefetch\(window\.location\.pathname\)\)/);
+    expect(entry).toMatch(/if \(hasToken\(\) && \/\^\\\/\(declutter\|home\|jobs\)\?\\\/\?\$\/\.test\(window\.location\.pathname\)\) \{\s*void signedInPrefetch\(\)\s*\.then\(\(m\) => m\?\.startSignedInPrefetch\(window\.location\.pathname\)\)/);
     expect(entry).toContain('const signedInPrefetch = () => import("./boot/signedInPrefetch");');
     expect(code("src/boot/signedInPrefetch.ts")).toContain("startHomePrefetch(pathname);");
     expect(code("src/pages/home/homeDashboard/homePrefetchTake.ts")).toContain(`const KEY = "${HOME_PREFETCH_KEY}";`);

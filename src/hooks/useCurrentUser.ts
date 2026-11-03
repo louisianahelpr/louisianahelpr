@@ -6,6 +6,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { authUserChangedFrom } from "@/lib/authUserChanged";
 import { queryKeys } from "@/lib/queryKeys";
+import { takeJobsMePrefetch } from "@/hooks/jobsPrefetchTake";
 import { raceVisibleDeadline } from "@/lib/visibleDeadline";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -176,6 +177,11 @@ const fetchCurrentUser = async (
   // *reach* /admin in the first place.
   // The profile lookup is essential — if it fails, the caller SHOULD see an
   // error (ProtectedRoute renders the retry card). It throws on error.
+  //
+  // B43 (Q1158): a cold signed-in /jobs load reads both rows from the entry (src/boot/jobsPrefetch.ts), beside the
+  // app's download; take that answer once. Same reads, same token; anything unusable reads below as always.
+  const pre = await takeJobsMePrefetch(userId);
+  if (pre) return { profile: pre.profile as Profile | null, isAdmin: pre.isAdmin, adminCheckFailed: false };
   const profilePromise = readProfile(userId);
 
   // The admin-role lookup must NEVER block the profile. It was previously in

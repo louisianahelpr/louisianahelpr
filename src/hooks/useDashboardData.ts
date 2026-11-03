@@ -4,14 +4,15 @@ import { useCallback, useMemo } from "react";
 import { dedupeById, formatName } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { fetchRatingStats } from "@/lib/reviewStats";
+import { fetchRatingStats, ratingStatsFromRows } from "@/lib/reviewStats";
 import { jobDayHasEnded } from "@/lib/jobDate";
 import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { Database } from "@/integrations/supabase/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { report } from "@/lib/errorLogger";
-import { fetchCrewSpotsOpen } from "@/lib/crewSpots";
+import { crewSpotsFromRows, fetchCrewSpotsOpen } from "@/lib/crewSpots";
+import { coversPosters, takeJobsCtxPrefetch, takeJobsFeedPrefetch } from "@/hooks/jobsPrefetchTake";
 import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import { getBlockedUserIds, readUserBlockRows } from "@/lib/userBlocks";
 import { queryKeys } from "@/lib/queryKeys";
@@ -116,8 +117,13 @@ async function fetchDashboardContext(
     // error state — callers downstream depend on `ctx` being either
     // fully-formed or absent.
     let feeRes, availRes, appliedRes, blocksRes;
+    // B43 (Q1158): a cold signed-in /jobs load starts these four reads from the entry (src/boot/jobsPrefetch.ts);
+    // take that answer once. Each is the same read, so it stands in as a result with no error.
+    const pre = await takeJobsCtxPrefetch(userId);
     try {
-      [feeRes, availRes, appliedRes, blocksRes] = await Promise.all([
+      [feeRes, availRes, appliedRes, blocksRes] = pre
+        ? ([pre.fee, pre.availability, pre.applied, pre.blocks].map((data) => ({ data, error: null })) as never)
+        : await Promise.all([
         supabase.rpc("get_public_platform_settings"),
         supabase
           .from("helper_availability")
@@ -301,6 +307,7 @@ export function useDashboardData() {
       // inferred type cannot follow it; the view's generated Row is the shape
       // every read below assumes (Q806: was `any[]`).
       let rawJobsRes: BrowseJobRow[];
+      let feedPre: Awaited<ReturnType<typeof takeJobsFeedPrefetch>>;
       try {
         // Build query — early-access filter applied conditionally.
         // Q1461: `materials_note` is the poster's "Materials I'll provide"
@@ -354,7 +361,10 @@ export function useDashboardData() {
         // Cancellable (feedPhase): a try that misses its deadline is aborted,
         // so the fresh second try does not queue behind it (JAVASCRIPT-44: the
         // stalled read never reached the server).
-        rawJobsRes = unwrap(await feedPhase((abort) => readJobsAheadOfDb(browseColumns, (columns) => supabase
+        // B43 (Q1158): a cold signed-in /jobs load starts this first page from the entry (src/boot/jobsPrefetch.ts),
+        // beside the app's download; take that answer once. Any later page or refetch reads as below.
+        feedPre = offset === 0 && user ? await takeJobsFeedPrefetch(user.id) : null;
+        rawJobsRes = feedPre ? (feedPre.rows as unknown as BrowseJobRow[]) : unwrap(await feedPhase((abort) => readJobsAheadOfDb(browseColumns, (columns) => supabase
           .from("open_jobs_browse")
           .select(columns)
           .neq("payment_status", "abandoned")
@@ -405,11 +415,20 @@ export function useDashboardData() {
       // Q1409: a crew's open-spot count rides its own read (fetchCrewSpotsOpen
       // says why it is never in the select above); it never fails the page.
       const crewIds = rawJobs.filter((j) => j.is_group_job).map((j) => j.id as string);
-      const [profilesRes, reviewStatsMap, crewSpots] = await feedPhase((abort) => Promise.all([
-        supabase.rpc("get_safe_profiles", { user_ids: posterIds }).abortSignal(abort),
-        fetchRatingStats(posterIds),
-        fetchCrewSpotsOpen(crewIds),
-      ]), signal);
+      // B43 (Q1158): the entry's prefetch also read these three for every poster on the page (a superset of
+      // posterIds, which drops anyone blocked); used only when it covers every id asked for here.
+      const postersPre = feedPre && coversPosters(feedPre, posterIds, crewIds) ? feedPre : null;
+      const [profilesRes, reviewStatsMap, crewSpots] = postersPre
+        ? [
+            { data: postersPre.profiles as unknown as Database["public"]["Functions"]["get_safe_profiles"]["Returns"] },
+            ratingStatsFromRows(postersPre.stats),
+            crewSpotsFromRows(postersPre.crew),
+          ] as const
+        : await feedPhase((abort) => Promise.all([
+            supabase.rpc("get_safe_profiles", { user_ids: posterIds }).abortSignal(abort),
+            fetchRatingStats(posterIds),
+            fetchCrewSpotsOpen(crewIds),
+          ]), signal);
 
       const nameMap = new Map(
         profilesRes.data?.map((p) => [p.user_id, formatName(p.full_name)]) || [],

@@ -54,7 +54,12 @@ import { trackedFiles } from "./helpers/trackedFiles";
 // 10 since Q2190's job-action slice (Builder 22, 2026-11-02): JobTracking (arrival, done, on the way), PostedJobActions
 // (escalate), EndSeriesControl, DisputeTimelineDialog, CompletionPrompts, logViolation and useUserProfileData (5) now
 // name the RPC they called. Left: the 2 deliberate old-arguments retries and 8 shared not-deployed helpers.
-const RAW_PGRST202_SITES = 10;
+// 2 since Q2190's helper slice (Builder 24, 2026-11-02): giftCardPaidJobIds, AdminSupport, stalledQueue (its own
+// isMissingRpc is gone; AdminStalledJobs, AdminApprovalEscalations and adminRailBadges name their RPC), rentals/api
+// and rentals/listings name the RPC they called; seriesDates, scheduleChange, scheduleClashes and refundRequests pass
+// isMissingRpcNamed for theirs, so notDeployedYet is tables and columns only. onboardingTourCompletion and nps read
+// tables only (no PGRST202 there). Left: the 2 deliberate old-arguments retries above (CancellationDialog, porchPlaces).
+const RAW_PGRST202_SITES = 2;
 
 const ROOT = process.cwd();
 const isTest = (f: string) => /\.test\.tsx?$/.test(f) || f.startsWith("src/test/");

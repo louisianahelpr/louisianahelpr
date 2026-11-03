@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { isNotDeployedYet } from "@/lib/seriesDates";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { helperTakeHomeDollars, type HelperEarningsJob } from "@/lib/helperEarnings";
 import { rpcErrorMessage } from "./errorCopy";
 import { agreedRushRefundCents } from "../../../supabase/functions/_shared/refundRush";
@@ -200,7 +201,7 @@ export async function openRefundRequest(jobId: string, scope: RefundScope, amoun
     p_amount_cents: (scope === "all" ? null : amountCents) as number,
     p_reason: reason,
   });
-  if (error) throw new Error(rpcErrorMessage("rpc_open_refund_request", error) ?? notDeployedOr(error));
+  if (error) throw new Error(rpcErrorMessage("rpc_open_refund_request", error) ?? notDeployedOr(isMissingRpcNamed(error, "rpc_open_refund_request")));
   if (typeof data !== "string" || !data) throw new Error("We couldn't send that request. Refresh and check before trying again.");
   return data;
 }
@@ -217,7 +218,7 @@ export async function answerRefundRequest(
     p_date: (answer === "finish" ? finishAt?.date ?? null : null) as string,
     p_start_time: (answer === "finish" && finishAt?.time ? `${finishAt.time}:00` : null) as string,
   });
-  if (error) throw new Error(rpcErrorMessage("rpc_answer_refund_request", error) ?? notDeployedOr(error));
+  if (error) throw new Error(rpcErrorMessage("rpc_answer_refund_request", error) ?? notDeployedOr(isMissingRpcNamed(error, "rpc_answer_refund_request")));
   const status = (data as { status?: string } | null)?.status;
   if (status !== "agreed" && status !== "declined" && status !== "finish_offered") {
     throw new Error("We couldn't confirm your answer. Refresh and check before trying again.");
@@ -228,13 +229,14 @@ export async function answerRefundRequest(
 /** The poster takes back a request still waiting (open, or declined before the dispute is filed). */
 export async function withdrawRefundRequest(requestId: string): Promise<void> {
   const { data, error } = await supabase.rpc("rpc_withdraw_refund_request", { p_request_id: requestId });
-  if (error) throw new Error(rpcErrorMessage("rpc_withdraw_refund_request", error) ?? notDeployedOr(error));
+  if (error) throw new Error(rpcErrorMessage("rpc_withdraw_refund_request", error) ?? notDeployedOr(isMissingRpcNamed(error, "rpc_withdraw_refund_request")));
   if ((data as { status?: string } | null)?.status !== "closed") {
     throw new Error("We couldn't confirm that. Refresh and check before trying again.");
   }
 }
 
-function notDeployedOr(error: { code?: string | null; message?: string | null }): string {
-  if (isNotDeployedYet(error)) return "This is briefly unavailable while an update finishes rolling out. Please try again in a few minutes.";
+/** `notDeployed`: the caller's isMissingRpcNamed answer for the RPC it called (Q2190). */
+function notDeployedOr(notDeployed: boolean): string {
+  if (notDeployed) return "This is briefly unavailable while an update finishes rolling out. Please try again in a few minutes.";
   return "Something went wrong. Check your connection and try again.";
 }

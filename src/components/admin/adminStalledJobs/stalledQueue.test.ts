@@ -9,12 +9,12 @@ import { describe, it, expect } from "vitest";
 import {
   awaitingHuman,
   hoursStuck,
-  isMissingRpc,
   stageLadder,
   stuckLabel,
   STALLED_NO_MONEY_NOTE,
   type StalledQueueRow,
 } from "./stalledQueue";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import {
   STALLED_FIRST_AFTER_HOURS,
   STALLED_SECOND_AFTER_HOURS,
@@ -84,7 +84,10 @@ describe("awaitingHuman", () => {
   });
 });
 
-describe("isMissingRpc", () => {
+// Q2190: the screen asks the shared isMissingRpcNamed about the RPC it called (stalledQueue.ts's own copy is gone).
+const isMissingRpc = (e: unknown) => isMissingRpcNamed(e, "admin_stalled_job_queue");
+
+describe("isMissingRpcNamed(…, \"admin_stalled_job_queue\")", () => {
   it("recognises the deploy-lag window: PostgREST's PGRST202 with no hint", () => {
     expect(isMissingRpc({ code: "PGRST202", message: "Could not find the function", hint: null })).toBe(true);
     expect(isMissingRpc({ code: "PGRST202", message: "Could not find the function" })).toBe(true);

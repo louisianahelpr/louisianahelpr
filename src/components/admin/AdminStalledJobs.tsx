@@ -23,13 +23,13 @@ import { cn } from "@/lib/utils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import {
   awaitingHuman,
-  isMissingRpc,
   stageLadder,
   stuckLabel,
   STALLED_NO_MONEY_NOTE,
   type StalledQueueRow,
 } from "@/components/admin/adminStalledJobs/stalledQueue";
 import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 import { AdminApprovalEscalations } from "@/components/admin/AdminApprovalEscalations";
 import { useFilterCounts, pillLabel } from "@/components/admin/useFilterCounts";
@@ -82,7 +82,7 @@ async function fetchStalledQueue(includeResolved: boolean): Promise<QueueState> 
   // Returned as a state, never as an empty list — a blank "nothing is
   // stuck" on a screen about held escrow is the lie this codebase keeps
   // paying for (see the Exception Queue's PGRST200 note).
-  if (res.error && isMissingRpc(res.error)) {
+  if (res.error && isMissingRpcNamed(res.error, "admin_stalled_job_queue")) {
     return { ...EMPTY_STATE, deployed: false };
   }
 
@@ -158,7 +158,7 @@ const StalledJobsInner = () => {
       const res = await supabase.rpc("resolve_stalled_job_flag", {
         p_job_id: row.job_id,
       });
-      if (res.error && isMissingRpc(res.error)) {
+      if (res.error && isMissingRpcNamed(res.error, "resolve_stalled_job_flag")) {
         toast.error("This queue's functions aren't deployed yet — nothing was recorded.");
         return;
       }

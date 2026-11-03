@@ -7,6 +7,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database, Json } from "@/integrations/supabase/types";
 import { unwrap } from "@/lib/supabaseResult";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { loadAdminRpcErrorCopy, rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
@@ -72,11 +73,13 @@ export interface SaleListingFields {
  * Not deployed yet (the migration ships with this code; db-deploy runs on
  * merge): PostgREST answers PGRST202 for a missing function and PGRST205 for a
  * missing table. Until then there are simply no listings, never an error
- * screen (CLAUDE.md: a graceful PGRST202 fallback for brand-new RPCs).
+ * screen (CLAUDE.md: a graceful fallback for brand-new RPCs). Each RPC read
+ * asks isMissingRpcNamed about the function it called, so one that exists
+ * with other arguments is a real failure (Q2190); the table read asks this.
  */
-function listingsNotDeployed(error: unknown): boolean {
+function listingsTableNotDeployed(error: unknown): boolean {
   const code = error && typeof error === "object" && "code" in error ? String((error as { code: unknown }).code) : "";
-  return code === "PGRST202" || code === "PGRST205";
+  return code === "PGRST205";
 }
 
 export async function fetchBrowseListings(filters: { city?: string; minBeds?: number | null; maxRentCents?: number | null } = {}): Promise<BrowseListing[]> {
@@ -85,7 +88,7 @@ export async function fetchBrowseListings(filters: { city?: string; minBeds?: nu
     p_min_beds: filters.minBeds ?? undefined,
     p_max_rent_cents: filters.maxRentCents ?? undefined,
   });
-  if (res.error && listingsNotDeployed(res.error)) return [];
+  if (res.error && isMissingRpcNamed(res.error, "rentals_browse_listings")) return [];
   return (unwrap(res) ?? []) as BrowseListing[];
 }
 
@@ -96,7 +99,7 @@ export async function fetchBrowseSaleListings(filters: { city?: string; minBeds?
     p_min_beds: filters.minBeds ?? undefined,
     p_max_price_cents: filters.maxPriceCents ?? undefined,
   });
-  if (res.error && listingsNotDeployed(res.error)) return [];
+  if (res.error && isMissingRpcNamed(res.error, "rentals_browse_sale_listings")) return [];
   return (unwrap(res) ?? []) as BrowseSaleListing[];
 }
 
@@ -110,14 +113,14 @@ export async function fetchMyListings(uid: string): Promise<RentalListing[]> {
   // The CURRENT listings only, newest first, so an old removed row never hides the live one (lead review must-fix 3).
   // A take-down is shown from the property (listings_taken_down_reason), not from a removed row.
   const res = await supabase.from("rental_listings").select("*").eq("owner_id", uid).neq("status", "removed").order("created_at", { ascending: false });
-  if (res.error && listingsNotDeployed(res.error)) return [];
+  if (res.error && listingsTableNotDeployed(res.error)) return [];
   return (unwrap(res) ?? []) as RentalListing[];
 }
 
 /** The owner's own listing photos, in order, as owner refs (no path). */
 export async function fetchListingPhotos(listingId: string): Promise<RentalListingPhoto[]> {
   const res = await supabase.rpc("rentals_my_listing_photos", { p_listing_id: listingId });
-  if (res.error && listingsNotDeployed(res.error)) return [];
+  if (res.error && isMissingRpcNamed(res.error, "rentals_my_listing_photos")) return [];
   return (unwrap(res) ?? []) as RentalListingPhoto[];
 }
 

@@ -8,6 +8,12 @@ export interface PayoutBatch {
   oldest_completed_at: string;
   /** Q233: the helper is a seed account (resolved client-side). */
   is_seed?: boolean;
+  /**
+   * Q2088: every job in the batch pays in Stripe TEST mode, by release-payout's rule (admin_payout_batch_money_modes:
+   * the stored session prefix, else every party enrolled in test_accounts). Labels money only; is_seed still decides
+   * whether the row is shown. Undefined when that read failed or is not deployed yet: the label falls back to is_seed.
+   */
+  money_test?: boolean;
 }
 
 export interface PayoutLedgerRow {

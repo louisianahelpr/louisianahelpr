@@ -38,7 +38,7 @@ import { userFacingError } from "@/lib/userFacingError";
 import { releaseBatchJobs } from "./adminPayoutBatches/releaseBatchJobs";
 import { usePayoutHolds } from "./adminPayoutBatches/usePayoutHolds";
 import { HeldForReview } from "./adminPayoutBatches/HeldForReview";
-import { splitRealAndTest, bulkPayoutDescription, singlePayoutDescription } from "./adminPayoutBatches/adminPayoutBatchesHelpers";
+import { splitRealAndTest, bulkPayoutDescription, singlePayoutDescription, isTestMoney } from "./adminPayoutBatches/adminPayoutBatchesHelpers";
 
 const AdminPayoutBatches = () => {
   const qc = useQueryClient();
@@ -87,10 +87,16 @@ const AdminPayoutBatches = () => {
     fetcher: async () => {
       const data = unwrap(await supabase.rpc("get_payout_batches"));
       const seed = await fetchSeedUserIds((data ?? []).map((r) => r.helper_id));
+      // Q2088: the money label follows where the money sits (release-payout's rule), not the Helpr's is_seed. A failed
+      // or not-yet-deployed read leaves money_test undefined, and the label falls back to is_seed (as before).
+      const modesRes = await supabase.rpc("admin_payout_batch_money_modes");
+      if (modesRes.error) console.warn(`[AdminPayoutBatches] money modes unreadable, labels fall back to is_seed: ${modesRes.error.message}`);
+      const modes = modesRes.error ? null : new Map((modesRes.data ?? []).map((m) => [m.helper_id, m.money_mode]));
       return withoutTestRows((data ?? []).map((r) => ({
         ...r,
         helper_name: formatName(r.helper_name, "Unknown"),
         is_seed: seed.has(r.helper_id),
+        ...(modes ? { money_test: modes.get(r.helper_id) === "test" } : {}),
       })) as PayoutBatch[]);
     },
   });
@@ -208,7 +214,7 @@ const AdminPayoutBatches = () => {
   // All three summary tiles count this ONE set (Q237, 2026-10-17): "Helprs
   // awaiting" used to count every batch, seed and held included, so a lone
   // test batch read "1 Helpr awaiting · 0 jobs · $0" beside a card for 9 jobs.
-  const realReadyBatches = readyBatches.filter((b) => !b.is_seed);
+  const realReadyBatches = readyBatches.filter((b) => !isTestMoney(b));
   const helprsAwaiting = realReadyBatches.length;
   const grandTotal = realReadyBatches.reduce((s, b) => s + Number(b.total_payout || 0), 0);
   const totalJobs = realReadyBatches.reduce((s, b) => s + b.job_count, 0);

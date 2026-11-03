@@ -11,7 +11,7 @@
  * defects RED).
  */
 // @mutate supabase/migrations/20261103173111_declutter_late_payment_buyer_block.sql | format('You paid %s for %s. %s', public.declutter_price_text(p_amount_cents), public.declutter_order_items_named(p_order_id),\n           public.declutter_paid_next_step(p_order_id)), | format('You paid %s for %s. Next: pick up your items at the time you chose.', public.declutter_price_text(p_amount_cents), public.declutter_order_items_named(p_order_id)),
-// @mutate supabase/migrations/20261031211922_free_claim_fee_then_id_restated.sql | 'Your free item is set. Next: choose when to pick it up. Nothing was charged.', | 'Your free item is set. Next: pick it up at the time you chose. Nothing was charged.',
+// @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql | 'Your free item is set. Next: choose when to pick it up. Nothing was charged.', | 'Your free item is set. Next: pick it up at the time you chose. Nothing was charged.',
 // @mutate supabase/migrations/20261102031000_declutter_seller_delivery_book_by.sql |     WHEN EXISTS (SELECT 1 FROM public.declutter_bookings b WHERE b.order_id = o.id AND b.slot_start IS NOT NULL) THEN |     WHEN EXISTS (SELECT 1 FROM public.declutter_bookings b WHERE b.order_id = o.id) THEN
 // @mutate supabase/migrations/20261102031000_declutter_seller_delivery_book_by.sql | WHERE d.order_id = o.id AND d.status = 'booked' AND d.slot_start IS NOT NULL) | WHERE d.order_id = o.id)
 import { describe, it, expect } from "vitest";

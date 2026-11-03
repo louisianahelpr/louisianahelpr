@@ -177,6 +177,33 @@ export async function chargeTaxCentsFor(
 }
 
 /**
+ * The Stripe Tax figure on a charge priced with automatic_tax (the legacy
+ * path, and today's fallback when no job-site tax could be priced): 0 on a
+ * charge taxed at the job address (its tax is read from job_tax_cents by
+ * _shared/capturedEscrow.ts jobSiteTaxOnIntent), on an untaxed charge, and on
+ * a failed Checkout Session read (logged). The payout caps take it off the
+ * capture so the state's tax is never payout headroom; reading 0 leaves the
+ * cap as it was before, never tighter than the capture.
+ */
+export async function automaticTaxCentsFor(
+  stripe: CheckoutSessionLister,
+  pi: { id?: string | null; amount_details?: unknown; metadata?: Record<string, string> | null } | null | undefined,
+): Promise<number> {
+  if (jobSiteTaxCents(pi?.metadata) !== null) return 0;
+  const own = chargeTaxCents(pi);
+  if (own > 0 || !pi?.id) return own;
+  try {
+    const page = await stripe.checkout.sessions.list({ payment_intent: pi.id, limit: 1 });
+    const session = page?.data?.[0];
+    if (jobSiteTaxCents(session?.metadata) !== null) return 0;
+    return cents(session?.total_details?.amount_tax ?? 0);
+  } catch (e) {
+    console.warn(`[refundAmount] could not read the Checkout Session tax for ${pi.id}; the payout cap counts no tax`, e);
+    return 0;
+  }
+}
+
+/**
  * chargeTaxCentsFor, but a failed Checkout Session read is null, not 0: a
  * checker (money-reconciliation's under-refund ceiling) must call that job
  * unverified rather than grade it against a ceiling with no tax in it

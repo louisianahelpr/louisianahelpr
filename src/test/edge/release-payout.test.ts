@@ -1172,6 +1172,47 @@ describe("release-payout edge function", () => {
         expect(args.source_transaction).toBeUndefined();
       });
 
+      // Q1728 follow-up: a legacy (or fallback) automatic_tax capture has no job_tax_cents; its Stripe Tax
+      // figure (on the intent, else on its Checkout Session) is no payout headroom either. An unreadable
+      // session counts no tax, so the cap is the capture, as before.
+      // @mutate supabase/functions/release-payout/index.ts | siteTaxCents > 0 ? siteTaxCents : await automaticTaxCentsFor(stripe, pi)); | siteTaxCents);
+      // @mutate supabase/functions/_shared/refundAmount.ts |     return cents(session?.total_details?.amount_tax ?? 0);\n  } catch (e) {\n    console.warn(`[refundAmount] could not read the Checkout Session tax for ${pi.id}; the payout cap | return 0;\n  } catch (e) {\n    console.warn(`[refundAmount] could not read the Checkout Session tax for ${pi.id}; the payout cap
+      const autoTaxLeg = (amount: number, piTax: number | null) => stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_diff", status: "succeeded", amount, amount_received: amount, latest_charge: "ch_diff",
+        metadata: { job_id: "job-1", gift_card_id: "gift-1" },
+        ...(piTax != null ? { amount_details: { tax: { total_tax_amount: piTax } } } : {}),
+      });
+      it("Q1728 follow-up: an automatic_tax capture's tax (on the intent) is not headroom (gift 3000 + card 5000 + tax 1000 < 8800)", async () => {
+        seedMixed();
+        scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 3000 };
+        autoTaxLeg(6000, 1000);
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }));
+        expect(res.status).toBe(409);
+        expect((await json(res)).error).toMatch(/exceeds captured escrow/i);
+        expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      });
+      it("Q1728 follow-up: the tax read from the Checkout Session is not headroom either", async () => {
+        seedMixed();
+        scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 3000 };
+        autoTaxLeg(6000, null);
+        stripeMock.checkout.sessions.list.mockResolvedValue({ data: [{ total_details: { amount_tax: 1000 }, metadata: {} }] });
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }));
+        expect(res.status).toBe(409);
+        expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      });
+      it("Q1728 follow-up: an unreadable Checkout Session counts no tax (the cap is the capture, as before)", async () => {
+        seedMixed();
+        scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 3000 };
+        autoTaxLeg(6000, null);
+        stripeMock.checkout.sessions.list.mockRejectedValue(new Error("stripe down"));
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: { job_id: "job-1" } }));
+        expect(res.status).toBe(200);
+        expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(8800);
+      });
+
       // @mutate supabase/functions/release-payout/index.ts | if (pi && giftFunded && pi.status !== "succeeded") { | if (false) {
       it("counts an uncaptured card leg as zero instead of refusing the gift's share", async () => {
         // A leftover intent that never captured adds nothing; the gift alone

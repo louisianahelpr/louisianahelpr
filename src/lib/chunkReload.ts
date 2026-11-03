@@ -336,6 +336,52 @@ export const onBackgroundImportFailure = (fn: ((name: string, err: unknown) => v
 /** Snapshot of the failed-background-import counter. */
 export const getBackgroundImportFailures = (): Record<string, number> => ({ ...backgroundImportFailures });
 
+/**
+ * True from the moment the page starts to be LEFT (beforeunload / pagehide)
+ * until it is plainly still alive (pageshow, or LEAVING_CLEAR_MS later).
+ *
+ * THE HOLE THIS CLOSES (Journeys J8 on WebKit, run 41685221879, 2026-11-03):
+ * the speculative-prefetch gate above covers only prefetches, but WebKit
+ * cancels EVERY in-flight dynamic import of the old document when a hard
+ * navigation starts. J8 went to /login, then to /home, and about 12 ordinary
+ * lazy imports of /login (signed-in chrome, notification feed, MobileNav...)
+ * were cancelled with the stale-chunk message; recovery then
+ * `location.replace`d /login?_v=..., eating the navigation. Any hard
+ * navigation while late chunks load can hit it on Safari/WKWebView: a typed
+ * URL, or the Stripe hand-off in openExternalUrl.ts.
+ *
+ * While leaving, recovery is a no-op: no reload and no attempt spent. Nothing
+ * is lost: a chunk that is genuinely stale is requested again by the NEW page,
+ * which recovers there. If the unload never happens (cancelled, blocked, or a
+ * bfcache restore), the flag clears and recovery works as before.
+ */
+let pageLeaving = false;
+let pageLeavingTimer: ReturnType<typeof setTimeout> | null = null;
+/** How long "leaving" lasts if the page is still alive (a cancelled or blocked unload). */
+export const LEAVING_CLEAR_MS = 3000;
+
+const clearPageLeaving = (): void => {
+  pageLeaving = false;
+  if (pageLeavingTimer) clearTimeout(pageLeavingTimer);
+  pageLeavingTimer = null;
+};
+
+const markPageLeaving = (): void => {
+  pageLeaving = true;
+  if (pageLeavingTimer) clearTimeout(pageLeavingTimer);
+  pageLeavingTimer = setTimeout(clearPageLeaving, LEAVING_CLEAR_MS);
+};
+
+/** True while the page is being left (see pageLeaving above). */
+export const isPageLeaving = (): boolean => pageLeaving;
+
+/** Registered once by main.tsx: tracks whether the page is being left. */
+export const trackPageLeaving = (): void => {
+  window.addEventListener("beforeunload", markPageLeaving);
+  window.addEventListener("pagehide", markPageLeaving);
+  window.addEventListener("pageshow", clearPageLeaving);
+};
+
 /** True while at least one speculative route prefetch is still in flight. */
 export const isSpeculativePrefetchInFlight = (): boolean => speculativePrefetchesInFlight > 0;
 
@@ -406,6 +452,7 @@ export const __resetChunkReloadForTests = (): void => {
   lateBackgroundImports = 0;
   for (const k of Object.keys(backgroundImportFailures)) delete backgroundImportFailures[k];
   failedAssetUrls.clear();
+  clearPageLeaving();
 };
 
 /**
@@ -508,6 +555,14 @@ export const hardReloadBypassCache = async () => {
   } catch {
     /* swallow — proceed to reload */
   }
+  // The page started to be left during the purge: do not eat that navigation.
+  // Give back the attempt the caller spent, and drop the quiet state in case
+  // the unload is cancelled.
+  if (pageLeaving) {
+    refundAttempt();
+    setRecoveryReloadInFlight(false);
+    return;
+  }
   // Add a cache-buster query param so the browser fetches fresh HTML
   // instead of serving the cached response.
   const url = new URL(window.location.href);
@@ -534,6 +589,9 @@ export const recoverFromChunkError = (): boolean => {
   // Checked here too (decideChunkReload also refuses offline) so the early
   // return below cannot touch storage for an offline failure.
   if (isOffline()) return false;
+  // Leaving: a WebKit-cancelled import of the page being left, not a stale
+  // deploy. No reload, no attempt spent (see pageLeaving).
+  if (pageLeaving) return false;
   const now = Date.now();
   const state = readState();
   const decision = decideChunkReload(state, now, false);
@@ -572,6 +630,12 @@ export const recoverFromChunkError = (): boolean => {
       if (isOffline()) {
         pendingOnlineRetry = fire;
         window.addEventListener("online", fire, { once: true });
+        return;
+      }
+      // Leaving at fire time: try again once the page is plainly still here,
+      // without spending an attempt (see pageLeaving).
+      if (pageLeaving) {
+        pendingRetry = setTimeout(fire, LEAVING_CLEAR_MS);
         return;
       }
       // Re-check at fire time: another boundary may have spent the attempt.

@@ -16,7 +16,7 @@ import { initNative, hideSplash, isNativePlatform } from "./lib/nativeInit";
 import { installGlobalErrorHandlers, report } from "./lib/errorLogger";
 import { USER_ERROR_SCREEN } from "./lib/currentScreen";
 import { hydrate as hydrateStorage } from "./lib/safeStorage";
-import { backgroundImport, handleVitePreloadError, trackFailedAssetLoads } from "./lib/chunkReload";
+import { backgroundImport, handleVitePreloadError, trackFailedAssetLoads, trackPageLeaving } from "./lib/chunkReload";
 import { blockReplayIfTestProfile } from "./lib/replayTestProfile";
 import { initSimpleMode } from "./lib/simpleMode";
 import { applyToastPolicy } from "./lib/toastPolicy";
@@ -86,6 +86,9 @@ initSimpleMode();
 // boundaries keep the same detection as a backstop for throws that bypass
 // this event (e.g. a bare `import()` rejection inside an effect).
 trackFailedAssetLoads();
+// WebKit cancels the old page's chunk imports on a hard navigation; those are
+// not a stale deploy, and reloading would eat the navigation (chunkReload.ts).
+trackPageLeaving();
 window.addEventListener("vite:preloadError", (event) => {
   // Only swallow the throw when we are ACTUALLY going to recover.
   //

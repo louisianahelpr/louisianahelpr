@@ -26,11 +26,11 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
 // @mutate supabase/migrations/20261031013445_helper_cancel_says_why.sql |     IF v_job.status::text = 'accepted' AND v_remaining = 0 THEN | IF v_job.status::text = 'accepted' AND v_remaining < COALESCE(v_job.helpers_needed, 1) THEN
 // @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql | ELSIF v_crew.status = 'accepted' AND v_remaining = 0 THEN | ELSIF v_crew.status = 'accepted' AND v_remaining < COALESCE(v_crew.helpers_needed, 1) THEN
-// @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |       IF v_cjob.status = 'accepted' AND v_remaining = 0 THEN |       IF v_cjob.status = 'accepted' AND v_remaining < COALESCE(v_cjob.helpers_needed, 1) THEN
+// @mutate supabase/migrations/20261103023713_expired_offer_says_too_late_to_rehire.sql |       IF v_cjob.status = 'accepted' AND v_remaining = 0 THEN |       IF v_cjob.status = 'accepted' AND v_remaining < COALESCE(v_cjob.helpers_needed, 1) THEN
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |   IF v_job_status IS NULL OR v_job_status NOT IN ('open', 'accepted') THEN |   IF v_job_status IS DISTINCT FROM 'open' THEN
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |    WHERE id = v_job_id\n     -- A refill of a booked crew (Q1378) leaves it booked, full or not.\n     AND v_job_status = 'open'; |    WHERE id = v_job_id;
-// @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |                WHEN v_cjob.status = 'accepted' AND v_remaining > 0 |                WHEN false
-// @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |        AND j.status IN ('open', 'accepted', 'in_progress')\n       AND g.helper_id IS NOT NULL |        AND j.status IN ('open', 'accepted')\n       AND g.helper_id IS NOT NULL
+// @mutate supabase/migrations/20261103023713_expired_offer_says_too_late_to_rehire.sql |                WHEN v_cjob.status = 'accepted' AND v_remaining > 0 |                WHEN false
+// @mutate supabase/migrations/20261103023713_expired_offer_says_too_late_to_rehire.sql |        AND j.status IN ('open', 'accepted', 'in_progress')\n       AND g.helper_id IS NOT NULL |        AND j.status IN ('open', 'accepted')\n       AND g.helper_id IS NOT NULL
 // @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |   SELECT count(*) FILTER (WHERE g.helper_completed_at IS NULL AND g.helper_confirmed_at IS NOT NULL), |   SELECT count(*) FILTER (WHERE g.helper_completed_at IS NULL),
 // @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |         DELETE FROM public.group_job_helpers\n         WHERE job_id = _job_id\n           AND helper_confirmed_at IS NULL |         DELETE FROM public.group_job_helpers\n         WHERE false\n           AND helper_confirmed_at IS NULL
 // @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |       IF v_left > 0 THEN | IF false THEN
@@ -48,7 +48,8 @@ const THIS = "20261006015121_crew_rest_carry_on.sql";
 const BLOCK_FEE = "20261007073145_crew_block_fee_ledger.sql";
 const UNCONFIRMED = "20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql";
 /** Q1281 restates expire_unanswered_offers from UNCONFIRMED with its strikes removed. */
-const OFFER_WORDS = "20261030232108_card_hold_capture_refused_offer_words.sql";
+/** Q1889 restates it again (the poster's too-late words); the crew pass is unchanged. */
+const OFFER_WORDS = "20261103023713_expired_offer_says_too_late_to_rehire.sql";
 /** lh-money-escrow review of bc9ea3a47: the roll-up closes only what its DELETE removed, then re-counts. */
 const RACE = "20261006031350_crew_completion_rechecks_after_closing_spots.sql";
 /** The migration each roster deleter is expected at (the newest that restates it). */

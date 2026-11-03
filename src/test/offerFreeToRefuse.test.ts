@@ -23,10 +23,10 @@
  * dialog and the community rules say declining or not answering is no strike.
  *
  * @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |   v_result := jsonb_build_object('action', 'none', 'reason', 'offer_free_to_decline'); |   v_result := public.apply_job_denial_consequence(v_app_helper, v_job_id, 'Declined job offer');
- * @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |       v_setup_unfinished := public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL | PERFORM public.apply_job_denial_consequence(v_locked.helper_id, v_locked.id, 'expired');\n      v_setup_unfinished := public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL
- * @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |       v_crew_setup_unfinished := public.helper_accept_block_reason(v_slot.helper_id) IS NOT NULL | PERFORM public.apply_job_denial_consequence(v_slot.helper_id, v_cjob.id, 'expired');\n      v_crew_setup_unfinished := public.helper_accept_block_reason(v_slot.helper_id) IS NOT NULL
- * @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |                ELSE '" and it went back to everyone. No strike.' |                ELSE '" and it went back to everyone. Letting an offer expire counts the same as declining it.'
- * @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |                ELSE '" and you lost your spot. No strike.' |                ELSE '" and you lost your spot.'
+ * @mutate supabase/migrations/20261103023713_expired_offer_says_too_late_to_rehire.sql |       v_setup_unfinished := public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL | PERFORM public.apply_job_denial_consequence(v_locked.helper_id, v_locked.id, 'expired');\n      v_setup_unfinished := public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL
+ * @mutate supabase/migrations/20261103023713_expired_offer_says_too_late_to_rehire.sql |       v_crew_setup_unfinished := public.helper_accept_block_reason(v_slot.helper_id) IS NOT NULL | PERFORM public.apply_job_denial_consequence(v_slot.helper_id, v_cjob.id, 'expired');\n      v_crew_setup_unfinished := public.helper_accept_block_reason(v_slot.helper_id) IS NOT NULL
+ * @mutate supabase/migrations/20261103023713_expired_offer_says_too_late_to_rehire.sql |                ELSE '" and it went back to everyone. No strike.' |                ELSE '" and it went back to everyone. Letting an offer expire counts the same as declining it.'
+ * @mutate supabase/migrations/20261103023713_expired_offer_says_too_late_to_rehire.sql |                ELSE '" and you lost your spot. No strike.' |                ELSE '" and you lost your spot.'
  * @mutate supabase/migrations/20261021062609_memberships_off_paid_perks.sql | One more — backing out of a job you accepted — and | One more — declining, ignoring, or cancelling a job you committed to — and
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | Declining isn't a strike." | Backing out now counts against your account."
  * @mutate src/pages/jobs/appliedJobCard/OfferedActions.tsx | Declining isn't a strike.` | Backing out now counts against your account.`
@@ -100,8 +100,8 @@ describe("an offer is free to refuse (Q1281)", () => {
 
   it("decline_job_offer and expire_unanswered_offers are the newest definitions and file no strike", () => {
     for (const fn of ["decline_job_offer", "expire_unanswered_offers"]) {
-      // expire_unanswered_offers was restated once since, in words only (a failed payment says so; no strike).
-      const pinned = fn === "expire_unanswered_offers" ? "20261030232108_card_hold_capture_refused_offer_words.sql" : FIX;
+      // expire_unanswered_offers was restated twice since, in words only (a failed payment; Q1889 too late to rehire; no strike).
+      const pinned = fn === "expire_unanswered_offers" ? "20261103023713_expired_offer_says_too_late_to_rehire.sql" : FIX;
       expect(now.get(fn)?.file, `${fn} was restated after ${pinned}: re-read it`).toBe(pinned);
       expect(code(now.get(fn)!), `${fn} strikes a Helpr who never accepted`).not.toMatch(STRIKE);
     }

@@ -25,7 +25,10 @@ export function alertNotificationArrival(n: Notification) {
     // the chime silently stops firing after a handful of
     // notifications. Release it once the tone finishes.
     osc.onended = () => { ctx.close().catch(() => {}); };
-  } catch {}
+  } catch {
+    // Best effort, never reported: no AudioContext (old WebView, autoplay policy) just means no chime;
+    // the badge and the row itself still arrive. Same as when this lived in NotificationPanel.tsx.
+  }
   if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
   if (document.hidden && getPushPermission() === "granted") {
     // Same resolution as a tap in the panel — a realtime row must

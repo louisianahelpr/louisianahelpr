@@ -34,6 +34,7 @@
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_listing_rounds_sweep: "declutterListingRoundsClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_price_nudge_sweep: "declutterPriceNudgeClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_hold_unchecked_listings: "declutterHoldUncheckedClock.pglite.mjs",\n | \n
+// @mutate src/test/clockFunctionsProven.test.ts |   declutter_move_reminder_sweep: "declutterMoveReminderClock.pglite.mjs",\n | \n
 // @mutate src/test/pglite/userReportsLedgerClock.pglite.mjs | const { file, stmt } = newestFunction("check_user_reports_reach_ledger"); | const { file, stmt } = newestFunction("check_user_reports");
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -78,6 +79,7 @@ const PROVEN: Record<string, string> = {
   declutter_listing_rounds_sweep: "declutterListingRoundsClock.pglite.mjs",
   declutter_price_nudge_sweep: "declutterPriceNudgeClock.pglite.mjs",
   declutter_hold_unchecked_listings: "declutterHoldUncheckedClock.pglite.mjs",
+  declutter_move_reminder_sweep: "declutterMoveReminderClock.pglite.mjs",
 };
 
 /** function -> why it has no fixed-clock probe yet. Each is open work under docs/OPEN.md Q1424. */
@@ -85,7 +87,6 @@ const PROVEN: Record<string, string> = {
 const NOT_PROVEN: Record<string, string> = {
   declutter_alert_overdue_checks: "b61 overdue-check admin alert (20261101042045): declutterCheckSweep.pglite.mjs proves its windows by rewriting ai_check_cleared_at and ai_check_overdue_alerted_at relative to now(), not by moving the clock; no probe runs it on fixedClock.mjs at a 1 ms edge",
   declutter_free_still_available_sweep: "declutterFreeStillAvailable.pglite.mjs proves its 14-day windows by rewriting stored timestamps (live_at, asked_at, answered_at), relative to now(), not on fixedClock.mjs at a 1 ms edge.",
-  declutter_move_reminder_sweep: "moving-sale reminders: declutterMoveReminders.pglite.mjs writes each sale's date relative to today, not by moving the clock; no probe runs it at a fixed instant yet",
   send_new_member_daily_summary: "LEAD-NOID21 daily new-member summary (20261031152136): newMemberDailySummary.pglite.mjs proves the queue by its summarized_at marks, not by moving the clock; it has no time window (it names everyone not yet summarized), so no fixedClock.mjs probe yet",
   guarantee_sweep: "Helpr Guarantee (owner 2026-10-27): named by helprGuarantee.pglite.mjs, which moves the stored deadlines (helpr_answer_by, fix_date, poster_answer_by), not the clock; no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path (it lifts a payout hold).",
   send_application_roundups: "lead 2026-10-25: its 3-hour window is proven in emailRoundups.pglite.mjs by rewriting the stored timestamps (last_emailed_at), not by moving the clock",

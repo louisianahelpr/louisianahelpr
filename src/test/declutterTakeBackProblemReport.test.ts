@@ -10,7 +10,7 @@
  */
 // @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql |   IF p.status <> 'open' THEN\n    RAISE EXCEPTION 'problem_already_decided' |   IF false THEN\n    RAISE EXCEPTION 'problem_already_decided'
 // @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql |      OR p.reporter_id IS DISTINCT FROM v_uid OR p.reporter_side IS DISTINCT FROM v_side THEN |      OR p.reporter_side IS DISTINCT FROM v_side THEN
-// @mutate supabase/migrations/20261031100935_declutter_problem_notices_name_the_item.sql | p.reporter_id = v_uid AND p.status = 'withdrawn') THEN | p.reporter_id = v_uid AND p.status = 'nope') THEN
+// @mutate supabase/migrations/20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql | p.reporter_id = v_uid AND p.status = 'withdrawn') THEN | p.reporter_id = v_uid AND p.status = 'nope') THEN
 // @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql |    WHERE problem_id = p.id AND status = 'to_admin' AND v_side = 'buyer'; |    WHERE problem_id = p.id AND status = 'to_admin' AND false;
 // @mutate supabase/migrations/20261030134109_declutter_take_back_problem_report.sql | 'open'::text, 'decided'::text, 'withdrawn'::text | 'open'::text, 'decided'::text
 import { describe, it, expect } from "vitest";
@@ -33,7 +33,7 @@ describe("Declutter: take back my report", () => {
     expect(readers.length).toBeGreaterThan(20);
     expect(flat("declutter_withdraw_problem").length).toBeGreaterThan(1500);
     expect(DEFS.get("declutter_withdraw_problem")?.file).toMatch(/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404\.sql$/); // T9 ends a no-show report; LEAD-TAKENBACK-LINK: tab link; Q2390 p36: PT404 only
-    expect(DEFS.get("declutter_report_problem")?.file).toMatch(/20261031100935_declutter_problem_notices_name_the_item\.sql$/); // BUY-30: restated, its notice names the item
+    expect(DEFS.get("declutter_report_problem")?.file).toMatch(/20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404\.sql$/); // BUY-30: restated, its notice names the item; Q2390 p37: PT404 only
   });
 
   it("no reader treats a not-decided problem as open (status <> 'decided' / NOT IN ('decided'))", () => {

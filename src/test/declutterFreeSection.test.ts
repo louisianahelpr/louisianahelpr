@@ -42,7 +42,8 @@ describe("the Declutter Free section", () => {
     // (20261030064929): then the Buy now notice without it (free claim kept); BUY-1 (20261101030040): the hold lengths
     // (a free claim keeps its 48 hours, asserted below). B110 (20261101191500): the accepted-offer notice copy only.
     // Q2659 (20261102113853): verbatim plus the notices' subject lines (declutterNoticeRefCallersVerbatim.test.ts).
-    expect(newestFunction("declutter_take_item").file).toContain("20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql");
+    // Q2390 p37 (20261103222939): restated verbatim with its not-found as PT404 only.
+    expect(newestFunction("declutter_take_item").file).toContain("20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql");
     // declutter_checkout_free: restated by #26 (20261028204431, its notice line), #37 (20261028223036, its seller link)
     // and the ways the giver ticked (20261028235247_declutter_handover_choices.sql: handover_not_offered).
     // Then D-NEW14 porch places (20261030164712: porch_place_needed and the frozen place, insertion only).

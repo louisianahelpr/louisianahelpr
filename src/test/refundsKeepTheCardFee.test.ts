@@ -703,7 +703,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Q2390 p36 (20261103221614): restated with its two not-found raises as PT404 only (ERRCODE only); still records no refund.
       declutter_withdraw_problem: "20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql c10298c867a2c578",
       // T9 (20261031004529): names declutter_refunds only as its notice kind, since the notice moved to that switch; records no refund and moves no money (the seller's answer becomes an open problem, which holds the money).
-      declutter_answer_no_show: "20261031004529_declutter_handover_both_confirm.sql 1def49eaa52f1de0",
+      // Q2390 p37 (20261103222939): restated with its not-found as PT404 only (ERRCODE only); still records no refund.
+      declutter_answer_no_show: "20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql c5eaf736034ab643",
       // BUY-2 (20261031133938, owner 10-31; money verdict owed): the buyer's cancel after no Helpr took the delivery. Its
       // only refund is declutter_close_paid_order(o.id, 'buyer_cancelled'), already pinned (keep_card_fee: the buyer bears
       // the card fee, as the owner chose); it refuses once a pickup is booked or a problem is open, and a replay answers already.
@@ -714,7 +715,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_no_helpr_choice: "20261031133938_declutter_no_helpr_buyer_refund.sql 7fc7a17d711295b0",
       // soldstates-5 (20261031134217, owner 10-31; verdict owed): the Helpr's answer to the seller's "The Helpr didn't
       // come". Names declutter_refunds only as its notice kind; opens a problem (which holds the money) and records no refund.
-      declutter_helpr_answer_no_show: "20261031134217_helpr_delivery_seller_reports_no_show.sql 7964c7f0efa841f1",
+      // Q2390 p37 (20261103222939): restated with its not-found as PT404 only (ERRCODE only); no refund logic changed.
+      declutter_helpr_answer_no_show: "20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql 8213478bd3129eae",
       // T9 (20261031004529): names declutter_refunds only as a notice kind on the 60-day hold; its own refunds all go through declutter_close_paid_order with reasons already pinned (buyer_no_show, seller_no_show), and it writes no amount or fee.
       // 20261031181404 (Builder 16): restated verbatim but for the (d) delivery-reminder loop, which now locks its order and
       // re-reads the booking so its notice names the item; that loop records no refund. Every refund path above unchanged.

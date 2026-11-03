@@ -107,6 +107,7 @@
     "supabase/functions/_shared/easypostLabels.ts",
     "supabase/functions/_shared/shipLabelWorker.ts",
     "supabase/functions/_shared/shipLabelVoid.ts",
+    "supabase/functions/_shared/shipReturnLabel.ts",
     "supabase/functions/_shared/emailSendLog.ts",
     "supabase/functions/_shared/notificationTypes.ts",
     "supabase/functions/_shared/notificationLog.ts",

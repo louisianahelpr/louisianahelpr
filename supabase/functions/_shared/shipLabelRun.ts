@@ -7,6 +7,7 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { easypostKeyName } from "./easypostRates.ts";
 import { nextAttemptDelayMs, reconcileShipCapture, runShipLabel, type ClaimedShipment, type LabelOutcome, type ReconcileOutcome, type ShipOrder } from "./shipLabelWorker.ts";
 import { runShipVoid, type VoidableShipment, type VoidOutcome } from "./shipLabelVoid.ts";
+import { runShipReturn, type ReturnOutcome, type ReturnRow } from "./shipReturnLabel.ts";
 import { postSlackOpsAlert } from "./slack-alerts.ts";
 import { caughtMessage } from "./caughtMessage.ts";
 
@@ -89,14 +90,83 @@ function pageWith(shipmentId: string, labelMode: string) {
   }).then(() => undefined);
 }
 
-type Counts = Partial<Record<LabelOutcome | ReconcileOutcome | VoidOutcome, number>>;
+type Counts = Partial<Record<LabelOutcome | ReconcileOutcome | VoidOutcome | ReturnOutcome, number>>;
 
 export async function runShipLabels(admin: Db, testStripeOf: () => Stripe, record: (defect: string) => void): Promise<Counts> {
   const counts: Counts = {};
   await runClaimedLabels(admin, testStripeOf, record, counts);
   await reconcileCaptures(admin, testStripeOf, record, counts);
   await runVoids(admin, record, counts);
+  await runReturns(admin, record, counts);
   return counts;
+}
+
+/**
+ * Shipping S6 return labels (shipReturnLabel.ts runShipReturn; spec 5.3; 20261103212046): 'requested' rows an admin
+ * asked for that are due, at most 5 a run, TEST key only (the table holds test rows only).
+ */
+async function runReturns(admin: Db, record: (defect: string) => void, counts: Counts): Promise<void> {
+  const { data: rows, error } = await admin.from("shipping_return_labels")
+    .select("id, order_id, label_mode, provider_shipment_id, attempts, outbound:shipments!inner(provider_shipment_id, quoted_cents)")
+    .eq("state", "requested").lte("next_attempt_at", new Date().toISOString()).order("next_attempt_at").limit(5);
+  if (error) {
+    // 42P01 / 42703: the return label migration is not on this database yet; nothing to do.
+    if (error.code === "42P01" || error.code === "42703") return;
+    record(`ship returns: read failed: ${error.message}`);
+    return;
+  }
+  if (!rows || rows.length === 0) return;
+  const key = Deno.env.get(easypostKeyName("test"));
+  if (!key) {
+    record("ship returns: the EasyPost test key is not set");
+    return;
+  }
+  const call = easypostCaller(key);
+  for (const raw of rows as (Omit<ReturnRow, "outbound_shipment_id" | "cap_cents"> & { outbound: { provider_shipment_id: string | null; quoted_cents: number } | null })[]) {
+    const out = raw.outbound;
+    if (!out?.provider_shipment_id) {
+      record(`ship return ${raw.id}: its outbound shipment has no EasyPost id`);
+      continue;
+    }
+    const r: ReturnRow = { ...raw, outbound_shipment_id: out.provider_shipment_id, cap_cents: out.quoted_cents };
+    try {
+      const outcome = await runShipReturn(r, {
+        getShipment: (id) => call(`${EASYPOST}/${id}`, { method: "GET" }),
+        createShipment: (body) => call(EASYPOST, { method: "POST", body: JSON.stringify(body) }),
+        buyShipment: (id, body) => call(`${EASYPOST}/${id}/buy`, { method: "POST", body: JSON.stringify(body) }),
+        saveReturnShipment: async (id, shp) => {
+          const { data, error: e } = await admin.from("shipping_return_labels")
+            .update({ provider_shipment_id: shp, updated_at: new Date().toISOString() })
+            .eq("id", id).eq("state", "requested").is("provider_shipment_id", null).select("id");
+          if (e) throw new Error(`return shipment save failed: ${e.message}`);
+          return Array.isArray(data) && data.length === 1;
+        },
+        recordBought: async (id, l) => {
+          const { data, error: e } = await admin.rpc("declutter_ship_return_label_bought", {
+            p_return_id: id, p_provider_shipment_id: l.shipmentId, p_tracking_code: l.trackingCode, p_label_url: l.labelUrl,
+            p_cost_cents: l.costCents,
+          });
+          if (e) throw new Error(`return label record failed: ${e.message}`);
+          return String(data);
+        },
+        recordFailed: async (id, why) => {
+          const { error: e } = await admin.rpc("declutter_ship_return_label_failed", { p_return_id: id, p_why: why.slice(0, 500) });
+          if (e) throw new Error(`return failure record failed: ${e.message}`);
+        },
+        recordRetry: async (id, attempts, why) => {
+          const { error: e } = await admin.from("shipping_return_labels").update({
+            attempts: Math.min(attempts, 100), last_error: why.slice(0, 500),
+            next_attempt_at: new Date(Date.now() + nextAttemptDelayMs(attempts)).toISOString(),
+          }).eq("id", id).eq("state", "requested").select("id");
+          if (e) throw new Error(`return retry record failed: ${e.message}`);
+        },
+      });
+      counts[outcome] = (counts[outcome] ?? 0) + 1;
+    } catch (e) {
+      // Not silent: record() puts it in the run's defect list, which pages ops; the next return still runs.
+      record(`ship return ${raw.id}: ${caughtMessage(e)}`.slice(0, 200));
+    }
+  }
 }
 
 /**

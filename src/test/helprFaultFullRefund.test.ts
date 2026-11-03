@@ -17,9 +17,9 @@
  *
  * @mutate supabase/migrations/20261019015301_helpr_fault_ruling.sql |   IF v_admin IS NULL OR NOT public.has_role(v_admin, 'admin'::app_role) THEN | IF v_admin IS NULL THEN
  * @mutate supabase/migrations/20261019015301_helpr_fault_ruling.sql |   -- Exactly one strike for this job: the report or the backout usually wrote it.\n  IF NOT EXISTS ( |   IF EXISTS (
- * @mutate supabase/migrations/20261019015301_helpr_fault_ruling.sql |   IF r.card_fee_cents IS NOT NULL THEN\n    RETURN 0; |   IF false THEN\n    RETURN 0;
- * @mutate supabase/migrations/20261019015301_helpr_fault_ruling.sql |   v_fee := least(p_card_fee_cents, COALESCE(v_cap, 0)); |   v_fee := p_card_fee_cents;
- * @mutate supabase/migrations/20261019015301_helpr_fault_ruling.sql | REVOKE ALL ON FUNCTION public.bill_helpr_fault_card_fee(uuid, integer, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.bill_helpr_fault_card_fee(uuid, integer, text) FROM PUBLIC, anon;
+ * @mutate supabase/migrations/20261103142625_q2390_deposit_wanted_dispute_sold_elsewhere_hand_refund_fault_fee_not_found_is_404.sql |   IF r.card_fee_cents IS NOT NULL THEN\n    RETURN 0; |   IF false THEN\n    RETURN 0;
+ * @mutate supabase/migrations/20261103142625_q2390_deposit_wanted_dispute_sold_elsewhere_hand_refund_fault_fee_not_found_is_404.sql |   v_fee := least(p_card_fee_cents, COALESCE(v_cap, 0)); |   v_fee := p_card_fee_cents;
+ * @mutate supabase/migrations/20261103142625_q2390_deposit_wanted_dispute_sold_elsewhere_hand_refund_fault_fee_not_found_is_404.sql | GRANT EXECUTE ON FUNCTION public.bill_helpr_fault_card_fee(uuid, integer, text) TO service_role; | GRANT EXECUTE ON FUNCTION public.bill_helpr_fault_card_fee(uuid, integer, text) TO authenticated, service_role;
  * @mutate supabase/migrations/20261019015301_helpr_fault_ruling.sql |   job_id uuid NOT NULL UNIQUE REFERENCES public.jobs(id) ON DELETE CASCADE, |   job_id uuid NOT NULL REFERENCES public.jobs(id) ON DELETE CASCADE,
  * @mutate supabase/functions/create-payment/index.ts |       if (helprFault && typeof amountCents === "number") { |       if (false) {
  * @mutate supabase/functions/create-payment/index.ts |                 : "The Helpr was at fault, so all of your payment for the job comes back to you.") |                 : "")

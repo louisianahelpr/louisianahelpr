@@ -213,6 +213,60 @@ describe("money-reconciliation edge function", () => {
     expect(slackAlerts).toHaveLength(1);
   });
 
+  // ── Q2367: a reviewed approval stall that still holds escrow ──────────
+  // @mutate supabase/functions/money-reconciliation/index.ts |             if (open.has(String(job.id))) continue; |             if (true) continue;
+  // @mutate supabase/functions/money-reconciliation/index.ts |         job.poster_completed_at == null && | true &&
+  // @mutate supabase/functions/money-reconciliation/index.ts |         nowMs - (ts(job.helper_completed_at) ?? nowMs) > REVIEWED_APPROVAL_DAYS * 86_400_000); | true);
+  describe("reviewed_approval_still_held (Q2367)", () => {
+    function liveDoneJob(extra: Record<string, unknown> = {}) {
+      seedCleanLedger();
+      scenario.reads.jobs = { rows: [{
+        ...(scenario.reads.jobs as { rows: Record<string, unknown>[] }).rows[0],
+        id: "job-r", status: "in_progress", payment_status: "escrow",
+        poster_completed_at: null,
+        helper_completed_at: new Date(Date.now() - 8 * 86_400_000).toISOString(),
+        ...extra,
+      }] };
+      scenario.reads.payout_transfers = { rows: [] };
+    }
+    const hit = async () => {
+      const fn = await loadConfigured();
+      const b = await body(await fn.fetch(cronRequest(fn)));
+      return (b.findings as Array<{ check: string; severity: string }>).find((f) => f.check === "reviewed_approval_still_held");
+    };
+    it("a live escrow job done by the Helpr 8 days ago, never approved, with no open escalation is reported (info)", async () => {
+      liveDoneJob();
+      scenario.reads.job_approval_escalations = { rows: [] };
+      const f = await hit();
+      expect(f).toBeTruthy();
+      expect(f!.severity).toBe("info");
+    });
+    it("a seed job never reaches the real findings: on an include_seed run it is a seed finding (digest, no page)", async () => {
+      liveDoneJob({ is_seed: true });
+      scenario.reads.job_approval_escalations = { rows: [] };
+      const fn = await loadConfigured();
+      const b = await body(await fn.fetch(cronRequest(fn, "https://edge.test/fn?include_seed=1")));
+      const real = (b.findings as Array<{ check: string }>).map((f) => f.check);
+      const seed = ((b.seed_findings ?? []) as Array<{ check: string }>).map((f) => f.check);
+      expect(real).not.toContain("reviewed_approval_still_held");
+      expect(seed).toContain("reviewed_approval_still_held");
+    });
+    it("an open escalation watches it: not reported", async () => {
+      liveDoneJob();
+      scenario.reads.job_approval_escalations = { rows: [{ job_id: "job-r" }] };
+      expect(await hit()).toBeUndefined();
+    });
+    it("a poster who approved, or a Helpr done only 3 days ago, is not reported", async () => {
+      liveDoneJob({ poster_completed_at: new Date().toISOString() });
+      scenario.reads.job_approval_escalations = { rows: [] };
+      expect(await hit()).toBeUndefined();
+      resetSupabaseMock();
+      liveDoneJob({ helper_completed_at: new Date(Date.now() - 3 * 86_400_000).toISOString() });
+      scenario.reads.job_approval_escalations = { rows: [] };
+      expect(await hit()).toBeUndefined();
+    });
+  });
+
   // ── A dispute decision is not a cancellation (docs/OPEN.md Q336) ──────
   // rpc_decide_dispute (poster wins) sets status 'cancelled' and
   // dispute_status 'resolved' but never cancelled_at; the $0 close then sets

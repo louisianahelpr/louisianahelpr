@@ -218,7 +218,7 @@ describe("checkUnsettledDispute — the query it actually sends", () => {
     const chain: Array<[string, unknown, unknown]> = [];
     let table = "";
     const builder: Record<string, (...a: unknown[]) => unknown> = {};
-    for (const m of ["select", "eq", "or", "limit"]) {
+    for (const m of ["select", "eq", "or", "ilike", "limit"]) {
       builder[m] = (...args: unknown[]) => {
         chain.push([m, args[0], args[1]]);
         return m === "limit" ? Promise.resolve({ data: [], error: null }) : builder;
@@ -232,7 +232,8 @@ describe("checkUnsettledDispute — the query it actually sends", () => {
     expect(result.blocked).toBe(false);
     expect(tables[0]).toBe("disputes");
     // …and then the settlement-claim table (dispute-races round 3, H1).
-    expect(tables).toEqual(["disputes", "dispute_settlement_claims"]);
+    // …the test-mode close read (Q1910), then the settlement-claim table (dispute-races round 3, H1).
+    expect(tables).toEqual(["disputes", "disputes", "dispute_settlement_claims"]);
     expect(table).toBe("dispute_settlement_claims");
     expect(chain).toContainEqual(["eq", "job_id", "job-9"]);
     expect(chain).toContainEqual(["eq", "status", "decided"]);
@@ -256,7 +257,7 @@ describe("checkUnsettledDispute — the query it actually sends", () => {
 
   it("blocks with the real cause on an unrecognised read error", async () => {
     const builder: Record<string, unknown> = {};
-    for (const m of ["select", "eq", "or"]) builder[m] = () => builder;
+    for (const m of ["select", "eq", "or", "ilike"]) builder[m] = () => builder;
     builder.limit = () =>
       Promise.resolve({ data: null, error: { message: "connection reset", code: "08006" } });
     const result = await checkUnsettledDispute({ from: () => builder }, "job-9");

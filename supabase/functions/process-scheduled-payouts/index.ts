@@ -321,6 +321,13 @@ serve(async (req) => {
           jobDefect(job.id, `dispute settlement check ${job.id}: ${settlement.readError}`);
           continue;
         }
+        if (settlement.testClosed) {
+          // Q1910: an admin closed this job's dispute as a test after the select above. The close cancelled
+          // its payment; nothing is paid and nothing pages.
+          console.log(`[process-scheduled-payouts] job ${job.id} skipped: dispute ${settlement.testClosed.id} closed as a test`);
+          results.push({ job_id: job.id, status: "dispute_closed_as_test", dispute_id: settlement.testClosed.id });
+          continue;
+        }
         console.error(
           `[process-scheduled-payouts] job ${job.id} refused: dispute ${settlement.dispute?.id} is decided but execution_status=${settlement.dispute?.execution_status}`,
         );

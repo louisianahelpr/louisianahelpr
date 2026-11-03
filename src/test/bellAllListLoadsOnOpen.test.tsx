@@ -16,12 +16,12 @@
  *    unread rows as if they were everything, and never the empty state.
  */
 // @mutate src/components/notificationPanel/notificationFeed.ts | () => void load((id) => (listHeldFor(id) ? ensureFreshNotificationFeed(id) : loadBadgeFeed(id))), | () => void load(loadNotificationFeed),
-// @mutate src/components/NotificationPanel.tsx |     if (open) void loadNotifications(false); |     void loadNotifications(false);
-// @mutate src/components/NotificationPanel.tsx |     if (open) void loadNotifications(false); |     if (false) void loadNotifications(false);
-// @mutate src/components/NotificationPanel.tsx |           onPointerEnter={prefetchNotificationList} |           onPointerEnter={undefined}
-// @mutate src/components/NotificationPanel.tsx |           onFocus={prefetchNotificationList} |           onFocus={undefined}
-// @mutate src/components/notificationPanel/NotificationBell.tsx |       onPointerEnter={prefetchNotificationList} |       onPointerEnter={undefined}
-// @mutate src/components/notificationPanel/NotificationBell.tsx |       onTouchStart={prefetchNotificationList} |       onTouchStart={undefined}
+// @mutate src/components/NotificationPanel.tsx | { if (open) void loadNotifications(false); } | { void loadNotifications(false); }
+// @mutate src/components/NotificationPanel.tsx | { if (open) void loadNotifications(false); } | { if (false) void loadNotifications(false); }
+// @mutate src/components/NotificationPanel.tsx | className={triggerClassName} {...prefetchOnIntent} /> | className={triggerClassName} />
+// @mutate src/components/notificationPanel/notificationFeed.ts |   onFocus: () => prefetchNotificationList(), |   onFocus: () => {},
+// @mutate src/components/notificationPanel/NotificationBell.tsx |       {...prefetchOnIntent}\n |
+// @mutate src/components/notificationPanel/notificationFeed.ts |   onTouchStart: () => prefetchNotificationList(), |   onTouchStart: () => {},
 // @mutate src/components/notificationPanel/notificationFeed.ts |   setNotifications((prev) => mergeRows(prev, unread.data as Notification[] \| null));\n  applyUnreadCount(unread.count); |   setNotifications((prev) => mergeRows(prev, unread.data as Notification[] \| null));
 // @mutate src/components/NotificationPanel.tsx |   const listShowable = listLoaded \|\| (filter === "unread" && notifications.length > 0); |   const listShowable = listLoaded \|\| notifications.length > 0;
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";

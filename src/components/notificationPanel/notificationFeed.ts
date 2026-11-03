@@ -169,7 +169,7 @@ const loadBadgeOnce = async (userId: string) => {
  * a refresh reloads the list (it carries the unread page); before that only
  * the unread page is read. Joins a full load already in flight.
  */
-export const loadBadgeFeed = (userId: string): Promise<void> => {
+const loadBadgeFeed = (userId: string): Promise<void> => {
   if (listHeldFor(userId)) return loadNotificationFeed(userId);
   if (inFlight?.userId === userId) return inFlight.promise;
   if (badgeInFlight?.userId === userId) return badgeInFlight.promise;
@@ -178,6 +178,13 @@ export const loadBadgeFeed = (userId: string): Promise<void> => {
   });
   badgeInFlight = { userId, promise };
   return promise;
+};
+
+/** The bell's "about to open" events (pointerenter, focus, touchstart): spread on both bells' triggers. */
+export const prefetchOnIntent = {
+  onPointerEnter: () => prefetchNotificationList(),
+  onFocus: () => prefetchNotificationList(),
+  onTouchStart: () => prefetchNotificationList(),
 };
 
 /** How long a loaded list is reused when the panel opens; realtime keeps it live meanwhile. */

@@ -7,7 +7,7 @@ import {
   bellUnreadCount,
 } from "./notificationStore";
 import { whenPageSettled } from "@/lib/routePrefetch";
-import { prefetchNotificationList } from "./notificationFeed";
+import { prefetchNotificationList, prefetchOnIntent } from "./notificationFeed";
 import { report } from "@/lib/errorLogger";
 
 /**
@@ -80,9 +80,7 @@ export default function NotificationBell({ triggerClassName }: { triggerClassNam
       aria-haspopup="dialog"
       aria-expanded={false}
       data-state="closed"
-      onPointerEnter={prefetchNotificationList}
-      onFocus={prefetchNotificationList}
-      onTouchStart={prefetchNotificationList}
+      {...prefetchOnIntent}
       onClick={async () => {
         prefetchNotificationList();
         setOpenOnLoad(true);

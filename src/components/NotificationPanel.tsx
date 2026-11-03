@@ -4,7 +4,8 @@ import type { MotionProps } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { ensureFreshNotificationFeed, LIST_REUSE_MS, loadNotificationFeed, onFeedRecoveryLoad, onNotificationArrival, prefetchNotificationList } from "@/components/notificationPanel/notificationFeed";
+import { alertNotificationArrival } from "@/components/notificationPanel/arrivalAlert";
+import { ensureFreshNotificationFeed, LIST_REUSE_MS, loadNotificationFeed, onFeedRecoveryLoad, onNotificationArrival, prefetchOnIntent } from "@/components/notificationPanel/notificationFeed";
 import { useReducedMotion } from "@/lib/accessibility";
 import { AlertTriangle, BellRing, CheckCheck, Loader2 } from "lucide-react";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
@@ -23,7 +24,7 @@ import {
   screenPanelContentProps,
   useScreenPanelBand,
 } from "@/components/ui/anchoredPanel";
-import { isPushSupported, registerServiceWorker, showLocalNotification, getPushPermission } from "@/lib/pushNotifications";
+import { isPushSupported, registerServiceWorker, getPushPermission } from "@/lib/pushNotifications";
 import { useRequestPushPermissionOutcome } from "@/lib/nativePush";
 import { readPushPermission, pushDeclineNeedsSettingsHint } from "@/lib/pushPermissionNudge";
 import { Capacitor } from "@capacitor/core";
@@ -115,8 +116,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
      what stopped them contradicting on screen — but both under-reported
      reality, and did so WORSE the more someone used the app. The most engaged
      users saw the least accurate number.
-     `head: true` returns no rows, and the (user_id, read) index already exists
-     for exactly this shape, so it costs a count and no payload. */
+     It rides on the unread read (`count: "exact"`, Q104): no extra request. */
   const [open, setOpen] = useState(defaultOpen);
   /* framer-motion is fetched when the panel first opens, never on page load —
      see useFramerMotion for the measured chain this breaks. `null` until the
@@ -208,8 +208,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
     // show. A background refresh failure with prior data on screen
     // stays silent so a transient hiccup doesn't blow away a list the
     // user is mid-reading.
-    // Unread rows from the badge load are not a list on screen: until the
-    // full list has loaded, a failure here is the panel's error card.
+    // The badge load's unread rows are not a list on screen (Q104): until the list loads, this is the error card.
     const hasRowsOnScreen = getNotificationSnapshot().listLoaded && notificationsRef.current.length > 0;
     setLoadError((prev) => (hasRowsOnScreen ? prev : true));
     // ONE OUTAGE, ONE MESSAGE.
@@ -260,9 +259,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
       setNotificationUser(null);
       return;
     }
-    // The load itself (recency page + unread page + head count) is the bell's
-    // shared feed (Q756, ./notificationPanel/notificationFeed.ts): it THROWS on
-    // a failed list, which the caller turns into this panel's error card.
+    // The list load (recency + unread page) is the shared feed's (Q756); it THROWS on a failure (the error card).
     await (force ? loadNotificationFeed(session.user.id) : ensureFreshNotificationFeed(session.user.id, LIST_REUSE_MS)); // an open reuses a fresh list, e.g. the hover prefetch (Q1183, Q104)
     setLoadError(false);
   };
@@ -274,17 +271,9 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
     onRefresh: async () => { await loadNotifications(); },
   });
 
-  /* THE LIST LOADS WHEN THE PANEL OPENS, NOT WHEN IT MOUNTS (Q104, lead
-     decision 2026-11-02, option b). The panel mounts on every signed-in page
-     once it settles, and its 800 ms mount load put the recency page on every
-     page load although nobody had opened anything. The badge needs only the
-     unread page, which the shared feed reads. Opening (and, earlier, a hover,
-     focus or touch on the bell: prefetchNotificationList) loads the list; a
-     list loaded in the last LIST_REUSE_MS is reused, kept live by realtime.
-     A panel swapped in by a tap mounts open (defaultOpen) and loads at once. */
-  useEffect(() => {
-    if (open) void loadNotifications(false);
-  }, [open]);
+  // The list loads when the panel opens (or on the bell's hover/focus/touch), never on mount: the badge
+  // needs only the feed's unread page (Q104, lead 2026-11-02). A fresh list (LIST_REUSE_MS) is reused.
+  useEffect(() => { if (open) void loadNotifications(false); }, [open]);
 
   useEffect(() => {
 
@@ -306,32 +295,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
       if (err) failLoad(err);
       else setLoadError(false);
     });
-    const off = onNotificationArrival((n) => {
-      // Play notification chime + vibrate
-      try {
-        const ctx = new (window.AudioContext || (window as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.frequency.setValueAtTime(830, ctx.currentTime);
-        osc.frequency.setValueAtTime(990, ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.15, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-        osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.3);
-        // Browsers cap concurrent AudioContexts (~6); without this
-        // the chime silently stops firing after a handful of
-        // notifications. Release it once the tone finishes.
-        osc.onended = () => { ctx.close().catch(() => {}); };
-      } catch {}
-      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-      if (document.hidden && getPushPermission() === "granted") {
-        // Same resolution as a tap in the panel — a realtime row must
-        // not open somewhere different from the row it just inserted.
-        showLocalNotification(n.title, n.message, notificationDestination(n) ?? undefined);
-      }
-    });
+    const off = onNotificationArrival(alertNotificationArrival);
 
     return () => {
       off();
@@ -375,18 +339,14 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
   // The list can only ever show what it fetched. Saying so is the honest
   // alternative to quietly shrinking the badge to match the page.
   const hasMoreThanPage = unreadTotal !== null && unreadTotal > unreadInPage;
-  // Seed the default from the first loaded page, once. `null` means "not chosen
-  // yet" so the very first render — when `notifications` is still empty — does
-  // not lock the panel to All.
+  // Seed the default from the first rows, once (the badge's unread page counts: unread exists).
+  // `null` = "not chosen yet", so an empty first render does not lock the panel to All.
   useEffect(() => {
     if (filter !== null || notifications.length === 0) return;
     setFilter(notifications.some((n) => !n.read) ? "unread" : "all");
   }, [notifications, filter]);
 
-  /* WHAT THE STORE HOLDS BEFORE THE LIST LOADS is the badge's unread page
-     (Q104): complete for Unread, not for All. So Unread may show it while All
-     waits for the full list (spinner, or the error card), and never shows the
-     unread rows as if they were everything. */
+  // Before the list loads the store holds the badge's unread page (Q104): complete for Unread, never shown as All.
   const listShowable = listLoaded || (filter === "unread" && notifications.length > 0);
   const visibleNotifications = useMemo(
     () => (filter === "unread" ? notifications.filter((n) => !n.read) : notifications),
@@ -516,15 +476,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
        for touch. */
     <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
-        <NotificationTrigger
-          ref={triggerRef}
-          unreadCount={unreadCount}
-          className={triggerClassName}
-          // About to open: start the list now so the tap opens onto it (Q104).
-          onPointerEnter={prefetchNotificationList}
-          onFocus={prefetchNotificationList}
-          onTouchStart={prefetchNotificationList}
-        />
+        <NotificationTrigger ref={triggerRef} unreadCount={unreadCount} className={triggerClassName} {...prefetchOnIntent} />
       </PopoverTrigger>
       {/* On phone/native, positioned against a measured SCREEN BAND, not
           against the bell: a zero-height rect spanning the viewport at the

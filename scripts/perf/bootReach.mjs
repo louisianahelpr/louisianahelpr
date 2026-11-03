@@ -312,9 +312,23 @@ export function homeFirstScreenRoots(root) {
   return [path.join(root, "src/main.tsx"), ...roots, ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r)))];
 }
 
+/**
+ * The lazy chrome App.tsx mounts for EVERY visitor, guests included, outside SignedInChrome / SignedInOnly (Q654,
+ * B40 11-03). Each is a lazy chunk, but it renders on the first frame, so a guest's cold `/` fetches it ~70 ms after
+ * main.tsx, before the load event. Left out of the public reach, their shared helpers (hideUnopenedInApp through
+ * ScrollToTop -> useSectionTabs; lazyModule through PermissionRationaleMount) counted as signed-in-only, and those two
+ * chunks then imported signed-in-shared, signed-in-dock and browse-home-shared on every public boot (~22 KB gz,
+ * mostly unused). src/test/bootReach.test.ts holds this list to App.tsx exactly; check-deferred-vendors.mjs checks
+ * their built closures.
+ */
+export const GUEST_CHROME_ROOTS = [
+  "src/components/ScrollToTop.tsx",
+  "src/components/PermissionRationaleMount.tsx",
+];
+
 /** Shared-code modules (the `app-shared` directories) that no public cold load reaches. */
 export function signedInOnlyModules(root) {
-  const reach = staticReach(root, publicRoots(root));
+  const reach = staticReach(root, [...publicRoots(root), ...GUEST_CHROME_ROOTS.map((r) => toPosix(path.join(root, r)))]);
   const all = [];
   const walk = (dir) => {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {

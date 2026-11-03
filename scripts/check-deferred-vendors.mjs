@@ -40,7 +40,7 @@
 
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { gzipSync } from "node:zlib";
-import { guestBrowseOnlyModules, loaderSpecs, namedLoaders, signedInOnlyModules, signedInSplit, stripComments } from "./perf/bootReach.mjs";
+import { GUEST_CHROME_ROOTS, guestBrowseOnlyModules, loaderSpecs, namedLoaders, signedInOnlyModules, signedInSplit, stripComments } from "./perf/bootReach.mjs";
 
 const DIST = "dist";
 const ASSETS = `${DIST}/assets`;
@@ -262,6 +262,44 @@ for (const { file, why } of DEFERRED_MODULES) {
   }
 }
 
+// ── The lazy chrome a guest mounts at once (Q654, B40 11-03) ─────────────
+// App.tsx mounts ScrollToTop and PermissionRationaleMount for every visitor, outside the signed-in wrappers. They are
+// lazy chunks, so the boot walk above never sees them, yet a guest's cold `/` fetches them ~70 ms after main.tsx. Their
+// closures carried signed-in-shared, signed-in-dock and browse-home-shared (~22 KB gz, mostly unused) onto every public
+// boot (build of origin/main dca60fb752). bootReach.mjs GUEST_CHROME_ROOTS (held to App.tsx by src/test/bootReach.test.ts)
+// names them; no chunk in their built static closure may carry a signed-in-only module.
+{
+  const rel = (abs) => abs.slice(process.cwd().length + 1);
+  const wanted = new Set([...signedInOnlyModules(process.cwd()).signedInOnly].map(rel));
+  for (const root of GUEST_CHROME_ROOTS) {
+    const name = root.split("/").pop().replace(/\.tsx?$/, "");
+    const re = new RegExp(`^${name}-[\\w-]{6,}\\.js$`);
+    const rootChunk = all.find((f) => re.test(f));
+    if (!rootChunk) fail(`no built chunk for guest chrome root ${root} (expected ${name}-<hash>.js). Fix this scan; do not drop the root.`);
+    const par = new Map([[rootChunk, null]]);
+    const queue = [rootChunk];
+    while (queue.length) {
+      const f = queue.shift();
+      let text;
+      try { text = readFileSync(`${ASSETS}/${f}`, "utf8"); } catch { continue; }
+      for (const hit of text.matchAll(STATIC_IMPORT)) if (!par.has(hit[1])) { par.set(hit[1], f); queue.push(hit[1]); }
+    }
+    if (par.size < 2) fail(`the closure of ${rootChunk} has ${par.size} chunk(s); the import syntax changed. Fix the walk.`);
+    const chainFrom = (f) => { const out = [f]; let cur = f; while (par.get(cur)) { cur = par.get(cur); out.push(cur); } return out.reverse().join(" → "); };
+    for (const chunk of par.keys()) {
+      const mods = [...(sourcesIn(chunk) ?? [])].filter((src) => wanted.has(src));
+      if (mods.length) {
+        violations.push({
+          chunk,
+          why: `guest chrome ${name} (fetched on every public boot): ${mods.length} signed-in-only module(s) in its closure, e.g. ${mods.slice(0, 3).join(", ")}`,
+          gzip: bytes(chunk),
+          chain: chainFrom(chunk),
+        });
+      }
+    }
+  }
+}
+
 // ── Guest /browse-only code (LEAD-POSTS-BOOT-SHRINK, 10-31) ──────────────
 // Code a public cold load reaches only through guest /browse (bootReach.mjs
 // guestBrowseOnlyModules: the map, filters, job cards) rode in app-shared, so
@@ -425,7 +463,7 @@ if (violations.length) {
   process.exit(1);
 }
 
-console.log(`\n✓ no signed-in-only shared module is on the boot path (bootReach.mjs vs the built sourcemaps)`);
+console.log(`\n✓ no signed-in-only shared module is on the boot path (bootReach.mjs vs the built sourcemaps), nor in the closure of the guest chrome (${GUEST_CHROME_ROOTS.length} roots)`);
 console.log(`\n✓ no first-screen closure carries a signed-in-deep module (${deepWanted.size} modules, ${deepCarriers.length} carrier chunk(s))`);
 console.log(`\n✓ no first-screen closure (${ROUTE_ROOTS.length} roots from ENTRY_ROUTE_CHUNKS + MobileNav, PageTransition, ScrollToTop, SuccessMomentHost) carries a deferred package beyond the ${Object.keys(known).length} known`);
 console.log(`\n✓ no deferred vendor (${[...DEFERRED.map((d) => d.prefix + "*"), ...DEFERRED_PACKAGES.map((d) => d.pkg), ...DEFERRED_MODULES.map((d) => d.file)].join(", ")}) is statically reachable from the entry`);

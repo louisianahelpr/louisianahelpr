@@ -140,7 +140,7 @@ export function isSignupAlreadyFinished(err: unknown): boolean {
  * the rows matched were confirmed and signed in afterwards). So it is not reported and the person is told what
  * happened, kindly.
  */
-export const SIGNUP_RESUMED_OLD_ACCOUNT = /^Signup completion window expired\b/;
+const SIGNUP_RESUMED_OLD_ACCOUNT = /^Signup completion window expired\b/;
 
 export const SIGNUP_RESUMED_OLD_ACCOUNT_COPY =
   "You already started an account with this email. We sent the confirmation email again: confirm it, then log in to finish your profile.";

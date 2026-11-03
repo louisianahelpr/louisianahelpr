@@ -10,7 +10,7 @@
  * @mutate src/lib/declutter/errors.ts |     return DECLUTTER_CLIENT_ERROR_COPY[message]; |     return GENERIC;
  * @mutate src/lib/declutter/errors.ts |   if (e.code === "23514") return "Check the details |   if (e.code === "23514x") return "Check the details
  * @mutate src/lib/declutter/errors.ts |   if (message && Object.prototype.hasOwnProperty.call(DECLUTTER_ERROR_COPY, message)) { |   if (message && message in DECLUTTER_ERROR_COPY) {
- * @mutate src/lib/declutter/errors.ts |   if (e.code === "23514" && /Keep contact details and payment (off the listing\|out)/.test(message)) return message; |   if (false) return message;
+ * @mutate src/lib/declutter/errors.ts |   if (e.code === "23514" && /Keep contact details and payment (off the listing\|out)\|breaks our community rules/.test(message)) return message; |   if (false) return message;
  */
 import { describe, expect, it } from "vitest";
 import {

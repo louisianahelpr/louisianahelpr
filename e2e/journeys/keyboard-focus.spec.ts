@@ -109,7 +109,10 @@ test(guestTitle, async ({ browser, request, journey }) => {
     // The form the incomplete account lands on is walked whole, from the
     // screen's own inventory.
     await page.goto("/complete-profile");
-    await expect(page.locator("#firstName")).toBeVisible({ timeout: 60_000 });
+    // First/last name are asked only when a provider gave no full name (owner
+    // 2026-10-26, CompleteProfile.tsx providerGaveName); the seed carries one,
+    // so the always-present field is the ZIP.
+    await expect(page.locator("#zipCode")).toBeVisible({ timeout: 60_000 });
     const focusables = page.locator(
       'main [tabindex="0"], main button:not([disabled]):not([tabindex="-1"]), main input:not([disabled]):not([tabindex="-1"]):not([type=hidden]), main textarea:not([disabled]), main select:not([disabled]):not([tabindex="-1"]), main [role="checkbox"]:not([tabindex="-1"])',
     );

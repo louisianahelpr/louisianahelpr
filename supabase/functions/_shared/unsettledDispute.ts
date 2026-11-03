@@ -36,7 +36,17 @@ export type UnsettledDisputeCheck = {
   readError?: string;
   /** Set when the block is a held (or dead holder's) dispute settlement claim. */
   claim?: { action: string; claimed_at: string };
+  /**
+   * Set when an admin closed this job's dispute as Stripe TEST mode between test accounts
+   * (rpc_close_test_mode_dispute, 20261015061949). That close cancels the job's payment, so nothing may pay it;
+   * a cron that read the job just before the close lands here. An outcome, not a defect: callers skip without
+   * paging (Q1910).
+   */
+  testClosed?: { id: string };
 };
+
+/** The execution_error rpc_close_test_mode_dispute writes (20261015061949; src/components/disputeCloseReason.ts). */
+export const TEST_MODE_CLOSE_PREFIX = "closed by an admin, Stripe test mode between test accounts";
 
 /**
  * Look for a decided dispute on `jobId` whose split has not executed.
@@ -84,6 +94,28 @@ export async function checkUnsettledDispute(
 
   const row = (data as Array<{ id: string; execution_status: string | null; payout_split: unknown }> | null)?.[0];
   if (row) return { blocked: true, dispute: row };
+
+  // Q1910: a dispute closed as a test reads 'executed', so the query above passes it. If that close committed
+  // between a cron's job select and this gate, the cron would send the job's test money and then page "money
+  // moved but the job state did not flip" (the close moved payment_status to 'cancelled'). It blocks, as an
+  // outcome. A read failure is a refusal, like the reads around it.
+  const { data: closed, error: closedErr } = await supabaseAdmin
+    .from("disputes")
+    .select("id, execution_error")
+    .eq("job_id", jobId)
+    .ilike("execution_error", `${TEST_MODE_CLOSE_PREFIX}%`)
+    .limit(1);
+  if (closedErr) {
+    const code = String((closedErr as { code?: string }).code ?? "");
+    if (code !== "42P01" && code !== "PGRST205") {
+      return { blocked: true, readError: (closedErr as { message?: string }).message ?? "dispute test-close check failed" };
+    }
+  } else {
+    // Re-checked here as well as in the filter: only the exact prefix the close writes counts.
+    const c = (closed as Array<{ id: string; execution_error: string | null }> | null)
+      ?.find((r) => typeof r.execution_error === "string" && r.execution_error.startsWith(TEST_MODE_CLOSE_PREFIX));
+    if (c) return { blocked: true, testClosed: { id: c.id } };
+  }
 
   // A dispute settlement claim (20260915034822) also blocks. A claim row means
   // an admin Quick Release / Quick Refund, the 72h sweep or a split is moving

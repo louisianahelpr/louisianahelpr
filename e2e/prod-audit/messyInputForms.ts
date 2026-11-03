@@ -1093,7 +1093,8 @@ export const GAPS: Record<string, string> = {
   "src/components/TimePickerWheel.tsx": "wheel picker — constrained options",
   "src/components/DatePickerField.tsx": "calendar/wheel picker — its only typed text is TypedDateInput (below), inside the wheel",
   "src/components/TypedDateInput.tsx": "typed DOB box inside the DateWheelPicker popover, digits only (non-digits stripped) — parse + both bounds asserted in DateWheelPicker.typed.test.tsx",
-  "src/components/profile/ScheduleTab.tsx": "calendar only",
+  // The calendar row moved out of ScheduleTab.tsx into schedule/ScheduleCard.tsx (Q806, 11-03).
+  "src/components/profile/schedule/ScheduleCard.tsx": "calendar only",
   "src/pages/profile/HomeHistory.tsx": "date picker only",
   "src/pages/profile/WorkRecord.tsx": "date picker only",
   "src/components/admin/adminJobs/JobDetailDialog.tsx": "calendar display only",

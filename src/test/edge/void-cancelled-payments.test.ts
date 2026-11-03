@@ -527,7 +527,7 @@ describe("void-cancelled-payments: an ID-check waiver row waives the fee", () =>
 // now subtracted (lh-money-escrow@c4e1df1bb#4).
 // Q1415 (c), owner 11-03 ("HOLD THOSE TOO"): a refund to a poster under an open ban settlement review waits
 // until the review is decided, like its payouts. Nothing moves; the next run retries. A failed read moves nothing.
-// @mutate supabase/functions/void-cancelled-payments/index.ts |       if (refundsPoster(job) && job.customer_id && posterReviews.users.has(job.customer_id)) { |       if (false) {
+// @mutate supabase/functions/void-cancelled-payments/index.ts |       if (refundsPoster(job) && job.customer_id && posterReviews.ok && posterReviews.users.has(job.customer_id)) { |       if (false) {
 // @mutate supabase/functions/void-cancelled-payments/index.ts |       if (refundsPoster(job) && !posterReviews.ok) { |       if (false) {
 describe("void-cancelled-payments — a poster under ban review is not refunded until it is decided (Q1415 c)", () => {
   beforeEach(() => {

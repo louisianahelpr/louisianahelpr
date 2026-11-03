@@ -249,7 +249,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 142,
+      "line": 143,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -259,7 +259,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 166,
+      "line": 167,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -269,7 +269,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 197,
+      "line": 198,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -279,7 +279,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 198,
+      "line": 199,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -289,7 +289,7 @@
     },
     {
       "file": "src/components/CompletionPrompts.tsx",
-      "line": 199,
+      "line": 200,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -392,7 +392,7 @@
     },
     {
       "file": "src/components/DisputeTimelineDialog.tsx",
-      "line": 167,
+      "line": 168,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -409,7 +409,7 @@
     },
     {
       "file": "src/components/DisputeTimelineDialog.tsx",
-      "line": 171,
+      "line": 172,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -419,7 +419,7 @@
     },
     {
       "file": "src/components/DisputeTimelineDialog.tsx",
-      "line": 324,
+      "line": 325,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -429,7 +429,7 @@
     },
     {
       "file": "src/components/DisputeTimelineDialog.tsx",
-      "line": 331,
+      "line": 332,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -661,7 +661,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 289,
+      "line": 290,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -671,7 +671,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 626,
+      "line": 627,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -681,7 +681,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 636,
+      "line": 637,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -756,7 +756,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 651,
+      "line": 652,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -766,7 +766,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 705,
+      "line": 706,
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",
@@ -857,11 +857,11 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 710,
+      "line": 711,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "arrivalErr.code === \"PGRST202\" // Short window between merge and the auto-deploy landing. ? \"Arrival check-in is updating — try again in a minute.\" : (rpcErrorMessage(\"mark_helper_arrival\", arrivalErr) ?? lifecycleErrorMessage(arrivalErr) ?? \"Couldn't mark you arrived — try again?\")",
+        "text": "isMissingRpcNamed(arrivalErr, \"mark_helper_arrival\") // Short window between merge and the auto-deploy landing. ? \"Arrival check-in is updating — try again in a minute.\" : (rpcErrorMessage(\"mark_helper_arrival\", arrivalErr) ?? lifecycleErrorMessage(arrivalErr) ?? \"Couldn't mark you arrived — try again?\")",
         "branches": [
           {
             "form": "literal",
@@ -877,7 +877,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 730,
+      "line": 731,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -887,7 +887,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 744,
+      "line": 745,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -992,7 +992,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 815,
+      "line": 816,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1002,7 +1002,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 829,
+      "line": 830,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1012,7 +1012,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 856,
+      "line": 857,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -1022,7 +1022,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 907,
+      "line": 908,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1032,7 +1032,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 951,
+      "line": 952,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1042,7 +1042,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1010,
+      "line": 1011,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1052,7 +1052,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 1069,
+      "line": 1070,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -10289,7 +10289,7 @@
     },
     {
       "file": "src/components/series/EndSeriesControl.tsx",
-      "line": 84,
+      "line": 85,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -10309,7 +10309,7 @@
     },
     {
       "file": "src/components/series/EndSeriesControl.tsx",
-      "line": 105,
+      "line": 106,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13475,7 +13475,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 226,
+      "line": 227,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13485,7 +13485,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 232,
+      "line": 233,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",
@@ -13495,7 +13495,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 276,
+      "line": 277,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -13515,7 +13515,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 287,
+      "line": 288,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -13525,7 +13525,7 @@
     },
     {
       "file": "src/pages/posts/postedJobCard/PostedJobActions.tsx",
-      "line": 299,
+      "line": 300,
       "kind": "confirmConsequential",
       "title": {
         "form": "literal",

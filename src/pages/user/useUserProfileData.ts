@@ -463,7 +463,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // Both mean "no tier available", not "outage": tier 0 hides the badge.
       if (
         credentialTierRes.error &&
-        credentialTierRes.error.code !== "PGRST202" &&
+        !isMissingRpcNamed(credentialTierRes.error, "get_user_credential_tier") &&
         credentialTierRes.error.code !== "42501"
       ) {
         report(credentialTierRes.error, {
@@ -485,15 +485,15 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       const reviewsRpcRes = publicReviewsRes;
       const replyRpcRes = replyLatencyRes;
 
-      for (const [label, res, benign] of [
-        ["public_stats", statsRes, ["PGRST202"]],
-        ["public_reviews", reviewsRpcRes, ["PGRST202", "42501"]],
-        // Same split: PGRST202 is the deploy-lag window, 42501 is a signed-out
+      for (const [label, res, notDeployed, signedOutIsBenign] of [
+        ["public_stats", statsRes, isMissingRpcNamed(statsRes.error, "get_public_profile_stats"), false],
+        ["public_reviews", reviewsRpcRes, isMissingRpcNamed(reviewsRpcRes.error, "get_public_profile_reviews"), true],
+        // Same split: a missing RPC is the deploy-lag window, 42501 is a signed-out
         // caller hitting an `authenticated`-only grant. Neither is an outage.
-        ["reply_latency", replyRpcRes, ["PGRST202", "42501"]],
+        ["reply_latency", replyRpcRes, isMissingRpcNamed(replyRpcRes.error, "get_my_reply_latency"), true],
       ] as const) {
         const err = res.error;
-        if (err && !benign.includes(err.code as never)) {
+        if (err && !notDeployed && !(signedOutIsBenign && err.code === "42501")) {
           report(err, {
             severity: "warning",
             tags: { area: `user_profile.${label}` },
@@ -1002,7 +1002,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         ]);
         return;
       }
-      if (rpcPage.error && rpcPage.error.code !== "PGRST202" && rpcPage.error.code !== "42501") {
+      if (rpcPage.error && !isMissingRpcNamed(rpcPage.error, "get_public_profile_reviews") && rpcPage.error.code !== "42501") {
         report(rpcPage.error, {
           severity: "warning",
           tags: { area: "user_profile.load_more_reviews_rpc" },

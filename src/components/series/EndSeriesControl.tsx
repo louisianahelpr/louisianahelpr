@@ -8,6 +8,7 @@ import { queryKeys } from "@/lib/queryKeys";
 import { hapticError } from "@/lib/haptics";
 import { userFacingError } from "@/lib/userFacingError";
 import { endSentence } from "@/lib/utils";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /**
  * "End series" — the way out of a recurring series for BOTH parties: the
@@ -63,7 +64,7 @@ export function EndSeriesControl({
         // PGRST202 = the migration is merged but db-deploy has not finished,
         // so the RPC does not exist for a few minutes. There is no client-side
         // fallback: series_ended_on is never client-writable.
-        if (String(error.code ?? "") === "PGRST202") {
+        if (isMissingRpcNamed(error, "end_recurring_series")) {
           throw new Error(
             "Ending a series is briefly unavailable while an update finishes rolling out. Please try again in a few minutes.",
           );

@@ -10,7 +10,7 @@
  *
  * @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql |     WHEN v_ai_checked IS NOT NULL AND v_ai_flag IS NOT NULL THEN 'pending_review'\n    ELSE 'live' |     WHEN v_ai_checked IS NULL OR v_ai_flag IS NOT NULL THEN 'pending_review'\n    ELSE 'live'
  * @mutate supabase/migrations/20261031152545_declutter_check_after_post.sql |       UPDATE public.declutter_items\n         SET status = 'live', updated_at = v_at | UPDATE public.declutter_items\n         SET status = 'pending_review', updated_at = v_at
- * @mutate supabase/migrations/20261031083708_declutter_edit_tells_offer_holders_what_matters.sql |     PERFORM public.declutter_notify(r.buyer_id, 'declutter_offers', 'Listing updated',\n      format('The seller updated |     UPDATE public.declutter_offers SET status = 'voided' WHERE item_id = p_item_id AND status = 'open';\n    PERFORM public.declutter_notify(r.buyer_id, 'declutter_offers', 'Listing updated',\n      format('The seller updated
+ * @mutate supabase/migrations/20261103224137_q2390_edit_manage_offer_draft_wanted_reply_not_found_is_404.sql |     PERFORM public.declutter_notify(r.buyer_id, 'declutter_offers', 'Listing updated',\n      format('The seller updated |     UPDATE public.declutter_offers SET status = 'voided' WHERE item_id = p_item_id AND status = 'open';\n    PERFORM public.declutter_notify(r.buyer_id, 'declutter_offers', 'Listing updated',\n      format('The seller updated
  * @mutate supabase/migrations/20261030225143_declutter_wanted_report_block_photo_check.sql |  'application'::text, 'declutter_item'::text, 'declutter_wanted'::text])); |  'application'::text, 'declutter_wanted'::text]));
  * @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql |   IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin'::public.app_role) THEN |   IF v_uid IS NULL THEN
  * @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql |           jsonb_build_object('note', v_note, 'report_id', p_report_id, 'was', v_item.status)); |           jsonb_build_object('note', v_note, 'was', v_item.status));
@@ -41,7 +41,8 @@ describe("item B: a listing goes live when posted; only a failed automatic check
       expect(newestFunction(n).file, n).toContain("20261103220428");
     }
     // BUY-11 (20261031083708) restated the edit with the small-edit notice; the rules read here are unchanged.
-    expect(newestFunction("declutter_edit_listing").file).toContain("20261031083708");
+    // Q2390 p38 (20261103224137) restated it verbatim with its not-found as PT404 only.
+    expect(newestFunction("declutter_edit_listing").file).toContain("20261103224137");
   });
 
   it("publish holds a listing only on a flagged check (no 'first 3 listings' hold; the check runs after Post)", () => {

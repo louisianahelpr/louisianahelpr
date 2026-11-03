@@ -8,10 +8,10 @@
  * gets "Listing updated" naming what changed, before the item is returned live; the big edit's notice is unchanged.
  * Backend proof: src/test/pglite/declutterEditTellsOfferHolders.pglite.mjs (3x replay; NEW_MIGRATION=skip RED).
  *
- * @mutate supabase/migrations/20261031083708_declutter_edit_tells_offer_holders_what_matters.sql |     CASE WHEN v_item.condition_stars IS DISTINCT FROM p_condition_stars THEN 'condition' END, |     NULL,
- * @mutate supabase/migrations/20261031083708_declutter_edit_tells_offer_holders_what_matters.sql |     CASE WHEN v_item.handovers IS DISTINCT FROM v_ways THEN 'ways to get it' END], NULL); |     NULL], NULL);
- * @mutate supabase/migrations/20261031083708_declutter_edit_tells_offer_holders_what_matters.sql |     IF cardinality(v_changed) > 0 THEN |     IF false THEN
- * @mutate supabase/migrations/20261031083708_declutter_edit_tells_offer_holders_what_matters.sql |          WHERE o.item_id = p_item_id AND o.status = 'open'\n      LOOP\n        PERFORM | WHERE o.item_id = p_item_id\n      LOOP\n        PERFORM
+ * @mutate supabase/migrations/20261103224137_q2390_edit_manage_offer_draft_wanted_reply_not_found_is_404.sql |     CASE WHEN v_item.condition_stars IS DISTINCT FROM p_condition_stars THEN 'condition' END, |     NULL,
+ * @mutate supabase/migrations/20261103224137_q2390_edit_manage_offer_draft_wanted_reply_not_found_is_404.sql |     CASE WHEN v_item.handovers IS DISTINCT FROM v_ways THEN 'ways to get it' END], NULL); |     NULL], NULL);
+ * @mutate supabase/migrations/20261103224137_q2390_edit_manage_offer_draft_wanted_reply_not_found_is_404.sql |     IF cardinality(v_changed) > 0 THEN |     IF false THEN
+ * @mutate supabase/migrations/20261103224137_q2390_edit_manage_offer_draft_wanted_reply_not_found_is_404.sql |          WHERE o.item_id = p_item_id AND o.status = 'open'\n      LOOP\n        PERFORM | WHERE o.item_id = p_item_id\n      LOOP\n        PERFORM
  */
 import { describe, expect, it } from "vitest";
 import { join, resolve } from "node:path";

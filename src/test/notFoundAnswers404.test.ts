@@ -203,6 +203,7 @@
  * @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql | IF v_order IS NULL THEN\n    RAISE EXCEPTION 'problem_not_found' USING ERRCODE = 'PT404'; | IF v_order IS NULL THEN\n    RAISE EXCEPTION 'problem_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql | WHERE id = p_item_id FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'item_not_pending' USING ERRCODE = '22023'; | WHERE id = p_item_id FOR UPDATE;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'item_not_pending' USING ERRCODE = 'PT404';
  * @mutate supabase/migrations/20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql | RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103224137_q2390_edit_manage_offer_draft_wanted_reply_not_found_is_404.sql | RAISE EXCEPTION 'wanted_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'wanted_not_found' USING ERRCODE = 'P0002';
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -248,6 +249,7 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
  * Packet 35 (regular, 6, Declutter first per the owner 11-03): declutter_publish_item, declutter_manager_offer, declutter_admin_take_down_item, declutter_return_dropped_off, declutter_problem_add_side, declutter_request_free (20261103220428); every raise is before any write, the app maps by message.
  * Packet 36 (regular, 6, Declutter first per the owner 11-03): declutter_admin_review_item, declutter_ask_refund, declutter_withdraw_problem, declutter_report_no_show, declutter_seller_cancel_sale, declutter_book_pickup (20261103221614); every raise is before any write, the app maps by message. declutter_admin_review_item's 'item_not_pending' (no item, or not pending) is a state refusal: '22023' (400), as packet 34's 'not_pending_review' (STATE_REFUSALS below).
  * Packet 37 (regular, 6, Jobs and Declutter): declutter_helpr_answer_no_show, declutter_take_item, declutter_report_problem, declutter_answer_no_show, admin_rule_helpr_fault, report_message_party_and_copy (20261103222939); every raise is before any write, create-payment and the app map by message, no SQL caller catches P0002.
+ * Packet 38 (regular, 5, Declutter): declutter_edit_listing, declutter_manage, declutter_respond_offer, declutter_update_draft, declutter_wanted_reply (20261103224137); every raise is before any write, the app maps by message.
  */
 const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
   "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm",
@@ -299,9 +301,10 @@ const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_s
   "declutter_ask_refund", "declutter_withdraw_problem", "declutter_report_no_show",
   "declutter_seller_cancel_sale", "declutter_book_pickup",
   "declutter_helpr_answer_no_show", "declutter_take_item", "declutter_report_problem", "declutter_answer_no_show",
-  "admin_rule_helpr_fault", "report_message_party_and_copy"];
+  "admin_rule_helpr_fault", "report_message_party_and_copy",
+  "declutter_edit_listing", "declutter_manage", "declutter_respond_offer", "declutter_update_draft", "declutter_wanted_reply"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-const P0002_RAISERS = 57;
+const P0002_RAISERS = 52;
 /**
  * Refusals that used P0002 but name a state, not a missing row: they move to '22023' (400), never PT404 (lead 11-03).
  * Function -> the exception message it raises with '22023'.

@@ -5,11 +5,11 @@
  * Reads the EFFECTIVE functions. Backend proof: src/test/pglite/declutterWantedEmail.pglite.mjs (3x; red without the
  * migration and on its planted defects).
  */
-// @mutate supabase/migrations/20261030154707_declutter_wanted_email.sql | PERFORM public.declutter_wanted_email(w.user_id, 'A seller has a match', v_message, '/declutter?tab=buying'); | NULL;
+// @mutate supabase/migrations/20261103224137_q2390_edit_manage_offer_draft_wanted_reply_not_found_is_404.sql | PERFORM public.declutter_wanted_email(w.user_id, 'A seller has a match', v_message, '/declutter?tab=buying'); | NULL;
 // @mutate supabase/migrations/20261030154707_declutter_wanted_email.sql | IF v_id IS NOT NULL THEN\n    PERFORM public.declutter_wanted_email | IF true THEN\n    PERFORM public.declutter_wanted_email
 // @mutate supabase/migrations/20261030154707_declutter_wanted_email.sql | 'type', 'declutter_wanted', 'link', p_link | 'type', 'new_offers', 'link', p_link
-// @mutate supabase/migrations/20261030154707_declutter_wanted_email.sql | AND NOT COALESCE((SELECT r.is_seed FROM public.profiles r WHERE r.user_id = w.user_id), false)) THEN | AND false) THEN
-// @mutate supabase/migrations/20261030154707_declutter_wanted_email.sql | 'A seller has a match', v_message, '/declutter?tab=buying', v_uid); | 'A seller has a match', v_message, '/declutter?view=offers', v_uid);
+// @mutate supabase/migrations/20261103224137_q2390_edit_manage_offer_draft_wanted_reply_not_found_is_404.sql | AND NOT COALESCE((SELECT r.is_seed FROM public.profiles r WHERE r.user_id = w.user_id), false)) THEN | AND false) THEN
+// @mutate supabase/migrations/20261103224137_q2390_edit_manage_offer_draft_wanted_reply_not_found_is_404.sql | 'A seller has a match', v_message, '/declutter?tab=buying', v_uid); | 'A seller has a match', v_message, '/declutter?view=offers', v_uid);
 // @mutate supabase/migrations/20261030154707_declutter_wanted_email.sql | 'message', public.declutter_price_words(p_message) | 'message', p_message
 // @mutate src/components/notificationPreferences/constants.tsx | description: "Your Wanted posts and saved Declutter searches.", icon: <Search className="w-3.5 h-3.5" /> }, | description: "Your Wanted posts and saved Declutter searches.", icon: <Search className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL },
 import { describe, it, expect } from "vitest";

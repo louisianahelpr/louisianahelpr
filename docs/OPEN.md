@@ -703,7 +703,7 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - schedule-heartbeat: issue #3824, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41522535064. feed: issue #3824 · feed: ledger 4aa239aefeb6
   - core-loop-canary: issue #3833, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41326452336. feed: issue #3833 · feed: ledger 18539240a894
   - code-scanning-alerts: issue #3875, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41482166828. feed: issue #3875 · feed: ledger c2e77e40435e
-  - main: Sensitive review record: issue #3967, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41563970360. feed: issue #3967 · feed: ledger e41c806b9175
+  - main: Sensitive review record: issue #3967, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41565123311. feed: issue #3967 · feed: ledger e41c806b9175
   - main: Supabase DB Deploy: issue #4006, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41557553564. feed: issue #4006
   - write-contract-refresh: issue #4008, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41553101510. feed: issue #4008 · feed: ledger 0bd7cd00f060
   - security-audit: issue #4020, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41494441708. feed: issue #4020 · feed: ledger 09cc91c48116

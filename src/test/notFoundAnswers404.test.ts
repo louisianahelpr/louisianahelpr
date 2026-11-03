@@ -174,6 +174,13 @@
  * @mutate supabase/migrations/20261103073509_shop_checkout_reach_not_found_is_404.sql | IF NOT FOUND OR o.seller_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'PT404'; | IF NOT FOUND OR o.seller_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103073509_shop_checkout_reach_not_found_is_404.sql | IF NOT FOUND THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'PT404'; | IF NOT FOUND THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/functions/shop-checkout/index.ts | const status = error.code === "P0002" \|\| error.code === "PT404" ? 404 : | const status = error.code === "P0002" ? 404 :
+ * @mutate supabase/migrations/20261103083559_shops_declutter_owner_actions_not_found_is_404.sql | IF v_item IS NULL THEN\n    RAISE EXCEPTION 'photo_not_found' USING ERRCODE = 'PT404'; | IF v_item IS NULL THEN\n    RAISE EXCEPTION 'photo_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103083559_shops_declutter_owner_actions_not_found_is_404.sql | RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103083559_shops_declutter_owner_actions_not_found_is_404.sql | OR NOT EXISTS (SELECT 1 FROM public.declutter_items i WHERE i.id = p_item_id AND i.seller_id = v_uid) THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404'; | OR NOT EXISTS (SELECT 1 FROM public.declutter_items i WHERE i.id = p_item_id AND i.seller_id = v_uid) THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103083559_shops_declutter_owner_actions_not_found_is_404.sql | IF v_item_id IS NULL THEN\n    RAISE EXCEPTION 'photo_not_found' USING ERRCODE = 'PT404'; | IF v_item_id IS NULL THEN\n    RAISE EXCEPTION 'photo_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103083559_shops_declutter_owner_actions_not_found_is_404.sql | IF v_path IS NULL THEN\n    RAISE EXCEPTION 'photo_not_found' USING ERRCODE = 'PT404'; | IF v_path IS NULL THEN\n    RAISE EXCEPTION 'photo_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103083559_shops_declutter_owner_actions_not_found_is_404.sql | IF NOT FOUND THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404'; | IF NOT FOUND THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103083559_shops_declutter_owner_actions_not_found_is_404.sql | RAISE EXCEPTION 'shop_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'shop_not_found' USING ERRCODE = 'P0002';
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -200,6 +207,7 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
  * Packet 16 (regular): rentals_end_tenancy, rentals_set_auto_approve, rentals_approve_request, rentals_set_forwarding_address, rentals_set_saved_home, rentals_remove_listing_photo (20261103071432).
  * Packet 17 (regular, with the declutter-checkout map): declutter_delivery_quote, declutter_set_delivery_dropoff, declutter_lock_order, helpr_task_lock (20261103072510).
  * Packet 18 (regular, with the shop-checkout map): shops_order_terms, shops_cancel_order_request, shops_decline_order, shop_lock_open_charged_order (20261103073509).
+ * Packet 19 (regular): declutter_helpr_remove_listing_photo, shops_confirm_pickup, declutter_set_item_seller_delivery, shops_remove_item_photo, shops_withdraw_item, shops_close_my_shop (20261103083559).
  */
 const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
   "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm",
@@ -217,10 +225,11 @@ const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_s
   "rentals_lock_own_listing", "shops_lock_own_item", "declutter_list_for_seller_draft", "declutter_donation_own_items", "rentals_lease_for_action",
   "rentals_end_tenancy", "rentals_set_auto_approve", "rentals_approve_request", "rentals_set_forwarding_address", "rentals_set_saved_home", "rentals_remove_listing_photo",
   "declutter_delivery_quote", "declutter_set_delivery_dropoff", "declutter_lock_order", "helpr_task_lock",
-  "shops_order_terms", "shops_cancel_order_request", "shops_decline_order", "shop_lock_open_charged_order"];
+  "shops_order_terms", "shops_cancel_order_request", "shops_decline_order", "shop_lock_open_charged_order",
+  "declutter_helpr_remove_listing_photo", "shops_confirm_pickup", "declutter_set_item_seller_delivery", "shops_remove_item_photo", "shops_withdraw_item", "shops_close_my_shop"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-// 167 (L50 train 2, 11-03): replace_stripe_customer (20261103053759, money train #4047) raises P0002 for a missing profile; service_role only, never reached by app code.
-const P0002_RAISERS = 167;
+// Includes (L50 train 2, 11-03) replace_stripe_customer (20261103053759, money train #4047) raises P0002 for a missing profile; service_role only, never reached by app code.
+const P0002_RAISERS = 161;
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");

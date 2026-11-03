@@ -779,7 +779,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // marks it; it records no refund and changes no refund amount.
       declutter_refund_cancels_setup_jobs: "20261017073146_declutter_add_a_helpr.sql ac0eabd46005cf1d",
       // A10: the trigger's (and the admin hand tool's) body: reads the refund row, cancels and marks setup jobs.
-      declutter_apply_seller_fault: "20261017073146_declutter_add_a_helpr.sql 943675e46fc54277",
+      // Q1938 follow-up (20261103215616, Builder 71): only the Helpr notice changes (paid for their time or neutral); no refund amount.
+      declutter_apply_seller_fault: "20261103215616_declutter_seller_fault_helpr_notice.sql 5079198202baa401",
       // Q1939 (20261102035736, builder 140; lh-money-escrow approve 11-01, ~/.lh-shots/verdicts/b140.txt): reads seller-fault refund rows (fee_policy, reason, order) to
       // re-run the unchanged declutter_apply_seller_fault on setup jobs the trigger missed; records no refund, no amount.
       declutter_seller_fault_sweep: "20261102035736_declutter_seller_fault_sweep.sql 229723c76c70ea79",

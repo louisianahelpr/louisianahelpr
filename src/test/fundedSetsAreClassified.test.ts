@@ -72,7 +72,7 @@ const CAPTURED = [
   "check_stale_dispute_settlement_claims", "claim_dispute_settlement", "report_stale_dispute_settlement_claim",
   "clear_test_mode_dispute_ledger", "rpc_clear_test_mode_dispute_refund_stamp", "rpc_clear_test_mode_dispute_stamp",
   "rpc_close_test_mode_dispute", "rpc_decide_crew_dispute", "rpc_supersede_dispute_decision", "sweep_disputes_closed_without_payment",
-  "get_payout_batch_job_ids", "get_payout_batches", "admin_ban_settlement_reviews", "admin_list_business_accounts",
+  "get_payout_batch_job_ids", "get_payout_batches", "admin_payout_batch_money_modes", "admin_ban_settlement_reviews", "admin_list_business_accounts",
   "admin_queue_still_pending", "admin_section_funnel",
   // payout_after_hire (20261025162003, landed during the card-hold rebase): a Helpr may open a payout account, and is
   // reminded to, only once hired on CAPTURED money; on a held card the hire completes (and captures) first. NOTE: with

@@ -159,6 +159,8 @@ export const NOT_MATCHED = {
   "job_card_holds.payment_intent_id": "card hold at posting (Q2399, 20261027185146): an authorization holds no captured money; once captured, the same PaymentIntent is jobs.stripe_payment_intent_id, the matched record",
   "job_card_holds.stripe_customer_id": "card hold at posting (Q2399): the poster's Stripe customer the saved card belongs to; customer linkage, not a money movement",
   "job_card_holds.stripe_mode": "card hold at posting (Q2399): the Stripe mode (live/test) of the hold, not a Stripe id",
+  "chargeback_clawbacks.stripe_mode": "Q1908 (b50-money): the Stripe mode (live/test) the clawed-back money was taken in, so a won-chargeback re-pay runs on that mode; not a Stripe id",
+  "tip_hold_redrives.stripe_mode": "Q1908 (b50-money): the Stripe mode (live/test) a held tip was charged in, so its re-drive runs on that mode; not a Stripe id",
   "rental_rent_charges.rent_charge_id": "not a Stripe id: a late-fee row's link to the rent row it is for (Homes rent tracker, 20261019073106, pay direct; no money moves through the app)",
   "declutter_buyer_cards.stripe_customer_id": "a saved card's Stripe customer (row 36); no money moves on it, nothing to restore",
   "stripe_customers.stripe_customer_id": "one wallet (20261018090700): the member's Stripe customer per mode; customer linkage, not a money movement, nothing to restore",

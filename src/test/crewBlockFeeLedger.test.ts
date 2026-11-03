@@ -103,7 +103,7 @@ describe("a crew block fee is a ledger row and its spot stays closed (Q1390)", (
     expect(psp).toMatch(/payCrewBlockFees\([\s\S]{0,200}\);\s+for \(const p of paidFees\.problems\) jobDefect\(job\.id, p\);\s+\}\s+const refund = await refundUnfilledCrewShares\(\{ \.\.\.a, paidCents, blockFeeCents: crewBlockFeeCents\(blockFees\.rows\) \}\);/);
     expect(psp).toMatch(/const unfilledCents = unpaidBudgetCents - blockFeeCents \+ Math\.max\(0, urgentCents - paidUrgent\);/);
     // The refund is the shared refundToPayerCents (owner, 2026-10-14: never absorb a fee); the block fee is withheld as part of what it keeps.
-    expect(vcp).toMatch(/await payBlockFees\(pi\);\s+const blockFeeCents = crewBlockFeeCents\(blockFeeRows\);[\s\S]{0,1200}const capturedSplit = posterCancelSplit\(\{\s*job, sellerFault, cancellationFeeCents: Math\.round\(cancellationFee \* 100\), blockFeeCents,/);
+    expect(vcp).toMatch(/await payBlockFees\(pi\);\s+const blockFeeCents = crewBlockFeeCents\(blockFeeRows\);[\s\S]{0,1200}const capturedSplit = posterCancelSplit\(\{\s*job, sellerFault, platformFault: raceChargedNobodyHired, cancellationFeeCents: Math\.round\(cancellationFee \* 100\), blockFeeCents,/);
     // Boards 66/172 slice 2: the split keeps the block fees with the cancellation fee.
     expect(readFileSync("supabase/functions/_shared/posterCancelSplit.ts", "utf8")).toMatch(/const feesCents = cents\(i\.cancellationFeeCents\) \+ cents\(i\.blockFeeCents\);[\s\S]{0,1500}otherKeptCents: feesCents,/);
     // Part F: a fee still owed on a settled job is retried every run.

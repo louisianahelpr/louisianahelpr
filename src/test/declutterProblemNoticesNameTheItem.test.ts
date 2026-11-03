@@ -5,8 +5,8 @@
  * NEW_MIGRATION=skip 6 FAIL).
  *
  * @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql | format('The buyer asked for a refund on %s. | format('The buyer asked for a refund%s.
- * @mutate supabase/migrations/20261031100935_declutter_problem_notices_name_the_item.sql | format('A problem was reported on %s. The money | format('A problem was reported%s. The money
- * @mutate supabase/migrations/20261031100935_declutter_problem_notices_name_the_item.sql |     '/declutter?tab=' \|\| CASE WHEN v_side = 'buyer' THEN 'selling' ELSE 'buying' END, v_uid); |     '/declutter?tab=' \|\| CASE WHEN v_side = 'buyer' THEN 'buying' ELSE 'selling' END, v_uid);
+ * @mutate supabase/migrations/20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql | format('A problem was reported on %s. The money | format('A problem was reported%s. The money
+ * @mutate supabase/migrations/20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql |     '/declutter?tab=' \|\| CASE WHEN v_side = 'buyer' THEN 'selling' ELSE 'buying' END, v_uid); |     '/declutter?tab=' \|\| CASE WHEN v_side = 'buyer' THEN 'buying' ELSE 'selling' END, v_uid);
  */
 import { describe, expect, it } from "vitest";
 import { newestFunction } from "./helpers/parityReaders";
@@ -17,8 +17,9 @@ const flat = (name: string) => blankSqlComments(newestFunction(name).body).repla
 describe("BUY-30: problem and refund notices name the item and open the recipient's tab", () => {
   it("reads the newest definitions (this migration)", () => {
     for (const n of ["declutter_ask_refund", "declutter_report_problem"]) {
-      // Q2390 p36 (20261103221614) restated declutter_ask_refund verbatim with its not-found as PT404 only.
-      expect(newestFunction(n).file, n).toContain(n === "declutter_ask_refund" ? "20261103221614" : "20261031100935");
+      // Q2390 p36 (20261103221614) restated declutter_ask_refund, p37 (20261103222939) declutter_report_problem, verbatim
+      // with their not-found as PT404 only.
+      expect(newestFunction(n).file, n).toContain(n === "declutter_ask_refund" ? "20261103221614" : "20261103222939");
       expect(flat(n).length, n).toBeGreaterThan(1500);
     }
   });

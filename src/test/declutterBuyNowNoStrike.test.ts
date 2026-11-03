@@ -9,7 +9,7 @@
  * @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql |       ELSIF v_line.source = 'buy' THEN |       ELSIF false THEN
  * @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql |     ELSIF r.source = 'buy' THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', 'Check out within 24 hours', |     ELSIF false THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', 'Check out within 24 hours',
  * @mutate supabase/migrations/20261102031228_declutter_reminders_retry_strict.sql |     ELSIF r.source = 'buy' THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', '2 hours left to check out', |     ELSIF false THEN\n      -- DB-5: a Buy now line has no strike to threaten either.\n      PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', '2 hours left to check out',
- * @mutate supabase/migrations/20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql |   ELSIF p_source = 'buy' THEN |   ELSIF false THEN
+ * @mutate supabase/migrations/20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql |   ELSIF p_source = 'buy' THEN |   ELSIF false THEN
  * @mutate supabase/migrations/20261101175510_declutter_buying_lists_hide_seed.sql |          c.source  -- DB-5 |          NULL::text  -- DB-5
  * @mutate src/components/declutter/DeclutterReserveSheet.tsx | If you don't, it goes back up for sale. No strike.` | If you don't, you get a strike.`
  */

@@ -56,6 +56,15 @@ const EXEMPT_HISTORICAL_TARGETS: readonly { guard: string; migration: string; fi
     migration: "20260923182022_ops_route_probe_close_rule.sql",
     find: "ELSIF p_source = 'seed-boundary-check-failed' THEN",
   },
+  // declutterNoticeRefCallersVerbatim's VERBATIM check reads NEW (20261102113853) by name and compares its
+  // declutter_take_item with the copy before it; Q2390 p37 (20261103222939) restated take_item after it (ERRCODE only),
+  // so this mutation of the Q2659 copy is that check's to catch, not the newest body's (measured 2026-11-03, Builder 75:
+  // killed on 20261102113853, survives on 20261103222939).
+  {
+    guard: "src/test/declutterNoticeRefCallersVerbatim.test.ts",
+    migration: "20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql",
+    find: "WHERE item_id = p_item_id AND status = 'open'\n    RETURNING id, buyer_id",
+  },
 ];
 
 const keyOf = (m: { guard: string; target: string; find: string }) => `${m.guard} | ${m.target} | ${m.find}`;

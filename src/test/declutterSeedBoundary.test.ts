@@ -1,7 +1,7 @@
 // @mutate supabase/migrations/20261102022901_declutter_items_hidden_from_blocked.sql |         AND (NOT is_seed OR NOT (SELECT public.seed_hidden_in_discovery()))\n |         AND true\n
 // @mutate supabase/migrations/20261031060656_declutter_guest_read.sql |     AND NOT is_seed\n  ); |     AND true\n  );
 // @mutate supabase/migrations/20261103112014_money_records_and_buy_lock_not_found_is_404.sql |      OR (v_seed AND public.seed_hidden_for(p_buyer)) THEN |      THEN
-// @mutate supabase/migrations/20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql |      AND public.seed_hidden_for(p_buyer) THEN\n    RAISE EXCEPTION 'item_not_found' |      AND false THEN\n    RAISE EXCEPTION 'item_not_found'
+// @mutate supabase/migrations/20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql |      AND public.seed_hidden_for(p_buyer) THEN\n    RAISE EXCEPTION 'item_not_found' |      AND false THEN\n    RAISE EXCEPTION 'item_not_found'
 //
 // Cowork design audit 2026-10-20, D1: the owner (an admin, not a test account)
 // saw test sellers' fixtures ("Fixture rocking chair [E2E-PRODAUDIT]",

@@ -13,9 +13,9 @@
  *
  * The body is read as the migrations leave it (effectiveDefs: the newest CREATE, any dollar-quote tag).
  *
- * @mutate supabase/migrations/20261029162907_poster_own_reopen_files_no_backout_notice.sql |       WHEN auth.uid() IS NOT NULL AND auth.uid() = OLD.customer_id THEN NULL\n |
- * @mutate supabase/migrations/20261029162907_poster_own_reopen_files_no_backout_notice.sql |     IF v_kind IS NULL THEN\n      RETURN NULL;\n    END IF;\n |
- * @mutate supabase/migrations/20261029162907_poster_own_reopen_files_no_backout_notice.sql | auth.uid() = OLD.customer_id THEN NULL | auth.uid() = OLD.helper_id THEN NULL
+ * @mutate supabase/migrations/20261103210601_banned_offeree_files_no_declined_notice.sql |       WHEN auth.uid() IS NOT NULL AND auth.uid() = OLD.customer_id THEN NULL\n |
+ * @mutate supabase/migrations/20261103210601_banned_offeree_files_no_declined_notice.sql |     IF v_kind IS NULL THEN\n      RETURN NULL;\n    END IF;\n |
+ * @mutate supabase/migrations/20261103210601_banned_offeree_files_no_declined_notice.sql | auth.uid() = OLD.customer_id THEN NULL | auth.uid() = OLD.helper_id THEN NULL
  */
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";

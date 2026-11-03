@@ -55,7 +55,7 @@
  * @mutate supabase/migrations/20261102070622_late_cancel_notice_whole_dollars.sql |          CASE WHEN public.job_payment_is_funded(v_job.payment_status) THEN\n            format('The person you offered |          CASE WHEN true THEN\n            format('The person you offered
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |              CASE WHEN public.job_payment_is_listed(NEW.payment_status) THEN |              CASE WHEN true THEN
  * @mutate supabase/migrations/20261103075222_offer_closed_on_cancel.sql |          CASE WHEN public.job_payment_is_listed(payment_status) THEN\n           'Your direct offer |          CASE WHEN true THEN\n           'Your direct offer
- * @mutate supabase/migrations/20261029162907_poster_own_reopen_files_no_backout_notice.sql |      AND public.job_payment_is_listed(NEW.payment_status) THEN\n    v_recipient := OLD.customer_id; |      AND true THEN\n    v_recipient := OLD.customer_id;
+ * @mutate supabase/migrations/20261103210601_banned_offeree_files_no_declined_notice.sql |      AND public.job_payment_is_listed(NEW.payment_status) THEN | AND true THEN
  * Behaviour (real Postgres): src/test/pglite/offerNoticesWaitForFunding.pglite.mjs
  * (12 PASS on the fix; with --before U1-U5 FAIL, and G: the fixture grants
  * nothing, prod never let anon run these functions).
@@ -162,6 +162,21 @@ describe("a direct offer waits for the money (owner, 2026-10-17)", () => {
     const cond = /ELSIF\s+OLD\.direct_offer_status\s*=\s*'pending'([\s\S]*?)\bTHEN\b/i.exec(body)?.[1] ?? "";
     expect(cond).toMatch(/NEW\.direct_offer_status\s+IN\s*\(\s*'declined'\s*,\s*'expired'\s*\)/i);
     expect(cond).toMatch(/job_payment_is_(?:funded|listed)\s*\(\s*NEW\.payment_status\s*\)/i);
+  });
+
+  // Q2132 (lh-money-escrow@25dc6611c#2): the ban settlement closes an offer TO the banned account as
+  // 'declined'; the banned Helpr declined nothing, so the offer branch returns before it files
+  // "declined your offer". PGlite: src/test/pglite/bannedOffereeFilesNoDeclinedNotice.pglite.mjs.
+  // @mutate supabase/migrations/20261103210601_banned_offeree_files_no_declined_notice.sql |             AND bp.ban_status IN ('banned', 'permanently_banned')) THEN | AND false) THEN
+  it("a banned offeree's closed offer files no 'declined your offer' back-out notice (Q2132)", () => {
+    const body = bodyOf(defs.get("record_backout_notice")!.stmt);
+    const branch = /ELSIF\s+OLD\.direct_offer_status\s*=\s*'pending'[\s\S]*?(?=\bELSIF\b)/i.exec(body)?.[0] ?? "";
+    expect(branch.length).toBeGreaterThan(100);
+    const skip = /IF\s+NEW\.direct_offer_status\s*=\s*'declined'\s+AND\s+EXISTS\s*\(([\s\S]*?)\)\s*THEN\s+RETURN\s+NULL\s*;/i.exec(branch);
+    expect(skip?.[1] ?? "").toMatch(/user_id\s*=\s*OLD\.offered_to_helper_id/i);
+    expect(skip?.[1] ?? "").toMatch(/ban_status\s+IN\s*\(\s*'banned'\s*,\s*'permanently_banned'\s*\)/i);
+    // Before the kind is chosen, so nothing is filed.
+    expect(skip!.index).toBeLessThan(branch.search(/v_kind\s*:=/i));
   });
 
   it("the offer notice fires on the funding transition, not only at insert", () => {

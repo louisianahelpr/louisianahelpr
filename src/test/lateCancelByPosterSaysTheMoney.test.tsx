@@ -21,7 +21,13 @@ vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 2 
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "h" }, profile: null }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
-import { HelprMoneyNotes } from "@/pages/jobs/jobPage/JobPageParts";
+// Q2701: the refund ledger's figure for this job (useJobRefundedCents reads payment_refunds).
+const refunded = vi.hoisted(() => ({ cents: 9040 as number | null, calls: [] as Array<[string | null | undefined, boolean | undefined]> }));
+vi.mock("@/hooks/useJobRefundedCents", () => ({
+  useJobRefundedCents: (id: string | null | undefined, enabled?: boolean) => { refunded.calls.push([id, enabled]); return enabled ? refunded.cents : null; },
+}));
+import { HelprMoneyNotes, JobTracker } from "@/pages/jobs/jobPage/JobPageParts";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const NOW = new Date("2037-10-21T15:00:00Z");
 const job = {
@@ -44,6 +50,34 @@ describe("a poster's late cancel says the money on both sides (Q2701, Q2696)", (
     expect(p.next).not.toContain("Your payment was refunded");
     // An early cancel (no fee) keeps the full-refund words.
     expect(jobProgress({ ...job, cancellation_fee: 0 }, { viewer: "poster", otherFirst: "Eli", now: NOW }).next).toContain("Your payment was refunded");
+  });
+
+  // Q2701 (owner 11-03 "YES"): the poster's line shows the dollar amount refunded, from the refund ledger.
+  // @mutate src/components/tracker/jobProgressState.ts |   const refund = refunded ? (back ?? (kept ? "The rest was refunded" : "Your payment was refunded")) : null; |   const refund = refunded ? (kept ? "The rest was refunded" : "Your payment was refunded") : null;
+  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx |     crewMember,\n    refundedCents,\n  }); |     crewMember,\n  });
+  // @mutate src/pages/jobs/jobPage/JobPageParts.tsx | side === "poster" && job.status === "cancelled" && job.payment_status === "refunded" | false
+  it("the poster's line names the dollars refunded when the ledger is read (Q2701)", () => {
+    const p = jobProgress(job, { viewer: "poster", otherFirst: "Eli", now: NOW, refundedCents: 9040 });
+    expect(p.next).toBe("You cancelled Tue 6:03 AM · Plans changed · $30 was kept for Eli's time · $90.40 was refunded");
+    // An early cancel (no fee): the whole refund, in dollars.
+    expect(jobProgress({ ...job, cancellation_fee: 0 }, { viewer: "poster", otherFirst: "Eli", now: NOW, refundedCents: 12000 }).next)
+      .toBe("You cancelled Tue 6:03 AM · Plans changed · $120 was refunded");
+    // The Helpr never reads the poster's refund.
+    expect(jobProgress(job, { viewer: "helpr", otherFirst: "Pat", now: NOW, refundedCents: 9040 }).next).not.toContain("refunded");
+  });
+
+  it("the job page reads the ledger for the poster's cancelled, refunded job and shows it (Q2701)", () => {
+    refunded.calls.length = 0;
+    const qc = new QueryClient();
+    const t = render(
+      <QueryClientProvider client={qc}><MemoryRouter><JobTracker job={job} side="poster" otherFirst="Eli" /></MemoryRouter></QueryClientProvider>,
+    ).container.textContent ?? "";
+    expect(refunded.calls.some(([id, on]) => id === "j" && on === true)).toBe(true);
+    expect(t).toContain("$90.40 was refunded");
+    cleanup();
+    refunded.calls.length = 0;
+    render(<QueryClientProvider client={qc}><MemoryRouter><JobTracker job={job} side="helpr" otherFirst="Pat" /></MemoryRouter></QueryClientProvider>);
+    expect(refunded.calls.every(([, on]) => on === false)).toBe(true);
   });
 
   it("the Helpr's line: when it was cancelled and the dollars they get, with no fee words", () => {

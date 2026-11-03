@@ -10,6 +10,8 @@ import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 
 vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false }));
+// Q2701: the refund ledger read (a QueryClient hook); unknown here, so the line keeps its words.
+vi.mock("@/hooks/useJobRefundedCents", () => ({ useJobRefundedCents: () => null }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: null, profile: null }) }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0 }));

@@ -15,7 +15,7 @@ import { EXPIRED_WORD, jobStartDateTime } from "@/lib/dateUtils";
 import { TODAY_ANY_TIME_LINE, hasStartTime } from "@/lib/anyTimeThatDay";
 import { jobIsUnfundedDraft, workIsBackWithHelper } from "@/components/job-card/activityFilters";
 import { JOB_STATUS_LABELS } from "@/lib/statusLabels";
-import { formatPrice } from "@/lib/format";
+import { formatPrice, formatPriceExact } from "@/lib/format";
 import { EXPIRED_LISTING_DETAIL, autoCompleteAt, confirmWindowPassedLine, helperStatusLine, sanitizeCancellationReason, posterStatusLine, type HelperWait, type PosterWait } from "@/components/job-card/jobStatusLine";
 import type { AppliedApp, Job } from "@/components/job-card/activityConstants";
 import { cardBar, type CardFace, type Stage, type StepTone } from "@/components/tracker/jobStepFromWait";
@@ -152,6 +152,9 @@ type ProgressOpts = {
     crewMember?: { confirmed: boolean };
     /** The date or time was moved by an accepted change (useJobRescheduled): both sides confirm the NEW slot. */
     rescheduled?: boolean;
+    /** Poster, a refunded job: the cents the payment_refunds ledger says came back (useJobRefundedCents, Q2701).
+     *  Unknown (null/undefined) keeps the words without a number. */
+    refundedCents?: number | null;
     now?: Date;
     /** The open card's own progress (JobTracking: work underway, the tracking row), so its tracker reads the same
      *  Helpr line and button as the collapsed card (helperCardLine / helperFaceNextStep). */
@@ -342,7 +345,7 @@ function revisionLine(job: ProgressJob, poster: boolean, other: string, held: bo
  * "You cancelled Sat 9:00 AM · Plans changed · Your payment was refunded". Who is read from cancelled_by against the
  * job's two parties; anyone else (an admin, the system) is not named. The reason is the card's own sanitized one.
  */
-function cancelledLine(job: ProgressJob, poster: boolean, other: string): string {
+function cancelledLine(job: ProgressJob, poster: boolean, other: string, refundedCents?: number | null): string {
   const by = job.cancelled_by ?? null;
   const posterDid = !!by && by === job.customer_id;
   const helprDid = !!by && !!job.helper_id && by === job.helper_id;
@@ -357,7 +360,9 @@ function cancelledLine(job: ProgressJob, poster: boolean, other: string): string
   const fee = Number(job.cancellation_fee ?? 0);
   const kept = poster && posterDid && fee > 0 ? `$${formatPrice(fee)} was kept for ${other}'s time` : null;
   const refunded = poster && job.payment_status === "refunded";
-  const refund = refunded ? (kept ? "The rest was refunded" : "Your payment was refunded") : null;
+  // Q2701 (owner 11-03): the dollars that came back, from the refund ledger, when the surface read them.
+  const back = typeof refundedCents === "number" && refundedCents > 0 ? `$${formatPriceExact(refundedCents / 100)} was refunded` : null;
+  const refund = refunded ? (back ?? (kept ? "The rest was refunded" : "Your payment was refunded")) : null;
   return [who, reason, kept, refund].filter(Boolean).join(" · ");
 }
 
@@ -372,7 +377,7 @@ function lineRules(job: ProgressJob, o: ProgressOpts): JobProgressState {
   // JA-23: expired is not cancelled (owner 10-31, src/lib/expiredListing.ts). The poster reads "Expired · No Helpr was
   // hired in time" (the card's own line); anyone else "Closed · No longer open". Never "Cancelled".
   if (isExpiredListing(job)) return at(null, false, poster ? EXPIRED_WORD : "Closed", poster ? EXPIRED_LISTING_DETAIL : "No longer open", held);
-  if (status === "cancelled" || status === "expired") return at(null, false, "Cancelled", cancelledLine(job, poster, other), held);
+  if (status === "cancelled" || status === "expired") return at(null, false, "Cancelled", cancelledLine(job, poster, other, o.refundedCents), held);
   if (job.has_active_dispute || status === "disputed") {
     // JA-30 (Jobs audit 11-01): say WHEN they hear back (the dispute's own deadline, after which support decides) and
     // the brand in full. Guard: src/test/disputeLineSaysWhen.test.ts.

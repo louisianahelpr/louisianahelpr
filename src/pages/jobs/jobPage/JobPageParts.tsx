@@ -18,6 +18,7 @@ import { DeclutterSellerCard } from "@/components/declutter/DeclutterSellerCard"
 import type { JobPageRow } from "./useJobPage";
 import { JobProgress } from "@/components/tracker/JobProgress";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
+import { useJobRefundedCents } from "@/hooks/useJobRefundedCents";
 import { jobProgress } from "@/components/tracker/jobProgressState";
 import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
 import type { Job } from "@/components/job-card/activityConstants";
@@ -58,6 +59,8 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
   otherFirst?: string | null;
 }) {
   const rescheduled = useJobRescheduled(job.id, !!side && job.status === "accepted");
+  // Q2701: only a poster's cancelled, refunded job reads the refund ledger.
+  const refundedCents = useJobRefundedCents(job.id, side === "poster" && job.status === "cancelled" && job.payment_status === "refunded");
   if (!side) return null;
   // The Working card's own progress (helperProgress off the tracking row), so the page's line and the card's agree.
   const progress = jobProgress(job, {
@@ -68,6 +71,7 @@ export function JobTracker({ job, side, trackingStatus = null, pendingApplicants
     tracking: trackingStatus ? { status: trackingStatus } : null,
     pendingApplicants,
     crewMember,
+    refundedCents,
   });
   if (progress.stage === null && !progress.next) return null;
   // THE STATUS LINE IS THE NEXT STEP (owner 11-01 12:05 PM): what to do or who we wait on, with its deadline, ABOVE the

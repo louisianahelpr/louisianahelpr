@@ -387,7 +387,7 @@ if (legHas("targeted")) test.describe("targeted rules", () => {
   // 8d44b5aab). A Google/Apple sign-up ticks the 18+ box here instead; the
   // incomplete seed account is an email sign-up, which ticked it on step 1, so
   // the box is not shown to it (CompleteProfile.tsx ageBoxShown).
-  scoped("complete-profile: asks no birthday or phone; whitespace name and 4-digit ZIP refused; no profile write", async ({ browser }, info) => {
+  scoped("complete-profile: asks no birthday or phone; no name fields for a named account; 4-digit ZIP refused; no profile write", async ({ browser }, info) => {
     const { ctx, page } = await open(browser, FORMS.find((x) => x.name === "complete-profile")!);
     // This is the SHARED `incomplete` seed account: a save that slipped past
     // the client checks would complete it on prod and turn every Journeys leg
@@ -396,17 +396,25 @@ if (legHas("targeted")) test.describe("targeted rules", () => {
     // still sees a refused request, so the assertion below is unchanged.
     await writeFirewall(ctx);
     const writes = watchWrites(page, /\/rest\/v1\/(profiles|rpc\/complete_profile)/);
-    await expect(page.locator("#firstName"), "complete-profile did not render for the incomplete seed account").toBeVisible({ timeout: 15_000 });
+    // NO NAME FIELDS for this account: the seed has full_name "Seed Incomplete Tester", and Complete Profile hides
+    // the names block when the profile already has a full name (CompleteProfile.tsx providerGaveName, owner
+    // 2026-10-26). So there is no whitespace name to type: the screen is City, ZIP, About you, the policies box and
+    // (for a non-email sign-up only) the 18+ box. Wait on the ZIP, and assert the names block is not asked.
+    await expect(page.locator("#zipCode"), "complete-profile did not render for the incomplete seed account").toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("complete-profile-names"), "Complete Profile asks a named account for its name again").toHaveCount(0);
     await expect(page.locator("#dob, #phone"), "Complete Profile asks a birthday or phone again (owner, 2026-10-14)").toHaveCount(0);
-    await page.locator("#firstName").fill(WS);
-    await page.locator("#lastName").fill(WS);
+    // handleSubmit checks names, then the 18+ box, then the ZIP: tick the 18+ box if this sign-up is asked it (a
+    // local checkbox, no write), so the refusal below is the ZIP's own.
+    const age = page.locator("#age-confirm");
+    if (await age.isVisible().catch(() => false)) await age.check({ force: true });
     await page.locator("#zipCode").fill("1234");
     await page.locator("#zipCode").press("Tab");
-    const submit = page.getByRole("button", { name: /save|continue|finish|complete|done/i }).last();
+    const submit = page.getByRole("button", { name: /save|continue|finish|complete|done|enter/i }).last();
     await submit.click({ force: true }).catch(() => {});
     await page.waitForTimeout(800);
     expect(writes.map((w) => `${w.method()} ${w.url()}`), "an invalid profile must not be written").toEqual([]);
-    await expect(page.getByText(/zip|name|required|18 or older/i).first(), "no inline message").toBeVisible();
+    // profileGate.zipToast: "Enter a 5-digit ZIP code, or leave it blank."
+    await expect(page.getByText(/5-digit ZIP/i).first(), "a 4-digit ZIP was not refused with the ZIP message").toBeVisible();
     await assertHealthy(page, info, "complete-profile-bad");
     await ctx.close();
   });

@@ -17,7 +17,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { readFileSync } from "node:fs";
+import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { resolve } from "node:path";
 import type { GuaranteeClaim, GuaranteeJob } from "@/lib/guarantee";
 import { GUARANTEE_RULES } from "@/lib/guarantee/rules";
@@ -39,7 +39,10 @@ const cdt = (ymd: string, hm: string) => new Date(`${ymd}T${hm}:00-05:00`);
 
 describe("fix days (F31)", () => {
   it("the server's window is today to fix_within_days out (the newest rpc_guarantee_helpr_answer)", () => {
-    const sql = blankSqlComments(readFileSync(resolve(__dirname, "../../supabase/migrations/20261027200455_helpr_guarantee.sql"), "utf8"));
+    // The NEWEST definition (Q2390 p33 restated guarantee_escalate from the same file, so the file is no longer a pin).
+    const def = effectiveDefs(resolve(__dirname, "../../supabase/migrations")).get("rpc_guarantee_helpr_answer");
+    expect(def?.file).toBe("20261027200455_helpr_guarantee.sql");
+    const sql = blankSqlComments(def?.stmt ?? "");
     expect(sql).toContain("_fix_date < v_today");
     expect(sql).toContain("_fix_date > v_today + (public.guarantee_rules() ->> 'fix_within_days')::integer");
     expect(GUARANTEE_RULES.fixWithinDays).toBe(3);

@@ -12,10 +12,10 @@
  * defects: anyone's line, no live-page refusal, order not superseded, item not released, no switch gate, anon
  * granted, a paid line removable).
  */
-// @mutate supabase/migrations/20261028221904_declutter_remove_cart_item.sql |   SELECT c.item_id INTO v_item FROM public.declutter_cart_items c WHERE c.id = p_line_id AND c.buyer_id = v_uid; |   SELECT c.item_id INTO v_item FROM public.declutter_cart_items c WHERE c.id = p_line_id;
-// @mutate supabase/migrations/20261028221904_declutter_remove_cart_item.sql |      AND o.created_at > now() - interval '35 minutes' THEN |      AND false THEN
+// @mutate supabase/migrations/20261103173728_q2390_haul_price_withdraw_guarantee_raise_refund_admin_delivery_cart_shops_rent_not_found_is_404.sql |   SELECT c.item_id INTO v_item FROM public.declutter_cart_items c WHERE c.id = p_line_id AND c.buyer_id = v_uid; |   SELECT c.item_id INTO v_item FROM public.declutter_cart_items c WHERE c.id = p_line_id;
+// @mutate supabase/migrations/20261103173728_q2390_haul_price_withdraw_guarantee_raise_refund_admin_delivery_cart_shops_rent_not_found_is_404.sql |      AND o.created_at > now() - interval '35 minutes' THEN |      AND false THEN
 // @mutate supabase/migrations/20261028221904_declutter_remove_cart_item.sql |   'removed'              -- the buyer took it out |   'gone'              -- the buyer took it out
-// @mutate supabase/migrations/20261028221904_declutter_remove_cart_item.sql |   PERFORM public.require_feature('declutter');\n  IF v_uid IS NULL THEN |   IF v_uid IS NULL THEN
+// @mutate supabase/migrations/20261103173728_q2390_haul_price_withdraw_guarantee_raise_refund_admin_delivery_cart_shops_rent_not_found_is_404.sql |   v_status text;\nBEGIN\n  PERFORM public.require_feature('declutter');\n  IF v_uid IS NULL THEN |   v_status text;\nBEGIN\n  IF v_uid IS NULL THEN
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";

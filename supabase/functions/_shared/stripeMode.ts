@@ -570,9 +570,14 @@ const ROUTED_TEST_CHECKOUT_KINDS = new Set(["job_boost", "onboarding_fee", "back
 export function isRoutedTestCheckout(session: any): boolean {
   if (!session || typeof session !== "object") return false;
   const meta = (session.metadata && typeof session.metadata === "object" ? session.metadata : {}) as Record<string, unknown>;
-  // Declutter's card-saving page (declutter-card) is the one SETUP-mode
-  // checkout a mode-routed function creates; it moves no money.
-  if (session.mode === "setup") return meta.kind === "declutter_card";
+  // The SETUP-mode checkouts a mode-routed function creates, neither moving money on the page: Declutter's
+  // card-saving page (declutter-card), and create-payment's far-out card hold (a job more than 6 days out: the
+  // card is saved now and held later by card-hold-sweep; Q2446, a test account's job never listed without it).
+  if (session.mode === "setup") {
+    if (meta.kind === "declutter_card") return true;
+    return meta.kind === undefined && meta.type === undefined && meta.card_hold === "1"
+      && meta.card_hold_plan === "schedule" && typeof meta.job_id === "string" && meta.job_id.length > 0;
+  }
   if (session.mode !== "payment") return false;
   if (meta.tier !== undefined || meta.billing_cycle !== undefined) return false;
   if (meta.type === "tip") return true;

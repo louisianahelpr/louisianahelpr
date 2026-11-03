@@ -112,8 +112,9 @@ describe("Q2082 (b): Helpr at fault = full refund, Helpr billed the card fee, on
     const rule = code.slice(code.indexOf("async function ruleHelprFaultFirst("));
     expect(rule).toMatch(/await asAdmin\.rpc\("admin_rule_helpr_fault"[\s\S]*?const gone = await helprFaultHelprIsGone\(supabaseAdmin, jobId\); if \(gone === null\) \{ return \{ refusal: new Response\([^;]*status: 503 \}\) \}; \} return \{ gone \}; \}/);
     for (const [action, call, flag] of [
-      ["admin_refund_general", "const ruled = await ruleHelprFaultFirst(authHeader, supabaseAdmin, jobId, helprFault); if (\"refusal\" in ruled) return ruled.refusal; helprFaultGone = ruled.gone;", "helprFaultGone"],
-      ["admin_refund_dispute", "const ruled = await ruleHelprFaultFirst(authHeader, supabaseAdmin, jobId, disputeHelprFault); if (\"refusal\" in ruled) return ruled.refusal; disputeHelprFaultGone = ruled.gone;", "disputeHelprFaultGone"],
+      // Q2169: each refusal hands its claim back before returning.
+      ["admin_refund_general", "const ruled = await ruleHelprFaultFirst(authHeader, supabaseAdmin, jobId, helprFault); if (\"refusal\" in ruled) { await putGeneralClaimBack(\"the Helpr-at-fault ruling was refused or could not be read back\"); return ruled.refusal; } helprFaultGone = ruled.gone;", "helprFaultGone"],
+      ["admin_refund_dispute", "const ruled = await ruleHelprFaultFirst(authHeader, supabaseAdmin, jobId, disputeHelprFault); if (\"refusal\" in ruled) { await releaseDisputeSettlementClaim(supabaseAdmin, jobId, refundClaim.claim); return ruled.refusal; } disputeHelprFaultGone = ruled.gone;", "disputeHelprFaultGone"],
     ]) {
       const start = code.indexOf(`if (action === "${action}")`);
       const end = code.indexOf("if (action === \"", start + 10);

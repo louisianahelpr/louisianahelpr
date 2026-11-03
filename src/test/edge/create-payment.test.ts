@@ -3678,7 +3678,7 @@ describe("create-payment edge function", () => {
       // @mutate supabase/functions/create-payment/index.ts | setupFeeCents: setupFeeKeptCents(job), // the $2 stays on a disputed Helpr fault too | setupFeeCents: 0, // the $2 stays on a disputed Helpr fault too
       // @mutate supabase/functions/create-payment/index.ts |       const disputeHelprFaultLive = disputeHelprFault != null && !disputeHelprFaultGone; |       const disputeHelprFaultLive = disputeHelprFault != null;
       // @mutate supabase/functions/create-payment/index.ts |             if (disputeHelprFaultLive) disputeHelprFaultCardFeeCents = actualOrEstimatedFeeCents(pi, capturedCents); |             if (disputeHelprFaultLive) disputeHelprFaultCardFeeCents = 0;
-      // @mutate supabase/functions/create-payment/index.ts |         if ("refusal" in ruled) return ruled.refusal;\n        disputeHelprFaultGone = ruled.gone; |         disputeHelprFaultGone = "gone" in ruled && ruled.gone;
+      // @mutate supabase/functions/create-payment/index.ts |               if ("refusal" in ruled) {\n                await releaseDisputeSettlementClaim | if (false) {\n                await releaseDisputeSettlementClaim
       const HF = { helperId: "00000000-0000-4000-8000-0000000000a1", kind: "no_show", note: "never came" };
       const runFault = async () => {
         const fn = await load();
@@ -3729,6 +3729,35 @@ describe("create-payment edge function", () => {
         scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), admin_rule_helpr_fault: { message: "helper_not_booked" } };
         const res = await runFault();
         expect(res.status).toBe(409);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+      });
+
+      // Q2169 (lh-money-escrow review of c4ec33afb #3): the ruling and its
+      // strike are recorded only after the settlement claim and Stripe's
+      // transfer check, so a refund those refuse leaves no ruling behind; a
+      // refused ruling hands the settlement claim back.
+      // @mutate supabase/functions/create-payment/index.ts |                 await releaseDisputeSettlementClaim(supabaseAdmin, jobId, refundClaim.claim);\n                return ruled.refusal; |                 return ruled.refusal;
+      it("Q2169: Helpr at fault, Stripe shows a transfer already left: refused with no ruling or strike recorded", async () => {
+        seedDispute({ budget: 100, customer_fee_amount: 0, platform_fee_percent: 0 }, faultCharge);
+        scenario.rpc.admin_rule_helpr_fault = { outcome: "ruled" };
+        stripeMock.transfers.list.mockResolvedValue({ data: [{ id: "tr_paid", amount: 9000, amount_reversed: 0 }] });
+        const res = await runFault();
+        expect(res.status).toBe(409);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        const names = (scenario.rpcCalls ?? []).map((c) => c.name);
+        expect(names).toContain("release_dispute_settlement_claim");
+        expect(names).not.toContain("admin_rule_helpr_fault");
+      });
+      it("Q2169: Helpr at fault refused by the ruling: the settlement claim is handed back", async () => {
+        seedDispute({ budget: 100, customer_fee_amount: 0, platform_fee_percent: 0 }, faultCharge);
+        scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), admin_rule_helpr_fault: { message: "helper_not_booked" } };
+        const res = await runFault();
+        expect(res.status).toBe(409);
+        const names = (scenario.rpcCalls ?? []).map((c) => c.name);
+        const ruledAt = names.indexOf("admin_rule_helpr_fault");
+        expect(ruledAt).toBeGreaterThan(names.indexOf("claim_dispute_settlement"));
+        expect(names.indexOf("claim_dispute_settlement")).toBeGreaterThanOrEqual(0);
+        expect(names.slice(ruledAt)).toContain("release_dispute_settlement_claim");
         expect(stripeMock.refunds.create).not.toHaveBeenCalled();
       });
 
@@ -6104,6 +6133,47 @@ describe("create-payment edge function", () => {
         expect(stripeMock.refunds.create).not.toHaveBeenCalled();
         const back = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "payout_pending");
         expect(back?.filters).toContainEqual({ op: "eq", column: "payment_status", value: "cancelling" });
+      });
+
+      // Q2169 (lh-money-escrow review of c4ec33afb #3): a Helpr-at-fault refund
+      // records the ruling and its strike only after the job claim and the
+      // payout-ledger refusals; a refused ruling puts the claim back.
+      // @mutate supabase/functions/create-payment/index.ts |           await putGeneralClaimBack("the Helpr-at-fault ruling was refused or could not be read back"); |           void 0;
+      describe("Q2169: the Helpr-at-fault ruling waits for the claim and the ledger", () => {
+        const HF = { helperId: "00000000-0000-4000-8000-0000000000a1", kind: "no_show", note: "never came" };
+        const callFault = async () => {
+          const fn = await load();
+          return fn.fetch(fn.request({ headers: AUTH, body: { action: "admin_refund_general", jobId: "job-1", reason: "no-show", helprFault: HF } }));
+        };
+        const ruled = () => (scenario.rpcCalls ?? []).some((c) => c.name === "admin_rule_helpr_fault");
+        it("a payout already in the ledger refuses the refund with no ruling or strike recorded", async () => {
+          seedFull();
+          scenario.rpc.admin_rule_helpr_fault = { outcome: "ruled" };
+          scenario.reads.payout_transfers = { rows: [{ id: "pt-1" }] };
+          const res = await callFault();
+          expect(res.status).toBe(409);
+          expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+          expect(ruled()).toBe(false);
+        });
+        it("a claim that matches 0 rows (the job moved) records no ruling", async () => {
+          seedFull();
+          scenario.rpc.admin_rule_helpr_fault = { outcome: "ruled" };
+          scenario.writeOverrides = [{ table: "jobs", op: "update", when: (p) => p.payment_status === "cancelling", rows: [] }];
+          const res = await callFault();
+          expect(res.status).toBe(409);
+          expect(ruled()).toBe(false);
+        });
+        it("a refused ruling refuses the refund AND puts the claim back", async () => {
+          seedFull();
+          scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), admin_rule_helpr_fault: { message: "helper_not_booked" } };
+          const res = await callFault();
+          expect(res.status).toBe(409);
+          expect(ruled()).toBe(true);
+          expect(claimWrite()).toBeDefined();
+          expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+          const back = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" && (w.payload as Record<string, unknown>).payment_status === "payout_pending");
+          expect(back?.filters).toContainEqual({ op: "eq", column: "payment_status", value: "cancelling" });
+        });
       });
 
       // Q1322: a put-back that matches no row is re-read, and the page is worded

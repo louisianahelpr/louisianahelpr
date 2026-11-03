@@ -766,7 +766,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // never one an admin holds for review or settled by hand; the amount (refund_cents) is untouched, so the fee
       // policy recorded by declutter_record_refund stands.
       declutter_refund_executed: "20261103111244_money_webhooks_not_found_is_404.sql 36405fe18e499cd5", // Q2390 p25: ERRCODE-only restatement (md5-verified); records Stripe's answer, writes no amount
-      declutter_refund_gave_up_check: "20261017055500_declutter_refund_hand_settle.sql 1fa348b4a38b6f7c",
+      declutter_refund_gave_up_check: "20261103223546_declutter_gave_up_alert_names_debt_clear.sql 4fa1a7c0f3691a2f", // Q1927: alert copy only (says how to clear the seller's debt); records no refund, writes no amount
       declutter_refund_paid_order: "20261103162420_q2390_handover_paid_refund_shop_cancel_photo_no_show_decline_not_found_is_404.sql 810723fc4faaf603",
       declutter_refund_reversed: "20261017055500_declutter_refund_hand_settle.sql df1710d5a746e90b",
       declutter_refund_set_mode: "20261103103000_refund_mode_rent_waive_payout_deny_repair_cancel_not_found_is_404.sql 119efbd586cdbdc1", // Q2390 p24: ERRCODE-only restatement (md5-verified); stamps the Stripe mode, writes no amount

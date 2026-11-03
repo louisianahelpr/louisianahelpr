@@ -972,7 +972,7 @@ test.describe.serial("marketplace chain", () => {
         // remembered — usePermissionRationale only marks a kind confirmed
         // when the person says yes — so the rationale comes back here even
         // though Start working already declined it once. e2e-journeys
-        // 34927100318 left that dialog open: every button had been pressed,
+        // 34927100318 (2026-09-15) left that dialog open: every button had been pressed,
         // `helper_completed_at` was never written, and the failure shot shows
         // the "Location" alertdialog still up. Answer it, the same way the
         // helper does everywhere else in this journey.

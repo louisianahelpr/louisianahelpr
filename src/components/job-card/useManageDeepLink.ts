@@ -90,3 +90,6 @@ export function manageLinkOpensJobPage(params: URLSearchParams): string | null {
   const id = params.get("manage") === "1" ? params.get("highlight") : null;
   return id ? `/jobs/${encodeURIComponent(id)}` : null;
 }
+
+// Re-exported so JobListPage takes it on its existing import line (componentSizeRatchet: that page may not grow).
+export { useFollowOpenCard } from "./useFollowOpenCard";

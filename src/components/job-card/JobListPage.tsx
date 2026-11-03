@@ -12,7 +12,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
 import { ActivityDialogs } from "@/components/job-card/ActivityDialogs";
 import { ActivityOfferDialogs } from "@/components/job-card/ActivityOfferDialogs";
-import { notOnPostedCopy, onPostedList, useManageDeepLink, useOpenWorkingDeepLink, useReviewApplicantsDeepLink } from "./useManageDeepLink";
+import { notOnPostedCopy, onPostedList, useFollowOpenCard, useManageDeepLink, useOpenWorkingDeepLink, useReviewApplicantsDeepLink } from "./useManageDeepLink";
 import { useToastClearance } from "@/hooks/useToastClearance";
 import { RecurringVisitPayments } from "@/pages/posts/postedJobs/RecurringVisitPayments";
 import { PendingBankPayments } from "@/pages/posts/postedJobs/PendingBankPayments";
@@ -315,8 +315,8 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
     helperNames,
     completedJobMeta,
   });
-
   useManageDeepLink(manageJobId, postedJobs, actions);
+  useFollowOpenCard({ tab, postedJobs, appliedApps, pendingApplicantCounts, expandedJobIds: actions.expandedJobIds, statusFilter, setStatusFilter });
   useOpenWorkingDeepLink(defaultTab === "applied" ? searchParams : null, appliedApps, actions);
   useReviewApplicantsDeepLink(applicantsJobId, postedJobs, actions.loadApplications, onPostedList);
   const toastClearance = useToastClearance();

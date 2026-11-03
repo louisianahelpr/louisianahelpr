@@ -853,6 +853,36 @@ describe("process-scheduled-payouts edge function", () => {
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     });
 
+    // Q1728: the job-site sales tax on a gift job's card leg (shortfall + tax, or tax alone) is never payout headroom.
+    // @mutate supabase/functions/process-scheduled-payouts/index.ts |       const escrowValueCents = capturedCents - capturedTaxCents + giftAppliedCents; |       const escrowValueCents = capturedCents + giftAppliedCents;
+    const taxedLeg = (amount: number, taxCents: number) => stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_1", status: "succeeded", latest_charge: "ch_1", amount, amount_received: amount,
+      metadata: { tax_calculation_id: "taxcalc_1", job_tax_cents: String(taxCents) },
+    });
+    it("Q1728: a shortfall + tax capture: the tax is not headroom (gift 3000 + card 5000 + tax 1000 < payout 9000)", async () => {
+      seedMixed();
+      scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 3000 };
+      taxedLeg(6000, 1000);
+      const body = await json(await runCron());
+      expect((body.results as Array<Record<string, unknown>>)[0].status).toBe("exceeds_captured_escrow");
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    });
+    it("Q1728: shortfall + tax that covers the job pays 9000, and a tax-only capture never caps it down", async () => {
+      seedMixed();
+      scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 4000 };
+      taxedLeg(6000, 1000);
+      await runCron();
+      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(9000);
+    });
+    it("Q1728: a tax-only capture on a fully gift-paid job pays the whole payout", async () => {
+      seedMixed();
+      scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 10000 };
+      taxedLeg(900, 900);
+      await runCron();
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(9000);
+    });
+
     // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (pi.status !== "succeeded" && isPifFunded) { | if (false) {
     it("counts a not-yet-captured (held) card leg as zero instead of blocking the gift's share", async () => {
       seedMixed("requires_capture");

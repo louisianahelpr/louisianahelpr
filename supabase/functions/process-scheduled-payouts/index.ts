@@ -19,7 +19,7 @@ import { checkUnrecordedTransfers, claimPayout, classifyLedger, failClaim, settl
 // release-payout — see _shared/releaseFlip.ts for TC-008, the stranded payout
 // that made a retry non-optional.
 import { flipJobToReleased, type FlipResult } from "../_shared/releaseFlip.ts";
-import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
+import { jobSiteTaxOnIntent, resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
 import { checkUnsettledDispute } from "../_shared/unsettledDispute.ts";
 import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
@@ -1431,6 +1431,8 @@ serve(async (req) => {
       // nothing (the pre-Q1210 cap); one that cannot be read defers.
       /** What Stripe actually captured, in cents. 0 for a purely gift-funded job. */
       let capturedCents = 0;
+      /** Q1728: the job-site sales tax inside that capture (the state's money, never the Helpr's). */
+      let capturedTaxCents = 0;
       /** Stripe's real fee on that charge (owner, 2026-10-14: a crew refund never returns it). null = not read. */
       let stripeFeeCents: number | null = null;
       /** Q1827: stripeFeeCents was read off the charge's balance transaction (not the estimate). */
@@ -1567,6 +1569,7 @@ serve(async (req) => {
                 console.warn(`PI ${paymentIntentId} had no usable amount_received; falling back to amount (${captured.cents}c).`);
               }
               capturedCents = captured.cents;
+              capturedTaxCents = Math.min(captured.cents, jobSiteTaxOnIntent(pi as { metadata?: Record<string, string> | null }));
               stripeFeeCents = actualOrEstimatedFeeCents(pi, captured.cents);
               stripeFeeActual = actualStripeFeeCents(pi) !== null;
             }
@@ -1846,7 +1849,8 @@ serve(async (req) => {
       //
       // The gift leg counts toward the cap: it is real value leaving the
       // platform, denominated in credit rather than dollars.
-      const escrowValueCents = capturedCents + giftAppliedCents;
+      // Q1728: less the sales tax the capture holds: tax is never payout headroom.
+      const escrowValueCents = capturedCents - capturedTaxCents + giftAppliedCents;
       // The transfer: whole dollars after the onboarding fee, less the exact
       // Helpr-fault debt (Q2165), the same figure helperPayout holds.
       // Q2172 (c): the Helpr-fault debt comes off after the claim (below).

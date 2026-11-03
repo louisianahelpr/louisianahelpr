@@ -54,7 +54,7 @@ import {
 } from "../_shared/livePayoutGate.ts";
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { checkUnrecordedTransfers, claimPayout, classifyLedger, failClaim, settleClaim, type LedgerRow } from "../_shared/payoutClaim.ts";
-import { resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
+import { jobSiteTaxOnIntent, resolveCapturedEscrow } from "../_shared/capturedEscrow.ts";
 // The post-transfer flip and its transient-only retry are SHARED with
 // process-scheduled-payouts — see _shared/releaseFlip.ts for TC-008, the
 // stranded payout that made a retry non-optional.
@@ -679,6 +679,8 @@ serve(async (req) => {
   // MIXED gift + card job sets only the captured figure (Q1210, below).
   let escrowChargeId: string | null = null;
   let escrowAmountReceivedCents: number | null = null;
+  /** Q1728: the job-site sales tax inside that capture (the state's money, never the Helpr's). */
+  let escrowTaxCents = 0;
 
   // How much of this escrow the gift credit funded, in cents.
   //
@@ -827,6 +829,7 @@ serve(async (req) => {
         );
       }
       escrowAmountReceivedCents = captured.cents;
+      escrowTaxCents = Math.min(captured.cents, jobSiteTaxOnIntent(pi as { metadata?: Record<string, string> | null }));
       // Never the transfer source on a gift job (see Q1210 above).
       escrowChargeId = giftFunded
         ? null
@@ -1049,7 +1052,9 @@ serve(async (req) => {
   // `escrowAmountReceivedCents !== null`, which is null exactly when the gift
   // path removes `source_transaction` too, so both guards went missing together
   // on the one path where the assertion stands alone.
-  const escrowValueCents = (escrowAmountReceivedCents ?? 0) + giftAppliedCents;
+  // Q1728: less the sales tax the capture holds (a gift's tax-only or shortfall + tax checkout, a job-site-taxed
+  // card checkout): tax is never payout headroom.
+  const escrowValueCents = (escrowAmountReceivedCents ?? 0) - escrowTaxCents + giftAppliedCents;
   if (payoutCents > escrowValueCents) {
     console.error(
       `[release-payout] REFUSING: payout ${payoutCents}c exceeds escrow ${escrowValueCents}c ` +

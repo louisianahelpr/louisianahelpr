@@ -3,8 +3,8 @@
  * day, and moves nothing. Reads the EFFECTIVE definition. Backend proof: src/test/pglite/declutterOnMyWay.pglite.mjs
  * (3x; red with NEW_MIGRATION=skip, and each planted defect red).
  */
-// @mutate supabase/migrations/20261030161617_declutter_pickup_on_my_way.sql |   IF o.buyer_id IS DISTINCT FROM v_uid THEN | IF false THEN
-// @mutate supabase/migrations/20261030161617_declutter_pickup_on_my_way.sql |   IF v_day <> v_today THEN |   IF false THEN
+// @mutate supabase/migrations/20261103062000_declutter_on_my_way_meetup_here_not_found_is_404.sql |   IF o.buyer_id IS DISTINCT FROM v_uid THEN | IF false THEN
+// @mutate supabase/migrations/20261103062000_declutter_on_my_way_meetup_here_not_found_is_404.sql |   IF v_day <> v_today THEN |   IF false THEN
 // @mutate supabase/migrations/20261030161617_declutter_pickup_on_my_way.sql | REVOKE ALL ON FUNCTION public.declutter_on_my_way(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_on_my_way(uuid) FROM PUBLIC;
 // @mutate src/components/declutter/DeclutterMineViews.tsx |       <PickupDayCard orders={t.live} bookings={t.bookings} held= | <p data-x="" held=
 import { describe, expect, it } from "vitest";

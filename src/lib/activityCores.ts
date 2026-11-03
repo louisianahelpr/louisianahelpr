@@ -31,6 +31,11 @@ interface ActivityCoresPayload {
   direct_offers: unknown[];
   violations: { job_id: string | null }[];
   reviews: { job_id: string }[];
+  /**
+   * The open SET continue days of my jobs (20261103231310). Optional: an older database leaves it out, and then
+   * fetchMyOpenContinueDays reads them itself (src/lib/continueDayReads.ts openContinueDaysFrom).
+   */
+  open_continue_days?: { job_id: string; status: string; new_date: string; new_start_time: string }[];
 }
 
 const KEYS: (keyof ActivityCoresPayload)[] = [

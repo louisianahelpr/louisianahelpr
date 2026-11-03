@@ -11,7 +11,7 @@
 // @mutate src/lib/activityCores.ts |     const fresh = inFlight.doneAt === null \|\| Date.now() - inFlight.doneAt <= ACTIVITY_CORES_SHARE_MS; |     const fresh = inFlight.doneAt === null;
 // @mutate src/lib/activityCores.ts |     const fresh = inFlight.doneAt === null \|\| Date.now() - inFlight.doneAt <= ACTIVITY_CORES_SHARE_MS; |     const fresh = true;
 // @mutate src/lib/activityCores.ts |     else inFlight = null; |
-// @mutate src/hooks/useActivityData.ts | Promise.all([fetchActivityCores(userId, "applied"), | Promise.all([fetchActivityCores(userId, "posted"),
+// @mutate src/hooks/useActivityData.ts |   const cores = await fetchActivityCores(userId, "applied"); |   const cores = await fetchActivityCores(userId, "posted");
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

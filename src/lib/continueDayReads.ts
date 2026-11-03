@@ -51,6 +51,21 @@ export async function fetchContinueDays(jobIds: readonly string[]): Promise<Reco
 /** The open SET day of one job: what jobOnContinueDay needs to date the job by its next visit. */
 export type OpenContinueDay = Pick<ContinueDay, "job_id" | "status" | "new_date" | "new_start_time">;
 
+/**
+ * The open SET days get_my_activity_cores carried (its 'open_continue_days', 20261103231310), by job id, or null when
+ * the payload has no such list (an older database, or the cores read failed): the caller then sends
+ * fetchMyOpenContinueDays. Activity is ONE request again (owner: requests per page).
+ */
+export function openContinueDaysFrom(rows: unknown): Record<string, OpenContinueDay> | null {
+  if (!Array.isArray(rows)) return null;
+  const out: Record<string, OpenContinueDay> = {};
+  for (const r of rows as OpenContinueDay[]) {
+    // jobOnContinueDay itself uses only a SET day; this keeps every row as the direct read does.
+    if (r && typeof r.job_id === "string") out[r.job_id] = r;
+  }
+  return out;
+}
+
 /** One read serves both Activity cores (Posted and Working ask together, like get_my_activity_cores). */
 let openDaysRead: { userId: string; p: Promise<Record<string, OpenContinueDay>>; served: Set<string>; doneAt: number | null } | null = null;
 

@@ -62,7 +62,9 @@ describe("one job tracker (owner 2026-10-21)", () => {
 
   it("no file but jobProgress.ts keeps a job step list (Posted … Done)", () => {
     const lists = files
-      .filter((f) => f !== "src/components/tracker/jobProgressState.ts")
+      // B51: the step names moved verbatim to jobProgressSteps.ts (jobProgressState re-exports them), so JobProgress
+      // on Home's first draw does not import the derivation.
+      .filter((f) => f !== "src/components/tracker/jobProgressSteps.ts")
       .filter((f) => /\[[^\]]*"Posted"[^\]]*"(?:Hired|Offered|Accepted)"[^\]]*"(?:Done|Released)"[^\]]*\]/.test(read(f)));
     expect(lists).toEqual([]);
   });

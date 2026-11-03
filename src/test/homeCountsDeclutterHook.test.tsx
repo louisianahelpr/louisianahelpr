@@ -3,9 +3,9 @@
  * (declutter_my_refund_todos) and the giver's free asks, and puts them on the list. homeCountsDeclutter.test.tsx proves
  * the rules on deriveNeedsYouTodos; this proves the hook feeds them in (a dropped input passes the rules test).
  *
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts | declutterRefunds: refundRows, declutterFreeAsks: freeAskRows, continueDays }), | continueDays }),
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   const refundRows = (declutterOn && refundsOn ? dRefunds.data : undefined) ?? EMPTY_REFUNDS; |   const refundRows = EMPTY_REFUNDS;
- * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |   const freeAskRows = (declutterOn ? dFreeAsks.data : undefined) ?? EMPTY_FREE_ASKS; |   const freeAskRows = EMPTY_FREE_ASKS;
+ * @mutate src/pages/home/homeDashboard/useNeedsYouTodos.ts | declutterRefunds: refundRows, declutterFreeAsks: freeAskRows, continueDays }) : EMPTY_TODOS), | continueDays }) : EMPTY_TODOS),
+ * @mutate src/pages/home/homeDashboard/useNeedsYouTodos.ts |   const refundRows = (declutterOn && refundsOn ? dRefunds.data : undefined) ?? EMPTY_REFUNDS; |   const refundRows = EMPTY_REFUNDS;
+ * @mutate src/pages/home/homeDashboard/useNeedsYouTodos.ts |   const freeAskRows = (declutterOn ? dFreeAsks.data : undefined) ?? EMPTY_FREE_ASKS; |   const freeAskRows = EMPTY_FREE_ASKS;
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { renderHook, cleanup, waitFor } from "@testing-library/react";

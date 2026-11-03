@@ -1,8 +1,8 @@
-// @mutate src/pages/home/homeDashboard/needsYouTodos.ts | subscribeUserRealtime(uid, "jobs:customer", schedule, { onRecovered: schedule }), | subscribeUserRealtime(uid, "jobs:customer", refresh, { onRecovered: schedule }),
-// @mutate src/pages/home/homeDashboard/needsYouTodos.ts | subscribeUserRealtime(uid, "applications:helper", schedule, { onRecovered: schedule }), | subscribeUserRealtime(uid, "applications:helper", schedule, { onRecovered: refresh }),
-// @mutate src/pages/home/homeDashboard/needsYouTodos.ts | const TODO_REFRESH_DEBOUNCE_MS = 400; | const TODO_REFRESH_DEBOUNCE_MS = 0;
-// @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         if (hidden()) {\n          dirtyWhileHidden = true;\n          return;\n        }\n        refresh(); |         refresh();
-// @mutate src/pages/home/homeDashboard/needsYouTodos.ts |     const schedule = () => {\n      if (hidden()) { |     const schedule = () => {\n      if (false) {
+// @mutate src/pages/home/homeDashboard/useNeedsYouTodos.ts | subscribeUserRealtime(uid, "jobs:customer", schedule, { onRecovered: schedule }), | subscribeUserRealtime(uid, "jobs:customer", refresh, { onRecovered: schedule }),
+// @mutate src/pages/home/homeDashboard/useNeedsYouTodos.ts | subscribeUserRealtime(uid, "applications:helper", schedule, { onRecovered: schedule }), | subscribeUserRealtime(uid, "applications:helper", schedule, { onRecovered: refresh }),
+// @mutate src/pages/home/homeDashboard/useNeedsYouTodos.ts | const TODO_REFRESH_DEBOUNCE_MS = 400; | const TODO_REFRESH_DEBOUNCE_MS = 0;
+// @mutate src/pages/home/homeDashboard/useNeedsYouTodos.ts |         if (hidden()) {\n          dirtyWhileHidden = true;\n          return;\n        }\n        refresh(); |         refresh();
+// @mutate src/pages/home/homeDashboard/useNeedsYouTodos.ts |     const schedule = () => {\n      if (hidden()) { |     const schedule = () => {\n      if (false) {
 // @mutate src/components/NeedsYouBridge.tsx | useNeedsYouTodos(user, { live: true }) | useNeedsYouTodos(user)
 // @mutate src/components/mobileNav/useNavUnreadCount.ts | let store = stores.get(userId); | let store = undefined as UnreadStore \| undefined;
 import { describe, expect, it, vi, afterEach } from "vitest";
@@ -271,7 +271,7 @@ describe("hot-query load (Q53)", () => {
   });
 
   describe("the To-do badge (badge = To-do, owner 2026-10-20; was the #2 statement by DB time)", () => {
-    const file = join(SRC, "pages/home/homeDashboard/needsYouTodos.ts");
+    const file = join(SRC, "pages/home/homeDashboard/useNeedsYouTodos.ts");
     const sf = parse(file);
 
     it("has ONE live caller (the bridge App mounts once), never a nav of its own", () => {

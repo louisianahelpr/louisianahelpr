@@ -10,7 +10,7 @@ import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useSectionTabs, openingSoonLine } from "@/components/mobileNav/useSectionTabs";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useHomeSummary, SECTION_INVITE } from "./homeDashboard/useHomeSummary";
-import { todoTarget } from "./homeDashboard/needsYouTodos";
+import { todoTarget } from "./homeDashboard/useNeedsYouTodos";
 import { requestHelperStep } from "@/components/job-card/helperStepRequest";
 import { COMING_UP_ROLE, type ComingUpItem } from "./homeDashboard/comingUp";
 import { useHomeMoney } from "./homeDashboard/homeMoney";

@@ -27,6 +27,8 @@ export const DECLUTTER_ITEM_ROOT: string;
 export function declutterItemSplit(root: string, split?: { deep: Set<string>; homeOff: Set<string> }): { itemDeep: Set<string>; itemPages: Set<string>; itemShared: Set<string> };
 export const ITEM_PAGES_PINNED_RE: RegExp;
 export function homeIconFiles(root: string): Set<string>;
+export function bootIconFiles(root: string): Set<string>;
+export const HOME_DERIVE_ROOT: string;
 export const PROFILE_FIRST_SCREEN_ROOTS: string[];
 export const PROFILE_SHARING_PAGE_ROOTS: string[];
 export function profileFirstScreenModules(root: string, split?: { deep: Set<string>; homeOff: Set<string> }): { own: Set<string>; shared: Set<string> };

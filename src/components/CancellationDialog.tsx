@@ -258,20 +258,14 @@ export const CancellationDialog = ({ jobId, jobTitle, jobDate, jobStartTime, job
       // poster_cancel_job may charge; a tier that moved since is refused there
       // (quote_changed) before anything is written.
       const expectedFeeCents = quotedFeeCents ?? undefined;
-      let { data: verdict, error } = await supabase.rpc("poster_cancel_job", {
+      // One call, no unchecked retry (Q2190): 20261021130723 is live and prod
+      // has only the three-argument poster_cancel_job (pg_proc, 2026-11-02),
+      // so a PGRST202 here is a real failure, handled below like any other.
+      const { data: verdict, error } = await supabase.rpc("poster_cancel_job", {
         p_job_id: jobId,
         p_reason: reason.trim() || undefined,
         p_expected_fee_cents: expectedFeeCents,
       });
-      // Deploy lag (20261021130723 not live yet): the old two-argument
-      // function does not know p_expected_fee_cents, so ask it the old way
-      // (unchecked, exactly as before this slice).
-      if (error && String(error.code ?? "") === "PGRST202" && expectedFeeCents !== undefined) {
-        ({ data: verdict, error } = await supabase.rpc("poster_cancel_job", {
-          p_job_id: jobId,
-          p_reason: reason.trim() || undefined,
-        }));
-      }
       if (error && rpcErrorCode("poster_cancel_job", error) === "quote_changed") {
         // Nothing was cancelled. Show the new fee and let the poster decide again.
         // Reported (lh-money-escrow review): a tier crossing clears on the

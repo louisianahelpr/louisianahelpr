@@ -7,8 +7,8 @@
  * Behaviour, red then green: src/test/pglite/declutterOrderProblemDecision.pglite.mjs (8 FAILs with
  * NEW_MIGRATION=skip; 22/22 with 20261030080104 applied 3x; a planted 'fault' key fails 6).
  *
- * @mutate supabase/migrations/20261030080104_declutter_order_problem_decision.sql |     'decision', p.decision,\n |
- * @mutate supabase/migrations/20261030080104_declutter_order_problem_decision.sql |     'decided_at', p.decided_at\n | 'decided_at', p.decided_at, 'fault', p.fault\n
+ * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql | 'decision', p.decision, |
+ * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql | 'decision', p.decision,\n    'decided_at', p.decided_at | 'decision', p.decision,\n    'decided_at', p.decided_at, 'fault', p.fault
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";

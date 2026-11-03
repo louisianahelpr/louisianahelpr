@@ -106,10 +106,12 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
       // 20261031234653 (owner 10-31) leaves an unfilled expired listing out of cancelled_jobs only.
       // 20261102040000 (A3-75) leaves a Declutter review an admin removed out of the rating only.
       // 20261102100421 (Q2588) restates auto_start_due_jobs with a no-start-time job due at its day's end only.
+      // 20261103214229 (owner bug 11-03) restates sweep_no_show_alerts with the crew branch skipping a crew with an
+      // open SET continue day only (the roster reads are unchanged).
       const want = fn === "get_public_profile_stats"
         ? [CREW_COUNTS, "20261007033530_seed_switch_hides_test_profiles.sql", "20261015051301_declutter_shared_star_rating.sql", "20261021074131_id_badge_reads_stripe_identity_only.sql", "20261030015205_test_data_never_counts.sql", "20261031234653_public_stats_expired_is_not_cancelled.sql", "20261102040000_declutter_review_report.sql"]
         : fn === "sweep_no_show_alerts"
-          ? [THIS, "20261029173937_no_show_alert_says_the_start_time.sql"]
+          ? [THIS, "20261029173937_no_show_alert_says_the_start_time.sql", "20261103214229_continuing_job_admin_stalled_and_crew_no_show.sql"]
           : fn === "get_helper_completed_counts"
             ? [THIS, "20261030015205_test_data_never_counts.sql"]
             : fn === "auto_start_due_jobs"

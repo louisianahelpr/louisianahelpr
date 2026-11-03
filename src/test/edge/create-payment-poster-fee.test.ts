@@ -54,11 +54,16 @@ function seed(opts: { budget?: number; category?: string; switchOn?: Switch; ext
   scenario.reads.jobs = {
     rows: [{
       id: "job-pf", customer_id: POSTER.id, budget: opts.budget ?? 100, category: opts.category ?? "cleaning",
-      title: "Poster fee job", status: "open", payment_status: "unpaid", ...(opts.extra ?? {}),
+      title: "Poster fee job", status: "open", payment_status: "unpaid", zip_code: "70503", ...(opts.extra ?? {}),
     }],
   };
   scenario.reads.platform_settings = { rows: [{ customer_fee_percent: 10, helper_fee_percent: 12, onboarding_fee_cents: 200 }] };
   scenario.reads.profiles = { rows: [{ onboarding_fee_paid: true, subscription_tier: null, subscription_expires_at: null }] };
+  // Q2083 (b): a taxed job's tax is priced at the job ZIP, 11.5% of the lines sent.
+  stripeMock.tax.calculations.create.mockReset();
+  stripeMock.tax.calculations.create.mockImplementation(async (p: { line_items: Array<{ amount: number }> }) => ({
+    id: "taxcalc_pf", tax_amount_exclusive: Math.round(p.line_items.reduce((n, l) => n + l.amount, 0) * 0.115),
+  }));
   // Q1905: the poster's own gift, bought LIVE, so it may pay for this real job
   // (create-payment refuses a gift of another Stripe mode). Read only when a
   // giftCardId is sent.
@@ -420,20 +425,19 @@ describe("create-payment escrow: jobs poster fee behind the switch (owner 2026-1
     expect(card.args?.payment_method_options).toEqual({ card: { request_three_d_secure: "any" } });
   });
 
-  // @mutate supabase/functions/create-payment/index.ts |             + (isPosterFee && laborTaxable ? salesTaxCeilingCents(posterFeeCents, job.category, job.tax_kind) : 0) |             + 0
-  it("the 3D Secure ceiling counts the tax on a taxable job's service fee (review #7d)", async () => {
+  // Q2083 (b): a taxable job's service fee is in the job-site tax calculation
+  // with the labor's code, so its tax is charged and counts toward 3D Secure
+  // (this replaced review #7d's ceiling on the fee's tax).
+  // @mutate supabase/functions/create-payment/index.ts | ...(isPosterFee && posterFeeCents > 0 ? [{ amount: posterFeeCents, reference: "service_fee" | ...(false ? [{ amount: posterFeeCents, reference: "service_fee"
+  it("a taxable job's service fee is taxed at the job site with the labor's code, and its tax counts toward 3D Secure", async () => {
     const taxable = [...TAXABLE_CATEGORIES][0];
-    // A budget whose lines + labor-tax ceiling sit under $300 and cross it only with the fee's tax.
-    const fee = (b: number) => Math.round(b * 5) + 70;
-    const ceil15 = (c: number) => Math.ceil(c * 0.15);
-    const budget = Array.from({ length: 100 }, (_, i) => 200 + i).find((b) => {
-      const c = b * 100;
-      return c + fee(b) + ceil15(c) < 30_000 && c + fee(b) + ceil15(c) + ceil15(fee(b)) >= 30_000;
-    });
-    expect(budget).toBeDefined();
-    seed({ switchOn: true, category: taxable, budget });
-    const { res, args } = await escrow({ feeQuote: quote(budget! * 100) });
+    // $250: lines 25,000 + fee 1,320 = 26,320; 11.5% = 3,027 -> 29,347 (no 3DS). $265: 26,500 + 1,395 = 27,895 + 3,208 = 31,103 (3DS).
+    seed({ switchOn: true, category: taxable, budget: 265 });
+    const { res, args } = await escrow({ feeQuote: quote(265 * 100) });
     expect(res.status).toBe(200);
+    const [calc] = stripeMock.tax.calculations.create.mock.calls[0];
+    const fee = calc.line_items.find((l: { reference: string }) => l.reference === "service_fee");
+    expect(fee).toMatchObject({ amount: lineNamed(args, "Service fee")?.price_data.unit_amount, tax_code: calc.line_items[0].tax_code });
     expect(args?.payment_method_options).toEqual({ card: { request_three_d_secure: "any" } });
   });
 });

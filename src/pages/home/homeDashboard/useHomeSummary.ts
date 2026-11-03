@@ -96,14 +96,16 @@ export function useHomeSummary(user: SupaUser | null) {
   const declutter = useQuery({ queryKey: ["declutter", "mine", uid], queryFn: () => declutterApi().then((m) => (m ? m.fetchMyItems(uid) : untilReload())), enabled: !!uid && declutterOn });
   const orders = useQuery({ queryKey: ["shops", "my-orders", uid], queryFn: () => shopOrdersApi().then((m) => (m ? m.fetchMyOrders(uid) : untilReload())), enabled: !!uid && shopsOn });
   // The to-do list is the ONE the nav badges count (badge = To-do, owner 2026-10-20).
-  const { todos } = useNeedsYouTodos(user);
+  // onOldCall: the badge's one read (my_badge_reads) seeds the cart and shop-order keys; Home reads them from
+  // the cache and fetches them itself only when that section is on its old single call (Blockers 8, 2026-11-03).
+  const { todos, onOldCall } = useNeedsYouTodos(user);
   const homes = useQuery({ queryKey: ["rentals", "my-properties", uid], queryFn: () => rentalsApi().then((m) => (m ? m.fetchMyProperties(uid) : untilReload())), enabled: !!uid && homesOn });
   // Coming up's Declutter pickups and shop orders: the SAME reads (keys and fetches) the Buying/Selling
   // tabs and the Shop dashboard make, so Home adds no query shape.
-  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: () => declutterApi().then((m) => (m ? m.fetchMyCart() : untilReload())), enabled: !!uid && declutterOn });
+  const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: () => declutterApi().then((m) => (m ? m.fetchMyCart() : untilReload())), enabled: !!uid && declutterOn && onOldCall("cart") });
   const paidIds = [...new Set((cart.data ?? []).filter((l) => l.status === "paid" && l.order_id).map((l) => l.order_id!))];
   const bookings = useQuery({ queryKey: ["declutter", "bookings", paidIds.join(",")], queryFn: () => handoverApi().then((m) => (m ? m.fetchMyBookings(paidIds) : untilReload())), enabled: paidIds.length > 0 });
-  const shopOrders = useQuery({ queryKey: ["shops", "shop-orders", uid], queryFn: () => shopOrdersApi().then((m) => (m ? m.fetchShopOrders(uid) : untilReload())), enabled: !!uid && shopsOn });
+  const shopOrders = useQuery({ queryKey: ["shops", "shop-orders", uid], queryFn: () => shopOrdersApi().then((m) => (m ? m.fetchShopOrders(uid) : untilReload())), enabled: !!uid && shopsOn && onOldCall("shop_orders") });
   // Continue another day (Auditor 11, 11-01): the jobs under way that continue on another day, one shared read.
   const continueDays = useContinueDays(inProgressJobIds([...(posted.postedJobs ?? []), ...(applied.appliedApps ?? []).map((a) => a.job)]));
   // Live "near you" counts for the Jobs and Declutter cards: head-only count reads, started after first paint.

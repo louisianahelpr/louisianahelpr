@@ -5,6 +5,7 @@
  * the protection. Errors are thrown as they come from Supabase; screens turn
  * them into plain words with declutterErrorMessage().
  */
+import { groupFreeAsks, type FreeAskRow } from "@/lib/declutter/freeAsks";
 import { uploadSteadily, PhotoUploadRefused, type UploadHooks } from "@/lib/declutter/steadyUpload";
 import { isNetworkFailure } from "@/lib/networkFailure";
 import { supabase } from "@/integrations/supabase/client";
@@ -1322,14 +1323,8 @@ export async function fetchFreeAsksToPick(userId: string): Promise<FreeAskToPick
   const rows = (unwrap(
     await supabase.from("declutter_free_requests").select("item_id, created_at, declutter_items!inner(title)")
       .eq("seller_id", userId).eq("status", "open").order("created_at", { ascending: true }),
-  ) ?? []) as unknown as { item_id: string; created_at: string; declutter_items: { title: string } | null }[];
-  const out = new Map<string, FreeAskToPick>();
-  for (const r of rows) {
-    const had = out.get(r.item_id);
-    if (had) had.asked++;
-    else out.set(r.item_id, { item_id: r.item_id, title: r.declutter_items?.title ?? "your free item", asked: 1, first_at: r.created_at });
-  }
-  return [...out.values()];
+  ) ?? []) as unknown as FreeAskRow[];
+  return groupFreeAsks(rows);
 }
 
 export { fetchMyRefundTodos } from "@/lib/declutter/refundRequests";

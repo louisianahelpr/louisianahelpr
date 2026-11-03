@@ -19129,6 +19129,10 @@ export type Database = {
         Returns: number
       }
       my_credential_tier: { Args: never; Returns: number }
+      my_badge_reads: {
+        Args: { p_keys: string[] }
+        Returns: Json
+      }
       my_schedule_clashes: {
         Args: never
         Returns: {

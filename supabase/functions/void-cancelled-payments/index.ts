@@ -144,8 +144,12 @@ serve(async (req) => {
        * platform's balance.
        */
       withholdCents = 0,
-      /** Q1806: what the kept cents paid, named in the poster's "gift is back" notice. */
-      withholdReason = "the crew members whose spots you closed close to the start",
+      /**
+       * Q1806: what the kept cents paid, named in the poster's "gift is back" notice.
+       * Q2095: or a function of the cents actually kept that writes the whole
+       * breakdown (fee, crew fees, card costs; card part and gift part).
+       */
+      withholdReason: string | ((giftKeptCents: number) => string) = "the crew members whose spots you closed close to the start",
     ): Promise<{ ok: boolean; outcome: string | null }> => {
       let shareBps: number | undefined;
       // Q1914: the exact cents to give back (applied - withheld), so the poster loses no rounding.
@@ -234,7 +238,9 @@ serve(async (req) => {
             message: `"${job.title}" was cancelled, so the $${formatExactDollars(dollars)} gift you used on it is available again.` +
               // Q1490 review #6: say what the gift kept, as the card path does.
               (keptForBlockFees > 0
-                ? ` $${formatExactDollars(Math.min(withholdCents, keptForBlockFees) / 100)} of it paid ${withholdReason}.`
+                ? typeof withholdReason === "function"
+                  ? ` ${withholdReason(Math.min(withholdCents, keptForBlockFees))}`
+                  : ` $${formatExactDollars(Math.min(withholdCents, keptForBlockFees) / 100)} of it paid ${withholdReason}.`
                 : ""),
             type: "payment",
             link: "/profile?tab=gift_card&show=received",
@@ -494,8 +500,8 @@ serve(async (req) => {
       stage: string,
       /** Q1490: gift cents kept to pay what the poster owes (see restorePifGift). */
       withholdGiftCents = 0,
-      /** Q1806: what those cents paid, for the poster's notice. */
-      withholdReason?: string,
+      /** Q1806: what those cents paid, for the poster's notice (Q2095: or the whole breakdown). */
+      withholdReason?: string | ((giftKeptCents: number) => string),
     ): Promise<boolean> => {
       // Return the gift BEFORE the job leaves escrow. Ordering matters: the
       // selection query at the top of this run is
@@ -2472,12 +2478,28 @@ serve(async (req) => {
         }
         return { cents: funding.cents };
       };
-      /** Q1806: what the gift's kept cents paid, for the poster's "gift is back" notice. */
-      const giftKeptReason = (feeOwed: boolean, blockOwed: boolean) =>
-        [
-          feeOwed ? `your ${crewShares ? "crew" : "Helpr"} for their time` : null,
-          blockOwed ? "the crew members whose spots you closed close to the start" : null,
-        ].filter((x): x is string => !!x).join(" and ") || undefined;
+      /**
+       * Q2095: the poster's "gift is back" notice on a gift-plus-card cancel
+       * states the whole breakdown: what the cancel kept in all, split into
+       * the fee for the Helpr's time (the figure the cancel dialog showed),
+       * the crew spots' fees, and the card/setup/tax costs a refund never
+       * returns; then what came from the card and what from the gift. Before,
+       * it named only the gift's part, counted the card fee inside "the
+       * cancellation fee", and never said the card payment was kept.
+       */
+      const giftKeptBreakdown = (feeCents: number, blockCents: number, cardKeptCents: number) =>
+        (giftKeptCents: number): string => {
+          const usd = (c: number) => `$${formatExactDollars(Math.max(0, c) / 100)}`;
+          const total = Math.max(0, cardKeptCents) + giftKeptCents;
+          const costs = Math.max(0, total - feeCents - blockCents);
+          const parts = [
+            feeCents > 0 ? `${usd(feeCents)} for your ${crewShares ? "crew's" : "Helpr's"} time` : null,
+            blockCents > 0 ? `${usd(blockCents)} for the crew spots you closed close to the start` : null,
+            costs > 0 ? `${usd(costs)} in card and setup costs a refund can't return` : null,
+          ].filter((x): x is string => !!x);
+          const list = parts.length > 1 ? `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}` : (parts[0] ?? "");
+          return `The cancellation kept ${usd(total)}${list ? `: ${list}` : ""}. ${usd(cardKeptCents)} of it came from your card and ${usd(giftKeptCents)} from the gift.`;
+        };
 
       /**
        * Q1806: what a cancel keeps of a card capture besides the fees owed: the
@@ -2752,7 +2774,7 @@ serve(async (req) => {
               // Q2000: a fee capped to nothing charged nothing.
               cancellation_fee_status: holdGiftGone && cancellationFee <= 0 ? null : "charged",
               cancellation_fee: cancellationFee,
-            }, "fee capture", holdGiftKeptCents, giftKeptReason(cancellationFee > 0, blockCents > 0));
+            }, "fee capture", holdGiftKeptCents, giftKeptBreakdown(Math.round(cancellationFee * 100), blockCents, captureCents));
             if (settledFee) refunded++;
             // Q1806: a hold captured whole sends nothing back to the card; the
             // gift notice says what the gift paid.
@@ -3146,7 +3168,7 @@ serve(async (req) => {
             // does a crew whose deleted member's share went back to the poster
             // (money-reconciliation prices it without that share).
             ...(cardGiftGone || crewShareReturned ? { cancellation_fee: cancellationFee } : {}),
-          }, "refund", cardGiftKeptCents, giftKeptReason(feeOwedCents > 0, blockFeeCents > 0));
+          }, "refund", cardGiftKeptCents, giftKeptBreakdown(feeOwedCents, blockFeeCents, Math.max(0, capturedCents - Math.max(0, chargeRefundedCents))));
           if (settledRefund) refunded++;
           results.push({
             job_id: job.id,

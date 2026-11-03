@@ -70,6 +70,10 @@ export function abortedFunctionsIn(ctx: BrowserContext): ReadonlySet<string> {
  */
 export const ABORT_EXPLAINED_ERRORS: ReadonlyArray<{ fn: string; path: string; tab: string; copy: string }> = [
   { fn: "stripe-payouts", path: "/profile", tab: "earnings", copy: "We couldn't load your payout data." },
+  // ?tab=payment renders the same Money screen (ProfileTabPanels: tab === "earnings" || tab === "payment"),
+  // and Payout history reads the same stripe-payouts query (useEarningsData); A11y 41598471444 failed on both.
+  { fn: "stripe-payouts", path: "/profile", tab: "payment", copy: "We couldn't load your payout data." },
+  { fn: "stripe-payouts", path: "/profile", tab: "payout_history", copy: "We couldn't load your payouts." },
 ];
 
 /** The copy `pageUrl`'s screen may show because `aborted` holds its function, or null. Pure. */

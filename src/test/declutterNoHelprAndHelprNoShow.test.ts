@@ -5,7 +5,7 @@
  *   soldstates-5: the seller's "The Helpr didn't come" holds the money, tells the Helpr at once, 24 hours to answer,
  *     no answer = a strike (20261031134217). Behaviour: src/test/pglite/helprDeliverySellerReportsNoShow.pglite.mjs.
  *
- * @mutate supabase/migrations/20261031133938_declutter_no_helpr_buyer_refund.sql | RETURN public.declutter_close_paid_order(o.id, 'buyer_cancelled', NULL, NULL, NULL); | RETURN public.declutter_close_paid_order(o.id, 'admin_no_fault', NULL, NULL, NULL);
+ * @mutate supabase/migrations/20261103130123_money_card_rent_seller_delivery_setup_fee_not_found_is_404.sql | RETURN public.declutter_close_paid_order(o.id, 'buyer_cancelled', NULL, NULL, NULL); | RETURN public.declutter_close_paid_order(o.id, 'admin_no_fault', NULL, NULL, NULL);
  * @mutate supabase/migrations/20261031133938_declutter_no_helpr_buyer_refund.sql |   v_fee := least(v_fee, v_paid - 1); |   v_fee := 0;
  * @mutate supabase/migrations/20261031134217_helpr_delivery_seller_reports_no_show.sql | SET seller_no_show_reported_at = now(), seller_no_show_answer_by = now() + interval '24 hours', updated_at = now() | SET seller_no_show_reported_at = now(), seller_no_show_answer_by = now() + interval '72 hours', updated_at = now()
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |           PERFORM public.helpr_task_give_job_strike(t.helpr_id, 'delivery_no_show', t.id,\n            'The seller said | PERFORM public.helpr_task_log(t.id, 'helpr_no_show', t.helpr_id,\n            'The seller said
@@ -30,8 +30,10 @@ const flat = (name: string) => blankSqlComments(newestFunction(name).body).repla
 
 describe("BUY-2: the buyer's cancel after no Helpr", () => {
   it("reads the newest definitions", () => {
+    // declutter_cancel_after_no_helpr is read from whichever file restates it last (Q2390 p28 restated it ERRCODE-only),
+    // so only the two helpers still pin BUY-2's file; the cancel's body is asserted below.
     for (const n of ["declutter_no_helpr_refusal", "declutter_no_helpr_choice", "declutter_cancel_after_no_helpr"]) {
-      expect(newestFunction(n).file, n).toContain("20261031133938");
+      if (n !== "declutter_cancel_after_no_helpr") expect(newestFunction(n).file, n).toContain("20261031133938");
       expect(flat(n).length, n).toBeGreaterThan(600);
     }
   });
@@ -82,7 +84,7 @@ describe("LEAD-NOHELPR-NOTICE: the no-Helpr notices offer BUY-2's cancel", () =>
     expect(body).toContain(
       "The buyer can book a pickup at your home or cancel the sale. If they cancel, your item goes back on sale.'");
     // The cancel the words promise exists, with the card fee kept (BUY-2 above).
-    expect(newestFunction("declutter_cancel_after_no_helpr").file).toContain("20261031133938");
+    expect(flat("declutter_cancel_after_no_helpr")).toContain("RETURN public.declutter_close_paid_order(o.id, 'buyer_cancelled', NULL, NULL, NULL);");
   });
 });
 

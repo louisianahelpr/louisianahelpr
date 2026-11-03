@@ -24,7 +24,7 @@
  * @mutate supabase/functions/_shared/stripeCustomer.ts | query: `metadata['supabase_user_id']:'${userId}'` | query: `email:'${userId}'`
  * @mutate supabase/functions/pro-customer-portal/index.ts |     let customerId: string \| null = null; |     let customerId: string \| null = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id ?? null;
  * @mutate supabase/functions/pro-customer-portal/index.ts |     const portalSession = await stripe.billingPortal.sessions.create({ |     await stripe.customers.update(customerId, { invoice_settings: { default_payment_method: "pm_x" } });\n    const portalSession = await stripe.billingPortal.sessions.create({
- * @mutate supabase/migrations/20261018160108_declutter_card_notice_one_wallet.sql | 'Your card is saved. It is charged only when you buy, or automatically where you turned on automatic charges.' | 'Your card is saved for Declutter. It is never charged until you check out and pay.'
+ * @mutate supabase/migrations/20261103130123_money_card_rent_seller_delivery_setup_fee_not_found_is_404.sql | 'Your card is saved. It is charged only when you buy, or automatically where you turned on automatic charges.' | 'Your card is saved for Declutter. It is never charged until you check out and pay.'
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | We save your card now; you're only charged when you check out. | We save your card now; your card is never charged until you check out and pay.
  */
 import { describe, it, expect } from "vitest";
@@ -32,6 +32,7 @@ import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { readdirSync, trackedFiles } from "./helpers/trackedFiles";
+import { newestFunction } from "./helpers/parityReaders";
 
 const REPO = resolve(__dirname, "../..");
 const RESOLVER = "supabase/functions/_shared/stripeCustomer.ts";
@@ -225,7 +226,11 @@ describe("one wallet: no screen promises a saved card is never charged automatic
     const defining = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()
       .filter((f) => /FUNCTION public\.declutter_save_card\s*\(/i.test(blankSqlComments(readFileSync(join(dir, f), "utf8"))));
     expect(defining.length).toBeGreaterThan(1);
-    const newest = blankSqlComments(readFileSync(join(dir, defining[defining.length - 1]), "utf8"));
+    // The newest declutter_save_card DEFINITION, not its whole file: a later file restating it (Q2390 p28) also
+    // restates other functions whose notices may say "never charged again" (the one-time setup fee).
+    const def = newestFunction("declutter_save_card");
+    expect(def.file).toContain(defining[defining.length - 1]);
+    const newest = blankSqlComments(def.body);
     expect(newest).not.toMatch(/never charged/i);
     expect(newest).toMatch(/charged only when you buy, or automatically where you turned on automatic charges/);
   });

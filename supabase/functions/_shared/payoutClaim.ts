@@ -398,7 +398,11 @@ export type UnrecordedTransferCheck =
    * that is unmistakably its payout (destination, metadata.job_id and amount all
    * match). Settle `claimId` with `transferId`; do NOT call transfers.create.
    */
-  | { kind: "adopt"; claimId: string; transferId: string }
+  | {
+    kind: "adopt"; claimId: string; transferId: string;
+    /** What Stripe's adopted transfer sent, in cents (Q2176): the ledger settles with this, not a recompute. */
+    amountCents: number;
+  }
   /** Another run holds a claim inside the in-flight window: stand down, no page. */
   | { kind: "inflight" }
   /** Unrecorded money that cannot be attributed: refuse and page. */
@@ -501,7 +505,7 @@ export async function checkUnrecordedTransfers(
       t.metadata?.job_id === args.jobId &&
       Number(t.amount) === claimAmount
     ) {
-      return { kind: "adopt", claimId: openClaim.id, transferId: t.id };
+      return { kind: "adopt", claimId: openClaim.id, transferId: t.id, amountCents: Number(t.amount) };
     }
   }
   return { kind: "conflict", transferIds: unrecorded.map((t) => t.id) };

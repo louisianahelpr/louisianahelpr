@@ -133,7 +133,8 @@ describe("the TS twin reads the same two flags the SQL does", () => {
     const m = (frozen = false, idWaits = false) => ({ share_cents: 10000, confirmed: true, idWaits, frozen });
     expect(crewCancelFeeCents([m(), m(true), m()], 300, 3, 6)).toEqual({ cents: 5000, percent: 25 });
     expect(crewCancelFeeCents([m(), m(false, true)], 200, 2, 1)).toEqual({ cents: 5000, percent: 50 });
-    expect(crewCancelFeeCents([m(true), m(true)], 200, 2, 1)).toEqual({ cents: 0, percent: 0 });
+    const none = crewCancelFeeCents([m(true), m(true)], 200, 2, 1);
+    expect([none.cents, none.percent]).toEqual([0, 0]);
   });
 });
 

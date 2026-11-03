@@ -17,13 +17,18 @@
  * Source-read for Signup: its funnel needs the whole auth stack to render.
  *
  * @mutate src/pages/auth/signup/completeSignupError.ts | export const SIGNUP_ALREADY_FINISHED = /^Profile already completed\b/; | export const SIGNUP_ALREADY_FINISHED = /^(?:Profile already completed\|Account already active)\b/;
- * @mutate src/pages/auth/Signup.tsx | if (!finished) { hapticError(); | if (true) { hapticError();
+ * @mutate src/pages/auth/Signup.tsx | if (!finished && !resumed) { hapticError(); | if (!finished) { hapticError();
+ * @mutate src/pages/auth/Signup.tsx | if (!finished && !resumed) { hapticError(); | if (true) { hapticError();
+ * @mutate src/pages/auth/signup/completeSignupError.ts | export const SIGNUP_RESUMED_OLD_ACCOUNT = /^Signup completion window expired\b/; | export const SIGNUP_RESUMED_OLD_ACCOUNT = /^Signup completion window never\b/;
+ *
+ * Q2514 (11-03): the window-expired answer (a second sign-up on an older, unconfirmed account; measured in
+ * completeSignupError.ts) is not a failure either: not reported, an info toast that says what happened.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
-import { SIGNUP_ALREADY_FINISHED, isSignupAlreadyFinished } from "@/pages/auth/signup/completeSignupError";
+import { SIGNUP_ALREADY_FINISHED, SIGNUP_RESUMED_OLD_ACCOUNT_COPY, completeSignupErrorCopy, isSignupAlreadyFinished, isSignupResumedOldAccount } from "@/pages/auth/signup/completeSignupError";
 
 const ROOT = resolve(__dirname, "../..");
 const fn = blankComments(readFileSync(resolve(ROOT, "supabase/functions/complete-signup/index.ts"), "utf8"));
@@ -65,8 +70,21 @@ describe("complete-signup's 'already finished' answer is not a signup failure (Q
   it("Signup's completion catch reports and error-toasts only when it is NOT already finished", () => {
     const block = /catch \(completionErr\) \{([\s\S]*?)\n {6}\}/.exec(signup)?.[1] ?? "";
     expect(block).toContain("const finished = isSignupAlreadyFinished(completionErr);");
-    expect(block).toMatch(/if \(!finished\) \{ hapticError\(\); report\(completionErr/);
+    expect(block).toContain("const resumed = isSignupResumedOldAccount(completionErr);");
+    expect(block).toMatch(/if \(!finished && !resumed\) \{ hapticError\(\); report\(completionErr/);
     expect(block.match(/report\(/g)?.length, "an unconditional report() would still page").toBe(1);
-    expect(block).toMatch(/toast\[finished \? "info" : "error"\]\(finished \? SIGNUP_ALREADY_FINISHED_COPY/);
+    expect(block).toMatch(/toast\[finished \|\| resumed \? "info" : "error"\]\(finished \? SIGNUP_ALREADY_FINISHED_COPY : resumed \? SIGNUP_RESUMED_OLD_ACCOUNT_COPY :/);
+  });
+
+  it("Q2514: the window-expired answer, as the function sends it and the client throws it, is recognised; nothing else is", async () => {
+    const sentence = "Signup completion window expired. Please log in to finish your profile.";
+    expect(fn).toContain(`"${sentence}"`);
+    // FunctionsHttpError carries the body; completeSignupErrorCopy reads it, Signup throws new Error(copy).
+    const thrown = new Error(await completeSignupErrorCopy({ name: "FunctionsHttpError", context: { json: async () => ({ error: sentence }) } }));
+    expect(isSignupResumedOldAccount(thrown)).toBe(true);
+    for (const s of ["Profile already completed. Please log in.", "Account already active. Please log in to update your profile.", "Invalid user", "Finishing your account timed out"]) {
+      expect(isSignupResumedOldAccount(new Error(s)), s).toBe(false);
+    }
+    expect(SIGNUP_RESUMED_OLD_ACCOUNT_COPY).toMatch(/confirm it, then log in/);
   });
 });

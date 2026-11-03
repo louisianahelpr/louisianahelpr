@@ -35,7 +35,7 @@ import { SignupStep2 } from "./signup/SignupStep2";
 import { getSignupConfirmRedirect } from "@/lib/authRedirects";
 import { userFacingError } from "@/lib/userFacingError";
 import { isWeakPasswordError, recognizedAuthError, weakPasswordWords } from "@/lib/authErrors";
-import { completeSignupErrorCopy, isSignupAlreadyFinished, SIGNUP_ALREADY_FINISHED_COPY } from "./signup/completeSignupError";
+import { completeSignupErrorCopy, isSignupAlreadyFinished, isSignupResumedOldAccount, SIGNUP_ALREADY_FINISHED_COPY, SIGNUP_RESUMED_OLD_ACCOUNT_COPY } from "./signup/completeSignupError";
 import { useParishForZip } from "@/hooks/useParishForZip";
 import { useCityZipMismatch } from "./signup/useCityZipMismatch";
 import { useLanguage } from "@/lib/i18n/language";
@@ -343,8 +343,9 @@ const Signup = () => {
         result = await withTimeout(completeProfile(userId, gaveUp.signal, skipped), t("signup.finishingLabel")).finally(() => gaveUp.abort());
       } catch (completionErr) {
         const finished = isSignupAlreadyFinished(completionErr); // a resubmit, not a failure (Q1643)
-        if (!finished) { hapticError(); report(completionErr, { tags: { source: "Signup.completeProfile" } }); }
-        toast[finished ? "info" : "error"](finished ? SIGNUP_ALREADY_FINISHED_COPY :
+        const resumed = isSignupResumedOldAccount(completionErr); // a second sign-up on an older unconfirmed account (Q2514)
+        if (!finished && !resumed) { hapticError(); report(completionErr, { tags: { source: "Signup.completeProfile" } }); }
+        toast[finished || resumed ? "info" : "error"](finished ? SIGNUP_ALREADY_FINISHED_COPY : resumed ? SIGNUP_RESUMED_OLD_ACCOUNT_COPY :
           `${userFacingError(completionErr, t("signup.finishFailed"))} ${t("signup.accountCreatedConfirm")}`,
         );
         navigate("/signup-pending", { state: { email } });

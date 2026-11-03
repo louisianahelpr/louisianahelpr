@@ -11733,7 +11733,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 369,
+      "line": 370,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11743,7 +11743,7 @@
     },
     {
       "file": "src/pages/auth/Signup.tsx",
-      "line": 439,
+      "line": 440,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

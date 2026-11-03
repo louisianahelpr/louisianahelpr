@@ -553,12 +553,21 @@ const summary = summariseSweep({ listed: jobs.length, deferred });
 /* Only rows the sweep could LEGALLY settle count: a test-mode Checkout Session
    (a cs_live_ row is refused by settleRefusalReason and reported in the
    warning below, not failed on). Held rows never reach `deferred`. */
+/* NOT GATED ON THE SEATS (Q2073). This failure used to require CAN_SETTLE_FORWARD,
+   and CAN_SETTLE_FORWARD also required E2E_STRIPE_MODE=test until Q1754: the
+   variable said "live" from 2026-09-28, so the gate was false on every sweep and
+   cd8e5771, 5d5720a6 and b094b4e7 sat hired+funded from 10-14 to 11-03 behind a
+   ::warning (run 41468158138 listed twelve past 48h and exited 0). The age is the
+   alarm, whatever the sweep could or could not do about it: a teardown that does
+   not hold the Helpr seat cannot settle the row, and that is a reason to fail too,
+   not a reason to stay green. */
 const sessionOf = new Map(deferred.map((j) => [j.id, j.stripe_session_id]));
 const staleSettleable = summary.stale.filter((r) => String(sessionOf.get(r.id) ?? "").startsWith("cs_test_"));
-if (!DRY && CAN_SETTLE_FORWARD && staleSettleable.length) {
+if (!DRY && staleSettleable.length) {
   const msg =
-    `${staleSettleable.length} hired+funded test job(s) past 48h were NOT settled forward although this sweep ` +
-    `held both seats and the row was funded in test mode: ${staleSettleable.map((r) => r.id).join(", ")}`;
+    `${staleSettleable.length} hired+funded test job(s) past 48h were NOT settled forward (funded in test mode; ` +
+    `${CAN_SETTLE_FORWARD ? "this sweep held both seats" : "this sweep did NOT hold the Helpr seat, so it could not settle them"}): ` +
+    `${staleSettleable.map((r) => r.id).join(", ")}`;
   if (PHASE === "teardown") failures.push(`settle forward: ${msg}`);
   else console.log(`::warning title=Stale escrow rows did not settle (the teardown sweep will fail on them)::${msg}`);
 }
@@ -577,11 +586,10 @@ if (held.length) {
   console.log(`Held, not touched: ${held.map((j) => `${j.id} (${j.why}; ${j.status}/${j.payment_status}, created ${j.created_at})`).join(", ")}`);
 }
 if (!summary.ok) {
-  // A warning, never an exit code: the rows are real residue, but the sweeper
-  // is deliberately not allowed to unwind them (a poster_cancel_job here
-  // strikes poster-e2e), so failing would red a nightly for something this
-  // script cannot fix. It must still be VISIBLE — that is the whole defect
-  // this replaces.
+  // A warning here, because this line is also reached by a PRE sweep and by
+  // rows no sweep may settle (a cs_live_ session): a poster_cancel_job would
+  // strike poster-e2e. A TEARDOWN has already failed above on every stale
+  // test-mode row (Q2073 reversed the old "never an exit code" for those).
   console.log(
     `::warning title=Stranded funded test jobs are not settling forward::${summary.stale.length} ` +
       `test-owned job(s) have sat in escrow past 48h: ${summary.stale.map((r) => r.id).join(", ")}`,

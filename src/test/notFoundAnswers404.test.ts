@@ -233,6 +233,7 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
  * Packet 27 (regular): declutter_set_auto_free_days, declutter_delivery_raise_status, shops_create_item, bill_helpr_card_fee_debt, declutter_set_handovers, declutter_set_auto_free (20261103124851); the app maps by message, _shared/helprFaultFee.ts turns any error into a retried problem, declutter_manage re-RAISEs.
  * Packet 28 (regular): declutter_save_card, rentals_decide_rent_payment, declutter_seller_delivery_booking, declutter_cancel_after_no_helpr, declutter_set_delivery_handoff, declutter_payout_take_setup_fee (20261103130123); stripe-webhook throws on any declutter_save_card error, declutter-money treats every setup-fee error but PGRST202 alike, the app maps by message.
  * Packet 29 (regular): rentals_invite_tenant, helpr_task_payout_take_setup_fee, declutter_report_not_delivered, shops_set_my_faqs, declutter_set_return_address, declutter_answer_refund_offer (20261103141808); declutter-money treats every setup-fee error but PGRST202 alike, the app maps by message.
+ * Packet 30 (regular): rentals_set_deposit, declutter_update_wanted, rentals_dispute_rent_payment, declutter_mark_sold_elsewhere, shops_admin_record_hand_refund, bill_helpr_fault_card_fee (20261103142625); create-payment turns any bill_helpr_fault_card_fee error into a money_at_risk alert, shop-checkout rpcRefusal already answers 404 for PT404, the app maps by message.
  */
 const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
   "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm",
@@ -266,9 +267,11 @@ const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_s
   "declutter_save_card", "rentals_decide_rent_payment", "declutter_seller_delivery_booking", "declutter_cancel_after_no_helpr",
   "declutter_set_delivery_handoff", "declutter_payout_take_setup_fee",
   "rentals_invite_tenant", "helpr_task_payout_take_setup_fee", "declutter_report_not_delivered", "shops_set_my_faqs",
-  "declutter_set_return_address", "declutter_answer_refund_offer"];
+  "declutter_set_return_address", "declutter_answer_refund_offer",
+  "rentals_set_deposit", "declutter_update_wanted", "rentals_dispute_rent_payment", "declutter_mark_sold_elsewhere",
+  "shops_admin_record_hand_refund", "bill_helpr_fault_card_fee"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-const P0002_RAISERS = 111;
+const P0002_RAISERS = 105;
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");

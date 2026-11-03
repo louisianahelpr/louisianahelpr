@@ -171,7 +171,8 @@ describe("every job-card list uses the one --list-gap pitch (Q213a)", () => {
     // 2026-10-19 (Q2205): ActivityPageSkeleton x2 -> JobsSectionSkeleton x2.
     // 2026-11-03 (Q833): the two Working placeholder lists (JobListPage, JobsSectionSkeleton) became ONE,
     // WorkingListBones in ApplicationCardSkeleton.tsx, which both render: 9.
-    expect(hits.length).toBeGreaterThan(8);
+    // Later on 11-03 (Q833): the two Posted placeholder lists became the same FaceListBones list: 7.
+    expect(hits.length).toBeGreaterThan(6);
   });
 
   it.each(hits.map((h) => [h.where, h] as const))("%s stands its cards --list-gap apart", (_w, h) => {

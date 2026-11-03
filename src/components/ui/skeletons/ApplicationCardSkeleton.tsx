@@ -231,6 +231,12 @@ export const MINE_FACE_BOXES = {
   seg: "block h-1.5 rounded-full",
   stepWord: "mt-1 flex min-w-0 items-center justify-center gap-0.5 text-ds-11 leading-tight",
   button: "order-3 mt-2 w-full rounded-full md:mt-0 md:w-auto md:min-w-40 md:px-6 md:shrink-0 md:order-none",
+  /** JobCardMetaRow's two wrappers: a hired card's street address replaces the date line and sits above the status. */
+  metaOuter: "flex items-center text-ds-11",
+  metaRow: "flex items-center min-w-0 flex-1 overflow-hidden",
+  metaWrap: "flex-wrap gap-y-1 md:flex-nowrap",
+  /** The full address takes a line of its own on a phone (JobCardMetaRow's `basis-full`). */
+  metaAddress: "basis-full shrink-0 max-w-full md:basis-auto md:shrink md:min-w-0",
 } as const;
 
 /** One text row: the real line's type class holds a non-breaking space (its exact line-height), the bone sits over it. */
@@ -243,10 +249,14 @@ function FaceLine({ type, width, className = "" }: { type: string; width: string
   );
 }
 
-export function MineFaceSkeleton({ tracker = true }: { tracker?: boolean } = {}) {
+export function MineFaceSkeleton({ tracker = true, address = false }: { tracker?: boolean; address?: boolean } = {}) {
   const B = MINE_FACE_BOXES;
   return (
-    <div className={JOB_CARD_SHELL_FRAME} aria-hidden data-mine-face-skeleton={tracker ? "bar" : "no-bar"}>
+    <div
+      className={JOB_CARD_SHELL_FRAME}
+      aria-hidden
+      data-mine-face-skeleton={`${tracker ? "bar" : "no-bar"}${address ? " address" : ""}`}
+    >
       <div className={B.frame}>
         <div className={B.faceCol}>
           <div className="flex min-w-0 items-start gap-3">
@@ -262,10 +272,19 @@ export function MineFaceSkeleton({ tracker = true }: { tracker?: boolean } = {})
                   <FaceLine type={B.money} width="100%" className="w-12" />
                 </div>
               </div>
-              <FaceLine type={B.when} width="45%" />
+              {/* A card with its street address on the face prints no date line here: the meta row below carries it. */}
+              {!address && <FaceLine type={B.when} width="45%" />}
             </div>
           </div>
           <div className={B.under}>
+            {address && (
+              <div className={B.metaOuter} data-face-meta="">
+                <div className={`${B.metaRow} ${B.metaWrap}`}>
+                  <FaceLine type="text-ds-11" width="80%" className={`${B.metaAddress} md:w-64`} />
+                  <FaceLine type="text-ds-11" width="7rem" className="w-28" />
+                </div>
+              </div>
+            )}
             <FaceLine type={B.status} width="62%" />
           </div>
         </div>
@@ -288,21 +307,36 @@ export function MineFaceSkeleton({ tracker = true }: { tracker?: boolean } = {})
 }
 
 /**
- * The Working list's bones: four face cards, and on the grouped "All" view the
- * first bucket's heading above them (ActivityBucketGroups: a `text-ds-13`
- * heading, `gap-2` to its list), so the first card starts where the real one
- * does. The Waiting bucket's cards have no bar.
+ * Which face a list's cards wear, by status filter (Q833). The shape is decided by the card's state, so the bones
+ * follow the bucket the filter shows:
+ *   - Working "All" opens on Needs You / Scheduled (ActivityBucketGroups: done and cancelled start folded), and those
+ *     cards are hired or offered: the street address on the face (AppliedJobCard `addressOnFace`) and the bar.
+ *   - Waiting is pending applications: no bar, no address. Cancelled draws no bar (MineJobFace hides a cancelled bar).
+ *   - Done carries the bar and prints the date, not the street.
+ *   - Posted cards never put the address on the face (it is the poster's own; the meta row opens with the card).
  */
-export function WorkingListBones({ filter }: { filter: string | null }) {
+export function faceShapeFor(side: "applied" | "posted", filter: string | null): { tracker: boolean; address: boolean } {
   const f = filter || "all";
+  const tracker = f !== "waiting" && f !== "cancelled";
+  const address = side === "applied" && (f === "all" || f === "needs_you" || f === "scheduled");
+  return { tracker, address };
+}
+
+/**
+ * The Working / Posted list's bones: four face cards, and on the grouped "All" view the first bucket's heading above
+ * them (ActivityBucketGroups: a `text-ds-13` heading, `gap-2` to its list), so the first card starts where the real
+ * one does.
+ */
+export function FaceListBones({ side, filter }: { side: "applied" | "posted"; filter: string | null }) {
+  const shape = faceShapeFor(side, filter);
   const cards = (
     <div className="space-y-list">
       {[1, 2, 3, 4].map((i) => (
-        <ApplicationCardSkeleton key={i} tracker={f !== "waiting"} />
+        <ApplicationCardSkeleton key={i} {...shape} />
       ))}
     </div>
   );
-  if (f !== "all") return cards;
+  if ((filter || "all") !== "all") return cards;
   return (
     <div className="flex flex-col gap-2" data-skeleton-group-heading="">
       <div className="flex items-baseline justify-between px-1">
@@ -313,14 +347,23 @@ export function WorkingListBones({ filter }: { filter: string | null }) {
   );
 }
 
+/** The Working tab's bones (kept name: JobListPage and JobsSectionSkeleton import it). */
+export function WorkingListBones({ filter }: { filter: string | null }) {
+  return <FaceListBones side="applied" filter={filter} />;
+}
+
+/** The Posted tab's bones: PostedJobCard is MineJobFace too (Q833), so /posts stops drawing the old collapsed card. */
+export function PostedListBones({ filter }: { filter: string | null }) {
+  return <FaceListBones side="posted" filter={filter} />;
+}
+
 /**
  * The applied side's card placeholder. The name and path are kept (the prod
  * spec e2e/prod-audit/activity-loading-reserve.spec.ts and listPitchToken name
- * it); since Q833 it is the MineJobFace drawing above. /posts still draws
- * `CollapsedActivityCardSkeleton` (ActivityCardSkeleton).
+ * it); since Q833 it is the MineJobFace drawing above, and /posts draws the same face (PostedListBones).
  */
-export function ApplicationCardSkeleton({ tracker = true }: { tracker?: boolean } = {}) {
-  return <MineFaceSkeleton tracker={tracker} />;
+export function ApplicationCardSkeleton({ tracker = true, address = false }: { tracker?: boolean; address?: boolean } = {}) {
+  return <MineFaceSkeleton tracker={tracker} address={address} />;
 }
 
 /*

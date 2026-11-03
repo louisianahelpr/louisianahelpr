@@ -21,7 +21,7 @@ import { render } from "@testing-library/react";
 import type { ReactElement } from "react";
 
 import { JobCardSkeleton, RecommendedJobCardSkeleton } from "./JobCardSkeleton";
-import { ApplicationCardSkeleton } from "./ApplicationCardSkeleton";
+import { ApplicationCardSkeleton, PostedListBones, WorkingListBones } from "./ApplicationCardSkeleton";
 import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
 import { MessageThreadSkeleton } from "./MessageThreadSkeleton";
 import { JOB_CARD_FRAME } from "@/components/job/cardGeometry";
@@ -110,12 +110,24 @@ describe("card-matching skeletons", () => {
    */
   /* Q833 (2026-11-03): the /jobs Working cards are MineJobFace now, so ApplicationCardSkeleton draws the face
      (src/test/mineFaceSkeletonMatchesFace.test.tsx holds its height) and no old-card meta line at all. */
-  it("the /jobs placeholder is the MineJobFace drawing and the /posts placeholder keeps TWO meta lines (Q700, Q833)", () => {
+  /* Later on 11-03: PostedJobCard is MineJobFace too, so /posts draws the same face (PostedListBones); the old
+     collapsed card (ActivityCardSkeleton) keeps its two meta lines but no list draws it. */
+  it("the /jobs and /posts placeholders are the MineJobFace drawing, each in its list's shape (Q700, Q833)", () => {
     const lines = (el: ReactElement) =>
       [...render(el).container.querySelectorAll<HTMLElement>("[data-skeleton-meta-line]")].map((l) => l.style.height);
+    const faces = (el: ReactElement) =>
+      [...render(el).container.querySelectorAll("[data-mine-face-skeleton]")].map((e) => e.getAttribute("data-mine-face-skeleton"));
     expect(lines(<ApplicationCardSkeleton />)).toEqual([]);
     expect(render(<ApplicationCardSkeleton />).container.querySelector("[data-mine-face-skeleton]")).not.toBeNull();
     expect(lines(<ActivityCardSkeleton />)).toEqual(["32px", "16px"]);
+    // Working "All" opens on Needs You / Scheduled: hired or offered cards, the street address on the face and the bar.
+    expect(faces(<WorkingListBones filter={null} />)).toEqual(Array(4).fill("bar address"));
+    expect(faces(<WorkingListBones filter="waiting" />)).toEqual(Array(4).fill("no-bar"));
+    expect(faces(<WorkingListBones filter="done" />)).toEqual(Array(4).fill("bar"));
+    // Posted cards never carry the address on the face; the bar is there until a job is cancelled.
+    expect(faces(<PostedListBones filter={null} />)).toEqual(Array(4).fill("bar"));
+    expect(faces(<PostedListBones filter="cancelled" />)).toEqual(Array(4).fill("no-bar"));
+    expect(lines(<PostedListBones filter={null} />)).toEqual([]);
   });
 
   it("every frame constant is a real class string, so the checks above can bite", () => {
@@ -134,7 +146,9 @@ describe("card-matching skeletons", () => {
 // Same contract on the inbox row, whose bones were once a raised glass CARD
 // at a 76px pitch standing in for a flat 64px strip.
 // @mutate src/components/ui/skeletons/MessageThreadSkeleton.tsx | <div className={CONVERSATION_ROW_FRAME} aria-hidden> | <div className="p-3 rounded-ds-md liquid-glass" aria-hidden>
-// Q700/Q833: /jobs draws the face, /posts two meta lines. Each mutation moves one tab off its shape.
-// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <MineFaceSkeleton tracker={tracker} />; | return <CollapsedActivityCardSkeleton metaLines={1} />;
+// Q700/Q833: /jobs and /posts draw the face, each in its list's shape. Each mutation moves one list off its shape.
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <MineFaceSkeleton tracker={tracker} address={address} />; | return <CollapsedActivityCardSkeleton metaLines={1} />;
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <FaceListBones side="posted" filter={filter} />; | return <>{[1, 2, 3, 4].map((i) => <CollapsedActivityCardSkeleton key={i} />)}</>;
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | const address = side === "applied" && | const address = false &&
 // @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | export function CollapsedActivityCardSkeleton({ metaLines = 2 } | export function CollapsedActivityCardSkeleton({ metaLines = 1 }
 // @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | {metaLines === 2 && ( | {false && (

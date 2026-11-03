@@ -38,6 +38,7 @@
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_alert_overdue_checks: "declutterOverdueCheckClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_free_still_available_sweep: "declutterFreeStillClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_refund_request_sweep: "declutterRefundRequestClock.pglite.mjs",\n | \n
+// @mutate src/test/clockFunctionsProven.test.ts |   declutter_ship_sweep: "declutterShipSweepClock.pglite.mjs",\n | \n
 // @mutate src/test/pglite/userReportsLedgerClock.pglite.mjs | const { file, stmt } = newestFunction("check_user_reports_reach_ledger"); | const { file, stmt } = newestFunction("check_user_reports");
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -86,6 +87,7 @@ const PROVEN: Record<string, string> = {
   declutter_alert_overdue_checks: "declutterOverdueCheckClock.pglite.mjs",
   declutter_free_still_available_sweep: "declutterFreeStillClock.pglite.mjs",
   declutter_refund_request_sweep: "declutterRefundRequestClock.pglite.mjs",
+  declutter_ship_sweep: "declutterShipSweepClock.pglite.mjs",
 };
 
 /** function -> why it has no fixed-clock probe yet. Each is open work under docs/OPEN.md Q1424. */
@@ -103,7 +105,6 @@ const NOT_PROVEN: Record<string, string> = {
   helpr_task_sweep: "named by declutterDelivery.pglite.mjs (it moves open_until / pickup_slot_start / delivered_at, not the clock: the 48 h no-Helpr refund, the 2 h Helpr no-show and the 24 h door auto-confirm); no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path (Declutter slice 5, 2026-10-16).",
   // Train D (2026-10-27), measured: neither probe imports fixedClock.mjs; both move row timestamps.
   declutter_haul_away_sweep: "named by declutterHaulAwaySweep.pglite.mjs (it moves jobs.updated_at / link and listing timestamps, not the clock: the 14-day notice, the 1-day abandoned job and the 7-day link undo); no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path (Q1962, 20261027165903).",
-  declutter_ship_sweep: "named by shippingNeverShippedSweep.pglite.mjs and shippingS5DeliveredPayout.pglite.mjs (they move paid_at and shipments.delivered_at relative to now(), not the clock: the never-shipped close at declutter_ship_by(paid_at) and the 24 h after the delivered scan); no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path (shipping S5/S6, 20261102013630, 20261102045035).",
   cron_http_tag: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
   cron_record_work: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
   detect_stuck_payments: "named by stuckPaymentNeedsStripeProof.pglite.mjs, moneySweepsFoundVsDone.pglite.mjs, cronWorkVisibility.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path: lane A2 (money, auth and data).",

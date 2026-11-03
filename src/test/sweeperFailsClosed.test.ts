@@ -29,6 +29,7 @@
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs |     return Array.isArray(rows) && rows.length === 1; |     return true;
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs |   const holdWhy = heldReason(job); |   const holdWhy = null;
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | if (verdict === "settle-forward" && job.stripe_session_id == null) { | if (false) {
+// @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | if (!DRY && staleSettleable.length) { | if (!DRY && CAN_SETTLE_FORWARD && staleSettleable.length) {
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | summary.stale.filter((r) => String(sessionOf.get(r.id) ?? "").startsWith("cs_test_")) | summary.stale
 // @mutate scripts/e2e/sweep-both-seats.sh |     if [ "$SWEEP_PHASE" = "teardown" ]; then |     if false; then
 
@@ -180,8 +181,26 @@ describe("the sweeper fails closed", () => {
       { rows: [staleHiredFunded] },
     );
     expect(r.code, r.out).toBe(1);
-    expect(r.out).toMatch(/were NOT settled forward although this sweep held both seats/);
+    expect(r.out).toMatch(/were NOT settled forward \(funded in test mode; this sweep held both seats\)/);
     expect(seen.some((s) => s.url.includes(WALK_FIRST_LEG)), "the walk was attempted").toBe(true);
+  }, 30_000);
+
+  // Q2073: the 48h failure was gated on CAN_SETTLE_FORWARD, which was false on
+  // every sweep while E2E_STRIPE_MODE said "live" (09-28..11-02), so three rows
+  // sat hired+funded from 10-14 to 11-03 behind a warning. The age is the
+  // alarm, seats or no seats.
+  it("a teardown FAILS on a hired+funded test row past 48h even when it does not hold the Helpr seat (Q2073)", async () => {
+    const r = await sweep({ SWEEP_PHASE: "teardown" }, { rows: [staleHiredFunded] });
+    expect(r.code, r.out).toBe(1);
+    expect(r.out).toMatch(/were NOT settled forward \(funded in test mode; this sweep did NOT hold the Helpr seat/);
+    expect(r.out).toContain(staleHiredFunded.id as string);
+    expect(seen.some((s) => s.url.includes(WALK_FIRST_LEG)), "no walk without the Helpr seat").toBe(false);
+    // A pre sweep never blocks the suite: it warns, and the teardown fails.
+    const pre = await sweep({ SWEEP_PHASE: "pre" }, { rows: [staleHiredFunded] });
+    expect(pre.code, pre.out).toBe(0);
+    expect(pre.out).toMatch(/the teardown sweep will fail on them/);
+    // Inventory floor: the stale row is the one listed, so the rule had a row to judge.
+    expect(pre.out.match(/left to settle forward: /g)?.length ?? 0).toBeGreaterThan(0);
   }, 30_000);
 
   it("settles a cs_test_ row forward whatever E2E_STRIPE_MODE says: the row's own session is the test-mode proof (L2, Q1754)", async () => {

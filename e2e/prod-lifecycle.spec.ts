@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { fitJobTitle } from "../scripts/lib/jobTextBounds.mjs";
 import { mintAdminSession, playwrightTransport, resolveServiceKey } from "../scripts/lib/adminSession.mjs";
 import { pathsByJob, rowStillNames, withoutPaths, type ProofRow } from "./proofPhotoTeardown";
+import { settleJobForward } from "../scripts/e2e/settleForward.mjs";
 
 // The full authenticated money loop, against PRODUCTION, on a Stripe TEST key.
 //
@@ -193,6 +194,20 @@ const AUTH_STORAGE_KEY = `sb-${new URL(SUPABASE_URL).hostname.split(".")[0]}-aut
  * has thrown or returned.
  */
 const uploadedProofPaths: string[] = [];
+
+/**
+ * THE JOB THIS ATTEMPT MADE, and the two seats that made it (Q2073). A run that
+ * dies after the hire leaves its row hired and funded, and the Playwright retry
+ * makes a second one: every failed run of this spec left TWO such rows
+ * ("[E2E DO NOT ACCEPT] r…", e.g. 3e1d3779 + 4ed49d85 from run 41553087594).
+ * The teardown sweep must defer them (younger than SETTLE_FORWARD_MIN_AGE_MS,
+ * so maybe a live run's), and before Q1754 no sweep ever settled them: three
+ * sat from 10-14 to 11-03. This attempt KNOWS the row is its own, so its
+ * afterEach settles it forward down the product's doors, exactly as
+ * 02-marketplace's teardown does. Module scope for the same reason as
+ * uploadedProofPaths.
+ */
+let attemptJob: { id: string; poster: Session; helper: Session } | null = null;
 
 /**
  * THE LIVE-KEY TRIPWIRE.
@@ -562,6 +577,41 @@ test.describe("full money loop against production", () => {
     }
   });
 
+  /* A FAILED attempt settles its own hired+funded job forward (Q2073). Runs
+     only when the test did not pass: a passing run released the job itself.
+     settleJobForward refuses (and calls nothing) on a row that is not hired,
+     not funded through a cs_test_ session, disputed or already settled, so an
+     attempt that died before the hire is left to the sweep's delete/cancel.
+     Non-fatal and announced, like the storage teardown above: the sweeper
+     after the suite is still the backstop, and its teardown fails on any such
+     row past 48h. */
+  test.afterEach(async () => {
+    const testInfo = test.info();
+    const mine = attemptJob;
+    attemptJob = null;
+    if (!READY || !mine || testInfo.status === testInfo.expectedStatus) return;
+    try {
+      const out = await settleJobForward({
+        base: SUPABASE_URL,
+        anon: ANON,
+        posterToken: mine.poster.access_token,
+        helperToken: mine.helper.access_token,
+        posterId: mine.poster.user.id,
+        helperId: mine.helper.user.id,
+        jobId: mine.id,
+        log: (line: string) => testInfo.annotations.push({ type: "settle-forward", description: line.trim() }),
+      });
+      if (!out.settled && out.steps.length > 0) {
+        announceUncovered(
+          "Money-loop job left in escrow",
+          `${mine.id}: this failed attempt could not settle its own job forward — ${out.reason}. It is still ${out.status}/${out.paymentStatus}.`,
+        );
+      }
+    } catch (err) {
+      announceUncovered("Money-loop job left in escrow", `${mine.id}: settling this failed attempt's job forward threw (${String(err).slice(0, 200)})`);
+    }
+  });
+
   // One test, not seven. The legs are not independent: each needs the state the
   // previous one produced, and splitting them into separate tests would either
   // re-run the whole loop per leg (four funded jobs per push) or leak state
@@ -636,6 +686,7 @@ test.describe("full money loop against production", () => {
     });
     expect(created.ok(), `job insert failed: ${created.status()} ${await created.text()}`).toBe(true);
     const [job] = await created.json();
+    if (job?.id) attemptJob = { id: job.id, poster, helper };
     expect(job.id, "insert returned no row").toBeTruthy();
 
     // These are not decoration. If `parish` came back non-null the fan-out

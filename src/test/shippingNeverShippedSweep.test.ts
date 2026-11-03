@@ -3,10 +3,10 @@
  * its ship-by (label bought, no acceptance scan, no open problem) as a seller-fault cancel, and asks to void a TEST label
  * only. Behaviour proven in PGlite: src/test/pglite/shippingNeverShippedSweep.pglite.mjs (57/57; 8 planted defects RED).
  *
- * @mutate supabase/migrations/20261102045035_shipping_never_shipped_sweep.sql |        AND s.label_state = 'bought' AND s.accepted_at IS NULL\n       AND now() >= public.declutter_ship_by(o2.paid_at) |        AND s.label_state = 'bought'\n       AND now() >= public.declutter_ship_by(o2.paid_at)
- * @mutate supabase/migrations/20261102045035_shipping_never_shipped_sweep.sql |        AND now() >= public.declutter_ship_by(o2.paid_at)\n |
- * @mutate supabase/migrations/20261102045035_shipping_never_shipped_sweep.sql | declutter_close_paid_order(o.id, 'seller_backed_out', 'seller', 'item_gone_after_sale', | declutter_close_paid_order(o.id, 'buyer_cancelled', NULL, NULL,
- * @mutate supabase/migrations/20261102045035_shipping_never_shipped_sweep.sql |         IF v_mode = 'test' THEN | IF true THEN
+ * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql |        AND s.label_state = 'bought' AND s.accepted_at IS NULL\n       AND now() >= public.declutter_ship_by(o2.paid_at) |        AND s.label_state = 'bought'\n       AND now() >= public.declutter_ship_by(o2.paid_at)
+ * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql |        AND now() >= public.declutter_ship_by(o2.paid_at)\n |
+ * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql | declutter_close_paid_order(o.id, 'seller_backed_out', 'seller', 'item_gone_after_sale', | declutter_close_paid_order(o.id, 'buyer_cancelled', NULL, NULL,
+ * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql |         IF v_mode = 'test' THEN | IF true THEN
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";

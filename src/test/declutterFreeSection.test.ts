@@ -63,7 +63,8 @@ describe("the Declutter Free section", () => {
     // Then Q1935 (20261102040952, the prorated card fee), Shipping S6 2d (20261102051521, the label hold) and Q1928 gap 3
     // (20261102063343: 2d's body + Q1935's fee + an out seller's seller_out); the free branch is untouched in all three.
     // Then the A3 reconcile (20261102084222): 063343 plus A3-72's two delivery_never_booked lines; free branch untouched.
-    expect(newestFunction("declutter_close_paid_order").file).toContain("20261102084222_a3_stack_reconcile.sql");
+    // Q2259 lost sweep (20261103203204): verbatim plus ship_lost in v_seller_fault (the free-claim branch unchanged).
+    expect(newestFunction("declutter_close_paid_order").file).toContain("20261103203204_shipping_lost_sweep.sql");
     const names = ["declutter_free_rules",
       "declutter_buy_now",
       "declutter_update_draft", "payout_setup_hire_allowed"];

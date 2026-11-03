@@ -1,7 +1,7 @@
 // @mutate supabase/migrations/20260927231025_admin_last_activity.sql |   GROUP BY a.user_id\n | GROUP BY a.user_id\n  LIMIT 500\n
 // @mutate supabase/migrations/20260927231025_admin_last_activity.sql |   WHERE public.has_role((SELECT auth.uid()), 'admin'::public.app_role)\n | \n
 // @mutate supabase/migrations/20260927231025_admin_last_activity.sql | FROM PUBLIC, anon; | FROM PUBLIC;
-// @mutate src/components/admin/useAdminUserSummaries.ts |     if (rpc.error?.code !== "PGRST202") {\n      const wanted = new Set(userIds);\n      return { data: rpc.data?.filter((r) => wanted.has(r.user_id)) ?? null, error: rpc.error };\n    }\n    const [jobs | {\n      const wanted = new Set(userIds);\n      void wanted; void rpc;\n    }\n    const [jobs
+// @mutate src/components/admin/useAdminUserSummaries.ts |     if (!isMissingRpcNamed(rpc.error, "admin_last_activity")) {\n      const wanted = new Set(userIds);\n      return { data: rpc.data?.filter((r) => wanted.has(r.user_id)) ?? null, error: rpc.error };\n    }\n    const [jobs | {\n      const wanted = new Set(userIds);\n      void wanted; void rpc;\n    }\n    const [jobs
 // @mutate src/components/admin/useAdminUserSummaries.ts |       loadLastActivity(userIds),\n |       supabase.from("jobs").select("customer_id, created_at").in("customer_id", userIds).order("created_at", { ascending: false }).limit(500),\n
 /*
  * Q819: Admin People built each user's last activity ("Posted Job", "Applied
@@ -54,7 +54,8 @@ describe("Q819: one user's many jobs cannot hide another user's last activity", 
   it("the activity summary reads admin_last_activity, the bounded reads only on PGRST202", () => {
     expect(hook).toMatch(/loadActivitySummary[\s\S]*?Promise\.all\(\[[\s\S]*?loadLastActivity\(userIds\)[\s\S]*?\]\)/);
     expect(hook).toMatch(/supabase\.rpc\(\s*"admin_last_activity"\s*\)/);
-    expect(hook).toMatch(/if\s*\(\s*rpc\.error\?\.code\s*!==\s*"PGRST202"\s*\)\s*\{[^}]*return\b/);
+    // Q2190: the not-deployed check names the RPC (isMissingRpcNamed), so a changed signature is not a fallback.
+    expect(hook).toMatch(/if\s*\(\s*!isMissingRpcNamed\(\s*rpc\.error\s*,\s*"admin_last_activity"\s*\)\s*\)\s*\{[^}]*return\b/);
   });
 
   it("no bounded jobs/applications read in the summary hook sits outside a PGRST202 fallback", () => {
@@ -64,7 +65,7 @@ describe("Q819: one user's many jobs cannot hide another user's last activity", 
     const offenders: string[] = [];
     for (const m of reads) {
       const before = hook.slice(Math.max(0, m.index! - 600), m.index!);
-      if (!/"PGRST202"/.test(before)) offenders.push(`${HOOK}@${m.index}`);
+      if (!/"PGRST202"|isMissingRpcNamed\(\s*rpc\.error\s*,\s*"admin_last_activity"\s*\)/.test(before)) offenders.push(`${HOOK}@${m.index}`);
     }
     expect(offenders).toEqual([]);
   });

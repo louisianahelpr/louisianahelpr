@@ -19,6 +19,7 @@ import {
 } from "@/lib/helperBadgeStats";
 import type { ProfileReview, ProfileJob, ReplyLatency } from "./types";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -440,7 +441,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // deployed yet) is expected between merge and `supabase db push`, so
       // hide the badge without polluting Sentry. Any OTHER error still
       // reports so a real outage stays observable.
-      if (lastActiveRes.error && lastActiveRes.error.code !== "PGRST202") {
+      if (lastActiveRes.error && !isMissingRpcNamed(lastActiveRes.error, "get_user_last_active")) {
         report(lastActiveRes.error, {
           severity: "warning",
           tags: { area: "user_profile.last_active" },
@@ -449,7 +450,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       }
       // Repeat-hire % RPC: same PGRST202-safe pattern — expected between
       // merge and `supabase db push`. Any other error stays observable.
-      if (repeatHireRes.error && repeatHireRes.error.code !== "PGRST202") {
+      if (repeatHireRes.error && !isMissingRpcNamed(repeatHireRes.error, "get_user_repeat_hire_percent")) {
         report(repeatHireRes.error, {
           severity: "warning",
           tags: { area: "user_profile.repeat_hire_percent" },

@@ -26,6 +26,7 @@ import {
 } from "@/lib/helperBadgeStats";
 import { JOB_READABLE_COLUMNS, readableJobRows, type ReadableJobRow } from "@/lib/jobColumns";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 // The row as a signed-in client can read it: jobs.offered_to_helper_id is not
 // selectable (20260915045110), so these reads name their columns.
@@ -94,7 +95,7 @@ export function useProfileStats(userId: string | undefined) {
 
       // Badge inputs are secondary: a failed aggregate must not blank the
       // landing, so it falls back to an exact own-row split instead.
-      if (publicStatsRes.error && publicStatsRes.error.code !== "PGRST202") {
+      if (publicStatsRes.error && !isMissingRpcNamed(publicStatsRes.error, "get_public_profile_stats")) {
         report(publicStatsRes.error, {
           severity: "warning",
           tags: { area: "profile.helper_badge_stats" },

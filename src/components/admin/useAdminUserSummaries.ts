@@ -5,6 +5,7 @@ import { loadGiftCardPaidJobIds } from "./giftCardPaidJobIds";
 import { REVIEW_COUNT_COLUMNS, countsTowardRating } from "@/lib/reviewStats";
 import type { Profile } from "./adminUserHelpers";
 import { posterPaidDollars } from "@/lib/posterJobCost";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /**
  * One member's money, each fact from its own record (owner 2026-10-21: "$94
@@ -256,7 +257,7 @@ export function useAdminUserSummaries() {
    */
   const loadLastLogins = async (userIds: string[]) => {
     const rpc = await supabase.rpc("admin_last_logins");
-    if (rpc.error?.code !== "PGRST202") {
+    if (!isMissingRpcNamed(rpc.error, "admin_last_logins")) {
       const wanted = new Set(userIds);
       return { data: rpc.data?.filter((r) => wanted.has(r.user_id)) ?? null, error: rpc.error };
     }
@@ -272,7 +273,7 @@ export function useAdminUserSummaries() {
    */
   const loadLastActivity = async (userIds: string[]) => {
     const rpc = await supabase.rpc("admin_last_activity");
-    if (rpc.error?.code !== "PGRST202") {
+    if (!isMissingRpcNamed(rpc.error, "admin_last_activity")) {
       const wanted = new Set(userIds);
       return { data: rpc.data?.filter((r) => wanted.has(r.user_id)) ?? null, error: rpc.error };
     }

@@ -11,6 +11,7 @@ import { report } from "@/lib/errorLogger";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import type { Database } from "@/integrations/supabase/types";
 import { userFacingError } from "@/lib/userFacingError";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -167,7 +168,7 @@ export function HelperAvailability({ userId, compact = false }: { userId: string
         "save_weekly_availability",
         { p_slots: inserts.map(({ helper_id: _h, specific_date: _d, ...slot }) => slot) },
       );
-      if (rpcError && (rpcError as { code?: string }).code !== "PGRST202") throw rpcError;
+      if (rpcError && !isMissingRpcNamed(rpcError, "save_weekly_availability")) throw rpcError;
       if (rpcError) {
         unwrapMutation(
           await supabase

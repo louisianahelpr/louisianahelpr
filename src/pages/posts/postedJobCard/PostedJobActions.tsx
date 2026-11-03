@@ -18,6 +18,7 @@ import { InProgressStep } from "./steps/InProgressStep";
 import { CompletedStep } from "./steps/CompletedStep";
 import { DisputedStep } from "./steps/DisputedStep";
 import { crewIsBooked } from "./crewBooked";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 interface PostedJobActionsProps {
   job: Job;
@@ -218,7 +219,7 @@ export function PostedJobActions({
           // is ahead of the database; a deploy-lag miss is not a
           // reason to tell the poster their escalation failed
           // when it may simply be a minute early.
-          if (String(escalateErr.code ?? "") !== "PGRST202") throw escalateErr;
+          if (!isMissingRpcNamed(escalateErr, "rpc_escalate_dispute")) throw escalateErr;
           report(escalateErr, { tags: { source: "PostedJobCard.escalateDispute.deployLag" } });
         }
       } catch (err) {

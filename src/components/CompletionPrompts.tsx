@@ -32,6 +32,7 @@ import { userFacingError } from "@/lib/userFacingError";
 import { ReviewQuestionCard } from "@/components/reviewPanel/ReviewQuestionCard";
 import { quickTagsFor } from "@/components/reviewPanel/types";
 import { JobDoneSummary } from "@/components/jobDone/JobDoneSummary";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 // NpsPrompt is mounted as the final step in the post-completion sequence —
 // after review/tip/share. It self-gates on eligibility (2nd qualifying job
@@ -232,9 +233,8 @@ export const CompletionPrompts = ({ jobId, revieweeId, revieweeName, userId, onD
         // db-deploy finishing). The review itself already landed and the next
         // genuine reviewer re-evaluates the threshold, so degrade quietly
         // rather than falling back to a client-side flag.
-        const code = (flagErr as { code?: string }).code;
         report(flagErr, {
-          severity: code === "PGRST202" ? "warning" : "error",
+          severity: isMissingRpcNamed(flagErr, "apply_low_rating_flag") ? "warning" : "error",
           tags: { source: "CompletionPrompts.applyLowRatingFlag" },
         });
       }

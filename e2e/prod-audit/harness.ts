@@ -14,12 +14,15 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { findErrorScreen, readScreenText } from "../errorScreens";
 import { isReadRpcPath, isStorageSignPath } from "../readRpc";
+import { isConsentAcceptance } from "./consentAcceptance";
 import { measureLayout } from "../happy-path/auditRoutes";
 import { srFetch } from "../serviceRoleFetch";
 import { ANON, SUPABASE_URL, getSession as journeySession, newUserContext, rest, type Role, type Session } from "../journeys/fixtures";
 import { ACCOUNTS } from "../../scripts/test-signin-link.mjs";
 
 export { newUserContext, rest, SUPABASE_URL, ANON };
+/** The one write every firewall lets through: TermsReconsentDialog's consent pin + event (consentAcceptance.ts). */
+export { isConsentAcceptance };
 /** Q100: the funded open job fixture (a real Stripe TEST checkout as poster-e2e) — see fundedOpenJob.ts. */
 export { ensureAcceptedJob, ensureDisputedJob, ensureFundedOpenJob, retireFundedJob, skipWhenUnfundedLive, unlessLivePay } from "./fundedOpenJob";
 export { ensureFundedApplicantJob, retireApplicantFixtures } from "./fundedApplicantJob";
@@ -109,36 +112,6 @@ export const SKIP_BUTTON = /back to|^back$|^close$|^×$|dismiss|skip|not now|tog
  * money, and one POST body does not tell them apart. Targeted specs never use
  * this: they make real writes on test-owned rows and clean them up.
  */
-/**
- * THE ONE WRITE EVERY FIREWALL HAS TO LET THROUGH.
- *
- * `TermsReconsentDialog`'s acceptance — `PATCH /rest/v1/profiles` carrying
- * `terms_version_accepted` — is not an admin action, a money move or anything
- * a presser could stumble into: it is the tester's own consent record, on the
- * tester's own row, and it is the ONLY way out of a non-dismissible gate that
- * otherwise covers every screen behind it (see `clearConsentGate`).
- *
- * Refusing it is how run 35692221560 left `admin@louisianahelpr.com` at
- * `terms_version_accepted = ''` even after 26 admin loads: `admin-views.spec.ts`
- * installs its firewall on the CONTEXT before its first `goto`, so every
- * acceptance it pressed was aborted at the wire, and the run ended before an
- * unfirewalled spec could land one. A fix that only works in the specs that
- * happen to arm their firewall late is not a fix.
- *
- * Narrow on purpose: the method, the path AND the body must all match, so no
- * other `profiles` write — and nothing on any other table — is let through.
- */
-export function isConsentAcceptance(method: string, pathname: string, body: string | null): boolean {
-  if (!body) return false;
-  if (method === "PATCH" && /\/rest\/v1\/profiles$/.test(pathname)) return body.includes("terms_version_accepted");
-  // OA-009: the dialog's append-only consent EVENT, written right after the pin.
-  // Refusing it left the admin test account pinned to "Sep 2026" with zero
-  // `legal_acceptances` rows (2026-09-24 01:14Z press run): the pin-without-event
-  // state OA-009 is about, manufactured by the harness.
-  if (method === "POST" && /\/rest\/v1\/legal_acceptances$/.test(pathname)) return body.includes("terms_version");
-  return false;
-}
-
 export async function writeFirewall(ctx: BrowserContext): Promise<string[]> {
   const blocked: string[] = [];
   await ctx.route(`${SUPABASE_URL}/**`, async (route) => {

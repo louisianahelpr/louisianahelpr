@@ -42,6 +42,7 @@ import {
 } from "./useActivityData";
 import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
 import { forgetActivityCoresRead } from "@/lib/activityCores";
+import { forgetMyOpenContinueDaysRead } from "@/lib/continueDayReads";
 
 /** Every table read the mock actually saw, in issue order. */
 let issued: string[] = [];
@@ -49,6 +50,7 @@ let issued: string[] = [];
 beforeEach(() => {
   Object.keys(responses).forEach((k) => delete responses[k]);
   issued = [];
+  forgetMyOpenContinueDaysRead();
   fromMock.mockReset();
   rpcMock.mockReset();
 
@@ -85,6 +87,10 @@ function makeChainable(table: string) {
     filters.push(`in:${col}=${[...vals].sort().join("&")}`);
     return builder;
   };
+  builder.is = (col: string, val: unknown) => {
+    filters.push(`is:${col}=${val}`);
+    return builder;
+  };
   builder.order = (col: string, _opts?: unknown) => {
     filters.push(`order:${col}`);
     return resolveQuery();
@@ -103,6 +109,8 @@ const CORES_KEY = "rpc:get_my_activity_cores";
 const APPLIED_JOBS_KEY = "rpc:get_jobs_for_my_applications";
 const VIOLATIONS_KEY = "user_violations|select,eq:user_id=u1,eq:violation_type=job_denial";
 const HELPER_REVIEWS_KEY = "reviews|select,eq:reviewer_id=u1";
+/** Owner bug 11-03: the open continue days ride the first wave beside the cores (one read for both). */
+const CONTINUE_DAYS_KEY = "job_continue_days|select,eq:status=set,is:closed_at=null";
 
 // ---------------------------------------------------------------------------
 
@@ -326,8 +334,9 @@ describe("fetchAppliedActivity — My Jobs core", () => {
        be in this set. */
     // The one-read RPC (get_my_activity_cores) is asked first; this mock gives it no payload, so these are the
     // fallback reads, and they still leave together.
-    expect(issued[0]).toBe(CORES_KEY);
-    expect(issued.slice(1, 6).sort()).toEqual(
+    // The open continue days (owner bug 11-03) leave with the cores, in the same first wave.
+    expect(issued.slice(0, 2).sort()).toEqual([CONTINUE_DAYS_KEY, CORES_KEY].sort());
+    expect(issued.slice(2, 7).sort()).toEqual(
       [APPS_KEY, APPLIED_JOBS_KEY, OFFERS_KEY, VIOLATIONS_KEY, HELPER_REVIEWS_KEY].sort(),
     );
   });
@@ -432,7 +441,7 @@ describe("both activity cores in one read (get_my_activity_cores)", () => {
 
   it("the badge's two cores, asked together, send one request and read the same rows", async () => {
     const [posted, applied] = await Promise.all([fetchPostedActivity("u1"), fetchAppliedActivity("u1")]);
-    expect(issued.filter((k) => !k.startsWith("rpc:get_job_series_state") && !k.startsWith("job_series"))).toEqual([CORES_KEY]);
+    expect(issued.filter((k) => !k.startsWith("rpc:get_job_series_state") && !k.startsWith("job_series"))).toEqual([CORES_KEY, CONTINUE_DAYS_KEY]);
     expect(posted.postedJobs.map((j) => j.id)).toEqual(["p1"]);
     expect(posted.postedJobs[0].offered_to_helper_id).toBe("h9");
     expect(posted.applicantCounts.p1).toBe(2);

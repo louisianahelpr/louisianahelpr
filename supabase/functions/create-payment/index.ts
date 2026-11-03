@@ -1617,7 +1617,7 @@ serve(async (req) => {
         // with nobody hired, void-cancelled-payments refunds it in full (card fee included).
         const marked = await markCapturedNotHired(supabaseAdmin, jobId, `capture_hold: the Helpr's accept was refused after the capture: ${String(done.error.message ?? "").slice(0, 300)}`);
         const helprName = await firstNameForPage(supabaseAdmin, user.id, "the Helpr");
-        const posterName = await firstNameForPage(supabaseAdmin, job.customer_id, "the poster");
+        const posterName = await firstNameForPage(supabaseAdmin, job.customer_id, "the person who posted it");
         await postSlackOpsAlert({
           kind: "money_at_risk",
           severity: "critical",

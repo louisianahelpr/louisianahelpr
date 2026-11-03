@@ -1,7 +1,10 @@
 /**
  * easypost-webhook: tracking scans for Declutter shipping (docs/specs/shipping-draft.md S4; Q2259, Q2424).
  *
- * EasyPost POSTs an Event here for every tracker change. This function:
+ * EasyPost POSTs an Event here for every tracker change. The URL given to EasyPost is OUR domain, never the
+ * *.supabase.co address (owner 11-03): https://www.louisianahelpr.com/hooks/easypost, which vercel.json rewrites to
+ * this function (www, because the apex redirects and webhooks do not follow redirects; guard
+ * src/test/easypostWebhookOnOurDomain.test.ts). This function:
  *   1. refuses anything without EasyPost's HMAC signature over the RAW body (easypostSignatureValid), before the
  *      body is parsed. Fail closed: with no EASYPOST_WEBHOOK_SECRET set, every call is refused (owner step: create
  *      the webhook in the EasyPost dashboard, test and production, with that secret, then

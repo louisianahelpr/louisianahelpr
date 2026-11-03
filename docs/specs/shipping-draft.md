@@ -410,7 +410,8 @@ Source: usps.com/ship/shipping-restrictions.htm (read 2026-10-20) and USPS PO-13
   edge function (Louisiana, small, verify address, cache, rate-limit); manual-capture Checkout with the
   shipping line; fee rule trigger picks `f1_ship` for `'ship'`.
 - **S3 label worker:** claim row in the hold transaction, buy-then-capture, resume-safe, mode-keyed.
-- **S4 tracking webhook:** `easypost-webhook` (HMAC, replay-safe), status machine, ship-by and lost sweeps.
+- **S4 tracking webhook:** `easypost-webhook` (HMAC, replay-safe), status machine, ship-by and lost sweeps. EasyPost's webhook URL is https://www.louisianahelpr.com/hooks/easypost (vercel.json rewrite to the function; owner
+  11-03: webhook URLs are on our domain, never *.supabase.co; www because webhooks do not follow the apex redirect).
 - **S5 handover and payout:** delivered -> 48 h -> final -> payout; "I got it" after delivered.
   Also: the buyer's own `shipments` rows (ship_to) join `export_my_data` (S1 marks `shipments.buyer_id`
   EXEMPT in src/test/helpers/dataExportInventory.ts until then).

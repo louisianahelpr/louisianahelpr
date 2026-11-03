@@ -56,6 +56,10 @@
       "destination": "https://fncmgoasalhdgfwzhsqa.supabase.co/auth/v1/:path*"
     },
     {
+      "source": "/hooks/easypost",
+      "destination": "https://fncmgoasalhdgfwzhsqa.supabase.co/functions/v1/easypost-webhook"
+    },
+    {
       "source": "/jobs/:id",
       "destination": "/api/share?_og=job&_id=:id"
     },

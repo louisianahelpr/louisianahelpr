@@ -39,7 +39,7 @@
  * @mutate supabase/migrations/20261102070622_late_cancel_notice_whole_dollars.sql |                          current_setting('app.ban_settlement_as_of', true)::timestamptz); |                          now());
  * @mutate supabase/migrations/20261013001155_ban_review_confirm_keeps_strictest_retained_judgment.sql |     PERFORM set_config('app.ban_settlement_as_of', v_review.created_at::text, true); |     PERFORM 1;
  * @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |        SET ban_status           = 'banned',\n           auto_suspended_until = NULL |        SET ban_status           = v_row.ban_status,\n           auto_suspended_until = v_row.expires_at
- * @mutate supabase/migrations/20261013001155_ban_review_confirm_keeps_strictest_retained_judgment.sql |   IF p_admin_id IS NULL OR NOT public.has_role(p_admin_id, 'admin'::public.app_role) THEN |   IF p_admin_id IS NULL THEN
+ * @mutate supabase/migrations/20261103230441_ban_review_lift_settles_when_it_ends_banned.sql |   IF p_admin_id IS NULL OR NOT public.has_role(p_admin_id, 'admin'::public.app_role) THEN |   IF p_admin_id IS NULL THEN
  * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |      AND COALESCE(current_setting('app.ban_review_lift', true), '') <> 'on' |      AND false
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |      OR EXISTS (SELECT 1 FROM public.ban_settlement_queue q WHERE q.user_id = v_job.customer_id AND q.review_state = 'open')\n     -- Q2275: Jobs Browse |      -- Q2275: Jobs Browse
  * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |   IF EXISTS (SELECT 1 FROM public.ban_settlement_queue q\n              WHERE q.user_id = v_job.customer_id AND q.review_state = 'open') THEN | IF false THEN
@@ -171,7 +171,7 @@ describe("Q1324: a ban keeps every key, and each key does what the owner decided
   // while a review is open is kept on the review row and applied by the lift /
   // confirm, never dropped. Behaviour: banEvasionCardBankName.pglite.mjs
   // (NEW_MIGRATION=skip-strikes: 4 FAIL).
-  // @mutate supabase/migrations/20261013001155_ban_review_confirm_keeps_strictest_retained_judgment.sql |     v_status := v_rung ->> 'ban_status';\n | NULL;\n
+  // @mutate supabase/migrations/20261103230441_ban_review_lift_settles_when_it_ends_banned.sql |     v_status := v_rung ->> 'ban_status';\n | NULL;\n
   // @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |             EXISTS (SELECT 1 FROM public.user_violations v\n                      WHERE v.user_id = r.user_id AND v.created_at >= r.created_at) |             true
   // @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |        SET deferred_rungs = r.deferred_rungs \|\| jsonb_build_array(jsonb_build_object( |        SET deferred_rungs = '[]'::jsonb \|\| jsonb_build_array(jsonb_build_object(
   it("a strike earned during an open review is kept and applied when the review ends (Q1413)", () => {
@@ -184,6 +184,7 @@ describe("Q1324: a ban keeps every key, and each key does what the owner decided
     expect(refuse).toMatch(/app\.trusted_ladder_write[\s\S]{0,600}update\s+public\.ban_settlement_queue/i);
     expect(body("lift_ban_settlement_review")).toMatch(/ban_standing_rank\(v_rung ->> 'ban_status'\)\s*>\s*public\.ban_standing_rank\(p_ban_status\)/i);
     expect(body("lift_ban_settlement_review")).toMatch(/set\s+ban_status\s*=\s*v_status/i);
+    expect(body("lift_ban_settlement_review"), "the harsher standing rung is applied").toMatch(/then\s+v_status\s*:=\s*v_rung\s*->>\s*'ban_status';/i);
     // A strike an admin reversed during the review takes its standing with it
     // (Q1496: down to the rung the remaining strikes reach; none when none remain).
     expect(body("lift_ban_settlement_review")).toMatch(/v_rung := public\.ban_review_standing_rung\(v_review\.id, true\)/i);
@@ -254,6 +255,7 @@ describe("Q1324: a ban keeps every key, and each key does what the owner decided
    * app.ban_settlement_review is on, and ONLY enforce_retained_payment_ban
    * sets it (an admin's manual ban keeps settling at once).
    */
+  // @mutate supabase/migrations/20261103230441_ban_review_lift_settles_when_it_ends_banned.sql |   IF v_now IN ('banned', 'permanently_banned') THEN | IF v_now = 'permanently_banned' THEN
   it("a fingerprint ban waits for an admin; every other ban settles as before", () => {
     for (const fn of ["settle_one_off_jobs_on_permanent_ban", "end_series_on_permanent_ban"]) {
       expect(body(fn), `${fn} no longer waits for the review`).toMatch(
@@ -261,8 +263,11 @@ describe("Q1324: a ban keeps every key, and each key does what the owner decided
       );
     }
     const setters = [...defs.keys()].filter((fn) => /set_config\(\s*'app\.ban_settlement_review'\s*,\s*'on'/i.test(body(fn)));
-    // The confirm sets it around its own status write, then settles explicitly.
-    expect(setters.sort()).toEqual(["admin_confirm_ban_settlement", "enforce_retained_payment_ban"]);
+    // The confirm, and a lift (Q1415 f2), set it around their own status write, then settle explicitly as of the review.
+    expect(setters.sort()).toEqual(["admin_confirm_ban_settlement", "enforce_retained_payment_ban", "lift_ban_settlement_review"]);
+    expect(body("lift_ban_settlement_review"), "a lift that ends banned settles as of the review").toMatch(
+      /IF\s+v_now\s+IN\s+\('banned',\s*'permanently_banned'\)\s+THEN\s+PERFORM\s+set_config\('app\.ban_settlement_as_of',\s*v_review\.created_at::text,\s*true\);\s+v_settle\s*:=\s*public\.settle_one_off_jobs_for_banned_account\(p_user_id\);\s+PERFORM\s+public\.end_series_for_banned_account\(p_user_id\);/i,
+    );
     const enforce = body("enforce_retained_payment_ban");
     expect(enforce).toMatch(/set_config\('app\.ban_settlement_review',\s*'on',\s*true\);\s*UPDATE\s+public\.profiles/i);
     expect(enforce, "the review is not opened").toMatch(/insert\s+into\s+public\.ban_settlement_queue/i);

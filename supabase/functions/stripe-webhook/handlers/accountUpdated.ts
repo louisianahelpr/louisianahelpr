@@ -6,6 +6,7 @@ import { isUnusableConnectAccountError } from "../../_shared/stripeAccountUsable
 import { enforceConnectAccountFingerprints } from "../../_shared/paymentFingerprint.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { handlePlatformAccountUpdated } from "./platformAccountUpdated.ts";
+import { recordConnectChange } from "../../_shared/connectRecord.ts";
 
 const NEEDS_ATTENTION_TITLE = "Payout account needs attention";
 
@@ -85,6 +86,11 @@ export async function handleAccountUpdated(
         .select("id");
       if (closeErr) {
         throw new Error(`Could not close the cached payout gate for dead account ${accountId}: ${closeErr.message}`);
+      }
+      // Q2368 (lead 11-03): a gate this delivery actually closed leaves a durable record (it was a function log
+      // only). A record, not an alert (error_log_is_record_only); a failed insert is logged, never thrown.
+      if ((closedRows?.length ?? 0) > 0) {
+        await recordConnectChange(supabase, { kind: "connect-dead-account-close", userId: helperProfile.user_id, oldAccountId: accountId, newAccountId: null });
       }
       logStep("Skipped account.updated: account no longer retrievable; cached gate closed", {
         accountId,

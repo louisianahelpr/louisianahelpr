@@ -29,8 +29,11 @@ CREATE FUNCTION public.error_log_is_seed(jsonb) RETURNS boolean LANGUAGE sql AS 
 CREATE FUNCTION public.ops_alert_record(p_kind text, p_source text, p_title text, p_severity text, p_sample text, p_ref jsonb,
   p_a text, p_b text, p_at timestamptz) RETURNS void LANGUAGE sql AS $$ INSERT INTO public.recorded VALUES (p_kind, p_source, p_title, p_severity) $$;
 `);
+// 20261103203658 (Q2368): the newest ledger trigger asks error_log_is_record_only first; load its newest definition.
+await db.exec(newestFunction("error_log_is_record_only").stmt);
 const { file, stmt } = newestFunction("ops_alert_ledger_from_error_log");
-check("the newest definition is this migration's", file === "20261102225216_ledger_skips_informational_sources.sql", file);
+// 20261103203658 (Q2368) restates it with the sweeper skip kept; any later restatement must keep it too.
+check("the newest definition is this migration's or a later restatement", file >= "20261102225216_ledger_skips_informational_sources.sql", file);
 let sql = stmt;
 if (process.env.LEDGER_SKIP_REMOVED) {
   console.log("LEDGER_SKIP_REMOVED=1: the sweeper's source taken out of the skip list (expect a FAIL)");

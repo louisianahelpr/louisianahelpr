@@ -1088,6 +1088,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/crewCancelQuote.ts";`,
   );
 
+  // Connect change record (Q2368): `_shared/connectRecord.ts` has ZERO imports and takes the client as a
+  // parameter; it writes the error_logs record of a reset or a dead account's gate close, so the REAL module serves.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/connectRecord\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/connectRecord.ts";`,
+  );
+
   // Stripe mode (owner 2026-10-12, test mode for test accounts):
   // `_shared/stripeMode.ts` has ZERO imports and decides which Stripe key a
   // payment runs on. A stub would be the one gate between a test account and

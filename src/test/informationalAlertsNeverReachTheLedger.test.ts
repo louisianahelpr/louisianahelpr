@@ -11,7 +11,7 @@
  *         PGlite: src/test/pglite/ledgerSkipsInformational.pglite.mjs (ALL PASS; LEDGER_SKIP_REMOVED=1: 2 FAILED).
  *   Q2554 "Guest marketplace is empty" (workflow uptime): uptime.yml's empty step is a run warning only, no record.
  *
- * @mutate supabase/migrations/20261102225216_ledger_skips_informational_sources.sql | IF v_source IN ('ops-alert', 'ops-digest', 'sweep_old_notifications') THEN | IF v_source IN ('ops-alert', 'ops-digest') THEN
+ * @mutate supabase/migrations/20261103203658_connect_record_only_rows_never_page.sql | IF v_source IN ('ops-alert', 'ops-digest', 'sweep_old_notifications') THEN | IF v_source IN ('ops-alert', 'ops-digest') THEN
  * @mutate supabase/functions/send-push-notification/index.ts |             ledger: adminPushSeverity(payload.title) !== 'info',\n |
  * @mutate .github/workflows/uptime.yml |         run: echo "::warning::${SUMMARY}" |         run: node scripts/ops-alert-ledger.mjs record --source uptime --title "Guest marketplace is empty"
  */

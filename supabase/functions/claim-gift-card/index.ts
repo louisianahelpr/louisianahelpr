@@ -20,6 +20,7 @@ import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { sessionIdMode, stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused } from "../_shared/stripeMode.ts";
+import { loadBanReviewUsers } from "../_shared/banReview.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -150,6 +151,18 @@ serve(async (req) => {
       if (callerMode !== "test") {
         return json(403, { error: "This gift can't be claimed from this account. Please contact support." });
       }
+    }
+
+    // Q1415 (c), owner 11-03 ("HOLD THOSE TOO"): an account under an open ban
+    // settlement review claims no gift until the review is decided, like its
+    // payouts. Fails closed: an unreadable review answers "try again".
+    const review = await loadBanReviewUsers(supabaseAdmin, [user.id]);
+    if (!review.ok) {
+      console.error(`[claim-gift-card] ban review read failed for ${user.id}: ${review.message}`);
+      return json(503, { error: "We couldn't check this account right now. Please try again." });
+    }
+    if (review.users.has(user.id)) {
+      return json(409, { error: "This gift can be claimed once the review of your account is finished. It stays saved for you.", code: "account_under_review" });
     }
 
     // Atomic claim: bind recipient_id only if still unclaimed. The WHERE guard

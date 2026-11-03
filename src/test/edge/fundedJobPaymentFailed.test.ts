@@ -9,7 +9,8 @@
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | } else if (cancelOutcome === "moved_on" \|\| cancelOutcome === "not_found") { | } else if (cancelOutcome === "not_found") {
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | } else if (cancelOutcome !== "not_hired" && cancelOutcome !== "not_cancellable") { | } else if (false) {
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | { p_job_id: job.id, p_payment_intent_id: piId, p_gift_card_id: giftCardId }, | { p_job_id: job.id, p_payment_intent_id: piId, p_gift_card_id: null },
-// @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (giftCardId && gift?.outcome !== "returned" && gift?.outcome !== "not_consumed") { | if (false) {
+// @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if (giftCardId && gift?.outcome !== "returned" && gift?.outcome !== "not_consumed" && gift?.outcome !== "already_restored") { | if (false) {
+// @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |  && gift?.outcome !== "already_restored") { | ) {
 /**
  * A bank (ACH) payment that fails on a job already marked FUNDED takes the job
  * out of escrow (ach-fix, 2026-10-17).
@@ -241,7 +242,7 @@ describe("payment_intent.payment_failed on a job marked funded", () => {
   });
 
   it("a job part-paid by a gift card: the RPC is handed the gift the checkout spent, and a gift it did not give back pages ops", async () => {
-    for (const [giftOutcome, pages] of [["returned", false], ["not_consumed", false], ["not_deployed", true], ["checkout_open", true]] as const) {
+    for (const [giftOutcome, pages] of [["returned", false], ["not_consumed", false], ["already_restored", false], ["not_deployed", true], ["checkout_open", true]] as const) {
       resetStripeMock();
       resetSupabaseMock();
       resetSharedMocks();

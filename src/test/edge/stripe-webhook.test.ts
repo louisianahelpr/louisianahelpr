@@ -1861,7 +1861,8 @@ describe("stripe-webhook edge function", () => {
     // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |       if (giftCardId && failedJob.payment_status === "failed") { |       if (false) {
     // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | if ((back === "returned" \|\| back === "returned_unspendable") && failedJob.customer_id) { | if (false) {
     // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |     if (notDeployed) return "held"; |
-    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |   if (outcome === "not_consumed") return "none"; |
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |   if (outcome === "not_consumed" \|\| outcome === "already_restored") return "none"; |
+    // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts |   if (outcome === "not_consumed" \|\| outcome === "already_restored") return "none"; |   if (outcome === "not_consumed") return "none";
     describe("Q1876 a bounced bank debit gives back the gift card its checkout spent", () => {
       const bounce = async (
         jobRow: Record<string, unknown>,
@@ -1958,6 +1959,15 @@ describe("stripe-webhook edge function", () => {
 
       it("a retry that finds the gift already back sends no second notice", async () => {
         scenario.rpc.return_bounced_gift_card = { outcome: "not_consumed", credit_id: "gc-1" };
+        scenario.writeSelectRows.jobs = [];
+        const { notices, alerts } = await bounce({ payment_status: "failed", stripe_session_id: null });
+        expect(returnCalls()).toHaveLength(1);
+        expect(notices).toHaveLength(0);
+        expect(alerts.some((a) => a.kind === "money_at_risk")).toBe(false);
+      });
+
+      it("Q2077: a gift a cancel's refund already gave back as a new row (already_restored) sends no notice and pages nobody", async () => {
+        scenario.rpc.return_bounced_gift_card = { outcome: "already_restored", credit_id: "gc-1" };
         scenario.writeSelectRows.jobs = [];
         const { notices, alerts } = await bounce({ payment_status: "failed", stripe_session_id: null });
         expect(returnCalls()).toHaveLength(1);

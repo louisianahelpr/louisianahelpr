@@ -28,7 +28,7 @@
 // @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql | REVOKE ALL ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean, boolean) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.rentals_notify(uuid, text, text, text, boolean, boolean) FROM PUBLIC, anon;
 // Owner decision 2026-10-17: the landlord never learns which admin reviewed the proof.
 // @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql | ownership_review_note, auto_approve_limit_cents, created_at, updated_at)\n  ON TABLE public.rental_properties TO authenticated; | ownership_review_note, auto_approve_limit_cents, created_at, updated_at, ownership_reviewed_by)\n  ON TABLE public.rental_properties TO authenticated;
-// @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql |     '/rentals', false, true); |     '/rentals', false);
+// @mutate supabase/migrations/20261103055505_declutter_shops_homes_messages_not_found_is_404.sql |     '/rentals', false, true); |     '/rentals', false);
 // @mutate supabase/migrations/20261017205605_rentals_maintenance_requests.sql |   IF p_staff THEN\n    IF public.notification_crosses_seed_boundary(p_user, NULL, v_link, v_actor) THEN |   IF false THEN\n    IF public.notification_crosses_seed_boundary(p_user, NULL, v_link, v_actor) THEN
 // @mutate src/lib/rentals/api.ts | listings_taken_down_at, listings_taken_down_reason"; | listings_taken_down_at, listings_taken_down_reason, ownership_reviewed_by";
 // @mutate src/lib/rentals/copy.ts |   approved: "Approved by Louisiana Helpr", |   approved: "Owner verified",
@@ -39,7 +39,7 @@
 // @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |                   JOIN public.rental_tenancies t ON t.id = r.tenancy_id\n                  WHERE r.id = p_request_id AND t.tenant_id = v_uid AND t.status = 'active') THEN |                   JOIN public.rental_tenancies t ON t.id = r.tenancy_id\n                  WHERE r.id = p_request_id AND t.tenant_id = v_uid) THEN
 // @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |   IF p_at <= now() THEN |   IF false THEN
 // @mutate supabase/migrations/20261017221621_rentals_visit_time.sql |   IF v_last IS NULL OR v_was_ok OR v_other_job OR | IF v_last IS NULL OR
-// @mutate supabase/migrations/20261019044500_rentals_ownership_alert_homes_words.sql |          AND NOT public.notification_crosses_seed_boundary(ur.user_id, NULL, NULL, v_uid); |          ;
+// @mutate supabase/migrations/20261103055505_declutter_shops_homes_messages_not_found_is_404.sql |          AND NOT public.notification_crosses_seed_boundary(ur.user_id, NULL, NULL, v_uid); |          ;
 // @mutate supabase/migrations/20261030221720_support_ticket_alert_closes_itself.sql |                     WHERE rp.ownership_status = 'pending_review' AND p.is_seed IS NOT TRUE); |                     WHERE rp.ownership_status = 'pending_review');
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                        AND (cur.stripe_session_id IS NULL OR cur.payment_status = 'abandoned'))) |                        )) 
 // @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                    OR (cur.status = 'cancelled' |                    OR (true

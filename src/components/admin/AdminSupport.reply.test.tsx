@@ -13,6 +13,7 @@
  * @mutate src/components/admin/SupportReply.tsx |   if (!r.guest) (r.notified ? reached : missed).push("in the app"); |   (r.notified ? reached : missed).push("in the app");
  * @mutate src/components/admin/SupportReply.tsx |         body: { reportId: ticketId, message: trimmed, resolve: canResolve && resolve }, |         body: { reportId: ticketId, message: trimmed, resolve: false },
  * @mutate src/components/admin/SupportReply.tsx |       if (!result.success) throw new Error(result.error \|\| "The reply was not sent."); |
+ * @mutate src/components/admin/SupportReply.tsx |     case "resent": return "Emailed (resent)"; |
  * Claude's suggested reply (owner 2026-11-03, B70): it fills the box only; the admin presses Send.
  * @mutate src/components/admin/SupportReply.tsx |      setText(draft.reply.slice(0, SUPPORT_REPLY_MAX_CHARS)); |
  * @mutate src/components/admin/SupportReply.tsx |         {aiOn && ( |         {true && (
@@ -219,6 +220,8 @@ describe("Admin Support: reply to a member", () => {
     const { emailStatusLabel } = await import("@/components/admin/SupportReply");
     expect(emailStatusLabel("failed")).toBe("Email retrying");
     expect(emailStatusLabel("dlq")).toBe("Email failed");
+    // A dead-lettered reply sent again later (20261103213124; B70, 4 replies of 2026-10-27).
+    expect(emailStatusLabel("resent")).toBe("Emailed (resent)");
     expect(emailStatusLabel("not_queued")).toBe("Email not queued");
     expect(emailStatusLabel("unconfirmed")).toBe("Not emailed (address not confirmed)");
     expect(emailStatusLabel("no_address")).toBe("Not emailed (no address on file)");

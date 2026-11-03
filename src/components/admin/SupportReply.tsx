@@ -69,6 +69,8 @@ export function emailStatusLabel(status: string): string {
     // (lh-silent-failure review r1 #2).
     case "failed": return "Email retrying";
     case "dlq": return "Email failed";
+    // A dead-lettered reply that was sent again later (admin_support_replies, 20261103213124).
+    case "resent": return "Emailed (resent)";
     case "not_queued": return "Email not queued";
     case "suppressed": return "Email not sent (test account)";
     case "no_address": return "Not emailed (no address on file)";

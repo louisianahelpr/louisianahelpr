@@ -4,6 +4,7 @@ import { PawPrint, Stethoscope, Utensils, Phone, AlertTriangle, Pill } from "luc
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { unwrap } from "@/lib/supabaseResult";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /**
  * The care sheet for the pets on a job — the END of the flow PetPicker starts.
@@ -74,7 +75,7 @@ export function JobPetCareSheet({ jobId }: { jobId: string }) {
       // PGRST202 = the migration has merged but db-deploy has not finished.
       // Expected for a few minutes on every deploy; render nothing rather than
       // an error state on a card that is otherwise fine.
-      if (result.error?.code === "PGRST202") return [];
+      if (isMissingRpcNamed(result.error, "get_job_pets")) return [];
       return (unwrap(result) ?? []) as JobPet[];
     },
   });

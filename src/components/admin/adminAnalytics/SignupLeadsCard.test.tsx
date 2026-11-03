@@ -14,7 +14,7 @@ import { SignupLeadsCard } from "./SignupLeadsCard";
  * @mutate src/components/admin/adminAnalytics/SignupLeadsCard.tsx | supabase.rpc("admin_list_signup_leads") | supabase.rpc("admin_list_signup_leads_x")
  * @mutate src/components/admin/adminAnalytics/SignupLeadsCard.tsx | {lead.reminder_sent_at ? `Reminded ${formatShortDate(lead.reminder_sent_at)}` : "Not reminded"} | {"Not reminded"}
  * @mutate src/components/admin/adminAnalytics/SignupLeadsCard.tsx | {lead.completed_at ? `Completed ${formatShortDate(lead.completed_at)}` : "Not completed"} | {"Not completed"}
- * @mutate src/components/admin/adminAnalytics/SignupLeadsCard.tsx | === "PGRST202") return { unavailable: true }; | === "never") return { unavailable: true };
+ * @mutate src/components/admin/adminAnalytics/SignupLeadsCard.tsx | if (isMissingRpcNamed(res.error, "admin_list_signup_leads")) return { unavailable: true }; | if (false) return { unavailable: true };
  * @mutate src/components/admin/adminAnalytics/SignupLeadsCard.tsx | rows: (unwrap(res) ?? []) as SignupLead[] | rows: (res.data ?? []) as SignupLead[]
  */
 

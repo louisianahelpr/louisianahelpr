@@ -16,6 +16,7 @@ import { shareNative, type ShareOutcome } from "@/lib/nativeShare";
 import { rpcErrorMessage } from "./rpcErrorCopy";
 import type { ShopBadges, ShopHour, ShopPhotoKind } from "./api";
 import type { ShopItem } from "./items";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /** Built from this constant, never window.location: a native build's origin is capacitor://localhost. */
 const SHOP_LINK_ORIGIN = "https://www.louisianahelpr.com";
@@ -66,7 +67,7 @@ export async function fetchPublicShop(shopId: string): Promise<PublicShop | null
   // PGRST202 = the function is not deployed yet (migrations land on merge, so
   // a fresh client can run against a database that has not caught up): the
   // shop is not available, not an error with a retry that cannot help.
-  if ((error as { code?: string } | null)?.code === "PGRST202") return null;
+  if (isMissingRpcNamed(error, "shops_public_shop")) return null;
   if (error) {
     const words = rpcErrorMessage("shops_public_shop", error);
     throw Object.assign(new Error(error.message), error, words ? { userMessage: words } : {});

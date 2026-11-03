@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /**
  * The signed-in viewer's credential tier — the number a credential-gated job
@@ -51,7 +52,7 @@ export function useViewerCredentialTier(enabled: boolean) {
         // PGRST202 = function not found (migration not yet applied to prod) —
         // treat as tier 0 so open jobs remain accessible.
         if (error) {
-          if ((error as { code?: string }).code === "PGRST202") return 0;
+          if (isMissingRpcNamed(error, "get_user_credential_tier")) return 0;
           report(error, { tags: { source: "useViewerCredentialTier" } });
           return 0;
         }

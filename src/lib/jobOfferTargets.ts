@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { unwrap } from "@/lib/supabaseResult";
 import { isNetworkFailure } from "@/lib/networkFailure";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 /**
  * job id -> offered Helpr's user id, for jobs the caller posted or was offered.
@@ -41,7 +42,7 @@ export async function fetchJobOfferTargets(jobIds?: string[], opts: { throwOnNet
   const { data, error } = res;
   if (error) {
     if (opts.throwOnNetwork && isNetworkFailure(error)) unwrap(res);
-    if ((error as { code?: string }).code !== "PGRST202") {
+    if (!isMissingRpcNamed(error, "get_job_offer_targets")) {
       report(error, { severity: "warning", tags: { source: "jobOfferTargets.fetchJobOfferTargets" } });
     }
     return out;

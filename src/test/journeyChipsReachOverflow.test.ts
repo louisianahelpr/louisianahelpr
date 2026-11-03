@@ -35,8 +35,9 @@
 // @mutate e2e/journeys/cardChips.ts | const more = scope.locator("[data-job-step-overflow]") | const more = scope.locator("[data-no-such-overflow]")
 // @mutate src/components/job-card/JobActionRow.tsx | data-job-step-overflow-panel="" | data-overflow-panel=""
 // @mutate e2e/journeys/02-marketplace.spec.ts | (await findChip(pp, await card(pp, "/jobs?tab=posted", "Done"), /^Reviewed\b/, 20_000)) ? 1 : 0, | (await card(pp, "/jobs?tab=posted", "Done")).getByRole("button", { name: /^Reviewed\b/ }).count(),
-// @mutate e2e/journeys/02-marketplace.spec.ts | const message = await findChip(pp, booked, /^Message\b/, 30_000); | const message = pp.getByRole("button", { name: "Message Helpr" }).first();
-// @mutate e2e/journeys/04-admin-safety.spec.ts | const chip = await findChip(pp, cardByTitle(pp, JOB_TITLE), NO_SHOW, 30_000); | const chip = pp.getByRole("button", { name: NO_SHOW }).first();
+// @mutate e2e/journeys/02-marketplace.spec.ts | const message = await findPageAction(pp, "poster", /^Message\b/, 30_000); | const message = pp.getByRole("button", { name: "Message Helpr" }).first();
+// @mutate e2e/journeys/cardChips.ts | const sheet = page.locator(`[data-row-options="${tag}"]`) | const sheet = page.locator(`[data-no-such-sheet="${tag}"]`)
+// @mutate e2e/journeys/04-admin-safety.spec.ts | const chip = await findChip(pp, cardByTitle(pp, JOB_TITLE), NO_SHOW, 30_000); | const chip = pp.getByRole("button", { name: /^(No-Show\|Report no-show)/ }).first();
 
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -115,6 +116,20 @@ describe("journeys reach a job-card chip parked in the More overflow", () => {
     expect(market).toMatch(/import \{[^}]*\bfindChip\b[^}]*\} from "\.\/cardChips"/);
     const press = market.match(/async function press\([\s\S]*?\n {2}}\n/)?.[0] ?? "";
     expect(press).toMatch(/await findChip\(/);
+  });
+
+  it("the job page's controls are found on its row OR in its More options sheet (findPageAction)", () => {
+    // The page's actions moved from the card to the job page (owner 2026-10-31): JobPageActionRow draws one row
+    // ([data-job-row]) and parks the rest in a "More options" sheet ([data-row-options]); findPageAction opens it.
+    const page = blankComments(read("src/pages/jobs/jobPage/JobPageActionRow.tsx"));
+    expect(page).toMatch(/data-job-row=\{tag\}/);
+    expect(page).toMatch(/data-row-options=\{tag\}/);
+    const body = chips.match(/export async function findPageAction\([\s\S]*?\n}\n/)?.[0] ?? "";
+    expect(body, "findPageAction is gone from e2e/journeys/cardChips.ts").not.toBe("");
+    expect(body).toContain("[data-job-row=");
+    expect(body).toContain("[data-row-options=");
+    expect(body).toContain('"More options"');
+    expect(market).toMatch(/await findPageAction\(pp, "poster", \/\^Message\\b\//);
   });
 
   it("no journey looks a job-card chip up on anything but the overflow panel", () => {

@@ -39,6 +39,7 @@
  */
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { report } from "@/lib/errorLogger";
 import type { Conversation } from "@/components/messages/types";
 
@@ -69,7 +70,7 @@ async function askGate(jobId: string, receiverId: string): Promise<boolean | nul
     _receiver: receiverId,
   });
   if (error) {
-    if ((error as { code?: string }).code !== "PGRST202") {
+    if (!isMissingRpcNamed(error, "can_send_message_to_in_job")) {
       report(error, { severity: "warning", tags: { source: "recipientGate.askGate" } });
     }
     return null;

@@ -18,6 +18,7 @@
  * one set slow would offer a composer the server already refuses.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { report } from "@/lib/errorLogger";
 
 export const MESSAGING_LOCKOUT_HOURS = 24;
@@ -135,7 +136,7 @@ export async function fetchMessagingClosesAt(
       _job_ids: ids.slice(i, i + 500),
     });
     if (error) {
-      if ((error as { code?: string }).code !== "PGRST202") {
+      if (!isMissingRpcNamed(error, "get_messaging_closes_at")) {
         report(error, {
           severity: "warning",
           tags: { source: "messagingLockout.fetchMessagingClosesAt" },

@@ -3,7 +3,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 // @ts-expect-error — plain ESM script, no declaration file
-import { REQUIRED_CHECKS, evaluate } from "../../scripts/release-gate.mjs";
+import { REQUIRED_CHECKS, evaluate, applyWaivers, resolveWaivers, OWNER_WAIVERS } from "../../scripts/release-gate.mjs";
 
 /**
  * The pre-release gate (scripts/release-gate.mjs) and its wiring.
@@ -32,6 +32,8 @@ import { REQUIRED_CHECKS, evaluate } from "../../scripts/release-gate.mjs";
  */
 // @mutate scripts/release-gate.mjs | "--limit", "1000", | "--limit", "100",
 // @mutate scripts/release-gate.mjs | const ran = auditJobs.some((j) => j.conclusion === "success"); | const ran = true;
+// @mutate scripts/release-gate.mjs | const bad = ids.filter((id) => !entry.checks.includes(id)); | const bad = [];
+// @mutate scripts/release-gate.mjs | waived.has(v.id) && v.state !== "green" | v.state !== "green"
 
 const REPO = resolve(__dirname, "../..");
 const WORKFLOWS = join(REPO, ".github/workflows");
@@ -154,5 +156,45 @@ describe("release gate reads every run of the sha", () => {
   it("does not cut the run list off at a page that per-push workflows can fill", () => {
     const script = readFileSync(resolve(process.cwd(), "scripts/release-gate.mjs"), "utf8");
     expect(script).toContain('"--commit", sha, "--limit", "1000",');
+  });
+});
+
+describe("owner waivers are exact: named checks, named version, nothing else", () => {
+  it("OWNER_WAIVERS holds only the 1.0.4 owner decision (Press + A11y prod)", () => {
+    expect(OWNER_WAIVERS).toEqual({
+      "1.0.4": { checks: ["press-every-control", "a11y-prod"], decision: expect.stringContaining("Waive those two, submit today") },
+    });
+    for (const id of OWNER_WAIVERS["1.0.4"].checks) expect(CHECKS.map((c) => c.id)).toContain(id);
+  });
+
+  it("refuses a check the owner did not waive, and any other version", () => {
+    expect(() => resolveWaivers(["journeys"], "1.0.4")).toThrow(/not an owner-approved waiver/);
+    expect(() => resolveWaivers(["press-every-control", "write-contract"], "1.0.4")).toThrow(/write-contract/);
+    expect(() => resolveWaivers(["a11y-prod"], "1.0.5")).toThrow(/no owner waiver exists for version 1.0.5/);
+    expect([...resolveWaivers([], "9.9.9")]).toEqual([]);
+  });
+
+  it("a waived red does not block; an unwaived red still does", () => {
+    const v = [
+      { id: "press-every-control", state: "red", conclusion: "failure" },
+      { id: "a11y-prod", state: "running" },
+      { id: "journeys", state: "red", conclusion: "failure" },
+      { id: "test", state: "green" },
+    ];
+    const out = applyWaivers(v, resolveWaivers(["press-every-control", "a11y-prod"], "1.0.4"), "why") as { id: string; state: string; realState?: string }[];
+    expect(out.map((x) => [x.id, x.state])).toEqual([
+      ["press-every-control", "waived"],
+      ["a11y-prod", "waived"],
+      ["journeys", "red"],
+      ["test", "green"],
+    ]);
+    expect(out[0].realState).toBe("red");
+  });
+
+  it("ios-beta.yml offers only none or the two waived ids, and feeds both gate runs", () => {
+    const yml = readFileSync(join(WORKFLOWS, "ios-beta.yml"), "utf8");
+    const opts = /waive_checks:[\s\S]*?options:\n((?:\s+- .+\n)+)/.exec(yml)?.[1].trim().split(/\n\s*/).map((l) => l.replace(/^- /, ""));
+    expect(opts).toEqual(["none", "press-every-control,a11y-prod"]);
+    expect(yml.match(/LH_RELEASE_GATE_WAIVE:/g)?.length).toBe(2);
   });
 });

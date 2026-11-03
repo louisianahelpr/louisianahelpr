@@ -63,3 +63,17 @@ export function resolveCapturedEscrow(pi: CapturableIntent | null | undefined): 
     reason: "succeeded payment intent carried neither a usable amount_received nor amount",
   };
 }
+
+/**
+ * Q1728 / Q2083: the sales tax a job-site-taxed charge collected ON this PaymentIntent, in cents (0 when it
+ * carries none). create-payment puts the job-site calculation on every taxed job PaymentIntent it opens (the full
+ * card checkout, a gift's shortfall + tax, a gift's tax-only checkout). That money is the state's, never the
+ * Helpr's, so the payout caps judge the transfer against what was captured LESS this. A malformed figure reads
+ * as 0 (the cap is then the captured amount, as before), never as a larger deduction.
+ */
+export function jobSiteTaxOnIntent(pi: { metadata?: Record<string, string> | null } | null | undefined): number {
+  const md = pi?.metadata ?? null;
+  const calc = md?.tax_calculation_id;
+  const raw = md?.job_tax_cents;
+  return typeof calc === "string" && calc.startsWith("taxcalc_") && typeof raw === "string" && /^\d+$/.test(raw) ? Number(raw) : 0;
+}

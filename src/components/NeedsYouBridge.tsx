@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import type { User as SupaUser } from "@supabase/supabase-js";
-import { useNeedsYouTodos } from "@/pages/home/homeDashboard/needsYouTodos";
+import { useNeedsYouTodos } from "@/pages/home/homeDashboard/useNeedsYouTodos";
 import { clearNeedsYou, publishNeedsYou } from "@/lib/needsYouStore";
 
 /**

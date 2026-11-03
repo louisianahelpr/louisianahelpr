@@ -6,7 +6,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, bootModules, declutterItemSplit, guestBrowseSplit, homeIconFiles, homePageRoots, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
+import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, bootModules, bootIconFiles, declutterItemSplit, guestBrowseSplit, homeIconFiles, homePageRoots, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -190,6 +190,7 @@ const { deep: signedInDeep, declutterOnly, homeOff, homeLate } = signedInSplit(p
 const { itemDeep: declutterItemDeep, itemPages: declutterItemPages, itemShared: declutterItemShared } = declutterItemSplit(process.cwd(), { deep: signedInDeep, homeOff });
 const { own: profileFirstScreen, shared: profileSharedLeaves } = profileFirstScreenModules(process.cwd(), { deep: signedInDeep, homeOff });
 const homeIcons = homeIconFiles(process.cwd());
+const bootIcons = bootIconFiles(process.cwd());
 const bootSet = bootModules(process.cwd());
 // B88: Home's PAGE reach. The every-page roots load after Home's first paint; with them here, their shared code
 // (Legal's public page table, ...) rode app-shared onto every page's boot. Build: boot 204 -> 202 KB gz,
@@ -208,6 +209,7 @@ const { browseOnly, homeShared: browseHomeShared } = guestBrowseSplit(process.cw
 // first screens (check-deferred-vendors).
 const HOME_DECLUTTER_READS = /[\\/]src[\\/]lib[\\/]declutter[\\/](myReads|minePrefetchTake)\.ts$/;
 const HOME_SCHEDULE_READS = /[\\/]src[\\/]lib[\\/](scheduleChange|scheduleClashes|notDeployedYet)\.ts$/;
+const HOME_DERIVE_LEAVES = /[\\/]src[\\/](pages[\\/]home[\\/]homeDashboard[\\/]useNeedsYouTodos|components[\\/]tracker[\\/]jobProgressSteps|components[\\/]job-card[\\/]helperStepRequest)\.ts$/;
 const BROWSE_GROUP_SKIPS = /[\\/]src[\\/]components[\\/]ui[\\/]skeleton\.tsx$/;
 
 /**
@@ -827,6 +829,16 @@ export default defineConfig(({ mode, command }) => ({
             // B79 11-01: the icons Home's page draws (bootReach.mjs homeIconFiles, ~34) get their own chunk. In the
             // merged icons groups they sat in one 166-icon chunk (~16 KB gz) that Home's first round downloaded whole.
             // Other screens that draw them fetch this chunk beside their own icons, in the same round.
+            // B51 11-03: the icons main.tsx's own graph draws, with lucide's runtime (its dependencies, taken in here).
+            // The merged "icons" groups below decided the boot chunk by import-set sizes, so an unrelated change to
+            // which chunk imports one icon (Home's derivations going lazy) merged a 100-icon category set into the
+            // chunk every page boots with (+5 KB gz on every route). Pinned here, the boot icons are what boot draws.
+            {
+              name: "icons-boot",
+              test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && bootIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
+              priority: 92,
+              minSize: 0,
+            },
             {
               name: "icons-home",
               test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && homeIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
@@ -1263,6 +1275,16 @@ export default defineConfig(({ mode, command }) => ({
             // price, notification panel, location, pull-to-refresh). In browse-first-screen it put the whole
             // of guest /browse's code on /home's critical path (466 KB gz vs 441, 10-31); here /home and
             // /browse fetch it and nothing else does.
+            // B51 11-03: the three small modules Home's first draw shares with its lazily loaded derivations (the to-do
+            // hook, the tracker's step names, the Helpr step request). Each was its own file, and each file is one
+            // more name in the entry's /home preload list (the entry's band is 5376 B gz): one chunk here.
+            {
+              name: "home-derive-leaves",
+              test: HOME_DERIVE_LEAVES,
+              priority: 12,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are */,
+            },
             {
               name: "browse-home-shared",
               test: (id: string) => browseHomeShared.has(id.split("?")[0].replace(/\\/g, "/")),

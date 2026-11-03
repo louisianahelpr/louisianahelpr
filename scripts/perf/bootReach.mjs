@@ -188,7 +188,8 @@ export function firstScreenRoots(root) {
   }
   // /declutter and /profile start their pages through boot route files, dynamic imports
   // the walk does not follow, so each page itself is named.
-  return [...roots, ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r))), ...DECLUTTER_ROOTS.map((r) => toPosix(path.join(root, r))), toPosix(path.join(root, PROFILE_ROOT))];
+  // HOME_DERIVE_ROOT (B51): Home's derivations, a dynamic import Home's chunk starts; see homeFirstScreenRoots.
+  return [...roots, toPosix(path.join(root, HOME_DERIVE_ROOT)), ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r))), ...DECLUTTER_ROOTS.map((r) => toPosix(path.join(root, r))), toPosix(path.join(root, PROFILE_ROOT))];
 }
 
 /**
@@ -319,8 +320,15 @@ export function homeFirstScreenRoots(root) {
   if (roots.length < 2 || roots.some((r) => !r) || !protectedSpec) {
     throw new Error(`bootReach: read ${roots.length} /home first-screen roots from routePreload.ts (expected its page and protectedRoute). Fix the scan.`);
   }
-  return [path.join(root, "src/main.tsx"), ...roots, ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r)))];
+  // B51 (11-03): Home's derivations load on their own chunk (useNeedsYouTodos.ts starts it when Home's chunk runs), a
+  // dynamic import this walk does not follow. Named here so their shared code is grouped as Home's, as before: left
+  // out, it fell into shared-late, signed-in-deep and the other screens' chunks, and that lazy chunk then pulled
+  // ~150 KB gz of other screens' code right after Home's draw (lab js 367 -> 524 KB).
+  return [path.join(root, "src/main.tsx"), ...roots, path.join(root, HOME_DERIVE_ROOT), ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r)))];
 }
+
+/** Home's lazily loaded derivations (B51): a Home root the static walk cannot see. */
+export const HOME_DERIVE_ROOT = "src/pages/home/homeDashboard/homeDerive.ts";
 
 /**
  * The lazy chrome App.tsx mounts for EVERY visitor, guests included, outside SignedInChrome / SignedInOnly (Q654,
@@ -427,4 +435,26 @@ export function homeIconFiles(root) {
   const page = homePageRoots(root);
   const boot = iconsOf(staticReach(root, [path.join(root, "src/main.tsx")]));
   return new Set([...iconsOf(staticReach(root, page))].filter((i) => !boot.has(i)));
+}
+
+/** The lucide icon files main.tsx's own static graph draws (B51): vite.config's `icons-boot` group, see there. */
+export function bootIconFiles(root) {
+  const index = fs.readFileSync(path.join(root, "node_modules/lucide-react/dist/esm/lucide-react.mjs"), "utf8");
+  const fileOf = new Map();
+  for (const m of index.matchAll(/export \{([^}]*)\} from '\.\/icons\/([^']+)\.mjs'/g)) {
+    for (const n of m[1].matchAll(/default as (\w+)/g)) fileOf.set(n[1], m[2]);
+  }
+  if (fileOf.size < 1000) throw new Error(`bootReach: read ${fileOf.size} lucide icon names from lucide-react.mjs. Fix the scan.`);
+  const out = new Set();
+  for (const f of staticReach(root, [path.join(root, "src/main.tsx")])) {
+    if (!/\.(tsx?|mjs)$/.test(f)) continue;
+    const src = stripComments(fs.readFileSync(f, "utf8"));
+    for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
+      for (const n of x[1].split(",")) {
+        const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
+        if (fileOf.has(name)) out.add(fileOf.get(name));
+      }
+    }
+  }
+  return out;
 }

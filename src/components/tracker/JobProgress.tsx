@@ -1,6 +1,7 @@
 import { AlertTriangle, CalendarCheck, Check, CheckCircle2, Clock, FileText, Hand, Hourglass, MapPin, PartyPopper, Truck, Wrench, XCircle, type LucideIcon } from "lucide-react";
 import { useStepTooltip } from "@/hooks/useStepTooltip";
-import { JOB_PROGRESS_DRAWN, JOB_PROGRESS_SHORT, JOB_PROGRESS_STEPS, type JobProgressState, type Stage, type StepTone } from "@/components/tracker/jobProgressState";
+import { JOB_PROGRESS_DRAWN, JOB_PROGRESS_SHORT, JOB_PROGRESS_STEPS } from "@/components/tracker/jobProgressSteps";
+import type { JobProgressState, Stage, StepTone } from "@/components/tracker/jobProgressState";
 
 /**
  * THE job tracker (owner, 2026-10-21: "we need 1 tracker"; 8 steps, 2026-10-22): Posted · Offered · Hired ·

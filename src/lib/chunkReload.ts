@@ -453,6 +453,7 @@ export const __resetChunkReloadForTests = (): void => {
   for (const k of Object.keys(backgroundImportFailures)) delete backgroundImportFailures[k];
   failedAssetUrls.clear();
   clearPageLeaving();
+  lastDecline = null;
 };
 
 /**
@@ -571,6 +572,38 @@ export const hardReloadBypassCache = async () => {
 };
 
 /**
+ * Why the most recent recoverFromChunkError() call declined (Q2544).
+ *
+ * 2026-10-31 23:30Z (error_logs 553a93b4, release 0f7ef0ce, Chrome 156 on a
+ * Mac): /jobs showed "This page hit a problem." for a genuinely stale chunk
+ * (SmsPhonePrompt-DdoLsp0o.js: 200 on the 0f7ef0ce deployment, 404 on the
+ * ffeb980af4 deployment created 23:14:39Z), so recovery declined, and the
+ * report could not say why: offline, attempts spent, or blocked storage
+ * after a recovery reload all look the same in error_logs. The boundaries
+ * now put this on the report's context, so the next one names its cause.
+ */
+export type ChunkRecoveryDecline = {
+  reason: "offline" | "attempts_spent" | "storage_blocked_after_reload";
+  count: number;
+  lastAttemptAgoMs: number | null;
+  onLine: boolean | null;
+};
+let lastDecline: ChunkRecoveryDecline | null = null;
+
+/** The reason the latest recovery declined, or null when it started (or was never asked). */
+export const getChunkRecoveryDecline = (): ChunkRecoveryDecline | null => lastDecline;
+
+const declined = (reason: ChunkRecoveryDecline["reason"], state: { count: number; last: number }, now: number): false => {
+  lastDecline = {
+    reason,
+    count: state.count,
+    lastAttemptAgoMs: state.last > 0 ? now - state.last : null,
+    onLine: typeof navigator !== "undefined" ? navigator.onLine : null,
+  };
+  return false;
+};
+
+/**
  * Recover from a stale-chunk error with a bounded retry, on
  * CHUNK_RELOAD_SCHEDULE_MS (decided by decideChunkReload):
  *   attempt 1: immediately;
@@ -588,7 +621,8 @@ export const hardReloadBypassCache = async () => {
 export const recoverFromChunkError = (): boolean => {
   // Checked here too (decideChunkReload also refuses offline) so the early
   // return below cannot touch storage for an offline failure.
-  if (isOffline()) return false;
+  lastDecline = null;
+  if (isOffline()) return declined("offline", { count: 0, last: 0 }, Date.now());
   // Leaving: a WebKit-cancelled import of the page being left, not a stale
   // deploy. No reload, no attempt spent (see pageLeaving).
   if (pageLeaving) return false;
@@ -603,7 +637,7 @@ export const recoverFromChunkError = (): boolean => {
     } catch {
       /* no storage: nothing to extend, and nothing reloads either */
     }
-    return false;
+    return declined("attempts_spent", state, now);
   }
 
   if (decision.delayMs <= 0) {
@@ -612,7 +646,7 @@ export const recoverFromChunkError = (): boolean => {
     // proceeds only if this page is not itself a recent recovery reload; any
     // later attempt requires the counter to have persisted.
     if (!writeAttempt(state.count + 1)) {
-      if (state.count > 0 || landedFromRecentRecoveryReload()) return false;
+      if (state.count > 0 || landedFromRecentRecoveryReload()) return declined("storage_blocked_after_reload", state, now);
     }
     void hardReloadBypassCache();
     return true;

@@ -5,6 +5,7 @@ import {
   isChunkLoadError,
   hardReloadBypassCache,
   recoverFromChunkError,
+  getChunkRecoveryDecline,
   isRecoveryReloadInFlight,
 } from "@/lib/chunkReload";
 import { ChunkRecoveringState } from "@/components/ChunkRecoveringState";
@@ -86,7 +87,7 @@ class SectionErrorBoundary extends React.Component<
     report(error, {
       severity: "error",
       tags: { source: "SectionBoundary", kind: USER_ERROR_SCREEN, section: this.props.label, screen: currentScreen() },
-      context: { componentStack: errorInfo.componentStack },
+      context: { componentStack: errorInfo.componentStack, ...(isChunkLoadError(error) ? { chunkRecovery: getChunkRecoveryDecline() } : {}) },
     });
   }
 

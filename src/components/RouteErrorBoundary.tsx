@@ -9,6 +9,7 @@ import {
   isChunkLoadError,
   hardReloadBypassCache,
   recoverFromChunkError,
+  getChunkRecoveryDecline,
   isRecoveryReloadInFlight,
   cancelPendingChunkRetry,
 } from "@/lib/chunkReload";
@@ -120,7 +121,7 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
     report(error, {
       severity: "error",
       tags: { source: "RouteErrorBoundary", kind: USER_ERROR_SCREEN, route: this.props.pathname, screen: this.props.pathname },
-      context: { componentStack: errorInfo.componentStack },
+      context: { componentStack: errorInfo.componentStack, ...(isChunkLoadError(error) ? { chunkRecovery: getChunkRecoveryDecline() } : {}) },
     });
   }
 

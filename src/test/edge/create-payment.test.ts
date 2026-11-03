@@ -1093,11 +1093,12 @@ describe("create-payment edge function", () => {
       });
 
       // @mutate supabase/functions/create-payment/index.ts |         if (!taxAddress) { |         if (false) {
-      it("a taxed job with no Louisiana job ZIP is refused: no tax call, no checkout", async () => {
+      // @mutate supabase/functions/create-payment/index.ts |            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400 },\n          );\n        }\n        const taxCode |            { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 500 },\n          );\n        }\n        const taxCode
+      it("a taxed job with no Louisiana job ZIP is refused 400 (the member's fix, not a server fault): no tax call, no checkout", async () => {
         for (const zip_code of [null, "", "77002", "7050", "71500", "abcde"]) {
           const { res, body } = await run({ category: "auto_repair", zip_code });
-          // PublicError: 500 with its own sentence (create-payment's catch).
-          expect(res.status, String(zip_code)).toBe(500);
+          // 400 with its own sentence: a 500 is logged as a server fault and pages Sentry (lead 11-03).
+          expect(res.status, String(zip_code)).toBe(400);
           expect(body.error).toMatch(/Louisiana ZIP code/);
           expect(stripeMock.tax.calculations.create).not.toHaveBeenCalled();
           expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
@@ -1374,7 +1375,8 @@ describe("create-payment edge function", () => {
         expect(stripeMock.tax.calculations.create.mock.calls[0][0].customer_details.address.postal_code).toBe("70112");
         stripeMock.tax.calculations.create.mockClear();
         seedQuoteJob(250, [{ price_cents: 25000 }], [{ id: REQ_ID }], { category: "auto_repair", zip_code: null });
-        const { body } = await escrow();
+        const { res, body } = await escrow();
+        expect(res.status).toBe(400);
         expect(body.error).toMatch(/Louisiana ZIP code/);
         expect(stripeMock.tax.calculations.create).not.toHaveBeenCalled();
         expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();

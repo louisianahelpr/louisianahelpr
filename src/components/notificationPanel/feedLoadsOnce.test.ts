@@ -8,7 +8,7 @@
  * still load.
  */
 // @mutate src/components/notificationPanel/notificationFeed.ts |   if (lastLoaded?.userId === userId && Date.now() - lastLoaded.at < maxAgeMs && listHeldFor(userId)) return Promise.resolve(); |   if (false) return Promise.resolve();
-// @mutate src/components/NotificationPanel.tsx |     const timer = setTimeout(() => loadNotifications(false), 800); |     const timer = setTimeout(() => loadNotifications(), 800);
+// @mutate src/components/NotificationPanel.tsx |     if (open) void loadNotifications(false); |     if (open) void loadNotifications();
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -80,9 +80,9 @@ describe("the bell's list loads once per mount (Q1183)", () => {
     expect(calls.n).toBeGreaterThan(before);
   });
 
-  it("the panel's mount asks for a fresh feed, and Try again forces one", () => {
+  it("the panel's open asks for a fresh feed, and Try again forces one", () => {
     const panel = readFileSync(join(__dirname, "..", "NotificationPanel.tsx"), "utf8");
-    expect(panel).toContain("setTimeout(() => loadNotifications(false), 800)");
-    expect(panel).toContain("force ? loadNotificationFeed(session.user.id) : ensureFreshNotificationFeed(session.user.id)");
+    expect(panel).toContain("if (open) void loadNotifications(false);");
+    expect(panel).toContain("force ? loadNotificationFeed(session.user.id) : ensureFreshNotificationFeed(session.user.id, LIST_REUSE_MS)");
   });
 });

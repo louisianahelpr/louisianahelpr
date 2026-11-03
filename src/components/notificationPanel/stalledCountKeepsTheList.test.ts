@@ -5,7 +5,7 @@
  * read (count: "exact"), so no third request can stall the load. A HEAD count that never settles must never be
  * awaited by the load again.
  */
-// @mutate src/components/notificationPanel/notificationFeed.ts |   if (typeof unread.count === "number") setUnreadTotal(unread.count); |   await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("read", false);
+// @mutate src/components/notificationPanel/notificationFeed.ts |   markNotificationsLoaded();\n  applyUnreadCount(unread.count); |   markNotificationsLoaded();\n  await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("read", false);
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const reported: unknown[] = [];

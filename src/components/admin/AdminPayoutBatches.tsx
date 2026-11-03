@@ -400,7 +400,7 @@ const AdminPayoutBatches = () => {
           }
         />
       ) : (
-        <div className={`space-y-2 ${selected.size > 0 ? "pb-24" : ""}`}>
+        <div className="space-y-2">
           {visibleBatches.map((batch) => (
             <BatchRow
               key={batch.helper_id}
@@ -420,30 +420,37 @@ const AdminPayoutBatches = () => {
       )}
       </AdminCard>
 
-      {/* Sticky bulk action bar — sits above the bottom nav (which itself
-          honours the iOS safe-area inset) while a selection is active. */}
+      {/* Sticky bulk action bar while a selection is active. It reads the
+          shared dock clearance: /admin is a noNavPages route, so
+          --bottom-nav-h is 0 there and the bar sits on the screen edge (Q237:
+          the old hand-typed 4.5rem left a 72px empty band under it at 375). */}
       {tab === "ready" && selected.size > 0 && (
         <div
           data-rail-inset
           className="fixed left-0 right-0 z-40 px-4 py-3 bg-background/95 backdrop-blur border-t border-border shadow-[0_-4px_12px_-4px_rgba(0,0,0,0.08)]"
           style={{
-            bottom: "calc(var(--safe-area-bottom, 0px) + 4.5rem)",
+            bottom: "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))",
           }}
         >
+          {/* Q237: the buttons are one group pushed right, so when the money
+              line takes the whole row at 375 they wrap TOGETHER and Bulk
+              Approve stays the rightmost control (green primary on the right). */}
           <div className="max-w-2xl mx-auto flex items-center gap-3 flex-wrap">
             <div className="flex-1 min-w-[160px]">
               <p className="text-ds-13 font-semibold text-foreground">
-                {selected.size} helper{selected.size > 1 ? "s" : ""} selected
+                {selected.size} Helpr{selected.size > 1 ? "s" : ""} selected
               </p>
               <p className="text-ds-11 text-muted-foreground tabular-nums">
-                ${selectedMoney.real.toFixed(2)} real money{selectedMoney.testCount > 0 ? ` · $${selectedMoney.test.toFixed(2)} to test accounts` : ""} — fires {selectedBatches.length} Stripe transfer{selectedBatches.length === 1 ? "" : "s"}
+                ${formatPriceExact(selectedMoney.real)} real money{selectedMoney.testCount > 0 ? ` · $${formatPriceExact(selectedMoney.test)} to test accounts` : ""} — fires {selectedBatches.length} Stripe transfer{selectedBatches.length === 1 ? "" : "s"}
               </p>
             </div>
-            <Button variant="ghost" size="sm" onClick={clearSelection}>Clear</Button>
-            <Button size="sm" onClick={() => setConfirmBulk(true)} disabled={bulkPaying || selectedBatches.length === 0}>
-              <Send className="w-3 h-3 mr-1" />
-              {bulkPaying ? "Queuing…" : "Bulk Approve"}
-            </Button>
+            <div data-bulk-actions className="ml-auto flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={clearSelection}>Clear</Button>
+              <Button size="sm" onClick={() => setConfirmBulk(true)} disabled={bulkPaying || selectedBatches.length === 0}>
+                <Send className="w-3 h-3 mr-1" />
+                {bulkPaying ? "Queuing…" : "Bulk Approve"}
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -564,6 +571,10 @@ const AdminPayoutBatches = () => {
         secondaryLabel="Cancel"
       />
       <HeldForReview />
+      {/* Q237: room under the LAST section (Held for review), not under the
+          batch list, so the fixed bulk bar (two rows at 375, ~120px) never
+          covers the end of the page once it is scrolled all the way down. */}
+      {tab === "ready" && selected.size > 0 && <div data-bulk-bar-room aria-hidden className="h-32" />}
     </AdminViewShell>
   );
 };

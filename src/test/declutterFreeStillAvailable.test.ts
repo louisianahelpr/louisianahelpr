@@ -9,16 +9,34 @@
  * @mutate supabase/migrations/20261030232231_declutter_free_still_available.sql |        AND NOT EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id = i.seller_id AND pr.is_seed)\n |
  * @mutate supabase/migrations/20261030232231_declutter_free_still_available.sql |        AND COALESCE((SELECT np.declutter_listings FROM public.notification_preferences np WHERE np.user_id = i.seller_id), true)\n |
  * @mutate supabase/migrations/20261030232231_declutter_free_still_available.sql |        AND i.current_price_cents = 0\n |
- * @mutate supabase/migrations/20261030232231_declutter_free_still_available.sql |   SELECT * INTO v_item FROM public.declutter_items WHERE id = p_item_id AND seller_id = v_uid FOR UPDATE; |   SELECT * INTO v_item FROM public.declutter_items WHERE id = p_item_id FOR UPDATE;
+ * @mutate supabase/migrations/20261103085435_declutter_shops_listing_and_hours_not_found_is_404.sql | END IF;\n  SELECT * INTO v_item FROM public.declutter_items WHERE id = p_item_id AND seller_id = v_uid FOR UPDATE; | END IF;\n  SELECT * INTO v_item FROM public.declutter_items WHERE id = p_item_id FOR UPDATE;
+ * @mutate supabase/migrations/20261030232231_declutter_free_still_available.sql | PERFORM cron.schedule('declutter-free-still-available', '51 15 * * *', | PERFORM cron.schedule('declutter-free-still-available', '51 15 * * 0',
+ * @mutate supabase/migrations/20261030232231_declutter_free_still_available.sql | VALUES ('declutter-free-still-available', interval '26 hours', | VALUES ('declutter-free-still-available', interval '26 days',
+ * @mutate supabase/migrations/20261030232231_declutter_free_still_available.sql | REVOKE ALL ON FUNCTION public.declutter_free_still_available_sweep() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_free_still_available_sweep() FROM PUBLIC, anon;
+ * @mutate supabase/migrations/20261030232231_declutter_free_still_available.sql | REVOKE ALL ON TABLE public.declutter_free_still_asks FROM PUBLIC, anon, authenticated; | REVOKE ALL ON TABLE public.declutter_free_still_asks FROM PUBLIC, anon;
  */
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { newestFunction } from "./helpers/parityReaders";
 import { readStillAvailableLink, stillAvailablePath } from "@/lib/declutter/priceNudge";
 
 const flat = (s: string) => blankSqlComments(s).replace(/\s+/g, " ");
-const FILE = "supabase/migrations/20261030232231_declutter_free_still_available.sql";
+const MIGRATIONS = join(process.cwd(), "supabase/migrations");
+const MIGRATION_SQL = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort()
+  .map((file) => ({ file, sql: flat(readFileSync(join(MIGRATIONS, file), "utf8")) }));
+/**
+ * Every statement matching `re`, in the NEWEST migration that has one (Q2390: a pinned file stops being the live
+ * source once a later migration restates what it set). A later GRANT, unschedule or watch-row change lands there.
+ */
+function newestMatches(re: RegExp): { file: string; hits: string[] } {
+  for (let i = MIGRATION_SQL.length - 1; i >= 0; i--) {
+    const hits = [...MIGRATION_SQL[i].sql.matchAll(re)].map((m) => m[0]);
+    if (hits.length) return { file: MIGRATION_SQL[i].file, hits };
+  }
+  return { file: "-", hits: [] };
+}
 
 describe("the free listing still-available ask", () => {
   const sweep = flat(newestFunction("declutter_free_still_available_sweep").body);
@@ -56,10 +74,16 @@ describe("the free listing still-available ask", () => {
   });
 
   it("the sweep is the server's, the marks are nobody's, the cron is daily and watched", () => {
-    const sql = flat(readFileSync(FILE, "utf8"));
-    expect(sql).toContain("REVOKE ALL ON FUNCTION public.declutter_free_still_available_sweep() FROM PUBLIC, anon, authenticated;");
-    expect(sql).toContain("REVOKE ALL ON TABLE public.declutter_free_still_asks FROM PUBLIC, anon, authenticated;");
-    expect(sql).toContain("PERFORM cron.schedule('declutter-free-still-available', '51 15 * * *',");
-    expect(sql).toContain("VALUES ('declutter-free-still-available', interval '26 hours',");
+    expect(MIGRATION_SQL.length).toBeGreaterThan(1000);
+    const sweepAcl = newestMatches(/\b(?:GRANT|REVOKE)\b[^;]*? ON FUNCTION public\.declutter_free_still_available_sweep\(\)[^;]*;/g);
+    expect(sweepAcl.hits, sweepAcl.file).toContain("REVOKE ALL ON FUNCTION public.declutter_free_still_available_sweep() FROM PUBLIC, anon, authenticated;");
+    expect(sweepAcl.hits.filter((h) => /^GRANT/.test(h) && /\b(PUBLIC|anon|authenticated)\b/.test(h)), sweepAcl.file).toEqual([]);
+    const tableAcl = newestMatches(/\b(?:GRANT|REVOKE)\b[^;]*? ON TABLE public\.declutter_free_still_asks\b[^;]*;/g);
+    expect(tableAcl.hits, tableAcl.file).toContain("REVOKE ALL ON TABLE public.declutter_free_still_asks FROM PUBLIC, anon, authenticated;");
+    expect(tableAcl.hits.filter((h) => /^GRANT/.test(h) && /\b(PUBLIC|anon|authenticated)\b/.test(h)), tableAcl.file).toEqual([]);
+    const cron = newestMatches(/cron\.(?:un)?schedule\('declutter-free-still-available'(?:, '[^']*')?/g);
+    expect(cron.hits[cron.hits.length - 1], cron.file).toBe("cron.schedule('declutter-free-still-available', '51 15 * * *'");
+    const watch = newestMatches(/\('declutter-free-still-available', interval '[^']*'/g);
+    expect(watch.hits[watch.hits.length - 1], watch.file).toBe("('declutter-free-still-available', interval '26 hours'");
   });
 });

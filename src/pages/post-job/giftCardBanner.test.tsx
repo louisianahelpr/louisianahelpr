@@ -4,6 +4,8 @@
  * /home, put it at the top of Post a job, add an x on the right side").
  * Shown able to fail: with the dismissed check dropped, the X and private-mode tests red.
  * @mutate src/pages/post-job/GiftCardTeaser.tsx | if (count <= 0 \|\| dismissed === signature) return null; | if (count <= 0) return null;
+ * Q2003 (owner 2026-11-03): at the 5-open-job cap the hint waits until a job closes; the cap notice shows alone.
+ * @mutate src/pages/post-job/EntryChoice.tsx | {showGiftBanner && !atOpenJobLimit && giftCards.userId && | {showGiftBanner && giftCards.userId &&
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -72,6 +74,19 @@ describe("gift card banner", () => {
     const first = screen.getByRole("region", { name: "Category groups" });
     expect(q.compareDocumentPosition(banner()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(banner()!.compareDocumentPosition(first) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("Q2003: waits at the 5-open-job cap (the cap notice shows alone) and comes back once a job closes", () => {
+    for (const [count, shown] of [[5, false], [6, false], [4, true]] as const) {
+      cleanup();
+      render(
+        <MemoryRouter initialEntries={["/post-job"]}>
+          <EntryChoice form={{ ...form, openJobCount: count } as Form} />
+        </MemoryRouter>,
+      );
+      expect(banner() !== null).toBe(shown);
+      expect(screen.queryByText(/You have \d+ open jobs/) !== null).toBe(!shown);
+    }
   });
 
   it("stays out of the way while a gift is already being spent (?gift_card=)", () => {

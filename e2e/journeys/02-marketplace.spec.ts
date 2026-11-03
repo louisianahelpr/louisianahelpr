@@ -1098,7 +1098,11 @@ test.describe.serial("marketplace chain", () => {
          can open it. The spec was waiting 45s on a control no code path
          renders, and its failure read as a missing product feature. */
       const c = await card(pp, "/jobs?tab=posted", "Needs You");
-      await press(pp, c, /^Approve\b/, "open the completion choice");
+      // The card's "Approve and release" (posterFaceAction "approve", InProgressStep's chip; releaseCopy RELEASE_ACTION)
+      // OPENS CompletionChoiceSheet and releases nothing: the sheet's own "Approve and release $N" is the release, and
+      // it is portaled outside the card, so `press`'s card-scoped lookup cannot reach it. Named by its words, not /^Approve\b/ (the face button is "Approve and release"; the open card's chip "Approve and release: accept the work ..."),
+      // so the press names the one control that opens the choice.
+      await press(pp, c, /^Approve and release\b/, "open the completion choice");
       const sheet = pp.getByRole("dialog").filter({ hasText: "Something's not right" });
       await expect(sheet, "Approve did not open the two-path completion sheet").toBeVisible({ timeout: 20_000 });
       await sheet.getByRole("button", { name: /Something's not right/ }).click();
@@ -1129,7 +1133,7 @@ test.describe.serial("marketplace chain", () => {
          step simply moved on with the sheet still open and nothing released,
          and the failure surfaced 90 seconds later as "release never settled",
          which reads as a broken payout rather than an unclicked button. */
-      await press(pp, c, /^Approve\b/, "approve");
+      await press(pp, c, /^Approve and release\b/, "approve");
       const sheet = pp.getByRole("dialog").filter({ hasText: /Approve and release/ });
       await expect(sheet, "Approve did not open the two-path completion sheet").toBeVisible({ timeout: 20_000 });
       await journey.milestone(pp, "release-confirm");
@@ -1150,7 +1154,10 @@ test.describe.serial("marketplace chain", () => {
          "Review — leave a review for Hallie H." and "Tip Hallie H." — and an
          anchored `$` matched neither. `\b` still refuses "Reviewed — …" and
          "Tipped — …", which is the distinction that matters here. */
-      if (!(await review.isVisible().catch(() => false))) await press(pp, c, /^Review\b/, "poster review");
+      /* A SHUT Done card's face button is "Leave a review" (posterFaceAction done_review_open / done_both_open), and the
+         card stays shut (its face has no "More options": openPostedCard). The open card's chip is "Review — leave a
+         review for <name>" (CompletedStep). Either one; `\b` still refuses "Reviewed". */
+      if (!(await review.isVisible().catch(() => false))) await press(pp, c, /^(?:Leave a review|Review)\b/, "poster review");
       await expect(review).toBeVisible({ timeout: 30_000 });
       await review.getByRole("radio", { name: /5/ }).or(review.getByRole("button", { name: /5 stars?/i })).first().click();
       await review.getByRole("textbox").first().fill(`Journey ${RUN}: great work.`);

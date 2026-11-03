@@ -11,10 +11,10 @@
  * planted defects: written as 'withdrawn', a draft or a reserved item allowed, photos kept, offers left open,
  * no switch gate).
  */
-// @mutate supabase/migrations/20261028192719_declutter_sold_elsewhere.sql |   UPDATE public.declutter_items SET status = 'sold_elsewhere', updated_at = now() WHERE id = p_item_id; |   UPDATE public.declutter_items SET status = 'withdrawn', updated_at = now() WHERE id = p_item_id;
-// @mutate supabase/migrations/20261028192719_declutter_sold_elsewhere.sql |   'ended', 'withdrawn', 'rejected', 'removed', 'sold_elsewhere' |   'ended', 'withdrawn', 'rejected', 'removed'
-// @mutate supabase/migrations/20261028192719_declutter_sold_elsewhere.sql |   PERFORM public.require_feature('declutter');\n  IF public.is_caller_banned() THEN |   IF public.is_caller_banned() THEN
-// @mutate supabase/migrations/20261028192719_declutter_sold_elsewhere.sql | IF v_item.status NOT IN ('pending_review', 'live', 'paused', 'ended') THEN | IF v_item.status NOT IN ('draft', 'pending_review', 'live', 'paused', 'ended', 'reserved') THEN
+// @mutate supabase/migrations/20261103142625_q2390_deposit_wanted_dispute_sold_elsewhere_hand_refund_fault_fee_not_found_is_404.sql |   UPDATE public.declutter_items SET status = 'sold_elsewhere', updated_at = now() WHERE id = p_item_id; |   UPDATE public.declutter_items SET status = 'withdrawn', updated_at = now() WHERE id = p_item_id;
+// @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql |   'ended', 'withdrawn', 'rejected', 'removed', 'sold_elsewhere' |   'ended', 'withdrawn', 'rejected', 'removed'
+// @mutate supabase/migrations/20261103142625_q2390_deposit_wanted_dispute_sold_elsewhere_hand_refund_fault_fee_not_found_is_404.sql |   PERFORM public.require_feature('declutter');\n  IF public.is_caller_banned() THEN |   IF public.is_caller_banned() THEN
+// @mutate supabase/migrations/20261103142625_q2390_deposit_wanted_dispute_sold_elsewhere_hand_refund_fault_fee_not_found_is_404.sql | IF v_item.status NOT IN ('pending_review', 'live', 'paused', 'ended') THEN | IF v_item.status NOT IN ('draft', 'pending_review', 'live', 'paused', 'ended', 'reserved') THEN
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";

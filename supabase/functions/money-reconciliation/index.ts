@@ -199,6 +199,9 @@ const FAILED_PI_STATUSES = new Set(["requires_payment_method", "canceled"]);
 
 type Severity = "critical" | "warning" | "info";
 
+/** Q2367: days a Helpr's "done" may wait on a poster, with no open escalation, before the reminder. */
+const REVIEWED_APPROVAL_DAYS = 7;
+
 interface Finding {
   check: string;
   severity: Severity;
@@ -429,6 +432,16 @@ serve(async (req) => {
         "escrow_on_terminal_job",
         "critical",
         `payment_status='escrow' on a cancelled/completed job more than ${SETTLE_WINDOW_HOURS}h after it ended (and, for completed jobs, past the ${APPROVAL_WINDOW_HOURS}h approval window) — the settlement cron should have moved these and did not.`,
+      ),
+      // Q2367: an admin's "Mark reviewed" closes the approval escalation, and
+      // file_approval_escalation does not re-open a stall that began before
+      // the close, so a live escrow job the Helpr marked done and the poster
+      // never approved is watched by nothing. A person decided, so it is low
+      // severity: a reminder, never a page.
+      reviewedApprovalStillHeld: new Check(
+        "reviewed_approval_still_held",
+        "info",
+        `A live job (not cancelled or completed, no active dispute) still holds escrow more than ${REVIEWED_APPROVAL_DAYS} days after the Helpr marked it done, the poster never approved, and no approval escalation is open (an admin marked it reviewed, or none was filed). Nothing else re-checks it. Approve it for the poster (Admin -> approval queue), or ask the poster and Helpr.`,
       ),
       feeNoHelper: new Check(
         "cancellation_fee_without_helper",
@@ -979,6 +992,39 @@ serve(async (req) => {
         terminal_at: terminalAt === null ? null : new Date(base).toISOString(),
         hours_stuck: Math.round(((nowMs - base) / 3_600_000) * 100) / 100,
       });
+    }
+
+    // ── Q2367: a reviewed approval stall that still holds escrow ─────────────
+    {
+      const stalled = jobRows.filter((job) =>
+        job.payment_status === "escrow" &&
+        job.status !== "cancelled" && job.status !== "completed" &&
+        job.has_active_dispute !== true &&
+        job.poster_completed_at == null &&
+        ts(job.helper_completed_at) !== null &&
+        nowMs - (ts(job.helper_completed_at) ?? nowMs) > REVIEWED_APPROVAL_DAYS * 86_400_000);
+      if (stalled.length > 0) {
+        const { data: openRows, error: openErr } = await admin
+          .from("job_approval_escalations")
+          .select("job_id")
+          .in("job_id", stalled.map((j) => String(j.id)))
+          .is("resolved_at", null);
+        if (openErr) {
+          // Never a silent pass: the check did not run, and the run says so.
+          notes.push(`job_approval_escalations read failed, reviewed_approval_still_held not evaluated: ${openErr.message}`);
+        } else {
+          const open = new Set(((openRows ?? []) as Array<{ job_id: string }>).map((r) => r.job_id));
+          for (const job of stalled) {
+            if (open.has(String(job.id))) continue;
+            checks.reviewedApprovalStillHeld.add({
+              job_id: job.id,
+              status: job.status,
+              helper_completed_at: job.helper_completed_at,
+              days_waiting: Math.round(((nowMs - (ts(job.helper_completed_at) ?? nowMs)) / 86_400_000) * 10) / 10,
+            });
+          }
+        }
+      }
     }
 
     // ── Payouts that were promised and never moved ───────────────────────────

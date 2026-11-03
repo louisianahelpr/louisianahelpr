@@ -1,13 +1,16 @@
 /**
  * Homes listings before the migration is deployed: no error screen, just no
  * listings (PGRST202 missing function / PGRST205 missing table). Any other
- * error still reaches the screen's load-error state.
+ * error still reaches the screen's load-error state, and so does a PGRST202
+ * whose hint names the same function (it exists with other arguments, Q2190).
  *
- * @mutate src/lib/rentals/listings.ts |   return code === "PGRST202" \|\| code === "PGRST205"; |   return false;
+ * @mutate src/lib/rentals/listings.ts |   return code === "PGRST205"; |   return false;
+ * @mutate src/lib/rentals/listings.ts |   if (res.error && isMissingRpcNamed(res.error, "rentals_browse_listings")) return []; |   if (res.error && res.error.code === "PGRST202") return [];
+ * @mutate src/lib/rentals/listings.ts |   if (res.error && isMissingRpcNamed(res.error, "rentals_browse_listings")) return []; |   if (false) return [];
  */
 import { describe, expect, it, vi } from "vitest";
 
-const state = { rpcError: null as null | { code: string; message: string }, tableError: null as null | { code: string; message: string } };
+const state = { rpcError: null as null | { code: string; message: string; hint?: string }, tableError: null as null | { code: string; message: string } };
 vi.mock("@/integrations/supabase/client", () => {
   const chain = () => {
     const c: Record<string, unknown> = {};
@@ -33,6 +36,14 @@ describe("listings before deploy", () => {
     expect(await fetchBrowseListings()).toEqual([]);
     state.tableError = { code: "PGRST205", message: "Could not find the table" };
     expect(await fetchMyListings("u1")).toEqual([]);
+  });
+  it("the function existing with other arguments still throws (Q2190)", async () => {
+    state.rpcError = {
+      code: "PGRST202",
+      message: "Could not find the function public.rentals_browse_listings(p_city, p_max_rent_cents, p_min_beds) in the schema cache",
+      hint: "Perhaps you meant to call the function public.rentals_browse_listings(p_city, p_min_beds)",
+    };
+    await expect(fetchBrowseListings()).rejects.toBeTruthy();
   });
   it("any other error still throws", async () => {
     state.rpcError = { code: "42501", message: "feature_disabled" };

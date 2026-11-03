@@ -25,6 +25,7 @@ import { SupportReplyComposer, SupportThread } from "@/components/admin/SupportR
 import { useSupportReplies } from "@/components/admin/useSupportReplies";
 import { useFilterCounts, pillLabel } from "@/components/admin/useFilterCounts";
 import { supportQueueKey, type SupportQueueFilter } from "@/components/admin/adminQueueKeys";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 type Ticket = {
   id: string;
@@ -210,9 +211,6 @@ const categoryFromReason = (reason: string) => {
 
 const subjectFromReason = (reason: string) => reason.replace(/^\[.*?\]\s*/, "");
 
-/** PostgREST's "function not found" — the migration hasn't reached this env yet. */
-const isMissingRpc = (error: { code?: string | null } | null | undefined) => error?.code === "PGRST202";
-
 type QueueFilter = SupportQueueFilter;
 const SUPPORT_FILTERS: readonly QueueFilter[] = ["pending", "resolved", "all"];
 
@@ -245,7 +243,8 @@ export async function fetchSupportTickets(filter: QueueFilter): Promise<Ticket[]
     p_head_start_minutes: PRIORITY_HEAD_START_MINUTES,
   });
 
-  if (!isMissingRpc(rpc.error)) {
+  // Q2190: only admin_support_queue missing counts as the deploy-lag window; a changed signature throws.
+  if (!isMissingRpcNamed(rpc.error, "admin_support_queue")) {
     // unwrap() rather than `if (error) return []`: swallowing here made an
     // outage render as "No support tickets — Nobody has written in. That
     // is the good outcome." on a trust-and-safety queue — the one screen

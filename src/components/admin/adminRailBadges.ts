@@ -4,7 +4,7 @@ import { loadModule, untilReload } from "@/lib/loadModule";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { fetchSeedUserIds } from "@/components/admin/seedRows";
-import { isMissingRpc } from "@/components/admin/adminStalledJobs/stalledQueue";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { reportsQueueKey, supportQueueKey } from "@/components/admin/adminQueueKeys";
 
 /**
@@ -82,7 +82,7 @@ function useStalledQueueCount(enabled: boolean) {
       // second RPC is missing (PGRST202, no hint): counted as none, never as a failure of the first.
       const appr = await supabase.rpc("admin_approval_escalation_queue", { p_include_resolved: false });
       // Only the ones still waiting on a person (the poster may have approved since; lh-money-escrow review #5).
-      const approvalRows = (appr.error && isMissingRpc(appr.error) ? [] : (unwrap(appr) ?? [])).filter((r) => r.still_waiting === true);
+      const approvalRows = (appr.error && isMissingRpcNamed(appr.error, "admin_approval_escalation_queue") ? [] : (unwrap(appr) ?? [])).filter((r) => r.still_waiting === true);
       const rows: Array<{ customer_id: string | null; helper_id: string | null }> = [...stalledRows, ...approvalRows];
       const seed = await fetchSeedUserIds(rows.flatMap((r) => [r.customer_id, r.helper_id]));
       return rows.filter((r) => !seed.has(r.customer_id ?? "") && !seed.has(r.helper_id ?? "")).length;

@@ -133,7 +133,7 @@ describe("Q1326: a double-booked Helpr is told on the card", () => {
 // @mutate src/components/series/JobSeriesCardControls.tsx |   if (!expanded && !(job as { schedule_change_asked_of_me?: boolean }).schedule_change_asked_of_me) return clash; |   if (!expanded && !(job as { schedule_change_asked_of_me?: boolean }).schedule_change_asked_of_me) return null;
 // @mutate src/components/series/JobSeriesCardControls.tsx |   const clash = viewer === "helper" ? <ScheduleClashNotice job={job} /> : null; |   const clash = <ScheduleClashNotice job={job} />;
 // @mutate src/lib/scheduleClashes.ts |     if (out.has(r.job_id)) continue; |
-// @mutate src/lib/scheduleClashes.ts |     if (!isNotDeployedYet(error)) report(error, { severity: "warning", tags: { source: "fetchMyScheduleClashes" } }); |
+// @mutate src/lib/scheduleClashes.ts |     if (!isMissingRpcNamed(error, "my_schedule_clashes")) report(error, { severity: "warning", tags: { source: "fetchMyScheduleClashes" } }); |
 // @mutate src/hooks/useActivityData.ts | ...(c ? { schedule_clash: c } : {}) | ...{}
 // @mutate supabase/migrations/20261012171958_helpr_double_booking_notice.sql | REVOKE ALL ON FUNCTION public.my_schedule_clashes() FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.my_schedule_clashes() FROM PUBLIC;
 // @mutate supabase/migrations/20261012171958_helpr_double_booking_notice.sql |             OR (j.status::text IN ('open', 'accepted', 'in_progress') |             OR (j.status::text IN ('accepted', 'in_progress')

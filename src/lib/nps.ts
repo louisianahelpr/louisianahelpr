@@ -85,7 +85,8 @@ export function clearNpsLocalCooldownForTests(): void {
 function isMissingTableError(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
   const code = String(error.code ?? "");
-  if (code === "PGRST205" || code === "PGRST202" || code === "42P01") return true;
+  // No PGRST202: that is a missing FUNCTION, and this reads a table (Q2190).
+  if (code === "PGRST205" || code === "42P01") return true;
   const msg = String(error.message ?? "");
   return /schema cache|relation .* does not exist|table .* does not exist/i.test(msg);
 }

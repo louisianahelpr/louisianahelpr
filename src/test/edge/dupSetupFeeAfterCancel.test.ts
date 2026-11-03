@@ -45,7 +45,7 @@ async function deliverDuplicateFee(opts: { amountRefunded: number; jobPaymentSta
       },
     },
   });
-  // The flag flip matches 0 rows: the fee was already paid, so this checkout's $2 is a duplicate.
+  // The flag flip matches no rows: the fee was already paid, so this checkout's $2 is a duplicate.
   scenario.writeSelectRows.profiles = [];
   if (opts.retrieveThrows) stripeMock.paymentIntents.retrieve.mockRejectedValue(new Error("stripe down"));
   else stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_q1904", latest_charge: { id: "ch_1", amount: 10812, amount_refunded: opts.amountRefunded } });

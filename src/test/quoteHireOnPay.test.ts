@@ -23,12 +23,12 @@
  * @mutate supabase/migrations/20261102081647_quote_hire_catches_query_canceled.sql | OR NOT (OLD.payment_status IS NULL OR OLD.payment_status::text IN ('unpaid', 'failed', 'abandoned')) THEN | OR public.job_payment_is_funded(OLD.payment_status::text) THEN
  * @mutate supabase/migrations/20261102081647_quote_hire_catches_query_canceled.sql |       v_done := public.complete_direct_offer_accept(NEW.id, v_quoter); |       v_done := NULL;
  * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |   AFTER UPDATE OF payment_status ON public.jobs | AFTER UPDATE OF status ON public.jobs
- * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |         DELETE FROM public.jobs j\n         WHERE j.id = v_req.job_id | DELETE FROM public.jobs j\n         WHERE false AND j.id = v_req.job_id
- * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql |            AND j.stripe_session_id IS NULL AND j.stripe_payment_intent_id IS NULL; |            AND j.stripe_session_id IS NULL;
+ * @mutate supabase/migrations/20261103043845_cancel_quote_request_not_found_is_404.sql |         DELETE FROM public.jobs j\n         WHERE j.id = v_req.job_id | DELETE FROM public.jobs j\n         WHERE false AND j.id = v_req.job_id
+ * @mutate supabase/migrations/20261103043845_cancel_quote_request_not_found_is_404.sql |            AND j.stripe_session_id IS NULL AND j.stripe_payment_intent_id IS NULL; |            AND j.stripe_session_id IS NULL;
  * @mutate supabase/migrations/20261023120308_quote_reminders_by_email.sql |       AND q.reminder_sent_for IS DISTINCT FROM q.respond_until\n | \n
  * @mutate supabase/migrations/20261103043002_job_offers_arrival_continue_day_not_found_is_404.sql | ' for "' \|\| v_req.title \|\| '".', v_uid, true, | ' for "' \|\| v_req.title \|\| '".', v_uid, false,
  * @mutate supabase/migrations/20261102081647_quote_hire_catches_query_canceled.sql |     v_reason := public.direct_accept_block_reason(NEW.id, v_quoter); |     v_reason := NULL;
- * @mutate supabase/migrations/20261018155222_quote_hire_on_pay_alerts.sql | WHERE j.id = v_req.job_id AND j.customer_id = v_uid\n | WHERE j.id = v_req.job_id\n
+ * @mutate supabase/migrations/20261103043845_cancel_quote_request_not_found_is_404.sql | WHERE j.id = v_req.job_id AND j.customer_id = v_uid\n | WHERE j.id = v_req.job_id\n
  * @mutate supabase/migrations/20261021112534_block_closes_agreed_unbooked_quote.sql |   AFTER INSERT ON public.user_blocks | AFTER INSERT ON public.job_quotes
  * @mutate supabase/migrations/20261021112534_block_closes_agreed_unbooked_quote.sql |          OR (r.poster_id = NEW.blocked_id AND q.quoter_id = NEW.blocker_id)); |          OR false);
  * @mutate supabase/migrations/20261021112534_block_closes_agreed_unbooked_quote.sql |   EXCEPTION WHEN OTHERS THEN\n    BEGIN\n      INSERT INTO public.error_logs (severity, message, tags, context)\n      VALUES ('error', 'Pending quotes | EXCEPTION WHEN unique_violation THEN\n    BEGIN\n      INSERT INTO public.error_logs (severity, message, tags, context)\n      VALUES ('error', 'Pending quotes

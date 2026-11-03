@@ -1113,13 +1113,19 @@ const dayTime = (ms: number) => new Date(ms).toLocaleString("en-US", { timeZone:
 /**
  * Past the day-before confirm deadline (confirmDeadlineMs, 2 hours before the start) with the Helpr's confirm still
  * missing: the line says the window passed, never "confirm by" a time already gone (lead 11-03: "by Fri 8:00 AM" after
- * 8:00). What happens next is the app's existing promise ("Confirm by ..., or it's reposted to other Helprs",
- * JobConfirmation and confirmationOpensClock), which sweep_confirm_reminders_and_repost (20261008205730, every 5 min)
- * keeps; that sweep never reposts a crew job, so a crew line only says the window passed.
+ * 8:00). It adds "reposted" only where the code keeps that promise: sweep_confirm_reminders_and_repost
+ * (20261008205730, every 5 min) reopens the job at that instant, but never a crew job and never a series visit
+ * (`parent_job_id IS NULL` in its WHERE). So the claim needs `parent_job_id` READ AS NULL: a row that did not select
+ * the column (undefined) gets only "Confirm window passed" (lead 11-03: never show a promise the code doesn't keep).
+ * Seed-posted jobs are also skipped by the sweep; they are test-only, so not handled here (lead 11-03).
  * `name` is the Helpr's first name for the poster's line, or null for the Helpr's own.
  */
-export function confirmWindowPassedLine(name: string | null, isGroupJob: boolean | null | undefined): string {
-  if (isGroupJob) return name ? `Confirm window passed. ${name} hasn't confirmed` : "Confirm window passed";
+export function confirmWindowPassedLine(
+  name: string | null,
+  job: { is_group_job?: boolean | null; parent_job_id?: string | null },
+): string {
+  const reposted = job.is_group_job !== true && job.parent_job_id === null;
+  if (!reposted) return name ? `Confirm window passed. ${name} hasn't confirmed` : "Confirm window passed";
   return name ? `Confirm window passed. ${name} didn't confirm, so it's being reposted` : "Confirm window passed. It's being reposted to other Helprs";
 }
 /** When the offered Helpr's answer is due (the same column offerDeadline reads), or null; never a time already passed. */
@@ -1142,7 +1148,7 @@ const POSTER_NAMED: Partial<Record<PosterWait, (name: string, job: Job) => strin
     // A2-C40: past the start the confirm deadline is gone; never "confirm by" a time already passed.
     if (Date.now() >= posterConfirmClosesMs(job.date_needed, job.start_time)) return `It's start time. ${f} hasn't confirmed`;
     const due = confirmDeadlineMs(job.date_needed, job.start_time ?? null);
-    if (Date.now() >= due) return confirmWindowPassedLine(f, job.is_group_job);
+    if (Date.now() >= due) return confirmWindowPassedLine(f, job);
     return `Waiting on ${f} to confirm by ${dayTime(due)}`;
   },
   confirm_still_on: (n, job) =>

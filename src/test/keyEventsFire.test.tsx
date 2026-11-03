@@ -494,15 +494,21 @@ describe("payment_made and first_payment_collected count only real checkout retu
     expect(rowsFor("first_payment_collected")).toEqual([]);
   });
 
-  it("a poster with no paid job gets payment_made but no first_payment_collected", async () => {
+  it("a poster with no OTHER paid job gets first_payment_collected once this job reads paid, with its job_id", async () => {
     h.state.fromHandler = paidJobs([]);
     renderAt(`/payment-success?job_id=${PAYMENT_JOB}`);
-    await expectSent("payment_made", PAYMENT_JOB);
+    await expectSent("first_payment_collected", PAYMENT_JOB);
     await settle();
-    expect(rowsFor("first_payment_collected")).toEqual([]);
+    expect(rowsFor("first_payment_collected")).toHaveLength(1);
+    // Q2115: the count reads payment_status (which a gift-covered job has too), never the webhook-only intent id,
+    // and leaves this job out.
+    const read = h.state.fromCalls.find((c) => c.table === "jobs" && c.ops.some((o) => o.m === "in"));
+    expect(read?.ops.find((o) => o.m === "in")?.a).toEqual(["payment_status", ["escrow", "payout_pending", "released", "refunded", "chargeback", "cancelling"]]);
+    expect(read?.ops.find((o) => o.m === "neq")?.a).toEqual(["id", PAYMENT_JOB]);
+    expect(read?.ops.some((o) => o.m === "not")).toBe(false);
   });
 
-  it("a poster whose one paid job is a DIFFERENT job gets no first_payment_collected here", async () => {
+  it("a poster with another paid job gets payment_made but no first_payment_collected", async () => {
     h.state.fromHandler = paidJobs([{ id: "30000000-0000-4000-8000-0000000000dd" }]);
     renderAt(`/payment-success?job_id=${PAYMENT_JOB}`);
     await expectSent("payment_made", PAYMENT_JOB);
@@ -523,19 +529,37 @@ describe("payment_made and first_payment_collected count only real checkout retu
     );
   });
 
-  it("a poster whose ONE paid job is this one gets first_payment_collected, with its job_id", async () => {
-    h.state.fromHandler = paidJobs([{ id: PAYMENT_JOB }]);
-    renderAt(`/payment-success?job_id=${PAYMENT_JOB}`);
-    await expectSent("first_payment_collected", PAYMENT_JOB);
-    expect(rowsFor("first_payment_collected")).toHaveLength(1);
-  });
+  /** This job's payment_status per poll read, in order (the last one repeats); other paid jobs: none. */
+  const statuses = (seq: string[]) => {
+    let i = 0;
+    return (c: { table: string; ops: Array<{ m: string; a: unknown[] }> }, t: string) => {
+      if (c.table !== "jobs") return undefined;
+      if (t === "maybeSingle") {
+        const payment_status = seq[Math.min(i++, seq.length - 1)];
+        return { data: { budget: 120, category: "cleaning", payment_status, customer_id: h.USER_ID, status: "open" }, error: null };
+      }
+      return { data: [], error: null, count: 0 };
+    };
+  };
 
-  it("a poster with two paid jobs gets no first_payment_collected", async () => {
-    h.state.fromHandler = paidJobs([{ id: PAYMENT_JOB }, { id: "30000000-0000-4000-8000-0000000000dd" }]);
+  // Q2115 (lh-silent-failure@1e0c79b08#4): the checkout return usually beats the webhook, so the first read is unpaid.
+  it("the first read is unpaid and a later poll reads escrow: first_payment_collected is sent then", async () => {
+    h.state.fromHandler = statuses(["unpaid", "escrow"]);
     renderAt(`/payment-success?job_id=${PAYMENT_JOB}`);
     await expectSent("payment_made", PAYMENT_JOB);
-    await settle();
-    expect(rowsFor("first_payment_collected")).toEqual([]);
+    await waitFor(() => { flushAnalytics(); expect(rowsFor("first_payment_collected")).toHaveLength(1); }, { timeout: 4_000 });
+  });
+
+  it("a job that never reads paid (failed, or a card hold) sends no first_payment_collected", async () => {
+    for (const st of ["failed", "held"]) {
+      h.state.analyticsRows.length = 0;
+      h.state.fromHandler = statuses([st]);
+      const view = renderAt(`/payment-success?job_id=${PAYMENT_JOB}`);
+      await expectSent("payment_made", PAYMENT_JOB);
+      await settle();
+      expect(rowsFor("first_payment_collected"), st).toEqual([]);
+      view.unmount();
+    }
   });
 });
 
@@ -596,9 +620,11 @@ describe("inventory", () => {
 // @mutate src/pages/post-job/PaymentSuccess.tsx | track(AhaEvent.PaymentMade, { job_id: jobId, ...ppoProps }); | void 0;
 // @mutate src/pages/post-job/PaymentSuccess.tsx | if (!urlJobId \|\| !UUID_RE.test(urlJobId)) return; | void 0;
 // @mutate src/pages/post-job/PaymentSuccess.tsx | const urlJobId = searchParams.get("job_id"); | const urlJobId = searchParams.get("job_id") ?? resolvedJobId;
-// @mutate src/pages/post-job/firstPaymentCollected.ts | if (paid?.length === 1 && paid[0].id === jobId) { | if ((paid?.length ?? 0) <= 1) {
-// @mutate src/pages/post-job/firstPaymentCollected.ts | if (paid?.length === 1 && paid[0].id === jobId) { | if (paid?.length === 1) {
-// @mutate src/pages/post-job/firstPaymentCollected.ts | if (paidError) { | if (false) {
+// @mutate src/pages/post-job/firstPaymentCollected.ts | if (Array.isArray(others) && others.length === 0) { | if ((others?.length ?? 0) <= 1) {
+// @mutate src/pages/post-job/firstPaymentCollected.ts | if (Array.isArray(others) && others.length === 0) { | if (!othersError) {
+// @mutate src/pages/post-job/firstPaymentCollected.ts | if (othersError) { | if (false) {
+// @mutate src/pages/post-job/PaymentSuccess.tsx |         if (status && HELD_STATUSES.has(status)) fireFirstPayment(); |         fireFirstPayment();
+// @mutate src/pages/post-job/firstPaymentCollected.ts |       .neq("id", jobId) |       .neq("id", "")
 // @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts | trackJobCompleted(jobId, data, "activity", user?.id); | void 0;
 // @mutate src/lib/jobCompletedEvent.ts | if (emitted.has(jobId)) return false; | void 0;
 // @mutate src/components/reviewPanel/ReviewForm.tsx | track(AhaEvent.ReviewLeft, { job_id: jobId, rating }); | void 0;

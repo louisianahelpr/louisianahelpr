@@ -30,6 +30,7 @@ import { isDeclutterSession, settleDeclutterSession } from "./declutterCheckout.
 import { isShopSession, settleShopSession } from "./shopCheckout.ts";
 import { isCardHoldSession, settleCardHoldCheckout } from "./cardHoldCheckout.ts";
 import { memberDisplayName } from "../../_shared/memberDisplayName.ts";
+import { pageGiftLeftSpentOnCardFunding } from "./_giftLeftSpentOnCardFunding.ts";
 
 export async function handleCheckoutSessionCompleted(
   event: Stripe.Event,
@@ -1488,6 +1489,16 @@ async function settleCheckoutSession(
           : "Stored payment_intent and escrow status on job",
         { jobId, pi: piId },
       );
+      // Q1983: a card payment just funded a job that was not funded; a gift an earlier, never-funded checkout
+      // left 'redeemed' on it paid for nothing. Ops is paged to give it back (never throws).
+      if (!isAsyncPayment) {
+        await pageGiftLeftSpentOnCardFunding(supabase, {
+          jobId,
+          sessionId: session.id,
+          consumedGiftId: ((session.metadata as any)?.gift_card_id as string | undefined) ?? null,
+          logStep,
+        });
+      }
 
       // Fan out the helper match — but ONLY for synchronous (already-captured)
       // payments. For async payments (ACH) the job is still unpaid and browse

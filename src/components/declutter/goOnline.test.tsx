@@ -43,6 +43,7 @@ beforeEach(() => {
   state.status = null;
   state.calls = [];
   state.refusal = null;
+  sessionStorage.clear(); // DeliveryOnlinePill keeps this tab's last answer for its staleTime (Q104)
 });
 
 // B79: DesktopTopNav's online pill runs online.ts beside every signed-in page, so its refusal words load only on a
@@ -103,9 +104,23 @@ describe("Go online for deliveries", () => {
     const link = await screen.findByRole("link", { name: /Online for deliveries/ });
     expect(link).toHaveAttribute("href", "/declutter?view=deliver");
     a.unmount();
+    sessionStorage.clear(); // a new tab: no last answer
     state.status = { online_until: inHours(-1), radius_miles: 15 };
     const b = show(<DeliveryOnlinePill placement="header" />);
     await new Promise((r) => setTimeout(r, 50));
     expect(b.container).toBeEmptyDOMElement();
+  });
+
+  // Q104 (B58): a full page load in the same tab starts from the last answer while it is inside the query's own
+  // one-minute staleTime, instead of reading helpr_delivery_online again (every signed-in page load did).
+  // @mutate src/components/declutter/DeliveryOnlinePill.tsx |     initialData: copy?.row, |     initialData: undefined,
+  it("a reload in the same tab inside the minute does not read the row again", async () => {
+    state.status = { online_until: inHours(1), radius_miles: 15 };
+    const a = show(<DeliveryOnlinePill placement="header" />);
+    await screen.findByRole("link", { name: /Online for deliveries/ });
+    a.unmount();
+    state.status = { online_until: inHours(-1), radius_miles: 15 }; // a re-read would hide the pill
+    show(<DeliveryOnlinePill placement="header" />);
+    expect(await screen.findByRole("link", { name: /Online for deliveries/ })).toBeInTheDocument();
   });
 });

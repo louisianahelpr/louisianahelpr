@@ -110,7 +110,7 @@ const GROUP_CARD_CLASS = "rounded-2xl overflow-hidden";
 function Thumb({ photo, icon, seed }: { photo?: string | null; icon: LucideIcon; seed: string | null }) {
   return (
     <span className={`${THUMB_CLASS} overflow-hidden bg-photo-empty`} aria-hidden>
-      {photo ? <img src={photoPublicUrl(photo)} alt="" loading="lazy" className="w-full h-full object-cover" /> : <PhotoPlaceholder icon={icon} seed={seed} className="w-full h-full" />}
+      {photo ? <img loading="lazy" src={photoPublicUrl(photo)} alt="" className="w-full h-full object-cover" /> : <PhotoPlaceholder icon={icon} seed={seed} className="w-full h-full" />}
     </span>
   );
 }

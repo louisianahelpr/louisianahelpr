@@ -37,7 +37,7 @@ export function ShopBrowseCard({ shop, category, group, extras }: { shop: ShopCa
       <span className="relative block">
         <span className="block aspect-[2/1] overflow-hidden rounded-2xl bg-muted">
           {cover ? (
-            <img src={shopPhotoUrl(cover)} alt="" loading="lazy" className="h-full w-full object-cover" />
+            <img loading="lazy" src={shopPhotoUrl(cover)} alt="" className="h-full w-full object-cover" />
           ) : (
             <PhotoPlaceholder icon={shopGroupIcon(group)} seed={group} className="h-full w-full" />
           )}
@@ -48,7 +48,7 @@ export function ShopBrowseCard({ shop, category, group, extras }: { shop: ShopCa
           aria-hidden
         >
           {shop.logo_path ? (
-            <img src={shopPhotoUrl(shop.logo_path)} alt="" loading="lazy" className="h-full w-full object-cover" />
+            <img loading="lazy" src={shopPhotoUrl(shop.logo_path)} alt="" className="h-full w-full object-cover" />
           ) : (
             shop.name.trim().charAt(0).toUpperCase() || <Store className="h-6 w-6 text-muted-foreground" />
           )}

@@ -104,7 +104,7 @@ const REASON_WORDS: Record<string, string> = {
 function SidePhoto({ path, alt }: { path: string; alt: string }) {
   const url = useQuery({ queryKey: ["declutter", "problem-photo", path], queryFn: () => handoverPhotoUrl(path), staleTime: 5 * 60_000 });
   if (!url.data) return null;
-  return <img src={url.data} alt={alt} className="h-32 w-32 rounded-lg object-cover" loading="lazy" />;
+  return <img loading="lazy" src={url.data} alt={alt} className="h-32 w-32 rounded-lg object-cover" />;
 }
 
 function ProblemItem({ row }: { row: ProblemRow }) {

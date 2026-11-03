@@ -131,12 +131,12 @@ const OptimizedImage = React.forwardRef<HTMLImageElement, OptimizedImageProps>(
 
     return (
       <img
+        loading={resolvedLoading}
         ref={ref}
         src={finalSrc}
         alt={alt}
         width={width}
         height={height}
-        loading={resolvedLoading}
         decoding={resolvedDecoding}
         sizes={sizes}
         onLoad={handleLoad}

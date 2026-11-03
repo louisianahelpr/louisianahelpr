@@ -18,7 +18,7 @@ function TaskPhoto({ path, label }: { path: string; label: string }) {
   if (!url.data) return null;
   return (
     <figure className="space-y-1">
-      <img src={url.data} alt={label} className="h-32 w-32 rounded-lg bg-photo-empty object-cover" loading="lazy" />
+      <img loading="lazy" src={url.data} alt={label} className="h-32 w-32 rounded-lg bg-photo-empty object-cover" />
       <figcaption className="text-xs text-muted-foreground">{label}</figcaption>
     </figure>
   );

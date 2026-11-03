@@ -30,9 +30,9 @@ export function ProofPhotoImg({
   }
   return (
     <img
+      loading="lazy"
       src={src ?? PENDING_PHOTO_SRC}
       alt={alt}
-      loading="lazy"
       decoding="async"
       className={className}
       onError={() => { if (src) setFailedSrc(src); }}

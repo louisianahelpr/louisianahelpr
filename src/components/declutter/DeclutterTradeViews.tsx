@@ -443,7 +443,7 @@ function CartThumb({ path }: { path?: string }) {
   const [stage, setStage] = useState<"thumb" | "full" | "failed">("thumb");
   return (
     <span className="h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-muted" data-cart-thumb="" aria-hidden="true">
-      {path && stage !== "failed" && <img src={stage === "thumb" ? squarePhotoUrl(photoPublicUrl(path), THUMB_PHOTO_PX) ?? photoPublicUrl(path) : photoPublicUrl(path)} width={THUMB_PHOTO_PX} height={THUMB_PHOTO_PX} alt="" loading="lazy" decoding="async" onError={() => setStage((s) => (s === "thumb" ? "full" : "failed"))} className="h-full w-full object-cover" />}
+      {path && stage !== "failed" && <img loading="lazy" src={stage === "thumb" ? squarePhotoUrl(photoPublicUrl(path), THUMB_PHOTO_PX) ?? photoPublicUrl(path) : photoPublicUrl(path)} width={THUMB_PHOTO_PX} height={THUMB_PHOTO_PX} alt="" decoding="async" onError={() => setStage((s) => (s === "thumb" ? "full" : "failed"))} className="h-full w-full object-cover" />}
     </span>
   );
 }

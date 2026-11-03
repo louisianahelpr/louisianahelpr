@@ -199,6 +199,7 @@
  * @mutate supabase/migrations/20261103150842_q2390_returns_withdraw_fee_waiver_visit_lease_not_found_is_404.sql | RAISE EXCEPTION 'no_visit_proposed' USING ERRCODE = '22023'; | RAISE EXCEPTION 'no_visit_proposed' USING ERRCODE = 'PT404';
  * @mutate supabase/migrations/20261103215645_q2390_landlord_id_handover_talk_delivery_time_no_show_delivered_not_found_is_404.sql | RAISE EXCEPTION 'not_pending_review' USING ERRCODE = '22023'; | RAISE EXCEPTION 'not_pending_review' USING ERRCODE = 'PT404';
  * @mutate supabase/migrations/20261103215645_q2390_landlord_id_handover_talk_delivery_time_no_show_delivered_not_found_is_404.sql | RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'profile_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql | RAISE EXCEPTION 'manager_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'manager_not_found' USING ERRCODE = 'P0002';
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -241,6 +242,7 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
  * Packet 32 (regular): declutter_add_handover, declutter_refund_paid_order, shops_shop_cancel_order, declutter_remove_item_photo, shops_report_no_show, declutter_decline_listed_for_me (20261103162420); shop-checkout rpcRefusal already answers 404 for PT404, declutter_refund_paid_order has no app or edge caller, the app maps by message.
  * Packet 33 (regular, 12): declutter_cancel_haul_away, declutter_set_listing_price, declutter_withdraw_item, guarantee_escalate, declutter_delivery_raise_start, declutter_refund_request_to_admin, declutter_seller_delivery_offer, declutter_remove_cart_item, shops_report_not_received, shops_attach_photo, rentals_add_rent_payment, rentals_correct_rent_payment (20261103173728); declutter-checkout already answers 404 for PT404, guarantee_escalate and declutter_refund_request_to_admin are service_role only (their SQL callers read no code), the app maps by message.
  * Packet 34 (regular, 6): rentals_admin_review_landlord_id, declutter_report_helpr_no_show, declutter_answer_delivery_time, declutter_propose_delivery_time, declutter_open_handover_talk, declutter_seller_delivered (20261103215645); the app maps by message. rentals_admin_review_landlord_id's 'not_pending_review' is a state refusal: '22023' (400), lead 11-03 (STATE_REFUSALS below).
+ * Packet 35 (regular, 6, Declutter first per the owner 11-03): declutter_publish_item, declutter_manager_offer, declutter_admin_take_down_item, declutter_return_dropped_off, declutter_problem_add_side, declutter_request_free (20261103220428); every raise is before any write, the app maps by message.
  */
 const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
   "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm",
@@ -286,9 +288,11 @@ const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_s
   "declutter_remove_cart_item", "shops_report_not_received", "shops_attach_photo", "rentals_add_rent_payment",
   "rentals_correct_rent_payment",
   "rentals_admin_review_landlord_id", "declutter_report_helpr_no_show", "declutter_answer_delivery_time",
-  "declutter_propose_delivery_time", "declutter_open_handover_talk", "declutter_seller_delivered"];
+  "declutter_propose_delivery_time", "declutter_open_handover_talk", "declutter_seller_delivered",
+  "declutter_publish_item", "declutter_manager_offer", "declutter_admin_take_down_item", "declutter_return_dropped_off",
+  "declutter_problem_add_side", "declutter_request_free"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-const P0002_RAISERS = 75;
+const P0002_RAISERS = 69;
 /**
  * Refusals that used P0002 but name a state, not a missing row: they move to '22023' (400), never PT404 (lead 11-03).
  * Function -> the exception message it raises with '22023'.

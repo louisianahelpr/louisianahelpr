@@ -7,6 +7,9 @@ import { beginSpeculativePrefetch } from "@/lib/chunkReload";
  * Keep paths in sync with the lazy imports in src/App.tsx. Unknown paths
  * are silent no-ops.
  */
+/** The Posted / Working lists' chunk (JobsSection loads it lazily; Browse warms it). Matched only exactly. */
+export const JOB_LISTS_PREFETCH_KEY = "/jobs?lists";
+
 const prefetchers: Record<string, () => Promise<unknown>> = {
   "/home": () => import("@/pages/home/HomeDashboard"),
   "/profile": () => import("@/pages/profile/Profile"),
@@ -14,6 +17,8 @@ const prefetchers: Record<string, () => Promise<unknown>> = {
   "/posts": () => import("@/pages/posts/PostsPage"),
   "/jobs": () => import("@/pages/jobs/JobsSection"),
   "/jobs/": () => import("@/pages/jobs/JobDetail"),
+  // B52: the Posted / Working lists, JobsSection's lazy chunk (Browse warms it once settled). Exact key only.
+  [JOB_LISTS_PREFETCH_KEY]: () => import("@/components/job-card/JobListPage"),
   "/messages": () => import("@/pages/messages/Messages"),
   // /support is its own public page now (it used to redirect into the
   // Profile tab system, so this key pointed at the Profile chunk — which

@@ -47,6 +47,7 @@
 // @mutate src/test/clockFunctionsProven.test.ts |   guarantee_sweep: "guaranteeSweepClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   check_stale_dispute_settlement_claims: "staleDisputeClaimsClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   reap_stranded_instant_payouts: "reapInstantPayoutsClock.pglite.mjs",\n | \n
+// @mutate src/test/clockFunctionsProven.test.ts |   detect_stuck_payments: "detectStuckPaymentsClock.pglite.mjs",\n | \n
 // @mutate src/test/pglite/userReportsLedgerClock.pglite.mjs | const { file, stmt } = newestFunction("check_user_reports_reach_ledger"); | const { file, stmt } = newestFunction("check_user_reports");
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -105,6 +106,7 @@ const PROVEN: Record<string, string> = {
   guarantee_sweep: "guaranteeSweepClock.pglite.mjs",
   check_stale_dispute_settlement_claims: "staleDisputeClaimsClock.pglite.mjs",
   reap_stranded_instant_payouts: "reapInstantPayoutsClock.pglite.mjs",
+  detect_stuck_payments: "detectStuckPaymentsClock.pglite.mjs",
 };
 
 /** function -> why it has no fixed-clock probe yet. Each is open work under docs/OPEN.md Q1424. */
@@ -116,7 +118,6 @@ const NOT_PROVEN: Record<string, string> = {
   // Train D (2026-10-27), measured: neither probe imports fixedClock.mjs; both move row timestamps.
   cron_http_tag: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
   cron_record_work: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
-  detect_stuck_payments: "named by stuckPaymentNeedsStripeProof.pglite.mjs, moneySweepsFoundVsDone.pglite.mjs, cronWorkVisibility.pglite.mjs; no probe runs it on fixedClock.mjs at a 1 ms edge. On the money path: lane A2 (money, auth and data).",
   rentals_rent_sweep: "named by homesRentTracker.pglite.mjs (it moves due dates and created_at, not the clock: rent rows, late fees after due + grace, reminders); no probe runs it on fixedClock.mjs across a Louisiana midnight (Homes D2, 2026-10-19).",
   rentals_deposit_sweep: "named by homesDepositTracker.pglite.mjs (it moves ended_at, not the clock: the end-day, 7-days-before and overdue reminders of the one-month return); no probe runs it on fixedClock.mjs across a Louisiana midnight (Homes D6, 2026-10-19).",
 };

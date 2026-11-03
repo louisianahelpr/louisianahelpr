@@ -81,9 +81,9 @@
  * in the table CHECK; the keep-card-fee amount refunding the fee; (b) a new reason added unclassified; the sites
  * sending something other than the row's refund_cents.
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     fee_policy = CASE WHEN reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'helpr_fault') THEN |     fee_policy = CASE WHEN reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described') THEN
- * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql |   v_policy := CASE WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'helpr_fault') THEN |   v_policy := CASE WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described') THEN
- * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql |     IF p_reason = 'helpr_fault' THEN |     IF p_reason = 'helpr_fault_x' THEN
- * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault', 'refund_request_full') THEN 'keep_card_fee' | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'refund_request_full') THEN 'keep_card_fee'
+ * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql |   v_policy := CASE WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'helpr_fault', 'ship_lost') THEN |   v_policy := CASE WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'ship_lost') THEN
+ * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql |     IF p_reason = 'helpr_fault' THEN |     IF p_reason = 'helpr_fault_x' THEN
+ * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault', 'refund_request_full') THEN 'keep_card_fee' | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'refund_request_full') THEN 'keep_card_fee'
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' | WHEN reason IN ('buyer_no_show') THEN 'keep_buyer_fee'
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHEN fee_policy = 'keep_card_fee' THEN paid_cents - card_fee_cents | WHEN fee_policy = 'keep_card_fee' THEN paid_cents
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |     'refund_request_full', 'refund_request_part'));   -- 141d |     'refund_request_full', 'refund_request_part', 'buyer_changed_mind'));   -- 141d
@@ -93,9 +93,9 @@
  * (M1 fee zeroed for one reason, M8 kept fee shrunk, M4 a caller passing no fee, M9 a caller recording our-mistake,
  * M5 the fee estimate, note 1 the reader projection); table statements (M2 an UPDATE, M6 a trigger, an order
  * card-fee UPDATE); the site (M3 the fee handed to the SQL, M12 a second amount spread in).
- * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
- * @mutate supabase/migrations/20261102080936_declutter_seller_out_told_once.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
- * @mutate supabase/migrations/20261102084222_a3_stack_reconcile.sql | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    0);
+ * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
+ * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
+ * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    0);
  * @mutate supabase/migrations/20261103095253_declutter_late_payment_seller_block.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261019070737_payout_waits_for_payee_setup.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
@@ -463,7 +463,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // declutter_record_refund restated with ONE new reason, helpr_fault (the Helpr's fault in a delivery they could not
     // finish): everything goes back and the card fee becomes a debt on the at-fault Helpr, not the seller. Nothing
     // else in them changed (record_refund three-way merged from 20261031105148).
-    migration: "20261102031000_declutter_seller_delivery_book_by.sql",
+    // Q2259 shipping lost sweep (20261103203204, B61 WIP, FOR VERDICT): the reason CHECK, the policy CHECK and
+    // declutter_record_refund restated verbatim (prod md5) with ONE new reason, ship_lost -> full_seller_pays_fee
+    // (decision 5: lost in the mail = the seller; everything back, the card fee and the spent label are the seller's debt).
+    migration: "20261103203204_shipping_lost_sweep.sql",
     // A3-72 (20261102031000, lead 11-01 9:05 PM; kept by the A3 reconcile, builder 166): the reason CHECK adds
     // 'delivery_never_booked' and the reason -> policy CHECK is restated unchanged beside it (the new reason takes its
     // ELSE, full_platform_absorbs).
@@ -475,9 +478,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // card fee (fee * total / (total + setup fee)). Reasons, policies and the CHECKs are unchanged.
     // Q2556 (20261102080936): restated verbatim from 20261102061022; only an out seller's refused payment
     // (seller_out on a payment the order never took) skips record_refund's own notice. Amounts, policies, reasons unchanged.
-    functionMigration: "20261102080936_declutter_seller_out_told_once.sql",
+    functionMigration: "20261103203204_shipping_lost_sweep.sql",
     proofs: ["src/test/pglite/declutterSellerDeliveryBookBy.pglite.mjs", "src/test/pglite/a3StackReconcile.pglite.mjs", "src/test/pglite/declutterCardFeeSetupShare.pglite.mjs", "src/test/pglite/declutterSellerOutAfterPayment.pglite.mjs", "src/test/pglite/helprDeliveryCantFinish.pglite.mjs", "src/test/pglite/declutterSlice3b.pglite.mjs", "src/test/pglite/declutterSlice4.pglite.mjs", "src/test/pglite/declutterDelivery.pglite.mjs",
-      "src/test/pglite/declutterSellerOutPaysFee.pglite.mjs", "src/test/pglite/declutterRefundRequests.pglite.mjs"],
+      "src/test/pglite/declutterSellerOutPaysFee.pglite.mjs", "src/test/pglite/declutterRefundRequests.pglite.mjs", "src/test/pglite/shippingLostSweep.pglite.mjs"],
     reasonCheck: "declutter_refunds_reason_check",
     policySources: [
       { where: "declutter_refunds_policy", kind: "constraint", name: "declutter_refunds_policy", pattern: /^fee_policy\s*=\s*(CASE\b.*\bEND)$/i, subject: "reason" },
@@ -519,6 +522,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // the platform absorbs the card fee (no seller debt, no strike): neither side set a time, our checkout let the
       // slot go while the payment was in flight.
       delivery_never_booked: "full_platform_absorbs",
+      // Q2259 (20261103203204, FOR VERDICT): a parcel the carrier took and never delivered in 10 days. Everything back;
+      // the card fee Stripe kept is the seller's debt (decision 5), and the spent label too (declutter_ship_no_fault_label).
+      ship_lost: "full_seller_pays_fee",
     } as Record<string, "full_platform_absorbs" | "full_seller_pays_fee" | "keep_card_fee" | "keep_buyer_fee" | "agreed_part">,
     /** Our own mistakes, the only reasons the platform refunds the fee on (owner, 2026-10-14). EXACT. */
     ownMistakes: ["superseded", "order_closed", "amount_mismatch", "duplicate_payment", "order_missing", "sold_elsewhere",
@@ -579,7 +585,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // fee restored; buyer_no_show / admin_no_fault become seller_out (full_seller_pays_fee) while the seller is out.
       // A3 reconcile (20261102084222, builder 166, lead verdict pending): 20261102063343 verbatim plus A3-72's two notice
       // lines on 'delivery_never_booked' (from 20261102031000, which 063343 dropped). Amount, fee, reasons unchanged.
-      declutter_close_paid_order: "20261102084222_a3_stack_reconcile.sql db5b1db1cd0b7ecc",
+      // Q2259 lost sweep (20261103203204, FOR VERDICT): verbatim (prod md5 58bfd657); only ship_lost joins v_seller_fault.
+      declutter_close_paid_order: "20261103203204_shipping_lost_sweep.sql 3457a20c7372f9ed",
       // #26 (20261028204431): only the "It's yours" notice line changed; it still records no refund.
       // #37 (20261028223036): only the "Free item claimed" link changed; it still records no refund.
       // #3730 (20261028235247, lh-money-escrow approved via the lead 2026-10-29): only the handover_not_offered refusal
@@ -623,7 +630,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // as the seller's fee debt (ship_label / ship_void_rejected, once per shipment) or asks for a test label's void. It
       // records no refund and changes no refund amount, card fee or policy.
       // Re-pinned (Lander 36, train 1, 11-02): only its two notice links moved to ?tab=selling.
-      declutter_ship_no_fault_label: "20261102055653_shipping_admin_no_fault_label_debt.sql 52b842320d5ce35a",
+      // Q2259 lost sweep (20261103203204, FOR VERDICT): verbatim (prod md5 01518c41); it also acts on ship_lost.
+      declutter_ship_no_fault_label: "20261103203204_shipping_lost_sweep.sql bf7c241b69db814f",
       // Q2259 S6 2d (20261102051521, shipping, testers only; for verdict): the shipping a buyer-fault close held back goes
       // back once the label is VOIDED: one declutter_delivery_refunds row ('ship_void_refunded', refund_cents = the order's
       // shipping_cents, order_id UNIQUE), only when the order's refund row is buyer-fault and left the shipping out
@@ -698,7 +706,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Based on Shipping S6 2d (20261102051521, wip/b126-ship): its keep_buyer_fee shipping hunks are kept; lands after it.
       // Q2556 (20261102080936): restated verbatim from 20261102061022; only the seller notice skips a seller_out refund
       // of a payment the order never took (mark_order_paid tells that seller). Amounts, policies and the debt row unchanged.
-      declutter_record_refund: "20261102080936_declutter_seller_out_told_once.sql 12464dd316d1e698",
+      // Q2259 lost sweep (20261103203204, FOR VERDICT): verbatim (prod md5 ffe25aeb); only ship_lost joins full_seller_pays_fee.
+      declutter_record_refund: "20261103203204_shipping_lost_sweep.sql e45624435670a008",
       // B100 (20261030134109): take back a problem report. Records no refund: it only marks the problem and the buyer's own
       // to_admin refund request 'withdrawn'; no amount, fee or payout is read or written.
       // T9 (20261031004529): taking back the buyer's no-show report also clears it, so the sweep can't refund on it; verdict owed.
@@ -844,6 +853,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // other arm unchanged), and declutter_refund_requests.refund_id referencing a refund row (no amount).
       // BUY-36: the reason CHECK and the reason -> policy CHECK swapped to add 'helpr_fault' (full_seller_pays_fee).
       // A3-72: the reason CHECK adds 'delivery_never_booked'; the policy CHECK statements hash the same as 20261031231150's.
+      // Q2259 lost sweep (FOR VERDICT): the reason CHECK and the policy CHECK each add ship_lost.
+      "declutter_refunds 20261103203204_shipping_lost_sweep.sql": ["1192c0e245b11665", "586eca928b6d3894", "afb94a44f9fb4011", "95c01ec626194161"],
       "declutter_refunds 20261102031000_declutter_seller_delivery_book_by.sql": ["1192c0e245b11665", "ee6fde0ace2bcc93", "afb94a44f9fb4011", "a6c1e85c039a7127"],
       "declutter_refunds 20261031231150_helpr_delivery_cant_finish.sql": ["1192c0e245b11665", "dafbb2cea83bdc81", "afb94a44f9fb4011", "a6c1e85c039a7127"],
       "declutter_refunds 20261026155251_declutter_refund_requests.sql": ["1192c0e245b11665", "7b90a5dbd6a21681", "4cf2e4567f6437bd", "2c0ac85e85bd01e6", "afb94a44f9fb4011", "7af5606b0b938d68", "9eb0bd77676aa5f0", "d2e483aa293ef495"],

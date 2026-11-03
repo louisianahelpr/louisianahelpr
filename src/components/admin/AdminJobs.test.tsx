@@ -194,7 +194,7 @@ describe("AdminJobs — the refund confirmation", () => {
 /**
  * NOID-24 (M5): the Flagged tab counted every flagged job ever, finished and cancelled ones included (a passed date
  * flags them all). Flagged is now only jobs that can still go wrong: open, accepted, in progress.
- * @mutate src/components/admin/AdminJobs.tsx | const FLAG_LIVE_STATUSES: ReadonlySet<string> = new Set(["open", "accepted", "in_progress"]); | const FLAG_LIVE_STATUSES: ReadonlySet<string> = new Set(["open", "accepted", "in_progress", "completed", "cancelled"]);
+ * @mutate src/components/admin/adminJobs/adminJobsHelpers.ts | export const FLAG_LIVE_STATUSES: ReadonlySet<string> = new Set(["open", "accepted", "in_progress"]); | export const FLAG_LIVE_STATUSES: ReadonlySet<string> = new Set(["open", "accepted", "in_progress", "completed", "cancelled"]);
  * @mutate src/components/admin/AdminJobs.tsx |   const flaggedIds = [...jobFlags.keys()].filter((id) => flagLive.has(id) && !resolvedFlags.has(id)); |   const flaggedIds = [...jobFlags.keys()].filter((id) => realIds.has(id) && !resolvedFlags.has(id));
  * @mutate src/components/admin/AdminJobs.tsx | realJobs.filter((j) => flagLive.has(j.id) && jobFlags.has(j.id) && !resolvedFlags.has(j.id)) | realJobs.filter((j) => jobFlags.has(j.id) && !resolvedFlags.has(j.id))
  */

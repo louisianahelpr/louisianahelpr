@@ -74,6 +74,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/hooks/useDrivingTime.ts:cache": { kind: "not-user-data", why: "drive minutes between ~110m-rounded points" },
   "src/hooks/useDashboardData.ts:NO_IDS": { kind: "not-user-data", why: "frozen empty constant (never mutated; stable fallback for the exclusion sets)" },
   "src/hooks/useDashboardFilters.ts:EMPTY_ID_SET": { kind: "not-user-data", why: "frozen empty constant" },
+  "src/pages/home/homeDashboard/useNeedsYouTodos.ts:deriveListeners": { kind: "not-user-data", why: "subscriber callbacks told once when Home's derivation code chunk loads (B51, 11-03); code, nothing about the account" },
   "src/pages/home/viewerFeedExclusions.ts:EMPTY_SET": { kind: "not-user-data", why: "frozen empty constant" },
   "src/lib/errorLogger.ts:bgFailureReportedInMemory": { kind: "not-user-data", why: "report-once dedupe" },
   "src/lib/errorLogger.ts:bgFailureSends": { kind: "not-user-data", why: "report rate limit" },

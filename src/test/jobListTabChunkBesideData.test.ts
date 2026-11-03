@@ -7,8 +7,8 @@
  * PostedJobsTab's chunks download (7.57 -> 9.6 s): two waits in a row that have nothing to do with each other.
  */
 // @mutate src/components/job-card/JobListPage.tsx |   useEffect(() => startTabChunk(tab), [tab]); |
-// @mutate src/components/job-card/JobListPage.tsx |   (tab === "posted" ? loadPostedTab : loadAppliedTab)().catch(() => { |   (tab === "posted" ? loadAppliedTab : loadPostedTab)().catch(() => {
-// @mutate src/components/job-card/JobListPage.tsx | const PostedJobsTab = lazy(() => loadPostedTab().then((m) => (m ? { default: m.PostedJobsTab } : untilReload()))); | const PostedJobsTab = lazy(() => import("@/pages/posts/PostedJobsTab").then((m) => ({ default: m.PostedJobsTab })));
+// @mutate src/components/job-card/activityTabChunks.ts |   (tab === "posted" ? loadPostedTab : loadAppliedTab)().catch(() => { |   (tab === "posted" ? loadAppliedTab : loadPostedTab)().catch(() => {
+// @mutate src/components/job-card/activityTabChunks.ts | export const PostedJobsTab = lazy(() => loadPostedTab().then((m) => (m ? { default: m.PostedJobsTab } : untilReload()))); | export const PostedJobsTab = lazy(() => import("@/pages/posts/PostedJobsTab").then((m) => ({ default: m.PostedJobsTab })));
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -27,6 +27,8 @@ vi.mock("@/pages/jobs/AppliedJobsTab", () => {
 
 const ROOT = resolve(__dirname, "../..");
 const SRC = blankComments(readFileSync(resolve(ROOT, "src/components/job-card/JobListPage.tsx"), "utf8"));
+// The loaders and lazy tabs live in their own file (L52 train 4: JobListPage stays under its size baseline).
+const TABS = blankComments(readFileSync(resolve(ROOT, "src/components/job-card/activityTabChunks.ts"), "utf8"));
 
 afterEach(() => {
   posted.mockClear();
@@ -45,12 +47,12 @@ describe("the open tab's code downloads beside its data (B46, Q1158)", () => {
   });
 
   it("the lazy tabs load through the same loaders startTabChunk starts (one module instance)", () => {
-    expect(SRC).toMatch(/const PostedJobsTab = lazy\(\(\) => loadPostedTab\(\)/);
-    expect(SRC).toMatch(/const AppliedJobsTab = lazy\(\(\) => loadAppliedTab\(\)/);
+    expect(TABS).toMatch(/const PostedJobsTab = lazy\(\(\) => loadPostedTab\(\)/);
+    expect(TABS).toMatch(/const AppliedJobsTab = lazy\(\(\) => loadAppliedTab\(\)/);
   });
 
   it("startTabChunk loads the open tab's module and only that one", async () => {
-    const { startTabChunk } = await import("@/components/job-card/JobListPage");
+    const { startTabChunk } = await import("@/components/job-card/activityTabChunks");
     startTabChunk("posted");
     await vi.dynamicImportSettled();
     expect(posted).toHaveBeenCalledTimes(1);

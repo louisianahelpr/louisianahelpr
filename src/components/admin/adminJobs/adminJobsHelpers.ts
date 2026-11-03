@@ -175,3 +175,13 @@ export function isActivePaidJob(job: { status: string | null; payment_status: st
     !FINISHED_STATUSES.includes(job.status ?? "")
   );
 }
+
+/** The job statuses whose flags count as open work in the Flagged tab (NOID-24, M5). */
+export const FLAG_LIVE_STATUSES: ReadonlySet<string> = new Set(["open", "accepted", "in_progress"]);
+
+/** After an admin cancels a job whose card is only on hold: the row reads cancelled / cancelled without a reload. */
+export function withHeldJobCancelled(jobs: Job[], id: string): Job[] {
+  return jobs.map((j) => j.id === id
+    ? { ...j, status: "cancelled" as Job["status"], payment_status: "cancelled" as Job["payment_status"] }
+    : j);
+}

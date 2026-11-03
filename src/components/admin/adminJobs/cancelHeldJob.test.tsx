@@ -12,18 +12,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { Job } from "./types";
+import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const invoke = vi.fn();
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { functions: { invoke: (...a: unknown[]) => invoke(...a) } } }));
 vi.mock("@/hooks/useJobAccessNote", () => ({ useJobAccessNote: () => null, fetchJobAccessNote: async () => null }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 
 import { JobDetailDialog } from "./JobDetailDialog";
 
 const job = (over: Partial<Job> = {}) =>
   ({
     id: "job-1", title: "Mow the yard", description: "d", category: "yard_work", status: "open",
-    payment_status: "held", budget: 40, location: "Baton Rouge", date_needed: "2026-11-10",
+    payment_status: "held", budget: 40, location: "Baton Rouge", date_needed: jobLocalDateISO(7),
     helper_id: null, created_at: "2026-11-01T00:00:00Z", ...over,
   }) as unknown as Job;
 

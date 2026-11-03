@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import type { PayoutBatch } from "./types";
 import { toneBadgeClasses, toneTextClasses } from "@/components/admin/tones";
 import { cn } from "@/lib/utils";
+import { formatPriceExact } from "@/lib/format";
 
 interface BatchRowProps {
   batch: PayoutBatch;
@@ -94,7 +95,7 @@ export const BatchRow = ({
         )}
       </div>
       <div className="text-right shrink-0 space-y-1">
-        <p className="text-ds-17 font-bold text-primary">${Number(batch.total_payout).toFixed(2)}</p>
+        <p className="text-ds-17 font-bold text-primary">${formatPriceExact(Number(batch.total_payout))}</p>
         {tab === "ready" ? (
           <div className="flex gap-1.5 justify-end flex-wrap">
             <Button

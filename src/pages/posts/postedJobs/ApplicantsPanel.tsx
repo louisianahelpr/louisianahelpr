@@ -202,8 +202,15 @@ export function ApplicantsPanel({
           wrapper only supplies the slide-in transition + stacking; AppShell
           itself already fills the viewport (`fixed inset-x-0 bottom-0`,
           100dvh) so it doesn't need `inset-0`/background of its own. */}
+      {/* THE WRAPPER TAKES NO CLICKS, ITS CHILDREN DO (Q2342). From 900px
+          AppShell's frame starts below the desktop top bar and right of the
+          rail, so both stay drawn; this inset-0 wrapper still covered them,
+          and every tap on Post a job, Help, the bell, the avatar or a rail
+          row landed on the empty wrapper (measured at 1440 with
+          elementFromPoint, mocked session). Nothing behind is inert (see
+          `region` below), so the chrome it shows stays live. */}
       <div
-        className="fixed inset-0 z-50 motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-200"
+        className="pointer-events-none [&>*]:pointer-events-auto fixed inset-0 z-50 motion-safe:animate-in motion-safe:slide-in-from-right motion-safe:duration-200"
         /* The screen's accessible NAME, and the one place the job it belongs to
            is programmatically tied to the heading. The visible subtitle under
            the h1 is a plain sibling <p> — sighted readers get the association

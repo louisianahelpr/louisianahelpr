@@ -5,6 +5,7 @@ import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { currentSearch, profileTabTitle, type Tab } from "@/pages/profile/types";
+import { SCHEDULE_LAYOUT_CLASS } from "@/components/profile/scheduleLayout";
 
 /**
  * ProfileTabFallback — what a Profile tab looks like before its chunk lands.
@@ -111,7 +112,7 @@ import { currentSearch, profileTabTitle, type Tab } from "@/pages/profile/types"
  *     and grows below, never collapses; it drew a screenful (744px) and
  *     collapsed 234-325px.
  */
-type Block = { h: number | "fill"; media?: number };
+type Block = { h: number | "fill"; media?: number; /** The real block is a centred card this wide (px). */ maxW?: number };
 export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   availability: [{ h: 85 }, { h: 768 }],
   // Email, password, two-factor, sign-in methods (Q446 added it after
@@ -162,7 +163,8 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   // a list grows below), and Receipts' one column (nothing paid yet, the tax-form card).
   payout_history: [{ h: 68 }],
   receipts: [{ h: 137 }],
-  wrapped: [{ h: 333 }],
+  // Q2013: the real card is `w-full max-w-[420px]` centred, so at 1440 the bone is too (it drew the full column).
+  wrapped: [{ h: 333, maxW: 420 }],
   // You › Settings (board 52): Look, Your sections, Updates, Your account, More, Log out. Q1695: re-sized from the
   // loading-states refresh of 2026-11-02 01:07Z (bot PR #3963, 375, both test accounts): each group's height is
   // the gap between its heading and the next one's (12px section gap), Log out kept at 58. Look gained Language,
@@ -199,6 +201,8 @@ export const ProfileTabBodyReserve = ({ tab }: { tab?: Exclude<Tab, "landing"> }
   if (tab === "notifications") return <NotificationsReserve />;
   if (tab === "reviews") return <ReviewRowReserve />;
   if (tab === "work_record") return <WorkRecordReserve />;
+  if (tab === "legal") return <LegalReserve />;
+  if (tab === "schedule") return <ScheduleReserve />;
   const shape = tab ? TAB_SHAPES[tab] : undefined;
   if (shape) {
     // Siblings, not a wrapper: each block lines up with the real row that
@@ -246,7 +250,13 @@ const ShapeBlock = ({ block, first }: { block: Block; first: boolean }) => {
     return <Skeleton aria-hidden data-testid={testId} style={{ height }} className="w-full rounded-2xl" />;
   }
   return (
-    <div ref={ref} aria-hidden data-testid={testId} style={{ height }} className="rounded-2xl liquid-glass p-card space-y-3 overflow-hidden">
+    <div
+      ref={ref}
+      aria-hidden
+      data-testid={testId}
+      style={{ height, maxWidth: block.maxW }}
+      className={`rounded-2xl liquid-glass p-card space-y-3 overflow-hidden${block.maxW ? " w-full mx-auto" : ""}`}
+    >
       <Circles n={block.media ?? 0} />
       <Skeleton className="h-4 w-1/3 rounded" />
       <Skeleton className="h-4 w-2/3 rounded" />
@@ -303,6 +313,68 @@ const NotificationsReserve = () => (
     ))}
   </div>
 );
+
+/**
+ * Legal (Q2013, skeleton-shape check, 2026-10-17): the real tab is the Terms / Rules / Privacy pill row, then the
+ * document 12px below it. The screenful drew no pill row, so the document card sat 56px high at 375, and at 1440
+ * its full-width bone stood where the selected Terms pill (one third of the row) is. Same row classes as
+ * LegalTab's TabsList and triggers, so each slot is one trigger's box; only the first (Terms, the default) is a
+ * filled pill, as on the page. ONE wrapper, like the loaded Tabs
+ * root, so the row count the loading-state check measures stays header + one.
+ */
+const LEGAL_DOCS = 3;
+const LegalReserve = () => {
+  const { ref, reserve } = useScreenfulBelow();
+  return (
+    <div ref={ref} style={{ minHeight: reserve }} aria-hidden data-legal-reserve="">
+      <div className="flex items-center gap-1 sm:gap-2 px-1 w-full">
+        {/* The selected document is the one filled pill; the other two are a label on the page ground. */}
+        {Array.from({ length: LEGAL_DOCS }, (_, i) =>
+          i === 0 ? (
+            <Skeleton key={i} className="h-11 flex-1 min-w-0 rounded-full" />
+          ) : (
+            <div key={i} className="h-11 flex-1 min-w-0 flex items-center justify-center">
+              <Skeleton className="h-3 w-14 rounded" />
+            </div>
+          ),
+        )}
+      </div>
+      {/* The test id sits on the document bone, not the screenful wrapper: the shape check reads a test id with
+          "fallback" in it as a placeholder box, and the wrapper's box starts at the pill row, above the document. */}
+      <div data-testid="profile-tab-fallback" className="mt-3 rounded-2xl liquid-glass p-card space-y-3">
+        <Skeleton className="h-5 w-32 rounded" />
+        <Skeleton className="h-4 w-2/3 rounded" />
+        <Skeleton className="h-4 w-1/2 rounded" />
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Schedule (Q2013): from 1024px the real tab is a calendar column beside an Upcoming jobs column
+ * (SCHEDULE_LAYOUT_CLASS, shared with ScheduleTab), not two full-width cards. Below 1024 the same grid stacks, so
+ * the phone frame is unchanged: calendar card, then the list's title and card. One wrapper, one screenful.
+ */
+const ScheduleReserve = () => {
+  const { ref, reserve } = useScreenfulBelow();
+  return (
+    <div ref={ref} style={{ minHeight: reserve }} aria-hidden data-schedule-reserve="" className={SCHEDULE_LAYOUT_CLASS}>
+      {/* Test id on the calendar bone, not the full-width wrapper (see LegalReserve). */}
+      <div data-testid="profile-tab-fallback" className="rounded-2xl liquid-glass p-card space-y-3 min-w-0 min-[1024px]:aspect-square">
+        <Skeleton className="h-5 w-32 rounded mx-auto" />
+        <Skeleton className="h-4 w-2/3 rounded mx-auto" />
+        <Skeleton className="h-4 w-1/2 rounded mx-auto" />
+      </div>
+      <div className="min-w-0 space-y-3">
+        <Skeleton className="h-6 w-40 rounded" />
+        <div className="rounded-2xl liquid-glass p-card space-y-3">
+          <Skeleton className="h-4 w-1/3 rounded" />
+          <Skeleton className="h-4 w-3/4 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const ScreenfulReserve = ({ media }: { media: number }) => {
   const { ref, reserve } = useScreenfulBelow();

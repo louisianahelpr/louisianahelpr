@@ -146,6 +146,8 @@ export const EXPORT_SECTIONS = [
   "category_suggestions",
   "declutter_offers", "declutter_orders", "declutter_cart_items", "declutter_buyer_cards",
   "declutter_seller_fee_debts",
+  // A buyer's own shipments (Q2259 S5, 20261103202529).
+  "shipments",
   "declutter_bookings", "declutter_problems", "declutter_problems_about_me", "declutter_refund_requests", "declutter_payouts", "declutter_reviews",
   "declutter_wanted",
   "helpr_vehicles", "helpr_tasks", "helpr_task_events", "helpr_task_payouts", "helpr_task_tips", "declutter_delivery_dropoffs",

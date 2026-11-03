@@ -148,6 +148,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_buyer_cards: { by: ["user_id"] },
   // Declutter slice 3b (20261014224914): a seller's card-fee debts (row 60).
   declutter_seller_fee_debts: { by: ["seller_id"] },
+  // Shipping S5 (20261103202529): the buyer's own shipments (internal columns dropped).
+  shipments: { by: ["buyer_id"] },
   // Declutter slice 4 (20261015042253): bookings (either side), problems the member reported,
   // a seller's payouts, reviews written and (once visible, row 45) received.
   declutter_bookings: { by: ["buyer_id", "seller_id"] },
@@ -603,7 +605,6 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "shipping_quotes.buyer_id": { reason: "Shipping S2 (20261030012052): a 30-minute postage quote (service-role only), deleted with the account (ON DELETE CASCADE); the buyer's address on a paid order is exported with shipments in S5 (docs/specs/shipping-draft.md 9.3, Q2259)" },
   "declutter_move_reminders.seller_id": { reason: "Moving-sale reminders (20261030221156): a mark that a notice went out, holding only the date already exported with the listing's private row; the notice itself is in the seller's exported notifications; deleted with the account" },
   "shipping_quotes.seller_id": { reason: "Shipping S2 (20261030012052): the seller of a 30-minute postage quote the buyer asked for; no seller data on it beyond the id; deleted with either account (ON DELETE CASCADE)" },
-  "shipments.buyer_id": { reason: "Shipping S1 (20261020024605): service-role table with no rows until the label worker (S3); the buyer's own address on it is added to export_my_data in S5 (docs/specs/shipping-draft.md 9.3, Q2259); on account deletion the address is redacted to its ZIP (trigger shipments_guard_update)" },
   "refund_requests.answer_by": { reason: "a deadline timestamp (when the Helpr must answer the refund request), not a person; the request is exported by refund_requests.requester_id/responder_id/answered_by (20261021102943)" },
   "shop_orders.accept_by": { reason: "a deadline timestamp (when the shop must answer the order), not a person; the order is exported by shop_orders.buyer_id/seller_id (20261018164443)" },
   "shops.hidden_by": { reason: "the staff member who hid a shop; the shop is the member's (exported by shops.owner_id, 20261017061157, with this staff id dropped; the hide reason stays)", stripped: true },

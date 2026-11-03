@@ -460,7 +460,11 @@ test.describe.serial("marketplace chain", () => {
       await openStatusTab(pp, "Needs You");
       await expect(pp.getByText(TITLE).first(), "the job with an applicant is not in My Posts > Needs You").toBeVisible({ timeout: 60_000 });
       await pp.getByText(TITLE).first().click();
-      await pp.getByRole("button", { name: "Applicants (1)" }).first().click();
+      // The title opens the job page (the face links to /jobs/:id, owner 2026-10-31). Its one primary, like the
+      // Posted face's (posterFaceAction "applicants"), is named "Review 1 applicant" (posterPageActions: it opens
+      // /posts?highlight=<id>&applicants=1, the Applicants panel). The card's old "Applicants (1)" button is gone:
+      // e2e-journeys 41585440777's snapshot shows button "Review 1 applicant" and no "Applicants (1)".
+      await pp.getByRole("button", { name: "Review 1 applicant", exact: true }).first().click();
       const panel = pp.getByRole("region", { name: new RegExp(`Applicants for`) }).or(pp.getByRole("dialog")).first();
       await expect(panel.getByRole("button", { name: /^Select / }).first(), "no Hire button for the applicant").toBeVisible({ timeout: 30_000 });
       await expect(panel.getByText(NOTE).first(), "the applicant's note is not shown to the poster").toBeVisible();
@@ -483,7 +487,7 @@ test.describe.serial("marketplace chain", () => {
         await pp.goto("/jobs?tab=posted");
         await openStatusTab(pp, "Needs You");
         await pp.getByText(TITLE).first().click();
-        await pp.getByRole("button", { name: "Applicants (1)" }).first().click();
+        await pp.getByRole("button", { name: "Review 1 applicant", exact: true }).first().click();
       }
       await panel.getByRole("button", { name: /^Select / }).first().click();
       // Hiring is an OFFER with a response deadline; the helper then accepts.

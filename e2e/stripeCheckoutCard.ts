@@ -3,7 +3,7 @@
  * does it (fundedOpenJob, prod-lifecycle, journeys fixtures, the canary and
  * payWithTestCard all go through here).
  *
- * Stripe has rendered the payment-method picker THREE ways, and this helper
+ * Stripe has rendered the payment-method picker FOUR ways, and this helper
  * knows all of them:
  *
  *  1. ONE method: no picker at all, the card fields (`#cardNumber`) are open.
@@ -22,7 +22,10 @@
  * selecting a payment method submits nothing, so a second click is not a
  * second payment.
  *
- * When Stripe changes the picker a fourth way, the failure says so and lists
+ *  4. Saved-card summary (e2e-journeys 41585440777): Card selected, fields folded
+ *     behind "Pay with Visa •••• 4242" and a "Change" button (STRIPE_SAVED_INFO_CHANGE).
+ *
+ * When Stripe changes the picker a fifth way, the failure says so and lists
  * the buttons the page DID render (stripeLayoutReport), instead of a bare
  * "element(s) not found" on a locator nobody can read.
  *
@@ -37,6 +40,14 @@ export const STRIPE_CARD_FIELD = "#cardNumber";
 export const STRIPE_CARD_METHOD_BUTTON = "card-accordion-item-button";
 /** Layout 3: the Card item that holds that button. */
 export const STRIPE_CARD_METHOD_ITEM = "card-accordion-item";
+/**
+ * Layout 4 (e2e-journeys 41585440777, chromium, cs_test_): Card is already selected but its fields are folded into a
+ * read-only summary, "Pay with Visa •••• 4242", whose only control is a "Change" link-button
+ * (`div.SavedInfoSummary … button.ReadOnlyFormField-actionButton`). No #cardNumber, no radio, no accordion button:
+ * the page's buttons were exactly [Change | hosted-payment-submit-button]. "Change" unfolds the editable form;
+ * pressing it submits nothing.
+ */
+export const STRIPE_SAVED_INFO_CHANGE = ".SavedInfoSummary button.ReadOnlyFormField-actionButton";
 
 /**
  * Whatever Stripe renders first that this helper can drive: the open card
@@ -73,7 +84,7 @@ export async function stripeLayoutReport(page: Page): Promise<string> {
   const fields = await page.locator(STRIPE_CARD_FIELD).count().catch(() => -1);
   return (
     `Stripe Checkout's payment-method picker is not one e2e/stripeCheckoutCard.ts knows ` +
-    `(open ${STRIPE_CARD_FIELD}, button[data-testid=${STRIPE_CARD_METHOD_BUTTON}], or role=radio). ` +
+    `(open ${STRIPE_CARD_FIELD}, button[data-testid=${STRIPE_CARD_METHOD_BUTTON}], role=radio, or ${STRIPE_SAVED_INFO_CHANGE}). ` +
     `On ${page.url().slice(0, 60)}: ${STRIPE_CARD_FIELD} x${fields}, role=radio x${radios}, ` +
     `buttons [${buttons.join(" | ")}]. Stripe changed its DOM: teach the helper the new layout.`
   );
@@ -95,8 +106,16 @@ export async function openCardFields(page: Page, attempts = 3): Promise<Locator>
   const cardButton = page.getByTestId(STRIPE_CARD_METHOD_BUTTON);
   const cardItem = page.getByTestId(STRIPE_CARD_METHOD_ITEM);
   const radio = page.getByRole("radio").first();
+  const savedChange = page.locator(STRIPE_SAVED_INFO_CHANGE);
   for (let i = 0; i < attempts; i++) {
     if (await card.isVisible().catch(() => false)) return card;
+    // Layout 4: unfold the saved-card summary first; the next pass finds whatever it unfolded (the fields, or an
+    // accordion this loop already drives).
+    if ((await savedChange.count().catch(() => 0)) > 0) {
+      await savedChange.first().click().catch(() => undefined);
+      await card.waitFor({ state: "visible", timeout: 10_000 }).catch(() => undefined);
+      continue;
+    }
     // Layout 3 first: it names the Card method exactly. Layout 2's first
     // radio is Card by position only. If the button (an overlay click area)
     // took the click and nothing opened, the next attempt clicks the item.

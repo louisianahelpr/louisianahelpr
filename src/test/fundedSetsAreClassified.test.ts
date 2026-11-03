@@ -88,8 +88,6 @@ const CAPTURED = [
   // payout_after_hire off, a Helpr with no payout account could not complete a held hire (the accept waits on payout
   // setup, which waits on the capture); the switch is 'everyone' on prod since 2026-10-25.
   "payout_setup_hire_allowed", "claim_payout_setup_reminders",
-  // Q2088 (20261103102100): Admin -> Payout Batches labels batches of jobs whose money is captured (payout set).
-  "admin_payout_batch_money_modes",
 ] as const;
 
 /** Trigger WHENs (newest CREATE TRIGGER of each name) that read the funded set: all four are the Helpr fan-outs. */

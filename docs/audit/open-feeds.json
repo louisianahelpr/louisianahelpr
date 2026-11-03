@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-03T02:07Z",
+  "measured_at": "2026-11-03T02:22Z",
   "issues": {
     "readable": true,
     "open": [
@@ -125,7 +125,7 @@
         "number": 3967,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41563970360",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41565123311",
         "runTruncated": false
       },
       {
@@ -865,7 +865,6 @@
     "ledger 54ef0bfdcec3": "Q2703",
     "ledger 5a28db44e912": "Q2410",
     "ledger 5b3c79ac5eb7": "Q1581",
-    "ledger 5cf4543facb7": "Q2348",
     "ledger 5d35922623b5": "Q1596",
     "ledger 5e6b09305057": "Q2317",
     "ledger 60298a019ea3": "Q1776",
@@ -880,7 +879,6 @@
     "ledger 714c8b8667bc": "Q2536",
     "ledger 7549f5452e44": "Q2512",
     "ledger 779af65c258e": "Q1596",
-    "ledger 79112fbf22c8": "Q2504",
     "ledger 7e141f206640": "Q1816",
     "ledger 7f88b9cc45df": "Q1816",
     "ledger 8018e82cb167": "Q1816",

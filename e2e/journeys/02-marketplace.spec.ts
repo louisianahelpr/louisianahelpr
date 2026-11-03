@@ -920,7 +920,43 @@ test.describe.serial("marketplace chain", () => {
       await hp.context().grantPermissions(["geolocation"]);
       // A job with no coordinates has nothing to measure against and the RPC
       // accepts any real fix; Lafayette stands in for that case.
-      await hp.context().setGeolocation({ latitude: Number(latitude ?? 30.2241), longitude: Number(longitude ?? -92.0198) });
+      const at = { latitude: Number(latitude ?? 30.2241), longitude: Number(longitude ?? -92.0198) };
+      await hp.context().setGeolocation(at);
+      // DOES THIS BROWSER HAND OUT THE MOCKED POSITION? Asked the way the app
+      // asks (JobTracking getLocationOutcome: getCurrentPosition, 15 s,
+      // maximumAge 30 s). e2e-journeys 41685221879 (2026-11-03), journeys-webkit:
+      // the app's arrival RPC carried no coordinates at all ({p_job_id} only,
+      // verdict basis "no_location"), sent 1.5 s after the tap with no explainer
+      // shown, so the browser's getCurrentPosition errored at once although
+      // grantPermissions + setGeolocation ran 2 s earlier; chromium verified on
+      // the same code, and Playwright WebKit on macOS returns the mock in 0-1 ms.
+      // When the browser gives no fix, the harness puts the SAME coordinates
+      // behind navigator.geolocation for this page and says so; the app's own
+      // permission check, getCurrentPosition call, RPC and the server's verdict
+      // below are unchanged and still asserted. A browser that DOES give a fix
+      // here while the app still sends none is an app bug, and the poll below
+      // fails naming it.
+      const geoProbe = await hp.evaluate(
+        () =>
+          new Promise<string>((resolve) =>
+            navigator.geolocation.getCurrentPosition(
+              (p) => resolve(`fix ${p.coords.latitude},${p.coords.longitude}`),
+              (e) => resolve(`error ${e.code} ${e.message}`),
+              { timeout: 15_000, maximumAge: 30_000 },
+            ),
+          ),
+      );
+      test.info().annotations.push({ type: "geolocation-probe", description: `${test.info().project.name}: ${geoProbe}` });
+      if (!geoProbe.startsWith("fix ")) {
+        test.info().annotations.push({ type: "geolocation-stub", description: `${test.info().project.name} gave no mocked fix (${geoProbe}); the same coordinates are served from navigator.geolocation on this page` });
+        await hp.evaluate(({ latitude: lat, longitude: lng }) => {
+          const position = () => ({ coords: { latitude: lat, longitude: lng, accuracy: 10, altitude: null, altitudeAccuracy: null, heading: null, speed: null }, timestamp: Date.now() }) as unknown as GeolocationPosition;
+          const geo = navigator.geolocation;
+          Object.defineProperty(geo, "getCurrentPosition", { configurable: true, value: (ok: PositionCallback) => setTimeout(() => ok(position()), 0) });
+          Object.defineProperty(geo, "watchPosition", { configurable: true, value: (ok: PositionCallback) => (setTimeout(() => ok(position()), 0), 1) });
+          Object.defineProperty(geo, "clearWatch", { configurable: true, value: () => {} });
+        }, at);
+      }
       c = await card(hp, "/jobs?tab=working", scheduledTab(), false);
       const arriveBtn = c.getByRole("button", { name: /I've arrived/ }).first();
       await expect(arriveBtn, `arrived: no "I've arrived" control`).toBeVisible({ timeout: 45_000 });
@@ -934,7 +970,7 @@ test.describe.serial("marketplace chain", () => {
           const r = await request.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${S.jobId}&select=helper_arrival_verified_at`, { headers: rest(S.poster) });
           return r.ok() ? Boolean(((await r.json()) as Array<{ helper_arrival_verified_at: string | null }>)[0]?.helper_arrival_verified_at) : false;
         },
-        { timeout: 45_000, message: "the arrival was never server-verified" },
+        { timeout: 45_000, message: `the arrival was never server-verified (this browser's own geolocation probe: ${geoProbe})` },
       ).toBe(true);
       await assertHealthy(hp, "arrived");
       await journey.milestone(hp, "arrived-gps");

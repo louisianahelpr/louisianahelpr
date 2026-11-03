@@ -28,7 +28,7 @@ import { appliedActivityBucket } from "@/components/job-card/activityFilters";
 import type { TrackingData } from "@/components/JobTracking";
 import { logWithdrawReason, type WithdrawReason } from "@/lib/applicationWithdrawAnalytics";
 
-interface AppliedJobsTabProps {
+export interface AppliedJobsTabProps {
   apps: AppliedApp[];
   /** Application id from the ?highlight= deep-link. The matching card
    *  scrolls into view and shows a brief pulse ring on mount. Consumed

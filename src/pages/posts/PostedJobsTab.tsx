@@ -20,7 +20,7 @@ import { ApplicantsPanel } from "./postedJobs/ApplicantsPanel";
 import { RecurringVisitPayments } from "./postedJobs/RecurringVisitPayments";
 import { useAgeGate } from "@/hooks/useAgeGate";
 
-interface PostedJobsTabProps {
+export interface PostedJobsTabProps {
   jobs: Job[];
   /**
    * Job id a `?job=` deep link resolved to, or null. Mirrors

@@ -11,8 +11,8 @@
  * @mutate supabase/migrations/20261103084609_shops_declutter_follow_watch_ai_check_not_found_is_404.sql | IF w.is_seed IS NOT TRUE AND NOT EXISTS ( | IF NOT EXISTS (
  * @mutate supabase/migrations/20261030225143_declutter_wanted_report_block_photo_check.sql |       PERFORM public.declutter_wanted_hold_photos(h.id, NULL, 'The automatic photo check did not finish.'); |       NULL;
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       if (files.length > failed) checkPhotosInBackground(id); |       void id;
- * @mutate src/components/admin/AdminReports.tsx |         \|\| (r.reported_type === WANTED_REPORT && wantedPosts.get(r.reported_id)?.is_seed === true)\n |
- * @mutate src/components/admin/AdminReports.tsx |  && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type); |  && !isQuestionReport(r.reported_type);
+ * @mutate src/components/admin/adminReports/fetchReports.ts |         \|\| (r.reported_type === WANTED_REPORT && wantedPosts.get(r.reported_id)?.is_seed === true)\n |
+ * @mutate src/components/admin/adminReports/fetchReports.ts |  && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type); |  && !isQuestionReport(r.reported_type);
  * @mutate supabase/functions/declutter-ai-draft/index.ts |     if (!shopItem && body?.mode === "wanted_check") return await wantedCheck(req, admin, authData.user, body);\n |
  */
 import { readFileSync } from "node:fs";
@@ -47,7 +47,8 @@ describe("Report and Block on a Wanted post", () => {
 });
 
 describe("the admin half of a Wanted report", () => {
-  const queue = code("src/components/admin/AdminReports.tsx");
+  // The queue's read lives in fetchReports.ts (moved out of AdminReports.tsx, Q806); the panel mount stays in the view.
+  const queue = code("src/components/admin/adminReports/fetchReports.ts") + code("src/components/admin/AdminReports.tsx");
 
   it("reads the post, never its id as a person", () => {
     expect(queue).toContain("r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type);");

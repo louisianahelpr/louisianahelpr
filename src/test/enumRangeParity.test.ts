@@ -87,7 +87,7 @@ const ROWS: Row[] = [
     id: "admin report status filters (AdminReports vs reports_status_check)",
     relation: "subset",
     client: () => {
-      const code = readCode("src/components/admin/AdminReports.tsx");
+      const code = readCode("src/components/admin/adminReports/fetchReports.ts");
       const filters = stringUnion("src/components/admin/adminQueueKeys.ts", "ReportQueueFilter").filter((f) => f !== "all");
       const inList = /query\.in\("status",\s*\[([^\]]*)\]\)/.exec(code);
       if (!inList) throw new Error("AdminReports: pending filter no longer reads a status list");

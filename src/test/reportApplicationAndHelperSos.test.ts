@@ -23,8 +23,8 @@
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | onClick={() => { hapticLight(); setBlockApp(app); }} | onClick={() => { hapticLight(); }}
 // @mutate supabase/migrations/20260924182505_report_against_application.sql | 'review'::text, 'application'::text])); | 'review'::text]));
 // @mutate supabase/migrations/20260924182505_report_against_application.sql | SELECT a.helper_id INTO v_subject FROM public.applications a WHERE a.id = NEW.reported_id; | v_subject := NEW.reported_id;
-// @mutate src/components/admin/AdminReports.tsx | r.reported_type === "application" ? appHelper.get(r.reported_id) ?? null | r.reported_type === "application" ? r.reported_id
-// @mutate src/components/admin/AdminReports.tsx | const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application" && r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type); | const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT;
+// @mutate src/components/admin/adminReports/fetchReports.ts | r.reported_type === "application" ? appHelper.get(r.reported_id) ?? null | r.reported_type === "application" ? r.reported_id
+// @mutate src/components/admin/adminReports/fetchReports.ts | const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application" && r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type); | const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT;
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -82,7 +82,8 @@ describe("Q366: report or block an applicant", () => {
   });
 
   it("the admin queue resolves an application to its applicant, not to a person with the application's id", () => {
-    const src = read("src/components/admin/AdminReports.tsx");
+    // The queue read is fetchReports.ts (moved out of AdminReports.tsx, Q806); the buttons stay in the view.
+    const src = read("src/components/admin/adminReports/fetchReports.ts") + read("src/components/admin/AdminReports.tsx");
     expect(src).toContain('const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application" && r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type);');
     expect(src).toContain('r.reported_type === "application" ? appHelper.get(r.reported_id) ?? null');
     expect(src).toContain("navigate(`/user/${report.subject_user_id ?? report.reported_id}`)");

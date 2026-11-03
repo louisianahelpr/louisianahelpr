@@ -8,7 +8,7 @@
  */
 // @mutate src/components/admin/seedRows.ts |   return rows.filter((r) => !r.is_seed); |   return rows;
 // @mutate src/components/admin/AdminDisputes.tsx |     setDisputes(sorted.filter((j) => !j.is_seed)); |     setDisputes(sorted);
-// @mutate src/components/admin/AdminReports.tsx |         })).filter(r => !r.is_test); |         }));
+// @mutate src/components/admin/adminReports/fetchReports.ts |         })).filter(r => !r.is_test); |         }));
 // @mutate src/components/admin/AutoRestrictedRail.tsx |       .eq("is_seed", false)\n      .not("auto_suspended_until", "is", null) |       .not("auto_suspended_until", "is", null)
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -45,7 +45,7 @@ describe("admin never shows test rows", () => {
     for (const s of jobSelects) expect(s).toContain("is_seed");
     expect(disputes).toContain("setDisputes(sorted.filter((j) => !j.is_seed));");
     expect(disputes).toContain("!unsettledJobIds.has(j.id) && !j.is_seed");
-    expect(read("src/components/admin/AdminReports.tsx")).toContain("})).filter(r => !r.is_test);");
+    expect(read("src/components/admin/adminReports/fetchReports.ts")).toContain("})).filter(r => !r.is_test);");
     const users = read("src/components/admin/AdminUsers.tsx");
     expect(users).toContain("const showTest = false;");
     expect(users).not.toMatch(/Show test accounts/);

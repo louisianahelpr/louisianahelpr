@@ -25,6 +25,15 @@
  * @mutate supabase/functions/_shared/accountPurge.ts |   "payment_status.in.(escrow,payout_pending,held)"; |   "payment_status.in.(escrow,payout_pending)";
  * @mutate supabase/functions/instant-job-match/index.ts |     const FUNDED_PAYMENT_STATUSES = [...LISTED_PAYMENT_STATUSES]; |     const FUNDED_PAYMENT_STATUSES = ["escrow", "payout_pending", "released"];
  * @mutate supabase/migrations/20261102103429_poster_withdraws_an_offer.sql |   v_listed := public.job_payment_is_listed(v_job.payment_status); |   v_listed := v_job.payment_status = 'escrow';
+ *
+ * Q2448 (finding: lh-money-escrow@756b4e7602#8): the NEGATED form too. A "never paid" list (unpaid / abandoned /
+ * failed: a status array or Set, a comparison chain, or a PostgREST .or() filter) decides 'held' by leaving it out
+ * or putting it in, and two round-4 findings came through exactly that gap. Every such site in an edge function or
+ * app file is in NEVER_PAID_SITES (exact both ways), classified: 'held-paid' (a held card counts as paid or live:
+ * the list must NOT name 'held'), 'held-never-paid' (counts as never charged: it MUST), or 'exhaustive'.
+ * @mutate src/components/job-card/ActivityDialogs.tsx |             props.cancelDialogJob.payment_status !== "failed" &&\n            // Q2399: a card only HELD was never charged; its hold is released, nothing refunded.\n            props.cancelDialogJob.payment_status !== "held" |             props.cancelDialogJob.payment_status !== "failed"
+ * @mutate src/lib/neverPaidStatuses.ts | export const NEVER_PAID_STATUSES = ["unpaid", "abandoned", "failed"] as const; | export const NEVER_PAID_STATUSES = ["unpaid", "abandoned", "failed", "held"] as const;
+ * @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionExpired.ts |     const funded = !!job && !["unpaid", "failed", "abandoned"].includes(job.payment_status ?? "unpaid"); |     const funded = !!job && !["unpaid", "failed", "abandoned", "held"].includes(job.payment_status ?? "unpaid");
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -79,6 +88,8 @@ const CAPTURED = [
   // payout_after_hire off, a Helpr with no payout account could not complete a held hire (the accept waits on payout
   // setup, which waits on the capture); the switch is 'everyone' on prod since 2026-10-25.
   "payout_setup_hire_allowed", "claim_payout_setup_reminders",
+  // Q2088 (20261103102100): Admin -> Payout Batches labels batches of jobs whose money is captured (payout set).
+  "admin_payout_batch_money_modes",
 ] as const;
 
 /** Trigger WHENs (newest CREATE TRIGGER of each name) that read the funded set: all four are the Helpr fan-outs. */
@@ -105,6 +116,63 @@ const TS_CLASSIFIED: Record<string, "listed" | "captured" | "exhaustive"> = {
   "src/lib/statusLabels.ts": "exhaustive", // every jobs_payment_status_check value, 'held' included
 };
 const FUNDED_TS = /["']escrow["']\s*,\s*["']payout_pending["']\s*,\s*["']released["']/;
+
+/**
+ * Q2448: every NEGATED "never paid" list (holds 'unpaid' plus 'abandoned' or 'failed'), keyed by a substring of
+ * its own code that is unique among the file's sites. 'held-paid': 'held' counts as paid or live (must not name it);
+ * 'held-never-paid': 'held' was never charged (must name it); 'exhaustive': every payment status, 'held' included.
+ */
+const NEVER_PAID_SITES: Array<{ file: string; key: string; held: "held-paid" | "held-never-paid" | "exhaustive"; why: string }> = [
+  { file: "src/components/job-card/ActivityDialogs.tsx", key: "props.cancelDialogJob.payment_status !==", held: "held-never-paid", why: "wasFunded: a held card was never charged, so the cancel dialog promises no refund (round-4 finding)" },
+  { file: "src/components/profile/earningsTab/earningsTabHelpers.ts", key: "UNEARNED_PAYMENT_STATUSES", held: "held-never-paid", why: "a held card is not earnings" },
+  { file: "src/lib/neverPaidStatuses.ts", key: "NEVER_PAID_STATUSES", held: "held-paid", why: "a held job is a live posted job: it shows in My Posts and Repost" },
+  { file: "src/lib/statusLabels.ts", key: "PAYMENT_STATUSES", held: "exhaustive", why: "every jobs_payment_status_check value" },
+  { file: "src/pages/post-job/maintenancePrefill.ts", key: "NEVER_FUNDED", held: "held-paid", why: "a held card keeps the maintenance request on its job (live, like funded)" },
+  { file: "src/pages/post-job/useJobSubmit.ts", key: "pay === \"unpaid\"", held: "held-paid", why: "a held job is a live listing, never deleted as an unpaid draft" },
+  { file: "supabase/functions/checkout-nudge-backfill/index.ts", key: "NUDGEABLE", held: "held-paid", why: "a held card needs no pay-now nudge" },
+  { file: "supabase/functions/create-payment/index.ts", key: "RE_MINTABLE_PAYMENT_STATUSES", held: "held-paid", why: "a held job never re-mints a checkout over its hold" },
+  { file: "supabase/functions/money-reconciliation/index.ts", key: "UNFUNDED_PAYMENT_STATES", held: "held-paid", why: "gift_spent_on_failed_payment: a gift on a held job is reserved for a live job, not stuck" },
+  { file: "supabase/functions/stripe-webhook/handlers/chargeRefunded.ts", key: "REFUND_CLOSABLE_PAYMENT_STATES", held: "held-paid", why: "a held card is never refunded (a capture moves the job to escrow first), so 'held' is never refund-closed" },
+  { file: "supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts", key: "jr.stripe_payment_intent_id !== thisPi", held: "held-paid", why: "a job held on another PaymentIntent is funded elsewhere (the escrow write never overwrites 'held')" },
+  { file: "supabase/functions/stripe-webhook/handlers/checkoutSessionExpired.ts", key: ".in(\"payment_status\", [\"unpaid\", \"failed\"]", held: "held-paid", why: "an expired checkout never clears a held job's session" },
+  { file: "supabase/functions/stripe-webhook/handlers/checkoutSessionExpired.ts", key: "const funded", held: "held-paid", why: "a held job's gift reservation is left alone (round-4 finding: the reserved gift on a failed hold)" },
+  { file: "supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts", key: "isActionableStatus", held: "held-paid", why: "a failed capture of a hold is failHold's (card-hold path), never marked here" },
+  { file: "supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts", key: "casFilter", held: "held-paid", why: "the failed-payment CAS never moves a held job" },
+  { file: "supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts", key: "isStillUnpaid", held: "held-paid", why: "Q1994: a held job is never promoted to escrow by a PI it does not carry" },
+  { file: "supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts", key: ".or(\"payment_status.is.null", held: "held-paid", why: "the ACH escrow flip never matches a held job" },
+  { file: "supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts", key: "now.payment_status == null", held: "held-paid", why: "a held job read back is not unfunded-and-completed money at risk" },
+];
+
+/** Status words a negated never-paid site may name. */
+const NEVER_WORDS = /["'](unpaid|abandoned|failed)["']|payment_status\.eq\.(unpaid|abandoned|failed)\b/g;
+const NAMES_HELD = /["']held["']|payment_status\.eq\.held\b/;
+/** The negated never-paid sites in one file's comment-blanked code: [the site's own text]. */
+function neverPaidSites(code: string): string[] {
+  const out: string[] = [];
+  const isNeverPaid = (t: string) => {
+    const w = new Set([...t.matchAll(NEVER_WORDS)].map((m) => m[1] ?? m[2]));
+    return w.has("unpaid") && (w.has("abandoned") || w.has("failed"));
+  };
+  const statusAt = (end: number) => code.slice(Math.max(0, end - 160), end).replace(/\s+/g, " ");
+  // (a) a status array literal, with the declaration or call it sits in (up to the end of the line it opens on).
+  for (const m of code.matchAll(/\[\s*((?:["'][a-z_]+["']\s*,?\s*)+)\]/g)) {
+    if (!isNeverPaid(m[0])) continue;
+    const lineStart = code.lastIndexOf("\n", code.lastIndexOf("\n", m.index! - 1) - 1) + 1;
+    out.push(`${code.slice(lineStart, m.index! + m[0].length).replace(/\s+/g, " ")}`);
+  }
+  // (b) a comparison chain of a payment status against string literals or null, joined by || / &&.
+  const cmp = String.raw`[\w.?]+\s*[!=]==?\s*(?:["'][a-z_]+["']|null)`;
+  for (const m of code.matchAll(new RegExp(String.raw`(?:${cmp}\s*\)?\s*(?:\|\||&&)\s*\(*\s*)+${cmp}`, "g"))) {
+    if (!isNeverPaid(m[0])) continue;
+    out.push(`${statusAt(m.index!)}${m[0].replace(/\s+/g, " ")}`);
+  }
+  // (c) a PostgREST filter string.
+  for (const m of code.matchAll(/["'][^"'\n]*payment_status\.eq\.unpaid[^"'\n]*["']/g)) {
+    if (!isNeverPaid(m[0])) continue;
+    out.push(`${statusAt(m.index!)}${m[0]}`);
+  }
+  return out;
+}
 
 /**
  * The NEWEST CREATE [OR REPLACE] FUNCTION / VIEW of every name across the
@@ -229,5 +297,35 @@ describe("every reader of the funded set is classified for card holds (Q2399)", 
       "src/pages/post-job/useJobSubmit.ts", "src/components/admin/adminJobs/adminJobsHelpers.ts",
       "src/lib/declutter/setupHelpr.ts", "src/pages/post-job/turnoverPrefill.ts",
     ]) expect(listedUsers, f).toContain(f);
+  });
+  it("Q2448: every negated never-paid list is classified for 'held', exactly both ways", () => {
+    const edge = (readdirSync("supabase/functions", { recursive: true }) as string[]).map((f) => `supabase/functions/${f}`);
+    const files = [...trackedFiles("src"), ...edge]
+      .filter((f) => /\.(ts|tsx|mjs)$/.test(f))
+      .filter((f) => !/\.test\.|\/test\/|\.spec\./.test(f));
+    const found: Array<{ file: string; text: string }> = [];
+    for (const f of files) for (const text of neverPaidSites(blankComments(readFileSync(f, "utf8")))) found.push({ file: f, text });
+    expect(found.length, "negated never-paid sites found").toBeGreaterThan(10);
+    const entryFor = (s: { file: string; text: string }) => NEVER_PAID_SITES.filter((e) => e.file === s.file && s.text.includes(e.key));
+    const unclassified = found.filter((s) => entryFor(s).length !== 1).map((s) => `${s.file}: ${s.text.slice(-140)}`);
+    expect(unclassified, "classify each new never-paid list in NEVER_PAID_SITES (held-paid / held-never-paid / exhaustive)").toEqual([]);
+    const stale = NEVER_PAID_SITES.filter((e) => found.filter((s) => s.file === e.file && s.text.includes(e.key)).length !== 1);
+    expect(stale.map((e) => `${e.file} ${e.key}`), "stale or ambiguous NEVER_PAID_SITES entry").toEqual([]);
+    const wrong: string[] = [];
+    for (const s of found) {
+      const e = entryFor(s)[0];
+      const named = NAMES_HELD.test(s.text);
+      if (e.held === "held-paid" && named) wrong.push(`${s.file} (${e.key}) is held-paid but names 'held'`);
+      if (e.held !== "held-paid" && !named) wrong.push(`${s.file} (${e.key}) is ${e.held} but does not name 'held'`);
+    }
+    expect(wrong).toEqual([]);
+  });
+
+  it("Q2448: a planted never-paid list is found, with and without 'held'", () => {
+    expect(neverPaidSites(`const X = new Set(["unpaid", "failed"]);`)).toHaveLength(1);
+    expect(neverPaidSites(`const ok = j.payment_status !== "unpaid" && j.payment_status !== "abandoned";`)).toHaveLength(1);
+    expect(neverPaidSites(`q.or("payment_status.is.null,payment_status.eq.unpaid,payment_status.eq.abandoned")`)).toHaveLength(1);
+    expect(NAMES_HELD.test(neverPaidSites(`const X = ["unpaid", "abandoned", "held"];`)[0] ?? "")).toBe(true);
+    expect(neverPaidSites(`const X = ["unpaid"]; const y = j.payment_status === "escrow";`)).toHaveLength(0);
   });
 });

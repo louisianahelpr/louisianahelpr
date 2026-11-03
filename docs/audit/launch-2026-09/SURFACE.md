@@ -20,7 +20,7 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 27 |
 | Overlay surfaces | **instance** | 220 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1119 (across 313 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1121 (across 314 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 50 |
 | Multi-step flows — probable | flow | 34 |
 | Back/next navigation only | flow | 66 |
@@ -29,8 +29,8 @@ reports coverage against THIS file, not against the route list.
 | Email templates | **exported template** | 23 |
 | Notification types (defined in notification_type_pref_map) | type | 26 |
 | **Navigable surfaces** (places a person can stand) | mixed | **770** |
-| **Copy surfaces** (strings a person may read) | mixed | **1168** |
-| **Total auditable surface** | mixed | **1938** |
+| **Copy surfaces** (strings a person may read) | mixed | **1170** |
+| **Total auditable surface** | mixed | **1940** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -460,7 +460,7 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/pages/jobs/appliedJobCard/steps/HelperPhotoAsk.tsx` | compare |
 | `src/pages/jobs/jobPage/crewMemberFace.ts` | compare |
 | `src/pages/post-job/PostJob.tsx` | compare, nav-handler |
-| `src/pages/post-job/usePostJobForm.ts` | compare, nav-handler |
+| `src/pages/post-job/usePostJobForm.ts` | compare, nav-handler, union-state |
 | `src/pages/posts/postedJobCard/PostedJobActions.tsx` | switch, union-state |
 | `src/pages/posts/postedJobCard/PosterStatusStrip.tsx` | compare |
 | `src/pages/posts/postedJobCard/steps/posterStepContract.ts` | compare |

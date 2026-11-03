@@ -1,5 +1,5 @@
 -- Shipping lost sweep (Q2259; docs/specs/shipping-draft.md 5.3 row "ship_lost"; owner decision 5 "lost or broken in
--- the mail = the seller"). WIP, NOT READY TO LAND: needs the lead PASS packet (money) and its full proof.
+-- the mail = the seller"). Money: lead PASS (lh-money-escrow) 11-03.
 --
 -- Before: a parcel the carrier took (acceptance scan) and never delivered left the order 'paid' forever: no payout
 -- (the ship sweep pays only after a delivered scan) and no refund for the buyer.

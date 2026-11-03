@@ -35,7 +35,32 @@ function payoutFailedMessage(amountCents: number): string {
   return `Your payout of ${usd} didn't go through. Update your bank or card in You → Money.`;
 }
 
-export async function handlePayoutFailed(event: Stripe.Event, { supabase, logStep }: WebhookContext) {
+/**
+ * Q2276 (a): a payout.paid for a LATER payout can be delivered before this
+ * (retried) payout.failed. handlePayoutPaid then found no open row to close,
+ * and the row inserted here stayed open, a stale Home card, until yet another
+ * payout was paid. So ask Stripe: has a payout on this account been paid after
+ * this failure? If so the row is written already resolved, at that payout's
+ * arrival date. arrival_date is a date (midnight UTC), so a payout paid the
+ * same day as the failure is not counted: the miss is a card left open until
+ * the next payout.paid, never a real failure hidden. A failed read is only
+ * logged: the row is written open, as before.
+ */
+async function paidAfter(stripe: Stripe, accountId: string, failedAtSec: number): Promise<string | null> {
+  try {
+    const paid = await stripe.payouts.list(
+      { status: "paid", arrival_date: { gt: failedAtSec }, limit: 1 },
+      { stripeAccount: accountId },
+    );
+    const arrival = Number(paid?.data?.[0]?.arrival_date);
+    return Number.isFinite(arrival) && arrival > failedAtSec ? new Date(arrival * 1000).toISOString() : null;
+  } catch (e) {
+    console.error(`[payout.failed] could not ask Stripe for a later paid payout on ${accountId}; the failure is recorded open: ${(e as Error)?.message ?? e}`);
+    return null;
+  }
+}
+
+export async function handlePayoutFailed(event: Stripe.Event, { stripe, supabase, logStep }: WebhookContext) {
   const payout = event.data.object as Stripe.Payout;
   // A connected account's payout carries `event.account`. Without one this is
   // the PLATFORM's own payout: not a member's money, nothing to tell anyone.
@@ -101,6 +126,8 @@ export async function handlePayoutFailed(event: Stripe.Event, { supabase, logSte
     return;
   }
 
+  const failedAtSec = event.created ?? Math.floor(Date.now() / 1000);
+  const resolvedAt = await paidAfter(stripe, accountId, failedAtSec);
   const { data: inserted, error: insErr } = await supabase
     .from("payout_failures")
     .upsert(
@@ -112,7 +139,9 @@ export async function handlePayoutFailed(event: Stripe.Event, { supabase, logSte
         amount_cents: Math.max(0, payout.amount ?? 0),
         currency: payout.currency ?? "usd",
         failure_code: payout.failure_code ?? null,
-        failed_at: new Date((event.created ?? Math.floor(Date.now() / 1000)) * 1000).toISOString(),
+        failed_at: new Date(failedAtSec * 1000).toISOString(),
+        // Q2276 (a): a later payout already paid means the bank works again.
+        resolved_at: resolvedAt,
       },
       { onConflict: "stripe_payout_id", ignoreDuplicates: true },
     )
@@ -124,7 +153,7 @@ export async function handlePayoutFailed(event: Stripe.Event, { supabase, logSte
     // first delivery's notice failed) is told now; one already told is not.
     const { data: existing, error: readErr } = await supabase
       .from("payout_failures")
-      .select("id, notified_at")
+      .select("id, notified_at, resolved_at")
       .eq("stripe_payout_id", payout.id)
       .maybeSingle();
     if (readErr) throw new Error(`payout.failed: could not read the recorded ${payout.id}: ${readErr.message}`);
@@ -132,7 +161,20 @@ export async function handlePayoutFailed(event: Stripe.Event, { supabase, logSte
       logStep("payout.failed already recorded; no second notice", { payoutId: payout.id });
       return;
     }
+    // Q2276 (a), lead 11-03: a row recorded resolved is never told.
+    if (existing.resolved_at) {
+      logStep("payout.failed already recorded resolved; no notice", { payoutId: payout.id });
+      return;
+    }
     failureId = existing.id as string;
+  }
+
+  // Q2276 (a), lead 11-03: written RESOLVED (a later payout already reached
+  // the bank), so it is already fixed: no "didn't go through" notice and no
+  // page. Written open (including when Stripe could not be asked): told.
+  if (resolvedAt) {
+    logStep("payout.failed recorded resolved: a later payout already arrived; member not told", { payoutId: payout.id, resolvedAt });
+    return;
   }
 
   const sent = await insertNotifications(supabase, {

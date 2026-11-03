@@ -144,6 +144,80 @@ describe("payout.failed: recorded and the member is told (board 143a)", () => {
     expect(stamps[0].notified_at).toBeTruthy();
   });
 
+  // Q2276 (a): the payout.paid of a LATER payout delivered before this retried payout.failed found no open
+  // row to close, so the row written here stayed open (a stale Home card). The insert now asks Stripe.
+  // @mutate supabase/functions/stripe-webhook/handlers/payoutFailed.ts |         resolved_at: resolvedAt, |         resolved_at: null,
+  // @mutate supabase/functions/stripe-webhook/handlers/payoutFailed.ts |     return Number.isFinite(arrival) && arrival > failedAtSec ? new Date(arrival * 1000).toISOString() : null; |     return Number.isFinite(arrival) ? new Date(arrival * 1000).toISOString() : null;
+  // @mutate supabase/functions/stripe-webhook/handlers/payoutFailed.ts |       { stripeAccount: accountId }, |       {},
+  it("a later payout Stripe already paid: the failure is recorded resolved at its arrival (Q2276 a)", async () => {
+    const fn = await load();
+    event("evt_f2a", "payout.failed", payout());
+    scenario.reads.profiles = { rows: [{ user_id: "member-1" }] };
+    stripeMock.payouts.list.mockResolvedValue({ data: [{ id: "po_2", status: "paid", arrival_date: 1792627200 }] });
+    expect((await post(fn)).status).toBe(200);
+    expect(stripeMock.payouts.list).toHaveBeenCalledWith(
+      { status: "paid", arrival_date: { gt: 1792550000 }, limit: 1 },
+      { stripeAccount: "acct_member" },
+    );
+    const rec = writes("payout_failures", "insert").map((w) => w.payload as Record<string, unknown>);
+    expect(rec).toHaveLength(1);
+    expect(rec[0].resolved_at).toBe(new Date(1792627200 * 1000).toISOString());
+    expect(rec[0].failed_at).toBe(new Date(1792550000 * 1000).toISOString());
+    // Lead 11-03: already fixed, so the member is not told and nothing pages.
+    expect(notices()).toHaveLength(0);
+    expect((slackAlerts as Array<{ title: string }>).some((a) => a.title === "A member's bank payout failed")).toBe(false);
+  });
+
+  // Lead 11-03: a redelivery of a row recorded resolved (never told) sends no notice either.
+  // @mutate supabase/functions/stripe-webhook/handlers/payoutFailed.ts |   if (resolvedAt) { |   if (false) {
+  // @mutate supabase/functions/stripe-webhook/handlers/payoutFailed.ts |     if (existing.resolved_at) { |     if (false) {
+  it("a redelivery of a failure recorded resolved sends no notice (Q2276 a)", async () => {
+    const fn = await load();
+    event("evt_f2e", "payout.failed", payout());
+    scenario.reads.profiles = { rows: [{ user_id: "member-1" }] };
+    scenario.writeSelectRows["payout_failures:insert"] = [];
+    scenario.reads.payout_failures = { rows: [{ id: "pf-1", notified_at: null, resolved_at: "2026-10-20T00:00:00.000Z" }] };
+    expect((await post(fn)).status).toBe(200);
+    expect(notices()).toHaveLength(0);
+  });
+
+  it("no later paid payout: the member is told (Q2276 a)", async () => {
+    const fn = await load();
+    event("evt_f2f", "payout.failed", payout());
+    scenario.reads.profiles = { rows: [{ user_id: "member-1" }] };
+    expect((await post(fn)).status).toBe(200);
+    expect(notices()).toHaveLength(1);
+  });
+
+  it("no later paid payout: the failure is recorded open (Q2276 a)", async () => {
+    const fn = await load();
+    event("evt_f2b", "payout.failed", payout());
+    scenario.reads.profiles = { rows: [{ user_id: "member-1" }] };
+    expect((await post(fn)).status).toBe(200);
+    const rec = writes("payout_failures", "insert").map((w) => w.payload as Record<string, unknown>);
+    expect(rec).toHaveLength(1);
+    expect(rec[0].resolved_at).toBeNull();
+  });
+
+  it("a paid payout that arrived before the failure does not resolve it (Q2276 a)", async () => {
+    const fn = await load();
+    event("evt_f2c", "payout.failed", payout());
+    scenario.reads.profiles = { rows: [{ user_id: "member-1" }] };
+    stripeMock.payouts.list.mockResolvedValue({ data: [{ id: "po_0", status: "paid", arrival_date: 1792540800 }] });
+    expect((await post(fn)).status).toBe(200);
+    expect((writes("payout_failures", "insert")[0].payload as Record<string, unknown>).resolved_at).toBeNull();
+  });
+
+  it("Stripe unreadable: the failure is recorded open and the member is still told (Q2276 a)", async () => {
+    const fn = await load();
+    event("evt_f2d", "payout.failed", payout());
+    scenario.reads.profiles = { rows: [{ user_id: "member-1" }] };
+    stripeMock.payouts.list.mockRejectedValue(new Error("stripe down"));
+    expect((await post(fn)).status).toBe(200);
+    expect((writes("payout_failures", "insert")[0].payload as Record<string, unknown>).resolved_at).toBeNull();
+    expect(notices()).toHaveLength(1);
+  });
+
   it("a payout already recorded sends no second notice", async () => {
     const fn = await load();
     event("evt_f2", "payout.failed", payout());

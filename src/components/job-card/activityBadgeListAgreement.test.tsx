@@ -47,6 +47,8 @@ vi.mock("@/hooks/useCurrentUser", () => ({
 // Query; this list-vs-badge test renders cards without a QueryClient.
 vi.mock("@/components/schedule/ScheduleChangeControl", () => ({ ScheduleChangeControl: () => null, ScheduleChangeAskDialog: () => null, usePendingScheduleChange: () => ({ data: null }) }));
 vi.mock("@/components/series/SeriesDatesPanel", () => ({ SeriesDatesPanel: () => null }));
+// Q1916: the cancelled card's fee pill reads the Helpr's own transfer row with React Query; no QueryClient here.
+vi.mock("@/pages/jobs/appliedJobCard/CancellationFeePill", async (orig) => ({ ...(await orig<object>()), CancellationFeePill: () => <div data-testid="cancel-fee-pill" /> }));
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/lib/haptics", () => ({

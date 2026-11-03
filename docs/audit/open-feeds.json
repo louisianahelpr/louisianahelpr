@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-03T05:03Z",
+  "measured_at": "2026-11-03T07:04Z",
   "issues": {
     "readable": true,
     "open": [
@@ -186,14 +186,6 @@
         "status": "open",
         "title": "nightly-red: loading-states-refresh",
         "issue": 2601
-      },
-      {
-        "fingerprint": "0d3beba829aef2b190538db98a6a28d4",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: money-reconciliation returned 500 (# defect(s) reported)",
-        "issue": null
       },
       {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
@@ -796,7 +788,6 @@
     "ledger 0bd7cd00f060": "Q1816",
     "ledger 0bebf0385b3e": "Q1615",
     "ledger 0d3beba829ae": "Q2500",
-    "ledger 0e88968519a2": "Q2554",
     "ledger 0fa6c60d7a29": "Q1776",
     "ledger 11f46545733f": "Q2409",
     "ledger 11fa6e898f3d": "Q1596",
@@ -830,7 +821,6 @@
     "ledger 4aa239aefeb6": "Q1816",
     "ledger 4ac3e9488b48": "Q2525",
     "ledger 4b5ace7af165": "Q1596",
-    "ledger 54ef0bfdcec3": "Q2703",
     "ledger 5a28db44e912": "Q2410",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 5d35922623b5": "Q1596",

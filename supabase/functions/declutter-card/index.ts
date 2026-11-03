@@ -27,7 +27,7 @@ import { requireFeature } from "../_shared/featureSwitch.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
-import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
+import { withWalletCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -71,9 +71,8 @@ serve(async (req) => {
     // made; claimed once). Never found by email. Adopting here too means the
     // section a member opens first never strands the cards on their old Jobs
     // customer (lh-money-escrow review of 05df69882 #2).
-    const customerId = await resolveStripeCustomer(admin, stripe, user, mode, { adoptTagged: true });
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await withWalletCustomer(admin, stripe, user, mode, (customerId) => stripe.checkout.sessions.create({
       mode: "setup",
       currency: "usd",
       customer: customerId,
@@ -86,7 +85,7 @@ serve(async (req) => {
       setup_intent_data: { metadata: { kind: "declutter_card", user_id: user.id } },
       success_url: buildRedirectUrl("/declutter?card=saved", native),
       cancel_url: buildRedirectUrl("/declutter?card=cancelled", native),
-    });
+    }), { adoptTagged: true });
     if (!session.url) return json({ error: "We couldn't open the card page just now. Please try again." }, 502);
     return json({ url: session.url });
   } catch (error) {

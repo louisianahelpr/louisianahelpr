@@ -7,7 +7,7 @@ import { buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor } from "../_shared/stripeMode.ts";
-import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
+import { withWalletCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
 
 /**
  * Settle the one-time account setup fee EARLY, on its own.
@@ -135,7 +135,6 @@ serve(async (req) => {
     // One wallet (Q2139, owner 2026-10-18 "verify ONCE, use EVERYWHERE"): the member's
     // one Stripe customer for this mode (_shared/stripeCustomer.ts), never a customer
     // found by email (an address can belong to someone else's old customer).
-    const customerId = await resolveStripeCustomer(supabaseAdmin, stripe, user, stripeMode, { adoptTagged: true });
 
     const metadata = {
       kind: "onboarding_fee",
@@ -147,7 +146,7 @@ serve(async (req) => {
       onboarding_fee_cents: String(feeCents),
     };
 
-    const session = await stripe.checkout.sessions.create(
+    const session = await withWalletCustomer(supabaseAdmin, stripe, user, stripeMode, (customerId, walletRetry) => stripe.checkout.sessions.create(
       {
         customer: customerId,
         // Q2084 (owner: never eat a fee): card only (Apple Pay and Google Pay ride on
@@ -188,8 +187,8 @@ serve(async (req) => {
       // instead of creating a second chargeable one.
       // Q2352: and per return path, since the page's return URLs differ (lh-money-escrow review #3).
       // v2: the wallet customer and payment methods changed the request (Q2084).
-      { idempotencyKey: toFreeClaim ? `onboarding-fee:v2:${user.id}:declutter_free_claim` : toDeclutter ? `onboarding-fee:v2:${user.id}:declutter_selling` : `onboarding-fee:v2:${user.id}` },
-    );
+      { idempotencyKey: (toFreeClaim ? `onboarding-fee:v2:${user.id}:declutter_free_claim` : toDeclutter ? `onboarding-fee:v2:${user.id}:declutter_selling` : `onboarding-fee:v2:${user.id}`) + (walletRetry ? ":new-wallet" : "") },
+    ), { adoptTagged: true });
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

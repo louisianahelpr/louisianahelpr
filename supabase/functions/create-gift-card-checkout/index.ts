@@ -8,7 +8,7 @@ import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { posterCardCostFeeCents } from "../_shared/posterFees.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { isPartyRefusal, stripeModeForParties, stripeModeRefusedResponse, StripeModeRefused, stripeSecretKeyFor, type StripeMode } from "../_shared/stripeMode.ts";
-import { resolveStripeCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
+import { withWalletCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -225,7 +225,6 @@ serve(async (req) => {
     // One wallet (Q2139, owner 2026-10-18 "verify ONCE, use EVERYWHERE"): the member's
     // one Stripe customer for this mode (_shared/stripeCustomer.ts), never a customer
     // found by email (an address can belong to someone else's old customer).
-    const customerId = await resolveStripeCustomer(supabaseAdmin, stripe, user, stripeMode, { adoptTagged: true });
 
     // Carry everything the webhook needs to MINT the credit. The webhook is the
     // only writer of gift_cards (client mint is removed), so amount_cents and
@@ -245,7 +244,7 @@ serve(async (req) => {
       ...(stripeMode === "test" && recipientUserId ? { recipient_id: recipientUserId } : {}),
     };
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await withWalletCustomer(supabaseAdmin, stripe, user, stripeMode, (customerId, walletRetry) => stripe.checkout.sessions.create({
       customer: customerId,
       // automatic_tax needs a tax location. An existing Stripe Customer with no
       // address made Stripe refuse the session (customer_tax_location_invalid,
@@ -295,8 +294,8 @@ serve(async (req) => {
       // so the two Stripe environments never rely on keys being separate; the
       // LIVE key is unchanged.
       // v2: the wallet customer and payment methods changed the request (Q2084).
-      idempotencyKey: `gift-card:v2:${stripeMode === "test" ? "test:" : ""}${user.id}:${recipientEmail}:${amountCents}`,
-    });
+      idempotencyKey: `gift-card:v2:${stripeMode === "test" ? "test:" : ""}${user.id}:${recipientEmail}:${amountCents}${walletRetry ? ":new-wallet" : ""}`,
+    }), { adoptTagged: true });
 
     // ── Pre-register the gift BEFORE the donor can pay ──
     // Until this existed, this function did exactly ONE database operation (the

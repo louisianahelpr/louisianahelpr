@@ -10,8 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
  * row above a `liquid-glass` card. Two unrelated frames before the form.
  *
  * This paints Login's ACTUAL frame instead: the same page ground, the same
- * column geometry, the same title row, and a card-shaped bone where the
- * `liquid-glass` panel lands. Only the card's contents change at the handoff.
+ * column geometry, and the same card with its head (H mark, "Log in", welcome
+ * line). Only the bones inside the card change at the handoff.
  *
  * ── Why this mirrors AuthShell rather than importing it ───────────────────
  * A route Suspense fallback has to be SYNCHRONOUS, so anything it imports
@@ -24,10 +24,10 @@ import { Skeleton } from "@/components/ui/skeleton";
  * stays in the eager bundle and renders instantly").
  *
  * The classes below are copied verbatim from the branch AuthShell takes for
- * Login's exact props — `hideHeader centerColumn backTo="/" maxWidth="2xl"
- * title="Log in" noWebChrome` — i.e. `centered` + `anchor="top"`, no compact
- * bar, no full header, no brand pane. If AuthShell's column geometry changes,
- * change it here too.
+ * Login's exact props — `hideHeader hideBack centerColumn maxWidth="sm" noWebChrome`
+ * (board 37) — i.e. `centered` + `anchor="top"`, max-w-sm, no title row, no
+ * compact bar, no full header, no brand pane. If AuthShell's column geometry or
+ * Login's card head changes, change it here too (src/test/loginSkeletonMatchesLogin.test.ts).
  *
  * `/login` IS in DOCUMENT_SCROLL_ROUTES (AuthShell is a `min-h-screen`
  * document-scroll page, not an AppShell one), and this fallback is
@@ -59,36 +59,31 @@ const LoginRouteSkeleton = () => (
       }}
     />
     <div className="relative z-10 flex flex-col items-center justify-start min-h-screen px-5 sm:px-8 lg:px-12 pb-10 sm:pb-8 lg:pb-6 pt-[calc(var(--safe-area-top,0px)_+_var(--shell-gap))] sm:pt-8 lg:pt-6">
-      <div className="w-full page-measure">
-        {/* THE canonical [back] [title] row, at AuthShell's measurements. The
-            chevron is a bone rather than a real <BackButton>: the control is
-            inert for the half-second it exists, and importing it would put
-            lucide on the entry chunk. */}
-        <div className="flex items-center gap-2 mb-4">
-          <div className="shrink-0" aria-hidden>
-            <Skeleton className="w-10 h-10 -ml-2 rounded-full" />
+      {/* Q2249: Login's board 37 column (AuthShell maxWidth="sm" -> max-w-sm, no title row above the card). */}
+      <div className="w-full max-w-sm" data-login-skeleton-column="">
+        {/* The liquid-glass card Login renders, at its padding (p-5 sm:p-6 lg:p-8), opening with the same head: the
+            H mark (a bone at HelprMark lg emblem's h-14), the real "Log in" h1 and the welcome line, then bones at
+            the height of the email + password + submit stack. */}
+        <div className="liquid-glass p-5 sm:p-6 lg:p-8 space-y-6" data-login-skeleton-card="">
+          <div className="flex flex-col items-center text-center gap-1.5">
+            <div className="mb-2" aria-hidden>
+              <Skeleton className="h-14 w-14 rounded-2xl" />
+            </div>
+            <h1 className="text-page-title text-foreground">Log in</h1>
+            <Skeleton className="h-4 w-44 rounded" aria-hidden />
           </div>
-          <h1
-            className="flex-1 min-w-0 font-display font-bold text-headline-hero leading-tight truncate"
-            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.02em" }}
-          >
-            Log in
-          </h1>
-        </div>
-
-        {/* The liquid-glass card Login renders, with its own padding, holding
-            bones at the height of the email + password + submit stack. */}
-        <div className="liquid-glass p-5 sm:p-6 lg:p-10 space-y-6" aria-hidden>
-          <div className="space-y-2">
-            <Skeleton className="h-3.5 w-20 rounded" />
-            <Skeleton className="h-12 w-full rounded-2xl" />
+          <div className="space-y-3.5" aria-hidden>
+            <div className="space-y-2">
+              <Skeleton className="h-3.5 w-20 rounded" />
+              <Skeleton className="h-12 w-full rounded-2xl" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-3.5 w-24 rounded" />
+              <Skeleton className="h-12 w-full rounded-2xl" />
+            </div>
+            <Skeleton className="h-12 w-full rounded-full" />
           </div>
-          <div className="space-y-2">
-            <Skeleton className="h-3.5 w-24 rounded" />
-            <Skeleton className="h-12 w-full rounded-2xl" />
-          </div>
-          <Skeleton className="h-12 w-full rounded-2xl" />
-          <Skeleton className="h-3.5 w-40 mx-auto rounded" />
+          <Skeleton className="h-3.5 w-40 mx-auto rounded" aria-hidden />
         </div>
       </div>
     </div>

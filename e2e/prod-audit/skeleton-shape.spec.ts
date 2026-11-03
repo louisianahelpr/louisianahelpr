@@ -38,9 +38,9 @@ import { stripComments } from "../../scripts/perf/bootReach.mjs";
 
 interface RouteRow { url: string; personas: string[]; redirect: boolean }
 
-// A planted shape defect: Login's skeleton title row 32px taller moves its
-// card bone below the loaded card at both widths.
-// @mutate src/components/LoginRouteSkeleton.tsx | <div className="flex items-center gap-2 mb-4"> | <div className="flex items-center gap-2 mb-12">
+// A planted shape defect: 32px above Login's skeleton card moves it below the
+// loaded card at both widths (Q2249: the skeleton has no title row any more).
+// @mutate src/components/LoginRouteSkeleton.tsx | <div className="w-full max-w-sm" data-login-skeleton-column=""> | <div className="w-full max-w-sm pt-8" data-login-skeleton-column="">
 
 // @two-way e2e/prod-audit/skeleton-shape.spec.ts:KNOWN_SHAPES entries that now match: delete them
 // Filed in docs/OPEN.md as the skeleton-shape-known item (from Q201): each looked at (skeleton + loaded frame) and recorded

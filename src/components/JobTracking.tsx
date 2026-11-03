@@ -856,16 +856,8 @@ export function JobTracking({
           });
           toast.warning("Marked done. The person who posted this job already approved, but we couldn't schedule your payout just now. Because they approved, we schedule it for you within the day unless something needs a look. Refresh the page.", { duration: 8000 });
         } else {
-          // Analytics (Q222): the Helpr's Done finished a job the poster had
-          // already approved. Once per job.
-          // Success moment (Q2029): this Done finished the job, the same
-          // checkmark beat the poster's release plays (useLifecycleHandlers).
-          // trackJobCompleted is true only for a NEW completion, so a replayed
-          // release never plays it twice. The overlay respects Reduce Motion;
-          // the success haptic fires once below, with the step toast.
-          if (trackJobCompleted(jobId, rel as { bothDone?: boolean } | null, "job_tracking", helperId)) {
-            fireSuccessMoment({ label: "Job completed" });
-          }
+          // Q222 analytics + Q2029 success moment (the poster release's beat): true only for a NEW completion, so a replay never plays twice.
+          if (trackJobCompleted(jobId, rel as { bothDone?: boolean } | null, "job_tracking", helperId)) fireSuccessMoment({ label: "Job completed" });
         }
       }
     }

@@ -45,6 +45,7 @@
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_handover_sweep: "declutterHandoverSweepClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   send_job_match_roundups: "emailRoundupsClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   guarantee_sweep: "guaranteeSweepClock.pglite.mjs",\n | \n
+// @mutate src/test/clockFunctionsProven.test.ts |   check_stale_dispute_settlement_claims: "staleDisputeClaimsClock.pglite.mjs",\n | \n
 // @mutate src/test/pglite/userReportsLedgerClock.pglite.mjs | const { file, stmt } = newestFunction("check_user_reports_reach_ledger"); | const { file, stmt } = newestFunction("check_user_reports");
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -101,6 +102,7 @@ const PROVEN: Record<string, string> = {
   send_application_roundups: "emailRoundupsClock.pglite.mjs",
   send_job_match_roundups: "emailRoundupsClock.pglite.mjs",
   guarantee_sweep: "guaranteeSweepClock.pglite.mjs",
+  check_stale_dispute_settlement_claims: "staleDisputeClaimsClock.pglite.mjs",
 };
 
 /** function -> why it has no fixed-clock probe yet. Each is open work under docs/OPEN.md Q1424. */
@@ -109,7 +111,6 @@ const NOT_PROVEN: Record<string, string> = {
   send_new_member_daily_summary: "LEAD-NOID21 daily new-member summary (20261031152136): newMemberDailySummary.pglite.mjs proves the queue by its summarized_at marks, not by moving the clock; it has no time window (it names everyone not yet summarized), so no fixedClock.mjs probe yet",
   // Measured 2026-10-13 (grep of src/test/pglite for `public.<fn>(` and for fixedClock.mjs imports).
   check_browse_view_definer: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
-  check_stale_dispute_settlement_claims: "no PGlite probe names it. On the money path: lane A2 (money, auth and data).",
   // Train D (2026-10-27), measured: neither probe imports fixedClock.mjs; both move row timestamps.
   cron_http_tag: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
   cron_record_work: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",

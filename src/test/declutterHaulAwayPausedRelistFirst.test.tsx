@@ -17,7 +17,7 @@
  * @mutate src/components/declutter/DeclutterHaulAway.tsx |     if (itemStatus !== "paused") return null; |     if (true) return null;
  * @mutate src/components/declutter/DeclutterHaulAway.tsx |       {pausedCount > 0 && ( |       {false && (
  * @mutate src/lib/declutter/haulAwayErrors.ts |  If it's paused, relist it first.", | ",
- * @mutate supabase/migrations/20261102050858_declutter_haul_away_relink_touches_the_link.sql |     ELSIF v_item.status <> 'ended' THEN |     ELSIF v_item.status NOT IN ('ended', 'paused') THEN
+ * @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql |     ELSIF v_item.status <> 'ended' THEN |     ELSIF v_item.status NOT IN ('ended', 'paused') THEN
  * @mutate supabase/migrations/20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql | i.status IN ('live', 'ended') | i.status IN ('live', 'ended', 'paused')
  */
 import { describe, expect, it } from "vitest";

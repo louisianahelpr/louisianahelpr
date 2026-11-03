@@ -4,8 +4,8 @@
  * Backend proof: src/test/pglite/declutterHaulAwayRelinkTouches.pglite.mjs (3x; red on the 20261028223036 version and
  * on its planted defects).
  *
- * @mutate supabase/migrations/20261102050858_declutter_haul_away_relink_touches_the_link.sql |     UPDATE public.declutter_haul_aways SET updated_at = now() WHERE item_id = ANY (v_ids) AND job_id = p_job_id;\n | \n
- * @mutate supabase/migrations/20261102050858_declutter_haul_away_relink_touches_the_link.sql |         UPDATE public.declutter_haul_aways SET updated_at = now() WHERE item_id = v_item.id;\n        CONTINUE; |         CONTINUE;
+ * @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql |     UPDATE public.declutter_haul_aways SET updated_at = now() WHERE item_id = ANY (v_ids) AND job_id = p_job_id;\n | \n
+ * @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql |         UPDATE public.declutter_haul_aways SET updated_at = now() WHERE item_id = v_item.id;\n        CONTINUE; |         CONTINUE;
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";

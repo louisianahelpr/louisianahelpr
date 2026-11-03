@@ -4,7 +4,7 @@
  * complete it the giver can pick someone else. Behaviour of the server is proven by
  * src/test/pglite/freeClaimFeeThenId.pglite.mjs (the migration 3x; red with NEW_MIGRATION=skip).
  *
- * @mutate supabase/migrations/20261031211922_free_claim_fee_then_id_restated.sql |   PERFORM public.declutter_free_claim_gate(v_uid);\n  IF p_handover = 'porch' AND EXISTS ( |   IF p_handover = 'porch' AND EXISTS (
+ * @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql |   PERFORM public.declutter_free_claim_gate(v_uid);\n  IF p_handover = 'porch' AND EXISTS ( |   IF p_handover = 'porch' AND EXISTS (
  * @mutate supabase/migrations/20261031211922_free_claim_fee_then_id_restated.sql |  WHERE q.item_id = NEW.id AND q.status = 'not_picked' |  WHERE q.item_id = NEW.id AND q.status = 'never'
  * @mutate src/lib/declutter/api.ts |   else if (freeClaimFeeRefusal(err)) openFreeClaimFirstTime(); |
  * @mutate src/components/identity/FreeClaimFirstTime.tsx |             A claim shares a real person's address, so we check ID once to keep members safe. |             Verify your ID.

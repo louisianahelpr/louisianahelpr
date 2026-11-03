@@ -589,7 +589,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // LEAD-PLACE-TIMES (20261031164337). Reviewed 2026-10-31: the place read also runs for pickup_home; still $0 and records no refund.
       // LEAD-B49-REBUILD (20261031211922, Builder 28, for verdict): only the free-claim gate call added, before any order;
       // it raises or returns, and still records no refund.
-      declutter_checkout_free: "20261031211922_free_claim_fee_then_id_restated.sql cbd27bb5698fddf0",
+      // Q2390 p39 (20261103224955): restated with its not-found as PT404 only (ERRCODE only); no refund logic changed.
+      declutter_checkout_free: "20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql 9c02ae4e05056074",
       // Q1929 (20261021185418), reviewed: a delivery-pay raise is its OWN charge and never a declutter_refunds row.
       // _start writes an unpaid raise row (its card fee is the buyer's to pay, grossed up); _status reads the
       // buyer's own raises; the close trigger moves applied raises to refunding: everything paid, except a sale
@@ -653,7 +654,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // A3-57 (20261102011547, Builder 125; re-pinned by Builder 151 after a line diff against 20261101181129): ONE
       // refusal added before any write (request_time_passed when the ask's own pickup time has passed); the free order,
       // its $0 amounts and card_fee_cents 0 are verbatim. Still records no refund and moves no money.
-      declutter_pick_free_request: "20261102011547_free_asks_close_when_their_time_passes.sql 916a12add24bc8a0",
+      // Q2390 p39 (20261103224955): restated with its not-found as PT404 only (ERRCODE only); no refund logic changed.
+      declutter_pick_free_request: "20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql 84adb239e4897d58",
       // A3-112 (20261102033426, read by Builder 151): STABLE read of the CALLER's own orders (buyer_id = auth.uid(), at
       // most 200): sums what came back (succeeded declutter_refunds not settled by hand + live hand refunds + succeeded
       // delivery refunds) on the order's own payment. Writes nothing; decides no amount or fee.

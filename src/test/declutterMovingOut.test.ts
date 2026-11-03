@@ -9,8 +9,8 @@
  * (74 PASS; NEW_MIGRATION=skip 69 FAIL; 8 of 9 planted defects caught there,
  * the 9th pinned here; measured 2026-10-16).
  *
- * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |     v_id := public.declutter_create_item( |     v_id := public.declutter_create_item_fast(
- * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql |   v_uid := public.declutter_assert_member(true);\n\n  IF public.declutter_move_out_date_problem | v_uid := (SELECT auth.uid());\n\n  IF public.declutter_move_out_date_problem
+ * @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql |     v_id := public.declutter_create_item( |     v_id := public.declutter_create_item_fast(
+ * @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql |   v_uid := public.declutter_assert_member(true);\n\n  IF public.declutter_move_out_date_problem | v_uid := (SELECT auth.uid());\n\n  IF public.declutter_move_out_date_problem
  * @mutate supabase/migrations/20261016053625_declutter_moving_out.sql | REVOKE ALL ON FUNCTION public.declutter_create_move_drafts(date, text, text, numeric, numeric, jsonb) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_create_move_drafts(date, text, text, numeric, numeric, jsonb) FROM PUBLIC;
  * @mutate supabase/migrations/20261020064354_declutter_manage_listing.sql |    WHERE seller_id = v_uid\n     AND in_moving_sale\n     AND status IN | WHERE in_moving_sale\n     AND status IN
  * @mutate supabase/migrations/20261020064354_declutter_manage_listing.sql |        AND i.seller_id = v_uid AND p.seller_id = v_uid\n       AND i.in_moving_sale\n       AND i.status IN ('draft' |        AND i.in_moving_sale\n       AND i.status IN ('draft'

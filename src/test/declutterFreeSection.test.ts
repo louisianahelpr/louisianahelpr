@@ -12,9 +12,9 @@
  * planted out, "the giver may NOT open a payout account" FAILs). This guard pins the newest definitions
  * and the screens that carry it.
  *
- * @mutate supabase/migrations/20261101201500_shipping_s3_checkout_claim.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
+ * @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql |   IF v_items = 0 THEN\n    RAISE EXCEPTION 'free_order' |   IF false THEN\n    RAISE EXCEPTION 'free_order'
  * @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql |   IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN |   IF false THEN
- * @mutate supabase/migrations/20261031211922_free_claim_fee_then_id_restated.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
+ * @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
  * @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
  * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF v_item.o_price_cents = 0 THEN | IF false THEN
  * @mutate supabase/migrations/20261031214749_seller_setup_fee_from_payout_restated.sql |     IF NEW.current_price_cents = 0 THEN | IF false THEN
@@ -49,7 +49,8 @@ describe("the Declutter Free section", () => {
     // Then D-NEW14 porch places (20261030164712: porch_place_needed and the frozen place, insertion only).
     // Then LEAD-PLACE-TIMES (20261031164337: a door pickup reads the place too, one condition).
     // Then LEAD-B49-REBUILD (20261031211922: the free-claim gate, restated from 20261031164337).
-    expect(newestFunction("declutter_checkout_free").file).toContain("20261031211922_free_claim_fee_then_id_restated.sql");
+    // Then Q2390 p39 (20261103224955): verbatim with its not-found as PT404 only.
+    expect(newestFunction("declutter_checkout_free").file).toContain("20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql");
     // declutter_complete_handover: restated by A3-8 (20261028210552) with only its notice lines naming the item
     // and #37 (20261028223036_declutter_notice_links_open_the_right_tab.sql, the seller's link); the free branch's no-payout rule is asserted below.
     // 20261028232338: then the damage path's "Enjoy your item" skip (the free branch is untouched).

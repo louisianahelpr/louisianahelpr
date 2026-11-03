@@ -783,7 +783,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_setup_job_fee_debt: "20261017073146_declutter_add_a_helpr.sql 554baba27b88ddd1",
       // Shops M1: records the card fee Stripe kept when a held order is captured (or the 2.9% + 30c estimate),
       // for a later refund to keep; it records no refund and decides no refund amount.
-      shop_order_captured: "20261018164442_shops_orders_checkout.sql 3fe4dbb559a29a1f",
+      shop_order_captured: "20261103112014_money_records_and_buy_lock_not_found_is_404.sql d61e35bf36468766", // Q2390 p26: ERRCODE-only restatement (md5-verified); the card fee it records is unchanged
       // Payout readiness (20261019070737, lander33 pin for the lead's review). None of these decides or changes a refund
       // amount; each touches declutter_refunds only by status / time / review columns:
       // the admin page's list of held rows (a read; shows refund_cents as recorded).
@@ -944,7 +944,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shop_hand_refund_failed: "20261019071055_shops_refunds_cancels_strikes.sql ba27ff33a9f0c110",
       shop_hold_order_for_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 1e75907ab8fb3269",
       shop_money_rows_seed: "20261018211820_shops_handover_payout.sql 55e7c11ee19013d2",
-      shop_order_captured: "20261018164442_shops_orders_checkout.sql 3fe4dbb559a29a1f",
+      shop_order_captured: "20261103112014_money_records_and_buy_lock_not_found_is_404.sql d61e35bf36468766", // Q2390 p26: ERRCODE-only restatement (md5-verified); the card fee it records is unchanged
       shop_record_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 57f661acd2c47d64",
       shop_refund_amounts: "20261019071055_shops_refunds_cancels_strikes.sql e33a946acc47db26",
       shop_refund_executed: "20261103111244_money_webhooks_not_found_is_404.sql e33914e554c0bfea", // Q2390 p25: ERRCODE-only restatement (md5-verified); records Stripe's answer, writes no amount

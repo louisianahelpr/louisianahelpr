@@ -46,22 +46,16 @@ interface RouteRow { url: string; personas: string[]; redirect: boolean }
 // Filed in docs/OPEN.md as the skeleton-shape-known item (from Q201): each looked at (skeleton + loaded frame) and recorded
 // with review:record on 2026-10-17 (~/.lh-shots/q201/full4).
 const KNOWN_SHAPES: Record<string, string> = {
-  // Skeleton has no Terms/Rules/Privacy tab row: first card y68, loaded y124.
-  "375 /profile?tab=legal": "block y",
-  // Skeleton has no Filter/Recent activity row: first card y68, loaded y124.
+  // Q2013 (2026-11-02): Legal (both widths), Schedule and Wrapped (1440) now draw their page's shape and left this
+  // list. The three below are Q722's data-aware choice, not a wrong bone: a cold frame knows nothing about the
+  // account, so it draws the ZERO state (no saved Helprs, no home record), and poster-e2e has both.
+  // Skeleton has no Filter/Recent activity row (it only renders with saved Helprs): first card y68, loaded y124.
   "375 /profile?tab=saved_helpers": "block y",
-  // Same missing tab row: the skeleton card (w1144) sits where the selected
-  // Terms pill (w373) is; the content card is at y204.
-  "1440 /profile?tab=legal": "block w",
   // Same missing Filter row: card y148, loaded y204.
   "1440 /profile?tab=saved_helpers": "block y",
-  // Two full-width cards; the page is a 480px calendar beside an Upcoming jobs column.
-  "1440 /profile?tab=schedule": "block w",
-  // One card; the page is a Share record row, then a timeline whose cards start
+  // One card (the empty record); poster-e2e's record is a Share record row, then a timeline whose cards start
   // at x44 (y148 -> 214, w1144 -> 1124).
   "1440 /profile?tab=home_history": "block y; block x; block w",
-  // A full-column card; the page is a centred 420px card (x24 -> 386).
-  "1440 /profile?tab=wrapped": "block x; block w",
 };
 
 for (const width of [375, 1440] as const) {

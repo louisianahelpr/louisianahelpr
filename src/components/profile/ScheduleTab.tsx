@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
+import { SCHEDULE_LAYOUT_CLASS } from "@/components/profile/scheduleLayout";
 import { MapPin, Clock, Calendar, ChevronLeft, ChevronRight, CalendarDays, CalendarPlus, Search, Plus, ListFilter } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -401,8 +402,8 @@ const UPCOMING_FILTERS: { value: UpcomingFilter; label: string }[] = [
  * the whole layout arrives at once. Pinned by ScheduleTab.layout.test.tsx,
  * which compiles this string through the real Tailwind config.
  */
-export const SCHEDULE_LAYOUT_CLASS =
-  "grid grid-cols-1 gap-section items-start min-[1024px]:grid-cols-[clamp(320px,42%,480px)_minmax(0,1fr)] min-[1024px]:gap-6";
+// Lives in ./scheduleLayout so the loading placeholder draws the same grid (Q2013); re-exported for the layout test.
+export { SCHEDULE_LAYOUT_CLASS };
 
 export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack, hideHeader = false }: ScheduleTabProps) {
   // The viewer's own tier rate — the fallback used for assigned jobs whose
@@ -505,7 +506,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
         // here drew 5 week rows of 36px bones against a taller real calendar
         // with its legend, so "Upcoming jobs" dropped 156px when the data
         // landed (CLS 0.14 at 375).
-        <ProfileTabBodyReserve />
+        <ProfileTabBodyReserve tab="schedule" />
       ) : (
         <div data-testid="schedule-layout" className={SCHEDULE_LAYOUT_CLASS}>
           {/* Calendar card — item 27, significantly more compact than before.

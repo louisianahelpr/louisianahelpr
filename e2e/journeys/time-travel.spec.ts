@@ -18,6 +18,7 @@ import { skipLivePay } from "../prod-audit/fundedOpenJob";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { serviceKey } from "./throwaway";
 import { srFetch } from "../serviceRoleFetch";
+import { cardByTitle, findChip, openPostedCard } from "./cardChips";
 
 /**
  * TIME TRAVEL — what a real user sees days later, on the deployed app and the
@@ -507,6 +508,11 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
         // `?job=` is the app's own "take me to this job" link: it opens the
         // job's bucket, so the card is on screen whichever tab it is filed in.
         await page.goto(`/posts?job=${job.id}`);
+        // The countdown is in the OPEN card's meta row (MineOpenMeta, JobCardMetaRow's expiry); the shut face has no
+        // clock (e2e-journeys 41553090940: the face read "No applicants yet" and no chip). Since the face rebuild
+        // (owner 2026-10-31) the title links to /jobs/:id and the face's "More options" opens the card in place;
+        // the poster's job page draws no listing clock for an open job, so the card stays the surface under test.
+        expect(await openPostedCard(page, job.title, 45_000), `${name}: the card offered no "More options" to open it at ${at.toISOString()} from ${tz}`).toBe(true);
         // The smallest element holding BOTH this job's title and the chip:
         // the card's own row, never a neighbour's chip (the list holds others).
         const card = page.locator("div").filter({ hasText: job.title }).filter({ has: page.getByText(want) }).last();
@@ -517,11 +523,28 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
       }
     }
 
+    /* THE DAY AFTER: the card cannot be opened, and that is the app's rule, not a gap. The day has passed with nobody
+       hired three hours after the start (jobIsOverdue, LATE_AFTER_START_HOURS), so the wait is overdue_unhired and the
+       face's one button is "Cancel job" (posterFaceAction), with no "More options". What the poster reads is the
+       face's line "Day passed, nobody hired — cancel?" (jobStatusLine), itself a clock rule read in the job's zone. */
+    async function overdueAt(tz: string, at: Date, name: string) {
+      const { ctx, page } = await openAt(browser, request, tz, at);
+      try {
+        await page.goto(`/posts?job=${job.id}`);
+        const card = cardByTitle(page, job.title);
+        await expect(card.getByText(/Day passed, nobody hired/), `${name}: at ${at.toISOString()} from ${tz}`).toBeVisible({ timeout: 45_000 });
+        expect(await findChip(page, card, /^Cancel job$/, 10_000), `${name}: the overdue face's one move, "Cancel job"`).not.toBeNull();
+        await step(journey, page, `funded-${name}`);
+      } finally {
+        await ctx.close();
+      }
+    }
+
     const H = 3_600_000;
     await chipAt(CT, new Date(start.getTime() - 21 * H), /(^|\s)21 hours left$/, "day-before");
     await chipAt(CT, new Date(start.getTime() - 60_000), /(^|\s)1 minute left$/, "minute-before");
     await chipAt(CT, start, /(^|\s)Expired$/, "at-start");
-    await chipAt(CT, ct(centralDate(4), "00:00"), /(^|\s)Expired$/, "overdue-next-day");
+    await overdueAt(CT, ct(centralDate(4), "00:00"), "overdue-next-day");
     // Same instants from Los Angeles: a countdown is an instant, not a wall clock.
     await chipAt(PT, new Date(start.getTime() - 60_000), /(^|\s)1 minute left$/, "pt-minute-before");
     await chipAt(PT, start, /(^|\s)Expired$/, "pt-at-start");

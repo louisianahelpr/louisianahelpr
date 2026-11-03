@@ -987,7 +987,7 @@ describe("process-scheduled-payouts edge function", () => {
     // reads no public.tips row and sends no second notice.
     // @mutate supabase/functions/_shared/heldTipRepay.ts |   if (r.tip_source === "delivery") return null; |
     // @mutate supabase/functions/_shared/heldTipRepay.ts |   if (!isDelivery) await notifyKept( |   await notifyKept(
-    // @mutate supabase/functions/_shared/heldTipRepay.ts | first_repay_attempt_at, tip_source") | first_repay_attempt_at")
+    // @mutate supabase/functions/_shared/heldTipRepay.ts | first_repay_attempt_at, tip_source, stripe_mode") | first_repay_attempt_at, stripe_mode")
     it("Q2459: a reversed DELIVERY tip is re-paid in its own tip_ group with no job read and no second notice", async () => {
       seedNoJobs();
       scenario.reads.tip_hold_redrives = { rows: [heldTip({ tip_source: "delivery" })] };

@@ -136,6 +136,26 @@ describe("card-dispute clawback (Q202)", () => {
       expect(told[0].message).toMatch(/paid back to you automatically/);
     });
 
+    // Q1908: each claim row records the dispute's mode (Dispute.livemode), so a won re-pay that waits on a
+    // payout hold runs on that mode, not on whoever is enrolled when the hold lifts.
+    // @mutate supabase/functions/_shared/chargebackClawback.ts |           stripe_mode: modeFromLivemode((dispute as { livemode?: unknown }).livemode), |           stripe_mode: null, void modeFromLivemode,
+    it.each([
+      [true, "live"],
+      [false, "test"],
+      [undefined, null],
+    ])("Q1908: a dispute with livemode %s records stripe_mode %s on its claim row", async (livemode, mode) => {
+      const fn = await load();
+      event("evt_c_mode", "charge.dispute.created", { ...dispute("needs_response"), livemode });
+      scenario.reads.jobs = { rows: [releasedJob()] };
+      scenario.reads.payout_transfers = { rows: [{ stripe_transfer_id: "tr_1", helper_id: "helper-1", status: "paid" }] };
+      stripeMock.transfers.list.mockResolvedValue({ data: [transfer("tr_1", 9000)] });
+      stripeMock.transfers.createReversal.mockResolvedValue({ id: "trr_1" });
+      scenario.writeSelectRows["chargeback_clawbacks:insert"] = [row({ status: "reversing", stripe_reversal_id: null })];
+      const res = await post(fn);
+      expect(res.status).toBe(200);
+      expect(payload(writesTo("chargeback_clawbacks", "insert")[0]).stripe_mode).toBe(mode);
+    });
+
     it("never reverses more than the disputed amount across several transfers, split PRO RATA (Q210(g))", async () => {
       const fn = await load();
       event("evt_c2", "charge.dispute.created", dispute("needs_response", 5000));

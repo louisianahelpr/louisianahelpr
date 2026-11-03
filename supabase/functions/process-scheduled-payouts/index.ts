@@ -32,7 +32,7 @@ import { redriveInstantFeeReturns } from "../_shared/instantPayoutFeeReturn.ts";
 import { payCrewBlockFees } from "../_shared/crewBlockFees.ts";
 import { readCrewBlockFees, crewBlockFeeCents } from "../_shared/crewBlockFeeRead.ts";
 import { refundNoticeProblem, sendRefundNotice } from "../_shared/refundNotice.ts";
-import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
+import { createStripeModeResolver, StripeModeRefused, type StripeMode } from "../_shared/stripeMode.ts";
 import type { LivePayoutGate } from "../_shared/livePayoutGate.ts";
 import { holdUnlessPayable } from "../_shared/livePayoutHold.ts";
 
@@ -91,8 +91,13 @@ serve(async (req) => {
     // Helpr, so the job decides the key (a test account's held tip or won
     // chargeback re-pay runs on the TEST key). A mixed job refuses; the
     // re-drive counts that as a defect and the row waits.
-    const redriveStripeFor = async (jobId: string | null, payees: string[]) =>
-      (await stripes.clientForJob(jobId, "payout", payees)).stripe;
+    // Q1908: a row that recorded where its money sits (stripe_mode, from the
+    // Stripe object's livemode) runs on that mode, still checked against its
+    // payees; an older row (NULL) falls back to the job's mode.
+    const redriveStripeFor = async (jobId: string | null, payees: string[], storedMode?: StripeMode | null) =>
+      storedMode
+        ? (await stripes.clientForStoredMode(storedMode, payees)).stripe
+        : (await stripes.clientForJob(jobId, "payout", payees)).stripe;
 
     const now = new Date().toISOString();
 

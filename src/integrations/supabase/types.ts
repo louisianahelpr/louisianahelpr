@@ -589,6 +589,7 @@ export type Database = {
           reversed_cents: number
           status: string
           stripe_account_id: string | null
+          stripe_mode: string | null
           stripe_reversal_id: string | null
           transfer_amount_cents: number
           updated_at: string
@@ -607,6 +608,7 @@ export type Database = {
           reversed_cents?: number
           status?: string
           stripe_account_id?: string | null
+          stripe_mode?: string | null
           stripe_reversal_id?: string | null
           transfer_amount_cents: number
           updated_at?: string
@@ -625,6 +627,7 @@ export type Database = {
           reversed_cents?: number
           status?: string
           stripe_account_id?: string | null
+          stripe_mode?: string | null
           stripe_reversal_id?: string | null
           transfer_amount_cents?: number
           updated_at?: string
@@ -14227,6 +14230,7 @@ export type Database = {
           repay_transfer_id: string | null
           reversal_id: string | null
           status: string
+          stripe_mode: string | null
           tip_id: string
           tip_source: string
           transfer_id: string
@@ -14243,6 +14247,7 @@ export type Database = {
           repay_transfer_id?: string | null
           reversal_id?: string | null
           status?: string
+          stripe_mode?: string | null
           tip_id: string
           tip_source?: string
           transfer_id: string
@@ -14259,6 +14264,7 @@ export type Database = {
           repay_transfer_id?: string | null
           reversal_id?: string | null
           status?: string
+          stripe_mode?: string | null
           tip_id?: string
           tip_source?: string
           transfer_id?: string

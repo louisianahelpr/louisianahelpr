@@ -764,7 +764,44 @@ export function createStripeModeResolver<S>(
       const mode = await jobMoneyMode(db, jobId, { kind, extraParties });
       return { mode, stripe: clientFor(mode) };
     },
+    /**
+     * Q1908: the client for a PAYOUT of money whose Stripe mode was recorded
+     * when it was taken (a ledger row's stripe_mode, from the Stripe object's
+     * livemode), so a later enrolment change of anyone else on the job never
+     * sends it to the other key. Each payee must still be of that mode, and
+     * none may be an unenrolled test-looking account (as any payout). Throws
+     * StripeModeRefused on a mismatch, a failed read or a missing test key.
+     */
+    async clientForStoredMode(
+      mode: StripeMode,
+      payees: ReadonlyArray<string | null | undefined>,
+    ): Promise<{ mode: StripeMode; stripe: S }> {
+      const ids = uniqIds(payees);
+      const unknown = ids.filter((id) => !known.has(id));
+      if (unknown.length > 0) {
+        const classes = await classifyParties(db, unknown);
+        for (const id of unknown) known.set(id, classes.get(id) ?? "real");
+      }
+      refuseUnenrolled(known, ids, "stored-mode payout", null);
+      const off = ids.filter((id) => (known.get(id) === "test") !== (mode === "test"));
+      if (off.length > 0) {
+        throw new StripeModeRefused("mixed_parties", `stored-mode payout: the money runs ${mode}-mode and ${off.length} payee(s) are not`);
+      }
+      return { mode, stripe: clientFor(mode) };
+    },
   };
+}
+
+/** Q1908: a Stripe object's `livemode` as a stored mode; null when it does not say (never guessed). */
+export function modeFromLivemode(livemode: unknown): StripeMode | null {
+  if (livemode === true) return "live";
+  if (livemode === false) return "test";
+  return null;
+}
+
+/** Q1908: a ledger row's stripe_mode column read back; anything else (NULL, an older row) is null. */
+export function storedStripeMode(v: unknown): StripeMode | null {
+  return v === "live" || v === "test" ? v : null;
 }
 
 /**

@@ -133,9 +133,11 @@ test(incompleteTitle, async ({ browser, request, journey }) => {
   const page = journey.track("incomplete", await ctx.newPage());
   await test.step("/complete-profile: every ✓-bearing field shows its value", async () => {
     await page.goto("/complete-profile");
-    await expect(page.locator("#lastName")).toBeVisible({ timeout: 60_000 });
-    await page.locator("#firstName").fill("Marguerite");
-    await page.locator("#lastName").fill("Thibodeaux-Broussard");
+    await expect(page.locator("#zipCode")).toBeVisible({ timeout: 60_000 });
+    // First/last name are asked only when a provider gave no full name (owner
+    // 2026-10-26, CompleteProfile.tsx providerGaveName). The seed is an email
+    // sign-up WITH a full name (prod-seed.mjs), so the names block is absent.
+    await expect(page.getByTestId("complete-profile-names"), "the seed has a full name; Complete Profile must not ask it again").toHaveCount(0);
     await page.locator("#zipCode").fill("70528");
     await page.locator("#zipCode").blur();
     await page.waitForTimeout(600);

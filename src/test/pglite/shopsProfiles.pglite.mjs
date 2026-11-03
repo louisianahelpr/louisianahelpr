@@ -82,7 +82,7 @@ CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY, enrolled_at timesta
 CREATE TABLE public.admin_audit_log (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), admin_id uuid, action text NOT NULL,
   target_type text, target_id text, details jsonb, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid UNIQUE, is_seed boolean DEFAULT false,
-  stripe_account_id text, stripe_payouts_enabled boolean DEFAULT false, date_of_birth date,
+  under_13_blocked_at timestamptz, /* prod 20261022002144: is_caller_banned() reads it */ stripe_account_id text, stripe_payouts_enabled boolean DEFAULT false, date_of_birth date,
   ban_status text DEFAULT 'active', auto_suspended_until timestamptz,
   idv_status text, stripe_identity_verified boolean NOT NULL DEFAULT false,
   email_verified boolean NOT NULL DEFAULT true, background_check_status text);
@@ -93,11 +93,14 @@ CREATE TABLE public.reviews (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_
 -- The one star rating (get_public_profile_stats, newest definition loaded
 -- below) reads these: job reviews join their job, Declutter reviews their order.
 CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid, helper_id uuid, status text NOT NULL,
-  date_needed date, start_time time, helper_arrived_at timestamptz, revision_count integer DEFAULT 0, is_group_job boolean DEFAULT false);
+  date_needed date, start_time time, helper_arrived_at timestamptz, revision_count integer DEFAULT 0, is_group_job boolean DEFAULT false,
+  is_seed boolean DEFAULT false, cancelled_by uuid, cancellation_reason text); -- read by get_public_profile_stats (newest: 20261030015205, 20261031234653)
 CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid, helper_arrived_at timestamptz);
-CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), status text NOT NULL, handed_over_at timestamptz);
+CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), status text NOT NULL, handed_over_at timestamptz,
+  is_seed boolean NOT NULL DEFAULT false); -- read by get_public_profile_stats (newest)
 CREATE TABLE public.declutter_reviews (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid NOT NULL, reviewer_id uuid,
-  reviewee_id uuid, reviewer_side text NOT NULL, stars smallint NOT NULL, is_seed boolean NOT NULL DEFAULT false);
+  reviewee_id uuid, reviewer_side text NOT NULL, stars smallint NOT NULL, is_seed boolean NOT NULL DEFAULT false,
+  removed_at timestamptz); -- prod 20261102040000: get_public_profile_stats (newest) skips removed reviews
 CREATE FUNCTION public.seed_hidden_from_caller() RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;
 CREATE TABLE public.platform_settings (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), feature_flags jsonb NOT NULL DEFAULT '{}'::jsonb,
   updated_at timestamptz DEFAULT now());
@@ -124,6 +127,11 @@ await db.exec(`
 await db.exec(SWITCHES);
 await db.exec(DECLUTTER);
 await db.exec(newestDefinition("declutter_area_label_problem").stmt);
+// is_test_member: stubbed false as in shopsRefunds.pglite.mjs. Every member here is enrolled in
+// test_accounts (the Shops switch admits testers), so the real "test data never counts" rule
+// (20261030015205) would zero the rating this world checks; that rule has its own worlds
+// (declutterReviewReport, ownerDailySummaryStats).
+await db.exec("CREATE FUNCTION public.is_test_member(uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$");
 await db.exec(newestDefinition("get_public_profile_stats").stmt);
 await db.exec(`
   INSERT INTO auth.users (id) SELECT ('00000000-0000-0000-0000-0000000000' || lpad(g::text, 2, '0'))::uuid FROM generate_series(1, 9) g;

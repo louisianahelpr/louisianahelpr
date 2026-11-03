@@ -2352,7 +2352,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 98,
+      "line": 100,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2362,7 +2362,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 241,
+      "line": 243,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2372,7 +2372,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 252,
+      "line": 254,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2382,7 +2382,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 263,
+      "line": 265,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -2392,7 +2392,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 309,
+      "line": 311,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2402,7 +2402,7 @@
     },
     {
       "file": "src/components/admin/AdminJobs.tsx",
-      "line": 402,
+      "line": 404,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

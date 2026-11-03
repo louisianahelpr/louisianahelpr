@@ -1,4 +1,4 @@
-// @mutate docs/OPEN.md | - [ ] **Q2586 LOW (later design item, not to build now) | - [~] **Q2586 LOW (later design item, not to build now)
+// @mutate docs/OPEN.md | - [ ] **Q1121 LOW (post-launch) UNVERIFIED #14 | - [~] **Q1121 LOW (post-launch) UNVERIFIED #14
 // @mutate scripts/open-done-when.mjs |     .filter((name) => appFns.has(name)); |     .filter((name) => !appFns.has(name));
 // @mutate scripts/open-done-when.mjs | const PARTLY = /^- \[~\] /; | const PARTLY = /^- \[x\] /;
 // @mutate scripts/open-done-when.mjs | { kind: "issue", re: /^issue\s+#(\d+)\s+closed\b/ } | { kind: "issue", re: /^issue\s+#(\d+)\s+opened\b/ }

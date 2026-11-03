@@ -735,6 +735,8 @@ export const RPC_ERROR_COPY = {
     // A meetup or door pickup: "I got it" waits for a booked time and the hour before it (20261030061753, audit 1030 DB-3).
     got_it_too_early: DC.got_it_too_early,
     not_booked_yet: "No time is booked yet. Book a time, then tap \"I got it\" when you have the item.",
+    // BUY-17 (20261103202118): a porch pickup's "I got it" waits for the seller's porch photo.
+    porch_photo_not_in: "The seller hasn't posted the porch photo yet. You can tap \"I got it\" once it's in.",
   },
   declutter_item_address: {
     feature_disabled: DC.feature_disabled,
@@ -784,6 +786,8 @@ export const RPC_ERROR_COPY = {
     photo_too_old: DC.photo_too_old,
     // Audit 1a #4 (20261029201542): the seller's photo before the buyer's booked day.
     porch_day_not_yet: DC.porch_day_not_yet,
+    // BUY-17 (20261103202118): the buyer's pickup photo waits for the seller's porch photo.
+    porch_photo_not_in: "The seller hasn't posted the porch photo yet. You can take your pickup photo once it's in.",
     problem_open: DC.problem_open,
   },
   declutter_porch_note: {
@@ -1678,6 +1682,7 @@ export const RPC_ERROR_COPY = {
     waiting_for_seller: "The seller is reviewing this draft. You can change it if they send it back.",
     photo_not_found: DC.photo_not_found,
     photo_not_uploaded: DC.photo_not_uploaded,
+    porch_photo_not_in: DC.porch_photo_not_in,
     price_above_listed: DC.price_above_listed,
     problem_open: DC.problem_open,
     question_not_found: DC.question_not_found,

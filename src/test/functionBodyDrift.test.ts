@@ -212,7 +212,14 @@ describe("function-body drift — in-place rewrites are replayed", () => {
     // (2026-11-03: 15.) 20261103142625 (Q2390 packet 30) re-created bill_helpr_fault_card_fee from its effective body:
     // 20261025203540's in-place rewrites #200/#210 are written in ('Amount owed added', '$%s is added to what you
     // owe'; the old 'Card fee added' / 'card fee is added' absent; read 11-03, Lander 53), so they are superseded.
-    expect(rewritten.length).toBe(15);
+    // (2026-11-03: 12.) Train 7 (Lander 57) re-created three functions from their effective bodies, so
+    // 20261027172503's in-place rewrites of them are superseded (read 11-03, Lander 57: each replacement present,
+    // each old pattern absent): 20261103162420 (Q2390 p32) declutter_refund_paid_order (#40/#50, 'Your refund is on
+    // its way.' and 'The cost of refunding that payment'); 20261103214533 (Q1938) declutter_setup_job_fee_debt
+    // (#180/#190 'Amount owed added', and 20261027174633's #10-#30 Q1937 order cap); 20261103215616 (Q1938 notice)
+    // declutter_apply_seller_fault (#210 'Nothing is owed for it'; #200's sentence is deliberately replaced by the
+    // paid-for-time / neutral line, lead PASS 11-03).
+    expect(rewritten.length).toBe(12);
     const copy = rewritten.filter(([, d]) => d.rewrites.some((r) => r.startsWith("20260925143327"))).map(([n]) => n);
     expect(copy.sort()).toEqual([
       "helper_abort_job",

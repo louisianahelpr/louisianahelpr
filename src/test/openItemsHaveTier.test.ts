@@ -1,4 +1,4 @@
-// @mutate docs/OPEN.md | **Q2586 LOW (later design item, not to build now) | **Q2586 (later design item, not to build now)
+// @mutate docs/OPEN.md | **Q1121 LOW (post-launch) UNVERIFIED #14 | **Q1121 (post-launch) UNVERIFIED #14
 // @mutate scripts/lib/openFeeds.mjs | POLISH: "LOW" }) | POLISH: "POLISH" })
 // @mutate src/test/openItemsHaveTier.test.ts | const ID = String.raw`Q(?:\d+\|\?[a-z0-9][a-z0-9-]*)`; | const ID = String.raw`Q\d+`;
 /*

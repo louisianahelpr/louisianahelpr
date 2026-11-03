@@ -27,6 +27,7 @@
     "accept_application(uuid, timestamp with time zone, text)": "client",
     "admin_payout_batch_money_modes()": "client",
     "declutter_admin_fee_debts(uuid)": "reviewed 2026-11-02 (Q14): Q1928 gap 1 (20261102065446, lead PASS 067e16c1a5): raises admin_only unless has_role(auth.uid(), 'admin'); read-only list of one member's Declutter fee debts for Admin -> user -> Actions.",
+    "declutter_admin_record_ship_claim(uuid, text, integer, text)": "reviewed 2026-11-03 (Q14): Q2259 spec 5.3 review fix 16 (20261103210119): require_feature('declutter_shipping'), raises admin_only unless has_role(auth.uid(), 'admin'); records one carrier claim payout on a refunded ship order, pays that order's open seller debts first, audit row and one notice, idempotent on the claim ref; no app caller yet (Admin UI later).",
     "declutter_admin_waive_fee_debt(uuid, text)": "reviewed 2026-11-02 (Q14): Q1928 gap 1 (20261102065446, lead PASS 067e16c1a5): raises admin_only unless has_role(auth.uid(), 'admin'); clears one debt's remaining amount with an audit row and one notice, idempotent.",
     "declutter_my_block_partners()": "reviewed 2026-11-02 (Q14): Q1888 (20261102022901): no argument; returns only the ids in a block with auth.uid() (either direction), empty for none; read inside the declutter items / map pins read policies.",
     "accept_application_at_suggested_time(uuid, timestamp with time zone, text)": "client",

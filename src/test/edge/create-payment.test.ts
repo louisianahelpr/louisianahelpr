@@ -1318,12 +1318,12 @@ describe("create-payment edge function", () => {
     // @mutate supabase/functions/create-payment/index.ts |   if (m) return m[1];\n  throw new PublicError("That page can't be used to come back from checkout."); |   return m ? m[1] : null;
     describe("a job booked from an agreed quote (Q1867, Q1862)", () => {
       const REQ_ID = "6f1c2a0e-1b2c-4d5e-8f90-123456789abc";
-      function seedQuoteJob(budget: number, accepted: Array<{ price_cents: number }> | Error, links: Array<{ id: string }> | Error = [{ id: REQ_ID }]) {
+      function seedQuoteJob(budget: number, accepted: Array<{ price_cents: number }> | Error, links: Array<{ id: string }> | Error = [{ id: REQ_ID }], job: Record<string, unknown> = {}) {
         resetSupabaseMock();
         stripeMock.checkout.sessions.create.mockClear();
         seedAuth(scenario, POSTER);
         scenario.reads.jobs = {
-          rows: [{ id: "job-q", customer_id: POSTER.id, budget, category: "cleaning", title: "Quote job", status: "open", payment_status: "unpaid" }],
+          rows: [{ id: "job-q", customer_id: POSTER.id, budget, category: "cleaning", title: "Quote job", status: "open", payment_status: "unpaid", ...job }],
         };
         scenario.reads.platform_settings = { rows: [{ customer_fee_percent: 10, helper_fee_percent: 12, onboarding_fee_cents: 200 }] };
         scenario.reads.profiles = { rows: [{ onboarding_fee_paid: true, subscription_tier: null, subscription_expires_at: null }] };
@@ -1347,6 +1347,37 @@ describe("create-payment edge function", () => {
           expect.objectContaining({ op: "in", column: "request_id", value: [REQ_ID] }),
           expect.objectContaining({ op: "eq", column: "status", value: "accepted" }),
         ]));
+      });
+
+      // Q2083 (b), 20261103205121: quote_insert_job copies the request's zip_code and tax_kind, so a
+      // quote-booked taxable job is taxed at its site like a posted one. Before it, the job had no zip_code
+      // and the second case below (the refusal) was every quote-booked Auto Repair job's checkout.
+      it("a quote-booked Auto Repair job with its ZIP is taxed at the job site (Q2083 b)", async () => {
+        stripeMock.tax.calculations.create.mockReset();
+        stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_q", tax_amount_exclusive: 2863 });
+        seedQuoteJob(250, [{ price_cents: 25000 }], [{ id: REQ_ID }], { category: "auto_repair", zip_code: "70503", tax_kind: null });
+        const { res } = await escrow();
+        expect(res.status).toBe(200);
+        const [calc] = stripeMock.tax.calculations.create.mock.calls[0];
+        expect(calc.customer_details.address).toEqual({ postal_code: "70503", state: "LA", country: "US" });
+        expect(calc.line_items[0]).toEqual({ amount: 25000, reference: "labor", tax_behavior: "exclusive", tax_code: "txcd_20080005" });
+        const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
+        expect(args.line_items.find((li: any) => li.price_data.product_data.name === "Sales tax")?.price_data.unit_amount).toBe(2863);
+        expect(args.metadata.job_tax_cents).toBe("2863");
+      });
+
+      it("a quote-booked taxed-kind job is taxed at its site too; with no ZIP it gets no checkout", async () => {
+        stripeMock.tax.calculations.create.mockReset();
+        stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_qk", tax_amount_exclusive: 100 });
+        seedQuoteJob(250, [{ price_cents: 25000 }], [{ id: REQ_ID }], { category: "handyman", tax_kind: "item_repair", zip_code: "70112" });
+        expect((await escrow()).res.status).toBe(200);
+        expect(stripeMock.tax.calculations.create.mock.calls[0][0].customer_details.address.postal_code).toBe("70112");
+        stripeMock.tax.calculations.create.mockClear();
+        seedQuoteJob(250, [{ price_cents: 25000 }], [{ id: REQ_ID }], { category: "auto_repair", zip_code: null });
+        const { body } = await escrow();
+        expect(body.error).toMatch(/Louisiana ZIP code/);
+        expect(stripeMock.tax.calculations.create).not.toHaveBeenCalled();
+        expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
       });
 
       it("refuses a quote job whose budget differs from the accepted quote, before Stripe", async () => {

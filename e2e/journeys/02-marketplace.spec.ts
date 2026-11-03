@@ -1188,10 +1188,18 @@ test.describe.serial("marketplace chain", () => {
          repaint "Review" for up to 60s) is fixed in
          src/lib/reviewActivityCache.ts, guarded by
          src/test/reviewWritesUpdateActivityCache.test.ts. */
+      /* A SHUT CARD SAYS IT IN ITS LINE. Once reviewed, the face's button moves on to "Tip <name>" (posterFaceAction
+         done_tip_open), which has no "More options", so card() leaves the card shut and the "Reviewed" chip (inside
+         the open card's More) is not on screen. The shut card's status line reads "Reviewed — tip still open"
+         (jobStatusLine done_tip_open), from the same completedJobMeta[job.id].reviewed the chip reads. Either one. */
       await expect
         .poll(
-          async () =>
-            (await findChip(pp, await card(pp, "/jobs?tab=posted", "Done"), /^Reviewed\b/, 20_000)) ? 1 : 0,
+          async () => {
+            const done = await card(pp, "/jobs?tab=posted", "Done");
+            const line = done.getByText(/^Reviewed\b/).first();
+            if (await line.waitFor({ state: "visible", timeout: 20_000 }).then(() => true, () => false)) return 1;
+            return (await findChip(pp, done, /^Reviewed\b/, 5_000)) ? 1 : 0;
+          },
           { timeout: 120_000, message: "the poster's card never showed the Reviewed badge after the review was submitted" },
         )
         .toBeGreaterThan(0);

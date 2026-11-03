@@ -34,7 +34,7 @@
 
 // @mutate e2e/journeys/cardChips.ts | const more = scope.locator("[data-job-step-overflow]") | const more = scope.locator("[data-no-such-overflow]")
 // @mutate src/components/job-card/JobActionRow.tsx | data-job-step-overflow-panel="" | data-overflow-panel=""
-// @mutate e2e/journeys/02-marketplace.spec.ts | (await findChip(pp, await card(pp, "/jobs?tab=posted", "Done"), /^Reviewed\b/, 20_000)) ? 1 : 0, | (await card(pp, "/jobs?tab=posted", "Done")).getByRole("button", { name: /^Reviewed\b/ }).count(),
+// @mutate e2e/journeys/02-marketplace.spec.ts | return (await findChip(pp, done, /^Reviewed\b/, 5_000)) ? 1 : 0; | return done.getByRole("button", { name: /^Reviewed\b/ }).count();
 // @mutate e2e/journeys/02-marketplace.spec.ts | const message = await findPageAction(pp, "poster", /^Message\b/, 30_000); | const message = pp.getByRole("button", { name: "Message Helpr" }).first();
 // @mutate e2e/journeys/cardChips.ts | const sheet = page.locator(`[data-row-options="${tag}"]`) | const sheet = page.locator(`[data-no-such-sheet="${tag}"]`)
 // @mutate e2e/journeys/04-admin-safety.spec.ts | const chip = await findChip(pp, cardByTitle(pp, JOB_TITLE), NO_SHOW, 30_000); | const chip = pp.getByRole("button", { name: /^(No-Show\|Report no-show)/ }).first();
@@ -159,9 +159,10 @@ describe("journeys reach a job-card chip parked in the More overflow", () => {
       offenders,
       "a job-card chip looked up outside findChip: it may be in the More overflow (a portaled popover), and a count of 0 there proves nothing — use findChip/press from e2e/journeys/cardChips.ts",
     ).toEqual([]);
-    // And the reviewed-badge wait actually uses the overflow-aware lookup.
+    // And the reviewed-badge wait actually uses the overflow-aware lookup on the Done card (or the shut card's
+    // "Reviewed — tip still open" line first: posterFaceAction leaves a Tip-face card shut).
     // The poster's list is Jobs > Posted since 2026-10-19 (Q2205; /posts redirects there).
-    expect(market).toMatch(/findChip\(pp, await card\(pp, "\/jobs\?tab=posted", "Done"\), \/\^Reviewed\\b\//);
+    expect(market).toMatch(/const done = await card\(pp, "\/jobs\?tab=posted", "Done"\);[\s\S]{0,400}?findChip\(pp, done, \/\^Reviewed\\b\//);
   });
 
   it("the matcher reads a lookup the way Playwright does", () => {

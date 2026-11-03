@@ -22,9 +22,9 @@
 // @mutate supabase/migrations/20261015051141_category_suggestions.sql |   IF public.is_caller_banned() THEN | IF false THEN
 // @mutate supabase/migrations/20261015051141_category_suggestions.sql | REVOKE ALL ON FUNCTION public.suggest_category(text, text) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.suggest_category(text, text) FROM PUBLIC;
 // @mutate supabase/migrations/20261015051141_category_suggestions.sql | VALUES ('suggest_category', 'testers', | VALUES ('suggest_category', 'off',
-// @mutate supabase/migrations/20261015051141_category_suggestions.sql |   INSERT INTO public.admin_audit_log | INSERT INTO public.audit_nothing
+// @mutate supabase/migrations/20261103055505_declutter_shops_homes_messages_not_found_is_404.sql | INSERT INTO public.admin_audit_log (admin_id, action, target_type, target_id, details)\n  VALUES (v_uid, 'review_category_suggestion' | INSERT INTO public.audit_nothing (admin_id, action, target_type, target_id, details)\n  VALUES (v_uid, 'review_category_suggestion'
 // @mutate supabase/migrations/20261015051141_category_suggestions.sql |   PERFORM pg_advisory_xact_lock(hashtext('suggest_category'), hashtext(v_uid::text)); |   PERFORM 1;
-// @mutate supabase/migrations/20261015051141_category_suggestions.sql |   SELECT * INTO v_row FROM public.category_suggestions WHERE id = p_id;\n |   SELECT * INTO v_row FROM public.category_suggestions WHERE id = p_id FOR UPDATE;\n
+// @mutate supabase/migrations/20261103055505_declutter_shops_homes_messages_not_found_is_404.sql |   SELECT * INTO v_row FROM public.category_suggestions WHERE id = p_id;\n |   SELECT * INTO v_row FROM public.category_suggestions WHERE id = p_id FOR UPDATE;\n
 // @mutate src/components/SuggestCategory.tsx |   if (!on) return null; |   if (false) return null;
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { readFileSync } from "node:fs";

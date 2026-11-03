@@ -47,7 +47,7 @@ vi.mock("@/lib/backoutNotices", () => ({
   backoutNoticesKey: (u: string) => ["activity", "backout", u],
   useBackoutNotices: () => new Map(),
 }));
-vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false, useFeatureStatus: () => ({ on: false, settled: true, lastAnswer: false }) }));
 
 vi.mock("@/integrations/supabase/client", () => {
   const applicationsBuilder: Record<string, unknown> = {};

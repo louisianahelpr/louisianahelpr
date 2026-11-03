@@ -27,8 +27,8 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261031013445_helper_cancel_says_why.sql |     IF v_job.status::text = 'accepted' AND v_remaining = 0 THEN | IF v_job.status::text = 'accepted' AND v_remaining < COALESCE(v_job.helpers_needed, 1) THEN
 // @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql | ELSIF v_crew.status = 'accepted' AND v_remaining = 0 THEN | ELSIF v_crew.status = 'accepted' AND v_remaining < COALESCE(v_crew.helpers_needed, 1) THEN
 // @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |       IF v_cjob.status = 'accepted' AND v_remaining = 0 THEN |       IF v_cjob.status = 'accepted' AND v_remaining < COALESCE(v_cjob.helpers_needed, 1) THEN
-// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |   IF v_job_status IS NULL OR v_job_status NOT IN ('open', 'accepted') THEN |   IF v_job_status IS DISTINCT FROM 'open' THEN
-// @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |    WHERE id = v_job_id\n     -- A refill of a booked crew (Q1378) leaves it booked, full or not.\n     AND v_job_status = 'open'; |    WHERE id = v_job_id;
+// @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql |   IF v_job_status IS NULL OR v_job_status NOT IN ('open', 'accepted') THEN |   IF v_job_status IS DISTINCT FROM 'open' THEN
+// @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql |    WHERE id = v_job_id\n     -- A refill of a booked crew (Q1378) leaves it booked, full or not.\n     AND v_job_status = 'open'; |    WHERE id = v_job_id;
 // @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |                WHEN v_cjob.status = 'accepted' AND v_remaining > 0 |                WHEN false
 // @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |        AND j.status IN ('open', 'accepted', 'in_progress')\n       AND g.helper_id IS NOT NULL |        AND j.status IN ('open', 'accepted')\n       AND g.helper_id IS NOT NULL
 // @mutate supabase/migrations/20261006031350_crew_completion_rechecks_after_closing_spots.sql |   SELECT count(*) FILTER (WHERE g.helper_completed_at IS NULL AND g.helper_confirmed_at IS NOT NULL), |   SELECT count(*) FILTER (WHERE g.helper_completed_at IS NULL),
@@ -44,8 +44,7 @@ const MIGRATIONS = resolve(ROOT, "supabase/migrations");
 const EFFECTIVE = effectiveDefs(MIGRATIONS);
 const body = (name: string) => blankSqlComments(EFFECTIVE.get(name)?.stmt ?? "");
 const THIS = "20261006015121_crew_rest_carry_on.sql";
-/** Q1390 (the crew block-fee ledger) restates block_user_and_settle and accept_group_application from THIS. */
-const BLOCK_FEE = "20261007073145_crew_block_fee_ledger.sql";
+/** Q1390 (the crew block-fee ledger, 20261007073145) restated block_user_and_settle and accept_group_application from THIS; Q1919 restates accept_group_application again. */
 const UNCONFIRMED = "20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql";
 /** Q1281 restates expire_unanswered_offers from UNCONFIRMED with its strikes removed. */
 const OFFER_WORDS = "20261030232108_card_hold_capture_refused_offer_words.sql";
@@ -153,7 +152,8 @@ describe("Q1378: a booked crew a member leaves stays booked for the rest", () =>
   });
 
   it("accept_group_application refills a booked crew's free spot and keeps it booked", () => {
-    expect(EFFECTIVE.get("accept_group_application")?.file).toBe(BLOCK_FEE);
+    // Q1919 restates it with the Helpr schedule lock; the refill rules ride along.
+    expect(EFFECTIVE.get("accept_group_application")?.file).toBe("20261103025348_crew_seat_takes_helpr_schedule_lock.sql");
     const b = body("accept_group_application");
     expect(b).toMatch(/IF v_job_status IS NULL OR v_job_status NOT IN \('open', 'accepted'\) THEN\s+RAISE EXCEPTION 'job_not_open';/);
     // A full booked crew still takes nobody, and never inside 15 minutes of the start.

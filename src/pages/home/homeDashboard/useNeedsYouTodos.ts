@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { fetchPostedActivity, fetchAppliedActivity, CORE_STALE } from "@/hooks/useActivityData";
@@ -9,7 +9,8 @@ import type { CartLine, FreeAskToPick, MyOffer } from "@/lib/declutter/api";
 import type { MyRefundTodo } from "@/lib/declutter/refundRequests";
 import { queryKeys } from "@/lib/queryKeys";
 import { subscribeUserRealtime } from "@/lib/userRealtimeBus";
-import { useFeature } from "@/hooks/useFeature";
+import { useFeatureStatus } from "@/hooks/useFeature";
+import type { BadgeSection } from "@/lib/badgeReads";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { inProgressJobIds, useContinueDays } from "@/hooks/useContinueDays";
 import type { TodoItem } from "./needsYouTodos";
@@ -54,6 +55,8 @@ export function useHomeDerive(): HomeDerive | null {
 const shopOrdersApi = () => loadModule(() => import("@/lib/shops/orders"));
 // A3-81: Declutter's own cart and offers reads (the Buying / Selling tabs' sources), loaded only when signed in.
 const declutterApi = () => loadModule(() => import("@/lib/declutter/api"));
+// Blockers 7: the badge's ONE read for six sections (src/lib/badgeReads.ts, my_badge_reads).
+const badgeReadsApi = () => loadModule(() => import("@/lib/badgeReads"));
 
 /** Run a to-do: leave its step request (if any), then go (Home's Next up button and its See all rows). */
 export function todoTarget(t: Pick<TodoItem, "to" | "helperStep">, request: (jobId: string, step: string) => void): string {
@@ -86,9 +89,38 @@ const EMPTY_TODOS: TodoItem[] = [];
  * and refreshes the cores, coalesced over TODO_REFRESH_DEBOUNCE_MS and held
  * while the page is hidden (nobody can see a badge on a hidden page; Q53).
  */
-export function useNeedsYouTodos(user: SupaUser | null, opts: { live?: boolean } = {}): { todos: TodoItem[]; loading: boolean } {
+export function useNeedsYouTodos(
+  user: SupaUser | null,
+  opts: { live?: boolean } = {},
+): { todos: TodoItem[]; loading: boolean; onOldCall: (section: BadgeSection) => boolean } {
   const uid = user?.id ?? "";
-  const shopsOn = useFeature("shops");
+  const shopsSwitch = useFeatureStatus("shops");
+  const declutterSwitch = useFeatureStatus("declutter");
+  const refundsSwitch = useFeatureStatus("declutter_refund_requests");
+  const shopsOn = shopsSwitch.on;
+  const declutterOn = declutterSwitch.on;
+  const refundsOn = refundsSwitch.on;
+  const queryClient = useQueryClient();
+  // Blockers 7 (lead PASS 2026-11-03): ONE request for the six badge sections, seeded into each section's own key
+  // (the keys below, which every screen reads). Asked only once the switches have answered, with only the sections
+  // whose switch is on, so a switched-off section is never read and the read is not made twice.
+  const switchesSettled = shopsSwitch.settled && declutterSwitch.settled && refundsSwitch.settled;
+  const sections: BadgeSection[] = ["backout"];
+  if (declutterOn) sections.push("cart", "offers", "free_asks");
+  if (declutterOn && refundsOn) sections.push("refund_todos");
+  if (shopsOn) sections.push("shop_orders");
+  const badge = useQuery({
+    queryKey: ["needs-you", "badge-reads", uid, sections.join(",")],
+    queryFn: () => badgeReadsApi().then((m) => (m ? m.fetchBadgeReads(queryClient, uid, sections) : untilReload())),
+    enabled: !!uid && switchesSettled,
+    staleTime: CORE_STALE,
+    // No retry: a failed read falls straight back to the old single calls (which keep their own retries), so the
+    // badge never sits blank through a retry backoff.
+    retry: false,
+  });
+  // A section falls back to its old single call when the one read failed, is not deployed (null), or could not
+  // read that section (false): the badge never goes blank because one section broke (lead).
+  const fallback = (s: BadgeSection) => switchesSettled && (badge.isError || badge.data === null || (badge.data !== undefined && badge.data[s] === false));
   const posted = useQuery({
     queryKey: uid ? queryKeys.activity.posted(uid) : ["activity", "posted", "anon"],
     queryFn: () => fetchPostedActivity(uid),
@@ -102,18 +134,18 @@ export function useNeedsYouTodos(user: SupaUser | null, opts: { live?: boolean }
     staleTime: CORE_STALE,
   });
   // My shop's incoming orders: the same query (key and fetch) the Shop dashboard reads.
-  const shopOrders = useQuery({ queryKey: ["shops", "shop-orders", uid], queryFn: () => shopOrdersApi().then((m) => (m ? m.fetchShopOrders(uid) : untilReload())), enabled: !!uid && shopsOn });
+  const shopOrders = useQuery({ queryKey: ["shops", "shop-orders", uid], queryFn: () => shopOrdersApi().then((m) => (m ? m.fetchShopOrders(uid) : untilReload())), enabled: !!uid && shopsOn && fallback("shop_orders") });
   // A3-81: Declutter's cart and offers, the same query keys and fetches the Buying / Selling tabs read (useDeclutterTodo).
-  const declutterOn = useFeature("declutter");
-  const dCart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: () => declutterApi().then((m) => (m ? m.fetchMyCart() : untilReload())), enabled: !!uid && declutterOn, staleTime: CORE_STALE });
-  const dOffers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: () => declutterApi().then((m) => (m ? m.fetchMyOffers() : untilReload())), enabled: !!uid && declutterOn, staleTime: CORE_STALE });
+  const dCart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: () => declutterApi().then((m) => (m ? m.fetchMyCart() : untilReload())), enabled: !!uid && declutterOn && fallback("cart"), staleTime: CORE_STALE });
+  const dOffers = useQuery({ queryKey: ["declutter", "my-offers"], queryFn: () => declutterApi().then((m) => (m ? m.fetchMyOffers() : untilReload())), enabled: !!uid && declutterOn && fallback("offers"), staleTime: CORE_STALE });
   // A3-81: refund requests waiting on the member (one member-wide read) and the giver's free asks, in the same wave.
-  const refundsOn = useFeature("declutter_refund_requests");
-  const dRefunds = useQuery({ queryKey: ["declutter", "my-refund-todos"], queryFn: () => declutterApi().then((m) => (m ? m.fetchMyRefundTodos() : untilReload())), enabled: !!uid && declutterOn && refundsOn, staleTime: CORE_STALE });
-  const dFreeAsks = useQuery({ queryKey: ["declutter", "free-asks-to-pick", uid], queryFn: () => declutterApi().then((m) => (m ? m.fetchFreeAsksToPick(uid) : untilReload())), enabled: !!uid && declutterOn, staleTime: CORE_STALE });
-  const backout = useBackoutNotices(uid || null);
+  const dRefunds = useQuery({ queryKey: ["declutter", "my-refund-todos"], queryFn: () => declutterApi().then((m) => (m ? m.fetchMyRefundTodos() : untilReload())), enabled: !!uid && declutterOn && refundsOn && fallback("refund_todos"), staleTime: CORE_STALE });
+  const dFreeAsks = useQuery({ queryKey: ["declutter", "free-asks-to-pick", uid], queryFn: () => declutterApi().then((m) => (m ? m.fetchFreeAsksToPick(uid) : untilReload())), enabled: !!uid && declutterOn && fallback("free_asks"), staleTime: CORE_STALE });
+  const backout = useBackoutNotices(uid || null, { enabled: fallback("backout") });
+  // The sections on their old call right now: the live refresh refetches those keys itself (see refresh below).
+  const onOldCall = useRef(new Set<BadgeSection>());
+  onOldCall.current = new Set((["cart", "offers", "refund_todos", "free_asks", "backout", "shop_orders"] as BadgeSection[]).filter(fallback));
 
-  const queryClient = useQueryClient();
   const live = !!opts.live;
   useEffect(() => {
     if (!live || !uid) return;
@@ -123,12 +155,17 @@ export function useNeedsYouTodos(user: SupaUser | null, opts: { live?: boolean }
     const refresh = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.activity.posted(uid) });
       queryClient.invalidateQueries({ queryKey: queryKeys.activity.applied(uid) });
-      queryClient.invalidateQueries({ queryKey: backoutNoticesKey(uid) });
-      queryClient.invalidateQueries({ queryKey: ["shops", "shop-orders", uid] });
-      queryClient.invalidateQueries({ queryKey: ["declutter", "my-cart"] });
-      queryClient.invalidateQueries({ queryKey: ["declutter", "my-offers"] });
-      queryClient.invalidateQueries({ queryKey: ["declutter", "my-refund-todos"] });
-      queryClient.invalidateQueries({ queryKey: ["declutter", "free-asks-to-pick", uid] });
+      // The six badge sections: ONE refetch of the badge read, which re-seeds each section's key (Blockers 7). A
+      // section on its old call (fallback) is refreshed by its own observer's invalidation, as before.
+      queryClient.invalidateQueries({ queryKey: ["needs-you", "badge-reads", uid] });
+      const old = onOldCall.current;
+      const how = (sec: BadgeSection) => (old.has(sec) ? {} : { refetchType: "none" as const });
+      queryClient.invalidateQueries({ queryKey: backoutNoticesKey(uid), ...how("backout") });
+      queryClient.invalidateQueries({ queryKey: ["shops", "shop-orders", uid], ...how("shop_orders") });
+      queryClient.invalidateQueries({ queryKey: ["declutter", "my-cart"], ...how("cart") });
+      queryClient.invalidateQueries({ queryKey: ["declutter", "my-offers"], ...how("offers") });
+      queryClient.invalidateQueries({ queryKey: ["declutter", "my-refund-todos"], ...how("refund_todos") });
+      queryClient.invalidateQueries({ queryKey: ["declutter", "free-asks-to-pick", uid], ...how("free_asks") });
     };
     const schedule = () => {
       if (hidden()) {
@@ -164,6 +201,22 @@ export function useNeedsYouTodos(user: SupaUser | null, opts: { live?: boolean }
     };
   }, [live, uid, queryClient]);
 
+  // A write anywhere that invalidates one of the six section keys (a paid order, an answered offer, ...) used to
+  // refetch this hook's own observer. Those observers now sit idle while the one read answers, so such an
+  // invalidation refetches the one read instead: the badge stays as current as before.
+  useEffect(() => {
+    if (!live || !uid) return;
+    const isSection = (key: readonly unknown[]) =>
+      (key[0] === "declutter" && (key[1] === "my-cart" || key[1] === "my-offers" || key[1] === "my-refund-todos" || key[1] === "free-asks-to-pick")) ||
+      (key[0] === "shops" && key[1] === "shop-orders") ||
+      (key[0] === "activity" && key[1] === "backout");
+    return queryClient.getQueryCache().subscribe((event) => {
+      if (event.type !== "updated" || event.action.type !== "invalidate" || !isSection(event.query.queryKey)) return;
+      // cancelRefetch false: several keys invalidated together (the live refresh below) make ONE read, not a restart each.
+      void queryClient.invalidateQueries({ queryKey: ["needs-you", "badge-reads", uid] }, { cancelRefetch: false });
+    });
+  }, [live, uid, queryClient]);
+
   const postedJobs = posted.data?.postedJobs ?? EMPTY_JOBS;
   const pending = posted.data?.pendingApplicantCounts ?? EMPTY_COUNTS;
   const apps = applied.data?.appliedApps ?? EMPTY_APPS;
@@ -178,5 +231,7 @@ export function useNeedsYouTodos(user: SupaUser | null, opts: { live?: boolean }
     () => (derive ? derive.deriveNeedsYouTodos({ postedJobs, pendingApplicantCounts: pending, appliedApps: apps, shopOrders: orders, backout, declutterCart: cartLines, declutterOffers: offerRows, declutterRefunds: refundRows, declutterFreeAsks: freeAskRows, continueDays }) : EMPTY_TODOS),
     [derive, postedJobs, pending, apps, orders, backout, cartLines, offerRows, refundRows, freeAskRows, continueDays],
   );
-  return { todos, loading: !derive || (posted.data === undefined && applied.data === undefined) };
+  // onOldCall: whether a section is on its old single call right now. Home's own reads of the same keys
+  // (useHomeSummary's cart and shop orders) wait on it too, so the badge's one read is not repeated on Home.
+  return { todos, loading: !derive || (posted.data === undefined && applied.data === undefined), onOldCall: fallback };
 }

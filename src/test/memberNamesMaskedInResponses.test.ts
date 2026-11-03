@@ -74,6 +74,8 @@ const MASKED_RESTATED_LATER: Record<string, string> = {
 };
 
 const RESTATED_LATER: Record<string, string> = {
+  // Q2390 packet 3: only the not-found ERRCODE changed (P0002 -> PT404); the name read is verbatim.
+  nudge_confirm: "20261103042402_booking_continue_day_nudge_not_found_is_404.sql",
   // Whole-dollar delivery take-home (owner 2026-10-21); only take_home_cents changed.
   // Audit 1c #1/#4 (2026-10-29): handed_over_at and problem_open added; the name read is verbatim.
   // BUY-36 (20261031231150): the stuck/return fields added; the name read is verbatim (member_display_name).

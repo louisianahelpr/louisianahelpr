@@ -191,7 +191,7 @@ describe("Q345: every hire RPC refuses across a block", () => {
 // @mutate supabase/migrations/20261101071621_instant_book_decline_race.sql | IF public.are_users_blocked(auth.uid(), v_customer) THEN | IF false THEN
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   IF public.are_users_blocked(p_helper, v_customer) THEN |   IF false THEN
 // @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql | IF public.are_users_blocked(v_req.poster_id, v_q.quoter_id) THEN | IF false THEN
-// @mutate supabase/migrations/20261015091114_job_quotes.sql | IF public.are_users_blocked(v_uid, v_q.quoter_id) THEN | IF false THEN
+// @mutate supabase/migrations/20261103042402_booking_continue_day_nudge_not_found_is_404.sql | IF public.are_users_blocked(v_uid, v_q.quoter_id) THEN | IF false THEN
 // @mutate supabase/migrations/20261018164442_shops_orders_checkout.sql |   IF public.are_users_blocked(v_uid, o.buyer_id) THEN\n    RAISE EXCEPTION 'applicant_blocked' |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked'
 // @mutate src/lib/shops/errors.ts |   applicant_blocked: "This order can't be accepted any more. Decline it so the buyer's card hold is released.",\n |
 // The accept copy removed.

@@ -265,7 +265,12 @@ test(authedTitle, async ({ browser, request, journey }) => {
 
   await test.step("d. every control on the post-job form is named", async () => {
     await page.goto("/post-job");
-    await page.getByRole("button", { name: /start from scratch/i }).first().click({ timeout: 60_000 });
+    // JA-41 (owner, 2026-11-01): the first screen IS the group grid, so there
+    // is no "Start from scratch" card to press. Reach the details form the way
+    // a poster does (and the way postJobForm.ts fillJobDetails does): a group,
+    // then a category. Scoped to <main>: at 1440 the sidebar also has "Home".
+    await page.getByRole("main").getByRole("button", { name: /^Home/ }).first().click({ timeout: 60_000 });
+    await page.getByRole("button", { name: "Cleaning", exact: true }).click();
     await expect(page.locator("#require-photo-proof")).toBeVisible({ timeout: 30_000 });
     const controls = page.getByRole("switch").or(page.getByRole("checkbox")).or(page.getByRole("button"));
     const n = await controls.count();

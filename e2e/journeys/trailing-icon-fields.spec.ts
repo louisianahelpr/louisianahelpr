@@ -99,9 +99,14 @@ test(guestTitle, async ({ browser, journey }) => {
     await page.locator("#location").fill("Lafayette, LA");
     await page.locator("#zipCode").fill("70528");
     await page.locator("#zipCode").blur();
-    await page.waitForTimeout(600);
+    // The ZIP's ✓ draws only once get_parish_for_zip answers (SignupStep2
+    // zipRecognised <- useParishForZip): a network read, which on the "drops"
+    // rotation outlasts a fixed 600 ms. Wait for it to be drawn (70528 resolves
+    // to Vermilion on prod, read 2026-11-03), then measure.
+    await expect
+      .poll(async () => (await trailingIconRows(page)).length, { message: "signup step 2 has ✓ icons on its fields; none were found", timeout: 20_000 })
+      .toBeGreaterThan(0);
     const rows = await trailingIconRows(page);
-    expect(rows.length, "signup step 2 has ✓ icons on its fields; none were found").toBeGreaterThan(0);
     await page.locator("#zipCode").scrollIntoViewIfNeeded();
     await journey.milestone(page, "signup-step2-fields");
     expect(judge(rows, "/signup")).toEqual([]);

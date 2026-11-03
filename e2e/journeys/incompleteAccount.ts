@@ -19,17 +19,22 @@ import { expect, rest, SUPABASE_URL, type Session } from "./fixtures";
  * prod-audit.yml runs), this says so instead of timing out.
  */
 export async function expectGateSendsToCompleteProfile(api: APIRequestContext, session: Session): Promise<void> {
-  const r = await api.get(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${session.user.id}&select=full_name,location,is_legacy_user`, {
+  const r = await api.get(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${session.user.id}&select=full_name,location,accepted_terms_at,is_legacy_user`, {
     headers: rest(session),
   });
   expect(r.ok(), `reading the incomplete seed account's profile: HTTP ${r.status()}`).toBe(true);
-  const [row] = (await r.json()) as Array<{ full_name: string | null; location: string | null; is_legacy_user: boolean | null }>;
+  const [row] = (await r.json()) as Array<{ full_name: string | null; location: string | null; accepted_terms_at: string | null; is_legacy_user: boolean | null }>;
   expect(row, "the incomplete seed account has no profile row").toBeTruthy();
   expect(row.is_legacy_user, "the incomplete seed account is legacy, so the gate never sends it to /complete-profile").not.toBe(true);
-  const missing = [!row.full_name?.trim() && "full_name", !row.location?.trim() && "location"].filter(Boolean);
+  // The same two halves as isProfileComplete for an email sign-up: a name, and
+  // signupFinished (a city OR accepted_terms_at). Either half missing keeps the
+  // account on /complete-profile.
+  const named = !!row.full_name?.trim();
+  const finished = !!row.location?.trim() || !!row.accepted_terms_at?.trim();
   expect(
-    missing.length,
-    "the incomplete seed account is COMPLETE under isProfileComplete (full_name and location are both set), so /complete-profile " +
-      "redirects it to /home. Re-apply the seed (node scripts/audit/prod-seed.mjs --apply), which leaves its city empty.",
-  ).toBeGreaterThan(0);
+    named && finished,
+    `the incomplete seed account is COMPLETE under isProfileComplete (full_name set, and ${row.location?.trim() ? "a city" : `accepted_terms_at ${row.accepted_terms_at}`}), ` +
+      "so /complete-profile redirects it to /home. accepted_terms_at cannot be cleared (tr_preserve_first_consent keeps the first value), " +
+      "so re-applying the seed does not fix it: the account must be torn down and re-created (prod-seed.mjs) with no city and no accepted_terms_at.",
+  ).toBe(false);
 }

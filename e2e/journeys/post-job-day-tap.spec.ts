@@ -160,6 +160,16 @@ async function bottomRowNeverUnderTheBar(page: Page, where: string, touch: boole
   return n;
 }
 
+/** Louisiana wall-clock minutes since midnight, written out here rather than imported from the app. */
+function louisianaMinutesNow(): number {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", { timeZone: "America/Chicago", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
+      .formatToParts(new Date())
+      .map((x) => [x.type, x.value]),
+  );
+  return Number(p.hour) * 60 + Number(p.minute);
+}
+
 test(title, async ({ browser, request, journey }) => {
   test.skip(filteredOut(title), "SCENARIO pins another scenario");
   const avail = sessionsAvailable();
@@ -180,6 +190,19 @@ test(title, async ({ browser, request, journey }) => {
     for (let i = n - 1; i >= 0; i--) {
       const day = days.nth(i);
       const name = `day card ${(await day.getAttribute("aria-label")) ?? i}`;
+      // F19 / Q2438: TODAY closes once its soonest allowed start (now + 2 h
+      // notice + 10 min, up to the next half hour) passes 9:00 PM, i.e. after
+      // 6:50 PM in Louisiana (src/lib/sameDayJob.ts), and its card is disabled.
+      // That is the app's rule, so it is asserted, not tapped: only the first
+      // card (today) may ever be closed, and only on the Louisiana clock's say.
+      // 5 minutes of slack each side of 6:50 PM for the run's own drift.
+      const laMin = louisianaMinutesNow();
+      if (await day.isDisabled()) {
+        expect(i, `${name} is disabled, but only today's card ever closes`).toBe(0);
+        expect(laMin, `${name}: today closed at ${laMin} min past midnight in Louisiana, before the 6:50 PM cutoff`).toBeGreaterThanOrEqual(18 * 60 + 45);
+        continue;
+      }
+      if (i === 0) expect(laMin, `${name}: today is still open after the 6:50 PM cutoff`).toBeLessThanOrEqual(18 * 60 + 55);
       await fingerTap(page, day, name);
       await expect.poll(() => isOn(day), { message: `${name}: the tap did not choose it`, timeout: 5_000 }).toBe(true);
       tapped++;

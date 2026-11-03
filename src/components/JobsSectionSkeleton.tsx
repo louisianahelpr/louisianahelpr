@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import { SectionAddButton } from "@/components/sections/AppTopBar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { JOBS_TOOLBAR_ROW } from "@/components/sections/jobsToolbar";
-import { ActivityCardSkeleton, DashboardSkeleton } from "@/components/SkeletonLoaders";
-import { WorkingListBones } from "@/components/ui/skeletons/ApplicationCardSkeleton";
+import { DashboardSkeleton } from "@/components/SkeletonLoaders";
+import { PostedListBones, WorkingListBones } from "@/components/ui/skeletons/ApplicationCardSkeleton";
 import { PageScaffold } from "@/components/ui/PageScaffold";
 import { PageTitleBar, useHeaderInDesktopBar } from "@/components/header/PageTitleBar";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -97,7 +97,7 @@ function JobsListBodyBones({ tab }: { tab: "posted" | "applied" }) {
     <div className="flex-1 min-h-0 px-0 lg:px-4 pt-1 lg:pt-3 pb-0 space-y-list" aria-hidden>
       {tab === "applied"
         ? <WorkingListBones filter={filterFromUrl()} />
-        : [1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}
+        : <PostedListBones filter={filterFromUrl()} />}
     </div>
   );
 }

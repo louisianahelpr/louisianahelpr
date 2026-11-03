@@ -89,6 +89,11 @@ describe("the Working placeholder is the MineJobFace card's box (Q833)", () => {
     for (const key of ["frame", "faceCol", "thumb", "titleRow", "title", "when", "under", "status", "progress", "button"] as const) {
       expect(carried(FACE, B[key]) || (key === "status" && carried(read("src/components/job-card/JobStatusStrip.tsx"), B[key])), `${key}: "${B[key]}" is not in MineJobFace`).toBe(true);
     }
+    // A hired card's street address (AppliedJobCard `addressOnFace`): JobCardMetaRow's own wrappers.
+    const META = read("src/components/job-card/JobCardMetaRow.tsx");
+    for (const key of ["metaOuter", "metaRow", "metaWrap", "metaAddress"] as const) {
+      expect(carried(META, B[key]), `${key}: "${B[key]}" is not in JobCardMetaRow`).toBe(true);
+    }
     // The money figure's line: MineJobFace's price span.
     expect(carried(FACE, B.money), `money: "${B.money}"`).toBe(true);
     expect(carried(PROGRESS, B.seg), `seg: "${B.seg}" is not JobProgress's bar segment`).toBe(true);

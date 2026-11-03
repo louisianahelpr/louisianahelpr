@@ -6,8 +6,7 @@ import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageScaffold } from "@/components/ui/PageScaffold";
-import { ActivityCardSkeleton } from "@/components/SkeletonLoaders";
-import { WorkingListBones } from "@/components/ui/skeletons/ApplicationCardSkeleton";
+import { PostedListBones, WorkingListBones } from "@/components/ui/skeletons/ApplicationCardSkeleton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useActivityData } from "@/hooks/useActivityData";
@@ -500,8 +499,9 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
                ActivityPageSkeleton was fixed for on 2026-09-21; a gap is part
                of the reservation. */
             <Suspense fallback={
-              <div className="px-0 space-y-list">
-                {[1, 2, 3, 4].map((i) => <ActivityCardSkeleton key={i} />)}
+              <div className="px-0">
+                {/* The MineJobFace-shaped bones, with the first bucket's heading on "All" (Q833). */}
+                <PostedListBones filter={statusFilter} />
               </div>
             }>
             <SectionBoundary label="your posts">

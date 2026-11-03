@@ -44,6 +44,9 @@ export async function commitJobSiteTax(args: {
     );
     txId = tx.id;
   } catch (e) {
+    // Not rethrown: the payment stands and a webhook retry cannot revive an
+    // expired calculation. Logged and paged with the exact hand step.
+    console.error(`[stripe-webhook] job-site tax commit failed for ${pi.id} (calculation ${calc}):`, caughtMessage(e));
     await postSlackOpsAlert({
       kind: "money_at_risk",
       severity: "warning",
@@ -58,6 +61,9 @@ export async function commitJobSiteTax(args: {
   try {
     await stripe.paymentIntents.update(pi.id, { metadata: { tax_transaction_id: txId } });
   } catch (e) {
+    // Not rethrown: the transaction is recorded; only the stamp is missing,
+    // which a person sets by hand from this page.
+    console.error(`[stripe-webhook] tax transaction ${txId} not stamped on ${pi.id}:`, caughtMessage(e));
     await postSlackOpsAlert({
       kind: "money_at_risk",
       severity: "warning",

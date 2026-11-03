@@ -1000,7 +1000,7 @@ describe("create-payment edge function", () => {
     // tax, so a taxable checkout just under $300 before tax asks for 3DS and
     // an exempt one at the same price does not.
     // Q2083 (b): a taxed job's 3D Secure line counts its exact job-site tax.
-    // @mutate supabase/functions/create-payment/index.ts |         ? lineItemsCents + jobTax.cents | ? lineItemsCents
+    // @mutate supabase/functions/create-payment/index.ts | const threeDSCents = payInFour ? 0 : lineItemsCents + (jobTax?.cents ?? 0); | const threeDSCents = payInFour ? 0 : lineItemsCents;
     it("asks for 3D Secure when a taxable checkout's tax can carry it past $300 (Q1658)", async () => {
       const optionsFor = async (category: string) => {
         resetSupabaseMock();

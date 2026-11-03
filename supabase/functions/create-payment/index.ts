@@ -1455,16 +1455,18 @@ serve(async (req) => {
           throw new PublicError("Add the job's Louisiana ZIP code before paying, so sales tax can be figured for where the work is done.");
         }
         const taxCode = laborTaxCode(job.category, job.tax_kind);
-        const taxLines: Stripe.Tax.CalculationCreateParams.LineItem[] = [
-          { amount: Math.round(job.budget * 100), reference: "labor", tax_behavior: TAX_BEHAVIOR, tax_code: taxCode },
-        ];
-        if (urgentFeeCents > 0) taxLines.push({ amount: urgentFeeCents, reference: "urgent_bonus", tax_behavior: TAX_BEHAVIOR, tax_code: taxCode });
-        if (isPosterFee && posterFeeCents > 0) taxLines.push({ amount: posterFeeCents, reference: "service_fee", tax_behavior: TAX_BEHAVIOR, tax_code: taxCode });
         let calc: Stripe.Tax.Calculation;
         try {
           calc = await stripe.tax.calculations.create({
             currency: "usd",
-            line_items: taxLines,
+            // The labor, the urgent bonus (Q1843) and a poster-fee job's
+            // service fee: every line create-payment taxes, each with the
+            // labor's code, exactly as the Checkout lines above carry it.
+            line_items: [
+              { amount: Math.round(job.budget * 100), reference: "labor", tax_behavior: TAX_BEHAVIOR, tax_code: taxCode },
+              ...(urgentFeeCents > 0 ? [{ amount: urgentFeeCents, reference: "urgent_bonus", tax_behavior: TAX_BEHAVIOR, tax_code: taxCode }] : []),
+              ...(isPosterFee && posterFeeCents > 0 ? [{ amount: posterFeeCents, reference: "service_fee", tax_behavior: TAX_BEHAVIOR, tax_code: taxCode }] : []),
+            ],
             customer_details: { address: taxAddress, address_source: JOB_TAX_ADDRESS_SOURCE },
           }, { idempotencyKey: `job-tax-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${checkoutKeySuffix}` });
         } catch (e) {
@@ -1492,15 +1494,12 @@ serve(async (req) => {
         paymentIntentExtras.metadata[JOB_TAX_CENTS_KEY] = String(cents);
       }
 
-      // 3D Secure from $300 (Q202). A job taxed at the job site knows its tax
-      // exactly (the "Sales tax" line is in the line items). Otherwise the
-      // line items plus a CEILING on the labor's sales tax (Q1658). No card
-      // options on a Pay-in-4 session (no card can be used there).
-      const threeDSCents = payInFour ? 0 : jobTax
-        ? lineItemsCents + jobTax.cents
-        : lineItemsCents
-          + (isPosterFee && laborTaxable ? salesTaxCeilingCents(posterFeeCents, job.category, job.tax_kind) : 0)
-          + salesTaxCeilingCents(Math.round(job.budget * 100) + urgentFeeCents, job.category, job.tax_kind);
+      // 3D Secure from $300 (Q202), on everything the poster pays. Since
+      // Q2083 (b) a taxed job's tax is known EXACTLY here (its job-site "Sales
+      // tax" line); an untaxed job has none. This replaced Q1658's ceiling on
+      // the labor's tax, which stood in while Checkout added the tax later.
+      // No card options on a Pay-in-4 session (no card can be used there).
+      const threeDSCents = payInFour ? 0 : lineItemsCents + (jobTax?.cents ?? 0);
       const session = await payerWallet((walletCustomer, walletRetry) => stripe.checkout.sessions.create({
         customer: walletCustomer,
         // Billing-address tax only on an untaxed job (it computes $0 there);

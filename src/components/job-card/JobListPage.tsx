@@ -19,14 +19,22 @@ import { PendingBankPayments } from "@/pages/posts/postedJobs/PendingBankPayment
 import { type Tab } from "@/components/job-card/activityConstants";
 
 // Tab content is lazy-split so the initial Activity chunk only contains the
-// shell (header, filters, skeleton fallbacks). The per-tab bundles are fetched
-// once the data is ready and the correct tab is about to be rendered.
-const PostedJobsTab = lazy(() =>
-  import("@/pages/posts/PostedJobsTab").then((m) => ({ default: m.PostedJobsTab })),
-);
-const AppliedJobsTab = lazy(() =>
-  import("@/pages/jobs/AppliedJobsTab").then((m) => ({ default: m.AppliedJobsTab })),
-);
+// shell (header, filters, skeleton fallbacks). The open tab's bundle starts
+// downloading when the list mounts, BESIDE its data read (startTabChunk below).
+// Q1158 (B46, 11-03): it used to start only once the data was in. Measured
+// (cwv-lab, signed in, 375, Slow 4G, median of 3) on a cold /jobs?tab=posted:
+// get_my_activity_cores answered at ~7.5 s and only then PostedJobsTab and the
+// ~45 chunks under it downloaded (7.57 -> 9.6 s); the first card drew at ~9.7 s.
+const loadPostedTab = () => import("@/pages/posts/PostedJobsTab");
+const loadAppliedTab = () => import("@/pages/jobs/AppliedJobsTab");
+const PostedJobsTab = lazy(() => loadPostedTab().then((m) => ({ default: m.PostedJobsTab })));
+const AppliedJobsTab = lazy(() => loadAppliedTab().then((m) => ({ default: m.AppliedJobsTab })));
+/** Start the open tab's chunk now; the lazy component's own import (the same module) owns any failure. */
+export function startTabChunk(tab: Tab): void {
+  (tab === "posted" ? loadPostedTab : loadAppliedTab)().catch(() => {
+    /* the tab's lazy render retries and reports it */
+  });
+}
 
 // Dialogs mount only on a user action, so lazy-loading keeps their subtrees
 // out of the initial chunk entirely (the offer pop-ups: ActivityOfferDialogs).
@@ -60,6 +68,8 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useCurrentUser();
   const tab = defaultTab as Tab;
+  // The tab's code downloads beside its data, not after it (see startTabChunk).
+  useEffect(() => startTabChunk(tab), [tab]);
   // Jobs > Posted / Working open on EVERY group ("all"), under the status boxes
   // (owner, 2026-10-19): tap a box = only that group, tap it again = all.
   const defaultFilter = "all";

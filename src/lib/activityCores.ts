@@ -41,7 +41,25 @@ const KEYS: (keyof ActivityCoresPayload)[] = [
 /** Column codes that mean "use the old reads": a column is not deployed yet. Expected, not reported. */
 const QUIET_COLUMN_CODES = new Set(["42703", "PGRST204"]);
 
-let inFlight: { userId: string; p: Promise<ActivityCoresPayload | null> } | null = null;
+/** Which core a caller reads: fetchPostedActivity's or fetchAppliedActivity's. */
+export type ActivityCorePart = "posted" | "applied";
+
+/**
+ * How long an ANSWER stays shareable after it arrives, for the other core only (B46, 11-03, Q1158). Both cores come
+ * in one payload, but the Posted and Working queries do not always ask at the same moment. Measured (cwv-lab, signed
+ * in, 375, cold /jobs?tab=posted): the first read answered at 7.48 s and the second core asked 0.2 s later, so the
+ * whole payload (2.4 s and 3.2 s on the wire for the 477-job test poster) was fetched twice.
+ */
+export const ACTIVITY_CORES_SHARE_MS = 2_000;
+
+let inFlight: {
+  userId: string;
+  p: Promise<ActivityCoresPayload | null>;
+  /** When the answer arrived (null while in flight). */
+  doneAt: number | null;
+  /** The parts this read has already been handed to: a part asking AGAIN is a refetch and always reads afresh. */
+  served: Set<ActivityCorePart>;
+} | null = null;
 
 function isPayload(v: unknown): v is ActivityCoresPayload {
   return !!v && typeof v === "object" && !Array.isArray(v) && KEYS.every((k) => Array.isArray((v as Record<string, unknown>)[k]));
@@ -57,8 +75,16 @@ export function forgetActivityCoresRead(): void {
 }
 
 /** Both cores for `userId`, or null (the caller then sends its old reads). Never rejects. */
-export function fetchActivityCores(userId: string): Promise<ActivityCoresPayload | null> {
-  if (inFlight?.userId === userId) return inFlight.p;
+export function fetchActivityCores(userId: string, part?: ActivityCorePart): Promise<ActivityCoresPayload | null> {
+  // Join a read for this member that is still in flight, or one that answered moments ago and has not yet been handed
+  // to this part (the other core's query). A part that already took this read is refetching: it reads afresh.
+  if (inFlight?.userId === userId && !(part && inFlight.served.has(part))) {
+    const fresh = inFlight.doneAt === null || Date.now() - inFlight.doneAt <= ACTIVITY_CORES_SHARE_MS;
+    if (fresh) {
+      if (part) inFlight.served.add(part);
+      return inFlight.p;
+    }
+  }
   const p = (async () => {
     try {
       const res = await supabase.rpc("get_my_activity_cores", {
@@ -80,10 +106,13 @@ export function fetchActivityCores(userId: string): Promise<ActivityCoresPayload
       return null;
     }
   })();
-  const entry = { userId, p };
+  const entry: NonNullable<typeof inFlight> = { userId, p, doneAt: null, served: new Set(part ? [part] : []) };
   inFlight = entry;
-  void p.finally(() => {
-    if (inFlight === entry) inFlight = null;
+  void p.then((payload) => {
+    if (inFlight !== entry) return;
+    // Only a good answer is shared after it lands; a null (failed or old database) is never handed on.
+    if (payload) entry.doneAt = Date.now();
+    else inFlight = null;
   });
   return p;
 }

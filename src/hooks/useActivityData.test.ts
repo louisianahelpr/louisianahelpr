@@ -41,6 +41,7 @@ import {
   appliedDetailInputs,
 } from "./useActivityData";
 import type { Job, AppliedApp } from "@/components/job-card/activityConstants";
+import { forgetActivityCoresRead } from "@/lib/activityCores";
 
 /** Every table read the mock actually saw, in issue order. */
 let issued: string[] = [];
@@ -411,7 +412,7 @@ describe("fetchAppliedActivityDetail — My Jobs decoration", () => {
 
 // Q104 (release gate 41330878323): with get_my_activity_cores deployed, both cores are ONE request between them.
 // @mutate src/hooks/useActivityData.ts |   const [appsRes, jobsRes, directOffersRes, violationsRes, helperReviewsRes] = cores ? [ |   const [appsRes, jobsRes, directOffersRes, violationsRes, helperReviewsRes] = false ? [
-// @mutate src/lib/activityCores.ts |   if (inFlight?.userId === userId) return inFlight.p; |   if (false) return inFlight!.p;
+// @mutate src/lib/activityCores.ts |   if (inFlight?.userId === userId && !(part && inFlight.served.has(part))) { |   if (false) {
 describe("both activity cores in one read (get_my_activity_cores)", () => {
   const payload = {
     posted_jobs: [{ id: "p1", customer_id: "u1", status: "open", created_at: "2026-01-02" }],
@@ -424,6 +425,8 @@ describe("both activity cores in one read (get_my_activity_cores)", () => {
     reviews: [{ job_id: "j1" }],
   };
   beforeEach(() => {
+    // B46: an answer is shared with the other core for ACTIVITY_CORES_SHARE_MS after it lands; each test starts clean.
+    forgetActivityCoresRead();
     setResponse(CORES_KEY, { data: payload, error: null });
   });
 
@@ -440,7 +443,7 @@ describe("both activity cores in one read (get_my_activity_cores)", () => {
     expect(applied.helperReviewedJobIds.has("j1")).toBe(true);
   });
 
-  it("a refetch after the first answer reads again: a finished call is never reused", async () => {
+  it("a refetch after the first answer reads again: the same core never reuses a finished call", async () => {
     await fetchPostedActivity("u1");
     await fetchPostedActivity("u1");
     expect(issued.filter((k) => k === CORES_KEY)).toHaveLength(2);

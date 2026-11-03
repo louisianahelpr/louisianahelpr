@@ -44,6 +44,8 @@
  * @mutate supabase/migrations/20261103044329_declutter_shops_rentals_reads_not_found_is_404.sql | SELECT p.auto_free_days IS NOT NULL INTO v_on\n    FROM public.declutter_item_private p JOIN public.declutter_items i ON i.id = p.item_id\n   WHERE p.item_id = p_item_id AND i.seller_id = v_uid;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404'; | SELECT p.auto_free_days IS NOT NULL INTO v_on\n    FROM public.declutter_item_private p JOIN public.declutter_items i ON i.id = p.item_id\n   WHERE p.item_id = p_item_id AND i.seller_id = v_uid;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103044329_declutter_shops_rentals_reads_not_found_is_404.sql | SELECT p.auto_free_days INTO v_days\n    FROM public.declutter_item_private p JOIN public.declutter_items i ON i.id = p.item_id\n   WHERE p.item_id = p_item_id AND i.seller_id = v_uid;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404'; | SELECT p.auto_free_days INTO v_days\n    FROM public.declutter_item_private p JOIN public.declutter_items i ON i.id = p.item_id\n   WHERE p.item_id = p_item_id AND i.seller_id = v_uid;\n  IF NOT FOUND THEN\n    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103044329_declutter_shops_rentals_reads_not_found_is_404.sql | RAISE EXCEPTION 'listing_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'listing_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103044627_porch_place_and_shop_photo_delete_not_found_is_404.sql | RAISE EXCEPTION 'porch_place_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'porch_place_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261103044627_porch_place_and_shop_photo_delete_not_found_is_404.sql | RAISE EXCEPTION 'photo_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'photo_not_found' USING ERRCODE = 'P0002';
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -57,14 +59,16 @@ import { blankSqlComments } from "./helpers/blankNonCode";
  * helper_mark_on_the_way, propose_job_continue_day, answer_job_continue_day, mark_helper_arrival (20261103043002).
  * Packet 5: cancel_quote_request (20261103043845).
  * Packet 6: declutter_my_item_review, declutter_withdraw_free_request, rentals_withdraw_request, declutter_seller_item_private, shops_my_item_review, declutter_keep_up_state, declutter_listing_manage_state, declutter_remove_my_meetup_spot, declutter_auto_free_state, declutter_auto_free_days_state, rentals_my_listing_photos (20261103044329).
+ * Packet 7: declutter_delete_porch_place, shops_remove_photo (20261103044627).
  */
 const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
   "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm",
   "submit_job_quote", "respond_to_job_quote", "helper_mark_on_the_way", "propose_job_continue_day", "answer_job_continue_day",
   "mark_helper_arrival", "cancel_quote_request",
-  "declutter_my_item_review", "declutter_withdraw_free_request", "rentals_withdraw_request", "declutter_seller_item_private", "shops_my_item_review", "declutter_keep_up_state", "declutter_listing_manage_state", "declutter_remove_my_meetup_spot", "declutter_auto_free_state", "declutter_auto_free_days_state", "rentals_my_listing_photos"];
+  "declutter_my_item_review", "declutter_withdraw_free_request", "rentals_withdraw_request", "declutter_seller_item_private", "shops_my_item_review", "declutter_keep_up_state", "declutter_listing_manage_state", "declutter_remove_my_meetup_spot", "declutter_auto_free_state", "declutter_auto_free_days_state", "rentals_my_listing_photos",
+  "declutter_delete_porch_place", "shops_remove_photo"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-const P0002_RAISERS = 278;
+const P0002_RAISERS = 276;
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));
 const body = (name: string) => blankSqlComments(defs.get(name)?.stmt ?? "");

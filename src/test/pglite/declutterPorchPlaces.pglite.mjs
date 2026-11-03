@@ -194,5 +194,15 @@ for (const fn of ["declutter_save_porch_place(uuid, text, text, text, numeric, n
 }
 ok(anonNone, "anon cannot call any new RPC (REVOKE FROM PUBLIC, anon)");
 
+// Q2390 packet 7 (20261103044627): deleting a porch place that is not the caller's (or does not exist) is SQLSTATE
+// PT404, which PostgREST answers HTTP 404; P0002 answered 500. NOT_FOUND_MIGRATION=skip leaves it out (RED).
+if (!skip && process.env.NOT_FOUND_MIGRATION !== "skip") {
+  for (let i = 0; i < 3; i++) await run(readFileSync(`${MIG_DIR}20261103044627_porch_place_and_shop_photo_delete_not_found_is_404.sql`, "utf8"));
+}
+{
+  const r = await me(BUYER, `SELECT public.declutter_delete_porch_place('${I(999)}')`);
+  ok(!Array.isArray(r) && r?.code === "PT404" && /porch_place_not_found/.test(r?.error ?? ""), `Q2390: a missing porch place answers PT404 (HTTP 404), never P0002 (${r?.code} ${short(r)})`);
+}
+
 console.log(`\n${pass} passed, ${fail} failed`);
 process.exit(fail > 0 ? 1 : 0);

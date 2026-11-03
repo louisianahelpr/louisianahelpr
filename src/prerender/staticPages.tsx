@@ -52,8 +52,8 @@ export const STATIC_PAGE_MUST_SAY: Record<StaticPagePath, string[]> = {
   ],
   "/sms-opt-in": [
     `>${SMS_OPT_IN_TITLE}</h1>`,
-    '<img src="/sms-opt-in-form.png"',
-    '<img src="/sms-opt-in-confirmed.png"',
+    '<img loading="lazy" src="/sms-opt-in-form.png"',
+    '<img loading="lazy" src="/sms-opt-in-confirmed.png"',
     "Text me alerts from Louisiana Helpr about my jobs, offers and new messages at this number.",
     "Consent is not a condition of using Louisiana Helpr.",
     'href="/terms/full"',

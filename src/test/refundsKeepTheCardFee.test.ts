@@ -767,7 +767,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // policy recorded by declutter_record_refund stands.
       declutter_refund_executed: "20261103111244_money_webhooks_not_found_is_404.sql 36405fe18e499cd5", // Q2390 p25: ERRCODE-only restatement (md5-verified); records Stripe's answer, writes no amount
       declutter_refund_gave_up_check: "20261017055500_declutter_refund_hand_settle.sql 1fa348b4a38b6f7c",
-      declutter_refund_paid_order: "20261014224914_declutter_slice3b_payments.sql d970c83965cd57c2",
+      declutter_refund_paid_order: "20261103162420_q2390_handover_paid_refund_shop_cancel_photo_no_show_decline_not_found_is_404.sql 810723fc4faaf603",
       declutter_refund_reversed: "20261017055500_declutter_refund_hand_settle.sql df1710d5a746e90b",
       declutter_refund_set_mode: "20261103103000_refund_mode_rent_waive_payout_deny_repair_cancel_not_found_is_404.sql 119efbd586cdbdc1", // Q2390 p24: ERRCODE-only restatement (md5-verified); stamps the Stripe mode, writes no amount
       // Payout readiness (20261019070737): a deferred pending refund waits for next_attempt_at, and a delivery_damage
@@ -968,7 +968,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shops_admin_settle_held_refund: "20261019071055_shops_refunds_cancels_strikes.sql 6d0001f095b1ff76",
       shops_buyer_cancel_order: "20261019071055_shops_refunds_cancels_strikes.sql 69cdd0dcef74aa6b",
       shops_order_cancel_quote: "20261103091013_shops_promotions_team_message_not_found_is_404.sql d028eafd729cb911", // Q2390 p22: ERRCODE-only restatement (md5-verified), read-only quote
-      shops_shop_cancel_order: "20261019071055_shops_refunds_cancels_strikes.sql c7cabc81cc0fc3e4",
+      shops_shop_cancel_order: "20261103162420_q2390_handover_paid_refund_shop_cancel_photo_no_show_decline_not_found_is_404.sql ae7a26b0a9ef9269",
     },
     statements: {
       "shop_orders 20261018164442_shops_orders_checkout.sql": ["c270fbd5dcbf5fcd"],

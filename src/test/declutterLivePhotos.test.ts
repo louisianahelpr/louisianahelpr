@@ -10,7 +10,7 @@
  *
  * @mutate supabase/migrations/20261103055505_declutter_shops_homes_messages_not_found_is_404.sql |   IF v_item.status <> 'draft' AND NOT v_listed THEN\n    RAISE EXCEPTION 'item_not_editable' |   IF v_item.status <> 'draft' THEN\n    RAISE EXCEPTION 'item_not_editable'
  * @mutate supabase/migrations/20261103055505_declutter_shops_homes_messages_not_found_is_404.sql |  WHERE pv.item_id = p_item_id AND pv.ai_checked_at IS NULL AND pv.ai_flag_reason IS NULL)); |  WHERE pv.item_id = p_item_id AND pv.ai_checked_at IS NULL));
- * @mutate supabase/migrations/20261030061927_declutter_live_listing_photos.sql |   IF v_listed AND (SELECT count(*) FROM public.declutter_item_photos ph WHERE ph.item_id = v_item.id) <= 1 THEN | IF false THEN
+ * @mutate supabase/migrations/20261103162420_q2390_handover_paid_refund_shop_cancel_photo_no_show_decline_not_found_is_404.sql |   IF v_listed AND (SELECT count(*) FROM public.declutter_item_photos ph WHERE ph.item_id = v_item.id) <= 1 THEN | IF false THEN
  * @mutate supabase/migrations/20261103055505_declutter_shops_homes_messages_not_found_is_404.sql |        SET status = 'pending_review', submitted_at = now(), updated_at = now()\n     WHERE id = p_item_id; |        SET updated_at = now()\n     WHERE id = p_item_id;
  */
 import { describe, expect, it } from "vitest";
@@ -26,9 +26,9 @@ describe("DC-8: a live listing's photos can be changed, under the big-edit rule"
   it("reads the newest definitions (floor)", () => {
     let n = 0;
     for (const f of ["declutter_add_item_photo", "declutter_remove_item_photo"]) {
-      // declutter_add_item_photo: restated by Q2390 packet 11 (20261103055505, ERRCODE-only) with every line kept.
-      if (f === "declutter_add_item_photo") expect(newestFunction(f).file >= "20261030061927", f).toBe(true);
-      else expect(newestFunction(f).file, f).toContain("20261030061927");
+      // Both restated ERRCODE-only by Q2390 (add: packet 11, 20261103055505; remove: packet 32, 20261103162420) with
+      // every line kept, so the floor is the DC-8 file or newer; the body checks below read the newest definition.
+      expect(newestFunction(f).file >= "20261030061927", f).toBe(true);
       n++;
     }
     expect(n).toBeGreaterThan(1);

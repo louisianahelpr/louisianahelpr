@@ -4,6 +4,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
+import { isMissingCustomerError } from "../_shared/stripeCustomer.ts";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -76,7 +77,18 @@ serve(async (req) => {
     const stored = (profile as { stripe_customer_id?: unknown } | null)?.stripe_customer_id;
     let customerId: string | null = null;
     if (typeof stored === "string" && /^cus_[A-Za-z0-9]+$/.test(stored)) {
-      const subs = await stripe.subscriptions.list({ customer: stored, status: "all", limit: 1 });
+      // Q2140: a stored customer deleted in Stripe (Dashboard, or test data
+      // wiped) answers resource_missing. Its subscriptions went with it, so
+      // there is no membership billing to manage: the member gets the 404
+      // "No membership billing found", not a 500 on every press for good.
+      // Any other Stripe error is still a 500 (the catch below).
+      let subs: { data: unknown[] } = { data: [] };
+      try {
+        subs = await stripe.subscriptions.list({ customer: stored, status: "all", limit: 1 });
+      } catch (err) {
+        if (!isMissingCustomerError(err, stored)) throw err;
+        console.warn(`[pro-customer-portal] stored customer ${stored} no longer exists in Stripe; no membership billing`);
+      }
       if (subs.data.length > 0) customerId = stored;
     }
     if (!customerId) {

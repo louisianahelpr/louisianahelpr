@@ -16,8 +16,8 @@
  * @mutate supabase/migrations/20261103050349_declutter_orders_talk_admin_not_found_is_404.sql |   v_open := v_side = 'seller' OR o.status IN ('paid', 'handed_over'); |   v_open := true;
  * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql | REVOKE ALL ON FUNCTION public.declutter_order_pickup_points(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.declutter_order_pickup_points(uuid) FROM PUBLIC, anon;
  * @mutate supabase/migrations/20261030164712_declutter_porch_places.sql |     FROM public.declutter_order_pickup_points(o.id) pt;\n  IF v_m IS NULL OR v_m > 200 THEN\n    RAISE EXCEPTION 'not_at_pickup' USING ERRCODE = '22023', HINT = 'Take the photo at the seller''s pickup address.'; |     FROM (SELECT p.pickup_lat AS lat, p.pickup_lng AS lng FROM public.declutter_cart_items c JOIN public.declutter_item_private p ON p.item_id = c.item_id WHERE c.order_id = o.id) pt;\n  IF v_m IS NULL OR v_m > 200 THEN\n    RAISE EXCEPTION 'not_at_pickup' USING ERRCODE = '22023', HINT = 'Take the photo at the seller''s pickup address.';
- * @mutate supabase/migrations/20261103014109_crew_share_held_reason.sql | ELSE to_jsonb(t) - 'address' - 'lat' - 'lng' - 'seller_id' - 'label' END) | ELSE to_jsonb(t) END)
- * @mutate supabase/migrations/20261103014109_crew_share_held_reason.sql |   v_out := v_out \|\| jsonb_build_object('declutter_order_porch_places', | v_out := v_out; PERFORM ('declutter_order_porch_places',
+ * @mutate supabase/migrations/20261103202529_shipping_buyer_export.sql | ELSE to_jsonb(t) - 'address' - 'lat' - 'lng' - 'seller_id' - 'label' END) | ELSE to_jsonb(t) END)
+ * @mutate supabase/migrations/20261103202529_shipping_buyer_export.sql |   v_out := v_out \|\| jsonb_build_object('declutter_order_porch_places', | v_out := v_out; PERFORM ('declutter_order_porch_places',
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

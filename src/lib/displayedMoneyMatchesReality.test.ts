@@ -145,7 +145,7 @@ describe("the three fixed sites do not drift back", () => {
   });
 
   it("floors the Schedule row take-home and only the take-home", () => {
-    const src = site("../components/profile/ScheduleTab.tsx");
+    const src = site("../components/profile/schedule/ScheduleCard.tsx");
     // The take-home branch floors...
     expect(src).toMatch(/formatPriceFloor\(helperTakeHomeDollars\(/);
     // ...and the gross budget branch is still allowed to round, because a

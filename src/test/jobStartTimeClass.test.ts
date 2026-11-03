@@ -165,7 +165,7 @@ function formatTime12Offenders(): { file: string; line: number; call: string }[]
   return out;
 }
 
-// @mutate src/components/profile/ScheduleTab.tsx | const time = jobStartTimeLabel(job.start_time, job.is_flexible_schedule); | const time = formatTime12(job.start_time);
+// @mutate src/components/profile/schedule/ScheduleCard.tsx | const time = jobStartTimeLabel(job.start_time, job.is_flexible_schedule); | const time = formatTime12(job.start_time);
 
 describe("job start time — one rule, every surface", () => {
   it("reads a real corpus (floor, so an empty inventory cannot pass)", () => {

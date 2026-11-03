@@ -14,7 +14,6 @@
     "src/components/NotificationPreferences.tsx": 865,
     "src/components/postjob/CheckoutStep.tsx": 716,
     "src/components/profile/CredentialsTab.tsx": 911,
-    "src/components/profile/ScheduleTab.tsx": 839,
     "src/components/profile/SubscriptionTab.tsx": 871,
     "src/components/ui/dialog.tsx": 700,
     "src/pages/auth/CompleteProfile.tsx": 892,

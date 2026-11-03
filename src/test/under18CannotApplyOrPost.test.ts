@@ -54,7 +54,7 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs, migrationFiles } from "./helpers/effectiveFunctionDefs";
 import { bodyOf, triggerInventory, triggersOn } from "./helpers/migrationTriggers";
 import { eighteenthBirthday, isUnder18, isUnder18Refusal } from "@/lib/ageGate";
-import { RPC_ERROR_COPY } from "@/lib/lifecycleErrors";
+import { RPC_ERROR_COPY } from "@/lib/lifecycleErrorCopy";
 
 const ROOT = process.cwd();
 const MIG = join(ROOT, "supabase", "migrations");

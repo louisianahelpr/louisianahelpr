@@ -897,6 +897,17 @@ export default defineConfig(({ mode, command }) => ({
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
             },
+            // Q1158/Q654 (B48, 11-03): the refusal words (lifecycleErrorCopy.ts, ~120 KB raw) load on their own, on the
+            // first input (lifecycleErrors.ts loadLifecycleErrorCopy), and so do the rentals refusal words only they and
+            // the admin table read. Left to the groups below they rode in signed-in-deep (196 KB raw), so the first
+            // tap downloaded ~47 KB gz for ~14 KB of words. Their own chunk: nothing else comes with them.
+            {
+              name: "error-copy",
+              test: /[\\/]src[\\/]lib[\\/](lifecycleErrorCopy|rentals[\\/]errorCopy)\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
             // Rentals S1's client and screen words (behind the hidden 'rentals'
             // switch). Its screens, the admin ownership card and Post a Job's
             // maintenance prefill share them, so signed-in-shared below would

@@ -23,7 +23,7 @@ import { join } from "node:path";
 import { readFileSync } from "node:fs";
 import { effectiveDefs, migrationFiles } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
-import { RPC_ERROR_COPY } from "@/lib/lifecycleErrors";
+import { RPC_ERROR_COPY } from "@/lib/lifecycleErrorCopy";
 import { SHOPS_ERROR_COPY } from "@/lib/shops/errors";
 
 const MIG_DIR = join(process.cwd(), "supabase/migrations");
@@ -195,4 +195,4 @@ describe("Q345: every hire RPC refuses across a block", () => {
 // @mutate supabase/migrations/20261018164442_shops_orders_checkout.sql |   IF public.are_users_blocked(v_uid, o.buyer_id) THEN\n    RAISE EXCEPTION 'applicant_blocked' |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked'
 // @mutate src/lib/shops/errors.ts |   applicant_blocked: "This order can't be accepted any more. Decline it so the buyer's card hold is released.",\n |
 // The accept copy removed.
-// @mutate src/lib/lifecycleErrors.ts | applicant_blocked: "This person can no longer be hired for this job.", | x_unused: "x",
+// @mutate src/lib/lifecycleErrorCopy.ts | applicant_blocked: "This person can no longer be hired for this job.", | x_unused: "x",

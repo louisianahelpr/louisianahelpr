@@ -18,14 +18,14 @@
  * None of them may say confirm.
  *
  * @mutate src/pages/jobs/appliedJobCard/crewAcceptCopy.ts | button: "Accept my spot", | button: "Confirm My Spot",
- * @mutate src/lib/lifecycleErrors.ts | "Accept this job first, then mark yourself on the way." | "Confirm this booking first, then mark yourself on the way."
+ * @mutate src/lib/lifecycleErrorCopy.ts | "Accept this job first, then mark yourself on the way." | "Confirm this booking first, then mark yourself on the way."
  * @mutate src/pages/jobs/appliedJobCard/CrewMemberSection.tsx | label={busy ? "…" : CREW_ACCEPT_COPY.button} | label={busy ? "…" : "Confirm My Spot"}
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CREW_ACCEPT_COPY } from "@/pages/jobs/appliedJobCard/crewAcceptCopy";
-import { RPC_ERROR_COPY } from "@/lib/lifecycleErrors";
+import { RPC_ERROR_COPY } from "@/lib/lifecycleErrorCopy";
 import { ADMIN_RPC_ERROR_COPY } from "@/components/admin/adminRpcErrorCopy";
 import { HELPER_WAIT } from "@/components/job-card/jobStatusLine";
 import { blankComments } from "./helpers/blankNonCode";

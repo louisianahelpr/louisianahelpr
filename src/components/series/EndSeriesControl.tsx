@@ -69,9 +69,9 @@ export function EndSeriesControl({
             "Ending a series is briefly unavailable while an update finishes rolling out. Please try again in a few minutes.",
           );
         }
-        throw new Error(
-          rpcErrorMessage("end_recurring_series", error) ?? error.message ?? "Couldn't end the series — please try again",
-        );
+        // Never the error's own message: it is a raw code (lifecycleErrors.ts answers null for one it has no words
+        // for, and for every code while its words are still loading).
+        throw new Error(rpcErrorMessage("end_recurring_series", error) ?? "Couldn't end the series — please try again");
       }
       const result = (data ?? {}) as {
         action?: string;

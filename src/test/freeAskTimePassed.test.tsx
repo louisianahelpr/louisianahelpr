@@ -9,7 +9,7 @@
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | const passed = !!r.pickup_at && new Date(r.pickup_at).getTime() <= Date.now(); | const passed = false;
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx | {passed ? " · time passed" : ""} |
  * @mutate src/components/declutter/DeclutterFreeClaim.tsx |               {passed ? null : ( |               {false ? null : (
- * @mutate src/lib/lifecycleErrors.ts |     request_time_passed: DC.request_time_passed,\n |
+ * @mutate src/lib/lifecycleErrorCopy.ts |     request_time_passed: DC.request_time_passed,\n |
  * @mutate supabase/migrations/20261102011547_free_asks_close_when_their_time_passes.sql |     v_free_asks := public.sweep_declutter_free_asks(p_now); |     v_free_asks := 0;
  * @mutate supabase/migrations/20261102011547_free_asks_close_when_their_time_passes.sql |   IF v_req.pickup_at IS NOT NULL AND v_req.pickup_at <= now() THEN | IF false THEN
  */
@@ -32,7 +32,7 @@ vi.mock("@/lib/declutter/api", async (orig) => ({
 }));
 import { FreeRequestsForGiver } from "@/components/declutter/DeclutterFreeClaim";
 import { DECLUTTER_ERROR_COPY } from "@/lib/declutter/errors";
-import { RPC_ERROR_COPY } from "@/lib/lifecycleErrors";
+import { RPC_ERROR_COPY } from "@/lib/lifecycleErrorCopy";
 
 const ROOT = resolve(__dirname, "../..");
 const MIG_DIR = resolve(ROOT, "supabase/migrations");

@@ -18,7 +18,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
 import { RENTALS_ERROR_COPY } from "@/lib/rentals/errorCopy";
-import { RPC_ERROR_COPY } from "@/lib/lifecycleErrors";
+import { RPC_ERROR_COPY } from "@/lib/lifecycleErrorCopy";
 
 const ROOT = path.resolve(__dirname, "../..");
 const BUY_FILES = [

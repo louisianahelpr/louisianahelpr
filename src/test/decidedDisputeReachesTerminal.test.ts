@@ -251,7 +251,7 @@ describe("Q342 review M1: no decision is recorded that could never execute", () 
   });
 
   it("the admin is shown why, not 'try again'", () => {
-    expect(read("src/lib/lifecycleErrors.ts")).toMatch(/dispute_job_charged_back:\s*\n?\s*"/);
+    expect(read("src/lib/lifecycleErrorCopy.ts")).toMatch(/dispute_job_charged_back:\s*\n?\s*"/);
     expect(read("src/components/admin/AdminDisputes.tsx")).toMatch(/lifecycleErrorMessage\(err\) \?\? userFacingError\(err, "Couldn't record that decision/);
   });
 });

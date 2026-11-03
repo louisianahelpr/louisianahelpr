@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { RPC_ERROR_COPY } from "@/lib/lifecycleErrors";
+import { RPC_ERROR_COPY } from "@/lib/lifecycleErrorCopy";
 import { ADMIN_RPC_ERROR_COPY } from "@/components/admin/adminRpcErrorCopy";
 import { HELPR_TASK_RPC_ERROR_COPY } from "@/lib/helprTasks/errorCopy";
 import { SHOPS_RPC_ERROR_COPY } from "@/lib/shops/rpcErrorCopy";
@@ -579,8 +579,8 @@ describe("the checks can fail (the original bug, pinned)", () => {
 // and both are floored above (calls > 50, inventory > 15), so an inventory that
 // went blind fails loudly instead of passing on an empty set.
 // SOURCE-TEXT ONLY: the migrations are the oracle, never prod's pg_get_functiondef.
-// @mutate src/lib/lifecycleErrors.ts | job_already_completed: "This job was just marked complete, so it can't be cancelled.",\n | 
+// @mutate src/lib/lifecycleErrorCopy.ts | job_already_completed: "This job was just marked complete, so it can't be cancelled.",\n | 
 // An admin RPC's copy is held to the same rule: deleting one admin code's words fails the unmapped check.
 // @mutate src/components/admin/adminRpcErrorCopy.ts |     dispute_has_payment: "This job has a payment on file, so the split has to move it. Use Retry settlement.",\n |
 // Putting an admin RPC's copy back in the shared table fails the which-table check.
-// @mutate src/lib/lifecycleErrors.ts |   send_team_reply: {\n |   admin_list_signup_leads: { admin_only: "Only admins can see sign-up leads." },\n  send_team_reply: {\n
+// @mutate src/lib/lifecycleErrorCopy.ts |   send_team_reply: {\n |   admin_list_signup_leads: { admin_only: "Only admins can see sign-up leads." },\n  send_team_reply: {\n

@@ -157,7 +157,7 @@ export function ActiveJobSection({
       hapticError();
       report(error, { tags: { source: "ActiveJobSection.helperAbortJob" } });
       const fallback = "We couldn’t send that — check your connection and try again.";
-      const code = rpcErrorCode("helper_abort_job", error);
+      const code = await rpcErrorCode("helper_abort_job", error); // waits for the words, so `copy` below has them
       const copy = rpcErrorMessage("helper_abort_job", error) ?? fallback;
       if (code === "job_already_completed" || code === "job_not_found" || code === "not_authorized") {
         // The job moved on under this card (marked complete a moment ago,

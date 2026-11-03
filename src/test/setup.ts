@@ -128,3 +128,9 @@ for (const level of ["error", "warn"] as const) {
     orig(...args);
   };
 }
+
+// Q1158/Q654 (B48): the refusal words (src/lib/lifecycleErrorCopy.ts) load on their own in the app, after the
+// first input. Every test reads them as a page that has loaded them does; the not-yet-loaded path is tested in
+// src/lib/lifecycleErrors.lazyCopy.test.ts, which clears this. Loaded directly, never through lifecycleErrors.ts,
+// so a test file's vi.mock("@/lib/lifecycleErrors") still applies.
+(globalThis as { __lhLifecycleErrorCopy?: unknown }).__lhLifecycleErrorCopy = await import("@/lib/lifecycleErrorCopy");

@@ -55,6 +55,7 @@ import { ManagerSaleShareGate } from "./ManagerSaleShareGate";
 import { useOpenProblems } from "./useOpenProblems";
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
 import { markReviewPrompt } from "@/lib/declutter/reviewPrompt";
+import { Button } from "@/components/ui/button";
 import { GotItSheet, PickedUpPhotoSheet, PickedUpSheet, PutItOutSheet } from "./DeclutterHandoverSheets";
 import { MeetupPanel } from "./DeclutterMeetup";
 import { noShowFrom, pickupTimeOver, porchDayIsNow, PorchDayPanel, porchPhotoDay } from "./DeclutterPorchDay";
@@ -468,7 +469,7 @@ function HandoverPanel({ order, userId, slotStart, anyProblem, who, problemOpen,
     // Greyed out with its reason (owner 11-03); "Report a problem" stays below, outside this panel.
     return (
       <div className="space-y-1">
-        <button type="button" className={primary} disabled aria-describedby={`dcl-got-it-wait-${order.orderId}`}>I got it</button>
+        <Button type="button" size="sm" className="rounded-full" disabled aria-describedby={`dcl-got-it-wait-${order.orderId}`}>I got it</Button>
         <p id={`dcl-got-it-wait-${order.orderId}`} className="text-sm text-muted-foreground" data-got-it-wait="">You can tap "I got it" once the seller posts the porch photo.</p>
       </div>
     );

@@ -2029,7 +2029,7 @@ serve(async (req) => {
         results.push({ job_id: job.id, title: job.title, status: "ban_review_unreadable" });
         continue;
       }
-      if (refundsPoster(job) && job.customer_id && posterReviews.users.has(job.customer_id)) {
+      if (refundsPoster(job) && job.customer_id && posterReviews.ok && posterReviews.users.has(job.customer_id)) {
         results.push({ job_id: job.id, title: job.title, status: "ban_review" });
         continue;
       }

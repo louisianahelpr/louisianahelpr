@@ -171,8 +171,6 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   not_at_meetup: "Take the photo at the meeting spot.",
   // Anti-lying #2 (20261029002010): handover photos come from the camera at that moment.
   photo_too_old: "That photo was taken more than 10 minutes ago. Take a new one now with your camera.",
-  // BUY-17 (20261103202118): a porch pickup finishes only after the seller's porch photo is in.
-  porch_photo_not_in: "The seller hasn't posted the porch photo yet. You can finish the pickup once it's in.",
   // Audit 1a #4 (20261029201542): the seller puts it out on the buyer's booked day, never before.
   porch_day_not_yet: "Put it out on the day the buyer picked. You can post the porch photo from that day.",
   already_picked_up: "The buyer already picked up this item.",

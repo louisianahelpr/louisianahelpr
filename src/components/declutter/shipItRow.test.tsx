@@ -86,6 +86,6 @@ describe("Ship it in Manage listing", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Small box, up to 1 lb" }));
     await waitFor(() => expect(state.sent).toEqual([{ preset: "small_box", nothingRestricted: true }]));
     fireEvent.click(await screen.findByRole("radio", { name: "Off" }));
-    await waitFor(() => expect(state.sent.at(-1)).toEqual({ preset: null, nothingRestricted: false }));
+    await waitFor(() => expect(state.sent[state.sent.length - 1]).toEqual({ preset: null, nothingRestricted: false }));
   });
 });

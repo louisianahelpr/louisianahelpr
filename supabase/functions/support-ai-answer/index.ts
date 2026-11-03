@@ -92,8 +92,9 @@ serve(async (req) => {
         return json({ error: "ai_unavailable" }, 503);
       }
       if (isAdmin !== true) return json({ error: "forbidden" }, 403);
-      reportId = typeof body?.reportId === "string" ? body.reportId : "";
-      if (!UUID_RE.test(reportId)) return json({ error: "ticket_not_found" }, 404);
+      const rid = typeof body?.reportId === "string" ? body.reportId : "";
+      reportId = rid;
+      if (!UUID_RE.test(rid)) return json({ error: "ticket_not_found" }, 404);
       const { data: ticket, error: ticketError } = await admin.from("reports")
         .select("id, reported_type, reason, description").eq("id", reportId).maybeSingle();
       if (ticketError) {

@@ -94,7 +94,7 @@ describe("a ban review's decision keeps the strictest standing judgment (Q1415 f
   it("the match's auto_banned_at is stamped by its trigger on every insert and update (Q1415 f1)", () => {
     const files = migrationFiles(MIG).filter((f) => /trg_stamp_ban_evasion_match_auto_banned/.test(readFileSync(join(MIG, f), "utf8")));
     expect(files.length).toBeGreaterThan(0);
-    const sql = blankSqlComments(readFileSync(join(MIG, files.at(-1)!), "utf8"));
+    const sql = blankSqlComments(readFileSync(join(MIG, files[files.length - 1]), "utf8"));
     expect(sql).toMatch(/create\s+trigger\s+trg_stamp_ban_evasion_match_auto_banned\s+before\s+insert\s+or\s+update\s+on\s+public\.ban_evasion_matches\s+for\s+each\s+row\s+execute\s+function\s+public\.stamp_ban_evasion_match_auto_banned\(\)/i);
     const fn = blankSqlComments(defs.get("stamp_ban_evasion_match_auto_banned")!.stmt);
     expect(fn).toMatch(/if\s+new\.auto_banned\s+and\s+\(\s*tg_op\s*=\s*'INSERT'\s+or\s+not\s+coalesce\(\s*old\.auto_banned\s*,\s*false\s*\)\s*\)\s+then\s+new\.auto_banned_at\s*:=\s*now\(\)/i);

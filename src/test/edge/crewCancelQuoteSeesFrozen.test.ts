@@ -45,12 +45,12 @@ const roster = [
   { id: "g2", helper_id: "h2", share_cents: 10000, helper_confirmed_at: "2024-10-20T12:00:00Z", helper_on_the_way_at: null, helper_arrived_at: null, joined_at: "2024-10-18T12:00:00Z" },
 ];
 
-async function quote(opts: { frozen?: string[]; idWaits?: string[]; frozenErr?: { message: string; code?: string }; rows?: unknown[] } = {}) {
+async function quote(opts: { frozen?: string[]; idWaits?: string[]; frozenErr?: { message: string; code?: string }; rows?: Record<string, unknown>[] } = {}) {
   resetEnv(); resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
   setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "anon-key", SUPABASE_SERVICE_ROLE_KEY: "service-key", STRIPE_SECRET_KEY: "sk_test_crew" });
   scenario.authUser = POSTER;
   scenario.reads.jobs = { rows: [crewJob()] };
-  scenario.reads.group_job_helpers = { rows: opts.rows ?? roster };
+  scenario.reads.group_job_helpers = { rows: (opts.rows ?? roster) as Record<string, unknown>[] };
   scenario.rpc.cancel_fee_payee_frozen = (a?: unknown) => (opts.frozen ?? []).includes((a as { p_user: string }).p_user);
   scenario.rpc.payout_waits_on_identity = (a?: unknown) => (opts.idWaits ?? []).includes((a as { p_user_id: string }).p_user_id);
   if (opts.frozenErr) scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), cancel_fee_payee_frozen: opts.frozenErr };
@@ -102,7 +102,7 @@ describe("cancel_quote prices a crew as poster_cancel_job does (Q2557)", () => {
   });
 });
 
-async function quoteWithBudget(budget: number, rows: unknown[]) {
+async function quoteWithBudget(budget: number, rows: Record<string, unknown>[]) {
   resetEnv(); resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
   setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "anon-key", SUPABASE_SERVICE_ROLE_KEY: "service-key", STRIPE_SECRET_KEY: "sk_test_crew" });
   scenario.authUser = POSTER;

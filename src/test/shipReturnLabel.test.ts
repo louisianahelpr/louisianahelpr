@@ -93,20 +93,20 @@ describe("runShipReturn", () => {
     const { p, calls } = ports({ get: { [RET]: created([rate("rate_ga", "GroundAdvantage", "8.00")]) } });
     expect(await runShipReturn(row({ provider_shipment_id: RET }), p)).toBe("return_failed");
     expect(calls.some((c) => c.startsWith("buy"))).toBe(false);
-    expect(calls.at(-1)).toMatch(/^failed:no USPS Ground Advantage rate/);
+    expect(calls.slice(-1)[0]).toMatch(/^failed:no USPS Ground Advantage rate/);
   });
   it("a provider error is retried, and after MAX_ATTEMPTS the row is failed", async () => {
     const a = ports({ get: { [OUT]: outbound() }, createOk: false });
     expect(await runShipReturn(row(), a.p)).toBe("return_retry");
-    expect(a.calls.at(-1)).toBe("retry:1:create 200");
+    expect(a.calls.slice(-1)[0]).toBe("retry:1:create 200");
     const b = ports({ get: {} });
     expect(await runShipReturn(row({ attempts: MAX_ATTEMPTS - 1 }), b.p)).toBe("return_failed");
-    expect(b.calls.at(-1)).toMatch(/^failed:gave up after 8 tries/);
+    expect(b.calls.slice(-1)[0]).toMatch(/^failed:gave up after 8 tries/);
   });
   it("a buy that answers no label is retried (the next run reads it back first)", async () => {
     const { p, calls } = ports({ get: { [RET]: created() }, buy: created() });
     expect(await runShipReturn(row({ provider_shipment_id: RET }), p)).toBe("return_retry");
-    expect(calls.at(-1)).toBe("retry:1:buy answered no_label");
+    expect(calls.slice(-1)[0]).toBe("retry:1:buy answered no_label");
   });
   it("a live row or a live / foreign return shipment is failed, never bought", async () => {
     const a = ports();

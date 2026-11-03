@@ -80,7 +80,7 @@ afterEach(() => {
   Object.defineProperty(window, "location", { value: originalLocation, configurable: true, writable: true });
 });
 
-const lastContext = () => (report.mock.calls.at(-1)?.[1] as { context: Record<string, unknown> }).context;
+const lastContext = () => (report.mock.calls[report.mock.calls.length - 1]?.[1] as { context: Record<string, unknown> }).context;
 
 describe("recoverFromChunkError names each way it declines", () => {
   it("offline", () => {

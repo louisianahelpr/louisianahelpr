@@ -33,7 +33,7 @@ describe("Q1088: review tags live in reviews.tags", () => {
   it("the CHECK names exactly the tags the form can write", () => {
     const stating = migrationFiles(MIG).filter((f) => /ADD\s+CONSTRAINT\s+reviews_tags_known/i.test(blankSqlComments(readFileSync(join(MIG, f), "utf8"))));
     expect(stating.length).toBeGreaterThan(0);
-    const sql = blankSqlComments(readFileSync(join(MIG, stating.at(-1)!), "utf8"));
+    const sql = blankSqlComments(readFileSync(join(MIG, stating[stating.length - 1]), "utf8"));
     const check = sql.slice(sql.search(/ADD\s+CONSTRAINT\s+reviews_tags_known/i));
     const arr = check.match(/tags\s*<@\s*ARRAY\[([\s\S]*?)\]::text\[\]/i);
     expect(arr, "tags <@ ARRAY[...] in reviews_tags_known").not.toBeNull();

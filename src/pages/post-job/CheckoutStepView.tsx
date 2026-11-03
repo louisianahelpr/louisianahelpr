@@ -36,7 +36,7 @@ function WithQuoteAsk({ form, children }: CheckoutStepViewProps & { children: (a
     title: form.title, description: form.description, category: form.category, streetAddress: form.streetAddress,
     city: form.city, addrState: form.addrState, zipCode: form.zipCode, dateNeeded: form.dateNeeded,
     startTime: form.startTime, isFlexibleSchedule: form.isFlexibleSchedule, estimatedHours: form.estimatedHours,
-    parish: form.parish,
+    parish: form.parish, taxKind: form.taxKind,
   });
   return <>{children({ sending: quotes.sending, onAsk })}</>;
 }

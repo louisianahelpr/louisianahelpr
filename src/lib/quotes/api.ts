@@ -111,6 +111,10 @@ export interface NewQuoteRequest {
   longitude: number | null;
   parish: string | null;
   windowHours: QuoteWindowHours;
+  /** The job site's ZIP (Q2083 b): the booked job's checkout prices sales tax there. Required by the RPC. */
+  zipCode: string;
+  /** The poster's taxed-kind answer (jobs.tax_kind, Q2083 owner Option 1); null = none. */
+  taxKind: "item_repair" | "fabric_cleaning" | "clothes_cleaning" | "clothing_alterations" | null;
 }
 
 /** Ask for quotes. Returns the new request's id (never null: unwrap throws first). */
@@ -128,6 +132,8 @@ export async function createQuoteRequest(r: NewQuoteRequest): Promise<string> {
       p_longitude: r.longitude ?? undefined,
       p_parish: r.parish ?? undefined,
       p_window_hours: r.windowHours,
+      p_zip_code: r.zipCode,
+      p_tax_kind: r.taxKind ?? undefined,
     }),
     (e) => rpcErrorMessage("create_quote_request", e),
   );

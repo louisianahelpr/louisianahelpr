@@ -86,7 +86,7 @@ describe("quotes on jobs: race locks, one payment path, the switch (Q1-Q8)", () 
 
   it("the agreed price reaches money only as jobs.budget through a normal jobs INSERT (Q8)", () => {
     const ins = body("quote_insert_job");
-    expect(ins).toMatch(/INSERT INTO public\.jobs \(customer_id,[\s\S]*budget,\s+offered_to_helper_id, direct_offer_expires_at\)/);
+    expect(ins).toMatch(/INSERT INTO public\.jobs \(customer_id,[\s\S]*budget,\s+offered_to_helper_id, direct_offer_expires_at, zip_code, tax_kind\)/);
     // Nothing here sets payment state: the jobs INSERT column lock forces 'unpaid'.
     expect(migration).not.toMatch(/(?:payment_status|stripe_\w+)\s*:=|SET\s+(?:payment_status|stripe_\w+)\s*=/i);
     expect(body("book_accepted_quote")).toMatch(/v_req\.poster_id IS DISTINCT FROM v_uid/);

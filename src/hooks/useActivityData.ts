@@ -190,7 +190,7 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
   // one query per Activity load, forever, for a control nobody could see.
   // Both cores in one request when the database has get_my_activity_cores (Q104; src/lib/activityCores.ts).
   // Null: the three reads below, as before.
-  const cores = await fetchActivityCores(userId);
+  const cores = await fetchActivityCores(userId, "posted");
   const [jobsRes, appCountRes, offerTargets] = cores ? [
     { data: cores.posted_jobs, error: null },
     { data: cores.poster_applications, error: null },
@@ -500,7 +500,7 @@ export async function fetchPostedActivityDetail(
 export async function fetchAppliedActivity(userId: string): Promise<AppliedActivity> {
   // Both cores in one request when the database has get_my_activity_cores (Q104; src/lib/activityCores.ts).
   // Null: the five reads below, as before.
-  const cores = await fetchActivityCores(userId);
+  const cores = await fetchActivityCores(userId, "applied");
   const [appsRes, jobsRes, directOffersRes, violationsRes, helperReviewsRes] = cores ? [
     { data: cores.my_applications, error: null },
     { data: cores.application_jobs as Job[], error: null },

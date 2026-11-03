@@ -92,12 +92,15 @@ export function startJobsPrefetch(pathname: string): void {
       headers: { ...auth, Accept: "application/json", "Content-Type": "application/json" },
       body: JSON.stringify(args),
     }).then(rowsOf);
+  // A link that opens on the Posted or Working list never draws Browse's feed: its reads would only take bandwidth
+  // from the list's own (B46, 11-03). The member's own reads (`me`, below) are still the list's first reads.
+  const list = jobsOpensOnList(location.search);
   // A failed prefetch is not an error: the query reads for itself.
-  const ctx = Promise.all([rpc("get_public_platform_settings", {}), get(urls.availability), get(urls.applied), get(urls.blocks)])
+  const ctx = list ? Promise.resolve(null) : Promise.all([rpc("get_public_platform_settings", {}), get(urls.availability), get(urls.applied), get(urls.blocks)])
     .then(([fee, availability, applied, blocks]) =>
       fee && availability && applied && blocks ? { fee, availability, applied, blocks } : null)
     .catch(() => null);
-  const feed = get(urls.feed)
+  const feed = list ? Promise.resolve(null) : get(urls.feed)
     .then(async (rows) => {
       if (!rows) return null;
       // Every poster on the first page (the query's own list is this one minus anyone blocked: a subset).
@@ -121,4 +124,15 @@ export function startJobsPrefetch(pathname: string): void {
     .then(([profile, admin]) => (profile && admin ? { profile, admin } : null))
     .catch(() => null);
   (window as unknown as Record<string, unknown>)[JOBS_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, feed, ctx, me };
+}
+
+/**
+ * True when a cold /jobs URL opens on the Posted or Working list: JobsSection.resolveJobsTab's rule (a list ?tab=, or
+ * no ?tab= and one of the old My Jobs link params, MY_JOBS_LINK_PARAMS), copied because nothing here may import the
+ * page. src/boot/jobsPrefetch.test.ts holds the two equal for every link shape.
+ */
+export function jobsOpensOnList(search: string): boolean {
+  const p = new URLSearchParams(search);
+  const tab = p.get("tab");
+  return tab ? tab === "posted" || tab === "working" : ["job", "filter", "highlight", "q", "quotes"].some((k) => p.has(k));
 }

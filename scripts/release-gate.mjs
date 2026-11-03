@@ -39,6 +39,11 @@
  *   node scripts/release-gate.mjs <sha> --json      machine-readable result
  *   node scripts/release-gate.mjs <sha> --wait      poll until nothing is in
  *                                                   flight, then decide
+ *   node scripts/release-gate.mjs <sha> --waive=<id,id>
+ *                                                   skip checks the owner waived
+ *                                                   for this version only
+ *                                                   (OWNER_WAIVERS; or env
+ *                                                   LH_RELEASE_GATE_WAIVE)
  *
  * `--dispatch` uses `workflow_dispatch`, which takes a branch or tag, never a
  * sha. When the sha is the tip of origin/main it dispatches on `main`;
@@ -72,6 +77,42 @@ export const REQUIRED_CHECKS = [
   { id: "a11y-prod", workflow: "A11y in WebKit (prod)", file: "a11y-webkit-prod.yml", job: /^WebKit-only violations/ },
   { id: "write-contract", workflow: "Write contract snapshot refresh", file: "write-contract-refresh.yml", job: /^refresh$/ },
 ];
+
+/**
+ * Owner-approved waivers, keyed by the app version they cover. A waiver only
+ * applies when (a) `--waive <id,id>` (or LH_RELEASE_GATE_WAIVE) names it, (b)
+ * every named id is listed here for (c) the MARKETING_VERSION the sha ships
+ * (ios/App/App.xcodeproj/project.pbxproj at that sha). Anything else is
+ * refused, so a waiver can never widen to another check or another version.
+ * A waived check is still read and printed with its real state.
+ * Add an entry only with the owner's own words and date (OWNER-DECISIONS.md).
+ */
+export const OWNER_WAIVERS = {
+  "1.0.4": {
+    checks: ["press-every-control", "a11y-prod"],
+    decision:
+      'owner pop-up 11-03 ~11:50 AM: "Waive those two, submit today" (1.0.4 App Store submit only; OWNER-DECISIONS.md 11-03)',
+  },
+};
+
+/** Throws unless every requested id is waivable for this version; returns the waived id set. */
+export function resolveWaivers(requested, version) {
+  const ids = requested.filter(Boolean);
+  if (!ids.length) return new Set();
+  const entry = OWNER_WAIVERS[version];
+  if (!entry) throw new Error(`no owner waiver exists for version ${version || "(unknown)"}; refusing --waive ${ids.join(",")}`);
+  const bad = ids.filter((id) => !entry.checks.includes(id));
+  if (bad.length) throw new Error(`--waive ${bad.join(",")} is not an owner-approved waiver for ${version} (allowed: ${entry.checks.join(",")})`);
+  return new Set(ids);
+}
+
+/** The MARKETING_VERSION the sha ships (every build configuration must agree). */
+function versionAt(sha) {
+  const pbx = git(["show", `${sha}:ios/App/App.xcodeproj/project.pbxproj`]);
+  const vs = [...new Set([...pbx.matchAll(/MARKETING_VERSION = ([^;]+);/g)].map((m) => m[1].trim()))];
+  if (vs.length !== 1) throw new Error(`MARKETING_VERSION at ${sha.slice(0, 7)} is not one value: ${vs.join(", ") || "none"}`);
+  return vs[0];
+}
 
 function gh(args, opts = {}) {
   return execFileSync("gh", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], ...opts });
@@ -139,6 +180,17 @@ export function evaluate(sha, runs, jobsFor = jobsForRun) {
   });
 }
 
+/**
+ * A waived check that is not green reads "waived" (it keeps its real state in
+ * realState). Waived checks that are green stay green; only a still-running
+ * waived check stops counting as running, so --wait never waits on it.
+ */
+export function applyWaivers(verdicts, waived, waiverText) {
+  return verdicts.map((v) =>
+    waived.has(v.id) && v.state !== "green" ? { ...v, state: "waived", realState: v.state, waiver: waiverText } : v,
+  );
+}
+
 function dispatchRef(sha) {
   let mainTip = "";
   try {
@@ -176,6 +228,7 @@ function describe(v) {
   const where = v.run?.url ? ` ${v.run.url}` : "";
   switch (v.state) {
     case "green": return `  ✓ ${v.id.padEnd(20)} green${where}`;
+    case "waived": return `  ~ ${v.id.padEnd(20)} WAIVED (real state: ${v.realState}${v.conclusion ? `, ${v.conclusion}` : ""}) — ${v.waiver}${where}`;
     case "red": return `  ✗ ${v.id.padEnd(20)} RED (${v.conclusion})${where}`;
     case "hollow": return `  ✗ ${v.id.padEnd(20)} HOLLOW — run is green but no audit job ran [${(v.jobs ?? []).join(", ") || "no matching job"}]${where}`;
     case "running": return `  … ${v.id.padEnd(20)} still running${where}`;
@@ -191,18 +244,25 @@ async function main() {
   const sha = resolveSha(ref);
   const wantJson = flags.has("--json");
 
+  const waiveArg = argv.find((a) => a.startsWith("--waive="))?.slice("--waive=".length) ?? process.env.LH_RELEASE_GATE_WAIVE ?? "";
+  const requested = waiveArg.split(",").map((x) => x.trim()).filter(Boolean);
+  const version = requested.length ? versionAt(sha) : "";
+  const waived = resolveWaivers(requested, version);
+  const waiverText = waived.size ? OWNER_WAIVERS[version].decision : "";
+
   const pollMs = 60_000;
   let verdicts;
   for (;;) {
-    verdicts = evaluate(sha, runsForSha(sha));
+    verdicts = applyWaivers(evaluate(sha, runsForSha(sha)), waived, waiverText);
     const running = verdicts.some((v) => v.state === "running");
     if (!flags.has("--wait") || !running) break;
     if (!wantJson) console.error(`release-gate: ${sha.slice(0, 7)} still has runs in flight — polling again in ${pollMs / 1000}s`);
     await new Promise((r) => setTimeout(r, pollMs));
   }
 
-  const blocking = verdicts.filter((v) => v.state !== "green");
+  const blocking = verdicts.filter((v) => v.state !== "green" && v.state !== "waived");
   const started = flags.has("--dispatch") ? dispatch(sha, verdicts) : [];
+  if (waived.size && !wantJson) console.log(`RELEASE GATE WAIVER for ${version}: ${[...waived].join(", ")} — ${waiverText}`);
 
   if (wantJson) {
     console.log(JSON.stringify({ sha, ok: blocking.length === 0, checks: verdicts.map(({ job: _job, ...v }) => v), dispatched: started }, null, 2));
@@ -220,7 +280,11 @@ async function main() {
           (started.length ? " Re-run this gate once the dispatched workflows finish." : " Pass --dispatch to start the missing ones."),
       );
     } else {
-      console.log(`\nrelease-gate: all ${REQUIRED_CHECKS.length} checks green for ${sha.slice(0, 7)} — clear to ship.`);
+      console.log(
+        waived.size
+          ? `\nrelease-gate: ${REQUIRED_CHECKS.length - waived.size} checks green and ${waived.size} waived (${[...waived].join(", ")}) for ${sha.slice(0, 7)} — clear to ship.`
+          : `\nrelease-gate: all ${REQUIRED_CHECKS.length} checks green for ${sha.slice(0, 7)} — clear to ship.`,
+      );
     }
   }
   process.exit(blocking.length ? 1 : 0);

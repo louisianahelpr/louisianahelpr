@@ -19,6 +19,7 @@
  * @mutate supabase/migrations/20261102040000_declutter_review_report.sql |      AND NEW.reporter_id IS DISTINCT FROM m.receiver_id THEN |      AND false THEN
  * @mutate supabase/migrations/20261102040000_declutter_review_report.sql |     NULLIF(m.content, ''), |     NULL,
  * @mutate supabase/migrations/20261030144615_message_admin_reads_reports_deletes.sql |   BEFORE UPDATE OF content ON public.messages |   AFTER UPDATE OF read ON public.messages
+ * @mutate supabase/migrations/20261103203202_helpr_delivery_talk_refuses_objectionable.sql |   IF public.objectionable_reason(NEW.body) IS NOT NULL THEN |   IF false THEN
  * @mutate src/pages/messages/Messages.tsx | toast.error(error && /message_locked/.test(error.message) ? | toast.error(false ?
  */
 import { readFileSync } from "node:fs";
@@ -97,11 +98,12 @@ describe("Messages audit M1/M2/L6: admin reads, locked deletes, party-only repor
     expect(fn).toMatch(/NEW\.reported_content := left\(concat_ws\(E'\\n',\s+NULLIF\(m\.content, ''\),/);
   });
 
-  it("L6: an edit gets the block check; both Declutter chats refuse objectionable language before contact details", () => {
+  // NOID-20 (11-03): the Helpr delivery chat (20261031231948) is the third Declutter chat; 20261103203202 gives it the same check.
+  it("L6: an edit gets the block check; all three Declutter chats refuse objectionable language before contact details", () => {
     const trg = newestStatement(/CREATE TRIGGER trg_enforce_block_on_message_edit/);
     expect(trg.stmt).toMatch(/BEFORE UPDATE OF content ON public\.messages/);
     expect(trg.stmt).toMatch(/enforce_block_on_message_insert\(\)/);
-    for (const name of ["reject_contact_leak_in_declutter_talk", "reject_contact_leak_in_declutter_order_talk"]) {
+    for (const name of ["reject_contact_leak_in_declutter_talk", "reject_contact_leak_in_declutter_order_talk", "reject_contact_leak_in_helpr_task_talk"]) {
       const body = blankSqlComments(newestFunction(name).body);
       const obj = body.indexOf("objectionable_reason(NEW.body) IS NOT NULL");
       expect(obj, name).toBeGreaterThan(0);

@@ -409,7 +409,8 @@ export function declutterErrorMessage(err: unknown): string {
   if (isNetworkFailure(err)) return CONNECTION_TROUBLE_COPY;
   // The contact-leak filter (check_violation) speaks to the member already.
   // Other check_violations are table constraints written for developers.
-  if (e.code === "23514" && /Keep contact details and payment (off the listing|out)/.test(message)) return message;
+  // NOID-20: the Declutter chats' objectionable-words refusal speaks to the member too (20261030144615, 20261103203202).
+  if (e.code === "23514" && /Keep contact details and payment (off the listing|out)|breaks our community rules/.test(message)) return message;
   if (e.code === "23514") return "Check the details: the title needs 3 to 80 characters and each field must be filled in.";
   return GENERIC;
 }

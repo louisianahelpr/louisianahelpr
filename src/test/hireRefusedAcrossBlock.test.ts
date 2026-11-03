@@ -185,11 +185,11 @@ describe("Q345: every hire RPC refuses across a block", () => {
 });
 
 // Each hire RPC's check removed, one at a time.
-// @mutate supabase/migrations/20261021061341_member_display_name.sql |   IF public.are_users_blocked(v_job.customer_id, v_uid) THEN\n    RAISE EXCEPTION 'applicant_blocked'; |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked';
-// @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql | IF public.are_users_blocked(v_helper_id, v_job_customer) THEN | IF false THEN
+// @mutate supabase/migrations/20261103032330_series_claim_takes_helpr_schedule_lock.sql |   IF public.are_users_blocked(v_job.customer_id, v_uid) THEN\n    RAISE EXCEPTION 'applicant_blocked'; |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked';
+// @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql | IF public.are_users_blocked(v_helper_id, v_job_customer) THEN | IF false THEN
 // @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql | IF public.are_users_blocked(v_job_customer, v_helper_id) THEN | IF false THEN
 // @mutate supabase/migrations/20261101071621_instant_book_decline_race.sql | IF public.are_users_blocked(auth.uid(), v_customer) THEN | IF false THEN
-// @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   IF public.are_users_blocked(p_helper, v_customer) THEN |   IF false THEN
+// @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |   IF public.are_users_blocked(p_helper, v_customer) THEN |   IF false THEN
 // @mutate supabase/migrations/20261019043546_quote_notices_link_the_quoter_view.sql | IF public.are_users_blocked(v_req.poster_id, v_q.quoter_id) THEN | IF false THEN
 // @mutate supabase/migrations/20261015091114_job_quotes.sql | IF public.are_users_blocked(v_uid, v_q.quoter_id) THEN | IF false THEN
 // @mutate supabase/migrations/20261018164442_shops_orders_checkout.sql |   IF public.are_users_blocked(v_uid, o.buyer_id) THEN\n    RAISE EXCEPTION 'applicant_blocked' |   IF false THEN\n    RAISE EXCEPTION 'applicant_blocked'

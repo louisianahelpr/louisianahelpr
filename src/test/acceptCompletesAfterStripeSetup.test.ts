@@ -15,22 +15,22 @@
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |            AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed', 'disputed')) |            AND NEW.status::text IN ('in_progress', 'revision_requested', 'completed'))
 // @mutate supabase/migrations/20261007051854_series_claim_is_an_accept.sql |           AND TG_OP = 'UPDATE' AND OLD.helper_id IS DISTINCT FROM NEW.helper_id); |           AND false);
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   INSERT INTO public.job_accept_pending (job_id, helper_id)\n  VALUES (p_job_id, v_uid) |   PERFORM 1; -- (job_id, helper_id)\n  -- VALUES (p_job_id, v_uid)
-// @mutate supabase/migrations/20261021061341_member_display_name.sql |                ELSE public.complete_job_accept(r.job_id) END) THEN |                ELSE false END) THEN
+// @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |                ELSE public.complete_job_accept(r.job_id) END) THEN |                ELSE false END) THEN
 // @mutate supabase/migrations/20261021061341_member_display_name.sql |     v_name \|\| ' accepted your offer', |     'Offer update',
 // @mutate supabase/migrations/20261030232108_card_hold_capture_refused_offer_words.sql |       v_setup_unfinished := public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL | v_setup_unfinished := false
 // @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |     RAISE EXCEPTION 'helper_never_accepted'\n      USING HINT = 'This Helpr never accepted the offer |     RAISE NOTICE 'helper_never_accepted'\n      USING HINT = 'This Helpr never accepted the offer
 // @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |      OR v_job_status IS DISTINCT FROM 'accepted'\n     OR v_job_confirmed IS NOT NULL THEN |      OR false THEN
-// @mutate supabase/migrations/20261021061341_member_display_name.sql |     EXCEPTION WHEN OTHERS THEN |     EXCEPTION WHEN division_by_zero THEN
-// @mutate supabase/migrations/20261021061341_member_display_name.sql |   IF NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned') |   IF false AND NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
-// @mutate supabase/migrations/20261021061341_member_display_name.sql |               (j.status = 'accepted' AND j.helper_id = p.helper_id) |               (j.status = 'accepted')
+// @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |     EXCEPTION WHEN OTHERS THEN |     EXCEPTION WHEN division_by_zero THEN
+// @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |   IF NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned') |   IF false AND NEW.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
+// @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |               (j.status = 'accepted' AND j.helper_id = p.helper_id) |               (j.status = 'accepted')
 // @mutate supabase/migrations/20261021061341_member_display_name.sql |      AND public.job_payment_is_funded(payment_status::text) |      AND true
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     RAISE EXCEPTION 'job_not_funded'; |     RAISE NOTICE 'job_not_funded';
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   PERFORM 1 FROM public.profiles WHERE user_id = v_uid FOR SHARE; |   PERFORM 1;
 // @mutate src/components/job-card/activityActions/useOfferHandlers.ts | supabase.rpc("accept_job_offer", { p_job_id: app.job_id }) | supabase.rpc("accept_job_offer_retired", { p_job_id: app.job_id })
 // @mutate supabase/migrations/20261101071621_instant_book_decline_race.sql |     v_done := public.complete_direct_offer_accept(p_job_id, auth.uid()); |     v_done := jsonb_build_object('action', 'accepted');
 // @mutate supabase/migrations/20261101071621_instant_book_decline_race.sql |       INSERT INTO public.job_accept_pending (job_id, helper_id)\n      VALUES (p_job_id, auth.uid()) |       PERFORM 1; -- (job_id, helper_id)\n      -- VALUES (p_job_id, auth.uid())
-// @mutate supabase/migrations/20261021061341_member_display_name.sql |                AND public.direct_accept_block_reason(p.job_id, p.helper_id) IS NULL)) |               AND true))
-// @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   IF public.direct_accept_block_reason(p_job_id, p_helper) IS NOT NULL THEN |   IF false THEN
+// @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |                AND public.direct_accept_block_reason(p.job_id, p.helper_id) IS NULL)) |               AND true))
+// @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |   IF public.direct_accept_block_reason(p_job_id, p_helper) IS NOT NULL THEN |   IF false THEN
 // @mutate supabase/migrations/20261101071621_instant_book_decline_race.sql |     v_block := public.direct_accept_block_reason(p_job_id, auth.uid()); |     v_block := NULL;
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |      AND COALESCE(public.get_user_credential_tier(p_helper), 0) < v_job.credential_tier THEN |      AND false THEN
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | AND public.job_offer_cutoff(v_job.date_needed, v_job.start_time) <= now() THEN\n    RETURN 'job_date_has_passed'; | AND public.job_offer_cutoff(v_job.date_needed, v_job.start_time) <= now() - interval '1 day' THEN\n    RETURN 'job_date_has_passed';

@@ -20,7 +20,7 @@
  * Behaviour (real Postgres): src/test/pglite/acceptOfferDeadlineFloor.pglite.mjs
  * (14 PASS on the fix; 6 FAIL with NEW_MIGRATION=skip).
  *
- * @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql | now() + interval '48 hours'), now() + interval '55 minutes'), | now() + interval '48 hours'), now() - interval '55 minutes'),
+ * @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql | now() + interval '48 hours'), now() + interval '55 minutes'), | now() + interval '48 hours'), now() - interval '55 minutes'),
  * @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql | IF NEW.response_deadline IS DISTINCT FROM OLD.response_deadline THEN | IF false THEN
  * @mutate supabase/migrations/20261007032040_accept_offer_deadline_floor.sql | IF NEW.response_deadline IS DISTINCT FROM OLD.response_deadline THEN | IF NEW.response_deadline IS NOT NULL AND NEW.response_deadline IS DISTINCT FROM OLD.response_deadline THEN
  * @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql | now() + interval '48 hours'), now() + interval '55 minutes'), v_cutoff); | now() + interval '48 hours'), now()), v_cutoff);

@@ -34,8 +34,8 @@
  *
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     v_reason := public.helper_accept_block_reason(v_uid);\n    IF v_reason = 'helper_unknown' THEN\n      RAISE EXCEPTION 'helper_unknown';\n    END IF;\n    IF v_reason IS NOT NULL THEN\n      INSERT INTO public.crew_confirm_pending |     v_reason := public.helper_award_block_reason(v_uid);\n    IF v_reason = 'helper_unknown' THEN\n      RAISE EXCEPTION 'helper_unknown';\n    END IF;\n    IF v_reason IS NOT NULL THEN\n      INSERT INTO public.crew_confirm_pending
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   IF public.helper_accept_block_reason(NEW.user_id) IS NOT NULL THEN | IF public.helper_award_block_reason(NEW.user_id) IS NOT NULL THEN
- * @mutate supabase/migrations/20261021061341_member_display_name.sql |   v_block := public.helper_accept_block_reason(v_uid); |   v_block := NULL;
- * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   IF public.helper_accept_block_reason(p_helper) IS NOT NULL THEN | IF false THEN
+ * @mutate supabase/migrations/20261103032330_series_claim_takes_helpr_schedule_lock.sql |   v_block := public.helper_accept_block_reason(v_uid); |   v_block := NULL;
+ * @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |   IF public.helper_accept_block_reason(p_helper) IS NOT NULL THEN | IF false THEN
  * @mutate supabase/migrations/20261025162003_payout_after_hire.sql |                 AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p.user_id) THEN ARRAY[]::text[] |                 THEN ARRAY[]::text[]
  * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql |   v_reason := public.helper_accept_block_reason(v_uid);\n  IF v_reason = 'helper_identity_unverified' THEN |   v_reason := NULL;\n  IF v_reason = 'helper_identity_unverified' THEN
  * @mutate supabase/functions/charge-recurring-visits/index.ts | const { data: notReady, error: readyErr } = await supabase.rpc("helper_accept_block_reason", { p_user_id: helperId }); | const { data: notReady, error: readyErr } = { data: null, error: null };

@@ -176,7 +176,7 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
   { file: "supabase/functions/execute-dispute-split/index.ts", key: "poster_share", kind: "keeps-fee", why: "the poster's leg of a dispute split" },
   // A10 (owner, 2026-10-17): a Declutter setup job cancelled because the seller backed out comes back in full
   // (card fee included, the seller owes it); every other cancellation keeps the fee.
-  { file: "supabase/functions/void-cancelled-payments/index.ts", key: "cancel-refund-", kind: "both", why: "cancelled job settlement; full for a seller-fault Declutter setup job (A10)" },
+  { file: "supabase/functions/void-cancelled-payments/index.ts", key: "cancel-refund-", kind: "both", why: "cancelled job settlement; full for a seller-fault Declutter setup job (A10) and for a card our own capture-then-refused-hire race charged with nobody hired (Q2447)" },
   // Q1915 (owner 2026-10-21): a deleted crew member's late-cancel share, withheld when the job settled, goes back to
   // the person who posted it (plus the sales tax the cancel refund kept on it). The card fee stays kept.
   { file: "supabase/functions/void-cancelled-payments/index.ts", key: "crew-share-returned-", kind: "keeps-fee", why: "a deleted crew member's withheld fee share back to the person who posted the job (Q1915)" },
@@ -1078,7 +1078,7 @@ const AMOUNT_DEFS: Record<string, string[]> = {
     "capturedCents = pi.amount_received ?? pi.amount",
     "blockFeeCents = crewBlockFeeCents(blockFeeRows)",
     "nonRefundableCents = voidSplit.nonRefundableCents",
-    "capturedSplit = posterCancelSplit({ job, sellerFault, cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents, charge: { state: \"captured\", capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), alreadyRefundedCents: chargeRefundedCents, taxCents: await chargeTaxCentsFor(stripe, pi), }, })",
+    "capturedSplit = posterCancelSplit({ job, sellerFault, platformFault: raceChargedNobodyHired, cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents, charge: { state: \"captured\", capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), alreadyRefundedCents: chargeRefundedCents, taxCents: await chargeTaxCentsFor(stripe, pi), }, })",
   ],
   // Q1915: a deleted crew member's withheld share plus the tax the cancel refund kept on it; the card fee stays kept.
   "crew-share-returned-": [
@@ -1610,11 +1610,11 @@ describe("every refund keeps the card fee, except our own mistakes (owner, 2026-
 
   // Boards 66/172 slice 2: posterCancelSplit (the sweep's refund and the poster's quote) is a HELPER above only
   // because its captured split IS refundToPayerCents, keeping the card fee and the poster's kept fee.
-  // @mutate supabase/functions/_shared/posterCancelSplit.ts |     customerFeeCents: fullSeriesRefund \|\| i.sellerFault ? 0 : serviceFeeCents, |     customerFeeCents: 0,
+  // @mutate supabase/functions/_shared/posterCancelSplit.ts |     customerFeeCents: fullSeriesRefund \|\| noCardFee ? 0 : serviceFeeCents, |     customerFeeCents: 0,
   it("posterCancelSplit keeps the card fee through refundToPayerCents", () => {
     const src = blankComments(readFileSync(join(FN, "_shared/posterCancelSplit.ts"), "utf8")).replace(/\s+/g, " ");
     expect(src).toMatch(/from "\.\/refundAmount\.ts"/);
-    expect(src).toContain("const split = refundToPayerCents({ capturedCents: c.capturedCents, actualFeeCents: i.sellerFault ? 0 : c.actualFeeCents, customerFeeCents: fullSeriesRefund || i.sellerFault ? 0 : serviceFeeCents, setupFeeCents: setupFeeKeptCents(i.job), otherKeptCents: feesCents, alreadyRefundedCents: c.alreadyRefundedCents, taxCents: c.taxCents, });");
+    expect(src).toContain("const split = refundToPayerCents({ capturedCents: c.capturedCents, actualFeeCents: noCardFee ? 0 : c.actualFeeCents, customerFeeCents: fullSeriesRefund || noCardFee ? 0 : serviceFeeCents, setupFeeCents: setupFeeKeptCents(i.job), otherKeptCents: feesCents, alreadyRefundedCents: c.alreadyRefundedCents, taxCents: c.taxCents, });");
     expect(src).toContain("const serviceFeeCents = posterCancelKeptFeeCents(i.job);");
     expect(src).toContain("backCents: split.refundCents,");
   });

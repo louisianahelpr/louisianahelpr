@@ -31,6 +31,7 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { memberDisplayName } from "../_shared/memberDisplayName.ts";
 import { isDefinitiveStripeRefusal } from "../_shared/stripeRefusal.ts";
 import type { StripeMode } from "../_shared/stripeMode.ts";
 import { CARD_HOLD_COPY } from "../_shared/cardHoldCopy.ts";
@@ -203,6 +204,42 @@ function savedCardRefusal(e: unknown): { code: string; state: "failed" | "needs_
     return { code: `invalid_request${err.code ? `_${err.code}` : ""}`.slice(0, 100), state: "needs_action" };
   }
   return null;
+}
+
+/**
+ * Q2447: failure_code on a CAPTURED hold whose hire was then refused (capture_hold's second run of the hire,
+ * or card-hold-sweep's pending-accept completion). The card was charged only because of our own race, so
+ * void-cancelled-payments refunds a job that closes with nobody hired on it IN FULL (own-mistake rule,
+ * owner 2026-10-14), card fee included; a first job's one-time setup fee is still kept (A10 precedent, lead
+ * 2026-11-03), and the account stays marked as having paid it.
+ */
+export const CAPTURED_NOT_HIRED = "captured_not_hired";
+
+/**
+ * Marks a captured hold CAPTURED_NOT_HIRED. Never throws (the money already moved and the caller pages
+ * either way): answers whether the mark was written, so the caller's page can say when it was not.
+ */
+export async function markCapturedNotHired(db: Db, jobId: string, why: string): Promise<boolean> {
+  try {
+    await updateHold(db, jobId, { failure_code: CAPTURED_NOT_HIRED, failure_message: why.slice(0, 500) }, ["captured"]);
+    return true;
+  } catch (e) {
+    console.error(`[cardHold] could not mark job ${jobId}'s captured hold ${CAPTURED_NOT_HIRED}: ${String((e as { message?: string })?.message ?? e)}`);
+    return false;
+  }
+}
+
+/** A member's first name for a staff page (Q2447: alerts name the people). Never throws; a failed read or no row is `fallback`. */
+export async function firstNameForPage(db: Db, userId: string | null | undefined, fallback: string): Promise<string> {
+  if (!userId) return fallback;
+  try {
+    const { data, error } = await db.from("profiles").select("full_name").eq("user_id", userId).maybeSingle();
+    if (error) return fallback;
+    return memberDisplayName((data as { full_name?: string | null } | null)?.full_name, "").split(/\s+/)[0] || fallback;
+  } catch {
+    // A name in a staff page; the money already moved and the page must still go out.
+    return fallback;
+  }
 }
 
 /** failure_code prefix: Stripe refused the capture itself, with the authorization still live. */

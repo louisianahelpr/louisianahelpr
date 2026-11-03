@@ -1175,6 +1175,43 @@ describe("create-payment edge function", () => {
           expect(args.automatic_tax).toEqual({ enabled: true });
           expect(args.metadata.tax_calculation_id).toBeUndefined();
         });
+
+        // Q1728 option (A): a gift that covers the whole taxable job. redeem_gift_card reserves it and answers
+        // 'tax_due'; the card pays the sales tax alone and the same webhook consume funds the job.
+        // @mutate supabase/functions/create-payment/index.ts |           p_tax_cents: giftJobTax?.cents ?? 0, |           p_tax_cents: 0,
+        // @mutate supabase/functions/create-payment/index.ts |         const diffLineItems: any[] = taxOnly ? [] : [{ |         const diffLineItems: any[] = [{
+        // @mutate supabase/functions/create-payment/index.ts |         if (taxOnly && (!giftJobTax \|\| Number(redeem?.tax_cents) !== giftJobTax.cents)) { |         if (false) {
+        it("a gift covering the whole taxable job: the redeem gets the tax, and the checkout is the tax line alone", async () => {
+          stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_full", tax_amount_exclusive: 900 });
+          const { res, body } = await runGift({ category: "auto_repair", zip_code: "70503" },
+            { outcome: "tax_due", tax_cents: 900, applied_cents: 10000, leftover_cents: 2500, fee_cents: 0 });
+          expect(res.status).toBe(200);
+          expect(body.url).toBe("u");
+          const call = (scenario.rpcCalls ?? []).find((c) => c.name === "redeem_gift_card");
+          expect(call?.args).toMatchObject({ p_credit_id: "gift-1", p_job_id: "job-g", p_tax_cents: 900 });
+          const args = stripeMock.checkout.sessions.create.mock.calls[0][0];
+          expect(args.line_items).toHaveLength(1);
+          expect(args.line_items[0].price_data).toMatchObject({ unit_amount: 900, product_data: { name: "Sales tax" } });
+          expect(args.automatic_tax).toEqual({ enabled: false });
+          expect(args.metadata).toMatchObject({ job_id: "job-g", gift_card_id: "gift-1", tax_calculation_id: "taxcalc_full", job_tax_cents: "900" });
+          expect(args.payment_intent_data.metadata).toMatchObject({ gift_card_id: "gift-1", tax_calculation_id: "taxcalc_full", job_tax_cents: "900" });
+        });
+
+        it("a tax_due for a tax this request did not figure opens no checkout", async () => {
+          stripeMock.tax.calculations.create.mockResolvedValue({ id: "taxcalc_full", tax_amount_exclusive: 900 });
+          const { res, body } = await runGift({ category: "auto_repair", zip_code: "70503" },
+            { outcome: "tax_due", tax_cents: 800, applied_cents: 10000, leftover_cents: 0, fee_cents: 0 });
+          expect(res.status).toBe(500);
+          expect(body.error).toMatch(/changed while checkout was opening/);
+          expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+        });
+
+        it("an untaxed gift job sends p_tax_cents 0 (the redeem settles as before)", async () => {
+          await runGift({ category: "yard_work", zip_code: "70503" }, { outcome: "settled", applied_cents: 10000, leftover_cents: 0, fee_cents: 0 });
+          const call = (scenario.rpcCalls ?? []).find((c) => c.name === "redeem_gift_card");
+          expect(call?.args).toMatchObject({ p_tax_cents: 0 });
+          expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+        });
       });
 
       it("an untaxed job makes no tax call and keeps automatic_tax", async () => {

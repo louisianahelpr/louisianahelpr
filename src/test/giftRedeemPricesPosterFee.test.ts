@@ -13,10 +13,10 @@
  * while the settle still stamped one, and every refund path would hold back a
  * fee that was never charged.
  *
- * @mutate supabase/migrations/20261018031451_poster_fee_gift_first.sql | coalesce(v_job.urgent_fee, 0)) * 100)::int + v_fee_cents; | coalesce(v_job.urgent_fee, 0)) * 100)::int;
- * @mutate supabase/migrations/20261018031451_poster_fee_gift_first.sql |     if v_fee_cents <= 0 then |     if false then
- * @mutate supabase/migrations/20261018031451_poster_fee_gift_first.sql |       'fee_cents',        v_fee_cents | 'fee_cents_x', v_fee_cents
- * @mutate supabase/migrations/20261018031451_poster_fee_gift_first.sql |     v_fee_cents := round(coalesce(v_job.customer_fee_amount, 0) * 100)::int; |     v_fee_cents := 0;
+ * @mutate supabase/migrations/20261103221953_gift_tax_due_split_conserves_value.sql | coalesce(v_job.urgent_fee, 0)) * 100)::int + v_fee_cents; | coalesce(v_job.urgent_fee, 0)) * 100)::int;
+ * @mutate supabase/migrations/20261103221953_gift_tax_due_split_conserves_value.sql |     if v_fee_cents <= 0 then |     if false then
+ * @mutate supabase/migrations/20261103221953_gift_tax_due_split_conserves_value.sql |       'fee_cents',        v_fee_cents | 'fee_cents_x', v_fee_cents
+ * @mutate supabase/migrations/20261103221953_gift_tax_due_split_conserves_value.sql |     v_fee_cents := round(coalesce(v_job.customer_fee_amount, 0) * 100)::int; |     v_fee_cents := 0;
  */
 import { describe, it, expect } from "vitest";
 import { join, resolve } from "node:path";

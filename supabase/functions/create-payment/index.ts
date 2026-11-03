@@ -1083,6 +1083,8 @@ serve(async (req) => {
           // The card checkout this request just closed above, if any: any OTHER
           // open one (a concurrent card tap) makes the redeem refuse (Q975 race 15).
           p_retired_session: previousSessionId,
+          // Q1728 option (A): a gift that covers the whole job still leaves the tax to pay by card. 0 = untaxed.
+          p_tax_cents: giftJobTax?.cents ?? 0,
         });
         if (redeemErr) {
           console.error(`[create-payment] redeem_gift_card failed for credit ${giftCardId}, job ${jobId}:`, redeemErr);
@@ -1108,8 +1110,16 @@ serve(async (req) => {
         // webhook (metadata.gift_card_id) consumes the reservation + funds
         // the job. Retry is safe: the RPC re-entry returns the same
         // difference and Stripe dedupes on the per-job idempotency key.
-        const differenceCents = Number(redeem?.difference_cents ?? 0);
-        if (!Number.isFinite(differenceCents) || differenceCents <= 0) {
+        // Q1728 option (A): 'tax_due' = the gift covers the whole job and is reserved for it; the card pays the
+        // sales tax alone, and this same checkout's webhook consume funds the job. Its leftover was already split
+        // off as a gift the poster can use now (redeem_gift_card, 20261103221953).
+        const taxOnly = redeem?.outcome === "tax_due";
+        if (taxOnly && (!giftJobTax || Number(redeem?.tax_cents) !== giftJobTax.cents)) {
+          console.warn(`[create-payment] gift redeem for job ${jobId} answered tax_due for ${redeem?.tax_cents ?? "none"}c, this checkout figured ${giftJobTax?.cents ?? "no tax"}; refusing`);
+          throw new PublicError("This job changed while checkout was opening. Please try again.");
+        }
+        const differenceCents = taxOnly ? 0 : Number(redeem?.difference_cents ?? 0);
+        if (!taxOnly && (!Number.isFinite(differenceCents) || differenceCents <= 0)) {
           throw new PublicError("Could not determine the remaining balance for this gift — please try again");
         }
         // The fee the redeem priced must be the fee this request quoted and
@@ -1126,7 +1136,7 @@ serve(async (req) => {
         // price, with NO card-fee line of its own for the poster (it replaced
         // Q362's "Urgent bonus card fee" here). The Helpr's flat 5% + $0.70 is
         // priced on budget + bonus at payout (jobHelprCommissionDollars).
-        const diffLineItems: any[] = [{
+        const diffLineItems: any[] = taxOnly ? [] : [{
           price_data: {
             currency: "usd",
             tax_behavior: TAX_BEHAVIOR,

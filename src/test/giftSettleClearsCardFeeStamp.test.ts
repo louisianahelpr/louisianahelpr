@@ -24,9 +24,9 @@
  * stale card fee), the stamped fee the gift paid on a poster-fee job. The
  * guard pins that v_fee_cents is 0 whenever the job carries no poster stamp.
  *
- * @mutate supabase/migrations/20261018031451_poster_fee_gift_first.sql | stripe_session_id = null, customer_fee_amount = v_fee_cents::numeric / 100 where | stripe_session_id = null where
- * @mutate supabase/migrations/20261018031451_poster_fee_gift_first.sql | stripe_session_id = null, customer_fee_amount = v_fee_cents::numeric / 100 where | stripe_session_id = null, customer_fee_amount = 1 where
- * @mutate supabase/migrations/20261018031451_poster_fee_gift_first.sql |   else\n    v_fee_cents := 0;\n |   else\n    v_fee_cents := 1;\n
+ * @mutate supabase/migrations/20261103221953_gift_tax_due_split_conserves_value.sql | stripe_session_id = null, customer_fee_amount = v_fee_cents::numeric / 100 where | stripe_session_id = null where
+ * @mutate supabase/migrations/20261103221953_gift_tax_due_split_conserves_value.sql | stripe_session_id = null, customer_fee_amount = v_fee_cents::numeric / 100 where | stripe_session_id = null, customer_fee_amount = 1 where
+ * @mutate supabase/migrations/20261103221953_gift_tax_due_split_conserves_value.sql |   else\n    v_fee_cents := 0;\n |   else\n    v_fee_cents := 1;\n
  * @mutate supabase/functions/create-payment/index.ts | const diffStamp = await stampSession(diffSession.id, { customer_fee_amount: | const diffStamp = await stampSession(diffSession.id, { customer_card_fee: 0, customer_fee_amount:
  */
 import { describe, it, expect } from "vitest";

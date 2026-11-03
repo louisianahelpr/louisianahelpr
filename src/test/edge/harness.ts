@@ -157,6 +157,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/rpcNotDeployed.ts";`,
   );
 
+  // Q2089: `_shared/signupRepeat.ts` imports only `./caughtMessage.ts` (no
+  // network at import), so the REAL repeat reads run against the mocked client.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/signupRepeat\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/signupRepeat.ts";`,
+  );
+
   // Guest support tickets: `_shared/supportGuest.ts` has ZERO imports, so point
   // at the REAL module and the writer and reader stay under test together.
   out = out.replace(

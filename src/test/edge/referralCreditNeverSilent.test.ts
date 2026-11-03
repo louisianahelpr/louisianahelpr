@@ -35,7 +35,7 @@
  *     with the user and the code. Best-effort minting is a product decision;
  *     dropping the error is what made it invisible.
  *
- * @mutate supabase/functions/complete-signup/index.ts | referralRecorded = referralOk === true; | referralRecorded = true;
+ * @mutate supabase/functions/complete-signup/index.ts | referralRecorded = referralOk === true \|\| (await referralAlreadyRecorded(supabase, userId)); | referralRecorded = true;
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { readFileSync, statSync } from "node:fs";

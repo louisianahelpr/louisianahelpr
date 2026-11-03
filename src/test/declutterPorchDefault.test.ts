@@ -11,8 +11,8 @@
  *
  * @mutate supabase/migrations/20261101201500_shipping_s3_checkout_claim.sql | SELECT 1 FROM public.declutter_cart_items c\n         JOIN public.declutter_items i ON i.id = c.item_id\n        WHERE c.id = ANY (v_lines) AND NOT i.porch_ok) THEN | SELECT 1 FROM public.declutter_cart_items c\n         JOIN public.declutter_items i ON i.id = c.item_id\n        WHERE c.id = ANY (v_lines) AND NOT i.porch_ok AND false) THEN
  * @mutate supabase/migrations/20261017055504_declutter_porch_default.sql | ALTER TABLE public.declutter_items ADD COLUMN IF NOT EXISTS porch_ok boolean NOT NULL DEFAULT true; | ALTER TABLE public.declutter_items ADD COLUMN IF NOT EXISTS porch_ok boolean NOT NULL DEFAULT false;
- * @mutate supabase/migrations/20261017055504_declutter_porch_default.sql |   IF v_status <> 'draft' THEN\n    RAISE EXCEPTION 'item_not_editable' | IF false THEN\n    RAISE EXCEPTION 'item_not_editable'
- * @mutate supabase/migrations/20261017055504_declutter_porch_default.sql |   UPDATE public.declutter_items SET porch_ok = p_porch_ok, updated_at = now() |   UPDATE public.declutter_items SET status = 'draft', porch_ok = p_porch_ok, updated_at = now()
+ * @mutate supabase/migrations/20261103044956_shop_settings_declutter_wanted_not_found_is_404.sql |   IF v_status <> 'draft' THEN\n    RAISE EXCEPTION 'item_not_editable' | IF false THEN\n    RAISE EXCEPTION 'item_not_editable'
+ * @mutate supabase/migrations/20261103044956_shop_settings_declutter_wanted_not_found_is_404.sql |   UPDATE public.declutter_items SET porch_ok = p_porch_ok, updated_at = now() |   UPDATE public.declutter_items SET status = 'draft', porch_ok = p_porch_ok, updated_at = now()
  * @mutate supabase/migrations/20261031182255_declutter_handovers_guard_fails_closed.sql |   IF NEW.porch_ok IS DISTINCT FROM OLD.porch_ok AND OLD.status <> 'draft'\n     AND NOT (OLD.porch_ok IS FALSE AND NEW.porch_ok IS TRUE)\n     AND NOT (OLD.status = 'live' AND COALESCE(current_setting('declutter.editing_listing', true), '') = OLD.id::text) THEN |   IF false THEN
  * @mutate supabase/migrations/20261031182255_declutter_handovers_guard_fails_closed.sql | AND NOT (OLD.status = 'live' AND COALESCE(current_setting('declutter.editing_listing', true), '') = OLD.id::text) THEN\n    RAISE EXCEPTION 'item_not_editable' USING ERRCODE = '22023',\n      HINT = 'Porch | AND NOT (OLD.status = 'live' AND current_setting('declutter.editing_listing', true) = OLD.id::text) THEN\n    RAISE EXCEPTION 'item_not_editable' USING ERRCODE = '22023',\n      HINT = 'Porch
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | const order: Handover[] = ([...(porchOk ? ["porch" as const] : []), "pickup_home", | const order: Handover[] = (["pickup_home", "porch",
@@ -76,8 +76,12 @@ describe("Declutter porch default (row 101, 20261017055504)", () => {
   // The one way back to draft (owner 2026-10-28, Relist): declutter_reopen_listing moves only the seller's own WITHDRAWN
   // item, which has no order, so a porch change there touches no sale; publishing runs every listing rule again.
   const REOPEN = "20261028180400_declutter_reopen_taken_down.sql";
+  // Q2390 packet 8 restates declutter_reopen_listing verbatim (only its not-found ERRCODE changed) in a file that also
+  // restates other declutter functions, so only that one UPDATE is allowed there, exactly once.
+  const REOPEN_RESTATED = "20261103044956_shop_settings_declutter_wanted_not_found_is_404.sql";
+  const REOPEN_UPDATE = "UPDATE public.declutter_items SET status = 'draft', updated_at = now() WHERE id = p_item_id;";
   it("the only way back to draft is reopening a withdrawn listing, which has no order", () => {
-    const sql = flat(blankSqlComments(readFileSync(join(MIG_DIR, REOPEN), "utf8")));
+    const sql = flat(blankSqlComments(readFileSync(join(MIG_DIR, REOPEN_RESTATED), "utf8")));
     expect(sql).toContain("IF v_item.status <> 'withdrawn' THEN RAISE EXCEPTION 'item_not_editable'");
     expect(sql).toContain("WHERE id = p_item_id AND seller_id = v_uid FOR UPDATE;");
   });
@@ -90,18 +94,21 @@ describe("Declutter porch default (row 101, 20261017055504)", () => {
   it("porch_ok is frozen once listed because no migration ever moves an item back to draft (lh-money-escrow review nit #4)", () => {
     let updates = 0;
     let fromPending = 0;
+    let restatedReopen = 0;
     const back: string[] = [];
     for (const f of readdirSync(MIG_DIR).filter((x: string) => x.endsWith(".sql")).sort()) {
       const sql = blankSqlComments(readFileSync(join(MIG_DIR, f), "utf8"));
       for (const m of sql.matchAll(/UPDATE\s+public\.declutter_items(?:\s+\w+)?\s+SET\s+([\s\S]*?)(?:\bWHERE\b([^;]*))?;/gi)) {
         updates++;
         if (!/\bstatus\s*=\s*'draft'/i.test(m[1]) || f === REOPEN) continue;
+        if (f === REOPEN_RESTATED && flat(m[0]).trim() === REOPEN_UPDATE) { restatedReopen++; continue; }
         if (f === PENDING_APPROVAL && /\bstatus\s*=\s*'pending_seller_approval'/i.test(m[2] ?? "")) { fromPending++; continue; }
         back.push(`${f}: ${flat(m[0]).slice(0, 120)}`);
       }
     }
     expect(updates).toBeGreaterThan(20);
     expect(fromPending).toBe(1); // exact: the one approval UPDATE (two-way: a removed or second one fails)
+    expect(restatedReopen).toBe(1); // exact: the restated reopen UPDATE
     expect(back).toEqual([]);
   });
 

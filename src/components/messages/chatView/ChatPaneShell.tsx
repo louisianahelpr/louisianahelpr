@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { PageScaffold } from "@/components/ui/PageScaffold";
-import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 
 /**
  * Shell wrapper for the chat surface. Standalone it renders through

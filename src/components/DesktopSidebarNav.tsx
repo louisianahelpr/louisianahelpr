@@ -75,18 +75,9 @@ type NavRow = { path: string; icon: LucideIcon; label: string; badgeKey?: DockIt
  * already handles.
  */
 
-/* RE-EXPORT, not a second implementation.
-   This file used to define its own copy of the hook with a `(min-width: 1024px)`
-   query while `src/hooks/useIsWebDesktop.ts` — and index.css, and tailwind's
-   `lg` — had already moved to 900. The two copies did not have the same
-   consumers: AppShell / DesktopTopNav / Activity / FilterSheet read the 900
-   version, while Navbar / Dashboard / Messages / this rail read the 1024 one.
-   Between 900 and 1023 the html gained `web-desktop desktop-rail` and reserved
-   248px for a rail that then returned null — a dead empty strip down the right
-   of every authed page, with the hamburger appearing to do nothing.
-   One query, one place. (Owner: "you need to fix this its currently 3
-   different things.") */
-export { useIsWebDesktop };
+/* One query, one place: the rail reads src/hooks/useIsWebDesktop.ts like every other consumer (an older copy here used
+   1024px while the rest had moved to 900; owner: "you need to fix this its currently 3 different things"). Its old
+   re-export is gone (B51): importing the hook through this file put the whole rail on /jobs' boot. */
 
 const DesktopSidebarNav = () => {
   // Render nothing unless we're on the wide desktop website. This is the same

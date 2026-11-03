@@ -86,9 +86,9 @@ import { resetSharedMocks, slackAlerts } from "./mocks/shared";
 import { CARD_HOLD_COPY } from "../../../supabase/functions/_shared/cardHoldCopy";
 import { holdPlanFor, offSessionAllowed, PLACE_BEFORE_START_MS } from "../../../supabase/functions/_shared/cardHoldPlan";
 import { jobLocalStartMs } from "../../../supabase/functions/_shared/cancellationFee";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { blankComments } from "../helpers/blankNonCode";
+import { blankComments, blankSqlComments } from "../helpers/blankNonCode";
 
 const AUTH = { Authorization: "Bearer test-jwt" };
 const POSTER = { id: "poster-1", email: "poster@test.com" };
@@ -1236,6 +1236,206 @@ describe("card hold at posting (Q2399)", () => {
       stripeMock.paymentIntents.cancel.mockResolvedValue({ id: "pi_hold", status: "canceled" });
       const { payload } = await sweep();
       expect(JSON.stringify(payload)).toMatch(/"renewed":1/);
+    });
+  });
+
+  // Q2447 (finding: lh-money-escrow@756b4e7602#4): a held card captured for an accept that is then refused
+  // charged the poster only because of our own race. The hold is marked 'captured_not_hired'; if the job then
+  // closes with nobody hired, void-cancelled-payments refunds the WHOLE charge (own-mistake rule, owner
+  // 2026-10-14), card fee included, keeping only a first job's one-time setup fee (A10 precedent, lead 11-03).
+  // @mutate supabase/functions/create-payment/index.ts |         const marked = await markCapturedNotHired(supabaseAdmin, jobId, | const marked = false; void (supabaseAdmin, jobId,
+  // @mutate supabase/functions/card-hold-sweep/index.ts |     const marked = await markCapturedNotHired(db, job.id, | const marked = false; void (db, job.id,
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (h?.state === "captured" && h.failure_code === CAPTURED_NOT_HIRED && job.helper_confirmed_at == null) { |         if (false) {
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |             raceChargedNobodyHired = (count ?? 0) === 0; |             raceChargedNobodyHired = true;
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |         if (holdErr && !holdNotDeployed) { |         if (false) {
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |             job, sellerFault, platformFault: raceChargedNobodyHired, cancellationFeeCents: | job, sellerFault, platformFault: false, cancellationFeeCents:
+  // @mutate supabase/functions/_shared/posterCancelSplit.ts |   const noCardFee = i.sellerFault \|\| i.platformFault === true; |   const noCardFee = i.sellerFault;
+  // @mutate supabase/functions/_shared/cardHold.ts |     await updateHold(db, jobId, { failure_code: CAPTURED_NOT_HIRED, failure_message: why.slice(0, 500) }, ["captured"]); |     await updateHold(db, jobId, { failure_code: CAPTURED_NOT_HIRED, failure_message: why.slice(0, 500) });
+  // @mutate supabase/functions/create-payment/index.ts |           message: `${posterName}'s held card was charged for ${helprName}'s accept on job ${jobId} ("${job.title ?? "untitled"}"), | message: `The held card was charged for an accept on job ${jobId},
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |                     ? `the one-time ${refundDollars(setupKeptCents)} account setup fee, which is paid once: your next job won't charge it again` |                     ? `the one-time ${refundDollars(setupKeptCents)} account setup fee, which is paid once and never refunded`
+  describe("Q2447: captured for a hire that was then refused, nobody hired: the whole charge goes back", () => {
+    const NAMES = [
+      { column: "user_id", value: POSTER.id, result: { rows: [{ user_id: POSTER.id, full_name: "Dana Poster", stripe_account_id: null }] } },
+      { column: "user_id", value: HELPR.id, result: { rows: [{ user_id: HELPR.id, full_name: "Hank Helpr", stripe_account_id: null }] } },
+    ];
+    const markWrites = () => updates("job_card_holds").filter((w) => (w.payload as Record<string, unknown>).failure_code === "captured_not_hired");
+
+    it("capture_hold: the hold is marked (only while captured) and the page names the job, the poster and the Helpr", async () => {
+      scenario.authUser = HELPR;
+      scenario.reads.jobs = { rows: [heldJob()] };
+      scenario.reads.job_card_holds = { rows: [holdRow()] };
+      scenario.reads.group_job_helpers = { rows: [] };
+      scenario.reads.profiles = { rows: [], eqOverrides: NAMES } as never;
+      scenario.rpc.helper_accept_block_reason = null;
+      scenario.writeSelectRows = { jobs: [{ id: JOB }], job_card_holds: [{ job_id: JOB }], profiles: [] };
+      stripeMock.paymentIntents.capture.mockResolvedValue({ id: "pi_hold", status: "succeeded" });
+      let n = 0;
+      scenario.rpcErrors = { get accept_job_offer() { return n++ === 0 ? { message: "payment_not_captured" } : { message: "offer_expired" }; } } as never;
+      const fn = await loadEdgeFunction("create-payment");
+      const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "capture_hold", jobId: JOB } }));
+      expect(res.status).toBe(409);
+      expect(markWrites()).toHaveLength(1);
+      expect(markWrites()[0].filters).toContainEqual({ op: "in", column: "state", value: ["captured"] });
+      const page = (slackAlerts as Array<{ title: string; message: string; fields?: Record<string, unknown>; seed?: boolean }>)
+        .filter((a) => a.title === "A card hold was captured but the hire did not complete");
+      expect(page).toHaveLength(1);
+      expect(page[0].message).toContain(`Dana's held card was charged for Hank's accept on job ${JOB} ("Mow the yard")`);
+      expect(page[0].message).toContain("Dana gets the whole charge back automatically");
+      expect(page[0].fields).toMatchObject({ job_title: "Mow the yard", poster: "Dana", helpr: "Hank", full_refund_marked: "yes" });
+      expect(page[0].seed).toBe(false);
+    });
+
+    it("card-hold-sweep: a pending accept refused after the capture marks the hold and names the people", async () => {
+      scenario.reads.job_card_holds = { rows: [holdRow()] };
+      scenario.reads.jobs = { rows: [heldJob()] };
+      scenario.reads.job_accept_pending = { rows: [{ helper_id: HELPR.id }] };
+      scenario.reads.profiles = { rows: [], eqOverrides: NAMES } as never;
+      scenario.rpc.helper_accept_block_reason = null;
+      scenario.rpc.complete_job_accept = false;
+      scenario.writeSelectRows = { jobs: [{ id: JOB }], job_card_holds: [{ job_id: JOB }], profiles: [] };
+      stripeMock.paymentIntents.capture.mockResolvedValue({ id: "pi_hold", status: "succeeded" });
+      const fn = await loadEdgeFunction("card-hold-sweep");
+      await fn.fetch(fn.request({ headers: { Authorization: "Bearer service-key" }, body: {} }));
+      expect(markWrites()).toHaveLength(1);
+      const page = (slackAlerts as Array<{ title: string; message: string; fields?: Record<string, unknown> }>)
+        .filter((a) => a.title === "A card hold was captured for a pending accept that did not complete");
+      expect(page).toHaveLength(1);
+      expect(page[0].message).toContain(`Dana's held card for Hank's pending accept on job ${JOB} ("Mow the yard")`);
+      expect(page[0].fields).toMatchObject({ job_title: "Mow the yard", poster: "Dana", helpr: "Hank", full_refund_marked: "yes" });
+    });
+
+    const CRON = "cron-secret-q2447";
+    const STRIPE_FEE = 152;
+    /** The job after expiry: cancelled with nobody hired, its captured charge still in escrow. */
+    function seedExpired(opts: { failureCode?: string | null; holdState?: string; setupFee?: boolean; group?: { confirmed: number }; holdReadError?: { message: string; code?: string } } = {}) {
+      setEnv({ ...ENV, CRON_SECRET: CRON });
+      scenario.reads.jobs = {
+        rows: [],
+        selectOverrides: [{
+          includes: "cancellation_fee",
+          result: { rows: [{
+            id: JOB, title: "Mow the yard", stripe_session_id: null, stripe_payment_intent_id: "pi_hold", budget: 40,
+            customer_fee_amount: 2, onboarding_fee_amount: opts.setupFee ? 2 : 0, cancellation_fee: 0, cancelled_by: null,
+            date_needed: "2024-06-25", start_time: "10:00:00", cancelled_at: "2024-06-25T05:00:00Z", is_seed: false,
+            helper_id: HELPR.id, helper_confirmed_at: null, customer_id: POSTER.id, helper_fee_percent: 10,
+            is_group_job: !!opts.group, helpers_needed: opts.group ? 2 : 1,
+          }] },
+        }],
+      } as never;
+      scenario.reads.declutter_order_jobs = { rows: [] };
+      scenario.reads.job_card_holds = opts.holdReadError
+        ? { rows: [], error: opts.holdReadError }
+        : { rows: [holdRow({ state: opts.holdState ?? "captured", failure_code: opts.failureCode === undefined ? "captured_not_hired" : opts.failureCode })] };
+      scenario.reads.group_job_helpers = { rows: [], count: opts.group?.confirmed ?? 0 } as never;
+      scenario.reads.crew_cancellation_fee_shares = { rows: [] };
+      scenario.reads.crew_block_fees = { rows: [] };
+      scenario.reads.payment_refunds = { rows: [] };
+      scenario.reads.profiles = { rows: [{ stripe_account_id: "acct_helper", subscription_tier: null }] };
+      const captured = 4200 + (opts.setupFee ? 200 : 0);
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({
+        id: "pi_hold", status: "succeeded", amount: captured, amount_received: captured,
+        latest_charge: { id: "ch_hold", amount_refunded: 0, balance_transaction: { fee: STRIPE_FEE } },
+      });
+      stripeMock.refunds.create.mockImplementation(async (p: { amount?: number }) => ({ id: "re_q2447", amount: p.amount ?? captured, currency: "usd" }));
+      return captured;
+    }
+    async function runVoid() {
+      const fn = await loadEdgeFunction("void-cancelled-payments");
+      return fn.fetch(new Request("https://x/functions/v1/void-cancelled-payments", { method: "POST", headers: { Authorization: `Bearer ${CRON}` } }));
+    }
+    const refundAmounts = () => stripeMock.refunds.create.mock.calls.map((c) => (c[0] as { amount?: number }).amount);
+
+    it("capture -> refused hire -> expiry: the refund is the FULL charge (card fee included), labelled as our race", async () => {
+      const captured = seedExpired();
+      await runVoid();
+      expect(refundAmounts()).toEqual([captured]);
+      const ledger = inserts("payment_refunds").concat(scenario.writes.filter((w) => w.table === "payment_refunds" && w.op === "upsert"));
+      expect(JSON.stringify(ledger.map((w) => w.payload))).toMatch(/hire that was then refused, nobody hired \(Q2447\): full refund, card fee included/);
+    });
+
+    it("control: the same expiry without the mark keeps Stripe's card fee", async () => {
+      const captured = seedExpired({ failureCode: null });
+      await runVoid();
+      expect(refundAmounts()).toHaveLength(1);
+      expect(refundAmounts()[0]).toBeLessThan(captured);
+    });
+
+    it("a first job's one-time $2 setup fee is still kept, and the poster is told the next job won't charge it again", async () => {
+      const captured = seedExpired({ setupFee: true });
+      await runVoid();
+      expect(refundAmounts()).toEqual([captured - 200]);
+      expect(JSON.stringify(notices())).toMatch(/account setup fee, which is paid once: your next job won't charge it again/);
+      // The account stays marked paid: nothing here clears it.
+      expect(updates("profiles").some((w) => "onboarding_fee_paid" in (w.payload as Record<string, unknown>))).toBe(false);
+    });
+
+    it("a crew with a confirmed member is not our race's: the card fee is kept", async () => {
+      const captured = seedExpired({ group: { confirmed: 1 } });
+      await runVoid();
+      expect(refundAmounts()).toHaveLength(1);
+      expect(refundAmounts()[0]).toBeLessThan(captured);
+    });
+
+    it("a crew with nobody confirmed gets the full charge back", async () => {
+      const captured = seedExpired({ group: { confirmed: 0 } });
+      await runVoid();
+      expect(refundAmounts()).toEqual([captured]);
+    });
+
+    it("a hold read that fails moves no money this run", async () => {
+      seedExpired({ holdReadError: { message: "boom", code: "XX000" } });
+      await runVoid();
+      expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    });
+
+    it("a hold table that is not deployed reads 'not marked' (the card fee is kept)", async () => {
+      const captured = seedExpired({ holdReadError: { message: "missing", code: "42P01" } });
+      await runVoid();
+      expect(refundAmounts()).toHaveLength(1);
+      expect(refundAmounts()[0]).toBeLessThan(captured);
+    });
+
+    // Lead PASS 11-03: a real hire clears the mark (20261103110232 trigger on jobs.helper_confirmed_at and a crew
+    // seat's, proven in src/test/pglite/clearCapturedNotHiredOnHire.pglite.mjs), so a Helpr hired on that money and
+    // then removed leaves the hold unmarked: the cancel keeps the card fee like any other.
+    it("hired, then removed before the close: the hire cleared the mark, so the card fee is kept", async () => {
+      const captured = seedExpired({ failureCode: null });
+      await runVoid();
+      expect(refundAmounts()).toHaveLength(1);
+      expect(refundAmounts()[0]).toBeLessThan(captured);
+    });
+
+    // @mutate supabase/migrations/20261103110232_clear_captured_not_hired_on_hire.sql |      AND failure_code = 'captured_not_hired'; |      AND failure_code IS NULL;
+    // @mutate supabase/migrations/20261103110232_clear_captured_not_hired_on_hire.sql |   WHEN (OLD.helper_confirmed_at IS NULL AND NEW.helper_confirmed_at IS NOT NULL) |   WHEN (false)
+    // @mutate supabase/migrations/20261103110232_clear_captured_not_hired_on_hire.sql |   AFTER INSERT OR UPDATE OF helper_confirmed_at ON public.group_job_helpers |   AFTER DELETE ON public.group_job_helpers
+    it("the newest migration clears ONLY a captured_not_hired mark, on a job's hire and on a crew seat's", () => {
+      const dir = resolve(process.cwd(), "supabase/migrations");
+      const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+      let fnText = ""; let jobsTrig = ""; let seatTrig = "";
+      for (const f of files) {
+        const sql = blankSqlComments(readFileSync(resolve(dir, f), "utf8"));
+        const fm = /CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+public\.clear_captured_not_hired_on_hire\s*\([\s\S]*?\bAS\s+(\$[A-Za-z_]*\$)([\s\S]*?)\1/i.exec(sql);
+        if (fm) fnText = fm[2];
+        const jt = /CREATE\s+TRIGGER\s+trg_jobs_hire_clears_captured_not_hired[\s\S]*?;/i.exec(sql);
+        if (jt) jobsTrig = jt[0];
+        const st = /CREATE\s+TRIGGER\s+trg_crew_seat_hire_clears_captured_not_hired[\s\S]*?;/i.exec(sql);
+        if (st) seatTrig = st[0];
+      }
+      const norm = (t: string) => t.replace(/\s+/g, " ");
+      expect(norm(fnText)).toMatch(/UPDATE public\.job_card_holds SET failure_code = NULL/);
+      expect(norm(fnText)).toContain("AND failure_code = 'captured_not_hired'");
+      expect(norm(jobsTrig)).toContain("AFTER UPDATE OF helper_confirmed_at ON public.jobs");
+      expect(norm(jobsTrig)).toContain("WHEN (OLD.helper_confirmed_at IS NULL AND NEW.helper_confirmed_at IS NOT NULL)");
+      expect(norm(seatTrig)).toContain("AFTER INSERT OR UPDATE OF helper_confirmed_at ON public.group_job_helpers");
+      expect(norm(seatTrig)).toContain("WHEN (NEW.helper_confirmed_at IS NOT NULL)");
+      expect(files.length).toBeGreaterThan(1000);
+    });
+
+    it("reads a real inventory (floor): the fee-keeping control refunds a real amount", async () => {
+      seedExpired({ failureCode: null });
+      await runVoid();
+      const kept = refundAmounts()[0] ?? 0;
+      expect(kept).toBeGreaterThan(0);
     });
   });
 });

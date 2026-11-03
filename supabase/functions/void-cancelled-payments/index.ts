@@ -14,6 +14,7 @@ import { setupFeeKeptCents } from "../_shared/posterFees.ts";
 import { cardCostFeeCents, chargeTaxCentsFor, checkoutChargeTaxCents, posterCancelKeptFeeCents, refundToPayerCents, taxOnKeptCents, withheldFeeReturnCents } from "../_shared/refundAmount.ts";
 import { refundReasonWithKeptParts } from "../_shared/refundReason.ts";
 import { posterCancelSplit } from "../_shared/posterCancelSplit.ts";
+import { CAPTURED_NOT_HIRED } from "../_shared/cardHold.ts";
 import { isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
@@ -2253,6 +2254,48 @@ serve(async (req) => {
         sellerFault = !faultErr && !!faultRow?.seller_fault_refund_id;
       }
 
+      // ── Q2447 (own-mistake full refund, owner 2026-10-14): charged by our own race, nobody hired? ──
+      // create-payment capture_hold / card-hold-sweep mark a held card captured for an accept that was then
+      // refused (job_card_holds.failure_code 'captured_not_hired'). If the job closed with nobody ever hired
+      // (no confirmed Helpr; on a crew, no confirmed seat), the charge happened only because of that race, so
+      // it goes back in full: no card fee, no service fee, no cancellation fee, nobody billed. A first job's
+      // one-time setup fee is still kept (A10 precedent, lead 2026-11-03) and the account stays marked paid.
+      // Only a missing table/column reads "not marked"; any other read error moves no money this run.
+      let raceChargedNobodyHired = false;
+      {
+        const { data: holdRow, error: holdErr } = await supabaseAdmin
+          .from("job_card_holds")
+          .select("state, failure_code")
+          .eq("job_id", job.id)
+          .maybeSingle();
+        const holdNotDeployed = !!holdErr && ["42P01", "42703", "PGRST204", "PGRST205"].includes(holdErr.code ?? "");
+        if (holdErr && !holdNotDeployed) {
+          console.error(`[void-cancelled-payments] card hold read failed for job ${job.id}; not settling:`, holdErr.message);
+          defects.record(`card hold read ${job.id}: ${holdErr.message} — not settled`);
+          results.push({ job_id: job.id, title: job.title, status: "card_hold_read_failed" });
+          continue;
+        }
+        const h = (holdErr ? null : holdRow) as { state?: string | null; failure_code?: string | null } | null;
+        if (h?.state === "captured" && h.failure_code === CAPTURED_NOT_HIRED && job.helper_confirmed_at == null) {
+          if (job.is_group_job) {
+            const { count, error: seatsErr } = await supabaseAdmin
+              .from("group_job_helpers")
+              .select("id", { count: "exact", head: true })
+              .eq("job_id", job.id)
+              .not("helper_confirmed_at", "is", null);
+            if (seatsErr) {
+              console.error(`[void-cancelled-payments] crew seats read failed for job ${job.id}; not settling:`, seatsErr.message);
+              defects.record(`crew seats read ${job.id}: ${seatsErr.message} — not settled`);
+              results.push({ job_id: job.id, title: job.title, status: "crew_seats_read_failed" });
+              continue;
+            }
+            raceChargedNobodyHired = (count ?? 0) === 0;
+          } else {
+            raceChargedNobodyHired = true;
+          }
+        }
+      }
+
       // ── What this cancellation owes, priced before any money moves ───────
       // A single job: recomputed from trusted job fields (F-MONEY-32). A crew
       // (Q407): the sum of its ledger shares, each re-priced from the same job
@@ -2328,7 +2371,7 @@ serve(async (req) => {
           continue;
         }
         const noFeeRecorded = idWaivedJobs.has(job.id);
-        jobCancellationFee = sellerFault || refundsSeriesVisitInFull(job) || noFeeRecorded ? 0 : computeCancellationFee(job);
+        jobCancellationFee = sellerFault || raceChargedNobodyHired || refundsSeriesVisitInFull(job) || noFeeRecorded ? 0 : computeCancellationFee(job);
         // ... so a booked Helpr's late-cancel fee is withheld through no fault of
         // theirs. Said out loud, once a day per job, like Q738 below
         // (lh-money-escrow review of c57d948d0 #3); whether the seller should
@@ -2560,8 +2603,8 @@ serve(async (req) => {
       const cardNonRefundableCents = (capturedCents: number, actualFeeCents: number) =>
         refundToPayerCents({
           capturedCents,
-          actualFeeCents: sellerFault ? 0 : actualFeeCents,
-          customerFeeCents: refundsSeriesVisitInFull(job) || sellerFault ? 0 : Math.round(Number(job.customer_fee_amount ?? 0) * 100),
+          actualFeeCents: sellerFault || raceChargedNobodyHired ? 0 : actualFeeCents,
+          customerFeeCents: refundsSeriesVisitInFull(job) || sellerFault || raceChargedNobodyHired ? 0 : Math.round(Number(job.customer_fee_amount ?? 0) * 100),
           setupFeeCents: setupFeeKeptCents(job),
         }).nonRefundableCents;
 
@@ -2945,7 +2988,7 @@ serve(async (req) => {
           // A10: a seller-fault Declutter setup job keeps no card fee (the seller
           // owes it: declutter_setup_job_fee_debt below); its setup fee is still kept.
           const capturedSplit = posterCancelSplit({
-            job, sellerFault, cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents,
+            job, sellerFault, platformFault: raceChargedNobodyHired, cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents,
             charge: {
               state: "captured",
               capturedCents,
@@ -3044,6 +3087,8 @@ serve(async (req) => {
             // owner's A10 rule (2026-10-17) when sellerFault: a Declutter seller
             // backing out is no fault of the poster, so the card fee comes back
             // too and the SELLER owes it (declutter_setup_job_fee_debt below).
+            // Q2447: and when raceChargedNobodyHired: our own capture-then-refused-hire
+            // race charged the card, so the card fee comes back and nobody owes it.
             const refund = await stripe.refunds.create(
               { payment_intent: paymentIntentId, amount: refundAmount },
               { idempotencyKey: `cancel-refund-${job.id}` },
@@ -3066,7 +3111,12 @@ serve(async (req) => {
               const parts = [
                 feeCents > 0 ? `${refundDollars(feeCents)} for your Helpr's time` : null,
                 blockFeeCents > 0 ? `${refundDollars(blockFeeCents)} for the crew spots you closed close to the start` : null,
-                setupKeptCents > 0 ? `the one-time ${refundDollars(setupKeptCents)} account setup fee, which is paid once and never refunded` : null,
+                setupKeptCents > 0
+                  ? raceChargedNobodyHired
+                    // Q2447 (lead 2026-11-03): the account stays marked paid, so the next job never asks for it again.
+                    ? `the one-time ${refundDollars(setupKeptCents)} account setup fee, which is paid once: your next job won't charge it again`
+                    : `the one-time ${refundDollars(setupKeptCents)} account setup fee, which is paid once and never refunded`
+                  : null,
               ].filter((x): x is string => !!x);
               const refundedCents = Math.round(Number(refund.amount ?? refundAmount));
               cancellationRefundNotice = {
@@ -3090,6 +3140,8 @@ serve(async (req) => {
               is_partial: cancellationFee > 0 || nonRefundableCents > 0,
               reason: sellerFault
                 ? `Declutter seller backed out: full refund, card fee billed to the seller${setupFeeKeptCents(job) > 0 ? " (the $2 setup fee kept)" : ""}`
+                : raceChargedNobodyHired
+                ? `Card charged for a hire that was then refused, nobody hired (Q2447): full refund, card fee included${setupFeeKeptCents(job) > 0 ? " (the one-time $2 setup fee kept; the account stays marked paid)" : ""}`
                 // What was REALLY kept, in dollars (jobs 375000de / 1251173a,
                 // 2026-10-24: an expired job with nobody hired was labelled
                 // "minus cancellation + service fee" while only the card fee

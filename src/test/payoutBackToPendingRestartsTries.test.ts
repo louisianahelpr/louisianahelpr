@@ -9,7 +9,7 @@
  * outside the class by construction.
  * Backend proof: src/test/pglite/declutterPayoutTriesRestart.pglite.mjs (3x replay; NEW_MIGRATION=skip RED).
  *
- * @mutate supabase/migrations/20261101233256_declutter_manager_payout_kind.sql | ELSE 'pending' END,\n         -- A rebooked payout starts a fresh run of tries (B24, 10-31): one rebooked after its last try would\n         -- otherwise sit 'pending' forever (declutter_payouts_due takes attempts < 12).\n         attempts = 0, next_attempt_at = now() | ELSE 'pending' END
+ * @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql | ELSE 'pending' END,\n         -- A rebooked payout starts a fresh run of tries (B24, 10-31): one rebooked after its last try would\n         -- otherwise sit 'pending' forever (declutter_payouts_due takes attempts < 12).\n         attempts = 0, next_attempt_at = now() | ELSE 'pending' END
  * @mutate supabase/migrations/20261101234732_declutter_manager_payout_admin_held.sql | UPDATE public.declutter_payouts SET status = 'pending', next_attempt_at = now(), attempts = 0, | UPDATE public.declutter_payouts SET status = 'pending', next_attempt_at = now(),
  * @mutate supabase/migrations/20261101234732_declutter_manager_payout_admin_held.sql | UPDATE public.helpr_task_payouts SET status = 'pending', next_attempt_at = now(), attempts = 0, | UPDATE public.helpr_task_payouts SET status = 'pending', next_attempt_at = now(),
  */

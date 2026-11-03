@@ -41,14 +41,14 @@ import { readdirSync } from "./helpers/trackedFiles";
 // @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql |   IF OLD.is_group_job IS TRUE\n     AND COALESCE(current_setting |   IF COALESCE(current_setting
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     'helper_completed_at',\n    'poster_confirmed_completion_at', |     'poster_confirmed_completion_at',
 // @mutate supabase/migrations/20260919192559_group_roster_per_member_lifecycle.sql | REVOKE INSERT, UPDATE, DELETE ON public.group_job_helpers FROM PUBLIC, anon; | REVOKE INSERT ON public.group_job_helpers FROM PUBLIC;
-// @mutate supabase/migrations/20261008203441_arrival_gps_or_poster_and_step_order.sql |     IF NEW.status = 'arrived' AND v_slot_arrived_at IS NULL THEN |     IF NEW.status = 'arrived' AND v_job.helper_arrived_at IS NULL THEN
+// @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql | IF NEW.status = 'arrived' AND v_slot_arrived_at IS NULL THEN | IF NEW.status = 'arrived' AND v_job.helper_arrived_at IS NULL THEN
 // @mutate supabase/migrations/20260925140148_group_roster_departure.sql |   AFTER DELETE ON public.group_job_helpers |   AFTER INSERT ON public.group_job_helpers
 // @mutate supabase/migrations/20261012053253_detail_change_settles_after_crew_departure.sql |     SET status = 'rejected'\n   WHERE job_id = OLD.job_id |     SET status = 'accepted'\n   WHERE job_id = OLD.job_id
 // @mutate supabase/migrations/20261012053253_detail_change_settles_after_crew_departure.sql |     AND status = 'accepted';\n\n  -- Q1500: the poster removed |     AND status = 'accepted';\n  UPDATE public.jobs SET helper_id = NULL WHERE id = OLD.job_id;\n\n  -- Q1500: the poster removed
 // @mutate supabase/migrations/20260925154606_group_crew_has_no_lead.sql |     IF (NEW.slot_no IS DISTINCT FROM OLD.slot_no OR NEW.share_cents IS DISTINCT FROM OLD.share_cents) |     IF (NEW.slot_no IS DISTINCT FROM OLD.slot_no)
 // @mutate supabase/migrations/20261031013445_helper_cancel_says_why.sql |     DELETE FROM public.group_job_helpers WHERE id = v_slot_id; |     PERFORM v_slot_id;
 // @mutate supabase/migrations/20261031013445_helper_cancel_says_why.sql |      AND (v_slot_id IS NOT NULL OR v_job.helper_id IS DISTINCT FROM auth.uid()) THEN |      THEN
-// @mutate supabase/migrations/20261008203441_arrival_gps_or_poster_and_step_order.sql |     AND COALESCE(array_length(v_slot_proof_before, 1), 0) = 0; |     AND COALESCE(array_length(v_slot_proof_before, 1), 0) = 0\n    AND v_needs_before_photo;
+// @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql |     AND COALESCE(array_length(v_slot_proof_before, 1), 0) = 0; |     AND COALESCE(array_length(v_slot_proof_before, 1), 0) = 0\n    AND v_needs_before_photo;
 
 const root = resolve(__dirname, "../..");
 const MIGRATIONS = resolve(root, "supabase/migrations");

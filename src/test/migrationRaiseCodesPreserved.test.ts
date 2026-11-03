@@ -93,4 +93,4 @@ describe("migrations keep the guards of the functions they redefine", () => {
 });
 
 // Deleting a live guard from the newest definition of a function must be seen.
-// @mutate supabase/migrations/20261008203441_arrival_gps_or_poster_and_step_order.sql | SELECT * INTO v_job FROM public.jobs WHERE id = NEW.job_id FOR SHARE;\n  IF v_job.id IS NULL THEN\n    RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002'; | SELECT * INTO v_job FROM public.jobs WHERE id = NEW.job_id FOR SHARE;\n  IF v_job.id IS NULL THEN\n    NULL; -- RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002';
+// @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql | SELECT * INTO v_job FROM public.jobs WHERE id = NEW.job_id FOR SHARE;\n  IF v_job.id IS NULL THEN\n    RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'PT404'; | SELECT * INTO v_job FROM public.jobs WHERE id = NEW.job_id FOR SHARE;\n  IF v_job.id IS NULL THEN\n    NULL; -- RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'PT404';

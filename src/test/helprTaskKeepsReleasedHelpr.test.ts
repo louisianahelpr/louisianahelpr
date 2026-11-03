@@ -12,8 +12,8 @@
  *
  * @mutate supabase/migrations/20261101020052_helpr_task_released_helpr.sql |      SET status = 'open', released_helpr_id = helpr_id, helpr_id = NULL, accepted_at = NULL, pickup_slot_start = NULL, releases | SET status = 'open', helpr_id = NULL, accepted_at = NULL, pickup_slot_start = NULL, releases
  * @mutate supabase/migrations/20261101020052_helpr_task_released_helpr.sql |        SET status = 'open', released_helpr_id = helpr_id, helpr_id = NULL, accepted_at = NULL, pickup_slot_start = NULL, picked_up_at | SET status = 'open', helpr_id = NULL, accepted_at = NULL, pickup_slot_start = NULL, picked_up_at
- * @mutate supabase/migrations/20261101020052_helpr_task_released_helpr.sql |   v_fault_helpr := COALESCE(v_task.helpr_id, v_task.released_helpr_id); |   v_fault_helpr := v_task.helpr_id;
- * @mutate supabase/migrations/20261101020052_helpr_task_released_helpr.sql | SET status = 'failed', helpr_id = v_fault_helpr, closed_at | SET status = 'failed', closed_at
+ * @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql |   v_fault_helpr := COALESCE(v_task.helpr_id, v_task.released_helpr_id); |   v_fault_helpr := v_task.helpr_id;
+ * @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql | SET status = 'failed', helpr_id = v_fault_helpr, closed_at | SET status = 'failed', closed_at
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";

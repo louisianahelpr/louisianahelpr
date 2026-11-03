@@ -36,9 +36,9 @@
  * page header (PostsHeader / JobsHeader) renders on phone when the row is
  * open (and uses the lists' own `space-y-list` (12px), not `space-y-2.5`).
  *
- * The /posts row height comes from one more: `ActivityCardSkeleton` is no
- * longer a hand-drawn box but `CollapsedActivityCardSkeleton`, the same
- * shell-derived drawing — one card, one drawing.
+ * The /posts row height came from one more: `ActivityCardSkeleton` stopped
+ * being a hand-drawn box and became the same shell-derived drawing. (Both
+ * were later replaced by the MineJobFace placeholder, Q833, and removed.)
  *
  * ── WHAT THIS DOES NOT CLAIM ─────────────────────────────────────────────
  * `scripts/check-loading-state-shape.mjs` is the repo's own check for this
@@ -63,9 +63,9 @@
 // SURVIVED because an appended duplicate `style` prop changed the source text and nothing else). Mutating the class
 // moves the real box: h-11 -> 96px takes the placeholder row 197px -> ~249px, far outside the 8px budget.
 // @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | <Skeleton className={`${B.button} h-11`} /> | <Skeleton className={`${B.button} h-[96px]`} />
-// Q833: /jobs and /posts draw the MineJobFace placeholder; put the OLD collapsed card back and every surface jumps
-// again (130px against 197px cards on prod).
-// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <MineFaceSkeleton tracker={tracker} address={address} />; | return <CollapsedActivityCardSkeleton metaLines={1} />;
+// Q833: /jobs and /posts draw the MineJobFace placeholder; take the face out (the old collapsed card it replaced
+// was 130px against 197px cards on prod, and was removed 11-03) and every surface jumps again.
+// @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx | return <MineFaceSkeleton tracker={tracker} address={address} />; | return <div className={JOB_CARD_SHELL_FRAME} aria-hidden />;
 // Re-pointed 2026-10-19 (Q2205): the old My Posts / My Jobs placeholder (ActivityPageSkeleton) and its folded
 // tab-row reservation went with those screens. Jobs > Posted / Working always show the four status boxes, and the
 // placeholder (JobsSectionSkeleton) must reserve them: without the bones the list starts ~76px high.
@@ -114,7 +114,7 @@ const OFFSET_BUDGET = 8;
  * 151px PostedJobCard. The pin existed because fixing it meant touching a
  * component shared with Activity's posted Suspense fallback.
  *
- * Both call sites now render `CollapsedActivityCardSkeleton` — the same
+ * Both call sites then rendered `CollapsedActivityCardSkeleton` (removed 11-03, Q833) — the same
  * shell-derived drawing /jobs took, because PostedJobCard and AppliedJobCard
  * are the same JobCardShell at the same 151px. So /posts is held to the same
  * ROW_BUDGET every other surface is, and the pin would now be a ceiling the

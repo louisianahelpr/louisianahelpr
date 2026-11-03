@@ -43,7 +43,7 @@ const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 // @mutate tailwind.config.ts | list: "var(--list-gap)", | list: "0.5rem",
 
 /** The components that ARE a job card (or stand in for one while loading). */
-const CARD = /<(JobCard|JobFeedCard|JobCardSkeleton|RecommendedJobCardSkeleton|ActivityCardSkeleton|ApplicationCardSkeleton)\b/;
+const CARD = /<(JobCard|JobFeedCard|JobCardSkeleton|RecommendedJobCardSkeleton|ApplicationCardSkeleton)\b/;
 
 function tsxUnder(dir: string, out: string[] = []): string[] {
   for (const name of readdirSync(join(ROOT, dir))) {

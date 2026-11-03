@@ -1,5 +1,4 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { CollapsedActivityCardSkeleton } from "@/components/ui/skeletons/ApplicationCardSkeleton";
 
 /**
  * `JobCardSkeleton` LIVED HERE and does not any more (2026-09-20).
@@ -19,41 +18,11 @@ import { CollapsedActivityCardSkeleton } from "@/components/ui/skeletons/Applica
  * exactly one now.
  */
 
-/**
- * THE POSTED TAB'S PLACEHOLDER — /posts, and Activity's posted Suspense
- * fallback. Those are its only two call sites, and both stand in front of the
- * same list of PostedJobCards.
- *
- * ── WHAT IT DREW BEFORE, AND WHAT THAT COST ──────────────────────────────
- * A hand-drawn `rounded-ds-md skeleton-glass p-4` box: a title bone, two chip
- * bones, a button bone and two meta bones. No card frame, no category rail, no
- * category tab, and none of the card's own padding — for a PostedJobCard built
- * out of exactly the same primitives AppliedJobCard is (JobCardShell +
- * JobCardTitleBar + JobCardMetaRow + JobStatusStrip).
- *
- * Measured at 375 against prod (poster-e2e, 2026-09-21):
- *
- *     placeholder row   106px
- *     real row          151px
- *     ────────────────────────
- *     per row           -45px, and it compounds down the list — every card
- *                       below the first one moves when the data lands.
- *
- * Invisible to CLS for the reason `ApplicationCardSkeleton` documents at
- * length: the Layout Instability API only scores elements that were in the
- * previous frame and MOVED, and a skeleton→content swap removes one subtree
- * and inserts another. /jobs measured CLS 0.0000 across ZERO entries while
- * every card on it slid up to 195px. Boxes, not CLS.
- *
- * ── WHAT IT DRAWS NOW ────────────────────────────────────────────────────
- * `CollapsedActivityCardSkeleton`, which is the drawing /jobs took on
- * 2026-09-21 (commit 21dad148b): the collapsed card's title bar, two meta
- * lines and status strip, each sized from `JobCardShell`'s own exported
- * geometry rather than redrawn. ONE drawing, because there is one card — the
- * posted and applied collapsed cards are the same shell at the same 151px, and
- * two hand-written descriptions of one box is how they drifted apart.
+/*
+ * `ActivityCardSkeleton` (the old collapsed Posted card placeholder) went 2026-11-03: since Q833 /posts and
+ * /jobs draw the MineJobFace placeholder (PostedListBones / WorkingListBones in
+ * src/components/ui/skeletons/ApplicationCardSkeleton.tsx) and nothing drew it.
  */
-export const ActivityCardSkeleton = CollapsedActivityCardSkeleton;
 
 /**
  * Dashboard panel-interior skeleton. Renders the SAME three-section
@@ -93,10 +62,10 @@ export const DashboardSkeleton = () => (
         JobCardSkeleton's own footer rule uses, so the silhouette has an edge
         on the panel in both themes.
 
-        Deliberately LOCAL. `.skeleton-glass` has exactly three call sites in
-        the repo — JobCardSkeleton (line 9), ActivityCardSkeleton (line 40) and
-        this one — and the other two are correct where they sit; changing the
-        shared class to fix one surface is the blanket-edit mistake. */}
+        Deliberately LOCAL. `.skeleton-glass` had three call sites in the repo
+        when this was written (2026-09) and the others were correct where they
+        sat; changing the shared class to fix one surface is the blanket-edit
+        mistake. */}
     <div className="px-3 pt-3 pb-1 space-y-2.5 lg:space-y-4" aria-hidden>
       {[0, 1, 2, 3].map((i) => (
         <Skeleton

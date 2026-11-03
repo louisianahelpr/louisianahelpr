@@ -26,7 +26,7 @@ import { isoDayIn } from "../calendarPicker";
 import { skipLivePay } from "../prod-audit/fundedOpenJob";
 import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
-import { cardByTitle, findChip, openPostedCard } from "./cardChips";
+import { cardByTitle, findChip, findPageAction, openPostedCard } from "./cardChips";
 import { ZONE, fillJobDetails, fillLogistics, fillBudget, slotAhead, slotDeadWindow } from "./postJobForm";
 import { searchFeed } from "../feedSearch";
 
@@ -593,11 +593,15 @@ test.describe.serial("marketplace chain", () => {
     });
 
     await test.step("poster messages the helper with an attachment", async () => {
-      // Message may be on the row or in More: at 390px the booked card's row
-      // is More + "I'm still on" (e2e-journeys 39020810698, 2026-10-17).
-      const booked = await card(pp, "/jobs?tab=posted", scheduledTab());
-      const message = await findChip(pp, booked, /^Message\b/, 30_000);
-      expect(message, `the poster's ${scheduledTab()} card offers no Message, on the row or in More`).not.toBeNull();
+      // The poster's Message is the JOB PAGE's (posterPageActions: "Message <first name>"; the Manage job screen and
+      // the card's live controls moved there, owner 2026-10-31). A booked card's face carries only its step ("I'm still
+      // on"), so e2e-journeys 41642598669 found no Message on the card. The job page draws ONE row of buttons
+      // ([data-job-row="poster"]); with a step due, Message is beside it or in that row's "More options" sheet
+      // ([data-row-options="poster"]; JobPageActionRow), which findPageAction opens.
+      await pp.goto(`/jobs/${S.jobId}`);
+      await expect(pp.locator('[data-job-row="poster"]'), "the hired job's page draws no poster buttons").toBeVisible({ timeout: 30_000 });
+      const message = await findPageAction(pp, "poster", /^Message\b/, 30_000);
+      expect(message, "the hired job's page offers no Message, on its row or in More options").not.toBeNull();
       await message!.click();
       await expect(pp).toHaveURL(/\/messages/, { timeout: 30_000 });
       const box = pp.getByRole("textbox", { name: "Type a message" });

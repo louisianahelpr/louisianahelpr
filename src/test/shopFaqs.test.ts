@@ -17,9 +17,9 @@
 // @mutate src/lib/shops/faqs.ts |     { key: "cancel", label: "Cancelling", text: cancelPolicyText(p.cancel_policy, p.ready_tap_cancel).label }, |     { key: "cancel", label: "Cancelling", text: "Free to cancel until the shop accepts" },
 // @mutate src/components/shops/PublicShopView.tsx |       {shop.offers_selling && <ShopPolicies shopId={shop.id} />}\n |
 // @mutate src/components/shops/ShopDashboardView.tsx |         <ShopPayoutRow />\n |
-// @mutate supabase/migrations/20261019072541_shops_faqs.sql |   PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN |   IF public.is_caller_banned() THEN
-// @mutate supabase/migrations/20261019072541_shops_faqs.sql |   IF v_hidden IS NOT NULL THEN |   IF false THEN
-// @mutate supabase/migrations/20261019072541_shops_faqs.sql |   SELECT id, hidden_at INTO v_shop, v_hidden FROM public.shops WHERE owner_id = v_uid FOR UPDATE; |   SELECT id, hidden_at INTO v_shop, v_hidden FROM public.shops LIMIT 1;
+// @mutate supabase/migrations/20261103141808_q2390_invite_setup_fee_no_show_faqs_return_offer_not_found_is_404.sql |   PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN |   IF public.is_caller_banned() THEN
+// @mutate supabase/migrations/20261103141808_q2390_invite_setup_fee_no_show_faqs_return_offer_not_found_is_404.sql |   IF v_hidden IS NOT NULL THEN |   IF false THEN
+// @mutate supabase/migrations/20261103141808_q2390_invite_setup_fee_no_show_faqs_return_offer_not_found_is_404.sql |   SELECT id, hidden_at INTO v_shop, v_hidden FROM public.shops WHERE owner_id = v_uid FOR UPDATE; |   SELECT id, hidden_at INTO v_shop, v_hidden FROM public.shops LIMIT 1;
 // @mutate supabase/migrations/20261019072541_shops_faqs.sql |   v_reason := COALESCE(public.shop_contact_leak_reason(NEW.question), public.shop_contact_leak_reason(NEW.answer)); |   v_reason := NULL;
 // @mutate supabase/migrations/20261019072541_shops_faqs.sql |   NEW.question := btrim(public.shop_text_clean(NEW.question)); |   NEW.question := btrim(NEW.question);
 // @mutate supabase/migrations/20261019072541_shops_faqs.sql |   ELSIF v ~* '(^\|[^a-z0-9._])@[a-z0-9_][a-z0-9._]+' THEN |   ELSIF false THEN
@@ -27,7 +27,7 @@
 // @mutate supabase/migrations/20261019072541_shops_faqs.sql |        OR COALESCE(public.has_role(v_uid, 'admin'::app_role), false)) THEN |        OR false) THEN
 // @mutate supabase/migrations/20261019072541_shops_faqs.sql |   RETURN COALESCE(public.shop_link_visible(p_shop_id), false); |   RETURN true;
 // @mutate supabase/migrations/20261019072541_shops_faqs.sql |   RETURN (SELECT jsonb_build_object('cancel_policy', s.cancel_policy, 'ready_tap_cancel', s.ready_tap_cancel) |   RETURN (SELECT jsonb_build_object('cancel_policy', s.cancel_policy, 'ready_tap_cancel', s.ready_tap_cancel, 'owner_id', s.owner_id)
-// @mutate supabase/migrations/20261019072541_shops_faqs.sql | REVOKE ALL ON FUNCTION public.shops_set_my_faqs(jsonb) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.shops_set_my_faqs(jsonb) FROM PUBLIC;
+// @mutate supabase/migrations/20261103141808_q2390_invite_setup_fee_no_show_faqs_return_offer_not_found_is_404.sql | REVOKE ALL ON FUNCTION public.shops_set_my_faqs(jsonb) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.shops_set_my_faqs(jsonb) FROM PUBLIC;
 // @mutate supabase/migrations/20261019072541_shops_faqs.sql | REVOKE ALL ON TABLE public.shop_faqs FROM PUBLIC, anon, authenticated; | GRANT SELECT ON TABLE public.shop_faqs TO anon;
 // @mutate supabase/migrations/20261019072541_shops_faqs.sql |     normalize(p_text, NFKC), |     p_text,
 // @mutate supabase/migrations/20261019072541_shops_faqs.sql |     v_reason := COALESCE(public.shop_contact_leak_reason(v_spaced), public.shop_contact_leak_reason(v_tight), |     v_reason := COALESCE(NULL, NULL,
@@ -55,7 +55,10 @@ describe("SH12 FAQs: the server", () => {
   const rowTrig = defs.get("shop_faq_clean_and_check");
   const joined = defs.get("shop_faqs_check_joined");
   const clean = defs.get("shop_text_clean");
-  const migSql = () => blankSqlComments(read(join("supabase", "migrations", set!.file)));
+  // The table, its contact triggers, the reads' grants and the backfill live with the row trigger's newest
+  // file; shops_set_my_faqs' own grants are read from the newest file that restates it (Q2390 packet 29).
+  const migSql = () => blankSqlComments(read(join("supabase", "migrations", rowTrig!.file)));
+  const setSql = () => blankSqlComments(read(join("supabase", "migrations", set!.file)));
 
   it("every function exists (newest definition)", () => {
     expect(defs.size).toBeGreaterThan(100);
@@ -94,7 +97,7 @@ describe("SH12 FAQs: the server", () => {
     for (const r of ["'Website link detected'", "'Social media handle detected'", "'Social media account mentioned'"]) expect(body).toContain(r);
     expect(blankSqlComments(clean!.stmt)).toContain("\\u200B-\\u200F");
     const shopTrig = defs.get("reject_contact_leak_in_shop");
-    expect(shopTrig?.file).toBe(set!.file);
+    expect(shopTrig?.file).toBe(rowTrig!.file);
     const t = blankSqlComments(shopTrig!.stmt);
     expect((t.match(/public\.shop_contact_leak_reason\(NEW\.(name|about|area_label)\)/g) ?? []).length).toBe(3);
     expect(t).not.toMatch(/public\.contact_leak_reason\(/);
@@ -119,9 +122,11 @@ describe("SH12 FAQs: the server", () => {
   });
 
   it("grants: write authenticated only, reads anon + authenticated, helpers internal, no client table access", () => {
+    const own = setSql();
+    expect(own).toMatch(/REVOKE ALL ON FUNCTION public\.shops_set_my_faqs\(jsonb\) FROM PUBLIC, anon;/);
+    expect(own).toMatch(/GRANT EXECUTE ON FUNCTION public\.shops_set_my_faqs\(jsonb\) TO authenticated, service_role;/);
+    expect(own).not.toMatch(/GRANT EXECUTE ON FUNCTION public\.shops_set_my_faqs\(jsonb\) TO [^;]*\banon\b/);
     const sql = migSql();
-    expect(sql).toMatch(/REVOKE ALL ON FUNCTION public\.shops_set_my_faqs\(jsonb\) FROM PUBLIC, anon;/);
-    expect(sql).not.toMatch(/GRANT EXECUTE ON FUNCTION public\.shops_set_my_faqs\(jsonb\) TO [^;]*\banon\b/);
     expect(sql).toMatch(/GRANT EXECUTE ON FUNCTION public\.shops_shop_faqs\(uuid\) TO anon, authenticated, service_role;/);
     expect(sql).toMatch(/GRANT EXECUTE ON FUNCTION public\.shops_shop_policies\(uuid\) TO anon, authenticated, service_role;/);
     for (const f of ["shop_text_clean(text)", "shop_contact_leak_reason(text)", "shop_extras_readable(uuid)"]) {
@@ -133,13 +138,13 @@ describe("SH12 FAQs: the server", () => {
   });
 
   it("the migration holds no invisible characters itself (escapes only)", () => {
-    const raw = read(join("supabase", "migrations", set!.file));
+    const raw = read(join("supabase", "migrations", rowTrig!.file));
     expect([...raw].filter((c) => c.charCodeAt(0) > 127)).toEqual([]);
   });
 });
 
 describe("SH12 v2 (lead re-review): the shop filter closes the bypasses", () => {
-  const sqlRaw = () => read(join("supabase", "migrations", defs.get("shops_set_my_faqs")!.file));
+  const sqlRaw = () => read(join("supabase", "migrations", defs.get("shop_faq_clean_and_check")!.file));
 
   it("shop_text_clean NFKC-normalizes first, then strips a list that covers the WHOLE invisible classes", () => {
     const clean = blankSqlComments(defs.get("shop_text_clean")!.stmt);
@@ -183,7 +188,7 @@ describe("SH12 v2 (lead re-review): the shop filter closes the bypasses", () => 
 
   it("items use the shop filter, re-checked when an item goes live", () => {
     const item = defs.get("reject_contact_leak_in_shop_item");
-    expect(item?.file).toBe(defs.get("shops_set_my_faqs")!.file);
+    expect(item?.file).toBe(defs.get("shop_faq_clean_and_check")!.file);
     const t = blankSqlComments(item!.stmt);
     expect((t.match(/public\.shop_contact_leak_reason\(NEW\.(title|description)\)/g) ?? []).length).toBe(2);
     expect(t).not.toMatch(/public\.contact_leak_reason\(/);

@@ -67,7 +67,7 @@ async function resolvingUrl(request: Parameters<typeof getSession>[0], url: stri
 
 /**
  * Where each account screen is reached after the You redesign (board 18 / 52,
- * nightly-red #2436): the You landing lists sections, Money, Alerts, Settings
+ * nightly-red #2436): the You landing lists sections, Money, Notifications, Settings
  * and Help; "Edit profile" and the notification settings are rows in Settings,
  * and the Jobs screens (Availability, Saved Helprs) are rows in Jobs settings
  * (/jobs/settings, JOBS_SETTINGS_GROUPS). The journey taps through each, as a
@@ -455,7 +455,10 @@ test(j7, async ({ browser, request, journey }) => {
     await pp.goto("/jobs"); // the feed (Jobs > Browse) since 2026-10-19, Q2205
     await pp.getByRole("button", { name: "Filters" }).first().click();
     // A saved search is a saved FILTER SET; with none active the dialog says "set filters first".
-    await clickOrSayWhatMoves(pp.getByRole("dialog").getByRole("group", { name: "Filter by category" }).getByRole("button", { name: /cleaning/i }).first());
+    // The category filter is the 8 Post-a-job GROUPS since d837d4d73a (2026-10-21,
+    // JobFilters.tsx CategoryContent); "Cleaning" is a category inside "Home",
+    // not a chip any more, so the old /cleaning/i chip never existed to click.
+    await clickOrSayWhatMoves(pp.getByRole("dialog").getByRole("group", { name: "Filter by category" }).getByRole("button", { name: "Home", exact: true }));
     if (!(await pp.getByRole("dialog").getByRole("button", { name: /Saved searches/i }).isVisible().catch(() => false))) {
       await pp.getByRole("button", { name: "Filters" }).first().click();
     }
@@ -496,12 +499,15 @@ test(j8, async ({ browser, request, journey }) => {
   const ctx = await newUserContext(browser, helper, { rotation });
   const page = journey.track("helper", await ctx.newPage());
 
-  // Board 18 (2026-10-20): the You tab lists Money · Alerts · Settings · Talk to
-  // a real person; the account rows live one level down in You › Settings
-  // (board 52). Each row is opened from the screen it now sits on.
+  // Board 18 (2026-10-20): the You tab lists Money · Notifications · Settings ·
+  // Talk to a real person (YouMenu.tsx; renamed from "Alerts" in a97beb6631, 2026-10-21); the
+  // account rows live one level down in You › Settings (board 52). Each row is
+  // opened from the screen it now sits on. On /profile the row is found inside
+  // the You menu (section "You"): the top bar's bell is ALSO a button named
+  // "Notifications" and comes first in the page.
   for (const [from, button, heading] of [
     ["/profile", /^Money/, "Money"],
-    ["/profile", /^Alerts/, "Notifications"],
+    ["/profile", /^Notifications/, "Notifications"],
     ["/profile", /^Talk to a real person/, "Help"],
     ["/profile", /^Settings/, "Settings"],
     ["/profile?tab=settings", /^Account and security/, "Account Security"],
@@ -513,7 +519,8 @@ test(j8, async ({ browser, request, journey }) => {
       await page.goto(from);
       const ready = from === "/profile" ? page.getByRole("button", { name: "Log out" }) : page.getByRole("button", { name: button });
       await expect(ready.first(), "the page never finished loading").toBeVisible({ timeout: 45_000 });
-      await page.getByRole("button", { name: button }).filter({ visible: true }).first().click();
+      const scope = from === "/profile" ? page.getByRole("region", { name: "You", exact: true }) : page;
+      await scope.getByRole("button", { name: button }).filter({ visible: true }).first().click();
       await expect(page.getByRole("heading", { level: 1 }).first(), `${heading} did not open`).toContainText(new RegExp(heading.split(" ")[0], "i"), { timeout: 30_000 });
       await assertHealthy(page, heading);
       await journey.milestone(page, `settings-${heading}`);

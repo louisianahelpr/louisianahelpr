@@ -6,7 +6,7 @@
  * Behaviour (red/green, 3x replay, against block_user_and_settle's real text):
  * src/test/pglite/declutterWantedReportBlock.pglite.mjs
  *
- * @mutate supabase/migrations/20261030225143_declutter_wanted_report_block_photo_check.sql |   IF jsonb_array_length(COALESCE(v_result -> 'settled', '[]'::jsonb)) > 0 THEN | IF false THEN
+ * @mutate supabase/migrations/20261103050349_declutter_orders_talk_admin_not_found_is_404.sql |   IF jsonb_array_length(COALESCE(v_result -> 'settled', '[]'::jsonb)) > 0 THEN | IF false THEN
  * @mutate supabase/migrations/20261030225143_declutter_wanted_report_block_photo_check.sql |            cleared.paths[1], |            w.photo_paths[1],
  * @mutate supabase/migrations/20261030225143_declutter_wanted_report_block_photo_check.sql |   IF w.is_seed IS NOT TRUE AND NOT EXISTS ( |   IF NOT EXISTS (
  * @mutate supabase/migrations/20261030225143_declutter_wanted_report_block_photo_check.sql |       PERFORM public.declutter_wanted_hold_photos(h.id, NULL, 'The automatic photo check did not finish.'); |       NULL;

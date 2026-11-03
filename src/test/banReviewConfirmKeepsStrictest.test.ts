@@ -24,11 +24,13 @@
  * Behaviour (real Postgres, prod's bodies md5-checked; live 6 FAIL, fixed
  * ALL PASS applied 3x): src/test/pglite/banReviewConfirmStrictest.pglite.mjs.
  *
- * @mutate supabase/migrations/20261013001155_ban_review_confirm_keeps_strictest_retained_judgment.sql |   v_floor := public.ban_review_retained_floor(p_user_id, v_review.created_at);\n  IF v_floor IS NOT NULL THEN\n    IF public.ban_standing_rank(v_floor ->> 'ban_status') > public.ban_standing_rank(v_final) THEN |   v_floor := NULL;\n  IF v_floor IS NOT NULL THEN\n    IF public.ban_standing_rank(v_floor ->> 'ban_status') > public.ban_standing_rank(v_final) THEN
+ * @mutate supabase/migrations/20261103230932_ban_review_confirm_keeps_a_no_end_suspension.sql |   v_floor := public.ban_review_retained_floor(p_user_id, v_review.created_at);\n  IF v_floor IS NOT NULL THEN\n    IF public.ban_standing_rank(v_floor ->> 'ban_status') > public.ban_standing_rank(v_final) THEN |   v_floor := NULL;\n  IF v_floor IS NOT NULL THEN\n    IF public.ban_standing_rank(v_floor ->> 'ban_status') > public.ban_standing_rank(v_final) THEN
  * @mutate supabase/migrations/20261103230441_ban_review_lift_settles_when_it_ends_banned.sql |   v_floor := public.ban_review_retained_floor(p_user_id, v_review.created_at);\n  IF v_floor IS NOT NULL THEN\n    IF public.ban_standing_rank(v_floor ->> 'ban_status') > public.ban_standing_rank(v_status) THEN |   v_floor := NULL;\n  IF v_floor IS NOT NULL THEN\n    IF public.ban_standing_rank(v_floor ->> 'ban_status') > public.ban_standing_rank(v_status) THEN
  * @mutate supabase/migrations/20261103225923_ban_review_floor_reads_the_match_stamp.sql |        AND COALESCE(m.auto_banned_at, m.created_at) >= p_since |        AND true
  * @mutate supabase/migrations/20261103225923_ban_review_floor_reads_the_match_stamp.sql |        AND COALESCE(m.auto_banned_at, m.created_at) >= p_since |        AND (COALESCE(m.auto_banned_at, m.created_at) >= p_since OR rb.reapplied_at >= p_since)
  * @mutate supabase/migrations/20261103225923_ban_review_floor_reads_the_match_stamp.sql |        AND (rb.expires_at IS NULL OR rb.expires_at > now()) |        AND true
+ * @mutate supabase/migrations/20261103230932_ban_review_confirm_keeps_a_no_end_suspension.sql |             OR (v_rung ->> 'suspended_until')::timestamptz > v_review.original_expires_at) THEN |             OR (v_rung ->> 'suspended_until')::timestamptz < v_review.original_expires_at) THEN
+ * @mutate supabase/migrations/20261103230932_ban_review_confirm_keeps_a_no_end_suspension.sql |        AND ((v_rung ->> 'suspended_until') IS NULL\n             OR (v_rung | AND (false\n             OR (v_rung
  * @mutate supabase/migrations/20261103225923_ban_review_floor_reads_the_match_stamp.sql |   BEFORE INSERT OR UPDATE ON public.ban_evasion_matches |   BEFORE INSERT ON public.ban_evasion_matches
  */
 import { describe, it, expect } from "vitest";
@@ -81,6 +83,12 @@ describe("a ban review's decision keeps the strictest standing judgment (Q1415 f
     expect(body).toMatch(/original_expires_at\s*<=\s*now\(\)/i);
     // A no-end suspension is never replaced by a dated one.
     expect(body).toMatch(/v_until\s+is\s+not\s+null\s+and\s+\(\s*v_m\.ex\s+is\s+null\s+or\s+v_m\.ex\s*>\s*v_until\s*\)/i);
+  });
+
+  it("the confirm keeps a no-end suspension over a dated rung, and a no-end rung over a dated review (Q1415 f3)", () => {
+    const body = blankSqlComments(defs.get("admin_confirm_ban_settlement")!.stmt);
+    expect(body).not.toMatch(/coalesce\(\s*v_review\.original_expires_at\s*,\s*'-infinity'/i);
+    expect(body).toMatch(/v_rung\s*->>\s*'ban_status'\s*=\s*'temp_banned'\s+and\s+v_review\.original_expires_at\s+is\s+not\s+null\s+and\s+\(\(v_rung\s*->>\s*'suspended_until'\)\s+is\s+null\s+or\s+\(v_rung\s*->>\s*'suspended_until'\)::timestamptz\s*>\s*v_review\.original_expires_at\)/i);
   });
 
   it("the match's auto_banned_at is stamped by its trigger on every insert and update (Q1415 f1)", () => {

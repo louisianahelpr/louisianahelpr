@@ -31,7 +31,11 @@ describe("Q2428 donate what doesn't sell: the server", () => {
   it("reads the newest definitions (floor)", () => {
     const names = ["declutter_donation_partners_near", "declutter_choose_donation", "declutter_my_donations",
       "declutter_donation_job_completed", "admin_declutter_save_donation_partner", "declutter_donation_partner_miles"];
-    for (const n of names) expect(newestFunction(n).file, n).toContain(FILE);
+    // admin_declutter_save_donation_partner: restated by Q2390 packet 11 (20261103055505, ERRCODE-only) with every line kept.
+    for (const n of names) {
+      if (n === "admin_declutter_save_donation_partner") expect(newestFunction(n).file >= FILE, n).toBe(true);
+      else expect(newestFunction(n).file, n).toContain(FILE);
+    }
     expect(names.length).toBeGreaterThan(5);
   });
 

@@ -26,14 +26,7 @@ import { PostedJobsTab, AppliedJobsTab, startTabChunk } from "@/components/job-c
 // My Posts gets the identical dialog, reportedType="job".
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 import { useActivityActions } from "@/components/job-card/useActivityActions";
-import {
-  POSTED_STATUS_FILTERS,
-  APPLIED_STATUS_FILTERS,
-  useActivityFilters,
-  postedActivityBucket,
-  appliedActivityBucket,
-  jobIsUnfundedDraft,
-} from "@/components/job-card/activityFilters";
+import { POSTED_STATUS_FILTERS, APPLIED_STATUS_FILTERS, useActivityFilters, postedActivityBucket, appliedActivityBucket, jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { ActivityEmptyState } from "@/components/job-card/ActivityEmptyState";
 import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import { useSearchParamMirror } from "@/hooks/useSearchParamMirror";

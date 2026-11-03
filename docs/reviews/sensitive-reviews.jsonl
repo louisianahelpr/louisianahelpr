@@ -324,3 +324,5 @@
 {"sha":"98df5e3c9f7e48d77747615ed1792be2b34f2d32","reviewer":"code-review","verdict":"not-needed (lead, retro-review 2026-10-31): first-post Helpr Guarantee panel (shared promise copy) and a Book me share button; display only","date":"2026-11-01"}
 {"sha":"775e04f0a605f14aa39ebb88cec818acb30abdc4","reviewer":"code-review","verdict":"not-needed (lead, retro-review 2026-10-31): problem-photo follow-ups for repo guards in DeclutterProblemsCard (classes and alt text)","date":"2026-11-01"}
 {"sha":"532be7cfcfa7fb929239dee86c504ae0e689f7af","reviewer":"code-review","verdict":"not-needed (lead, retro-review 2026-10-31): every button becomes a pill (classes only), including the payout and checkout forms","date":"2026-11-01"}
+{"sha":"a2b1cd932fe68a43310e8ff1412fe332d4793bf8","reviewer":"code-review","verdict":"approve: lead lexilombas-25 11-02 PASS after the fact (caughtMessage helper + un-exported status list only)","date":"2026-11-03"}
+{"sha":"27816a415eb4da948839a56f5ded9e671137e263","reviewer":"code-review","verdict":"approve: lead lexilombas-25 11-02 PASS after the fact (caughtMessage helper + un-exported status list only)","date":"2026-11-03"}

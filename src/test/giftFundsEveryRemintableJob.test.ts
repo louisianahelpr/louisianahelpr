@@ -12,10 +12,10 @@
  * id, so a gift-funded job never reads as card-paid (lh-money-escrow review #1).
  */
 
-// @mutate supabase/migrations/20261018031451_poster_fee_gift_first.sql |   if coalesce(v_job.payment_status, 'unpaid') not in ('unpaid', 'abandoned', 'failed') then |   if v_job.payment_status is distinct from 'unpaid' then
+// @mutate supabase/migrations/20261103221953_gift_tax_due_split_conserves_value.sql |   if coalesce(v_job.payment_status, 'unpaid') not in ('unpaid', 'abandoned', 'failed') then |   if v_job.payment_status is distinct from 'unpaid' then
 // @mutate supabase/functions/create-payment/index.ts | new Set(["unpaid", "abandoned", "failed"]) | new Set(["unpaid", "abandoned", "failed", "refunded"])
-// @mutate supabase/migrations/20261018031451_poster_fee_gift_first.sql | payment_status = 'escrow', stripe_session_id = null, customer_fee_amount = v_fee_cents::numeric / 100 where | payment_status = 'escrow', customer_fee_amount = v_fee_cents::numeric / 100 where
-// @mutate supabase/migrations/20261018031451_poster_fee_gift_first.sql | where g.id = p_credit_id and g.status = 'reserved' and g.job_id = p_job_id) then | where false) then
+// @mutate supabase/migrations/20261103221953_gift_tax_due_split_conserves_value.sql | payment_status = 'escrow', stripe_session_id = null, customer_fee_amount = v_fee_cents::numeric / 100 where | payment_status = 'escrow', customer_fee_amount = v_fee_cents::numeric / 100 where
+// @mutate supabase/migrations/20261103221953_gift_tax_due_split_conserves_value.sql | where g.id = p_credit_id and g.status = 'reserved' and g.job_id = p_job_id) then | where false) then
 
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

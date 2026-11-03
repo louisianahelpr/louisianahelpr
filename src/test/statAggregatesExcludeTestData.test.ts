@@ -47,6 +47,8 @@ const REVIEW = "REVIEW: a displayed number that still counts test data (b62 phas
 
 // @two-way src/test/statAggregatesExcludeTestData.test.ts:Object.keys(ALLOWED).filter((n) => !inventory.has(n)
 const ALLOWED: Record<string, string> = {
+  // Q2247 (20261102230059): the caller's own future holds on one series, capped at 1 while their setup is unfinished; a cap, not a stat.
+  claim_series_dates: LIMIT,
   // Q1805 (20261102082018): the caller's own phone-save attempts in the last day/hour, the rate limit itself.
   save_my_phone: LIMIT,
   // 20261101194608 (owner 11-01): a seller's own active meet spots, capped at 10, not a stat.

@@ -612,7 +612,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // cron defect when a seller-fault close has no seller left to bill. No refund amount changed.
       // None records or changes an order refund. Q2390 p27 (2026-11-03): _status re-pinned to its ERRCODE-only restatement
       // (P0002 -> PT404); its refund_cents expression is byte-identical.
-      declutter_delivery_raise_start: "20261021185418_declutter_delivery_raise_pay.sql f54438c6e9a4e1f9",
+      declutter_delivery_raise_start: "20261103173728_q2390_haul_price_withdraw_guarantee_raise_refund_admin_delivery_cart_shops_rent_not_found_is_404.sql 9bdb89483d8d1563",
       declutter_delivery_raise_status: "20261103124851_money_free_switch_handovers_shop_item_not_found_is_404.sql d9016e40cf3f2e04",
       declutter_delivery_raises_on_task_close: "20261021185418_declutter_delivery_raise_pay.sql adc539c67564a84c",
       declutter_hand_refund_failed: "20261017055500_declutter_refund_hand_settle.sql df3bdc676a1d434c",

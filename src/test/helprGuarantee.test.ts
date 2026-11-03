@@ -15,7 +15,7 @@
  * @mutate supabase/migrations/20261027200455_helpr_guarantee.sql |   IF j.completed_at IS NULL OR j.completed_at + make_interval(hours => (v_rules ->> 'claim_window_hours')::integer) < now() THEN |   IF j.completed_at IS NULL THEN
  * @mutate supabase/migrations/20261027200455_helpr_guarantee.sql |    WHERE d.id = p_dispute_id AND g.status = 'disputed' AND d.created_at >= g.created_at; |    WHERE d.id = p_dispute_id AND g.dispute_id = d.id;
  * @mutate supabase/migrations/20261027200455_helpr_guarantee.sql |     ELSIF v_job.payment_status IN ('chargeback', 'cancelling') THEN |     ELSIF false THEN
- * @mutate supabase/migrations/20261027200455_helpr_guarantee.sql |   PERFORM set_config('app.guarantee_filing', 'on', true);\n |
+ * @mutate supabase/migrations/20261103173728_q2390_haul_price_withdraw_guarantee_raise_refund_admin_delivery_cart_shops_rent_not_found_is_404.sql |   PERFORM set_config('app.guarantee_filing', 'on', true);\n |
  * @mutate supabase/functions/stripe-webhook/handlers/chargeDisputeClosed.ts |         const { error: guaranteeErr } = await supabase.rpc("guarantee_close_on_lost_chargeback", { p_job_id: closedJob.id }); |         const guaranteeErr = null as { code?: string; message?: string } \| null;
  * @mutate supabase/functions/execute-dispute-split/index.ts |       ? Math.max(0, Math.min(refundableCents, Math.round(perHelperBudget * 100 * posterShare))) |       ? Math.max(0, Math.round(refundableCents * posterShare))
  * @mutate supabase/functions/create-payment/index.ts |           if (!gErr && g) {\n            throw new PublicError("This dispute came from a Helpr Guarantee request. | if (false) {\n            throw new PublicError("This dispute came from a Helpr Guarantee request.
@@ -40,7 +40,12 @@ describe("Helpr Guarantee: the server", () => {
     const names = ["rpc_guarantee_open", "rpc_guarantee_helpr_answer", "rpc_guarantee_mark_fixed", "rpc_guarantee_poster_answer",
       "guarantee_sweep", "guarantee_escalate", "guarantee_tell", "guarantee_claim_for_dispute", "refuse_payout_claim_while_held",
       "job_messaging_closes_at"];
-    for (const n of names) expect(newestFunction(n).file, n).toContain(FILE);
+    // guarantee_escalate: restated ERRCODE-only by Q2390 packet 33 (20261103173728) with every line kept, so its floor
+    // is this file or newer; the body checks below read the newest definition.
+    for (const n of names) {
+      if (n === "guarantee_escalate") expect(newestFunction(n).file >= FILE, n).toBe(true);
+      else expect(newestFunction(n).file, n).toContain(FILE);
+    }
     expect(names.length).toBeGreaterThan(8);
   });
 

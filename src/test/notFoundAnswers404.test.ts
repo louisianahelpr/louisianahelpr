@@ -237,6 +237,7 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
  * Packet 30 (regular): rentals_set_deposit, declutter_update_wanted, rentals_dispute_rent_payment, declutter_mark_sold_elsewhere, shops_admin_record_hand_refund, bill_helpr_fault_card_fee (20261103142625); create-payment turns any bill_helpr_fault_card_fee error into a money_at_risk alert, shop-checkout rpcRefusal already answers 404 for PT404, the app maps by message.
  * Packet 31 (regular): declutter_refund_item_returned, declutter_admin_waive_fee_debt, declutter_withdraw_refund, rentals_propose_visit, rentals_confirm_visit, rentals_lease_save (20261103150842); the app maps by message. rentals_confirm_visit's 'no_visit_proposed' also used P0002 but is a state refusal, not a missing row: it is '22023' (400), lead 11-03 (STATE_REFUSALS below).
  * Packet 32 (regular): declutter_add_handover, declutter_refund_paid_order, shops_shop_cancel_order, declutter_remove_item_photo, shops_report_no_show, declutter_decline_listed_for_me (20261103162420); shop-checkout rpcRefusal already answers 404 for PT404, declutter_refund_paid_order has no app or edge caller, the app maps by message.
+ * Packet 33 (regular, 12): declutter_cancel_haul_away, declutter_set_listing_price, declutter_withdraw_item, guarantee_escalate, declutter_delivery_raise_start, declutter_refund_request_to_admin, declutter_seller_delivery_offer, declutter_remove_cart_item, shops_report_not_received, shops_attach_photo, rentals_add_rent_payment, rentals_correct_rent_payment (20261103173728); declutter-checkout already answers 404 for PT404, guarantee_escalate and declutter_refund_request_to_admin are service_role only (their SQL callers read no code), the app maps by message.
  */
 const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
   "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm",
@@ -276,9 +277,13 @@ const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_s
   "declutter_refund_item_returned", "declutter_admin_waive_fee_debt", "declutter_withdraw_refund", "rentals_propose_visit",
   "rentals_confirm_visit", "rentals_lease_save",
   "declutter_add_handover", "declutter_refund_paid_order", "shops_shop_cancel_order", "declutter_remove_item_photo",
-  "shops_report_no_show", "declutter_decline_listed_for_me"];
+  "shops_report_no_show", "declutter_decline_listed_for_me",
+  "declutter_cancel_haul_away", "declutter_set_listing_price", "declutter_withdraw_item", "guarantee_escalate",
+  "declutter_delivery_raise_start", "declutter_refund_request_to_admin", "declutter_seller_delivery_offer",
+  "declutter_remove_cart_item", "shops_report_not_received", "shops_attach_photo", "rentals_add_rent_payment",
+  "rentals_correct_rent_payment"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-const P0002_RAISERS = 93;
+const P0002_RAISERS = 81;
 /**
  * Refusals that used P0002 but name a state, not a missing row: they move to '22023' (400), never PT404 (lead 11-03).
  * Function -> the exception message it raises with '22023'.

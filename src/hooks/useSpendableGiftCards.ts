@@ -69,7 +69,6 @@ export function useSpendableGiftCards(): SpendableGiftCards {
           .from("gift_cards" as never)
           .select("id, status, payment_status, expires_at")
           .or(orClause);
-        if (error && (error as { code?: string }).code === "PGRST202") return NONE;
         // None stays the safe default, but the failure has to be observable —
         // a dropped error made a broken count look like "no credits here".
         if (error) {

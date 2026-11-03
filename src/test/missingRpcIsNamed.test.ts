@@ -47,7 +47,11 @@ import { trackedFiles } from "./helpers/trackedFiles";
 // 29 since Q2190 slice 3 (Builder 17, 2026-11-02, money/gate/authz): messagingLockout, offJobGate, recipientGate,
 // userBlocks, EarningsExport, usePosterSpendData, CancellationDialog (the unavailable message; the old-arguments retry
 // stays raw, above), AdminDisputes and useOfferHandlers (respond_to_direct_offer, decline_job_offer).
-const RAW_PGRST202_SITES = 29;
+// 23 since Q2190's dead-check cut (Builder 20, 2026-11-02, lead decision): six comparisons sat on plain TABLE
+// reads and writes, where PostgREST never answers PGRST202 (a missing table is PGRST205/42P01; gift_cards and
+// job_revisions are tables on prod, pg_class 2026-11-02): HelperRevisionCard (select, update), CompletionChoiceSheet
+// (insert), giftCardQueries (sent, received) and useSpendableGiftCards. Their real error handling stays.
+const RAW_PGRST202_SITES = 23;
 
 const ROOT = process.cwd();
 const isTest = (f: string) => /\.test\.tsx?$/.test(f) || f.startsWith("src/test/");

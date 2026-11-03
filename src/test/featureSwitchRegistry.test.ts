@@ -1,6 +1,6 @@
 // @mutate supabase/migrations/20261012031120_hidden_feature_switches.sql | VALUES ('switch_canary', 'testers', | VALUES ('switch_canary', 'everyone',
 // @mutate supabase/migrations/20261012031120_hidden_feature_switches.sql | ON CONFLICT (key) DO NOTHING; | ON CONFLICT (key) DO UPDATE SET audience = EXCLUDED.audience;
-// @mutate src/config/featureSwitches.ts |   "declutter_shipping",\n] as const; |   "declutter_shipping",\n  "orphan_switch",\n] as const;
+// @mutate src/config/featureSwitches.ts |   "ai_support_answers",\n] as const; |   "ai_support_answers",\n  "orphan_switch",\n] as const;
 // @mutate src/components/admin/settings/FeatureSwitchesCard.tsx | useFeature("switch_canary") | useFeature("switch_canarx")
 // @mutate src/config/featureSwitches.ts | SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = ["come_back_emails", "paypal_payments", "checkout_nudge", "confirm_reminders", "scanner_safe_confirm_links"]; | SERVER_ONLY_FEATURE_SWITCH_KEYS: readonly FeatureKey[] = [];
 // @mutate supabase/migrations/20261021135832_promotions_not_chosen_until_set.sql |        AND public.feature_enabled_for_user('come_back_emails', p.user_id) |        AND true
@@ -96,6 +96,10 @@ export const OWNER_APPROVED_GO_LIVE: Readonly<Record<string, string>> = {
   // card_hold_at_post: owner 2026-10-25 (pop-up, through the lead): "are not features. they should be done always for everyone."
   // Split from the dark landing by the lead 2026-10-27: lands after the card-hold functions' deploy is verified and a real walkthrough.
   "20261027185147_card_hold_at_post_on_for_everyone.sql": "card_hold_at_post",
+  // ai_support_answers: owner 2026-11-03 ~3:30 PM, "we should integrate ai into there support or help request bc
+  // some you can easly answer or claude can", with the owner's standing rule that fixes and features ship on for
+  // everyone (relayed by the lead 11-03).
+  "20261103214000_ai_support_answers_on_for_everyone.sql": "ai_support_answers",
 };
 
 export function readRegistryFromMigrations(

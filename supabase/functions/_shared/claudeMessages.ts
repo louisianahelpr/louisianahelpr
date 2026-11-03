@@ -17,12 +17,20 @@ const CLAUDE_MODEL = "claude-sonnet-5-5";
 const CLAUDE_URL = "https://api.anthropic.com/v1/messages";
 
 export type ClaudeImage = { mediaType: string; base64: string };
+/**
+ * One block of the system prompt. `cache: true` puts a prompt-cache breakpoint
+ * after it (cache_control ephemeral, 5 minutes): everything up to it is read
+ * from cache on the next call with the same prefix. Put the large, unchanging
+ * text first and mark it; prefixes under the model's minimum (512 tokens on
+ * Sonnet 5.5) silently do not cache.
+ */
+export type ClaudeSystemBlock = { text: string; cache?: boolean };
 type ClaudeTurn = { role: "user" | "assistant"; content: string; images?: ClaudeImage[] };
 
 /** One Messages API request; the caller wraps it in its retry. */
 export function claudeFetch(
   apiKey: string,
-  opts: { system: string; turns: ClaudeTurn[]; schema: Record<string, unknown>; maxTokens?: number },
+  opts: { system: string | ClaudeSystemBlock[]; turns: ClaudeTurn[]; schema: Record<string, unknown>; maxTokens?: number },
   signal: AbortSignal,
 ): Promise<Response> {
   const messages = opts.turns.map((t) => ({
@@ -46,7 +54,13 @@ export function claudeFetch(
     body: JSON.stringify({
       model: CLAUDE_MODEL,
       max_tokens: opts.maxTokens ?? 4096,
-      system: opts.system,
+      system: typeof opts.system === "string"
+        ? opts.system
+        : opts.system.map((b) => ({
+          type: "text",
+          text: b.text,
+          ...(b.cache ? { cache_control: { type: "ephemeral" } } : {}),
+        })),
       messages,
       // Short drafting: low effort keeps it quick and cheap.
       output_config: { effort: "low", format: { type: "json_schema", schema: opts.schema } },

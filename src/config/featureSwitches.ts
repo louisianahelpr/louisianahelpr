@@ -167,6 +167,11 @@ export const FEATURE_SWITCH_KEYS = [
   // calls requireFeature and the shipping_quotes trigger reads feature_enabled_for_user per buyer. Read by the
   // checkout's "Ship it to me" (DeclutterTradeViews, useFeature("declutter_shipping"); B131).
   "declutter_shipping",
+  // AI help on support requests (owner 2026-11-03 3:30 PM; B70). Created 'testers' by 20261103212413, on for
+  // everyone by 20261103214000 (owner rule 2026-10-25 via the lead; the switch is the off button);
+  // support-ai-answer calls requireFeature. Read by /support's suggested answer (Support.tsx) and Admin
+  // Support's "Suggest a reply" (SupportReply.tsx), useFeature("ai_support_answers").
+  "ai_support_answers",
 ] as const;
 
 /**

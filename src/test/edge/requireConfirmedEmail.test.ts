@@ -62,6 +62,8 @@ const GATED = [
   // B54 S2 (20261030012052): ship-rates resolves its caller with getUser() and refuses an unconfirmed one.
   "ship-rates",
   "sms-provider-check",
+  // B70 (20261103212413): the support AI's answer is skipped for an unconfirmed caller; contact-support still takes the ticket.
+  "support-ai-answer",
   "calculate-tax",
   "cash-out-credits",
   "check-pro-subscription",

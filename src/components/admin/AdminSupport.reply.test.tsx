@@ -13,9 +13,12 @@
  * @mutate src/components/admin/SupportReply.tsx |   if (!r.guest) (r.notified ? reached : missed).push("in the app"); |   (r.notified ? reached : missed).push("in the app");
  * @mutate src/components/admin/SupportReply.tsx |         body: { reportId: ticketId, message: trimmed, resolve: canResolve && resolve }, |         body: { reportId: ticketId, message: trimmed, resolve: false },
  * @mutate src/components/admin/SupportReply.tsx |       if (!result.success) throw new Error(result.error \|\| "The reply was not sent."); |
+ * Claude's suggested reply (owner 2026-11-03, B70): it fills the box only; the admin presses Send.
+ * @mutate src/components/admin/SupportReply.tsx |      setText(draft.reply.slice(0, SUPPORT_REPLY_MAX_CHARS)); |
+ * @mutate src/components/admin/SupportReply.tsx |         {aiOn && ( |         {true && (
  * @mutate src/components/admin/useSupportReplies.ts |   const repliesPending = (id: string) => replies.isLoading \|\| (replies.isPlaceholderData && !fetchedIds.has(id)); |   const repliesPending = (id: string) => replies.isLoading;
  */
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -30,6 +33,8 @@ const db = vi.hoisted(() => ({
   /** When set, admin_support_replies waits for it (a slow thread fetch). */
   repliesHold: null as Promise<void> | null,
 }));
+const aiSwitch = vi.hoisted(() => ({ on: false }));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => key === "ai_support_answers" && aiSwitch.on }));
 const toasts = vi.hoisted(() => ({ success: vi.fn(), warning: vi.fn(), error: vi.fn() }));
 
 vi.mock("sonner", () => ({ toast: toasts }));
@@ -87,6 +92,49 @@ function mount() {
     </QueryClientProvider>,
   );
 }
+
+describe("Admin Support: Claude's suggested reply", () => {
+  beforeEach(() => {
+    db.rpc = { admin_support_queue: [ticket()], admin_support_replies: [] };
+    db.rpcErrors = {};
+    db.repliesHold = null;
+    db.invokes = [];
+    toasts.success.mockReset(); toasts.warning.mockReset(); toasts.error.mockReset();
+  });
+
+  it("is not offered while the switch is off", async () => {
+    aiSwitch.on = false;
+    mount();
+    fireEvent.click(await screen.findByRole("button", { name: "Reply" }));
+    expect(screen.queryByRole("button", { name: "Suggest a reply" })).not.toBeInTheDocument();
+  });
+
+  it("fills the reply box for the admin to edit, and sends nothing until Send", async () => {
+    aiSwitch.on = true;
+    db.invokeResult = { data: { reply: "Thanks for writing in. [check the app version]", needsAdmin: true }, error: null };
+    mount();
+    fireEvent.click(await screen.findByRole("button", { name: "Reply" }));
+    fireEvent.click(screen.getByRole("button", { name: "Suggest a reply" }));
+    await waitFor(() => expect(screen.getByLabelText("Reply to Lucy M.")).toHaveValue("Thanks for writing in. [check the app version]"));
+    expect(screen.getByText(/Fill in the parts in \[brackets\]/)).toBeInTheDocument();
+    expect(db.invokes).toEqual([{ name: "support-ai-answer", body: { mode: "draft", reportId: "r-1" } }]);
+    expect(toasts.success).not.toHaveBeenCalled();
+    aiSwitch.on = false;
+  });
+
+  it("a failed suggestion says so and leaves the box as it was", async () => {
+    aiSwitch.on = true;
+    db.invokeResult = { data: { error: "ai_unavailable" }, error: null };
+    mount();
+    fireEvent.click(await screen.findByRole("button", { name: "Reply" }));
+    fireEvent.change(screen.getByLabelText("Reply to Lucy M."), { target: { value: "My own words" } });
+    fireEvent.click(screen.getByRole("button", { name: "Suggest a reply" }));
+    await waitFor(() => expect(toasts.error).toHaveBeenCalled());
+    expect(screen.getByLabelText("Reply to Lucy M.")).toHaveValue("My own words");
+    expect(db.invokes.map((i) => i.name)).toEqual(["support-ai-answer"]);
+    aiSwitch.on = false;
+  });
+});
 
 describe("Admin Support: reply to a member", () => {
   beforeEach(() => {
@@ -286,7 +334,11 @@ describe("Admin Support: reply to a member", () => {
   it("the client, the edge function and the table agree on the length limit", () => {
     const root = process.cwd();
     const edge = readFileSync(join(root, "supabase/functions/admin-support-reply/index.ts"), "utf8");
-    const sql = readFileSync(join(root, "supabase/migrations/20261023200521_admin_support_replies.sql"), "utf8");
+    // The table's CHECK, from the NEWEST migration that writes it (the reader function was redefined later, 20261103213124).
+    const dir = join(root, "supabase/migrations");
+    const newest = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort().reverse()
+      .map((f) => readFileSync(join(dir, f), "utf8")).find((t) => t.includes("support_replies_body_length"));
+    const sql = newest ?? "";
     expect(edge).toContain(`const MAX_REPLY_CHARS = ${SUPPORT_REPLY_MAX_CHARS}`);
     expect(sql).toContain(`CHECK (char_length(btrim(body)) BETWEEN 1 AND ${SUPPORT_REPLY_MAX_CHARS})`);
   });

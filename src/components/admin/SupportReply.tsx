@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { MessageSquareReply, Loader2, Send } from "lucide-react";
+import { MessageSquareReply, Loader2, Send, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { functionInvokeError } from "@/lib/supabaseResult";
@@ -10,6 +10,7 @@ import { formatShortDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useFeature } from "@/hooks/useFeature";
 
 /**
  * Admin replies to a support ticket (owner 2026-10-23, via the lead): Admin
@@ -167,6 +168,10 @@ export function SupportReplyComposer({
   const fieldId = useId();
   const resolveId = useId();
   const countId = useId();
+  // Claude's suggested reply (owner 2026-11-03, B70): a draft in this box, never sent until the admin presses Send.
+  const aiOn = useFeature("ai_support_answers");
+  const [drafting, setDrafting] = useState(false);
+  const [draftNote, setDraftNote] = useState<string | null>(null);
 
   if (disabledReason) {
     return <p className="text-ds-11 text-muted-foreground">{disabledReason}</p>;
@@ -211,11 +216,46 @@ export function SupportReplyComposer({
     }
   };
 
+  // Fills the box only. The admin reads, edits and presses Send; nothing goes to the member from here.
+  const suggest = async () => {
+    if (drafting || sending) return;
+    setDrafting(true);
+    setDraftNote(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("support-ai-answer", {
+        body: { mode: "draft", reportId: ticketId },
+      });
+      if (error) throw await functionInvokeError(error);
+      const draft = (data ?? {}) as { reply?: string; needsAdmin?: boolean; error?: string };
+      if (typeof draft.reply !== "string" || !draft.reply) throw new Error(draft.error || "No suggestion came back.");
+      setText(draft.reply.slice(0, SUPPORT_REPLY_MAX_CHARS));
+      setDraftNote(draft.needsAdmin
+        ? "AI suggestion. Fill in the parts in [brackets] before sending."
+        : "AI suggestion. Read and edit it before sending.");
+    } catch (err) {
+      toast.error(userFacingError(err, "Couldn't suggest a reply right now. Write it yourself."));
+      report(err, { tags: { source: "AdminSupport.suggestReply" } });
+    } finally {
+      setDrafting(false);
+    }
+  };
+
   return (
     <div className="space-y-2 rounded-ds-sm border border-border/60 p-3">
-      <label htmlFor={fieldId} className="text-ds-11 font-semibold text-foreground">
-        Reply to {memberName}
-      </label>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <label htmlFor={fieldId} className="text-ds-11 font-semibold text-foreground">
+          Reply to {memberName}
+        </label>
+        {aiOn && (
+          <Button size="sm" variant="outline" onClick={suggest} disabled={drafting || sending}>
+            {drafting
+              ? <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" aria-hidden="true" />
+              : <Sparkles className="w-3.5 h-3.5 mr-1" aria-hidden="true" />}
+            Suggest a reply
+          </Button>
+        )}
+      </div>
+      {draftNote && <p className="text-ds-10 text-muted-foreground" role="status">{draftNote}</p>}
       <Textarea
         id={fieldId}
         value={text}

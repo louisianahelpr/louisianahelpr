@@ -98,6 +98,7 @@
     "supabase/functions/declutter-ai-draft/checkSweep.ts",
     "supabase/functions/_shared/confirmLink.ts",
     "supabase/functions/_shared/supportGuest.ts",
+    "supabase/functions/_shared/supportAi.ts",
     "supabase/functions/_shared/recentSignIn.ts",
     "supabase/functions/_shared/helprPayoutParts.ts",
     // Q2089: complete-signup repeat reads, imported by src/test/signupRepeatIsNotWrittenTwice.test.ts.

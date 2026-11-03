@@ -20,7 +20,7 @@ import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { useWantsQuotes } from "@/pages/home/useWantsQuotes";
 import { WantsQuotesSlot } from "@/components/quotes/WantsQuotesSlot";
 import { scrollFeedToTop } from "@/pages/home/scrollFeedToTop";
-import { useIsWebDesktop } from "@/components/DesktopSidebarNav";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { MapToggleButton } from "@/components/dashboard/browseTasksToolbar/MapToggleButton";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardBannedScreen } from "@/components/dashboard/DashboardBlockedScreen";

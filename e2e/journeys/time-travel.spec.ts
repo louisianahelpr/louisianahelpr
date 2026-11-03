@@ -349,7 +349,11 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
         await page.goto("/post-job");
         // Wait for the entry column to paint (it holds a skeleton until its
         // data rows settle), so the absence below is not a loading screen.
-        await expect(page.getByText("Use a template", { exact: true }), "Post a Job never painted its entry choices").toBeVisible({ timeout: 45_000 });
+        // By ROLE, not getByText exact: the link's text node is "📄Use a template" (EntryChoice entryLink puts an
+        // aria-hidden emoji span before the label), so an exact text match finds nothing while the button is on
+        // screen (e2e-journeys 41585440777's error-context lists button "Use a template"). The accessible name
+        // drops the aria-hidden emoji, so this is the same control, matched exactly.
+        await expect(page.getByRole("button", { name: "Use a template", exact: true }), "Post a Job never painted its entry choices").toBeVisible({ timeout: 45_000 });
         await expect(
           page.getByText(job.title),
           "an unpaid job is offered in Post a job — the owner removed Finish Paying (2026-09-27)",
@@ -641,8 +645,16 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     async function helperAt(tz: string, at: Date, want: RegExp, live: boolean, name: string) {
       const { ctx, page } = await openAt(browser, request, tz, at, "helper");
       try {
-        await page.goto(`/jobs?job=${job.id}`);
-        await page.getByText(title).first().click();
+        // The Helpr's Working card, OPENED IN PLACE by the app's own link (the job page's "Open in Jobs",
+        // useOpenWorkingDeepLink: tab=working&job=<id>&open=1). Clicking the title no longer opens the card: the
+        // face links to /jobs/:id (owner 2026-10-31), whose status line is the next step ("Next: confirm you'll be
+        // at the job · by Fri 8:00 AM", owner 11-01) without JobConfirmation's "(Nh left)" deadline line, so
+        // e2e-journeys 41585440777 failed open-morning on the job page. The card still draws that line.
+        await page.goto(`/jobs?tab=working&job=${job.id}&open=1`);
+        await expect(
+          cardByTitle(page, title).getByRole("button", { name: `Close ${title}`, exact: true }),
+          `${name}: the Working card did not open in place from tab=working&job=&open=1`,
+        ).toBeVisible({ timeout: 45_000 });
         await expect(page.getByText(want).first(), `${name}: at ${at.toISOString()} from ${tz}`).toBeVisible({ timeout: 45_000 });
         const answer = page.getByRole("button", { name: HELPER_CONFIRM });
         if (live) {

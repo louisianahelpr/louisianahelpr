@@ -32,17 +32,28 @@ async function trailingIconRows(page: Page): Promise<Row[]> {
     const out: Row[] = [];
     for (const input of Array.from(document.querySelectorAll("input"))) {
       if (input.type === "file" || input.type === "checkbox" || input.type === "radio") continue;
-      const wrap = input.parentElement;
-      if (!wrap) continue;
       const ir = input.getBoundingClientRect();
       if (ir.width < 2) continue;
-      const icon = Array.from(wrap.children).find((c) => {
-        if (c === input) return false;
+      // The icon is a sibling of the input, OR of the input's own wrapper when that wrapper holds this one input:
+      // CityAutocomplete renders <div class="relative"><input/>…</div>, and SignupStep2 draws City's ✓ beside that
+      // div (e2e-journeys 41585440777 chromium: the parent-only search found no ✓ on City, and on the "drops"
+      // rotation the ZIP's network-gated ✓ was not drawn either, so the screen read as having no icons at all).
+      const isIcon = (c: Element, holder: Element) => {
+        if (c === holder) return false;
         const cs = getComputedStyle(c);
         if (cs.position !== "absolute" || cs.display === "none") return false;
         const r = c.getBoundingClientRect();
         return r.width > 0 && r.left > ir.left + ir.width / 2;
-      });
+      };
+      let icon: Element | undefined;
+      let holder: Element = input;
+      for (let up = 0; up < 2 && !icon; up++) {
+        const wrap = holder.parentElement;
+        if (!wrap) break;
+        if (up > 0 && wrap.querySelectorAll("input").length !== 1) break;
+        icon = Array.from(wrap.children).find((c) => isIcon(c, holder));
+        holder = wrap;
+      }
       if (!icon) continue;
       const cr = icon.getBoundingClientRect();
       const cs = getComputedStyle(input);
@@ -106,6 +117,14 @@ test(guestTitle, async ({ browser, journey }) => {
     await expect
       .poll(async () => (await trailingIconRows(page)).length, { message: "signup step 2 has ✓ icons on its fields; none were found", timeout: 20_000 })
       .toBeGreaterThan(0);
+    // City's ✓ is local state and draws at once; give the ZIP's network-gated ✓ its own time too, so the field this
+    // journey was written for (the "705" ZIP) is in the measurement whenever the app draws it.
+    await expect
+      .poll(async () => (await trailingIconRows(page)).some((r) => r.id === "zipCode"), { timeout: 20_000 })
+      .toBe(true)
+      .catch(() => {
+        /* the parish read can be dropped on the "drops" rotation: the ZIP then shows no ✓, and the fields that do are measured */
+      });
     const rows = await trailingIconRows(page);
     await page.locator("#zipCode").scrollIntoViewIfNeeded();
     await journey.milestone(page, "signup-step2-fields");

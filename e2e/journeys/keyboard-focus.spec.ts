@@ -2,6 +2,7 @@ import type { Locator, Page } from "@playwright/test";
 import { test, expect, assertHealthy, getSession, newUserContext, sessionsAvailable, rest, SUPABASE_URL, E2E_TITLE_MARKER } from "./fixtures";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { expectGateSendsToCompleteProfile } from "./incompleteAccount";
+import { fillBudget } from "./postJobForm";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 import { defaultInboxTab } from "../../src/lib/inboxDefault";
 
@@ -329,6 +330,17 @@ test(authedTitle, async ({ browser, request, journey }) => {
     // birthday question, 8d44b5aab). Same two originals as the wheel's: a stop
     // with nothing painted, and Tab moving the chosen value (2026-09-12: two
     // presses moved the wheel's year 2008 -> 1906).
+    // The calendar is on screen 4, "When and where?" (FormStep data-form-page="4", hidden until reached): steps d
+    // and e stop on screen 2, so the date group was never in the accessibility tree there (e2e-journeys 41585440777's
+    // error-context is screen 2, "Tell us about it"). Go on the way a poster does (postJobForm.ts fillJobDetails'
+    // second half, then fillBudget). Nothing is posted: the leg never presses Review, then pay.
+    await page.getByRole("textbox", { name: "Job Title *" }).fill(fitJobTitle(`${E2E_TITLE_MARKER} kbd`));
+    await page.getByRole("textbox", { name: "Description *" }).fill(
+      "Automated journey test. Not a real job; created and removed by the test suite. Please ignore.",
+    );
+    await page.getByRole("button", { name: "Continue", exact: true }).click();
+    await fillBudget(page);
+    await expect(page.getByRole("heading", { name: "When and where?" }), "Post a job never reached When and where?").toBeVisible({ timeout: 30_000 });
     const calendar = page.getByRole("group", { name: /Date needed|Start date/i });
     // Board 45: the calendar opens inline from "More dates" under the day strip.
     const more = page.getByRole("button", { name: "More dates" });

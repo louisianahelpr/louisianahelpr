@@ -20,6 +20,7 @@
 // @mutate e2e/stripeCheckoutCard.ts |  for (let i = 0; i < attempts; i++) { | for (let i = 0; i < 1; i++) {
 // @mutate e2e/prod-audit/fundedOpenJob.ts |     await openCardFields(page); |     if (!(await card.isVisible().catch(() => false))) await radio.click({ force: true });
 // @mutate e2e/stripeCheckoutCard.ts |     if ((await cardButton.count().catch(() => 0)) > 0) { |     if (false) {
+// @mutate e2e/stripeCheckoutCard.ts |     if ((await savedChange.count().catch(() => 0)) > 0) { |     if (false) {
 // @mutate e2e/journeys/fixtures.ts |   const paymentField = stripePaymentMethodControl(page); |   const paymentField = page.locator("#cardNumber").or(page.getByRole("radio").first());
 // @mutate scripts/probes/mint-funded-seed-jobs.prod.mjs |         for (const l of [card, cardButton, cardItem, radio, submit]) { |         for (const l of [card, cardButton, radio]) {
 // @mutate scripts/probes/mint-funded-seed-jobs.prod.mjs |       const drawnBy = Date.now() + 60_000; |       await card.or(cardButton).or(radio).first().waitFor({ state: "visible", timeout: 60_000 }); const drawnBy = 0;
@@ -128,7 +129,7 @@ describe("no driver waits on a payment-method radio alone (Stripe's button accor
   });
 });
 
-type Layout = "single" | "radio" | "button" | "unknown";
+type Layout = "single" | "radio" | "button" | "saved" | "unknown";
 
 /** A fake Checkout page per layout; "button" mirrors the DOM of run 38447487997's trace. */
 function fakeStripePage(layout: Layout) {
@@ -160,7 +161,12 @@ function fakeStripePage(layout: Layout) {
   };
   const page = {
     url: () => "https://checkout.stripe.com/c/pay/cs_test_fake",
-    locator: (sel: string) => (sel === "#cardNumber" ? loc("#cardNumber", () => open) : loc(sel, () => true)),
+    locator: (sel: string) =>
+      sel === "#cardNumber"
+        ? loc("#cardNumber", () => open)
+        : sel.includes("SavedInfoSummary")
+          ? loc("saved-info-change", () => layout === "saved" && !open, () => { open = true; })
+          : loc(sel, () => true),
     getByTestId: (id: string) => loc(id, () => layout === "button" && id === "card-accordion-item-button", () => { open = true; }),
     getByRole: (role: string) => loc(`role=${role}`, () => layout === "radio" && role === "radio", () => { open = true; }),
   };
@@ -183,6 +189,13 @@ describe("openCardFields opens the card fields on every layout Stripe renders", 
     await openCardFields(f.page);
     expect(f.isOpen()).toBe(true);
     expect(f.clicks).toEqual(["card-accordion-item-button"]);
+  });
+  // e2e-journeys 41585440777 (chromium): Card selected, fields folded behind "Pay with Visa •••• 4242" + "Change".
+  it("saved-card summary (no radio, no accordion button): presses its Change", async () => {
+    const f = fakeStripePage("saved");
+    await openCardFields(f.page);
+    expect(f.isOpen()).toBe(true);
+    expect(f.clicks).toEqual(["saved-info-change"]);
   });
   it("unknown layout fails naming the page's buttons", async () => {
     const f = fakeStripePage("unknown");

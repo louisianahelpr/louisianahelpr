@@ -261,6 +261,7 @@ describe("Stripe tax codes (ME-043)", () => {
     expect(taxedZeroOnTaxableLouisianaLabor(0, 0, "auto_repair", "LA")).toBe(false);
     const webhook = sources.find((s) => s.file === "supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts");
     expect(webhook?.src).toMatch(/if \(taxedZeroOnTaxableLouisianaLabor\(sessionTaxCents,/);
-    expect(webhook?.src).toMatch(/const sessionTaxCents = session\.total_details\?\.amount_tax;/);
+    // Q2083 (b): the job-site figure when the session carries one, else Stripe's.
+    expect(webhook?.src).toMatch(/const sessionTaxCents = sessionJobTaxCents\(session as any\) \?\? undefined;/);
   });
 });

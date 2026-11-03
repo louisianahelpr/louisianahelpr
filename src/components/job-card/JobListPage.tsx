@@ -500,7 +500,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
                of the reservation. */
             <Suspense fallback={
               <div className="px-0">
-                {/* The MineJobFace-shaped bones, with the first bucket's heading on "All" (Q833). */}
+                {/* The MineJobFace-shaped bones, with the first bucket's heading on "All" (Q833); Working below draws the same. */}
                 <PostedListBones filter={statusFilter} />
               </div>
             }>
@@ -556,7 +556,6 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
             /* `space-y-list` (12px, Q213a), as AppliedJobsTab and the grouped view (the 2px drift fixed above). */
             <Suspense fallback={
               <div className="px-0">
-                {/* The MineJobFace-shaped bones, with the first bucket's heading on "All" (Q833). */}
                 <WorkingListBones filter={statusFilter} />
               </div>
             }>

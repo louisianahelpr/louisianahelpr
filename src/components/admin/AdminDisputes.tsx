@@ -443,10 +443,8 @@ const AdminDisputes = () => {
       );
 
       if (rpcError && !isMissingRpcNamed(rpcError, "rpc_decide_dispute")) {
-        // The disputes table may not exist yet (PGRST205) — fall back
-        // to writing dispute_resolved_at on the job row + nothing
-        // else. The decision text isn't persisted in that case but
-        // the dispute is at least marked closed.
+        // The disputes table may not exist yet (PGRST205): fall back to writing dispute_resolved_at
+        // on the job row and nothing else. The decision text isn't kept then, but the dispute is marked closed.
         if (rpcError.code !== "PGRST205" && rpcError.code !== "42P01") {
           throw rpcError;
         }

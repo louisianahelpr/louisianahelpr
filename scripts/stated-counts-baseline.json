@@ -146,7 +146,6 @@
     "e2e/happy-path/zz-runtime-probe.spec.ts :: r: * HAPPY_PATH_PORT=4177 npx playwright test",
     "e2e/happy-path/zz-runtime-probe.spec.ts :: urce because ~12 of the 17 live call sites",
     "e2e/happy-path/zz-senior-probe.spec.ts :: ot count it: 542 lines, 8 tests",
-    "e2e/journeys/02-marketplace.spec.ts :: e-journeys // 34927100318 left that dialog",
     "e2e/journeys/abuse/contact-smuggling.spec.ts :: tion, 23514 → PostgREST 400 with the trigger",
     "e2e/journeys/abuse/idor-and-authz.spec.ts :: // RLS returns 0 rows",
     "e2e/journeys/abuse/idor-and-authz.spec.ts :: write is RLS answering 0 rows",

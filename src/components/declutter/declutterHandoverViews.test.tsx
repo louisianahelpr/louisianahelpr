@@ -8,7 +8,7 @@
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.side === "seller" && !problem && buyerOnWayToday(booking) && ( |           {!problem && buyerOnWayToday(booking) && (
  * @mutate src/lib/declutter/pickupDay.ts |   return !!booking?.buyer_on_way_at && ymd(new Date(booking.buyer_on_way_at)) === ymd(now); |   return !!booking?.buyer_on_way_at;
  * @mutate src/components/declutter/DeclutterNoShowAnswer.tsx |   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null; |
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />} |
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />} |
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (order.handover !== "pickup_home" && order.handover !== "meetup") { |     if (true) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |     if (Date.now() < new Date(slotStart).getTime()) { |     if (false) {
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {order.handover === "pickup_home" && !problem && !noShowWaiting && <DoorPickupTips side={order.side} />} |
@@ -566,8 +566,9 @@ describe("Declutter slice 4: paid-order cards", () => {
   });
 
   it("porch: the buyer is told the \"Picked up\" photo pays the seller (row 99), and can tap \"I got it\" instead", async () => {
-    // A1-C2: the buyer's "I got it" on a porch pickup waits for the pickup time (or the porch photo); this one has passed.
+    // BUY-17 (owner 11-03): the buyer's "I got it" on a porch pickup waits for the seller's porch photo; it is in.
     state.bookings = [slot(60)];
+    state.handover = { set_out_at: new Date().toISOString(), set_out_photo_path: "s1/declutter/handover/o1/out.jpg" };
     show([line({ handover: "porch" })]);
     expect(await screen.findByLabelText(/this pays the seller/)).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "I got it" })).toBeInTheDocument();
@@ -595,7 +596,8 @@ describe("Declutter slice 4: paid-order cards", () => {
         v.unmount();
       }
       state.bookings = [slot(60)];
-      state.handover = null;
+      // BUY-17: the buyer's pickup photo waits for the seller's porch photo; it is in.
+      state.handover = { set_out_at: new Date().toISOString(), set_out_photo_path: "s1/declutter/handover/o1/out.jpg" };
       for (const held of [false, true]) {
         state.problems = held ? [{ id: "p9", order_id: "o1", reporter_side: "seller", reason: "no_show" }] : [];
         const v = show([line({ handover: "porch" })]);
@@ -619,13 +621,14 @@ describe("Declutter slice 4: paid-order cards", () => {
   it("BUY-5: before the pickup day and the porch photo, no pickup photo is offered", async () => {
     state.bookings = [slot(-60 * 72)];
     show([line({ handover: "porch" })]);
-    expect(await screen.findByText(/You can tap "I got it" once the seller puts it out, or on your pickup day/)).toBeInTheDocument();
+    expect(await screen.findByText(/You can tap "I got it" once the seller posts the porch photo/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Take your pickup photo" })).toBeNull();
     expect(screen.queryByLabelText(/this pays the seller/)).toBeNull();
   });
 
   it("BUY-5: the pickup photo shows first, Retake or Send; only Send uploads it", async () => {
     state.bookings = [slot(60)];
+    state.handover = { set_out_at: new Date().toISOString(), set_out_photo_path: "s1/declutter/handover/o1/out.jpg" };
     show([line({ handover: "porch" })]);
     const input = (await screen.findByLabelText(/this pays the seller/)) as HTMLInputElement;
     fireEvent.change(input, { target: { files: [new File(["x"], "pick.jpg", { type: "image/jpeg" })] } });
@@ -1042,15 +1045,18 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(screen.getByRole("list", { name: "Step 2 of 4: Time booked" })).toBeInTheDocument();
     expect(screen.getByText(/Pickup day:/).textContent).toMatch(/Today/);
     expect(screen.queryByRole("button", { name: "They didn't show" })).toBeNull();
+    // BUY-17 (owner 11-03): on the pickup day itself, "I got it" stays greyed out until the porch photo, with the reason.
+    expect(await screen.findByRole("button", { name: "I got it" })).toBeDisabled();
+    expect(screen.getByText('You can tap "I got it" once the seller posts the porch photo.')).toBeInTheDocument();
     second.unmount();
 
     // 2b. A1-C2: booked for TOMORROW and not out: no "I got it" yet, and it says when it comes.
     // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   if (!porchReady) { |   if (false) {
-    // @mutate src/components/declutter/DeclutterHandoverViews.tsx | (pickupDay ? porchDayIsNow(pickupDay) : | (pickupDay ? true :
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const porchReady = !porchBuyer \|\| !!handoverRow.data?.set_out_at; |   const porchReady = !porchBuyer \|\| !!handoverRow.data?.set_out_at \|\| true;
     state.bookings = [{ ...slot(-60), pickup_day: tomorrow }];
     const early = show([line({ handover: "porch", porch_ok: true })]);
-    expect(await screen.findByText('You can tap "I got it" once the seller puts it out, or on your pickup day.')).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "I got it" })).toBeNull();
+    expect(await screen.findByText('You can tap "I got it" once the seller posts the porch photo.')).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "I got it" })).toBeDisabled();
     early.unmount();
 
     // 3. The porch photo is in on the pickup day: pick it up today.
@@ -1062,7 +1068,7 @@ describe("Declutter slice 4: paid-order cards", () => {
     third.unmount();
 
     // 3b. A1-C2: the porch photo is in while it is booked for TOMORROW: the card says the day, and "I got it" is there.
-    // @mutate src/components/declutter/DeclutterHandoverViews.tsx | !porchBuyer \|\| !!handoverRow.data?.set_out_at \|\| | !porchBuyer \|\|
+    // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   const porchReady = !porchBuyer \|\| !!handoverRow.data?.set_out_at; |   const porchReady = !porchBuyer;
     state.bookings = [{ ...slot(-60), pickup_day: tomorrow }];
     const early3 = show([line({ handover: "porch", porch_ok: true })]);
     expect(await screen.findByText("Next: pick it up tomorrow")).toBeInTheDocument();
@@ -1168,8 +1174,9 @@ describe("boards 159 + 160: handover sheets", () => {
   });
 
   it("159 buyer: 'Something's not right' closes the sheet and opens the problem form, nothing confirmed", async () => {
-    // A1-C2: a porch "I got it" waits for the pickup time; this one has passed.
+    // BUY-17: a porch "I got it" waits for the seller's porch photo; it is in.
     state.bookings = [slot(60)];
+    state.handover = { set_out_at: new Date().toISOString(), set_out_photo_path: "s1/declutter/handover/o1/out.jpg" };
     show([line({ handover: "porch" })]);
     fireEvent.click(await screen.findByRole("button", { name: "I got it" }));
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Something's not right" }));
@@ -1237,8 +1244,8 @@ describe("#6: a free claim never reads like a paid order", () => {
           // Wait for the booking read: a booked door pickup moves to its second step.
           if (at !== null && handover === "pickup_home") await within(card).findByText(side === "buyer" ? "Booked. The pickup time is below." : "Next: have it ready at the pickup time below");
           const name = side === "buyer" ? "I got it" : "Picked up";
-          // A1-C2: a porch buyer's "I got it" waits for the pickup time (or the porch photo), so not for one in an hour.
-          const acts = side === "buyer" ? at !== null && (handover !== "porch" || at === 30) : handover === "pickup_home" && at === 30;
+          // BUY-17: a porch buyer's "I got it" waits for the porch photo (none here), so it is greyed out, never opened.
+          const acts = side === "buyer" ? at !== null && handover !== "porch" : handover === "pickup_home" && at === 30;
           const action = acts ? await within(card).findByRole("button", { name }) : null;
           expect(card.textContent, `${handover} ${side} ${at}`).not.toMatch(MONEY);
           expect(within(card).getAllByText(/Claimed/).length).toBeGreaterThan(0);
@@ -1508,6 +1515,7 @@ describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
 
   it("from the I got it sheet (the item in front of the buyer): damage reasons, never I didn't get it", async () => {
     state.bookings = [slot(60)];
+    state.handover = { set_out_at: new Date().toISOString(), set_out_photo_path: "s1/declutter/handover/o1/out.jpg" };
     show([line({ handover: "porch" })]);
     fireEvent.click(await screen.findByRole("button", { name: "I got it" }));
     fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Something's not right" }));
@@ -1751,7 +1759,7 @@ describe("DB-2: no I got it while a problem is open", () => {
   it("porch, not out yet: no 'You can tap I got it' promise while a problem is open", async () => {
     state.bookings = [slot(-120)];
     const before = show([line({ handover: "porch", porch_ok: true })]);
-    expect(await screen.findByText(/You can tap "I got it" once the seller puts it out/)).toBeInTheDocument();
+    expect(await screen.findByText(/You can tap "I got it" once the seller posts the porch photo/)).toBeInTheDocument();
     before.unmount();
     state.problems = [damaged];
     show([line({ handover: "porch", porch_ok: true })]);

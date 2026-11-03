@@ -299,7 +299,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
           {order.handover === "pickup_home" && !problem && !noShowWaiting && <DoorPickupTips side={order.side} />}
           {order.handover === "porch" && <PorchOutPhoto orderId={order.orderId} side={order.side} />}
           {booking?.slot_start && order.handover === "porch" && <PorchPanel order={order} userId={userId} booking={booking} who={who} held={!!problem} />}
-          {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} pickupDay={booking.pickup_day ?? null} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
+          {booking?.slot_start && <HandoverPanel order={order} userId={userId} slotStart={booking.slot_start} anyProblem={!!problem} who={who} problemOpen={!!problem && problem.reporter_side !== "system"} onProblem={() => { setAtHandover(true); setProblemOpen(true); }} />}
           {booking?.slot_start && !problem && <NoShowButton order={order} slotStart={noShowFrom(booking, porchSeller) ?? booking.slot_start} who={who} />}
           {booking?.slot_start && !problem && <NoShowAnswer orderId={order.orderId} side={order.side} delivery={false} free={order.lines.every((l) => l.price_cents === 0)} />}
           {sellerNextFirst && <SellerAfterActions order={order} booking={booking} itemsCents={items} problemOpen={!!problem} refunded={fullRefund} />}
@@ -386,14 +386,15 @@ function BookingPanel({ order, booking, frozen = false, noTimes = null }: { orde
   );
 }
 
-function HandoverPanel({ order, userId, slotStart, pickupDay, anyProblem, who, problemOpen, onProblem }: { order: PaidOrder; userId: string; slotStart: string; pickupDay: string | null; anyProblem: boolean; who: string; problemOpen: boolean; onProblem: () => void }) {
+function HandoverPanel({ order, userId, slotStart, anyProblem, who, problemOpen, onProblem }: { order: PaidOrder; userId: string; slotStart: string; anyProblem: boolean; who: string; problemOpen: boolean; onProblem: () => void }) {
   const qc = useQueryClient();
-  // A1-C2: the buyer's "I got it" on a porch pickup waits for the porch photo (set_out_at) or the pickup day
-  // (the same handover row and key PorchOutPhoto reads, so nothing is read twice).
+  // BUY-17 (owner 11-03): the buyer's "I got it" on a porch pickup waits for the seller's porch photo (set_out_at),
+  // whatever the day (was A1-C2: the photo or the pickup day). The server refuses it too (porch_photo_not_in,
+  // 20261103202118). The same handover row and key PorchOutPhoto reads, so nothing is read twice.
   const porchBuyer = order.side === "buyer" && order.handover === "porch";
   const doorSeller = order.side === "seller" && (order.handover === "pickup_home" || order.handover === "meetup");
   const handoverRow = useQuery({ queryKey: ["declutter", "handover", order.orderId], queryFn: () => fetchMyHandover(order.orderId), enabled: porchBuyer || doorSeller });
-  const porchReady = !porchBuyer || !!handoverRow.data?.set_out_at || (pickupDay ? porchDayIsNow(pickupDay) : Date.now() >= new Date(slotStart).getTime());
+  const porchReady = !porchBuyer || !!handoverRow.data?.set_out_at;
   // #6: a free claim has no payment, payout or refund to speak of.
   const free = order.lines.every((l) => l.price_cents === 0);
   // LEAD-DOOR-PAYLINE: when the seller is paid is said once, in the sale card's money note (sellerPayoutRule, owner
@@ -464,7 +465,13 @@ function HandoverPanel({ order, userId, slotStart, pickupDay, anyProblem, who, p
   // Audit 1030 DB-2: no "I got it" while a problem is open (the server refuses it: problem_open); the card's note says why.
   if (problemOpen) return null;
   if (!porchReady) {
-    return <p className="text-sm text-muted-foreground" data-got-it-wait="">You can tap "I got it" once the seller puts it out, or on your pickup day.</p>;
+    // Greyed out with its reason (owner 11-03); "Report a problem" stays below, outside this panel.
+    return (
+      <div className="space-y-1">
+        <button type="button" className={primary} disabled aria-describedby={`dcl-got-it-wait-${order.orderId}`}>I got it</button>
+        <p id={`dcl-got-it-wait-${order.orderId}`} className="text-sm text-muted-foreground" data-got-it-wait="">You can tap "I got it" once the seller posts the porch photo.</p>
+      </div>
+    );
   }
   // Audit 1030 DB-3: at a safe meeting spot or a door pickup "I got it" opens an hour before the booked time, as
   // "I'm here" does (the server refuses it before then: got_it_too_early, 20261030061753; declutter_meetup_rules()
@@ -510,8 +517,9 @@ function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; u
   const photoDay = porchPhotoDay(booking);
   const notYet = seller && !posted && !!photoDay && !porchDayIsNow(photoDay);
   // BUY-5 (buying audit 10-30 #5): offered days early, it finished the sale. Same rule as HandoverPanel's porchReady.
-  const buyerWaits = !seller && !handoverRow.data?.set_out_at
-    && !(booking.pickup_day ? porchDayIsNow(booking.pickup_day) : !!booking.slot_start && Date.now() >= new Date(booking.slot_start).getTime());
+  // BUY-17 (owner 11-03): the buyer's pickup photo finishes the sale like "I got it", so it waits for the porch photo
+  // whatever the day (porch_photo_not_in on the server, 20261103202118).
+  const buyerWaits = !seller && !handoverRow.data?.set_out_at;
   const [shot, setShot] = useState<File | null>(null);
   const timing = useMutation({
     mutationFn: (v: { mode: "all_day" | "until"; iso: string | null }) => setPorchTime(order.orderId, v.mode, v.iso),

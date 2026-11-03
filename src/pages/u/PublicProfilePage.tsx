@@ -122,7 +122,7 @@ function ProfileBody({ p, signedIn, isMe }: { p: PublicProfile; signedIn: boolea
                 <Link to={`/declutter/item/${l.id}`} className="block overflow-hidden rounded-xl border border-border bg-background">
                   <div className="flex aspect-square w-full items-center justify-center bg-muted">
                     {l.photo_id ? (
-                      <img src={listingPhotoUrl(l.photo_id)} alt="" loading="lazy" className="h-full w-full object-cover" />
+                      <img loading="lazy" src={listingPhotoUrl(l.photo_id)} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <ShoppingBag className="h-8 w-8 text-muted-foreground" aria-hidden />
                     )}

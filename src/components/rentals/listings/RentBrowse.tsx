@@ -72,7 +72,7 @@ export function ListingCard({ l, kind, saved, onSave }: { l: CardRow; kind: "ren
       >
         <span className="relative block aspect-[4/3] overflow-hidden rounded-2xl bg-muted">
           {cover ? (
-            <img src={listingPhotoUrl(cover)} alt="" onError={() => refresh(cover)} className="h-full w-full object-cover ctl-tint" loading="lazy" />
+            <img loading="lazy" src={listingPhotoUrl(cover)} alt="" onError={() => refresh(cover)} className="h-full w-full object-cover ctl-tint" />
           ) : (
             <PhotoPlaceholder icon={Home} seed={kind} className="h-full w-full" />
           )}

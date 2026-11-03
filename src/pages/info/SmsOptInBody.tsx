@@ -20,11 +20,11 @@ export function SmsOptInBody() {
           tick the consent box, which is never pre-checked and is not a condition of using Louisiana Helpr.
         </p>
         <img
+          loading="lazy"
           src="/sms-opt-in-form.png"
           alt="The Text alerts box: a mobile number field, an unchecked consent box with the message terms, and the Turn on text alerts button."
           width={700}
           height={710}
-          loading="lazy"
           decoding="async"
           className="w-full max-w-xl h-auto rounded-2xl border border-border"
         />
@@ -39,11 +39,11 @@ export function SmsOptInBody() {
           STOP to cancel or HELP for help.
         </p>
         <img
+          loading="lazy"
           src="/sms-opt-in-confirmed.png"
           alt="The same Text alerts box with a number typed and the consent box ticked, the Turn on text alerts button enabled."
           width={700}
           height={710}
-          loading="lazy"
           decoding="async"
           className="w-full max-w-xl h-auto rounded-2xl border border-border"
         />

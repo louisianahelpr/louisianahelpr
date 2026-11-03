@@ -23,7 +23,7 @@ function HandoverPhoto({ path, alt }: { path: string; alt: string }) {
   const url = useQuery({ queryKey: ["declutter", "handover-photo", path], queryFn: () => handoverPhotoUrl(path), staleTime: 5 * 60_000 });
   if (url.isError || url.data === null) return <p className="text-xs" role="alert">This photo couldn't load.</p>;
   if (!url.data) return <div className="aspect-square w-full rounded-lg bg-muted" aria-hidden />;
-  return <img src={url.data} alt={alt} className="aspect-square w-full rounded-lg object-cover" loading="lazy" />;
+  return <img loading="lazy" src={url.data} alt={alt} className="aspect-square w-full rounded-lg object-cover" />;
 }
 
 /** A Helpr's task photo (private helpr-tasks bucket, signed URL; admins may read it). */
@@ -31,7 +31,7 @@ export function HelprPhoto({ path, alt = "The Helpr's photo at the pickup addres
   const url = useQuery({ queryKey: ["helpr-tasks", "photo", path], queryFn: () => taskPhotoUrl(path), staleTime: 5 * 60_000 });
   if (url.isError) return <p className="text-xs" role="alert">The Helpr's photo couldn't load.</p>;
   if (!url.data) return null;
-  return <img src={url.data} alt={alt} className={square ? "aspect-square w-full rounded-lg object-cover" : "h-32 w-32 rounded-lg object-cover"} loading="lazy" />;
+  return <img loading="lazy" src={url.data} alt={alt} className={square ? "aspect-square w-full rounded-lg object-cover" : "h-32 w-32 rounded-lg object-cover"} />;
 }
 
 type Shot = { key: string; path: string; label: string; at: string | null; place: string | null; helpr: boolean };

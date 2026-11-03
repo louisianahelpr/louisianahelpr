@@ -2984,10 +2984,28 @@ serve(async (req) => {
           // fee-only, whose run died before settling) settles as before, exactly
           // as the hold path priced it, instead of sitting in escrow and paging.
           const feesFitCard = feeOwedCents + crewBlockFeeCents(blockFeeRows) <= capturedCents - Math.max(0, chargeRefundedCents);
+          /** What the gift is asked to keep (0: the gift is not asked). */
+          let giftAskCents = 0;
           if (cardShortCents > 0 && !feesFitCard) {
             // Review #2: an earlier refund on the charge left the card even
             // less to pay with; the gift covers that too.
-            cardGift = await giftCoversShortfall(cardShortCents + Math.max(0, chargeRefundedCents), "refund", false);
+            giftAskCents = cardShortCents + Math.max(0, chargeRefundedCents);
+          } else if (cardShortCents === 0 && chargeRefundedCents > 0) {
+            // Q2097 (owner, 2026-11-03, option A): the card alone held every fee
+            // this cancel keeps, and only an EARLIER refund on it (the duplicate
+            // $2 setup fee, an admin's partial refund) left it short. On a job
+            // with a gift, the gift keeps exactly that gap, so the job settles
+            // instead of paging "refunded past kept fees"; the poster gets that
+            // much less gift back. A card-only job (no gift, or a gift that
+            // cannot be read) keeps today's rule: it pages and waits for a person.
+            const refundGapCents = keptOfCard + feeOwedCents + crewBlockFeeCents(blockFeeRows) - (capturedCents - chargeRefundedCents);
+            if (refundGapCents > 0) {
+              const giftOnJob = await giftPaidCents(job.id);
+              if (giftOnJob && (giftOnJob.cents > 0 || giftOnJob.restored)) giftAskCents = refundGapCents;
+            }
+          }
+          if (giftAskCents > 0) {
+            cardGift = await giftCoversShortfall(giftAskCents, "refund", false);
             if (!cardGift) continue;
             if (cardGift.uncollectable) {
               // Q2000 (owner, option A): the fee is what the card still holds

@@ -17,7 +17,7 @@
  *   - a 'failed' row on a settled job is retried (Part E);
  *   - nothing is ever written to payout_transfers.
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { loadEdgeFunction, type EdgeHarness } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock, PAYABLE_CONNECT_ACCOUNT } from "./mocks/stripe";
@@ -194,6 +194,29 @@ describe("void-cancelled-payments — the single-Helpr cancellation fee has a le
     await h.fetch(cronReq());
     expect(feeTransferCalls()).toHaveLength(0);
     expect(feeWrites()).toHaveLength(0);
+  });
+
+  // Q1424 (clock edge, Builder 74): the in-flight window is 2 minutes, strict. A pending claim 1 ms short of 2 minutes
+  // old is a run in flight (no transfer); exactly 2 minutes old it is resumed and its transfer sent under its own key.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |     const FEE_CLAIM_INFLIGHT_MS = 2 * 60 * 1000; |     const FEE_CLAIM_INFLIGHT_MS = 2 * 60 * 1000 + 1;
+  it("the in-flight window ends exactly 2 minutes after the claim (1 ms before: left; at 2 min: resumed)", async () => {
+    const T = Date.parse("2026-07-15T20:00:00.000Z");
+    const now = vi.spyOn(Date, "now").mockReturnValue(T);
+    try {
+      seed({ existing: ledgerRow({ created_at: new Date(T - 2 * 60 * 1000 + 1).toISOString() }) });
+      let h = await load();
+      await h.fetch(cronReq());
+      expect(feeTransferCalls()).toHaveLength(0);
+
+      seed({ existing: ledgerRow({ created_at: new Date(T - 2 * 60 * 1000).toISOString() }) });
+      h = await load();
+      await h.fetch(cronReq());
+      const calls = feeTransferCalls();
+      expect(calls).toHaveLength(1);
+      expect((calls[0] as [unknown, { idempotencyKey: string }])[1].idempotencyKey).toBe("cancel-fee-fee-1");
+    } finally {
+      now.mockRestore();
+    }
   });
 
   it("no claim, no transfer: a failed insert moves no money", async () => {

@@ -2104,6 +2104,9 @@ serve(async (req) => {
         const idempotencyKey = failedCount > 0
           ? `${payoutKeyBase}-r${failedCount}`
           : payoutKeyBase;
+        // Q2176: an adopted transfer already moved its own amount; the ledger settle and the dispute stamp
+        // record what Stripe sent, never this run's recompute.
+        if (adoptedTransferId && unrecorded.kind === "adopt") payoutCents = unrecorded.amountCents;
         const transfer = adoptedTransferId
           ? { id: adoptedTransferId }
           : await stripe.transfers.create(transferParams, {

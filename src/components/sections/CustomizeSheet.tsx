@@ -52,10 +52,10 @@ export function CustomizeSheet({ open, onOpenChange }: { open: boolean; onOpenCh
                   <span className="block text-ds-13 text-muted-foreground truncate">{SECTION_INVITE[key]}</span>
                 </span>
                 <span className="flex items-center">
-                  <Button type="button" variant="ghost" size="iconCompact" aria-label={`Move ${s.label} up`} disabled={i === 0} onClick={() => move(key, -1)} className="text-muted-foreground disabled:invisible [&_svg]:size-4">
+                  <Button type="button" variant="ghost" size="iconCompact" aria-label={`Move ${s.label} up`} data-account-setting disabled={i === 0} onClick={() => move(key, -1)} className="text-muted-foreground disabled:invisible [&_svg]:size-4">
                     <ChevronUp className="w-4 h-4" aria-hidden />
                   </Button>
-                  <Button type="button" variant="ghost" size="iconCompact" aria-label={`Move ${s.label} down`} disabled={i === order.length - 1} onClick={() => move(key, 1)} className="text-muted-foreground disabled:invisible [&_svg]:size-4">
+                  <Button type="button" variant="ghost" size="iconCompact" aria-label={`Move ${s.label} down`} data-account-setting disabled={i === order.length - 1} onClick={() => move(key, 1)} className="text-muted-foreground disabled:invisible [&_svg]:size-4">
                     <ChevronDown className="w-4 h-4" aria-hidden />
                   </Button>
                 </span>

@@ -22,7 +22,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { AXE_TAGS } from "./axeTags";
 import { measureLayout, settleAnimations, type LayoutReport } from "./auditRoutes";
 import { detectButtonGeometry, type ButtonGeometryReport } from "./buttonGeometry";
-import { detectStuckOrBlank, findErrorScreen, readScreenText } from "../errorScreens";
+import { detectStuckOrBlank, errorScreenAfterExcuse, findErrorScreen, readScreenText } from "../errorScreens";
 import {
   resolveIncompleteContrast,
   contrastFailures,
@@ -100,6 +100,8 @@ export interface ScreenResult {
    * green captures.
    */
   wrongScreen?: string;
+  /** On-screen error copy the sweep's own aborted request explains (setHarnessErrorExcuse). */
+  harnessExcused?: string;
   /** Sibling buttons of unequal height, and size classes the cascade defeated. See buttonGeometry.ts. */
   buttonGeometry?: ButtonGeometryReport;
   /**
@@ -206,6 +208,21 @@ export function writeReport(): void {
   );
 }
 
+
+/**
+ * AN ERROR THE SWEEP ITSELF CAUSED (lead 11-03). The prod sweep aborts every
+ * edge function (e2e/a11y-prod/abortProdWrites.ts), so a screen whose data
+ * comes from one draws its own "couldn't load" state, correctly. A sweep that
+ * knows it aborted the call registers an excuse: given the page, it returns the
+ * exact on-screen copy its own abort explains, or null. That copy is removed
+ * from the screen text and the error check runs AGAIN, so any other error copy
+ * on the same screen still fails it. Unset (every mocked sweep): no excuse.
+ */
+export type HarnessErrorExcuse = (page: import("@playwright/test").Page) => string | null;
+let harnessErrorExcuse: HarnessErrorExcuse | null = null;
+export function setHarnessErrorExcuse(fn: HarnessErrorExcuse | null): void {
+  harnessErrorExcuse = fn;
+}
 
 export async function captureScreen(
   page: import("@playwright/test").Page,
@@ -339,7 +356,9 @@ export async function captureScreen(
     // rendered as data), which findErrorScreen excludes (Q101).
     const screenText = await page.evaluate(readScreenText);
     const allow = /not-found/.test(name) ? ["404 on a real route"] : [];
-    const errorScreen = findErrorScreen(screenText, allow);
+    const excusedCopy = harnessErrorExcuse?.(page) ?? null;
+    const errorScreen = excusedCopy ? errorScreenAfterExcuse(screenText, allow, excusedCopy) : findErrorScreen(screenText, allow);
+    if (excusedCopy && screenText.text.includes(excusedCopy)) result.harnessExcused = excusedCopy;
     const stuck = await page.evaluate(detectStuckOrBlank);
     const boundary = errorScreen ? `${errorScreen.name}: "${errorScreen.excerpt}"` : stuck;
     if (boundary) result.wrongScreen = boundary;

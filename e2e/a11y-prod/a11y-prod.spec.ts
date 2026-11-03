@@ -56,10 +56,14 @@
 
 import { test, type Browser, type BrowserContext } from "../prodTest";
 import { ADMIN_SCREENS, ANON_SCREENS, AUTHED_SCREENS, type ScreenSpec } from "../happy-path/auditRoutes";
-import { VARIANTS, captureScreen, writeReport, inScope, assertSweepGate, OUTPUT_DIR, reportMeta } from "../happy-path/sweepCore";
+import { VARIANTS, captureScreen, writeReport, inScope, assertSweepGate, OUTPUT_DIR, reportMeta, setHarnessErrorExcuse } from "../happy-path/sweepCore";
 import { skipLivePay } from "../prod-audit/fundedOpenJob";
 import { ANON, AUTH_STORAGE_KEY, SUPABASE_URL, getSession, optionalSession, rest, sessionsAvailable, type Session } from "../journeys/fixtures";
-import { abortProdWrites } from "./abortProdWrites";
+import { abortProdWrites, abortExplainedError, abortedFunctionsIn } from "./abortProdWrites";
+
+// A screen's own "couldn't load" state that THIS sweep's function abort caused is not a finding;
+// any other error copy on it still is (sweepCore.setHarnessErrorExcuse).
+setHarnessErrorExcuse((page) => abortExplainedError(page.url(), abortedFunctionsIn(page.context())));
 
 /**
  * Every job_status the database defines, from the generated types' own enum

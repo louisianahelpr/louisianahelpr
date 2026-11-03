@@ -55,15 +55,49 @@ export function writeVerdict(method: string, path: string, rpcs: ReadonlySet<str
   return `write ${m}`;
 }
 
+/** Edge functions this sweep aborted, per browser context (the same facts aborted-writes.jsonl records). */
+const abortedFunctions = new WeakMap<BrowserContext, Set<string>>();
+export function abortedFunctionsIn(ctx: BrowserContext): ReadonlySet<string> {
+  return abortedFunctions.get(ctx) ?? new Set();
+}
+
+/**
+ * Screens whose OWN error state a function abort explains (lead 11-03): Money
+ * reads the wallet from stripe-payouts, which stays blocked (a Stripe-calling
+ * function is never on READ_ONLY_FUNCTIONS), so /profile?tab=earnings correctly
+ * says it couldn't load the payout data. Excused only when THIS context really
+ * aborted that function, on that screen, and only that exact copy.
+ */
+export const ABORT_EXPLAINED_ERRORS: ReadonlyArray<{ fn: string; path: string; tab: string; copy: string }> = [
+  { fn: "stripe-payouts", path: "/profile", tab: "earnings", copy: "We couldn't load your payout data." },
+];
+
+/** The copy `pageUrl`'s screen may show because `aborted` holds its function, or null. Pure. */
+export function abortExplainedError(pageUrl: string, aborted: ReadonlySet<string>): string | null {
+  let u: URL;
+  try {
+    u = new URL(pageUrl);
+  } catch {
+    // Not a URL (about:blank before the first goto): no screen, so nothing to excuse; the error check still runs.
+    return null;
+  }
+  const hit = ABORT_EXPLAINED_ERRORS.find((e) => e.path === u.pathname && u.searchParams.get("tab") === e.tab && aborted.has(e.fn));
+  return hit ? hit.copy : null;
+}
+
 /** Abort every request to `supabaseUrl` that could write prod; log each one. */
 export async function abortProdWrites(ctx: BrowserContext, supabaseUrl: string, outputDir: string): Promise<void> {
   const base = supabaseUrl.replace(/\/$/, "");
   const log = join(outputDir, "aborted-writes.jsonl");
+  const aborted = new Set<string>();
+  abortedFunctions.set(ctx, aborted);
   await ctx.route(`${base}/**`, async (route) => {
     const req: Request = route.request();
     const path = req.url().slice(base.length);
     const why = writeVerdict(req.method(), path);
     if (!why) return route.continue();
+    const fnName = /^\/functions\/v1\/([^/?#]+)/.exec(path)?.[1];
+    if (fnName) aborted.add(fnName);
     const line = { at: new Date().toISOString(), why, method: req.method(), path: path.slice(0, 200), page: safePageUrl(req) };
     console.log(`[a11y-prod] aborted ${why}: ${req.method()} ${line.path}`);
     try {

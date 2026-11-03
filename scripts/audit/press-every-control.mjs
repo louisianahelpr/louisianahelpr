@@ -757,6 +757,28 @@ export const VALIDATION_REFUSALS = [
     requires: "opened an overlay",
   },
 ];
+/**
+ * AN EMPTY FORM THAT THE APP VALIDATES ITSELF (release gate run 41553094625,
+ * 2026-11-03: /reset-password "Update password", error toast "Your password
+ * still needs 12 characters or more, ..."). Since 10-29 (A3-L3) that form is
+ * `noValidate`: the browser no longer blocks the empty submit, handleSubmit
+ * names the missing rules inline (role="alert", inside the form) and in a
+ * toast. That is the product refusing an incomplete form and showing the fix
+ * at the field. The sweep cannot fill the form to make the press "succeed":
+ * a password that meets the policy would CHANGE THE SHARED TEST ACCOUNT'S
+ * PASSWORD on prod and revoke the other shards' sessions (signOutOtherDevices).
+ *
+ * Excused only when all hold: the control is the submit of a `noValidate`
+ * form that was invalid before the press (`selfValidated`), and the toast's
+ * exact words are also printed inside that form after it (`formText`). A toast
+ * the form does not repeat, or one from a form that was complete, still fails.
+ */
+export function isInlineValidationRefusal({ toast, selfValidated, formText } = {}) {
+  if (!selfValidated) return false;
+  const t = String(toast ?? "").replace(/\s+/g, " ").trim();
+  return t.length > 0 && String(formText ?? "").replace(/\s+/g, " ").includes(t);
+}
+
 export function isDesignedValidationRefusal({ toast, changed } = {}) {
   const t = String(toast ?? "").trim();
   return VALIDATION_REFUSALS.some((v) => v.toast === t && changed === v.requires);
@@ -879,6 +901,22 @@ export const RECORD_ROW_SEL =
 /** A record's text as ENUMERATE reads it (same collapse, same cut), for a press-time check. Runs in the page. */
 export const LIVE_ROW_TEXT = (el, rowSel) => (el.closest(rowSel)?.innerText || "").replace(/\s+/g, " ").slice(0, 400);
 
+/**
+ * A RECORD THAT NAMES ITSELF (release gate run 41553094625, 2026-11-03: 143
+ * FAILs in /home's bell panel). The bell panel's record is its whole dialog,
+ * and a dialog's text is a LIVE list: between enumerating the panel (02:29Z)
+ * and pressing "Mark all read" (02:37Z) its first 400 characters no longer
+ * matched, so every control in it, "Mark all read", "Close", every row and
+ * every "More", read as "its record is no longer on the screen". A list whose
+ * rows carry `data-record-id` (the row's database id; the panel itself carries
+ * a fixed one) is matched by that id instead of by text, so a row is the same
+ * record however the list around it reflowed, and a different row is never
+ * mistaken for it. Records without the marker keep the text match.
+ * `recordKey` is the nearest `data-record-id` around the control, or "".
+ */
+export const RECORD_KEY_ATTR = "data-record-id";
+export const LIVE_RECORD_KEY = (el, attr) => el.closest(`[${attr}]`)?.getAttribute(attr) || "";
+
 /** Two reads of one record's text: equal, or equal once digits are blanked (a "3m ago" that ticked). */
 export function sameRecord(a, b) {
   if (!a || !b) return false;
@@ -893,6 +931,12 @@ export function sameRecord(a, b) {
  * NEXT card's button.
  */
 export function recordControl(now, meta) {
+  if (meta?.recordKey) {
+    const keyed = (now ?? []).filter((c) => c.recordKey === meta.recordKey);
+    return keyed.find((c) => c.sig === meta.sig) ??
+      keyed.find((c) => looseSignature(c.sig) === looseSignature(meta.sig)) ??
+      null;
+  }
   if (!meta?.rowText) return null;
   const inRecord = (now ?? []).filter((c) => sameRecord(c.rowText, meta.rowText));
   return inRecord.find((c) => c.sig === meta.sig) ??
@@ -906,13 +950,18 @@ export function recordControl(now, meta) {
  * nothing. Returns "same" (click as addressed), "moved" (press `control`
  * instead) or "gone" (the record is no longer on the screen).
  */
-export function pressTargetRecord({ liveRowText, meta, now }) {
+export function pressTargetRecord({ liveRowText, liveRecordKey = "", meta, now }) {
+  if (meta?.recordKey) {
+    if (liveRecordKey === meta.recordKey) return { verdict: "same" };
+    const keyed = recordControl(now, meta);
+    return keyed ? { verdict: "moved", control: keyed } : { verdict: "gone" };
+  }
   if (!meta?.rowText || sameRecord(liveRowText, meta.rowText)) return { verdict: "same" };
   const control = recordControl(now, meta);
   return control ? { verdict: "moved", control } : { verdict: "gone" };
 }
 
-const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel, rowSel }) => {
+const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel, rowSel, recordKeyAttr }) => {
   const root = scope === "overlay"
     ? [...document.querySelectorAll(overlaySel)].pop()
     : document.body;
@@ -990,6 +1039,8 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel, rowSel }
       // isCommitControl (pressProdSafety.mjs): the app's own marker for the
       // control that does the consequential thing (src/components/ui/dialog.tsx).
       commit: el.getAttribute("data-commit") || "",
+      // Writes an account setting whatever its words say (pressProdSafety isStateToggle).
+      accountSetting: el.hasAttribute("data-account-setting"),
       // isAccountSettingToggle (Q200): a toggle inside a <form> is a draft
       // field; one outside it saves the setting the moment it is pressed.
       inForm: el.closest("form") !== null,
@@ -1016,6 +1067,8 @@ const ENUMERATE = ({ controlSel, overlaySel, scope, base, transientSel, rowSel }
       pointerEvents: cs.pointerEvents,
       // The record this control acts on, as the user sees it: the nearest row / card / dialog.
       rowText: (el.closest(rowSel)?.innerText || "").replace(/\s+/g, " ").slice(0, 400),
+      // The record's own id when it names one (RECORD_KEY_ATTR); see LIVE_RECORD_KEY.
+      recordKey: el.closest(`[${recordKeyAttr}]`)?.getAttribute(recordKeyAttr) || "",
     });
   });
   // Ordinal among controls sharing a label and tag, so a control can be found
@@ -1718,7 +1771,7 @@ async function main() {
       // Signatures are computed HERE, not in the page, so `controlSignature`
       // stays a plain exported function a unit test can drive.
       const enumerate = async (scope) =>
-        withSignatures(await page.evaluate(ENUMERATE, { controlSel: CONTROL_SEL, overlaySel: OPEN_OVERLAY, scope, base: BASE, transientSel: TRANSIENT_REGION_SEL, rowSel: RECORD_ROW_SEL }));
+        withSignatures(await page.evaluate(ENUMERATE, { controlSel: CONTROL_SEL, overlaySel: OPEN_OVERLAY, scope, base: BASE, transientSel: TRANSIENT_REGION_SEL, rowSel: RECORD_ROW_SEL, recordKeyAttr: RECORD_KEY_ATTR }));
       /**
        * Wait until the newest open overlay stops changing shape. Two identical
        * samples 250ms apart, capped at OVERLAY_FILL_MS; a still-moving overlay
@@ -2001,8 +2054,10 @@ async function main() {
               continue;
             }
             if (liveRowText !== null) {
+              // Same rule as the text read (Q2010): a keyed record whose key cannot be read is not confirmed.
+              const liveRecordKey = meta.recordKey ? await target.evaluate(LIVE_RECORD_KEY, RECORD_KEY_ATTR).catch(() => null) : "";
               const now = await enumerate(item.step.scope);
-              const placed = pressTargetRecord({ liveRowText, meta, now });
+              const placed = liveRecordKey === null ? { verdict: "gone" } : pressTargetRecord({ liveRowText, liveRecordKey, meta, now });
               if (placed.verdict === "moved") {
                 item.step.path = placed.control.path; target = locate(item.step).first(); entry.relocated = true;
               }
@@ -2077,14 +2132,20 @@ async function main() {
           // failed for exactly this reason every night (both inputs are
           // `required`; ResetPassword.tsx). Read BEFORE the click, like
           // alreadyActive, and narrowed to a control that actually owns a form.
-          const blockedByValidation = await target
+          // `noValidate` (/reset-password since 10-29): the browser does NOT block
+          // that submit; the app validates and answers on screen
+          // (isInlineValidationRefusal), so it is not "blocked by validation".
+          const formState = await target
             .evaluate((el) => {
               const form = el.form ?? el.closest("form");
-              if (!form || typeof form.checkValidity !== "function") return false;
+              if (!form || typeof form.checkValidity !== "function") return "none";
               const submits = el.type === "submit" || el.getAttribute("type") === "submit";
-              return submits && !form.checkValidity();
+              if (!submits || form.checkValidity()) return "none";
+              return form.noValidate ? "selfValidated" : "blocked";
             })
-            .catch(() => false);
+            .catch(() => "none");
+          const blockedByValidation = formState === "blocked";
+          const selfValidated = formState === "selfValidated";
           const errs0 = consoleErrors.length, net0 = netFails.length, pop0 = popups.length, dl0 = downloads.length, fc0 = fileChoosers.length, stripe0 = stripeBlocked.length, captcha0 = captchaBlocked.length, writes0 = writes.length;
           // See paymentPaceMs: never outrun create-payment's own limiter.
           if (PAYMENT_RX.test(label) && paymentClock.last) {
@@ -2241,7 +2302,13 @@ async function main() {
               .evaluate(() => (typeof Notification === "undefined" ? "unsupported" : Notification.permission))
               .catch(() => "unknown");
             const openedOverlay = after.overlays > before.overlays ? "opened an overlay" : "";
+            const formText = selfValidated
+              ? await target.evaluate((el) => (el.form ?? el.closest("form"))?.innerText ?? "").catch(() => "")
+              : "";
+            const inline = newErrToasts.find((t) => isInlineValidationRefusal({ toast: t, selfValidated, formText }));
+            if (inline) entry.excused = `the app refused an incomplete form and named the fix inside it: "${inline}"`;
             const real = newErrToasts.filter((t) =>
+              !isInlineValidationRefusal({ toast: t, selfValidated, formText }) &&
               !isTruthfulPermissionRefusal({ toast: t, chain: entry.chain, permission }) &&
               !isDesignedValidationRefusal({ toast: t, changed: openedOverlay }) &&
               !isForeignFixtureGoneRefusal({ toast: t, chain: entry.chain }));

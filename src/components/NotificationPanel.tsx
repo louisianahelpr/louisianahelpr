@@ -537,7 +537,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
             `PopoverContent` carries no forced width there, so it shrinks to
             fit this `max-w-lg` wrapper instead of the 1048px content-column
             band it used to stretch to (Q931: fixed 28rem there, edge holds). */}
-        <div className="flex-1 min-h-0 flex flex-col overflow-hidden w-full max-w-lg mx-auto [.web-desktop_&]:w-[28rem]">
+        <div data-record-id="notifications-panel" className="flex-1 min-h-0 flex flex-col overflow-hidden w-full max-w-lg mx-auto [.web-desktop_&]:w-[28rem]">
         <AnchoredPanelHeader
           titleId={titleId}
           title="Notifications"
@@ -730,7 +730,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
                          unchanged; only the affordance goes. */
                       const actionable = isActionable(n);
                       const rowProps = {
-                        role: actionable ? "button" : undefined,
+                        "data-record-id": n.id, role: actionable ? "button" : undefined, // id: press-every-control's row identity
                         tabIndex: actionable ? 0 : undefined,
                         onClick: actionable ? () => handleClick(n) : undefined,
                         onKeyDown: actionable

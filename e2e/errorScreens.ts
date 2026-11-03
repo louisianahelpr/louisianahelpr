@@ -121,6 +121,15 @@ export function findErrorScreen(screen: string | ScreenText, allow: string[] = [
 }
 
 /**
+ * The error check with one harness-caused copy taken out first (sweepCore's
+ * setHarnessErrorExcuse): every OTHER error copy on the screen still matches.
+ */
+export function errorScreenAfterExcuse(screen: ScreenText, allow: string[], excusedCopy: string | null): ErrorScreenFinding | null {
+  if (!excusedCopy || !screen.text.includes(excusedCopy)) return findErrorScreen(screen, allow);
+  return findErrorScreen({ ...screen, text: screen.text.split(excusedCopy).join(" ") }, allow);
+}
+
+/**
  * A screen that never finished loading is an error too: blank body, or
  * loading placeholders still present. Run in the page.
  */

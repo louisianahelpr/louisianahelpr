@@ -351,7 +351,17 @@ export const SESSION_END_RX = /\bsign ?out\b|\blog ?out\b|\bsign out everywhere\
  */
 export const STATE_TOGGLE_LABEL_RX = /\b(turn on|turn off|enable|disable|activate|pause|resume|go live)\b/i;
 const TOGGLE_ROLES = new Set(["switch", "checkbox", "menuitemcheckbox", "menuitemradio", "radio"]);
+/*
+ * `data-account-setting` (release gate run 41553094625, 2026-11-03: 18 GATE
+ * MISSes): /home's Customize sheet "Move Jobs up" / "Move Declutter down" are
+ * plain buttons whose words name no toggle, yet each one POSTs
+ * member_section_prefs, the same account setting the sheet's "Show Jobs"
+ * switch writes. A control that writes an account setting says so with the
+ * marker (ENUMERATE reads it as `meta.accountSetting`), and is then gated
+ * exactly like that switch.
+ */
 function isStateToggle({ meta = {}, label = "" }) {
+  if (meta.accountSetting === true) return true;
   const role = String(meta.role ?? "").toLowerCase();
   const isToggle = TOGGLE_ROLES.has(role) || (meta.tag === "input" && /^(checkbox|radio)$/i.test(String(meta.type ?? "")));
   return isToggle || STATE_TOGGLE_LABEL_RX.test(label);

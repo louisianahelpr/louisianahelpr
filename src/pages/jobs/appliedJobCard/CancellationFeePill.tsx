@@ -1,8 +1,36 @@
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { report } from "@/lib/errorLogger";
 import { formatPriceFloor } from "@/lib/format";
 import { helperDisplayFeePercent } from "@/lib/helperEarnings";
 import { helprFlatTakeHomeCents, isFlatFeeJob } from "@/lib/helprFlatFee";
 import { HELPER_FEE_LEGACY_FALLBACK_PERCENT } from "@/lib/legacyFeeFallback";
 import type { Job } from "../../../components/job-card/activityConstants";
+
+/**
+ * Q1916: what the Helpr's own fee row says (cancellation_fee_transfers; the Helpr may read their own row's status
+ * and amount, 20261103021753). jobs.cancellation_fee_status is the POSTER's charge: 'charged' there does not mean
+ * the Helpr was sent anything (a payout hold, no payout account, Stripe not saying the account is payable).
+ * Null while loading, when there is no row yet, or when the read fails (reported): never read as "sent".
+ */
+export type HelprFeeRow = { status: string; helper_amount: number | string | null };
+
+export function cancellationFeeLine(
+  jobStatus: string,
+  row: HelprFeeRow | null,
+  estimatedNet: string,
+): { label: string; sent: boolean } {
+  if (jobStatus === "waived" || row?.status === "waived" || row?.status === "reversed") {
+    return { label: "No payment for the cancelled job", sent: false };
+  }
+  if (row?.status === "paid") {
+    const amount = Number(row.helper_amount);
+    const shown = Number.isFinite(amount) && amount > 0 ? `$${formatPriceFloor(amount)}` : estimatedNet;
+    return { label: `You received ${shown} for the cancelled job`, sent: true };
+  }
+  // pending, failed, no row yet, or unreadable: the money has not been confirmed sent.
+  return { label: `You'll receive about ${estimatedNet} for the cancelled job — on its way`, sent: false };
+}
 
 /** Cancellation fee status — shown to the helper when the poster cancelled
     after the helper was selected and a fee was assessed. Subtle pill; only
@@ -16,9 +44,29 @@ export function CancellationFeePill({
   job: Job;
   fallbackFeePercent: number | null;
 }) {
-  if (!(job.cancellation_fee != null && job.cancellation_fee > 0)) return null;
-  const status = job.cancellation_fee_status;
-  if (!status) return null;
+  const hasFee = job.cancellation_fee != null && job.cancellation_fee > 0 && !!job.cancellation_fee_status;
+  const helperId = job.helper_id ?? null;
+  const { data: feeRow = null } = useQuery({
+    queryKey: ["helpr-cancellation-fee-row", job.id, helperId],
+    enabled: hasFee && !!helperId && job.cancellation_fee_status !== "waived",
+    staleTime: 60_000,
+    queryFn: async (): Promise<HelprFeeRow | null> => {
+      const { data, error } = await supabase
+        .from("cancellation_fee_transfers")
+        .select("status, helper_amount")
+        .eq("job_id", job.id)
+        .eq("helper_id", helperId as string)
+        .maybeSingle();
+      // Unreadable is shown as "on its way", never as received; the failure is reported, not dropped.
+      if (error) {
+        report(error, { severity: "warning", tags: { source: "CancellationFeePill.feeRow" } });
+        return null;
+      }
+      return (data as HelprFeeRow | null) ?? null;
+    },
+  });
+  if (!hasFee || job.cancellation_fee == null) return null;
+  const status = job.cancellation_fee_status as string;
   // NET, not gross. `jobs.cancellation_fee` is what the POSTER is charged;
   // the helper's share arrives minus the platform commission, so quoting the
   // gross as "paid to you" promised money that never lands.
@@ -44,13 +92,8 @@ export function CancellationFeePill({
   // phrasings of one number, read minutes apart, is how a user decides the
   // app is guessing.
   // Owner 2026-10-25: members never see a fee name, only the amount they get.
-  const statusCopy: Record<string, string> = {
-    pending: `You'll receive about ${netAmt} for the cancelled job — on its way`,
-    charged: `You received ${netAmt} for the cancelled job`,
-    waived:  `No payment for the cancelled job`,
-  };
-  const label = statusCopy[status] ?? `You'll receive about ${netAmt} for the cancelled job`;
-  const isCharged = status === "charged";
+  // Q1916: "You received" only once the Helpr's own fee row says paid.
+  const { label, sent: isCharged } = cancellationFeeLine(status, feeRow, netAmt);
   return (
     /* NO PILL. Owner, 2026-09-12: "no pills" — asked specifically about the fee
        badge, since it states money rather than job state, and answered "remove

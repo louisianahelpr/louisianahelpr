@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1121,
+    "calls": 1120,
     "files": 314,
-    "rendering": 1040,
+    "rendering": 1039,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 208,
-      "toast.error": 757,
+      "toast.error": 756,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 473,
+      "literal": 471,
       "template": 104,
-      "dynamic": 596,
+      "dynamic": 597,
       "jsx": 0
     }
   },
@@ -14162,27 +14162,27 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 384,
+      "line": 383,
       "kind": "toast.error",
       "title": {
-        "form": "literal",
-        "text": "Couldn't save your response right now — try again?"
+        "form": "dynamic",
+        "text": "isMissingRpcNamed(error, \"respond_to_review\") ? \"Couldn't save your response right now — try again?\" : \"Couldn't save your response — try again?\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Couldn't save your response right now — try again?"
+          },
+          {
+            "form": "literal",
+            "text": "Couldn't save your response — try again?"
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 386,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "Couldn't save your response — try again?"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/user/UserProfile.tsx",
-      "line": 401,
+      "line": 397,
       "kind": "toast.error",
       "title": {
         "form": "literal",

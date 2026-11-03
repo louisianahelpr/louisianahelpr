@@ -35,6 +35,8 @@ describe("sessionJobTaxCents", () => {
     expect(sessionJobTaxCents({ metadata: { tax_calculation_id: "taxcalc_1", job_tax_cents: "1100" }, total_details: { amount_tax: 0 } })).toBe(1100);
     expect(sessionJobTaxCents({ metadata: { tax_calculation_id: "", job_tax_cents: "" }, total_details: { amount_tax: 263 } })).toBe(263);
     expect(sessionJobTaxCents({ metadata: { tax_calculation_id: "taxcalc_1", job_tax_cents: "-5" }, total_details: { amount_tax: 0 } })).toBe(0);
+    // A calculation id that is not Stripe's taxcalc_ is not a job-site session.
+    expect(sessionJobTaxCents({ metadata: { tax_calculation_id: "x", job_tax_cents: "1100" }, total_details: { amount_tax: 7 } })).toBe(7);
     expect(sessionJobTaxCents({ metadata: null, total_details: null })).toBeNull();
     expect(sessionJobTaxCents(undefined)).toBeNull();
   });

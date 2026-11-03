@@ -22,12 +22,19 @@ export const LEDGER_TONE: Record<string, string> = {
  * out but the selection total did not, so an admin who ticked a test batch was
  * told its test dollars were real money.
  */
-export type MoneyBatch = { total_payout: number | string | null; is_seed?: boolean | null };
+export type MoneyBatch = { total_payout: number | string | null; is_seed?: boolean | null; money_test?: boolean | null };
+
+/**
+ * Q2088: a batch is test money when release-payout would pay it in test mode (money_test, from
+ * admin_payout_batch_money_modes), not because the Helpr is a seed profile. Falls back to is_seed only when that read
+ * gave no answer.
+ */
+export const isTestMoney = (b: MoneyBatch): boolean => (typeof b.money_test === "boolean" ? b.money_test : !!b.is_seed);
 
 export function splitRealAndTest(batches: MoneyBatch[]): { real: number; test: number; realCount: number; testCount: number } {
   const amount = (b: MoneyBatch) => Number(b.total_payout || 0);
-  const real = batches.filter((b) => !b.is_seed);
-  const test = batches.filter((b) => b.is_seed);
+  const real = batches.filter((b) => !isTestMoney(b));
+  const test = batches.filter((b) => isTestMoney(b));
   return {
     real: real.reduce((s, b) => s + amount(b), 0),
     test: test.reduce((s, b) => s + amount(b), 0),
@@ -59,7 +66,7 @@ export function bulkPayoutDescription(batches: MoneyBatch[]): string {
 export function singlePayoutDescription(b: MoneyBatch & { helper_name: string | null; job_count: number }): string {
   const jobs = plural(b.job_count, "job");
   const name = b.helper_name ?? "this Helpr";
-  return b.is_seed
+  return isTestMoney(b)
     ? `This transfers $${Number(b.total_payout).toFixed(2)} to the test account ${name} for ${jobs} via Stripe. This can't be undone here.`
     : `This transfers $${Number(b.total_payout).toFixed(2)} to ${name} for ${jobs} via Stripe. This moves real money and can't be undone here.`;
 }

@@ -35,7 +35,9 @@ import {
   CARD_HOLD_COPY,
   CARD_HOLD_SWITCH,
   captureCardHold,
+  firstNameForPage,
   holdCheckoutPaymentMethodOptions,
+  markCapturedNotHired,
   notifyHelprWaiting,
   readHold,
   refundInstantBookingWith,
@@ -1611,12 +1613,20 @@ serve(async (req) => {
           }
           return json({ code: "booking_ended", error: "Your booking didn't go through, so you aren't booked. Nothing is owed and no strike." }, 409);
         }
+        // Q2447: the charge happened only because of our race, so the hold is marked: if the job then closes
+        // with nobody hired, void-cancelled-payments refunds it in full (card fee included).
+        const marked = await markCapturedNotHired(supabaseAdmin, jobId, `capture_hold: the Helpr's accept was refused after the capture: ${String(done.error.message ?? "").slice(0, 300)}`);
+        const helprName = await firstNameForPage(supabaseAdmin, user.id, "the Helpr");
+        const posterName = await firstNameForPage(supabaseAdmin, job.customer_id, "the poster");
         await postSlackOpsAlert({
           kind: "money_at_risk",
           severity: "critical",
           title: "A card hold was captured but the hire did not complete",
-          message: "The poster's held card was charged for a Helpr's accept, and the accept was then refused. The job is funded with nobody hired, as an unfilled paid job is: the Helpr can accept again, or the poster can hire someone else; if nobody is hired, it settles as any unhired funded job does.",
-          fields: { job_id: jobId, helpr: user.id, error: String(done.error.message ?? "").slice(0, 200) },
+          message: `${posterName}'s held card was charged for ${helprName}'s accept on job ${jobId} ("${job.title ?? "untitled"}"), and the accept was then refused. The job is funded with nobody hired: ${helprName} can accept again, or ${posterName} can hire someone else. ` +
+            (marked
+              ? `If nobody is hired, ${posterName} gets the whole charge back automatically when the job closes (our own race, so the card fee comes back too).`
+              : `The hold could NOT be marked for the automatic full refund: if nobody is hired, refund ${posterName} the card fee by hand after the job closes (the sweep keeps it).`),
+          fields: { job_id: jobId, job_title: job.title ?? null, helpr: helprName, helpr_id: user.id, poster: posterName, poster_id: job.customer_id ?? null, full_refund_marked: marked ? "yes" : "NO", error: String(done.error.message ?? "").slice(0, 200) },
           seed: job.is_seed === true,
         });
         return json({ code: "captured_not_hired", error: "Your accept didn't go through. Pull to refresh and try again." }, 409);

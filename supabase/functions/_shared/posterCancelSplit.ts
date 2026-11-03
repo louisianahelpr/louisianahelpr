@@ -61,6 +61,12 @@ export interface PosterCancelSplitInput {
   job: PosterCancelSplitJob;
   /** A10: a Declutter seller's backing out cancelled this setup job (declutter_order_jobs.seller_fault_refund_id). */
   sellerFault: boolean;
+  /**
+   * Q2447 own-mistake (owner 2026-10-14): the card was charged only because of our own capture-then-refused-hire
+   * race and nobody was ever hired (job_card_holds.failure_code 'captured_not_hired'). No card or service fee is
+   * kept and nobody is billed for it; a first job's setup fee is still kept (A10 precedent, lead 2026-11-03).
+   */
+  platformFault?: boolean;
   /** The late-cancellation fee owed to the Helpr(s), in cents. */
   cancellationFeeCents: number;
   /** A crew's block fees (closed spots) owed from this payment, in cents. */
@@ -120,11 +126,13 @@ export function posterCancelSplit(i: PosterCancelSplitInput): PosterCancelSplit 
   // (posterCancelKeptFeeCents, Q2082 slice 4); any other job keeps the fee
   // its poster paid. A10: a seller-fault Declutter setup job keeps no card
   // fee (the seller owes it); its setup fee is still kept (Q1674).
+  // Q2447: an own-mistake capture (platformFault) keeps no card fee either, and nobody owes it.
   const serviceFeeCents = posterCancelKeptFeeCents(i.job);
+  const noCardFee = i.sellerFault || i.platformFault === true;
   const split = refundToPayerCents({
     capturedCents: c.capturedCents,
-    actualFeeCents: i.sellerFault ? 0 : c.actualFeeCents,
-    customerFeeCents: fullSeriesRefund || i.sellerFault ? 0 : serviceFeeCents,
+    actualFeeCents: noCardFee ? 0 : c.actualFeeCents,
+    customerFeeCents: fullSeriesRefund || noCardFee ? 0 : serviceFeeCents,
     setupFeeCents: setupFeeKeptCents(i.job),
     otherKeptCents: feesCents,
     alreadyRefundedCents: c.alreadyRefundedCents,

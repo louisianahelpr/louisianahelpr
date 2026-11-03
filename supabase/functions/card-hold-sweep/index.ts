@@ -47,6 +47,8 @@ import {
   captureBeforeIso,
   captureCardHold,
   failHold,
+  firstNameForPage,
+  markCapturedNotHired,
   notifyHelprWaiting,
   notifyPosterOnce,
   placeOffSessionHold,
@@ -539,12 +541,20 @@ async function completePendingAccept(deps: Deps, job: HoldJob, defects: Defects)
   if (doneErr || (direct ? done == null : done !== true)) {
     const why = doneErr?.message ?? "the accept did not complete";
     defects.record(`job ${job.id}: captured for a pending accept that did not complete (${why}); retried next run`);
+    // Q2447: charged only because of our race; marked so a job that closes with nobody hired is refunded in full.
+    const marked = await markCapturedNotHired(db, job.id, `card-hold-sweep: the pending accept was refused after the capture: ${why.slice(0, 300)}`);
+    if (!marked) defects.record(`job ${job.id}: captured hold not marked captured_not_hired (no automatic full refund if nobody is hired)`);
+    const helprName = await firstNameForPage(db, helperId, "the Helpr");
+    const posterName = await firstNameForPage(db, job.customer_id, "the poster");
     await postSlackOpsAlert({
       kind: "money_at_risk",
       severity: "warning",
       title: "A card hold was captured for a pending accept that did not complete",
-      message: "card-hold-sweep charged the poster's held card for a Helpr's pending accept, and the completion was refused. The next run retries it; if it keeps failing, the job is funded with nobody hired.",
-      fields: { job_id: job.id, helpr: helperId, error: why.slice(0, 200) },
+      message: `card-hold-sweep charged ${posterName}'s held card for ${helprName}'s pending accept on job ${job.id} ("${job.title ?? "untitled"}"), and the completion was refused. The next run retries it; if it keeps failing, the job is funded with nobody hired, and ` +
+        (marked
+          ? `${posterName} gets the whole charge back automatically if the job closes with nobody hired.`
+          : `the hold could NOT be marked for the automatic full refund: refund ${posterName} the card fee by hand if the job closes with nobody hired.`),
+      fields: { job_id: job.id, job_title: job.title ?? null, helpr: helprName, helpr_id: helperId, poster: posterName, poster_id: job.customer_id ?? null, full_refund_marked: marked ? "yes" : "NO", error: why.slice(0, 200) },
       seed: job.is_seed === true,
     });
     return false;

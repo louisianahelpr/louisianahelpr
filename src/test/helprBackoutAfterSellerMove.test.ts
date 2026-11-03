@@ -5,9 +5,9 @@
  * This guard pins the rule on the newest definitions of helpr_task_release, helpr_task_accept and
  * helpr_route_suggestions.
  *
- * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql |   v_late := NOT v_moved AND now() |   v_late := now()
- * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql | AND e.actor_id = t.pickup_contact_id | AND true
- * @mutate supabase/migrations/20261031102758_helpr_backout_after_seller_move_is_free.sql |     CASE WHEN v_moved THEN 'seller_moved' WHEN v_late | CASE WHEN v_late
+ * @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql |   v_late := NOT v_moved AND now() |   v_late := now()
+ * @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql | AND e.actor_id = t.pickup_contact_id | AND true
+ * @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql |     CASE WHEN v_moved THEN 'seller_moved' WHEN v_late | CASE WHEN v_late
  */
 import { describe, expect, it } from "vitest";
 import { newestFunction } from "./helpers/parityReaders";
@@ -21,7 +21,8 @@ describe("LEAD-MOVE-BACKOUT: backing out after the seller's move is free", () =>
   it("helpr_task_release: no strike and a 'seller_moved' release once the seller moved this booking", () => {
     const fn = newestFunction("helpr_task_release");
     const body = flat(fn.body);
-    expect(fn.file).toContain("20261031102758");
+    // Q2390 packet 10 (20261103052255) restated it verbatim but the not-found ERRCODE (P0002 -> PT404).
+    expect(fn.file).toContain("20261103052255");
     expect(body.length).toBeGreaterThan(800);
     expect(body).toContain(
       "v_moved := EXISTS (SELECT 1 FROM public.helpr_task_events e WHERE e.task_id = t.id AND e.task_event = 'pickup_moved' AND e.actor_id = t.pickup_contact_id AND e.created_at >= t.accepted_at);",

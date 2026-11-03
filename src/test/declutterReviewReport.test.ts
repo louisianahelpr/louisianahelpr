@@ -9,7 +9,7 @@
  * @mutate supabase/migrations/20261102040000_declutter_review_report.sql |                         OR dro.handed_over_at <= now() - interval '14 days' |                         OR true
  * @mutate supabase/migrations/20261102040000_declutter_review_report.sql |      AND r.removed_at IS NULL  -- A3-75: an admin removed it after a report |      AND true
  * @mutate supabase/migrations/20261102040000_declutter_review_report.sql | after a report never counts.\n      AND dr.removed_at IS NULL | after a report never counts.\n      AND true
- * @mutate supabase/migrations/20261102040000_declutter_review_report.sql |   IF r.reviewer_id = v_uid OR r.reviewee_id = v_uid THEN |   IF false THEN
+ * @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql |   IF r.reviewer_id = v_uid OR r.reviewee_id = v_uid THEN |   IF false THEN
  * @mutate supabase/migrations/20261102040000_declutter_review_report.sql | REVOKE ALL ON FUNCTION public.declutter_admin_remove_review(uuid, text, uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_admin_remove_review(uuid, text, uuid) FROM PUBLIC;
  * @mutate supabase/migrations/20261102040000_declutter_review_report.sql | REVOKE ALL ON FUNCTION public.declutter_admin_reported_reviews(uuid[]) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_admin_reported_reviews(uuid[]) FROM PUBLIC;
  */

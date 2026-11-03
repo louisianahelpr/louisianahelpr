@@ -8,12 +8,12 @@
  * defects: a paused item, a hidden seller, an unpaid buyer, any Helpr, an open task, a stranger, no switch gate,
  * a wrong deadline, anon granted).
  */
-// @mutate supabase/migrations/20261031171727_declutter_porch_days_without_places.sql | (o.buyer_id = v_uid AND o.status = 'paid') | (o.buyer_id = v_uid)
-// @mutate supabase/migrations/20261031171727_declutter_porch_days_without_places.sql | AND t.source_id = o.id AND t.helpr_id = v_uid | AND t.source_id = o.id
+// @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql | (o.buyer_id = v_uid AND o.status = 'paid') | (o.buyer_id = v_uid)
+// @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql | AND t.source_id = o.id AND t.helpr_id = v_uid | AND t.source_id = o.id
 // @mutate supabase/migrations/20261030080020_declutter_buyer_reads_own_item.sql | i.status IN ('live', 'reserved') AND NOT i.seller_hidden | i.status IN ('live', 'reserved', 'paused')
 // LEAD-PLACE-TIMES money review 2026-10-31 #2: a porch order with no frozen place keeps to the seller's porch days, in the
 // times shown and the time accepted. Behaviour: src/test/pglite/declutterDoorPickupUsesPlaces.pglite.mjs section 6.
-// @mutate supabase/migrations/20261031171727_declutter_porch_days_without_places.sql | AND (o.handover IS DISTINCT FROM 'porch' OR public.declutter_order_is_porch_day(o.id, w.weekday)) | AND true
+// @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql | AND (o.handover IS DISTINCT FROM 'porch' OR public.declutter_order_is_porch_day(o.id, w.weekday)) | AND true
 // @mutate supabase/migrations/20261101194608_declutter_seller_meetup_spots.sql | AND NOT public.declutter_order_is_porch_day(p_order_id, extract(dow FROM v_local)::smallint) THEN | AND false THEN
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";

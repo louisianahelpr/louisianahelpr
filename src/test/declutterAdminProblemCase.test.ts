@@ -14,11 +14,11 @@
  *   4. never PUBLIC or anon;
  *   5. B48 (20261101020052, lead 10-31): one more column, helpr_has_delivery_strike, a yes/no only: the ids it reads stay
  *      inside its EXISTS (the same test helpr_task_give_job_strike uses). Proof: declutterAdminHelprFault.pglite.mjs.
- * @mutate supabase/migrations/20261101020052_helpr_task_released_helpr.sql |                AND v.violation_type = 'delivery_no_show' |                AND v.violation_type = 'delivery_damage'
- * @mutate supabase/migrations/20261101020052_helpr_task_released_helpr.sql |   IF NOT public.has_role((SELECT auth.uid()), 'admin'::public.app_role) THEN | IF false THEN
- * @mutate supabase/migrations/20261101020052_helpr_task_released_helpr.sql | t.delivered_at, t.dropoff_photo_path, t.dropoff_distance_m | t.delivered_at, t.dropoff_photo_path, t.dropoff_code
- * @mutate supabase/migrations/20261101020052_helpr_task_released_helpr.sql |       LEFT JOIN public.helpr_tasks t ON t.id = od.task_id |       LEFT JOIN public.helpr_tasks t ON t.source_id = o.id
- * @mutate supabase/migrations/20261101020052_helpr_task_released_helpr.sql | REVOKE ALL ON FUNCTION public.declutter_admin_problem_case(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_admin_problem_case(uuid) FROM PUBLIC;
+ * @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql |                AND v.violation_type = 'delivery_no_show' |                AND v.violation_type = 'delivery_damage'
+ * @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql |   IF NOT public.has_role((SELECT auth.uid()), 'admin'::public.app_role) THEN | IF false THEN
+ * @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql | t.delivered_at, t.dropoff_photo_path, t.dropoff_distance_m | t.delivered_at, t.dropoff_photo_path, t.dropoff_code
+ * @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql |       LEFT JOIN public.helpr_tasks t ON t.id = od.task_id |       LEFT JOIN public.helpr_tasks t ON t.source_id = o.id
+ * @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql | REVOKE ALL ON FUNCTION public.declutter_admin_problem_case(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_admin_problem_case(uuid) FROM PUBLIC;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -34,7 +34,8 @@ const grants = blankSqlComments(def ? readFileSync(join(MIG, def.file.split("/")
 
 describe("AL-4: an admin reads a reported problem's order facts and Helpr photos", () => {
   it("reads the newest definition (floor)", () => {
-    expect(def?.file ?? "").toContain("20261101020052_helpr_task_released_helpr.sql");
+    // Q2390 packet 10 (20261103052255) restated it verbatim but the not-found ERRCODE (P0002 -> PT404), grants as before.
+    expect(def?.file ?? "").toContain("20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql");
     expect(flat.length).toBeGreaterThan(900);
   });
 

@@ -8,7 +8,7 @@
  * still load.
  */
 // @mutate src/components/notificationPanel/notificationFeed.ts |   if (lastLoaded?.userId === userId && Date.now() - lastLoaded.at < maxAgeMs && listHeldFor(userId)) return Promise.resolve(); |   if (false) return Promise.resolve();
-// @mutate src/components/NotificationPanel.tsx |     if (open) void loadNotifications(false); |     if (open) void loadNotifications();
+// @mutate src/components/NotificationPanel.tsx | { if (open) void loadNotifications(false); } | { if (open) void loadNotifications(); }
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

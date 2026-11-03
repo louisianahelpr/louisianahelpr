@@ -127,8 +127,8 @@ describe("NotificationPanel refresh failure", () => {
     state.rows = [];
     await renderPanel();
     fireEvent.click(screen.getAllByRole("button", { name: /notifications/i })[0]);
-    // The open's own load answers (no rows) before the refresh fails.
-    await waitFor(() => expect(document.querySelector('[aria-busy="true"]')).toBeNull());
+    // The open's own load answers (no rows: the empty state) before the refresh fails.
+    expect((await screen.findAllByText("Nothing new yet.")).length).toBeGreaterThan(0);
     state.fail = true;
     await act(async () => {
       await state.onRefresh?.();
@@ -139,10 +139,11 @@ describe("NotificationPanel refresh failure", () => {
   it("stays silent when a refresh fails while the panel is CLOSED", async () => {
     await renderPanel();
     // Rows loaded (the list loads when the panel opens, Q104), then the panel closed.
-    fireEvent.click(screen.getAllByRole("button", { name: /notifications/i })[0]);
+    const bell = screen.getAllByRole("button", { name: /notifications/i })[0];
+    fireEvent.click(bell);
     await waitFor(() => expect(screen.getAllByText("Hello").length).toBeGreaterThan(0));
     fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
-    await waitFor(() => expect(screen.queryAllByText("Hello")).toHaveLength(0));
+    await waitFor(() => expect(bell.getAttribute("aria-expanded")).toBe("false"));
     state.fail = true;
     await act(async () => {
       await state.onRefresh?.();

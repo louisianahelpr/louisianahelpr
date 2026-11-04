@@ -30,11 +30,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 // PROOF THIS GUARD CAN FAIL (npm run vacuity):
 // the button stops opening the picker (1 + 2 fail);
-// @mutate src/components/profile/CredentialsTab.tsx | onClick={() => addInputRefs.current[kind]?.click()} | onClick={() => undefined}
+// @mutate src/components/profile/credentialsTab/CredentialCard.tsx | onClick={() => addInputRefs.current[kind]?.click()} | onClick={() => undefined}
 // a withdrawal that leaves the card "on" with no row behind it and no way to add (3 fails);
-// @mutate src/components/profile/CredentialsTab.tsx | {!on && ( | {!on && !removing && Object.keys(intent).length === 0 && (
+// @mutate src/components/profile/credentialsTab/CredentialCard.tsx | {!on && ( | {!on && !removing && Object.keys(intent).length === 0 && (
 // the switch comes back in place of the button (1 fails).
-// @mutate src/components/profile/CredentialsTab.tsx | {kind === "license" ? "Add license" : "Add insurance"} | {kind === "license" ? "I Am Licensed" : "I Am Insured"}
+// @mutate src/components/profile/credentialsTab/CredentialCard.tsx | {kind === "license" ? "Add license" : "Add insurance"} | {kind === "license" ? "I Am Licensed" : "I Am Insured"}
 
 type Row = Record<string, unknown>;
 const EMPTY_ROW: Row = {

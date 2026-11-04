@@ -31,7 +31,7 @@
  * and so does a fixed one still listed (lower the list in the same commit).
  *
  * @mutate src/components/profile/CredentialsTab.tsx | if (kind === "license") update.license_url = path; | if (kind === "license") { update.license_url = path; update.is_licensed = true; }
- * @mutate src/components/profile/CredentialsTab.tsx | setIntent((prev) => ({ ...prev, [kind]: true })); | void supabase.from("profiles").update({ is_insured: true }).eq("user_id", userId);
+ * @mutate src/components/profile/credentialsTab/CredentialCard.tsx | setIntent((prev) => ({ ...prev, [kind]: true })); | void supabase.from("profiles").update({ is_insured: true }).eq("user_id", userId);
  * @mutate src/pages/profile/Profile.tsx | .update({ avatar_url: publicUrl }) | .update({ avatar_url: publicUrl, idv_status: "pending" })
  * @mutate src/components/profile/CredentialsTab.tsx | kind === "license" ? { license_url: null } : { insurance_url: null }; | kind === "license" ? { license_url: null } : { ...EMPTY, insurance_url: null };
  *

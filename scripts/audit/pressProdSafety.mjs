@@ -1105,18 +1105,43 @@ export function pressWriteKind({ method, url, body = null }) {
  * removeLoadingDeclutterItem: declutter_withdraw_item DELETES a draft (photos
  * rows cascade) and returns the photo paths, then the seller deletes the
  * now-unattached objects, counted from the response.
+ *
+ * Its OWN session, minted IN-PROCESS like the inbox fixture's (CodeQL
+ * js/file-access-to-http, lander 59 on PR #4080): the cached session file is
+ * never read into these requests, the user id comes from the minted session,
+ * and the base URL and publishable key come from the environment or the
+ * constants only (INBOX_REST / inboxHeaders).
  */
 const LOADING_PIXEL = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+const LOADING_BASE = () => (process.env.PLAYWRIGHT_SUPABASE_URL || DEFAULT_SUPABASE_URL).replace(/\/+$/, "");
 
-async function sellerRpc(s, name, args) {
-  const r = await fetch(`${supabaseUrl()}/rest/v1/rpc/${name}`, { method: "POST", headers: headers(s), body: JSON.stringify(args) });
+async function sellerRpc(token, name, args) {
+  const r = await fetch(`${INBOX_REST()}/rpc/${name}`, { method: "POST", headers: inboxHeaders(token), body: JSON.stringify(args) });
   const body = await r.text();
   if (!r.ok) throw new Error(`${name}: HTTP ${r.status} ${body.slice(0, 200)}`);
   return body ? JSON.parse(body) : null;
 }
 
+async function sellerSelect(token, pathAndQuery) {
+  const r = await fetch(`${INBOX_REST()}/${pathAndQuery}`, { headers: inboxHeaders(token) });
+  if (!r.ok) throw new Error(`select ${pathAndQuery.split("?")[0]}: HTTP ${r.status}`);
+  return r.json();
+}
+
+/** Mint the helper's session in-process (never the cached file); null when no service key or the mint fails. */
+export async function mintLoadingSeller() {
+  const email = process.env.PLAYWRIGHT_HELPER_EMAIL || "helpr-e2e-helper-0902@mailinator.com";
+  try {
+    const session = await mintAdminSession({ email, serviceKey: resolveServiceKey() });
+    return { token: session.access_token, userId: session.user.id, note: "minted" };
+  } catch (e) {
+    return { token: null, userId: null, note: `could not mint the helper's session: ${String(e.message).slice(0, 200)}` };
+  }
+}
+
 export async function createLoadingDeclutterItem(seller, runId) {
-  const id = await sellerRpc(seller, "declutter_create_item", {
+  const { token, userId } = seller;
+  const id = await sellerRpc(token, "declutter_create_item", {
     p_title: `${PRESS_MARKER} loading ${runTag(String(runId))}`.slice(0, 80),
     p_description: `Automated loading-states fixture (run ${runId}). A draft only its test-account seller can open; removed when the run ends.`,
     p_category: "furniture",
@@ -1130,15 +1155,15 @@ export async function createLoadingDeclutterItem(seller, runId) {
     p_pickup_lng: -91.1874,
   });
   if (typeof id !== "string") throw new Error("declutter_create_item returned no id");
-  const path = `${seller.userId}/declutter/${id}/loading0.png`;
+  const path = `${userId}/declutter/${id}/loading0.png`;
   try {
-    const up = await fetch(`${supabaseUrl()}/storage/v1/object/job-photos/${path}`, {
+    const up = await fetch(`${LOADING_BASE()}/storage/v1/object/job-photos/${path}`, {
       method: "POST",
-      headers: { apikey: anonKey(), Authorization: `Bearer ${seller.accessToken}`, "Content-Type": "image/png", "x-upsert": "false" },
+      headers: inboxHeaders(token, { "Content-Type": "image/png", "x-upsert": "false" }),
       body: LOADING_PIXEL,
     });
     if (!up.ok) throw new Error(`photo upload: HTTP ${up.status} ${(await up.text()).slice(0, 200)}`);
-    await sellerRpc(seller, "declutter_add_item_photo", { p_item_id: id, p_storage_path: path });
+    await sellerRpc(token, "declutter_add_item_photo", { p_item_id: id, p_storage_path: path });
   } catch (e) {
     // The draft exists; hand back its id so the caller's finally removes it.
     return { id, note: `draft made, photo not attached: ${String(e.message).slice(0, 200)}` };
@@ -1147,17 +1172,18 @@ export async function createLoadingDeclutterItem(seller, runId) {
 }
 
 export async function removeLoadingDeclutterItem(seller, id) {
+  const { token, userId } = seller;
   try {
-    const [row] = await prodSelect(seller, `declutter_items?select=id,title,status&id=eq.${id}&seller_id=eq.${seller.userId}`);
+    const [row] = await sellerSelect(token, `declutter_items?select=id,title,status&id=eq.${id}&seller_id=eq.${userId}`);
     if (!row) return { ok: true, note: "already gone" };
     if (!String(row.title ?? "").includes(PRESS_MARKER)) return { ok: false, note: "not a fixture item (no marker); refusing to remove it" };
     if (row.status !== "draft") return { ok: false, note: `status ${row.status}, not draft; left for the service-role sweeper` };
-    const paths = (await sellerRpc(seller, "declutter_withdraw_item", { p_item_id: id })) ?? [];
-    const [still] = await prodSelect(seller, `declutter_items?select=id&id=eq.${id}`);
+    const paths = (await sellerRpc(token, "declutter_withdraw_item", { p_item_id: id })) ?? [];
+    const [still] = await sellerSelect(token, `declutter_items?select=id&id=eq.${id}`);
     if (still) return { ok: false, note: "withdraw answered but the draft row is still there" };
     if (!paths.length) return { ok: true, note: "draft deleted (no photos)" };
     // The bucket is spelled out so avatarRowObjectAgreement can see this delete never touches avatars.
-    const r = await fetch(`${supabaseUrl()}/storage/v1/object/job-photos`, { method: "DELETE", headers: headers(seller), body: JSON.stringify({ prefixes: paths }) });
+    const r = await fetch(`${LOADING_BASE()}/storage/v1/object/job-photos`, { method: "DELETE", headers: inboxHeaders(token), body: JSON.stringify({ prefixes: paths }) });
     const gone = r.ok ? ((await r.json().catch(() => [])) ?? []).length : 0;
     return { ok: r.ok && gone === paths.length, note: `draft deleted; photos ${gone} of ${paths.length} removed${r.ok ? "" : ` (HTTP ${r.status})`}` };
   } catch (e) {

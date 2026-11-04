@@ -14,7 +14,9 @@
  * @mutate scripts/audit/press-every-control.mjs |       push(`/declutter/item/${declutterItemId}`, r, ["helper"]); |
  * @mutate scripts/check-loading-state-shape.mjs | .replace(/^\/declutter\/item\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i, "/declutter/item/:id") |
  * @mutate scripts/audit/measure-loading-states.mjs |       declutterItemId,\n      seedJobId, |       seedJobId,
- * @mutate scripts/audit/measure-loading-states.mjs |       const gone = await removeLoadingDeclutterItem(helper, declutterItemId); |       const gone = { ok: true, note: "skipped" };
+ * @mutate scripts/audit/measure-loading-states.mjs |       const gone = await removeLoadingDeclutterItem(declutterSeller, declutterItemId); |       const gone = { ok: true, note: "skipped" };
+ * @mutate scripts/audit/measure-loading-states.mjs |         const seller = await mintLoadingSeller(); |         const seller = helper;
+ * @mutate scripts/audit/pressProdSafety.mjs |   const r = await fetch(`${INBOX_REST()}/rpc/${name}`, { method: "POST", headers: inboxHeaders(token), body: JSON.stringify(args) }); |   const r = await fetch(`${supabaseUrl()}/rest/v1/rpc/${name}`, { method: "POST", headers: headers({ accessToken: token }), body: JSON.stringify(args) });
  * @mutate scripts/audit/pressProdSafety.mjs |     if (!String(row.title ?? "").includes(PRESS_MARKER)) return { ok: false, note: "not a fixture item (no marker); refusing to remove it" }; |
  * @mutate scripts/audit/pressProdSafety.mjs |     if (row.status !== "draft") return { ok: false, note: `status ${row.status}, not draft; left for the service-role sweeper` }; |
  */
@@ -56,15 +58,18 @@ describe("Q1837: the loading catalog measures a real Declutter item", () => {
 
   it("the run passes its item to the route set and removes it in its finally", () => {
     const src = blankComments(readFileSync(resolve(__dirname, "../../scripts/audit/measure-loading-states.mjs"), "utf8"));
-    expect(src).toMatch(/createLoadingDeclutterItem\(helper,/);
+    // CodeQL js/file-access-to-http: the fixture runs on its own in-process session, never the cached helper's.
+    expect(src).toMatch(/const seller = await mintLoadingSeller\(\);/);
+    expect(src).toMatch(/createLoadingDeclutterItem\(seller,/);
+    expect(src).not.toMatch(/createLoadingDeclutterItem\(helper/);
     expect(src).toMatch(/deriveRouteSet\(\{\s*declutterItemId,/);
     const fin = src.slice(src.lastIndexOf("} finally {"));
-    expect(fin).toMatch(/removeLoadingDeclutterItem\(helper, declutterItemId\)/);
+    expect(fin).toMatch(/removeLoadingDeclutterItem\(declutterSeller, declutterItemId\)/);
   });
 });
 
 describe("removeLoadingDeclutterItem removes only its own draft", () => {
-  const seller = { userId: "u1", accessToken: "t" };
+  const seller = { userId: "u1", token: "t" };
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
@@ -95,6 +100,21 @@ describe("removeLoadingDeclutterItem removes only its own draft", () => {
     expect(r.note).toMatch(/not draft/);
     expect(r.ok).toBe(false);
     expect(calls.some((u) => u.includes("declutter_withdraw_item"))).toBe(false);
+  });
+
+  it("the fixture's requests use only env/constant URLs and the minted token (no cached session, no .env read)", () => {
+    const src = blankComments(readFileSync(resolve(__dirname, "../../scripts/audit/pressProdSafety.mjs"), "utf8"));
+    const start = src.indexOf("const LOADING_PIXEL");
+    const body = src.slice(start, src.indexOf("export async function removeLoadingDeclutterItem") + 2000);
+    expect(start).toBeGreaterThan(0);
+    expect(body).not.toMatch(/supabaseUrl\(\)|anonKey\(\)|prodSelect\(|headers\(seller|\.accessToken/);
+    expect(body).toMatch(/mintAdminSession\(\{ email, serviceKey: resolveServiceKey\(\) \}\)/);
+  });
+
+  it("sends the minted token and the loopback base, not a cached session", async () => {
+    const calls = stub({ id: ITEM, title: "x", status: "draft" });
+    await removeLoadingDeclutterItem(seller, ITEM);
+    expect(calls[0]).toMatch(/^http:\/\/127\.0\.0\.1:54321\/rest\/v1\/declutter_items\?/);
   });
 
   it("an item already gone is fine", async () => {

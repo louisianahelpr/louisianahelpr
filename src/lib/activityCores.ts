@@ -18,6 +18,7 @@ import { JOB_READABLE_COLUMN_LIST } from "@/lib/jobColumns";
 import { APPLICATION_READABLE_COLUMN_LIST } from "@/lib/applicationColumns";
 import { isNetworkFailure } from "@/lib/networkFailure";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { takeActivityCoresPrefetch } from "@/lib/activityCoresTake";
 
 /** The posted core's job columns: the readable list plus the three fetchPostedActivity has always added. */
 const POSTED_JOB_COLUMNS: readonly string[] = [...JOB_READABLE_COLUMN_LIST, "materials_note", "onboarding_fee_amount", "poster_marked_done_at"];
@@ -90,7 +91,14 @@ export function fetchActivityCores(userId: string, part?: ActivityCorePart): Pro
       return inFlight.p;
     }
   }
+  // B100 (Q2708): a cold Posted / Working link sent this same read from the entry (src/boot/activityCoresPrefetch.ts);
+  // taken once, for this member. An answer not in the payload's shape falls through to the read below.
+  const boot = takeActivityCoresPrefetch(userId);
   const p = (async () => {
+    if (boot) {
+      const early = await boot.catch(() => null);
+      if (isPayload(early)) return early;
+    }
     try {
       const res = await supabase.rpc("get_my_activity_cores", {
         p_job_columns: [...POSTED_JOB_COLUMNS],

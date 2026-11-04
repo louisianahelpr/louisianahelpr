@@ -2,6 +2,7 @@ import { TimePickerWheel } from "@/components/TimePickerWheel";
 import { STREET_ADDRESS_RULE } from "@/lib/streetAddressRule";
 import { DatePickerField } from "@/components/DatePickerField";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { PetPicker } from "@/components/postjob/PetPicker";
 import { MapPin, Shield, Zap } from "lucide-react";
@@ -452,9 +453,9 @@ export function LogisticsSection({
         {/* A held-over today: the error sits on the date, the field to change. */}
         <FieldError id="date-closed-error">{holdsClosedToday ? TODAY_CLOSED_COPY : undefined}</FieldError>
         {!showCalendar && (
-          <button type="button" onClick={() => setMoreDates(true)} className="self-start inline-flex min-h-[44px] items-center font-sans text-ds-13 font-semibold text-[hsl(var(--bark))]">
+          <Button type="button" variant="link" size="sm" onClick={() => setMoreDates(true)} className="self-start px-0 font-sans text-ds-13 font-semibold text-[hsl(var(--bark))]">
             More dates
-          </button>
+          </Button>
         )}
         {/* "More dates" opens the existing calendar INLINE, on the same field
             (never a popover: the owner's 2026-10-08 "calendar always open" now

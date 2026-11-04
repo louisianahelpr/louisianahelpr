@@ -2956,7 +2956,7 @@ describe("stripe-webhook edge function", () => {
       // Q1997 (lead): test data never pages the owner. The page carries seed:
       // the visit's series job is_seed, or its payer/Helpr is a test subject;
       // a visit row that cannot be read pages as real.
-      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |       seed: await visitIsSeed(supabase, piId, logStep), |       seed: false,
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |       oncePerDayKey: `visit-tax-empty:${charge.id}`,\n      seed: await visitIsSeed(supabase, piId, logStep), |       oncePerDayKey: `visit-tax-empty:${charge.id}`,\n      seed: false,
       // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   return job?.is_seed === true \|\| await anyIsTestSubject(supabase, [visit.payer_id, visit.helper_id], logStep); |   return job?.is_seed === true;
       // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (error \|\| !visit) { |   if (error) {
       for (const [label, setup, seed] of [

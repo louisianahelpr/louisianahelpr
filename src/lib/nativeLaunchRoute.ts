@@ -15,9 +15,13 @@
  * Web is a no-op (returns null) so deep links and SEO entry points are
  * never overridden.
  */
-import { supabase } from "@/integrations/supabase/client";
+import { loadModule } from "@/lib/loadModule";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { readRestorableRoute } from "@/lib/lastRoute";
+
+// The Supabase client is loaded, not imported: this module is on the boot path, and the client
+// (supabase-js, ~30 KB gz) is on its way off it (Q2705/Q2706, plan in Builder 3's 11-04 handoff).
+const supabaseClient = () => loadModule(() => import("@/integrations/supabase/client"));
 
 // Routes that should "stick" on cold launch even for signed-in users.
 // Anything else falls through to the auth-aware default.
@@ -58,7 +62,9 @@ export async function resolveNativeLaunchRoute(
   }
 
   try {
-    const { data, error } = await supabase.auth.getSession();
+    const m = await supabaseClient();
+    if (!m) return "/browse";
+    const { data, error } = await m.supabase.auth.getSession();
     // A failed session lookup is treated the same as no session: fall
     // through to the guest route. ProtectedRoute will re-gate properly
     // once a real navigation happens, so a transient error here just

@@ -1,4 +1,8 @@
-import { supabase } from "@/integrations/supabase/client";
+import { loadModule } from "@/lib/loadModule";
+
+// The Supabase client is loaded, not imported: this module is on the boot path, and the client
+// (supabase-js, ~30 KB gz) is on its way off it (Q2705/Q2706, plan in Builder 3's 11-04 handoff).
+const supabaseClient = () => loadModule(() => import("@/integrations/supabase/client"));
 
 /**
  * The force-update threshold, read from `platform_settings.min_supported_build`.
@@ -129,7 +133,9 @@ export async function readMinSupportedBuild(): Promise<number> {
 
   inFlight = (async () => {
     try {
-      const { data, error } = await supabase.rpc("get_public_platform_settings");
+      const m = await supabaseClient();
+      if (!m) throw new Error("the Supabase client did not load (recovery reload under way)");
+      const { data, error } = await m.supabase.rpc("get_public_platform_settings");
       // The error is never dropped: it is thrown here so the single catch
       // below both logs it and lands on the safe answer, rather than being
       // silently ignored while `data` is read as null.

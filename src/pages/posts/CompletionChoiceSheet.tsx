@@ -39,6 +39,7 @@ import { formatPriceExact } from "@/lib/format";
 import { NOT_RIGHT_LABEL, releaseActionLabel } from "@/lib/releaseCopy";
 import { STANDARD_PAYOUT_PHRASE } from "../../../supabase/functions/_shared/escrowTiming";
 import { endSentence } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 // Rentals: the tenant's "Was it fixed?" answer, for a job posted from a repair
 // request. Loaded only when the sheet opens (off /posts' shared chunk) and
@@ -338,14 +339,16 @@ export function CompletionChoiceSheet({
                   {releaseActionLabel(jobPrice)}
                 </SheetPrimaryAction>
               </div>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setMode("revision")}
-                className="w-full min-h-11 font-sans font-semibold"
+                className="w-full font-sans font-semibold"
                 style={{ color: "hsl(var(--bark))" }}
               >
                 {NOT_RIGHT_LABEL}
-              </button>
+              </Button>
             </div>
 
             {/* BELOW the two choices, never above: it appears only once its
@@ -369,15 +372,17 @@ export function CompletionChoiceSheet({
                 one goes back a step, one abandons the flow. The back control is
                 a left chevron now, which is what it always meant. */}
             <div className="flex items-start gap-2 mb-1">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="iconCompact"
                 onClick={() => setMode("choice")}
-                className="h-9 w-9 shrink-0 inline-flex items-center justify-center ctl-exit ctl-tint active:opacity-70 -ml-1.5"
+                className="shrink-0 ctl-exit -ml-1.5"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 aria-label="Back to choices"
               >
                 <ChevronLeft className="w-5 h-5" />
-              </button>
+              </Button>
               <div className="flex-1 min-w-0">
                 <SheetHero title="What needs to be fixed?" />
               </div>
@@ -416,15 +421,17 @@ export function CompletionChoiceSheet({
                         }}
                       >
                         <span className="truncate max-w-[120px] font-sans font-medium">{file.name}</span>
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
+                          size="iconCompact"
                           onClick={() => setPhotos((p) => p.filter((_, j) => j !== i))}
                           aria-label="Remove photo"
-                          className="inline-flex items-center justify-center h-10 w-10 -my-2 -mr-2 active:opacity-70"
+                          className="-my-2 -mr-2 [&_svg]:size-3"
                           style={{ color: "hsl(var(--burnt-sienna))" }}
                         >
                           <X className="w-3 h-3" />
-                        </button>
+                        </Button>
                       </div>
                     ))}
                   </div>

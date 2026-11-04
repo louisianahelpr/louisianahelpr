@@ -848,9 +848,6 @@
     "src/pages/post-job/EntryChoice.tsx": {
       "button": 3
     },
-    "src/pages/post-job/GiftCardTeaser.tsx": {
-      "button": 1
-    },
     "src/pages/post-job/OfferToSavedHelpr.tsx": {
       "button": 2
     },
@@ -858,16 +855,12 @@
       "button": 2
     },
     "src/pages/posts/CompletionChoiceSheet.tsx": {
-      "button": 3,
       "input": 1
     },
     "src/pages/posts/postedJobs/BulkDismissibleWrapper.tsx": {
       "button": 1
     },
     "src/pages/posts/postedJobs/DeclineApplicantSheet.tsx": {
-      "button": 1
-    },
-    "src/pages/posts/postedJobs/RecurringVisitPayments.tsx": {
       "button": 1
     },
     "src/pages/posts/postedJobs/applicantsPanel/ApplicantCompare.tsx": {

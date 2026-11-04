@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { X } from "lucide-react";
 import { safeStorage } from "@/lib/safeStorage";
 import { GIFT_RECEIVED_HREF } from "@/pages/profile/giftCards/useShowReceivedGifts";
+import { Button } from "@/components/ui/button";
 
 interface GiftCardTeaserProps {
   /** The viewer — dismissal is remembered per user on this device. */
@@ -68,15 +69,17 @@ const GiftCardTeaser = ({ userId, ids }: GiftCardTeaserProps) => {
           </Link>
         </p>
       </div>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="iconCompact"
         onClick={dismiss}
         aria-label="Dismiss"
-        className="shrink-0 -mr-2 -my-2 w-11 h-11 inline-flex items-center justify-center ctl-exit ctl-tint active:bg-secondary/40 transition-colors"
+        className="shrink-0 -mr-2 -my-2 ctl-exit [&_svg]:size-4"
         style={{ color: "hsl(var(--muted-foreground))" }}
       >
         <X className="w-4 h-4" aria-hidden="true" />
-      </button>
+      </Button>
     </div>
   );
 };

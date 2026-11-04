@@ -15,6 +15,7 @@ const NativeRedirect = lazy(() => import("@/components/NativeRedirect"));
 
 import HeroSection from "@/components/landing/HeroSection";
 import { LiveJobsSection } from "@/components/landing/LiveJobsSection";
+import { FreshDeclutterSection } from "@/components/landing/FreshDeclutterSection";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import { SectionsShowcase, TrustAndJoin } from "@/components/landing/SectionsShowcase";
 
@@ -145,6 +146,9 @@ const Index = () => {
 
       {/* Owner 2026-10-23 (option B): the newest real open jobs, right under the hero. */}
       <LiveJobsSection />
+
+      {/* Owner 11-04: the newest live Declutter listings, under the jobs (loaded only once it nears the screen). */}
+      <FreshDeclutterSection />
 
       <SectionsShowcase />
 

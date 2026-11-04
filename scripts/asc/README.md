@@ -12,12 +12,10 @@ GitHub secrets cannot be read back.
 | `inspect` | no | Dumps one subscription and one IAP in full, for diffing |
 | `fix-availability` | yes | Sets `availableInNewTerritories: false` on subscriptions |
 
-The review screenshot is `assets/review-screenshot.png`, regenerated with:
-
-```
-PLAYWRIGHT_WEB_SERVER=1 npx playwright test --project=happy-path -g "App Store review"
-cp e2e-artifacts/iap-review-screenshot.png scripts/asc/assets/review-screenshot.png
-```
+The review screenshot is `assets/review-screenshot.png` (committed). Its capture spec,
+e2e/happy-path/iap-review-screenshot.spec.ts, was retired on 2026-11-04 with the memberships
+(Builder 114, owner): the Subscription tab draws no plan cards any more, so there is nothing new to
+capture, and the App Store products are removed after 1.0.4 is approved.
 
 ## Current state (2026-09-06) — RESOLVED
 

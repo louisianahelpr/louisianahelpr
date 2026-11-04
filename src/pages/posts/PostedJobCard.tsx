@@ -3,8 +3,7 @@ import { takesApplicants } from "./postedJobCard/crewRefill";
 import { BackoutBanner } from "@/components/job-card/BackoutBanner";
 import { postedCardShowsTracker } from "@/components/job-card/trackerMounts";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { RotateCcw, Check, MapPinOff } from "lucide-react";
+import { Check, MapPinOff } from "lucide-react";
 import DeadlineCountdown from "@/components/job-card/DeadlineCountdown";
 import { PostedJobSeriesControls } from "@/pages/posts/PostedJobSeriesControls";
 import { JobRequestRows, ScheduleChangeForJob } from "@/components/series/JobSeriesCardControls";
@@ -15,7 +14,6 @@ import { withDisputeSettling } from "../../components/job-card/jobStatusLine";
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { useJobRescheduled } from "@/hooks/useJobRescheduled";
 import { GroupJobHelpers } from "@/components/GroupJobHelpers";
-import { PersonTile } from "@/components/PersonTile";
 import { JobCardShell } from "../../components/job-card/JobCardShell"; import { JobProofPhotos } from "@/components/jobs/JobProofPhotos";
 import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace"; import { jobProgress } from "@/components/tracker/jobProgressState";
 import { usePosterFaceAction } from "./postedJobCard/posterFaceAction";
@@ -31,7 +29,8 @@ import { useHighlightPulse } from "../../components/job-card/useHighlightPulse";
 import { PaymentProblemNotice } from "../../components/job-card/PaymentProblemNotice";
 import { cardPaymentProblem } from "@/lib/jobPaymentCardState";
 import { useCardNotes } from "@/components/job-card/JobNotes";
-import { PosterCancelFeeLine } from "./postedJobCard/PosterCancelFeeLine";
+import { PostedCancelledBlock } from "./postedJobCard/PostedCancelledBlock";
+import { postedHelperTile } from "./postedJobCard/PostedHelperTile";
 
 /**
  * PostedJobCard — one card in the poster's "my posts" feed: the job
@@ -122,46 +121,8 @@ function PostedJobCardInner({
   const showsTracker = postedCardShowsTracker(job);
   const helperName = job.helper_id ? helperNames[job.helper_id] || "Helpr" : "Helpr";
 
-  /* THE HELPR'S PROFILE TILE — built here, rendered DIRECTLY ABOVE THE ACTION
-     ROW (owner, 2026-09-19: "the helpr or posted by should be right above the
-     buttons"). Third position in five days; jobCardPerson.tsx carries the
-     whole history and the reasoning.
-
-     The card builds it because the card is what holds the id, the name and the
-     avatar. WHERE it lands is no longer the card's business: it is published
-     through `JobCardPersonContext` and the step shell (JobStepCard) renders it
-     as the last thing before its one row.
-
-     `stepCarriesTile` is the SHELL'S OWN ANSWER, not a second transcription of
-     which statuses draw a step card. PostedJobActions returns null outright for
-     `cancelled` and `pending_approval` (STATUS_RENDERS_ACTIONS), and an
-     un-expanded card draws no actions at all — in exactly those states nothing
-     claims the tile and the fallback below prints it, so the Helpr's profile
-     cannot silently vanish from a card again.
-
-     NOTHING WHILE COLLAPSED (V6, reaffirmed by the owner 2026-09-19): the tile
-     is `null` unless `isExpanded`, gated HERE rather than downstream, because
-     this card is the only thing that knows its own expand state.
-
-     On THIS card that gate is defence-in-depth and says so honestly: both
-     render sites (the step card and the fallback below) already sit behind
-     `isExpanded`, so removing it changes nothing today — which is exactly why
-     it stays. The tile has moved three times in five days, and the rule
-     belongs to the tile rather than to wherever it currently happens to be
-     mounted. On the HELPER card the same line IS load-bearing, because that
-     card's step cards render while collapsed; the mutation register in
-     src/test/jobCardPersonTileAboveRow.test.tsx records that asymmetry. */
   const { offerUnanswered, posterClocks, posterConfirmOpens } = posterOfferClocks(job);
-  const helperTile = isExpanded && job.helper_id ? (
-    <PersonTile
-      userId={job.helper_id}
-      to={`/user/${job.helper_id}`}
-      name={helperName}
-      avatarUrl={helperAvatars?.[job.helper_id] ?? null}
-      eyebrow={offerUnanswered ? "Offered to" : "Helpr"}
-      onClick={(e) => e.stopPropagation()}
-    />
-  ) : null;
+  const helperTile = postedHelperTile({ job, isExpanded, helperName, helperAvatars, offerUnanswered }); // the tile and its rules: PostedHelperTile.tsx
   const personCtx = personSlotValue(helperTile, personClaim);
 
   /* THE TRACKER — EXPANDED ONLY, ON EVERY STATUS INCLUDING A CONTESTED ONE.
@@ -341,47 +302,8 @@ function PostedJobCardInner({
                   row. */}
               {!stepCarriesTile && helperTile}
 
-              {/* Cancelled: show fee info if a fee was recorded */}
-              {job.status === "cancelled" && (
-                <div className="space-y-1.5">
-                  {/* The "Cancelled" pill that used to lead this row is gone —
-                      the full-width status stripe at the top of the card now
-                      says it, in the same destructive tint. Only the fee badge
-                      (which the stripe does NOT carry) remains. */}
-                  {/* NO PILL. Owner, 2026-09-12: "no pills" — and when asked
-                      whether this one should survive because it states money
-                      rather than job state, "remove it too, no pills means
-                      none". The FACT does not vanish with the pill: a charged
-                      cancellation fee with nothing on the card saying so would
-                      be a worse defect than the pill ever was. It is a plain
-                      money line now, in the card's own type, which is where a
-                      currency amount belongs anyway.
-
-                      Keeping `tabular-nums`: the digits still have to align
-                      with the other money on the card. And still no glyph —
-                      `feeAmt` already carries the symbol, which is what
-                      produced the doubled "$ Fee $12.50" the owner reported. A
-                      currency symbol is typography; it belongs in the same text
-                      node as the digits, never beside them as an icon. */}
-                  {/* Q1916: "charged" only when a card paid it; a gift-funded fee says so (PosterCancelFeeLine). */}
-                  {job.cancellation_fee != null && job.cancellation_fee > 0 && job.cancellation_fee_status && (
-                    <PosterCancelFeeLine jobId={job.id} fee={job.cancellation_fee} status={job.cancellation_fee_status} posterId={userId} />
-                  )}
-                  {/* Re-post CTA — all cancelled / expired jobs.
-                      Navigates to /post-job?rebook=<id> which pre-fills
-                      every field except the date (date must be in the
-                      future; old date is intentionally skipped). */}
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    className="w-full mt-2"
-                    onClick={(e) => { e.stopPropagation(); navigate(`/post-job?rebook=${job.id}`); }}
-                  >
-                    <RotateCcw className="w-4 h-4 mr-1.5" />
-                    Re-Post this job
-                  </Button>
-                </div>
-              )}
+              {/* Cancelled: the fee line when a fee was recorded, and Re-Post (PostedCancelledBlock.tsx). */}
+              {job.status === "cancelled" && <PostedCancelledBlock job={job} userId={userId} />}
 
 
 

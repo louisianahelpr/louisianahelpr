@@ -6128,6 +6128,27 @@ export type Database = {
         Relationships: [
         ]
       }
+      helpr_travel_estimates: {
+        Row: {
+          job_id: string
+          measured_at: string
+          minutes: number
+          user_id: string
+        }
+        Insert: {
+          job_id: string
+          measured_at?: string
+          minutes: number
+          user_id: string
+        }
+        Update: {
+          job_id?: string
+          measured_at?: string
+          minutes?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       helpr_vehicles: {
         Row: {
           has_car: boolean

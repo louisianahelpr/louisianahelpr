@@ -735,7 +735,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // 20261029194046 restates it verbatim plus two smart-offer titles under declutter_offers; still records nothing.
       // 20261030170443 (Q2488, lead lh-authz-rls approve "no money") adds the declutter_questions kind; still records nothing.
       // Re-pinned (Lander 36, train 1, 11-02): 20261102103524 restates it with four shipping titles added to its lists; a title-to-kind map, no amount.
-      declutter_notice_type: "20261102103524_declutter_ship_notice_kinds.sql 477de9babf8238ab",
+      // Re-pinned (Lander 68, batch 7 fold, 11-04): 20261104123305 (Q2268, lead PASS) restates it with the bundle request titles added to its lists; a title-to-kind map, no amount.
+      declutter_notice_type: "20261104123305_bundle_request_export_and_notice_kinds.sql 56e1e2ff71ff2657",
       // Q2307 (20261021204947), reviewed: a payment on an order a party has left is refunded in full as 'order_closed'
       // (full_platform_absorbs: nobody at the table did anything wrong); a replay answers the same refund row, and the
       // payment that already paid a settled order answers already_paid (money re-review R1).

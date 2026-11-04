@@ -29,7 +29,7 @@ vi.mock("@/integrations/supabase/client", () => {
 const reported = vi.hoisted(() => [] as unknown[]);
 vi.mock("@/lib/errorLogger", () => ({ report: (e: unknown) => reported.push(e) }));
 
-import { FreshDeclutterSection } from "./FreshDeclutterSection";
+import { FreshDeclutterSection, forgetRecentFreshItems } from "./FreshDeclutterSection";
 
 class SeeAll {
   constructor(private cb: (e: { isIntersecting: boolean }[]) => void) {}
@@ -41,6 +41,7 @@ beforeEach(() => {
   vi.stubGlobal("IntersectionObserver", SeeAll);
   reads.calls = 0;
   reported.length = 0;
+  forgetRecentFreshItems();
 });
 afterEach(() => vi.unstubAllGlobals());
 

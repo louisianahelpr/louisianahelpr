@@ -479,6 +479,7 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
   // captures only its non-tax part; the gift keeps the rest, so no fee comes out of the tax.
   // @mutate supabase/functions/void-cancelled-payments/index.ts | capturableCents: holdRoomCents }, | capturableCents: holdCents },
   // @mutate supabase/functions/void-cancelled-payments/index.ts | const holdRoomCents = holdSiteTaxCents > 0 ? Math.max(0, holdCents - holdSiteTaxCents) : holdCents; | const holdRoomCents = holdCents;
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | Math.max(0, captureCents - holdRoomCents)) : 0; | Math.max(0, captureCents - holdRoomCents + 1)) : 0;
   it("a hold a little above its job-site tax captures only its non-tax part; the gift keeps the rest of the fees (Q2727)", async () => {
     const HOLD = 400;
     const TAX = 100;
@@ -498,6 +499,8 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
     const captures = stripeMock.paymentIntents.capture.mock.calls;
     expect(captures).toHaveLength(1);
     expect((captures[0][1] as { amount_to_capture?: number }).amount_to_capture).toBe(ROOM);
+    // Q2716 (left part): the capture names the tax inside it (none: it stops at the room), so the webhook records nothing.
+    expect((captures[0][1] as { metadata?: Record<string, string> }).metadata).toEqual({ cancel_fee_capture: "1", cancel_fee_tax_kept_cents: "0" });
     // The gift keeps the fee less what the card's non-tax part paid after its own card fee.
     const restored = restoredCents();
     expect(restored).not.toBeNull();

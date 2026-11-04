@@ -23,6 +23,9 @@ import { reverseVisitTaxForRefund } from "./_visitTaxReversal.ts";
  * Never throws: the payment already stands. A failure pages ops with the exact
  * hand step (Stripe calculations expire, so it is a defect to fix, not retry).
  */
+/** The one-time setup fee a hire may leave out of a hold's capture (onboarding_fee_cents NOT NULL DEFAULT 200). */
+export const PARTIAL_CAPTURE_SETUP_FEE_CENTS = 200;
+
 export async function commitJobSiteTax(args: {
   stripe: Stripe;
   pi: Stripe.PaymentIntent;
@@ -44,8 +47,13 @@ export async function commitJobSiteTax(args: {
   // only the fee) would commit the FULL calculation's tax, and the uncaptured rest is released, never refunded,
   // so no refund event ever reverses it: tax reported on money never collected. Not committed; a person records
   // the tax on what was captured.
+  // Lead re-review (b): a hire captures the hold less the one-time setup fee when that fee was already claimed
+  // elsewhere (cardHold.ts partial capture), a normal taxed hire; that shortfall is no part of the taxed price,
+  // so it still commits. Only a shortfall larger than the omitted setup fee (default $2, the schema default of
+  // onboarding_fee_cents) is a fee-only capture.
   const received = pi.amount_received;
-  if (typeof received === "number" && typeof pi.amount === "number" && received < pi.amount) {
+  const setupFeeAllowanceCents = md.onboarding_fee_charged === "true" ? PARTIAL_CAPTURE_SETUP_FEE_CENTS : 0;
+  if (typeof received === "number" && typeof pi.amount === "number" && pi.amount - received > setupFeeAllowanceCents) {
     console.error(`[stripe-webhook] job-site tax NOT committed for ${pi.id}: captured ${received} of ${pi.amount}`);
     await postSlackOpsAlert({
       kind: "money_at_risk",

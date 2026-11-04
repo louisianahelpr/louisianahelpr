@@ -2,6 +2,7 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { caughtMessage } from "../../_shared/caughtMessage.ts";
 import { JOB_TAX_CALC_KEY, JOB_TAX_CENTS_KEY } from "../../_shared/jobTaxAddress.ts";
+import { reverseVisitTaxForRefund } from "./_visitTaxReversal.ts";
 
 /**
  * Q2083 (b) / Q1727 (a): commit a job's job-site sales tax to Stripe Tax once
@@ -27,8 +28,11 @@ export async function commitJobSiteTax(args: {
   pi: Stripe.PaymentIntent;
   logStep: (step: string, details?: unknown) => void;
   seed?: boolean;
+  /** Service-role client; read only to mark a test job's reversal alert as seed. */
+  // deno-lint-ignore no-explicit-any
+  supabase?: any;
 }): Promise<"none" | "already" | "committed" | "failed_paged"> {
-  const { stripe, pi, logStep, seed } = args;
+  const { stripe, pi, logStep, seed, supabase } = args;
   const md = (pi.metadata ?? {}) as Record<string, string>;
   const calc = md[JOB_TAX_CALC_KEY];
   const cents = Number(md[JOB_TAX_CENTS_KEY]);
@@ -76,5 +80,66 @@ export async function commitJobSiteTax(args: {
     return "failed_paged";
   }
   logStep("Job-site sales tax committed to Stripe Tax", { jobId: md.job_id, piId: pi.id, txId, cents });
+  // Review fix (lh-money-escrow on 378f7b321 #1): a refund made BEFORE the
+  // stamp above (a duplicate checkout refunded at once, a refund racing this
+  // event) found no tax_transaction_id on charge.refunded and reversed
+  // nothing, so its tax would stay reported as collected. Now that the stamp
+  // is on, the PaymentIntent's refunds are re-read and each live one is
+  // reversed by the same per-refund path (keyed on the refund id, so one the
+  // refund event also reaches is never reversed twice). A refund made after
+  // this read sees the stamp on its own charge.refunded event.
+  if (await reverseRefundsMadeBeforeTheStamp({ stripe, pi, txId, logStep, seed, supabase, jobId: md.job_id }) === "failed_paged") {
+    return "failed_paged";
+  }
   return "committed";
+}
+
+async function reverseRefundsMadeBeforeTheStamp(args: {
+  stripe: Stripe;
+  pi: Stripe.PaymentIntent;
+  txId: string;
+  jobId: string;
+  logStep: (step: string, details?: unknown) => void;
+  seed?: boolean;
+  // deno-lint-ignore no-explicit-any
+  supabase?: any;
+}): Promise<"none" | "reversed" | "failed_paged"> {
+  const { stripe, pi, txId, jobId, logStep, seed, supabase } = args;
+  let all: Stripe.Refund[];
+  try {
+    const listed = await stripe.refunds.list({ payment_intent: pi.id, limit: 100 });
+    if (listed?.has_more) throw new Error("more than 100 refunds listed; refusing to read a partial list");
+    all = (listed?.data ?? []) as Stripe.Refund[];
+  } catch (e) {
+    console.error(`[stripe-webhook] refunds of ${pi.id} not read after its tax commit:`, caughtMessage(e));
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "warning",
+      title: "Job sales tax recorded, but its earlier refunds were not checked",
+      message: `Stripe Tax transaction ${txId} records job ${jobId}'s sales tax (PaymentIntent ${pi.id}), but the PaymentIntent's refunds could not be read (${caughtMessage(e)}). If any refund was made on it, reverse that refund's share of ${txId} in Stripe Tax with reference refund:<refund id>, then set metadata.tax_rev_<refund id>=<that reversal's id> on ${pi.id}, or the refunded tax stays reported as collected.`,
+      fields: { job_id: jobId, payment_intent: pi.id, tax_transaction: txId },
+      oncePerDayKey: `job-site-tax-refunds:${pi.id}`,
+      seed: seed === true,
+    });
+    return "failed_paged";
+  }
+  // The same filter as charge.refunded: failed and canceled refunds moved no
+  // money; an onboarding-fee correction is not a refund of the job.
+  const ordinary = all.filter((r) =>
+    !!r?.id && r.status !== "failed" && r.status !== "canceled"
+    && (r?.metadata as Record<string, string> | null)?.reason !== "duplicate_onboarding_fee"
+  );
+  if (ordinary.length === 0) return "none";
+  const chargeId = String(ordinary.find((r) => typeof r.charge === "string")?.charge ?? (typeof pi.latest_charge === "string" ? pi.latest_charge : pi.latest_charge?.id) ?? pi.id);
+  const amountRefunded = ordinary.reduce((sum, r) => sum + Number(r.amount ?? 0), 0);
+  logStep("Job-site tax: reversing refunds made before the commit was stamped", { piId: pi.id, txId, refunds: ordinary.map((r) => r.id) });
+  return await reverseVisitTaxForRefund({
+    stripe,
+    piId: pi.id,
+    charge: { id: chargeId, amount_refunded: amountRefunded } as Stripe.Charge,
+    refunds: ordinary,
+    listedAnyRefund: all.length > 0,
+    supabase,
+    logStep,
+  });
 }

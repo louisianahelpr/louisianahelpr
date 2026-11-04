@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { render, cleanup } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { ProfileTabFallback, TAB_SHAPES } from "./ProfileTabFallback";
+import { ProfileTabFallback, TAB_SHAPES, reserveTabFor } from "./ProfileTabFallback";
 import { TAB_TITLES, type Tab } from "@/pages/profile/types";
 import { blankComments } from "@/test/helpers/blankNonCode";
 vi.mock("@/components/help/HelpEntry", () => ({ HelpEntry: () => null })); // Its top bar's Help needs the app's providers.
@@ -90,7 +90,9 @@ describe("ProfileTabFallback — the ruling, asserted", () => {
     const shaped = Object.entries(TAB_SHAPES);
     expect(shaped.length, "TAB_SHAPES came back empty").toBeGreaterThanOrEqual(10);
     const wrong: string[] = [];
-    for (const [tab, blocks] of shaped) {
+    for (const [tab, own] of shaped) {
+      // Instant book waits in the shape of the screen that replaces it while its switch is off (Q1695, 11-03 refresh).
+      const blocks = TAB_SHAPES[reserveTabFor(tab as Exclude<Tab, "landing">)] ?? own;
       const { container } = renderFallback(tab as Exclude<Tab, "landing">);
       const first = container.querySelector<HTMLElement>('[data-testid="profile-tab-fallback"]');
       const rows = first ? [...first.parentElement!.children].slice(1) : [];
@@ -133,4 +135,4 @@ describe("ProfileTabFallback — the ruling, asserted", () => {
 // @mutate src/components/profile/ProfileTabFallback.tsx | <ProfileTabHeader title={profileTabTitle(tab, currentSearch())} onBack={onBack} /> |
 // @mutate src/components/profile/ProfileTabFallback.tsx | setReserve(Math.max(0, Math.round(window.innerHeight - top))); | setReserve(118);
 // Size to content: a shaped tab falling back to the screenful is the 236-678px collapse again.
-// @mutate src/components/profile/ProfileTabFallback.tsx | const shape = tab ? TAB_SHAPES[tab] : undefined; | const shape = undefined as Block[] \| undefined;
+// @mutate src/components/profile/ProfileTabFallback.tsx | const shape = tab ? TAB_SHAPES[reserveTabFor(tab)] : undefined; | const shape = undefined as Block[] \| undefined;

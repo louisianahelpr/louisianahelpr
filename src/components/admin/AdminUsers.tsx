@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
+import { Button } from "@/components/ui/button";
 
 // UUID v4-ish pattern. Loose enough to accept any 8-4-4-4-12 hex group;
 // strict enough that a plain email won't false-match.
@@ -420,16 +421,18 @@ const AdminUsers = () => {
             <p className="text-ds-13 font-semibold text-foreground">Looks like a job UUID</p>
             <p className="text-ds-11 text-muted-foreground truncate font-mono">{trimmedQuery}</p>
           </div>
-          <button
+          <Button
             type="button"
-            className="shrink-0 rounded-md bg-primary text-primary-foreground text-ds-11 font-semibold px-3 h-8 hover:bg-primary/90 transition-colors"
+            variant="primary"
+            size="sm"
+            className="shrink-0"
             onClick={() => {
               setSearchQuery("");
               navigate(`/admin?view=jobs&job=${trimmedQuery}`);
             }}
           >
             Open Job
-          </button>
+          </Button>
         </div>
       )}
 
@@ -438,12 +441,9 @@ const AdminUsers = () => {
           {filtered.length} {tabCountLabel[tab]} {filtered.length === 1 ? "user" : "users"}
         </p>
         {searchQuery && (
-          <button
-            onClick={() => setSearchQuery("")}
-            className="text-ds-11 text-primary hover:underline"
-          >
+          <Button type="button" variant="link" size="sm" className="px-0" onClick={() => setSearchQuery("")}>
             Clear Search
-          </button>
+          </Button>
         )}
       </div>
 

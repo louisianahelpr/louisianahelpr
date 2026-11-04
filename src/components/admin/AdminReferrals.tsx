@@ -13,6 +13,7 @@ import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { ADMIN_DELETED_ACCOUNT_LABEL } from "@/lib/deletedPerson";
 import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
+import { Button } from "@/components/ui/button";
 
 /**
  * NOTE ON THE NULLABLE OWNER COLUMNS BELOW.
@@ -420,13 +421,16 @@ const AdminReferrals = () => {
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-mono text-ds-13 font-bold text-primary tracking-widest">{c.code}</span>
-                <button
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="iconCompact"
                   onClick={() => { navigator.clipboard.writeText(c.code); }}
                   aria-label="Copy referral code"
-                  className="p-1 rounded hover:bg-secondary/50 transition-colors"
+                  className="text-muted-foreground hover:text-foreground"
                 >
-                  <Copy className="w-3.5 h-3.5 text-muted-foreground" />
-                </button>
+                  <Copy />
+                </Button>
               </div>
             </div>
           ))}

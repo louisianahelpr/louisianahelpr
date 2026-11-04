@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { fetchRatingStats, ratingStatsFromRows } from "@/lib/reviewStats";
 import { jobDayHasEnded } from "@/lib/jobDate";
+import { jobLastDay } from "@/lib/jobDateWindow";
 import { useQuery, useInfiniteQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { Database } from "@/integrations/supabase/types";
@@ -497,7 +498,8 @@ export function useDashboardData() {
           if (j.is_flexible_schedule || j.is_recurring || !j.date_needed) return true;
           // The job's day ends at Central midnight for every reader, not at
           // the reader's own (Q21) — see jobDayHasEnded.
-          return !jobDayHasEnded(j.date_needed, now.getTime());
+          // Q2408: a window job ends with its LAST day, not its first.
+          return !jobDayHasEnded(jobLastDay(j) ?? j.date_needed, now.getTime());
         })
         .map((j) => {
           const isBoosted = !!j.boost_expires_at && new Date(j.boost_expires_at) > now;

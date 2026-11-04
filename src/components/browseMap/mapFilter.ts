@@ -170,7 +170,7 @@ export function buildMapJobFilter(f: MapJobFilterInput): (job: MapJob) => boolea
     }
 
     // Same predicate as the list (useDashboardFilters); the map RPC has always returned `date_needed`.
-    if (!jobMatchesWhen(job.date_needed, f.whenRange)) return false;
+    if (!jobMatchesWhen(job.date_needed, f.whenRange, job.date_window_end)) return false;
 
     if (f.matchAvailability && (f.helperAvailability?.length ?? 0) > 0) {
       // Noon avoids the DST edge where a midnight-parsed date lands on the

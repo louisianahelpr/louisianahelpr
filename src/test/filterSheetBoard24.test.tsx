@@ -13,8 +13,10 @@
  * @mutate src/components/dashboard/filterSheet/FilterSheetFooter.tsx | if (resultCount === null \|\| resultCount === undefined) return `Show ${many}`; | if (resultCount === null \|\| resultCount === undefined) return `Show 0 ${many}`;
  * @mutate src/pages/home/Dashboard.tsx | listComplete: !hasNextPage, listOnScreen | listComplete: true, listOnScreen
  * @mutate src/components/dashboard/FilterSheet.tsx |       onDone={() => onOpenChange(false)} |       onDone={() => {}}
- * @mutate src/hooks/useDashboardFilters.ts |       if (!jobMatchesWhen(job.date_needed, whenRange)) return false; |       void whenRange;
- * @mutate src/hooks/useDashboardJobsCount.ts |       if (whenRange) query = query.gte | if (false) query = query.gte
+ * @mutate src/hooks/useDashboardFilters.ts |       if (!jobMatchesWhen(job.date_needed, whenRange, job.date_window_end)) return false; |       void whenRange;
+ * @mutate src/hooks/useDashboardJobsCount.ts |   if (whenRange) { |   if (false) {
+ * @mutate src/lib/jobWhenFilter.ts |   return day <= range.to && last >= range.from; |   return day <= range.to && day >= range.from;
+ * @mutate src/hooks/useDashboardJobsCount.ts | date_needed.gte.${todayLocalDate},date_window_end.gte.${todayLocalDate} | date_needed.gte.${todayLocalDate}
  * @mutate src/hooks/useDashboardFilters.ts |   const [locationFilter, setLocationFilter] = useState(() => param("loc")); |   const [locationFilter, setLocationFilter] = useState(() => param("loc") \|\| "nearby:25");
  * @mutate src/components/dashboard/filterSheet/jobFilterSections.tsx |       key: "price", |       key: "price-x",
  * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |         title="Filter jobs" |         title="Filters"
@@ -159,7 +161,7 @@ describe("board 24: When is the job's day on every layer", () => {
   });
 
   it("the list filters on it", () => {
-    expect(code("src/hooks/useDashboardFilters.ts")).toMatch(/if \(!jobMatchesWhen\(job\.date_needed, whenRange\)\) return false;/);
+    expect(code("src/hooks/useDashboardFilters.ts")).toMatch(/if \(!jobMatchesWhen\(job\.date_needed, whenRange, job\.date_window_end\)\) return false;/);
   });
 
   it("the server count bounds date_needed the same way", async () => {
@@ -173,8 +175,20 @@ describe("board 24: When is the job's day on every layer", () => {
     }), { wrapper });
     await waitFor(() => expect(result.current.data).toBe(3));
     const range = jobWhenRange("today")!;
-    expect(calls.list).toContainEqual(["gte", "date_needed", range.from]);
+    expect(calls.list).toContainEqual(["or", `date_needed.gte.${range.from},date_window_end.gte.${range.from}`, undefined]);
     expect(calls.list).toContainEqual(["lte", "date_needed", range.to]);
+    // Q2408: the past-due cull keeps a window job until its last day.
+    expect(calls.list.some(([m, v]) => m === "or" && /^date_needed\.is\.null,date_needed\.gte\.[\d-]+,date_window_end\.gte\.[\d-]+$/.test(v))).toBe(true);
+  });
+
+  it("Q2408: a window job matches when ANY of its days is in range", () => {
+    const today = jobWhenRange("today", "2026-11-06");
+    const week = jobWhenRange("next7", "2026-11-06");
+    expect(jobMatchesWhen("2026-11-04", today, "2026-11-10"), "day 3 of a window is today").toBe(true);
+    expect(jobMatchesWhen("2026-11-04", today, "2026-11-05"), "a window that ended yesterday").toBe(false);
+    expect(jobMatchesWhen("2026-11-12", week, "2026-11-18"), "starts on the range's last day").toBe(true);
+    expect(jobMatchesWhen("2026-11-13", week, "2026-11-18"), "starts after the range").toBe(false);
+    expect(jobMatchesWhen("2026-11-04", today, null), "a one-day job on another day").toBe(false);
   });
 });
 

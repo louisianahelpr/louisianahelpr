@@ -47,6 +47,8 @@ export function mapJobToEnrichedJob(job: MapJob, crewSpotsOpen?: number | null):
     // "no value" stand-in JobCard's own `!job.date_needed` check treats the
     // same as null (falls to the "Flexible" branch or hides the row).
     date_needed: job.date_needed ?? "",
+    // Q2408: the window's last day, so the pin popup's card prints "Any day Nov 4-10" via jobDayLabel.
+    date_window_end: job.date_window_end ?? null,
     start_time: job.start_time ?? null,
     urgent_fee: job.urgent_fee ?? null,
     is_group_job: job.is_group_job ?? null,

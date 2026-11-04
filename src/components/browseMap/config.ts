@@ -75,6 +75,8 @@ export interface MapJob {
   helper_fee_flat_cents?: number | null;
   /** Q2400: the percent stamped with it (get_open_jobs_for_map, 20261025235701). */
   helper_fee_percent?: number | null;
+  /** Q2408: the window's last day ("any day Nov 4-10"); null for a one-day job (20261104080753). */
+  date_window_end?: string | null;
 }
 
 // The DEFAULT CAMERA: Louisiana's real geographic extent (state bounding

@@ -328,4 +328,4 @@ test("screenshot write probe: writes never reach the backend", async ({ page, co
 // Proof this spec can fail. The defect it exists to catch is a feed that silently EMPTIES while the spec stays
 // green, which is what happened for six days when the FEED_JOBS `date_needed` literals expired. With `<` flipped to
 // `>` the filter drops every FUTURE-dated job, and the `shown.length` assertion is what notices.
-// @mutate src/hooks/useDashboardFilters.ts | job.date_needed.slice(0, 10) < todayLocalDate | job.date_needed.slice(0, 10) > todayLocalDate
+// @mutate src/hooks/useDashboardFilters.ts | lastDay.slice(0, 10) < todayLocalDate | lastDay.slice(0, 10) > todayLocalDate

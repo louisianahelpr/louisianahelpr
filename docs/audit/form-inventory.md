@@ -342,7 +342,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/postjob/AddressBlock.tsx` | input×3 | text | 200, 10 | location-label · address-summary · streetAddress · Start typing, then pick your address · Street address · city · state · State (Louisiana) |
-| `src/components/postjob/AiJobBuilder.tsx` | textarea×1 |  |  | Describe your job |
+| `src/components/postjob/AiJobBuilder.tsx` | textarea×1 |  |  | Describe your job · ai-job-photo |
 | `src/components/postjob/BudgetSection.tsx` | input×1, checkbox/switch/radio×1 | number |  | Lower the budget by $5 · budget · Job budget in dollars · Raise the budget by $5 · urgent · custom-urgent-fee · Custom urgent fee amount in dollars |
 | `src/components/postjob/CheckoutStep.tsx` | checkbox/switch/radio×2, date/calendar×1 |  |  | checkout-total-notes · save-card · confirm-details |
 | `src/components/postjob/detailsSection/DescriptionField.tsx` | textarea×1 |  |  | description · description-contact-leak |

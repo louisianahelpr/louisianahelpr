@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 483,
       "template": 105,
-      "dynamic": 606,
+      "dynamic": 607,
       "jsx": 0
     }
   },
@@ -8428,17 +8428,27 @@
     },
     {
       "file": "src/components/postjob/AiJobBuilder.tsx",
-      "line": 64,
+      "line": 68,
       "kind": "toast.error",
       "title": {
         "form": "literal",
-        "text": "Describe what you need help with."
+        "text": "Describe what you need help with, or add a photo."
       },
       "renders": true
     },
     {
       "file": "src/components/postjob/AiJobBuilder.tsx",
-      "line": 92,
+      "line": 97,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "UNSUPPORTED_PHOTO_MESSAGE"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/postjob/AiJobBuilder.tsx",
+      "line": 102,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

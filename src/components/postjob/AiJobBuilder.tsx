@@ -14,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
+import { jobPhotoForAi, UnsupportedPhotoError, UNSUPPORTED_PHOTO_MESSAGE } from "./jobPhotoForAi";
 import { Sparkles, Loader2, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { userFacingError } from "@/lib/userFacingError";
@@ -48,6 +50,8 @@ interface AiJobBuilderProps {
 
 export function AiJobBuilder({ locationContext = "", onGenerated, open: controlledOpen, onOpenChange, headless = false }: AiJobBuilderProps) {
   const [prompt, setPrompt] = useState("");
+  // Q2471 (1): one optional photo of the job; Claude writes the whole post from it (with or without words).
+  const [photo, setPhoto] = useState<File | null>(null);
   /**
    * Open state is CONTROLLED when the parent passes it, so this card can join
    * the entry screen's one-open-at-a-time group (see EntryChoice). Falls back
@@ -60,16 +64,18 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
   const [loading, setLoading] = useState(false);
 
   const generate = async () => {
-    if (!prompt.trim()) {
-      toast.error("Describe what you need help with.");
+    if (!prompt.trim() && !photo) {
+      toast.error("Describe what you need help with, or add a photo.");
       return;
     }
     setLoading(true);
     try {
+      const photoB64 = photo ? await jobPhotoForAi(photo) : null;
       const { data, error } = await supabase.functions.invoke("ai-job-builder", {
         body: {
           messages: [{ role: "user", content: prompt }],
           jobContext: { location: locationContext },
+          ...(photoB64 ? { photo: photoB64 } : {}),
         },
       });
       // A non-2xx makes the SDK throw "Edge Function returned a non-2xx
@@ -87,6 +93,10 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
       onGenerated(data as AiGeneratedJob);
       setOpen(false);
     } catch (err) {
+      if (err instanceof UnsupportedPhotoError) {
+        toast.error(UNSUPPORTED_PHOTO_MESSAGE);
+        return;
+      }
       const raw = (err as Error).message || "";
       const busy = /503|high demand|overloaded|429|rate limit/i.test(raw);
       toast.error(
@@ -108,10 +118,11 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
             aria-label="Describe your job"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="e.g. I need help moving furniture from my apartment to a new house across town."
+            placeholder="e.g. I need help moving furniture from my apartment to a new house across town. Or just add a photo."
             rows={3}
             className="text-ds-13 mt-2"
           />
+          <PhotoPickButton id="ai-job-photo" words="Add a photo" picked={photo} disabled={loading} onPick={setPhoto} />
           <Button
             variant="primary"
             type="button"

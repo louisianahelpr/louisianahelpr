@@ -256,6 +256,7 @@
     "supabase/functions/_shared/banStatus.ts",
     "supabase/functions/ai-job-builder/sanitize.ts",
     "supabase/functions/ai-job-builder/retry.ts",
+    "supabase/functions/ai-job-builder/photo.ts",
     "supabase/functions/backfill-job-geocode/budget.ts",
     // Q1737: src/test/immutablePathsNeverServeTheSpa.test.ts runs this
     // function's real 404 response.

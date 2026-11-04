@@ -23,13 +23,13 @@ import {
   VOUCHERS_LABEL,
 } from "@/lib/rentals/listingCopy";
 import { dollarsToCents, rentalsErrorMessage } from "@/lib/rentals/copy";
-import { RentalsCard, fieldSelectClass } from "../rentalsUi";
+import { RentalsCard } from "../rentalsUi";
 import { Checks, Field, Photos, StatusActions } from "./editorParts";
 import { SaleEditorForm } from "./SaleListingEditor";
 import { isListingId, ListingUnavailable } from "./ListingView";
+import { NativeSelect } from "@/components/ui/select";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const selectClass = fieldSelectClass;
 
 type Draft = Omit<ListingFields, "rent_cents" | "deposit_cents" | "beds" | "baths" | "sq_ft" | "lease_months_min" | "lease_months_max"> & {
   rent: string;
@@ -148,29 +148,29 @@ function EditorForm({ listing, unitId, uid }: { listing: RentalListing | null; u
           <p className="text-xs text-muted-foreground">Describe the home, not the tenant you want: fair housing law doesn't allow words about who may live here.</p>
           <div className="grid grid-cols-2 gap-2">
             <Field label="Bedrooms">
-              <select className={selectClass} value={d.beds} onChange={(e) => set("beds", e.target.value)}>
+              <NativeSelect value={d.beds} onChange={(e) => set("beds", e.target.value)}>
                 <option value="0">Studio</option>
                 {[1, 2, 3, 4, 5, 6].map((n) => (
                   <option key={n} value={String(n)}>{n}</option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
             <Field label="Bathrooms">
-              <select className={selectClass} value={d.baths} onChange={(e) => set("baths", e.target.value)}>
+              <NativeSelect value={d.baths} onChange={(e) => set("baths", e.target.value)}>
                 {[1, 1.5, 2, 2.5, 3, 3.5, 4].map((n) => (
                   <option key={n} value={String(n)}>{n}</option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
             <Field label="Sq ft (optional)">
               <Input inputMode="numeric" value={d.sq_ft} onChange={(e) => set("sq_ft", e.target.value)} />
             </Field>
             <Field label="Parking">
-              <select className={selectClass} value={d.parking} onChange={(e) => set("parking", e.target.value as Draft["parking"])}>
+              <NativeSelect value={d.parking} onChange={(e) => set("parking", e.target.value as Draft["parking"])}>
                 {Object.entries(PARKING_LABEL).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
           </div>
         </RentalsCard>
@@ -180,11 +180,11 @@ function EditorForm({ listing, unitId, uid }: { listing: RentalListing | null; u
               <Input inputMode="decimal" value={d.rent} onChange={(e) => set("rent", e.target.value)} required />
             </Field>
             <Field label="Every">
-              <select className={selectClass} value={d.rent_frequency} onChange={(e) => set("rent_frequency", e.target.value as Draft["rent_frequency"])}>
+              <NativeSelect value={d.rent_frequency} onChange={(e) => set("rent_frequency", e.target.value as Draft["rent_frequency"])}>
                 <option value="monthly">Month</option>
                 <option value="biweekly">2 weeks</option>
                 <option value="weekly">Week</option>
-              </select>
+              </NativeSelect>
             </Field>
             <Field label="Deposit ($, optional)">
               <Input inputMode="decimal" value={d.deposit} onChange={(e) => set("deposit", e.target.value)} />
@@ -201,20 +201,20 @@ function EditorForm({ listing, unitId, uid }: { listing: RentalListing | null; u
           </div>
           <Checks legend="Utilities included" options={UTILITY_LABEL} value={d.utilities_included} onChange={(v) => set("utilities_included", v)} />
           <Field label="Housing vouchers">
-            <select className={selectClass} value={d.accepts_vouchers} onChange={(e) => set("accepts_vouchers", e.target.value as Draft["accepts_vouchers"])}>
+            <NativeSelect value={d.accepts_vouchers} onChange={(e) => set("accepts_vouchers", e.target.value as Draft["accepts_vouchers"])}>
               {Object.entries(VOUCHERS_LABEL).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
               ))}
-            </select>
+            </NativeSelect>
           </Field>
         </RentalsCard>
         <RentalsCard title="Pets and access">
           <Field label="Pets">
-            <select className={selectClass} value={d.pets} onChange={(e) => set("pets", e.target.value as Draft["pets"])}>
+            <NativeSelect value={d.pets} onChange={(e) => set("pets", e.target.value as Draft["pets"])}>
               {Object.entries(PETS_LABEL).map(([k, v]) => (
                 <option key={k} value={k}>{v}</option>
               ))}
-            </select>
+            </NativeSelect>
           </Field>
           {d.pets === "none" && <p className="text-xs text-muted-foreground">Your listing will say: {ASSISTANCE_ANIMALS_LINE}</p>}
           <Field label="Pet rules (optional)">

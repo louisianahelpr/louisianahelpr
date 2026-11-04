@@ -52,7 +52,7 @@ import {
   type RentPlan,
 } from "@/lib/rentals/rent";
 import { saveRentReceipt } from "@/lib/rentals/rentReceipt";
-import { fieldSelectClass } from "./rentalsUi";
+import { NativeSelect } from "@/components/ui/select";
 
 const rentKey = (tenancyId: string) => ["rent-ledger", tenancyId];
 
@@ -117,13 +117,13 @@ function PlanForm({ tenancyId, plan, leaseEndsOn, onDone }: { tenancyId: string;
     >
       <div className="flex gap-2">
         <Input aria-label="Rent amount in dollars" inputMode="decimal" placeholder="Rent ($)" value={amount} onChange={(e) => setAmount(e.target.value)} required />
-        <select aria-label="How often" className={fieldSelectClass} value={frequency} onChange={(e) => setFrequency(e.target.value as RentFrequency)}>
+        <NativeSelect aria-label="How often" value={frequency} onChange={(e) => setFrequency(e.target.value as RentFrequency)}>
           {RENT_FREQUENCIES.map((f) => (
             <option key={f.value} value={f.value}>
               {f.label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
       <label className="block text-xs text-muted-foreground" htmlFor={`first-${tenancyId}`}>
         First due date{frequency === "monthly" ? " (day 1 to 28, so every month has it)" : ""}
@@ -198,13 +198,13 @@ function PaymentForm({ tenancyId, side, methods, onDone }: { tenancyId: string; 
         <Input aria-label="Amount paid in dollars" inputMode="decimal" placeholder="Amount ($)" value={amount} onChange={(e) => setAmount(e.target.value)} required />
         <Input className="min-w-0 flex-1" aria-label="Date paid" type="date" max={centralToday()} value={paidOn} onChange={(e) => setPaidOn(e.target.value)} required />
       </div>
-      <select aria-label="How it was paid" className={fieldSelectClass} value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
+      <NativeSelect aria-label="How it was paid" value={method} onChange={(e) => setMethod(e.target.value as PaymentMethod)}>
         {options.map((o) => (
           <option key={o} value={o}>
             {PAY_METHOD_LABEL[o]}
           </option>
         ))}
-      </select>
+      </NativeSelect>
       <Button type="submit" size="sm" disabled={m.isPending}>
         {m.isPending ? "Sending…" : side === "tenant" ? "Send to landlord" : "Record payment"}
       </Button>

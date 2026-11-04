@@ -184,7 +184,7 @@ describe("Manage a listing (board 158)", () => {
     expect(row.className).toMatch(/\bflex\b/);
     expect(row.className).not.toMatch(/\bflex-col\b|\bflex-wrap\b/);
     expect(row.firstElementChild!.tagName).toBe("LABEL");
-    expect(row.lastElementChild).toBe(pick);
+    expect(row.lastElementChild).toBe(pick.parentElement); // the shared NativeSelect's box (Q2709)
     expect(row.parentElement!.querySelectorAll('[role="radio"]')).toHaveLength(0);
     expect(row.nextElementSibling?.textContent).toBeTruthy(); // the explainer stays under it
   });

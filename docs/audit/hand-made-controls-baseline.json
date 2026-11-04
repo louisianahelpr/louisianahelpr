@@ -186,30 +186,17 @@
     "src/components/admin/settings/AdminUserSearchField.tsx": {
       "button": 1
     },
-    "src/components/admin/settings/CategorySuggestionsCard.tsx": {
-      "input": 1
-    },
     "src/components/admin/settings/DeclutterProblemsCard.tsx": {
       "input": 5
     },
-    "src/components/admin/settings/DeclutterReviewCard.tsx": {
-      "input": 1
-    },
     "src/components/admin/settings/DonationPartnersCard.tsx": {
-      "input": 7
-    },
-    "src/components/admin/settings/HomesListingsCard.tsx": {
-      "input": 2
+      "input": 1
     },
     "src/components/admin/settings/MeetupSpotsCard.tsx": {
       "input": 7
     },
     "src/components/admin/settings/RentalsOwnershipCard.tsx": {
-      "button": 1,
-      "input": 2
-    },
-    "src/components/admin/settings/ShopItemsReviewCard.tsx": {
-      "input": 1
+      "button": 1
     },
     "src/components/admin/userDetail/DetailHeader.tsx": {
       "button": 1
@@ -281,8 +268,7 @@
       "input": 1
     },
     "src/components/declutter/DeclutterBunchRow.tsx": {
-      "button": 1,
-      "input": 1
+      "button": 1
     },
     "src/components/declutter/DeclutterBunchView.tsx": {
       "input": 1
@@ -313,9 +299,6 @@
     "src/components/declutter/DeclutterGallery.tsx": {
       "button": 3
     },
-    "src/components/declutter/DeclutterHandoverSheets.tsx": {
-      "input": 1
-    },
     "src/components/declutter/DeclutterHandoverTalk.tsx": {
       "button": 2
     },
@@ -343,17 +326,11 @@
     "src/components/declutter/DeclutterMineViews.tsx": {
       "button": 2
     },
-    "src/components/declutter/DeclutterMovingSaleDetails.tsx": {
-      "input": 1
-    },
     "src/components/declutter/DeclutterNoHelpr.tsx": {
       "button": 3
     },
     "src/components/declutter/DeclutterNoShowAnswer.tsx": {
       "button": 1
-    },
-    "src/components/declutter/DeclutterOfferPanel.tsx": {
-      "input": 1
     },
     "src/components/declutter/DeclutterOfferRules.tsx": {
       "button": 2
@@ -425,7 +402,7 @@
     },
     "src/components/declutter/DeclutterWantedViews.tsx": {
       "button": 2,
-      "input": 3
+      "input": 2
     },
     "src/components/declutter/DeliverVehicleForm.tsx": {
       "button": 1
@@ -470,8 +447,7 @@
       "button": 9
     },
     "src/components/declutter/SellerDeliverySettings.tsx": {
-      "button": 2,
-      "input": 3
+      "button": 2
     },
     "src/components/declutter/SellerHandedOver.tsx": {
       "button": 1

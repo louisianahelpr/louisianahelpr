@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { DatePickerField } from "@/components/DatePickerField";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchMyMovingSale, setMovingSale } from "@/lib/declutter/moves";
+import { Input } from "@/components/ui/input";
 
 /** The server takes a start up to 30 days back (a sale already running). */
 function monthBefore(ymd: string): string {
@@ -17,7 +18,6 @@ function monthBefore(ymd: string): string {
   return new Date(Date.UTC(y, m - 1, d - 30)).toISOString().slice(0, 10);
 }
 
-const field = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
 
 export function MovingSaleDetails({ userId, moveOutOn, today }: { userId: string; moveOutOn: string; today: string }) {
   const qc = useQueryClient();
@@ -47,9 +47,9 @@ export function MovingSaleDetails({ userId, moveOutOn, today }: { userId: string
         <label className="block text-sm font-medium" htmlFor="move-sale-name">
           Sale name <span className="font-normal text-muted-foreground">(optional)</span>
         </label>
-        <input
+        <Input
           id="move-sale-name"
-          className={field}
+          className="w-full min-w-0"
           maxLength={60}
           value={name}
           placeholder="Moving to Lafayette · everything goes"

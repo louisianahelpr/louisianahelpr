@@ -14,10 +14,10 @@ import { useFeature } from "@/hooks/useFeature";
 import { adminSaveDonationPartner, fetchAllDonationPartners, type DonationPartnerRow } from "@/lib/declutter/donate";
 import { haulAwayErrorMessage } from "@/lib/declutter/haulAwayErrors";
 import { AdminCard } from "../AdminViewShell";
+import { Input } from "@/components/ui/input";
 
 type Draft = { id: string | null; parish: string; name: string; address: string; lat: string; lng: string; takes: string; active: boolean };
 const EMPTY: Draft = { id: null, parish: "", name: "", address: "", lat: "", lng: "", takes: "", active: true };
-const INPUT = "w-full min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm";
 
 function toDraft(r: DonationPartnerRow): Draft {
   return { id: r.id, parish: r.parish, name: r.name, address: r.address, lat: String(r.lat), lng: String(r.lng), takes: r.takes ?? "", active: r.active };
@@ -45,12 +45,12 @@ function PartnerForm({ draft, onDone }: { draft: Draft; onDone: () => void }) {
   return (
     <div className="space-y-2 rounded-xl border border-border p-3" data-donation-partner-form={id}>
       <div className="grid gap-2 sm:grid-cols-2">
-        <label className="space-y-1 text-xs font-medium">Parish<input className={INPUT} value={d.parish} maxLength={60} onChange={set("parish")} placeholder="East Baton Rouge" /></label>
-        <label className="space-y-1 text-xs font-medium">Name<input className={INPUT} value={d.name} maxLength={80} onChange={set("name")} placeholder="Goodwill Mid-City" /></label>
-        <label className="space-y-1 text-xs font-medium sm:col-span-2">Address<input className={INPUT} value={d.address} maxLength={200} onChange={set("address")} /></label>
-        <label className="space-y-1 text-xs font-medium">Latitude<input className={INPUT} inputMode="decimal" value={d.lat} onChange={set("lat")} placeholder="30.4515" /></label>
-        <label className="space-y-1 text-xs font-medium">Longitude<input className={INPUT} inputMode="decimal" value={d.lng} onChange={set("lng")} placeholder="-91.1871" /></label>
-        <label className="space-y-1 text-xs font-medium sm:col-span-2">What they take (optional)<input className={INPUT} value={d.takes} maxLength={300} onChange={set("takes")} placeholder="Furniture, clothes, housewares. No mattresses." /></label>
+        <label className="space-y-1 text-xs font-medium">Parish<Input className="w-full min-w-0" value={d.parish} maxLength={60} onChange={set("parish")} placeholder="East Baton Rouge" /></label>
+        <label className="space-y-1 text-xs font-medium">Name<Input className="w-full min-w-0" value={d.name} maxLength={80} onChange={set("name")} placeholder="Goodwill Mid-City" /></label>
+        <label className="space-y-1 text-xs font-medium sm:col-span-2">Address<Input className="w-full min-w-0" value={d.address} maxLength={200} onChange={set("address")} /></label>
+        <label className="space-y-1 text-xs font-medium">Latitude<Input className="w-full min-w-0" inputMode="decimal" value={d.lat} onChange={set("lat")} placeholder="30.4515" /></label>
+        <label className="space-y-1 text-xs font-medium">Longitude<Input className="w-full min-w-0" inputMode="decimal" value={d.lng} onChange={set("lng")} placeholder="-91.1871" /></label>
+        <label className="space-y-1 text-xs font-medium sm:col-span-2">What they take (optional)<Input className="w-full min-w-0" value={d.takes} maxLength={300} onChange={set("takes")} placeholder="Furniture, clothes, housewares. No mattresses." /></label>
       </div>
       <label className="flex min-h-11 items-center gap-2 text-sm">
         <input type="checkbox" className="h-[18px] w-[18px] min-h-0 min-w-0" style={{ accentColor: "hsl(var(--primary))" }} checked={d.active} onChange={(e) => setD({ ...d, active: e.target.checked })} /> Active (offered to sellers)

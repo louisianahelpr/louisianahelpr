@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ImageIcon } from "lucide-react";
 import { safeDocumentUrl } from "@/lib/storagePath";
 import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
+import { PhotoTileButton } from "@/components/ui/PhotoTileButton";
 
 /**
  * Recent work — the photos a helper uploads once in Edit Profile
@@ -52,13 +53,7 @@ function WorkPhotoGrid({ shown }: { shown: string[] }) {
       </h2>
       <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-1">
         {shown.map((url, i) => (
-          <button
-            key={url}
-            type="button"
-            onClick={() => setOpen(i)}
-            aria-label={`Open work photo ${i + 1} of ${shown.length}`}
-            className="relative aspect-square rounded-ds-sm overflow-hidden bg-muted active:scale-[0.98] transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
+          <PhotoTileButton key={url} onClick={() => setOpen(i)} aria-label={`Open work photo ${i + 1} of ${shown.length}`}>
             <img
               loading="lazy"
               src={url}
@@ -66,7 +61,7 @@ function WorkPhotoGrid({ shown }: { shown: string[] }) {
               decoding="async"
               className="w-full h-full object-cover"
             />
-          </button>
+          </PhotoTileButton>
         ))}
       </div>
       <PhotoLightbox photos={shown} lightboxIndex={open} setLightboxIndex={setOpen} />

@@ -12,6 +12,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const user = vi.hoisted(() => ({ current: { id: "u1", email: "lexi@example.com", identities: [{ provider: "email" }, { provider: "google" }] } as unknown }));
 vi.mock("sonner", () => ({ toast: vi.fn() }));
@@ -39,9 +40,11 @@ afterEach(cleanup);
 
 const renderIt = (profile: Partial<Profile> | null, onRequestDelete = vi.fn()) => {
   render(
-    <MemoryRouter>
-      <SettingsTab profile={profile as Profile | null} seniorMode={false} onSelectTab={vi.fn()} onRequestLogout={vi.fn()} onRequestDelete={onRequestDelete} onBack={() => {}} />
-    </MemoryRouter>,
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter>
+        <SettingsTab profile={profile as Profile | null} seniorMode={false} onSelectTab={vi.fn()} onRequestLogout={vi.fn()} onRequestDelete={onRequestDelete} onBack={() => {}} />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
   return onRequestDelete;
 };

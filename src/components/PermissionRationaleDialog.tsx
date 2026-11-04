@@ -35,8 +35,6 @@ export function PermissionRationaleDialog() {
     // decline, exactly like "Not now".
     <Dialog open={state.open} onOpenChange={(next) => { if (!next) __resolveRationale(false); }}>
       <DialogContent role="alertdialog">
-        {/* Q2003: mounts with the dialog's content, so its effect runs once the sheet is really on screen. */}
-        <ReportShown token={state} />
         {/* NO ICON ROW. This was a bespoke 56px tile rendered ABOVE the Hero,
             which pushed the title off the top row and left the ✕ aligned to an
             icon instead of to a heading — so this was the one popup in the app
@@ -52,6 +50,8 @@ export function PermissionRationaleDialog() {
         <DialogHero
           title={copy.title}
         />
+        {/* Q2003: mounts with the dialog's content, so its effect runs once the sheet is really on screen. */}
+        <ReportShown token={state} />
         {/* The rationale BODY is the entire point of this dialog and had been
             dropped: `copy.body` existed in usePermissionRationale but nothing
             rendered it, so the sheet read "Location" followed by two buttons

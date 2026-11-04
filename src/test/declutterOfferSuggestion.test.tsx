@@ -97,7 +97,10 @@ describe("OfferSuggestion", () => {
   it("a failed suggestion shows nothing", async () => {
     requestSuggestedOffer.mockRejectedValueOnce(new Error("ai_unavailable"));
     const { container } = renderIt(vi.fn());
-    await vi.waitFor(() => expect(container.querySelector("[data-offer-suggestion-loading]")).toBeNull());
+    await vi.waitFor(() => {
+      expect(requestSuggestedOffer).toHaveBeenCalledWith("item-1");
+      expect(container.querySelector("[data-offer-suggestion-loading]")).toBeNull();
+    });
     expect(container.textContent).toBe("");
   });
 });

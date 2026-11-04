@@ -26,7 +26,7 @@ const share = vi.fn(async (_c: unknown) => "shared");
 const copy = vi.fn(async (_t: string) => true);
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (...a: unknown[]) => rpc(...a) } }));
 vi.mock("@/lib/nativeShare", () => ({ shareNative: (c: unknown) => share(c), copyToClipboard: (t: string) => copy(t) }));
-vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 
 import { YourPageLink } from "@/components/profile/YourPageLink";
 

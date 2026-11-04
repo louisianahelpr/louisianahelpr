@@ -308,7 +308,11 @@ export async function urlOwnership(session, url, owners) {
 // DESTRUCTIVE_RX, and /profile is SELF_ROUTE_RX, so it was pressed and only
 // the network backstop stopped it. The icon-only remove-payout-method button
 // now has aria-label "Remove payout method …", which `payout` matches.
-export const PAYMENT_RX = /\b(pay|paying|checkout|fund|tip|boost|purchase|buy|subscribe|upgrade|withdraw|release|refund|payout|gift card|deposit|set up payouts|stripe|reset & start fresh|(?:finish|complete|start) verification)\b/i;
+// `refresh membership` (Q946, press-every-control 41817058240: 3 FAILs, the error toast "Couldn't refresh your
+// membership"): SubscriptionTab's icon button "Refresh membership status" asks Stripe for the member's billing state
+// (check-pro-subscription, which writes profiles when it differs). Ungated, the network gate aborted that call as the
+// Home revalidation side effect and the page rightly said it failed; it is a Stripe control, gated on the mode.
+export const PAYMENT_RX = /\b(pay|paying|checkout|fund|tip|boost|purchase|buy|subscribe|upgrade|withdraw|release|refund|payout|gift card|deposit|set up payouts|stripe|reset & start fresh|refresh membership|(?:finish|complete|start) verification)\b/i;
 /** Labels that would destroy or lock the SHARED test account. Never pressed. */
 export const ACCOUNT_DESTROY_RX = /\b(delete (my )?account|deactivate|close (my )?account|delete profile|request deletion|erase my data)\b/i;
 /**

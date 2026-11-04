@@ -203,14 +203,6 @@
         "issue": null
       },
       {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
-        "issue": null
-      },
-      {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -571,14 +563,6 @@
         "issue": null
       },
       {
-        "fingerprint": "99a77a9221e6c89e7182a9c199812094",
-        "source_kind": "sentry",
-        "source": "sentry:assets/Signup",
-        "status": "open",
-        "title": "error: signup completion window expired. please log in to finish your profile.",
-        "issue": null
-      },
-      {
         "fingerprint": "c540527c8265b56e664f823f4805b1ec",
         "source_kind": "sentry",
         "source": "sentry:assets/supabase",
@@ -592,14 +576,6 @@
         "source": "sentry:assets/lucide",
         "status": "open",
         "title": "typeerror: undefined is not an object (evaluating 'e._result.default')",
-        "issue": null
-      },
-      {
-        "fingerprint": "4ac3e9488b48a533aab28a1c7444d1ad",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:custom",
-        "status": "open",
-        "title": "paypal webhook not configured",
         "issue": null
       },
       {
@@ -640,14 +616,6 @@
         "source": "sentry:assets/adminRailBadges",
         "status": "open",
         "title": "typeerror: cannot read properties of undefined (reading 'fetchsupporttickets')",
-        "issue": null
-      },
-      {
-        "fingerprint": "092de8bb62f57ce086ac16a5b4baeb55",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: permission denied for table shop_orders",
         "issue": null
       },
       {
@@ -711,7 +679,6 @@
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
-    "ledger 092de8bb62f5": "Q2533",
     "ledger 09cc91c48116": "Q1816",
     "ledger 0bebf0385b3e": "Q1615",
     "ledger 0fa6c60d7a29": "Q1776",
@@ -741,11 +708,9 @@
     "ledger 43738529abd4": "Q1596",
     "ledger 43d77e26f272": "Q1816",
     "ledger 4aa239aefeb6": "Q1816",
-    "ledger 4ac3e9488b48": "Q2525",
     "ledger 4b5ace7af165": "Q1596",
     "ledger 4c89303184fb": "Q1816",
     "ledger 54203c9222b8": "Q2726",
-    "ledger 54ef0bfdcec3": "Q2731",
     "ledger 5a28db44e912": "Q2410",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 5d35922623b5": "Q1596",
@@ -773,7 +738,6 @@
     "ledger 8f6eb3360000": "Q2507",
     "ledger 9078a39b3304": "Q1615",
     "ledger 99390a68ded7": "Q1615",
-    "ledger 99a77a9221e6": "Q2514",
     "ledger 9a2d993f43d7": "Q1596",
     "ledger a8ceee56bbd5": "Q1816",
     "ledger ab6fdbe8c882": "Q1816",

@@ -26,6 +26,8 @@ export interface RequestSample {
   total: number;
   byClass: Partial<Record<RequestClass, number>>;
   signIns: number;
+  /** Password grants a context declared a re-auth (`__requestMeterReauth`); absent before 2026-11-04. */
+  reAuths?: number;
   duplicates: number;
   tests: number;
   minutes: Record<string, number>;
@@ -55,6 +57,7 @@ export declare class RequestMeter {
   label: string;
   total: number;
   signIns: number;
+  reAuths: number;
   duplicates: number;
   tests: number;
   minutes: Record<string, number>;
@@ -86,7 +89,7 @@ export declare class RequestMeter {
   pace(key?: string): Promise<number>;
   currentBursts(): Record<string, number>;
   pacePage<P extends { goto: (...a: never[]) => unknown; reload: (...a: never[]) => unknown }>(page: P): P;
-  record(url: string, method: string, now?: number, seen?: Map<string, number>): RequestClass | null;
+  record(url: string, method: string, now?: number, seen?: Map<string, number>, opts?: { reauth?: boolean }): RequestClass | null;
   attach(context: BrowserContext): BrowserContext;
   attachBrowser(browser: Browser): Browser;
   attachApi<T extends APIRequestContext>(api: T): T;

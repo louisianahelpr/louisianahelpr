@@ -402,6 +402,30 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
     expect(jobFlips()).toHaveLength(1);
   });
 
+  // Q2719 crew variant (B89 left it untested): a crew's free cancel on a tax-only charge whose gift's donation was
+  // reversed is never capped (a crew cannot settle on the card alone): it pages "owes more in fees" naming the free
+  // cancel, moves no money and stays in escrow for a person.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | if ((funding.donationReversed \|\| funding.restored) && !crewShares && blockFeeRows.length === 0) { | if ((funding.donationReversed \|\| funding.restored) && blockFeeRows.length === 0) {
+  it("crew free cancel on a tax-only charge whose gift's donation was reversed: pages and waits (Q2719)", async () => {
+    seed(mixedJob({ cancellation_fee: 0, cancelled_at: "2024-06-18T14:00:00Z", onboarding_fee_amount: 2, is_group_job: true, helpers_needed: 3, helper_id: null, helper_confirmed_at: null }));
+    scenario.reads.crew_cancellation_fee_shares = { rows: [] };
+    reversedGift();
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_1", status: "succeeded", amount: 1000, amount_received: 1000,
+      metadata: siteTaxMd("taxcalc_gift", 1000, { job_taxable_cents: "30000" }),
+      latest_charge: { id: "ch_1", amount: 1000, amount_refunded: 0, balance_transaction: { fee: 59 } },
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(shortfallPaged()).toBe(true);
+    const page = (slackAlerts as Array<{ title?: string; message?: string }>).find((a) => /owes more in fees/.test(String(a.title)));
+    expect(page?.message).toContain("cancelled with no late fee");
+    expect((slackAlerts as Array<{ title?: string }>).some((a) => a.title === "Cancellation fee capped at what the card paid")).toBe(false);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(restoreCalls().filter((c) => !c.p_dry_run)).toHaveLength(0);
+    expect(jobFlips()).toHaveLength(0);
+  });
+
   // Re-review of 49a8653d81 (D): a hold of no more than its job-site tax pages ops; an ordinary hold does not.
   // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (holdSiteTaxCents > 0 && Math.round(Number(pi.amount ?? 0)) <= holdSiteTaxCents) { |           if (false) {
   it("a hold that holds only its job-site tax pages ops", async () => {

@@ -423,6 +423,16 @@
    paint unstyled and then jump. !important beats the inline visibility:hidden. Guard: browseShellCards.test.tsx. */
 #lh-browse-shell { visibility: visible !important; }
 
+/* Photo-first job cards (Q2043): on a phone the picture tile takes ~84px of the
+   row, so the meta line takes the two-line form the card already uses below
+   360px (place, then date and time), instead of clipping the start time. Every
+   card carries the tile, so every card stays one height. */
+@media (max-width: 767px) {
+  .job-card-media-col .job-meta-row { flex-wrap: wrap; }
+  .job-card-media-col .job-meta-row > [data-meta-break] { display: block; }
+  .job-card-media-col .job-meta-row > [data-meta-break] + span { display: none; }
+}
+
 /* Garden District Stone Color System */
 /* "Trust lives in restraint" — Professional, neutral, high-end palette */
 

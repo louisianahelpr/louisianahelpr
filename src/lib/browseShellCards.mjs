@@ -228,7 +228,7 @@ export const SHELL_CARD_CLASSES = {
   mediaPad: "pl-3 pt-3 pb-3",
   media: "relative shrink-0 self-start w-[4.5rem] h-[4.5rem] md:w-24 md:h-24 overflow-hidden rounded-xl",
   mediaTint: "linear-gradient(140deg, hsl(var(--primary) / 0.16), hsl(var(--primary) / 0.06))",
-  textCol: "min-w-0 flex-1",
+  textCol: "job-card-media-col min-w-0 flex-1",
   face: "mt-1 flex h-5 items-center gap-1.5 min-w-0 text-ds-11 text-muted-foreground",
 };
 

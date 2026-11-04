@@ -6,14 +6,13 @@
  *   node src/test/pglite/deliveryTakeWithoutPayoutSetup.pglite.mjs                     # after (3x replay)
  *   NEW_MIGRATION=skip node src/test/pglite/deliveryTakeWithoutPayoutSetup.pglite.mjs  # RED: prod before it
  *
- * World: helpr_task_assert_helpr at its newest CREATE before this migration (md5(prosrc) measured equal
- * to prod 2026-10-27: 9ca10758ce71d18481ccbdab653e023b), the REAL readiness chain it now reads
+ * World: helpr_task_assert_helpr at its newest CREATE before this migration, the REAL readiness chain it now reads
  * (helper_accept_missing from 20261025162003, identity_is_verified, helper_award_block_reason), and a
  * profiles table with the columns they read. Stubbed, and said so: feature_enabled_for_user (a table of
  * which member has which switch on; the real one reads feature_switches + roles), is_caller_banned,
  * member_under_18 and declutter_active_strike_count (each answered from the profile row so each refusal
  * can be driven).
- * [fix] checks FAIL on the before state; [keep] checks pass in both.
+ * [fix] checks FAIL on the before state (163240: no payout check at all); [keep] checks pass in both.
  */
 import os from "node:os";
 import { createHash } from "node:crypto";
@@ -44,10 +43,16 @@ function newest(name, before = THIS) {
 let failures = 0;
 const check = (ok, name) => { console.log(`${ok ? "PASS" : "FAIL"}  ${name}`); if (!ok) failures++; };
 
-// The restated body starts from prod's: the newest before-body must hash to what prod runs.
+// The before state is the newest definition before this migration. This file was written on a branch that did not
+// have 20261027163240 (payout_setup_only_when_owed, landed the same day), so it pinned 20261017055505's body
+// (9ca10758...). On main the newest before-body is 163240's, which dropped the payout check outright; this
+// migration then put it back behind payout_after_hire. Pinned to 163240's body (md5 3b5bdc05..., measured
+// 2026-11-04, Builder 103), so a later edit of the before state still fails here. Prod runs THIS migration's body:
+// md5(prosrc) = 9e9b8533eb61550453f3cf2ce136e0f0 (read-only pg_proc read 2026-11-04), the after state proven below.
 const before = newest("helpr_task_assert_helpr");
-check(createHash("md5").update(before.body).digest("hex") === "9ca10758ce71d18481ccbdab653e023b",
-  `[keep] the before-body (${before.file}) is prod's (md5 9ca10758...)`);
+check(before.file === "20261027163240_payout_setup_only_when_owed.sql"
+  && createHash("md5").update(before.body).digest("hex") === "3b5bdc052f640db2a3b8ecf8d23acddc",
+  `[keep] the before-body is 20261027163240's (md5 3b5bdc05...; read ${before.file})`);
 
 const NOPAY = "22222222-2222-2222-2222-222222222222";
 const READY = "33333333-3333-3333-3333-333333333333";
@@ -104,11 +109,11 @@ async function as(uid) {
 }
 
 const nopay = await as(NOPAY);
-check(nopay.ok && nopay.uid === NOPAY, "[fix] a member with NO payout account may see and take deliveries while payout_after_hire is on");
+check(nopay.ok && nopay.uid === NOPAY, "[keep] a member with NO payout account may see and take deliveries while payout_after_hire is on");
 const ready = await as(READY);
 check(ready.ok && ready.uid === READY, "[keep] a member with payouts ready may deliver");
 const off = await as(OFFSW);
-check(!off.ok && off.code === "payout_setup_incomplete", "[keep] with payout_after_hire OFF for the member, no payout account is still refused (payout_setup_incomplete)");
+check(!off.ok && off.code === "payout_setup_incomplete", "[fix] with payout_after_hire OFF for the member, no payout account is still refused (payout_setup_incomplete)");
 const banned = await as(BANNED);
 check(!banned.ok && banned.code === "account_restricted", "[keep] a banned member is refused (account_restricted)");
 const minor = await as(MINOR);
@@ -116,7 +121,7 @@ check(!minor.ok && minor.code === "under_18", "[keep] a member under 18 is refus
 const struck = await as(STRUCK);
 check(!struck.ok && struck.code === "declutter_strikes_blocked", "[keep] 3 Declutter strikes are refused (declutter_strikes_blocked)");
 const ghost = await as(GHOST);
-check(!ghost.ok && ghost.code === "payout_setup_incomplete", "[keep] a caller with no profile row is refused");
+check(!ghost.ok && ghost.code === "payout_setup_incomplete", "[fix] a caller with no profile row is refused");
 const anon = await as(null);
 check(!anon.ok && anon.code === "not_authenticated", "[keep] no session is refused (not_authenticated)");
 

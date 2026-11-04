@@ -84,7 +84,7 @@ describe("Q2408: the hire sheet and the Applicants header print the window", () 
   it("hiring a Helpr who picked Fri, Nov 6 on a window job: 'moves from Any day Nov 5-11'", () => {
     Element.prototype.hasPointerCapture = Element.prototype.hasPointerCapture ?? (() => false);
     Element.prototype.scrollIntoView = Element.prototype.scrollIntoView ?? (() => {});
-    const job = { title: "Clean my kitchen", date_needed: "2026-11-05", date_window_end: "2026-11-11", start_time: null, budget: 25, is_group_job: false, urgent_fee: null, is_flexible_schedule: true };
+    const job = { title: "Clean my kitchen", date_needed: "2020-11-05", date_window_end: "2020-11-11", start_time: null, budget: 25, is_group_job: false, urgent_fee: null, is_flexible_schedule: true };
     render(<ResponseDeadlineDialog open helperName="Andre Landry" job={job} suggestedTime={{ date: "2026-11-06", time: "10:00" }} onConfirm={() => {}} onClose={() => {}} />);
     expect(document.body.textContent).toContain("Your job moves from Any day Nov 5-11");
     expect(document.body.textContent).not.toContain("moves from Thu, Nov 5");

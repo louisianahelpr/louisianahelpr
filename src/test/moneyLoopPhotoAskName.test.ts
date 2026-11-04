@@ -3,7 +3,7 @@
 // photo primary sentence case ("Take after photo", photoPrimaryLabel) and the spec still matched "Take After photo".
 // This checks the spec's name against the app's real labels, so the next label move fails here, not on prod weekly.
 //
-// @mutate e2e/photoAskName.ts | `^(Take ${type} photo| | `^(Take ${askLabel}|
+// @mutate e2e/photoAskName.ts | `^(Take ${type} photo\| | `^(Take ${askLabel}\|
 // @mutate e2e/prod-lifecycle.spec.ts |   const askName = photoAskName(type); |   const askName = /^Take After photo$/;
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

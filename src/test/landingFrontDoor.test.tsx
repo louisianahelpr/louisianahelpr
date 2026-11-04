@@ -15,7 +15,8 @@
  *      reported at most once per session (the global QueryCache reporter
  *      skips the query), and the answer is never persisted to disk;
  *   1b. the links: a signed-out visitor is never sent to a sign-in-only
- *      section (Declutter/Shops/Homes go to sign-up with a return path), and
+ *      section (Shops/Homes go to sign-up with a return path; Declutter, which
+ *      guests read, straight to its Browse, owner 11-04), and
  *      a failed session check still navigates (code-review 2026-10-19);
  *   3. the server: features_open_to_everyone() (newest definition) reads only
  *      audience = 'everyone' for the three section keys, and anon may call it
@@ -26,6 +27,7 @@
 // @mutate src/components/landing/useSectionsOpen.ts |   return open === null \|\| !open.has(feature); |   return open !== null && !open.has(feature);
 // @mutate src/lib/missingRpc.ts |   if (e.code !== "PGRST202") return false; |   return false;
 // @mutate src/components/landing/SectionsShowcase.tsx |   return { to: `/signup?redirect=${encodeURIComponent(path)}`, | return { to: path,
+// @mutate src/components/landing/SectionsShowcase.tsx |   if (key === "declutter") return { to: path, text: `Browse ${label}`, signedIn: path }; |
 // @mutate src/lib/queryClient.ts |       if (query.meta?.reportsItself === true) return; |
 // @mutate src/components/landing/useSectionsOpen.ts |     meta: { persist: false, reportsItself: true }, |     meta: { reportsItself: true },
 // @mutate src/components/landing/useSectionsOpen.ts |   if (reported) return false; |
@@ -87,8 +89,11 @@ describe("landing: the front door for all four sections", () => {
       expect(link.signedIn, s.key).toBe(s.path);
       if (s.key === "jobs") {
         expect(link).toMatchObject({ to: "/browse", text: "Browse jobs" }); // the public guest board
+      } else if (s.key === "declutter") {
+        // Owner 11-04: guests read Declutter's Browse (BUY-16), so the card goes straight there, no sign-up.
+        expect(link).toMatchObject({ to: "/declutter", text: "Browse Declutter" });
       } else {
-        // Declutter/Shops/Homes are ProtectedRoute pages: sign-up, returning to the section.
+        // Shops/Homes are ProtectedRoute pages: sign-up, returning to the section.
         expect(link.to, s.key).toBe(`/signup?redirect=${encodeURIComponent(s.path)}`);
         expect(link.text, s.key).toBe(`Join to browse ${s.navLabel}`);
       }

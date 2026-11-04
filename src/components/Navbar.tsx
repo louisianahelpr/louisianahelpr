@@ -101,28 +101,28 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
             — dropping the words must not drop the name. */}
         {/* The H logo on every bar, the landing's included (owner, 2026-10-20 08:30Z:
             never the "Helpr" wordmark). */}
-        <HelprMark to="/" size="md" emblemOnly />
+        <HelprMark to="/" size="md" emblemOnly className="shrink-0" />
         {/* Smooth-scroll-to-top behavior on the marketing root used to
             live inline on this Link; HelprMark handles routing but if
             we want the same behavior in the future, replace with a
             local onClick wrapper. */}
 
         {/* ONE bar on every public page, the landing included (owner, 2026-10-21):
-            signed out it reads "Jobs | Log in · Join free" at every width. "Jobs"
-            is the public board (/browse) and "Join free" is sign-up (/signup) on
-            every page; "Get started", "How it works" and the landing-only
-            Declutter link are gone. There is no hamburger (owner): the three
+            signed out it reads "Jobs · Declutter | Log in · Join free" at every width.
+            "Jobs" is the public board (/browse), "Declutter" its guest Browse (owner
+            11-04) and "Join free" is sign-up (/signup) on every page; "Get started"
+            and "How it works" are gone. There is no hamburger (owner): the three
             things that matter fit the bar on a phone.
             A signed-in visitor gets NOTHING here (owner, 2026-08-30: "delete
             globally"): the app's own navigation (the desktop rail, the bottom
             nav on a phone) already carries them. */}
         {!user && (
-          <div className="flex items-center gap-1 sm:gap-3">
+          <div className="flex items-center gap-0 min-[375px]:gap-0.5 min-[400px]:gap-1 sm:gap-3">
             <Button
               asChild
               variant="ghost"
               size="sm"
-              className="rounded-full px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+              className="rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
             >
               <Link
                 to="/browse"
@@ -133,13 +133,29 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
                 Jobs
               </Link>
             </Button>
-            {/* The divider between the public link and the auth actions. */}
-            <span aria-hidden className="w-px h-5 mx-1" style={{ background: "hsl(var(--olivewood) / 0.18)" }} />
+            {/* Owner 11-04: Declutter next to Jobs. A guest reads its Browse too (BUY-16). */}
             <Button
               asChild
               variant="ghost"
               size="sm"
-              className="rounded-full px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+              className="rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
+            >
+              <Link
+                to="/declutter"
+                aria-current={location.pathname === "/declutter" ? "page" : undefined}
+              >
+                Declutter
+              </Link>
+            </Button>
+            {/* The divider between the public links and the auth actions. Below 400px the bar drops it and
+                tightens the link padding (below 375 also one text size down), so Jobs + Declutter fit beside the logo without squeezing it
+                (owner 11-04; measured at 320, 360 and 375). */}
+            <span aria-hidden className="hidden min-[400px]:block w-px h-5 mx-1" style={{ background: "hsl(var(--olivewood) / 0.18)" }} />
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="rounded-full px-1 max-[374px]:text-ds-13 min-[375px]:px-2 min-[400px]:px-3 btn-press transition-colors duration-200 hover:text-[hsl(var(--bark))]"
             >
               <Link
                 to="/login"
@@ -158,7 +174,7 @@ const Navbar = forwardRef<HTMLElement, NavbarProps>(({ solid = false, landing = 
             <Button
               asChild
               size="sm"
-              className="rounded-full px-4 sm:px-5 btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
+              className="rounded-full px-3 max-[374px]:text-ds-13 min-[375px]:px-4 sm:px-5 btn-press !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))]"
               style={{ color: "hsl(var(--parchment))" }}
             >
               <Link

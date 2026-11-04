@@ -62,6 +62,7 @@ function pageFiles(): string[] {
     if (existsSync(join(ROOT, rel))) set.add(rel);
   }
   set.add("src/components/PaymentTab.tsx");
+  set.add("src/components/notificationPreferences/QuietHoursCard.tsx"); // the Notifications tab's Quiet hours card (moved out, Q806)
   return [...set].sort();
 }
 
@@ -82,7 +83,8 @@ function sectionSizedIn(rel: string): string[] {
 // @two-way src/test/sectionSpacingScale.test.ts:A file whose count DROPPED must lower its entry
 const ALLOWED: Record<string, { n: number; why: string }> = {
   // Horizontal gaps inside a row, not a vertical rhythm.
-  "src/components/NotificationPreferences.tsx": { n: 4, why: "gap between the per-channel toggle columns of a row (horizontal)" },
+  "src/components/NotificationPreferences.tsx": { n: 3, why: "gap between the per-channel toggle columns of a row (horizontal)" },
+  "src/components/notificationPreferences/QuietHoursCard.tsx": { n: 1, why: "gap between the Quiet hours toggle columns (horizontal; moved out of NotificationPreferences, Q806)" },
   "src/pages/info/HelpCenter.tsx": { n: 1, why: "gap between an FAQ question and its chevron (horizontal)" },
   "src/pages/home/HomeDashboard.tsx": { n: 1, why: "board 11's two-column gutter at xl (one grid row, so horizontal)" },
   "src/pages/jobs/jobPage/JobPage.tsx": { n: 1, why: "lg:gap-y-6 — the job page's desktop two-column grid (boards 15/168) row gap, beside its lg:gap-x-8; the phone stack uses gap-4" },

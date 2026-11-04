@@ -10,7 +10,7 @@
  * @mutate src/components/notificationPanel/notificationFeed.ts |   if (!stillBound(userId) \|\| epoch !== feedEpoch) return;\n  setNotifications(mergeRows( |   if (!stillBound(userId)) return;\n  setNotifications(mergeRows(
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -84,9 +84,13 @@ describe("admin Messages preview, Job notices (Q2664 a)", () => {
     expect(getNotificationSnapshot().notifications.map((n) => n.title)).toEqual([REAL.title]);
     sent = [];
     renderNotices();
-    expect(await screen.findByText(/Match for you/, undefined, { timeout: 10000 })).toBeInTheDocument();
-    expect(screen.getByText(/was just posted in Lafayette/)).toBeInTheDocument();
-    expect(screen.getByText(/New jobs in Lafayette/)).toBeInTheDocument();
+    // Read from the settled screen, not the first node found: the panel can redraw its list once more as the load
+    // settles (under parallel load the node findByText returned was already replaced: "not in the document").
+    await waitFor(() => {
+      expect(screen.getByText(/Match for you/)).toBeInTheDocument();
+      expect(screen.getByText(/was just posted in Lafayette/)).toBeInTheDocument();
+      expect(screen.getByText(/New jobs in Lafayette/)).toBeInTheDocument();
+    }, { timeout: 10000 });
     expect(screen.queryByText(REAL.title)).toBeNull();
     expect(sent.filter((u) => u.startsWith(`${SUPABASE}/rest/v1/notifications`))).toEqual([]);
   }, 30000);

@@ -22,6 +22,7 @@ import { fetchMyOrderTalks, fetchOrderTalk, MY_ORDER_TALKS_KEY, sendOrderMessage
 import { talkTime } from "@/lib/declutter/talkTime";
 import { focusSheetItself } from "./focusSheetItself";
 import { useMarkTalkRead } from "./useMarkTalkRead";
+import { Textarea } from "@/components/ui/textarea";
 
 // A3-27: the order card's step line, loaded only with the chat (it reads the cards' queries).
 const OrderTalkStep = lazy(() => import("./OrderTalkStep"));
@@ -132,7 +133,7 @@ function OrderTalkSheet({ orderId, onClose }: { orderId: string; onClose: () => 
             {open && (
               <form id={formId} className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (draft.trim()) send.mutate(); }}>
                 <label htmlFor={`order-talk-${orderId}`} className="block text-ds-13 font-medium">Message</label>
-                <textarea id={`order-talk-${orderId}`} className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
+                <Textarea id={`order-talk-${orderId}`} className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
                   maxLength={1000} value={draft} onChange={(e) => { setDraft(e.target.value); setRefusal(null); }}
                   aria-invalid={refusal ? true : undefined} aria-describedby={refusal ? `order-talk-refusal-${orderId}` : undefined} />
                 {refusal && <p id={`order-talk-refusal-${orderId}`} role="alert" className="text-ds-13 text-destructive-ink" data-order-talk-refusal="">{refusal}</p>}

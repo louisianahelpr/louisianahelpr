@@ -29,6 +29,7 @@ import { ChipGroup } from "./DeclutterSellSteps";
 import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { FieldLabel, SELL_INPUT } from "./SellFormParts";
 import { SellHandoverChoices } from "./SellHandoverChoices";
+import { Textarea } from "@/components/ui/textarea";
 
 /** What the seller is told after saving (item B: only a failed automatic check holds a listing). */
 export const EDIT_SAVED = {
@@ -116,7 +117,7 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
       </div>
       <div className="space-y-2">
         <FieldLabel htmlFor="edit-description" text="Description" />
-        <textarea id="edit-description" className={`${SELL_INPUT} h-auto py-3`} rows={4} maxLength={2000} value={description} onChange={(e) => setDescription(e.target.value)} />
+        <Textarea id="edit-description" className={`${SELL_INPUT} h-auto py-3`} rows={4} maxLength={2000} value={description} onChange={(e) => setDescription(e.target.value)} />
       </div>
       <ChipGroup label="Category" options={Object.entries(CATEGORY_LABEL).map(([k, v]) => ({ value: k, label: v }))} groups={CATEGORY_GROUPS} value={category} onChange={setCategory} />
       {/* I1 (Q1836 a): same link as the sell forms. */}

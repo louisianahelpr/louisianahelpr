@@ -12,6 +12,7 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchDeliveryTalk, sendDeliveryMessage, type TalkSide } from "@/lib/helprTasks/talk";
 import { focusSheetItself } from "./focusSheetItself";
+import { Textarea } from "@/components/ui/textarea";
 
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
 const WHO: Record<TalkSide, string> = { helpr: "The Helpr", buyer: "The buyer", seller: "The seller" };
@@ -69,7 +70,7 @@ function DeliveryTalkSheet({ taskId, onClose }: { taskId: string; onClose: () =>
             {t.open && (
               <form id={formId} className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (draft.trim()) send.mutate(); }}>
                 <label htmlFor={`delivery-talk-${taskId}`} className="block text-ds-13 font-medium">Message</label>
-                <textarea id={`delivery-talk-${taskId}`} className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
+                <Textarea id={`delivery-talk-${taskId}`} className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
                   maxLength={1000} value={draft} onChange={(e) => setDraft(e.target.value)} />
               </form>
             )}

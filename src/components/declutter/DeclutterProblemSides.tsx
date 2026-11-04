@@ -19,6 +19,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { FallbackImg } from "./FallbackImg";
 import { ProblemPhotoPicker, uploadProblemPhotos } from "./DeclutterProblemPhotos";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import { Textarea } from "@/components/ui/textarea";
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
@@ -126,7 +127,7 @@ export function DeclutterProblemSides({ orderId, side }: { orderId: string; side
       {!mine && open && (
         <div className="space-y-2">
           <label htmlFor={`dcl-side-${orderId}`} className="block text-xs font-medium">Your side, for Louisiana Helpr</label>
-          <textarea id={`dcl-side-${orderId}`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+          <Textarea id={`dcl-side-${orderId}`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
           <ProblemPhotoPicker files={photos} onChange={setPhotos} disabled={send.isPending} />
           {(p.other_side_photo_paths ?? []).length > 0 && <p className="text-ds-12 text-muted-foreground">New photos replace the ones you sent.</p>}
           <div className="flex gap-2">

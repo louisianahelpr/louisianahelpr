@@ -7,6 +7,7 @@ import { CurrentLocationPill } from "@/components/postjob/CurrentLocationPill";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { FieldError } from "@/components/ui/FieldError";
 
 // Normalize a geocoder's state value (full name or abbreviation) to the canonical 2-letter code the
@@ -52,7 +53,8 @@ export function AddressBlock({ streetAddress, setStreetAddress, city, setCity, a
   const [outOfState, setOutOfState] = useState(false);
   const complete = !!(streetAddress.trim() && city.trim() && zipCode.trim());
   const oneBox = mapKitReady && !manual;
-  const link = "inline-flex min-h-[44px] items-center font-sans text-ds-13 font-semibold text-[hsl(var(--bark))]";
+  // Q2709: the shared link Button, in the same ink and type as Post a job's "More dates".
+  const link = "px-0 font-sans text-ds-13 font-semibold text-[hsl(var(--bark))]";
 
   return (
       <div className="space-y-3">
@@ -83,7 +85,7 @@ export function AddressBlock({ streetAddress, setStreetAddress, city, setCity, a
             <p className="min-w-0 flex-1 font-sans text-ds-14 text-foreground">
               {streetAddress.trim()}, {city.trim()}, {addrState || "LA"} {zipCode.trim()}
             </p>
-            <button type="button" className={link} onClick={() => setChanging(true)}>Change</button>
+            <Button type="button" variant="link" size="sm" className={link} onClick={() => setChanging(true)}>Change</Button>
           </div>
         ) : oneBox ? (
           <>
@@ -114,11 +116,11 @@ export function AddressBlock({ streetAddress, setStreetAddress, city, setCity, a
           </>
         ) : null}
         {oneBox ? (
-          <button type="button" className={link} onClick={() => setManual(true)}>Enter it yourself</button>
+          <Button type="button" variant="link" size="sm" className={link} onClick={() => setManual(true)}>Enter it yourself</Button>
         ) : (
           <>
           {mapKitReady && (
-            <button type="button" className={link} onClick={() => { setManual(false); setChanging(true); }}>Search for it instead</button>
+            <Button type="button" variant="link" size="sm" className={link} onClick={() => { setManual(false); setChanging(true); }}>Search for it instead</Button>
           )}
           <Label htmlFor="streetAddress" className="text-ds-11 text-muted-foreground">Street address</Label>
           {mapKitReady ? (

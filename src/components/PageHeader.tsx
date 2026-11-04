@@ -272,7 +272,7 @@ const PageHeader = ({ title, meta, onBack, backTo, rightSlot, titleActions, phon
             `flex h-14 items-center gap-2 ${showBrand ? "justify-between" : "justify-end"}`,
             undefined,
             <>
-              {showBrand && <HelprMark to="/home" size="md" hideEmblem />}
+              {showBrand && <HelprMark to="/home" size="md" emblemOnly />}
               {rightSlot && <div className="flex items-center gap-1 shrink-0">{rightSlot}</div>}
             </>,
           )}

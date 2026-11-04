@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,12 +8,12 @@ import {
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
-import { unwrap } from "@/lib/supabaseResult";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 import { report } from "@/lib/errorLogger";
 import { X } from "lucide-react";
 import type { PetProfile } from "./types";
+import { BREED_SUGGESTIONS, FieldError, petProfilePayload, savePetProfile } from "./petFormParts";
 import {
   SPECIES_OPTIONS,
   PET_AGE_MAX,
@@ -23,18 +22,6 @@ import {
   isPetFormDirty,
   validatePetForm,
 } from "./petProfilesHelpers";
-
-// Species-filtered breed suggestions for the datalist under the Breed field.
-// Louisiana-common picks, not a taxonomy — free text remains the source of
-// truth.
-const BREED_SUGGESTIONS: Record<string, string[]> = {
-  dog: ["Lab mix", "Catahoula Leopard Dog", "Labrador Retriever", "Pit bull mix", "Golden Retriever", "German Shepherd", "Beagle", "Chihuahua", "Shih Tzu", "Mixed breed"],
-  cat: ["Domestic Shorthair", "Domestic Longhair", "Orange Tabby", "Tabby", "Siamese", "Calico", "Maine Coon", "Tuxedo", "Mixed breed"],
-  bird: ["Parakeet", "Cockatiel", "Conure", "Chicken", "Duck"],
-  rabbit: ["Holland Lop", "Lionhead", "Rex", "Mixed breed"],
-  reptile: ["Bearded Dragon", "Ball Python", "Red-Eared Slider", "Leopard Gecko"],
-  other: [],
-};
 
 interface PetFormProps {
   initialValues?: PetProfile | null;
@@ -125,33 +112,7 @@ export function PetForm({
     }
     setSaving(true);
     try {
-      const payload = {
-        owner_id: ownerId,
-        name: form.name.trim(),
-        species: form.species as string,
-        breed: form.breed || null,
-        age_years: form.age_years,
-        weight_lbs: form.weight_lbs,
-        color_markings: form.color_markings || null,
-        microchip_id: form.microchip_id || null,
-        vet_name: form.vet_name || null,
-        vet_phone: form.vet_phone || null,
-        medical_notes: form.medical_notes || null,
-        behavioral_notes: form.behavioral_notes || null,
-        emergency_contact: form.emergency_contact || null,
-        feeding_schedule: form.feeding_schedule || null,
-        updated_at: new Date().toISOString(),
-      };
-      if (initialValues?.id) {
-        unwrap(
-          await supabase
-            .from("pet_profiles")
-            .update(payload)
-            .eq("id", initialValues.id),
-        );
-      } else {
-        unwrap(await supabase.from("pet_profiles").insert(payload));
-      }
+      await savePetProfile(petProfilePayload(form, ownerId), initialValues?.id);
       hapticSuccess();
       toast(initialValues ? "Pet updated" : "Pet added");
       onSaved();
@@ -630,19 +591,5 @@ export function PetForm({
       </Dialog>
       {discardGuard}
     </>
-  );
-}
-
-/** Inline field error — sienna, announced, and tied to its input via id. */
-function FieldError({ id, children }: { id: string; children: React.ReactNode }) {
-  return (
-    <p
-      id={id}
-      role="alert"
-      className="text-ds-11 mt-1 leading-snug"
-      style={{ color: "hsl(var(--burnt-sienna))" }}
-    >
-      {children}
-    </p>
   );
 }

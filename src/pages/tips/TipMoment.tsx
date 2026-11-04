@@ -10,7 +10,7 @@ import { helperFeePercentOrLegacy } from "@/lib/legacyFeeFallback";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Gift } from "lucide-react";
-import { HelprSpinner } from "@/components/ui/HelprSpinner";
+import { Skeleton } from "@/components/ui/skeleton";
 import { tipChargeBreakdown } from "../../../supabase/functions/_shared/tipFees";
 import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 
@@ -62,7 +62,19 @@ export default function TipMoment() {
     },
   });
 
-  if (q.isPending) return <AppPage title="Tip" backTo="/home"><div className="flex justify-center py-16"><HelprSpinner /></div></AppPage>;
+  // Q2018 (instant feel): bones in the loaded header's shape (title, amount, job line), the part both the Helpr
+  // and the tipper see, instead of a centred spinner; the Helpr-only pay card is not guessed.
+  if (q.isPending) {
+    return (
+      <AppPage title="Tip" backTo="/home" phoneHidesTitle>
+        <div className="flex flex-col items-center gap-2 pt-6" data-testid="tip-moment-loading" role="status" aria-label="Loading this tip">
+          <Skeleton className="h-8 w-48 rounded-ds-sm" />
+          <Skeleton className="h-10 w-28 rounded-ds-sm" />
+          <Skeleton className="h-4 w-40 rounded-ds-sm" />
+        </div>
+      </AppPage>
+    );
+  }
   if (q.isError) {
     return <AppPage title="Tip" backTo="/home"><ErrorState title="We couldn't load this tip." onRetry={() => void q.refetch()} /></AppPage>;
   }

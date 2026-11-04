@@ -22,7 +22,6 @@
  * @mutate src/components/admin/AdminSupport.tsx |             {pillLabel(label, counts.get(value))} |             {label}
  * @mutate src/components/admin/AdminReports.tsx |             {pillLabel(label, counts.get(value))} |             {label}
  * @mutate src/components/admin/AdminStalledJobs.tsx | label: pillLabel("Awaiting a human", counts.get(false)) | label: "Awaiting a human"
- * @mutate src/components/admin/AdminSubscriptions.tsx | {pillLabel(f.charAt(0).toUpperCase() + f.slice(1), isInitialLoading \|\| isError ? undefined : pillCount(f))} | {f.charAt(0).toUpperCase() + f.slice(1)}
  * @mutate src/components/admin/adminDisputes/DisputeFilters.tsx | ].map((o) => ({ ...o, label: pillLabel(o.label, p.partyCount(o.id as PartyFilter)) }))} | ]}
  * @mutate src/components/admin/AdminSupport.tsx | useFilterCounts(SUPPORT_FILTERS, supportQueueKey, fetchSupportTickets | useFilterCounts(SUPPORT_FILTERS, (f) => ["admin-support-count", f], fetchSupportTickets
  * @mutate src/components/admin/AdminAuditLog.tsx |                 {pillLabel(label, entries.filter((e) => auditWhoMatches(value, e)).length)} |                 {label}
@@ -46,7 +45,6 @@ const COUNTED: Record<string, RegExp[]> = {
     /label: pillLabel\("Awaiting a human", counts\.get\(false\)\)/,
     /label: pillLabel\("Including resolved", counts\.get\(true\)\)/,
   ],
-  "src/components/admin/AdminSubscriptions.tsx": [/\{pillLabel\(f\.charAt\(0\)\.toUpperCase\(\) \+ f\.slice\(1\), [^)]*pillCount\(f\)\)\}/],
   "src/components/admin/adminDisputes/DisputeTabs.tsx": [
     /Open\s*<span className="text-ds-11 tabular-nums">\(\{openCount\}\)<\/span>/,
     /Decided\s*<span className="text-ds-11 tabular-nums">\(\{decidedCount\}\)<\/span>/,

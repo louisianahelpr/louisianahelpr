@@ -1,5 +1,4 @@
 import { supabase } from "@/integrations/supabase/client";
-import { unregisterPushOnSignOut } from "@/lib/nativePush";
 import { clearRememberedRoute } from "@/lib/lastRoute";
 import { queryClient } from "@/lib/queryClient";
 import { removePersistedClient } from "@/lib/queryPersister";
@@ -137,11 +136,19 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   // cleanup that has not finished in 2 s is abandoned, never waited on.
   // `hadSession` stays undefined if the read never answered.
   let hadSession: boolean | undefined;
+  // nativePush.ts is loaded here, not at boot (Q2705/Q2706 boot cut): the load starts beside the session read,
+  // inside the same 2 s cap. The native app reads it from the app bundle; on the web SessionManager warms it once
+  // a signed-in page has settled. A null load (recovery reload) skips the cleanup; a failed one is reported.
+  const pushModule = loadModule(() => import("@/lib/nativePush")).catch((e: unknown) => {
+    reportCap(`push-token cleanup skipped: nativePush did not load (${e instanceof Error ? e.message : String(e)})`, "push");
+    return null;
+  });
   const pushCleanup = (async () => {
     const { data } = await supabase.auth.getSession();
     hadSession = !!data.session;
     const userId = data.session?.user?.id;
-    if (userId) await unregisterPushOnSignOut(userId);
+    const push = await pushModule;
+    if (userId && push) await push.unregisterPushOnSignOut(userId);
   })().catch(() => {
     /* best-effort: never block sign-out on token cleanup (unregisterPushOnSignOut reports its own failures) */
   });

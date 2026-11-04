@@ -20,7 +20,7 @@
       "button": 1
     },
     "src/components/DesktopSidebarNav.tsx": {
-      "button": 4
+      "button": 3
     },
     "src/components/DisputeDialog.tsx": {
       "button": 1,
@@ -43,7 +43,7 @@
       "button": 4
     },
     "src/components/NotificationPanel.tsx": {
-      "button": 3
+      "button": 2
     },
     "src/components/PayoutSetupForm.tsx": {
       "button": 1
@@ -60,7 +60,7 @@
       "input": 3
     },
     "src/components/SavedSearches.tsx": {
-      "button": 3
+      "button": 1
     },
     "src/components/ScrollToTop.tsx": {
       "button": 1
@@ -211,7 +211,7 @@
       "button": 1
     },
     "src/components/create/CreateSheet.tsx": {
-      "button": 3
+      "button": 2
     },
     "src/components/dashboard/BrowseTasksToolbar.tsx": {
       "button": 1

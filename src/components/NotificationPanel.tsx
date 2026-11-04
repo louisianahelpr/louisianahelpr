@@ -592,14 +592,14 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
               >
                 Our end had a hiccup — not yours.
               </p>
-              <button
+              <Button
                 type="button"
+                variant="primary" size="sm"
                 onClick={() => void loadNotifications()}
-                className="mt-1 h-11 px-5 rounded-full btn-grad-primary text-ds-12 font-sans font-semibold"
-                style={{ color: "hsl(var(--parchment))", boxShadow: "var(--elev-bark-raised)" }}
+                className="mt-1"
               >
                 Try again
-              </button>
+              </Button>
             </div>
           ) : !listShowable ? (
             /* NOT ANSWERED YET. Before the first successful load an empty list

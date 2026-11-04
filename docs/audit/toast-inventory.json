@@ -4828,7 +4828,7 @@
       "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "ids !== null && ids.length === 0 ? \"Declined. The buyer is told.\" : n < 0 ? \"The buyer has no card saved yet. We asked them to add one; answer again once they do.\" : `Accepted ${n}. The buyer has 24 hours to pay.`",
+        "text": "ids !== null && ids.length === 0 ? \"Declined. The buyer is told.\" : n < 0 ? \"The buyer has no card saved yet. We asked them to add one; answer again once they do.\" // Q2731: every picked item sold or came down meanwhile; the request is closed and the buyer is told. : n === 0 ? \"Those items are no longer available, so nothing was accepted. The buyer is told.\" : `Accepted ${n}. The buyer has 24 hours to pay.`",
         "branches": [
           {
             "form": "literal",
@@ -4836,15 +4836,25 @@
           },
           {
             "form": "dynamic",
-            "text": "n < 0 ? \"The buyer has no card saved yet. We asked them to add one; answer again once they do.\" : `Accepted ${n}. The buyer has 24 hours to pay.`",
+            "text": "n < 0 ? \"The buyer has no card saved yet. We asked them to add one; answer again once they do.\" // Q2731: every picked item sold or came down meanwhile; the request is closed and the buyer is told. : n === 0 ? \"Those items are no longer available, so nothing was accepted. The buyer is told.\" : `Accepted ${n}. The buyer has 24 hours to pay.`",
             "branches": [
               {
                 "form": "literal",
                 "text": "The buyer has no card saved yet. We asked them to add one; answer again once they do."
               },
               {
-                "form": "template",
-                "text": "Accepted ${n}. The buyer has 24 hours to pay."
+                "form": "dynamic",
+                "text": "n === 0 ? \"Those items are no longer available, so nothing was accepted. The buyer is told.\" : `Accepted ${n}. The buyer has 24 hours to pay.`",
+                "branches": [
+                  {
+                    "form": "literal",
+                    "text": "Those items are no longer available, so nothing was accepted. The buyer is told."
+                  },
+                  {
+                    "form": "template",
+                    "text": "Accepted ${n}. The buyer has 24 hours to pay."
+                  }
+                ]
               }
             ]
           }
@@ -4854,7 +4864,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterBundleRequests.tsx",
-      "line": 171,
+      "line": 173,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4879,7 +4889,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterBundleRequests.tsx",
-      "line": 209,
+      "line": 211,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4889,7 +4899,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterBundleRequests.tsx",
-      "line": 210,
+      "line": 212,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

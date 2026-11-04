@@ -164,7 +164,10 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
     expect(pin, "never in the row's own select (a missing column would fail the whole lookup)").not.toMatch(/BROWSE_COLUMNS =[^;]*crew_spots_open/);
     // The pin's popup card (the map RPC has no count) gets it from its own read.
     const map = blankComments(readFileSync(resolve(ROOT, "src/components/BrowseMap.tsx"), "utf8"));
-    expect(map).toMatch(/job=\{mapJobToEnrichedJob\(selectedJob, selectedCrewSpots\)\}/);
+    // The popup itself moved to browseMap/PinPreview.tsx (Q806); BrowseMap still reads the count and passes it in.
+    const popup = blankComments(readFileSync(resolve(ROOT, "src/components/browseMap/PinPreview.tsx"), "utf8"));
+    expect(popup).toMatch(/job=\{mapJobToEnrichedJob\(selectedJob, selectedCrewSpots\)\}/);
+    expect(map).toMatch(/selectedCrewSpots=\{selectedCrewSpots\}/);
     expect(map).toMatch(/useSelectedCrewSpots\(selectedJob\?\.is_group_job \? selectedJob\.id : null\)/);
     const hook = blankComments(readFileSync(resolve(ROOT, "src/components/browseMap/useSelectedCrewSpots.ts"), "utf8"));
     expect(hook).toMatch(/fetchCrewSpotsOpen\(\[selectedCrewId\]\)/);

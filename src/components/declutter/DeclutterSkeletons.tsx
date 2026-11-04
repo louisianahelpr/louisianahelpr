@@ -23,22 +23,26 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { safeStorage } from "@/lib/safeStorage";
 import { DeclutterNotice } from "./declutterUi";
 
-/** /declutter: the section shell (top bar), the tab row, the phone's search row and the first cards. */
+/**
+ * /declutter: the section shell (top bar), the tab row and the first cards.
+ *
+ * Q1695 (loading-states refresh 2026-11-03 19:40Z, bot PR #3963, 375, customer and anon): the phone's search and
+ * filters END the tabs row (DeclutterBrowseView's phone header, owner 10-30), so there is no search row under the
+ * tabs any more. The bone for one stayed: the body started 43px lower than the page that replaced it
+ * ("row 672px -> 715px", the header region 140px -> 97px).
+ */
 export function DeclutterHomeSkeleton() {
   const desktop = useIsWebDesktop();
   const map = desktop && safeStorage.getItem("helpr.declutterMapVisible") !== "0";
   return (
-    // The Browse silhouette, so no "Search all sections" field: Browse draws its own search (the row under the
-    // tabs on a phone, the end of the tabs row on desktop).
+    // The Browse silhouette, so no "Search all sections" field: Browse draws its own search at the end of the tabs
+    // row, on a phone and on desktop alike.
     <SectionScreen
       section="declutter"
       title="Declutter"
       globalSearch={false}
       tabs={
-        <>
-          <Skeleton className="h-11 w-full rounded-ds-md" aria-hidden />
-          {!desktop && <Skeleton className="h-10 w-full rounded-full" aria-hidden />}
-        </>
+        <Skeleton className="h-11 w-full rounded-ds-md" aria-hidden />
       }
     >
       <DeclutterBrowseBones map={map} full={desktop && !map} />

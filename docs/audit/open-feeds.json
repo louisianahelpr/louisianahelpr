@@ -579,14 +579,6 @@
         "issue": null
       },
       {
-        "fingerprint": "8be078d458667980e4122f19029b6505",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: permission denied for function feature_switches_for_me",
-        "issue": null
-      },
-      {
         "fingerprint": "ec24ac4f76e60c2d4ede8efbf0b046fd",
         "source_kind": "sentry",
         "source": "sentry:assets/app-shared",
@@ -819,7 +811,6 @@
     "ledger 88ecf6e765df": "Q1816",
     "ledger 8a2e802edbe7": "Q2498",
     "ledger 8ad756b6da76": "Q1596",
-    "ledger 8be078d45866": "Q2515",
     "ledger 8d56e6dd3fad": "Q2725",
     "ledger 8f6eb3360000": "Q2507",
     "ledger 9078a39b3304": "Q1615",

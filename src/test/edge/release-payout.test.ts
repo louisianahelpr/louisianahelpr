@@ -1137,9 +1137,12 @@ describe("release-payout edge function", () => {
       // cap never counts it as payout headroom, and a small tax-only capture never caps the payout down.
       // @mutate supabase/functions/release-payout/index.ts |   const escrowValueCents = (escrowAmountReceivedCents ?? 0) - escrowTaxCents + giftAppliedCents; |   const escrowValueCents = (escrowAmountReceivedCents ?? 0) + giftAppliedCents;
       // @mutate supabase/functions/_shared/capturedEscrow.ts | && /^\d+$/.test(raw) ? Number(raw) : 0; | && /^\d+$/.test(raw) ? 0 : 0;
+      // The PI's metadata is built apart from the PI literal: its tax_calculation_id key made fixtureSchemaContract
+      // read the PI mock as a recurring_visit_payments row (whose status CHECK has no "succeeded").
+      const siteTaxMetadata = (taxCents: number) => ({ job_id: "job-1", gift_card_id: "gift-1", tax_calculation_id: "taxcalc_1", job_tax_cents: String(taxCents) });
       const taxedLeg = (amount: number, taxCents: number) => stripeMock.paymentIntents.retrieve.mockResolvedValue({
         id: "pi_diff", status: "succeeded", amount, amount_received: amount, latest_charge: "ch_diff",
-        metadata: { job_id: "job-1", gift_card_id: "gift-1", tax_calculation_id: "taxcalc_1", job_tax_cents: String(taxCents) },
+        metadata: siteTaxMetadata(taxCents),
       });
       it("Q1728: a shortfall + tax capture: the tax is not headroom (gift 3000 + card 5000 + tax 1000 < payout 8800: refused)", async () => {
         seedMixed();

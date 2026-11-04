@@ -27,7 +27,7 @@ export function YourPageLink({ name, className = "" }: { name?: string | null; c
   });
   if (!handle) return null;
   const copy = async () => {
-    if (await copyToClipboard(profileLinkUrl(handle))) toast.success("Link copied");
+    if (await copyToClipboard(profileLinkUrl(handle))) toast("Link copied");
     else toast.error("Couldn't copy the link. Press and hold it to copy.");
   };
   return (

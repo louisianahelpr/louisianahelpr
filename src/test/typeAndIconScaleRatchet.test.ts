@@ -19,27 +19,19 @@
  * @mutate src/components/ui/EmptyState.tsx |             strokeWidth={1.5}\n          />\n        </div>\n      )} |             strokeWidth={1.4}\n          />\n        </div>\n      )}
  * @mutate src/components/feedback/SuccessMoment.tsx |             strokeWidth={2.5} |             strokeWidth={2.6}
  */
-import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "../..");
 
-function sourceFiles(dir: string, out: string[] = []): string[] {
-  for (const name of readdirSync(dir)) {
-    const p = join(dir, name);
-    if (statSync(p).isDirectory()) {
-      if (name === "test" || name === "__tests__") continue;
-      sourceFiles(p, out);
-    } else if (/\.(tsx|ts)$/.test(name) && !/\.(test|spec)\.tsx?$/.test(name) && !name.endsWith(".d.ts")) {
-      out.push(p);
-    }
-  }
-  return out;
-}
-
-const files = sourceFiles(resolve(ROOT, "src"));
+const files = execFileSync("git", ["ls-files", "src/*.ts", "src/*.tsx", "src/**/*.ts", "src/**/*.tsx"], { cwd: ROOT, encoding: "utf8" })
+  .split("\n")
+  .filter((f) => f && !/(^|\/)(test|__tests__)\//.test(f) && !/\.(test|spec)\.tsx?$/.test(f) && !f.endsWith(".d.ts"))
+  .map((f) => resolve(ROOT, f))
+  .filter((f) => existsSync(f));
 const code = files.map((f) => blankComments(readFileSync(f, "utf8"))).join("\n");
 
 /** Exact baselines. Lower them when a weight or size goes away; never raise them. */

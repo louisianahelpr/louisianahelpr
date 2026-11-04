@@ -130,8 +130,8 @@ export function DeclutterProblemSides({ orderId, side }: { orderId: string; side
           <ProblemPhotoPicker files={photos} onChange={setPhotos} disabled={send.isPending} />
           {(p.other_side_photo_paths ?? []).length > 0 && <p className="text-ds-12 text-muted-foreground">New photos replace the ones you sent.</p>}
           <div className="flex gap-2">
-            <Button type="button" variant="primary" size="sm" disabled={send.isPending || !note.trim()} onClick={() => send.mutate(p)}>Send</Button>
             <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>Not now</Button>
+            <Button type="button" variant="primary" size="sm" disabled={send.isPending || !note.trim()} onClick={() => send.mutate(p)}>Send</Button>
           </div>
         </div>
       )}

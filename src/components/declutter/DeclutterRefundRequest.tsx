@@ -189,8 +189,8 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
           {reason === "not_received" ? `Since you never got it, there's nothing to give back: if ${who} agrees, it is sent right away.` : `For a full refund you give the item back first; it is sent once ${who} confirms they have it.`}
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" variant="primary" size="sm" disabled={ask.isPending || !note.trim()} onClick={() => ask.mutate()}>Send to the seller</Button>
           <Button type="button" variant="outline" size="sm" disabled={ask.isPending} onClick={() => setOpen(false)}>Not now</Button>
+          <Button type="button" variant="primary" size="sm" disabled={ask.isPending || !note.trim()} onClick={() => ask.mutate()}>Send to the seller</Button>
         </div>
       </fieldset>
     );
@@ -224,10 +224,10 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
           <p className="text-sm">{cap(who)} offered {refundDollars(r.offer_cents ?? 0)} back. You keep the item.</p>
           <SellerSideShown note={r.seller_note} photos={r.seller_photo_paths} who={who} />
           <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="outline" size="sm" disabled={offer.isPending} onClick={() => setAnswering("ask")}>Ask Louisiana Helpr to decide</Button>
             <Button type="button" variant="primary" size="sm" disabled={offer.isPending} onClick={() => setAnswering("take")}>
               Take {refundDollars(r.offer_cents ?? 0)}
             </Button>
-            <Button type="button" variant="outline" size="sm" disabled={offer.isPending} onClick={() => setAnswering("ask")}>Ask Louisiana Helpr to decide</Button>
           </div>
           <ConfirmSheet
             open={answering !== null}

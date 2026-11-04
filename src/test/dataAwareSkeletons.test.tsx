@@ -6,7 +6,7 @@
 // @mutate src/components/ui/skeletons/EmptyStateSkeleton.tsx | if (data != null) n = Math.max(n, count(data)); | n = 0;
 // @mutate src/pages/post-job/EntryChoice.tsx | return ENTRY_BASE_CARD_COUNT + (known.draftCard ? 1 : 0) + (known.repostCard ? 1 : 0); | return 5;
 // @mutate src/components/profile/ProfileTabFallback.tsx |   if (tab === "reviews") return <ReviewRowReserve />;\n |
-// @mutate src/components/profile/ProfileTabFallback.tsx |     <Skeleton className="h-3.5 w-5/6" />\n  </div>\n);\n\nconst NotificationsReserve | </div>\n);\n\nconst NotificationsReserve
+// @mutate src/components/profile/ProfileTabFallback.tsx |       <Skeleton className="h-3.5 w-5/6" />\n      <Skeleton className="h-3 w-1/2" /> |       <Skeleton className="h-3 w-1/2" />
 // @mutate src/components/profile/ProfileTabFallback.tsx | wrapped: [{ h: 333, maxW: 420 }], | wrapped: [{ h: 744, maxW: 420 }],
 // @mutate src/components/profile/ReviewsTab.tsx | {loading ? (reviewCount === 0 ? ( | {loading ? (false ? (
 import { describe, it, expect, afterEach, vi } from "vitest";

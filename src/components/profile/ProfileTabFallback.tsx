@@ -6,6 +6,8 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { currentSearch, profileTabTitle, type Tab } from "@/pages/profile/types";
 import { SCHEDULE_LAYOUT_CLASS } from "@/components/profile/scheduleLayout";
+import { queryClient } from "@/lib/queryClient";
+import { FEATURE_SWITCH_PREFIX } from "@/lib/featureSwitchQuery";
 
 /**
  * ProfileTabFallback — what a Profile tab looks like before its chunk lands.
@@ -203,7 +205,7 @@ export const ProfileTabBodyReserve = ({ tab }: { tab?: Exclude<Tab, "landing"> }
   if (tab === "work_record") return <WorkRecordReserve />;
   if (tab === "legal") return <LegalReserve />;
   if (tab === "schedule") return <ScheduleReserve />;
-  const shape = tab ? TAB_SHAPES[tab] : undefined;
+  const shape = tab ? TAB_SHAPES[reserveTabFor(tab)] : undefined;
   if (shape) {
     // Siblings, not a wrapper: each block lines up with the real row that
     // replaces it, so the row count matches as well as the height.
@@ -217,6 +219,26 @@ export const ProfileTabBodyReserve = ({ tab }: { tab?: Exclude<Tab, "landing"> }
   }
   return <ScreenfulReserve media={tab ? (RESERVE_MEDIA[tab] ?? 0) : 0} />;
 };
+
+/**
+ * Q1695 (loading-states refresh 2026-11-03 19:40Z, bot PR #3963, 375, both test accounts): Instant book is off for
+ * everyone (switch 'instant_book', owner 11-01), so ?tab=instant_book turns into Settings as soon as the switch
+ * answers (useInstantBookTabRedirect, Q2647). Its loading frame drew the instant-book form (rows 6, row 122px) and
+ * Settings arrived (rows 7, row 235px): "row 122px -> 235px" twice per persona. Until a cached answer says the
+ * switch is ON, the tab waits in Settings' shape, the screen that actually replaces it.
+ */
+function instantBookSwitchCachedOn(): boolean {
+  return queryClient
+    .getQueriesData<Record<string, boolean> | boolean | null>({ queryKey: [FEATURE_SWITCH_PREFIX] })
+    .some(([key, data]) =>
+      (key[1] === "instant_book" && data === true) ||
+      (data !== null && typeof data === "object" && data.instant_book === true));
+}
+
+export function reserveTabFor(tab: Exclude<Tab, "landing">): Exclude<Tab, "landing"> {
+  if (tab === "instant_book" && !instantBookSwitchCachedOn()) return "settings";
+  return tab;
+}
 
 /** One screenful from where the element starts. Read once: the placeholder's
  *  whole life is a few hundred ms, and a resize observer here would fight the
@@ -280,18 +302,32 @@ export const NOTIFICATION_ROWS = 17;
  * review in the list (stars, a date, two lines), not the "No reviews yet" card, so the loading frame claims
  * neither "none" nor "some".
  */
+/**
+ * Q1695 (loading-states refresh 2026-11-03 19:40Z, bot PR #3963, 375, both test accounts, one review each): the
+ * real block under the header is 213px (the loaded frame's median row of 2; rowRect.h 281): the Newest/Highest
+ * sort strip over one review card (name and role, date, the quote, the job). The bare card measured 96px, so the
+ * list arrived "row 96px -> 213px". The block now holds the sort strip's bone and reserves those 213px; a longer
+ * list still grows below it, so it still says nothing about how many reviews there are.
+ */
+export const REVIEW_BLOCK_RESERVE_PX = 213;
 const ReviewRowReserve = () => (
-  <div data-testid="profile-tab-fallback" data-review-row-reserve="" className="rounded-ds-md liquid-glass p-card space-y-2.5" aria-hidden>
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-0.5">
-        {[0, 1, 2, 3, 4].map((s) => (
-          <Skeleton key={s} className="h-3.5 w-3.5 rounded-sm" />
-        ))}
-      </div>
-      <Skeleton className="h-3 w-20" />
+  <div data-testid="profile-tab-fallback" aria-hidden className="space-y-3" style={{ minHeight: REVIEW_BLOCK_RESERVE_PX }}>
+    <div className="flex justify-end">
+      <Skeleton className="h-9 w-32 rounded-full" />
     </div>
-    <Skeleton className="h-3.5 w-full" />
-    <Skeleton className="h-3.5 w-5/6" />
+    <div data-review-row-reserve="" className="rounded-ds-md liquid-glass p-card space-y-2.5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-0.5">
+          {[0, 1, 2, 3, 4].map((s) => (
+            <Skeleton key={s} className="h-3.5 w-3.5 rounded-sm" />
+          ))}
+        </div>
+        <Skeleton className="h-3 w-20" />
+      </div>
+      <Skeleton className="h-3.5 w-full" />
+      <Skeleton className="h-3.5 w-5/6" />
+      <Skeleton className="h-3 w-1/2" />
+    </div>
   </div>
 );
 

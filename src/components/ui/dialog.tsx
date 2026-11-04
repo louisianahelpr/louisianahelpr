@@ -428,14 +428,13 @@ const DialogContent = React.forwardRef<
             ("looks so much smaller", "not blending in"); it was called an
             optical illusion twice and it is not one — it is measurable in the
             path data.
-            20px at strokeWidth 2.5 puts the X's inked box at 10px against the
+            20px (its lines 1.75px like every icon, Q2027) puts the X's inked box at 10px against the
             16px icons' ~13-14px of ink, which is what actually matches by eye.
             The BOX stays 44x44 (HIG floor) either way; only the glyph changes.
             If you "fix" this back to h-4 w-4 to match the other icons on
             paper, you are reintroducing the complaint. */}
         <X
           className={topRightSlot ? "h-5 w-5" : "h-[18px] w-[18px]"}
-          strokeWidth={topRightSlot ? 2.5 : 2}
         />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>

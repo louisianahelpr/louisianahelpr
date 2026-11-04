@@ -163,7 +163,7 @@ const BirthdayPopup = ({ dateOfBirth, firstName, deferred = false }: BirthdayPop
                     boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 8px 22px -6px hsl(var(--burnt-sienna) / 0.30)",
                   }}
                 >
-                  <Cake className="w-5 h-5" strokeWidth={1.75} />
+                  <Cake className="w-5 h-5" />
                 </div>
                 {/* Canonical DialogHero, not a hand-rolled header (Cowork
                     2026-07-08 required the shared component).

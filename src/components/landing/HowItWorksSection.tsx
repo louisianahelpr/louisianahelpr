@@ -193,7 +193,7 @@ const HowItWorksSection = () => {
             style={{ color: "var(--lp-action-strong)", borderColor: "var(--lp-action)" }}
           >
             Post a job
-            <ArrowRight className="w-4 h-4" strokeWidth={2} aria-hidden />
+            <ArrowRight className="w-4 h-4" aria-hidden />
           </Link>
         )}
       </div>

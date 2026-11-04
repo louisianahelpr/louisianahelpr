@@ -60,7 +60,6 @@ export const MetricCard = ({ label, value, sub, icon: Icon, accent, warning, onC
           className={`w-4 h-4 sm:w-[1.125rem] sm:h-[1.125rem] ${
             warning ? toneTextClasses.warning : accent ? "text-accent" : "text-primary"
           }`}
-          strokeWidth={2.25}
         />
       </div>
     </div>

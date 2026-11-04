@@ -99,7 +99,6 @@ export function CompactJobCard({
           >
             <Star
               className="w-2.5 h-2.5 shrink-0"
-              strokeWidth={2}
               style={{ fill: "hsl(var(--burnt-sienna) / 0.3)" }}
             />
             <span className="font-sans font-semibold leading-none">Recommended</span>

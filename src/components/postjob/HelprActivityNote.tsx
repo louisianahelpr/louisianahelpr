@@ -17,7 +17,7 @@ export function HelprActivityNote({ activity }: { activity: HelprActivity | null
         border: "0.5px solid hsl(var(--primary) / 0.22)",
       }}
     >
-      <Users className="w-4 h-4 text-primary shrink-0" strokeWidth={2.25} />
+      <Users className="w-4 h-4 text-primary shrink-0" />
       <p className="text-ds-12 leading-snug text-foreground">
         <span className="font-sans font-bold tabular-nums">
           {activity.count} Helprs

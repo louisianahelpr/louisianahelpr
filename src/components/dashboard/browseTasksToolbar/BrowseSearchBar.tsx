@@ -274,7 +274,7 @@ export function BrowseSearchBar({
             // documented on the toast close button).
             className="absolute right-2.5 top-1/2 -translate-y-1/2 !min-h-0 !min-w-0 h-7 w-7 flex items-center justify-center ctl-exit text-muted-foreground hover:text-foreground hover:bg-secondary/60 btn-press transition"
           >
-            <X className="w-4 h-4" strokeWidth={2.25} />
+            <X className="w-4 h-4" />
           </button>
         </div>
       </div>

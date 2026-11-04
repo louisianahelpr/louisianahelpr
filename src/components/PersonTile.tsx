@@ -138,7 +138,6 @@ export function PersonTile({
         <ChevronRight
           className="shrink-0 w-4 h-4 transition-transform group-hover:translate-x-0.5"
           style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-          strokeWidth={2}
         />
       </div>
       {children}

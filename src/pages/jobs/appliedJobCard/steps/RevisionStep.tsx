@@ -71,7 +71,7 @@ export function RevisionStep({
             className="text-ds-11 inline-flex items-center justify-center gap-1 px-2 py-1.5 rounded font-medium w-full"
             style={{ background: "hsl(var(--success-tint))", color: "hsl(var(--success-ink))" }}
           >
-            <Check className="w-3 h-3 shrink-0" strokeWidth={3} /> Marked as fixed — waiting on them
+            <Check className="w-3 h-3 shrink-0" /> Marked as fixed — waiting on them
           </div>
           {job.revision_acceptance_deadline && (
             <DeadlineCountdown

@@ -46,7 +46,7 @@ export function MapEmptyState({
               "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
           }}
         >
-          <MapPin className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
+          <MapPin className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} />
         </div>
         <div className="space-y-1">
           {/* An empty board because the viewer narrowed it is a

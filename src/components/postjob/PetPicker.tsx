@@ -144,7 +144,6 @@ export function PetPicker({
                     <Check
                       className="w-4 h-4 shrink-0"
                       style={{ color: "hsl(var(--bark))" }}
-                      strokeWidth={2.5}
                       aria-hidden
                     />
                   )}

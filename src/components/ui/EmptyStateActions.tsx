@@ -26,8 +26,8 @@ export function EmptyStateActions({ primary, secondary, secondaryIcon: Secondary
   /** The quiet link's leading icon (Bell for Notify me, Search for Post what you're looking for). */
   secondaryIcon: LucideIcon;
 }) {
-  const plus = <Plus className="w-4 h-4 mr-1 shrink-0" strokeWidth={2.25} aria-hidden />;
-  const quiet = <SecondaryIcon className="w-4 h-4 mr-1 shrink-0" strokeWidth={2.25} aria-hidden />;
+  const plus = <Plus className="w-4 h-4 mr-1 shrink-0" aria-hidden />;
+  const quiet = <SecondaryIcon className="w-4 h-4 mr-1 shrink-0" aria-hidden />;
   return (
     <div className="flex flex-col items-center gap-3" data-empty-actions="">
       {primary.to ? (

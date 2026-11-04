@@ -60,7 +60,7 @@ export function DeclutterOrderTalkRows({ empty }: { empty: ReactNode }) {
               onClick={() => openTalk(row.order_id)} data-order-talk-row={row.order_id}>
               <span className={`${CONVERSATION_ROW_AVATAR} shrink-0 rounded-full inline-flex items-center justify-center bg-muted text-muted-foreground`}
                 aria-hidden="true">
-                <Sofa className="w-5 h-5" strokeWidth={1.75} />
+                <Sofa className="w-5 h-5" />
               </span>
               <span className="flex-1 min-w-0">
                 <span className="flex items-center gap-1.5">

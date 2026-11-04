@@ -81,7 +81,7 @@ export function SettingsGroup({
                           letterSpacing: "0.04em",
                         }}
                       >
-                        <AlertTriangle className="w-2.5 h-2.5" strokeWidth={2.5} />
+                        <AlertTriangle className="w-2.5 h-2.5" />
                         {blocking ? "Action needed" : item.incompleteLabel}
                       </span>
                     );
@@ -91,7 +91,7 @@ export function SettingsGroup({
               </div>
             </div>
             <span className="w-5 flex items-center justify-center shrink-0">
-              <ChevronRightIcon className="w-4 h-4 text-muted-foreground/70" strokeWidth={2.25} />
+              <ChevronRightIcon className="w-4 h-4 text-muted-foreground/70" />
             </span>
           </button>
         ))}

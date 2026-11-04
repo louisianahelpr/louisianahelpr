@@ -146,7 +146,7 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
           <>
             {detailed && (
               <span className="mb-0.5 flex justify-center" data-step-icon="">
-                <Icon className={`h-3.5 w-3.5 ${textCls}`} strokeWidth={1.75} aria-hidden />
+                <Icon className={`h-3.5 w-3.5 ${textCls}`} aria-hidden />
               </span>
             )}
             <span data-step-seg="" className={`block h-1.5 rounded-full ${barCls} ${pulses && i === stage ? "step-current-pulse" : ""}`} />

@@ -187,7 +187,7 @@ export function LiveJobsSection() {
             style={{ color: "var(--lp-action-strong)" }}
           >
             Browse local jobs
-            <ArrowRight className="w-4 h-4" strokeWidth={1.75} aria-hidden />
+            <ArrowRight className="w-4 h-4" aria-hidden />
           </Link>
         </div>
 
@@ -259,7 +259,7 @@ export function LiveJobsSection() {
           style={{ color: "var(--lp-action-strong)" }}
         >
           Browse local jobs
-          <ArrowRight className="w-4 h-4" strokeWidth={1.75} aria-hidden />
+          <ArrowRight className="w-4 h-4" aria-hidden />
         </Link>
       </div>
     </section>

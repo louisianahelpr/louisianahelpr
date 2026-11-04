@@ -31,7 +31,7 @@ export function JobFoldToggle({ more, open, onToggle }: { more: Notification[]; 
       style={{ color: "hsl(var(--bark))" }}
     >
       {label}
-      <ChevronDown className={`w-4 h-4 transition-transform${open ? " rotate-180" : ""}`} strokeWidth={2.25} aria-hidden />
+      <ChevronDown className={`w-4 h-4 transition-transform${open ? " rotate-180" : ""}`} aria-hidden />
     </Button>
   );
 }

@@ -63,7 +63,7 @@ export function PaymentTab({ onSettled }: PaymentTabProps) {
           style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
           role="status"
         >
-          <Banknote className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
+          <Banknote className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} />
           <p className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
             {connectReturn === "success"
               ? "Welcome back from Stripe — your payout status below is up to date."

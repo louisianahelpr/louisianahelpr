@@ -29,7 +29,6 @@ export function ProfileSectionError({ section, onRetry }: ProfileSectionErrorPro
     >
       <AlertTriangle
         className="w-3.5 h-3.5 shrink-0"
-        strokeWidth={2.25}
         style={{ color: "hsl(var(--burnt-sienna))" }}
       />
       <p className="flex-1 min-w-0 text-ds-11 text-foreground leading-snug">
@@ -41,7 +40,7 @@ export function ProfileSectionError({ section, onRetry }: ProfileSectionErrorPro
         className="shrink-0 inline-flex items-center gap-1 text-ds-11 font-semibold active:opacity-70 transition-opacity"
         style={{ color: "hsl(var(--burnt-sienna))" }}
       >
-        <RotateCw className="w-3 h-3" strokeWidth={2.5} />
+        <RotateCw className="w-3 h-3" />
         Try again
       </button>
     </div>

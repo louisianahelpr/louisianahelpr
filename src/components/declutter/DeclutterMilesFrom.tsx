@@ -30,7 +30,7 @@ export function DeclutterMilesFrom({ ask }: { ask: OriginAsk }) {
   return (
     <div data-miles-from="" className="flex min-h-11 flex-wrap items-center justify-between gap-x-3 gap-y-1">
       <p className="flex min-w-0 items-center gap-1.5 text-ds-13 text-muted-foreground">
-        <MapPin className="h-4 w-4 shrink-0" strokeWidth={2.25} aria-hidden />
+        <MapPin className="h-4 w-4 shrink-0" aria-hidden />
         <span>{milesFromWords(ask)}</span>
       </p>
       {ask.asking ? (

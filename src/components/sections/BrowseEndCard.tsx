@@ -55,7 +55,7 @@ export function BrowseEndCard({
               )}
               {onAlerts && (
                 <Button type="button" size="sm" variant="outline" onClick={onAlerts} className="rounded-full">
-                  <Bell className="w-4 h-4 mr-1" strokeWidth={2.25} aria-hidden />
+                  <Bell className="w-4 h-4 mr-1" aria-hidden />
                   Turn on alerts
                 </Button>
               )}

@@ -354,7 +354,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
               the member's photo, so a second avatar here was a duplicate. */}
           <Icon
             className="w-[22px] h-[22px] transition-all duration-200"
-            strokeWidth={isActive ? (path === "/explore" ? 2.4 : 2) : 1.6}
             // A filled Compass is a solid disc with no needle (looked, 2026-10-20): Explore goes bold, not filled.
             fill={isActive && path !== "/explore" ? "currentColor" : "none"}
           />
@@ -532,7 +531,6 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 >
                   <Plus
                     className="transition-transform duration-200"
-                    strokeWidth={2.25}
                     aria-hidden
                     style={{ transform: createOpen ? "rotate(45deg)" : undefined }}
                   />

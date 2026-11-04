@@ -214,7 +214,7 @@ const DesktopSidebarRail = () => {
           onClick={() => setCreateOpen(true)}
           className="w-full"
         >
-          <Plus className="h-5 w-5" strokeWidth={2.5} aria-hidden />
+          <Plus className="h-5 w-5" aria-hidden />
           {tr("nav.create")}
         </Button>
       </div>
@@ -248,7 +248,6 @@ const DesktopSidebarRail = () => {
                 <span className="relative inline-flex">
                   <Icon
                     className="h-5 w-5"
-                    strokeWidth={active ? 2.3 : 1.8}
                     fill={active ? "hsl(var(--bark) / 0.16)" : "none"}
                   />
                   {count > 0 && (
@@ -326,7 +325,7 @@ const AdminNavGroup = () => {
         }}
       >
         <span className="relative inline-flex">
-          <ShieldAlert className="h-5 w-5" strokeWidth={adminActive ? 2.3 : 1.8} />
+          <ShieldAlert className="h-5 w-5" />
           {adminTotal > 0 && (
             <span
               data-admin-total-badge={adminTotal}
@@ -342,7 +341,6 @@ const AdminNavGroup = () => {
         {adminTotal > 0 && <span className="sr-only">{`${adminTotal} waiting`}</span>}
         <ChevronDown
           className={`h-4 w-4 shrink-0 transition-transform duration-200 ${adminOpen ? "rotate-180" : ""}`}
-          strokeWidth={2.25}
           aria-hidden
         />
       </button>
@@ -383,7 +381,7 @@ const AdminNavGroup = () => {
                           fontWeight: on ? 700 : 500,
                         }}
                       >
-                        <ItemIcon className="h-3.5 w-3.5 shrink-0" strokeWidth={on ? 2.3 : 1.8} />
+                        <ItemIcon className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate">{label}</span>
                         {(() => {
                           const n = adminRowBadge(id);

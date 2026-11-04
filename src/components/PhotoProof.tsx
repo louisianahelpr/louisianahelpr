@@ -354,7 +354,7 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
                       boxShadow: "var(--elev-sienna-glow)",
                     }}
                   >
-                    <X className="w-3 h-3" strokeWidth={2.5} />
+                    <X className="w-3 h-3" />
                   </button>
                 </div>
               ))}

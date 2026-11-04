@@ -12,7 +12,7 @@ export function ProReturnBanner({ result }: { result: "success" | "cancel" | nul
       style={{ background: "hsl(var(--bark) / 0.06)", border: "1px solid hsl(var(--bark) / 0.16)" }}
       role="status"
     >
-      <Crown className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
+      <Crown className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} />
       <p className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
         {result === "success"
           ? "Membership upgrade confirmed — your new perks are live."

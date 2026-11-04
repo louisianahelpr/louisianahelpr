@@ -74,7 +74,7 @@ export function BulkDismissibleWrapper({
             }}
             aria-hidden="true"
           >
-            {selected && <Check className="w-3.5 h-3.5" style={{ color: "hsl(var(--parchment))" }} strokeWidth={3} />}
+            {selected && <Check className="w-3.5 h-3.5" style={{ color: "hsl(var(--parchment))" }} />}
           </span>
         </button>
       )}

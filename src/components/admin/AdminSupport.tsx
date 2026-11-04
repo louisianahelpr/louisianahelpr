@@ -455,7 +455,7 @@ const AdminSupport = () => {
                               letterSpacing: "0.06em",
                             }}
                           >
-                            <Crown className="w-3 h-3" strokeWidth={2.25} aria-hidden="true" />
+                            <Crown className="w-3 h-3" aria-hidden="true" />
                             {TIER_PERKS[ticket.support_tier].name} · Priority
                           </span>
                         )}

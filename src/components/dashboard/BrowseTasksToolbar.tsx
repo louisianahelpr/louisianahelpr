@@ -303,7 +303,7 @@ export function BrowseTasksToolbar({
                         right above this one already uses Bookmark for a saved
                         JOB, so this row (a saved SEARCH query) needs its own glyph
                         or the two read as the same feature. */}
-                    <SearchCheck className="w-3.5 h-3.5 shrink-0 text-primary" strokeWidth={2.25} aria-hidden />
+                    <SearchCheck className="w-3.5 h-3.5 shrink-0 text-primary" aria-hidden />
                     <span className="min-w-0 flex-1 text-ds-12 font-semibold text-foreground">
                       Saved searches
                     </span>

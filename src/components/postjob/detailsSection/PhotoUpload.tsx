@@ -128,7 +128,7 @@ export function PhotoUpload({
                       boxShadow: "var(--elev-sienna-glow)",
                     }}
                   >
-                    <X className="w-3 h-3" strokeWidth={2.5} />
+                    <X className="w-3 h-3" />
                   </span>
                 </button>
               </div>
@@ -152,7 +152,6 @@ export function PhotoUpload({
               <Plus
                 className="w-7 h-7"
                 style={{ color: "hsl(var(--bark))" }}
-                strokeWidth={2}
               />
               <input
                 type="file"

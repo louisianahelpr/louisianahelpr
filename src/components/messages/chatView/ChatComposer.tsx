@@ -181,7 +181,7 @@ export function ChatComposer({
             border: "0.5px solid hsl(var(--olivewood) / 0.18)",
           }}
         >
-          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} strokeWidth={2} aria-hidden="true" />
+          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden="true" />
           <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
             {DELETED_ACCOUNT_NOTICE}
           </p>
@@ -217,7 +217,7 @@ export function ChatComposer({
             border: "0.5px solid hsl(var(--olivewood) / 0.18)",
           }}
         >
-          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} strokeWidth={2} aria-hidden="true" />
+          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden="true" />
           <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
             {(expiredCopyFor(activeConvo) ?? threadClosedCopy(activeConvo.jobStatus)).notice}
           </p>
@@ -264,7 +264,7 @@ export function ChatComposer({
             border: "0.5px solid hsl(var(--olivewood) / 0.18)",
           }}
         >
-          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} strokeWidth={2} aria-hidden="true" />
+          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden="true" />
           <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
             {offJobNotice(offJobState)}
           </p>
@@ -290,7 +290,7 @@ export function ChatComposer({
             border: "0.5px solid hsl(var(--amber-tint) / 0.30)",
           }}
         >
-          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood))" }} strokeWidth={2} aria-hidden="true" />
+          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood))" }} aria-hidden="true" />
           <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
             Your application's in. The person who posted it will reach out here if they're interested — you'll be able to reply as soon as they do.
           </p>
@@ -319,7 +319,7 @@ export function ChatComposer({
             border: "0.5px solid hsl(var(--olivewood) / 0.18)",
           }}
         >
-          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} strokeWidth={2} aria-hidden="true" />
+          <Lock className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden="true" />
           <p className="font-sans text-ds-13 leading-relaxed" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
             {recipientRestrictedNotice(activeConvo.viewerIsPoster === true)}
           </p>
@@ -378,7 +378,7 @@ export function ChatComposer({
             className="shrink-0 -mr-1 -mt-1 ctl-exit"
             style={{ color: "hsl(var(--olivewood))" }}
           >
-            <X className="w-4 h-4" strokeWidth={2} />
+            <X className="w-4 h-4" />
           </Button>
         </div>
       )}

@@ -423,7 +423,6 @@ const PaymentSuccess = () => {
             <Loader2
               className="w-11 h-11 animate-spin"
               style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-              strokeWidth={1.75}
               aria-hidden="true"
             />
           ) : (
@@ -432,7 +431,6 @@ const PaymentSuccess = () => {
             <AlertTriangle
               className="w-11 h-11"
               style={{ color: "hsl(var(--bark))" }}
-              strokeWidth={1.75}
               aria-hidden="true"
             />
           )}

@@ -50,7 +50,7 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
       <div className="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">
         <div className="flex items-center gap-2 min-w-0">
           <div className={cn("w-8 h-8 sm:w-9 sm:h-9 shrink-0 rounded-ds-sm flex items-center justify-center", accentClasses)}>
-            <Icon className="w-4 h-4 sm:w-[1.125rem] sm:h-[1.125rem]" strokeWidth={2.25} />
+            <Icon className="w-4 h-4 sm:w-[1.125rem] sm:h-[1.125rem]" />
           </div>
           <p className="min-w-0 text-ds-12 sm:text-ds-13 font-medium text-muted-foreground leading-tight">{label}</p>
         </div>

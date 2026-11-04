@@ -40,7 +40,7 @@ export function PostJobStepRail({ screen, onPick, canPick }: { screen: PostJobSc
                 }`}
                 aria-hidden
               >
-                {done ? <Check className="h-3.5 w-3.5" strokeWidth={2.5} /> : n}
+                {done ? <Check className="h-3.5 w-3.5" /> : n}
               </span>
               <span className={`text-ds-15 ${current ? "font-semibold text-foreground" : "text-muted-foreground"}`}>{label}</span>
             </>

@@ -123,7 +123,6 @@ export function SystemEventRow({
           <Icon
             aria-hidden="true"
             className="w-3 h-3 shrink-0"
-            strokeWidth={1.75}
             style={{ color: money ? "hsl(var(--sienna-ink))" : "hsl(var(--bark))" }}
           />
           {label}

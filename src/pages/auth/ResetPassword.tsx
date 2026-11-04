@@ -318,7 +318,7 @@ const ResetPassword = () => {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
                 {passwordValid && (
-                  <Check className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                  <Check className="absolute right-10 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" aria-hidden />
                 )}
               </div>
               {/* The one shared strength meter (also on Sign up step 1). */}
@@ -345,7 +345,7 @@ const ResetPassword = () => {
                   className={`${confirmValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)]`}
                 />
                 {confirmValid && (
-                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" aria-hidden />
                 )}
               </div>
               {/* Live match indicator — positive feedback when they
@@ -359,14 +359,14 @@ const ResetPassword = () => {
                     className="inline-flex items-center gap-1 text-ds-11"
                     style={{ color: "hsl(var(--primary))" }}
                   >
-                    <Check className="w-3 h-3" strokeWidth={2.5} aria-hidden /> Passwords match
+                    <Check className="w-3 h-3" aria-hidden /> Passwords match
                   </p>
                 ) : (
                   <p
                     className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]"
                     role="alert"
                   >
-                    <X className="w-3 h-3" strokeWidth={2.5} aria-hidden /> Passwords don't match
+                    <X className="w-3 h-3" aria-hidden /> Passwords don't match
                   </p>
                 )
               )}
@@ -381,7 +381,7 @@ const ResetPassword = () => {
                 role="alert"
                 className="inline-flex items-start gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]"
               >
-                <X className="w-3.5 h-3.5 shrink-0 mt-px" strokeWidth={2.5} aria-hidden />
+                <X className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden />
                 {submitError}
               </p>
             )}

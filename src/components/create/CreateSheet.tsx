@@ -119,7 +119,7 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
                 className={`px-4 py-3 flex flex-col gap-2.5 ${i === visible.length - 1 ? "" : "border-b border-border/70"}`}
               >
                 <div className="flex items-center gap-2.5 min-h-6">
-                  <Icon className="w-5 h-5 shrink-0" strokeWidth={1.75} aria-hidden style={{ color: on ? "hsl(var(--bark))" : "hsl(var(--muted-foreground))" }} />
+                  <Icon className="w-5 h-5 shrink-0" aria-hidden style={{ color: on ? "hsl(var(--bark))" : "hsl(var(--muted-foreground))" }} />
                   <span className={`flex-1 min-w-0 text-ds-16 font-bold truncate ${on ? "text-foreground" : "text-muted-foreground"}`}>{s.label}</span>
                   {on && isPreview(s) && <PreviewPill data-create-preview={s.key} />}
                   {!on && (

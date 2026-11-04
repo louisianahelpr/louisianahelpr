@@ -142,7 +142,7 @@ export function ChatTimeline({
               border: "1px solid hsl(var(--destructive) / 0.2)",
             }}
           >
-            <AlertTriangle className="w-6 h-6" style={{ color: "hsl(var(--destructive-ink))" }} strokeWidth={1.75} />
+            <AlertTriangle className="w-6 h-6" style={{ color: "hsl(var(--destructive-ink))" }} />
           </div>
           <div className="space-y-1">
             <p
@@ -178,7 +178,7 @@ export function ChatTimeline({
                 "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
             }}
           >
-            <MessageSquare className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+            <MessageSquare className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} />
           </div>
           <div className="space-y-1">
             <p

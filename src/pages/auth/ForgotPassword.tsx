@@ -166,7 +166,7 @@ const ForgotPassword = () => {
             className="absolute top-3 right-3 z-10 w-11 h-11 rounded-full flex items-center justify-center transition-colors active:scale-[0.94] hover:bg-[hsl(var(--olivewood)/0.08)]"
             style={{ color: "hsl(var(--olivewood))" }}
           >
-            <X className="w-4 h-4" strokeWidth={2.25} />
+            <X className="w-4 h-4" />
           </Link>
         )}
         <AuthCardHead
@@ -229,7 +229,6 @@ const ForgotPassword = () => {
                   <Mail
                     className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
                     style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                    strokeWidth={1.75}
                   />
                   <Input
                     ref={emailRef}
@@ -253,7 +252,6 @@ const ForgotPassword = () => {
                   {emailValid && (
                     <Check
                       className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none"
-                      strokeWidth={2.5}
                       aria-hidden
                     />
                   )}
@@ -266,7 +264,7 @@ const ForgotPassword = () => {
                     error at all. */}
                 {showEmailError && (
                   <p id="fp-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
-                    <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
+                    <X className="w-3.5 h-3.5" aria-hidden />
                     {/* Two messages, not one. An untouched field and a
                         malformed address are different problems, and "Enter a
                         valid email address" on an EMPTY field reads as an

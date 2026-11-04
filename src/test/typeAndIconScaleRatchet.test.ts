@@ -39,6 +39,15 @@
  * 2.5/2 included), so the count is 0. Left in RAW_SVG_STROKE_FILES: hand-drawn <svg>/<path> the provider cannot reach
  * (the error-boundary icons, ChunkRecoveringState, SuccessMoment, Footer's Facebook glyph, previewParts, the
  * empty-state illustrations, KpiSparkline, QuietHoursClock); bringing the icon-like ones to 1.75 non-scaling is next.
+ * Same day (Builder 1): the icon-like drawings (DRAWN_ICON_FILES: the error-boundary icons, ChunkRecoveringState,
+ * SuccessMoment's check, Footer's Facebook + Instagram glyphs, previewParts' PreviewGlyph) now draw strokeWidth=
+ * {ICON_STROKE_PX} with vectorEffect="non-scaling-stroke" on every shape (vector-effect is not inherited, so it goes
+ * on each <path>/<rect>/<circle>), i.e. the same 1.75 CSS px lines as a lucide icon. RAW_SVG_STROKE_FILES keeps only
+ * the true drawings (the empty-state illustrations, KpiSparkline's chart line, QuietHoursClock's dial).
+ * @mutate src/components/feedback/SuccessMoment.tsx |             strokeWidth={ICON_STROKE_PX}\n            vectorEffect="non-scaling-stroke" |             strokeWidth={2.5}
+ * @mutate src/components/RouteErrorBoundary.tsx | <path d="M8 16H3v5" vectorEffect="non-scaling-stroke" /> | <path d="M8 16H3v5" />
+ * @mutate src/components/Footer.tsx |     strokeWidth={ICON_STROKE_PX}\n    aria-hidden="true" |     strokeWidth={1.5}\n    aria-hidden="true"
+ * @mutate src/pages/admin/preview/previewParts.tsx | <path d={d} vectorEffect="non-scaling-stroke" /> | <path d={d} />
  * @mutate src/lib/iconWeight.ts | export const ICON_STROKE_PX = 1.75; | export const ICON_STROKE_PX = 2;
  * @mutate src/App.tsx | <LucideProvider strokeWidth={ICON_STROKE_PX} nonScalingStroke> | <LucideProvider strokeWidth={ICON_STROKE_PX}>
  * @mutate src/components/profile/ProfileEditForm.tsx | <Check className="w-3 h-3" /> Looks good | <Check className="w-3 h-3" strokeWidth={3} /> Looks good
@@ -47,7 +56,6 @@
  * @mutate src/components/landing/LiveJobsSection.tsx | leading-[1.05] text-ds-28" | leading-[1.05] text-ds-28 sm:text-[44px]"
  * @mutate src/components/LanguageToggle.tsx | <Languages className="h-4 w-4 shrink-0" aria-hidden | <Languages className="h-4 w-4 shrink-0" strokeWidth={1.8} aria-hidden
  * @mutate src/components/ui/EmptyState.tsx |             style={{ color: "hsl(var(--bark))" }}\n          />\n        </div>\n      )} |             style={{ color: "hsl(var(--bark))" }}\n            strokeWidth={1.4}\n          />\n        </div>\n      )}
- * @mutate src/components/feedback/SuccessMoment.tsx |             strokeWidth={2.5} |             strokeWidth={2.6}
  * @mutate src/lib/chartText.ts | export const CHART_TOOLTIP_PX = 13; | export const CHART_TOOLTIP_PX = 12;
  * @mutate src/components/analytics/AnalyticsCharts.tsx |   fontSize: CHART_TOOLTIP_PX,\n} as const; |   fontSize: "0.78rem",\n} as const;
  * @mutate src/index.css | .job-card-title { font-size: 1rem !important; } | .job-card-title { font-size: 1.0625rem !important; }
@@ -68,7 +76,7 @@ const files = execFileSync("git", ["ls-files", "src/*.ts", "src/*.tsx", "src/**/
 const code = files.map((f) => blankComments(readFileSync(f, "utf8"))).join("\n");
 
 /** Exact baselines. Lower them when a weight or size goes away; never raise them. */
-const STROKE_WEIGHTS = ["1.5", "1.75", "2", "2.5"]; // 2026-11-04 (Builder 1): only the RAW_SVG_STROKE_FILES drawings are left
+const STROKE_WEIGHTS = ["1.5"]; // 2026-11-04 (Builder 1): only the RAW_SVG_STROKE_FILES drawings write a literal (the icon-like drawings use ICON_STROKE_PX)
 /** The five sizes (px). Exact. */
 const TEXT_SCALE = [11, 13, 16, 20, 28];
 /** Off-scale literals still to move onto the scale (exact; lower when one goes). */
@@ -77,20 +85,23 @@ const INLINE_FONT_SIZE_LITERALS = 3;
 const ICON_STROKE_WIDTH_SITES = 0;
 /** Files whose strokeWidth is on a raw <svg>/<path>, not a lucide icon (the provider cannot reach them). Sweep fills it. */
 const RAW_SVG_STROKE_FILES: string[] = [
-  "src/components/ChunkRecoveringState.tsx",
-  "src/components/RouteErrorBoundary.tsx",
-  "src/components/ErrorBoundary.tsx",
-  "src/components/Footer.tsx",
   "src/components/admin/KpiSparkline.tsx",
   "src/components/empty-state/illustrations/EmptyInbox.tsx",
   "src/components/empty-state/illustrations/EmptyNotifications.tsx",
-  "src/components/feedback/SuccessMoment.tsx",
   "src/components/empty-state/illustrations/EmptyJobs.tsx",
   "src/components/empty-state/illustrations/EmptyReviews.tsx",
   "src/components/empty-state/illustrations/EmptySavedHelprs.tsx",
   "src/components/empty-state/illustrations/EmptyPosts.tsx",
-  "src/pages/admin/preview/previewParts.tsx",
   "src/components/profile/QuietHoursClock.tsx",
+];
+/** Hand-drawn icon-like <svg>s (lucide-style marks inlined to keep lucide off the entry): one weight, non-scaling. Exact. */
+const DRAWN_ICON_FILES: string[] = [
+  "src/components/ChunkRecoveringState.tsx",
+  "src/components/RouteErrorBoundary.tsx",
+  "src/components/ErrorBoundary.tsx",
+  "src/components/Footer.tsx",
+  "src/components/feedback/SuccessMoment.tsx",
+  "src/pages/admin/preview/previewParts.tsx",
 ];
 const CSS_OFF_SCALE_FONT_SIZES = 5;
 
@@ -155,9 +166,26 @@ describe("Q2027: icon weights and text sizes only ever shrink", () => {
     for (const f of files) {
       // App.tsx holds the one weight itself (LucideProvider strokeWidth={ICON_STROKE_PX}), checked above.
       if (!f.endsWith(".tsx") || f.endsWith("src/App.tsx") || RAW_SVG_STROKE_FILES.some((r) => f.endsWith(r))) continue;
-      n += (blankComments(readFileSync(f, "utf8")).match(/\bstrokeWidth=/g) ?? []).length;
+      // A drawn icon's strokeWidth={ICON_STROKE_PX} IS the one weight (checked below), not an override.
+      n += (blankComments(readFileSync(f, "utf8")).match(/\bstrokeWidth=(?!\{ICON_STROKE_PX\})/g) ?? []).length;
     }
     expect(n, `strokeWidth= sites: ${n}. Lower ICON_STROKE_WIDTH_SITES when one goes; never add one`).toBe(ICON_STROKE_WIDTH_SITES);
+  });
+
+  it("hand-drawn icon-like svgs draw the one weight: strokeWidth={ICON_STROKE_PX} and non-scaling-stroke on every shape", () => {
+    const bad: string[] = [];
+    let shapes = 0;
+    for (const f of DRAWN_ICON_FILES) {
+      const src = blankComments(readFileSync(resolve(ROOT, f), "utf8"));
+      expect(src, `${f} imports the one weight`).toMatch(/import \{ ICON_STROKE_PX \} from "@\/lib\/iconWeight";/);
+      for (const m of src.matchAll(/\bstrokeWidth=(\{[^}]*\}|"[^"]*")/g)) if (m[1] !== "{ICON_STROKE_PX}") bad.push(`${f}: strokeWidth=${m[1]}`);
+      for (const m of src.matchAll(/<(?:motion\.)?(?:path|rect|circle|line|polyline|polygon|ellipse)\b[^>]*>/g)) {
+        shapes++;
+        if (!/vectorEffect="non-scaling-stroke"/.test(m[0])) bad.push(`${f}: ${m[0].slice(0, 60)}`);
+      }
+    }
+    expect(shapes, "shapes read (inventory floor)").toBeGreaterThan(20);
+    expect(bad).toEqual([]);
   });
 
   it("every text-size class the app uses resolves to exactly the five sizes (locked landing hero exempt)", () => {

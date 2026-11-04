@@ -28,6 +28,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useReducedMotion } from "@/lib/accessibility";
 import { SUCCESS_MOMENT_LIFETIME_MS } from "@/lib/successMoment";
+import { ICON_STROKE_PX } from "@/lib/iconWeight";
 
 /* How long the overlay stays up before it auto-fades: SUCCESS_MOMENT_LIFETIME_MS
    (src/lib/successMoment.ts), shared so a pop-up opened after it never lands
@@ -94,7 +95,8 @@ function SuccessCheck({ size = 88, reducedMotion }: SuccessCheckProps) {
           <motion.path
             d="M4 12.5L9.5 18L20 6.5"
             stroke="hsl(var(--parchment))"
-            strokeWidth={2.5}
+            strokeWidth={ICON_STROKE_PX}
+            vectorEffect="non-scaling-stroke"
             strokeLinecap="round"
             strokeLinejoin="round"
             initial={reducedMotion ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}

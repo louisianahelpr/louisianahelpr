@@ -6,20 +6,21 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { browseDestinationFor } from "@/lib/browseDestination";
 import { prefetchRoutesWhenIdle } from "@/lib/routePrefetch";
 import { APP_STORE_URL, APP_STORE_LISTING_LIVE } from "@/lib/appStore";
+import { ICON_STROKE_PX } from "@/lib/iconWeight";
 
 // Inline Facebook glyph — lucide-react v1.x removed brand icons including
 // `Facebook`. Inlining the standard "f" mark keeps the social link working
 // without pinning lucide back to 0.x.
-const Facebook = ({ className, strokeWidth, fill }: { className?: string; strokeWidth?: number; fill?: string }) => (
+const Facebook = ({ className, fill }: { className?: string; fill?: string }) => (
   <svg
     viewBox="0 0 24 24"
     className={className}
     fill={fill ?? "currentColor"}
     stroke="currentColor"
-    strokeWidth={strokeWidth ?? 1.5}
+    strokeWidth={ICON_STROKE_PX}
     aria-hidden="true"
   >
-    <path d="M14 13.5h2.5l1-4H14V7c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z" />
+    <path d="M14 13.5h2.5l1-4H14V7c0-1.03 0-2 2-2h1.5V2.14c-.326-.043-1.557-.14-2.857-.14C11.928 2 10 3.657 10 6.7v2.8H7v4h3V22h4v-8.5z" vectorEffect="non-scaling-stroke" />
   </svg>
 );
 
@@ -32,14 +33,14 @@ const Instagram = ({ className }: { className?: string }) => (
     className={className}
     fill="none"
     stroke="currentColor"
-    strokeWidth={1.75}
+    strokeWidth={ICON_STROKE_PX}
     strokeLinecap="round"
     strokeLinejoin="round"
     aria-hidden="true"
   >
-    <rect x="3" y="3" width="18" height="18" rx="5" />
-    <circle cx="12" cy="12" r="4" />
-    <circle cx="17.5" cy="6.5" r="1" fill="currentColor" />
+    <rect x="3" y="3" width="18" height="18" rx="5" vectorEffect="non-scaling-stroke" />
+    <circle cx="12" cy="12" r="4" vectorEffect="non-scaling-stroke" />
+    <circle cx="17.5" cy="6.5" r="1" fill="currentColor" vectorEffect="non-scaling-stroke" />
   </svg>
 );
 
@@ -289,7 +290,6 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
             >
               <Facebook
                 className="h-[18px] w-[18px] transition-transform duration-300 group-hover:scale-110"
-                strokeWidth={1.5}
                 fill="currentColor"
               />
             </a>

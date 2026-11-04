@@ -11,23 +11,24 @@ import {
   isRecoveryReloadInFlight,
 } from "@/lib/chunkReload";
 import { ChunkRecoveringState } from "@/components/ChunkRecoveringState";
+import { ICON_STROKE_PX } from "@/lib/iconWeight";
 
 // Inline SVGs instead of lucide-react so this class component (which must be
 // statically imported) doesn't pull the entire lucide chunk onto the critical
 // initial load path. Paths are the canonical lucide v1.x TriangleAlert and
 // RefreshCw shapes.
-interface IconProps { className?: string; strokeWidth?: number }
-const AlertTriangle = ({ className, strokeWidth = 2 }: IconProps) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
-    <path d="M12 9v4" /><path d="M12 17h.01" />
+interface IconProps { className?: string }
+const AlertTriangle = ({ className }: IconProps) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" vectorEffect="non-scaling-stroke" />
+    <path d="M12 9v4" vectorEffect="non-scaling-stroke" /><path d="M12 17h.01" vectorEffect="non-scaling-stroke" />
   </svg>
 );
-const RefreshCw = ({ className, strokeWidth = 2 }: IconProps) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-    <path d="M21 3v5h-5" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-    <path d="M8 16H3v5" />
+const RefreshCw = ({ className }: IconProps) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" vectorEffect="non-scaling-stroke" />
+    <path d="M21 3v5h-5" vectorEffect="non-scaling-stroke" /><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" vectorEffect="non-scaling-stroke" />
+    <path d="M8 16H3v5" vectorEffect="non-scaling-stroke" />
   </svg>
 );
 
@@ -122,7 +123,7 @@ class ErrorBoundary extends React.Component<Props, State> {
               boxShadow: "inset 0 1px 1px 0 rgba(255,255,255,0.55), 0 6px 18px -6px hsl(var(--olivewood) / 0.20)",
             }}
           >
-            <AlertTriangle className="h-6 w-6" strokeWidth={1.75} />
+            <AlertTriangle className="h-6 w-6" />
           </div>
           <div className="space-y-1.5">
             <h3

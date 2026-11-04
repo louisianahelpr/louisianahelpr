@@ -5,12 +5,17 @@
  * (jobs done, categories, reviews) and their public Wanted posts. Everything comes from ONE read,
  * public_profile_by_handle (20261101041833), which never returns contacts, addresses, coordinates or test data.
  *
+ * "Hire me" (owner 2026-11-04) opens Post a job with a direct offer to this member, free for everyone; never on your
+ * own page (src/lib/hireMe.ts, rpc_hire_target_by_handle).
+ *
  * Buying, applying and replying ask a guest to sign up and bring them back (signupUrlFor). The link card (og:*)
  * comes from api/share.ts before JS runs.
  */
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
-import { Briefcase, Share2, ShoppingBag, Star, UserX, Search } from "lucide-react";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+import { Briefcase, Handshake, Share2, ShoppingBag, Star, UserX, Search } from "lucide-react";
 import AppPage from "@/components/AppPage";
 import { PUBLIC_LINK_COLUMN } from "@/lib/pageColumn";
 import { Button } from "@/components/ui/button";
@@ -32,6 +37,7 @@ import {
   shareMyProfile,
   type PublicProfile,
 } from "@/lib/profileLink/api";
+import { HIRE_PARAM, hireGuestHref, hireOfferPath, hireTargetByHandle } from "@/lib/hireMe";
 
 const ROBOTS = "noindex, follow";
 
@@ -78,6 +84,49 @@ function Section({ id, title, icon: Icon, children }: { id: string; title: strin
   );
 }
 
+/**
+ * "Hire me" (owner 2026-11-04): Post a job with a direct offer to this Helpr, free for everyone. A guest signs up (or
+ * logs in) and comes back here with ?hire=1, which continues the tap once; never on your own page. See src/lib/hireMe.ts.
+ */
+function HireMeButton({ handle, signedIn }: { handle: string; signedIn: boolean }) {
+  const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
+  const [busy, setBusy] = useState(false);
+  const resumed = useRef(false);
+  const hire = async () => {
+    setBusy(true);
+    const r = await hireTargetByHandle(handle);
+    setBusy(false);
+    if (r.id) navigate(hireOfferPath(r.id));
+    else toast.error(r.error);
+  };
+  const resume = signedIn && params.get(HIRE_PARAM) === "1";
+  useEffect(() => {
+    if (!resume || resumed.current) return;
+    resumed.current = true;
+    const next = new URLSearchParams(params);
+    next.delete(HIRE_PARAM);
+    setParams(next, { replace: true });
+    void hire();
+    // Runs once per arrival with ?hire=1; hire and params are read at that moment on purpose.
+  }, [resume]);
+  const label = (<><Handshake className="mr-2 h-4 w-4" aria-hidden />Hire me</>);
+  return (
+    <div className="mt-4" data-testid="pp-hire">
+      {signedIn ? (
+        <Button type="button" className="btn-grad-primary w-full rounded-full" disabled={busy} onClick={() => void hire()}>
+          {label}
+        </Button>
+      ) : (
+        <Button asChild className="btn-grad-primary w-full rounded-full">
+          <Link to={hireGuestHref(handle)}>{label}</Link>
+        </Button>
+      )}
+      <p className="mt-2 text-ds-13 text-muted-foreground">Offer a job directly. Your payment is held safely until the work is done.</p>
+    </div>
+  );
+}
+
 function ProfileBody({ p, signedIn, isMe }: { p: PublicProfile; signedIn: boolean; isMe: boolean }) {
   const first = p.name.split(/\s+/)[0] || "this member";
   const trust = profileTrustLine(p);
@@ -100,7 +149,8 @@ function ProfileBody({ p, signedIn, isMe }: { p: PublicProfile; signedIn: boolea
         <p className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-foreground" data-testid="pp-trust">
           {trust ? (<><Star className="h-3.5 w-3.5" aria-hidden />{trust}</>) : "New on Helpr"}
         </p>
-        <div className="mt-4">
+        {!isMe && <HireMeButton handle={p.handle} signedIn={signedIn} />}
+        <div className={isMe ? "mt-4" : "mt-2"}>
           <Button type="button" variant={isMe ? "default" : "outline"} className={isMe ? "btn-grad-primary w-full rounded-full" : "w-full rounded-full"}
             onClick={() => void shareMyProfile(p.handle, isMe ? null : p.name)}>
             <Share2 className="mr-2 h-4 w-4" aria-hidden />

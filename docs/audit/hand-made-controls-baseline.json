@@ -503,9 +503,6 @@
       "button": 1
     },
     "src/components/messages/ChatHeader.tsx": {
-      "button": 2
-    },
-    "src/components/messages/ChatView.tsx": {
       "button": 1
     },
     "src/components/messages/ConversationList.tsx": {
@@ -519,7 +516,7 @@
       "button": 1
     },
     "src/components/messages/HiddenUnreadBar.tsx": {
-      "button": 2
+      "button": 1
     },
     "src/components/messages/InboxMenus.tsx": {
       "button": 2
@@ -534,15 +531,6 @@
       "button": 2
     },
     "src/components/messages/RestoreConversationButton.tsx": {
-      "button": 1
-    },
-    "src/components/messages/chatView/ChatComposer.tsx": {
-      "button": 1
-    },
-    "src/components/messages/chatView/ChatTimeline.tsx": {
-      "button": 1
-    },
-    "src/components/messages/chatView/DealCard.tsx": {
       "button": 1
     },
     "src/components/messages/chatView/JumpToBottomButton.tsx": {

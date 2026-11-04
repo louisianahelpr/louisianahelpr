@@ -263,12 +263,15 @@ export function ChatHeader({
       {!otherDeleted && !team && (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button
-            className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-sm text-muted-foreground hover:bg-secondary transition-colors shrink-0 self-center"
+          <Button
+            type="button"
+            variant="ghost"
+            size="iconCompact"
+            className="text-muted-foreground shrink-0 self-center"
             aria-label={t("chat.options")}
           >
             <MoreVertical className="w-5 h-5" />
-          </button>
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {/* Mute / unmute — top item so the most-frequent action

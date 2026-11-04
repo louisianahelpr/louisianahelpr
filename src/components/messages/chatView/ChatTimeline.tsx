@@ -111,22 +111,16 @@ export function ChatTimeline({
     <div aria-live="polite" aria-relevant="additions" className="space-y-3">
       {hasMoreMessages && (
         <div className="text-center py-2">
-          <button
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
             onClick={loadOlderMessages}
             disabled={loadingMore}
-            className="btn-press inline-flex items-center gap-1.5 mx-auto rounded-ds-md px-4 py-1.5 text-ds-11 font-medium transition-colors disabled:opacity-50"
-            style={{
-              background: "hsl(var(--parchment) / 0.8)",
-              color: "hsl(var(--bark))",
-              border: "1px solid hsl(var(--bark) / 0.22)",
-              boxShadow:
-                "inset 0 1px 1px 0 rgba(255,255,255,0.55), " +
-                "0 1px 2px hsl(var(--bark) / 0.10)",
-            }}
           >
             {loadingMore && <Loader2 className="w-3 h-3 animate-spin" />}
             {loadingMore ? "Loading…" : "Load earlier Messages"}
-          </button>
+          </Button>
         </div>
       )}
       {/* Fetching a newly-opened conversation's messages — shape-matched

@@ -1,6 +1,6 @@
 import { ApplicantIdNote } from "./applicantsPanel/ApplicantIdNote";
 import { ApplicantSuggestedTime } from "./applicantsPanel/ApplicantSuggestedTime";
-import { Fragment, useState, useCallback, useEffect } from "react";
+import { Fragment, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { formatName } from "@/lib/utils";
 import { ApplicantAvatarLink } from "./applicantsPanel/ApplicantAvatarLink";
@@ -17,10 +17,8 @@ import CredentialBadge from "@/components/CredentialBadge";
 import { hapticLight } from "@/lib/haptics";
 import { tierDisplayName } from "@/lib/subscriptionTiers";
 import { usePaidTierBadge } from "@/hooks/usePaidTierBadge";
-import { type Job, type EnrichedApplication } from "../../../components/job-card/activityConstants";
-import { type JobAnalytics } from "./useJobAnalytics";
+import { type EnrichedApplication } from "../../../components/job-card/activityConstants";
 import { useApplicantComparison } from "./useApplicantComparison";
-import { type DistanceBand } from "./useApplicantSignals";
 import { DeclineApplicantSheet } from "./DeclineApplicantSheet";
 import { ApplicantsLoadingState, ApplicantsErrorState, ApplicantsEmptyState } from "./applicantsPanel/ApplicantsStates";
 import { ApplicantSortControls } from "./applicantsPanel/ApplicantSortControls";
@@ -33,39 +31,9 @@ import { ApplicantPrivateNote } from "./applicantsPanel/ApplicantPrivateNote";
 import { ApplicantsDesktopTable, useApplicantsTable } from "./applicantsPanel/ApplicantsDesktopTable";
 import { formatJobDate } from "@/lib/dateUtils";
 import { ApplicantsNextStep } from "./applicantsPanel/ApplicantsNextStep";
+import type { ApplicantsPanelProps } from "./applicantsPanel/applicantsPanelProps";
+import { useEscapeClosesApplicants } from "./applicantsPanel/useEscapeClosesApplicants";
 
-interface ApplicantsPanelProps {
-  /** No longer read here — the bid-mode sort default was its only consumer,
-      and bidding is gone. Kept on the interface so PostedJobsTab still
-      type-checks until it stops passing it. */
-  jobs?: Job[];
-  selectedJob: Job;
-  setSelectedJob: (job: Job | null) => void;
-  applications: EnrichedApplication[];
-  applicationsLoading: boolean;
-  applicationsError: boolean;
-  onLoadApplications: (job: Job) => void;
-  onAcceptApplication: (app: EnrichedApplication) => void;
-  onDeclineApplication: (app: EnrichedApplication, note: string, jobTitle: string) => void;
-  neighborCountMap: Map<string, number>;
-  completedCountsMap: Map<string, number>;
-  repeatHireMap: Map<string, number>;
-  onTimeMap: Map<string, number>;
-  distanceBandMap: Map<string, DistanceBand>;
-  /** Reach for the selected job. Undefined until the view-count query
-      resolves, or when the job has never been viewed — the readout is
-      simply omitted in both cases rather than rendering a zero. */
-  jobAnalytics?: JobAnalytics;
-  /** Opens JobBoostDialog / EditJobDialog for the selected job. Both are
-      already state on the Activity page (useActivityActions' `setBoostJobId`
-      and `setEditJob`); they are threaded down here so the "nobody has
-      applied" empty state can offer the two levers that actually change the
-      outcome, instead of naming them in prose and leaving the poster to go
-      find the controls on the card behind this overlay. Optional: the empty
-      state omits a lever it cannot open rather than rendering a dead one. */
-  onBoost?: (jobId: string) => void;
-  onEdit?: (job: Job) => void;
-}
 /** Trust signals include a raw rating string like "4.9★" (applicantScoring.ts),
     which a screen reader reads literally as "black star" — meaningless next to
     the number. The glyph is decorative (the number already carries the
@@ -157,29 +125,7 @@ export function ApplicantsPanel({
     distanceBandMap,
   });
 
-  /**
-   * Escape closes the panel, the same as the back chevron.
-   *
-   * A full-screen overlay dismissible only by hitting one specific control is
-   * a keyboard dead end, and every other dismissible surface in the app (every
-   * Dialog, every Sheet) takes Escape — so this one reads as broken without it.
-   *
-   * A window listener rather than `onKeyDown` on the container: this panel is
-   * a push, not a modal, so it never takes focus on open and a container
-   * handler would simply never fire. The guard is the price of that — an open
-   * Radix overlay (the Boost and Edit dialogs the empty state opens, the
-   * decline sheet) owns Escape while it is up, and closing the panel out from
-   * under it would dismiss two things with one key.
-   */
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || e.defaultPrevented) return;
-      if (document.querySelector('[data-state="open"][role="dialog"], [data-state="open"][role="alertdialog"]')) return;
-      setSelectedJob(null);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [setSelectedJob]);
+  useEscapeClosesApplicants(setSelectedJob);
 
   // PORTALLED TO <body> ON PURPOSE — do not "simplify" this back to a plain
   // return. The panel is a full-screen overlay, but a `position: fixed`

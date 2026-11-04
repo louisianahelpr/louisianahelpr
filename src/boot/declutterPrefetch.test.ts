@@ -258,4 +258,25 @@ describe("the first cards' photos start from the entry's answer (B96, Q2705/Q270
       links.forEach((l) => l.remove());
     }
   });
+
+  it("a link that opens on another tab or sub-view preloads none", async () => {
+    const body = { ...ANSWER, photos: [{ item_id: "a", storage_path: "u/a.jpg" }] };
+    for (const search of ["?tab=selling", "?tab=buying", "?view=deliver", "?view=mine"]) {
+      window.history.replaceState(null, "", `/declutter${search}`);
+      stubAnswer(body);
+      start();
+      await (window as unknown as Record<string, { answer: Promise<unknown> }>)[DECLUTTER_PREFETCH_KEY].answer;
+      await new Promise((r) => setTimeout(r, 0));
+      expect(document.head.querySelectorAll('link[rel="preload"][as="image"]').length, search).toBe(0);
+    }
+    window.history.replaceState(null, "", "/declutter?tab=browse");
+    stubAnswer(body);
+    start();
+    await (window as unknown as Record<string, { answer: Promise<unknown> }>)[DECLUTTER_PREFETCH_KEY].answer;
+    await new Promise((r) => setTimeout(r, 0));
+    const links = [...document.head.querySelectorAll('link[rel="preload"][as="image"]')];
+    window.history.replaceState(null, "", "/");
+    links.forEach((l) => l.remove());
+    expect(links.length, "?tab=browse").toBe(1);
+  });
 });

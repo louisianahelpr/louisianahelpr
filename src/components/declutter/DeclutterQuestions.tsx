@@ -20,6 +20,7 @@ import { answerQuestion, askQuestion, fetchMyQuestionIds, fetchQuestions, fetchS
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { useManagerLabels } from "@/lib/declutter/managerMode";
 import { DeclutterSuggestedReply } from "./DeclutterSuggestedReply";
+import { Textarea } from "@/components/ui/textarea";
 
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 
@@ -161,7 +162,7 @@ function AnswerSheet({ q, itemId, onClose }: { q: DeclutterQuestion | null; item
               />
             )}
             <label htmlFor="declutter-answer" className="block pt-2 text-ds-15 font-semibold">Your answer</label>
-            <textarea
+            <Textarea
               id="declutter-answer"
               className={field}
               rows={3}

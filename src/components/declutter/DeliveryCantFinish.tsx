@@ -26,6 +26,7 @@ import {
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { NextStep } from "@/components/ui/NextStep";
 import { invalidateTasks } from "./useTaskSteps";
+import { Textarea } from "@/components/ui/textarea";
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
@@ -171,7 +172,7 @@ export function HelprCantFinish({ taskId, userId }: { taskId: string; userId: st
           </fieldset>
           {picked && <p className="text-ds-13 text-muted-foreground" data-cant-finish-then="">{picked.then}{stage === "retrying" && picked.value !== "cant_finish" && !needsWords ? " This was your one more try, so it goes back to the seller and you're paid for the trip." : ""}</p>}
           <label htmlFor={`${id}-note`} className="block text-xs font-medium">{needsWords ? "What happened?" : "Anything to add? (optional)"}</label>
-          <textarea id={`${id}-note`} rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} className={input} />
+          <Textarea id={`${id}-note`} rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} className={input} />
         </div>
       </ConfirmSheet>
     </div>
@@ -215,7 +216,7 @@ export function BuyerCantFinishPanel({ taskId, view: v, who }: { taskId: string;
         <label htmlFor={`${id}-address`} className="block text-xs font-medium">The right address, if it changed</label>
         <AddressAutocomplete id={`${id}-address`} value={address} onChange={setAddress} onPick={(p) => setAddress([p.street, p.city, p.state, p.zipCode].filter(Boolean).join(", "))} className={input} ariaLabel="The right address" plainWithoutMapKit keepListInView />
         <label htmlFor={`${id}-note`} className="block text-xs font-medium">What the Helpr needs to know</label>
-        <textarea id={`${id}-note`} rows={2} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} className={input} />
+        <Textarea id={`${id}-note`} rows={2} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} className={input} />
         {failed && <p role="alert" className="text-sm text-destructive-ink">{failed}</p>}
         <button type="button" className={`${primary} disabled:opacity-50`} disabled={fix.isPending || (!note.trim() && !address.trim())} onClick={() => fix.mutate()}>Send it to {who}</button>
       </div>
@@ -243,7 +244,7 @@ export function BuyerCantFinishPanel({ taskId, view: v, who }: { taskId: string;
       {collecting && (
         <div className="space-y-2">
           <label htmlFor={`${id}-where`} className="block text-xs font-medium">Where and when can you meet?</label>
-          <textarea id={`${id}-where`} rows={2} maxLength={1000} value={where} onChange={(e) => setWhere(e.target.value)} className={input} />
+          <Textarea id={`${id}-where`} rows={2} maxLength={1000} value={where} onChange={(e) => setWhere(e.target.value)} className={input} />
           <p className="text-ds-13 text-muted-foreground">Once you tap "I got it" the seller is paid, {who} isn't, and you get back what you paid for the delivery.</p>
           <button type="button" className={`${primary} disabled:opacity-50`} disabled={choose.isPending || !where.trim()} onClick={() => choose.mutate({ choice: "collect", note: where.trim() })}>Tell {who}</button>
         </div>
@@ -283,7 +284,7 @@ export function SellerReturnPanel({ taskId, view: v, who }: { taskId: string; vi
       {notBack && (
         <div className="space-y-2">
           <label htmlFor={`${id}-note`} className="block text-xs font-medium">What happened?</label>
-          <textarea id={`${id}-note`} rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} className={input} />
+          <Textarea id={`${id}-note`} rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} className={input} />
           <button type="button" className={`${btn} disabled:opacity-50`} disabled={answer.isPending || !note.trim()} onClick={() => answer.mutate(false)}>Send to Louisiana Helpr</button>
         </div>
       )}

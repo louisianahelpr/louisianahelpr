@@ -13,6 +13,7 @@ import { PROBLEM_REASONS, type ProblemStage } from "./problemReasons";
 import { RadioCardList } from "@/components/ui/RadioCardList";
 import { DISPUTE_DETAILS_MIN } from "@/components/disputeReasons";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { Textarea } from "@/components/ui/textarea";
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
@@ -53,7 +54,7 @@ export function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange
       <RadioCardList label="What went wrong?" value={reason ?? ""} onChange={(r) => setReason(r as ProblemReason)}
         options={reasons.map(([r, words]) => ({ value: r, label: words }))} />
       <label htmlFor={`dcl-note-${orderId}`} className="block text-xs font-medium">Tell us what happened</label>
-      <textarea id={`dcl-note-${orderId}`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+      <Textarea id={`dcl-note-${orderId}`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
       {/* BUY-35: one letter isn't a report; the same floor as Jobs' dispute (and said, so Send isn't dark for no reason). */}
       {note.trim().length > 0 && note.trim().length < DISPUTE_DETAILS_MIN && (
         <p className="text-ds-12 text-muted-foreground" data-problem-note-short="">A few more words, please, so Louisiana Helpr can help.</p>

@@ -401,7 +401,7 @@ describe("Session Replay privacy (PROD path)", () => {
     // Set on the initial config so the sampling decision is in force before
     // the deferred integration starts capturing.
     expect(config.replaysSessionSampleRate).toBe(0);
-    expect(config.replaysOnErrorSampleRate).toBe(1.0);
+    expect(config.replaysOnErrorSampleRate).toBe(0.25);
   });
 
   it("a Replay registration that throws must not break the app", async () => {
@@ -576,7 +576,7 @@ describe("Session Replay in automated browsers (Q275)", () => {
   it("a person's browser in a PROD build registers Replay, recording only sessions that hit an error (Q746)", async () => {
     const config = await initProd(false);
     expect(config.replaysSessionSampleRate).toBe(0);
-    expect(config.replaysOnErrorSampleRate).toBe(1);
+    expect(config.replaysOnErrorSampleRate).toBe(0.25);
     const names = addIntegrationMock.mock.calls.map((c) => (c[0] as { name?: string })?.name);
     expect(names).toContain("replay");
     expect(setTagMock).toHaveBeenCalledWith("automated", "false");
@@ -694,7 +694,7 @@ describe("Session Replay on a prod build served locally (Q386)", () => {
     async (href) => {
       const config = await initProdAt(href);
       expect(config.replaysSessionSampleRate).toBe(0);
-      expect(config.replaysOnErrorSampleRate).toBe(1.0);
+      expect(config.replaysOnErrorSampleRate).toBe(0.25);
       expect(addIntegrationMock).toHaveBeenCalledOnce();
     },
   );

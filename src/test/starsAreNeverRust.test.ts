@@ -23,7 +23,7 @@ const ROOT = path.resolve(__dirname, "../..");
 const RUST = /\b(?:fill|text)-accent\b|--accent\b|--accent-ink|--burnt-sienna|--sienna-ink|--money\b/;
 const JOBS_OWNED = [
   "src/components/dashboard/CompactJobCard.tsx",
-  "src/components/dashboard/JobCard.tsx",
+  "src/components/dashboard/JobCardBadges.tsx",
   "src/pages/posts/postedJobs/ApplicantsPanel.tsx",
 ];
 

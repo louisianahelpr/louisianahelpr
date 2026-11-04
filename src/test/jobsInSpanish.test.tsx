@@ -3,8 +3,8 @@
  * is Spanish reads the Browse card's chips (Recommended, Urgent, Boosted, Today) and the job page's headings, states
  * and links in Spanish. English is the old copy word for word. Money and next-step sentences stay English (enJobs.ts).
  *
- * @mutate src/components/dashboard/JobCard.tsx | font-semibold whitespace-nowrap">{t("jobCard.recommended")}</span> | font-semibold whitespace-nowrap">Recommended</span>
- * @mutate src/components/dashboard/JobCard.tsx |                 {t("jobCard.urgent")}\n |                 Urgent\n
+ * @mutate src/components/dashboard/JobCardBadges.tsx | font-semibold whitespace-nowrap">{t("jobCard.recommended")}</span> | font-semibold whitespace-nowrap">Recommended</span>
+ * @mutate src/components/dashboard/JobCardBadges.tsx |         {t("jobCard.urgent")}\n |         Urgent\n
  * @mutate src/components/job-card/JobTodayChip.tsx |       {t("jobCard.today")}\n |       Today\n
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | className="text-ds-16 font-semibold">{t("jobPage.details")}</h2> | className="text-ds-16 font-semibold">Details</h2>
  * @mutate src/pages/jobs/jobPage/JobPage.tsx | {detailsOpen ? t("jobPage.showLess") : t("jobPage.showMore")} | {detailsOpen ? "Show less" : "Show more"}

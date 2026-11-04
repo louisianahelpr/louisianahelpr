@@ -30,7 +30,7 @@ import {
 // @mutate supabase/functions/_shared/sameDayMatch.ts |   return milesBetween(jLat, jLng, hLat, hLng) <= SAME_DAY_RADIUS_MILES; |   return true;
 // @mutate supabase/functions/_shared/sameDayMatch.ts |   if (!isSameDayJob(job.date_needed, now)) return 0; |
 // @mutate src/components/postjob/LogisticsSection.tsx |     setDateNeeded(today);\n    markTodayStart(sameDayStart); |     setDateNeeded(today);
-// @mutate src/components/dashboard/JobCard.tsx |           if (isTodayJob(job.date_needed)) { |           if (false) {
+// @mutate src/components/dashboard/JobCardBadges.tsx |   if (isTodayJob(job.date_needed)) { |   if (false) {
 
 const ROOT = resolve(__dirname, "..", "..");
 const code = (rel: string) => blankComments(readFileSync(join(ROOT, rel), "utf8"));
@@ -127,7 +127,7 @@ describe("the wiring (Q2438)", () => {
   });
 
   it("the browse card shows Today for a job dated today", () => {
-    const src = code("src/components/dashboard/JobCard.tsx");
+    const src = code("src/components/dashboard/JobCardBadges.tsx"); // the status corner, out of JobCard.tsx (Q806)
     expect(src).toMatch(/if \(isTodayJob\(job\.date_needed\)\) \{/);
   });
 

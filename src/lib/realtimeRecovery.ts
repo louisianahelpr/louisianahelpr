@@ -1,8 +1,8 @@
-import { useSyncExternalStore } from "react";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { channelNonce } from "@/lib/realtimeChannel";
 import { report } from "@/lib/errorLogger";
+import { downChannels, publishHealth } from "@/lib/realtimeHealth";
 
 /**
  * Realtime channels that come back after a drop — and say so when they can't.
@@ -95,50 +95,9 @@ function isExpectedDisconnect(): boolean {
   if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
   return false;
 }
-
-// ── Health registry ─────────────────────────────────────────────────────────
-// Module-level rather than context: channels are opened from hooks, module
-// singletons (useCurrentUser's refcounted registry) and async callbacks alike,
-// and none of those can reach a React provider.
-
-const downChannels = new Set<string>();
-const healthListeners = new Set<() => void>();
-/** Snapshot for useSyncExternalStore — must be a stable value, not a new Set. */
-let degradedSnapshot = false;
-
-function publishHealth() {
-  const next = downChannels.size > 0;
-  if (next === degradedSnapshot) return;
-  degradedSnapshot = next;
-  for (const listener of [...healthListeners]) listener();
-}
-
-function subscribeHealth(listener: () => void) {
-  healthListeners.add(listener);
-  return () => {
-    healthListeners.delete(listener);
-  };
-}
-
-const readHealth = () => degradedSnapshot;
-
-/**
- * True while at least one realtime channel is down. Drives the "live updates
- * paused" state of the global banner.
- *
- * `getServerSnapshot` returns false: SSR/prerender has no socket, and claiming
- * degradation in a prerendered shell would flash the banner on every cold load.
- */
-export function useRealtimeDegraded(): boolean {
-  return useSyncExternalStore(subscribeHealth, readHealth, () => false);
-}
-
-/** Test seam — resets the registry between cases. */
-export function __resetRealtimeHealth() {
-  downChannels.clear();
-  degradedSnapshot = false;
-  healthListeners.clear();
-}
+// ── Health registry: src/lib/realtimeHealth.ts (its own module, so OfflineBanner on the boot path does not
+// pull this file and the Supabase client in; Q2705/Q2706, 11-04). Re-exported for the existing callers.
+export { useRealtimeDegraded, __resetRealtimeHealth } from "@/lib/realtimeHealth";
 
 // ── Wake-ups ────────────────────────────────────────────────────────────────
 

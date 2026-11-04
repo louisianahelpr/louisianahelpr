@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-04T12:34:17.737Z",
-  "guards": 3474,
-  "registered": 3473,
+  "generated": "2026-11-04T15:30:20.105Z",
+  "guards": 3484,
+  "registered": 3483,
   "unregistered": [
     "src/components/job-card/useFollowOpenCard.test.ts"
   ],

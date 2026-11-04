@@ -36,7 +36,8 @@ export function DeclutterGuestGate({ children, skeleton }: { children: ReactNode
 function GuestBrand() {
   return (
     <span data-guest-brand="" className="inline-flex shrink-0">
-      <HelprMark to="/" size="sm" />
+      {/* The H alone, as everywhere else (owner 2026-11-03, Q2042 option 1). */}
+      <HelprMark to="/" size="sm" emblemOnly />
     </span>
   );
 }

@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
@@ -47,16 +48,17 @@ function BlockedRow({ me, person }: { me: string; person: BlockedPerson }) {
       <span className="flex-1 min-w-0 font-sans font-semibold text-ds-15 truncate" style={{ color: "hsl(var(--ink-deep))" }}>
         {person.name}
       </span>
-      <button
+      <Button
         type="button"
+        variant="outline"
+        size="sm"
         onClick={() => void handleUnblock()}
         disabled={unblocking}
         aria-label={`Unblock ${person.name}`}
-        className="btn-press shrink-0 min-h-11 px-4 rounded-full border text-ds-14 font-semibold text-foreground disabled:opacity-60"
-        style={{ borderColor: "hsl(var(--border))", background: "hsl(var(--card))" }}
+        className="shrink-0"
       >
         {unblocking ? "Unblocking…" : "Unblock"}
-      </button>
+      </Button>
     </li>
   );
 }

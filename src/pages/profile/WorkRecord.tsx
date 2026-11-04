@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -492,12 +493,14 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                   The label has to match, because the helper is standing in a
                   leasing office deciding whether this button will produce
                   something the clerk will accept. */}
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="md"
                 onClick={() => { void handleShare(); }}
                 disabled={isSharing}
                 aria-busy={isSharing}
-                className="flex-1 flex items-center justify-center gap-2 rounded-full min-h-12 py-3 text-ds-14 font-semibold bg-card border border-border text-foreground active:scale-[0.99] transition-all disabled:opacity-60"
+                className="flex-1"
               >
                 {isSharing ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -505,16 +508,17 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                   <Share2 className="w-4 h-4" />
                 )}
                 {isSharing ? "Preparing record\u2026" : "Share record (PDF)"}
-              </button>
+              </Button>
               {canPrintDocument && (
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="md"
                   onClick={handlePrint}
-                  className="flex items-center justify-center gap-2 rounded-full min-h-12 py-3 px-5 text-ds-14 font-semibold bg-card border border-border text-foreground active:scale-[0.99] transition-all"
                 >
                   <Printer className="w-4 h-4" />
                   Print
-                </button>
+                </Button>
               )}
             </div>
             )}

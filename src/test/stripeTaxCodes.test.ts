@@ -205,7 +205,8 @@ describe("Stripe tax codes (ME-043)", () => {
   // General - Services (txcd_20030000), Installation of TPP (txcd_20020018)
   // and Repairs to Real Property (txcd_20080007) came back $0 product_exempt.
   const LA_TAXED_LABOR_CODES = new Set(["txcd_20080005", "txcd_20090006"]);
-  const LA_UNTAXED_CODES_MEASURED = ["txcd_20030000", "txcd_20020018", "txcd_20080007"];
+  // txcd_20010003: Stripe TEST runs 41771910502 / 41778361627 (2026-11-03), $0 at 70112 and 70501 (fabric_cleaning HIGH).
+  const LA_UNTAXED_CODES_MEASURED = ["txcd_20030000", "txcd_20020018", "txcd_20080007", "txcd_20010003"];
 
   it("the taxable labor code is one live Stripe Tax measured as TAXED in Louisiana (Q1578)", () => {
     expect(LA_TAXED_LABOR_CODES.size).toBeGreaterThan(0);
@@ -222,7 +223,7 @@ describe("Stripe tax codes (ME-043)", () => {
   // platform account closed 2026-10-23 (docs/OPEN.md Q2083). A job that fixes
   // an item takes the measured repair code.
   it("the cleaning and alterations codes are Stripe's published ones, none measured exempt", () => {
-    expect(CLEANING_TPP_TAX_CODE).toBe("txcd_20010003");
+    expect(CLEANING_TPP_TAX_CODE).toBe("txcd_20090024");
     expect(GARMENT_ALTERATIONS_TAX_CODE).toBe("txcd_20090002");
     expect(LA_UNTAXED_CODES_MEASURED).not.toContain(GARMENT_ALTERATIONS_TAX_CODE);
     expect(laborTaxCode("other", "clothing_alterations")).toBe(GARMENT_ALTERATIONS_TAX_CODE);

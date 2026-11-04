@@ -115,8 +115,8 @@ async function makeSession(label, { manual = false } = {}) {
     ],
     payment_intent_data: { metadata: { kind: "tax_probe", probe: label }, ...(manual ? { capture_method: "manual" } : {}) },
     metadata: { kind: "tax_probe", probe: label },
-    success_url: "https://louisianahelpr.com/tax-probe-done",
-    cancel_url: "https://louisianahelpr.com/tax-probe-cancel",
+    success_url: "https://example.com/tax-probe-done",
+    cancel_url: "https://example.com/tax-probe-cancel",
   });
   if (s.error) throw new Error(`session ${label}: ${JSON.stringify(s.error)}`);
   return s;

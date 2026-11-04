@@ -224,7 +224,7 @@ export function parseLegalTabs() {
  * visits everything; `helper` visits the protected routes (same route, a
  * different set of controls); `admin` visits /admin and its views.
  */
-export function deriveRouteSet({ seedJobId, helperId, customerId, adminViews, jobIds = [seedJobId] }) {
+export function deriveRouteSet({ seedJobId, helperId, customerId, adminViews, jobIds = [seedJobId], declutterItemId = null }) {
   const routes = parseAppRoutes();
   const profileTabs = parseProfileTabs();
   const legalTabs = parseLegalTabs();
@@ -253,6 +253,14 @@ export function deriveRouteSet({ seedJobId, helperId, customerId, adminViews, jo
     if (r.path === "/jobs/:id") {
       // Every real job the run resolved (the press fixture + one per state the test accounts own).
       for (const id of jobIds) push(`/jobs/${id}`, r, personas);
+      continue;
+    }
+    if (r.path === "/declutter/item/:id" && declutterItemId) {
+      // Q1837: /declutter/item/test (not an item id) paints "This item isn't available." at once; the run's
+      // own draft item (createLoadingDeclutterItem) is the real skeleton -> item page. A draft is only its
+      // seller's to read, and the seller is the helper test account, so only the helper measures it.
+      push(url, r, personas);
+      push(`/declutter/item/${declutterItemId}`, r, ["helper"]);
       continue;
     }
     if (r.path === "/profile") {

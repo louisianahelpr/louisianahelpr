@@ -1092,3 +1092,75 @@ export function pressWriteKind({ method, url, body = null }) {
   if (fn && Object.hasOwn(PRESS_READ_FUNCTIONS, fn)) return "read";
   return "write";
 }
+
+/**
+ * Q1837: the loading-state catalog's Declutter item. /declutter/item/test is not
+ * an item id, so that route paints "This item isn't available." at once and the
+ * real item skeleton (DeclutterItemSkeleton) was never measured. The run makes
+ * ONE draft listing as the helper test account (is_seed: the seller is a test
+ * account, declutter_items_seed_from_seller) with one 1x1 photo, so the page
+ * goes skeleton -> gallery + details exactly as a real item does. A DRAFT is
+ * only the seller's to read (row security), so no member or guest ever sees it,
+ * and it needs no review and no pickup time. Removed by
+ * removeLoadingDeclutterItem: declutter_withdraw_item DELETES a draft (photos
+ * rows cascade) and returns the photo paths, then the seller deletes the
+ * now-unattached objects, counted from the response.
+ */
+const LOADING_PIXEL = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64");
+
+async function sellerRpc(s, name, args) {
+  const r = await fetch(`${supabaseUrl()}/rest/v1/rpc/${name}`, { method: "POST", headers: headers(s), body: JSON.stringify(args) });
+  const body = await r.text();
+  if (!r.ok) throw new Error(`${name}: HTTP ${r.status} ${body.slice(0, 200)}`);
+  return body ? JSON.parse(body) : null;
+}
+
+export async function createLoadingDeclutterItem(seller, runId) {
+  const id = await sellerRpc(seller, "declutter_create_item", {
+    p_title: `${PRESS_MARKER} loading ${runTag(String(runId))}`.slice(0, 80),
+    p_description: `Automated loading-states fixture (run ${runId}). A draft only its test-account seller can open; removed when the run ends.`,
+    p_category: "furniture",
+    p_condition_stars: 4,
+    p_delivery_size: "small",
+    p_price_cents: 4000,
+    p_floor_price_cents: 2000,
+    p_area_label: "Downtown, Baton Rouge",
+    p_pickup_address: "900 North 3rd Street, Baton Rouge, LA 70802",
+    p_pickup_lat: 30.4571,
+    p_pickup_lng: -91.1874,
+  });
+  if (typeof id !== "string") throw new Error("declutter_create_item returned no id");
+  const path = `${seller.userId}/declutter/${id}/loading0.png`;
+  try {
+    const up = await fetch(`${supabaseUrl()}/storage/v1/object/job-photos/${path}`, {
+      method: "POST",
+      headers: { apikey: anonKey(), Authorization: `Bearer ${seller.accessToken}`, "Content-Type": "image/png", "x-upsert": "false" },
+      body: LOADING_PIXEL,
+    });
+    if (!up.ok) throw new Error(`photo upload: HTTP ${up.status} ${(await up.text()).slice(0, 200)}`);
+    await sellerRpc(seller, "declutter_add_item_photo", { p_item_id: id, p_storage_path: path });
+  } catch (e) {
+    // The draft exists; hand back its id so the caller's finally removes it.
+    return { id, note: `draft made, photo not attached: ${String(e.message).slice(0, 200)}` };
+  }
+  return { id, note: "draft with one photo" };
+}
+
+export async function removeLoadingDeclutterItem(seller, id) {
+  try {
+    const [row] = await prodSelect(seller, `declutter_items?select=id,title,status&id=eq.${id}&seller_id=eq.${seller.userId}`);
+    if (!row) return { ok: true, note: "already gone" };
+    if (!String(row.title ?? "").includes(PRESS_MARKER)) return { ok: false, note: "not a fixture item (no marker); refusing to remove it" };
+    if (row.status !== "draft") return { ok: false, note: `status ${row.status}, not draft; left for the service-role sweeper` };
+    const paths = (await sellerRpc(seller, "declutter_withdraw_item", { p_item_id: id })) ?? [];
+    const [still] = await prodSelect(seller, `declutter_items?select=id&id=eq.${id}`);
+    if (still) return { ok: false, note: "withdraw answered but the draft row is still there" };
+    if (!paths.length) return { ok: true, note: "draft deleted (no photos)" };
+    // The bucket is spelled out so avatarRowObjectAgreement can see this delete never touches avatars.
+    const r = await fetch(`${supabaseUrl()}/storage/v1/object/job-photos`, { method: "DELETE", headers: headers(seller), body: JSON.stringify({ prefixes: paths }) });
+    const gone = r.ok ? ((await r.json().catch(() => [])) ?? []).length : 0;
+    return { ok: r.ok && gone === paths.length, note: `draft deleted; photos ${gone} of ${paths.length} removed${r.ok ? "" : ` (HTTP ${r.status})`}` };
+  } catch (e) {
+    return { ok: false, note: String(e.message).slice(0, 200) };
+  }
+}

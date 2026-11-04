@@ -52,3 +52,12 @@ AS $fn$
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_road_miles(numeric, numeric, numeric, numeric) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.declutter_road_miles(numeric, numeric, numeric, numeric) TO authenticated, service_role;
+
+-- Q807: refuse writes from an unconfirmed email on the new table(s) (standard guarded attach).
+DO $gate$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gate$;

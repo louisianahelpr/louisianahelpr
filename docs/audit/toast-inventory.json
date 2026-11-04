@@ -5568,7 +5568,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 77,
+      "line": 78,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5578,7 +5578,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 233,
+      "line": 234,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5588,7 +5588,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOfferPanel.tsx",
-      "line": 245,
+      "line": 246,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -20,6 +20,8 @@ export type GiftRow = {
   job_id: string | null;
   parent_credit_id: string | null;
   restored_from_job_id: string | null;
+  /** Set on the leftover a tax-only redeem split off (20261103221953): the credit's amount is already lowered by it. */
+  split_for_job_id?: string | null;
 };
 
 const cents = (v: number | string | null | undefined) => {
@@ -33,6 +35,8 @@ export function giftKeptCents(jobId: string, rows: readonly GiftRow[]): number |
   if (!credit) return null;
   const leftover = rows
     .filter((r) => r.parent_credit_id === credit.id && r.restored_from_job_id == null)
+    // A split-off leftover is not subtracted again (as restore_gift_card_for_job skips it).
+    .filter((r) => r.split_for_job_id == null)
     .reduce((s, r) => s + cents(r.amount), 0);
   const applied = Math.max(0, cents(credit.amount) - leftover);
   const restored = rows.filter((r) => r.restored_from_job_id === jobId).reduce((s, r) => s + cents(r.amount), 0);
@@ -76,7 +80,7 @@ export function PosterCancelFeeLine({
     enabled: status === "charged" && !!posterId,
     staleTime: 60_000,
     queryFn: async (): Promise<GiftRow[] | null> => {
-      const cols = "id, amount, status, job_id, parent_credit_id, restored_from_job_id";
+      const cols = "id, amount, status, job_id, parent_credit_id, restored_from_job_id, split_for_job_id";
       const { data: onJob, error } = await supabase
         .from("gift_cards")
         .select(cols)

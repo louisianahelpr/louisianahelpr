@@ -67,24 +67,34 @@ async function askNativeOnce(): Promise<void> {
   if ((await readPushPermission()) !== "prompt") return;
   const { requestPushPermission } = await import("@/lib/nativePush");
   if (!(await waitForNoModal(60_000))) return;
-  safeStorage.setItem(WEB_PUSH_ASKED_KEY, String(Date.now()));
-  track("web_push_ask", { kind: "native", step: "shown" });
-  const agreed = await explainPermission("notifications", async () => {
-    const granted = await requestPushPermission();
-    track("web_push_ask", { kind: "native", step: "os_answer", answer: granted ? "granted" : "not_granted" });
-  });
+  const agreed = await explainPermission(
+    "notifications",
+    async () => {
+      const granted = await requestPushPermission();
+      track("web_push_ask", { kind: "native", step: "os_answer", answer: granted ? "granted" : "not_granted" });
+    },
+    { onShown: () => markAskShown("native") },
+  );
   if (!agreed) track("web_push_ask", { kind: "native", step: "not_now" });
+}
+
+/**
+ * Q2003 (lead 11-04): the 14-day cooldown starts only once the sheet is on screen. Stamping before it showed let a
+ * page that left first (a post handing off to Stripe Checkout) spend the ask on a sheet nobody saw.
+ */
+function markAskShown(kind: "ask" | "home_screen" | "native"): void {
+  safeStorage.setItem(WEB_PUSH_ASKED_KEY, String(Date.now()));
+  track("web_push_ask", { kind, step: "shown" });
 }
 
 async function askOnce(kind: "ask" | "home_screen"): Promise<void> {
   // Never over the job's own confirmation dialog; skip (and ask next time) if one stays open.
   if (!(await waitForNoModal(60_000))) return;
-  safeStorage.setItem(WEB_PUSH_ASKED_KEY, String(Date.now()));
   // PUSH-REACH: the ask's funnel is recorded, so "2 web subscriptions" can be told apart into never asked,
   // asked and said no, said yes but the save failed, or an iPhone outside the Home Screen.
-  track("web_push_ask", { kind, step: "shown" });
+  const onShown = () => markAskShown(kind);
   if (kind === "home_screen") {
-    await explainPermission("notifications_home_screen", () => {});
+    await explainPermission("notifications_home_screen", () => {}, { onShown });
     return;
   }
   const agreed = await explainPermission("notifications", async () => {
@@ -97,7 +107,7 @@ async function askOnce(kind: "ask" | "home_screen"): Promise<void> {
       const saved = await subscribeWebPushOnUse();
       track("web_push_ask", { kind, step: "saved", result: saved });
     }
-  });
+  }, { onShown });
   if (!agreed) track("web_push_ask", { kind, step: "not_now" });
 }
 

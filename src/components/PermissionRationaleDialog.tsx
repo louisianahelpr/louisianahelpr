@@ -16,6 +16,7 @@ import {
 import {
   usePermissionRationaleState,
   __resolveRationale,
+  __markRationaleShown,
 } from "@/hooks/usePermissionRationale";
 
 export function PermissionRationaleDialog() {
@@ -23,7 +24,6 @@ export function PermissionRationaleDialog() {
   const [, force] = useState(0);
 
   useEffect(() => subscribe(() => force((n) => n + 1)), [subscribe]);
-
   if (!state.open || !copy) return null;
 
   return (
@@ -35,6 +35,8 @@ export function PermissionRationaleDialog() {
     // decline, exactly like "Not now".
     <Dialog open={state.open} onOpenChange={(next) => { if (!next) __resolveRationale(false); }}>
       <DialogContent role="alertdialog">
+        {/* Q2003: mounts with the dialog's content, so its effect runs once the sheet is really on screen. */}
+        <ReportShown token={state} />
         {/* NO ICON ROW. This was a bespoke 56px tile rendered ABOVE the Hero,
             which pushed the title off the top row and left the ✕ aligned to an
             icon instead of to a heading — so this was the one popup in the app
@@ -90,4 +92,12 @@ export function PermissionRationaleDialog() {
       </DialogContent>
     </Dialog>
   );
+}
+
+/** Q2003: tells the rationale's caller it is on screen (useWebPush stamps its 14-day cooldown then, not before). */
+function ReportShown({ token }: { token: unknown }) {
+  useEffect(() => {
+    __markRationaleShown();
+  }, [token]);
+  return null;
 }

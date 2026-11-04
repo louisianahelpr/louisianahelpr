@@ -43,12 +43,15 @@ describe("launch list progress", () => {
     expect(line!.slice(1).map(Number)).toEqual([p!.left, p!.total, p!.todo, p!.partly]);
   });
 
-  it("every listed item exists (open here, or ticked into the archive)", () => {
+  // An item parked in docs/NOT-LAUNCHED.md (owner 2026-11-03: waiting-on-Apple and
+  // post-launch items are not open work) still exists; it just is not counted as left.
+  it("every listed item exists (open here, ticked into the archive, or parked as not launched)", () => {
     const i = OPEN_MD.indexOf(LAUNCH_LIST_START), j = OPEN_MD.indexOf(LAUNCH_LIST_END);
     const listed = [...new Set([...OPEN_MD.slice(i, j).matchAll(/\bQ(\d+)\b/g)].map((m) => `Q${m[1]}`))];
     expect(listed.length).toBeGreaterThan(20);
     const archive = readFileSync(join(ROOT, "docs/archive/OPEN-done-2026-10.md"), "utf8");
-    const missing = listed.filter((q) => !new RegExp(`^- \\[[ ~x.]\\] \\*\\*${q}\\b`, "m").test(OPEN_MD + "\n" + archive));
+    const parked = readFileSync(join(ROOT, "docs/NOT-LAUNCHED.md"), "utf8");
+    const missing = listed.filter((q) => !new RegExp(`^- \\[[ ~x.]\\] \\*\\*${q}\\b`, "m").test(OPEN_MD + "\n" + archive + "\n" + parked));
     expect(missing).toEqual([]);
   });
 });

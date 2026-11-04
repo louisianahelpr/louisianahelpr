@@ -11,6 +11,7 @@
  * leaves its fact unknown (false): an order is never filed further along than its rows show.
  */
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
 import { fetchMyBookings, fetchMyHandover, fetchOrderProblem, type MyBooking, type MyHandover, type OrderProblem } from "@/lib/declutter/handover";
@@ -389,13 +390,13 @@ export function BuyerOrderHead({ view, standing, open, onOpen, onClose, onAction
       {view.money && <p className="text-ds-13 text-muted-foreground">{view.money}</p>}
       <div className="flex flex-wrap items-center gap-3">
         {view.action && !open && (
-          <button type="button" className="btn-grad-primary !text-[hsl(var(--parchment))] min-h-11 rounded-full px-5 text-sm font-semibold" onClick={onAction} data-next-action="">
+          <Button type="button" variant="primary" size="sm" className="px-5 text-sm font-semibold" onClick={onAction} data-next-action="">
             {view.action}
-          </button>
+          </Button>
         )}
-        <button type="button" className="min-h-11 text-sm font-semibold underline underline-offset-2" aria-expanded={open} onClick={open ? onClose : onOpen}>
+        <Button type="button" variant="link" size="sm" className="px-0 text-sm font-semibold underline decoration-current underline-offset-2 text-[color:inherit]" aria-expanded={open} onClick={open ? onClose : onOpen}>
           {open ? "Hide details" : "Details"}
-        </button>
+        </Button>
       </div>
     </div>
   );

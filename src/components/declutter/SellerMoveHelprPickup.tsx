@@ -5,6 +5,7 @@
  * buyer's booking chips over the same windows (PickupSlotPicker); the server re-checks every rule.
  */
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { moveHelprPickup } from "@/lib/helprTasks/api";
@@ -12,7 +13,6 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { invalidateTasks } from "./useTaskSteps";
 import { PickupSlotPicker } from "./DeclutterPickupWindows";
 
-const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 
 export function SellerMoveHelprPickup({ taskId, orderId, who, current = null }: { taskId: string; orderId: string; who: string; current?: string | null }) {
   const qc = useQueryClient();
@@ -30,9 +30,9 @@ export function SellerMoveHelprPickup({ taskId, orderId, who, current = null }: 
   });
   if (!open) {
     return (
-      <button type="button" className={btn} onClick={() => setOpen(true)} aria-expanded={false} data-move-helpr-pickup="">
+      <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" onClick={() => setOpen(true)} aria-expanded={false} data-move-helpr-pickup="">
         Move pickup time
-      </button>
+      </Button>
     );
   }
   return (
@@ -43,13 +43,13 @@ export function SellerMoveHelprPickup({ taskId, orderId, who, current = null }: 
       <PickupSlotPicker orderId={orderId} value={pick} onPick={setPick} own current={current}
         fallback={<p className="text-sm text-muted-foreground">Message the Helpr to agree a new time.</p>} />
       <div className="flex flex-wrap gap-2">
-        <button type="button" className="btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold" disabled={!pick || move.isPending}
+        <Button type="button" variant="primary" size="sm" className="text-sm font-semibold" disabled={!pick || move.isPending}
           onClick={() => { if (pick) move.mutate(pick); }}>
           Move to this time
-        </button>
-        <button type="button" className={btn} disabled={move.isPending} onClick={() => { setOpen(false); setPick(null); }}>
+        </Button>
+        <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" disabled={move.isPending} onClick={() => { setOpen(false); setPick(null); }}>
           Keep the time
-        </button>
+        </Button>
       </div>
     </div>
   );

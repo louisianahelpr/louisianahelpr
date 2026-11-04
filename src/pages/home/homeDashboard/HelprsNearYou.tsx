@@ -18,7 +18,7 @@ export interface NearbyHelpr {
   active_now: boolean;
 }
 
-export const HELPRS_NEAR_ME_KEY = "helprs-near-me";
+const HELPRS_NEAR_ME_KEY = "helprs-near-me";
 
 export async function fetchHelprsNearMe(): Promise<NearbyHelpr[]> {
   const { data, error } = await supabase.rpc("get_helprs_near_me");

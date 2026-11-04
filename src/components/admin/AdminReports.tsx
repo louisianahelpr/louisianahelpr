@@ -226,7 +226,11 @@ const AdminReports = () => {
 
   return (
     <AdminViewShell>
-      <Button variant="outline" size="sm" className="self-start rounded-full" onClick={() => navigate("/admin/preview/messages")}>Preview the Messages page</Button>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="outline" size="sm" className="rounded-full" onClick={() => navigate("/admin/preview/messages")}>Preview the Messages page</Button>
+        {/* Q2664 (b): the sign-up screens after step 2 no test account can reach. */}
+        <Button variant="outline" size="sm" className="rounded-full" onClick={() => navigate("/admin/preview/onboarding")}>Preview sign-up</Button>
+      </div>
       {/* Five chips wrapped to two ragged rows at 375. One scrollable strip with the shared edge fade instead — a
           cut-off chip then reads as "there is more this way" rather than as a broken layout. */}
       {/* Real Title Case text, not CSS `capitalize` over a lowercase status

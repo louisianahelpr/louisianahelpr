@@ -26,7 +26,8 @@ export interface MessagesPreviewLog {
 
 export interface MessagesPreviewFetchOptions {
   supabaseUrl: string;
-  sample: () => MessagesPreviewSample;
+  /** Only its reads and tables are used (the onboarding preview passes its own, Q2664 (b)). */
+  sample: () => Pick<MessagesPreviewSample, "reads" | "tables">;
   ownUserId: () => string | null;
   realFetch: typeof fetch;
   onBlocked: (what: string) => void;
@@ -46,7 +47,9 @@ const ACTION_ANSWERS: Record<string, unknown> = { block_user_and_settle: { settl
  */
 const QUIET_WRITES = new Set(["PATCH notifications", "PATCH messages"]);
 
-const OWN_ROW_TABLES = new Set(["profiles", "user_roles"]);
+// member_section_prefs: the admin's own Home order, read by the onboarding preview's picker (Q2664 (b)), so the
+// real row still wins over the device copy afterwards. A read of their own row only; a write is never sent.
+const OWN_ROW_TABLES = new Set(["profiles", "user_roles", "member_section_prefs"]);
 const PASS_THROUGH_RPC = new Set(["feature_switches_for_me"]);
 const READ_RPC = /^(get_|list_|fetch_|can_|is_|has_|are_|count_|check_|search_)/;
 const VERB: Record<string, string> = { POST: "save", PATCH: "update", PUT: "save", DELETE: "delete" };

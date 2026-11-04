@@ -62,6 +62,8 @@ const state = {
 // Q2427: no bundle discount here (its own tests: declutterTradeViews, declutterBundleDiscount.test.ts).
 // Audit 1028 D1-8: My listings listens for new notices (the shared realtime bus); no socket in a unit test.
 // Q2268: the bundle-request reads (no request here).
+// The Selling tab's "Your page" link reads the member's handle (its own test: src/test/yourPageLink.test.tsx).
+vi.mock("@/components/profile/YourPageLink", () => ({ YourPageLink: () => null }));
 vi.mock("@/lib/declutter/bundleRequest", async (orig) => ({ ...(await orig<object>()), fetchBundleRequests: async () => [] }));
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({

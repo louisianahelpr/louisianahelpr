@@ -12,14 +12,20 @@
  * @mutate src/lib/profileLink/api.ts | return { error: rpcErrorMessage("rpc_set_my_handle", error) ?? "We couldn't save that link. Try again." }; | return { error: "We couldn't save that link. Try again." };
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { screen, fireEvent, waitFor } from "@testing-library/react";
 
 const rpc = vi.fn();
 const share = vi.fn(async (_c: unknown) => "shared");
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (...a: unknown[]) => rpc(...a) } }));
 vi.mock("@/lib/nativeShare", () => ({ shareNative: (c: unknown) => share(c) }));
 
+import type { ReactElement } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render as rtlRender } from "@testing-library/react";
 import { ProfileLinkRow } from "@/components/profile/ProfileLinkRow";
+
+// ProfileLinkRow writes the shared handle cache after a change (YourPageLink reads it), so it renders under a client.
+const render = (ui: ReactElement) => rtlRender(<QueryClientProvider client={new QueryClient()}>{ui}</QueryClientProvider>);
 
 beforeEach(() => {
   rpc.mockReset();

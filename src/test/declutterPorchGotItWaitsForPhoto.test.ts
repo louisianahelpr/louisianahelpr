@@ -7,8 +7,8 @@
  * Reads the EFFECTIVE definitions. Backend proof: src/test/pglite/declutterPorchGotItWaitsForPhoto.pglite.mjs (3x;
  * RED on prod's bodies with NEW_MIGRATION=skip; RED with either gate planted out).
  */
-// @mutate supabase/migrations/20261103202118_declutter_porch_got_it_waits_for_photo.sql |   IF o.handover = 'porch' AND NOT EXISTS ( |   IF false AND NOT EXISTS (
-// @mutate supabase/migrations/20261103202118_declutter_porch_got_it_waits_for_photo.sql |   IF v_side = 'buyer' AND NOT EXISTS ( |   IF false AND NOT EXISTS (
+// @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |   IF o.handover = 'porch' AND NOT EXISTS ( |   IF false AND NOT EXISTS (
+// @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |   IF v_side = 'buyer' AND NOT EXISTS ( |   IF false AND NOT EXISTS (
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

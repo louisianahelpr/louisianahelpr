@@ -27,5 +27,5 @@
 
 UPDATE public.feature_switches
    SET audience = 'off',
-       description = 'RETIRED 2026-11-04 (owner: no membership features anymore). Kept OFF so every leftover paid-tier branch on the server stays unreachable for everyone; never turn it back on.'
+       description = 'RETIRED 2026-11-04 (owner: no membership features anymore). Kept OFF so every leftover paid-tier branch on the server stays unreachable for everyone. Never turn it back on.'
  WHERE key = 'memberships';

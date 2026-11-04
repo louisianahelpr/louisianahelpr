@@ -167,6 +167,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('seed_hidden_for',               'deny',     'TRUE hides test rows from that user (Q552); a NULL user is not an enrolled test account, so it is hidden from (fails safe)'),
   ('seed_review_hidden',            'deny',     'TRUE hides a test-account review from the caller (Q552)'),
   ('error_log_is_seed',             'classify', 'labels an error_logs row as seed traffic'),
+  ('error_log_is_record_only',      'classify', 'TRUE = an error_logs row is a Stripe Connect record-only row (connect-reset / dead-account close) that never pages; NULL tags read FALSE (pages); no access decision (20261103203658)'),
   ('is_category_taxable',           'classify', 'labels an earnings export row Taxable/Exempt'),
   ('is_late_cancellation',          'classify', 'labels a cancellation late (fee ladder)'),
   ('quote_job_offered_to_quoter',   'classify', 'labels a job as booked from an agreed quote and offered to that quoter (20261018155222): the hire trigger acts on it and the direct-offer notice stands aside; no access decision (EXECUTE revoked from clients), and a NULL job or helper is false'),

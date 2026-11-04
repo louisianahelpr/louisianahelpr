@@ -16838,6 +16838,17 @@ export type Database = {
       declutter_set_porch_place: { Args: { p_place_id: string; p_seller_id: string }; Returns: string }
       declutter_ship_hold_refund_released: { Args: { p_payment_intent_id: string }; Returns: string }
       declutter_ship_hold_released: { Args: { p_order_id: string }; Returns: string }
+      declutter_ship_return_label_bought: {
+        Args: {
+          p_cost_cents: number
+          p_label_url: string
+          p_provider_shipment_id: string
+          p_return_id: string
+          p_tracking_code: string
+        }
+        Returns: string
+      }
+      declutter_ship_return_label_failed: { Args: { p_return_id: string; p_why: string }; Returns: string }
       declutter_ship_setup_fee_at_capture: { Args: { p_order_id: string }; Returns: number }
       declutter_ship_sweep: { Args: never; Returns: Json }
       declutter_shipping_reserved_cents: { Args: { p_order_id: string }; Returns: number }
@@ -18011,6 +18022,7 @@ export type Database = {
         Args: { p_job_id: string; p_matches: Json }
         Returns: Json
       }
+      error_log_is_record_only: { Args: { p_tags: Json }; Returns: boolean }
       error_log_is_seed: { Args: { p_tags: Json }; Returns: boolean }
       expire_pending_direct_offers: { Args: never; Returns: number }
       expire_unanswered_offers: { Args: never; Returns: number }

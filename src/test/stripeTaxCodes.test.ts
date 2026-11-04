@@ -216,12 +216,11 @@ describe("Stripe tax codes (ME-043)", () => {
   });
 
   // Q2083 (owner option A 2026-10-23, kept by Option 1 2026-10-25): cleaning carpet, rugs, upholstery or
-  // furniture takes Stripe's "Cleaning of Tangible Personal Property" (which
-  // excludes clothing, per Stripe's own description); altering clothes takes
-  // "Garment Alterations - separate from purchase of garment". Read from
-  // docs.stripe.com/tax/tax-codes 2026-10-23. Live calculation not measured:
-  // platform account closed 2026-10-23 (docs/OPEN.md Q2083). A job that fixes
-  // an item takes the measured repair code.
+  // furniture takes Stripe's "Dry Cleaning - other than clothing" (txcd_20090024), taxed in Louisiana under
+  // La. R.S. 47:301.3(5). Measured TAXED on Stripe TEST run 41778361627 (2026-11-03): $10.00 at 70112 and
+  // $9.00 at 70501. Its first code, txcd_20010003, measured $0 there (LA_UNTAXED_CODES_MEASURED).
+  // Altering clothes takes "Garment Alterations - separate from purchase of garment" (published code,
+  // docs.stripe.com/tax/tax-codes). A job that fixes an item takes the measured repair code.
   it("the cleaning and alterations codes are Stripe's published ones, none measured exempt", () => {
     expect(CLEANING_TPP_TAX_CODE).toBe("txcd_20090024");
     expect(GARMENT_ALTERATIONS_TAX_CODE).toBe("txcd_20090002");

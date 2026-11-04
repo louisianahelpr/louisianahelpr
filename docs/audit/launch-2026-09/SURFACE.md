@@ -17,20 +17,20 @@ reports coverage against THIS file, not against the route list.
 | Routes (non-redirect) | route | 59 |
 | Redirect-only routes | route | 1 |
 | `?tab=` variants | variant | 35 |
-| `?view=` variants | variant | 27 |
+| `?view=` variants | variant | 26 |
 | Overlay surfaces | **instance** | 220 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1152 (across 319 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1153 (across 320 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 50 |
-| Multi-step flows — probable | flow | 34 |
+| Multi-step flows — probable | flow | 33 |
 | Back/next navigation only | flow | 66 |
 | Forms (submittable) | form | 119 |
-| Admin components (components/admin + pages/admin/Admin*) | **file** | 181 |
+| Admin components (components/admin + pages/admin/Admin*) | **file** | 180 |
 | Email templates | **exported template** | 23 |
 | Notification types (defined in notification_type_pref_map) | type | 26 |
-| **Navigable surfaces** (places a person can stand) | mixed | **792** |
-| **Copy surfaces** (strings a person may read) | mixed | **1201** |
-| **Total auditable surface** | mixed | **1993** |
+| **Navigable surfaces** (places a person can stand) | mixed | **789** |
+| **Copy surfaces** (strings a person may read) | mixed | **1202** |
+| **Total auditable surface** | mixed | **1991** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -69,7 +69,7 @@ they differ, the reason is understood:
 |---|---|---|---|
 | Real routes | 59 | 34 | agree |
 | Redirect-only routes | 1 | 14 | agree |
-| Admin `?view=` | 27 | 24 | agree |
+| Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 220 | 130 | agree within method (script counts every menu instance) |
 | Forms | 119 | ~38 | agree |
 | Confirmed multi-step flows | 50 | 9 | agree; the agent excluded section routers this script still counts |
@@ -209,7 +209,6 @@ database and `lh-notifications` must correct it from there.
 - [ ] `?view=shops`
 - [ ] `?view=social`
 - [ ] `?view=stalled`
-- [ ] `?view=subscriptions`
 - [ ] `?view=support`
 - [ ] `?view=tiers`
 
@@ -479,7 +478,6 @@ A useState string-union of 2+ states. Some are real flows, some are display-stat
 | `src/components/admin/AdminJobs.tsx` | union-state |
 | `src/components/admin/AdminPayoutBatches.tsx` | union-state |
 | `src/components/admin/AdminReferrals.tsx` | union-state |
-| `src/components/admin/AdminSubscriptions.tsx` | union-state |
 | `src/components/admin/settings/DeclutterProblemsCard.tsx` | union-state |
 | `src/components/admin/userDetail/JobsTab.tsx` | union-state |
 | `src/components/declutter/DeclutterBrowseView.tsx` | union-state |

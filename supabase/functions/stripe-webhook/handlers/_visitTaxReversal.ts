@@ -64,6 +64,13 @@ async function visitIsSeed(supabase: any, piId: string, logStep: (step: string, 
  * settled by the rest of the handler.
  */
 
+/** metadata.job_tax_cents of a PaymentIntent taxed at the job address (Q2083 b), else 0. */
+function jobSiteTaxCents(md: Record<string, string>): number {
+  const calc = md.tax_calculation_id;
+  const raw = md.job_tax_cents;
+  return typeof calc === "string" && calc.startsWith("taxcalc_") && typeof raw === "string" && /^\d+$/.test(raw) ? Number(raw) : 0;
+}
+
 /** The PaymentIntent metadata key that records the Stripe Tax reversal made for one refund. */
 function taxReversalMetadataKey(refundId: string): string {
   return `tax_rev_${refundId}`;
@@ -250,8 +257,25 @@ export async function reverseVisitTaxForRefund(args: {
     return "failed_paged";
   }
 
+  // Review fix (lh-money-escrow on ddfb06a83 #2 / aa8869511 #3): a job taxed
+  // at the job address and paid partly or wholly by a gift card commits a
+  // transaction for its FULL taxable price (labor + tax), while the card took
+  // only the shortfall and the tax (or the tax alone). Sharing a refund out by
+  // its card amount reversed a $20 card refund as $20 of a $110 transaction,
+  // leaving most of the tax reported as collected. On such a charge (the
+  // transaction is larger than the card charge) each refund is scaled to the
+  // part of the transaction it stands for: its tax share (amount x tax / card
+  // charge) plus the labor that tax was charged on, so a refund of the whole
+  // card charge is a full reversal. A card-only job is unchanged.
+  const chargeCents = Math.max(0, Math.round(Number(charge.amount ?? 0) || 0));
+  const giftReduced = jobSiteTaxCents(piMeta) > 0 && chargeCents > 0 && txTotalCents > chargeCents;
+  const shareInputs = giftReduced
+    ? refunds.map((r) => ({ ...r, amount: Math.round((Math.max(0, Number(r.amount ?? 0)) * txTotalCents) / chargeCents) }))
+    : refunds;
+  if (giftReduced) logStep("Job-site tax on a gift-reduced charge: refunds scaled to the transaction", { txId, chargeCents, txTotalCents });
+
   let outcome: "none" | "reversed" | "failed_paged" = "none";
-  for (const { refundId, shareCents, beforeCents } of visitTaxShares(refunds, txTotalCents)) {
+  for (const { refundId, shareCents, beforeCents } of visitTaxShares(shareInputs, txTotalCents)) {
     const metaKey = taxReversalMetadataKey(refundId);
     if (piMeta[metaKey]) {
       // A redelivery, or a later refund's event listing this one again.

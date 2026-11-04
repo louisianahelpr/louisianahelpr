@@ -12,8 +12,9 @@
  *   - it fails or times out: we are offline.
  * While marked offline it asks again on window focus, on the `online` event
  * and every OFFLINE_REPROBE_MS. Any Supabase request that comes back
- * (`noteReachable`, called from the Supabase client's fetch and the query
- * cache) flips it back to online at once.
+ * (`noteReachable`, called from the Supabase client's fetch) flips it back
+ * to online at once. A query that merely SUCCEEDS proves nothing (it can
+ * answer from a fallback with no network), so the query cache never calls it.
  *
  * Native (Capacitor) keeps its own path: useOnlineStatus layers
  * @capacitor/network on top and calls setConnectivity with the OS answer.

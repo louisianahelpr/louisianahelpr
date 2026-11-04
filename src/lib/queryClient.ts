@@ -16,7 +16,7 @@
  *   notification logs) until the persisted entries expire.
  */
 import { MutationCache, QueryCache, QueryClient, onlineManager } from "@tanstack/react-query";
-import { ensureConnectivityStarted, isConfirmedOffline, noteReachable, subscribeConnectivity, getConnectivity } from "./connectivity";
+import { ensureConnectivityStarted, isConfirmedOffline, subscribeConnectivity, getConnectivity } from "./connectivity";
 import { isNativePlatform } from "./nativeInit";
 import { report } from "./errorLogger";
 import { currentScreen } from "./currentScreen";
@@ -120,9 +120,12 @@ if (!isNativePlatform) {
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
-    // Any read that came back proves the connection: flip a (possibly wrong)
-    // offline state back at once (src/lib/connectivity.ts, owner 10-31).
-    onSuccess: () => noteReachable(),
+    // No onSuccess -> noteReachable here (slow-network 41599676917, 2026-11-04): a query can
+    // succeed with NO network (a queryFn that catches its failed read and returns a fallback,
+    // or one that never fetches), and that flipped a confirmed "offline" back to online, so the
+    // guest /browse "You're offline." card gave way to skeletons waiting for nothing. Every
+    // Supabase request that really comes back still flips it at once (noteReachableFetch in
+    // src/integrations/supabase/client.ts); the backend probe covers the rest.
     // `meta: { reportsItself: true }`: a query that reports its own failure (at most
     // once per session, e.g. the signed-out landing's public switch read) is
     // skipped here, so one bad deploy does not log an error on every anon visit.

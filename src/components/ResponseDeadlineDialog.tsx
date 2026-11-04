@@ -36,6 +36,8 @@ type Props = {
   job?: {
     id?: string | null;
     date_needed?: string | null;
+    /** Q2408: an "Any time this week" job's last day; the posted "when" prints the window. */
+    date_window_end?: string | null;
     start_time?: string | null;
     title?: string | null;
     budget?: number | null;
@@ -91,7 +93,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
     ? [formatJobDate(suggestedTime.date), suggestedTime.time ? jobStartTimeLabel(suggestedTime.time) : null].filter(Boolean).join(" at ")
     : null;
   const postedWhen = postedJob?.date_needed
-    ? [formatJobDate(postedJob.date_needed), jobStartTimeLabel(postedJob.start_time, postedJob.is_flexible_schedule)].filter(Boolean).join(" at ")
+    ? [jobDayLabel(postedJob), jobStartTimeLabel(postedJob.start_time, postedJob.is_flexible_schedule)].filter(Boolean).join(" at ")
     : null;
   const first = helperName.trim().split(/\s+/)[0] || helperName;
   // The job price shown only when it is the whole charge for this Helpr: not a crew (split) and no

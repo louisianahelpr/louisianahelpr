@@ -28,6 +28,7 @@ import { REVIEW_TAGS } from "@/lib/declutter/reviewTags";
 import { fetchRefundRequestView, refundedInFull, refundHoldsTheItem, type RefundRequestView } from "@/lib/declutter/refundRequests";
 import { clearReviewPrompt, reviewPromptWaiting } from "@/lib/declutter/reviewPrompt";
 import { focusSheetItself } from "./focusSheetItself";
+import { Textarea } from "@/components/ui/textarea";
 
 const REVIEW_SHOWS = "Reviews show once you both leave one, or after 14 days.";
 
@@ -156,7 +157,7 @@ export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false
             <label htmlFor={`dcl-review-${orderId}`} className="block text-ds-15 font-semibold">
               A few words <span className="font-normal text-muted-foreground">(optional)</span>
             </label>
-            <textarea
+            <Textarea
               id={`dcl-review-${orderId}`}
               className="w-full min-w-0 rounded-2xl border border-input bg-card px-4 py-3 text-ds-15 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               maxLength={1000}

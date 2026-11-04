@@ -13,6 +13,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { answerHelprNoShow, cancelAfterNoHelpr, fetchHelprNoShowReport, fetchNoHelprChoice, reportHelprNoShow } from "@/lib/declutter/noHelpr";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
+import { Textarea } from "@/components/ui/textarea";
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
@@ -118,7 +119,7 @@ export function HelprNoShowAnswer({ taskId }: { taskId: string }) {
         Louisiana Helpr looks at both sides, and no one gets a strike until they decide.
       </p>
       <label htmlFor={noteId} className="block text-xs font-medium">What happened? Say when you got there.</label>
-      <textarea id={noteId} rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} className="w-full rounded-2xl border border-input glass-field px-3 py-2 text-ds-15" />
+      <Textarea id={noteId} rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} className="w-full rounded-2xl border border-input glass-field px-3 py-2 text-ds-15" />
       {failed && <p role="alert" className="text-sm text-destructive-ink">{failed}</p>}
       <button type="button" className={primary} disabled={answer.isPending || !note.trim()} onClick={() => answer.mutate()}>
         I was there

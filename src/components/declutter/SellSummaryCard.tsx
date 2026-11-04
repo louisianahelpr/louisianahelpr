@@ -16,6 +16,7 @@ import { AiPriceLine } from "./SellAiDraft";
 import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
 import { FieldLabel, SELL_INPUT, SellPriceInput } from "./SellFormParts";
 import type { SellFlow } from "./useSellFlowState";
+import { Textarea } from "@/components/ui/textarea";
 
 export type SummaryField = "title" | "price" | "category" | "condition" | "size" | "description";
 
@@ -136,7 +137,7 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems, setti
         <Row {...row("description")} title="Details" value={form.description.trim()} empty={!form.description.trim()}>
           <div className="space-y-2">
             <FieldLabel htmlFor="sell-desc" text="Anything else?" extra="(optional)" />
-            <textarea id="sell-desc" className={`${SELL_INPUT} h-auto py-3`} rows={4} maxLength={2000} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="e.g. Works great. Small scuff on the base." />
+            <Textarea id="sell-desc" className={`${SELL_INPUT} h-auto py-3`} rows={4} maxLength={2000} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="e.g. Works great. Small scuff on the base." />
           </div>
         </Row>
         {settingsRows}

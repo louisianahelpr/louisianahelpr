@@ -11,6 +11,7 @@ import { answerNoShow, fetchMyHandover, reportNoShow } from "@/lib/declutter/han
 import { toast } from "sonner";
 import { NoShowSheet } from "./DeclutterHandoverSheets";
 import { invalidate, type PaidOrder } from "./paidOrders";
+import { Textarea } from "@/components/ui/textarea";
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 
@@ -51,7 +52,7 @@ export function NoShowAnswer({ orderId, side, delivery, free }: { orderId: strin
         {" "}If you answer, Louisiana Helpr looks at both sides. {free ? "" : "The money stays held, and "}{free ? "N" : "n"}o one gets a strike until they decide.
       </p>
       <label htmlFor={noteId} className="block text-xs font-medium">What happened?</label>
-      <textarea id={noteId} rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} className="w-full rounded-2xl border border-input glass-field px-3 py-2 text-ds-15" />
+      <Textarea id={noteId} rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} className="w-full rounded-2xl border border-input glass-field px-3 py-2 text-ds-15" />
       {failed && <p role="alert" className="text-sm text-destructive-ink">{failed}</p>}
       <Button type="button" className="rounded-full" disabled={answer.isPending || !note.trim()} onClick={() => answer.mutate()}>
         {delivery ? "I delivered it" : "I was there"}

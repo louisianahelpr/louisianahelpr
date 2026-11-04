@@ -42,6 +42,7 @@ import { sellStepProblem } from "./sellForm";
 import { FieldLabel, SELL_INPUT, SellDropsCard, SellFreeToggle, SellPriceInput, SellTaxBox, SellWaysFields } from "./SellFormParts";
 import { SellOneScreen } from "./SellOneScreen";
 import { useSellFlowState } from "./useSellFlowState";
+import { Textarea } from "@/components/ui/textarea";
 
 export default function SellFlow() {
   const [params] = useSearchParams();
@@ -145,7 +146,7 @@ function SellSteps({ itemId }: { itemId: string }) {
           <ChipGroup label="Size" options={(Object.keys(SIZE_LABEL) as DeliverySize[]).map((k) => ({ value: k, label: SIZE_LABEL[k] }))} value={form.deliverySize} onChange={(v) => set("deliverySize", v as DeliverySize)} />
           <div className="space-y-2">
             <FieldLabel htmlFor="sell-desc" text="Anything else?" extra="(optional)" />
-            <textarea id="sell-desc" className={`${SELL_INPUT} h-auto py-3`} rows={4} maxLength={2000} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="e.g. Works great. Small scuff on the base." />
+            <Textarea id="sell-desc" className={`${SELL_INPUT} h-auto py-3`} rows={4} maxLength={2000} value={form.description} onChange={(e) => set("description", e.target.value)} placeholder="e.g. Works great. Small scuff on the base." />
           </div>
         </section>
       )}

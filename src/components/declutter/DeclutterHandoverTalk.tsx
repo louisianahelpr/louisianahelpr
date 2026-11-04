@@ -33,6 +33,7 @@ import {
 } from "@/lib/declutter/handoverTalk";
 import { talkTime } from "@/lib/declutter/talkTime";
 import { focusSheetItself } from "./focusSheetItself";
+import { Textarea } from "@/components/ui/textarea";
 
 // AUD31-12: the weekday alone only within 6 days; older lines carry their date.
 const when = (iso: string) => talkTime(iso);
@@ -167,7 +168,7 @@ function HandoverTalkSheet({ talkId, onClose }: { talkId: string; onClose: () =>
             {!ended && (
               <form id={`talk-form-${talkId}`} className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (draft.trim()) send.mutate(); }}>
                 <label htmlFor={`talk-${talkId}`} className="block text-ds-13 font-medium">Message</label>
-                <textarea id={`talk-${talkId}`} className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
+                <Textarea id={`talk-${talkId}`} className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
                   maxLength={1000} value={draft} onChange={(e) => setDraft(e.target.value)} />
               </form>
             )}

@@ -46,6 +46,7 @@ import {
 } from "./DeclutterRefundReturn";
 import { SellerSideFields, SellerSideShown } from "./DeclutterRefundSellerSide";
 import { decidesBy } from "@/lib/declutter/decideBy";
+import { Textarea } from "@/components/ui/textarea";
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
@@ -181,7 +182,7 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
           onChange={(k, via) => { if (via === "click") hapticLight(); setReason(k as RefundReason); }}
         />
         <label htmlFor={`${id}-note`} className="block text-xs font-medium">Tell them more</label>
-        <textarea id={`${id}-note`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
+        <Textarea id={`${id}-note`} className={input} maxLength={1000} rows={3} value={note} onChange={(e) => setNote(e.target.value)} />
         {REFUND_FORM_PHOTOS_READY && <ProblemPhotoPicker files={photos} onChange={setPhotos} disabled={ask.isPending} />}
         <p className="text-ds-12 text-muted-foreground">
           {cap(who)} can refund it all, offer part, or say no. A full refund is {refundDollars(reason === "not_received" ? v.never_got_it_refund_cents ?? v.full_refund_cents : v.full_refund_cents)} back to your card

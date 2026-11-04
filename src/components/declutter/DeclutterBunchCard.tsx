@@ -21,6 +21,7 @@ import { CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
 import PriceHint from "./DeclutterPriceHint";
 import { BunchPhotos, type BunchOther } from "./DeclutterBunchPhotos";
 import { BuyerPreviewCard } from "./BuyerPreviewCard";
+import { Textarea } from "@/components/ui/textarea";
 
 const field = "h-11 w-full min-w-0 rounded-2xl border border-input glass-field px-3 text-ds-15";
 
@@ -168,7 +169,7 @@ export function BunchCard({ item, offersDefault, index, others, urls, files, at,
       {!item.free && <PriceHint category={item.category} conditionStars={item.conditionStars} at={at} place="near_you" />}
       <div className="min-w-0">
         <label className="block text-ds-13 font-medium" htmlFor={`desc-${id}`}>Description</label>
-        <textarea id={`desc-${id}`} rows={3} maxLength={2000} className="w-full min-w-0 rounded-2xl border border-input glass-field px-3 py-2 text-ds-15"
+        <Textarea id={`desc-${id}`} rows={3} maxLength={2000} className="w-full min-w-0 rounded-2xl border border-input glass-field px-3 py-2 text-ds-15"
           value={item.description} onChange={(e) => onChange({ description: e.target.value })} />
       </div>
 

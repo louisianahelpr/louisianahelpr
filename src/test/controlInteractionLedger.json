@@ -92,7 +92,6 @@
     "notTint  src/components/admin/userDetail/DocumentsTab.tsx:105 <a>  hover:border-primary",
     "notTint  src/components/dashboard/BrowseTasksToolbar.tsx:241 <button>  hover:border-primary/50",
     "notTint  src/components/dashboard/filterSheet/FilterSheetRows.tsx:38 <Link>  hover:border-primary/50",
-    "notTint  src/components/dashboard/JobDetailDialog.tsx:546 <button>  hover:opacity-80",
     "notTint  src/components/dashboard/PhotoLightbox.tsx:474 <button>  hover:opacity-100",
     "notTint  src/components/marketing/FaqRow.tsx:27 <button>  hover:opacity-80",
     "notTint  src/components/messages/MessageBubble.tsx:362 <button>  hover:opacity-100",

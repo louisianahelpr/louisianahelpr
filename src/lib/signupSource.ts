@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { safeStorage } from "@/lib/safeStorage";
-import { signupLeadSource } from "@/lib/signupLead";
+import { signupLeadSource } from "@/lib/signupLeadSource";
 
 /**
  * OPS-5 (owner 10-29): which posts and links bring sign-ups and first posts, privacy-safe.

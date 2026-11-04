@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { useLoginTracking } from "@/hooks/useLoginTracking";
-import { useNativePushSetup } from "@/lib/nativePush";
+import { isNativePlatform } from "@/lib/nativeInit";
 import { useWebPushAskAfterJobAction, useWebPushBootSync } from "@/hooks/useWebPush";
 import { useDynamicTypeSync, OS_LARGE_TEXT_THRESHOLD } from "@/lib/accessibility";
 import { seniorModeMetadataPatch, sessionSeniorFlag, syncSeniorMode } from "@/lib/simpleMode";
@@ -12,10 +12,15 @@ import { useAppLifecycle } from "@/lib/appLifecycle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDarkMode } from "@/hooks/useDarkMode";
 import { loadModule, untilReload } from "@/lib/loadModule";
+import { whenPageSettled } from "@/lib/routePrefetch";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
 const supabaseClient = () => loadModule(() => import("@/integrations/supabase/client"));
+
+// Native push + deep links: only the native app mounts them, from their own chunk, so the web boot path does
+// not carry nativePush.ts (a no-op on the web). Q2705/Q2706 boot cut, 11-04.
+const NativePushSetup = lazy(async () => (await loadModule(() => import("@/components/NativePushSetup"))) ?? untilReload());
 
 // App-wide boot hooks with no UI, mounted once inside <BrowserRouter> by App.tsx.
 // Moved verbatim out of App.tsx (component-size ratchet, Q806); App.tsx still
@@ -45,7 +50,6 @@ export const SessionManager = () => {
   // listener. That was the same bug class: the timer cannot actually tell
   // idle from busy.
   useLoginTracking();
-  useNativePushSetup();
   const dynamicTypeScale = useDynamicTypeSync();
   useDarkMode(); // initializes data-theme from localStorage / system preference
   useCppVariantRouter();
@@ -80,6 +84,16 @@ export const SessionManager = () => {
   // OPS-5: where this member came from (two short words, no personal data), sent once per new account.
   useSignupSourceReport(user?.id, user?.created_at);
   useWebPushAskAfterJobAction();
+  // Sign-out loads nativePush.ts for its push cleanup (authSignOut.ts, inside a 2 s cap); warm it once a
+  // signed-in page has settled so a slow link never spends that cap on the download.
+  useEffect(() => {
+    if (!user?.id || isNativePlatform) return;
+    return whenPageSettled(() => {
+      void import("@/lib/nativePush").catch(() => {
+        /* a warm-up only: sign-out loads it again and reports a failure there */
+      });
+    });
+  }, [user?.id]);
   useEffect(() => {
     // null until the profile lands, so the cached account flag the first
     // paint used is not switched off and back on (Q169).
@@ -105,5 +119,5 @@ export const SessionManager = () => {
   }, [profile, user]);
 
 
-  return null;
+  return isNativePlatform ? <Suspense fallback={null}><NativePushSetup /></Suspense> : null;
 };

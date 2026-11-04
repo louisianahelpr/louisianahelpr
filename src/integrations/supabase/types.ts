@@ -1330,6 +1330,71 @@ export type Database = {
         }
         Relationships: []
       }
+      declutter_bundle_request_items: {
+        Row: {
+          item_id: string
+          line_id: string | null
+          outcome: string | null
+          price_cents: number
+          request_id: string
+        }
+        Insert: {
+          item_id: string
+          line_id?: string | null
+          outcome?: string | null
+          price_cents: number
+          request_id: string
+        }
+        Update: {
+          item_id?: string
+          line_id?: string | null
+          outcome?: string | null
+          price_cents?: number
+          request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_bundle_request_items_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_bundle_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      declutter_bundle_requests: {
+        Row: {
+          buyer_id: string
+          closed_at: string | null
+          created_at: string
+          id: string
+          is_seed: boolean
+          respond_by: string
+          seller_id: string
+          status: string
+        }
+        Insert: {
+          buyer_id: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          respond_by: string
+          seller_id: string
+          status?: string
+        }
+        Update: {
+          buyer_id?: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          respond_by?: string
+          seller_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       declutter_buyer_cards: {
         Row: {
           brand: string | null
@@ -16690,6 +16755,19 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      declutter_answer_bundle: {
+        Args: { p_accept_item_ids: string[] | null; p_request_id: string }
+        Returns: number
+      }
+      declutter_bundle_sweep: { Args: never; Returns: number }
+      declutter_request_bundle: {
+        Args: { p_item_ids: string[] }
+        Returns: string
+      }
+      declutter_withdraw_bundle: {
+        Args: { p_request_id: string }
+        Returns: undefined
       }
       declutter_make_offer: {
         Args: { p_amount_cents: number; p_item_id: string }

@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1144,
-    "files": 316,
-    "rendering": 1063,
+    "calls": 1150,
+    "files": 317,
+    "rendering": 1069,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 213,
-      "toast.error": 775,
+      "toast": 216,
+      "toast.error": 778,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 483,
+      "literal": 485,
       "template": 105,
-      "dynamic": 608,
+      "dynamic": 612,
       "jsx": 0
     }
   },
@@ -4784,6 +4784,131 @@
       "title": {
         "form": "dynamic",
         "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterBundleRequests.tsx",
+      "line": 66,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Asked. The seller has 48 hours to answer. Nothing is charged until you pay."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterBundleRequests.tsx",
+      "line": 72,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "bundleErrorMessage(err)",
+        "from": "src/lib/declutter/bundleErrors.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "e.userMessage"
+          },
+          {
+            "form": "dynamic",
+            "text": "BUNDLE_ERROR_COPY[message]"
+          },
+          {
+            "form": "dynamic",
+            "text": "declutterErrorMessage(err)"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterBundleRequests.tsx",
+      "line": 164,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "ids !== null && ids.length === 0 ? \"Declined. The buyer is told.\" : n < 0 ? \"The buyer has no card saved yet. We asked them to add one; answer again once they do.\" : `Accepted ${n}. The buyer has 24 hours to pay.`",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Declined. The buyer is told."
+          },
+          {
+            "form": "dynamic",
+            "text": "n < 0 ? \"The buyer has no card saved yet. We asked them to add one; answer again once they do.\" : `Accepted ${n}. The buyer has 24 hours to pay.`",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "The buyer has no card saved yet. We asked them to add one; answer again once they do."
+              },
+              {
+                "form": "template",
+                "text": "Accepted ${n}. The buyer has 24 hours to pay."
+              }
+            ]
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterBundleRequests.tsx",
+      "line": 169,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "bundleErrorMessage(err)",
+        "from": "src/lib/declutter/bundleErrors.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "e.userMessage"
+          },
+          {
+            "form": "dynamic",
+            "text": "BUNDLE_ERROR_COPY[message]"
+          },
+          {
+            "form": "dynamic",
+            "text": "declutterErrorMessage(err)"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterBundleRequests.tsx",
+      "line": 207,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Taken back. The seller won't see it anymore."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterBundleRequests.tsx",
+      "line": 208,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "bundleErrorMessage(err)",
+        "from": "src/lib/declutter/bundleErrors.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "e.userMessage"
+          },
+          {
+            "form": "dynamic",
+            "text": "BUNDLE_ERROR_COPY[message]"
+          },
+          {
+            "form": "dynamic",
+            "text": "declutterErrorMessage(err)"
+          }
+        ]
       },
       "renders": true
     },

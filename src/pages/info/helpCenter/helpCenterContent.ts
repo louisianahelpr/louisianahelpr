@@ -133,13 +133,13 @@ export const FAQ_SECTIONS: FaqSection[] = [
       },
       {
         q: "How is the price determined?",
-        // WAS "a range from local market data for your category and parish".
-        // There is no market data and no parish dimension: src/lib/pricingGuide.ts
-        // is a hardcoded table of fixed min/max per category and getSmartPrice()
-        // returns the midpoint rounded to $5. The word "parish" does not appear
-        // in that file. Describing a static table as local market data is the
-        // same defect class as a stat nothing computes.
-        a: "You set the price. We suggest a typical range for the category, and you can take the suggested amount in one tap.",
+        // WAS "a range from local market data for your category and parish", then
+        // "We suggest a typical range for the category, and you can take the
+        // suggested amount in one tap." Both false: the owner removed suggested
+        // prices from Post a job on 2026-10-08 (BudgetSection.tsx), and the
+        // range table (src/lib/pricingGuide.ts) had no caller and was deleted
+        // 2026-11-04 (Q1834).
+        a: "You set the price. Pick what the job is worth to you.",
       },
       {
         q: "Can I cancel after someone applies?",

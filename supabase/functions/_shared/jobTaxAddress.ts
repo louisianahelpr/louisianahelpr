@@ -43,6 +43,8 @@ export function jobTaxAddress(zip: unknown): JobTaxAddress | null {
 /** Metadata keys a job Checkout Session carries when its tax was precomputed at the job site. */
 export const JOB_TAX_CALC_KEY = "tax_calculation_id";
 export const JOB_TAX_CENTS_KEY = "job_tax_cents";
+/** A gift-paid job-site-taxed checkout: the full taxable price the tax was figured on (the card took less). */
+export const JOB_TAXABLE_CENTS_KEY = "job_taxable_cents";
 
 type SessionLike = {
   metadata?: Record<string, string> | null;

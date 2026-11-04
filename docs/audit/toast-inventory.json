@@ -3,17 +3,17 @@
   "summary": {
     "calls": 1152,
     "files": 319,
-    "rendering": 1070,
-    "suppressedByPolicy": 82,
+    "rendering": 1071,
+    "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 216,
+      "toast": 217,
       "toast.error": 779,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 88,
+      "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
@@ -9181,12 +9181,12 @@
     {
       "file": "src/components/profile/YourPageLink.tsx",
       "line": 30,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Link copied"
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/profile/YourPageLink.tsx",

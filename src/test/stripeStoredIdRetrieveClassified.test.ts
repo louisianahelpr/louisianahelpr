@@ -322,6 +322,7 @@ const EXEMPT: Record<string, string> = {
   // refunded before the dispute.
   "stripe-webhook/handlers/_visitTaxReversal.ts::stripe.charges.retrieve(chargeId)": EVENT,
   "stripe-webhook/handlers/chargeRefunded.ts::stripe.paymentIntents.retrieve(refundPiId)": EVENT,
+  "stripe-webhook/handlers/chargeRefunded.ts::stripe.paymentIntents.retrieve(refundPiId)#2": EVENT,
   // Q1940 (a): the duplicate-paid session's own PaymentIntent (checkoutSessionCompleted piId, from session.payment_intent).
   "stripe-webhook/handlers/refundDuplicateFunding.ts::stripe.paymentIntents.retrieve(args.pi)": EVENT,
   // Q1904 (b42, a3fe57c479): the duplicate setup fee's own charge, read from this event session's PaymentIntent.

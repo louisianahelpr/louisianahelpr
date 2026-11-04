@@ -833,6 +833,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Money tab help (Q2471, b109-finish 11-04): not swept yet (new 11-04).
+  "src/components/money/MoneyHelp.tsx": "one question box (maxLength 500 on the client, Ask disabled under 10 characters) sent to support-ai-answer, which is rate-limited per IP (6 a minute) and answers nothing under 10 characters; nothing typed here is saved.",
   // Bundle requests (Q2268, 20261104103528): not swept yet (new 11-04).
   "src/components/declutter/DeclutterBundleRequests.tsx": "no typed text: one checkbox per item and Ask / Accept all / Pick some / Decline buttons; declutter_request_bundle refuses fewer than 2 or more than 20 items (bundle_size), items from more than one seller (bundle_one_seller) and free items (bundle_free_item), and declutter_answer_bundle refuses an expired or closed request.",
   // Shipping (train 7, 11-03): not swept yet.

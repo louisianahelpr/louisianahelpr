@@ -7126,9 +7126,11 @@ export type Database = {
           quotes_close_at: string
           start_time: string | null
           status: string
+          tax_kind: string | null
           title: string
           updated_at: string
           window_hours: number
+          zip_code: string | null
         }
         Insert: {
           category?: Database["public"]["Enums"]["job_category"]
@@ -7149,9 +7151,11 @@ export type Database = {
           quotes_close_at: string
           start_time?: string | null
           status?: string
+          tax_kind?: string | null
           title: string
           updated_at?: string
           window_hours?: number
+          zip_code?: string | null
         }
         Update: {
           category?: Database["public"]["Enums"]["job_category"]
@@ -7172,9 +7176,11 @@ export type Database = {
           quotes_close_at?: string
           start_time?: string | null
           status?: string
+          tax_kind?: string | null
           title?: string
           updated_at?: string
           window_hours?: number
+          zip_code?: string | null
         }
         Relationships: [
           {

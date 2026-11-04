@@ -95,5 +95,6 @@ export async function requestSuggestedOffer(itemId: string): Promise<SuggestedOf
   if (error) throw await replyFailure(error);
   const d = data as { offerCents?: unknown; reason?: unknown } | null;
   if (!d || typeof d.offerCents !== "number" || !Number.isInteger(d.offerCents) || d.offerCents < 100) throw new Error("ai_unavailable");
-  return { offerCents: d.offerCents, reason: typeof d.reason === "string" ? d.reason : "" };
+  const reason = typeof d.reason === "string" ? d.reason : "";
+  return { offerCents: d.offerCents, reason };
 }

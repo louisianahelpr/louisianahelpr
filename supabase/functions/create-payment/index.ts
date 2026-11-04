@@ -3420,6 +3420,23 @@ serve(async (req) => {
           });
           const nonRefundableCents = cancelSplit.nonRefundableCents;
           const refundAmount = cancelSplit.refundCents;
+          // Lead re-review of 49a8653d81 (a), Q2718: fees never come out of the job-site sales tax. When the card's
+          // non-tax part is smaller than the fees this cancel keeps (a gift paid most or all of the job), they
+          // would; not priced here yet, so a person looks (the refund below runs as before).
+          const escrowTaxMd = (pi.metadata ?? {}) as Record<string, string>;
+          const escrowSiteTaxCents = String(escrowTaxMd.tax_calculation_id ?? "").startsWith("taxcalc_") && /^\d+$/.test(String(escrowTaxMd.job_tax_cents ?? ""))
+            ? Number(escrowTaxMd.job_tax_cents)
+            : 0;
+          if (escrowSiteTaxCents > 0 && capturedCents - escrowSiteTaxCents < nonRefundableCents) {
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "warning",
+              title: "Cancelled job's fees would come out of its sales tax",
+              message: `cancel_escrow on job ${jobId}: the card paid $${(capturedCents / 100).toFixed(2)}, of which $${(escrowSiteTaxCents / 100).toFixed(2)} is job-site sales tax, so its non-tax part is smaller than the $${(nonRefundableCents / 100).toFixed(2)} of fees this cancel keeps. Check the refund, the gift restore and the tax by hand (docs/OPEN.md Q2718).`,
+              fields: { job_id: jobId, payment_intent: cancelPaymentIntentId, captured_cents: capturedCents, tax_cents: escrowSiteTaxCents, kept_fees_cents: nonRefundableCents },
+              oncePerDayKey: `cancel-fees-from-tax:${jobId}`,
+            });
+          }
           // Idempotency key prevents a double-refund on concurrent cancel
           // requests (double-tap, network retry) from both succeeding before
           // the payment_status flip below makes the second 409 out.

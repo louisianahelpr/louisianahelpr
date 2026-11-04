@@ -28,7 +28,7 @@ const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 import { useActivityActions } from "@/components/job-card/useActivityActions";
 import { POSTED_STATUS_FILTERS, APPLIED_STATUS_FILTERS, useActivityFilters, postedActivityBucket, appliedActivityBucket, jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { ActivityEmptyState } from "@/components/job-card/ActivityEmptyState";
-import { useSearchParamMirror } from "@/hooks/useSearchParamMirror";
+import { useActivityUrlMirror } from "./useActivityUrlMirror";
 import { JobListQuotesSlot } from "@/components/quotes/JobListQuotesSlot";
 import { toast } from "sonner";
 import { recheckUnverifiedArrival } from "@/components/job-card/recheckUnverifiedArrival";
@@ -143,41 +143,8 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
     // the posted branch's later setHighlightJobId cannot fire before this).
   }, []);
 
-  // Mirror filter + search into the URL through the SHARED hook.
-  //
-  // This screen used to hand-roll the same job in three interacting effects,
-  // and it is the reason /jobs and /posts kept crashing into the route
-  // error boundary. The failure mode is not obvious: `setSearchParams`
-  // navigates unconditionally AND its identity churns on every location
-  // change, so an effect that both writes it and depends on it re-arms itself.
-  // WebKit throws at ~100 replaceState calls in 10s, which unmounts the route.
-  // error_logs shows 19 of the last 20 RouteErrorBoundary entries are exactly
-  // that message, across /browse, /jobs and /posts.
-  //
-  // /browse had the identical bug and was cured by moving onto
-  // useSearchParamMirror, which decides OUTSIDE the updater (so the navigator
-  // is never called on a no-op) and reaches setSearchParams through a ref (so
-  // its identity cannot feed back into the deps). /browse has been clean since.
-  // Activity was the last screen still hand-rolling it; this converges it.
-  //
-  // Empty string means "default" to the hook, so the param is DROPPED rather
-  // than written when the filter is at its default and the search is blank —
-  // preserving the previous behaviour of keeping a pristine view's URL clean.
-  // `highlight` is not listed here and is therefore left untouched by the
-  // hook; the one-shot effect above still strips it on mount.
-  useSearchParamMirror(
-    {
-      filter: statusFilter === defaultFilter ? "" : statusFilter,
-      q: searchQuery.trim(),
-    },
-    (read) => {
-      const nextFilter = read("filter") || defaultFilter;
-      if (nextFilter !== statusFilter) setStatusFilter(nextFilter);
-      const nextQuery = read("q");
-      if (nextQuery !== searchQuery.trim()) setSearchQuery(nextQuery);
-    },
-    "activity",
-  );
+  // Mirror filter + search into the URL through the SHARED hook (useActivityUrlMirror.ts says why).
+  useActivityUrlMirror(statusFilter, setStatusFilter, searchQuery, setSearchQuery, defaultFilter);
 
   const {
     loading, loadError, postedJobs, appliedApps, applicantCounts, pendingApplicantCounts, closedApplicantSummaries,

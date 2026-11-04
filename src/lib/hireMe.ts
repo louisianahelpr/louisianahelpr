@@ -30,7 +30,7 @@ export const HIRE_ME_RPC_ERROR_COPY = {
 type HireMeRpc = keyof typeof HIRE_ME_RPC_ERROR_COPY;
 
 /** Words for an error the hire read returned, or null when it is not one of its codes (whole-token match). */
-export function rpcErrorMessage(rpc: HireMeRpc, error: unknown): string | null {
+function rpcErrorMessage(rpc: HireMeRpc, error: unknown): string | null {
   const m = typeof error === "string" ? error : (error as { message?: unknown } | null)?.message;
   const raw = typeof m === "string" ? m : "";
   if (!raw) return null;

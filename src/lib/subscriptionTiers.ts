@@ -118,8 +118,6 @@ import {
 
 export { tierDisplayName };
 export {
-  MONTHLY_FREE_BOOSTS,
-  
   TIER_ORDER,
   hasPerk,
   monthlyFreeBoostAllowance,

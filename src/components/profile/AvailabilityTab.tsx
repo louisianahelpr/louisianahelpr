@@ -115,12 +115,15 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
   // than blocking the toggle — a helper must always be able to say they are
   // free, even when we could not read their hours.
   const [todaysHours, setTodaysHours] = useState<TodaysHours>({ kind: "unknown" });
+  // Q2008 "Show me in Helprs near you": opt-in (profiles.show_near_you, default off). null until loaded.
+  const [showNearYou, setShowNearYou] = useState<boolean | null>(null);
+  const [savingNearYou, setSavingNearYou] = useState(false);
 
   // Load current availability status from profiles.
   useEffect(() => {
     supabase
       .from("profiles")
-      .select("available_until")
+      .select("available_until, show_near_you")
       .eq("user_id", userId)
       .single()
       .then(({ data, error }) => {
@@ -130,6 +133,7 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
           report(error, { severity: "warning", tags: { source: "AvailabilityTab.loadStatus" } });
           return;
         }
+        setShowNearYou(data?.show_near_you === true);
         if (data?.available_until) {
           const until = new Date(data.available_until as string);
           setAvailableUntil(until > new Date() ? until : null);
@@ -249,6 +253,28 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
     }
   };
 
+  const toggleNearYou = async (on: boolean) => {
+    setSavingNearYou(true);
+    try {
+      // .select("user_id") + a row check: a null error with zero rows changed is not a save (CLAUDE.md).
+      const { data, error } = await supabase
+        .from("profiles")
+        .update({ show_near_you: on })
+        .eq("user_id", userId)
+        .select("user_id");
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error("show_near_you update changed no row");
+      setShowNearYou(on);
+      hapticSuccess();
+    } catch (err) {
+      report(err, { severity: "error", tags: { source: "AvailabilityTab.toggleNearYou" }, context: { userId } });
+      hapticError();
+      toast.error("Couldn't save that. Try again.");
+    } finally {
+      setSavingNearYou(false);
+    }
+  };
+
   return (
     <ProfileTabBody>
       <ProfileTabHeader
@@ -284,6 +310,25 @@ export function AvailabilityTab({ userId, onBack }: AvailabilityTabProps) {
           onCheckedChange={toggleAvailability}
           disabled={toggling}
           aria-label={isAvailable ? "Turn off available now" : "Turn on available now"}
+        />
+      </div>
+
+      {/* Q2008: opt-in to the "Helprs near you" row on neighbours' Home. Off by default; only the first
+          name, photo and the active-now dot are shown, matched by parish on the server (never a location). */}
+      <div data-testid="show-near-you-row" className="rounded-[20px] liquid-glass px-4 py-3.5 flex items-center justify-between gap-4">
+        <div>
+          <p className="text-ds-15 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
+            Show me in Helprs near you
+          </p>
+          <p className="text-ds-12 text-muted-foreground">
+            Neighbors in your parish see your photo, first name and when you're available now, on Home. Never your address.
+          </p>
+        </div>
+        <Switch
+          checked={showNearYou === true}
+          onCheckedChange={toggleNearYou}
+          disabled={showNearYou === null || savingNearYou}
+          aria-label="Show me in Helprs near you"
         />
       </div>
 

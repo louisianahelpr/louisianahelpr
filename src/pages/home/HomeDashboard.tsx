@@ -24,6 +24,7 @@ import { JobProgress } from "@/components/tracker/JobProgress";
 import { PayoutFailedCard } from "@/components/money/PayoutFailedCard";
 import { FirstJobHome, useFirstJobState } from "./homeDashboard/FirstJobHome";
 import { PosterFirstJobCard } from "./homeDashboard/PosterFirstJobCard";
+import { HelprsNearYou } from "./homeDashboard/HelprsNearYou";
 import { optionalLazy } from "@/lib/optionalLazy";
 // Loaded the first time it opens, never with Home's first screen (AUD31-60, B61): it brings Sheet and Switch.
 const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
@@ -126,6 +127,9 @@ function HomeDashboardScreen() {
           <div data-home-main className="flex flex-col gap-section min-w-0">
             {/* Board 143: a failed bank payout, first under the greeting; renders nothing unless one is open. */}
             <PayoutFailedCard />
+
+            {/* Q2008: faces of opted-in members in your parish, "active now" dot; nothing until one opts in. */}
+            <HelprsNearYou userId={user?.id} />
 
             {/* Board 189: before a member's first job (never applied), the first-job checklist and jobs near them. */}
             {/* A3-82: not for a member who came to sell or buy on Declutter (a Jobs checklist above Next up is noise). */}

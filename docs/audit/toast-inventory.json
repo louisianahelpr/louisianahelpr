@@ -1,23 +1,23 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1141,
+    "calls": 1142,
     "files": 316,
-    "rendering": 1060,
+    "rendering": 1061,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 213,
-      "toast.error": 772,
+      "toast.error": 773,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 482,
+      "literal": 483,
       "template": 105,
       "dynamic": 606,
       "jsx": 0
@@ -8555,11 +8555,21 @@
     },
     {
       "file": "src/components/profile/AvailabilityTab.tsx",
-      "line": 246,
+      "line": 250,
       "kind": "toast.error",
       "title": {
         "form": "literal",
         "text": "Couldn't update availability — try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/AvailabilityTab.tsx",
+      "line": 272,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't save that. Try again."
       },
       "renders": true
     },

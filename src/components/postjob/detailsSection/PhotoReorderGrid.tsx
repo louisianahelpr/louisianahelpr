@@ -82,7 +82,7 @@ export default function PhotoReorderGrid({
                   color: "hsl(var(--parchment))",
                 }}
               >
-                <GripVertical className="w-3 h-3" strokeWidth={2.5} />
+                <GripVertical className="w-3 h-3" />
               </span>
               <button
                 type="button"
@@ -99,7 +99,7 @@ export default function PhotoReorderGrid({
                     boxShadow: "var(--elev-sienna-glow)",
                   }}
                 >
-                  <X className="w-3 h-3" strokeWidth={2.5} />
+                  <X className="w-3 h-3" />
                 </span>
               </button>
             </Reorder.Item>
@@ -125,7 +125,6 @@ export default function PhotoReorderGrid({
           <Plus
             className="w-7 h-7"
             style={{ color: "hsl(var(--bark))" }}
-            strokeWidth={2}
           />
           <input
             type="file"

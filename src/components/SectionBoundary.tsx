@@ -125,7 +125,7 @@ class SectionErrorBoundary extends React.Component<
               color: "hsl(var(--burnt-sienna))",
             }}
           >
-            <AlertTriangle className="h-4 w-4" strokeWidth={2.25} />
+            <AlertTriangle className="h-4 w-4" />
           </div>
           <div className="flex-1 min-w-0">
             <p

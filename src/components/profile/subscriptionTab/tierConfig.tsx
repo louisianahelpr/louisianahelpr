@@ -157,8 +157,8 @@ export const tierConfig: TierDisplay[] = [
 ];
 
 export const TierIcon = ({ name, className, style }: { name: TierIconName; className?: string; style?: React.CSSProperties }) => {
-  if (name === "leaf") return <Leaf className={className} style={style} strokeWidth={2} />;
-  if (name === "star") return <Star className={className} style={style} strokeWidth={2} />;
-  if (name === "sparkles") return <Sparkles className={className} style={style} strokeWidth={2} />;
-  return <Crown className={className} style={style} strokeWidth={2} />;
+  if (name === "leaf") return <Leaf className={className} style={style} />;
+  if (name === "star") return <Star className={className} style={style} />;
+  if (name === "sparkles") return <Sparkles className={className} style={style} />;
+  return <Crown className={className} style={style} />;
 };

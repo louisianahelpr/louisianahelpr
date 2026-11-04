@@ -9,9 +9,9 @@ import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 /** "Auto" is the visible label for `system` because the track is three cells
  *  wide on a phone; the accessible name spells it out. */
 const COLOR_MODES: SegmentedOption<Theme>[] = [
-  { value: "light", label: "Light", icon: <Sun className="w-4 h-4" strokeWidth={2} /> },
-  { value: "system", label: "Auto", ariaLabel: "Match system", icon: <Monitor className="w-4 h-4" strokeWidth={2} /> },
-  { value: "dark", label: "Dark", icon: <Moon className="w-4 h-4" strokeWidth={2} /> },
+  { value: "light", label: "Light", icon: <Sun className="w-4 h-4" /> },
+  { value: "system", label: "Auto", ariaLabel: "Match system", icon: <Monitor className="w-4 h-4" /> },
+  { value: "dark", label: "Dark", icon: <Moon className="w-4 h-4" /> },
 ];
 
 interface AccessibilityTabProps {

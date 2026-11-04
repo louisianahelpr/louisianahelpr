@@ -160,14 +160,14 @@ export function MessageActionSheet({
         <div className="grid grid-cols-1 gap-1.5">
           {onReply && (
             <ActionRow
-              icon={<Reply className="w-5 h-5" strokeWidth={2} />}
+              icon={<Reply className="w-5 h-5" />}
               label={t("chat.reply")}
               onClick={() => { hapticLight(); onReply(message); onClose(); }}
             />
           )}
           {canCopy && (
             <ActionRow
-              icon={<Copy className="w-5 h-5" strokeWidth={2} />}
+              icon={<Copy className="w-5 h-5" />}
               label={t("chat.copy")}
               onClick={handleCopy}
             />
@@ -176,13 +176,13 @@ export function MessageActionSheet({
             <>
               {canEdit && (
                 <ActionRow
-                  icon={<Pencil className="w-5 h-5" strokeWidth={2} />}
+                  icon={<Pencil className="w-5 h-5" />}
                   label={t("chat.edit")}
                   onClick={handleEdit}
                 />
               )}
               <ActionRow
-                icon={<Trash2 className="w-5 h-5" strokeWidth={2} />}
+                icon={<Trash2 className="w-5 h-5" />}
                 label={t("chat.delete")}
                 onClick={handleDelete}
                 tone="danger"
@@ -196,13 +196,13 @@ export function MessageActionSheet({
                blocking logic is duplicated here. */
             <>
               <ActionRow
-                icon={<Flag className="w-5 h-5" strokeWidth={2} />}
+                icon={<Flag className="w-5 h-5" />}
                 label={t("chat.report")}
                 onClick={handleReport}
                 tone="danger"
               />
               <ActionRow
-                icon={<Ban className="w-5 h-5" strokeWidth={2} />}
+                icon={<Ban className="w-5 h-5" />}
                 label={t("chat.block")}
                 onClick={handleBlock}
                 tone="danger"

@@ -402,7 +402,6 @@ function PostedJobCardInner({
                       aria-hidden
                       className="w-3.5 h-3.5 shrink-0 mt-0.5"
                       style={{ color: "hsl(var(--amber-ink))" }}
-                      strokeWidth={2.25}
                     />
                     <p
                       className="font-sans leading-snug text-ds-12"
@@ -429,7 +428,7 @@ function PostedJobCardInner({
                   {job.revision_note && <p className="text-ds-11 text-muted-foreground">{job.revision_note}</p>}
                   {job.revision_completed_at && (
                     <div className="p-1.5 rounded border" style={{ background: "hsl(var(--success-tint))", borderColor: "hsl(var(--success-border))" }}>
-                      <p className="text-ds-11 font-medium inline-flex items-center gap-1" style={{ color: "hsl(var(--success-ink))" }}><Check className="w-3 h-3" strokeWidth={3} /> Helpr marked revision as fixed</p>
+                      <p className="text-ds-11 font-medium inline-flex items-center gap-1" style={{ color: "hsl(var(--success-ink))" }}><Check className="w-3 h-3" /> Helpr marked revision as fixed</p>
                       {job.revision_acceptance_deadline && (
                         <DeadlineCountdown
                           deadline={job.revision_acceptance_deadline}

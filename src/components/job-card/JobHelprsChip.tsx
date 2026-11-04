@@ -62,7 +62,7 @@ export function JobHelprsChip({
       className={`inline-flex items-center shrink-0 whitespace-nowrap ${className}`}
       style={{ color: "hsl(var(--primary))" }}
     >
-      <Users className={`${iconClassName} shrink-0`} strokeWidth={2.25} aria-hidden="true" />
+      <Users className={`${iconClassName} shrink-0`} aria-hidden="true" />
       {open != null ? (
         <>
           <span className="font-sans font-medium">{`${open} spot${open === 1 ? "" : "s"} open`}</span>

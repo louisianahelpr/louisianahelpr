@@ -56,7 +56,6 @@ export function JobCategoryTab({
         category={category}
         aria-hidden
         className={`w-3.5 h-3.5 shrink-0 ${catStyle.title}`}
-        strokeWidth={2.25}
       />
       <span className="font-sans truncate">
         {categoryLabels[category] || formatCategory(category)}

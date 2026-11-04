@@ -101,7 +101,7 @@ const BackButton = ({ to, className, onClick }: BackButtonProps) => {
       className={`${BACK_BUTTON_BOX_CLASS} ctl-exit flex items-center justify-center ctl-tint active:scale-[0.97] shrink-0 ${className ?? ""}`}
       style={{ color: "hsl(var(--olivewood))" }}
     >
-      <ArrowLeft className="w-5 h-5" strokeWidth={2.25} />
+      <ArrowLeft className="w-5 h-5" />
     </button>
   );
 };

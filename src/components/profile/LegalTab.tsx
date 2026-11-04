@@ -201,7 +201,7 @@ export function LegalTab({ onBack }: { onBack: () => void }) {
                     }}
                   />
                 )}
-                <Icon className="relative w-3.5 h-3.5 shrink-0" strokeWidth={2.25} aria-hidden />
+                <Icon className="relative w-3.5 h-3.5 shrink-0" aria-hidden />
                 <span className="relative truncate">{TAB_LABELS[key]}</span>
               </TabsTrigger>
             );

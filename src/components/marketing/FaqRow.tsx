@@ -42,7 +42,6 @@ const FaqRow = ({
             color: "hsl(var(--olivewood))",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
           }}
-          strokeWidth={1.75}
           aria-hidden
         />
       </button>

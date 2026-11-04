@@ -80,7 +80,6 @@ export function MaterialsPanel({ category, className }: MaterialsPanelProps) {
           <ShoppingCart
             className="w-4 h-4 shrink-0"
             style={{ color: "hsl(var(--primary))" }}
-            strokeWidth={2.25}
           />
           {/* "You Might Need:" ended in a colon and rendered COLLAPSED, so the
               default state of this panel was a heading that promised a list and
@@ -132,7 +131,6 @@ export function MaterialsPanel({ category, className }: MaterialsPanelProps) {
                     <Icon
                       className="w-3.5 h-3.5 shrink-0"
                       style={{ color: "hsl(var(--primary))" }}
-                      strokeWidth={2.25}
                     />
                     <span
                       className="text-ds-12 font-medium leading-tight"

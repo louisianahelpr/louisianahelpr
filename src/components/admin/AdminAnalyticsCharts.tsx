@@ -74,8 +74,8 @@ export const RevenueLineChart = ({ data }: { data: MonthlyDatum[] }) => (
       <YAxis tick={{ fontSize: CHART_TICK_PX }} stroke="hsl(var(--muted-foreground))" />
       <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "hsl(var(--foreground))" }} />
       <Legend formatter={legendLabel} />
-      <Line type="monotone" dataKey="revenue" name="Revenue ($)" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} />
-      <Line type="monotone" dataKey="fees" name="Profit ($)" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ r: 4 }} />
+      <Line type="monotone" dataKey="revenue" name="Revenue ($)" stroke="hsl(var(--primary))" dot={{ r: 4 }} />
+      <Line type="monotone" dataKey="fees" name="Profit ($)" stroke="hsl(var(--accent))" dot={{ r: 4 }} />
       {/* --stormy-sky, not --secondary. --secondary is --sand, a surface
           token: as a 2px line it was invisible against the chart in both
           themes, so this series had no readable line AND no readable legend
@@ -83,7 +83,7 @@ export const RevenueLineChart = ({ data }: { data: MonthlyDatum[] }) => (
           light / 40 11% 69% dark since 2026-10-20: a near-neutral warm grey)
           and reads apart from the saturated bark green and burnt-sienna rust
           of the other two series. */}
-      <Line type="monotone" dataKey="signups" name="New Users" stroke="hsl(var(--stormy-sky))" strokeWidth={2} dot={{ r: 4 }} />
+      <Line type="monotone" dataKey="signups" name="New Users" stroke="hsl(var(--stormy-sky))" dot={{ r: 4 }} />
     </LineChart>
   </ResponsiveContainer>
 );

@@ -66,7 +66,6 @@ export function JobCardSecondaryChip({ justIn, recommended }: { justIn: boolean;
       >
         <Star
           className="w-2.5 h-2.5 shrink-0"
-          strokeWidth={2}
           style={{ fill: "hsl(var(--burnt-sienna) / 0.3)" }}
         />
         <span className="font-sans font-semibold whitespace-nowrap">{t("jobCard.recommended")}</span>
@@ -98,7 +97,7 @@ export function JobCardStatusCorner({ job }: { job: JobCardProps["job"] }) {
           letterSpacing: "0.05em",
         }}
       >
-        <Rocket className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} style={{ color: "hsl(var(--boost-tint))", fill: "hsl(var(--boost-tint) / 0.35)" }} />
+        <Rocket className="w-2.5 h-2.5 shrink-0" style={{ color: "hsl(var(--boost-tint))", fill: "hsl(var(--boost-tint) / 0.35)" }} />
         {t("jobCard.boosted")}
       </span>
     );

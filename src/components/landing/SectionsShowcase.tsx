@@ -103,7 +103,7 @@ export function SectionsShowcase() {
         data-section={s.key}
         data-soon={soon ? "true" : "false"}
       >
-        <Icon className="w-6 h-6" strokeWidth={1.5} aria-hidden style={{ color: "var(--lp-action-strong)" }} />
+        <Icon className="w-6 h-6" aria-hidden style={{ color: "var(--lp-action-strong)" }} />
         <h3 className="text-ds-20 font-bold tracking-tight mt-2">{s.navLabel}</h3>
         <p className="text-ds-15 leading-relaxed" style={{ color: "var(--lp-body)" }}>
           {COPY[s.key]}
@@ -120,7 +120,7 @@ export function SectionsShowcase() {
             data-testid={`landing-browse-${s.key}`}
           >
             {link.text}
-            <ArrowRight className="w-4 h-4" strokeWidth={1.75} aria-hidden />
+            <ArrowRight className="w-4 h-4" aria-hidden />
           </Link>
         )}
       </li>
@@ -237,7 +237,7 @@ export function TrustAndJoin() {
                     style={done ? { background: "var(--lp-band-ink)", color: "var(--lp-band)" } : { background: "var(--lp-band-tile)", color: "var(--lp-band-money)" }}
                     aria-hidden
                   >
-                    <Icon className="w-[18px] h-[18px]" strokeWidth={1.75} />
+                    <Icon className="w-[18px] h-[18px]" />
                   </span>
                   <div className="min-w-0 pt-0.5">
                     <h3 className="text-ds-15 font-bold" style={{ color: "var(--lp-band-ink)" }}>{title}</h3>
@@ -250,7 +250,7 @@ export function TrustAndJoin() {
           <ul className="grid grid-cols-2 gap-2.5 sm:gap-3">
             {TRUST.map((t) => (t === TRUST_ID_ON && !idOn ? TRUST_ID_OFF : t)).map(({ icon: Icon, title, body }) => (
               <li key={title} className="rounded-[20px] p-4 sm:p-5 flex flex-col gap-2 min-w-0" style={{ background: "var(--lp-band-tile)" }}>
-                <Icon className="w-5 h-5" strokeWidth={1.75} aria-hidden style={{ color: "var(--lp-band-ink)" }} />
+                <Icon className="w-5 h-5" aria-hidden style={{ color: "var(--lp-band-ink)" }} />
                 <h3 className="text-ds-14 sm:text-ds-15 font-bold mt-1 [overflow-wrap:anywhere]" style={{ color: "var(--lp-band-ink)" }}>{title}</h3>
                 <p className="text-ds-12 sm:text-ds-13 leading-relaxed">{body}</p>
               </li>

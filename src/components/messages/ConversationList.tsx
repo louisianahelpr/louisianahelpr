@@ -894,7 +894,7 @@ export function ConversationList({
         aria-label={t("chat.closeSearch")}
         className="absolute right-2.5 top-1/2 -translate-y-1/2 !min-h-0 !min-w-0 h-7 w-7 ctl-exit inline-flex items-center justify-center text-muted-foreground hover:text-foreground ctl-tint btn-press transition"
       >
-        <X className="w-4 h-4" strokeWidth={2.25} />
+        <X className="w-4 h-4" />
       </button>
     </div>
   );
@@ -1045,7 +1045,6 @@ export function ConversationList({
         >
           <ChevronDown
             className={`w-4 h-4 transition-transform duration-200 ${tabsOpen ? "rotate-180" : ""}`}
-            strokeWidth={2.25}
           />
         </button>
       )}
@@ -1423,7 +1422,7 @@ export function ConversationList({
                   border: "0.5px solid hsl(var(--success-ink) / 0.24)",
                 }}
               >
-                <MessageSquare className="w-5 h-5" style={{ color: "hsl(var(--success-ink))" }} strokeWidth={1.75} />
+                <MessageSquare className="w-5 h-5" style={{ color: "hsl(var(--success-ink))" }} />
               </div>
               <p
                 className="font-display font-bold text-ds-16"
@@ -1500,7 +1499,7 @@ export function ConversationList({
                   border: "0.5px solid hsl(var(--olivewood) / 0.16)",
                 }}
               >
-                <Search className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} strokeWidth={1.75} />
+                <Search className="w-5 h-5" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
               </div>
               <p
                 className="font-display font-bold text-ds-16"

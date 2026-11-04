@@ -44,7 +44,7 @@ export const TldrCard = ({ items }: { items: string[] }) => {
   // policy sections under it.
   <div className="rounded-[20px] border border-border bg-card p-5 space-y-3">
     <div className="flex items-center gap-2">
-      <ListChecks className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+      <ListChecks className="w-4 h-4" style={{ color: "hsl(var(--bark))" }} />
       <span className="text-ds-13 font-sans font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
         The short version
       </span>

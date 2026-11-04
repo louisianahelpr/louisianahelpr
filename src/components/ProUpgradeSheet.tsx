@@ -130,7 +130,6 @@ function ProUpgradeSheet({
                 <Check
                   className="w-3.5 h-3.5 shrink-0 mt-0.5"
                   style={{ color: "hsl(var(--bark))" }}
-                  strokeWidth={2.5}
                 />
                 <span>{perk}</span>
               </li>

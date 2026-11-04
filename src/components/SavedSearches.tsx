@@ -352,7 +352,7 @@ export function SavedSearches({
             aria-label="Saved searches"
             className="h-10 w-10 btn-press text-muted-foreground hover:text-foreground"
           >
-            <Bookmark className="w-4 h-4" strokeWidth={2} aria-hidden="true" />
+            <Bookmark className="w-4 h-4" aria-hidden="true" />
           </Button>
         </DialogTrigger>
       )}
@@ -390,7 +390,7 @@ export function SavedSearches({
               className="h-11 w-11 p-0 shrink-0"
               aria-label="Save filter set"
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" strokeWidth={2.25} />}
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             </Button>
           </div>
           <p
@@ -449,7 +449,7 @@ export function SavedSearches({
                   border: "1px solid hsl(var(--olivewood) / 0.10)",
                 }}
               >
-                <AlertTriangle className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={1.75} aria-hidden="true" />
+                <AlertTriangle className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} aria-hidden="true" />
               </div>
               <p
                 className="font-sans font-semibold text-ds-15"
@@ -487,7 +487,7 @@ export function SavedSearches({
                     "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
                 }}
               >
-                <Bookmark className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} aria-hidden="true" />
+                <Bookmark className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} aria-hidden="true" />
               </div>
               <p
                 className="font-sans font-semibold text-ds-15"

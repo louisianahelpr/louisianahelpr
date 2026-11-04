@@ -178,7 +178,7 @@ const AccountBanned = () => {
           className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto"
           style={{ background: "hsl(var(--burnt-sienna) / 0.12)" }}
         >
-          <Ban className="w-8 h-8" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={1.5} />
+          <Ban className="w-8 h-8" style={{ color: "hsl(var(--burnt-sienna))" }} />
         </div>
 
         <div className="space-y-2">

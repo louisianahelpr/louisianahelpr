@@ -243,7 +243,6 @@ export function EmptyState({
           <Icon
             className="w-9 h-9"
             style={{ color: "hsl(var(--bark))" }}
-            strokeWidth={1.5}
           />
         </div>
       )}

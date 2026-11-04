@@ -212,7 +212,7 @@ function ladderSpec(
     group: "helpr",
     label: meta.label,
     title: `${meta.label} Helpr`,
-    icon: <Icon strokeWidth={2.25} style={{ color: `hsl(var(${meta.colorVar}))` }} />,
+    icon: <Icon style={{ color: `hsl(var(${meta.colorVar}))` }} />,
     description: `Verification ladder — ${meta.description}`,
     extra: (
       <>

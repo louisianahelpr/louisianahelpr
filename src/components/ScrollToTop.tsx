@@ -223,7 +223,7 @@ const ScrollToTop = () => {
         transition: `opacity ${duration}ms ${ease}, transform ${duration}ms ${ease}`,
       }}
     >
-      <ChevronUp className="h-5 w-5" strokeWidth={2.25} />
+      <ChevronUp className="h-5 w-5" />
     </button>
   );
 };

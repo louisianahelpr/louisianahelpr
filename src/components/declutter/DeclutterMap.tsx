@@ -194,7 +194,7 @@ export default function DeclutterMap({
       {!unusable && !pinsLoading && placed.length === 0 && (
         <div className="pointer-events-none absolute inset-0 z-[350] flex items-center justify-center px-6">
           <div className="pointer-events-auto flex max-w-[280px] flex-col items-center gap-2 rounded-2xl border border-border bg-card/95 px-5 py-5 text-center">
-            <MapPin className="h-6 w-6 text-[hsl(var(--bark))]" strokeWidth={1.5} aria-hidden />
+            <MapPin className="h-6 w-6 text-[hsl(var(--bark))]" aria-hidden />
             <p className="text-ds-15 font-semibold text-foreground">No items on the map here.</p>
           </div>
         </div>

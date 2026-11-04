@@ -225,7 +225,6 @@ const JobDetailDialog = ({
             <Bookmark
               className={`w-4 h-4 ${isSaved ? "fill-primary bookmark-pop" : ""}`}
               key={String(isSaved)}
-              strokeWidth={2}
             />
           }
         />
@@ -698,7 +697,6 @@ const JobDetailDialog = ({
               category={job.category}
               aria-hidden
               className="w-3.5 h-3.5 shrink-0"
-              strokeWidth={2.25}
             />
             {/* Below 400px the rail is ~173px after the icon lane's reserve,
                 and "Moving" + URGENT is 200 — so the category shrank to "M…"
@@ -725,7 +723,7 @@ const JobDetailDialog = ({
               className="inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-ds-12 font-semibold leading-none"
               style={{ color: "hsl(var(--sage-ink))", borderColor: "hsl(var(--bark) / 0.45)" }}
             >
-              <Star className="w-3.5 h-3.5 shrink-0" strokeWidth={2} />
+              <Star className="w-3.5 h-3.5 shrink-0" />
               Recommended
             </span>
           )}
@@ -755,7 +753,7 @@ const JobDetailDialog = ({
                 borderColor: "hsl(var(--boost-tint) / 0.5)",
               }}
             >
-              <Rocket className="w-3.5 h-3.5 shrink-0" strokeWidth={2.25} style={{ color: "hsl(var(--boost-tint))", fill: "hsl(var(--boost-tint) / 0.35)" }} />
+              <Rocket className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--boost-tint))", fill: "hsl(var(--boost-tint) / 0.35)" }} />
               Boosted
             </span>
           )}
@@ -843,7 +841,7 @@ const JobDetailDialog = ({
         {job.is_recurring && (
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-ds-12 font-semibold border" style={{ color: "hsl(var(--sage-ink))", borderColor: "hsl(var(--bark) / 0.45)" }}>
-                <Repeat className="w-3 h-3" strokeWidth={2.25} />
+                <Repeat className="w-3 h-3" />
                 {seriesSummary(job as Parameters<typeof seriesSummary>[0]) ?? recurrenceShapeLabel(job as Parameters<typeof recurrenceShapeLabel>[0])}
               </span>
               {/* The series terms, before applying (Q407 4). */}

@@ -351,7 +351,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             border: "0.5px solid hsl(var(--gold-warm) / 0.32)",
           }}
         >
-          <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.25} />
+          <Sparkles className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--gold-warm))" }} />
           <p
             className="font-sans leading-snug text-ds-12"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
@@ -378,7 +378,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             border: "0.5px solid hsl(var(--burnt-sienna) / 0.28)",
           }}
         >
-          <Clock className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2.25} />
+          <Clock className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
           <p
             className="font-sans leading-snug text-ds-12"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
@@ -403,7 +403,7 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
             border: "0.5px solid hsl(var(--bark) / 0.24)",
           }}
         >
-          <RefreshCw className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} strokeWidth={2.25} />
+          <RefreshCw className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
           <p
             className="font-sans leading-snug text-ds-12"
             style={{ color: "hsl(var(--olivewood) / 0.85)" }}
@@ -642,7 +642,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                     <CheckCircle
                       className="w-2.5 h-2.5 shrink-0 mt-[3px]"
                       style={{ color: accent }}
-                      strokeWidth={2.5}
                     />
                     <span>{tier.feePercent}% fee on jobs you do</span>
                   </li>
@@ -682,7 +681,6 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
                         <CheckCircle
                           className="w-2.5 h-2.5 shrink-0 mt-[3px]"
                           style={{ color: accent }}
-                          strokeWidth={2.5}
                         />
                         <span>{feature}</span>
                       </li>

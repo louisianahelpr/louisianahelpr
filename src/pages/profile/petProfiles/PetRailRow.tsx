@@ -87,7 +87,7 @@ export function PetRailRow({
         aria-label={`Edit ${pet.name}`}
         className="shrink-0 w-9 h-9 rounded-ds-md inline-flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-secondary/60 active:scale-[0.94] transition-colors"
       >
-        <Pencil className="w-4 h-4" strokeWidth={2} />
+        <Pencil className="w-4 h-4" />
       </button>
       <button
         type="button"
@@ -97,7 +97,7 @@ export function PetRailRow({
         className="shrink-0 w-9 h-9 rounded-ds-md inline-flex items-center justify-center transition-colors active:scale-[0.94] disabled:opacity-40 disabled:pointer-events-none hover:bg-[hsl(var(--destructive)/0.10)]"
         style={{ color: "hsl(var(--destructive-ink))" }}
       >
-        <Trash2 className="w-4 h-4" strokeWidth={2} />
+        <Trash2 className="w-4 h-4" />
       </button>
     </div>
   );

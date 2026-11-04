@@ -256,7 +256,6 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent, firs
                     dataKey="prior"
                     stroke={muted}
                     strokeDasharray="4 4"
-                    strokeWidth={2}
                     dot={false}
                     // B82: the key draws each year's own line (dashed vs solid); the default icon drew both alike.
                     legendType="plainline"
@@ -269,7 +268,6 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent, firs
                   dataKey="ytd"
                   stroke={olive}
                   legendType="plainline"
-                  strokeWidth={2}
                   dot={{ r: 3, fill: olive, strokeWidth: 0 }}
                   connectNulls={false}
                   isAnimationActive={false}

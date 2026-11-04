@@ -39,7 +39,7 @@ export function SignupRow({
       to={href}
       className="w-full flex items-center gap-2 min-h-11 py-2 px-3 rounded-ds-md squircle border border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur text-left btn-press transition-all duration-200 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"
     >
-      <Icon className={`w-3.5 h-3.5 shrink-0 ${iconClassName ?? "text-primary"}`} strokeWidth={2.25} aria-hidden />
+      <Icon className={`w-3.5 h-3.5 shrink-0 ${iconClassName ?? "text-primary"}`} aria-hidden />
       <span className="min-w-0 flex-1">
         <span className="block text-ds-12 font-semibold text-foreground">{label}</span>
         <span className="block text-ds-11 text-muted-foreground leading-snug">{hint}</span>
@@ -79,7 +79,6 @@ export function ToggleRow({
       <div className="flex items-start gap-2 min-w-0 flex-1">
         <Icon
           className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${iconClassName ?? "text-primary"}`}
-          strokeWidth={2.25}
           aria-hidden
         />
         <div className="min-w-0">

@@ -196,7 +196,7 @@ function HomeDashboardScreen() {
                   const Icon = d.icon;
                   return (
                     <span data-testid="next-up-section" className="inline-flex items-center gap-1.5 text-ds-13 font-semibold text-foreground">
-                      <Icon className="w-4 h-4 text-primary" strokeWidth={1.75} aria-hidden />
+                      <Icon className="w-4 h-4 text-primary" aria-hidden />
                       {d.label}
                     </span>
                   );
@@ -342,7 +342,7 @@ function HomeDashboardScreen() {
                       key={c.id}
                       leading={
                         <span aria-hidden data-coming-up-section={c.section} className="w-10 h-10 shrink-0 rounded-full flex items-center justify-center bg-muted">
-                          <Icon className="w-5 h-5 text-primary" strokeWidth={1.75} />
+                          <Icon className="w-5 h-5 text-primary" />
                         </span>
                       }
                       title={c.title}
@@ -381,7 +381,7 @@ function HomeDashboardScreen() {
                     onClick={() => navigate(s.path)}
                     className="btn-press liquid-glass text-left p-card lg:p-4 flex flex-col gap-1 lg:gap-0.5 min-w-0"
                   >
-                    <Icon className="w-6 h-6 lg:w-5 lg:h-5 text-primary" strokeWidth={1.75} aria-hidden />
+                    <Icon className="w-6 h-6 lg:w-5 lg:h-5 text-primary" aria-hidden />
                     <span className="text-ds-16 lg:text-ds-15 font-bold mt-2 lg:mt-1.5 truncate text-foreground">{s.label}</span>
                     {/* Two lines' room always (leading-snug x 2): the live "near you" count replaces the line after
                         first paint, and a shorter line must not shrink the card under the reader (owner 2026-11-01). */}

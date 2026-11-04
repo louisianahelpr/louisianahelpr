@@ -44,7 +44,7 @@ export default function LandingAppleButton() {
       style={{ background: "var(--lp-surface)", border: "1px solid var(--lp-line-strong)", color: "var(--lp-ink)" }}
       data-testid="landing-apple"
     >
-      <Apple className="w-[18px] h-[18px]" strokeWidth={1.5} fill="currentColor" aria-hidden />
+      <Apple className="w-[18px] h-[18px]" fill="currentColor" aria-hidden />
       Continue with Apple
     </button>
   );

@@ -223,7 +223,7 @@ export function SignupStep1({
               className={`${inputCls} ${firstNameError ? "!border-destructive focus-visible:!border-destructive" : ""}`} />
             {firstNameError && (
               <p id="signup-firstName-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
-                <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
+                <X className="w-3.5 h-3.5" aria-hidden />
                 {t("signup.firstNameMissing")}
               </p>
             )}
@@ -234,7 +234,7 @@ export function SignupStep1({
               className={`${inputCls} ${lastNameError ? "!border-destructive focus-visible:!border-destructive" : ""}`} />
             {lastNameError && (
               <p id="signup-lastName-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
-                <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
+                <X className="w-3.5 h-3.5" aria-hidden />
                 {t("signup.lastNameMissing")}
               </p>
             )}
@@ -251,7 +251,7 @@ export function SignupStep1({
               className={`${inputCls} ${emailValid ? "pr-10" : ""} ${emailError ? "!border-destructive focus-visible:!border-destructive" : ""}`} />
             {/* No green check over a likely typo: it read as "this is right". */}
             {emailValid && !emailSuggestion && (
-              <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+              <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" aria-hidden />
             )}
           </div>
           {/* No asterisks (board 55, the same as Log in): every field on this
@@ -262,7 +262,7 @@ export function SignupStep1({
               is a "something's wrong" with no path out. */}
           {emailError && (
             <p id="signup-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
-              <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
+              <X className="w-3.5 h-3.5" aria-hidden />
               {email.trim() ? t("login.emailInvalid") : t("login.emailMissing")}
             </p>
           )}
@@ -299,7 +299,7 @@ export function SignupStep1({
           </div>
           {capsLockOn && (
             <p className="inline-flex items-center gap-1 text-ds-11" style={{ color: "hsl(var(--alert-ink))" }}>
-              <ArrowBigUp className="w-3.5 h-3.5" strokeWidth={2} aria-hidden /> {t("signup.capsLock")}
+              <ArrowBigUp className="w-3.5 h-3.5" aria-hidden /> {t("signup.capsLock")}
             </p>
           )}
           {/* The message must cover BOTH failure modes the red border covers.
@@ -310,7 +310,7 @@ export function SignupStep1({
               border, so the two can no longer disagree. */}
           {passwordError && (
             <p id="signup-password-error" role="alert" className="inline-flex items-start gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
-              <X className="w-3.5 h-3.5 shrink-0 mt-px" strokeWidth={2.5} aria-hidden />
+              <X className="w-3.5 h-3.5 shrink-0 mt-px" aria-hidden />
               {serverPasswordError ?? (password ? passwordProblem(password) : t("signup.passwordMissing"))}
             </p>
           )}

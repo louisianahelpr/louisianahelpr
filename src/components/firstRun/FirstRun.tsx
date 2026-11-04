@@ -135,7 +135,7 @@ function FirstRunPicker({ options, picks, onToggle, onSkip, onContinue }: {
                       className="shrink-0 w-[18px] h-[18px] rounded-full flex items-center justify-center"
                       style={on ? { background: "hsl(var(--bark))" } : { border: "1.5px solid hsl(var(--border))" }}
                     >
-                      {on && <Check className="w-3 h-3" style={{ color: "hsl(var(--primary-foreground))" }} strokeWidth={3} />}
+                      {on && <Check className="w-3 h-3" style={{ color: "hsl(var(--primary-foreground))" }} />}
                     </span>
                   </button>
                 </li>

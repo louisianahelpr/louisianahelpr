@@ -36,7 +36,7 @@ export function JobCardMedia({ photo, category }: { photo: string | null | undef
         <img loading="lazy" decoding="async" src={photo} alt="" className="absolute inset-0 h-full w-full object-cover" />
       ) : (
         <span className="absolute inset-0 flex items-center justify-center" role="img" aria-label={label}>
-          <CategoryIcon category={category} aria-hidden className="w-8 h-8 md:w-10 md:h-10 text-primary" strokeWidth={1.75} />
+          <CategoryIcon category={category} aria-hidden className="w-8 h-8 md:w-10 md:h-10 text-primary" />
         </span>
       )}
     </div>

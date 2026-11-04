@@ -458,7 +458,7 @@ export const RichMessageInput = ({
           aria-label={t("chat.add")}
           title={t("chat.add")}
         >
-          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-5 h-5" strokeWidth={2.25} />}
+          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-5 h-5" />}
         </Button>
         )}
         <Input

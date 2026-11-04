@@ -353,7 +353,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                   className="flex w-full items-center gap-3 rounded-[20px] border border-border bg-card p-3 text-left transition-transform active:scale-[0.98]"
                 >
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]">
-                    <CategoryIcon category={job.category} aria-hidden className="h-4 w-4" strokeWidth={2.25} />
+                    <CategoryIcon category={job.category} aria-hidden className="h-4 w-4" />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-sans text-ds-14 font-semibold leading-tight text-foreground">{job.title}</span>

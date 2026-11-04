@@ -489,7 +489,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
           disabled={saving || justSaved || tipBusy || !valueValid || !capValid}
           className="w-full rounded-full"
         >
-          {saving ? "Saving…" : justSaved ? (<><Check className="w-4 h-4 mr-1.5" strokeWidth={3} aria-hidden /> Saved</>) : "Save tip amount"}
+          {saving ? "Saving…" : justSaved ? (<><Check className="w-4 h-4 mr-1.5" aria-hidden /> Saved</>) : "Save tip amount"}
         </Button>
         )}
       </div>

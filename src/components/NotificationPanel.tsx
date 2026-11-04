@@ -578,7 +578,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
                   border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
                 }}
               >
-                <AlertTriangle className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} strokeWidth={2} />
+                <AlertTriangle className="w-5 h-5" style={{ color: "hsl(var(--burnt-sienna))" }} />
               </div>
               <p
                 className="font-display font-bold leading-tight text-ds-15"
@@ -625,7 +625,6 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
               <Loader2
                 className="w-5 h-5 animate-spin motion-reduce:animate-none"
                 style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                strokeWidth={2}
                 aria-hidden="true"
               />
               <p
@@ -650,7 +649,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
                   border: "0.5px solid hsl(var(--olivewood) / 0.14)",
                 }}
               >
-                <CheckCheck className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={2} />
+                <CheckCheck className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} />
               </div>
               <p
                 className="font-display font-bold leading-tight text-ds-15"
@@ -896,7 +895,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
               marginBottom: "var(--safe-area-bottom, 0px)",
             }}
           >
-            <BellRing className="w-4 h-4" strokeWidth={2.25} /> Turn on push notifications
+            <BellRing className="w-4 h-4" /> Turn on push notifications
           </button>
         )}
         </div>

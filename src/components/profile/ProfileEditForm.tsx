@@ -235,7 +235,7 @@ export function ProfileEditForm({
               <div className="relative">
                 <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" enterKeyHint="next" value={displayUsPhone(phone)} onChange={(e) => setPhone(e.target.value)} onBlur={() => setPhoneLeft(true)} aria-invalid={phoneLeft && !!phoneError} aria-describedby={phoneLeft && phoneError ? "phone-error" : undefined} className={`h-10 ${phoneValid ? "pr-10" : ""}`} />
                 {phoneValid && (
-                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" aria-hidden />
                 )}
               </div>
               {phoneLeft && phoneError && <div className="mt-1"><FieldError id="phone-error">{phoneError}</FieldError></div>}
@@ -255,7 +255,7 @@ export function ProfileEditForm({
                 <div className="relative">
                   <Input id="location" autoComplete="address-level2" autoCapitalize="words" enterKeyHint="next" value={location} onChange={(e) => setLocation(e.target.value)} className={`h-10 px-3 ${locationValid ? "pr-9" : ""}`} />
                   {locationValid && (
-                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" aria-hidden />
                   )}
                 </div>
               </div>
@@ -274,7 +274,7 @@ export function ProfileEditForm({
                     className={`h-10 px-3 ${zipValid ? "pr-9" : ""}`}
                   />
                   {zipValid && (
-                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" aria-hidden />
                   )}
                 </div>
               </div>
@@ -312,7 +312,7 @@ export function ProfileEditForm({
                 "X/20" while short of the minimum, a check once met. */}
             {bioOk ? (
               <span className="text-ds-11 font-medium text-success inline-flex items-center gap-1">
-                <Check className="w-3 h-3" strokeWidth={3} /> Looks good
+                <Check className="w-3 h-3" /> Looks good
               </span>
             ) : bio.trim().length < 20 ? (
               <span className="text-ds-11 font-medium text-muted-foreground tabular-nums">
@@ -356,7 +356,7 @@ export function ProfileEditForm({
             <Label htmlFor="skills" className="text-ds-11 block">I can help with</Label>
             {skillList.length > 0 && (
               <span className="text-ds-11 font-medium text-success inline-flex items-center gap-1">
-                <Check className="w-3 h-3" strokeWidth={3} /> {skillList.length} listed
+                <Check className="w-3 h-3" /> {skillList.length} listed
               </span>
             )}
           </div>
@@ -402,9 +402,9 @@ export function ProfileEditForm({
                           }`}
                         >
                           {active ? (
-                            <Check className="w-3 h-3 shrink-0" strokeWidth={3} />
+                            <Check className="w-3 h-3 shrink-0" />
                           ) : (
-                            <CategoryIcon category={value} aria-hidden className="w-3 h-3 shrink-0" strokeWidth={2.25} />
+                            <CategoryIcon category={value} aria-hidden className="w-3 h-3 shrink-0" />
                           )}
                           <span className="font-sans whitespace-nowrap">{label}</span>
                         </button>

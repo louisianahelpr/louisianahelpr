@@ -81,7 +81,7 @@ export function OpenStep({ job, onBoost, onEdit, onCancel, crewBooked, applicant
               border: "0.5px solid hsl(var(--gold-warm) / 0.32)",
             }}
           >
-            <Rocket className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--gold-warm))" }} strokeWidth={2.25} />
+            <Rocket className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--gold-warm))" }} />
             <p className="font-sans leading-snug text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
               <span className="font-sans font-bold" style={{ color: "hsl(var(--ink-deep))" }}>
                 Boosted until {boostExp.toLocaleString("en-US", { weekday: "short", hour: "numeric", minute: "2-digit" })}.

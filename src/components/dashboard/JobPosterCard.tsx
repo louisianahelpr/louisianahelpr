@@ -129,7 +129,7 @@ export function JobPosterCard({ job, repeatJobs, guest = false }: JobPosterCardP
               className="inline-flex items-center gap-1 text-ds-12 font-sans font-semibold"
               style={{ color: posterTierBadge.color }}
             >
-              <posterTierBadge.icon className="w-3.5 h-3.5" strokeWidth={2.25} />
+              <posterTierBadge.icon className="w-3.5 h-3.5" />
               {tierDisplayName(job.posterSubscriptionTier)} member
             </span>
           )}

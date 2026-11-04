@@ -294,7 +294,7 @@ export const PrivacyContent = () => (
           className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center"
           style={{ background: "hsl(var(--bark) / 0.15)", color: "hsl(var(--bark))" }}
         >
-          <ShieldCheck className="w-4 h-4" strokeWidth={2.25} />
+          <ShieldCheck className="w-4 h-4" />
         </div>
         <div className="min-w-0">
           <p

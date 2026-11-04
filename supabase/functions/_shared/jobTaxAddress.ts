@@ -54,6 +54,12 @@ export const SETUP_FEE_LEFT_OUT_KEY = "setup_fee_left_out_cents";
 export const CANCEL_FEE_CAPTURE_KEY = "cancel_fee_capture";
 /** A gift-paid job-site-taxed checkout: the full taxable price the tax was figured on (the card took less). */
 export const JOB_TAXABLE_CENTS_KEY = "job_taxable_cents";
+/**
+ * Q2717: stamped on a cancel refund of a job-site-taxed charge: the cents of job-site tax that refund returns.
+ * charge.refunded (_visitTaxReversal.ts) then reverses exactly tax-back x (taxable + tax) / tax of a gift-reduced
+ * charge's Stripe Tax transaction, instead of scaling the refund by tax / card (which over-reported the tax).
+ */
+export const JOB_TAX_BACK_KEY = "job_tax_back_cents";
 
 type SessionLike = {
   metadata?: Record<string, string> | null;

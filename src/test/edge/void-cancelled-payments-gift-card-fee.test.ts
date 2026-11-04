@@ -314,6 +314,8 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
   const freeCancelJob = (over: Record<string, unknown> = {}) =>
     mixedJob({ cancellation_fee: 0, cancelled_at: "2024-06-18T14:00:00Z", onboarding_fee_amount: 2, ...over });
 
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | const jobTaxBackMetadata = jobTaxBackCents !== null ? | const jobTaxBackMetadata = false ?
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |               ? Math.max(0, piSiteTaxCents - voidSplit.taxKeptCents) |               ? Math.max(0, piSiteTaxCents)
   it("near-tax-only charge: the gift keeps what the non-tax part misses, the tax goes back less the tax on all kept (Q2718)", async () => {
     seed(freeCancelJob());
     stripeMock.refunds.create.mockResolvedValue({ id: "re_near", amount: nearTaxBack });
@@ -326,6 +328,8 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
     expect(GIFT - restored!).toBe(nearGiftKept);
     const refunds = stripeMock.refunds.create.mock.calls.map(([p]) => (p as { amount?: number }).amount);
     expect(refunds).toEqual([nearTaxBack]);
+    // Q2717: the refund carries the tax it returns, for an exact Stripe Tax reversal.
+    expect((stripeMock.refunds.create.mock.calls[0][0] as { metadata?: Record<string, string> }).metadata).toEqual({ job_tax_back_cents: String(nearTaxBack) });
     expect(jobFlips()).toHaveLength(1);
     expect((slackAlerts as Array<{ title?: string }>).some((a) => a.title === "Cancelled job's fees would come out of its sales tax")).toBe(false);
   });
@@ -343,6 +347,8 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
     expect(restoredCents()).toBe(GIFT);
     const refunds = stripeMock.refunds.create.mock.calls.map(([p]) => (p as { amount?: number }).amount);
     expect(refunds).toEqual([CARD1 - nearKept - Math.ceil((nearKept * NEAR.TAX) / NEAR.TAXABLE)]);
+    // Q2717: an ordinary taxed charge with no earlier refund stamps the tax less the tax kept.
+    expect((stripeMock.refunds.create.mock.calls[0][0] as { metadata?: Record<string, string> }).metadata).toEqual({ job_tax_back_cents: String(NEAR.TAX - Math.ceil((nearKept * NEAR.TAX) / NEAR.TAXABLE)) });
   });
 
   // Q2718: the gift cannot pay (its donation was charged back): the rest is not taken from the tax, and the

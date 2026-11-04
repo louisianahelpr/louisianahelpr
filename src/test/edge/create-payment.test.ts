@@ -2730,6 +2730,22 @@ describe("create-payment edge function", () => {
         expect((await json(res)).settlesLater).toBeUndefined();
         expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
       });
+      // Q2717: the refund carries the job-site tax it returns (the tax less the tax kept on the fees), so the
+      // webhook reverses a gift-reduced charge's Stripe Tax transaction exactly.
+      // @mutate supabase/functions/create-payment/index.ts | const escrowTaxBackMetadata = escrowTaxBackCents !== null ? | const escrowTaxBackMetadata = false ?
+      it("Q2717: an ordinary taxed cancel refund stamps the tax it returns", async () => {
+        seedOpenEscrow("escrow");
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_live", status: "succeeded", amount: 12000, amount_received: 12000, metadata: { ...taxMd(1000), job_taxable_cents: "10000" } });
+        const res = await cancel();
+        expect(res.status).toBe(200);
+        const [params] = stripeMock.refunds.create.mock.calls[0] as [{ amount: number; metadata?: Record<string, string> }];
+        expect(params.metadata?.job_tax_back_cents).toMatch(/^\d+$/);
+        const back = Number(params.metadata?.job_tax_back_cents);
+        expect(back).toBe(900); // the $10 fee kept carries 1000 x 1000 / 10000 = 100c of tax
+        // The tax less ceil(kept x 1000 / 10000): kept is what the refund did not return of the non-tax part.
+        const kept = 12000 - 1000 - (params.amount - back);
+        expect(back).toBe(1000 - Math.ceil((kept * 1000) / 10000));
+      });
 
       // lh-authz-rls review of Q1323: an ABSENT marker is not "mine".
       // @mutate supabase/functions/create-payment/index.ts |         if (holder.claimedBy !== "cancel_escrow" \|\| holder.error) { |         if (holder.claimedBy === "admin_refund_general" \|\| holder.error) {

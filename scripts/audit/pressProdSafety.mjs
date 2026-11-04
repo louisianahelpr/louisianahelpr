@@ -384,7 +384,7 @@ function isStateToggle({ meta = {}, label = "" }) {
  * "Clear $X" (Q1928, DeclutterAmountsOwed) waives what a member still owes; "Clear search" stays a plain press.
  * "Check this id in Stripe" (held payout settle, HeldForReview) writes an admin_audit_log row via admin-settle-ref-lookup.
  */
-export const ADMIN_WRITE_RX = /\b(dismiss|investigat\w*|assign\w*|unassign|add|grant|escalate|reopen|archive|unarchive|verify|reject|warn|freeze|unfreeze|override|flag|unflag|retry|resend|end series|set to|bill|clear(?! search\b)|check this id)\b/i;
+export const ADMIN_WRITE_RX = /\b(dismiss|investigat\w*|assign\w*|unassign|add|grant|escalate|reopen|archive|unarchive|verify|reject|warn|freeze|unfreeze|override|flag|unflag|retry|resend|end series|set to|bill|clear(?! search\b)|check this id|record claim|request a return label|suggest a reply)\b/i;
 /**
  * THE APP SAYS IT IS THE COMMIT (2026-10-17). DialogPrimaryAction inside a
  * confirm (role="alertdialog": every BrandConfirmDialog) and every

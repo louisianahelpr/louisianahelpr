@@ -30,7 +30,7 @@ export function ShipItRow({ itemId, small, category, rowClassName }: { itemId: s
   const save = useMutation({
     mutationFn: (preset: ShipPreset | null) => setShipOptions(itemId, preset, preset !== null),
     onSuccess: (next) => {
-      toast.success(next.preset === null ? "Shipping is off for this item." : "Saved. Buyers in Louisiana can have it shipped.");
+      toast(next.preset === null ? "Shipping is off for this item." : "Saved. Buyers in Louisiana can have it shipped.");
       void qc.invalidateQueries({ queryKey: key });
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),

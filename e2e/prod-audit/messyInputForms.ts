@@ -832,6 +832,9 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Shipping (train 7, 11-03): not swept yet.
+  "src/components/admin/settings/DeclutterShippingClaimsCard.tsx": "admin-only (Admin -> Settings); a sweep account is not an admin. Order id is a uuid parameter (a bad one is refused by Postgres), claim number and transfer id are maxLength 200, notes maxLength 500; declutter_admin_record_ship_claim refuses a blank or over-200 claim number (invalid_claim_ref), a blank or over-500 note (invalid_note) and an amount at or under $0 (invalid_amount); declutter_admin_request_return_label and declutter_admin_mark_ship_claim_sent trim and check their note and reference the same way.",
+  "src/components/declutter/ShipItRow.tsx": "no typed text: one restricted-list checkbox and a fixed list of box sizes; declutter_ship_options_state and the save RPC refuse any box outside the list.",
   // Manager mode (owner 11-01; B162 11-02): neither card opens for the sweep's accounts, which hold no manager grant.
   // Their server checks are proven in src/test/pglite/declutterManagerMode.pglite.mjs (92 checks on 2026-11-02, gate plants).
   "src/components/declutter/ManagerPanel.tsx": "opens only with a manager grant, which no sweep account holds; typed text is a member-name search (search_profiles_by_name, rate-limited) and a share number the client refuses outside 1-100 % (or under $0.01) and declutter_manager_offer refuses outside 0-100 % or over $10,000 per item.",

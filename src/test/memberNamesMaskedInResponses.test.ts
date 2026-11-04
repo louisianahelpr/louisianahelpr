@@ -73,6 +73,8 @@ const MASKED_RESTATED_LATER: Record<string, string> = {
   get_quotes_for_request: "20261103041633_quote_not_found_is_404.sql",
   // Blockers 10 (lead 2026-11-03): one column added (tip_waits_on_id); the name read is verbatim.
   get_safe_profiles: "20261103154905_tip_waits_on_id_in_safe_profiles.sql",
+  // Q1088 (train 7): the review tags column is read (review_text(feedback, tags)); the reviewer name read is verbatim.
+  get_public_profile_reviews: "20261103224601_review_tags_column.sql",
 };
 
 const RESTATED_LATER: Record<string, string> = {
@@ -84,7 +86,8 @@ const RESTATED_LATER: Record<string, string> = {
   helpr_task_view: "20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql", // Q2390 packet 13 (ERRCODE-only) after 20261031231150
   // Q2399 card hold at post: the offer branch's money gate reads job_payment_is_listed; the name read is verbatim.
   // A2-B15 (2026-10-29): the poster's own reopen files no backout notice; the name read is verbatim.
-  record_backout_notice: "20261029162907_poster_own_reopen_files_no_backout_notice.sql",
+  // Train 7 (20261103210601): a banned offeree files no declined notice; the name read is verbatim.
+  record_backout_notice: "20261103210601_banned_offeree_files_no_declined_notice.sql",
   // Messages audit H1/M4/M6 (owner 2026-10-30): mute, 15-minute throttle, preview switch, email; the name read is verbatim.
   notify_message_recipient: "20261030212051_message_snooze_ends.sql",
 };

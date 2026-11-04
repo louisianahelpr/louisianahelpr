@@ -115,6 +115,8 @@ vi.mock("@/hooks/useProofPhotoUrls", () => ({
   useProofPhotoUrls: (values: readonly string[]) => values.map((v) => `https://signed.example/${v}`),
 }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => state.owed }));
+// Q2701: the refunded-amount read (payment_refunds); covered by src/test/refundSaidOnce.test.tsx and lateCancelByPosterSaysTheMoney.test.tsx.
+vi.mock("@/hooks/useJobRefundedCents", () => ({ useJobRefundedCents: () => null }));
 // The poster's confirm-arrival write (src/lib/posterArrival.ts), shared with the Posted card; F14 checks the page calls it.
 const confirmArrivalMock = vi.hoisted(() => vi.fn(async (_job: { id: string; helper_id: string | null }) => {}));
 vi.mock("@/lib/posterArrival", () => ({ confirmPosterArrival: confirmArrivalMock }));

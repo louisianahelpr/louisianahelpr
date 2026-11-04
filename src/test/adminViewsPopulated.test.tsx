@@ -75,6 +75,8 @@ vi.mock("@/integrations/supabase/client", () => {
 });
 vi.mock("@/components/UserAvatar", () => ({ default: () => null, UserAvatar: () => null }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
+// SupportReply's "Suggest a reply" reads a switch (B70); the queue renders the same either way.
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 
 import AdminCredentialQueue from "@/components/admin/AdminCredentialQueue";
 import AdminIDVReview from "@/components/admin/AdminIDVReview";

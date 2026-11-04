@@ -411,6 +411,8 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
       recurring_visit_releases: [],
       job_accept_pending: [],
       refund_requests: [],
+      // Q2701: the refunded-amount line reads the ledger; no row keeps its words without a number.
+      payment_refunds: [],
       ...extraTables,
     },
     // Both sides' cancel sheets: the poster's on the job page, the Helpr's on their Working card.

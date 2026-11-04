@@ -20,6 +20,8 @@ vi.mock("@/hooks/useJobRescheduled", () => ({ useJobRescheduled: () => false }))
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: null, profile: null }) }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeDollars: () => 0 }));
+// Q2701: the refunded-amount read (payment_refunds); covered by src/test/refundSaidOnce.test.tsx and lateCancelByPosterSaysTheMoney.test.tsx.
+vi.mock("@/hooks/useJobRefundedCents", () => ({ useJobRefundedCents: () => null }));
 
 import { JobTracker } from "./JobPageParts";
 import type { JobPageRow } from "./useJobPage";

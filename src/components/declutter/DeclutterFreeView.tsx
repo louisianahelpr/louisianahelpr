@@ -5,14 +5,14 @@
  * can never disagree about what is free. A member's own listings are left out, as on Browse.
  */
 import { useMemo } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
 import { Gift } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BrowseEmptyState } from "@/components/ui/BrowseEmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { useFeedPhase } from "@/hooks/useFeedPhase";
-import { fetchLiveItems, fetchPhotos, fetchWatching, setWatch } from "@/lib/declutter/api";
+import { fetchLiveItems, fetchPhotos, fetchWatching } from "@/lib/declutter/api";
+import { useWatchToggle } from "./useWatchToggle";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { nearestFirst } from "@/lib/declutter/distance";
 import { NO_FILTERS, applyBrowseFilters } from "@/lib/declutter/browseFilters";
@@ -36,13 +36,8 @@ export function FreeView({ userId }: { userId: string }) {
   const photos = useQuery({ queryKey: ["declutter", "photos", ids.join(",")], queryFn: () => fetchPhotos(ids), enabled: ids.length > 0 });
   const cover = useMemo(() => firstPhotos(photos.data ?? []), [photos.data]);
   // The hearts: the same watchlist read and write as Browse's cards.
-  const qc = useQueryClient();
   const watching = useQuery({ queryKey: ["declutter", "watching", userId], queryFn: () => fetchWatching(userId) });
-  const toggleWatch = useMutation({
-    mutationFn: ({ id, on }: { id: string; on: boolean }) => setWatch(id, on),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ["declutter", "watching"] }),
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
+  const toggleWatch = useWatchToggle(userId);
   const phase = useFeedPhase(items);
 
   if (items.isError) return <ErrorState variant="inline" title="We couldn't load free items." body={declutterErrorMessage(items.error)} onRetry={() => void items.refetch()} />;

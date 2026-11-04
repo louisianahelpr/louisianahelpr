@@ -7,10 +7,9 @@
  */
 import { lazy, Suspense, useState, type ReactNode } from "react";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Heart, Share2 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { toast } from "sonner";
 import AppPage from "@/components/AppPage";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
@@ -23,7 +22,6 @@ import {
   fetchPhotos,
   fetchWatching,
   photoPublicUrl,
-  setWatch,
 } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice, milesBetween, milesLabel, itemPriceLabel } from "@/lib/declutter/distance";
@@ -53,6 +51,7 @@ import { shareListing } from "./DeclutterShareCard";
 import { ReopenListingButton } from "./DeclutterReopenListing";
 import { DeclutterReportListing } from "./DeclutterReportListing";
 import { toastWatching } from "./declutterLightActions";
+import { useWatchToggle } from "./useWatchToggle";
 import { pagePhoto } from "@/lib/declutter/pagePhoto";
 
 // B67 (DECL-ITEM-SPEED): only the seller sees the manage panel, so its edit flow (sell steps, handover choices)
@@ -74,7 +73,6 @@ function Detail({ label, children }: { label: string; children: ReactNode }) {
 
 export default function ItemView({ itemId }: { itemId: string }) {
   const { user } = useCurrentUser();
-  const qc = useQueryClient();
   const navigate = useNavigate();
   // Miles from what we already know; this screen never asks for location.
   const { origin: geo } = useDeclutterOrigin();
@@ -119,15 +117,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const bundle = useBundleSummary(item.data ?? null, user?.id ?? null, !!user && !!item.data && item.data.seller_id !== user.id
     && (item.data.status === "live" || item.data.status === "reserved"));
   const isWatching = watching.data?.has(itemId) ?? false;
-  const toggleWatch = useMutation({
-    mutationFn: () => setWatch(itemId, !isWatching),
-    onSuccess: () => {
-      // SS-5: a new heart says where to find the item again.
-      if (!isWatching) toastWatching(navigate);
-      void qc.invalidateQueries({ queryKey: ["declutter", "watching"] });
-    },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
+  // SS-5: a new heart says where to find the item again. The heart fills on the tap (Q2018).
+  const toggleWatch = useWatchToggle(user?.id, () => toastWatching(navigate));
 
   // One gate for the item and its photos: the gallery paints once, never a placeholder that pops into a photo.
   if (item.isLoading || photos.isLoading) return <DeclutterItemSkeleton />;
@@ -184,7 +175,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
           aria-label={isWatching ? "Remove from saved" : "Save this item"}
           className={`w-11 h-11 rounded-full border border-border bg-card flex items-center justify-center ${isWatching ? "text-[hsl(var(--burnt-sienna))]" : ""}`}
           disabled={toggleWatch.isPending}
-          onClick={() => (preview ? noteOwnListing() : toggleWatch.mutate())}
+          onClick={() => (preview ? noteOwnListing() : toggleWatch.mutate({ id: itemId, on: !isWatching }))}
         >
           <Heart className="w-5 h-5" fill={isWatching ? "currentColor" : "none"} />
         </button>

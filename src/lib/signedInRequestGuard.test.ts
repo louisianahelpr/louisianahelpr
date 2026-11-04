@@ -23,6 +23,13 @@
  * @mutate src/lib/signedInRequestGuard.ts |           heldSinceRefresh = true; |
  * @mutate src/lib/signedInRequestGuard.ts |   const base = normalisedBase(opts.supabaseUrl) ?? opts.supabaseUrl.replace(/\/+$/, ""); |   const base = opts.supabaseUrl.replace(/\/+$/, "");
  * @mutate src/integrations/supabase/client.ts |   if (!takeHeldSinceRefresh()) return; |   if (takeHeldSinceRefresh() \|\| true) return;
+ * @mutate src/lib/signedInRequestGuard.ts |         if (memberSessionSeen) { |         if (false) {
+ * @mutate src/lib/signedInRequestGuard.ts |   if (event === "SIGNED_OUT") { |   if (event === "NEVER") {
+ * @mutate src/lib/signedInRequestGuard.ts |               opts.onVanished?.(); |               void 0;
+ * @mutate src/integrations/supabase/client.ts | supabase.auth.onAuthStateChange((event, session) => noteAuthState(event, Boolean(session))); | void noteAuthState;
+ * @mutate src/integrations/supabase/client.ts |       const { error } = await supabase.auth.signOut({ scope: 'local' }); |       const error = null as { name: string } \| null;
+ * @mutate src/integrations/supabase/client.ts |       if (storedSessionIsRefreshable(stored)) { |       if (false) {
+ * @mutate src/lib/authSignOut.ts |     noteAuthState("SIGNED_OUT", false); |
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -31,7 +38,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { isNetworkFailure } from "@/lib/networkFailure";
 import { isPermissionDenied } from "@/lib/permissionDenied";
-import { GUARDED_SURFACES, HELD_MESSAGE, defaultAuthStorageKey, guardSignedInRequests, takeHeldSinceRefresh } from "./signedInRequestGuard";
+import { GUARDED_SURFACES, HELD_MESSAGE, VANISHED_HOLD_MS, VANISHED_MESSAGE, defaultAuthStorageKey, guardSignedInRequests, noteAuthState, sessionVanishedPending, takeHeldSinceRefresh } from "./signedInRequestGuard";
 
 const BASE = "https://proj.supabase.co";
 const KEY = "sb_publishable_testkey";
@@ -193,5 +200,84 @@ describe("a signed-in request is never sent as anon", () => {
       const guarded = guardSignedInRequests({ supabaseUrl: written, publishableKey: KEY, storage, storageKey: STORAGE_KEY, fetchImpl: (i, n) => fetch(i, n) });
       await expect(guarded(`${BASE}/rest/v1/jobs`, { headers: { Authorization: `Bearer ${KEY}` } }), written).rejects.toThrow(HELD_MESSAGE);
     }
+  });
+});
+
+/**
+ * Q1596 (error_logs 2026-10-30 02:02:37Z): a tab that had a member session for
+ * 68 min (auth events: INITIAL_SESSION only) found its stored session gone,
+ * with no SIGNED_OUT in that tab, and sent ~16 signed-in reads as anon. The
+ * page saw a member session, so the guard holds them and asks the client to
+ * finish the sign-out; after SIGNED_OUT a guest's requests go out as before.
+ */
+describe("a session that vanished from storage without this tab's SIGNED_OUT", () => {
+  function buildWiredClient(onVanished: () => void): SupabaseClient {
+    const fetchImpl = (input: RequestInfo | URL, init?: RequestInit) => fetch(input, init);
+    const client = createClient(BASE, KEY, {
+      auth: { storage, persistSession: true, autoRefreshToken: false, detectSessionInUrl: false },
+      db: { retry: false } as never,
+      global: { fetch: guardSignedInRequests({ supabaseUrl: BASE, publishableKey: KEY, storage, storageKey: STORAGE_KEY, fetchImpl, onVanished }) },
+    });
+    // The wiring client.ts adds: every auth event tells the guard.
+    client.auth.onAuthStateChange((event, session) => noteAuthState(event, Boolean(session)));
+    return client;
+  }
+
+  afterEach(() => noteAuthState("SIGNED_OUT", false));
+
+  it("holds every surface instead of sending anon, tells the client once, and lets a guest's requests out after SIGNED_OUT", async () => {
+    const sent = stubNetwork();
+    mem.set(STORAGE_KEY, JSON.stringify(sessionExpiringAt(nowS() + 3600)));
+    let vanished = 0;
+    const client = buildWiredClient(() => { vanished += 1; });
+    const { data } = await client.auth.getSession();
+    expect(data.session).not.toBeNull();
+    await client.from("jobs").select("id");
+    expect(sent[sent.length - 1]?.authorization).toBe("Bearer member-jwt");
+
+    mem.delete(STORAGE_KEY); // another tab / cleared site data: no event in this tab
+    const before = sent.length;
+    const errors = await driveEverySurface(client);
+    expect(sent.slice(before).filter((s) => !s.url.includes("/auth/v1/"))).toEqual([]);
+    for (const [surface, err] of Object.entries(errors)) {
+      expect(err, surface).toBeTruthy();
+      expect(isPermissionDenied(err), surface).toBe(false);
+    }
+    expect(errors.rest?.message).toContain(VANISHED_MESSAGE);
+    expect(isNetworkFailure(errors.rest)).toBe(true);
+    expect(vanished).toBe(1);
+    expect(sessionVanishedPending()).toBe(true);
+
+    // What client.ts's onVanished does: finish the sign-out locally.
+    await client.auth.signOut({ scope: "local" });
+    expect(sessionVanishedPending()).toBe(false);
+    const res = await client.from("open_jobs_browse").select("id");
+    expect(res.error?.message ?? "").not.toContain(VANISHED_MESSAGE);
+    expect(sent[sent.length - 1]?.authorization).toBe(`Bearer ${KEY}`);
+  });
+
+  it("a visitor who never had a session is never held, and a hold ends by itself after VANISHED_HOLD_MS", async () => {
+    const sent = stubNetwork();
+    const guarded = guardSignedInRequests({ supabaseUrl: BASE, publishableKey: KEY, storage, storageKey: STORAGE_KEY, fetchImpl: (i, n) => fetch(i, n) });
+    await guarded(`${BASE}/rest/v1/open_jobs_browse`, { headers: { Authorization: `Bearer ${KEY}` } });
+    expect(sent).toHaveLength(1);
+
+    expect(VANISHED_HOLD_MS).toBeGreaterThan(1000);
+    vi.useFakeTimers({ toFake: ["Date"] });
+    noteAuthState("INITIAL_SESSION", true);
+    await expect(guarded(`${BASE}/rest/v1/jobs`, { headers: { Authorization: `Bearer ${KEY}` } })).rejects.toThrow(VANISHED_MESSAGE);
+    vi.advanceTimersByTime(VANISHED_HOLD_MS + 1);
+    await guarded(`${BASE}/rest/v1/jobs`, { headers: { Authorization: `Bearer ${KEY}` } });
+    expect(sent).toHaveLength(2);
+  });
+
+  it("client.ts wires it: every auth event reaches noteAuthState, and onVanished signs out locally only while still pending", () => {
+    const src = blankComments(readFileSync(resolve(process.cwd(), "src/integrations/supabase/client.ts"), "utf8"));
+    expect(src).toMatch(/supabase\.auth\.onAuthStateChange\(\(event, session\) => noteAuthState\(event, Boolean\(session\)\)\)/);
+    expect(src).toMatch(/onVanished: \(\) => finishVanishedSignOut\(\)/);
+    expect(src).toMatch(/if \(!sessionVanishedPending\(\)\) return;\s*if \(storedSessionIsRefreshable\(stored\)\) \{\s*reportVanished\('new-session-stored'\);\s*return;\s*\}\s*const \{ error \} = await supabase\.auth\.signOut\(\{ scope: 'local' \}\);\s*reportVanished\(error \?/);
+    // The hand-cleared fallback sign-out (auth-js emitted no SIGNED_OUT) tells the guard too.
+    const signOutSrc = blankComments(readFileSync(resolve(process.cwd(), "src/lib/authSignOut.ts"), "utf8"));
+    expect(signOutSrc).toMatch(/forceSignedOutSnapshot\(\);\s*noteAuthState\("SIGNED_OUT", false\);/);
   });
 });

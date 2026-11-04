@@ -34,10 +34,16 @@
  * queries that ended in an error. A visitor with no stored session is
  * untouched: their requests go out exactly as before.
  *
- * Not covered here, on purpose: a session that is GONE from storage while a
- * screen still believes it is signed in. That is a real sign-out, and the
- * session-lost net (ProtectedRoute + src/lib/sessionLoss.ts) sends the person
- * to Log In on the first denial.
+ * A session that VANISHED from storage with no SIGNED_OUT in this tab (Q1596,
+ * error_logs 2026-10-30 02:02:37Z: a Mac Chrome tab open 68 min, auth events
+ * since load only INITIAL_SESSION, then ~16 signed-in reads all sent as anon
+ * and refused; another tab or cleared site data removed the stored session) is
+ * a real sign-out, but this page still believes it is signed in. Its requests
+ * are held too, for at most VANISHED_HOLD_MS, and `onVanished` is told once so
+ * the client finishes the sign-out locally (SIGNED_OUT: the app's own
+ * signed-out path, ProtectedRoute sends the person to Log In). After this
+ * tab's SIGNED_OUT, requests go out as a guest's again. Only a page that saw a
+ * member session (`noteAuthState`) holds; a visitor is never touched.
  *
  * Guard: src/lib/signedInRequestGuard.test.ts drives the real supabase-js
  * client through it.
@@ -58,6 +64,8 @@ export interface SignedInRequestGuardOptions {
   fetchImpl: typeof fetch;
   /** Told about every held request (rate-limiting is the caller's choice). */
   onHeld?: (info: { surface: GuardedSurface; method: string }) => void;
+  /** Told once when a member session vanished from storage without this tab's SIGNED_OUT. */
+  onVanished?: () => void;
 }
 
 /** The data surfaces whose requests run as the bearer's database role. */
@@ -67,6 +75,13 @@ type GuardedSurface = (typeof GUARDED_SURFACES)[number];
 /** The message prefix of a held request ("Failed to fetch" = transport family). */
 export const HELD_MESSAGE =
   "Failed to fetch: signed-in request held (the sign-in is refreshing; it was not sent signed out)";
+
+/** The message prefix of a request held because the stored session vanished (transport family too). */
+export const VANISHED_MESSAGE =
+  "Failed to fetch: signed-in request held (the sign-in is gone from this device; it was not sent signed out)";
+
+/** The longest a vanished session holds requests if no SIGNED_OUT follows (then they go out as before). */
+export const VANISHED_HOLD_MS = 10_000;
 
 /** The default auth storage key supabase-js derives from the project URL. */
 export function defaultAuthStorageKey(supabaseUrl: string): string {
@@ -118,7 +133,38 @@ function holdsRefreshableSession(raw: string | null): boolean {
   }
 }
 
+/** The same "could auth-js still refresh this?" read the guard uses, for client.ts's re-check. */
+export function storedSessionIsRefreshable(raw: string | null): boolean {
+  return holdsRefreshableSession(raw);
+}
+
 let heldSinceRefresh = false;
+
+// Q1596: has this page load seen a member session (and no SIGNED_OUT since)?
+let memberSessionSeen = false;
+let vanishedAt: number | null = null;
+
+/**
+ * client.ts passes every auth event here. A session marks the page signed in;
+ * SIGNED_OUT (this tab's, or one broadcast from another tab) marks it signed
+ * out, so later requests are a guest's and go out untouched.
+ */
+export function noteAuthState(event: string, hasSession: boolean): void {
+  if (event === "SIGNED_OUT") {
+    memberSessionSeen = false;
+    vanishedAt = null;
+    return;
+  }
+  if (hasSession) {
+    memberSessionSeen = true;
+    vanishedAt = null;
+  }
+}
+
+/** Is a vanished session still waiting for its SIGNED_OUT? (client.ts asks before signing out locally.) */
+export function sessionVanishedPending(): boolean {
+  return memberSessionSeen && vanishedAt !== null;
+}
 
 /**
  * Was any request held since the last call? Clears the flag. client.ts asks
@@ -159,6 +205,22 @@ export function guardSignedInRequests(opts: SignedInRequestGuardOptions): typeof
             // what protects the member and must happen regardless.
           }
           throw new TypeError(HELD_MESSAGE);
+        }
+        if (memberSessionSeen) {
+          const now = Date.now();
+          if (vanishedAt === null) {
+            vanishedAt = now;
+            try {
+              opts.onVanished?.();
+            } catch {
+              // Silent by design: finishing the sign-out is the caller's job;
+              // the hold below still keeps this request from going out as anon.
+            }
+          }
+          if (now - vanishedAt < VANISHED_HOLD_MS) throw new TypeError(VANISHED_MESSAGE);
+          // No SIGNED_OUT came: stop holding, requests go out as they did before.
+          memberSessionSeen = false;
+          vanishedAt = null;
         }
       }
     }

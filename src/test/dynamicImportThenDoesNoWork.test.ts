@@ -141,7 +141,7 @@ describe("no read runs inside Vite's dynamic-import wrapper", () => {
   it("an empty module is dropped silently only at the pinned sites where nothing is lost", () => {
     const SILENT: Record<string, number> = {
       "src/hooks/useSignOutAction.ts": 1, // error-logger send
-      "src/integrations/supabase/client.ts": 1, // error-logger send
+      "src/integrations/supabase/client.ts": 2, // error-logger sends (refresh hold, Q1596 vanished-session hold)
       "src/integrations/supabase/keychainStorageAdapter.ts": 1, // error-logger send
       "src/lib/authSignOut.ts": 2, // error-logger sends
       "src/components/admin/adminRailBadges.ts": 2, // m?.fetchX picks the queue fetcher; an empty module gives undefined and the query waits on untilReload(), so nothing is dropped (knip reads the member off the import here)

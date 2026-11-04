@@ -1757,7 +1757,8 @@ describe("stripe-webhook edge function", () => {
       });
 
       // Re-review of 49a8653d81 (C, HIGH): a hold captured only in part (the late fee) must not commit the full tax.
-      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |   if (typeof received === "number" && typeof pi.amount === "number" && received < pi.amount) { |   if (false) {
+      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |   if (typeof received === "number" && typeof pi.amount === "number" && pi.amount - received > setupFeeAllowanceCents) { |   if (false) {
+      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |   const setupFeeAllowanceCents = md.onboarding_fee_charged === "true" ? PARTIAL_CAPTURE_SETUP_FEE_CENTS : 0; |   const setupFeeAllowanceCents = 0;
       it("a hold captured only in part commits no tax and pages ops", async () => {
         stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
         await deliverPi(SITE, { amount_received: 2000 });
@@ -1765,6 +1766,18 @@ describe("stripe-webhook edge function", () => {
         const alerts = (slackAlerts as Array<{ title: string; kind: string }>).filter((a) => a.title === "Job sales tax not recorded: the hold was captured only in part");
         expect(alerts).toHaveLength(1);
         expect(alerts[0].kind).toBe("money_at_risk");
+      });
+
+      it("a hire that leaves out only the $2 setup fee (claimed elsewhere) still commits (lead re-review b)", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
+        await deliverPi({ ...SITE, onboarding_fee_charged: "true" }, { amount_received: 12100 - 200 });
+        expect(stripeMock.tax.transactions.createFromCalculation).toHaveBeenCalledTimes(1);
+      });
+
+      it("a $2 short capture with no setup fee on the job is still a partial capture", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
+        await deliverPi(SITE, { amount_received: 12100 - 200 });
+        expect(stripeMock.tax.transactions.createFromCalculation).not.toHaveBeenCalled();
       });
 
       it("a hold captured in full still commits", async () => {

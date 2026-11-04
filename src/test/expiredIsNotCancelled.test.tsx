@@ -91,10 +91,13 @@ describe("profile job list (JobsList)", () => {
 describe("profile counts (useUserProfileData)", () => {
   const src = blankComments(readFileSync(join(ROOT, "src/pages/user/useUserProfileData.ts"), "utf8"));
 
-  it("the posted-cancelled count leaves out unfilled expired listings", () => {
-    const q = /supabase\.from\("jobs"\)\.select\("id", \{ count: "exact", head: true \}\)\.eq\("customer_id", userId!\)\.eq\("status", "cancelled"\)([^\n]*)/.exec(src);
-    expect(q).not.toBeNull();
-    expect(q![1]).toContain(".or(NOT_AN_EXPIRED_LISTING_FILTER)");
+  it("the profile sends no posted-cancelled count any more (Q946: nothing displayed it)", () => {
+    // It used to leave out unfilled expired listings; on 2026-11-04 it went altogether, with the worked
+    // counts, because no screen read it. Planting it back is the regression this catches.
+    const q = /supabase\.from\("jobs"\)\.select\("id", \{ count: "exact", head: true \}\)\.eq\("customer_id", userId!\)\.eq\("status", "cancelled"\)/.exec(src);
+    expect(q).toBeNull();
+    // Nor the two worked counts that went with it (worked_total, worked_cancelled).
+    expect(src).not.toMatch(/\.select\("id", \{ count: "exact", head: true \}\)\.eq\("helper_id", userId!\)/);
   });
 
   it("the Jobs posted count leaves out unfilled expired listings too (nobody else hears it existed)", () => {
@@ -211,7 +214,8 @@ describe("an applicant to the expired listing", () => {
 // @mutate supabase/migrations/20261102040000_declutter_review_report.sql |       COUNT(*) FILTER (WHERE j.customer_id = t.user_id\n        AND NOT |      COUNT(*) FILTER (WHERE j.customer_id = t.user_id\n        AND true OR NOT
 // @mutate supabase/migrations/20261102040000_declutter_review_report.sql |       COUNT(*) FILTER (WHERE NOT (j.status = 'cancelled' |      COUNT(*) FILTER (WHERE true OR NOT (j.status = 'cancelled'
 // @mutate src/pages/user/JobsList.tsx |                 {job.customer_id === viewerId && ( |                 {false && (
-// @mutate src/pages/user/useUserProfileData.ts | .eq("status", "cancelled").or(NOT_AN_EXPIRED_LISTING_FILTER), | .eq("status", "cancelled"),
+// @mutate src/pages/user/useUserProfileData.ts | .eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS), | .eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS),\n        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!).eq("status", "cancelled"),
+// @mutate src/pages/user/useUserProfileData.ts | .eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS), | .eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS),\n        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", userId!),
 // @mutate src/components/job-card/jobStatusLine.ts |   const expired = id === "cancelled" && isExpiredListing(job); |   const expired = false;
 // @mutate src/components/job-card/jobStatusLine.ts |   const reason = isExpiredListing(job) ? null : sanitizeCancellationReason(job.cancellation_reason); |   const reason = sanitizeCancellationReason(job.cancellation_reason);
 // @mutate supabase/migrations/20261102040000_declutter_review_report.sql |         AND NOT (j.helper_id IS NULL AND j.cancelled_by IS NULL AND COALESCE(j.cancellation_reason, '') LIKE 'Job listing expired%'))::integer AS cancelled_jobs | )::integer AS cancelled_jobs

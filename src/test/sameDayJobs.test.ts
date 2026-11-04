@@ -19,6 +19,7 @@ import {
   isNearby,
   isOnlineNow,
   isSameDayJob,
+  jobLastDay,
   milesBetween,
   sameDayBoost,
 } from "../../supabase/functions/_shared/sameDayMatch";
@@ -28,7 +29,8 @@ import {
 // @mutate src/lib/sameDayJob.ts |   const rounded = Math.max(Math.ceil(earliest / 30) * 30, eh * 60 + em); |   const rounded = Math.ceil(earliest / 30) * 30;
 // @mutate supabase/functions/_shared/sameDayMatch.ts |   return Number.isFinite(t) && t > now.getTime(); |   return Number.isFinite(t);
 // @mutate supabase/functions/_shared/sameDayMatch.ts |   return milesBetween(jLat, jLng, hLat, hLng) <= SAME_DAY_RADIUS_MILES; |   return true;
-// @mutate supabase/functions/_shared/sameDayMatch.ts |   if (!isSameDayJob(job.date_needed, now)) return 0; |
+// @mutate supabase/functions/_shared/sameDayMatch.ts |   if (!isSameDayJob(jobLastDay(job), now)) return 0; |
+// @mutate supabase/functions/_shared/sameDayMatch.ts |   return job.date_window_end ?? job.date_needed; |   return job.date_needed;
 // @mutate src/components/postjob/LogisticsSection.tsx |     setDateNeeded(today);\n    markTodayStart(sameDayStart); |     setDateNeeded(today);
 // @mutate src/components/dashboard/JobCardBadges.tsx |   if (isTodayJob(job.date_needed)) { |   if (false) {
 
@@ -114,6 +116,20 @@ describe("same-day matching (Q2438)", () => {
     // Above any skill/location score instant-job-match gives (3 + 2 + 1).
     expect(SAME_DAY_ONLINE_SCORE).toBeGreaterThan(6);
   });
+
+  it("an 'Any time this week' job is same-day only on its last day (Q2729)", () => {
+    const online = "2024-03-14T18:00:00-05:00";
+    const helpr = { parish: "Lafayette", available_until: online };
+    // First day of the window is today: the poster takes any day, so no boost.
+    const opensToday = { ...job, date_needed: "2024-03-14", date_window_end: "2024-03-18" };
+    expect(jobLastDay(opensToday)).toBe("2024-03-18");
+    expect(sameDayBoost(opensToday, helpr, now)).toBe(0);
+    // Last day of the window is today: it is now urgent.
+    const endsToday = { ...job, date_needed: "2024-03-10", date_window_end: "2024-03-14" };
+    expect(sameDayBoost(endsToday, helpr, now)).toBe(SAME_DAY_ONLINE_SCORE);
+    // A one-day job is unchanged.
+    expect(jobLastDay({ date_needed: "2024-03-14", date_window_end: null })).toBe("2024-03-14");
+  });
 });
 
 describe("the wiring (Q2438)", () => {
@@ -135,5 +151,8 @@ describe("the wiring (Q2438)", () => {
     const src = code("supabase/functions/instant-job-match/index.ts");
     expect(src).toContain("available_until");
     expect(src).toContain("score += sameDayBoost(job, h, matchedAt);");
+    // Q2729: the "Today:" title and the boost read the window's last day, so the job must select it.
+    expect(src).toMatch(/\.select\("[^"]*\bdate_window_end\b[^"]*"\)/);
+    expect(src).toContain("const sameDay = isSameDayJob(jobLastDay(job), matchedAt);");
   });
 });

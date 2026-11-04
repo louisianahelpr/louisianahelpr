@@ -23,7 +23,7 @@
  * @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql |            public.declutter_order_items_named(o.id)),\n    '/declutter?tab=selling', v_uid); |            public.declutter_order_items_named(o.id)),\n    '/declutter?tab=selling', NULL);
  * @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql |   o := public.declutter_lock_order(v_order);\n  IF v_uid IN (o.buyer_id, o.seller_id) THEN\n    -- Another admin decides | \n  SELECT * INTO o FROM public.declutter_orders WHERE id = v_order;\n  IF v_uid IN (o.buyer_id, o.seller_id) THEN\n    -- Another admin decides
  * @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql | '/declutter?tab=buying', o.seller_id);  -- AUD31-34 | '/declutter?tab=buying', NULL);  -- AUD31-34
- * @mutate supabase/migrations/20261102103524_declutter_ship_notice_kinds.sql |     WHEN p_type IN ('payment', 'financial_alerts') THEN 'declutter_sales' |     WHEN p_type IN ('financial_alerts') THEN 'declutter_sales'
+ * @mutate supabase/migrations/20261104123305_bundle_request_export_and_notice_kinds.sql |     WHEN p_type IN ('payment', 'financial_alerts') THEN 'declutter_sales' |     WHEN p_type IN ('financial_alerts') THEN 'declutter_sales'
  */
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";

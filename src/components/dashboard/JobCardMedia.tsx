@@ -2,6 +2,7 @@ import { Star } from "lucide-react";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { categoryLabels } from "@/components/job-card/activityConstants";
 import UserAvatar from "@/components/UserAvatar";
+import { STAR_ON } from "@/lib/starColor";
 
 /** Shared with the pre-boot Browse shell (src/lib/browseShellCards.mjs), which must match byte for byte. */
 export const JOB_CARD_MEDIA_ROW = "flex items-stretch";
@@ -71,7 +72,7 @@ export function JobCardPosterFace({
       <span className="truncate font-sans font-medium text-foreground/80">{first}</span>
       {rated && (
         <span role="img" className="inline-flex shrink-0 items-center gap-0.5" aria-label={`rated ${(avgRating ?? 0).toFixed(1)} from ${reviewCount} reviews`}>
-          <Star aria-hidden className="w-2.5 h-2.5 shrink-0" style={{ color: "hsl(var(--burnt-sienna))", fill: "hsl(var(--burnt-sienna))" }} />
+          <Star aria-hidden className="w-2.5 h-2.5 shrink-0" style={{ color: STAR_ON, fill: STAR_ON }} />
           <span className="font-sans">{(avgRating ?? 0).toFixed(1)}</span>
         </span>
       )}

@@ -219,3 +219,43 @@ describe("the entry's /declutter first screen", () => {
     expect(code("src/hooks/useFeature.ts")).toContain("takeFirstScreenSwitches(uid)");
   });
 });
+
+describe("the first cards' photos start from the entry's answer (B96, Q2705/Q2708)", () => {
+  it("are the card's own src and srcSet, for the first two items not the member's own, each by its first photo", async () => {
+    const { photoCardUrl, photoPublicUrl, CARD_PHOTO_PX } = await import("@/lib/declutter/api");
+    const { cardPhotoSrcSet, CARD_PHOTO_SIZES } = await import("@/lib/declutter/photoSizes");
+    const { firstCardPhotoPreloads, CARD_SIZES } = await import("./declutterPrefetch");
+    expect(CARD_SIZES).toBe(CARD_PHOTO_SIZES);
+    const base = import.meta.env.VITE_SUPABASE_URL as string;
+    const answer = {
+      items: [{ id: "mine", seller_id: "me" }, { id: "a", seller_id: "s1" }, { id: "nophoto", seller_id: "s2" }, { id: "b", seller_id: "s2" }, { id: "c", seller_id: "s3" }],
+      photos: [
+        { item_id: "mine", storage_path: "u/declutter/mine/1.jpg" },
+        { item_id: "b", storage_path: "u/declutter/b/first.jpg" },
+        { item_id: "a", storage_path: "u/declutter/a/first.jpg" },
+        { item_id: "a", storage_path: "u/declutter/a/second.jpg" },
+        { item_id: "c", storage_path: "u/declutter/c/1.jpg" },
+      ],
+    };
+    const got = firstCardPhotoPreloads(base, answer, "me");
+    const card = (path: string) => ({ href: photoCardUrl(path), srcset: cardPhotoSrcSet(photoPublicUrl(path), photoCardUrl(path), CARD_PHOTO_PX) });
+    expect(got).toEqual([card("u/declutter/a/first.jpg"), card("u/declutter/b/first.jpg")]);
+    for (const bad of [null, {}, { items: "x", photos: [] }, { items: [], photos: [] }]) expect(firstCardPhotoPreloads(base, bad, "me")).toEqual([]);
+  });
+
+  it("the entry adds them as image preloads once the answer is in", async () => {
+    const body = { ...ANSWER, photos: [{ item_id: "a", storage_path: "u/a.jpg" }, { item_id: "b", storage_path: "u/b.jpg" }] };
+    stubAnswer(body);
+    start();
+    const slot = (window as unknown as Record<string, { answer: Promise<unknown> }>)[DECLUTTER_PREFETCH_KEY];
+    await slot.answer;
+    await new Promise((r) => setTimeout(r, 0));
+    const links = [...document.head.querySelectorAll<HTMLLinkElement>('link[rel="preload"][as="image"]')];
+    try {
+      expect(links.map((l) => l.href)).toEqual([`${BASE}/storage/v1/render/image/public/job-photos/u/a.jpg?width=480&height=480&resize=cover&quality=70`, `${BASE}/storage/v1/render/image/public/job-photos/u/b.jpg?width=480&height=480&resize=cover&quality=70`]);
+      for (const l of links) expect([l.getAttribute("imagesizes"), l.getAttribute("fetchpriority")]).toEqual(["(min-width: 640px) 250px, calc(50vw - 26px)", "high"]);
+    } finally {
+      links.forEach((l) => l.remove());
+    }
+  });
+});

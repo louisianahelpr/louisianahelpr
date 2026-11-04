@@ -241,6 +241,61 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
     expect(jobFlips()).toHaveLength(1);
   });
 
+  // Q2719: a FREE cancel on a tax-only card charge still has the gift keep the card fee and the setup fee
+  // (owner rule: never absorb a fee); before, feesFitCard read 0 <= 0 and the whole tax went back.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           const feesFitCard = (siteTaxOnCardCents > 0 ? keptOfCard : 0) + feeOwedCents | const feesFitCard = feeOwedCents
+  it("free cancel on a tax-only card charge: the gift keeps the card fee and the setup fee (Q2719)", async () => {
+    seed(mixedJob({ cancellation_fee: 0, cancelled_at: "2024-06-18T14:00:00Z", onboarding_fee_amount: 2 }));
+    const TAX = 1000;
+    const TAXABLE = 30000;
+    const TAX_CARD_FEE = 59;
+    const SETUP = 200;
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_tax", amount: TAX });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_1", status: "succeeded", amount: TAX, amount_received: TAX,
+      metadata: siteTaxMd("taxcalc_gift", TAX, { job_taxable_cents: String(TAXABLE) }),
+      latest_charge: { id: "ch_1", amount: TAX, amount_refunded: 0, balance_transaction: { fee: TAX_CARD_FEE } },
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+
+    expect(feeTransferCalls()).toHaveLength(0);
+    const restored = restoredCents();
+    expect(restored).not.toBeNull();
+    const giftKept = GIFT - restored!;
+    // The gift keeps the card fee and the $2 setup fee (never the platform), within a few cents of rounding.
+    expect(giftKept).toBeGreaterThanOrEqual(TAX_CARD_FEE + SETUP);
+    expect(giftKept).toBeLessThan(TAX_CARD_FEE + SETUP + 5);
+    // The tax goes back less the tax on what the gift kept.
+    const refunds = stripeMock.refunds.create.mock.calls.map(([p]) => (p as { amount?: number }).amount);
+    expect(refunds).toEqual([TAX - Math.ceil((giftKept * TAX) / TAXABLE)]);
+    expect(jobFlips()).toHaveLength(1);
+  });
+
+  // Q2719 review: the same free cancel whose gift's donation was charged back (single Helpr): settled, the
+  // platform keeps nothing it cannot collect, and the warning names the card + setup fee, not a late cancel.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           : "cancelled with no late fee. The card paid only the sales tax, less than the card fee and setup fee a cancel keeps"; |           : "cancelled late. The card paid less than the fee";
+  it("free cancel on a tax-only charge whose gift's donation was reversed: settles and warns about the card + setup fee (Q2719)", async () => {
+    seed(mixedJob({ cancellation_fee: 0, cancelled_at: "2024-06-18T14:00:00Z", onboarding_fee_amount: 2 }));
+    reversedGift();
+    const TAX = 1000;
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_tax", amount: TAX });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_1", status: "succeeded", amount: TAX, amount_received: TAX,
+      metadata: siteTaxMd("taxcalc_gift", TAX, { job_taxable_cents: "30000" }),
+      latest_charge: { id: "ch_1", amount: TAX, amount_refunded: 0, balance_transaction: { fee: 59 } },
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+    const alerts = slackAlerts as Array<{ title?: string; message?: string }>;
+    const capped = alerts.filter((a) => a.title === "Cancellation fee capped at what the card paid");
+    expect(capped).toHaveLength(1);
+    expect(capped[0].message).toContain("cancelled with no late fee");
+    expect(capped[0].message).not.toContain("cancelled late");
+    expect(feeTransferCalls()).toHaveLength(0);
+    expect(jobFlips()).toHaveLength(1);
+  });
+
   // Re-review of 49a8653d81 (D): a hold of no more than its job-site tax pages ops; an ordinary hold does not.
   // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (holdSiteTaxCents > 0 && Math.round(Number(pi.amount ?? 0)) <= holdSiteTaxCents) { |           if (false) {
   it("a hold that holds only its job-site tax pages ops", async () => {

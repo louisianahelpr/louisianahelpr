@@ -855,9 +855,12 @@ describe("process-scheduled-payouts edge function", () => {
 
     // Q1728: the job-site sales tax on a gift job's card leg (shortfall + tax, or tax alone) is never payout headroom.
     // @mutate supabase/functions/process-scheduled-payouts/index.ts |       const escrowValueCents = capturedCents - capturedTaxCents + giftAppliedCents; |       const escrowValueCents = capturedCents + giftAppliedCents;
+    // A PaymentIntent's job-site tax metadata (built apart from the PI literal: its tax_calculation_id key made
+    // fixtureSchemaContract read the PI mock as a recurring_visit_payments row).
+    const siteTaxMetadata = (taxCents: number) => ({ tax_calculation_id: "taxcalc_1", job_tax_cents: String(taxCents) });
     const taxedLeg = (amount: number, taxCents: number) => stripeMock.paymentIntents.retrieve.mockResolvedValue({
       id: "pi_1", status: "succeeded", latest_charge: "ch_1", amount, amount_received: amount,
-      metadata: { tax_calculation_id: "taxcalc_1", job_tax_cents: String(taxCents) },
+      metadata: siteTaxMetadata(taxCents),
     });
     it("Q1728: a shortfall + tax capture: the tax is not headroom (gift 3000 + card 5000 + tax 1000 < payout 9000)", async () => {
       seedMixed();

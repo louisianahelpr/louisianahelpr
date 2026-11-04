@@ -150,6 +150,9 @@ const capturedPi = (over: Record<string, unknown> = {}) => ({
   id: "pi_1", status: "succeeded", amount: CARD, amount_received: CARD,
   latest_charge: { id: "ch_1", amount: CARD, amount_refunded: 0, balance_transaction: { fee: CARD_FEE }, ...over },
 });
+/** A PaymentIntent's job-site tax metadata, built apart from the PI literal (fixtureSchemaContract read a PI mock
+ * carrying tax_calculation_id as a recurring_visit_payments row). */
+const siteTaxMd = (calc: string, taxCents: number, extra: Record<string, string> = {}) => ({ tax_calculation_id: calc, job_tax_cents: String(taxCents), ...extra });
 const heldPi = () => ({ id: "pi_1", status: "requires_capture", amount: CARD, amount_capturable: CARD, latest_charge: "ch_1" });
 
 /** The spent gift row, reversed: it is the root of its tree, so it carries the donor's PaymentIntent. */
@@ -220,7 +223,7 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
     stripeMock.refunds.create.mockResolvedValue({ id: "re_tax", amount: TAX });
     stripeMock.paymentIntents.retrieve.mockResolvedValue({
       id: "pi_1", status: "succeeded", amount: TAX, amount_received: TAX,
-      metadata: { tax_calculation_id: "taxcalc_gift", job_tax_cents: String(TAX), job_taxable_cents: String(TAXABLE) },
+      metadata: siteTaxMd("taxcalc_gift", TAX, { job_taxable_cents: String(TAXABLE) }),
       latest_charge: { id: "ch_1", amount: TAX, amount_refunded: 0, balance_transaction: { fee: TAX_CARD_FEE } },
     });
     const h = await load();
@@ -242,7 +245,7 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
   // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (holdSiteTaxCents > 0 && Math.round(Number(pi.amount ?? 0)) <= holdSiteTaxCents) { |           if (false) {
   it("a hold that holds only its job-site tax pages ops", async () => {
     seed();
-    stripeMock.paymentIntents.retrieve.mockResolvedValueOnce({ ...heldPi(), metadata: { tax_calculation_id: "taxcalc_h", job_tax_cents: String(CARD) } });
+    stripeMock.paymentIntents.retrieve.mockResolvedValueOnce({ ...heldPi(), metadata: siteTaxMd("taxcalc_h", CARD) });
     stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi());
     const h = await load();
     await h.fetch(cronReq());
@@ -252,7 +255,7 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
 
   it("a hold larger than its job-site tax does not page", async () => {
     seed();
-    stripeMock.paymentIntents.retrieve.mockResolvedValueOnce({ ...heldPi(), metadata: { tax_calculation_id: "taxcalc_h", job_tax_cents: String(CARD - 1) } });
+    stripeMock.paymentIntents.retrieve.mockResolvedValueOnce({ ...heldPi(), metadata: siteTaxMd("taxcalc_h", CARD - 1) });
     stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi());
     const h = await load();
     await h.fetch(cronReq());

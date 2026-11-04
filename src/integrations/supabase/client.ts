@@ -7,7 +7,7 @@ import { withDeviceClockExpiry } from '@/lib/sessionClockSkew';
 import { withEntryAuthHandoff } from '@/lib/entryAuthHandoff';
 import { signOutAwareFetch } from '@/lib/signOutAbort';
 import { noteReachableFetch } from '@/lib/connectivity';
-import { defaultAuthStorageKey, guardSignedInRequests, takeHeldSinceRefresh } from '@/lib/signedInRequestGuard';
+import { defaultAuthStorageKey, guardSignedInRequests, noteAuthState, sessionVanishedPending, storedSessionIsRefreshable, takeHeldSinceRefresh } from '@/lib/signedInRequestGuard';
 import { loadModule, untilReload } from '@/lib/loadModule';
 import { clearSessionLost, markSignedIn, markSignedOut } from '@/lib/permissionDenied';
 
@@ -130,9 +130,63 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       // noteReachableFetch: any answered request flips a wrong "offline" back at once (src/lib/connectivity.ts).
       fetchImpl: noteReachableFetch(signOutAwareFetch),
       onHeld: reportHeld,
+      onVanished: () => finishVanishedSignOut(),
     }),
   },
 });
+
+// Q1596: the guard holds a signed-in page's requests once its stored session
+// vanished without a SIGNED_OUT here (another tab, cleared site data). Finish
+// that sign-out locally (no network: the session is already gone) so the app's
+// own SIGNED_OUT path runs. Deferred, so it never runs inside a fetch auth-js
+// is building. Re-checked right before signing out: skipped if a SIGNED_OUT
+// arrived meanwhile, or a new session was stored meanwhile (another tab signed
+// in; a local sign-out would remove it). Each episode is counted once a minute
+// at most in error_logs (localOnly, like the refresh hold above).
+let lastVanishedReportAt = -Infinity;
+const reportVanished = (outcome: string) => {
+  const now = Date.now();
+  if (now - lastVanishedReportAt < 60_000) return;
+  lastVanishedReportAt = now;
+  void errorLogger()
+    .then((m) => m?.report(new Error('Held signed-in requests after the stored session vanished'), {
+        severity: 'warning',
+        tags: { source: 'signedInRequestGuard.vanished', outcome },
+        localOnly: true }),
+    )
+    .catch(() => {
+      // Diagnostics only: the requests were already held, which is what matters.
+    });
+};
+function finishVanishedSignOut(): void {
+  setTimeout(() => {
+    void (async () => {
+      if (!sessionVanishedPending()) return;
+      let stored: string | null;
+      try {
+        stored = await authStorage.getItem(defaultAuthStorageKey(SUPABASE_URL));
+      } catch {
+        // Silent by design: an unreadable store holds no session to protect; the sign-out below goes ahead.
+        stored = null;
+      }
+      if (!sessionVanishedPending()) return;
+      if (storedSessionIsRefreshable(stored)) {
+        reportVanished('new-session-stored');
+        return;
+      }
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
+      reportVanished(error ? `sign-out-error:${error.name}` : 'signed-out');
+      if (error) console.error('[supabase] local sign-out after a vanished session failed', error);
+    })().catch((err: unknown) => {
+      // Not silent: the hold ends by itself after VANISHED_HOLD_MS; this logs why the sign-out did not finish.
+      reportVanished('threw');
+      console.error('[supabase] local sign-out after a vanished session failed', err);
+    });
+  }, 0);
+}
+
+// Every auth event tells the guard whether this page holds a member session.
+supabase.auth.onAuthStateChange((event, session) => noteAuthState(event, Boolean(session)));
 
 // Q2515: a sign-in that changes the user (email-confirm / recovery link) opens
 // the sign-in noise window; a re-emitted SIGNED_IN for the same user (tab

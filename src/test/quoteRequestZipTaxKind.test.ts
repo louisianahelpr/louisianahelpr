@@ -15,7 +15,8 @@
 // @mutate src/lib/quotes/api.ts |       p_zip_code: r.zipCode, |
 // @mutate src/pages/post-job/CheckoutStepView.tsx |     parish: form.parish, taxKind: form.taxKind, |     parish: form.parish, taxKind: null,
 import { describe, expect, it } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

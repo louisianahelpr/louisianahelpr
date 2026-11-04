@@ -9,14 +9,15 @@
 // control over how to apply the generated values (it can ignore some,
 // merge into existing user input, etc.).
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
 import { jobPhotoForAi, UnsupportedPhotoError, UNSUPPORTED_PHOTO_MESSAGE } from "./jobPhotoForAi";
-import { Sparkles, Loader2, ChevronDown } from "lucide-react";
+import { Sparkles, Loader2, ChevronDown, Mic, MicOff } from "lucide-react";
+import { useVoiceDictation } from "@/hooks/useVoiceDictation";
 import { toast } from "sonner";
 import { userFacingError } from "@/lib/userFacingError";
 
@@ -62,6 +63,18 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
   const setOpen = (next: boolean) =>
     onOpenChange ? onOpenChange(next) : setUncontrolledOpen(next);
   const [loading, setLoading] = useState(false);
+
+  // Q2471 (1) voice: the same dictation the chat composer's mic uses (useVoiceDictation, the Web Speech API;
+  // the iOS app carries NSSpeechRecognitionUsageDescription for it). Each finished phrase is ADDED to the
+  // description, so a poster can talk, type, then talk again. The button only shows where the API exists;
+  // everywhere else (a WebView without it) the phone keyboard's own mic dictates into the same box.
+  const promptRef = useRef(prompt);
+  promptRef.current = prompt;
+  const addDictated = useCallback((said: string) => {
+    const before = promptRef.current.trimEnd();
+    setPrompt(before ? `${before} ${said}` : said);
+  }, []);
+  const voice = useVoiceDictation({ onFinal: addDictated, onError: (message) => toast.error(message) });
 
   const generate = async () => {
     if (!prompt.trim() && !photo) {
@@ -118,11 +131,35 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
             aria-label="Describe your job"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="e.g. I need help moving furniture from my apartment to a new house across town. Or just add a photo."
+            placeholder="e.g. I need help moving furniture from my apartment to a new house across town. Or just add a photo, or say it."
             rows={3}
             className="text-ds-13 mt-2"
           />
-          <PhotoPickButton id="ai-job-photo" words="Add a photo" picked={photo} disabled={loading} onPick={setPhoto} />
+          <div className="flex flex-wrap items-center gap-2">
+            <PhotoPickButton id="ai-job-photo" words="Add a photo" picked={photo} disabled={loading} onPick={setPhoto} />
+            {voice.supported && (
+              <button
+                type="button"
+                data-ai-voice=""
+                onClick={() => (voice.isListening ? voice.stop() : voice.start())}
+                disabled={loading}
+                aria-pressed={voice.isListening}
+                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-semibold text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--ring))] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {voice.isListening ? (
+                  <MicOff className="h-4 w-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} aria-hidden />
+                ) : (
+                  <Mic className="h-4 w-4 shrink-0" aria-hidden />
+                )}
+                {voice.isListening ? "Stop listening" : "Say it"}
+              </button>
+            )}
+          </div>
+          {voice.isListening && voice.interimText && (
+            <p className="text-ds-13 text-muted-foreground" aria-live="polite" data-ai-voice-interim="">
+              {voice.interimText}
+            </p>
+          )}
           <Button
             variant="primary"
             type="button"

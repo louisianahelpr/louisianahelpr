@@ -37,7 +37,7 @@ const job = (o: Record<string, unknown> = {}) =>
 const draw = (j: EnrichedJob, extra: Record<string, unknown> = {}) =>
   render(
     <MemoryRouter>
-      <JobCard job={j} effectiveFee={15} currentUserId="someone-else" onSelect={() => {}} index={1} {...extra} />
+      <JobCard job={j} effectiveFee={15} currentUserId="someone-else" onApply={() => {}} onReport={() => {}} onSelect={() => {}} index={1} {...extra} />
     </MemoryRouter>,
   ).container;
 

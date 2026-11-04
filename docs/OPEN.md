@@ -6,7 +6,7 @@ Items for areas that have not launched (Homes / Rentals, Quotes, Shops) live in 
 **Open work — start here** (Q58). docs/OPEN.md is the ONE open-work list.
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
-- **Open: 262** (109 to do, 153 fixed with protection pending; 1966 done). Feeds mirrored in: 38 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 20 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
+- **Open: 238** (85 to do, 153 fixed with protection pending; 1983 done). Feeds mirrored in: 38 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 20 red overnight checks), 1 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 0 left of 34** (0 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 17 red, 15 stale, 3 unknown, 43 green of 78 — [SCOREBOARD](SCOREBOARD.md). _(2026-11-03T01:39Z)_

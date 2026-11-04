@@ -19,6 +19,13 @@ vi.mock("@/hooks/useFeature", () => ({
   useFeatureStatus: () => ({ on: sw.on, settled: sw.settled, lastAnswer: null }),
 }));
 vi.mock("@/lib/nativeInit", () => ({ isNativePlatform: false }));
+// Memberships retired 2026-11-04: the gate's own decision table is still pinned here,
+// driven through the hook the gate reads (the real hook is always off and settled).
+vi.mock("@/hooks/useMembershipsOn", () => ({
+  MEMBERSHIPS_HIDDEN_IN_THIS_APP: false,
+  useMembershipsOn: () => sw.on,
+  useMembershipsStatus: () => ({ on: sw.on, settled: sw.settled }),
+}));
 
 import { MembershipPlansGate, membershipPlansView } from "./MembershipPlansGate";
 

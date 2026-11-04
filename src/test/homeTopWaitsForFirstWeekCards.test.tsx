@@ -59,7 +59,7 @@ describe("Home's columns wait for the first-week cards' reads (Q2706/Q2708)", ()
     const { qc, wrapper } = setup();
     let answerFirst!: (v: { isNew: boolean; alertsOff: boolean }) => void;
     void qc.prefetchQuery({ queryKey: ["home", "first-job-state", "u1"], queryFn: () => new Promise((r) => { answerFirst = r; }) });
-    const { result, rerender } = renderHook(({ fj }: { fj: { isNew: boolean } | null }) => useHomeTopSettled("u1", fj), { wrapper, initialProps: { fj: null } });
+    const { result, rerender } = renderHook(({ fj }: { fj: { isNew: boolean } | null }) => useHomeTopSettled("u1", fj), { wrapper, initialProps: { fj: null as { isNew: boolean } | null } });
     expect(result.current).toBe(false);
     await act(async () => { answerFirst({ isNew: false, alertsOff: false }); await Promise.resolve(); });
     // The render the first-job state answers: the poster card's read is required and asked here, so still held.

@@ -83,6 +83,9 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_decline_listed_for_me: "alerts", // list-for-seller (20261101034159): a test seller's decline never notifies a real Helpr
   declutter_check_sweep_claim: "hides", // LEAD-CHECK-SWEEP (20261101031241): test data is never claimed for a sweep check
   declutter_admin_open_problems: "hides",
+  declutter_admin_record_ship_claim: "tags", // train 7 (20261103213005): the claim payout row copies the order's is_seed
+  declutter_admin_request_return_label: "tags", // train 7 (20261103212046): the return-label row copies the order's is_seed
+  declutter_ship_problem_scan: "alerts", // train 7 (20261103204805): the opened problem copies is_seed; a test order raises no admin alert
   declutter_admin_pending_items: "hides",
   declutter_admin_reported_questions: "tags", // B48 (20261101021934): the admin's read returns is_seed so the queue drops test questions and answers
   declutter_admin_reported_reviews: "tags", // A3-75 (20261102040000): the admin's read returns is_seed so the queue drops test reviews

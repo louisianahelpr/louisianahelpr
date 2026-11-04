@@ -37,7 +37,7 @@ import { join } from "node:path";
  * one SELECT, no INSERT/UPDATE/DELETE (read from the migration; re-check provolatile = 's' after deploy).
  */
 export const READ_RPC =
-  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_support_replies(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_payouts_held_for_review(\?|$)|shops_admin_queue(\?|$)|admin_last_logins(\?|$)|admin_ban_settlement_reviews(\?|$)|admin_gift_card_paid_job_ids(\?|$)|admin_section_funnel(\?|$)|admin_sms_status(\?|$)|admin_approval_escalation_queue(\?|$)|admin_booking_sources(\?|$)|admin_signup_source_report(\?|$)|declutter_admin_fee_debts(\?|$)|admin_payout_batch_money_modes(\?|$))/;
+  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_support_replies(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_payouts_held_for_review(\?|$)|shops_admin_queue(\?|$)|admin_last_logins(\?|$)|admin_ban_settlement_reviews(\?|$)|admin_gift_card_paid_job_ids(\?|$)|admin_section_funnel(\?|$)|admin_sms_status(\?|$)|admin_approval_escalation_queue(\?|$)|admin_booking_sources(\?|$)|admin_signup_source_report(\?|$)|declutter_admin_fee_debts(\?|$)|admin_payout_batch_money_modes(\?|$)|declutter_admin_ship_claims_due(\?|$))/;
 
 /**
  * Admin RPCs that WRITE. Not an allow-list — the opposite: naming one here is
@@ -45,6 +45,12 @@ export const READ_RPC =
  * this one". Each verified `provolatile = 'v'` on prod, 2026-09-20.
  */
 export const WRITE_RPC = new Set([
+  // 2026-11-03 (train 7, b66 shipping claims/return labels; 20261103212046, 20261103213005, 20261103214253): each
+  // plpgsql VOLATILE SECURITY DEFINER, admin only, writing shipping_claim_payouts / shipping_return_labels. The due list
+  // (declutter_admin_ship_claims_due) is STABLE and sits in READ_RPC above.
+  "declutter_admin_record_ship_claim",
+  "declutter_admin_request_return_label",
+  "declutter_admin_mark_ship_claim_sent",
   // 2026-11-02 (builder 156, Q1928 gap 1, 20261102065446): clears what a member still owes from a Declutter refund;
   // plpgsql VOLATILE, admin only (has_role), writes the debt row + admin_audit_log and one member notice.
   "declutter_admin_waive_fee_debt",

@@ -93,6 +93,7 @@ const SINGLE_HELPER_ONLY: Record<string, string> = {
   get_closed_application_job_labels: "JOBS-12 (20261031021424): keys on applications.helper_id, the caller's OWN application, never jobs.helper_id; returns only the title and date of a job the caller applied to, so a crew member reads their own applications and is granted nothing else",
   propose_job_continue_day: "continue another day (20261101231015): refuses a group job outright (continue_day_not_in_progress on is_group_job), so a crew member is never granted anything",
   confirm_job_continue_day: "continue another day (20261101231015): only a day set on a one-Helpr job exists (propose refuses a crew), so helper_id is the one Helpr",
+  get_my_activity_cores: "Activity (20261103231310): applications.helper_id is the caller's OWN application; it returns only the caller's own open continue-another-day rows (SECURITY INVOKER, RLS still applies), so a crew member is granted nothing",
   accept_job_offer: "the single Helpr's Accept (Q1180); it refuses a group job outright (group_job_not_supported), a crew confirms through rpc_group_member_confirm",
   claim_series_dates: "a recurring series is never a group job (20260831200113 constraint); each date has one Helpr",
   can_review_job: "legacy, service_role only; the review gates are enforce_review_validity + the INSERT policy, both roster-aware",

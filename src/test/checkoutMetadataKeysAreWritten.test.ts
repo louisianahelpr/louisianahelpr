@@ -282,7 +282,7 @@ describe("Q343: checkout metadata the webhook reads is metadata a creator writes
     expect(objectKeys(`{ ...(f({ a: 1 }) ? { k: 1 } : {}) }`).spread).toBe(true);
   });
 
-  // @mutate src/test/checkoutMetadataKeysAreWritten.test.ts |     if (!/^\s*:\s*\{\s*\}\s*;/.test(rest)) return whole; |     if (false) return whole;
+  // @mutate src/test/checkoutMetadataKeysAreWritten.test.ts | .test(rest)) return whole;\n    const resolved | .test(rest) && false) return whole;\n    const resolved
   it("a spread of a local const that is a conditional literal adds its keys; any other local spread still blinds", () => {
     const shared = `export const TAX_KEY = "tax_calculation_id";`;
     const ok = `const extra: Record<string, string> = tax ? { [TAX_KEY]: id, job_tax_cents: c } : {};\nmetadata: { job_id: j, ...extra }`;

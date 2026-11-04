@@ -64,7 +64,8 @@ describe("fee transfer idempotency keys on retry (Q1381)", () => {
       'crew-block-fee-${row.id} <- row.status === "failed"',
     ]);
     // No fixed fee key left anywhere in these two files.
-    expect(vcp).not.toMatch(/idempotencyKey: `cancel-fee-/);
+    // cancel-fee-capture: is the uncaptured hold's fee CAPTURE key (Q2716), one per PI, not a fee-ledger transfer retry.
+    expect(vcp).not.toMatch(/idempotencyKey: `cancel-fee-(?!capture:)/);
     expect(blocks).not.toMatch(/idempotencyKey: `crew-block-fee-/);
   });
 

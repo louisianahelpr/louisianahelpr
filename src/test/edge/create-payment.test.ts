@@ -1230,7 +1230,7 @@ describe("create-payment edge function", () => {
         await run({ category: "cleaning", tax_kind: "fabric_cleaning", zip_code: "70112-1234" });
         const [calc] = stripeMock.tax.calculations.create.mock.calls[0];
         expect(calc.customer_details.address.postal_code).toBe("70112");
-        expect(calc.line_items[0].tax_code).toBe("txcd_20010003");
+        expect(calc.line_items[0].tax_code).toBe("txcd_20090024");
       });
     });
 

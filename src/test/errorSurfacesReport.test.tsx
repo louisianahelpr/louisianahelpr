@@ -354,6 +354,7 @@ const EXCUSED_INLINE: Record<string, string> = {
   "components/admin/AdminNotifications.tsx": "one admin-only <p> under a settings card",
   "components/admin/adminPayoutBatches/HeldForReview.tsx": "one admin-only <p> inside the held-for-review card on the admin money page (the page itself loaded)",
   "components/admin/settings/DeclutterProblemCase.tsx": "admin-only lines where a handover or Helpr evidence photo would be (moved from DeclutterProblemsCard, AL-4; the problem card itself loaded); each photo read is a signed URL, not a page load",
+  "components/landing/FreshDeclutterStrip.tsx": "one line under the landing's jobs list when the Fresh on Declutter read fails (B115, owner 11-04); the landing loaded and the line keeps its See everything link to /declutter; not a screen",
   "pages/home/HomeDashboard.tsx": "one line inside Home's Coming up card when its reads fail (the dashboard itself loaded)",
   "components/MessageAttachment.tsx": "one label inside a chat bubble where a photo attachment did not load (the thread itself loaded); it was Title Case \"Load\" and so escaped this scan until the sentence-case sweep (2026-10-21)",
   "components/profile/ProfileSectionError.tsx": "a one-line row inside a Profile sub-section; the profile itself loaded",

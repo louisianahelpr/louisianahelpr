@@ -23,11 +23,11 @@
  * all five functions and the view, so it is shown able to fail on the
  * original bug.
  *
- * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |      AND public.job_offer_cutoff(v_job.date_needed, v_job.start_time) <= now() THEN\n    RAISE EXCEPTION 'job_date_has_passed' |      AND v_job.date_needed < CURRENT_DATE THEN\n    RAISE EXCEPTION 'job_date_has_passed'
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |      AND public.job_offer_cutoff(COALESCE(v_job.date_window_end, v_job.date_needed), v_job.start_time) <= now() THEN\n    RAISE EXCEPTION 'job_date_has_passed' |      AND v_job.date_needed < CURRENT_DATE THEN\n    RAISE EXCEPTION 'job_date_has_passed'
  * @mutate supabase/migrations/20261104080753_map_and_ranked_read_date_window.sql | (NULL end = one-day job, as before).\n      AND (j.date_needed IS NULL OR public.job_offer_cutoff(COALESCE(j.date_window_end, j.date_needed), j.start_time) > now()) | (NULL end = one-day job, as before).\n      AND (j.date_needed IS NULL OR COALESCE(j.date_window_end, j.date_needed) >= CURRENT_DATE)
- * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     AND (p_job.date_needed IS NULL OR public.job_offer_cutoff(p_job.date_needed, p_job.start_time) > now())\n |
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |     AND (p_job.date_needed IS NULL OR public.job_offer_cutoff(COALESCE(p_job.date_window_end, p_job.date_needed), p_job.start_time) > now())\n |
  * @mutate supabase/migrations/20261104080753_map_and_ranked_read_date_window.sql |     AND (j.date_needed IS NULL OR public.job_offer_cutoff(COALESCE(j.date_window_end, j.date_needed), j.start_time) > now())\n    AND (j.offered_to_helper_id IS NULL OR j.direct_offer_status <> 'pending')\n    AND (\n | AND (j.date_needed IS NULL OR COALESCE(j.date_window_end, j.date_needed) >= CURRENT_DATE)\n    AND (j.offered_to_helper_id IS NULL OR j.direct_offer_status <> 'pending')\n    AND (\n
- * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     AND public.job_offer_cutoff(j.date_needed, j.start_time) > now()\n    AND (j.offered_to_helper_id IS NULL OR j.direct_offer_status <> 'pending')\n    -- BD-002 |     AND j.date_needed >= CURRENT_DATE\n    AND (j.offered_to_helper_id IS NULL OR j.direct_offer_status <> 'pending')\n    -- BD-002
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |     AND public.job_offer_cutoff(COALESCE(j.date_window_end, j.date_needed), j.start_time) > now()\n    AND (j.offered_to_helper_id IS NULL OR j.direct_offer_status <> 'pending')\n    -- BD-002 |     AND j.date_needed >= CURRENT_DATE\n    AND (j.offered_to_helper_id IS NULL OR j.direct_offer_status <> 'pending')\n    -- BD-002
  * @mutate supabase/migrations/20261104074500_browse_reads_date_window.sql |  AND (date_needed IS NULL OR (CASE WHEN start_time IS NULL THEN ((COALESCE(date_window_end, date_needed) + 1)::timestamp without time zone AT TIME ZONE 'America/Chicago') ELSE ((COALESCE(date_window_end, date_needed) + start_time) AT TIME ZONE 'America/Chicago') END) > now()) AND customer_id |  AND customer_id
  * @mutate src/pages/home/applyErrorCopy.ts |   job_date_has_passed: "This job has already started, so it's closed to new applications.", |   job_date_has_passed: "The date for this job has already passed.",
  */
@@ -115,7 +115,7 @@ describe("a listing closes at its start time (Q1401)", () => {
 
   it("announcements (job_announceable_to) never announce a listing whose start passed", () => {
     const a = code(now.get("job_announceable_to")!);
-    expect(a).toMatch(/AND \(p_job\.date_needed IS NULL OR public\.job_offer_cutoff\(p_job\.date_needed, p_job\.start_time\) > now\(\)\)/);
+    expect(a).toMatch(/AND \(p_job\.date_needed IS NULL OR public\.job_offer_cutoff\(COALESCE\(p_job\.date_window_end, p_job\.date_needed\), p_job\.start_time\) > now\(\)\)/); // Q2408: the window's last day
     expect(code(before.get("job_announceable_to")!)).not.toMatch(/job_offer_cutoff/);
   });
 

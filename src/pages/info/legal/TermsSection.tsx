@@ -569,7 +569,7 @@ export const TermsContent = () => {
         icon={Users}
         title="Job posters"
         body={
-          <p>You pay the agreed job price plus any applicable sales tax (and, on your first paid job, the one-time account setup fee). Louisiana taxes only enumerated services (LA R.S. 47:301(14)), so most jobs carry no sales tax at all; where it does apply it is charged on the labor line only, never on Helpr's fees. Workers are <strong className="text-foreground">independent contractors</strong> — no payroll, withholding, or employer tax obligations.</p>
+          <p>You pay the agreed job price plus any applicable sales tax (and, on your first paid job, the one-time account setup fee). Louisiana taxes only the services its law lists (La. R.S. 47:301.3), such as repairing a movable item and cleaning carpets, rugs, furniture or clothes, so most jobs carry no sales tax at all; where it does apply it is charged on the labor line only, never on Helpr's fees. Workers are <strong className="text-foreground">independent contractors</strong> — no payroll, withholding, or employer tax obligations.</p>
         }
       />
       <PolicyRowItem

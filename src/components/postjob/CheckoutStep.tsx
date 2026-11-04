@@ -418,7 +418,7 @@ export function CheckoutStep({
           
               create-payment marks the service fee, the urgent tip and the
               one-time setup fee `txcd_00000000` (non-taxable), and marks the
-              labor line taxable ONLY for `assembly` (LA R.S. 47:301(14) — see
+              labor line taxable ONLY for `assembly` (La. R.S. 47:301.3 — see
               `_shared/salesTax.ts`). So for every other category Stripe charges
               exactly $0 sales tax, while this screen was quoting an estimated
               total ~10% above the real charge. That is the "both totals don't

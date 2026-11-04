@@ -334,6 +334,33 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
     expect((slackAlerts as Array<{ title?: string }>).some((a) => a.title === "Cancelled job's fees would come out of its sales tax")).toBe(false);
   });
 
+  // Q2728: an earlier 99c refund already returned all but 1c of the $1.00 tax, less than the 2c tax due on the
+  // $3.50 kept: no tax is sent back, the cancel settles, and a person is paged about the 1c over-refunded.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (siteTaxKeptShortCents > 0) { |           if (false) {
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | const siteTaxKeptShortCents = Math.max(0, siteTaxOnAllKeptCents - siteTaxBackCents); | const siteTaxKeptShortCents = 0;
+  it("an earlier refund that ate into the tax below the tax on the kept fees sends no tax back and pages (Q2728)", async () => {
+    seed(freeCancelJob());
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_near", amount: 0 });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(nearTaxPi(99));
+    const h = await load();
+    await h.fetch(cronReq());
+    const refunds = stripeMock.refunds.create.mock.calls.map(([p]) => (p as { amount?: number }).amount);
+    expect(refunds.filter((a) => (a ?? 0) > 0)).toEqual([]);
+    const short = (slackAlerts as Array<{ title?: string; fields?: Record<string, unknown> }>).filter((a) => a.title === "Cancelled job's tax on its kept fees was already refunded");
+    expect(short).toHaveLength(1);
+    expect(short[0].fields?.tax_short_cents).toBe(Math.ceil((nearKept * NEAR.TAX) / NEAR.TAXABLE) - 1);
+    expect(jobFlips()).toHaveLength(1);
+  });
+
+  it("the near-tax-only charge with no earlier refund keeps the tax on its kept fees and does not page (Q2728 control)", async () => {
+    seed(freeCancelJob());
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_near", amount: nearTaxBack });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(nearTaxPi());
+    const h = await load();
+    await h.fetch(cronReq());
+    expect((slackAlerts as Array<{ title?: string }>).some((a) => a.title === "Cancelled job's tax on its kept fees was already refunded")).toBe(false);
+  });
+
   it("an ordinary taxed charge whose non-tax part holds the kept fees settles as before: gift back whole (Q2718 control)", async () => {
     seed(freeCancelJob());
     const CARD1 = 1000;
@@ -446,6 +473,54 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
     await h.fetch(cronReq());
     const titles = (slackAlerts as Array<{ title?: string }>).map((a) => String(a.title));
     expect(titles).not.toContain("Cancelled job's card hold holds only its sales tax");
+  });
+
+  // Q2727: a hold only a little above its job-site tax ($4.00 = $3.00 + $1.00 tax) owing more than $3.00 in fees
+  // captures only its non-tax part; the gift keeps the rest, so no fee comes out of the tax.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | capturableCents: holdRoomCents }, | capturableCents: holdCents },
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | const holdRoomCents = holdSiteTaxCents > 0 ? Math.max(0, holdCents - holdSiteTaxCents) : holdCents; | const holdRoomCents = holdCents;
+  it("a hold a little above its job-site tax captures only its non-tax part; the gift keeps the rest of the fees (Q2727)", async () => {
+    const HOLD = 400;
+    const TAX = 100;
+    const ROOM = HOLD - TAX;
+    const ROOM_FEE = 39; // 2.9% + 30c on the $3.00 captured
+    seed();
+    stripeMock.paymentIntents.retrieve.mockResolvedValueOnce({
+      id: "pi_1", status: "requires_capture", amount: HOLD, amount_capturable: HOLD, latest_charge: "ch_1", metadata: siteTaxMd("taxcalc_h", TAX),
+    });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_1", status: "succeeded", amount: HOLD, amount_received: ROOM, metadata: siteTaxMd("taxcalc_h", TAX),
+      latest_charge: { id: "ch_1", amount: ROOM, amount_refunded: 0, balance_transaction: { fee: ROOM_FEE } },
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+
+    const captures = stripeMock.paymentIntents.capture.mock.calls;
+    expect(captures).toHaveLength(1);
+    expect((captures[0][1] as { amount_to_capture?: number }).amount_to_capture).toBe(ROOM);
+    // The gift keeps the fee less what the card's non-tax part paid after its own card fee.
+    const restored = restoredCents();
+    expect(restored).not.toBeNull();
+    expect(restored!).toBeLessThanOrEqual(GIFT - (FEE + ROOM_FEE - ROOM));
+    expect(restored!).toBeGreaterThan(GIFT - (FEE + ROOM_FEE - ROOM) - 5);
+    const titles = (slackAlerts as Array<{ title?: string }>).map((a) => String(a.title));
+    expect(titles).not.toContain("Cancelled job's card hold holds only its sales tax");
+  });
+
+  // Q2727: a hold of no more than its tax has no room for the fees: nothing is captured, the job stays in escrow, a person is paged.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |             if (feesOwedHere) { |             if (false) {
+  it("a hold of only its job-site tax that owes fees captures nothing and stays in escrow (Q2727)", async () => {
+    seed();
+    stripeMock.paymentIntents.retrieve.mockResolvedValueOnce({ ...heldPi(), metadata: siteTaxMd("taxcalc_h", CARD) });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi());
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(stripeMock.paymentIntents.capture).not.toHaveBeenCalled();
+    expect(stripeMock.paymentIntents.cancel).not.toHaveBeenCalled();
+    expect(jobFlips()).toHaveLength(0);
+    expect(restoreCalls().filter((c) => !c.p_dry_run)).toHaveLength(0);
+    const titles = (slackAlerts as Array<{ title?: string }>).map((a) => String(a.title));
+    expect(titles).toContain("Cancelled job's card hold holds only its sales tax");
   });
 
   it("uncaptured hold: captures only what the hold allows, and the gift keeps the rest of the fee", async () => {

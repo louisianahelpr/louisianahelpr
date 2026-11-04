@@ -46,6 +46,8 @@ const state = {
 // Q2427: no bundle discount here (its own tests: declutterTradeViews, declutterBundleDiscount.test.ts).
 // The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
 // The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
+// Q2268: the bundle-request reads (no request here).
+vi.mock("@/lib/declutter/bundleRequest", async (orig) => ({ ...(await orig<object>()), fetchBundleRequests: async () => [] }));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
 // Manager mode (switch mocked on here): no grants, nothing waiting, no labels.

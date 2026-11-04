@@ -54,6 +54,8 @@ import { QuestionsToAnswer, useUnansweredQuestions } from "./SellerQuestionsToAn
 import { FreePauseLine, MyFreeAsks, useMyFreeAsks } from "./DeclutterFreeClaim";
 import { WatchingList } from "./DeclutterWatching";
 import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
+import { BundleRequestsSection, useBundleAsksToAnswer } from "./DeclutterBundleRequests";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const BUCKET_KEYS = ORDER_BUCKETS.map((b) => b.key);
 
@@ -97,6 +99,7 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
   // Builder 187 (seen in the preview, the same in the app): a member whose only Buying is an open free ask read
   // "Nothing bought yet." above "Free items you asked for". The notice waits for the asks read and needs none.
   const freeAsks = useMyFreeAsks();
+  const { user } = useCurrentUser();
   return (
     <div className="space-y-6">
       {/* The Free change (Q2487): a missed free pickup pauses free asks for 30 days; the date shows here. */}
@@ -114,6 +117,8 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       )}
       {showCart && <CartView />}
       {offers.has && offers.toAnswer && <OffersSection side="buyer" />}
+      {/* Q2268: the buyer's asks for several items, and what the seller answered. */}
+      <BundleRequestsSection side="buyer" userId={user?.id ?? null} />
       <PaidOrders side="buyer" views={t.views} scope={(id) => !refunded(id)} show={(id) => only === null || t.views.get(id)?.bucket === only} />
       {(ended.length > 0 || endedOrders > 0) && (
         <section className="space-y-2" aria-label="Ended">
@@ -159,7 +164,8 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   // waiting on the seller's side, listed there too, so the chip never counts what it hides.
   const questions = useUnansweredQuestions(userId);
   const reports = useSellerReportsToAnswer();
-  const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size;
+  const bundleAsks = useBundleAsksToAnswer(userId); // Q2268
+  const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks;
   const waitingLabel = useWaitingChipLabel();
   // AUD31-4: a sale to hand over is the seller's next move, so on the whole tab it comes before the offers, the
   // listings and their empty cards (at 375 it sat at the very bottom, behind the floating +).
@@ -189,6 +195,7 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
       {only === "offers" && toAnswer === 0 && todo && <DeclutterNotice title="Nothing to answer right now." />}
       {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} />}
       {show("offers") && <QuestionsToAnswer userId={userId} />}
+      {show("offers") && <BundleRequestsSection side="seller" userId={userId} />}
       {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} />}
       {show("listings") && listings}
       {show("waiting") && <SalesWaiting emptyNotice={only === "waiting"} />}

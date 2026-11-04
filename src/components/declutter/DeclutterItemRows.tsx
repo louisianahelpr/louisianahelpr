@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { fetchPhotos, fetchSellerItems, fetchSimilarItems, type DeclutterItem } from "@/lib/declutter/api";
 import { milesBetween } from "@/lib/declutter/distance";
 import { ItemCard, firstPhotos } from "./DeclutterItemCard";
+import { BundleAsk } from "./DeclutterBundleRequests";
 
 type From = { lat: number; lng: number; approximate: boolean } | null;
 
@@ -76,6 +77,8 @@ export function DeclutterItemRows({ item, viewerId, from }: { item: DeclutterIte
   return (
     <div className="space-y-6" data-item-rows="">
       {moreRows.length > 0 && <Row id="declutter-more-from-seller" title="More from this seller" items={moreRows} cover={cover} from={from} />}
+      {/* Q2268: one ask for several of this seller's items (Accept all / Pick some on their side). */}
+      {moreRows.length > 0 && <BundleAsk item={item} others={moreRows} viewerId={viewerId} />}
       {similarRows.length > 0 && <Row title="Similar items" items={similarRows} cover={cover} from={from} />}
     </div>
   );

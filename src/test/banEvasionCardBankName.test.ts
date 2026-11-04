@@ -37,7 +37,7 @@
  * @mutate supabase/migrations/20261027200455_helpr_guarantee.sql |                 WHERE q.review_state = 'open' AND q.user_id IN (v_customer, v_helper, NEW.helper_id)) THEN | WHERE false) THEN
  * @mutate supabase/migrations/20261006030849_ban_review_freezes_money_hides_posts_neutral_reason.sql |   BEFORE UPDATE OF payment_status ON public.jobs |   AFTER UPDATE OF payment_status ON public.jobs
  * @mutate supabase/migrations/20261102070622_late_cancel_notice_whole_dollars.sql |                          current_setting('app.ban_settlement_as_of', true)::timestamptz); |                          now());
- * @mutate supabase/migrations/20261103230932_ban_review_confirm_keeps_a_no_end_suspension.sql |     PERFORM set_config('app.ban_settlement_as_of', v_review.created_at::text, true); |     PERFORM 1;
+ * @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |     PERFORM set_config('app.ban_settlement_as_of', v_review.created_at::text, true); |     PERFORM 1;
  * @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql |        SET ban_status           = 'banned',\n           auto_suspended_until = NULL |        SET ban_status           = v_row.ban_status,\n           auto_suspended_until = v_row.expires_at
  * @mutate supabase/migrations/20261103230441_ban_review_lift_settles_when_it_ends_banned.sql |   IF p_admin_id IS NULL OR NOT public.has_role(p_admin_id, 'admin'::public.app_role) THEN |   IF p_admin_id IS NULL THEN
  * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |      AND COALESCE(current_setting('app.ban_review_lift', true), '') <> 'on' |      AND false

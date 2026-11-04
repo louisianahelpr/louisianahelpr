@@ -1,5 +1,5 @@
 // @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql |     IF OLD.category::text = 'declutter_help' AND NOT public.sell_for_me_listings_sent(OLD.id) THEN |     IF false THEN
-// @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql |   IF v_job.category::text = 'declutter_help' AND NOT public.sell_for_me_listings_sent(v_job.id) THEN |   IF false THEN
+// @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |   IF v_job.category::text = 'declutter_help' AND NOT public.sell_for_me_listings_sent(v_job.id) THEN |   IF false THEN
 // @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql |      WHERE l.job_id = _job_id AND l.helpr_id = v_helper AND l.sent_at IS NOT NULL | WHERE l.job_id = _job_id
 // @mutate supabase/migrations/20261101034159_declutter_list_for_seller.sql | REVOKE ALL ON TABLE public.declutter_listed_for_seller FROM PUBLIC, anon, authenticated; | GRANT SELECT ON TABLE public.declutter_listed_for_seller TO authenticated;
 // @mutate supabase/functions/create-payment/index.ts |           if (sent !== true) throw new PublicError | if (false) throw new PublicError

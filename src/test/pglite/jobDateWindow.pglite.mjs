@@ -20,6 +20,9 @@
  *   W8 a window can never be added to a booked job (schedule_locked)
  *   W9 the 2-hour notice reads the window's LAST day: a window whose first day starts now is taken; the same one-day
  *      job is still refused (job_start_too_soon)
+ *   W10 a window job sent with the FIRST day's expires_at (the old client) is listed until the window's LAST day
+ *   W11 a window is refused on a crew, a repeating job, a series visit and a quote-priced job (one-day crew still taken)
+ *   W12 a window cannot be added later to a job booked from a quote
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -48,8 +51,11 @@ CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, is_seed boolean NOT NULL
 CREATE TYPE public.job_status AS ENUM ('open','assigned','in_progress','completed','cancelled','expired');
 CREATE TABLE public.jobs (
   id serial PRIMARY KEY, customer_id uuid, date_needed date, start_time time, status public.job_status NOT NULL DEFAULT 'open',
-  expires_at timestamptz, parent_job_id uuid
+  expires_at timestamptz, parent_job_id uuid,
+  is_group_job boolean DEFAULT false, is_recurring boolean DEFAULT false, recurrence_days smallint[],
+  pricing_mode text NOT NULL DEFAULT 'set_price'
 );
+CREATE TABLE public.job_quote_requests (id serial PRIMARY KEY, job_id integer);
 CREATE FUNCTION public.is_server_context() RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
 CREATE OR REPLACE FUNCTION public.job_expires_at_for_schedule(p_date_needed date, p_start_time time) RETURNS timestamptz
   LANGUAGE sql STABLE AS $$ SELECT CASE WHEN p_date_needed IS NULL THEN NULL
@@ -126,6 +132,25 @@ const winNow = await tries(`INSERT INTO public.jobs (customer_id, date_needed, s
 const oneNow = await tries(`INSERT INTO public.jobs (customer_id, date_needed, start_time) VALUES (${ME}, ${nowDay}, ${nowTime})`);
 check("W9 the 2-hour notice reads the window's last day (a window starting now is taken; a one-day job starting now is refused)",
   winNow === null && !!oneNow && /job_start_too_soon/.test(oneNow), `window=${winNow ?? "taken"} oneday=${oneNow ?? "taken"}`);
+
+await db.exec(`INSERT INTO public.jobs (customer_id, date_needed, start_time, date_window_end, expires_at) VALUES (${ME}, current_date + 2, '09:00', current_date + 6, ${ct(2, "09:00")})`);
+const [x] = await q(`SELECT expires_at = ${ct(6, "09:00")} AS at_end, expires_at FROM public.jobs WHERE date_needed = current_date + 2 AND date_window_end = current_date + 6`);
+check("W10 a window job sent with its first day's expires_at is listed until its last day", x.at_end === true, String(x.expires_at));
+
+const crewW = await tries(`INSERT INTO public.jobs (customer_id, date_needed, date_window_end, is_group_job) VALUES (${ME}, current_date + 2, current_date + 5, true)`);
+const recW = await tries(`INSERT INTO public.jobs (customer_id, date_needed, date_window_end, is_recurring) VALUES (${ME}, current_date + 2, current_date + 5, true)`);
+const daysW = await tries(`INSERT INTO public.jobs (customer_id, date_needed, date_window_end, recurrence_days) VALUES (${ME}, current_date + 2, current_date + 5, '{1,3}')`);
+const quoteW = await tries(`INSERT INTO public.jobs (customer_id, date_needed, date_window_end, pricing_mode) VALUES (${ME}, current_date + 2, current_date + 5, 'quotes')`);
+const crewOne = await tries(`INSERT INTO public.jobs (customer_id, date_needed, is_group_job) VALUES (${ME}, current_date + 2, true)`);
+const refusedAll = [crewW, recW, daysW, quoteW].every((m) => m && /jobs_date_window_single_job_only/.test(m));
+check("W11 a window is refused on a crew, a repeating job, a series and a quote-priced job; a one-day crew is taken",
+  refusedAll && crewOne === null, [crewW, recW, daysW, quoteW, crewOne].map((m) => (m ? "refused" : "taken")).join(","));
+
+await db.exec(`INSERT INTO public.jobs (customer_id, date_needed, start_time) VALUES (${ME}, current_date + 5, '11:00')`);
+const [qj] = await q(`SELECT id FROM public.jobs WHERE date_needed = current_date + 5 AND start_time = '11:00'`);
+await db.exec(`INSERT INTO public.job_quote_requests (job_id) VALUES (${qj.id})`);
+const quoteAdd = await tries(`UPDATE public.jobs SET date_window_end = current_date + 8 WHERE id = ${qj.id}`);
+check("W12 a window cannot be added to a job booked from a quote", !!quoteAdd && /window_not_allowed/.test(quoteAdd), quoteAdd ?? "taken");
 
 console.log(`\n${checks - failures}/${checks} ${failures ? "FAIL" : "PASS"}${SKIP ? " (--skip)" : ""}`);
 process.exit(failures ? 1 : 0);

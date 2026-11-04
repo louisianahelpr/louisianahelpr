@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 
 import { buildJobInsertPayload, type BuildJobInsertPayloadInput } from "./jobSubmitHelpers";
+import { computeJobExpiresAt } from "@/lib/jobExpiry";
 
 /**
  * These lock the sales-tax columns written at INSERT time.
@@ -97,3 +98,21 @@ describe("buildJobInsertPayload — sales tax", () => {
 // Restores the flat "tax every category" lock: an exempt job persists ~10% of
 // its budget as sales tax Stripe never collected and admin revenue then sums.
 // @mutate src/pages/post-job/jobSubmitHelpers.ts | const lockedSalesTaxRate = isLaborTaxable(category, taxKind) ? salesTaxRate : 0; | const lockedSalesTaxRate = salesTaxRate;
+
+// Q2408 (lead review 11-04): a window job's listing must run to the window's LAST day; from the first day,
+// auto-expire-jobs cancelled it at day 1's start. A crew never carries a window (one shared day).
+// @mutate src/pages/post-job/jobSubmitHelpers.ts | computeJobExpiresAt(jobLastDay({ date_needed: firstVisit, date_window_end: windowEnd }) ?? firstVisit, startTime) | computeJobExpiresAt(firstVisit, startTime)
+describe("buildJobInsertPayload: Any time this week", () => {
+  it("expires a window job at the start on the window's last day", () => {
+    const p = buildJobInsertPayload({ ...base, dateNeeded: "2027-03-01", dateWindowEnd: "2027-03-07" }) as Record<string, unknown>;
+    expect(p.date_window_end).toBe("2027-03-07");
+    expect(p.expires_at).toBe(computeJobExpiresAt("2027-03-07", "09:00"));
+    expect(p.expires_at).not.toBe(computeJobExpiresAt("2027-03-01", "09:00"));
+  });
+
+  it("a one-day job still expires at its own day", () => {
+    const p = buildJobInsertPayload({ ...base, dateNeeded: "2027-03-01" }) as Record<string, unknown>;
+    expect(p).not.toHaveProperty("date_window_end");
+    expect(p.expires_at).toBe(computeJobExpiresAt("2027-03-01", "09:00"));
+  });
+});

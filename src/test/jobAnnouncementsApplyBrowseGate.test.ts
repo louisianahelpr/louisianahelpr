@@ -34,10 +34,10 @@
  * @mutate supabase/migrations/20261009171601_job_alerts_reach_every_member.sql |     CONTINUE WHEN v_uid IS NULL OR NOT public.job_announceable_to(v_job, v_uid); |     CONTINUE WHEN v_uid IS NULL;
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |   IF v_reason IS NULL AND public.early_access_visible_at(r.user_id, v_job.created_at) > now() THEN | IF false THEN
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |         AND public.early_access_visible_at(p.user_id, nj.created_at) <= now()\n |
- * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     AND p_job.customer_id IS NOT NULL\n |
- * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | COALESCE(p_job.payment_status, '') = ANY (ARRAY['escrow'::text, 'payout_pending'::text, 'released'::text, 'held'::text]) | COALESCE(p_job.payment_status, '') = ANY (ARRAY['escrow'::text, 'payout_pending'::text, 'released'::text])
- * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     AND p_job.parent_job_id IS NULL\n |
- * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |         OR COALESCE(public.get_user_credential_tier(p_user_id), 0) >= p_job.credential_tier)\n    -- Q1401 | OR true)\n    -- Q1401
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |     AND p_job.customer_id IS NOT NULL\n |
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql | COALESCE(p_job.payment_status, '') = ANY (ARRAY['escrow'::text, 'payout_pending'::text, 'released'::text, 'held'::text]) | COALESCE(p_job.payment_status, '') = ANY (ARRAY['escrow'::text, 'payout_pending'::text, 'released'::text])
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |     AND p_job.parent_job_id IS NULL\n |
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |         OR COALESCE(public.get_user_credential_tier(p_user_id), 0) >= p_job.credential_tier)\n    -- Q1401 | OR true)\n    -- Q1401
  * @mutate supabase/migrations/20261012042612_job_match_emails_followups.sql |         OR (b.blocker_id = r.user_id AND b.blocked_id = v_job.customer_id) | OR false
  * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |   IF public.early_access_visible_at(p_user_id, v_job.created_at) > now() THEN | IF false THEN
  * @mutate supabase/migrations/20261027155507_job_alert_names_title_and_town.sql |   IF NOT public.job_announceable_to(v_job, p_user_id) THEN |   IF false THEN

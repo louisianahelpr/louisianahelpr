@@ -27,7 +27,7 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |                  AND public.job_offer_cutoff(j.date_needed, j.start_time) > now() + interval '15 minutes') |                  )
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql |            WHEN j.is_group_job IS NOT TRUE OR j.parent_job_id IS NOT NULL THEN 0 |            WHEN j.is_group_job IS NOT TRUE THEN 0
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   IF v_status != 'open' AND NOT (v_status = 'accepted' AND COALESCE(public.crew_spots_open(p_job_id), 0) > 0) THEN |   IF v_status != 'open' THEN
-// @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |      AND NOT (v_job.status = 'accepted' AND COALESCE(public.crew_spots_open(NEW.job_id), 0) > 0) THEN |      THEN
+// @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |      AND NOT (v_job.status = 'accepted' AND COALESCE(public.crew_spots_open(NEW.job_id), 0) > 0) THEN |      THEN
 // @mutate supabase/migrations/20261006023437_crew_free_spot_relisted.sql |           OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0)\n | \n
 // @mutate supabase/migrations/20261007073145_crew_block_fee_ledger.sql | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO service_role; | GRANT EXECUTE ON FUNCTION public.crew_spots_open(uuid) TO anon, authenticated, service_role;
 // @mutate supabase/migrations/20261104074500_browse_reads_date_window.sql | WHEN is_group_job IS NOT TRUE OR parent_job_id IS NOT NULL THEN 0 WHEN status = 'open'::job_status OR (status = 'accepted'::job_status AND (CASE WHEN start_time IS NULL THEN ((date_needed + 1)::timestamp without time zone AT TIME ZONE 'America/Chicago') ELSE ((date_needed + start_time) AT TIME ZONE 'America/Chicago') END) > (now() + '00:15:00'::interval)) THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id) - (SELECT count(*)::integer AS count FROM crew_block_fees b WHERE b.job_id = jobs.id)) ELSE 0 END) > 0)) | WHEN is_group_job IS NOT TRUE THEN 0 WHEN status = 'open'::job_status OR status = 'accepted'::job_status THEN GREATEST(0, COALESCE(helpers_needed, 1) - (SELECT count(*)::integer AS count FROM group_job_helpers g WHERE g.job_id = jobs.id) - (SELECT count(*)::integer AS count FROM crew_block_fees b WHERE b.job_id = jobs.id)) ELSE 0 END) > 0))
@@ -59,6 +59,8 @@ const FEE_PERCENT = "20261025235701_browse_carries_helper_fee_percent.sql";
 const CARD_HOLD = "20261027185146_card_hold_at_post.sql";
 // Q2408 restates the map and ranked feed (window's-last-day filter + date_window_end), crew rule untouched.
 const DATE_WINDOW = "20261104080753_map_and_ranked_read_date_window.sql";
+// Q2408 part 4 restates the apply gate and the landing teaser (window's-last-day cutoff), crew rule untouched.
+const DATE_WINDOW_APPLY = "20261104084501_apply_and_notices_read_date_window.sql";
 // A2-B6 restates the browse view verbatim + scope_video_url (the poster's scope video).
 const SCOPE_VIDEO = "20261029194021_browse_carries_scope_video.sql";
 const RELISTED = "(j.status = 'open' OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0))";
@@ -85,7 +87,7 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
   });
 
   it.each(Object.entries(TAKES_APPLICANTS))("%s reads crew_spots_open", (fn, rule) => {
-    expect([THIS, RESTATED, SEED_SWITCH, LISTING_START, UNDER_18, FEE_STAMP, MEMBERSHIPS, FEE_PERCENT, CARD_HOLD, DATE_WINDOW], `${fn} is not the Q1409 definition or its Q1411/Q552/Q1401/Q1586/Q1839/Q1848/Q2400/Q2399/Q2408 restatement`).toContain(EFFECTIVE.get(fn)?.file);
+    expect([THIS, RESTATED, SEED_SWITCH, LISTING_START, UNDER_18, FEE_STAMP, MEMBERSHIPS, FEE_PERCENT, CARD_HOLD, DATE_WINDOW, DATE_WINDOW_APPLY], `${fn} is not the Q1409 definition or its Q1411/Q552/Q1401/Q1586/Q1839/Q1848/Q2400/Q2399/Q2408 restatement`).toContain(EFFECTIVE.get(fn)?.file);
     expect(body(fn).replace(/\s+/g, " ")).toContain(rule.replace(/\s+/g, " "));
   });
 

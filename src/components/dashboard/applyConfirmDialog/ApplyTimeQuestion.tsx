@@ -25,6 +25,20 @@ function platformToday(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 }
 
+/** Now in the platform zone, as HH:MM (24-hour). */
+function platformNowHHMM(at: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-GB", { timeZone: "America/Chicago", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(at);
+}
+
+/**
+ * Q2408 (review): can TODAY still be booked? Accept refuses a job whose start is 15 minutes away or less
+ * (job_starts_too_soon); with no start time the day is open until midnight.
+ */
+export function todayStillBookable(startTime: string | null | undefined, now: Date = new Date()): boolean {
+  if (!startTime) return true;
+  return platformNowHHMM(new Date(now.getTime() + 15 * 60 * 1000)) < startTime.slice(0, 5) && platformNowHHMM(now) < startTime.slice(0, 5);
+}
+
 function addDays(ymd: string, days: number): string {
   const [y, m, d] = ymd.split("-").map(Number);
   const t = new Date(Date.UTC(y, m - 1, d + days));
@@ -62,7 +76,8 @@ export function ApplyTimeQuestion({
   // Q2408 (review): once a window's first day has come, "Yes, that works" would book a day already here or gone
   // (accept refuses it: job_starts_too_soon). Then only the days still ahead in the window are offered.
   const firstDayGone = windowed && !!job.date_needed && job.date_needed <= today;
-  const firstOpenDay = firstDayGone ? addDays(today, 1) : null;
+  // Today stays on offer while its start is still ahead (on the window's last day it is the ONLY day left); else tomorrow.
+  const firstOpenDay = firstDayGone ? (todayStillBookable(job.start_time) ? today : addDays(today, 1)) : null;
   const windowOver = firstDayGone && !!job.date_window_end && firstOpenDay! > job.date_window_end;
   useEffect(() => {
     if (firstDayGone && !windowOver && !value) onChange({ jobId: job.id, date: firstOpenDay!, time: null });

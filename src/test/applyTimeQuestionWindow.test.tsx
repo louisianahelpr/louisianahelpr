@@ -5,6 +5,8 @@
  *
  * @mutate src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx |   const firstDayGone = windowed && !!job.date_needed && job.date_needed <= today; |   const firstDayGone = false;
  * @mutate src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx |               max={windowed ? job.date_window_end! : addDays(today, 90)} |               max={addDays(today, 90)}
+ * @mutate src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx | (todayStillBookable(job.start_time) ? today : addDays(today, 1)) | addDays(today, 1)
+ * @mutate src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx |   if (!startTime) return true; |   if (!startTime) return false;
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
@@ -36,14 +38,33 @@ describe("Q2408 the apply question on a window job", () => {
     });
   });
 
-  it("once the first day has come: no Yes; a day still ahead is picked, never today", () => {
+  it("once the first day has come: no Yes; today is offered while its start is ahead (no start time: all day)", () => {
     render(<Host job={{ date_needed: plus(0), date_window_end: plus(6) }} />);
     expect(screen.queryByTestId("apply-time-yes")).toBeNull();
     expect(screen.getByText("Which day works for you?")).toBeTruthy();
-    expect(seen?.date).toBe(plus(1));
+    expect(seen?.date).toBe(plus(0));
     const date = screen.getByTestId("apply-time-date") as HTMLInputElement;
-    expect(date.min).toBe(plus(1));
+    expect(date.min).toBe(plus(0));
     expect(date.max).toBe(plus(6));
+  });
+
+  // Lead review 11-04: on the window's LAST day the picker was empty ("Which day works for you?" with nothing to pick).
+  // 16:00Z on 2026-11-06 is 10:00 AM in Chicago.
+  const at10am = () => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(new Date("2026-11-06T16:00:00Z")); };
+
+  it("on the window's last day, before its 3 PM start: today is offered (the only day left)", () => {
+    at10am();
+    render(<Host job={{ date_needed: "2026-11-04", date_window_end: "2026-11-06", start_time: "15:00:00", is_flexible_schedule: false }} />);
+    expect(seen?.date).toBe("2026-11-06");
+    const date = screen.getByTestId("apply-time-date") as HTMLInputElement;
+    expect(date.min).toBe("2026-11-06");
+    expect(date.max).toBe("2026-11-06");
+  });
+
+  it("mid-window, today's start within 15 minutes: tomorrow is the first day offered", () => {
+    at10am();
+    render(<Host job={{ date_needed: "2026-11-05", date_window_end: "2026-11-09", start_time: "10:10:00", is_flexible_schedule: false }} />);
+    expect(seen?.date).toBe("2026-11-07");
   });
 
   it("a one-day job is unchanged (Yes offered, no window line)", () => {

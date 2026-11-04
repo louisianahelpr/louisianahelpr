@@ -490,7 +490,8 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     // Refuse it here rather than silently shifting their time, so they fix it
     // BEFORE checkout. (jobExpiry's floor and trg_job_expiry_floor still catch
     // any path that gets past this.)
-    if (isScheduleTooSoon(dateNeeded, startTime)) {
+    // Q2408: a window job is measured from its LAST day, as refuse_short_notice_job does.
+    if (isScheduleTooSoon(dateWindowEnd && dateWindowEnd > dateNeeded ? dateWindowEnd : dateNeeded, startTime)) {
       toast.error(SCHEDULE_TOO_SOON_COPY);
       // The START TIME, not the date. When the poster picked today, the date
       // is correct and the time is the thing that is wrong — scrolling to the

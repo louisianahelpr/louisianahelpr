@@ -68,7 +68,8 @@ CREATE TRIGGER trg_job_date_window_clear
   BEFORE UPDATE ON public.jobs
   FOR EACH ROW EXECUTE FUNCTION public.clear_job_date_window();
 
--- The listing closes on the window's last day (newest definition of 20261008190546's function, one change).
+-- The listing closes on the window's last day, and the 2-hour notice is measured from it (newest definition of
+-- 20261008190546's function; both read COALESCE(date_window_end, date_needed)).
 CREATE OR REPLACE FUNCTION public.refuse_short_notice_job()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -77,7 +78,6 @@ SET search_path TO 'public'
 AS $fn$
 DECLARE
   v_start timestamptz;
-  v_close timestamptz;
 BEGIN
   IF NEW.date_needed IS NULL OR NEW.parent_job_id IS NOT NULL THEN
     RETURN NEW;
@@ -88,16 +88,18 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.profiles p WHERE p.user_id = NEW.customer_id AND p.is_seed) THEN
     RETURN NEW;
   END IF;
-  v_start := (NEW.date_needed + COALESCE(NEW.start_time, '23:59'::time)) AT TIME ZONE 'America/Chicago';
+  -- Q2408: a window job ("Any time this week") is measured from the start on the window's LAST day: it can still be
+  -- done on a later day of the window even when its first day starts within 2 hours. A one-day job (NULL end) is
+  -- measured from its own start, exactly as before.
+  v_start := (COALESCE(NEW.date_window_end, NEW.date_needed) + COALESCE(NEW.start_time, '23:59'::time)) AT TIME ZONE 'America/Chicago';
   IF v_start < now() + interval '2 hours' THEN
     RAISE EXCEPTION 'job_start_too_soon' USING ERRCODE = '22023',
       HINT = 'A job needs at least 2 hours'' notice.';
   END IF;
-  -- The listing closes at the start, never after it. Q2408: a window job ("Any time this week") closes at the
-  -- start on the window's LAST day, so it stays up for the whole week.
-  v_close := (COALESCE(NEW.date_window_end, NEW.date_needed) + COALESCE(NEW.start_time, '23:59'::time)) AT TIME ZONE 'America/Chicago';
-  IF NEW.expires_at IS NULL OR NEW.expires_at > v_close THEN
-    NEW.expires_at := v_close;
+  -- The listing closes at the start, never after it; a window job at the start on the window's LAST day, so it
+  -- stays up for the whole week.
+  IF NEW.expires_at IS NULL OR NEW.expires_at > v_start THEN
+    NEW.expires_at := v_start;
   END IF;
   RETURN NEW;
 END;

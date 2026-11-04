@@ -18,7 +18,7 @@
  * @mutate src/lib/guestJobsQuery.ts | parish, helper_fee_flat_cents, helper_fee_percent"; | parish, helper_fee_flat_cents";
  * @mutate src/pages/jobs/jobPage/useJobPage.ts | is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, recurrence_days | is_group_job, photos, helper_fee_flat_cents, recurrence_days
  * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx | feeStamp={{ helper_fee_flat_cents: j.helper_fee_flat_cents, helper_fee_percent: j.helper_fee_percent }} | feeStamp={{ helper_fee_flat_cents: j.helper_fee_flat_cents }}
- * @mutate src/lib/jobColumns.ts | export const BROWSE_VIEW_COLUMNS_AHEAD_OF_DB = ["helper_fee_percent", "scope_video_url"] as const; | export const BROWSE_VIEW_COLUMNS_AHEAD_OF_DB = ["scope_video_url"] as const;
+ * @mutate src/lib/jobColumns.ts | export const BROWSE_VIEW_COLUMNS_AHEAD_OF_DB = ["helper_fee_percent", "scope_video_url", "date_window_end"] as const; | export const BROWSE_VIEW_COLUMNS_AHEAD_OF_DB = ["scope_video_url", "date_window_end"] as const;
  * @mutate src/lib/jobColumns.ts | ...(browseView ? BROWSE_VIEW_COLUMNS_AHEAD_OF_DB : []) | ...BROWSE_VIEW_COLUMNS_AHEAD_OF_DB
  * @mutate src/pages/jobs/jobPage/useJobPage.ts | .maybeSingle<Record<string, unknown>>(), { browseView: true }), | .maybeSingle<Record<string, unknown>>()),
  */

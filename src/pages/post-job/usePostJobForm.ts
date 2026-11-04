@@ -539,6 +539,7 @@ export function usePostJobForm() {
     zipCode,
     dateNeeded,
     startTime,
+    dateWindowEnd,
     // Flexible stands IN PLACE OF a start time, so the completion check needs
     // to see it — see UseJobDerivedParams.isFlexibleSchedule.
     isFlexibleSchedule,

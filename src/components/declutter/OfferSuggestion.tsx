@@ -5,6 +5,7 @@
  * refused suggestion shows nothing: it is extra help, and the box works without it.
  */
 import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/declutter/distance";
 import { requestSuggestedOffer } from "@/lib/declutter/aiReply";
 
@@ -22,13 +23,15 @@ export function OfferSuggestion({ itemId, onUse }: { itemId: string; onUse: (dol
   const { offerCents, reason } = suggestion.data;
   return (
     <div className="flex flex-wrap items-center gap-2" data-offer-suggestion="">
-      <button
+      <Button
         type="button"
-        className="min-h-11 rounded-full border border-border bg-muted/40 px-3 text-sm font-medium"
+        variant="outline"
+        size="sm"
+        className="rounded-full"
         onClick={() => onUse(String(offerCents / 100))}
       >
         Suggested offer: {formatPrice(offerCents)}
-      </button>
+      </Button>
       {reason && <span className="text-xs text-muted-foreground">{reason}</span>}
     </div>
   );

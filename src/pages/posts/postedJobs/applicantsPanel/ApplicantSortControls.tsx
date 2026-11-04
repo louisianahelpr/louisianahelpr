@@ -1,4 +1,11 @@
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { type ApplicantSort } from "../useApplicantComparison";
+
+const SORT_OPTIONS = [
+  { value: "recommended", label: "Recommended" },
+  { value: "rated", label: "Highest rated" },
+  { value: "soonest", label: "Applied first" },
+] as const satisfies readonly { value: ApplicantSort; label: string }[];
 
 interface ApplicantSortControlsProps {
   applicantSort: ApplicantSort;
@@ -18,47 +25,25 @@ export function ApplicantSortControls({
   applicantSort,
   setApplicantSort,
 }: ApplicantSortControlsProps) {
+  // Judgment call: the "soonest" sort already ordered by application
+  // timestamp ascending (see useApplicantComparison's comment — "first to
+  // apply"), but its label read "Soonest available", which sounds like the
+  // HELPER's stated availability, not when they applied. Rather than add a
+  // second, functionally-duplicate "Applied first" option next to a
+  // mislabeled one that does the exact same sort, the existing one says
+  // what it actually does.
+  //
+  // One of three is always chosen, so it is a switch, not a filter strip:
+  // the shared SegmentedControl (Q2709, owner 10-31 "Nothing hand-made"),
+  // quiet tone because the hire sheet's solid primary sits below it.
   return (
-    <div className="flex items-center gap-1.5 mb-4 flex-wrap" role="group" aria-label="Sort applicants by">
-      {/* Judgment call: the "soonest" sort already ordered by application
-          timestamp ascending (see useApplicantComparison's comment —
-          "first to apply"), but its label read "Soonest available", which
-          sounds like the HELPER's stated availability, not when they
-          applied. Rather than add a second, functionally-duplicate
-          "Applied first" pill next to a mislabeled one that does the exact
-          same sort, this renames the existing pill to say what it actually
-          does. */}
-      {(["recommended", "rated", "soonest"] as const).map((opt) => {
-        const label = opt === "recommended" ? "Recommended" : opt === "rated" ? "Highest rated" : "Applied first";
-        const active = applicantSort === opt;
-        return (
-          <button
-            key={opt}
-            type="button"
-            onClick={() => setApplicantSort(opt)}
-            aria-pressed={active}
-            className="px-3 py-1.5 rounded-ds-md text-ds-11 font-sans font-semibold transition-all duration-150 active:scale-95"
-            style={{
-              // NOT a hardcoded white. `hsla(0, 0%, 100%, 0.45)` has no dark
-              // sibling, so in dark mode this painted 45% pure white over a
-              // dark surface and the inactive chip became a mid-grey slab with
-              // olivewood text on it. Identical defect to the referral
-              // milestone rung fixed in 48ad36cd — same literal, same failure.
-              // `--ivory-sand` is `0 0% 100%` in light mode, so light output is
-              // byte-identical and only dark changes.
-              background: active ? "hsl(var(--bark) / 0.10)" : "hsl(var(--ivory-sand) / 0.45)",
-              color: active ? "hsl(var(--bark))" : "hsl(var(--olivewood) / 0.80)",
-              border: active
-                ? "0.5px solid hsl(var(--bark) / 0.3)"
-                : "0.5px solid hsl(var(--bark) / 0.12)",
-              backdropFilter: "blur(12px)",
-              WebkitBackdropFilter: "blur(12px)",
-            }}
-          >
-            {label}
-          </button>
-        );
-      })}
-    </div>
+    <SegmentedControl
+      ariaLabel="Sort applicants by"
+      tone="quiet"
+      className="mb-4"
+      options={SORT_OPTIONS}
+      value={applicantSort}
+      onChange={setApplicantSort}
+    />
   );
 }

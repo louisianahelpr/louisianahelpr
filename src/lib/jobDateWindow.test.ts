@@ -52,7 +52,9 @@ describe("Q2408 job date window", () => {
     expect(files.length).toBeGreaterThan(500);
     const hits = files.filter((f) => /formatJobDate\(\s*job\??\.date_needed\s*\)/.test(blankComments(readFileSync(f, "utf8"))));
     // ApplyTimeQuestion asks "Does <first day> work?" on purpose, and only after hasDateWindow says it is a window.
+    // @two-way src/lib/jobDateWindow.test.ts:stale allowlist entry (no longer prints the first day)
     const ALLOWED = ["src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx"];
+    for (const f of ALLOWED) expect(hits, `${f}: stale allowlist entry (no longer prints the first day), remove it`).toContain(f);
     for (const f of ALLOWED) expect(readFileSync(f, "utf8")).toMatch(/hasDateWindow\(job\) \? formatJobDate\(job\.date_needed\)/);
     expect(hits.filter((f) => !ALLOWED.includes(f))).toEqual([]);
   });

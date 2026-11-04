@@ -6,7 +6,6 @@ import { unwrap } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { youCardFacts } from "@/components/profile/profileLanding/YouCard";
 import { getCategoryIcon } from "@/lib/categoryIcons";
-import { formatJobDate } from "@/lib/dateUtils";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { useHelprTakeHome, type TakeHomeJob } from "@/components/dashboard/helprTakeHome";
 import type { Conversation } from "../types";
@@ -21,6 +20,7 @@ import { subscribeJobRealtime } from "@/lib/jobRealtimeBus";
 import { helperProgress } from "@/pages/jobs/appliedJobCard/steps/helperProgress";
 import type { Job } from "@/components/job-card/activityConstants";
 import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
+import { jobDayLabel } from "@/lib/jobDateWindow";
 
 /**
  * The deal-room chat's pinned card (board 2; chat halves of 59, 61, 62, 63).
@@ -256,7 +256,7 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
     approveLeft: approveDue ? hoursLeft(Date.parse(job.helper_completed_at!) + hoursToMs(APPROVAL_WINDOW_HOURS)) : null,
   });
   const Icon = getCategoryIcon(job.category);
-  const when = [job.date_needed ? formatJobDate(job.date_needed) : null, clock(job.start_time)].filter(Boolean).join(" · ");
+  const when = [job.date_needed ? jobDayLabel(job) : null, clock(job.start_time)].filter(Boolean).join(" · ");
   const meta = [when || null, job.parish ? `${job.parish} Parish` : null].filter(Boolean).join(" · ");
   const open = () =>
     navigate(

@@ -1,7 +1,8 @@
 import { useId } from "react";
-import { formatJobDate } from "@/lib/dateUtils";
 import { FLEXIBLE_TIME_LABEL, jobStartTimeLabel } from "@/lib/jobDate";
 import type { EnrichedJob } from "@/components/dashboard/types";
+import { jobDayLabel, hasDateWindow } from "@/lib/jobDateWindow";
+import { formatJobDate } from "@/lib/dateUtils";
 
 /**
  * "Does Sat, Oct 24 at 12:00 PM work for you?" (owner, 2026-10-23: every job asks; if not, the Helpr
@@ -45,11 +46,14 @@ export function ApplyTimeQuestion({
   // A flexible start has no time to ask about: "Does Sat, Oct 31 work for you?", never "… at Flexible …"
   // (deep audit 2026-10-28, real data: is_flexible_schedule with no start_time).
   const startLabel = jobStartTimeLabel(job.start_time, job.is_flexible_schedule);
-  const when = [job.date_needed ? formatJobDate(job.date_needed) : null, startLabel === FLEXIBLE_TIME_LABEL ? null : startLabel]
+  const when = [job.date_needed ? (hasDateWindow(job) ? formatJobDate(job.date_needed) : jobDayLabel(job)) : null, startLabel === FLEXIBLE_TIME_LABEL ? null : startLabel]
     .filter(Boolean)
     .join(" at ");
   // Q2607 (Jobs audit 1102b row 21): "9:00 AM" broke with "AM" alone on the next line; the time stays together.
-  const day = job.date_needed ? formatJobDate(job.date_needed) : null;
+  // Q2408: a week-window job asks about its FIRST day and says the poster takes any day in the window; "Other
+  // time" then picks a day inside the window (hiring moves the job to it, which ends the window).
+  const windowed = hasDateWindow(job);
+  const day = job.date_needed ? (windowed ? formatJobDate(job.date_needed) : jobDayLabel(job)) : null;
   const time = startLabel === FLEXIBLE_TIME_LABEL ? null : startLabel;
   // An answer given on another job's sheet is not this job's answer.
   const value = given && given.jobId === job.id ? given : null;
@@ -61,6 +65,11 @@ export function ApplyTimeQuestion({
       <legend className="font-sans font-semibold text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
         Does {day}{day && time ? " at " : ""}{time && <span data-apply-time="" className="whitespace-nowrap">{time}</span>} work for you?
       </legend>
+      {windowed && (
+        <p className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-testid="apply-time-window">
+          {jobDayLabel(job)} works for the poster. Pick another day in that week with Other time.
+        </p>
+      )}
       <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={`Does ${when} work for you?`}>
         <button
           type="button"
@@ -92,8 +101,8 @@ export function ApplyTimeQuestion({
             <input
               id={`${id}-d`}
               type="date"
-              min={today}
-              max={addDays(today, 90)}
+              min={windowed && job.date_needed! > today ? job.date_needed! : today}
+              max={windowed ? job.date_window_end! : addDays(today, 90)}
               value={value.date}
               onChange={(e) => onChange({ ...value, date: e.target.value })}
               className="min-h-11 w-full min-w-0 rounded-xl border border-border bg-card px-3 text-ds-16"

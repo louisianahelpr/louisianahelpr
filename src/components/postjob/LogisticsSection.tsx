@@ -26,6 +26,8 @@ import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
 import { SCHEDULE_TOO_SOON_COPY, TODAY_CLOSED_COPY } from "@/lib/jobScheduleCopy";
 import { useSameDayPick } from "@/components/postjob/useSameDayPick";
 import { MaterialsToggle } from "@/components/postjob/MaterialsToggle";
+import { weekWindowEnd } from "@/lib/jobDateWindow";
+import { formatJobDate } from "@/lib/dateUtils";
 
 /**
  * Repeats is ON as of 2026-08-23 (owner approved).
@@ -91,6 +93,9 @@ interface LogisticsSectionProps {
   scheduleInPast?: boolean;
   isFlexibleSchedule: boolean;
   setIsFlexibleSchedule: (v: boolean) => void;
+  /** Q2408 "Any time this week": the window's last day (dateNeeded is its first), or null for one day. */
+  dateWindowEnd?: string | null;
+  setDateWindowEnd?: (v: string | null) => void;
   specialRequirements: string;
   setSpecialRequirements: (v: string) => void;
   isRecurring: boolean;
@@ -148,6 +153,8 @@ export function LogisticsSection({
   scheduleInPast = false,
   isFlexibleSchedule,
   setIsFlexibleSchedule,
+  dateWindowEnd = null,
+  setDateWindowEnd,
   specialRequirements,
   setSpecialRequirements,
   isRecurring,
@@ -206,13 +213,30 @@ export function LogisticsSection({
   // day to tomorrow (the next card on the strip), which also clears the start Need it today set (useSameDayPick).
   const chooseWhen = (flexible: boolean) => {
     setIsFlexibleSchedule(flexible);
+    setDateWindowEnd?.(null);
     if (isToday && strip[1]) pickDay(strip[1].iso);
   };
+  // Q2408 (owner: BUILD) "Any time this week": the picked day starts a 7-day window (date_window_end = day + 6).
+  // Any time of day, so it rides on the flexible start (the time stays optional). Not for a repeating job.
+  const weekWindow = !isRecurring && !!dateWindowEnd;
+  const chooseWeek = () => {
+    if (!setDateWindowEnd || !dateNeeded) return;
+    setIsFlexibleSchedule(true);
+    setDateWindowEnd(weekWindowEnd(dateNeeded));
+    // Need it today is its own choice (Q2615): the week then starts tomorrow (the effect below moves the end).
+    if (isToday && strip[1]) pickDay(strip[1].iso);
+  };
+  // The window follows the first day: picking another day on the strip moves the whole week with it.
+  useEffect(() => {
+    if (dateWindowEnd && dateNeeded && dateWindowEnd !== weekWindowEnd(dateNeeded)) setDateWindowEnd?.(weekWindowEnd(dateNeeded));
+    if (dateWindowEnd && isRecurring) setDateWindowEnd?.(null);
+  }, [dateNeeded, dateWindowEnd, isRecurring, setDateWindowEnd]);
   // The crew stepper reads the field's number (2..10, the field's own min/max); a blank or odd value starts at 2.
   const crewCount = Number.parseInt(helpersNeeded, 10) || 2;
   const needItToday = () => {
     if (!sameDayStart) return;
     setIsFlexibleSchedule(false);
+    setDateWindowEnd?.(null);
     setOtherTime(false);
     setMoreDates(false);
     setDateNeeded(today);
@@ -389,10 +413,18 @@ export function LogisticsSection({
         <div id="flexible" role="radiogroup" aria-labelledby="when-label" className="flex flex-wrap gap-2">
           {/* Q2615 (Jobs audit 1102b row 29): one filled chip for "when". While Need it today is on, neither of
               these reads selected (both used to be filled with it); tapping one leaves today for tomorrow. */}
-          <ChoicePill selected={!isToday && !isFlexibleSchedule} onClick={() => chooseWhen(false)}>A set time</ChoicePill>
-          <ChoicePill selected={!isToday && isFlexibleSchedule} onClick={() => chooseWhen(true)}>Flexible</ChoicePill>
+          <ChoicePill selected={!isToday && !isFlexibleSchedule && !weekWindow} onClick={() => chooseWhen(false)}>A set time</ChoicePill>
+          {!isRecurring && setDateWindowEnd && (
+            <ChoicePill selected={!isToday && weekWindow} onClick={chooseWeek}>Any time this week</ChoicePill>
+          )}
+          <ChoicePill selected={!isToday && isFlexibleSchedule && !weekWindow} onClick={() => chooseWhen(true)}>Flexible</ChoicePill>
         </div>
-        {isFlexibleSchedule && (
+        {weekWindow && dateNeeded && (
+          <p className="text-ds-12 text-muted-foreground leading-snug" data-testid="week-window-note">
+            Any day from {formatJobDate(dateNeeded)} through {formatJobDate(dateWindowEnd!)}. Helprs say which day suits them, and hiring one books that day.
+          </p>
+        )}
+        {isFlexibleSchedule && !weekWindow && (
           <p className="text-ds-12 text-muted-foreground leading-snug">
             Any time that day works. Add a start time if you like; the Helpr can shift it either way.
           </p>

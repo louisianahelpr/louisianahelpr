@@ -7720,6 +7720,7 @@ export type Database = {
           customer_fee_amount: number | null
           customer_id: string | null
           date_needed: string
+          date_window_end?: string | null
           dayof_confirm_reminder_sent_at: string | null
           dayof_unanswered_poster_alert_sent_at: string | null
           department: string | null
@@ -7847,6 +7848,7 @@ export type Database = {
           customer_fee_amount?: number | null
           customer_id?: string | null
           date_needed: string
+          date_window_end?: string | null
           dayof_confirm_reminder_sent_at?: string | null
           dayof_unanswered_poster_alert_sent_at?: string | null
           department?: string | null
@@ -7974,6 +7976,7 @@ export type Database = {
           customer_fee_amount?: number | null
           customer_id?: string | null
           date_needed?: string
+          date_window_end?: string | null
           dayof_confirm_reminder_sent_at?: string | null
           dayof_unanswered_poster_alert_sent_at?: string | null
           department?: string | null

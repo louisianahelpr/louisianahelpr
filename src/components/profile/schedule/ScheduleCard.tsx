@@ -3,7 +3,6 @@ import { MapPin, Clock, Calendar, CalendarPlus } from "lucide-react";
 import { jobStatusLabel } from "@/lib/statusLabels";
 import { StatusBadge } from "@/components/StatusBadge";
 import { JobCardShell } from "@/components/job-card/JobCardShell";
-import { formatJobDate } from "@/lib/dateUtils";
 import { getCity } from "@/lib/locationUtils";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
 import { helperTakeHomeDollars, isSettledForDisplay } from "@/lib/helperEarnings";
@@ -14,6 +13,7 @@ import { bucketPostedJob } from "@/components/job-card/activityFilters";
 import { exportJobRowToCalendar } from "@/lib/calendarExport";
 import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 import type { ReadableJobRow } from "@/lib/jobColumns";
+import { jobDayLabel } from "@/lib/jobDateWindow";
 
 // One row of the Schedule tab, moved out of ScheduleTab.tsx unchanged (Q806, componentSizeRatchet).
 
@@ -271,7 +271,7 @@ export const ScheduleCard = ({
               )}
               <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
                 <Calendar className="w-3 h-3 shrink-0" />
-                {formatJobDate(job.date_needed)}
+                {jobDayLabel(job)}
               </span>
               {/* Drops out entirely — icon included — when the job has neither
                   a start time nor the flexible flag, exactly as the location

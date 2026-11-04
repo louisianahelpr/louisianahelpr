@@ -310,9 +310,9 @@ function OpenTaskRow({ t }: { t: OpenTask }) {
         </Button>
       </div>
       {/* "On your way" (owner 2026-10-27): other open deliveries that add little to this one. */}
-      <button type="button" className="text-ds-13 font-semibold underline min-h-11" aria-expanded={showWay} onClick={() => setShowWay((v) => !v)}>
+      <Button type="button" variant="link" size="sm" className="px-0 text-ds-13 font-semibold underline decoration-current text-[color:inherit]" aria-expanded={showWay} onClick={() => setShowWay((v) => !v)}>
         {showWay ? "Hide deliveries on the way" : "Deliveries on the way"}
-      </button>
+      </Button>
       {showWay && <RouteSuggestions withTaskId={t.task_id} />}
       {hiredPayout.open && <HiredPayoutSetupDialog open onOpenChange={(o) => { if (!o) hiredPayout.close(); }} />}
     </li>

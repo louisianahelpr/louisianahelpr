@@ -209,6 +209,10 @@ const { browseOnly, homeShared: browseHomeShared } = guestBrowseSplit(process.cw
 // first screens (check-deferred-vendors).
 const HOME_DECLUTTER_READS = /[\\/]src[\\/]lib[\\/]declutter[\\/](myReads|minePrefetchTake)\.ts$/;
 const HOME_SCHEDULE_READS = /[\\/]src[\\/]lib[\\/](scheduleChange|scheduleClashes|notDeployedYet)\.ts$/;
+// Q2706 (B98): Home's shop-order reads (useHomeSummary / useNeedsYouTodos import("@/lib/shops/orders")). In signed-in-deep
+// they fetched that chunk and its closure (browse-first-screen, declutter-first-screen, signed-in-pages, ...) ~180 KB gz
+// the moment the feature switches answered, before /home's money tile drew. src/test/homeLazyReadsStayLight.test.ts.
+const HOME_SHOP_READS = /[\\/]src[\\/]lib[\\/]shops[\\/](orders|rpcErrorCopy|errors)\.ts$/;
 const HOME_DERIVE_LEAVES = /[\\/]src[\\/](pages[\\/]home[\\/]homeDashboard[\\/]useNeedsYouTodos|components[\\/]tracker[\\/]jobProgressSteps|components[\\/]job-card[\\/]helperStepRequest)\.ts$/;
 const BROWSE_GROUP_SKIPS = /[\\/]src[\\/]components[\\/]ui[\\/]skeleton\.tsx$/;
 
@@ -1066,6 +1070,13 @@ export default defineConfig(({ mode, command }) => ({
             {
               name: "home-schedule-reads",
               test: HOME_SCHEDULE_READS,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
+            {
+              name: "home-shop-reads",
+              test: HOME_SHOP_READS,
               priority: 20,
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,

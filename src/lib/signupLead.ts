@@ -2,6 +2,7 @@ import { useCallback, useRef, type RefObject } from "react";
 import type { TurnstileHandle } from "@/components/auth/TurnstileField";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { signupLeadSource } from "@/lib/signupLeadSource";
 
 /**
  * Sign-up step-1 email capture (owner 2026-10-09, "Save it, follow up once").
@@ -20,22 +21,9 @@ import { report } from "@/lib/errorLogger";
 /** Answers that are the server's checks working, not failures to report. */
 const QUIET_STATUSES = new Set([403, 429]);
 
-/** Where the visitor came from: `utm_source`, else the referrer's host, else "direct". */
-export function signupLeadSource(search: string, referrer: string): string {
-  const utm = new URLSearchParams(search).get("utm_source")?.trim();
-  if (utm) return utm.toLowerCase().replace(/[^a-z0-9._-]/g, "").slice(0, 64) || "direct";
-  try {
-    const host = referrer ? new URL(referrer).hostname.toLowerCase() : "";
-    // Our own pages (landing -> sign-up) are not a source.
-    const ours = host === "louisianahelpr.com" || host.endsWith(".louisianahelpr.com") || host === window.location.hostname;
-    if (host && !ours) {
-      return host.replace(/[^a-z0-9._-]/g, "").slice(0, 64);
-    }
-  } catch {
-    // An unparseable referrer is no source at all; fall through to "direct".
-  }
-  return "direct";
-}
+// Kept in its own module so the boot path (signupSource.ts, via SessionManager) does not carry this file
+// (Q2705/Q2706 boot cut, 11-04). Re-exported for the existing callers.
+export { signupLeadSource };
 
 function statusOf(error: unknown): number | null {
   const ctx = (error as { context?: { status?: unknown } } | null)?.context;

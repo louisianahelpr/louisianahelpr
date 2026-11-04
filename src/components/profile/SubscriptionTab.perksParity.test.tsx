@@ -31,6 +31,14 @@ vi.mock("@/lib/iap", () => ({
 }));
 vi.mock("@/lib/openExternalUrl", () => ({ openExternalUrl: vi.fn() }));
 vi.mock("@/lib/nativeInit", () => ({ isNativePlatform: false }));
+// Memberships retired 2026-11-04 (useMembershipsOn is always off). This file still
+// pins the plan screen's own logic until the follow-up deletes the screen, so it
+// renders it as the web did with the switch on.
+vi.mock("@/hooks/useMembershipsOn", () => ({
+  MEMBERSHIPS_HIDDEN_IN_THIS_APP: false,
+  useMembershipsOn: () => true,
+  useMembershipsStatus: () => ({ on: true, settled: true }),
+}));
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 vi.mock("@/lib/haptics", () => ({ hapticLight: vi.fn(), hapticError: vi.fn(), hapticSuccess: vi.fn() }));
 

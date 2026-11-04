@@ -5,17 +5,7 @@ import { AgeGateNote } from "@/components/AgeGateNote";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
-import {
-  MapPin,
-  Calendar,
-  Zap,
-  CreditCard,
-  CheckCircle2,
-  BookOpen,
-  ShieldCheck,
-  Loader2,
-  Gift,
-} from "lucide-react";
+import { MapPin, Calendar, Zap, CreditCard, CheckCircle2, BookOpen, ShieldCheck, Loader2, Gift } from "lucide-react";
 import type { HelprActivity } from "@/hooks/useHelprActivity";
 // formatPriceExact, not formatPrice: this card SHOWS THE ARITHMETIC, which
 // is exactly the case format.ts documents the exact variant for. With
@@ -54,7 +44,7 @@ interface CheckoutStepProps {
   addrState: string;
   zipCode: string;
   dateNeeded: string;
-  /** Q2408 "Any time this week": the window's last day (null for one day). The When row prints the window. */
+  /** Q2408 "Any time this week": the window's last day (null for one day). The When row prints the window as every card does ("Any day Nov 5-11"); a Repeats job keeps its first visit. */
   dateWindowEnd?: string | null;
   startTime: string;
   estimatedHours: string;
@@ -295,8 +285,6 @@ export function CheckoutStep({
                 <Calendar className="w-3 h-3" />When
               </span>
               <p className="flex-1 text-ds-13 text-foreground text-right">
-                {/* Q2408 live proof (11-04): a window job's review read "Thu, Nov 5" (its first day only); it now
-                    reads the window as every card does ("Any day Nov 5-11"). A Repeats job keeps its first visit. */}
                 {isRecurring ? formatJobDate(whenDate) : jobDayLabel({ date_needed: whenDate, date_window_end: dateWindowEnd })}
                 {/* Routed through the ONE rule (src/lib/jobDate.ts) so this
                     summary never disagrees with the card or detail sheet. It

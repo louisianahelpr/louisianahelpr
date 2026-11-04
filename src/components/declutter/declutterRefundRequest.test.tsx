@@ -27,7 +27,7 @@
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       if (r.admin_decided) return <p | if (false) return <p
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |   if (r.status === "declined" && r.admin_decided) return | if (false) return
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       {r.admin_decided && "Louisiana Helpr decided to refund the buyer. "} |
- * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       <button type="button" className={primary} disabled={send.isPending \|\| !choice \|\| (choice === "part" && offerCents === null) \|\| (choice === "full" && !neverGotIt && !pickArgs)} onClick={() => setAskingSend(true)}> |       <button type="button" className={primary} disabled={send.isPending} onClick={() => setAskingSend(true)}>
+ * @mutate src/components/declutter/DeclutterRefundRequest.tsx |       <Button type="button" variant="primary" size="sm" disabled={send.isPending \|\| !choice \|\| (choice === "part" && offerCents === null) \|\| (choice === "full" && !neverGotIt && !pickArgs)} onClick={() => setAskingSend(true)}> |       <Button type="button" variant="primary" size="sm" disabled={send.isPending} onClick={() => setAskingSend(true)}>
  *
  * Audit 1028 part 2, D2-15: both pick-one lists are the app's RadioCardList (no browser radios), and the amount box
  * is capped to a money field's width.
@@ -119,7 +119,7 @@ beforeEach(() => {
 });
 
 // Audit 2026-10-30 DB-11: "Take it back" ended the refund request in one tap, with no word on what follows.
-// @mutate src/components/declutter/DeclutterRefundRequest.tsx | disabled={withdraw.isPending} onClick={() => setConfirmWithdraw(true)}>Take it back</button> | disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>Take it back</button>
+// @mutate src/components/declutter/DeclutterRefundRequest.tsx | disabled={withdraw.isPending} onClick={() => setConfirmWithdraw(true)}>Take it back</Button> | disabled={withdraw.isPending} onClick={() => withdraw.mutate()}>Take it back</Button>
 // @mutate src/components/declutter/DeclutterRefundRequest.tsx |             {`${cap(who)} is told, and is paid once the sale is final. You can't ask for a refund on this sale again.`} |             {""}
 async function sendAnswer() {
   fireEvent.click(screen.getByRole("button", { name: "Send answer" }));
@@ -398,7 +398,7 @@ describe("DeclutterRefundPanel", () => {
 
   // #3558 answer 2 (owner 2026-10-23): a full refund waits for the item; only the seller's "I got it back" sends it.
   // Money review 2026-10-27: the tap asks once before the irreversible refund.
-  // @mutate src/components/declutter/DeclutterRefundRequest.tsx |         <button type="button" className={primary} disabled={back.isPending} onClick={() => setConfirmBack(true)}>I got it back</button> |
+  // @mutate src/components/declutter/DeclutterRefundRequest.tsx |         <Button type="button" variant="primary" size="sm" disabled={back.isPending} onClick={() => setConfirmBack(true)}>I got it back</Button> |
   // @mutate src/components/declutter/DeclutterRefundRequest.tsx |           onConfirm={() => back.mutate(undefined, { onSettled: () => setConfirmBack(false) })} |           onConfirm={() => setConfirmBack(false)}
   it("seller: a full refund agreed waits for the item; I got it back asks once, then sends it", async () => {
     show({ ...BASE, side: "seller", can_ask: false, can_report: false, request: { ...REQ, status: "returning", return_by: "2026-10-26T18:00:00Z" } });

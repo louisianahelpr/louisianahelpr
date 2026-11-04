@@ -4,6 +4,7 @@
  * to the seller. On the Helpr's fault the buyer picks a full refund, re-posting or collecting it. The rules and the money
  * are the server's; this only asks and says where it stands. toast.success renders nothing, so the card itself says it.
  */
+import { Button } from "@/components/ui/button";
 import { useId, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -28,8 +29,6 @@ import { NextStep } from "@/components/ui/NextStep";
 import { invalidateTasks } from "./useTaskSteps";
 import { Textarea } from "@/components/ui/textarea";
 
-const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
-const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 const input = "w-full rounded-2xl border border-input glass-field px-3 py-2 text-ds-15";
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
@@ -143,9 +142,9 @@ export function HelprCantFinish({ taskId, userId }: { taskId: string; userId: st
             </p>
             <label htmlFor={`${id}-back`} className="block text-ds-13 font-semibold">A photo of the item, taken at the pickup address</label>
             <PhotoPickButton id={`${id}-back`} picked={photo} disabled={back.isPending} onPick={setPhoto} />
-            <button type="button" className={`${primary} disabled:opacity-50`} disabled={back.isPending || !photo} onClick={() => { if (photo) back.mutate(photo); }}>
+            <Button type="button" variant="primary" size="sm" disabled={back.isPending || !photo} onClick={() => { if (photo) back.mutate(photo); }}>
               It's back with the seller
-            </button>
+            </Button>
           </>
         )}
       </div>
@@ -156,7 +155,7 @@ export function HelprCantFinish({ taskId, userId }: { taskId: string; userId: st
       {stage === "retrying" && (
         <p className="text-sm" role="status">The buyer fixed it. Try once more{v.stuck_fix_note ? <>: <span className="font-medium">"{v.stuck_fix_note}"</span></> : ""}.</p>
       )}
-      <button type="button" className={btn} onClick={() => setAsking(true)}>I can't deliver this</button>
+      <Button type="button" variant="outline" size="sm" onClick={() => setAsking(true)}>I can't deliver this</Button>
       <ConfirmSheet open={asking} title="What's stopping you?" confirmLabel="Send" pending={report.isPending} confirmDisabled={!reason || (needsWords && !note.trim())}
         onConfirm={() => report.mutate()} onClose={() => setAsking(false)} testId="delivery-cant-finish">
         <div className="space-y-2 text-left">
@@ -218,7 +217,7 @@ export function BuyerCantFinishPanel({ taskId, view: v, who }: { taskId: string;
         <label htmlFor={`${id}-note`} className="block text-xs font-medium">What the Helpr needs to know</label>
         <Textarea id={`${id}-note`} rows={2} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} className={input} />
         {failed && <p role="alert" className="text-sm text-destructive-ink">{failed}</p>}
-        <button type="button" className={`${primary} disabled:opacity-50`} disabled={fix.isPending || (!note.trim() && !address.trim())} onClick={() => fix.mutate()}>Send it to {who}</button>
+        <Button type="button" variant="primary" size="sm" disabled={fix.isPending || (!note.trim() && !address.trim())} onClick={() => fix.mutate()}>Send it to {who}</Button>
       </div>
     );
   }
@@ -237,16 +236,16 @@ export function BuyerCantFinishPanel({ taskId, view: v, who }: { taskId: string;
       {chosen === "refund" && <p className="text-sm" role="status">You chose a full refund. It's sent once the item is back with the seller.</p>}
       {chosen === "repost" && <p className="text-sm" role="status">You chose another Helpr. It's posted again once the item is back with the seller.</p>}
       <div className="flex flex-wrap gap-2">
-        {chosen !== "refund" && <button type="button" className={btn} disabled={choose.isPending} onClick={() => setChoice("refund")}>Refund me in full</button>}
-        {chosen !== "repost" && <button type="button" className={btn} disabled={choose.isPending} onClick={() => setChoice("repost")}>Find another Helpr</button>}
-        {canCollect && chosen !== "collect" && <button type="button" className={btn} disabled={choose.isPending} onClick={() => setCollecting(true)}>I'll collect it from {who}</button>}
+        {chosen !== "refund" && <Button type="button" variant="outline" size="sm" disabled={choose.isPending} onClick={() => setChoice("refund")}>Refund me in full</Button>}
+        {chosen !== "repost" && <Button type="button" variant="outline" size="sm" disabled={choose.isPending} onClick={() => setChoice("repost")}>Find another Helpr</Button>}
+        {canCollect && chosen !== "collect" && <Button type="button" variant="outline" size="sm" disabled={choose.isPending} onClick={() => setCollecting(true)}>I'll collect it from {who}</Button>}
       </div>
       {collecting && (
         <div className="space-y-2">
           <label htmlFor={`${id}-where`} className="block text-xs font-medium">Where and when can you meet?</label>
           <Textarea id={`${id}-where`} rows={2} maxLength={1000} value={where} onChange={(e) => setWhere(e.target.value)} className={input} />
           <p className="text-ds-13 text-muted-foreground">Once you tap "I got it" the seller is paid, {who} isn't, and you get back what you paid for the delivery.</p>
-          <button type="button" className={`${primary} disabled:opacity-50`} disabled={choose.isPending || !where.trim()} onClick={() => choose.mutate({ choice: "collect", note: where.trim() })}>Tell {who}</button>
+          <Button type="button" variant="primary" size="sm" disabled={choose.isPending || !where.trim()} onClick={() => choose.mutate({ choice: "collect", note: where.trim() })}>Tell {who}</Button>
         </div>
       )}
       {failed && <p role="alert" className="text-sm text-destructive-ink">{failed}</p>}
@@ -278,14 +277,14 @@ export function SellerReturnPanel({ taskId, view: v, who }: { taskId: string; vi
     <div className="space-y-2 rounded-xl border border-border p-3" data-cant-finish-return="">
       <p className="text-sm">{who} says it's back with you. Answer by {v.return_answer_by ? when(v.return_answer_by) : "tomorrow"}. If you don't, we count it as back.</p>
       <div className="flex flex-wrap gap-2">
-        <button type="button" className={primary} disabled={answer.isPending} onClick={() => setAsking(true)}>I have it back</button>
-        <button type="button" className={btn} disabled={answer.isPending} onClick={() => setNotBack(true)}>It didn't come back</button>
+        <Button type="button" variant="primary" size="sm" disabled={answer.isPending} onClick={() => setAsking(true)}>I have it back</Button>
+        <Button type="button" variant="outline" size="sm" disabled={answer.isPending} onClick={() => setNotBack(true)}>It didn't come back</Button>
       </div>
       {notBack && (
         <div className="space-y-2">
           <label htmlFor={`${id}-note`} className="block text-xs font-medium">What happened?</label>
           <Textarea id={`${id}-note`} rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} className={input} />
-          <button type="button" className={`${btn} disabled:opacity-50`} disabled={answer.isPending || !note.trim()} onClick={() => answer.mutate(false)}>Send to Louisiana Helpr</button>
+          <Button type="button" variant="outline" size="sm" disabled={answer.isPending || !note.trim()} onClick={() => answer.mutate(false)}>Send to Louisiana Helpr</Button>
         </div>
       )}
       {failed && <p role="alert" className="text-sm text-destructive-ink">{failed}</p>}

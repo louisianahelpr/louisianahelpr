@@ -23,7 +23,7 @@ export const SHELL_CARD_COUNT: number;
 export const SHELL_CATEGORY_LABELS: Readonly<Record<string, string>>;
 export const SHELL_JOB_COLUMNS: string;
 export const SHELL_CARD_CLASSES: Readonly<Record<
-  "root" | "inner" | "catRow" | "catLabel" | "body" | "titleRow" | "title" | "chip" | "amount" | "metaWrap" | "metaRow",
+  "root" | "inner" | "catRow" | "catLabel" | "body" | "titleRow" | "title" | "chip" | "amount" | "metaWrap" | "metaRow" | "mediaRow" | "mediaPad" | "media" | "mediaTint" | "textCol" | "face",
   string
 >>;
 export const BROWSE_SHELL_ID: string;

@@ -48,6 +48,16 @@ ALTER TABLE public.shipping_return_labels ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.shipping_return_labels FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.shipping_return_labels TO service_role;
 
+-- Q807: refuse writes from an unconfirmed email on the new table (standard guarded attach; db-smoke's
+-- unconfirmed-email-gate step was red without it).
+DO $gate$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gate$;
+
 CREATE OR REPLACE FUNCTION public.declutter_admin_request_return_label(p_order_id uuid, p_note text)
 RETURNS jsonb
 LANGUAGE plpgsql

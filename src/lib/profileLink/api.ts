@@ -33,7 +33,10 @@ export function profileLinkLabel(handle: string): string {
   return `louisianahelpr.com/u/${handle}`;
 }
 
-/** The caller's handle, made from their name the first time. */
+/** One cache entry for the signed-in member's handle (every member has one from sign-up, 20261104142602). */
+export const MY_HANDLE_KEY = ["profile-link", "my-handle"] as const;
+
+/** The caller's handle (made at sign-up; made from their name here for a member who has none). */
 export async function ensureMyHandle(): Promise<HandleResult> {
   const { data, error } = await supabase.rpc("rpc_ensure_my_handle");
   if (error) {

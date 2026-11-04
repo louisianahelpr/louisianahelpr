@@ -47,6 +47,8 @@ const state = {
 // The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
 // The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
 // Q2268: the bundle-request reads (no request here).
+// The Selling tab's "Your page" link reads the member's handle (its own test: src/test/yourPageLink.test.tsx).
+vi.mock("@/components/profile/YourPageLink", () => ({ YourPageLink: () => null }));
 vi.mock("@/lib/declutter/bundleRequest", async (orig) => ({ ...(await orig<object>()), fetchBundleRequests: async () => [] }));
 // Q2471: the offer box asks declutter-ai-reply for a suggested amount; no suggestion here (the box works without it).
 vi.mock("@/lib/declutter/aiReply", async (orig) => ({ ...(await orig<object>()), requestSuggestedOffer: async () => null }));

@@ -1,23 +1,23 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1150,
-    "files": 318,
-    "rendering": 1069,
-    "suppressedByPolicy": 81,
+    "calls": 1152,
+    "files": 319,
+    "rendering": 1070,
+    "suppressedByPolicy": 82,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 216,
-      "toast.error": 778,
+      "toast.error": 779,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 87,
+      "toast.success": 88,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 485,
+      "literal": 487,
       "template": 105,
       "dynamic": 612,
       "jsx": 0
@@ -5263,7 +5263,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 221,
+      "line": 222,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5283,7 +5283,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 224,
+      "line": 225,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5293,7 +5293,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 229,
+      "line": 230,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5303,7 +5303,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 244,
+      "line": 245,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5313,7 +5313,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 247,
+      "line": 248,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9175,6 +9175,26 @@
       "title": {
         "form": "literal",
         "text": "Couldn't turn off two-step verification — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/profile/YourPageLink.tsx",
+      "line": 30,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Link copied"
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/profile/YourPageLink.tsx",
+      "line": 31,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't copy the link. Press and hold it to copy."
       },
       "renders": true
     },

@@ -19753,6 +19753,10 @@ export type Database = {
         Returns: boolean
       }
       profile_handle_base: { Args: { p_full_name: string }; Returns: string }
+      profile_handle_pick: {
+        Args: { p_full_name: string; p_lock?: boolean; p_user_id: string }
+        Returns: string
+      }
       profile_handle_problem: { Args: { p_handle: string }; Returns: string }
       profiles_locked_update_columns: { Args: never; Returns: string[] }
       promotions_resubscribe: { Args: { p_user_id: string }; Returns: string }

@@ -42,7 +42,7 @@
  * @mutate supabase/migrations/20261103230441_ban_review_lift_settles_when_it_ends_banned.sql |   IF p_admin_id IS NULL OR NOT public.has_role(p_admin_id, 'admin'::public.app_role) THEN |   IF p_admin_id IS NULL THEN
  * @mutate supabase/migrations/20261012185742_ban_actions_atomic_and_remaining_strikes.sql |      AND COALESCE(current_setting('app.ban_review_lift', true), '') <> 'on' |      AND false
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |      OR EXISTS (SELECT 1 FROM public.ban_settlement_queue q WHERE q.user_id = v_job.customer_id AND q.review_state = 'open')\n     -- Q2275: Jobs Browse |      -- Q2275: Jobs Browse
- * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |   IF EXISTS (SELECT 1 FROM public.ban_settlement_queue q\n              WHERE q.user_id = v_job.customer_id AND q.review_state = 'open') THEN | IF false THEN
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |   IF EXISTS (SELECT 1 FROM public.ban_settlement_queue q\n              WHERE q.user_id = v_job.customer_id AND q.review_state = 'open') THEN | IF false THEN
  * @mutate supabase/migrations/20261031152136_new_member_daily_summary.sql |       ('ban settlement review',                     'ban-settlement-review') |       ('ban settlement reviewx',                    'ban-settlement-review')
  * @mutate supabase/migrations/20261015051417_phone_match_flags_not_bans.sql |           v_own_reason,\n           p_user_id, |           v_row.reason,\n           p_user_id,
  */

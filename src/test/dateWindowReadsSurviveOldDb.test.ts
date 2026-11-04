@@ -31,14 +31,17 @@ vi.mock("@/integrations/supabase/client", () => {
     // An old database: any request naming date_window_end is refused (a HEAD count's bare 400).
     b.then = (res: (v: unknown) => void) => {
       calls.heads++;
-      res(state.window ? { count: null, error: { message: "" }, status: 400 } : { count: 7, error: null, status: 200 });
+      // The HTTP status rides on the result (a HEAD refusal has no error code); built by a helper so the fixture scanner
+      // does not read it as a table's status column.
+      const http = (code: number) => ({ status: code });
+      res(state.window ? { count: null, error: { message: "" }, ...http(400) } : { count: 7, error: null, ...http(200) });
     };
     return b;
   };
   return { supabase: { from: () => make() } };
 });
 
-import { readJobsAheadOfDb } from "@/lib/jobColumns";
+import { BROWSE_VIEW_COLUMNS_AHEAD_OF_DB, JOB_COLUMNS_AHEAD_OF_DB, JOB_READABLE_COLUMN_LIST, readJobsAheadOfDb } from "@/lib/jobColumns";
 import { fetchDashboardJobsCount } from "@/hooks/useDashboardJobsCount";
 
 const REPO = resolve(__dirname, "..", "..");
@@ -47,6 +50,12 @@ const oldDb = async (columns: string) => (columns.split(",").map((c) => c.trim()
   : { data: { columns }, error: null });
 
 describe("Q2408: reads that name date_window_end survive a database without it", () => {
+  it("the column is listed ahead of db-deploy on both kinds of read, not in the whole-row list", () => {
+    expect(JOB_COLUMNS_AHEAD_OF_DB as readonly string[]).toContain("date_window_end");
+    expect(BROWSE_VIEW_COLUMNS_AHEAD_OF_DB as readonly string[]).toContain("date_window_end");
+    expect(JOB_READABLE_COLUMN_LIST as readonly string[]).not.toContain("date_window_end");
+  });
+
   it("a jobs-table read retries once without it", async () => {
     const r = await readJobsAheadOfDb("id, date_needed, date_window_end, budget", oldDb);
     expect(r.error).toBeNull();

@@ -14,7 +14,7 @@
  * that reads open jobs for a non-party announcement filters
  * `.is("parent_job_id", null)`.
  *
- * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     AND p_job.parent_job_id IS NULL |     AND true
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |     AND p_job.parent_job_id IS NULL |     AND true
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     OR NEW.parent_job_id IS NOT NULL |     OR false
  * @mutate supabase/functions/instant-job-match/index.ts |       .is("parent_job_id", null) |       .limit(1000)
  * @mutate supabase/migrations/20261019042744_shops_public_page.sql |        AND NOT (s.is_seed AND public.seed_jobs_hidden_publicly()) |        AND NOT (s.is_seed AND public.seed_jobs_hidden_publicly()) AND NOT EXISTS (SELECT 1 FROM public.jobs)

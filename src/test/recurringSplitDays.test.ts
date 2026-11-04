@@ -29,7 +29,7 @@
  * @mutate supabase/migrations/20260927012805_hired_job_schedule_lock.sql |                         AND (SELECT auth.uid()) IN (j.customer_id, j.helper_id)) THEN |                         AND true) THEN
  * @mutate supabase/migrations/20261103032330_series_claim_takes_helpr_schedule_lock.sql |         PERFORM set_config('app.series_claim_rpc', '1', true);\n        INSERT INTO public.applications | INSERT INTO public.applications
  * @mutate supabase/migrations/20261103032330_series_claim_takes_helpr_schedule_lock.sql |         PERFORM set_config('app.series_claim_rpc', '0', true); | NULL;
- * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |   IF current_setting('app.series_claim_rpc', true) = '1' THEN\n    RETURN NEW;\n  END IF;\n\n  -- C12 | -- C12
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |   IF current_setting('app.series_claim_rpc', true) = '1' THEN\n    RETURN NEW;\n  END IF;\n\n  -- C12 | -- C12
  * @mutate supabase/migrations/20261002192425_q415a_offer_series_dates_past_helprs.sql |                              AND w.status::text = 'completed' |                              
  * @mutate supabase/migrations/20261002192425_q415a_offer_series_dates_past_helprs.sql |                            WHERE w.customer_id = v_uid AND w.helper_id = p_helper_id | WHERE w.helper_id = p_helper_id
  * @mutate supabase/migrations/20261002192425_q415a_offer_series_dates_past_helprs.sql |                        WHERE a.job_id = v_job.id AND a.helper_id = p_helper_id AND a.status = 'pending') | WHERE a.job_id = v_job.id AND a.helper_id = p_helper_id)
@@ -151,7 +151,8 @@ describe("recurring split days (Q407 4-6)", () => {
     // 20261006023437 (Q1409) restates the gate verbatim but for C1 (a booked crew's re-listed spot).
     // 20261006042617 (Q1411) restates it again on the crew-era body, adding only the ban-review clause.
     // 20261007033530 (Q552) restates it once more, swapping only C6's seed-switch call.
-    expect(["20261006023437_crew_free_spot_relisted.sql", "20261006042617_ban_review_hides_posts_on_crew_surfaces.sql", "20261007033530_seed_switch_hides_test_profiles.sql", "20261012185633_listing_closes_at_start.sql"]).toContain(gate.file);
+    // 20261104084501 (Q2408) restates it once more, the start cutoff reading the window's last day.
+    expect(["20261006023437_crew_free_spot_relisted.sql", "20261006042617_ban_review_hides_posts_on_crew_surfaces.sql", "20261007033530_seed_switch_hides_test_profiles.sql", "20261012185633_listing_closes_at_start.sql", "20261104084501_apply_and_notices_read_date_window.sql"]).toContain(gate.file);
     const flag = gate.body.indexOf("current_setting('app.series_claim_rpc', true) = '1'");
     expect(flag).toBeGreaterThan(-1);
     // Honoured only AFTER the self-application (C3) and block (C10) refusals.

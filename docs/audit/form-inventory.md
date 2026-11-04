@@ -75,6 +75,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
+| `src/components/declutter/DeclutterBundleRequests.tsx` | checkbox/switch/radio×2 |  |  | bundle-ask-title |
 | `src/pages/admin/preview/DeclutterPreviewPage.tsx` | select×1 |  |  | Declutter preview controls · declutter-preview-controls-body · Side · Order stage |
 
 ## /admin/preview/declutter, /declutter

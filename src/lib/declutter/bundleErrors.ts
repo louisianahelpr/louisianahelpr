@@ -12,6 +12,15 @@ import { DECLUTTER_ERROR_COPY as DC, declutterErrorMessage } from "./errors";
 export const BUNDLE_ERROR_COPY: Record<string, string> = {
   invalid_bundle_percent: "Pick from 5% to 50% off.",
   invalid_request: "Ask about at most 200 items at a time.",
+  // Q2268 bundle requests (20261104103528).
+  bundle_size: "Pick 2 to 20 items from one seller.",
+  bundle_one_seller: "A bundle request is for one seller's items.",
+  bundle_free_item: "Free items are claimed on their own, not in a bundle request.",
+  bundle_already_open: "You already asked this seller. Wait for their answer or take it back.",
+  bundle_rate_limited: "You can ask one seller 3 times a day. Try again tomorrow.",
+  bundle_not_found: "That bundle request isn't available anymore.",
+  bundle_not_open: "This bundle request is already closed.",
+  bundle_item_not_in_request: "Pick only items from this request.",
 };
 
 /** Each bundle RPC's codes and their words (the rpcErrorCopyCoverage rule). */
@@ -40,6 +49,51 @@ export const BUNDLE_RPC_ERROR_COPY = {
   declutter_bundle_sellers: {
     feature_disabled: DC.feature_disabled,
     invalid_request: "Ask about at most 200 sellers at a time.",
+    not_authenticated: DC.not_authenticated,
+  },
+  // Q2268 (20261104103528): ask one seller for several items; the seller answers Accept all / Pick some / Decline.
+  declutter_request_bundle: {
+    account_restricted: DC.account_restricted,
+    bundle_already_open: BUNDLE_ERROR_COPY.bundle_already_open,
+    bundle_free_item: BUNDLE_ERROR_COPY.bundle_free_item,
+    bundle_one_seller: BUNDLE_ERROR_COPY.bundle_one_seller,
+    bundle_rate_limited: BUNDLE_ERROR_COPY.bundle_rate_limited,
+    bundle_size: BUNDLE_ERROR_COPY.bundle_size,
+    card_required: DC.card_required,
+    own_item: DC.own_item,
+    sale_mode_unavailable: DC.sale_mode_unavailable,
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    feature_disabled: DC.feature_disabled,
+    // The first-purchase ID check (review 11-04); rpcData opens the one ID sheet for it.
+    identity_required_to_buy: DC.identity_required_to_buy,
+    // The gate's other branch; never taken here (the ask passes 'identity_required_to_buy'), read for completeness.
+    identity_required_to_list: DC.identity_required_to_list,
+    item_not_available: DC.item_not_available,
+    item_not_found: DC.item_not_found,
+    not_authenticated: DC.not_authenticated,
+    under_18: DC.under_18,
+  },
+  declutter_answer_bundle: {
+    account_restricted: DC.account_restricted,
+    bundle_item_not_in_request: BUNDLE_ERROR_COPY.bundle_item_not_in_request,
+    bundle_not_found: BUNDLE_ERROR_COPY.bundle_not_found,
+    bundle_not_open: BUNDLE_ERROR_COPY.bundle_not_open,
+    // The buyer's checks again at the answer (declutter_lock_buyable_item / declutter_take_item). The SELLER reads
+    // these, so a buyer-side refusal is said about the buyer, never "Save a card first".
+    card_required: "The buyer has no card saved right now, so this can't go ahead yet. Try again later, or decline.",
+    declutter_strikes_blocked: DC.declutter_strikes_blocked,
+    item_not_available: DC.item_not_available,
+    item_not_found: DC.item_not_found,
+    offer_not_open: DC.offer_not_open,
+    own_item: DC.own_item,
+    sale_mode_unavailable: DC.sale_mode_unavailable,
+    feature_disabled: DC.feature_disabled,
+    not_authenticated: DC.not_authenticated,
+    other_side_unavailable: DC.other_side_unavailable,
+    under_18: DC.under_18,
+  },
+  declutter_withdraw_bundle: {
+    bundle_not_found: BUNDLE_ERROR_COPY.bundle_not_found,
     not_authenticated: DC.not_authenticated,
   },
 } satisfies Record<string, Record<string, string>>;

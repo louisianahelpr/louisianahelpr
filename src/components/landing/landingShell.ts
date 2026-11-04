@@ -11,7 +11,7 @@
  * same markup, same place) has been painted underneath, so taking the overlay away changes no pixel and is not a
  * layout shift (a fixed overlay leaving moves nothing).
  */
-export const LANDING_SHELL_ID = "lh-landing-shell";
+const LANDING_SHELL_ID = "lh-landing-shell";
 
 export function removeLandingShellOncePainted(doc: Document = document): void {
   const el = doc.getElementById(LANDING_SHELL_ID);

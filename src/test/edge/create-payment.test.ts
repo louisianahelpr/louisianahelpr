@@ -1156,6 +1156,9 @@ describe("create-payment edge function", () => {
           expect(args.customer_update).toBeUndefined();
           expect(args.metadata).toMatchObject({ gift_card_id: "gift-1", tax_calculation_id: "taxcalc_gift", job_tax_cents: "1000" });
           expect(args.payment_intent_data.metadata).toMatchObject({ job_id: "job-g", gift_card_id: "gift-1", tax_calculation_id: "taxcalc_gift", job_tax_cents: "1000" });
+          // Review of ddfb06a83 #2: the full taxable price rides on the PaymentIntent, so a refund keeps tax at the job's rate.
+          // @mutate supabase/functions/create-payment/index.ts | , [JOB_TAXABLE_CENTS_KEY]: String(giftJobTax.taxableCents) } | }
+          expect(args.payment_intent_data.metadata.job_taxable_cents).toBe("10000");
         });
 
         it("a taxable gift job with no Louisiana job ZIP is refused 400 BEFORE the gift is redeemed", async () => {

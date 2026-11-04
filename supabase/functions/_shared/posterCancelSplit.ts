@@ -55,6 +55,8 @@ type PosterCancelCharge =
       alreadyRefundedCents: number;
       /** chargeTaxCentsFor(stripe, pi). */
       taxCents: number;
+      /** jobSiteTaxableCents(pi.metadata): a gift-reduced job-site charge's full taxable price, else absent. */
+      taxableCents?: number | null;
     };
 
 export interface PosterCancelSplitInput {
@@ -137,6 +139,7 @@ export function posterCancelSplit(i: PosterCancelSplitInput): PosterCancelSplit 
     otherKeptCents: feesCents,
     alreadyRefundedCents: c.alreadyRefundedCents,
     taxCents: c.taxCents,
+    taxableCents: c.taxableCents,
   });
   return {
     state: "captured",

@@ -12,7 +12,7 @@ import { crewCancellationFee, returnsToPoster } from "../_shared/crewShares.ts";
 import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { actualOrEstimatedFeeCents, highestPayInFourFeeCents, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
-import { cardCostFeeCents, chargeTaxCentsFor, checkoutChargeTaxCents, posterCancelKeptFeeCents, refundToPayerCents, taxOnKeptCents, withheldFeeReturnCents } from "../_shared/refundAmount.ts";
+import { cardCostFeeCents, chargeTaxCentsFor, checkoutChargeTaxCents, jobSiteTaxableCents, posterCancelKeptFeeCents, refundToPayerCents, taxOnKeptCents, withheldFeeReturnCents } from "../_shared/refundAmount.ts";
 import { refundReasonWithKeptParts } from "../_shared/refundReason.ts";
 import { posterCancelSplit } from "../_shared/posterCancelSplit.ts";
 import { CAPTURED_NOT_HIRED } from "../_shared/cardHold.ts";
@@ -3073,6 +3073,7 @@ serve(async (req) => {
               actualFeeCents: actualOrEstimatedFeeCents(pi, chargeCapturedCents),
               alreadyRefundedCents: chargeRefundedCents,
               taxCents: await chargeTaxCentsFor(stripe, pi),
+              taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null),
             },
           });
           if (capturedSplit.state !== "captured") throw new Error("posterCancelSplit answered a captured charge with a hold split");

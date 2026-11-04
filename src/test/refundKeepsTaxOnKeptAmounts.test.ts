@@ -30,7 +30,7 @@ import { readFileSync, statSync } from "node:fs";
 import { readdirSync } from "./helpers/trackedFiles";
 import { join } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
-import { chargeTaxCents, chargeTaxCentsFor, checkoutChargeTaxCents, refundToPayerCents, taxOnKeptCents } from "../../supabase/functions/_shared/refundAmount";
+import { chargeTaxCents, chargeTaxCentsFor, checkoutChargeTaxCents, jobSiteTaxableCents, refundToPayerCents, taxOnKeptCents } from "../../supabase/functions/_shared/refundAmount";
 
 /** What Stripe leaves collected after refunding `refund` of a charge `captured` that carried `tax` (proportional reversal). */
 function taxLeftCollected(captured: number, tax: number, refund: number): number {
@@ -144,6 +144,21 @@ describe("a refund keeps the tax on what it keeps (owner, 2026-10-18)", () => {
     expect(s.taxKeptCents).toBe(Math.ceil((200 * 945) / 10000));
   });
 
+  // Review fix (lh-money-escrow on ddfb06a83 #2): a $100 job, $90 paid by gift, $10 job-site tax: the card took
+  // the $10 shortfall + $10 tax ($20). Its kept 88c card fee carries tax at the job's rate (10%: 9c), not
+  // tax / (card - tax) (100%: 88c), so the poster gets $19.03 back, not $18.24.
+  // @mutate supabase/functions/_shared/refundAmount.ts |   if (taxable > 0) return kept === 0 \|\| tax === 0 ? 0 : Math.min(tax, Math.ceil((kept * tax) / taxable)); |   if (false) return 0;
+  // @mutate supabase/functions/_shared/posterCancelSplit.ts |     taxableCents: c.taxableCents, |     taxableCents: null,
+  it("a gift-reduced job-site charge keeps tax on a kept fee at the job's rate (review of ddfb06a83 #2)", () => {
+    const r = refundToPayerCents({ capturedCents: 2000, actualFeeCents: 88, taxCents: 1000, taxableCents: 10000 });
+    expect(r.taxKeptCents).toBe(9);
+    expect(r.refundCents).toBe(2000 - 88 - 9);
+    // Without the taxable price (a card-only job) the old rate stands.
+    expect(refundToPayerCents({ capturedCents: 2000, actualFeeCents: 88, taxCents: 1000 }).taxKeptCents).toBe(88);
+    expect(jobSiteTaxableCents({ tax_calculation_id: "taxcalc_1", job_tax_cents: "1000", job_taxable_cents: "10000" })).toBe(10000);
+    expect(jobSiteTaxableCents({ job_taxable_cents: "10000" })).toBeNull();
+  });
+
   it("a poster-fee recurring visit: its fee line is inside the tax transaction, so the base includes it (delta review of 2e397597d #1)", () => {
     // labor 10000 + poster fee 570, taxed together at ~9.45% = 999 tax; Stripe's fee 369.
     const r = refundToPayerCents({ capturedCents: 11569, actualFeeCents: 369, taxCents: 999, taxBaseCents: 10000 + 570 + 999 });
@@ -227,6 +242,8 @@ describe("every refundToPayerCents call that prices a refund passes the charge's
     );
     const quote = flat("supabase/functions/create-payment/index.ts");
     expect(quote).toContain("const taxCents = await checkoutChargeTaxCents(stripe, qPi);");
-    expect(quote).toMatch(/posterCancelSplit\(\{[^;]*state: "captured"[^;]*taxCents \}/);
+    expect(quote).toMatch(/posterCancelSplit\(\{[^;]*state: "captured"[^;]*taxCents, taxableCents: jobSiteTaxableCents\(qPi\.metadata/);
+    // Review of ddfb06a83 #2: the sweep passes the same taxable price, so the quote and the refund agree.
+    expect(flat("supabase/functions/void-cancelled-payments/index.ts")).toMatch(/taxCents: await chargeTaxCentsFor\(stripe, pi\), taxableCents: jobSiteTaxableCents\(pi\.metadata/);
   });
 });

@@ -232,7 +232,7 @@ BEGIN
       work_visibility = EXCLUDED.work_visibility, work_exempt_reason = EXCLUDED.work_exempt_reason;
   END IF;
   IF EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'cron') THEN
-    PERFORM cron.schedule('helpr-travel-estimates', '8,23,38,53 * * * *', $c$SELECT public.cron_http_tag(q.request_id, 'helpr-travel-estimates')
+    PERFORM cron.schedule('helpr-travel-estimates', '6,21,36,51 * * * *', $c$SELECT public.cron_http_tag(q.request_id, 'helpr-travel-estimates')
   FROM (
       SELECT net.http_post(timeout_milliseconds := 120000,
         url := (SELECT decrypted_secret FROM vault.decrypted_secrets WHERE name = 'supabase_url' LIMIT 1)

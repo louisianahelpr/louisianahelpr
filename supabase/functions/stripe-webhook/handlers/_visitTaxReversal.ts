@@ -503,10 +503,16 @@ export async function reverseVisitTaxForLostDispute(args: {
   }
   let txId: string | undefined;
   let chargedCents = 0;
+  let priorReversalKeys: string[] = [];
   try {
     const pi = await stripe.paymentIntents.retrieve(piId);
-    txId = (pi?.metadata as Record<string, string> | null)?.tax_transaction_id || undefined;
+    const meta = (pi?.metadata as Record<string, string> | null) ?? {};
+    txId = meta.tax_transaction_id || undefined;
     chargedCents = Number(pi?.amount_received ?? pi?.amount ?? 0);
+    // Q1918 (lead, reviewer follow-up 11-04): every reversal this code records on the PaymentIntent is a tax_rev_<key>
+    // (a refund's share, an uncaptured rest, or one later undone). A mode-full reversal over a transaction that already
+    // has a reversal is unmeasured at Stripe, so that case is paged up front instead of guessed.
+    priorReversalKeys = Object.keys(meta).filter((k) => k.startsWith("tax_rev_") && String(meta[k] ?? "") !== "");
   } catch (e) {
     await postSlackOpsAlert({
       kind: "money_at_risk",
@@ -552,6 +558,18 @@ export async function reverseVisitTaxForLostDispute(args: {
       message: `Dispute ${dispute.id} was lost for ${formatExactDollars(disputedCents / 100)} of a ${formatExactDollars(chargedCents / 100)} charge (${formatExactDollars(refundedCents / 100)} refunded before it; Stripe Tax transaction ${txId}). Reverse the taxed share not already reversed in Stripe Tax (Transactions > ${txId} > Reverse, partial) so it is not reported as collected.`,
       fields: { "Tax transaction": txId, Dispute: dispute.id, "Payment Intent": piId },
       oncePerDayKey: `visit-tax-dispute-partial:${dispute.id}`,
+    });
+    return "partial_paged";
+  }
+
+  if (priorReversalKeys.length > 0) {
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "warning",
+      title: "Lost chargeback on a taxed recurring visit: reverse its sales tax by hand",
+      message: `Dispute ${dispute.id} was lost for the whole $${formatExactDollars(chargedCents / 100)} charge, but Stripe Tax transaction ${txId} already has a reversal recorded on PaymentIntent ${piId} (${priorReversalKeys.join(", ")}; one may since have been undone). It was NOT reversed automatically. In Stripe Tax (Transactions > ${txId}) reverse what is still reported as collected, partial, with reference dispute:${dispute.id}.`,
+      fields: { "Tax transaction": txId, Dispute: dispute.id, "Payment Intent": piId },
+      oncePerDayKey: `visit-tax-dispute-prior:${dispute.id}`,
     });
     return "partial_paged";
   }

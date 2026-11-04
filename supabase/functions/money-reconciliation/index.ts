@@ -59,7 +59,7 @@ import { cronError, cronResult } from "../_shared/cron-result.ts";
 import { scanAll, scanAllIn, scanDefect } from "../_shared/paginate.ts";
 import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
-import { checkoutChargeTaxCents, posterCancelKeptFeeCents, taxOnKeptCents } from "../_shared/refundAmount.ts";
+import { checkoutChargeTaxCents, jobSiteTaxableCents, posterCancelKeptFeeCents, taxOnKeptCents } from "../_shared/refundAmount.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { checkIdentityHold, loadJobPayoutHolds, loadPayoutHolds } from "../_shared/payoutHold.ts";
 
@@ -2048,7 +2048,7 @@ serve(async (req) => {
             return;
           }
           const maxRetainedCents = keptBeforeTaxCents
-            + taxOnKeptCents({ keptCents: keptBeforeTaxCents, taxCents: chargeTax, capturedCents });
+            + taxOnKeptCents({ keptCents: keptBeforeTaxCents, taxCents: chargeTax, capturedCents, taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null) });
           const retainedCents = capturedCents - refundedCents;
           // One cent of slack for the two roundings above.
           if (retainedCents > maxRetainedCents + 1) {

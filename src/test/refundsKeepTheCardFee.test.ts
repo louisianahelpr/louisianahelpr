@@ -1073,27 +1073,27 @@ const AMOUNT_DEFS: Record<string, string[]> = {
   "cancel-escrow-": [
     "refundAmount",
     "refundAmount = cancelSplit.refundCents",
-    "cancelSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: serviceFeeCents, setupFeeCents, alreadyRefundedCents, taxCents: await chargeTaxCentsFor(stripe, pi), })",
+    "cancelSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: serviceFeeCents, setupFeeCents, alreadyRefundedCents, taxCents: await chargeTaxCentsFor(stripe, pi), taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null), })",
   ],
   "refund-dispute-": [
     "refundAmount",
     "refundAmount = disputeSplit.refundCents",
-    "disputeSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: disputeOtherRefundedCents, taxCents: disputeTaxCents, })",
+    "disputeSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: disputeOtherRefundedCents, taxCents: disputeTaxCents, taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null), })",
   ],
   "refund-helpr-fault-": [
     "split.refundCents",
     "split = helprFault && !helprFaultGone ? helprFaultSplit : generalSplit",
-    "helprFaultSplit = refundToPayerCents({ capturedCents, actualFeeCents: 0, customerFeeCents: 0, setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: generalAlreadyRefundedCents, requestedCents: null, taxCents: generalTaxCents, })",
-    "generalSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: generalAlreadyRefundedCents, requestedCents: isPartial ? requestedCents : null, taxCents: generalTaxCents, })",
+    "helprFaultSplit = refundToPayerCents({ capturedCents, actualFeeCents: 0, customerFeeCents: 0, setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: generalAlreadyRefundedCents, requestedCents: null, taxCents: generalTaxCents, taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null), })",
+    "generalSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: generalAlreadyRefundedCents, requestedCents: isPartial ? requestedCents : null, taxCents: generalTaxCents, taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null), })",
   ],
   "helpr-fault-dispute-refund-": [
     "helprFaultDisputeRefundCents",
     "helprFaultDisputeRefundCents = helprFaultDisputeSplit.refundCents",
-    "helprFaultDisputeSplit = refundToPayerCents({ capturedCents, actualFeeCents: 0, customerFeeCents: 0, setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: disputeOtherRefundedCents, taxCents: disputeTaxCents, })",
+    "helprFaultDisputeSplit = refundToPayerCents({ capturedCents, actualFeeCents: 0, customerFeeCents: 0, setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: disputeOtherRefundedCents, taxCents: disputeTaxCents, taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null), })",
   ],
   "refund-general-": [
     "generalSplit.refundCents",
-    "generalSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: generalAlreadyRefundedCents, requestedCents: isPartial ? requestedCents : null, taxCents: generalTaxCents, })",
+    "generalSplit = refundToPayerCents({ capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents), customerFeeCents: cardCostFeeCents(job), setupFeeCents: setupFeeKeptCents(job), alreadyRefundedCents: generalAlreadyRefundedCents, requestedCents: isPartial ? requestedCents : null, taxCents: generalTaxCents, taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null), })",
   ],
   // Q2298 (owner, 2026-10-21): an agreed PART refund is EXACTLY the amount
   // asked (agreement.amountCents). It still keeps the card fee: the split
@@ -1110,7 +1110,7 @@ const AMOUNT_DEFS: Record<string, string[]> = {
     "rushBackCents = exactAgreed && agreement !== null ? agreedRushRefundCents(rushCents, agreement.amountCents, agreement.budgetCents) : 0",
     "refundableCents = posterBase.ceilingCents",
     "rushCents = Math.round(netUrgentFeeDollars(job.urgent_fee) * 100)",
-    "posterBase = refundToPayerCents({ capturedCents, actualFeeCents: pi ? actualOrEstimatedFeeCents(pi, capturedCents) : 0, customerFeeCents: pi ? cardCostFeeCents(job) : 0, setupFeeCents: pi ? setupFeeKeptCents(job) : 0, taxCents: chargeTaxCents, })",
+    "posterBase = refundToPayerCents({ capturedCents, actualFeeCents: pi ? actualOrEstimatedFeeCents(pi, capturedCents) : 0, customerFeeCents: pi ? cardCostFeeCents(job) : 0, setupFeeCents: pi ? setupFeeKeptCents(job) : 0, taxCents: chargeTaxCents, taxableCents: pi ? jobSiteTaxableCents(pi.metadata as Record<string, string> | null) : null, })",
   ],
   "crew-dispute-refund-": [
     "refundCents",

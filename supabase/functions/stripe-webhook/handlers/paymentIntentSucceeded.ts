@@ -125,7 +125,7 @@ export async function handlePaymentIntentSucceeded(
   // Q2083 (b): the money is captured, so a job-site tax is now owed: commit
   // it to Stripe Tax. Read from the PaymentIntent alone, so it runs even when
   // this event beats checkout.session.completed to the job row. Never throws.
-  await commitJobSiteTax({ stripe, pi, logStep, seed: taxJob?.is_seed === true });
+  await commitJobSiteTax({ stripe, pi, logStep, seed: taxJob?.is_seed === true, supabase });
 
   if (taxJob) {
     // Take Stripe's number whenever Stripe HAS one — including a genuine $0.

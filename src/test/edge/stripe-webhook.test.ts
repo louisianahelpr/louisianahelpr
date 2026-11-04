@@ -1700,7 +1700,7 @@ describe("stripe-webhook edge function", () => {
         expect(res.status).toBe(200);
       }
 
-      // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts |   await commitJobSiteTax({ stripe, pi, logStep, seed: taxJob?.is_seed === true }); | 
+      // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts |   await commitJobSiteTax({ stripe, pi, logStep, seed: taxJob?.is_seed === true, supabase }); | 
       it("commits the job-site calculation on capture and stamps the transaction on the PI", async () => {
         stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
         await deliverPi(SITE);
@@ -1724,6 +1724,36 @@ describe("stripe-webhook edge function", () => {
         await deliverPi({ ...SITE, job_tax_cents: "0" });
         await deliverPi({ ...SITE, tax_transaction_id: "tax_txn_old" });
         expect(stripeMock.tax.transactions.createFromCalculation).not.toHaveBeenCalled();
+      });
+
+      // Review fix (lh-money-escrow on 378f7b321 #1): a duplicate checkout refunded BEFORE the
+      // stamp found nothing to reverse on charge.refunded; the commit re-reads the refunds.
+      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |   if (ordinary.length === 0) return "none"; |   return "none";
+      it("a refund made before the stamp is reversed right after the commit, keyed on the refund", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
+        stripeMock.refunds.list.mockResolvedValue({
+          data: [{ id: "re_dup", amount: 12100, created: 50, status: "succeeded", charge: "ch_site", metadata: {} }],
+          has_more: false,
+        });
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_site", metadata: { ...SITE, tax_transaction_id: "tax_txn_site" } });
+        stripeMock.tax.transactions.listLineItems.mockResolvedValue({ data: [{ id: "tax_li_1", amount: 10000, amount_tax: 1100, reference: "labor" }], has_more: false });
+        stripeMock.tax.transactions.createReversal.mockImplementation(async (a: { reference: string }) => ({ id: `taxrev_${a.reference}` }));
+        await deliverPi(SITE);
+        expect(stripeMock.refunds.list).toHaveBeenCalledWith({ payment_intent: "pi_site", limit: 100 });
+        expect(stripeMock.tax.transactions.createReversal.mock.calls.map((c) => ({ args: c[0], opts: c[1] }))).toEqual([{
+          args: { mode: "full", original_transaction: "tax_txn_site", reference: "refund:re_dup", metadata: { refund_id: "re_dup", charge_id: "ch_site" } },
+          opts: { idempotencyKey: "visit-tax-reversal:re_dup" },
+        }]);
+      });
+
+      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |       title: "Job sales tax recorded, but its earlier refunds were not checked", |       title: "x",
+      it("refunds that cannot be read after the commit page ops", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
+        stripeMock.refunds.list.mockRejectedValue(new Error("stripe down"));
+        await deliverPi(SITE);
+        const alerts = (slackAlerts as Array<{ title: string; kind: string }>).filter((a) => a.title === "Job sales tax recorded, but its earlier refunds were not checked");
+        expect(alerts).toHaveLength(1);
+        expect(alerts[0].kind).toBe("money_at_risk");
       });
 
       // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |       title: "Job sales tax collected but NOT recorded in Stripe Tax", |       title: "x",

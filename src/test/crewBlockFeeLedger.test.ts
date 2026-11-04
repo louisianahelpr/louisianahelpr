@@ -16,7 +16,7 @@
  * @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql |      AND NOT EXISTS (SELECT 1 FROM public.crew_block_fees b WHERE b.job_id = v_job_id AND b.slot_no = s); |      AND true;
  * @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |         ON CONFLICT (job_id, slot_no) DO NOTHING; |         ;
  * @mutate supabase/migrations/20261103202529_shipping_buyer_export.sql |   v_out := v_out \|\| jsonb_build_object('crew_block_fees', |   v_out := v_out \|\| jsonb_build_object('crew_block_fees_x',
- * @mutate supabase/migrations/20261031000945_guests_get_no_poster_id_or_street.sql | - (SELECT count(*)::integer AS count FROM crew_block_fees b WHERE b.job_id = jobs.id)) ELSE 0 END) > 0)) | ) ELSE 0 END) > 0))
+ * @mutate supabase/migrations/20261104074500_browse_reads_date_window.sql | - (SELECT count(*)::integer AS count FROM crew_block_fees b WHERE b.job_id = jobs.id)) ELSE 0 END) > 0)) | ) ELSE 0 END) > 0))
  * @mutate supabase/functions/void-cancelled-payments/index.ts | cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents, | cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents: 0,
  */
 import { describe, expect, it } from "vitest";
@@ -75,7 +75,7 @@ describe("a crew block fee is a ledger row and its spot stays closed (Q1390)", (
     expect(a).toMatch(/AND NOT EXISTS \(SELECT 1 FROM public\.crew_block_fees b WHERE b\.job_id = v_job_id AND b\.slot_no = s\);/);
     const view = newestBrowseView();
     // Q1401 (20261012185633_listing_closes_at_start.sql) restates the view with the listing's start filter; the spot counts ride along.
-    expect([THIS, "20261012185633_listing_closes_at_start.sql", "20261015034054_open_jobs_browse_fee_stamp.sql", "20261025235701_browse_carries_helper_fee_percent.sql", "20261027185146_card_hold_at_post.sql", "20261029194021_browse_carries_scope_video.sql", "20261031000945_guests_get_no_poster_id_or_street.sql"]).toContain(view.file);
+    expect([THIS, "20261012185633_listing_closes_at_start.sql", "20261015034054_open_jobs_browse_fee_stamp.sql", "20261025235701_browse_carries_helper_fee_percent.sql", "20261027185146_card_hold_at_post.sql", "20261029194021_browse_carries_scope_video.sql", "20261031000945_guests_get_no_poster_id_or_street.sql", "20261104074500_browse_reads_date_window.sql"]).toContain(view.file);
     // Both inline copies of the spot count (the column and the WHERE).
     expect(view.sql.match(/- \(SELECT count\(\*\)::integer AS count FROM crew_block_fees b WHERE b\.job_id = jobs\.id\)\)/g) ?? []).toHaveLength(2);
     expect(view.sql).toMatch(/WITH \(security_invoker = false\)/);

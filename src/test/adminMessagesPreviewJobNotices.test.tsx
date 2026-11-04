@@ -21,7 +21,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({
 import MessagesPreviewPage from "@/pages/admin/preview/MessagesPreviewPage";
 import { messagesPreviewSample } from "@/pages/admin/preview/messagesPreviewSamples";
 import { supabase } from "@/integrations/supabase/client";
-import { getNotificationSnapshot, setNotificationUser, setNotifications, __resetNotificationStore } from "@/components/notificationPanel/notificationStore";
+import { getNotificationSnapshot, setNotificationUser, __resetNotificationStore } from "@/components/notificationPanel/notificationStore";
 import { forgetNotificationFeed, loadNotificationFeed, __resetNotificationFeedLoad } from "@/components/notificationPanel/notificationFeed";
 import type { Notification } from "@/components/notificationPanel/types";
 
@@ -79,9 +79,10 @@ describe("admin Messages preview, Job notices (Q2664 a)", () => {
   });
 
   it("opens the bell on the sample's notices, never the admin's real ones, and reads none from the network", async () => {
-    // The admin's real bell had loaded before the preview opened.
-    setNotificationUser(ADMIN_ID);
-    setNotifications([REAL]);
+    // The admin's real bell had just loaded its list (fresh, so an open would reuse it) before the preview opened.
+    await loadNotificationFeed(ADMIN_ID);
+    expect(getNotificationSnapshot().notifications.map((n) => n.title)).toEqual([REAL.title]);
+    sent = [];
     renderNotices();
     expect(await screen.findByText(/Match for you/, undefined, { timeout: 10000 })).toBeInTheDocument();
     expect(screen.getByText(/was just posted in Lafayette/)).toBeInTheDocument();

@@ -44,6 +44,19 @@ type LiveJob = {
 type State = { kind: "loading" } | { kind: "failed" } | { kind: "ok"; jobs: LiveJob[] };
 
 /**
+ * Q104 (e2e-real-backend anon surface, 11-04: 19 requests in one route walk, budget 11): coming back to the landing
+ * inside one page session re-read the same four jobs on every visit. A good answer is kept for LANDING_REUSE_MS and
+ * drawn at once on the next visit, with no request; a failed read is never kept.
+ */
+export const LANDING_REUSE_MS = 5 * 60_000;
+let recentJobs: { at: number; jobs: LiveJob[] } | null = null;
+/** Tests only: forget the kept answer. */
+export function forgetRecentLiveJobs() {
+  recentJobs = null;
+}
+const keptJobs = () => (recentJobs && Date.now() - recentJobs.at < LANDING_REUSE_MS ? recentJobs.jobs : null);
+
+/**
  * "$71" — the Helpr's take-home, floored to whole dollars like the /browse card
  * (owner 2026-10-25, option A: the same job reads the same number on home and
  * browse; no caption, owner 2026-10-25: no fee talk on the card); a quotes
@@ -69,11 +82,14 @@ export function liveJobDate(d: string | null): string | null {
 
 export function LiveJobsSection() {
   const ref = useRef<HTMLElement>(null);
-  const [state, setState] = useState<State>({ kind: "loading" });
+  const [state, setState] = useState<State>(() => {
+    const kept = keptJobs();
+    return kept ? { kind: "ok", jobs: kept } : { kind: "loading" };
+  });
 
   useEffect(() => {
     const el = ref.current;
-    if (!el) return;
+    if (!el || keptJobs()) return;
     let cancelled = false;
     const load = async (attempt = 0): Promise<void> => {
       try {
@@ -99,6 +115,7 @@ export function LiveJobsSection() {
           const net = computeNet(budget, 0, Number(j.urgent_fee ?? 0), helpers, 0, j).netEarnings;
           return { ...j, take_home: Number.isFinite(net) ? net : null };
         });
+        recentJobs = { at: Date.now(), jobs };
         if (!cancelled) setState({ kind: "ok", jobs });
       } catch (err) {
         // 11-04 13:40Z (iPhone Safari on /, error_logs 2a04fe45): one visitor saw the failed state and the log held

@@ -141,7 +141,8 @@ export function writtenMetadataKeys(src: string): { keys: Set<string>; spread: b
   // Shorthand `{ metadata }` / `{ metadata, … }`.
   if (/[{,]\s*metadata\s*[,}]/.test(src)) vars.add("metadata");
   for (const v of vars) {
-    const decl = new RegExp(`(?:const|let)\\s+${v}\\b[^=]*=\\s*\\{`).exec(src);
+    // `= cond ? { … } : undefined` (create-payment escrowTaxBackMetadata) counts: the object is what is written.
+    const decl = new RegExp(`(?:const|let)\\s+${v}\\b[^=]*=\\s*(?:[^;{}]*\\?\\s*)?\\{`).exec(src);
     if (!decl) throw new Error(`metadata variable ${v} has no object-literal declaration`);
     add(block(src, decl.index + decl[0].length - 1));
   }
@@ -196,7 +197,8 @@ export function sessionMetadataValues(src: string): Map<string, Set<string>> {
     }
   };
   const varAt = (v: string) => {
-    const decl = new RegExp(`(?:const|let)\\s+${v}\\b[^=]*=\\s*\\{`).exec(src);
+    // `= cond ? { … } : undefined` (create-payment escrowTaxBackMetadata) counts: the object is what is written.
+    const decl = new RegExp(`(?:const|let)\\s+${v}\\b[^=]*=\\s*(?:[^;{}]*\\?\\s*)?\\{`).exec(src);
     if (!decl) throw new Error(`metadata variable ${v} has no object-literal declaration`);
     add(block(src, decl.index + decl[0].length - 1));
   };

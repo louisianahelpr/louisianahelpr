@@ -350,6 +350,10 @@ describe("every fixture literal could be inserted", () => {
     { file: "src/test/storageBackup.test.ts", keys: ["bucket_id", "name", "size"] },
     // The data-export inventory's `{ section, by }` entries, not saved_searches rows (Q2275 gave saved_searches a section CHECK).
     { file: "src/test/helpers/dataExportInventory.ts", keys: ["section", "by"] },
+    // A Stripe PaymentIntent mock (`{ id, status: "succeeded", amount_received, metadata: { tax_calculation_id, ... },
+    // latest_charge }`), not a recurring_visit_payments row: Q2717 (B94) put job-site tax metadata on the crew PI, and
+    // `tax_calculation_id` is a column only recurring_visit_payments has.
+    { file: "src/test/edge/void-cancelled-payments-crew-deleted-member.test.ts", keys: ["amount_received", "tax_calculation_id", "latest_charge"] },
   ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];

@@ -23,6 +23,15 @@ export function isSameDayJob(dateNeeded: string | null | undefined, now: Date): 
   return typeof dateNeeded === "string" && dateNeeded.slice(0, 10) === louisianaToday(now);
 }
 
+/**
+ * The day a job is due by: an "Any time this week" job's last day (date_window_end), else its one day.
+ * Q2729 (lead 2026-11-04, B117 recommendation): a window job's poster takes any day that week, so it is
+ * urgent only on its last day; on its first day it gets no same-day boost and no "Today:" title.
+ */
+export function jobLastDay(job: { date_needed?: string | null; date_window_end?: string | null }): string | null {
+  return job.date_window_end ?? job.date_needed ?? null;
+}
+
 /** True while the Helpr's "Available now" window is open. */
 export function isOnlineNow(availableUntil: string | null | undefined, now: Date): boolean {
   if (!availableUntil) return false;
@@ -71,11 +80,11 @@ export function isNearby(job: SameDayJobPlace, helpr: SameDayHelprPlace): boolea
 
 /** The same-day boost for one Helpr: SAME_DAY_ONLINE_SCORE when online and nearby on a same-day job, else 0. */
 export function sameDayBoost(
-  job: SameDayJobPlace & { date_needed?: string | null },
+  job: SameDayJobPlace & { date_needed?: string | null; date_window_end?: string | null },
   helpr: SameDayHelprPlace,
   now: Date,
 ): number {
-  if (!isSameDayJob(job.date_needed, now)) return 0;
+  if (!isSameDayJob(jobLastDay(job), now)) return 0;
   if (!isOnlineNow(helpr.available_until, now)) return 0;
   return isNearby(job, helpr) ? SAME_DAY_ONLINE_SCORE : 0;
 }

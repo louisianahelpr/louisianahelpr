@@ -4,8 +4,16 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { DollarSign, Zap, Gift, Minus, Plus } from "lucide-react";
 import { SectionCard } from "@/components/postjob/SectionCard";
+import { Button } from "@/components/ui/button";
+import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
 import { formatPriceExact } from "@/lib/format";
 import { MIN_JOB_BUDGET_DOLLARS, MAX_JOB_BUDGET_DOLLARS, MAX_URGENT_FEE_DOLLARS, URGENT_FEE_FLOOR_DOLLARS, formatDollarsWhole } from "@/lib/moneyLimits";
+
+const URGENT_FEE_AMOUNTS = ["5", "10", "15", "20"] as const;
+const URGENT_FEE_OPTIONS: readonly SegmentedOption<string>[] = [
+  ...URGENT_FEE_AMOUNTS.map((amt) => ({ value: amt, label: `$${amt}` })),
+  { value: "custom", label: "Custom" },
+];
 
 /**
  * PRICING_MODE_REMOVED — 2026-08-19.
@@ -120,15 +128,16 @@ export function BudgetSection({
               with − / + in $5 steps inside the real limits. The field below
               stays the exact input (cents, typing); both are one value. */}
           <div className="flex items-center justify-center gap-5 py-2">
-            <button
+            <Button
+              variant="outline"
+              size="iconMd"
               type="button"
               aria-label="Lower the budget by $5"
               disabled={budgetNum <= MIN_JOB_BUDGET_DOLLARS}
               onClick={() => setBudget(String(Math.max(MIN_JOB_BUDGET_DOLLARS, Math.min(MAX_JOB_BUDGET_DOLLARS, Math.ceil(budgetNum / BUDGET_STEP) * BUDGET_STEP - BUDGET_STEP))))}
-              className="flex h-12 w-12 items-center justify-center rounded-full border border-input bg-transparent text-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
             >
               <Minus className="h-5 w-5" aria-hidden />
-            </button>
+            </Button>
             {/* ONE budget control (audit 11-01 JA-43): the big number IS the field. It used to be a read-out
                 here plus a "Budget * $0.00" field under it for the same value. CurrencyInput stores a number;
                 the form keeps `budget` as a string (drafts, validation), converted at this boundary only. */}
@@ -141,15 +150,16 @@ export function BudgetSection({
               aria-label="Job budget in dollars"
               enterKeyHint="done"
             />
-            <button
+            <Button
+              variant="outline"
+              size="iconMd"
               type="button"
               aria-label="Raise the budget by $5"
               disabled={budgetNum >= MAX_JOB_BUDGET_DOLLARS}
               onClick={() => setBudget(String(budgetNum < MIN_JOB_BUDGET_DOLLARS ? MIN_JOB_BUDGET_DOLLARS : Math.min(MAX_JOB_BUDGET_DOLLARS, Math.floor(budgetNum / BUDGET_STEP) * BUDGET_STEP + BUDGET_STEP)))}
-              className="flex h-12 w-12 items-center justify-center rounded-full border border-input bg-transparent text-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
             >
               <Plus className="h-5 w-5" aria-hidden />
-            </button>
+            </Button>
           </div>
           {/* Gift note — the answer to "where did my gift card go?".
               Deliberately phrased as a DEDUCTION off whatever they choose,
@@ -265,34 +275,17 @@ export function BudgetSection({
               ⚡ For jobs that need doing right away. Nearby Helprs are notified the moment you post, and the Helpr who takes it gets all of your bonus. Your total is shown at checkout before you pay. (To reach more Helprs over time, Boost the post after publishing instead.)
             </p>
             <Label className="text-ds-11">Urgent bonus ({formatDollarsWhole(URGENT_FEE_FLOOR_DOLLARS)} minimum, {formatDollarsWhole(MAX_URGENT_FEE_DOLLARS)} maximum)</Label>
-            <div className="flex flex-wrap gap-2">
-              {["5", "10", "15", "20"].map((amt) => (
-                <button
-                  aria-pressed={urgentFee === amt && !customUrgentFee}
-                  key={amt}
-                  type="button"
-                  onClick={() => { setUrgentFee(amt); setCustomUrgentFee(false); }}
-                  className={`px-3 py-1.5 rounded-full text-ds-11 font-medium transition-colors ${
-                    urgentFee === amt && !customUrgentFee
-                      ? "bg-accent text-accent-foreground"
-                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  }`}
-                >
-                  ${amt}
-                </button>
-              ))}
-              <button
-                type="button"
-                onClick={() => { setCustomUrgentFee(true); setUrgentFee(""); }}
-                className={`px-3 py-1.5 rounded-full text-ds-11 font-medium transition-colors ${
-                  customUrgentFee
-                    ? "bg-accent text-accent-foreground"
-                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                }`}
-              >
-                Custom
-              </button>
-            </div>
+            {/* Q2709: the four amounts + Custom are one pick-one set, so they are the shared switch (quiet tone). */}
+            <SegmentedControl
+              ariaLabel="Urgent bonus"
+              tone="quiet"
+              options={URGENT_FEE_OPTIONS}
+              value={customUrgentFee ? "custom" : (URGENT_FEE_AMOUNTS as readonly string[]).includes(urgentFee) ? urgentFee : null}
+              onChange={(v) => {
+                if (v === "custom") { setCustomUrgentFee(true); setUrgentFee(""); }
+                else { setUrgentFee(v); setCustomUrgentFee(false); }
+              }}
+            />
             {customUrgentFee && (
               <div className="flex items-center gap-2 mt-1">
                 <Label htmlFor="custom-urgent-fee" className="text-ds-11 font-sans text-muted-foreground shrink-0">

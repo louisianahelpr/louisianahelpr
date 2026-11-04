@@ -1757,8 +1757,7 @@ describe("stripe-webhook edge function", () => {
       });
 
       // Re-review of 49a8653d81 (C, HIGH): a hold captured only in part (the late fee) must not commit the full tax.
-      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |   if (typeof received === "number" && typeof pi.amount === "number" && pi.amount - received > setupFeeAllowanceCents) { |   if (false) {
-      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |   const setupFeeAllowanceCents = md.onboarding_fee_charged === "true" ? PARTIAL_CAPTURE_SETUP_FEE_CENTS : 0; |   const setupFeeAllowanceCents = 0;
+      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |   if (cancelFeeCapture \|\| (shortfall !== 0 && shortfall !== setupFeeLeftOutCents)) { |   if (cancelFeeCapture) {
       it("a hold captured only in part commits no tax and pages ops", async () => {
         stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
         await deliverPi(SITE, { amount_received: 2000 });
@@ -1768,16 +1767,44 @@ describe("stripe-webhook edge function", () => {
         expect(alerts[0].kind).toBe("money_at_risk");
       });
 
-      it("a hire that leaves out only the $2 setup fee (claimed elsewhere) still commits (lead re-review b)", async () => {
+      // Q2716: the hire's capture names the exact cents it left out (cardHold.ts); exactly that still commits.
+      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |   const setupFeeLeftOutCents = Number.isInteger(leftOut) && leftOut > 0 ? leftOut : 0; |   const setupFeeLeftOutCents = 0;
+      it("a hire that leaves out exactly the stamped setup fee still commits (Q2716)", async () => {
         stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
-        await deliverPi({ ...SITE, onboarding_fee_charged: "true" }, { amount_received: 12100 - 200 });
+        await deliverPi({ ...SITE, setup_fee_left_out_cents: "200" }, { amount_received: 12100 - 200 });
         expect(stripeMock.tax.transactions.createFromCalculation).toHaveBeenCalledTimes(1);
       });
 
-      it("a $2 short capture with no setup fee on the job is still a partial capture", async () => {
+      it("a non-default setup fee left out commits for exactly its stamped cents, never a guessed $2 (Q2716)", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
+        await deliverPi({ ...SITE, setup_fee_left_out_cents: "350" }, { amount_received: 12100 - 350 });
+        expect(stripeMock.tax.transactions.createFromCalculation).toHaveBeenCalledTimes(1);
+      });
+
+      it("a shortfall that is not exactly the stamped cents is a partial capture (Q2716)", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
+        await deliverPi({ ...SITE, setup_fee_left_out_cents: "200" }, { amount_received: 12100 - 150 });
+        await deliverPi({ ...SITE, setup_fee_left_out_cents: "200" }, { amount_received: 12100 - 1200 });
+        // The old $2 allowance from onboarding_fee_charged alone is gone.
+        await deliverPi({ ...SITE, onboarding_fee_charged: "true" }, { amount_received: 12100 - 200 });
+        expect(stripeMock.tax.transactions.createFromCalculation).not.toHaveBeenCalled();
+      });
+
+      it("a $2 short capture with no setup fee stamped is still a partial capture", async () => {
         stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
         await deliverPi(SITE, { amount_received: 12100 - 200 });
         expect(stripeMock.tax.transactions.createFromCalculation).not.toHaveBeenCalled();
+      });
+
+      // Q2716: a cancelled job's fee capture (void-cancelled-payments) is always skipped and paged, even a full one.
+      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |   const cancelFeeCapture = md[CANCEL_FEE_CAPTURE_KEY] === "1"; |   const cancelFeeCapture = false;
+      it("a cancellation-fee capture never commits, even when the fees reach the whole hold (Q2716)", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
+        await deliverPi({ ...SITE, cancel_fee_capture: "1" }, { amount_received: 12100 });
+        expect(stripeMock.tax.transactions.createFromCalculation).not.toHaveBeenCalled();
+        const alerts = (slackAlerts as Array<{ title: string; kind: string; message: string }>).filter((a) => a.title === "Job sales tax not recorded: the hold was captured only in part");
+        expect(alerts).toHaveLength(1);
+        expect(alerts[0].message).toContain("cancelled job's fee");
       });
 
       it("a hold captured in full still commits", async () => {

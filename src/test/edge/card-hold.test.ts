@@ -38,6 +38,7 @@
  * @mutate supabase/functions/_shared/cardHold.ts |         if (!refused) return notDefinite(why, true); |         if (false) return notDefinite(why, true);
  * @mutate supabase/functions/_shared/cardHold.ts |         const refused = captureRefusal(e); |         const refused = null as string \| null;
  * @mutate supabase/functions/_shared/cardHold.ts |       const partial = amountCents < Number(hold.amount_cents); |       const partial = false;
+ * @mutate supabase/functions/_shared/cardHold.ts | metadata: { [SETUP_FEE_LEFT_OUT_KEY]: String(Number(hold.amount_cents) - amountCents) } | metadata: {}
  * @mutate supabase/functions/_shared/cardHoldPlan.ts |       line_items: [{ product_name: "Helpr job", quantity: 1, unit_cost: amountCents }], |       line_items: [{ product_name: "Helpr job", quantity: 1, unit_cost: amountCents + 200 }],
  * @mutate supabase/functions/_shared/cardHold.ts |   if (from === "authorized" && failCode !== "hold_expired") { |   if (false) {
  * @mutate supabase/functions/_shared/cardHold.ts |   return invalid && isDefinitiveStripeRefusal(e) ? `${CAPTURE_REFUSED} |   return invalid ? `${CAPTURE_REFUSED}
@@ -371,6 +372,8 @@ describe("card hold at posting (Q2399)", () => {
       expect(stripeMock.paymentIntents.capture).toHaveBeenLastCalledWith("pi_hold", {
         amount_to_capture: 4200,
         amount_details: { enforce_arithmetic_validation: false, line_items: [{ product_name: "Helpr job", quantity: 1, unit_cost: 4200 }] },
+        // Q2716: the exact cents left out, so the webhook's tax commit allows exactly that shortfall.
+        metadata: { setup_fee_left_out_cents: "200" },
       }, { idempotencyKey: "card-hold-capture-pi_hold-a0-partial", apiVersion: "2026-01-28.clover" });
       expect(stripeMock.refunds.create).not.toHaveBeenCalled();
       expect(updates("jobs").find((w) => (w.payload as Record<string, unknown>).payment_status === "escrow")?.payload).not.toHaveProperty("onboarding_fee_amount");
@@ -396,6 +399,8 @@ describe("card hold at posting (Q2399)", () => {
       const [, params, opts] = stripeMock.paymentIntents.capture.mock.calls[0];
       expect(params.amount_to_capture).toBe(4000);
       expect(params.amount_details.line_items[0].unit_cost).toBe(4000);
+      // Q2716: the retry names the same left-out cents (hold 4200 - capture 4000).
+      expect(params.metadata).toEqual({ setup_fee_left_out_cents: "200" });
       expect(opts.idempotencyKey).toBe("card-hold-capture-pi_hold-a0-partial");
       expect(updates("profiles")).toHaveLength(0);
     });

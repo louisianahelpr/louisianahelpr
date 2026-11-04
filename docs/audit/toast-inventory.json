@@ -5590,7 +5590,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 91,
+      "line": 92,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5600,7 +5600,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 92,
+      "line": 93,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5610,7 +5610,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 100,
+      "line": 101,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5660,7 +5660,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 109,
+      "line": 110,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8735,7 +8735,7 @@
     },
     {
       "file": "src/components/profile/MonthlyGoalCard.tsx",
-      "line": 93,
+      "line": 94,
       "kind": "toast.success",
       "title": {
         "form": "template",
@@ -8745,7 +8745,7 @@
     },
     {
       "file": "src/components/profile/MonthlyGoalCard.tsx",
-      "line": 100,
+      "line": 101,
       "kind": "toast.error",
       "title": {
         "form": "literal",

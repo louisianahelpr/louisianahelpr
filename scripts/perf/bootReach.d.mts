@@ -28,6 +28,7 @@ export function declutterItemSplit(root: string, split?: { deep: Set<string>; ho
 export const ITEM_PAGES_PINNED_RE: RegExp;
 export function homeIconFiles(root: string): Set<string>;
 export function bootIconFiles(root: string): Set<string>;
+export function itemIconFiles(root: string): Set<string>;
 export const HOME_DERIVE_ROOT: string;
 export const JOB_LISTS_ROOT: string;
 export const PROFILE_FIRST_SCREEN_ROOTS: string[];

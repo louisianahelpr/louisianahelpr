@@ -60,6 +60,7 @@ describe("the home page calls itself Louisiana Helpr", () => {
   });
 
   it("the logo is left alone: the emblem still has no wordmark beside it", () => {
-    expect(read("src/components/Navbar.tsx")).toContain(`<HelprMark to="/" size="md" emblemOnly />`);
+    // B115 11-04: the emblem keeps its size in the top bar now that Declutter sits in it (shrink-0, nav fits 320).
+    expect(read("src/components/Navbar.tsx")).toContain(`<HelprMark to="/" size="md" emblemOnly className="shrink-0" />`);
   });
 });

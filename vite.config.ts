@@ -6,7 +6,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, bootModules, bootIconFiles, declutterItemSplit, guestBrowseSplit, homeIconFiles, homePageRoots, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
+import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, bootModules, bootIconFiles, declutterItemSplit, guestBrowseSplit, homeIconFiles, homePageRoots, itemIconFiles, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -191,6 +191,7 @@ const { itemDeep: declutterItemDeep, itemPages: declutterItemPages, itemShared: 
 const { own: profileFirstScreen, shared: profileSharedLeaves } = profileFirstScreenModules(process.cwd(), { deep: signedInDeep, homeOff });
 const homeIcons = homeIconFiles(process.cwd());
 const bootIcons = bootIconFiles(process.cwd());
+const itemIcons = itemIconFiles(process.cwd());
 const bootSet = bootModules(process.cwd());
 // B88: Home's PAGE reach. The every-page roots load after Home's first paint; with them here, their shared code
 // (Legal's public page table, ...) rode app-shared onto every page's boot. Build: boot 204 -> 202 KB gz,
@@ -722,7 +723,7 @@ export default defineConfig(({ mode, command }) => ({
         // L33 train 11-02: "icons-rest" (the leftover icons, below) is written the same short way: its name in the
         // entry's preload list put the entry 6 B gz over its band (5382 vs 5376); as "icons-<hash>" it shares the
         // other icon chunks' prefix. Only the file name changes.
-        chunkFileNames: (chunk) => (chunk.name.startsWith("icons~") || chunk.name === "icons-rest" ? "assets/icons-[hash].js" : "assets/[name]-[hash].js"),
+        chunkFileNames: (chunk) => (chunk.name.startsWith("icons~") || chunk.name === "icons-rest" || chunk.name === "icons-item" ? "assets/icons-[hash].js" : "assets/[name]-[hash].js"),
         // ── Chunk graph shape ────────────────────────────────────────────
         // Expressed as rolldown's `codeSplitting` rather than `manualChunks`
         // because the two are MUTUALLY EXCLUSIVE — rolldown logs
@@ -849,6 +850,16 @@ export default defineConfig(({ mode, command }) => ({
               priority: 91,
               minSize: 0,
               includeDependenciesRecursively: false // lucide's runtime stays put: taken in here, every icon chunk imported this one onto boot
+            },
+            // L70 11-04: the icons the Declutter item page draws (bootReach.mjs itemIconFiles). With the admin
+            // Subscriptions screen deleted, the merge below put 46 admin and Money icons into a chunk the item page
+            // loads (item route 460 -> 465 KB gz, budget 441 +5%). Pinned, the item page fetches only what it draws.
+            {
+              name: "icons-item",
+              test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && itemIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
+              priority: 90.5,
+              minSize: 0,
+              includeDependenciesRecursively: false
             },
             {
               name: "icons",

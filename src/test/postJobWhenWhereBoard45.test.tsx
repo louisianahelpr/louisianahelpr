@@ -34,7 +34,7 @@
  * JA-44 (audit 11-01): with today picked, the chips offer only the starts today allows.
  * @mutate src/components/postjob/whenChoices.ts |   if (dateIso !== todayIso) return TIME_CHIPS; |   return TIME_CHIPS;
  * Q2408 Any time this week:
- * @mutate src/components/postjob/LogisticsSection.tsx |     setDateWindowEnd(weekWindowEnd(dateNeeded));\n    // Need | setDateWindowEnd(dateNeeded);\n    // Need
+ * @mutate src/components/postjob/LogisticsSection.tsx |     setIsFlexibleSchedule(true);\n    setDateWindowEnd(weekWindowEnd(dateNeeded)); |     setIsFlexibleSchedule(false);\n    setDateWindowEnd(weekWindowEnd(dateNeeded));
  * @mutate src/components/postjob/LogisticsSection.tsx |     setDateWindowEnd?.(null);\n    if (isToday && strip[1]) pickDay(strip[1].iso);\n  };\n  // Q2408 | if (isToday && strip[1]) pickDay(strip[1].iso);\n  };\n  // Q2408
  * @mutate src/components/postjob/LogisticsSection.tsx |     if (dateWindowEnd && dateNeeded && dateWindowEnd !== weekWindowEnd(dateNeeded)) setDateWindowEnd?.(weekWindowEnd(dateNeeded)); |
  * @mutate src/pages/post-job/jobSubmitHelpers.ts |     ...(dateWindowEnd && !isRecurring && | ...(dateWindowEnd &&

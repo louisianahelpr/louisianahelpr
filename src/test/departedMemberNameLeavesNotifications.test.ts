@@ -14,7 +14,7 @@
  * Backend proof: src/test/pglite/departedMemberNameLeavesNotifications.pglite.mjs (3x; NEW_MIGRATION=skip RED).
  *
  * @mutate supabase/migrations/20261103022806_departed_member_name_leaves_notifications.sql |   AFTER UPDATE OF anonymized_at ON public.profiles |   AFTER UPDATE OF phone ON public.profiles
- * @mutate supabase/migrations/20261103022806_departed_member_name_leaves_notifications.sql |        AND n.job_id IS NOT NULL\n |
+ * @mutate supabase/migrations/20261104050109_notices_name_the_person.sql |        AND n.job_id IS NOT NULL\n |
  * @mutate supabase/migrations/20261103022806_departed_member_name_leaves_notifications.sql | REVOKE ALL ON FUNCTION public.scrub_departed_member_name_from_notifications() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.scrub_departed_member_name_from_notifications() FROM PUBLIC;
  */
 import { describe, expect, it } from "vitest";

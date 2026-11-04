@@ -355,10 +355,17 @@ export function GroupJobHelpers({
     // NULL, so inserting anyway is a guaranteed 23502 reported as a warning on
     // a removal that actually succeeded.
     if (removed?.helper_id) {
+      // Q2331 (owner 2026-11-03): say who, "Bea T. ... took you off this job". The poster is the signed-in
+      // member, whose profile the app shell already holds (useCurrentUser's cache); the role words stay
+      // as the fallback when it is not there.
+      const myName = queryClient
+        .getQueriesData<{ profile?: { full_name?: string | null } | null }>({ queryKey: queryKeys.currentUser.all })
+        .map(([, d]) => d?.profile?.full_name)
+        .find((n) => !!n?.trim());
       const { error: notifyError } = await supabase.from("notifications").insert({
         user_id: removed.helper_id,
         title: "You're no longer on this group job",
-        message: "The person who posted this job is still putting this crew together and has taken you off it. You haven't been charged and nothing is owed.",
+        message: `${formatName(myName, "The person who posted this job")} is still putting this crew together and took you off this job. You haven't been charged and nothing is owed.`,
         type: "job_updates",
         link: `/jobs?job=${jobId}`,
       });

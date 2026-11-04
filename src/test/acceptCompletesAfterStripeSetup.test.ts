@@ -17,7 +17,7 @@
 // @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   INSERT INTO public.job_accept_pending (job_id, helper_id)\n  VALUES (p_job_id, v_uid) |   PERFORM 1; -- (job_id, helper_id)\n  -- VALUES (p_job_id, v_uid)
 // @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |                ELSE public.complete_job_accept(r.job_id) END) THEN |                ELSE false END) THEN
 // @mutate supabase/migrations/20261021061341_member_display_name.sql |     v_name \|\| ' accepted your offer', |     'Offer update',
-// @mutate supabase/migrations/20261103023713_expired_offer_says_too_late_to_rehire.sql |       v_setup_unfinished := public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL | v_setup_unfinished := false
+// @mutate supabase/migrations/20261104050109_notices_name_the_person.sql |       v_setup_unfinished := public.helper_accept_block_reason(v_locked.helper_id) IS NOT NULL | v_setup_unfinished := false
 // @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |     RAISE EXCEPTION 'helper_never_accepted'\n      USING HINT = 'This Helpr never accepted the offer |     RAISE NOTICE 'helper_never_accepted'\n      USING HINT = 'This Helpr never accepted the offer
 // @mutate supabase/migrations/20261012184444_offer_free_to_refuse.sql |      OR v_job_status IS DISTINCT FROM 'accepted'\n     OR v_job_confirmed IS NOT NULL THEN |      OR false THEN
 // @mutate supabase/migrations/20261103032329_solo_hire_takes_helpr_schedule_lock.sql |     EXCEPTION WHEN OTHERS THEN |     EXCEPTION WHEN division_by_zero THEN

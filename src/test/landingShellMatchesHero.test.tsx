@@ -49,7 +49,7 @@ function block(html: string): string {
 }
 
 const showScript = (html: string) =>
-  [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map((m) => m[1]).find((b) => b.includes("data-lh-landing-shell")) ?? "";
+  [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script[^>]*>/gi)].map((m) => m[1]).find((b) => b.includes("data-lh-landing-shell")) ?? "";
 
 describe("the guest landing's HTML-drawn first screen is the app's own hero (B100)", () => {
   it("index.html's block is byte-for-byte what React renders for a guest on /", () => {

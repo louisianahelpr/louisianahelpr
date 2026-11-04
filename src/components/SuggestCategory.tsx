@@ -11,6 +11,7 @@ import {
   DialogPrimaryAction,
   DialogSecondaryAction,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFeature } from "@/hooks/useFeature";
 import {
@@ -59,15 +60,18 @@ export function SuggestCategory({ area }: { area: SuggestionArea }) {
 
   return (
     <>
-      <button
+      {/* Q2709: the shared link Button (44px, h-11), same ink, 12px/600 type and 14px glyph as before. */}
+      <Button
         type="button"
+        variant="link"
+        size="sm"
         onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 min-h-[44px] text-ds-12 font-sans font-semibold link-standard focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-ds-sm"
+        className="gap-1.5 px-0 text-ds-12 font-sans font-semibold [&_svg]:size-3.5"
         style={{ color: "hsl(var(--bark))" }}
       >
         <Lightbulb className="w-3.5 h-3.5" aria-hidden />
         Don&apos;t see yours? Suggest a category
-      </button>
+      </Button>
       <Dialog open={open} onOpenChange={(o) => !sending && setOpen(o)}>
         <DialogContent>
           <DialogHero title="Suggest a category" />

@@ -166,20 +166,35 @@ async function payCheckout(browser, url, cardNumber, label) {
     await card.fill(cardNumber);
     await page.locator("#cardExpiry").fill("12 / 34");
     await page.locator("#cardCvc").fill("123");
-    for (const [id, v] of [["#email", "tax-probe@mailinator.com"], ["#billingName", "Tax Probe"]]) {
+    for (const [id, v] of [["#email", "tax-probe@mailinator.com"], ["#billingName", "Tax Probe"], ["#billingAddressLine1", "100 Audit Way"], ["#billingLocality", "Lafayette"], ["#billingPostalCode", "70506"]]) {
       const f = page.locator(id);
-      if ((await f.count()) && (await f.isVisible().catch(() => false)) && (await f.isEditable().catch(() => false))) await f.fill(v).catch(() => {});
+      if ((await f.count()) && (await f.isVisible().catch(() => false)) && (await f.isEditable().catch(() => false))) {
+        await f.fill(v).catch(() => {});
+        await page.keyboard.press("Escape").catch(() => {});
+      }
     }
+    const state = page.locator("#billingAdministrativeArea");
+    if ((await state.count()) && (await state.isVisible().catch(() => false))) await state.selectOption("LA").catch(() => {});
     const link = page.locator("#enableStripePass");
     let left = false;
     for (let press = 1; press <= 3 && !left; press++) {
       await page.waitForTimeout(2_000);
       if ((await link.count()) && (await link.isChecked().catch(() => false))) await link.uncheck({ force: true });
+      await page.getByRole("heading", { name: /^Pay |^Set up|^Save/ }).first().click().catch(() => undefined);
       await submit.click();
       left = await page.waitForURL((u) => u.hostname.toLowerCase() !== "checkout.stripe.com", { timeout: 40_000 }).then(() => true, () => false);
       if (!left) console.log(`${label}: press ${press} did not leave Stripe's page`);
     }
-    if (!left) throw new Error(`${label}: Stripe's page never submitted after 3 presses`);
+    if (!left) {
+      // What the page still wants: every visible empty or invalid field, and any error text.
+      const want = await page.locator("input, select").evaluateAll((els) =>
+        els
+          .filter((e) => e.offsetParent !== null && (!e.value || e.getAttribute("aria-invalid") === "true"))
+          .map((e) => `${e.id || e.name}${e.getAttribute("aria-invalid") === "true" ? "(invalid)" : "(empty)"}`),
+      ).catch(() => []);
+      const errs = await page.locator("[role=alert], .FieldError, .ErrorText").allInnerTexts().catch(() => []);
+      throw new Error(`${label}: Stripe's page never submitted after 3 presses; fields ${JSON.stringify(want)}; errors ${JSON.stringify(errs)}`);
+    }
   } finally {
     await page.close().catch(() => {});
   }

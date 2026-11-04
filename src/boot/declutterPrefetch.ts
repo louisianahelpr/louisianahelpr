@@ -49,6 +49,7 @@ export const FIRST_SCREEN_SWITCH_KEYS = [
   "declutter_refund_requests",
   "card_hold_at_post",
   "declutter_shipping",
+  "ai_support_answers",
 ];
 export const DECLUTTER_PREFETCH_KEY = "__lhDeclutterPrefetch";
 

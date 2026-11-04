@@ -4,8 +4,8 @@
  *
  * @mutate src/lib/reviewTags.ts |   return { feedback: prose, tags: [...new Set(tags)] }; |   return { feedback: text.trim() \|\| null, tags: [...new Set(tags)] };
  * @mutate src/lib/reviewTags.ts |   if (!tags \|\| tags.length === 0) return feedback ?? null; |   if (!tags) return feedback ?? null;
- * @mutate src/lib/reviewTags.ts |   if (first.error && isNotDeployedYet(first.error)) return (await without()) as unknown as T; |   if (first.error) return (await without()) as unknown as T;
- * @mutate src/lib/reviewTags.ts |   if (first.error && isNotDeployedYet(first.error)) return run({ feedback: text.trim() \|\| null }); |   if (first.error && isNotDeployedYet(first.error)) return run({ feedback: text.trim() \|\| null, tags: [] });
+ * @mutate src/lib/reviewTags.ts |   if (first.error && tagsColumnMissing(first.error)) return (await without()) as unknown as T; |   if (first.error) return (await without()) as unknown as T;
+ * @mutate src/lib/reviewTags.ts |   if (first.error && tagsColumnMissing(first.error)) return run({ feedback: text.trim() \|\| null }); |   if (first.error && tagsColumnMissing(first.error)) return run({ feedback: text.trim() \|\| null, tags: [] });
  */
 import { describe, expect, it, vi } from "vitest";
 import { ALL_QUICK_TAGS, insertReviewWithTags, reviewSubmitFields, reviewText, withReviewTags } from "./reviewTags";

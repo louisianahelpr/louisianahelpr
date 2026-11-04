@@ -34,6 +34,7 @@ const KNOWN = [
   "src/lib/declutter/bunch.ts -> src/components/declutter/sellForm", // no React; sellForm imports only src/lib
   "src/lib/jobDisplayPay.ts -> src/components/dashboard/JobPrice",
   "src/lib/prePaintShellClasses.ts -> src/components/sidePanelOpen",
+  "src/lib/reviewTags.ts -> src/components/reviewPanel/types", // no imports; the quick-tag lists only (Q1088)
 ];
 
 function walk(dir: string): string[] {

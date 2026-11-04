@@ -570,7 +570,7 @@ const Support = () => {
                   {sending ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      {checking ? "Checking the Help Center…" : "Sending…"}
+                      {checking ? "Checking the help center…" : "Sending…"}
                     </>
                   ) : (
                     <>

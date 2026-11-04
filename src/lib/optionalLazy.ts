@@ -12,9 +12,9 @@ import { report } from "@/lib/errorLogger";
  * anything the member asked to open, keeps plain lazy() and the boundaries'
  * stale-chunk recovery.
  */
-export function optionalLazy<T extends ComponentType<any>>(load: () => Promise<{ default: T }>, source: string) {
-  const Nothing = (() => null) as unknown as T;
-  return lazy(() =>
+export function optionalLazy<P extends object>(load: () => Promise<{ default: ComponentType<P> }>, source: string) {
+  const Nothing: ComponentType<P> = () => null;
+  return lazy<ComponentType<P>>(() =>
     load().catch((err: unknown) => {
       report(err, { severity: "warning", tags: { source, kind: "optional-chunk-failed" } });
       return { default: Nothing };

@@ -11,7 +11,7 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 // ── The dialog shows the server's crew fee ────────────────────────────────────────────────────────────────────────
 const invoke = vi.hoisted(() => vi.fn());
 const rpc = vi.hoisted(() => vi.fn());
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), warning: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), warning: vi.fn() }) }));
 vi.mock("@/lib/haptics", () => ({ hapticError: vi.fn(), hapticSuccess: vi.fn(), hapticLight: vi.fn(), hapticMedium: vi.fn() }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({

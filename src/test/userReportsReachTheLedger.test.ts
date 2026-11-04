@@ -83,6 +83,8 @@ export const SURFACES: Surface[] = [
     note: "an ADMIN's reply to a ticket already in the reports table; it answers a report, it does not file one" },
   { file: "src/components/admin/SupportReply.tsx", kind: "invoke", target: "support-ai-answer", channel: "not-a-report",
     note: "an ADMIN's 'Suggest a reply' draft (B70): fills the reply box for a ticket already in the reports table; files nothing" },
+  { file: "src/pages/info/SupportAi.tsx", kind: "invoke", target: "support-ai-answer", channel: "not-a-report",
+    note: "a member's Help Center answer shown BEFORE the ticket is sent (B70); the ticket itself still files through Support's own submit" },
   { file: "supabase/functions/admin-support-reply/index.ts", kind: "write", target: "support_replies", channel: "not-a-report",
     note: "records the admin's reply on a ticket already in the reports table; it answers a report, it does not file one" },
   { file: "src/lib/nps.ts", kind: "write", target: "nps_responses", channel: "not-a-report",

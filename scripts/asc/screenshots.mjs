@@ -4,10 +4,9 @@
 // before submission, not just at it: StoreKit does not return a product that
 // never reached Ready to Submit, so sandbox testing is blocked too.
 //
-// The image is scripts/asc/assets/review-screenshot.png, produced by
-// e2e/happy-path/iap-review-screenshot.spec.ts — a real render of the
-// Membership screen through the happy-path fixtures, showing the actual tier
-// cards built from TIER_PERKS. That is what Apple is asking for: where the
+// The image is scripts/asc/assets/review-screenshot.png, produced (until its
+// capture spec was retired with the memberships, 2026-11-04) by a real render
+// of the Membership screen, showing the actual tier cards built from TIER_PERKS. That is what Apple is asking for: where the
 // purchase appears in the app. It is committed rather than regenerated here so
 // this script is deterministic and needs no browser in CI.
 //

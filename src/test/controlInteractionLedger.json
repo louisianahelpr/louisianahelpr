@@ -111,8 +111,6 @@
     "press  src/components/PayoutSetupForm.tsx:301 <button>  active:opacity-70",
     "press  src/components/PhotoProof.tsx:263 <button>  active:opacity-100",
     "press  src/components/SavedSearches.tsx:483 <button>  active:opacity-70",
-    "press  src/pages/posts/CompletionChoiceSheet.tsx:337 <button>  active:opacity-70",
-    "press  src/pages/posts/CompletionChoiceSheet.tsx:384 <button>  active:opacity-70",
     "press  src/pages/jobs/HelperRevisionCard.tsx:234 <a>  active:opacity-70",
     "press  src/components/dashboard/CompactJobCard.tsx:67 <button>  active:opacity-75",
     "press  src/components/dashboard/applyConfirmDialog/ApplyBody.tsx:297 <button>  active:opacity-70",

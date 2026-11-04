@@ -71,7 +71,10 @@ export const ROW_BUDGET = 8;
  * the two shared test accounts, the same ids every run, and they are two
  * different surfaces (the Helpr's page and the poster's).
  */
-export const stableUrl = (url) => url.replace(/^\/jobs\/[^/?#]+/, "/jobs/:id");
+// Q1837: the run's own Declutter draft item is a new id every run too; only a uuid is keyed, so
+// /declutter/item/test (the not-an-id path) stays its own surface.
+export const stableUrl = (url) =>
+  url.replace(/^\/jobs\/[^/?#]+/, "/jobs/:id").replace(/^\/declutter\/item\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i, "/declutter/item/:id");
 
 /** A cluster's stable identity across runs. */
 export const clusterKey = (r, i) => `${r.persona} ${stableUrl(r.url)} #${i}`;

@@ -71,7 +71,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deriveRouteSet } from "./press-every-control.mjs";
-import { createPressJob, mintAccounts, removeFixtureJob, removeInboxMessage, seedInboxMessage } from "./pressProdSafety.mjs";
+import { createLoadingDeclutterItem, createPressJob, mintAccounts, removeFixtureJob, removeInboxMessage, removeLoadingDeclutterItem, seedInboxMessage } from "./pressProdSafety.mjs";
 import { RequestMeter, ceilingFor, classify } from "../../e2e/requestMeter.mjs";
 import { stableUrl } from "../check-loading-state-shape.mjs";
 
@@ -770,6 +770,7 @@ async function main() {
   let fixtureJobId = null;
   let inboxMessageId = null;
   let inboxToken = null;
+  let declutterItemId = null;
   if (poster) {
     const job = await createPressJob(poster, process.env.GITHUB_RUN_ID ?? String(Date.now()), "", "loading-states-refresh");
     seedJobId = fixtureJobId = job.id;
@@ -783,7 +784,19 @@ async function main() {
       inboxToken = seeded.token;
       console.log(`${seeded.id ? "seeded" : "::warning title=no inbox fixture::did not seed"} inbox fixture message ${seeded.id ?? ""}: ${seeded.note}`);
     }
+    // Q1837: one Declutter draft item as the helper (createLoadingDeclutterItem), so the item skeleton is
+    // measured against a real item page; removed in the finally below.
+    if (helper) {
+      try {
+        const made = await createLoadingDeclutterItem(helper, process.env.GITHUB_RUN_ID ?? String(Date.now()));
+        declutterItemId = made.id;
+        console.log(`made Declutter fixture item ${made.id}: ${made.note}`);
+      } catch (e) {
+        console.log(`::warning title=no Declutter fixture item::${String(e.message).slice(0, 200)}; /declutter/item/:id is not measured this run`);
+      }
+    }
     const routeSet = deriveRouteSet({
+      declutterItemId,
       seedJobId,
       // HELPER_ID: an anon-only run (PERSONAS=anon, no session minted, nothing written)
       // can still measure /book/<id> and /user/<id> for a real Helpr.
@@ -916,6 +929,10 @@ async function main() {
     if (inboxMessageId) {
       const gone = await removeInboxMessage(inboxToken, helper.userId, inboxMessageId);
       console.log(`${gone.ok ? "removed" : "::warning title=inbox fixture residue::could not remove"} inbox fixture message ${inboxMessageId}: ${gone.note}`);
+    }
+    if (declutterItemId) {
+      const gone = await removeLoadingDeclutterItem(helper, declutterItemId);
+      console.log(`${gone.ok ? "removed" : "::warning title=Declutter fixture residue::could not remove"} Declutter fixture item ${declutterItemId}: ${gone.note}`);
     }
     if (fixtureJobId) {
       const gone = await removeFixtureJob(poster, fixtureJobId);

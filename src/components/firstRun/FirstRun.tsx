@@ -92,7 +92,8 @@ export default function FirstRunScreens({ startInTour, onDone, onPicks }: {
         onToggle={(id) => setPicks((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))}
         onSkip={() => setPhase("tour")}
         onContinue={() => {
-          (onPicks ?? putFirst)(FIRST_RUN_OPTIONS.filter((o) => picks.includes(o.id)).map((o) => o.section));
+          if (onPicks) onPicks(FIRST_RUN_OPTIONS.filter((o) => picks.includes(o.id)).map((o) => o.section));
+          else putFirst(FIRST_RUN_OPTIONS.filter((o) => picks.includes(o.id)).map((o) => o.section));
           setPhase("tour");
         }}
       />

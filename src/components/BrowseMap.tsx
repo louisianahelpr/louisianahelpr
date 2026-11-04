@@ -30,8 +30,7 @@ import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { report } from "@/lib/errorLogger";
 import { toast } from "sonner";
 import { useUserLocation } from "@/hooks/useUserLocation";
-import { Button } from "@/components/ui/button";
-import { BellRing, MapPin, MapPinOff, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
 import { isJobExcludedForViewer, type ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
@@ -47,6 +46,7 @@ import { useMapJobs } from "./browseMap/useMapJobs";
 import JobCard from "./dashboard/JobCard";
 import { pinElement, PIN_HEIGHT } from "./browseMap/mapMarkers";
 import { ClusterList, clusterBubble } from "./browseMap/ClusterList";
+import { MapEmptyState, MapUnavailable, PreviewCaret } from "./browseMap/MapOverlays";
 import {
   buildMapJobFilter,
   isAnyFilterActive,
@@ -850,93 +850,14 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
           the empty-state copy legibly under the unavailable panel. One state
           at a time — the unavailable panel below is the whole answer. */}
       {isEmpty && !mapKitUnusable && (
-        <div className="absolute inset-0 z-[350] flex items-center justify-center pointer-events-none px-6">
-          <div
-            className="pointer-events-auto flex flex-col items-center text-center gap-3 rounded-2xl px-6 py-6 max-w-[300px]"
-            style={{
-              backgroundColor: "hsl(var(--surface-band) / 0.92)",
-              border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-              boxShadow:
-                "inset 0 1px 1px 0 hsl(var(--card) / 0.7), " +
-                "0 10px 30px -10px hsl(var(--olivewood) / 0.32)",
-              backdropFilter: "blur(8px)",
-              WebkitBackdropFilter: "blur(8px)",
-            }}
-          >
-            <div
-              className="w-14 h-14 rounded-full flex items-center justify-center"
-              style={{
-                backgroundColor: "hsl(var(--card) / 0.6)",
-                border: "1px solid hsl(var(--olivewood) / 0.10)",
-                boxShadow:
-                  "inset 0 1px 1px 0 hsl(var(--card) / 0.7), " +
-                  "0 1px 2px hsl(var(--olivewood) / 0.05), " +
-                  "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
-              }}
-            >
-              <MapPin className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
-            </div>
-            <div className="space-y-1">
-              {/* An empty board because the viewer narrowed it is a
-                  different message from an empty marketplace — saying "no
-                  posts yet" while a category filter is on is simply false,
-                  and it hides the one action that fixes it. */}
-              <p
-                className="font-display font-bold leading-tight text-headline-card"
-                style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-              >
-                {filtersActive ? "No pins match." : "Empty map for now."}
-              </p>
-              <p
-                className="font-sans text-ds-13"
-                style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-              >
-                {filtersActive
-                  ? "Nothing on the board fits those filters. Widen them and the pins come back."
-                  : "New posts land here the moment they go live across Louisiana."}
-              </p>
-            </div>
-            {filtersActive && onClearFilters && (
-              <Button variant="outline" onClick={onClearFilters} className="mt-1">
-                Clear filters
-              </Button>
-            )}
-            {/* Optional CTA — passed by the guest dashboard so the empty
-                map still nudges signup ("get pinged when one lands")
-                rather than dead-ending the user. */}
-            {emptyStateCta && (
-              <Button
-                variant="primary"
-                onClick={emptyStateCta.onClick}
-                className="mt-1"
-              >
-                <BellRing className="w-4 h-4 mr-2" /> {emptyStateCta.label}
-              </Button>
-            )}
-          </div>
-        </div>
+        <MapEmptyState filtersActive={filtersActive} onClearFilters={onClearFilters} emptyStateCta={emptyStateCta} />
       )}
       {/* MapKit can't authorize (no token, script blocked, Apple rejected the
           key). Say so plainly instead of leaving a blank grey box: the pins
           are gone but the job list is one tap away, so nobody is stranded.
           Sits ABOVE the map surface rather than replacing the shell so the
           count badge and layer toggle keep their positions. */}
-      {mapKitUnusable && (
-        <div
-          role="status"
-          data-testid="browse-map-unavailable"
-          className="absolute inset-0 z-[360] flex flex-col items-center justify-center gap-2 px-6 text-center"
-          style={{ background: "hsl(var(--surface-band) / 0.96)" }}
-        >
-          <MapPinOff className="w-6 h-6" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden="true" />
-          <p className="font-sans font-semibold text-ds-13" style={{ color: "hsl(var(--bark))" }}>
-            The map isn't available right now.
-          </p>
-          <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
-            Every open job is still on the list.
-          </p>
-        </div>
-      )}
+      {mapKitUnusable && <MapUnavailable />}
       {/* Subtle load overlay — fades out once MapKit reports ready so the
           first paint is a soft transition rather than a flash of half-drawn
           map. Pointer events bypass so users can still pan even while it
@@ -1027,36 +948,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
                   stacked triangles: the back one is the card's border colour,
                   the front one the card's fill, 1px lower — a border-drawn
                   caret without an SVG. */}
-              {preview?.caretDir === "up" && (
-                <span aria-hidden data-testid="browse-map-preview-caret" className="absolute top-0 left-0 w-full h-0">
-                  <span
-                    className="absolute"
-                    style={{
-                      left: preview.caretLeft,
-                      top: -9,
-                      transform: "translateX(-50%)",
-                      width: 0,
-                      height: 0,
-                      borderLeft: "9px solid transparent",
-                      borderRight: "9px solid transparent",
-                      borderBottom: "9px solid hsl(var(--border))",
-                    }}
-                  />
-                  <span
-                    className="absolute"
-                    style={{
-                      left: preview.caretLeft,
-                      top: -8,
-                      transform: "translateX(-50%)",
-                      width: 0,
-                      height: 0,
-                      borderLeft: "8px solid transparent",
-                      borderRight: "8px solid transparent",
-                      borderBottom: "8px solid hsl(var(--card))",
-                    }}
-                  />
-                </span>
-              )}
+              {preview?.caretDir === "up" && <PreviewCaret dir="up" left={preview.caretLeft} />}
             <aside
               // Named with the JOB, not just "Job preview": a keyboard/screen
               // reader user lands on the card inside this landmark, and
@@ -1096,36 +988,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
               </div>
             </aside>
               {/* Caret pointing DOWN — card is ABOVE the pin (the default). */}
-              {preview?.caretDir === "down" && (
-                <span aria-hidden data-testid="browse-map-preview-caret" className="absolute bottom-0 left-0 w-full h-0">
-                  <span
-                    className="absolute"
-                    style={{
-                      left: preview.caretLeft,
-                      bottom: -9,
-                      transform: "translateX(-50%)",
-                      width: 0,
-                      height: 0,
-                      borderLeft: "9px solid transparent",
-                      borderRight: "9px solid transparent",
-                      borderTop: "9px solid hsl(var(--border))",
-                    }}
-                  />
-                  <span
-                    className="absolute"
-                    style={{
-                      left: preview.caretLeft,
-                      bottom: -8,
-                      transform: "translateX(-50%)",
-                      width: 0,
-                      height: 0,
-                      borderLeft: "8px solid transparent",
-                      borderRight: "8px solid transparent",
-                      borderTop: "8px solid hsl(var(--card))",
-                    }}
-                  />
-                </span>
-              )}
+              {preview?.caretDir === "down" && <PreviewCaret dir="down" left={preview.caretLeft} />}
             </div>
         </div>
       )}

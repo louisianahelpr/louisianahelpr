@@ -1006,8 +1006,7 @@
       "button": 1
     },
     "src/pages/profile/petProfiles/PetForm.tsx": {
-      "button": 2,
-      "input": 9
+      "button": 2
     },
     "src/pages/profile/petProfiles/PetRailRow.tsx": {
       "button": 3

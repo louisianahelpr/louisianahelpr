@@ -23,6 +23,7 @@ import {
   validatePetForm,
 } from "./petProfilesHelpers";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 interface PetFormProps {
   initialValues?: PetProfile | null;
@@ -197,7 +198,7 @@ export function PetForm({
           </div>
           <div>
             <label htmlFor="pet-name" className="text-ds-11 text-muted-foreground block mb-1">Name</label>
-            <input
+            <Input
               id="pet-name"
               className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
               value={form.name}
@@ -214,7 +215,7 @@ export function PetForm({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="pet-breed" className="text-ds-11 text-muted-foreground block mb-1">Breed</label>
-              <input
+              <Input
                 id="pet-breed"
                 list="pet-breed-suggestions"
                 className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
@@ -237,7 +238,7 @@ export function PetForm({
             </div>
             <div>
               <label htmlFor="pet-age" className="text-ds-11 text-muted-foreground block mb-1">Age (years)</label>
-              <input
+              <Input
                 id="pet-age"
                 type="number"
                 min={0}
@@ -259,7 +260,7 @@ export function PetForm({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="pet-weight" className="text-ds-11 text-muted-foreground block mb-1">Weight (lbs)</label>
-              <input
+              <Input
                 id="pet-weight"
                 type="number"
                 min={0}
@@ -279,7 +280,7 @@ export function PetForm({
             </div>
             <div>
               <label htmlFor="pet-color" className="text-ds-11 text-muted-foreground block mb-1">Color / markings</label>
-              <input
+              <Input
                 id="pet-color"
                 className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
                 value={form.color_markings ?? ""}
@@ -302,7 +303,7 @@ export function PetForm({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="pet-vet-name" className="text-ds-11 text-muted-foreground block mb-1">Vet name</label>
-              <input
+              <Input
                 id="pet-vet-name"
                 className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
                 value={form.vet_name ?? ""}
@@ -311,7 +312,7 @@ export function PetForm({
             </div>
             <div>
               <label htmlFor="pet-vet-phone" className="text-ds-11 text-muted-foreground block mb-1">Vet phone</label>
-              <input
+              <Input
                 id="pet-vet-phone"
                 type="tel"
                 className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
@@ -327,7 +328,7 @@ export function PetForm({
           </div>
           <div>
             <label htmlFor="pet-microchip" className="text-ds-11 text-muted-foreground block mb-1">Microchip ID</label>
-            <input
+            <Input
               id="pet-microchip"
               className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
               value={form.microchip_id ?? ""}
@@ -395,7 +396,7 @@ export function PetForm({
           </div>
           <div>
             <label htmlFor="pet-emergency-contact" className="text-ds-11 text-muted-foreground block mb-1">Emergency contact</label>
-            <input
+            <Input
               id="pet-emergency-contact"
               className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none"
               value={form.emergency_contact ?? ""}

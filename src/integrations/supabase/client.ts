@@ -9,7 +9,7 @@ import { signOutAwareFetch } from '@/lib/signOutAbort';
 import { noteReachableFetch } from '@/lib/connectivity';
 import { defaultAuthStorageKey, guardSignedInRequests, takeHeldSinceRefresh } from '@/lib/signedInRequestGuard';
 import { loadModule, untilReload } from '@/lib/loadModule';
-import { clearSessionLost, markSignedOut } from '@/lib/permissionDenied';
+import { clearSessionLost, markSignedIn, markSignedOut } from '@/lib/permissionDenied';
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
@@ -132,6 +132,16 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       onHeld: reportHeld,
     }),
   },
+});
+
+// Q2515: a sign-in that changes the user (email-confirm / recovery link) opens
+// the sign-in noise window; a re-emitted SIGNED_IN for the same user (tab
+// refocus) does not.
+let lastAuthUserId: string | null = null;
+supabase.auth.onAuthStateChange((event, session) => {
+  const userId = session?.user?.id ?? null;
+  if ((event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') && userId !== lastAuthUserId) markSignedIn();
+  lastAuthUserId = userId;
 });
 
 // Recovery after a hold (src/lib/signedInRequestGuard.ts): the held reads

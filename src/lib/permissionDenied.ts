@@ -116,6 +116,31 @@ export function markSignedOut(now: number = Date.now()): void {
 export const isSignedOutNoise = (err: unknown, now: number = Date.now()): boolean =>
   now - signedOutAt < SIGNED_OUT_NOISE_MS && isPermissionDenied(err);
 
+/**
+ * SIGN-IN NOISE (Q2515, 2026-11-03). The mirror of the sign-out window: a link
+ * that confirms an email (or a password-recovery link) signs the member in on
+ * a page whose reads already went out with the anon key. Measured: error_logs
+ * 2026-10-25 01:08:13Z, /forgot-password, "permission denied for function
+ * feature_switches_for_me", status 401, one second after that member's
+ * auth.users email_confirmed_at / last_sign_in_at (01:08:12Z). Only denials
+ * PostgREST answered 401 (the request ran as anon) are dropped: a signed-in
+ * member's real grant bug answers 403 and still reports, and so does a denial
+ * whose status is unknown. Guard: src/lib/errorLoggerSignedOutNoise.test.ts.
+ */
+let signedInAt = Number.NEGATIVE_INFINITY;
+
+/** The client calls this on SIGNED_IN / PASSWORD_RECOVERY when the user changed. */
+export function markSignedIn(now: number = Date.now()): void {
+  signedInAt = now;
+}
+
+const statusOf = (err: unknown): unknown =>
+  err && typeof err === "object" ? (err as { status?: unknown }).status : undefined;
+
+/** True for an anon (401) permission-denied error inside the window after a sign-in. */
+export const isSignedInNoise = (err: unknown, now: number = Date.now()): boolean =>
+  now - signedInAt < SIGNED_OUT_NOISE_MS && statusOf(err) === 401 && isPermissionDenied(err);
+
 /** ProtectedRoute calls this when it reports a confirmed session loss. */
 export function markSessionLost(): void {
   sessionLostMarked = true;

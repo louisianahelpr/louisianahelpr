@@ -140,13 +140,19 @@ export const TAXABLE_LABOR_TAX_CODE = "txcd_20080005";
 
 /**
  * The code on a fabric_cleaning job's labor line (carpet, rugs, upholstery,
- * furniture). Stripe's public tax-code list (docs.stripe.com/tax/tax-codes,
- * read 2026-10-23, re-read 2026-11-02), verbatim: txcd_20010003 "Cleaning of Tangible Personal
- * Property": "A charge for the cleaning of tangible personal property, other
- * than motor vehicles or clothing." Live calculation on our account not measured
- * (docs/OPEN.md Q2083).
+ * furniture). It was txcd_20010003 "Cleaning of Tangible Personal Property",
+ * which Stripe figures at 0% in Louisiana (Stripe TEST runs 41771910502 and
+ * 41778361627, 2026-11-03: $0 on $100 at ZIPs 70112 and 70501), so these jobs
+ * collected no tax although La. R.S. 47:301.3 item 5 (the tax memo, Q2083)
+ * taxes this cleaning. Of Stripe's cleaning codes (run 41778361627 listed all
+ * 684 and priced every one naming cleaning), the one for a non-commercial
+ * customer's items other than clothing that Stripe taxes in Louisiana is
+ * txcd_20090024 "Dry Cleaning - other than clothing": "A charge to a
+ * non-commercial customer for the cleaning or renovating items other than
+ * clothing ..." ($10.00 at 70112, $9.00 at 70501 on $100). The residential and
+ * commercial cleaning codes (txcd_20010006 / 20010004, real property) are $0.
  */
-export const CLEANING_TPP_TAX_CODE = "txcd_20010003";
+export const CLEANING_TPP_TAX_CODE = "txcd_20090024";
 
 /**
  * The code on a clothing_alterations job's labor line. Stripe's public

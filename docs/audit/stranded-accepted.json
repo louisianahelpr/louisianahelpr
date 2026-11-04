@@ -4914,6 +4914,36 @@
       "sha": "8b88d231581f12eef0430dbadeb1c10a71c5122f",
       "reason": "Closed as superseded by train Q2 #3526: its jobs-20 and highb-notif-name-actor commits land there. Its board 141 commit (refund requests) went back to its builder after 7 CI reds and is ready/builder2h-jobs-141, carried by the next money train.",
       "checked": "2026-10-21 (lander 4: content judged against origin/main c2f6390aad; commits matched by subject)"
+    },
+    {
+      "id": "remote:origin/ready/b102-admin-alerts-skip-test",
+      "sha": "14e977797d3fcb1b2d3f726146696d71eca643dd",
+      "reason": "Content on main: its commit landed as 6494fe54e5 (same subject). Its pglite test and migration 20261030143141_admin_alerts_skip_test_accounts.sql are identical on main; the other changed test files differ only where later landed work rewrote them.",
+      "checked": "2026-11-04 (lander 64: each branch commit matched on origin/main by subject, and each of its new files compared with main's copy; against origin/main 96f364ab43)"
+    },
+    {
+      "id": "remote:origin/ready/b102-welcome-resend",
+      "sha": "36ba7c457efcb343c6eb4bcb2707114418110beb",
+      "reason": "Content on main: its commit landed as ab652e2b65 (same subject). Its test engagementAutomationsResendDeadLettered.test.ts is on main (1 line differs); engagement-automations/index.ts was rewritten by later landed work.",
+      "checked": "2026-11-04 (lander 64: each branch commit matched on origin/main by subject, and each of its new files compared with main's copy; against origin/main 96f364ab43)"
+    },
+    {
+      "id": "remote:origin/ready/b104-da10-miles-from",
+      "sha": "6421214da81a6716088745ab5ee3fc00a395bee2",
+      "reason": "Content on main: its commit landed as 785c2d2611 (same subject). DeclutterMilesFrom.tsx and its test are on main (later edits), useDeclutterOrigin.ts is identical.",
+      "checked": "2026-11-04 (lander 64: each branch commit matched on origin/main by subject, and each of its new files compared with main's copy; against origin/main 96f364ab43)"
+    },
+    {
+      "id": "remote:origin/ready/b104-da8-browse-short-scroll",
+      "sha": "63b890613bcc95e7a57cf91e9342039a7eb622e8",
+      "reason": "Content on main: its commit landed as 7a3c804f5b (same subject). mapFillHeight.ts and mapFillHeight.test.ts are identical on main.",
+      "checked": "2026-11-04 (lander 64: each branch commit matched on origin/main by subject, and each of its new files compared with main's copy; against origin/main 96f364ab43)"
+    },
+    {
+      "id": "remote:origin/ready/b107-admin-alerts-gaps",
+      "sha": "aad5a8843e10ea291f89f5249dc21cef29a13b78",
+      "reason": "Content on main: its two commits landed as 6494fe54e5 and 5641026be4 (same subjects). Both pglite tests are identical on main; migration 20261030150104_admin_alerts_skip_test_gaps.sql is identical on main at the branch tip.",
+      "checked": "2026-11-04 (lander 64: each branch commit matched on origin/main by subject, and each of its new files compared with main's copy; against origin/main 96f364ab43)"
     }
   ]
 }

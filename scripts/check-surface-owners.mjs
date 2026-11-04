@@ -109,6 +109,7 @@ const OWNERS = {
   "/admin/preview/declutter": ["lh-admin-moderation", "lh-long-tail-features"],
   "/admin/preview/job": ["lh-admin-moderation"],
   "/admin/preview/messages": ["lh-admin-moderation"],
+  "/admin/preview/onboarding": ["lh-admin-moderation", "lh-onboarding-auth"],
   // Declutter (hidden switch 'declutter', docs/specs/declutter-auctions.md).
   "/declutter": ["lh-long-tail-features"],
   "/declutter/sell": ["lh-long-tail-features", "lh-input-boundary"],

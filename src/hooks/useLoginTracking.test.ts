@@ -49,6 +49,15 @@ async function signIn(id: string, confirmed = true) {
   });
 }
 
+/** The hook loads the Supabase client before it subscribes (Q2705/Q2706 boot cut): mount, then let the load land. */
+async function mount() {
+  const r = renderHook(() => useLoginTracking());
+  await act(async () => {
+    await new Promise((res) => setTimeout(res, 0));
+  });
+  return r;
+}
+
 beforeEach(() => {
   callbacks.length = 0;
   vi.clearAllMocks();
@@ -58,7 +67,7 @@ beforeEach(() => {
 
 describe("useLoginTracking", () => {
   it("records one login_history row and one EmailVerified for the first sign-in", async () => {
-    renderHook(() => useLoginTracking());
+    await mount();
     await signIn("member-1");
     expect(insertMock).toHaveBeenCalledTimes(1);
     expect(insertMock.mock.calls[0][0]).toMatchObject({ user_id: "member-1" });
@@ -66,7 +75,7 @@ describe("useLoginTracking", () => {
   });
 
   it("does not record twice in one session, and EmailVerified only once per member", async () => {
-    renderHook(() => useLoginTracking());
+    await mount();
     await signIn("member-1");
     await signIn("member-1");
     expect(insertMock).toHaveBeenCalledTimes(1);
@@ -79,14 +88,14 @@ describe("useLoginTracking", () => {
   });
 
   it("does not fire EmailVerified for an unconfirmed email", async () => {
-    renderHook(() => useLoginTracking());
+    await mount();
     await signIn("member-2", false);
     expect(trackMock).not.toHaveBeenCalledWith("email_verified", expect.anything());
   });
 
   it("reports a login_history insert that answered an error", async () => {
     insertMock.mockResolvedValue({ error: { message: "permission denied", code: "42501" } });
-    renderHook(() => useLoginTracking());
+    await mount();
     await signIn("member-3");
     expect(reportMock).toHaveBeenCalledWith(
       expect.objectContaining({ code: "42501" }),
@@ -94,8 +103,8 @@ describe("useLoginTracking", () => {
     );
   });
 
-  it("unsubscribes on unmount", () => {
-    const { unmount } = renderHook(() => useLoginTracking());
+  it("unsubscribes on unmount", async () => {
+    const { unmount } = await mount();
     unmount();
     expect(unsubscribe).toHaveBeenCalledTimes(1);
   });

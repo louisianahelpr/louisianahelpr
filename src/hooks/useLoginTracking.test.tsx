@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 
 // All mocks live inside `vi.hoisted` so they're available when vi.mock
 // factories run (which happens before any module-level `const`).
@@ -71,6 +71,14 @@ const {
 import { useLoginTracking } from "./useLoginTracking";
 
 const flushMicrotasks = () => new Promise<void>((r) => setTimeout(r, 0));
+/** The hook loads the Supabase client before it subscribes (Q2705/Q2706 boot cut): mount, then let the load land. */
+async function mount() {
+  const r = renderHook(() => useLoginTracking());
+  await act(async () => {
+    await flushMicrotasks();
+  });
+  return r;
+}
 
 describe("useLoginTracking", () => {
   beforeEach(() => {
@@ -85,19 +93,29 @@ describe("useLoginTracking", () => {
     identifyUserMock.mockReset();
   });
 
-  it("registers an onAuthStateChange handler on mount", () => {
-    renderHook(() => useLoginTracking());
+  it("registers an onAuthStateChange handler on mount", async () => {
+    await mount();
     expect(handlerHolder.current).toBeTypeOf("function");
   });
 
-  it("unsubscribes on unmount", () => {
-    const { unmount } = renderHook(() => useLoginTracking());
+  it("unsubscribes on unmount", async () => {
+    const { unmount } = await mount();
     unmount();
     expect(unsubscribeMock).toHaveBeenCalledOnce();
   });
 
+  it("an unmount before the client loads subscribes nothing", async () => {
+    const { unmount } = renderHook(() => useLoginTracking());
+    unmount();
+    await act(async () => {
+      await flushMicrotasks();
+    });
+    expect(handlerHolder.current).toBeNull();
+    expect(unsubscribeMock).not.toHaveBeenCalled();
+  });
+
   it("does NOT track when the event is something other than SIGNED_IN", async () => {
-    renderHook(() => useLoginTracking());
+    await mount();
     handlerHolder.current!("INITIAL_SESSION", { user: { id: "u1", email: "x@y.z" } });
     await flushMicrotasks();
     expect(identifyUserMock).not.toHaveBeenCalled();
@@ -106,7 +124,7 @@ describe("useLoginTracking", () => {
   });
 
   it("does NOT track when SIGNED_IN fires without a session.user", async () => {
-    renderHook(() => useLoginTracking());
+    await mount();
     handlerHolder.current!("SIGNED_IN", null);
     await flushMicrotasks();
     expect(identifyUserMock).not.toHaveBeenCalled();
@@ -114,7 +132,7 @@ describe("useLoginTracking", () => {
   });
 
   it("identifies in PostHog with email + email_verified flag on SIGNED_IN", async () => {
-    renderHook(() => useLoginTracking());
+    await mount();
     handlerHolder.current!("SIGNED_IN", {
       user: { id: "u1", email: "lexi@example.com", email_confirmed_at: "2026-05-10T00:00:00Z" },
     });
@@ -126,7 +144,7 @@ describe("useLoginTracking", () => {
   });
 
   it("fires EmailVerified once per user via safeStorage gate", async () => {
-    renderHook(() => useLoginTracking());
+    await mount();
     handlerHolder.current!("SIGNED_IN", {
       user: { id: "u1", email: "x@y.z", email_confirmed_at: "2026-05-10T00:00:00Z" },
     });
@@ -139,7 +157,7 @@ describe("useLoginTracking", () => {
     safeStorageMock.getItem.mockImplementation((k) =>
       k === "helpr_email_verified_tracked_u1" ? "1" : null,
     );
-    renderHook(() => useLoginTracking());
+    await mount();
     handlerHolder.current!("SIGNED_IN", {
       user: { id: "u1", email: "x@y.z", email_confirmed_at: "2026-05-10T00:00:00Z" },
     });
@@ -148,7 +166,7 @@ describe("useLoginTracking", () => {
   });
 
   it("does NOT fire EmailVerified for unverified users", async () => {
-    renderHook(() => useLoginTracking());
+    await mount();
     handlerHolder.current!("SIGNED_IN", {
       user: { id: "u1", email: "x@y.z", email_confirmed_at: null },
     });
@@ -161,7 +179,7 @@ describe("useLoginTracking", () => {
       value: "Test/1.0",
       configurable: true,
     });
-    renderHook(() => useLoginTracking());
+    await mount();
     handlerHolder.current!("SIGNED_IN", {
       user: { id: "u1", email: "x@y.z", email_confirmed_at: "2026-05-10T00:00:00Z" },
     });
@@ -176,7 +194,7 @@ describe("useLoginTracking", () => {
 
   it("reports (does not throw) when login_history insert fails", async () => {
     insertMock.mockRejectedValue(new Error("network down"));
-    renderHook(() => useLoginTracking());
+    await mount();
     handlerHolder.current!("SIGNED_IN", {
       user: { id: "u1", email: "x@y.z", email_confirmed_at: "2026-05-10T00:00:00Z" },
     });
@@ -188,7 +206,7 @@ describe("useLoginTracking", () => {
   });
 
   it("only fires once per session (tracked-once invariant)", async () => {
-    renderHook(() => useLoginTracking());
+    await mount();
     handlerHolder.current!("SIGNED_IN", {
       user: { id: "u1", email: "x@y.z", email_confirmed_at: "2026-05-10T00:00:00Z" },
     });
@@ -202,7 +220,7 @@ describe("useLoginTracking", () => {
   });
 
   it("re-arms after SIGNED_OUT (next SIGNED_IN tracks again)", async () => {
-    renderHook(() => useLoginTracking());
+    await mount();
     handlerHolder.current!("SIGNED_IN", {
       user: { id: "u1", email: "x@y.z", email_confirmed_at: "2026-05-10T00:00:00Z" },
     });

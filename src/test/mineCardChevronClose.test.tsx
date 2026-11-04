@@ -4,7 +4,7 @@
  * is drawn, and the meta row under the face carries no button.
  *
  * @mutate src/components/job-card/MineJobFace.tsx |         {onCollapse && ( |         {false && (
- * @mutate src/components/job-card/MineJobFace.tsx |             <ChevronUp className="h-5 w-5" aria-hidden="true" /> |             Close
+ * @mutate src/components/job-card/MineJobFace.tsx |             <ChevronUp aria-hidden="true" /> |             Close
  * @mutate src/pages/posts/PostedJobCard.tsx |  onCollapse={isExpanded ? () => toggleExpandedJobId(job.id) : undefined} |  onCollapse={undefined}
  * @mutate src/pages/jobs/AppliedJobCard.tsx |  onCollapse={isExpanded ? () => toggleExpandedJobId(app.job_id) : undefined} |  onCollapse={undefined}
  */

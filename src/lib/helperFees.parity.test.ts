@@ -68,7 +68,7 @@ describe("tierFeePercent (client dashboard resolver) mirrors the edge payout res
   });
 
   it("charges every tier the standard 12% (memberships retired 2026-11-04)", () => {
-    for (const t of ["free", "basic", "pro", "plus", "elite"]) expect(tierFeePercent(t), t).toBe(12);
+    for (const t of Object.keys(TIER_PERKS)) expect(tierFeePercent(t), t).toBe(12);
   });
 
   it("has NO rung below Elite — 'business' is off the ladder and pays free", () => {

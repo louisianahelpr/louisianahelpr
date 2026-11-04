@@ -18,13 +18,14 @@ vi.mock("@/hooks/useFeature", () => ({ useFeature: (k: string) => (k === "member
 
 import { usePaidTierBadge } from "@/hooks/usePaidTierBadge";
 import { blankComments } from "./helpers/blankNonCode";
+import { TIER_PERKS } from "@/lib/subscriptionTiers";
 
 describe("the paid-tier badge is retired with memberships", () => {
   it("is null for every tier, even with the memberships switch on", () => {
     for (const sw of [false, true]) {
       flags.memberships = sw;
       const badge = renderHook(() => usePaidTierBadge()).result.current;
-      for (const t of ["elite", "pro", "plus", "basic", "free", null, undefined]) expect(badge(t), `${t} sw=${sw}`).toBeNull();
+      for (const t of [...Object.keys(TIER_PERKS), null, undefined]) expect(badge(t), `${t} sw=${sw}`).toBeNull();
     }
   });
 

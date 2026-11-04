@@ -56,7 +56,6 @@ const BASELINE: string[] = [
   "happy-path/guest-feed-progressive.spec.ts",
   "happy-path/helper-apply.spec.ts",
   "happy-path/home-chrome.spec.ts",
-  "happy-path/iap-review-screenshot.spec.ts",
   "happy-path/ipad-render-check.spec.ts",
   "happy-path/messages-thread.spec.ts",
   "happy-path/nav-hide-on-scroll.spec.ts",

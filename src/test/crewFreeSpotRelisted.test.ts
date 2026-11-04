@@ -57,6 +57,8 @@ const MEMBERSHIPS = "20261021062609_memberships_off_paid_perks.sql";
 const FEE_PERCENT = "20261025235701_browse_carries_helper_fee_percent.sql";
 // Q2399 restates the listing surfaces (browse view and RPCs, apply_to_job) with 'held' as listed; bodies verbatim otherwise.
 const CARD_HOLD = "20261027185146_card_hold_at_post.sql";
+// Q2408 restates the map and ranked feed (window's-last-day filter + date_window_end), crew rule untouched.
+const DATE_WINDOW = "20261104080753_map_and_ranked_read_date_window.sql";
 // A2-B6 restates the browse view verbatim + scope_video_url (the poster's scope video).
 const SCOPE_VIDEO = "20261029194021_browse_carries_scope_video.sql";
 const RELISTED = "(j.status = 'open' OR (j.status = 'accepted' AND j.is_group_job IS TRUE AND public.crew_spots_open(j.id) > 0))";
@@ -83,7 +85,7 @@ describe("Q1409: a booked crew's free spot is re-listed until its start", () => 
   });
 
   it.each(Object.entries(TAKES_APPLICANTS))("%s reads crew_spots_open", (fn, rule) => {
-    expect([THIS, RESTATED, SEED_SWITCH, LISTING_START, UNDER_18, FEE_STAMP, MEMBERSHIPS, FEE_PERCENT, CARD_HOLD], `${fn} is not the Q1409 definition or its Q1411/Q552/Q1401/Q1586/Q1839/Q1848/Q2400/Q2399 restatement`).toContain(EFFECTIVE.get(fn)?.file);
+    expect([THIS, RESTATED, SEED_SWITCH, LISTING_START, UNDER_18, FEE_STAMP, MEMBERSHIPS, FEE_PERCENT, CARD_HOLD, DATE_WINDOW], `${fn} is not the Q1409 definition or its Q1411/Q552/Q1401/Q1586/Q1839/Q1848/Q2400/Q2399/Q2408 restatement`).toContain(EFFECTIVE.get(fn)?.file);
     expect(body(fn).replace(/\s+/g, " ")).toContain(rule.replace(/\s+/g, " "));
   });
 

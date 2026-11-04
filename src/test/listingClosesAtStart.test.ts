@@ -24,9 +24,9 @@
  * original bug.
  *
  * @mutate supabase/migrations/20261012185633_listing_closes_at_start.sql |      AND public.job_offer_cutoff(v_job.date_needed, v_job.start_time) <= now() THEN\n    RAISE EXCEPTION 'job_date_has_passed' |      AND v_job.date_needed < CURRENT_DATE THEN\n    RAISE EXCEPTION 'job_date_has_passed'
- * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | j.customer_id <> (SELECT auth.uid()))\n      AND (j.date_needed IS NULL OR public.job_offer_cutoff(j.date_needed, j.start_time) > now()) | j.customer_id <> (SELECT auth.uid()))\n      AND (j.date_needed IS NULL OR j.date_needed >= CURRENT_DATE)
+ * @mutate supabase/migrations/20261104080753_map_and_ranked_read_date_window.sql | (NULL end = one-day job, as before).\n      AND (j.date_needed IS NULL OR public.job_offer_cutoff(COALESCE(j.date_window_end, j.date_needed), j.start_time) > now()) | (NULL end = one-day job, as before).\n      AND (j.date_needed IS NULL OR COALESCE(j.date_window_end, j.date_needed) >= CURRENT_DATE)
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     AND (p_job.date_needed IS NULL OR public.job_offer_cutoff(p_job.date_needed, p_job.start_time) > now())\n |
- * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     AND (j.date_needed IS NULL OR public.job_offer_cutoff(j.date_needed, j.start_time) > now())\n    AND (j.offered_to_helper_id IS NULL OR j.direct_offer_status <> 'pending')\n    AND (\n | AND (j.date_needed IS NULL OR j.date_needed >= CURRENT_DATE)\n    AND (j.offered_to_helper_id IS NULL OR j.direct_offer_status <> 'pending')\n    AND (\n
+ * @mutate supabase/migrations/20261104080753_map_and_ranked_read_date_window.sql |     AND (j.date_needed IS NULL OR public.job_offer_cutoff(COALESCE(j.date_window_end, j.date_needed), j.start_time) > now())\n    AND (j.offered_to_helper_id IS NULL OR j.direct_offer_status <> 'pending')\n    AND (\n | AND (j.date_needed IS NULL OR COALESCE(j.date_window_end, j.date_needed) >= CURRENT_DATE)\n    AND (j.offered_to_helper_id IS NULL OR j.direct_offer_status <> 'pending')\n    AND (\n
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     AND public.job_offer_cutoff(j.date_needed, j.start_time) > now()\n    AND (j.offered_to_helper_id IS NULL OR j.direct_offer_status <> 'pending')\n    -- BD-002 |     AND j.date_needed >= CURRENT_DATE\n    AND (j.offered_to_helper_id IS NULL OR j.direct_offer_status <> 'pending')\n    -- BD-002
  * @mutate supabase/migrations/20261104074500_browse_reads_date_window.sql |  AND (date_needed IS NULL OR (CASE WHEN start_time IS NULL THEN ((COALESCE(date_window_end, date_needed) + 1)::timestamp without time zone AT TIME ZONE 'America/Chicago') ELSE ((COALESCE(date_window_end, date_needed) + start_time) AT TIME ZONE 'America/Chicago') END) > now()) AND customer_id |  AND customer_id
  * @mutate src/pages/home/applyErrorCopy.ts |   job_date_has_passed: "This job has already started, so it's closed to new applications.", |   job_date_has_passed: "The date for this job has already passed.",
@@ -44,8 +44,9 @@ const FIX = "20261012185633_listing_closes_at_start.sql";
 
 /** Not a listing: computes when a saved search may alert, from the same perk. */
 const NOT_A_SURFACE = new Set(["early_access_cutoff", "early_access_visible_at"]);
-const DAY_TEST = /date_needed\s*(?:<|>=|<=|>)\s*CURRENT_DATE/i;
-const CUTOFF_TEST = /public\.job_offer_cutoff\(\s*(?:v_job|j)\.date_needed\s*,\s*(?:v_job|j)\.start_time\s*\)\s*(?:<=|>)\s*now\(\)/i;
+const DAY_TEST = /date_needed\)?\s*(?:<|>=|<=|>)\s*CURRENT_DATE/i;
+// Q2408: a listing surface may judge a window job ("any day Nov 4-10") by its LAST day: COALESCE(date_window_end, date_needed).
+const CUTOFF_TEST = /public\.job_offer_cutoff\(\s*(?:(?:v_job|j)\.date_needed|COALESCE\(\s*(?:v_job|j)\.date_window_end\s*,\s*(?:v_job|j)\.date_needed\s*\))\s*,\s*(?:v_job|j)\.start_time\s*\)\s*(?:<=|>)\s*now\(\)/i;
 /** The view cannot call job_offer_cutoff (anon has no EXECUTE), so it inlines the same expression. */
 const VIEW_CUTOFF =
   // Q2408 (20261104074500): a week-window job is filtered by its LAST day, COALESCE(date_window_end, date_needed).

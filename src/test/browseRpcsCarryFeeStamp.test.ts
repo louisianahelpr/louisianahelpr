@@ -17,8 +17,8 @@
 //
 // (Q2400, 2026-10-25: the stamp's PERCENT, helper_fee_percent, now follows it as the last column;
 // src/test/browseCarriesFeePercent.test.ts owns that half.)
-// @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | pricing_mode text, distance_band text, helper_fee_flat_cents integer, helper_fee_percent numeric) | pricing_mode text, distance_band text, helper_fee_percent numeric)
-// @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     j.helper_fee_flat_cents,\n |     NULL::integer AS helper_fee_flat_cents,\n
+// @mutate supabase/migrations/20261104080753_map_and_ranked_read_date_window.sql | pricing_mode text, distance_band text, helper_fee_flat_cents integer, helper_fee_percent numeric, | pricing_mode text, distance_band text, helper_fee_percent numeric,
+// @mutate supabase/migrations/20261104080753_map_and_ranked_read_date_window.sql |     j.helper_fee_flat_cents,\n |     NULL::integer AS helper_fee_flat_cents,\n
 // @mutate supabase/migrations/20261025235701_browse_carries_helper_fee_percent.sql | GRANT EXECUTE ON FUNCTION public.get_open_jobs_for_map() TO anon, authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.get_open_jobs_for_map() TO authenticated, service_role;
 // @mutate supabase/migrations/20261025235701_browse_carries_helper_fee_percent.sql | COMMENT ON FUNCTION public.get_ranked_open_jobs(integer, integer, boolean, numeric, numeric, numeric) IS | SELECT 1 AS
 // @mutate src/components/browseMap/mapJobToEnrichedJob.ts |     helper_fee_flat_cents: job.helper_fee_flat_cents ?? null, |     helper_fee_percent: null,
@@ -53,11 +53,14 @@ describe("browse RPCs carry the jobs fee-model stamp (Q1839)", () => {
       if (!PAY_INPUTS.every((c) => cols.includes(c))) continue;
       paying.push(name);
       // The stamp, then its percent (Q2400), are the LAST two columns (additive).
-      expect(cols.slice(-2), `${name}: the stamp and its percent are the LAST columns (additive)`).toEqual(["helper_fee_flat_cents", "helper_fee_percent"]);
+      // Q2408 (20261104080753) appends date_window_end after them; still additive, nothing before them moved.
+      expect(cols.slice(cols.indexOf("helper_fee_flat_cents")), `${name}: the stamp and its percent are the LAST columns (additive)`).toEqual(
+        cols.includes("date_window_end") ? ["helper_fee_flat_cents", "helper_fee_percent", "date_window_end"] : ["helper_fee_flat_cents", "helper_fee_percent"],
+      );
       const body = blankSqlComments(def!.stmt.slice(def!.stmt.indexOf("$function$")));
       // The outer SELECT projects the stamp as its last column, right before
       // its FROM (public.jobs on the map, the scored CTE on the ranked feed).
-      expect(body, `${name}: the outer SELECT projects it (then its percent) last`).toMatch(/\n\s*(?:j\.)?helper_fee_flat_cents,\s*(?:j\.)?helper_fee_percent\s*\n\s*FROM (public\.jobs j|scored)\b/);
+      expect(body, `${name}: the outer SELECT projects it (then its percent) last`).toMatch(/\n\s*(?:j\.)?helper_fee_flat_cents,\s*(?:j\.)?helper_fee_percent(?:,\s*(?:j\.)?date_window_end)?\s*\n\s*FROM (public\.jobs j|scored)\b/);
     }
     // Inventory floor: the ranked feed and the map both pay-carry.
     expect(paying.sort()).toEqual(["get_open_jobs_for_map", "get_ranked_open_jobs"]);
@@ -89,7 +92,8 @@ describe("browse RPCs carry the jobs fee-model stamp (Q1839)", () => {
       const def = DEFS.get(name)!;
       // Q1848 restated get_ranked_open_jobs (memberships switch on the poster boost), same header.
       // Q2399 (card hold) restates both after Q2400, same header, adding only the 'held' listing.
-      expect(["20261025235701_browse_carries_helper_fee_percent.sql", "20261027185146_card_hold_at_post.sql"]).toContain(def.file);
+      // Q2408 restates both (DROP + CREATE, same header) to add date_window_end and the window's-last-day filter.
+      expect(["20261025235701_browse_carries_helper_fee_percent.sql", "20261027185146_card_hold_at_post.sql", "20261104080753_map_and_ranked_read_date_window.sql"]).toContain(def.file);
       const head = def.stmt.slice(0, def.stmt.indexOf("$function$"));
       expect(head).toMatch(/LANGUAGE sql\s+STABLE SECURITY DEFINER\s+SET search_path TO 'public'\s+SET "TimeZone" TO 'America\/Chicago'/);
       const fn = `public.${name}(${args})`.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

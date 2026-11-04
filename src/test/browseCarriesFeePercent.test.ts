@@ -14,7 +14,7 @@
  * Red on ready/lead-helpr-fee-1025 @ 1d2c319e2d (the view, both RPCs and 8 selects lacked the percent).
  *
  * @mutate supabase/migrations/20261104074500_browse_reads_date_window.sql |     helper_fee_flat_cents,\n    helper_fee_percent,\n |     helper_fee_flat_cents,\n
- * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |     j.helper_fee_flat_cents,\n    -- Q2400: and the percent stamped with it (a 5% job is never priced at 10%).\n    j.helper_fee_percent\n |     j.helper_fee_flat_cents\n
+ * @mutate supabase/migrations/20261104080753_map_and_ranked_read_date_window.sql |     j.helper_fee_flat_cents,\n    -- Q2400: and the percent stamped with it (a 5% job is never priced at 10%).\n    j.helper_fee_percent,\n |     j.helper_fee_flat_cents,\n
  * @mutate src/lib/guestJobsQuery.ts | parish, helper_fee_flat_cents, helper_fee_percent"; | parish, helper_fee_flat_cents";
  * @mutate src/pages/jobs/jobPage/useJobPage.ts | is_group_job, photos, helper_fee_flat_cents, helper_fee_percent, recurrence_days | is_group_job, photos, helper_fee_flat_cents, recurrence_days
  * @mutate src/pages/home/homeDashboard/FirstJobHome.tsx | feeStamp={{ helper_fee_flat_cents: j.helper_fee_flat_cents, helper_fee_percent: j.helper_fee_percent }} | feeStamp={{ helper_fee_flat_cents: j.helper_fee_flat_cents }}
@@ -56,8 +56,8 @@ describe("Q2400: a fee stamp never travels without its percent", () => {
       const def = defs.get(name);
       expect(def, name).toBeTruthy();
       const stmt = blankSqlComments(def!.stmt);
-      expect(stmt, `${name} RETURNS TABLE`).toMatch(/helper_fee_flat_cents integer, helper_fee_percent numeric\)/);
-      expect(stmt, `${name} outer SELECT`).toMatch(/(?:j\.)?helper_fee_flat_cents,\s*(?:j\.)?helper_fee_percent\s*\n\s*FROM (?:public\.jobs j|scored)\b/);
+      expect(stmt, `${name} RETURNS TABLE`).toMatch(/helper_fee_flat_cents integer, helper_fee_percent numeric(?:, date_window_end date)?\)/); // Q2408 appends date_window_end after them
+      expect(stmt, `${name} outer SELECT`).toMatch(/(?:j\.)?helper_fee_flat_cents,\s*(?:j\.)?helper_fee_percent(?:,\s*(?:j\.)?date_window_end)?\s*\n\s*FROM (?:public\.jobs j|scored)\b/);
       n++;
     }
     expect(n).toBe(2);

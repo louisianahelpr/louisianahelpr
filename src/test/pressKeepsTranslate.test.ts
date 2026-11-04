@@ -185,7 +185,7 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
     // btn-press covered by the press-rule cases above),
     // the six admin search clear-Xs Q913 added (AdminCommandPalette,
     // AdminNotificationLogs, AdminReferrals, AdminUsers (AdminSubscriptions retired 2026-11-04),
-    // AdminUserSearchField) plus ChatView's safety-banner dismiss and the Declutter
+    // AdminUserSearchField) plus the Declutter
     // map's "Close preview" X (2026-10-28, Browse like Jobs). A new one
     // fails here until it is reviewed; a removed one fails too.
     expect([...files].sort()).toEqual([
@@ -196,7 +196,6 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
       "src/components/admin/settings/AdminUserSearchField.tsx",
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
       "src/components/declutter/DeclutterMap.tsx",
-      "src/components/messages/ChatView.tsx",
       "src/components/messages/ConversationList.tsx",
       "src/components/profile/SavedHelpersTab.tsx",
     ]);
@@ -204,7 +203,9 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
     // 12 since 2026-10-28: the Declutter map's "Close preview" X.
     // 11 since 2026-11-01: Legal's X is the shared iconCompact Button (B88).
     // 2026-11-04: 10 (AdminSubscriptions retired with memberships).
-    expect(xs.length).toBe(10);
+    // 9 since 2026-11-04: ChatView's safety-banner dismiss is the shared ghost iconCompact Button (Q2709, B119);
+    // a ghost Button carries no :active transform, so its -translate-y-1/2 holds on press.
+    expect(xs.length).toBe(9);
 
     // Any class on these Xs that has an :active transform rule anywhere in
     // src CSS was checked translate-safe above, so the class is covered. What

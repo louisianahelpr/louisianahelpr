@@ -66,9 +66,9 @@ export function DeclutterNotificationGroup({ renderRow }: { renderRow: (row: Row
         style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)" }}
         data-testid="declutter-notification-group"
       >
-        <h3 className="font-sans font-semibold text-ds-13 mb-0" style={{ color: "hsl(var(--ink-deep))" }}>
+        <h2 className="font-sans font-semibold text-ds-13 mb-0" style={{ color: "hsl(var(--ink-deep))" }}>
           Declutter
-        </h3>
+        </h2>
         <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           Buying and selling your things. Everything still lands in the bell icon.
         </p>

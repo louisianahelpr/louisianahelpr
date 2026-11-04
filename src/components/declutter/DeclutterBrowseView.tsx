@@ -13,8 +13,7 @@
  */
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Search, Sofa } from "lucide-react";
 import { EmptyStateActions } from "@/components/ui/EmptyStateActions";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -26,7 +25,8 @@ import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useFeature } from "@/hooks/useFeature";
 import { safeStorage } from "@/lib/safeStorage";
-import { fetchDropStates, fetchDroppedIntoBudget, fetchItemWays, fetchLiveItems, fetchMapPins, fetchPhotos, fetchWatching, setWatch } from "@/lib/declutter/api";
+import { fetchDropStates, fetchDroppedIntoBudget, fetchItemWays, fetchLiveItems, fetchMapPins, fetchPhotos, fetchWatching } from "@/lib/declutter/api";
+import { useWatchToggle } from "./useWatchToggle";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, nearestFirst } from "@/lib/declutter/distance";
 import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, browseStateInParams, dropOutlook, droppedQueryFromParams, isNewSince, newSinceFromParams, type DeclutterFilters } from "@/lib/declutter/browseFilters";
@@ -250,18 +250,10 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
   const sellerIds = useMemo(() => [...new Set(others.map((i) => i.seller_id))].sort(), [others]);
   const bundles = useQuery({ queryKey: ["declutter", "bundle-sellers", sellerIds.join(",")], queryFn: () => fetchBundleSellers(sellerIds), enabled: member && sellerIds.length > 0, placeholderData: keepPreviousData });
   // The hearts on the cards: the same watchlist read and write as the item page's heart (row 46).
-  const qc = useQueryClient();
   const watching = useQuery({ queryKey: ["declutter", "watching", userId], queryFn: () => fetchWatching(userId ?? ""), enabled: member });
   const navigate = useNavigate();
-  const toggleWatch = useMutation({
-    mutationFn: ({ id, on }: { id: string; on: boolean }) => setWatch(id, on),
-    onSuccess: (_r, { on }) => {
-      // SS-5: a new heart says where to find the item again.
-      if (on) toastWatching(navigate);
-      void qc.invalidateQueries({ queryKey: ["declutter", "watching"] });
-    },
-    onError: (err) => toast.error(declutterErrorMessage(err)),
-  });
+  // SS-5: a new heart says where to find the item again. The heart fills on the tap (Q2018).
+  const toggleWatch = useWatchToggle(userId, () => toastWatching(navigate));
   const mapShown = desktop ? mapVisible : member && phoneView === "map";
   // The pins are read only while a map is on screen.
   const pins = useQuery({ queryKey: ["declutter", "map-pins"], queryFn: fetchMapPins, enabled: mapShown && others.length > 0 });

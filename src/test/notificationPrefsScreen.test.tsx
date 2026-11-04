@@ -104,7 +104,7 @@ describe("prefs screen renders a control for every row", () => {
 });
 
 // Proof the absence check can fail: a switch labelled as the digest again.
-// @mutate src/components/NotificationPreferences.tsx | ariaLabel="Saved Helpr availability nudges" | ariaLabel="Daily match digest"
+// @mutate src/components/notificationPreferences/SavedHelprNudgeCard.tsx | ariaLabel="Saved Helpr availability nudges" | ariaLabel="Daily match digest"
 
 // ── The Declutter group (owner 2026-10-28, via the lead; migration 20261028162048) ──
 // The walkthrough that day found no Declutter group in notification settings

@@ -33,14 +33,14 @@ describe("notification settings, board 174 (first slice)", () => {
   });
 
   it("the fixed rows are sentence case", () => {
-    // The Quiet hours card lives in its own file since Q806 (2026-11-04).
-    const src = read("src/components/NotificationPreferences.tsx") + read("src/components/notificationPreferences/QuietHoursCard.tsx");
+    // The Quiet hours, saved-Helpr nudge and Send a test cards live in their own files since Q806 (2026-11-04).
+    const src = read("src/components/NotificationPreferences.tsx") + read("src/components/notificationPreferences/QuietHoursCard.tsx") + read("src/components/notificationPreferences/SavedHelprNudgeCard.tsx") + read("src/components/notificationPreferences/TestSendCard.tsx");
     for (const t of ["Master switch", "Quiet hours", "Send a test"]) expect(src).toContain(t);
     expect(src).not.toMatch(/Master Switch|Quiet Hours\b|Send a Test/);
   });
 
   it("no rust on the screen: nothing on it is money", () => {
-    const src = read("src/components/NotificationPreferences.tsx") + read("src/components/notificationPreferences/QuietHoursCard.tsx");
+    const src = read("src/components/NotificationPreferences.tsx") + read("src/components/notificationPreferences/QuietHoursCard.tsx") + read("src/components/notificationPreferences/SavedHelprNudgeCard.tsx") + read("src/components/notificationPreferences/TestSendCard.tsx");
     expect(src.length).toBeGreaterThan(5000);
     expect(src).not.toMatch(/--burnt-sienna|--sienna-ink|--accent-ink|--money\b/);
   });

@@ -60,9 +60,11 @@ const TIERS = [
 describe("displayed take-home equals the payout for the helper's live tier", () => {
   for (const { tier, percent } of TIERS) {
     it(`${tier} (${percent}%): an unsettled job is shown at the live tier, not the escrow stamp`, () => {
-      // The client and edge tier ladders must agree before anything else does.
-      expect(tierFeePercent(tier)).toBe(percent);
-      expect(feePercentForTier(tier)).toBe(percent);
+      // The client and edge resolvers must agree before anything else does.
+      // Memberships retired (owner 2026-11-04): both resolve every tier to the
+      // standard 12%; the display/payout maths below still runs at both rates.
+      expect(tierFeePercent(tier)).toBe(feePercentForTier(tier));
+      expect(feePercentForTier(tier)).toBe(12);
 
       // A real escrowed row: create-payment stamped the GLOBAL 10% and the
       // matching whole-job amount, neither of which is this helper's rate.

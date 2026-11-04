@@ -96,7 +96,7 @@ function seedPayableJob(s: SupabaseScenario, overrides: {
       {
         stripe_account_id: "acct_helper",
         onboarding_fee_paid: false,
-        subscription_tier: "pro", // 10% commission
+        subscription_tier: null, // a real member (memberships retired 2026-11-04): the standard 12% commission
         subscription_expires_at: null,
         ...overrides.profile,
       },
@@ -247,9 +247,9 @@ describe("process-scheduled-payouts edge function", () => {
       expect(updates).toHaveLength(1);
       expect((updates[0].payload as Record<string, unknown>).onboarding_fee_paid).toBe(true);
 
-      // Transfer amount = budget(100) - 10% commission(10) - $2 fee = $88 → 8800¢.
+      // Transfer amount = budget(100) - 12% commission(12) - $2 fee = $86 → 8600¢ (memberships retired: the standard rate).
       const transferArg = stripeMock.transfers.create.mock.calls[0][0] as Record<string, unknown>;
-      expect(transferArg.amount).toBe(8800);
+      expect(transferArg.amount).toBe(8600);
       expect((transferArg.metadata as Record<string, unknown>).onboarding_fee_first_payout).toBe("true");
     });
 
@@ -261,10 +261,10 @@ describe("process-scheduled-payouts edge function", () => {
         fn.request({ headers: { Authorization: `Bearer ${CRON_SECRET}` }, body: {} }),
       );
       expect(res.status).toBe(200);
-      // $90 + $19.50 urgent (Q362: paid whole) = $109.50 owed − $2.30 fee =
-      // $107.20 → $107. Flooring first ($109 − $2.30 = $106.70 → $106) costs a second dollar.
+      // $88 + $19.50 urgent (Q362: paid whole) = $107.50 owed − $2.30 fee =
+      // $105.20 → $105. Flooring first ($107 − $2.30 = $104.70 → $104) costs a second dollar.
       const transferArg = stripeMock.transfers.create.mock.calls[0][0] as Record<string, unknown>;
-      expect(transferArg.amount).toBe(10700);
+      expect(transferArg.amount).toBe(10500);
       // Q1520: the ledger row records the $2.30 fee and the 20c rounded off.
       // @mutate supabase/functions/process-scheduled-payouts/index.ts |             ...payoutWithheldMetadata(unroundedPayoutCents, owesOnboardingFee ? onboardingFeeCents : 0, payoutCents, helprFaultFeeCents), |
       const withheld = { onboarding_fee_cents: 230, rounding_remainder_cents: 20 };
@@ -348,9 +348,9 @@ describe("process-scheduled-payouts edge function", () => {
       // No profiles update at all — the fee was already collected elsewhere.
       expect(profileUpdates()).toHaveLength(0);
 
-      // Full net payout, no deduction: 100 - 10 = $90 → 9000¢.
+      // Full net payout, no deduction: 100 - 12 = $88 → 8800¢.
       const transferArg = stripeMock.transfers.create.mock.calls[0][0] as Record<string, unknown>;
-      expect(transferArg.amount).toBe(9000);
+      expect(transferArg.amount).toBe(8800);
       expect((transferArg.metadata as Record<string, unknown>).onboarding_fee_first_payout).toBe("false");
     });
 
@@ -814,7 +814,7 @@ describe("process-scheduled-payouts edge function", () => {
   // every payout larger than it, so the job could never pay out.
   describe("Q1210 a job paid partly by gift and partly by card", () => {
     function seedMixed(piStatus = "succeeded") {
-      // $100 budget = $50 gift + $50 card shortfall; pro 10% → $90 payout.
+      // $100 budget = $50 gift + $50 card shortfall; standard 12% → $88 payout (memberships retired 2026-11-04).
       seedPayableJob(scenario, { profile: { onboarding_fee_paid: true } });
       scenario.reads.gift_cards = { rows: [{ id: "gift-1" }] };
       scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 5000 };
@@ -840,7 +840,7 @@ describe("process-scheduled-payouts edge function", () => {
       expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_1", { expand: ["latest_charge.balance_transaction"] });
       expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
       const args = stripeMock.transfers.create.mock.calls[0][0];
-      expect(args.amount).toBe(9000);
+      expect(args.amount).toBe(8800);
       expect(args.source_transaction).toBeUndefined();
     });
 
@@ -862,7 +862,7 @@ describe("process-scheduled-payouts edge function", () => {
       id: "pi_1", status: "succeeded", latest_charge: "ch_1", amount, amount_received: amount,
       metadata: siteTaxMetadata(taxCents),
     });
-    it("Q1728: a shortfall + tax capture: the tax is not headroom (gift 3000 + card 5000 + tax 1000 < payout 9000)", async () => {
+    it("Q1728: a shortfall + tax capture: the tax is not headroom (gift 3000 + card 5000 + tax 1000 < payout 8800)", async () => {
       seedMixed();
       scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 3000 };
       taxedLeg(6000, 1000);
@@ -870,16 +870,16 @@ describe("process-scheduled-payouts edge function", () => {
       expect((body.results as Array<Record<string, unknown>>)[0].status).toBe("exceeds_captured_escrow");
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     });
-    it("Q1728: shortfall + tax that covers the job pays 9000, and a tax-only capture never caps it down", async () => {
+    it("Q1728: shortfall + tax that covers the job pays 8800, and a tax-only capture never caps it down", async () => {
       seedMixed();
       scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 4000 };
       taxedLeg(6000, 1000);
       await runCron();
-      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(9000);
+      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(8800);
     });
     // Q1728 follow-up: a legacy / fallback automatic_tax capture (no job_tax_cents): its Stripe Tax figure is no headroom.
     // @mutate supabase/functions/process-scheduled-payouts/index.ts | siteTaxCents > 0 ? siteTaxCents : await automaticTaxCentsFor(stripe, pi)); | siteTaxCents);
-    it("Q1728 follow-up: an automatic_tax capture's tax is not headroom (gift 3000 + card 5000 + tax 1000 < payout 9000)", async () => {
+    it("Q1728 follow-up: an automatic_tax capture's tax is not headroom (gift 3000 + card 5000 + tax 1000 < payout 8800)", async () => {
       seedMixed();
       scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 3000 };
       stripeMock.paymentIntents.retrieve.mockResolvedValue({
@@ -896,7 +896,7 @@ describe("process-scheduled-payouts edge function", () => {
       taxedLeg(900, 900);
       await runCron();
       expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
-      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(9000);
+      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(8800);
     });
 
     // @mutate supabase/functions/process-scheduled-payouts/index.ts | if (pi.status !== "succeeded" && isPifFunded) { | if (false) {
@@ -905,7 +905,7 @@ describe("process-scheduled-payouts edge function", () => {
       scenario.rpc.restore_gift_card_for_job = { outcome: "would_restore", applied_cents: 10000 };
       await runCron();
       expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
-      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(9000);
+      expect(stripeMock.transfers.create.mock.calls[0][0].amount).toBe(8800);
     });
 
     // Q1975 part 2 (lead decision 11-01: 'failed' wins): a FAILED card/bank
@@ -1485,9 +1485,9 @@ describe("process-scheduled-payouts edge function", () => {
       // The poster is charged the urgent fee ONCE, bundled into escrow, so a
       // group job must divide it across helpers — else N helpers each collect
       // the full urgent bonus and the platform over-pays N×.
-      // budget 300 / 3 helpers = $100 each; 10% commission = $10; urgent $30
+      // budget 300 / 3 helpers = $100 each; 12% commission = $12; urgent $30
       // is paid WHOLE (Q362: the poster paid its card fee on top) and splits
-      // 3 ways = $10. Payout = 100 − 10 + 10 = $100 → paid 10000¢ (Q236).
+      // 3 ways = $10. Payout = 100 − 12 + 10 = $98 → paid 9800¢ (Q236).
       // (Fee already paid so no $2 onboarding deduction clouds the urgent math.)
       seedPayableJob(scenario, {
         job: { budget: 300, urgent_fee: 30, is_group_job: true, helpers_needed: 3 },
@@ -1499,8 +1499,8 @@ describe("process-scheduled-payouts edge function", () => {
       );
       expect(res.status).toBe(200);
       const transferArg = stripeMock.transfers.create.mock.calls[0][0] as Record<string, unknown>;
-      // Q362: $100 owed, paid in whole dollars (Q236).
-      expect(transferArg.amount).toBe(10000);
+      // Q362: $98 owed, paid in whole dollars (Q236).
+      expect(transferArg.amount).toBe(9800);
     });
   });
 });

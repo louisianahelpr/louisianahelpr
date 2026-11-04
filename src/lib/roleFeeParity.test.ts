@@ -144,30 +144,23 @@ describe("expiry is handled identically on both runtimes (the asymmetry that was
     }
   });
 
-  it("an ACTIVE paid tier keeps its discounted rate on BOTH runtimes", () => {
+  // Memberships RETIRED (owner 2026-11-04): an ACTIVE paid tier no longer gets
+  // a discount either. Every tier, every expiry state, both runtimes: the
+  // standard (free) rate. A real member (null / free tier) gets the very same
+  // number as before the retirement.
+  it("every paid tier, active or not, pays the standard rate on BOTH runtimes (memberships retired)", () => {
     for (const tier of LIVE_TIERS) {
-      const rate = TIER_PERKS[tier].platformFeePercent;
-      expect(edgeHelperFeePercent(tier, FUTURE)).toBe(rate);
-      expect(uiHelperFeePercent(tier, FUTURE)).toBe(rate);
+      for (const exp of [FUTURE, PAST, undefined, null, "not-a-date"]) {
+        expect(edgeHelperFeePercent(tier, exp), `${tier} ${exp}`).toBe(TIER_PERKS.free.platformFeePercent);
+        expect(uiHelperFeePercent(tier, exp), `${tier} ${exp}`).toBe(TIER_PERKS.free.platformFeePercent);
+      }
     }
   });
 
-  it("the helper-side resolver ACCEPTS an expiry argument at all", () => {
-    // The regression this whole file exists for: `feePercentForTier` used to
-    // take one parameter, so a helper-side caller could not express expiry even
-    // if it wanted to. Asserting on `.length` pins the signature, not just a
-    // value — a future refactor that drops the parameter fails here loudly
-    // instead of silently re-opening the split.
+  it("the helper-side resolver still ACCEPTS an expiry argument (signature kept for every caller)", () => {
     expect(edgeHelperFeePercent.length).toBeGreaterThanOrEqual(2);
     expect(edgeHelperFeePercent("elite", PAST)).toBe(12);
-    expect(edgeHelperFeePercent("elite")).toBe(8);
-  });
-
-  it("a malformed expiry timestamp is NOT treated as expired, on both runtimes", () => {
-    // NaN < Date.now() is false. Pinned so nobody 'fixes' it into re-rating a
-    // paid user to 12% because their timestamp column got corrupted.
-    expect(edgeHelperFeePercent("elite", "not-a-date")).toBe(8);
-    expect(uiHelperFeePercent("elite", "not-a-date")).toBe(8);
+    expect(edgeHelperFeePercent("elite")).toBe(12);
   });
 });
 

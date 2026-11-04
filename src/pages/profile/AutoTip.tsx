@@ -3,6 +3,7 @@ import { Check } from "lucide-react";
 import { toast } from "sonner";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { ChoicePill } from "@/components/ui/ChoicePill";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
@@ -32,15 +33,9 @@ const LIMITS = { percent: { min: 1, max: 50 }, fixed: { min: 3, max: 500 }, cap:
 const UNIT_MARK =
   "absolute top-1/2 -translate-y-1/2 text-ds-13 font-sans font-semibold pointer-events-none text-muted-foreground";
 
-/** A number field is 36.8px tall on its own line (measured on the maximum-per-job
- *  input at every breakpoint) — under the 44px minimum. `min-h-[44px]` is the fix;
- *  inputs are not covered by the global touch-target rule. */
-const FIELD_BASE =
-  "w-full min-h-[44px] py-2 rounded-ds-sm text-ds-13 font-sans font-semibold bg-card text-foreground";
-const fieldStyle = (valid: boolean) => ({
-  border: `1px solid hsl(var(--${valid ? "border" : "burnt-sienna"})${valid ? "" : " / 0.6"})`,
-  outline: "none",
-});
+/** Q2709: both amount boxes are the shared Input (48 px, the shared field look); only the unit padding and the
+ *  out-of-range border are theirs. */
+const INVALID_FIELD = "border-[hsl(var(--burnt-sienna)/0.6)]";
 
 /**
  * "After a Job" — everything that happens automatically once a job is finished.
@@ -377,7 +372,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
                     {!isPercent && (
                       <span aria-hidden="true" className={`${UNIT_MARK} left-3`}>$</span>
                     )}
-                    <input
+                    <Input
                       id="auto-tip-custom"
                       type="number"
                       inputMode="numeric"
@@ -386,8 +381,8 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
                       value={value}
                       placeholder="Type an amount"
                       onChange={(e) => setValue(e.target.value)}
-                      className={`${FIELD_BASE} ${isPercent ? "pl-3 pr-9" : "pl-8 pr-3"}`}
-                      style={fieldStyle(valueValid || value.trim() === "")}
+                      aria-invalid={!(valueValid || value.trim() === "")}
+                      className={`${isPercent ? "pl-3 pr-9" : "pl-8 pr-3"} ${valueValid || value.trim() === "" ? "" : INVALID_FIELD}`}
                     />
                     {isPercent && (
                       <span aria-hidden="true" className={`${UNIT_MARK} right-3`}>%</span>
@@ -411,7 +406,7 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
                       same two digits mean two different things on one screen. */}
                   <div className="relative">
                     <span aria-hidden="true" className={`${UNIT_MARK} left-3`}>$</span>
-                    <input
+                    <Input
                       id="auto-tip-cap"
                       type="number"
                       inputMode="numeric"
@@ -420,8 +415,8 @@ const AutoTip = ({ onBack }: { onBack?: () => void }) => {
                       value={cap}
                       placeholder="No maximum"
                       onChange={(e) => setCap(e.target.value)}
-                      className={`${FIELD_BASE} pl-8 pr-3`}
-                      style={fieldStyle(capValid)}
+                      aria-invalid={!capValid}
+                      className={`pl-8 pr-3 ${capValid ? "" : INVALID_FIELD}`}
                     />
                   </div>
                   {/* The cap is the whole reason percentage mode is safe to offer:

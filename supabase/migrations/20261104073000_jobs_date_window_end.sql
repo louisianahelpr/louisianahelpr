@@ -6,8 +6,8 @@
 -- that must know the window (cards, the Helpr's pick-a-day question, open-job expiry) read date_window_end too.
 -- NULL = a one-day job (every existing row).
 --
--- Additive only: a nullable column and a CHECK that every existing row passes (all NULL). No grant change: jobs'
--- column grants follow the table's (the same as is_flexible_schedule).
+-- Additive: a nullable column and a CHECK that every existing row passes (all NULL). jobs SELECT is granted per
+-- column (20260915045110), so the new column is granted to authenticated here, as tax_kind was (20261102152453).
 
 ALTER TABLE public.jobs
   ADD COLUMN IF NOT EXISTS date_window_end date;
@@ -20,6 +20,14 @@ ALTER TABLE public.jobs
     date_window_end IS NULL
     OR (date_needed IS NOT NULL AND date_window_end > date_needed AND date_window_end <= date_needed + 6)
   );
+
+GRANT SELECT (date_window_end) ON public.jobs TO authenticated;
+DO $$
+BEGIN
+  IF to_regprocedure('public.sync_jobs_select_grants()') IS NOT NULL THEN
+    PERFORM public.sync_jobs_select_grants();
+  END IF;
+END $$;
 
 COMMENT ON COLUMN public.jobs.date_window_end IS
   'Q2408: last day of an "Any time this week" window (date_needed is the first day; at most +6). NULL = one-day job.';
@@ -36,6 +44,14 @@ LANGUAGE plpgsql
 SET search_path TO 'public'
 AS $fn$
 BEGIN
+  -- A booked (or cancelled, done...) job's day is locked (schedule_locked, 20261018024950): a window can never be
+  -- added to it or moved on it, by anyone.
+  IF NEW.date_window_end IS NOT NULL
+     AND NEW.date_window_end IS DISTINCT FROM OLD.date_window_end
+     AND OLD.status IS DISTINCT FROM 'open' THEN
+    RAISE EXCEPTION 'schedule_locked: a window cannot be added to a job that is not open (job_id=%)', OLD.id
+      USING ERRCODE = '22023';
+  END IF;
   IF NEW.date_window_end IS NOT NULL
      AND OLD.date_window_end IS NOT NULL
      AND (NEW.date_needed IS DISTINCT FROM OLD.date_needed OR NEW.status IS DISTINCT FROM 'open') THEN

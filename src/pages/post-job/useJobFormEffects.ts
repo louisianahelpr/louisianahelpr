@@ -52,6 +52,7 @@ export interface UseJobFormEffectsParams {
     recurrenceInterval: string;
     recurrenceEndDate: string;
     isFlexibleSchedule: boolean;
+    dateWindowEnd?: string | null;
     isUrgent: boolean;
     urgentFee: string;
     isGroupJob: boolean;
@@ -106,6 +107,7 @@ export interface UseJobFormEffectsParams {
   recurrenceInterval: string;
   recurrenceEndDate: string;
   isFlexibleSchedule: boolean;
+  dateWindowEnd?: string | null;
   isUrgent: boolean;
   urgentFee: string;
   isGroupJob: boolean;
@@ -160,6 +162,7 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
     recurrenceInterval,
     recurrenceEndDate,
     isFlexibleSchedule,
+    dateWindowEnd,
     isUrgent,
     urgentFee,
     isGroupJob,
@@ -563,9 +566,9 @@ export function useJobFormEffects(params: UseJobFormEffectsParams) {
   const autoSave = useCallback(() => {
     const location = composeLocationString({ streetAddress, city, addrState, zipCode });
     if (title || description || streetAddress || budget) {
-      saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded, credentialTier, includeMaterials, materialsNote, offerToHelperId });
+      saveDraft({ title, description, category, location, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, dateWindowEnd, isUrgent, urgentFee, isGroupJob, helpersNeeded, credentialTier, includeMaterials, materialsNote, offerToHelperId });
     }
-  }, [title, description, category, streetAddress, city, addrState, zipCode, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, isUrgent, urgentFee, isGroupJob, helpersNeeded, credentialTier, includeMaterials, materialsNote, offerToHelperId, saveDraft]);
+  }, [title, description, category, streetAddress, city, addrState, zipCode, dateNeeded, startTime, estimatedHours, budget, specialRequirements, isRecurring, recurrenceInterval, recurrenceEndDate, isFlexibleSchedule, dateWindowEnd, isUrgent, urgentFee, isGroupJob, helpersNeeded, credentialTier, includeMaterials, materialsNote, offerToHelperId, saveDraft]);
 
   useEffect(() => {
     const timer = setTimeout(autoSave, 2000);

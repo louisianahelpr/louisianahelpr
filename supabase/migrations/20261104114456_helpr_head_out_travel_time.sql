@@ -9,12 +9,14 @@
 --     job and with the account (ON DELETE CASCADE).
 --   helpr_travel_pairs(p_now) (new, service_role): the hired Helprs (solo and crew, exactly the sweep's set) whose
 --     job starts 35 minutes to 3 hours from now, who have not left, whose head-out has not gone out, with both points
---     known, and no estimate measured in the last hour. At most 50.
+--     known, and no estimate measured in the last hour, and none while Apple is paused after an outage
+--     (declutter_route_health.miss_until, set by declutter_route_outage, 20261104113516). At most 50.
 --   sweep_helpr_start_reminders: restated from 20261030035326 (the only definition) with three changes:
 --     1. the head-out window opens at start - lead_minutes: the estimate (at least 5, cron cadence) when one is stored
 --        and at most 120 minutes (a longer "drive" is a stale far-away position: ignored), else 30;
---     2. it is merged into Starting soon (sent 30-35 minutes before) only when the lead is 35 minutes or less; an
---        earlier head-out is not "at the same moment", so it is sent on its own;
+--     2. it is merged into Starting soon (sent 30-35 minutes before) only when the lead falls in that same window
+--        (30 to 35 minutes); a head-out due earlier or later is not "at the same moment", so it is sent on its own
+--        (lead review 11-04: never trim a Helpr reminder);
 --     3. the text says the lead: "starts in about <n> minutes" (30 with no estimate, as before).
 -- Replay-safe: IF NOT EXISTS, CREATE OR REPLACE, cron.schedule by name, grants by role name.
 -- PROOF: src/test/pglite/helprHeadOutTravel.pglite.mjs. Guard: src/test/helprStartReminders.test.ts.
@@ -57,6 +59,9 @@ AS $fn$
     JOIN public.profiles p ON p.user_id = h.user_id
    WHERE NOT h.left_already
      AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL AND h.latitude IS NOT NULL AND h.longitude IS NOT NULL
+     -- A point Apple cannot be asked about is never a pair (lead review 11-04: it would read as an outage).
+     AND p.latitude BETWEEN -90 AND 90 AND p.longitude BETWEEN -180 AND 180
+     AND h.latitude BETWEEN -90 AND 90 AND h.longitude BETWEEN -180 AND 180
      AND ((h.date_needed + h.start_time) AT TIME ZONE 'America/Chicago')
          BETWEEN COALESCE(p_now, now()) + interval '35 minutes' AND COALESCE(p_now, now()) + interval '3 hours'
      AND NOT EXISTS (SELECT 1 FROM public.helpr_start_reminder_sends s
@@ -64,6 +69,8 @@ AS $fn$
      AND NOT EXISTS (SELECT 1 FROM public.helpr_travel_estimates e
                       WHERE e.job_id = h.job_id AND e.user_id = h.user_id
                         AND e.measured_at > COALESCE(p_now, now()) - interval '1 hour')
+     -- While Apple is paused after an outage (declutter_route_outage, 20261104113516), nobody is measured.
+     AND NOT EXISTS (SELECT 1 FROM public.declutter_route_health rh WHERE rh.miss_until > COALESCE(p_now, now()))
    ORDER BY (h.date_needed + h.start_time)
    LIMIT 50;
 $fn$;
@@ -156,10 +163,10 @@ BEGIN
     BEGIN
       v_kind := rec.kind;
       v_merged := false;
-      IF v_kind = 'head_out' AND rec.lead_minutes <= 35 THEN
+      IF v_kind = 'head_out' AND rec.lead_minutes BETWEEN 30 AND 35 THEN
         -- Never two at once: Starting soon (sent 30-35 minutes before) carries it while that switch is on
-        -- (no preferences row = the defaults = on). A longer drive heads out earlier than Starting soon, so
-        -- that one is its own reminder, at a different moment.
+        -- (no preferences row = the defaults = on). A head-out due at any other moment (a longer drive heads out
+        -- earlier, a short one later) is its own reminder: never trim a Helpr reminder (owner rule).
         SELECT COALESCE((SELECT p.remind_starting_soon FROM public.notification_preferences p WHERE p.user_id = rec.user_id), true)
           INTO v_merged;
       ELSIF v_kind = 'morning_of' AND rec.two_hours_near THEN

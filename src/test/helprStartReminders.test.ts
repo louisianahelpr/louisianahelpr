@@ -28,8 +28,9 @@
  * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | ON CONFLICT (job_id, user_id, kind) DO NOTHING; | ;
  * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | v_message := CASE WHEN rec.owes_dayof | v_message := CASE WHEN false
  * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | (CASE WHEN v_now >= t.starts_at - make_interval(mins => t.lead_minutes) | (CASE WHEN v_now >= t.starts_at - interval '30 minutes'
- * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | IF v_kind = 'head_out' AND rec.lead_minutes <= 35 THEN | IF v_kind = 'head_out' THEN
+ * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | IF v_kind = 'head_out' AND rec.lead_minutes BETWEEN 30 AND 35 THEN | IF v_kind = 'head_out' AND rec.lead_minutes <= 35 THEN
  * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | AND e.minutes <= 120), 30) AS lead_minutes | ), 30) AS lead_minutes
+ * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql |      AND NOT EXISTS (SELECT 1 FROM public.declutter_route_health rh WHERE rh.miss_until > COALESCE(p_now, now()))\n |
  * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE, | user_id uuid NOT NULL,
  * @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql | p_title IN ('Your job starts in 2 hours', 'Time to head out') THEN 'starting_soon' | p_title IN ('Your job starts in 2 hours') THEN 'starting_soon'
  * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | REVOKE ALL ON FUNCTION public.sweep_helpr_start_reminders(timestamptz) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.sweep_helpr_start_reminders(timestamptz) FROM PUBLIC;
@@ -96,10 +97,18 @@ describe("start reminders for hired Helprs (Q2483)", () => {
   });
 
   // Q2485: head-out rides on Starting soon (sent 30-35 minutes before) only when it falls then; an earlier head-out
-  // (a longer drive) is a different moment and is sent on its own.
+  // (a longer drive) or a later one (a short drive) is a different moment and is sent on its own (lead review 11-04).
+  it("Q2485: nobody is measured while Apple is paused after an outage (the pause delivery quotes share)", () => {
+    expect(body("helpr_travel_pairs")).toContain(
+      "AND NOT EXISTS (SELECT 1 FROM public.declutter_route_health rh WHERE rh.miss_until > COALESCE(p_now, now()))",
+    );
+    // A point Apple cannot be asked about is never a pair: it would read as an outage and pause every Apple call.
+    expect(body("helpr_travel_pairs")).toContain("AND p.latitude BETWEEN -90 AND 90 AND p.longitude BETWEEN -180 AND 180");
+  });
+
   it("never sends two at once: head-out rides on Starting soon, the 8 AM one on the 2-hour one", () => {
     expect(sweep).toMatch(
-      /IF v_kind = 'head_out' AND rec\.lead_minutes <= 35 THEN SELECT COALESCE\(\(SELECT p\.remind_starting_soon FROM public\.notification_preferences p WHERE p\.user_id = rec\.user_id\), true\) INTO v_merged;/,
+      /IF v_kind = 'head_out' AND rec\.lead_minutes BETWEEN 30 AND 35 THEN SELECT COALESCE\(\(SELECT p\.remind_starting_soon FROM public\.notification_preferences p WHERE p\.user_id = rec\.user_id\), true\) INTO v_merged;/,
     );
     expect(sweep).toMatch(
       /ELSIF v_kind = 'morning_of' AND rec\.two_hours_near THEN SELECT COALESCE\(\(SELECT p\.remind_two_hours FROM public\.notification_preferences p WHERE p\.user_id = rec\.user_id\), true\) INTO v_merged;/,

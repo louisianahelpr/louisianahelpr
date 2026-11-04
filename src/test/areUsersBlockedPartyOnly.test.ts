@@ -190,6 +190,7 @@ const EXPECTED_CALLERS = [
   // Shops M1 (20261018164442): each passes v_uid := auth.uid() as one
   // argument: the maker vs the order's buyer (accept), the buyer vs the shop's
   // owner (order terms, request order).
+  "rpc_hire_target_by_handle", // B113 Hire me (20261104143437): are_users_blocked(v_me := auth.uid(), v_target)
   "shops_accept_order",
   "shops_order_terms",
   "shops_request_order",

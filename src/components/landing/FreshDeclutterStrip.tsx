@@ -56,12 +56,12 @@ export default function FreshDeclutterStrip({ items }: { items: FreshItem[] }) {
                 <span className="block aspect-square w-full" style={{ background: "var(--lp-subtle)" }}>
                   {it.photo && (
                     <img
+                      loading="lazy"
+                      decoding="async"
                       src={it.photo}
                       alt=""
                       width={240}
                       height={240}
-                      loading="lazy"
-                      decoding="async"
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         const img = e.currentTarget;

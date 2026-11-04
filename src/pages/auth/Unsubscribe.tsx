@@ -106,7 +106,7 @@ const Unsubscribe = () => {
           style={{ background: "hsl(var(--sage) / 0.14)" }}
           aria-hidden="true"
         >
-          <Icon className="w-8 h-8" style={{ color: "hsl(var(--sage-ink))" }} strokeWidth={1.5} />
+          <Icon className="w-8 h-8" style={{ color: "hsl(var(--sage-ink))" }} />
         </div>
 
         <div className="space-y-2">

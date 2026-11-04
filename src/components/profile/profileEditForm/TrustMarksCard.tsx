@@ -62,7 +62,7 @@ export function TrustMarksCard({ profile, phone }: { profile: Profile | null; ph
               </Button>
             ) : (
               <span className="inline-flex items-center gap-1 text-ds-13 font-semibold" style={{ color: r.done ? "hsl(var(--ink-deep))" : "hsl(var(--olivewood) / 0.8)" }}>
-                {r.done && <Check className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />}
+                {r.done && <Check className="w-3.5 h-3.5" aria-hidden />}
                 {r.state}
               </span>
             )}

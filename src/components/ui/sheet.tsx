@@ -204,7 +204,7 @@ const SheetCloseButton = ({ top, right }: { top: string; right: string }) => (
       color: "hsl(var(--olivewood))",
     }}
   >
-    <X className="h-[18px] w-[18px]" strokeWidth={2} />
+    <X className="h-[18px] w-[18px]" />
     <span className="sr-only">Close</span>
   </SheetPrimitive.Close>
 );

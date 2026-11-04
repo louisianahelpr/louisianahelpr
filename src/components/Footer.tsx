@@ -276,7 +276,7 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
                 aria-label="Download Helpr on the App Store (opens in a new tab)"
                 title="Download on the App Store"
               >
-                <Apple className="h-[18px] w-[18px]" strokeWidth={1.5} fill="currentColor" />
+                <Apple className="h-[18px] w-[18px]" fill="currentColor" />
               </a>
             )}
             <a

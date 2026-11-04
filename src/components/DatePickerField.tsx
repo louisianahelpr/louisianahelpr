@@ -169,7 +169,7 @@ export function DatePickerField({
         >
           <span className="truncate">{formatted}</span>
           {showCompleteCheck && selected ? (
-            <Check className="ml-2 h-4 w-4 shrink-0 text-primary" strokeWidth={2.5} aria-hidden />
+            <Check className="ml-2 h-4 w-4 shrink-0 text-primary" aria-hidden />
           ) : (
             <CalendarIcon className="ml-2 h-4 w-4 shrink-0 text-muted-foreground" />
           )}

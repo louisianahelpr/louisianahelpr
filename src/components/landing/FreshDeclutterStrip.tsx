@@ -11,7 +11,7 @@ function SeeEverything({ className }: { className: string }) {
   return (
     <Link to="/declutter" className={`group items-center gap-1.5 min-h-11 text-ds-15 font-bold link-standard ${className}`} style={{ color: "var(--lp-action-strong)" }}>
       See everything
-      <ArrowRight className="w-4 h-4" strokeWidth={1.75} aria-hidden />
+      <ArrowRight className="w-4 h-4" aria-hidden />
     </Link>
   );
 }

@@ -52,7 +52,7 @@ export function LegalTabBar({ tab, hideIconsOnPhone }: { tab: TabKey; hideIconsO
                 }}
               />
             )}
-            <Icon className={`relative w-3.5 h-3.5 shrink-0 ${hideIconsOnPhone ? "hidden sm:block" : ""}`} strokeWidth={2.25} />
+            <Icon className={`relative w-3.5 h-3.5 shrink-0 ${hideIconsOnPhone ? "hidden sm:block" : ""}`} />
             <span className="relative">{TAB_LABELS[t]}</span>
           </TabsTrigger>
         );

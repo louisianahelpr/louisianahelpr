@@ -19,7 +19,7 @@ export function PinnedChip() {
         background: "hsl(var(--bark))",
       }}
     >
-      <Pin className="w-2.5 h-2.5" style={{ color: "hsl(var(--parchment))" }} strokeWidth={2.5} aria-hidden />
+      <Pin className="w-2.5 h-2.5" style={{ color: "hsl(var(--parchment))" }} aria-hidden />
     </span>
   );
 }

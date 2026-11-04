@@ -59,7 +59,7 @@ export function PhotoPlaceholder({
       aria-hidden
       className={`flex items-center justify-center ${tone} ${className}`}
     >
-      <Icon className={iconClassName} strokeWidth={1.75} />
+      <Icon className={iconClassName} />
     </span>
   );
 }

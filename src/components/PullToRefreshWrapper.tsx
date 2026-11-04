@@ -82,7 +82,6 @@ const PullToRefreshWrapper = forwardRef<HTMLDivElement, PullToRefreshWrapperProp
                   ? undefined
                   : `rotate(${Math.min(pullDistance * 3, 360)}deg)`,
               }}
-              strokeWidth={2}
             />
           </div>
           {/* Copy label — italic serif so it reads as continuous brand

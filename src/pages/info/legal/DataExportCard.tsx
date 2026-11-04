@@ -68,7 +68,7 @@ export function DataExportCard() {
       <div className="rounded-2xl liquid-glass squircle p-card">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-ds-md bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <Download className="w-4 h-4" strokeWidth={2.25} aria-hidden />
+            <Download className="w-4 h-4" aria-hidden />
           </div>
           <div className="flex-1 min-w-0">
             <h2

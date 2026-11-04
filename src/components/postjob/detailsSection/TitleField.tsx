@@ -56,7 +56,6 @@ export function TitleField({ title, setTitle, category }: TitleFieldProps) {
           {valid && (
             <Check
               className="w-4 h-4 text-primary shrink-0"
-              strokeWidth={2.5}
               aria-hidden
             />
           )}

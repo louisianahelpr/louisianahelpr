@@ -157,7 +157,7 @@ export function SignupStep2(props: SignupStep2Props) {
               {avatarPreview && avatarPreview.startsWith("blob:") ? (
                 <img loading="lazy" decoding="async" src={avatarPreview} alt={t("signup.photoAlt")} className="w-full h-full object-cover" />
               ) : (
-                <UserRound className="w-8 h-8 text-muted-foreground" strokeWidth={1.5} />
+                <UserRound className="w-8 h-8 text-muted-foreground" />
               )}
             </div>
             <div
@@ -172,7 +172,7 @@ export function SignupStep2(props: SignupStep2Props) {
                   "0 8px 18px -4px hsl(var(--bark) / 0.55)",
               }}
             >
-              <Camera className="w-3.5 h-3.5" strokeWidth={2.25} />
+              <Camera className="w-3.5 h-3.5" />
             </div>
             {/* sr-only (not `hidden`): display:none removes the input from the
                 tab order, which would put the photo out of a keyboard-only
@@ -214,7 +214,7 @@ export function SignupStep2(props: SignupStep2Props) {
                 className={`${inputCls}${locationValid && !fieldErrors.location ? " pr-8" : ""}${fieldErrors.location ? " border-destructive" : ""}`}
               />
               {locationValid && !fieldErrors.location && (
-                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none z-10" strokeWidth={2.5} aria-hidden />
+                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none z-10" aria-hidden />
               )}
             </div>
             <FieldError id="location-error" message={fieldErrors.location} />
@@ -240,7 +240,7 @@ export function SignupStep2(props: SignupStep2Props) {
                 className={`${inputCls}${fieldErrors.zipCode ? " border-destructive" : ""}${zipRecognised ? " pr-8" : ""}`}
               />
               {zipRecognised && zipCode.length === 5 && !zipUnknown && (
-                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" aria-hidden />
               )}
             </div>
             <FieldError id="zipCode-error" message={fieldErrors.zipCode} />

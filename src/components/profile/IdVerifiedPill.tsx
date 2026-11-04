@@ -55,14 +55,13 @@ export const PAYOUTS_SET_UP_DESCRIPTION =
   "This member set up payouts with Stripe, which checked their payment details.";
 
 export const PayoutsSetUpIcon = ({ className }: { className?: string }) => (
-  <Landmark className={className} strokeWidth={2.25} aria-hidden />
+  <Landmark className={className} aria-hidden />
 );
 
 /** The shield, at the one size and weight every surface draws it. */
 export const IdVerifiedShield = ({ className }: { className?: string }) => (
   <ShieldCheck
     className={className}
-    strokeWidth={2.5}
     style={{ color: "hsl(var(--gold-warm))" }}
     aria-hidden
   />

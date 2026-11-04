@@ -145,7 +145,6 @@ export function CredentialTierSelector({
                     ? "hsl(var(--parchment))"
                     : "hsl(var(--olivewood) / 0.8)",
                 }}
-                strokeWidth={2.25}
                 aria-hidden
               />
               {/* `whitespace-normal` + `break-words` are set on the TEXT

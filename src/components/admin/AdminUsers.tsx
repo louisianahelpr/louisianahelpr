@@ -387,7 +387,7 @@ const AdminUsers = () => {
               }}
               className="absolute right-1.5 top-1/2 -translate-y-1/2 !min-h-0 !min-w-0 h-7 w-7 ctl-exit inline-flex items-center justify-center text-muted-foreground hover:text-foreground ctl-tint btn-press transition"
             >
-              <X className="w-4 h-4" strokeWidth={2.25} aria-hidden />
+              <X className="w-4 h-4" aria-hidden />
             </button>
           )}
         </div>

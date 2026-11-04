@@ -211,7 +211,7 @@ export function ChecklistSteps({ steps }: { steps: { key: string; label: string;
               className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${s.done ? "bg-primary text-primary-foreground" : "border-2 border-border"}`}
               aria-hidden
             >
-              {s.done && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
+              {s.done && <Check className="w-3.5 h-3.5" />}
             </span>
             <span className={`text-ds-14 font-semibold ${s.done ? "text-muted-foreground" : "text-foreground"}`}>
               {s.label}

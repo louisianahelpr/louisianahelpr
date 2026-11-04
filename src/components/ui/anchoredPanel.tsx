@@ -529,7 +529,7 @@ export function AnchoredPanelHeader({
           className="shrink-0 w-11 h-11 -mr-1 inline-flex items-center justify-center ctl-exit ctl-tint ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] focus-visible:ring-offset-2"
           style={{ color: "hsl(var(--olivewood))" }}
         >
-          <X className="w-[18px] h-[18px]" strokeWidth={2.25} />
+          <X className="w-[18px] h-[18px]" />
         </button>
       </div>
       {children}

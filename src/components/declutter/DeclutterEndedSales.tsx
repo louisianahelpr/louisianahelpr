@@ -51,7 +51,7 @@ export function EndedSaleRows({ lines }: { lines: CartLine[] }) {
       {lines.map((l) => (
         <li key={l.line_id} className="flex items-center gap-3 px-4 py-3" data-ended-sale-row="">
           <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-muted text-muted-foreground" aria-hidden>
-            <PackageX className="h-6 w-6" strokeWidth={1.75} />
+            <PackageX className="h-6 w-6" />
           </span>
           <div className="min-w-0 flex-1">
             <p className="line-clamp-2 break-words text-ds-15 font-semibold text-muted-foreground" title={l.item_title}>{l.item_title}</p>

@@ -134,7 +134,7 @@ export const PolicyRowItem = ({ icon: Icon, title, body, warning, searchText }: 
       <div data-policy-row className="px-3 py-2.5">
         <h3 className="m-0 flex items-center gap-2.5 text-ds-13 font-semibold text-foreground leading-snug">
           <span className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center bg-primary/10 text-primary" data-warning={warning ? "" : undefined}>
-            <Icon className="w-3.5 h-3.5" strokeWidth={2.25} aria-hidden />
+            <Icon className="w-3.5 h-3.5" aria-hidden />
           </span>
           {title}
         </h3>
@@ -156,7 +156,7 @@ export const PolicyRowItem = ({ icon: Icon, title, body, warning, searchText }: 
               icons, rust is money only). A caution row is told apart by its
               own words ("final warning", "restriction"), not a rust tile. */}
           <span className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center bg-primary/10 text-primary" data-warning={warning ? "" : undefined}>
-            <Icon className="w-3.5 h-3.5" strokeWidth={2.25} />
+            <Icon className="w-3.5 h-3.5" />
           </span>
           {/* No clamp: an item title is policy copy and is read in full. The
               two-line clamp that was here still cut "Job budget limits — $10
@@ -254,7 +254,7 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
       >
         <div className="flex items-center gap-3 px-4 py-3.5">
           <span className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-primary/10 text-primary">
-            <Icon className="w-4 h-4" strokeWidth={2.25} aria-hidden />
+            <Icon className="w-4 h-4" aria-hidden />
           </span>
           <span className="min-w-0">
             <span className="flex items-center gap-2 flex-wrap">
@@ -304,7 +304,7 @@ export const PolicySection = ({ icon: Icon, title, subtitle, warning, defaultOpe
         <CollapsibleTrigger className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left btn-press">
           <span className="flex items-center gap-3 min-w-0">
             <span className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center bg-primary/10 text-primary">
-              <Icon className="w-4 h-4" strokeWidth={2.25} />
+              <Icon className="w-4 h-4" />
             </span>
             <span className="min-w-0">
               <span className="flex items-center gap-2 flex-wrap">

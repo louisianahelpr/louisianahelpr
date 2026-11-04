@@ -64,7 +64,7 @@ export function YouCard({
             className="absolute -bottom-0.5 -right-0.5 w-[18px] h-[18px] rounded-full flex items-center justify-center"
             style={{ background: "hsl(var(--bark))", boxShadow: "0 0 0 2px hsl(var(--ivory-sand))" }}
           >
-            <Check className="w-3 h-3" style={{ color: "hsl(var(--primary-foreground))" }} strokeWidth={3} />
+            <Check className="w-3 h-3" style={{ color: "hsl(var(--primary-foreground))" }} />
           </span>
         )}
       </button>

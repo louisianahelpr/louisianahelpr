@@ -90,7 +90,7 @@ const AdminTopBar = ({ titleRow }: {
             aria-label={state === "expanded" ? "Close the admin menu" : "Open the admin menu"}
             className="btn-press"
           >
-            <Menu className="w-5 h-5" strokeWidth={2.25} />
+            <Menu className="w-5 h-5" />
           </Button>
         </div>
       </div>

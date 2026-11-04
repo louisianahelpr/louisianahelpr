@@ -73,7 +73,7 @@ const HeroSection = () => {
             >
               <label htmlFor={inputId} className="sr-only">{es ? es.searchLabel : "Search local jobs"}</label>
               <div className="landing-search-field flex-1 min-w-0 flex items-center gap-2.5 pl-4 lg:pl-5 pr-1 h-12 lg:h-[52px]">
-                <Search className="hidden sm:block w-[18px] h-[18px] lg:w-5 lg:h-5 shrink-0" strokeWidth={1.75} aria-hidden style={{ color: "var(--lp-muted)" }} />
+                <Search className="hidden sm:block w-[18px] h-[18px] lg:w-5 lg:h-5 shrink-0" aria-hidden style={{ color: "var(--lp-muted)" }} />
                 <input
                   id={inputId}
                   type="search"
@@ -93,7 +93,7 @@ const HeroSection = () => {
                 data-testid="landing-search-submit"
                 aria-label={es ? es.searchButton : "Search"}
               >
-                <Search className="sm:hidden w-5 h-5" strokeWidth={2} aria-hidden />
+                <Search className="sm:hidden w-5 h-5" aria-hidden />
                 <span className="hidden sm:inline">{es ? es.searchButton : "Search"}</span>
               </Button>
             </form>

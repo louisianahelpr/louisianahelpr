@@ -222,7 +222,7 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
                   "0 8px 18px -6px hsl(var(--burnt-sienna) / 0.32)",
               }}
             >
-              <Sparkles className="w-5 h-5" strokeWidth={1.75} />
+              <Sparkles className="w-5 h-5" />
             </div>
 
             <div className="flex-1 min-w-0">

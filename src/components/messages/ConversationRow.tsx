@@ -277,7 +277,7 @@ const ConversationRowBase = ({
             }
           >
             {selected && (
-              <Check className="w-3 h-3" style={{ color: "hsl(var(--parchment))" }} strokeWidth={3} />
+              <Check className="w-3 h-3" style={{ color: "hsl(var(--parchment))" }} />
             )}
           </span>
         </button>
@@ -442,7 +442,7 @@ const ConversationRowBase = ({
                 style={{ color: "hsl(var(--muted-foreground))" }}
               >
                 {!c.teamThread && (
-                  <Briefcase aria-label="Jobs" className="inline w-3.5 h-3.5 mr-1 -mt-0.5 align-middle" strokeWidth={1.75} />
+                  <Briefcase aria-label="Jobs" className="inline w-3.5 h-3.5 mr-1 -mt-0.5 align-middle" />
                 )}
                 {threadRoleCaption(c) ? `${threadRoleCaption(c)} · ${c.jobTitle}` : c.jobTitle}
               </p>

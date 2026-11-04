@@ -71,7 +71,7 @@ export function ApplyEarningsBreakdown({
         className="flex items-center gap-1.5 mt-2.5 pt-2"
         style={{ borderTop: "0.5px dashed hsl(var(--bark) / 0.22)" }}
       >
-        <ShieldCheck className="w-3.5 h-3.5 shrink-0" strokeWidth={2} style={{ color: "hsl(var(--bark))" }} />
+        <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--bark))" }} />
         <span className="font-sans text-ds-11 leading-snug" style={{ color: "hsl(var(--olivewood) / 0.85)" }}>
           We hold the payment. You're paid {STANDARD_PAYOUT_PHRASE}.
         </span>

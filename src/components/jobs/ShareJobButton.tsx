@@ -289,7 +289,7 @@ export function ShareJobButton({
         }}
       >
         {copied ? (
-          <Check className="w-4 h-4" strokeWidth={2.5} />
+          <Check className="w-4 h-4" />
         ) : (
           // A corner icon's glyph holds still on hover (CHROME_ICON_LOOK); the glass button keeps its small lift.
           <Share2 className={bare ? "w-4 h-4" : "w-4 h-4 motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:-translate-y-0.5"} />
@@ -311,7 +311,7 @@ export function ShareJobButton({
         style={style}
       >
         {copied ? (
-          <Check className="w-4 h-4 mr-1.5" strokeWidth={2.5} />
+          <Check className="w-4 h-4 mr-1.5" />
         ) : (
           <Share2 className="w-4 h-4 mr-1.5" />
         )}
@@ -349,7 +349,7 @@ export function ShareJobButton({
     >
       {layout === "stack" ? (
         <>
-          {copied ? <Check className="w-4 h-4" strokeWidth={2.5} /> : <Share2 className="w-4 h-4" />}
+          {copied ? <Check className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}
           {/* The flip is label→confirmation, and both stay short enough that
               the 4-up action grid does not reflow. */}
           <span className={JOB_ROW_LABEL_CLASS}>
@@ -359,7 +359,7 @@ export function ShareJobButton({
       ) : (
         <>
           {copied ? (
-            <Check className="w-4 h-4 mr-1" strokeWidth={2.5} />
+            <Check className="w-4 h-4 mr-1" />
           ) : (
             <Share2 className="w-4 h-4 mr-1" />
           )}

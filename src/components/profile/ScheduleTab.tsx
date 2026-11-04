@@ -384,7 +384,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                         "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
                     }}
                   >
-                    <CalendarDays className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+                    <CalendarDays className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} />
                   </div>
                   <p className="font-sans max-w-[260px] text-ds-14" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
                     Nothing scheduled for this day.
@@ -460,7 +460,7 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                         "0 6px 14px -4px hsl(var(--olivewood) / 0.10)",
                     }}
                   >
-                    <CalendarDays className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.75} />
+                    <CalendarDays className="w-6 h-6" style={{ color: "hsl(var(--bark))" }} />
                   </div>
                   <div className="space-y-1">
                     <p className="font-display font-bold text-ds-16" style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}>

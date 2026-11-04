@@ -427,7 +427,7 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
         >
           {/* Header band */}
           <div className="px-6 pt-8 pb-4 text-center">
-            <Gift className="w-10 h-10 mx-auto mb-3" style={{ color: "hsl(var(--bark))" }} strokeWidth={1.5} />
+            <Gift className="w-10 h-10 mx-auto mb-3" style={{ color: "hsl(var(--bark))" }} />
             {/* The ProfileTabHeader above already names the year — it
                 renders the page's <h1> ("Your {SEASON.title}"). This card used
                 to repeat it ("Your {YEAR} on Helpr."), so two headings restated

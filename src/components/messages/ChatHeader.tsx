@@ -144,7 +144,7 @@ export function ChatHeader({
           onClick={onBack}
           aria-label={t("chat.back")}
         >
-          <ChevronLeft className="w-5 h-5" strokeWidth={2.25} />
+          <ChevronLeft className="w-5 h-5" />
         </Button>
       )}
 

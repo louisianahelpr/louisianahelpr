@@ -55,7 +55,7 @@ export const JobDetailFooter = ({
           color: "hsl(var(--bark))",
         }}
       >
-        <Bookmark className="w-4 h-4" strokeWidth={2} />
+        <Bookmark className="w-4 h-4" />
       </button>
       <Button
         size="lg"
@@ -79,7 +79,6 @@ export const JobDetailFooter = ({
           <span className="truncate">{guestCtaLabel}</span>
           <ChevronRight
             className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
-            strokeWidth={2.5}
           />
         </span>
       </Button>
@@ -158,7 +157,6 @@ export const JobDetailFooter = ({
           <Check
             className="w-4 h-4 shrink-0"
             style={{ color: "hsl(var(--success-ink))" }}
-            strokeWidth={2.5}
           />
           <span
             className="font-sans font-semibold text-ds-14"
@@ -208,7 +206,6 @@ export const JobDetailFooter = ({
           <ShieldCheck
             className="w-4 h-4 shrink-0"
             style={{ color: "hsl(var(--burnt-sienna))" }}
-            strokeWidth={2}
           />
           <span
             className="font-sans font-semibold text-ds-14 truncate"
@@ -216,7 +213,7 @@ export const JobDetailFooter = ({
           >
             {(job.credential_tier ?? 0) === 2 ? "Licensed pros only" : "Licensed & Insured Only"}
           </span>
-          <ChevronRight className="w-4 h-4 shrink-0" strokeWidth={2.5} style={{ color: "hsl(var(--burnt-sienna))" }} />
+          <ChevronRight className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
         </button>
       ) : (
         <Button
@@ -268,7 +265,6 @@ export const JobDetailFooter = ({
             <span className="truncate">Apply now</span>
             <ChevronRight
               className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-1"
-              strokeWidth={2.5}
             />
           </span>
         </Button>

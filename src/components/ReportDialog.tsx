@@ -322,7 +322,6 @@ const ReportDialog = ({ open, onClose, reportedType, reportedId, alsoBlock }: Re
                   <Check
                     className="w-6 h-6"
                     style={{ color: "hsl(var(--success-ink))" }}
-                    strokeWidth={2.5}
                   />
                 </div>
               </div>

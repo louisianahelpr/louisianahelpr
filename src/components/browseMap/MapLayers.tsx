@@ -166,7 +166,7 @@ function MyLocationControl({ onLocate, busy = false }: { onLocate: () => void; b
           "0 4px 14px -4px hsl(var(--olivewood) / 0.22)",
       }}
     >
-      <Crosshair className="w-4 h-4" strokeWidth={2.25} />
+      <Crosshair className="w-4 h-4" />
     </button>
   );
 }

@@ -441,7 +441,7 @@ export function CompletionChoiceSheet({
                     className="inline-flex items-center gap-1.5 text-ds-12 font-sans font-semibold cursor-pointer active:opacity-70"
                     style={{ color: "hsl(var(--bark))" }}
                   >
-                    <Upload className="w-3.5 h-3.5" strokeWidth={2.25} />
+                    <Upload className="w-3.5 h-3.5" />
                     {photos.length === 0 ? "Add photos (optional, up to 3)" : "Add more"}
                     <input
                       type="file"

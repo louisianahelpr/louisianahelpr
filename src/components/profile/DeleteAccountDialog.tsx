@@ -256,7 +256,7 @@ export function DeleteAccountDialog({
               quietly become the app's 150th slightly-different header. */}
           <DialogHero
             // The check on the title's own line (A3-L9: it sat alone above it).
-            title={<span className="inline-flex items-center gap-2"><Check className="w-5 h-5 shrink-0" strokeWidth={2.5} aria-hidden /> {t("deleteAccount.deletedTitle")}</span>}
+            title={<span className="inline-flex items-center gap-2"><Check className="w-5 h-5 shrink-0" aria-hidden /> {t("deleteAccount.deletedTitle")}</span>}
           />
           {/* Left-aligned like the title above it (A3-L9: a centred body under a left title). */}
           <div className="space-y-4 py-2" role="status" aria-live="polite">

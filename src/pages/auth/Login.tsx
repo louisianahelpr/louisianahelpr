@@ -321,9 +321,9 @@ const Login = () => {
           role="status"
         >
           {oauthError ? (
-            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} />
           ) : (
-            <Clock className="w-5 h-5 shrink-0 mt-0.5" strokeWidth={1.75} style={{ color: "hsl(var(--bark))" }} />
+            <Clock className="w-5 h-5 shrink-0 mt-0.5" style={{ color: "hsl(var(--bark))" }} />
           )}
           <div className="min-w-0 space-y-2">
             <p className="text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -358,7 +358,7 @@ const Login = () => {
           <div className="space-y-5">
             <div className="flex flex-col items-center text-center gap-2">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <ShieldCheck className="w-5 h-5 text-primary" strokeWidth={1.75} />
+                <ShieldCheck className="w-5 h-5 text-primary" />
               </div>
               {/* Q2250: the card head (and its h1) is hidden on this step, so the step's own title is the page's h1. */}
               <h1 className="text-page-title text-foreground">{t("login.mfaTitle")}</h1>
@@ -437,12 +437,12 @@ const Login = () => {
                 className={`${emailValid ? "pr-10" : ""} rounded-ds-md bg-white/60 dark:bg-white/5 border-[hsl(var(--bark)/0.28)] dark:border-white/15 shadow-[inset_0_1px_2px_hsl(var(--ink-deep)/0.05)] placeholder:text-[hsl(var(--olivewood)/0.8)] ${emailError ? "!border-destructive focus-visible:!border-destructive" : ""}`}
               />
               {emailValid && (
-                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" aria-hidden />
               )}
             </div>
             {emailError && (
               <p id="login-email-error" role="alert" className="inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
-                <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
+                <X className="w-3.5 h-3.5" aria-hidden />
                 {email.trim() ? t("login.emailInvalid") : t("login.emailMissing")}
               </p>
             )}
@@ -492,7 +492,7 @@ const Login = () => {
             </Link>
             {passwordError && (
               <p id="login-password-error" role="alert" className="col-span-2 row-start-3 justify-self-start inline-flex items-center gap-1 text-ds-11 text-[hsl(var(--destructive-ink))]">
-                <X className="w-3.5 h-3.5" strokeWidth={2.5} aria-hidden />
+                <X className="w-3.5 h-3.5" aria-hidden />
                 {t("login.passwordMissing")}
               </p>
             )}

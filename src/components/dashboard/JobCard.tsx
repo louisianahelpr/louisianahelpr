@@ -494,7 +494,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               <>
                 <span className="shrink-0 opacity-30 hidden [@media(min-width:400px)]:inline">·</span>
                 <span className="shrink-0 hidden [@media(min-width:400px)]:flex items-center gap-1">
-                  <Repeat className="w-2.5 h-2.5 shrink-0" strokeWidth={2.25} />
+                  <Repeat className="w-2.5 h-2.5 shrink-0" />
                   <span className="font-sans">
                     {seriesSummary(job) ?? formatRecurrenceInterval(job.recurrence_interval)}
                   </span>

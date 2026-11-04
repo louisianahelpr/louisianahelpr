@@ -622,7 +622,7 @@ const CompleteProfile = () => {
                     className={`rounded-ds-md text-ellipsis ${firstNameValid ? "pr-8" : ""}`}
                   />
                   {firstNameValid && (
-                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" aria-hidden />
                   )}
                 </div>
               </div>
@@ -638,7 +638,7 @@ const CompleteProfile = () => {
                     className={`rounded-ds-md text-ellipsis ${lastNameValid ? "pr-8" : ""}`}
                   />
                   {lastNameValid && (
-                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" aria-hidden />
                   )}
                 </div>
               </div>
@@ -664,7 +664,7 @@ const CompleteProfile = () => {
                     className={`rounded-ds-md text-ellipsis ${cityValid ? "pr-8" : ""}`}
                   />
                   {cityValid && (
-                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none z-10" strokeWidth={2.5} aria-hidden />
+                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none z-10" aria-hidden />
                   )}
                 </div>
               </div>
@@ -688,7 +688,7 @@ const CompleteProfile = () => {
                     className={`rounded-ds-md text-ellipsis ${zipValid ? "pr-8" : ""}`}
                   />
                   {zipValid && (
-                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" strokeWidth={2.5} aria-hidden />
+                    <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary pointer-events-none" aria-hidden />
                   )}
                 </div>
               </div>
@@ -806,7 +806,7 @@ const CompleteProfile = () => {
                     .filter((c) => !c.done)
                     .map((c) => (
                       <li key={c.label} className="flex items-center gap-2 text-ds-11" style={{ color: "hsl(var(--ink-deep))" }}>
-                        <Circle className="w-3 h-3 shrink-0" strokeWidth={2.5} style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} aria-hidden />
+                        <Circle className="w-3 h-3 shrink-0" style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} aria-hidden />
                         {c.label}
                       </li>
                     ))}

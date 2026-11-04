@@ -348,7 +348,6 @@ const Support = () => {
                   <CheckCircle2
                     className="w-7 h-7"
                     style={{ color: "hsl(var(--burnt-sienna))" }}
-                    strokeWidth={1.75}
                   />
                 </div>
                 <div className="space-y-2">

@@ -119,7 +119,7 @@ export default function SwipeMotionLayer({
               10px — under AA, on the only thing telling the user what the
               swipe they are mid-way through will do. Same fix, same reason, as
               the SOS chip. Tint and border unchanged. */}
-          <X className="w-5 h-5" style={{ color: "hsl(var(--danger-ink))" }} strokeWidth={2.5} />
+          <X className="w-5 h-5" style={{ color: "hsl(var(--danger-ink))" }} />
           <span
             className="text-ds-10 font-sans uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--danger-ink))" }}
@@ -146,7 +146,7 @@ export default function SwipeMotionLayer({
             border: "0.5px solid hsl(var(--bark) / 0.35)",
           }}
         >
-          <Send className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} strokeWidth={2.5} />
+          <Send className="w-5 h-5" style={{ color: "hsl(var(--bark))" }} />
           <span
             className="text-ds-10 font-sans uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--bark))" }}

@@ -143,7 +143,7 @@ function HelperTierBadge(props: HelperTierBadgeProps) {
             border: `0.5px solid hsl(var(${meta.colorVar}) / 0.32)`,
           }}
         >
-          <Icon className={sz.icon} strokeWidth={2.25} aria-hidden />
+          <Icon className={sz.icon} aria-hidden />
           {meta.label}
         </button>
       </PopoverTrigger>
@@ -167,7 +167,7 @@ function HelperTierBadge(props: HelperTierBadgeProps) {
                 color: `hsl(var(${meta.colorVar}))`,
               }}
             >
-              <Icon className="w-4 h-4" strokeWidth={2.25} aria-hidden />
+              <Icon className="w-4 h-4" aria-hidden />
             </span>
             <p
               className="font-sans font-semibold text-ds-13"

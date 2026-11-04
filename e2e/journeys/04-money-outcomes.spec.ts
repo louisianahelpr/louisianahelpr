@@ -177,6 +177,31 @@ async function dropNotifications(api: APIRequestContext, who: Session, rows: Not
 }
 
 /** Unwind a job this run funded: an unhired one is cancelled (refund), a hired one settled forward, never cancelled. */
+/**
+ * Q2445: hire the helper on a held-card job through the product's own doors: apply_to_job, the poster's
+ * accept_application, then the Helpr's Accept, which charges the held card first (create-payment
+ * capture_hold, src/lib/cardHoldCapture.ts). Leaves the job hired with captured money (escrow).
+ */
+async function hireOnHeldCard(api: APIRequestContext, poster: Session, helper: Session, jobId: string) {
+  await readJson(
+    await api.post(`${SUPABASE_URL}/rest/v1/rpc/apply_to_job`, { headers: rest(helper), data: { p_job_id: jobId, p_message: `Money-outcome journey ${RUN}: happy to help.` } }),
+    "helper applies",
+  );
+  const apps = await readJson<Array<{ id: string }>>(
+    await api.get(`${SUPABASE_URL}/rest/v1/applications?job_id=eq.${jobId}&helper_id=eq.${helper.user.id}&status=eq.pending&select=id`, { headers: rest(poster) }),
+    "poster reads the application",
+  );
+  expect(apps, "the helper's application is not visible to the poster").toHaveLength(1);
+  await readJson(
+    await api.post(`${SUPABASE_URL}/rest/v1/rpc/accept_application`, {
+      headers: rest(poster),
+      data: { p_application_id: apps[0].id, p_deadline: new Date(Date.now() + 24 * 3_600_000).toISOString(), p_offer_message: null },
+    }),
+    "poster hires the helper",
+  );
+  expect(await captureHeldCard(api, helper, jobId), "the Helpr's Accept did not charge the held card").toBe("accepted");
+}
+
 async function unwind(api: APIRequestContext, poster: Session, helper: Session, jobId: string) {
   const row = await readRow(api, poster, jobId);
   if (row.status === "cancelled" || ["released", "payout_pending", "refunded"].includes(row.payment_status ?? "")) return "already settled";
@@ -315,16 +340,20 @@ test.describe("money outcomes", () => {
     }
     const admin = await getSession(request, "admin");
     const since = new Date(Date.now() - 5_000).toISOString();
-    const refund = await invoke(request, admin, "create-payment", { action: "admin_refund_general", jobId, reason: `E2E journey Quick Refund ${RUN}` });
+    let refund = await invoke(request, admin, "create-payment", { action: "admin_refund_general", jobId, reason: `E2E journey Quick Refund ${RUN}` });
     if (untouched.payment_status === "held") {
       // Q2399: nothing was charged, so there is nothing to refund: refused, and
-      // the cleanup's cancel_escrow releases the hold (no refund, no fee).
+      // the hold stays as it was.
       expect(refund.status, `admin_refund_general on a held card answered ${refund.status} ${refund.text.slice(0, 300)}`).toBe(409);
       expect(refund.json.cardHold, "the refusal does not say the card is only held").toBe(true);
       expect((await readRow(request, poster, jobId)).payment_status, "a refused refund moved the held job").toBe("held");
-      // The Quick Refund success leg never ran: said as uncovered, never a silent pass (Q2399 round 2, silent #6).
-      test.skip(true, `Quick Refund success not driven on a held card: ${jobId}: the card is only held (nothing charged), so Quick Refund refused, as it must; a refund of captured money needs a hire`);
-      return;
+      // Q2445: a refund of captured money needs a HIRE. Hire on the held card the
+      // way the app does (apply, accept, the Helpr's Accept charges the hold:
+      // capture_hold), then the Quick Refund success leg runs on that charge.
+      await hireOnHeldCard(request, poster, helper, jobId);
+      const hired = await readRow(request, poster, jobId);
+      expect(hired.payment_status, "the Helpr's Accept did not charge the held card").toBe("escrow");
+      refund = await invoke(request, admin, "create-payment", { jobId, action: "admin_refund_general", reason: `E2E journey Quick Refund on a hire ${RUN}` });
     }
     expect(refund.status, `admin_refund_general answered ${refund.status} ${refund.text.slice(0, 300)}`).toBe(200);
     const after = await readRow(request, poster, jobId);

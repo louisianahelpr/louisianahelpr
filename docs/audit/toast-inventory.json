@@ -3,17 +3,17 @@
   "summary": {
     "calls": 1141,
     "files": 316,
-    "rendering": 1059,
-    "suppressedByPolicy": 82,
+    "rendering": 1060,
+    "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 212,
+      "toast": 213,
       "toast.error": 772,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 88,
+      "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
@@ -7248,7 +7248,7 @@
     {
       "file": "src/components/declutter/ShipItRow.tsx",
       "line": 33,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "dynamic",
         "text": "next.preset === null ? \"Shipping is off for this item.\" : \"Saved. Buyers in Louisiana can have it shipped.\"",
@@ -7263,7 +7263,7 @@
           }
         ]
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/declutter/ShipItRow.tsx",

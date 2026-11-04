@@ -856,9 +856,6 @@
     "src/pages/posts/postedJobs/applicantsPanel/ApplicantPrivateNote.tsx": {
       "button": 2
     },
-    "src/pages/posts/postedJobs/applicantsPanel/ApplicantSortControls.tsx": {
-      "button": 1
-    },
     "src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx": {
       "button": 1
     },

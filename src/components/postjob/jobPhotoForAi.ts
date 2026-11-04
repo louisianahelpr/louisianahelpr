@@ -6,7 +6,7 @@ import { compressImage } from "@/lib/imageCompression";
  * re-encode) so it stays well under the function's 1.5 MB cap. HEIC the browser can't decode is refused here
  * (tryHeic), so the server never gets a format it would reject anyway.
  */
-export const AI_PHOTO_MAX_DIMENSION = 1024;
+const AI_PHOTO_MAX_DIMENSION = 1024;
 
 /** The plain words shown when the phone hands us a photo the browser can't turn into a JPEG (HEIF, no type). */
 export const UNSUPPORTED_PHOTO_MESSAGE = "This photo type isn't supported. Try a screenshot or JPEG.";

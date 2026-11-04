@@ -649,7 +649,7 @@
     "src/components/profile/AvatarCropDialog.tsx": {
       "input": 1
     },
-    "src/components/profile/CredentialsTab.tsx": {
+    "src/components/profile/credentialsTab/CredentialCard.tsx": {
       "button": 1
     },
     "src/components/profile/DeleteAccountReauth.tsx": {

@@ -3654,6 +3654,7 @@ serve(async (req) => {
     // sender). Only refunds made after this sweep shipped: older ones are an
     // owner decision, not a backfill this cron makes on its own.
     let untoldRefundsSent = 0;
+    let untoldRefundsNobody = 0;
     {
       const from = new Date(Math.max(Date.now() - 7 * 86_400_000, Date.parse(UNTOLD_REFUND_SWEEP_FROM))).toISOString();
       const until = new Date(Date.now() - 15 * 60_000).toISOString();
@@ -3699,6 +3700,13 @@ serve(async (req) => {
             const key = `refund:${r.stripe_refund_id}`;
             if (!r.stripe_refund_id || done.has(key) || !(Number(r.amount_cents) > 0)) continue;
             if (sameMoneyAsRelease(r)) continue;
+            // Q2726 (live alert 11-04): a ledger row with no job and no member names nobody this sweep could tell
+            // (always no_recipient). charge.refunded paged it once when the refund was made (a Dashboard refund of a
+            // payment that is not tied to a member); re-paging it every hour for 7 days told no one anything new.
+            if (!r.customer_id && !r.job_id) {
+              untoldRefundsNobody++;
+              continue;
+            }
             const result = await sendRefundNotice(supabaseAdmin, {
               key,
               kind: "refund",
@@ -3767,6 +3775,7 @@ serve(async (req) => {
         crew_shares_retried: crewSharesRetried,
         block_fees_retried: blockFeesRetried,
         untold_refunds_sent: untoldRefundsSent,
+        untold_refunds_nobody: untoldRefundsNobody,
         refund_emails_retried: refundEmailsRetried,
         refund_emails_sent: refundEmailsSent,
         fee_transfers_retried: feeTransfersRetried,

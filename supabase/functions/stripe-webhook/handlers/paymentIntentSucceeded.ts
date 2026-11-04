@@ -125,7 +125,9 @@ export async function handlePaymentIntentSucceeded(
   // Q2083 (b): the money is captured, so a job-site tax is now owed: commit
   // it to Stripe Tax. Read from the PaymentIntent alone, so it runs even when
   // this event beats checkout.session.completed to the job row. Never throws.
-  await commitJobSiteTax({ stripe, pi, logStep, seed: taxJob?.is_seed === true, supabase });
+  // Q2732: a TEST-mode payment naming a job that is not ours is a test script's: its tax alerts are test data.
+  const testOrphan = await isTestModeOrphan(supabase, pi.livemode, (pi.metadata ?? {}).job_id, logStep);
+  await commitJobSiteTax({ stripe, pi, logStep, seed: taxJob?.is_seed === true || testOrphan, supabase });
 
   if (taxJob) {
     // Take Stripe's number whenever Stripe HAS one — including a genuine $0.

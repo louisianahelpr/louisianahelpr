@@ -97,7 +97,7 @@ export function useHomeSummary(user: SupaUser | null) {
   // The to-do list is the ONE the nav badges count (badge = To-do, owner 2026-10-20).
   // onOldCall: the badge's one read (my_badge_reads) seeds the cart and shop-order keys; Home reads them from
   // the cache and fetches them itself only when that section is on its old single call (Blockers 8, 2026-11-03).
-  const { todos, onOldCall } = useNeedsYouTodos(user);
+  const { todos, loading: todosLoading, onOldCall } = useNeedsYouTodos(user);
   // The live job and the waiting line come from the same lazily loaded derivations (useNeedsYouTodos.ts, B51).
   const derive = useHomeDerive();
   const homes = useQuery({ queryKey: ["rentals", "my-properties", uid], queryFn: () => rentalsApi().then((m) => (m ? m.fetchMyProperties(uid) : untilReload())), enabled: !!uid && homesOn });
@@ -157,6 +157,9 @@ export function useHomeSummary(user: SupaUser | null) {
     const liveNow = derive ? derive.deriveLiveNow(pj, aa, posted.helperNames ?? {}, continueDays) : null;
     return {
       loading: (posted.loading && applied.loading) || !derive,
+      // Q2706 (B98): the to-do reads have not answered yet, so Next up cannot say "all caught up" (a false empty
+      // state that then jumped to "Next up · 1 of 9", half of /home's layout shift). A failed read is not loading.
+      todosLoading: todosLoading && !(posted.loadError || applied.loadError),
       todos,
       liveNow,
       waiting: todos.length || !derive ? null : derive.deriveWaiting(pj, posted.pendingApplicantCounts ?? {}, aa, liveNow?.jobId ?? null, posted.helperNames ?? {}, continueDays),
@@ -191,5 +194,5 @@ export function useHomeSummary(user: SupaUser | null) {
         homes: countLine([[props.length, "property", "properties"]]),
       },
     };
-  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.helperNames, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, orders.data, orders.isError, todos, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError, jobsNear.data, declutterNear.data, continueDays, derive]);
+  }, [posted.postedJobs, posted.pendingApplicantCounts, posted.helperNames, posted.loading, posted.loadError, applied.appliedApps, applied.loading, applied.loadError, declutter.data, orders.data, orders.isError, todos, todosLoading, homes.data, declutterOn, shopsOn, cart.data, cart.isError, bookings.data, bookings.isError, shopOrders.data, shopOrders.isError, jobsNear.data, declutterNear.data, continueDays, derive]);
 }

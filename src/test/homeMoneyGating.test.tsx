@@ -71,19 +71,19 @@ describe("Home money tiles: a real number or no tile", () => {
   it("loading: no tiles", () => {
     state.earnings = { data: undefined, isError: false };
     state.spend = { data: undefined, isError: false };
-    expect(renderHook(() => useHomeMoney(user)).result.current).toEqual({ coming: null, held: null });
+    expect(renderHook(() => useHomeMoney(user)).result.current).toEqual({ coming: null, held: null, pending: true }); // still loading: Home holds the strip's room (Q2706)
   });
 
   it("a failed read (even with old data cached) is not $0 and not a stale figure: no tile", () => {
     state.earnings = { data: { jobs: [approved], tips: [] }, isError: true };
     state.spend = { data: spendOf([hired]), isError: true };
-    expect(renderHook(() => useHomeMoney(user)).result.current).toEqual({ coming: null, held: null });
+    expect(renderHook(() => useHomeMoney(user)).result.current).toEqual({ coming: null, held: null, pending: false }); // a failed read is an answer: nothing held
   });
 
   it("$0: no tile", () => {
     state.earnings = { data: { jobs: [{ ...approved, payment_status: "released" }], tips: [] }, isError: false };
     state.spend = { data: spendOf([{ ...hired, status: "open" }]), isError: false };
-    expect(renderHook(() => useHomeMoney(user)).result.current).toEqual({ coming: null, held: null });
+    expect(renderHook(() => useHomeMoney(user)).result.current).toEqual({ coming: null, held: null, pending: false });
   });
 
   it("setup fee still owed and its amount not loaded yet: no Coming to you (it would read $2 high)", () => {

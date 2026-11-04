@@ -55,7 +55,7 @@ import { endCapturedNotHired } from "../_shared/instantBookSweep.ts";
 const BAN_REVIEW_RELEASE_MESSAGE =
   "This job's payment is on hold while our team reviews it, so it can't be released right now. You don't need to do anything: we'll finish it once the review is done.";
 import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE, salesTaxCeilingCents } from "../_shared/salesTax.ts";
-import { jobTaxAddress, JOB_TAX_ADDRESS_SOURCE, JOB_TAX_CALC_KEY, JOB_TAX_CENTS_KEY, JOB_TAXABLE_CENTS_KEY } from "../_shared/jobTaxAddress.ts";
+import { jobTaxAddress, JOB_TAX_ADDRESS_SOURCE, JOB_TAX_BACK_KEY, JOB_TAX_CALC_KEY, JOB_TAX_CENTS_KEY, JOB_TAXABLE_CENTS_KEY } from "../_shared/jobTaxAddress.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -3477,8 +3477,15 @@ serve(async (req) => {
           } else if (refundAmount > 0) {
             let refund: Stripe.Refund;
             try {
+              // Q2717: on a job-site taxed charge with no earlier refund, the tax this refund returns (the tax
+              // less the tax kept on the fees) rides on the refund, so charge.refunded reverses a gift-reduced
+              // charge's Stripe Tax transaction exactly (_visitTaxReversal.ts).
+              const escrowTaxBackCents = escrowSiteTaxCents > 0 && alreadyRefundedCents === 0
+                ? Math.min(refundAmount, Math.max(0, escrowSiteTaxCents - cancelSplit.taxKeptCents))
+                : null;
+              const escrowTaxBackMetadata = escrowTaxBackCents !== null ? { [JOB_TAX_BACK_KEY]: String(escrowTaxBackCents) } : undefined;
               refund = await stripe.refunds.create(
-                { payment_intent: cancelPaymentIntentId, amount: refundAmount },
+                { payment_intent: cancelPaymentIntentId, amount: refundAmount, metadata: escrowTaxBackMetadata },
                 { idempotencyKey: `cancel-escrow-${jobId}` },
               );
             } catch (refundErr) {

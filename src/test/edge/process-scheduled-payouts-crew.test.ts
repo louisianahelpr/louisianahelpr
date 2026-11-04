@@ -494,6 +494,24 @@ describe("process-scheduled-payouts — a crew is paid from its frozen shares", 
     expect(shortPages()).toBe(0);
   });
 
+  // Q2717 (lead re-review 2026-11-03): on a gift-reduced job-site charge the tax kept on the kept card fee is at the
+  // job's own rate (metadata.job_taxable_cents), not tax / (captured - tax): 118c x 900 / 20000 -> 6c kept, so
+  // 3333 + 299 - 6 = 3626c (the old rate kept ceil(118 x 900 / 10300) = 11c: 3621c).
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |               jobTaxableCents = jobSiteTaxableCents(pi.metadata as Record<string, string> \| null); |               jobTaxableCents = null;
+  it("Q2717: a gift-reduced job-site charge keeps the tax on the kept card fee at the job's rate (3626c)", async () => {
+    seedCrew([["m1", 0, 3334], ["m2", 1, 3333]], { paidAll: true });
+    setJob({ customer_fee_amount: 3.55, sales_tax_amount: 9, platform_fee_percent: 0 });
+    const md = { tax_calculation_id: "taxcalc_crew", job_tax_cents: "900", job_taxable_cents: "20000" };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_1", status: "succeeded", latest_charge: "ch_1", amount: 11200, amount_received: 11200, metadata: md });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_unfilled", amount: 3626, currency: "usd" });
+    await run();
+    expect(stripeMock.refunds.create).toHaveBeenCalledWith(
+      expect.objectContaining({ payment_intent: "pi_1", amount: 3626 }),
+      { idempotencyKey: "crew-unfilled-refund-job-crew" },
+    );
+    expect(shortPages()).toBe(0);
+  });
+
   // Jobs poster fee (Q2082 slice 4, lh-money-escrow review #1): the 5% + 70c
   // is a percent of the budget, not the card cost, so the unfilled share of it
   // comes back whole and only that share of Stripe's fee is kept, once. The

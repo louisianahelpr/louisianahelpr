@@ -1,4 +1,4 @@
-// @mutate docs/OPEN.md | - [ ] **Q1121 LOW (post-launch) UNVERIFIED #14 | - [~] **Q1121 LOW (post-launch) UNVERIFIED #14
+// @mutate docs/OPEN.md | - [ ] **Q2713 LOW declutter_problems | - [~] **Q2713 LOW declutter_problems
 // @mutate scripts/open-done-when.mjs |     .filter((name) => appFns.has(name)); |     .filter((name) => !appFns.has(name));
 // @mutate scripts/open-done-when.mjs | const PARTLY = /^- \[~\] /; | const PARTLY = /^- \[x\] /;
 // @mutate scripts/open-done-when.mjs | { kind: "issue", re: /^issue\s+#(\d+)\s+closed\b/ } | { kind: "issue", re: /^issue\s+#(\d+)\s+opened\b/ }

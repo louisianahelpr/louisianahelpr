@@ -138,13 +138,15 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
           <div className="flex flex-wrap items-center gap-2">
             <PhotoPickButton id="ai-job-photo" words="Add a photo" picked={photo} disabled={loading} onPick={setPhoto} />
             {voice.supported && (
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 type="button"
                 data-ai-voice=""
                 onClick={() => (voice.isListening ? voice.stop() : voice.start())}
                 disabled={loading}
                 aria-pressed={voice.isListening}
-                className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm font-semibold text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[hsl(var(--ring))] disabled:cursor-not-allowed disabled:opacity-50"
+                className="gap-2"
               >
                 {voice.isListening ? (
                   <MicOff className="h-4 w-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} aria-hidden />
@@ -152,7 +154,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
                   <Mic className="h-4 w-4 shrink-0" aria-hidden />
                 )}
                 {voice.isListening ? "Stop listening" : "Say it"}
-              </button>
+              </Button>
             )}
           </div>
           {voice.isListening && voice.interimText && (

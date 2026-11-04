@@ -7,6 +7,7 @@ import { recurringVisitDates } from "@/lib/recurringSchedule";
 import { isLaborTaxable, salesTaxCents } from "@/lib/salesTax";
 import { POSTER_SERVICE_FEE_PERCENT } from "@/lib/posterFees";
 import { composeLocationString } from "./postJobFormHelpers";
+import { weekWindowEnd } from "@/lib/jobDateWindow";
 
 /**
  * Pure helpers for the Post-a-Task submit flow.
@@ -34,6 +35,8 @@ export interface BuildJobInsertPayloadInput {
   dateNeeded: string;
   startTime: string;
   isFlexibleSchedule: boolean;
+  /** Q2408: last day of an "Any time this week" window (dateNeeded is the first), or null. */
+  dateWindowEnd?: string | null;
   estimatedHours: string;
   budget: string;
   /**
@@ -118,6 +121,7 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     dateNeeded,
     startTime,
     isFlexibleSchedule,
+    dateWindowEnd,
     estimatedHours,
     budget,
     materialsNote,
@@ -200,6 +204,12 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     date_needed: firstVisit,
     start_time: startTime || null,
     is_flexible_schedule: isFlexibleSchedule,
+    // Q2408: sent ONLY for a window (a key the database does not have yet would fail the whole post in the minutes
+    // between the web deploy and db-deploy; the materials_note pattern below). Never on a repeating job, and only
+    // a real window inside a week of the first visit (the jobs_date_window_end_in_a_week CHECK refuses anything else).
+    ...(dateWindowEnd && !isRecurring && firstVisit && dateWindowEnd > firstVisit && dateWindowEnd <= weekWindowEnd(firstVisit)
+      ? { date_window_end: dateWindowEnd }
+      : {}),
     estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
     budget: parseFloat(budget),
     // Sent ONLY when there is a note: a key the database does not have yet

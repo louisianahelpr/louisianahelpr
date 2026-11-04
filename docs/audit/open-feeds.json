@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-04T03:04Z",
+  "measured_at": "2026-11-04T03:24Z",
   "issues": {
     "readable": true,
     "open": [
@@ -179,14 +179,6 @@
         "issue": 2353
       },
       {
-        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: vitest",
-        "issue": 4065
-      },
-      {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -227,12 +219,12 @@
         "issue": 3743
       },
       {
-        "fingerprint": "1bbb3f41bbe73f8632d7284e87e40948",
-        "source_kind": "workflow",
-        "source": "functions-deploy",
+        "fingerprint": "2c6a8959b4a0dbe1d2bd6e529e3749a2",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
         "status": "open",
-        "title": "functions-deploy failed on main",
-        "issue": null
+        "title": "nightly-red: main: supabase edge functions deploy",
+        "issue": 4075
       },
       {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
@@ -265,14 +257,6 @@
         "status": "open",
         "title": "nightly-red: race-runner",
         "issue": 4054
-      },
-      {
-        "fingerprint": "1ef4b10bb74a3a15e67e4fbd811e7a0c",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: prod-errors",
-        "issue": 4032
       },
       {
         "fingerprint": "4aa239aefeb61103e80bfe619710e65d",
@@ -555,11 +539,11 @@
         "issue": null
       },
       {
-        "fingerprint": "95a0554486ebd14ed36618e23db7477f",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
+        "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ProtectedRoute",
         "status": "open",
-        "title": "nightly-red: prod-deploy",
+        "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
         "issue": null
       },
       {
@@ -568,14 +552,6 @@
         "source": "sentry:assets/ErrorState",
         "status": "open",
         "title": "error: error screen shown: we couldn't load your account.",
-        "issue": null
-      },
-      {
-        "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ProtectedRoute",
-        "status": "open",
-        "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
         "issue": null
       },
       {
@@ -611,17 +587,17 @@
         "issue": null
       },
       {
-        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
+        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
         "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
+        "source": "sentry:assets/signed-in-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
       },
       {
-        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
+        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
         "source_kind": "sentry",
-        "source": "sentry:assets/signed-in-shared",
+        "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: jwt expired",
         "issue": null
@@ -731,19 +707,19 @@
         "issue": 4020
       },
       {
-        "fingerprint": "aeedd249577285330a97e04195cee7d8",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: refund-request-sweep returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: declutter-money returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "aeedd249577285330a97e04195cee7d8",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: refund-request-sweep returned 502",
         "issue": null
       },
       {
@@ -813,11 +789,11 @@
     "ledger 1b4eafb12222": "Q1596",
     "ledger 1bbb3f41bbe7": "Q2714",
     "ledger 1cd0639083c2": "Q2520",
-    "ledger 1ef4b10bb74a": "Q1816",
     "ledger 21cbec5b98d2": "Q1596",
     "ledger 27437b0c4f14": "Q1596",
     "ledger 27c479ef17f8": "Q1596",
     "ledger 29fbdd01ae0a": "Q2526",
+    "ledger 2c6a8959b4a0": "Q1816",
     "ledger 2e4f3e726722": "Q1816",
     "ledger 346e19be0736": "Q1596",
     "ledger 36bcfb8c2391": "Q1696",
@@ -867,7 +843,6 @@
     "ledger 8f6eb3360000": "Q2507",
     "ledger 905ec49763b5": "Q2315",
     "ledger 9078a39b3304": "Q1615",
-    "ledger 95a0554486eb": "Q1816",
     "ledger 9934727135a0": "Q2522",
     "ledger 99390a68ded7": "Q1615",
     "ledger 99a77a9221e6": "Q2514",
@@ -915,7 +890,6 @@
     "ledger ec24ac4f76e6": "Q2516",
     "ledger ec743a639c38": "Q1596",
     "ledger ed3f34acc0e1": "Q1596",
-    "ledger f22e3275d50d": "Q1816",
     "ledger f3c752b3230f": "Q1596"
   }
 }

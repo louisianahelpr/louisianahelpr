@@ -70,6 +70,53 @@ export function startDeclutterPrefetch(pathname: string): void {
     // A failed prefetch is not an error: the page runs today's reads.
     .catch(() => null);
   (window as unknown as Record<string, unknown>)[DECLUTTER_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, answer };
+  // B96 (Q2705/Q2708): the first cards' photos start from the answer, not after the app draws and renders the grid.
+  void answer.then((a) => {
+    for (const p of firstCardPhotoPreloads(base, a, session.userId)) {
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.setAttribute("as", "image");
+      link.href = p.href;
+      link.setAttribute("imagesrcset", p.srcset);
+      link.setAttribute("imagesizes", CARD_SIZES);
+      link.setAttribute("fetchpriority", "high");
+      document.head.appendChild(link);
+    }
+  });
   // B81: the tab row's three reads (every tab waits on them), beside this one.
   startDeclutterMinePrefetch(base, key, session);
+}
+
+/** Copies of src/lib/declutter (api.ts DECLUTTER_PHOTO_BUCKET, CARD_PHOTO_PX; photoSizes.ts CARD_PHOTO_SMALL_PX, CARD_PHOTO_SIZES): the test pins them. */
+const BUCKET = "job-photos";
+const CARD_PX = 480;
+const SMALL_PX = 340;
+export const CARD_SIZES = "(min-width: 640px) 250px, calc(50vw - 26px)";
+/** The first row of Browse's grid at 375 (two cards); the card asks for these with loading eager + fetchpriority high. */
+const FIRST_ROW = 2;
+
+/**
+ * The photos of the first cards Browse draws from this answer: its items in order, less the member's own (the grid
+ * leaves them out), each with its first photo (the answer's photos come by position, as DeclutterItemCard's firstPhotos
+ * picks). The URLs are the card's own src and srcSet (photoCardUrl, cardPhotoSrcSet), so the browser picks the same
+ * candidate and the card's request is answered from the preload. Anything not in the expected shape: none.
+ */
+export function firstCardPhotoPreloads(supabaseUrl: string, answer: unknown, userId: string): { href: string; srcset: string }[] {
+  const a = answer as { items?: unknown; photos?: unknown } | null;
+  if (!a || !Array.isArray(a.items) || !Array.isArray(a.photos)) return [];
+  const first = new Map<string, string>();
+  for (const p of a.photos as { item_id?: unknown; storage_path?: unknown }[]) {
+    if (typeof p?.item_id === "string" && typeof p.storage_path === "string" && !first.has(p.item_id)) first.set(p.item_id, p.storage_path);
+  }
+  const root = `${supabaseUrl.replace(/\/$/, "")}/storage/v1/render/image/public/${BUCKET}/`;
+  const out: { href: string; srcset: string }[] = [];
+  for (const i of a.items as { id?: unknown; seller_id?: unknown }[]) {
+    if (out.length >= FIRST_ROW) break;
+    if (typeof i?.id !== "string" || i.seller_id === userId) continue;
+    const path = first.get(i.id);
+    if (!path || path.includes("?")) continue;
+    const at = (px: number) => `${root}${path}?width=${px}&height=${px}&resize=cover&quality=70`;
+    out.push({ href: at(CARD_PX), srcset: `${at(SMALL_PX)} ${SMALL_PX}w, ${at(CARD_PX)} ${CARD_PX}w` });
+  }
+  return out;
 }

@@ -103,7 +103,7 @@ describe("profile counts (useUserProfileData)", () => {
   it("the Jobs posted count leaves out unfilled expired listings too (nobody else hears it existed)", () => {
     const q = /supabase\.from\("jobs"\)\.select\("id", \{ count: "exact", head: true \}\)\.eq\("customer_id", userId!\)(\.[^\n]*)/.exec(src);
     expect(q).not.toBeNull();
-    expect(q![1]).toMatch(/^\.or\(NOT_AN_EXPIRED_LISTING_ANY_STATUS\),/);
+    expect(q![1]).toMatch(/^\.or\(NOT_AN_EXPIRED_LISTING_ANY_STATUS\)(,|$)/);
     expect(NOT_AN_EXPIRED_LISTING_ANY_STATUS).toBe(`status.neq.cancelled,${NOT_AN_EXPIRED_LISTING_FILTER}`);
   });
 
@@ -210,12 +210,12 @@ describe("an applicant to the expired listing", () => {
 // @mutate src/pages/user/useUserProfileData.ts | customer_id, helper_id, cancellation_reason, cancelled_by").eq("customer_id" | customer_id, helper_id, cancellation_reason").eq("customer_id"
 // @mutate src/lib/expiredListing.ts |   return (\n    job.status === "cancelled" && |   return false && (\n    job.status === "cancelled" &&
 // @mutate src/pages/user/JobsList.tsx |             {isExpiredListing(job) ? ( |             {false ? (
-// @mutate src/pages/user/useUserProfileData.ts | .eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS), | .eq("customer_id", userId!),
+// @mutate src/pages/user/useUserProfileData.ts | .eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS) | .eq("customer_id", userId!)
 // @mutate supabase/migrations/20261102040000_declutter_review_report.sql |       COUNT(*) FILTER (WHERE j.customer_id = t.user_id\n        AND NOT |      COUNT(*) FILTER (WHERE j.customer_id = t.user_id\n        AND true OR NOT
 // @mutate supabase/migrations/20261102040000_declutter_review_report.sql |       COUNT(*) FILTER (WHERE NOT (j.status = 'cancelled' |      COUNT(*) FILTER (WHERE true OR NOT (j.status = 'cancelled'
 // @mutate src/pages/user/JobsList.tsx |                 {job.customer_id === viewerId && ( |                 {false && (
-// @mutate src/pages/user/useUserProfileData.ts | .eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS), | .eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS),\n        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!).eq("status", "cancelled"),
-// @mutate src/pages/user/useUserProfileData.ts | .eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS), | .eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS),\n        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", userId!),
+// @mutate src/pages/user/useUserProfileData.ts |         supabase.rpc("get_user_last_active", { user_ids: [userId!] }), |         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!).eq("status", "cancelled"),\n        supabase.rpc("get_user_last_active", { user_ids: [userId!] }),
+// @mutate src/pages/user/useUserProfileData.ts |         supabase.rpc("get_user_last_active", { user_ids: [userId!] }), |         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", userId!),\n        supabase.rpc("get_user_last_active", { user_ids: [userId!] }),
 // @mutate src/components/job-card/jobStatusLine.ts |   const expired = id === "cancelled" && isExpiredListing(job); |   const expired = false;
 // @mutate src/components/job-card/jobStatusLine.ts |   const reason = isExpiredListing(job) ? null : sanitizeCancellationReason(job.cancellation_reason); |   const reason = sanitizeCancellationReason(job.cancellation_reason);
 // @mutate supabase/migrations/20261102040000_declutter_review_report.sql |         AND NOT (j.helper_id IS NULL AND j.cancelled_by IS NULL AND COALESCE(j.cancellation_reason, '') LIKE 'Job listing expired%'))::integer AS cancelled_jobs | )::integer AS cancelled_jobs

@@ -4,9 +4,10 @@
  * It counted every job the pair were ever matched on, cancelled ones included
  * (Visual notes 2026-09-14: a profile read 44 against 16 completed). The
  * broad count still gates the Message button (a cancelled hire is still a
- * relationship); the tile reads a second, completed-only count.
+ * relationship); the tile counts only the completed rows. Q946 (2026-11-04):
+ * both numbers come from ONE pair read (its exact count, its statuses).
  *
- * @mutate src/pages/user/useUserProfileData.ts |               .eq("status", "completed")\n              .or( |               .or(
+ * @mutate src/pages/user/useUserProfileData.ts | .filter((j) => j.status === "completed").length | .length
  * @mutate src/pages/user/useUserProfileData.ts |         mutualJobsCount: workedTogetherCount, |         mutualJobsCount,
  */
 import { describe, it, expect } from "vitest";
@@ -21,16 +22,18 @@ describe("Worked together counts completed jobs (Q965)", () => {
     expect(src.length).toBeGreaterThan(10_000);
   });
 
-  it("the tile's count is a completed-only pair query", () => {
+  it("the tile's count is the completed rows of the one pair read", () => {
     const names = /\[([^\]]*)\]\s*=\s*await Promise\.all\(\[/.exec(src)?.[1].split(",").map((x) => x.trim()) ?? [];
-    const idx = names.indexOf("mutualCompletedRes");
-    expect(idx).toBeGreaterThan(-1);
-    expect(src).toMatch(/const workedTogetherCount = wantsMutual \? \(mutualCompletedRes\?\.count \?\? 0\) : 0;/);
+    expect(names).toContain("mutualRes");
+    expect(names).not.toContain("mutualCompletedRes");
+    expect(src).toMatch(/const workedTogetherCount = wantsMutual\s*\?\s*\(\(mutualRes\?\.data \?\? \[\]\)[^;]*\.filter\(\(j\) => j\.status === "completed"\)\.length/);
     expect(src).toMatch(/mutualJobsCount: workedTogetherCount,/);
-    // The completed-only query: the last pair query in the Promise.all.
-    const pairQueries = [...src.matchAll(/\.from\("jobs"\)\s*\.select\("id", \{ count: "exact", head: true \}\)([\s\S]*?)\.or\(\s*`and\(customer_id\.eq\.\$\{currentUserId\}/g)];
-    expect(pairQueries.length).toBe(2);
-    expect(pairQueries[1][1]).toMatch(/\.eq\("status", "completed"\)/);
+    // Every pair filter in the hook, and the select each one hangs off.
+    const pairFilters = [...src.matchAll(/\.or\(\s*`and\(customer_id\.eq\.\$\{currentUserId\},helper_id/g)];
+    expect(pairFilters.length).toBe(1);
+    const before = src.slice(0, pairFilters[0].index);
+    const pairQueries = [before.slice(before.lastIndexOf(".select(")).match(/^\.select\(([^)]*)\)/)?.[1]];
+    expect(pairQueries[0]).toBe('"status", { count: "exact" }');
   });
 
   it("messaging still gates on the broad pair count", () => {

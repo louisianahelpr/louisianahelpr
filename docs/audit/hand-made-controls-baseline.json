@@ -216,9 +216,6 @@
     "src/components/dashboard/CompactJobCard.tsx": {
       "button": 1
     },
-    "src/components/dashboard/GuestEmptyStateActions.tsx": {
-      "button": 4
-    },
     "src/components/dashboard/JobDetailDialog.tsx": {
       "button": 3
     },

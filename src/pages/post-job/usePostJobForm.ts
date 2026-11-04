@@ -228,6 +228,8 @@ export function usePostJobForm() {
   const [urgentFee, setUrgentFee] = useState("5");
   const [customUrgentFee, setCustomUrgentFee] = useState(false);
   const [isFlexibleSchedule, setIsFlexibleSchedule] = useState(false);
+  // Q2408 "Any time this week": the window's last day (date_needed is its first); null = one day.
+  const [dateWindowEnd, setDateWindowEnd] = useState<string | null>(null);
   // One-time account-setup fee — mirrors the edge function (create-payment
   // action=escrow), which adds a "One-time Account Setup" line item of
   // onboarding_fee_cents the FIRST time a poster funds a job. We must show
@@ -470,6 +472,7 @@ export function usePostJobForm() {
     dateNeeded,
     startTime,
     isFlexibleSchedule,
+    dateWindowEnd,
     estimatedHours,
     budget,
     specialRequirements,
@@ -674,6 +677,8 @@ export function usePostJobForm() {
     setStartTime,
     isFlexibleSchedule,
     setIsFlexibleSchedule,
+    dateWindowEnd,
+    setDateWindowEnd,
     estimatedHours,
     setEstimatedHours,
     specialRequirements,

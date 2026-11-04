@@ -333,6 +333,8 @@ export interface UseJobSubmitParams {
   dateNeeded: string;
   startTime: string;
   isFlexibleSchedule: boolean;
+  /** Q2408: the "Any time this week" window's last day, or null for a one-day job. */
+  dateWindowEnd?: string | null;
   estimatedHours: string;
   // Budget fields
   budget: string;
@@ -398,6 +400,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
     dateNeeded,
     startTime,
     isFlexibleSchedule,
+    dateWindowEnd,
     estimatedHours,
     budget,
     specialRequirements,
@@ -633,6 +636,7 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         dateNeeded,
         startTime,
         isFlexibleSchedule,
+        dateWindowEnd: dateWindowEnd ?? null,
         estimatedHours,
         budget,
         // Stripped on the deploy-lag retry, like credentialTier: that retry

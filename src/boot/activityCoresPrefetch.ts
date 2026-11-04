@@ -52,12 +52,15 @@ export const CORES_APPLICATION_COLUMNS = [
 ];
 
 /**
- * True when a cold load draws the Posted or Working list first: /posts (App.tsx sends it to /jobs?tab=posted), or a
- * /jobs link that opens on a list (jobsListRoute.ts jobListsOpenFirst, copied; the test holds them equal).
+ * True when a cold load draws the Posted or Working list first: /posts (App.tsx sends it to /jobs?tab=posted), /home
+ * (Next up and the to-dos read the same cores), or a /jobs link that opens on a list (jobsListRoute.ts jobListsOpenFirst, copied; the test holds them equal).
  */
 export function opensOnActivityList(pathname: string, search: string): boolean {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
   if (path === "/posts") return true;
+  // Home's first content (Next up, the to-dos) is the same read (useActivityData). Builder 3 11-04, cwv-lab Fast 4G
+  // + 4x, 375, the test helper: the read started at ~1.01 s, after the app ran, and answered at ~1.8 s (Q2706).
+  if (path === "/home") return true;
   if (path !== "/jobs") return false;
   const p = new URLSearchParams(search);
   const tab = p.get("tab");

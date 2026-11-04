@@ -15,7 +15,7 @@ import { HELPR_FLAT_FEE_CENTS, HELPR_FLAT_FEE_PERCENT, flatFeePercentOf, isGivea
 import { actualOrEstimatedFeeCents, actualStripeFeeCents, netUrgentFeeDollars } from "../_shared/stripeFees.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
 import { POSTER_SERVICE_FEE_PERCENT, setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
-import { cardCostFeeCents, chargeTaxCentsFor, checkoutChargeTaxCents, posterCancelKeptFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
+import { cardCostFeeCents, chargeTaxCentsFor, checkoutChargeTaxCents, jobSiteTaxableCents, posterCancelKeptFeeCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { crewBlockFeeRefusal } from "../_shared/crewBlockFeeRead.ts";
 import { readCrewCancelFee } from "../_shared/crewCancelQuote.ts";
 import { jobFlatFeeTotalCents } from "../_shared/crewShares.ts";
@@ -55,7 +55,7 @@ import { endCapturedNotHired } from "../_shared/instantBookSweep.ts";
 const BAN_REVIEW_RELEASE_MESSAGE =
   "This job's payment is on hold while our team reviews it, so it can't be released right now. You don't need to do anything: we'll finish it once the review is done.";
 import { isLaborTaxable, laborTaxCode, NONTAXABLE_TAX_CODE, salesTaxCeilingCents } from "../_shared/salesTax.ts";
-import { jobTaxAddress, JOB_TAX_ADDRESS_SOURCE, JOB_TAX_CALC_KEY, JOB_TAX_CENTS_KEY } from "../_shared/jobTaxAddress.ts";
+import { jobTaxAddress, JOB_TAX_ADDRESS_SOURCE, JOB_TAX_CALC_KEY, JOB_TAX_CENTS_KEY, JOB_TAXABLE_CENTS_KEY } from "../_shared/jobTaxAddress.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { getAppUrl, buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
@@ -1009,7 +1009,7 @@ serve(async (req) => {
       // Q1728 (owner 11-03, "charge the tax on the card"): a gift-paid job is
       // taxed the same way, on its FULL taxable price (a gift card is a way to
       // pay, not a discount), so both checkouts share this one calculation.
-      const figureJobSiteTax = async (keyTag: string): Promise<{ calculationId: string; cents: number } | "no_zip"> => {
+      const figureJobSiteTax = async (keyTag: string): Promise<{ calculationId: string; cents: number; taxableCents: number } | "no_zip"> => {
         const taxAddress = jobTaxAddress(job.zip_code);
         if (!taxAddress) return "no_zip";
         const taxCode = laborTaxCode(job.category, job.tax_kind);
@@ -1036,7 +1036,10 @@ serve(async (req) => {
           console.error(`[create-payment] job-site tax calculation for job ${jobId} returned no usable figure`, { id: calc.id, tax: calc.tax_amount_exclusive });
           throw new PublicError("Could not figure the sales tax for this job — please try again");
         }
-        return { calculationId: calc.id, cents };
+        // The taxable price the tax was figured on (every line above), so a refund of a gift-reduced card
+        // charge keeps tax on a kept fee at the job's real rate (review of ddfb06a83 #2).
+        const taxableCents = Math.round(job.budget * 100) + (urgentFeeCents > 0 ? urgentFeeCents : 0) + (isPosterFee && posterFeeCents > 0 ? posterFeeCents : 0);
+        return { calculationId: calc.id, cents, taxableCents };
       };
       // 400, not a thrown PublicError (the catch answers every PublicError 500 and logs it as a server
       // fault, which pages Sentry): the job's own data is what's missing, and retrying never changes it.
@@ -1070,7 +1073,7 @@ serve(async (req) => {
       // shortfall. Either way this short-circuits before the pricing below.
       if (giftCardId) {
         // Q1728: figured BEFORE the redeem, so a job with no Louisiana ZIP is refused with the gift untouched.
-        let giftJobTax: { calculationId: string; cents: number } | null = null;
+        let giftJobTax: { calculationId: string; cents: number; taxableCents: number } | null = null;
         if (isLaborTaxable(job.category, job.tax_kind)) {
           const figured = await figureJobSiteTax("-gift");
           if (figured === "no_zip") return noJobZipResponse();
@@ -1154,7 +1157,7 @@ serve(async (req) => {
         // Q1728 (owner 11-03): the sales tax on the job's full taxable price goes on the card, as its own line.
         if (giftJobTax && giftJobTax.cents > 0) diffLineItems.push(salesTaxLine(giftJobTax.cents));
         const giftTaxMetadata: Record<string, string> = giftJobTax
-          ? { [JOB_TAX_CALC_KEY]: giftJobTax.calculationId, [JOB_TAX_CENTS_KEY]: String(giftJobTax.cents) }
+          ? { [JOB_TAX_CALC_KEY]: giftJobTax.calculationId, [JOB_TAX_CENTS_KEY]: String(giftJobTax.cents), [JOB_TAXABLE_CENTS_KEY]: String(giftJobTax.taxableCents) }
           : {};
         const diffSession = await payerWallet((walletCustomer, walletRetry) => stripe.checkout.sessions.create({
           customer: walletCustomer,
@@ -2867,7 +2870,7 @@ serve(async (req) => {
         if (taxCents === null) return unquoted("unreadable", feeCents);
         const capturedSplit = posterCancelSplit({
           job: qJob, sellerFault: qSellerFault, cancellationFeeCents: owedFeeCents, blockFeeCents: 0,
-          charge: { state: "captured", capturedCents, actualFeeCents: realFeeCents, alreadyRefundedCents, taxCents },
+          charge: { state: "captured", capturedCents, actualFeeCents: realFeeCents, alreadyRefundedCents, taxCents, taxableCents: jobSiteTaxableCents(qPi.metadata as Record<string, string> | null) },
         });
         if (capturedSplit.state !== "captured" || !capturedSplit.feesFitCard) return unquoted("fees_exceed_payment", feeCents);
         return quoteJson({ can_cancel: true, fee_cents: feeCents, fee_percent: feePercent, back_to_you_cents: capturedSplit.backCents, unquoted_reason: null, charge_state: "captured", quoted_at: nowIso });

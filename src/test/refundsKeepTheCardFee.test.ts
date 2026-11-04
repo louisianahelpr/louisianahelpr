@@ -1133,7 +1133,7 @@ const AMOUNT_DEFS: Record<string, string[]> = {
     "nonRefundableCents = voidSplit.nonRefundableCents",
     "piSiteTaxCents = String(piTaxMd.tax_calculation_id ?? \"\").startsWith(\"taxcalc_\") && /^\\d+$/.test(String(piTaxMd.job_tax_cents ?? \"\")) ? Number(piTaxMd.job_tax_cents) : 0",
     "chargeCapturedCents = pi.amount_received ?? pi.amount",
-    "capturedSplit = posterCancelSplit({ job, sellerFault, platformFault: raceChargedNobodyHired, cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents, charge: { state: \"captured\", capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, chargeCapturedCents), alreadyRefundedCents: chargeRefundedCents, taxCents: await chargeTaxCentsFor(stripe, pi), }, })",
+    "capturedSplit = posterCancelSplit({ job, sellerFault, platformFault: raceChargedNobodyHired, cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents, charge: { state: \"captured\", capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, chargeCapturedCents), alreadyRefundedCents: chargeRefundedCents, taxCents: await chargeTaxCentsFor(stripe, pi), taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null), }, })",
     "chargeRefundedOnCardCents = Number( (pi.latest_charge && typeof pi.latest_charge === \"object\" ? (pi.latest_charge as { amount_refunded?: number }).amount_refunded : 0) ?? 0, )",
   ],
   // Q1915: a deleted crew member's withheld share plus the tax the cancel refund kept on it; the card fee stays kept.
@@ -1670,7 +1670,7 @@ describe("every refund keeps the card fee, except our own mistakes (owner, 2026-
   it("posterCancelSplit keeps the card fee through refundToPayerCents", () => {
     const src = blankComments(readFileSync(join(FN, "_shared/posterCancelSplit.ts"), "utf8")).replace(/\s+/g, " ");
     expect(src).toMatch(/from "\.\/refundAmount\.ts"/);
-    expect(src).toContain("const split = refundToPayerCents({ capturedCents: c.capturedCents, actualFeeCents: noCardFee ? 0 : c.actualFeeCents, customerFeeCents: fullSeriesRefund || noCardFee ? 0 : serviceFeeCents, setupFeeCents: setupFeeKeptCents(i.job), otherKeptCents: feesCents, alreadyRefundedCents: c.alreadyRefundedCents, taxCents: c.taxCents, });");
+    expect(src).toContain("const split = refundToPayerCents({ capturedCents: c.capturedCents, actualFeeCents: noCardFee ? 0 : c.actualFeeCents, customerFeeCents: fullSeriesRefund || noCardFee ? 0 : serviceFeeCents, setupFeeCents: setupFeeKeptCents(i.job), otherKeptCents: feesCents, alreadyRefundedCents: c.alreadyRefundedCents, taxCents: c.taxCents, taxableCents: c.taxableCents, });");
     expect(src).toContain("const serviceFeeCents = posterCancelKeptFeeCents(i.job);");
     expect(src).toContain("backCents: split.refundCents,");
   });

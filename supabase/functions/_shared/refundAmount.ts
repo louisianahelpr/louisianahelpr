@@ -64,6 +64,12 @@ export interface RefundToPayerInput {
    * kept amount inside that part carries tax. Omitted = the whole capture.
    */
   taxBaseCents?: number | null;
+  /**
+   * The taxable price the tax was figured on, when the card took less of it (a gift-paid job taxed at the job
+   * address: metadata.job_taxable_cents). The tax on a kept part is then kept x tax / this, the job's real rate,
+   * not tax / (capture - tax), which over-kept tax on a gift-reduced card (review of ddfb06a83 #2).
+   */
+  taxableCents?: number | null;
 }
 
 export interface RefundToPayerResult {
@@ -100,7 +106,7 @@ export function refundToPayerCents(i: RefundToPayerInput): RefundToPayerResult {
   const keptCents = nonRefundableCents + cents(i.otherKeptCents);
   const taxBase = i.taxBaseCents == null ? captured : Math.min(captured, cents(i.taxBaseCents));
   const keptInBase = Math.max(0, keptCents - (captured - taxBase));
-  const taxKeptCents = Math.min(Math.max(0, captured - keptCents), taxOnKeptCents({ keptCents: keptInBase, taxCents: i.taxCents ?? 0, capturedCents: taxBase }));
+  const taxKeptCents = Math.min(Math.max(0, captured - keptCents), taxOnKeptCents({ keptCents: keptInBase, taxCents: i.taxCents ?? 0, capturedCents: taxBase, taxableCents: i.taxableCents }));
   const ceilingCents = Math.max(0, captured - keptCents - taxKeptCents);
   const remainingCents = Math.max(0, ceilingCents - cents(i.alreadyRefundedCents));
   const requested = i.requestedCents == null ? null : cents(i.requestedCents);
@@ -115,10 +121,12 @@ export function refundToPayerCents(i: RefundToPayerInput): RefundToPayerResult {
  * never more than this. 0 on an untaxed charge, a charge that kept nothing, or
  * a nonsense capture (tax >= captured). Never more than the tax itself.
  */
-export function taxOnKeptCents(i: { keptCents: number; taxCents: number | null | undefined; capturedCents: number }): number {
+export function taxOnKeptCents(i: { keptCents: number; taxCents: number | null | undefined; capturedCents: number; taxableCents?: number | null }): number {
   const kept = cents(i.keptCents);
   const tax = cents(i.taxCents);
   const captured = cents(i.capturedCents);
+  const taxable = cents(i.taxableCents);
+  if (taxable > 0) return kept === 0 || tax === 0 ? 0 : Math.min(tax, Math.ceil((kept * tax) / taxable));
   if (kept === 0 || tax === 0 || captured <= tax) return 0;
   return Math.min(tax, Math.ceil((kept * tax) / (captured - tax)));
 }
@@ -140,6 +148,12 @@ export function chargeTaxCents(
   const t = (pi?.amount_details as { tax?: { total_tax_amount?: unknown } } | null | undefined)?.tax?.total_tax_amount;
   if (typeof t === "number" && Number.isFinite(t) && t > 0) return cents(t);
   return cents(fallbackCents);
+}
+
+/** metadata[job_taxable_cents] of a gift-paid job taxed at the job address (review of ddfb06a83 #2), or null. */
+export function jobSiteTaxableCents(md: Record<string, string> | null | undefined): number | null {
+  const raw = md?.job_taxable_cents;
+  return jobSiteTaxCents(md) !== null && typeof raw === "string" && /^\d+$/.test(raw) && Number(raw) > 0 ? Number(raw) : null;
 }
 
 /** metadata[job_tax_cents] of a job taxed at the job address (Q2083 b), or null. */

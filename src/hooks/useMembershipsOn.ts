@@ -1,34 +1,25 @@
-import { useFeature, useFeatureStatus } from "@/hooks/useFeature";
-import { isNativePlatform } from "@/lib/nativeInit";
-
 /**
- * Memberships are never shown or sold inside the store app (owner, 2026-10-21,
- * via the lead: "the new build must not show or sell memberships at all").
+ * Memberships are RETIRED (owner 2026-11-04: "no membership features should be
+ * used anymore"). Every member gets the same standard experience, so every
+ * membership surface (plans, upgrade sheets, Pro/Plus/Elite badges, tier
+ * perks) is closed for everyone, in the web app and the store app alike.
  *
- * WHY THE NATIVE APP IS DIFFERENT. Roadmap F4/F4a turned every paid perk off,
- * and the hidden "memberships" switch keeps them for testers only. The App
- * Review account is a tester, so with the switch alone Apple's reviewer still
- * saw the Membership plans and could buy one through StoreKit (Q1841), and a
- * plan that grants nothing is a 3.1.1/2.1 rejection. Where the purchase goes
- * is a store rule, i.e. a genuine native capability: the native build answers
- * false whatever the switch says, the web keeps the switch.
+ * This hook no longer reads the 'memberships' switch: the answer is always
+ * false. The switch itself is OFF (20261104143451_memberships_retired_off) and
+ * is read only by the server's leftover paid-tier branches, which it keeps
+ * unreachable. The follow-up removes those surfaces outright.
  *
  * Every membership surface reads THIS hook, never useFeature("memberships")
- * directly (src/test/membershipsOffInNativeApp.test.ts).
+ * directly (src/test/membershipsOffInNativeApp.test.ts,
+ * src/test/membershipsRetired.test.ts).
  */
-export const MEMBERSHIPS_HIDDEN_IN_THIS_APP: boolean = isNativePlatform;
+export const MEMBERSHIPS_HIDDEN_IN_THIS_APP = true as const;
 
 export function useMembershipsOn(): boolean {
-  const on = useFeature("memberships");
-  return on && !MEMBERSHIPS_HIDDEN_IN_THIS_APP;
+  return false;
 }
 
-/**
- * useMembershipsOn plus whether the answer is in (useFeatureStatus), for the
- * one place that must not paint the plans before it knows: the Membership tab
- * (MembershipPlansGate, A3-C14). Native answers off at once.
- */
+/** Same answer, already settled (the Membership tab never waits for it). */
 export function useMembershipsStatus(): { on: boolean; settled: boolean } {
-  const { on, settled } = useFeatureStatus("memberships");
-  return { on: on && !MEMBERSHIPS_HIDDEN_IN_THIS_APP, settled: settled || MEMBERSHIPS_HIDDEN_IN_THIS_APP };
+  return { on: false, settled: true };
 }

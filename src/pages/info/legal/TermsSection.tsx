@@ -1,7 +1,7 @@
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { Link } from "react-router-dom";
 import {
-  Building2, Wallet, Crown, ShieldAlert, Receipt, FileText, Scale, AlertTriangle,
+  Building2, Wallet, ShieldAlert, Receipt, FileText, Scale, AlertTriangle,
   DollarSign, Clock, ShieldCheck, Siren, Handshake, Users, Camera, Sofa, Truck, Star, Ban, MessageSquareText,
 } from "lucide-react";
 import { PolicyRowItem, PolicySection } from "@/components/policy/CollapsedPolicy";
@@ -199,24 +199,6 @@ export const TermsContent = () => {
             <p>Once verified (by Stripe or by our team), you're set for the life of your account.</p>
           </> : <>
             <p><strong className="text-foreground">Helpr does not check members&apos; IDs right now.</strong> No photo ID is asked for to post, accept or start a job, or to buy or sell on Declutter, and no member is shown as ID-verified unless their ID was checked earlier. We will update these Terms before an ID check starts again. Payout setup is separate: when you set up payouts, our payments partner verifies your payment details.</p>
-          </>
-        }
-      />
-    </PolicySection>
-
-    <PolicySection
-      icon={Crown}
-      title="Memberships"
-      subtitle="No paid memberships right now"
-      anchorId="subscription-tiers"
-    >
-      <PolicyRowItem
-        icon={Crown}
-        title="No paid memberships"
-        body={
-          <>
-            <p>There are no paid memberships right now. Joining Helpr is free.</p>
-            <p>No plan changes the fee on a job: every Helpr pays the same service fee.</p>
           </>
         }
       />

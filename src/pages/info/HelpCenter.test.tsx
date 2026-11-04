@@ -7,8 +7,6 @@ import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import HelpCenter, { LEGACY_TOPIC_ANCHORS } from "./HelpCenter";
 import { FAQ_SECTIONS } from "./helpCenter/helpCenterContent";
-import { TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
-import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
 import { JOB_CATEGORY_LABELS, JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
 import { CREDENTIAL_TIER_CATEGORIES } from "@/components/postjob/detailsSection/detailsSectionConstants";
 import { shouldShowDisputeLink } from "@/components/jobs/DisputeLink";
@@ -149,14 +147,6 @@ describe("/help open and closed sections do not look identical", () => {
 });
 
 describe("/help FAQ copy is derived from config, not retyped", () => {
-  // The membership section shipped an answer reading "20-minute early job
-  // access (Pro gets 10, Basic 5)". Plus and its 15 minutes were absent — from
-  // a sentence whose whole job is comparing plans, on a page whose fee answer
-  // already listed Plus. The set is derived from TIER_PERKS' own keys here, so
-  // this cannot pass vacuously by being written against the same list it checks.
-  const paidTiers = (Object.keys(TIER_PERKS) as SubscriptionTier[])
-    .filter((tier) => TIER_PERKS[tier].price !== null);
-
   const allAnswers = FAQ_SECTIONS.flatMap((section) => section.items.map((item) => `${item.q} ${item.a}`)).join("\n");
 
   // JOBS-28 (lead 10-31): members read "Louisiana Helpr holds the money", never
@@ -169,22 +159,11 @@ describe("/help FAQ copy is derived from config, not retyped", () => {
     expect(allAnswers).toContain("How does Louisiana Helpr hold my payment?");
   });
 
-  it("names every paid tier somewhere in the FAQ", () => {
-    expect(paidTiers.length).toBeGreaterThan(1);
-    for (const tier of paidTiers) {
-      expect(allAnswers).toContain(TIER_PERKS[tier].name);
-    }
-  });
-
-  it("states each tier's early-access head start using the number earlyAccess.ts owns", () => {
-    const withHeadStart = paidTiers.filter((tier) => earlyAccessHeadStartMinutes(tier) > 0);
-    expect(withHeadStart.length).toBeGreaterThan(1);
-    // Every head start must appear, and no tier may be described with a minute
-    // count that belongs to a different tier — the ladder is rendered as
-    // "<Name> <minutes>", so both halves are checked together.
-    for (const tier of withHeadStart) {
-      expect(allAnswers).toContain(`${TIER_PERKS[tier].name} ${earlyAccessHeadStartMinutes(tier)}`);
-    }
+  // Memberships RETIRED (owner 2026-11-04): the FAQ names no plan at all
+  // (helpCenterPricingCopy.test.ts holds the full check).
+  it("names no membership plan anywhere in the FAQ", () => {
+    for (const name of ["Basic", "Pro", "Plus", "Elite"]) expect(allAnswers).not.toMatch(new RegExp(`\\b${name}\\b`));
+    expect(allAnswers).not.toMatch(/\bmemberships?\b/i);
   });
 
   it("names the credential categories the post form actually offers, and no others", () => {

@@ -64,7 +64,6 @@ const NOT_FROM_A_REVIEW: Record<string, string> = {
   Q2624: "an audit 1102c finding (row P6, 11-02); \"review left\" is a Declutter preview stage (the buyer left a review), not a filed review finding",
   Q1695: "the loading-states measurements item (builders 164/165, 2026-11-02); \"a review\" is a member's rating on the profile screen it measured, not a filed finding",
   Q2557: "a Q1415 e follow-up the lead filed on 2026-11-02 (crew cancel fee quote vs a frozen member); \"ban review\" is the member's ban-review state, not a filed finding",
-  Q2555: "the shipping spec's own section 5.3 \"Debts (review fix 4)\" (lead 11-01, not built tonight); it cites the spec, not a filed finding",
   Q2484: "the owner-approved Jobs ease-of-use list (2026-10-29, audit page UX-3/4/6/7, builder 73); \"review\" is the review prompt it adds after I got it / Mark done, not a filed finding",
   Q2478: "the owner's Jobs best-in-class item (2026-10-29: trust line, reply speed, Get help now); \"review\" names the lh-authz-rls pass on get_reply_speed and the reviews feature, not a filed finding",
   Q2476: "the lead's photo-edit follow-up to Q2475 (2026-10-29); \"review\" is the listing going back to pending_review, not a filed finding",
@@ -85,6 +84,8 @@ const NOT_FROM_A_REVIEW: Record<string, string> = {
   Q1901: "the loading-states budget red mirrored from a CI run; \"lead review\" notes why the budget was left, not a filed finding",
   // Q2229 (the owner's D4 lease feature, Homes) moved to docs/NOT-LAUNCHED.md on 2026-11-01 (owner rule: unlaunched
   // areas are not open items). Re-add its entry here if it moves back into the queue.
+  // Q2555 (Declutter shipping debts; shipping is testers-only) moved there on 2026-11-04 the same way; its entry was
+  // Q2555: "the shipping spec's own section 5.3 \"Debts (review fix 4)\" (lead 11-01, not built tonight); it cites the spec, not a filed finding",
 };
 /**
  * An item MIRRORED from a feed (nightly-red issue, ops ledger, audit bus) is

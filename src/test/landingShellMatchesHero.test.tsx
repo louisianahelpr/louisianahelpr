@@ -10,7 +10,7 @@
  * HeroSection takes the copy away once it is painted.
  *
  * @mutate src/components/landing/HeroSection.tsx |   useEffect(() => removeLandingShellOncePainted(), []); |
- * @mutate src/components/landing/HeroSection.tsx | lg:mt-7 text-ds-16 | lg:mt-6 text-ds-16
+ * @mutate src/components/landing/HeroSection.tsx | lg:mt-7 text-[16px] | lg:mt-6 text-[16px]
  * @mutate index.html | if (k && k.indexOf("sb-") === 0 && k.slice(-11) === "-auth-token") return; | if (k && k.indexOf("sb-") === 0) {}
  * @mutate src/index.css | [data-lh-landing-shell] #lh-landing-shell {\n  display: block; | [data-lh-landing-shell] #lh-landing-shell {\n  display: none;
  * @mutate src/components/landing/landingShell.ts |   raf(() => raf(() => el.remove())); |   el.remove();
@@ -26,8 +26,9 @@ import { removeLandingShellOncePainted } from "@/components/landing/landingShell
 
 const ROOT = join(__dirname, "..", "..");
 const INDEX = join(ROOT, "index.html");
-const START = "<!-- lh-landing-shell:start -->";
-const END = "<!-- lh-landing-shell:end -->";
+// Data-attribute markers, not HTML comments: the body carries no comment (homePageNamesTheApp).
+const START = '<div id="lh-landing-shell" aria-hidden="true" inert data-lh-shell="start">';
+const END = '<span data-lh-shell="end" hidden></span>';
 
 function rendered(): string {
   return renderToStaticMarkup(

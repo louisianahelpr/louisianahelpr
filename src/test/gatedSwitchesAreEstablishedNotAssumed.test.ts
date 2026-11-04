@@ -34,7 +34,8 @@ const root = join(__dirname, "..", "..");
 const PREFS = join(root, "src/components/NotificationPreferences.tsx");
 const JOURNEYS = join(root, "e2e/journeys");
 
-const prefsSrc = readFileSync(PREFS, "utf8");
+// The Quiet hours card moved to its own file (Q806); its switches are still the tab's.
+const prefsSrc = readFileSync(PREFS, "utf8") + "\n" + readFileSync(join(root, "src/components/notificationPreferences/QuietHoursCard.tsx"), "utf8");
 
 /**
  * Child switches, derived from the component rather than hand-listed: any

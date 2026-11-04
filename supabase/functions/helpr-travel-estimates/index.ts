@@ -27,10 +27,11 @@ serve(async (req: Request) => {
     const key = mapkitKeyFromEnv((name) => Deno.env.get(name));
     const apple = key ? { developerToken: () => signMapkitJwt(key, 300) } : null;
     const run = await storeTravelEstimates(admin as unknown as TravelStore, apple);
-    console.log(JSON.stringify({ event: "helpr_travel_estimates", pairs: run.pairs, stored: run.stored, missed: run.missed }));
-    // A stopped run dropped every pair (a read, the key, the token or the write failed): a defect the cron sweep alerts on.
-    // A single route Apple could not answer is an outcome: that job keeps the 30-minute rule.
-    return cronResult(FN, { pairs: run.pairs, stored: run.stored, missed: run.missed },
+    console.log(JSON.stringify({ event: "helpr_travel_estimates", pairs: run.pairs, stored: run.stored, missed: run.missed, unavailable: run.unavailable }));
+    // A stopped run is a defect the cron sweep alerts on: a read, the key or the write failed, or Apple did not answer
+    // (an outage; storeTravelEstimates also paused Apple calls). A route Apple answered without a drive time is an
+    // outcome: that job keeps the 30-minute rule.
+    return cronResult(FN, { pairs: run.pairs, stored: run.stored, missed: run.missed, unavailable: run.unavailable },
       run.stopped ? { count: 1, reasons: [run.stopped] } : { count: 0 });
   } catch (e) {
     // Not silent: the 500 names this function and the error, and sweep_cron_http_failures alerts on it.

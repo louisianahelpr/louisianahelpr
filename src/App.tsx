@@ -87,6 +87,8 @@ const DeliveryOnlinePill = lazy(() => import("./components/declutter/DeliveryOnl
 // Badge = To-do (owner, 2026-10-20): publishes Home's to-do count for the navs.
 const NeedsYouMount = lazy(() => import("./components/NeedsYouMount"));
 import { SidePanelProvider } from "./components/sidePanelOpen";
+import { LucideProvider } from "lucide-react";
+import { ICON_STROKE_PX } from "@/lib/iconWeight";
 // /quotes is retired (owner 2026-10-19): old hub links redirect to Posts, Jobs or My Jobs (src/lib/quotes/homes.ts).
 // A thin host: the dialog's chunk loads on the first ask or once the page settles (B86).
 const PermissionRationaleMount = lazy(() =>
@@ -501,6 +503,8 @@ const App = () => (
         no longer wait on IDB before firing against the network. See
         src/lib/queryPersister.ts. */}
     <QueryClientProvider client={queryClient}>
+      {/* Q2027: one icon weight on screen for every lucide icon (src/lib/iconWeight.ts). */}
+      <LucideProvider strokeWidth={ICON_STROKE_PX} nonScalingStroke>
       <QueryCacheHydrator />
       {/* Toasters mount AFTER first paint via DeferredToasters — see comment
           on that component (components/DeferredToasters.tsx). Its lazy() wrappers keep
@@ -582,6 +586,7 @@ const App = () => (
       </BrowserRouter>
       </ForceUpdateGate>
       <Analytics />
+      </LucideProvider>
     </QueryClientProvider>
   </ErrorBoundary>
 );

@@ -31,6 +31,14 @@
  * card title calc() (relative so Senior Mode still scales them), and the two section-tab fit clamps (lead 11-04:
  * never over 13px, smaller only when a phone is too narrow for the tabs).
  *
+ * 2026-11-04 (Builder 1, owner picked B): ONE icon weight on screen. App.tsx wraps the app in LucideProvider with
+ * strokeWidth={ICON_STROKE_PX} (1.75, src/lib/iconWeight.ts) and nonScalingStroke, so a lucide icon draws 1.75 CSS px
+ * lines at any size. An icon's own strokeWidth (literal or ternary) overrides that, so the sweep removes them all:
+ * ICON_STROKE_WIDTH_SITES is the exact two-way count of `strokeWidth=` attributes in non-test .tsx (273 at the
+ * start, raw <svg>/<path> sites included until the sweep lists them in RAW_SVG_STROKE_FILES), falling to 0.
+ * @mutate src/lib/iconWeight.ts | export const ICON_STROKE_PX = 1.75; | export const ICON_STROKE_PX = 2;
+ * @mutate src/App.tsx | <LucideProvider strokeWidth={ICON_STROKE_PX} nonScalingStroke> | <LucideProvider strokeWidth={ICON_STROKE_PX}>
+ * @mutate src/components/profile/ProfileEditForm.tsx | <Check className="w-3 h-3" strokeWidth={3} /> Looks good | <Check className="w-3 h-3" strokeWidth={3} data-x strokeWidth={3} /> Looks good
  * @mutate tailwind.config.ts |         "ds-17": ["16px", |         "ds-17": ["17px",
  * @mutate src/index.css |   --headline-section: 20px; |   --headline-section: 19px;
  * @mutate src/components/landing/LiveJobsSection.tsx | leading-[1.05] text-ds-28" | leading-[1.05] text-ds-28 sm:text-[44px]"
@@ -62,6 +70,10 @@ const STROKE_WEIGHTS = ["1.5", "1.75", "2", "2.25", "2.5", "3"];
 const TEXT_SCALE = [11, 13, 16, 20, 28];
 /** Off-scale literals still to move onto the scale (exact; lower when one goes). */
 const INLINE_FONT_SIZE_LITERALS = 3;
+/** Q2027 one weight: `strokeWidth=` attributes left in non-test .tsx (exact; lower as the sweep removes them, to 0). */
+const ICON_STROKE_WIDTH_SITES = 273;
+/** Files whose strokeWidth is on a raw <svg>/<path>, not a lucide icon (the provider cannot reach them). Sweep fills it. */
+const RAW_SVG_STROKE_FILES: string[] = [];
 const CSS_OFF_SCALE_FONT_SIZES = 5;
 
 /** The locked landing hero (owner lock, CLAUDE.md): its H1 and subhead class strings are not on the scale by design. */
@@ -112,6 +124,21 @@ describe("Q2027: icon weights and text sizes only ever shrink", () => {
 
   it("icon stroke weights are exactly the baseline set (no new one-off weight)", () => {
     expect(strokeWeights()).toEqual(STROKE_WEIGHTS);
+  });
+
+  it("one icon weight: the app sets 1.75px non-scaling lines for every lucide icon in one place", () => {
+    const app = blankComments(readFileSync(resolve(ROOT, "src/App.tsx"), "utf8"));
+    expect(app).toMatch(/<LucideProvider\s+strokeWidth=\{ICON_STROKE_PX\}\s+nonScalingStroke\s*>/);
+    expect(readFileSync(resolve(ROOT, "src/lib/iconWeight.ts"), "utf8")).toMatch(/export const ICON_STROKE_PX = 1\.75;/);
+  });
+
+  it("icon-level strokeWidth overrides only ever fall (exact, two-way; target 0)", () => {
+    let n = 0;
+    for (const f of files) {
+      if (!f.endsWith(".tsx") || RAW_SVG_STROKE_FILES.some((r) => f.endsWith(r))) continue;
+      n += (blankComments(readFileSync(f, "utf8")).match(/\bstrokeWidth=/g) ?? []).length;
+    }
+    expect(n, `strokeWidth= sites: ${n}. Lower ICON_STROKE_WIDTH_SITES when one goes; never add one`).toBe(ICON_STROKE_WIDTH_SITES);
   });
 
   it("every text-size class the app uses resolves to exactly the five sizes (locked landing hero exempt)", () => {

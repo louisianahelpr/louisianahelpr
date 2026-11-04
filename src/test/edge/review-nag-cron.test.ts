@@ -247,3 +247,48 @@ describe("review-nag-cron edge function", () => {
 });
 
 // @mutate supabase/functions/review-nag-cron/index.ts | const WINDOW_HOURS = 24; | const WINDOW_HOURS = 12;
+// @mutate supabase/functions/review-nag-cron/index.ts |         const emailOutcome = seedRecipients.has(party.user_id) |         const emailOutcome = false
+// @mutate supabase/functions/review-nag-cron/index.ts |         defects.record(`seed recipient read: ${seedErr.message}; emails sent unfiltered`); |         void seedErr;
+
+// Q2734, ledger "cron http failure: review-nag-cron returned 500" (2026-11-04 16:26Z run): ~90 email calls to two shared
+// test seats, the last 30 thrown by the trace limit, 30 defects for mail that was never meant to leave.
+describe("review-nag-cron: seed recipients", () => {
+  beforeEach(() => {
+    resetEnv();
+    resetSupabaseMock();
+    resetSharedMocks();
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 })));
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+  const emailCalls = () =>
+    (globalThis.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls
+      .filter(([u]) => String(u).includes("/functions/v1/send-notification-email"));
+
+  it("a seed recipient gets the in-app nag but no email call, and is no defect", async () => {
+    const fn = await loadConfigured();
+    seedJob(30);
+    scenario.reads.profiles = { rows: [{ user_id: "helper-1" }] };
+    const res = await fn.fetch(cronRequest(fn));
+    const b = await body(res);
+    expect(res.status).toBe(200);
+    expect(nagWrites()).toHaveLength(2);
+    expect(b.nags_sent).toBe(2);
+    expect(b.emails_skipped).toBe(1);
+    expect(b.email_failures).toBe(0);
+    expect(emailCalls()).toHaveLength(1);
+    expect(String((emailCalls()[0][1] as RequestInit).body)).toContain('"user_id":"poster-1"');
+  });
+
+  it("an unreadable seed list sends the emails as before and reports the read", async () => {
+    const fn = await loadConfigured();
+    seedJob(30);
+    scenario.reads.profiles = { error: { message: "statement timeout" } };
+    const res = await fn.fetch(cronRequest(fn));
+    const b = await body(res);
+    expect(res.status).toBe(500);
+    expect(b.nags_sent).toBe(2);
+    expect(emailCalls()).toHaveLength(2);
+  });
+});

@@ -191,6 +191,33 @@ serve(async (req) => {
     if (jobScanDefect) throw new Error(jobScanDefect);
     const jobs = jobScan.rows;
 
+    // Seed (test) recipients get the in-app nag but no email call (Q2734, ledger
+    // "cron http failure: review-nag-cron returned 500", 2026-11-04): the
+    // 16:26Z run nagged two shared test seats on 44 journey jobs each, made
+    // ~90 send-notification-email calls, every one a test recipient that
+    // send-notification-email would skip anyway (60 answered skipped), and
+    // the trace limit threw on the last 30 (function_logs "Rate limit exceeded
+    // for trace ... Retry after 55069ms", past invocationDeadline), so the run
+    // reported 30 defects about mail that was never meant to leave. One read
+    // for every party; if it ERRORS the calls go out as before (fail open, the
+    // testRecipient.ts policy: send-notification-email still refuses a seed
+    // inbox) and the error is a defect.
+    const partyIds = [...new Set(jobs.flatMap((j) => [j.customer_id, j.helper_id]).filter((id): id is string => !!id))];
+    const seedRecipients = new Set<string>();
+    if (partyIds.length > 0) {
+      const { data: seedRows, error: seedErr } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .in("user_id", partyIds)
+        .eq("is_seed", true);
+      if (seedErr) {
+        console.error("[review-nag-cron] seed recipient read failed:", seedErr);
+        defects.record(`seed recipient read: ${seedErr.message}; emails sent unfiltered`);
+      } else {
+        for (const r of (seedRows ?? []) as Array<{ user_id: string }>) seedRecipients.add(r.user_id);
+      }
+    }
+
     // nags_sent counts nags that actually LEFT — an in-app notification plus a
     // send-notification-email call that did not fail. Emails the recipient has
     // switched off are counted separately rather than inflating the headline
@@ -330,7 +357,9 @@ serve(async (req) => {
           continue;
         }
 
-        const emailOutcome = await sendEmail(party.user_id, title, message, link, job.id);
+        const emailOutcome = seedRecipients.has(party.user_id)
+          ? "skipped"
+          : await sendEmail(party.user_id, title, message, link, job.id);
         if (emailOutcome === "skipped") emails_skipped++;
         if (emailOutcome === "failed") email_failures++;
         if (emailOutcome !== "failed") nags_sent++;

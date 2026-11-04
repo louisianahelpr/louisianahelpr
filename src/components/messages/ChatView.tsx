@@ -269,6 +269,7 @@ export function ChatView({
     keyboardInset,
     onRefreshThread,
     chatContainerRef,
+    isOtherTyping,
   });
 
   // Poster-first rule: a PENDING APPLICANT cannot open a job conversation —

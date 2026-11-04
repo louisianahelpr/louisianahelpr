@@ -1,6 +1,7 @@
 // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | ...(!isAsyncPayment ? { payment_status: "escrow" } : {}), | payment_status: "escrow",
 // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts | const isAsyncPayment = session.payment_status !== "paid"; | const isAsyncPayment = false;
 // @mutate supabase/functions/charge-recurring-visits/index.ts | if (intent.status !== "succeeded") { | if (false) {
+// @mutate supabase/functions/create-payment/index.ts |               cancelled_by: user.id,\n            }).eq("id", jobId).eq("status", job.status).eq("payment_status", "cancelling").select("id"); |               cancelled_by: user.id,\n            }).eq("id", jobId).eq("status", job.status).select("id");
 // @mutate supabase/functions/_shared/cardHold.ts |       if (now.status === "succeeded") capturedPi = now.id; |       if (now.status !== "canceled") capturedPi = now.id;
 // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentPaymentFailed.ts | const FUNDED_PAYMENT_STATES = new Set(["escrow", "payout_pending", "released"]); | const FUNDED_PAYMENT_STATES = new Set(["payout_pending", "released"]);
 // @mutate supabase/functions/stripe-webhook/index.ts | "payment_intent.payment_failed": handlePaymentIntentPaymentFailed, | "payment_intent.payment_failedX": handlePaymentIntentPaymentFailed,
@@ -94,6 +95,16 @@ const ESCROW_WRITERS: Record<string, { why: string; gates: RegExp[] }> = {
   "charge-recurring-visits/index.ts": {
     why: "books a visit only after its off-session PaymentIntent reads succeeded",
     gates: [/if \(intent\.status !== "succeeded"\) \{/],
+  },
+  // Q2718 (lead 2026-11-04, lh-money-escrow approve): cancel_escrow hands a job whose card holds little beyond its tax
+  // to the cancel sweep by putting its 'cancelling' claim back to 'escrow' (status cancelled): only inside the
+  // captured-charge branch (the PaymentIntent read succeeded), and pinned to the claim, so it never funds a job.
+  "create-payment/index.ts": {
+    why: "cancel_escrow's Q2718 hand-off returns a captured charge's own 'cancelling' claim to escrow for the sweep",
+    gates: [
+      /if \(pi\.status === "succeeded"\) \{/,
+      /payment_status: "escrow",\s+status: "cancelled",[^;]*\.eq\("payment_status", "cancelling"\)\.select\("id"\);/,
+    ],
   },
   // Q2399 card hold at post: the hire's capture (or the saved card's one off-session charge) moves held -> escrow
   // only once Stripe reads the PaymentIntent succeeded (the capture's own answer, or a re-read after an error).

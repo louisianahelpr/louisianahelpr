@@ -205,7 +205,7 @@ describe("OrderDeliveryPanel (the buyer's and the seller's card)", () => {
     expect(screen.getByAltText("At the pickup")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "I got it" }));
     // The in-app sheet first, never window.confirm (lead 2026-10-28): nothing is paid until its own "I got it".
-    // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |         <button type="button" className={primary} disabled={gotIt.isPending} onClick={() => setAskGot(true)}> |         <button type="button" className={primary} disabled={gotIt.isPending} onClick={() => gotIt.mutate()}>
+    // @mutate src/components/declutter/DeclutterDeliveryViews.tsx |         <Button type="button" variant="primary" size="sm" disabled={gotIt.isPending} onClick={() => setAskGot(true)}> |         <Button type="button" variant="primary" size="sm" disabled={gotIt.isPending} onClick={() => gotIt.mutate()}>
     const sheet = await screen.findByRole("dialog");
     expect(sheet).toHaveTextContent("Do you have it?");
     expect(sheet).toHaveTextContent("finishes the sale: the Helpr and the seller are paid");

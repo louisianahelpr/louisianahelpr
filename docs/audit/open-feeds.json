@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-04T08:07Z",
+  "measured_at": "2026-11-04T12:33Z",
   "issues": {
     "readable": true,
     "open": [
@@ -125,7 +125,7 @@
         "number": 4054,
         "title": "nightly-red: race-runner",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41794622077",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41828763236",
         "runTruncated": false
       },
       {
@@ -133,13 +133,6 @@
         "title": "nightly-red: nightly-webkit",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41680707961",
-        "runTruncated": false
-      },
-      {
-        "number": 4073,
-        "title": "nightly-red: expiry-monitor",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41753281187",
         "runTruncated": false
       },
       {
@@ -227,14 +220,6 @@
         "issue": 3743
       },
       {
-        "fingerprint": "2c6a8959b4a0dbe1d2bd6e529e3749a2",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: supabase edge functions deploy",
-        "issue": 4075
-      },
-      {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -273,6 +258,14 @@
         "status": "open",
         "title": "nightly-red: schedule-heartbeat",
         "issue": 3824
+      },
+      {
+        "fingerprint": "e9576de5dfb0b5bf8cd0314ff14ff967",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: privacy-journey",
+        "issue": 4084
       },
       {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
@@ -539,11 +532,11 @@
         "issue": null
       },
       {
-        "fingerprint": "8114e0acbcb0b5370d95baf9346598cb",
-        "source_kind": "workflow",
-        "source": "expiry-monitor",
+        "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
+        "source_kind": "sentry",
+        "source": "sentry:assets/ErrorState",
         "status": "open",
-        "title": "a credential or certificate expires within # days",
+        "title": "error: error screen shown: we couldn't load your account.",
         "issue": null
       },
       {
@@ -552,14 +545,6 @@
         "source": "sentry:assets/ProtectedRoute",
         "status": "open",
         "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
-        "issue": null
-      },
-      {
-        "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ErrorState",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load your account.",
         "issue": null
       },
       {
@@ -715,19 +700,19 @@
         "issue": 4020
       },
       {
-        "fingerprint": "aeedd249577285330a97e04195cee7d8",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: refund-request-sweep returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: declutter-money returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "aeedd249577285330a97e04195cee7d8",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: refund-request-sweep returned 502",
         "issue": null
       },
       {
@@ -794,7 +779,6 @@
     "issue #4020": "Q1816",
     "issue #4054": "Q1816",
     "issue #4062": "Q1816",
-    "issue #4073": "Q1816",
     "issue #4084": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
@@ -816,7 +800,6 @@
     "ledger 27437b0c4f14": "Q1596",
     "ledger 27c479ef17f8": "Q1596",
     "ledger 29fbdd01ae0a": "Q2526",
-    "ledger 2c6a8959b4a0": "Q1816",
     "ledger 2e4f3e726722": "Q1816",
     "ledger 346e19be0736": "Q1596",
     "ledger 36bcfb8c2391": "Q1696",
@@ -912,6 +895,7 @@
     "ledger e49f68d9cbd6": "Q1475",
     "ledger e6fb014ab099": "Q2511",
     "ledger e81647556a56": "Q1596",
+    "ledger e9576de5dfb0": "Q1816",
     "ledger ec24ac4f76e6": "Q2516",
     "ledger ec743a639c38": "Q1596",
     "ledger ed3f34acc0e1": "Q1596",

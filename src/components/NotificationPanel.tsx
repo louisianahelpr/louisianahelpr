@@ -1,6 +1,5 @@
-import { useEffect, useId, useRef, useState, useMemo, useSyncExternalStore, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, useMemo, useSyncExternalStore, type KeyboardEvent as ReactKeyboardEvent } from "react";
 // Type-only: erased at build, so framer stays off the critical path.
-import type { MotionProps } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,7 +34,9 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation } from "@/lib/mutationResult";
 import type { Notification, Filter } from "@/components/notificationPanel/types";
-import { typeIcons, groupByDay, timeAgo, MONEY_TYPES } from "@/components/notificationPanel/notificationPanelHelpers";
+import { typeIcons, groupByDay, timeAgo, MONEY_TYPES, foldByJob } from "@/components/notificationPanel/notificationPanelHelpers";
+import { JobFoldToggle } from "@/components/notificationPanel/JobFoldToggle";
+import { DaySection } from "@/components/notificationPanel/DaySection";
 import {
   subscribeNotifications,
   getNotificationSnapshot,
@@ -47,33 +48,9 @@ import {
 } from "@/components/notificationPanel/notificationStore";
 import { NotificationTrigger } from "@/components/notificationPanel/NotificationTrigger";
 import { notificationDestination } from "@/components/notificationPanel/notificationDestination";
-import { useFramerMotion, type FramerMotion } from "@/components/notificationPanel/useFramerMotion";
+import { useFramerMotion } from "@/components/notificationPanel/useFramerMotion";
 import { raceVisibleDeadline } from "@/lib/visibleDeadline";
 import { NotificationMessage } from "@/components/notificationPanel/NotificationMessage";
-
-/* One day group. When the LAST row of a day leaves (mark read on the Unread
-   tab), the whole section unmounts, not just the row — so the section needs
-   the same collapsing exit the rows have, or the panel's bottom edge jumps by
-   header + row in one frame. See `collapseExit` inside the component. A plain
-   <section> until framer has loaded, same as the rows. */
-const DaySection = ({
-  framer,
-  exit,
-  transition,
-  children,
-}: {
-  framer: FramerMotion | null;
-  exit: MotionProps["exit"];
-  transition: MotionProps["transition"];
-  children: ReactNode;
-}) =>
-  framer ? (
-    <framer.motion.section exit={exit} transition={transition}>
-      {children}
-    </framer.motion.section>
-  ) : (
-    <section>{children}</section>
-  );
 
 /* A load that never answers is a failed load. On a saturated database a
    request can sit open for minutes, and while it did the panel had no answer
@@ -118,6 +95,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
      users saw the least accurate number.
      It rides on the unread read (`count: "exact"`, Q104): no extra request. */
   const [open, setOpen] = useState(defaultOpen);
+  const [openFolds, setOpenFolds] = useState<ReadonlySet<string>>(() => new Set()); // Q2037: lead rows whose job fold is open
   /* framer-motion is fetched when the panel first opens, never on page load —
      see useFramerMotion for the measured chain this breaks. `null` until the
      chunk arrives; rows render as plain divs with the same box meanwhile. */
@@ -719,7 +697,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
                       Before framer has loaded (see useFramerMotion) the
                       same rows render as plain divs, unwrapped. */}
                   {(() => {
-                    const rows = group.items.map((n) => {
+                    const renderRow = (n: Notification, more: Notification[] = []) => {
                       /* A row only DRESSES as a control when a tap on it does
                          something (see `isActionable`). When it doesn't, every
                          part of the promise comes off together — the role, the
@@ -856,6 +834,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
                             >
                               {timeAgo(n.created_at)}
                             </p>
+                            <JobFoldToggle more={more} open={openFolds.has(n.id)} onToggle={() => setOpenFolds((was) => { const next = new Set(was); if (!next.delete(n.id)) next.add(n.id); return next; })} />
                           </div>
                         </div>
                       );
@@ -876,7 +855,8 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
                           {body}
                         </div>
                       );
-                    });
+                    };
+                    const rows = foldByJob(group.items).flatMap(({ n, more }) => [renderRow(n, more), ...(openFolds.has(n.id) ? more.map((m) => renderRow(m)) : [])]);
                     return framer ? (
                       <framer.AnimatePresence initial={false}>{rows}</framer.AnimatePresence>
                     ) : (

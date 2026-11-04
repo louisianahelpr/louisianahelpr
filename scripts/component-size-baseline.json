@@ -9,7 +9,7 @@
     "src/components/job-card/JobListPage.tsx": 618,
     "src/components/JobTracking.tsx": 1758,
     "src/components/messages/ConversationList.tsx": 1748,
-    "src/components/NotificationPanel.tsx": 935,
+    "src/components/NotificationPanel.tsx": 915,
     "src/components/NotificationPreferences.tsx": 865,
     "src/components/postjob/CheckoutStep.tsx": 716,
     "src/components/profile/CredentialsTab.tsx": 911,

@@ -69,6 +69,15 @@ CREATE POLICY "declutter bundle request items: parties read" ON public.declutter
                   WHERE r.id = request_id
                     AND (r.buyer_id = (SELECT auth.uid()) OR r.seller_id = (SELECT auth.uid()))));
 
+-- Q807: an unconfirmed email cannot write these tables either (lander 11-04; the same guarded call as 20261103212046).
+DO $gate$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gate$;
+
 CREATE OR REPLACE FUNCTION public.declutter_request_bundle(p_item_ids uuid[])
  RETURNS uuid
  LANGUAGE plpgsql
@@ -85,6 +94,10 @@ DECLARE
   v_seed boolean := false;
   v_total integer := 0;
 BEGIN
+  -- Q281 ban gate (lander 11-04): a banned account cannot ask for, or answer, a bundle (the same refusal as declutter_request_free).
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
   PERFORM public.require_feature('declutter');
   v_uid := public.declutter_assert_member(false);
   -- Review 11-04 (blocker): the first-purchase ID check is the buyer's, so it runs at the ask. At the answer the
@@ -155,6 +168,10 @@ DECLARE
   v_accepted integer := 0;
   v_gone integer := 0;
 BEGIN
+  -- Q281 ban gate (lander 11-04): a banned account cannot ask for, or answer, a bundle (the same refusal as declutter_request_free).
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
   PERFORM public.require_feature('declutter');
   v_uid := public.declutter_assert_member(true);
   SELECT * INTO v_req FROM public.declutter_bundle_requests r WHERE r.id = p_request_id FOR UPDATE;

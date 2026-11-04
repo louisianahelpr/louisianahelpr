@@ -357,14 +357,6 @@
         "issue": 3823
       },
       {
-        "fingerprint": "acf4ea2ff2836a53bb404727997b217a",
-        "source_kind": "error_logs",
-        "source": "stripe-connect",
-        "status": "open",
-        "title": "stripe-connect cleared unusable payout account <id>",
-        "issue": null
-      },
-      {
         "fingerprint": "b8b42cf124da685c1fe0087a97455b48",
         "source_kind": "sentry",
         "source": "sentry:assets/app-shared",
@@ -699,7 +691,6 @@
     "ledger a8ceee56bbd5": "Q1816",
     "ledger ab6fdbe8c882": "Q1816",
     "ledger ab736843373b": "Q1596",
-    "ledger acf4ea2ff283": "Q2505",
     "ledger ad381aa30d09": "Q1596",
     "ledger aeedd2495772": "Q2409",
     "ledger afd194b74d95": "Q1596",

@@ -483,6 +483,17 @@ test.describe("money outcomes", () => {
       description: `${webhookRows.length} helper row(s) for one $3 tip on ${jobId}: ${webhookRows.map((r) => `${r.type}:"${r.title}"`).join(", ")}`,
     });
     journey.cleanup("drop the tip notifications", () => dropNotifications(request, helper, webhookRows));
+    // 5. The money itself (Q824 review note): the tips row the webhook settled, read as the helper
+    //    (RLS "Users can view their own tips"): exactly one paid $3 tip from this poster on this job.
+    const tipRows = await readJson<Array<{ amount: number | string; payment_status: string; tipper_id: string; stripe_payment_intent_id: string | null }>>(
+      await request.get(`${SUPABASE_URL}/rest/v1/tips?job_id=eq.${jobId}&helper_id=eq.${helper.user.id}&select=amount,payment_status,tipper_id,stripe_payment_intent_id`, { headers: rest(helper) }),
+      "read the helper's tips row for the job",
+    );
+    expect(tipRows, "one tip row for one tip").toHaveLength(1);
+    expect(tipRows[0].payment_status, "the webhook did not settle the tip").toBe("paid");
+    expect(Number(tipRows[0].amount), "the tip row is not the $3 paid at Checkout").toBe(3);
+    expect(tipRows[0].tipper_id, "the tip is not the poster's").toBe(poster.user.id);
+    expect(tipRows[0].stripe_payment_intent_id ?? "", "the paid tip names no PaymentIntent").toMatch(/^pi_/);
   });
 
   test("outcomes and admin paths no journey drives are annotated uncovered", async () => {

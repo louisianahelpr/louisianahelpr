@@ -37,7 +37,7 @@ describe("Q2408 the apply question on a window job", () => {
   it("before the window: asks about the first day, says any day works, Other time stays in the window", () => {
     render(<Host job={{ date_needed: plus(2), date_window_end: plus(8) }} />);
     expect(screen.getByTestId("apply-time-yes")).toBeTruthy();
-    expect(screen.getByTestId("apply-time-window").textContent).toMatch(/^Any day .+ works for the poster/);
+    expect(screen.getByTestId("apply-time-window").textContent).toMatch(/^Any day .+ works for the person who posted this job/);
     screen.getByTestId("apply-time-suggest").click();
     return Promise.resolve().then(() => {
       const date = screen.getByTestId("apply-time-date") as HTMLInputElement;

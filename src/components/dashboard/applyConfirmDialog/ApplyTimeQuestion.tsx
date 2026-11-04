@@ -104,7 +104,7 @@ export function ApplyTimeQuestion({
       </legend>
       {windowed && !firstDayGone && (
         <p className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-testid="apply-time-window">
-          {jobDayLabel(job)} works for the poster. To pick another day that week, suggest it below.
+          {jobDayLabel(job)} works for the person who posted this job. To pick another day that week, suggest it below.
         </p>
       )}
       {!firstDayGone && <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={`Does ${when} work for you?`}>

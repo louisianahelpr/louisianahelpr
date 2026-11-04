@@ -44,7 +44,7 @@ export function cardLinkFor(key: SectionKey, path: string, label: string): { to:
   return { to: `/signup?redirect=${encodeURIComponent(path)}`, text: `Join to browse ${label}`, signedIn: path };
 }
 
-const H2_CLASS = "font-display landing-serif text-balance leading-[1.05] text-ds-32 sm:text-[44px] lg:text-[52px]";
+const H2_CLASS = "font-display landing-serif text-balance leading-[1.05] text-ds-28";
 
 /** True once `ref` has been on screen after the page loaded (never at first paint). */
 function useSeenAfterLoad(ref: RefObject<HTMLElement>): boolean {
@@ -220,7 +220,7 @@ export function TrustAndJoin() {
               <p className="text-ds-12 font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--lp-band-money)" }}>
                 Your money, protected
               </p>
-              <h2 id="money-heading" className="font-display landing-serif text-balance leading-[1.05] text-ds-32 sm:text-[44px] lg:text-[46px]" style={{ color: "var(--lp-band-ink)" }}>
+              <h2 id="money-heading" className="font-display landing-serif text-balance leading-[1.05] text-ds-28" style={{ color: "var(--lp-band-ink)" }}>
                 Nobody gets paid until the job is{" "}
                 <em style={{ fontStyle: "italic", color: "var(--lp-band-money)" }}>really</em> done.
               </h2>

@@ -21,6 +21,7 @@
  * never block: the admin may still confirm.
  */
 import { useState } from "react";
+import { withoutTestPeople } from "@/components/admin/seedRows";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,7 +70,9 @@ async function fetchHeld(): Promise<HeldRow[]> {
   const { data, error } = await supabase.rpc("admin_payouts_held_for_review");
   if (error) throw Object.assign(new Error(error.message), { userMessage: rpcErrorMessage("admin_payouts_held_for_review", error) ?? undefined });
   // Only rows this card knows how to act on.
-  return ((Array.isArray(data) ? data : []) as unknown as HeldRow[]).filter((r) => r && r.kind in KIND_LABEL && typeof r.id === "string");
+  const rows = ((Array.isArray(data) ? data : []) as unknown as HeldRow[]).filter((r) => r && r.kind in KIND_LABEL && typeof r.id === "string");
+  // Owner 2026-11-04: a test account's held payout never shows on a real admin screen.
+  return withoutTestPeople(rows, (r) => [r.payee_id]);
 }
 
 /** Payee names for the held rows (AUD31-43: a bare user id told the admin nothing). A failed read shows the ids alone. */

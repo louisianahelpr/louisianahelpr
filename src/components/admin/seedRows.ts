@@ -25,3 +25,17 @@ export async function fetchSeedUserIds(userIds: (string | null | undefined)[]): 
 export function withoutTestRows<T extends { is_seed?: boolean | null }>(rows: T[]): T[] {
   return rows.filter((r) => !r.is_seed);
 }
+
+/**
+ * Owner 2026-11-04 ("nothing test account should show on any real admin
+ * stuff"): for an admin list whose rows name people but carry no is_seed of
+ * their own (an RPC queue), drop every row that names a test account.
+ * Throws on a failed read (fetchSeedUserIds), never shows the rows untagged.
+ * Guard: src/components/admin/adminReadsDropTestRows.test.ts.
+ */
+export async function withoutTestPeople<T>(rows: T[], people: (row: T) => (string | null | undefined)[]): Promise<T[]> {
+  if (rows.length === 0) return rows;
+  const seed = await fetchSeedUserIds(rows.flatMap(people));
+  if (seed.size === 0) return rows;
+  return rows.filter((r) => !people(r).some((id) => !!id && seed.has(id)));
+}

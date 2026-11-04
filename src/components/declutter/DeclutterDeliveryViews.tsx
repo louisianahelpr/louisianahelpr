@@ -13,6 +13,7 @@
  * is enforced in SQL (20261017055505), these screens only explain it.
  */
 import { NextStep } from "@/components/ui/NextStep";
+import { Button } from "@/components/ui/button";
 import { stillInHandLine } from "@/lib/declutter/stillInHand";
 import { DELIVERY_ADDRESSES_SHOW } from "@/lib/declutter/deliveryAddressWords";
 import { useEffect, useState } from "react";
@@ -70,8 +71,6 @@ import {
   type TaskView,
 } from "@/lib/helprTasks/api";
 
-const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
-const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 
 const SIZE_WORDS: Record<TaskSize, string> = {
   small: "Small (fits in a car)",
@@ -209,9 +208,9 @@ export function OrderDeliveryPanel({ taskId, side, orderId, tipOnly = false, ask
       {/* Q2453: once it is done, the buyer may tip the Helpr (the job tip's money, 100% to the Helpr). */}
       {side === "buyer" && v.status === "confirmed" && <DeliveryTipPanel taskId={taskId} helprFirstName={v.helpr_first_name} />}
       {canConfirm && (
-        <button type="button" className={primary} disabled={gotIt.isPending} onClick={() => setAskGot(true)}>
+        <Button type="button" variant="primary" size="sm" disabled={gotIt.isPending} onClick={() => setAskGot(true)}>
           I got it
-        </button>
+        </Button>
       )}
       {["accepted", "picked_up", "delivered"].includes(v.status) && <DeliveryTalkButton taskId={taskId} />}
       {side === "buyer" && v.status === "picked_up" && <BuyerCantFinishPanel taskId={taskId} view={v} who={who} />}
@@ -305,10 +304,10 @@ function OpenTaskRow({ t }: { t: OpenTask }) {
       <div className="space-y-2">
         <p className="block text-ds-13 font-semibold">Pickup time</p>
         <TaskPickupTime taskId={t.task_id} by={when(t.latest_pickup_at)} value={chosen} onPick={setChosen} enabled={!taken} />
-        <button type="button" className={`${primary} w-full min-h-12 text-ds-16 disabled:opacity-50`} disabled={take.isPending || !chosen}
+        <Button type="button" variant="primary" size="md" className="w-full" disabled={take.isPending || !chosen}
           onClick={() => { if (chosen) take.mutate(chosen); }}>
           Accept delivery
-        </button>
+        </Button>
       </div>
       {/* "On your way" (owner 2026-10-27): other open deliveries that add little to this one. */}
       <button type="button" className="text-ds-13 font-semibold underline min-h-11" aria-expanded={showWay} onClick={() => setShowWay((v) => !v)}>
@@ -412,10 +411,10 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
               {v.handed_over_at && <p className="text-sm" data-task-handed-over="">The seller says they handed it over.</p>}
               {toRoute}
               <div className="flex flex-wrap gap-2">
-                <button type="button" className={btn} disabled={backOut.isPending}
+                <Button type="button" variant="outline" size="sm" disabled={backOut.isPending}
                   onClick={() => setAsk({ kind: "backOut" })}>
                   Back out
-                </button>
+                </Button>
               </div>
             </>
           )}
@@ -527,9 +526,9 @@ export function DeliverView() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-base font-semibold">Deliveries you can take</h2>
           {setUp && (
-            <button type="button" className={btn} disabled={locate.isPending} onClick={() => locate.mutate()}>
+            <Button type="button" variant="outline" size="sm" disabled={locate.isPending} onClick={() => locate.mutate()}>
               {where ? "Update my location" : "Nearest first"}
-            </button>
+            </Button>
           )}
         </div>
         {noCar && waiting > 0 && (

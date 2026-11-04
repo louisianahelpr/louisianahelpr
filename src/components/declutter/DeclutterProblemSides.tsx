@@ -12,6 +12,7 @@
  * problem shows nothing here, like a decided one.
  */
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { addProblemSide, fetchOrderProblem, handoverPhotoUrl, withdrawProblem, type OrderProblem } from "@/lib/declutter/handover";
@@ -21,8 +22,6 @@ import { ProblemPhotoPicker, uploadProblemPhotos } from "./DeclutterProblemPhoto
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { Textarea } from "@/components/ui/textarea";
 
-const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
-const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 
 export function ProblemPhotos({ paths }: { paths: string[] }) {
@@ -111,18 +110,18 @@ export function DeclutterProblemSides({ orderId, side }: { orderId: string; side
         </div>
       )}
       {mine && (p.reporter_side === "buyer" || p.reporter_side === "seller") && (
-        <button type="button" className={btn} disabled={takeBack.isPending} onClick={() => setTakingBack(true)}>
+        <Button type="button" variant="outline" size="sm" disabled={takeBack.isPending} onClick={() => setTakingBack(true)}>
           Take back my report
-        </button>
+        </Button>
       )}
       <ConfirmSheet open={takingBack} title="Take back your report?" confirmLabel="Take it back" cancelLabel="Keep my report"
         pending={takeBack.isPending} onConfirm={() => takeBack.mutate(p)} onClose={() => setTakingBack(false)} testId="take-back-report">
         Louisiana Helpr stops looking at it and the money is no longer held for it. You can&apos;t report this sale again after taking it back.
       </ConfirmSheet>
       {!mine && !open && (
-        <button type="button" className={btn} onClick={() => { setNote(p.other_side_note ?? ""); setOpen(true); }}>
+        <Button type="button" variant="outline" size="sm" onClick={() => { setNote(p.other_side_note ?? ""); setOpen(true); }}>
           {p.other_side_note ? "Change your side" : "Add your side"}
-        </button>
+        </Button>
       )}
       {!mine && open && (
         <div className="space-y-2">
@@ -131,8 +130,8 @@ export function DeclutterProblemSides({ orderId, side }: { orderId: string; side
           <ProblemPhotoPicker files={photos} onChange={setPhotos} disabled={send.isPending} />
           {(p.other_side_photo_paths ?? []).length > 0 && <p className="text-ds-12 text-muted-foreground">New photos replace the ones you sent.</p>}
           <div className="flex gap-2">
-            <button type="button" className={primary} disabled={send.isPending || !note.trim()} onClick={() => send.mutate(p)}>Send</button>
-            <button type="button" className={btn} onClick={() => setOpen(false)}>Not now</button>
+            <Button type="button" variant="primary" size="sm" disabled={send.isPending || !note.trim()} onClick={() => send.mutate(p)}>Send</Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setOpen(false)}>Not now</Button>
           </div>
         </div>
       )}

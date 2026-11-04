@@ -14,7 +14,7 @@
  * @mutate src/components/declutter/DeclutterProblemSides.tsx |   pay_seller: { buyer: "The seller keeps the payment, and the sale is final.", seller: "You keep the payment." }, |   pay_seller: { buyer: "Handed over.", seller: "Handed over." },
  * @mutate src/components/declutter/DeclutterProblemSides.tsx |       {mine && (p.reporter_side === "buyer" \|\| p.reporter_side === "seller") && ( |       {(p.reporter_side === "buyer" \|\| p.reporter_side === "seller") && (
  * @mutate src/components/declutter/DeclutterProblemSides.tsx |         pending={takeBack.isPending} onConfirm={() => takeBack.mutate(p)} |         pending={takeBack.isPending} onConfirm={() => setTakingBack(false)}
- * @mutate src/components/declutter/DeclutterProblemSides.tsx |         <button type="button" className={btn} disabled={takeBack.isPending} onClick={() => setTakingBack(true)}> |         <button type="button" className={btn} disabled={takeBack.isPending} onClick={() => takeBack.mutate(p)}>
+ * @mutate src/components/declutter/DeclutterProblemSides.tsx |         <Button type="button" variant="outline" size="sm" disabled={takeBack.isPending} onClick={() => setTakingBack(true)}> |         <Button type="button" variant="outline" size="sm" disabled={takeBack.isPending} onClick={() => takeBack.mutate(p)}>
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";

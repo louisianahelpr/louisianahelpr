@@ -2538,6 +2538,11 @@ serve(async (req) => {
         /** An uncaptured hold (it expires, so it cannot wait for a chargeback). */
         onHold: boolean,
       ): Promise<{ cents: number; uncollectable?: true } | null> => {
+        // Q2719 review: a FREE cancel (no late fee) on a tax-only card charge asks the gift for the kept
+        // card and setup fee only; the alerts name that instead of a late cancel's fee.
+        const shortWhat = jobCancellationFee > 0
+          ? "cancelled late. The card paid less than the fee"
+          : "cancelled with no late fee. The card paid only the sales tax, less than the card fee and setup fee a cancel keeps";
         const funding = await giftFeeFunding(job.id);
         if (funding === null) {
           console.error(`[void-cancelled-payments] job ${job.id}: its card payment is ${shortCents}c short of the fees it owes and its gift could not be read; not settling this run (${stage}).`);
@@ -2557,7 +2562,7 @@ serve(async (req) => {
             kind: "custom",
             severity: "warning",
             title: "Cancellation fee waits for a chargeback on its gift",
-            message: `Job ${job.id} ("${job.title}") was paid partly by gift and partly by card and cancelled late. The card paid less than the fee, and the donation behind the gift has a chargeback that is still open (or was won and the gift is not restored yet), so whether the gift can pay its part is not decided. No money moved and the job stays in escrow until it is. If the dispute was won, set payment_status back to 'paid' on the gift row this job spent (gift_cards ${funding.spentGiftId ?? "with this job_id"}), not only on the donation's root row.`,
+            message: `Job ${job.id} ("${job.title}") was paid partly by gift and partly by card and ${shortWhat}, and the donation behind the gift has a chargeback that is still open (or was won and the gift is not restored yet), so whether the gift can pay its part is not decided. No money moved and the job stays in escrow until it is. If the dispute was won, set payment_status back to 'paid' on the gift row this job spent (gift_cards ${funding.spentGiftId ?? "with this job_id"}), not only on the donation's root row.`,
             fields: { job_id: job.id, stage, short_cents: shortCents, gift_paid_cents: funding.cents, dispute_open: "yes", spent_gift_id: funding.spentGiftId ?? "unknown" },
             oncePerDayKey: `gift-card-fee-dispute-open:${job.id}`,
           });
@@ -2587,7 +2592,7 @@ serve(async (req) => {
               kind: "custom",
               severity: "warning",
               title: "Cancellation fee capped at what the card paid",
-              message: `Job ${job.id} ("${job.title}") was paid partly by gift and partly by card and cancelled late. The card paid less than the fee, and ${whyGone}, so the gift's part of the fee cannot be collected. Owner rule (2026-10-17, option A): the Helpr gets the part of the fee the card covered; the rest is not paid and the platform does not pay it.` +
+              message: `Job ${job.id} ("${job.title}") was paid partly by gift and partly by card and ${shortWhat}, and ${whyGone}, so the gift's part of the fee cannot be collected. Owner rule (2026-10-17, option A): the Helpr gets the part of the fee the card covered; the rest is not paid and the platform does not pay it.` +
                 (funding.disputeOpen
                   ? ` The card hold could not wait for the chargeback. If the platform wins it, the gift's part of the fee is collectable: restore the gift (gift_cards ${funding.spentGiftId ?? "with this job_id"}) by hand keeping that part, and pay it to the Helpr (Q2099).`
                   : ""),
@@ -2602,7 +2607,7 @@ serve(async (req) => {
             kind: "money_at_risk",
             severity: "critical",
             title: "Cancelled job owes more in fees than its card and gift paid",
-            message: `Job ${job.id} ("${job.title}") was cancelled late. Its card payment is smaller than the cancellation fee plus the card fee kept, and ${why}, so the rest of the fee cannot come from the poster's money. No money moved and the job stays in escrow; settle it by hand.`,
+            message: `Job ${job.id} ("${job.title}") was ${jobCancellationFee > 0 ? "cancelled late. Its card payment is smaller than the cancellation fee plus the card fee kept" : "cancelled with no late fee. Its card paid only the sales tax, less than the card fee and setup fee a cancel keeps"}, and ${why}, so the rest of the fee cannot come from the poster's money. No money moved and the job stays in escrow; settle it by hand.`,
             fields: { job_id: job.id, stage, short_cents: shortCents, gift_paid_cents: funding.cents, donation_reversed: funding.donationReversed ? "yes" : "no", dispute_open: funding.disputeOpen ? "yes" : "no" },
             oncePerDayKey: `gift-card-fee-shortfall:${job.id}`,
           });
@@ -3042,7 +3047,10 @@ serve(async (req) => {
           // holds them but not also the kept card and setup fee (a hold captured
           // fee-only, whose run died before settling) settles as before, exactly
           // as the hold path priced it, instead of sitting in escrow and paging.
-          const feesFitCard = feeOwedCents + crewBlockFeeCents(blockFeeRows) <= capturedCents - Math.max(0, chargeRefundedCents);
+          // Q2719: on a tax-only charge (the gift paid the job; capturedCents, the card's fee room, is 0) the
+          // kept card and setup fee count too, so a FREE cancel still has the gift keep them (owner rule:
+          // never absorb a fee) instead of reading 0 <= 0 and sending the whole tax back.
+          const feesFitCard = (siteTaxOnCardCents > 0 ? keptOfCard : 0) + feeOwedCents + crewBlockFeeCents(blockFeeRows) <= capturedCents - Math.max(0, chargeRefundedCents);
           /** What the gift is asked to keep (0: the gift is not asked). */
           let giftAskCents = 0;
           if (cardShortCents > 0 && !feesFitCard) {

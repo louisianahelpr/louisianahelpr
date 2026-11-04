@@ -1,4 +1,3 @@
-import { isNotDeployedYet } from "@/lib/notDeployedYet";
 import { HELPER_QUICK_TAGS, POSTER_QUICK_TAGS, RETIRED_QUICK_TAGS } from "@/components/reviewPanel/types";
 
 /**
@@ -45,13 +44,23 @@ export function reviewText(feedback: string | null | undefined, tags: readonly s
 type PgResult = { error: { code?: string | null; message?: string | null } | null };
 
 /**
+ * The `tags` column is not on this database yet (42703 / PGRST204). Not notDeployedYet.ts: that module sits in the
+ * home-schedule-reads chunk, and importing it from here (signed-in-shared) pulled scheduleChange/scheduleClashes onto
+ * every first screen (check-deferred-vendors, train 7).
+ */
+function tagsColumnMissing(error: PgResult["error"]): boolean {
+  const code = String(error?.code ?? "");
+  return code === "42703" || code === "PGRST204";
+}
+
+/**
  * Run a `reviews` read that selects `tags`, and the same read without it when the database has no tags column yet
  * (the web deploy ran ahead of db-deploy: 42703 / PGRST204). The fallback's rows simply lack `tags`, which
  * reviewText treats as none (their tags are still inside feedback), so it is typed as the first read's result.
  */
 export async function withReviewTags<T extends PgResult>(withTags: () => PromiseLike<T>, without: () => PromiseLike<PgResult>): Promise<T> {
   const first = await withTags();
-  if (first.error && isNotDeployedYet(first.error)) return (await without()) as unknown as T;
+  if (first.error && tagsColumnMissing(first.error)) return (await without()) as unknown as T;
   return first;
 }
 
@@ -64,6 +73,6 @@ export async function insertReviewWithTags<T extends PgResult>(
   run: (fields: { feedback: string | null; tags?: string[] }) => PromiseLike<T>,
 ): Promise<T> {
   const first = await run(reviewSubmitFields(text));
-  if (first.error && isNotDeployedYet(first.error)) return run({ feedback: text.trim() || null });
+  if (first.error && tagsColumnMissing(first.error)) return run({ feedback: text.trim() || null });
   return first;
 }

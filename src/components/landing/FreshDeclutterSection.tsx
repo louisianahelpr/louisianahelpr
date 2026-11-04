@@ -20,6 +20,8 @@ const FreshDeclutterFailed = lazy(() => import("./FreshDeclutterStrip").then((m)
  */
 export const FRESH_DECLUTTER_LIMIT = 6;
 const FRESH_SELECT = "id, title, current_price_cents, area_label, live_at";
+/** The pause before the one quiet retry of a failed read (the LiveJobsSection rule, Q2735). */
+const FRESH_DECLUTTER_RETRY_MS = 1500;
 
 export type FreshItem = { id: string; title: string; current_price_cents: number; area_label: string | null; photo: string | null; photoFull: string | null };
 type State = { kind: "waiting" } | { kind: "failed" } | { kind: "ok"; items: FreshItem[] };
@@ -32,7 +34,7 @@ export function FreshDeclutterSection() {
     const el = ref.current;
     if (!el || typeof IntersectionObserver === "undefined") return;
     let cancelled = false;
-    const load = async () => {
+    const load = async (attempt = 0): Promise<void> => {
       void import("./FreshDeclutterStrip");
       try {
         const { supabase } = await import("@/integrations/supabase/client");
@@ -65,10 +67,25 @@ export function FreshDeclutterSection() {
           return { ...r, photo: path ? photoCardUrl(path) : null, photoFull: path ? photoPublicUrl(path) : null };
         });
         if (!cancelled) setState({ kind: "ok", items });
-      } catch {
+      } catch (err) {
+        // Q2735 (11-04, iPhone Safari guests on /): the jobs section's read failed on a phone's network blip and the
+        // log held no cause. Same rule here: one quiet retry after a short pause, and a second failure is reported
+        // with its cause before the strip says so.
+        if (cancelled) return;
+        if (attempt === 0) {
+          await new Promise((r) => setTimeout(r, FRESH_DECLUTTER_RETRY_MS));
+          if (!cancelled) return load(1);
+          return;
+        }
+        void (async () => {
+          try {
+            const { report } = await import("@/lib/errorLogger");
+            report(err, { tags: { source: "FreshDeclutterSection.load" } });
+          } catch { /* the visible failed state below is the signal; logging must never throw */ }
+        })();
         // Not silent: the strip says the newest listings did not load and keeps the link to Declutter
         // (data-testid="landing-fresh-declutter-failed").
-        if (!cancelled) setState({ kind: "failed" });
+        setState({ kind: "failed" });
       }
     };
     let io: IntersectionObserver | null = null;

@@ -6,7 +6,7 @@ import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
 import { serve } from "../_shared/buildStamp.ts";
 import { skillMatchesCategory } from "../_shared/categorySkillMatch.ts";
 import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
-import { isSameDayJob, sameDayBoost } from "../_shared/sameDayMatch.ts";
+import { isSameDayJob, jobLastDay, sameDayBoost } from "../_shared/sameDayMatch.ts";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -123,7 +123,7 @@ serve(async (req) => {
     const FUNDED_PAYMENT_STATUSES = [...LISTED_PAYMENT_STATUSES];
     const { data: job, error: jobError } = await supabase
       .from("jobs")
-      .select("id, title, category, location, budget, customer_id, is_urgent, payment_status, date_needed, parish, latitude, longitude")
+      .select("id, title, category, location, budget, customer_id, is_urgent, payment_status, date_needed, date_window_end, parish, latitude, longitude")
       .eq("id", jobId)
       .eq("status", "open")
       // Q392: an ownerless job (the poster deleted their account) is off every
@@ -233,7 +233,7 @@ serve(async (req) => {
 
     const jobLocation = job.location.toLowerCase();
     const matchedAt = new Date();
-    const sameDay = isSameDayJob(job.date_needed, matchedAt);
+    const sameDay = isSameDayJob(jobLastDay(job), matchedAt);
     const jobCategory = job.category.toLowerCase();
 
     // Q1844 (roadmap F4a, owner 2026-10-15): a membership tier is a paid perk,

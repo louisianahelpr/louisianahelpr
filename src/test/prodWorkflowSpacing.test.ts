@@ -103,6 +103,11 @@ export const EXEMPT: Record<string, string> = {
     "A monitor, not a suite: its only prod touch is CJ-011's cron-detectors-alive.mjs, one read-only " +
     "Management API query of cron.job / cron.job_run_details for four jobs, once a day. The rest " +
     "of the workflow reads the GitHub API. Nothing it does loads prod the way a suite does.",
+  "quota-monitor.yml":
+    "A monitor, not a suite (Q63/Q72/Q3/Q317; moved here 2026-11-04 by Q2710, lead decision 11-01 OPS-2 option A): " +
+    "four read-only checks once a day (one read_only Management API SQL statement each for quotas, analytics freshness " +
+    "and the connection budget, one Management API logs query, one Stripe TEST GET /v1/balance) plus ledger records. " +
+    "No browser, no journey, no writes; its 23:17 slot carries the nightly live smoke on Sun/Mon/Wed.",
   "feature-switch-audience.yml":
     "A monitor, not a suite (hidden feature switches, 20261012031120): one service-role read of " +
     "feature_switches (a handful of rows), one auth user lookup for its probe account, three " +
@@ -707,7 +712,9 @@ describe("prod-hitting workflow schedules", () => {
     // 07:17 and Thu 11:17; open-done-when moved Sun/Thu 05:17 -> Tue/Fri 07:17 so
     // vacuity could start at Sun 05:17 and db-drift-detect got its Sunday back.
     // 2026-11-01 (OPS-2, B65): e2e-real-backend took Thu 05:17 (4 runs a week).
-    expect(free).toEqual(["Thu 11:17"]);
+    // 2026-11-04 (Q2710, OPS-2 option A): quota-monitor left the prod-load week
+    // (EXEMPT), freeing 23:17 every day; nightly-live-smoke took Sun/Mon/Wed.
+    expect(free).toEqual(["Tue 23:17", "Thu 11:17", "Thu 23:17", "Fri 23:17", "Sat 23:17"]);
   });
 
   it("rule 5 can fail: the Q318 shape (press 03:17 with two waves, drift 05:17, backup 07:17) is red", () => {

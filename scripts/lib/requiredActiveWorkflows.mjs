@@ -51,6 +51,7 @@ export const REQUIRED_ACTIVE = [
   "main-batch.yml",
   "main-red-watch.yml",
   "morning-page.yml",
+  "nightly-live-smoke.yml",
   "nightly-red-age.yml",
   "nightly-webkit.yml",
   "press-every-control.yml",

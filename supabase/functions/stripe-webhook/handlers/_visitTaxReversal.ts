@@ -273,20 +273,28 @@ export async function reverseVisitTaxForRefund(args: {
   // Q2717: a cancel refund that stamped the job-site tax it returns (JOB_TAX_BACK_KEY) is reversed EXACTLY:
   // tax-back x (taxable + tax) / tax, the labor that tax was charged on plus the tax. Scaling the refund by
   // txTotal / card instead over-reported the kept tax by about 39c to a few dollars per cancelled gift job.
-  // An unstamped refund (an admin's, an older one) keeps the proportional share.
+  // An unstamped refund (an admin's, an older one) keeps the proportional share, unless the charge already has a
+  // stamped refund: then the stamped one has reversed exactly what the gift's return stood for, and scaling a later
+  // refund by txTotal / card would reverse the tax still due on what is kept (lh-money-escrow review of fa77e8fed2:
+  // a 5250c crew share reversed 10023c, $2.27 of tax under-reported). It then reverses its own amount only, the
+  // labor + tax that money stands for. Stamped reversals round DOWN, so rounding never under-reports.
   const siteTax = jobSiteTaxCents(piMeta);
   const stampedTaxBack = (r: Stripe.Refund): number | null => {
     const raw = (r.metadata ?? {})[JOB_TAX_BACK_KEY];
     return typeof raw === "string" && /^\d+$/.test(raw) ? Number(raw) : null;
   };
+  const anyStamped = siteTax > 0 && refunds.some((r) => stampedTaxBack(r) !== null);
   const shareInputs = giftReduced
     ? refunds.map((r) => {
       const back = stampedTaxBack(r);
+      const amount = Math.max(0, Number(r.amount ?? 0));
       return {
         ...r,
         amount: back !== null && siteTax > 0
-          ? Math.round((Math.min(back, siteTax) * txTotalCents) / siteTax)
-          : Math.round((Math.max(0, Number(r.amount ?? 0)) * txTotalCents) / chargeCents),
+          ? Math.floor((Math.min(back, siteTax) * txTotalCents) / siteTax)
+          : anyStamped
+          ? Math.round(amount)
+          : Math.round((amount * txTotalCents) / chargeCents),
       };
     })
     : refunds;

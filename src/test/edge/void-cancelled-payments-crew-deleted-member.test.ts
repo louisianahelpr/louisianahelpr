@@ -339,6 +339,7 @@ describe("void-cancelled-payments Part D: a member deleted AFTER the crew settle
   // Q2717 (lead re-review 2026-11-03): on a gift-reduced job-site charge the share's kept tax is at the job's own
   // rate (job_taxable_cents): ceil(5000 x 3000 / 60000) = 250c, not ceil(5000 x 3000 / 30000) = 500c.
   // @mutate supabase/functions/void-cancelled-payments/index.ts | keptTaxCents = taxOnKeptCents({ keptCents: cents, taxCents: chargeTax, capturedCents, taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> \| null) }); | keptTaxCents = taxOnKeptCents({ keptCents: cents, taxCents: chargeTax, capturedCents });
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | ...(keptTaxCents > 0 ? { [JOB_TAX_BACK_KEY]: | ...(false ? { [JOB_TAX_BACK_KEY]:
   it("Q2717: a gift-reduced job-site charge returns the share's kept tax at the job's rate", async () => {
     seedSettled("pi_crew");
     scenario.reads.payment_refunds = { rows: [{ stripe_refund_id: "re_cancel" }] };
@@ -350,6 +351,8 @@ describe("void-cancelled-payments Part D: a member deleted AFTER the crew settle
     const h = await load();
     await h.fetch(cronReq());
     expect((stripeMock.refunds.create.mock.calls[0][0] as { amount: number }).amount).toBe(5250);
+    // Q2717 review: the share refund carries the 250c of tax it returns, for an exact reversal.
+    expect((stripeMock.refunds.create.mock.calls[0][0] as { metadata?: Record<string, string> }).metadata?.job_tax_back_cents).toBe("250");
   });
 
   // @mutate supabase/functions/void-cancelled-payments/index.ts |             if ((cancelRefund ?? []).length > 0) { |             if (true) {

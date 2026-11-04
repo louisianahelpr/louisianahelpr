@@ -28,6 +28,7 @@ import { ApplicationNoteCard } from "./chatView/ApplicationNoteCard";
 import { buildTimeline, resolveLastOwnMessageId } from "./chatView/chatViewHelpers";
 import { CHAT_RULES_DISMISSED_KEY, readBannerDismissed } from "./chatView/chatRulesBanner";
 import { DealCard } from "./chatView/DealCard";
+import { Textarea } from "@/components/ui/textarea";
 
 /**
  * The reading column for the safety banner and the message scroller, NOT the composer's (VN-25, owner 09-14). Owner
@@ -575,7 +576,7 @@ export function ChatView({
         onPrimary={(e) => { e.preventDefault(); saveEdit(); }}
         secondaryLabel="Cancel"
       >
-        <textarea
+        <Textarea
           value={editDraft}
           onChange={(e) => setEditDraft(e.target.value)}
           rows={3}

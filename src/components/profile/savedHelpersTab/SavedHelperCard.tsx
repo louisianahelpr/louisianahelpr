@@ -6,6 +6,7 @@ import { formatName } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import type { SavedHelper } from "./types";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { Textarea } from "@/components/ui/textarea";
 
 interface SavedHelperCardProps {
   h: SavedHelper;
@@ -208,14 +209,14 @@ export function SavedHelperCard({
               border: "1px solid hsl(var(--olivewood) / 0.16)",
             }}
           >
-            <textarea
+            <Textarea
               value={noteDraft}
               onChange={(e) => setNoteDraft(e.target.value)}
               placeholder="e.g. great with painting, prefers Tuesdays"
               rows={2}
               maxLength={500}
               aria-label="Private note about this Helpr"
-              className="w-full rounded-ds-sm border border-border/40 bg-card px-2 py-1.5 text-ds-13 font-sans resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+              className="w-full rounded-ds-sm border border-border/40 bg-card px-2 py-1.5 text-ds-13 font-sans resize-none focus:outline-none focus:ring-2 focus:ring-primary/40 min-h-0"
             />
             <div className="flex items-center justify-end gap-2">
               <Button

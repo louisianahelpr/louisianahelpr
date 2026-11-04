@@ -41,7 +41,7 @@ function bodies(selector: string): string[] {
 }
 
 const decl = (body: string, prop: string) =>
-  new RegExp(`(^|[;\\s])${prop.replace(/[-]/g, "\\-")}\\s*:\\s*([^;]+);`).exec(body)?.[2].trim() ?? null;
+  new RegExp(`(^|[;\\s])${prop.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&")}\\s*:\\s*([^;]+);`).exec(body)?.[2].trim() ?? null;
 
 function has(selector: string, prop: string, value: string): boolean {
   return bodies(selector).some((b) => decl(b, prop) === `${value} !important`);

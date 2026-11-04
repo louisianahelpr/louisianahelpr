@@ -6,7 +6,8 @@
  *
  * `reads` is null unless the run passed --allow-reads; `reads.rpcs` is the
  * comma list of prod's STABLE/IMMUTABLE public functions (pg_proc.provolatile),
- * `reads.refresh` is set only for an --expired run.
+ * `reads.refresh` is set only for an --expired run. Message photo URL signing (POST
+ * /storage/v1/object/sign/message-attachments[/<path>]) is a read too.
  */
 export function allowedRead(reads, method, url, body) {
   if (!reads || method !== "POST") return null;
@@ -15,6 +16,10 @@ export function allowedRead(reads, method, url, body) {
   const rpc = /^\/rest\/v1\/rpc\/([A-Za-z0-9_]+)$/.exec(u.pathname)?.[1];
   if (rpc) return reads.rpcs.has(rpc) ? `rpc:${rpc}` : null;
   if (reads.refresh && u.pathname === "/auth/v1/token" && u.searchParams.get("grant_type") === "refresh_token") return "auth:refresh";
+  // B100 (11-04): signing message photos is a read (it mints a time-limited URL to an object the member may already
+  // read; storage's own policy decides, nothing is stored). Without it Messages drew "Couldn't load image previews"
+  // and the lab measured that error banner as the page's largest paint. This bucket only, sign only.
+  if (/^\/storage\/v1\/object\/sign\/message-attachments(\/[^?#]+)?$/.test(u.pathname)) return "storage:sign:message-attachments";
   if (u.pathname === "/functions/v1/stripe-connect") {
     let action = null;
     try { action = JSON.parse(body ?? "")?.action ?? null; } catch { /* not JSON: not the status read */ }

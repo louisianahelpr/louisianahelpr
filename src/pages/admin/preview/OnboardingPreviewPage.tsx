@@ -28,7 +28,7 @@ import { EYE_GLYPH, InertNavigation, PreviewErrorBoundary, PreviewGlyph, forgetS
 const CompleteProfile = lazy(() => import("@/pages/auth/CompleteProfile"));
 const FirstRunScreens = lazy(() => import("@/components/firstRun/FirstRun"));
 
-export const ONBOARDING_PREVIEW_STAGES = [
+const ONBOARDING_PREVIEW_STAGES = [
   { key: "profile", label: "Finish your profile" },
   { key: "picker", label: "What brings you" },
 ] as const;
@@ -36,7 +36,7 @@ export type OnboardingPreviewStage = (typeof ONBOARDING_PREVIEW_STAGES)[number][
 const isStage = (v: string | null): v is OnboardingPreviewStage => ONBOARDING_PREVIEW_STAGES.some((s) => s.key === v);
 
 /** A sign-up that stopped after step 2: no name, no city, no terms ticked, no photo. Made up. */
-export function onboardingSampleProfile(userId: string): Record<string, unknown> {
+function onboardingSampleProfile(userId: string): Record<string, unknown> {
   return {
     id: userId, user_id: userId, first_name: null, last_name: null, full_name: null, location: null, zip_code: null,
     bio: null, avatar_url: null, accepted_terms_at: null, age_attested_at: null, date_of_birth: null,

@@ -242,6 +242,7 @@ const TOUCHES_AGE_ATTESTED_AT: Record<string, string> = {
   "src/pages/auth/completeProfile/types.ts": "Complete Profile's update type",
   "src/components/ProtectedRoute.tsx": "the gate: the only reader that lets an account in",
   "src/integrations/supabase/types.ts": "generated column types",
+  "src/pages/admin/preview/OnboardingPreviewPage.tsx": "admin preview's sample unfinished profile (null, in the preview's own cache; never written)",
 };
 
 describe("only the named code touches profiles.age_attested_at", () => {

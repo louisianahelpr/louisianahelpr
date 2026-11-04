@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-04T03:37Z",
+  "measured_at": "2026-11-04T08:07Z",
   "issues": {
     "readable": true,
     "open": [
@@ -125,7 +125,7 @@
         "number": 4054,
         "title": "nightly-red: race-runner",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41756566296",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41794622077",
         "runTruncated": false
       },
       {
@@ -143,10 +143,10 @@
         "runTruncated": false
       },
       {
-        "number": 4075,
-        "title": "nightly-red: main: Supabase Edge Functions Deploy",
+        "number": 4084,
+        "title": "nightly-red: privacy-journey",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41756566443",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41792903580",
         "runTruncated": false
       }
     ]
@@ -193,6 +193,14 @@
         "status": "open",
         "title": "nightly-red: loading-states-refresh",
         "issue": 2601
+      },
+      {
+        "fingerprint": "0fa6c60d7a29c7cb3d1e008672334f57",
+        "source_kind": "sql_slack",
+        "source": "slack-ops-alert:custom",
+        "status": "open",
+        "title": "# cron http failure(s) in the last hour",
+        "issue": null
       },
       {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
@@ -707,19 +715,19 @@
         "issue": 4020
       },
       {
-        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: declutter-money returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "aeedd249577285330a97e04195cee7d8",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: refund-request-sweep returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: declutter-money returned 502",
         "issue": null
       },
       {
@@ -744,6 +752,22 @@
         "source": "user-error-screen",
         "status": "open",
         "title": "/jobs · failed to fetch dynamically imported module: <url>",
+        "issue": null
+      },
+      {
+        "fingerprint": "8d56e6dd3fad6fda653d486833683947",
+        "source_kind": "edge_slack",
+        "source": "ops-alert:custom",
+        "status": "open",
+        "title": "refund made, but the card holder was not fully told",
+        "issue": null
+      },
+      {
+        "fingerprint": "54203c9222b84c2568fda242fbc34c04",
+        "source_kind": "edge_slack",
+        "source": "ops-alert:custom",
+        "status": "open",
+        "title": "money went back to a poster who was not fully told",
         "issue": null
       }
     ]
@@ -771,7 +795,7 @@
     "issue #4054": "Q1816",
     "issue #4062": "Q1816",
     "issue #4073": "Q1816",
-    "issue #4075": "Q1816",
+    "issue #4084": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
@@ -812,6 +836,7 @@
     "ledger 4ac3e9488b48": "Q2525",
     "ledger 4b5ace7af165": "Q1596",
     "ledger 4c89303184fb": "Q1816",
+    "ledger 54203c9222b8": "Q2726",
     "ledger 5a28db44e912": "Q2410",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 5d35922623b5": "Q1596",
@@ -839,6 +864,7 @@
     "ledger 8a2e802edbe7": "Q2498",
     "ledger 8ad756b6da76": "Q1596",
     "ledger 8be078d45866": "Q2515",
+    "ledger 8d56e6dd3fad": "Q2725",
     "ledger 8f6eb3360000": "Q2507",
     "ledger 905ec49763b5": "Q2315",
     "ledger 9078a39b3304": "Q1615",

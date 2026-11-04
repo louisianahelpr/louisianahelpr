@@ -77,6 +77,7 @@ CREATE TABLE public.declutter_buyer_cards (user_id uuid PRIMARY KEY);
 INSERT INTO public.declutter_buyer_cards VALUES ('${BUYER}'), ('${NOID}');
 CREATE TABLE public.notices (user_id uuid, title text, body text);
 CREATE FUNCTION public.require_feature(text) RETURNS void LANGUAGE sql AS $$ SELECT $$;
+CREATE FUNCTION public.is_caller_banned() RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
 CREATE FUNCTION public.are_users_blocked(uuid, uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
 CREATE FUNCTION public.declutter_seller_out(uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
 CREATE FUNCTION public.seed_hidden_for(uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;

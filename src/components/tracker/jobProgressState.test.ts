@@ -196,6 +196,16 @@ describe("audit 11-01 (JA-1, JA-23)", () => {
     // Someone else (an admin): not named.
     expect(jobProgress({ ...c, cancelled_by: "admin", cancellation_reason: null, payment_status: "escrow" }, { viewer: "poster", now: NOW }).next).toBe("This job was cancelled");
   });
+  // Q2718: cancel_escrow hands a gift-paid job (card holds little beyond its tax) to the cancel sweep, so the poster's
+  // job reads cancelled while payment_status is still 'escrow' until the sweep settles it. The poster reads a plain
+  // cancelled line (who and when), never a payment-held or refunded line, while it waits.
+  it("Q2718: a poster's cancel waiting on the sweep (cancelled + escrow) reads cancelled, nothing held or refunded", () => {
+    const c: ProgressJob = { ...base, status: "cancelled", customer_id: "p", helper_id: null, cancelled_by: "p",
+      cancelled_at: "2037-10-21T14:00:00Z", cancellation_reason: null, payment_status: "escrow" };
+    const p = jobProgress(c, { viewer: "poster", now: NOW });
+    expect(p).toMatchObject({ tone: "cancelled", label: "Cancelled", waitingOnYou: false, next: "You cancelled Wed 9:00 AM" });
+    expect(p.next).not.toMatch(/held|escrow|refund/i);
+  });
   // @mutate src/components/tracker/jobProgressState.ts |     const checkBy = autoCompleteAt({ helper_completed_at: job.helper_completed_at }); |     const checkBy = null;
   it("JA-21: the Helpr who marked it done is told until when the poster has to check", () => {
     const j: ProgressJob = { ...base, status: "in_progress", helper_id: ME, helper_confirmed_at: "t", poster_confirmed_arrival_at: "t", helper_completed_at: "2037-10-21T14:30:00Z" };

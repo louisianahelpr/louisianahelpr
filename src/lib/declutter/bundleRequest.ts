@@ -13,10 +13,10 @@ import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { rpcData } from "@/lib/declutter/api";
 import { rpcErrorMessage } from "@/lib/declutter/bundleErrors";
 
-export type BundleRequestStatus = "open" | "answered" | "declined" | "expired" | "withdrawn";
-export type BundleItemOutcome = "accepted" | "not_picked" | "unavailable" | null;
+type BundleRequestStatus = "open" | "answered" | "declined" | "expired" | "withdrawn";
+type BundleItemOutcome = "accepted" | "not_picked" | "unavailable" | null;
 
-export interface BundleRequestItem {
+interface BundleRequestItem {
   item_id: string;
   price_cents: number;
   outcome: BundleItemOutcome;

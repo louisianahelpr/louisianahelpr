@@ -531,13 +531,14 @@ export function SavedSearches({
                     {savedSearchSummary(s)}
                   </p>
                 </button>
+                {/* Q2709: the shared quiet icon Button (44px tap area, the shared hover wash); [&_svg]:size-4 keeps the 16px glyphs. */}
                 <Button
                   type="button"
                   variant="ghost"
                   size="iconCompact"
                   onClick={() => toggleNotify(s)}
                   disabled={togglingId === s.id}
-                  className="shrink-0"
+                  className="shrink-0 [&_svg]:size-4 disabled:cursor-wait"
                   aria-label={s.notify_enabled ? "Mute notifications" : "Enable notifications"}
                   aria-busy={togglingId === s.id}
                   title={s.notify_enabled ? "Notifications on" : "Notifications off"}
@@ -556,7 +557,7 @@ export function SavedSearches({
                   size="iconCompact"
                   onClick={() => remove(s.id)}
                   disabled={removingId === s.id}
-                  className="shrink-0"
+                  className="shrink-0 [&_svg]:size-4 disabled:cursor-wait"
                   aria-label="Delete saved search"
                   aria-busy={removingId === s.id}
                 >

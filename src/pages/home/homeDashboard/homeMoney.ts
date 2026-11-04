@@ -24,6 +24,8 @@ export interface HomeMoney {
    * one such job the tile names it and who it is paid to ("First L.", null until the name is read).
    */
   held: { cents: number; jobs: number; only: { title: string; helper: string | null } | null } | null;
+  /** Q2706 (B98): a tile's read has not answered yet (layout only: Home holds the strip's last height meanwhile). */
+  pending?: boolean;
 }
 
 /**
@@ -75,5 +77,6 @@ export function useHomeMoney(user: SupaUser | null): HomeMoney {
     },
   });
   if (held && onlyJob?.title) held = { ...held, only: { title: onlyJob.title, helper: helperName.data ?? null } };
-  return { coming, held };
+  const pending = !!uid && ((spend.data === undefined && !spend.isError) || (earnings.data === undefined && !earnings.isError));
+  return { coming, held, pending };
 }

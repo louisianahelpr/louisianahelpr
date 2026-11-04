@@ -70,7 +70,7 @@ export function JobCardPosterFace({
       <UserAvatar userId={posterId} src={avatarUrl} name={name} pixelSize={40} className="h-5 w-5 shrink-0" />
       <span className="truncate font-sans font-medium text-foreground/80">{first}</span>
       {rated && (
-        <span className="inline-flex shrink-0 items-center gap-0.5" aria-label={`rated ${(avgRating ?? 0).toFixed(1)} from ${reviewCount} reviews`}>
+        <span role="img" className="inline-flex shrink-0 items-center gap-0.5" aria-label={`rated ${(avgRating ?? 0).toFixed(1)} from ${reviewCount} reviews`}>
           <Star aria-hidden className="w-2.5 h-2.5 shrink-0" style={{ color: "hsl(var(--burnt-sienna))", fill: "hsl(var(--burnt-sienna))" }} />
           <span className="font-sans">{(avgRating ?? 0).toFixed(1)}</span>
         </span>

@@ -1,4 +1,4 @@
-// @mutate docs/OPEN.md | - [ ] **Q2713 LOW declutter_problems | - [~] **Q2713 LOW declutter_problems
+// @mutate docs/OPEN.md | - [ ] **Q2268 LOW Board 161 | - [~] **Q2268 LOW Board 161
 // @mutate scripts/open-done-when.mjs |     .filter((name) => appFns.has(name)); |     .filter((name) => !appFns.has(name));
 // @mutate scripts/open-done-when.mjs | const PARTLY = /^- \[~\] /; | const PARTLY = /^- \[x\] /;
 // @mutate scripts/open-done-when.mjs | { kind: "issue", re: /^issue\s+#(\d+)\s+closed\b/ } | { kind: "issue", re: /^issue\s+#(\d+)\s+opened\b/ }

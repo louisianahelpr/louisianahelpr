@@ -239,8 +239,11 @@ function chainMethodNames(call, names = []) {
  * allowed after the dot; isClientEntryCall reads PropertyAccessExpressions only) or a `Postgrest…Builder` type
  * (isBuilderTypeNode). Most of the ~7,100 files (2026-11-03) name neither, so they are not parsed (Q2704: the coverage run
  * timed this walk out at 60 s). Inside hitsInSource, so every shape test below also proves the filter keeps it.
+ * A block comment's body may not contain the comment's own closing star-slash (a star is allowed only when no
+ * slash follows it), instead of a lazy any-character run: the lazy form let one comment span several and backtrack
+ * exponentially (CodeQL js/redos on PR #4080).
  */
-export const MAY_HOLD_BUILDER = /\.\s*(?:\/\*[\s\S]*?\*\/\s*|\/\/[^\n]*\n\s*)*(?:from|rpc|schema)\b|Postgrest/;
+export const MAY_HOLD_BUILDER = /\.\s*(?:\/\*(?:[^*]|\*(?!\/))*\*\/\s*|\/\/[^\n]*\n\s*)*(?:from|rpc|schema)\b|Postgrest/;
 
 export function hitsInSource(path, source) {
   if (!MAY_HOLD_BUILDER.test(source)) return [];

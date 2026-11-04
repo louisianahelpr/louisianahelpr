@@ -6,11 +6,13 @@
  * 1 ms before / at each edge:
  *   - a 50-minute estimate heads out at start - 50 min, says "about 50 minutes", and is NOT merged into Starting soon
  *     (sent 30-35 minutes before: a different moment), even with Starting soon on;
- *   - a 20-minute estimate heads out at start - 20 min; with Starting soon on it is carried by it (same moment);
+ *   - a 20-minute or a 10-minute estimate heads out at start - 20 / - 10 min, on its own even with Starting soon on
+ *     (a later moment than Starting soon's; never trim a Helpr reminder); a 32-minute one, inside Starting soon's own
+ *     30-35 window, is carried by it when that switch is on;
  *   - no estimate, or one over 120 minutes (a stale far-away position): 30 minutes, exactly as before;
  *   - an estimate under 5 minutes heads out 5 minutes before (the sweep runs every 5);
  *   - helpr_travel_pairs names who to measure (hired, 35 min - 3 h out, both points, not left, not sent, not measured
- *     in the last hour); service_role only.
+ *     in the last hour), and nobody while Apple is paused after an outage (declutter_route_health); service_role only.
  *
  *   node src/test/pglite/helprHeadOutTravel.pglite.mjs                      # GREEN
  *   NEW_MIGRATION=skip node src/test/pglite/helprHeadOutTravel.pglite.mjs   # RED: the Q2483 sweep (always 30 minutes)
@@ -103,6 +105,9 @@ await db.exec(cut("20261008203441_arrival_gps_or_poster_and_step_order.sql", "jo
 await db.exec(readFileSync(`${MIG}20261030031059_job_reminder_choices.sql`, "utf8"));
 // The state this migration lands on: Q2483's start reminders.
 await db.exec(readFileSync(`${MIG}20261030035326_helpr_start_reminders.sql`, "utf8"));
+// Q1930's shared Apple pause (20261104113516, the branch this one stacks on): its table as created there.
+await db.exec(`CREATE TABLE IF NOT EXISTS public.declutter_route_health (id boolean PRIMARY KEY DEFAULT true CHECK (id),
+  miss_until timestamptz, misses integer NOT NULL DEFAULT 0, last_miss_at timestamptz);`);
 await db.exec(`ALTER TABLE public.jobs ADD COLUMN latitude numeric, ADD COLUMN longitude numeric;
   ALTER TABLE public.profiles ADD COLUMN latitude numeric, ADD COLUMN longitude numeric;`);
 const NEW_FILE = "20261104114456_helpr_head_out_travel_time.sql";
@@ -139,7 +144,9 @@ const merged = async (n) => (await tryq(`SELECT merged FROM public.helpr_start_r
 await job(1, H(2), 50); // Starting soon off, 50-minute drive
 await job(2, H(1), 50); // Starting soon on, 50-minute drive: a different moment from Starting soon
 await job(3, H(2), 20); // Starting soon off, 20-minute drive
-await job(4, H(1), 20); // Starting soon on, 20-minute drive: carried by Starting soon
+await job(4, H(1), 20); // Starting soon on, 20-minute drive: a later moment than Starting soon, so its own
+await job(8, H(1), 10); // Starting soon on, 10-minute drive: its own, at start - 10
+await job(9, H(1), 32); // Starting soon on, 32-minute drive: inside Starting soon's 30-35 window, carried by it
 await job(5, H(2), null); // no estimate
 await job(6, H(2), 300); // a stale far-away position
 await job(7, H(2), 2); // a very short drive
@@ -160,7 +167,15 @@ await sweep("2026-11-05T19:39:59.999Z");
 check("20-minute drive: 1 ms before start - 20 min, nothing", (await sent(3)).length === 0);
 await sweep("2026-11-05T19:40:00.000Z");
 check("20-minute drive: at start - 20 min, sent, saying about 20 minutes", (await sent(3))[0]?.message === '"Job 3" starts in about 20 minutes. Head out now and tap On my way.', fmt(await sent(3)));
-check("20-minute drive, Starting soon on: carried by Starting soon (merged, nothing extra)", (await sent(4)).length === 0 && (await merged(4))[0]?.merged === true, fmt([await sent(4), await merged(4)]));
+check("20-minute drive, Starting soon on: still sent on its own (later than Starting soon; never trimmed)", (await sent(4)).length === 1 && (await merged(4))[0]?.merged === false, fmt([await sent(4), await merged(4)]));
+check("32-minute drive, Starting soon on: carried by Starting soon (same 30-35 window; merged, nothing extra)", (await sent(9)).length === 0 && (await merged(9))[0]?.merged === true, fmt([await sent(9), await merged(9)]));
+check("10-minute drive: nothing at start - 20 min", (await sent(8)).length === 0 && (await merged(8)).length === 0, fmt([await sent(8), await merged(8)]));
+await sweep("2026-11-05T19:49:59.999Z");
+check("10-minute drive: 1 ms before start - 10 min, nothing", (await sent(8)).length === 0);
+await sweep("2026-11-05T19:50:00.000Z");
+check("10-minute drive, Starting soon on: at start - 10 min, sent on its own, saying about 10 minutes",
+  (await sent(8))[0]?.message === '"Job 8" starts in about 10 minutes. Head out now and tap On my way.' && (await merged(8))[0]?.merged === false,
+  fmt([await sent(8), await merged(8)]));
 await sweep("2026-11-05T19:54:59.999Z");
 check("2-minute drive: not before start - 5 min", (await sent(7)).length === 0);
 await sweep("2026-11-05T19:55:00.000Z");
@@ -187,6 +202,12 @@ check("pairs: 34 minutes before, nobody (too late to matter)", fmt(await pairs("
 await db.exec(`UPDATE public.helpr_travel_estimates SET measured_at = '2026-11-06T17:30:00Z' WHERE job_id = '${u(34)}'`);
 check("pairs: an estimate from the last hour is not re-measured", !fmt(await pairs("2026-11-06T18:00:00.000Z")).includes(u(34)));
 check("pairs: an older one is", fmt(await pairs("2026-11-06T18:31:00.000Z")).includes(u(34)));
+await db.exec(`UPDATE public.profiles SET latitude = 95 WHERE user_id = '${H(4)}'`);
+check("pairs: a saved position out of range is never a pair (it would read as an Apple outage)", !fmt(await pairs("2026-11-06T18:31:00.000Z")).includes(u(34)), fmt(await pairs("2026-11-06T18:31:00.000Z")));
+await db.exec(`UPDATE public.profiles SET latitude = 30.22 WHERE user_id = '${H(4)}'`);
+await db.exec(`INSERT INTO public.declutter_route_health (id, miss_until) VALUES (true, '2026-11-06T18:40:00Z')`);
+check("pairs: nobody while Apple is paused after an outage", fmt(await pairs("2026-11-06T18:39:59.999Z")) === "[]", fmt(await pairs("2026-11-06T18:39:59.999Z")));
+check("pairs: measured again once the pause ends", fmt(await pairs("2026-11-06T18:40:00.000Z")).includes(u(30)), fmt(await pairs("2026-11-06T18:40:00.000Z")));
 const acl = (await tryq(`SELECT has_function_privilege('authenticated', 'public.helpr_travel_pairs(timestamptz)', 'EXECUTE') a,
   has_function_privilege('anon', 'public.helpr_travel_pairs(timestamptz)', 'EXECUTE') b,
   has_function_privilege('service_role', 'public.helpr_travel_pairs(timestamptz)', 'EXECUTE') s,

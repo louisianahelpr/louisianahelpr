@@ -9,7 +9,7 @@ import { formatJobDate } from "@/lib/dateUtils";
 export const DATE_WINDOW_EXTRA_DAYS = 6;
 
 /** "2026-11-04" + 6 -> "2026-11-10" (calendar days, no time zone shift). */
-export function addDaysYmd(ymd: string, days: number): string {
+function addDaysYmd(ymd: string, days: number): string {
   const [y, m, d] = ymd.split("-").map(Number);
   return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
 }

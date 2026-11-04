@@ -31,15 +31,15 @@ function platformNowHHMM(at: Date = new Date()): string {
 }
 
 /** Accept refuses a job whose start is 15 minutes away or less (job_starts_too_soon). */
-export const ACCEPT_LEAD_MINUTES = 15;
+const ACCEPT_LEAD_MINUTES = 15;
 /** Hiring at a suggested time refuses one less than 2 hours away (suggestion_too_soon, 20261023134752). */
-export const SUGGESTION_LEAD_MINUTES = 120;
+const SUGGESTION_LEAD_MINUTES = 120;
 
 /**
  * Q2408 (review): is today's start still at least `leadMinutes` ahead? With no start time the day counts until
  * 11:59 PM (the server's COALESCE(start_time, '23:59')). Never true once `now + lead` has crossed midnight.
  */
-export function todayStillBookable(startTime: string | null | undefined, now: Date = new Date(), leadMinutes: number = ACCEPT_LEAD_MINUTES): boolean {
+function todayStillBookable(startTime: string | null | undefined, now: Date = new Date(), leadMinutes: number = ACCEPT_LEAD_MINUTES): boolean {
   const start = (startTime || "23:59").slice(0, 5);
   const later = new Date(now.getTime() + leadMinutes * 60 * 1000);
   return platformToday(later) === platformToday(now) && platformNowHHMM(later) < start;

@@ -6,8 +6,8 @@
  *
  * @mutate src/components/postjob/LogisticsSection.tsx | <ChoicePill selected={!isToday && !isFlexibleSchedule && !weekWindow} | <ChoicePill selected={!isFlexibleSchedule && !weekWindow}
  * @mutate src/components/postjob/LogisticsSection.tsx |     setDateWindowEnd?.(null);\n    if (isToday && strip[1]) pickDay(strip[1].iso); |     setDateWindowEnd?.(null);\n    void 0;
- * @mutate src/components/postjob/LogisticsSection.tsx | onClick={() => setHelpersNeeded(String(Math.min(10, Math.max(2, crewCount + 1))))} | onClick={() => setHelpersNeeded(String(crewCount))}
- * @mutate src/components/postjob/LogisticsSection.tsx |                 disabled={crewCount <= 2} |                 disabled={false}
+ * @mutate src/components/postjob/GroupJobCard.tsx | onClick={() => setHelpersNeeded(String(Math.min(10, Math.max(2, crewCount + 1))))} | onClick={() => setHelpersNeeded(String(crewCount))}
+ * @mutate src/components/postjob/GroupJobCard.tsx |           disabled={crewCount <= 2} |           disabled={false}
  *
  * Same row (Q2615 part 2): the Group box's Helpr count was a plain number field while the budget one step earlier uses
  * - / + steppers; it now has the same stepper around the field, inside the field's own 2..10.

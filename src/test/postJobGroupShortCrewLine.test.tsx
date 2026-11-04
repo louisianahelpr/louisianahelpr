@@ -5,8 +5,8 @@
  * crew_completes_when_hired_done). The Group job block now says so, and the share reads "at least $X per Helpr"
  * (crewSmallestShare is the smallest share, so no Helpr gets less).
  *
- * @mutate src/components/postjob/LogisticsSection.tsx | will be split: at least ${formatPriceExact( | will be split: ~${formatPriceExact(
- * @mutate src/components/postjob/LogisticsSection.tsx |               If fewer Helprs sign up, the ones hired still do the job, and you get the unfilled shares back when they're paid. |               More Helprs, more help.
+ * @mutate src/components/postjob/GroupJobCard.tsx | will be split: at least ${formatPriceExact( | will be split: ~${formatPriceExact(
+ * @mutate src/components/postjob/GroupJobCard.tsx |         If fewer Helprs sign up, the ones hired still do the job, and you get the unfilled shares back when they're paid. |         More Helprs, more help.
  */
 import { useState } from "react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";

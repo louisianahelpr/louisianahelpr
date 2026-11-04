@@ -3081,6 +3081,24 @@ describe("stripe-webhook edge function", () => {
         const paged = (slackAlerts as Array<{ title?: string }>).some((a) => /Lost chargeback on a taxed recurring visit/.test(a.title ?? ""));
         expect(paged, `refunded ${refunded} before the dispute`).toBe(refunded < 5000);
       }
+
+      // Q1918 (reviewer follow-up 11-04): a reversal already recorded on the PaymentIntent (an uncaptured rest, or a
+      // refund's reversal since undone, so nothing is refunded now) is paged up front, never a mode-full reversal.
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (priorReversalKeys.length > 0) { |   if (false) {
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts | k.startsWith("tax_rev_") | k.startsWith("tax_rev_re_")
+      stripeMock.charges.retrieve.mockResolvedValue({ id: "ch_visit", amount: 5000, amount_refunded: 0 });
+      for (const key of ["tax_rev_uncaptured", "tax_rev_re_undone"]) {
+        (slackAlerts as unknown[]).length = 0;
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({
+          id: "pi_visit", amount_received: 5000, metadata: { tax_transaction_id: "tax_txn_9", [key]: "tax_txn_prior" },
+        });
+        fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue(lostEvent(`evt_lost_prior_${key}`, 5000));
+        await fn.fetch(webhookRequest(fn, "{}"));
+        expect(stripeMock.tax.transactions.createReversal, key).not.toHaveBeenCalled();
+        const page = (slackAlerts as Array<{ title?: string; message?: string }>).find((a) => /Lost chargeback on a taxed recurring visit/.test(a.title ?? ""));
+        expect(page?.message, key).toMatch(new RegExp(`already has a reversal recorded.*${key}`));
+      }
     });
 
     it("a lost chargeback whose PaymentIntent cannot be found is paged for the tax check, never dropped (Q1724)", async () => {

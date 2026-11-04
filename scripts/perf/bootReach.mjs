@@ -466,3 +466,39 @@ export function bootIconFiles(root) {
   }
   return out;
 }
+
+/**
+ * The lucide icon files the Declutter item page's static graph draws, minus the boot and Home icon chunks' (L70,
+ * 11-04): vite.config's `icons-item` group. The entriesAware icon split merges small import sets into a neighbour,
+ * so an unrelated change elsewhere (memberships retired: the admin Subscriptions screen deleted) moved 46 admin and
+ * Money icons into an icon chunk the item page loads (item route 460 -> 465 KB gz). Pinned, the item page's icons
+ * are what it draws.
+ */
+export function itemIconFiles(root) {
+  const index = fs.readFileSync(path.join(root, "node_modules/lucide-react/dist/esm/lucide-react.mjs"), "utf8");
+  const fileOf = new Map();
+  for (const m of index.matchAll(/export \{([^}]*)\} from '\.\/icons\/([^']+)\.mjs'/g)) {
+    for (const n of m[1].matchAll(/default as (\w+)/g)) fileOf.set(n[1], m[2]);
+  }
+  if (fileOf.size < 1000) throw new Error(`bootReach: read ${fileOf.size} lucide icon names from lucide-react.mjs. Fix the scan.`);
+  const iconsOf = (files) => {
+    const out = new Set();
+    for (const f of files) {
+      if (!/\.(tsx?|mjs)$/.test(f)) continue;
+      const src = stripComments(fs.readFileSync(f, "utf8"));
+      for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
+        for (const n of x[1].split(",")) {
+          const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
+          if (fileOf.has(name)) out.add(fileOf.get(name));
+        }
+      }
+    }
+    return out;
+  };
+  const out = iconsOf(staticReach(root, [path.join(root, DECLUTTER_ITEM_ROOT)]));
+  // Not the icons a guest page draws (/, /login, /signup, /browse): in this chunk they would put the item page's
+  // 38-odd icons on every guest first load (/login 247 -> 254 KB gz when they were in).
+  const guest = iconsOf(staticReach(root, [...publicRoots(root), ...GUEST_CHROME_ROOTS.map((r) => toPosix(path.join(root, r)))]));
+  const taken = new Set([...bootIconFiles(root), ...homeIconFiles(root), ...guest]);
+  return new Set([...out].filter((i) => !taken.has(i)));
+}

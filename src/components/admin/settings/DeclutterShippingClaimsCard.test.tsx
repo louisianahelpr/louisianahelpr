@@ -34,6 +34,8 @@ const state = {
   answers: {} as Record<string, { data: unknown; error: unknown }>,
   rpc: [] as [string, unknown][],
 };
+// The test-account filter (withoutTestPeople) has its own test: src/components/admin/seedRows.test.ts.
+vi.mock("@/components/admin/seedRows", async (orig) => ({ ...(await orig<typeof import("@/components/admin/seedRows")>()), withoutTestPeople: async <T,>(rows: T[]) => rows }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => state.on }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {

@@ -25,6 +25,8 @@ const updateMock = vi.fn();
 let namesResult: { data: unknown; error: unknown } = { data: [], error: null };
 const inCalls: Array<{ col: string; vals: string[] }> = [];
 
+// The test-account filter (withoutTestPeople) has its own test: src/components/admin/seedRows.test.ts.
+vi.mock("@/components/admin/seedRows", async (orig) => ({ ...(await orig<typeof import("@/components/admin/seedRows")>()), withoutTestPeople: async <T,>(rows: T[]) => rows }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     rpc: (...args: unknown[]) => rpcMock(...args),

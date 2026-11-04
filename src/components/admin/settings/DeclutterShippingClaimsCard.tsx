@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { withoutTestPeople } from "@/components/admin/seedRows";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +43,8 @@ async function fetchClaimsDue(): Promise<{ rows: ClaimDue[]; names: Record<strin
     if (words && thrown instanceof Error && Object.isExtensible(thrown)) Object.assign(thrown, { userMessage: words });
     throw thrown;
   }
+  // Owner 2026-11-04: a test seller's claim never shows on a real admin screen.
+  rows = await withoutTestPeople(rows, (r) => [r.seller_id]);
   const ids = [...new Set(rows.map((r) => r.seller_id).filter(Boolean))];
   if (ids.length === 0) return { rows, names: {} };
   const profs = unwrap(await supabase.from("profiles").select("user_id, full_name").in("user_id", ids)) ?? [];

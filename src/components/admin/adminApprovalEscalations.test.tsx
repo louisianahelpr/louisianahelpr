@@ -15,6 +15,8 @@ const rpcMock = vi.hoisted(() => vi.fn());
 const invokeMock = vi.hoisted(() => vi.fn());
 const toastMock = vi.hoisted(() => Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn(), warning: vi.fn() }));
 
+// The test-account filter (withoutTestPeople) has its own test: src/components/admin/seedRows.test.ts.
+vi.mock("@/components/admin/seedRows", async (orig) => ({ ...(await orig<typeof import("@/components/admin/seedRows")>()), withoutTestPeople: async <T,>(rows: T[]) => rows }));
 vi.mock("@/integrations/supabase/client", () => {
   const build = () => {
     const b: Record<string, unknown> = {};

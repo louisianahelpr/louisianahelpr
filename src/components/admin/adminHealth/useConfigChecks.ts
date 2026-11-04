@@ -121,7 +121,9 @@ export const useConfigChecks = () => {
         .select("id", { count: "exact", head: true })
         .eq("payment_status", "escrow")
         .not("stripe_payment_intent_id", "is", null)
-        .is("platform_fee_amount", null);
+        .is("platform_fee_amount", null)
+        // Owner 2026-11-04: a test job never turns a real admin's health check red.
+        .eq("is_seed", false);
       const feeGap = countOrNull(feeGapRes, "fee");
       checks.push(
         feeGap === null
@@ -138,7 +140,8 @@ export const useConfigChecks = () => {
         .from("jobs")
         .select("id", { count: "exact", head: true })
         .eq("payment_status", "released")
-        .not("stripe_payment_intent_id", "is", null);
+        .not("stripe_payment_intent_id", "is", null)
+        .eq("is_seed", false);
       const transferRes = await supabase
         .from("payout_transfers")
         .select("id", { count: "exact", head: true });

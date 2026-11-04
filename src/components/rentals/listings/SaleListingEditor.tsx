@@ -8,8 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { saveSaleListing, type RentalListing, type SaleListingFields } from "@/lib/rentals/listings";
 import { ACCESSIBILITY_LABEL, PARKING_LABEL, SALE_HOW_IT_WORKS } from "@/lib/rentals/listingCopy";
 import { dollarsToCents, rentalsErrorMessage } from "@/lib/rentals/copy";
-import { RentalsCard, fieldSelectClass } from "../rentalsUi";
+import { RentalsCard } from "../rentalsUi";
 import { Checks, Field, Photos, StatusActions } from "./editorParts";
+import { NativeSelect } from "@/components/ui/select";
 
 interface SaleDraft {
   headline: string;
@@ -116,18 +117,18 @@ export function SaleEditorForm({ listing, propertyId, uid }: { listing: RentalLi
           </Field>
           <div className="grid grid-cols-2 gap-2">
             <Field label="Bedrooms">
-              <select className={fieldSelectClass} value={d.beds} onChange={(e) => set("beds", e.target.value)}>
+              <NativeSelect value={d.beds} onChange={(e) => set("beds", e.target.value)}>
                 {[0, 1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
                   <option key={n} value={String(n)}>{n === 0 ? "Studio" : n}</option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
             <Field label="Bathrooms">
-              <select className={fieldSelectClass} value={d.baths} onChange={(e) => set("baths", e.target.value)}>
+              <NativeSelect value={d.baths} onChange={(e) => set("baths", e.target.value)}>
                 {[1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].map((n) => (
                   <option key={n} value={String(n)}>{n}</option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
             <Field label="Home sq ft (optional)">
               <Input inputMode="numeric" value={d.sq_ft} onChange={(e) => set("sq_ft", e.target.value)} />
@@ -139,11 +140,11 @@ export function SaleEditorForm({ listing, propertyId, uid }: { listing: RentalLi
               <Input inputMode="numeric" maxLength={4} value={d.year_built} onChange={(e) => set("year_built", e.target.value)} />
             </Field>
             <Field label="Parking">
-              <select className={fieldSelectClass} value={d.parking} onChange={(e) => set("parking", e.target.value as SaleDraft["parking"])}>
+              <NativeSelect value={d.parking} onChange={(e) => set("parking", e.target.value as SaleDraft["parking"])}>
                 {Object.entries(PARKING_LABEL).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
                 ))}
-              </select>
+              </NativeSelect>
             </Field>
           </div>
           <Checks legend="Accessibility features" options={ACCESSIBILITY_LABEL} value={d.accessibility} onChange={(v) => set("accessibility", v)} />

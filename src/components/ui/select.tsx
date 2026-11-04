@@ -3,6 +3,7 @@ import * as SelectPrimitive from "@radix-ui/react-select";
 import { Check, ChevronDown, ChevronUp } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { FIELD_SURFACE_CLS } from "./fieldSurface";
 
 const Select = SelectPrimitive.Root;
 
@@ -119,7 +120,44 @@ const SelectItem = React.forwardRef<
 SelectItem.displayName = SelectPrimitive.Item.displayName;
 
 
+/**
+ * THE native dropdown (Q2709, lead 11-04): a real <select>, so a phone opens its own wheel / menu picker (better on
+ * a phone than a popover), wearing the same field look as the shared <Input> (FIELD_SURFACE_CLS: 48 px, rounded-2xl,
+ * faint border, glass fill, olivewood focus ring) with one chevron drawn on the right. Every hand-made <select>
+ * outside src/components/ui uses this; the Radix <Select> above stays for the few places that need a styled list.
+ *
+ * Label it like any field: a <label htmlFor> pointing at its id, a wrapping <label>, or aria-label
+ * (src/test/nativeSelectShared.test.tsx checks every use has one). `className` styles the <select> itself (it can
+ * tighten the padding); `wrapperClassName` sizes the box around it (width, margin, shrink) in a row.
+ */
+const NativeSelect = React.forwardRef<
+  HTMLSelectElement,
+  React.ComponentPropsWithoutRef<"select"> & { wrapperClassName?: string }
+>(({ className, wrapperClassName, children, ...props }, ref) => (
+  // A <span>, not a <div>: some callers put the select inside its <label>, which may only hold phrasing content.
+  <span className={cn("relative block w-full min-w-0", wrapperClassName)} data-native-select="">
+    <select
+      ref={ref}
+      className={cn(
+        "flex h-12 w-full min-w-0 appearance-none text-foreground",
+        FIELD_SURFACE_CLS,
+        "pr-9 disabled:cursor-not-allowed disabled:opacity-50",
+        className,
+      )}
+      {...props}
+    >
+      {children}
+    </select>
+    <ChevronDown
+      aria-hidden
+      className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 opacity-50"
+    />
+  </span>
+));
+NativeSelect.displayName = "NativeSelect";
+
 export {
+  NativeSelect,
   Select,
   SelectValue,
   SelectTrigger,

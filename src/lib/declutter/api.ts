@@ -513,7 +513,10 @@ export async function setWatch(itemId: string, watch: boolean): Promise<string> 
 }
 
 export async function askQuestion(itemId: string, question: string): Promise<string> {
-  return rpcData(await supabase.rpc("declutter_ask_question", { p_item_id: itemId, p_question: question }), (e) => rpcErrorMessage("declutter_ask_question", e)) as string;
+  const id = rpcData(await supabase.rpc("declutter_ask_question", { p_item_id: itemId, p_question: question }), (e) => rpcErrorMessage("declutter_ask_question", e)) as string;
+  // PUSH-REACH: the seller's answer to a question is what the asker waits for; the website's push ask.
+  offerPushAfterAction();
+  return id;
 }
 
 export async function answerQuestion(questionId: string, answer: string): Promise<string> {
@@ -1278,7 +1281,7 @@ export async function respondOffer(offerId: string, action: OfferAction, amountC
  * Returns the ask's id. (declutter_claim_free, which installed app builds still call, now asks the same way.)
  */
 export async function requestFree(itemId: string): Promise<string> {
-  return rpcData(
+  const id = rpcData(
     await supabase.rpc("declutter_request_free", { p_item_id: itemId }),
     // The pause refusal carries its end date in the hint ("You can ask for free items again on November 29.").
     (e) => {
@@ -1286,6 +1289,9 @@ export async function requestFree(itemId: string): Promise<string> {
       return r?.message === "free_paused" && typeof r.hint === "string" && r.hint ? r.hint : rpcErrorMessage("declutter_request_free", e);
     },
   ) as string;
+  // PUSH-REACH: being picked for a free item starts a 48-hour pickup clock; the website's push ask.
+  offerPushAfterAction();
+  return id;
 }
 
 /**
@@ -1293,7 +1299,7 @@ export async function requestFree(itemId: string): Promise<string> {
  * (declutter_request_free_at, 20261101174857). The server refuses a time outside the giver's hours or in the past.
  */
 export async function requestFreeAt(itemId: string, pickupAt: string): Promise<string> {
-  return rpcData(
+  const id = rpcData(
     await supabase.rpc("declutter_request_free_at", { p_item_id: itemId, p_pickup_at: pickupAt }),
     (e) => {
       const r = e as { message?: unknown; hint?: unknown } | null;
@@ -1301,6 +1307,9 @@ export async function requestFreeAt(itemId: string, pickupAt: string): Promise<s
         ? r.hint : rpcErrorMessage("declutter_request_free_at", e);
     },
   ) as string;
+  // PUSH-REACH: the giver's pick (with the time already chosen) is what the asker waits for; the website's push ask.
+  offerPushAfterAction();
+  return id;
 }
 
 /** Take back the member's own ask. */

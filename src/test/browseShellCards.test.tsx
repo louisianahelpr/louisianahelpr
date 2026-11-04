@@ -189,7 +189,13 @@ describe("the shell card wears the real guest JobCard's classes", () => {
     const c = SHELL_CARD_CLASSES;
     expect(c.root).toBe(real("[data-feed-card]"));
     expect(c.inner).toBe(real("[data-feed-card] > div"));
-    expect(c.catRow).toBe(real("[data-feed-card] > div > div:first-child"));
+    expect(c.mediaRow).toBe(real("[data-feed-card] > div > div:first-child"));
+    expect(c.mediaPad).toBe(real("[data-feed-card] > div > div:first-child > div:first-child"));
+    expect(c.media).toBe(real("[data-testid=job-card-media]"));
+    expect(container.querySelector<HTMLElement>("[data-testid=job-card-media]")?.style.background).toBe(c.mediaTint);
+    expect(c.textCol).toBe(real("[data-feed-card] > div > div:first-child > div:nth-child(2)"));
+    expect(c.catRow).toBe(real("[data-feed-card] > div > div:first-child > div:nth-child(2) > div:first-child"));
+    expect(c.face).toBe(real("[data-testid=job-card-poster]"));
     expect(c.catLabel).toBe(real(".job-cat-label"));
     expect(c.title).toBe(real(".job-card-title"));
     expect(c.titleRow).toBe(container.querySelector(".job-card-title")?.parentElement?.getAttribute("class"));

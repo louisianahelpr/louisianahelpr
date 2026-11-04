@@ -223,6 +223,13 @@ export const SHELL_CARD_CLASSES = {
   amount: "font-sans leading-none tabular-nums text-ds-17",
   metaWrap: "mt-1.5 flex flex-col gap-0.5 text-ds-11 leading-tight text-muted-foreground",
   metaRow: "job-meta-row flex items-center gap-x-2 flex-nowrap max-[359px]:flex-wrap overflow-hidden",
+  // Photo-first cards (Q2043 + Q2036): the picture tile beside the text and the poster-face row, same size as the app's.
+  mediaRow: "flex items-stretch",
+  mediaPad: "pl-3 pt-3 pb-3",
+  media: "relative shrink-0 self-start w-[4.5rem] h-[4.5rem] md:w-24 md:h-24 overflow-hidden rounded-xl",
+  mediaTint: "linear-gradient(140deg, hsl(var(--primary) / 0.16), hsl(var(--primary) / 0.06))",
+  textCol: "min-w-0 flex-1",
+  face: "mt-1 flex h-5 items-center gap-1.5 min-w-0 text-ds-11 text-muted-foreground",
 };
 
 function cardHtml(job) {
@@ -233,13 +240,14 @@ function cardHtml(job) {
   const net = shellTakeHomeDollars(job).toLocaleString("en-US");
   return (
     `<div data-feed-card="" class="${c.root}"><div class="${c.inner}">` +
+    `<div class="${c.mediaRow}"><div class="${c.mediaPad}"><div class="${c.media}" style="background:${c.mediaTint}"></div></div><div class="${c.textCol}">` +
     `<div class="${c.catRow}"><span class="${c.catLabel}"><span aria-hidden="true" class="w-3.5 h-3.5 shrink-0"></span><span class="font-sans truncate">${label}</span></span></div>` +
     `<div class="${c.body}"><div class="${c.titleRow}">` +
     `<h2 class="${c.title}" style="color:hsl(var(--ink-deep));letter-spacing:-0.02em">${title}</h2>` +
     `<div class="${c.chip}" style="background:hsl(var(--bark) / 0.1);border:0.5px solid hsl(var(--bark) / 0.28)">` +
     `<span class="${c.amount}" style="font-weight:800;color:hsl(var(--bark));letter-spacing:-0.02em"><span style="font-size:0.82em;vertical-align:0.02em;margin-right:0.5px">$</span>${net}</span></div>` +
-    `</div><div class="${c.metaWrap}"><div class="${c.metaRow}"><span class="flex items-center gap-1 min-w-[3.625rem] overflow-hidden"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-2.5 h-2.5 shrink-0" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg><span class="truncate font-sans min-w-[2.75rem]">${town}</span></span></div></div>` +
-    `</div></div></div>`
+    `</div><div class="${c.metaWrap}"><div class="${c.metaRow}"><span class="flex items-center gap-1 min-w-[3.625rem] overflow-hidden"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-2.5 h-2.5 shrink-0" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg><span class="truncate font-sans min-w-[2.75rem]">${town}</span></span></div><div aria-hidden="true" class="${c.face}"></div></div>` +
+    `</div></div></div></div></div>`
   );
 }
 

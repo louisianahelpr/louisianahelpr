@@ -37,6 +37,7 @@
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       todosLoading: todosLoading && !(posted.loadError \|\| applied.loadError), |       todosLoading: false,
  * @mutate src/components/mobileNav/mobileNavHelpers.ts |   "/explore": ["/jobs", "/posts", "/declutter", "/shops", "/rentals", "/quotes"], |   "/explore": [],
  */
+import { saveReservedHeight } from "@/pages/home/homeDashboard/reservedHeight";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent, act } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
@@ -384,6 +385,9 @@ describe("Home", () => {
   });
 
   it("shows the member's sections as boxes and Customize hides one from Home too", () => {
+    // A returning visitor (Next up's height saved on this device). On a FIRST visit the blocks below Next up wait for
+    // the to-dos and money reads (homeTopSettled.ts useHoldWhileFirstVisitReads; guard homeTopWaitsForFirstWeekCards).
+    saveReservedHeight("next-up:u-shell", 120);
     const { unmount } = wrap(<HomeDashboard />);
     expect([...document.querySelectorAll("[data-section-tile]")].map((e) => e.getAttribute("data-section-tile"))).toEqual(["jobs", "declutter", "shops", "homes"]);
     unmount();

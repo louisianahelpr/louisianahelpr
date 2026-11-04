@@ -54,7 +54,8 @@ const HeroSection = () => {
             </h1>
 
             <p
-              className="mt-6 lg:mt-7 text-ds-16 sm:text-ds-17 lg:text-ds-20 leading-relaxed lg:whitespace-nowrap"
+              // eslint-disable-next-line no-restricted-syntax -- the LOCKED landing hero subhead keeps its own sizes (CLAUDE.md), exempt from the Q2027 five-size scale
+              className="mt-6 lg:mt-7 text-[16px] sm:text-[17px] lg:text-[20px] leading-relaxed lg:whitespace-nowrap"
               style={{ fontFamily: "Montserrat, system-ui, sans-serif", fontWeight: 400, color: "var(--lp-body)" }}
             >
               {es ? es.subhead : "Hire help or find work. One account, real neighbors."}

@@ -120,7 +120,8 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/profile/SupportInline.tsx": { bucket: "user-documents" },
   "src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx": { bucket: "application-attachments" },
   "src/components/RichMessageInput.tsx": { bucket: "message-attachments" },
-  "src/components/profile/CredentialsTab.tsx": { bucket: "user-documents" },
+  // The two credential pickers moved into the card (Q806); CredentialsTab still gates every file through ALLOWED_TYPES.
+  "src/components/profile/credentialsTab/CredentialCard.tsx": { bucket: "user-documents" },
   "src/components/profile/profileEditForm/PhotoNameSection.tsx": { bucket: "avatars" },
   "src/components/profile/profileEditForm/RecentWorkSection.tsx": { bucket: "avatars" },
   "src/pages/auth/signup/SignupStep2.tsx": { bucket: "avatars" },

@@ -275,7 +275,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/dashboard/applyConfirmDialog/ApplyBody.tsx` | textarea×1, checkbox/switch/radio×1 |  |  | apply-message · apply-message-help · save-default-pitch |
-| `src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx` | input×2, date/calendar×2 | date, time |  | apply-time-question · apply-time-yes · apply-time-suggest · Suggest another time · apply-time-date · apply-time-time |
+| `src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx` | input×2, date/calendar×2 | date, time |  | apply-time-question · apply-time-window · apply-time-yes · apply-time-suggest · Suggest another time · apply-time-date · apply-time-time |
 | `src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx` | input×1 | search |  | Recent searches · Search jobs · Search jobs… · Close search |
 | `src/components/sections/InlineListSearch.tsx` | input×1 | search |  | Close search |
 
@@ -347,7 +347,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/postjob/detailsSection/TitleField.tsx` | input×1 | text |  | title · title-too-long · title-contact-leak |
 | `src/components/postjob/detailsSection/VideoScope.tsx` | input×1 | file |  | Remove video |
 | `src/components/postjob/JobCategoryGroups.tsx` | input×1 | search |  | category-picker |
-| `src/components/postjob/LogisticsSection.tsx` | input×1, textarea×1 | number | 500 | job-type-label · One fewer Helpr · Number of Helprs needed · One more Helpr · when-label · flexible · need-it-today · need-it-today-note |
+| `src/components/postjob/LogisticsSection.tsx` | input×1, textarea×1 | number | 500 | job-type-label · One fewer Helpr · Number of Helprs needed · One more Helpr · when-label · flexible · week-window-note · need-it-today |
 | `src/components/postjob/MaterialsToggle.tsx` | textarea×1, checkbox/switch/radio×1 |  | 500 | include-materials · materials-note · e.g. 1 gallon of Sherwin-Williams  |
 | `src/components/postjob/SellForMeBlanks.tsx` | input×1 | text | 40 | About how many? · Suggested price |
 | `src/components/TimePickerWheel.tsx` | input×4, date/calendar×4 | time |  | time-pick-period |

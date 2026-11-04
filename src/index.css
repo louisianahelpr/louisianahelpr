@@ -3503,7 +3503,7 @@ button,
    Guard: src/test/postJobCategoryGridOrderly.test.tsx. */
 .pj-group-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; }
 .pj-group-tile { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "icon" "title" "sub"; row-gap: 0.25rem; align-content: start; justify-items: start; padding: 0.625rem 0.75rem; }
-.pj-group-tile > [data-tile-icon] { grid-area: icon; width: 1.75rem; height: 1.75rem; font-size: 15px; }
+.pj-group-tile > [data-tile-icon] { grid-area: icon; width: 1.75rem; height: 1.75rem; font-size: 16px; }
 .pj-group-tile > [data-tile-title] { grid-area: title; }
 .pj-group-tile > [data-tile-sub] { grid-area: sub; align-self: start; }
 @container (min-width: 560px) {
@@ -3813,7 +3813,7 @@ button,
   }
   body {
     font-family: Georgia, "Times New Roman", serif !important;
-    font-size: 11pt;
+    font-size: 16px;
     line-height: 1.5;
   }
   h1, h2, h3, h4, h5, h6 {
@@ -3834,7 +3834,7 @@ button,
   a[href^="http"]::after,
   a[href^="/"]::after {
     content: " (" attr(href) ")";
-    font-size: 9pt;
+    font-size: 11px;
     color: #444 !important;
   }
   /* But not for in-page anchor links — the (#data-retention) noise
@@ -3912,14 +3912,16 @@ button,
    `!important` is load-bearing here: the ds-* utilities and these overrides
    have equal specificity once the class is on <html>, so source order alone
    would leave the winner dependent on Tailwind's emit order. This is the one
-   place in the stylesheet where that trade is worth it. */
-html.senior-mode .text-ds-9  { font-size: 12px !important; line-height: 1.45 !important; }
+   place in the stylesheet where that trade is worth it.
+   Q2027 (11-04): each rung is one of the five scale sizes (13 / 16 / 20), never smaller than it was before
+   except ds-14 (17 -> 16). */
+html.senior-mode .text-ds-9  { font-size: 13px !important; line-height: 1.45 !important; }
 html.senior-mode .text-ds-10 { font-size: 13px !important; line-height: 1.45 !important; }
-html.senior-mode .text-ds-11 { font-size: 14px !important; line-height: 1.5 !important; }
-html.senior-mode .text-ds-12 { font-size: 15px !important; line-height: 1.5 !important; }
+html.senior-mode .text-ds-11 { font-size: 16px !important; line-height: 1.5 !important; }
+html.senior-mode .text-ds-12 { font-size: 16px !important; line-height: 1.5 !important; }
 html.senior-mode .text-ds-13 { font-size: 16px !important; line-height: 1.5 !important; }
-html.senior-mode .text-ds-14 { font-size: 17px !important; line-height: 1.5 !important; }
-html.senior-mode .text-ds-15 { font-size: 18px !important; line-height: 1.45 !important; }
+html.senior-mode .text-ds-14 { font-size: 16px !important; line-height: 1.5 !important; }
+html.senior-mode .text-ds-15 { font-size: 20px !important; line-height: 1.45 !important; }
 
 /* Muted greys are the first thing to fail for ageing eyes — they were chosen
    for hierarchy on a good screen in good light. Simple Mode trades some of
@@ -4761,7 +4763,7 @@ html.web-desktop .explore-switcher-bone { display: none; }
 }
 .money-chip, .money-chip * { color: hsl(var(--burnt-sienna)) !important; }
 .money-chip > :first-child { font-size: 1.25rem !important; font-weight: 800 !important; }
-.job-card-title { font-size: 1.0625rem !important; }
+.job-card-title { font-size: 1rem !important; }
 .job-cat-label { padding-left: 1rem; padding-top: 0.75rem; }
 [data-activity-card] div.pt-6 { padding-top: 2.25rem !important; }
 [data-feed-card] .job-cat-label { padding-left: 0.875rem; }
@@ -4795,7 +4797,7 @@ html.page-scrolled .page-title-card {
   border-radius: 0 !important;
   border-bottom: 0.5px solid hsl(var(--border)) !important;
 }
-html.page-scrolled .page-title-card h1 { font-size: 1.0625rem !important; margin-left: auto !important; margin-right: auto !important; }
+html.page-scrolled .page-title-card h1 { font-size: 1rem !important; margin-left: auto !important; margin-right: auto !important; }
 /* Dark: the card rules above (T2) would paint the title card as a card; it is page chrome, flat until scrolled. */
 :root[data-theme="dark"] .page-title-card { background-color: transparent !important; }
 :root.page-scrolled[data-theme="dark"] .page-title-card { background-color: hsl(var(--background) / 0.88) !important; }
@@ -4850,7 +4852,7 @@ html:not(.web-desktop).page-scrolled .sticky-title-row {
   background: hsl(var(--background));
   box-shadow: 0 0.5px 0 hsl(var(--border));
 }
-.sticky-title-row-name { opacity: 0; font-size: 17px; letter-spacing: -0.01em; }
+.sticky-title-row-name { opacity: 0; font-size: 16px; letter-spacing: -0.01em; }
 html.page-scrolled .sticky-title-row-name { opacity: 1; }
 @media (min-width: 640px) { .sticky-title-row-name { display: none; } }
 @media (prefers-reduced-motion: no-preference) {
@@ -4921,7 +4923,7 @@ html.web-desktop .chip-row {
 .category-chip-row > button,
 .chip-row > button {
   flex: 0 0 auto !important; border-radius: 9999px !important;
-  min-height: 36px; padding: 0 0.95rem !important; font-size: 0.875rem !important; font-weight: 600 !important;
+  min-height: 36px; padding: 0 0.95rem !important; font-size: 0.8125rem !important; font-weight: 600 !important;
   border: 1px solid hsl(var(--border)) !important;
   background: hsl(var(--card)) !important; background-image: none !important;
   color: hsl(var(--foreground)) !important; box-shadow: none !important;
@@ -4957,7 +4959,7 @@ html.web-desktop .chip-row {
    once scrolled, centre it over the + and bell) and in an AppPage-style
    scroller elsewhere (T4: 28px), so this one rule pins it for all of them. */
 html body .app-top-bar h1.text-page-title {
-  font-size: 1.625rem !important;
+  font-size: 1.75rem !important;
   line-height: 2rem !important;
   position: static !important;
   transform: none !important;
@@ -4965,7 +4967,7 @@ html body .app-top-bar h1.text-page-title {
   white-space: nowrap;
 }
 @media (max-width: 359px) {
-  html body .app-top-bar h1.text-page-title { font-size: 1.375rem !important; }
+  html body .app-top-bar h1.text-page-title { font-size: 1.25rem !important; }
 }
 /* Jobs' section header rides in a PageScaffold title card (Posted / Working / Browse). Zero that card's frame
    and the scaffold's top gap so the top bar lands at the same y as every other section's (SectionScreen),

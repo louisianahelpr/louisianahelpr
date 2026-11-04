@@ -22,7 +22,7 @@
  * opened-sheet leg reds).
  *
  * @mutate src/index.css | .font-display:not(.landing-h1, .landing-h1 *, .font-moment) { | .font-display-off:not(.landing-h1, .landing-h1 *) {
- * @mutate src/components/ui/sheetHeroTitle.ts | "font-display font-bold leading-tight [overflow-wrap:anywhere]" | "font-sans italic font-bold leading-tight [overflow-wrap:anywhere]"
+ * @mutate src/components/ui/sheetHeroTitle.ts | "font-display font-bold leading-tight [overflow-wrap:anywhere] text-headline-section" | "font-sans italic font-bold leading-tight [overflow-wrap:anywhere] text-headline-section"
  */
 import { test, expect, type Browser, type Page } from "../prodTest";
 import { mkdirSync } from "node:fs";

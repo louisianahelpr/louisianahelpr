@@ -25,6 +25,7 @@ import {
 } from "recharts";
 import type { ReadableJobRow } from "@/lib/jobColumns";
 import { isEarnedJob } from "@/components/profile/earningsTab/earningsTabHelpers";
+import { CHART_TICK_PX, CHART_TOOLTIP_PX } from "@/lib/chartText";
 
 // jobs.offered_to_helper_id is not client-selectable (20260915045110).
 type Job = ReadableJobRow;
@@ -228,12 +229,12 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent, firs
                 <CartesianGrid stroke={muted} strokeOpacity={0.15} vertical={false} />
                 <XAxis
                   dataKey="month"
-                  tick={{ fontSize: 11, fill: muted }}
+                  tick={{ fontSize: CHART_TICK_PX, fill: muted }}
                   axisLine={{ stroke: muted, strokeOpacity: 0.3 }}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fontSize: 11, fill: muted }}
+                  tick={{ fontSize: CHART_TICK_PX, fill: muted }}
                   axisLine={false}
                   tickLine={false}
                   width={44}
@@ -245,10 +246,10 @@ export function EarningsBreakdownCharts({ earningsJobs, feeFallbackPercent, firs
                     background: "hsl(var(--card))",
                     border: "1px solid hsl(var(--border))",
                     borderRadius: 14,
-                    fontSize: "0.8rem",
+                    fontSize: CHART_TOOLTIP_PX,
                   }}
                 />
-                {hasPriorYear && <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: "0.75rem" }} />}
+                {hasPriorYear && <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: CHART_TICK_PX }} />}
                 {hasPriorYear && (
                   <Line
                     type="monotone"

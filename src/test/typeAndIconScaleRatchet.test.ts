@@ -23,6 +23,13 @@
  * H1 "Louisiana's local partner." and its subhead in src/components/landing/HeroSection.tsx keep their own sizes.
  * Not yet on the scale (exact two-way counts, to fall to 0): inline style fontSize literals and src/index.css
  * font-size declarations outside the five.
+ * 2026-11-04 (Builder 106): 26 -> 3 inline and 19 -> 5 in index.css. Chart text (recharts takes numbers, never a
+ * className) reads the two scale sizes in src/lib/chartText.ts; the clamp() titles use .text-headline-section (20px);
+ * the senior rungs, print sheet, chip row, top-bar, card and sticky titles moved to scale sizes. Left, each relative
+ * or a floor on purpose: the PDF export's 8pt table (jsPDF points), the two 0.82em "$" glyphs (a ratio of the
+ * amount beside them, which is 16 or 20), the input zoom floor max(16px, 1em), the tracker's 0.91em and the senior
+ * card title calc() (relative so Senior Mode still scales them), and the two section-tab fit clamps (lead 11-04:
+ * never over 13px, smaller only when a phone is too narrow for the tabs).
  *
  * @mutate tailwind.config.ts |         "ds-17": ["16px", |         "ds-17": ["17px",
  * @mutate src/index.css |   --headline-section: 20px; |   --headline-section: 19px;
@@ -30,6 +37,9 @@
  * @mutate src/components/LanguageToggle.tsx | strokeWidth={1.75} aria-hidden | strokeWidth={1.8} aria-hidden
  * @mutate src/components/ui/EmptyState.tsx |             strokeWidth={1.5}\n          />\n        </div>\n      )} |             strokeWidth={1.4}\n          />\n        </div>\n      )}
  * @mutate src/components/feedback/SuccessMoment.tsx |             strokeWidth={2.5} |             strokeWidth={2.6}
+ * @mutate src/lib/chartText.ts | export const CHART_TOOLTIP_PX = 13; | export const CHART_TOOLTIP_PX = 12;
+ * @mutate src/components/analytics/AnalyticsCharts.tsx |   fontSize: CHART_TOOLTIP_PX,\n} as const; |   fontSize: "0.78rem",\n} as const;
+ * @mutate src/index.css | .job-card-title { font-size: 1rem !important; } | .job-card-title { font-size: 1.0625rem !important; }
  */
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -51,8 +61,8 @@ const STROKE_WEIGHTS = ["1.5", "1.75", "2", "2.25", "2.5", "3"];
 /** The five sizes (px). Exact. */
 const TEXT_SCALE = [11, 13, 16, 20, 28];
 /** Off-scale literals still to move onto the scale (exact; lower when one goes). */
-const INLINE_FONT_SIZE_LITERALS = 26;
-const CSS_OFF_SCALE_FONT_SIZES = 19;
+const INLINE_FONT_SIZE_LITERALS = 3;
+const CSS_OFF_SCALE_FONT_SIZES = 5;
 
 /** The locked landing hero (owner lock, CLAUDE.md): its H1 and subhead class strings are not on the scale by design. */
 function blankLockedHero(path: string, src: string): string {
@@ -121,5 +131,12 @@ describe("Q2027: icon weights and text sizes only ever shrink", () => {
     expect(decls.length).toBeGreaterThan(10);
     const off = decls.filter((d) => !onScale.has(d) && !/^var\(--headline-/.test(d) && d !== "inherit");
     expect(off.length, off.join(" | ")).toBe(CSS_OFF_SCALE_FONT_SIZES);
+  });
+
+  it("chart text (recharts takes numbers, not classes) is on the scale", () => {
+    const chart = blankComments(readFileSync(resolve(ROOT, "src/lib/chartText.ts"), "utf8"));
+    const sizes = [...chart.matchAll(/export const (CHART_\w+_PX) = (\d+);/g)].map((m) => [m[1], Number(m[2])] as const);
+    expect(sizes.length).toBeGreaterThan(1);
+    for (const [name, px] of sizes) expect(TEXT_SCALE, name).toContain(px);
   });
 });

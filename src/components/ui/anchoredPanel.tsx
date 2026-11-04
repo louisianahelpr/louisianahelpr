@@ -511,9 +511,8 @@ export function AnchoredPanelHeader({
         <div className="flex-1 min-w-0 flex items-baseline gap-2 pl-1">
           <p
             id={titleId}
-            className="font-display font-bold leading-tight truncate"
+            className="font-display font-bold leading-tight truncate text-headline-section"
             style={{
-              fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)",
               color: "hsl(var(--ink-deep))",
               letterSpacing: "-0.02em",
             }}

@@ -448,9 +448,8 @@ export function PetForm({
             {/* Type matched to DialogHero's title so the inline card and the
                 popup read as the same object at two sizes. */}
             <h2
-              className="font-display font-bold leading-tight"
+              className="font-display font-bold leading-tight text-headline-section"
               style={{
-                fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)",
                 color: "hsl(var(--ink-deep))",
                 letterSpacing: "-0.02em",
               }}

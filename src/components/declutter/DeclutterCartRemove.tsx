@@ -5,6 +5,7 @@
  * strike. It asks first in the shared ConfirmSheet (never window.confirm).
  */
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { removeCartItem, type CartLine } from "@/lib/declutter/api";
@@ -25,10 +26,10 @@ export function RemoveFromCart({ line }: { line: Pick<CartLine, "line_id" | "ite
   });
   return (
     <>
-      <button type="button" className="shrink-0 text-ds-13 font-semibold underline underline-offset-2 min-h-11 px-1"
+      <Button type="button" variant="link" size="sm" className="shrink-0 px-1 text-ds-13 font-semibold underline decoration-current underline-offset-2 text-[color:inherit]"
         aria-label={`Remove ${line.item_title} from your cart`} disabled={remove.isPending} onClick={() => setAsking(true)}>
         Remove
-      </button>
+      </Button>
       <ConfirmSheet open={asking} title="Remove it from your cart?" confirmLabel="Remove" cancelLabel="Keep it" pending={remove.isPending}
         testId="declutter-remove-cart-line" onConfirm={() => remove.mutate()} onClose={() => setAsking(false)}>
         &quot;{line.item_title}&quot; goes back on sale for everyone. Nothing is charged, and you get no strike.

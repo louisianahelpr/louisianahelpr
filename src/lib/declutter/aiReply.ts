@@ -79,3 +79,21 @@ export async function requestSuggestedFloor(itemId: string, priceCents?: number)
   if (!d || typeof d.floorCents !== "number" || !Number.isInteger(d.floorCents) || d.floorCents < 100) throw new Error("ai_unavailable");
   return { floorCents: d.floorCents, reason: typeof d.reason === "string" ? d.reason : "" };
 }
+
+/** Q2471 (2): Claude's fair offer for a buyer on someone else's live item (declutter-ai-reply, mode "offer"). Nothing is sent or saved. */
+export interface SuggestedOffer {
+  offerCents: number;
+  reason: string;
+}
+
+/** Throws Error(<code>) like requestSuggestedReply. */
+export async function requestSuggestedOffer(itemId: string): Promise<SuggestedOffer> {
+  const { data, error } = await supabase.functions.invoke("declutter-ai-reply", {
+    body: { mode: "offer", itemId },
+    timeout: REPLY_TIMEOUT_MS,
+  });
+  if (error) throw await replyFailure(error);
+  const d = data as { offerCents?: unknown; reason?: unknown } | null;
+  if (!d || typeof d.offerCents !== "number" || !Number.isInteger(d.offerCents) || d.offerCents < 100) throw new Error("ai_unavailable");
+  return { offerCents: d.offerCents, reason: typeof d.reason === "string" ? d.reason : "" };
+}

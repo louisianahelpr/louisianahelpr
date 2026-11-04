@@ -67,7 +67,8 @@ describe("declutter-ai-reply: stores nothing, answers only the item's seller", (
   it("writes no table and calls no RPC but the selling gate (and, in floor mode, the read-only price hint)", () => {
     expect(INDEX).not.toMatch(/\.(insert|update|upsert|delete)\(/);
     const rpcs = [...INDEX.matchAll(/\.rpc\(\s*"([a-z_]+)"/g)].map((m) => m[1]);
-    expect(rpcs).toEqual(["declutter_assert_can_draft_from_photos", "declutter_price_hint"]);
+    // Q2471 (2): offer mode calls the same read-only price hint (declutterOfferSuggestion.test.tsx).
+    expect([...new Set(rpcs)]).toEqual(["declutter_assert_can_draft_from_photos", "declutter_price_hint"]);
   });
 
   it("is behind the 'declutter' switch for the verified caller", () => {

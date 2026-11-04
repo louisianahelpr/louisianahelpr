@@ -30,6 +30,7 @@ import { dollarsInputToCents } from "@/lib/declutter/money";
 import { invalidateTrades } from "./declutterLightActions";
 import { useOffScreen } from "./useOffScreen";
 import { Input } from "@/components/ui/input";
+import { OfferSuggestion } from "./OfferSuggestion";
 
 /**
  * Row 36, as the step INSIDE a buy or an offer (owner, 2026-10-19): a buyer
@@ -412,6 +413,8 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
         >
           {cardSaved && <p role="status" className="text-sm font-medium" data-card-saved="">Card saved. Now send your offer.</p>}
           <label htmlFor="declutter-offer" className="text-sm font-medium">Your offer</label>
+          {/* Q2471 (2): Claude's suggested amount, one tap to fill the box. */}
+          <OfferSuggestion itemId={item.id} onUse={setAmount} />
           <div className="flex gap-2">
             <Input
               id="declutter-offer"

@@ -26,6 +26,7 @@
  * @mutate scripts/perf/readAllowance.mjs |   if (reads.refresh && u.pathname === "/auth/v1/token" | if (u.pathname === "/auth/v1/token"
  * @mutate scripts/perf/readAllowance.mjs |     return action === "status" ? "fn:stripe-connect:status" : null; |     return "fn:stripe-connect:status";
  * @mutate scripts/perf/readAllowance.mjs |   if (!/(^\|\.)supabase\.co$/.test(u.hostname)) return null; |
+ * @mutate scripts/perf/readAllowance.mjs | object\/sign\/message-attachments(\/[^?#]+)?$/ | object\/sign\/[a-z-]+(\/[^?#]+)?$/
  *
  * The MOCKED READS (2026-11-01, B72): stripe-payouts' list read calls Stripe's
  * LIVE balance server side, so it is never let through; the lab answers it in
@@ -100,6 +101,13 @@ describe("cwv-lab blocks every prod write before it measures", () => {
     }
     expect(allowedRead(reads, "POST", `${S}/functions/v1/stripe-connect`, "not json")).toBeNull();
     expect(allowedRead(reads, "POST", `${S}/functions/v1/create-checkout`, status)).toBeNull();
+    // B100: signing message photos (one or many) is a read; another bucket, an upload or a move is not.
+    expect(allowedRead(reads, "POST", `${S}/storage/v1/object/sign/message-attachments`, '{"paths":["a/b.jpg"]}')).toBe("storage:sign:message-attachments");
+    expect(allowedRead(reads, "POST", `${S}/storage/v1/object/sign/message-attachments/u1/t1/a.jpg`, '{"expiresIn":3600}')).toBe("storage:sign:message-attachments");
+    for (const p of ["/storage/v1/object/sign/credential-documents/a.jpg", "/storage/v1/object/message-attachments/u1/a.jpg", "/storage/v1/object/move", "/storage/v1/object/upload/sign/message-attachments/a.jpg"]) {
+      expect(allowedRead(reads, "POST", `${S}${p}`, "{}"), p).toBeNull();
+    }
+    expect(allowedRead(reads, "PUT", `${S}/storage/v1/object/sign/message-attachments/a.jpg`, "{}")).toBeNull();
     // Only Supabase hosts.
     expect(allowedRead(reads, "POST", "https://api.stripe.com/rest/v1/rpc/get_my_thing", "{}")).toBeNull();
   });

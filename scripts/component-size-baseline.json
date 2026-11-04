@@ -6,7 +6,6 @@
     "src/components/BrowseMap.tsx": 945,
     "src/components/dashboard/JobCard.tsx": 716,
     "src/components/dashboard/JobDetailDialog.tsx": 945,
-    "src/components/job-card/JobListPage.tsx": 618,
     "src/components/JobTracking.tsx": 1758,
     "src/components/messages/ConversationList.tsx": 1748,
     "src/components/NotificationPanel.tsx": 908,

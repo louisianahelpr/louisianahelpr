@@ -109,7 +109,7 @@
       "button": 4
     },
     "src/components/admin/AdminReferrals.tsx": {
-      "button": 3
+      "button": 2
     },
     "src/components/admin/AdminReports.tsx": {
       "button": 2
@@ -121,7 +121,7 @@
       "button": 1
     },
     "src/components/admin/AdminUsers.tsx": {
-      "button": 3
+      "button": 1
     },
     "src/components/admin/BanDialog.tsx": {
       "button": 2

@@ -109,10 +109,13 @@ export function walkFiles(dir: string, match: RegExp, out: string[] = []): strin
   return out;
 }
 
-/** Product source: no tests, no generated types, no e2e harness. */
+// supabase/functions/_shared/helpKnowledge.ts is GENERATED from src/pages/info/helpCenter/helpCenterContent.ts and the
+// Terms (supportAiHelpKnowledge.test.tsx keeps it current); this guard reads those sources, so it skips the copy.
+/** Product source: no tests, no generated types, no e2e harness, no generated Help Center mirror. */
 function productSources(): string[] {
   const ok = (f: string) =>
-    !/\.test\.[tj]sx?$/.test(f) && !/\.d\.ts$/.test(f) && !f.includes(`${path.sep}test${path.sep}`);
+    !/\.test\.[tj]sx?$/.test(f) && !/\.d\.ts$/.test(f) && !f.includes(`${path.sep}test${path.sep}`) &&
+    !f.endsWith(`${path.sep}_shared${path.sep}helpKnowledge.ts`);
   return [...walkFiles(SRC, /\.tsx?$/), ...walkFiles(EDGE, /\.tsx?$/)].filter(ok);
 }
 

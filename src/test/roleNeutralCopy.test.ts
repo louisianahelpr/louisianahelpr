@@ -65,6 +65,8 @@ const IDENTITY = [
   /\bif you(?:'|’)?re an? (helpr|poster|customer)\b/i,
 ];
 
+// supabase/functions/_shared/helpKnowledge.ts is GENERATED from src/pages/info/helpCenter/helpCenterContent.ts and the
+// Terms (supportAiHelpKnowledge.test.tsx keeps it current); this guard reads those sources, so it skips the copy.
 function walk(dir: string, out: string[]) {
   for (const name of readdirSync(dir)) {
     if (name === "node_modules" || name.startsWith(".")) continue;
@@ -72,7 +74,7 @@ function walk(dir: string, out: string[]) {
     if (statSync(full).isDirectory()) {
       if (name === "test" || name === "__tests__" || name === "tests") continue;
       walk(full, out);
-    } else if (/\.(ts|tsx)$/.test(name) && !/\.(test|spec)\.(ts|tsx)$/.test(name) && !name.endsWith(".d.ts")) {
+    } else if (/\.(ts|tsx)$/.test(name) && !/\.(test|spec)\.(ts|tsx)$/.test(name) && !name.endsWith(".d.ts") && !full.endsWith(path.join("_shared", "helpKnowledge.ts"))) {
       out.push(full);
     }
   }

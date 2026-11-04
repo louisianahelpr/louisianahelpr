@@ -55,7 +55,7 @@ export function ShipItRow({ itemId, small, category, rowClassName }: { itemId: s
     <li className={`${rowClassName} flex-col items-stretch`} data-ship-it-row="">
       <div className="space-y-2">
         {cur.preset === null && (
-          <label className="flex items-start gap-3 text-ds-13">
+          <label className="flex min-h-11 items-start gap-3 text-ds-13">
             <Checkbox checked={ticked} onCheckedChange={(v) => setTicked(v === true)} aria-labelledby={`ship-restricted-${itemId}`} />
             <span id={`ship-restricted-${itemId}`}>
               Nothing in it is on the USPS restricted list: no sprays, perfume, nail polish, batteries, matches or lighters.

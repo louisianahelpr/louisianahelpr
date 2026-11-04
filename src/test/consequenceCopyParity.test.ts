@@ -459,6 +459,9 @@ describe("review-turnaround promises come from reviewSla", () => {
      */
     // @two-way src/test/consequenceCopyParity.test.ts:const stale = Object.keys(KNOWN)
     const KNOWN: Record<string, string> = {
+      "src/pages/info/declutterShippingCopy.ts":
+        "the seller's ship-by window, 'within 3 business days', delivered by public.declutter_ship_by (business days from paid); " +
+        "not an admin review turnaround",
       // src/components/IDVPromptDialog.tsx ("usually within 24 hours") was
       // deleted with the identity requirement (owner, 2026-10-01; migration
       // 20261001222911_remove_idv_requirement), so it left the inventory.

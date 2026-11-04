@@ -71,11 +71,14 @@ const isTest = (f: string) => /\.(test|spec)\.[cm]?[jt]sx?$/.test(f) || f.starts
 const isAdmin = (f: string) => /(^|\/)admin(\/|-)/.test(f) || /\/Admin[A-Z][^/]*\.tsx?$/.test(f);
 
 /** Member-facing TS/TSX: src (tracked) and every edge function. */
+// supabase/functions/_shared/helpKnowledge.ts is GENERATED from src/pages/info/helpCenter/helpCenterContent.ts and the
+// Terms (supportAiHelpKnowledge.test.tsx keeps it current); this guard reads those sources, so it skips the copy.
+const HELP_KNOWLEDGE_MIRROR = "supabase/functions/_shared/helpKnowledge.ts";
 export function memberSourceFiles(): string[] {
   const src = trackedFiles("src").filter((f) => /\.(ts|tsx)$/.test(f) && !isTest(f) && !isAdmin(f) && !f.startsWith("src/integrations/"));
   const edge = walkSource([resolve(ROOT, "supabase/functions")], [".ts", ".tsx"])
     .map((f) => f.slice(ROOT.length + 1))
-    .filter((f) => !isTest(f) && !isAdmin(f));
+    .filter((f) => !isTest(f) && !isAdmin(f) && f !== HELP_KNOWLEDGE_MIRROR);
   return [...src, ...edge].sort();
 }
 

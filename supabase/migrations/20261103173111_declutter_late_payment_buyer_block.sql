@@ -148,7 +148,7 @@ BEGIN
       -- CHANGED (Q1926 buyer half): "every cent" only when every cent comes back.
       PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Your strike was removed',
         CASE WHEN v_reason = 'buyer_cancelled'
-             THEN 'You paid in time, so the missed-checkout strike is gone. The hold on the item had already ended, so your payment is coming back to your card, less the card fee, because you blocked the seller.'
+             THEN 'You paid in time, so the missed-checkout strike is gone. The hold on the item had already ended, so your payment is coming back to your card, minus what your card company charged, because you blocked the seller.'
              ELSE 'You paid in time, so the missed-checkout strike is gone. The hold on the item had already ended, so every cent is coming back to your card.' END,
         '/declutter?view=cart', o.seller_id);
       v_refund := public.declutter_record_refund(o.id, p_payment_intent_id, v_reason, p_amount_cents, p_card_fee_cents);

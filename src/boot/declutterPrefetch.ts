@@ -71,7 +71,11 @@ export function startDeclutterPrefetch(pathname: string): void {
     .catch(() => null);
   (window as unknown as Record<string, unknown>)[DECLUTTER_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, answer };
   // B96 (Q2705/Q2708): the first cards' photos start from the answer, not after the app draws and renders the grid.
-  void answer.then((a) => {
+  // Only when the link opens on Browse (no ?tab= or tab=browse, no ?view= other than browse: useSectionTab and
+  // DeclutterHomeView's rule); another tab never draws these cards, so their photos would only take its bandwidth.
+  const q = new URLSearchParams(location.search);
+  const opensOnBrowse = (q.get("tab") ?? "browse") === "browse" && (q.get("view") ?? "browse") === "browse";
+  if (opensOnBrowse) void answer.then((a) => {
     for (const p of firstCardPhotoPreloads(base, a, session.userId)) {
       const link = document.createElement("link");
       link.rel = "preload";

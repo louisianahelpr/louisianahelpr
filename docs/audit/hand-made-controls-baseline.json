@@ -68,9 +68,6 @@
     "src/components/SosShareButton.tsx": {
       "button": 2
     },
-    "src/components/SuggestCategory.tsx": {
-      "button": 1
-    },
     "src/components/TimeRangeField.tsx": {
       "button": 2
     },

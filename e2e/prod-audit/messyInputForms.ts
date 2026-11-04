@@ -717,7 +717,8 @@ export const FORMS: FormSpec[] = [
       }
       await name.waitFor({ timeout: 15_000 });
     },
-    covers: ["src/components/profile/CredentialsTab.tsx"],
+    // CredentialCard.tsx (b99-profiles, 11-04): the same card's fields, split out of CredentialsTab; the same sweep types into them.
+    covers: ["src/components/profile/CredentialsTab.tsx", "src/components/profile/credentialsTab/CredentialCard.tsx"],
   },
   {
     // The AI builder opens from the first screen's "Describe it with AI" link (EntryChoice.tsx, JA-41).

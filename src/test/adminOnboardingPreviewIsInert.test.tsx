@@ -1,5 +1,5 @@
 /**
- * Q2664 (b) (audit 1102d): the sign-up screens after step 2 that no test account can reach without a write (the
+ * Q2664 (b) (audit 1102d, 2026-11-04): the sign-up screens after step 2 that no test account can reach without a write (the
  * unfinished Complete your profile form, the first-run picker) are drawn by /admin/preview/onboarding, inertly:
  *  - the form draws on a blank sample profile held in the preview's own cache, never the admin's real (finished)
  *    one, which would send the page to /home; the app's own cache entry is never changed;

@@ -16,7 +16,7 @@
  * @mutate supabase/migrations/20261031004529_declutter_handover_both_confirm.sql |                            AND o.handover NOT IN ('seller_delivery', 'meetup', 'ship')) THEN 'paid_buyer' |                            AND o.handover NOT IN ('seller_delivery', 'meetup')) THEN 'paid_buyer'
  * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |                        WHEN NEW.handover = 'ship' THEN 'f1_ship' | WHEN NEW.handover = 'shipX' THEN 'f1_ship'
  * @mutate supabase/migrations/20261030000030_shipping_s2_ship_handover.sql |   IF EXISTS (SELECT 1 FROM public.declutter_orders o WHERE o.id = NEW.order_id AND o.handover = 'ship') THEN | IF false THEN
- * @mutate supabase/migrations/20261103202118_declutter_porch_got_it_waits_for_photo.sql |   IF o.handover = 'ship' AND NOT EXISTS ( | IF false AND NOT EXISTS (
+ * @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |   IF o.handover = 'ship' AND NOT EXISTS ( | IF false AND NOT EXISTS (
  */
 import { describe, expect, it } from "vitest";
 import { blankSqlComments } from "./helpers/blankNonCode";

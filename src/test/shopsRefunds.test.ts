@@ -17,7 +17,7 @@
  *
  * @mutate supabase/migrations/20261101234732_declutter_manager_payout_admin_held.sql | attempts = 0, reversals = least(reversals + 1, 100), | attempts = 0,
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     UPDATE public.payout_settlements SET voided_at = now(), voided_reason = v_why | PERFORM 1; UPDATE public.payout_settlements SET voided_reason = voided_reason
- * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |   SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;\n  IF NOT FOUND OR o.buyer_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';\n  END IF;\n  o := public.shop_lock_open_charged_order(o.id, false);\n  -- 2. |
+ * @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |   SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;\n  IF NOT FOUND OR o.buyer_id IS DISTINCT FROM v_uid THEN\n    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'PT404';\n  END IF;\n  o := public.shop_lock_open_charged_order(o.id, false);\n  -- 2. |
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault') THEN 'keep_card_fee'\n | \n
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |              ELSE ceil(p_kept::numeric * p_tax / (p_paid - p_tax))::integer END; |              ELSE 0 END;
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |   CONSTRAINT shop_refunds_policy CHECK (fee_policy = public.shop_refund_fee_policy(reason)), |

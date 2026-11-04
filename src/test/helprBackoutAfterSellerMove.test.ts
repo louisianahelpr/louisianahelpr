@@ -37,7 +37,8 @@ describe("LEAD-MOVE-BACKOUT: backing out after the seller's move is free", () =>
       const fn = newestFunction(name);
       const body = flat(fn.body);
       // helpr_route_suggestions: restated by Q2390 packet 13 (20261103061500, ERRCODE-only) with every line kept.
-      if (name === "helpr_route_suggestions") expect(fn.file >= "20261031102758", name).toBe(true);
+      // helpr_task_accept: restated by Q2390's last member packet (20261104175521, ERRCODE-only) with every line kept.
+      if (name === "helpr_route_suggestions" || name === "helpr_task_accept") expect(fn.file >= "20261031102758", name).toBe(true);
       else expect(fn.file, name).toContain("20261031102758");
       expect(body.length, name).toBeGreaterThan(2000);
       expect(body, name).toContain(PAUSE_COUNT);

@@ -3877,6 +3877,81 @@ export type Database = {
           },
         ]
       }
+      declutter_delivery_quotes_shown: {
+        Row: {
+          buyer_id: string
+          delivery_cents: number
+          quoted_at: string
+          seller_id: string
+        }
+        Insert: {
+          buyer_id: string
+          delivery_cents: number
+          quoted_at?: string
+          seller_id: string
+        }
+        Update: {
+          buyer_id?: string
+          delivery_cents?: number
+          quoted_at?: string
+          seller_id?: string
+        }
+        Relationships: []
+      }
+      declutter_route_health: {
+        Row: {
+          id: boolean
+          last_miss_at: string | null
+          miss_until: string | null
+          misses: number
+        }
+        Insert: {
+          id?: boolean
+          last_miss_at?: string | null
+          miss_until?: string | null
+          misses?: number
+        }
+        Update: {
+          id?: boolean
+          last_miss_at?: string | null
+          miss_until?: string | null
+          misses?: number
+        }
+        Relationships: []
+      }
+      declutter_route_miles: {
+        Row: {
+          d_lat: number
+          d_lng: number
+          miles: number
+          minutes: number | null
+          o_lat: number
+          o_lng: number
+          routed_at: string
+          source: string
+        }
+        Insert: {
+          d_lat: number
+          d_lng: number
+          miles: number
+          minutes?: number | null
+          o_lat: number
+          o_lng: number
+          routed_at?: string
+          source?: string
+        }
+        Update: {
+          d_lat?: number
+          d_lng?: number
+          miles?: number
+          minutes?: number | null
+          o_lat?: number
+          o_lng?: number
+          routed_at?: string
+          source?: string
+        }
+        Relationships: []
+      }
       declutter_seller_deliveries: {
         Row: {
           buyer_id: string
@@ -17293,6 +17368,15 @@ export type Database = {
       }
       declutter_review_tags_for: { Args: { p_side: string }; Returns: string[] }
       declutter_road_miles: { Args: { p_lat1: number; p_lat2: number; p_lng1: number; p_lng2: number }; Returns: number }
+      declutter_route_outage: { Args: { p_minutes: number }; Returns: undefined }
+      declutter_record_quote_shown: {
+        Args: { p_at: string; p_buyer: string; p_cents: number; p_seller: string }
+        Returns: undefined
+      }
+      declutter_route_pairs: {
+        Args: { p_buyer: string; p_seller: string }
+        Returns: { d_lat: number; d_lng: number; o_lat: number; o_lng: number }[]
+      }
       declutter_sale_decided: { Args: { p_order_id: string }; Returns: boolean }
       declutter_sale_final: { Args: { p_order_id: string }; Returns: boolean }
       declutter_save_card: {

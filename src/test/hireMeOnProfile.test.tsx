@@ -35,7 +35,7 @@ vi.mock("@/hooks/usePageMeta", () => ({ usePageMeta: () => undefined }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: signedIn, ready: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: myHandle ? { handle: myHandle } : null }) }));
 vi.mock("@/lib/nativeShare", () => ({ shareNative: vi.fn(async () => "shared") }));
-vi.mock("sonner", () => ({ toast: { error: (...a: unknown[]) => toastError(...a), success: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (...a: unknown[]) => toastError(...a), success: vi.fn() }) }));
 
 const { default: PublicProfilePage } = await import("@/pages/u/PublicProfilePage");
 const { buildJobInsertPayload } = await import("@/pages/post-job/jobSubmitHelpers");

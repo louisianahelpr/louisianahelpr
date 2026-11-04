@@ -3,12 +3,13 @@
  * (notifications.actor_id, 20261104060659) and the bell shows that member's photo or initials in place of the
  * type icon. CLASS, in the NEWEST definitions: (1) one BEFORE INSERT trigger stamps auth.uid() as the actor only
  * on a job notice, never for the recipient or an admin, and overwrites any actor a member passed (no forged
- * faces); (2) the purge's anonymized_at stamp clears the departed member's actor_id; both functions are definers
+ * faces), nor across a block either way; (2) the purge's anonymized_at stamp clears the departed member's actor_id; both functions are definers
  * with EXECUTE revoked from PUBLIC, anon, authenticated; (3) the bell row renders the face when the actor is
  * known and the type icon otherwise, and the panel hands each row its face.
- * Backend proof: src/test/pglite/notificationActorFace.pglite.mjs (11 PASS x3; NEW_MIGRATION=skip 8 FAIL).
+ * Backend proof: src/test/pglite/notificationActorFace.pglite.mjs (15 PASS x3; NEW_MIGRATION=skip FAILs; the pre-review body fails the 3 block-and-settle cases).
  *
- * @mutate supabase/migrations/20261104060659_notification_actor_face.sql |      AND NOT public.has_role(v_uid, 'admin') THEN |      THEN
+ * @mutate supabase/migrations/20261104060659_notification_actor_face.sql |      AND NOT public.has_role(v_uid, 'admin')\n |      AND true\n
+ * @mutate supabase/migrations/20261104060659_notification_actor_face.sql |                          OR (b.blocker_id = NEW.user_id AND b.blocked_id = v_uid)) THEN |                          OR false) THEN
  * @mutate supabase/migrations/20261104060659_notification_actor_face.sql |   UPDATE public.notifications SET actor_id = NULL WHERE actor_id = OLD.user_id; |   NULL;
  * @mutate supabase/migrations/20261104060659_notification_actor_face.sql | REVOKE ALL ON FUNCTION public.notifications_stamp_actor() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.notifications_stamp_actor() FROM PUBLIC;
  * @mutate src/components/notificationPanel/NotificationLeading.tsx |   if (n.actor_id && face) { |   if (false) {
@@ -52,7 +53,10 @@ describe("job notices show the face of the member who caused them (Q2037)", () =
     const b = body("notifications_stamp_actor");
     expect(b).toMatch(/SECURITY DEFINER/i);
     expect(b).toMatch(/v_uid uuid := auth\.uid\(\)/);
-    expect(b).toMatch(/NEW\.job_id IS NOT NULL\s+AND v_uid IS DISTINCT FROM NEW\.user_id\s+AND NOT public\.has_role\(v_uid, 'admin'\) THEN\s+NEW\.actor_id := v_uid;\s+ELSE\s+NEW\.actor_id := NULL;/);
+    expect(b).toMatch(/NEW\.job_id IS NOT NULL\s+AND v_uid IS DISTINCT FROM NEW\.user_id\s+AND NOT public\.has_role\(v_uid, 'admin'\)\s+AND NOT EXISTS \(SELECT 1 FROM public\.user_blocks b[\s\S]*?\) THEN\s+NEW\.actor_id := v_uid;\s+ELSE\s+NEW\.actor_id := NULL;/);
+    // a block either way hides the face (block_user_and_settle must not say who blocked whom; authz review 11-04)
+    expect(b).toMatch(/b\.blocker_id = v_uid AND b\.blocked_id = NEW\.user_id/);
+    expect(b).toMatch(/b\.blocker_id = NEW\.user_id AND b\.blocked_id = v_uid/);
     const trig = newestStatement(/CREATE TRIGGER\s+trg_notifications_stamp_actor[\s\S]*?;/gi);
     expect(trig).toMatch(/BEFORE INSERT ON public\.notifications/i);
     const revoke = newestStatement(/REVOKE ALL ON FUNCTION public\.notifications_stamp_actor\(\) FROM[^;]*;/gi);

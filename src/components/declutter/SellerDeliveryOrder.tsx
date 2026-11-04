@@ -15,6 +15,7 @@
  * rescheduled once. never cancelled."; migration 20261030002630 makes both cancel RPCs refuse).
  */
 import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -47,8 +48,6 @@ import { bookByWords } from "@/lib/declutter/orderPickupTimes";
 import { OrderTalkButton } from "./DeclutterOrderTalk";
 
 // min-h-11: the 44px tap floor (they were 36px; Declutter audit 2026-10-28).
-const btn = "min-h-11 rounded-full border border-border px-4 py-2 text-sm font-semibold";
-const primary = "btn-grad-primary !text-[hsl(var(--parchment))] min-h-11 rounded-full px-4 py-2 text-sm font-semibold";
 
 /** The Louisiana calendar day of an instant, "2026-11-01" (sorts as text). */
 const LA_DAY = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" });
@@ -168,8 +167,8 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
         <div className="rounded-xl border border-border px-3 py-2 text-sm space-y-2" role="status">
           <p>{b.proposed_by === b.side ? `You asked to move it to ${slotLabel(b.proposed_start)}.` : `The ${b.proposed_by} asked to move it to ${slotLabel(b.proposed_start)}.`}</p>
           <div className="flex flex-wrap gap-2">
-            {can.answerProposal && !noShowWaiting && <button type="button" className={primary} disabled={busy} onClick={() => answer.mutate(true)}>Accept the new time</button>}
-            <button type="button" className={btn} disabled={busy} onClick={() => answer.mutate(false)}>{can.withdrawProposal ? "Take back my request" : "Keep the current time"}</button>
+            {can.answerProposal && !noShowWaiting && <Button type="button" variant="primary" size="sm" disabled={busy} onClick={() => answer.mutate(true)}>Accept the new time</Button>}
+            <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => answer.mutate(false)}>{can.withdrawProposal ? "Take back my request" : "Keep the current time"}</Button>
           </div>
         </div>
       )}
@@ -179,19 +178,19 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
             {b.handoff === "leave" ? "Photo of the items at the buyer's door (needed, taken there)" : "Photo of the handover (optional, taken at the buyer's address)"}
           </label>
           <PhotoPickButton id={fileId} picked={photo} disabled={busy} onPick={setPhoto} />
-          <button type="button" className={primary} disabled={busy || (b.handoff === "leave" && !photo)} onClick={() => delivered.mutate(undefined)}>
+          <Button type="button" variant="primary" size="sm" disabled={busy || (b.handoff === "leave" && !photo)} onClick={() => delivered.mutate(undefined)}>
             {b.handoff === "hand" ? "Handed over" : "Delivered"}
-          </button>
+          </Button>
         </div>
       )}
       <div className="flex flex-wrap gap-2" data-seller-delivery-actions="">
         {/* AUD31-2: past its window and never marked delivered, the delivery is late: "It wasn't delivered" leads (the
             main button) and "Ask for a new time" follows; "I got it" stays, after them, as an ordinary button. */}
-        {late && <button type="button" className={primary} disabled={busy} onClick={() => setAsk("notDelivered")}>It wasn't delivered</button>}
-        {can.gotIt && !problemOpen && !late && <button type="button" className={primary} disabled={busy} onClick={() => setAsk("gotIt")}>I got it</button>}
-        {can.askNewTime && !noShowWaiting && <button type="button" className={btn} disabled={busy} onClick={() => setMoving((m) => !m)}>{b.status === "needs_time" && b.side === "buyer" ? "Pick a time" : "Ask for a new time"}</button>}
-        {can.gotIt && !problemOpen && late && <button type="button" className={btn} disabled={busy} onClick={() => setAsk("gotIt")}>I got it</button>}
-        {!problemOpen && <button type="button" className={btn} onClick={onProblem}>Report a problem</button>}
+        {late && <Button type="button" variant="primary" size="sm" disabled={busy} onClick={() => setAsk("notDelivered")}>It wasn't delivered</Button>}
+        {can.gotIt && !problemOpen && !late && <Button type="button" variant="primary" size="sm" disabled={busy} onClick={() => setAsk("gotIt")}>I got it</Button>}
+        {can.askNewTime && !noShowWaiting && <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => setMoving((m) => !m)}>{b.status === "needs_time" && b.side === "buyer" ? "Pick a time" : "Ask for a new time"}</Button>}
+        {can.gotIt && !problemOpen && late && <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => setAsk("gotIt")}>I got it</Button>}
+        {!problemOpen && <Button type="button" variant="outline" size="sm" onClick={onProblem}>Report a problem</Button>}
       </div>
       {ask && (
         <ConfirmSheet open title={ASK[ask].title} confirmLabel={ASK[ask].confirm} cancelLabel={ASK[ask].cancel} pending={busy} testId={`seller-delivery-${ask}`}
@@ -258,9 +257,9 @@ function NewTimePicker({ orderId, current, onDone }: { orderId: string; current:
       <div role="radiogroup" aria-label="New delivery time" className="flex flex-wrap gap-2">
         {shown.slots.map((s) => <ChoicePill key={s} selected={sameSlot(s, slot)} onClick={() => setSlot(s)}>{slotTimeLabel(s, times.data?.slot_minutes)}</ChoicePill>)}
       </div>
-      <button type="button" className={primary} disabled={!slot || propose.isPending} onClick={() => propose.mutate()}>
+      <Button type="button" variant="primary" size="sm" disabled={!slot || propose.isPending} onClick={() => propose.mutate()}>
         {current.status === "needs_time" && current.side === "buyer" ? "Book this time" : "Ask for this time"}
-      </button>
+      </Button>
     </div>
   );
 }

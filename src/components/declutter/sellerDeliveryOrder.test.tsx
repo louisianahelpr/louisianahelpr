@@ -6,10 +6,10 @@
  * Owner 2026-10-29 (Q2477, "once they pay it can only be rescheduled once. never cancelled."): neither side
  * has a cancel button on a paid delivery (migration 20261030002630 makes both cancel RPCs refuse).
  *
- * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         <button type="button" className={btn} onClick={onProblem}>Report a problem</button> |         <button type="button" className={btn}>Cancel order</button><button type="button" className={btn}>Cancel delivery</button><button type="button" className={btn} onClick={onProblem}>Report a problem</button>
- * @mutate src/components/declutter/SellerDeliveryOrder.tsx | onClick={() => setAsk("notDelivered")}>It wasn't delivered</button>} | onClick={() => notDelivered.mutate(undefined)}>It wasn't delivered</button>}
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         <Button type="button" variant="outline" size="sm" onClick={onProblem}>Report a problem</Button> |         <Button type="button" variant="outline" size="sm">Cancel order</Button><Button type="button" variant="outline" size="sm">Cancel delivery</Button><Button type="button" variant="outline" size="sm" onClick={onProblem}>Report a problem</Button>
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx | onClick={() => setAsk("notDelivered")}>It wasn't delivered</Button>} | onClick={() => notDelivered.mutate(undefined)}>It wasn't delivered</Button>}
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |   const late = can.notDelivered && !noShowWaiting; |   const late = false;
- * @mutate src/components/declutter/SellerDeliveryOrder.tsx | !late && <button type="button" className={primary} disabled={busy} onClick={() => setAsk("gotIt")}>I got it</button>} | !late && <button type="button" className={primary} disabled={busy} onClick={() => gotIt.mutate(undefined)}>I got it</button>}
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx | !late && <Button type="button" variant="primary" size="sm" disabled={busy} onClick={() => setAsk("gotIt")}>I got it</Button>} | !late && <Button type="button" variant="primary" size="sm" disabled={busy} onClick={() => gotIt.mutate(undefined)}>I got it</Button>}
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx | title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} onRetry={() => void booking.refetch()} /> | title="We couldn't load this delivery." body={sellerDeliveryErrorMessage(booking.error)} />
  * #7 (deep audit 2026-10-28): before the delivery day the buyer is told when "I got it" comes, and gets no button.
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         {b.side === "buyer" && !can.gotIt && !problemOpen && b.order_status === "paid" |         {false && b.order_status === "paid"
@@ -178,9 +178,9 @@ describe("seller-delivery order: the money moments ask in the app", () => {
 // Audit 1030 DB-2 (live run A): with a problem report open, the delivery panel still offered "I got it" (which then
 // failed: the server refuses it with problem_open), the "Tap I got it ... 24 hours to report a problem" line and a
 // second "Report a problem". While a problem is open the panel offers none of them; the card's note says why.
-// @mutate src/components/declutter/SellerDeliveryOrder.tsx | {can.gotIt && !problemOpen && !late && <button | {can.gotIt && !late && <button
+// @mutate src/components/declutter/SellerDeliveryOrder.tsx | {can.gotIt && !problemOpen && !late && <Button | {can.gotIt && !late && <Button
 // @mutate src/components/declutter/SellerDeliveryOrder.tsx | {problemOpen ? null : b.side === "buyer" ? | {b.side === "buyer" ?
-// @mutate src/components/declutter/SellerDeliveryOrder.tsx | {!problemOpen && <button type="button" className={btn} onClick={onProblem}> | {<button type="button" className={btn} onClick={onProblem}>
+// @mutate src/components/declutter/SellerDeliveryOrder.tsx | {!problemOpen && <Button type="button" variant="outline" size="sm" onClick={onProblem}> | {<Button type="button" variant="outline" size="sm" onClick={onProblem}>
 // @mutate src/components/declutter/SellerDeliveryOrder.tsx | !can.gotIt && !problemOpen && b.order_status | !can.gotIt && b.order_status
 describe("DB-2: a problem is open on the delivery", () => {
   beforeEach(() => {

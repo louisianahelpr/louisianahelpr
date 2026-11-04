@@ -8,6 +8,7 @@
  * back, the seller taps "I got it back", and only then is the refund sent.
  */
 import { useState, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchMyHandover } from "@/lib/declutter/handover";
 import { toast } from "sonner";
@@ -48,8 +49,6 @@ import { SellerSideFields, SellerSideShown } from "./DeclutterRefundSellerSide";
 import { decidesBy } from "@/lib/declutter/decideBy";
 import { Textarea } from "@/components/ui/textarea";
 
-const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
-const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 /** Audit 1028 part 2, D2-15: the amount is a few digits; a full-width box read as a text field. */
 const amountInput = `${input} max-w-[12rem]`;
@@ -164,7 +163,7 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
     if (!open) {
       return (
         <div className="space-y-1">
-          <button type="button" className={btn} onClick={() => setOpen(true)}>Ask for a refund</button>
+          <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>Ask for a refund</Button>
           {v.window_ends_at && <p className="text-ds-12 text-muted-foreground">Something wrong with it? You can ask until {at(v.window_ends_at)}.</p>}
         </div>
       );
@@ -190,8 +189,8 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
           {reason === "not_received" ? `Since you never got it, there's nothing to give back: if ${who} agrees, it is sent right away.` : `For a full refund you give the item back first; it is sent once ${who} confirms they have it.`}
         </p>
         <div className="flex flex-wrap gap-2">
-          <button type="button" className={primary} disabled={ask.isPending || !note.trim()} onClick={() => ask.mutate()}>Send to the seller</button>
-          <button type="button" className={btn} disabled={ask.isPending} onClick={() => setOpen(false)}>Not now</button>
+          <Button type="button" variant="primary" size="sm" disabled={ask.isPending || !note.trim()} onClick={() => ask.mutate()}>Send to the seller</Button>
+          <Button type="button" variant="outline" size="sm" disabled={ask.isPending} onClick={() => setOpen(false)}>Not now</Button>
         </div>
       </fieldset>
     );
@@ -203,7 +202,7 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
           {/* A3-20: the shared next-step line, deadline after the dot; what happens after it stays in words. */}
           <NextStep value={{ who: "them", text: `Waiting on ${who} to answer your refund request`, by: at(r.answer_by) }} />
           <p className="text-ds-12 text-muted-foreground">If {who} doesn't answer by then, Louisiana Helpr decides.</p>
-          <button type="button" className={btn} disabled={withdraw.isPending} onClick={() => setConfirmWithdraw(true)}>Take it back</button>
+          <Button type="button" variant="outline" size="sm" disabled={withdraw.isPending} onClick={() => setConfirmWithdraw(true)}>Take it back</Button>
           <ConfirmSheet
             open={confirmWithdraw}
             pending={withdraw.isPending}
@@ -225,10 +224,10 @@ function DeclutterRefundBuyer({ v, who, problemForm }: { v: RefundRequestView; w
           <p className="text-sm">{cap(who)} offered {refundDollars(r.offer_cents ?? 0)} back. You keep the item.</p>
           <SellerSideShown note={r.seller_note} photos={r.seller_photo_paths} who={who} />
           <div className="flex flex-wrap gap-2">
-            <button type="button" className={primary} disabled={offer.isPending} onClick={() => setAnswering("take")}>
+            <Button type="button" variant="primary" size="sm" disabled={offer.isPending} onClick={() => setAnswering("take")}>
               Take {refundDollars(r.offer_cents ?? 0)}
-            </button>
-            <button type="button" className={btn} disabled={offer.isPending} onClick={() => setAnswering("ask")}>Ask Louisiana Helpr to decide</button>
+            </Button>
+            <Button type="button" variant="outline" size="sm" disabled={offer.isPending} onClick={() => setAnswering("ask")}>Ask Louisiana Helpr to decide</Button>
           </div>
           <ConfirmSheet
             open={answering !== null}
@@ -355,7 +354,7 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
         <p className="text-sm">You agreed to a full refund. Once {who} gives the item back, tap I got it back and the refund is sent.</p>
         <DeclutterReturnSellerInfo v={v} who={who} />
         {r.return_way && <DeclutterReturnPhotoPick orderId={v.order_id} file={backPhoto} onFile={setBackPhoto} />}
-        <button type="button" className={primary} disabled={back.isPending} onClick={() => setConfirmBack(true)}>I got it back</button>
+        <Button type="button" variant="primary" size="sm" disabled={back.isPending} onClick={() => setConfirmBack(true)}>I got it back</Button>
         {/* Money review 2026-10-27: sending the refund can't be undone, so the tap asks once. Deep audit 2026-10-28 #59:
             in Declutter's one confirm style (ConfirmSheet), like every other "I got it". */}
         <ConfirmSheet
@@ -416,9 +415,9 @@ function DeclutterRefundSeller({ v, who }: { v: RefundRequestView; who: string }
       {(choice === "part" || choice === "decline") && (
         <SellerSideFields id={id} note={sideNote} onNote={setSideNote} photos={sidePhotos} onPhotos={setSidePhotos} disabled={send.isPending} />
       )}
-      <button type="button" className={primary} disabled={send.isPending || !choice || (choice === "part" && offerCents === null) || (choice === "full" && !neverGotIt && !pickArgs)} onClick={() => setAskingSend(true)}>
+      <Button type="button" variant="primary" size="sm" disabled={send.isPending || !choice || (choice === "part" && offerCents === null) || (choice === "full" && !neverGotIt && !pickArgs)} onClick={() => setAskingSend(true)}>
         Send answer
-      </button>
+      </Button>
       <ConfirmSheet
         open={askingSend}
         pending={send.isPending}

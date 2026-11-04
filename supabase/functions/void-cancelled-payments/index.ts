@@ -2853,29 +2853,38 @@ serve(async (req) => {
           // Q1806: never more than the hold (amount_capturable).
           const holdCents = Math.max(0, Math.round(Number(pi.amount_capturable ?? pi.amount ?? 0)));
           // Re-review of 49a8653d81 (D): a hold that holds no more than its job-site sales tax (a gift paid the
-          // job, the card holds the tax) has no fee room; any capture below takes the fee out of the tax. Not
-          // priced here yet, so a person looks (the capture below still runs as before).
+          // job, the card holds the tax) has no fee room (Q2727 below).
           const holdMd = (pi.metadata ?? {}) as Record<string, string>;
           const holdSiteTaxCents = String(holdMd.tax_calculation_id ?? "").startsWith("taxcalc_") && /^\d+$/.test(String(holdMd.job_tax_cents ?? ""))
             ? Number(holdMd.job_tax_cents)
             : 0;
+          // Q2727: the fee room of a job-site taxed hold is its non-tax part. A capture never reaches into the
+          // tax: the capture is capped at hold - tax and the gift keeps the rest of the fees (the same split the
+          // captured path makes, Q2718). A hold with no room left (no more than its tax) moves no money: a
+          // person settles it.
+          const holdRoomCents = holdSiteTaxCents > 0 ? Math.max(0, holdCents - holdSiteTaxCents) : holdCents;
           if (holdSiteTaxCents > 0 && Math.round(Number(pi.amount ?? 0)) <= holdSiteTaxCents) {
+            const feesOwedHere = Math.round(cancellationFee * 100) + blockCents > 0;
             await postSlackOpsAlert({
               kind: "money_at_risk",
               severity: "warning",
               title: "Cancelled job's card hold holds only its sales tax",
-              message: `Job ${job.id}'s card hold (PaymentIntent ${pi.id}) is $${(Number(pi.amount ?? 0) / 100).toFixed(2)}, no more than its $${(holdSiteTaxCents / 100).toFixed(2)} job-site sales tax, so any fee this cancel captures comes out of the tax. Check the capture and the tax by hand.`,
+              message: `Job ${job.id}'s card hold (PaymentIntent ${pi.id}) is $${(Number(pi.amount ?? 0) / 100).toFixed(2)}, no more than its $${(holdSiteTaxCents / 100).toFixed(2)} job-site sales tax, so it has no room for this cancel's fees.${feesOwedHere ? " Nothing was captured and the job stays in escrow: settle the fees from the gift by hand (docs/OPEN.md Q2727)." : ""}`,
               fields: { job_id: job.id, payment_intent: pi.id, hold_cents: Number(pi.amount ?? 0), tax_cents: holdSiteTaxCents },
               oncePerDayKey: `void-tax-only-hold:${job.id}`,
               seed: job.is_seed === true,
             });
+            if (feesOwedHere) {
+              results.push({ job_id: job.id, title: job.title, status: "tax_only_hold_needs_person" });
+              continue;
+            }
           }
           // Boards 66/172 slice 2: THE split the poster's cancel dialog was
           // quoted from (create-payment cancel_quote, "Back to you"), so the
           // quote and what this hold releases cannot disagree.
           const holdSplit = posterCancelSplit({
             job, sellerFault, cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents: blockCents,
-            charge: { state: "hold", amountCents: Number(pi.amount ?? 0), capturableCents: holdCents },
+            charge: { state: "hold", amountCents: Number(pi.amount ?? 0), capturableCents: holdRoomCents },
           });
           if (holdSplit.state !== "hold") throw new Error("posterCancelSplit answered a hold with a captured split");
           if (cancellationFee > 0 || blockCents > 0) {
@@ -2898,8 +2907,9 @@ serve(async (req) => {
             /** Review of 8354ebb0e #2: what an earlier restore kept of the gift, still paying its part. */
             let holdGiftKeptOnlyCents = 0;
             if (holdSplit.feesExceedHold) {
-              const estFeeCents = Math.max(stripeProcessingCostCents(holdCents), highestPayInFourFeeCents(holdCents));
-              holdGift = await giftCoversShortfall(cardNonRefundableCents(holdCents, estFeeCents) + feeCents - holdCents, "fee capture", true);
+              // Q2727: priced on what is captured (the room), never on the tax part of the hold.
+              const estFeeCents = Math.max(stripeProcessingCostCents(holdRoomCents), highestPayInFourFeeCents(holdRoomCents));
+              holdGift = await giftCoversShortfall(cardNonRefundableCents(holdRoomCents, estFeeCents) + feeCents - holdRoomCents, "fee capture", true);
               if (!holdGift) continue;
               if (holdGift.uncollectable) {
                 holdGiftGone = true;
@@ -3186,14 +3196,31 @@ serve(async (req) => {
           // (job_taxable_cents), so that tax stays out of what goes back; only the rest of the tax is refunded.
           // Q2718: everything kept is taxed: what the card keeps of its non-tax part (after earlier refunds
           // and this refund) plus what the gift keeps.
-          const siteTaxOnGiftKeptCents = siteTaxOnCardCents > 0
-            ? Math.min(siteTaxBackCents, taxOnKeptCents({
+          const siteTaxOnAllKeptCents = siteTaxOnCardCents > 0
+            ? taxOnKeptCents({
               keptCents: Math.max(0, capturedCents - Math.max(0, chargeRefundedCents) - voidSplit.refundCents) + cardGiftKeptCents,
               taxCents: piSiteTaxCents,
               capturedCents: chargeCapturedCents,
               taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null),
-            }))
+            })
             : 0;
+          const siteTaxOnGiftKeptCents = Math.min(siteTaxBackCents, siteTaxOnAllKeptCents);
+          // Q2728: an earlier refund already returned part of the tax, so less tax is left on the card than the
+          // tax due on what this cancel keeps. The poster was over-refunded by the difference (a few cents, never
+          // under-refunded); it is not taken back from the refund (the refund's tax-back stamp, Q2717, is the tax
+          // part alone), so a person looks.
+          const siteTaxKeptShortCents = Math.max(0, siteTaxOnAllKeptCents - siteTaxBackCents);
+          if (siteTaxKeptShortCents > 0) {
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "warning",
+              title: "Cancelled job's tax on its kept fees was already refunded",
+              message: `Cancel sweep on job ${job.id}: an earlier refund on PaymentIntent ${paymentIntentId} already returned part of its $${(piSiteTaxCents / 100).toFixed(2)} job-site sales tax, so $${(siteTaxKeptShortCents / 100).toFixed(2)} of the tax due on what this cancel keeps is not on the card. The cancel settles; check the tax by hand (docs/OPEN.md Q2728).`,
+              fields: { job_id: job.id, payment_intent: paymentIntentId, tax_cents: piSiteTaxCents, earlier_refund_cents: chargeRefundedOnCardCents, tax_short_cents: siteTaxKeptShortCents },
+              oncePerDayKey: `void-tax-kept-short:${job.id}`,
+              seed: job.is_seed === true,
+            });
+          }
           const refundAmount = siteTaxOnCardCents > 0
             ? voidSplit.refundCents + siteTaxBackCents - siteTaxOnGiftKeptCents
             : voidSplit.refundCents > 0 || refundedAtStripe

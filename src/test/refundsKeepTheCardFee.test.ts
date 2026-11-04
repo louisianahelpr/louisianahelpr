@@ -1150,7 +1150,8 @@ const AMOUNT_DEFS: Record<string, string[]> = {
     "siteTaxOnCardCents = piSiteTaxCents > 0 && chargeCapturedCents - piSiteTaxCents < keptOfCard + feeOwedCents + crewBlockFeeCents(blockFeeRows) ? Math.min(chargeCapturedCents, piSiteTaxCents) : 0",
     "voidSplit = capturedSplit.split",
     "siteTaxBackCents = Math.max(0, siteTaxOnCardCents - Math.max(0, chargeRefundedOnCardCents))",
-    "siteTaxOnGiftKeptCents = siteTaxOnCardCents > 0 ? Math.min(siteTaxBackCents, taxOnKeptCents({ keptCents: Math.max(0, capturedCents - Math.max(0, chargeRefundedCents) - voidSplit.refundCents) + cardGiftKeptCents, taxCents: piSiteTaxCents, capturedCents: chargeCapturedCents, taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null), })) : 0",
+    // Q2728: the tax on all kept is figured whole; only what is still on the card is kept (a shortfall pages).
+    "siteTaxOnGiftKeptCents = Math.min(siteTaxBackCents, siteTaxOnAllKeptCents)",
     "capturedCents = chargeCapturedCents - siteTaxOnCardCents",
     "blockFeeCents = crewBlockFeeCents(blockFeeRows)",
     "nonRefundableCents = voidSplit.nonRefundableCents",
@@ -1159,6 +1160,7 @@ const AMOUNT_DEFS: Record<string, string[]> = {
     "feeOwedCents = Math.round(cancellationFee * 100)",
     "capturedSplit = posterCancelSplit({ job, sellerFault, platformFault: raceChargedNobodyHired, cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents, charge: { state: \"captured\", capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, chargeCapturedCents), alreadyRefundedCents: chargeRefundedCents, taxCents: siteTaxOnCardCents > 0 ? 0 : await chargeTaxCentsFor(stripe, pi), taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null), }, })",
     "chargeRefundedOnCardCents = Number( (pi.latest_charge && typeof pi.latest_charge === \"object\" ? (pi.latest_charge as { amount_refunded?: number }).amount_refunded : 0) ?? 0, )",
+    "siteTaxOnAllKeptCents = siteTaxOnCardCents > 0 ? taxOnKeptCents({ keptCents: Math.max(0, capturedCents - Math.max(0, chargeRefundedCents) - voidSplit.refundCents) + cardGiftKeptCents, taxCents: piSiteTaxCents, capturedCents: chargeCapturedCents, taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null), }) : 0",
     "chargeRefundedCents = siteTaxOnCardCents > 0 ? Math.max(0, chargeRefundedOnCardCents - siteTaxOnCardCents) : chargeRefundedOnCardCents",
     // Re-review of 49a8653d81 (B): the tax on what the gift kept stays out of the tax refund.
     "cardGiftKeptCents = cardGift ? Math.min(cardGift.cents, Math.max(0, nonRefundableCents + feeOwedCents + blockFeeCents - (capturedCents - Math.max(0, chargeRefundedCents)))) : 0",

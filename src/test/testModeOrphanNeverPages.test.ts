@@ -53,7 +53,7 @@ describe("the three paging paths treat a test-mode orphan as test data", () => {
   });
   it("the job-site tax commit marks it seed (digest only, never paged)", () => {
     const src = read("supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts");
-    expect(src).toContain("const testOrphan = await isTestModeOrphan(supabase, pi.livemode, (pi.metadata ?? {}).job_id, logStep);");
+    expect(src).toContain("const testOrphan = !taxJob && await isTestModeOrphan(supabase, pi.livemode, (pi.metadata ?? {}).job_id, logStep);");
     expect(src).toContain("seed: taxJob?.is_seed === true || testOrphan, supabase });");
   });
   it("the untold-refund sweep skips a ledger row that names nobody, before it sends or pages", () => {

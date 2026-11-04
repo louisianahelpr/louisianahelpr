@@ -253,12 +253,17 @@ export async function handleChargeRefunded(
   // Q2725 / Q2726 (live alerts 11-04): a TEST-mode refund of a payment that names a job that is not ours (a Stripe
   // TEST script's payment) has no job to update, no ledger row to write and nobody to tell. Booking it wrote a
   // payment_refunds row with no job and no member, which the hourly untold-refund sweep then paged about every hour.
-  if (event.livemode === false && refundPiId) {
+  // Only when no job of ours carries this payment (a failed read counts as ours).
+  const { data: piJob, error: piJobErr } = event.livemode === false && refundPiId
+    ? await supabase.from("jobs").select("id").eq("stripe_payment_intent_id", refundPiId).maybeSingle()
+    : { data: null, error: null };
+  if (event.livemode === false && refundPiId && !piJob && !piJobErr) {
     let testJobId: string | null = chargeMeta.job_id ?? null;
     if (!testJobId) {
       try {
         testJobId = ((await stripe.paymentIntents.retrieve(refundPiId))?.metadata ?? {}).job_id ?? null;
       } catch (e) {
+        // Not fatal and never hidden: with no job_id read, the refund takes the normal path below (and pages if untold).
         logStep("WARN: test-mode PaymentIntent read failed; the refund is handled as ours", { pi: refundPiId, error: caughtMessage(e) });
       }
     }

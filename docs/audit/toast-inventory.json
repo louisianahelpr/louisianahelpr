@@ -1584,7 +1584,7 @@
     },
     {
       "file": "src/components/SuggestCategory.tsx",
-      "line": 49,
+      "line": 50,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -1594,7 +1594,7 @@
     },
     {
       "file": "src/components/SuggestCategory.tsx",
-      "line": 54,
+      "line": 55,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

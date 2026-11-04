@@ -83,15 +83,17 @@ export function BundleAsk({ item, others, viewerId }: { item: DeclutterItem; oth
   }
   if (!open) {
     return (
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="wrap"
         data-bundle-ask-start=""
         onClick={() => setOpen(true)}
-        className="flex w-full min-h-[48px] items-center gap-3 rounded-[20px] border border-dashed border-border px-4 py-3 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="w-full justify-start gap-3 border border-dashed border-border px-4 py-3 text-left text-sm font-normal"
       >
-        <Layers className="h-5 w-5 shrink-0 text-primary" aria-hidden />
+        <Layers className="text-primary" aria-hidden />
         <span><span className="font-semibold">Want several?</span> Ask the seller for them in one request.</span>
-      </button>
+      </Button>
     );
   }
   const pickedItems = choices.filter((c) => picked.has(c.id));

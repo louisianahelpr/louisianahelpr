@@ -9077,6 +9077,7 @@ export type Database = {
       }
       notifications: {
         Row: {
+          actor_id: string | null
           created_at: string
           declutter_ref: string | null
           id: string
@@ -9089,6 +9090,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          actor_id?: string | null
           created_at?: string
           declutter_ref?: string | null
           id?: string
@@ -9101,6 +9103,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          actor_id?: string | null
           created_at?: string
           declutter_ref?: string | null
           id?: string

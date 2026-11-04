@@ -9,6 +9,7 @@
  * @mutate src/components/NotificationPanel.tsx |                 Mark all read\n |                 <CheckCheck />\n
  * @mutate src/components/notificationPanel/notificationPanelHelpers.tsx | new Set(["payment", "financial_alerts", "declutter_sales", "declutter_refunds"]) | new Set(["payment", "financial_alerts", "declutter_sales", "declutter_refunds", "application"])
  * @mutate src/components/NotificationPanel.tsx | className="min-w-0 flex-1 font-sans font-bold | className="min-w-0 flex-1 font-display font-bold
+ * @mutate src/components/notificationPanel/NotificationLeading.tsx |   const money = MONEY_TYPES.has(n.type); |   const money = true;
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -17,6 +18,8 @@ import { blankComments } from "./helpers/blankNonCode";
 import { MONEY_TYPES } from "@/components/notificationPanel/notificationPanelHelpers";
 
 const src = blankComments(readFileSync(resolve(__dirname, "../components/NotificationPanel.tsx"), "utf8"));
+// The row's leading circle moved to NotificationLeading (Q2037 faces, 2026-11-04); the panel mounts it per row.
+const leading = blankComments(readFileSync(resolve(__dirname, "../components/notificationPanel/NotificationLeading.tsx"), "utf8"));
 
 describe("the notifications sheet matches board 28", () => {
   it("is not vacuous", () => {
@@ -30,11 +33,14 @@ describe("the notifications sheet matches board 28", () => {
 
   it("rust only on money: muted day label, olive unread dot, no rust wash, money tint only for money kinds", () => {
     expect([...MONEY_TYPES].sort()).toEqual(["declutter_refunds", "declutter_sales", "financial_alerts", "payment"]);
-    const rows = src.slice(src.indexOf("groupedNotifications.map"));
+    const panelRows = src.slice(src.indexOf("groupedNotifications.map"));
+    expect(panelRows).toMatch(/<NotificationLeading n=\{n\}/);
+    const rows = `${panelRows}\n${leading}`;
     const sienna = (rows.match(/--burnt-sienna/g) ?? []).length;
     // Exactly the two money-tint declarations (background + colour) in the row list.
     expect(sienna).toBe(2);
-    expect(rows).toMatch(/MONEY_TYPES\.has\(n\.type\)\s*\?\s*\{ background: "hsl\(var\(--burnt-sienna\) \/ 0\.12\)"/);
+    expect(leading).toMatch(/const money = MONEY_TYPES\.has\(n\.type\);/);
+    expect(rows).toMatch(/money\s*\?\s*\{ background: "hsl\(var\(--burnt-sienna\) \/ 0\.12\)"/);
     expect(rows).toMatch(/aria-label="Unread"[\s\S]{0,200}background: "hsl\(var\(--bark\)\)"/);
     expect(rows).toMatch(/className="min-w-0 flex-1 font-sans font-bold/);
   });

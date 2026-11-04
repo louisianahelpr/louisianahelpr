@@ -52,8 +52,6 @@
     "adhocTint  src/components/messages/MuteSheet.tsx:115 <button>  hover:bg-secondary/40",
     "adhocTint  src/components/messages/MuteSheet.tsx:85 <button>  hover:bg-secondary/40",
     "adhocTint  src/components/postjob/AddressAutocomplete.tsx:248 <button>  hover:bg-secondary/70",
-    "adhocTint  src/components/postjob/BudgetSection.tsx:372 <button>  hover:bg-secondary/80",
-    "adhocTint  src/components/postjob/BudgetSection.tsx:385 <button>  hover:bg-secondary/80",
     "adhocTint  src/components/postjob/CityAutocomplete.tsx:124 <button>  hover:bg-secondary/70",
     "adhocTint  src/components/profile/AccessibilityTab.tsx:49 <button>  hover:bg-secondary/40",
     "adhocTint  src/components/profile/EarningsForecastCard.tsx:216 <button>  hover:bg-secondary/60",

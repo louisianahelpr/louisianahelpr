@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,12 +20,15 @@ export function EarningsToolsMenu({ onExportPdf, onExportCsv, onNavigatePayment 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-ds-sm hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+        <Button
+          type="button"
+          variant="ghost"
+          size="iconCompact"
+          className="text-muted-foreground hover:text-foreground"
           aria-label="Earnings settings"
         >
           <Settings className="w-5 h-5" />
-        </button>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="text-ds-11">Money tools</DropdownMenuLabel>

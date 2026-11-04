@@ -674,16 +674,10 @@
     "src/components/profile/TwoFactorCard.tsx": {
       "button": 1
     },
-    "src/components/profile/earningsTab/EarningsToolsMenu.tsx": {
-      "button": 1
-    },
     "src/components/profile/earningsTab/MoneyRecordRows.tsx": {
       "button": 1
     },
     "src/components/profile/earningsTab/ThresholdBanner.tsx": {
-      "button": 2
-    },
-    "src/components/profile/earningsTab/WalletCard.tsx": {
       "button": 1
     },
     "src/components/profile/profileEditForm/PhotoNameSection.tsx": {
@@ -906,20 +900,11 @@
     "src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx": {
       "button": 1
     },
-    "src/pages/profile/BlockedPeopleTab.tsx": {
-      "button": 1
-    },
     "src/pages/profile/GiftCard.tsx": {
       "button": 2,
       "input": 1
     },
-    "src/pages/profile/HelperAnalytics.tsx": {
-      "button": 2
-    },
     "src/pages/profile/HelprWrapped.tsx": {
-      "button": 1
-    },
-    "src/pages/profile/HomeHistory.tsx": {
       "button": 1
     },
     "src/pages/profile/PayoutHistory.tsx": {
@@ -934,9 +919,6 @@
     "src/pages/profile/StrSettings.tsx": {
       "button": 1
     },
-    "src/pages/profile/WorkRecord.tsx": {
-      "button": 2
-    },
     "src/pages/profile/giftCards/RecipientPicker.tsx": {
       "button": 2,
       "input": 1
@@ -945,7 +927,7 @@
       "button": 1
     },
     "src/pages/profile/petProfiles/PetForm.tsx": {
-      "button": 2
+      "button": 1
     },
     "src/pages/profile/petProfiles/PetRailRow.tsx": {
       "button": 3

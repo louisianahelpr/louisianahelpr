@@ -24,6 +24,7 @@
 // why `Body` below carries only the column's gap.
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useMembershipsOn } from "@/hooks/useMembershipsOn";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
@@ -121,13 +122,14 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
         title="Advanced analytics is off for now"
         body="Your earnings and payouts are all on the Earnings tab."
         action={
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={() => navigate("/profile?tab=earnings")}
-            className="btn-grad-primary !text-[hsl(var(--parchment))] h-11 px-5 rounded-full font-semibold text-ds-13"
           >
             Go to earnings
-          </button>
+          </Button>
         }
       />,
     );
@@ -155,13 +157,14 @@ export default function HelperAnalytics({ onBack }: { onBack?: () => void }) {
         title="Analytics is coming online"
         body="This page is being switched on right now. Give it a minute and refresh the page. Your earnings are unaffected."
         action={
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={() => void refetch()}
-            className="btn-grad-primary !text-[hsl(var(--parchment))] h-11 px-5 rounded-full font-semibold text-ds-13"
           >
             Try again
-          </button>
+          </Button>
         }
       />,
     );

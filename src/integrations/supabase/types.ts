@@ -1365,6 +1365,7 @@ export type Database = {
       declutter_bundle_requests: {
         Row: {
           buyer_id: string
+          card_asked_at: string | null
           closed_at: string | null
           created_at: string
           id: string
@@ -1375,6 +1376,7 @@ export type Database = {
         }
         Insert: {
           buyer_id: string
+          card_asked_at?: string | null
           closed_at?: string | null
           created_at?: string
           id?: string
@@ -1385,6 +1387,7 @@ export type Database = {
         }
         Update: {
           buyer_id?: string
+          card_asked_at?: string | null
           closed_at?: string | null
           created_at?: string
           id?: string

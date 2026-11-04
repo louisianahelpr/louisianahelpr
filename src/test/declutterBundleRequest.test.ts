@@ -4,9 +4,9 @@
  * This guard pins, on the NEWEST definition of each function (any dollar tag, comments blanked), the money and
  * authz lines that proof exercises, so a later restatement cannot quietly drop one.
  *
- * @mutate supabase/migrations/20261104103528_declutter_bundle_request.sql | v_req.buyer_id, least(v_row.price_cents, v_item.o_price_cents) | v_req.buyer_id, v_row.price_cents
- * @mutate supabase/migrations/20261104103528_declutter_bundle_request.sql | IF NOT FOUND OR v_req.seller_id <> v_uid THEN | IF NOT FOUND THEN
- * @mutate supabase/migrations/20261104103528_declutter_bundle_request.sql | EXCEPTION WHEN SQLSTATE '55000' OR SQLSTATE 'PT404' OR SQLSTATE 'P0002' OR SQLSTATE '22023' THEN | EXCEPTION WHEN SQLSTATE 'XX999' THEN
+ * @mutate supabase/migrations/20261104124645_declutter_bundle_take_quiet.sql | v_req.buyer_id, least(v_row.price_cents, v_item.o_price_cents) | v_req.buyer_id, v_row.price_cents
+ * @mutate supabase/migrations/20261104124645_declutter_bundle_take_quiet.sql | IF NOT FOUND OR v_req.seller_id <> v_uid THEN | IF NOT FOUND THEN
+ * @mutate supabase/migrations/20261104124645_declutter_bundle_take_quiet.sql | EXCEPTION WHEN SQLSTATE '55000' OR SQLSTATE 'PT404' OR SQLSTATE 'P0002' OR SQLSTATE '22023' THEN | EXCEPTION WHEN SQLSTATE 'XX999' THEN
  * @mutate supabase/migrations/20261104103528_declutter_bundle_request.sql |   PERFORM public.declutter_identity_gate(v_uid, 'identity_required_to_buy'); |   PERFORM 1;
  * @mutate supabase/migrations/20261104103528_declutter_bundle_request.sql | GRANT EXECUTE ON FUNCTION public.declutter_bundle_sweep() TO service_role; | GRANT EXECUTE ON FUNCTION public.declutter_bundle_sweep() TO authenticated;
  * @mutate supabase/migrations/20261104103528_declutter_bundle_request.sql |     SELECT * INTO v_item FROM public.declutter_lock_buyable_item(v_item_id, v_uid); |     SELECT seller_id AS o_seller_id, current_price_cents AS o_price_cents INTO v_item FROM public.declutter_items WHERE id = v_item_id;

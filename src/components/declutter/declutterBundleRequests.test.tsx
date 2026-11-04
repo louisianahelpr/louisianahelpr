@@ -6,6 +6,8 @@
  * @mutate src/components/declutter/DeclutterBundleRequests.tsx | onClick={() => answer.mutate([])} | onClick={() => answer.mutate(null)}
  * @mutate src/components/declutter/DeclutterBundleRequests.tsx | disabled={pickedItems.length < BUNDLE_MIN_ITEMS \|\| ask.isPending} | disabled={ask.isPending}
  * @mutate src/components/declutter/DeclutterBundleRequests.tsx | return it.status === "live" && it.current_price_cents >= 100; | return it.status === "live";
+ * Q2731: when every picked item sold meanwhile the seller is told so, never "Accepted 0."
+ * @mutate src/components/declutter/DeclutterBundleRequests.tsx |         : n === 0 ? "Those items are no longer available, so nothing was accepted. The buyer is told."\n |
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -17,17 +19,19 @@ const h = vi.hoisted(() => ({
   rows: [] as BundleRequest[] | null,
   answered: [] as (string[] | null)[],
   asked: [] as string[][],
+  answerReturns: null as number | null,
 }));
 
 vi.mock("@/lib/declutter/bundleRequest", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundleRequest")>()),
   fetchBundleRequests: async () => h.rows,
-  answerBundle: async (_id: string, ids: string[] | null) => { h.answered.push(ids); return ids === null ? 3 : ids.length; },
+  answerBundle: async (_id: string, ids: string[] | null) => { h.answered.push(ids); return h.answerReturns ?? (ids === null ? 3 : ids.length); },
   requestBundle: async (ids: string[]) => { h.asked.push(ids); return "r-new"; },
   withdrawBundle: async () => undefined,
 }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn() }) }));
 
+import { toast } from "sonner";
 import { BundleAsk, BundleRequestsSection } from "./DeclutterBundleRequests";
 
 const soon = new Date(Date.now() + 3600_000).toISOString();
@@ -49,7 +53,23 @@ function wrap(ui: React.ReactNode) {
 }
 
 describe("Q2268 bundle requests", () => {
-  beforeEach(() => { h.rows = []; h.answered = []; h.asked = []; });
+  beforeEach(() => { h.rows = []; h.answered = []; h.asked = []; h.answerReturns = null; vi.mocked(toast).mockClear(); });
+
+  it("Q2731: every picked item sold meanwhile (0 accepted): the seller is told they are no longer available, never 'Accepted 0.'", async () => {
+    h.rows = [req()];
+    h.answerReturns = 0;
+    wrap(<BundleRequestsSection side="seller" userId="s1" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Accept all" }));
+    await waitFor(() => expect(vi.mocked(toast)).toHaveBeenCalledWith("Those items are no longer available, so nothing was accepted. The buyer is told."));
+    expect(vi.mocked(toast).mock.calls.map((c) => String(c[0])).some((t) => /Accepted 0/.test(t))).toBe(false);
+  });
+
+  it("Q2731: a normal accept still says how many", async () => {
+    h.rows = [req()];
+    wrap(<BundleRequestsSection side="seller" userId="s1" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Accept all" }));
+    await waitFor(() => expect(vi.mocked(toast)).toHaveBeenCalledWith("Accepted 3. The buyer has 24 hours to pay."));
+  });
 
   it("the seller's Accept all sends null (every item)", async () => {
     h.rows = [req()];

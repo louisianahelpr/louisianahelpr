@@ -165,6 +165,8 @@ function SellerRequest({ r }: { r: BundleRequest }) {
       // -1: the buyer has no card saved; they were asked to save one and the request stays open (review 11-04).
       toast(ids !== null && ids.length === 0 ? "Declined. The buyer is told."
         : n < 0 ? "The buyer has no card saved yet. We asked them to add one; answer again once they do."
+        // Q2731: every picked item sold or came down meanwhile; the request is closed and the buyer is told.
+        : n === 0 ? "Those items are no longer available, so nothing was accepted. The buyer is told."
         : `Accepted ${n}. The buyer has 24 hours to pay.`);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },

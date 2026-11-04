@@ -43,7 +43,8 @@ describe("the Declutter Free section", () => {
     // (a free claim keeps its 48 hours, asserted below). B110 (20261101191500): the accepted-offer notice copy only.
     // Q2659 (20261102113853): verbatim plus the notices' subject lines (declutterNoticeRefCallersVerbatim.test.ts).
     // Q2390 p37 (20261103222939): restated verbatim with its not-found as PT404 only.
-    expect(newestFunction("declutter_take_item").file).toContain("20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql");
+    // Q2731 (20261104124645): restated verbatim with its notice block skipped while a bundle answer takes the items.
+    expect(newestFunction("declutter_take_item").file).toContain("20261104124645_declutter_bundle_take_quiet.sql");
     // declutter_checkout_free: restated by #26 (20261028204431, its notice line), #37 (20261028223036, its seller link)
     // and the ways the giver ticked (20261028235247_declutter_handover_choices.sql: handover_not_offered).
     // Then D-NEW14 porch places (20261030164712: porch_place_needed and the frozen place, insertion only).

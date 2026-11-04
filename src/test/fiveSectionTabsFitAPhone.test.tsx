@@ -6,7 +6,7 @@
  * two halves that produce the fit: the row takes the class, and the stylesheet sizes it.
  *
  * @mutate src/components/sections/SectionTabs.tsx |   const dense = options.length >= DENSE_TAB_COUNT; |   const dense = false;
- * @mutate src/index.css |     font-size: clamp(12px, 3.6vw, 15px); |     font-size: 15px;
+ * @mutate src/index.css |     font-size: clamp(12px, 3.6vw, 13px); |     font-size: 13px;
  * @mutate src/components/sections/SectionTabs.tsx | dense ? "gap-3 min-[420px]:gap-5" : "gap-5" | "gap-5"
  *
  * SIX (OWN-FREE, 2026-10-30): Declutter's Free tab made the row 357px in a 335px track at 375 (Chromium, measured), so
@@ -14,7 +14,7 @@
  * 360px (6px below). After: 335 of 335 at 375 (~/.lh-shots/b69-free-tab/after2-browse-375.png). At 320 it is still
  * 295 in 280 and scrolls, as a five-tab row with two to-do counts does (words under 11px were not taken).
  * @mutate src/components/sections/SectionTabs.tsx |   const denser = options.length >= DENSER_TAB_COUNT; |   const denser = false;
- * @mutate src/index.css |     font-size: clamp(11px, 3.3vw, 15px); |     font-size: 15px;
+ * @mutate src/index.css |     font-size: clamp(11px, 3.3vw, 13px); |     font-size: 13px;
  * @mutate src/components/sections/SectionTabs.tsx | denser ? "gap-1.5 min-[360px]:gap-2 min-[420px]:gap-5" : dense | dense
  * @mutate src/components/sections/SectionTabs.tsx | {more && !onlySelected && ( | {false && (
  * @mutate src/components/sections/SectionTabs.tsx | list.scrollWidth - list.clientWidth - list.scrollLeft > 2 | list.scrollWidth - list.clientWidth > 2

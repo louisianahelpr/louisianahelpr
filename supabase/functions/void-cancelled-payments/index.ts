@@ -2843,6 +2843,24 @@ serve(async (req) => {
           const blockCents = crewBlockFeeCents(blockFeeRows);
           // Q1806: never more than the hold (amount_capturable).
           const holdCents = Math.max(0, Math.round(Number(pi.amount_capturable ?? pi.amount ?? 0)));
+          // Re-review of 49a8653d81 (D): a hold that holds no more than its job-site sales tax (a gift paid the
+          // job, the card holds the tax) has no fee room; any capture below takes the fee out of the tax. Not
+          // priced here yet, so a person looks (the capture below still runs as before).
+          const holdMd = (pi.metadata ?? {}) as Record<string, string>;
+          const holdSiteTaxCents = String(holdMd.tax_calculation_id ?? "").startsWith("taxcalc_") && /^\d+$/.test(String(holdMd.job_tax_cents ?? ""))
+            ? Number(holdMd.job_tax_cents)
+            : 0;
+          if (holdSiteTaxCents > 0 && Math.round(Number(pi.amount ?? 0)) <= holdSiteTaxCents) {
+            await postSlackOpsAlert({
+              kind: "money_at_risk",
+              severity: "warning",
+              title: "Cancelled job's card hold holds only its sales tax",
+              message: `Job ${job.id}'s card hold (PaymentIntent ${pi.id}) is $${(Number(pi.amount ?? 0) / 100).toFixed(2)}, no more than its $${(holdSiteTaxCents / 100).toFixed(2)} job-site sales tax, so any fee this cancel captures comes out of the tax. Check the capture and the tax by hand.`,
+              fields: { job_id: job.id, payment_intent: pi.id, hold_cents: Number(pi.amount ?? 0), tax_cents: holdSiteTaxCents },
+              oncePerDayKey: `void-tax-only-hold:${job.id}`,
+              seed: job.is_seed === true,
+            });
+          }
           // Boards 66/172 slice 2: THE split the poster's cancel dialog was
           // quoted from (create-payment cancel_quote, "Back to you"), so the
           // quote and what this hold releases cannot disagree.

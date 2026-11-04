@@ -118,6 +118,7 @@ export function BundleAsk({ item, others, viewerId }: { item: DeclutterItem; oth
         ))}
       </ul>
       <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" variant="outline" onClick={() => setOpen(false)}>Not now</Button>
         <Button
           type="button"
           data-bundle-ask-send=""
@@ -127,7 +128,6 @@ export function BundleAsk({ item, others, viewerId }: { item: DeclutterItem; oth
         >
           {pickedItems.length < BUNDLE_MIN_ITEMS ? "Pick 2 or more" : `Ask for these ${pickedItems.length} (${itemPriceLabel(bundleTotalCents(pickedItems.map((p) => ({ price_cents: p.current_price_cents }))))})`}
         </Button>
-        <Button type="button" variant="outline" onClick={() => setOpen(false)}>Not now</Button>
       </div>
     </section>
   );

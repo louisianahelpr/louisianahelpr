@@ -13,6 +13,12 @@ export type Notification = {
    * with `notificationDestination()`, never by reading `link` directly.
    */
   job_id: string | null;
+  /**
+   * The member whose action caused this job notice (20261104060659, stamped by trg_notifications_stamp_actor),
+   * or null: no actor, an admin's or the system's notice, or a departed member. The bell shows their face in
+   * place of the type icon (useNotificationFaces).
+   */
+  actor_id?: string | null;
   created_at: string;
 };
 

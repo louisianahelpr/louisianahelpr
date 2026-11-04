@@ -34,7 +34,9 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation } from "@/lib/mutationResult";
 import type { Notification, Filter } from "@/components/notificationPanel/types";
-import { typeIcons, groupByDay, timeAgo, MONEY_TYPES, foldByJob } from "@/components/notificationPanel/notificationPanelHelpers";
+import { groupByDay, timeAgo, foldByJob } from "@/components/notificationPanel/notificationPanelHelpers";
+import { NotificationLeading } from "@/components/notificationPanel/NotificationLeading";
+import { useNotificationFaces } from "@/components/notificationPanel/useNotificationFaces";
 import { JobFoldToggle } from "@/components/notificationPanel/JobFoldToggle";
 import { DaySection } from "@/components/notificationPanel/DaySection";
 import {
@@ -86,6 +88,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
     getNotificationSnapshot,
     getNotificationServerSnapshot,
   );
+  const faces = useNotificationFaces(notifications);
   /* `unreadTotal` (read from the store above) is the TRUE database total, not
      the count within the fetched page. Measured before it existed: the database
      held 76 unread while the badge read 47, because both were derived from a
@@ -731,17 +734,7 @@ const NotificationPanel = ({ triggerClassName, defaultOpen = false }: { triggerC
                       };
                       const body = (
                         <div className="flex gap-3">
-                          <div
-                            className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
-                            data-notif-tint={MONEY_TYPES.has(n.type) ? "money" : "plain"}
-                            style={
-                              MONEY_TYPES.has(n.type)
-                                ? { background: "hsl(var(--burnt-sienna) / 0.12)", color: "hsl(var(--burnt-sienna))" }
-                                : { background: "hsl(var(--muted))", color: "hsl(var(--bark))" }
-                            }
-                          >
-                            {typeIcons[n.type] || typeIcons.info}
-                          </div>
+                          <NotificationLeading n={n} face={n.actor_id ? faces.get(n.actor_id) : undefined} />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p

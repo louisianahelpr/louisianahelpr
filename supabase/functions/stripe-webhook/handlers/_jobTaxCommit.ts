@@ -1,7 +1,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { caughtMessage } from "../../_shared/caughtMessage.ts";
-import { CANCEL_FEE_CAPTURE_KEY, JOB_TAX_CALC_KEY, JOB_TAX_CENTS_KEY, SETUP_FEE_LEFT_OUT_KEY } from "../../_shared/jobTaxAddress.ts";
+import { CANCEL_FEE_CAPTURE_KEY, CANCEL_FEE_TAX_KEPT_KEY, JOB_TAX_CALC_KEY, JOB_TAX_CENTS_KEY, SETUP_FEE_LEFT_OUT_KEY } from "../../_shared/jobTaxAddress.ts";
 import { reverseVisitTaxForRefund } from "./_visitTaxReversal.ts";
 
 /**
@@ -55,7 +55,18 @@ export async function commitJobSiteTax(args: {
   const setupFeeLeftOutCents = Number.isInteger(leftOut) && leftOut > 0 ? leftOut : 0;
   const shortfall = typeof received === "number" && typeof pi.amount === "number" ? pi.amount - received : 0;
   const cancelFeeCapture = md[CANCEL_FEE_CAPTURE_KEY] === "1";
-  if (cancelFeeCapture || (shortfall !== 0 && shortfall !== setupFeeLeftOutCents)) {
+  // Q2716 (left part): a fee capture stamped with the job-site tax inside it (void-cancelled-payments) is recorded
+  // exactly, with no hand step: none of the tax captured records nothing (the hold's rest is released, so no tax
+  // was collected); some of it commits the calculation and at once reverses the tax on the released rest. An
+  // unstamped fee capture (an older one) or a stamp that cannot be right still pages, as before.
+  const keptRaw = md[CANCEL_FEE_TAX_KEPT_KEY];
+  const stampedKeptCents = cancelFeeCapture && typeof keptRaw === "string" && /^\d+$/.test(keptRaw) ? Number(keptRaw) : null;
+  if (stampedKeptCents === 0) {
+    logStep("Cancelled job's fee capture holds none of its job-site tax; nothing to record", { jobId: md.job_id, piId: pi.id, calc });
+    return "none";
+  }
+  const recordCapturedPart = stampedKeptCents !== null && stampedKeptCents <= cents && typeof received === "number" && stampedKeptCents <= received;
+  if (!recordCapturedPart && (cancelFeeCapture || (shortfall !== 0 && shortfall !== setupFeeLeftOutCents))) {
     console.error(`[stripe-webhook] job-site tax NOT committed for ${pi.id}: captured ${received} of ${pi.amount}${cancelFeeCapture ? " (cancellation fee capture)" : ""}`);
     await postSlackOpsAlert({
       kind: "money_at_risk",
@@ -108,6 +119,11 @@ export async function commitJobSiteTax(args: {
     return "failed_paged";
   }
   logStep("Job-site sales tax committed to Stripe Tax", { jobId: md.job_id, piId: pi.id, txId, cents });
+  if (recordCapturedPart && stampedKeptCents !== null && stampedKeptCents < cents) {
+    if (await reverseReleasedTax({ stripe, pi, txId, jobId: md.job_id, taxCents: cents, keptCents: stampedKeptCents, logStep, seed }) === "failed_paged") {
+      return "failed_paged";
+    }
+  }
   // Review fix (lh-money-escrow on 378f7b321 #1): a refund made BEFORE the
   // stamp above (a duplicate checkout refunded at once, a refund racing this
   // event) found no tax_transaction_id on charge.refunded and reversed
@@ -120,6 +136,57 @@ export async function commitJobSiteTax(args: {
     return "failed_paged";
   }
   return "committed";
+}
+
+/**
+ * Q2716 (left part): a cancelled job's fee capture kept only part of its job-site tax; the rest of the hold was
+ * released, never refunded, so no refund event reverses it. Right after the commit the tax on the released rest
+ * (tax - kept) is reversed: the labor it was charged on plus that tax, tax-back x (labor + tax) / tax of the
+ * transaction (the Q2717 rule), rounded DOWN so rounding never under-reports the tax kept.
+ */
+async function reverseReleasedTax(args: {
+  stripe: Stripe;
+  pi: Stripe.PaymentIntent;
+  txId: string;
+  jobId: string;
+  taxCents: number;
+  keptCents: number;
+  logStep: (step: string, details?: unknown) => void;
+  seed?: boolean;
+}): Promise<"reversed" | "failed_paged"> {
+  const { stripe, pi, txId, jobId, taxCents, keptCents, logStep, seed } = args;
+  const backCents = taxCents - keptCents;
+  try {
+    let txTotalCents = 0;
+    const items = await stripe.tax.transactions.listLineItems(txId, { limit: 100 });
+    if (items?.has_more) throw new Error("more than 100 line items listed; refusing to read a partial total");
+    for (const li of (items?.data ?? []) as Array<{ amount?: number | null; amount_tax?: number | null; tax_behavior?: string | null }>) {
+      txTotalCents += Math.abs(Number(li.amount ?? 0)) + (li.tax_behavior === "inclusive" ? 0 : Math.abs(Number(li.amount_tax ?? 0)));
+    }
+    if (!(txTotalCents > 0)) throw new Error("the transaction lists no amount to reverse");
+    const flatCents = Math.min(txTotalCents, Math.floor((backCents * txTotalCents) / taxCents));
+    const rev = await stripe.tax.transactions.createReversal(
+      { mode: "partial", flat_amount: -flatCents, original_transaction: txId, reference: `uncaptured:${pi.id}`, metadata: { payment_intent: pi.id, tax_back_cents: String(backCents) } },
+      { idempotencyKey: `job-site-tax-uncaptured:${pi.id}` },
+    );
+    const reversalId = (rev as { id?: string } | null)?.id ?? "";
+    await stripe.paymentIntents.update(pi.id, { metadata: { tax_rev_uncaptured: reversalId } });
+    logStep("Job-site tax on a cancelled hold's released rest reversed", { jobId, piId: pi.id, txId, backCents, flatCents, reversalId });
+    return "reversed";
+  } catch (e) {
+    // Not rethrown: the capture stands. The commit reports the whole tax until a person reverses the released part.
+    console.error(`[stripe-webhook] released tax of ${pi.id} not reversed (transaction ${txId}):`, caughtMessage(e));
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "warning",
+      title: "Job sales tax recorded in full, but the hold kept only part of it",
+      message: `Job ${jobId}'s cancelled card hold (PaymentIntent ${pi.id}) kept $${(keptCents / 100).toFixed(2)} of its $${(taxCents / 100).toFixed(2)} job-site sales tax; the rest was released. Stripe Tax transaction ${txId} records the whole tax and reversing the released $${(backCents / 100).toFixed(2)} failed (${caughtMessage(e)}). Reverse it by hand (partial, reference uncaptured:${pi.id}) and set metadata.tax_rev_uncaptured on ${pi.id}.`,
+      fields: { job_id: jobId, payment_intent: pi.id, tax_transaction: txId, tax_cents: String(taxCents), kept_cents: String(keptCents) },
+      oncePerDayKey: `job-site-tax-uncaptured:${pi.id}`,
+      seed: seed === true,
+    });
+    return "failed_paged";
+  }
 }
 
 async function reverseRefundsMadeBeforeTheStamp(args: {

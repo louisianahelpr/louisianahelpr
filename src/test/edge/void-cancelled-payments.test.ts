@@ -379,7 +379,7 @@ describe("void-cancelled-payments — Q891: a test-mode Stripe object under the 
 // client-written cancellation_fee, which Spent and the fee pill read. The
 // settle write now carries the fee this capture charged.
 // @mutate supabase/functions/void-cancelled-payments/index.ts | cancellation_fee_status: holdGiftGone && cancellationFee <= 0 ? null : "charged",\n              cancellation_fee: cancellationFee,\n | cancellation_fee_status: holdGiftGone && cancellationFee <= 0 ? null : "charged",\n
-// @mutate supabase/functions/void-cancelled-payments/index.ts | metadata: { [CANCEL_FEE_CAPTURE_KEY]: "1" } | metadata: {}
+// @mutate supabase/functions/void-cancelled-payments/index.ts | metadata: { [CANCEL_FEE_CAPTURE_KEY]: "1", [CANCEL_FEE_TAX_KEPT_KEY]: String(capturedSiteTaxCents) } | metadata: {}
 // @mutate supabase/functions/void-cancelled-payments/index.ts | { idempotencyKey: `cancel-fee-capture:${job.id}:${paymentIntentId}` } | {}
 describe("void-cancelled-payments — Q1345: a fee captured from an uncaptured hold is stamped on the job", () => {
   beforeEach(() => {
@@ -417,7 +417,7 @@ describe("void-cancelled-payments — Q1345: a fee captured from an uncaptured h
     const capturedCents = stripeMock.paymentIntents.capture.mock.calls[0][1].amount_to_capture as number;
     expect(capturedCents).toBeGreaterThan(0);
     // Q2716: a fee capture is marked, so the webhook never commits the job's tax on it.
-    expect(stripeMock.paymentIntents.capture.mock.calls[0][1].metadata).toEqual({ cancel_fee_capture: "1" });
+    expect(stripeMock.paymentIntents.capture.mock.calls[0][1].metadata).toEqual({ cancel_fee_capture: "1", cancel_fee_tax_kept_cents: "0" });
     expect(stripeMock.paymentIntents.capture.mock.calls[0][2]).toEqual({ idempotencyKey: "cancel-fee-capture:job-hold:pi_hold" });
     const settle = scenario.writes.find((w) => w.table === "jobs" && w.op === "update" &&
       (w.payload as Record<string, unknown>).cancellation_fee_status === "charged");

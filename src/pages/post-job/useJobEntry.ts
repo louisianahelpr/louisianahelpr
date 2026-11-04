@@ -40,6 +40,8 @@ export interface UseJobEntryParams {
   setOfferToHelperId: (v: string | null) => void;
   setOfferToHelperName: (v: string) => void;
   setIsFlexibleSchedule: (v: boolean) => void;
+  /** Q2408: the "Any time this week" window's last day. */
+  setDateWindowEnd?: (v: string | null) => void;
   setIsUrgent: (v: boolean) => void;
   setUrgentFee: (v: string) => void;
   setCredentialTier: (v: number) => void;
@@ -78,6 +80,7 @@ export function useJobEntry(params: UseJobEntryParams) {
     setOfferToHelperId,
     setOfferToHelperName,
     setIsFlexibleSchedule,
+    setDateWindowEnd,
     setIsUrgent,
     setUrgentFee,
     setCredentialTier,
@@ -131,6 +134,7 @@ export function useJobEntry(params: UseJobEntryParams) {
     setIsRecurring(draft.isRecurring); setRecurrenceInterval(draft.recurrenceInterval);
     setRecurrenceEndDate(draft.recurrenceEndDate);
     if (draft.isFlexibleSchedule !== undefined) setIsFlexibleSchedule(draft.isFlexibleSchedule);
+    setDateWindowEnd?.(draft.dateWindowEnd ?? null);
     if (draft.isUrgent !== undefined) setIsUrgent(draft.isUrgent);
     if (draft.urgentFee !== undefined) setUrgentFee(draft.urgentFee);
     if (draft.isGroupJob !== undefined) setIsGroupJob(draft.isGroupJob);
@@ -154,7 +158,7 @@ export function useJobEntry(params: UseJobEntryParams) {
     setIsRecurring(false); setRecurrenceInterval("weekly"); setRecurrenceEndDate("");
     setIsGroupJob(false); setHelpersNeeded("2");
     setOfferToHelperId(null); setOfferToHelperName("");
-    setIsFlexibleSchedule(false); setIsUrgent(false); setUrgentFee("5");
+    setIsFlexibleSchedule(false); setDateWindowEnd?.(null); setIsUrgent(false); setUrgentFee("5");
     setCredentialTier(0); setIncludeMaterials(false); setMaterialsNote("");
     resetOtherFields?.();
   };

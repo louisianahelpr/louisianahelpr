@@ -237,7 +237,7 @@ function chainMethodNames(call, names = []) {
 /**
  * A file can only hold a hit if it names a client entry method as a PROPERTY (`.from`, `.rpc`, `.schema`, comments
  * allowed after the dot; isClientEntryCall reads PropertyAccessExpressions only) or a `Postgrest…Builder` type
- * (isBuilderTypeNode). Most of the ~7,000 files name neither, so they are not parsed (Q2704: the coverage run
+ * (isBuilderTypeNode). Most of the ~7,100 files (2026-11-03) name neither, so they are not parsed (Q2704: the coverage run
  * timed this walk out at 60 s). Inside hitsInSource, so every shape test below also proves the filter keeps it.
  */
 export const MAY_HOLD_BUILDER = /\.\s*(?:\/\*[\s\S]*?\*\/\s*|\/\/[^\n]*\n\s*)*(?:from|rpc|schema)\b|Postgrest/;

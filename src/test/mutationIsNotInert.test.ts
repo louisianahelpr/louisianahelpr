@@ -137,7 +137,7 @@ interface Inert {
 
 function inertMutations(): Inert[] {
   const out: Inert[] = [];
-  // Each target's own duplicates are parsed once, not once per mutation on it (Q2704: 5,670 mutations on 864 targets).
+  // Each target's own duplicates are parsed once, not once per mutation on it (Q2704: 5,670 mutations on 864 targets on 2026-11-03).
   const parsedByTarget = new Map<string, { sf: ts.SourceFile; before: string[] }>();
   for (const guard of guardFiles()) {
     for (const d of parseDirectives(guard).mutations) {

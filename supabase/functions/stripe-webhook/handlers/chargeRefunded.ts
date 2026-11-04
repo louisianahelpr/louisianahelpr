@@ -9,7 +9,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
-import { anyIsTestSubject } from "./_testSubject.ts";
+import { anyIsTestSubject, isTestModeOrphan } from "./_testSubject.ts";
 import { loadAdminIds } from "../../_shared/adminIds.ts";
 import { formatExactDollars } from "../../_shared/money.ts";
 import { caughtMessage } from "../../_shared/caughtMessage.ts";
@@ -249,6 +249,24 @@ export async function handleChargeRefunded(
   // The job this refund is about is seed data: read below where the job is, and
   // every alert in this handler carries it (see the note at the top).
   let subjectIsSeed = false;
+
+  // Q2725 / Q2726 (live alerts 11-04): a TEST-mode refund of a payment that names a job that is not ours (a Stripe
+  // TEST script's payment) has no job to update, no ledger row to write and nobody to tell. Booking it wrote a
+  // payment_refunds row with no job and no member, which the hourly untold-refund sweep then paged about every hour.
+  if (event.livemode === false && refundPiId) {
+    let testJobId: string | null = chargeMeta.job_id ?? null;
+    if (!testJobId) {
+      try {
+        testJobId = ((await stripe.paymentIntents.retrieve(refundPiId))?.metadata ?? {}).job_id ?? null;
+      } catch (e) {
+        logStep("WARN: test-mode PaymentIntent read failed; the refund is handled as ours", { pi: refundPiId, error: caughtMessage(e) });
+      }
+    }
+    if (await isTestModeOrphan(supabase, event.livemode, testJobId, logStep)) {
+      logStep("Test-mode refund of a payment that is not one of ours: nothing to record or tell", { pi: refundPiId, job_id: testJobId });
+      return;
+    }
+  }
 
   // Q1655 / Q1782 (2): a taxed recurring visit's Stripe Tax transaction is
   // reversed once per live refund, keyed on the refund id, by the share of the

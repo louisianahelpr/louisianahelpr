@@ -43,6 +43,15 @@ export function jobTaxAddress(zip: unknown): JobTaxAddress | null {
 /** Metadata keys a job Checkout Session carries when its tax was precomputed at the job site. */
 export const JOB_TAX_CALC_KEY = "tax_calculation_id";
 export const JOB_TAX_CENTS_KEY = "job_tax_cents";
+/**
+ * Q2716: capture marks read by the webhook's tax commit (_jobTaxCommit.ts).
+ * cardHold.ts stamps SETUP_FEE_LEFT_OUT_KEY with the exact cents a hire's
+ * partial capture left out (the setup fee claimed elsewhere);
+ * void-cancelled-payments stamps CANCEL_FEE_CAPTURE_KEY "1" on a cancelled
+ * job's fee capture, whose tax is never committed.
+ */
+export const SETUP_FEE_LEFT_OUT_KEY = "setup_fee_left_out_cents";
+export const CANCEL_FEE_CAPTURE_KEY = "cancel_fee_capture";
 /** A gift-paid job-site-taxed checkout: the full taxable price the tax was figured on (the card took less). */
 export const JOB_TAXABLE_CENTS_KEY = "job_taxable_cents";
 

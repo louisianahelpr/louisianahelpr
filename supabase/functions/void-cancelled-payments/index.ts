@@ -13,6 +13,7 @@ import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { actualOrEstimatedFeeCents, highestPayInFourFeeCents, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
 import { cardCostFeeCents, chargeTaxCentsFor, checkoutChargeTaxCents, jobSiteTaxableCents, posterCancelKeptFeeCents, refundToPayerCents, taxOnKeptCents, withheldFeeReturnCents } from "../_shared/refundAmount.ts";
+import { CANCEL_FEE_CAPTURE_KEY } from "../_shared/jobTaxAddress.ts";
 import { refundReasonWithKeptParts } from "../_shared/refundReason.ts";
 import { posterCancelSplit } from "../_shared/posterCancelSplit.ts";
 import { CAPTURED_NOT_HIRED } from "../_shared/cardHold.ts";
@@ -2898,7 +2899,9 @@ serve(async (req) => {
                 holdGift = null;
               }
             }
-            await stripe.paymentIntents.capture(paymentIntentId, { amount_to_capture: captureCents });
+            // Q2716: marked, so the webhook never commits the job's tax on a capture of only its fees (even one reaching the whole hold).
+            // Money review 11-03: keyed, so a retry after an unanswered capture replays it instead of sending a second one.
+            await stripe.paymentIntents.capture(paymentIntentId, { amount_to_capture: captureCents, metadata: { [CANCEL_FEE_CAPTURE_KEY]: "1" } }, { idempotencyKey: `cancel-fee-capture:${job.id}:${paymentIntentId}` });
             // Re-fetch so latest_charge is populated for the helper transfer's
             // source_transaction link. Q1806: with the charge's real fee.
             const captured = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge.balance_transaction"] });

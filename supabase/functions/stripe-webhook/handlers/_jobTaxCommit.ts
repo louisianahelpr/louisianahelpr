@@ -1,7 +1,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { caughtMessage } from "../../_shared/caughtMessage.ts";
-import { JOB_TAX_CALC_KEY, JOB_TAX_CENTS_KEY } from "../../_shared/jobTaxAddress.ts";
+import { CANCEL_FEE_CAPTURE_KEY, JOB_TAX_CALC_KEY, JOB_TAX_CENTS_KEY, SETUP_FEE_LEFT_OUT_KEY } from "../../_shared/jobTaxAddress.ts";
 import { reverseVisitTaxForRefund } from "./_visitTaxReversal.ts";
 
 /**
@@ -23,8 +23,6 @@ import { reverseVisitTaxForRefund } from "./_visitTaxReversal.ts";
  * Never throws: the payment already stands. A failure pages ops with the exact
  * hand step (Stripe calculations expire, so it is a defect to fix, not retry).
  */
-/** The one-time setup fee a hire may leave out of a hold's capture (onboarding_fee_cents NOT NULL DEFAULT 200). */
-export const PARTIAL_CAPTURE_SETUP_FEE_CENTS = 200;
 
 export async function commitJobSiteTax(args: {
   stripe: Stripe;
@@ -47,20 +45,24 @@ export async function commitJobSiteTax(args: {
   // only the fee) would commit the FULL calculation's tax, and the uncaptured rest is released, never refunded,
   // so no refund event ever reverses it: tax reported on money never collected. Not committed; a person records
   // the tax on what was captured.
-  // Lead re-review (b): a hire captures the hold less the one-time setup fee when that fee was already claimed
-  // elsewhere (cardHold.ts partial capture), a normal taxed hire; that shortfall is no part of the taxed price,
-  // so it still commits. Only a shortfall larger than the omitted setup fee (default $2, the schema default of
-  // onboarding_fee_cents) is a fee-only capture.
+  // Lead re-review (b) / Q2716: a hire captures the hold less the one-time setup fee when that fee was already
+  // claimed elsewhere (cardHold.ts partial capture), a normal taxed hire; that shortfall is no part of the taxed
+  // price, so it still commits. cardHold.ts stamps the exact cents it left out on the capture, and only exactly
+  // that shortfall is allowed (never a guessed $2). A cancelled job's fee capture (void-cancelled-payments) is
+  // marked and ALWAYS skipped, even when the fees reach the whole hold and the capture looks full.
   const received = pi.amount_received;
-  const setupFeeAllowanceCents = md.onboarding_fee_charged === "true" ? PARTIAL_CAPTURE_SETUP_FEE_CENTS : 0;
-  if (typeof received === "number" && typeof pi.amount === "number" && pi.amount - received > setupFeeAllowanceCents) {
-    console.error(`[stripe-webhook] job-site tax NOT committed for ${pi.id}: captured ${received} of ${pi.amount}`);
+  const leftOut = Number(md[SETUP_FEE_LEFT_OUT_KEY]);
+  const setupFeeLeftOutCents = Number.isInteger(leftOut) && leftOut > 0 ? leftOut : 0;
+  const shortfall = typeof received === "number" && typeof pi.amount === "number" ? pi.amount - received : 0;
+  const cancelFeeCapture = md[CANCEL_FEE_CAPTURE_KEY] === "1";
+  if (cancelFeeCapture || (shortfall !== 0 && shortfall !== setupFeeLeftOutCents)) {
+    console.error(`[stripe-webhook] job-site tax NOT committed for ${pi.id}: captured ${received} of ${pi.amount}${cancelFeeCapture ? " (cancellation fee capture)" : ""}`);
     await postSlackOpsAlert({
       kind: "money_at_risk",
       severity: "warning",
       title: "Job sales tax not recorded: the hold was captured only in part",
-      message: `Job ${md.job_id}'s card hold (PaymentIntent ${pi.id}) was captured for $${(received / 100).toFixed(2)} of $${(pi.amount / 100).toFixed(2)}. Its Stripe Tax calculation ${calc} prices the whole $${(cents / 100).toFixed(2)} tax, so it was NOT committed (the uncaptured part is released, and no refund would ever reverse its tax). Record by hand only the tax inside what was captured, and set metadata.tax_transaction_id on the PaymentIntent.`,
-      fields: { job_id: md.job_id, payment_intent: pi.id, calculation: calc, tax_cents: String(cents), captured_cents: String(received), held_cents: String(pi.amount) },
+      message: `${cancelFeeCapture ? "This capture is a cancelled job's fee, not the job. " : ""}Job ${md.job_id}'s card hold (PaymentIntent ${pi.id}) was captured for $${(received / 100).toFixed(2)} of $${(pi.amount / 100).toFixed(2)}. Its Stripe Tax calculation ${calc} prices the whole $${(cents / 100).toFixed(2)} tax, so it was NOT committed (the uncaptured part is released, and no refund would ever reverse its tax). Record by hand only the tax inside what was captured, and set metadata.tax_transaction_id on the PaymentIntent.`,
+      fields: { job_id: md.job_id, payment_intent: pi.id, calculation: calc, tax_cents: String(cents), captured_cents: String(received), held_cents: String(pi.amount), cancel_fee_capture: cancelFeeCapture ? "yes" : "no" },
       oncePerDayKey: `job-site-tax-partial:${pi.id}`,
       seed: seed === true,
     });

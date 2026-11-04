@@ -28,11 +28,10 @@ class FakeRecognition {
   onerror: Handler = null;
   onend: (() => void) | null = null;
   started = 0;
-  constructor() {
-    last = this;
-  }
   start() {
     this.started++;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias -- the test drives the instance the hook built
+    last = this;
   }
   stop() {}
 }

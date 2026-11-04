@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1142,
+    "calls": 1143,
     "files": 316,
-    "rendering": 1061,
+    "rendering": 1062,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 213,
-      "toast.error": 773,
+      "toast.error": 774,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 483,
       "template": 105,
-      "dynamic": 607,
+      "dynamic": 608,
       "jsx": 0
     }
   },
@@ -8428,7 +8428,17 @@
     },
     {
       "file": "src/components/postjob/AiJobBuilder.tsx",
-      "line": 68,
+      "line": 77,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "message"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/postjob/AiJobBuilder.tsx",
+      "line": 81,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8438,7 +8448,7 @@
     },
     {
       "file": "src/components/postjob/AiJobBuilder.tsx",
-      "line": 97,
+      "line": 110,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8448,7 +8458,7 @@
     },
     {
       "file": "src/components/postjob/AiJobBuilder.tsx",
-      "line": 102,
+      "line": 115,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

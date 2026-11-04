@@ -7,7 +7,8 @@
  * @mutate src/pages/posts/postedJobCard/PosterCancelFeeLine.tsx |   if (fromGift >= feeCents) return | if (false) return
  * @mutate src/pages/posts/postedJobCard/PosterCancelFeeLine.tsx |     .filter((r) => r.parent_credit_id === credit.id && r.restored_from_job_id == null) |     .filter((r) => r.parent_credit_id === credit.id)
  * @mutate src/pages/posts/postedJobCard/PosterCancelFeeLine.tsx |   if (keptCents === undefined) return | if (keptCents === 0.5) return
- * @mutate src/pages/posts/PostedJobCard.tsx | <PosterCancelFeeLine jobId={job.id} | <PosterCancelFeeLine jobId={""}
+ * @mutate src/pages/posts/postedJobCard/PostedCancelledBlock.tsx | <PosterCancelFeeLine jobId={job.id} | <PosterCancelFeeLine jobId={""}
+ * @mutate src/pages/posts/PostedJobCard.tsx | {job.status === "cancelled" && <PostedCancelledBlock job={job} userId={userId} />} | {job.status === "cancelled" && null}
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -69,8 +70,11 @@ describe("Q1916: the poster's cancelled-job fee line", () => {
     expect(posterCancelFeeLine("waived", 15, null).label).toBe("Nothing to your Helpr · waived");
   });
   it("the card mounts the line and no longer maps 'charged' itself", () => {
-    const src = blankComments(readFileSync("src/pages/posts/PostedJobCard.tsx", "utf8"));
+    const src = blankComments(readFileSync("src/pages/posts/postedJobCard/PostedCancelledBlock.tsx", "utf8"));
     expect(src).toContain("<PosterCancelFeeLine jobId={job.id} fee={job.cancellation_fee} status={job.cancellation_fee_status} posterId={userId} />");
     expect(src).not.toMatch(/charged:\s*`\$\{feeAmt\}/);
+    // The card mounts the cancelled block (moved out of PostedJobCard, Q806).
+    const card = blankComments(readFileSync("src/pages/posts/PostedJobCard.tsx", "utf8"));
+    expect(card).toContain('{job.status === "cancelled" && <PostedCancelledBlock job={job} userId={userId} />}');
   });
 });

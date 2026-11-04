@@ -84,7 +84,7 @@ describe("Q2008 Helprs near you", () => {
     expect(container.querySelector("[data-testid='helprs-near-you']")).toBeNull();
   });
 
-  // @mutate src/pages/home/homeDashboard/HelprsNearYou.tsx |     if (isMissingRpcNamed(error, "get_helprs_near_me")) return []; |     if (isMissingRpcNamed(error, "get_helprs_near_me")) throw error;
+  // @mutate src/pages/home/homeDashboard/HelprsNearYou.tsx |   if (res.error && isMissingRpcNamed(res.error, "get_helprs_near_me")) return []; |   if (res.error && isMissingRpcNamed(res.error, "get_helprs_near_me")) throw res.error;
   it("before the RPC is deployed (PGRST202) the row is simply absent, no error surfaced", async () => {
     const { fetchHelprsNearMe } = await import("./HelprsNearYou");
     rpcResult.error = { code: "PGRST202", message: "Could not find the function public.get_helprs_near_me", hint: null };

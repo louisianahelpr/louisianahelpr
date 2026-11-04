@@ -71,7 +71,12 @@ function findTarget(t: Target): HTMLElement | null {
 }
 
 /** The first run's screens. Loaded only when the gate opens (./FirstRunHost holds the gate). */
-export default function FirstRunScreens({ startInTour, onDone }: { startInTour: boolean; onDone: () => void }) {
+export default function FirstRunScreens({ startInTour, onDone, onPicks }: {
+  startInTour: boolean;
+  onDone: () => void;
+  /** Q2664 (b): the admin onboarding preview takes the picks itself, so its Continue never reorders the admin's own Home. */
+  onPicks?: (sections: SectionKey[]) => void;
+}) {
   const [phase, setPhase] = useState<"pick" | "tour">(startInTour ? "tour" : "pick");
   const [picks, setPicks] = useState<Pick[]>([]);
   const live = useSectionTabs();
@@ -87,7 +92,7 @@ export default function FirstRunScreens({ startInTour, onDone }: { startInTour: 
         onToggle={(id) => setPicks((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]))}
         onSkip={() => setPhase("tour")}
         onContinue={() => {
-          putFirst(FIRST_RUN_OPTIONS.filter((o) => picks.includes(o.id)).map((o) => o.section));
+          (onPicks ?? putFirst)(FIRST_RUN_OPTIONS.filter((o) => picks.includes(o.id)).map((o) => o.section));
           setPhase("tour");
         }}
       />

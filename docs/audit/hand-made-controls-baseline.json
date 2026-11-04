@@ -423,9 +423,6 @@
     "src/components/declutter/SellerHandedOver.tsx": {
       "button": 1
     },
-    "src/components/declutter/SellerMoveHelprPickup.tsx": {
-      "button": 3
-    },
     "src/components/declutter/SellingNowRow.tsx": {
       "button": 1
     },

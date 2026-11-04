@@ -24,7 +24,6 @@
   ],
   "mountWiring": [
     "src/components/GuestBrowseSkeleton.tsx",
-    "src/components/HelperAvailability.tsx",
     "src/components/admin/AdminBanEvasionReview.tsx",
     "src/components/admin/AdminUserDetailDialog.tsx",
     "src/components/admin/BanDialog.tsx",

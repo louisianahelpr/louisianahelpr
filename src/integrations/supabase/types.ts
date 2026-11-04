@@ -10205,6 +10205,7 @@ export type Database = {
           saved_helper_seen: Json
           senior_mode: boolean
           share_job_photos: boolean
+          show_near_you: boolean
           skills: string | null
           stripe_account_id: string | null
           stripe_charges_enabled: boolean
@@ -10315,6 +10316,7 @@ export type Database = {
           saved_helper_seen?: Json
           senior_mode?: boolean
           share_job_photos?: boolean
+          show_near_you?: boolean
           skills?: string | null
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
@@ -10425,6 +10427,7 @@ export type Database = {
           saved_helper_seen?: Json
           senior_mode?: boolean
           share_job_photos?: boolean
+          show_near_you?: boolean
           skills?: string | null
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
@@ -18212,6 +18215,15 @@ export type Database = {
           parish: string
           parish_fill_rate_pct: number
           total_jobs: number
+        }[]
+      }
+      get_helprs_near_me: {
+        Args: never
+        Returns: {
+          active_now: boolean
+          avatar_url: string
+          full_name: string
+          user_id: string
         }[]
       }
       get_helper_analytics: { Args: { p_days?: number }; Returns: Json }

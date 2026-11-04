@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { fileRequest } from "@/lib/rentals/api";
 import { EMERGENCY_STEPS, MAINTENANCE_CATEGORIES, URGENCY_LABEL, rentalsErrorMessage, type Urgency } from "@/lib/rentals/copy";
+import { NativeSelect } from "@/components/ui/select";
 
 // The private user-documents bucket takes JPEG/PNG/WebP/HEIC/PDF up to 10 MB
 // (storage.buckets, measured on prod 2026-10-15): no video yet.
@@ -64,8 +65,6 @@ export function MaintenanceRequestForm({ tenancyId, uid, onFiled }: { tenancyId:
   }
 
   const showEmergencySteps = urgency === "emergency" && !emergencyAcknowledged;
-  // The one native control left: a <select>, styled as the shared field (h-12, rounded-2xl, glass-field).
-  const select = "flex h-12 w-full rounded-2xl border border-[hsl(var(--ink-deep)/0.15)] glass-field px-4 text-ds-15";
 
   return (
     <form
@@ -80,14 +79,14 @@ export function MaintenanceRequestForm({ tenancyId, uid, onFiled }: { tenancyId:
     >
       <label className="block text-sm">
         <span className="block mb-1 font-medium">What's wrong?</span>
-        <select className={select} value={category} onChange={(e) => setCategory(e.target.value)} required>
+        <NativeSelect value={category} onChange={(e) => setCategory(e.target.value)} required>
           <option value="">Choose one</option>
           {MAINTENANCE_CATEGORIES.map((c) => (
             <option key={c.value} value={c.value}>
               {c.label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </label>
       <fieldset className="space-y-1">
         <legend className="text-sm font-medium mb-1">How urgent?</legend>

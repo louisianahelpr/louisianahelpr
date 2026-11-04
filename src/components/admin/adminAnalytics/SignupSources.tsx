@@ -5,6 +5,7 @@ import { unwrap } from "@/lib/supabaseResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { AdminCard } from "@/components/admin/AdminViewShell";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { NativeSelect } from "@/components/ui/select";
 
 type Days = 7 | 30 | 90;
 
@@ -41,16 +42,16 @@ export function SignupSources() {
   if (q.data === null) return null;
 
   const controls = (
-    <select
+    <NativeSelect
       aria-label="Time window"
-      className="min-h-11 rounded-full border border-border bg-card px-4 text-ds-13 font-semibold"
+      wrapperClassName="w-auto"
       value={days}
       onChange={(e) => setDays(Number(e.target.value) as Days)}
     >
       <option value={7}>Last 7 days</option>
       <option value={30}>Last 30 days</option>
       <option value={90}>Last 90 days</option>
-    </select>
+    </NativeSelect>
   );
 
   if (q.isError) {

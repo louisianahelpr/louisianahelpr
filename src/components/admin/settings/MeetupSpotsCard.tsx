@@ -14,6 +14,7 @@ import { useFeature } from "@/hooks/useFeature";
 import { adminSaveMeetupSpot, fetchAllMeetupSpots, type MeetupKind, type MeetupSpotRow } from "@/lib/declutter/meetup";
 import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
 import { AdminCard } from "../AdminViewShell";
+import { NativeSelect } from "@/components/ui/select";
 
 type Draft = { id: string | null; parish: string; name: string; address: string; lat: string; lng: string; kind: MeetupKind; note: string; active: boolean };
 const EMPTY: Draft = { id: null, parish: "", name: "", address: "", lat: "", lng: "", kind: "police", note: "", active: true };
@@ -52,9 +53,9 @@ function SpotForm({ draft, onDone }: { draft: Draft; onDone: () => void }) {
         <label className="space-y-1 text-xs font-medium">Latitude<input className={INPUT} inputMode="decimal" value={d.lat} onChange={set("lat")} placeholder="30.4515" /></label>
         <label className="space-y-1 text-xs font-medium">Longitude<input className={INPUT} inputMode="decimal" value={d.lng} onChange={set("lng")} placeholder="-91.1871" /></label>
         <label className="space-y-1 text-xs font-medium">Type
-          <select className={INPUT} value={d.kind} onChange={(e) => setD({ ...d, kind: e.target.value as MeetupKind })}>
+          <NativeSelect value={d.kind} onChange={(e) => setD({ ...d, kind: e.target.value as MeetupKind })}>
             {(Object.keys(KIND_LABEL) as MeetupKind[]).map((k) => <option key={k} value={k}>{KIND_LABEL[k]}</option>)}
-          </select>
+          </NativeSelect>
         </label>
         <label className="space-y-1 text-xs font-medium">Note (optional)<input className={INPUT} value={d.note} maxLength={300} onChange={set("note")} placeholder="Lit lot, cameras, open 24 hours" /></label>
       </div>

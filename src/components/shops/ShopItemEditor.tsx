@@ -45,6 +45,7 @@ import {
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopsNotice } from "./shopsUi";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
+import { NativeSelect } from "@/components/ui/select";
 
 interface Draft {
   kind: ShopItemKind;
@@ -219,9 +220,9 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
       )}
       <div className="space-y-1.5">
         <Label htmlFor="item-kind">What kind of item</Label>
-        <select
+        <NativeSelect
           id="item-kind"
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
+          
           value={d.kind}
           onChange={(e) => {
             const kind = e.target.value as ShopItemKind;
@@ -232,13 +233,13 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
           {(Object.keys(SHOP_ITEM_TYPES) as ShopItemKind[]).map((k) => (
             <option key={k} value={k}>{SHOP_ITEM_KIND_LABEL[k]}</option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="item-type">Type</Label>
-        <select
+        <NativeSelect
           id="item-type"
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-base sm:text-sm"
+          
           value={d.subtype}
           onChange={(e) => {
             set("subtype", e.target.value);
@@ -248,7 +249,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
           {SHOP_ITEM_TYPES[d.kind].map((t) => (
             <option key={t} value={t}>{SHOP_ITEM_TYPE_LABEL[t] ?? t}</option>
           ))}
-        </select>
+        </NativeSelect>
         {d.kind === "home_food" && (
           <p className="text-xs text-muted-foreground">
             Only foods Louisiana allows from a home kitchen, with no meat or fish. Plate lunches and other foods that need a health permit can't be listed yet.

@@ -22,6 +22,7 @@ import PriceHint from "./DeclutterPriceHint";
 import { BunchPhotos, type BunchOther } from "./DeclutterBunchPhotos";
 import { BuyerPreviewCard } from "./BuyerPreviewCard";
 import { Textarea } from "@/components/ui/textarea";
+import { NativeSelect } from "@/components/ui/select";
 
 const field = "h-11 w-full min-w-0 rounded-2xl border border-input glass-field px-3 text-ds-15";
 
@@ -152,17 +153,17 @@ export function BunchCard({ item, offersDefault, index, others, urls, files, at,
         })()}
         <div className="min-w-0">
           <label className="block text-ds-13 font-medium" htmlFor={`cond-${id}`}>Condition</label>
-          <select id={`cond-${id}`} className={field} value={item.conditionStars} onChange={(e) => onChange({ conditionStars: Number(e.target.value) })}>
+          <NativeSelect id={`cond-${id}`} value={item.conditionStars} onChange={(e) => onChange({ conditionStars: Number(e.target.value) })}>
             {[5, 4, 3, 2, 1].map((s) => <option key={s} value={s}>{CONDITION_LABEL[s]}</option>)}
-          </select>
+          </NativeSelect>
         </div>
         {item.sizeUnknown && (
           <div className="min-w-0 sm:col-span-2" data-bunch-size="">
             <label className="block text-ds-13 font-medium" htmlFor={`size-${id}`}>Size</label>
-            <select id={`size-${id}`} className={field} value="" onChange={(e) => onChange({ deliverySize: e.target.value as DeliverySize })}>
+            <NativeSelect id={`size-${id}`} value="" onChange={(e) => onChange({ deliverySize: e.target.value as DeliverySize })}>
               <option value="" disabled>Pick a size</option>
               {(Object.keys(SIZE_LABEL) as DeliverySize[]).map((s) => <option key={s} value={s}>{SIZE_LABEL[s]}</option>)}
-            </select>
+            </NativeSelect>
           </div>
         )}
       </div>
@@ -180,10 +181,10 @@ export function BunchCard({ item, offersDefault, index, others, urls, files, at,
           <>
             <div className="w-full" data-bunch-merge-row="">
               <label className="block text-ds-13 font-medium" htmlFor={`merge-${id}`}>Same thing as another item?</label>
-              <select id={`merge-${id}`} className={field} value={mergeInto} onChange={(e) => setMergeInto(e.target.value)}>
+              <NativeSelect id={`merge-${id}`} value={mergeInto} onChange={(e) => setMergeInto(e.target.value)}>
                 <option value="">Pick an item</option>
                 {others.map((o) => <option key={o.key} value={o.key}>{o.name}</option>)}
-              </select>
+              </NativeSelect>
             </div>
             <Button type="button" variant="outline" size="sm" disabled={!mergeInto} aria-label={`Merge ${name}`} onClick={() => { onMerge(mergeInto); setMergeInto(""); }}>Merge</Button>
           </>

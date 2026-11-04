@@ -15,6 +15,7 @@ import { AdminCard } from "../AdminViewShell";
 import { fetchProblemCase } from "@/lib/declutter/adminProblemCase";
 import { HelprPhoto, ProblemCaseView } from "./DeclutterProblemCase";
 import { ProblemTalk } from "./DeclutterProblemTalk";
+import { NativeSelect } from "@/components/ui/select";
 
 /**
  * Declutter problems waiting for an admin (spec rows 15, 67, 96; B54):
@@ -216,14 +217,14 @@ function ProblemItem({ row }: { row: ProblemRow }) {
         </fieldset>
       ) : null}
       <label htmlFor={id("fault")} className="block text-xs font-medium">Whose fault?</label>
-      <select id={id("fault")} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+      <NativeSelect id={id("fault")}
         value={falseOn ? (reporter as string) : fault} disabled={falseOn}
         onChange={(e) => { const f = e.target.value as "seller" | "buyer" | "none" | "helpr"; setFault(f); if (f === "none") setStrike(false); }}>
         <option value="none">Nobody's</option>
         <option value="seller">The seller's</option>
         <option value="buyer">The buyer's</option>
         {helprNeverPickedUp ? <option value="helpr">The Helpr's</option> : null}
-      </select>
+      </NativeSelect>
       <p className="text-xs text-muted-foreground">
         If you refund: the seller's fault = the whole payment back (the seller owes the card fee); the buyer's fault = the
         item price back (the buyer's fee is kept); nobody's = the payment back minus the card fee.
@@ -241,7 +242,7 @@ function ProblemItem({ row }: { row: ProblemRow }) {
         </p>
       ) : null}
       <label htmlFor={id("note")} className="block text-xs font-medium">Note (both sides see it)</label>
-      <input id={id("note")} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm" maxLength={1000}
+      <input id={id("note")} maxLength={1000}
         value={note} onChange={(e) => setNote(e.target.value)} />
       <div data-admin-decide="" className="flex flex-wrap gap-2">
         <Button variant="outline" onClick={() => decide.mutate("pay_seller")} disabled={decide.isPending || helprFault || (falseOn && againstReporter !== "pay_seller")}>Pay the seller</Button>

@@ -7,6 +7,7 @@ import { formatPrice } from "@/lib/format";
 import { ChoicePill } from "@/components/ui/ChoicePill";
 import { AdminCard } from "@/components/admin/AdminViewShell";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { NativeSelect } from "@/components/ui/select";
 
 /** Below this many, a rate or a median is not shown (truth rule: no stat from a handful). */
 const MIN_SAMPLE = 5;
@@ -113,26 +114,26 @@ export function SectionFunnel() {
     <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Funnel filters">
       <ChoicePill selected={section === "jobs"} onClick={() => setSection("jobs")}>Jobs</ChoicePill>
       <ChoicePill selected={section === "declutter"} onClick={() => setSection("declutter")}>Declutter</ChoicePill>
-      <select
+      <NativeSelect
         aria-label="Time window"
-        className="min-h-11 rounded-full border border-border bg-card px-4 text-ds-13 font-semibold"
+        wrapperClassName="w-auto"
         value={days}
         onChange={(e) => setDays(Number(e.target.value) as Days)}
       >
         <option value={7}>Last 7 days</option>
         <option value={30}>Last 30 days</option>
         <option value={90}>Last 90 days</option>
-      </select>
+      </NativeSelect>
       {section === "jobs" && (
-        <select
+        <NativeSelect
           aria-label="Parish"
-          className="min-h-11 rounded-full border border-border bg-card px-4 text-ds-13 font-semibold"
+          wrapperClassName="w-auto"
           value={parish ?? ""}
           onChange={(e) => setParish(e.target.value || null)}
         >
           <option value="">All parishes</option>
           {(data?.parishes ?? []).map((p) => <option key={p} value={p}>{p}</option>)}
-        </select>
+        </NativeSelect>
       )}
     </div>
   );

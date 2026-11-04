@@ -27,6 +27,7 @@ import {
   helprUploadListingPhoto,
   type HelprJobListing,
 } from "@/lib/declutter/listForSeller";
+import { NativeSelect } from "@/components/ui/select";
 
 const STATUS_WORDS: Record<HelprJobListing["status"], string> = {
   draft: "Not sent yet",
@@ -107,19 +108,19 @@ function ListingForm({ jobId, helprId, seller, editing, onDone }: {
         <Textarea className="mt-1" value={description} maxLength={2000} onChange={(e) => setDescription(e.target.value)} />
       </label>
       <label className="block text-ds-13 font-medium">Category
-        <select className="mt-1 block min-h-11 w-full rounded-xl border border-border bg-background px-3" value={category} onChange={(e) => setCategory(e.target.value)}>
+        <NativeSelect wrapperClassName="mt-1" value={category} onChange={(e) => setCategory(e.target.value)}>
           {CATEGORIES.map((c) => <option key={c.key} value={c.key}>{c.label}</option>)}
-        </select>
+        </NativeSelect>
       </label>
       <label className="block text-ds-13 font-medium">Condition
-        <select className="mt-1 block min-h-11 w-full rounded-xl border border-border bg-background px-3" value={condition} onChange={(e) => setCondition(Number(e.target.value))}>
+        <NativeSelect wrapperClassName="mt-1" value={condition} onChange={(e) => setCondition(Number(e.target.value))}>
           {[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{CONDITION_LABEL[n]}</option>)}
-        </select>
+        </NativeSelect>
       </label>
       <label className="block text-ds-13 font-medium">Size
-        <select className="mt-1 block min-h-11 w-full rounded-xl border border-border bg-background px-3" value={size} onChange={(e) => setSize(e.target.value as keyof typeof SIZE_LABEL)}>
+        <NativeSelect wrapperClassName="mt-1" value={size} onChange={(e) => setSize(e.target.value as keyof typeof SIZE_LABEL)}>
           {(Object.keys(SIZE_LABEL) as (keyof typeof SIZE_LABEL)[]).map((k) => <option key={k} value={k}>{SIZE_LABEL[k]}</option>)}
-        </select>
+        </NativeSelect>
       </label>
       {/* One per line on a phone: side by side, "Same as price" was cut off at 375. */}
       <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2">

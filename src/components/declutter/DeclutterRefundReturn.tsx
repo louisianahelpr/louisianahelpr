@@ -22,6 +22,7 @@ import {
   uploadReturnPhoto,
   type ReturnWay,
 } from "@/lib/declutter/refundReturns";
+import { NativeSelect } from "@/components/ui/select";
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
@@ -82,9 +83,9 @@ export function DeclutterReturnWayPicker({ id, who, canDropOff, value, onChange 
       {value.way === "drop_off" ? (
         <div>
           <label htmlFor={`${id}-day`} className="block text-xs font-medium">From which day?</label>
-          <select id={`${id}-day`} className={input} value={value.day} onChange={(e) => onChange({ ...value, day: e.target.value })}>
+          <NativeSelect id={`${id}-day`} value={value.day} onChange={(e) => onChange({ ...value, day: e.target.value })}>
             {days.map((d) => <option key={d} value={d}>{returnDayWords(d)}</option>)}
-          </select>
+          </NativeSelect>
         </div>
       ) : (
         <div>

@@ -16,6 +16,7 @@ import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { type PickupWindow } from "@/lib/declutter/api";
 import { WEEKDAYS } from "./declutterUi";
+import { NativeSelect } from "@/components/ui/select";
 
 /** declutter_set_pickup_windows takes at most this many windows. */
 const MAX_WINDOWS = 21;
@@ -72,12 +73,12 @@ function TimeSelect({ id, label, value, onChange }: { id: string; label: string;
   return (
     <>
       <label className="sr-only" htmlFor={id}>{label}</label>
-      <select id={id} value={value} onChange={(e) => onChange(e.target.value)}
+      <NativeSelect id={id} value={value} onChange={(e) => onChange(e.target.value)}
         // 375 (B47/B50 measured 2026-10-31; guard pickupTimeSelectsFitAPhone): with px-3 a 97 px select cut "12:00 PM" to "12:00 P" and "9:00 AM" to "9:00 AN" (the
         // arrow takes the right side). Less side padding and a narrower row gap give the text the room; type unchanged.
-        className="h-11 w-full min-w-0 rounded-[12px] border border-border bg-card pl-2.5 pr-1 text-ds-14 text-foreground focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        className="pl-2.5 pr-6 text-ds-14">
         {steps.map((t) => <option key={t} value={t}>{timeLabel(t)}</option>)}
-      </select>
+      </NativeSelect>
     </>
   );
 }

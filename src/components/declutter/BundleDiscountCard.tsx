@@ -18,6 +18,7 @@ import { useFeature } from "@/hooks/useFeature";
 import { BUNDLE_PERCENTS, fetchBundleRule } from "@/lib/declutter/bundle";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { NativeSelect } from "@/components/ui/select";
 
 const BUNDLE_APPLIES_LINE = "Applies to all your listings";
 
@@ -47,16 +48,16 @@ export function BundleDiscountCard({ pick, onPick, disabled = false }: { pick: n
     <div className="space-y-2 rounded-[14px] bg-[hsl(var(--muted)/0.55)] px-3 py-3" role="group" aria-labelledby={`${id}-label`} data-bundle-card="">
       <div className="flex items-center justify-between gap-3" data-bundle-row="">
         <label id={`${id}-label`} htmlFor={id} className="min-w-0 flex-1 text-ds-14 font-semibold text-foreground">Bundle discount</label>
-        <select
+        <NativeSelect
           id={id}
           value={value}
           disabled={rule.isLoading || disabled}
           onChange={(e) => onPick(e.target.value === "off" ? null : Number(e.target.value))}
-          className="h-11 w-auto max-w-[65%] shrink-0 rounded-[12px] border border-border bg-card px-3 text-ds-14 text-foreground focus:border-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          wrapperClassName="w-auto max-w-[65%] shrink-0" className="pl-3 pr-7 text-ds-14"
         >
           <option value="off">Off</option>
           {BUNDLE_PERCENTS.map((p) => <option key={p} value={String(p)}>Buy 2+, {p}% off</option>)}
-        </select>
+        </NativeSelect>
       </div>
       <p className="text-ds-13 text-muted-foreground">
         <span className="font-semibold text-foreground" data-bundle-applies="">{BUNDLE_APPLIES_LINE}.</span>{" "}

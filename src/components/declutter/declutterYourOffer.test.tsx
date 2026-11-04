@@ -51,6 +51,8 @@ const state = {
 };
 
 // The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
+// Q2471: the offer box asks declutter-ai-reply for a suggested amount; no suggestion here (the box works without it).
+vi.mock("@/lib/declutter/aiReply", async (orig) => ({ ...(await orig<object>()), requestSuggestedOffer: async () => null }));
 // The Ask sheet's read (owner 11-01, Mockup 3): one place, open 7 AM to 9 PM every day.
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({
   ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null,

@@ -4,7 +4,7 @@
   "files": {
     "src/components/admin/AdminDisputes.tsx": 682,
     "src/components/BrowseMap.tsx": 945,
-    "src/components/dashboard/JobDetailDialog.tsx": 945,
+    "src/components/dashboard/JobDetailDialog.tsx": 944,
     "src/components/JobTracking.tsx": 1758,
     "src/components/messages/ConversationList.tsx": 1748,
     "src/components/NotificationPanel.tsx": 908,

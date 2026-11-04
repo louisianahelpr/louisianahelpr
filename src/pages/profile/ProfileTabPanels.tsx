@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect } from "react";
+import { MoneyHelp } from "@/components/money/MoneyHelp";
 import { useFeature } from "@/hooks/useFeature";
 import type { User } from "@supabase/supabase-js";
 import { useQueryClient, type UseQueryResult } from "@tanstack/react-query";
@@ -255,6 +256,8 @@ export const ProfileTabPanels = ({
               helperName={profile?.full_name || user.email || "Helpr"}
             />
           </Suspense>
+          {/* Q2471 (4): plain-words money help, answered from our Help Center. */}
+          <div className="mt-4"><MoneyHelp /></div>
         </ProfileTabBody>
       )}
 

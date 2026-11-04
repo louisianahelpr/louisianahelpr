@@ -61,7 +61,7 @@ export function MoneyHelp() {
       )}
       {answer === null && unreachable && (
         <p role="status" className="text-sm" data-money-help-unreachable="">
-          Couldn&apos;t reach the helper right now. Try again, or <Link to="/support" className="underline">contact support</Link>.
+          Couldn&apos;t get an answer right now. Try again, or <Link to="/support" className="underline">contact support</Link>.
         </p>
       )}
       {answer === null && !unreachable && (

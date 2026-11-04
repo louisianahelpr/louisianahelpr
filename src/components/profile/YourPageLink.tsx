@@ -23,7 +23,6 @@ export function YourPageLink({ name, className = "" }: { name?: string | null; c
       throw new Error("handle_unavailable");
     },
     staleTime: 10 * 60_000,
-    retry: 1,
   });
   if (!handle) return null;
   const copy = async () => {

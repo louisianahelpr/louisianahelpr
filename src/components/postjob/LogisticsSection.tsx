@@ -96,6 +96,8 @@ interface LogisticsSectionProps {
   /** Q2408 "Any time this week": the window's last day (dateNeeded is its first), or null for one day. */
   dateWindowEnd?: string | null;
   setDateWindowEnd?: (v: string | null) => void;
+  /** False when the job asks for quotes: a quote keeps one agreed day, so "Any time this week" is not offered. */
+  windowAllowed?: boolean;
   specialRequirements: string;
   setSpecialRequirements: (v: string) => void;
   isRecurring: boolean;
@@ -155,6 +157,7 @@ export function LogisticsSection({
   setIsFlexibleSchedule,
   dateWindowEnd = null,
   setDateWindowEnd,
+  windowAllowed = true,
   specialRequirements,
   setSpecialRequirements,
   isRecurring,
@@ -218,7 +221,10 @@ export function LogisticsSection({
   };
   // Q2408 (owner: BUILD) "Any time this week": the picked day starts a 7-day window (date_window_end = day + 6).
   // Any time of day, so it rides on the flexible start (the time stays optional). Not for a repeating job.
-  const weekWindow = !isRecurring && !!dateWindowEnd;
+  // Lead review 11-04: a single job only. A crew shares one day and a quote keeps its agreed day
+  // (jobs_date_window_single_job_only refuses the window on either).
+  const windowOk = !isRecurring && windowAllowed && !(GROUP_JOBS_ENABLED && isGroupJob);
+  const weekWindow = windowOk && !!dateWindowEnd;
   const chooseWeek = () => {
     if (!setDateWindowEnd || !dateNeeded) return;
     setIsFlexibleSchedule(true);
@@ -229,8 +235,8 @@ export function LogisticsSection({
   // The window follows the first day: picking another day on the strip moves the whole week with it.
   useEffect(() => {
     if (dateWindowEnd && dateNeeded && dateWindowEnd !== weekWindowEnd(dateNeeded)) setDateWindowEnd?.(weekWindowEnd(dateNeeded));
-    if (dateWindowEnd && isRecurring) setDateWindowEnd?.(null);
-  }, [dateNeeded, dateWindowEnd, isRecurring, setDateWindowEnd]);
+    if (dateWindowEnd && !windowOk) setDateWindowEnd?.(null);
+  }, [dateNeeded, dateWindowEnd, windowOk, setDateWindowEnd]);
   // The crew stepper reads the field's number (2..10, the field's own min/max); a blank or odd value starts at 2.
   const crewCount = Number.parseInt(helpersNeeded, 10) || 2;
   const needItToday = () => {
@@ -414,7 +420,7 @@ export function LogisticsSection({
           {/* Q2615 (Jobs audit 1102b row 29): one filled chip for "when". While Need it today is on, neither of
               these reads selected (both used to be filled with it); tapping one leaves today for tomorrow. */}
           <ChoicePill selected={!isToday && !isFlexibleSchedule && !weekWindow} onClick={() => chooseWhen(false)}>A set time</ChoicePill>
-          {!isRecurring && setDateWindowEnd && (
+          {windowOk && setDateWindowEnd && (
             <ChoicePill selected={!isToday && weekWindow} onClick={chooseWeek}>Any time this week</ChoicePill>
           )}
           <ChoicePill selected={!isToday && isFlexibleSchedule && !weekWindow} onClick={() => chooseWhen(true)}>Flexible</ChoicePill>

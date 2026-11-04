@@ -37,7 +37,9 @@
  * @mutate src/components/postjob/LogisticsSection.tsx |     setIsFlexibleSchedule(true);\n    setDateWindowEnd(weekWindowEnd(dateNeeded)); |     setIsFlexibleSchedule(false);\n    setDateWindowEnd(weekWindowEnd(dateNeeded));
  * @mutate src/components/postjob/LogisticsSection.tsx |     setDateWindowEnd?.(null);\n    if (isToday && strip[1]) pickDay(strip[1].iso);\n  };\n  // Q2408 | if (isToday && strip[1]) pickDay(strip[1].iso);\n  };\n  // Q2408
  * @mutate src/components/postjob/LogisticsSection.tsx |     if (dateWindowEnd && dateNeeded && dateWindowEnd !== weekWindowEnd(dateNeeded)) setDateWindowEnd?.(weekWindowEnd(dateNeeded)); |
- * @mutate src/pages/post-job/jobSubmitHelpers.ts |     ...(dateWindowEnd && !isRecurring && | ...(dateWindowEnd &&
+ * @mutate src/pages/post-job/jobSubmitHelpers.ts | dateWindowEnd && !isRecurring && !(GROUP_JOBS_ENABLED && isGroupJob) && firstVisit | dateWindowEnd && !(GROUP_JOBS_ENABLED && isGroupJob) && firstVisit
+ * @mutate src/components/postjob/LogisticsSection.tsx | const windowOk = !isRecurring && windowAllowed && | const windowOk = !isRecurring && true &&
+ * @mutate src/pages/post-job/FormStep.tsx | windowAllowed={!askingQuotes} | windowAllowed={true}
  * @mutate src/components/postjob/whenChoices.ts |   const later = TIME_CHIPS.filter((t) => t.value > earliest); |   const later = TIME_CHIPS;
  * @mutate src/components/postjob/LogisticsSection.tsx |   const timeChips = timeChipsFor(dateNeeded, today, sameDayStart); |   const timeChips = timeChipsFor("", today, sameDayStart);
  */
@@ -82,6 +84,8 @@ function Host(props: {
   scheduleInPast?: boolean;
   /** Q2408: hold the "Any time this week" window, as Post a job's form does. */
   week?: boolean;
+  /** Q2408 (lead review 11-04): the job asks for quotes, so no window (FormStep passes windowAllowed={!askingQuotes}). */
+  quotes?: boolean;
 }) {
   const s = props.start ?? {};
   const [streetAddress, setStreetAddress] = useState(s.street ?? "");
@@ -109,6 +113,7 @@ function Host(props: {
       scheduleInPast={props.scheduleInPast}
       isFlexibleSchedule={isFlexibleSchedule} setIsFlexibleSchedule={setIsFlexibleSchedule}
       {...(props.week ? { dateWindowEnd, setDateWindowEnd } : {})}
+      windowAllowed={!props.quotes}
       specialRequirements={notes} setSpecialRequirements={setNotes}
       isRecurring={isRecurring} setIsRecurring={setIsRecurring}
       recurrenceDays={[]} setRecurrenceDays={noop}
@@ -329,9 +334,11 @@ describe("board 45 keeps everything the screen already did", () => {
     // A prop counts only when it comes FROM the form (`x={form.y}`): `savedAddress={null}`
     // passes a prop and still turns the WHERE radio off for everyone.
     const fromForm = new Set([...call.matchAll(/\b(\w+)=\{form\.\w+\}/g)].map((m) => m[1]));
-    // stepNumber is the one literal: the section's own number on this screen.
-    expect(props.filter((p) => p !== "stepNumber" && !fromForm.has(p))).toEqual([]);
+    // stepNumber is the one literal: the section's own number on this screen. windowAllowed is derived: no
+    // "Any time this week" on a job that asks for quotes (Q2408, lead review 11-04).
+    expect(props.filter((p) => p !== "stepNumber" && p !== "windowAllowed" && !fromForm.has(p))).toEqual([]);
     expect(call).toMatch(/\bstepNumber=\{\d+\}/);
+    expect(call).toMatch(/\bwindowAllowed=\{!askingQuotes\}/);
   });
 });
 
@@ -394,6 +401,16 @@ describe("Q2408 Any time this week", () => {
   it("a repeating job never offers it", () => {
     render(<Host week start={{ recurring: true }} />);
     expect(within(screen.getByRole("radiogroup", { name: "When" })).queryByRole("radio", { name: "Any time this week" })).toBeNull();
+  });
+
+  it("a quote job never offers it, and switching to quotes drops a window already picked", () => {
+    const day = strip()[2].iso;
+    const { rerender } = render(<Host week start={{ date: day }} />);
+    fireEvent.click(radio("When", "Any time this week"));
+    expect(seen.dateWindowEnd).toBe(weekWindowEnd(day));
+    rerender(<Host week quotes start={{ date: day }} />);
+    expect(within(screen.getByRole("radiogroup", { name: "When" })).queryByRole("radio", { name: "Any time this week" })).toBeNull();
+    expect(seen.dateWindowEnd).toBeNull();
   });
 
   it("the saved job carries date_window_end only for a real window inside a week, never on a series", () => {

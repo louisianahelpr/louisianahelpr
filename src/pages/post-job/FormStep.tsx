@@ -405,6 +405,7 @@ export function FormStep({ form }: FormStepProps) {
             setIsFlexibleSchedule={form.setIsFlexibleSchedule}
             dateWindowEnd={form.dateWindowEnd}
             setDateWindowEnd={form.setDateWindowEnd}
+            windowAllowed={!askingQuotes}
             specialRequirements={form.specialRequirements}
             setSpecialRequirements={form.setSpecialRequirements}
             isRecurring={form.isRecurring}

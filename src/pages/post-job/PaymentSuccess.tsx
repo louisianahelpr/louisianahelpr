@@ -206,8 +206,7 @@ const PaymentSuccess = () => {
 
   const handlePostAnother = () => {
     void hapticLight();
-    // Clear the cached id so the next visit to this page doesn't
-    // re-surface the wrong job.
+    // Clear the cached id so the next visit to this page doesn't re-surface the wrong job.
     try {
       safeStorage.removeItem("helpr_last_posted_job_id");
     } catch {
@@ -272,8 +271,7 @@ const PaymentSuccess = () => {
     track(AhaEvent.PaymentMade, { job_id: jobId, ...ppoProps });
   }, [searchParams]);
 
-  // Q2003 (lead 11-04): the notifications ask a post left pending (it left Post a Job for Checkout at once) is
-  // offered here, on the page the poster comes back to. The sheet waits for any open dialog (waitForNoModal).
+  // Q2003: a post's pending notifications ask is offered here, on the page it comes back to (waits for any open dialog).
   useEffect(() => {
     offerPushAskAfterPostReturn();
   }, []);

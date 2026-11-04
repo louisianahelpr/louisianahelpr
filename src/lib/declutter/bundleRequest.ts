@@ -8,6 +8,7 @@
  * on the server, a missing table or RPC reads as null and the screens show nothing (never an error).
  */
 import { supabase } from "@/integrations/supabase/client";
+import { unwrap } from "@/lib/supabaseResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { rpcData } from "@/lib/declutter/api";
 import { rpcErrorMessage } from "@/lib/declutter/bundleErrors";
@@ -61,9 +62,9 @@ export async function fetchBundleRequests(side: "buyer" | "seller", userId: stri
   q = side === "seller"
     ? q.eq("status", "open").gt("respond_by", new Date().toISOString())
     : q.gt("created_at", new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString());
-  const { data, error } = await q;
-  if (tableMissing(error)) return null;
-  if (error) throw error;
+  const res = await q;
+  if (tableMissing(res.error)) return null;
+  const data = unwrap(res);
   return ((data ?? []) as unknown as Row[]).map(({ declutter_bundle_request_items: lines, ...r }) => ({
     ...r,
     items: (lines ?? [])

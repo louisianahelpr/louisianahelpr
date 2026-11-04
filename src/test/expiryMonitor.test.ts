@@ -107,9 +107,11 @@ describe("(a2) an item's own warnDays overrides the inventory's (auto-renewed do
     expect(evaluate(autoRenewed, read(5), NOW, 30).status).toBe("DUE");
   });
 
-  it("the live inventory gives the domain registration (auto-renew on) 7 days, and only it", () => {
+  // Q2715 (2026-11-03): the two Vercel certificates renew themselves ~30 days out, so they alarm at 14 days.
+  // @mutate scripts/audit/expiry-inventory.json |       "warnDays": 14,\n      "read": { "method": "tls", "host": "www.louisianahelpr.com" }, |       "read": { "method": "tls", "host": "www.louisianahelpr.com" },
+  it("the live inventory gives the domain registration (auto-renew on) 7 days and the two auto-renewed certificates 14, and only them", () => {
     const own = loadInventory(ROOT).items.filter((i) => i.warnDays !== undefined);
-    expect(own.map((i) => [i.id, i.warnDays])).toEqual([["domain-registration", 7]]);
+    expect(own.map((i) => [i.id, i.warnDays])).toEqual([["ssl-www", 14], ["ssl-apex", 14], ["domain-registration", 7]]);
   });
 });
 

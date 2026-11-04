@@ -24,7 +24,7 @@ const SKIP = process.env.NEW_MIGRATION === "skip";
 if (SKIP) console.log("NEW_MIGRATION=skip: column only, no triggers (expect FAILs)");
 
 const U = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const POSTER = U(1), HELPR = U(2), ADMIN = U(3), J1 = U(91);
+const POSTER = U(1), HELPR = U(2), ADMIN = U(3), CREW2 = U(4), J1 = U(91), CREWJOB = U(92);
 const db = new PGlite();
 await db.exec(`
   CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
@@ -35,9 +35,11 @@ await db.exec(`
   CREATE TABLE public.user_roles (user_id uuid, role public.app_role);
   CREATE FUNCTION public.has_role(_user_id uuid, _role public.app_role) RETURNS boolean LANGUAGE sql STABLE AS
     $$ SELECT EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = _user_id AND role = _role) $$;
+  CREATE TABLE public.user_blocks (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), blocker_id uuid NOT NULL, blocked_id uuid NOT NULL,
+    reason text, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE (blocker_id, blocked_id));
   CREATE TABLE public.notifications (id serial PRIMARY KEY, user_id uuid, title text, message text, type text, link text,
     job_id uuid, read boolean DEFAULT false);
-  INSERT INTO public.profiles (user_id, full_name) VALUES ('${POSTER}', 'Pat Poster'), ('${HELPR}', 'Hal Helpr'), ('${ADMIN}', 'Ada Admin');
+  INSERT INTO public.profiles (user_id, full_name) VALUES ('${POSTER}', 'Pat Poster'), ('${HELPR}', 'Hal Helpr'), ('${ADMIN}', 'Ada Admin'), ('${CREW2}', 'Cy Crew');
   INSERT INTO public.user_roles VALUES ('${ADMIN}', 'admin');
 `);
 if (SKIP) await db.exec(`ALTER TABLE public.notifications ADD COLUMN actor_id uuid REFERENCES public.profiles(user_id) ON DELETE SET NULL;`);
@@ -61,6 +63,28 @@ check("a notice to oneself carries no face", (await ins(POSTER, POSTER, J1, HELP
 check("a non-job notice carries no face", (await ins(HELPR, POSTER, null, HELPR))[0].actor_id === null);
 check("service role may name the actor on a job notice", (await ins(null, POSTER, J1, HELPR))[0].actor_id === HELPR);
 check("service role cannot put a face on a non-job notice", (await ins(null, POSTER, null, HELPR))[0].actor_id === null);
+
+// block_user_and_settle on a crew job, in ONE transaction as the RPC runs it: the user_blocks row first, then the
+// crew notices ("A Helpr left your crew" to the poster, "You're off this crew" to the Helpr) and "Job cancelled".
+{
+  await db.exec(`SELECT set_config('request.jwt.claim.sub', '${CREW2}', false);`);
+  await db.exec("BEGIN");
+  await db.exec(`INSERT INTO public.user_blocks (blocker_id, blocked_id) VALUES ('${CREW2}', '${POSTER}');`);
+  const left = (await db.query(`INSERT INTO public.notifications (user_id, title, job_id) VALUES ('${POSTER}', 'A Helpr left your crew', '${CREWJOB}') RETURNING actor_id`)).rows[0];
+  const cancelled = (await db.query(`INSERT INTO public.notifications (user_id, title, job_id) VALUES ('${POSTER}', 'Job cancelled', '${CREWJOB}') RETURNING actor_id`)).rows[0];
+  await db.exec("COMMIT");
+  await db.exec(`SELECT set_config('request.jwt.claim.sub', '${POSTER}', false);`);
+  await db.exec("BEGIN");
+  await db.exec(`INSERT INTO public.user_blocks (blocker_id, blocked_id) VALUES ('${POSTER}', '${HELPR}');`);
+  const off = (await db.query(`INSERT INTO public.notifications (user_id, title, job_id) VALUES ('${HELPR}', 'You''re off this crew', '${CREWJOB}') RETURNING actor_id`)).rows[0];
+  await db.exec("COMMIT");
+  await db.exec(`SELECT set_config('request.jwt.claim.sub', '', false);`);
+  check("block-and-settle: the poster's crew notice shows no face (Helpr blocked the poster)", left.actor_id === null);
+  check("block-and-settle: the poster's 'Job cancelled' shows no face", cancelled.actor_id === null);
+  check("block-and-settle: the blocked Helpr's 'off this crew' shows no face (poster blocked them)", off.actor_id === null);
+  check("a third member with no block still gets a face", (await ins(CREW2, HELPR, CREWJOB))[0].actor_id === CREW2);
+  await db.exec(`DELETE FROM public.user_blocks;`);
+}
 
 const before = (await db.query(`SELECT count(*)::int n FROM public.notifications WHERE actor_id = '${HELPR}'`)).rows[0].n;
 await db.exec(`UPDATE public.profiles SET full_name = NULL, anonymized_at = now() WHERE user_id = '${HELPR}' AND anonymized_at IS NULL;`);

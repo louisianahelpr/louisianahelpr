@@ -61,6 +61,8 @@ const state = {
 // Seller delivery (20261027153244): its settings card and checkout offer read through these; answered here, never Supabase.
 // Q2427: no bundle discount here (its own tests: declutterTradeViews, declutterBundleDiscount.test.ts).
 // Audit 1028 D1-8: My listings listens for new notices (the shared realtime bus); no socket in a unit test.
+// Q2268: the bundle-request reads (no request here).
+vi.mock("@/lib/declutter/bundleRequest", async (orig) => ({ ...(await orig<object>()), fetchBundleRequests: async () => [] }));
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
@@ -878,7 +880,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
 
   // Audit DC-9: "To answer" left out unanswered questions and showed buyer-turn offers and the settings. It counts
   // and shows the seller-turn offers AND the unanswered questions on listings on sale, and nothing else.
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size; |   const toAnswer = (todo?.sellerOffers ?? 0) + reports.size;
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks; |   const toAnswer = (todo?.sellerOffers ?? 0) + reports.size + bundleAsks;
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <QuestionsToAnswer userId={userId} />} |
   // @mutate src/components/declutter/DeclutterOffersSection.tsx |     const waiting = mine.filter((o) => o.status === "open" && o.awaiting === side); |     const waiting = mine.filter((o) => o.status === "open");
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       {only === null && settings} |       {settings}

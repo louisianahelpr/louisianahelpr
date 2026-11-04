@@ -15,7 +15,7 @@
  *
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {!wide && sortedApplications.slice(0, shown).map( | {sortedApplications.slice(0, shown).map(
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx |                 {wide && (\n                  <ApplicantsDesktopTable |                 {false && (\n                  <ApplicantsDesktopTable
- * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {[selectedJob.title, selectedJob.date_needed ? formatJobDate(selectedJob.date_needed) : null] | {[selectedJob.title]
+ * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | {[selectedJob.title, selectedJob.date_needed ? jobDayLabel(selectedJob) : null] | {[selectedJob.title]
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | {app.flagged_hidden ? ( | {false ? (
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | onClick={() => { hapticLight(); onBlock(app); }} | onClick={() => { hapticLight(); }}
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | onClick={() => { hapticLight(); onReport(app); }} | onClick={() => { hapticLight(); }}

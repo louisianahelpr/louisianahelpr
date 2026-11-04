@@ -5,7 +5,9 @@
  * "12:00 PM" (~/.lh-shots/b47/shots/b50pk-{before,after}-pickup-375.png). WebKit not measured.
  *
  * Q2709 (11-04): the select is now the shared NativeSelect (appearance-none, its own chevron at right-2, 16 px wide);
- * pr-6 (24 px) is the room the chevron takes, where the native arrow plus pr-1 took about the same.
+ * pr-6 (24 px) is the room the chevron takes. Measured 2026-11-04 (headless Chromium, app CSS, ~/.lh-shots/b93-q2709): the
+ * native arrow took 16 px, so the text gets 61 px where it had 65; "12:00 PM" still shows whole at 97 px wide and is cut
+ * at 91 px, so the narrow gap-1.5 row (>= 97 px per select at 375) must stay.
  *
  * @mutate src/components/declutter/DeclutterPickupTimes.tsx | className="pl-2.5 pr-6 text-ds-14" | className="px-3 text-ds-14"
  * @mutate src/components/declutter/DeclutterPickupTimes.tsx | _auto_minmax(0,1fr)_auto] items-center gap-1.5"> | _auto_minmax(0,1fr)_auto] items-center gap-2">

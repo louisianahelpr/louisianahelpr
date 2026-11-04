@@ -28,6 +28,17 @@ describe("Q1916: what the gift kept, counted as restore_gift_card_for_job counts
     ];
     expect(giftKeptCents(JOB, rows)).toBe(1500);
   });
+  // Review note on aa8869511: a tax-only redeem LOWERS the credit to the job's price and splits the leftover
+  // off (split_for_job_id); subtracting that child again under-counted what the gift kept.
+  // @mutate src/pages/posts/postedJobCard/PosterCancelFeeLine.tsx |     .filter((r) => r.split_for_job_id == null) |     .filter((r) => r.split_for_job_id !== "x")
+  it("a split-off leftover (tax-only redeem) is not subtracted from the lowered credit", () => {
+    const rows = [
+      row({ id: "g", amount: 60, status: "redeemed", job_id: JOB }),
+      row({ id: "split", amount: 40, parent_credit_id: "g", split_for_job_id: JOB }),
+      row({ id: "back", amount: 45, parent_credit_id: "g", restored_from_job_id: JOB }),
+    ];
+    expect(giftKeptCents(JOB, rows)).toBe(1500);
+  });
   it("no restore row: the whole applied amount was kept", () => {
     expect(giftKeptCents(JOB, [row({ id: "g", amount: 30, status: "redeemed", job_id: JOB })])).toBe(3000);
   });

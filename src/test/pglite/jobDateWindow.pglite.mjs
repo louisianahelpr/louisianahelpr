@@ -13,6 +13,7 @@
  *   W3 a new window job's listing stays up until the window's LAST day (not its first)
  *   W4 a new one-day job still closes at its own day
  *   W5 booking (status leaves open) clears the window
+ *   W5b ...and re-derives the expiry from the booked day (a later reopen is a plain one-day job)
  *   W6 moving the day to the window's last day (a Helpr's pick at hire) clears the window instead of failing the CHECK,
  *      and the expiry is recomputed from the NEW day
  *   W7 setting a window on an open job (an edit) moves the expiry to the window's last day
@@ -98,6 +99,8 @@ check("W4 a one-day job still closes at its own start", one.ok === true);
 await db.exec(`UPDATE public.jobs SET status = 'assigned' WHERE id = ${w.id}`);
 const [booked] = await q(`SELECT date_window_end FROM public.jobs WHERE id = ${w.id}`);
 check("W5 booking clears the window", booked.date_window_end === null);
+const [bk] = await q(`SELECT expires_at = ${ct(2, "23:59:59")} AS ok FROM public.jobs WHERE id = ${w.id}`);
+check("W5b booking re-derives the expiry from the booked day, so a reopen behaves as a one-day job", bk.ok === true);
 
 await db.exec(ins(2, 8));
 const [w2] = await q(`SELECT id FROM public.jobs WHERE date_window_end IS NOT NULL`);

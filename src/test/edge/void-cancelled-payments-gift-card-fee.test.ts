@@ -238,6 +238,28 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
     expect(jobFlips()).toHaveLength(1);
   });
 
+  // Re-review of 49a8653d81 (D): a hold of no more than its job-site tax pages ops; an ordinary hold does not.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (holdSiteTaxCents > 0 && Math.round(Number(pi.amount ?? 0)) <= holdSiteTaxCents) { |           if (false) {
+  it("a hold that holds only its job-site tax pages ops", async () => {
+    seed();
+    stripeMock.paymentIntents.retrieve.mockResolvedValueOnce({ ...heldPi(), metadata: { tax_calculation_id: "taxcalc_h", job_tax_cents: String(CARD) } });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi());
+    const h = await load();
+    await h.fetch(cronReq());
+    const titles = (slackAlerts as Array<{ title?: string }>).map((a) => String(a.title));
+    expect(titles).toContain("Cancelled job's card hold holds only its sales tax");
+  });
+
+  it("a hold larger than its job-site tax does not page", async () => {
+    seed();
+    stripeMock.paymentIntents.retrieve.mockResolvedValueOnce({ ...heldPi(), metadata: { tax_calculation_id: "taxcalc_h", job_tax_cents: String(CARD - 1) } });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(capturedPi());
+    const h = await load();
+    await h.fetch(cronReq());
+    const titles = (slackAlerts as Array<{ title?: string }>).map((a) => String(a.title));
+    expect(titles).not.toContain("Cancelled job's card hold holds only its sales tax");
+  });
+
   it("uncaptured hold: captures only what the hold allows, and the gift keeps the rest of the fee", async () => {
     seed();
     stripeMock.paymentIntents.retrieve.mockResolvedValueOnce(heldPi());

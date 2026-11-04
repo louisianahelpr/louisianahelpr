@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { mutationErrorMessage, unwrapMutation } from "@/lib/mutationResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { offerPushAfterAction } from "@/hooks/useNotificationPermissionPrompt";
 // JOB_CATEGORY_LABELS straight from its source (activityConstants re-exports it as categoryLabels): importing
 // activityConstants from a src/lib module pulled that 16.7 KB module into app-shared, on every page's boot path
 // (/login 284 -> 286 KB gz, over the Q178 budget; TRAIN A, 2026-10-21).
@@ -261,7 +262,10 @@ export async function createSavedSearch(userId: string, d: SearchDraft, email: b
   let res = await supabase.from("saved_searches").insert({ ...row, ...origin }).select("id");
   // PGRST204: the columns are not deployed yet; the search still saves and measures from the profile.
   if (origin && res.error?.code === "PGRST204") res = await supabase.from("saved_searches").insert(row).select("id");
-  return unwrapMutation(res, { action: "save this search" })[0].id;
+  const id = unwrapMutation(res, { action: "save this search" })[0].id;
+  // PUSH-REACH: a saved search exists to alert on new matches, so a push alert is the point; the website's push ask.
+  offerPushAfterAction();
+  return id;
 }
 
 export async function updateSavedSearch(userId: string, id: string, patch: { notify_enabled?: boolean; notify_email?: boolean }): Promise<void> {

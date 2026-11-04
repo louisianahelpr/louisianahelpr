@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -299,14 +300,16 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
 
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1 text-ds-14">{step && <NextStep value={step} compact />}</div>
-        <button
+        <Button
           type="button"
+          variant="primary"
+          size="sm"
           onClick={open}
           data-deal-action=""
-          className="btn-grad-primary shrink-0 whitespace-nowrap rounded-full min-h-11 px-4 font-sans font-semibold text-ds-13"
+          className="shrink-0"
         >
           {approveDue ? "Approve" : "Open job"}
-        </button>
+        </Button>
       </div>
     </section>
   );

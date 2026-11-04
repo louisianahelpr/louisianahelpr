@@ -1,4 +1,5 @@
 import { t } from "@/lib/i18n/language";
+import { Button } from "@/components/ui/button";
 import "@/lib/i18n/enScreens";
 import { useEffect, useRef, useState } from "react";
 import type { Dispatch, Ref, SetStateAction } from "react";
@@ -423,13 +424,16 @@ export function ChatView({
                   compact banner to expand to 44px in height. The button is
                   vertically centred inside the banner; overflow: visible (the
                   default) means any slight bleed above/below is fine. */}
-              <button
+              <Button
+                type="button"
+                variant="ghost"
+                size="iconCompact"
                 onClick={dismissBanner}
-                className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center justify-center min-h-[44px] min-w-[44px] ctl-exit ctl-tint text-muted-foreground hover:text-foreground"
+                className="absolute right-0 top-1/2 -translate-y-1/2 ctl-exit text-muted-foreground hover:text-foreground"
                 aria-label="Dismiss safety reminder"
               >
                 <X className="w-3 h-3" />
-              </button>
+              </Button>
             </div>
           )}
 

@@ -1,4 +1,5 @@
 import { t } from "@/lib/i18n/language";
+import { Button } from "@/components/ui/button";
 import "@/lib/i18n/enScreens";
 import type { Dispatch, SetStateAction } from "react";
 import { Lock, X } from "lucide-react";
@@ -368,15 +369,17 @@ export function ChatComposer({
               {replyTo.content?.trim() || "Attachment"}
             </p>
           </div>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="iconCompact"
             onClick={onCancelReply}
             aria-label={t("chat.cancelReply")}
-            className="shrink-0 min-h-[44px] min-w-[44px] -mr-1 -mt-1 inline-flex items-center justify-center ctl-exit ctl-tint"
+            className="shrink-0 -mr-1 -mt-1 ctl-exit"
             style={{ color: "hsl(var(--olivewood))" }}
           >
             <X className="w-4 h-4" strokeWidth={2} />
-          </button>
+          </Button>
         </div>
       )}
 

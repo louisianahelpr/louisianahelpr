@@ -9,6 +9,7 @@
  * and can still shift once (page-settle KNOWN).
  */
 import { t } from "@/lib/i18n/language";
+import { Button } from "@/components/ui/button";
 import "@/lib/i18n/enScreens";
 import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
@@ -56,16 +57,18 @@ export function HiddenUnreadBar({
             : `${count} unread conversations aren't in Active — show all`}
         </span>
       </button>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="iconCompact"
         onClick={onDismiss}
         tabIndex={held ? -1 : undefined}
         aria-label={t("chat.dismiss")}
-        className="shrink-0 self-center h-11 w-11 mr-0.5 flex items-center justify-center btn-press ctl-exit ctl-tint"
+        className="shrink-0 self-center mr-0.5 btn-press ctl-exit"
         style={{ color: "hsl(var(--olivewood) / 0.9)" }}
       >
         <X className="w-4 h-4" aria-hidden="true" />
-      </button>
+      </Button>
     </div>
   );
   return held ? <div aria-hidden="true" style={{ visibility: "hidden" }}>{bar}</div> : bar;

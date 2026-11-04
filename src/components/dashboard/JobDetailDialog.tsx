@@ -6,6 +6,7 @@ import { categoryLabels } from "@/components/job-card/activityConstants";
 import { formatCategory, seriesSummary } from "@/lib/format";
 import { CategoryIcon } from "@/components/job/CategoryIcon";
 import { OptimizedImage } from "@/components/ui/optimized-image";
+import { Button } from "@/components/ui/button";
 import { getCity } from "@/lib/locationUtils";
 import { IconActionButton } from "./IconActionButton";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
@@ -547,17 +548,20 @@ const JobDetailDialog = ({
                   </p>
                 </DialogBody>
                 {job.description.length > 180 && (
-                  <button
+                  <Button
                     type="button"
+                    variant="link"
+                    size="sm"
                     onClick={() => setDescExpanded((v) => !v)}
-                    className="mt-1 min-h-[44px] -my-2 text-ds-13 font-sans font-bold hover:opacity-80 transition-opacity"
+                    // Q2709: the shared link Button (44px, h-11), same ink and type as before.
+                    className="mt-1 -mb-2 px-0 text-ds-13 font-sans font-bold"
                     // A text link is olive (--action-strong), sentence case (spec
                     // v2 rebuild, audit 2026-10-21): it was a rust uppercase
                     // "READ MORE", and rust is money only.
                     style={{ color: "hsl(var(--bark))" }}
                   >
                     {descExpanded ? "Show less" : "Read more"}
-                  </button>
+                  </Button>
                 )}
               </div>
             )}

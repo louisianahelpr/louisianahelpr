@@ -125,6 +125,26 @@ async function clearNotifications(api: APIRequestContext, s: Session, jobFilter:
 }
 
 /** Q281 landed = the ban writers set auth.users.banned_until. Read from THIS checkout's migrations, the same tree CI deploys. */
+/**
+ * Q2445: hire the shared helper on a held-card job through the product's own doors: apply_to_job, the poster's
+ * accept_application, then the Helpr's Accept, which charges the held card first (create-payment capture_hold,
+ * src/lib/cardHoldCapture.ts). Leaves the job hired with captured money (escrow).
+ */
+async function hireOnHeldCard(api: APIRequestContext, poster: Session, helper: Session, jobId: string) {
+  const apply = await api.post(`${SUPABASE_URL}/rest/v1/rpc/apply_to_job`, { headers: rest(helper), data: { p_job_id: jobId, p_message: `Admin refund journey ${RUN}: happy to help.` } });
+  expect(apply.ok(), `helper applies: HTTP ${apply.status()} ${(await apply.text()).slice(0, 300)}`).toBe(true);
+  const appsRes = await api.get(`${SUPABASE_URL}/rest/v1/applications?job_id=eq.${jobId}&helper_id=eq.${helper.user.id}&status=eq.pending&select=id`, { headers: rest(poster) });
+  expect(appsRes.ok(), `poster reads the application: HTTP ${appsRes.status()}`).toBe(true);
+  const apps = (await appsRes.json()) as Array<{ id: string }>;
+  expect(apps, "the helper's application is not visible to the poster").toHaveLength(1);
+  const accept = await api.post(`${SUPABASE_URL}/rest/v1/rpc/accept_application`, {
+    headers: rest(poster),
+    data: { p_application_id: apps[0].id, p_deadline: new Date(Date.now() + 24 * 3_600_000).toISOString(), p_offer_message: null },
+  });
+  expect(accept.ok(), `poster hires the helper: HTTP ${accept.status()} ${(await accept.text()).slice(0, 300)}`).toBe(true);
+  expect(await captureHeldCard(api, helper, jobId), "the Helpr's Accept did not charge the held card").toBe("accepted");
+}
+
 test.describe.serial("admin and safety journeys", () => {
   const avail = sessionsAvailable();
   test.skip(!avail.ok, avail.why);
@@ -158,6 +178,8 @@ test.describe.serial("admin and safety journeys", () => {
       expect((await readJob(request, poster, jobId)).payment_status).toMatch(/^(escrow|held)$/);
     });
 
+    // The job's status while it runs: "open" on a captured card, the hired status after Q2445's hire.
+    let runningStatus = "open";
     // Q2399: with card_hold_at_post the card is only HELD, so an open job has
     // nothing captured to refund. The hold's own answer is asserted instead
     // (create-payment refuses the refund, cardHold: true; the cleanup above
@@ -170,9 +192,23 @@ test.describe.serial("admin and safety journeys", () => {
       expect(held.status(), `admin_refund_general on a held card answered ${held.status()} ${await held.text()}`).toBe(409);
       expect(((await held.json()) as { cardHold?: boolean }).cardHold, "the refusal does not say the card is only held").toBe(true);
       expect((await readJob(request, poster, jobId)).payment_status, "a refused refund moved the held job").toBe("held");
-      // The refund UI leg below never ran: said as uncovered, never a silent pass (Q2399 round 2, silent #6).
-      test.skip(true, `Admin refund UI not driven on a held card: ${jobId}: the card is only held (nothing charged), so admin_refund_general refused, as it must; the refund UI needs a captured charge, which only a hire makes`);
-      return;
+      // Q2445: a refund of captured money needs a HIRE. Hire on the held card the way the app does (apply,
+      // accept, the Helpr's Accept charges the hold: capture_hold); the refund UI steps below then run on it.
+      const helpr = await getSession(request, "helper");
+      journey.cleanup("refund a hired charge a dying run left behind", async () => {
+        const j = await readJob(request, poster, jobId);
+        if (j.status !== "cancelled" && j.payment_status === "escrow" && j.helper_id) {
+          const r = await request.post(`${SUPABASE_URL}/functions/v1/create-payment`, {
+            headers: rest(admin), data: { action: "admin_refund_general", jobId, reason: `E2E cleanup ${RUN}` },
+          });
+          test.info().annotations.push({ type: "cleanup", description: `admin_refund_general on the hired job: ${r.status()}` });
+        }
+      });
+      await hireOnHeldCard(request, poster, helpr, jobId);
+      const hired = await readJob(request, poster, jobId);
+      expect(hired.payment_status, "the Helpr's Accept did not charge the held card").toBe("escrow");
+      expect(hired.helper_id, "the hire did not name the helper").toBe(helpr.user.id);
+      runningStatus = hired.status;
     }
 
     const ctx = await newUserContext(browser, admin, { desktop: true });
@@ -215,7 +251,7 @@ test.describe.serial("admin and safety journeys", () => {
       expect(p).toMatchObject({ amount_cents: 500, is_partial: true, source: "admin_refund_general", reason: `E2E partial ${RUN}` });
       expect(p.stripe_refund_id, "not a Stripe refund id").toMatch(/^re_/);
       const job = await readJob(request, poster, jobId);
-      expect([job.status, job.payment_status], "a partial refund must leave the job running").toEqual(["open", "escrow"]);
+      expect([job.status, job.payment_status], "a partial refund must leave the job running").toEqual([runningStatus, "escrow"]);
     });
 
     await test.step("admin issues the full refund: job cancelled + refunded", async () => {

@@ -8,7 +8,6 @@
     "src/components/JobTracking.tsx": 1758,
     "src/components/messages/ConversationList.tsx": 1748,
     "src/components/NotificationPanel.tsx": 908,
-    "src/components/NotificationPreferences.tsx": 670,
     "src/components/postjob/CheckoutStep.tsx": 716,
     "src/components/profile/CredentialsTab.tsx": 714,
     "src/components/profile/SubscriptionTab.tsx": 871,

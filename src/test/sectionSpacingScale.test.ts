@@ -63,6 +63,8 @@ function pageFiles(): string[] {
   }
   set.add("src/components/PaymentTab.tsx");
   set.add("src/components/notificationPreferences/QuietHoursCard.tsx"); // the Notifications tab's Quiet hours card (moved out, Q806)
+  set.add("src/components/notificationPreferences/SavedHelprNudgeCard.tsx"); // and its saved-Helpr nudge card (Q806)
+  set.add("src/components/notificationPreferences/TestSendCard.tsx"); // and its Send a test card (Q806)
   return [...set].sort();
 }
 
@@ -83,7 +85,8 @@ function sectionSizedIn(rel: string): string[] {
 // @two-way src/test/sectionSpacingScale.test.ts:A file whose count DROPPED must lower its entry
 const ALLOWED: Record<string, { n: number; why: string }> = {
   // Horizontal gaps inside a row, not a vertical rhythm.
-  "src/components/NotificationPreferences.tsx": { n: 3, why: "gap between the per-channel toggle columns of a row (horizontal)" },
+  "src/components/NotificationPreferences.tsx": { n: 2, why: "gap between the per-channel toggle columns of a row (horizontal)" },
+  "src/components/notificationPreferences/SavedHelprNudgeCard.tsx": { n: 1, why: "gap between the nudge card's toggle columns (horizontal; moved out of NotificationPreferences, Q806)" },
   "src/components/notificationPreferences/QuietHoursCard.tsx": { n: 1, why: "gap between the Quiet hours toggle columns (horizontal; moved out of NotificationPreferences, Q806)" },
   "src/pages/info/HelpCenter.tsx": { n: 1, why: "gap between an FAQ question and its chevron (horizontal)" },
   "src/pages/home/HomeDashboard.tsx": { n: 1, why: "board 11's two-column gutter at xl (one grid row, so horizontal)" },

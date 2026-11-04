@@ -9,7 +9,7 @@
  * answering an error (or a count), table by table.
  */
 // @mutate src/components/NotificationPreferences.tsx |       if (tokenRead.error) { |       if (false) {
-// @mutate src/components/NotificationPreferences.tsx |               {pushTokenCount === null | {false
+// @mutate src/components/notificationPreferences/TestSendCard.tsx |             {pushTokenCount === null | {false
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import NotificationPreferences from "@/components/NotificationPreferences";

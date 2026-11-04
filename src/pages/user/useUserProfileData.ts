@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { NOT_AN_EXPIRED_LISTING_ANY_STATUS, NOT_AN_EXPIRED_LISTING_FILTER } from "@/lib/expiredListing";
+import { NOT_AN_EXPIRED_LISTING_ANY_STATUS } from "@/lib/expiredListing";
 import { useQuery } from "@tanstack/react-query";
 import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { formatName } from "@/lib/utils";
@@ -249,7 +249,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       const wantsReplyLatency =
         !!currentUserId && (currentUserId === targetUserId || currentUserId === userId);
 
-      const [reviewsRes, postedRes, workedRes, idCheckRes, postedTotalRes, postedCancelledRes, workedTotalRes, workedCancelledRes, lastActiveRes, mutualRes, workedTimingRes, posterReviewsRes, repeatHireRes, credentialTierRes, existingThreadRes, appliedToMineRes, publicStatsRes, publicReviewsRes, replyLatencyRes, mutualCompletedRes] = await Promise.all([
+      const [reviewsRes, postedRes, workedRes, idCheckRes, postedTotalRes, lastActiveRes, mutualRes, workedTimingRes, posterReviewsRes, repeatHireRes, credentialTierRes, existingThreadRes, appliedToMineRes, publicStatsRes, publicReviewsRes, replyLatencyRes, mutualCompletedRes] = await Promise.all([
         // feedback_visible_at filter: anti-retaliation reveal — hidden until
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
@@ -276,10 +276,9 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // (#30) without inflating the limited job lists rendered above.
         // Nor is it a posted job anyone else hears about (owner 10-31).
         supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS),
-        // An unfilled expired listing is not a cancellation (owner 10-31, src/lib/expiredListing.ts).
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!).eq("status", "cancelled").or(NOT_AN_EXPIRED_LISTING_FILTER),
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", userId!),
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("helper_id", userId!).eq("status", "cancelled"),
+        // The posted-cancelled, worked-total and worked-cancelled counts that sat here are gone (Q946,
+        // 2026-11-04): nothing rendered them (statSamples.jobs and postedCancelledCount had no reader),
+        // and they were three of the ten jobs reads /user/:id sent on every load.
         // Last-active timestamp (#28) — separate RPC because login_history
         // is RLS-locked to owner/admin. Returns max(created_at) only. Wrap
         // in a soft fetch so PGRST202 ("RPC not deployed yet") just hides
@@ -431,8 +430,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       for (const [label, res] of [
         ["reviews", reviewsRes], ["posted_jobs", postedRes], ["worked_jobs", workedRes],
         ["trust_signals", idCheckRes],
-        ["posted_total", postedTotalRes], ["posted_cancelled", postedCancelledRes],
-        ["worked_total", workedTotalRes], ["worked_cancelled", workedCancelledRes],
+        ["posted_total", postedTotalRes],
         ["worked_timing", workedTimingRes], ["poster_reviews", posterReviewsRes],
       ] as const) {
         if (res.error) {
@@ -587,11 +585,11 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
          `cancelled_jobs` / `cancellation_rate` — an RPC with other callers,
          not this page's to change. `statSamples` itself has had ZERO consumers
          since before this edit (reported, not removed: noticed dead code is a
-         report). If that is cleared, the four `head: true` count queries above
-         (`posted_total`, `posted_cancelled`, `worked_total`,
-         `worked_cancelled`) go with it. */
-      const clientTotalJobsCount = (postedTotalRes.count ?? 0) + (workedTotalRes.count ?? 0);
-      const totalJobsCount = int(publicStats?.jobs_total) ?? clientTotalJobsCount;
+         report). Three of the four `head: true` count queries that fed it
+         (`posted_cancelled`, `worked_total`, `worked_cancelled`) went on
+         2026-11-04 (Q946); `posted_total` stays, it backs postedTotalCount. */
+      // Q946: the server's jobs_total only; the client fallback summed two count reads nothing displayed.
+      const totalJobsCount = int(publicStats?.jobs_total) ?? 0;
 
       // Mutual jobs (#1) — silently degrade to 0 if the count read errored
       // (RLS, unexpected schema). The badge hides itself at 0.
@@ -897,7 +895,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
             : idCheckRes.data?.stripe_account_id ?? null,
         },
         postedTotalCount: int(publicStats?.posted_jobs_total) ?? postedTotalRes.count ?? 0,
-        postedCancelledCount: postedCancelledRes.count ?? 0,
         // Jobs completed AS A HELPER. `completedWorkedJobs.length` counts a
         // .limit(20) page of rows a visitor cannot read at all — it was 0 for
         // every stranger and capped at 20 for everybody else.
@@ -1100,7 +1097,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
   const backgroundCheckStatus = data?.backgroundCheckStatus ?? "none";
   const tierProfile = data?.tierProfile ?? null;
   const postedTotalCount = data?.postedTotalCount ?? 0;
-  const postedCancelledCount = data?.postedCancelledCount ?? 0;
   const loading = isLoading && !data;
   // Q571: a profile query paused offline has isLoading false and no data;
   // without this the page said "Profile not found" to someone offline.
@@ -1137,7 +1133,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     backgroundCheckStatus,
     tierProfile,
     postedTotalCount,
-    postedCancelledCount,
     loading,
     offlineEmpty,
   };

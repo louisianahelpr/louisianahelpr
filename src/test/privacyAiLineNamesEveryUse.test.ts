@@ -10,6 +10,7 @@
  * @mutate src/pages/info/legal/PrivacySection.tsx | , and the photos and words of a Declutter listing (and room photos when you're moving out), to draft and check the listing, and | , and
  * @mutate src/pages/info/legal/PrivacySection.tsx | , and a buyer's question about a Declutter listing with that listing's photos and words, to suggest the seller's answer, and the subject | , and the subject
  * @mutate src/pages/info/legal/PrivacySection.tsx | , and the subject and message of a support request (with email addresses, phone and card numbers and links removed), to suggest an answer from our Help Center and Terms and to draft our team's reply.</li> | .</li>
+ * @mutate src/pages/info/legal/PrivacySection.tsx | to suggest a seller's lowest price or a buyer's offer, | to suggest a seller's lowest price,
  * @mutate src/pages/info/legal/PrivacySection.tsx | the job details you give the AI job builder, to draft your post, | the details you give us,
  */
 import { readFileSync, statSync } from "node:fs";
@@ -38,7 +39,8 @@ const callsAi = (code: string): boolean => importsClaude(code) ||
 const USE_WORDS: Record<string, string[]> = {
   "ai-job-builder": ["AI job builder"],
   "declutter-ai-draft": ["Declutter listing", "room photos"],
-  "declutter-ai-reply": ["buyer's question", "suggest the seller's answer"],
+  // Q2471 (2): offer mode (a buyer's suggested offer) and floor mode (the seller's lowest price) send the listing's words.
+  "declutter-ai-reply": ["buyer's question", "suggest the seller's answer", "a buyer's offer"],
   // B70 (owner 2026-11-03): the support AI, both the member's suggested answer and the admin's draft.
   "support-ai-answer": ["support request", "suggest an answer from our Help Center", "draft our team's reply"],
 };

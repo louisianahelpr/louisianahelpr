@@ -11,8 +11,9 @@
  * @mutate src/components/declutter/DeclutterItemView.tsx | : "Save this item"} | : "Watch this item"}
  * @mutate src/components/declutter/DeclutterWatching.tsx |   if (item.status === "reserved") return "On hold for another buyer"; |   if (item.status === "reserved") return "No longer for sale";
  * @mutate src/components/declutter/DeclutterWatching.tsx |   const gone = goneLine(list.length - rows.length); |   const gone = null;
- * @mutate src/components/declutter/DeclutterItemView.tsx |       if (!isWatching) toastWatching(navigate); |       if (isWatching) toastWatching(navigate);
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |       if (on) toastWatching(navigate); |       if (!on) toastWatching(navigate);
+ * @mutate src/components/declutter/useWatchToggle.ts |       if (on) onWatched?.(); |       if (!on) onWatched?.();
+ * @mutate src/components/declutter/DeclutterItemView.tsx | useWatchToggle(user?.id, () => toastWatching(navigate)); | useWatchToggle(user?.id);
+ * @mutate src/components/declutter/DeclutterBrowseView.tsx | useWatchToggle(userId, () => toastWatching(navigate)); | useWatchToggle(userId);
  */
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -87,9 +88,12 @@ describe("Watching under Buying (SS-5)", () => {
     const mine = blankComments(readFileSync("src/components/declutter/DeclutterMineViews.tsx", "utf8"));
     expect(mine).toContain("<WatchingList />");
     const page = blankComments(readFileSync("src/components/declutter/DeclutterItemView.tsx", "utf8"));
-    expect(page).toContain("if (!isWatching) toastWatching(navigate);");
+    expect(page).toContain("useWatchToggle(user?.id, () => toastWatching(navigate));");
     const browse = blankComments(readFileSync("src/components/declutter/DeclutterBrowseView.tsx", "utf8"));
-    expect(browse).toContain("if (on) toastWatching(navigate);");
+    expect(browse).toContain("useWatchToggle(userId, () => toastWatching(navigate));");
+    // Q2018: the shared heart hook calls the toast only for a heart turned ON, once the server says yes.
+    const hook = blankComments(readFileSync("src/components/declutter/useWatchToggle.ts", "utf8"));
+    expect(hook).toContain("if (on) onWatched?.();");
   });
 
   it("A3-98: the heart is named Save, on the card and on the item page", () => {

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useRef, useState } from "react";
 import { FirstRun } from "@/components/firstRun/FirstRunHost";
 import { useQueryClient } from "@tanstack/react-query";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -15,6 +15,7 @@ import { requestHelperStep } from "@/components/job-card/helperStepRequest";
 import { COMING_UP_ROLE, type ComingUpItem } from "./homeDashboard/comingUp";
 import { useHomeMoney } from "./homeDashboard/homeMoney";
 import { HomeMoneyTiles } from "./homeDashboard/HomeMoneyTiles";
+import { useReservedHeight } from "./homeDashboard/reservedHeight";
 import { useOnTabReselect } from "@/components/mobileNav/tabReselect";
 import { feedLinkTarget } from "./homeDashboard/feedLinkForward";
 import { SECTIONS } from "@/components/sections/sectionsConfig";
@@ -100,6 +101,11 @@ function HomeDashboardScreen() {
   const at = Math.min(shown, Math.max(0, todoCount - 1));
   const next = summary.todos[at];
   const rest = Math.max(0, todoCount - 1);
+  // Q2706 (B98): while their reads are out, Next up and the money strip hold the height they had last time on this
+  // device (reservedHeight.ts), so the blocks below them do not move when they land.
+  const nextUpRef = useRef<HTMLElement>(null);
+  const nextUpReserve = useReservedHeight(user ? `next-up:${user.id}` : null, summary.todosLoading, nextUpRef);
+  const moneyReserve = useReservedHeight(user ? `money-main:${user.id}` : null, !!money.pending, () => document.querySelector<HTMLElement>('[data-home-money="main"]'));
 
   return (
     <SectionScreen>
@@ -161,7 +167,7 @@ function HomeDashboardScreen() {
                 to-do from every section and both sides, with its one action. Replaces the three
                 stat boxes. Nothing invented: no to-do, no task; the money line only when the
                 to-do carries a real amount. "See all" is the ONE control for the full list. */}
-            <section data-testid="next-up" aria-label="Next up" className="liquid-glass p-card flex flex-col gap-1.5">
+            <section ref={nextUpRef} data-testid="next-up" aria-label="Next up" className="liquid-glass p-card flex flex-col gap-1.5" style={summary.todosLoading && nextUpReserve ? { minHeight: nextUpReserve } : undefined}>
               <div className="flex items-center justify-between gap-3">
                 <h2 data-testid="next-up-label" className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                   {!next && summary.waiting ? summary.waiting.label : todoCount > 1 ? `Next up · ${at + 1} of ${todoCount}` : "Next up"}
@@ -233,6 +239,17 @@ function HomeDashboardScreen() {
                     </div>
                   </div>
                 </>
+              ) : summary.todosLoading ? (
+                /* Q2706 (B98): the to-dos are still loading. Never "all caught up" before the reads answer; hold the
+                   to-do card's own size (title, meta, the 44px action row) so nothing moves when it lands. */
+                <>
+                  <p data-testid="next-up-loading" className="text-ds-18 font-bold leading-snug" role="status">
+                    <span className="sr-only">Loading your to-dos</span>
+                    <span aria-hidden className="inline-block w-3/4 rounded-md bg-muted animate-pulse">&nbsp;</span>
+                  </p>
+                  <p aria-hidden className="text-ds-14"><span className="inline-block w-1/2 rounded-md bg-muted animate-pulse">&nbsp;</span></p>
+                  <div aria-hidden className="h-11 mt-1" />
+                </>
               ) : summary.waiting ? (
                 /* Board 83: nothing is mine to do, so Next up says who is up; never blank. */
                 <div data-testid="next-up-waiting" className="flex flex-col gap-1.5">
@@ -259,7 +276,9 @@ function HomeDashboardScreen() {
 
             {/* MONEY STRIP (spec v2 §5.3): on phone right after Next up (board 7); from 1280 it moves to
                 the top of the right column (board 11). Hidden when there is nothing real to show. */}
-            <HomeMoneyTiles money={money} placement="main" />
+            {money.pending && !money.coming && !money.held && moneyReserve > 0
+              ? <div data-home-money-reserve aria-hidden className="xl:hidden" style={{ minHeight: moneyReserve }} />
+              : <HomeMoneyTiles money={money} placement="main" />}
 
             {/* Board 7 / spec v2 §5.4: Coming up is ONE agenda from every section and both sides (jobs,
                 Declutter pickups, shop orders), sorted by when. Each row is its section's icon in a tinted

@@ -33,6 +33,8 @@
  * @mutate src/components/sections/StatusBoxes.tsx |           if (p.get("status") === k) p.delete("status"); |           if (false) p.delete("status");
  * @mutate src/components/sections/useSectionPrefs.ts |   const visible = prefs.order.filter((k) => !prefs.hidden.includes(k)) |   const visible = prefs.order.filter(() => true)
  * @mutate src/components/sections/useSectionPrefs.ts |   if (next.size >= ALL.length) return true; |   if (next.size > ALL.length) return true;
+ * @mutate src/pages/home/HomeDashboard.tsx |               ) : summary.todosLoading ? ( |               ) : false ? (
+ * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       todosLoading: todosLoading && !(posted.loadError \|\| applied.loadError), |       todosLoading: false,
  * @mutate src/components/mobileNav/mobileNavHelpers.ts |   "/explore": ["/jobs", "/posts", "/declutter", "/shops", "/rentals", "/quotes"], |   "/explore": [],
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -47,6 +49,8 @@ const switches = vi.hoisted(() => ({ on: new Set<string>() }));
 // Backstop: any read no module mock above covers answers "nothing" and never reaches prod (B84's /home cut; see the helper).
 vi.mock("@/integrations/supabase/client", async () => (await import("./helpers/emptySupabaseClient")).emptySupabaseModule());
 const noTodos = vi.hoisted(() => ({ on: false }));
+// Q2706 (B98): holds the to-do reads (posted + applied cores) unanswered, as on a slow phone.
+const todoReads = vi.hoisted(() => ({ hold: false }));
 // Boards 83/165: what Home's posted jobs are instead of the two to-dos.
 const homeJobs = vi.hoisted(() => ({ mode: "todos" as "todos" | "waiting" | "live" }));
 // Board 143's Home card reads payout_failures; it has its own test (moneyAndSafetyMounts, payoutProblems).
@@ -87,8 +91,8 @@ const job = (id: string, status: string) => ({ id, title: `Job ${id}`, status, d
 vi.mock("@/hooks/useActivityData", () => ({
   // Home's to-do list (badge = To-do) reads the same posted core.
   CORE_STALE: 60_000,
-  fetchPostedActivity: async () => ({ postedJobs: noTodos.on ? [] : [job("a", "open"), job("b", "open")], applicantCounts: {}, pendingApplicantCounts: { a: 1, b: 2 }, closedApplicantSummaries: {} }),
-  fetchAppliedActivity: async () => ({ appliedApps: [], declinedJobIds: new Set(), helperReviewedJobIds: new Set() }),
+  fetchPostedActivity: async () => (todoReads.hold ? new Promise<never>(() => {}) : { postedJobs: noTodos.on ? [] : [job("a", "open"), job("b", "open")], applicantCounts: {}, pendingApplicantCounts: { a: 1, b: 2 }, closedApplicantSummaries: {} }),
+  fetchAppliedActivity: async () => (todoReads.hold ? new Promise<never>(() => {}) : { appliedApps: [], declinedJobIds: new Set(), helperReviewedJobIds: new Set() }),
   useActivityData: (_u: unknown, tab: string) => ({
     loading: false,
     postedJobs:
@@ -256,6 +260,7 @@ describe("Home", () => {
     homeJobs.mode = "waiting";
     try {
       wrap(<HomeDashboard />);
+      expect(await screen.findByText("Waiting on Helprs")).toBeTruthy();
       expect(screen.getByTestId("next-up-label").textContent).toBe("Waiting on Helprs");
       expect(screen.getByTestId("next-up-title").textContent).toBe("Job w");
       expect(screen.queryByText("You're all caught up")).toBeNull();
@@ -290,15 +295,35 @@ describe("Home", () => {
     }
   });
 
+  // Q2706 (B98, 11-04): Home said "You're all caught up" while the to-do reads were loading, then jumped to
+  // "Next up · 1 of 9" (a false empty state, and half of /home's 0.204 layout shift on Fast 4G, lab).
+  it("before the to-do reads answer, Next up holds a placeholder and never claims nothing to do", async () => {
+    switches.on = new Set();
+    noTodos.on = true;
+    todoReads.hold = true;
+    try {
+      wrap(<HomeDashboard />);
+      await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+      expect(screen.getByTestId("next-up-loading")).toBeTruthy();
+      expect(screen.getByTestId("next-up-label").textContent).toBe("Next up");
+      expect(screen.queryByText("You're all caught up")).toBeNull();
+      expect(screen.queryByTestId("next-up-action")).toBeNull();
+    } finally {
+      todoReads.hold = false;
+      noTodos.on = false;
+    }
+  });
+
   it("no Live now card when nothing is happening", () => {
     wrap(<HomeDashboard />);
     expect(screen.queryByTestId("live-now")).toBeNull();
   });
 
-  it("with nothing to do, Next up says so and shows no task, no button and no number", () => {
+  it("with nothing to do, Next up says so and shows no task, no button and no number", async () => {
     switches.on = new Set();
     noTodos.on = true;
     wrap(<HomeDashboard />);
+    await screen.findByText("You're all caught up");
     const card = screen.getByTestId("next-up");
     expect(card.textContent).toContain("You're all caught up");
     expect(card.querySelector("button")).toBeNull();

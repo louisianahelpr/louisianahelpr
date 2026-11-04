@@ -149,6 +149,7 @@ describe("no read runs inside Vite's dynamic-import wrapper", () => {
       "src/lib/i18n/language.ts": 1, // resets `loading`: the next call loads Spanish
       "src/lib/lifecycleErrors.ts": 3, // Q1883: error-logger send for a lost admin-copy chunk; B48: the refusal words not loaded yet (rpcTable, lifecycleErrorMessage) answer null and send for them, so the next ask has them
       "src/lib/sentry.ts": 1, // Replay start
+      "src/lib/signupSource.ts": 1, // the sign-up source report: not marked sent, so the next load sends it (Q2705 boot cut)
       "src/pages/home/homeDashboard/useNeedsYouTodos.ts": 1, // B51: Home's derivations; an empty module leaves them unloaded (the hook stays loading, no to-dos) and loadModule's reload takes over
       "src/lib/sonnerFacade.ts": 1, // resets `loading`: the next toast loads Sonner
       "src/pages/auth/signup/useCityZipMismatch.ts": 1, // an advisory hint

@@ -1,9 +1,13 @@
 import { useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { loadModule } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { safeStorage } from "@/lib/safeStorage";
 import { signupLeadSource } from "@/lib/signupLeadSource";
+
+// The Supabase client is loaded, not imported: this module is on the boot path, and the client
+// (supabase-js, ~30 KB gz) is on its way off it (Q2705/Q2706, plan in Builder 3's 11-04 handoff).
+const supabaseClient = () => loadModule(() => import("@/integrations/supabase/client"));
 
 /**
  * OPS-5 (owner 10-29): which posts and links bring sign-ups and first posts, privacy-safe.
@@ -81,7 +85,9 @@ export async function reportSignupSource(userId: string, createdAt?: string | nu
   if (Number.isFinite(made) && now - made > NEW_ACCOUNT_MS) return;
   const touch = readFirstTouch() ?? { source: "direct", campaign: null, at: Date.now() };
   try {
-    const { error } = await supabase.rpc("record_my_signup_source", {
+    const m = await supabaseClient();
+    if (!m) return; // a recovery reload is under way; not marked sent, so the next load tries again
+    const { error } = await m.supabase.rpc("record_my_signup_source", {
       p_source: touch.source,
       p_campaign: touch.campaign ?? undefined,
     });

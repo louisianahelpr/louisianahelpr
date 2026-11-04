@@ -1143,10 +1143,11 @@ const AMOUNT_DEFS: Record<string, string[]> = {
     // Review fix of aa8869511 #3: a tax-only card charge gives the split no fee room (capturedCents) and returns
     // its whole tax (siteTaxBackCents); the gift keeps the card fee (cardGiftKeptCents), so the fee stays kept.
     "refundAmount",
-    "refundAmount = siteTaxOnCardCents > 0 ? voidSplit.refundCents + siteTaxBackCents : voidSplit.refundCents > 0 || refundedAtStripe ? voidSplit.refundCents : capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents - voidSplit.taxKeptCents",
+    "refundAmount = siteTaxOnCardCents > 0 ? voidSplit.refundCents + siteTaxBackCents - siteTaxOnGiftKeptCents : voidSplit.refundCents > 0 || refundedAtStripe ? voidSplit.refundCents : capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents - voidSplit.taxKeptCents",
     "siteTaxOnCardCents = piSiteTaxCents > 0 && chargeCapturedCents <= piSiteTaxCents ? chargeCapturedCents : 0",
     "voidSplit = capturedSplit.split",
     "siteTaxBackCents = Math.max(0, siteTaxOnCardCents - Math.max(0, chargeRefundedOnCardCents))",
+    "siteTaxOnGiftKeptCents = siteTaxOnCardCents > 0 ? Math.min(siteTaxBackCents, taxOnKeptCents({ keptCents: cardGiftKeptCents, taxCents: piSiteTaxCents, capturedCents: chargeCapturedCents, taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null), })) : 0",
     "capturedCents = chargeCapturedCents - siteTaxOnCardCents",
     "blockFeeCents = crewBlockFeeCents(blockFeeRows)",
     "nonRefundableCents = voidSplit.nonRefundableCents",
@@ -1154,6 +1155,10 @@ const AMOUNT_DEFS: Record<string, string[]> = {
     "chargeCapturedCents = pi.amount_received ?? pi.amount",
     "capturedSplit = posterCancelSplit({ job, sellerFault, platformFault: raceChargedNobodyHired, cancellationFeeCents: Math.round(cancellationFee * 100), blockFeeCents, charge: { state: \"captured\", capturedCents, actualFeeCents: actualOrEstimatedFeeCents(pi, chargeCapturedCents), alreadyRefundedCents: chargeRefundedCents, taxCents: await chargeTaxCentsFor(stripe, pi), taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null), }, })",
     "chargeRefundedOnCardCents = Number( (pi.latest_charge && typeof pi.latest_charge === \"object\" ? (pi.latest_charge as { amount_refunded?: number }).amount_refunded : 0) ?? 0, )",
+    // Re-review of 49a8653d81 (B): the tax on what the gift kept stays out of the tax refund.
+    "cardGiftKeptCents = cardGift ? Math.min(cardGift.cents, Math.max(0, nonRefundableCents + feeOwedCents + blockFeeCents - (capturedCents - Math.max(0, chargeRefundedCents)))) : 0",
+    "feeOwedCents = Math.round(cancellationFee * 100)",
+    "chargeRefundedCents = siteTaxOnCardCents > 0 ? 0 : chargeRefundedOnCardCents",
   ],
   // Q1915: a deleted crew member's withheld share plus the tax the cancel refund kept on it; the card fee stays kept.
   "crew-share-returned-": [

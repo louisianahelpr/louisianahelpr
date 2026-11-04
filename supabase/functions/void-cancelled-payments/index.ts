@@ -3123,8 +3123,18 @@ serve(async (req) => {
           const refundedAtStripe = voidSplit.ceilingCents > 0 && voidSplit.remainingCents === 0 && chargeRefundedCents > 0;
           // Signed on purpose (not floored): the $0 branch below reports the
           // raw shortfall to ops, as it did before the shared helper.
+          // Re-review of 49a8653d81 (B), Q2082 (a): the fees the gift kept carry their tax, at the job's own rate
+          // (job_taxable_cents), so that tax stays out of what goes back; only the rest of the tax is refunded.
+          const siteTaxOnGiftKeptCents = siteTaxOnCardCents > 0
+            ? Math.min(siteTaxBackCents, taxOnKeptCents({
+              keptCents: cardGiftKeptCents,
+              taxCents: piSiteTaxCents,
+              capturedCents: chargeCapturedCents,
+              taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null),
+            }))
+            : 0;
           const refundAmount = siteTaxOnCardCents > 0
-            ? voidSplit.refundCents + siteTaxBackCents
+            ? voidSplit.refundCents + siteTaxBackCents - siteTaxOnGiftKeptCents
             : voidSplit.refundCents > 0 || refundedAtStripe
             ? voidSplit.refundCents
             // Q2082 (a): never hand back the tax just kept (review of 461a6b724 #5).

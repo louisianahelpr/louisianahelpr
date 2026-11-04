@@ -21,8 +21,8 @@ export function canSuggestATime(job: Pick<EnrichedJob, "date_needed" | "is_group
 }
 
 /** Today in the platform zone, as YYYY-MM-DD (the server's own day rule). */
-function platformToday(): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+function platformToday(at: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(at);
 }
 
 /** Now in the platform zone, as HH:MM (24-hour). */
@@ -30,13 +30,19 @@ function platformNowHHMM(at: Date = new Date()): string {
   return new Intl.DateTimeFormat("en-GB", { timeZone: "America/Chicago", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(at);
 }
 
+/** Accept refuses a job whose start is 15 minutes away or less (job_starts_too_soon). */
+export const ACCEPT_LEAD_MINUTES = 15;
+/** Hiring at a suggested time refuses one less than 2 hours away (suggestion_too_soon, 20261023134752). */
+export const SUGGESTION_LEAD_MINUTES = 120;
+
 /**
- * Q2408 (review): can TODAY still be booked? Accept refuses a job whose start is 15 minutes away or less
- * (job_starts_too_soon); with no start time the day is open until midnight.
+ * Q2408 (review): is today's start still at least `leadMinutes` ahead? With no start time the day counts until
+ * 11:59 PM (the server's COALESCE(start_time, '23:59')). Never true once `now + lead` has crossed midnight.
  */
-export function todayStillBookable(startTime: string | null | undefined, now: Date = new Date()): boolean {
-  if (!startTime) return true;
-  return platformNowHHMM(new Date(now.getTime() + 15 * 60 * 1000)) < startTime.slice(0, 5) && platformNowHHMM(now) < startTime.slice(0, 5);
+export function todayStillBookable(startTime: string | null | undefined, now: Date = new Date(), leadMinutes: number = ACCEPT_LEAD_MINUTES): boolean {
+  const start = (startTime || "23:59").slice(0, 5);
+  const later = new Date(now.getTime() + leadMinutes * 60 * 1000);
+  return platformToday(later) === platformToday(now) && platformNowHHMM(later) < start;
 }
 
 function addDays(ymd: string, days: number): string {
@@ -73,11 +79,15 @@ export function ApplyTimeQuestion({
   const value = given && given.jobId === job.id ? given : null;
   const suggesting = value !== null;
   const today = platformToday();
-  // Q2408 (review): once a window's first day has come, "Yes, that works" would book a day already here or gone
-  // (accept refuses it: job_starts_too_soon). Then only the days still ahead in the window are offered.
-  const firstDayGone = windowed && !!job.date_needed && job.date_needed <= today;
-  // Today stays on offer while its start is still ahead (on the window's last day it is the ONLY day left); else tomorrow.
-  const firstOpenDay = firstDayGone ? (todayStillBookable(job.start_time) ? today : addDays(today, 1)) : null;
+  // Q2408 (review): once a window's first day is gone (a past day, or today with its start 15 minutes away or less),
+  // "Yes, that works" would book a day accept refuses (job_starts_too_soon). Then only the days still ahead in the
+  // window are offered. On day 1 with its start still ahead, Yes stays: pre-filling today there would be the job's
+  // own day and time, which apply refuses (suggestion_same_as_job).
+  const firstDayGone =
+    windowed && !!job.date_needed && (job.date_needed < today || (job.date_needed === today && !todayStillBookable(job.start_time)));
+  // Today is offered only while its start is 2+ hours ahead (hiring at a suggested time refuses less:
+  // suggestion_too_soon); on the window's last day it is the ONLY day left. Else tomorrow.
+  const firstOpenDay = firstDayGone ? (todayStillBookable(job.start_time, new Date(), SUGGESTION_LEAD_MINUTES) ? today : addDays(today, 1)) : null;
   const windowOver = firstDayGone && !!job.date_window_end && firstOpenDay! > job.date_window_end;
   useEffect(() => {
     if (firstDayGone && !windowOver && !value) onChange({ jobId: job.id, date: firstOpenDay!, time: null });

@@ -7,7 +7,7 @@ import { recurringVisitDates } from "@/lib/recurringSchedule";
 import { isLaborTaxable, salesTaxCents } from "@/lib/salesTax";
 import { POSTER_SERVICE_FEE_PERCENT } from "@/lib/posterFees";
 import { composeLocationString } from "./postJobFormHelpers";
-import { weekWindowEnd } from "@/lib/jobDateWindow";
+import { jobLastDay, weekWindowEnd } from "@/lib/jobDateWindow";
 
 /**
  * Pure helpers for the Post-a-Task submit flow.
@@ -163,7 +163,15 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
   // before create-payment, and an expiry in the past would take the poster's
   // money for a listing `expires_at > NOW()` hides from every helper. Same
   // rule is enforced server-side by trg_job_expiry_floor (20260831201631).
-  const expiresAt = computeJobExpiresAt(firstVisit, startTime);
+  // Q2408: a window job's listing runs to the start on the window's LAST day (trg_jobs_short_notice raises it there
+  // too), so auto-expire-jobs does not cancel it on day 1. The window is sent only for a single job (never a series
+  // or a crew: jobs_date_window_single_job_only) and only a real window inside a week of the first visit (the
+  // jobs_date_window_end_in_a_week CHECK refuses anything else).
+  const windowEnd =
+    dateWindowEnd && !isRecurring && !(GROUP_JOBS_ENABLED && isGroupJob) && firstVisit && dateWindowEnd > firstVisit && dateWindowEnd <= weekWindowEnd(firstVisit)
+      ? dateWindowEnd
+      : null;
+  const expiresAt = computeJobExpiresAt(jobLastDay({ date_needed: firstVisit, date_window_end: windowEnd }) ?? firstVisit, startTime);
 
   // The poster-side fee percent is a constant now: posters pay no platform
   // percentage, only Stripe's card cost (owner, 2026-10-11). create-payment
@@ -205,11 +213,8 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     start_time: startTime || null,
     is_flexible_schedule: isFlexibleSchedule,
     // Q2408: sent ONLY for a window (a key the database does not have yet would fail the whole post in the minutes
-    // between the web deploy and db-deploy; the materials_note pattern below). Never on a repeating job, and only
-    // a real window inside a week of the first visit (the jobs_date_window_end_in_a_week CHECK refuses anything else).
-    ...(dateWindowEnd && !isRecurring && firstVisit && dateWindowEnd > firstVisit && dateWindowEnd <= weekWindowEnd(firstVisit)
-      ? { date_window_end: dateWindowEnd }
-      : {}),
+    // between the web deploy and db-deploy; the materials_note pattern below). windowEnd above says when.
+    ...(windowEnd ? { date_window_end: windowEnd } : {}),
     estimated_hours: estimatedHours ? parseFloat(estimatedHours) : null,
     budget: parseFloat(budget),
     // Sent ONLY when there is a note: a key the database does not have yet

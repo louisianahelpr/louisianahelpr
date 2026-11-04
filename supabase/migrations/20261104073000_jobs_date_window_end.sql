@@ -21,6 +21,22 @@ ALTER TABLE public.jobs
     OR (date_needed IS NOT NULL AND date_window_end > date_needed AND date_window_end <= date_needed + 6)
   );
 
+-- A window is for a single job only (lead review 11-04): a crew shares ONE day, a series has its own days, and a
+-- quote-priced job keeps the day its terms were agreed on. Mirrors canSuggestATime (ApplyTimeQuestion.tsx) and
+-- apply_to_job's suggestion_not_allowed. Every existing row has a NULL end, so every row passes.
+ALTER TABLE public.jobs
+  DROP CONSTRAINT IF EXISTS jobs_date_window_single_job_only;
+ALTER TABLE public.jobs
+  ADD CONSTRAINT jobs_date_window_single_job_only
+  CHECK (
+    date_window_end IS NULL
+    OR (COALESCE(is_group_job, false) = false
+        AND COALESCE(is_recurring, false) = false
+        AND recurrence_days IS NULL
+        AND parent_job_id IS NULL
+        AND pricing_mode IS DISTINCT FROM 'quotes')
+  );
+
 GRANT SELECT (date_window_end) ON public.jobs TO authenticated;
 DO $$
 BEGIN
@@ -52,6 +68,13 @@ BEGIN
     RAISE EXCEPTION 'schedule_locked: a window cannot be added to a job that is not open (job_id=%)', OLD.id
       USING ERRCODE = '22023';
   END IF;
+  -- A job booked from an agreed quote (book_accepted_quote) keeps the quote's day: no window is added to it later.
+  IF NEW.date_window_end IS NOT NULL
+     AND OLD.date_window_end IS NULL
+     AND EXISTS (SELECT 1 FROM public.job_quote_requests r WHERE r.job_id = OLD.id) THEN
+    RAISE EXCEPTION 'window_not_allowed: a job booked from a quote keeps its day (job_id=%)', OLD.id
+      USING ERRCODE = '22023';
+  END IF;
   IF NEW.date_window_end IS NOT NULL
      AND OLD.date_window_end IS NOT NULL
      AND (NEW.date_needed IS DISTINCT FROM OLD.date_needed OR NEW.status IS DISTINCT FROM 'open') THEN
@@ -81,6 +104,12 @@ DECLARE
 BEGIN
   IF NEW.date_needed IS NULL OR NEW.parent_job_id IS NOT NULL THEN
     RETURN NEW;
+  END IF;
+  -- Q2408 (lead review 11-04): a window job's listing runs to the start on the window's LAST day whatever expires_at
+  -- the client sent (an older client sends the first day's start; auto-expire-jobs would then cancel it on day 1).
+  -- Raised here, before the server/seed early returns, so every writer gets it.
+  IF NEW.date_window_end IS NOT NULL THEN
+    NEW.expires_at := (NEW.date_window_end + COALESCE(NEW.start_time, '23:59'::time)) AT TIME ZONE 'America/Chicago';
   END IF;
   IF public.is_server_context() THEN
     RETURN NEW;

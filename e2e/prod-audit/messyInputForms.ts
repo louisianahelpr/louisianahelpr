@@ -833,6 +833,8 @@ export const FORMS: FormSpec[] = [
 
 /** Inventory files with no typed text (or scanner false positives), each with its reason. */
 export const GAPS: Record<string, string> = {
+  // Bundle requests (Q2268, 20261104103528): not swept yet (new 11-04).
+  "src/components/declutter/DeclutterBundleRequests.tsx": "no typed text: one checkbox per item and Ask / Accept all / Pick some / Decline buttons; declutter_request_bundle refuses fewer than 2 or more than 20 items (bundle_size), items from more than one seller (bundle_one_seller) and free items (bundle_free_item), and declutter_answer_bundle refuses an expired or closed request.",
   // Shipping (train 7, 11-03): not swept yet.
   "src/components/admin/settings/DeclutterShippingClaimsCard.tsx": "admin-only (Admin -> Settings); a sweep account is not an admin. Order id is a uuid parameter (a bad one is refused by Postgres), claim number and transfer id are maxLength 200, notes maxLength 500; declutter_admin_record_ship_claim refuses a blank or over-200 claim number (invalid_claim_ref), a blank or over-500 note (invalid_note) and an amount at or under $0 (invalid_amount); declutter_admin_request_return_label and declutter_admin_mark_ship_claim_sent trim and check their note and reference the same way.",
   "src/components/declutter/ShipItRow.tsx": "no typed text: one restricted-list checkbox and a fixed list of box sizes; declutter_ship_options_state and the save RPC refuse any box outside the list.",

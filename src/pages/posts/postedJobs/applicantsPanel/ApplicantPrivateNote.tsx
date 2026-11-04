@@ -1,4 +1,5 @@
 import { Pencil } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 /**
  * The poster's private note on one applicant: localStorage only, never sent to
@@ -32,7 +33,7 @@ export function ApplicantPrivateNote({
       <div className="min-w-0 flex-1">
         {editing ? (
           <div className="flex gap-2 items-start">
-            <textarea
+            <Textarea
               autoFocus
               aria-label="Private note"
               value={draft}
@@ -41,7 +42,7 @@ export function ApplicantPrivateNote({
                 if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); onSave(); }
                 if (e.key === "Escape") onCancel();
               }}
-              className="flex-1 text-ds-12 rounded-ds-sm border border-input bg-background px-2 py-1 resize-none"
+              className="flex-1 text-ds-12 rounded-ds-sm border border-input bg-background px-2 py-1 resize-none min-h-0"
               rows={2}
             />
             <button

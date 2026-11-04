@@ -22,6 +22,7 @@ import {
   isPetFormDirty,
   validatePetForm,
 } from "./petProfilesHelpers";
+import { Textarea } from "@/components/ui/textarea";
 
 interface PetFormProps {
   initialValues?: PetProfile | null;
@@ -342,7 +343,7 @@ export function PetForm({
             <label htmlFor="pet-medical-notes" className="text-ds-11 text-muted-foreground block mb-1">
               Medical notes
             </label>
-            <textarea
+            <Textarea
               id="pet-medical-notes"
               rows={3}
               className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none resize-none"
@@ -361,7 +362,7 @@ export function PetForm({
                 the popup — measured scrollHeight 93 against clientHeight 67
                 with nothing typed. The popup is meant to be the only thing
                 that scrolls. */}
-            <textarea
+            <Textarea
               id="pet-behavioral-notes"
               rows={3}
               className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none resize-none"
@@ -384,7 +385,7 @@ export function PetForm({
         <div className="rounded-ds-lg liquid-glass overflow-hidden px-4 py-3 space-y-3">
           <div>
             <label htmlFor="pet-feeding" className="text-ds-11 text-muted-foreground block mb-1">Feeding schedule</label>
-            <textarea
+            <Textarea
               id="pet-feeding"
               rows={2}
               className="glass-field w-full rounded-ds-md px-3 py-2 text-ds-14 text-foreground bg-transparent focus:outline-none resize-none"

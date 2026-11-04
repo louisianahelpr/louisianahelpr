@@ -551,8 +551,7 @@
       "button": 2
     },
     "src/components/messages/ChatView.tsx": {
-      "button": 1,
-      "textarea": 1
+      "button": 1
     },
     "src/components/messages/ConversationList.tsx": {
       "button": 8,
@@ -758,9 +757,6 @@
     "src/components/profile/reviewsTab/reviewsAboutYou.tsx": {
       "button": 1
     },
-    "src/components/profile/savedHelpersTab/SavedHelperCard.tsx": {
-      "textarea": 1
-    },
     "src/components/quotes/QuotePriceStepper.tsx": {
       "button": 2,
       "input": 1
@@ -960,8 +956,7 @@
       "input": 1
     },
     "src/pages/posts/postedJobs/applicantsPanel/ApplicantPrivateNote.tsx": {
-      "button": 2,
-      "textarea": 1
+      "button": 2
     },
     "src/pages/posts/postedJobs/applicantsPanel/ApplicantSortControls.tsx": {
       "button": 1
@@ -1012,8 +1007,7 @@
     },
     "src/pages/profile/petProfiles/PetForm.tsx": {
       "button": 2,
-      "input": 9,
-      "textarea": 3
+      "input": 9
     },
     "src/pages/profile/petProfiles/PetRailRow.tsx": {
       "button": 3
@@ -1045,8 +1039,7 @@
       "button": 1
     },
     "src/pages/user/ReviewsSection.tsx": {
-      "button": 8,
-      "textarea": 1
+      "button": 8
     }
   }
 }

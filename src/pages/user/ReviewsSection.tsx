@@ -15,6 +15,7 @@ import {
   ReviewTagChips,
   splitReviewTags,
 } from "@/components/profile/reviewCard";
+import { Textarea } from "@/components/ui/textarea";
 
 type RatingFilter = "all" | "5" | "4" | "low";
 
@@ -340,7 +341,7 @@ export const ReviewsSection = ({
               {/* Inline response editor */}
               {isOwnProfile && respondingToReview === r.id && (
                 <div className="mt-3 space-y-2">
-                  <textarea
+                  <Textarea
                     value={responseText}
                     onChange={(e) => onSetResponseText(e.target.value)}
                     aria-label="Write a public response"

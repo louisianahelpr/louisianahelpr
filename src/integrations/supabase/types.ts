@@ -345,6 +345,7 @@ export type Database = {
       ban_evasion_matches: {
         Row: {
           auto_banned: boolean
+          auto_banned_at: string | null
           cleared_at: string | null
           created_at: string
           id: string
@@ -360,6 +361,7 @@ export type Database = {
         }
         Insert: {
           auto_banned?: boolean
+          auto_banned_at?: string | null
           cleared_at?: string | null
           created_at?: string
           id?: string
@@ -375,6 +377,7 @@ export type Database = {
         }
         Update: {
           auto_banned?: boolean
+          auto_banned_at?: string | null
           cleared_at?: string | null
           created_at?: string
           id?: string
@@ -12453,6 +12456,60 @@ export type Database = {
           },
         ]
       }
+      shipping_claim_payouts: {
+        Row: {
+          amount_cents: number
+          claim_ref: string
+          created_at: string
+          debt_paid_cents: number
+          id: string
+          is_seed: boolean
+          note: string
+          order_id: string
+          recorded_by: string | null
+          seller_due_cents: number
+          seller_id: string | null
+          sent_at: string | null
+          sent_ref: string | null
+          shipment_id: string
+          status: string
+        }
+        Insert: {
+          amount_cents: number
+          claim_ref: string
+          created_at?: string
+          debt_paid_cents: number
+          id?: string
+          is_seed?: boolean
+          note: string
+          order_id: string
+          recorded_by?: string | null
+          seller_due_cents: number
+          seller_id?: string | null
+          sent_at?: string | null
+          sent_ref?: string | null
+          shipment_id: string
+          status: string
+        }
+        Update: {
+          amount_cents?: number
+          claim_ref?: string
+          created_at?: string
+          debt_paid_cents?: number
+          id?: string
+          is_seed?: boolean
+          note?: string
+          order_id?: string
+          recorded_by?: string | null
+          seller_due_cents?: number
+          seller_id?: string | null
+          sent_at?: string | null
+          sent_ref?: string | null
+          shipment_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       shipping_quotes: {
         Row: {
           buyer_id: string
@@ -12507,6 +12564,63 @@ export type Database = {
           seller_id?: string
           service?: string
           ship_to?: Json
+        }
+        Relationships: []
+      }
+      shipping_return_labels: {
+        Row: {
+          attempts: number
+          created_at: string
+          id: string
+          is_seed: boolean
+          label_cost_cents: number | null
+          label_mode: string
+          label_url: string | null
+          last_error: string | null
+          next_attempt_at: string
+          note: string
+          order_id: string
+          provider_shipment_id: string | null
+          shipment_id: string
+          state: string
+          tracking_code: string | null
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          label_cost_cents?: number | null
+          label_mode: string
+          label_url?: string | null
+          last_error?: string | null
+          next_attempt_at?: string
+          note: string
+          order_id: string
+          provider_shipment_id?: string | null
+          shipment_id: string
+          state?: string
+          tracking_code?: string | null
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          label_cost_cents?: number | null
+          label_mode?: string
+          label_url?: string | null
+          last_error?: string | null
+          next_attempt_at?: string
+          note?: string
+          order_id?: string
+          provider_shipment_id?: string | null
+          shipment_id?: string
+          state?: string
+          tracking_code?: string | null
+          updated_at?: string
         }
         Relationships: []
       }

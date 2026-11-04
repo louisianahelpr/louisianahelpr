@@ -28,7 +28,6 @@ const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 import { useActivityActions } from "@/components/job-card/useActivityActions";
 import { POSTED_STATUS_FILTERS, APPLIED_STATUS_FILTERS, useActivityFilters, postedActivityBucket, appliedActivityBucket, jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
 import { ActivityEmptyState } from "@/components/job-card/ActivityEmptyState";
-import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import { useSearchParamMirror } from "@/hooks/useSearchParamMirror";
 import { JobListQuotesSlot } from "@/components/quotes/JobListQuotesSlot";
 import { toast } from "sonner";
@@ -189,20 +188,8 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
   } = useActivityData(user, tab);
   const activitySettled = useActivitySettled(); // a ?job= link waits for it (Q1563, deepLinkWait.ts)
 
-  // Customer-first-bid push nudge — fires the high-intent re-ask the
-  // first time this customer sees at least one applicant on a job they
-  // posted. `applicantCounts` is keyed by job id and populated by
-  // useActivityData on every fetch (including the realtime-driven
-  // invalidations), so the moment a bid lands we're in here. The hook
-  // self-suppresses on already-granted, already-shown, or
-  // recently-dismissed — so this effect is safe to fire on every load.
-  const triggerPushNudge = usePushPermissionNudge();
-  useEffect(() => {
-    if (!user) return;
-    const hasAnyBid = Object.values(applicantCounts).some((n) => n > 0);
-    if (!hasAnyBid) return;
-    void triggerPushNudge("customer-first-bid");
-  }, [user, applicantCounts, triggerPushNudge]);
+  // No "Get notified?" toast on the first applicant any more (Q2003, owner 2026-11-03): the notifications ask is
+  // the in-app sheet right after the member's first post or application (useWebPush.ts).
 
   // Resolve `?job=` / `?highlight=` to the bucket the target is ACTUALLY in.
   //

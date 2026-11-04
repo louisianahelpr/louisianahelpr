@@ -9,7 +9,6 @@ import { hapticMedium, hapticSuccess, hapticError } from "@/lib/haptics";
 import { track, AhaEvent } from "@/lib/analytics";
 import { ppoTrackingProps } from "@/lib/ppoAttribution";
 import { fireSuccessMoment, SUCCESS_MOMENT_LIFETIME_MS } from "@/lib/successMoment";
-import type { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import type { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import { awardBlockFromError, isUnfundedAwardRefusal, posterAwardBlockMessage, reasonFromMissing, UNFUNDED_AWARD_COPY, type AcceptMissing, type AwardBlockReason } from "@/lib/awardGate";
 import { rpcErrorMessage } from "@/lib/lifecycleErrors";
@@ -41,7 +40,6 @@ export interface OfferHandlersDeps extends OptimisticJobCache {
    * 20261001222911); see src/lib/awardGate.ts.
    */
   checkHelperAwardEligibility: ReturnType<typeof useStripeConnectCheck>["checkHelperAwardEligibility"];
-  triggerPushNudge: ReturnType<typeof usePushPermissionNudge>;
   selectedJob: Job | null;
   setSelectedJob: (job: Job | null) => void;
   setApplications: React.Dispatch<React.SetStateAction<EnrichedApplication[]>>;
@@ -78,7 +76,6 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
     refresh,
     setStatusFilter,
     checkHelperAwardEligibility,
-    triggerPushNudge,
     optimisticallyPatchJob,
     rollbackActivity,
     selectedJob,
@@ -489,11 +486,6 @@ export function createOfferHandlers(deps: OfferHandlersDeps) {
       .not("helper_confirmed_at", "is", null);
     if ((count ?? 0) <= 1) {
       track(AhaEvent.FirstJobAccepted, { job_id: app.job_id, ...ppoProps });
-      // First-acceptance push nudge — best moment to ask a helper to
-      // turn on notifications: they now care about new-job pings and
-      // customer messages on this job. The hook self-suppresses if
-      // permission is already granted or the user dismissed recently.
-      void triggerPushNudge("helper-first-accept");
     }
   } catch { /* analytics must never break the flow */ }
   await refresh();

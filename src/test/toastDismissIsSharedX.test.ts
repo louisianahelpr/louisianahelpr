@@ -6,7 +6,7 @@
  *
  * THE CLASS is every non-test .ts/.tsx file under src/.
  *
- * @mutate src/lib/pushPermissionNudge.ts | onAutoClose: () => stopWatching(), | cancel: { label: "Not now", onClick: () => recordNudgeDismissal() }, onAutoClose: () => stopWatching(),
+ * @mutate src/components/SaveHelperButton.tsx |         action: { label: "Undo", onClick: () => undoUnsave() }, |         action: { label: "Undo", onClick: () => undoUnsave() }, cancel: { label: "Not now", onClick: () => {} },
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -27,7 +27,7 @@ const files = walk(SRC);
 describe("toasts dismiss with the shared × only", () => {
   it("scans the whole src tree", () => {
     expect(files.length).toBeGreaterThan(500);
-    expect(files.some((f) => f.endsWith("lib/pushPermissionNudge.ts"))).toBe(true);
+    expect(files.some((f) => f.endsWith("components/SaveHelperButton.tsx"))).toBe(true);
   });
   it("no toast has its own cancel button or turns the × off", () => {
     const bad: string[] = [];

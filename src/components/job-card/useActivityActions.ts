@@ -1,6 +1,5 @@
 import { useRef, useState } from "react";
 import type { TipDialogState, TipTarget } from "./ActivityDialogs";
-import { usePushPermissionNudge } from "@/lib/pushPermissionNudge";
 import { useStripeConnectCheck } from "@/hooks/useStripeConnectCheck";
 import type { AcceptMissing, AwardBlockReason } from "@/lib/awardGate";
 import type {
@@ -42,7 +41,6 @@ export function useActivityActions({
   completedJobMeta = {},
 }: UseActivityActionsArgs) {
   const { checkHelperAwardEligibility } = useStripeConnectCheck();
-  const triggerPushNudge = usePushPermissionNudge();
 
   // UI state
   // Was `useState<string | null>` — a single expanded id structurally can't
@@ -137,7 +135,6 @@ export function useActivityActions({
     refresh,
     setStatusFilter,
     checkHelperAwardEligibility,
-    triggerPushNudge,
     optimisticallyPatchJob,
     rollbackActivity,
     selectedJob,

@@ -9,12 +9,14 @@
 //     outside the Home Screen, where Apple offers no web push, the sheet says
 //     how to add Helpr to the Home Screen instead.
 //
-// Both are web only; the native app has its own APNs path (nativePush.ts).
+// The boot sync is web only (the native app registers through nativePush.ts). The ask after a job action runs
+// in the app too (Q2003, owner 2026-11-03): the same sheet, whose button raises the OS prompt.
 import { useEffect } from "react";
 import { safeStorage } from "@/lib/safeStorage";
 import { track } from "@/lib/analytics";
 import { explainPermission } from "@/hooks/usePermissionRationale";
-import { waitForNoModal } from "@/lib/pushPermissionNudge";
+import { readPushPermission, waitForNoModal } from "@/lib/pushPermissionNudge";
+import { isNativePlatform } from "@/lib/nativeInit";
 import { hasWebPushApis, isIosOutsideHomeScreen, subscribeWebPushOnUse } from "@/lib/webPushSupport";
 import { JOB_ACTION_EVENT } from "@/hooks/useNotificationPermissionPrompt";
 
@@ -43,14 +45,35 @@ let askInFlight = false;
 
 export async function offerWebPushAfterJobAction(): Promise<void> {
   if (askInFlight) return;
-  const kind = webPushAskKind();
-  if (!kind) return;
   askInFlight = true;
   try {
-    await askOnce(kind);
+    // Q2003 (owner 2026-11-03): the app asks with this same sheet after a post or an application, not with a
+    // floating "Get notified?" toast.
+    if (isNativePlatform) await askNativeOnce();
+    else {
+      const kind = webPushAskKind();
+      if (kind) await askOnce(kind);
+    }
   } finally {
     askInFlight = false;
   }
+}
+
+/** The app: the notifications sheet, then the OS prompt from its button; same 14-day cooldown as the website. */
+async function askNativeOnce(): Promise<void> {
+  const last = Number(safeStorage.getItem(WEB_PUSH_ASKED_KEY) ?? 0);
+  if (Number.isFinite(last) && last > 0 && Date.now() - last < WEB_PUSH_ASK_COOLDOWN_MS) return;
+  // Undecided only: granted needs no ask, and iOS never shows its prompt again after a refusal.
+  if ((await readPushPermission()) !== "prompt") return;
+  const { requestPushPermission } = await import("@/lib/nativePush");
+  if (!(await waitForNoModal(60_000))) return;
+  safeStorage.setItem(WEB_PUSH_ASKED_KEY, String(Date.now()));
+  track("web_push_ask", { kind: "native", step: "shown" });
+  const agreed = await explainPermission("notifications", async () => {
+    const granted = await requestPushPermission();
+    track("web_push_ask", { kind: "native", step: "os_answer", answer: granted ? "granted" : "not_granted" });
+  });
+  if (!agreed) track("web_push_ask", { kind: "native", step: "not_now" });
 }
 
 async function askOnce(kind: "ask" | "home_screen"): Promise<void> {

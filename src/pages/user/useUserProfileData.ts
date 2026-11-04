@@ -249,7 +249,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       const wantsReplyLatency =
         !!currentUserId && (currentUserId === targetUserId || currentUserId === userId);
 
-      const [reviewsRes, postedRes, workedRes, idCheckRes, postedTotalRes, lastActiveRes, mutualRes, workedTimingRes, posterReviewsRes, repeatHireRes, credentialTierRes, existingThreadRes, appliedToMineRes, publicStatsRes, publicReviewsRes, replyLatencyRes, mutualCompletedRes] = await Promise.all([
+      const [reviewsRes, postedRes, workedRes, idCheckRes, lastActiveRes, mutualRes, posterReviewsRes, repeatHireRes, credentialTierRes, existingThreadRes, appliedToMineRes, publicStatsRes, publicReviewsRes, replyLatencyRes] = await Promise.all([
         // feedback_visible_at filter: anti-retaliation reveal — hidden until
         // both sides post or 14 days pass. set_review_visibility trigger
         // stamps this column on insert.
@@ -271,11 +271,9 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
           .select("idv_status, stripe_account_id, background_check_status")
           .eq("user_id", userId!)
           .maybeSingle(),
-        // Count-only queries — `head: true` skips row payload, so these
-        // are cheap. They power the lifetime cancellation-rate display
-        // (#30) without inflating the limited job lists rendered above.
-        // Nor is it a posted job anyone else hears about (owner 10-31).
-        supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS),
+        // The posted-total count and the 50-row worked-timing read are no longer here: they are
+        // fallbacks for a failed get_public_profile_stats, so they run below only when it gave no
+        // answer (Q946, 2026-11-04).
         // The posted-cancelled, worked-total and worked-cancelled counts that sat here are gone (Q946,
         // 2026-11-04): nothing rendered them (statSamples.jobs and postedCancelledCount had no reader),
         // and they were three of the ten jobs reads /user/:id sent on every load.
@@ -288,25 +286,17 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // Counts every job where the two of them are paired in either
         // direction. We only need a count, so head:true keeps it cheap.
         // The .or() handles both directions in a single round-trip.
+        // Q965 + Q946: ONE read answers both pair numbers. The exact count is every job the two
+        // were paired on (cancelled included; it gates messaging); the returned statuses give the
+        // "Worked together" tile its completed-only number. Was two head counts on the same filter.
         wantsMutual
           ? supabase
               .from("jobs")
-              .select("id", { count: "exact", head: true })
+              .select("status", { count: "exact" })
               .or(
                 `and(customer_id.eq.${currentUserId},helper_id.eq.${userId}),and(customer_id.eq.${userId},helper_id.eq.${currentUserId})`,
               )
-          : Promise.resolve({ data: null, error: null, count: 0 }),
-        // Worked-side timing fields (#6) — drives on-time arrival rate +
-        // revision frequency stats. Pulled separately from the inline-
-        // rendered list because we want the broader history (50 rows),
-        // not just the most recent 20 truncated for the card UI.
-        supabase
-          .from("jobs")
-          .select("status, date_needed, start_time, helper_on_the_way_at, helper_arrived_at, revision_count")
-          .eq("helper_id", userId!)
-          .eq("status", "completed")
-          .order("created_at", { ascending: false })
-          .limit(50),
+          : Promise.resolve({ data: [] as Array<{ status: string | null }>, error: null, count: 0 }),
         // Poster-side reputation — reviews left for this user in their role
         // as a job poster (customer). `customer_id` is pulled through the
         // inner join so the poster/helper split below is decided by the
@@ -407,19 +397,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         wantsReplyLatency
           ? supabase.rpc("get_my_reply_latency")
           : Promise.resolve({ data: null, error: null }),
-        // Q965: "Worked together" counts jobs the two FINISHED together. The
-        // broader count above (every job they were paired on, cancelled
-        // included) still gates messaging; the tile reads only completed ones
-        // (a profile showed 44 "worked together" against 16 completed).
-        wantsMutual
-          ? supabase
-              .from("jobs")
-              .select("id", { count: "exact", head: true })
-              .eq("status", "completed")
-              .or(
-                `and(customer_id.eq.${currentUserId},helper_id.eq.${userId}),and(customer_id.eq.${userId},helper_id.eq.${currentUserId})`,
-              )
-          : Promise.resolve({ data: null, error: null, count: 0 } as { data: null; error: null; count: number }),
       ]);
 
       // These five feed secondary stats (reviews, job counts, response
@@ -430,8 +407,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       for (const [label, res] of [
         ["reviews", reviewsRes], ["posted_jobs", postedRes], ["worked_jobs", workedRes],
         ["trust_signals", idCheckRes],
-        ["posted_total", postedTotalRes],
-        ["worked_timing", workedTimingRes], ["poster_reviews", posterReviewsRes],
+        ["poster_reviews", posterReviewsRes],
       ] as const) {
         if (res.error) {
           report(res.error, {
@@ -518,6 +494,40 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
             (r) => r?.user_id === targetUserId,
           ) ?? null;
 
+      /* THE TWO FALLBACK READS (Q946, 2026-11-04). The posted-total count and the 50-row
+         worked-timing select only matter when get_public_profile_stats gave no number for them
+         (an error, no matching row, or a NULL field), so they go out only then, instead of on
+         every load beside an answer that already won. Every field they back is a COUNT on the
+         server, never NULL once the RPC answered, so the page reads the same. */
+      const needsPostedTotal = int(publicStats?.posted_jobs_total) === null;
+      const needsTiming =
+        int(publicStats?.on_time_sample) === null || int(publicStats?.revision_sample) === null;
+      const [postedTotalRes, workedTimingRes] = await Promise.all([
+        needsPostedTotal
+          ? supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS)
+          : Promise.resolve({ data: null, error: null, count: null as number | null }),
+        // Worked-side timing fields (#6): on-time arrival + revision frequency, over the broader
+        // 50-row history rather than the 20 the card lists.
+        needsTiming
+          ? supabase
+              .from("jobs")
+              .select("status, date_needed, start_time, helper_on_the_way_at, helper_arrived_at, revision_count")
+              .eq("helper_id", userId!)
+              .eq("status", "completed")
+              .order("created_at", { ascending: false })
+              .limit(50)
+          : Promise.resolve({ data: [] as unknown[], error: null }),
+      ]);
+      for (const [label, res] of [["posted_total", postedTotalRes], ["worked_timing", workedTimingRes]] as const) {
+        if (res.error) {
+          report(res.error, {
+            severity: "warning",
+            tags: { area: `user_profile.${label}` },
+            context: { viewed_user_id: userId },
+          });
+        }
+      }
+
       const hasPublicReviewRpc = !reviewsRpcRes.error && Array.isArray(reviewsRpcRes.data);
       const publicReviewRows: PublicProfileReviewRow[] = hasPublicReviewRpc
         ? (reviewsRpcRes.data as PublicProfileReviewRow[])
@@ -595,7 +605,9 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // (RLS, unexpected schema). The badge hides itself at 0.
       const mutualJobsCount = wantsMutual ? (mutualRes?.count ?? 0) : 0;
       // The tile's number (Q965): finished together, not merely paired.
-      const workedTogetherCount = wantsMutual ? (mutualCompletedRes?.count ?? 0) : 0;
+      const workedTogetherCount = wantsMutual
+        ? ((mutualRes?.data ?? []) as Array<{ status: string | null }>).filter((j) => j.status === "completed").length
+        : 0;
       /* See the two queries above. TRUE when there is no viewer to gate
          (own profile / signed out) because the button is not rendered in those
          cases anyway, and false-by-default there would make the gate look like

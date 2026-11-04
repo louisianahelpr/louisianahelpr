@@ -23,6 +23,7 @@ import { freeClaimFeeRefusal, openFreeClaimFirstTime, promptAccountSetupFee, set
 import { pickRequestedProfile, type SafeProfileIdRow } from "@/lib/safeProfiles";
 import { takeMinePrefetch, takeMineQuestions } from "@/lib/declutter/minePrefetchTake";
 import { readItems, type ItemRead } from "@/lib/declutter/myReads";
+import { takeItemPhotosPrefetch, takeItemPrefetch } from "@/lib/declutter/itemPrefetchTake";
 import { takeFirstScreenDropStates, takeFirstScreenItems, takeFirstScreenPhotos, takeFirstScreenWatching } from "@/lib/declutter/bootPrefetch";
 
 /** Row 24 handover choices open at launch (row 63: Helpr delivery comes later). */
@@ -242,7 +243,13 @@ export async function fetchMySales(userId: string): Promise<Map<string, MySale>>
   return sales;
 }
 
+/** The signed-in member, asked only when a boot hand-over exists (itemPrefetchTake.ts). */
+const sessionUserId = async () => (await supabase.auth.getSession()).data.session?.user.id;
+
 export async function fetchItem(itemId: string): Promise<DeclutterItem | null> {
+  // B100 (Q2708): a cold item page asked for this row at boot (src/boot/declutterItemPrefetch.ts); taken once.
+  const prefetched = await takeItemPrefetch(itemId, sessionUserId);
+  if (prefetched !== undefined) return prefetched as DeclutterItem | null;
   const row = await readItems((cols) => supabase.from("declutter_items").select(cols).eq("id", itemId).maybeSingle());
   return (row ?? null) as DeclutterItem | null;
 }
@@ -338,6 +345,8 @@ export async function fetchPhotos(itemIds: string[]): Promise<DeclutterPhoto[]> 
   if (itemIds.length === 0) return [];
   const prefetched = await takeFirstScreenPhotos(itemIds);
   if (prefetched) return prefetched as DeclutterPhoto[];
+  const bootItem = itemIds.length === 1 ? await takeItemPhotosPrefetch(itemIds[0], sessionUserId) : undefined;
+  if (bootItem) return bootItem as DeclutterPhoto[];
   const rows = unwrap(
     await supabase
       .from("declutter_item_photos")

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-04T13:33Z",
+  "measured_at": "2026-11-04T16:31Z",
   "issues": {
     "readable": true,
     "open": [
@@ -122,13 +122,6 @@
         "runTruncated": false
       },
       {
-        "number": 4054,
-        "title": "nightly-red: race-runner",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41828763236",
-        "runTruncated": false
-      },
-      {
         "number": 4062,
         "title": "nightly-red: nightly-webkit",
         "label": "nightly-red",
@@ -146,7 +139,7 @@
         "number": 4091,
         "title": "nightly-red: main: Supabase DB Deploy",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41828763291",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41846860386",
         "runTruncated": false
       }
     ]
@@ -337,6 +330,14 @@
         "status": "open",
         "title": "nightly-red: core-loop-canary",
         "issue": 3833
+      },
+      {
+        "fingerprint": "f1bfed973a2a75d4ef5bb8ce2a1785df",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: review-nag-cron returned 500 (# defect(s) reported)",
+        "issue": null
       },
       {
         "fingerprint": "7f88b9cc45dfe6718fac157d663f3d2e",
@@ -619,19 +620,19 @@
         "issue": 4020
       },
       {
-        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: declutter-money returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "aeedd249577285330a97e04195cee7d8",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: refund-request-sweep returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: declutter-money returned 502",
         "issue": null
       },
       {
@@ -681,6 +682,14 @@
         "status": "open",
         "title": "job sales tax collected but not recorded in stripe tax",
         "issue": null
+      },
+      {
+        "fingerprint": "dd2ccbc600cefe639623d0c8e3339c8c",
+        "source_kind": "user-error-screen",
+        "source": "user-error-screen",
+        "status": "open",
+        "title": "/ · error screen shown: couldn't load the newest jobs.",
+        "issue": null
       }
     ]
   },
@@ -704,7 +713,6 @@
     "issue #3824": "Q1816",
     "issue #3833": "Q1816",
     "issue #4020": "Q1816",
-    "issue #4054": "Q1816",
     "issue #4062": "Q1816",
     "issue #4084": "Q1816",
     "issue #4091": "Q1816",
@@ -808,6 +816,7 @@
     "ledger d5cc10e1fb86": "Q1596",
     "ledger db0fb15c4ec3": "Q1816",
     "ledger dd274a9b4b57": "Q1596",
+    "ledger dd2ccbc600ce": "Q2735",
     "ledger de37efb6fa8e": "Q1596",
     "ledger e06748071241": "Q1596",
     "ledger e306dea6b044": "Q1596",
@@ -816,6 +825,7 @@
     "ledger e9576de5dfb0": "Q1816",
     "ledger ec743a639c38": "Q1596",
     "ledger ed3f34acc0e1": "Q1596",
+    "ledger f1bfed973a2a": "Q2734",
     "ledger f3c752b3230f": "Q1596"
   }
 }

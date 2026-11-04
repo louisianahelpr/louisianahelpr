@@ -76,7 +76,9 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
 
   it("then Home's body: greeting, the Next up card, Coming up, the 2x2 section tiles (board 7)", () => {
     // Home: the Next up card (2026-10-20, it replaced the three stat boxes); the skeleton draws the same card.
-    expect(home).toContain('<section data-testid="next-up" aria-label="Next up" className="liquid-glass p-card flex flex-col gap-1.5">');
+    // The card measures and holds its own height while to-dos load (ref + a reserved minHeight style), so match
+    // the tag's shell classes, not the whole tag.
+    expect(home).toMatch(/<section (?:ref=\{nextUpRef\} )?data-testid="next-up" aria-label="Next up" className="liquid-glass p-card flex flex-col gap-1\.5"[ >]/);
     expect(skeleton).toContain('<div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton="next-up">');
     expect(skeleton).toMatch(/data-skeleton="next-up">[\s\S]*?<Skeleton className="h-11 w-36 mt-2 rounded-full" \/>/);
     // 2x2 tiles, same grid.

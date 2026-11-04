@@ -12,6 +12,7 @@ import { resetProofPhotoSignCache } from "@/lib/proofPhotoStorage";
 import { purgeApiCache } from "@/lib/apiCachePurge";
 import { beginSignOutAbortScope, endSignOutAbortScope } from "@/lib/signOutAbort";
 import { forceSignedOutSnapshot } from "@/hooks/useAuthReady";
+import { noteAuthState } from "@/lib/signedInRequestGuard";
 import { loadModule } from "@/lib/loadModule";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
@@ -214,6 +215,8 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
     // sign-out stuck behind a hung token refresh auth-js emits none either, so
     // without this the app keeps the old user with no session behind it.
     forceSignedOutSnapshot();
+    // Q1596: and tell the request guard, so this hand-cleared session is a sign-out, not a "vanished" one held 10 s.
+    noteAuthState("SIGNED_OUT", false);
     // On the app the session is also mirrored in the Keychain and the
     // adapter's cache; left there, the next launch signs the person back in
     // (Q390 review S2).

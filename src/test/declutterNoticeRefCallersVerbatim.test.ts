@@ -12,7 +12,7 @@
  *      declutter_notice_ref line, and declutter_notify_strict still stores declutter_ref, so a later restate from an
  *      older base cannot quietly bring back notices that never retire.
  *
- * @mutate supabase/migrations/20261103202118_declutter_porch_got_it_waits_for_photo.sql |     PERFORM public.declutter_notice_ref(p_order_id); -- Q2659\n    PERFORM public.declutter_notify(o.buyer_id, 'declutter_pickups', 'It''s on the porch |     PERFORM public.declutter_notify(o.buyer_id, 'declutter_pickups', 'It''s on the porch
+ * @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |     PERFORM public.declutter_notice_ref(p_order_id); -- Q2659\n    PERFORM public.declutter_notify(o.buyer_id, 'declutter_pickups', 'It''s on the porch |     PERFORM public.declutter_notify(o.buyer_id, 'declutter_pickups', 'It''s on the porch
  * @mutate supabase/migrations/20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql |   INSERT INTO public.notifications (user_id, type, title, declutter_ref, message, link) |   INSERT INTO public.notifications (user_id, type, title, job_id, message, link)
  * @mutate supabase/migrations/20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql |      WHERE item_id = p_item_id AND status = 'open'\n    RETURNING id, buyer_id |      WHERE item_id = p_item_id\n    RETURNING id, buyer_id
  */

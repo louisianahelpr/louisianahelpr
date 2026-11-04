@@ -207,6 +207,8 @@
  * @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql | RAISE EXCEPTION 'haul_away_job_not_found' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'haul_away_job_not_found' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql | RAISE EXCEPTION 'payout_missing' USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'payout_missing' USING ERRCODE = 'P0002';
  * @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql | RAISE EXCEPTION 'enforce_retained_payment_ban: no profile for %', p_user_id USING ERRCODE = 'PT404'; | RAISE EXCEPTION 'enforce_retained_payment_ban: no profile for %', p_user_id USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql | SELECT * INTO v_job FROM public.jobs WHERE id = _job_id FOR UPDATE;\n  IF v_job.id IS NULL THEN\n    RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'PT404'; | SELECT * INTO v_job FROM public.jobs WHERE id = _job_id FOR UPDATE;\n  IF v_job.id IS NULL THEN\n    RAISE EXCEPTION 'job_not_found' USING ERRCODE = 'P0002';
+ * @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql | RAISE EXCEPTION 'no_open_review' USING ERRCODE = '22023'; | RAISE EXCEPTION 'no_open_review' USING ERRCODE = 'P0002';
  */
 import { describe, expect, it } from "vitest";
 import { join } from "node:path";
@@ -255,6 +257,7 @@ import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
  * Packet 38 (regular, 5, Declutter): declutter_edit_listing, declutter_manage, declutter_respond_offer, declutter_update_draft, declutter_wanted_reply (20261103224137); every raise is before any write, the app maps by message.
  * Packet 39 (regular, 6, Declutter): declutter_create_move_drafts, declutter_link_haul_away, declutter_pick_free_request, declutter_record_ai_check, declutter_checkout_free, declutter_start_checkout (20261103224955); a raise rolls back the statement, declutter-ai-draft and the app map by message, declutter-checkout already answers 404 for PT404.
  * Packet 40 (regular, 9, Jobs and Declutter money functions, ERRCODE only): declutter_accept_refund_with_return, declutter_answer_refund, declutter_admin_decide_problem, declutter_admin_decide_delivery_damage, declutter_admin_decide_stuck_delivery, declutter_rebook_payout, enforce_job_tracking_arrival_gate, admin_apply_account_action, enforce_retained_payment_ban (20261103230126); a raise rolls back the statement, every caller maps by message, no SQL caller catches P0002. declutter_apply_seller_fault, declutter_setup_job_fee_debt (wait for wip/b65-low) and redeem_gift_card (wait for wip/b71-tax) are left.
+ * Last member packet (regular, 31, Builder 2 11-04, ERRCODE only): declutter_book_porch_day, declutter_confirm_handover, declutter_porch_photo, declutter_seller_picked_up, helpr_task_accept, helpr_task_buyer_choose, helpr_task_buyer_fix, helpr_task_cant_finish, helpr_task_customer_confirm, helpr_task_delivered, helpr_task_picked_up, helpr_task_pickup_no_show, helpr_task_returned, helpr_task_seller_move_pickup, helpr_task_seller_return_answer, helpr_task_tip_start, rentals_admin_lift_takedown, rentals_admin_remove_listing, rentals_file_request, rentals_save_listing, rentals_save_sale_listing, rentals_set_rent_plan, rentals_settle_deposit, rpc_helper_mark_done, rpc_poster_confirm_member_arrival, shops_accept_order, shops_buyer_cancel_order, shops_mark_ready, shops_request_order; plus admin_confirm_ban_settlement 'no_open_review' and shops_admin_review_item 'item_not_pending' to '22023' (state refusals) (20261104175521).
  */
 const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_set_price", "get_quotes_for_request",
   "book_accepted_quote", "confirm_job_continue_day", "nudge_confirm",
@@ -312,9 +315,15 @@ const MOVED = ["save_my_phone", "withdraw_job_quote", "switch_quote_request_to_s
   "declutter_checkout_free", "declutter_start_checkout",
   "declutter_accept_refund_with_return", "declutter_answer_refund", "declutter_admin_decide_problem",
   "declutter_admin_decide_delivery_damage", "declutter_admin_decide_stuck_delivery", "declutter_rebook_payout",
-  "enforce_job_tracking_arrival_gate", "admin_apply_account_action", "enforce_retained_payment_ban"];
+  "enforce_job_tracking_arrival_gate", "admin_apply_account_action", "enforce_retained_payment_ban",
+  "declutter_book_porch_day", "declutter_confirm_handover", "declutter_porch_photo", "declutter_seller_picked_up", "helpr_task_accept",
+  "helpr_task_buyer_choose", "helpr_task_buyer_fix", "helpr_task_cant_finish", "helpr_task_customer_confirm", "helpr_task_delivered",
+  "helpr_task_picked_up", "helpr_task_pickup_no_show", "helpr_task_returned", "helpr_task_seller_move_pickup", "helpr_task_seller_return_answer",
+  "helpr_task_tip_start", "rentals_admin_lift_takedown", "rentals_admin_remove_listing", "rentals_file_request", "rentals_save_listing",
+  "rentals_save_sale_listing", "rentals_set_rent_plan", "rentals_settle_deposit", "rpc_helper_mark_done", "rpc_poster_confirm_member_arrival",
+  "shops_accept_order", "shops_buyer_cancel_order", "shops_mark_ready", "shops_request_order"];
 /** Functions whose live definition still raises ERRCODE 'P0002'. EXACT, both ways. */
-const P0002_RAISERS = 37;
+const P0002_RAISERS = 6;
 /**
  * Refusals that used P0002 but name a state, not a missing row: they move to '22023' (400), never PT404 (lead 11-03).
  * Function -> the exception message it raises with '22023'.
@@ -323,6 +332,8 @@ const STATE_REFUSALS: [string, string][] = [
   ["rentals_confirm_visit", "no_visit_proposed"],
   ["rentals_admin_review_landlord_id", "not_pending_review"],
   ["declutter_admin_review_item", "item_not_pending"],
+  ["admin_confirm_ban_settlement", "no_open_review"],
+  ["shops_admin_review_item", "item_not_pending"],
 ];
 
 const defs = effectiveDefs(join(process.cwd(), "supabase/migrations"));

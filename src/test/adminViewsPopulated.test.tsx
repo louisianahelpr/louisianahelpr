@@ -84,7 +84,6 @@ import AdminExceptionQueue from "@/components/admin/AdminExceptionQueue";
 import AdminBanReview from "@/components/admin/AdminBanReview";
 import AdminFraudDashboard from "@/components/admin/AdminFraudDashboard";
 import AdminSupport from "@/components/admin/AdminSupport";
-import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
 
 const PERSON = { user_id: "u-1", full_name: "Clementine Arceneaux", email: "clem@example.com" };
 const PAST = "2026-09-01T12:00:00Z";
@@ -179,17 +178,6 @@ const CASES: Case[] = [
     shows: /My payout has not arrived/,
     empty: /^No (\w+ )?(support )?tickets$/,
   },
-  {
-    view: "expired subscriptions",
-    Component: AdminSubscriptions,
-    seed: () => {
-      db.tables.profiles = [{
-        ...PERSON, subscription_tier: "pro", subscription_expires_at: PAST, is_seed: false,
-      }];
-    },
-    shows: /Clementine Arceneaux/,
-    empty: /No subscriptions found/,
-  },
 ];
 
 const renderView = (C: ComponentType) =>
@@ -207,8 +195,9 @@ describe("Q238 every admin review queue renders POPULATED", () => {
     db.rpc = {};
   });
 
-  it("covers the seven views Q238 named that still exist (floor)", () => {
-    expect(CASES.length).toBeGreaterThanOrEqual(7);
+  it("covers the six views Q238 named that still exist (floor)", () => {
+    // 2026-11-04: six (AdminSubscriptions retired with memberships).
+    expect(CASES.length).toBeGreaterThanOrEqual(6);
   });
 
   for (const c of CASES) {

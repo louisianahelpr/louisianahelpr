@@ -62,7 +62,6 @@ const VIEWS: Record<string, Rule> = {
   reports: { kind: "tags", render: [`${A}AdminReports.tsx`], resolve: [`${A}adminReports/fetchReports.ts`] },
   support: { kind: "tags", render: [`${A}AdminSupport.tsx`], resolve: [`${A}AdminSupport.tsx`] },
   referrals: { kind: "tags", render: [`${A}AdminReferrals.tsx`], resolve: [`${A}AdminReferrals.tsx`] },
-  subscriptions: { kind: "tags", render: [`${A}AdminSubscriptions.tsx`], resolve: [`${A}AdminSubscriptions.tsx`] },
   fraud: { kind: "tags", render: [`${A}AdminFraudDashboard.tsx`], resolve: [`${A}AdminFraudDashboard.tsx`] },
   audit: { kind: "none", why: "rows are actions taken BY admins (admin_audit_log.admin_id); the actor is never a seed member" },
   health: { kind: "none", why: "system health checks; no member rows" },

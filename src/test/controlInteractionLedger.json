@@ -30,7 +30,6 @@
     "adhocTint  src/components/admin/AdminReferrals.tsx:377 <button>  hover:bg-secondary/50",
     "adhocTint  src/components/admin/AdminSettings.tsx:652 <Button>  hover:bg-destructive/10",
     "adhocTint  src/components/admin/AdminSidebar.tsx:294 <Button>  hover:bg-destructive/10",
-    "adhocTint  src/components/admin/AdminSubscriptions.tsx:149 <button>  hover:bg-secondary/80",
     "adhocTint  src/components/admin/AdminUsers.tsx:381 <button>  hover:bg-primary/90",
     "adhocTint  src/components/admin/AutoRestrictedRail.tsx:207 <Button>  hover:bg-warning/10",
     "adhocTint  src/components/admin/BanDialog.tsx:335 <button>  hover:bg-secondary/30",

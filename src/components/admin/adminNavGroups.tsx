@@ -10,7 +10,6 @@ import {
   Briefcase,
   ClipboardCheck,
   ClipboardList,
-  Crown,
   Download,
   FileCheck,
   Gavel,
@@ -113,7 +112,6 @@ export const adminNavGroups: { title: string; items: AdminNavItem[] }[] = [
   {
     title: "Revenue",
     items: [
-      { id: "subscriptions", label: "Subscriptions", icon: Crown },
       { id: "referrals", label: "Referrals", icon: Gift },
       { id: "payouts", label: "Payout batches", icon: Banknote },
       { id: "tiers", label: "Helpr tiers", icon: Award },

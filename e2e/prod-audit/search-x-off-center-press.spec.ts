@@ -143,13 +143,7 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: 'input[aria-label="Search referrals by name or code"]',
     close: CLEAR,
   },
-  {
-    name: "admin-subscriptions", file: "src/components/admin/AdminSubscriptions.tsx", as: "admin",
-    url: "/admin?view=subscriptions",
-    trigger: 'input[aria-label="Search subscriptions by name, email, or tier"]',
-    field: 'input[aria-label="Search subscriptions by name, email, or tier"]',
-    close: CLEAR,
-  },
+
   {
     name: "admin-settings-add-admin", file: "src/components/admin/settings/AdminUserSearchField.tsx", as: "admin",
     url: "/admin?view=settings",

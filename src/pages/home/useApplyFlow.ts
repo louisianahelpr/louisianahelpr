@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import { errorToast } from "@/lib/toast";
 import { queryKeys } from "@/lib/queryKeys";
 import { recordJobActionForPermissionPrompt } from "@/hooks/useNotificationPermissionPrompt";
@@ -80,31 +81,30 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
     if (fetchedJob?.id === confirmApplyJobId) return;
     let cancelled = false;
     (async () => {
-      const { data, error } = await supabase
-        .from("jobs")
-        // NAMED COLUMNS, NOT `*`. This read is the reason the "Applicants can
-        // view their pending applied jobs" policy existed, and under it `*`
-        // handed a helper who had merely tapped Apply the job's full street
-        // address and exact lat/lng — proven against prod rows. That policy is
-        // dropped by `20260831232513_address_only_when_offered`, so this read
-        // now returns nothing until the poster actually chooses this helper.
-        // The list is exactly what the confirm dialog renders (see the comment
-        // above); the apply mutation itself only needs the id, so the
-        // best-effort miss below is unchanged in behaviour.
-        // `instant_book` is deliberately absent: the column was dropped by
-        // 20260904034410 (dead-feature cut) and naming it here 400'd the whole
-        // select ("column jobs.instant_book does not exist"), silently losing
-        // title/budget/earnings-breakdown for any deep-linked (?quickApply=)
-        // job not already in the loaded feed.
-        .select(
-          "id, title, budget, category, date_needed, pricing_mode, is_urgent, customer_id, status",
-        )
-        .eq("id", confirmApplyJobId)
-        .maybeSingle();
+      // NAMED COLUMNS, NOT `*`. This read is the reason the "Applicants can
+      // view their pending applied jobs" policy existed, and under it `*`
+      // handed a helper who had merely tapped Apply the job's full street
+      // address and exact lat/lng — proven against prod rows. That policy is
+      // dropped by `20260831232513_address_only_when_offered`, so this read
+      // now returns nothing until the poster actually chooses this helper.
+      // The list is exactly what the confirm dialog renders (see the comment
+      // above); the apply mutation itself only needs the id, so the
+      // best-effort miss below is unchanged in behaviour.
+      // `instant_book` is deliberately absent: the column was dropped by
+      // 20260904034410 (dead-feature cut) and naming it here 400'd the whole
+      // select ("column jobs.instant_book does not exist"), silently losing
+      // title/budget/earnings-breakdown for any deep-linked (?quickApply=)
+      // job not already in the loaded feed.
+      // Q2408: date_window_end so a window job's confirm and "Application sent" pop-up say the window, read through
+      // readJobsAheadOfDb so a database without the column (db-deploy behind prod-deploy) still answers.
+      const { data, error } = await readJobsAheadOfDb(
+        "id, title, budget, category, date_needed, date_window_end, pricing_mode, is_urgent, customer_id, status",
+        (columns) => supabase.from("jobs").select(columns).eq("id", confirmApplyJobId).maybeSingle<Record<string, unknown>>(),
+      );
       // Best-effort: a miss/RLS-denial just leaves confirmApplyJob null and the
       // dialog falls back to its generic copy — the apply mutation itself only
       // needs the jobId, so a failed fetch never blocks applying.
-      if (!cancelled && !error && data) setFetchedJob(data as EnrichedJob);
+      if (!cancelled && !error && data) setFetchedJob(data as unknown as EnrichedJob);
     })();
     return () => { cancelled = true; };
   }, [confirmApplyJobId, feedJob, fetchedJob]);
@@ -410,6 +410,7 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         noteWithheld,
         posterName: sentJob?.posterName ?? null,
         dateNeeded: sentJob?.date_needed ?? null,
+        dateWindowEnd: sentJob?.date_window_end ?? null,
         job: sentJob,
       });
       // First-application funnel event — strictly best-effort analytics, so

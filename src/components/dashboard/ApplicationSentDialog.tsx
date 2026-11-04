@@ -1,5 +1,5 @@
 import { WhatNextSheet } from "@/components/whatNext/WhatNextSheet";
-import { formatJobDate } from "@/lib/dateUtils";
+import { jobDayLabel } from "@/lib/jobDateWindow";
 import { seriesSummary } from "@/lib/format";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { JobPriceTakeHome } from "@/components/dashboard/helprTakeHome";
@@ -12,6 +12,8 @@ export type ApplicationSent = {
   noteWithheld: boolean;
   posterName?: string | null;
   dateNeeded?: string | null;
+  /** Q2408: the last day of an "Any time this week" window (null = one day). */
+  dateWindowEnd?: string | null;
   /** The job applied to, for its posted price and the take-home (board 77). */
   job?: EnrichedJob | null;
 };
@@ -22,7 +24,7 @@ const first = (n: string | null | undefined) => n?.trim().split(/\s+/)[0] || nul
  *  "Do the job: Weekly · 4 visits until Nov 21, starting Fri, Oct 31". */
 function doLabel(sent: ApplicationSent | null): string {
   const series = sent?.job ? seriesSummary(sent.job) : null;
-  const date = sent?.dateNeeded ? formatJobDate(sent.dateNeeded) : null;
+  const date = sent?.dateNeeded ? jobDayLabel({ date_needed: sent.dateNeeded, date_window_end: sent.dateWindowEnd }) : null;
   if (series) return date ? `Do the job: ${series}, starting ${date}` : `Do the job: ${series}`;
   return date ? `Do the job, ${date}` : "Do the job";
 }

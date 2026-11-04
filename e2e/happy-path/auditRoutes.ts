@@ -278,7 +278,10 @@ export const AUTHED_SCREENS: ScreenSpec[] = [
   // real screens. Either way the route is visited.
   { name: "declutter", url: "/declutter" },
   { name: "declutter-sell", url: "/declutter/sell" },
-  { name: "declutter-move", url: "/declutter/move" },
+  // The moving sale is Sell a bunch with a move-out date (lead 2026-10-30, one flow): /declutter/move only forwards
+  // there (DeclutterMovePage, SELL_MOVE_PATH), so the screen row is the destination and the old link is an alias.
+  { name: "declutter-sell-moving", url: "/declutter/sell?mode=moving" },
+  { name: "declutter-move-redirect", url: "/declutter/move", redirectsTo: "/declutter/sell?mode=moving" },
   { name: "declutter-settings", url: "/declutter/settings" },
   { name: "declutter-item-missing", url: "/declutter/item/10000000-0000-4000-8000-00000000dead" },
   // Quotes on jobs (hidden switch 'quotes', created OFF). The /quotes hub is

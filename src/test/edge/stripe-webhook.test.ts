@@ -2715,6 +2715,30 @@ describe("stripe-webhook edge function", () => {
         expect(stripeMock.paymentIntents.update).toHaveBeenCalledWith("pi_visit", { metadata: { tax_rev_re_full: "taxrev_refund:re_full" } });
       });
 
+      // Review fix (lh-money-escrow on ddfb06a83 #2): a $100 job paid $90 by gift: the card took the $10
+      // shortfall + $10 job-site tax ($20), the transaction holds $100 labor + $10 tax. Refunding the whole
+      // card charge on a cancel (the gift goes back too) reverses ALL of it, not $20 of $110.
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   const giftReduced = jobSiteTaxCents(piMeta) > 0 && | const giftReduced = false &&
+      it("a gift-reduced job-site charge refunded in full reverses the whole transaction (tax share, not card share)", async () => {
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_visit", metadata: { tax_transaction_id: "tax_txn_9", tax_calculation_id: "taxcalc_g", job_tax_cents: "1000" } });
+        refundsAre([{ id: "re_gift", amount: 2000, created: 100 }]);
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({ id: "evt_tax_gift", type: "charge.refunded", data: { object: { id: "ch_visit", payment_intent: "pi_visit", amount: 2000, amount_refunded: 0 } } });
+        await fn.fetch(webhookRequest(fn, "{}"));
+        expect(reversals().map((r) => r.args)).toEqual([{ mode: "full", original_transaction: "tax_txn_9", reference: "refund:re_gift", metadata: { refund_id: "re_gift", charge_id: "ch_visit" } }]);
+      });
+
+      // aa8869511 #3: a TAX-ONLY card charge ($10, the gift paid the whole job): half of it refunded
+      // reverses half the tax AND the labor it was charged on ($55 of $110), not $5.
+      it("a tax-only charge's partial refund reverses its tax share and that tax's labor", async () => {
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_visit", metadata: { tax_transaction_id: "tax_txn_9", tax_calculation_id: "taxcalc_g", job_tax_cents: "1000" } });
+        refundsAre([{ id: "re_half", amount: 500, created: 100 }]);
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({ id: "evt_tax_only", type: "charge.refunded", data: { object: { id: "ch_visit", payment_intent: "pi_visit", amount: 1000, amount_refunded: 0 } } });
+        await fn.fetch(webhookRequest(fn, "{}"));
+        expect(reversals().map((r) => r.args)).toEqual([{ mode: "partial", flat_amount: -5500, original_transaction: "tax_txn_9", reference: "refund:re_half", metadata: { refund_id: "re_half", charge_id: "ch_visit" } }]);
+      });
+
       // Q1997: a refund that returned money on a transaction listing no lines
       // (or only zero amounts) reverses nothing, so a person is paged.
       // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (!(txTotalCents > 0)) { |   if (false) {

@@ -136,7 +136,7 @@ async function reverseRefundsMadeBeforeTheStamp(args: {
   return await reverseVisitTaxForRefund({
     stripe,
     piId: pi.id,
-    charge: { id: chargeId, amount_refunded: amountRefunded } as Stripe.Charge,
+    charge: { id: chargeId, amount: pi.amount_received || pi.amount, amount_refunded: amountRefunded } as Stripe.Charge,
     refunds: ordinary,
     listedAnyRefund: all.length > 0,
     supabase,

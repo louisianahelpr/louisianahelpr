@@ -45,9 +45,6 @@
     "src/components/NotificationPanel.tsx": {
       "button": 3
     },
-    "src/components/NotificationPreferences.tsx": {
-      "button": 1
-    },
     "src/components/PayoutSetupForm.tsx": {
       "button": 1
     },
@@ -981,6 +978,9 @@
     },
     "src/pages/user/ReviewsSection.tsx": {
       "button": 8
+    },
+    "src/components/notificationPreferences/TestSendCard.tsx": {
+      "button": 1
     }
   }
 }

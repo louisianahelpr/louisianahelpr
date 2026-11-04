@@ -31,7 +31,12 @@ describe("sign-out goes through the scoped helper", () => {
           for (const l of offenders(readFileSync(p, "utf8"))) hits.push(`${p}: ${l.trim()}`);
       }
     })("src");
-    expect(hits, "use signOutWithPushCleanup({ scope }) instead").toEqual([]);
+    // Q1596 (b102-auth-vanished, lh-authz-rls approve): the client's own LOCAL sign-out after a stored session
+    // vanished is an involuntary end, not a user's Log Out, so it must not go through signOutWithPushCleanup
+    // (that marks the sign-out intentional and imports this client). Exactly this one line is exempt.
+    const VANISHED_LOCAL_SIGN_OUT = "src/integrations/supabase/client.ts: const { error } = await supabase.auth.signOut({ scope: 'local' });";
+    expect(hits.filter((h) => h !== VANISHED_LOCAL_SIGN_OUT), "use signOutWithPushCleanup({ scope }) instead").toEqual([]);
+    expect(hits.filter((h) => h === VANISHED_LOCAL_SIGN_OUT).length, "the Q1596 exemption still names a real line").toBe(1);
   });
 });
 

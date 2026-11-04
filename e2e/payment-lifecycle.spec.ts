@@ -1,4 +1,4 @@
-import { test, expect, type Page, type Route } from "./prodTest";
+import { test, expect, type Page } from "./prodTest";
 import { LOCAL_BASE_URL } from "./localBase";
 import { FORM_PASSWORD, answerPasswordGrantWithMintedSession, mintedSignInAvailable } from "./helpers/mintedPasswordGrant";
 
@@ -13,19 +13,20 @@ import { FORM_PASSWORD, answerPasswordGrantWithMintedSession, mintedSignInAvaila
 //   - it redirects to checkout.stripe.com (a third-party origin),
 //   - it needs a real card + 3DS interaction,
 //   - and a real charge would move real money.
-// So the payment leg is exercised by INTERCEPTING the Supabase edge
-// function call (`functions/v1/create-payment`) at the network layer —
-// the same idea as msw, done with Playwright's `page.route`. The app
-// code path (button → supabase.functions.invoke → handle response →
-// redirect) runs for real; only the Stripe-bound hop is stubbed.
+// Q1035 (2026-11-04): this spec used to install a page.route stub on
+// `functions/v1/create-payment` that no step ever reached (the authed test
+// stops at the post-job form). The stub is gone, so nothing here mocks
+// Supabase. The real escrow leg (create-payment -> Stripe TEST Checkout ->
+// webhook -> payment_status) runs in e2e/journeys (fundJob, 04-money-outcomes,
+// 05-card-hold) on the real backend.
 //
 // Two tiers of coverage:
 //   1. ALWAYS runs (no account needed) — the payment-adjacent surfaces
 //      reachable without auth: /payment-success renders, and the escrow
 //      edge endpoint is reachable + rejects an unauthenticated call.
 //   2. AUTHENTICATED (gated on PLAYWRIGHT_TEST_USER_* like auth.spec.ts) —
-//      drives post-job → escrow checkout with the Stripe redirect stubbed,
-//      and verifies the post-payment landing.
+//      opens the post-job form, and verifies the post-payment landing
+//      refuses to claim escrow it cannot confirm.
 //
 // Known gaps (documented, not silently skipped):
 //   - The accept → in_progress → complete → payout transitions need a
@@ -44,24 +45,6 @@ const TEST_EMAIL = process.env.PLAYWRIGHT_TEST_USER_EMAIL;
 // The login form is driven for real; its grant is answered with a minted session
 // (Q1420: Supabase Auth CAPTCHA refuses a CI build's password grant).
 const haveCreds = mintedSignInAvailable(TEST_EMAIL);
-
-/**
- * Intercept the `create-payment` edge function so a test never reaches
- * real Stripe. Returns a fake checkout `url` pointing back at the app's
- * own /payment-success page — letting the post-checkout UI be asserted
- * without leaving the app origin.
- */
-async function stubCreatePayment(page: Page) {
-  await page.route("**/functions/v1/create-payment", (route: Route) => {
-    route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      // The app reads `url` off the response and assigns window.location.
-      // Point it at our own success page so the redirect stays in-origin.
-      body: JSON.stringify({ url: `${BASE_URL}/payment-success?job_id=e2e-stub` }),
-    });
-  });
-}
 
 test.describe("payment lifecycle — public surfaces", () => {
   test("/payment-success renders the escrow confirmation (auth-gated → no crash)", async ({
@@ -127,10 +110,9 @@ test.describe("payment lifecycle — authenticated post → escrow checkout", ()
     ]);
   }
 
-  test("post-job flow reaches checkout and the stubbed escrow redirect lands on /payment-success", async ({
+  test("a signed-in account reaches the post-job form", async ({
     page,
   }) => {
-    await stubCreatePayment(page);
     await signIn(page);
 
     // Navigate to the post-job form. If the account hasn't completed its
@@ -147,11 +129,8 @@ test.describe("payment lifecycle — authenticated post → escrow checkout", ()
     }
 
     // The post-job form renders inputs. We don't drive the full multi-step
-    // form here (it depends on parish/category seed data) — the load-bearing
-    // assertion is that the create-payment escrow call is INTERCEPTED and
-    // the app honours the returned checkout `url`. Trigger any submit path
-    // that reaches checkout if the form is simple enough; otherwise the
-    // interception + /payment-success render below still proves the hop.
+    // form here (it depends on parish/category seed data); the real
+    // post -> pay leg is e2e/journeys' fundJob on Stripe TEST.
     // /post-job opens on an entry choice (Start from scratch / Use a template / AI
     // Job Builder) with no inputs of its own — the form is one tap further.
     // This assertion predates that screen and failed on every run after it

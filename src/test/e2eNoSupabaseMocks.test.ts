@@ -69,7 +69,6 @@ const BASELINE: string[] = [
   "happy-path/zz-recurring-picker.spec.ts",
   "happy-path/zz-runtime-probe.spec.ts",
   "happy-path/zz-senior-probe.spec.ts",
-  "payment-lifecycle.spec.ts",
   "prod-audit/interruptions.spec.ts",
   "visual-audit/desktop-fill.spec.ts",
   "visual-audit/responsive.spec.ts",

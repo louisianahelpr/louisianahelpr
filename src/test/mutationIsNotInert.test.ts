@@ -129,6 +129,42 @@ function onlyRewritesOneLiteral(sf: ts.SourceFile, start: number, end: number, f
   return TEXT_KINDS.has(node.kind);
 }
 
+/**
+ * The duplicate JSX attributes a mutation of [start, end) into `replaceLength` characters can have introduced.
+ * Q2704: re-parsing and walking the whole file once per mutation (about 5,500 of them) still timed the coverage run
+ * out at 60 s on CI. So only the ONE top-level statement holding the change is re-parsed (a change outside one
+ * statement re-parses the whole file), and only the elements whose text overlaps the replaced text are walked:
+ * every other element's text is unchanged, so its duplicates are the ones `before` already holds and the caller
+ * drops them anyway. (A mutation that unbalances a brace or a quote can make LATER text parse differently; that is a
+ * broken source the build reports, not a duplicate prop, and it is not looked for here.)
+ */
+function duplicateAttrsAfter(
+  sf: ts.SourceFile, src: string, mutated: string, start: number, end: number, replaceLength: number, fileName: string,
+): string[] {
+  const st = sf.statements.find((s) => s.getStart(sf) <= start && end <= s.end);
+  const from = st ? st.getStart(sf) : 0;
+  const text = st ? mutated.slice(from, st.end + (replaceLength - (end - start))) : mutated;
+  const msf = parseTsx(text, fileName);
+  const lo = start - from;
+  const hi = lo + replaceLength;
+  const dupes: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (node.end < lo || node.pos > hi) return;
+    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+      const seen = new Set<string>();
+      for (const a of node.attributes.properties) {
+        if (!ts.isJsxAttribute(a)) continue;
+        const name = a.name.getText(msf);
+        if (seen.has(name)) dupes.push(name);
+        seen.add(name);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(msf);
+  return dupes;
+}
+
 interface Inert {
   guard: string;
   target: string;
@@ -156,7 +192,7 @@ function inertMutations(): Inert[] {
       }
       if (onlyRewritesOneLiteral(parsed.sf, at, at + d.find.length, d.find, d.replace)) continue;
       const { before } = parsed;
-      for (const attr of duplicateAttrs(mutated, d.target)) {
+      for (const attr of duplicateAttrsAfter(parsed.sf, src, mutated, at, at + d.find.length, d.replace.length, d.target)) {
         if (before.includes(attr)) continue;
         out.push({ guard: d.guard, target: d.target, attr });
       }
@@ -182,6 +218,30 @@ describe("no registered mutation is inert", () => {
     ).toEqual([]);
     // Nor on a less-than operator, which is what defeated the hand-rolled scan.
     expect(duplicateAttrs(`const a = distanceMiles < 0.1 && ok < 2;`, "t.tsx")).toEqual([]);
+  });
+
+  // Q2704: the one-statement re-parse finds what the whole-file parse finds, for a change deep inside a component.
+  // @mutate src/test/mutationIsNotInert.test.ts |     if (node.end < lo \|\| node.pos > hi) return; |     if (node.end >= lo) return;
+  // @mutate src/test/mutationIsNotInert.test.ts | const lo = start - from;\n  const hi | const lo = start;\n  const hi
+  it("re-parsing only the changed statement finds the same duplicate prop as the whole file", () => {
+    const src = [
+      `import x from "y";`,
+      `export function A() { return <div className="a" style={{ background: "x" }} />; }`,
+      `export const B = () => <span id="b" />;`,
+    ].join("\n");
+    const find = `className="a"`;
+    const replace = `className="a" style={{ height: 96 }}`;
+    const at = src.indexOf(find);
+    const mutated = src.slice(0, at) + replace + src.slice(at + find.length);
+    const sf = parseTsx(src, "t.tsx");
+    expect(duplicateAttrs(mutated, "t.tsx")).toEqual(["style"]);
+    expect(duplicateAttrsAfter(sf, src, mutated, at, at + find.length, replace.length, "t.tsx")).toEqual(["style"]);
+    // A change in the last statement, and an honest one that adds no duplicate.
+    const at2 = src.indexOf(`id="b"`);
+    const m2 = src.slice(0, at2) + `id="b" id="c"` + src.slice(at2 + 6);
+    expect(duplicateAttrsAfter(sf, src, m2, at2, at2 + 6, 13, "t.tsx")).toEqual(["id"]);
+    const m3 = src.slice(0, at2) + `id="c"` + src.slice(at2 + 6);
+    expect(duplicateAttrsAfter(sf, src, m3, at2, at2 + 6, 6, "t.tsx")).toEqual([]);
   });
 
   it("applying each replacement leaves no duplicate JSX prop", () => {

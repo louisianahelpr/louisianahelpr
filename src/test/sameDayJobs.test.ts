@@ -30,7 +30,7 @@ import {
 // @mutate supabase/functions/_shared/sameDayMatch.ts |   return Number.isFinite(t) && t > now.getTime(); |   return Number.isFinite(t);
 // @mutate supabase/functions/_shared/sameDayMatch.ts |   return milesBetween(jLat, jLng, hLat, hLng) <= SAME_DAY_RADIUS_MILES; |   return true;
 // @mutate supabase/functions/_shared/sameDayMatch.ts |   if (!isSameDayJob(jobLastDay(job), now)) return 0; |
-// @mutate supabase/functions/_shared/sameDayMatch.ts |   return job.date_window_end ?? job.date_needed; |   return job.date_needed;
+// @mutate supabase/functions/_shared/sameDayMatch.ts |   return job.date_window_end ?? job.date_needed ?? null; |   return job.date_needed ?? null;
 // @mutate src/components/postjob/LogisticsSection.tsx |     setDateNeeded(today);\n    markTodayStart(sameDayStart); |     setDateNeeded(today);
 // @mutate src/components/dashboard/JobCardBadges.tsx |   if (isTodayJob(job.date_needed)) { |   if (false) {
 

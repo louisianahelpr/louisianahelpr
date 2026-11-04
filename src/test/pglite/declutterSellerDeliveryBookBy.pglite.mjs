@@ -175,13 +175,17 @@ const nextStep = one(await svc(`SELECT public.declutter_paid_next_step('${A.orde
 ok(/^Next: pick a new delivery time in Buying, by \w{3} \d+\/\d+, \d+:\d\d [AP]M\.$/.test(nextStep ?? ""), `the next step says by when (${nextStep})`);
 
 // 2. Reminders, both sides, 24 h and 2 h before; never in quiet hours; never for a booked delivery.
-const NOON = "2026-11-03T18:00:00Z"; // noon in Louisiana
+// Q1816 (Builder 103, 11-04): these were fixed dates (2026-11-03), and step 4's order has book_by = now() - 1 minute.
+// Once the real clock passed 11-03, that order sat inside DAY2's 24 hours and was reminded too (remind = 2, not 1).
+// The test day is now two days after the real one, so every order the proof times off now() is in the past of it.
+const DAY = new Date(Date.now() + 2 * 86400e3).toISOString().slice(0, 10);
+const NOON = `${DAY}T18:00:00Z`; // noon in Louisiana (CST; 1 PM in CDT, still daytime)
 const remind = async (at) => one(await svc(`SELECT public.declutter_book_by_reminder_sweep('${at}'::timestamptz)`));
 await svc(`UPDATE public.declutter_orders SET book_by = '${NOON}'::timestamptz + interval '20 hours', book_by_reminded_24_at = NULL, book_by_reminded_2_at = NULL WHERE id = '${A.order}'`);
 const B = await sdOrder(2, true);
 ok((await dstatus(B.order)) === "booked", `setup: a second order with its time booked (${await dstatus(B.order)})`);
 await svc(`UPDATE public.declutter_orders SET book_by = '${NOON}'::timestamptz + interval '20 hours' WHERE id = '${B.order}'`);
-ok((await remind("2026-11-03T04:00:00Z")) === 0, "quiet hours (10 PM): nothing is sent");
+ok((await remind(`${DAY}T04:00:00Z`)) === 0, "quiet hours (10 PM): nothing is sent");
 const sent24 = await remind(NOON);
 const b24 = await notes(BUYER, "Pick a delivery time by%");
 const s24 = await notes(SELLER, "The buyer hasn''t picked a delivery time");
@@ -191,14 +195,12 @@ ok(b24.length === 1 && /Lamp 1/.test(b24[0].message) && /your full payment is re
 ok(s24.length === 1 && /Lamp 1/.test(s24[0].message) && /their full payment is refunded/.test(s24[0].message) && s24[0].link.includes("tab=selling"),
   `the seller is told too (${short(s24)})`);
 ok((await remind(NOON)) === 0, "the 24-hour reminder goes once");
-const LATE = "2026-11-04T12:30:00Z"; // 6:30 AM Louisiana... quiet; use 1h30 before book_by instead
 const at2 = new Date(Date.parse(NOON) + 18.5 * 3600e3).toISOString(); // 6:30 AM next day: quiet hours
 ok((await remind(at2)) === 0, `the 2-hour edge in quiet hours sends nothing (${at2})`);
 await svc(`UPDATE public.declutter_orders SET book_by = '${NOON}'::timestamptz + interval '1 hour 30 minutes' WHERE id = '${A.order}'`);
 ok((await remind(NOON)) === 1, "the 2-hour reminder goes");
 ok((await notes(BUYER, "Pick a delivery time: 2 hours left")).length === 1 && (await notes(SELLER, "No delivery time yet: 2 hours left")).length === 1,
   "  to both sides");
-void LATE;
 
 // 3. The sweep at book_by: a full refund, no strike, no debt, the item back on sale.
 await svc(`UPDATE public.declutter_orders SET book_by = now() + interval '1 hour' WHERE id = '${A.order}'`);

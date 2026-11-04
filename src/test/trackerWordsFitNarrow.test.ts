@@ -14,6 +14,12 @@
  *
  * @mutate src/index.css | @container (max-width: 259px) {\n  .job-steps-grid { grid-template-columns: repeat(8, minmax(0, auto)) !important; } | @container (max-width: 259px) {\n  .job-steps-grid { }
  * @mutate src/index.css |   .job-step-short { font-size: 0.91em; } |   .job-step-short { }
+ * @mutate src/index.css | @container (max-width: 319px) {\n  .job-steps-grid { column-gap: 2px; } | @container (max-width: 319px) {\n  .job-steps-grid { }
+ *
+ * Q955 (375 pass, 2026-11-04, Builder 1): a Working card's tracker is 305px at 375; with the late/current step on a
+ * double column the others were 30.78px and "Hired" is 30.84px (11px, 0.11px letter-spacing), so it drew "Hire...".
+ * The gap now narrows to 2px under 320px (columns 32.33px; measured on prod with the rule injected: no word cut at
+ * 360 / 375 / 390), and the words keep their size until 300px.
  * @mutate src/index.css |   .job-step-cur-icon { display: none; } |   .job-step-cur-icon { }
  * @mutate src/components/tracker/JobProgress.tsx | <Hourglass className="job-step-cur-icon h-3 w-3 shrink-0" /> | <Hourglass className="h-3 w-3 shrink-0" />
  * @mutate supabase/functions/_shared/cardHoldCopy.ts | minimumFractionDigits: fraction ? 2 : 0 | minimumFractionDigits: 2
@@ -39,9 +45,12 @@ describe("narrow trackers keep every short word whole (F17)", () => {
     expect(css).toMatch(/\.job-steps \{ container-type: inline-size; \}/);
   });
 
-  it("under 300px: words at 0.91em (relative, so Senior Mode still scales), 2px between columns", () => {
+  it("under 320px: 2px between columns, so a 305px tracker (a Working card at 375) keeps \"Hired\" whole (Q955)", () => {
+    expect(containerBody(319)).toBe(".job-steps-grid { column-gap: 2px; }");
+  });
+
+  it("under 300px: words at 0.91em (relative, so Senior Mode still scales)", () => {
     const body = containerBody(299);
-    expect(body).toContain(".job-steps-grid { column-gap: 2px; }");
     expect(body).toContain(".job-step-short { font-size: 0.91em; }");
     expect(body).not.toMatch(/font-size: \d+px/);
   });

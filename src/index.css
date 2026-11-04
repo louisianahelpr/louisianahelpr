@@ -3462,8 +3462,14 @@ button,
    (10px at the default size; relative, so Senior Mode still scales) with 2px between columns. Under 260px the
    columns are sized by their words, not shared equally, and the current step's small hand / hourglass steps
    aside; its amber fill and bold word still mark it. Guard: src/test/trackerWordsFitNarrow.test.ts. */
-@container (max-width: 299px) {
+/* UNDER 320px THE GAP NARROWS FIRST (Q955 375 pass, 2026-11-04): a Working card's tracker is 305px at 375, and when the
+   late/current step takes its double column the others are 30.78px, while "Hired" is 30.84px at 11px (0.11px
+   letter-spacing), so it drew "Hire..." (measured on prod, helper-e2e). 2px between columns gives each 32.33px; the
+   words keep their size. */
+@container (max-width: 319px) {
   .job-steps-grid { column-gap: 2px; }
+}
+@container (max-width: 299px) {
   .job-step-short { font-size: 0.91em; }
 }
 @container (max-width: 259px) {

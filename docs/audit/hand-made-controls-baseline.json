@@ -365,7 +365,6 @@
       "input": 2
     },
     "src/components/declutter/DeclutterRefundRequest.tsx": {
-      "button": 8,
       "input": 1
     },
     "src/components/declutter/DeclutterRefundReturn.tsx": {
@@ -404,7 +403,6 @@
       "button": 1
     },
     "src/components/declutter/DeliveryCantFinish.tsx": {
-      "button": 10,
       "input": 1
     },
     "src/components/declutter/DeliveryRaisePanel.tsx": {
@@ -438,9 +436,6 @@
     "src/components/declutter/SellSummaryCard.tsx": {
       "button": 2,
       "input": 1
-    },
-    "src/components/declutter/SellerDeliveryOrder.tsx": {
-      "button": 9
     },
     "src/components/declutter/SellerDeliverySettings.tsx": {
       "button": 2

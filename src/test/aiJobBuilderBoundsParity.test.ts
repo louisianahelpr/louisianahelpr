@@ -32,6 +32,8 @@ import { MAX_JOB_BUDGET_DOLLARS, MIN_JOB_BUDGET_DOLLARS } from "@/lib/moneyLimit
 const SANITIZE = "supabase/functions/ai-job-builder/sanitize.ts";
 const FORM_CONSTS = "src/components/postjob/detailsSection/detailsSectionConstants.ts";
 const LOGISTICS = "src/components/postjob/LogisticsSection.tsx";
+/** The Group job card (crew size stepper) moved out of LogisticsSection (Lander 65, component-size ratchet). */
+const GROUP_CARD = "src/components/postjob/GroupJobCard.tsx";
 
 /** `num(r.<field>, lo, HI)` in sanitizeJob → [lo, hi]. */
 function sanitizerClamp(field: string): [number, number] {
@@ -78,8 +80,8 @@ function pairs(): Pair[] {
     { field: "budget_max ceiling", sanitizer: budget[1], form: MAX_JOB_BUDGET_DOLLARS, loose: "above" },
     { field: "budget_min ceiling", sanitizer: budgetMin[1], form: MAX_JOB_BUDGET_DOLLARS, loose: "above" },
     { field: "budget floor", sanitizer: Math.min(budget[0], budgetMin[0]), form: MIN_JOB_BUDGET_DOLLARS, loose: "below" },
-    { field: "helpers_needed ceiling", sanitizer: helpers[1], form: jsxAttr(LOGISTICS, helpersInput, "max"), loose: "above" },
-    { field: "helpers_needed floor", sanitizer: helpers[0], form: jsxAttr(LOGISTICS, helpersInput, "min"), loose: "below" },
+    { field: "helpers_needed ceiling", sanitizer: helpers[1], form: jsxAttr(GROUP_CARD, helpersInput, "max"), loose: "above" },
+    { field: "helpers_needed floor", sanitizer: helpers[0], form: jsxAttr(GROUP_CARD, helpersInput, "min"), loose: "below" },
   ];
 }
 

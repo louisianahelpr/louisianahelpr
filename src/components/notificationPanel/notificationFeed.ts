@@ -82,6 +82,22 @@ export const ensureFreshNotificationFeed = (userId: string, maxAgeMs = 5_000): P
 /** Tests only: forget a load left in flight by a previous test's fake clock. */
 export const __resetNotificationFeedLoad = () => { inFlight = null; badgeInFlight = null; lastLoaded = null; };
 
+/* Bumped by forgetNotificationFeed: a load that started before it never writes after it. */
+let feedEpoch = 0;
+
+/**
+ * Drop the bell's list and every load in flight, so the next open reads afresh. The admin Messages preview's
+ * "Job notices" stage (Q2664) calls it as it opens and as it closes: its panel is fed sample notices through the
+ * preview backend, and neither those nor the admin's real list may be left in the shared store for the other.
+ */
+export const forgetNotificationFeed = () => {
+  feedEpoch += 1;
+  inFlight = null;
+  badgeInFlight = null;
+  lastLoaded = null;
+  setNotificationUser(null);
+};
+
 const stillBound = (userId: string) => getNotificationSnapshot().userId === userId;
 /** The store is bound to `userId` and holds a loaded list (not one emptied by a sign-out or user switch). */
 const listHeldFor = (userId: string) => {
@@ -116,6 +132,7 @@ const applyUnreadCount = (count: number | null | undefined) => {
 };
 
 const loadOnce = async (userId: string) => {
+  const epoch = feedEpoch;
   // No-op while the same person stays signed in; clears everything the
   // moment the id changes.
   setNotificationUser(userId);
@@ -137,8 +154,8 @@ const loadOnce = async (userId: string) => {
   const error = recent.error ?? unread.error;
   if (error) throw error;
   // Signed out or switched account while the request was out: these rows
-  // belong to nobody on screen now.
-  if (!stillBound(userId)) return;
+  // belong to nobody on screen now. Nor do rows read before the feed was forgotten.
+  if (!stillBound(userId) || epoch !== feedEpoch) return;
   setNotifications(mergeRows(recent.data as Notification[] | null, unread.data as Notification[] | null));
   markNotificationsLoaded();
   applyUnreadCount(unread.count);
@@ -154,10 +171,11 @@ const loadOnce = async (userId: string) => {
 let badgeInFlight: { userId: string; promise: Promise<void> } | null = null;
 
 const loadBadgeOnce = async (userId: string) => {
+  const epoch = feedEpoch;
   setNotificationUser(userId);
   const unread = await withLoadTimeout(unreadPage(userId));
   if (unread.error) throw unread.error;
-  if (!stillBound(userId)) return;
+  if (!stillBound(userId) || epoch !== feedEpoch) return;
   // Merged into what the store holds (a realtime arrival, or a full list
   // loaded meanwhile), never replacing it.
   setNotifications((prev) => mergeRows(prev, unread.data as Notification[] | null));

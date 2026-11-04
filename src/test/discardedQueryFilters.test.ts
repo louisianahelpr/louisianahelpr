@@ -74,8 +74,11 @@ describe("discarded-builder guard — red on origin/main (d492446), green on the
   it("the whole repo is clean — src/, supabase/functions/, scripts/", () => {
     const hits: Hit[] = guard.scan();
     expect(hits.map((h) => `${h.file}:${h.line} ${h.text}`)).toEqual([]);
-  }, 60_000); // it walks every file in src/, supabase/functions/ and scripts/ (timed out at 20 s on a loaded runner, run 40619496319, 2026-10-28).
+  }, 60_000); // it walks every file in src/, supabase/functions/ and scripts/ (timed out at 20 s on a loaded runner, run 40619496319, 2026-10-28; 7.3 s -> 2.8 s locally after the Q2704 pre-parse filter).
 });
+
+// The pre-parse filter (Q2704) must keep every shape the scan catches: narrowing it drops the bare-rpc case below.
+// @mutate scripts/check-discarded-query-filters.mjs | (?:from\|rpc\|schema) | (?:from\|schema)
 
 // The walk runs over a live tree: vacuityGate.test.ts creates and deletes real
 // files under src/** while this suite walks it (6f5a696d6). A broken symlink is

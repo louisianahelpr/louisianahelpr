@@ -317,6 +317,25 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
 
 const MIGRATIONS = join(ROOT, "supabase/migrations");
 
+// Q2704: the SQL checks replay ~1,800 migrations; read, blank and replay each once per run (the coverage run hit
+// the 60 s timeout re-reading them for every policy, constraint and site). Lazy, so a vacuity mutation is still read.
+let effDefsMemo: ReturnType<typeof effectiveDefs> | null = null;
+const effDefs = () => (effDefsMemo ??= effectiveDefs(MIGRATIONS));
+let migFilesMemo: string[] | null = null;
+const migFiles = () => (migFilesMemo ??= migrationFiles(MIGRATIONS));
+const migRawMemo = new Map<string, string>();
+const migRaw = (file: string) => {
+  let t = migRawMemo.get(file);
+  if (t === undefined) migRawMemo.set(file, (t = readFileSync(join(MIGRATIONS, file), "utf8")));
+  return t;
+};
+const migCodeMemo = new Map<string, string>();
+const migCode = (file: string) => {
+  let t = migCodeMemo.get(file);
+  if (t === undefined) migCodeMemo.set(file, (t = blankSqlComments(migRaw(file))));
+  return t;
+};
+
 /**
  * Every place app or edge code (supabase/functions and src, tests and the generated types excluded) touches the
  * Declutter money tables or a card fee directly: each `.from("declutter_refunds" | "declutter_orders")` call
@@ -1288,13 +1307,13 @@ const sha16 = (t: string) => createHash("sha256").update(t).digest("hex").slice(
 /** See SqlPolicy.functions. name -> "file sha16", plus the text for a readable failure. */
 function refundMoneyFunctions(p: SqlPolicy): Map<string, { pin: string; text: string }> {
   const triggerFns = new Set<string>();
-  for (const file of migrationFiles(MIGRATIONS)) {
-    const code = blankSqlComments(readFileSync(join(MIGRATIONS, file), "utf8"));
+  for (const file of migFiles()) {
+    const code = migCode(file);
     const trig = new RegExp(String.raw`\bcreate\s+(?:or\s+replace\s+)?(?:constraint\s+)?trigger\b[^;]*?\bon\s+(?:only\s+)?(?:public\.)?"?${p.triggerTable}"?\s[^;]*?\bexecute\s+(?:function|procedure)\s+(?:public\.)?"?(\w+)"?`, "gi");
     for (const m of code.matchAll(trig)) triggerFns.add(m[1].toLowerCase());
   }
   const out = new Map<string, { pin: string; text: string }>();
-  for (const [name, def] of effectiveDefs(MIGRATIONS)) {
+  for (const [name, def] of effDefs()) {
     const text = norm(blankSqlComments(def.stmt));
     if (triggerFns.has(name) || p.touches(text)) out.set(name, { pin: `${def.file} ${sha16(text)}`, text });
   }
@@ -1310,12 +1329,14 @@ const tableStmt = (table: string) => new RegExp(String.raw`\b(?:insert\s+into|up
  */
 function refundTableStatements(pinnedTables: SqlPolicy["pinnedTables"]): Record<string, Array<{ pin: string; text: string }>> {
   const out: Record<string, Array<{ pin: string; text: string }>> = {};
-  for (const file of migrationFiles(MIGRATIONS)) {
-    const sql = readFileSync(join(MIGRATIONS, file), "utf8");
-    const code = blankSqlComments(sql);
-    const bodies = parseDefs(sql).map((d) => [d.index, d.index + d.stmt.length]);
+  for (const file of migFiles()) {
+    const sql = migRaw(file);
+    const code = migCode(file);
+    let bodiesMemo: number[][] | null = null;
+    const bodiesOf = () => (bodiesMemo ??= parseDefs(sql).map((d) => [d.index, d.index + d.stmt.length]));
     for (const { table, only } of pinnedTables) {
       for (const m of code.matchAll(tableStmt(table))) {
+        const bodies = bodiesOf();
         const at = m.index ?? 0;
         if (bodies.some(([a, b]) => at >= a && at < b)) continue;
         const end = code.indexOf(";", at);
@@ -1339,10 +1360,15 @@ function parenBody(code: string, open: number): string {
  * `CONSTRAINT name CHECK (...)`, the name quoted or not); a later
  * `DROP CONSTRAINT name` or `RENAME CONSTRAINT name` with no re-add leaves null.
  */
+const newestConstraintMemo = new Map<string, { file: string; text: string } | null>();
 function newestConstraint(name: string): { file: string; text: string } | null {
+  if (!newestConstraintMemo.has(name)) newestConstraintMemo.set(name, newestConstraintUncached(name));
+  return newestConstraintMemo.get(name) ?? null;
+}
+function newestConstraintUncached(name: string): { file: string; text: string } | null {
   let out: { file: string; text: string } | null = null;
-  for (const file of migrationFiles(MIGRATIONS)) {
-    const code = blankSqlComments(readFileSync(join(MIGRATIONS, file), "utf8"));
+  for (const file of migFiles()) {
+    const code = migCode(file);
     const events: Array<{ at: number; text: string | null }> = [];
     for (const m of code.matchAll(new RegExp(`\\bconstraint\\s+"?${name}"?\\s+check\\s*\\(`, "gi"))) {
       events.push({ at: m.index ?? 0, text: norm(parenBody(code, (m.index ?? 0) + m[0].length - 1)) });
@@ -1385,12 +1411,12 @@ function evalCase(c: NonNullable<ReturnType<typeof readCase>>, reasons: string[]
 function checkSqlPolicy(name: keyof typeof SQL_POLICIES): string[] {
   const p = SQL_POLICIES[name];
   const problems: string[] = [];
-  const def = effectiveDefs(MIGRATIONS).get(name);
+  const def = effDefs().get(name);
   if (!def) return [`${name}: no migration defines it`];
   if (def.file !== (p.functionMigration ?? p.migration)) {
     problems.push(`${name} is now defined by ${def.file}, not the pinned ${p.functionMigration ?? p.migration}: review that every reason still keeps the fee except our own mistakes, then pin it`);
   }
-  const defs = effectiveDefs(MIGRATIONS);
+  const defs = effDefs();
   for (const [fn, frags] of Object.entries(p.bodies)) {
     const fnDef = defs.get(fn);
     const fnBody = fnDef ? norm(blankSqlComments(fnDef.stmt)) : "";
@@ -1557,7 +1583,7 @@ function checkSqlSite(file: string, call: string, argExpr: string | null, sql: S
     const count = [...code.matchAll(new RegExp(`(?<!function\\s)\\b${fn}\\(`, "g"))].length;
     if (count !== n) problems.push(`${file}: ${fn} is called ${count} times, pinned ${n}: a second caller could hand it another row`);
   }
-  const defs = effectiveDefs(MIGRATIONS);
+  const defs = effDefs();
   const table = sql.table ?? "declutter_refunds";
   const readsRow = (fn: string) => {
     const d = defs.get(fn);
@@ -1689,7 +1715,7 @@ describe("every refund keeps the card fee, except our own mistakes (owner, 2026-
     expect(Object.keys(SQL_POLICIES.declutter_record_refund.reasons).length).toBeGreaterThan(10);
     const problems = (Object.keys(SQL_POLICIES) as Array<keyof typeof SQL_POLICIES>).flatMap((n) => checkSqlPolicy(n));
     expect(problems).toEqual([]);
-  }, 60_000); // it replays every SQL refund policy from the newest migrations: ~10s alone locally, 31s on a loaded CI shard after Shops M3 added its refund sites (PR #3425 shard 4)
+  }, 60_000); // it replays every SQL refund policy from the newest migrations: ~10s alone locally, 31s on a loaded CI shard after Shops M3 added its refund sites (PR #3425 shard 4); 18.1 s -> 1.1 s locally once Q2704 read and replayed each migration once
 
   it("app and edge code touch the Declutter money tables and the card fee only where pinned", () => {
     const got = tsMoneyTouches();

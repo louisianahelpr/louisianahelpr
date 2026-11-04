@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import type { MutableRefObject } from "react";
 import JobCard from "@/components/dashboard/JobCard";
 import type { MapJob } from "./config";
 import { mapJobToEnrichedJob } from "./mapJobToEnrichedJob";
@@ -23,8 +23,8 @@ export function PinPreview({
   selectedJob: MapJob;
   selectedCrewSpots: number | null;
   preview: PreviewPlacement | null;
-  wrapRef: RefObject<HTMLDivElement | null>;
-  cardRef: RefObject<HTMLDivElement | null>;
+  wrapRef: MutableRefObject<HTMLDivElement | null>;
+  cardRef: MutableRefObject<HTMLDivElement | null>;
   effectiveFee?: number;
   onJobAction?: (jobId: string) => void;
 }) {

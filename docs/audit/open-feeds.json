@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-04T16:31Z",
+  "measured_at": "2026-11-04T18:09Z",
   "issues": {
     "readable": true,
     "open": [
@@ -22,7 +22,7 @@
         "number": 2353,
         "title": "nightly-red: press-every-control",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41457206922",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41817058240",
         "runTruncated": false
       },
       {
@@ -134,13 +134,6 @@
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41792903580",
         "runTruncated": false
-      },
-      {
-        "number": 4091,
-        "title": "nightly-red: main: Supabase DB Deploy",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41846860386",
-        "runTruncated": false
       }
     ]
   },
@@ -193,14 +186,6 @@
         "source": "slack-ops-alert:custom",
         "status": "open",
         "title": "# cron http failure(s) in the last hour",
-        "issue": null
-      },
-      {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
         "issue": null
       },
       {
@@ -524,14 +509,6 @@
         "issue": null
       },
       {
-        "fingerprint": "60298a019ea399dd0c9b00f14cad6b4a",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: void-cancelled-payments returned 500 (# defect(s) reported)",
-        "issue": null
-      },
-      {
         "fingerprint": "3c0d6b003e080de5479e1faf4a1df45a",
         "source_kind": "sentry",
         "source": "sentry:assets/Signup",
@@ -572,14 +549,6 @@
         "issue": null
       },
       {
-        "fingerprint": "99a77a9221e6c89e7182a9c199812094",
-        "source_kind": "sentry",
-        "source": "sentry:assets/Signup",
-        "status": "open",
-        "title": "error: signup completion window expired. please log in to finish your profile.",
-        "issue": null
-      },
-      {
         "fingerprint": "c540527c8265b56e664f823f4805b1ec",
         "source_kind": "sentry",
         "source": "sentry:assets/supabase",
@@ -593,14 +562,6 @@
         "source": "sentry:assets/lucide",
         "status": "open",
         "title": "typeerror: undefined is not an object (evaluating 'e._result.default')",
-        "issue": null
-      },
-      {
-        "fingerprint": "4ac3e9488b48a533aab28a1c7444d1ad",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:custom",
-        "status": "open",
-        "title": "paypal webhook not configured",
         "issue": null
       },
       {
@@ -644,46 +605,6 @@
         "issue": null
       },
       {
-        "fingerprint": "092de8bb62f57ce086ac16a5b4baeb55",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: permission denied for table shop_orders",
-        "issue": null
-      },
-      {
-        "fingerprint": "bf6860c13035a95fdccbf8c10dd9edc7",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/jobs · failed to fetch dynamically imported module: <url>",
-        "issue": null
-      },
-      {
-        "fingerprint": "8d56e6dd3fad6fda653d486833683947",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:custom",
-        "status": "open",
-        "title": "refund made, but the card holder was not fully told",
-        "issue": null
-      },
-      {
-        "fingerprint": "54203c9222b84c2568fda242fbc34c04",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:custom",
-        "status": "open",
-        "title": "money went back to a poster who was not fully told",
-        "issue": null
-      },
-      {
-        "fingerprint": "b7eb50589fb70abc01f16911325f7b85",
-        "source_kind": "edge_slack",
-        "source": "ops-alert:money_at_risk",
-        "status": "open",
-        "title": "job sales tax collected but not recorded in stripe tax",
-        "issue": null
-      },
-      {
         "fingerprint": "dd2ccbc600cefe639623d0c8e3339c8c",
         "source_kind": "user-error-screen",
         "source": "user-error-screen",
@@ -715,7 +636,6 @@
     "issue #4020": "Q1816",
     "issue #4062": "Q1816",
     "issue #4084": "Q1816",
-    "issue #4091": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",

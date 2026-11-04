@@ -7,7 +7,7 @@
  * stuck to the border beside a label that sat inside the card. It is now a small rounded label on the category line.
  * Measured on a local build (WebKit, faked feed; ~/.lh-shots/ui-polish-1028/): see the commit for the numbers.
  *
- * @mutate src/components/dashboard/JobCard.tsx |               className="inline-flex items-center gap-1 shrink-0 self-end ml-1 px-1.5 py-0.5 rounded-full text-ds-10 font-semibold leading-none pointer-events-none" |               className="inline-flex items-center gap-1 shrink-0 px-2 py-1 rounded-b-lg border-b border-r text-ds-10 font-semibold leading-none shadow-sm pointer-events-none"
+ * @mutate src/components/dashboard/JobCardBadges.tsx |         className="inline-flex items-center gap-1 shrink-0 self-end ml-1 px-1.5 py-0.5 rounded-full text-ds-10 font-semibold leading-none pointer-events-none" |               className="inline-flex items-center gap-1 shrink-0 px-2 py-1 rounded-b-lg border-b border-r text-ds-10 font-semibold leading-none shadow-sm pointer-events-none"
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -15,7 +15,8 @@ import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { enJobCard } from "@/lib/i18n/enJobCard";
 
-const card = blankComments(readFileSync(resolve(__dirname, "../components/dashboard/JobCard.tsx"), "utf8"));
+// The chip lives in JobCardBadges.tsx since Q806 (moved out of JobCard.tsx unchanged).
+const card = blankComments(readFileSync(resolve(__dirname, "../components/dashboard/JobCardBadges.tsx"), "utf8"));
 
 describe("the Recommended tag sits inside the card's top row (owner 2026-10-28)", () => {
   const tag = card.match(/<span\s+data-recommended-tag=""\s+className="([^"]+)"/)?.[1] ?? "";

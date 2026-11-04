@@ -9,6 +9,7 @@
 // @mutate src/lib/activityCores.ts |   const boot = takeActivityCoresPrefetch(userId); |   const boot = null as Promise<unknown> \| null;
 // @mutate src/lib/activityCores.ts |       if (isPayload(early)) return early; |       if (early) return early as ActivityCoresPayload;
 // @mutate src/entry.ts | \|jobs\|posts)? | \|jobs)?
+// @mutate src/boot/activityCoresPrefetch.ts |   if (path === "/home") return true; |
 // @mutate src/boot/activityCoresPrefetch.ts |   if (path === "/posts") return true; |
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -74,19 +75,23 @@ describe("the Posted / Working lists' read starts from the entry (B100)", () => 
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer tok");
   });
 
-  it("fires on /posts and on a /jobs link that opens on a list (jobListsOpenFirst's rule), nowhere else", () => {
+  it("fires on /posts, /home and on a /jobs link that opens on a list (jobListsOpenFirst's rule), nowhere else", () => {
     const links: [string, string][] = [
       ["/jobs", ""], ["/jobs", "?tab=posted"], ["/jobs", "?tab=working"], ["/jobs", "?tab=browse"], ["/jobs", "?job=1"], ["/jobs", "?quotes=1"],
-      ["/jobs/", "?tab=posted"], ["/home", ""], ["/declutter", "?tab=posted"],
+      ["/jobs/", "?tab=posted"], ["/declutter", "?tab=posted"], ["/jobs", "?tab=browse&x=1"],
     ];
     expect(links.length).toBeGreaterThan(8);
     for (const [p, q] of links) expect(opensOnActivityList(p, q), p + q).toBe(jobListsOpenFirst(p, q));
     expect(opensOnActivityList("/posts", "")).toBe(true);
     expect(opensOnActivityList("/posts/", "")).toBe(true);
+    // Home's first content reads the same cores (Builder 3 11-04, Q2706).
+    expect(opensOnActivityList("/home", "")).toBe(true);
+    expect(opensOnActivityList("/home/", "")).toBe(true);
     const gate = /hasToken\(\) && (\/.*\/)\.test\(window\.location\.pathname\)/.exec(code("src/entry.ts"))?.[1];
     const re = new Function(`return ${gate}`)() as RegExp;
     expect(re.test("/posts")).toBe(true);
     expect(re.test("/jobs")).toBe(true);
+    expect(re.test("/home")).toBe(true);
     expect(code("src/boot/signedInPrefetch.ts")).toContain("startActivityCoresPrefetch(pathname);");
     const importers = walkSource([resolve(ROOT, "src")])
       .filter((f) => !/\.test\.tsx?$/.test(f))

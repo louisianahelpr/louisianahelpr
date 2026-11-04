@@ -225,6 +225,11 @@ adoptBrowseShell(window.location.pathname, tokenProbeAtBoot());
 // sheet, hand control back to the app instead of rendering a web page the user
 // has to dismiss by hand. Runs BEFORE render so there's no flash of the site.
 // No-ops for ordinary web visits and inside the native app itself.
+// B100 landing shell (Q2705/Q2708): index.html carries #lh-landing-shell on every route, and its inline script marks
+// <html> only for a guest on "/". Anywhere else the block is dead markup with a second (hidden) h1, so it goes
+// before React renders; on "/" HeroSection removes it once React's hero is painted (landingShell.ts).
+if (!document.documentElement.hasAttribute("data-lh-landing-shell")) document.getElementById("lh-landing-shell")?.remove();
+
 if (bounceToNativeAppIfReturning()) {
   // A scheme navigation is in flight; rendering now would only paint a screen
   // that is about to be replaced. If the scheme doesn't resolve the browser

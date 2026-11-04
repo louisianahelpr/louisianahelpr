@@ -43,7 +43,8 @@ describe("helper-fee tier ladder parity (UI ↔ edge)", () => {
   });
 
   it("normalizes case and falls back to the free rate for unknown tiers", () => {
-    expect(feePercentForTier("ELITE")).toBe(8);
+    // Memberships retired (owner 2026-11-04): even a paid tier gets the free rate.
+    expect(feePercentForTier("ELITE")).toBe(12);
     expect(feePercentForTier(null)).toBe(DEFAULT_TIER_FEE_PERCENT);
     expect(feePercentForTier("nonsense")).toBe(DEFAULT_TIER_FEE_PERCENT);
     expect(DEFAULT_TIER_FEE_PERCENT).toBe(12);
@@ -66,11 +67,8 @@ describe("tierFeePercent (client dashboard resolver) mirrors the edge payout res
     }
   });
 
-  it("encodes the agreed 12 / 11 / 10 / 9 / 8 ladder", () => {
-    expect(tierFeePercent("free")).toBe(12);
-    expect(tierFeePercent("basic")).toBe(11);
-    expect(tierFeePercent("pro")).toBe(10);
-    expect(tierFeePercent("elite")).toBe(8);
+  it("charges every tier the standard 12% (memberships retired 2026-11-04)", () => {
+    for (const t of ["free", "basic", "pro", "plus", "elite"]) expect(tierFeePercent(t), t).toBe(12);
   });
 
   it("has NO rung below Elite — 'business' is off the ladder and pays free", () => {
@@ -88,12 +86,12 @@ describe("tierFeePercent (client dashboard resolver) mirrors the edge payout res
     const future = new Date(Date.now() + 86_400_000).toISOString();
     expect(tierFeePercent("elite", past)).toBe(12);
     expect(tierFeePercent("pro", past)).toBe(12);
-    // A still-active paid tier keeps its discounted rate.
-    expect(tierFeePercent("elite", future)).toBe(8);
+    // Memberships retired: a still-active paid tier gets the standard rate too.
+    expect(tierFeePercent("elite", future)).toBe(12);
   });
 
   it("normalizes case and falls back to free for unknown / null tiers", () => {
-    expect(tierFeePercent("PRO")).toBe(10);
+    expect(tierFeePercent("PRO")).toBe(12);
     expect(tierFeePercent(null)).toBe(12);
     expect(tierFeePercent(undefined)).toBe(12);
     expect(tierFeePercent("nonsense")).toBe(12);
@@ -113,12 +111,14 @@ describe("tierFeePercent (client dashboard resolver) mirrors the edge payout res
 // @mutate supabase/functions/_shared/helperFees.ts | plus: 9, | plus: 7,
 // The unknown-tier fallback: a stray legacy tier must over-charge, never
 // under-charge. A retired rung's 6% resolving again is the money bug.
-// @mutate supabase/functions/_shared/helperFees.ts | return TIER_FEE_PERCENT[tier] ?? DEFAULT_TIER_FEE_PERCENT; | return TIER_FEE_PERCENT[tier] ?? 6;
+// @mutate supabase/functions/_shared/helperFees.ts |   return DEFAULT_TIER_FEE_PERCENT; |   return 6;
+// Memberships retired (2026-11-04): a paid tier's discount re-opened on the edge resolver.
+// @mutate supabase/functions/_shared/helperFees.ts |   return DEFAULT_TIER_FEE_PERCENT; |   return TIER_FEE_PERCENT[(_rawTier ?? "").toLowerCase()] ?? DEFAULT_TIER_FEE_PERCENT;
 // The lapsed-subscription revert, on the client resolver this file pins to the
 // edge one.
-// @mutate src/lib/subscriptionTiers.ts | const expired = expiresAt ? new Date(expiresAt).getTime() < Date.now() : false; | const expired = false;
+// @mutate src/lib/subscriptionTiers.ts |   return TIER_PERKS.free.platformFeePercent; |   return TIER_PERKS[toSubscriptionTier((_rawTier ?? "").toLowerCase())].platformFeePercent;
 // A missing/unknown tier resolves to the ELITE rate instead of the free one: the
 // never-undercharge default inverted, so a Helpr whose tier cannot be read is
 // charged 8% instead of 12% (moved here from moneyFigures.parity, which no
 // longer calls tierFeePercent).
-// @mutate src/lib/subscriptionTiers.ts | TIER_PERKS[toSubscriptionTier(expired ? "free" : (rawTier ?? "").toLowerCase())].platformFeePercent | TIER_PERKS[toSubscriptionTier(expired ? "free" : (rawTier ?? "elite").toLowerCase())].platformFeePercent
+// @mutate src/lib/subscriptionTiers.ts |   return TIER_PERKS.free.platformFeePercent; |   return TIER_PERKS.elite.platformFeePercent;

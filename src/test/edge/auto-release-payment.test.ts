@@ -604,18 +604,20 @@ describe("auto-release-payment edge function", () => {
   });
 
   describe("payout preview parity with process-scheduled-payouts", () => {
-    it("quotes the helper's live tier rate when the profile is readable", async () => {
-      seedDueJob(scenario, { helper_fee_percent: 12 });
+    it("quotes the helper's live rate when the profile is readable (memberships retired: the standard 12%)", async () => {
+      // Frozen at 8 on the job; the live read wins. Memberships RETIRED (owner
+      // 2026-11-04): an active Elite tier no longer discounts, so the live rate
+      // is the standard 12% on BOTH paths.
+      seedDueJob(scenario, { helper_fee_percent: 8 });
       seedHelperTier(scenario, "elite", new Date(Date.now() + 30 * 864e5).toISOString());
 
       const fn = await load();
       await fn.fetch(cronRequest(fn));
 
-      // Live tier (8%) wins over the 12 frozen at escrow — on BOTH paths.
       expect(previewedDollars()).toBe(
-        Math.floor(payerWouldSend({ budget: 200, feePercent: 8 })),
+        Math.floor(payerWouldSend({ budget: 200, feePercent: 12 })),
       );
-      expect(previewedDollars()).toBe(184);
+      expect(previewedDollars()).toBe(176);
     });
 
     it("prefers the rate FROZEN on the job when the tier read fails", async () => {

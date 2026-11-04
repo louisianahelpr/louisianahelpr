@@ -1,20 +1,26 @@
 -- Q2408 "Any time this week", part 4 (lead re-review 11-04): the apply gate and the notices measure a window job
 -- from its LAST day.
 --
--- A window job stays listed until the start on its window's last day (20261104073000/074500/080753), but four
+-- A window job stays listed until the start on its window's last day (20261104073000/074500/080753), but these
 -- functions still closed it at its FIRST day's start (job_offer_cutoff(date_needed, start_time)):
 --   - enforce_application_job_state (applications trigger): job_date_has_passed from the first day's start, so a
 --     listed window job could not be applied to; with the 2-hour notice measured from the last day, that happened
 --     right at posting;
---   - direct_accept_block_reason: the same check on a direct offer;
 --   - job_announceable_to: new-job and saved-search notices stopped after the first day;
---   - get_public_open_jobs: the landing teaser dropped it after the first day.
--- Each is its NEWEST definition (enforce_application_job_state: 20261012185633; the other three: 20261027185146)
--- with only those cutoffs reading COALESCE(date_window_end, date_needed) (and date_window_end added to the two
--- SELECT ... INTO lists). A one-day job (NULL end) is judged exactly as before. The hire checks (accept_application,
--- the crew seat, the series claim) stay on date_needed: booking a day keeps that day's cutoff.
+--   - get_public_open_jobs: the landing teaser dropped it after the first day;
+--   - public_profile_by_handle: the poster's "Open jobs" on their public profile dropped it after the first day;
+--   - expire_pending_direct_offers: a direct offer that lapsed after the first day's start told the poster nothing
+--     ("The job is now open to everyone." was skipped although the job was still listed).
+-- Each is its NEWEST definition (enforce_application_job_state: 20261012185633; job_announceable_to,
+-- get_public_open_jobs and expire_pending_direct_offers: 20261027185146; public_profile_by_handle: 20261103224601)
+-- with only those cutoffs reading COALESCE(date_window_end, date_needed) (and date_window_end added to the SELECT ...
+-- INTO / RETURNING lists that feed them). A one-day job (NULL end) is judged exactly as before. The hire checks
+-- (direct_accept_block_reason, accept_application, the crew seat, the series claim) stay on date_needed (lead
+-- decision 11-04: a hire gate): booking a day keeps that day's cutoff.
 -- Same signatures and return types (CREATE OR REPLACE); grants restated exactly as their newest statement
--- (20261012185633). REPLAY-SAFETY: jobs.date_window_end is added by 20261104073000, which runs first.
+-- (enforce_application_job_state, job_announceable_to, get_public_open_jobs: 20261012185633;
+-- expire_pending_direct_offers: 20261018024631; public_profile_by_handle: 20261103224601).
+-- REPLAY-SAFETY: jobs.date_window_end is added by 20261104073000, which runs first.
 
 CREATE OR REPLACE FUNCTION public.enforce_application_job_state()
  RETURNS trigger
@@ -216,83 +222,6 @@ $function$;
 REVOKE ALL ON FUNCTION public.enforce_application_job_state() FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.enforce_application_job_state() TO service_role;
 
-CREATE OR REPLACE FUNCTION public.direct_accept_block_reason(p_job_id uuid, p_helper uuid)
- RETURNS text
- LANGUAGE plpgsql
- STABLE
- SECURITY DEFINER
- SET search_path TO 'public'
- SET "TimeZone" TO 'America/Chicago'
-AS $fn$
-DECLARE
-  v_job record;
-  v_profile record;
-BEGIN
-  SELECT j.status::text AS status, j.helper_id, j.customer_id, j.offered_to_helper_id,
-         j.direct_offer_status, j.direct_offer_expires_at, j.parent_job_id, j.is_seed,
-         j.date_needed, j.date_window_end, j.start_time, j.expires_at, j.payment_status, COALESCE(j.credential_tier, 0) AS credential_tier
-    INTO v_job
-    FROM public.jobs j
-   WHERE j.id = p_job_id;
-  IF NOT FOUND THEN
-    RETURN 'job_not_found';
-  END IF;
-  -- the offer itself
-  IF v_job.status IS DISTINCT FROM 'open' OR v_job.helper_id IS NOT NULL
-     OR v_job.offered_to_helper_id IS DISTINCT FROM p_helper
-     OR v_job.direct_offer_status IS DISTINCT FROM 'pending' THEN
-    RETURN 'offer_not_active';
-  END IF;
-  IF v_job.direct_offer_expires_at IS NOT NULL AND v_job.direct_offer_expires_at < now() THEN
-    RETURN 'offer_expired';
-  END IF;
-  -- enforce_application_job_state's refusals
-  IF v_job.customer_id IS NULL OR v_job.customer_id = p_helper THEN
-    RETURN 'offer_not_active';
-  END IF;
-  IF public.are_users_blocked(p_helper, v_job.customer_id) THEN
-    RETURN 'applicant_blocked';
-  END IF;
-  IF v_job.parent_job_id IS NOT NULL
-     -- Q552: a test account may still accept a test job's direct offer.
-     OR (COALESCE(v_job.is_seed, false) AND public.seed_hidden_for(p_helper)) THEN
-    RETURN 'offer_not_active';
-  END IF;
-  -- Q1401: the listing closes at the start, as enforce_application_job_state.
-  IF v_job.date_needed IS NOT NULL
-     -- Q2408: a window job stays open until the start on the window's LAST day.
-     AND public.job_offer_cutoff(COALESCE(v_job.date_window_end, v_job.date_needed), v_job.start_time) <= now() THEN
-    RETURN 'job_date_has_passed';
-  END IF;
-  IF v_job.expires_at IS NOT NULL AND v_job.expires_at <= now() THEN
-    RETURN 'job_expired';
-  END IF;
-  -- funded (enforce_job_funded_before_award; the server path skips it)
-  IF NOT public.job_payment_is_listed(v_job.payment_status::text) THEN
-    RETURN 'job_not_funded';
-  END IF;
-  -- enforce_application_credential_tier
-  IF v_job.credential_tier > 0
-     AND COALESCE(public.get_user_credential_tier(p_helper), 0) < v_job.credential_tier THEN
-    RETURN 'credential_tier_required';
-  END IF;
-  -- enforce_ban_gate (is_caller_banned's predicate, for this Helpr) and block_shadowbanned_applications
-  SELECT p.ban_status, p.auto_suspended_until INTO v_profile FROM public.profiles p WHERE p.user_id = p_helper;
-  IF v_profile.ban_status IN ('banned', 'temp_banned', 'permanently_banned')
-     AND (v_profile.ban_status <> 'temp_banned' OR v_profile.auto_suspended_until IS NULL
-          OR v_profile.auto_suspended_until > now()) THEN
-    RETURN 'account_restricted';
-  END IF;
-  IF public.is_helper_shadowbanned(p_helper) THEN
-    RETURN 'account_restricted';
-  END IF;
-  RETURN NULL;
-END;
-$fn$;
-
-REVOKE ALL ON FUNCTION public.direct_accept_block_reason(uuid, uuid) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.direct_accept_block_reason(uuid, uuid) TO service_role;
-
 CREATE OR REPLACE FUNCTION public.job_announceable_to(p_job jobs, p_user_id uuid)
  RETURNS boolean
  LANGUAGE sql
@@ -372,3 +301,281 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.get_public_open_jobs(integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.get_public_open_jobs(integer) TO anon, authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.expire_pending_direct_offers()
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+DECLARE
+  v_count integer;
+BEGIN
+  WITH expired AS (
+    UPDATE public.jobs
+       SET direct_offer_status = 'expired'
+     WHERE direct_offer_status = 'pending'
+       AND direct_offer_expires_at IS NOT NULL
+       AND direct_offer_expires_at < now()
+       -- Q1891: only an offer on a job still open lapses into "open to
+       -- everyone". A cancelled job's offer is retired by the cancel itself.
+       AND status::text = 'open'
+       -- An unfunded offer was never shown to anyone, so it cannot lapse; its
+       -- window starts when the money arrives (owner, 2026-10-17).
+       AND public.job_payment_is_listed(payment_status)
+    RETURNING id, customer_id, title, date_needed, date_window_end, start_time
+  ), notified AS (
+    INSERT INTO public.notifications (user_id, title, message, type, link)
+    SELECT customer_id,
+           'Direct offer expired',
+           'Your offer for "' || title || '" was not accepted in time. The job is now open to everyone.',
+           'job_updates',
+           '/posts?job=' || id::text
+      FROM expired
+     WHERE customer_id IS NOT NULL
+       -- Past the start cutoff the job is not "open to everyone" in any
+       -- useful sense (money that landed late, delta review #3): it lapses
+       -- quietly.
+       AND (date_needed IS NULL
+            OR public.job_offer_cutoff(COALESCE(date_window_end, date_needed), start_time) > now())
+    RETURNING 1
+  ), told AS (
+    -- Q1185 (re-review should-fix C): a Helpr who said yes while their setup
+    -- was unfinished hears the offer lapsed, with no strike, as a regular
+    -- offer's Helpr does (expire_unanswered_offers). The statement's snapshot
+    -- still holds the pending rows trg_jobs_clear_accept_pending removes.
+    -- Setup can be done and the accept still not complete (the job's date
+    -- passed, a block): the copy says which (final review #3).
+    INSERT INTO public.notifications (user_id, title, message, type, link, job_id)
+    SELECT p.helper_id,
+           'You lost a job offer',
+           CASE WHEN public.helper_accept_block_reason(p.helper_id) IS NOT NULL
+                THEN 'The direct offer for "' || COALESCE(e.title, 'a job')
+                       || '" expired before your payout setup and Stripe ID were done, so it went back to everyone. No strike. Finish both so you can accept the next offer.'
+                ELSE 'The direct offer for "' || COALESCE(e.title, 'a job')
+                       || '" expired before your accept could be completed, so it went back to everyone. No strike.'
+           END,
+           'expired',
+           '/jobs?job=' || e.id::text,
+           e.id
+      FROM expired e
+      JOIN public.job_accept_pending p ON p.job_id = e.id
+    RETURNING 1
+  )
+  SELECT count(*) INTO v_count FROM expired;
+
+  RETURN v_count;
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.expire_pending_direct_offers() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.expire_pending_direct_offers() TO service_role;
+
+CREATE OR REPLACE FUNCTION public.public_profile_by_handle(p_handle text)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+SET "TimeZone" TO 'America/Chicago'
+AS $function$
+DECLARE
+  v_handle text := lower(btrim(coalesce(p_handle, '')));
+  v_p record;
+  v_stats jsonb;
+  v_listings jsonb;
+  v_jobs jsonb;
+  v_reviews jsonb;
+  v_categories jsonb;
+  v_done integer;
+  v_wanted jsonb;
+  v_declutter boolean;
+  v_wanted_on boolean;
+BEGIN
+  IF v_handle = '' OR length(v_handle) > 30 THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT p.user_id, p.full_name, p.avatar_url, p.created_at, p.handle INTO v_p
+    FROM public.profiles p
+   WHERE p.handle = v_handle
+      OR (p.handle IS NOT NULL
+          AND p.user_id = (SELECT r.user_id FROM public.profile_handles_retired r
+                            WHERE r.handle = v_handle AND r.user_id IS NOT NULL))
+   ORDER BY (p.handle = v_handle) DESC
+   LIMIT 1;
+  IF v_p.user_id IS NULL THEN
+    RETURN NULL;
+  END IF;
+  -- Review 2026-11-01: banned in any form, restricted (out of Declutter), deleted, unverified,
+  -- seed, test or under 18 -> no page.
+  IF NOT EXISTS (SELECT 1 FROM public.profiles p
+                  WHERE p.user_id = v_p.user_id
+                    AND p.email_verified
+                    AND p.ban_status IS DISTINCT FROM 'banned'
+                    AND p.ban_status IS DISTINCT FROM 'temp_banned'
+                    AND p.ban_status IS DISTINCT FROM 'permanently_banned'
+                    AND p.is_seed IS NOT TRUE
+                    AND p.anonymized_at IS NULL)
+     OR public.declutter_member_out(v_p.user_id)
+     OR COALESCE(public.member_under_18(v_p.user_id), true)
+     OR public.is_test_member(v_p.user_id) THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT jsonb_build_object(
+           'review_count', s.review_count,
+           'avg_rating', s.avg_rating,
+           'completed_jobs_as_helper', s.completed_jobs_as_helper,
+           'completed_jobs_total', s.completed_jobs_total,
+           'posted_jobs_total', s.posted_jobs_total,
+           'on_time_rate', s.on_time_rate,
+           'repeat_hire_percent', s.repeat_hire_percent,
+           'is_id_verified', s.is_id_verified,
+           'is_background_checked', s.is_background_checked)
+    INTO v_stats
+    FROM public.get_public_profile_stats(ARRAY[v_p.user_id]) s
+   WHERE s.user_id = v_p.user_id
+   LIMIT 1;
+
+  v_declutter := public.declutter_open_to_guests();
+  -- Wanted posts only while their own switch is open to everyone too (it is testers-only until then).
+  v_wanted_on := v_declutter AND EXISTS (SELECT 1 FROM public.feature_switches s
+                                          WHERE s.key = 'declutter_wanted' AND s.audience = 'everyone');
+
+  SELECT coalesce(jsonb_agg(x ORDER BY x->>'live_at' DESC), '[]'::jsonb) INTO v_listings
+    FROM (
+      SELECT jsonb_build_object(
+               'id', i.id,
+               'title', i.title,
+               'price_cents', i.current_price_cents,
+               'area_label', i.area_label,
+               'live_at', coalesce(i.live_at, i.created_at),
+               'photo_id', (SELECT ph.id FROM public.declutter_item_photos ph
+                             WHERE ph.item_id = i.id ORDER BY ph.position LIMIT 1)) AS x
+        FROM public.declutter_items i
+       WHERE v_declutter
+         AND i.seller_id = v_p.user_id
+         AND i.status = 'live'
+         AND NOT i.seller_hidden
+         AND i.is_seed IS NOT TRUE
+         AND NOT public.declutter_seller_out(v_p.user_id)
+       ORDER BY coalesce(i.live_at, i.created_at) DESC
+       LIMIT 24
+    ) l;
+
+  SELECT coalesce(jsonb_agg(x ORDER BY x->>'date_needed'), '[]'::jsonb) INTO v_jobs
+    FROM (
+      SELECT jsonb_build_object(
+               'id', j.id,
+               'title', j.title,
+               'category', j.category::text,
+               'town', public.mask_job_location(j.location),
+               'budget', j.budget,
+               'date_needed', j.date_needed) AS x
+        FROM public.jobs j
+       WHERE j.customer_id = v_p.user_id
+         AND j.status = 'open'
+         AND j.parent_job_id IS NULL
+         AND j.is_seed IS NOT TRUE
+         AND j.payment_status = ANY (ARRAY['escrow'::text, 'payout_pending'::text, 'released'::text, 'held'::text])
+         AND COALESCE(j.credential_tier, 0) = 0
+         AND j.date_needed IS NOT NULL
+         AND public.job_offer_cutoff(COALESCE(j.date_window_end, j.date_needed), j.start_time) > now()
+         AND (j.expires_at IS NULL OR j.expires_at > now())
+         AND (j.offered_to_helper_id IS NULL OR j.direct_offer_status IS DISTINCT FROM 'pending')
+         AND NOT EXISTS (SELECT 1 FROM public.ban_settlement_queue q
+                          WHERE q.user_id = j.customer_id AND q.review_state = 'open')
+       ORDER BY j.date_needed
+       LIMIT 24
+    ) o;
+
+  SELECT count(*)::integer,
+         coalesce(jsonb_agg(DISTINCT j.category::text) FILTER (WHERE j.category IS NOT NULL), '[]'::jsonb)
+    INTO v_done, v_categories
+    FROM public.jobs j
+   WHERE j.helper_id = v_p.user_id
+     AND j.status = 'completed'
+     AND j.is_seed IS NOT TRUE
+     AND NOT public.is_test_member(j.customer_id);
+
+  -- Re-review 2026-11-01: the list is read here, not through get_public_profile_reviews, whose seed rule reads the
+  -- caller (seed_hidden_from_caller), so test reviews showed to an admin, to test accounts, and to everyone while
+  -- the seed switch is off. Same rules as the stats' review count (get_public_profile_stats.visible_reviews):
+  -- published and visible, not on a cancelled or seed job, not from or about a test member; for every caller.
+  SELECT coalesce(jsonb_agg(jsonb_build_object(
+           'rating', r.rating,
+           'feedback', r.feedback,
+           'created_at', r.created_at,
+           'reviewer_name', public.member_display_name(r.reviewer_full_name),
+           'job_category', r.job_category,
+           'response_text', r.response_text,
+           'response_at', r.response_at) ORDER BY r.created_at DESC), '[]'::jsonb)
+    INTO v_reviews
+    FROM (
+      SELECT rv.rating, public.review_text(rv.feedback, rv.tags) AS feedback, rv.created_at, rv.response_text, rv.response_at, j.category::text AS job_category,
+             -- The reviewer's public name only under the same rules as a page of their own (review 2026-11-01):
+             -- verified, never banned in any form, not out of Declutter, not deleted, not under 18; else "A neighbor".
+             (SELECT rp.full_name FROM public.profiles rp
+               WHERE rp.user_id = rv.reviewer_id
+                 AND rp.email_verified
+                 AND rp.ban_status IS DISTINCT FROM 'banned'
+                 AND rp.ban_status IS DISTINCT FROM 'temp_banned'
+                 AND rp.ban_status IS DISTINCT FROM 'permanently_banned'
+                 AND rp.anonymized_at IS NULL
+                 AND NOT public.declutter_member_out(rp.user_id)
+                 AND NOT COALESCE(public.member_under_18(rp.user_id), true)
+               LIMIT 1) AS reviewer_full_name
+        FROM public.reviews rv
+        JOIN public.jobs j ON j.id = rv.job_id
+       WHERE rv.reviewee_id = v_p.user_id
+         AND rv.status = 'published'
+         AND rv.feedback_visible_at IS NOT NULL
+         AND rv.feedback_visible_at <= now()
+         AND j.status <> 'cancelled'
+         AND j.is_seed IS NOT TRUE
+         AND NOT public.is_test_member(rv.reviewer_id)
+         AND NOT public.is_test_member(rv.reviewee_id)
+       ORDER BY rv.created_at DESC
+       LIMIT 10
+    ) r;
+
+  SELECT coalesce(jsonb_agg(x ORDER BY x->>'created_at' DESC), '[]'::jsonb) INTO v_wanted
+    FROM (
+      SELECT jsonb_build_object(
+               'id', w.id,
+               'what', w.what,
+               'category', w.category,
+               'max_price_cents', w.max_price_cents,
+               'created_at', w.created_at) AS x
+        FROM public.declutter_wanted w
+       WHERE v_wanted_on
+         AND w.user_id = v_p.user_id
+         AND w.status = 'open'
+         AND w.public
+         AND w.removed_at IS NULL
+         AND w.expires_at > now()
+         AND w.is_seed IS NOT TRUE
+         -- The same poster rules as the Wanted browse (20261030225143).
+         AND NOT public.declutter_member_out(w.user_id)
+         AND NOT public.member_under_18(w.user_id)
+         AND NOT public.declutter_seller_hidden(w.user_id)
+       ORDER BY w.created_at DESC
+       LIMIT 24
+    ) wq;
+
+  RETURN jsonb_build_object(
+    'handle', v_p.handle,
+    'name', public.member_display_name(v_p.full_name),
+    'photo_url', v_p.avatar_url,
+    'member_since', v_p.created_at,
+    'stats', coalesce(v_stats, '{}'::jsonb),
+    'listings', v_listings,
+    'jobs', v_jobs,
+    'helpr', jsonb_build_object('jobs_done', v_done, 'categories', v_categories, 'reviews', v_reviews),
+    'wanted', v_wanted);
+END;
+$function$;
+
+REVOKE ALL ON FUNCTION public.public_profile_by_handle(text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.public_profile_by_handle(text) TO anon, authenticated, service_role;

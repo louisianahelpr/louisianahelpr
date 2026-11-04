@@ -25,6 +25,10 @@
  * checks. Q1088 (11-03): LH_PROFILE_THEN=20261103224601_review_tags_column.sql adds
  *   P16 a review whose tags sit in reviews.tags shows "prose, Tag, Tag" on the page and in get_public_profile_reviews,
  *       exactly what the form used to store; a tag outside the form's list is refused by reviews_tags_known
+ *
+ * LH_PROFILE_WINDOW=<migration file> (Q2408, lead review 11-04) adds jobs.date_window_end and applies ONLY that file's
+ * public_profile_by_handle (3x), after the above; LH_PROFILE_WINDOW=skip adds the column alone (red). Adds
+ *   P17 a window job whose first day has passed and last day is ahead stays in "Open jobs"; a window that is over does not
  */
 import { readFileSync, readdirSync } from "node:fs";
 import os from "node:os";
@@ -383,6 +387,24 @@ if (THEN_SQL && !BEFORE) {
       && /reviews_tags_known/.test(refused)
       && old.a === "Great job., On time" && old.b === "Friendly" && old.c === null,
     JSON.stringify({ shown, rpc, refused: refused.slice(0, 80), old }));
+}
+
+const WINDOW = process.env.LH_PROFILE_WINDOW ?? "";
+if (WINDOW && !BEFORE) {
+  await db.exec(`RESET ROLE; ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS date_window_end date;`);
+  if (WINDOW !== "skip") {
+    const t = readFileSync(WINDOW.includes("/") ? WINDOW : DIR + WINDOW, "utf8");
+    const start = t.lastIndexOf("CREATE OR REPLACE FUNCTION public.public_profile_by_handle(");
+    const tag = t.slice(start).match(/AS\s+(\$[A-Za-z_]*\$)/)[1];
+    const fn = t.slice(start, t.indexOf(tag, t.indexOf(tag, start) + tag.length) + tag.length) + ";";
+    for (let i = 0; i < 3; i++) await db.exec(fn);
+  }
+  await db.exec(`INSERT INTO public.jobs (customer_id, status, title, category, location, budget, date_needed, start_time, date_window_end, payment_status) VALUES
+    ('${ELI}', 'open', 'Window job', 'cleaning', 'Baton Rouge, LA', 40, current_date - 2, '09:00', current_date + 3, 'escrow'),
+    ('${ELI}', 'open', 'Window over', 'cleaning', 'Baton Rouge, LA', 40, current_date - 6, '09:00', current_date - 2, 'escrow')`);
+  const titles = ((await page("eli-b")).v?.jobs ?? []).map((j) => j.title);
+  check("P17 a window job past its first day (last day ahead) stays in Open jobs; a window that is over does not",
+    titles.includes("Window job") && !titles.includes("Window over"), JSON.stringify(titles));
 }
 
 if (BEFORE) {

@@ -1,23 +1,27 @@
 #!/usr/bin/env node
 /**
  * PGlite proof for 20261104084501_apply_and_notices_read_date_window (Q2408 part 4, lead re-review 11-04): the apply
- * gate (enforce_application_job_state), direct_accept_block_reason, job_announceable_to and get_public_open_jobs judge
- * a window job by the start on its window's LAST day; a one-day job is judged exactly as before.
+ * gate (enforce_application_job_state), job_announceable_to, get_public_open_jobs and expire_pending_direct_offers's
+ * "open to everyone" notice judge a window job by the start on its window's LAST day; a one-day job is judged exactly
+ * as before. direct_accept_block_reason is a hire gate and stays on date_needed (lead decision 11-04; not restated).
+ * public_profile_by_handle's window read is proved in publicProfileByHandle.pglite.mjs (LH_PROFILE_WINDOW, P17).
  *
  *   node src/test/pglite/applyAndNoticesReadDateWindow.pglite.mjs                    # AFTER: migration applied 3x
  *   NEW_MIGRATION=skip node src/test/pglite/applyAndNoticesReadDateWindow.pglite.mjs # RED: the newest definitions before it
  *
  * The "before" functions are cut from their newest definitions (enforce_application_job_state: 20261012185633; the
- * other three: 20261027185146); job_offer_cutoff is its real definition (20261005184940); other helpers are stubbed
+ * others: 20261027185146); job_offer_cutoff is its real definition (20261005184940); other helpers are stubbed
  * permissive. Grants are checked after the migration.
  *
  *   A1 a window job whose FIRST day's start has passed (last day ahead) takes an application
  *   A2 a one-day job whose start has passed is still refused (job_date_has_passed)
  *   A3 a window job whose last day's start has passed is refused
  *   N1 job_announceable_to: the window job is announceable after its first day's start; the past one-day job is not
- *   D1 direct_accept_block_reason: no job_date_has_passed for the window job; still for the past one-day job
+ *   D1 direct_accept_block_reason is unchanged (a hire gate on date_needed): job_date_has_passed for both started jobs
+ *   O1 expire_pending_direct_offers tells the poster "open to everyone" for a lapsed offer on the window job past its
+ *      first day's start; the past one-day job's offer still lapses quietly
  *   P1 get_public_open_jobs lists the window job, not the past one-day job
- *   G  EXECUTE as stated (no PUBLIC; anon only on get_public_open_jobs)
+ *   G  EXECUTE as stated (no PUBLIC; anon only on get_public_open_jobs and public_profile_by_handle)
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -72,10 +76,13 @@ CREATE FUNCTION public.mask_job_location(l text) RETURNS text LANGUAGE sql AS $$
 CREATE FUNCTION public.job_payment_is_listed(s text) RETURNS boolean LANGUAGE sql AS $$ SELECT s IN ('escrow','payout_pending','released','held') $$;
 CREATE FUNCTION public.is_helper_shadowbanned(u uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
 ALTER TABLE public.profiles ADD COLUMN ban_status text, ADD COLUMN auto_suspended_until timestamptz;
+CREATE TABLE public.notifications (id serial PRIMARY KEY, user_id uuid, title text, message text, type text, link text, job_id uuid);
+CREATE TABLE public.job_accept_pending (job_id uuid, helper_id uuid);
+CREATE FUNCTION public.helper_accept_block_reason(u uuid) RETURNS text LANGUAGE sql AS $$ SELECT NULL::text $$;
 `);
 await db.exec(cut("20261005184940_offer_deadline_before_start.sql", "CREATE OR REPLACE FUNCTION public.job_offer_cutoff("));
 await db.exec(cut("20261012185633_listing_closes_at_start.sql", "CREATE OR REPLACE FUNCTION public.enforce_application_job_state("));
-for (const fn of ["direct_accept_block_reason", "job_announceable_to", "get_public_open_jobs"]) {
+for (const fn of ["direct_accept_block_reason", "job_announceable_to", "get_public_open_jobs", "expire_pending_direct_offers"]) {
   await db.exec(cut("20261027185146_card_hold_at_post.sql", `CREATE OR REPLACE FUNCTION public.${fn}(`));
 }
 await db.exec(`CREATE TRIGGER trg_application_job_state BEFORE INSERT ON public.applications FOR EACH ROW EXECUTE FUNCTION public.enforce_application_job_state();`);
@@ -114,8 +121,15 @@ let d = {};
 try {
   d = Object.fromEntries((await db.query(`SELECT title, public.direct_accept_block_reason(id, '${H}') AS r FROM public.jobs`)).rows.map((r) => [r.title, r.r]));
 } catch (e) { d = { error: e.message.slice(0, 80) }; }
-check("D1 direct_accept_block_reason: no job_date_has_passed for the window job; still for the past one-day job",
-  d.window_started !== "job_date_has_passed" && !d.error && d.oneday_started === "job_date_has_passed", JSON.stringify(d));
+check("D1 direct_accept_block_reason is unchanged (hire gate on date_needed): job_date_has_passed for both started jobs",
+  !d.error && d.window_started === "job_date_has_passed" && d.oneday_started === "job_date_has_passed", JSON.stringify(d));
+
+// The same offers, now lapsed: the poster hears "open to everyone" only while the job is still listed.
+await db.exec(`UPDATE public.jobs SET direct_offer_expires_at = now() - interval '1 minute'`);
+await db.query(`SELECT public.expire_pending_direct_offers()`);
+const told = (await db.query(`SELECT j.title FROM public.notifications n JOIN public.jobs j ON n.link = '/posts?job=' || j.id::text WHERE n.title = 'Direct offer expired' ORDER BY 1`)).rows.map((r) => r.title);
+check("O1 a lapsed offer on the window job past its first day tells the poster; the past one-day job's lapses quietly",
+  JSON.stringify(told) === JSON.stringify(["window_started"]), JSON.stringify(told));
 
 await db.exec(`UPDATE public.jobs SET offered_to_helper_id = NULL, direct_offer_status = NULL, direct_offer_expires_at = NULL`);
 const pub = (await db.query(`SELECT title FROM public.get_public_open_jobs(10)`)).rows.map((r) => r.title).sort();
@@ -123,10 +137,12 @@ check("P1 get_public_open_jobs lists the window job, not the past one-day job or
   JSON.stringify(pub) === JSON.stringify(["window_started"]), JSON.stringify(pub));
 
 if (!MODE) {
-  const acl = Object.fromEntries((await db.query(`SELECT proname, proacl::text AS a FROM pg_proc WHERE proname IN ('enforce_application_job_state','direct_accept_block_reason','job_announceable_to','get_public_open_jobs')`)).rows.map((r) => [r.proname, r.a]));
+  const acl = Object.fromEntries((await db.query(`SELECT proname, proacl::text AS a FROM pg_proc WHERE proname IN ('enforce_application_job_state','job_announceable_to','get_public_open_jobs','expire_pending_direct_offers','public_profile_by_handle')`)).rows.map((r) => [r.proname, r.a]));
   const noPublic = Object.values(acl).every((a) => a && !/(^|[{,])=X/.test(a));
-  const anonOnlyPublic = /anon=X/.test(acl.get_public_open_jobs) && !/anon=X/.test(acl.job_announceable_to) && !/anon=X/.test(acl.direct_accept_block_reason) && !/anon=X/.test(acl.enforce_application_job_state);
-  check("G EXECUTE as stated (no PUBLIC; anon only on get_public_open_jobs)", noPublic && anonOnlyPublic, JSON.stringify(acl));
+  const anonOnlyPublic = /anon=X/.test(acl.get_public_open_jobs) && /anon=X/.test(acl.public_profile_by_handle) && /authenticated=X/.test(acl.public_profile_by_handle)
+    && !/anon=X/.test(acl.job_announceable_to) && !/anon=X/.test(acl.enforce_application_job_state)
+    && !/(anon|authenticated)=X/.test(acl.expire_pending_direct_offers) && /service_role=X/.test(acl.expire_pending_direct_offers);
+  check("G EXECUTE as stated (no PUBLIC; anon only on get_public_open_jobs and public_profile_by_handle)", Object.keys(acl).length === 5 && noPublic && anonOnlyPublic, JSON.stringify(acl));
 }
 console.log(failures ? `\n${failures} FAILED` : "\nALL PASS");
 process.exit(failures ? 1 : 0);

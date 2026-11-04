@@ -129,6 +129,6 @@ describe("Repeats: what is shown == what is charged", () => {
 });
 
 // Proven red by scripts/check-mutations (each line must turn a test above red):
-// @mutate src/pages/post-job/jobSubmitHelpers.ts | date_needed: firstVisit, | date_needed: dateNeeded,
+// @mutate src/pages/post-job/jobSubmitHelpers.ts | parish: parish,\n    date_needed: firstVisit, | parish: parish,\n    date_needed: dateNeeded,
 // @mutate src/lib/recurringSchedule.ts | if (wanted.has(d.getUTCDay())) out.push(toYmd(d)); | out.push(toYmd(d));
 // @mutate supabase/functions/_shared/recurringSchedule.ts | for (let i = 0; i < capped * 7; i++) { | for (let i = 0; i < capped * 7 + 1; i++) {

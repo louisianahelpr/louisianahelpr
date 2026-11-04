@@ -259,14 +259,13 @@ export function PayoutCelebration({ payouts, onViewDetails }: PayoutCelebrationP
                   onViewDetails();
                   dismiss();
                 }}
-                className="shrink-0 px-3 h-8 rounded-full active:scale-[0.97] transition-transform"
+                className="shrink-0 px-3 h-8 rounded-full active:scale-[0.97] transition-transform text-ds-11"
                 style={{
                   background: "hsl(var(--bark))",
                   color: "hsl(var(--parchment))",
                   border: "1px solid hsl(var(--bark-border))",
                   fontFamily: "Montserrat, system-ui, sans-serif",
                   fontWeight: 600,
-                  fontSize: "0.72rem",
                   letterSpacing: "0.01em",
                   boxShadow:
                     "inset 0 1px 0 0 rgba(255,255,255,0.12), " +

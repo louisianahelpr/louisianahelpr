@@ -6,6 +6,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart as RePieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend,
 } from "recharts";
+import { CHART_TICK_PX, CHART_TOOLTIP_PX } from "@/lib/chartText";
 
 export interface SubPieDatum {
   value: number;
@@ -41,14 +42,14 @@ interface CategoryDatum {
  * actually has to match the line.
  */
 const legendLabel = (value: string) => (
-  <span style={{ color: "hsl(var(--foreground))", fontSize: 12 }}>{value}</span>
+  <span className="text-ds-11" style={{ color: "hsl(var(--foreground))" }}>{value}</span>
 );
 
 const TOOLTIP_STYLE = {
   backgroundColor: "hsl(var(--card))",
   border: "1px solid hsl(var(--border))",
   borderRadius: "8px",
-  fontSize: "12px",
+  fontSize: CHART_TOOLTIP_PX,
 };
 
 export const SubscriberPieChart = ({ data }: { data: SubPieDatum[] }) => (
@@ -69,8 +70,8 @@ export const RevenueLineChart = ({ data }: { data: MonthlyDatum[] }) => (
   <ResponsiveContainer width="100%" height="100%" minHeight={250}>
     <LineChart data={data}>
       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-      <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-      <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+      <XAxis dataKey="month" tick={{ fontSize: CHART_TICK_PX }} stroke="hsl(var(--muted-foreground))" />
+      <YAxis tick={{ fontSize: CHART_TICK_PX }} stroke="hsl(var(--muted-foreground))" />
       <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ color: "hsl(var(--foreground))" }} />
       <Legend formatter={legendLabel} />
       <Line type="monotone" dataKey="revenue" name="Revenue ($)" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} />
@@ -91,8 +92,8 @@ export const MonthlyJobsBarChart = ({ data }: { data: MonthlyDatum[] }) => (
   <ResponsiveContainer width="100%" height="100%" minHeight={200}>
     <BarChart data={data}>
       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-      <XAxis dataKey="month" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-      <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+      <XAxis dataKey="month" tick={{ fontSize: CHART_TICK_PX }} stroke="hsl(var(--muted-foreground))" />
+      <YAxis tick={{ fontSize: CHART_TICK_PX }} stroke="hsl(var(--muted-foreground))" />
       <Tooltip contentStyle={TOOLTIP_STYLE} />
       <Bar dataKey="jobs" name="Completed Jobs" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
     </BarChart>
@@ -103,8 +104,8 @@ export const CategoriesBarChart = ({ data }: { data: CategoryDatum[] }) => (
   <ResponsiveContainer width="100%" height="100%" minHeight={250}>
     <BarChart data={data} layout="vertical">
       <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-      <XAxis type="number" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
-      <YAxis type="category" dataKey="name" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" width={90} />
+      <XAxis type="number" tick={{ fontSize: CHART_TICK_PX }} stroke="hsl(var(--muted-foreground))" />
+      <YAxis type="category" dataKey="name" tick={{ fontSize: CHART_TICK_PX }} stroke="hsl(var(--muted-foreground))" width={90} />
       <Tooltip contentStyle={TOOLTIP_STYLE} />
       <Bar dataKey="count" name="Jobs" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
     </BarChart>

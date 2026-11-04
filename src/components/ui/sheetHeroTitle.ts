@@ -8,10 +8,9 @@ import type { CSSProperties } from "react";
  * display title below. Upright Montserrat (index.css T1); no `italic` here, the
  * rendered guard is e2e/happy-path/titles-upright.spec.ts.
  */
-export const SHEET_HERO_TITLE_CLASS = "font-display font-bold leading-tight [overflow-wrap:anywhere]";
+export const SHEET_HERO_TITLE_CLASS = "font-display font-bold leading-tight [overflow-wrap:anywhere] text-headline-section";
 
 export const SHEET_HERO_TITLE_STYLE: CSSProperties = {
-  fontSize: "clamp(1.2rem, 1.6vw + 0.4rem, 1.45rem)",
   color: "hsl(var(--ink-deep))",
   letterSpacing: "-0.02em",
 };

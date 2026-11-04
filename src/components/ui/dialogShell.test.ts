@@ -218,7 +218,7 @@ describe("Popups share one shell", () => {
   // 2202px inside a 341px card at 375: every field ran past the right edge.
   // The rendered check is readDialogOverflow in e2e/prod-audit/harness.ts.
   // @mutate src/components/ui/dialog.tsx | z-50 grid grid-cols-[minmax(0,1fr)] overflow-y-auto | z-50 grid overflow-y-auto
-  // @mutate src/components/ui/sheetHeroTitle.ts | font-bold leading-tight [overflow-wrap:anywhere]" | font-bold leading-tight"
+  // @mutate src/components/ui/sheetHeroTitle.ts | font-bold leading-tight [overflow-wrap:anywhere] text-headline-section" | font-bold leading-tight text-headline-section"
   it("no child can widen a popup: a 0-floor grid column, and hero titles that wrap anywhere", () => {
     const dialog = blankComments(read("src/components/ui/dialog.tsx"));
     expect(dialog).toMatch(/"glass-modal [^"]*\bgrid grid-cols-\[minmax\(0,1fr\)\]/);

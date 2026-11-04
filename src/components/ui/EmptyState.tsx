@@ -270,9 +270,8 @@ export function EmptyState({
             <p
               data-empty-title=""
               // Upright Montserrat, the app's title face (owner, 2026-10-18 new look); was Bodoni display italic.
-              className="font-sans font-bold leading-tight break-words [text-wrap:balance]"
+              className="font-sans font-bold leading-tight break-words [text-wrap:balance] text-headline-section"
               style={{
-                fontSize: "clamp(1.1rem, 1.2vw + 0.5rem, 1.3rem)",
                 color: "hsl(var(--ink-deep))",
                 letterSpacing: "-0.015em",
               }}

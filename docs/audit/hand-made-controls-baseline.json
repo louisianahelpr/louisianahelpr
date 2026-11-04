@@ -460,9 +460,6 @@
     "src/components/job-card/JobCardShell.tsx": {
       "button": 1
     },
-    "src/components/job-card/MineJobFace.tsx": {
-      "button": 2
-    },
     "src/components/job-card/NudgeConfirmLink.tsx": {
       "button": 1
     },

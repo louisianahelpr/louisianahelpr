@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/UserAvatar";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { unwrap } from "@/lib/supabaseResult";
 
 /**
  * Q2008 "Helprs near you" (owner order 2026-10-17, D5): a row of faces at the top of Home, members in YOUR
@@ -21,12 +22,9 @@ export interface NearbyHelpr {
 const HELPRS_NEAR_ME_KEY = "helprs-near-me";
 
 export async function fetchHelprsNearMe(): Promise<NearbyHelpr[]> {
-  const { data, error } = await supabase.rpc("get_helprs_near_me");
-  if (error) {
-    if (isMissingRpcNamed(error, "get_helprs_near_me")) return []; // not deployed yet: no row
-    throw error;
-  }
-  return data ?? [];
+  const res = await supabase.rpc("get_helprs_near_me");
+  if (res.error && isMissingRpcNamed(res.error, "get_helprs_near_me")) return []; // not deployed yet: no row
+  return unwrap(res) ?? [];
 }
 
 export function HelprsNearYou({ userId }: { userId: string | undefined }) {

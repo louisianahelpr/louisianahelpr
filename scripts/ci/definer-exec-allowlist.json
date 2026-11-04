@@ -214,6 +214,7 @@
     "get_my_job_quotes()": "reviewed 2026-10-15 (Q14): quotes slice 1 (20261015091114) client RPC behind the hidden 'quotes' switch (require_feature first); scoped to (SELECT auth.uid()), refuses banned / under-18 callers.",
     "get_my_pending_direct_offers()": "client",
     "get_my_quote_requests()": "reviewed 2026-10-15 (Q14): quotes slice 1 (20261015091114) client RPC behind the hidden 'quotes' switch (require_feature first); scoped to (SELECT auth.uid()), refuses banned / under-18 callers.",
+    "get_helprs_near_me()": "reviewed 2026-11-04 (Q2008): Helprs near you (20261104062747) client RPC; returns only opted-in (profiles.show_near_you) Helprs in the caller's own parish, name/avatar/active-now only; lh-authz-rls approve on the migration commit.",
     "get_my_reply_latency()": "client",
     "get_my_saved_helpers()": "client",
     "get_neighbor_hire_count(uuid, uuid)": "client",

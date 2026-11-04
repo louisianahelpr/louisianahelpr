@@ -11,7 +11,7 @@
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     approve: () => setCompletionRequest((n) => n + 1), |     approve: () => {},
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |         onComplete={(id) => void handlers.completeJob(id)} |         onComplete={() => {}}
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     cancel: () => void handlers.tryCancelJob(job), |     cancel: () => setCancelDialogJob(job),
- * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx | JOB_READABLE_COLUMNS}, materials_note, onboarding_fee_amount, poster_marked_done_at` | JOB_READABLE_COLUMNS}`
+ * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx | JOB_READABLE_COLUMNS}, materials_note, onboarding_fee_amount, poster_marked_done_at, date_window_end` | JOB_READABLE_COLUMNS}`
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx | .eq("id", jobId).eq("customer_id", userId).limit(1)); | .eq("id", jobId).limit(1));
  * @mutate src/pages/jobs/jobPage/usePosterPageFlows.tsx |     <div data-poster-more="" hidden> |     <div data-poster-more="">
  * @mutate src/components/job-card/JobStepCard.tsx | menu?.secondHost && menuCount === 1 && !loneSos ? | menu?.secondHost && menuCount === 2 && !loneSos ?

@@ -34,6 +34,8 @@ export interface UseJobDerivedParams {
   zipCode: string;
   dateNeeded: string;
   startTime: string;
+  /** Q2408: the window's last day ("Any time this week"); the 2-hour notice is measured from it, like the trigger. */
+  dateWindowEnd?: string | null;
   /**
    * "Flexible Schedule" — the poster is NOT naming a start time at all; any
    * time on the chosen day is fine. It is a SUBSTITUTE for `startTime`, not a
@@ -113,6 +115,7 @@ export function useJobDerived(params: UseJobDerivedParams) {
     zipCode,
     dateNeeded,
     startTime,
+    dateWindowEnd = null,
     isFlexibleSchedule,
     parish,
     giftCardAmount = null,
@@ -212,7 +215,8 @@ export function useJobDerived(params: UseJobDerivedParams) {
   // nothing when tapped. Folding it in here is what makes the CTA disable
   // itself, drop its price, and name the field that is blocking it, all
   // through the machinery that already existed for the other required fields.
-  const scheduleInPast = useScheduleInPast(dateNeeded, startTime);
+  // Q2408: a window job is too soon only when its LAST day's start is (refuse_short_notice_job reads the same).
+  const scheduleInPast = useScheduleInPast(dateWindowEnd && dateNeeded && dateWindowEnd > dateNeeded ? dateWindowEnd : dateNeeded, startTime);
   // `startTime || isFlexibleSchedule`, not `startTime`. A flexible job has no
   // start time BY DEFINITION, so requiring one here made the checkbox
   // unreachable: it left the CTA disabled and reading "Pick a Start Time to

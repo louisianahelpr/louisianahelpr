@@ -116,7 +116,8 @@ function toRow(raw: Record<string, unknown>): JobPageRow {
 
 async function fetchJobPage(id: string): Promise<{ job: JobPageRow; party: boolean } | null> {
   const own = unwrap<Record<string, unknown> | null>(
-    await supabase.from("jobs").select(PARTY_COLUMNS).eq("id", id).maybeSingle(),
+    // Q2408: readJobsAheadOfDb, because PARTY_COLUMNS names date_window_end (20261104073000).
+    await readJobsAheadOfDb(PARTY_COLUMNS, (columns) => supabase.from("jobs").select(columns).eq("id", id).maybeSingle<Record<string, unknown>>()),
   );
   if (own) return { job: toRow(own), party: true };
   const browse = unwrap<Record<string, unknown> | null>(

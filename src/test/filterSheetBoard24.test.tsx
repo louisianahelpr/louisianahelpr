@@ -16,7 +16,7 @@
  * @mutate src/hooks/useDashboardFilters.ts |       if (!jobMatchesWhen(job.date_needed, whenRange, job.date_window_end)) return false; |       void whenRange;
  * @mutate src/hooks/useDashboardJobsCount.ts |   if (whenRange) { |   if (false) {
  * @mutate src/lib/jobWhenFilter.ts |   return day <= range.to && last >= range.from; |   return day <= range.to && day >= range.from;
- * @mutate src/hooks/useDashboardJobsCount.ts | date_needed.gte.${todayLocalDate},date_window_end.gte.${todayLocalDate} | date_needed.gte.${todayLocalDate}
+ * @mutate src/hooks/useDashboardJobsCount.ts | ${withWindow ? `,date_window_end.gte.${todayLocalDate}` : ""} | 
  * @mutate src/hooks/useDashboardFilters.ts |   const [locationFilter, setLocationFilter] = useState(() => param("loc")); |   const [locationFilter, setLocationFilter] = useState(() => param("loc") \|\| "nearby:25");
  * @mutate src/components/dashboard/filterSheet/jobFilterSections.tsx |       key: "price", |       key: "price-x",
  * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |         title="Filter jobs" |         title="Filters"

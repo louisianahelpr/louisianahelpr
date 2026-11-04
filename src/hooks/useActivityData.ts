@@ -215,7 +215,7 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
     // poster_marked_done_at (owner 2026-10-25) files a cancelled job under Done.
     // It is newer than the deploy that may serve this build, so it is read
     // through readJobsAheadOfDb (dropped and asked again on 42703).
-    readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note, onboarding_fee_amount, poster_marked_done_at`, (columns) => supabase
+    readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note, onboarding_fee_amount, poster_marked_done_at, date_window_end`, (columns) => supabase
       .from("jobs")
       .select(columns)
       .eq("customer_id", userId)

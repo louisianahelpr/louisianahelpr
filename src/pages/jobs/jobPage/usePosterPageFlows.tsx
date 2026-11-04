@@ -75,7 +75,7 @@ export interface PosterPageFlows {
 
 /** The Posted list's own read (useActivityData: named columns, the newer ones through readJobsAheadOfDb). */
 async function fetchPosterRow(jobId: string, userId: string): Promise<{ job: Job; detail: PostedActivityDetail } | null> {
-  const res = await readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note, onboarding_fee_amount, poster_marked_done_at`, (columns) =>
+  const res = await readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note, onboarding_fee_amount, poster_marked_done_at, date_window_end`, (columns) =>
     supabase.from("jobs").select(columns).eq("id", jobId).eq("customer_id", userId).limit(1));
   const row = readableJobRows<Job>(unwrap(res))[0];
   if (!row) return null;

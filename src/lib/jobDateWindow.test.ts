@@ -6,12 +6,12 @@
  * @mutate src/lib/jobDateWindow.ts | export const DATE_WINDOW_EXTRA_DAYS = 6; | export const DATE_WINDOW_EXTRA_DAYS = 7;
  * @mutate src/components/dashboard/JobCard.tsx | {jobDayLabel(job)} | {formatJobDate(job.date_needed)}
  * @mutate supabase/migrations/20261104074500_browse_reads_date_window.sql | ((COALESCE(date_window_end, date_needed) + 1)::timestamp | ((date_needed + 1)::timestamp
- * @mutate src/lib/jobColumns.ts |   "date_window_end",\n |
+ * @mutate src/lib/jobColumns.ts | "tax_kind", "date_window_end"] as const; | "tax_kind"] as const;
  * @mutate src/components/job-card/MineJobFace.tsx |     job.date_needed ? jobDayLabel(job) : null, |     job.date_needed ? formatJobDate(job.date_needed) : null,
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
-import { trackedFiles } from "@/test/helpers/trackedFiles";
+import { readFileSync } from "node:fs";
+import { readdirSync, trackedFiles } from "@/test/helpers/trackedFiles";
 import { blankComments } from "@/test/helpers/blankNonCode";
 import { jobDayLabel, jobLastDay, weekWindowEnd, hasDateWindow, DATE_WINDOW_EXTRA_DAYS } from "./jobDateWindow";
 
@@ -73,9 +73,12 @@ describe("Q2408 job date window", () => {
     expect(view).toMatch(/\(\(COALESCE\(date_window_end, date_needed\) \+ start_time\) AT TIME ZONE/);
   });
 
-  it("the signed-in jobs reads name the column (granted in the migration)", async () => {
-    const { JOB_READABLE_COLUMN_LIST } = await import("@/lib/jobColumns");
-    expect(JOB_READABLE_COLUMN_LIST as readonly string[]).toContain("date_window_end");
+  it("the column is read AHEAD of db-deploy (granted in the migration; moves into the readable list once live)", async () => {
+    const { JOB_READABLE_COLUMN_LIST, JOB_COLUMNS_AHEAD_OF_DB, BROWSE_VIEW_COLUMNS_AHEAD_OF_DB } = await import("@/lib/jobColumns");
+    // Lead review 11-04: a web build live before db-deploy must not 42703 every whole-row read.
+    expect(JOB_READABLE_COLUMN_LIST as readonly string[]).not.toContain("date_window_end");
+    expect(JOB_COLUMNS_AHEAD_OF_DB as readonly string[]).toContain("date_window_end");
+    expect(BROWSE_VIEW_COLUMNS_AHEAD_OF_DB as readonly string[]).toContain("date_window_end");
     const mig = readFileSync("supabase/migrations/20261104073000_jobs_date_window_end.sql", "utf8");
     expect(mig).toMatch(/GRANT SELECT \(date_window_end\) ON public\.jobs TO authenticated;/);
   });

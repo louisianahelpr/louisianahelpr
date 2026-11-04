@@ -909,9 +909,6 @@
     "src/pages/posts/postedJobs/applicantsPanel/ApplicantsStates.tsx": {
       "button": 1
     },
-    "src/pages/profile/AutoTip.tsx": {
-      "input": 2
-    },
     "src/pages/profile/BlockedPeopleTab.tsx": {
       "button": 1
     },

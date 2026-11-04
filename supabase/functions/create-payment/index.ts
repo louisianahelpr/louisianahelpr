@@ -3415,6 +3415,8 @@ serve(async (req) => {
             setupFeeCents,
             alreadyRefundedCents,
             taxCents: await chargeTaxCentsFor(stripe, pi),
+            // Re-review of 04ea182985: a gift-reduced job-site charge keeps tax at the job's own rate.
+            taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null),
           });
           const nonRefundableCents = cancelSplit.nonRefundableCents;
           const refundAmount = cancelSplit.refundCents;
@@ -4265,6 +4267,7 @@ serve(async (req) => {
               setupFeeCents: setupFeeKeptCents(job),
               alreadyRefundedCents: disputeOtherRefundedCents,
               taxCents: disputeTaxCents,
+              taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null),
             });
             // Q2082 (b): a live Helpr fault returns the card fee too (zero card
             // fee) but still keeps a first job's $2 setup fee and its tax.
@@ -4275,6 +4278,7 @@ serve(async (req) => {
               setupFeeCents: setupFeeKeptCents(job), // the $2 stays on a disputed Helpr fault too
               alreadyRefundedCents: disputeOtherRefundedCents,
               taxCents: disputeTaxCents,
+              taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null),
             });
             // A retried/double-clicked call within Stripe's ~24h key lifetime
             // returns the original refund. After key expiry, a repeat attempt
@@ -5158,6 +5162,7 @@ serve(async (req) => {
             alreadyRefundedCents: generalAlreadyRefundedCents,
             requestedCents: isPartial ? requestedCents : null,
             taxCents: generalTaxCents,
+            taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null),
           });
           // Q2082 (b): a Helpr-at-fault refund returns the CARD FEE too (the
           // Helpr is billed it after the refund), less what earlier refunds
@@ -5174,6 +5179,7 @@ serve(async (req) => {
             alreadyRefundedCents: generalAlreadyRefundedCents,
             requestedCents: null,
             taxCents: generalTaxCents,
+            taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null),
           });
           const split = helprFault && !helprFaultGone ? helprFaultSplit : generalSplit;
           if (helprFault && !helprFaultGone) helprFaultCardFeeCents = actualOrEstimatedFeeCents(pi, capturedCents);

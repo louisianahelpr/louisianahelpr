@@ -22,6 +22,7 @@
  * @mutate supabase/functions/_shared/refundAmount.ts |   const keptInBase = Math.max(0, keptCents - (captured - taxBase)); |   const keptInBase = keptCents;
  * @mutate supabase/functions/create-payment/index.ts |             alreadyRefundedCents,\n            taxCents: await chargeTaxCentsFor(stripe, pi), |             alreadyRefundedCents,
  * @mutate supabase/functions/void-cancelled-payments/index.ts |               alreadyRefundedCents: chargeRefundedCents,\n              taxCents: await chargeTaxCentsFor(stripe, pi), |               alreadyRefundedCents: chargeRefundedCents, taxCents: 0,
+ * @mutate supabase/functions/execute-dispute-split/index.ts |     taxableCents: pi ? jobSiteTaxableCents(pi.metadata as Record<string, string> \| null) : null,\n | \n
  * @mutate supabase/functions/_shared/posterCancelSplit.ts |     alreadyRefundedCents: c.alreadyRefundedCents,\n    taxCents: c.taxCents, |     alreadyRefundedCents: c.alreadyRefundedCents,
  */
 import { describe, it, expect } from "vitest";
@@ -185,11 +186,21 @@ describe("every refundToPayerCents call that prices a refund passes the charge's
     "supabase/functions/void-cancelled-payments/index.ts": 1,
   };
 
+  // Calls that keep tax but never price a gift-reduced job-site charge, so there is no taxable price to pass.
+  // EXACT both ways.
+  // @two-way src/test/refundKeepsTaxOnKeptAmounts.test.ts:expect(noTaxable).toEqual(NO_TAXABLE_NEEDED)
+  const NO_TAXABLE_NEEDED: Record<string, number> = {
+    // Off-session recurring visit charges: the card pays the whole visit (a gift-funded series has no saved card
+    // to charge), and the taxed part is priced by taxBaseCents from the visit's own Tax API transaction.
+    "supabase/functions/charge-recurring-visits/index.ts": 2,
+  };
+
   it("inventory", () => {
     const root = join(__dirname, "..", "..");
     const files = walk(join(root, "supabase", "functions")).filter((f) => !f.includes("/_shared/refundAmount.ts"));
     expect(files.length).toBeGreaterThan(200);
     const missing: Record<string, number> = {};
+    const noTaxable: Record<string, number> = {};
     let calls = 0;
     for (const f of files) {
       const src = blankComments(readFileSync(f, "utf8"));
@@ -208,6 +219,11 @@ describe("every refundToPayerCents call that prices a refund passes the charge's
           if (!/\btaxCents\s*:/.test(args)) {
             const rel = f.slice(root.length + 1);
             missing[rel] = (missing[rel] ?? 0) + 1;
+          } else if (!/\btaxableCents\s*:/.test(args)) {
+            // Re-review of 04ea182985 (A): a call that keeps tax must also take the job's taxable price, or a
+            // gift-reduced job-site charge keeps tax at tax / (card - tax), far above the job's rate.
+            const rel = f.slice(root.length + 1);
+            noTaxable[rel] = (noTaxable[rel] ?? 0) + 1;
           }
         }
         i = src.indexOf("refundToPayerCents(", j);
@@ -215,6 +231,7 @@ describe("every refundToPayerCents call that prices a refund passes the charge's
     }
     expect(calls).toBeGreaterThan(7);
     expect(missing).toEqual(NO_TAX_NEEDED);
+    expect(noTaxable).toEqual(NO_TAXABLE_NEEDED);
   });
 
   // Q2148 (1): the crew unfilled-spot refund prices with crewFeeShareReturnCents, not refundToPayerCents, so the

@@ -304,7 +304,7 @@ describe("money-reconciliation — settled jobs vs Stripe (Q50)", () => {
   // Q2082 (a), owner 2026-10-18: a refund also keeps the sales tax on what it
   // keeps (refundToPayerCents taxKeptCents), so the ceiling allows that and
   // not a cent more.
-  // @mutate supabase/functions/money-reconciliation/index.ts |             + taxOnKeptCents({ keptCents: keptBeforeTaxCents, taxCents: chargeTax, capturedCents }); |             + 0;
+  // @mutate supabase/functions/money-reconciliation/index.ts |             + taxOnKeptCents({ keptCents: keptBeforeTaxCents, taxCents: chargeTax, capturedCents, taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> \| null) }); |             + 0;
   it("a cancelled TAXED poster-fee job may keep the card fee plus the tax on it, and not a cent more (Q2082 a)", async () => {
     // $100 job + $5.70 fee + $11.05 tax = 11675 captured; Stripe's real fee 369c;
     // the tax on it ceil(369 x 1105 / 10570) = 39c.

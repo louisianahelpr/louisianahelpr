@@ -67,7 +67,7 @@ import { flatFeePercentOf } from "../_shared/helprFlatFee.ts";
 import { netUrgentFeeDollars, actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { agreedRushRefundCents } from "../_shared/refundRush.ts";
 import { setupFeeKeptCents, setupFeeKeptReason } from "../_shared/posterFees.ts";
-import { cardCostFeeCents, chargeTaxCentsFor, checkoutChargeTaxCents, refundToPayerCents } from "../_shared/refundAmount.ts";
+import { cardCostFeeCents, chargeTaxCentsFor, checkoutChargeTaxCents, jobSiteTaxableCents, refundToPayerCents } from "../_shared/refundAmount.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { writeAdminAudit } from "../_shared/adminAuditLog.ts";
 import { formatExactDollars, formatPayoutDollars, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
@@ -745,6 +745,8 @@ serve(async (req) => {
     customerFeeCents: pi ? cardCostFeeCents(job) : 0,
     setupFeeCents: pi ? setupFeeKeptCents(job) : 0,
     taxCents: chargeTaxCents,
+    // Re-review of 04ea182985: a gift-reduced job-site charge keeps tax at the job's own rate.
+    taxableCents: pi ? jobSiteTaxableCents(pi.metadata as Record<string, string> | null) : null,
   });
   const nonRefundableCents = posterBase.feeKeptCents;
   const refundableCents = posterBase.ceilingCents;

@@ -1,4 +1,4 @@
-// @mutate src/components/profile/HelperWorkPhotos.tsx | href={openableDocumentUrl(url) ?? undefined} | href={url}
+// @mutate src/components/job-card/JobCardPhotoStrip.tsx | href={openableDocumentUrl(url) ?? undefined} | href={url}
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";

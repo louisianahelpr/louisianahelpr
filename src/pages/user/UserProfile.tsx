@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { hasPerk } from "@/lib/subscriptionTiers";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -17,7 +16,6 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
-import { HelperPortfolio } from "@/components/HelperPortfolio";
 import { HelperWorkPhotos } from "@/components/profile/HelperWorkPhotos";
 import { ProfileHeaderCard } from "./ProfileHeaderCard";
 import { ProfileHeroSkeleton } from "./ProfileHeroSkeleton";
@@ -757,8 +755,10 @@ const UserProfile = () => {
                 Ungated on purpose; see HelperWorkPhotos for why. */}
             <HelperWorkPhotos urls={profile.portfolio_urls ?? []} />
 
-            {/* Portfolio — Pro+ only */}
-            {hasPerk(profile.subscription_tier, "portfolioShowcase") && <HelperPortfolio helperId={userId!} />}
+            {/* No "Work portfolio" of job proof photos (Q2026, lead decision (A) 2026-11-04):
+                proof photos live in the private proof-photos bucket, readable only by the two
+                people on the job, and are often taken inside someone's home. Recent work above
+                is the past-work grid, built from the Helpr's own uploads only. */}
 
 
           </div>

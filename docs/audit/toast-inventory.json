@@ -12366,7 +12366,7 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 483,
+      "line": 484,
       "kind": "toast.loading",
       "title": {
         "form": "literal",

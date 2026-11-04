@@ -48,6 +48,8 @@ const state = {
 // The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
 // Q2268: the bundle-request reads (no request here).
 vi.mock("@/lib/declutter/bundleRequest", async (orig) => ({ ...(await orig<object>()), fetchBundleRequests: async () => [] }));
+// Q2471: the offer box asks declutter-ai-reply for a suggested amount; no suggestion here (the box works without it).
+vi.mock("@/lib/declutter/aiReply", async (orig) => ({ ...(await orig<object>()), requestSuggestedOffer: async () => null }));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
 // Manager mode (switch mocked on here): no grants, nothing waiting, no labels.

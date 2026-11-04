@@ -122,6 +122,8 @@ const state = {
   canShipReads: 0,
 };
 
+// Q2471: the offer box asks declutter-ai-reply for a suggested amount; no suggestion here (the box works without it).
+vi.mock("@/lib/declutter/aiReply", async (orig) => ({ ...(await orig<object>()), requestSuggestedOffer: async () => null }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => (key === "declutter_seller_delivery" ? state.sellerDeliveryOn
   : key === "declutter_shipping" ? state.shipOn : state.deliveryOn) }));

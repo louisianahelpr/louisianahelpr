@@ -78,10 +78,32 @@ export const offerPushAfterAction = (): void => {
   window.dispatchEvent(ask);
 };
 
-export const recordJobActionForPermissionPrompt = (): void => {
+/**
+ * Q2003 (lead 11-04): a post hands off to Stripe Checkout (or to /payment-success for a gift-settled one) right
+ * after it is saved, so the ask fired on Post a Job was cut off by the page leaving. A post records the ask HERE
+ * instead, and the page the poster comes back to (PaymentSuccess) offers it with offerPushAskAfterPostReturn().
+ */
+export const ASK_AFTER_POST_KEY = "helpr_push_ask_after_post";
+/** A pending ask older than this (an abandoned checkout) is dropped, not shown on some later return. */
+export const ASK_AFTER_POST_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+
+/** On the page a post returns to: offer the ask the post left pending, once. True when it offered. */
+export const offerPushAskAfterPostReturn = (now: number = Date.now()): boolean => {
+  if (typeof window === "undefined") return false;
+  const at = Number(safeStorage.getItem(ASK_AFTER_POST_KEY) ?? 0);
+  if (!at) return false;
+  safeStorage.removeItem(ASK_AFTER_POST_KEY);
+  if (!Number.isFinite(at) || now - at > ASK_AFTER_POST_MAX_AGE_MS || now < at) return false;
+  window.dispatchEvent(new Event(JOB_ACTION_EVENT));
+  return true;
+};
+
+export const recordJobActionForPermissionPrompt = (opts?: { askOnReturn?: boolean }): void => {
   // Before the first-action early return: the web push ask keeps its own
   // 14-day cooldown and wants every job action (src/hooks/useWebPush.ts).
-  if (typeof window !== "undefined") {
+  // A post leaves the page at once, so its ask waits for the return (above).
+  if (opts?.askOnReturn) safeStorage.setItem(ASK_AFTER_POST_KEY, String(Date.now()));
+  else if (typeof window !== "undefined") {
     window.dispatchEvent(new Event(JOB_ACTION_EVENT));
   }
   if (hasPerformedJobAction()) return;

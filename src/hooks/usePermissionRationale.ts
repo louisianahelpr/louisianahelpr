@@ -99,6 +99,8 @@ interface State {
   open: boolean;
   kind: PermissionKind | null;
   resolve: ((granted: boolean) => void) | null;
+  /** Called once, when the dialog has actually rendered this rationale (Q2003). */
+  onShown?: (() => void) | null;
 }
 
 let externalState: State = { open: false, kind: null, resolve: null };
@@ -251,16 +253,37 @@ export function usePermissionRationale() {
  * run `run` only on a yes (inside the sheet's button tap). For asks that ARE
  * the moment to explain, such as web push after a job action (useWebPush.ts).
  */
-export function explainPermission(kind: PermissionKind, run: () => Promise<void> | void): Promise<boolean> {
-  return explainThenRun(kind, run);
+export function explainPermission(
+  kind: PermissionKind,
+  run: () => Promise<void> | void,
+  opts?: { onShown?: () => void },
+): Promise<boolean> {
+  return explainThenRun(kind, run, opts?.onShown);
+}
+
+/**
+ * Q2003: the dialog calls this once it has rendered the open rationale, so a caller can record "shown" only
+ * when it really was (a page that unloads first, as a post leaving for Stripe does, never counts as asked).
+ */
+export function __markRationaleShown(): void {
+  const fn = externalState.onShown;
+  if (!fn) return;
+  externalState.onShown = null;
+  try {
+    fn();
+  } catch (err) {
+    // The caller's bookkeeping must never break the dialog it is shown in.
+    console.warn("[permissions] onShown failed", err);
+  }
 }
 
 /** Open the explainer; on a yes, record it and run the OS call. */
-function explainThenRun(kind: PermissionKind, runNativeCall: () => Promise<void> | void): Promise<boolean> {
+function explainThenRun(kind: PermissionKind, runNativeCall: () => Promise<void> | void, onShown?: () => void): Promise<boolean> {
   return new Promise((resolve) => {
     setState({
       open: true,
       kind,
+      onShown: onShown ?? null,
       resolve: async (confirmed: boolean) => {
         if (!confirmed) {
           resolve(false);

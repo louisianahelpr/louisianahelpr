@@ -30,8 +30,9 @@ vi.mock("@/lib/nativeInit", async (importOriginal) => ({
   get isNativePlatform() { return env.native; },
 }));
 vi.mock("@/lib/nativePush", () => ({ requestPushPermission: () => requestPush() }));
+type Opts = { onShown?: () => void } | undefined;
 vi.mock("@/hooks/usePermissionRationale", () => ({
-  explainPermission: (kind: string, run: () => unknown) => explain(kind, run),
+  explainPermission: (kind: string, run: () => unknown, opts?: Opts) => explain(kind, run, opts),
 }));
 vi.mock("@/lib/pushPermissionNudge", () => ({
   waitForNoModal: async () => true,
@@ -51,7 +52,7 @@ beforeEach(() => {
 
 describe("the app asks with the sheet after a job action (Q2003)", () => {
   it("native, undecided: the notifications sheet opens and its button raises the OS prompt", async () => {
-    explain.mockImplementation(async (_k: string, run: () => Promise<void>) => { await run(); return true; });
+    explain.mockImplementation(async (_k: string, run: () => Promise<void>, opts: Opts) => { opts?.onShown?.(); await run(); return true; });
     await offerWebPushAfterJobAction();
     expect(explain).toHaveBeenCalledTimes(1);
     expect(explain.mock.calls[0][0]).toBe("notifications");
@@ -68,10 +69,19 @@ describe("the app asks with the sheet after a job action (Q2003)", () => {
   });
 
   it("native: one ask per cooldown, like the website", async () => {
-    explain.mockResolvedValue(false);
+    explain.mockImplementation(async (_k: string, _r: () => unknown, opts: Opts) => { opts?.onShown?.(); return false; });
     await offerWebPushAfterJobAction();
     await offerWebPushAfterJobAction();
     expect(explain).toHaveBeenCalledTimes(1);
+  });
+
+  // @mutate src/hooks/useWebPush.ts |     { onShown: () => markAskShown("native") }, |     { onShown: () => {} }, markAskShown("native"),
+  it("native: a sheet that never rendered does not spend the cooldown (Q2003, lead 11-04)", async () => {
+    explain.mockImplementation(async () => false); // dismissed before it ever rendered: onShown never ran
+    await offerWebPushAfterJobAction();
+    expect(localStorage.getItem(WEB_PUSH_ASKED_KEY)).toBeNull();
+    await offerWebPushAfterJobAction();
+    expect(explain).toHaveBeenCalledTimes(2);
   });
 
   it("the floating toast path is gone", () => {

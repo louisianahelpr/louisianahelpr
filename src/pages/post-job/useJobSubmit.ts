@@ -956,8 +956,9 @@ export function useJobSubmit(params: UseJobSubmitParams) {
 
     // First job action recorded — gates the deferred notification
     // permission prompt (`useNotificationPermissionPrompt`). Idempotent
-    // and fast, safe to call on every post.
-    recordJobActionForPermissionPrompt();
+    // and fast, safe to call on every post. Every post leaves for Checkout or
+    // /payment-success next, so the notifications ask waits for that page (Q2003).
+    recordJobActionForPermissionPrompt({ askOnReturn: true });
 
     // Funnel: track job posted (and first ever for activation)
     track(AhaEvent.JobPosted, {

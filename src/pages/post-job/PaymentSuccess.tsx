@@ -24,6 +24,7 @@ import { report } from "@/lib/errorLogger";
 import { trackFirstPaymentCollected } from "./firstPaymentCollected";
 import { isJobPoster } from "@/lib/checkoutReturnOwner";
 import { safeStorage } from "@/lib/safeStorage";
+import { offerPushAskAfterPostReturn } from "@/hooks/useNotificationPermissionPrompt";
 import { dropDraftPaidAs } from "@/hooks/useDraftJob";
 // The paid-amount sentence (formatPriceExact: a sum ACTUALLY SITTING IN ESCROW) lives in PaidAmountLine.
 import { PaidAmountLine } from "./PaidAmountLine";
@@ -270,6 +271,12 @@ const PaymentSuccess = () => {
     // that previously stopped at job_posted with no record of payment.
     track(AhaEvent.PaymentMade, { job_id: jobId, ...ppoProps });
   }, [searchParams]);
+
+  // Q2003 (lead 11-04): the notifications ask a post left pending (it left Post a Job for Checkout at once) is
+  // offered here, on the page the poster comes back to. The sheet waits for any open dialog (waitForNoModal).
+  useEffect(() => {
+    offerPushAskAfterPostReturn();
+  }, []);
 
   // First-payment aha (Q2114, Q2115): once, and only after the lookup has READ this job as paid (the webhook often
   // lands after the first read, which is what the poll waits for), for the same well-formed checkout return.

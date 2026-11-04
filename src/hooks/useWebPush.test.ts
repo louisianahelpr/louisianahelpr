@@ -34,8 +34,9 @@ vi.mock("@/lib/webPushSupport", async (importOriginal) => ({
   hasWebPushApis: () => env.apis,
   isIosOutsideHomeScreen: () => env.iosTab,
 }));
+type Opts = { onShown?: () => void } | undefined;
 vi.mock("@/hooks/usePermissionRationale", () => ({
-  explainPermission: (kind: string, run: () => unknown) => explain(kind, run),
+  explainPermission: (kind: string, run: () => unknown, opts?: Opts) => explain(kind, run, opts),
 }));
 vi.mock("@/lib/pushPermissionNudge", () => ({ waitForNoModal: async () => true }));
 const tracked = vi.hoisted(() => [] as Array<[string, Record<string, unknown>]>);
@@ -73,7 +74,9 @@ beforeEach(() => {
     order.push("subscribe");
     return "saved";
   });
-  explain.mockReset().mockImplementation(async (_k: string, run: () => unknown) => {
+  // The sheet renders (onShown), then its button is tapped.
+  explain.mockReset().mockImplementation(async (_k: string, run: () => unknown, opts: Opts) => {
+    opts?.onShown?.();
     await run();
     return true;
   });
@@ -149,7 +152,10 @@ describe("PUSH-REACH: the ask is measured and offered after a sent message", () 
   });
   it("records a Not now on the in-app sheet", async () => {
     setPermission("default");
-    explain.mockImplementationOnce(async () => false);
+    explain.mockImplementationOnce(async (_k: string, _r: () => unknown, opts: Opts) => {
+      opts?.onShown?.();
+      return false;
+    });
     await offerWebPushAfterJobAction();
     expect(steps()).toEqual([{ kind: "ask", step: "shown" }, { kind: "ask", step: "not_now" }]);
   });
@@ -166,5 +172,30 @@ describe("SessionManager mounts both halves", () => {
     const src = readFileSync("src/components/SessionManager.tsx", "utf8");
     expect(src).toMatch(/^\s*useWebPushBootSync\(user\?\.id\);/m);
     expect(src).toMatch(/^\s*useWebPushAskAfterJobAction\(\);/m);
+  });
+});
+
+// Q2003 (lead 11-04): the cooldown starts when the sheet is on screen, not when it was asked for. A page that leaves
+// first (a post handing off to Stripe Checkout) never showed it, so the member is asked again next time.
+// @mutate src/hooks/useWebPush.ts |   const onShown = () => markAskShown(kind); |   const onShown = () => {}; markAskShown(kind);
+describe("Q2003: the 14-day cooldown is stamped only once the sheet showed", () => {
+  it("a sheet that never rendered records nothing, and the next action asks again", async () => {
+    setPermission("default");
+    let leave: (v: boolean) => void = () => {};
+    explain.mockImplementationOnce(() => new Promise<boolean>((r) => { leave = r; })); // the page left before it rendered
+    const pending = offerWebPushAfterJobAction();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(explain).toHaveBeenCalledOnce();
+    expect(localStorage.getItem(WEB_PUSH_ASKED_KEY)).toBeNull();
+    expect(tracked.filter(([e]) => e === "web_push_ask")).toEqual([]);
+    expect(webPushAskKind()).toBe("ask");
+    leave(false);
+    await pending;
+  });
+  it("a sheet that rendered starts the cooldown", async () => {
+    setPermission("default", "denied");
+    await offerWebPushAfterJobAction();
+    expect(Number(localStorage.getItem(WEB_PUSH_ASKED_KEY))).toBeGreaterThan(0);
+    expect(webPushAskKind()).toBeNull();
   });
 });

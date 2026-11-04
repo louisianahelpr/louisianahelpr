@@ -17,26 +17,26 @@ import { jobDayLabel, jobLastDay, weekWindowEnd, hasDateWindow, DATE_WINDOW_EXTR
 
 describe("Q2408 job date window", () => {
   it("a one-day job reads as its day; a window reads as a window", () => {
-    expect(jobDayLabel({ date_needed: "2026-11-04" })).toBe("Wed, Nov 4");
-    expect(jobDayLabel({ date_needed: "2026-11-04", date_window_end: null })).toBe("Wed, Nov 4");
-    expect(jobDayLabel({ date_needed: "2026-11-04", date_window_end: "2026-11-10" })).toBe("Any day Nov 4-10");
-    expect(jobDayLabel({ date_needed: "2026-10-30", date_window_end: "2026-11-05" })).toBe("Any day Oct 30-Nov 5");
+    expect(jobDayLabel({ date_needed: "2037-11-04" })).toBe("Wed, Nov 4");
+    expect(jobDayLabel({ date_needed: "2037-11-04", date_window_end: null })).toBe("Wed, Nov 4");
+    expect(jobDayLabel({ date_needed: "2037-11-04", date_window_end: "2037-11-10" })).toBe("Any day Nov 4-10");
+    expect(jobDayLabel({ date_needed: "2037-10-30", date_window_end: "2037-11-05" })).toBe("Any day Oct 30-Nov 5");
     expect(jobDayLabel({ date_needed: null })).toBe("");
   });
 
   it("an end not after the first day is not a window", () => {
-    expect(hasDateWindow({ date_needed: "2026-11-04", date_window_end: "2026-11-04" })).toBe(false);
-    expect(jobDayLabel({ date_needed: "2026-11-04", date_window_end: "2026-11-01" })).toBe("Wed, Nov 4");
+    expect(hasDateWindow({ date_needed: "2037-11-04", date_window_end: "2037-11-04" })).toBe(false);
+    expect(jobDayLabel({ date_needed: "2037-11-04", date_window_end: "2037-11-01" })).toBe("Wed, Nov 4");
   });
 
   it("the window is the first day plus 6 (7 days), across a month end", () => {
-    expect(weekWindowEnd("2026-11-04")).toBe("2026-11-10");
-    expect(weekWindowEnd("2026-12-28")).toBe("2027-01-03");
+    expect(weekWindowEnd("2037-11-04")).toBe("2037-11-10");
+    expect(weekWindowEnd("2037-12-28")).toBe("2038-01-03");
   });
 
   it("the last day is the window's end, else the one day", () => {
-    expect(jobLastDay({ date_needed: "2026-11-04", date_window_end: "2026-11-10" })).toBe("2026-11-10");
-    expect(jobLastDay({ date_needed: "2026-11-04" })).toBe("2026-11-04");
+    expect(jobLastDay({ date_needed: "2037-11-04", date_window_end: "2037-11-10" })).toBe("2037-11-10");
+    expect(jobLastDay({ date_needed: "2037-11-04" })).toBe("2037-11-04");
     expect(jobLastDay({})).toBeNull();
   });
 

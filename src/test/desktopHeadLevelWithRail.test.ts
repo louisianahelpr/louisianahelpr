@@ -39,7 +39,9 @@ const num = (re: RegExp, src: string, what: string) => {
 describe("the desktop page head is level with the rail (owner 2026-10-28)", () => {
   const rail = code("src/components/DesktopSidebarNav.tsx");
   const logoBox = rail.match(/<div className="px-5 pt-(\d+(?:\.\d+)?) pb-(\d+(?:\.\d+)?) shrink-0">\s*<HelprMark to="\/home" size="md" emblemOnly \/>/);
-  const createH = num(/data-testid="sidebar-create"[\s\S]{0,400}?\bh-(\d+)\b/, rail, "Create's height");
+  // Create is the shared Button (Q2709, B119 11-04): its height is its named size's h- class in buttonVariants.
+  const createSize = rail.match(/size="(\w+)"\s+data-testid="sidebar-create"/)?.[1] ?? "NaN";
+  const createH = num(new RegExp(`\\b${createSize}: "h-(\\d+) `), code("src/components/ui/button.tsx"), "Create's height");
   const logoTop = tw(logoBox?.[1] ?? "NaN");
   const logoBottomPad = tw(logoBox?.[2] ?? "NaN");
   // The emblem's link box is 44px (HelprMark's min-h-11: the tap floor).

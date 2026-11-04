@@ -40,6 +40,24 @@ export async function commitJobSiteTax(args: {
   // A $0 figure reports nothing (Stripe Tax has no tax to record).
   if (!Number.isInteger(cents) || cents <= 0) return "none";
   if (md.tax_transaction_id) return "already";
+  // Re-review of 49a8653d81 (C, HIGH): a card HOLD captured for less than it held (a late cancel that captures
+  // only the fee) would commit the FULL calculation's tax, and the uncaptured rest is released, never refunded,
+  // so no refund event ever reverses it: tax reported on money never collected. Not committed; a person records
+  // the tax on what was captured.
+  const received = pi.amount_received;
+  if (typeof received === "number" && typeof pi.amount === "number" && received < pi.amount) {
+    console.error(`[stripe-webhook] job-site tax NOT committed for ${pi.id}: captured ${received} of ${pi.amount}`);
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "warning",
+      title: "Job sales tax not recorded: the hold was captured only in part",
+      message: `Job ${md.job_id}'s card hold (PaymentIntent ${pi.id}) was captured for $${(received / 100).toFixed(2)} of $${(pi.amount / 100).toFixed(2)}. Its Stripe Tax calculation ${calc} prices the whole $${(cents / 100).toFixed(2)} tax, so it was NOT committed (the uncaptured part is released, and no refund would ever reverse its tax). Record by hand only the tax inside what was captured, and set metadata.tax_transaction_id on the PaymentIntent.`,
+      fields: { job_id: md.job_id, payment_intent: pi.id, calculation: calc, tax_cents: String(cents), captured_cents: String(received), held_cents: String(pi.amount) },
+      oncePerDayKey: `job-site-tax-partial:${pi.id}`,
+      seed: seed === true,
+    });
+    return "failed_paged";
+  }
   let txId: string;
   try {
     const tx = await stripe.tax.transactions.createFromCalculation(

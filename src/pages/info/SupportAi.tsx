@@ -24,6 +24,24 @@ export async function askSupportAi(subject: string, message: string): Promise<st
   }
 }
 
+/**
+ * Q2471 (4): the same ask, telling "no answer in the Help Center" (null) apart from "the helper could not be
+ * reached" (an error, a rate limit, switched off). Never throws.
+ */
+export async function askSupportAiOutcome(subject: string, message: string): Promise<{ answer: string | null; unreachable: boolean }> {
+  try {
+    const { data, error } = await supabase.functions.invoke("support-ai-answer", {
+      body: { mode: "ask", subject, message },
+    });
+    if (error) return { answer: null, unreachable: true };
+    const r = (data ?? {}) as { answered?: boolean; answer?: string };
+    return { answer: r.answered === true && typeof r.answer === "string" && r.answer.trim() ? r.answer.trim() : null, unreachable: false };
+  } catch {
+    // A network failure: the helper could not be reached.
+    return { answer: null, unreachable: true };
+  }
+}
+
 /** The suggested answer, with "This answered my question" and "Still send to the team". */
 export function AiSuggestion({ suggestion, sending, onAnswered, onSend }: {
   suggestion: string;

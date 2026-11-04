@@ -845,6 +845,44 @@ export const CORE_STALE = 60 * 1000;
  */
 const ACTIVITY_REFETCH_ON_MOUNT = "always" as const;
 
+/**
+ * ONE debounced invalidation of the whole activity cache per QueryClient, shared by every mounted useActivityData.
+ * /profile (YourActivity) and /home (useHomeSummary) mount the hook TWICE (posted + applied), and each instance's
+ * channels hear the same realtime event. With a debounce per instance, one event invalidated ["activity"] twice ~0 ms
+ * apart; the second invalidation cancelled the first refetch and sent get_my_activity_cores again (the posted part had
+ * already taken the first read), so every event cost two cores reads (privacy-journey 41792903580: x7 over ~4 cold
+ * loads). Now the instances' events land in one 800 ms window and one invalidation.
+ */
+const ACTIVITY_INVALIDATE_DEBOUNCE_MS = 800;
+const activityInvalidateTimers = new WeakMap<QueryClient, { timer: ReturnType<typeof setTimeout> | null; holders: number }>();
+
+export function scheduleActivityInvalidate(queryClient: QueryClient): void {
+  const slot = activityInvalidateTimers.get(queryClient) ?? { timer: null, holders: 0 };
+  activityInvalidateTimers.set(queryClient, slot);
+  if (slot.timer) clearTimeout(slot.timer);
+  slot.timer = setTimeout(() => {
+    slot.timer = null;
+    queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
+  }, ACTIVITY_INVALIDATE_DEBOUNCE_MS);
+}
+
+/** An unmounting instance drops a pending invalidation only when no other instance is still mounted. */
+export function holdActivityInvalidate(queryClient: QueryClient): void {
+  const slot = activityInvalidateTimers.get(queryClient) ?? { timer: null, holders: 0 };
+  slot.holders += 1;
+  activityInvalidateTimers.set(queryClient, slot);
+}
+
+export function cancelActivityInvalidate(queryClient: QueryClient): void {
+  const slot = activityInvalidateTimers.get(queryClient);
+  if (!slot) return;
+  slot.holders = Math.max(0, slot.holders - 1);
+  if (slot.holders === 0 && slot.timer) {
+    clearTimeout(slot.timer);
+    slot.timer = null;
+  }
+}
+
 /** Warm BOTH tabs' core caches (the Dashboard idle prefetch). The detail
     queries are deliberately NOT prefetched — they are keyed on the core data,
     so they cannot even be issued until the core has landed, and nothing on a
@@ -960,13 +998,8 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
   // instead of firing every query in the family per event.
   useEffect(() => {
     if (!userId) return;
-    let debounce: ReturnType<typeof setTimeout> | null = null;
-    const invalidate = () => {
-      if (debounce) clearTimeout(debounce);
-      debounce = setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
-      }, 800);
-    };
+    holdActivityInvalidate(queryClient);
+    const invalidate = () => scheduleActivityInvalidate(queryClient);
     // A failed channel is a SILENT failure — the app renders fine, it just
     // never hears about anyone else's writes.
     //
@@ -1026,7 +1059,7 @@ export function useActivityData(user: SupaUser | null, tab: "posted" | "applied"
       { name: "activity-reviews", onRecovered: invalidate },
     );
     return () => {
-      if (debounce) clearTimeout(debounce);
+      cancelActivityInvalidate(queryClient);
       coreSub.close();
       reviewsSub.close();
       for (const u of sharedUnsubs) u();

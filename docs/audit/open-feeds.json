@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-04T12:47Z",
+  "measured_at": "2026-11-04T13:10Z",
   "issues": {
     "readable": true,
     "open": [
@@ -715,19 +715,19 @@
         "issue": 4020
       },
       {
-        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: declutter-money returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "aeedd249577285330a97e04195cee7d8",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: refund-request-sweep returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: declutter-money returned 502",
         "issue": null
       },
       {

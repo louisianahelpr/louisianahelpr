@@ -42,7 +42,7 @@ interface UnsettledRow {
   decided_at: string | null;
   execution_status: string | null;
   execution_error: string | null;
-  jobs: { title: string | null; budget: number | null; payment_status: string | null } | null;
+  jobs: { title: string | null; budget: number | null; payment_status: string | null; is_seed?: boolean | null } | null;
 }
 
 export const UnsettledSettlements = () => {
@@ -51,7 +51,7 @@ export const UnsettledSettlements = () => {
     fallback: [],
     fetcher: async () => {
       const res = await supabase.from("disputes")
-        .select("id, job_id, decided_at, execution_status, execution_error, jobs:job_id ( title, budget, payment_status )")
+        .select("id, job_id, decided_at, execution_status, execution_error, jobs:job_id ( title, budget, payment_status, is_seed )")
         .eq("status", "decided")
         // NULL is admitted alongside 'pending': `execution_status <> 'executed'`
         // is NULL-blind in SQL, and a legacy row that the 20260907194838
@@ -64,7 +64,8 @@ export const UnsettledSettlements = () => {
       if (res.error && ["42703", "PGRST205", "42P01"].includes((res.error as { code?: string }).code ?? "")) {
         return [];
       }
-      return (unwrap(res) ?? []) as UnsettledRow[];
+      // Owner 2026-11-04: a test job's settlement never shows on a real admin screen.
+      return ((unwrap(res) ?? []) as UnsettledRow[]).filter((r) => r.jobs?.is_seed !== true);
     },
   });
 

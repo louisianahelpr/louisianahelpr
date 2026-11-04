@@ -99,7 +99,7 @@ export function SectionsShowcase() {
         data-section={s.key}
         data-soon={soon ? "true" : "false"}
       >
-        <Icon className="w-6 h-6" strokeWidth={1.6} aria-hidden style={{ color: "var(--lp-action-strong)" }} />
+        <Icon className="w-6 h-6" strokeWidth={1.5} aria-hidden style={{ color: "var(--lp-action-strong)" }} />
         <h3 className="text-ds-20 font-bold tracking-tight mt-2">{s.navLabel}</h3>
         <p className="text-ds-15 leading-relaxed" style={{ color: "var(--lp-body)" }}>
           {COPY[s.key]}

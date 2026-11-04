@@ -265,6 +265,8 @@ export class RequestMeter {
     this.total = 0;
     this.byClass = {};
     this.signIns = 0;
+    /** Password grants a context declared a RE-AUTH (`__requestMeterReauth`): counted in total, never as sign-ins. */
+    this.reAuths = 0;
     this.duplicates = 0;
     this.tests = 0;
     /** requests per wall-clock minute (epoch minute -> count), merged across workers later */
@@ -386,7 +388,7 @@ export class RequestMeter {
    * request. `seen` scopes duplicate detection: one map per BrowserContext, so
    * two accounts fetching the same URL are not counted as a duplicate.
    */
-  record(url, method, now = Date.now(), seen = this.lastSeen) {
+  record(url, method, now = Date.now(), seen = this.lastSeen, { reauth = false } = {}) {
     const cls = classify(url);
     if (!cls) return null;
     this.total++;
@@ -396,7 +398,10 @@ export class RequestMeter {
     this.byShape[shape] = (this.byShape[shape] || 0) + 1;
     const minute = Math.floor(now / 60_000);
     this.minutes[minute] = (this.minutes[minute] || 0) + 1;
-    if (isSignIn(url, method)) this.signIns++;
+    if (isSignIn(url, method)) {
+      if (reauth) this.reAuths++;
+      else this.signIns++;
+    }
     if (method === "GET" && cls !== "realtime") {
       const key = requestKey(method, url);
       const prev = seen.get(key);
@@ -422,7 +427,10 @@ export class RequestMeter {
     // `__requestMeterSkip`; those requests never reached Supabase.
     context.on("request", (req) => {
       if (context.__requestMeterSkip?.(req)) return;
-      this.record(req.url(), req.method(), Date.now(), seen);
+      // A context may also say a password grant is a RE-AUTH the app asked for (the delete-account "is it really
+      // you?" step, A3-I5, owner 2026-10-29), not a sign-in: it still counts toward total, never toward signIns,
+      // so the signIns budget stays 0 for any sign-in nobody expected.
+      this.record(req.url(), req.method(), Date.now(), seen, { reauth: !!context.__requestMeterReauth?.(req) });
     });
     context.on("page", (page) => this.pacePage(page));
     for (const page of context.pages()) this.pacePage(page);
@@ -484,6 +492,7 @@ export class RequestMeter {
       total: this.total,
       byClass: this.byClass,
       signIns: this.signIns,
+      reAuths: this.reAuths,
       duplicates: this.duplicates,
       tests: this.tests,
       minutes: this.minutes,

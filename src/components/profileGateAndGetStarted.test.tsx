@@ -13,7 +13,8 @@
  * - The public top bar is ONE bar on every page, the landing included (owner,
  *   2026-10-21): signed out it is "Jobs | Log in · Join free", Jobs opening the
  *   job list (/browse) and Join free the sign-up (/signup), on every page.
- *   "Get started" and "How it works" are gone.
+ *   "Get started" and "How it works" are gone. Owner 11-04 (Builder 115):
+ *   Declutter joins the bar after Jobs so guests can browse it (/declutter).
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -39,7 +40,7 @@ describe("profile photo and phone are optional", () => {
   });
 });
 
-describe("the public top bar: Jobs | Log in · Join free on every page", () => {
+describe("the public top bar: Jobs | Declutter | Log in · Join free on every page", () => {
   // Every public page the bar shows on, the landing (its own `landing` layout) included.
   const PAGES: { path: string; landing: boolean }[] = [
     { path: "/", landing: true },
@@ -54,14 +55,14 @@ describe("the public top bar: Jobs | Log in · Join free on every page", () => {
     unmount();
     return links;
   };
-  it.each(PAGES)("$path: the logo, then Jobs (/browse), Log in (/login), Join free (/signup)", ({ path, landing }) => {
+  it.each(PAGES)("$path: the logo, then Jobs (/browse), Declutter (/declutter), Log in (/login), Join free (/signup)", ({ path, landing }) => {
     const links = barLinks(path, landing).filter(([, href]) => href !== "/");
-    expect(links).toEqual([["Jobs", "/browse"], ["Log in", "/login"], ["Join free", "/signup"]]);
+    expect(links).toEqual([["Jobs", "/browse"], ["Declutter", "/declutter"], ["Log in", "/login"], ["Join free", "/signup"]]);
   });
   it("no page's bar says Get started or How it works, and the landing's bar is the same bar", () => {
     expect(PAGES.length).toBeGreaterThan(3);
     const bars = PAGES.map(({ path, landing }) => JSON.stringify(barLinks(path, landing)));
-    for (const b of bars) expect(b).not.toMatch(/Get started|How it works|Declutter/);
+    for (const b of bars) expect(b).not.toMatch(/Get started|How it works/);
     expect(new Set(bars).size).toBe(1);
   });
 });

@@ -338,14 +338,18 @@ export async function reverseVisitTaxForRefund(args: {
     const reference = `refund:${refundId}`;
     let reversalId: string | null = null;
     try {
+      // Q1912 (Stripe TEST, 2026-11-04, Actions runs 41870316864 + 41871055112): a mode-full reversal can never be
+      // undone ("You cannot reverse the transaction ... because it's a full reversal of an earlier transaction") and
+      // leaves the original unreversable ("... because it has been fully reversed"), so a refund that later FAILS
+      // could not have its reversal undone and a re-issued refund could not be reversed again. A whole-total refund
+      // is therefore a PARTIAL flat reversal of the whole total: Stripe accepts its undo (a full reversal of that
+      // reversal) and a second partial on the original afterwards.
       const rev = await stripe.tax.transactions.createReversal(
-        full
-          ? { mode: "full", original_transaction: txId, reference, metadata: { refund_id: refundId, charge_id: charge.id } }
-          : { mode: "partial", flat_amount: -shareCents, original_transaction: txId, reference, metadata: { refund_id: refundId, charge_id: charge.id } },
+        { mode: "partial", flat_amount: -(full ? txTotalCents : shareCents), original_transaction: txId, reference, metadata: { refund_id: refundId, charge_id: charge.id } },
         { idempotencyKey: `visit-tax-reversal:${refundId}` },
       );
       reversalId = (rev as { id?: string } | null)?.id ?? null;
-      logStep("Recurring-visit tax reversed for a refund", { txId, refundId, mode: full ? "full" : "partial", shareCents, reversalId });
+      logStep("Recurring-visit tax reversed for a refund", { txId, refundId, mode: "partial", whole: full, shareCents, reversalId });
       if (outcome === "none") outcome = "reversed";
     } catch (e) {
       const msg = caughtMessage(e);
@@ -362,7 +366,7 @@ export async function reverseVisitTaxForRefund(args: {
         kind: "money_at_risk",
         severity: "warning",
         title: "Refunded recurring visit: sales tax NOT reversed in Stripe Tax",
-        message: `Refund ${refundId} on charge ${charge.id} returned $${formatExactDollars(shareCents / 100)} of the visit's $${formatExactDollars(txTotalCents / 100)} labor and tax, but reversing Stripe Tax transaction ${txId} for it failed (${msg}). First look in Stripe Tax for a reversal with reference ${reference} (another delivery may be making it: an "idempotency key in use" error means exactly that); only if there is none, reverse $${formatExactDollars(shareCents / 100)} by hand (Stripe Tax > Transactions > ${txId} > Reverse${full ? ", full" : ", partial"}) so it is not reported as collected. ${handInstruction(piId, refundId)}.`,
+        message: `Refund ${refundId} on charge ${charge.id} returned $${formatExactDollars(shareCents / 100)} of the visit's $${formatExactDollars(txTotalCents / 100)} labor and tax, but reversing Stripe Tax transaction ${txId} for it failed (${msg}). First look in Stripe Tax for a reversal with reference ${reference} (another delivery may be making it: an "idempotency key in use" error means exactly that); only if there is none, reverse $${formatExactDollars((full ? txTotalCents : shareCents) / 100)} by hand (Stripe Tax > Transactions > ${txId} > Reverse, partial, never full: a full reversal can never be undone) so it is not reported as collected. ${handInstruction(piId, refundId)}.`,
         fields: { "Tax transaction": txId, Refund: refundId, Charge: charge.id, "Payment Intent": piId },
         oncePerDayKey: `visit-tax-reversal:${refundId}`,
       });

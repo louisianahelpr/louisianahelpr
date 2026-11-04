@@ -1153,6 +1153,9 @@ export const EXPLORE_CREDITED: readonly string[] = [
   // Split out of LogisticsSection (Builder 2f s8, friction 4): the same screen-4 address box, reached by the same explore pass.
   "src/components/postjob/AddressBlock.tsx",
   "src/components/postjob/BudgetSection.tsx",
+  // Split out of LogisticsSection (Lander 65, 11-04): the Group job card's helpers-needed stepper on the same
+  // When-and-where screen, reached by the same explore pass.
+  "src/components/postjob/GroupJobCard.tsx",
   "src/components/postjob/LogisticsSection.tsx",
   "src/components/profile/SecurityTab.tsx",
   "src/pages/profile/giftCards/RecipientPicker.tsx",

@@ -19,7 +19,7 @@ import { LandingProof } from "./LandingProof";
  */
 const LIVE_JOBS_LIMIT = 4;
 /** One quiet retry before the failed state (a phone's network blip). */
-export const LIVE_JOBS_RETRY_MS = 1500;
+const LIVE_JOBS_RETRY_MS = 1500;
 
 const LIVE_JOBS_SELECT =
   "id, title, budget, date_needed, parish, category, pricing_mode, urgent_fee, helpers_needed, is_group_job, helper_fee_flat_cents, helper_fee_percent";

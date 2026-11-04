@@ -685,7 +685,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // BUYER who blocked the seller now reads 'buyer_cancelled' (keep_card_fee: refund less the card fee) instead of
       // 'order_closed' (we paid it), after seller_backed_out and seller_out, as on an open checkout; the buyer's notice
       // no longer says "every cent" then. No other reason, amount or fee changed.
-      declutter_mark_order_paid: "20261103173111_declutter_late_payment_buyer_block.sql f6dcccbe0d88152b",
+      declutter_mark_order_paid: "20261103173111_declutter_late_payment_buyer_block.sql 6ef5c4587136f354",
       // Owner 11-01 (B103, 20261101181129; lh-money-escrow via the lead): the giver's pick turns the asked time into a
       // paid FREE order ($0, card_fee_cents = 0, no payment) with its booking; it records no refund and moves no money.
       // A3-57 (20261102011547, Builder 125; re-pinned by Builder 151 after a line diff against 20261101181129): ONE

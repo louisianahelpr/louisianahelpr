@@ -80,6 +80,7 @@ export const NOT_STORAGE_COLUMNS = {
   "declutter_wanted.photo_added_at": "a timestamp: when the newest photo was added (20261030225143), not a file reference",
   "declutter_wanted.photos_cleared": "a subset of declutter_wanted.photo_paths, the checked column and the whole list: marks which of its paths a check passed (20261030225143); never read as a file to serve on its own",
   "declutter_wanted.photos_held": "a subset of declutter_wanted.photo_paths, the checked column and the whole list: marks which of its paths a check flagged (20261030225143); never read as a file to serve on its own",
+  "shipping_return_labels.label_url": "train 7 (20261103212046): the EasyPost-hosted https URL of a bought test-mode return label (CHECK label_url LIKE 'https://%'), not an object in our storage",
   "shipments.label_path": "Shipping S1 (20261020024605): no rows and no writer until the S3 label worker, which picks the private label bucket and moves this column to STORAGE_REFERENCE_COLUMNS (docs/specs/shipping-draft.md 9.3, Q2259)",
   "declutter_photo_purge_queue.storage_path": "a queued object the declutter-photo-purge function DELETES (server-only queue, 20261101054258): a detached photo path waiting to stop existing, never one the app serves",
   "rental_photo_purge_queue.storage_path": "a queued object the listing-photo-purge cron DELETES (server-only queue, 20261019071203): a path waiting to stop existing, never one the app serves",

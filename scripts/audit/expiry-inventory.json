@@ -7,7 +7,8 @@
       "label": "SSL certificate www.louisianahelpr.com",
       "env": [],
       "hosts": ["www.louisianahelpr.com"],
-      "sourceOfTruth": "TLS handshake to www.louisianahelpr.com:443 (Vercel-issued, auto-renewed)",
+      "sourceOfTruth": "TLS handshake to www.louisianahelpr.com:443 (Vercel-issued, auto-renewed). Vercel renews its 90-day Let's Encrypt certificate itself about 30 days before expiry, so a 30-day warning fired on every certificate (Q2715: ledger 8114e0acbcb0, 7 sightings, the current one issued 2026-09-05, ends 2026-12-04); it alarms at 14 days, when a renewal that is still missing has failed.",
+      "warnDays": 14,
       "read": { "method": "tls", "host": "www.louisianahelpr.com" },
       "ciReadable": true
     },
@@ -16,7 +17,8 @@
       "label": "SSL certificate louisianahelpr.com",
       "env": [],
       "hosts": ["louisianahelpr.com"],
-      "sourceOfTruth": "TLS handshake to louisianahelpr.com:443 (Vercel-issued, auto-renewed)",
+      "sourceOfTruth": "TLS handshake to louisianahelpr.com:443 (Vercel-issued, auto-renewed). Same 14-day rule as ssl-www (Q2715).",
+      "warnDays": 14,
       "read": { "method": "tls", "host": "louisianahelpr.com" },
       "ciReadable": true
     },

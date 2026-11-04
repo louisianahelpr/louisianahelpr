@@ -248,6 +248,21 @@ describe("BrowseMap clusters that can't be split (NIGHT-JOBSMA5-1)", () => {
     return { el, map, zoomsBefore, onJobAction };
   }
 
+  // Q2019 (owner D7, "grouped pins"): every job pin joins the ONE MapKit cluster group, so pins close together
+  // collapse into the branded count bubble instead of stacking.
+  // @mutate src/components/BrowseMap.tsx |           clusteringIdentifier: "browse-job", |           clusteringIdentifier: undefined,
+  it("every job pin is grouped: all pins share the browse-job cluster and the bubble counts them", async () => {
+    rpcResolver.value = [makeJob(1, { latitude: 30.45, longitude: -91.17 }), makeJob(2, { latitude: 30.46, longitude: -91.18, title: "Mow the back lawn" })];
+    const { el } = await pressCluster();
+    const map = mapInstances[mapInstances.length - 1];
+    const calls = map.addAnnotations.mock.calls;
+    const pins = calls[calls.length - 1]?.[0] as Array<{ options?: { clusteringIdentifier?: string } }>;
+    expect(pins.length).toBeGreaterThan(1);
+    expect(pins.every((p) => p.options?.clusteringIdentifier === "browse-job")).toBe(true);
+    expect(el.getAttribute("aria-label")).toMatch(/^2 jobs in this area/);
+    el.remove();
+  });
+
   it("jobs on one rounded point: the press lists them, each opens its job, and nothing zooms", async () => {
     rpcResolver.value = [makeJob(1, { latitude: 30.45, longitude: -91.17 }), makeJob(2, { latitude: 30.45, longitude: -91.17, title: "Mow the back lawn" })];
     const { el, map, zoomsBefore, onJobAction } = await pressCluster();

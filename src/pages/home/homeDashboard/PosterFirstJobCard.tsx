@@ -31,11 +31,10 @@ export function posterFirstJobState(jobs: { helper_id: string | null; status: st
  * a newcomer). Never role-based: any member who posted sees it, whatever else they do.
  * Guard: src/test/posterFirstJobCard.test.tsx.
  */
-export function PosterFirstJobCard({ userId }: { userId: string | undefined }) {
-  const navigate = useNavigate();
-  const { data } = useQuery({
+export function usePosterFirstJob(userId: string | undefined, enabled = true) {
+  return useQuery({
     queryKey: ["home", "poster-first-job", userId],
-    enabled: !!userId,
+    enabled: !!userId && enabled,
     staleTime: 60_000,
     queryFn: async () =>
       posterFirstJobState(
@@ -44,6 +43,11 @@ export function PosterFirstJobCard({ userId }: { userId: string | undefined }) {
         ) ?? [],
       ),
   });
+}
+
+export function PosterFirstJobCard({ userId }: { userId: string | undefined }) {
+  const navigate = useNavigate();
+  const { data } = usePosterFirstJob(userId);
   if (!data || !data.posted || data.finished) return null;
   const steps = [
     { key: "post", label: "Post your first job", done: true, go: () => navigate("/posts") },

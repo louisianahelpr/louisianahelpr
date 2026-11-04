@@ -23,17 +23,14 @@
 // Delta review (#A): "any sales tax you paid comes back" overstated it: on a
 // refund that keeps a fee, tax stays paid on what is kept (owner 10-15).
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts | the cancel screen shows exactly what you will get back before you confirm. | you get back what you paid less the card-processing fee Stripe keeps.
-// @mutate src/pages/info/helpCenter/helpCenterContent.ts | It keeps everything ${TIER_PERKS.pro.name} gives you, moves your head start | It keeps everything ${TIER_PERKS.pro.name} gives you, drops your platform fee to ${TIER_PERKS.plus.platformFeePercent}%, moves your head start
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts |  Every payout goes on the standard schedule.` |  Every payout goes on the standard schedule. Elite drops your platform fee to 8%.`
 //
-// Memberships are off for members (roadmap F4/F4a; feature_switches
-// 'memberships' = testers on prod, measured 2026-10-17), so every answer that
-// describes a plan or a paid perk must say so in plain words.
-// @mutate src/pages/info/helpCenter/helpCenterContent.ts | is a membership feature. ${MEMBERSHIPS_PAUSED} For now, every payout goes on the standard schedule. | is a Basic, Pro or Elite membership feature and charges a small percentage fee.
-// @mutate src/pages/info/helpCenter/helpCenterContent.ts | a: `${MEMBERSHIPS_PAUSED} When they come back: ${TIER_PERKS.plus.name} sits between | a: `${TIER_PERKS.plus.name} sits between
-// @mutate src/pages/info/helpCenter/helpCenterContent.ts | a: `${MEMBERSHIPS_PAUSED} No one has a paid membership right now, so there is nothing to cancel. | a: `No one has a paid membership right now, so there is nothing to cancel.
-// @mutate src/pages/info/helpCenter/helpCenterContent.ts | export const MEMBERSHIPS_PAUSED = "Memberships aren't available right now."; | export const MEMBERSHIPS_PAUSED = "";
+// Memberships are RETIRED (owner 2026-11-04): no answer names a plan, a tier or
+// a paid perk at all, and the Membership & Billing topic is gone.
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts |     topic: "Declutter", |     topic: "Membership & Billing", items: [{ q: "What does a membership do?", a: "Elite adds a crown badge." }] }, { topic: "Declutter",
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts |  Every payout goes on the standard schedule.` |  Instant Payout is a membership feature.`
 import { describe, expect, it } from "vitest";
-import { FAQ_SECTIONS, MEMBERSHIPS_PAUSED } from "./helpCenterContent";
+import { FAQ_SECTIONS } from "./helpCenterContent";
 
 const answers = FAQ_SECTIONS.flatMap((s) => s.items.map((i) => ({ topic: s.topic, q: i.q, a: i.a })));
 
@@ -73,45 +70,15 @@ describe("Help Center describes today's job fee (Q1842)", () => {
     expect(fees!.a).toMatch(/the cancel screen shows exactly what you will get back before you confirm/);
   });
 
-  it("the membership answer says a plan does not change what you take home, with no fee rate", () => {
-    const m = answers.find((x) => x.q === "What does a membership do?");
-    expect(m?.a).toMatch(/does not change what you take home/);
-    expect(m?.a).not.toMatch(/\d+%|service fee/);
-  });
-
-  // Lead 2026-10-25 (item 14): the Terms say "There are no paid memberships
-  // right now" (prod: no profile holds a paid tier), so no answer may explain
-  // how a membership IS billed or how to cancel one today, as if one could be
-  // held. RED on 8ca225a0e3 (both answers did).
-  // @mutate src/pages/info/helpCenter/helpCenterContent.ts | There are no paid memberships right now, so nothing is billed for one. | A membership is billed securely through Stripe.
-  // @mutate src/pages/info/helpCenter/helpCenterContent.ts | No one has a paid membership right now, so there is nothing to cancel. | Yes — cancel at any time.
-  it("while memberships are paused, no answer bills or cancels one as if it could be held", () => {
-    const topic = answers.filter((x) => x.topic === "Membership & Billing");
-    expect(topic.length).toBeGreaterThan(2);
-    const billing = topic.find((x) => /billed/i.test(x.q));
-    const cancel = topic.find((x) => /cancel/i.test(x.q));
-    expect(billing?.a).toMatch(/There are no paid memberships right now/);
-    expect(billing?.a).not.toMatch(/is billed securely/);
-    expect(cancel?.a).toMatch(/nothing to cancel/);
-    expect(cancel?.a).not.toMatch(/^Yes/);
-  });
-
-  it("every answer about a plan or a paid perk says memberships aren't available right now", () => {
-    // The app's own words (SubscriptionTab's subscribe toast).
-    expect(MEMBERSHIPS_PAUSED).toBe("Memberships aren't available right now.");
-    // A paid perk or a plan, named anywhere on the page. The inventory is the
-    // page itself: the whole Membership & Billing topic plus any answer
-    // elsewhere that names a perk only a plan grants.
-    const PERK = /\b(instant payout|job boosts?|head start|priority (placement|support)|crown badge|featured badge|paid perks?|membership)\b/i;
-    const perkAnswers = answers.filter((x) => x.topic === "Membership & Billing" || PERK.test(x.a));
-    expect(perkAnswers.length).toBeGreaterThan(5);
-    // Outside the membership topic too (the payout answer names Instant Payout).
-    expect(perkAnswers.some((x) => x.topic !== "Membership & Billing")).toBe(true);
-    const missing = perkAnswers
-      .filter((x) => !x.a.includes(MEMBERSHIPS_PAUSED))
-      .map((x) => `${x.topic} / ${x.q}`);
-    expect(missing).toEqual([]);
-    // No answer still promises a perk stays on through a billing period.
-    expect(answers.filter((x) => /perks stay active/i.test(x.a))).toEqual([]);
+  it("memberships are retired: no topic, question or answer names a plan, a tier or a paid perk (owner 2026-11-04)", () => {
+    // Inventory floor: the page still has its topics and answers.
+    expect(FAQ_SECTIONS.length).toBeGreaterThan(5);
+    expect(answers.length).toBeGreaterThan(20);
+    const PLAN = /\b(memberships?|subscriptions?|Pro|Plus|Elite|Basic|instant payout|paid perks?|crown badge|featured badge|head start|priority (placement|support))\b/;
+    const hits = [
+      ...FAQ_SECTIONS.filter((s) => PLAN.test(s.topic)).map((s) => `topic: ${s.topic}`),
+      ...answers.filter((x) => PLAN.test(x.q) || PLAN.test(x.a)).map((x) => `${x.topic} / ${x.q}`),
+    ];
+    expect(hits).toEqual([]);
   });
 });

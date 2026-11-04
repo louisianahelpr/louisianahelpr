@@ -20,11 +20,10 @@
  *     Help Center's "Membership & Billing" answers (plan prices, "billed
  *     through Stripe": lh-money-escrow review, 2026-10-21).
  */
-// @mutate src/hooks/useMembershipsOn.ts |   return on && !MEMBERSHIPS_HIDDEN_IN_THIS_APP; |   return on;
+// @mutate src/hooks/useMembershipsOn.ts | export function useMembershipsOn(): boolean {\n  return false; | export function useMembershipsOn(): boolean {\n  return true;
 // @mutate src/components/profile/EarningsTab.tsx |   const membershipsOn = useMembershipsOn(); |   const membershipsOn = useFeature("memberships");
 // @mutate src/components/profile/profileLanding/useProfileLandingDerived.tsx | (mayStillBeBilled(profile) && !MEMBERSHIPS_HIDDEN_IN_THIS_APP) | mayStillBeBilled(profile)
 // @mutate src/components/profile/SubscriptionTab.tsx |   if (MEMBERSHIPS_HIDDEN_IN_THIS_APP) return |   if (false) return
-// @mutate src/pages/info/HelpCenter.tsx | !(MEMBERSHIPS_HIDDEN_IN_THIS_APP && section.topic === "Membership & Billing") | true
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -41,9 +40,10 @@ const SOURCES = trackedFiles("src").filter(
 );
 
 describe("memberships are never shown or sold in the store app", () => {
-  it("only useMembershipsOn reads the raw memberships switch", () => {
+  it("nothing in the app reads the raw memberships switch (retired 2026-11-04)", () => {
     const raw = SOURCES.filter((f) => /useFeature(?:Status)?\(\s*["']memberships["']\s*\)/.test(read(f)));
-    expect(raw).toEqual([HOOK]);
+    expect(raw).toEqual([]);
+    expect(SOURCES).toContain(HOOK);
   });
 
   it("every membership surface reads useMembershipsOn (inventory floor)", () => {
@@ -57,7 +57,8 @@ describe("memberships are never shown or sold in the store app", () => {
     // 2026-10-28 (audit F15): nine. PaymentLifecycleSteps reads it for the payment-success "Live now" line.
     // 2026-11-03 (Q1158, B41): eight. useDashboardData dropped its redundant early-access pre-filter (the feed waited
     // on the profile for it); useDashboardFilters still drops the wait on what is shown, and the view gates the rows.
-    expect(readers.length).toBe(8);
+    // 2026-11-04 (memberships retired, B114): seven. usePaidTierBadge no longer reads it (always null).
+    expect(readers.length).toBe(7);
   });
 
   it("the Profile row for a plan holder and the deep-linked plans are closed in the native app", () => {
@@ -68,10 +69,8 @@ describe("memberships are never shown or sold in the store app", () => {
     expect(early).toBeGreaterThan(-1);
     // The early return comes before the plans render.
     expect(early).toBeLessThan(tab.indexOf("tierConfig.map"));
-    const help = read("src/pages/info/HelpCenter.tsx");
-    expect(help).toMatch(/!\(MEMBERSHIPS_HIDDEN_IN_THIS_APP && section\.topic === "Membership & Billing"\)/);
-    // The topic it hides still exists under that exact name.
-    expect(read("src/pages/info/helpCenter/helpCenterContent.ts")).toMatch(/topic: "Membership & Billing"/);
+    // Memberships retired (2026-11-04): the Help Center topic is gone everywhere, not only hidden in the app.
+    expect(read("src/pages/info/helpCenter/helpCenterContent.ts")).not.toMatch(/topic: "Membership & Billing"/);
   });
 });
 
@@ -88,11 +87,11 @@ describe("useMembershipsOn", () => {
     expect(renderHook(() => useMembershipsOn()).result.current).toBe(false);
   });
 
-  it("follows the switch on the web", async () => {
+  it("is false on the web too, even with the switch on (memberships retired 2026-11-04)", async () => {
     vi.doMock("@/lib/nativeInit", () => ({ isNativePlatform: false }));
-    const { useMembershipsOn } = await import("@/hooks/useMembershipsOn");
-    expect(renderHook(() => useMembershipsOn()).result.current).toBe(true);
-    featureOn.mockReturnValueOnce(false);
+    const { useMembershipsOn, useMembershipsStatus, MEMBERSHIPS_HIDDEN_IN_THIS_APP } = await import("@/hooks/useMembershipsOn");
     expect(renderHook(() => useMembershipsOn()).result.current).toBe(false);
+    expect(renderHook(() => useMembershipsStatus()).result.current).toEqual({ on: false, settled: true });
+    expect(MEMBERSHIPS_HIDDEN_IN_THIS_APP).toBe(true);
   });
 });

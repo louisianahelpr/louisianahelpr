@@ -1,6 +1,4 @@
-import { MONTHLY_FREE_BOOSTS, TIER_PERKS, type SubscriptionTier } from "@/lib/subscriptionTiers";
 import { identityCheckOn } from "@/lib/identityCheckSwitch";
-import { earlyAccessHeadStartMinutes } from "@/lib/earlyAccess";
 // The escrow clock is owned by the cron that actually moves the money, not by
 // this file. Same import the legal pages, PaymentSuccess and the activity cards
 // use; `escrowTiming.copyParity.test.ts` fails if this answer ever goes back to
@@ -21,25 +19,6 @@ import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
 import { CREDENTIAL_TIER_CATEGORIES } from "@/components/postjob/detailsSection/detailsSectionConstants";
 import { JOB_CATEGORY_LABELS, JOB_CATEGORY_VALUES } from "@/lib/jobCategories";
 
-// The early-access ladder, DERIVED — every tier that gets a head start, in
-// ascending order, with the minute count from `earlyAccess.ts`.
-//
-// The membership FAQ used to hand-type "20-minute early job access (Pro gets
-// 10, Basic 5)". That sentence had no Plus in it: the tier ships, is sold on
-// this very page's fee answer, and gets 15 minutes — so the one place a reader
-// goes to compare plans silently pretended a plan did not exist. It is the same
-// class of drift `earlyAccess.ts` was extracted to end ("COPY MUST DERIVE FROM
-// THIS, NEVER RETYPE IT"), and deriving from TIER_PERKS' own keys means a tier
-// added later cannot go missing from this sentence either.
-const EARLY_ACCESS_TIERS = (Object.keys(TIER_PERKS) as SubscriptionTier[])
-  .filter((tier) => earlyAccessHeadStartMinutes(tier) > 0)
-  .sort((a, b) => earlyAccessHeadStartMinutes(a) - earlyAccessHeadStartMinutes(b));
-
-/** e.g. "Basic 5 minutes, Pro 10, Plus 15, Elite 20". */
-const EARLY_ACCESS_LADDER = EARLY_ACCESS_TIERS
-  .map((tier, i) =>
-    `${TIER_PERKS[tier].name} ${earlyAccessHeadStartMinutes(tier)}${i === 0 ? " minutes" : ""}`)
-  .join(", ");
 
 /** "handyman, painting, moving, assembly, storm prep, and yard work" — built. */
 const CREDENTIAL_CATEGORY_PHRASE = (() => {
@@ -63,17 +42,6 @@ const CREDENTIAL_CATEGORY_PHRASE = (() => {
 // floor the same way (floorPayoutDollars). lh-money-escrow review of
 // 7166349cd #1: "$94.30" was the unrounded figure; the transfer is $94.
 
-// Roadmap F4/F4a (owner 2026-10-14/15): memberships are switched off for
-// members (feature_switches 'memberships' = testers, measured on prod
-// 2026-10-17), and every paid perk is off with them: instant-payout refuses
-// with "Instant cash-out isn't available right now", early access and plan
-// boosts read the same switch, and SubscriptionTab's subscribe button says
-// "Memberships aren't available right now." Every answer on this page that
-// describes a plan or a paid perk opens with this sentence, so the page never
-// promises a member something the app refuses. Exported for its guard
-// (helpCenterPricingCopy.test.ts). When the owner turns memberships back on,
-// remove it here and in the answers in the same change.
-export const MEMBERSHIPS_PAUSED = "Memberships aren't available right now.";
 
 // ─── Topic blurbs ─────────────────────────────────────────────────────────────
 //
@@ -104,7 +72,6 @@ export const TOPICS: { label: string; desc: string }[] = [
   // The seventh FAQ topic had no blurb entry, so it rendered bare next to
   // six that carry one.
   { label: "Declutter", desc: "Buying, selling, pickup, delivery and refunds." },
-  { label: "Membership & Billing", desc: "Plans, upgrades, and cancelling." },
 ];
 
 // ─── FAQ data ─────────────────────────────────────────────────────────────────
@@ -215,7 +182,7 @@ export const FAQ_SECTIONS: FaqSection[] = [
         // file's guards exist to stop. "The standard schedule" is now named:
         // STANDARD_PAYOUT_WINDOW, the same constant InstantPayoutDialog and
         // PayoutHistory interpolate.
-        a: `Payment is sent to your Helpr account ${STANDARD_PAYOUT_PHRASE}, once the person who posted it approves the work, then transfers to your bank ${STANDARD_PAYOUT_WINDOW}. A one-time account setup fee comes out of your first payout, unless you already paid it on a job you posted or on Declutter; every standard payout after that is free. Instant Payout (cashing out the same day) is a membership feature. ${MEMBERSHIPS_PAUSED} For now, every payout goes on the standard schedule.`,
+        a: `Payment is sent to your Helpr account ${STANDARD_PAYOUT_PHRASE}, once the person who posted it approves the work, then transfers to your bank ${STANDARD_PAYOUT_WINDOW}. A one-time account setup fee comes out of your first payout, unless you already paid it on a job you posted or on Declutter; every standard payout after that is free. Every payout goes on the standard schedule.`,
       },
       {
         q: "What if the person who posted the job doesn't confirm completion?",
@@ -406,49 +373,6 @@ export const FAQ_SECTIONS: FaqSection[] = [
       {
         q: "Can I deliver Declutter items?",
         a: "Yes, if you're 18 or older, not banned, have fewer than 3 Declutter strikes and aren't the buyer or seller. You see your take-home pay before you take a delivery, pick the pickup time, take a photo at pickup and at the door. Large items need a truck; extra-large items a truck and a second person. You set up payouts after you take your first delivery.",
-      },
-    ],
-  },
-  {
-    topic: "Membership & Billing",
-    items: [
-      {
-        q: "What does a membership do?",
-        // Q1842: WAS "It lowers the commission Helpr deducts … from 12% down
-        // to as low as 8%". Since F3 a plan never changes a job's fee.
-        // Memberships are off for members (F4/F4a): say so first, in plain words.
-        a: `${MEMBERSHIPS_PAUSED} When they come back, a plan adds visibility perks like priority placement and a featured badge. It does not change what you take home.`,
-      },
-      {
-        q: "How am I billed for a membership?",
-        // WAS "…from Manage membership." No control is called that: grep finds
-        // the string only in this answer. The tab is "Membership"
-        // (profile/types.ts:35) and the button on it is "Manage"
-        // (SubscriptionTab.tsx:664), which opens the Stripe billing portal. A
-        // navigation instruction has to name what is actually on screen.
-        // Measured 2026-10-25 (prod, read-only): no profile holds a paid tier
-        // (294 profiles, subscription_tier all null). Explaining how a
-        // membership is billed read as if one could be bought, beside the
-        // Terms' "There are no paid memberships right now." Say what is
-        // charged today instead (Terms, Fees).
-        a: `${MEMBERSHIPS_PAUSED} There are no paid memberships right now, so nothing is billed for one. What you can be charged today: the price of a job you post (plus sales tax where it applies) and the one-time account setup fee, both shown before you pay.`,
-      },
-      {
-        q: "Can I cancel my membership anytime?",
-        // WAS "Your paid perks stay active through the end of your billing
-        // period": while memberships are off no paid perk is active (F4a).
-        a: `${MEMBERSHIPS_PAUSED} No one has a paid membership right now, so there is nothing to cancel. When memberships come back, you will be able to cancel at any time.`,
-      },
-      {
-        q: `What's the difference between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name}?`,
-        a: `${MEMBERSHIPS_PAUSED} When they come back: ${TIER_PERKS.elite.name} adds the gold crown badge (visible to everyone browsing for someone to hire), unlimited free Job Boosts, the longest head start on new jobs, and priority support — on top of everything ${TIER_PERKS.pro.name} offers. Head start on a new job, measured against a free account: ${EARLY_ACCESS_LADDER}.`,
-      },
-      {
-        // Plus was absent from this section entirely while the fees answer
-        // above already listed it — a reader comparing plans on this page could
-        // not learn that the tier exists, let alone what it does.
-        q: `Where does ${TIER_PERKS.plus.name} fit in?`,
-        a: `${MEMBERSHIPS_PAUSED} When they come back: ${TIER_PERKS.plus.name} sits between ${TIER_PERKS.pro.name} and ${TIER_PERKS.elite.name} at $${TIER_PERKS.plus.price}/month. It keeps everything ${TIER_PERKS.pro.name} gives you, moves your head start on new jobs to ${earlyAccessHeadStartMinutes("plus")} minutes, and adds the featured crown badge, priority support and ${MONTHLY_FREE_BOOSTS.plus} free Job Boosts every month (${TIER_PERKS.pro.name} includes ${MONTHLY_FREE_BOOSTS.pro}). ${TIER_PERKS.elite.name} keeps all of that and makes the badge gold and Job Boosts unlimited.`,
       },
     ],
   },

@@ -18,7 +18,7 @@ vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
 const rows = vi.hoisted(() => ({ data: [] as unknown[] }));
 vi.mock("@/lib/jobColumns", () => ({ readJobsAheadOfDb: async () => ({ data: rows.data, error: null }) }));
 
-import { LiveJobsSection } from "./LiveJobsSection";
+import { LiveJobsSection, forgetRecentLiveJobs } from "./LiveJobsSection";
 import { jobLocalDateISO } from "@/test/helpers/jobLocalDate";
 
 const job = (n: number) => ({
@@ -32,7 +32,10 @@ class SeeAll {
   disconnect() {}
 }
 
-beforeEach(() => vi.stubGlobal("IntersectionObserver", SeeAll));
+beforeEach(() => {
+  vi.stubGlobal("IntersectionObserver", SeeAll);
+  forgetRecentLiveJobs();
+});
 afterEach(() => vi.unstubAllGlobals());
 
 const MEASURE = /\bmax-w-6xl\b/;

@@ -375,11 +375,12 @@ export function toSubscriptionTier(raw: string | null | undefined): Subscription
  * free rate, which never under-charges.
  */
 export function tierFeePercent(
-  rawTier: string | null | undefined,
-  expiresAt?: string | null,
+  _rawTier: string | null | undefined,
+  _expiresAt?: string | null,
 ): number {
-  const expired = expiresAt ? new Date(expiresAt).getTime() < Date.now() : false;
-  return TIER_PERKS[toSubscriptionTier(expired ? "free" : (rawTier ?? "").toLowerCase())].platformFeePercent;
+  // Memberships RETIRED (owner 2026-11-04): the standard (free) rate for every
+  // member, in lock-step with feePercentForTier (supabase/functions/_shared/helperFees.ts).
+  return TIER_PERKS.free.platformFeePercent;
 }
 
 /**

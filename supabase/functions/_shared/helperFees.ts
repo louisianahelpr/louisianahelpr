@@ -92,12 +92,17 @@ export const DEFAULT_TIER_FEE_PERCENT = TIER_FEE_PERCENT.free; // 12
  * @param expiresAt raw `profiles.subscription_expires_at` (may be null)
  */
 export function feePercentForTier(
-  rawTier: string | null | undefined,
-  expiresAt?: string | null,
+  _rawTier: string | null | undefined,
+  _expiresAt?: string | null,
 ): number {
-  const expired = expiresAt ? new Date(expiresAt).getTime() < Date.now() : false;
-  const tier = (expired ? "free" : (rawTier ?? "")).toLowerCase();
-  return TIER_FEE_PERCENT[tier] ?? DEFAULT_TIER_FEE_PERCENT;
+  // Memberships RETIRED (owner 2026-11-04: no tier differences anywhere). Every
+  // Helpr is priced at the standard (free-tier) rate whatever the tier column
+  // holds, so no paid-tier discount is reachable. For a real member this is the
+  // same number as before: on prod 0 of 260 real profiles hold a tier (measured
+  // 2026-11-04), and a null/free tier always resolved to this rate. The
+  // profile read in getHelperFeePercent / readHelperFeePercentStrict is kept so
+  // a read failure still falls back exactly as before.
+  return DEFAULT_TIER_FEE_PERCENT;
 }
 
 /**

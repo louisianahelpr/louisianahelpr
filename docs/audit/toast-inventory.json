@@ -13118,7 +13118,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 263,
+      "line": 266,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -13128,7 +13128,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 323,
+      "line": 326,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -13138,7 +13138,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 327,
+      "line": 330,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -13148,7 +13148,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 347,
+      "line": 350,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -13158,7 +13158,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 367,
+      "line": 370,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -13168,7 +13168,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 380,
+      "line": 383,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -13178,7 +13178,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 444,
+      "line": 447,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -13188,7 +13188,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 449,
+      "line": 452,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -13198,7 +13198,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 453,
+      "line": 456,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -13208,7 +13208,7 @@
     },
     {
       "file": "src/pages/post-job/useJobFormEffects.ts",
-      "line": 472,
+      "line": 475,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -13759,7 +13759,7 @@
     },
     {
       "file": "src/pages/posts/EditJobDialog.tsx",
-      "line": 132,
+      "line": 133,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -13769,7 +13769,7 @@
     },
     {
       "file": "src/pages/posts/EditJobDialog.tsx",
-      "line": 192,
+      "line": 197,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

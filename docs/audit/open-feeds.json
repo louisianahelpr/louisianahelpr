@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-04T13:10Z",
+  "measured_at": "2026-11-04T13:17Z",
   "issues": {
     "readable": true,
     "open": [
@@ -71,7 +71,7 @@
         "number": 3491,
         "title": "nightly-red: ui-sweep",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41045303398",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41831105960",
         "runTruncated": false
       },
       {
@@ -523,14 +523,6 @@
         "issue": null
       },
       {
-        "fingerprint": "905ec49763b55835fe7340b16107b79e",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: profile request timed out",
-        "issue": null
-      },
-      {
         "fingerprint": "60298a019ea399dd0c9b00f14cad6b4a",
         "source_kind": "error_logs",
         "source": "cron-http",
@@ -544,22 +536,6 @@
         "source": "sentry:assets/Signup",
         "status": "open",
         "title": "error: your account is created, but your details didn't save — the connection dropped. log in to finish your profile.",
-        "issue": null
-      },
-      {
-        "fingerprint": "5e6b09305057732639a28e9a255f9ba2",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ErrorState",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load your account.",
-        "issue": null
-      },
-      {
-        "fingerprint": "384f33fc7d1b0b86a76461f40d65fedd",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ProtectedRoute",
-        "status": "open",
-        "title": "error: protectedroute: profile fetch error (recoverable, session kept)",
         "issue": null
       },
       {
@@ -592,30 +568,6 @@
         "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: loading jobs timed out",
-        "issue": null
-      },
-      {
-        "fingerprint": "e6fb014ab0990d29fdeee5b923e5f1e4",
-        "source_kind": "sentry",
-        "source": "sentry:assets/signed-in-shared",
-        "status": "open",
-        "title": "error: jwt expired",
-        "issue": null
-      },
-      {
-        "fingerprint": "acebac9d71e7669e5e61232c13345a12",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: jwt expired",
-        "issue": null
-      },
-      {
-        "fingerprint": "7549f5452e445091876a48962f59b346",
-        "source_kind": "user-report",
-        "source": "contact-support-guest",
-        "status": "open",
-        "title": "a user report (read it on /admin?view=health)",
         "issue": null
       },
       {
@@ -715,19 +667,19 @@
         "issue": 4020
       },
       {
-        "fingerprint": "aeedd249577285330a97e04195cee7d8",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: refund-request-sweep returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: declutter-money returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "aeedd249577285330a97e04195cee7d8",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: refund-request-sweep returned 502",
         "issue": null
       },
       {
@@ -768,6 +720,14 @@
         "source": "ops-alert:custom",
         "status": "open",
         "title": "money went back to a poster who was not fully told",
+        "issue": null
+      },
+      {
+        "fingerprint": "b7eb50589fb70abc01f16911325f7b85",
+        "source_kind": "edge_slack",
+        "source": "ops-alert:money_at_risk",
+        "status": "open",
+        "title": "job sales tax collected but not recorded in stripe tax",
         "issue": null
       }
     ]
@@ -882,6 +842,7 @@
     "ledger afffce6dd514": "Q1596",
     "ledger b75d265e6201": "Q2501",
     "ledger b7cb40a7f712": "Q1596",
+    "ledger b7eb50589fb7": "Q2732",
     "ledger b8b42cf124da": "Q2506",
     "ledger ba04c0f07725": "Q2532",
     "ledger ba752f27944d": "Q1596",

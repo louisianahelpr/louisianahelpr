@@ -1816,6 +1816,33 @@ describe("stripe-webhook edge function", () => {
         expect((slackAlerts as Array<{ title: string }>).filter((a) => a.title === "Job sales tax not recorded: the hold was captured only in part")).toHaveLength(0);
       });
 
+      // Review of 2ecaceaf84: a stamp below the tax the capture plainly holds (it reached past amount - tax) is never
+      // believed, so collected tax is never silently dropped; it pages as an unstamped fee capture does.
+      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts | && taxAtLeastCents !== null && Number(keptRaw) >= taxAtLeastCents ? | ?
+      it("a fee capture stamped 0 that reaches into the tax pages and records nothing (review of 2ecaceaf84)", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
+        await deliverPi({ ...SITE, cancel_fee_capture: "1", cancel_fee_tax_kept_cents: "0" }, { amount_received: 11500 });
+        await deliverPi({ ...SITE, cancel_fee_capture: "1", cancel_fee_tax_kept_cents: "400" }, { amount_received: 11500 });
+        expect(stripeMock.tax.transactions.createFromCalculation).not.toHaveBeenCalled();
+        expect((slackAlerts as Array<{ title: string }>).filter((a) => a.title === "Job sales tax not recorded: the hold was captured only in part")).toHaveLength(2);
+      });
+
+      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |        title: "Job sales tax on a cancelled hold reversed, but not stamped", |        title: "x",
+      it("a released-tax reversal that went through but was not stamped pages 'do not reverse again' (review of 2ecaceaf84)", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
+        stripeMock.tax.transactions.listLineItems.mockResolvedValue({ data: [{ id: "tax_li_1", amount: 10000, amount_tax: 1100 }], has_more: false });
+        stripeMock.tax.transactions.createReversal.mockResolvedValue({ id: "taxrev_unc" });
+        stripeMock.paymentIntents.update.mockImplementation(async (_id: string, p: { metadata?: Record<string, string> }) => {
+          if (p?.metadata?.tax_rev_uncaptured) throw new Error("stripe down");
+          return { id: "pi_site" };
+        });
+        await deliverPi({ ...SITE, cancel_fee_capture: "1", cancel_fee_tax_kept_cents: "500" }, { amount_received: 11500 });
+        expect(stripeMock.tax.transactions.createReversal).toHaveBeenCalledTimes(1);
+        const titles = (slackAlerts as Array<{ title: string }>).map((a) => a.title);
+        expect(titles).toContain("Job sales tax on a cancelled hold reversed, but not stamped");
+        expect(titles).not.toContain("Job sales tax recorded in full, but the hold kept only part of it");
+      });
+
       // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |     const flatCents = Math.min(txTotalCents, Math.floor((backCents * txTotalCents) / taxCents)); |     const flatCents = txTotalCents;
       // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |   if (recordCapturedPart && stampedKeptCents !== null && stampedKeptCents < cents) { |   if (false) {
       it("a fee capture holding part of its tax commits, then reverses exactly the released tax (Q2716)", async () => {
@@ -2807,6 +2834,21 @@ describe("stripe-webhook edge function", () => {
         stripeMock.tax.transactions.createReversal.mockImplementation(async (args: { reference: string }) => ({ id: `taxrev_${args.reference}` }));
         stripeMock.paymentIntents.update.mockResolvedValue({ id: "pi_visit" });
         scenario.reads.jobs = { rows: [{ id: "job-v", customer_id: "poster-1", title: "Visit", payment_status: "escrow" }] };
+      });
+
+      // Review of 2ecaceaf84 (Q2716 left part): a fee capture whose released tax was already reversed is never
+      // shared again by the whole transaction; a refund not yet reversed pages for a hand reversal of the kept tax.
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   if (piMeta.tax_rev_uncaptured) { |   if (false) {
+      it("a refund of a partly taxed fee capture whose released tax was reversed reverses nothing and pages", async () => {
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_visit", metadata: { tax_transaction_id: "tax_txn_9", tax_calculation_id: "taxcalc_g", job_tax_cents: "1000", cancel_fee_capture: "1", cancel_fee_tax_kept_cents: "400", tax_rev_uncaptured: "taxrev_unc" } });
+        refundsAre([{ id: "re_fee", amount: 2000, created: 100 }]);
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({ id: "evt_tax_unc", type: "charge.refunded", data: { object: { id: "ch_visit", payment_intent: "pi_visit", amount: 9400, amount_refunded: 2000 } } });
+        await fn.fetch(webhookRequest(fn, "{}"));
+        expect(reversals()).toEqual([]);
+        const alerts = (slackAlerts as Array<{ title: string; kind: string }>).filter((a) => a.title === "Refund of a partly taxed fee capture: reverse its sales tax by hand");
+        expect(alerts).toHaveLength(1);
+        expect(alerts[0].kind).toBe("money_at_risk");
       });
 
       // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |     const full = beforeCents === 0 && shareCents >= txTotalCents; |     const full = false;

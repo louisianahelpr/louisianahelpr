@@ -1,4 +1,5 @@
 import { Repeat, Minus, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 import { Label } from "@/components/ui/label";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
@@ -160,30 +161,32 @@ export function RecurringSchedulePicker({
             (the DB enforces the same range) and a poster typing 200 should be
             told by the control's shape, not by a rejected submit. */}
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            variant="outline"
+            size="iconMd"
             type="button"
             aria-label="One week fewer"
             disabled={weeks <= 1}
             onClick={() => setWeeks(clampWeeks(weeks - 1))}
-            className="h-11 w-11 rounded-ds-md border border-border inline-flex items-center justify-center disabled:opacity-40"
           >
-            <Minus className="w-4 h-4" />
-          </button>
+            <Minus aria-hidden />
+          </Button>
           <output
             id="recurrence-weeks"
             className="text-ds-15 font-semibold text-foreground tabular-nums min-w-[5.5rem] text-center"
           >
             {weeks} week{weeks === 1 ? "" : "s"}
           </output>
-          <button
+          <Button
+            variant="outline"
+            size="iconMd"
             type="button"
             aria-label="One week more"
             disabled={weeks >= MAX_RECURRENCE_WEEKS}
             onClick={() => setWeeks(clampWeeks(weeks + 1))}
-            className="h-11 w-11 rounded-ds-md border border-border inline-flex items-center justify-center disabled:opacity-40"
           >
-            <Plus className="w-4 h-4" />
-          </button>
+            <Plus aria-hidden />
+          </Button>
         </div>
       </div>
 

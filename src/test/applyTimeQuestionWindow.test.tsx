@@ -11,7 +11,7 @@
  * @mutate src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx |               max={windowed ? job.date_window_end! : addDays(today, 90)} |               max={addDays(today, 90)}
  * @mutate src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx | (todayStillBookable(job.start_time, new Date(), SUGGESTION_LEAD_MINUTES) ? today : addDays(today, 1)) | addDays(today, 1)
  * @mutate src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx | (todayStillBookable(job.start_time, new Date(), SUGGESTION_LEAD_MINUTES) ? today : addDays(today, 1)) | (todayStillBookable(job.start_time) ? today : addDays(today, 1))
- * @mutate src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx | export const SUGGESTION_LEAD_MINUTES = 120; | export const SUGGESTION_LEAD_MINUTES = 15;
+ * @mutate src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx | const SUGGESTION_LEAD_MINUTES = 120; | const SUGGESTION_LEAD_MINUTES = 15;
  * @mutate src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx | return platformToday(later) === platformToday(now) && platformNowHHMM(later) < start; | return platformNowHHMM(later) < start;
  */
 import { describe, it, expect, vi, afterEach } from "vitest";

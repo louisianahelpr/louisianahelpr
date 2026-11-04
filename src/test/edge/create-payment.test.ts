@@ -2677,6 +2677,26 @@ describe("create-payment edge function", () => {
         expect(marker?.payload).toMatchObject({ job_id: "job-1", claimed_by: "cancel_escrow", actor_user_id: POSTER.id });
       });
 
+      // Lead re-review of 49a8653d81 (a), Q2718: a card whose non-tax part is smaller than the fees this cancel
+      // keeps pages ops (fees never come out of the job-site tax); an ordinary taxed card does not.
+      // @mutate supabase/functions/create-payment/index.ts |           if (escrowSiteTaxCents > 0 && capturedCents - escrowSiteTaxCents < nonRefundableCents) { |           if (false) {
+      const taxMd = (taxCents: number) => ({ tax_calculation_id: "taxcalc_c", job_tax_cents: String(taxCents) });
+      const feesFromTaxPaged = () =>
+        (slackAlerts as Array<{ title?: string }>).some((a) => a.title === "Cancelled job's fees would come out of its sales tax");
+      it("Q2718: a card holding little more than its job-site tax pages ops", async () => {
+        seedOpenEscrow("escrow");
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_live", status: "succeeded", amount: 1050, amount_received: 1050, metadata: taxMd(1000) });
+        await cancel();
+        expect(feesFromTaxPaged()).toBe(true);
+      });
+      it("Q2718: an ordinary taxed card does not page", async () => {
+        seedOpenEscrow("escrow");
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_live", status: "succeeded", amount: 12000, amount_received: 12000, metadata: taxMd(1000) });
+        const res = await cancel();
+        expect(res.status).toBe(200);
+        expect(feesFromTaxPaged()).toBe(false);
+      });
+
       // lh-authz-rls review of Q1323: an ABSENT marker is not "mine".
       // @mutate supabase/functions/create-payment/index.ts |         if (holder.claimedBy !== "cancel_escrow" \|\| holder.error) { |         if (holder.claimedBy === "admin_refund_general" \|\| holder.error) {
       it("refuses to re-enter a 'cancelling' claim with NO marker", async () => {

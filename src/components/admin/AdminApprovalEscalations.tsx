@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { withoutTestPeople } from "@/components/admin/seedRows";
 import { Link } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, CloudOff, ExternalLink, Hourglass } from "lucide-react";
@@ -90,7 +91,8 @@ export function AdminApprovalEscalations() {
     fetcher: async () => {
       const res = await supabase.rpc("admin_approval_escalation_queue", { p_include_resolved: includeResolved });
       if (res.error && isMissingRpcNamed(res.error, "admin_approval_escalation_queue")) return { ...EMPTY, deployed: false };
-      const rows = (unwrap(res) ?? []) as ApprovalEscalationRow[];
+      // Owner 2026-11-04: no test account's job on a real admin screen (the rail count drops them too).
+      const rows = await withoutTestPeople((unwrap(res) ?? []) as ApprovalEscalationRow[], (r) => [r.customer_id, r.helper_id]);
       const ids = [...new Set(rows.flatMap((r) => [r.customer_id, r.helper_id]).filter(Boolean) as string[])];
       const names: Record<string, string> = {};
       if (ids.length > 0) {

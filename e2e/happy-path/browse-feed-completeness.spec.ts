@@ -90,7 +90,9 @@ test("every open job the API returns is rendered somewhere", async ({ page, cont
 // Q2222: at 320 a card cut its start time to "⏱ 1". The time is owner-protected
 // (never hidden), so below 360px every card's meta row takes two lines (place,
 // then date · time); from 360px up it stays one line. Measured on the real CSS.
-// @mutate src/components/dashboard/JobCard.tsx | flex-nowrap max-[359px]:flex-wrap overflow-hidden | flex-nowrap overflow-hidden
+// Q2043 (photo-first cards, 11-03): the picture tile narrows the text column, so
+// on a phone (below 768px) every card takes the two-line form beside the tile.
+// @mutate src/index.css |   .job-card-media-col .job-meta-row { flex-wrap: wrap; } |   .job-card-media-col .job-meta-row { flex-wrap: nowrap; }
 for (const width of [320, 375]) {
   test(`the start time is whole at ${width} and every card is one height`, async ({ page, context, baseURL }) => {
     test.setTimeout(120_000);
@@ -116,7 +118,7 @@ for (const width of [320, 375]) {
     expect(rows.length).toBeGreaterThan(3);
     for (const r of rows) expect(r.timeRight, "the start time is cut by the row's edge").toBeLessThanOrEqual(r.rowRight + 0.5);
     const twoLines = rows.map((r) => r.timeTop - r.pinTop > 6);
-    expect(new Set(twoLines), width < 360 ? "below 360 every card breaks after the place" : "from 360 up the row is one line").toEqual(new Set([width < 360]));
+    expect(new Set(twoLines), "on a phone every card breaks after the place, beside the picture tile").toEqual(new Set([true]));
     const heights = rows.map((r) => Math.round(r.card));
     expect(Math.max(...heights) - Math.min(...heights), `card heights ${heights.join(",")}`).toBeLessThanOrEqual(1);
   });

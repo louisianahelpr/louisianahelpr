@@ -1159,7 +1159,7 @@ export async function createLoadingDeclutterItem(seller, runId) {
   try {
     const up = await fetch(`${LOADING_BASE()}/storage/v1/object/job-photos/${path}`, {
       method: "POST",
-      headers: inboxHeaders(token, { "Content-Type": "image/png", "x-upsert": "false" }),
+      headers: inboxHeaders(token, { "Content-Type": "image/png", "x-upsert": "false", "cache-control": "max-age=3600" }),
       body: LOADING_PIXEL,
     });
     if (!up.ok) throw new Error(`photo upload: HTTP ${up.status} ${(await up.text()).slice(0, 200)}`);

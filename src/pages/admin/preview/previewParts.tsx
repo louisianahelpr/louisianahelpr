@@ -14,6 +14,7 @@ import { forgetActivityCoresRead } from "@/lib/activityCores";
 import { forgetMyOpenContinueDaysRead } from "@/lib/continueDayReads";
 import { isChunkLoadError, isRecoveryReloadInFlight, recoverFromChunkError } from "@/lib/chunkReload";
 import { ChunkRecoveringState } from "@/components/ChunkRecoveringState";
+import { ICON_STROKE_PX } from "@/lib/iconWeight";
 
 /**
  * The reads app modules share outside React Query (userBlocks' 2-second block read, activityCores' in-flight read),
@@ -144,8 +145,8 @@ export function usePageSheetOpen(): boolean {
  */
 export function PreviewGlyph({ d, className }: { d: string; className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
-      <path d={d} />
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={ICON_STROKE_PX} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      <path d={d} vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }

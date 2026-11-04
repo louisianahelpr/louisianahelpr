@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { withoutTestPeople } from "@/components/admin/seedRows";
 import { mutationErrorMessage } from "@/lib/mutationResult";
 import { setProfileBanStatus } from "@/lib/adminBanStatus";
 import { rpcErrorMessage } from "@/components/admin/adminRpcErrorCopy";
@@ -110,13 +111,15 @@ export function AdminBanEvasionReview() {
   const reviews = useQuery({
     queryKey: REVIEWS_KEY,
     meta: { persist: false },
-    queryFn: async () => (unwrap(await supabase.rpc("admin_ban_settlement_reviews")) ?? []) as unknown as Review[],
+    // Owner 2026-11-04: a test account's case never shows on a real admin screen.
+    queryFn: async () =>
+      withoutTestPeople((unwrap(await supabase.rpc("admin_ban_settlement_reviews")) ?? []) as unknown as Review[], (r) => [r.user_id]),
   });
   const names = useQuery({
     queryKey: NAMES_KEY,
     meta: { persist: false },
     queryFn: async () =>
-      unwrap(
+      withoutTestPeople(unwrap(
         await supabase
           .from("ban_evasion_matches")
           .select("id, user_id, matched_on, original_ban_status, original_reason, original_recorded_at, created_at")
@@ -128,7 +131,7 @@ export function AdminBanEvasionReview() {
           .eq("resolved", false)
           .order("created_at", { ascending: false })
           .limit(100),
-      ) as NameMatch[],
+      ) as NameMatch[], (m) => [m.user_id]),
   });
 
   const decide = async (review: Review, action: "confirm" | "lift") => {

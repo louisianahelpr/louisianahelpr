@@ -22,6 +22,8 @@ import { HeldForReview, type HeldRow } from "./HeldForReview";
 
 const rpcMock = vi.fn();
 const invokeMock = vi.fn();
+// The test-account filter (withoutTestPeople) has its own test: src/components/admin/seedRows.test.ts.
+vi.mock("@/components/admin/seedRows", async (orig) => ({ ...(await orig<typeof import("@/components/admin/seedRows")>()), withoutTestPeople: async <T,>(rows: T[]) => rows }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     rpc: (...a: unknown[]) => rpcMock(...a),

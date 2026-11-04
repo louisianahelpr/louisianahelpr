@@ -12,6 +12,7 @@ import { openExternalUrl } from "@/lib/openExternalUrl";
 import { todayYmd } from "@/lib/jobDate";
 import { formatJobDate } from "@/lib/dateUtils";
 import { cn } from "@/lib/utils";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 
 /**
  * Q210(b): recurring visits of $300 or more are never charged off-session
@@ -65,9 +66,9 @@ export function RecurringVisitPayments({ userId, className }: { userId: string; 
     return (
       <div role="alert" className={cn("rounded-ds-md border border-destructive/40 p-3 text-sm", className)}>
         We couldn't check for visits waiting on payment.{" "}
-        <button type="button" className="underline" onClick={() => void refetch()}>
+        <InlineTextButton className="underline" onClick={() => void refetch()}>
           Try again
-        </button>
+        </InlineTextButton>
       </div>
     );
   }

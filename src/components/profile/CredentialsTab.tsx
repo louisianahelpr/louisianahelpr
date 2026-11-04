@@ -10,13 +10,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
-import { ShieldCheck, Upload, FileText, X, AlertTriangle, Lock, RefreshCcw, Send } from "lucide-react";
+import { ShieldCheck, Lock, RefreshCcw, Send } from "lucide-react";
 import CredentialBadge from "@/components/CredentialBadge";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { queryKeys } from "@/lib/queryKeys";
 import { ProfileTabHeader } from "@/components/profile/ProfileTabHeader";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { userFacingError } from "@/lib/userFacingError";
+import { CredentialCard } from "@/components/profile/credentialsTab/CredentialCard";
+import { KIND_NOUN, KIND_NOUN_TITLE, type CredState, type Draft, type Kind } from "@/components/profile/credentialsTab/credentialKinds";
 
 interface CredentialFields {
   is_licensed: boolean;
@@ -32,56 +34,6 @@ interface CredentialFields {
 }
 
 const MAX_BUSINESS_NAME = 80;
-
-type Kind = "license" | "insurance";
-
-/**
- * A document the user has PICKED but not SENT. It lives only in this
- * component — nothing touches storage or `profiles` until "Send for review".
- *
- * Why client-only: the schema has no draft state to write to. `license_status`
- * is `CHECK (... IN ('none','pending','verified','rejected'))` and is column-
- * locked from the client by `prevent_self_escalation()`; the moment
- * `license_url` is written, the `trg_auto_pending_credentials` BEFORE UPDATE
- * trigger stamps 'pending' and the row appears in the admin queue
- * (`get_pending_credentials()`). So "attached but not submitted" cannot be
- * represented server-side without a data-model change — and it doesn't need to
- * be: an unsent attachment is exactly as durable as any other unsubmitted form
- * field, and we label it as such.
- */
-interface Draft {
-  file: File;
-  /** Object URL for image thumbnails only. Revoked on discard/unmount. */
-  previewUrl: string | null;
-}
-
-/**
- * The one vocabulary for credential state on this screen. Each word appears in
- * exactly ONE place — the credential's own card — so the same fact can't be
- * phrased three ways in the same scroll. These are five DISTINCT states, not
- * synonyms:
- *
- *   off       — the user says this credential doesn't apply to them
- *   empty     — applies, but no document picked yet
- *   attached  — a document is picked and sitting on this device, NOT sent
- *   review    — sent; `<kind>_status = 'pending'`; in the admin queue
- *   verified  — admin approved it; the badge is live
- *   rejected  — admin looked and couldn't verify it; a new copy is needed
- */
-type CredState = "off" | "empty" | "attached" | "review" | "verified" | "rejected";
-
-// Sentence-position nouns ("Your license is attached."). Insurance is
-// "COI" — the card's own body copy introduces the acronym, and the long
-// form truncated the view link at 375 ("View the insurance certificat…").
-const KIND_NOUN: Record<Kind, string> = {
-  license: "license",
-  insurance: "COI",
-};
-// Control-position nouns — buttons and links are Title Case.
-const KIND_NOUN_TITLE: Record<Kind, string> = {
-  license: "License",
-  insurance: "COI",
-};
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
 const DOC_EXT_BY_TYPE: Readonly<Record<string, string>> = {
@@ -105,9 +57,6 @@ const EMPTY: CredentialFields = {
   insurance_rejection_reason: null,
   business_name: null,
 };
-
-const formatBytes = (n: number) =>
-  n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / (1024 * 1024)).toFixed(1)} MB`;
 
 export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () => void }) {
   const qc = useQueryClient();
@@ -449,180 +398,6 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
     );
   };
 
-  const renderCredentialCard = (kind: Kind) => {
-    const { url, reason } = fieldsFor(kind);
-    const state = stateOf(kind);
-    const draft = drafts[kind];
-    const on = kind === "license" ? licensedOn : insuredOn;
-    const noun = KIND_NOUN[kind];
-
-    return (
-      <div className="rounded-[20px] liquid-glass p-card space-y-4">
-        <div className="min-w-0">
-          {/* Status eyebrow removed (owner, 2026-08-29: "delete globally"). */}
-          <h3
-            className="font-sans font-bold leading-tight text-headline-card"
-            style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
-          >
-            {kind === "license" ? "Professional license" : "Insurance"}
-          </h3>
-          <p className="font-sans mt-1 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-            {!on
-              ? kind === "license"
-                ? "Hold a professional license? Add it and send it for review to earn the badge."
-                : "Carry professional insurance? Add your Certificate of Insurance (COI) and send it for review to earn the badge."
-              : kind === "license"
-                ? "Attach your professional license, then send it for review to earn the badge."
-                : "Attach your Certificate of Insurance (COI), then send it for review to earn the badge."}
-          </p>
-        </div>
-
-        {/* THE "ADD" BUTTON (owner, 2026-09-23, MORNING QUESTIONS 6 option b,
-            Q142). This was an "I Am Licensed" / "I Am Insured" SWITCH, which
-            looked like it set the badge. It never could: `is_licensed` /
-            `is_insured` are server-owned (`prevent_self_escalation()` puts a
-            member's write back, measured on prod 2026-09-23, Q99), and
-            `trg_auto_pending_credentials` turns them on only when a document
-            is SENT. So the control now says what it does: it opens the file
-            picker, straight into the existing attach -> "Send for review"
-            flow, and writes nothing itself.
-
-            It is also where withdrawing a sent document leaves you (Q111):
-            taking a copy back resets the row to is_<kind> = false, so the card
-            returns here with the way to add a new one on screen, as the
-            withdraw dialog promises. */}
-        {!on && (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full rounded-full"
-              onClick={() => addInputRefs.current[kind]?.click()}
-            >
-              <Upload className="w-4 h-4" />
-              {kind === "license" ? "Add license" : "Add insurance"}
-            </Button>
-            <Input
-              ref={(el) => { addInputRefs.current[kind] = el; }}
-              type="file"
-              accept="image/*,application/pdf"
-              className="hidden"
-              data-credential-add={kind}
-              aria-label={kind === "license" ? "Choose your license document" : "Choose your insurance document"}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                e.target.value = "";
-                if (!f || !attachDoc(f, kind)) return;
-                // Local only, like every attached draft: the card opens on the
-                // file you picked, and nothing reaches the server until Send.
-                setIntent((prev) => ({ ...prev, [kind]: true }));
-              }}
-            />
-          </>
-        )}
-
-        {on && (
-          <div className="space-y-3">
-            {draft ? (
-              // ── Attached, NOT sent ──────────────────────────────────────
-              <div
-                className="flex items-center gap-3 rounded-ds-md p-3"
-                style={{
-                  background: "hsl(var(--ivory-sand) / 0.55)",
-                  border: "0.5px dashed hsl(var(--bark) / 0.45)",
-                }}
-              >
-                {draft.previewUrl ? (
-                  <img
-                    src={draft.previewUrl}
-                    alt={`Preview of the ${noun} you attached`}
-                    className="w-10 h-10 rounded-ds-sm object-cover shrink-0"
-                    style={{ border: "0.5px solid hsl(var(--olivewood) / 0.16)" }}
-                  />
-                ) : (
-                  <FileText className="w-5 h-5 text-primary shrink-0" />
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-ds-13 font-medium text-foreground truncate">{draft.file.name}</p>
-                  <p className="text-ds-11 font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    {formatBytes(draft.file.size)} · on this device only — not sent yet
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => discardDraft(kind)}
-                  aria-label={`Remove the ${noun} you attached — it hasn't been sent`}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ) : url ? (
-              // ── Sent ────────────────────────────────────────────────────
-              <div className="flex items-center gap-3 rounded-ds-md bg-card p-3">
-                <FileText className="w-5 h-5 text-primary shrink-0" />
-                <button
-                  type="button"
-                  onClick={() => openDoc(url)}
-                  className="flex-1 min-w-0 text-left text-ds-13 text-primary underline break-words"
-                >
-                  View the {KIND_NOUN_TITLE[kind].toLowerCase()} you sent
-                </button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setPullBack(kind)}
-                  disabled={removing}
-                  aria-label={
-                    state === "review"
-                      ? `Take your ${noun} out of the review queue`
-                      : state === "verified"
-                        ? `Remove your verified ${noun} and its badge`
-                        : `Remove the ${noun} we couldn't verify`
-                  }
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            ) : null}
-
-            {/* Attach / replace. A rejected document keeps its row above (so
-                the user can see what we looked at) AND gets a fresh picker,
-                rather than forcing a delete-then-upload dance. */}
-            {!draft && (!url || state === "rejected") && (
-              <label className="glass-field flex items-center justify-center gap-2 rounded-ds-md border-2 border-dashed border-[hsl(var(--border)/0.6)] px-4 py-6 cursor-pointer hover:border-primary/40 transition-colors">
-                <Upload className="w-5 h-5 text-muted-foreground" />
-                <span className="text-ds-13 font-medium">
-                  {state === "rejected"
-                    ? `Attach a new ${noun} (image or PDF)`
-                    : `Attach ${kind === "license" ? "license" : "insurance"} (image or PDF)`}
-                </span>
-                <Input
-                  type="file"
-                  accept="image/*,application/pdf"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) attachDoc(f, kind);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
-            )}
-
-            {/* Only the REASON, never a second copy of the status word — the
-                eyebrow above already named the state. */}
-            {state === "rejected" && reason && (
-              <p className="inline-flex items-start gap-1.5 text-ds-11 text-[hsl(var(--destructive-ink))]/90">
-                <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                <span>{reason}</span>
-              </p>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  };
 
   return (
     <ProfileTabBody>
@@ -745,8 +520,36 @@ export function CredentialsTab({ userId, onBack }: { userId: string; onBack: () 
         )}
       </div>
 
-      {renderCredentialCard("license")}
-      {renderCredentialCard("insurance")}
+      <CredentialCard
+            kind="license"
+            url={fieldsFor("license").url}
+            reason={fieldsFor("license").reason}
+            state={stateOf("license")}
+            draft={drafts.license}
+            on={licensedOn}
+            removing={removing}
+            addInputRefs={addInputRefs}
+            attachDoc={attachDoc}
+            setIntent={setIntent}
+            discardDraft={discardDraft}
+            openDoc={openDoc}
+            setPullBack={setPullBack}
+          />
+      <CredentialCard
+            kind="insurance"
+            url={fieldsFor("insurance").url}
+            reason={fieldsFor("insurance").reason}
+            state={stateOf("insurance")}
+            draft={drafts.insurance}
+            on={insuredOn}
+            removing={removing}
+            addInputRefs={addInputRefs}
+            attachDoc={attachDoc}
+            setIntent={setIntent}
+            discardDraft={discardDraft}
+            openDoc={openDoc}
+            setPullBack={setPullBack}
+          />
 
       {/* Business name — offered ONLY once a credential is claimed. The name
           on a licence or COI is part of what the admin verifies, so it lives

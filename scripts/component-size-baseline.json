@@ -12,7 +12,7 @@
     "src/components/NotificationPanel.tsx": 908,
     "src/components/NotificationPreferences.tsx": 865,
     "src/components/postjob/CheckoutStep.tsx": 716,
-    "src/components/profile/CredentialsTab.tsx": 911,
+    "src/components/profile/CredentialsTab.tsx": 714,
     "src/components/profile/SubscriptionTab.tsx": 871,
     "src/pages/auth/CompleteProfile.tsx": 892,
     "src/pages/home/Dashboard.tsx": 774,

@@ -228,6 +228,11 @@ const EXPECTED_LANDING: Record<string, string> = {
   // (UI sweep 39465003189 flagged the bounce). Fixture state, not the route
   // table, picks the target, so it lives here and not on the catalog row.
   "/explore": "/jobs",
+
+  // /declutter/move has no screen of its own since the one bulk flow
+  // (edc5d2df81): DeclutterMovePage forwards to Sell a bunch in moving mode
+  // (/declutter/sell?mode=moving). UI sweep 41866118018 flagged the bounce.
+  "/declutter/move": "/declutter/sell",
 };
 
 /**

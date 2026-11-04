@@ -1,10 +1,11 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { goSignedInOr } from "./goSignedInOr";
 import { heroSearchTargets } from "./heroSearch";
 import { useHeroWords } from "./useHeroWords";
+import { removeLandingShellOncePainted } from "./landingShell";
 
 /**
  * Hero (owner-approved landing redesign 2026-10-20; option B 2026-10-23): Bodoni
@@ -26,6 +27,8 @@ const HeroSection = () => {
   const inputId = useId();
   // Spanish only when the visitor's language is Spanish; English (null) is the locked copy below, unchanged.
   const es = useHeroWords();
+  // B100: index.html drew this hero before the app loaded (#lh-landing-shell); take that copy away once this one is painted.
+  useEffect(() => removeLandingShellOncePainted(), []);
 
   // Search: a signed-out visitor gets the public Jobs board with the words;
   // a signed-in one gets Jobs > Browse with them (heroSearch.ts).

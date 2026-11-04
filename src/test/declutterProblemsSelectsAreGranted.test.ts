@@ -18,7 +18,8 @@
  * @mutate supabase/migrations/20261103235037_declutter_problems_grant_decide_by.sql | GRANT SELECT (decide_by) ON TABLE public.declutter_problems TO authenticated; | SELECT 1;
  * @mutate src/lib/declutter/handover.ts | .select("id, order_id, reporter_side, reason"); | .select("id, order_id, reporter_side, reason, decided_by");
  */
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "./helpers/trackedFiles";
 import { execFileSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";

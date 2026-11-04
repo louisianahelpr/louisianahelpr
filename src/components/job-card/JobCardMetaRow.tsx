@@ -2,9 +2,10 @@ import { useCallback, useRef, type ReactNode } from "react";
 import { Calendar, Clock, MapPin, Timer } from "lucide-react";
 import { JobHelprsChip } from "./JobHelprsChip";
 import { differenceInHours } from "date-fns";
-import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
+import { formatTimeLeft } from "@/lib/dateUtils";
 import { useExpiryClock } from "@/lib/useExpiryClock";
 import { jobStartTimeLabel, FLEXIBLE_TIME_LABEL } from "@/lib/jobDate";
+import { jobDayLabel } from "@/lib/jobDateWindow";
 import { getCity } from "@/lib/locationUtils";
 import { hasStreetAddress } from "../../pages/jobs/appliedJobCard/JobAddressLine";
 import { mapsSearchUrl } from "@/lib/mapsLink";
@@ -35,6 +36,8 @@ const LOCATION_MAP_MOVE_TOLERANCE = 8;
 
 interface JobCardMetaRowProps {
   dateNeeded: string;
+  /** Q2408 "Any time this week": the window's last day (null/absent for one day); the row then prints the window. */
+  dateWindowEnd?: string | null;
   startTime: string | null;
   /**
    * `jobs.is_flexible_schedule` — the poster's own "start earlier or later on
@@ -140,6 +143,7 @@ interface JobCardMetaRowProps {
  */
 export function JobCardMetaRow({
   dateNeeded,
+  dateWindowEnd = null,
   startTime,
   isFlexibleSchedule,
   flexibleLabel = FLEXIBLE_TIME_LABEL,
@@ -438,7 +442,7 @@ export function JobCardMetaRow({
       <span className="flex items-center gap-1.5 shrink-0 whitespace-nowrap">
         {/* The one-line row (item 11) drops the date and clock glyphs so the street keeps its width. */}
         {!oneLine && <Calendar className="w-3 h-3 shrink-0" />}
-        {formatJobDate(dateNeeded)}
+        {jobDayLabel({ date_needed: dateNeeded, date_window_end: dateWindowEnd })}
       </span>
       {/* THE START TIME IS THE FIRST THING THIS ROW DROPS WHEN IT IS FULL, and
           only then — the same rule, at the same 400px, that the browse feed's

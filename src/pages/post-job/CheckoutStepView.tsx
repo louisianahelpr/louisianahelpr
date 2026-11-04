@@ -118,6 +118,7 @@ export function CheckoutStepView({ form }: CheckoutStepViewProps) {
         addrState={form.addrState}
         zipCode={form.zipCode}
         dateNeeded={form.dateNeeded}
+        dateWindowEnd={form.dateWindowEnd}
         startTime={form.startTime}
         estimatedHours={form.estimatedHours}
         isFlexibleSchedule={form.isFlexibleSchedule}

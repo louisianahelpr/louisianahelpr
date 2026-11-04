@@ -230,6 +230,7 @@ function AppliedJobCardInner({
           the other party the same way. See the PersonTile in the body below. */}
       <JobCardMetaRow
         dateNeeded={job.date_needed}
+        dateWindowEnd={job.date_window_end ?? null}
         startTime={job.start_time}
         /* An anonymised job carries no address (see `posterId` above); the
            location chip's own normaliser already treats "" as absent. */

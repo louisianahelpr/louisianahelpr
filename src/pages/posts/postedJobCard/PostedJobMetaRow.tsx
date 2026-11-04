@@ -33,6 +33,7 @@ export function PostedJobMetaRow({
           on the expanded card only. */}
       <JobCardMetaRow
         dateNeeded={job.date_needed}
+        dateWindowEnd={job.date_window_end ?? null}
         startTime={job.start_time}
         // The poster's own tick is what licenses the word "Flexible" —
         // the row used to print it for any job with no start time,

@@ -415,6 +415,15 @@ export const NOTIFICATION_OPEN_RX = /^Notifications \u203a /;
 export function isNotificationOpen({ label = "", chain = null }) {
   return NOTIFICATION_OPEN_RX.test(Array.isArray(chain) && chain.length ? chain.join(" \u203a ") : label);
 }
+/**
+ * "Download my data" (Settings, every persona; press-every-control 41817058240, Q946: 6 GATE MISSes on
+ * POST /functions/v1/export-my-data). Since a3980e666f the button runs the export at once and the browser saves
+ * the file, so the press IS the export: a mutating control, gated like any other, never pressed ungated.
+ */
+export const DATA_EXPORT_RX = /\bdownload my data\b/i;
+export function isDataExport({ label = "" }) {
+  return DATA_EXPORT_RX.test(label);
+}
 export function isAdminWrite({ persona, label = "" }) {
   return persona === "admin" && ADMIN_WRITE_RX.test(label);
 }
@@ -1061,6 +1070,14 @@ export const PRESS_SIDE_EFFECT_WRITES = {
   // (src/hooks/useReferralData.ts inserts one when the viewer has none). Aborted every run, so it never sticks and
   // every run re-tried it on landing.
   "/rest/v1/referral_codes": "the viewer's own referral code, minted on first look when it has none (src/hooks/useReferralData.ts); no control's purpose",
+  // press-every-control 41817058240 (Q946, lead 11-04): 16 GATE MISSes on /post-job (every category tile, both
+  // personas) and Saved Helprs' "Offer a job". Post a job keeps the member's own unfinished draft on their account
+  // as the form changes (src/lib/jobPostDraftAccount.ts saveDraftToAccount, one private row per member); picking a
+  // tile is a form change, and the draft is nobody else's and posts nothing.
+  "/rest/v1/rpc/save_my_job_post_draft": "the member's own unfinished Post a job draft, kept as the form changes (src/lib/jobPostDraftAccount.ts); posts nothing",
+  // Same run, 6 MISSes: Settings' "Your profile link" row makes the member's handle from their name when they have
+  // none (src/lib/profileLink/api.ts ensureMyHandle, 20261101034834); the referral code's shape, made on first look.
+  "/rest/v1/rpc/rpc_ensure_my_handle": "the member's own profile-link handle, made from their name on first look when they have none (src/lib/profileLink/api.ts)",
 };
 
 /**
@@ -1078,6 +1095,15 @@ export const PRESS_SIDE_EFFECT_BODY_WRITES = [
     path: "/rest/v1/profiles",
     keys: ["onboarding_tour_completed_at"],
     why: "firstRunGate stamps the account's tour completion from the device hint the sweep seeds (src/lib/onboardingTourCompletion.ts markTourCompleted)",
+  },
+  // press-every-control 41817058240 (Q946, 3 MISSes on /profile?tab=saved_searches): opening a saved search stamps
+  // when its results were last seen, so "N new" starts again (src/lib/savedSearches.ts markSeen). Turning its alerts
+  // on or off (notify_enabled / notify_email) is a different body and stays a write.
+  {
+    method: "PATCH",
+    path: "/rest/v1/saved_searches",
+    keys: ["last_seen_at"],
+    why: "opening a saved search stamps last_seen_at so its \"N new\" count restarts (src/lib/savedSearches.ts markSeen)",
   },
 ];
 

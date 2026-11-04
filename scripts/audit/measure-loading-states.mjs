@@ -71,7 +71,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { deriveRouteSet } from "./press-every-control.mjs";
-import { createLoadingDeclutterItem, createPressJob, mintAccounts, removeFixtureJob, removeInboxMessage, removeLoadingDeclutterItem, seedInboxMessage } from "./pressProdSafety.mjs";
+import { createLoadingDeclutterItem, createPressJob, mintLoadingSeller, mintAccounts, removeFixtureJob, removeInboxMessage, removeLoadingDeclutterItem, seedInboxMessage } from "./pressProdSafety.mjs";
 import { RequestMeter, ceilingFor, classify } from "../../e2e/requestMeter.mjs";
 import { stableUrl } from "../check-loading-state-shape.mjs";
 
@@ -771,6 +771,7 @@ async function main() {
   let inboxMessageId = null;
   let inboxToken = null;
   let declutterItemId = null;
+  let declutterSeller = null;
   if (poster) {
     const job = await createPressJob(poster, process.env.GITHUB_RUN_ID ?? String(Date.now()), "", "loading-states-refresh");
     seedJobId = fixtureJobId = job.id;
@@ -788,7 +789,11 @@ async function main() {
     // measured against a real item page; removed in the finally below.
     if (helper) {
       try {
-        const made = await createLoadingDeclutterItem(helper, process.env.GITHUB_RUN_ID ?? String(Date.now()));
+        // Its own in-process session (CodeQL js/file-access-to-http): never the cached helper session.
+        const seller = await mintLoadingSeller();
+        if (!seller.token) throw new Error(seller.note);
+        declutterSeller = seller;
+        const made = await createLoadingDeclutterItem(seller, process.env.GITHUB_RUN_ID ?? String(Date.now()));
         declutterItemId = made.id;
         console.log(`made Declutter fixture item ${made.id}: ${made.note}`);
       } catch (e) {
@@ -931,7 +936,7 @@ async function main() {
       console.log(`${gone.ok ? "removed" : "::warning title=inbox fixture residue::could not remove"} inbox fixture message ${inboxMessageId}: ${gone.note}`);
     }
     if (declutterItemId) {
-      const gone = await removeLoadingDeclutterItem(helper, declutterItemId);
+      const gone = await removeLoadingDeclutterItem(declutterSeller, declutterItemId);
       console.log(`${gone.ok ? "removed" : "::warning title=Declutter fixture residue::could not remove"} Declutter fixture item ${declutterItemId}: ${gone.note}`);
     }
     if (fixtureJobId) {

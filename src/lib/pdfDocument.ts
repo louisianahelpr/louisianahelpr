@@ -5,8 +5,7 @@
  * WHY THIS MODULE EXISTS
  * ----------------------
  * `/work-record` shipped the first of these documents and, with it, a whole
- * house style: the wrought-iron crest, the Times-BoldItalic wordmark with its
- * Burnt-Sienna "· LA" tail, the warm hairlines, the bark-tinted section band,
+ * house style: the wrought-iron H (alone since 2026-11-03), the warm hairlines, the bark-tinted section band,
  * the letter-format geometry. `/home-history` is the poster-side twin of that
  * screen — same `.doc-card` surface in the app, same "hand this to somebody"
  * purpose (a buyer, an insurer, an appraiser) — so it must hand over a document
@@ -41,7 +40,6 @@ export const INK: RGB = [35, 35, 26]; // --ink-deep   hsl(64 16% 12%)
 export const MUTED: RGB = [100, 102, 84]; // --olivewood, lightened to ~5.9:1 on white
 const RULE: RGB = [214, 211, 200]; // warm hairline, not a neutral grey
 const BARK: RGB = [94, 101, 68]; // --bark       #5E6544
-const SIENNA: RGB = [152, 66, 22]; // --burnt-sienna #984216
 const BAND: RGB = [240, 241, 235]; // --bark at ~8% over white
 
 const PAGE_W = 612;
@@ -150,53 +148,23 @@ export async function createLetterheadPdf(
   };
 
   // ==========================================================================
-  // LETTERHEAD — the crest, the wordmark, the title.
+  // LETTERHEAD — the H, then the title.
   //
-  //  1. THE CREST IS THE MARK. `HELPR_MARK_PNG` is the wrought-iron H — the
-  //     one the owner has twice asked for by name ("Emails should use the h
-  //     logo") and the one on the app-lock screen. Drawn at its true aspect
-  //     ratio from `HELPR_MARK_PX`, never a guessed box, so it cannot squash.
-  //  2. THE WORDMARK IS SET IN A SANS. In the app "Helpr" is Montserrat with a
-  //     Burnt-Sienna "- LA" tail (see HelprMark.tsx; EB Garamond was retired
-  //     2026-09-07). jsPDF ships only the standard 14 faces, and embedding
-  //     Montserrat would mean `addFileToVFS` + `addFont` and a ~200KB base64
-  //     font subset in the chunk, for one export, on a path that must also
-  //     work offline. Helvetica is the standard-14 sans, costs ZERO bytes
-  //     because every PDF reader has it, and cannot fall back to tofu in
-  //     whatever ancient Acrobat a leasing office runs. The document TITLE
-  //     keeps Times BoldItalic as the stand-in for the Bodoni heading voice.
-  //  3. COLOUR. Bark on the section band, Burnt Sienna on the LA tail, warm
-  //     hairlines. Enough to read as Helpr, not so much that a landlord thinks
-  //     he is holding an advert.
+  //  1. THE H ALONE IS THE MARK (owner 2026-11-03, Q2042 follow-up: "the PDF
+  //     letterhead uses just the H image"). `HELPR_MARK_PNG` is the
+  //     wrought-iron H, the same mark the app draws everywhere (HelprMark
+  //     emblemOnly). The "Helpr" wordmark and its Burnt-Sienna "· LA" tail are
+  //     gone, so the page carries no non-ASCII glyph of its own. Drawn at its
+  //     true aspect ratio from `HELPR_MARK_PX`, never a guessed box, so it
+  //     cannot squash. Guard: src/test/brandMarkIsTheHAlone.test.ts.
+  //  2. The document TITLE keeps Times BoldItalic as the stand-in for the
+  //     Bodoni heading voice (jsPDF ships only the standard 14 faces).
+  //  3. COLOUR. Bark on the section band, warm hairlines. Enough to read as
+  //     Helpr, not so much that a landlord thinks he is holding an advert.
   // ==========================================================================
   const MARK_H = 30;
   const MARK_W = (HELPR_MARK_PX.width / HELPR_MARK_PX.height) * MARK_H;
   doc.addImage(HELPR_MARK_PNG, "PNG", MARGIN, 52, MARK_W, MARK_H);
-
-  const wordmarkX = MARGIN + MARK_W + 10;
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(25);
-  ink(INK);
-  doc.text("Helpr", wordmarkX, 78);
-  // MEASURE WHILE THE WORDMARK'S FONT IS STILL SET. `getTextWidth` reads the
-  // document's CURRENT font and size — the same trap `fitLines` above
-  // documents — so measuring after the switch to 12pt would place the
-  // tail on top of the "r".
-  const wordmarkW = doc.getTextWidth("Helpr");
-
-  // The "· LA" tail, on the wordmark's baseline — the same Burnt-Sienna
-  // suffix HelprMark.tsx renders in the app.
-  //
-  // The interpunct is the ONE non-ASCII character on this page, and it is safe
-  // where a smart quote or an en dash is not: jsPDF's built-in faces encode
-  // through WinAnsi/Latin-1, which has U+00B7 at 0xB7. An en dash (U+2013) has
-  // no Latin-1 slot at all. If a future edit adds another non-ASCII glyph,
-  // RENDER THE PDF and look — the failure is a silently wrong glyph, not an
-  // exception.
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(12);
-  ink(SIENNA);
-  doc.text("· LA", wordmarkX + wordmarkW + 7, 78, { charSpace: 1.6 });
 
   doc.setFont("times", "bolditalic");
   doc.setFontSize(18);

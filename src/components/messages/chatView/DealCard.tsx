@@ -281,7 +281,7 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
         </span>
         <div className="min-w-0 flex-1">
           <p className="font-sans font-semibold text-ds-14 leading-snug line-clamp-2 [overflow-wrap:anywhere]" style={{ color: "hsl(var(--ink-deep))" }}>{job.title}</p>
-          {meta && <p className="font-sans text-ds-12 text-muted-foreground truncate">{meta}</p>}
+          {meta && <p className="font-sans text-ds-12 text-muted-foreground line-clamp-2">{meta}</p>}
         </div>
         {typeof job.budget === "number" && job.budget > 0 && !viewerIsPoster && (
           <HelprDealPrice job={{ ...job, budget: job.budget }} />

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { loadModule } from "@/lib/loadModule";
 import { track, AhaEvent } from "@/lib/analytics";
 import { safeStorage } from "@/lib/safeStorage";
 import { report } from "@/lib/errorLogger";
@@ -17,13 +17,24 @@ async function identifyInPostHog(userId: string, props: Record<string, unknown>)
   }
 }
 
+// The Supabase client is loaded, not imported: this hook is on the boot path, and the client (supabase-js,
+// ~30 KB gz) is on its way off it (Q2705/Q2706, plan in Builder 3's 11-04 handoff).
+const supabaseClient = () => loadModule(() => import("@/integrations/supabase/client"));
+
 const EMAIL_VERIFIED_KEY = "helpr_email_verified_tracked";
 
 export const useLoginTracking = () => {
   const tracked = useRef(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    let live = true;
+    let unsubscribe: (() => void) | null = null;
+    void supabaseClient()
+      .then((m) => {
+        // A null load (a recovery reload is under way) tracks nothing; the reloaded page subscribes again.
+        if (!live || !m) return;
+        const supabase = m.supabase;
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session?.user && !tracked.current) {
         tracked.current = true;
 
@@ -64,7 +75,13 @@ export const useLoginTracking = () => {
         tracked.current = false;
       }
     });
+        unsubscribe = () => subscription.unsubscribe();
+      })
+      .catch((e: unknown) => report(e, { severity: "warning", tags: { source: "useLoginTracking" } }));
 
-    return () => subscription.unsubscribe();
+    return () => {
+      live = false;
+      unsubscribe?.();
+    };
   }, []);
 };

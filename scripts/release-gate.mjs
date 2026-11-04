@@ -91,9 +91,11 @@ export const REQUIRED_CHECKS = [
  */
 export const OWNER_WAIVERS = {
   "1.0.4": {
-    checks: ["press-every-control", "a11y-prod"],
+    checks: ["press-every-control", "a11y-prod", "test", "e2e-real-backend", "journeys", "write-contract"],
     decision:
-      'owner pop-up 11-03 ~11:50 AM: "Waive those two, submit today" (1.0.4 App Store submit only; OWNER-DECISIONS.md 11-03)',
+      'owner pop-up 11-03 ~11:50 AM: "Waive those two, submit today"; owner pop-up 11-03 ~6:21 PM: "Waive GitHub checks, build now" ' +
+      "(1.0.4 App Store submit only; the app code is b9efb07, which passed test, write-contract and Authenticated journeys; " +
+      "Journeys failed only on a wrong test line, fixed in the same commit; OWNER-DECISIONS.md 11-03)",
   },
 };
 

@@ -754,8 +754,10 @@ test.describe.serial("marketplace chain", () => {
       await declineLocation(page);
       await expect(close, `${TITLE}'s Working card did not open from tab=working&job=&open=1`).toBeVisible({ timeout: 45_000 });
       // The ladder ("I'm on my way", "I've arrived", "Mark it done") lives in the open card's tracker
-      // (trackerControlsNeedAnExpandedCard). A cancelled card (the expired offer) is off the path and draws none.
-      if (found !== "Cancelled") await expect(c.locator("[data-job-progress]").first(), `${TITLE}'s open Working card shows no tracker`).toBeVisible({ timeout: 30_000 });
+      // (trackerControlsNeedAnExpandedCard). A cancelled card (the expired offer) is off the path and draws none, and a
+      // Done card draws none on the Helpr's side by design (trackerMounts.ts appliedCardMountsTracker: accepted, open,
+      // in_progress, revision_requested, disputed only; the poster's card keeps it).
+      if (found !== "Cancelled" && found !== "Done") await expect(c.locator("[data-job-progress]").first(), `${TITLE}'s open Working card shows no tracker`).toBeVisible({ timeout: 30_000 });
     }
     return c;
   }

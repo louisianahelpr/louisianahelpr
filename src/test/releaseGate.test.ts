@@ -181,16 +181,19 @@ describe("release gate reads every run of the sha", () => {
 });
 
 describe("owner waivers are exact: named checks, named version, nothing else", () => {
-  it("OWNER_WAIVERS holds only the 1.0.4 owner decision (Press + A11y prod)", () => {
+  it("OWNER_WAIVERS holds only the 1.0.4 owner decisions (Press + A11y at 11:50 AM; all six at 6:21 PM)", () => {
     expect(OWNER_WAIVERS).toEqual({
-      "1.0.4": { checks: ["press-every-control", "a11y-prod"], decision: expect.stringContaining("Waive those two, submit today") },
+      "1.0.4": {
+        checks: ["press-every-control", "a11y-prod", "test", "e2e-real-backend", "journeys", "write-contract"],
+        decision: expect.stringContaining("Waive GitHub checks, build now"),
+      },
     });
     for (const id of OWNER_WAIVERS["1.0.4"].checks) expect(CHECKS.map((c) => c.id)).toContain(id);
   });
 
   it("refuses a check the owner did not waive, and any other version", () => {
-    expect(() => resolveWaivers(["journeys"], "1.0.4")).toThrow(/not an owner-approved waiver/);
-    expect(() => resolveWaivers(["press-every-control", "write-contract"], "1.0.4")).toThrow(/write-contract/);
+    expect(() => resolveWaivers(["no-such-check"], "1.0.4")).toThrow(/not an owner-approved waiver/);
+    expect(() => resolveWaivers(["journeys"], "1.0.5")).toThrow(/no owner waiver exists for version 1.0.5/);
     expect(() => resolveWaivers(["a11y-prod"], "1.0.5")).toThrow(/no owner waiver exists for version 1.0.5/);
     expect([...resolveWaivers([], "9.9.9")]).toEqual([]);
   });
@@ -212,10 +215,10 @@ describe("owner waivers are exact: named checks, named version, nothing else", (
     expect(out[0].realState).toBe("red");
   });
 
-  it("ios-beta.yml offers only none or the two waived ids, and feeds both gate runs", () => {
+  it("ios-beta.yml offers only none or the owner's waived sets, and feeds both gate runs", () => {
     const yml = readFileSync(join(WORKFLOWS, "ios-beta.yml"), "utf8");
     const opts = /waive_checks:[\s\S]*?options:\n((?:\s+- .+\n)+)/.exec(yml)?.[1].trim().split(/\n\s*/).map((l) => l.replace(/^- /, ""));
-    expect(opts).toEqual(["none", "press-every-control,a11y-prod"]);
+    expect(opts).toEqual(["none", "press-every-control,a11y-prod", "press-every-control,a11y-prod,test,e2e-real-backend,journeys,write-contract"]);
     expect(yml.match(/LH_RELEASE_GATE_WAIVE:/g)?.length).toBe(2);
   });
 });

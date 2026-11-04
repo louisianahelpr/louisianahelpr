@@ -27,13 +27,14 @@ on:
         required: false
         default: false
       waive_checks:
-        description: "App Store build: release-gate checks the OWNER waived for this version (scripts/release-gate.mjs OWNER_WAIVERS; refused for any other check or version). 1.0.4: owner pop-up 11-03 ~11:50 AM."
+        description: "App Store build: release-gate checks the OWNER waived for this version (scripts/release-gate.mjs OWNER_WAIVERS; refused for any other check or version). 1.0.4: owner pop-ups 11-03 ~11:50 AM (Press + A11y) and ~6:21 PM (all six)."
         type: choice
         required: false
         default: none
         options:
           - none
           - press-every-control,a11y-prod
+          - press-every-control,a11y-prod,test,e2e-real-backend,journeys,write-contract
   # schedule:
   #   # 08:00 UTC ≈ 03:00 America/Chicago — keeps TestFlight no more than a
   #   # day behind main; the `check` job no-ops when main hasn't changed.

@@ -57,6 +57,7 @@ const NOT_FROM_A_REVIEW: Record<string, string> = {
   Q2083: "the owner-adopted tax memo item (2026-10-17); \"lh-money-escrow review\" names a step of its own done-when, not a filed finding",
   Q2331: "an owner-call item filed while fixing Q2327 (2026-10-21); \"Review fix\" and \"re-review\" name the lh-authz-rls review of its own fix (Builder 86, 11-03), not a filed finding",
   Q2001: "the owner's 12-idea list (2026-10-17, ALL-CAPS status pills); \"review:record\" and \"reviewed\" name its screenshot step and the lead's triage, not a filed finding",
+  Q2709: "an audit finding (OWN-SHARED, owner rule 10-29); \"review response\" names the Declutter review-response text box it converted (Builder 92, 11-04), not a filed review finding",
   Q2583: "an audit 1102a finding (Auditor 1, 11-02); \"listings to review\" names an Admin Settings card, not a filed review finding",
   Q2624: "an audit 1102c finding (row P6, 11-02); \"review left\" is a Declutter preview stage (the buyer left a review), not a filed review finding",
   Q1695: "the loading-states measurements item (builders 164/165, 2026-11-02); \"a review\" is a member's rating on the profile screen it measured, not a filed finding",

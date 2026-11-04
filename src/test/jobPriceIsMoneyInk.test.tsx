@@ -11,6 +11,14 @@
  * MoneyAmount loses to the stylesheet's !important, as it does in a browser.
  *
  * @mutate src/index.css | .money-chip, .money-chip * { color: hsl(var(--burnt-sienna)) !important; } | .money-chip, .money-chip * { color: hsl(var(--foreground)) !important; }
+ *
+ * NO PILL (lead decision 11-03 for the owner, Q2036: "show the price as plain
+ * bold text, Marketplace style"): the T3 `.money-chip` rule strips the chip's
+ * fill, border, shadow and padding, so the price reads as plain bold text on
+ * every card. Measured on Builder 86's photo-first card shots
+ * (~/.lh-shots/b86-cards/after-*.png): "$123" etc. in bold rust, no pill.
+ * @mutate src/index.css | .money-chip {\n  background: transparent !important; | .money-chip {\n  background: hsl(var(--muted)) !important;
+ * @mutate src/index.css |   box-shadow: none !important;\n  padding: 0 !important;\n}\n.money-chip, .money-chip * { |   box-shadow: none !important;\n}\n.money-chip, .money-chip * {
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -59,5 +67,15 @@ describe("a job card's price wears the money ink (spec §1.1)", () => {
     } finally {
       style.remove();
     }
+  });
+
+  it("no pill: the price is plain bold text (no fill, border, shadow or padding)", () => {
+    const body = [...css.matchAll(/([^{}@;]+)\{([^{}]*)\}/g)].find((m) => m[1].trim() === ".money-chip")?.[2] ?? "";
+    const decl = (p: string) => new RegExp(`(^|[;\\s])${p}\\s*:\\s*([^;]+);`).exec(body)?.[2].trim();
+    expect(decl("background")).toBe("transparent !important");
+    expect(decl("border-color")).toBe("transparent !important");
+    expect(decl("box-shadow")).toBe("none !important");
+    expect(decl("padding")).toBe("0 !important");
+    expect(css).toMatch(/\.money-chip > :first-child \{[^}]*font-weight: 800 !important/);
   });
 });

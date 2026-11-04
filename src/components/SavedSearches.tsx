@@ -531,11 +531,14 @@ export function SavedSearches({
                     {savedSearchSummary(s)}
                   </p>
                 </button>
-                <button
+                {/* Q2709: the shared quiet icon Button (44px tap area, the shared hover wash); [&_svg]:size-4 keeps the 16px glyphs. */}
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="iconCompact"
                   onClick={() => toggleNotify(s)}
                   disabled={togglingId === s.id}
-                  className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-sm hover:bg-muted shrink-0 active:scale-[0.95] transition disabled:opacity-50 disabled:cursor-wait"
+                  className="shrink-0 [&_svg]:size-4 disabled:cursor-wait"
                   aria-label={s.notify_enabled ? "Mute notifications" : "Enable notifications"}
                   aria-busy={togglingId === s.id}
                   title={s.notify_enabled ? "Notifications on" : "Notifications off"}
@@ -547,12 +550,14 @@ export function SavedSearches({
                   ) : (
                     <BellOff className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
                   )}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="iconCompact"
                   onClick={() => remove(s.id)}
                   disabled={removingId === s.id}
-                  className="min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-ds-sm hover:bg-destructive/10 shrink-0 active:scale-[0.95] transition disabled:opacity-50 disabled:cursor-wait"
+                  className="shrink-0 [&_svg]:size-4 disabled:cursor-wait"
                   aria-label="Delete saved search"
                   aria-busy={removingId === s.id}
                 >
@@ -561,7 +566,7 @@ export function SavedSearches({
                   ) : (
                     <Trash2 className="w-4 h-4 text-muted-foreground hover:text-destructive-ink" />
                   )}
-                </button>
+                </Button>
               </div>
             ))
           )}

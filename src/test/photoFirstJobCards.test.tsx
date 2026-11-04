@@ -10,7 +10,10 @@
  * @mutate src/components/dashboard/JobCardMedia.tsx |       {photo ? ( |       {false ? (
  * @mutate src/components/dashboard/JobCardMedia.tsx |   const rated = (reviewCount ?? 0) > 0 && (avgRating ?? 0) > 0; |   const rated = false;
  * @mutate src/components/dashboard/JobCardMedia.tsx |   if (!first \|\| name === "a neighbor") return <div data-testid="job-card-poster" aria-hidden className={JOB_CARD_FACE_ROW} />; |   if (!first \|\| name === "a neighbor") return null;
+ * @mutate src/index.css |   .job-card-media-col .job-meta-row { flex-wrap: wrap; } |   .job-card-media-col .job-meta-row { flex-wrap: nowrap; }
  */
+import fs from "node:fs";
+import { blankCssComments } from "./helpers/blankNonCode";
 import { describe, it, expect, vi } from "vitest";
 import { render } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -75,5 +78,13 @@ describe("photo-first Browse job cards", () => {
     expect(c.querySelector("[data-testid=job-card-media]")).toBeNull();
     const count = c.querySelectorAll("[data-testid=job-card-media]").length + c.querySelectorAll("[data-feed-card]").length;
     expect(count).toBeGreaterThan(0);
+  });
+
+  it("on a phone the meta line takes two lines beside the tile instead of clipping the time", () => {
+    const css = blankCssComments(fs.readFileSync("src/index.css", "utf8"));
+    const block = css.slice(css.indexOf("@media (max-width: 767px) {\n  .job-card-media-col"));
+    expect(block).toContain(".job-card-media-col .job-meta-row { flex-wrap: wrap; }");
+    expect(block).toContain(".job-card-media-col .job-meta-row > [data-meta-break] { display: block; }");
+    expect(draw(job()).querySelector(".job-card-media-col .job-meta-row [data-meta-break]")).not.toBeNull();
   });
 });

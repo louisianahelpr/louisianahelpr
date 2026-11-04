@@ -20648,6 +20648,7 @@ export type Database = {
         Returns: Json
       }
       rpc_helper_mark_done: { Args: { _job_id: string }; Returns: Json }
+      rpc_hire_target_by_handle: { Args: { p_handle: string }; Returns: string }
       guarantee_claim_for_dispute: {
         Args: { p_dispute_id: string }
         Returns: Json

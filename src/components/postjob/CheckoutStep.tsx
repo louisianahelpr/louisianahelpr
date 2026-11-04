@@ -31,6 +31,7 @@ import { hasTaxableLine } from "@/lib/salesTax";
 import { taxedWork } from "./taxedWorkLabel";
 import { useStripeSalesTax } from "@/hooks/useStripeSalesTax";
 import { formatJobDate } from "@/lib/dateUtils";
+import { jobDayLabel } from "@/lib/jobDateWindow";
 import { ReviewMediaRows } from "./ReviewMediaRows";
 import { HelprActivityNote } from "./HelprActivityNote";
 import { QuoteAskButton } from "@/components/quotes/QuoteAskButton";
@@ -53,6 +54,8 @@ interface CheckoutStepProps {
   addrState: string;
   zipCode: string;
   dateNeeded: string;
+  /** Q2408 "Any time this week": the window's last day (null for one day). The When row prints the window. */
+  dateWindowEnd?: string | null;
   startTime: string;
   estimatedHours: string;
   isFlexibleSchedule: boolean;
@@ -124,6 +127,7 @@ export function CheckoutStep({
   addrState,
   zipCode,
   dateNeeded,
+  dateWindowEnd = null,
   startTime,
   estimatedHours,
   isFlexibleSchedule,
@@ -291,7 +295,9 @@ export function CheckoutStep({
                 <Calendar className="w-3 h-3" />When
               </span>
               <p className="flex-1 text-ds-13 text-foreground text-right">
-                {formatJobDate(whenDate)}
+                {/* Q2408 live proof (11-04): a window job's review read "Thu, Nov 5" (its first day only); it now
+                    reads the window as every card does ("Any day Nov 5-11"). A Repeats job keeps its first visit. */}
+                {isRecurring ? formatJobDate(whenDate) : jobDayLabel({ date_needed: whenDate, date_window_end: dateWindowEnd })}
                 {/* Routed through the ONE rule (src/lib/jobDate.ts) so this
                     summary never disagrees with the card or detail sheet. It
                     once swallowed a real start time when Flexible was also

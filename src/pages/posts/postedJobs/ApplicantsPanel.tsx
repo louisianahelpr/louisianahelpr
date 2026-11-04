@@ -1,4 +1,5 @@
 import { ApplicantIdNote } from "./applicantsPanel/ApplicantIdNote";
+import { jobDayLabel } from "@/lib/jobDateWindow";
 import { ApplicantSuggestedTime } from "./applicantsPanel/ApplicantSuggestedTime";
 import { Fragment, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
@@ -29,7 +30,6 @@ import { ApplicantAvailableNow } from "./applicantsPanel/ApplicantAvailableNow";
 import { ApplicantNeighborHires } from "./applicantsPanel/ApplicantNeighborHires";
 import { ApplicantPrivateNote } from "./applicantsPanel/ApplicantPrivateNote";
 import { ApplicantsDesktopTable, useApplicantsTable } from "./applicantsPanel/ApplicantsDesktopTable";
-import { formatJobDate } from "@/lib/dateUtils";
 import { ApplicantsNextStep } from "./applicantsPanel/ApplicantsNextStep";
 import type { ApplicantsPanelProps } from "./applicantsPanel/applicantsPanelProps";
 import { useEscapeClosesApplicants } from "./applicantsPanel/useEscapeClosesApplicants";
@@ -193,7 +193,7 @@ export function ApplicantsPanel({
         >
           {/* The job's name + date under "Applicants" (owner 2026-10-22, board 170). Guard: applicantsDesktopTableBoard170. */}
           <p className="-mt-2 mb-3 truncate text-ds-13 text-muted-foreground" data-applicants-job-line="">
-            {[selectedJob.title, selectedJob.date_needed ? formatJobDate(selectedJob.date_needed) : null].filter(Boolean).join(" · ")}
+            {[selectedJob.title, selectedJob.date_needed ? jobDayLabel(selectedJob) : null].filter(Boolean).join(" · ")}
           </p>
           <ApplicantsNextStep job={selectedJob} pending={applications.filter((a) => a.status === "pending").length} />
           {/* Fills AppPage's column (owner, 2026-10-01: "this content still

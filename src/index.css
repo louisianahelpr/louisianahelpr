@@ -2136,6 +2136,18 @@ body[data-scroll-locked] .preview-dock {
   }
 }
 
+/* B100 (Q2705/Q2708): the guest landing's HTML-drawn first screen (index.html #lh-landing-shell; the inline script
+   marks <html> data-lh-landing-shell for a guest on "/"). Shown HERE, in the sheet its markup needs, so it can never
+   paint unstyled: index.html hides it, and this rule only applies once this sheet has loaded. HeroSection removes it
+   once React's hero is painted (src/components/landing/landingShell.ts). */
+[data-lh-landing-shell] #lh-landing-shell {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  overflow: hidden;
+}
+
 /* ── IN-PAGE SECTION RHYTHM (Q191, owner 2026-09-23) ────────────────────────
    "Update the spacing on every other phone width. Like all the profile tabs
    everything that you think needs to be tighter. Also make sure nothing is

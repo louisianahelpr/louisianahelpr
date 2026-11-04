@@ -137,16 +137,17 @@ export function PendingApplicationSection({
             <p className="font-sans text-ds-14 leading-relaxed text-foreground min-w-0">
               {app.message || <span className="text-muted-foreground">No message yet — add one</span>}
             </p>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="iconCompact"
               aria-label="Edit your message"
-              /* `p-2 -m-2` grows the hit area to ~44px without moving the
-                 glyph — the same trick the meta row's location chip uses. */
-              className="text-primary hover:text-primary/95 btn-press p-2 -m-2 shrink-0"
+              /* `-m-2` keeps the 44px shared hit area from pushing the message line down. */
+              className="text-primary hover:text-primary/95 -m-2 shrink-0"
               onClick={() => { setEditingMessageAppId(app.id); setEditMessageText(app.message || ""); }}
             >
-              <Pencil className="w-3.5 h-3.5" />
-            </button>
+              <Pencil />
+            </Button>
           </div>
         )}
       </section>
@@ -174,15 +175,17 @@ export function PendingApplicationSection({
           <div key={i} className="flex items-center gap-1">
             <AttachmentLink url={url} index={i} variant="chip" className="flex-1 min-w-0" />
             {editing && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="iconCompact"
               onClick={(e) => { e.stopPropagation(); handleRemoveAttachment(app.id, app.attachment_urls || [], url); }}
               aria-label="Remove attachment"
-              className="shrink-0 hover:opacity-70"
+              className="shrink-0"
               style={{ color: "hsl(var(--danger-ink))" }}
             >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+              <Trash2 />
+            </Button>
             )}
           </div>
         ))}

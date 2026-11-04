@@ -216,9 +216,6 @@
     "src/components/dashboard/CompactJobCard.tsx": {
       "button": 1
     },
-    "src/components/dashboard/GuestEmptyStateActions.tsx": {
-      "button": 4
-    },
     "src/components/dashboard/JobDetailDialog.tsx": {
       "button": 3
     },
@@ -830,7 +827,6 @@
       "button": 1
     },
     "src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx": {
-      "button": 2,
       "input": 1
     },
     "src/pages/jobs/jobPage/NoApplicantsYet.tsx": {

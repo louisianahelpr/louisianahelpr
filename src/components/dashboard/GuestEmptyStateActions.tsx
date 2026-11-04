@@ -33,29 +33,17 @@ export function GuestEmptyStateActions({
   if (hasFilters) {
     return nearbyActive ? (
       <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-3">
-        <button
-          type="button"
-          onClick={onWiden}
-          className="text-ds-11 font-semibold text-primary hover:underline btn-press"
-        >
+        <Button type="button" variant="link" size="sm" onClick={onWiden}>
           Widen to {nextMiles} mi
-        </button>
-        <button
-          type="button"
-          onClick={onShowAllLocations}
-          className="text-ds-11 font-semibold text-muted-foreground hover:underline btn-press"
-        >
+        </Button>
+        <Button type="button" variant="link" size="sm" className="text-muted-foreground" onClick={onShowAllLocations}>
           Show all locations
-        </button>
+        </Button>
       </div>
     ) : (
-      <button
-        type="button"
-        onClick={onClearFilters}
-        className="text-ds-11 font-semibold text-primary hover:underline btn-press"
-      >
+      <Button type="button" variant="link" size="sm" onClick={onClearFilters}>
         {clearLabel}
-      </button>
+      </Button>
     );
   }
   /* Unfiltered empty state used to pass NO action, so a visitor who landed on
@@ -81,13 +69,9 @@ export function GuestEmptyStateActions({
       >
         Notify me when work lands
       </Button>
-      <button
-        type="button"
-        onClick={onHire}
-        className="text-ds-11 font-semibold text-muted-foreground hover:underline btn-press"
-      >
+      <Button type="button" variant="link" size="sm" className="text-muted-foreground" onClick={onHire}>
         Or hire someone for a job
-      </button>
+      </Button>
     </div>
   );
 }

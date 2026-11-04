@@ -142,7 +142,7 @@ export function LiveJobsSection() {
               <span aria-hidden className="w-2 h-2 rounded-full" style={{ background: "var(--lp-action)" }} />
               Live now
             </span>
-            <h2 id="landing-live-jobs-title" className="font-display landing-serif leading-[1.05] text-ds-32 sm:text-[44px] lg:text-[52px]" style={{ color: "var(--lp-ink)" }}>
+            <h2 id="landing-live-jobs-title" className="font-display landing-serif leading-[1.05] text-ds-28" style={{ color: "var(--lp-ink)" }}>
               Open jobs near you
             </h2>
           </div>

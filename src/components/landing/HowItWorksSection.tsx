@@ -121,7 +121,7 @@ const HowItWorksSection = () => {
       <div className="mx-auto w-full max-w-6xl flex flex-col gap-8 md:gap-10">
         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
           <h2
-            className="font-display landing-serif text-balance leading-[1.05] text-ds-32 sm:text-[44px] lg:text-[52px]"
+            className="font-display landing-serif text-balance leading-[1.05] text-ds-28"
             style={{ color: "var(--lp-ink)" }}
           >
             How a job works

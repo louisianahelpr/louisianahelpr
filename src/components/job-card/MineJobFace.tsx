@@ -159,15 +159,17 @@ export function MineJobFace({
           </span>
         </Link>
         {onCollapse && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="iconCompact"
             data-mine-close=""
             aria-label={`Close ${title}`}
             onClick={onCollapse}
-            className="-mr-2 -mt-2.5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="-mr-2 -mt-2.5 shrink-0 text-muted-foreground hover:text-foreground"
           >
-            <ChevronUp className="h-5 w-5" aria-hidden="true" />
-          </button>
+            <ChevronUp aria-hidden="true" />
+          </Button>
         )}
         </div>
         {/* Under the title column (44px thumb + 12px gap), outside the link: the
@@ -202,17 +204,19 @@ export function MineJobFace({
           >
             {action.label}
           </Button>
-          <button
+          <Button
             type="button"
+            variant="link"
+            size="sm"
             data-mine-face-also=""
-            className="link-standard shrink-0 text-ds-13 font-semibold text-muted-foreground"
+            className="shrink-0 px-0 text-ds-13 text-muted-foreground"
             onClick={(e) => {
               e.stopPropagation();
               action.also?.onClick();
             }}
           >
             {action.also.label}
-          </button>
+          </Button>
         </div>
       ) : action && (
         <Button

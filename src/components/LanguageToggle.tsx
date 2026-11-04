@@ -15,7 +15,7 @@ export function LanguageToggle({ className = "" }: { className?: string }) {
   const { lang, setLang, t } = useLanguage();
   return (
     <div role="group" aria-label={t("lang.label")} data-testid="language-toggle" className={`inline-flex items-center gap-1 text-ds-13 font-sans ${className}`}>
-      <Languages className="h-4 w-4 shrink-0" strokeWidth={1.8} aria-hidden style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
+      <Languages className="h-4 w-4 shrink-0" strokeWidth={1.75} aria-hidden style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
       {LANGS.map((l, i) => (
         <span key={l} className="inline-flex items-center">
           {i > 0 && <span aria-hidden className="px-1">·</span>}

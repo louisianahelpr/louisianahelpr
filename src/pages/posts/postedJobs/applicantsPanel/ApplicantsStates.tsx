@@ -174,7 +174,7 @@ function LeverRow({
       <Icon
         className="w-4 h-4 shrink-0"
         style={{ color: "hsl(var(--bark))" }}
-        strokeWidth={1.8}
+        strokeWidth={1.75}
         aria-hidden
       />
       <span className="min-w-0 flex-1">

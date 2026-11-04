@@ -935,7 +935,6 @@ Reconciled 2026-09-23; detail in the archive at the line shown.
 
 ### Performance — audit done, NO fixes applied yet
 Reconciled 2026-09-23; detail in the archive at the line shown.
-- [ ] **Q979** LOW Prefetch check-pro-subscription / stripe-connect status; raise React Query gcTime past 5min; dedupe raw supabase.rpc calls — Performance fixes (prefetch, gcTime, query dedupe) for the 395-893ms Stripe-hop delays still not applied, per the heading itself. (archive L3421) **RE-VERIFIED 2026-10-05 (lane/code-tooling-1005), needs the browser lane:** check-pro-subscription is still fetched only on demand (src/hooks/useDashboardData.ts:549) and never prefetched; get_my_pending_direct_offers is called raw in two places (useActivityBadgeCounts.ts:178, useActivityData.ts:468). Whether those still duplicate per route can only be counted from a real page load's network log, which this lane cannot run (no browser). **TRIAGE 2026-10-21: still applies, not built; needs a browser network log to count duplicates (item text 2026-10-05, nothing landed since by grep of the hooks named).** **TRIAGE 2026-10-30: still applies.**
 
 ### Messages screen
 Reconciled 2026-09-23; detail in the archive at the line shown.

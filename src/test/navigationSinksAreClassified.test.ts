@@ -188,6 +188,9 @@ const CLASSIFIED: Record<string, string> = {
   "components/declutter/DeclutterTradeViews.tsx::res.url": STRIPE_EDGE_URL,
   "pages/post-job/useJobSubmit.ts::paymentUrl": STRIPE_EDGE_URL,
   "lib/escrowCheckout.ts::url": STRIPE_EDGE_URL + " (create-payment action escrow, the quote screens' booking)",
+  // --- not a navigation: a <link rel="preload" as="image"> the boot script adds to <head> (B96/B100) ---
+  "boot/declutterPrefetch.ts::p.href": "firstCardPhotoPreloads(): the build-time VITE_SUPABASE_URL + /storage/v1/render/image/public/<bucket>/ + a stored path without '?' (an image preload, never navigated)",
+  "boot/declutterItemPrefetch.ts::p.href": "firstGalleryPhoto(): the build-time VITE_SUPABASE_URL + /storage/v1/render/image/public/<bucket>/ + a stored path matching ^[A-Za-z0-9/_.-]+$ (an image preload, never navigated)",
 };
 
 function unclassifiedSinks(files: { rel: string; source: string }[]) {

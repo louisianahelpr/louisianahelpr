@@ -33,6 +33,7 @@ import { rentalsErrorMessage } from "@/lib/rentals/copy";
 import { openSignedDocument } from "@/lib/openSignedDocument";
 import { AdminCard } from "../AdminViewShell";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
+import { Input } from "@/components/ui/input";
 
 function OpenFile({ path, label }: { path: string; label: string }) {
   return (
@@ -79,8 +80,8 @@ function IdColumn({ r, onDone }: { r: LandlordIdReview | undefined; onDone: () =
         {r.front_path && <OpenFile path={r.front_path} label="Open ID (front)" />}
         {r.back_path && <OpenFile path={r.back_path} label="Open ID (back)" />}
       </div>
-      <input
-        className="w-full rounded-lg border border-border bg-background px-3 py-2"
+      <Input
+        className="w-full"
         aria-label="ID note (required to reject)"
         placeholder="Note (required to reject; the landlord sees it)"
         value={note}
@@ -157,8 +158,8 @@ function Row({ p, matches, onDone }: { p: RentalProperty; matches: TakedownMatch
         </div>
       )}
       {p.ownership_proof_path && <OpenFile path={p.ownership_proof_path} label="Open ownership proof" />}
-      <input
-        className="w-full rounded-lg border border-border bg-background px-3 py-2"
+      <Input
+        className="w-full"
         aria-label="Note (required to reject)"
         placeholder="Note (required to reject; the landlord sees it)"
         value={note}

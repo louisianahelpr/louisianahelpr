@@ -19,6 +19,7 @@ import { rentalsErrorMessage } from "@/lib/rentals/copy";
 import { AdminCard } from "../AdminViewShell";
 import { AdminUserSearchField } from "./AdminUserSearchField";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
+import { Input } from "@/components/ui/input";
 
 const KEY = ["admin-homes-listings"];
 
@@ -38,8 +39,8 @@ function OpenRow({ l, onDone }: { l: AdminListings["open"][number]; onDone: () =
       <p className="text-muted-foreground">
         {l.kind === "sale" ? "For sale" : "For rent"} · {l.status === "live" ? "Live" : "Paused"} · {l.property_label}, {l.city} {l.zip_code}
       </p>
-      <input
-        className="w-full rounded-lg border border-border bg-background px-3 py-2"
+      <Input
+        className="w-full"
         aria-label={`Reason to take down ${l.headline}`}
         placeholder="Reason (the owner sees it)"
         value={reason}
@@ -68,8 +69,8 @@ function TakenDownRow({ t, onDone }: { t: AdminListings["taken_down"][number]; o
         {t.property_label}, {t.city} {t.zip_code}
       </p>
       <p className="text-muted-foreground">Reason: {t.reason}</p>
-      <input
-        className="w-full rounded-lg border border-border bg-background px-3 py-2"
+      <Input
+        className="w-full"
         aria-label={`Note to lift the take-down of ${t.property_label}`}
         placeholder="Why it is lifted (kept in the audit log)"
         value={note}

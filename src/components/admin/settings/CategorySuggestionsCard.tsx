@@ -10,6 +10,7 @@ import {
   type CategorySuggestionRow,
 } from "@/lib/categorySuggestions";
 import { AdminCard } from "../AdminViewShell";
+import { Input } from "@/components/ui/input";
 
 /**
  * "Suggest a category" admin queue (owner decision I1, 2026-10-14). Each row
@@ -42,9 +43,9 @@ function SuggestionItem({ row }: { row: CategorySuggestionRow }) {
         {asked > 1 ? ` · ${asked} people asked for this` : ""}
       </p>
       <label className="block text-xs font-medium" htmlFor={`cs-note-${row.id}`}>Note (optional, admins only)</label>
-      <input
+      <Input
         id={`cs-note-${row.id}`}
-        className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+        className="w-full"
         maxLength={300}
         value={note}
         onChange={(e) => setNote(e.target.value)}

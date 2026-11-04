@@ -35,6 +35,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { dayOffAllowed, dayOffBounds, dayOffLabel } from "@/lib/declutter/daysOff";
 import { PickupTimesEditor } from "./DeclutterPickupTimes";
+import { Input } from "@/components/ui/input";
 
 const KEY = ["declutter", "my-seller-delivery"] as const;
 const FIRST_WINDOW: DeliveryWindow = { weekday: 6, starts: "09:00", ends: "12:00" };
@@ -185,8 +186,8 @@ function SellerDeliveryForm({ current, onDone, embedded = false }: { current: My
           <>
             <div className="flex items-center gap-2">
               <span className="text-sm" aria-hidden>$</span>
-              <input id="sd-rate" inputMode="numeric" aria-label="Delivery price in dollars"
-                className="w-28 rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              <Input id="sd-rate" inputMode="numeric" aria-label="Delivery price in dollars"
+                className="w-28"
                 value={rate} onChange={(e) => setRate(e.target.value.replace(/[^\d]/g, "").slice(0, 3))} aria-describedby="sd-rate-help" />
             </div>
             <p id="sd-rate-help" className={`text-xs ${rate && !rateOk ? "text-destructive-ink" : "text-muted-foreground"}`}>
@@ -200,7 +201,7 @@ function SellerDeliveryForm({ current, onDone, embedded = false }: { current: My
               <div className="space-y-1.5">
                 <label htmlFor="sd-free-over" className="flex flex-wrap items-center gap-2 text-sm">
                   <span>Free delivery on orders of $</span>
-                  <input id="sd-free-over" inputMode="numeric" className="w-24 rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  <Input id="sd-free-over" inputMode="numeric" className="w-24"
                     value={freeOver} onChange={(e) => setFreeOver(e.target.value.replace(/[^\d]/g, "").slice(0, 5))}
                     aria-describedby="sd-free-over-help" />
                   <span>or more</span>
@@ -248,7 +249,7 @@ function SellerDeliveryForm({ current, onDone, embedded = false }: { current: My
           </ul>
         )}
         <div className="flex gap-2">
-          <input id="sd-day-off" type="date" className="min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
+          <Input id="sd-day-off" type="date" className="min-w-0"
             min={dayOffBounds().min} max={dayOffBounds().max} value={newDay} onChange={(e) => setNewDay(e.target.value)} />
           <Button type="button" variant="outline" size="sm" disabled={!dayOffAllowed(newDay) || daysOff.includes(newDay) || daysOff.length >= 60}
             onClick={() => { setDaysOff((xs) => [...xs, newDay].sort()); setNewDay(""); }}>

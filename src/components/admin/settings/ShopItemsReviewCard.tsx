@@ -14,6 +14,7 @@ import {
 } from "@/lib/shops/items";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { AdminCard } from "../AdminViewShell";
+import { Input } from "@/components/ui/input";
 
 /**
  * Shop items waiting for an admin (Shops slice 2; docs/specs/local-shops-prep.md
@@ -75,9 +76,9 @@ function PendingItem({ row }: { row: PendingShopItem }) {
       )}
       {row.description && <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">{row.description}</p>}
       <label className="block text-xs font-medium" htmlFor={`shop-item-note-${row.item_id}`}>Reason, if you reject it (the owner sees this)</label>
-      <input
+      <Input
         id={`shop-item-note-${row.item_id}`}
-        className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+        className="w-full"
         maxLength={500}
         value={note}
         onChange={(e) => setNote(e.target.value)}

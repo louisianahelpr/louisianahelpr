@@ -29,6 +29,7 @@ import { HoldChecking, myHoldOn, myOpenOfferOn, ReservedForYou, YourOfferBox } f
 import { dollarsInputToCents } from "@/lib/declutter/money";
 import { invalidateTrades } from "./declutterLightActions";
 import { useOffScreen } from "./useOffScreen";
+import { Input } from "@/components/ui/input";
 
 /**
  * Row 36, as the step INSIDE a buy or an offer (owner, 2026-10-19): a buyer
@@ -412,11 +413,11 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
           {cardSaved && <p role="status" className="text-sm font-medium" data-card-saved="">Card saved. Now send your offer.</p>}
           <label htmlFor="declutter-offer" className="text-sm font-medium">Your offer</label>
           <div className="flex gap-2">
-            <input
+            <Input
               id="declutter-offer"
               ref={offerBox}
               inputMode="decimal"
-              className="flex-1 min-w-0 rounded-lg border border-input bg-background px-3 py-2 text-sm"
+              className="flex-1 min-w-0"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder={`At least ${formatPrice(minCents)}`}

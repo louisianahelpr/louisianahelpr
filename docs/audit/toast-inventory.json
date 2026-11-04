@@ -14462,7 +14462,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 373,
+      "line": 371,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -14472,7 +14472,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 383,
+      "line": 381,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14492,7 +14492,7 @@
     },
     {
       "file": "src/pages/user/UserProfile.tsx",
-      "line": 397,
+      "line": 395,
       "kind": "toast.error",
       "title": {
         "form": "literal",

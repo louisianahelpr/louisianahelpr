@@ -27,7 +27,7 @@ import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
  *    refunded as damaged or not as described; the buyer prints it from their order (ReturnLabelPanel).
  * Guard: src/components/admin/settings/DeclutterShippingClaimsCard.test.tsx.
  */
-export type ClaimDue = { claim_id: string; order_id: string; seller_id: string; claim_ref: string; seller_due_cents: number; created_at: string };
+type ClaimDue = { claim_id: string; order_id: string; seller_id: string; claim_ref: string; seller_due_cents: number; created_at: string };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DUE_KEY = ["admin", "declutter-ship-claims-due"] as const;

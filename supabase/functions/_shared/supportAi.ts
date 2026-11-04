@@ -27,10 +27,10 @@
 
 /** Longest suggestion handed back. admin-support-reply allows 4000. */
 export const ANSWER_MAX_CHARS = 1200;
-export const DRAFT_MAX_CHARS = 1500;
+const DRAFT_MAX_CHARS = 1500;
 /** What the member may send in; contact-support's own bounds. */
-export const SUBJECT_MAX = 120;
-export const MESSAGE_MAX = 4000;
+const SUBJECT_MAX = 120;
+const MESSAGE_MAX = 4000;
 
 export const ASK_SCHEMA = {
   type: "object",

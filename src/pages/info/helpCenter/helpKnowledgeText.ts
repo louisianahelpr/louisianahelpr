@@ -7,7 +7,7 @@ import { FAQ_SECTIONS } from "./helpCenterContent";
  * and src/test/supportAiHelpKnowledge.test.tsx fails when that copy differs from
  * what the Help Center shows today (UPDATE_HELP_KNOWLEDGE=1 rewrites it).
  */
-export function helpKnowledgeText(termsText: string): string {
+function helpKnowledgeText(termsText: string): string {
   const faq = FAQ_SECTIONS.map((section) =>
     [`## ${section.topic}`, ...section.items.map((item) => `Q: ${item.q}\nA: ${item.a}`)].join("\n\n"),
   ).join("\n\n");

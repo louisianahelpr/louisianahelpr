@@ -336,6 +336,22 @@ describe("void-cancelled-payments Part D: a member deleted AFTER the crew settle
     expect((stripeMock.refunds.create.mock.calls[0][0] as { amount: number }).amount).toBe(5500);
   });
 
+  // Q2717 (lead re-review 2026-11-03): on a gift-reduced job-site charge the share's kept tax is at the job's own
+  // rate (job_taxable_cents): ceil(5000 x 3000 / 60000) = 250c, not ceil(5000 x 3000 / 30000) = 500c.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts | keptTaxCents = taxOnKeptCents({ keptCents: cents, taxCents: chargeTax, capturedCents, taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> \| null) }); | keptTaxCents = taxOnKeptCents({ keptCents: cents, taxCents: chargeTax, capturedCents });
+  it("Q2717: a gift-reduced job-site charge returns the share's kept tax at the job's rate", async () => {
+    seedSettled("pi_crew");
+    scenario.reads.payment_refunds = { rows: [{ stripe_refund_id: "re_cancel" }] };
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_crew", status: "succeeded", amount: 33000, amount_received: 33000,
+      metadata: { tax_calculation_id: "taxcalc_crew", job_tax_cents: "3000", job_taxable_cents: "60000" },
+      latest_charge: { id: "ch_crew", amount: 33000, amount_refunded: 18000 },
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect((stripeMock.refunds.create.mock.calls[0][0] as { amount: number }).amount).toBe(5250);
+  });
+
   // @mutate supabase/functions/void-cancelled-payments/index.ts |             if ((cancelRefund ?? []).length > 0) { |             if (true) {
   it("re-review #1: a taxed crew that settled through a HOLD capture (no tax kept) gets the share back without tax", async () => {
     seedSettled("pi_crew");

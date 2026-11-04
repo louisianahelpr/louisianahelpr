@@ -13,7 +13,7 @@ import { refundsSeriesVisitInFull } from "../_shared/seriesRefund.ts";
 import { actualOrEstimatedFeeCents, highestPayInFourFeeCents, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
 import { cardCostFeeCents, chargeTaxCentsFor, checkoutChargeTaxCents, jobSiteTaxableCents, posterCancelKeptFeeCents, refundToPayerCents, taxOnKeptCents, withheldFeeReturnCents } from "../_shared/refundAmount.ts";
-import { CANCEL_FEE_CAPTURE_KEY } from "../_shared/jobTaxAddress.ts";
+import { CANCEL_FEE_CAPTURE_KEY, JOB_TAX_BACK_KEY } from "../_shared/jobTaxAddress.ts";
 import { refundReasonWithKeptParts } from "../_shared/refundReason.ts";
 import { posterCancelSplit } from "../_shared/posterCancelSplit.ts";
 import { CAPTURED_NOT_HIRED } from "../_shared/cardHold.ts";
@@ -1305,7 +1305,8 @@ serve(async (req) => {
                 await pageRefundProblem("its sales tax could not be read");
                 return;
               }
-              keptTaxCents = taxOnKeptCents({ keptCents: cents, taxCents: chargeTax, capturedCents });
+              // Q2717: a gift-reduced job-site charge keeps tax at the job's own rate (job_taxable_cents).
+              keptTaxCents = taxOnKeptCents({ keptCents: cents, taxCents: chargeTax, capturedCents, taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null) });
             } else {
               console.log(`[void-cancelled-payments] crew fee share ${share.id} (job ${job.id}): no cancel refund on the ledger, so no sales tax was kept on the share; refunding the share alone.`);
             }
@@ -3229,6 +3230,18 @@ serve(async (req) => {
           let cancellationRefundNotice: Parameters<typeof tellPosterMoneyBack>[2] | null = null;
 
           if (refundAmount > 0 && !alreadyRefunded) {
+            // Q2717: the job-site tax this refund returns rides on the refund, so charge.refunded reverses
+            // exactly tax-back x (taxable + tax) / tax of a gift-reduced charge's Stripe Tax transaction instead of
+            // scaling the refund by tax / card. Known exactly when the tax was split off (refundAmount less the
+            // non-tax refund), or on an ordinary taxed charge with no earlier refund (the tax less the tax kept).
+            const jobTaxBackCents = piSiteTaxCents <= 0
+              ? null
+              : siteTaxOnCardCents > 0
+              ? refundAmount - voidSplit.refundCents
+              : chargeRefundedOnCardCents === 0 && refundAmount === voidSplit.refundCents
+              ? Math.max(0, piSiteTaxCents - voidSplit.taxKeptCents)
+              : null;
+            const jobTaxBackMetadata = jobTaxBackCents !== null ? { [JOB_TAX_BACK_KEY]: String(Math.min(jobTaxBackCents, refundAmount)) } : undefined;
             // Idempotency key still set: it is the cheap in-window guard against
             // two overlapping runs. The ledger check above is the one that holds
             // past 24 hours.
@@ -3239,7 +3252,7 @@ serve(async (req) => {
             // Q2447: and when raceChargedNobodyHired: our own capture-then-refused-hire
             // race charged the card, so the card fee comes back and nobody owes it.
             const refund = await stripe.refunds.create(
-              { payment_intent: paymentIntentId, amount: refundAmount },
+              { payment_intent: paymentIntentId, amount: refundAmount, metadata: jobTaxBackMetadata },
               { idempotencyKey: `cancel-refund-${job.id}` },
             );
             // Q1714: announced at once (so this path, not the webhook's safety

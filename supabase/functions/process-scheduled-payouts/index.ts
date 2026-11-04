@@ -9,7 +9,7 @@ import { readHelperFeePercentStrict, jobHelprCommissionDollars, DEFAULT_TIER_FEE
 import { flatFeePercentOf, isFlatFeeJob, isGiveawayFixedPayJob } from "../_shared/helprFlatFee.ts";
 import { isPosterFeeJob } from "../_shared/posterJobFee.ts";
 import { actualOrEstimatedFeeCents, actualStripeFeeCents, netUrgentFeeDollars, stripeProcessingCostCents } from "../_shared/stripeFees.ts";
-import { automaticTaxCentsFor, crewFeeShareReturnCents, taxOnKeptCents } from "../_shared/refundAmount.ts";
+import { automaticTaxCentsFor, crewFeeShareReturnCents, jobSiteTaxableCents, taxOnKeptCents } from "../_shared/refundAmount.ts";
 import { loadAdminIds } from "../_shared/adminIds.ts";
 import { formatExactDollars, formatPayoutDollars, isDefiniteStripeRefusal, payoutWithheldMetadata, roundPayoutDownCents } from "../_shared/money.ts";
 import { helprFaultFeeCapCents, helprFaultFeeDeductedClause, releaseClaimAndRestoreFaultFee, restoreHelprFaultFee, resumedClaimHelprFaultFee, stampClaimHelprFaultFee, takeHelprFaultFee } from "../_shared/helprFaultFee.ts";
@@ -634,6 +634,8 @@ serve(async (req) => {
       stripeFeeCents?: number | null;
       /** Q1827: stripeFeeCents is Stripe's ACTUAL fee (read off the balance transaction), not the estimate. */
       stripeFeeActual?: boolean;
+      /** Q2717: jobSiteTaxableCents of the charge, else null. */
+      jobTaxableCents?: number | null;
       /** The main loop found this gift job's card leg in Stripe TEST mode (Q891). */
       cardLegTestMode: boolean;
       paidCents: number;
@@ -723,7 +725,7 @@ serve(async (req) => {
         + (isFlatFeeJob(job) && a.capturedCents > 0 && budgetCents > 0
           ? Math.min(unfilledCents, Math.floor((stripeFee * (unpaidBudgetCents - blockFeeCents)) / budgetCents))
           : 0);
-      const crewTaxKeptAt = (stripeFee: number) => taxOnKeptCents({ keptCents: crewCardFeeKeptAt(stripeFee), taxCents, capturedCents: a.capturedCents });
+      const crewTaxKeptAt = (stripeFee: number) => taxOnKeptCents({ keptCents: crewCardFeeKeptAt(stripeFee), taxCents, capturedCents: a.capturedCents, taxableCents: a.jobTaxableCents });
       const taxShareCents = budgetCents > 0 ? Math.floor((taxCents * unpaidBudgetCents) / budgetCents) : 0;
       const crewTaxKeptCents = Math.min(taxShareCents, crewTaxKeptAt(crewStripeFeeCents));
       const taxReturnCents = taxShareCents - crewTaxKeptCents;
@@ -1081,6 +1083,8 @@ serve(async (req) => {
       stripeFeeCents?: number | null;
       /** Q1827: stripeFeeCents is Stripe's actual fee, not the card-rate estimate. */
       stripeFeeActual?: boolean;
+      /** Q2717: jobSiteTaxableCents of the charge (a gift-reduced job-site charge's own tax rate), else null. */
+      jobTaxableCents?: number | null;
       cardLegTestMode: boolean;
       /** The client of this job's Stripe mode (owner 2026-10-12). */
       stripe: Stripe;
@@ -1437,6 +1441,8 @@ serve(async (req) => {
       let stripeFeeCents: number | null = null;
       /** Q1827: stripeFeeCents was read off the charge's balance transaction (not the estimate). */
       let stripeFeeActual = false;
+      /** Q2717: metadata.job_taxable_cents of a gift-reduced job-site charge (the job's own tax rate), else null. */
+      let jobTaxableCents: number | null = null;
       /** A gift job's card leg turned out to be a Stripe TEST-mode object. */
       let cardLegTestMode = false;
       /**
@@ -1575,6 +1581,7 @@ serve(async (req) => {
               capturedTaxCents = Math.min(captured.cents, siteTaxCents > 0 ? siteTaxCents : await automaticTaxCentsFor(stripe, pi));
               stripeFeeCents = actualOrEstimatedFeeCents(pi, captured.cents);
               stripeFeeActual = actualStripeFeeCents(pi) !== null;
+              jobTaxableCents = jobSiteTaxableCents(pi.metadata as Record<string, string> | null);
             }
           } catch (e: any) {
             if (isTestObjectUnderLiveKey(e)) {
@@ -1659,7 +1666,7 @@ serve(async (req) => {
         // payout_pending with its poster's refund unsent.
         // Never on an early target: its crew is not finished (JOBS-3).
         if (job.is_group_job && !early && !crewSettled.has(job.id)) {
-          const settle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, stripeFeeCents, stripeFeeActual, cardLegTestMode, stripe });
+          const settle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, stripeFeeCents, stripeFeeActual, jobTaxableCents, cardLegTestMode, stripe });
           if (settle.ready && await closeCrewDecision(job, settle)) {
             const healed = await flipJobToReleased(supabaseAdmin, job.id);
             if (healed.ok) {
@@ -2220,7 +2227,7 @@ serve(async (req) => {
           // Settled (refund, flip, dispute close) earlier in THIS run: once.
           allRosterPaid = false;
         } else if (job.is_group_job) {
-          crewSettle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, stripeFeeCents, stripeFeeActual, cardLegTestMode, stripe });
+          crewSettle = await crewReadyToRelease({ job, paymentIntentId, isPifFunded, giftAppliedCents, capturedCents, stripeFeeCents, stripeFeeActual, jobTaxableCents, cardLegTestMode, stripe });
           // The decision is closed before the flip (review M4): a failed close
           // keeps the job payout_pending for the next run to retry.
           allRosterPaid = crewSettle.ready && await closeCrewDecision(job, crewSettle);

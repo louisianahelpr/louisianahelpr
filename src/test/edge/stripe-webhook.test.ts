@@ -2736,7 +2736,7 @@ describe("stripe-webhook edge function", () => {
         type: "charge.refunded",
         data: { object: { id: "ch_visit", payment_intent: "pi_visit", amount: 11350, amount_refunded: 0 } },
       });
-      const refundsAre = (rows: Array<{ id: string; amount: number; created: number; status?: string }>) =>
+      const refundsAre = (rows: Array<{ id: string; amount: number; created: number; status?: string; metadata?: Record<string, string> }>) =>
         // Stripe lists newest first.
         stripeMock.refunds.list.mockResolvedValue({
           data: [...rows].sort((a, b) => b.created - a.created).map((r) => ({ status: "succeeded", metadata: {}, ...r })),
@@ -2783,6 +2783,30 @@ describe("stripe-webhook edge function", () => {
         stripeMock.webhooks.constructEventAsync.mockResolvedValue({ id: "evt_tax_gift", type: "charge.refunded", data: { object: { id: "ch_visit", payment_intent: "pi_visit", amount: 2000, amount_refunded: 0 } } });
         await fn.fetch(webhookRequest(fn, "{}"));
         expect(reversals().map((r) => r.args)).toEqual([{ mode: "full", original_transaction: "tax_txn_9", reference: "refund:re_gift", metadata: { refund_id: "re_gift", charge_id: "ch_visit" } }]);
+      });
+
+      // Q2717: a $100 job paid $90 by gift; the card took the $10 shortfall + the $10 job-site tax ($20); the
+      // transaction holds $110. A cancel keeps $3.50 of fees from the card and the 35c tax on them, so it refunds
+      // $16.15 of which $9.65 is tax, stamped on the refund. The reversal is exact: 965 x 11000 / 1000 = $106.15,
+      // leaving $3.85 reported ($3.50 kept + its 35c tax). The proportional share (1615 x 11000 / 2000 = $88.83)
+      // left $21.17 reported. An unstamped refund keeps the proportional share.
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |         amount: back !== null && siteTax > 0 |         amount: false
+      it("Q2717: a gift-reduced cancel refund that stamped its tax-back reverses exactly tax-back x (taxable + tax) / tax", async () => {
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_visit", metadata: { tax_transaction_id: "tax_txn_9", tax_calculation_id: "taxcalc_g", job_tax_cents: "1000", job_taxable_cents: "10000" } });
+        refundsAre([{ id: "re_cancel", amount: 1615, created: 100, metadata: { job_tax_back_cents: "965" } }]);
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({ id: "evt_tax_exact", type: "charge.refunded", data: { object: { id: "ch_visit", payment_intent: "pi_visit", amount: 2000, amount_refunded: 0 } } });
+        await fn.fetch(webhookRequest(fn, "{}"));
+        expect(reversals().map((r) => r.args)).toEqual([{ mode: "partial", flat_amount: -10615, original_transaction: "tax_txn_9", reference: "refund:re_cancel", metadata: { refund_id: "re_cancel", charge_id: "ch_visit" } }]);
+      });
+
+      it("Q2717 control: the same refund with no stamp keeps the proportional share", async () => {
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_visit", metadata: { tax_transaction_id: "tax_txn_9", tax_calculation_id: "taxcalc_g", job_tax_cents: "1000", job_taxable_cents: "10000" } });
+        refundsAre([{ id: "re_admin", amount: 1615, created: 100 }]);
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({ id: "evt_tax_prop", type: "charge.refunded", data: { object: { id: "ch_visit", payment_intent: "pi_visit", amount: 2000, amount_refunded: 0 } } });
+        await fn.fetch(webhookRequest(fn, "{}"));
+        expect(reversals().map((r) => r.args)).toEqual([{ mode: "partial", flat_amount: -8883, original_transaction: "tax_txn_9", reference: "refund:re_admin", metadata: { refund_id: "re_admin", charge_id: "ch_visit" } }]);
       });
 
       // aa8869511 #3: a TAX-ONLY card charge ($10, the gift paid the whole job): half of it refunded

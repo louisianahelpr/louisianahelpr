@@ -72,6 +72,13 @@ export const PROFILES = {
     viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
     network: { latency: 562.5, downloadThroughput: 180_000, uploadThroughput: 84_375 }, cpu: 4,
   },
+  // DevTools' "Fast 4G" preset (9 Mbps down, 1.5 Mbps up, 60 ms x 2.75 RTT,
+  // x0.9 throughput, the same derivation as mobile's Slow 4G) + 4x CPU at 375:
+  // the profile the 10-31 audit's AUD31-60/61 (Q2706, Q2708) measured.
+  fast4g: {
+    viewport: { width: 375, height: 812 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true,
+    network: { latency: 165, downloadThroughput: 1_012_500, uploadThroughput: 168_750 }, cpu: 4,
+  },
   desktop: {
     viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, isMobile: false, hasTouch: false,
     network: { latency: 40, downloadThroughput: 1_250_000, uploadThroughput: 1_250_000 }, cpu: 1,

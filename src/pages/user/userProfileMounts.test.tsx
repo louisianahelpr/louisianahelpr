@@ -92,7 +92,6 @@ vi.mock("@/components/PageHeader", () => ({
   ),
 }));
 vi.mock("@/components/SaveHelperButton", () => ({ default: () => null }));
-vi.mock("@/components/HelperPortfolio", () => ({ HelperPortfolio: () => null }));
 vi.mock("@/components/profile/BackgroundCheckCard", () => ({ default: () => null }));
 vi.mock("@/components/ReportDialog", () => ({ default: () => null }));
 vi.mock("@/components/BlockUserDialog", () => ({ BlockUserDialog: () => null }));

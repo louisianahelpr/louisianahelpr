@@ -27,7 +27,6 @@ const AdminReports = lazy(() => import("@/components/admin/AdminReports"));
 const AdminSupport = lazy(() => import("@/components/admin/AdminSupport"));
 const AdminReferrals = lazy(() => import("@/components/admin/AdminReferrals"));
 const AdminGrowthLinks = lazy(() => import("@/components/admin/AdminGrowthLinks"));
-const AdminSubscriptions = lazy(() => import("@/components/admin/AdminSubscriptions"));
 const AdminFraudDashboard = lazy(() => import("@/components/admin/AdminFraudDashboard"));
 const AdminAuditLog = lazy(() => import("@/components/admin/AdminAuditLog"));
 const AdminHealth = lazy(() => import("@/components/admin/AdminHealth"));
@@ -45,7 +44,7 @@ const AdminSocialPosts = lazy(() => import("@/components/admin/AdminSocialPosts"
 const AdminStalledJobs = lazy(() => import("@/components/admin/AdminStalledJobs"));
 const AdminShopsOrders = lazy(() => import("@/components/admin/AdminShopsOrders"));
 
-type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "subscriptions" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "social" | "idvreview" | "credentials" | "exceptions" | "banreview" | "stalled" | "shops" | "growth";
+type View = "home" | "analytics" | "people" | "jobs" | "settings" | "disputes" | "notifications" | "notiflogs" | "reports" | "support" | "referrals" | "fraud" | "audit" | "health" | "export" | "payouts" | "tiers" | "marketing" | "social" | "idvreview" | "credentials" | "exceptions" | "banreview" | "stalled" | "shops" | "growth";
 
 import { safeStorage } from "@/lib/safeStorage";
 import { adminNavGroups } from "@/components/admin/adminNavGroups";
@@ -72,7 +71,7 @@ const VIEW_LABELS: Record<View, string> = {
     jobs: "Jobs", settings: "Settings", disputes: "Disputes",
     notifications: "Notifications", notiflogs: "Notification logs",
     reports: "Reports", support: "Support",
-    referrals: "Referrals", subscriptions: "Subscriptions", fraud: "Fraud",
+    referrals: "Referrals", fraud: "Fraud",
     audit: "Audit log", health: "Health", export: "Export",
     payouts: "Payout batches", tiers: "Helpr tiers", marketing: "Marketing",
     social: "Social posts",
@@ -181,7 +180,6 @@ const Admin = () => {
       // moment the screen was opened once.
       { key: "jobs", table: "jobs", dateCol: "created_at", excludeSeed: true },
       { key: "referrals", table: "referrals", dateCol: "created_at" },
-      { key: "subscriptions", table: "profiles", dateCol: "updated_at", filter: { subscription_tier: "not_null" }, excludeSeed: true },
     ];
     const counts: Record<string, number> = {};
     let hadError = false;
@@ -506,7 +504,6 @@ const Admin = () => {
       case "support": return <AdminSupport />;
       case "referrals": return <AdminReferrals />;
       case "growth": return <AdminGrowthLinks />;
-      case "subscriptions": return <AdminSubscriptions />;
       case "fraud": return <AdminFraudDashboard />;
       case "audit": return <AdminAuditLog />;
       case "health": return <AdminHealth />;

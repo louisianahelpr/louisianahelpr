@@ -97,7 +97,7 @@ describe("Admin views share one shell", () => {
     "AdminAuditLog", "AdminCredentialQueue", "AdminExceptionQueue",
     "AdminExport", "AdminFraudDashboard", "AdminHealth", "AdminHelperTiers",
     "AdminIDVReview", "AdminMarketing", "AdminNotificationLogs", "AdminNotifications",
-    "AdminPayoutBatches", "AdminReferrals", "AdminReports", "AdminSubscriptions",
+    "AdminPayoutBatches", "AdminReferrals", "AdminReports",
     "AdminSupport",
   ];
 

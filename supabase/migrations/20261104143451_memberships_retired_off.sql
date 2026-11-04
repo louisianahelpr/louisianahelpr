@@ -14,7 +14,7 @@
 --
 -- Money: no fee or payout changes for any real member. The switch was already
 -- off for every real member; this only closes it for testers too.
--- Measured on prod 2026-11-04 8:40 AM (read-only): 0 of 336 profiles (260 real,
+-- Measured on prod 2026-11-04 ~8:34 AM (read-only): 0 of 336 profiles (260 real,
 -- 76 seed) hold a subscription_tier, a stripe_subscription_id or a
 -- subscription_source, so no one is paying and no one loses a perk.
 --

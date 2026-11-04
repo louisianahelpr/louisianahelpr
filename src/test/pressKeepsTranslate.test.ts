@@ -184,7 +184,7 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
     // Q2205; Legal's is the shared iconCompact Button since B88 11-01, its
     // btn-press covered by the press-rule cases above),
     // the six admin search clear-Xs Q913 added (AdminCommandPalette,
-    // AdminNotificationLogs, AdminReferrals, AdminSubscriptions, AdminUsers,
+    // AdminNotificationLogs, AdminReferrals, AdminUsers (AdminSubscriptions retired 2026-11-04),
     // AdminUserSearchField) plus ChatView's safety-banner dismiss and the Declutter
     // map's "Close preview" X (2026-10-28, Browse like Jobs). A new one
     // fails here until it is reviewed; a removed one fails too.
@@ -192,7 +192,6 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
       "src/components/admin/AdminCommandPalette.tsx",
       "src/components/admin/AdminNotificationLogs.tsx",
       "src/components/admin/AdminReferrals.tsx",
-      "src/components/admin/AdminSubscriptions.tsx",
       "src/components/admin/AdminUsers.tsx",
       "src/components/admin/settings/AdminUserSearchField.tsx",
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
@@ -204,7 +203,8 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
     // 11 since 2026-10-19 (Q2205): PostsHeader / JobsHeader's Xs left with the old My Posts / My Jobs pages.
     // 12 since 2026-10-28: the Declutter map's "Close preview" X.
     // 11 since 2026-11-01: Legal's X is the shared iconCompact Button (B88).
-    expect(xs.length).toBe(11);
+    // 2026-11-04: 10 (AdminSubscriptions retired with memberships).
+    expect(xs.length).toBe(10);
 
     // Any class on these Xs that has an :active transform rule anywhere in
     // src CSS was checked translate-safe above, so the class is covered. What
@@ -222,6 +222,6 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
     // JobsHeader, four until Legal's became the shared Button — and six admin) are the
     // ones that press; ChatView's dismiss has no press feedback, so it has no :active
     // transform to lose its centring to.
-    expect(xs.filter((x) => x.className.split(/\s+/).some((c) => covered.has(c))).length).toBe(9);
+    expect(xs.filter((x) => x.className.split(/\s+/).some((c) => covered.has(c))).length).toBe(8); // 2026-11-04: 8, AdminSubscriptions retired
   });
 });

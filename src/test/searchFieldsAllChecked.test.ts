@@ -193,12 +193,12 @@ describe("every search field is driven in a real browser (inventory minus checke
     // 2026-10-21: +1, /search (board 89, SearchPage), a permanent field with a "Clear search" ✕.
     // 2026-11-02 (Q2260): JobCategoryGroups moved from NO_X to the ✕ files (count unchanged).
     // 2026-10-27: +1, Jobs > Posted / Working's in-place search (InlineListSearch), an opening field with a "Close search" ✕.
-    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(15);
+    // 2026-11-04: -1, AdminSubscriptions retired with memberships.
+    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(14);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/admin/AdminCommandPalette.tsx",
       "src/components/admin/AdminNotificationLogs.tsx",
       "src/components/admin/AdminReferrals.tsx",
-      "src/components/admin/AdminSubscriptions.tsx",
       "src/components/admin/AdminUsers.tsx",
       "src/components/admin/settings/AdminUserSearchField.tsx",
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",

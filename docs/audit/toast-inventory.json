@@ -2,7 +2,7 @@
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
     "calls": 1144,
-    "files": 316,
+    "files": 317,
     "rendering": 1063,
     "suppressedByPolicy": 81,
     "byKind": {
@@ -1102,7 +1102,7 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 233,
+      "line": 229,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1112,61 +1112,11 @@
     },
     {
       "file": "src/components/NotificationPreferences.tsx",
-      "line": 256,
+      "line": 252,
       "kind": "toast.error",
       "title": {
         "form": "literal",
         "text": "We couldn't save quiet hours — please try again."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/NotificationPreferences.tsx",
-      "line": 351,
-      "kind": "confirmConsequential",
-      "title": {
-        "form": "literal",
-        "text": "Test sent — check the bell icon, and your email."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/NotificationPreferences.tsx",
-      "line": 387,
-      "kind": "toast.error",
-      "title": {
-        "form": "template",
-        "text": "Test didn't reach you — ${joinList([...issues, ...(pushNote ? [pushNote] : [])]) || \"no channel was available\"}."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/NotificationPreferences.tsx",
-      "line": 389,
-      "kind": "toast.warning",
-      "title": {
-        "form": "template",
-        "text": "Sent to ${joinList(landed)} — but ${joinList([...issues, ...(pushNote ? [pushNote] : [])])}."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/NotificationPreferences.tsx",
-      "line": 391,
-      "kind": "confirmConsequential",
-      "title": {
-        "form": "template",
-        "text": "Sent to ${joinList(landed)}.${pushNote ? \" No device is registered for push.\" : \"\"}"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/NotificationPreferences.tsx",
-      "line": 398,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "await functionErrorMessage(err, \"Test failed — please try again.\")"
       },
       "renders": true
     },
@@ -8425,6 +8375,56 @@
         ]
       },
       "renders": false
+    },
+    {
+      "file": "src/components/notificationPreferences/useSendTestPush.ts",
+      "line": 53,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "literal",
+        "text": "Test sent — check the bell icon, and your email."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/notificationPreferences/useSendTestPush.ts",
+      "line": 89,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Test didn't reach you — ${joinList([...issues, ...(pushNote ? [pushNote] : [])]) || \"no channel was available\"}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/notificationPreferences/useSendTestPush.ts",
+      "line": 91,
+      "kind": "toast.warning",
+      "title": {
+        "form": "template",
+        "text": "Sent to ${joinList(landed)} — but ${joinList([...issues, ...(pushNote ? [pushNote] : [])])}."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/notificationPreferences/useSendTestPush.ts",
+      "line": 93,
+      "kind": "confirmConsequential",
+      "title": {
+        "form": "template",
+        "text": "Sent to ${joinList(landed)}.${pushNote ? \" No device is registered for push.\" : \"\"}"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/notificationPreferences/useSendTestPush.ts",
+      "line": 100,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "await functionErrorMessage(err, \"Test failed — please try again.\")"
+      },
+      "renders": true
     },
     {
       "file": "src/components/postjob/AiJobBuilder.tsx",

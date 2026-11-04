@@ -2,16 +2,13 @@
 // send-push-notification edge function (PR #446).
 import { Fragment, useEffect, useRef, useState } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { hapticError, hapticLight } from "@/lib/haptics";
 import {
-  Bell, Loader2, Mail, Smartphone, Lock, Moon, Send,
+  Bell, Loader2, Mail, Smartphone, Lock, Send,
 } from "lucide-react";
-import { QuietHoursClock } from "@/components/profile/QuietHoursClock";
-import { functionErrorMessage } from "@/lib/supabaseResult";
 import type { Prefs, Row } from "./notificationPreferences/types";
 import { defaultPrefs, trimTime, rows } from "./notificationPreferences/constants";
 import { ProfileTabBodyReserve } from "@/components/profile/ProfileTabFallback";
@@ -19,14 +16,14 @@ import { promotionsEmailOn } from "@/lib/promotionsEmail";
 import { SwitchSlot } from "./notificationPreferences/SwitchSlot";
 import { QuoteRemindersRow } from "./notificationPreferences/QuoteRemindersRow";
 import { MessagePreviewRow } from "./notificationPreferences/MessagePreviewRow";
-import { QuietTimeInput } from "./notificationPreferences/QuietTimeInput";
 import { ALL_PRESENT, columnsPresentIn, declutterColumnsPresent, stripMissingColumns, type ColumnPresence } from "./notificationPreferences/deployLagColumns";
 import { CategoryRow } from "./notificationPreferences/CategoryRow";
 import { DeclutterNotificationGroup } from "./notificationPreferences/DeclutterNotificationGroup";
 import { JobRemindersGroup } from "./notificationPreferences/JobRemindersGroup";
 import { NotificationPrefsLoadFailed } from "./notificationPreferences/NotificationPrefsLoadFailed";
 import { PushDeviceHint } from "./notificationPreferences/PushDeviceHint";
-import { emailSkipCopy, joinList, type TestSendResult } from "./notificationPreferences/testNotificationCopy";
+import { useSendTestPush } from "./notificationPreferences/useSendTestPush";
+import { QuietHoursCard } from "./notificationPreferences/QuietHoursCard";
 
 const NotificationPreferences = () => {
   const [prefs, setPrefs] = useState<Prefs>(defaultPrefs);
@@ -46,7 +43,6 @@ const NotificationPreferences = () => {
   const locked = !loaded || loadFailed;
   // Push-token count for "Send a test": 0 = no devices registered; null = unreadable (Q2321), never "no devices".
   const [pushTokenCount, setPushTokenCount] = useState<number | null>(0);
-  const [sendingTest, setSendingTest] = useState(false);
   // Deploy-lag guard: which new notification_preferences columns the loaded
   // row really has; a missing one is stripped from writes (deployLagColumns.ts).
   const [columns, setColumns] = useState<ColumnPresence>(ALL_PRESENT);
@@ -307,99 +303,8 @@ const NotificationPreferences = () => {
     void patchPrefs(patch, "email_master");
   };
 
-  // Test notification — proves the pipeline end-to-end. Insert a
-  // notification row for ourselves; a DB trigger fans it out to
-  // send-push-notification (see migration 20260506120000) AND
-  // create-notification itself chains send-notification-email with the
-  // service-role key. create-notification is the user-callable wrapper
-  // that lets a signed-in user target *themselves* (it 403s on any
-  // other user_id unless the caller is admin), so we don't need a
-  // service-role bearer here.
-  //
-  // Previously this whole button was disabled with zero registered push
-  // devices, which left web/desktop users (and anyone who hasn't opened
-  // the native app yet) with no way to test ANY channel — even though
-  // the same call also lands an in-app bell notification and an email.
-  // Push is just one of three channels this call exercises, so only the
-  // absence of a signed-in user (or a call in flight) should block it.
-  const sendTestPush = async () => {
-    if (!userId || sendingTest) return;
-    setSendingTest(true);
-    try {
-      // Read `data`, not just `error`. A 200 from create-notification used to
-      // be reported as "Test sent — check your email and the bell icon" even on
-      // runs where the email had been silently skipped (the Email switch for
-      // this category was off, the address was suppressed, or Resend refused
-      // it) — the function returned a blanket `{ success: true }` and the copy
-      // promised delivery it had no evidence for. It now reports each channel,
-      // and this toast says only what actually happened.
-      const { data, error } = await supabase.functions.invoke<TestSendResult>(
-        "create-notification",
-        {
-          // The copy is built server-side (Q223): only an admin may send
-          // free text, so the test names the fixed "test" template.
-          body: { user_id: userId, template: "test" },
-        },
-      );
-      if (error) throw error;
-
-      const channels = data?.channels;
-      // An older deploy of the edge function (no `channels` in the body) still
-      // has to end in feedback rather than in silence — just without the
-      // per-channel claim we can no longer back up.
-      if (!channels) {
-        confirmConsequential("Test sent — check the bell icon, and your email.");
-        return;
-      }
-
-      // Keep the row's own copy honest: the device count the server just
-      // measured beats whatever we read when the screen first mounted.
-      if (typeof channels.push?.devices === "number") {
-        setPushTokenCount(channels.push.devices);
-      }
-
-      const devices = channels.push?.devices ?? 0;
-
-      const landed: string[] = [];
-      if (channels.in_app?.status === "sent") landed.push("the bell icon");
-      if (channels.email?.status === "sent") {
-        landed.push(channels.email.detail ? `email to ${channels.email.detail}` : "email");
-      }
-      if (devices > 0) {
-        landed.push(`push to ${devices} device${devices === 1 ? "" : "s"}`);
-      }
-
-      // Something went wrong that the user did not already know about.
-      const issues: string[] = [];
-      if (channels.email?.status === "skipped") {
-        issues.push(emailSkipCopy(channels.email));
-      } else if (channels.email?.status === "failed") {
-        issues.push("the email couldn't be sent");
-      }
-      // Zero registered devices is a stated fact, not a surprise — the row's
-      // own subtitle already says so. It is worth repeating in the result so
-      // "nothing buzzed my phone" has an answer, but it does not by itself
-      // make an otherwise-clean send into a warning.
-      const pushNote = devices === 0 ? "no device is registered for push" : null;
-
-      if (landed.length === 0) {
-        hapticError();
-        toast.error(`Test didn't reach you — ${joinList([...issues, ...(pushNote ? [pushNote] : [])]) || "no channel was available"}.`);
-      } else if (issues.length > 0) {
-        toast.warning(`Sent to ${joinList(landed)} — but ${joinList([...issues, ...(pushNote ? [pushNote] : [])])}.`);
-      } else {
-        confirmConsequential(`Sent to ${joinList(landed)}.${pushNote ? " No device is registered for push." : ""}`);
-      }
-    } catch (err: unknown) {
-      hapticError();
-      // The SDK's own message on a non-2xx is the useless "Edge Function
-      // returned a non-2xx status code"; the real reason is in the response
-      // body, which functionErrorMessage digs out.
-      toast.error(await functionErrorMessage(err, "Test failed — please try again."));
-    } finally {
-      setSendingTest(false);
-    }
-  };
+  // Test notification: proves the pipeline end-to-end (notificationPreferences/useSendTestPush.ts says how).
+  const { sendingTest, sendTestPush } = useSendTestPush(userId, setPushTokenCount);
 
   // A normal card, not a flex child. It used to be `flex-1 min-h-0 ... flex
   // flex-col`, which only works inside a height-constrained flex column — and
@@ -557,108 +462,8 @@ const NotificationPreferences = () => {
         </div>
       </div>
 
-      {/* Quiet hours — when on, non-critical pushes are suppressed
-          between start and end (security alerts always fire). Sits
-          between the digest toggle and the per-category rows so it
-          reads as a delivery preference, not a category. */}
-      <div
-        className={`px-3 min-[360px]:px-4 py-2.5 shrink-0 transition-opacity ${prefs.push_enabled ? "" : "opacity-85"} ${saving ? "opacity-80 cursor-wait" : ""}`}
-        style={{
-          borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
-        }}
-      >
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-            <span
-              className="shrink-0 w-7 h-7 rounded-full hidden min-[360px]:flex items-center justify-center"
-              style={{
-                background: "hsl(var(--bark) / 0.10)",
-                color: "hsl(var(--bark))",
-              }}
-            >
-              <Moon className="w-3.5 h-3.5" />
-            </span>
-            <div className="min-w-0">
-              <Label
-                className="font-sans font-semibold block text-ds-14 mb-0"
-                style={{ color: "hsl(var(--ink-deep))" }}
-              >
-                Quiet hours
-              </Label>
-              {/* Was "Mute non-critical pushes overnight. Security alerts still
-                  fire." — the second sentence is the same false promise as the
-                  old footer. `send-push-notification` returns on
-                  `isInQuietHours(...)` before it loads a single token
-                  (index.ts, the quiet-hours gate), with no exemption for
-                  `warning`, `system_alert` or `admin_alert`: EVERY push is held
-                  inside the window. The in-app bell row is still written by the
-                  trigger that fired the function, so the notification is
-                  waiting when the app opens — which is the true version of the
-                  reassurance and what this now says.
-
-                  Separately, and NOT fixed here: that gate evaluates the window
-                  in UTC because no per-user timezone is stored, so a Louisiana
-                  user's 22:00–07:00 actually mutes 17:00–02:00 local. Reported
-                  to the orchestrator rather than papered over in copy — the
-                  times below deliberately carry no "local" claim. */}
-              <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                Hold pushes overnight. Everything still lands in the bell icon.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 min-[360px]:gap-6 shrink-0 ml-1.5 min-[360px]:ml-2">
-            <SwitchSlot
-              loaded={loaded}
-              savingKey={savingKey}
-              checked={quietEnabled}
-              onCheckedChange={toggleQuiet}
-              disabled={locked || !prefs.push_enabled}
-              ariaLabel="Quiet hours"
-              savingId="quiet_hours"
-            />
-            {/* THE EM-DASH IS 0.7, NOT 0.3 — and both copies of it in this
-                file (here and the saved-Helpr row) moved together.
-                At 0.3 it measured 1.79:1 against a 4.5:1 AA floor: the faintest
-                text in the app and, at ds-14, genuinely hard to see rather than
-                merely quiet. It is NOT exempt as decoration: it is the cell's
-                value — "there is no email version of this row" — and a reader
-                who cannot see it reads the row as if the email column were
-                simply missing.
-                0.7 is the floor that clears AA (ladder on parchment: 0.3 →
-                1.79, 0.5 → 2.84, 0.65 → 4.24, 0.7 → 4.90) and it is an ink the
-                app already uses in 39 other places, so no new value is
-                invented. It stays below the 0.8 the row labels wear, and the
-                column still reads as "app only, intentionally" — only now it
-                reads at all. */}
-            <div className="w-[51px] flex justify-center" title="Push-only — no email version of this">
-              <span
-                className="font-sans text-ds-14"
-                style={{ color: "hsl(var(--olivewood) / 0.7)" }}
-                aria-hidden
-              >
-                —
-              </span>
-              <span className="sr-only">Push-only, no email version</span>
-            </div>
-          </div>
-        </div>
-        {quietEnabled && (
-          <div className="mt-2 flex items-start gap-3 pl-[2.375rem]">
-            <div className="flex-1 flex items-center gap-2 flex-wrap">
-              <QuietTimeInput label="From" ariaLabel="Quiet hours start time" value={prefs.quiet_start ?? "22:00"} onChange={(v) => void patchPrefs({ quiet_start: v }, "quiet_hours")} disabled={locked || !prefs.push_enabled || saving} />
-              <QuietTimeInput label="to" ariaLabel="Quiet hours end time" value={prefs.quiet_end ?? "07:00"} onChange={(v) => void patchPrefs({ quiet_end: v }, "quiet_hours")} disabled={locked || !prefs.push_enabled || saving} />
-            </div>
-            {/* Visual donut — translates the start/end times into a 24hr
-                arc so it's immediately clear *which* hours are muted.
-                Pure visual, no interaction. */}
-            <QuietHoursClock
-              start={prefs.quiet_start ?? "22:00"}
-              end={prefs.quiet_end ?? "07:00"}
-              size={48}
-            />
-          </div>
-        )}
-      </div>
+      {/* Quiet hours (notificationPreferences/QuietHoursCard.tsx): non-critical pushes wait; security alerts always fire. */}
+      <QuietHoursCard prefs={prefs} quietEnabled={quietEnabled} toggleQuiet={toggleQuiet} patchPrefs={patchPrefs} locked={locked} saving={saving} savingKey={savingKey} loaded={loaded} />
 
       {/* "Show message words" sits right under Messages (Messages audit M6). */}
       {rows.map((item) => item.key !== "messages" ? renderRow(item) : (

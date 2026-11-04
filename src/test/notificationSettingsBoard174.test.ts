@@ -33,13 +33,14 @@ describe("notification settings, board 174 (first slice)", () => {
   });
 
   it("the fixed rows are sentence case", () => {
-    const src = read("src/components/NotificationPreferences.tsx");
+    // The Quiet hours card lives in its own file since Q806 (2026-11-04).
+    const src = read("src/components/NotificationPreferences.tsx") + read("src/components/notificationPreferences/QuietHoursCard.tsx");
     for (const t of ["Master switch", "Quiet hours", "Send a test"]) expect(src).toContain(t);
     expect(src).not.toMatch(/Master Switch|Quiet Hours\b|Send a Test/);
   });
 
   it("no rust on the screen: nothing on it is money", () => {
-    const src = read("src/components/NotificationPreferences.tsx");
+    const src = read("src/components/NotificationPreferences.tsx") + read("src/components/notificationPreferences/QuietHoursCard.tsx");
     expect(src.length).toBeGreaterThan(5000);
     expect(src).not.toMatch(/--burnt-sienna|--sienna-ink|--accent-ink|--money\b/);
   });

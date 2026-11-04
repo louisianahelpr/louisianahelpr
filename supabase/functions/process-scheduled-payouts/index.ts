@@ -25,7 +25,7 @@ import { stampDisputePayout } from "../_shared/disputePayoutStamp.ts";
 import { insertNotifications } from "../_shared/insertNotifications.ts";
 import { PAY_DELAY_SENDING_STATUSES, payDelayWhyForGate, tellHelprPayIsDelayed } from "../_shared/payDelayNotice.ts";
 import { allocateCents, CREW_COMPLETES_WHEN_HIRED_DONE } from "../_shared/crewShares.ts";
-import { checkIdentityHold, checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, checkJobPayoutHold, checkPayoutHold, isPayoutHeldRefusal, PAYOUT_HELD_CODE } from "../_shared/payoutHold.ts";
 import { redriveHeldClawbackRepays } from "../_shared/chargebackClawback.ts";
 import { redriveHeldTips } from "../_shared/heldTipRepay.ts";
 import { redriveInstantFeeReturns } from "../_shared/instantPayoutFeeReturn.ts";
@@ -1202,6 +1202,24 @@ serve(async (req) => {
       }
       if (hold.kind === "held") {
         console.warn(`[process-scheduled-payouts] helper ${helperId} is on a payout hold; job ${job.id} left payout_pending`);
+        results.push({ job_id: job.id, status: PAYOUT_HELD_CODE, skipped: true });
+        continue;
+      }
+      // Q1902 (c) (lh-money-escrow review of 7133adc73, #3): a JOB payout hold
+      // (job_payout_holds, Q1491) is found HERE, beside the Helpr's, not only at
+      // the claim: otherwise every run repeats the account and transfer-group
+      // Stripe reads and claims then rolls back the onboarding fee for a job
+      // the claim trigger will refuse anyway. Same outcome (payout_held, no
+      // defect); an unreadable hold fails closed and is a defect.
+      const jobHold = await checkJobPayoutHold(supabaseAdmin, job.id);
+      if (jobHold.kind === "error") {
+        console.error(`[process-scheduled-payouts] job payout hold check failed for job ${job.id}: ${jobHold.message}`);
+        results.push({ job_id: job.id, status: "payout_hold_check_error", error: jobHold.message });
+        jobDefect(job.id, `job payout hold check ${job.id}: ${jobHold.message}`);
+        continue;
+      }
+      if (jobHold.kind === "held") {
+        console.warn(`[process-scheduled-payouts] job ${job.id} is on a job payout hold; left payout_pending`);
         results.push({ job_id: job.id, status: PAYOUT_HELD_CODE, skipped: true });
         continue;
       }

@@ -256,6 +256,35 @@ describe("process-scheduled-payouts honours the payout hold", () => {
     expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
   });
 
+  // Q1902 (c): a JOB payout hold is found beside the Helpr's, before any Stripe read or claim.
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |       if (jobHold.kind === "held") { |       if (false) {
+  // @mutate supabase/functions/process-scheduled-payouts/index.ts |       if (jobHold.kind === "error") { |       if (false) {
+  it("Q1902: a JOB payout hold skips as an outcome with NO Stripe read and no claim", async () => {
+    seed(scenario);
+    scenario.reads.payout_holds = { rows: [] };
+    scenario.reads.job_payout_holds = { rows: [{ job_id: "job-1", reason: "Q1491: gift spent elsewhere" }] };
+    const res = await run();
+    const body = await json(res);
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(stripeMock.accounts.retrieve).not.toHaveBeenCalled();
+    expect(stripeMock.paymentIntents.retrieve).not.toHaveBeenCalled();
+    expect(ledgerInserts()).toHaveLength(0);
+    expect(scenario.writes.filter((w) => w.table === "platform_settings" || w.table === "profiles")).toEqual([]);
+    expect((body.results as Array<{ status: string }>).map((r) => r.status)).toEqual(["payout_held"]);
+    expect(res.status).toBe(200);
+    expect(body.defects).toBe(0);
+  });
+
+  it("Q1902: an unreadable JOB payout hold is a defect and pays nobody", async () => {
+    seed(scenario);
+    scenario.reads.payout_holds = { rows: [] };
+    scenario.reads.job_payout_holds = { error: { message: "timeout", code: "57014" } };
+    const res = await run();
+    expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+    expect(stripeMock.accounts.retrieve).not.toHaveBeenCalled();
+    expect(res.status).toBe(500);
+  });
+
   it("a hold that lands between the check and the claim is an outcome, not a defect", async () => {
     seed(scenario);
     scenario.reads.payout_holds = { rows: [] };
@@ -313,6 +342,34 @@ describe("money-reconciliation does not page on a payout a hold keeps back", () 
     expect(checks(b)).not.toContain("payout_pending_stranded");
     expect(b.payout_pending_held).toEqual([{ job_id: "job-1", helper_ids: ["helper-1"] }]);
     expect(((b.defectReasons as string[] | undefined) ?? []).join(" ")).not.toContain("payout_pending_stranded");
+  });
+
+  // Q1902 (b): a JOB payout hold keeps the job in payout_pending on purpose: held, not stranded.
+  // @mutate supabase/functions/money-reconciliation/index.ts |           heldJobIds.add(jobId);\n          heldPayoutJobs.push({ job_id: jobId, helper_ids: [], job_hold: true }); |           heldPayoutJobs.push({ job_id: jobId, helper_ids: [], job_hold: true });
+  // @mutate supabase/functions/money-reconciliation/index.ts |         notes.push(`job payout hold read failed, no job-held payout exempted: ${jobHoldLookup.message}`); |         void jobHoldLookup;
+  it("Q1902: a JOB-held payout_pending job is reported held (job_hold), not payout_pending_stranded", async () => {
+    seed(scenario);
+    scenario.reads.payout_holds = { rows: [] };
+    scenario.reads.job_payout_holds = { rows: [{ job_id: "job-1" }] };
+    const b = await json(await run());
+    expect(checks(b)).not.toContain("payout_pending_stranded");
+    expect(b.payout_pending_held).toEqual([{ job_id: "job-1", helper_ids: [], job_hold: true }]);
+  });
+
+  it("Q1902: a job hold on ANOTHER job exempts nothing; an unreadable job hold table exempts nothing and degrades the run", async () => {
+    seed(scenario);
+    scenario.reads.payout_holds = { rows: [] };
+    scenario.reads.job_payout_holds = { rows: [{ job_id: "job-OTHER" }] };
+    const b1 = await json(await run());
+    expect(checks(b1)).toContain("payout_pending_stranded");
+    expect(b1.payout_pending_held).toEqual([]);
+    resetSupabaseMock();
+    seed(scenario);
+    scenario.reads.payout_holds = { rows: [] };
+    scenario.reads.job_payout_holds = { error: { message: "timeout", code: "57014" } };
+    const b2 = await json(await run());
+    expect(checks(b2)).toContain("payout_pending_stranded");
+    expect(JSON.stringify(b2)).toContain("job payout hold read failed");
   });
 
   it("a crew job is held when every UNPAID roster member is held", async () => {

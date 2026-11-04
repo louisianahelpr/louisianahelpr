@@ -1406,6 +1406,27 @@ async function settleCheckoutSession(
           }
           giftRestored = (restored ?? []).length > 0;
         }
+        // Q1902 (a) (lh-money-escrow review of 7133adc73, #3): the Q1491 hold above is written BEFORE this
+        // escrow write learns the job was funded another way. This payment is refunded in full, so a hold
+        // THIS session placed ("underfunded by this difference payment") is wrong and would block the job's
+        // legitimate payout. Lift only a hold whose reason names this session (a redelivery finds it too,
+        // where an insert-only flag would not); a hold for any other reason stays. Throws on error, so
+        // Stripe redelivers (the refund is keyed and the gift restore is guarded).
+        const { data: holdNow, error: holdNowErr } = await supabase
+          .from("job_payout_holds").select("job_id, reason").eq("job_id", jobId).maybeSingle();
+        if (holdNowErr && !["42P01", "PGRST205"].includes(String((holdNowErr as { code?: string }).code ?? ""))) {
+          throw new Error(`job_payout_holds read failed after a duplicate-funding refund on job ${jobId}: ${holdNowErr.message}`);
+        }
+        const heldReason = (holdNow as { reason?: string | null } | null)?.reason ?? null;
+        let holdLifted = false;
+        if (heldReason && heldReason.startsWith(`Q1491: gift card difference payment ${session.id} `)) {
+          const { error: liftErr } = await supabase
+            .from("job_payout_holds").delete().eq("job_id", jobId).eq("reason", heldReason);
+          if (liftErr) {
+            throw new Error(`job_payout_holds not lifted after a duplicate-funding refund on job ${jobId}: ${liftErr.message}`);
+          }
+          holdLifted = true;
+        }
         // Q1940 (a): on a Declutter setup job cancelled for the seller's fault, the card fee Stripe kept on this
         // refunded payment is the seller's debt (A10). Throws on failure, so Stripe redelivers (all of the above is
         // keyed or guarded); before the ledger below, so the retry still writes it.
@@ -1424,6 +1445,7 @@ async function settleCheckoutSession(
             job_payment_intent: String(funded.stripe_payment_intent_id ?? "none"),
             gift_card: giftCardId ?? "none",
             seller_fee_billed_cents: String(sellerFeeBilledCents),
+            payout_hold_lifted: holdLifted ? "yes (this payment's underfunded hold, Q1902)" : "no",
             gift_restored: giftKeptWhy ?? (giftRestored === null ? "not consumed by this payment" : giftRestored ? "yes" : "NO: restore matched nothing, check the gift by hand"),
           },
         });

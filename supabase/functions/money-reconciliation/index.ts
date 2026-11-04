@@ -61,7 +61,7 @@ import { actualOrEstimatedFeeCents } from "../_shared/stripeFees.ts";
 import { setupFeeKeptCents } from "../_shared/posterFees.ts";
 import { checkoutChargeTaxCents, posterCancelKeptFeeCents, taxOnKeptCents } from "../_shared/refundAmount.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
-import { checkIdentityHold, loadPayoutHolds } from "../_shared/payoutHold.ts";
+import { checkIdentityHold, loadJobPayoutHolds, loadPayoutHolds } from "../_shared/payoutHold.ts";
 
 /** Offending ids reported per check. A bad day must not emit a 10MB payload. */
 const MAX_IDS_PER_CHECK = 10;
@@ -1150,7 +1150,7 @@ serve(async (req) => {
     }
 
     const pendingRows = jobRows.filter((j) => j.payment_status === "payout_pending");
-    const heldPayoutJobs: Array<{ job_id: string; helper_ids: string[] }> = [];
+    const heldPayoutJobs: Array<{ job_id: string; helper_ids: string[]; job_hold?: true }> = [];
     const heldJobIds = new Set<string>();
     if (pendingRows.length) {
       const membersByJob = new Map<string, string[]>();
@@ -1201,6 +1201,22 @@ serve(async (req) => {
             heldJobIds.add(jobId);
             heldPayoutJobs.push({ job_id: jobId, helper_ids: [...new Set(held)] });
           }
+        }
+      }
+      // Q1902 (b) (lh-money-escrow review of 7133adc73, #3): a JOB payout hold
+      // (public.job_payout_holds, Q1491: an underfunded gift difference payment)
+      // keeps the job in payout_pending ON PURPOSE too: the payout_transfers claim
+      // trigger refuses it until an admin releases it. Reported as held
+      // (job_hold: true), never as stranded. FAIL CLOSED: an unreadable table
+      // exempts nothing and the run is degraded, so it keeps paging.
+      const jobHoldLookup = await loadJobPayoutHolds(admin, pendingRows.map((j) => j.id as string));
+      if (!jobHoldLookup.ok) {
+        notes.push(`job payout hold read failed, no job-held payout exempted: ${jobHoldLookup.message}`);
+      } else {
+        for (const jobId of jobHoldLookup.jobs) {
+          if (heldJobIds.has(jobId)) continue;
+          heldJobIds.add(jobId);
+          heldPayoutJobs.push({ job_id: jobId, helper_ids: [], job_hold: true });
         }
       }
     }

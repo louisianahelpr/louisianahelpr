@@ -968,7 +968,11 @@ describe("stripe-webhook edge function", () => {
       // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |        } else if (fundedElsewhere) { |        } else if (false) {
       // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |            jr.stripe_payment_intent_id !== thisPi && | false &&
       // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |            jr.payment_status != null && !["unpaid", "failed", "abandoned"].includes(jr.payment_status); |            jr.payment_status != null;
-      async function redeliverDuplicate(jobRow: Record<string, unknown>, escrowRows: Array<{ id: string }> = []) {
+      async function redeliverDuplicate(
+        jobRow: Record<string, unknown>,
+        escrowRows: Array<{ id: string }> = [],
+        extraOverrides: NonNullable<typeof scenario.writeOverrides> = [],
+      ) {
         const fn = await loadConfigured();
         stripeMock.webhooks.constructEventAsync.mockResolvedValue({
           id: "evt_q1981",
@@ -978,6 +982,7 @@ describe("stripe-webhook edge function", () => {
         scenario.writeOverrides = [
           { table: "gift_cards", op: "update", when: isFirstConsume, rows: [] },
           { table: "gift_cards", op: "update", when: (p) => p.status === "redeemed" && p.job_id === "job-1", rows: [{ id: "gc-1" }] },
+          ...extraOverrides,
         ];
         scenario.writeSelectRows.jobs = escrowRows;
         scenario.reads.gift_cards = { rows: [{ id: "gc-1", status: "sent", job_id: null, payment_status: "paid" }] };
@@ -1012,6 +1017,44 @@ describe("stripe-webhook edge function", () => {
         const { giftWrites, titles } = await redeliverDuplicate({ stripe_session_id: "cs_d2", payment_status: "failed", stripe_payment_intent_id: "pi_card" }, [{ id: "job-1" }]);
         expect(giftWrites).toHaveLength(2);
         expect(titles.some((t) => /re-claimed/.test(t))).toBe(true);
+      });
+
+      // Q1902 (a) (lh-money-escrow review of 7133adc73, #3): the Q1491 hold is written before the
+      // escrow write finds the job funded by ANOTHER payment; this one is then refunded in full, so the
+      // hold this session placed must not stay and block the job's legitimate payout.
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |         if (heldReason && heldReason.startsWith(`Q1491: gift card difference payment ${session.id} `)) { |         if (false) {
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |         if (heldReason && heldReason.startsWith(`Q1491: gift card difference payment ${session.id} `)) { |         if (heldReason) {
+      // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |             throw new Error(`job_payout_holds not lifted | console.log(`job_payout_holds not lifted
+      it.each([
+        ["this session's underfunded hold is lifted", "Q1491: gift card difference payment cs_d2 — gift gc-1 was not reserved for this job (sent)", true],
+        ["a hold for another session stays", "Q1491: gift card difference payment cs_d9 — gift gc-1 was not reserved for this job (sent)", false],
+        ["a hold for another reason stays", "admin: chargeback review", false],
+      ] as const)("Q1902: a duplicate-funded delivery (refunded in full): %s", async (_l, reason, lifted) => {
+        scenario.reads.job_payout_holds = { rows: [{ job_id: "job-1", reason }] };
+        const { res, holds, titles } = await redeliverDuplicate({ stripe_session_id: "cs_other", payment_status: "unpaid", stripe_payment_intent_id: "pi_card" });
+        expect(res.status).toBe(200);
+        expect(titles).toContain("Escrow funding — a second payment on an already-funded job was refunded");
+        // The Q1491 hold was placed on the underfunded path first ...
+        expect(holds.filter((h) => h.op !== "delete")).toHaveLength(1);
+        // ... and only THIS session's hold is deleted, scoped to the job and its exact reason.
+        const deletes = holds.filter((h) => h.op === "delete");
+        if (lifted) {
+          expect(deletes).toHaveLength(1);
+          expect(deletes[0].filters).toContainEqual(expect.objectContaining({ op: "eq", column: "job_id", value: "job-1" }));
+          expect(deletes[0].filters).toContainEqual(expect.objectContaining({ op: "eq", column: "reason", value: reason }));
+        } else {
+          expect(deletes).toEqual([]);
+        }
+      });
+
+      it("Q1902: a hold lift that fails fails the event so Stripe redelivers (the refund is keyed)", async () => {
+        scenario.reads.job_payout_holds = { rows: [{ job_id: "job-1", reason: "Q1491: gift card difference payment cs_d2 — gift gc-1 was not reserved for this job (sent)" }] };
+        const { res } = await redeliverDuplicate(
+          { stripe_session_id: "cs_other", payment_status: "unpaid", stripe_payment_intent_id: "pi_card" },
+          [],
+          [{ table: "job_payout_holds", op: "delete", when: () => true, error: { message: "connection reset" } }],
+        );
+        expect(res.status).toBeGreaterThanOrEqual(500);
       });
 
       // @mutate supabase/functions/stripe-webhook/handlers/checkoutSessionCompleted.ts |      if (giftSkippedFundedElsewhere) { |      if (false) {

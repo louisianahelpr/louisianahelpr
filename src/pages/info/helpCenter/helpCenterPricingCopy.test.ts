@@ -29,6 +29,10 @@
 // a paid perk at all, and the Membership & Billing topic is gone.
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts |     topic: "Declutter", |     topic: "Membership & Billing", items: [{ q: "What does a membership do?", a: "Elite adds a crown badge." }] }, { topic: "Declutter",
 // @mutate src/pages/info/helpCenter/helpCenterContent.ts |  Every payout goes on the standard schedule.` |  Instant Payout is a membership feature.`
+// Q1834 (2026-11-04): the owner removed suggested prices from Post a job on
+// 2026-10-08 (BudgetSection.tsx) and the range table had no caller, so no
+// answer may still promise a suggested price or range.
+// @mutate src/pages/info/helpCenter/helpCenterContent.ts | a: "You set the price. Pick what the job is worth to you.", | a: "You set the price. We suggest a typical range for the category, and you can take the suggested amount in one tap.",
 import { describe, expect, it } from "vitest";
 import { FAQ_SECTIONS } from "./helpCenterContent";
 
@@ -80,5 +84,13 @@ describe("Help Center describes today's job fee (Q1842)", () => {
       ...answers.filter((x) => PLAN.test(x.q) || PLAN.test(x.a)).map((x) => `${x.topic} / ${x.q}`),
     ];
     expect(hits).toEqual([]);
+  });
+});
+
+describe("no answer promises a suggested job price (Q1834)", () => {
+  it("the help center never says it suggests a price or a range", () => {
+    expect(answers.length).toBeGreaterThan(20);
+    const promising = answers.filter((x) => /\bsuggest(ed|s)?\b[^.]*\b(price|range|amount)\b|\btypical range\b/i.test(x.a));
+    expect(promising.map((x) => x.q)).toEqual([]);
   });
 });

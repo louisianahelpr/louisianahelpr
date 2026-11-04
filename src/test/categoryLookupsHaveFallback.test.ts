@@ -29,7 +29,6 @@ const TABLES = new Set([
   "CATEGORY_ICONS",
   "categoryHues",
   "JOB_CATEGORY_LABELS",
-  "categoryPricing",
   "categoryMaterials",
   "categoryTemplates",
   "titlePlaceholders",
@@ -42,7 +41,6 @@ const TABLES = new Set([
 const GUARDED_LOCALLY: Record<string, string> = {
   "src/components/postjob/MaterialsPanel.tsx:categoryMaterials": "if (!items || items.length === 0) return null;",
   "src/components/postjob/detailsSection/DescriptionField.tsx:categoryTemplates": "if (!tpl ||",
-  "src/lib/pricingGuide.ts:categoryPricing": "if (!pricing) return null;",
   // Post a job screen 1 (board 23): keys come from the enum's own label table or a guess checked against it.
   "src/components/postjob/JobCategoryGroups.tsx:JOB_CATEGORY_LABELS": "if (guess && guess in JOB_CATEGORY_LABELS) found.add(guess as JobCategory);",
   "src/lib/jobCategoryGroups.ts:JOB_CATEGORY_LABELS": "items: (Object.keys(JOB_CATEGORY_LABELS) as JobCategory[])",

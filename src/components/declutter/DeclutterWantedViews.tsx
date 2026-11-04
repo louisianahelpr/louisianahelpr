@@ -64,6 +64,7 @@ import { Chip } from "./DeclutterFilterPanel";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { focusSheetItself } from "./focusSheetItself";
 import { EXPIRED_WORD } from "@/lib/dateUtils";
+import { Input } from "@/components/ui/input";
 
 const EMPTY: WantedForm = { what: "", category: "", maxPrice: "", radius: 10 };
 const FORM_ID = "wanted-form";
@@ -151,7 +152,7 @@ function WantedFormFields({ form, setForm, problems, onSubmit, photos, where }: 
     >
       <div className="space-y-1">
         <label className="block text-ds-15 font-semibold" htmlFor="wanted-what">I'm looking for</label>
-        <input id="wanted-what" className={input} maxLength={60} value={form.what} placeholder="Kids bike" enterKeyHint="next" aria-required="true"
+        <Input id="wanted-what" className="w-full min-w-0" maxLength={60} value={form.what} placeholder="Kids bike" enterKeyHint="next" aria-required="true"
           aria-invalid={problems.what ? true : undefined} aria-describedby={problems.what ? "wanted-what-problem" : undefined}
           onChange={(e) => setForm((f) => ({ ...f, what: e.target.value }))} />
         <FieldProblem id="wanted-what-problem" text={problems.what} />

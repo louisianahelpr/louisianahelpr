@@ -29,6 +29,7 @@ import { fetchMyHandover, handoverPhotoUrl } from "@/lib/declutter/handover";
 import { safeBlobUrl } from "@/lib/safeBlobUrl";
 import { focusSheetItself } from "./focusSheetItself";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
@@ -78,9 +79,9 @@ export function PutItOutSheet({
         <label htmlFor="porch-note" className="mt-3 block text-ds-15 font-semibold">
           Where exactly? <span className="font-normal text-muted-foreground">(optional)</span>
         </label>
-        <input
+        <Input
           id="porch-note"
-          className="mt-1 h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15"
+          className="mt-1 w-full min-w-0"
           maxLength={200}
           value={note}
           placeholder="Left side of the porch, by the swing"

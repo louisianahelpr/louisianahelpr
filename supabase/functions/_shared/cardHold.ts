@@ -37,6 +37,7 @@ import type { StripeMode } from "../_shared/stripeMode.ts";
 import { CARD_HOLD_COPY } from "../_shared/cardHoldCopy.ts";
 import { refundInstantBooking, type InstantRefundOutcome, type InstantRefundPi } from "../_shared/instantBookRefund.ts";
 import { CARD_HOLD_PARTIAL_CAPTURE_API_VERSION, DAY_MS, HOUR_MS, offSessionAllowed, partialCaptureParams } from "../_shared/cardHoldPlan.ts";
+import { SETUP_FEE_LEFT_OUT_KEY } from "../_shared/jobTaxAddress.ts";
 
 export { CARD_HOLD_COPY };
 export {
@@ -479,7 +480,8 @@ export async function captureCardHold(deps: HoldDeps, jobId: string, opts: { res
       // Under the hold's amount (the setup fee left out): the line items must match (cardHoldPlan).
       // Its own key: the parameters differ from any capture already sent for this attempt.
       const partial = amountCents < Number(hold.amount_cents);
-      const pi = await stripe.paymentIntents.capture(piId, partial ? partialCaptureParams(amountCents) : { amount_to_capture: amountCents }, {
+      // Q2716: a partial capture names the exact cents it left out, so the webhook's tax commit allows exactly that.
+      const pi = await stripe.paymentIntents.capture(piId, partial ? { ...partialCaptureParams(amountCents), metadata: { [SETUP_FEE_LEFT_OUT_KEY]: String(Number(hold.amount_cents) - amountCents) } } : { amount_to_capture: amountCents }, {
         idempotencyKey: `card-hold-capture-${piId}-a${hold.attempts}${partial ? "-partial" : ""}`,
         ...(partial ? { apiVersion: CARD_HOLD_PARTIAL_CAPTURE_API_VERSION } : {}),
       } as Stripe.RequestOptions);

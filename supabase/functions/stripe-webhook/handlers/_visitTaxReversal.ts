@@ -213,6 +213,27 @@ export async function reverseVisitTaxForRefund(args: {
     return "failed_paged";
   }
 
+  // Review of 2ecaceaf84 (lh-money-escrow, Q2716 left part): a cancelled hold's fee capture that kept only part of
+  // its job-site tax has had the released rest's tax reversed already (tax_rev_uncaptured, _jobTaxCommit.ts). The
+  // shares below are figured on the transaction as committed, so a refund of that capture would also reverse tax
+  // that was already reversed (tax under-reported). Never figured here: each refund not yet reversed pages for a
+  // person, who reverses only the kept tax that refund returns.
+  if (piMeta.tax_rev_uncaptured) {
+    const pending = refunds.filter((r) => !piMeta[taxReversalMetadataKey(r.id)]);
+    if (pending.length === 0) return "reversed";
+    logStep("Job-site tax: refund of a capture whose released tax was already reversed; paged", { txId, piId, refunds: pending.map((r) => r.id) });
+    await postSlackOpsAlert({
+      kind: "money_at_risk",
+      severity: "warning",
+      title: "Refund of a partly taxed fee capture: reverse its sales tax by hand",
+      message: `Charge ${charge.id} was refunded (refunds not yet reversed: ${listRefunds(pending)}). Its PaymentIntent ${piId} is a cancelled job's fee capture that kept only part of its job-site sales tax; the tax on the released rest was already reversed (${piMeta.tax_rev_uncaptured}) from Stripe Tax transaction ${txId}. Reverse by hand only the share of the KEPT tax each refund returns (never a share of the whole transaction). ${handInstruction(piId, pending[0].id)}.`,
+      fields: { "Tax transaction": txId, Charge: charge.id, "Payment Intent": piId, "Released-tax reversal": piMeta.tax_rev_uncaptured },
+      oncePerDayKey: `job-site-tax-uncaptured-refund:${charge.id}`,
+      seed: await visitIsSeed(supabase, piId, logStep),
+    });
+    return "failed_paged";
+  }
+
   // What the transaction recorded: its labor and the tax on it, plus a
   // poster-fee visit's taxed service_fee line (Q2082), every line summed.
   // Read from Stripe Tax itself, the record being reversed.

@@ -60,7 +60,11 @@ export async function commitJobSiteTax(args: {
   // was collected); some of it commits the calculation and at once reverses the tax on the released rest. An
   // unstamped fee capture (an older one) or a stamp that cannot be right still pages, as before.
   const keptRaw = md[CANCEL_FEE_TAX_KEPT_KEY];
-  const stampedKeptCents = cancelFeeCapture && typeof keptRaw === "string" && /^\d+$/.test(keptRaw) ? Number(keptRaw) : null;
+  // Review of 2ecaceaf84: cross-checked against the PaymentIntent itself, so a stamp void-cancelled-payments got wrong
+  // (it read the hold as untaxed and let the capture reach into the tax) can never silently drop collected tax: the
+  // capture beyond amount - tax is tax collected, and a stamp below it pages as before.
+  const taxAtLeastCents = typeof received === "number" && typeof pi.amount === "number" ? Math.max(0, received - (pi.amount - cents)) : null;
+  const stampedKeptCents = cancelFeeCapture && typeof keptRaw === "string" && /^\d+$/.test(keptRaw) && taxAtLeastCents !== null && Number(keptRaw) >= taxAtLeastCents ? Number(keptRaw) : null;
   if (stampedKeptCents === 0) {
     logStep("Cancelled job's fee capture holds none of its job-site tax; nothing to record", { jobId: md.job_id, piId: pi.id, calc });
     return "none";
@@ -170,7 +174,23 @@ async function reverseReleasedTax(args: {
       { idempotencyKey: `job-site-tax-uncaptured:${pi.id}` },
     );
     const reversalId = (rev as { id?: string } | null)?.id ?? "";
-    await stripe.paymentIntents.update(pi.id, { metadata: { tax_rev_uncaptured: reversalId } });
+    try {
+      await stripe.paymentIntents.update(pi.id, { metadata: { tax_rev_uncaptured: reversalId } });
+    } catch (e) {
+      // Review of 2ecaceaf84: the reversal stands; only its stamp is missing (a later refund then needs it to page
+      // for a hand reversal instead of sharing the whole transaction), so the page says exactly that.
+      console.error(`[stripe-webhook] released-tax reversal ${reversalId} not stamped on ${pi.id}:`, caughtMessage(e));
+      await postSlackOpsAlert({
+        kind: "money_at_risk",
+        severity: "warning",
+        title: "Job sales tax on a cancelled hold reversed, but not stamped",
+        message: `The released part of job ${jobId}'s job-site sales tax (PaymentIntent ${pi.id}, Stripe Tax transaction ${txId}) WAS reversed (${reversalId || "reversal id not returned"}), but stamping it failed (${caughtMessage(e)}). Do NOT reverse it again: set metadata.tax_rev_uncaptured=${reversalId || "<the reversal with reference uncaptured:" + pi.id + ">"} on ${pi.id} by hand.`,
+        fields: { job_id: jobId, payment_intent: pi.id, tax_transaction: txId, reversal: reversalId },
+        oncePerDayKey: `job-site-tax-uncaptured-stamp:${pi.id}`,
+        seed: seed === true,
+      });
+      return "failed_paged";
+    }
     logStep("Job-site tax on a cancelled hold's released rest reversed", { jobId, piId: pi.id, txId, backCents, flatCents, reversalId });
     return "reversed";
   } catch (e) {

@@ -293,6 +293,8 @@ const EDGE_READERS: Record<string, Kind> = {
   "payment-confirm-reminder/index.ts": "hides",
   "process-scheduled-payouts/index.ts": "alerts",
   "release-payout/index.ts": "alerts",
+  // Q2734 (B121): the review nag skips fixture jobs (.eq("is_seed", false)), like arrival-confirm-reminder.
+  "review-nag-cron/index.ts": "hides",
   "send-push-notification/index.ts": "hides",
   // S2 ship-rates: a quote follows its cart lines' is_seed (shipping_quotes.is_seed); test-key labels only, no gate.
   "ship-rates/index.ts": "tags",

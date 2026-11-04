@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1153,
-    "files": 320,
-    "rendering": 1072,
+    "calls": 1151,
+    "files": 318,
+    "rendering": 1070,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 217,
-      "toast.error": 780,
+      "toast.error": 778,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 487,
       "template": 105,
-      "dynamic": 613,
+      "dynamic": 611,
       "jsx": 0
     }
   },
@@ -4728,16 +4728,6 @@
       "renders": true
     },
     {
-      "file": "src/components/declutter/DeclutterBrowseView.tsx",
-      "line": 263,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
       "file": "src/components/declutter/DeclutterBundleRequests.tsx",
       "line": 66,
       "kind": "toast",
@@ -5072,16 +5062,6 @@
       "renders": true
     },
     {
-      "file": "src/components/declutter/DeclutterFreeView.tsx",
-      "line": 44,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
       "file": "src/components/declutter/DeclutterHandoverTalk.tsx",
       "line": 57,
       "kind": "toast.error",
@@ -5314,16 +5294,6 @@
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
       "line": 248,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "declutterErrorMessage(err)"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/declutter/DeclutterItemView.tsx",
-      "line": 129,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7611,6 +7581,16 @@
     {
       "file": "src/components/declutter/useTaskSteps.ts",
       "line": 52,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/useWatchToggle.ts",
+      "line": 32,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

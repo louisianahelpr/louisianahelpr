@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 27 |
 | Overlay surfaces | **instance** | 220 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1121 (across 315 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1141 (across 316 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 50 |
 | Multi-step flows — probable | flow | 34 |
 | Back/next navigation only | flow | 66 |
-| Forms (submittable) | form | 100 |
-| Admin components (components/admin + pages/admin/Admin*) | **file** | 179 |
+| Forms (submittable) | form | 102 |
+| Admin components (components/admin + pages/admin/Admin*) | **file** | 181 |
 | Email templates | **exported template** | 23 |
 | Notification types (defined in notification_type_pref_map) | type | 26 |
-| **Navigable surfaces** (places a person can stand) | mixed | **771** |
-| **Copy surfaces** (strings a person may read) | mixed | **1170** |
-| **Total auditable surface** | mixed | **1941** |
+| **Navigable surfaces** (places a person can stand) | mixed | **775** |
+| **Copy surfaces** (strings a person may read) | mixed | **1190** |
+| **Total auditable surface** | mixed | **1965** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,7 +71,7 @@ they differ, the reason is understood:
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 27 | 24 | agree |
 | Overlay surfaces | 220 | 130 | agree within method (script counts every menu instance) |
-| Forms | 100 | ~38 | agree |
+| Forms | 102 | ~38 | agree |
 | Confirmed multi-step flows | 50 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -603,6 +603,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/admin/AdminUserNotes.tsx` (dialog/mutation)
 - [ ] `src/components/admin/RestrictApplicationsDialog.tsx` (dialog/mutation)
 - [ ] `src/components/admin/settings/DeclutterReviewCard.tsx` (dialog/mutation)
+- [ ] `src/components/admin/settings/DeclutterShippingClaimsCard.tsx` (dialog/mutation)
 - [ ] `src/components/admin/userDetail/DeclutterAmountsOwed.tsx` (dialog/mutation)
 - [ ] `src/components/admin/userDetail/UserAuditLog.tsx` (dialog/mutation)
 - [ ] `src/components/CancellationDialog.tsx` (dialog/mutation)
@@ -627,6 +628,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/declutter/SellMeetupSpots.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/SellPorchDays.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/SellPorchPlaces.tsx` (dialog/mutation)
+- [ ] `src/components/declutter/ShipItRow.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/ShipToMe.tsx` (dialog/mutation)
 - [ ] `src/components/DisputeDialog.tsx` (dialog/mutation)
 - [ ] `src/components/EarningsExport.tsx` (dialog/mutation)

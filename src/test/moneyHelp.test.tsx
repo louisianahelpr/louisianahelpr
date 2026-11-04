@@ -43,7 +43,7 @@ describe("MoneyHelp", () => {
   it("an outage or rate limit says the helper could not be reached, never 'not in the Help Center'", async () => {
     askSupportAi.mockResolvedValueOnce({ answer: null, unreachable: true });
     ask("When do I get paid after a job?");
-    expect(await screen.findByText(/Couldn.t reach the helper right now/)).toBeTruthy();
+    expect(await screen.findByText(/Couldn.t get an answer right now/)).toBeTruthy();
     expect(screen.queryByText(/We couldn.t find that in our Help Center/)).toBeNull();
     expect(screen.getByRole("link", { name: "contact support" }).getAttribute("href")).toBe("/support");
   });

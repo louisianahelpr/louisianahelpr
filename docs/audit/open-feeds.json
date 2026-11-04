@@ -579,43 +579,11 @@
         "issue": null
       },
       {
-        "fingerprint": "ec24ac4f76e60c2d4ede8efbf0b046fd",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: mapkit has no token: mapkit-token timed out",
-        "issue": null
-      },
-      {
         "fingerprint": "c540527c8265b56e664f823f4805b1ec",
         "source_kind": "sentry",
         "source": "sentry:assets/supabase",
         "status": "open",
         "title": "error: channel error: transport failure",
-        "issue": null
-      },
-      {
-        "fingerprint": "e32aa223d475dd1349363e900374a77e",
-        "source_kind": "sentry",
-        "source": "sentry:unknown",
-        "status": "open",
-        "title": "error: script error.",
-        "issue": null
-      },
-      {
-        "fingerprint": "1cd0639083c208d6639fcb91662b1dd9",
-        "source_kind": "sentry",
-        "source": "sentry:assets/IdentityCheckSheet",
-        "status": "open",
-        "title": "error: we couldn't start identity verification right now. please try again.",
-        "issue": null
-      },
-      {
-        "fingerprint": "9934727135a0958cee44ea48fe40622e",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: notifications load timed out after #ms",
         "issue": null
       },
       {
@@ -632,14 +600,6 @@
         "source": "ops-alert:custom",
         "status": "open",
         "title": "paypal webhook not configured",
-        "issue": null
-      },
-      {
-        "fingerprint": "29fbdd01ae0a95bfec62fa003481d3b7",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/jobs · error screen shown: we couldn't load jobs.",
         "issue": null
       },
       {

@@ -137,7 +137,7 @@ describe("the real docs/OPEN.md", () => {
   const open = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
   it("yields the open OWNER items and no ticked ones", () => {
     const items: { text: string }[] = mp.ownerItems(open);
-    expect(items.length).toBeGreaterThan(3);
+    expect(items.length).toBeGreaterThan(0); // 3 open OWNER items on 2026-11-04 after the tick sweeps (was > 3)
     const openOwnerLines = open.split("\n").filter((l) => l.startsWith("- [ ] ") && l.includes("OWNER"));
     expect(items.length).toBe(openOwnerLines.filter((l) => /\bOWNER\b/.test(l)).length);
     const ticked = open.split("\n").filter((l) => /^- \[[x~]\] /.test(l) && /\bOWNER\b/.test(l)).map((l) => l.slice(6, 60));

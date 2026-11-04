@@ -110,9 +110,12 @@ export function LiveJobsSection() {
           if (!cancelled) return load(1);
           return;
         }
-        void import("@/lib/errorLogger")
-          .then(({ report }) => report(err, { tags: { source: "LiveJobsSection.load" } }))
-          .catch(() => { /* the visible failed state below is the signal; logging must never throw */ });
+        void (async () => {
+          try {
+            const { report } = await import("@/lib/errorLogger");
+            report(err, { tags: { source: "LiveJobsSection.load" } });
+          } catch { /* the visible failed state below is the signal; logging must never throw */ }
+        })();
         // Not silent: the section says the newest jobs did not load and keeps
         // the link to the full board (data-testid="landing-live-jobs-failed").
         setState({ kind: "failed" });

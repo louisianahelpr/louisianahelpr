@@ -93,6 +93,7 @@ describe("Q2408: reads that name date_window_end survive a database without it",
       "src/hooks/useDashboardJobsCount.ts",
       "src/lib/guestJobsQuery.ts",
       "src/pages/home/QuickApplyHandler.tsx",
+      "src/pages/home/useApplyFlow.ts",
       "src/pages/jobs/jobPage/usePosterPageFlows.tsx",
       "src/pages/jobs/jobPage/useJobPage.ts",
     ].sort());

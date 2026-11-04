@@ -81,3 +81,26 @@ export const timeAgo = (date: string) => {
 // Declutter sales and refunds (payment received, buyer paid, refund on its way)
 // were typed 'payment' until 20261028162048 and keep the tint they had.
 export const MONEY_TYPES: ReadonlySet<string> = new Set(["payment", "financial_alerts", "declutter_sales", "declutter_refunds"]);
+
+/**
+ * Q2037 (owner D9, 2026-10-17): notifications GROUPED BY JOB. Within one day
+ * group, every later notice about a job that already has a row folds under
+ * that row (the newest, since the feed is newest first); notices with no job
+ * stay their own rows. Order is kept. `more` is what the lead row hides until
+ * its "N more on this job" toggle opens it.
+ */
+export const foldByJob = (items: Notification[]): { n: Notification; more: Notification[] }[] => {
+  const out: { n: Notification; more: Notification[] }[] = [];
+  const byJob = new Map<string, { n: Notification; more: Notification[] }>();
+  for (const n of items) {
+    const lead = n.job_id ? byJob.get(n.job_id) : undefined;
+    if (lead) {
+      lead.more.push(n);
+      continue;
+    }
+    const row = { n, more: [] as Notification[] };
+    out.push(row);
+    if (n.job_id) byJob.set(n.job_id, row);
+  }
+  return out;
+};

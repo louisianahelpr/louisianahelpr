@@ -1757,7 +1757,7 @@ describe("stripe-webhook edge function", () => {
       });
 
       // Re-review of 49a8653d81 (C, HIGH): a hold captured only in part (the late fee) must not commit the full tax.
-      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |   if (cancelFeeCapture \|\| (shortfall !== 0 && shortfall !== setupFeeLeftOutCents)) { |   if (cancelFeeCapture) {
+      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |   if (!recordCapturedPart && (cancelFeeCapture \|\| (shortfall !== 0 && shortfall !== setupFeeLeftOutCents))) { |   if (!recordCapturedPart && cancelFeeCapture) {
       it("a hold captured only in part commits no tax and pages ops", async () => {
         stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
         await deliverPi(SITE, { amount_received: 2000 });
@@ -1805,6 +1805,55 @@ describe("stripe-webhook edge function", () => {
         const alerts = (slackAlerts as Array<{ title: string; kind: string; message: string }>).filter((a) => a.title === "Job sales tax not recorded: the hold was captured only in part");
         expect(alerts).toHaveLength(1);
         expect(alerts[0].message).toContain("cancelled job's fee");
+      });
+
+      // Q2716 (left part): a fee capture stamped with the tax inside it is recorded exactly, with no hand step.
+      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |   if (stampedKeptCents === 0) { |   if (stampedKeptCents === -1) {
+      it("a fee capture holding none of its tax records nothing and pages nobody (Q2716)", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
+        await deliverPi({ ...SITE, cancel_fee_capture: "1", cancel_fee_tax_kept_cents: "0" }, { amount_received: 2000 });
+        expect(stripeMock.tax.transactions.createFromCalculation).not.toHaveBeenCalled();
+        expect((slackAlerts as Array<{ title: string }>).filter((a) => a.title === "Job sales tax not recorded: the hold was captured only in part")).toHaveLength(0);
+      });
+
+      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |     const flatCents = Math.min(txTotalCents, Math.floor((backCents * txTotalCents) / taxCents)); |     const flatCents = txTotalCents;
+      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |   if (recordCapturedPart && stampedKeptCents !== null && stampedKeptCents < cents) { |   if (false) {
+      it("a fee capture holding part of its tax commits, then reverses exactly the released tax (Q2716)", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
+        stripeMock.refunds.list.mockResolvedValue({ data: [], has_more: false });
+        stripeMock.tax.transactions.listLineItems.mockResolvedValue({ data: [{ id: "tax_li_1", amount: 10000, amount_tax: 1100, reference: "labor" }], has_more: false });
+        stripeMock.tax.transactions.createReversal.mockResolvedValue({ id: "taxrev_unc" });
+        await deliverPi({ ...SITE, cancel_fee_capture: "1", cancel_fee_tax_kept_cents: "500" }, { amount_received: 11500 });
+        expect(stripeMock.tax.transactions.createFromCalculation).toHaveBeenCalledTimes(1);
+        // 600c of the 1100c tax was released: floor(600 x 11100 / 1100) = 6054 of labor + tax reversed, 500c tax stays.
+        expect(stripeMock.tax.transactions.createReversal.mock.calls.map((c) => ({ args: c[0], opts: c[1] }))).toEqual([{
+          args: { mode: "partial", flat_amount: -6054, original_transaction: "tax_txn_site", reference: "uncaptured:pi_site", metadata: { payment_intent: "pi_site", tax_back_cents: "600" } },
+          opts: { idempotencyKey: "job-site-tax-uncaptured:pi_site" },
+        }]);
+        expect(stripeMock.paymentIntents.update).toHaveBeenCalledWith("pi_site", { metadata: { tax_rev_uncaptured: "taxrev_unc" } });
+        expect((slackAlerts as Array<{ title: string }>).filter((a) => a.title === "Job sales tax not recorded: the hold was captured only in part")).toHaveLength(0);
+      });
+
+      it("a fee capture keeping all its tax commits with no reversal; a stamp above the tax still pages (Q2716)", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
+        stripeMock.refunds.list.mockResolvedValue({ data: [], has_more: false });
+        await deliverPi({ ...SITE, cancel_fee_capture: "1", cancel_fee_tax_kept_cents: "1100" }, { amount_received: 12100 });
+        expect(stripeMock.tax.transactions.createFromCalculation).toHaveBeenCalledTimes(1);
+        expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+        await deliverPi({ ...SITE, cancel_fee_capture: "1", cancel_fee_tax_kept_cents: "1200" }, { amount_received: 12100 });
+        expect(stripeMock.tax.transactions.createFromCalculation).toHaveBeenCalledTimes(1);
+        expect((slackAlerts as Array<{ title: string }>).filter((a) => a.title === "Job sales tax not recorded: the hold was captured only in part")).toHaveLength(1);
+      });
+
+      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |       title: "Job sales tax recorded in full, but the hold kept only part of it", |       title: "x",
+      it("a failed released-tax reversal pages ops with the hand step (Q2716)", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
+        stripeMock.tax.transactions.listLineItems.mockResolvedValue({ data: [{ id: "tax_li_1", amount: 10000, amount_tax: 1100 }], has_more: false });
+        stripeMock.tax.transactions.createReversal.mockRejectedValue(new Error("stripe down"));
+        await deliverPi({ ...SITE, cancel_fee_capture: "1", cancel_fee_tax_kept_cents: "500" }, { amount_received: 11500 });
+        const alerts = (slackAlerts as Array<{ title: string; kind: string }>).filter((a) => a.title === "Job sales tax recorded in full, but the hold kept only part of it");
+        expect(alerts).toHaveLength(1);
+        expect(alerts[0].kind).toBe("money_at_risk");
       });
 
       it("a hold captured in full still commits", async () => {

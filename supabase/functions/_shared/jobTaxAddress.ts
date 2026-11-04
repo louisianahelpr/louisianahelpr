@@ -52,6 +52,13 @@ export const JOB_TAX_CENTS_KEY = "job_tax_cents";
  */
 export const SETUP_FEE_LEFT_OUT_KEY = "setup_fee_left_out_cents";
 export const CANCEL_FEE_CAPTURE_KEY = "cancel_fee_capture";
+/**
+ * Q2716 (left part): stamped next to CANCEL_FEE_CAPTURE_KEY on a cancelled job's fee capture of a job-site-taxed
+ * hold: the cents of job-site tax inside what was captured (the capture beyond the hold's non-tax part, 0 when the
+ * fees fit in it). The webhook's tax commit then records exactly that tax with no hand step: nothing when it is 0,
+ * otherwise the calculation committed and the tax on the released rest reversed at once.
+ */
+export const CANCEL_FEE_TAX_KEPT_KEY = "cancel_fee_tax_kept_cents";
 /** A gift-paid job-site-taxed checkout: the full taxable price the tax was figured on (the card took less). */
 export const JOB_TAXABLE_CENTS_KEY = "job_taxable_cents";
 /**

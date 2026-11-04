@@ -27,10 +27,18 @@ export function jobWhenRange(when: string, today: string = todayYmd()): { from: 
   return null;
 }
 
-/** A job with no day set cannot be shown as "today": it is kept only by "Any time". */
-export function jobMatchesWhen(dateNeeded: string | null | undefined, range: { from: string; to: string } | null): boolean {
+/**
+ * A job with no day set cannot be shown as "today": it is kept only by "Any time".
+ * Q2408: a window job ("any day Nov 4-10", `windowEnd` = its last day) matches when ANY of its days is in range.
+ */
+export function jobMatchesWhen(
+  dateNeeded: string | null | undefined,
+  range: { from: string; to: string } | null,
+  windowEnd?: string | null,
+): boolean {
   if (!range) return true;
   if (!dateNeeded) return false;
   const day = dateNeeded.slice(0, 10);
-  return day >= range.from && day <= range.to;
+  const last = windowEnd && windowEnd.slice(0, 10) > day ? windowEnd.slice(0, 10) : day;
+  return day <= range.to && last >= range.from;
 }

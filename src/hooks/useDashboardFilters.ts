@@ -13,6 +13,7 @@ import { useMembershipsOn } from "@/hooks/useMembershipsOn";
 import type { MapJobFilterInput } from "@/components/browseMap/mapFilter";
 import { useDashboardJobsCount } from "@/hooks/useDashboardJobsCount";
 import { jobMatchesWhen, jobWhenRange } from "@/lib/jobWhenFilter";
+import { jobLastDay } from "@/lib/jobDateWindow";
 import { isJobExcludedForViewer, type ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
 
 // Persisted browse-feed sort key. Stored in localStorage so a helper's
@@ -330,7 +331,9 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
       // "YYYY-MM-DD" date string, so a lexicographic compare against
       // today's local date is correct and timezone-safe. Unparseable /
       // empty values are kept (better to show than silently hide).
-      if (job.date_needed && job.date_needed.slice(0, 10) < todayLocalDate) return false;
+      // Q2408: a window job ("any day Nov 4-10") is past only once its LAST day is.
+      const lastDay = jobLastDay(job);
+      if (lastDay && lastDay.slice(0, 10) < todayLocalDate) return false;
       if (boostedOnly && !job.isBoosted) return false;
       if (urgentOnly && !job.is_urgent) return false;
       if (searchQuery) {
@@ -384,7 +387,7 @@ export function useDashboardFilters({ allJobs, userId, profile, helperAvailabili
         if (expiresWithin === "7d" && hoursLeft > 168) return false;
       }
       if (expiresWithin && !job.expires_at) return false;
-      if (!jobMatchesWhen(job.date_needed, whenRange)) return false;
+      if (!jobMatchesWhen(job.date_needed, whenRange, job.date_window_end)) return false;
       // Subscription-tier "early access" perk — applies to ALL viewers
       // equally, signed-in or not. Free/no-tier users (and guests) see
       // brand-new jobs after a 20-minute delay; Basic shaves 5 min off, Pro

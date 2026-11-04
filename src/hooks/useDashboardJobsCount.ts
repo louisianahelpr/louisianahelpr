@@ -117,7 +117,8 @@ export async function fetchDashboardJobsCount(filters: DashboardJobsCountFilters
     // unconditionally (no flexible/recurring exemption at this layer —
     // that exemption is applied earlier, in useDashboardData, before
     // useDashboardFilters even sees the row).
-    .or(`date_needed.is.null,date_needed.gte.${todayLocalDate}`)
+    // Q2408: a window job ("any day Nov 4-10") counts until its LAST day (date_window_end).
+    .or(`date_needed.is.null,date_needed.gte.${todayLocalDate},date_window_end.gte.${todayLocalDate}`)
     // …and the EXPIRY cull the list applies too
     // (useDashboardData: `!j.expires_at || new Date(j.expires_at) > now`).
     // This filter was missing here, so the header counted expired
@@ -186,7 +187,13 @@ export async function fetchDashboardJobsCount(filters: DashboardJobsCountFilters
   }
 
   const whenRange = jobWhenRange(jobWhen);
-  if (whenRange) query = query.gte("date_needed", whenRange.from).lte("date_needed", whenRange.to);
+  // Q2408: a window job matches when any of its days is in range (its first day <= to, its last day >= from),
+  // the same rule as jobMatchesWhen. One .or(): date_window_end is never before date_needed (its CHECK).
+  if (whenRange) {
+    query = query
+      .lte("date_needed", whenRange.to)
+      .or(`date_needed.gte.${whenRange.from},date_window_end.gte.${whenRange.from}`);
+  }
 
   // `head: true` requests return no `data` body — only `count` — so the
   // count is read off the result, after unwrap() has checked its error.

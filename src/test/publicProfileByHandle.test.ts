@@ -7,26 +7,27 @@
  * src/test/pglite/publicProfileByHandle.pglite.mjs (--before red 9/9; 13 planted defects each red). This file pins
  * the newest definition's load-bearing clauses, so a later restatement that drops one is red here.
  *
- * @mutate supabase/migrations/20261103224601_review_tags_column.sql |      OR public.is_test_member(v_p.user_id) THEN | THEN
- * @mutate supabase/migrations/20261103224601_review_tags_column.sql |      OR COALESCE(public.member_under_18(v_p.user_id), true) | 
- * @mutate supabase/migrations/20261103224601_review_tags_column.sql |      OR public.declutter_member_out(v_p.user_id) | 
- * @mutate supabase/migrations/20261103224601_review_tags_column.sql | AND p.ban_status IS DISTINCT FROM 'temp_banned' | 
- * @mutate supabase/migrations/20261103224601_review_tags_column.sql | SET search_path TO 'public', 'pg_temp' | SET search_path TO 'public'
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |      OR public.is_test_member(v_p.user_id) THEN | THEN
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |      OR COALESCE(public.member_under_18(v_p.user_id), true) | 
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |      OR public.declutter_member_out(v_p.user_id) | 
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql | AND p.ban_status IS DISTINCT FROM 'temp_banned' | 
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql | SET search_path TO 'public', 'pg_temp' | SET search_path TO 'public'
  * @mutate supabase/migrations/20261101034834_profile_handle.sql |     IF public.profile_handle_problem(v_try) IS NULL THEN | IF true THEN
  * @mutate supabase/migrations/20261101034834_profile_handle.sql |       RAISE EXCEPTION 'handle_retired' USING ERRCODE = '23505'; | NULL;
- * @mutate supabase/migrations/20261103224601_review_tags_column.sql | 'town', public.mask_job_location(j.location), | 'town', j.location,
- * @mutate supabase/migrations/20261103224601_review_tags_column.sql |          AND w.public | 
- * @mutate supabase/migrations/20261103224601_review_tags_column.sql |          AND j.status = 'open' | 
- * @mutate supabase/migrations/20261103224601_review_tags_column.sql | 'reviewer_name', public.member_display_name(r.reviewer_full_name), | 'reviewer_name', r.reviewer_full_name,
- * @mutate supabase/migrations/20261103224601_review_tags_column.sql |                  AND NOT COALESCE(public.member_under_18(rp.user_id), true) | 
- * @mutate supabase/migrations/20261103224601_review_tags_column.sql |                  AND rp.anonymized_at IS NULL | 
- * @mutate supabase/migrations/20261103224601_review_tags_column.sql |          AND NOT public.is_test_member(rv.reviewer_id) | 
- * @mutate supabase/migrations/20261103224601_review_tags_column.sql |          AND j.is_seed IS NOT TRUE\n         AND NOT public.is_test_member(rv.reviewer_id) |          AND NOT public.is_test_member(rv.reviewer_id)
- * @mutate supabase/migrations/20261103224601_review_tags_column.sql | 'id', i.id, | 'id', i.id, 'pickup_address', i.pickup_address,
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql | 'town', public.mask_job_location(j.location), | 'town', j.location,
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql | AND public.job_offer_cutoff(COALESCE(j.date_window_end, j.date_needed), j.start_time) > now()\n         AND (j.expires_at IS NULL | AND public.job_offer_cutoff(j.date_needed, j.start_time) > now()\n         AND (j.expires_at IS NULL
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |          AND w.public | 
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |          AND j.status = 'open' | 
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql | 'reviewer_name', public.member_display_name(r.reviewer_full_name), | 'reviewer_name', r.reviewer_full_name,
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |                  AND NOT COALESCE(public.member_under_18(rp.user_id), true) | 
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |                  AND rp.anonymized_at IS NULL | 
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |          AND NOT public.is_test_member(rv.reviewer_id) | 
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql |          AND j.is_seed IS NOT TRUE\n         AND NOT public.is_test_member(rv.reviewer_id) |          AND NOT public.is_test_member(rv.reviewer_id)
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql | 'id', i.id, | 'id', i.id, 'pickup_address', i.pickup_address,
  * @mutate supabase/migrations/20261101034834_profile_handle.sql | VALUES (OLD.handle, CASE WHEN TG_OP = 'DELETE' THEN NULL ELSE OLD.user_id END) | VALUES (OLD.handle, OLD.user_id)
  * @mutate supabase/migrations/20261101034834_profile_handle.sql | r.user_id IS DISTINCT FROM NEW.user_id | r.user_id <> NEW.user_id
  * @mutate supabase/migrations/20261101034834_profile_handle.sql | user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL, | user_id uuid NOT NULL,
- * @mutate supabase/migrations/20261103224601_review_tags_column.sql | WHERE r.handle = v_handle AND r.user_id IS NOT NULL)) | WHERE r.handle = v_handle))
+ * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql | WHERE r.handle = v_handle AND r.user_id IS NOT NULL)) | WHERE r.handle = v_handle))
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -58,7 +59,8 @@ describe("the newest public_profile_by_handle keeps every rule", () => {
     ["an old handle opens only its owner's page", "p.user_id = (SELECT r.user_id FROM public.profile_handles_retired r WHERE r.handle = v_handle AND r.user_id IS NOT NULL))"],
     ["the job's town, never its address", "'town', public.mask_job_location(j.location),"],
     ["open jobs only", "AND j.status = 'open'"],
-    ["never past the offer cutoff", "AND public.job_offer_cutoff(j.date_needed, j.start_time) > now()"],
+    // Q2408 (20261104084501): a window job stays listed until the start on its window's LAST day.
+    ["never past the offer cutoff", "AND public.job_offer_cutoff(COALESCE(j.date_window_end, j.date_needed), j.start_time) > now()"],
     ["never expired", "AND (j.expires_at IS NULL OR j.expires_at > now())"],
     ["live listings only", "AND i.status = 'live' AND NOT i.seller_hidden AND i.is_seed IS NOT TRUE"],
     ["public Wanted posts only", "AND w.status = 'open' AND w.public AND w.removed_at IS NULL AND w.expires_at > now() AND w.is_seed IS NOT TRUE"],

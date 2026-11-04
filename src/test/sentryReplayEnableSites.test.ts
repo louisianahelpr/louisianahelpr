@@ -23,7 +23,7 @@
  * new build is installed (Q387).
  *
  * @mutate src/lib/sentry.ts | replaysSessionSampleRate: 0, | replaysSessionSampleRate: recordReplays ? 0.1 : 0,
- * @mutate src/lib/sentry.ts | replaysOnErrorSampleRate: recordReplays ? 1.0 : 0, | replaysOnErrorSampleRate: recordReplays ? 0.5 : 0,
+ * @mutate src/lib/sentry.ts | replaysOnErrorSampleRate: recordReplays ? 0.25 : 0, | replaysOnErrorSampleRate: recordReplays ? 1.0 : 0,
  * @mutate src/lib/sentry.ts | const recordReplays = import.meta.env.PROD && !automated && !localBuild; | const recordReplays = import.meta.env.PROD && !localBuild;
  * @mutate src/lib/errorLogger.ts | async function fanOutToObservability(err: unknown | void import("@sentry/react").then((m) => m.addIntegration(m.replayIntegration())); async function fanOutToObservability(err: unknown
  * @mutate src/lib/sentry.ts | void getReplay()?.stop({ flush: false }) | void Promise.resolve()
@@ -104,13 +104,14 @@ describe("Session Replay: every enable site and the configured rates (Q386)", ()
     expect(sites).toEqual(REPLAY_SITES);
   });
 
-  it("plain sessions are never sampled (Q746) and error sessions at 100% unless recordReplays is off", () => {
+  it("plain sessions are never sampled (Q746) and error sessions at 25% (Q2501) unless recordReplays is off", () => {
     const session = /replaysSessionSampleRate:\s*([\d.]+)\s*,/.exec(SENTRY);
     const onError = /replaysOnErrorSampleRate:\s*recordReplays\s*\?\s*([\d.]+)\s*:\s*0\s*,/.exec(SENTRY);
     expect(session, "replaysSessionSampleRate must be a literal 0 (Q746: the plan holds 50 replays/month)").not.toBeNull();
     expect(onError, "replaysOnErrorSampleRate must be `recordReplays ? <rate> : 0`").not.toBeNull();
     expect(Number(session![1])).toBe(0);
-    expect(Number(onError![1])).toBe(1);
+    // Q2501 (owner via the lead 2026-11-04): 100% sent 127 error replays (measured 2026-11-03) against the 50/month plan; 25% is about 32.
+    expect(Number(onError![1])).toBe(0.25);
   });
 
   it("recordReplays requires a PROD build, no WebDriver (Q275) and not a locally served build (Q386)", () => {

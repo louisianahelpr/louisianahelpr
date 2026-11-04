@@ -276,8 +276,9 @@ export function initSentry() {
       // so the sampling decision is in place by the time Replay starts.
       //   - 10% random session sample (gives us a visual archive of
       //     "normal" sessions for context, without ingesting everything).
-      //   - 100% of sessions that hit an error (these are the ones we
-      //     always want to see — debugging is the whole point).
+      //   - 25% of sessions that hit an error (Q2501, owner via the lead 2026-11-04;
+      //     at 100% Sentry took 127 replays, measured 2026-11-03, against the 50/month plan, all
+      //     error replays; a quarter is about 32/month).
       // Both default to 0 in dev because Replay isn't registered there.
       // Both are 0 in an automated browser (Q275, isAutomatedBrowser) and in
       // a prod build served locally (Q386, isLocalBuildHost).
@@ -286,7 +287,7 @@ export function initSentry() {
       // (408 sent in the 7 days to 2026-09-25, all dropped), so a replay of a
       // session that actually hit an error was refused too.
       replaysSessionSampleRate: 0,
-      replaysOnErrorSampleRate: recordReplays ? 1.0 : 0,
+      replaysOnErrorSampleRate: recordReplays ? 0.25 : 0,
 
       // Don't ship benign noise.
       ignoreErrors: [

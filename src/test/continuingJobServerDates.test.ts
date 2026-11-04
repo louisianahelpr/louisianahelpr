@@ -4,7 +4,7 @@
  *   - admin_stalled_job_queue returns the open SET day's date and start time for a job in progress, and leaves out a
  *     job whose SET day is today or still ahead (not stalled; it comes back once that day passes; lead 11-03);
  *   - sweep_no_show_alerts' CREW branch skips a crew job with an open SET day.
- * Behaviour: src/test/pglite/continuingJobServerDates.pglite.mjs (16 checks; prod's bodies give 5 FAILs).
+ * Behaviour: src/test/pglite/continuingJobServerDates.pglite.mjs (16 checks and 5 FAILs on prod bodies, measured 2026-11-03).
  */
 // @mutate supabase/migrations/20261103214229_continuing_job_admin_stalled_and_crew_no_show.sql |     coalesce(c.new_date, j.date_needed), |     j.date_needed,
 // @mutate supabase/migrations/20261103214229_continuing_job_admin_stalled_and_crew_no_show.sql |       AND NOT EXISTS (SELECT 1 FROM public.job_continue_days d | AND EXISTS (SELECT 1 FROM public.job_continue_days d

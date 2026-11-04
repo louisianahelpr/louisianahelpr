@@ -40,8 +40,8 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |     DELETE FROM public.group_job_helpers WHERE id = v_crew.slot_id; |     PERFORM 1;
 // @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |           p_violation_type            => 'cancel_with_helper',\n          p_description               => 'Removed |           p_violation_type            => 'x',\n          p_description               => 'Removed
 // @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |       ELSIF v_member_fee > 0 THEN |       ELSIF false THEN
-// @mutate supabase/migrations/20261103023713_expired_offer_says_too_late_to_rehire.sql |        AND g.response_deadline < now()\n  LOOP |        AND false\n  LOOP
-// @mutate supabase/migrations/20261103023713_expired_offer_says_too_late_to_rehire.sql |       DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id; |       PERFORM 1;
+// @mutate supabase/migrations/20261104050109_notices_name_the_person.sql |        AND g.response_deadline < now()\n  LOOP |        AND false\n  LOOP
+// @mutate supabase/migrations/20261104050109_notices_name_the_person.sql |       DELETE FROM public.group_job_helpers WHERE id = v_slot.slot_id; |       PERFORM 1;
 // @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql |      SET response_deadline = v_crew_deadline |      SET response_deadline = NULL
 // @mutate supabase/migrations/20261005172453_crew_block_and_unanswered_spot.sql |     'proof_after_urls',\n    'response_deadline'\n  ]; |     'proof_after_urls'\n  ];
 // @mutate supabase/migrations/20261103025348_crew_seat_takes_helpr_schedule_lock.sql | v_crew_deadline := LEAST(GREATEST(LEAST(COALESCE(p_deadline, now() + interval '48 hours'), now() + interval '48 hours'), now() + interval '55 minutes'), v_cutoff); | v_crew_deadline := p_deadline;

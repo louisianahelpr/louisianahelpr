@@ -175,6 +175,12 @@ const Footer = ({ landing = false }: { landing?: boolean } = {}) => {
               </Link>
             </li>
             <li>
+              {/* Owner 11-04: Declutter's Browse, which guests and members both read. */}
+              <Link to="/declutter" className="link-standard">
+                Declutter
+              </Link>
+            </li>
+            <li>
               <Link to="/help" className="link-standard">
                 Help center
               </Link>

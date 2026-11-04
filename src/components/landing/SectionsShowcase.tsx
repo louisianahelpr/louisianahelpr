@@ -34,13 +34,17 @@ const COPY: Record<SectionKey, string> = {
 
 /**
  * Where an open section's card goes. Jobs: the public guest board, which a
- * signed-out visitor can read. Declutter, Shops and Homes sit behind sign-in
- * (ProtectedRoute), so a signed-out visitor goes to sign-up with the section
- * as the return path ("Join to browse Shops"), never a login wall; a signed-in
- * visitor's click goes straight to the section (cardClick below).
+ * signed-out visitor can read. Declutter: its own Browse, which a guest reads
+ * too while Declutter is open to everyone (BUY-16, DeclutterGuestOrMember; the
+ * card only links once that answer is in), so "Browse Declutter" goes straight
+ * there, never through sign-up (owner 11-04). Shops and Homes sit behind
+ * sign-in (ProtectedRoute), so a signed-out visitor goes to sign-up with the
+ * section as the return path ("Join to browse Shops"), never a login wall; a
+ * signed-in visitor's click goes straight to the section (cardClick below).
  */
 export function cardLinkFor(key: SectionKey, path: string, label: string): { to: string; text: string; signedIn: string } {
   if (key === "jobs") return { to: "/browse", text: "Browse jobs", signedIn: path };
+  if (key === "declutter") return { to: path, text: `Browse ${label}`, signedIn: path };
   return { to: `/signup?redirect=${encodeURIComponent(path)}`, text: `Join to browse ${label}`, signedIn: path };
 }
 

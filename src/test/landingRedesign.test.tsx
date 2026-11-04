@@ -14,9 +14,9 @@
  *   - the money band's hours are the cron's own number, never typed;
  *   - no price-drop timing is claimed for Declutter;
  *   - "Continue with Apple" sits behind the one social switch and loads lazily;
- *   - the landing's top bar is the one public bar, "Jobs | Log in · Join free"
- *     (owner, 2026-10-21): no Declutter link, no "How it works", no sections
- *     read of its own.
+ *   - the landing's top bar is the one public bar, "Jobs · Declutter | Log in · Join free"
+ *     (owner, 2026-10-21; Declutter added by the owner 11-04, to its guest Browse,
+ *     on every public page alike): no "How it works", no sections read of its own.
  *
  * @mutate src/components/landing/heroSearch.ts |   return { signedIn: q ? `/search${qs}` : "/jobs", signedOut: `/browse${qs}` }; |   return { signedIn: "/jobs", signedOut: "/signup" };
  * @mutate src/components/landing/HeroSection.tsx |     const t = heroSearchTargets(query); |     const t = heroSearchTargets("");
@@ -137,15 +137,17 @@ describe("landing redesign: the honesty fixes hold", () => {
     expect(blocks).not.toMatch(/from "@\/lib\/socialAuth"/);
   });
 
-  it("the landing's top bar is the one public bar: no Declutter, no How it works, no sections read (owner, 2026-10-21)", () => {
+  it("the landing's top bar is the one public bar: Jobs and Declutter, no How it works, no sections read (owner, 2026-10-21; 11-04)", () => {
     const nav = read("src/components/Navbar.tsx");
     // The bar's contents never branch on `landing` (it only sets the row's measure)...
     const landingUses = nav.match(/\blanding\b(?!\?:)/g) ?? [];
     expect(landingUses.length).toBeGreaterThan(0);
     expect(nav).not.toMatch(/\{landing &&|landing \?/);
     // ...and nothing on it reads the sections answer or links a section that may not be open.
-    expect(nav).not.toMatch(/useSectionsOpen|sectionIsComingSoon|LandingNavLinks|declutter|how-it-works|Get started/i);
+    expect(nav).not.toMatch(/useSectionsOpen|sectionIsComingSoon|LandingNavLinks|how-it-works|Get started/i);
     expect(nav).toMatch(/to="\/browse"/);
+    // Owner 11-04: ONE Declutter link, to its guest Browse (never a sign-up detour), on every public page alike.
+    expect(nav.match(/to="\/declutter[^"]*"/g)).toEqual(['to="/declutter"']);
     expect(nav).toMatch(/to="\/signup"/);
   });
 });

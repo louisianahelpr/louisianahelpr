@@ -211,7 +211,7 @@ const DesktopSidebarRail = () => {
           onClick={() => setCreateOpen(true)}
           className="btn-grad-primary btn-press w-full h-12 rounded-full inline-flex items-center justify-center gap-2 text-ds-15 font-semibold"
         >
-          <Plus className="h-5 w-5" strokeWidth={2.4} aria-hidden />
+          <Plus className="h-5 w-5" strokeWidth={2.5} aria-hidden />
           {tr("nav.create")}
         </button>
       </div>

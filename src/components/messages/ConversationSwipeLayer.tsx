@@ -75,7 +75,7 @@ export default function ConversationSwipeLayer({
             border: "0.5px solid hsl(var(--olivewood) / 0.28)",
           }}
         >
-          <Archive className="w-5 h-5" style={{ color: "hsl(var(--foreground))" }} strokeWidth={2.4} />
+          <Archive className="w-5 h-5" style={{ color: "hsl(var(--foreground))" }} strokeWidth={2.5} />
           <span
             className="text-ds-10 font-sans uppercase tracking-[0.18em]"
             style={{ color: "hsl(var(--foreground))" }}
@@ -101,9 +101,9 @@ export default function ConversationSwipeLayer({
           }}
         >
           {isPinned ? (
-            <PinOff className="w-5 h-5" style={{ color: "hsl(var(--foreground))" }} strokeWidth={2.4} />
+            <PinOff className="w-5 h-5" style={{ color: "hsl(var(--foreground))" }} strokeWidth={2.5} />
           ) : (
-            <Pin className="w-5 h-5" style={{ color: "hsl(var(--foreground))" }} strokeWidth={2.4} />
+            <Pin className="w-5 h-5" style={{ color: "hsl(var(--foreground))" }} strokeWidth={2.5} />
           )}
           <span
             className="text-ds-10 font-sans uppercase tracking-[0.18em]"

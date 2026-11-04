@@ -94,7 +94,7 @@ function SuccessCheck({ size = 88, reducedMotion }: SuccessCheckProps) {
           <motion.path
             d="M4 12.5L9.5 18L20 6.5"
             stroke="hsl(var(--parchment))"
-            strokeWidth={2.6}
+            strokeWidth={2.5}
             strokeLinecap="round"
             strokeLinejoin="round"
             initial={reducedMotion ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}

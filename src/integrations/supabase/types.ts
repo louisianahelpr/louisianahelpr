@@ -3877,6 +3877,39 @@ export type Database = {
           },
         ]
       }
+      declutter_route_miles: {
+        Row: {
+          d_lat: number
+          d_lng: number
+          miles: number
+          minutes: number | null
+          o_lat: number
+          o_lng: number
+          routed_at: string
+          source: string
+        }
+        Insert: {
+          d_lat: number
+          d_lng: number
+          miles: number
+          minutes?: number | null
+          o_lat: number
+          o_lng: number
+          routed_at?: string
+          source?: string
+        }
+        Update: {
+          d_lat?: number
+          d_lng?: number
+          miles?: number
+          minutes?: number | null
+          o_lat?: number
+          o_lng?: number
+          routed_at?: string
+          source?: string
+        }
+        Relationships: []
+      }
       declutter_seller_deliveries: {
         Row: {
           buyer_id: string

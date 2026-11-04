@@ -106,6 +106,7 @@ const NOT_EDITABLE: Record<string, string> = {
   offered_to_helper_id: "direct-offer flow owns it",
   direct_offer_status: "direct-offer flow owns it",
   direct_offer_expires_at: "direct-offer flow owns it",
+  date_window_end: "Q2408 week window, set at post time; the dialog keeps it while the first day is unchanged, and a new first day makes it a one-day job (trg_job_date_window_clear)",
 };
 
 function blockKeys(src: string, start: string, end: string): string[] {

@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 27 |
 | Overlay surfaces | **instance** | 220 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1144 (across 316 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1152 (across 319 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 50 |
 | Multi-step flows — probable | flow | 34 |
 | Back/next navigation only | flow | 66 |
-| Forms (submittable) | form | 117 |
+| Forms (submittable) | form | 119 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 181 |
 | Email templates | **exported template** | 23 |
 | Notification types (defined in notification_type_pref_map) | type | 26 |
-| **Navigable surfaces** (places a person can stand) | mixed | **790** |
-| **Copy surfaces** (strings a person may read) | mixed | **1193** |
-| **Total auditable surface** | mixed | **1983** |
+| **Navigable surfaces** (places a person can stand) | mixed | **792** |
+| **Copy surfaces** (strings a person may read) | mixed | **1201** |
+| **Total auditable surface** | mixed | **1993** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,7 +71,7 @@ they differ, the reason is understood:
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 27 | 24 | agree |
 | Overlay surfaces | 220 | 130 | agree within method (script counts every menu instance) |
-| Forms | 117 | ~38 | agree |
+| Forms | 119 | ~38 | agree |
 | Confirmed multi-step flows | 50 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -612,6 +612,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/admin/userDetail/DeclutterAmountsOwed.tsx` (dialog/mutation)
 - [ ] `src/components/admin/userDetail/UserAuditLog.tsx` (dialog/mutation)
 - [ ] `src/components/CancellationDialog.tsx` (dialog/mutation)
+- [ ] `src/components/declutter/DeclutterBundleRequests.tsx` (dialog/mutation)
 - [ ] `src/components/declutter/DeclutterEditListing.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterHandoverTalk.tsx` (form tag)
 - [ ] `src/components/declutter/DeclutterListingDefaults.tsx` (dialog/mutation)
@@ -648,6 +649,7 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/guarantee/HelprGuaranteePanel.tsx` (dialog/mutation)
 - [ ] `src/components/HelperAvailability.tsx` (dialog/mutation)
 - [ ] `src/components/landing/HeroSection.tsx` (form tag)
+- [ ] `src/components/money/MoneyHelp.tsx` (form tag)
 - [ ] `src/components/notificationPreferences/SmsAlertsCard.tsx` (dialog/mutation)
 - [ ] `src/components/postjob/CheckoutStep.tsx` (dialog/mutation)
 - [ ] `src/components/profile/AvailabilityTab.tsx` (dialog/mutation)

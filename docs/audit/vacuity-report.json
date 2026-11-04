@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-04T12:34:17.737Z",
-  "guards": 3474,
-  "registered": 3473,
+  "generated": "2026-11-04T16:31:56.370Z",
+  "guards": 3491,
+  "registered": 3490,
   "unregistered": [
     "src/components/job-card/useFollowOpenCard.test.ts"
   ],
@@ -9,6 +9,7 @@
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
     "src/components/admin/settings/DeclutterShippingClaimsCard.test.tsx",
     "src/components/declutter/bundleDiscountOff.test.tsx",
+    "src/hooks/useWebPush.test.ts",
     "src/pages/post-job/giftCardBanner.test.tsx",
     "src/test/desktopProfileButtonFocusRing.test.ts",
     "src/test/failedBankCancelRepostsTheJob.test.ts",

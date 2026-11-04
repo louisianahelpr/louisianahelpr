@@ -433,7 +433,9 @@ describe("Popup grammar — body voice", () => {
    * a confirm opening next to a dialog looks like a different product.
    */
   it("DialogBody is byte-identical to the confirm family's description", () => {
-    const dlg = read("src/components/ui/dialog.tsx");
+    // DialogBody moved to dialogProse.tsx (Q806 pure move); dialog.tsx re-exports it.
+    expect(read("src/components/ui/dialog.tsx")).toMatch(/import \{ DialogBody, DialogCallout \} from "@\/components\/ui\/dialogProse";/);
+    const dlg = read("src/components/ui/dialogProse.tsx");
     const brand = read("src/components/ui/BrandConfirmDialog.tsx");
     const TYPE = "font-sans text-ds-12 leading-relaxed";
     const COLOR = 'hsl(var(--olivewood) / 0.8)';

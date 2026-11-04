@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import ts from "typescript";
@@ -104,5 +104,39 @@ describe("HelperWorkPhotos renders only displayable URLs", () => {
   it("renders nothing when no URL is displayable", () => {
     const { container } = render(<HelperWorkPhotos urls={["abc-uid/123-x.jpg"]} />);
     expect(container.textContent).toBe("");
+  });
+});
+
+// Q2026 (Instagram-style profiles, lead decision (A) 2026-11-04): the past-work grid is
+// the Helpr's own uploads only, opens in the app's viewer, and never shows job proof
+// photos (private proof-photos bucket, often inside someone's home).
+// @mutate src/components/profile/HelperWorkPhotos.tsx | onClick={() => setOpen(i)} | onClick={() => undefined}
+// @mutate src/components/profile/HelperWorkPhotos.tsx | grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-1 | grid grid-cols-3 gap-2
+// @mutate src/pages/user/UserProfile.tsx | <HelperWorkPhotos urls={profile.portfolio_urls ?? []} /> | <HelperWorkPhotos urls={profile.portfolio_urls ?? []} /><HelperPortfolio helperId={userId!} />
+describe("Q2026 past-work grid", () => {
+  it("a tap opens the photo in the app's viewer, not a new tab", () => {
+    render(<HelperWorkPhotos urls={["https://cdn.example/a.jpg", "https://cdn.example/b.jpg"]} />);
+    expect(document.querySelector("[data-work-photo-grid] a")).toBeNull();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Open work photo 2 of 2" }));
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(screen.getByText(/2 photos/)).toBeTruthy();
+  });
+
+  it("stays a grid of small squares on a wide screen (3, then 4, then 6 across)", () => {
+    render(<HelperWorkPhotos urls={["https://cdn.example/a.jpg"]} />);
+    const grid = document.querySelector("[data-work-photo-grid] .grid") as HTMLElement;
+    expect(grid.className).toContain("grid-cols-3");
+    expect(grid.className).toContain("sm:grid-cols-4");
+    expect(grid.className).toContain("lg:grid-cols-6");
+    expect(screen.getByText(/1 photo$/)).toBeTruthy();
+  });
+
+  it("the public profile renders no job proof photos", () => {
+    const rendered = renderedComponents(USER_PROFILE);
+    expect(rendered.size).toBeGreaterThan(20);
+    for (const name of ["HelperPortfolio", "ProofPhotoImg", "ProofPhotoGallery"]) {
+      expect(rendered.has(name), `${USER_PROFILE} renders <${name}>: proof photos are private`).toBe(false);
+    }
   });
 });

@@ -9,7 +9,7 @@
  * (crewIsBooked, the server's own "booked" test).
  *
  * @mutate src/pages/posts/postedJobCard/crewRefill.ts |   return job.status === "open" && !job.helper_id && !crewIsBooked(job, roster); |   return !job.helper_id && job.status !== "cancelled";
- * @mutate src/pages/posts/PostedJobCard.tsx | expiresAt={listingExpiryShown(job, initialGroupHelpers) ? job.expires_at : null} | expiresAt={!job.helper_id && job.status !== "cancelled" ? job.expires_at : null}
+ * @mutate src/pages/posts/postedJobCard/PostedJobMetaRow.tsx | expiresAt={listingExpiryShown(job, initialGroupHelpers) ? job.expires_at : null} | expiresAt={!job.helper_id && job.status !== "cancelled" ? job.expires_at : null}
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -41,7 +41,10 @@ describe("the listing's expiry shows only on an open job nobody is hired on (A2-
   });
 
   it("the poster's card reads it, with the roster it already holds", () => {
-    const card = blankComments(readFileSync(resolve(__dirname, "../pages/posts/PostedJobCard.tsx"), "utf8"));
+    // The meta row moved out of PostedJobCard.tsx unchanged (Q806); the card mounts it with its roster.
+    const card = blankComments(readFileSync(resolve(__dirname, "../pages/posts/postedJobCard/PostedJobMetaRow.tsx"), "utf8"));
     expect(card).toContain("expiresAt={listingExpiryShown(job, initialGroupHelpers) ? job.expires_at : null}");
+    const host = blankComments(readFileSync(resolve(__dirname, "../pages/posts/PostedJobCard.tsx"), "utf8"));
+    expect(host).toContain("<PostedJobMetaRow job={job} initialGroupHelpers={initialGroupHelpers} />");
   });
 });

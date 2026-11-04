@@ -16,7 +16,7 @@ import type { Json } from "@/integrations/supabase/types";
 import { backgroundImport, getBackgroundImportFailures, onBackgroundImportFailure } from "@/lib/chunkReload";
 import { onModuleUnavailable } from "@/lib/loadModule";
 import { isAutomatedBrowser } from "@/lib/automatedBrowser";
-import { announcePermissionDenied, holdDenial, isPermissionDenied, isSessionLossNoise, isSignedOutNoise, releaseHeldDenials } from "@/lib/permissionDenied";
+import { announcePermissionDenied, holdDenial, isPermissionDenied, isSessionLossNoise, isSignedInNoise, isSignedOutNoise, releaseHeldDenials } from "@/lib/permissionDenied";
 import { redactInviteToken } from "@/lib/redactInviteToken";
 
 // ── Tunables ─────────────────────────────────────────────────────────
@@ -374,6 +374,8 @@ export function report(err: unknown, opts: ReportOptions = {}) {
   if (isSessionLossNoise(err)) return;
   // Q2507/Q2515: the denials of reads in flight at a sign-out, for a few seconds.
   if (isSignedOutNoise(err)) return;
+  // Q2515: the anon (401) denials of reads in flight at a sign-in, for a few seconds.
+  if (isSignedInNoise(err)) return;
   // Q2295: a grant denial waits for the session-loss check (or DENIAL_HOLD_MS,
   // or pagehide) before it is logged; a confirmed loss drops it.
   if (isPermissionDenied(err)) {

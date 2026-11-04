@@ -21,6 +21,10 @@
 // @mutate src/lib/permissionDenied.ts | now - signedOutAt < SIGNED_OUT_NOISE_MS && isPermissionDenied(err); | now - signedOutAt < SIGNED_OUT_NOISE_MS;
 // @mutate src/lib/permissionDenied.ts | signedOutAt = -Infinity; | void 0;
 // @mutate src/integrations/supabase/client.ts | if (event === 'SIGNED_OUT') markSignedOut(); | void 0;
+// @mutate src/lib/errorLogger.ts | if (isSignedInNoise(err)) return; | if (false) return;
+// @mutate src/lib/permissionDenied.ts | statusOf(err) === 401 && isPermissionDenied(err); | isPermissionDenied(err);
+// @mutate src/lib/permissionDenied.ts | now - signedInAt < SIGNED_OUT_NOISE_MS && | true &&
+// @mutate src/integrations/supabase/client.ts | && userId !== lastAuthUserId) markSignedIn(); | ) markSignedIn();
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -33,7 +37,7 @@ vi.mock("@/lib/sentry", () => ({ captureException: sentrySpy }));
 vi.mock("@/lib/posthog", () => ({ captureException: vi.fn() }));
 
 import { report } from "./errorLogger";
-import { clearSessionLost, markSignedOut, releaseHeldDenials, SIGNED_OUT_NOISE_MS } from "./permissionDenied";
+import { clearSessionLost, markSignedIn, markSignedOut, releaseHeldDenials, SIGNED_OUT_NOISE_MS } from "./permissionDenied";
 
 const denied = (what: string) => ({ message: `permission denied for ${what}`, code: "42501", details: null, hint: null });
 
@@ -53,7 +57,10 @@ beforeEach(() => {
   sentrySpy.mockClear();
   clearSessionLost();
 });
-afterEach(() => clearSessionLost());
+afterEach(() => {
+  clearSessionLost();
+  markSignedIn(Number.NEGATIVE_INFINITY);
+});
 
 describe("Q2507/Q2515: denials of reads in flight at sign-out are not reported", () => {
   it("right after SIGNED_OUT the in-flight denials are dropped; other errors still report", async () => {
@@ -100,5 +107,51 @@ describe("Q2507/Q2515: denials of reads in flight at sign-out are not reported",
   it("is wired: the client marks SIGNED_OUT", () => {
     const client = blankComments(readFileSync(resolve(process.cwd(), "src/integrations/supabase/client.ts"), "utf8"));
     expect(client).toMatch(/if \(event === 'SIGNED_OUT'\) markSignedOut\(\);/);
+  });
+});
+
+describe("Q2515: anon denials of reads in flight at a sign-in are not reported", () => {
+  // Measured 2026-10-25 01:08:13Z: /forgot-password, status 401, one second after an email-confirm link signed the member in.
+  const anonDenied = (what: string) => ({ ...denied(what), status: 401 });
+
+  it("right after a sign-in a 401 denial is dropped; other errors still report", async () => {
+    markSignedIn();
+    report(anonDenied("function feature_switches_for_me"), { tags: { source: "QueryCache" } });
+    releaseHeldDenials(); // a held denial would hide a missing drop; release it so only the drop keeps it out
+    report(new Error("Cannot read properties of undefined"), { tags: { source: "window.onerror" } });
+    const msgs = await loggedMessages();
+    expect(msgs.filter((m) => /permission denied/.test(m))).toEqual([]);
+    expect(msgs).toContain("Cannot read properties of undefined");
+    expect(sentToSentry().filter((m) => /permission denied/.test(m))).toEqual([]);
+  });
+
+  it("a signed-in member's real grant bug (403) still reports inside the window", async () => {
+    markSignedIn();
+    report({ ...denied("table jobs"), status: 403 }, { tags: { source: "QueryCache" } });
+    releaseHeldDenials();
+    const msgs = await loggedMessages();
+    expect(msgs.some((m) => m.startsWith("permission denied for table jobs"))).toBe(true);
+  });
+
+  it("a denial with no status still reports inside the window", async () => {
+    markSignedIn();
+    report(denied("table jobs"), { tags: { source: "QueryCache" } });
+    releaseHeldDenials();
+    const msgs = await loggedMessages();
+    expect(msgs.some((m) => m.startsWith("permission denied for table jobs"))).toBe(true);
+  });
+
+  it("once the window has passed, a 401 denial reports again", async () => {
+    markSignedIn(Date.now() - SIGNED_OUT_NOISE_MS - 1);
+    report(anonDenied("table jobs"), { tags: { source: "QueryCache" } });
+    releaseHeldDenials();
+    const msgs = await loggedMessages();
+    expect(msgs.some((m) => m.startsWith("permission denied for table jobs"))).toBe(true);
+  });
+
+  it("is wired: the client marks a sign-in (or recovery) only when the user changed", () => {
+    const client = blankComments(readFileSync(resolve(process.cwd(), "src/integrations/supabase/client.ts"), "utf8"));
+    expect(client).toMatch(/\(event === 'SIGNED_IN' \|\| event === 'PASSWORD_RECOVERY'\) && userId !== lastAuthUserId\) markSignedIn\(\);/);
+    expect(client).toMatch(/lastAuthUserId = userId;/);
   });
 });

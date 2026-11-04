@@ -1,7 +1,7 @@
 import { useState, type ElementType } from "react";
 import { MapPin, Calendar, Clock, Timer, Users } from "lucide-react";
 import { getCity } from "@/lib/locationUtils";
-import { formatJobDate, formatTimeLeft } from "@/lib/dateUtils";
+import { formatTimeLeft } from "@/lib/dateUtils";
 import { differenceInHours } from "date-fns";
 import { jobDateMs, jobStartTimeLabel } from "@/lib/jobDate";
 import type { EnrichedJob } from "../types";
@@ -9,6 +9,7 @@ import { JobLocationPreview } from "./JobLocationPreview";
 import { calendarEventUrl } from "@/lib/calendarLink";
 import { openCrewSpots } from "@/components/job-card/JobHelprsChip";
 import { listingDeadline } from "@/lib/listingDeadline";
+import { jobDayLabel } from "@/lib/jobDateWindow";
 
 interface JobStatTilesProps {
   job: EnrichedJob;
@@ -117,7 +118,7 @@ export const JobStatTiles = ({ job, distMilesForDriving, drivingLabel }: JobStat
           {
             Icon: Calendar,
             label: "Date",
-            value: dateValid ? formatJobDate(job.date_needed) : "—",
+            value: dateValid ? jobDayLabel(job) : "—",
             sub: null,
             href: calendarUrl,
             onClick: undefined,

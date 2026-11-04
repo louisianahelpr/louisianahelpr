@@ -79,6 +79,7 @@ import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
 import { RefundRequestPanel } from "@/components/refund/RefundRequestPanel";
 import { useRefundRequest } from "@/components/refund/refundParts";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
+import { jobDayLabel } from "@/lib/jobDateWindow";
 
 /** The hired Helpr's way to this job's card on the Jobs tab, one name everywhere (Q2598). */
 const OPEN_IN_JOBS = "Open in Jobs";
@@ -92,7 +93,7 @@ const PageOfferPanel = lazy(() => import("@/components/job-card/JobListPage").th
 /** "Sat, Oct 31 · 9:00 AM · Delcambre": only the parts the job really has. */
 function metaLine(job: JobPageRow): string {
   return [
-    job.date_needed ? formatJobDate(job.date_needed) : null,
+    job.date_needed ? jobDayLabel(job) : null,
     jobStartTimeLabel(job.start_time, job.is_flexible_schedule),
     job.location ? getCity(job.location) : null,
   ].filter(Boolean).join(" · ");

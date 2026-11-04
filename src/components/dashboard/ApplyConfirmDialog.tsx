@@ -1,11 +1,11 @@
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import type { ApplyConfirmDialogProps } from "@/components/dashboard/applyConfirmDialog/types";
 import { ApplyBody } from "@/components/dashboard/applyConfirmDialog/ApplyBody";
-import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { getCity } from "@/lib/locationUtils";
 import { applySheetPrice } from "@/components/dashboard/applyConfirmDialog/applyTakeHome";
 import type { EnrichedJob } from "@/components/dashboard/types";
+import { jobDayLabel } from "@/lib/jobDateWindow";
 
 /**
  * Board 58: what you are applying to, in one card above the sheet's body:
@@ -13,7 +13,7 @@ import type { EnrichedJob } from "@/components/dashboard/types";
  * price. Each part only when the job row has it; never the street address.
  */
 function ApplyJobSummary({ job }: { job: EnrichedJob }) {
-  const when = [job.date_needed ? formatJobDate(job.date_needed) : null, jobStartTimeLabel(job.start_time, job.is_flexible_schedule)]
+  const when = [job.date_needed ? jobDayLabel(job) : null, jobStartTimeLabel(job.start_time, job.is_flexible_schedule)]
     .filter(Boolean)
     .join(" · ");
   const meta = [job.posterName, getCity(job.location ?? "") || null, when || null].filter(Boolean).join(" · ");

@@ -14,10 +14,10 @@ import { Button } from "@/components/ui/button";
 import { buttonLabel } from "@/components/ui/pairLabel";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { getCategoryIcon } from "@/lib/categoryIcons";
-import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { JobProgress } from "@/components/tracker/JobProgress";
 import type { JobProgressState } from "@/components/tracker/jobProgressState";
+import { jobDayLabel } from "@/lib/jobDateWindow";
 
 /** The card's one button: the real next step, or the quiet fallback that opens the card's controls. */
 export interface MineFaceAction {
@@ -53,7 +53,7 @@ export function mineFaceWhen(job: {
   is_flexible_schedule?: boolean | null;
 }): string {
   return [
-    job.date_needed ? formatJobDate(job.date_needed) : null,
+    job.date_needed ? jobDayLabel(job) : null,
     jobStartTimeLabel(job.start_time ?? null, job.is_flexible_schedule ?? null),
   ]
     .filter(Boolean)

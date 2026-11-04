@@ -9,10 +9,9 @@
  *          time chips + "Other time"         -> startTime (jobs.start_time); Other opens the existing wheel
  *   WHERE  saved address / "Somewhere else"  -> streetAddress, city, addrState, zipCode
  *
- * The board's third chip, "Any time this week", is NOT built: jobs.date_needed
- * is one NOT NULL day and nothing else on the row can say "any day this week",
- * so storing it would print one specific day on every card (LogisticsSection's
- * WHEN comment has the evidence). Owner rule for that case: leave it out.
+ * The board's third chip, "Any time this week", is built on jobs.date_window_end (Q2408, owner: BUILD,
+ * migration 20261104073000): shown only where the form can hold the window (the Host below passes it only
+ * with `week`), so a form that cannot store it never offers it. Its tests: "Any time this week" below.
  *
  * The Louisiana-day half of the strip is proven in every device zone by
  * postJobDayStrip.tz.test.tsx.
@@ -34,6 +33,11 @@
  * @mutate src/pages/post-job/useSavedJobAddress.ts |     return { savedAddress: places[0] ?? null, otherSavedAddresses: places.slice(1) }; |     return { savedAddress: places[0] ?? null, otherSavedAddresses: [] };
  * JA-44 (audit 11-01): with today picked, the chips offer only the starts today allows.
  * @mutate src/components/postjob/whenChoices.ts |   if (dateIso !== todayIso) return TIME_CHIPS; |   return TIME_CHIPS;
+ * Q2408 Any time this week:
+ * @mutate src/components/postjob/LogisticsSection.tsx |     setDateWindowEnd(weekWindowEnd(dateNeeded));\n    // Need | setDateWindowEnd(dateNeeded);\n    // Need
+ * @mutate src/components/postjob/LogisticsSection.tsx |     setDateWindowEnd?.(null);\n    if (isToday && strip[1]) pickDay(strip[1].iso);\n  };\n  // Q2408 | if (isToday && strip[1]) pickDay(strip[1].iso);\n  };\n  // Q2408
+ * @mutate src/components/postjob/LogisticsSection.tsx |     if (dateWindowEnd && dateNeeded && dateWindowEnd !== weekWindowEnd(dateNeeded)) setDateWindowEnd?.(weekWindowEnd(dateNeeded)); |
+ * @mutate src/pages/post-job/jobSubmitHelpers.ts |     ...(dateWindowEnd && !isRecurring && | ...(dateWindowEnd &&
  * @mutate src/components/postjob/whenChoices.ts |   const later = TIME_CHIPS.filter((t) => t.value > earliest); |   const later = TIME_CHIPS;
  * @mutate src/components/postjob/LogisticsSection.tsx |   const timeChips = timeChipsFor(dateNeeded, today, sameDayStart); |   const timeChips = timeChipsFor("", today, sameDayStart);
  */
@@ -61,6 +65,8 @@ import { dayStrip, DAY_STRIP_LENGTH, TIME_CHIPS, timeChipsFor } from "@/componen
 import { savedAddressFrom, savedAddressesFrom, SAVED_PLACES_MAX, type SavedAddress } from "@/pages/post-job/useSavedJobAddress";
 import { todayYmd } from "@/lib/jobDate";
 import { SCHEDULE_TOO_SOON_COPY } from "@/lib/jobScheduleCopy";
+import { weekWindowEnd } from "@/lib/jobDateWindow";
+import { buildJobInsertPayload, type BuildJobInsertPayloadInput } from "@/pages/post-job/jobSubmitHelpers";
 
 const REPO = join(__dirname, "../..");
 const read = (p: string) => blankComments(readFileSync(join(REPO, p), "utf8"));
@@ -74,6 +80,8 @@ function Host(props: {
   others?: SavedAddress[];
   start?: Partial<{ street: string; city: string; zip: string; date: string; time: string; flexible: boolean; recurring: boolean }>;
   scheduleInPast?: boolean;
+  /** Q2408: hold the "Any time this week" window, as Post a job's form does. */
+  week?: boolean;
 }) {
   const s = props.start ?? {};
   const [streetAddress, setStreetAddress] = useState(s.street ?? "");
@@ -86,7 +94,8 @@ function Host(props: {
   const [isRecurring, setIsRecurring] = useState(s.recurring ?? false);
   const [isGroupJob, setIsGroupJob] = useState(false);
   const [notes, setNotes] = useState("");
-  seen = { streetAddress, city, addrState, zipCode, dateNeeded, startTime, isFlexibleSchedule, isRecurring };
+  const [dateWindowEnd, setDateWindowEnd] = useState<string | null>(null);
+  seen = { streetAddress, city, addrState, zipCode, dateNeeded, startTime, isFlexibleSchedule, isRecurring, dateWindowEnd };
   const noop = () => {};
   return (
     <LogisticsSection
@@ -99,6 +108,7 @@ function Host(props: {
       startTime={startTime} setStartTime={setStartTime}
       scheduleInPast={props.scheduleInPast}
       isFlexibleSchedule={isFlexibleSchedule} setIsFlexibleSchedule={setIsFlexibleSchedule}
+      {...(props.week ? { dateWindowEnd, setDateWindowEnd } : {})}
       specialRequirements={notes} setSpecialRequirements={setNotes}
       isRecurring={isRecurring} setIsRecurring={setIsRecurring}
       recurrenceDays={[]} setRecurrenceDays={noop}
@@ -352,5 +362,57 @@ describe("JA-44 (audit 11-01): today offers only the start times it allows", () 
     expect(timeChipsFor("2026-11-02", "2026-11-02", "08:00").map((t) => t.value)).toEqual(["08:00", "09:00", "10:00", "13:00"]);
     expect(timeChipsFor("2026-11-02", "2026-11-02", "17:30").map((t) => t.label)).toEqual(["5:30 PM"]);
     expect(timeChipsFor("2026-11-03", "2026-11-02", "17:30")).toBe(TIME_CHIPS);
+  });
+});
+
+describe("Q2408 Any time this week", () => {
+  const strip = () => dayStrip(todayYmd());
+  it("the chip sets a 7-day window from the picked day; any time of day; the other chips clear it", () => {
+    const day = strip()[2].iso;
+    render(<Host week start={{ date: day }} />);
+    const group = screen.getByRole("radiogroup", { name: "When" });
+    expect(within(group).getAllByRole("radio").map((r) => r.textContent)).toEqual(["A set time", "Any time this week", "Flexible"]);
+    fireEvent.click(radio("When", "Any time this week"));
+    expect(seen.dateWindowEnd).toBe(weekWindowEnd(day));
+    expect(seen.isFlexibleSchedule).toBe(true);
+    expect(checked(radio("When", "Any time this week"))).toBe(true);
+    expect(checked(radio("When", "Flexible"))).toBe(false);
+    expect(screen.getByTestId("week-window-note").textContent).toMatch(/^Any day from .+ through .+\./);
+    fireEvent.click(radio("When", "Flexible"));
+    expect(seen.dateWindowEnd).toBeNull();
+  });
+
+  it("picking another day moves the whole window with it", () => {
+    render(<Host week start={{ date: strip()[1].iso }} />);
+    fireEvent.click(radio("When", "Any time this week"));
+    const later = strip()[3];
+    fireEvent.click(within(screen.getByRole("radiogroup", { name: /date|day|starts/i })).getByRole("radio", { name: later.long }));
+    expect(seen.dateNeeded).toBe(later.iso);
+    expect(seen.dateWindowEnd).toBe(weekWindowEnd(later.iso));
+  });
+
+  it("a repeating job never offers it", () => {
+    render(<Host week start={{ recurring: true }} />);
+    expect(within(screen.getByRole("radiogroup", { name: "When" })).queryByRole("radio", { name: "Any time this week" })).toBeNull();
+  });
+
+  it("the saved job carries date_window_end only for a real window inside a week, never on a series", () => {
+    const base: BuildJobInsertPayloadInput = {
+      userId: "u1", businessId: null, title: "Rake leaves", description: "Front yard",
+      category: "yard_work", streetAddress: "1 Main", city: "Houma", addrState: "LA",
+      zipCode: "70360", parish: "Terrebonne",
+      dateNeeded: "2026-11-10", startTime: "", isFlexibleSchedule: true,
+      estimatedHours: "2", budget: "40", materialsNote: null,
+      isRecurring: false, recurrenceInterval: "weekly", recurrenceEndDate: "",
+      isGroupJob: false, helpersNeeded: "2", isUrgent: false, urgentFee: "5",
+      salesTaxRate: 0, offerToHelperId: null,
+    };
+    const row = (extra: Partial<BuildJobInsertPayloadInput>) => buildJobInsertPayload({ ...base, ...extra }) as Record<string, unknown>;
+    expect(row({ dateWindowEnd: "2026-11-16" }).date_window_end).toBe("2026-11-16");
+    expect(row({ dateWindowEnd: "2026-11-16" }).date_needed).toBe("2026-11-10");
+    expect("date_window_end" in row({})).toBe(false);
+    expect("date_window_end" in row({ dateWindowEnd: "2026-11-17" })).toBe(false); // past the week
+    expect("date_window_end" in row({ dateWindowEnd: "2026-11-10" })).toBe(false); // not a window
+    expect("date_window_end" in row({ dateWindowEnd: "2026-11-16", isRecurring: true, recurrenceDays: [2], recurrenceWeeks: 2 })).toBe(false);
   });
 });

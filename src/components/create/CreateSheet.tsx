@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { SECTIONS, type SectionKey } from "@/components/sections/sectionsConfig";
@@ -92,16 +93,16 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
             </p>
             <div className="flex flex-wrap gap-2">
               {hiddenOpen.map((s) => (
-                <button
+                <Button
                   key={s.key}
                   type="button"
+                  variant="primary"
+                  size="sm"
                   data-create-unhide={s.key}
                   onClick={() => setHidden(s.key, false)}
-                  className="btn-press btn-grad-primary rounded-full min-h-11 px-4 text-ds-14 font-semibold"
-                  style={{ color: "hsl(var(--primary-foreground))" }}
                 >
                   Show {s.label}
-                </button>
+                </Button>
               ))}
             </div>
           </div>

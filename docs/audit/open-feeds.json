@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-04T12:33Z",
+  "measured_at": "2026-11-04T12:47Z",
   "issues": {
     "readable": true,
     "open": [
@@ -141,6 +141,13 @@
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41792903580",
         "runTruncated": false
+      },
+      {
+        "number": 4091,
+        "title": "nightly-red: main: Supabase DB Deploy",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41828763291",
+        "runTruncated": false
       }
     ]
   },
@@ -193,6 +200,14 @@
         "source": "slack-ops-alert:custom",
         "status": "open",
         "title": "# cron http failure(s) in the last hour",
+        "issue": null
+      },
+      {
+        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
+        "source_kind": "workflow",
+        "source": "db-deploy",
+        "status": "open",
+        "title": "db-deploy failed on main",
         "issue": null
       },
       {
@@ -780,6 +795,7 @@
     "issue #4054": "Q1816",
     "issue #4062": "Q1816",
     "issue #4084": "Q1816",
+    "issue #4091": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
@@ -820,6 +836,7 @@
     "ledger 4b5ace7af165": "Q1596",
     "ledger 4c89303184fb": "Q1816",
     "ledger 54203c9222b8": "Q2726",
+    "ledger 54ef0bfdcec3": "Q2731",
     "ledger 5a28db44e912": "Q2410",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 5d35922623b5": "Q1596",
@@ -839,7 +856,6 @@
     "ledger 7e141f206640": "Q1816",
     "ledger 7f88b9cc45df": "Q1816",
     "ledger 8018e82cb167": "Q1816",
-    "ledger 8114e0acbcb0": "Q2715",
     "ledger 824bcfd4ec0a": "Q1596",
     "ledger 87d1722faa1d": "Q1596",
     "ledger 88b4addefbcd": "Q2503",

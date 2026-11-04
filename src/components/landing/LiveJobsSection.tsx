@@ -18,6 +18,9 @@ import { LandingProof } from "./LandingProof";
  * says there are none right now.
  */
 const LIVE_JOBS_LIMIT = 4;
+/** One quiet retry before the failed state (a phone's network blip). */
+export const LIVE_JOBS_RETRY_MS = 1500;
+
 const LIVE_JOBS_SELECT =
   "id, title, budget, date_needed, parish, category, pricing_mode, urgent_fee, helpers_needed, is_group_job, helper_fee_flat_cents, helper_fee_percent";
 
@@ -72,7 +75,7 @@ export function LiveJobsSection() {
     const el = ref.current;
     if (!el) return;
     let cancelled = false;
-    const load = async () => {
+    const load = async (attempt = 0): Promise<void> => {
       try {
         const { supabase } = await import("@/integrations/supabase/client");
         // readJobsAheadOfDb: LIVE_JOBS_SELECT names helper_fee_percent, which the view gains in 20261025235701 (Q2400).
@@ -97,10 +100,22 @@ export function LiveJobsSection() {
           return { ...j, take_home: Number.isFinite(net) ? net : null };
         });
         if (!cancelled) setState({ kind: "ok", jobs });
-      } catch {
+      } catch (err) {
+        // 11-04 13:40Z (iPhone Safari on /, error_logs 2a04fe45): one visitor saw the failed state and the log held
+        // no cause, because this catch dropped it. A phone's network blip (or a chunk fetch) gets one quiet retry,
+        // and a second failure is reported with its cause before the section says so.
+        if (cancelled) return;
+        if (attempt === 0) {
+          await new Promise((r) => setTimeout(r, LIVE_JOBS_RETRY_MS));
+          if (!cancelled) return load(1);
+          return;
+        }
+        void import("@/lib/errorLogger")
+          .then(({ report }) => report(err, { tags: { source: "LiveJobsSection.load" } }))
+          .catch(() => { /* the visible failed state below is the signal; logging must never throw */ });
         // Not silent: the section says the newest jobs did not load and keeps
         // the link to the full board (data-testid="landing-live-jobs-failed").
-        if (!cancelled) setState({ kind: "failed" });
+        setState({ kind: "failed" });
       }
     };
     // Every browser the app supports has IntersectionObserver; without one

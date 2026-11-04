@@ -1057,7 +1057,39 @@ export const PRESS_SIDE_EFFECT_WRITES = {
   "/rest/v1/rpc/record_profile_view": "INSERT profile_views (hourly bucket) when a profile opens",
   "/functions/v1/check-pro-subscription":
     "the Home dashboard's background Pro-tier revalidation (src/hooks/useDashboardData.ts): it writes profiles only when Stripe's subscription state differs from the column; press-every-control 39225521269 leg 1 aborted it on 4 presses that landed on /home",
+  // press-every-control 41817058240 leg 1: the incomplete persona's /home load minted its own referral code
+  // (src/hooks/useReferralData.ts inserts one when the viewer has none). Aborted every run, so it never sticks and
+  // every run re-tried it on landing.
+  "/rest/v1/referral_codes": "the viewer's own referral code, minted on first look when it has none (src/hooks/useReferralData.ts); no control's purpose",
 };
+
+/**
+ * Side effects told apart by their BODY, because the path alone also carries real writes: each entry is the path,
+ * the method, and the exact set of body keys. press-every-control 41817058240 (legs 1-4, 30 presses): every press
+ * that landed on /home as the incomplete persona "wrote PATCH /rest/v1/profiles". The sweep seeds the device's
+ * "tour done" hint (helpr_onboarding, press-every-control.mjs addInitScript) and that account's
+ * profiles.onboarding_tour_completed_at is null, so firstRunGate heals the account (markTourCompleted, a PATCH of
+ * that one column). Aborted every run, it never healed and failed every run. A PATCH naming any other column is
+ * still a write.
+ */
+export const PRESS_SIDE_EFFECT_BODY_WRITES = [
+  {
+    method: "PATCH",
+    path: "/rest/v1/profiles",
+    keys: ["onboarding_tour_completed_at"],
+    why: "firstRunGate stamps the account's tour completion from the device hint the sweep seeds (src/lib/onboardingTourCompletion.ts markTourCompleted)",
+  },
+];
+
+/** True when the body is a JSON object whose keys are exactly `keys`. */
+function bodyHasExactlyKeys(body, keys) {
+  let parsed;
+  try { parsed = JSON.parse(String(body ?? "")); } catch { return false; }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return false;
+  const got = Object.keys(parsed).sort();
+  const want = [...keys].sort();
+  return got.length === want.length && got.every((k, i) => k === want[i]);
+}
 
 /** A storage LIST is a POST that reads (`/object/list/<bucket>`). */
 const isStorageListPath = (pathname) => /^\/storage\/v1\/object\/list\//.test(pathname);
@@ -1086,6 +1118,7 @@ export function pressWriteKind({ method, url, body = null }) {
   if (safeMethod) return "read";
   if (!PRESS_WRITE_SURFACE_RX.test(pathname)) return "read";
   if (Object.hasOwn(PRESS_SIDE_EFFECT_WRITES, pathname)) return "side-effect";
+  if (PRESS_SIDE_EFFECT_BODY_WRITES.some((e) => e.method === m && e.path === pathname && bodyHasExactlyKeys(body, e.keys))) return "side-effect";
   if (isReadRpcPath(pathname) || isDeclaredReadRpcPath(pathname) || isStorageSignPath(pathname) || isStorageListPath(pathname)) return "read";
   const fn = /^\/functions\/v1\/([a-z0-9-]+)/.exec(pathname)?.[1];
   if (fn === "stripe-connect" && !isStripeWriteRequest(url, body)) return "read";

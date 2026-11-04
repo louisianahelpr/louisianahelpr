@@ -122,7 +122,7 @@ describe("a paid job's fee fields are fixed (migration 20261025161802)", () => {
     expect(sorted[sorted.length - 1]).toBe("zzzzzzz_jobs_paid_fee_fields_fixed");
   });
 
-  // @mutate src/test/paidJobFeesAreFixed.test.ts | sql.replace(/\bas\s+(\$[A-Za-z_]*\$)[\s\S]*?\1/gi, "as $fn$ $fn$") | sql
+  // @mutate src/test/paidJobFeesAreFixed.test.ts | string {\n  return sql.replace(/\bas | string {\n  return sql.replace(/\bNOMATCHas
   it("only SQL the migration itself runs counts: a function body is skipped, a DO block is not", () => {
     const body = `CREATE OR REPLACE FUNCTION f() RETURNS void LANGUAGE plpgsql AS $function$ begin update jobs set customer_fee_amount = 1 where id = x; end $function$;`;
     expect(migrationTimeSql(body)).not.toMatch(/customer_fee_amount/);

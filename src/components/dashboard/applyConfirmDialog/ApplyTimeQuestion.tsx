@@ -67,7 +67,7 @@ export function ApplyTimeQuestion({
       </legend>
       {windowed && (
         <p className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-testid="apply-time-window">
-          {jobDayLabel(job)} works for the poster. Pick another day in that week with Other time.
+          {jobDayLabel(job)} works for the poster. To pick another day that week, suggest it below.
         </p>
       )}
       <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={`Does ${when} work for you?`}>

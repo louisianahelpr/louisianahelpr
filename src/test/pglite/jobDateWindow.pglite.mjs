@@ -18,6 +18,8 @@
  *      and the expiry is recomputed from the NEW day
  *   W7 setting a window on an open job (an edit) moves the expiry to the window's last day
  *   W8 a window can never be added to a booked job (schedule_locked)
+ *   W9 the 2-hour notice reads the window's LAST day: a window whose first day starts now is taken; the same one-day
+ *      job is still refused (job_start_too_soon)
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -117,6 +119,13 @@ check("W7 adding a window to an open job moves its expiry to the window's last d
 const [w5] = await q(`SELECT id FROM public.jobs WHERE status = 'assigned' LIMIT 1`);
 const locked = await tries(`UPDATE public.jobs SET date_window_end = date_needed + 3 WHERE id = ${w5.id}`);
 check("W8 a window cannot be added to a booked job", !!locked && /schedule_locked/.test(locked), locked ?? "taken");
+
+const nowDay = "(now() AT TIME ZONE 'America/Chicago')::date";
+const nowTime = "(now() AT TIME ZONE 'America/Chicago')::time";
+const winNow = await tries(`INSERT INTO public.jobs (customer_id, date_needed, start_time, date_window_end) VALUES (${ME}, ${nowDay}, ${nowTime}, ${nowDay} + 3)`);
+const oneNow = await tries(`INSERT INTO public.jobs (customer_id, date_needed, start_time) VALUES (${ME}, ${nowDay}, ${nowTime})`);
+check("W9 the 2-hour notice reads the window's last day (a window starting now is taken; a one-day job starting now is refused)",
+  winNow === null && !!oneNow && /job_start_too_soon/.test(oneNow), `window=${winNow ?? "taken"} oneday=${oneNow ?? "taken"}`);
 
 console.log(`\n${checks - failures}/${checks} ${failures ? "FAIL" : "PASS"}${SKIP ? " (--skip)" : ""}`);
 process.exit(failures ? 1 : 0);

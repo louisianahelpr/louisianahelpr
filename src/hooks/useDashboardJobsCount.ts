@@ -109,6 +109,13 @@ export async function fetchDashboardJobsCount(filters: DashboardJobsCountFilters
     return `${now.getFullYear()}-${m}-${d}`;
   })();
 
+  // "Only saved jobs" with an empty set is a real answer, zero (see the in() below).
+  if (savedOnlyJobIds !== null && savedOnlyJobIds.length === 0) return 0;
+
+  // Q2408: built twice at most. date_window_end is newer than the deploy that may serve this build
+  // (BROWSE_VIEW_COLUMNS_AHEAD_OF_DB): a database without it refuses the count (a HEAD read has no body, so the 400 is
+  // all there is), and the count is asked once more without the window terms, exactly as before the window existed.
+  const build = (withWindow: boolean) => {
   let query = supabase
     .from("open_jobs_browse")
     .select("id", { count: "exact", head: true })
@@ -118,7 +125,7 @@ export async function fetchDashboardJobsCount(filters: DashboardJobsCountFilters
     // that exemption is applied earlier, in useDashboardData, before
     // useDashboardFilters even sees the row).
     // Q2408: a window job ("any day Nov 4-10") counts until its LAST day (date_window_end).
-    .or(`date_needed.is.null,date_needed.gte.${todayLocalDate},date_window_end.gte.${todayLocalDate}`)
+    .or(`date_needed.is.null,date_needed.gte.${todayLocalDate}${withWindow ? `,date_window_end.gte.${todayLocalDate}` : ""}`)
     // …and the EXPIRY cull the list applies too
     // (useDashboardData: `!j.expires_at || new Date(j.expires_at) > now`).
     // This filter was missing here, so the header counted expired
@@ -153,7 +160,6 @@ export async function fetchDashboardJobsCount(filters: DashboardJobsCountFilters
   // it as "no filter" would print the whole board's count over an empty
   // list, which is the exact lie this hook exists to stop.
   if (savedOnlyJobIds !== null) {
-    if (savedOnlyJobIds.length === 0) return 0;
     // Past MAX_EXCLUDE we fall back to the documented over-count rather
     // than blow the request URL — same trade as the exclusions above.
     if (savedOnlyJobIds.length <= MAX_EXCLUDE) {
@@ -190,10 +196,13 @@ export async function fetchDashboardJobsCount(filters: DashboardJobsCountFilters
   // Q2408: a window job matches when any of its days is in range (its first day <= to, its last day >= from),
   // the same rule as jobMatchesWhen. One .or(): date_window_end is never before date_needed (its CHECK).
   if (whenRange) {
-    query = query
-      .lte("date_needed", whenRange.to)
-      .or(`date_needed.gte.${whenRange.from},date_window_end.gte.${whenRange.from}`);
+    query = query.lte("date_needed", whenRange.to);
+    query = withWindow
+      ? query.or(`date_needed.gte.${whenRange.from},date_window_end.gte.${whenRange.from}`)
+      : query.gte("date_needed", whenRange.from);
   }
+  return query;
+  };
 
   // `head: true` requests return no `data` body — only `count` — so the
   // count is read off the result, after unwrap() has checked its error.
@@ -201,7 +210,8 @@ export async function fetchDashboardJobsCount(filters: DashboardJobsCountFilters
   // refused HEAD has no body, so postgrest-js's error is `{ message: "" }`
   // with no code, and a bare `throw error` had the refused count sent
   // twice (Q1182, src/lib/queryRetry.ts).
-  const result = await query;
+  let result = await build(true);
+  if (result.error && result.status === 400) result = await build(false);
   unwrap(result);
   return result.count ?? 0;
 }

@@ -43,8 +43,6 @@ export const JOB_READABLE_COLUMN_LIST = [
   "customer_fee_amount",
   "customer_id",
   "date_needed",
-  // Q2408: last day of an "Any time this week" window (20261104073000).
-  "date_window_end",
   "dayof_confirm_reminder_sent_at",
   "dayof_unanswered_poster_alert_sent_at",
   "department",
@@ -183,7 +181,9 @@ export const JOB_SERIES_STATE_COLUMNS = ["series_ended_on", "series_split_ok", "
 // tax_kind: the poster's taxed-kind answer (Q2083, owner Option 1, 20261102152453). Written at
 // posting; read by the server (create-payment, the recurring charge). Listed for coverage.
 // poster_marked_done_at: a cancelled job filed under the poster's Done list (owner 2026-10-25, 20261025211357).
-export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount", "last_edit_notice_at", "poster_marked_done_at", "tax_kind"] as const;
+// date_window_end: the last day of an "Any time this week" window (Q2408, 20261104073000). Moves into
+// JOB_READABLE_COLUMN_LIST once it is live on prod.
+export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount", "last_edit_notice_at", "poster_marked_done_at", "tax_kind", "date_window_end"] as const;
 
 /**
  * Columns the BROWSE VIEW (open_jobs_browse) gains in a newer migration though
@@ -191,8 +191,9 @@ export const JOB_COLUMNS_AHEAD_OF_DB = ["materials_note", "onboarding_fee_amount
  * read names them and goes through readJobsAheadOfDb, which drops them on
  * 42703 until db-deploy lands. helper_fee_percent: Q2400, 20261025235701.
  * scope_video_url: A2-B6, 20261029194021 (the poster's scope video).
+ * date_window_end: Q2408, 20261104074500 (also in JOB_COLUMNS_AHEAD_OF_DB: jobs gains it in 20261104073000).
  */
-export const BROWSE_VIEW_COLUMNS_AHEAD_OF_DB = ["helper_fee_percent", "scope_video_url"] as const;
+export const BROWSE_VIEW_COLUMNS_AHEAD_OF_DB = ["helper_fee_percent", "scope_video_url", "date_window_end"] as const;
 
 /**
  * `select` with every JOB_COLUMNS_AHEAD_OF_DB column taken out, and on a browse-view read

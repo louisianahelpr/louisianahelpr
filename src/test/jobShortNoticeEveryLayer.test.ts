@@ -13,7 +13,7 @@
  * source and must agree, so one layer moving alone fails here.
  *
  * @mutate src/lib/jobExpiry.ts | const MIN_POST_NOTICE_MS = 2 * 60 * 60 * 1000; | const MIN_POST_NOTICE_MS = 1 * 60 * 60 * 1000;
- * @mutate src/pages/post-job/useJobSubmit.ts |     if (isScheduleTooSoon(dateNeeded, startTime)) { |     if (false) {
+ * @mutate src/pages/post-job/useJobSubmit.ts |     if (isScheduleTooSoon(dateWindowEnd && dateWindowEnd > dateNeeded ? dateWindowEnd : dateNeeded, startTime)) { |     if (false) {
  * @mutate src/lib/jobExpiry.ts |   return scheduled.getTime() > now.getTime() | return scheduled.getTime() > now.getTime() + 3_600_000
  */
 import { readFileSync } from "node:fs";
@@ -68,7 +68,7 @@ describe("a new job needs the same 2 hours' notice in every layer (Q1565)", () =
   it("Post a job disables the CTA and the submit refuses it", () => {
     expect(code("src/pages/post-job/useJobDerived.ts")).toMatch(/return isScheduleTooSoon\(dateNeeded, startTime\);/);
     expect(code("src/pages/post-job/useJobSubmit.ts")).toMatch(
-      /if \(isScheduleTooSoon\(dateNeeded, startTime\)\) \{\s*toast\.error\(SCHEDULE_TOO_SOON_COPY\);[\s\S]{0,1500}?return;/,
+      /if \(isScheduleTooSoon\(dateWindowEnd && dateWindowEnd > dateNeeded \? dateWindowEnd : dateNeeded, startTime\)\) \{\s*toast\.error\(SCHEDULE_TOO_SOON_COPY\);[\s\S]{0,1500}?return;/,
     );
   });
 

@@ -17459,6 +17459,17 @@ export type Database = {
         Args: { p_buyer: string; p_seller: string }
         Returns: { d_lat: number; d_lng: number; o_lat: number; o_lng: number }[]
       }
+      helpr_travel_pairs: {
+        Args: { p_now?: string }
+        Returns: {
+          from_lat: number
+          from_lng: number
+          job_id: string
+          to_lat: number
+          to_lng: number
+          user_id: string
+        }[]
+      }
       declutter_sale_decided: { Args: { p_order_id: string }; Returns: boolean }
       declutter_sale_final: { Args: { p_order_id: string }; Returns: boolean }
       declutter_save_card: {

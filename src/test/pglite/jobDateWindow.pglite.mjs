@@ -16,6 +16,7 @@
  *   W6 moving the day to the window's last day (a Helpr's pick at hire) clears the window instead of failing the CHECK,
  *      and the expiry is recomputed from the NEW day
  *   W7 setting a window on an open job (an edit) moves the expiry to the window's last day
+ *   W8 a window can never be added to a booked job (schedule_locked)
  */
 import { readFileSync } from "node:fs";
 import os from "node:os";
@@ -109,6 +110,10 @@ const [w3] = await q(`SELECT id FROM public.jobs WHERE date_needed = current_dat
 await db.exec(`UPDATE public.jobs SET date_window_end = current_date + 9 WHERE id = ${w3.id}`);
 const [e] = await q(`SELECT expires_at = ${ct(9, "23:59:59")} AS ok, expires_at FROM public.jobs WHERE id = ${w3.id}`);
 check("W7 adding a window to an open job moves its expiry to the window's last day", e.ok === true, String(e.expires_at));
+
+const [w5] = await q(`SELECT id FROM public.jobs WHERE status = 'assigned' LIMIT 1`);
+const locked = await tries(`UPDATE public.jobs SET date_window_end = date_needed + 3 WHERE id = ${w5.id}`);
+check("W8 a window cannot be added to a booked job", !!locked && /schedule_locked/.test(locked), locked ?? "taken");
 
 console.log(`\n${checks - failures}/${checks} ${failures ? "FAIL" : "PASS"}${SKIP ? " (--skip)" : ""}`);
 process.exit(failures ? 1 : 0);

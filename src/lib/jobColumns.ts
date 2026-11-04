@@ -43,6 +43,8 @@ export const JOB_READABLE_COLUMN_LIST = [
   "customer_fee_amount",
   "customer_id",
   "date_needed",
+  // Q2408: last day of an "Any time this week" window (20261104073000).
+  "date_window_end",
   "dayof_confirm_reminder_sent_at",
   "dayof_unanswered_poster_alert_sent_at",
   "department",

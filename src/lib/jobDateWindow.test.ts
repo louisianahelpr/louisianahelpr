@@ -5,6 +5,8 @@
  * @mutate src/lib/jobDateWindow.ts |   return hasDateWindow(job) ? job.date_window_end! : job.date_needed; |   return job.date_needed;
  * @mutate src/lib/jobDateWindow.ts | export const DATE_WINDOW_EXTRA_DAYS = 6; | export const DATE_WINDOW_EXTRA_DAYS = 7;
  * @mutate src/components/dashboard/JobCard.tsx | {jobDayLabel(job)} | {formatJobDate(job.date_needed)}
+ * @mutate supabase/migrations/20261104074500_browse_reads_date_window.sql | ((COALESCE(date_window_end, date_needed) + 1)::timestamp | ((date_needed + 1)::timestamp
+ * @mutate src/lib/jobColumns.ts |   "date_window_end",\n |
  * @mutate src/components/job-card/MineJobFace.tsx |     job.date_needed ? jobDayLabel(job) : null, |     job.date_needed ? formatJobDate(job.date_needed) : null,
  */
 import { describe, it, expect } from "vitest";
@@ -57,5 +59,24 @@ describe("Q2408 job date window", () => {
     for (const f of ALLOWED) expect(hits, `${f}: stale allowlist entry (no longer prints the first day), remove it`).toContain(f);
     for (const f of ALLOWED) expect(readFileSync(f, "utf8")).toMatch(/hasDateWindow\(job\) \? formatJobDate\(job\.date_needed\)/);
     expect(hits.filter((f) => !ALLOWED.includes(f))).toEqual([]);
+  });
+
+  it("Browse carries the window and keeps a window job listed until its LAST day (newest open_jobs_browse)", () => {
+    const dir = "supabase/migrations";
+    const files = readdirSync(dir).filter((f) => f.endsWith(".sql")).sort();
+    const defs = files.filter((f) => /CREATE OR REPLACE VIEW public\.open_jobs_browse/.test(readFileSync(`${dir}/${f}`, "utf8")));
+    expect(defs.length).toBeGreaterThan(2);
+    const sql = readFileSync(`${dir}/${defs[defs.length - 1]}`, "utf8");
+    const view = sql.slice(sql.lastIndexOf("CREATE OR REPLACE VIEW public.open_jobs_browse"));
+    expect(view).toMatch(/scope_video_url,\s*date_window_end\s+FROM jobs/);
+    expect(view).toMatch(/\(\(COALESCE\(date_window_end, date_needed\) \+ 1\)::timestamp/);
+    expect(view).toMatch(/\(\(COALESCE\(date_window_end, date_needed\) \+ start_time\) AT TIME ZONE/);
+  });
+
+  it("the signed-in jobs reads name the column (granted in the migration)", async () => {
+    const { JOB_READABLE_COLUMN_LIST } = await import("@/lib/jobColumns");
+    expect(JOB_READABLE_COLUMN_LIST as readonly string[]).toContain("date_window_end");
+    const mig = readFileSync("supabase/migrations/20261104073000_jobs_date_window_end.sql", "utf8");
+    expect(mig).toMatch(/GRANT SELECT \(date_window_end\) ON public\.jobs TO authenticated;/);
   });
 });

@@ -20,8 +20,10 @@ export function weekWindowEnd(firstDay: string): string {
 }
 
 /** True when the job is a window (a valid end after its first day). */
-export function hasDateWindow(job: { date_needed?: string | null; date_window_end?: string | null }): boolean {
-  return !!job.date_needed && !!job.date_window_end && job.date_window_end > job.date_needed;
+type JobDays = { date_needed?: string | null; date_window_end?: string | null } | null | undefined;
+
+export function hasDateWindow(job: JobDays): boolean {
+  return !!job?.date_needed && !!job.date_window_end && job.date_window_end > job.date_needed;
 }
 
 const monthDay = (ymd: string) => {
@@ -33,8 +35,8 @@ const monthDay = (ymd: string) => {
  * The job's day as people read it: "Wed, Nov 4" for one day, "Any day Nov 4-10" for a window
  * ("Any day Oct 30-Nov 5" across a month).
  */
-export function jobDayLabel(job: { date_needed?: string | null; date_window_end?: string | null }): string {
-  if (!job.date_needed) return "";
+export function jobDayLabel(job: JobDays): string {
+  if (!job?.date_needed) return "";
   if (!hasDateWindow(job)) return formatJobDate(job.date_needed);
   const a = monthDay(job.date_needed);
   const b = monthDay(job.date_window_end!);
@@ -43,7 +45,7 @@ export function jobDayLabel(job: { date_needed?: string | null; date_window_end?
 }
 
 /** The last day the job can still be done (the window's end, else its one day). Expiry and "date passed" read this. */
-export function jobLastDay(job: { date_needed?: string | null; date_window_end?: string | null }): string | null {
-  if (!job.date_needed) return null;
+export function jobLastDay(job: JobDays): string | null {
+  if (!job?.date_needed) return null;
   return hasDateWindow(job) ? job.date_window_end! : job.date_needed;
 }

@@ -21,7 +21,7 @@ export const JOBS_PREFETCH_KEY = "__lhJobsPrefetch";
 
 /** Copy of useDashboardData's browseColumns, without its spaces (entry bytes; the test pins it). */
 const FEED_SELECT =
-  "id,title,description,scope_video_url,category,budget,date_needed,customer_id,status,created_at,updated_at,is_urgent,urgent_fee,is_flexible_schedule,is_recurring,is_group_job,helpers_needed,estimated_hours,materials_note,photos,boosted_at,boost_expires_at,expires_at,start_time,recurrence_interval,recurrence_end_date,recurrence_days,recurrence_weeks,parent_job_id,payment_status,location,latitude,longitude,pricing_mode,applicant_count,credential_tier,parish,helper_fee_flat_cents,helper_fee_percent";
+  "id,title,description,scope_video_url,category,budget,date_needed,customer_id,status,created_at,updated_at,is_urgent,urgent_fee,is_flexible_schedule,date_window_end,is_recurring,is_group_job,helpers_needed,estimated_hours,materials_note,photos,boosted_at,boost_expires_at,expires_at,start_time,recurrence_interval,recurrence_end_date,recurrence_days,recurrence_weeks,parent_job_id,payment_status,location,latitude,longitude,pricing_mode,applicant_count,credential_tier,parish,helper_fee_flat_cents,helper_fee_percent";
 /** useDashboardData's PAGE_SIZE: the first page asks for rows 0..PAGE_SIZE (one extra, to know if more exist). */
 const PAGE_SIZE = 25;
 

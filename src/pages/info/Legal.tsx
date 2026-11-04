@@ -7,7 +7,7 @@ import PageHeader from "@/components/PageHeader";
 import AppShell from "@/components/AppShell";
 import { isNativePlatform } from "@/lib/nativeInit";
 import { PolicySearchContext, PolicyTabContext } from "@/components/policy/CollapsedPolicy";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs } from "@/components/ui/tabs";
 import { MIN_TYPABLE_FIELD_PX } from "@/lib/searchFieldFloor";
 import { cn } from "@/lib/utils";
 import { usePageMeta } from "@/hooks/usePageMeta";
@@ -22,10 +22,11 @@ import {
   PAGE_TITLES,
   PAGE_DESCRIPTIONS,
   PAGE_CANONICALS,
-  TAB_LABELS,
-  TAB_ICONS,
   TAB_ORIGIN_LABELS,
 } from "./legal/legalSections";
+import { LegalTabBar } from "./legal/LegalTabBar";
+import { LegalPanels } from "./legal/LegalPanels";
+import { useTabSwitchKeepsBandPut } from "./legal/useTabSwitchKeepsBandPut";
 
 /* ─────────────────────────  PER-TAB TITLE  ───────────────────────── */
 // Per-tab H1 text for the NATIVE in-app header. Plain single-colour strings,
@@ -154,63 +155,12 @@ const Legal = () => {
   // Navbar at 375 and 1440 (prod, 2026-10-12, Q965). src/test/legalBandClearsMarketingNav.test.ts.
   const webBandStickyTop = user ? "0px" : "calc(max(var(--safe-area-top, 0px), 0.25rem) + var(--public-nav-h))";
 
-  // Switching tabs is a fresh document: drop any active search and start the
-  // new policy at its beginning rather than wherever the old one happened to
-  // be scrolled to. The goal is unchanged — deep-scrolling Privacy then
-  // tapping Terms must not land you mid-page — but the means are.
-  //
-  // This used to `scrollTo({ top: 0 })`, which was the single biggest source
-  // of the "whole page jumps when you toggle terms" complaint: reading at
-  // y=157 and tapping a tab yanked the viewport to the very top, so the
-  // header, the title row and the tab band all visibly flew back down the
-  // screen under your finger.
-  //
-  // Instead we scroll to the sticky band's OWN offset. Once you are past that
-  // offset the band is pinned at the top of the viewport, and landing exactly
-  // on the offset puts it in that same pinned position — so the row you just
-  // tapped does not move a single pixel, while the policy underneath it is
-  // correctly reset to its first line. If you are at or above the offset the
-  // band is not pinned yet and the document top is already in view, so we do
-  // not scroll at all.
-  //
-  // Measuring the band's UNPINNED offset is the fiddly part. Both of the
-  // obvious reads are contaminated once the band is actually stuck:
-  // `getBoundingClientRect().top` is 0 (that's what "pinned" means), and —
-  // measured, not assumed — Chrome folds the sticky displacement into
-  // `offsetTop` as well, so a pinned band reports its own scroll position and
-  // `current > bandOffset` can never be true. So we flip the element to
-  // `position: static` for the duration of one synchronous read and put it
-  // straight back. No paint happens between the two writes, so nothing
-  // flickers, and the rect we read in between is the honest layout position.
+  // Switching tabs drops any active search; useTabSwitchKeepsBandPut starts
+  // the new policy at its beginning without moving the band (see there).
   useEffect(() => {
     setQuery("");
-    const row = stickyRowRef.current;
-    if (!row) return;
-    const container = isNativePlatform ? scrollRef.current : null;
-
-    const prevPosition = row.style.position;
-    row.style.position = "static";
-    const naturalTop = row.getBoundingClientRect().top;
-    row.style.position = prevPosition;
-
-    // Viewport-relative → container-relative. For the web branch the scroll
-    // box is the document, so the container terms fall away to `scrollY`.
-    const containerTop = container ? container.getBoundingClientRect().top : 0;
-    const current = container ? container.scrollTop : window.scrollY;
-    // Pinned means `stickyTop` below the scroll box's top (the marketing
-    // Navbar's height for a guest on the web), so the band is pinned exactly
-    // when the box has scrolled to bandOffset - stickyTop.
-    const stickyTop = Number.parseFloat(getComputedStyle(row).top) || 0;
-    const pinAt = Math.max(0, naturalTop - containerTop + current - stickyTop);
-
-    if (current > pinAt) {
-      if (container) {
-        container.scrollTo({ top: pinAt });
-      } else {
-        window.scrollTo({ top: pinAt });
-      }
-    }
   }, [tab]);
+  useTabSwitchKeepsBandPut(tab, stickyRowRef, scrollRef);
 
   // Count surviving section cards once the filtered tree has painted.
   useEffect(() => {
@@ -322,62 +272,8 @@ const Legal = () => {
   // three names for the same destination. The per-policy names still drive
   // the DOCUMENT title and canonical via usePageMeta.
 
-  // ONE size, always. Below `sm` the three tabs share the full width as an
-  // even 3-column grid stacked above the search input; from `sm` up they
-  // collapse to their natural inline width and sit at the right of the row.
-  // The class string depends only on the viewport — never on which tab is
-  // selected and never on whether search is focused — so a tab switch cannot
-  // resize or reposition anything. (It used to be a two-way `searchOpen`
-  // conditional, which is exactly how three 292px columns turned into a
-  // compact trio the moment you touched the search icon.)
-  const tabBar = (
-    <TabsList
-      data-print-hide
-      className="flex items-center gap-1 sm:gap-2 rounded-2xl p-1 h-auto bg-transparent border-0 w-full"
-    >
-      {VALID_TABS.map((t) => {
-        const isActive = t === tab;
-        const Icon = TAB_ICONS[t];
-        return (
-          <TabsTrigger
-            key={t}
-            value={t}
-            className="relative h-9 inline-flex flex-1 min-w-0 items-center justify-center gap-1 sm:gap-1.5 rounded-full text-ds-11 sm:text-ds-13 font-sans font-semibold leading-none transition-colors duration-200 px-1"
-            style={{ color: isActive ? "hsl(var(--parchment))" : "hsl(var(--olivewood))" }}
-          >
-            {/* The selected tab's lifted pill, drawn in place (owner, Q1719,
-                2026-10-13: a plain highlight that loads nothing extra). It used
-                to slide between tabs through framer-motion's shared layout,
-                which put ~39 KB gzip of framer on every legal page and on
-                guest `/` (routePrefetch warms /terms from the footer).
-                Gradient + inset highlight + soft drop shadow give it depth.
-                Guard: scripts/check-deferred-vendors.mjs (Legal root). */}
-            {isActive && (
-              <span
-                aria-hidden="true"
-                className="absolute inset-0 rounded-full btn-grad-primary"
-                style={{
-                  // Reference the shared primary-CTA surface (`.btn-grad-primary`,
-                  // the same radial-gloss treatment the "Join free"/bark CTAs
-                  // use) so the selected tab reads as a primary button and can
-                  // never drift from the canonical gradient. Border + ELEV_FILLED
-                  // depth layered on top.
-                  border: "1px solid hsl(var(--bark-border))",
-                  boxShadow:
-                    "inset 0 1px 0 hsl(var(--parchment) / 0.22), " +
-                    "0 1px 1px hsl(var(--ink-deep) / 0.10), " +
-                    "0 2px 6px hsl(var(--ink-deep) / 0.12), " +
-                    "0 4px 12px -2px hsl(var(--ink-deep) / 0.08)",
-                }}
-              />
-            )}
-            <Icon className={`relative w-3.5 h-3.5 shrink-0 ${searchOpen ? "hidden sm:block" : ""}`} strokeWidth={2.25} />
-            <span className="relative">{TAB_LABELS[t]}</span>
-          </TabsTrigger>
-        );
-      })}
-    </TabsList>
-  );
+  // The Terms / Rules / Privacy group: legal/LegalTabBar.tsx.
+  const tabBar = <LegalTabBar tab={tab} searchOpen={searchOpen} />;
 
   // The slot SHRINKS to the icon when collapsed and only claims the row when
   // open. Holding it at `flex-1 min-w-[220px]` in both states — to stop the
@@ -543,31 +439,8 @@ const Legal = () => {
   // page title already names the policy, and the "short version" panel
   // immediately below summarises it, so the line restated both.
 
-  // Smooth cross-tab transition — each panel fades + slides in on mount.
-  // Radix TabsContent unmounts inactive tabs, so switching tabs remounts
-  // the new panel, which replays the CSS `fade-in` keyframe (12px rise, the
-  // same 350 ms curve framer ran; Q1719 moved it off framer-motion).
-  // `motion-safe:` keeps it off for Reduce Motion, as useReducedMotion did.
-  const panelFade = "motion-safe:animate-[fade-in_350ms_cubic-bezier(0.22,1,0.36,1)_both]";
-  const panels = (
-    <>
-      <TabsContent value="terms" className="mt-0" style={{ paddingBottom: "1rem" }}>
-        <div key="terms-panel" className={panelFade}>
-          <TermsContent />
-        </div>
-      </TabsContent>
-      <TabsContent value="community" className="mt-0" style={{ paddingBottom: "1rem" }}>
-        <div key="community-panel" className={panelFade}>
-          <CommunityContent />
-        </div>
-      </TabsContent>
-      <TabsContent value="privacy" className="mt-0" style={{ paddingBottom: "1rem" }}>
-        <div key="privacy-panel" className={panelFade}>
-          <PrivacyContent />
-        </div>
-      </TabsContent>
-    </>
-  );
+  // The three policies, one per tab: legal/LegalPanels.tsx.
+  const panels = <LegalPanels />;
 
   // Search input + filtered policy tree, shared by both layouts. The
   // PolicySearchContext provider drives the self-filtering sections; the

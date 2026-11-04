@@ -29,6 +29,15 @@ import { migrationFiles, effectiveDefs } from "./helpers/effectiveFunctionDefs";
 const ROOT = resolve(__dirname, "../..");
 const DIR = resolve(ROOT, "supabase/migrations");
 const THIS = "20261025161802_paid_job_fees_are_fixed.sql";
+
+/**
+ * The SQL a migration runs while it applies. A CREATE FUNCTION body (`AS $tag$ … $tag$`) runs later, under
+ * trg_paid_job_fees_are_fixed itself (a gift redeem writes customer_fee_amount on an unpaid job, which the trigger
+ * allows), so SET LOCAL in the migration could not reach it anyway. A DO block runs now and is kept.
+ */
+function migrationTimeSql(sql: string): string {
+  return sql.replace(/\bas\s+(\$[A-Za-z_]*\$)[\s\S]*?\1/gi, "as $fn$ $fn$");
+}
 const squash = (s: string) => s.replace(/\s+/g, " ");
 
 /** The fee stamp the trigger holds fixed on a paid job. */
@@ -113,11 +122,20 @@ describe("a paid job's fee fields are fixed (migration 20261025161802)", () => {
     expect(sorted[sorted.length - 1]).toBe("zzzzzzz_jobs_paid_fee_fields_fixed");
   });
 
+  // @mutate src/test/paidJobFeesAreFixed.test.ts | sql.replace(/\bas\s+(\$[A-Za-z_]*\$)[\s\S]*?\1/gi, "as $fn$ $fn$") | sql
+  it("only SQL the migration itself runs counts: a function body is skipped, a DO block is not", () => {
+    const body = `CREATE OR REPLACE FUNCTION f() RETURNS void LANGUAGE plpgsql AS $function$ begin update jobs set customer_fee_amount = 1 where id = x; end $function$;`;
+    expect(migrationTimeSql(body)).not.toMatch(/customer_fee_amount/);
+    const doBlock = `DO $$ begin update jobs set customer_fee_amount = 1 where id = x; end $$;`;
+    expect(migrationTimeSql(doBlock)).toMatch(/customer_fee_amount/);
+    expect(migrationTimeSql(`UPDATE public.jobs SET customer_fee_amount = 1;`)).toMatch(/customer_fee_amount/);
+  });
+
   it("CLASS: a later migration that writes a fixed fee column of jobs says why (SET LOCAL app.paid_job_fee_rewrite)", () => {
     const later = files.filter((f) => f > THIS);
     const writers: string[] = [];
     for (const f of later) {
-      const sql = blankSqlComments(readFileSync(resolve(DIR, f), "utf8"));
+      const sql = migrationTimeSql(blankSqlComments(readFileSync(resolve(DIR, f), "utf8")));
       for (const m of sql.matchAll(/update\s+(?:only\s+)?(?:public\.)?jobs\b[\s\S]*?\bset\b([\s\S]*?)(?:\bwhere\b|\bfrom\b|;)/gi)) {
         if (FIXED.some((c) => new RegExp(`\\b${c}\\s*=`, "i").test(m[1]))) writers.push(f);
       }

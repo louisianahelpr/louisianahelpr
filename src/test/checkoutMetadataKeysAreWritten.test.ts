@@ -95,11 +95,41 @@ export function objectKeys(obj: string): { keys: string[]; spread: boolean } {
 }
 
 /** Every metadata key one creator file writes. */
+/**
+ * `...name` where the same file declares `const name … = cond ? { … } : {}` is the conditional spread of a literal
+ * written in two steps (11-04: create-payment's giftTaxMetadata), so it is expanded in place; its computed keys
+ * `[NAME]` resolve through a `const NAME = "…"` in the file or in supabase/functions/_shared. Any other spread is
+ * left as is and still blinds the inventory.
+ */
+export function expandLocalSpreads(src: string, obj: string, shared: string = sharedConsts()): string {
+  return obj.replace(/\.\.\.([A-Za-z_$][\w$]*)(?=\s*[,}])/g, (whole, name: string) => {
+    const decl = new RegExp(`(?:const|let)\\s+${name}\\b[^=]*=\\s*([^?;{}]+?)\\?\\s*\\{`).exec(src);
+    if (!decl || decl[1].includes("(")) return whole;
+    const lit = block(src, decl.index + decl[0].length - 1);
+    const rest = src.slice(decl.index + decl[0].length - 1 + lit.length);
+    if (!/^\s*:\s*\{\s*\}\s*;/.test(rest)) return whole;
+    const resolved = lit.replace(/\[\s*([A-Z_][A-Z0-9_]*)\s*\]\s*:/g, (k, c: string) => {
+      const v = new RegExp(`const\\s+${c}\\s*=\\s*"([\\w]+)"`).exec(src + "\n" + shared);
+      return v ? `${v[1]}:` : k;
+    });
+    return `...(x ? ${resolved} : {})`;
+  });
+}
+
+let sharedCache: string | null = null;
+function sharedConsts(): string {
+  if (sharedCache === null) {
+    const dir = resolve(FN_DIR, "_shared");
+    sharedCache = readdirSync(dir).filter((f) => f.endsWith(".ts")).map((f) => blankComments(readFileSync(resolve(dir, f), "utf8"))).join("\n");
+  }
+  return sharedCache;
+}
+
 export function writtenMetadataKeys(src: string): { keys: Set<string>; spread: boolean } {
   const keys = new Set<string>();
   let spread = false;
   const add = (obj: string) => {
-    const r = objectKeys(obj);
+    const r = objectKeys(expandLocalSpreads(src, obj));
     r.keys.forEach((k) => keys.add(k));
     spread ||= r.spread;
   };
@@ -250,6 +280,18 @@ describe("Q343: checkout metadata the webhook reads is metadata a creator writes
     expect(objectKeys(`{ kind: "x", ...(a ? b : {}) }`).spread).toBe(true);
     expect(objectKeys(`{ kind: "x", ...(a ? { ...b } : {}) }`).spread).toBe(true);
     expect(objectKeys(`{ ...(f({ a: 1 }) ? { k: 1 } : {}) }`).spread).toBe(true);
+  });
+
+  // @mutate src/test/checkoutMetadataKeysAreWritten.test.ts |     if (!/^\s*:\s*\{\s*\}\s*;/.test(rest)) return whole; |     if (false) return whole;
+  it("a spread of a local const that is a conditional literal adds its keys; any other local spread still blinds", () => {
+    const shared = `export const TAX_KEY = "tax_calculation_id";`;
+    const ok = `const extra: Record<string, string> = tax ? { [TAX_KEY]: id, job_tax_cents: c } : {};\nmetadata: { job_id: j, ...extra }`;
+    expect(objectKeys(expandLocalSpreads(ok, `{ job_id: j, ...extra }`, shared))).toEqual({ keys: ["job_id", "tax_calculation_id", "job_tax_cents"], spread: false });
+    const notEmpty = `const extra = tax ? { a: 1 } : { b: 2 };`;
+    expect(objectKeys(expandLocalSpreads(notEmpty, `{ ...extra }`, shared)).spread).toBe(true);
+    const call = `const extra = f(x) ? { a: 1 } : {};`;
+    expect(objectKeys(expandLocalSpreads(call, `{ ...extra }`, shared)).spread).toBe(true);
+    expect(objectKeys(expandLocalSpreads(`const extra = build();`, `{ ...extra }`, shared)).spread).toBe(true);
   });
 
   it("every metadata key the handler branches on is written by some creator", () => {

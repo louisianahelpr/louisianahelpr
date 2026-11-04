@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-04T03:04:59.267Z",
-  "guards": 3453,
-  "registered": 3452,
+  "generated": "2026-11-04T08:08:24.165Z",
+  "guards": 3466,
+  "registered": 3465,
   "unregistered": [
     "src/components/job-card/useFollowOpenCard.test.ts"
   ],
@@ -16,7 +16,8 @@
     "src/test/shippingClaimPayout.test.ts",
     "src/test/shippingLostSweep.test.ts",
     "src/test/shippingNeverShippedSweep.test.ts",
-    "src/test/shippingProblemScans.test.ts"
+    "src/test/shippingProblemScans.test.ts",
+    "src/test/taxLawCiteIsCurrent.test.ts"
   ],
   "classD_selfReferential": [
     {
@@ -132,16 +133,6 @@
       ],
       "parents": [
         "src/pages/home/DashboardGuest.tsx"
-      ]
-    },
-    {
-      "module": "src/components/HelperAvailability.tsx",
-      "tests": [
-        "src/components/HelperAvailability.invertedRange.test.tsx",
-        "src/components/HelperAvailability.presets.test.tsx"
-      ],
-      "parents": [
-        "src/components/profile/AvailabilityTab.tsx"
       ]
     },
     {

@@ -296,6 +296,12 @@ function rewriteExternalImports(src: string): string {
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/geocodeDropoff\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/geocodeDropoff.ts";`,
   );
+  // Apple routes (Q1930): `_shared/appleRoutes.ts` imports only a TYPE (erased) and calls the `fetch` it is handed,
+  // so the REAL module serves; with no MapKit key in tests it never asks Apple.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/appleRoutes\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/appleRoutes.ts";`,
+  );
 
   // MapKit signer (Q2413): `_shared/mapkitJwt.ts` has ZERO imports (WebCrypto only), so the REAL
   // signer serves mapkit-token and the delivery quote's Apple Maps lookup.
@@ -1145,6 +1151,12 @@ function rewriteExternalImports(src: string): string {
   out = out.replace(
     /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/geocodeDropoff\.ts["'];?/g,
     `import {$1} from "../../../supabase/functions/_shared/geocodeDropoff.ts";`,
+  );
+  // Apple routes (Q1930): `_shared/appleRoutes.ts` imports only a TYPE (erased) and calls the `fetch` it is handed,
+  // so the REAL module serves; with no MapKit key in tests it never asks Apple.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/appleRoutes\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/appleRoutes.ts";`,
   );
 
   // MapKit signer (Q2413): `_shared/mapkitJwt.ts` has ZERO imports (WebCrypto only), so the REAL

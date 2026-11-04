@@ -79,6 +79,7 @@ import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { requireFeature } from "../_shared/featureSwitch.ts";
 import { geocodeDropoff, plausibleAddress, type AppleMapsAccess } from "../_shared/geocodeDropoff.ts";
+import { type RouteStore, routeInBackground, storeRoutedMiles } from "../_shared/appleRoutes.ts";
 import { mapkitKeyFromEnv, signMapkitJwt } from "../_shared/mapkitJwt.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { storedStripeCustomer, withStoredWalletCustomer } from "../_shared/stripeCustomer.ts";
@@ -276,9 +277,27 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   // The delivery price the buyer's screen showed (owner 2026-10-27: it may be "Free"). When the
   // order's frozen rate differs (the seller changed it meanwhile), no page is made: the app asks
   // again (lh-money-escrow review of the free-delivery change #2). Optional: an older app sends none.
-  const expectedRate = handover === "seller_delivery" && typeof body.expected_delivery_cents === "number"
+  // Q1930 (lead re-review 11-04): a Helpr delivery too, since its price can move between the quote and Pay when Apple's
+  // routed miles land in the background (the quote answers at once with the estimate).
+  const expectedRate = (handover === "seller_delivery" || handover === "delivery") && typeof body.expected_delivery_cents === "number"
     && Number.isInteger(body.expected_delivery_cents) && body.expected_delivery_cents >= 0 ? body.expected_delivery_cents : null;
   const native = isNativeRequest(body);
+  // Q1930 (lead final review 11-04): an app that sends no expected price for a Helpr delivery (every build before this)
+  // is held to the price its buyer was last SHOWN (declutter_delivery_quotes_shown, written by the quote).
+  const shownCheck = handover === "delivery" && expectedRate === null;
+  let shownRate: number | null = null;
+  if (shownCheck) {
+    const { data: shown, error: shownErr } = await admin.from("declutter_delivery_quotes_shown")
+      .select("delivery_cents").eq("buyer_id", user.id).eq("seller_id", sellerId).maybeSingle();
+    if (shownErr) {
+      console.error(`[declutter-checkout] shown delivery price read failed: ${shownErr.message}`);
+      return json({ error: TRY_AGAIN }, 503);
+    }
+    const c = Number((shown as { delivery_cents?: unknown } | null)?.delivery_cents);
+    shownRate = shown && Number.isInteger(c) ? c : null;
+  }
+  /** The delivery price the buyer saw: the app's, else (Helpr delivery, older app) the one the quote showed. */
+  const seenRate = expectedRate ?? shownRate;
   // Shipping S3 (Q2259): the buyer's own ship-rates quote, by id only (the RPC checks it is theirs, fresh and for
   // these lines, and takes the price from it).
   const quoteId = handover === "ship" && typeof body.quote_id === "string" && UUID_RE.test(body.quote_id) ? body.quote_id : null;
@@ -341,6 +360,10 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     const pickedSpot = (picked.data as { spot_id?: string | null } | null)?.spot_id ?? null;
     spotChanged = frozenSpot !== pickedSpot;
   }
+  // Q1930: a Helpr delivery whose price the screen now shows differs from the open order's (routed miles landed, the
+  // cart or the drop-off changed) replaces the open order too, so its page is closed first.
+  const deliveryChanged = !!open && handover === "delivery" && open.handover === "delivery"
+    && seenRate !== null && Number(open.delivery_cents ?? 0) !== seenRate;
   // B110: a pickup whose chosen TIME changed replaces the open order too, so its page is closed first.
   const pickupChanged = !!open && PICKUP_TIMED.includes(handover) && open.handover === handover
     && (open.pickup_slot_start ? Date.parse(open.pickup_slot_start) : null) !== (slotStart ? Date.parse(slotStart) : null);
@@ -379,7 +402,7 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       }
       feeChanged = Number(due ?? 0) !== Number(open.setup_fee_cents ?? 0);
     }
-    if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged || bundleChanged || pickupChanged || feeChanged || quoteChanged)) {
+    if (page.status === "open" && (open.handover !== handover || slotChanged || spotChanged || bundleChanged || pickupChanged || feeChanged || quoteChanged || deliveryChanged)) {
       // Owner 2026-10-28: a way the seller did not tick must not cost the buyer their open page either
       // (declutter_start_checkout refuses it: handover_not_offered; the RPC stays the protection).
       const notOffered = await handoverNotOffered(admin, user.id, sellerId, handover);
@@ -446,6 +469,11 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   const order = row!;
   if (expectedRate !== null && Number(order.delivery_cents ?? 0) !== expectedRate) {
     // The order is left open with no page (its hold lapses; the next checkout replaces it).
+    return json({ error: "delivery_rate_changed", delivery_cents: Number(order.delivery_cents ?? 0) }, 409);
+  }
+  if (shownCheck && (shownRate === null || Number(order.delivery_cents ?? 0) !== shownRate)) {
+    // Q1930: an older app's Helpr delivery whose price moved since its quote (routed miles landed), or with no quote
+    // shown on record: no page; the buyer prices it again (Get price) and the next Pay is held to that.
     return json({ error: "delivery_rate_changed", delivery_cents: Number(order.delivery_cents ?? 0) }, 409);
   }
   // Slice 5: the delivery fee frozen on the order (0 unless handover is 'delivery'
@@ -614,6 +642,22 @@ function appleMapsAccess(): AppleMapsAccess | null {
   return key ? { developerToken: () => signMapkitJwt(key, 300) } : null;
 }
 
+/** EdgeRuntime.waitUntil, bound, when the runtime offers it. */
+function edgeWaitUntil(): ((p: Promise<unknown>) => void) | undefined {
+  const rt = (globalThis as { EdgeRuntime?: { waitUntil?: (p: Promise<unknown>) => void } }).EdgeRuntime;
+  return rt?.waitUntil?.bind(rt);
+}
+
+/** Q1930: once a day, Apple's routing is down; delivery quotes keep the 1.3x estimate meanwhile. */
+function routeOutageAlert(detail: string, status: number | null): Promise<unknown> {
+  return postSlackOpsAlert({
+    kind: "custom", severity: "warning", oncePerDayKey: "declutter-route-miles-unavailable",
+    title: "Declutter delivery: Apple Maps routing is not answering",
+    message: `Road miles could not be routed (${detail}). Delivery quotes use the straight line x 1.3 estimate until Apple answers; routing pauses 10 minutes after each miss.`,
+    fields: { Status: status ?? "no answer" },
+  });
+}
+
 async function deliveryQuote(body: Record<string, unknown>, user: { id: string }, asBuyer: Db, admin: Db) {
   const sellerId = typeof body.seller_id === "string" ? body.seller_id : "";
   if (!UUID_RE.test(sellerId) || sellerId === user.id) return json({ error: "item_not_found" }, 404);
@@ -639,8 +683,24 @@ async function deliveryQuote(body: Record<string, unknown>, user: { id: string }
     p_buyer: user.id, p_seller: sellerId, p_address: address, p_area_label: point.areaLabel, p_lat: point.lat, p_lng: point.lng,
   });
   if (setErr) return rpcRefusal(setErr);
+  const quotedAt = new Date().toISOString();
   const { data: quote, error: quoteErr } = await asBuyer.rpc("declutter_delivery_quote", { p_seller_id: sellerId });
+  // Q1930: AFTER the quote is read, route each pair it measures with Apple in the background and store it, so the next
+  // quote and the checkout re-quote read road miles instead of the 1.3x estimate (a change between quote and checkout
+  // is the existing delivery_rate_changed refusal). Never awaited: the buyer never waits for Apple.
+  routeInBackground(() => storeRoutedMiles(admin as unknown as RouteStore, user.id, sellerId, appleMapsAccess(), routeOutageAlert),
+    edgeWaitUntil());
   if (quoteErr) return rpcRefusal(quoteErr);
+  // Q1930 (lead final review 11-04): remember the price THIS buyer was shown for this seller's cart, so a checkout from
+  // an app that sends no expected price (every build before this) is held to it. A failed write is logged: that
+  // checkout then finds no shown price and is asked to price again (delivery_rate_changed), never charged unseen.
+  const shownCents = Number((quote as { delivery_cents?: unknown } | null)?.delivery_cents);
+  if (Number.isInteger(shownCents) && shownCents >= 0) {
+    // Never over a newer quote's price (declutter_record_quote_shown keeps the later quoted_at).
+    const { error: shownErr } = await admin.rpc("declutter_record_quote_shown",
+      { p_buyer: user.id, p_seller: sellerId, p_cents: shownCents, p_at: quotedAt });
+    if (shownErr) console.error(JSON.stringify({ event: "delivery_quote_shown_store_failed", detail: String(shownErr.message).slice(0, 200) }));
+  }
   return json({ quote });
 }
 

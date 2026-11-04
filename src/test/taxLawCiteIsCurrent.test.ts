@@ -1,5 +1,5 @@
 /**
- * Q2722: the member-facing tax lines cite the CURRENT Louisiana list of taxed
+ * Q2723: the member-facing tax lines cite the CURRENT Louisiana list of taxed
  * services. Act 11 (2024 3rd Extraordinary Session) moved the list from
  * La. R.S. 47:301(14) to 47:301.3, and cleaning carpets, rugs and furniture
  * (47:301.3(5)) is taxed; the old lines said cleaning was not.
@@ -15,7 +15,7 @@ import { blankComments } from "./helpers/blankNonCode";
 const FILES = ["src/pages/info/legal/TermsSection.tsx", "src/pages/info/legal/CommunitySection.tsx"];
 const read = (f: string) => blankComments(readFileSync(resolve(process.cwd(), f), "utf8"));
 
-describe("the legal tax lines cite La. R.S. 47:301.3 (Q2722)", () => {
+describe("the legal tax lines cite La. R.S. 47:301.3 (Q2723)", () => {
   it("no member-facing legal page cites the old 47:301(14) list", () => {
     for (const f of FILES) expect(read(f), f).not.toMatch(/47:301\(14\)/);
   });

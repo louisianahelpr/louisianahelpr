@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { BugReportAttachments, useBugReportContext } from "@/components/support/BugReportAttachments";
 import { withBugReport } from "@/lib/bugReportContext";
-import { CheckCircle2, Loader2, Send, Sparkles } from "lucide-react";
+import { CheckCircle2, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import { PublicHeaderPage } from "@/components/marketing/PublicHeaderPage";
@@ -20,6 +20,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useFeature } from "@/hooks/useFeature";
+import { AiSuggestion, askSupportAi } from "./SupportAi";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { PUBLIC_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { useProfile } from "@/hooks/useProfile";
@@ -152,25 +153,6 @@ const FieldError = ({ id, message }: { id: string; message?: string }) =>
 /* -------------------------------------------------------------------------- */
 /* Page                                                                        */
 /* -------------------------------------------------------------------------- */
-
-/**
- * Claude's answer from the Help Center, or null when there is none to show:
- * not answered, switched off, rate limited or any error. Never throws: a
- * failure here only means the ticket is sent as before.
- */
-async function askSupportAi(subject: string, message: string): Promise<string | null> {
-  try {
-    const { data, error } = await supabase.functions.invoke("support-ai-answer", {
-      body: { mode: "ask", subject, message },
-    });
-    if (error) return null;
-    const r = (data ?? {}) as { answered?: boolean; answer?: string };
-    return r.answered === true && typeof r.answer === "string" && r.answer.trim() ? r.answer.trim() : null;
-  } catch {
-    // Any failure: the ticket goes to the team exactly as without AI.
-    return null;
-  }
-}
 
 const Support = () => {
   // Same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs).
@@ -573,33 +555,7 @@ const Support = () => {
 
                 {bugContext && <BugReportAttachments context={bugContext} />}
 
-                {suggestion && (
-                  <div
-                    role="region"
-                    aria-label="Suggested answer"
-                    className="rounded-xl border border-border/60 p-4 space-y-3"
-                    style={{ background: "hsl(var(--burnt-sienna) / 0.06)" }}
-                  >
-                    <p className="flex items-center gap-1.5 font-sans text-ds-11 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-                      <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
-                      This might answer it, from our Help Center
-                    </p>
-                    <p className="font-sans text-ds-13 leading-relaxed whitespace-pre-wrap" style={{ color: "hsl(var(--ink-deep))" }}>
-                      {suggestion}
-                    </p>
-                    <p className="font-sans text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                      Written by our AI assistant. It can&apos;t see your account or change anything.
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <Button type="button" variant="outline" className="flex-1" onClick={() => setAnsweredByAi(true)} disabled={sending}>
-                        This answered my question
-                      </Button>
-                      <Button type="button" variant="primary" className="flex-1" onClick={sendTicket} disabled={sending}>
-                        Still send to the team
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                {suggestion && <AiSuggestion suggestion={suggestion} sending={sending} onAnswered={() => setAnsweredByAi(true)} onSend={sendTicket} />}
 
                 {!suggestion && <Button
                   type="submit"

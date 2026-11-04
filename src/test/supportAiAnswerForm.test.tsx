@@ -6,7 +6,7 @@
  *
  * @mutate src/pages/info/Support.tsx |     if (aiOn && askedKey !== key) { |     if (false) {
  * @mutate src/pages/info/Support.tsx |       if (answer) {\n        setSuggestion(answer);\n        return;\n      } |
- * @mutate src/pages/info/Support.tsx | onClick={() => setAnsweredByAi(true)} | onClick={sendTicket}
+ * @mutate src/pages/info/Support.tsx | onAnswered={() => setAnsweredByAi(true)} | onAnswered={sendTicket}
  */
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";

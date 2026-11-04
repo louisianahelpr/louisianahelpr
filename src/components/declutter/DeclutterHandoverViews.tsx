@@ -79,17 +79,12 @@ const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m
 // Seller delivery (20261027153244) loads with its own orders only (Q178).
 import { NoShowAnswer, NoShowButton } from "./DeclutterNoShowAnswer";
 import { NoHelprChoice } from "./DeclutterNoHelpr";
-// B134: a shipped order's label (seller) and tracking (buyer) load with ship orders only (Q178).
-const ShipOrderPanel = lazy(() => import("./ShipOrderPanel").then((m) => ({ default: m.ShipOrderPanel })));
-// Return label (20261103212046): the buyer prints it here once an admin asked for the item back; ship orders only.
-const ReturnLabelPanel = lazy(() => import("./ReturnLabelPanel").then((m) => ({ default: m.ReturnLabelPanel })));
+const ShipOrderPanel = lazy(() => import("./ShipOrderPanel").then((m) => ({ default: m.ShipOrderPanel }))); // B134: label (seller) and tracking (buyer), ship orders only (Q178).
+const ReturnLabelPanel = lazy(() => import("./ReturnLabelPanel").then((m) => ({ default: m.ReturnLabelPanel }))); // 20261103212046: the buyer's return label, ship orders only.
 const SellerDeliveryOrderPanel = lazy(() => import("./SellerDeliveryOrder").then((m) => ({ default: m.SellerDeliveryOrderPanel })));
-// Add a Helpr loads with the buyer's order card only (Q178: off /posts' critical path).
-const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel })));
-// Board 141 (Declutter side): the refund request after the handover loads with a handed-over order only.
-const DeclutterRefundPanel = lazy(() => import("./DeclutterRefundRequest").then((m) => ({ default: m.DeclutterRefundPanel })));
-// D2-3: both sides of a reported problem (the reason, words and photos; the other side adds theirs).
-const DeclutterProblemSides = lazy(() => import("./DeclutterProblemSides").then((m) => ({ default: m.DeclutterProblemSides })));
+const AddHelprPanel = lazy(() => import("./DeclutterAddHelpr").then((m) => ({ default: m.AddHelprPanel }))); // Add a Helpr: the buyer's card only (Q178).
+const DeclutterRefundPanel = lazy(() => import("./DeclutterRefundRequest").then((m) => ({ default: m.DeclutterRefundPanel }))); // Board 141: handed-over orders only.
+const DeclutterProblemSides = lazy(() => import("./DeclutterProblemSides").then((m) => ({ default: m.DeclutterProblemSides }))); // D2-3: both sides of a problem.
 const DeclutterProblemDecided = lazy(() => import("./DeclutterProblemSides").then((m) => ({ default: m.DeclutterProblemDecided })));
 
 const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
@@ -208,10 +203,8 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
         onAction={() => { setOpen(true); setAskGot(order.handover === "delivery" && view.action === "I got it"); }} />}
       {problem && view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />}
       {done && !problem && <Suspense fallback={null}><DeclutterProblemDecided orderId={order.orderId} side={order.side} /></Suspense>}
-      {/* The buyer's notice says "Print it from your order": shown outside the folded body, so it is seen at once. */}
-      {order.side === "buyer" && order.handover === "ship" && (order.status === "handed_over" || order.status === "refunded") && (
-        <Suspense fallback={null}><ReturnLabelPanel orderId={order.orderId} /></Suspense>
-      )}
+      {/* Outside the folded body: the buyer's notice says "Print it from your order". */}
+      {order.side === "buyer" && order.handover === "ship" && (order.status === "handed_over" || order.status === "refunded") && <Suspense fallback={null}><ReturnLabelPanel orderId={order.orderId} /></Suspense>}
       {done && order.side === "buyer" && order.handover === "delivery" && order.deliveryTaskId && <Suspense fallback={null}><OrderDeliveryPanel taskId={order.deliveryTaskId} side="buyer" orderId={order.orderId} tipOnly /></Suspense>}
       {body && <div ref={bodyRef} className="space-y-3" data-order-body="">
       {/* DC-16: ONE sale card: every handover kind shows the tracker, where it stands and the money note (Helpr delivery's is in OrderDeliveryPanel). */}

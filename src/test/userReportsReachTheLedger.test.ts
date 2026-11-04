@@ -81,6 +81,8 @@ export const SURFACES: Surface[] = [
     note: "Q289: App Store reviews rated <= 3, pulled daily by app-store-reviews.yml" },
   { file: "src/components/admin/SupportReply.tsx", kind: "invoke", target: "admin-support-reply", channel: "not-a-report",
     note: "an ADMIN's reply to a ticket already in the reports table; it answers a report, it does not file one" },
+  { file: "src/components/admin/SupportReply.tsx", kind: "invoke", target: "support-ai-answer", channel: "not-a-report",
+    note: "an ADMIN's 'Suggest a reply' draft (B70): fills the reply box for a ticket already in the reports table; files nothing" },
   { file: "supabase/functions/admin-support-reply/index.ts", kind: "write", target: "support_replies", channel: "not-a-report",
     note: "records the admin's reply on a ticket already in the reports table; it answers a report, it does not file one" },
   { file: "src/lib/nps.ts", kind: "write", target: "nps_responses", channel: "not-a-report",

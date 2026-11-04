@@ -43,23 +43,15 @@ const POSTER_PAYS_SENTENCE =
     ? "There is no per-job posting fee: the poster pays the job price (and any urgent bonus they add) and nothing on top, apart from sales tax where it applies and, once per account, the one-time account setup fee below."
     : "The poster pays the job price plus the service fee shown at checkout, before they pay.";
 
-
-
 /* ─────────────────────────────  TERMS  ───────────────────────────── */
 export const TermsContent = () => {
   // ID verification is off (switch `identity_check`, owner 2026-10-23): the
   // Terms say so instead of promising a check nobody runs.
   const idOn = useIdentityCheckOnStore();
-  // The setup fee is quoted from platform_settings — the number the platform
-  // actually charges — never from a code constant; see useOnboardingFeeCents
-  // for why. It is also the "account setup fee" everywhere a member meets it
-  // (checkout, the IDV prompt, the profile row); these Terms were the one
-  // surface still calling it an "onboarding fee". Null while loading or on
-  // failure, in which case the row simply does not quote a number.
+  // The setup fee is quoted from platform_settings (what is charged), never a code constant (see useOnboardingFeeCents),
+  // and named the "account setup fee" as everywhere else. Null while loading or on failure: the row quotes no number.
   const feeLabel = formatFeeLabel(useOnboardingFeeCents());
-  // Declutter shipping (switch declutter_shipping): its rules show only where it is on; elsewhere "Shipping is not
-  // offered." stays, and stays true (declutterShippingCopy.ts).
-  const shippingOn = useFeature("declutter_shipping");
+  const shippingOn = useFeature("declutter_shipping"); // Shipping rules only where the switch is on (declutterShippingCopy.ts).
   return (
   <div className="space-y-3">
     <TldrCard
@@ -386,11 +378,7 @@ export const TermsContent = () => {
         }
       />
       {shippingOn && (
-        <PolicyRowItem
-          icon={Truck}
-          title="Shipping"
-          body={<>{TERMS_SHIPPING_PARAGRAPHS.map((p) => <p key={p}>{p}</p>)}</>}
-        />
+        <PolicyRowItem icon={Truck} title="Shipping" body={<>{TERMS_SHIPPING_PARAGRAPHS.map((p) => <p key={p}>{p}</p>)}</>} />
       )}
       <PolicyRowItem
         icon={Receipt}

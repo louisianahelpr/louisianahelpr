@@ -12,7 +12,7 @@
  * @mutate src/components/declutter/ReturnLabelPanel.tsx |   if (r.state === "failed" \|\| !r.label_url) { |   if (r.state === "failed") {
  * @mutate src/components/declutter/ReturnLabelPanel.tsx | enabled: on }); | enabled: true });
  * @mutate src/components/declutter/ReturnLabelPanel.tsx |   if (q.isError) { |   if (false) {
- * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "buyer" && order.handover === "ship" && (order.status === "handed_over" \|\| order.status === "refunded") && ( |       {order.side === "buyer" && order.handover === "ship" && order.status === "handed_over" && (
+ * @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {order.side === "buyer" && order.handover === "ship" && (order.status === "handed_over" \|\| order.status === "refunded") && <Suspense |       {order.side === "buyer" && order.handover === "ship" && order.status === "handed_over" && <Suspense
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";

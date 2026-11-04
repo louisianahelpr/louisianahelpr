@@ -15100,6 +15100,7 @@ export type Database = {
           crew_spots_open: number | null
           customer_id: string | null
           date_needed: string | null
+          date_window_end: string | null
           description: string | null
           direct_offer_expires_at: string | null
           direct_offer_status: string | null

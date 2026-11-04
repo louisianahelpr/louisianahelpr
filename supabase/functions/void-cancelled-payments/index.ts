@@ -2960,7 +2960,21 @@ serve(async (req) => {
           // urgent fee, or one-time onboarding fee was also charged at checkout.
           // Using job.budget alone left those amounts stranded on the platform
           // and never returned to the customer.
-          const capturedCents = pi.amount_received ?? pi.amount;
+          const chargeCapturedCents = pi.amount_received ?? pi.amount;
+          // Review fix (lh-money-escrow on aa8869511 #3, Q1728 option A): a
+          // TAX-ONLY card charge (the gift paid the whole job; the card paid
+          // the job-site sales tax alone) holds no room for fees: fees never
+          // come out of the tax part. Every fee figure below reads the card's
+          // room (capturedCents), so the gift keeps the late fee, the card
+          // fee and the setup fee first, and the whole tax goes back to the
+          // card (siteTaxBackCents, added to the refund), which charge.refunded
+          // then reverses in full (_visitTaxReversal's tax share).
+          const piTaxMd = (pi.metadata ?? {}) as Record<string, string>;
+          const piSiteTaxCents = String(piTaxMd.tax_calculation_id ?? "").startsWith("taxcalc_") && /^\d+$/.test(String(piTaxMd.job_tax_cents ?? ""))
+            ? Number(piTaxMd.job_tax_cents)
+            : 0;
+          const siteTaxOnCardCents = piSiteTaxCents > 0 && chargeCapturedCents <= piSiteTaxCents ? chargeCapturedCents : 0;
+          const capturedCents = chargeCapturedCents - siteTaxOnCardCents;
           // Service fee is non-refundable: Stripe already took its cut on the
           // full capture and does NOT return it on a refund, so refunding the
           // whole (budget + fee) would leave the platform out-of-pocket by that
@@ -2988,12 +3002,16 @@ serve(async (req) => {
           // partial refund) comes off what this refund may return:
           // pi.amount_received does not go down after them. The charge's own
           // amount_refunded is the authority.
-          const chargeRefundedCents = Number(
+          const chargeRefundedOnCardCents = Number(
             (pi.latest_charge && typeof pi.latest_charge === "object"
               ? (pi.latest_charge as { amount_refunded?: number }).amount_refunded
               : 0) ?? 0,
           );
-          const keptOfCard = cardNonRefundableCents(capturedCents, actualOrEstimatedFeeCents(pi, capturedCents));
+          // On a tax-only charge an earlier refund came out of the tax (there is nothing else on the card);
+          // it is taken off the tax still to return, not off the fee room.
+          const siteTaxBackCents = Math.max(0, siteTaxOnCardCents - Math.max(0, chargeRefundedOnCardCents));
+          const chargeRefundedCents = siteTaxOnCardCents > 0 ? 0 : chargeRefundedOnCardCents;
+          const keptOfCard = cardNonRefundableCents(capturedCents, actualOrEstimatedFeeCents(pi, chargeCapturedCents));
           const cardShortCents = Math.max(0, keptOfCard + feeOwedCents + crewBlockFeeCents(blockFeeRows) - capturedCents);
           let cardGift: { cents: number; uncollectable?: true } | null = null;
           /** Q2000: the gift can never pay its part; the fee was capped at the card. */
@@ -3052,7 +3070,7 @@ serve(async (req) => {
             charge: {
               state: "captured",
               capturedCents,
-              actualFeeCents: actualOrEstimatedFeeCents(pi, capturedCents),
+              actualFeeCents: actualOrEstimatedFeeCents(pi, chargeCapturedCents),
               alreadyRefundedCents: chargeRefundedCents,
               taxCents: await chargeTaxCentsFor(stripe, pi),
             },
@@ -3104,7 +3122,9 @@ serve(async (req) => {
           const refundedAtStripe = voidSplit.ceilingCents > 0 && voidSplit.remainingCents === 0 && chargeRefundedCents > 0;
           // Signed on purpose (not floored): the $0 branch below reports the
           // raw shortfall to ops, as it did before the shared helper.
-          const refundAmount = voidSplit.refundCents > 0 || refundedAtStripe
+          const refundAmount = siteTaxOnCardCents > 0
+            ? voidSplit.refundCents + siteTaxBackCents
+            : voidSplit.refundCents > 0 || refundedAtStripe
             ? voidSplit.refundCents
             // Q2082 (a): never hand back the tax just kept (review of 461a6b724 #5).
             : capturedCents - Math.round(cancellationFee * 100) - blockFeeCents - nonRefundableCents - voidSplit.taxKeptCents;
@@ -3182,7 +3202,7 @@ serve(async (req) => {
               cancellationRefundNotice = {
                 key: `refund:${refund.id}`, kind: "refund", amountCents: refundedCents,
                 // An earlier refund on this charge (Q1675) went back too: not kept.
-                keptCents: Math.max(0, capturedCents - chargeRefundedCents - refundedCents),
+                keptCents: Math.max(0, chargeCapturedCents - chargeRefundedOnCardCents - refundedCents),
                 keptReason: (parts.length <= 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`) ?? null,
                 keptUnnamed: true,
               };
@@ -3296,7 +3316,7 @@ serve(async (req) => {
           // function. A failure leaves the job in escrow so the next run retries
           // the bill (the ledger stops a second refund) and pages ops.
           if (sellerFault) {
-            const cardFeeCents = actualOrEstimatedFeeCents(pi, capturedCents);
+            const cardFeeCents = actualOrEstimatedFeeCents(pi, chargeCapturedCents);
             const { error: debtErr } = await supabaseAdmin.rpc("declutter_setup_job_fee_debt", {
               p_job_id: job.id,
               p_card_fee_cents: cardFeeCents,

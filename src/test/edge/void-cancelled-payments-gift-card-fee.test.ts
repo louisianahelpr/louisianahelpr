@@ -296,6 +296,106 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
     expect(jobFlips()).toHaveLength(1);
   });
 
+  // Q2718 (lead 2026-11-04): a NEAR-tax-only charge (card $4.00 = $3.00 labor + $1.00 tax; card fee $1.50 + setup
+  // $2.00 = $3.50 kept) is priced by the same rule as a tax-only one: the card keeps its $3.00 non-tax part, the
+  // gift keeps the other $0.50, and the tax goes back less the tax on all $3.50 kept (job rate). Before, the sweep
+  // read it as an ordinary charge: the card kept $3.50 (50c of it out of the tax) and the gift came back whole.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |             ? Math.min(chargeCapturedCents, piSiteTaxCents)\n            : 0; |             ? 0\n            : 0;
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |               keptCents: Math.max(0, capturedCents - Math.max(0, chargeRefundedCents) - voidSplit.refundCents) + cardGiftKeptCents, |               keptCents: cardGiftKeptCents,
+  const NEAR = { CARD: 400, TAX: 100, TAXABLE: 30000, CARD_FEE: 150, SETUP: 200 };
+  const nearTaxPi = (refunded = 0) => ({
+    id: "pi_1", status: "succeeded", amount: NEAR.CARD, amount_received: NEAR.CARD,
+    metadata: siteTaxMd("taxcalc_near", NEAR.TAX, { job_taxable_cents: String(NEAR.TAXABLE) }),
+    latest_charge: { id: "ch_1", amount: NEAR.CARD, amount_refunded: refunded, balance_transaction: { fee: NEAR.CARD_FEE } },
+  });
+  const nearKept = NEAR.CARD_FEE + NEAR.SETUP;
+  const nearGiftKept = nearKept - (NEAR.CARD - NEAR.TAX);
+  const nearTaxBack = NEAR.TAX - Math.ceil((nearKept * NEAR.TAX) / NEAR.TAXABLE);
+  const freeCancelJob = (over: Record<string, unknown> = {}) =>
+    mixedJob({ cancellation_fee: 0, cancelled_at: "2024-06-18T14:00:00Z", onboarding_fee_amount: 2, ...over });
+
+  it("near-tax-only charge: the gift keeps what the non-tax part misses, the tax goes back less the tax on all kept (Q2718)", async () => {
+    seed(freeCancelJob());
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_near", amount: nearTaxBack });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(nearTaxPi());
+    const h = await load();
+    await h.fetch(cronReq());
+
+    const restored = restoredCents();
+    expect(restored).not.toBeNull();
+    expect(GIFT - restored!).toBe(nearGiftKept);
+    const refunds = stripeMock.refunds.create.mock.calls.map(([p]) => (p as { amount?: number }).amount);
+    expect(refunds).toEqual([nearTaxBack]);
+    expect(jobFlips()).toHaveLength(1);
+    expect((slackAlerts as Array<{ title?: string }>).some((a) => a.title === "Cancelled job's fees would come out of its sales tax")).toBe(false);
+  });
+
+  it("an ordinary taxed charge whose non-tax part holds the kept fees settles as before: gift back whole (Q2718 control)", async () => {
+    seed(freeCancelJob());
+    const CARD1 = 1000;
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_ord", amount: 0 });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      ...nearTaxPi(), amount: CARD1, amount_received: CARD1,
+      latest_charge: { id: "ch_1", amount: CARD1, amount_refunded: 0, balance_transaction: { fee: NEAR.CARD_FEE } },
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(restoredCents()).toBe(GIFT);
+    const refunds = stripeMock.refunds.create.mock.calls.map(([p]) => (p as { amount?: number }).amount);
+    expect(refunds).toEqual([CARD1 - nearKept - Math.ceil((nearKept * NEAR.TAX) / NEAR.TAXABLE)]);
+  });
+
+  // Q2718: the gift cannot pay (its donation was charged back): the rest is not taken from the tax, and the
+  // "fees would come out of its sales tax" page tells a person to look.
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |               if (siteTaxOnCardCents > 0 && keptOfCard > cardRoomCents) { |               if (false) {
+  it("near-tax-only charge whose gift cannot pay: settles without touching the tax and pages (Q2718)", async () => {
+    seed(freeCancelJob());
+    reversedGift();
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_near", amount: 0 });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(nearTaxPi());
+    const h = await load();
+    await h.fetch(cronReq());
+    const alerts = slackAlerts as Array<{ title?: string; message?: string }>;
+    expect(alerts.filter((a) => a.title === "Cancelled job's fees would come out of its sales tax")).toHaveLength(1);
+    // The card keeps only its $3.00 non-tax part; the tax goes back less the tax on that.
+    const refunds = stripeMock.refunds.create.mock.calls.map(([p]) => (p as { amount?: number }).amount);
+    expect(refunds).toEqual([NEAR.TAX - Math.ceil(((NEAR.CARD - NEAR.TAX) * NEAR.TAX) / NEAR.TAXABLE)]);
+    expect(jobFlips()).toHaveLength(1);
+  });
+
+  // Q2718 end to end: cancel_escrow hands the near-tax-only job to the sweep (no money moved), and the sweep
+  // then settles it by the rule above.
+  it("cancel_escrow -> sweep on a near-tax-only charge: handed off, then the gift keeps 50c and the tax goes back (Q2718)", async () => {
+    // 1) the poster cancels an unhired, escrowed job.
+    scenario.authUser = { id: "poster-1", email: "poster@test.com" };
+    stripeMock.customers.list.mockResolvedValue({ data: [{ id: "cus_existing" }] });
+    scenario.reads.jobs = {
+      rows: [{ id: "job-1", customer_id: "poster-1", status: "open", payment_status: "escrow", stripe_payment_intent_id: "pi_1", budget: 300, customer_fee_amount: 0, onboarding_fee_amount: 2 }],
+    };
+    scenario.writeSelectRows.jobs = [{ id: "job-1" }];
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(nearTaxPi());
+    setEnv({ SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "anon-key", SUPABASE_SERVICE_ROLE_KEY: "service-key", STRIPE_SECRET_KEY: "sk_test_abc123" });
+    const cp = await loadEdgeFunction("create-payment");
+    const res = await cp.fetch(cp.request({ headers: { Authorization: "Bearer test-jwt" }, body: { action: "cancel_escrow", jobId: "job-1" } }));
+    expect(res.status).toBe(200);
+    expect(JSON.parse(await res.text())).toMatchObject({ settlesLater: true });
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    const hand = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update").pop();
+    expect(hand?.payload).toMatchObject({ status: "cancelled", payment_status: "escrow" });
+
+    // 2) the hourly sweep finds it (cancelled + escrow) and settles it.
+    reset();
+    seed(freeCancelJob({ helper_id: null, helper_confirmed_at: null, cancelled_at: (hand!.payload as { cancelled_at: string }).cancelled_at }));
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_near", amount: nearTaxBack });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(nearTaxPi());
+    const h = await load();
+    await h.fetch(cronReq());
+    expect(GIFT - restoredCents()!).toBe(nearGiftKept);
+    const refunds = stripeMock.refunds.create.mock.calls.map(([p]) => (p as { amount?: number }).amount);
+    expect(refunds).toEqual([nearTaxBack]);
+    expect(jobFlips()).toHaveLength(1);
+  });
+
   // Re-review of 49a8653d81 (D): a hold of no more than its job-site tax pages ops; an ordinary hold does not.
   // @mutate supabase/functions/void-cancelled-payments/index.ts |           if (holdSiteTaxCents > 0 && Math.round(Number(pi.amount ?? 0)) <= holdSiteTaxCents) { |           if (false) {
   it("a hold that holds only its job-site tax pages ops", async () => {

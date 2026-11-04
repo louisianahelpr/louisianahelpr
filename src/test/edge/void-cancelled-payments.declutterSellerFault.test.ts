@@ -179,7 +179,7 @@ describe("void-cancelled-payments: a setup job a Declutter seller's backing out 
   // Q1966 (lh-money-escrow review of the train's rebase resolution): A10 + Q1675 together. An earlier partial refund
   // on the charge is taken off the refund (alreadyRefundedCents), the setup fee is still kept, and the seller is still
   // billed the card fee Stripe kept: captured $222.00, $30.00 refunded earlier, $2 setup fee -> $190.00 back.
-  // @mutate supabase/functions/void-cancelled-payments/index.ts |               alreadyRefundedCents: chargeRefundedCents,\n              taxCents: await chargeTaxCentsFor(stripe, pi), |               alreadyRefundedCents: 0,\n              taxCents: await chargeTaxCentsFor(stripe, pi),
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |               alreadyRefundedCents: chargeRefundedCents,\n              // Q2718: with the tax split off | alreadyRefundedCents: 0,\n              // Q2718: with the tax split off
   it("a charge with an earlier partial refund: refunds the rest less the setup fee, and still bills the seller", async () => {
     const captured = seed({ marker: MARKED, setupFee: true });
     stripeMock.paymentIntents.retrieve.mockResolvedValue({

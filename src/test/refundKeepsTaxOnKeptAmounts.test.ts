@@ -21,7 +21,7 @@
  * @mutate supabase/functions/_shared/refundAmount.ts |     return jobSiteTaxCents(session?.metadata) ?? cents(session?.total_details?.amount_tax ?? 0); |     return jobSiteTaxCents(session?.metadata) ?? 0;
  * @mutate supabase/functions/_shared/refundAmount.ts |   const keptInBase = Math.max(0, keptCents - (captured - taxBase)); |   const keptInBase = keptCents;
  * @mutate supabase/functions/create-payment/index.ts |             alreadyRefundedCents,\n            taxCents: await chargeTaxCentsFor(stripe, pi), |             alreadyRefundedCents,
- * @mutate supabase/functions/void-cancelled-payments/index.ts |               alreadyRefundedCents: chargeRefundedCents,\n              taxCents: await chargeTaxCentsFor(stripe, pi), |               alreadyRefundedCents: chargeRefundedCents, taxCents: 0,
+ * @mutate supabase/functions/void-cancelled-payments/index.ts | taxCents: siteTaxOnCardCents > 0 ? 0 : await chargeTaxCentsFor(stripe, pi), | taxCents: 0,
  * @mutate supabase/functions/execute-dispute-split/index.ts |     taxableCents: pi ? jobSiteTaxableCents(pi.metadata as Record<string, string> \| null) : null,\n | \n
  * @mutate supabase/functions/_shared/posterCancelSplit.ts |     alreadyRefundedCents: c.alreadyRefundedCents,\n    taxCents: c.taxCents, |     alreadyRefundedCents: c.alreadyRefundedCents,
  */

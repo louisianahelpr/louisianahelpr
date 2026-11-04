@@ -2999,8 +2999,6 @@ serve(async (req) => {
           const piSiteTaxCents = String(piTaxMd.tax_calculation_id ?? "").startsWith("taxcalc_") && /^\d+$/.test(String(piTaxMd.job_tax_cents ?? ""))
             ? Number(piTaxMd.job_tax_cents)
             : 0;
-          const siteTaxOnCardCents = piSiteTaxCents > 0 && chargeCapturedCents <= piSiteTaxCents ? chargeCapturedCents : 0;
-          const capturedCents = chargeCapturedCents - siteTaxOnCardCents;
           // Service fee is non-refundable: Stripe already took its cut on the
           // full capture and does NOT return it on a refund, so refunding the
           // whole (budget + fee) would leave the platform out-of-pocket by that
@@ -3035,9 +3033,23 @@ serve(async (req) => {
           );
           // On a tax-only charge an earlier refund came out of the tax (there is nothing else on the card);
           // it is taken off the tax still to return, not off the fee room.
+          const keptOfCard = cardNonRefundableCents(chargeCapturedCents, actualOrEstimatedFeeCents(pi, chargeCapturedCents));
+          // Q2718 (lead 2026-11-04): the same rule for ANY job-site taxed charge whose non-tax part
+          // (captured - tax) is smaller than what this cancel keeps, not only a charge of the tax alone: a
+          // near-tax-only charge (card $4.00 = $3.00 labor + $1.00 tax, $3.50 kept) would otherwise keep $0.50
+          // of the tax and give the whole gift back. The tax is split off the card's fee room: the card keeps
+          // what its non-tax part covers, the gift keeps max(0, kept - (captured - tax)), and the tax goes back
+          // less the tax on everything kept (job rate). This is create-payment cancel_escrow's hand-off test.
+          const siteTaxOnCardCents = piSiteTaxCents > 0
+              && chargeCapturedCents - piSiteTaxCents < keptOfCard + feeOwedCents + crewBlockFeeCents(blockFeeRows)
+            ? Math.min(chargeCapturedCents, piSiteTaxCents)
+            : 0;
+          const capturedCents = chargeCapturedCents - siteTaxOnCardCents;
           const siteTaxBackCents = Math.max(0, siteTaxOnCardCents - Math.max(0, chargeRefundedOnCardCents));
-          const chargeRefundedCents = siteTaxOnCardCents > 0 ? 0 : chargeRefundedOnCardCents;
-          const keptOfCard = cardNonRefundableCents(capturedCents, actualOrEstimatedFeeCents(pi, chargeCapturedCents));
+          // An earlier refund past the tax came out of the non-tax part: it stays off the fee room.
+          const chargeRefundedCents = siteTaxOnCardCents > 0
+            ? Math.max(0, chargeRefundedOnCardCents - siteTaxOnCardCents)
+            : chargeRefundedOnCardCents;
           const cardShortCents = Math.max(0, keptOfCard + feeOwedCents + crewBlockFeeCents(blockFeeRows) - capturedCents);
           let cardGift: { cents: number; uncollectable?: true } | null = null;
           /** Q2000: the gift can never pay its part; the fee was capped at the card. */
@@ -3082,6 +3094,19 @@ serve(async (req) => {
               const cardLeftCents = Math.max(0, capturedCents - Math.max(0, chargeRefundedCents) - keptOfCard);
               cancellationFee = Math.min(feeOwedCents, cardLeftCents + cardGift.cents) / 100;
               cardGift = null;
+              // Q2718: the gift cannot pay the card and setup fee the non-tax part misses either. They are not
+              // taken from the sales tax (the tax goes back less the tax on what the card kept), so a person looks.
+              const cardRoomCents = Math.max(0, capturedCents - Math.max(0, chargeRefundedCents));
+              if (siteTaxOnCardCents > 0 && keptOfCard > cardRoomCents) {
+                await postSlackOpsAlert({
+                  kind: "money_at_risk",
+                  severity: "warning",
+                  title: "Cancelled job's fees would come out of its sales tax",
+                  message: `Cancel sweep on job ${job.id}: the card paid $${(chargeCapturedCents / 100).toFixed(2)}, of which $${(siteTaxOnCardCents / 100).toFixed(2)} is job-site sales tax, so its non-tax part ($${(cardRoomCents / 100).toFixed(2)}) is smaller than the $${(keptOfCard / 100).toFixed(2)} card and setup fee this cancel keeps, and its gift cannot pay the rest. The rest was not taken from the tax and is not collected. Check the refund, the gift and the tax by hand (docs/OPEN.md Q2718).`,
+                  fields: { job_id: job.id, payment_intent: paymentIntentId, captured_cents: chargeCapturedCents, tax_cents: siteTaxOnCardCents, kept_fees_cents: keptOfCard },
+                  oncePerDayKey: `cancel-fees-from-tax:${job.id}`,
+                });
+              }
             }
           }
           // Q1390: the crew's block fees are tried first and withheld from the refund.
@@ -3101,7 +3126,9 @@ serve(async (req) => {
               capturedCents,
               actualFeeCents: actualOrEstimatedFeeCents(pi, chargeCapturedCents),
               alreadyRefundedCents: chargeRefundedCents,
-              taxCents: await chargeTaxCentsFor(stripe, pi),
+              // Q2718: with the tax split off (capturedCents is then the non-tax part), the tax kept is priced
+              // below on everything kept, never inside this split.
+              taxCents: siteTaxOnCardCents > 0 ? 0 : await chargeTaxCentsFor(stripe, pi),
               taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null),
             },
           });
@@ -3154,9 +3181,11 @@ serve(async (req) => {
           // raw shortfall to ops, as it did before the shared helper.
           // Re-review of 49a8653d81 (B), Q2082 (a): the fees the gift kept carry their tax, at the job's own rate
           // (job_taxable_cents), so that tax stays out of what goes back; only the rest of the tax is refunded.
+          // Q2718: everything kept is taxed: what the card keeps of its non-tax part (after earlier refunds
+          // and this refund) plus what the gift keeps.
           const siteTaxOnGiftKeptCents = siteTaxOnCardCents > 0
             ? Math.min(siteTaxBackCents, taxOnKeptCents({
-              keptCents: cardGiftKeptCents,
+              keptCents: Math.max(0, capturedCents - Math.max(0, chargeRefundedCents) - voidSplit.refundCents) + cardGiftKeptCents,
               taxCents: piSiteTaxCents,
               capturedCents: chargeCapturedCents,
               taxableCents: jobSiteTaxableCents(pi.metadata as Record<string, string> | null),

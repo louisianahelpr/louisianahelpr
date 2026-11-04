@@ -356,7 +356,7 @@ export function networkGate() {
 export const DESTRUCTIVE_RX = /\b(delete|remove|pay|submit|send|ban|unban|confirm|release|refund|withdraw|cancel|accept|decline|hire|book|apply|block|report|sign out|log out|deactivate|unsubscribe|subscribe|upgrade|post job|publish|save|update|approve|deny|resolve|suspend|restore|reset|revoke|complete|mark|tip|boost|purchase|buy|checkout|end|leave|give up|turn down|escalate|take (?:it )?back|take down|close my shop|got it|unsave|reverse|connect (?:google|apple)|watch|unwatch)\b/i;
 export { ACCOUNT_DESTROY_RX, SESSION_END_RX, PAYMENT_RX, SELF_ROUTE_RX } from "./pressProdSafety.mjs";
 import { isDeclaredReadRpcPath } from "./declaredReadRpcs.mjs";
-import { PAYMENT_RX, isAccountSettingToggle, isAdminStateToggle, isAdminWrite, isCommitControl, isNotificationOpen } from "./pressProdSafety.mjs";
+import { PAYMENT_RX, isAccountSettingToggle, isAdminStateToggle, isAdminWrite, isCommitControl, isDataExport, isNotificationOpen } from "./pressProdSafety.mjs";
 import { RequestMeter } from "../../e2e/requestMeter.mjs";
 /** Console lines the HARNESS causes, not the app. */
 /**
@@ -1943,7 +1943,7 @@ async function main() {
           const ckey = chromeKey({ persona, chain: entry.chain.slice(0, -1), sig: meta.sig });
           const chromeWhy = chromeDisposition({ fromChrome: item.fromChrome, depth: item.depth, key: ckey, passedOn: chromePassedOn });
           if (chromeWhy) { entry.pressedOn = chromePassedOn.get(ckey); skip(chromeWhy); continue; }
-          if ((DESTRUCTIVE_RX.test(label) && !meta.dismissOnly) || isNotificationOpen({ label, chain: entry.chain }) || isAdminWrite({ persona, label }) || meta.type === "submit" || isCommitControl(meta) || PAYMENT_RX.test(label) || isAdminStateToggle({ persona, meta, label }) || isAccountSettingToggle({ persona, meta, label })) {
+          if ((DESTRUCTIVE_RX.test(label) && !meta.dismissOnly) || isNotificationOpen({ label, chain: entry.chain }) || isAdminWrite({ persona, label }) || meta.type === "submit" || isCommitControl(meta) || PAYMENT_RX.test(label) || isAdminStateToggle({ persona, meta, label }) || isAccountSettingToggle({ persona, meta, label }) || isDataExport({ label })) {
             const why = await gate(label, meta, item.chainOwned);
             if (why) { skip(why); continue; }
             entry.mutating = true;

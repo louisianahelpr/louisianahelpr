@@ -32,8 +32,8 @@ function Host({ job }: { job: Partial<EnrichedJob> }) {
 afterEach(() => { cleanup(); seen = null; vi.useRealTimers(); });
 
 describe("Q2408 the apply question on a window job", () => {
-  // 16:00Z on 2026-11-06 is 10:00 AM in Chicago.
-  const at10am = () => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(new Date("2026-11-06T16:00:00Z")); };
+  // 16:00Z on 2037-11-06 is 10:00 AM in Chicago.
+  const at10am = () => { vi.useFakeTimers({ toFake: ["Date"] }); vi.setSystemTime(new Date("2037-11-06T16:00:00Z")); };
   it("before the window: asks about the first day, says any day works, Other time stays in the window", () => {
     render(<Host job={{ date_needed: plus(2), date_window_end: plus(8) }} />);
     expect(screen.getByTestId("apply-time-yes")).toBeTruthy();
@@ -48,19 +48,19 @@ describe("Q2408 the apply question on a window job", () => {
 
   it("a past first day: no Yes; today is offered while its start is ahead (no start time: all day)", () => {
     at10am();
-    render(<Host job={{ date_needed: "2026-11-05", date_window_end: "2026-11-10" }} />);
+    render(<Host job={{ date_needed: "2037-11-05", date_window_end: "2037-11-10" }} />);
     expect(screen.queryByTestId("apply-time-yes")).toBeNull();
     expect(screen.getByText("Which day works for you?")).toBeTruthy();
-    expect(seen?.date).toBe("2026-11-06");
+    expect(seen?.date).toBe("2037-11-06");
     const date = screen.getByTestId("apply-time-date") as HTMLInputElement;
-    expect(date.min).toBe("2026-11-06");
-    expect(date.max).toBe("2026-11-10");
+    expect(date.min).toBe("2037-11-06");
+    expect(date.max).toBe("2037-11-10");
   });
 
   // Final review: day 1 hid Yes and pre-filled today at the job's own time, which apply refuses (suggestion_same_as_job).
   it("on day 1 with its 3 PM start still ahead: Yes stays and nothing is pre-filled", () => {
     at10am();
-    render(<Host job={{ date_needed: "2026-11-06", date_window_end: "2026-11-12", start_time: "15:00:00", is_flexible_schedule: false }} />);
+    render(<Host job={{ date_needed: "2037-11-06", date_window_end: "2037-11-12", start_time: "15:00:00", is_flexible_schedule: false }} />);
     expect(screen.getByTestId("apply-time-yes")).toBeTruthy();
     expect(screen.getByTestId("apply-time-window")).toBeTruthy();
     expect(seen).toBeNull();
@@ -68,46 +68,46 @@ describe("Q2408 the apply question on a window job", () => {
 
   it("on day 1 with its start 15 minutes away or less: no Yes, tomorrow is offered", () => {
     at10am();
-    render(<Host job={{ date_needed: "2026-11-06", date_window_end: "2026-11-12", start_time: "10:10:00", is_flexible_schedule: false }} />);
+    render(<Host job={{ date_needed: "2037-11-06", date_window_end: "2037-11-12", start_time: "10:10:00", is_flexible_schedule: false }} />);
     expect(screen.queryByTestId("apply-time-yes")).toBeNull();
-    expect(seen?.date).toBe("2026-11-07");
+    expect(seen?.date).toBe("2037-11-07");
   });
 
   // Final review: today was offered with a start 15 minutes ahead; hiring at it refuses less than 2 hours (suggestion_too_soon).
   it("mid-window, today's start 1.5 hours ahead: tomorrow is the first day offered", () => {
     at10am();
-    render(<Host job={{ date_needed: "2026-11-05", date_window_end: "2026-11-09", start_time: "11:30:00", is_flexible_schedule: false }} />);
-    expect(seen?.date).toBe("2026-11-07");
+    render(<Host job={{ date_needed: "2037-11-05", date_window_end: "2037-11-09", start_time: "11:30:00", is_flexible_schedule: false }} />);
+    expect(seen?.date).toBe("2037-11-07");
   });
 
   it("mid-window, today's start 2.5 hours ahead: today is offered", () => {
     at10am();
-    render(<Host job={{ date_needed: "2026-11-05", date_window_end: "2026-11-09", start_time: "12:30:00", is_flexible_schedule: false }} />);
-    expect(seen?.date).toBe("2026-11-06");
+    render(<Host job={{ date_needed: "2037-11-05", date_window_end: "2037-11-09", start_time: "12:30:00", is_flexible_schedule: false }} />);
+    expect(seen?.date).toBe("2037-11-06");
   });
 
   it("at 10:30 PM with no start time: today is over (2 hours on is past midnight), tomorrow is offered", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
-    vi.setSystemTime(new Date("2026-11-07T04:30:00Z")); // 10:30 PM Nov 6 in Chicago
-    render(<Host job={{ date_needed: "2026-11-05", date_window_end: "2026-11-09" }} />);
-    expect(seen?.date).toBe("2026-11-07");
+    vi.setSystemTime(new Date("2037-11-07T04:30:00Z")); // 10:30 PM Nov 6 in Chicago
+    render(<Host job={{ date_needed: "2037-11-05", date_window_end: "2037-11-09" }} />);
+    expect(seen?.date).toBe("2037-11-07");
   });
 
   // Lead review 11-04: on the window's LAST day the picker was empty ("Which day works for you?" with nothing to pick).
 
   it("on the window's last day, before its 3 PM start: today is offered (the only day left)", () => {
     at10am();
-    render(<Host job={{ date_needed: "2026-11-04", date_window_end: "2026-11-06", start_time: "15:00:00", is_flexible_schedule: false }} />);
-    expect(seen?.date).toBe("2026-11-06");
+    render(<Host job={{ date_needed: "2037-11-04", date_window_end: "2037-11-06", start_time: "15:00:00", is_flexible_schedule: false }} />);
+    expect(seen?.date).toBe("2037-11-06");
     const date = screen.getByTestId("apply-time-date") as HTMLInputElement;
-    expect(date.min).toBe("2026-11-06");
-    expect(date.max).toBe("2026-11-06");
+    expect(date.min).toBe("2037-11-06");
+    expect(date.max).toBe("2037-11-06");
   });
 
   it("mid-window, today's start within 15 minutes: tomorrow is the first day offered", () => {
     at10am();
-    render(<Host job={{ date_needed: "2026-11-05", date_window_end: "2026-11-09", start_time: "10:10:00", is_flexible_schedule: false }} />);
-    expect(seen?.date).toBe("2026-11-07");
+    render(<Host job={{ date_needed: "2037-11-05", date_window_end: "2037-11-09", start_time: "10:10:00", is_flexible_schedule: false }} />);
+    expect(seen?.date).toBe("2037-11-07");
   });
 
   it("a one-day job is unchanged (Yes offered, no window line)", () => {

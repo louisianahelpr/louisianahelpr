@@ -51,8 +51,8 @@ describe("Q2408: the Browse list's client culls read the window's last day", () 
 
 describe("Q2408: the map popup and the first-job Home row print the window", () => {
   it("the map adapter carries date_window_end to the card", () => {
-    const job = { id: "j", title: "t", category: "yard", budget: 50, is_urgent: false, latitude: 30, longitude: -92, parish: null, created_at: "2026-11-01T00:00:00Z", date_needed: "2026-11-04", date_window_end: "2026-11-10" } as unknown as MapJob;
-    expect(mapJobToEnrichedJob(job).date_window_end).toBe("2026-11-10");
+    const job = { id: "j", title: "t", category: "yard", budget: 50, is_urgent: false, latitude: 30, longitude: -92, parish: null, created_at: "2037-11-01T00:00:00Z", date_needed: "2037-11-04", date_window_end: "2037-11-10" } as unknown as MapJob;
+    expect(mapJobToEnrichedJob(job).date_window_end).toBe("2037-11-10");
     expect(mapJobToEnrichedJob({ ...job, date_window_end: undefined } as MapJob).date_window_end).toBeNull();
   });
   it("FirstJobHome prints jobDayLabel for a window", () => {

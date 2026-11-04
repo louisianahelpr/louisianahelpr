@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Job } from "./types";
 import { HelprFaultFields } from "../helprFault/HelprFaultFields";
 import type { HelprFaultKind } from "../helprFault/helprFault";
+import { Input } from "@/components/ui/input";
 
 /** Q2082 (b): the "Helpr at fault" option of the refund (always a full refund). */
 export interface RefundHelprFaultState {
@@ -128,7 +129,7 @@ export const RefundJobDialog = ({
             </label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-ds-13 text-muted-foreground pointer-events-none">$</span>
-              <input
+              <Input
                 type="number"
                 aria-label="Refund amount"
                 inputMode="decimal"
@@ -138,7 +139,7 @@ export const RefundJobDialog = ({
                 placeholder={detailJob ? `${Number(detailJob.budget).toFixed(2)}` : "0.00"}
                 value={refundAmount}
                 onChange={(e) => onAmountChange(e.target.value)}
-                className="w-full rounded-md border border-input bg-background pl-7 pr-3 py-2 text-ds-13 focus:outline-none focus:ring-2 focus:ring-ring"
+                className="w-full pl-7"
               />
             </div>
             {refundAmount.trim() && Number(refundAmount) > 0 && detailJob && Number(refundAmount) < Number(detailJob.budget) && (

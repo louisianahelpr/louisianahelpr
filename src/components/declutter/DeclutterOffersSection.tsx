@@ -22,6 +22,7 @@ import { timeLeft } from "@/lib/declutter/timeLeft";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { invalidateTrades } from "./declutterLightActions";
 import { useLinkedOffer, useScrollToLinkedOrder } from "./useLinkedOrder";
+import { Input } from "@/components/ui/input";
 
 /** Every Declutter read refetches after a trade (offers, cart, orders). */
 
@@ -202,10 +203,10 @@ function OfferRow({ o, linked = false }: { o: MyOffer; linked?: boolean }) {
           <div className="flex gap-2">
             <div className="relative min-w-0 flex-1" data-counter-field="">
               <span aria-hidden className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm font-semibold text-muted-foreground">$</span>
-              <input
+              <Input
                 id={`counter-${o.offer_id}`}
                 inputMode="decimal"
-                className="w-full min-w-0 rounded-lg border border-input bg-background py-2 pl-6 pr-3 text-sm"
+                className="w-full min-w-0 pl-6"
                 value={counter}
                 onChange={(e) => setCounter(e.target.value)}
                 placeholder={counterExample(o)}

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { hapticSuccess, hapticLight } from "@/lib/haptics";
 import { formatPrice, formatPriceFloor } from "@/lib/format";
+import { Input } from "@/components/ui/input";
 
 interface MonthlyGoalCardProps {
   /** All completed jobs with their date and net payout */
@@ -187,7 +188,7 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
             <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-ds-13 text-muted-foreground">
               $
             </span>
-            <input
+            <Input
               type="number"
               min="1"
               step="50"
@@ -199,7 +200,7 @@ export function MonthlyGoalCard({ completedJobs }: MonthlyGoalCardProps) {
               }}
               autoFocus
               aria-label="Monthly earnings goal in dollars"
-              className="w-full rounded-ds-md border border-input bg-background pl-6 pr-3 py-1.5 text-ds-13"
+              className="w-full pl-6"
             />
           </div>
           <button

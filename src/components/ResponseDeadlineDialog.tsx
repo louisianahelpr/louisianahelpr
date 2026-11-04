@@ -23,6 +23,7 @@ import { formatPriceExact, seriesSummary } from "@/lib/format";
 import { STAR_ON_CLS } from "@/lib/starColor";
 import { Star } from "lucide-react";
 import { readCardHoldLine } from "@/lib/cardHoldRead";
+import { jobDayLabel } from "@/lib/jobDateWindow";
 
 type Props = {
   open: boolean;
@@ -103,7 +104,7 @@ export const ResponseDeadlineDialog = ({ open, helperName, onConfirm, onClose, j
   // Only a funded job can be hired into (trg_job_funded_before_award); the note claims payment only then.
   const funded = !job?.payment_status || ["escrow", "payout_pending", "released"].includes(job.payment_status);
   const them = first === "Helpr" ? "your Helpr" : first;
-  const when = job?.date_needed ? [formatJobDate(job.date_needed), jobStartTimeLabel(job.start_time, job.is_flexible_schedule)].filter(Boolean).join(" · ") : null;
+  const when = job?.date_needed ? [jobDayLabel(job), jobStartTimeLabel(job.start_time, job.is_flexible_schedule)].filter(Boolean).join(" · ") : null;
   // The job's start (or the end of its day), and the windows that end before it.
   const cutoff = job ? jobOfferCutoff(job.date_needed, job.start_time) : null;
   const startLabel = cutoff

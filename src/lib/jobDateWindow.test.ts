@@ -4,9 +4,13 @@
  * @mutate src/lib/jobDateWindow.ts |   if (!hasDateWindow(job)) return formatJobDate(job.date_needed); |   return formatJobDate(job.date_needed);
  * @mutate src/lib/jobDateWindow.ts |   return hasDateWindow(job) ? job.date_window_end! : job.date_needed; |   return job.date_needed;
  * @mutate src/lib/jobDateWindow.ts | export const DATE_WINDOW_EXTRA_DAYS = 6; | export const DATE_WINDOW_EXTRA_DAYS = 7;
+ * @mutate src/components/dashboard/JobCard.tsx | {jobDayLabel(job)} | {formatJobDate(job.date_needed)}
+ * @mutate src/components/job-card/MineJobFace.tsx |     job.date_needed ? jobDayLabel(job) : null, |     job.date_needed ? formatJobDate(job.date_needed) : null,
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
+import { trackedFiles } from "@/test/helpers/trackedFiles";
+import { blankComments } from "@/test/helpers/blankNonCode";
 import { jobDayLabel, jobLastDay, weekWindowEnd, hasDateWindow, DATE_WINDOW_EXTRA_DAYS } from "./jobDateWindow";
 
 describe("Q2408 job date window", () => {
@@ -41,5 +45,15 @@ describe("Q2408 job date window", () => {
     expect(hits.length).toBeGreaterThan(0);
     const sql = readFileSync(`${dir}/${hits[hits.length - 1]}`, "utf8");
     expect(sql).toMatch(new RegExp(`date_window_end <= date_needed \\+ ${DATE_WINDOW_EXTRA_DAYS}\\b`));
+  });
+
+  it("no screen prints a job's day with formatJobDate(job.date_needed): it would show a window as its first day", () => {
+    const files = trackedFiles("src").filter((f) => /\.tsx?$/.test(f) && !/\.test\.tsx?$/.test(f) && !f.startsWith("src/test/") && f !== "src/lib/jobDateWindow.ts");
+    expect(files.length).toBeGreaterThan(500);
+    const hits = files.filter((f) => /formatJobDate\(\s*job\??\.date_needed\s*\)/.test(blankComments(readFileSync(f, "utf8"))));
+    // ApplyTimeQuestion asks "Does <first day> work?" on purpose, and only after hasDateWindow says it is a window.
+    const ALLOWED = ["src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx"];
+    for (const f of ALLOWED) expect(readFileSync(f, "utf8")).toMatch(/hasDateWindow\(job\) \? formatJobDate\(job\.date_needed\)/);
+    expect(hits.filter((f) => !ALLOWED.includes(f))).toEqual([]);
   });
 });

@@ -7,7 +7,6 @@ import { hapticLight } from "@/lib/haptics";
 import { JobHelprsChip } from "@/components/job-card/JobHelprsChip";
 import { JobTodayChip } from "@/components/job-card/JobTodayChip";
 import { JobCategoryTab } from "@/components/job/JobCategoryTab";
-import { formatJobDate } from "@/lib/dateUtils";
 import { listingChip, listingDeadline } from "@/lib/listingDeadline";
 import { isTodayJob } from "@/lib/sameDayJob";
 import { useExpiryClock } from "@/lib/useExpiryClock";
@@ -33,6 +32,7 @@ import {
   JOB_CARD_TITLE_ROW,
 } from "@/components/job/cardGeometry";
 import type { JobCardProps } from "./jobCardProps";
+import { jobDayLabel } from "@/lib/jobDateWindow";
 
 // Category colors apply ONLY to the category badge pill at the top of
 // the card. The job title itself stays in `text-foreground` (deep
@@ -567,7 +567,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
                     <span className="flex items-center gap-1">
                       <Calendar className="w-2.5 h-2.5 shrink-0" />
                       <span className="font-sans whitespace-nowrap">
-                        {formatJobDate(job.date_needed)}
+                        {jobDayLabel(job)}
                       </span>
                     </span>
                   )}

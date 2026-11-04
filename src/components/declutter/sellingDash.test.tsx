@@ -74,6 +74,8 @@ const state = {
 };
 
 // Q2268: the bundle-request reads (no request here).
+// The Selling tab's "Your page" link reads the member's handle (its own test: src/test/yourPageLink.test.tsx).
+vi.mock("@/components/profile/YourPageLink", () => ({ YourPageLink: () => null }));
 vi.mock("@/lib/declutter/bundleRequest", async (orig) => ({ ...(await orig<object>()), fetchBundleRequests: async () => [] }));
 vi.mock("@/lib/declutter/handover", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/handover")>()),

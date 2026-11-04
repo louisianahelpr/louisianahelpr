@@ -18,6 +18,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFeatureStatus } from "@/hooks/useFeature";
 import { ListedWhatNext } from "./ListedWhatNext";
 import { ListedForYouCard } from "./ListedForYouCard";
+import { YourPageLink } from "@/components/profile/YourPageLink";
 import { ManagerWaitingForOkGate } from "./ManagerWaitingForOkGate";
 import { ManagerPanelGate } from "./ManagerPanelGate";
 import { BoughtWhatNext } from "./BoughtWhatNext";
@@ -396,6 +397,8 @@ function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; ha
     <div className="flex flex-col gap-6">
       <ListedWhatNext />
       <ListedForYouCard />
+      {/* Owner 2026-11-04: the seller's page link (every listing shows there), with Copy and Share. */}
+      <YourPageLink />
       <ManagerWaitingForOkGate userId={userId} />
       <ManagerPanelGate />
       <TabletSellRow />

@@ -7,6 +7,7 @@ import { YouMenu } from "./profileLanding/YouMenu";
 import { PayoutStatusRow } from "./profileLanding/PayoutStatusRow";
 import { PROFILE_PAGE_TITLE } from "./profileLanding/headingContract";
 import { YourActivity } from "./profileLanding/YourActivity";
+import { YourPageLink } from "./YourPageLink";
 
 export function ProfileLanding({
   profile,
@@ -77,6 +78,9 @@ export function ProfileLanding({
           Declutter, Shops and Homes are tabs in the dock and the rail
           (useSectionTabs, 2026-10-18); Quotes moved into Post a Job
           (2026-10-19), so its row left too. */}
+
+      {/* Owner 2026-11-04: every member's page link, made at sign-up, easy to find. */}
+      <YourPageLink name={displayName?.trim().split(/\s+/)[0] ?? null} />
 
       {/* Board 18: both sides of every section, right under who you are. */}
       <YourActivity />

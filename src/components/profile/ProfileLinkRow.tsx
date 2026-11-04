@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, Loader2, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   HANDLE_PATTERN,
+  MY_HANDLE_KEY,
   ensureMyHandle,
   profileLinkLabel,
   setMyHandle,
@@ -29,6 +31,7 @@ export function ProfileLinkRow({ name, changedOnce }: { name?: string | null; ch
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
   const [changed, setChanged] = useState(!!changedOnce);
+  const qc = useQueryClient();
 
   const load = async () => {
     setLoading(true);
@@ -59,6 +62,8 @@ export function ProfileLinkRow({ name, changedOnce }: { name?: string | null; ch
       return;
     }
     setHandle(r.handle);
+    // The "Your page" link on Profile and Selling shows the new handle at once.
+    qc.setQueryData(MY_HANDLE_KEY, r.handle);
     setChanged(true);
     setEditing(false);
   };

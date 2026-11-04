@@ -97,9 +97,9 @@ export function JobRemindersGroup({
         style={{ borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)" }}
         data-testid="job-reminders-group"
       >
-        <h3 className="font-sans font-semibold text-ds-13 mb-0" style={{ color: "hsl(var(--ink-deep))" }}>
+        <h2 className="font-sans font-semibold text-ds-13 mb-0" style={{ color: "hsl(var(--ink-deep))" }}>
           Job reminders
-        </h3>
+        </h2>
         <p className="font-sans mt-0.5 text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
           Reminders about jobs you're booked on. Each switch covers app, email and text. The ones a job can't work without are always on.
         </p>

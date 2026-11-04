@@ -22,7 +22,7 @@ vi.mock("@/lib/jobColumns", () => ({
 const reported = vi.hoisted(() => [] as unknown[]);
 vi.mock("@/lib/errorLogger", () => ({ report: (e: unknown) => reported.push(e) }));
 
-import { LiveJobsSection } from "./LiveJobsSection";
+import { LiveJobsSection, forgetRecentLiveJobs } from "./LiveJobsSection";
 
 class SeeAll {
   constructor(private cb: (e: { isIntersecting: boolean }[]) => void) {}
@@ -34,6 +34,7 @@ beforeEach(() => {
   vi.stubGlobal("IntersectionObserver", SeeAll);
   reads.calls = 0;
   reported.length = 0;
+  forgetRecentLiveJobs();
 });
 afterEach(() => vi.unstubAllGlobals());
 

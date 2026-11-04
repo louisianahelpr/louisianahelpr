@@ -26,13 +26,25 @@ const FRESH_DECLUTTER_RETRY_MS = 1500;
 export type FreshItem = { id: string; title: string; current_price_cents: number; area_label: string | null; photo: string | null; photoFull: string | null };
 type State = { kind: "waiting" } | { kind: "failed" } | { kind: "ok"; items: FreshItem[] };
 
+/** Q104: a good answer is kept for FRESH_REUSE_MS (LiveJobsSection's LANDING_REUSE_MS rule) and drawn at once on the next visit. */
+export const FRESH_REUSE_MS = 5 * 60_000;
+let recentItems: { at: number; items: FreshItem[] } | null = null;
+/** Tests only: forget the kept answer. */
+export function forgetRecentFreshItems() {
+  recentItems = null;
+}
+const keptItems = () => (recentItems && Date.now() - recentItems.at < FRESH_REUSE_MS ? recentItems.items : null);
+
 export function FreshDeclutterSection() {
   const ref = useRef<HTMLDivElement>(null);
-  const [state, setState] = useState<State>({ kind: "waiting" });
+  const [state, setState] = useState<State>(() => {
+    const kept = keptItems();
+    return kept ? { kind: "ok", items: kept } : { kind: "waiting" };
+  });
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
+    if (!el || typeof IntersectionObserver === "undefined" || keptItems()) return;
     let cancelled = false;
     const load = async (attempt = 0): Promise<void> => {
       void import("./FreshDeclutterStrip");
@@ -66,6 +78,7 @@ export function FreshDeclutterSection() {
           const path = first.get(r.id);
           return { ...r, photo: path ? photoCardUrl(path) : null, photoFull: path ? photoPublicUrl(path) : null };
         });
+        recentItems = { at: Date.now(), items };
         if (!cancelled) setState({ kind: "ok", items });
       } catch (err) {
         // Q2735 (11-04, iPhone Safari guests on /): the jobs section's read failed on a phone's network blip and the

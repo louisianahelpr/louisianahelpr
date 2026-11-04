@@ -1700,7 +1700,7 @@ describe("stripe-webhook edge function", () => {
         expect(res.status).toBe(200);
       }
 
-      // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts |   await commitJobSiteTax({ stripe, pi, logStep, seed: taxJob?.is_seed === true, supabase }); | 
+      // @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts |   await commitJobSiteTax({ stripe, pi, logStep, seed: taxJob?.is_seed === true \|\| testOrphan, supabase }); | 
       it("commits the job-site calculation on capture and stamps the transaction on the PI", async () => {
         stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
         await deliverPi(SITE);

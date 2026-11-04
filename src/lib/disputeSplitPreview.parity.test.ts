@@ -39,9 +39,11 @@ describe("previewDisputeSplit — the Helpr's leg matches the executor", () => {
     // A disputed job has not been paid out, so `getHelperFeePercent` in the
     // executor resolves the helper's tier from `profiles` and only falls back
     // to the frozen `jobs.helper_fee_percent` if that read FAILS. The preview
-    // must resolve in the same order or it quotes a rate no transfer will use:
-    // an Elite helper is charged 8%, whatever the job was posted at.
-    expect(previewDisputeSplit(job({ helper_fee_percent: 12 }), 1, "elite").helperFeePercent).toBe(8);
+    // must resolve in the same order or it quotes a rate no transfer will use.
+    // Memberships retired 2026-11-04 (B114): every tier, Elite included, is
+    // charged the standard 12% by the executor's feePercentForTier, so the
+    // preview quotes 12 for a stale "elite" column too, and 12 over a frozen 8.
+    expect(previewDisputeSplit(job({ helper_fee_percent: 12 }), 1, "elite").helperFeePercent).toBe(12);
     expect(previewDisputeSplit(job({ helper_fee_percent: 8 }), 1, "free").helperFeePercent).toBe(12);
     expect(previewDisputeSplit(job({ helper_fee_percent: null }), 1, null).helperFeePercent).toBe(12);
   });

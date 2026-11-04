@@ -29,7 +29,13 @@ import { test, expect, FAKE_HELPER, installSupabaseMocks, mockRpc } from "./fixt
 // this and would otherwise win.
 test.use({ deviceScaleFactor: 3 });
 
+// Memberships retired 2026-11-04 (Builder 114, owner): useMembershipsOn is always off, so the
+// Subscription tab draws no plan cards and there is nothing for App Review to see. The App Store
+// products' removal is filed for after 1.0.4 is approved; this capture goes with the plan screen.
+const MEMBERSHIPS_RETIRED = true;
+
 test("capture the membership screen for App Store review", async ({ helperPage: page }) => {
+  test.skip(MEMBERSHIPS_RETIRED, "memberships retired 2026-11-04: no plan cards to capture");
   await installSupabaseMocks(page, {
     user: FAKE_HELPER,
     // Memberships ON for this capture only: while the switch is off the tab shows no plans at all (A3-C14,
@@ -61,4 +67,5 @@ test("capture the membership screen for App Store review", async ({ helperPage: 
 // IAP products appear. `tierConfig.map` is the line that draws the tier cards;
 // trimming it to the Free card alone produces a picture of the right screen
 // with none of the products on it — the failure Apple would bounce.
-// @mutate src/components/profile/SubscriptionTab.tsx | {tierConfig.map((tier) => { | {tierConfig.slice(0, 1).map((tier) => {
+// (Its tierConfig.map @mutate left with the skip, 2026-11-04: a skipped capture cannot kill it; the
+// plan cards are still pinned by SubscriptionTab.appStore / perksParity unit tests.)

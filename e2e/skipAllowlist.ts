@@ -114,6 +114,12 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
     why: "opt-in App Store screenshot generator, not a check; it produces marketing images when asked and asserts nothing about the app",
   },
   {
+    file: "e2e/happy-path/iap-review-screenshot.spec.ts",
+    match: "MEMBERSHIPS_RETIRED",
+    verdict: "justified",
+    why: "memberships retired 2026-11-04 (B114): the App Review capture of the plan cards has no plan cards to show; it goes with the plan screen",
+  },
+  {
     file: "e2e/happy-path/empty-state-sweep.spec.ts",
     match: "sweepDescribe(",
     verdict: "justified",

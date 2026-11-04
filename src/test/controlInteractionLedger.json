@@ -49,7 +49,6 @@
     "adhocTint  src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx:212 <button>  hover:bg-secondary/60",
     "adhocTint  src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx:271 <button>  hover:bg-muted/50",
     "adhocTint  src/components/jobs/ShareJobButton.tsx:310 <Button>  hover:bg-[hsl(var(--bark)/0.20)]",
-    "adhocTint  src/components/messages/ChatHeader.tsx:235 <button>  hover:bg-secondary",
     "adhocTint  src/components/messages/MuteSheet.tsx:115 <button>  hover:bg-secondary/40",
     "adhocTint  src/components/messages/MuteSheet.tsx:85 <button>  hover:bg-secondary/40",
     "adhocTint  src/components/postjob/AddressAutocomplete.tsx:248 <button>  hover:bg-secondary/70",

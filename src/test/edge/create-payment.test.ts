@@ -972,7 +972,7 @@ describe("create-payment edge function", () => {
       // Q2083 part 2 (owner Option 1): the poster's answer taxes an otherwise
       // untaxed category, each kind with its own code.
       // @mutate supabase/functions/create-payment/index.ts | (no LA state tax on the labor).\n              tax_code: laborTaxCode(job.category, job.tax_kind), | (no LA state tax on the labor).\n              tax_code: laborTaxCode(job.category),
-      expect(await codeFor("cleaning", "fabric_cleaning")).toBe("txcd_20010003");
+      expect(await codeFor("cleaning", "fabric_cleaning")).toBe("txcd_20090024");
       expect(await codeFor("other", "clothing_alterations")).toBe("txcd_20090002");
       expect(await codeFor("other", "item_repair")).toBe("txcd_20080005");
       expect(await codeFor("cleaning", null)).toBe("txcd_00000000");

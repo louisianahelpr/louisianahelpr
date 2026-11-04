@@ -78,6 +78,11 @@ const EXEMPT: Record<string, string> = {
   "20261004185940_job_revisions_party_columns.sql": "in build 7119 (c16b0f0dc); narrowed before the client floor existed, live since 2026-10-04",
   "20261004190334_application_party_columns.sql": "in build 7119 (c16b0f0dc); narrowed before the client floor existed, live since 2026-10-04",
   "20261004191007_application_flag_reason_withheld.sql": "in build 7119 (c16b0f0dc); narrowed before the client floor existed, live since 2026-10-04",
+  "20261021124810_declutter_narrow_member_reads.sql": "in build 7601 (3c21370); shipped with the submitted build, live before it was frozen",
+  "20261021184118_user_roles_table_grants.sql": "in build 7601 (3c21370); shipped with the submitted build, live before it was frozen",
+  "20261022002144_under_13_birthday_blocks_and_deletes.sql": "in build 7601 (3c21370); shipped with the submitted build, live before it was frozen",
+  "20261102082018_phone_save_rpc_rate_limited.sql": "in build 7601 (3c21370); shipped with the submitted build, live before it was frozen",
+  "20261103014109_crew_share_held_reason.sql": "in build 7601 (3c21370); shipped with the submitted build, live before it was frozen",
 };
 
 /** The floor value a migration's last client_compat_floor() definition returns, or null. */
@@ -281,14 +286,14 @@ describe("while a build is in Apple review, no migration strands it (release/app
         code:
           "create table if not exists public.phone_save_attempts (id int); revoke all on public.phone_save_attempts from public, anon, authenticated;" +
           " revoke insert on public.profiles from anon, authenticated; revoke update (phone) on public.profiles from anon, authenticated;" +
-          " create or replace function public.client_compat_floor() returns integer language sql immutable as $$ select 3 $$;",
+          " create or replace function public.client_compat_floor() returns integer language sql immutable as $$ select " + (FREEZE.liveClientCompatFloor + 1) + " $$;",
       },
       { name: "c.sql", code: "revoke all on function public.save_thing() from public, anon, authenticated; grant execute on function public.save_thing() to authenticated;" },
       { name: "d.sql", code: "revoke all on function public.save_thing() from public, anon, authenticated;" },
       { name: "e.sql", code: "update public.platform_settings set min_supported_build = 7119;" },
     ];
     const rpc = new Set(["save_thing"]);
-    expect(strands(1, files, rpc)).toEqual(["client_compat_floor() -> 3", "profiles: authenticated", "profiles: anon"]);
+    expect(strands(1, files, rpc)).toEqual([`client_compat_floor() -> ${FREEZE.liveClientCompatFloor + 1}`, "profiles: authenticated", "profiles: anon"]);
     expect(strands(2, files, rpc)).toEqual([]);
     expect(strands(3, files, rpc)).toEqual(["save_thing(): authenticated"]);
     expect(strands(4, files, rpc)).toEqual(["writes platform_settings.min_supported_build"]);

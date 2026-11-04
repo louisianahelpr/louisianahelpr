@@ -125,10 +125,12 @@ async function fixture(admin, race) {
     await admin.query(
       `UPDATE public.profiles
           SET full_name = $2, email_verified = true,
-              stripe_account_id = 'acct_ci_race', stripe_payouts_enabled = true,
+              stripe_account_id = $3, stripe_payouts_enabled = true,
               stripe_identity_verified = true
         WHERE user_id = $1`,
-      [id, `Race ${who}`],
+      // One payout account per user: profiles_stripe_account_id_unique
+      // (20261103082037) refuses two profiles sharing one account id.
+      [id, `Race ${who}`, `acct_ci_race_${id.replace(/-/g, "")}`],
     );
   }
   if (race <= 2) {
@@ -666,10 +668,12 @@ async function disputeFixture(admin) {
     await admin.query(
       `UPDATE public.profiles
           SET full_name = $2, email_verified = true,
-              stripe_account_id = 'acct_ci_race', stripe_payouts_enabled = true,
+              stripe_account_id = $3, stripe_payouts_enabled = true,
               stripe_identity_verified = true
         WHERE user_id = $1`,
-      [id, `Race ${who}`],
+      // One payout account per user: profiles_stripe_account_id_unique
+      // (20261103082037) refuses two profiles sharing one account id.
+      [id, `Race ${who}`, `acct_ci_race_${id.replace(/-/g, "")}`],
     );
   }
   // Walk the transition matrix to `completed`, then settle the money and write

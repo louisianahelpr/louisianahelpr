@@ -33,6 +33,7 @@ serve(async (req: Request) => {
     return cronResult(FN, { pairs: run.pairs, stored: run.stored, missed: run.missed },
       run.stopped ? { count: 1, reasons: [run.stopped] } : { count: 0 });
   } catch (e) {
+    // Not silent: the 500 names this function and the error, and sweep_cron_http_failures alerts on it.
     return cronError(FN, caughtMessage(e));
   }
 });

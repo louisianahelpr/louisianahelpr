@@ -14,7 +14,7 @@
 import { type RouteMiss, ROUTE_OUTAGE_PAUSE_MINUTES, appleAccessToken, appleEtas } from "./appleRoutes.ts";
 import type { AppleMapsAccess } from "./geocodeDropoff.ts";
 
-export interface TravelPair {
+interface TravelPair {
   job_id: string;
   user_id: string;
   from_lat: number;

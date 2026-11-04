@@ -45,7 +45,7 @@ const thrownName = (e: unknown): string => (e instanceof Error && e.name ? e.nam
  * The short Apple Maps access token: the MapKit developer token exchanged at /v1/token. One per batch of routes
  * (storeRoutedMiles asks once and hands it to every appleEtas call). Never throws.
  */
-async function appleAccessToken(apple: AppleMapsAccess, fetchImpl: typeof fetch = fetch): Promise<string | RouteMiss> {
+export async function appleAccessToken(apple: AppleMapsAccess, fetchImpl: typeof fetch = fetch): Promise<string | RouteMiss> {
   let dev: string;
   try {
     dev = await apple.developerToken();

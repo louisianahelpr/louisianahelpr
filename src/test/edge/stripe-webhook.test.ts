@@ -1741,7 +1741,7 @@ describe("stripe-webhook edge function", () => {
         await deliverPi(SITE);
         expect(stripeMock.refunds.list).toHaveBeenCalledWith({ payment_intent: "pi_site", limit: 100 });
         expect(stripeMock.tax.transactions.createReversal.mock.calls.map((c) => ({ args: c[0], opts: c[1] }))).toEqual([{
-          args: { mode: "full", original_transaction: "tax_txn_site", reference: "refund:re_dup", metadata: { refund_id: "re_dup", charge_id: "ch_site" } },
+          args: { mode: "partial", flat_amount: -11100, original_transaction: "tax_txn_site", reference: "refund:re_dup", metadata: { refund_id: "re_dup", charge_id: "ch_site" } },
           opts: { idempotencyKey: "visit-tax-reversal:re_dup" },
         }]);
       });
@@ -2760,13 +2760,16 @@ describe("stripe-webhook edge function", () => {
         scenario.reads.jobs = { rows: [{ id: "job-v", customer_id: "poster-1", title: "Visit", payment_status: "escrow" }] };
       });
 
-      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |     const full = beforeCents === 0 && shareCents >= txTotalCents; |     const full = false;
-      it("a refund of the whole labor + tax (the card fee kept) is ONE full reversal keyed on the refund, recorded on the payment", async () => {
+      // Q1912 (Stripe TEST runs 41870316864 + 41871055112): a mode-full reversal can never be undone and blocks any later
+      // reversal, so a whole refund is a PARTIAL flat reversal of the whole transaction total.
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts | { mode: "partial", flat_amount: -(full ? txTotalCents : shareCents), | { mode: full ? "full" : "partial", flat_amount: -(full ? txTotalCents : shareCents),
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts | flat_amount: -(full ? txTotalCents : shareCents), | flat_amount: -(full ? 0 : shareCents),
+      it("a refund of the whole labor + tax (the card fee kept) is ONE partial reversal of the whole total, keyed on the refund, recorded on the payment", async () => {
         piMeta();
         refundsAre([{ id: "re_full", amount: 11000, created: 100 }]);
         await run("evt_tax_full");
         expect(reversals()).toEqual([{
-          args: { mode: "full", original_transaction: "tax_txn_9", reference: "refund:re_full", metadata: { refund_id: "re_full", charge_id: "ch_visit" } },
+          args: { mode: "partial", flat_amount: -11000, original_transaction: "tax_txn_9", reference: "refund:re_full", metadata: { refund_id: "re_full", charge_id: "ch_visit" } },
           opts: { idempotencyKey: "visit-tax-reversal:re_full" },
         }]);
         expect(stripeMock.paymentIntents.update).toHaveBeenCalledWith("pi_visit", { metadata: { tax_rev_re_full: "taxrev_refund:re_full" } });
@@ -2782,7 +2785,7 @@ describe("stripe-webhook edge function", () => {
         const fn = await loadConfigured();
         stripeMock.webhooks.constructEventAsync.mockResolvedValue({ id: "evt_tax_gift", type: "charge.refunded", data: { object: { id: "ch_visit", payment_intent: "pi_visit", amount: 2000, amount_refunded: 0 } } });
         await fn.fetch(webhookRequest(fn, "{}"));
-        expect(reversals().map((r) => r.args)).toEqual([{ mode: "full", original_transaction: "tax_txn_9", reference: "refund:re_gift", metadata: { refund_id: "re_gift", charge_id: "ch_visit" } }]);
+        expect(reversals().map((r) => r.args)).toEqual([{ mode: "partial", flat_amount: -11000, original_transaction: "tax_txn_9", reference: "refund:re_gift", metadata: { refund_id: "re_gift", charge_id: "ch_visit" } }]);
       });
 
       // Q2717: a $100 job paid $90 by gift; the card took the $10 shortfall + the $10 job-site tax ($20); the
@@ -2897,7 +2900,7 @@ describe("stripe-webhook edge function", () => {
 
       // Q1828: an inclusive line's amount already holds its tax.
       // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts | (li.tax_behavior === "inclusive" ? 0 : Math.abs(Number(li.amount_tax ?? 0))) | Math.abs(Number(li.amount_tax ?? 0))
-      it("a tax-INCLUSIVE line is not double-counted: a refund of its whole amount is still ONE full reversal (Q1828)", async () => {
+      it("a tax-INCLUSIVE line is not double-counted: a refund of its whole amount is still ONE reversal of the whole total (Q1828)", async () => {
         stripeMock.tax.transactions.listLineItems.mockResolvedValue({
           data: [{ id: "tax_li_1", amount: 11000, amount_tax: 1000, tax_behavior: "inclusive", reference: "labor" }],
           has_more: false,
@@ -2905,7 +2908,7 @@ describe("stripe-webhook edge function", () => {
         piMeta();
         refundsAre([{ id: "re_incl", amount: 11000, created: 100 }]);
         await run("evt_tax_inclusive");
-        expect(reversals().map((r) => [r.args.reference, r.args.mode, r.args.flat_amount])).toEqual([["refund:re_incl", "full", undefined]]);
+        expect(reversals().map((r) => [r.args.reference, r.args.mode, r.args.flat_amount])).toEqual([["refund:re_incl", "partial", -11000]]);
       });
 
       // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |     if (piMeta[metaKey]) { |     if (false) {
@@ -2965,7 +2968,7 @@ describe("stripe-webhook edge function", () => {
         piMeta();
         refundsAre([{ id: "re_failed", amount: 11000, created: 100, status: "failed" }, { id: "re_again", amount: 11000, created: 200 }]);
         await run("evt_tax_reissue");
-        expect(reversals().map((r) => [r.args.reference, r.args.mode])).toEqual([["refund:re_again", "full"]]);
+        expect(reversals().map((r) => [r.args.reference, r.args.mode])).toEqual([["refund:re_again", "partial"]]);
       });
 
       it("a reversal Stripe refuses is paged with the amount to reverse by hand", async () => {

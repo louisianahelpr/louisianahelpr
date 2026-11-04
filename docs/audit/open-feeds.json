@@ -333,14 +333,6 @@
         "issue": 2366
       },
       {
-        "fingerprint": "afffce6dd51420165428aefa237c5b00",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: permission denied for table jobs",
-        "issue": null
-      },
-      {
         "fingerprint": "88b4addefbcd1dc226926886a24bff50",
         "source_kind": "sentry",
         "source": "sentry:assets/ErrorState",
@@ -373,78 +365,6 @@
         "issue": null
       },
       {
-        "fingerprint": "ec743a639c3841158ef8f8e551b012c8",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: permission denied for table profiles",
-        "issue": null
-      },
-      {
-        "fingerprint": "c4af5413ec6a2e1cb3a1ba651a10063c",
-        "source_kind": "sentry",
-        "source": "sentry:assets/Dashboard",
-        "status": "open",
-        "title": "error: dashboard.ctx sub-query failed: applications: permission denied for table applications",
-        "issue": null
-      },
-      {
-        "fingerprint": "708048794e4cdbf62000bbefc78a8045",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: permission denied for table backout_notices",
-        "issue": null
-      },
-      {
-        "fingerprint": "346e19be0736defaffb11fb1d6ba0c1d",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ErrorState",
-        "status": "open",
-        "title": "error: error screen shown: we couldn't load this.",
-        "issue": null
-      },
-      {
-        "fingerprint": "11fa6e898f3ddeade58ef104551c227e",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: permission denied for table job_schedule_change_requests",
-        "issue": null
-      },
-      {
-        "fingerprint": "9a2d993f43d7e86afaf03be137c22cdb",
-        "source_kind": "sentry",
-        "source": "sentry:assets/sentry",
-        "status": "open",
-        "title": "error: permission denied for function get_job_offer_targets",
-        "issue": null
-      },
-      {
-        "fingerprint": "779af65c258e09eabd988f86237c10ef",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: permission denied for table applications",
-        "issue": null
-      },
-      {
-        "fingerprint": "d1da98fd3fe3254b8e60c2e81b878106",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: permission denied for table referral_codes",
-        "issue": null
-      },
-      {
-        "fingerprint": "87d1722faa1ddc3839fca4f44cfaab64",
-        "source_kind": "sentry",
-        "source": "sentry:assets/supabase",
-        "status": "open",
-        "title": "functionshttperror: edge function returned a non-#xx status code",
-        "issue": null
-      },
-      {
         "fingerprint": "8f6eb3360000fd0c4b5ad2c0e8a40a29",
         "source_kind": "sentry",
         "source": "sentry:assets/app-shared",
@@ -453,51 +373,11 @@
         "issue": null
       },
       {
-        "fingerprint": "70c81dfc4f91698da16eec1b21081e0b",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: permission denied for function get_my_saved_helpers",
-        "issue": null
-      },
-      {
-        "fingerprint": "ad381aa30d090f2818b689409d63b160",
-        "source_kind": "sentry",
-        "source": "sentry:assets/app-shared",
-        "status": "open",
-        "title": "error: missing authorization header",
-        "issue": null
-      },
-      {
-        "fingerprint": "43738529abd48b1defe6a990621551a2",
-        "source_kind": "sentry",
-        "source": "sentry:assets/sentry",
-        "status": "open",
-        "title": "error: permission denied for table login_history",
-        "issue": null
-      },
-      {
         "fingerprint": "bbdaee370c357aa8519122123865a017",
         "source_kind": "sentry",
         "source": "sentry:assets/main",
         "status": "open",
         "title": "error: unexpected sign-out",
-        "issue": null
-      },
-      {
-        "fingerprint": "3ab675187ce9c5685b998fa82182d56d",
-        "source_kind": "sentry",
-        "source": "sentry:assets/sentry",
-        "status": "open",
-        "title": "error: permission denied for table jobs",
-        "issue": null
-      },
-      {
-        "fingerprint": "64e00d8d08dae79f0c7d6d8fac249011",
-        "source_kind": "sentry",
-        "source": "sentry:assets/ProtectedRoute",
-        "status": "open",
-        "title": "error: session lost on a signed-in screen",
         "issue": null
       },
       {

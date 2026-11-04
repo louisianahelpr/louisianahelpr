@@ -15,6 +15,8 @@ export const MESSAGES_PREVIEW_STAGES = [
   { key: "block_sheet", label: "Block sheet" },
   { key: "blocked", label: "After a block" },
   { key: "empty", label: "Empty inbox" },
+  // Q2664 (a): the bell's job-match notices, which no test account holds (406 on prod, all to real Helprs).
+  { key: "notices", label: "Job notices" },
 ] as const;
 
 export type MessagesPreviewStage = (typeof MESSAGES_PREVIEW_STAGES)[number]["key"];
@@ -31,6 +33,8 @@ const MP_JOE = "00000000-0000-4000-a000-000000000014";
 const MP_JOB_RAKE = "00000000-0000-4000-b000-000000000101";
 const MP_JOB_MOVE = "00000000-0000-4000-b000-000000000102";
 const MP_JOB_PAINT = "00000000-0000-4000-b000-000000000103";
+const MP_JOB_GUTTER = "00000000-0000-4000-b000-000000000104";
+const MP_JOB_MOW = "00000000-0000-4000-b000-000000000105";
 
 type Read = unknown | ((body: Record<string, unknown>) => unknown);
 
@@ -62,6 +66,25 @@ const POSTERS = [
   { id: MP_MAYA, full_name: "Nora Guidry", first: "Nora" },
   { id: MP_JOE, full_name: "Paul Hebert", first: "Paul" },
 ];
+
+/**
+ * Q2664 (a): one job_match notice of each shape prod sends (prod read-only SQL 2026-11-04, titles and links by
+ * shape, no member's text): the posted-job alert ("New job posted", 324, links /home?job=; its wording is today's
+ * deliver_parish_match_alert, owner 10-27: the job's title and town, no category or parish), the saved-search match
+ * ("🌿 Match for you", 39, links /home?quickApply=), and the parish digest ("New jobs in <parish>", no job, links
+ * /home). Unread, newest first, made-up jobs. A Helpr's notices on either side: the bell is the same for both.
+ */
+function jobMatchNotices(me: string, ago: (min: number) => string) {
+  const notice = (n: number, title: string, message: string, link: string, jobId: string | null, minAgo: number) => ({
+    id: `00000000-0000-4000-f000-${String(n).padStart(12, "0")}`, user_id: me, title, message, type: "job_match",
+    read: false, link, job_id: jobId, actor_id: null, created_at: ago(minAgo),
+  });
+  return [
+    notice(1, "New job posted", '"Clean the gutters on a one-story house" was just posted in Lafayette.', `/home?job=${MP_JOB_GUTTER}`, MP_JOB_GUTTER, 4),
+    notice(2, "🌿 Match for you", "Mow and edge a front yard in Broussard, LA · $60. Tap to review and apply.", `/home?quickApply=${MP_JOB_MOW}`, MP_JOB_MOW, 35),
+    notice(3, "New jobs in Lafayette", "2 new jobs posted in the last 24 hours — $40 to $120. Tap to browse.", "/home", null, 60 * 5),
+  ];
+}
 
 /** The sample for one stage and side, around the admin's own id. `now` is injectable so a test can pin the clock. */
 export function messagesPreviewSample(stage: MessagesPreviewStage, side: MessagesPreviewSide, me: string, now: number = Date.now()): MessagesPreviewSample {
@@ -145,7 +168,7 @@ export function messagesPreviewSample(stage: MessagesPreviewStage, side: Message
       jobs,
       // The admin blocked Eli (the Blocked stage): his thread opens with the composer closed.
       user_blocks: stage === "blocked" ? [{ blocker_id: me, blocked_id: MP_ELI }] : [],
-      notifications: [],
+      notifications: stage === "notices" ? jobMatchNotices(me, ago) : [],
       applications: jobs.map((j) => ({ job_id: j.id, helper_id: j.helper_id, status: "accepted", closed_reason: null })),
       job_tracking: [],
       job_schedule_change_requests: [],

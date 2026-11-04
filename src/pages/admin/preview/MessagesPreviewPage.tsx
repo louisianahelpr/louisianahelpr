@@ -26,10 +26,31 @@ import {
   type MessagesPreviewSample, type MessagesPreviewSide, type MessagesPreviewStage,
 } from "./messagesPreviewSamples";
 import { installMessagesPreviewFetch, messagesPreviewChecks } from "./messagesPreviewBackend";
+import { forgetNotificationFeed } from "@/components/notificationPanel/notificationFeed";
 import { DESKTOP_MIN_WIDTH, EYE_GLYPH, InertNavigation, PreviewErrorBoundary, PreviewGlyph, forgetSharedReads, installInertRealtime, sayWouldHave, usePageSheetOpen } from "./previewParts";
 
 // The member's Messages page itself: the same module /messages lazy-loads (App.tsx).
 const Messages = lazy(() => import("@/pages/messages/Messages"));
+// Q2664 (a): the bell's panel itself, for the Job notices stage (the same component every bell mounts).
+const NotificationPanel = lazy(() => import("@/components/NotificationPanel"));
+
+/**
+ * The Job notices stage: the bell's panel, open, fed the sample's job_match notices through the preview backend.
+ * The bell's list lives in one shared store, so it is forgotten as the stage opens (nothing real is shown as the
+ * sample) and again as it closes (no sample notice is left under the admin's own bells; their next open reads afresh).
+ * Layout effects run before the panel's own load (a passive effect), so the forget always comes first.
+ */
+function NoticesStage() {
+  useLayoutEffect(() => {
+    forgetNotificationFeed();
+    return () => forgetNotificationFeed();
+  }, []);
+  return (
+    <div className="flex justify-end p-4" data-testid="preview-notices">
+      <NotificationPanel defaultOpen />
+    </div>
+  );
+}
 
 const PREVIEW_PATH = "/admin/preview/messages";
 
@@ -228,7 +249,7 @@ export default function MessagesPreviewPage() {
             <div data-preview-view={`${stage}:${side}`}>
               {me && ready && (
                 <Suspense fallback={<div role="status" aria-busy="true" aria-label="Loading messages" />}>
-                  <Messages key={`${stage}-${side}`} />
+                  {stage === "notices" ? <NoticesStage key={side} /> : <Messages key={`${stage}-${side}`} />}
                 </Suspense>
               )}
             </div>

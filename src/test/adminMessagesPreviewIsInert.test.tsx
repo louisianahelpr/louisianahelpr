@@ -129,6 +129,8 @@ const SHOWS: Record<string, RegExp> = {
   reported: /report/i,
   block_sheet: /block/i,
   empty: /no messages|nothing here|no conversations|start a conversation/i,
+  // Q2664 (a): the bell's panel, open on the sample's job-match notices.
+  notices: /Match for you/,
 };
 
 describe("admin Messages preview", () => {
@@ -137,6 +139,10 @@ describe("admin Messages preview", () => {
       it(`${key} as ${side}: draws from its sample alone and sends nothing, even with every button pressed`, async () => {
         const unlisted: string[] = [];
         messagesPreviewChecks.onUnlisted = (what) => unlisted.push(what);
+        // The bell's panel reads the signed-in user from the real session; here, the admin.
+        const session = key === "notices"
+          ? vi.spyOn(supabase.auth, "getSession").mockResolvedValue({ data: { session: { user: { id: ADMIN_ID } } }, error: null } as never)
+          : null;
         renderPreview(`stage=${key}&side=${side}`);
         await waitFor(() => expect(document.querySelector(`[data-preview-view="${key}:${side}"]`)).not.toBeNull());
         await waitFor(() => expect(pageText()).toMatch(SHOWS[key]), { timeout: 10000 });
@@ -148,6 +154,7 @@ describe("admin Messages preview", () => {
         await new Promise((r) => setTimeout(r, 50));
         expect(leaked()).toEqual([]);
         expect(where).toBe("/admin/preview/messages");
+        session?.mockRestore();
       }, 30000);
     }
   }

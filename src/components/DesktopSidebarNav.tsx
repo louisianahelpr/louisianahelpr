@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -203,17 +204,19 @@ const DesktopSidebarRail = () => {
         <HelprMark to="/home" size="md" emblemOnly />
       </div>
       <div className="px-3 pb-3 shrink-0">
-        <button
+        <Button
           type="button"
+          variant="primary"
+          size="md"
           data-testid="sidebar-create"
           aria-haspopup="dialog"
           aria-expanded={createOpen}
           onClick={() => setCreateOpen(true)}
-          className="btn-grad-primary btn-press w-full h-12 rounded-full inline-flex items-center justify-center gap-2 text-ds-15 font-semibold"
+          className="w-full"
         >
           <Plus className="h-5 w-5" strokeWidth={2.5} aria-hidden />
           {tr("nav.create")}
-        </button>
+        </Button>
       </div>
 
       <ul className="flex-1 min-h-0 overflow-y-auto flex flex-col gap-1 px-3 py-2">

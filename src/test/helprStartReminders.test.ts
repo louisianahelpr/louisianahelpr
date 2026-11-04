@@ -16,17 +16,20 @@
  * - the titles match the registry rows that give each its own switch;
  * - service_role only, on the cron, and in the generated types.
  *
- * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | AND NOT t.owes_dayof THEN 'two_hours' END), | THEN 'two_hours' END),
- * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | AND t.start_time >= time '10:00' THEN 'morning_of' END), | THEN 'morning_of' END),
- * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | AND NOT t.left_already THEN 'head_out' END) | THEN 'head_out' END)
- * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | ELSIF v_kind = 'morning_of' AND rec.two_hours_near THEN | ELSIF v_kind = 'morning_of' AND false THEN
- * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | SELECT COALESCE((SELECT p.remind_two_hours FROM | SELECT COALESCE((SELECT p.remind_morning_of FROM
- * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | SELECT COALESCE((SELECT p.remind_starting_soon FROM | SELECT COALESCE((SELECT p.remind_head_out FROM
- * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | ((v_now >= t.starts_at - interval '135 minutes' | ((v_now >= t.starts_at - interval '120 minutes'
- * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | AND s2.kind = 'two_hours' AND NOT s2.merged)) | AND s2.kind = 'two_hours' AND false))
- * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | AND j.is_group_job IS NOT TRUE AND j.parent_job_id IS NULL | AND j.is_group_job IS NOT TRUE
- * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | ON CONFLICT (job_id, user_id, kind) DO NOTHING; | ;
- * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | v_message := CASE WHEN rec.owes_dayof | v_message := CASE WHEN false
+ * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | AND NOT t.owes_dayof THEN 'two_hours' END), | THEN 'two_hours' END),
+ * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | AND t.start_time >= time '10:00' THEN 'morning_of' END), | THEN 'morning_of' END),
+ * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | AND NOT t.left_already THEN 'head_out' END) | THEN 'head_out' END)
+ * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | ELSIF v_kind = 'morning_of' AND rec.two_hours_near THEN | ELSIF v_kind = 'morning_of' AND false THEN
+ * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | SELECT COALESCE((SELECT p.remind_two_hours FROM | SELECT COALESCE((SELECT p.remind_morning_of FROM
+ * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | SELECT COALESCE((SELECT p.remind_starting_soon FROM | SELECT COALESCE((SELECT p.remind_head_out FROM
+ * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | ((v_now >= t.starts_at - interval '135 minutes' | ((v_now >= t.starts_at - interval '120 minutes'
+ * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | AND s2.kind = 'two_hours' AND NOT s2.merged)) | AND s2.kind = 'two_hours' AND false))
+ * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | AND j.is_group_job IS NOT TRUE AND j.parent_job_id IS NULL | AND j.is_group_job IS NOT TRUE
+ * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | ON CONFLICT (job_id, user_id, kind) DO NOTHING; | ;
+ * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | v_message := CASE WHEN rec.owes_dayof | v_message := CASE WHEN false
+ * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | (CASE WHEN v_now >= t.starts_at - make_interval(mins => t.lead_minutes) | (CASE WHEN v_now >= t.starts_at - interval '30 minutes'
+ * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | IF v_kind = 'head_out' AND rec.lead_minutes <= 35 THEN | IF v_kind = 'head_out' THEN
+ * @mutate supabase/migrations/20261104114456_helpr_head_out_travel_time.sql | AND e.minutes <= 120), 30) AS lead_minutes | ), 30) AS lead_minutes
  * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | user_id uuid NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE, | user_id uuid NOT NULL,
  * @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql | p_title IN ('Your job starts in 2 hours', 'Time to head out') THEN 'starting_soon' | p_title IN ('Your job starts in 2 hours') THEN 'starting_soon'
  * @mutate supabase/migrations/20261030035326_helpr_start_reminders.sql | REVOKE ALL ON FUNCTION public.sweep_helpr_start_reminders(timestamptz) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.sweep_helpr_start_reminders(timestamptz) FROM PUBLIC;
@@ -78,7 +81,11 @@ describe("start reminders for hired Helprs (Q2483)", () => {
       "WHEN v_local::date = t.date_needed AND v_local::time >= time '08:00' AND v_local::time < time '09:00' AND t.start_time >= time '10:00' THEN 'morning_of' END",
     );
     expect(sweep).toContain(
-      "WHEN v_now >= t.starts_at - interval '30 minutes' AND v_now < t.starts_at AND NOT t.left_already THEN 'head_out' END",
+      "WHEN v_now >= t.starts_at - make_interval(mins => t.lead_minutes) AND v_now < t.starts_at AND NOT t.left_already THEN 'head_out' END",
+    );
+    // Q2485: the head-out lead is the Helpr's stored drive time (at least 5, at most 120 trusted), else 30 minutes.
+    expect(sweep).toContain(
+      "COALESCE((SELECT greatest(5, e.minutes) FROM public.helpr_travel_estimates e WHERE e.job_id = h.job_id AND e.user_id = h.user_id AND e.minutes <= 120), 30) AS lead_minutes",
     );
     // Chicago wall clock for the start and for 8 AM.
     expect(sweep).toContain("((h.date_needed + h.start_time) AT TIME ZONE 'America/Chicago') AS starts_at");
@@ -88,9 +95,11 @@ describe("start reminders for hired Helprs (Q2483)", () => {
     expect(sweep).toMatch(/JOIN public\.group_job_helpers g ON g\.job_id = j\.id AND g\.helper_id IS NOT NULL WHERE j\.is_group_job IS TRUE AND j\.status IN \('open', 'accepted'\)/);
   });
 
+  // Q2485: head-out rides on Starting soon (sent 30-35 minutes before) only when it falls then; an earlier head-out
+  // (a longer drive) is a different moment and is sent on its own.
   it("never sends two at once: head-out rides on Starting soon, the 8 AM one on the 2-hour one", () => {
     expect(sweep).toMatch(
-      /IF v_kind = 'head_out' THEN SELECT COALESCE\(\(SELECT p\.remind_starting_soon FROM public\.notification_preferences p WHERE p\.user_id = rec\.user_id\), true\) INTO v_merged;/,
+      /IF v_kind = 'head_out' AND rec\.lead_minutes <= 35 THEN SELECT COALESCE\(\(SELECT p\.remind_starting_soon FROM public\.notification_preferences p WHERE p\.user_id = rec\.user_id\), true\) INTO v_merged;/,
     );
     expect(sweep).toMatch(
       /ELSIF v_kind = 'morning_of' AND rec\.two_hours_near THEN SELECT COALESCE\(\(SELECT p\.remind_two_hours FROM public\.notification_preferences p WHERE p\.user_id = rec\.user_id\), true\) INTO v_merged;/,

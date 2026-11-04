@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef, useState } from "react";
+import { lazy, Suspense, useMemo, useRef, useState } from "react";
 import { FirstRun } from "@/components/firstRun/FirstRunHost";
 import { useQueryClient } from "@tanstack/react-query";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -15,7 +15,7 @@ import { requestHelperStep } from "@/components/job-card/helperStepRequest";
 import { COMING_UP_ROLE, type ComingUpItem } from "./homeDashboard/comingUp";
 import { useHomeMoney } from "./homeDashboard/homeMoney";
 import { HomeMoneyTiles } from "./homeDashboard/HomeMoneyTiles";
-import { useReservedHeight } from "./homeDashboard/reservedHeight";
+import { readReservedHeight, useReservedHeight } from "./homeDashboard/reservedHeight";
 import { useOnTabReselect } from "@/components/mobileNav/tabReselect";
 import { feedLinkTarget } from "./homeDashboard/feedLinkForward";
 import { SECTIONS } from "@/components/sections/sectionsConfig";
@@ -26,7 +26,7 @@ import { PayoutFailedCard } from "@/components/money/PayoutFailedCard";
 import { FirstJobHome, useFirstJobState } from "./homeDashboard/FirstJobHome";
 import { PosterFirstJobCard } from "./homeDashboard/PosterFirstJobCard";
 import { HelprsNearYou } from "./homeDashboard/HelprsNearYou";
-import { useHomeTopSettled } from "./homeDashboard/homeTopSettled";
+import { useHomeTopSettled, useHoldWhileFirstVisitReads } from "./homeDashboard/homeTopSettled";
 import { optionalLazy } from "@/lib/optionalLazy";
 // Loaded the first time it opens, never with Home's first screen (AUD31-60, B61): it brings Sheet and Switch.
 const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
@@ -70,10 +70,14 @@ function HomeDashboardScreen() {
   const { user, profile } = useCurrentUser();
   const summary = useHomeSummary(user);
   const firstJob = useFirstJobState(user?.id);
+  const money = useHomeMoney(user);
+  // First visit on this device (Next up is always drawn, so its height is saved after every settled load): no reserve
+  // to hold for the to-dos or the money strip, so the blocks below Next up wait for those reads (homeTopSettled.ts).
+  const firstVisit = useMemo(() => !!user?.id && !readReservedHeight(`next-up:${user.id}`), [user?.id]);
   // Q2706/Q2708 (Builder 3): until the first-week cards' reads answer, one placeholder stands in for everything below
   // the greeting, so a card arriving above Next up never pushes the page down (homeTopSettled.ts).
   const topSettled = useHomeTopSettled(user?.id, firstJob);
-  const money = useHomeMoney(user);
+  const holdBelowNextUp = useHoldWhileFirstVisitReads(firstVisit && (summary.todosLoading || !!money.pending));
   const queryClient = useQueryClient();
   const { visible } = useSectionPrefs();
   const live = useSectionTabs();
@@ -289,6 +293,7 @@ function HomeDashboardScreen() {
               </div>
             )}
 
+            {!holdBelowNextUp && <>
             {/* MONEY STRIP (spec v2 §5.3): on phone right after Next up (board 7); from 1280 it moves to
                 the top of the right column (board 11). Hidden when there is nothing real to show. */}
             {money.pending && !money.coming && !money.held && moneyReserve > 0
@@ -355,9 +360,10 @@ function HomeDashboardScreen() {
               )}
             </GroupSection>
             )}
+            </>}
           </div>
 
-          <section data-home-side className="flex flex-col gap-2 min-w-0" aria-label="Your sections">
+          {!holdBelowNextUp && <section data-home-side className="flex flex-col gap-2 min-w-0" aria-label="Your sections">
             <HomeMoneyTiles money={money} placement="side" />
             <div className="flex items-baseline justify-between px-1">
               <h2 className="text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">Your sections</h2>
@@ -391,7 +397,7 @@ function HomeDashboardScreen() {
               })}
             </div>
             {soonLine && <p data-testid="sections-opening-soon" className="px-1 text-ds-13 text-muted-foreground">{soonLine}</p>}
-          </section>
+          </section>}
         </div>}
 
       </div>

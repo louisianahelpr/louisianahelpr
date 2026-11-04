@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useQueryClient, type QueryKey } from "@tanstack/react-query";
 import { usePosterFirstJob } from "./PosterFirstJobCard";
 
@@ -43,4 +43,25 @@ export function useHomeTopSettled(userId: string | undefined, firstJob: { isNew:
   }, []);
   if (!userId || timedOut) return true;
   return firstSettled && (!needPoster || posterSettled);
+}
+
+/**
+ * Builder 3 (11-04 PM): on a FIRST visit to Home on this device (no saved Next up height, reservedHeight.ts) the
+ * to-dos and the money strip have nothing to hold room with. Lab after the first-week fix (prod build, helper persona,
+ * Fast 4G, 3 runs): the money strip landing above Coming up (0.050) and Next up growing from its loading lines to
+ * "1 of 9" (0.059) were the two shifts left. So the blocks BELOW Next up wait for those reads: Next up then grows
+ * with nothing under it, and the rest arrives once, in place. Next up itself is not held: its loading line is the
+ * same <p> its to-do title fills, so the page's first big paint stays the greeting (holding the whole column moved
+ * LCP from the greeting at 1.09 s to the to-do title at 2.24 s). True while held; once released it stays released,
+ * and never longer than HOME_TOP_MAX_WAIT_MS.
+ */
+export function useHoldWhileFirstVisitReads(pending: boolean): boolean {
+  const released = useRef(false);
+  const [timedOut, setTimedOut] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setTimedOut(true), HOME_TOP_MAX_WAIT_MS);
+    return () => clearTimeout(t);
+  }, []);
+  if (!pending || timedOut) released.current = true;
+  return !released.current;
 }

@@ -386,7 +386,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           try {
             await porchPlaces.whenPicked();
             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : timedPickup ? pickupStart : null, sellerDelivering ? handoff : null,
-              sellerDelivering ? sdRate : null, shipping ? shipQuote?.quote_id ?? null : null);
+              sellerDelivering ? sdRate : delivering ? liveQuote?.delivery_cents ?? null : null, shipping ? shipQuote?.quote_id ?? null : null);
             if (res.paid || !res.url) {
               toast("This order is already paid.");
               invalidateTrades(qc);
@@ -406,6 +406,9 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
               toast.error(meetingUp ? meetupErrorMessage(err) : declutterErrorMessage(err));
               // B110: a pickup time no longer open (or outside the hours): show the times again, ask for a new pick.
               if ((err as { message?: string } | null)?.message === "invalid_slot") setPickupPick(null);
+              // Q1930: the Helpr delivery price moved since the quote (routed road miles landed): price it again, so the
+              // screen shows the new price before the buyer taps Pay again.
+              if (delivering && (err as { message?: string } | null)?.message === "delivery_rate_changed") priceIt.mutate(undefined);
             }
             // porch_place_needed after a read that stalled, or a place saved since: show the picker it asks for.
             if (needsPlace) void porchPlaces.reread(err);

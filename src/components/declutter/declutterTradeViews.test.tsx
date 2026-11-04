@@ -40,7 +40,7 @@
  * @mutate src/components/declutter/DeclutterTabHeads.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
  * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               const url = await startCardSave(); |               const url = "https://example.invalid";
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : timedPickup ? pickupStart : null, sellerDelivering ? handoff : null,\n              sellerDelivering ? sdRate : null, shipping ? shipQuote?.quote_id ?? null : null); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : timedPickup ? pickupStart : null, sellerDelivering ? handoff : null,\n              sellerDelivering ? sdRate : delivering ? liveQuote?.delivery_cents ?? null : null, shipping ? shipQuote?.quote_id ?? null : null); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
  * Row 101 (porch is the default; a seller can turn it off per item).
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const chosen = picked && offered.includes(picked) ? picked : offered[0]; |   const chosen = picked ?? offered[0];
  * Slice 5 (Helpr delivery, rows 29-30): offered while Declutter is open, priced by the server.
@@ -91,6 +91,11 @@ const state = {
   opened: [] as string[],
   deliveryOn: false,
   quotes: [] as unknown[],
+  /** Q1930: the Helpr delivery price the server quotes, and the one it freezes on the order at Pay (null: the same). */
+  quoteCents: 4000,
+  serverDeliveryCents: null as number | null,
+  /** Q1930: the delivery price each Pay carried (expected_delivery_cents). */
+  payRates: [] as (number | null | undefined)[],
   /** Q2352: the one-time account setup fee still owed (useFirstPayoutFeeCents), 0 once paid. */
   setupFeeCents: 0,
   /** useFirstPayoutFeeKnown: false while the fee answer is not in (the total then says "+ any setup fee"). */
@@ -133,7 +138,7 @@ vi.mock("@/lib/declutter/delivery", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/delivery")>()),
   fetchDeliveryQuote: async (sellerId: string, address: string) => {
     state.quotes.push({ sellerId, address });
-    return { road_miles: 5, size: "large", delivery_cents: 4000, base_cents: 1000, per_mile_cents: 1000, size_cents: 2000, dropoff_area: "Baker, LA" };
+    return { road_miles: 5, size: "large", delivery_cents: state.quoteCents, base_cents: 1000, per_mile_cents: 1000, size_cents: 2000, dropoff_area: "Baker, LA" };
   },
 }));
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
@@ -184,6 +189,11 @@ vi.mock("@/lib/declutter/api", () => ({
   fetchItemsCanShip: async () => { state.canShipReads += 1; return state.canShip; },
   fetchShipRates: async (sellerId: string, shipTo: unknown) => { state.shipAsked.push({ sellerId, shipTo }); return state.shipQuotes; },
   startCheckoutPayment: async (sellerId: string, handover: string, slot?: string | null, handoff?: string | null, _rate?: number | null, quoteId?: string | null) => {
+    if (handover === "delivery") {
+      state.payRates.push(_rate);
+      // declutter-checkout's delivery_rate_changed: the order froze a different price than the screen showed.
+      if (state.serverDeliveryCents !== null && _rate !== state.serverDeliveryCents) throw new Error("delivery_rate_changed");
+    }
     state.paid.push(handover === "ship" ? { sellerId, handover, quoteId } : handover === "seller_delivery" ? { sellerId, handover, slot, handoff } : slot ? { sellerId, handover, slot } : { sellerId, handover });
     return { url: "https://checkout.stripe.test/pay", paid: false };
   },
@@ -283,6 +293,9 @@ describe("Declutter slice 3 screens", () => {
     state.opened = [];
     state.deliveryOn = false;
     state.quotes = [];
+    state.quoteCents = 4000;
+    state.serverDeliveryCents = null;
+    state.payRates = [];
     state.sellerDeliveryOn = false;
     state.sdOffer = null;
     state.spots = [];
@@ -1178,6 +1191,36 @@ describe("Declutter slice 3 screens", () => {
     state.deliveryOn = false;
   });
 
+  // Q1930 (lead re-review 11-04): routed road miles land in the background after the first quote, so the price frozen
+  // at Pay can differ from the one shown, up or down. Pay carries the shown price; the server refuses a different one
+  // (delivery_rate_changed) and the screen prices it again before the buyer taps Pay again.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |               if (delivering && (err as { message?: string } \| null)?.message === "delivery_rate_changed") priceIt.mutate(undefined); | ;
+  for (const [dir, now, pay] of [["higher", 5200, "Pay $55.85"], ["lower", 3000, "Pay $33.85"]] as const) {
+    it(`Q1930: a Helpr delivery price that moved ${dir} since the quote is refused at Pay, priced again, then paid at the new price`, async () => {
+      state.deliveryOn = true;
+      const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+        checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null, porch_ok: true };
+      state.cart = [line];
+      show(<CartView />);
+      fireEvent.click(await screen.findByLabelText(/Helpr delivery/));
+      fireEvent.change(screen.getByLabelText(/Deliver to/), { target: { value: "900 Far Rd, Baker, LA" } });
+      fireEvent.click(screen.getByRole("button", { name: "Get price" }));
+      await screen.findByRole("button", { name: "Pay $43.85" });
+      // Apple's routed miles landed meanwhile: the server now prices it differently.
+      state.serverDeliveryCents = now;
+      state.quoteCents = now;
+      fireEvent.click(screen.getByRole("button", { name: "Pay $43.85" }));
+      expect(await screen.findByRole("button", { name: pay })).toBeInTheDocument();
+      expect(state.payRates).toEqual([4000]);
+      expect(state.quotes).toHaveLength(2);
+      expect(state.paid).toEqual([]);
+      fireEvent.click(screen.getByRole("button", { name: pay }));
+      await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "delivery" }]));
+      expect(state.payRates).toEqual([4000, now]);
+      state.deliveryOn = false;
+    });
+  }
+
   // BUY-9 (buying audit 10-30 #9): "Deliver to" was typed from nothing on every order. The buyer's newest drop-off
   // (their own rows only) fills it once; it is asked only when a way that delivers is chosen, and never over typing.
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |     if (!addressTouched && lastDropoff.data && address === "") setAddress(lastDropoff.data); |     void 0;
@@ -1401,7 +1444,7 @@ describe("Declutter slice 3 screens", () => {
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |     enabled: shipOn && itemIds.length > 0, staleTime: 60_000 }); |     enabled: itemIds.length > 0, staleTime: 60_000 });
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (shipOn && canShip.data === true) ticked.push("ship"); |   if (shipOn) ticked.push("ship");
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (shipRate !== null ? netItemsCents + buyerFeeCentsShip(netItemsCents, shipRate) + shipRate | const payCents = (shipRate !== null ? netItemsCents + shipRate
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx | sellerDelivering ? sdRate : null, shipping ? shipQuote?.quote_id ?? null : null); | sellerDelivering ? sdRate : null);
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | sellerDelivering ? sdRate : delivering ? liveQuote?.delivery_cents ?? null : null, shipping ? shipQuote?.quote_id ?? null : null); | sellerDelivering ? sdRate : null);
   // @mutate src/components/declutter/DeclutterTradeViews.tsx | (delivering && !liveQuote) \|\| (shipping && !shipQuote) \|\| | (delivering && !liveQuote) \|\|
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |           : shipping ? "It's paid to the seller about 48 hours |           : false ? "It's paid to the seller about 48 hours
   // @mutate src/components/declutter/ShipToMe.tsx |       onPick(q.find((x) => x.preselected) ?? q[0] ?? null); |       onPick(null);

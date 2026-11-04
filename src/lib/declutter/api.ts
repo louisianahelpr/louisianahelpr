@@ -1476,6 +1476,9 @@ export async function startCheckoutPayment(sellerId: string, handover: Handover,
       : (handover === "porch" || handover === "pickup_home" || handover === "meetup") && slotStart ? { slot_start: slotStart }
         // Shipping S3: a shipped order carries only the quote the buyer picked (the server reads its price and address).
         : handover === "ship" ? { quote_id: quoteId ?? null }
+        // Q1930: a Helpr delivery carries the price the screen showed: a different price stops before Stripe
+        // (delivery_rate_changed), since routed road miles can land between the quote and Pay.
+        : handover === "delivery" && typeof expectedDeliveryCents === "number" ? { expected_delivery_cents: expectedDeliveryCents }
         : {}),
   });
   return { url: typeof data.url === "string" ? data.url : null, paid: data.paid === true };

@@ -28,7 +28,7 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |     { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}${walletRetry ? ":new-wallet" : ""}` }, |     {},
  * @mutate supabase/functions/declutter-checkout/index.ts | await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (payer, walletRetry) => | await ((_a: unknown, _b: unknown, _c: unknown, _d: unknown, c: string \| undefined, f: (c: string \| undefined, r: boolean) => unknown) => f(c, false))(admin, stripe, user, mode, customerId, (payer, walletRetry) =>
  * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "complete") return json({ paid: true, order_id: open.id }); |
- * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "open" && (open.handover !== handover \|\| slotChanged \|\| spotChanged \|\| bundleChanged \|\| pickupChanged \|\| feeChanged \|\| quoteChanged)) { |     if (false) {
+ * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "open" && (open.handover !== handover \|\| slotChanged \|\| spotChanged \|\| bundleChanged \|\| pickupChanged \|\| feeChanged \|\| quoteChanged \|\| deliveryChanged)) { |     if (false) {
  * @mutate supabase/functions/declutter-checkout/index.ts |     bundleChanged = Number(off ?? 0) !== Number(open.bundle_discount_cents ?? 0); |     bundleChanged = false; void off;
  * @mutate supabase/functions/declutter-checkout/index.ts |         if (refused) return json({ error: "porch_unavailable" }, 400); |         if (false) return json({ error: "porch_unavailable" }, 400);
  * @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (parties && !partyGone && (parties.buyer_id !== meta.buyer_id \|\| parties.seller_id !== meta.seller_id)) { |   if (false) {
@@ -1179,6 +1179,8 @@ describe("declutter-checkout: Helpr delivery (slice 5)", () => {
 
   it("pay with delivery puts the frozen delivery fee on its own line; the page totals exactly the order", async () => {
     const fn = await load();
+    // The buyer was shown this price by the quote (Q1930: an app that sends no expected price is held to it).
+    scenario.reads.declutter_delivery_quotes_shown = { rows: [{ buyer_id: BUYER, seller_id: SELLER, delivery_cents: 2400 }] };
     scenario.rpc.declutter_start_checkout = [{ order_id: ORDER, items_cents: 4000, premium_cents: 270, tax_cents: 0, total_cents: 6670,
       superseded_session_id: null, checkout_session_id: null, delivery_cents: 2400 }];
     scenario.rpc.declutter_attach_checkout_session = null;
@@ -1196,8 +1198,85 @@ describe("declutter-checkout: Helpr delivery (slice 5)", () => {
     expect(rpcs("declutter_start_checkout")[0]?.args).toEqual({ p_seller_id: SELLER, p_handover: "delivery" });
   });
 
+  // Q1930 (lead final review 11-04): every installed app sends no expected price for a Helpr delivery, and routed road
+  // miles land after the quote, so the price frozen at Pay could differ from the one shown. The quote stores what it
+  // showed; a checkout without an expected price is held to it.
+  // @mutate supabase/functions/declutter-checkout/index.ts |   if (shownCheck && (shownRate === null \|\| Number(order.delivery_cents ?? 0) !== shownRate)) { |   if (false) {
+  // @mutate supabase/functions/declutter-checkout/index.ts |   const shownCheck = handover === "delivery" && expectedRate === null; |   const shownCheck = false;
+  // @mutate supabase/functions/declutter-checkout/index.ts |     const { error: shownErr } = await admin.rpc("declutter_record_quote_shown", |     const { error: shownErr } = await admin.rpc("declutter_record_quote_shown_off",
+  it("Q1930: an older app's Helpr delivery whose price moved since its quote is refused; re-quoted, it then pays", async () => {
+    const fn = await load();
+    scenario.rpc.feature_enabled_for_user = true;
+    scenario.rpc.declutter_set_delivery_dropoff = null;
+    // The quote showed $18 (the 1.3x estimate); Apple's routed miles landed after it: checkout now freezes $24.
+    scenario.rpc.declutter_delivery_quote = { delivery_cents: 1800 };
+    expect((await fn.fetch(quoteReq(fn))).status).toBe(200);
+    const shown = rpcs("declutter_record_quote_shown");
+    const shownArgs = shown.map((c) => c.args as Record<string, unknown>);
+    expect(shownArgs.map((a) => [a.p_buyer, a.p_seller, a.p_cents, typeof a.p_at])).toEqual([[BUYER, SELLER, 1800, "string"]]);
+    expect(clientOf(shown[0])?.key).toBe("service-key");
+    scenario.reads.declutter_delivery_quotes_shown = { rows: [{ buyer_id: BUYER, seller_id: SELLER, delivery_cents: 1800 }] };
+    scenario.rpc.declutter_start_checkout = [{ order_id: ORDER, items_cents: 4000, premium_cents: 270, tax_cents: 0, total_cents: 6670,
+      superseded_session_id: null, checkout_session_id: null, delivery_cents: 2400 }];
+    scenario.rpc.declutter_attach_checkout_session = null;
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_dl", url: "https://x/dl", amount_total: 6670 });
+    const payOld = () => fn.fetch(fn.request({ headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "pay", seller_id: SELLER, handover: "delivery" } }));
+    let res = await payOld();
+    expect(res.status).toBe(409);
+    expect(await json(res)).toMatchObject({ error: "delivery_rate_changed", delivery_cents: 2400 });
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    // The buyer prices it again (Get price): the quote now shows $24 and stores it; Pay goes through at $24.
+    scenario.rpc.declutter_delivery_quote = { delivery_cents: 2400 };
+    expect((await fn.fetch(quoteReq(fn))).status).toBe(200);
+    const shownNow = rpcs("declutter_record_quote_shown");
+    expect((shownNow[shownNow.length - 1].args as Record<string, unknown>).p_cents).toBe(2400);
+    scenario.reads.declutter_delivery_quotes_shown = { rows: [{ buyer_id: BUYER, seller_id: SELLER, delivery_cents: 2400 }] };
+    res = await payOld();
+    expect(res.status).toBe(200);
+    expect(stripeMock.checkout.sessions.create).toHaveBeenCalledTimes(1);
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+    expect(params.line_items[params.line_items.length - 1].price_data.unit_amount).toBe(2400);
+  });
+
+  it("Q1930: an older app with no quote on record is asked to price it, never charged unseen; the new app's own price still rules", async () => {
+    const fn = await load();
+    scenario.reads.declutter_delivery_quotes_shown = { rows: [] };
+    scenario.rpc.declutter_start_checkout = [{ order_id: ORDER, items_cents: 4000, premium_cents: 270, tax_cents: 0, total_cents: 6670,
+      superseded_session_id: null, checkout_session_id: null, delivery_cents: 2400 }];
+    scenario.rpc.declutter_attach_checkout_session = null;
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_dl", url: "https://x/dl", amount_total: 6670 });
+    let res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "pay", seller_id: SELLER, handover: "delivery" } }));
+    expect(res.status).toBe(409);
+    expect((await json(res)).error).toBe("delivery_rate_changed");
+    // The new app sends the price it showed: that is the check, and a matching one pays.
+    res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "pay", seller_id: SELLER, handover: "delivery", expected_delivery_cents: 2400 } }));
+    expect(res.status).toBe(200);
+    res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "pay", seller_id: SELLER, handover: "delivery", expected_delivery_cents: 1800 } }));
+    expect(res.status).toBe(409);
+  });
+
+  // @mutate supabase/functions/declutter-checkout/index.ts |   const seenRate = expectedRate ?? shownRate; |   const seenRate = expectedRate;
+  it("Q1930: an older app re-quoted at a new price closes its open page at the old price BEFORE the order is replaced", async () => {
+    const fn = await load();
+    scenario.reads.declutter_orders = { rows: [{ id: ORDER, handover: "delivery", stripe_checkout_session_id: "cs_live_old", delivery_cents: 1800,
+      bundle_discount_cents: 0, setup_fee_cents: 0 }] };
+    stripeMock.checkout.sessions.retrieve.mockResolvedValue(page("cs_live_old", "open", "https://x/old"));
+    scenario.rpc.declutter_bundle_preview = 0;
+    scenario.rpc.declutter_setup_fee_due_cents = 0;
+    scenario.rpc.declutter_delivery_quote = { delivery_cents: 2400 };
+    scenario.reads.declutter_delivery_quotes_shown = { rows: [{ buyer_id: BUYER, seller_id: SELLER, delivery_cents: 2400 }] };
+    scenario.rpc.declutter_start_checkout = [{ order_id: ORDER, items_cents: 4000, premium_cents: 270, tax_cents: 0, total_cents: 6670,
+      superseded_session_id: null, checkout_session_id: null, delivery_cents: 2400 }];
+    scenario.rpc.declutter_attach_checkout_session = null;
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_dl", url: "https://x/dl", amount_total: 6670 });
+    const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "pay", seller_id: SELLER, handover: "delivery" } }));
+    expect(res.status).toBe(200);
+    expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_live_old");
+  });
+
   it("an order whose delivery fee does not match its handover is never put on a page", async () => {
     const fn = await load();
+    scenario.reads.declutter_delivery_quotes_shown = { rows: [{ buyer_id: BUYER, seller_id: SELLER, delivery_cents: 0 }] };
     scenario.rpc.declutter_start_checkout = [{ order_id: ORDER, items_cents: 4000, premium_cents: 270, tax_cents: 0, total_cents: 4270,
       superseded_session_id: null, checkout_session_id: null, delivery_cents: 0 }];
     const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "pay", seller_id: SELLER, handover: "delivery" } }));

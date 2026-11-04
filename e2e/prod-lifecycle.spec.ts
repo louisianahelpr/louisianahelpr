@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { fitJobTitle } from "../scripts/lib/jobTextBounds.mjs";
 import { mintAdminSession, playwrightTransport, resolveServiceKey } from "../scripts/lib/adminSession.mjs";
 import { pathsByJob, rowStillNames, withoutPaths, type ProofRow } from "./proofPhotoTeardown";
+import { photoAskName } from "./photoAskName";
 import { settleJobForward } from "../scripts/e2e/settleForward.mjs";
 
 // The full authenticated money loop, against PRODUCTION, on a Stripe TEST key.
@@ -433,13 +434,13 @@ async function uploadProofThroughTheApp(
   // name also encodes the TYPE ("add the after photo for this job"), which is
   // what stops a mis-click on the wrong chip when both are briefly present.
   // The dialog title check below confirms the type a second time.
-  const askLabel = type === "before" ? "Before photo" : "After photo";
   // THIRD SHAPE (owner "photo first", 2026-10-08, primaryPhotoAsk.ts): on a
   // one-Helpr job the OWED photo is the step's primary, drawn by PhotoProof as
   // JobStepPrimaryButton "Take <label>" — not the outline chip. Scheduled run
   // 39039797666 (2026-10-17) failed here with `button "Take After photo"` on
   // the card. Either shape opens the same dialog.
-  const askName = new RegExp(`^(Take ${askLabel}|${askLabel} — add the ${type} photo for this job)$`);
+  // Sentence case since 2026-10-29 ("Take after photo"): e2e/photoAskName.ts.
+  const askName = photoAskName(type);
   const askChip = card.getByRole("button", { name: askName });
   /* FOURTH SHAPE (owner, 2026-10-08: "move everything besides the primary
      button into the more tab"; JobStepCard MORE_ORDER): a photo that is NOT

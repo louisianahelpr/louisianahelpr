@@ -4,8 +4,8 @@
  * "Flexible" reads selected, and tapping one of them leaves today for tomorrow (clearing the start Need it today set).
  * Renders the real LogisticsSection with the clock's start stubbed (as needItTodayStartIsForToday.test.tsx).
  *
- * @mutate src/components/postjob/LogisticsSection.tsx | <ChoicePill selected={!isToday && !isFlexibleSchedule} | <ChoicePill selected={!isFlexibleSchedule}
- * @mutate src/components/postjob/LogisticsSection.tsx |     if (isToday && strip[1]) pickDay(strip[1].iso); |     void 0;
+ * @mutate src/components/postjob/LogisticsSection.tsx | <ChoicePill selected={!isToday && !isFlexibleSchedule && !weekWindow} | <ChoicePill selected={!isFlexibleSchedule && !weekWindow}
+ * @mutate src/components/postjob/LogisticsSection.tsx |     setDateWindowEnd?.(null);\n    if (isToday && strip[1]) pickDay(strip[1].iso); |     setDateWindowEnd?.(null);\n    void 0;
  * @mutate src/components/postjob/LogisticsSection.tsx | onClick={() => setHelpersNeeded(String(Math.min(10, Math.max(2, crewCount + 1))))} | onClick={() => setHelpersNeeded(String(crewCount))}
  * @mutate src/components/postjob/LogisticsSection.tsx |                 disabled={crewCount <= 2} |                 disabled={false}
  *

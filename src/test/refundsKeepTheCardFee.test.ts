@@ -317,7 +317,7 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
 
 const MIGRATIONS = join(ROOT, "supabase/migrations");
 
-// Q2704: the SQL checks replay ~1,800 migrations; read, blank and replay each once per run (the coverage run hit
+// Q2704: the SQL checks replay ~1,800 migrations (2026-11-03); read, blank and replay each once per run (the coverage run hit
 // the 60 s timeout re-reading them for every policy, constraint and site). Lazy, so a vacuity mutation is still read.
 let effDefsMemo: ReturnType<typeof effectiveDefs> | null = null;
 const effDefs = () => (effDefsMemo ??= effectiveDefs(MIGRATIONS));

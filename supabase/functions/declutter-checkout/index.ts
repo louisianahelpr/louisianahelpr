@@ -79,6 +79,7 @@ import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { requireFeature } from "../_shared/featureSwitch.ts";
 import { geocodeDropoff, plausibleAddress, type AppleMapsAccess } from "../_shared/geocodeDropoff.ts";
+import { MAX_ETA_DESTINATIONS, appleEtas } from "../_shared/appleRoutes.ts";
 import { mapkitKeyFromEnv, signMapkitJwt } from "../_shared/mapkitJwt.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { storedStripeCustomer, withStoredWalletCustomer } from "../_shared/stripeCustomer.ts";
@@ -614,6 +615,44 @@ function appleMapsAccess(): AppleMapsAccess | null {
   return key ? { developerToken: () => signMapkitJwt(key, 300) } : null;
 }
 
+type RoutePair = { o_lat: number; o_lng: number; d_lat: number; d_lng: number };
+
+/** Q1930 (WIP): Apple-routed miles for every (origin, drop-off) pair the quote reads, stored in declutter_route_miles. */
+async function storeRoutedMiles(admin: Db, buyerId: string, sellerId: string): Promise<void> {
+  const apple = appleMapsAccess();
+  if (!apple) return;
+  const { data, error } = await admin.rpc("declutter_route_pairs", { p_buyer: buyerId, p_seller: sellerId });
+  if (error) {
+    console.error(JSON.stringify({ event: "route_pairs_read_failed", detail: String(error.message).slice(0, 200) }));
+    return;
+  }
+  const pairs = (data ?? []) as RoutePair[];
+  const byOrigin = new Map<string, RoutePair[]>();
+  for (const p of pairs) byOrigin.set(`${p.o_lat},${p.o_lng}`, [...(byOrigin.get(`${p.o_lat},${p.o_lng}`) ?? []), p]);
+  const rows: Record<string, unknown>[] = [];
+  for (const group of byOrigin.values()) {
+    for (let i = 0; i < group.length; i += MAX_ETA_DESTINATIONS) {
+      const chunk = group.slice(i, i + MAX_ETA_DESTINATIONS);
+      const legs = await appleEtas({ lat: Number(chunk[0].o_lat), lng: Number(chunk[0].o_lng) },
+        chunk.map((p) => ({ lat: Number(p.d_lat), lng: Number(p.d_lng) })), apple);
+      if (!Array.isArray(legs)) {
+        console.error(JSON.stringify({ event: "route_etas_miss", status: legs.status, detail: legs.detail }));
+        continue;
+      }
+      legs.forEach((leg, k) => {
+        if (leg && leg.miles <= 2000) {
+          const p = chunk[k];
+          rows.push({ o_lat: p.o_lat, o_lng: p.o_lng, d_lat: p.d_lat, d_lng: p.d_lng, miles: leg.miles,
+            minutes: leg.minutes, source: "apple", routed_at: new Date().toISOString() });
+        }
+      });
+    }
+  }
+  if (rows.length === 0) return;
+  const { error: upErr } = await admin.from("declutter_route_miles").upsert(rows, { onConflict: "o_lat,o_lng,d_lat,d_lng" });
+  if (upErr) console.error(JSON.stringify({ event: "route_miles_store_failed", detail: String(upErr.message).slice(0, 200) }));
+}
+
 async function deliveryQuote(body: Record<string, unknown>, user: { id: string }, asBuyer: Db, admin: Db) {
   const sellerId = typeof body.seller_id === "string" ? body.seller_id : "";
   if (!UUID_RE.test(sellerId) || sellerId === user.id) return json({ error: "item_not_found" }, 404);
@@ -639,6 +678,9 @@ async function deliveryQuote(body: Record<string, unknown>, user: { id: string }
     p_buyer: user.id, p_seller: sellerId, p_address: address, p_area_label: point.areaLabel, p_lat: point.lat, p_lng: point.lng,
   });
   if (setErr) return rpcRefusal(setErr);
+  // Q1930 (WIP, not reviewed): route each pair the quote measures with Apple and store it, so declutter_road_miles
+  // answers road miles instead of the 1.3x estimate. Never fails the quote: a miss keeps the estimate.
+  await storeRoutedMiles(admin, user.id, sellerId);
   const { data: quote, error: quoteErr } = await asBuyer.rpc("declutter_delivery_quote", { p_seller_id: sellerId });
   if (quoteErr) return rpcRefusal(quoteErr);
   return json({ quote });

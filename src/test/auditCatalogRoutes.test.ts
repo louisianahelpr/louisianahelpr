@@ -143,9 +143,54 @@ function elementFor(path: string): string | null {
  * renders them for a guest, so `/` and `/browse` genuinely paint the screens
  * their catalog rows name. The discriminator is exactly that — a wrapper that
  * can render children is a conditional gate; one that cannot is a redirect.
+ *
+ * A third shape (UI sweep 41883963188, 2026-11-04): a PAGE whose only JSX is one
+ * `<Navigate>`, whatever it is called. DeclutterMovePage forwards /declutter/move
+ * to the moving sale (Sell a bunch with a move-out date) and was not named
+ * `*Redirect`, so its row audited /declutter/sell as if it were /declutter/move
+ * and the sweep reported ROUTE_BOUNCE instead of this test.
  */
+function soleJsxIsNavigate(src: string): boolean {
+  const code = blankComments(src);
+  if (/\bchildren\b/.test(code)) return false;
+  const tags = [...code.matchAll(/<([A-Za-z][\w.]*)[\s/>]/g)].map((m) => m[1]);
+  return tags.length > 0 &&
+    tags.every((t) => t === "Navigate");
+}
+
+function componentSource(name: string): string | null {
+  const importLine = new RegExp(
+    `(?:import\\s+${name}\\s+from|const ${name} = (?:lazy|lazyWithPreload)\\(\\(\\) => import\\()\\s*"([^"]+)"`,
+  ).exec(appSrc);
+  if (!importLine) return null;
+  const rel = importLine[1].replace(/^@\//, "src/").replace(/^\.\//, "src/");
+  for (const ext of [".tsx", ".ts"]) {
+    try {
+      return readFileSync(resolve(repoRoot, `${rel}${ext}`), "utf8");
+    } catch {
+      // not this extension; try the next
+    }
+  }
+  return null;
+}
+
+/**
+ * Rows whose route always forwards, but to a target the FIXTURE picks, so no
+ * literal `redirectsTo` can be true for every sweep. Each sweep that visits one
+ * names its own landing (empty-state-sweep.spec.ts EXPECTED_LANDING).
+ */
+// @two-way src/test/auditCatalogRoutes.test.ts:const staleForwards =
+const FIXTURE_PICKED_FORWARDS: Record<string, string> = {
+  explore:
+    "/explore has no screen of its own (src/pages/explore/Explore.tsx): it forwards to the member's last section, else the first open one.",
+};
+
 function isUnconditionalRedirect(element: string): boolean {
   if (/<Navigate\b/.test(element)) return true;
+  for (const m of element.matchAll(/<([A-Z]\w*)\b/g)) {
+    const src = componentSource(m[1]);
+    if (src && soleJsxIsNavigate(src)) return true;
+  }
   for (const m of element.matchAll(/<(\w*Redirect)\b/g)) {
     const name = m[1];
     const importLine = new RegExp(
@@ -170,6 +215,12 @@ function isUnconditionalRedirect(element: string): boolean {
   return false;
 }
 
+// @mutate e2e/happy-path/auditRoutes.ts | url: "/declutter/move", redirectsTo: "/declutter/sell?mode=moving" }, | url: "/declutter/move" },
+// Proves a page-level forward (a page whose only JSX is <Navigate>) is found: undeclare the
+// /declutter/move alias and the redirect test goes red (UI sweep 41883963188's ROUTE_BOUNCE).
+// @mutate src/test/auditCatalogRoutes.test.ts | tags.length > 0 &&\n    tags.every | tags.length < 0 &&\n    tags.every
+// Proves the page-level detector is load-bearing: blind it and /explore stops being a forward,
+// so its FIXTURE_PICKED_FORWARDS entry goes stale and fails.
 // @mutate src/App.tsx | <Route path="/help" | <Route path="/helpdesk"
 // Proves the alias classification is load-bearing: drop the declaration off a
 // row whose route is a <Navigate> and it goes back to being counted as an
@@ -307,7 +358,7 @@ describe("audit catalog matches the real route table", () => {
         if (!r) return null;
         const el = elementFor(r);
         if (!el || !isUnconditionalRedirect(el)) return null;
-        if (s.redirectsTo) return null;
+        if (s.redirectsTo || FIXTURE_PICKED_FORWARDS[s.name]) return null;
         return `${s.name} (${s.url}) → its route element is a redirect (${el.trim().slice(0, 50)}…) but the row claims to audit a screen of its own`;
       })
       .filter(Boolean);
@@ -318,6 +369,17 @@ describe("audit catalog matches the real route table", () => {
         "`redirectsTo: \"<destination>\"` to each so it stops being counted as " +
         `coverage of its own route:\n  - ${undeclared.join("\n  - ")}`,
     ).toEqual([]);
+  });
+
+  it("every fixture-picked forward still forwards (the exemption list only shrinks)", () => {
+    const rows = [...screensIn("ANON_SCREENS"), ...screensIn("AUTHED_SCREENS"), ...screensIn("ADMIN_SCREENS")];
+    const staleForwards = Object.keys(FIXTURE_PICKED_FORWARDS).filter((name) => {
+      const row = rows.find((s) => s.name === name);
+      const r = row && resolveRoute(row.url);
+      const el = r ? elementFor(r) : null;
+      return !el || !isUnconditionalRedirect(el);
+    });
+    expect(staleForwards, "FIXTURE_PICKED_FORWARDS names a row that no longer forwards: remove it").toEqual([]);
   });
 
   /**

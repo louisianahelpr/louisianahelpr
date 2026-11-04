@@ -123,7 +123,7 @@ describe("signed-in /jobs' first reads start from the entry (B43, Q1158)", () =>
 
   it("the entry starts it only for a member on /jobs, and only the entry's door imports the boot module", () => {
     const entry = code("src/entry.ts");
-    expect(entry).toMatch(/if \(hasToken\(\) && \/\^\\\/\(declutter\(\\\/item\\\/\[\\w-\]\+\)\?\|home\|jobs\)\?\\\/\?\$\/\.test\(window\.location\.pathname\)\) \{\s*void signedInPrefetch\(\)/);
+    expect(entry).toMatch(/if \(hasToken\(\) && \/\^\\\/\(declutter\(\\\/item\\\/\[\\w-\]\+\)\?\|home\|jobs\|posts\)\?\\\/\?\$\/\.test\(window\.location\.pathname\)\) \{\s*void signedInPrefetch\(\)/);
     expect(code("src/boot/signedInPrefetch.ts")).toContain("startJobsPrefetch(pathname);");
     expect(code("src/hooks/jobsPrefetchTake.ts")).toContain(`const KEY = "${JOBS_PREFETCH_KEY}";`);
     const importers = walkSource([resolve(ROOT, "src")])

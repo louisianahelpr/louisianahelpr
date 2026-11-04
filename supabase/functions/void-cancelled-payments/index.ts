@@ -1321,7 +1321,9 @@ serve(async (req) => {
             // replay the failure for 24 hours (review #6).
             const lastFailed = mine.find((r) => r.status === "failed" || r.status === "canceled");
             refund = await stripe.refunds.create(
-              { payment_intent: pi.id, amount: shareRefundCents, metadata: { job_id: job.id, crew_share_id: share.id, type: "crew_fee_share_returned" } },
+              // Q2717 review: the sales tax this refund returns rides on it, so charge.refunded reverses a gift-reduced
+              // job-site charge's Stripe Tax transaction exactly (never scaled by tax / card after a stamped cancel).
+              { payment_intent: pi.id, amount: shareRefundCents, metadata: { job_id: job.id, crew_share_id: share.id, type: "crew_fee_share_returned", ...(keptTaxCents > 0 ? { [JOB_TAX_BACK_KEY]: String(Math.min(keptTaxCents, shareRefundCents)) } : {}) } },
               { idempotencyKey: `crew-share-returned-${share.id}${lastFailed ? `-after-${lastFailed.id}` : ""}` },
             );
           }

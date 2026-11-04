@@ -2800,6 +2800,26 @@ describe("stripe-webhook edge function", () => {
         expect(reversals().map((r) => r.args)).toEqual([{ mode: "partial", flat_amount: -10615, original_transaction: "tax_txn_9", reference: "refund:re_cancel", metadata: { refund_id: "re_cancel", charge_id: "ch_visit" } }]);
       });
 
+      // Q2717 review (lh-money-escrow on fa77e8fed2): taxable $600 + $30 tax, card $330, gift $300. The stamped cancel
+      // (kept $150, tax-back $22.50) reverses $472.50; a LATER unstamped $52.50 crew-share refund must reverse only its
+      // own $52.50, not 5250 x 63000 / 33000 = $100.23, so the reported $105.00 still covers the $100 kept + $5 tax.
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |           : anyStamped\n          ? Math.round(amount)\n | : false\n          ? Math.round(amount)\n
+      it("Q2717 review: an unstamped refund after a stamped cancel reverses its own amount, never the kept tax", async () => {
+        stripeMock.tax.transactions.listLineItems.mockResolvedValue({ data: [{ id: "tax_li_1", amount: 60000, amount_tax: 3000, reference: "labor" }], has_more: false });
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_visit", metadata: { tax_transaction_id: "tax_txn_9", tax_calculation_id: "taxcalc_g", job_tax_cents: "3000", job_taxable_cents: "60000" } });
+        refundsAre([
+          { id: "re_cancel", amount: 17250, created: 100, metadata: { job_tax_back_cents: "2250" } },
+          { id: "re_share", amount: 5250, created: 200 },
+        ]);
+        const fn = await loadConfigured();
+        stripeMock.webhooks.constructEventAsync.mockResolvedValue({ id: "evt_tax_after_stamp", type: "charge.refunded", data: { object: { id: "ch_visit", payment_intent: "pi_visit", amount: 33000, amount_refunded: 0 } } });
+        await fn.fetch(webhookRequest(fn, "{}"));
+        const flats = reversals().map((r) => -Number((r.args as { flat_amount?: number }).flat_amount));
+        expect(flats).toEqual([47250, 5250]);
+        // What stays reported covers the $100 still kept plus its $5 tax.
+        expect(63000 - flats.reduce((a, b) => a + b, 0)).toBeGreaterThanOrEqual(10000 + 500);
+      });
+
       it("Q2717 control: the same refund with no stamp keeps the proportional share", async () => {
         stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_visit", metadata: { tax_transaction_id: "tax_txn_9", tax_calculation_id: "taxcalc_g", job_tax_cents: "1000", job_taxable_cents: "10000" } });
         refundsAre([{ id: "re_admin", amount: 1615, created: 100 }]);

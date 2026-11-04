@@ -24,6 +24,7 @@ import { formatDistanceLabel, formatDrivingLabel } from "./jobCardDistance";
 import { JobPrice, computeNet } from "./JobPrice";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { JobCardHeroBand } from "./JobCardHeroBand";
+import { JOB_CARD_MEDIA_PAD, JOB_CARD_MEDIA_ROW, JOB_CARD_TEXT_COL, JobCardMedia, JobCardPosterFace } from "./JobCardMedia";
 import {
   JOB_CARD_BADGE_ROW,
   JOB_CARD_BODY,
@@ -172,6 +173,8 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   // a clock time, the word "Flexible" if the poster ticked the flag, or null
   // meaning the chip is not rendered. See src/lib/jobDate.ts.
   const timeLabel = jobStartTimeLabel(job.start_time, job.is_flexible_schedule);
+  // The hero card already leads with the job's own photo band; every other card gets the tile.
+  const showMedia = !bare && !(hero && job.photos?.[0]);
 
   // NO ENTRY ANIMATION (Q169, owner 2026-09-23: "more cards appear ... they
   // don't all load together"). Each card used to fade and rise in on its own
@@ -259,50 +262,23 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
       <div className={bare ? "relative h-full overflow-hidden rounded-lg" : JOB_CARD_CLIP}>
         {/* No category rail: owner 2026-10-18; the category reads from the icon + label. */}
         {hero && !bare && <JobCardHeroBand photo={job.photos?.[0]} />}
-        {/* ── BADGE RAIL ───────────────────────────────────────────────
-            ONE row holding EVERY badge this card can render, sharing one
-            top edge, one bottom edge and one baseline BY CONSTRUCTION —
-            they are siblings in a single flex row, not three separately
-            positioned blocks that happen to be tuned to the same offset.
-
-            This is the fix for "JUST IN needs to be better aligned"
-            (owner, 2026-08-31). The freshness pill was not on this rail at
-            all: it lived in SwipeableJobCard, a DIFFERENT component,
-            absolutely positioned over the finished card at `top-2 left-20`
-            — 8px below the rail the category tab and BOOSTED sit on, and
-            80px from the left, a hardcoded guess at how wide the category
-            tab would be. Measured on the real feed, that guess was wrong on
-            every card at every width: "Yard Work" / "Pet Care" / "Handyman"
-            tabs end at x=135–152, so the pill painted straight across the
-            category label, and its bottom edge (32.8px) crossed the title's
-            top edge (29px). Three badges, three baselines, one overlap.
-
-            The rail is IN NORMAL FLOW, not absolutely positioned. The old
-            arrangement reserved space for the badges with the body's
-            `pt-6` — a guess about how tall a chip is, which is wrong the
-            moment the chip changes size. It already was: in senior mode
-            `.text-ds-*{line-height:1.45!important}` beats `leading-none`,
-            every chip grows ~9px, and the rail painted over the title on
-            EVERY card (measured: rail bottom 28.84 vs title top 28.00 at
-            1440). In flow, the body is placed after the rail whatever the
-            rail's height turns out to be, so the two can never collide in
-            any font-size mode. And because the category tab always renders,
-            the rail is always exactly one chip tall — so the title starts
-            at the SAME y on every card, badges or no badges.
-
-            PRIORITY, and what gives when the row runs out of width (320px):
-              1. status corner (Boosted > Urgent > Instant) — never shrinks.
-              2. secondary chip — at most ONE, "Just in" before
-                 "Recommended" (see below) — never shrinks.
-              3. the category tab — the ONLY flexible item: its LABEL
-                 truncates. Category is the safest thing to abbreviate
-                 because it is also carried by the colored left rail, the
-                 tab's own tint and the icon; the other two are
-                 closed-vocabulary signals that mean nothing ellipsised.
-            Nothing wraps (the row is nowrap and every label is nowrap), so
-            the rail can never become two chips tall and shove the title
-            down — which is exactly what it did at 320px with Recommended
-            present before this change. */}
+        {/* Photo-first (owner 2026-10-17, Q2043 + Q2036): the picture leads, the text sits beside it. */}
+        <div className={showMedia ? JOB_CARD_MEDIA_ROW : "contents"}>
+        {showMedia && (
+          <div className={JOB_CARD_MEDIA_PAD}>
+            <JobCardMedia photo={job.photos?.[0]} category={job.category} />
+          </div>
+        )}
+        <div className={showMedia ? JOB_CARD_TEXT_COL : "contents"}>
+        {/* ── BADGE RAIL ── ONE in-flow row holding every badge, so they share
+            one top edge, bottom edge and baseline by construction (owner
+            2026-08-31, "JUST IN needs to be better aligned"); in flow, so the
+            body starts after it in every font-size mode (senior mode grows
+            chips ~9px). Priority when width runs out (320px): 1. status corner
+            (never shrinks), 2. at most ONE secondary chip, "Just in" before
+            "Recommended" (never shrinks), 3. the category label, the only item
+            that truncates. Nothing wraps, so the rail is always one chip tall.
+            Full history: git log -S "BADGE RAIL" on this file. */}
         <div className={JOB_CARD_BADGE_ROW}>
           {/* 1. Category tab — flat left edge (squared) continuing the
                  vertical rail, rounded nose on the right. The poster avatar
@@ -705,6 +681,15 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
               </span>
             )}
           </div>
+          <JobCardPosterFace
+            posterId={job.customer_id}
+            name={job.posterName}
+            avatarUrl={job.posterAvatarUrl}
+            avgRating={job.posterAvgRating}
+            reviewCount={job.posterReviewCount}
+          />
+        </div>
+        </div>
         </div>
       </div>
 

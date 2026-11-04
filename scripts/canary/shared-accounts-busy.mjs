@@ -19,6 +19,16 @@
  * minus the canary itself. A new suite on those accounts is covered the day it
  * lands.
  *
+ * WAITS FIRST (Q1816, lead option (a), 2026-11-04). Of the last 30 canary
+ * runs, most stood down: vacuity.yml push runs' Playwright legs held the
+ * accounts 10 times, e2e-journeys 4, a11y-webkit-prod 2. Those hold them for
+ * minutes after a landing, so a canary that stood down at once rarely ran. It
+ * now asks again every POLL_MS for up to WAIT_MS and runs as soon as the
+ * accounts are free; only an hour still busy after WAIT_MS stands down. The
+ * preflight job's timeout-minutes must exceed WAIT_MS
+ * (src/test/coreLoopCanary.test.ts). SHARED_ACCOUNTS_WAIT_MS overrides it
+ * (0 = ask once, the old behaviour).
+ *
  * Output (GITHUB_OUTPUT): busy=true|false, reason=<text>. Exit 0 either way.
  * A GitHub API failure is NOT treated as busy: an unreadable answer must not
  * silence the canary, so it runs and says it could not check.
@@ -77,6 +87,26 @@ export function sharedAccountWorkflows(dir = join(process.cwd(), ".github", "wor
     .sort();
 }
 
+/** How long the canary waits for the accounts before standing down, and how often it asks (Q1816). */
+export const WAIT_MS = 25 * 60_000;
+export const POLL_MS = 60_000;
+
+/**
+ * Ask `check()` (resolves to the list of holders) until it answers empty or
+ * the wait is spent. Never sleeps past the deadline: the last ask is at or
+ * before `waitMs`. Returns the last holders (empty = free) and the time waited.
+ */
+export async function waitUntilFree(check, { waitMs = WAIT_MS, pollMs = POLL_MS, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), now = Date.now } = {}) {
+  const start = now();
+  for (;;) {
+    const busy = await check();
+    const waitedMs = now() - start;
+    if (!busy.length || waitedMs + pollMs > waitMs) return { busy, waitedMs };
+    console.log(`Shared accounts busy (${busy.join("; ")}); asking again in ${pollMs / 1000} s (waited ${Math.round(waitedMs / 60_000)} of ${waitMs / 60_000} min).`);
+    await sleep(pollMs);
+  }
+}
+
 async function main() {
   const repo = process.env.GITHUB_REPOSITORY;
   const token = process.env.GITHUB_TOKEN;
@@ -92,40 +122,47 @@ async function main() {
     out("reason", "not checked (no GitHub token)");
     return;
   }
-  const busy = [];
-  for (const f of files) {
-    try {
-      const r = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/${f}/runs?status=in_progress&per_page=5`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
-        signal: AbortSignal.timeout(15_000),
-      });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const { workflow_runs: runs = [] } = await r.json();
-      // Scheduled and dispatched runs sign in as the shared accounts; of the
-      // push runs only vacuity.yml's, and only while its vacuity-e2e job runs
-      // (Q1271). main takes pushes all day, so counting the rest would stand
-      // the canary down for nothing.
-      for (const run of runs) {
-        let jobs = [];
-        if (f === VACUITY_WORKFLOW && run.event === "push") {
-          const jr = await fetch(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/jobs?per_page=50`, {
-            headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
-            signal: AbortSignal.timeout(15_000),
-          });
-          if (!jr.ok) throw new Error(`jobs of run ${run.id}: HTTP ${jr.status}`);
-          jobs = (await jr.json()).jobs ?? [];
+  const checkOnce = async () => {
+    const busy = [];
+    for (const f of files) {
+      try {
+        const r = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/${f}/runs?status=in_progress&per_page=5`, {
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
+          signal: AbortSignal.timeout(15_000),
+        });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        const { workflow_runs: runs = [] } = await r.json();
+        // Scheduled and dispatched runs sign in as the shared accounts; of the
+        // push runs only vacuity.yml's, and only while its vacuity-e2e job runs
+        // (Q1271). main takes pushes all day, so counting the rest would stand
+        // the canary down for nothing.
+        for (const run of runs) {
+          let jobs = [];
+          if (f === VACUITY_WORKFLOW && run.event === "push") {
+            const jr = await fetch(`https://api.github.com/repos/${repo}/actions/runs/${run.id}/jobs?per_page=50`, {
+              headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
+              signal: AbortSignal.timeout(15_000),
+            });
+            if (!jr.ok) throw new Error(`jobs of run ${run.id}: HTTP ${jr.status}`);
+            jobs = (await jr.json()).jobs ?? [];
+          }
+          if (holdsAccounts(run, Date.now(), jobs)) busy.push(`${f} ${run.html_url}`);
+          else if (DRIVES_ACCOUNTS.has(run.event))
+            console.log(`::warning title=Ignoring a stale run::${f} ${run.html_url} has been in progress over ${STALE_RUN_MS / 3_600_000} h; GitHub ghost, not a lock holder.`);
         }
-        if (holdsAccounts(run, Date.now(), jobs)) busy.push(`${f} ${run.html_url}`);
-        else if (DRIVES_ACCOUNTS.has(run.event))
-          console.log(`::warning title=Ignoring a stale run::${f} ${run.html_url} has been in progress over ${STALE_RUN_MS / 3_600_000} h; GitHub ghost, not a lock holder.`);
+      } catch (e) {
+        console.log(`::warning title=Canary could not check ${f}::${e instanceof Error ? e.message : e} — counted as not busy, the canary runs.`);
       }
-    } catch (e) {
-      console.log(`::warning title=Canary could not check ${f}::${e instanceof Error ? e.message : e} — counted as not busy, the canary runs.`);
     }
-  }
+    return busy;
+  };
   console.log(`Shared-account workflows checked (${files.length}): ${files.join(", ")}`);
+  const envWait = Number(process.env.SHARED_ACCOUNTS_WAIT_MS ?? "");
+  const waitMs = process.env.SHARED_ACCOUNTS_WAIT_MS && Number.isFinite(envWait) && envWait >= 0 ? envWait : WAIT_MS;
+  const { busy, waitedMs } = await waitUntilFree(checkOnce, { waitMs });
+  const waited = `after waiting ${Math.round(waitedMs / 60_000)} min`;
   out("busy", busy.length ? "true" : "false");
-  out("reason", busy.length ? `shared accounts in use by ${busy.join("; ")}` : "shared accounts free");
+  out("reason", busy.length ? `shared accounts in use by ${busy.join("; ")} (${waited})` : `shared accounts free (${waited})`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) await main();

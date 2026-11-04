@@ -32,12 +32,16 @@
 // @mutate .github/workflows/core-loop-canary.yml | - cron: "47 * * * *" | - cron: "47 5 * * *"
 // @mutate .github/workflows/core-loop-canary.yml |     timeout-minutes: 40\n | \n
 // @mutate scripts/canary/shared-accounts-busy.mjs |     return jobs.some((j) => String(j.name ?? "").startsWith(VACUITY_E2E_JOB) && j.status === "in_progress"); |     return false;
+// @mutate scripts/canary/shared-accounts-busy.mjs |     if (!busy.length \|\| waitedMs + pollMs > waitMs) return { busy, waitedMs }; |     return { busy, waitedMs };
+// @mutate scripts/canary/shared-accounts-busy.mjs | export const WAIT_MS = 25 * 60_000; | export const WAIT_MS = 0;
+// @mutate scripts/canary/shared-accounts-busy.mjs | await waitUntilFree(checkOnce, { waitMs }); | { busy: await checkOnce(), waitedMs: 0 };
+// @mutate .github/workflows/core-loop-canary.yml |     timeout-minutes: 30 |     timeout-minutes: 3
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { blankComments } from "./helpers/blankNonCode";
-import { CANARY_WORKFLOW, STALE_RUN_MS, VACUITY_E2E_JOB, VACUITY_WORKFLOW, holdsAccounts, sharedAccountWorkflows } from "../../scripts/canary/shared-accounts-busy.mjs";
+import { CANARY_WORKFLOW, POLL_MS, STALE_RUN_MS, VACUITY_E2E_JOB, VACUITY_WORKFLOW, WAIT_MS, holdsAccounts, sharedAccountWorkflows, waitUntilFree } from "../../scripts/canary/shared-accounts-busy.mjs";
 import { E2E_LEGS } from "../../scripts/vacuity/run.mjs";
 
 const ROOT = join(__dirname, "..", "..");
@@ -232,5 +236,49 @@ describe("core-loop canary: a ghost run never stands it down", () => {
     const batch = { ...run("workflow_dispatch", 60_000), display_title: "E2E real backend (main batch 0123abcd)" };
     expect(holdsAccounts(batch, now)).toBe(false);
     expect(holdsAccounts({ ...batch, display_title: "E2E real backend" }, now)).toBe(true);
+  });
+});
+
+// Q1816 (lead option (a), 2026-11-04): most hourly runs stood down behind a
+// suite that held the accounts for a few minutes (vacuity push legs 10 of the
+// last 30, e2e-journeys 4, a11y-webkit-prod 2). The canary now waits for them.
+describe("core-loop canary: it waits up to ~25 min for the accounts before standing down", () => {
+  const clock = () => {
+    let t = 0;
+    return { now: () => t, sleep: async (ms: number) => { t += ms; } };
+  };
+  it("waits about 25 min, asking every minute", () => {
+    expect(WAIT_MS).toBeGreaterThanOrEqual(20 * 60_000);
+    expect(WAIT_MS).toBeLessThanOrEqual(30 * 60_000);
+    expect(POLL_MS).toBeLessThanOrEqual(2 * 60_000);
+  });
+  it("runs as soon as the accounts come free", async () => {
+    const c = clock();
+    let asks = 0;
+    const r = await waitUntilFree(async () => (++asks < 4 ? ["vacuity.yml run"] : []), { ...c });
+    expect(r.busy).toEqual([]);
+    expect(asks).toBe(4);
+    expect(r.waitedMs).toBe(3 * POLL_MS);
+  });
+  it("stands down only when still busy after the wait, never sleeping past it", async () => {
+    const c = clock();
+    let asks = 0;
+    const r = await waitUntilFree(async () => (asks++, ["e2e-journeys.yml run"]), { ...c });
+    expect(r.busy).toEqual(["e2e-journeys.yml run"]);
+    expect(r.waitedMs).toBeLessThanOrEqual(WAIT_MS);
+    expect(r.waitedMs).toBeGreaterThan(WAIT_MS - POLL_MS - 1);
+    expect(asks).toBeGreaterThan(10);
+  });
+  it("a zero wait asks once (the old behaviour, for SHARED_ACCOUNTS_WAIT_MS=0)", async () => {
+    let asks = 0;
+    const r = await waitUntilFree(async () => (asks++, ["x"]), { ...clock(), waitMs: 0 });
+    expect(asks).toBe(1);
+    expect(r.busy).toEqual(["x"]);
+  });
+  it("the script's main() really waits, and the preflight job outlives the wait", () => {
+    const src = blankComments(readFileSync(join(ROOT, "scripts", "canary", "shared-accounts-busy.mjs"), "utf8"));
+    const main = src.slice(src.indexOf("async function main()"));
+    expect(main).toMatch(/await waitUntilFree\(checkOnce, \{ waitMs \}\)/);
+    expect(wf.jobs.preflight["timeout-minutes"] * 60_000, "preflight would be killed mid-wait").toBeGreaterThan(WAIT_MS + 2 * 60_000);
   });
 });

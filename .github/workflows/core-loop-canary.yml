@@ -14,7 +14,8 @@ name: Core-loop canary
 # github-actions[bot], and the hourly ledger sync (prod-errors.yml) closes the
 # ledger item on that evidence.
 #
-# STANDS DOWN, without touching the issue or the ledger, while a scheduled or
+# WAITS up to 25 min for the accounts (Q1816), then STANDS DOWN, without
+# touching the issue or the ledger, if a scheduled or
 # dispatched suite is driving the same accounts (scripts/canary/
 # shared-accounts-busy.mjs): two runs on one pair of accounts turn each other
 # red, and that suite is exercising the same loop. A stand-down is neither a
@@ -44,7 +45,8 @@ jobs:
   preflight:
     name: Are the shared accounts free?
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    # Waits up to WAIT_MS (25 min) for the accounts before standing down (Q1816).
+    timeout-minutes: 30
     outputs:
       busy: ${{ steps.busy.outputs.busy }}
     steps:

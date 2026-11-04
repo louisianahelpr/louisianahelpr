@@ -29,7 +29,7 @@ describe("the Browse card meta row takes two lines below 360px (Q2222)", () => {
   it("an unconditional full-width break sits between the place and the when group, and the dot before the date drops there", () => {
     const brk = CARD.indexOf('<span aria-hidden data-meta-break className="hidden max-[359px]:block basis-full h-0.5" />');
     const place = CARD.indexOf("{cityState}");
-    const when = CARD.indexOf("{formatJobDate(job.date_needed)}");
+    const when = CARD.indexOf("{jobDayLabel(job)}"); // Q2408: the day reads through the window formatter
     expect(brk).toBeGreaterThan(place);
     expect(when).toBeGreaterThan(brk);
     expect(CARD.slice(brk, when)).toMatch(/<span className="shrink-0 [^"]*max-\[359px\]:hidden">·<\/span>/);

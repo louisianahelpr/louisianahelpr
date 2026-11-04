@@ -472,7 +472,7 @@ test("switching Jobs > Browse to map view cannot strand the dock off-screen", as
 // The ResizeObserver line is the ONLY thing that reveals it. Deleting it leaves
 // hide-on-scroll-down and reveal-on-scroll-up working perfectly, which is why a
 // spec that only scrolled up and down would stay green.
-// @mutate src/components/MobileNav.tsx | if (!scrollable) setNavHidden(false); |
+// @mutate src/components/mobileNav/useDockScrollState.ts | if (!scrollable) setNavHidden(false); |
 
 /**
  * THE DOCK LABELS, MEASURED (owner, 2026-10-19: a one-word label under each

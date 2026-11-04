@@ -6,9 +6,9 @@
  *
  * @mutate src/components/mobileNav/dockAtEnd.ts |   return travel > 8 && scrollTop > 0 && travel - scrollTop <= 2; |   return false;
  * @mutate src/components/mobileNav/dockAtEnd.ts |   return travel > 8 && scrollTop > 0 && travel - scrollTop <= 2; |   return scrollTop > 0 && travel - scrollTop <= 2;
- * @mutate src/components/MobileNav.tsx | const atEnd = dockRevealsAtEnd(surface.scrollHeight, surface.clientHeight, y); | const atEnd = false;
- * @mutate src/components/MobileNav.tsx | if (!atEnd && (y < 0 \|\| Math.abs(delta) < 6)) { | if (y < 0 \|\| Math.abs(delta) < 6) {
- * @mutate src/components/MobileNav.tsx | setNavHidden(!atEnd && y >= 64 && delta > 0); | setNavHidden(y >= 64 && delta > 0);
+ * @mutate src/components/mobileNav/useDockScrollState.ts | const atEnd = dockRevealsAtEnd(surface.scrollHeight, surface.clientHeight, y); | const atEnd = false;
+ * @mutate src/components/mobileNav/useDockScrollState.ts | if (!atEnd && (y < 0 \|\| Math.abs(delta) < 6)) { | if (y < 0 \|\| Math.abs(delta) < 6) {
+ * @mutate src/components/mobileNav/useDockScrollState.ts | setNavHidden(!atEnd && y >= 64 && delta > 0); | setNavHidden(y >= 64 && delta > 0);
  * @mutate src/index.css | html:not(.web-desktop).page-scrolled .sticky-title-row {\n  background: hsl(var(--background)); | html:not(.web-desktop).page-scrolled .sticky-title-row {\n  background: transparent;
  */
 import { readFileSync } from "node:fs";
@@ -32,8 +32,10 @@ describe("the dock at the end of a page (DA-9)", () => {
     expect(dockRevealsAtEnd(816, 812, 4)).toBe(false);
   });
 
+  // The scroll handler moved out of MobileNav.tsx into useDockScrollState.ts (Q806, pure move); MobileNav still mounts it.
   it("MobileNav asks it on every scroll, the jitter filter never swallows the end, and the end always reveals", () => {
-    const src = blankComments(readFileSync("src/components/MobileNav.tsx", "utf8"));
+    expect(blankComments(readFileSync("src/components/MobileNav.tsx", "utf8"))).toMatch(/useDockScrollState\(location\.pathname\)/);
+    const src = blankComments(readFileSync("src/components/mobileNav/useDockScrollState.ts", "utf8"));
     const body = src.slice(src.indexOf("const checkScroll = "), src.indexOf("checkScroll();"));
     expect(body.length).toBeGreaterThan(200);
     const ask = body.indexOf("const atEnd = dockRevealsAtEnd(surface.scrollHeight, surface.clientHeight, y);");

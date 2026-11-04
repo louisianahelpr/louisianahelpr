@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { WifiOff, RefreshCw } from "lucide-react";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import { useSetOfflineBannerOffset } from "@/lib/offlineBannerLayout";
-import { useRealtimeDegraded } from "@/lib/realtimeRecovery";
+import { useRealtimeDegraded } from "@/lib/realtimeHealth";
 
 /**
  * Global connectivity indicator. Reads from the shared `useOnlineStatus`

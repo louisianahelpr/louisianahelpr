@@ -135,6 +135,8 @@ const EXPECTED_CALLERS = [
   // the caller), so auth.uid() is NULL there and the server context gets the
   // real answer for (helper, the exporting user).
   "export_my_data",
+  // Q2008 (20261104062747): me.user_id is auth.uid() (the caller), each opted-in Helpr the other party.
+  "get_helprs_near_me",
   "get_my_saved_helpers",
   "get_quotes_for_request",
   // "On your way" (20261027200024, Train D): v_uid := helpr_task_assert_helpr() (auth.uid()) is one

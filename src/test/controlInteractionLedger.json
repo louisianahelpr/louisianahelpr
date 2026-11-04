@@ -90,7 +90,6 @@
     "notTint  src/components/DisputeTimelineDialog.tsx:373 <a>  hover:border-primary",
     "notTint  src/components/ForceUpdateGate.tsx:126 <a>  hover:opacity-80",
     "notTint  src/pages/jobs/AppliedJobsTab.tsx:422 <button>  hover:border-border",
-    "notTint  src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx:172 <button>  hover:opacity-70",
     "notTint  src/pages/posts/postedJobs/DeclineApplicantSheet.tsx:87 <button>  hover:border-border",
     "notTint  src/components/admin/AdminAnalytics.tsx:392 <button>  hover:border-primary/30",
     "notTint  src/components/admin/AdminAnalytics.tsx:497 <button>  hover:border-primary/30",

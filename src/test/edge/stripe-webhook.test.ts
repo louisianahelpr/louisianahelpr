@@ -32,6 +32,7 @@ import {
   REAL_ACTIVE_SUBSCRIPTION,
   REAL_CANCELLED_SUBSCRIPTION,
 } from "./subscriptionLinkage.test";
+import { PARTIAL_CAPTURE_SETUP_FEE_CENTS } from "../../../supabase/functions/stripe-webhook/handlers/_jobTaxCommit";
 
 /** Load stripe-webhook with both Stripe key + webhook secret present. */
 async function loadConfigured(): Promise<EdgeHarness> {
@@ -1770,13 +1771,13 @@ describe("stripe-webhook edge function", () => {
 
       it("a hire that leaves out only the $2 setup fee (claimed elsewhere) still commits (lead re-review b)", async () => {
         stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
-        await deliverPi({ ...SITE, onboarding_fee_charged: "true" }, { amount_received: 12100 - 200 });
+        await deliverPi({ ...SITE, onboarding_fee_charged: "true" }, { amount_received: 12100 - PARTIAL_CAPTURE_SETUP_FEE_CENTS });
         expect(stripeMock.tax.transactions.createFromCalculation).toHaveBeenCalledTimes(1);
       });
 
       it("a $2 short capture with no setup fee on the job is still a partial capture", async () => {
         stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
-        await deliverPi(SITE, { amount_received: 12100 - 200 });
+        await deliverPi(SITE, { amount_received: 12100 - PARTIAL_CAPTURE_SETUP_FEE_CENTS });
         expect(stripeMock.tax.transactions.createFromCalculation).not.toHaveBeenCalled();
       });
 

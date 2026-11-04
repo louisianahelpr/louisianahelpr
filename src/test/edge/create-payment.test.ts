@@ -2677,24 +2677,58 @@ describe("create-payment edge function", () => {
         expect(marker?.payload).toMatchObject({ job_id: "job-1", claimed_by: "cancel_escrow", actor_user_id: POSTER.id });
       });
 
-      // Lead re-review of 49a8653d81 (a), Q2718: a card whose non-tax part is smaller than the fees this cancel
-      // keeps pages ops (fees never come out of the job-site tax); an ordinary taxed card does not.
+      // Q2718 (lead 2026-11-04, option B): a card whose non-tax part is smaller than the fees this cancel keeps
+      // (a gift paid most or all of the job) is handed to the cancel sweep: no refund, no gift restore here; the
+      // job reads cancelled with payment_status 'escrow' (poster_cancel_job's pre-sweep shape), the claim marker
+      // is cleared, and void-cancelled-payments settles it (Q2719). An ordinary taxed card refunds as before.
       // @mutate supabase/functions/create-payment/index.ts |           if (escrowSiteTaxCents > 0 && capturedCents - escrowSiteTaxCents < nonRefundableCents) { |           if (false) {
+      // @mutate supabase/functions/create-payment/index.ts |             const { data: handed, error: handErr } = await supabaseAdmin.from("jobs").update({\n              payment_status: "escrow", |             const { data: handed, error: handErr } = await supabaseAdmin.from("jobs").update({\n              payment_status: "cancelled",
+      // @mutate supabase/functions/create-payment/index.ts |             await deleteRefundClaim(supabaseAdmin, jobId, "cancel_escrow");\n            console.log( |             console.log(
       const taxMd = (taxCents: number) => ({ tax_calculation_id: "taxcalc_c", job_tax_cents: String(taxCents) });
-      const feesFromTaxPaged = () =>
-        (slackAlerts as Array<{ title?: string }>).some((a) => a.title === "Cancelled job's fees would come out of its sales tax");
-      it("Q2718: a card holding little more than its job-site tax pages ops", async () => {
+      const handedToSweep = () => {
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect((scenario.rpcCalls ?? []).some((c) => c.name === "restore_gift_card_for_job")).toBe(false);
+        const jobUpdates = scenario.writes.filter((w) => w.table === "jobs" && w.op === "update");
+        const last = jobUpdates[jobUpdates.length - 1];
+        expect(last.payload).toMatchObject({ status: "cancelled", payment_status: "escrow", cancelled_by: POSTER.id });
+        expect(last.filters).toContainEqual({ op: "eq", column: "payment_status", value: "cancelling" });
+        expect(last.filters).toContainEqual({ op: "eq", column: "status", value: "open" });
+        expect(scenario.writes.some((w) => w.table === "job_refund_claims" && w.op === "delete")).toBe(true);
+      };
+      it("Q2718: a tax-only card charge is cancelled and left to the sweep (no refund, no gift restore)", async () => {
         seedOpenEscrow("escrow");
-        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_live", status: "succeeded", amount: 1050, amount_received: 1050, metadata: taxMd(1000) });
-        await cancel();
-        expect(feesFromTaxPaged()).toBe(true);
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_live", status: "succeeded", amount: 1000, amount_received: 1000, metadata: taxMd(1000) });
+        const res = await cancel();
+        expect(res.status).toBe(200);
+        expect(await json(res)).toMatchObject({ success: true, settlesLater: true });
+        handedToSweep();
       });
-      it("Q2718: an ordinary taxed card does not page", async () => {
+      it("Q2718: a small gift shortfall (card's non-tax part below the kept fees) is left to the sweep too", async () => {
+        seedOpenEscrow("escrow");
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_live", status: "succeeded", amount: 1500, amount_received: 1500, metadata: taxMd(1000) });
+        const res = await cancel();
+        expect(res.status).toBe(200);
+        handedToSweep();
+      });
+      it("Q2718: a hand-off that loses the race moves no money and does not read cancelled", async () => {
+        seedOpenEscrow("escrow");
+        stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_live", status: "succeeded", amount: 1000, amount_received: 1000, metadata: taxMd(1000) });
+        scenario.writeOverrides = [{ table: "jobs", op: "update", when: (p) => p.status === "cancelled", rows: [] }];
+        const res = await cancel();
+        expect(res.status).toBe(409);
+        expect(String((await json(res)).error)).toContain("No money was moved");
+        // The claim stays 'cancelling' (re-claimable); the marker is kept for the retry.
+        expect(scenario.writes.some((w) => w.table === "job_refund_claims" && w.op === "delete")).toBe(false);
+        expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+        expect((scenario.rpcCalls ?? []).some((c) => c.name === "restore_gift_card_for_job")).toBe(false);
+      });
+      it("Q2718: an ordinary taxed card refunds here as before", async () => {
         seedOpenEscrow("escrow");
         stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_live", status: "succeeded", amount: 12000, amount_received: 12000, metadata: taxMd(1000) });
         const res = await cancel();
         expect(res.status).toBe(200);
-        expect(feesFromTaxPaged()).toBe(false);
+        expect((await json(res)).settlesLater).toBeUndefined();
+        expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
       });
 
       // lh-authz-rls review of Q1323: an ABSENT marker is not "mine".

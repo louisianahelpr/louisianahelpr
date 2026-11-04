@@ -17,6 +17,7 @@ export function useChatScroll({
   keyboardInset,
   onRefreshThread,
   chatContainerRef,
+  isOtherTyping = false,
 }: {
   activeConvo: Conversation;
   messages: Message[];
@@ -24,6 +25,8 @@ export function useChatScroll({
   keyboardInset: number;
   onRefreshThread: () => Promise<void>;
   chatContainerRef: Ref<HTMLDivElement>;
+  /** The other person is typing: the "typing…" row is appended below the newest message. */
+  isOtherTyping?: boolean;
 }) {
   // Tracks whether the user is scrolled far enough from the bottom that
   // we should show a "jump to newest" affordance. `true` = show button.
@@ -241,6 +244,18 @@ export function useChatScroll({
     raf = requestAnimationFrame(pinToBottom);
     return () => cancelAnimationFrame(raf);
   }, [keyboardInset]);
+
+  // Keep the "typing…" row in view (Q2044, measured on prod 2026-11-04): the row is appended BELOW the newest
+  // message, so a reader parked at the bottom never saw it; it rendered just under the fold. Same near-bottom
+  // rule as the keyboard re-anchor: a reader scrolled up in history is never pulled down.
+  useEffect(() => {
+    if (!isOtherTyping || !nearBottomRef.current) return;
+    const raf = requestAnimationFrame(() => {
+      const el = scrollContainerRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [isOtherTyping]);
 
   return {
     scrollContainerRef,

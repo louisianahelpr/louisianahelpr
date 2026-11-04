@@ -481,6 +481,8 @@ export const ADMIN_SCREENS: ScreenSpec[] = [
   { name: "admin-preview-job", url: "/admin/preview/job?stage=working&viewer=poster", rules: adminRules() },
   // The member Messages page on made-up threads (lead 11-02; src/pages/admin/preview/MessagesPreviewPage.tsx).
   { name: "admin-preview-messages", url: "/admin/preview/messages?stage=inbox&side=poster", rules: adminRules() },
+  // The sign-up screens after step 2 on a blank sample profile (Q2664 b; src/pages/admin/preview/OnboardingPreviewPage.tsx).
+  { name: "admin-preview-onboarding", url: "/admin/preview/onboarding?stage=profile", rules: adminRules() },
 ];
 
 /**

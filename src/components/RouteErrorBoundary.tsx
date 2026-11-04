@@ -185,9 +185,8 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
         </div>
         <div className="space-y-1.5 max-w-md">
           <h3
-            className="font-display font-bold leading-tight"
+            className="font-display font-bold leading-tight text-headline-section"
             style={{
-              fontSize: "clamp(1.35rem, 2.2vw + 0.4rem, 1.7rem)",
               color: "hsl(var(--ink-deep))",
               letterSpacing: "-0.025em",
             }}

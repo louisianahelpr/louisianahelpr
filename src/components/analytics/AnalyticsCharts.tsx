@@ -20,6 +20,7 @@ import {
 } from "recharts";
 import type { EarningsMonth } from "@/lib/helperAnalytics";
 import { formatPriceExact } from "@/lib/format";
+import { CHART_TICK_PX, CHART_TOOLTIP_PX } from "@/lib/chartText";
 
 // Two series, two roles: what the helper kept, and what the platform took.
 // Bare HSL rather than `hsl(var(--token))` because recharts copies the string
@@ -34,9 +35,8 @@ const TOOLTIP_STYLE = {
   // recharts' `contentStyle` takes a React style OBJECT and renders it on an
   // element this file never gets a ref or className to. There is no ds-*
   // className to reach for here, so the rule's remedy does not exist on this
-  // prop. Value left byte-identical on purpose: a lint exemption, not a restyle.
-  // eslint-disable-next-line no-restricted-syntax
-  fontSize: "0.78rem",
+  // prop. The size is the shared chart constant on the Q2027 scale (src/lib/chartText.ts).
+  fontSize: CHART_TOOLTIP_PX,
 } as const;
 
 const money = (v: number) => `$${formatPriceExact(v)}`;
@@ -44,11 +44,11 @@ const money = (v: number) => `$${formatPriceExact(v)}`;
 export function EarningsFeeChart({ data }: { data: EarningsMonth[] }) {
   return (
     <ResponsiveContainer width="100%" height="100%" minHeight={200}>
-      <BarChart data={data} margin={{ top: 4, right: 8, left: -12, bottom: 0 }}>
+      <BarChart data={data} margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
         <CartesianGrid stroke="hsl(var(--olivewood))" strokeOpacity={0.08} vertical={false} />
         <XAxis
           dataKey="label"
-          tick={{ fontSize: 10, fill: "hsl(var(--olivewood))" }}
+          tick={{ fontSize: CHART_TICK_PX, fill: "hsl(var(--olivewood))" }}
           tickLine={false}
           axisLine={false}
           interval="preserveStartEnd"
@@ -56,7 +56,7 @@ export function EarningsFeeChart({ data }: { data: EarningsMonth[] }) {
         />
         <YAxis
           width={44}
-          tick={{ fontSize: 10, fill: "hsl(var(--olivewood))" }}
+          tick={{ fontSize: CHART_TICK_PX, fill: "hsl(var(--olivewood))" }}
           tickLine={false}
           axisLine={false}
           tickFormatter={(v: number) => `$${v >= 1000 ? Math.round(v / 100) / 10 + "k" : v}`}
@@ -69,9 +69,8 @@ export function EarningsFeeChart({ data }: { data: EarningsMonth[] }) {
         <Legend
           // `wrapperStyle` is a recharts style-object prop, same as
           // TOOLTIP_STYLE above: no className reaches the legend wrapper.
-          // Value unchanged.
-          // eslint-disable-next-line no-restricted-syntax
-          wrapperStyle={{ fontSize: "0.7rem", color: "hsl(var(--olivewood))" }}
+          // Size from the shared chart constant (Q2027 scale).
+          wrapperStyle={{ fontSize: CHART_TICK_PX, color: "hsl(var(--olivewood))" }}
           iconType="circle"
           iconSize={8}
         />

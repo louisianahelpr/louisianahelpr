@@ -8,6 +8,7 @@
  * no-show and the auto-pay from the END of the day. Until that migration is live (the days read comes
  * back null) and for a pickup already booked for a TIME, the card keeps the time picker (`fallback`).
  */
+import { Button } from "@/components/ui/button";
 import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -162,11 +163,11 @@ export function PorchDayPanel({ orderId, side, booking, fallback, noDays }: {
             </div>
           )}
           <div className="flex flex-wrap items-center gap-3">
-            <button type="button" className="btn-grad-primary !text-[hsl(var(--parchment))] min-h-11 rounded-full px-5 text-sm font-semibold"
+            <Button type="button" variant="primary" size="sm" className="px-5 text-sm font-semibold"
               disabled={!pick || book.isPending} onClick={() => { if (pick) book.mutate(pick); }}>
               {book.isPending ? "Saving…" : booked ? "Move to this day" : "Book this day"}
-            </button>
-            {moving && <button type="button" className="min-h-11 text-sm font-semibold underline underline-offset-2" onClick={() => { setMoving(false); setPick(null); }}>Keep {porchDayWords(booked ?? "")}</button>}
+            </Button>
+            {moving && <Button type="button" variant="link" size="sm" className="px-0 text-sm font-semibold underline decoration-current underline-offset-2 text-[color:inherit]" onClick={() => { setMoving(false); setPick(null); }}>Keep {porchDayWords(booked ?? "")}</Button>}
           </div>
           {side === "buyer" && (
             <p className="text-xs text-muted-foreground">

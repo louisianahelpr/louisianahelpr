@@ -4,7 +4,7 @@
  * second failure is reported with its cause before the failed state shows.
  *
  * @mutate src/components/landing/LiveJobsSection.tsx |         if (attempt === 0) { |         if (false) {
- * @mutate src/components/landing/LiveJobsSection.tsx |           .then(({ report }) => report(err, { tags: { source: "LiveJobsSection.load" } })) |           .then(() => undefined)
+ * @mutate src/components/landing/LiveJobsSection.tsx |             report(err, { tags: { source: "LiveJobsSection.load" } }); |             void report;
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

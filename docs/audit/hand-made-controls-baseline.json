@@ -530,9 +530,6 @@
     "src/components/postjob/AddressAutocomplete.tsx": {
       "button": 1
     },
-    "src/components/postjob/AddressBlock.tsx": {
-      "button": 3
-    },
     "src/components/postjob/AiJobBuilder.tsx": {
       "button": 1
     },

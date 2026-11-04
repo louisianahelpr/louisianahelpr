@@ -12,6 +12,7 @@ import { TIER_PERKS } from "@/lib/subscriptionTiers";
 import { STANDARD_PAYOUT_PHRASE } from "../../../../supabase/functions/_shared/escrowTiming";
 import { STANDARD_PAYOUT_WINDOW } from "@/lib/payoutTiming";
 import { formatShortDate } from "@/lib/format";
+import { hasDateWindow, jobDayLabel } from "@/lib/jobDateWindow";
 import { takeHomeFirstJobPrefetch } from "./homePrefetchTake";
 import type { Profile } from "@/components/profile/profileLanding/types";
 
@@ -88,6 +89,8 @@ interface NearJob {
   helpers_needed: number | null;
   is_group_job: boolean | null;
   date_needed: string | null;
+  /** Q2408: the window's last day (20261104080753); null for a one-day job. */
+  date_window_end?: string | null;
   location: string | null;
   parish: string | null;
   distance_band: string | null;
@@ -153,7 +156,7 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
                 <span className="flex-1 min-w-0">
                   <span className="block text-ds-15 font-semibold text-foreground truncate">{j.title}</span>
                   <span className="block text-ds-13 text-muted-foreground truncate">
-                    {[j.location || j.parish, j.distance_band, j.date_needed ? formatShortDate(j.date_needed) : null].filter(Boolean).join(" · ")}
+                    {[j.location || j.parish, j.distance_band, hasDateWindow(j) ? jobDayLabel(j) : j.date_needed ? formatShortDate(j.date_needed) : null].filter(Boolean).join(" · ")}
                   </span>
                 </span>
                 {j.pricing_mode === "quotes" ? (

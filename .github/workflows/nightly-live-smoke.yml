@@ -1,0 +1,197 @@
+name: Nightly live smoke
+
+# docs/OPEN.md Q2710 (audit OPS-2, owner approved 10-29): a test run on the
+# LIVE app every night, with an alert when it fails. The full live suite
+# (e2e-real-backend.yml) runs Tue/Thu/Fri/Sat; this light run covers the other
+# three nights (lead decision 11-01 9:30 PM, option A: 23:17 UTC Sun/Mon/Wed,
+# <= 20 min, test accounts only; quota-monitor.yml left the 23:17 slot for the
+# exempt monitor list).
+#
+# It walks the core-loop canary spec (e2e/canary/core-loop.spec.ts) as the two
+# shared test accounts:
+#   sign in -> browse -> open a job -> apply -> message
+#     -> Stripe TEST checkout start (never paid) -> clean up (verified)
+# against this commit's LOCAL build and the real backend. Unlike the hourly
+# canary it does NOT stand down when another suite holds the accounts: it
+# waits its turn on the shared-accounts lock, so a busy night still gets a run
+# (measured 11-04: the canary's own job ran in about a third of its delivered
+# runs, the rest stood down behind 6-hour suites).
+#
+# RED: opens/updates `nightly-red: nightly-live-smoke`, records the ops alert
+# ledger item with that same title, and posts to Slack. GREEN: nightly-issue-
+# sync closes the issue; the hourly ledger sync closes the ledger item.
+
+on:
+  schedule:
+    - cron: "17 23 * * 0,1,3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Q1161: no group is shared any more. A scheduled run is ordered by the
+# `prod-load-turn` job below (a FIFO queue); this group is per run, so GitHub
+# has nothing to cancel.
+concurrency:
+  # Scheduled runs share prod-load; a dispatch gets its own group
+  # (src/test/prodWorkflowSpacing.test.ts rule 4).
+  group: ${{ format('nightly-live-smoke-{0}', github.run_id) }}
+  cancel-in-progress: false
+
+jobs:
+  # Q1161 (2026-10-04): THE PROD-LOAD QUEUE. A scheduled run waits here until no
+  # OLDER scheduled prod-load run is still in flight, then every other job runs
+  # (they all `needs:` this one). Replaces the shared workflow-level
+  # `prod-load` group: GitHub keeps one pending run per group and cancelled the
+  # third arrival, and crons arrive 127-501 min late, so they bunch.
+  # scripts/ci/wait-prod-load.mjs; src/test/prodLoadQueue.test.ts.
+  prod-load-turn:
+    name: Wait for the prod-load queue (first in, first served)
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs.
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/ci/wait-prod-load.mjs
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until no older scheduled prod-load run is in flight
+        run: node scripts/ci/wait-prod-load.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  wait-accounts:
+    # Q743: the job-level lock below is NOT a queue. GitHub keeps ONE pending job
+    # per concurrency group and CANCELS it when a third arrives. This lock-free job
+    # waits its turn first and joins the group only when that bumps nobody
+    # (scripts/e2e/wait-shared-accounts.mjs; src/test/sharedAccountLockQueues.test.ts).
+    name: Wait for the shared accounts (queue)
+    needs: prod-load-turn
+    runs-on: ubuntu-latest
+    # Up to GitHub's 360-minute job limit: the queue ahead may hold several runs.
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+  smoke:
+    name: Core loop on the live backend
+    needs: [prod-load-turn, wait-accounts]
+    runs-on: ubuntu-latest
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
+    # ~5 min normally (install, build, a ~2 min spec); 20 is the owner's cap.
+    timeout-minutes: 20
+    env:
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:4173
+      PLAYWRIGHT_SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL }}
+      PLAYWRIGHT_SUPABASE_ANON_KEY: ${{ vars.E2E_SUPABASE_ANON_KEY }}
+      PLAYWRIGHT_POSTER_EMAIL: ${{ secrets.PLAYWRIGHT_POSTER_EMAIL }}
+      PLAYWRIGHT_POSTER_PASSWORD: ${{ secrets.PLAYWRIGHT_POSTER_PASSWORD }}
+      PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+      PLAYWRIGHT_HELPER_PASSWORD: ${{ secrets.PLAYWRIGHT_HELPER_PASSWORD }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Drop the Google Chrome apt source
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: bash scripts/ci/playwright-install.sh chromium
+      - name: Build and serve this commit locally (real backend, local frontend)
+        uses: ./.github/actions/local-preview
+        with:
+          supabase-url: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+          supabase-publishable-key: ${{ vars.E2E_SUPABASE_ANON_KEY || 'sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP' }}
+      - name: Service-role key for the test sessions (Q1314)
+        # Every sign-in below is minted with it (scripts/lib/adminSession.mjs):
+        # an anon password grant is refused once Auth CAPTCHA is on. After the
+        # build, so it can never reach the bundle.
+        uses: ./.github/actions/service-role-key
+        with:
+          access-token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          project-ref: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
+      - name: sign in, browse, open, apply, message, checkout start, clean up
+        # Under the 20-min cap minus headroom (src/test/lockedLongStepsKeepEvidence.test.ts),
+        # so a hung run still keeps its log and the artifact step below.
+        timeout-minutes: 12
+        run: npx playwright test --project=canary --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
+      - name: Backend request budget (Q104)
+        # Same spec, same budget as the hourly canary (e2e/request-budgets.json).
+        if: ${{ !cancelled() }}
+        run: node scripts/e2e/request-budget.mjs --label canary
+      - name: Keep the trace and screenshots when the loop fails
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: nightly-live-smoke-results
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+          if-no-files-found: warn
+
+  notify:
+    name: Report the smoke's result
+    needs: [prod-load-turn, wait-accounts, smoke]
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      actions: write
+      checks: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+      - uses: ./.github/actions/nightly-issue-sync
+        with:
+          workflow-name: nightly-live-smoke
+          status: ${{ (needs.prod-load-turn.result == 'success' && needs.wait-accounts.result == 'success' && needs.smoke.result == 'success') && 'success' || 'failure' }}
+          run-url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Ledger and Slack on a red smoke
+        if: needs.smoke.result != 'success'
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          # Ops alert ledger (docs/OPEN.md Q1). Same title as the nightly-red
+          # issue, so the item closes when that issue is closed by a green run.
+          # Recorded FIRST so a missing webhook cannot skip it; the CLI never
+          # exits non-zero.
+          node scripts/ops-alert-ledger.mjs record --source-kind nightly_red --source "nightly-red" \
+            --title "nightly-red: nightly-live-smoke" --severity critical --verify-ref "nightly-live-smoke.yml" \
+            --run-url "$RUN_URL"
+          set -euo pipefail
+          if [ -z "${SLACK_WEBHOOK_URL:-}" ]; then
+            echo "::warning::SLACK_WEBHOOK_URL is not set — the nightly-red issue and ledger item were filed, no Slack post."
+          else
+            jq -n --arg t ":rotating_light: Nightly live smoke is RED (sign in → browse → apply → message → checkout start). ${RUN_URL}" '{text:$t}' \
+              | curl -sS --fail -X POST -H 'Content-type: application/json' --data @- "$SLACK_WEBHOOK_URL"
+          fi

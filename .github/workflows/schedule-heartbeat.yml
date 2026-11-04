@@ -109,6 +109,7 @@ jobs:
           loading-states-refresh.yml:2
           main-batch.yml:1
           morning-page.yml:2
+          nightly-live-smoke.yml:5
           nightly-red-age.yml:2
           nightly-webkit.yml:5
           open-done-when.yml:5

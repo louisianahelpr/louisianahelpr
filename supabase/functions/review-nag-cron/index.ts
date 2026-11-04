@@ -174,6 +174,14 @@ serve(async (req) => {
         .select("id, title, customer_id, helper_id, poster_completed_at, helper_completed_at", countOpt)
         .order("id", { ascending: true })
         .eq("status", "completed")
+        // Fixture jobs are driven by test harnesses: their poster and Helpr are
+        // test accounts, so a review nag reaches nobody real. Q2734 (prod
+        // 2026-11-04 16:26Z): all 73 completed jobs of the week were is_seed,
+        // and their 90 send-notification-email calls tripped the per-trace
+        // function rate limit (30 failed, answered 500, paged). Same scope as
+        // arrival-confirm-reminder; stalled-completion-reminder alone sweeps
+        // fixtures, by the owner's 2026-09-19 choice for that sweep.
+        .eq("is_seed", false)
         .not("helper_id", "is", null)
         .gte("poster_completed_at", sevenDaysAgo),
     );

@@ -244,6 +244,32 @@ describe("review-nag-cron edge function", () => {
     expect(b.nags_sent).toBe(0);
     expect(String(b.defectReasons)).toContain("permission denied");
   });
+
+  /**
+   * Q2734 (prod 2026-11-04 16:26Z): every completed job of the week was a
+   * fixture (73 of 73 is_seed), so the run's 90 send-notification-email calls
+   * tripped the per-trace function rate limit, 30 failed and the cron paged.
+   * Asserted on the QUERY: the harness hands every seeded row back regardless
+   * of filters, so only the recorded WHERE can tell a scoped scan from an
+   * unscoped one.
+   */
+  it("scans only real jobs: the completed-jobs read is scoped to is_seed = false", async () => {
+    const fn = await loadConfigured();
+    seedJob(30);
+
+    const res = await fn.fetch(cronRequest(fn));
+    expect(res.status).toBe(200);
+
+    const jobScans = scenario.readQueries.filter((q) => q.table === "jobs");
+    expect(jobScans.length).toBeGreaterThan(0);
+    for (const q of jobScans) {
+      expect(
+        q.filters.some((f) => f.op === "eq" && f.column === "is_seed" && f.value === false),
+        "every completed-jobs read must exclude fixture jobs",
+      ).toBe(true);
+    }
+  });
 });
 
+// @mutate supabase/functions/review-nag-cron/index.ts |         .eq("is_seed", false) |         .eq("status", "completed")
 // @mutate supabase/functions/review-nag-cron/index.ts | const WINDOW_HOURS = 24; | const WINDOW_HOURS = 12;

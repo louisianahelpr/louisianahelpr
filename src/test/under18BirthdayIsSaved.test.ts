@@ -39,6 +39,7 @@ const BIRTHDAY_ENTRY = [
 /** Writes date_of_birth but is not a member typing a birthday (with why). */
 const NOT_ENTRY: Record<string, string> = {
   "src/integrations/supabase/types.ts": "generated column types, no write",
+  "src/pages/admin/preview/OnboardingPreviewPage.tsx": "admin preview's sample unfinished profile holds date_of_birth null in its own cache; never written, no birthday typed",
   "src/pages/profile/Profile.tsx": "re-sends the birthday it loaded (no birthday field); the lock keeps an under-18 one",
   // Q1803 (owner 2026-10-21, COPPA): blanks the stored birthday of an under-13 account waiting on money to be deleted.
   "supabase/functions/_shared/under13.ts": "blanks a stored birthday to null while an under-13 account waits on money (Q1803), never a member typing one",

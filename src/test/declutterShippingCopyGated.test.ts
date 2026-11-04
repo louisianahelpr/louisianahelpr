@@ -64,7 +64,7 @@ describe("Declutter shipping copy (S8), only where shipping is on", () => {
     const help = src("src/pages/info/HelpCenter.tsx");
     expect(help).toContain('const shippingOn = useFeature("declutter_shipping");');
     expect(help).toContain("const sections = shippingOn ? withDeclutterShipping(FAQ_SECTIONS) : FAQ_SECTIONS;");
-    expect(help).toContain("{sections.filter((section) =>");
+    expect(help).toContain("{sections.map((section) => (");
     expect(help).not.toContain("{FAQ_SECTIONS.filter(");
     const terms = src("src/pages/info/legal/TermsSection.tsx");
     expect(terms).toContain('const shippingOn = useFeature("declutter_shipping");');

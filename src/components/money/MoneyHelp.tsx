@@ -7,7 +7,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { askSupportAi } from "@/pages/info/SupportAi";
+import { askSupportAiOutcome } from "@/pages/info/SupportAi";
 
 /** The subject the helper sends, so the answer is about money. */
 export const MONEY_HELP_SUBJECT = "How does this work? (payments, payouts, fees and refunds)";
@@ -17,6 +17,7 @@ export function MoneyHelp() {
   const [question, setQuestion] = useState("");
   const [asking, setAsking] = useState(false);
   const [answer, setAnswer] = useState<string | null | undefined>(undefined);
+  const [unreachable, setUnreachable] = useState(false);
   const tooShort = question.trim().length < 10;
 
   if (!open) {
@@ -34,7 +35,9 @@ export function MoneyHelp() {
         e.preventDefault();
         if (tooShort || asking) return;
         setAsking(true);
-        setAnswer(await askSupportAi(MONEY_HELP_SUBJECT, question.trim()));
+        const outcome = await askSupportAiOutcome(MONEY_HELP_SUBJECT, question.trim());
+        setUnreachable(outcome.unreachable);
+        setAnswer(outcome.answer);
         setAsking(false);
       }}
     >
@@ -56,7 +59,12 @@ export function MoneyHelp() {
           <p className="text-xs text-muted-foreground">Written by our AI assistant from our Help Center. It can&apos;t see your account or change anything.</p>
         </div>
       )}
-      {answer === null && (
+      {answer === null && unreachable && (
+        <p role="status" className="text-sm" data-money-help-unreachable="">
+          Couldn&apos;t reach the helper right now. Try again, or <Link to="/support" className="underline">contact Support</Link>.
+        </p>
+      )}
+      {answer === null && !unreachable && (
         <p role="status" className="text-sm" data-money-help-none="">
           We couldn&apos;t find that in our Help Center. <Link to="/support" className="underline">Ask our team</Link>.
         </p>

@@ -437,7 +437,7 @@ describe("review-turnaround promises come from reviewSla", () => {
    *
    *   "manually within 24 hours"       src/pages/info/legal/TermsSection.tsx   (manual ID review)
    *   "we review within one business day"
-   *                                    src/components/profile/CredentialsTab.tsx
+   *                                    src/components/profile/credentialsTab/CredentialsNotices.tsx
    * against REVIEW_SLA = "under 2 hours". FIXED SINCE: a fourth,
    * "reviews all reports within 24 hours" in
    * src/pages/info/helpCenter/helpCenterContent.ts, was removed outright rather than
@@ -468,7 +468,7 @@ describe("review-turnaround promises come from reviewSla", () => {
       "src/pages/info/legal/TermsSection.tsx":
         "manual ID review — 'within 24 hours'; it once matched the deleted IDVPromptDialog, retyped, " +
         "and this one is binding copy in a legal document",
-      "src/components/profile/CredentialsTab.tsx":
+      "src/components/profile/credentialsTab/CredentialsNotices.tsx":
         "credential re-upload — 'within one business day'; a third, different number",
       // src/pages/info/helpCenter/helpCenterContent.ts was the fourth entry. Its
       // "reviews all reports within 24 hours" is GONE, not renumbered, so the

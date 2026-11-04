@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-03T20:13Z",
+  "measured_at": "2026-11-04T03:04Z",
   "issues": {
     "readable": true,
     "open": [
@@ -122,17 +122,10 @@
         "runTruncated": false
       },
       {
-        "number": 4032,
-        "title": "nightly-red: prod-errors",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41690239183",
-        "runTruncated": false
-      },
-      {
         "number": 4054,
         "title": "nightly-red: race-runner",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41699548867",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41756566296",
         "runTruncated": false
       },
       {
@@ -143,10 +136,17 @@
         "runTruncated": false
       },
       {
-        "number": 4065,
-        "title": "nightly-red: main: Vitest",
+        "number": 4073,
+        "title": "nightly-red: expiry-monitor",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41699549119",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41753281187",
+        "runTruncated": false
+      },
+      {
+        "number": 4075,
+        "title": "nightly-red: main: Supabase Edge Functions Deploy",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41756566443",
         "runTruncated": false
       }
     ]
@@ -184,7 +184,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: main: vitest",
-        "issue": null
+        "issue": 4065
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -225,6 +225,14 @@
         "status": "open",
         "title": "nightly-red: db-drift-detect",
         "issue": 3743
+      },
+      {
+        "fingerprint": "1bbb3f41bbe73f8632d7284e87e40948",
+        "source_kind": "workflow",
+        "source": "functions-deploy",
+        "status": "open",
+        "title": "functions-deploy failed on main",
+        "issue": null
       },
       {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
@@ -523,14 +531,6 @@
         "issue": null
       },
       {
-        "fingerprint": "0bd7cd00f0604832825550ec97d3aadb",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: write-contract-refresh",
-        "issue": 4008
-      },
-      {
         "fingerprint": "60298a019ea399dd0c9b00f14cad6b4a",
         "source_kind": "error_logs",
         "source": "cron-http",
@@ -544,6 +544,22 @@
         "source": "sentry:assets/Signup",
         "status": "open",
         "title": "error: your account is created, but your details didn't save — the connection dropped. log in to finish your profile.",
+        "issue": null
+      },
+      {
+        "fingerprint": "8114e0acbcb0b5370d95baf9346598cb",
+        "source_kind": "workflow",
+        "source": "expiry-monitor",
+        "status": "open",
+        "title": "a credential or certificate expires within # days",
+        "issue": null
+      },
+      {
+        "fingerprint": "95a0554486ebd14ed36618e23db7477f",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: prod-deploy",
         "issue": null
       },
       {
@@ -776,16 +792,15 @@
     "issue #3824": "Q1816",
     "issue #3833": "Q1816",
     "issue #4020": "Q1816",
-    "issue #4032": "Q1816",
     "issue #4054": "Q1816",
     "issue #4062": "Q1816",
-    "issue #4065": "Q1816",
+    "issue #4073": "Q1816",
+    "issue #4075": "Q1816",
     "ledger 03faea228969": "Q1596",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 092de8bb62f5": "Q2533",
     "ledger 09cc91c48116": "Q1816",
-    "ledger 0bd7cd00f060": "Q1816",
     "ledger 0bebf0385b3e": "Q1615",
     "ledger 0fa6c60d7a29": "Q1776",
     "ledger 11f46545733f": "Q2409",
@@ -796,6 +811,7 @@
     "ledger 16e6e91f6701": "Q1816",
     "ledger 18539240a894": "Q1816",
     "ledger 1b4eafb12222": "Q1596",
+    "ledger 1bbb3f41bbe7": "Q2714",
     "ledger 1cd0639083c2": "Q2520",
     "ledger 1ef4b10bb74a": "Q1816",
     "ledger 21cbec5b98d2": "Q1596",
@@ -840,6 +856,7 @@
     "ledger 7e141f206640": "Q1816",
     "ledger 7f88b9cc45df": "Q1816",
     "ledger 8018e82cb167": "Q1816",
+    "ledger 8114e0acbcb0": "Q2715",
     "ledger 824bcfd4ec0a": "Q1596",
     "ledger 87d1722faa1d": "Q1596",
     "ledger 88b4addefbcd": "Q2503",
@@ -850,6 +867,7 @@
     "ledger 8f6eb3360000": "Q2507",
     "ledger 905ec49763b5": "Q2315",
     "ledger 9078a39b3304": "Q1615",
+    "ledger 95a0554486eb": "Q1816",
     "ledger 9934727135a0": "Q2522",
     "ledger 99390a68ded7": "Q1615",
     "ledger 99a77a9221e6": "Q2514",

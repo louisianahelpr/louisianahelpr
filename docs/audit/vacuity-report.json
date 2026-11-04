@@ -1,15 +1,22 @@
 {
-  "generated": "2026-11-03T19:08:05.901Z",
-  "guards": 3418,
-  "registered": 3418,
-  "unregistered": [],
+  "generated": "2026-11-04T03:04:59.267Z",
+  "guards": 3453,
+  "registered": 3452,
+  "unregistered": [
+    "src/components/job-card/useFollowOpenCard.test.ts"
+  ],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/components/admin/settings/DeclutterShippingClaimsCard.test.tsx",
     "src/components/declutter/bundleDiscountOff.test.tsx",
+    "src/pages/post-job/giftCardBanner.test.tsx",
     "src/test/desktopProfileButtonFocusRing.test.ts",
     "src/test/failedBankCancelRepostsTheJob.test.ts",
     "src/test/shakeToReportLoadsOnlyInTheApp.test.ts",
-    "src/test/shippingNeverShippedSweep.test.ts"
+    "src/test/shippingClaimPayout.test.ts",
+    "src/test/shippingLostSweep.test.ts",
+    "src/test/shippingNeverShippedSweep.test.ts",
+    "src/test/shippingProblemScans.test.ts"
   ],
   "classD_selfReferential": [
     {

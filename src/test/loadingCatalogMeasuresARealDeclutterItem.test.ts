@@ -21,8 +21,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+// @ts-expect-error - plain .mjs tool script, no types
 import { deriveRouteSet } from "../../scripts/audit/press-every-control.mjs";
 import { stableUrl } from "../../scripts/check-loading-state-shape.mjs";
+// @ts-expect-error - plain .mjs tool script, no types
 import { PRESS_MARKER, removeLoadingDeclutterItem } from "../../scripts/audit/pressProdSafety.mjs";
 import { blankComments } from "./helpers/blankNonCode";
 

@@ -1756,6 +1756,23 @@ describe("stripe-webhook edge function", () => {
         expect(alerts[0].kind).toBe("money_at_risk");
       });
 
+      // Re-review of 49a8653d81 (C, HIGH): a hold captured only in part (the late fee) must not commit the full tax.
+      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |   if (typeof received === "number" && typeof pi.amount === "number" && received < pi.amount) { |   if (false) {
+      it("a hold captured only in part commits no tax and pages ops", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
+        await deliverPi(SITE, { amount_received: 2000 });
+        expect(stripeMock.tax.transactions.createFromCalculation).not.toHaveBeenCalled();
+        const alerts = (slackAlerts as Array<{ title: string; kind: string }>).filter((a) => a.title === "Job sales tax not recorded: the hold was captured only in part");
+        expect(alerts).toHaveLength(1);
+        expect(alerts[0].kind).toBe("money_at_risk");
+      });
+
+      it("a hold captured in full still commits", async () => {
+        stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
+        await deliverPi(SITE, { amount_received: 12100 });
+        expect(stripeMock.tax.transactions.createFromCalculation).toHaveBeenCalledTimes(1);
+      });
+
       // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |       title: "Job sales tax collected but NOT recorded in Stripe Tax", |       title: "x",
       it("a failed commit pages ops (money_at_risk) and still answers 200", async () => {
         stripeMock.tax.transactions.createFromCalculation.mockImplementation(() => { throw new Error("calculation expired"); });

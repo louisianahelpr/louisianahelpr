@@ -45,7 +45,7 @@ describe("MoneyHelp", () => {
     ask("When do I get paid after a job?");
     expect(await screen.findByText(/Couldn.t reach the helper right now/)).toBeTruthy();
     expect(screen.queryByText(/We couldn.t find that in our Help Center/)).toBeNull();
-    expect(screen.getByRole("link", { name: "contact Support" }).getAttribute("href")).toBe("/support");
+    expect(screen.getByRole("link", { name: "contact support" }).getAttribute("href")).toBe("/support");
   });
   it("a too-short question cannot be sent", () => {
     render(<MemoryRouter><MoneyHelp /></MemoryRouter>);

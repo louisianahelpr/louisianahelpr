@@ -18,9 +18,9 @@ export function YourPageLink({ name, className = "" }: { name?: string | null; c
   const { data: handle } = useQuery({
     queryKey: MY_HANDLE_KEY,
     queryFn: async () => {
-      const r = await ensureMyHandle();
-      if (r.error !== undefined) throw new Error(r.error);
-      return r.handle;
+      const out = await ensureMyHandle();
+      if (out.handle) return out.handle;
+      throw new Error("handle_unavailable");
     },
     staleTime: 10 * 60_000,
     retry: 1,
@@ -35,7 +35,7 @@ export function YourPageLink({ name, className = "" }: { name?: string | null; c
       <p className="text-ds-13 text-muted-foreground min-w-0">
         Your page:{" "}
         {/* In-app route: the page opens here, never in a browser outside the app. */}
-        <Link to={`/u/${encodeURIComponent(handle)}`} className="font-semibold text-foreground break-all underline-offset-2 hover:underline">
+        <Link to={`/u/${encodeURIComponent(handle)}`} className="link-standard font-semibold text-foreground break-all">
           {profileLinkLabel(handle)}
         </Link>
       </p>

@@ -76,16 +76,16 @@ describe("five section tabs fit a phone (A3-6)", () => {
     expect(screen.getByRole("tablist").className).not.toMatch(/section-tabs-dense/);
   });
 
-  it("the stylesheet sizes a dense row's words by the screen below 420px, never over 15px", () => {
+  it("the stylesheet sizes a dense row's words by the screen below 420px, never over the phone's 13px", () => {
     const css = readFileSync(join(process.cwd(), "src/index.css"), "utf8");
     const at = css.indexOf(".section-tabs-dense .section-tab");
     expect(at).toBeGreaterThan(0);
     expect(css.slice(Math.max(0, at - 80), at)).toMatch(/@media \(max-width: 419px\) \{\s*$/);
-    expect(css.slice(at, at + 120)).toMatch(/font-size: clamp\(12px, 3\.6vw, 15px\);/);
+    expect(css.slice(at, at + 120)).toMatch(/font-size: clamp\(12px, 3\.6vw, 13px\);/);
     // Six or more: smaller still, later in the same phone-only block so it wins over `dense`.
     const six = css.indexOf(".section-tabs-denser .section-tab");
     expect(six).toBeGreaterThan(at);
     expect(css.slice(at, six)).not.toMatch(/\n\}\n/);
-    expect(css.slice(six, six + 120)).toMatch(/font-size: clamp\(11px, 3\.3vw, 15px\);/);
+    expect(css.slice(six, six + 120)).toMatch(/font-size: clamp\(11px, 3\.3vw, 13px\);/);
   });
 });

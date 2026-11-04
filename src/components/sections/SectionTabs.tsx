@@ -216,7 +216,7 @@ export function SectionTabs<T extends string>({
               data-tab-count={o.count && o.count > 0 ? o.count : undefined}
               onClick={() => { if (!active) { hapticLight(); onChange(o.value); } }}
               className={cn(
-                "section-tab relative inline-flex h-11 min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap font-sans text-ds-15 font-semibold data-[tab-cut]:invisible",
+                "section-tab relative inline-flex h-11 min-h-11 shrink-0 items-center gap-1.5 whitespace-nowrap font-sans text-ds-13 min-[420px]:text-ds-15 font-semibold data-[tab-cut]:invisible",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))] rounded-sm",
                 active ? "text-foreground section-tab-selected" : "text-muted-foreground",
               )}

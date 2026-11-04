@@ -49,6 +49,8 @@ export interface JobDraft {
   recurrenceEndDate: string;
   jobDuration: string;
   isFlexibleSchedule?: boolean;
+  /** Q2408: last day of an "Any time this week" window. */
+  dateWindowEnd?: string | null;
   isUrgent?: boolean;
   urgentFee?: string;
   isGroupJob?: boolean;

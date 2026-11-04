@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useEffect, useId } from "react";
 import { FLEXIBLE_TIME_LABEL, jobStartTimeLabel } from "@/lib/jobDate";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { jobDayLabel, hasDateWindow } from "@/lib/jobDateWindow";
@@ -59,18 +59,30 @@ export function ApplyTimeQuestion({
   const value = given && given.jobId === job.id ? given : null;
   const suggesting = value !== null;
   const today = platformToday();
+  // Q2408 (review): once a window's first day has come, "Yes, that works" would book a day already here or gone
+  // (accept refuses it: job_starts_too_soon). Then only the days still ahead in the window are offered.
+  const firstDayGone = windowed && !!job.date_needed && job.date_needed <= today;
+  const firstOpenDay = firstDayGone ? addDays(today, 1) : null;
+  const windowOver = firstDayGone && !!job.date_window_end && firstOpenDay! > job.date_window_end;
+  useEffect(() => {
+    if (firstDayGone && !windowOver && !value) onChange({ jobId: job.id, date: firstOpenDay!, time: null });
+  }, [firstDayGone, windowOver, value, onChange, job.id, firstOpenDay]);
 
   return (
     <fieldset className="space-y-2 min-w-0" data-testid="apply-time-question" disabled={disabled}>
       <legend className="font-sans font-semibold text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
-        Does {day}{day && time ? " at " : ""}{time && <span data-apply-time="" className="whitespace-nowrap">{time}</span>} work for you?
+        {firstDayGone ? (
+          "Which day works for you?"
+        ) : (
+          <>Does {day}{day && time ? " at " : ""}{time && <span data-apply-time="" className="whitespace-nowrap">{time}</span>} work for you?</>
+        )}
       </legend>
-      {windowed && (
+      {windowed && !firstDayGone && (
         <p className="text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }} data-testid="apply-time-window">
           {jobDayLabel(job)} works for the poster. To pick another day that week, suggest it below.
         </p>
       )}
-      <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={`Does ${when} work for you?`}>
+      {!firstDayGone && <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={`Does ${when} work for you?`}>
         <button
           type="button"
           role="radio"
@@ -93,7 +105,7 @@ export function ApplyTimeQuestion({
         >
           Other time
         </button>
-      </div>
+      </div>}
       {suggesting && (
         <div className="grid grid-cols-2 gap-2 min-w-0">
           <label className="flex flex-col gap-1 min-w-0 text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.85)" }} htmlFor={`${id}-d`}>
@@ -101,7 +113,7 @@ export function ApplyTimeQuestion({
             <input
               id={`${id}-d`}
               type="date"
-              min={windowed && job.date_needed! > today ? job.date_needed! : today}
+              min={firstOpenDay ?? (windowed && job.date_needed! > today ? job.date_needed! : today)}
               max={windowed ? job.date_window_end! : addDays(today, 90)}
               value={value.date}
               onChange={(e) => onChange({ ...value, date: e.target.value })}

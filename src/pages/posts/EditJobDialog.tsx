@@ -34,6 +34,7 @@ import { isLaborTaxable } from "@/lib/salesTax";
 import { useJobAccessNote } from "@/hooks/useJobAccessNote";
 import { saveJobAccessNote } from "@/lib/jobAccessNotes";
 import { geocodeAddress } from "@/lib/geocode";
+import { hasDateWindow, jobDayLabel } from "@/lib/jobDateWindow";
 
 interface EditJobDialogProps {
   job: Job | null;
@@ -157,7 +158,11 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
       // on a job whose date genuinely lapsed must not resurrect the listing.
       // trg_job_expiry_floor (20260831201631) enforces the same recompute
       // server-side, so this also holds for any other client.
-      ...(scheduleChanged ? { expires_at: computeJobExpiresAt(dateNeeded, startTime) } : {}),
+      // Q2408: a week-window job keeps its window while its first day is unchanged, so its listing still runs to the
+      // window's last day; a new first day makes it a one-day job (trg_job_date_window_clear clears the window).
+      ...(scheduleChanged
+        ? { expires_at: computeJobExpiresAt(hasDateWindow(job) && dateNeeded === job.date_needed ? job.date_window_end! : dateNeeded, startTime) }
+        : {}),
     };
     // Once a Helpr is booked the place and details are locked server-side
     // (enforce_poster_jobs_money_lock, Q1204), so a booked job sends only the
@@ -335,6 +340,11 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
                   onChange={setDateNeeded}
                   min={todayLocalISO()}
                 />
+              )}
+              {hasDateWindow(job) && (
+                <p className="text-ds-12 text-muted-foreground" data-testid="edit-week-window">
+                  {jobDayLabel(job)}. Changing the day makes it a one-day job.
+                </p>
               )}
             </div>
             <div className="space-y-1.5">

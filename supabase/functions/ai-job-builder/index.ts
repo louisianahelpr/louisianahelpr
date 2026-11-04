@@ -5,6 +5,7 @@ import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { JOB_DAYS, keepStatedFacts, sanitizeJob } from "./sanitize.ts";
 import { fetchWithRetry } from "./retry.ts";
 import { claudeFetch, claudeJson } from "../_shared/claudeMessages.ts";
+import { readJobPhoto } from "./photo.ts";
 
 // The job posting's shape (Claude structured output). sanitizeJob still
 // whitelists and bounds whatever comes back.
@@ -70,8 +71,36 @@ serve(async (req) => {
   if (unconfirmedEmail) return unconfirmedEmail;
 
   try {
-    const body = await req.json().catch(() => ({}));
-    const { messages, jobContext } = body ?? {};
+    // Q2471 (1) review: refuse an oversized body before parsing it (the photo cap is 1.5 MB decoded, ~2 MB as
+    // base64; MAX_BODY_BYTES leaves room for the text). A declared Content-Length is refused unread.
+    const MAX_BODY_BYTES = 2_200_000;
+    if (Number(req.headers.get("content-length") ?? "0") > MAX_BODY_BYTES) {
+      return new Response(JSON.stringify({ error: "Request too large" }), {
+        status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const rawBody = await req.text();
+    if (rawBody.length > MAX_BODY_BYTES) {
+      return new Response(JSON.stringify({ error: "Request too large" }), {
+        status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    let body: unknown = {};
+    try {
+      body = JSON.parse(rawBody);
+    } catch {
+      // Not JSON: treated as an empty body, which the shape check below answers with a 400.
+      body = {};
+    }
+    const { messages, jobContext, photo } = (body ?? {}) as { messages?: unknown; jobContext?: unknown; photo?: unknown };
+    // Q2471 (1): an optional photo of the job (one, checked by its bytes, size-capped; photo.ts).
+    const photoRead = readJobPhoto(photo);
+    if ("error" in photoRead) {
+      return new Response(JSON.stringify({ error: photoRead.error }), {
+        status: photoRead.status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     // Was `messages is not iterable` — a raw internal error handed to the
     // caller. Validate the shape and answer 400 instead.
     if (!Array.isArray(messages)) {
@@ -147,7 +176,7 @@ preferred_day to it (a weekday, today or tomorrow); if they name a start time, s
 start_time to it in 24-hour HH:MM ("Saturday morning around 9" is saturday and
 09:00). If they name neither, use "none" and an empty start_time; never invent one.
 
-Given a brief description of what the user needs help with, generate a complete job posting with:
+Given a brief description of what the user needs help with (and, when one is attached, a photo of the job: describe only what the photo actually shows and never guess at anything it does not), generate a complete job posting with:
 1. A clear, concise title (target 24 chars or fewer — the form's title field hard-caps at exactly 32 and rejects anything longer, so aim well under the cap rather than skimming it)
 2. A detailed description (2-3 paragraphs) covering scope, expectations, and any relevant details
 3. A recommended category from: cleaning, yard_work, moving, errands, handyman, painting, delivery, pet_care, assembly, storm_prep, events, electrical, plumbing, hvac, roofing, welding, carpentry, auto_repair, appliance_repair, flooring, concrete_masonry, fencing, pressure_washing, declutter_help, other
@@ -161,7 +190,13 @@ ${location ? `Additional context: Location is ${location}` : ''}`;
     // Owner 2026-10-22: Claude (Sonnet 5.5) only; Gemini removed.
       // The Messages API refuses: no turns, an empty
       // turn, or a last turn that is not the poster's (review 2026-10-22).
-      const turns = messages as Array<{ role: "user" | "assistant"; content: string }>;
+      const turns = (messages as Array<{ role: "user" | "assistant"; content: string }>).map((t) => ({ ...t }));
+      // Q2471 (1): a photo alone is enough. Its turn gets a plain instruction when the poster typed nothing.
+      if (photoRead.image && turns.length === 0) turns.push({ role: "user", content: "" });
+      const last = turns[turns.length - 1];
+      if (photoRead.image && last?.role === "user" && last.content.trim() === "") {
+        last.content = "Write the job posting for the work this photo shows.";
+      }
       if (turns.length === 0 || turns.some((t) => t.content.trim() === "") || turns[turns.length - 1].role !== "user") {
         return new Response(JSON.stringify({ error: "Describe the job in a message first" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -171,7 +206,8 @@ ${location ? `Additional context: Location is ${location}` : ''}`;
       if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
       const claudeRes = await fetchWithRetry((signal) => claudeFetch(ANTHROPIC_API_KEY, {
         system: systemPrompt + CLAUDE_CLOSING,
-        turns,
+        // The photo rides on the poster's last turn (claudeFetch puts images before that turn's text).
+        turns: photoRead.image ? turns.map((t, i) => (i === turns.length - 1 ? { ...t, images: [photoRead.image!] } : t)) : turns,
         schema: JOB_POSTING_SCHEMA,
       }, signal), { onRetry: (attempt, status) => console.warn(`Claude ${status}; retry ${attempt}`) });
       if (!claudeRes.ok) {

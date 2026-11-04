@@ -9,7 +9,7 @@
  */
 // @mutate supabase/migrations/20261030170443_declutter_question_kind.sql | public.declutter_notify(v_item.seller_id, 'declutter_questions', 'New question', | public.declutter_notify(v_item.seller_id, 'declutter_offers', 'New question',
 // @mutate supabase/migrations/20261030170443_declutter_question_kind.sql | public.declutter_notify(NEW.asker_id, 'declutter_questions', 'The seller answered', | public.declutter_notify(NEW.asker_id, 'declutter_offers', 'The seller answered',
-// @mutate supabase/migrations/20261102103524_declutter_ship_notice_kinds.sql | WHEN p_title IN ('New question', 'The seller answered') | WHEN p_title IN ('The seller answered')
+// @mutate supabase/migrations/20261104123305_bundle_request_export_and_notice_kinds.sql | WHEN p_title IN ('New question', 'The seller answered') | WHEN p_title IN ('The seller answered')
 // @mutate supabase/migrations/20261030170443_declutter_question_kind.sql | ('declutter_questions', 'declutter_questions', 'Declutter: | ('declutter_questions', 'declutter_offers', 'Declutter:
 // @mutate src/components/notificationPreferences/constants.tsx | { key: "declutter_questions", emailKey: "email_declutter_questions", label: "Questions", description: "Questions on your listings, and sellers' answers to yours.", icon: <MessageCircleQuestion className="w-3.5 h-3.5" />, noEmailSwitch: NO_EMAIL }, |
 import { describe, it, expect } from "vitest";

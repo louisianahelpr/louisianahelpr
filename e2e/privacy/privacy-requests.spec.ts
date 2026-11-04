@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
-import type { APIRequestContext } from "@playwright/test";
+import type { APIRequestContext, Page } from "@playwright/test";
 import { LATEST_TERMS_VERSION } from "../../src/lib/consent";
 import { strongTestPassword } from "../../src/test/strongTestPassword";
 import {
@@ -95,6 +95,18 @@ const RUN_TAG = `${Date.now().toString(36)}${randomBytes(3).toString("hex")}`.sl
 const RUN_STARTED = Date.now();
 const EMAIL = disposableEmail(RUN_TAG);
 const PASSWORD = strongTestPassword();
+
+/**
+ * A3-I5 (owner 2026-10-29): Delete account asks "is it really you?" and the typed password is a fresh password grant.
+ * That grant is a RE-AUTH the app asks for, not a sign-in, so the request meter counts it as one
+ * (e2e/requestMeter.mjs `__requestMeterReauth`) and the privacy signIns budget stays 0 for any sign-in nobody
+ * expected. On only while the delete is pressed; `off()` after its answer.
+ */
+function countDeletePasswordAsReauth(page: Page): { off(): void } {
+  const ctx = page.context() as unknown as { __requestMeterReauth?: (req: { url(): string; method(): string }) => boolean };
+  ctx.__requestMeterReauth = (req) => req.method() === "POST" && /\/auth\/v1\/token\?(?:.*&)?grant_type=password\b/.test(req.url());
+  return { off: () => { delete ctx.__requestMeterReauth; } };
+}
 const MARK = `${E2E_TITLE_MARKER} privacy-journey ${RUN_TAG}`;
 
 test.describe.configure({ mode: "serial" });
@@ -329,6 +341,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
     await page.getByRole("button", { name: "Continue" }).click();
     await page.getByRole("textbox", { name: /Type DELETE to confirm account deletion/ }).fill("DELETE");
     // A3-I5 (owner 2026-10-29): the delete asks for the password first.
+    const reauth = countDeletePasswordAsReauth(page);
     await page.getByLabel("Your password").fill(PASSWORD);
     // Last check before the irreversible press: fresh from the database, fail closed.
     await requireDisposable(request, userId);
@@ -336,6 +349,7 @@ test("privacy requests: create -> export -> delete -> purged, on a disposable se
       page.waitForResponse((r) => r.url().includes("/functions/v1/delete-own-account") && r.request().method() === "POST", { timeout: 90_000 }),
       page.getByRole("button", { name: "Delete my account" }).click(),
     ]);
+    reauth.off();
     const body = (await res.json().catch(() => ({}))) as { success?: boolean; error?: string; steps?: { step: string; ok: boolean; detail: string }[] };
     expect(res.status(), `delete-own-account: ${JSON.stringify(body).slice(0, 600)}`).toBe(200);
     deletedViaUi = true;
@@ -467,12 +481,14 @@ test("privacy requests: an INCOMPLETE profile deletes itself from /complete-prof
           await page.getByRole("button", { name: "Delete account" }).click();
           await page.getByRole("button", { name: "Continue" }).click();
           await page.getByRole("textbox", { name: /Type DELETE to confirm account deletion/ }).fill("DELETE");
+          const reauth = countDeletePasswordAsReauth(page);
           await page.getByLabel("Your password").fill(PASSWORD);
           await disposable();
           const [res] = await Promise.all([
             page.waitForResponse((r) => r.url().includes("/functions/v1/delete-own-account") && r.request().method() === "POST", { timeout: 90_000 }),
             page.getByRole("button", { name: "Delete my account" }).click(),
           ]);
+          reauth.off();
           const body = (await res.json().catch(() => ({}))) as { success?: boolean };
           expect(res.status(), `delete-own-account: ${JSON.stringify(body).slice(0, 600)}`).toBe(200);
           deleted = true;

@@ -78,7 +78,10 @@ describe("Declutter refunds after the handover (board 141, 20261026155251)", () 
     // lh-money-escrow review should-fix 1: after an agreed part refund the seller is paid once that refund went through.
     expect(flat(body("declutter_payouts_due"))).toMatch(/rf\.reason = 'refund_request_part' AND rf\.status IN \('pending', 'failed'\)\)/);
     expect(MONEY).toMatch(/admin\.rpc\("declutter_payouts_due"/);
-    expect(MONEY, "a seller payout read straight from the table would skip the hold").not.toMatch(/\.from\("declutter_payouts"\)/);
+    // Q1934 (train 7): the damaged-in-delivery refund reads ONLY the payout's status, to page when the refund went
+    // out first; it sends nothing. Any other read straight from the table (a payout list) still fails.
+    const statusOnly = MONEY.replace(/admin\.from\("declutter_payouts"\)\.select\("status"\)\.eq\("order_id", r\.order_id\)\.maybeSingle\(\)/g, "");
+    expect(statusOnly, "a seller payout read straight from the table would skip the hold").not.toMatch(/\.from\("declutter_payouts"\)/);
   });
 
   it("2. final = 24 hours after the handover (and after a 'no') plus the 10-minute margin; a waiting request holds it", () => {

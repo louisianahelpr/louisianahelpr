@@ -119,7 +119,9 @@ describe("BlockUserDialog fee quote follows commitment (Q236 c)", () => {
 describe("fee ladder callers never hard-code commitment (Q236 c)", () => {
   // 5 since boards 66/172 slice 2: create-payment cancel_quote prices fee_percent with
   // cancellationFeePercent(helperIsCommitted(qJob), ...), the server's commitment rule.
-  const EXPECTED_CALL_SITES = 5;
+  // 6 since Q1415 e (train 7): _shared/crewCancelQuote.ts prices the crew quote's percent with
+  // cancellationFeePercent(anyCommitted, ...), anyCommitted computed per member from the roster.
+  const EXPECTED_CALL_SITES = 6;
   const roots = ["src", "supabase/functions"];
   function walk(dir: string, out: string[]) {
     for (const e of readdirSync(dir, { withFileTypes: true })) {

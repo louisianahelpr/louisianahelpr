@@ -238,6 +238,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/claudeMessages.ts";`,
   );
 
+  // Support AI (B70, train 7): `_shared/helpKnowledge.ts` (one generated string constant) and `_shared/supportAi.ts`
+  // (prompts, schemas, sanitizers) have ZERO imports, so point at the real modules.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/(helpKnowledge|supportAi)\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/$2.ts";`,
+  );
+
   // Confirmed-email gate (Q837): `_shared/requireConfirmedEmail.ts` has ZERO
   // imports. Point at the real module so every gated function's tests run the
   // real refusal rule against the mock's user.

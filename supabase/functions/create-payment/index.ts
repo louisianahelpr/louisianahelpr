@@ -3420,21 +3420,36 @@ serve(async (req) => {
           });
           const nonRefundableCents = cancelSplit.nonRefundableCents;
           const refundAmount = cancelSplit.refundCents;
-          // Lead re-review of 49a8653d81 (a), Q2718: fees never come out of the job-site sales tax. When the card's
-          // non-tax part is smaller than the fees this cancel keeps (a gift paid most or all of the job), they
-          // would; not priced here yet, so a person looks (the refund below runs as before).
+          // Q2718 (lead 2026-11-04, option B): fees never come out of the job-site sales tax. When the card's
+          // non-tax part is smaller than the fees this cancel keeps (a gift paid most or all of the job), this
+          // door would price the fees out of the tax and give the whole gift back. It hands the job to the cancel
+          // sweep instead: no refund and no gift restore here; the job flips to cancelled with payment_status left
+          // 'escrow' (the same shape poster_cancel_job leaves), and void-cancelled-payments settles it (the gift
+          // keeps the fees, the tax on them is kept, the rest of the tax goes back; Q2719).
           const escrowTaxMd = (pi.metadata ?? {}) as Record<string, string>;
           const escrowSiteTaxCents = String(escrowTaxMd.tax_calculation_id ?? "").startsWith("taxcalc_") && /^\d+$/.test(String(escrowTaxMd.job_tax_cents ?? ""))
             ? Number(escrowTaxMd.job_tax_cents)
             : 0;
           if (escrowSiteTaxCents > 0 && capturedCents - escrowSiteTaxCents < nonRefundableCents) {
-            await postSlackOpsAlert({
-              kind: "money_at_risk",
-              severity: "warning",
-              title: "Cancelled job's fees would come out of its sales tax",
-              message: `cancel_escrow on job ${jobId}: the card paid $${(capturedCents / 100).toFixed(2)}, of which $${(escrowSiteTaxCents / 100).toFixed(2)} is job-site sales tax, so its non-tax part is smaller than the $${(nonRefundableCents / 100).toFixed(2)} of fees this cancel keeps. Check the refund, the gift restore and the tax by hand (docs/OPEN.md Q2718).`,
-              fields: { job_id: jobId, payment_intent: cancelPaymentIntentId, captured_cents: capturedCents, tax_cents: escrowSiteTaxCents, kept_fees_cents: nonRefundableCents },
-              oncePerDayKey: `cancel-fees-from-tax:${jobId}`,
+            const { data: handed, error: handErr } = await supabaseAdmin.from("jobs").update({
+              payment_status: "escrow",
+              status: "cancelled",
+              cancelled_at: new Date().toISOString(),
+              cancelled_by: user.id,
+            }).eq("id", jobId).eq("status", job.status).eq("payment_status", "cancelling").select("id");
+            if (handErr || !handed || handed.length === 0) {
+              // Nothing moved: the claim stays 'cancelling' (re-claimable; money-reconciliation re-reports it).
+              console.error(`[create-payment] cancel_escrow could not hand job ${jobId} to the cancel sweep: ${handErr?.message ?? "matched 0 rows"}`);
+              return new Response(JSON.stringify({
+                error: "This job changed while it was being cancelled, so it was not cancelled. No money was moved; refresh and try again.",
+              }), { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 409 });
+            }
+            await deleteRefundClaim(supabaseAdmin, jobId, "cancel_escrow");
+            console.log(
+              `[create-payment] cancel_escrow on job ${jobId}: card ${capturedCents}¢ holds ${escrowSiteTaxCents}¢ job-site tax, less than ${nonRefundableCents}¢ of kept fees outside it; cancelled, settled by void-cancelled-payments (Q2718)`,
+            );
+            return new Response(JSON.stringify({ success: true, settlesLater: true }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200,
             });
           }
           // Idempotency key prevents a double-refund on concurrent cancel

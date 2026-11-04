@@ -100,6 +100,7 @@ const NOT_AN_ENTRY: Record<string, string> = {
   "src/pages/user/InviteToJobBar.tsx": "Invite to a job on a profile (board 40; was Offer a job directly in its menu); opens the gated form",
   "src/lib/bookMe.ts": "builds the Book me link's /post-job?offerTo= target (B66); no button of its own, and the /post-job form it opens is gated (FormStep)",
   "src/pages/book/BookHelprPage.tsx": "the public /book page (B66): signed out its Post a job goes to sign-up first (no saved birthday, no gate yet); signed in it opens the gated /post-job form (FormStep)",
+  "src/lib/hireMe.ts": "builds the profile Hire me target /post-job?offerTo= (B113); no button of its own (PublicProfilePage navigates to it after the handle read), and the /post-job form it opens is gated (FormStep)",
   "src/lib/bookAgain.ts": "builds the Book <Helpr> again link (Q2471 #3, a finished job's poster); no button of its own, and the /post-job form it opens is gated",
 };
 

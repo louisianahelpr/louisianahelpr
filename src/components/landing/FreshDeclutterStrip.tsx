@@ -74,7 +74,7 @@ export default function FreshDeclutterStrip({ items }: { items: FreshItem[] }) {
                   <span className="text-ds-16 font-bold">{itemPriceLabel(it.current_price_cents)}</span>
                   <span className="text-ds-14 font-semibold line-clamp-2 break-words" title={it.title}>{it.title}</span>
                   {it.area_label && (
-                    <span className="text-ds-13 truncate" style={{ color: "var(--lp-body)" }}>{it.area_label}</span>
+                    <span className="text-ds-13 truncate" title={it.area_label} style={{ color: "var(--lp-body)" }}>{it.area_label}</span>
                   )}
                 </span>
               </Link>

@@ -233,5 +233,8 @@ export function useNeedsYouTodos(
   );
   // onOldCall: whether a section is on its old single call right now. Home's own reads of the same keys
   // (useHomeSummary's cart and shop orders) wait on it too, so the badge's one read is not repeated on Home.
-  return { todos, loading: !derive || (posted.data === undefined && applied.data === undefined), onOldCall: fallback };
+  // Loading until BOTH sides' reads have answered (data or error): with either one alone, Home said "You're all caught
+  // up" at 106 px and then grew to "Next up · 1 of 9" when the other side's to-dos landed (live lab 11-04, helper
+  // persona, Fast 4G: 0.03 + 0.10 of /home's 0.38 layout shift). A failed read is not loading (isPending is false).
+  return { todos, loading: !derive || posted.isPending || applied.isPending, onOldCall: fallback };
 }

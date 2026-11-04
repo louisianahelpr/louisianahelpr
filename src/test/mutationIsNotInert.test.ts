@@ -66,8 +66,23 @@ beforeAll(async () => {
  * output is entirely false positives is one nobody reads, which is the failure
  * mode this repo has already paid for elsewhere.
  */
+function parseTsx(src: string, fileName: string): ts.SourceFile {
+  // No parent pointers (Q2704): getText(sf) reads positions only, and setting parents cost a third of the run.
+  // JSDoc is never read for JSX attributes, so it is not parsed either.
+  return ts.createSourceFile(
+    fileName,
+    src,
+    { languageVersion: ts.ScriptTarget.Latest, jsDocParsingMode: ts.JSDocParsingMode.ParseNone },
+    false,
+    ts.ScriptKind.TSX,
+  );
+}
+
 function duplicateAttrs(src: string, fileName: string): string[] {
-  const sf = ts.createSourceFile(fileName, src, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  return duplicateAttrsIn(parseTsx(src, fileName));
+}
+
+function duplicateAttrsIn(sf: ts.SourceFile): string[] {
   const dupes: string[] = [];
   const visit = (node: ts.Node): void => {
     if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
@@ -85,6 +100,35 @@ function duplicateAttrs(src: string, fileName: string): string[] {
   return dupes;
 }
 
+// A literal's text: a string, a template's text part, or JSX text between tags.
+const TEXT_KINDS = new Set<ts.SyntaxKind>([
+  ts.SyntaxKind.StringLiteral,
+  ts.SyntaxKind.NoSubstitutionTemplateLiteral,
+  ts.SyntaxKind.TemplateHead,
+  ts.SyntaxKind.TemplateMiddle,
+  ts.SyntaxKind.TemplateTail,
+  ts.SyntaxKind.JsxText,
+]);
+// Characters that can end, open or escape a literal or a JSX child; a find or replace free of them stays text.
+const LITERAL_BREAKERS = /["'`${}<>\\\r\n]/;
+
+/**
+ * True when the mutation only rewrites the inside of ONE literal (a class string, a template's text, JSX text) and
+ * neither side holds a character that could end or open one: every token of the file, and so every JSX attribute
+ * list, is unchanged, so it cannot add a duplicate prop and need not be re-parsed (Q2704: most registered
+ * mutations are this shape, and parsing each one timed the coverage run out at 60 s).
+ */
+function onlyRewritesOneLiteral(sf: ts.SourceFile, start: number, end: number, find: string, replace: string): boolean {
+  if (LITERAL_BREAKERS.test(find) || LITERAL_BREAKERS.test(replace)) return false;
+  let node: ts.Node = sf;
+  for (;;) {
+    const child: ts.Node | undefined = ts.forEachChild(node, (c) => (c.getStart(sf) <= start && end <= c.end ? c : undefined));
+    if (!child) break;
+    node = child;
+  }
+  return TEXT_KINDS.has(node.kind);
+}
+
 interface Inert {
   guard: string;
   target: string;
@@ -93,6 +137,8 @@ interface Inert {
 
 function inertMutations(): Inert[] {
   const out: Inert[] = [];
+  // Each target's own duplicates are parsed once, not once per mutation on it (Q2704: 5,670 mutations on 864 targets).
+  const parsedByTarget = new Map<string, { sf: ts.SourceFile; before: string[] }>();
   for (const guard of guardFiles()) {
     for (const d of parseDirectives(guard).mutations) {
       if (d.malformed) continue; // the registration gate's finding, not this one
@@ -103,7 +149,13 @@ function inertMutations(): Inert[] {
       const mutated = src.slice(0, at) + d.replace + src.slice(at + d.find.length);
       // Only what the MUTATION introduces: a duplicate the file already had is
       // a product bug for someone else to fix, not a broken registration.
-      const before = duplicateAttrs(src, d.target);
+      let parsed = parsedByTarget.get(d.target);
+      if (!parsed) {
+        const sf = parseTsx(src, d.target);
+        parsedByTarget.set(d.target, (parsed = { sf, before: duplicateAttrsIn(sf) }));
+      }
+      if (onlyRewritesOneLiteral(parsed.sf, at, at + d.find.length, d.find, d.replace)) continue;
+      const { before } = parsed;
       for (const attr of duplicateAttrs(mutated, d.target)) {
         if (before.includes(attr)) continue;
         out.push({ guard: d.guard, target: d.target, attr });
@@ -146,7 +198,7 @@ describe("no registered mutation is inert", () => {
         '(h-[26px] -> h-[96px], not an appended `style`).\n\n' +
         lines.join("\n"),
     ).toEqual([]);
-  }, 60_000); // it parses every registered mutation's target (about 21 s on a loaded runner, 2026-10-27).
+  }, 60_000); // it parses every registered mutation's target (about 21 s on a loaded runner, 2026-10-27; 12.3 s -> 6.1 s locally after Q2704 parsed each target's own copy once).
 });
 
 // Proof this is able to fail: the appended-`style` mutation that survived on

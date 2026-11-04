@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { formatName } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -375,12 +376,14 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
             it to their insurer actually wants. */}
         {!loading && !isError && (data ?? []).length > 0 && (
           <div data-print-hide className="flex">
-            <button
+            <Button
               type="button"
+              variant="outline"
+              size="md"
               onClick={() => { void handleShare(); }}
               disabled={isSharing}
               aria-busy={isSharing}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 rounded-full min-h-12 py-3 px-5 text-ds-14 font-semibold bg-card border border-border text-foreground active:scale-[0.99] transition-all disabled:opacity-60"
+              className="flex-1 sm:flex-none"
             >
               {isSharing ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
@@ -388,7 +391,7 @@ const HomeHistory = ({ onBack }: { onBack?: () => void }) => {
                 <Share2 className="w-4 h-4" />
               )}
               {isSharing ? "Preparing record\u2026" : "Share record (PDF)"}
-            </button>
+            </Button>
           </div>
         )}
 

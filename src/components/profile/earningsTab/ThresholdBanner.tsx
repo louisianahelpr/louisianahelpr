@@ -1,4 +1,5 @@
 import { FileCheck2, FileText, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { FORM_1099K_TRANSACTION_THRESHOLD, form1099kGrossLabel } from "@/lib/moneyLimits";
 
 interface ThresholdBannerProps {
@@ -68,14 +69,16 @@ export function ThresholdBanner({ ytdYear, onOpenExport, onDismiss }: ThresholdB
           </button>
         </div>
       </div>
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="iconCompact"
         onClick={onDismiss}
         aria-label="Dismiss"
-        className="shrink-0 -mr-1 -mt-1 w-10 h-10 inline-flex items-center justify-center ctl-exit ctl-tint text-muted-foreground hover:text-foreground active:bg-secondary/40 transition-colors"
+        className="shrink-0 -mr-1 -mt-1 ctl-exit text-muted-foreground hover:text-foreground"
       >
         <X className="w-4 h-4" />
-      </button>
+      </Button>
     </div>
   );
 }

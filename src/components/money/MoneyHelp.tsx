@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { askSupportAiOutcome } from "@/pages/info/SupportAi";
 
 /** The subject the helper sends, so the answer is about money. */
@@ -42,9 +43,8 @@ export function MoneyHelp() {
       }}
     >
       <label htmlFor="money-help-question" className="text-sm font-medium">Ask how payments, payouts, fees or refunds work</label>
-      <textarea
+      <Textarea
         id="money-help-question"
-        className="w-full min-h-20 rounded-xl border border-border bg-background p-2 text-sm"
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
         placeholder="For example: when do I get paid after a job?"

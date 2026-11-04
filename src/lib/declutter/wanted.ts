@@ -13,6 +13,7 @@ import { DECLUTTER_PHOTO_BUCKET, invokeAiBody, rpcData } from "@/lib/declutter/a
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { report } from "@/lib/errorLogger";
+import { offerPushAfterAction } from "@/hooks/useNotificationPermissionPrompt";
 
 /** The distances a wanted post can reach (W5; the Browse choices without "any"). */
 export const WANTED_RADIUS_CHOICES = [5, 10, 25, 50] as const;
@@ -152,12 +153,15 @@ export function parseMatches(raw: unknown): WantedMatch[] {
  */
 export async function createWanted(f: WantedForm, at: { lat: number; lng: number }): Promise<string> {
   const cents = dollarsToCents(f.maxPrice);
-  return rpcData(
+  const id = rpcData(
     await supabase.rpc("declutter_create_wanted", {
       p_what: f.what.trim(), p_category: f.category, p_max_price_cents: cents ?? 0, p_radius_miles: f.radius, p_lat: at.lat, p_lng: at.lng, p_public: true,
     }),
     (e) => rpcErrorMessage("declutter_create_wanted", e),
   ) as string;
+  // PUSH-REACH: a Wanted exists so sellers reply, and a reply is what the poster waits for; the website's push ask.
+  offerPushAfterAction();
+  return id;
 }
 
 /** Q2267: public Wanted posts near a point; [] before the migration is on prod. */

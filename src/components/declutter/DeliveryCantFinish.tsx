@@ -277,8 +277,8 @@ export function SellerReturnPanel({ taskId, view: v, who }: { taskId: string; vi
     <div className="space-y-2 rounded-xl border border-border p-3" data-cant-finish-return="">
       <p className="text-sm">{who} says it's back with you. Answer by {v.return_answer_by ? when(v.return_answer_by) : "tomorrow"}. If you don't, we count it as back.</p>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="primary" size="sm" disabled={answer.isPending} onClick={() => setAsking(true)}>I have it back</Button>
         <Button type="button" variant="outline" size="sm" disabled={answer.isPending} onClick={() => setNotBack(true)}>It didn't come back</Button>
+        <Button type="button" variant="primary" size="sm" disabled={answer.isPending} onClick={() => setAsking(true)}>I have it back</Button>
       </div>
       {notBack && (
         <div className="space-y-2">

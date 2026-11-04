@@ -659,7 +659,7 @@ describe("Declutter slice 4: paid-order cards", () => {
   // Audit 1028 D1-12 (1a-b-pday-booked-p1-375): "I got it" and "Report a problem" sat edge to edge. Two inline buttons
   // that are neighbours in the card's stacked body share one line with no gap, so each action sits in its own block.
   // A wrapper with no box of its own (display: contents, or a fragment) counts as its children.
-  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   return (\n    <div>\n      <button type="button" className={primary} disabled={confirm.isPending} |   return (\n    <div style={{ display: "contents" }}>\n      <button type="button" className={primary} disabled={confirm.isPending}
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |   return (\n    <div>\n      <Button type="button" variant="primary" size="sm" disabled={confirm.isPending} |   return (\n    <div style={{ display: "contents" }}>\n      <Button type="button" variant="primary" size="sm" disabled={confirm.isPending}
   // @mutate src/components/declutter/DeclutterNoShowAnswer.tsx |     <div>\n      <button type="button" className={btn} disabled={report.isPending} |     <div style={{ display: "contents" }}>\n      <button type="button" className={btn} disabled={report.isPending}
   it("no two action buttons sit edge to edge in the card body, either side (D1-12)", async () => {
     const boxes = (el: Element): Element[] => (getComputedStyle(el).display === "contents" ? [...el.children].flatMap(boxes) : [el]);

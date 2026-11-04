@@ -20,6 +20,7 @@
  * "Set out" photo, "I got it", the "Picked up" photo and the 24 h auto-pay are the whole handover (20261018183715).
  */
 import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
+import { Button } from "@/components/ui/button";
 import { lazy, Suspense, useState, type ReactNode, useEffect, useRef } from "react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -87,8 +88,6 @@ const DeclutterRefundPanel = lazy(() => import("./DeclutterRefundRequest").then(
 const DeclutterProblemSides = lazy(() => import("./DeclutterProblemSides").then((m) => ({ default: m.DeclutterProblemSides }))); // D2-3: both sides of a problem.
 const DeclutterProblemDecided = lazy(() => import("./DeclutterProblemSides").then((m) => ({ default: m.DeclutterProblemDecided })));
 
-const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
-const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 
 /** Every paid order in `cart` (the cart's paid lines). The Buying and Selling tabs pass one side's lines and their own
  *  heading (PaidOrders in DeclutterTradeViews). */
@@ -359,7 +358,7 @@ function BookingPanel({ order, booking, frozen = false, noTimes = null }: { orde
           confirmLabel="Move" pending={book.isPending} onConfirm={(iso) => book.mutate(iso)} />
       ) : booked && !moving ? (
         // The buyer's move folds the same way (#32), and opens the seller's own times (#2).
-        <button type="button" className={btn} aria-expanded={false} disabled={book.isPending} onClick={() => setMoving(true)}>{`Move the ${what}`}</button>
+        <Button type="button" variant="outline" size="sm" aria-expanded={false} disabled={book.isPending} onClick={() => setMoving(true)}>{`Move the ${what}`}</Button>
       ) : (
       <>
       <label htmlFor={id} className="block text-xs font-medium">{booked ? "Move it (you can do this once)" : "Pick a pickup time"}</label>
@@ -367,9 +366,9 @@ function BookingPanel({ order, booking, frozen = false, noTimes = null }: { orde
         <PickupSlotPicker orderId={order.orderId} value={slot} onPick={setSlot} noTimes={booked ? null : noTimes} porch={porch}
           fallback={<DateTimeField id={id} label={booked ? "New pickup time" : "Pickup time"} value={value} onChange={setValue} />} />
         <div className="flex flex-wrap gap-2">
-          <button type="button" className={booked ? btn : primary} disabled={book.isPending || !(slot ?? localInputToIso(value))}
-            onClick={() => { const iso = slot ?? localInputToIso(value); if (iso) book.mutate(iso); }}>{booked ? "Move" : "Book"}</button>
-          {booked && <button type="button" className={btn} onClick={() => { setMoving(false); setSlot(null); }}>Cancel</button>}
+          <Button type="button" variant={booked ? "outline" : "primary"} size="sm" disabled={book.isPending || !(slot ?? localInputToIso(value))}
+            onClick={() => { const iso = slot ?? localInputToIso(value); if (iso) book.mutate(iso); }}>{booked ? "Move" : "Book"}</Button>
+          {booked && <Button type="button" variant="outline" size="sm" onClick={() => { setMoving(false); setSlot(null); }}>Cancel</Button>}
         </div>
         {!booked && !!(slot ?? localInputToIso(value)) && noShowRule}
       </div>
@@ -447,9 +446,9 @@ function HandoverPanel({ order, userId, slotStart, anyProblem, who, problemOpen,
         {rule(`the buyer taps "I got it" or you tap "${done}"`)}
         <label htmlFor={fileId} className="block text-xs font-medium">Photo of the handover (optional, taken where you hand it over)</label>
         <PhotoPickButton id={fileId} picked={photo} disabled={pickedUp.isPending} onPick={setPhoto} />
-        <button type="button" className={primary} disabled={pickedUp.isPending} onClick={() => setAsking(true)}>
+        <Button type="button" variant="primary" size="sm" disabled={pickedUp.isPending} onClick={() => setAsking(true)}>
           {done}
-        </button>
+        </Button>
         <PickedUpSheet open={asking} onOpenChange={setAsking} who={who} free={free} pending={pickedUp.isPending} onConfirm={() => pickedUp.mutate()} label={done} />
       </div>
     );
@@ -468,9 +467,9 @@ function HandoverPanel({ order, userId, slotStart, anyProblem, who, problemOpen,
   // Audit 1028 D1-12: its own block, so "I got it" never sits edge to edge with "Report a problem" below it.
   return (
     <div>
-      <button type="button" className={primary} disabled={confirm.isPending} onClick={() => setAsking(true)}>
+      <Button type="button" variant="primary" size="sm" disabled={confirm.isPending} onClick={() => setAsking(true)}>
         I got it
-      </button>
+      </Button>
       <GotItSheet
         open={asking}
         onOpenChange={setAsking}
@@ -553,7 +552,7 @@ function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; u
             {booking.porch_mode === "all_day" ? "You said it's out all day." : booking.porch_until ? `You said it's out until ${when(booking.porch_until)}.` : "When will it be out?"}
           </p>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className={btn} disabled={timing.isPending} onClick={() => timing.mutate({ mode: "all_day", iso: null })}>Out all day</button>
+            <Button type="button" variant="outline" size="sm" disabled={timing.isPending} onClick={() => timing.mutate({ mode: "all_day", iso: null })}>Out all day</Button>
             <FoldedTimePicker id={`dcl-out-${order.orderId}`} openLabel="Out until a time…" title="Out until" fieldLabel="Out until"
               confirmLabel="Out until then" pending={timing.isPending} onConfirm={(iso) => timing.mutate({ mode: "until", iso })} />
           </div>
@@ -570,10 +569,10 @@ function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; u
       {/* The shops' handover pattern (ShopHandoverActions): a hidden camera input opened by a real button. */}
       <input id={fileId} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} disabled={photo.isPending}
         onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (order.side === "seller") setPreview(f); else setShot(f); } e.target.value = ""; }} />
-      <button type="button" className={order.side === "seller" && !posted ? primary : btn} disabled={photo.isPending}
+      <Button type="button" variant={order.side === "seller" && !posted ? "primary" : "outline"} size="sm" disabled={photo.isPending}
         onClick={() => document.getElementById(fileId)?.click()}>
         {photo.isPending ? "Saving…" : order.side === "seller" ? (posted ? "Retake the porch photo" : "Take the porch photo") : "Take your pickup photo"}
-      </button>
+      </Button>
       {!posted && (
         <p className="text-ds-12 text-muted-foreground">
           {order.side === "seller" ? `One photo where the buyer will find it, taken at your address.${payWords ? " You need it before you can be paid automatically." : ""}` : `Taken at the address. It tells the seller you have it${payWords ? "; they're paid 24 hours later." : "."}`}

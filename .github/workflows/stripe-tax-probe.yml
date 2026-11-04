@@ -1,0 +1,67 @@
+name: Stripe TEST tax probe
+
+# Dispatch only. Answers docs/OPEN.md Q1998 (partial refund), Q1918 (lost
+# dispute) and Q2148 part 2 (partial capture): what Stripe Tax records for a
+# Checkout automatic_tax charge after each. scripts/stripe-tax-probe.mjs makes
+# its own Checkout Sessions on the Stripe TEST account (metadata kind=tax_probe),
+# pays them with test cards in headless Chromium, and prints what Stripe returns.
+# It refuses any key that is not sk_test_/rk_test_ and any page that is not a
+# cs_test_ Checkout page; it touches no Supabase data and no test account.
+# Tax report data lags; re-dispatch with mode=report and the run's PROBE_SINCE.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "run (make, pay, refund/dispute/capture, read) or report (Tax reports only)"
+        type: choice
+        options: [run, report]
+        default: run
+      since:
+        description: "report mode: PROBE_SINCE (unix seconds) printed by a run"
+        type: string
+        default: ""
+      wait_minutes:
+        description: "Minutes to wait for Stripe's tax report data to cover the probe (0-50)"
+        type: string
+        default: "20"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stripe-tax-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    name: Stripe Tax on a refunded, disputed and part-captured Checkout charge (TEST)
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Refuse unless the key is a Stripe test key
+        env:
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          case "$STRIPE_TEST_SECRET_KEY" in
+            sk_test_*|rk_test_*) ;;
+            *) echo "::error::STRIPE_TEST_SECRET_KEY is not a test-mode key; refusing"; exit 1 ;;
+          esac
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Drop the Google Chrome apt source
+        run: sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: bash scripts/ci/playwright-install.sh chromium
+      - name: Probe
+        timeout-minutes: 60
+        env:
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          PROBE_SINCE: ${{ inputs.since }}
+          PROBE_REPORT_WAIT_MIN: ${{ inputs.wait_minutes }}
+          MODE: ${{ inputs.mode }}
+        run: node scripts/stripe-tax-probe.mjs "$MODE"

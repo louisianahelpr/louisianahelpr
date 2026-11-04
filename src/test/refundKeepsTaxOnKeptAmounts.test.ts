@@ -251,16 +251,17 @@ describe("every refundToPayerCents call that prices a refund passes the charge's
   // Boards 66/172 slice 2: the sweep's captured refund and the poster's cancel quote reach
   // refundToPayerCents through posterCancelSplit (checked above), so each caller must feed it the
   // charge's real tax: the sweep with chargeTaxCentsFor, the quote with checkoutChargeTaxCents.
+  // Q2718: the sweep passes no tax only when it split the tax off (priced on everything kept, outside the split).
   it("both posterCancelSplit callers pass the charge's tax", () => {
     const root = join(__dirname, "..", "..");
     const flat = (f: string) => blankComments(readFileSync(join(root, f), "utf8")).replace(/\s+/g, " ");
     expect(flat("supabase/functions/void-cancelled-payments/index.ts")).toMatch(
-      /posterCancelSplit\(\{[^;]*state: "captured"[^;]*taxCents: await chargeTaxCentsFor\(stripe, pi\)/,
+      /posterCancelSplit\(\{[^;]*state: "captured"[^;]*taxCents: siteTaxOnCardCents > 0 \? 0 : await chargeTaxCentsFor\(stripe, pi\)/,
     );
     const quote = flat("supabase/functions/create-payment/index.ts");
     expect(quote).toContain("const taxCents = await checkoutChargeTaxCents(stripe, qPi);");
     expect(quote).toMatch(/posterCancelSplit\(\{[^;]*state: "captured"[^;]*taxCents, taxableCents: jobSiteTaxableCents\(qPi\.metadata/);
     // Review of ddfb06a83 #2: the sweep passes the same taxable price, so the quote and the refund agree.
-    expect(flat("supabase/functions/void-cancelled-payments/index.ts")).toMatch(/taxCents: await chargeTaxCentsFor\(stripe, pi\), taxableCents: jobSiteTaxableCents\(pi\.metadata/);
+    expect(flat("supabase/functions/void-cancelled-payments/index.ts")).toMatch(/taxCents: siteTaxOnCardCents > 0 \? 0 : await chargeTaxCentsFor\(stripe, pi\), taxableCents: jobSiteTaxableCents\(pi\.metadata/);
   });
 });

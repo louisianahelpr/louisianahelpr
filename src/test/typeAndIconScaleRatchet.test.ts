@@ -69,7 +69,7 @@ const css = blankComments(readFileSync(resolve(ROOT, "src/index.css"), "utf8"));
 function resolvePx(token: string): number | null {
   const arb = /^\[(\d+(?:\.\d+)?)(px|rem|em)\]$/.exec(token);
   if (arb) return arb[2] === "px" ? Number(arb[1]) : Number(arb[1]) * 16;
-  const cfg = new RegExp(`(?:^|\\s)"?${token.replace(/[-]/g, "\\-")}"?:\\s*\\["(\\d+)px"`, "m").exec(tw);
+  const cfg = new RegExp(`(?:^|\\s)"?${token.replace(/[.*+?^${}()|[\]\\-]/g, "\\$&")}"?:\\s*\\["(\\d+)px"`, "m").exec(tw);
   if (cfg) return Number(cfg[1]);
   const varName = token === "page-title" ? "headline-hero" : token;
   const v = new RegExp(`--${varName}:\\s*(\\d+)px`).exec(css);

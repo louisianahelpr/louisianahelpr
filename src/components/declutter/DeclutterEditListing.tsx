@@ -12,6 +12,7 @@
  * The tax checkbox is ticked again on every edit (owner 2026-10-29; the server refuses without it). Price stays under
  * "Change price".
  */
+import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -129,9 +130,9 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
         {big ? EDIT_RULE.checked : EDIT_RULE.instant}
       </p>
       <TaxStatementsCheck id="edit-tax" checked={attested} onChange={setAttested} free={free} />
-      <button type="submit" className="btn-grad-primary !text-[hsl(var(--parchment))] min-h-11 w-full rounded-full px-5 text-ds-15 font-semibold" disabled={!ready}>
+      <Button type="submit" variant="primary" size="sm" className="w-full px-5 text-ds-15 font-semibold" disabled={!ready}>
         {save.isPending ? "Saving…" : "Save changes"}
-      </button>
+      </Button>
     </form>
   );
 }

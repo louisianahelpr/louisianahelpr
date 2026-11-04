@@ -66,12 +66,6 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
     why: "once card_hold_at_post is on for poster-e2e (it lands off, 2026-10-27; this skip fires only on a held job) an OPEN job never holds captured money, so 'refund an open paid job' is no longer a state the product has; the leg's real assertion (admin_refund_general refuses a held card, cardHold: true, the job stays held) ran before this skip. A refund of captured money needs a hired job: that journey is Q?ch-journeys in docs/OPEN.md",
   },
   {
-    file: "e2e/journeys/04-money-outcomes.spec.ts",
-    match: "Quick Refund success not driven on a held card",
-    verdict: "justified",
-    why: "once card_hold_at_post is on for poster-e2e (it lands off, 2026-10-27; this skip fires only on a held job) an OPEN job never holds captured money, so Quick Refund on an open job has nothing to refund; the leg's real assertion (the refund is refused, cardHold: true, the job stays held) ran before this skip. A Quick Refund of captured money needs a hired job: Q?ch-journeys in docs/OPEN.md",
-  },
-  {
     file: "e2e/prod-audit/messy-input.spec.ts",
     match: "test.skip(...args)",
     verdict: "justified",

@@ -26,6 +26,7 @@ import { PayoutFailedCard } from "@/components/money/PayoutFailedCard";
 import { FirstJobHome, useFirstJobState } from "./homeDashboard/FirstJobHome";
 import { PosterFirstJobCard } from "./homeDashboard/PosterFirstJobCard";
 import { HelprsNearYou } from "./homeDashboard/HelprsNearYou";
+import { useHomeTopSettled } from "./homeDashboard/homeTopSettled";
 import { optionalLazy } from "@/lib/optionalLazy";
 // Loaded the first time it opens, never with Home's first screen (AUD31-60, B61): it brings Sheet and Switch.
 const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
@@ -69,6 +70,9 @@ function HomeDashboardScreen() {
   const { user, profile } = useCurrentUser();
   const summary = useHomeSummary(user);
   const firstJob = useFirstJobState(user?.id);
+  // Q2706/Q2708 (Builder 3): until the first-week cards' reads answer, one placeholder stands in for everything below
+  // the greeting, so a card arriving above Next up never pushes the page down (homeTopSettled.ts).
+  const topSettled = useHomeTopSettled(user?.id, firstJob);
   const money = useHomeMoney(user);
   const queryClient = useQueryClient();
   const { visible } = useSectionPrefs();
@@ -129,7 +133,16 @@ function HomeDashboardScreen() {
         {/* Board 11 (desktop): TWO columns under the greeting from 1280px (below that the left column is
             too narrow for the Coming up table). Left (~60%): Next up, To do, Coming up (a table from
             900px). Right (~40%): the money tiles, then YOUR SECTIONS as a compact 2x2. The phone keeps one column in the same order. */}
-        <div data-home-columns className="flex flex-col gap-section xl:grid xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:gap-6 xl:items-start">
+        {!topSettled && (
+          <section data-testid="home-top-loading" aria-busy="true" aria-label="Loading your Home" className="liquid-glass p-card flex flex-col gap-1.5">
+            <span className="sr-only">Loading your Home</span>
+            <p aria-hidden className="text-ds-12">&nbsp;</p>
+            <p aria-hidden className="text-ds-18 font-bold leading-snug"><span className="inline-block w-3/4 rounded-md bg-muted animate-pulse">&nbsp;</span></p>
+            <p aria-hidden className="text-ds-14"><span className="inline-block w-1/2 rounded-md bg-muted animate-pulse">&nbsp;</span></p>
+            <div aria-hidden className="h-11 mt-1" />
+          </section>
+        )}
+        {topSettled && <div data-home-columns className="flex flex-col gap-section xl:grid xl:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] xl:gap-6 xl:items-start">
           <div data-home-main className="flex flex-col gap-section min-w-0">
             {/* Board 143: a failed bank payout, first under the greeting; renders nothing unless one is open. */}
             <PayoutFailedCard />
@@ -243,11 +256,13 @@ function HomeDashboardScreen() {
                 /* Q2706 (B98): the to-dos are still loading. Never "all caught up" before the reads answer; hold the
                    to-do card's own size (title, meta, the 44px action row) so nothing moves when it lands. */
                 <>
-                  <p data-testid="next-up-loading" className="text-ds-18 font-bold leading-snug" role="status">
-                    <span className="sr-only">Loading your to-dos</span>
-                    <span aria-hidden className="inline-block w-3/4 rounded-md bg-muted animate-pulse">&nbsp;</span>
+                  {/* Builder 3 (11-04): a real line, not only a grey bar: the to-do's title then fills this same <p>, so
+                      the page's first big paint stays the greeting (live lab: with a bar only, /home's LCP moved from
+                      the greeting at 1.06 s to the to-do title at 2.28 s on Fast 4G). */}
+                  <p data-testid="next-up-loading" className="text-ds-18 font-bold leading-snug text-muted-foreground" role="status">
+                    Checking your to-dos
                   </p>
-                  <p aria-hidden className="text-ds-14"><span className="inline-block w-1/2 rounded-md bg-muted animate-pulse">&nbsp;</span></p>
+                  <p aria-hidden className="text-ds-14 text-muted-foreground">One moment</p>
                   <div aria-hidden className="h-11 mt-1" />
                 </>
               ) : summary.waiting ? (
@@ -377,7 +392,7 @@ function HomeDashboardScreen() {
             </div>
             {soonLine && <p data-testid="sections-opening-soon" className="px-1 text-ds-13 text-muted-foreground">{soonLine}</p>}
           </section>
-        </div>
+        </div>}
 
       </div>
       {customizeMounted && <Suspense fallback={null}><CustomizeSheet open={customize} onOpenChange={setCustomize} /></Suspense>}

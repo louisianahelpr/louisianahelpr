@@ -7,9 +7,10 @@
  *    follow;
  *  - nothing reaches the network: every Supabase request the screens make is answered by the preview backend.
  *
- * @mutate src/components/firstRun/FirstRun.tsx |           (onPicks ?? putFirst)(FIRST_RUN_OPTIONS | putFirst(FIRST_RUN_OPTIONS
+ * @mutate src/components/firstRun/FirstRun.tsx |           if (onPicks) onPicks( |           if (onPicks) putFirst(
  * @mutate src/pages/admin/preview/OnboardingPreviewPage.tsx |     if (me) { |     if (!me) {
  * @mutate src/pages/admin/preview/OnboardingPreviewPage.tsx | { updatedAt: Date.now() + NEVER_STALE } | { updatedAt: 0 }
+ * @mutate src/pages/admin/preview/messagesPreviewBackend.ts | (OWN_ROW_TABLES.has(table) \|\| o.ownRowTables?.includes(table)) | (OWN_ROW_TABLES.has(table) \|\| !!o.ownRowTables)
  * @mutate src/pages/admin/preview/messagesPreviewBackend.ts |     if (!base \|\| !url.startsWith(base)) return o.realFetch(input, init); |     if (base) return o.realFetch(input, init);
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -94,5 +95,24 @@ describe("admin onboarding preview (Q2664 b)", () => {
     expect(await screen.findByText("Home shows what needs you")).toBeInTheDocument();
     expect(localStorage.getItem(`helpr_section_prefs:${ME}`)).toBe(before);
     expect(supabaseCalls()).toEqual([]);
+  });
+});
+
+describe("preview backend ownRowTables (Q2664 b)", () => {
+  it("sends only a GET of the admin's own row of a listed table; another table's own row and any write stay home", async () => {
+    const { installMessagesPreviewFetch } = await import("@/pages/admin/preview/messagesPreviewBackend");
+    const { uninstall } = installMessagesPreviewFetch({
+      supabaseUrl: SUPABASE, sample: () => ({ reads: {}, tables: {} }), ownUserId: () => ME,
+      ownRowTables: ["member_section_prefs"], onBlocked: () => {},
+    });
+    try {
+      await fetch(`${SUPABASE}/rest/v1/member_section_prefs?select=section_order&user_id=eq.${ME}`);
+      await fetch(`${SUPABASE}/rest/v1/notifications?select=*&user_id=eq.${ME}`);
+      await fetch(`${SUPABASE}/rest/v1/member_section_prefs?user_id=eq.${ME}`, { method: "PATCH", body: "{}" });
+    } finally {
+      uninstall();
+    }
+    const sent = spy.mock.calls.map(([u]) => new URL(String(u)).pathname);
+    expect(sent).toEqual(["/rest/v1/member_section_prefs"]);
   });
 });

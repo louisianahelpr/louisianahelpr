@@ -32,6 +32,12 @@ export interface MessagesPreviewFetchOptions {
   realFetch: typeof fetch;
   onBlocked: (what: string) => void;
   onUnlisted?: (what: string) => void;
+  /**
+   * More tables whose READ of the admin's own row is sent (Q2664 (b): the onboarding preview's picker reads
+   * member_section_prefs, the admin's own Home order, so the real row still wins over the device copy afterwards).
+   * Never a write.
+   */
+  ownRowTables?: readonly string[];
   /** A final action the sample answers (a block): the page shows its after-state (audit 1102e). */
   onAction?: (name: string) => void;
 }
@@ -47,9 +53,7 @@ const ACTION_ANSWERS: Record<string, unknown> = { block_user_and_settle: { settl
  */
 const QUIET_WRITES = new Set(["PATCH notifications", "PATCH messages"]);
 
-// member_section_prefs: the admin's own Home order, read by the onboarding preview's picker (Q2664 (b)), so the
-// real row still wins over the device copy afterwards. A read of their own row only; a write is never sent.
-const OWN_ROW_TABLES = new Set(["profiles", "user_roles", "member_section_prefs"]);
+const OWN_ROW_TABLES = new Set(["profiles", "user_roles"]);
 const PASS_THROUGH_RPC = new Set(["feature_switches_for_me"]);
 const READ_RPC = /^(get_|list_|fetch_|can_|is_|has_|are_|count_|check_|search_)/;
 const VERB: Record<string, string> = { POST: "save", PATCH: "update", PUT: "save", DELETE: "delete" };
@@ -142,7 +146,7 @@ function createMessagesPreviewFetch(o: MessagesPreviewFetchOptions): { fetch: ty
     const table = path.match(/^\/rest\/v1\/([^/]+)$/)?.[1];
     if (table && (method === "GET" || method === "HEAD")) {
       const own = o.ownUserId();
-      if (OWN_ROW_TABLES.has(table) && own && [...u.searchParams.values()].some((v) => v === `eq.${own}`)) {
+      if ((OWN_ROW_TABLES.has(table) || o.ownRowTables?.includes(table)) && own && [...u.searchParams.values()].some((v) => v === `eq.${own}`)) {
         note("passed");
         return o.realFetch(input, init);
       }

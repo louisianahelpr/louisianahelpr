@@ -63,6 +63,7 @@ function PreviewBackend({ children }: { children: ReactNode }) {
       supabaseUrl: (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? "",
       sample: () => SAMPLE,
       ownUserId: () => ownRef.current,
+      ownRowTables: ["member_section_prefs"],
       onBlocked: (what) => { if (Date.now() - lastGesture < 2000) sayWouldHave(what); },
       onUnlisted: (what) => messagesPreviewChecks.onUnlisted?.(what),
     });

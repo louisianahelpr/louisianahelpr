@@ -456,14 +456,16 @@ export function PetForm({
             >
               {initialValues ? `Edit ${initialValues.name}` : "Add a pet"}
             </h2>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="iconCompact"
               onClick={requestClose}
-              className="w-10 h-10 flex items-center justify-center ctl-exit ctl-tint active:bg-secondary/60 transition-colors"
+              className="ctl-exit"
               aria-label="Close"
             >
               <X className="w-5 h-5 text-muted-foreground" />
-            </button>
+            </Button>
           </div>
 
           <div className="px-4 py-4 space-y-5">

@@ -85,14 +85,17 @@ export function WalletCard({
             </h2>
           </div>
         </div>
-        <button
+        <Button
+          type="button"
+          variant="ghost"
+          size="iconCompact"
           onClick={onRefresh}
           disabled={refreshing}
-          className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+          className="text-muted-foreground hover:text-foreground"
           aria-label="Refresh"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
-        </button>
+        </Button>
       </div>
       <div className="grid grid-cols-2 gap-4">
         <div>

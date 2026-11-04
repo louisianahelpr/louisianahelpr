@@ -18,7 +18,7 @@
  *
  * @mutate src/components/landing/LandingProof.tsx |   return [idOn ? ID_ITEM : PICK_ITEM, PRICE_ITEM]; |   return idOn ? [ID_ITEM, PRICE_ITEM] : [PRICE_ITEM];
  * @mutate src/components/landing/LandingProof.tsx | grid gap-3 lg:grid-cols-3 lg:gap-10 | grid gap-3 lg:grid-cols-2 lg:gap-10
- * @mutate src/components/landing/HeroSection.tsx | text-ds-16 sm:text-ds-17 lg:text-ds-20 leading-relaxed | text-ds-16 sm:text-ds-18 lg:text-ds-22 xl:text-ds-24 leading-relaxed
+ * @mutate src/components/landing/HeroSection.tsx | text-[16px] sm:text-[17px] lg:text-[20px] leading-relaxed | text-[16px] sm:text-[18px] lg:text-[22px] xl:text-[24px] leading-relaxed
  * @mutate src/components/landing/HeroSection.tsx | pl-4 lg:pl-5 pr-1 h-12 lg:h-[52px] | pl-4 lg:pl-5 pr-1 h-12 lg:h-14
  * @mutate src/components/landing/HeroSection.tsx | <div data-testid="landing-hero-block" className="flex flex-1 flex-col justify-center"> | <div data-testid="landing-hero-block" className="flex flex-col">
  * @mutate src/components/landing/HeroSection.tsx | xl:text-[7.75rem] | xl:text-[6rem]
@@ -71,9 +71,10 @@ describe("the landing proof row has as many columns as items, and they are three
 /** The px of a Tailwind text size token in the class list for one breakpoint prefix ("" = base). */
 function sizeAt(classes: string, prefix: string): number | null {
   const esc = prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const m = new RegExp(`(?:^|\\s)${esc}text-(?:ds-(\\d+)|\\[(\\d+(?:\\.\\d+)?)rem\\])(?=\\s|$)`).exec(classes);
+  const m = new RegExp(`(?:^|\\s)${esc}text-(?:ds-(\\d+)|\\[(\\d+(?:\\.\\d+)?)rem\\]|\\[(\\d+)px\\])(?=\\s|$)`).exec(classes);
   if (!m) return null;
-  return m[1] ? Number(m[1]) : Number(m[2]) * 16;
+  // The subhead is written in px (Q2027: the locked hero keeps its own sizes outside the five-size scale).
+  return m[1] ? Number(m[1]) : m[3] ? Number(m[3]) : Number(m[2]) * 16;
 }
 
 describe("the hero block is centred in the first screen, the H1 stays dominant, what sits under it is small", () => {

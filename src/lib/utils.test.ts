@@ -164,4 +164,4 @@ describe("cn — every ds-* token in tailwind.config.ts is known to tailwind-mer
 // leaves DS_FONT_SIZES alone, which is precisely how `text-ds-10` came to eat
 // `text-primary-foreground` on <Badge>. The five hand-picked spot-checks above
 // are all still green under this one.
-// @mutate tailwind.config.ts | "ds-40": ["40px", { lineHeight: "1.1", letterSpacing: "-0.02em" }], | "ds-40": ["40px", { lineHeight: "1.1", letterSpacing: "-0.02em" }], "ds-44": ["44px", { lineHeight: "1.1", letterSpacing: "-0.02em" }],
+// @mutate tailwind.config.ts | "ds-40": ["28px", { lineHeight: "1.15", letterSpacing: "-0.02em" }], | "ds-40": ["28px", { lineHeight: "1.15", letterSpacing: "-0.02em" }], "ds-44": ["28px", { lineHeight: "1.15", letterSpacing: "-0.02em" }],

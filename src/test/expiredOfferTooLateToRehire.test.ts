@@ -11,9 +11,9 @@
  * v_crew_too_late, ahead of "hire someone from your applicants" and "pick somebody else". Backend proof:
  * src/test/pglite/expiredOfferTooLateToRehire.pglite.mjs (3x; NEW_MIGRATION=skip RED).
  *
- * @mutate supabase/migrations/20261103023713_expired_offer_says_too_late_to_rehire.sql |              WHEN v_too_late\n             THEN 'Your Helpr didn''t answer | WHEN false\n             THEN 'Your Helpr didn''t answer
- * @mutate supabase/migrations/20261103023713_expired_offer_says_too_late_to_rehire.sql | v_locked.start_time) <= now() + interval '15 minutes'; | v_locked.start_time) <= now() - interval '15 minutes';
- * @mutate supabase/migrations/20261103023713_expired_offer_says_too_late_to_rehire.sql |                WHEN v_crew_too_late\n               THEN '". It''s now too late | WHEN false\n               THEN '". It''s now too late
+ * @mutate supabase/migrations/20261104050109_notices_name_the_person.sql |              WHEN v_too_late\n             THEN 'Your Helpr didn''t answer | WHEN false\n             THEN 'Your Helpr didn''t answer
+ * @mutate supabase/migrations/20261104050109_notices_name_the_person.sql | v_locked.start_time) <= now() + interval '15 minutes'; | v_locked.start_time) <= now() - interval '15 minutes';
+ * @mutate supabase/migrations/20261104050109_notices_name_the_person.sql |                WHEN v_crew_too_late\n               THEN '". It''s now too late | WHEN false\n               THEN '". It''s now too late
  */
 import { describe, expect, it } from "vitest";
 import { resolve, join } from "node:path";

@@ -7,8 +7,9 @@
 -- causes is written inside that member's own request (the applicant's apply, the poster's hire, the sender's
 -- message, the reviewer's review), so auth.uid() IS the actor. The trigger:
 --   * only touches job notices (job_id IS NOT NULL; Declutter and account notices keep their type icon);
---   * sets actor_id := auth.uid() only when the caller is a signed-in member who is NOT the recipient and NOT
---     an admin (an admin's moderation notice must never show the admin's face);
+--   * sets actor_id := auth.uid() only when the caller is a signed-in member who is NOT the recipient, NOT
+--     an admin (an admin's moderation notice must never show the admin's face) and has no block with the
+--     recipient either way (block_user_and_settle's notices must not say who blocked whom; authz review 11-04);
 --   * in a member session ALWAYS overwrites whatever actor_id the row carried, so no member can stamp another
 --     person's face on a notice; a service-role / cron writer (auth.uid() NULL) may set it explicitly or leave
 --     it NULL (no face: the type icon stays).
@@ -56,7 +57,13 @@ BEGIN
   END IF;
   IF NEW.job_id IS NOT NULL
      AND v_uid IS DISTINCT FROM NEW.user_id
-     AND NOT public.has_role(v_uid, 'admin') THEN
+     AND NOT public.has_role(v_uid, 'admin')
+     -- A block between the two (either way) never shows a face: block_user_and_settle's crew notices and its
+     -- "Job cancelled" notice must not say who blocked whom (the user_blocks row is written earlier in the same
+     -- transaction).
+     AND NOT EXISTS (SELECT 1 FROM public.user_blocks b
+                      WHERE (b.blocker_id = v_uid AND b.blocked_id = NEW.user_id)
+                         OR (b.blocker_id = NEW.user_id AND b.blocked_id = v_uid)) THEN
     NEW.actor_id := v_uid;
   ELSE
     NEW.actor_id := NULL;

@@ -204,6 +204,33 @@ describe("void-cancelled-payments: a gift-plus-card job whose card share is smal
     expect((slackAlerts as Array<{ title?: string }>).some((a) => /\$0 refund/.test(String(a.title)))).toBe(false);
   });
 
+  // Review fix (lh-money-escrow on aa8869511 #3, Q1728 option A): the gift paid the whole job and the card
+  // paid the $10 job-site sales tax alone. Fees never come out of the tax: the gift keeps the $150 fee and the
+  // card fee, and the card gets its whole $10 tax back (charge.refunded then reverses it in full).
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |           const capturedCents = chargeCapturedCents - siteTaxOnCardCents; |           const capturedCents = chargeCapturedCents;
+  // @mutate supabase/functions/void-cancelled-payments/index.ts |             ? voidSplit.refundCents + siteTaxBackCents |             ? voidSplit.refundCents
+  it("tax-only card charge: the gift keeps every fee and the whole tax goes back to the card", async () => {
+    seed();
+    const TAX = 1000;
+    const TAX_CARD_FEE = 59;
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_tax", amount: TAX });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({
+      id: "pi_1", status: "succeeded", amount: TAX, amount_received: TAX,
+      metadata: { tax_calculation_id: "taxcalc_gift", job_tax_cents: String(TAX) },
+      latest_charge: { id: "ch_1", amount: TAX, amount_refunded: 0, balance_transaction: { fee: TAX_CARD_FEE } },
+    });
+    const h = await load();
+    await h.fetch(cronReq());
+
+    const refunds = stripeMock.refunds.create.mock.calls.map(([p]) => (p as { amount?: number }).amount);
+    expect(refunds).toEqual([TAX]);
+    const restored = restoredCents();
+    expect(restored).not.toBeNull();
+    expect(restored!).toBeLessThanOrEqual(GIFT - FEE - TAX_CARD_FEE);
+    expect(restored!).toBeGreaterThan(GIFT - FEE - TAX_CARD_FEE - 5);
+    expect(jobFlips()).toHaveLength(1);
+  });
+
   it("uncaptured hold: captures only what the hold allows, and the gift keeps the rest of the fee", async () => {
     seed();
     stripeMock.paymentIntents.retrieve.mockResolvedValueOnce(heldPi());

@@ -7,13 +7,14 @@
  *   - void-cancelled-payments' hourly untold-refund sweep re-paged that row every hour as no_recipient (Q2726);
  *   - payment_intent.succeeded's job-site tax commit paged its idempotency clash as money at risk (Q2732).
  * isTestModeOrphan marks a TEST-mode event naming a job_id that is not ours; live events and test events with no
- * job_id (gift cards, Declutter) or a real test job are untouched. The sweep skips a row that names nobody.
+ * job_id (gift cards, Declutter) or a real test job are untouched. The sweep still tries a row that names nobody (a
+ * tip's or a gift card's Dashboard refund finds its payer) and digests it only when nobody is found
+ * (src/test/edge/void-cancelled-payments.untoldNobody.test.ts).
  *
  * @mutate supabase/functions/stripe-webhook/handlers/_testSubject.ts |   if (livemode !== false \|\| !jobId) return false; |   if (!jobId) return false;
  * @mutate supabase/functions/stripe-webhook/handlers/_testSubject.ts |   if (!UUID_RE.test(jobId)) return true; |   if (!UUID_RE.test(jobId)) return false;
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |     if (await isTestModeOrphan(supabase, event.livemode, testJobId, logStep)) { |     if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | seed: taxJob?.is_seed === true \|\| testOrphan, supabase }); | seed: taxJob?.is_seed === true, supabase });
- * @mutate supabase/functions/void-cancelled-payments/index.ts |             if (!r.customer_id && !r.job_id) { |             if (false) {
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -55,13 +56,5 @@ describe("the three paging paths treat a test-mode orphan as test data", () => {
     const src = read("supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts");
     expect(src).toContain("const testOrphan = !taxJob && await isTestModeOrphan(supabase, pi.livemode, (pi.metadata ?? {}).job_id, logStep);");
     expect(src).toContain("seed: taxJob?.is_seed === true || testOrphan, supabase });");
-  });
-  it("the untold-refund sweep skips a ledger row that names nobody, before it sends or pages", () => {
-    const src = read("supabase/functions/void-cancelled-payments/index.ts");
-    const skip = src.indexOf("if (!r.customer_id && !r.job_id) {");
-    expect(skip).toBeGreaterThan(0);
-    const page = src.indexOf('title: "Money went back to a poster who was not fully told",', skip);
-    expect(page).toBeGreaterThan(skip);
-    expect(src.slice(skip, page)).toContain("sendRefundNotice(supabaseAdmin, {");
   });
 });

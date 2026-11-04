@@ -101,7 +101,7 @@ describe("an offer is free to refuse (Q1281)", () => {
   it("decline_job_offer and expire_unanswered_offers are the newest definitions and file no strike", () => {
     for (const fn of ["decline_job_offer", "expire_unanswered_offers"]) {
       // expire_unanswered_offers was restated twice since, in words only (a failed payment; Q1889 too late to rehire; no strike).
-      const pinned = fn === "expire_unanswered_offers" ? "20261103023713_expired_offer_says_too_late_to_rehire.sql" : FIX;
+      const pinned = fn === "expire_unanswered_offers" ? "20261104050109_notices_name_the_person.sql" /* Q2331 names the Helpr; still no strike */ : FIX;
       expect(now.get(fn)?.file, `${fn} was restated after ${pinned}: re-read it`).toBe(pinned);
       expect(code(now.get(fn)!), `${fn} strikes a Helpr who never accepted`).not.toMatch(STRIKE);
     }

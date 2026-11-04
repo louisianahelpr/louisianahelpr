@@ -48,7 +48,8 @@ const THIS = "20261006015121_crew_rest_carry_on.sql";
 const UNCONFIRMED = "20261006022526_crew_unconfirmed_spot_never_blocks_completion.sql";
 /** Q1281 restates expire_unanswered_offers from UNCONFIRMED with its strikes removed. */
 /** Q1889 restates it again (the poster's too-late words); the crew pass is unchanged. */
-const OFFER_WORDS = "20261103023713_expired_offer_says_too_late_to_rehire.sql";
+// 20261104050109 (Q2331) restates expire_unanswered_offers to name the Helpr; crew path unchanged.
+const OFFER_WORDS = "20261104050109_notices_name_the_person.sql";
 /** lh-money-escrow review of bc9ea3a47: the roll-up closes only what its DELETE removed, then re-counts. */
 const RACE = "20261006031350_crew_completion_rechecks_after_closing_spots.sql";
 /** The migration each roster deleter is expected at (the newest that restates it). */

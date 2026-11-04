@@ -208,7 +208,8 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
     // its crew pass also covers a started crew. 20261012184444 (Q1281: no
     // strike for an unanswered offer) restates it again; the crew rules hold.
     // 20261103023713 (Q1889) restates it once more, poster words only; the crew rules hold.
-    expect(EFFECTIVE.get("expire_unanswered_offers")?.file).toBe("20261103023713_expired_offer_says_too_late_to_rehire.sql");
+    // 20261104050109 (Q2331) restates it to name the Helpr in the poster's notice; the crew rules hold.
+    expect(EFFECTIVE.get("expire_unanswered_offers")?.file).toBe("20261104050109_notices_name_the_person.sql");
     const block = body("block_user_and_settle");
     expect(block).toMatch(/WHERE j\.is_group_job IS TRUE[\s\S]*\(j\.customer_id = v_user\s+AND g\.helper_id = p_blocked\)\s+OR \(j\.customer_id = p_blocked AND g\.helper_id = v_user\)/);
     expect(block).toMatch(/DELETE FROM public\.group_job_helpers WHERE id = v_crew\.slot_id;/);

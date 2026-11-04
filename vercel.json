@@ -272,6 +272,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/admin/preview/onboarding",
+      "destination": "/index.html"
+    },
+    {
       "source": "/messages",
       "destination": "/index.html"
     },

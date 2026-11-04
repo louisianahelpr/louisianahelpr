@@ -4,10 +4,9 @@
  * distance (distanceMeters) and the expected drive time
  * (expectedTravelTimeSeconds), so one call serves both items.
  *
- * WIP (Builder 102, 11-04): built and unit-tested against Apple's documented
- * /v1/etas answer shape with a stubbed fetch; NOT yet called by any function
- * and NOT yet measured against the live API (the APPLE_MAPKIT_* key is a
- * Supabase secret). Next steps: docs in ~/.lh-shots/handoffs-1104/b102.md.
+ * WIP (Builder 102/103, 11-04): the /v1/etas answer shape was read LIVE once
+ * (2026-11-04, HTTP 200; replayed verbatim in src/test/appleRoutes.test.ts);
+ * NOT yet called by any function. Next steps: ~/.lh-shots/handoffs-1104/b103.md.
  *
  * Access is the same two steps geocodeDropoff.ts uses: a MapKit developer
  * token (_shared/mapkitJwt.ts) exchanged at /v1/token for a short access

@@ -1,7 +1,10 @@
 /**
  * Q1930 / Q2485 (WIP): the Apple Maps ETAs reader (supabase/functions/_shared/appleRoutes.ts). Pure apart from the
- * fetch and the token signer it is handed, so it runs here; Apple is never reached. The answer shape is Apple's
- * documented /v1/etas shape (etas[].destination, distanceMeters, expectedTravelTimeSeconds), NOT yet read live.
+ * fetch and the token signer it is handed, so it runs here; Apple is never reached. The answer shape was READ LIVE
+ * once on 2026-11-04 (Builder 103, ~/.lh-shots/b103-q1930/etas-live.mjs: mapkit-token -> /v1/token -> /v1/etas,
+ * HTTP 200, no token printed): etas[] in destination order, each { destination: { latitude, longitude },
+ * transportType, distanceMeters, expectedTravelTimeSeconds, staticTravelTimeSeconds }, the destination echoed exactly
+ * as sent ("30.2000" came back 30.2). The first test below replays that answer verbatim.
  *
  * @mutate supabase/functions/_shared/appleRoutes.ts |       miles: Math.max(1, Math.ceil(meters / 1609.344)), |       miles: Math.max(1, Math.round(meters / 1609.344)),
  * @mutate supabase/functions/_shared/appleRoutes.ts |     const e = byPoint.get(key(d.lat, d.lng)); |     const e = [...byPoint.values()][0];
@@ -33,6 +36,16 @@ function estimateMiles(a: { lat: number; lng: number }, b: { lat: number; lng: n
 }
 
 describe("appleEtas (Q1930 road miles, Q2485 travel time)", () => {
+  it("reads Apple's live answer (2026-11-04, Lafayette -> Baton Rouge and a Lafayette point) as routed miles and minutes", async () => {
+    const live = { etas: [
+      { destination: { latitude: 30.4515, longitude: -91.1871 }, transportType: "Automobile", distanceMeters: 90410, expectedTravelTimeSeconds: 3315, staticTravelTimeSeconds: 3049 },
+      { destination: { latitude: 30.2, longitude: -92.03 }, transportType: "Automobile", distanceMeters: 4476, expectedTravelTimeSeconds: 442, staticTravelTimeSeconds: 375 },
+    ] };
+    const legs = await appleEtas({ lat: 30.2241, lng: -92.0198 }, [{ lat: 30.4515, lng: -91.1871 }, { lat: 30.2, lng: -92.03 }], apple, stubApple(live) as unknown as typeof fetch);
+    // 90410 m = 56.18 mi -> 57; 3315 s -> 56 min. 4476 m = 2.78 mi -> 3; 442 s -> 8 min.
+    expect(legs).toEqual([{ meters: 90410, miles: 57, minutes: 56 }, { meters: 4476, miles: 3, minutes: 8 }]);
+  });
+
   it("asks for car ETAs from one origin to each destination and returns routed miles (rounded up) and minutes, matched by point", async () => {
     // Answered out of order: matched by coordinate, not position. Stub distances, not live readings.
     const f = stubApple({ etas: [

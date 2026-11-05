@@ -1,0 +1,89 @@
+name: iOS biometric device check
+
+# Q1008 PART 1 (Builder 1, 11-04; plan in ~/.lh-shots/handoffs-1104/b1.md 9:03 PM). Dispatch-only, read-only:
+# builds an UNSIGNED iOS simulator app (CODE_SIGNING_ALLOWED=NO, no signing secrets at all), boots a simulator
+# headless, enrolls Face ID through the simulator's own notify keys (verified in the iOS 26.5 runtime's dyld cache,
+# ~/.lh-shots/b1-q1008/notify-keys.txt), launches the app and keeps a screenshot. This part proves the runner can
+# build, boot, enroll and launch. NOT YET (part 2): arming the app lock (the gate needs a signed-in user, and a
+# native session lives in the Keychain, so it needs a debug launch argument or a driven sign-in), then the match /
+# no-match x5 legs. Guard: src/test/iosBiometricDeviceCheckIsSafe.test.ts.
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: ios-biometric-device-check
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  device-check:
+    name: Face ID sheet appears and the gate opens (simulator)
+    runs-on: macos-15
+    timeout-minutes: 45
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Select Xcode 26
+        run: |
+          XCODE_PATH=$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)
+          if [ -z "$XCODE_PATH" ]; then ls -d /Applications/Xcode*.app; exit 1; fi
+          sudo xcode-select -s "$XCODE_PATH"
+          echo "DEVELOPER_DIR=$XCODE_PATH/Contents/Developer" >> "$GITHUB_ENV"
+
+      - name: Install
+        run: npm ci
+
+      - name: Build the web app and copy it into the iOS project
+        # The app's own iOS build (deploy.yml's App Store lane): without the PUBLISHABLE Supabase env the bundle
+        # dies at launch (vite.config.ts refuses it). These two are public by design (in every web bundle); no
+        # signing, Stripe or service-role secret is named anywhere in this workflow (guard below).
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          npm run build:ios
+          npx cap sync ios
+
+      - name: Build an unsigned simulator app
+        run: |
+          xcodebuild -workspace ios/App/App.xcworkspace -scheme App -sdk iphonesimulator -configuration Debug \
+            -derivedDataPath "$RUNNER_TEMP/dd" CODE_SIGNING_ALLOWED=NO build | tail -20
+          APP=$(ls -d "$RUNNER_TEMP"/dd/Build/Products/Debug-iphonesimulator/*.app | head -1)
+          echo "APP=$APP" >> "$GITHUB_ENV"
+
+      - name: Boot a simulator and enroll Face ID
+        run: |
+          UDID=$(xcrun simctl list devices available -j | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8")).devices;for(const [rt,l] of Object.entries(d)){if(!/iOS-26/.test(rt))continue;const x=l.find(v=>/^iPhone 1[67]/.test(v.name));if(x){console.log(x.udid);process.exit(0)}}process.exit(1)')
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl spawn "$UDID" notifyutil -s com.apple.BiometricKit.enrollmentChanged 1
+          xcrun simctl spawn "$UDID" notifyutil -p com.apple.BiometricKit.enrollmentChanged
+
+      - name: Install, launch, screenshot
+        run: |
+          xcrun simctl install "$UDID" "$APP"
+          BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Info.plist")
+          xcrun simctl launch "$UDID" "$BUNDLE"
+          sleep 15
+          mkdir -p shots
+          xcrun simctl io "$UDID" screenshot shots/launched.png
+
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ios-biometric-device-check
+          path: shots/
+          retention-days: 14

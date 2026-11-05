@@ -801,7 +801,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_refund_after_handover: "20261102063343_declutter_seller_out_after_payment.sql 595741c2cd15bf1a",
       // Board 141 (lh-money-escrow review should-fix 1): the seller payout queue now also waits while an agreed part
       // refund on the order's payment is pending or failed; it reads declutter_refunds' status only, no amount.
-      declutter_payouts_due: "20261026155251_declutter_refund_requests.sql a7c6262ff5abda7d",
+      // Q2106 S2 (20261105032500, Builder 3 11-04, WIP: lead money review owed): restated verbatim, plus o.gift_cents in
+      // the returned row. It still records no refund and reads no amount but the order's own gift share.
+      declutter_payouts_due: "20261105032500_declutter_gift_payouts.sql 6cfa2c2bf0a2da2b",
       // Board 141: reads what a full refund would return (keep_card_fee's own formula, for the screen); writes nothing.
       declutter_full_refund_cents: "20261026155251_declutter_refund_requests.sql c6fc4e29fa827449",
       // Board 141: a party's view of the refund request; reads the settled refund row's amount and status only.

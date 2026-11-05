@@ -7,21 +7,20 @@ import type { PostgrestError } from "@supabase/supabase-js";
 import { unwrapMutation } from "@/lib/mutationResult";
 import { formatName } from "@/lib/utils";
 import { formatPriceExact } from "@/lib/format";
-import { CheckCircle2, SearchX } from "lucide-react";
 import { toast } from "sonner";
 import { warnIfGiftNotReturned } from "./giftRestoreWarning";
 import { report } from "@/lib/errorLogger";
 import { functionErrorMessage, functionInvokeError } from "@/lib/supabaseResult";
 import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { logAdminAction } from "@/lib/adminAudit";
-import { categoriseReason } from "./adminDisputes/adminDisputesHelpers";
+import { disputeFilterCounts } from "./adminDisputes/disputeFilterCounts";
+import { DisputeListEmpty } from "./adminDisputes/DisputeListEmpty";
 import { DisputeFilters } from "./adminDisputes/DisputeFilters";
 import { DisputeTabs } from "./adminDisputes/DisputeTabs";
 import { DisputeCard } from "./adminDisputes/DisputeCard";
 import { HelprFaultDisputeDialog } from "./helprFault/HelprFaultDisputeDialog";
 import { groupDisputeRecords } from "./adminDisputes/groupDisputeRecords";
 import { sortOpenDisputes } from "./adminDisputes/sortOpenDisputes";
-import { isUnsettled } from "./adminDisputes/unsettled";
 import type {
   DisputedJob,
   DisputeRecord,
@@ -30,8 +29,6 @@ import type {
   PartyFilter,
   CategoryFilter,
 } from "./adminDisputes/types";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { Button } from "@/components/ui/button";
 import { AdminViewShell, AdminCard } from "./AdminViewShell";
 import { requireBiometric } from "@/lib/biometricGate";
 import { userFacingError } from "@/lib/userFacingError";
@@ -503,45 +500,8 @@ const AdminDisputes = () => {
 
   if (loading) return <p className="text-muted-foreground">Loading disputes…</p>;
 
-  const passesAge = (j: DisputedJob, age: AgeFilter = ageFilter): boolean => {
-    // An unsettled settlement is never filtered out of the Open queue. It is
-    // stuck money, not a case waiting on someone — hiding it behind an age or
-    // category chip is how it stayed invisible in the first place.
-    if (isUnsettled(disputeRecords[j.id])) return true;
-    if (age === "all" || !j.disputed_at) return true;
-    const hours = (Date.now() - new Date(j.disputed_at).getTime()) / 3600_000;
-    if (age === "0-24h") return hours < 24;
-    if (age === "1-7d") return hours >= 24 && hours < 24 * 7;
-    if (age === "7-30d") return hours >= 24 * 7 && hours < 24 * 30;
-    if (age === ">30d") return hours >= 24 * 30;
-    return true;
-  };
-  const passesParty = (j: DisputedJob, party: PartyFilter = partyFilter): boolean => {
-    if (isUnsettled(disputeRecords[j.id])) return true;
-    if (party === "all" || !j.disputed_by) return true;
-    if (party === "poster") return j.disputed_by === j.customer_id;
-    if (party === "helper") return !!j.helper_id && j.disputed_by === j.helper_id;
-    return true;
-  };
-  const passesCategory = (j: DisputedJob, category: CategoryFilter = categoryFilter): boolean => {
-    if (isUnsettled(disputeRecords[j.id])) return true;
-    if (category === "all") return true;
-    const reason = disputeRecords[j.id]?.reason ?? j.dispute_reason;
-    return categoriseReason(reason) === category;
-  };
-
-  // Computed for the Open queue regardless of which tab is active, because the
-  // Open TAB COUNT is rendered from it. The count used to come from raw
-  // `disputes.length`, so filtering to one row still showed "Open (8)" — a tab
-  // describing a list the admin cannot see. The Users view already gets this
-  // right (AdminUsers.tsx renders `filtered.length`); this makes Disputes match.
-  const openFiltered = disputes.filter((j) => passesAge(j) && passesParty(j) && passesCategory(j));
-  // Owner 2026-10-27: every chip carries the number of open disputes it would
-  // list, with the other two groups' current choices applied (as the list is).
-  const ageCount = (age: AgeFilter) => disputes.filter((j) => passesAge(j, age) && passesParty(j) && passesCategory(j)).length;
-  const partyCount = (party: PartyFilter) => disputes.filter((j) => passesAge(j) && passesParty(j, party) && passesCategory(j)).length;
-  const categoryCount = (category: CategoryFilter) => disputes.filter((j) => passesAge(j) && passesParty(j) && passesCategory(j, category)).length;
-  const filtersActive = ageFilter !== "all" || partyFilter !== "all" || categoryFilter !== "all";
+  const { openFiltered, ageCount, partyCount, categoryCount, filtersActive } =
+    disputeFilterCounts({ disputes, disputeRecords, ageFilter, partyFilter, categoryFilter });
   // Decided is deliberately unfiltered — it is an audit log, not a work queue.
   const list = filter === "open" ? openFiltered : decidedJobs;
   const clearFilters = () => {
@@ -581,60 +541,17 @@ const AdminDisputes = () => {
         contentClassName="space-y-3"
       >
         {list.length === 0 ? (
-          /* Filtered-empty is NOT the same state as empty, and saying "Nothing is
-             contested right now" over a queue that holds disputes the admin has
-             merely filtered out is the console asserting something false — the
-             one thing a moderation surface cannot do. Browse already separates
-             these two; this is the same pattern. The Decided tab is never
-             filtered, so it only ever has the true-empty case. */
-          filter === "open" && filtersActive && disputes.length > 0 ? (
-            <EmptyState
-              variant="inline"
-              icon={SearchX}
-              title="No disputes match your filters"
-              body={`${disputes.length} open ${disputes.length === 1 ? "dispute is" : "disputes are"} hidden by the current age, party or category filter.`}
-              action={
-                <Button variant="outline" size="sm" onClick={clearFilters}>
-                  Clear filters
-                </Button>
-              }
-            />
-          ) : (
-            <EmptyState
-              variant="inline"
-              icon={CheckCircle2}
-              title={filter === "open" ? "No active disputes" : "No decided disputes"}
-              body={
-                filter === "open"
-                  ? "Nothing is contested right now."
-                  : "Nothing has been decided in the last 50 jobs."
-              }
-            />
-          )
+          <DisputeListEmpty filter={filter} filtersActive={filtersActive} openCount={disputes.length} clearFilters={clearFilters} />
         ) : (
           list.map((job) => (
             <DisputeCard
-              key={job.id}
-              job={job}
-              filter={filter}
-              disputeRecords={disputeRecords}
-              earlierDisputes={earlierDisputes[job.id]}
-              profiles={profiles}
-              tiers={tiers}
-              activePanelJobId={activePanelJobId}
-              resolving={resolving}
-              decisionText={decisionText}
-              helperShare={helperShare}
-              submittingDecision={submittingDecision}
-              openDecisionPanel={openDecisionPanel}
-              setConfirm={setConfirm}
-              setDecisionText={setDecisionText}
-              setHelperShare={setHelperShare}
-              setActivePanelJobId={setActivePanelJobId}
-              decide={decide}
+              key={job.id} job={job} filter={filter} disputeRecords={disputeRecords} earlierDisputes={earlierDisputes[job.id]}
+              profiles={profiles} tiers={tiers} activePanelJobId={activePanelJobId} resolving={resolving}
+              decisionText={decisionText} helperShare={helperShare} submittingDecision={submittingDecision}
+              openDecisionPanel={openDecisionPanel} setConfirm={setConfirm} setDecisionText={setDecisionText}
+              setHelperShare={setHelperShare} setActivePanelJobId={setActivePanelJobId} decide={decide}
               retrySettlement={retrySettlement}
-              {...escapes}
-              retrying={retrying}
+              {...escapes} retrying={retrying}
               openHelprFault={setFaultJob}
             />
           ))

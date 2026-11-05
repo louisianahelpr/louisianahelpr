@@ -26,7 +26,7 @@ const DIR = resolve(__dirname, "../components/declutter");
 // @two-way src/test/declutterPhotosFallBack.test.tsx:stale baseline entry
 const ALLOWED: Record<string, number> = {
   "DeclutterBunchPile.tsx": 1, // a blob: preview of a photo not sorted yet
-  "DeclutterSellPhotos.tsx": 2, // the seller's own photos while listing: an uploaded one, and a blob: preview
+  "DeclutterSellPhotos.tsx": 1, // the seller's blob: preview while listing (the uploaded one is a FallbackImg since Q2707)
   "DeclutterSellView.tsx": 1, // the seller's own draft cover while listing
   "DeclutterHandoverSheets.tsx": 3, // the porch photo and buyer pickup photo previews (object URLs, BUY-5) and the signed "where it was left" photo
   "DeclutterPorchHandover.tsx": 1, // the signed "where it was left" photo (evidence)

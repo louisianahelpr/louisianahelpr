@@ -4153,7 +4153,7 @@
     },
     {
       "file": "src/components/admin/userDetail/UserAuditLog.tsx",
-      "line": 95,
+      "line": 96,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4173,7 +4173,7 @@
     },
     {
       "file": "src/components/admin/userDetail/UserAuditLog.tsx",
-      "line": 104,
+      "line": 105,
       "kind": "confirmConsequential",
       "title": {
         "form": "dynamic",

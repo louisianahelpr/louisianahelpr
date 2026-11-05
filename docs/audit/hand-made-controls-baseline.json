@@ -316,9 +316,6 @@
     "src/components/declutter/DeclutterMineViews.tsx": {
       "button": 2
     },
-    "src/components/declutter/DeclutterNoHelpr.tsx": {
-      "button": 3
-    },
     "src/components/declutter/DeclutterNoShowAnswer.tsx": {
       "button": 1
     },
@@ -358,7 +355,6 @@
       "input": 1
     },
     "src/components/declutter/DeclutterRefundReturn.tsx": {
-      "button": 3,
       "input": 4
     },
     "src/components/declutter/DeclutterReviewForm.tsx": {

@@ -18,6 +18,7 @@
  * @mutate src/pages/u/PublicProfilePage.tsx | ctaReady={!user \|\| !meLoading} | ctaReady={true}
  * @mutate supabase/migrations/20261105165059_public_profile_full.sql | GRANT UPDATE (show_in_search) ON public.profiles TO authenticated; | SELECT 1;
  * @mutate src/pages/u/PublicProfilePage.tsx | const PROFILE_WIDE = "min-[900px]:max-w-3xl"; | const PROFILE_WIDE = "";
+ * @mutate supabase/migrations/20261105165059_public_profile_full.sql |      AND NOT public.profile_review_same_person(rt.reviewer_id, rt.reviewee_id); |      ;
  * @mutate src/pages/u/PublicProfilePage.tsx | grid grid-cols-2 gap-3 min-[900px]:grid-cols-4 | grid grid-cols-2 gap-3
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -149,6 +150,14 @@ describe("the shareable profile shows everything (owner requests 11-05)", () => 
     expect(sql).toMatch(/ADD COLUMN IF NOT EXISTS show_in_search boolean NOT NULL DEFAULT false;/);
     expect(sql).toMatch(/GRANT UPDATE \(show_in_search\) ON public\.profiles TO authenticated;/);
     expect(sql).toContain("'show_in_search', coalesce(v_p.show_in_search, false),");
+    // L4 (owner 11-05): a review between one person's own accounts never shows and never counts; M2: the true total.
+    const reviews = sql.slice(sql.indexOf("INTO v_reviews"), sql.indexOf("INTO v_review_total"));
+    expect(reviews).toContain("AND NOT public.profile_review_same_person(rv.reviewer_id, rv.reviewee_id)");
+    expect(reviews).toMatch(/LIMIT 100/);
+    const total = sql.slice(sql.indexOf("INTO v_review_total"), sql.indexOf("INTO v_wanted"));
+    expect(total).toContain("AND NOT public.profile_review_same_person(rt.reviewer_id, rt.reviewee_id);");
+    expect(sql).toContain("'review_total', coalesce(v_review_total, 0)),");
+    expect(sql).toMatch(/\|\| jsonb_build_object\('review_count', coalesce\(v_review_total, 0\), 'avg_rating', v_review_avg\)/);
     // The page reads the fields it renders.
     const page = blankComments(readFileSync(resolve(ROOT, "src/pages/u/PublicProfilePage.tsx"), "utf8"));
     for (const f of ["p.bio", "p.town", "p.skills", "p.portfolio_urls", "p.licensed", "p.business_name", "p.listing_count"]) expect(page).toContain(f);

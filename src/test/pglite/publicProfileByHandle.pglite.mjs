@@ -36,6 +36,8 @@
  *   P18 every live listing comes back past the old 24 cap, and listing_count is their true count
  *   P19 bio, town, skills and Recent work photos come back; the license/insurance badges and business name only verified
  *   P20 still no contact, address, coordinate, storage path or user id anywhere in the fuller answer
+ *   P22 a review from the member's own other account (the same phone, normalize_phone_for_ban) never shows and never
+ *       counts: review_total, stats.review_count and stats.avg_rating come from the same rows as the list
  *   P21 show_in_search comes back false by default and true once the member turns it on
  */
 import { readFileSync, readdirSync } from "node:fs";
@@ -424,6 +426,7 @@ if (FULL && !BEFORE) {
   if (FULL !== "skip") {
     // The whole file, verbatim, 3x (replay-safe): the show_in_search column and its grant, and the page read.
     const t = readFileSync(FULL.includes("/") ? FULL : DIR + FULL, "utf8");
+    await db.exec(realFn("normalize_phone_for_ban"));
     for (let i = 0; i < 3; i++) await db.exec(t);
   }
   const before = (await page("eli-b")).v?.listings?.length ?? 0;
@@ -448,11 +451,26 @@ if (FULL && !BEFORE) {
   const raw = JSON.stringify(v2);
   check("P20 no business name without a verified badge; no contact, address, coordinate, storage path or user id",
     v2.licensed === false && v2.business_name == null && !raw.includes(ELI) && !/@|pickup|area_lat|area_lng|storage_path|555-/.test(raw),
-    JSON.stringify({ licensed: v2.licensed, biz: v2.business_name }));
+    JSON.stringify({ licensed: v2.licensed, biz: v2.business_name, eli: raw.includes(ELI), bad: (raw.match(/@|pickup|area_lat|area_lng|storage_path|555-/) ?? [""])[0] }));
   const off = (await page("eli-b")).v?.show_in_search;
   await db.exec(`RESET ROLE; UPDATE public.profiles SET show_in_search = true WHERE user_id = '${ELI}';`);
   const on = (await page("eli-b")).v?.show_in_search;
   check("P21 show_in_search is false by default and true once the member turns it on", off === false && on === true, JSON.stringify({ off, on }));
+  const r0 = (await page("eli-b")).v ?? {};
+  const SELF = U(777);
+  await db.exec(`RESET ROLE;
+    UPDATE public.profiles SET phone = '(225) 555-0101' WHERE user_id = '${ELI}';
+    INSERT INTO public.profiles (user_id, full_name, handle, phone) VALUES ('${SELF}', 'Admin', 'admin-x', '+1 225-555-0101');
+    INSERT INTO public.jobs (id, customer_id, helper_id, status, title, category, location, budget, date_needed, payment_status)
+      VALUES ('${U(778)}', '${SELF}', '${ELI}', 'completed', 'Own job', 'moving', 'Baton Rouge, LA', 10, current_date - 3, 'released');
+    INSERT INTO public.reviews (job_id, reviewee_id, reviewer_id, rating, feedback, created_at, status, feedback_visible_at)
+      VALUES ('${U(778)}', '${ELI}', '${SELF}', 1, 'SELF REVIEW', now(), 'published', now() - interval '1 minute');`);
+  const r1 = (await page("eli-b")).v ?? {};
+  const fb = (r1.helpr?.reviews ?? []).map((r) => r.feedback);
+  check("P22 a review from the member's own other account (same phone) never shows and never counts",
+    !fb.includes("SELF REVIEW") && r1.helpr?.review_total === r0.helpr?.review_total && r1.helpr?.review_total === (r1.helpr?.reviews ?? []).length
+      && r1.stats?.review_count === r1.helpr?.review_total && r1.stats?.avg_rating === r0.stats?.avg_rating && r0.helpr?.review_total > 0,
+    JSON.stringify({ before: r0.helpr?.review_total, after: r1.helpr?.review_total, n: fb.length, avg0: r0.stats?.avg_rating, avg1: r1.stats?.avg_rating }));
 }
 
 if (BEFORE) {

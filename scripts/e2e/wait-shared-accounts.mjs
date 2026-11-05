@@ -39,6 +39,7 @@
  * new locked job is in the queue the day it lands
  * (src/test/sharedAccountLockQueues.test.ts).
  */
+import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -78,42 +79,120 @@ export function drivesAccounts(run) {
 export function lockedJobs(dir = join(process.cwd(), ".github", "workflows")) {
   const out = {};
   for (const file of readdirSync(dir).filter((f) => /\.ya?ml$/.test(f)).sort()) {
-    const lines = readFileSync(join(dir, file), "utf8")
-      .split("\n")
-      .map((l) => l.replace(/(^|\s)#.*$/, ""));
-    let inJobs = false;
-    let cur = null;
-    let inConc = false;
-    const jobs = [];
-    const flush = () => {
-      if (cur?.locked) jobs.push({ key: cur.key, name: cur.name ?? cur.key });
-    };
-    for (const l of lines) {
-      if (/^\S/.test(l)) {
-        if (inJobs) flush();
-        cur = null;
-        inJobs = /^jobs:\s*$/.test(l);
-        continue;
-      }
-      if (!inJobs) continue;
-      const k = /^ {2}([A-Za-z0-9_-]+):\s*$/.exec(l);
-      if (k) {
-        flush();
-        cur = { key: k[1], name: undefined, locked: false };
-        inConc = false;
-        continue;
-      }
-      if (!cur) continue;
-      const n = /^ {4}name:\s*(.+?)\s*$/.exec(l);
-      if (n) cur.name = n[1].replace(/^(["'])(.*)\1$/, "$2");
-      if (/^ {4}\S/.test(l)) inConc = /^ {4}concurrency:\s*$/.test(l);
-      if (/^ {4}concurrency:\s*prod-lifecycle-shared-accounts\s*$/.test(l)) cur.locked = true;
-      if (inConc && /^ {6}group:\s*["']?prod-lifecycle-shared-accounts["']?\s*$/.test(l)) cur.locked = true;
-    }
-    if (inJobs) flush();
+    const jobs = lockedJobsInText(readFileSync(join(dir, file), "utf8"));
     if (jobs.length) out[`.github/workflows/${file}`] = jobs;
   }
   return out;
+}
+
+/** The locked jobs of ONE workflow file's text (the parser lockedJobs runs per file). */
+export function lockedJobsInText(text) {
+  const lines = text
+    .split("\n")
+    .map((l) => l.replace(/(^|\s)#.*$/, ""));
+  let inJobs = false;
+  let cur = null;
+  let inConc = false;
+  const jobs = [];
+  const flush = () => {
+    if (cur?.locked) jobs.push({ key: cur.key, name: cur.name ?? cur.key });
+  };
+  for (const l of lines) {
+    if (/^\S/.test(l)) {
+      if (inJobs) flush();
+      cur = null;
+      inJobs = /^jobs:\s*$/.test(l);
+      continue;
+    }
+    if (!inJobs) continue;
+    const k = /^ {2}([A-Za-z0-9_-]+):\s*$/.exec(l);
+    if (k) {
+      flush();
+      cur = { key: k[1], name: undefined, locked: false };
+      inConc = false;
+      continue;
+    }
+    if (!cur) continue;
+    const n = /^ {4}name:\s*(.+?)\s*$/.exec(l);
+    if (n) cur.name = n[1].replace(/^(["'])(.*)\1$/, "$2");
+    if (/^ {4}\S/.test(l)) inConc = /^ {4}concurrency:\s*$/.test(l);
+    if (/^ {4}concurrency:\s*prod-lifecycle-shared-accounts\s*$/.test(l)) cur.locked = true;
+    if (inConc && /^ {6}group:\s*["']?prod-lifecycle-shared-accounts["']?\s*$/.test(l)) cur.locked = true;
+  }
+  if (inJobs) flush();
+  return jobs;
+}
+
+/** Git's blob id for a file's text (sha1 of "blob <bytes>\0<text>"), so a local file can be matched to a tree entry. */
+export function gitBlobSha(text) {
+  const b = Buffer.from(text, "utf8");
+  return createHash("sha1").update(`blob ${b.length}\0`).update(b).digest("hex");
+}
+
+/** Both inventories' locked jobs, per path; the own ref's entry wins a job key both name. */
+export function mergeInventories(own, other) {
+  const out = {};
+  for (const [p, js] of Object.entries(own)) out[p] = [...js];
+  for (const [p, js] of Object.entries(other)) {
+    const have = new Set((out[p] ?? []).map((j) => j.key));
+    out[p] = [...(out[p] ?? []), ...js.filter((j) => !have.has(j.key))];
+  }
+  return out;
+}
+
+/**
+ * THE DEFAULT BRANCH'S locked jobs (Q1008 triage, 2026-11-05). A waiter reads the workflows of ITS OWN ref,
+ * so a run dispatched on a branch cut before a new locked workflow landed cannot see that workflow's
+ * waiting job, joins the group and bumps it: ios-biometric-device-check 41981626734 was cancelled at
+ * 06:59:02Z by e2e-journeys 41983991424 on ready/b2-q1035-messages-thread, whose waiter listed 12
+ * workflows to main's 13. So the waiter also reads main's workflow folder (one tree read; a blob read
+ * only for a file whose bytes differ from the local copy) and merges it in. Throws on any failure or
+ * an empty answer: the caller then waits (fail closed), never joins.
+ */
+export async function defaultBranchInventory(repo, token, dir = join(process.cwd(), ".github", "workflows"), read = gh) {
+  const { default_branch: branch } = await read(`/repos/${repo}`, token);
+  if (!branch) throw new Error("the repo read named no default branch");
+  const tree = await read(`/repos/${repo}/git/trees/${encodeURIComponent(branch)}:.github/workflows`, token);
+  if (tree.truncated) throw new Error("the workflow tree read was truncated");
+  const out = {};
+  for (const e of tree.tree ?? []) {
+    if (e.type !== "blob" || !/\.ya?ml$/.test(e.path)) continue;
+    let text = null;
+    try {
+      const local = readFileSync(join(dir, e.path), "utf8");
+      if (gitBlobSha(local) === e.sha) text = local;
+    } catch {
+      // Not in this ref's checkout (new on the default branch): read its blob below.
+      text = null;
+    }
+    if (text === null) {
+      const blob = await read(`/repos/${repo}/git/blobs/${e.sha}`, token);
+      text = Buffer.from(blob.content ?? "", blob.encoding === "base64" ? "base64" : "utf8").toString("utf8");
+    }
+    const jobs = lockedJobsInText(text);
+    if (jobs.length) out[`.github/workflows/${e.path}`] = jobs;
+  }
+  if (Object.keys(out).length === 0) throw new Error(`the ${branch} workflow folder lists no locked job`);
+  return out;
+}
+
+/**
+ * One poll: load the default branch's inventory if it is not loaded yet, then decide. FAIL CLOSED (lead
+ * 2026-11-05): when that read fails it answers wait, so an unreadable default branch can never let this
+ * run bump a job it cannot see; the job's own timeout bounds the wait. A rate limit is rethrown so the
+ * caller sleeps to the reset.
+ */
+export async function nextDecision(me, own, merged, { loadDefault, snapshotRuns }) {
+  if (!merged) {
+    try {
+      merged = mergeInventories(own, await loadDefault());
+    } catch (e) {
+      if (e?.waitMs != null) throw e;
+      return { go: false, why: `the default branch's workflow list is unreadable, so a job this ref cannot see may be waiting (fail closed): ${e instanceof Error ? e.message : e}`, merged: null };
+    }
+  }
+  const d = decide(me, await snapshotRuns(merged), merged);
+  return { ...d, merged };
 }
 
 /** Does an API job (display name, matrix suffix included) belong to a locked job? */
@@ -216,12 +295,17 @@ async function gh(path, token) {
   return r.json();
 }
 
+/** Is this /actions/runs entry in the queue: a workflow the inventory lists as locked, run by an event that drives the accounts? */
+export function queueMember(run, inventory) {
+  return !!inventory[String(run.path ?? "").split("@")[0]] && drivesAccounts(run);
+}
+
 async function snapshot(repo, token, inventory) {
   const byId = new Map();
   for (const status of IN_FLIGHT) {
     const { workflow_runs: rs = [] } = await gh(`/repos/${repo}/actions/runs?status=${status}&per_page=100`, token);
     // Only runs that can reach a locked job (drivesAccounts above).
-    for (const r of rs) if (inventory[r.path?.split("@")[0]] && drivesAccounts(r)) byId.set(r.id, r);
+    for (const r of rs) if (queueMember(r, inventory)) byId.set(r.id, r);
   }
   const runs = [];
   for (const r of byId.values()) {
@@ -248,9 +332,10 @@ async function main() {
   for (const [p, js] of Object.entries(inventory)) console.log(`  ${p}: ${js.map((j) => j.key).join(", ")}`);
   if (process.argv.includes("--dry-run") && repo && token) {
     // What would a run created NOW be told? (local check: GITHUB_REPOSITORY=... GITHUB_TOKEN=$(gh auth token))
-    const runs = await snapshot(repo, token, inventory);
+    const all = mergeInventories(inventory, await defaultBranchInventory(repo, token));
+    const runs = await snapshot(repo, token, all);
     for (const r of runs) console.log(`  in flight: ${r.name} ${r.id} ${r.created_at} ${r.jobs.map((j) => `${j.name}=${j.status}`).join("; ")}`);
-    const d = decide({ id: Number.MAX_SAFE_INTEGER, created_at: new Date().toISOString() }, runs, inventory);
+    const d = decide({ id: Number.MAX_SAFE_INTEGER, created_at: new Date().toISOString() }, runs, all);
     console.log(`${d.go ? "GO" : "wait"}: ${d.why}`);
     return;
   }
@@ -268,10 +353,17 @@ async function main() {
   const me = { id: runId, created_at: meRun.created_at };
   let failures = 0;
   let last = "";
+  let merged = null;
+  const deps = { loadDefault: () => defaultBranchInventory(repo, token), snapshotRuns: (inv) => snapshot(repo, token, inv) };
   for (;;) {
     try {
-      const d = decide(me, await snapshot(repo, token, inventory), inventory);
-      failures = 0;
+      const d = await nextDecision(me, inventory, merged, deps);
+      if (!merged && d.merged) {
+        const added = Object.keys(d.merged).filter((p) => !inventory[p]);
+        console.log(`Default branch adds ${added.length} locked workflow(s) this ref does not have${added.length ? `: ${added.join(", ")}` : ""}`);
+      }
+      merged = d.merged;
+      if (merged) failures = 0;
       if (d.why !== last) console.log(`${new Date().toISOString()} ${d.go ? "GO" : "wait"}: ${d.why}`);
       last = d.why;
       if (d.go) return;

@@ -12,6 +12,24 @@
  * fails on one with no line here, and on a line here no shops migration raises.
  */
 import { ListingPhotoError } from "@/lib/declutter/errors";
+import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
+
+/**
+ * Shops H4 (20261105174853): the shop owner's first live item and the buyer's first order need the one ID check,
+ * raised by Declutter's gate with its codes. These words, and the ID sheet, answer them.
+ */
+const SHOPS_IDENTITY_COPY: Record<"buy" | "list", string> = {
+  buy: "Verify your ID with Stripe first. It takes about 2 minutes, once, then order again.",
+  list: "Verify your ID with Stripe first. It takes about 2 minutes, once, then publish again.",
+};
+
+/** Open the ID sheet for a Shops refusal that is the ID check. True when it opened. */
+export function openShopsIdentityCheckFor(err: unknown): boolean {
+  const kind = identityRefusal(err);
+  if (kind === "buy") return openIdentityCheck("shop_buy");
+  if (kind === "list") return openIdentityCheck("shop_list");
+  return false;
+}
 
 export const SHOPS_ERROR_COPY: Record<string, string> = {
   feature_disabled: "Shops isn't open for your account yet.",
@@ -180,6 +198,8 @@ export function shopsErrorMessage(err: unknown): string {
   // already, as declutterErrorMessage reads it (lh-silent-failure re-review).
   if (err instanceof ListingPhotoError && err.message) return err.message;
   const e = err as { message?: unknown; code?: unknown; userMessage?: unknown };
+  const idKind = identityRefusal(err);
+  if (idKind === "buy" || idKind === "list") return SHOPS_IDENTITY_COPY[idKind];
   // Set by src/lib/shops/api.ts from RPC_ERROR_COPY at the call site.
   if (typeof e.userMessage === "string" && e.userMessage) return e.userMessage;
   const message = typeof e.message === "string" ? e.message.trim() : typeof err === "string" ? err.trim() : "";

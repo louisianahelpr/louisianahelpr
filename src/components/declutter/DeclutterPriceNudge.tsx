@@ -9,6 +9,7 @@ import { useSearchParams } from "react-router-dom";
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { dropOutlook, type DropState } from "@/lib/declutter/browseFilters";
 import { priceNudgeDue, readPriceNudgeLink } from "@/lib/declutter/priceNudge";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 
 export function PriceNudgeLine({ item, dropState, onOpen }: { item: DeclutterItem; dropState: DropState | undefined; onOpen: () => void }) {
   // "Drops on" here is a drop the nightly sweep has planned (the screen's own rule, dropOutlook): with no drop
@@ -18,9 +19,9 @@ export function PriceNudgeLine({ item, dropState, onOpen }: { item: DeclutterIte
     // Q2638 (audit 1102c R13): a neutral hint, not the warning ink.
     <p className="text-ds-13 text-muted-foreground" data-price-nudge="">
       Hasn't sold yet.{" "}
-      <button type="button" className="font-semibold underline underline-offset-2" onClick={onOpen}>
+      <InlineTextButton className="font-semibold underline underline-offset-2" onClick={onOpen}>
         Drop the price?
-      </button>
+      </InlineTextButton>
     </p>
   );
 }

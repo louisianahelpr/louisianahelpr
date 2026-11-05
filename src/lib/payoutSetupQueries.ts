@@ -15,6 +15,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
+import { isNetworkFailure } from "@/lib/networkFailure";
 import { unwrap, functionErrorMessage, functionErrorBody } from "@/lib/supabaseResult";
 import { queryKeys } from "@/lib/queryKeys";
 import { PERSIST_MAX_AGE_MS } from "@/lib/queryPersister";
@@ -65,6 +66,19 @@ export const NO_PAYOUT_ACCOUNT: PayoutAccountStatus = {
 };
 
 /**
+ * A request that never reached stripe-connect (a dropped connection on a slow
+ * phone: supabase-js's FunctionsFetchError) is a warning, not an error: the
+ * function never answered, the helper is shown "couldn't check", and
+ * queryClient.ts already counts the same network drops as warnings. A refusal
+ * the function DID send (non-2xx with a body) stays an error. 2026-11-05: 8 of
+ * the 17 prod "Failed to send a request to the Edge Function" error rows in 30
+ * days were these two sources.
+ */
+export function payoutFailureSeverity(err: unknown): "warning" | "error" {
+  return isNetworkFailure(err) ? "warning" : "error";
+}
+
+/**
  * A failed status check THROWS rather than resolving to null. Resolving null
  * made a transient stripe-connect failure indistinguishable from a brand-new
  * account, so a fully connected helper could open the form and be told
@@ -81,7 +95,7 @@ export async function fetchPayoutStatus(): Promise<PayoutAccountStatus | null> {
     // The edge function's own reason, not the SDK's generic non-2xx message
     // (Sentry JAVASCRIPT-1Q: its 2026-10-26 event came from this path).
     const detail = await functionErrorMessage(err, "(no edge-fn body)");
-    report(err, { tags: { source: "PayoutSetupForm.status" }, context: { edge_fn_detail: detail } });
+    report(err, { severity: payoutFailureSeverity(err), tags: { source: "PayoutSetupForm.status" }, context: { edge_fn_detail: detail } });
     throw err;
   }
 }
@@ -99,12 +113,12 @@ export async function fetchPayoutMethods(): Promise<PayoutMethod[]> {
       // your profile — please try again", etc.) rather than the generic SDK
       // "Edge Function returned a non-2xx status code" (Sentry JAVASCRIPT-1Q).
       const detail = await functionErrorMessage(res.error, "(no edge-fn body)");
-      report(res.error, { tags: { source: "PayoutSetupForm.methods" }, context: { edge_fn_detail: detail } });
+      report(res.error, { severity: payoutFailureSeverity(res.error), tags: { source: "PayoutSetupForm.methods" }, context: { edge_fn_detail: detail } });
       return [];
     }
     return (res.data?.methods as PayoutMethod[] | undefined) || [];
   } catch (err: unknown) {
-    report(err, { tags: { source: "PayoutSetupForm.methods" } });
+    report(err, { severity: payoutFailureSeverity(err), tags: { source: "PayoutSetupForm.methods" } });
     return [];
   }
 }

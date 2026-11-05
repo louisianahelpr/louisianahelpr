@@ -5665,7 +5665,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 92,
+      "line": 93,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5675,7 +5675,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 93,
+      "line": 94,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5685,7 +5685,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 101,
+      "line": 102,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5735,7 +5735,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterOffersSection.tsx",
-      "line": 110,
+      "line": 111,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

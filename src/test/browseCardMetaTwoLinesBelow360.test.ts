@@ -5,12 +5,17 @@
  * so the answer is layout: below 360px the meta row breaks into two lines on
  * EVERY card (place on line one; date · time on line two), so the time is whole
  * and all cards keep one height. From 360px up the row stays one line.
- * The measured half (real layout at 320 and 375) is
- * e2e/happy-path/browse-feed-completeness.spec.ts ("the start time is whole at 320").
+ * The measured half (real layout at 320 and 375) was the mocked
+ * e2e/happy-path/browse-feed-completeness.spec.ts, retired 2026-11-05 (Q1035):
+ * prod's open feed holds no cards to measure, so the phone media-column rule
+ * (src/index.css, Q2043) is pinned here at source level instead, with the
+ * spec's @mutate.
  *
  * @mutate src/components/dashboard/JobCard.tsx | flex-nowrap max-[359px]:flex-wrap overflow-hidden | flex-nowrap overflow-hidden
  * @mutate src/components/dashboard/JobCard.tsx | <span aria-hidden data-meta-break className="hidden max-[359px]:block basis-full h-0.5" /> | <span aria-hidden data-meta-break className="hidden" />
  * @mutate src/components/ui/skeletons/JobCardSkeleton.tsx | <div className="flex items-center gap-x-2 max-[359px]:flex-wrap"> | <div className="flex items-center gap-x-2">
+ * @mutate src/index.css |   .job-card-media-col .job-meta-row { flex-wrap: wrap; } |   .job-card-media-col .job-meta-row { flex-wrap: nowrap; }
+ * @mutate src/index.css |   .job-card-media-col .job-meta-row > [data-meta-break] { display: block; } |   .job-card-media-col .job-meta-row > [data-meta-break] { display: none; }
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -20,6 +25,7 @@ import { blankComments } from "./helpers/blankNonCode";
 const code = (p: string) => blankComments(readFileSync(join(process.cwd(), p), "utf8"));
 const CARD = code("src/components/dashboard/JobCard.tsx");
 const BONE = code("src/components/ui/skeletons/JobCardSkeleton.tsx");
+const CSS = blankComments(readFileSync(join(process.cwd(), "src/index.css"), "utf8"));
 
 describe("the Browse card meta row takes two lines below 360px (Q2222)", () => {
   it("the row wraps only below 360px", () => {
@@ -41,5 +47,16 @@ describe("the Browse card meta row takes two lines below 360px (Q2222)", () => {
     expect(BONE).toContain('<div className="flex items-center gap-x-2 max-[359px]:flex-wrap">');
     expect(BONE).toContain('<span aria-hidden className="hidden max-[359px]:block basis-full h-0.5" />');
     expect(BONE.match(/className="invisible w-0[^"]*"/g)?.length ?? 0).toBeGreaterThan(1);
+  });
+});
+
+describe("on a phone every photo-first card takes the two-line meta row (Q2043)", () => {
+  it("below 768px the media column's meta row wraps, its break shows and the dot after it drops", () => {
+    const at = CSS.indexOf("@media (max-width: 767px) {\n  .job-card-media-col .job-meta-row");
+    expect(at, "the phone media-column block is in src/index.css").toBeGreaterThan(-1);
+    const block = CSS.slice(at, CSS.indexOf("}\n}", at) + 3);
+    expect(block).toContain(".job-card-media-col .job-meta-row { flex-wrap: wrap; }");
+    expect(block).toContain(".job-card-media-col .job-meta-row > [data-meta-break] { display: block; }");
+    expect(block).toContain(".job-card-media-col .job-meta-row > [data-meta-break] + span { display: none; }");
   });
 });

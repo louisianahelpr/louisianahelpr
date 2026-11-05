@@ -11,8 +11,10 @@
 //               6 local jobs and 3 skill-matching out-of-town ones, nearbyJobs
 //               claimed 5 local rows while `recommendedJobs` held a different
 //               set — 3 local jobs were subtracted and rendered nowhere.
-//               Guarded at the API boundary by
-//               e2e/happy-path/browse-feed-completeness.spec.ts.
+//               Guarded at the API boundary by the mocked
+//               e2e/happy-path/browse-feed-completeness.spec.ts until 2026-11-05
+//               (Q1035: retired; prod's open feed is empty, so it had nothing to
+//               port to, and its @mutate below moved here).
 //
 //   2026-09-20  (this) The SAME subtract-because-rendered-elsewhere shape, one
 //               predicate over: `visibleJobs` drops `recommendedJobs` members
@@ -40,6 +42,7 @@
 //                        a job the list had legitimately removed).
 //
 // @mutate src/pages/home/browseFeedSections.ts | const inBand = bandIds.has(j.id); | const inBand = false;
+// @mutate src/pages/home/browseFeedSections.ts | const inBand = bandIds.has(j.id); | const inBand = true;
 // @mutate src/pages/home/browseFeedSections.ts | if (!showRecommendedBand) return { band: [], rest: filteredJobs.slice() }; | if (!showRecommendedBand) return { band: [], rest: filteredJobs.filter((_, i) => i > 0) };
 
 import { describe, it, expect, vi, beforeEach } from "vitest";

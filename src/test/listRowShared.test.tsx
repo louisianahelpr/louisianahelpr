@@ -16,6 +16,15 @@
  * @mutate src/components/marketing/FaqRow.tsx |       <ListRow\n |       <button type="button"\n
  * @mutate src/components/messages/HiddenUnreadBar.tsx |       <ListRow\n        onClick={onShowAll} |       <button type="button"\n        onClick={onShowAll}
  * @mutate src/components/messages/HiddenUnreadBar.tsx | w-auto justify-start gap-2 | w-auto gap-2
+ *   4. The FLUSH variant (2026-11-04 night, lead's call): a row inside an existing grouped list (Declutter's Manage
+ *      listing card). No radius, no offset, inset ring, the list's 60px floor + px-4 py-3.5, the same tint. Every row
+ *      in that list wears LIST_ROW_FLUSH (its 6 action rows as flush ListRows, the Preview Link, the switch rows and
+ *      the child rows handed rowClassName), so the list has ONE look and no hand-made <button> row is left.
+ * @mutate src/components/ui/ListRow.tsx | variant === "flush" ? `${LIST_ROW_FLUSH} ${LIST_ROW_TINT}` : CARD | variant === "flush" ? `${LIST_ROW_FLUSH} rounded-xl` : CARD
+ * @mutate src/components/ui/ListRow.tsx | text-left min-h-[60px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset | text-left min-h-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+ * @mutate src/components/declutter/DeclutterManageListing.tsx | const ROW = LIST_ROW_FLUSH; | const ROW = "flex w-full items-center gap-3 px-4 py-3 text-left";
+ * @mutate src/components/declutter/DeclutterManageListing.tsx | <ListRow variant="flush" onClick={() => setView("sold")} | <ListRow onClick={() => setView("sold")}
+ * @mutate src/components/declutter/DeclutterManageListing.tsx | className={`${LIST_ROW_FLUSH} ${LIST_ROW_TINT}`} data-manage-preview="" | className="flex w-full px-4 py-3" data-manage-preview=""
  */
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -56,6 +65,28 @@ describe("ListRow is the one tappable list row (Q2709)", () => {
     expect(cls).toContain("ctl-tint");
     expect(cls).toContain("justify-start"); // the dot and the words stay together on the left, never pushed apart
     expect(cls).not.toContain("justify-between");
+  });
+
+  it("the flush variant: no radius, no offset, an inset ring, the grouped list's 60px floor, the same tint", () => {
+    render(<ListRow variant="flush" trailing={<span data-testid="mark">›</span>}>Flush</ListRow>);
+    const row = screen.getByRole("button", { name: /Flush/ });
+    expect(row.getAttribute("type")).toBe("button");
+    const cls = row.className.split(/\s+/);
+    for (const c of ["min-h-[60px]", "w-full", "px-4", "py-3.5", "ctl-tint", "focus-visible:ring-2", "focus-visible:ring-inset", "text-left"]) expect(cls).toContain(c);
+    for (const c of ["rounded-xl", "ring-offset-background", "focus-visible:ring-offset-2", "min-h-11"]) expect(cls, `flush row wears ${c}`).not.toContain(c);
+    expect(cls.some((c) => /^hover:/.test(c)), "a hand hover on the shared row").toBe(false);
+    expect(row.lastElementChild).toBe(screen.getByTestId("mark"));
+  });
+
+  it("Declutter's Manage listing list is ONE look: flush ListRows and LIST_ROW_FLUSH siblings, no hand-made row", () => {
+    const src = read("src/components/declutter/DeclutterManageListing.tsx");
+    const flushRows = src.match(/<ListRow\s+variant="flush"/g) ?? [];
+    expect(flushRows.length).toBeGreaterThan(5); // Edit, Price, Relist, Pause, Sold, Delete
+    expect(src.match(/<ListRow\b/g)?.length, "every ListRow in the list is flush").toBe(flushRows.length);
+    expect(src).toMatch(/const ROW = LIST_ROW_FLUSH;/);
+    expect(src).toMatch(/className=\{`\$\{LIST_ROW_FLUSH\} \$\{LIST_ROW_TINT\}`\} data-manage-preview=""/);
+    expect(src.match(/rowClassName=\{ROW\}/g)?.length ?? 0).toBeGreaterThan(4); // offers, delivery, auto-free, ship, keep up
+    expect(src, "a hand-made row button is back").not.toMatch(/<button\b[^>]*className=\{ROW\}/);
   });
 
   it("the FAQ row is a ListRow with no hand-written button", () => {

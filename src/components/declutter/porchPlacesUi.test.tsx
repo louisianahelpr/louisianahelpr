@@ -457,7 +457,7 @@ describe("the buyer's pick", () => {
   });
 
   it("paid checkout and the free claim both wait on the pick", () => {
-    expect(SRC("DeclutterTradeViews.tsx")).toMatch(/!meetupReady \|\| !placeReady \|\| !pickupTimeReady\}/);
+    expect(SRC("DeclutterTradeViews.tsx")).toMatch(/!meetupReady \|\| !placeReady \|\| !pickupTimeReady(\}| \|\|)/);
     expect(SRC("DeclutterTradeViews.tsx")).toMatch(/address\.trim\(\)\.length < 5 \|\| !placeReady/);
     expect(SRC("DeclutterFreeClaim.tsx")).toMatch(/offered\.length === 0 \|\| !placeReady\}/);
   });

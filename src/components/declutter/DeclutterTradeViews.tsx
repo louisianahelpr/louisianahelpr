@@ -68,7 +68,7 @@ import { CheckoutPickupTime } from "./CheckoutPickupTime";
 import { fetchCheckoutPorchDays, onPorchDays } from "@/lib/declutter/porchDays";
 import { fetchCheckoutSize } from "@/lib/declutter/checkoutSize";
 import { useSpendableGiftCards } from "@/hooks/useSpendableGiftCards";
-import { DeclutterGiftPicker, giftPayErrorMessage, giftSplit, giftsForCheckout } from "./DeclutterGiftPicker";
+import { DeclutterGiftPicker, giftPayErrorMessage, giftSplit, giftsForCheckout, refusalRetiresGift } from "./DeclutterGiftPicker";
 
 export { dollarsInputToCents } from "@/lib/declutter/money";
 export { PaidOrders, SectionHeading, useDeclutterTodo } from "./DeclutterTabParts";
@@ -250,7 +250,9 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   const gifts = giftsForCheckout(useSpendableGiftCards().cards);
   const [giftPick, setGiftPick] = useState<string | null>(null);
   const [giftError, setGiftError] = useState<string | null>(null);
-  const gift = gifts.find((g) => g.id === giftPick) ?? null;
+  // Lead 12:36 AM: a gift the server refused stays unavailable here, so Pay never repeats the refusal.
+  const [giftRefused, setGiftRefused] = useState<Record<string, string>>({});
+  const gift = gifts.find((g) => g.id === giftPick && !(g.id in giftRefused)) ?? null;
   const totalWhole = setupFeeKnown && !(delivering && !liveQuote) && !(shipping && !shipQuote);
   const split = gift && totalWhole ? giftSplit(payCents, gift.amountCents) : null;
   return (
@@ -330,7 +332,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       </fieldset>
     </div>
     <div className="min-w-0 space-y-3 lg:sticky lg:top-4" data-checkout-summary="">
-      <DeclutterGiftPicker gifts={gifts} value={gift?.id ?? null} split={split} error={giftError}
+      <DeclutterGiftPicker gifts={gifts} refused={giftRefused} value={gift?.id ?? null} split={split} error={giftError}
         onChange={(id) => { setGiftPick(id); setGiftError(null); }} />
       {/* BUY-34: the notes sit beside the <dl>; a <p> inside one fails axe's definition-list rule. */}
       {/* Q2637 (measured 11-02 at 1440): with bg-card the T2 rule (index.css :where(.bg-card)) made the border
@@ -423,6 +425,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
               // The gift was refused (expired meanwhile, set aside for another order, a card part under $0.50): say so
               // under the gift choice in the server's words, and read the gifts again.
               setGiftError(giftWords);
+              // Back to card only: the split line goes and Pay shows the whole amount again.
+              if (gift && refusalRetiresGift(giftWords)) { setGiftRefused((r) => ({ ...r, [gift.id]: giftWords })); setGiftPick(null); }
               void qc.invalidateQueries({ queryKey: ["gift-card-count"] });
             } else if (sellerDelivering) {
               // A time taken by someone else meanwhile: say so, show the times again, ask for a new pick.

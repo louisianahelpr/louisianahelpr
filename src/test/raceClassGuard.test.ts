@@ -48,7 +48,7 @@ const OFFER_HANDLERS = "src/components/job-card/activityActions/useOfferHandlers
 
 type Hit = { key: string; file: string; line?: number };
 
-// @mutate src/components/JobTracking.tsx | .in("status", ["accepted", "in_progress", "revision_requested"]) |
+// @mutate src/components/statusUpdate.ts | .in("status", ["accepted", "in_progress", "revision_requested"]) |
 describe("race-class guard — red on the pre-fix code, green on the fix", () => {
   it("flags enforce_application_job_state when the FOR SHARE migration is absent", () => {
     const keys = guard.sqlHits(guard.readMigrations({ before: FIX })).map((h: Hit) => h.key);
@@ -230,7 +230,7 @@ describe("race-class guard — edge functions (create-payment release, proven on
 });
 
 describe("race-class guard — job completion (helper Done vs poster confirm / cancel, 20260914215112)", () => {
-  const JT = "src/components/JobTracking.tsx";
+  const JT = "src/components/statusUpdate.ts"; // the tracker's Done stamp (runStatusUpdate) since Q806, 2026-11-05
   const COMPLETION_FIX = "20260914215112";
   // Bodies come from the shared replaying parser (any dollar-quote tag,
   // CREATE with or without OR REPLACE, later regexp rewrites applied). The

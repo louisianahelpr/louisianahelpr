@@ -177,4 +177,4 @@ describe("supabase.rpc casts on RPCs types.ts already declares", () => {
 // inventory is DERIVED from two independent sources — the generated Functions
 // block and a walk of src/ — so neither side is its own oracle. It is a
 // SOURCE-TEXT scan: it reads types.ts, never prod's pg_proc.
-// @mutate src/components/JobTracking.tsx | await supabase.rpc("mark_helper_arrival", { | await supabase.rpc("mark_helper_arrival" as never, {
+// @mutate src/components/statusUpdate.ts | await supabase.rpc("mark_helper_arrival", { | await supabase.rpc("mark_helper_arrival" as never, {

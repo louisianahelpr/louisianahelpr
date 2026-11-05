@@ -2,7 +2,7 @@
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
     "calls": 1154,
-    "files": 319,
+    "files": 320,
     "rendering": 1073,
     "suppressedByPolicy": 81,
     "byKind": {
@@ -635,402 +635,11 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 272,
+      "line": 263,
       "kind": "toast.error",
       "title": {
         "form": "literal",
         "text": "Couldn't load job tracking — try again?"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/JobTracking.tsx",
-      "line": 477,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "Couldn't check the job's completion requirements — try again?"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/JobTracking.tsx",
-      "line": 487,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "arrivalGateMessage(gate)",
-        "from": "supabase/functions/_shared/arrivalRule.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "gps ? \"Arrival confirmed by your location and by the person who posted this job.\" : \"The person who posted this job confirmed you arrived.\"",
-            "branches": [
-              {
-                "form": "literal",
-                "text": "Arrival confirmed by your location and by the person who posted this job."
-              },
-              {
-                "form": "literal",
-                "text": "The person who posted this job confirmed you arrived."
-              }
-            ]
-          },
-          {
-            "form": "literal",
-            "text": "Your location confirmed you're at the job."
-          },
-          {
-            "form": "template",
-            "text": "Mark yourself arrived at the job site first. The person who posted this job has to tap \"Confirm they've arrived\" ${unlocks}.",
-            "holes": {
-              "unlocks": [
-                {
-                  "form": "dynamic",
-                  "text": "door === \"wrap-up\" ? \"before you can mark the job complete\" : \"before you can start working\"",
-                  "branches": [
-                    {
-                      "form": "literal",
-                      "text": "before you can mark the job complete"
-                    },
-                    {
-                      "form": "literal",
-                      "text": "before you can start working"
-                    }
-                  ]
-                }
-              ]
-            }
-          },
-          {
-            "form": "template",
-            "text": "The person who posted this job has to tap \"Confirm they've arrived\" ${unlocks}.",
-            "holes": {
-              "unlocks": [
-                {
-                  "form": "dynamic",
-                  "text": "door === \"wrap-up\" ? \"before you can mark the job complete\" : \"before you can start working\"",
-                  "branches": [
-                    {
-                      "form": "literal",
-                      "text": "before you can mark the job complete"
-                    },
-                    {
-                      "form": "literal",
-                      "text": "before you can start working"
-                    }
-                  ]
-                }
-              ]
-            }
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/JobTracking.tsx",
-      "line": 502,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "requiredProof(proofJob).reason"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/JobTracking.tsx",
-      "line": 556,
-      "kind": "toast.warning",
-      "title": {
-        "form": "dynamic",
-        "text": "arrivalRefusalMessage(refusal)",
-        "from": "src/lib/arrivalGate.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "refusal.distanceFt != null ? `${notRecorded} Your location is about ${formatArrivalDistance(refusal.distanceFt)} from the job's map pin. If you're at the job, ${retry}` : `${notRecorded} Your location is a little way from the job's map pin. If you're at the job, ${retry}`",
-            "branches": [
-              {
-                "form": "template",
-                "text": "${notRecorded} Your location is about ${formatArrivalDistance(refusal.distanceFt)} from the job's map pin. If you're at the job, ${retry}",
-                "holes": {
-                  "notRecorded": [
-                    {
-                      "form": "literal",
-                      "text": "We couldn't check you in yet."
-                    }
-                  ],
-                  "retry": [
-                    {
-                      "form": "literal",
-                      "text": "Pull down to refresh and we'll try again."
-                    }
-                  ]
-                }
-              },
-              {
-                "form": "template",
-                "text": "${notRecorded} Your location is a little way from the job's map pin. If you're at the job, ${retry}",
-                "holes": {
-                  "notRecorded": [
-                    {
-                      "form": "literal",
-                      "text": "We couldn't check you in yet."
-                    }
-                  ],
-                  "retry": [
-                    {
-                      "form": "literal",
-                      "text": "Pull down to refresh and we'll try again."
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "form": "template",
-            "text": "${notRecorded} Location is turned off for Louisiana Helpr — allow it in Settings, then ${retry}",
-            "holes": {
-              "notRecorded": [
-                {
-                  "form": "literal",
-                  "text": "We couldn't check you in yet."
-                }
-              ],
-              "retry": [
-                {
-                  "form": "literal",
-                  "text": "Pull down to refresh and we'll try again."
-                }
-              ]
-            }
-          },
-          {
-            "form": "template",
-            "text": "${notRecorded} We couldn't get your location. Turn Location on, then ${retry}",
-            "holes": {
-              "notRecorded": [
-                {
-                  "form": "literal",
-                  "text": "We couldn't check you in yet."
-                }
-              ],
-              "retry": [
-                {
-                  "form": "literal",
-                  "text": "Pull down to refresh and we'll try again."
-                }
-              ]
-            }
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/JobTracking.tsx",
-      "line": 561,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "isMissingRpcNamed(arrivalErr, \"mark_helper_arrival\") // short window between merge and the auto-deploy landing ? \"Arrival check-in is updating — try again in a minute.\" : (rpcErrorMessage(\"mark_helper_arrival\", arrivalErr) ?? lifecycleErrorMessage(arrivalErr) ?? \"Couldn't mark you arrived — try again?\")",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Arrival check-in is updating — try again in a minute."
-          },
-          {
-            "form": "dynamic",
-            "text": "rpcErrorMessage(\"mark_helper_arrival\", arrivalErr) ?? lifecycleErrorMessage(arrivalErr) ?? \"Couldn't mark you arrived — try again?\""
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/JobTracking.tsx",
-      "line": 580,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "Couldn't mark you arrived — try again?"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/JobTracking.tsx",
-      "line": 594,
-      "kind": "toast",
-      "title": {
-        "form": "dynamic",
-        "text": "arrivalVerdictMessage(v)",
-        "from": "src/lib/arrivalGate.ts",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "You're checked in — the person who posted this job confirmed you arrived."
-          },
-          {
-            "form": "literal",
-            "text": "You're checked in and your location is confirmed at the job. You can start working."
-          },
-          {
-            "form": "dynamic",
-            "text": "v.distanceFt != null ? `You're checked in. Your location is about ${formatArrivalDistance(v.distanceFt)} from the job's map pin, which often just means the pin is off. ${thenPoster}` : `You're checked in. Your location is a little way from the job's map pin, which often just means the pin is off. ${thenPoster}`",
-            "branches": [
-              {
-                "form": "template",
-                "text": "You're checked in. Your location is about ${formatArrivalDistance(v.distanceFt)} from the job's map pin, which often just means the pin is off. ${thenPoster}",
-                "holes": {
-                  "thenPoster": [
-                    {
-                      "form": "literal",
-                      "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
-                    }
-                  ]
-                }
-              },
-              {
-                "form": "template",
-                "text": "You're checked in. Your location is a little way from the job's map pin, which often just means the pin is off. ${thenPoster}",
-                "holes": {
-                  "thenPoster": [
-                    {
-                      "form": "literal",
-                      "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "form": "dynamic",
-            "text": "v.distanceFt != null ? `You're checked in, but your location is about ${formatArrivalDistance(v.distanceFt)} from the job. ${thenPoster}` : `You're checked in, but your location doesn't look like the job site. ${thenPoster}`",
-            "branches": [
-              {
-                "form": "template",
-                "text": "You're checked in, but your location is about ${formatArrivalDistance(v.distanceFt)} from the job. ${thenPoster}",
-                "holes": {
-                  "thenPoster": [
-                    {
-                      "form": "literal",
-                      "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
-                    }
-                  ]
-                }
-              },
-              {
-                "form": "template",
-                "text": "You're checked in, but your location doesn't look like the job site. ${thenPoster}",
-                "holes": {
-                  "thenPoster": [
-                    {
-                      "form": "literal",
-                      "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "form": "template",
-            "text": "You're checked in. We couldn't read your location — turning Location on makes it obvious you're here. ${thenPoster}",
-            "holes": {
-              "thenPoster": [
-                {
-                  "form": "literal",
-                  "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
-                }
-              ]
-            }
-          },
-          {
-            "form": "template",
-            "text": "You're checked in, but we couldn't read your location. Try again with Location on so they can see you're here. ${thenPoster}",
-            "holes": {
-              "thenPoster": [
-                {
-                  "form": "literal",
-                  "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
-                }
-              ]
-            }
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/JobTracking.tsx",
-      "line": 665,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "lifecycleErrorMessage(doneErr) ?? mutationErrorMessage(doneErr, \"Couldn't mark the job complete — try again?\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/JobTracking.tsx",
-      "line": 679,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "lifecycleErrorMessage(doneRpcErr) ?? rpcErrorMessage(\"rpc_helper_mark_done\", doneRpcErr) ?? \"Couldn't mark the job complete — try again?\""
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/JobTracking.tsx",
-      "line": 706,
-      "kind": "toast.warning",
-      "title": {
-        "form": "literal",
-        "text": "Marked done. The person who posted this job already approved, but we couldn't schedule your payout just now. Because they approved, we schedule it for you within the day unless something needs a look. Refresh the page."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/JobTracking.tsx",
-      "line": 756,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "rpcErrorMessage(\"helper_mark_on_the_way\", otwErr) ?? \"Couldn't mark you on the way — try again?\""
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/JobTracking.tsx",
-      "line": 800,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "lifecycleErrorMessage(writeErr) ?? mutationErrorMessage(writeErr, \"Couldn't update your status — try again?\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/JobTracking.tsx",
-      "line": 859,
-      "kind": "toast.error",
-      "title": {
-        "form": "literal",
-        "text": "Saved for you, but we couldn't update what the person who posted this job sees — check your connection."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/JobTracking.tsx",
-      "line": 918,
-      "kind": "toast.warning",
-      "title": {
-        "form": "literal",
-        "text": "Work started — we saved it, but couldn't tell the person who posted this job. Send them a message so they know."
       },
       "renders": true
     },
@@ -11443,6 +11052,397 @@
       "description": {
         "form": "dynamic",
         "text": "url"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/statusUpdate.ts",
+      "line": 83,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't check the job's completion requirements — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/statusUpdate.ts",
+      "line": 93,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "arrivalGateMessage(gate)",
+        "from": "supabase/functions/_shared/arrivalRule.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "gps ? \"Arrival confirmed by your location and by the person who posted this job.\" : \"The person who posted this job confirmed you arrived.\"",
+            "branches": [
+              {
+                "form": "literal",
+                "text": "Arrival confirmed by your location and by the person who posted this job."
+              },
+              {
+                "form": "literal",
+                "text": "The person who posted this job confirmed you arrived."
+              }
+            ]
+          },
+          {
+            "form": "literal",
+            "text": "Your location confirmed you're at the job."
+          },
+          {
+            "form": "template",
+            "text": "Mark yourself arrived at the job site first. The person who posted this job has to tap \"Confirm they've arrived\" ${unlocks}.",
+            "holes": {
+              "unlocks": [
+                {
+                  "form": "dynamic",
+                  "text": "door === \"wrap-up\" ? \"before you can mark the job complete\" : \"before you can start working\"",
+                  "branches": [
+                    {
+                      "form": "literal",
+                      "text": "before you can mark the job complete"
+                    },
+                    {
+                      "form": "literal",
+                      "text": "before you can start working"
+                    }
+                  ]
+                }
+              ]
+            }
+          },
+          {
+            "form": "template",
+            "text": "The person who posted this job has to tap \"Confirm they've arrived\" ${unlocks}.",
+            "holes": {
+              "unlocks": [
+                {
+                  "form": "dynamic",
+                  "text": "door === \"wrap-up\" ? \"before you can mark the job complete\" : \"before you can start working\"",
+                  "branches": [
+                    {
+                      "form": "literal",
+                      "text": "before you can mark the job complete"
+                    },
+                    {
+                      "form": "literal",
+                      "text": "before you can start working"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/statusUpdate.ts",
+      "line": 108,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "requiredProof(proofJob).reason"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/statusUpdate.ts",
+      "line": 162,
+      "kind": "toast.warning",
+      "title": {
+        "form": "dynamic",
+        "text": "arrivalRefusalMessage(refusal)",
+        "from": "src/lib/arrivalGate.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "refusal.distanceFt != null ? `${notRecorded} Your location is about ${formatArrivalDistance(refusal.distanceFt)} from the job's map pin. If you're at the job, ${retry}` : `${notRecorded} Your location is a little way from the job's map pin. If you're at the job, ${retry}`",
+            "branches": [
+              {
+                "form": "template",
+                "text": "${notRecorded} Your location is about ${formatArrivalDistance(refusal.distanceFt)} from the job's map pin. If you're at the job, ${retry}",
+                "holes": {
+                  "notRecorded": [
+                    {
+                      "form": "literal",
+                      "text": "We couldn't check you in yet."
+                    }
+                  ],
+                  "retry": [
+                    {
+                      "form": "literal",
+                      "text": "Pull down to refresh and we'll try again."
+                    }
+                  ]
+                }
+              },
+              {
+                "form": "template",
+                "text": "${notRecorded} Your location is a little way from the job's map pin. If you're at the job, ${retry}",
+                "holes": {
+                  "notRecorded": [
+                    {
+                      "form": "literal",
+                      "text": "We couldn't check you in yet."
+                    }
+                  ],
+                  "retry": [
+                    {
+                      "form": "literal",
+                      "text": "Pull down to refresh and we'll try again."
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "form": "template",
+            "text": "${notRecorded} Location is turned off for Louisiana Helpr — allow it in Settings, then ${retry}",
+            "holes": {
+              "notRecorded": [
+                {
+                  "form": "literal",
+                  "text": "We couldn't check you in yet."
+                }
+              ],
+              "retry": [
+                {
+                  "form": "literal",
+                  "text": "Pull down to refresh and we'll try again."
+                }
+              ]
+            }
+          },
+          {
+            "form": "template",
+            "text": "${notRecorded} We couldn't get your location. Turn Location on, then ${retry}",
+            "holes": {
+              "notRecorded": [
+                {
+                  "form": "literal",
+                  "text": "We couldn't check you in yet."
+                }
+              ],
+              "retry": [
+                {
+                  "form": "literal",
+                  "text": "Pull down to refresh and we'll try again."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/statusUpdate.ts",
+      "line": 167,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "isMissingRpcNamed(arrivalErr, \"mark_helper_arrival\") // short window between merge and the auto-deploy landing ? \"Arrival check-in is updating — try again in a minute.\" : (rpcErrorMessage(\"mark_helper_arrival\", arrivalErr) ?? lifecycleErrorMessage(arrivalErr) ?? \"Couldn't mark you arrived — try again?\")",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Arrival check-in is updating — try again in a minute."
+          },
+          {
+            "form": "dynamic",
+            "text": "rpcErrorMessage(\"mark_helper_arrival\", arrivalErr) ?? lifecycleErrorMessage(arrivalErr) ?? \"Couldn't mark you arrived — try again?\""
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/statusUpdate.ts",
+      "line": 186,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't mark you arrived — try again?"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/statusUpdate.ts",
+      "line": 200,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "arrivalVerdictMessage(v)",
+        "from": "src/lib/arrivalGate.ts",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "You're checked in — the person who posted this job confirmed you arrived."
+          },
+          {
+            "form": "literal",
+            "text": "You're checked in and your location is confirmed at the job. You can start working."
+          },
+          {
+            "form": "dynamic",
+            "text": "v.distanceFt != null ? `You're checked in. Your location is about ${formatArrivalDistance(v.distanceFt)} from the job's map pin, which often just means the pin is off. ${thenPoster}` : `You're checked in. Your location is a little way from the job's map pin, which often just means the pin is off. ${thenPoster}`",
+            "branches": [
+              {
+                "form": "template",
+                "text": "You're checked in. Your location is about ${formatArrivalDistance(v.distanceFt)} from the job's map pin, which often just means the pin is off. ${thenPoster}",
+                "holes": {
+                  "thenPoster": [
+                    {
+                      "form": "literal",
+                      "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
+                    }
+                  ]
+                }
+              },
+              {
+                "form": "template",
+                "text": "You're checked in. Your location is a little way from the job's map pin, which often just means the pin is off. ${thenPoster}",
+                "holes": {
+                  "thenPoster": [
+                    {
+                      "form": "literal",
+                      "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "form": "dynamic",
+            "text": "v.distanceFt != null ? `You're checked in, but your location is about ${formatArrivalDistance(v.distanceFt)} from the job. ${thenPoster}` : `You're checked in, but your location doesn't look like the job site. ${thenPoster}`",
+            "branches": [
+              {
+                "form": "template",
+                "text": "You're checked in, but your location is about ${formatArrivalDistance(v.distanceFt)} from the job. ${thenPoster}",
+                "holes": {
+                  "thenPoster": [
+                    {
+                      "form": "literal",
+                      "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
+                    }
+                  ]
+                }
+              },
+              {
+                "form": "template",
+                "text": "You're checked in, but your location doesn't look like the job site. ${thenPoster}",
+                "holes": {
+                  "thenPoster": [
+                    {
+                      "form": "literal",
+                      "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "form": "template",
+            "text": "You're checked in. We couldn't read your location — turning Location on makes it obvious you're here. ${thenPoster}",
+            "holes": {
+              "thenPoster": [
+                {
+                  "form": "literal",
+                  "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
+                }
+              ]
+            }
+          },
+          {
+            "form": "template",
+            "text": "You're checked in, but we couldn't read your location. Try again with Location on so they can see you're here. ${thenPoster}",
+            "holes": {
+              "thenPoster": [
+                {
+                  "form": "literal",
+                  "text": "The person who posted this job now taps \"Confirm they've arrived\" so you can start working."
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/statusUpdate.ts",
+      "line": 271,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "lifecycleErrorMessage(doneErr) ?? mutationErrorMessage(doneErr, \"Couldn't mark the job complete — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/statusUpdate.ts",
+      "line": 285,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "lifecycleErrorMessage(doneRpcErr) ?? rpcErrorMessage(\"rpc_helper_mark_done\", doneRpcErr) ?? \"Couldn't mark the job complete — try again?\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/statusUpdate.ts",
+      "line": 312,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Marked done. The person who posted this job already approved, but we couldn't schedule your payout just now. Because they approved, we schedule it for you within the day unless something needs a look. Refresh the page."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/statusUpdate.ts",
+      "line": 362,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rpcErrorMessage(\"helper_mark_on_the_way\", otwErr) ?? \"Couldn't mark you on the way — try again?\""
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/statusUpdate.ts",
+      "line": 406,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "lifecycleErrorMessage(writeErr) ?? mutationErrorMessage(writeErr, \"Couldn't update your status — try again?\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/statusUpdate.ts",
+      "line": 465,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Saved for you, but we couldn't update what the person who posted this job sees — check your connection."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/statusUpdate.ts",
+      "line": 524,
+      "kind": "toast.warning",
+      "title": {
+        "form": "literal",
+        "text": "Work started — we saved it, but couldn't tell the person who posted this job. Send them a message so they know."
       },
       "renders": true
     },

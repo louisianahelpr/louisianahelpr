@@ -12396,6 +12396,72 @@ export type Database = {
         }
         Relationships: []
       }
+      sales_tax_adjustments: {
+        Row: {
+          adjustment_cents: number | null
+          created_at: string
+          currency: string
+          dedupe_ref: string
+          flow: string
+          id: string
+          is_seed: boolean
+          job_id: string | null
+          kind: string
+          livemode: boolean
+          occurred_at: string
+          postal_code: string | null
+          state_code: string | null
+          stripe_charge_id: string | null
+          stripe_payment_intent_id: string
+          tax_collected_cents: number
+          tax_reported_cents: number
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          dedupe_ref: string
+          flow: string
+          id?: string
+          is_seed?: boolean
+          job_id?: string | null
+          kind: string
+          livemode: boolean
+          occurred_at: string
+          postal_code?: string | null
+          state_code?: string | null
+          stripe_charge_id?: string | null
+          stripe_payment_intent_id: string
+          tax_collected_cents: number
+          tax_reported_cents: number
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          dedupe_ref?: string
+          flow?: string
+          id?: string
+          is_seed?: boolean
+          job_id?: string | null
+          kind?: string
+          livemode?: boolean
+          occurred_at?: string
+          postal_code?: string | null
+          state_code?: string | null
+          stripe_charge_id?: string | null
+          stripe_payment_intent_id?: string
+          tax_collected_cents?: number
+          tax_reported_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_tax_adjustments_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seed_purge_runs: {
         Row: {
           dry_run: boolean
@@ -15579,6 +15645,22 @@ export type Database = {
           p_note: string
         }
         Returns: Json
+      }
+      admin_sales_tax_adjustments: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          adjustment_cents: number
+          flow: string
+          job_id: string
+          kind: string
+          occurred_at: string
+          postal_code: string
+          state_code: string
+          stripe_charge_id: string
+          stripe_payment_intent_id: string
+          tax_collected_cents: number
+          tax_reported_cents: number
+        }[]
       }
       admin_send_team_message: {
         Args: { p_client_id?: string; p_content: string; p_user_id: string }

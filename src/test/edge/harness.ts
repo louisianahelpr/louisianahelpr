@@ -157,6 +157,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/rpcNotDeployed.ts";`,
   );
 
+  // Q1918 + Q2148 (2): `_shared/salesTaxAdjustment.ts` imports only
+  // `./caughtMessage.ts` (the caller passes its ops-alert poster), so the REAL
+  // ledger writer runs against the mocked client.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/salesTaxAdjustment\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/salesTaxAdjustment.ts";`,
+  );
+
   // Q2089: `_shared/signupRepeat.ts` imports only `./caughtMessage.ts` (no
   // network at import), so the REAL repeat reads run against the mocked client.
   out = out.replace(

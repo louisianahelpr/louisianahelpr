@@ -5,7 +5,7 @@ import { formatUnreadBadge } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /** WCAG 2.5.3 (axe label-content-name-mismatch, Q1816): the badge's visible count is part of the bell's name. */
-export function bellLabel(count: number): string {
+function bellLabel(count: number): string {
   return count > 0 ? `Notifications, ${formatUnreadBadge(count)} unread` : "Notifications";
 }
 

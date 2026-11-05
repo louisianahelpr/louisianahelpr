@@ -5,6 +5,7 @@
  * shows the error with a retry instead of a blank box that would clear it.
  */
 import { useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -64,7 +65,7 @@ export default function ShopDailyCap({ shopId }: { shopId: string }) {
       {cap.isError && (
         <p className="text-sm" role="alert">
           {shopsErrorMessage(cap.error)}{" "}
-          <button type="button" className="underline" onClick={() => void cap.refetch()}>Try again</button>
+          <InlineTextButton className="underline" onClick={() => void cap.refetch()}>Try again</InlineTextButton>
         </p>
       )}
       <p className="text-xs text-muted-foreground">Once a day is full, buyers can't pick it. Your order days are your open days above.</p>

@@ -30,7 +30,7 @@ describe("a profile you blocked is hidden behind an Unblock screen", () => {
     const blocked = src.indexOf("if (blockedByMe || (blockCheckPending && blockError)) {");
     expect(blocked).toBeGreaterThan(0);
     const firstDetail = Math.min(
-      ...["if (loading", "if (isError)", "if (!profile)", "<ProfileHeaderCard"].map((m) => {
+      ...["if (loading", "if (isError)", "if (!profile)", "<UserProfileMasthead"].map((m) => {
         const i = src.indexOf(m);
         expect(i, `${m} not found`).toBeGreaterThan(0);
         return i;

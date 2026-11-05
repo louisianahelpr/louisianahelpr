@@ -8,7 +8,7 @@
  * @mutate src/lib/trustLine.ts |   if (percent == null \|\| sample == null \|\| sample < 3) return 0; |   if (percent == null \|\| sample == null) return 0;
  * @mutate src/lib/trustLine.ts |       if (res.error && isMissingRpcNamed(res.error, "get_reply_speed")) return []; |       if (res.error) return [];
  * @mutate src/pages/user/AtAGlanceCard.tsx |       <TrustLine stats={trustStats} reply={replyBucket} className="mt-3" /> |       {null}
- * @mutate src/pages/user/UserProfile.tsx |                 replyBucket={replyBucket} |                 replyBucket={null}
+ * @mutate src/pages/user/UserProfileMasthead.tsx |                 replyBucket={replyBucket} |                 replyBucket={null}
  * @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | <ApplicantTrustLine helperId={app.helper_id} helperIds={applications.map((a) => a.helper_id)} /> | {null}
  * @mutate src/pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx | <ApplicantTrustLine helperId={app.helper_id} helperIds={applications.map((a) => a.helper_id)} /> | {null}
  *
@@ -108,6 +108,8 @@ describe("where it shows", () => {
     expect(card).toContain('<TrustLine stats={trustStats} reply={replyBucket} className="mt-3" />');
     expect(card.indexOf("<TrustLine")).toBeGreaterThan(card.indexOf("cells.map((c) =>"));
     expect(code("src/pages/user/UserProfile.tsx")).toContain("replyBucket={replyBucket}");
+    // Q806: the masthead element moved to UserProfileMasthead.tsx; it hands the bucket to AtAGlanceCard there.
+    expect(code("src/pages/user/UserProfileMasthead.tsx")).toContain("                replyBucket={replyBucket}");
   });
   it("on the applicant cards (phone and tablet) and the desktop applicants table", () => {
     const tag = "<ApplicantTrustLine helperId={app.helper_id} helperIds={applications.map((a) => a.helper_id)} />";

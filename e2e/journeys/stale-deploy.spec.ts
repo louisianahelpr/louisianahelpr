@@ -52,6 +52,7 @@ import type { Page, BrowserContext, Browser, APIRequestContext, Request, Route }
 import { test, expect, SUPABASE_URL, getSession, isUserWrite, newUserContext, sessionsAvailable } from "./fixtures";
 import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenarios";
 import { abortProdWrites } from "../a11y-prod/abortProdWrites";
+import { gateClientNav } from "../requestMeter.mjs";
 import { CHUNK_RELOAD_MAX_ATTEMPTS, CHUNK_RELOAD_SCHEDULE_MS } from "../../src/lib/chunkReload";
 
 const GUARD_KEY = "helpr_chunk_reload_at";
@@ -199,6 +200,7 @@ async function blockChunks(page: Page, allowed: Set<string>) {
 }
 
 async function clientNav(page: Page, path: string) {
+  await gateClientNav(page, path);
   await page.evaluate((p) => {
     window.history.pushState({}, "", p);
     window.dispatchEvent(new PopStateEvent("popstate"));

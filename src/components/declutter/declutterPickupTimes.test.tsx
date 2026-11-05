@@ -7,13 +7,15 @@
  * @mutate src/components/declutter/DeclutterPickupTimes.tsx |       if (ws.some((w) => w.weekday === d)) return ws.filter((w) => w.weekday !== d); |       if (ws.some((w) => w.weekday === d)) return ws;
  * @mutate src/components/declutter/DeclutterPickupTimes.tsx |   if (windows.some((w) => w.ends <= w.starts)) return "Each pickup time must end after it starts."; |
  * @mutate src/components/declutter/DeclutterPickupTimes.tsx |   const [perDay, setPerDay] = useState(() => !sameHoursEveryDay(windows)); |   const [perDay, setPerDay] = useState(() => false);
- * @mutate src/components/declutter/DeclutterPickupTimes.tsx | <ToggleChip pressed={on} aria-label={WEEKDAYS[day]} | <ToggleChip pressed={!on} aria-label={WEEKDAYS[day]}
+ * @mutate src/components/declutter/DeclutterPickupTimes.tsx | <ToggleChip pressed={on} disabled={disabled} | <ToggleChip pressed={!on} disabled={disabled}
+ * @mutate src/components/declutter/DeclutterPickupTimes.tsx | <ToggleChip pressed={on} disabled={disabled} | <ToggleChip pressed={on} aria-label={WEEKDAYS[day]} disabled={disabled}
+ * @mutate src/components/declutter/DeclutterPickupTimes.tsx |       <span aria-hidden="true">{SHORT[day]}</span> |       <span>{SHORT[day]}</span>
  */
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { useState } from "react";
 import type { PickupWindow } from "@/lib/declutter/api";
-import { PickupTimesEditor, TIME_STEPS, pickupWindowsProblem, sameHoursEveryDay, timeLabel } from "./DeclutterPickupTimes";
+import { DayChip, PickupTimesEditor, TIME_STEPS, pickupWindowsProblem, sameHoursEveryDay, timeLabel } from "./DeclutterPickupTimes";
 
 let latest: PickupWindow[] = [];
 function Harness({ start }: { start: PickupWindow[] }) {
@@ -52,7 +54,7 @@ describe("the pickup times picker (owner 2026-10-28)", () => {
   it("different hours each day, with more than one time a day, and a time removed", () => {
     render(<Harness start={[{ weekday: 1, starts: "09:00", ends: "12:00" }, { weekday: 3, starts: "09:00", ends: "12:00" }]} />);
     fireEvent.click(screen.getByRole("radio", { name: "Different each day" }));
-    const wed = screen.getByText("Wednesday").closest("li")!;
+    const wed = screen.getByText("Wednesday", { selector: ":not(.sr-only)" }).closest("li")!;
     fireEvent.click(within(wed).getByRole("button", { name: /Add another time on Wednesday/ }));
     expect(latest).toEqual([
       { weekday: 1, starts: "09:00", ends: "12:00" },
@@ -82,5 +84,18 @@ describe("the pickup times picker (owner 2026-10-28)", () => {
     expect(pickupWindowsProblem([])).toMatch(/at least one day/);
     const many = Array.from({ length: 22 }, (_, i) => ({ weekday: i % 7, starts: "09:00", ends: "10:00" }));
     expect(pickupWindowsProblem(many)).toMatch(/at most 21/);
+  });
+});
+
+describe("a day chip's name is the whole weekday, from content (WCAG 2.5.3, Q1816, lead 11-04)", () => {
+  it("draws 'Sat' (hidden from the name), is named 'Saturday', and carries no aria-label", () => {
+    const { container } = render(<DayChip day={6} on onToggle={() => {}} />);
+    const chip = screen.getByRole("button", { name: "Saturday" });
+    expect(chip).toBe(container.querySelector("[data-day-chip]"));
+    expect(chip.hasAttribute("aria-label")).toBe(false);
+    expect(chip.getAttribute("aria-pressed")).toBe("true");
+    const drawn = [...chip.querySelectorAll("span")].find((s) => s.textContent === "Sat");
+    expect(drawn?.getAttribute("aria-hidden")).toBe("true");
+    expect(chip.querySelector(".sr-only")?.textContent).toBe("Saturday");
   });
 });

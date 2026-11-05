@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-05T09:33Z",
+  "measured_at": "2026-11-05T09:46Z",
   "issues": {
     "readable": true,
     "open": [
@@ -101,13 +101,6 @@
         "runTruncated": false
       },
       {
-        "number": 4020,
-        "title": "nightly-red: security-audit",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41494441708",
-        "runTruncated": false
-      },
-      {
         "number": 4062,
         "title": "nightly-red: nightly-webkit",
         "label": "nightly-red",
@@ -125,7 +118,7 @@
         "number": 4127,
         "title": "nightly-red: main: Sensitive review record",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42002901278",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42004946160",
         "runTruncated": false
       }
     ]
@@ -479,7 +472,6 @@
     "issue #3813": "Q1816",
     "issue #3823": "Q2498",
     "issue #3824": "Q1816",
-    "issue #4020": "Q1816",
     "issue #4062": "Q1816",
     "issue #4111": "Q1816",
     "issue #4127": "Q1816",

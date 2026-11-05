@@ -30,6 +30,7 @@ import { ShopCard, ShopGallery, ShopHero, ShopHoursCard } from "./ShopProfile";
 import ShopFaqs from "./ShopFaqs";
 import ShopPolicies from "./ShopPolicies";
 import ShopItemsList from "./ShopItemsList";
+import { ShopReportShop } from "./ShopReport";
 import ShopOrderSheet from "./ShopOrderSheet";
 
 function ShopSkeleton() {
@@ -183,7 +184,7 @@ export default function ShopView() {
             <p className="text-sm whitespace-pre-line break-words">{s.about}</p>
           </ShopCard>
         )}
-        {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} />}
+        {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} reportable={!s.mine} />}
         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />}
         <ShopHoursCard hours={s.hours} />
         {s.parishes_served.length > 0 && (
@@ -204,6 +205,7 @@ export default function ShopView() {
             {s.offers_quotes ? " Quotes open here soon." : ""}
           </p>
         </ShopCard>
+        {!s.mine && <ShopReportShop shopId={s.id} />}
         {s.mine && (
           <Button type="button" variant="outline" disabled={pause.isPending} onClick={() => pause.mutate(!s.paused)}>
             {s.paused ? "Open my shop again" : "Pause my shop (vacation)"}

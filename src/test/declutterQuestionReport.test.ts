@@ -5,8 +5,8 @@
  * question reportable, the asker reports their own question, the seller reports their own answer, test askers not
  * flagged).
  *
- * @mutate supabase/migrations/20261102040000_declutter_review_report.sql | 'declutter_question'::text, 'declutter_answer'::text, 'declutter_review'::text])); | 'declutter_question'::text, 'declutter_review'::text]));
- * @mutate supabase/migrations/20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql | it.seller_id)) THEN\n      RAISE EXCEPTION 'report_own_content' USING ERRCODE = '42501'; | it.seller_id)) THEN\n      NULL;
+ * @mutate supabase/migrations/20261105182210_shops_report_shop_and_item.sql | 'declutter_question'::text, 'declutter_answer'::text, 'declutter_review'::text, | 'declutter_question'::text, 'declutter_review'::text,
+ * @mutate supabase/migrations/20261105182210_shops_report_shop_and_item.sql | it.seller_id)) THEN\n      RAISE EXCEPTION 'report_own_content' USING ERRCODE = '42501'; | it.seller_id)) THEN\n      NULL;
  * @mutate supabase/migrations/20261103055505_declutter_shops_homes_messages_not_found_is_404.sql |   IF v_uid IS NULL OR NOT public.has_role(v_uid, 'admin'::public.app_role) THEN\n    RAISE EXCEPTION 'not_admin' USING ERRCODE = '42501';\n  END IF;\n  IF p_part IS NULL | IF false THEN\n    RAISE EXCEPTION 'not_admin' USING ERRCODE = '42501';\n  END IF;\n  IF p_part IS NULL
  * @mutate supabase/migrations/20261101021934_declutter_question_report.sql | REVOKE ALL ON FUNCTION public.declutter_admin_reported_questions(uuid[]) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.declutter_admin_reported_questions(uuid[]) FROM PUBLIC;
  */
@@ -29,9 +29,11 @@ describe("Declutter questions and answers can be reported (B48)", () => {
   it("reads the newest definitions (floor)", () => {
     expect(files.length).toBeGreaterThan(1000);
     // A3-75 (20261102040000) restated both with the declutter_review type and branch; the question rules are unchanged.
-    expect(typeFile).toBe("20261102040000_declutter_review_report.sql");
-    // Q2390 p37 (20261103222939) restated the trigger function verbatim with its not-found as PT404 only.
-    expect(DEFS.get("report_message_party_and_copy")?.file ?? "").toContain("20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql");
+    // Shops H2 (20261105182210) restated both again with the shop types and branch; the question rules are unchanged.
+    expect(typeFile).toBe("20261105182210_shops_report_shop_and_item.sql");
+    // Q2390 p37 (20261103222939) restated the trigger function verbatim with its not-found as PT404 only; Shops H2
+    // (20261105182210) restated it again with the shop branch added.
+    expect(DEFS.get("report_message_party_and_copy")?.file ?? "").toContain("20261105182210_shops_report_shop_and_item.sql");
     expect(flat("report_message_party_and_copy").length).toBeGreaterThan(1500);
   });
 

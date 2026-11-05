@@ -12,7 +12,7 @@ import { fetchShopItems } from "@/lib/shops/items";
 import { ShopItemsGrid } from "./ShopProfile";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 
-export default function ShopItemsList({ shopId }: { shopId: string }) {
+export default function ShopItemsList({ shopId, reportable = false }: { shopId: string; reportable?: boolean }) {
   const items = useQuery({ queryKey: ["shops", "items", shopId], queryFn: () => fetchShopItems(shopId), enabled: !!shopId });
   const live = (items.data ?? []).filter((i) => i.status === "live");
   return (
@@ -31,7 +31,7 @@ export default function ShopItemsList({ shopId }: { shopId: string }) {
           </Button>
         </div>
       ) : (
-        <ShopItemsGrid items={live} />
+        <ShopItemsGrid items={live} reportable={reportable} />
       )}
     </section>
   );

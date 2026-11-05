@@ -38,6 +38,8 @@ import { fetchReports } from "@/components/admin/adminReports/fetchReports";
 import { DeclutterTakeDown } from "@/components/admin/adminReports/DeclutterTakeDown";
 import { WantedReportPanel } from "@/components/admin/adminReports/WantedReportPanel";
 import { ReportedCopy } from "@/components/admin/adminReports/ReportedCopy";
+import { ShopReportPanel } from "@/components/admin/adminReports/ShopReportPanel";
+import { isShopReport } from "@/components/admin/adminReports/reportedShops";
 import { ReportSubjectButton } from "@/components/admin/adminReports/ReportSubjectButton";
 import { SLA_BREACH_HOURS, slaInfo, typeIcon } from "@/components/admin/adminReports/reportRowBits";
 
@@ -351,6 +353,7 @@ const AdminReports = () => {
               )}
               {/* The reported message or Declutter question as it read when it was reported (kept even if later deleted). */}
               <ReportedCopy report={report} onDone={loadReports} gone={report.reported_question_gone} />
+              {isShopReport(report.reported_type) && <ShopReportPanel shop={report.reported_shop} reportId={report.id} content={report.reported_content} open={report.status !== "resolved" && report.status !== "dismissed"} onDone={loadReports} />}
 
               {report.reported_wanted && <WantedReportPanel post={report.reported_wanted} reportId={report.id} open={report.status !== "resolved" && report.status !== "dismissed"} onDone={loadReports} />}
 

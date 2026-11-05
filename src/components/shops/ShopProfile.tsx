@@ -6,6 +6,7 @@
  * ShopView and the signed-out PublicShopView both render these, so the two
  * never drift apart.
  */
+import { ShopReportItem } from "./ShopReport";
 import type { ReactNode } from "react";
 import { Clock, House, MapPin, ShoppingBag, Store } from "lucide-react";
 import { shopPhotoUrl, type ShopBadges, type ShopHour, type ShopPhotoKind } from "@/lib/shops/api";
@@ -131,7 +132,8 @@ export function ShopHoursCard({ hours }: { hours: ShopHour[] }) {
   );
 }
 
-export function ShopItemsGrid({ items }: { items: (Omit<ShopItem, "photos"> & { photos: ItemPhoto[] })[] }) {
+/** `reportable`: a visitor's view, so each item carries a Report (Shops H2); never on the owner's own shop. */
+export function ShopItemsGrid({ items, reportable = false }: { items: (Omit<ShopItem, "photos"> & { photos: ItemPhoto[] })[]; reportable?: boolean }) {
   if (items.length === 0) return <p className="text-sm text-muted-foreground">No items listed yet.</p>;
   const anyHomeKitchen = items.some((i) => i.home_kitchen);
   return (
@@ -167,6 +169,7 @@ export function ShopItemsGrid({ items }: { items: (Omit<ShopItem, "photos"> & { 
                     <span className="sr-only">{HOME_KITCHEN_NOTICE}</span>
                   </p>
                 )}
+                {reportable && <ShopReportItem itemId={item.id} title={item.title} />}
               </div>
             </li>
           );

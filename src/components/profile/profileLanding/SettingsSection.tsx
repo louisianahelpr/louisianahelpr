@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import {
   AlertTriangle,
   ChevronRight as ChevronRightIcon,
@@ -30,12 +31,13 @@ export function SettingsGroup({
       </p>
       <div className="rounded-ds-lg liquid-glass overflow-hidden">
         {group.items.map((item, idx) => (
-          <button
+          <ListRow
+            variant="flush"
             key={item.label}
             onClick={onSelect ? () => onSelect(item) : undefined}
             disabled={!onSelect}
             tabIndex={onSelect ? undefined : -1}
-            className="glass-press group/row w-full flex items-center justify-between gap-4 pl-4 pr-3.5 py-3 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left relative"
+            className="glass-press group/row justify-between gap-4 pl-4 pr-3.5 py-3 transition-colors relative"
           >
             {idx > 0 && (
               <span
@@ -93,7 +95,7 @@ export function SettingsGroup({
             <span className="w-5 flex items-center justify-center shrink-0">
               <ChevronRightIcon className="w-4 h-4 text-muted-foreground/70" />
             </span>
-          </button>
+          </ListRow>
         ))}
       </div>
     </section>

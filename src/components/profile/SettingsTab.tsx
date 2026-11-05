@@ -1,4 +1,5 @@
 import { BIGGER_TEXT_LABEL, BIGGER_TEXT_SUB } from "@/components/profile/biggerTextWords";
+import { ListRow } from "@/components/ui/ListRow";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { useEffect, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
@@ -77,9 +78,9 @@ function Row({ label, badge, sub, onClick, right, testId, danger = false, busy =
   );
   const cls = "w-full min-h-[56px] flex items-center gap-3 px-4 py-3 text-left";
   return onClick ? (
-    <button type="button" data-settings-row={testId} onClick={onClick} aria-busy={busy || undefined} className={`glass-press ${cls} ctl-tint transition-colors`}>
+    <ListRow variant="flush" data-settings-row={testId} onClick={onClick} aria-busy={busy || undefined} className={`glass-press ${cls} transition-colors`}>
       {body}
-    </button>
+    </ListRow>
   ) : (
     <div data-settings-row={testId} className={cls}>{body}</div>
   );

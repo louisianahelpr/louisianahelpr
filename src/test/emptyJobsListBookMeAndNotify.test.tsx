@@ -1,10 +1,11 @@
 /**
  * UX-4 (owner approved 2026-10-29, Q2484): a Helpr whose "jobs I'm doing" list is empty is pointed to their own
- * Book me link and to "Notify me when one lands", not only to Browse. Renders the REAL AppliedJobsTab with no
+ * page link (/u/<handle>, owner 2026-11-05 share-profile audit H5; it was the /book link) and to "Notify me when one lands", not only to Browse. Renders the REAL AppliedJobsTab with no
  * applications and presses both.
  *
  * @mutate src/pages/jobs/AppliedJobsTab.tsx | <EmptyJobsWaysOut userId={userId} /> | null
- * @mutate src/pages/jobs/EmptyJobsWaysOut.tsx | shareBookMe(userId, firstNameOf(profile?.full_name)) | Promise.resolve()
+ * @mutate src/pages/jobs/EmptyJobsWaysOut.tsx | shareMyPage(firstNameOf(profile?.full_name)) | Promise.resolve()
+ * @mutate src/pages/jobs/EmptyJobsWaysOut.tsx | void shareMyPage(firstNameOf(profile?.full_name)) | void shareBookMe(userId, firstNameOf(profile?.full_name))
  * @mutate src/pages/jobs/EmptyJobsWaysOut.tsx | onClick={notifyWhenWorkLands} | onClick={() => undefined}
  * @mutate src/pages/jobs/EmptyJobsWaysOut.tsx |           variant="outline" |           variant="link"
  */
@@ -13,11 +14,13 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
-const { shareBookMe, notify } = vi.hoisted(() => ({
+const { shareBookMe, shareMyPage, notify } = vi.hoisted(() => ({
   shareBookMe: vi.fn((_id: string, _first: string) => Promise.resolve("shared")),
+  shareMyPage: vi.fn((_first: string) => Promise.resolve("shared")),
   notify: vi.fn(() => Promise.resolve()),
 }));
 vi.mock("@/lib/bookMe", async (io) => ({ ...(await io<typeof import("@/lib/bookMe")>()), shareBookMe }));
+vi.mock("@/lib/profileLink/api", async (io) => ({ ...(await io<typeof import("@/lib/profileLink/api")>()), shareMyPage }));
 vi.mock("@/hooks/useNotifyWhenWorkLands", () => ({ useNotifyWhenWorkLands: () => notify }));
 vi.mock("@/hooks/useProfile", () => ({ useProfile: () => ({ data: { full_name: "Ann Boudreaux" } }) }));
 vi.mock("@/integrations/supabase/client", () => {
@@ -53,26 +56,27 @@ function renderEmpty() {
   );
 }
 
-describe("UX-4: the empty jobs list points to your Book me link and to job alerts", () => {
-  beforeEach(() => { shareBookMe.mockClear(); notify.mockClear(); });
+describe("UX-4: the empty jobs list points to your page link and to job alerts", () => {
+  beforeEach(() => { shareBookMe.mockClear(); shareMyPage.mockClear(); notify.mockClear(); });
 
   it("shows both beside Browse, as the shared pill Button", () => {
     renderEmpty();
     // Inventory floor: Browse plus the two new ways out (a render that drops either sits at 1).
     expect(screen.getAllByRole("button").length).toBeGreaterThan(2);
     expect(screen.getByRole("button", { name: /Browse open Jobs/ })).toBeTruthy();
-    const share = screen.getByRole("button", { name: "Share your Book me link" });
+    const share = screen.getByRole("button", { name: "Share your page" });
     const alerts = screen.getByRole("button", { name: "Notify me when one lands" });
     for (const b of [share, alerts]) expect(b.className.split(/\s+/), b.textContent ?? "").toContain("rounded-full");
     // The share button reads as a button (an outline pill), not a bare link.
     expect(share.className).toMatch(/\bborder\b/);
   });
 
-  it("Share opens the Book me share sheet for YOUR id with your first name", () => {
+  it("Share opens YOUR /u page's share sheet with your first name, never the old /book link", () => {
     renderEmpty();
-    fireEvent.click(screen.getByRole("button", { name: "Share your Book me link" }));
-    expect(shareBookMe).toHaveBeenCalledTimes(1);
-    expect(shareBookMe).toHaveBeenCalledWith("helpr-1", "Ann");
+    fireEvent.click(screen.getByRole("button", { name: "Share your page" }));
+    expect(shareMyPage).toHaveBeenCalledTimes(1);
+    expect(shareMyPage).toHaveBeenCalledWith("Ann");
+    expect(shareBookMe).not.toHaveBeenCalled();
   });
 
   it("Notify me runs the one shared job-alert handler", () => {

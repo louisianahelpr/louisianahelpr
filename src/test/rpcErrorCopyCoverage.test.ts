@@ -90,6 +90,7 @@ const UNREACHABLE: Allowlist = {
   get_my_activity_cores: {
     not_signed_in: { reason: "no message exists at this site: fetchActivityCores only runs signed in, and any error falls back to the old reads" },
     bad_columns: { reason: "fetchActivityCores sends the fixed JOB_READABLE_COLUMN_LIST and APPLICATION_READABLE_COLUMN_LIST, never caller input; any error falls back to the old reads" },
+    bad_parts: { reason: "only the entry prefetch sends p_parts, the fixed ['posted'] / ['applied'] (activityCoresPrefetch.ts); a refused part falls back to the whole cores read, and no message exists" },
   },
   // OPS-5 (20261031220447): reportSignupSource (src/lib/signupSource.ts) runs in the background only once a member is
   // signed in (SessionManager, user id set); any error is report()ed and no message exists.

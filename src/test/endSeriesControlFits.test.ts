@@ -27,7 +27,8 @@ const src = (f: string) => blankComments(readFileSync(join(ROOT, f), "utf8"));
 describe("End series fits its row and reads in dark (Q778)", () => {
   it("the control's button never wraps and uses the sienna label ink", () => {
     const s = src("src/components/series/EndSeriesControl.tsx");
-    const btn = /<button\b[\s\S]*?data-end-series[\s\S]*?<\/button>/.exec(s)?.[0] ?? "";
+    // The shared InlineTextButton since Q2709 (11-05): a text-sized button with the shared 44px touch overlay.
+    const btn = /<InlineTextButton\b[\s\S]*?data-end-series[\s\S]*?<\/InlineTextButton>/.exec(s)?.[0] ?? "";
     expect(btn, "the End series button was not found").not.toBe("");
     expect(btn).toMatch(/className="[^"]*\bwhitespace-nowrap\b/);
     expect(btn).toMatch(/color:\s*"hsl\(var\(--sienna-ink\)\)"/);

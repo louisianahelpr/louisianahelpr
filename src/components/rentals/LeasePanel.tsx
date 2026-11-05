@@ -13,6 +13,7 @@
  *             the tenancy is gone: read it, download the PDF (its fingerprint re-checked first, #5).
  */
 import { useEffect, useMemo, useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -215,9 +216,9 @@ function LeaseEditor({ tenancyId, draft, prefill, onClose }: { tenancyId: string
               <ul className="list-disc pl-5">
                 {missing.slice(0, 8).map((f) => (
                   <li key={f.key}>
-                    <button type="button" className="underline" onClick={() => setStep(LEASE_STEPS.findIndex((s) => s.id === f.step))}>
+                    <InlineTextButton className="underline" onClick={() => setStep(LEASE_STEPS.findIndex((s) => s.id === f.step))}>
                       {f.label}
-                    </button>
+                    </InlineTextButton>
                   </li>
                 ))}
               </ul>

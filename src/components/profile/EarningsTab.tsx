@@ -1,4 +1,5 @@
 import { lazy, Suspense, useCallback, useRef, useState } from "react";
+import { ListRow } from "@/components/ui/ListRow";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Zap, Info } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -462,10 +463,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               is fainter than the text it discloses reads as disabled. */}
           <Collapsible>
             <CollapsibleTrigger asChild>
-              <button
-                type="button"
-                className="group w-full rounded-2xl liquid-glass px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
-              >
+              <ListRow className="group rounded-2xl liquid-glass gap-3 px-4 py-3">
                 <span className="min-w-0 flex-1">
                   <span className="block text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
                     More insights
@@ -481,7 +479,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 >
                   &rsaquo;
                 </span>
-              </button>
+              </ListRow>
             </CollapsibleTrigger>
             <CollapsibleContent className="space-y-3 pt-3">
               <Suspense fallback={<HelprSpinner />}>
@@ -491,10 +489,9 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                   link, not a locked teaser: the page it opens decides
                   server-side whether this helper gets the dashboard or the
                   upgrade offer. */}
-              {membershipsOn && profileHasPerk(profile?.subscription_tier, profile?.subscription_expires_at, "advancedAnalytics") && (<button
-                type="button"
+              {membershipsOn && profileHasPerk(profile?.subscription_tier, profile?.subscription_expires_at, "advancedAnalytics") && (<ListRow
                 onClick={() => navigate("/profile?tab=analytics")}
-                className="w-full rounded-2xl liquid-glass px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
+                className="rounded-2xl liquid-glass gap-3 px-4 py-3"
               >
                 <span className="min-w-0 flex-1">
                   <span className="block text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
@@ -507,7 +504,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
                 <span className="text-ds-13 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden="true">
                   &rsaquo;
                 </span>
-              </button>)}
+              </ListRow>)}
             </CollapsibleContent>
           </Collapsible>
 

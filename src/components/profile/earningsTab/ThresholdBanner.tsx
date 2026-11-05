@@ -54,19 +54,10 @@ export function ThresholdBanner({ ytdYear, onOpenExport, onDismiss }: ThresholdB
           With {FORM_1099K_TRANSACTION_THRESHOLD}+ transactions you may receive a 1099-K from Stripe. Download a payout statement now so you're not scrambling in April.
         </p>
         <div className="mt-2 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={onOpenExport}
-            className="inline-flex items-center gap-1.5 rounded-ds-sm px-3 py-1.5 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all"
-            style={{
-              background: "hsl(var(--bark))",
-              color: "hsl(var(--parchment))",
-              border: "1px solid hsl(var(--bark))",
-            }}
-          >
+          <Button type="button" variant="primary" size="sm" onClick={onOpenExport} className="text-ds-13">
             <FileText className="w-3.5 h-3.5" />
             Download tax statement
-          </button>
+          </Button>
         </div>
       </div>
       <Button

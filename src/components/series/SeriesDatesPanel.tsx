@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, ChevronDown } from "lucide-react";
@@ -222,16 +223,15 @@ export function SeriesDatesPanel({
               <h4 className="text-ds-12 font-semibold text-foreground">Your dates</h4>
               {/* A booked visit is cancelled from its own card, so it is listed but not picked here. */}
               <ul>{mine.map((d) => row(d, !d.booked))}</ul>
-              <button
-                type="button"
+              <InlineTextButton
                 disabled={busy || pickedMine.length === 0}
                 onClick={() => setConfirmGiveUp(true)}
-                className="min-h-[44px] px-1 text-ds-11 font-semibold underline underline-offset-2 disabled:opacity-40"
+                className="text-ds-11 font-semibold underline underline-offset-2 disabled:opacity-40"
                 // Not money, so not rust (spec §1.1): giving a date up is the alert text action.
                 style={{ color: "hsl(var(--alert, 4 71% 41%))" }}
               >
                 Give up {pickedMine.length || ""} date{pickedMine.length === 1 ? "" : "s"}
-              </button>
+              </InlineTextButton>
             </section>
           )}
 

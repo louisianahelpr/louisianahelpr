@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { offerIdentityCheckAfterConfirm } from "@/lib/identityCheck";
 import { NudgeConfirmLink } from "@/components/job-card/NudgeConfirmLink";
 import { supabase } from "@/integrations/supabase/client";
@@ -408,13 +409,12 @@ export function JobConfirmation({
             — a reliability strike for a Helpr backing out, a reopened job
             for a poster — so it can't read as a second, lighter Cancel. */}
         {onCantMakeIt && (
-          <button
-            type="button"
+          <InlineTextButton
             onClick={() => { setShowConfirmDialog(false); onCantMakeIt(); }}
-            className="w-full text-center text-ds-11 font-sans underline underline-offset-2 text-muted-foreground hover:text-foreground transition-colors min-h-[44px]"
+            className="w-full text-center text-ds-11 font-sans underline underline-offset-2 text-muted-foreground hover:text-foreground transition-colors"
           >
             Cancel job
-          </button>
+          </InlineTextButton>
         )}
       </DialogContent>
     </Dialog>

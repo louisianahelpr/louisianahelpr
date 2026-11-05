@@ -24,6 +24,7 @@ import {
 } from "./petProfilesHelpers";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { ChoicePill } from "@/components/ui/ChoicePill";
 
 interface PetFormProps {
   initialValues?: PetProfile | null;
@@ -148,7 +149,7 @@ export function PetForm({
         <div className="rounded-ds-lg liquid-glass overflow-hidden px-4 py-3 space-y-3">
           {/* Species chips */}
           <div>
-            <label className="text-ds-11 text-muted-foreground block mb-1.5">Species</label>
+            <p id="pet-species-label" className="text-ds-11 text-muted-foreground block mb-1.5">Species</p>
             {/* A REAL 3-COLUMN GRID, not `flex flex-wrap`.
                 All six species belong (dog · cat · bird · rabbit · reptile ·
                 other) — the owner's screenshot showed the second row sliced in
@@ -169,29 +170,24 @@ export function PetForm({
                 grid stretched each chip to 328px — six letterbox slabs for
                 six one-word labels. The fields below are meant to fill the
                 card; a segmented control is not. */}
-            <div className="grid grid-cols-2 min-[360px]:grid-cols-3 gap-2 max-w-md">
+            <div role="radiogroup" aria-labelledby="pet-species-label" className="grid grid-cols-2 min-[360px]:grid-cols-3 gap-2 max-w-md">
               {SPECIES_OPTIONS.map((s) => {
                 const active = form.species === s.value;
                 return (
-                  <button
+                  <ChoicePill
                     key={s.value}
-                    type="button"
+                    selected={active}
                     onClick={() => set("species", s.value)}
-                    aria-pressed={active}
-                    // SELECTED IS GLOSSY (project standard) — `btn-grad-primary`,
-                    // the same radial bark gradient the primary CTA and
-                    // ReportDialog's selected reason use. It was a flat
-                    // `--bark/0.15` wash, which is the one thing a selected
-                    // control in this app must never be.
-                    className={`flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-ds-md text-ds-12 font-medium transition-all duration-150 ease-ds-spring active:scale-[0.985] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-                      active
-                        ? "btn-grad-primary text-[hsl(var(--parchment))] border border-[hsl(var(--bark))] shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_6px_hsl(var(--ink-deep)/0.12)]"
-                        : "bg-secondary/45 border border-border/60 hover:bg-secondary/70 hover:border-border shadow-[inset_0_1px_0_rgba(255,255,255,0.5)] text-[hsl(var(--olivewood)/0.8)]"
-                    }`}
+                    // One of six (Q2709, 11-05): the shared ChoicePill, a radio in the radiogroup above, its
+                    // selected surface the shared olive primary. The caller keeps the grid's tight padding
+                    // and 12px type (two columns below 360px still fit "🦎 Reptile"). Unselected takes
+                    // ToggleChip's firm edge on the page fill: ChoicePill's bg-card + border-border vanished
+                    // on this liquid-glass card in both themes (shots ~/.lh-shots/b1-q2709petcal).
+                    className={`justify-center gap-1.5 px-2 text-ds-12 font-medium ${active ? "" : "border-foreground/25 bg-background"}`}
                   >
                     <span aria-hidden>{s.emoji}</span>
                     <span>{s.label}</span>
-                  </button>
+                  </ChoicePill>
                 );
               })}
             </div>

@@ -334,7 +334,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/messages/ChatView.tsx` | textarea×1 |  |  | Dismiss safety reminder |
-| `src/components/messages/ConversationList.tsx` | input×2 | search |  | messages-search-row · messages-section-tabs · Bulk hide action bar |
+| `src/components/messages/ConversationList.tsx` | input×2 | search |  | messages-search-row · messages-section-tabs |
 | `src/components/RichMessageInput.tsx` | input×5 | file, text |  |  |
 
 ## /post-job
@@ -402,7 +402,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/pages/profile/giftCards/RecipientPicker.tsx` | input×1 | text |  | Clear selected recipient · Name or email address… · Recipient — name or email |
 | `src/pages/profile/HomeHistory.tsx` | date/calendar×1 |  |  |  |
 | `src/pages/profile/InstantBookTab.tsx` | select×1 |  |  | instant-book-tab · Your instant book work · instant-book-category · Choose one · instant-book-amount · 50.00 |
-| `src/pages/profile/petProfiles/PetForm.tsx` | input×9, textarea×3 | text, number, tel |  | pet-name · pet-name-error · pet-breed · Lab mix · pet-breed-suggestions · pet-age · pet-age-error · pet-weight |
+| `src/pages/profile/petProfiles/PetForm.tsx` | input×9, textarea×3 | text, number, tel |  | pet-species-label · pet-name · pet-name-error · pet-breed · Lab mix · pet-breed-suggestions · pet-age · pet-age-error |
 | `src/pages/profile/SavedSearchesTab.tsx` | checkbox/switch/radio×3 |  |  | saved-search-new · saved-search-sheet · Alerts for this search · Email · saved-searches-tab · Pause all alerts · pause-all-alerts |
 | `src/pages/profile/strSettings/AddCalendarForm.tsx` | input×5, checkbox/switch/radio×1 | url, text, number |  | ical-url · ical-url-error · str-property-name · e.g. Lakehouse · str-property-address · e.g. New Orleans, LA · str-auto-create-cleaning-label · str-auto-create-cleaning |
 | `src/pages/profile/WorkRecord.tsx` | date/calendar×1 |  |  |  |

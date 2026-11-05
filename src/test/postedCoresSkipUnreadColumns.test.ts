@@ -13,13 +13,14 @@
  *
  * @mutate src/components/job-card/jobStatusLine.ts | sanitizeCancellationReason(job.cancellation_reason); | sanitizeCancellationReason(job.cancellation_reason ?? job.removal_reason);
  * @mutate src/lib/activityCores.ts |   "start_reminder_sent_at",\n]; |   "start_reminder_sent_at", "title",\n];
+ * @mutate src/lib/activityCores.ts | [...POSTED_CORES_UNREAD_COLUMNS, "last_edit_notice_at"]; | [...POSTED_CORES_UNREAD_COLUMNS, "last_edit_notice_at", "status"];
  */
 import { describe, expect, it } from "vitest";
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, normalize, resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { trackedFiles } from "./helpers/trackedFiles";
-import { POSTED_CORES_UNREAD_COLUMNS, POSTED_JOB_COLUMNS } from "@/lib/activityCores";
+import { APPLICATION_CORES_UNREAD_COLUMNS, POSTED_CORES_UNREAD_COLUMNS, POSTED_JOB_COLUMNS } from "@/lib/activityCores";
 import { JOB_READABLE_COLUMN_LIST } from "@/lib/jobColumns";
 
 const ROOT = resolve(__dirname, "../..");
@@ -80,7 +81,8 @@ describe("the posted cores read skips only columns no reader names (Q2706)", () 
     for (const f of files) {
       if (LISTS.has(f)) continue;
       const c = code(f);
-      for (const col of POSTED_CORES_UNREAD_COLUMNS) if (new RegExp(`\\b${col}\\b`).test(c)) offenders.push(`${f}: ${col}`);
+      // The applied rows' dropped list (Q2742 part 2) is the posted one plus last_edit_notice_at; same readers.
+      for (const col of APPLICATION_CORES_UNREAD_COLUMNS) if (new RegExp(`\\b${col}\\b`).test(c)) offenders.push(`${f}: ${col}`);
     }
     expect(offenders).toEqual([]);
   });

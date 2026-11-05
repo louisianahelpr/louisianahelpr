@@ -1,4 +1,5 @@
 import { hideUnopenedInApp } from "@/lib/hideUnopenedInApp";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -143,10 +144,10 @@ function Group({ title, count, onSeeAll, children }: { title: string; count: num
       <div className={GROUP_HEAD_CLASS}>
         <h2 className="font-sans font-bold text-ds-15" style={{ color: "hsl(var(--ink-deep))" }}>{title}</h2>
         {onSeeAll && count > PER_SECTION && (
-          <button type="button" onClick={onSeeAll} className="-my-2 font-sans font-semibold text-ds-13 min-h-[44px]" style={{ color: "hsl(var(--bark))" }}>
+          <InlineTextButton onClick={onSeeAll} className="font-sans font-semibold text-ds-13" style={{ color: "hsl(var(--bark))" }}>
             {/* Q2644: "See 20 of 59" read like a count of what is shown, not an action. */}
             {count > MAX_ROWS ? "See more" : `See all ${count}`}
-          </button>
+          </InlineTextButton>
         )}
       </div>
       <div className={GROUP_CARD_CLASS} style={{ background: "hsl(var(--card))" }}>{children}</div>

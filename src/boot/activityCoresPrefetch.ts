@@ -40,6 +40,11 @@ export const CORES_JOB_COLUMNS = [
   "stripe_session_id", "title", "updated_at", "urgent_fee", "zip_code", "materials_note", "onboarding_fee_amount",
   "poster_marked_done_at",
 ];
+/** Copy of APPLICATION_JOB_COLUMNS (src/lib/activityCores.ts: the posted list plus six; the test holds them equal). */
+export const CORES_APPLICATION_JOB_COLUMNS = [
+  ...CORES_JOB_COLUMNS, "offered_to_helper_id", "series_ended_on", "series_split_ok", "series_ban_cancelled_at", "tax_kind",
+  "date_window_end",
+];
 /** Copy of APPLICATION_READABLE_COLUMN_LIST (src/lib/applicationColumns.ts; the test holds them equal). */
 export const CORES_APPLICATION_COLUMNS = [
   "attachment_urls", "closed_reason", "created_at", "decline_reason", "flagged_hidden", "helper_id", "id", "job_id",
@@ -71,15 +76,41 @@ export function startActivityCoresPrefetch(pathname: string, search: string = lo
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
   const session = storedSession(Date.now() / 1000);
   if (!base || !key || !session) return;
-  const answer = fetch(`${base.replace(/\/$/, "")}/rest/v1/rpc/get_my_activity_cores`, {
+  const read = (parts?: CoresPart[]): Promise<unknown> => fetch(`${base.replace(/\/$/, "")}/rest/v1/rpc/get_my_activity_cores`, {
     method: "POST",
     headers: { apikey: key, Authorization: `Bearer ${session.token}`, Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({ p_job_columns: CORES_JOB_COLUMNS, p_application_columns: CORES_APPLICATION_COLUMNS }),
+    body: JSON.stringify({
+      p_job_columns: CORES_JOB_COLUMNS, p_application_columns: CORES_APPLICATION_COLUMNS,
+      p_application_job_columns: CORES_APPLICATION_JOB_COLUMNS,
+      ...(parts ? { p_parts: parts } : {}),
+    }),
   })
     .then((r) => (r.ok ? (r.json() as Promise<unknown>) : null))
     // A failed prefetch is not an error: the read asks for itself.
     .catch(() => null);
-  (window as unknown as Record<string, unknown>)[ACTIVITY_CORES_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, answer };
+  let answers: { posted: Promise<unknown>; applied: Promise<unknown> };
+  if (opensOnPostedFirst(pathname, search)) {
+    // Q2706: two calls, posted first; neither carries the other's keys (20261105111750), so Posted paints without
+    // waiting on application_jobs and a poster downloads posted_jobs once.
+    answers = { posted: read(["posted"]), applied: read(["applied"]) };
+  } else {
+    const one = read();
+    answers = { posted: one, applied: one };
+  }
+  (window as unknown as Record<string, unknown>)[ACTIVITY_CORES_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, ...answers };
+}
+
+type CoresPart = "posted" | "applied";
+
+/**
+ * Q2706 (Builder 3 11-05): a cold link whose first paint is the Posted list: /posts (App.tsx sends it to
+ * /jobs?tab=posted) or /jobs?tab=posted. Measured with a lab proxy (cwv-lab, test helper, Fast 4G, cold
+ * /jobs?tab=posted, 3 interleaved rounds): LCP median 1856 -> 1336 ms once the posted reads no longer wait on the
+ * whole cores payload (~620 KB, mostly application_jobs). Every other list link keeps the one call.
+ */
+export function opensOnPostedFirst(pathname: string, search: string): boolean {
+  const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
+  return path === "/posts" || (path === "/jobs" && new URLSearchParams(search).get("tab") === "posted");
 }
 
 const isHomePath = (pathname: string): boolean => (pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname) === "/home";

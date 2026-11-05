@@ -6,6 +6,7 @@
  *     the "View my public profile" text button beside it, so it leaves the tab order and the tree.
  *   - MoneyTile (Money tab, Payment tab, /home): aria-label "Coming to you: $0.00. ..." over the same
  *     words with different punctuation. No aria-label now: the tile's own words are its name.
+ *   - YourActivity tiles: aria-label "Jobs Posted" over the same two words on two lines; dropped.
  *   - DeclutterSellerCard (Declutter item, job page Helpr/poster card): aria-label "See the Helpr,
  *     Eli R., 4.9 stars from 11 reviews" over "ER Eli R. 4.9 · 11 reviews Joined June 2025". Loaded,
  *     the card's words are its name, with an sr-only "See the Helpr, " first; the monogram is hidden.
@@ -14,6 +15,7 @@
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |       data-money-tile={kind} |       data-money-tile={kind} aria-label={`${label}: ${amount}. ${caption}`}
  * @mutate src/components/declutter/DeclutterSellerCard.tsx | aria-label={loading ? `See the ${noun}` : undefined} | aria-label={loading ? `See the ${noun}` : `See the ${noun}, ${name}`}
  * @mutate src/components/declutter/DeclutterSellerCard.tsx | <span aria-hidden="true" className="contents"> | <span className="contents">
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |                 data-activity-tile={`${s.key}:${t.label}`}\n |                 data-activity-tile={`${s.key}:${t.label}`} aria-label={`${s.label} ${t.label}`}\n
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -64,12 +66,22 @@ describe("#3491: a control's accessible name contains the words it shows (WCAG 2
     expect(src).toContain('<span className="sr-only">See the {noun}, </span>');
   });
 
-  it("inventory: the three controls this guard reads still exist", () => {
+  it("YourActivity tiles have no aria-label: their two lines are their name", () => {
+    const src = read("components/profile/profileLanding/YourActivity.tsx");
+    const at = src.indexOf("<button");
+    expect(at).toBeGreaterThan(-1);
+    const tag = openingTag(src, at);
+    expect(tag).toContain("data-activity-tile=");
+    expect(tag).not.toMatch(/aria-label/);
+  });
+
+  it("inventory: the four controls this guard reads still exist", () => {
     const files = [
       "components/profile/profileLanding/YouCard.tsx",
       "pages/home/homeDashboard/HomeMoneyTiles.tsx",
       "components/declutter/DeclutterSellerCard.tsx",
+      "components/profile/profileLanding/YourActivity.tsx",
     ].filter((f) => read(f).length > 0);
-    expect(files.length).toBeGreaterThan(2);
+    expect(files.length).toBeGreaterThan(3);
   });
 });

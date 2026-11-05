@@ -6240,7 +6240,7 @@
     },
     {
       "file": "src/components/declutter/GoOnlineCard.tsx",
-      "line": 48,
+      "line": 49,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6260,7 +6260,7 @@
     },
     {
       "file": "src/components/declutter/GoOnlineCard.tsx",
-      "line": 52,
+      "line": 53,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

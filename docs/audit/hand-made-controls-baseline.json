@@ -249,9 +249,6 @@
       "button": 3,
       "input": 1
     },
-    "src/components/declutter/DeclutterBunchRow.tsx": {
-      "button": 1
-    },
     "src/components/declutter/DeclutterBunchView.tsx": {
       "input": 1
     },

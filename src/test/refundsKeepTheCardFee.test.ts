@@ -251,14 +251,13 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
         "const cardCents = Math.max(0, r.refund_cents);",
         "amount: r.refund_cents,",
         "message: `Stripe answered ${refund.status} for refund row ${r.refund_id} (${dollars(r.refund_cents)}, order ${r.order_id ?? \"none\"}). ${r.attempts + 1 >= 12 ? \"That was the last try: refund it by hand.\" : \"It will be retried with back-off.\"}`,",
-        "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 60, \"ban_review\", \"a party is under ban review\");",
-        "payment_intent_id: d.payment_intent_id, refund_cents: d.refund_cents, attempts: d.attempts, livemode: null,",
-        "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, \"data_defect\", \"no Stripe mode\");",
+        // Q2106 S3b step 4 part 2: the delivery queue's card part (decided in declutter_delivery_refunds_due) read for
+        // the gift-only branch; the wait records show the row total (dTotal, never sent).
+        "const dCard = Math.max(0, d.refund_cents);",
+        "payment_intent_id: piId, refund_cents: d.refund_cents, attempts: d.attempts, livemode: null,",
         "amount: d.refund_cents,",
-        "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 15, \"record_failed\", `refund ${dRefund.id} not recorded`);",
         "message: `Stripe answered ${dRefund.status} for ${part} refund ${d.delivery_refund_id} (${dollars(d.refund_cents)}, order ${d.order_id}). ${d.attempts + 1 >= 12 ? \"That was the last try: refund it by hand.\" : \"It will be retried with back-off.\"}`,",
-        "await tellBuyerRefunded(admin, d.buyer_id, d.refund_cents);",
-        "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, \"mixed_parties\", partyWhy(e, \"the order\"));",
+        "await tellBuyerRefunded(admin, d.buyer_id, d.refund_cents, dGift);",
         // Q1929, step 4b: a raise refund's page text, the mode resolver's input, the amount it sends (the raise row's
         // refund_cents, decided in SQL) and the buyer's email. None writes a refund_cents.
         "`Raise ${x.raise_id} (${dollars(x.refund_cents)} to the buyer of order ${x.order_id}, payment ${x.payment_intent_id}) was not refunded: ${stuck}. Refund it by hand in Stripe; the refund settles the raise.`);",
@@ -273,7 +272,7 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
   // delivery that never happened: the DELIVERY FEE alone goes back in full (the buyer did nothing wrong; the
   // service we sold did not happen). Amount = declutter_delivery_refunds.refund_cents = the order's frozen
   // delivery_cents (declutter_delivery_refund, 20261017055505).
-  { file: "supabase/functions/declutter-money/index.ts", key: "payment_intent: d.payment_intent_id", kind: "own-mistake", why: "Helpr delivery fee back: no Helpr in 48 h (row 40) or the delivery never happened" },
+  { file: "supabase/functions/declutter-money/index.ts", key: "payment_intent: piId", kind: "own-mistake", why: "Helpr delivery fee back: no Helpr in 48 h (row 40) or the delivery never happened" },
   // Q1929 (owner 2026-10-21: build the raise): a delivery-pay RAISE is its own charge. It goes back in full when
   // the delivery we sold did not happen (no Helpr, damage, a cancel that was not the buyer's) or our system took a
   // payment it could not use (the delivery stopped waiting, a replaced page, a wrong amount). A sale cancelled for
@@ -686,7 +685,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // shipping_cents, order_id UNIQUE), only when the order's refund row is buyer-fault and left the shipping out
       // (paid_cents <= total - shipping). Shipping carries no card fee of its own: the order's fee policy was applied by the
       // main refund. It records no declutter_refunds row and changes no fee.
-      declutter_ship_refund_after_void: "20261102051521_shipping_refund_after_void.sql 3921227f48272635",
+      // Q2106 S3b step 4 part 2 (Builder 3, LEAD REVIEW owed): restated in 20261105052751; the shipping row now carries its
+      // gift share (declutter_refund_gift_split), a gift-only order (NULL payment intent) gets it too, and the notice names
+      // the gift balance. refund_cents is still the order's shipping_cents. Was 20261102051521 3921227f48272635.
+      declutter_ship_refund_after_void: "20261105052751_declutter_gift_delivery_refunds.sql 594e7807019697ff",
       // Owner answer 7 (20261017060455): the three seller-out paths record
       // 'seller_out' (full refund, the card fee is the seller's debt) instead of order_closed / sold_elsewhere.
       // Board 158 (20261020064354): the same body, a 'paused' listing sells like a 'live' one (two status
@@ -749,7 +751,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // payment that already paid a settled order answers already_paid (money re-review R1).
       declutter_refund_party_gone: "20261021204947_declutter_sales_outlive_a_deleted_party.sql 59570f1f27aa5011",
       declutter_money_rows_seed: "20261014224914_declutter_slice3b_payments.sql eb41800cf45bee87",
-      declutter_order_refunds_recorded_cents: "20261105042758_declutter_gift_refund_rows.sql 90540399b9fd2851", // Q2106 S3b (Builder 3, LEAD REVIEW owed): a refund row counts only its CARD part (refund_cents - gift_refund_cents) as gone back on the charge; the gift share went to the gift balance. Was 20261026154738 22359b307c0f6993
+      declutter_order_refunds_recorded_cents: "20261105052751_declutter_gift_delivery_refunds.sql ebc0a582ab60db79", // step 4 part 2: a delivery row counts only its card part too (was 20261105042758 90540399b9fd2851). Q2106 S3b (Builder 3, LEAD REVIEW owed): a refund row counts only its CARD part (refund_cents - gift_refund_cents) as gone back on the charge; the gift share went to the gift balance. Was 20261026154738 22359b307c0f6993
       declutter_record_hand_refund: "20261017055500_declutter_refund_hand_settle.sql e91bafe49bc1f340",
       // Board 141: + refund_request_full (keep_card_fee) and refund_request_part (agreed_part, which this function
       // refuses with refund_amount_unknown: only declutter_refund_after_handover writes it, with the offered amount).

@@ -10,8 +10,8 @@
  * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql |   IF v_fee_reason IN ('buyer_no_show', 'admin_buyer_fault', 'buyer_cancelled', 'buyer_restarted_checkout') THEN  -- CHANGED (Q1928 gap 3)\n    v_ship | IF v_fee_reason IN ('buyer_no_show') THEN  -- CHANGED (Q1928 gap 3)\n    v_ship
  * @mutate supabase/migrations/20261102051521_shipping_refund_after_void.sql | AND s.label_state IN ('bought', 'void_requested', 'voided', 'void_rejected')) THEN o.shipping_cents | AND s.label_state IN ('voided')) THEN o.shipping_cents
  * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql |                                         + v_order.shipping_cents - public.declutter_shipping_reserved_cents(p_order_id) THEN |                                         THEN
- * @mutate supabase/migrations/20261102051521_shipping_refund_after_void.sql |   VALUES (o.id, o.stripe_payment_intent_id, 'ship_void_refunded', o.shipping_cents) |   VALUES (o.id, o.stripe_payment_intent_id, 'ship_void_refunded', o.total_cents)
- * @mutate supabase/migrations/20261102051521_shipping_refund_after_void.sql |                        AND d.paid_cents <= o.total_cents - o.shipping_cents) THEN |                        AND d.paid_cents <= o.total_cents) THEN
+ * @mutate supabase/migrations/20261105052751_declutter_gift_delivery_refunds.sql |   VALUES (o.id, o.stripe_payment_intent_id, 'ship_void_refunded', o.shipping_cents, v_gift) |   VALUES (o.id, o.stripe_payment_intent_id, 'ship_void_refunded', o.total_cents, v_gift)
+ * @mutate supabase/migrations/20261105052751_declutter_gift_delivery_refunds.sql |                        AND d.paid_cents <= o.total_cents - o.shipping_cents) THEN |                        AND d.paid_cents <= o.total_cents) THEN
  * @mutate supabase/migrations/20261102051521_shipping_refund_after_void.sql |   IF NEW.label_state = 'voided' AND OLD.label_state IS DISTINCT FROM 'voided' | IF NEW.label_state IN ('voided', 'void_rejected') AND OLD.label_state IS DISTINCT FROM NEW.label_state
  * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql |       IF v_label.label_mode = 'test' THEN\n        UPDATE public.shipments SET label_state = 'void_requested', last_error = NULL, next_attempt_at = now() |       IF true THEN\n        UPDATE public.shipments SET label_state = 'void_requested', last_error = NULL, next_attempt_at = now()
  */
@@ -80,7 +80,7 @@ describe("a buyer-fault close of a shipped order gives the shipping back only af
     expect(quoted(/AND d\.reason IN \(([^)]*)\)/.exec(sql)?.[1])).toEqual(BUYER_FAULT);
     expect(sql).toContain("AND d.paid_cents <= o.total_cents - o.shipping_cents) THEN RETURN NULL;");
     expect(sql).toContain("s.label_state = 'voided')");
-    expect(sql).toContain("VALUES (o.id, o.stripe_payment_intent_id, 'ship_void_refunded', o.shipping_cents) ON CONFLICT (order_id) DO NOTHING");
+    expect(sql).toContain("VALUES (o.id, o.stripe_payment_intent_id, 'ship_void_refunded', o.shipping_cents, v_gift) ON CONFLICT (order_id) DO NOTHING");
     const trg = newestFn("declutter_ship_voided_refund");
     expect(trg.sql).toContain("IF NEW.label_state = 'voided' AND OLD.label_state IS DISTINCT FROM 'voided' AND NEW.declutter_order_id IS NOT NULL THEN PERFORM public.declutter_ship_refund_after_void(NEW.declutter_order_id);");
     const t = newestStmt(/CREATE TRIGGER trg_shipments_voided_refund [^;]*;/);

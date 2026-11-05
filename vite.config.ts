@@ -6,7 +6,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, bootModules, bootIconFiles, declutterItemSplit, guestBrowseSplit, homeIconFiles, homePageRoots, itemIconFiles, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
+import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, bootModules, bootIconFiles, declutterItemSplit, guestIconFiles, guestBrowseSplit, homeIconFiles, homePageRoots, itemIconFiles, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -192,6 +192,7 @@ const { own: profileFirstScreen, shared: profileSharedLeaves } = profileFirstScr
 const homeIcons = homeIconFiles(process.cwd());
 const bootIcons = bootIconFiles(process.cwd());
 const itemIcons = itemIconFiles(process.cwd());
+const guestIcons = guestIconFiles(process.cwd());
 const bootSet = bootModules(process.cwd());
 // B88: Home's PAGE reach. The every-page roots load after Home's first paint; with them here, their shared code
 // (Legal's public page table, ...) rode app-shared onto every page's boot. Build: boot 204 -> 202 KB gz,
@@ -859,6 +860,15 @@ export default defineConfig(({ mode, command }) => ({
             // L70 11-04: the icons the Declutter item page draws (bootReach.mjs itemIconFiles). With the admin
             // Subscriptions screen deleted, the merge below put 46 admin and Money icons into a chunk the item page
             // loads (item route 460 -> 465 KB gz, budget 441 +5%). Pinned, the item page fetches only what it draws.
+            // Q2707/Q2708 (Builder 3, 11-05): the icons the guest first screens draw (bootReach.mjs guestIconFiles), pinned
+            // so the entriesAware merge below cannot regroup them when another page's imports change.
+            {
+              name: "icons-guest",
+              test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && guestIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
+              priority: 90.6,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
             {
               name: "icons-item",
               test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && itemIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),

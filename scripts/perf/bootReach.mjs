@@ -508,3 +508,32 @@ export function itemIconFiles(root) {
   const taken = new Set([...bootIconFiles(root), ...homeIconFiles(root), ...guest]);
   return new Set([...out].filter((i) => !taken.has(i)));
 }
+
+/**
+ * The lucide icon files the guest first screens (/, /login, /signup, /browse and the guest chrome) draw, minus the
+ * boot and Home icon chunks' (Q2707/Q2708, Builder 3 11-05): vite.config's `icons-guest` group. Left to the
+ * entriesAware split, which icons ride with the guest pages depended on what OTHER pages import: the item page
+ * dropping the times editor's Plus/X regrouped them and / grew 244 -> 251 KB gz, /signup 252 -> 266. Pinned, a
+ * guest first load fetches the icons it draws.
+ */
+export function guestIconFiles(root) {
+  const index = fs.readFileSync(path.join(root, "node_modules/lucide-react/dist/esm/lucide-react.mjs"), "utf8");
+  const fileOf = new Map();
+  for (const m of index.matchAll(/export \{([^}]*)\} from '\.\/icons\/([^']+)\.mjs'/g)) {
+    for (const n of m[1].matchAll(/default as (\w+)/g)) fileOf.set(n[1], m[2]);
+  }
+  if (fileOf.size < 1000) throw new Error(`bootReach: read ${fileOf.size} lucide icon names from lucide-react.mjs. Fix the scan.`);
+  const out = new Set();
+  for (const f of staticReach(root, [...publicRoots(root), ...GUEST_CHROME_ROOTS.map((r) => toPosix(path.join(root, r)))])) {
+    if (!/\.(tsx?|mjs)$/.test(f)) continue;
+    const src = stripComments(fs.readFileSync(f, "utf8"));
+    for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
+      for (const n of x[1].split(",")) {
+        const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
+        if (fileOf.has(name)) out.add(fileOf.get(name));
+      }
+    }
+  }
+  const taken = new Set([...bootIconFiles(root), ...homeIconFiles(root)]);
+  return new Set([...out].filter((i) => !taken.has(i)));
+}

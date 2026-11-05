@@ -8,8 +8,9 @@
  * are the look.
  *
  * @mutate src/components/declutter/itemPhotoFrame.ts | aspect-square max-h-[52dvh] sm:max-h-none | aspect-square
- * @mutate src/components/declutter/DeclutterFilterPanel.tsx | const CHIP = "flex h-11 min-h-11 items-center | const CHIP = "flex h-10 items-center
- * @mutate src/components/declutter/DeclutterFilterPanel.tsx | : "border border-foreground/25 bg-background text-foreground"}`}> | : "border border-border bg-card text-foreground"}`}>
+ * Since Q2709 (11-04) the chips are the shared ToggleChip (src/components/ui/ToggleChip.tsx), so these read it.
+ * @mutate src/components/ui/ToggleChip.tsx | "flex min-h-11 shrink-0 items-center | "flex h-10 shrink-0 items-center
+ * @mutate src/components/ui/ToggleChip.tsx | : "border border-foreground/25 bg-background text-foreground", | : "border border-border bg-card text-foreground",
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -32,7 +33,8 @@ describe("Declutter fits a phone", () => {
 
   it("an unselected chip shows on a card in dark mode: the page fill and a firm edge, never card-on-card", () => {
     // Lead 2026-10-28: on Wanted's card, bg-card + border-border made "5 mi / 25 mi / 50 mi" plain floating words in dark.
-    const m = read("src/components/declutter/DeclutterFilterPanel.tsx").match(/: "([^"]*)"\}`\}>/);
+    expect(read("src/components/declutter/DeclutterFilterPanel.tsx")).toMatch(/<ToggleChip\b/);
+    const m = read("src/components/ui/ToggleChip.tsx").match(/pressed \? "[^"]*" : "([^"]*)"/);
     expect(m, "the unselected chip class was not found").not.toBeNull();
     const cls = m![1].split(/\s+/);
     expect(cls).toContain("bg-background");
@@ -43,8 +45,9 @@ describe("Declutter fits a phone", () => {
   });
 
   it("Declutter's choice chips are at least 44px tall (h-11)", () => {
-    const m = read("src/components/declutter/DeclutterFilterPanel.tsx").match(/const CHIP = "([^"]+)"/);
-    expect(m, "CHIP not found").not.toBeNull();
+    expect(read("src/components/declutter/DeclutterFilterPanel.tsx")).toMatch(/<ToggleChip\b/);
+    const m = read("src/components/ui/ToggleChip.tsx").match(/cn\(\s*"([^"]+)"/);
+    expect(m, "ToggleChip's base class not found").not.toBeNull();
     const cls = m![1].split(/\s+/);
     expect(cls).toContain("min-h-11");
     expect(cls.filter((c) => /^h-(\d+)$/.test(c)).map((c) => Number(c.slice(2))).every((n) => n >= 11)).toBe(true);

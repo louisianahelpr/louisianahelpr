@@ -1,4 +1,5 @@
 import { lazy, Suspense, useMemo, useRef, useState } from "react";
+import { YourPageLink } from "@/components/profile/YourPageLink";
 import { FirstRun } from "@/components/firstRun/FirstRunHost";
 import { useQueryClient } from "@tanstack/react-query";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -399,6 +400,10 @@ function HomeDashboardScreen() {
               })}
             </div>
             {soonLine && <p data-testid="sections-opening-soon" className="px-1 text-ds-13 text-muted-foreground">{soonLine}</p>}
+            {/* Owner request 11-05: "add their URL to the home page somewhere so they can easily find it to share". The
+                handle comes from the profile row Home already has, so this makes no request; outline buttons only, so
+                Home keeps its one primary action. */}
+            {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mt-2" />}
           </section>}
         </div>}
 

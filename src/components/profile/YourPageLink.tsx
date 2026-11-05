@@ -14,8 +14,10 @@ import { MY_HANDLE_KEY, ensureMyHandle, profileLinkLabel, profileLinkUrl, shareM
  * makes one for the rare member the sign-up trigger could not name). Changing it once stays in Settings
  * (ProfileLinkRow). Renders nothing until the handle is known, and nothing on a failed read.
  */
-export function YourPageLink({ name, className = "" }: { name?: string | null; className?: string }) {
-  const { data: handle } = useQuery({
+export function YourPageLink({ name, className = "", forSale = 0, knownHandle }: { name?: string | null; className?: string; forSale?: number; knownHandle?: string | null }) {
+  // A caller that already has the member's profile row (Home) passes its handle: no read at all.
+  const { data: readHandle } = useQuery({
+    enabled: !knownHandle,
     queryKey: MY_HANDLE_KEY,
     queryFn: async () => {
       const out = await ensureMyHandle();
@@ -24,11 +26,37 @@ export function YourPageLink({ name, className = "" }: { name?: string | null; c
     },
     staleTime: 10 * 60_000,
   });
+  const handle = knownHandle || readHandle;
   if (!handle) return null;
   const copy = async () => {
     if (await copyToClipboard(profileLinkUrl(handle))) toast("Link copied");
     else toast.error("Couldn't copy the link. Press and hold it to copy.");
   };
+  // Owner request 11-05 ("mine is kind of hidden"): with something for sale, Selling leads with one clear
+  // "Share your listings" button (the phone's share sheet; copy on a desktop browser), the way other marketplaces do.
+  if (forSale > 0) {
+    return (
+      <section aria-label="Share your listings" data-your-page-link="" data-share-listings="" className={`rounded-2xl border border-border bg-card px-4 py-3 flex flex-col gap-3 ${className}`}>
+        <div className="min-w-0">
+          <p className="text-ds-15 font-semibold">{forSale === 1 ? "1 item for sale" : `${forSale} items for sale`}</p>
+          <p className="text-ds-13 text-muted-foreground min-w-0">
+            Everything you sell is on{" "}
+            <Link to={`/u/${encodeURIComponent(handle)}`} className="link-standard font-semibold text-foreground break-all">
+              {profileLinkLabel(handle)}
+            </Link>
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" className="gap-1.5" onClick={() => void shareMyProfile(handle, name)} data-your-page-share="">
+            <Share2 className="w-4 h-4" aria-hidden /> Share your listings
+          </Button>
+          <Button type="button" variant="outline" className="gap-1.5" onClick={() => void copy()} data-your-page-copy="">
+            <Copy className="w-4 h-4" aria-hidden /> Copy link
+          </Button>
+        </div>
+      </section>
+    );
+  }
   return (
     <section aria-label="Your page" data-your-page-link="" className={`rounded-2xl border border-border/60 px-4 py-3 flex flex-col gap-2 ${className}`}>
       <p className="text-ds-13 text-muted-foreground min-w-0">

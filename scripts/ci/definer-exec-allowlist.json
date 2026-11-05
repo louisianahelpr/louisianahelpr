@@ -21,6 +21,7 @@
     "declutter_open_to_guests()": "policy",
     "declutter_guest_seller_first_name(uuid)": "client",
     "public_profile_by_handle(text)": "client",
+    "handle_for_user(uuid)": "client",
     "declutter_manager_message_labels(text, uuid[])": "client"
   },
   "authenticated": {
@@ -604,6 +605,7 @@
     "declutter_helpr_answer_no_show(uuid, text, text)": "reviewed 2026-10-31 (Q1284): soldstates-5, Builder 83 (20261031134217); refuses no caller and a banned caller, locks the task (helpr_task_lock), the task's own Helpr only (anyone else task_not_found), inside the 24 hours; a photo only from the caller's own task folder; opens a problem, moves no money.",
     "helpr_task_no_show_report(uuid)": "reviewed 2026-10-31 (Q1284): soldstates-5, Builder 83 (20261031134217); read only: (SELECT auth.uid()), NULL for anyone but the task's Helpr and the order's seller; four timestamps.",
     "public_profile_by_handle(text)": "client",
+    "handle_for_user(uuid)": "client",
     "instant_book_candidates(uuid)": "reviewed 2026-11-01 (Q1284): CMP-4 instant book slice 1, Builder 69 (20261101063725); on for everyone, no feature switch (20261101063725 follow-up, Builder 70); refuses anyone but the job's poster (customer_id = auth.uid()) and a banned caller; returns at most 3 Helprs (name, avatar, real jobs done, rating), never a floor or a price.",
     "rpc_my_instant_book_floors()": "reviewed 2026-11-01 (Q1284): CMP-4 instant book slice 1, Builder 69 (20261101063725); on for everyone, no feature switch (20261101063725 follow-up, Builder 70); read only: refuses a NULL caller; returns only the caller's own floors (helper_id = auth.uid()).",
     "rpc_my_instant_bookings()": "reviewed 2026-11-01 (Q1284): CMP-4 instant book slice 2, Builder 70 (20261101065105); read only: returns only the caller's own live bookings (offered_to_helper_id = auth.uid(), pending, window set); NULL caller gets nothing; title, date, price, decline time, never a floor.",

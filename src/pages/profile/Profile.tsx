@@ -39,6 +39,7 @@ import { ProfileLoadingShell } from "./ProfileLoadingShell";
 import { PAGE_COLUMN } from "@/lib/pageColumn";
 import { isEarnedJob } from "@/components/profile/earningsTab/earningsTabHelpers";
 import { queryKeys } from "@/lib/queryKeys";
+import { fetchSmsConsent, smsConsentQueryKey } from "@/lib/smsConsentQuery";
 const DeleteAccountDialog = lazy(() => import("@/components/profile/DeleteAccountDialog").then(m => ({ default: m.DeleteAccountDialog })));
 
 const ProfilePage = () => {
@@ -72,6 +73,13 @@ const ProfilePage = () => {
   // The page skeleton still waits on `loading`, so nothing renders half-
   // populated; the requests are simply already in flight when it clears.
   const userId = user?.id ?? cachedUser?.id;
+  // Q2706 (11-05): Notifications' largest paint waited on the text-alerts consent read, which the card only started
+  // after the tab's chunks loaded. Start it here, as soon as the member and the tab are known; the card mounts with
+  // its answer (src/lib/smsConsentQuery.ts, src/test/notificationsConsentReadStartsEarly.test.ts).
+  useEffect(() => {
+    if (tab !== "notifications" || !userId) return;
+    void queryClient.prefetchQuery({ queryKey: smsConsentQueryKey(userId), queryFn: fetchSmsConsent });
+  }, [tab, userId, queryClient]);
 
   const {
     statsQuery,

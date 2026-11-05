@@ -15,6 +15,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { ChoicePill } from "@/components/ui/ChoicePill";
 import { Switch } from "@/components/ui/switch";
 import { useFeature } from "@/hooks/useFeature";
@@ -241,9 +242,9 @@ function SellerDeliveryForm({ current, onDone, embedded = false }: { current: My
             {daysOff.map((d) => (
               <li key={d} className="flex items-center gap-1 rounded-full border border-border px-3 py-1 text-xs">
                 {dayOffLabel(d)}
-                <button type="button" className="min-h-0 px-1 underline" aria-label={`Remove ${d}`} onClick={() => setDaysOff((xs) => xs.filter((x) => x !== d))}>
+                <InlineTextButton className="px-1 underline" aria-label={`Remove ${d}`} onClick={() => setDaysOff((xs) => xs.filter((x) => x !== d))}>
                   Remove
-                </button>
+                </InlineTextButton>
               </li>
             ))}
           </ul>

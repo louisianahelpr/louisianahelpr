@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { Sofa } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { ListRow } from "@/components/ui/ListRow";
 import { OrderTalkFromLink } from "@/components/declutter/DeclutterOrderTalk";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchMyOrderTalks, MY_ORDER_TALKS_KEY, type OrderTalkListRow } from "@/lib/declutter/orderTalk";
@@ -56,7 +57,7 @@ export function DeclutterOrderTalkRows({ empty }: { empty: ReactNode }) {
       <ul className="space-y-1">
         {rows.map((row) => (
           <li key={row.order_id}>
-            <button type="button" className={`${CONVERSATION_ROW_FRAME} rounded-xl ctl-tint`}
+            <ListRow className={`${CONVERSATION_ROW_FRAME} justify-start`}
               onClick={() => openTalk(row.order_id)} data-order-talk-row={row.order_id}>
               <span className={`${CONVERSATION_ROW_AVATAR} shrink-0 rounded-full inline-flex items-center justify-center bg-muted text-muted-foreground`}
                 aria-hidden="true">
@@ -73,7 +74,7 @@ export function DeclutterOrderTalkRows({ empty }: { empty: ReactNode }) {
                   {row.side === "buyer" ? "You bought this" : "You sold this"} · {orderTalkRowLine(row)}
                 </span>
               </span>
-            </button>
+            </ListRow>
           </li>
         ))}
       </ul>

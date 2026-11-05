@@ -40,12 +40,12 @@
  * @mutate src/components/declutter/DeclutterTabHeads.tsx |   if (n === 0) return null; |   if (n === 0) return <p>You have 0 of 3 strikes.</p>;
  * Slice 3b (B39, B44, B45): the working Save a card / Pay buttons and the switch-off view.
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               const url = await startCardSave(); |               const url = "https://example.invalid";
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : timedPickup ? pickupStart : null, sellerDelivering ? handoff : null,\n              sellerDelivering ? sdRate : delivering ? liveQuote?.delivery_cents ?? null : null, shipping ? shipQuote?.quote_id ?? null : null); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : timedPickup ? pickupStart : null, sellerDelivering ? handoff : null,\n              sellerDelivering ? sdRate : delivering ? liveQuote?.delivery_cents ?? null : null, shipping ? shipQuote?.quote_id ?? null : null,\n              gift?.id ?? null); |             const res = await startCheckoutPayment(sellerId, "pickup_home");
  * Row 101 (porch is the default; a seller can turn it off per item).
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const chosen = picked && offered.includes(picked) ? picked : offered[0]; |   const chosen = picked ?? offered[0];
  * Slice 5 (Helpr delivery, rows 29-30): offered while Declutter is open, priced by the server.
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |   const ticked: Handover[] = deliveryOpen && wayAllowed(ways, "delivery", true) ? [...order, "delivery"] : order; |   const ticked: Handover[] = wayAllowed(ways, "delivery", true) ? [...order, "delivery"] : order;
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (delivering && !liveQuote) \|\| (shipping && !shipQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady \|\| !pickupTimeReady} |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (shipping && !shipQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady \|\| !pickupTimeReady}
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (delivering && !liveQuote) \|\| (shipping && !shipQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady \|\| !pickupTimeReady \|\| !!split?.cardPartTooSmall} |         disabled={held \|\| opening \|\| offered.length === 0 \|\| (shipping && !shipQuote) \|\| (sellerDelivering && !sdReady) \|\| !meetupReady \|\| !placeReady \|\| !pickupTimeReady \|\| !!split?.cardPartTooSmall}
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |     : delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents; |     : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | porchOk={lines.every((l) => l.porch_ok !== false)} onBack= | porchOk={true} onBack=
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |       <CartView />\n      <PaidOrders side="buyer" />\n      <SalesWaiting /> |       <PaidOrders side="buyer" />\n      <SalesWaiting />
@@ -120,6 +120,11 @@ const state = {
   shipQuotes: [] as unknown[],
   shipAsked: [] as unknown[],
   canShipReads: 0,
+  /** Q2106 S5: the buyer's spendable gift cards (useSpendableGiftCards), the gift each Pay carried, and the answer. */
+  gifts: [] as { id: string; amountCents: number; expiresAt: string | null; claimed: boolean }[],
+  giftSent: [] as (string | null | undefined)[],
+  giftRefusal: null as string | null,
+  giftCoversCents: 0,
 };
 
 // Q2471: the offer box asks declutter-ai-reply for a suggested amount; no suggestion here (the box works without it).
@@ -190,14 +195,18 @@ vi.mock("@/lib/declutter/api", () => ({
   startCardSave: async () => "https://checkout.stripe.test/setup",
   fetchItemsCanShip: async () => { state.canShipReads += 1; return state.canShip; },
   fetchShipRates: async (sellerId: string, shipTo: unknown) => { state.shipAsked.push({ sellerId, shipTo }); return state.shipQuotes; },
-  startCheckoutPayment: async (sellerId: string, handover: string, slot?: string | null, handoff?: string | null, _rate?: number | null, quoteId?: string | null) => {
+  startCheckoutPayment: async (sellerId: string, handover: string, slot?: string | null, handoff?: string | null, _rate?: number | null, quoteId?: string | null, giftCardId?: string | null) => {
+    state.giftSent.push(giftCardId);
+    // Q2106 S5: the redeem's refusal sentence (declutter-checkout passes it as the error), or a gift that covers it all.
+    if (giftCardId && state.giftRefusal) throw new Error(state.giftRefusal);
+    if (giftCardId && state.giftCoversCents > 0) return { url: null, paid: true, giftCents: state.giftCoversCents };
     if (handover === "delivery") {
       state.payRates.push(_rate);
       // declutter-checkout's delivery_rate_changed: the order froze a different price than the screen showed.
       if (state.serverDeliveryCents !== null && _rate !== state.serverDeliveryCents) throw new Error("delivery_rate_changed");
     }
     state.paid.push(handover === "ship" ? { sellerId, handover, quoteId } : handover === "seller_delivery" ? { sellerId, handover, slot, handoff } : slot ? { sellerId, handover, slot } : { sellerId, handover });
-    return { url: "https://checkout.stripe.test/pay", paid: false };
+    return { url: "https://checkout.stripe.test/pay", paid: false, giftCents: 0 };
   },
 }));
 // Slice 4's paid-order cards have their own test (declutterHandoverViews.test.tsx).
@@ -221,6 +230,9 @@ vi.mock("@/lib/openExternalUrl", () => ({
       onReturn();
     }
   },
+}));
+vi.mock("@/hooks/useSpendableGiftCards", () => ({
+  useSpendableGiftCards: () => ({ userId: "b1", ids: state.gifts.map((g) => g.id), cards: state.gifts, settled: true }),
 }));
 vi.mock("@/components/AppPage", () => ({ default: ({ title, children }: { title: string; children: React.ReactNode }) => <main><h1>{title}</h1>{children}</main> }));
 
@@ -1463,7 +1475,7 @@ describe("Declutter slice 3 screens", () => {
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |     enabled: shipOn && itemIds.length > 0, staleTime: 60_000 }); |     enabled: itemIds.length > 0, staleTime: 60_000 });
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |   if (shipOn && canShip.data === true) ticked.push("ship"); |   if (shipOn) ticked.push("ship");
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const payCents = (shipRate !== null ? netItemsCents + buyerFeeCentsShip(netItemsCents, shipRate) + shipRate | const payCents = (shipRate !== null ? netItemsCents + shipRate
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx | sellerDelivering ? sdRate : delivering ? liveQuote?.delivery_cents ?? null : null, shipping ? shipQuote?.quote_id ?? null : null); | sellerDelivering ? sdRate : null);
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | sellerDelivering ? sdRate : delivering ? liveQuote?.delivery_cents ?? null : null, shipping ? shipQuote?.quote_id ?? null : null,\n              gift?.id ?? null); | sellerDelivering ? sdRate : null,\n              gift?.id ?? null);
   // @mutate src/components/declutter/DeclutterTradeViews.tsx | (delivering && !liveQuote) \|\| (shipping && !shipQuote) \|\| | (delivering && !liveQuote) \|\|
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |           : shipping ? "It's paid to the seller about 48 hours |           : false ? "It's paid to the seller about 48 hours
   // @mutate src/components/declutter/ShipToMe.tsx |       onPick(q.find((x) => x.preselected) ?? q[0] ?? null); |       onPick(null);
@@ -1850,5 +1862,97 @@ describe("BUY-15: checkout is two columns from lg, and each cart line shows its 
     expect(link.getAttribute("href")).toBe("/declutter/item/i2");
     expect(link.className).toMatch(/\bmin-h-11\b/);
     cartPhotos.length = 0;
+  });
+});
+
+/**
+ * Q2106 S5: the buyer's own gift card at Declutter checkout. Only gifts the server takes are offered (claimed by the
+ * buyer), the split is shown before Pay, Pay carries the gift and the card part, and a refusal is shown in its words.
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |               gift?.id ?? null); |               null);
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx | split?.onCardCents === 0 ? "Pay with gift card" : `Pay ${formatPrice(split ? split.onCardCents : payCents)}` | `Pay ${formatPrice(payCents)}`
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx | !pickupTimeReady \|\| !!split?.cardPartTooSmall} | !pickupTimeReady}
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |             if (giftWords) { |             if (false) {
+ * @mutate src/components/declutter/DeclutterGiftPicker.tsx |   return cards.filter((c) => c.claimed && c.amountCents > 0); |   return cards.filter((c) => c.amountCents > 0);
+ */
+describe("Q2106 S5: paying with a gift card", () => {
+  const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+    checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
+  const gift = (id: string, amountCents: number, claimed = true) => ({ id, amountCents, expiresAt: null, claimed });
+  beforeEach(() => {
+    state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", price_cents: 400 }];
+    state.paid = [];
+    state.opened = [];
+    state.sellerPlaces = [];
+    state.setupFeeCents = 0;
+    state.setupFeeKnown = true;
+    state.gifts = [];
+    state.giftSent = [];
+    state.giftRefusal = null;
+    state.giftCoversCents = 0;
+    sessionStorage.clear();
+  });
+
+  it("no gift card: no gift choice, and Pay carries none", async () => {
+    show(<CartView />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $8.05" })).toBeEnabled());
+    expect(screen.queryByRole("radiogroup", { name: "Gift card" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Pay $8.05" }));
+    await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.test/pay"]));
+    expect(state.giftSent).toEqual([null]);
+  });
+
+  it("offers only the buyer's claimed gifts, shows the split, and pays the card part with the gift", async () => {
+    state.gifts = [gift("g1", 500), gift("g-email-only", 2000, false)];
+    show(<CartView />);
+    const group = await screen.findByRole("radiogroup", { name: "Gift card" });
+    expect(within(group).getAllByRole("radio").map((r) => r.textContent)).toEqual(["Use my $5 gift card", "Pay by card only"]);
+    expect(within(group).getByRole("radio", { name: "Pay by card only" })).toBeChecked();
+    fireEvent.click(within(group).getByRole("radio", { name: "Use my $5 gift card" }));
+    expect(screen.getByText("$5 from your gift card, $3.05 on your card.")).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $3.05" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Pay $3.05" }));
+    await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.test/pay"]));
+    expect(state.giftSent).toEqual(["g1"]);
+  });
+
+  it("a gift that covers it all: Pay with gift card, no card page, the leftover stays the buyer's", async () => {
+    state.gifts = [gift("g2", 2000)];
+    state.giftCoversCents = 805;
+    show(<CartView />);
+    fireEvent.click(await screen.findByRole("radio", { name: "Use my $20 gift card" }));
+    expect(screen.getByText("Your gift card covers it all. The $11.95 left on it stays yours.")).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay with gift card" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Pay with gift card" }));
+    const { toast } = await import("sonner");
+    await waitFor(() => expect(toast).toHaveBeenCalledWith("Paid with your gift card."));
+    expect(state.giftSent).toEqual(["g2"]);
+    expect(state.opened).toEqual([]);
+  });
+
+  it("a card part under $0.50: says so and Pay waits for another choice", async () => {
+    state.gifts = [gift("g3", 780)];
+    show(<CartView />);
+    fireEvent.click(await screen.findByRole("radio", { name: "Use my $7.80 gift card" }));
+    expect(screen.getByText(/Your gift card covers all but \$0\.25, and a card payment has to be at least \$0\.50\./)).toBeTruthy();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $0.25" })).toBeDisabled());
+    fireEvent.click(screen.getByRole("radio", { name: "Pay by card only" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $8.05" })).toBeEnabled());
+  });
+
+  it.each([
+    "This gift has expired",
+    "This gift is set aside for something else",
+    "This gift has not been funded yet",
+    "Your gift covers all but $0.25 of this order, and a card payment has to be at least $0.50. Add or remove an item so the gift covers all of it, or leaves at least $0.50 to pay by card.",
+  ])("the server's refusal is shown under the gift choice: %s", async (refusal) => {
+    state.gifts = [gift("g4", 500)];
+    state.giftRefusal = refusal;
+    show(<CartView />);
+    fireEvent.click(await screen.findByRole("radio", { name: "Use my $5 gift card" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $3.05" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Pay $3.05" }));
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toBe(refusal);
+    expect(state.opened).toEqual([]);
   });
 });

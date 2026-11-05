@@ -44,8 +44,8 @@
  * the address line. Now the meta row IS the address line, so it renders for
  * real and the mutations below are what stop this passing vacuously.
  *
- * @mutate src/pages/jobs/AppliedJobCard.tsx | showFullAddress={isOffered \|\| isConfirmed \|\| isActive \|\| isDisputed} | showFullAddress={false}
- * @mutate src/pages/jobs/AppliedJobCard.tsx | showFullAddress={isOffered \|\| isConfirmed \|\| isActive \|\| isDisputed} | showFullAddress
+ * @mutate src/pages/jobs/appliedJobCard/HelperJobMetaRow.tsx | showFullAddress={isOffered \|\| isConfirmed \|\| isActive \|\| isDisputed} | showFullAddress={false}
+ * @mutate src/pages/jobs/appliedJobCard/HelperJobMetaRow.tsx | showFullAddress={isOffered \|\| isConfirmed \|\| isActive \|\| isDisputed} | showFullAddress
  * @mutate src/components/job-card/JobCardMetaRow.tsx | const fullAddress = showFullAddress && hasStreetAddress(location); | const fullAddress = false;
  */
 import { describe, it, expect, vi } from "vitest";

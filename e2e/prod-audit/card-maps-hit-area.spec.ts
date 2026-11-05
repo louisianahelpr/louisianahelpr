@@ -56,7 +56,7 @@
 // anchor fits the 4% chip budget. The collapsed-card assertion (zero maps hit
 // on a card with no action row) is what goes red now, whatever state the
 // shared accounts' jobs are in.
-// @mutate src/pages/jobs/AppliedJobCard.tsx | locationPressToMap | locationPressToMap={false}
+// @mutate src/pages/jobs/appliedJobCard/HelperJobMetaRow.tsx | locationPressToMap | locationPressToMap={false}
 
 import { mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";

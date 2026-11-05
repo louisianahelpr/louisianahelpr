@@ -7,7 +7,6 @@
     "src/components/postjob/CheckoutStep.tsx": 710,
     "src/components/profile/SubscriptionTab.tsx": 869,
     "src/pages/auth/CompleteProfile.tsx": 892,
-    "src/pages/jobs/AppliedJobCard.tsx": 836,
     "src/pages/profile/GiftCard.tsx": 828
   }
 }

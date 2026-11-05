@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-05T04:59Z",
+  "measured_at": "2026-11-05T06:39Z",
   "issues": {
     "readable": true,
     "open": [
@@ -119,13 +119,6 @@
         "title": "nightly-red: nightly-webkit",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41680707961",
-        "runTruncated": false
-      },
-      {
-        "number": 4084,
-        "title": "nightly-red: privacy-journey",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41955626728",
         "runTruncated": false
       },
       {
@@ -497,7 +490,6 @@
     "issue #3824": "Q1816",
     "issue #4020": "Q1816",
     "issue #4062": "Q1816",
-    "issue #4084": "Q1816",
     "issue #4111": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",

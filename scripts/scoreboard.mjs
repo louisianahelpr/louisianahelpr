@@ -168,8 +168,8 @@ export function localRows(read = (p) => readFileSync(join(REPO, p), "utf8"), lis
 
 // ── LIVE rows ───────────────────────────────────────────────────────────────
 
-function sh(cmd, args, { timeout = 30000, cwd = REPO } = {}) {
-  return execFileSync(cmd, args, { cwd, encoding: "utf8", maxBuffer: 1 << 28, timeout, stdio: ["ignore", "pipe", "pipe"] });
+function sh(cmd, args, { timeout = 30000, cwd = REPO, input } = {}) {
+  return execFileSync(cmd, args, { cwd, encoding: "utf8", maxBuffer: 1 << 28, timeout, input, stdio: [input == null ? "ignore" : "pipe", "pipe", "pipe"] });
 }
 const ghJson = (args, timeout) => JSON.parse(sh("gh", args, { timeout }) || "null");
 const errMsg = (e) => String(e?.stderr || e?.message || e).split("\n").find((l) => l.trim())?.slice(0, 160) ?? "error";
@@ -764,16 +764,44 @@ export async function identityFingerprintRows(sqlFn, now) {
   }
 }
 
+/**
+ * How many of `refs` carry a patch main does not have: `git cherry origin/main
+ * <ref>` for each, in batch. One cherry per branch (1,599-1,759 remote
+ * branches) took the measure step from 7 min (10-29) to 17.5 min (11-03) and
+ * then past its 20-min timeout (scheduled run 41940832252, 11-05 01:25Z,
+ * cancelled, nightly-red #4111). Same rule as git cherry: a branch commit is
+ * landed when main has a commit with the same `git patch-id --stable`; main is
+ * read from the branches' common merge base, so every branch's own base range
+ * is covered. Measured locally 11-04: 70 s for 1,596 branches, and the
+ * verdict matched `git cherry` on every one of a 1-in-40 sample (39/39).
+ * Guard: src/test/scoreboardRemoteBranchesBatched.test.ts.
+ */
+export function countUnlanded(refs, run = sh) {
+  if (!refs.length) return 0;
+  const patchIds = (commits) => {
+    const ids = new Map();
+    if (!commits.length) return ids;
+    // A shell pipe: the diffs of thousands of commits outgrow any Node buffer.
+    const out = run("sh", ["-c", "git diff-tree -p --stdin -r | git patch-id --stable"], { input: commits.join("\n") + "\n", timeout: 600000 });
+    for (const line of out.split("\n")) {
+      const [id, commit] = line.split(" ");
+      if (commit) ids.set(commit, id);
+    }
+    return ids;
+  };
+  const own = refs.map((r) => run("git", ["rev-list", "--no-merges", `origin/main..${r}`]).split("\n").filter(Boolean));
+  const branchIds = patchIds([...new Set(own.flat())]);
+  const base = run("git", ["merge-base", "--octopus", "origin/main", ...refs]).trim();
+  const mainIds = new Set(patchIds(run("git", ["rev-list", "--no-merges", "origin/main", `^${base}`]).split("\n").filter(Boolean)).values());
+  return own.filter((commits) => commits.some((c) => !branchIds.has(c) || !mainIds.has(branchIds.get(c)))).length;
+}
+
 function remoteBranchRows(now) {
   try {
     sh("git", ["fetch", "--quiet", "--prune", "origin"], { timeout: 60000 });
     const refs = sh("git", ["for-each-ref", "--format=%(refname:short)", "refs/remotes/origin"]).split("\n").filter((r) => r && r !== "origin" && r !== "origin/HEAD" && r !== "origin/main");
     const merged = new Set(sh("git", ["branch", "-r", "--merged", "origin/main"]).split("\n").map((s) => s.trim()).filter(Boolean));
-    let unlanded = 0;
-    for (const r of refs) {
-      if (merged.has(r)) continue;
-      if (/^\+/m.test(sh("git", ["cherry", "origin/main", r]))) unlanded++;
-    }
+    const unlanded = countUnlanded(refs.filter((r) => !merged.has(r)));
     const m = refs.filter((r) => merged.has(r)).length;
     return { summary: { total: refs.length, merged: m, unlanded, at: iso(now) },
       rows: [{ group: "open work", signal: "remote branches (merged / carrying patches not on main)", status: unlanded ? "WARN" : "PASS",

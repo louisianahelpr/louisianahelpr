@@ -31,7 +31,7 @@ export type OpsAlert = (input: {
   fields?: Record<string, string>;
 }) => Promise<unknown>;
 
-export type TaxAdjustmentFlow = "job" | "gift_card" | "boost" | "bgc" | "pro" | "shop_order" | "other";
+type TaxAdjustmentFlow = "job" | "gift_card" | "boost" | "bgc" | "pro" | "shop_order" | "other";
 
 /** The one Stripe read this module needs, typed structurally. */
 export interface SessionTaxReader {
@@ -48,7 +48,7 @@ export interface SessionTaxReader {
   };
 }
 
-export interface CheckoutAutomaticTax {
+interface CheckoutAutomaticTax {
   taxCents: number;
   stateCode: string | null;
   postalCode: string | null;
@@ -59,7 +59,7 @@ const isJobSiteTaxed = (md: Record<string, string> | null | undefined) =>
   String(md?.tax_calculation_id ?? "").startsWith("taxcalc_");
 
 /** Which Checkout flow took a charge, from its session / PaymentIntent metadata. */
-export function taxAdjustmentFlow(md: Record<string, string> | null | undefined): TaxAdjustmentFlow {
+function taxAdjustmentFlow(md: Record<string, string> | null | undefined): TaxAdjustmentFlow {
   const kind = md?.kind ?? "";
   if (kind === "shop_order" || md?.shop_order_id) return "shop_order";
   if (kind === "gift_card_purchase") return "gift_card";
@@ -76,7 +76,7 @@ export function taxAdjustmentFlow(md: Record<string, string> | null | undefined)
  * Tax API transaction) or no tax. A failed Stripe read throws (the caller
  * logs it and raises one ops alert).
  */
-export async function checkoutAutomaticTax(
+async function checkoutAutomaticTax(
   stripe: SessionTaxReader,
   pi: { id: string; metadata?: Record<string, string> | null },
 ): Promise<CheckoutAutomaticTax | null> {
@@ -106,7 +106,7 @@ export function taxInsideCaptureCents(i: { authorisedCents: number; capturedCent
   return Math.min(i.taxCents, Math.max(0, i.capturedCents - pretax));
 }
 
-export interface TaxAdjustmentRow {
+interface TaxAdjustmentRow {
   kind: "partial_capture" | "dispute_lost";
   flow: TaxAdjustmentFlow;
   job_id: string | null;
@@ -135,7 +135,7 @@ async function alreadySubtractedCents(supabase: any, piId: string): Promise<numb
 
 /** Write one correction. Never throws: a failure is logged and raises one ops alert. */
 // deno-lint-ignore no-explicit-any
-export async function recordTaxAdjustment(supabase: any, row: TaxAdjustmentRow, logStep: Log, alert: OpsAlert): Promise<"written" | "nothing" | "failed"> {
+async function recordTaxAdjustment(supabase: any, row: TaxAdjustmentRow, logStep: Log, alert: OpsAlert): Promise<"written" | "nothing" | "failed"> {
   if (row.tax_collected_cents >= row.tax_reported_cents) return "nothing";
   try {
     const { error } = await supabase

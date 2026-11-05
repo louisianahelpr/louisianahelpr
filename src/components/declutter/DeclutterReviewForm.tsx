@@ -131,7 +131,7 @@ export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false
         <SheetContent side="bottom" floor onOpenAutoFocus={focusSheetItself} className="max-h-[90dvh] overflow-y-auto" data-review-sheet="">
           <SheetHero title="Leave a review" />
           <div className="flex flex-col items-center gap-3 pt-1 text-center">
-            {otherId && <UserAvatar userId={otherId} src={avatarUrl} name={name ?? who} className="h-14 w-14" />}
+            {otherId && <UserAvatar userId={otherId} src={avatarUrl} name={name ?? who} pixelSize={56} className="h-14 w-14" />}
             <p className="text-ds-20 font-bold leading-snug [overflow-wrap:anywhere]">
               How was {side === "buyer" ? "buying from" : "selling to"} {who}?
             </p>

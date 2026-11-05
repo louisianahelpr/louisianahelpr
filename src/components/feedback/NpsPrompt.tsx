@@ -10,7 +10,7 @@ import {
   SheetPrimaryAction,
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import { ChoicePill } from "@/components/ui/ChoicePill";
 import { hapticLight, hapticSuccess, hapticError } from "@/lib/haptics";
 import { track } from "@/lib/analytics";
 import {
@@ -175,25 +175,19 @@ export function NpsPrompt({ userId, onClose }: NpsPromptProps) {
             {Array.from({ length: 5 }, (_, i) => i + 1).map((n) => {
               const selected = score === n;
               return (
-                <button
+                <ChoicePill
                   key={n}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
+                  selected={selected}
                   aria-label={`Score ${n}`}
                   onClick={() => {
                     hapticLight();
                     setScore(n);
                   }}
-                  className={cn(
-                    "flex-1 min-w-0 h-11 rounded-full border text-ds-13 font-semibold transition-colors",
-                    selected
-                      ? "btn-grad-primary text-[hsl(var(--parchment))] border-transparent"
-                      : "bg-[hsl(var(--parchment))] text-[hsl(var(--olivewood))] border-[hsl(var(--bark)/0.25)] hover:bg-[hsl(var(--bark)/0.08)]",
-                  )}
+                  // The selected pill keeps a transparent 1px border so all five stay the same width.
+                  className={selected ? "flex-1 min-w-0 justify-center px-0 border border-transparent" : "flex-1 min-w-0 justify-center px-0"}
                 >
                   {n}
-                </button>
+                </ChoicePill>
               );
             })}
           </div>

@@ -32,7 +32,6 @@
  * @mutate src/components/series/SeriesDatesPanel.tsx | "min-h-[44px] px-3 rounded-full text-ds-11 font-semibold border border-border disabled:opacity-40" | "min-h-[44px] px-3 rounded-ds-md text-ds-11 font-semibold border border-border disabled:opacity-40"
  * @mutate src/components/messages/ConversationList.tsx | btn-press inline-flex items-center justify-center rounded-full px-4 py-1.5 | btn-press inline-flex items-center justify-center rounded-ds-md px-4 py-1.5
  * @mutate src/components/messages/ConversationList.tsx | "h-9 px-3 rounded-full inline-flex | "h-9 px-3 rounded-ds-md inline-flex
- * @mutate src/components/feedback/NpsPrompt.tsx | "flex-1 min-w-0 h-11 rounded-full border | "flex-1 min-w-0 h-11 rounded-ds-md border
  * @mutate src/components/NotificationPanel.tsx | font-semibold rounded-full border transition-all active:scale-[0.94] | font-semibold rounded-ds-md border transition-all active:scale-[0.94]
  */
 import { describe, expect, it } from "vitest";
@@ -136,7 +135,6 @@ export const RAW_PILL_SITES: { file: string; anchor: string }[] = [
   { file: "src/components/series/SeriesDatesPanel.tsx", anchor: "offerSeriesDates(jobId, a.id)" },
   { file: "src/components/messages/ConversationList.tsx", anchor: "setShowAllConvos(true)" },
   { file: "src/components/messages/ConversationList.tsx", anchor: "selected conversation" },
-  { file: "src/components/feedback/NpsPrompt.tsx", anchor: "Score ${n}" },
   { file: "src/components/NotificationPanel.tsx", anchor: "key={a.label}" },
 ];
 
@@ -213,7 +211,7 @@ describe("every button is a pill (owner, 2026-10-29)", () => {
   });
 
   it("the hand-built raw <button>s styled as buttons are pills", () => {
-    expect(RAW_PILL_SITES.length).toBeGreaterThan(4);
+    expect(RAW_PILL_SITES.length).toBeGreaterThan(3); // 4: NpsPrompt moved to the shared ChoicePill (Q2709, 11-04)
     const bad: string[] = [];
     for (const { file, anchor } of RAW_PILL_SITES) {
       const found = rawButtonsAt(file, read(file), anchor);

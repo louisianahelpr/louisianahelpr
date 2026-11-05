@@ -45,6 +45,7 @@ import { liveListingCount } from "@/lib/declutter/liveListingCount";
 import { HANDOVER_TITLE } from "./handoverCopy";
 import { DeliverEntry } from "./DeclutterDeliverEntry";
 import { TabletSellRow } from "./TabletSellRow";
+import { ItemViewsCount } from "./ItemViewsCount";
 import { SectionSettingsButton } from "@/components/sections/AppTopBar";
 import type { DeclutterBrowseHeader } from "./DeclutterBrowseView";
 import { DeclutterGuestBrowseJoin } from "./DeclutterGuest";
@@ -310,6 +311,8 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
                   >
                     {statusLine}
                   </p>
+                  {/* Owner request 11-05: how many people saw it (unique, the seller only). */}
+                  {item.status !== "draft" && <ItemViewsCount sellerId={userId} itemId={item.id} />}
                 </div>
                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} />
               </Link>

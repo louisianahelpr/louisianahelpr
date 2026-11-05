@@ -497,7 +497,7 @@ export function ApplyBody({
           under the CTA — owner, 2026-09-09). The `box-shadow` in
           `.sheet-sticky-actions` is what closes that band; see the long note
           on the rule in index.css before touching either half. No horizontal
-          bleed either way — apply-dialog-fit.spec.ts holds every element
+          bleed either way — e2e/journeys/apply-sheet.spec.ts holds every element
           inside the content box.
 
           ALL OF THAT IS GATED ON THE SHEET ACTUALLY SCROLLING (`hostScrolls`,

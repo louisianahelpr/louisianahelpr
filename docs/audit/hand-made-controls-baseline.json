@@ -283,9 +283,6 @@
     "src/components/declutter/DeclutterHandoverViews.tsx": {
       "input": 1
     },
-    "src/components/declutter/DeclutterItemCard.tsx": {
-      "button": 1
-    },
     "src/components/declutter/DeclutterItemView.tsx": {
       "button": 2
     },

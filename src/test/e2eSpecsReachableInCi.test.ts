@@ -407,7 +407,7 @@ describe("Playwright project resolution", () => {
     // Ground truth, measured with `npx playwright test --project=… --list`.
     expect(chromium).toContain("payment-lifecycle.spec.ts");
     expect(chromium).toContain("two-role-lifecycle.spec.ts");
-    expect(happy).toContain("happy-path/customer-post-job.spec.ts");
+    expect(happy).toContain("happy-path/apply-dialog-fit.spec.ts");
   });
 
   it("finds the CI commands that run Playwright", () => {
@@ -558,7 +558,7 @@ describe("CI crosses the mock boundary", () => {
     const mocked = reached.filter(mocksSupabase);
     expect(reached.length).toBeGreaterThan(10);
     expect(mocked.length).toBeGreaterThan(10);
-    expect(mocked).toContain("happy-path/customer-post-job.spec.ts");
+    expect(mocked).toContain("happy-path/apply-dialog-fit.spec.ts");
     expect(mocksSupabase("auth.spec.ts")).toBe(false);
     // popupFooterFit installs no stubs but reaches no backend either — it runs
     // against the local preview. The boundary classifier must exclude it, or

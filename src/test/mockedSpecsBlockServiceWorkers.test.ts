@@ -154,16 +154,16 @@ describe("a spec that intercepts Supabase runs with the service worker blocked (
     const chromium = PROJECTS.find((p) => p.name === "chromium");
     expect(chromium?.testDir).toBe("e2e");
     // The ignore pattern survived parsing: it is what keeps chromium off the mocked suite.
-    expect(chromium && collects(chromium, "e2e/happy-path/customer-post-job.spec.ts")).toBe(false);
+    expect(chromium && collects(chromium, "e2e/happy-path/apply-dialog-fit.spec.ts")).toBe(false);
     expect(chromium && collects(chromium, "e2e/visual-audit/responsive.spec.ts")).toBe(true);
     const happy = PROJECTS.find((p) => p.name === "happy-path");
-    expect(happy && collects(happy, "e2e/happy-path/customer-post-job.spec.ts")).toBe(true);
+    expect(happy && collects(happy, "e2e/happy-path/apply-dialog-fit.spec.ts")).toBe(true);
     expect(INTERCEPTING.length).toBeGreaterThan(25);
     expect(INTERCEPTING.map((s) => s.rel)).toEqual(
       expect.arrayContaining([
         "e2e/visual-audit/responsive.spec.ts",
         "e2e/visual-audit/desktop-fill.spec.ts",
-        "e2e/happy-path/customer-post-job.spec.ts",
+        "e2e/happy-path/apply-dialog-fit.spec.ts",
         // A regex-literal route and a route on a variable are found too.
         "e2e/prod-audit/notification-panel-jump.spec.ts",
         "e2e/slow-network/slow-network.spec.ts",

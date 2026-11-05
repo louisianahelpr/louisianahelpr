@@ -14,7 +14,7 @@
  * entries need a reason and are two-way. (The mocked specs themselves are being
  * migrated to prod or retired, Q1035; this keeps the ones left honest.)
  */
-// @mutate e2e/happy-path/customer-post-job.spec.ts |         mockTable("tips", []), |         mockTable("tips", []),\n        mockTable("job_checkins", []),
+// @mutate e2e/happy-path/apply-dialog-fit.spec.ts |         mockTable("helper_availability", []), |         mockTable("helper_availability", []),\n        mockTable("job_checkins", []),
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";

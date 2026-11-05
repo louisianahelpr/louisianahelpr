@@ -214,7 +214,9 @@ export async function handleChargeRefunded(
     || (((charge as { metadata?: Record<string, string> | null }).metadata ?? {}) as Record<string, string>).kind === "shop_order"
     || allRefunds.some((r) => (r?.metadata as Record<string, string> | null)?.kind === "shop_refund");
   if (isShopCharge && !isOnboardingCorrectionOnly(liveRefunds, ordinaryRefunds)) {
-    await reverseVisitTaxForRefund({ stripe, piId: refundPiId, charge, refunds: ordinaryRefunds, listedAnyRefund: allRefunds.length > 0, supabase, logStep });
+    await reverseVisitTaxForRefund({
+      stripe, piId: refundPiId, charge, refunds: ordinaryRefunds, listedAnyRefund: allRefunds.length > 0, supabase, logStep,
+    });
   }
   if (allRefunds.length > 0 && allRefunds.every((r) => (r?.metadata as Record<string, string> | null)?.kind === "shop_refund")) {
     logStep("Shops refund: recorded and announced by its own path", { chargeId: charge.id });

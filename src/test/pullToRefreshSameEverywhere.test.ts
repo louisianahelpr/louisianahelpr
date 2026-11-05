@@ -35,7 +35,7 @@ describe("every pull-to-refresh draws the same states", () => {
     expect(missing).toEqual([]);
   });
   it("Messages' empty inbox is inside the pull area", () => {
-    const s = readFileSync(join(process.cwd(), "src/components/messages/ConversationList.tsx"), "utf8");
+    const s = readFileSync(join(process.cwd(), "src/components/messages/ConversationListBody.tsx"), "utf8");
     const at = s.indexOf('title={t("chat.emptyTitle")}');
     const before = s.slice(0, at);
     expect(before.lastIndexOf("<PullToRefreshWrapper")).toBeGreaterThan(before.lastIndexOf("</PullToRefreshWrapper>"));

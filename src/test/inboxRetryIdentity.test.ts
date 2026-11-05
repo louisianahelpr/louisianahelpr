@@ -28,7 +28,8 @@ import { resolve } from "node:path";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 const HOOK = read("src/pages/messages/useMessagesData.ts");
-const LIST = read("src/components/messages/ConversationList.tsx");
+// The inbox body (loading / error / empty states) is ConversationListBody since the Q806 split (11-05).
+const LIST = read("src/components/messages/ConversationList.tsx") + "\n" + read("src/components/messages/ConversationListBody.tsx");
 
 /** Blank `//` and block comments, leaving anything inside a string literal alone. */
 function blankComments(src: string): string {

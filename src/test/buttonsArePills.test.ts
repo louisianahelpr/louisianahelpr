@@ -30,8 +30,8 @@
  * @mutate src/components/sections/AppTopBar.tsx | "h-10 w-10 shrink-0 self-center btn-press | "h-10 w-10 shrink-0 self-center rounded-ds-md btn-press
  * @mutate src/components/series/SeriesDatesPanel.tsx | btn-grad-primary min-h-[44px] px-4 rounded-full text-ds-12 | btn-grad-primary min-h-[44px] px-4 rounded-ds-md text-ds-12
  * @mutate src/components/series/SeriesDatesPanel.tsx | "min-h-[44px] px-3 rounded-full text-ds-11 font-semibold border border-border disabled:opacity-40" | "min-h-[44px] px-3 rounded-ds-md text-ds-11 font-semibold border border-border disabled:opacity-40"
- * @mutate src/components/messages/ConversationList.tsx | btn-press inline-flex items-center justify-center rounded-full px-4 py-1.5 | btn-press inline-flex items-center justify-center rounded-ds-md px-4 py-1.5
- * @mutate src/components/messages/ConversationList.tsx | "h-9 px-3 rounded-full inline-flex | "h-9 px-3 rounded-ds-md inline-flex
+ * @mutate src/components/messages/ConversationListBody.tsx | btn-press inline-flex items-center justify-center rounded-full px-4 py-1.5 | btn-press inline-flex items-center justify-center rounded-ds-md px-4 py-1.5
+ * @mutate src/components/messages/ConversationListBody.tsx | "h-9 px-3 rounded-full inline-flex | "h-9 px-3 rounded-ds-md inline-flex
  * @mutate src/components/NotificationPanelView.tsx | font-semibold rounded-full border transition-all active:scale-[0.94] | font-semibold rounded-ds-md border transition-all active:scale-[0.94]
  */
 import { describe, expect, it } from "vitest";
@@ -133,8 +133,8 @@ export function primaryRadiusHits(file: string, src: string): { primaries: numbe
 /** Raw `<button>`s styled as buttons (owner, 2026-10-29 "should all be pill shaped"; named by the lead 2026-10-30). */
 export const RAW_PILL_SITES: { file: string; anchor: string }[] = [
   { file: "src/components/series/SeriesDatesPanel.tsx", anchor: "offerSeriesDates(jobId, a.id)" },
-  { file: "src/components/messages/ConversationList.tsx", anchor: "setShowAllConvos(true)" },
-  { file: "src/components/messages/ConversationList.tsx", anchor: "selected conversation" },
+  { file: "src/components/messages/ConversationListBody.tsx", anchor: "setShowAllConvos(true)" },
+  { file: "src/components/messages/ConversationListBody.tsx", anchor: "selected conversation" },
   { file: "src/components/NotificationPanelView.tsx", anchor: "key={a.label}" },
 ];
 

@@ -23,8 +23,8 @@
  * a width where the dock is still painted and the last thread hides behind it.
  * Read from the files themselves, never from a list this test also owns.
  *
- * @mutate src/components/messages/ConversationList.tsx | paddingBottom: isWebDesktop\n                ? "calc(var(--safe-area-bottom, 0px) + 1rem)" | paddingBottom: embedded\n                ? "calc(var(--safe-area-bottom, 0px) + 1rem)"
- * @mutate src/components/messages/ConversationList.tsx | : "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))",\n            }} | : "calc(var(--safe-area-bottom, 0px) + 1rem)",\n            }}
+ * @mutate src/components/messages/ConversationListBody.tsx | paddingBottom: isWebDesktop\n                ? "calc(var(--safe-area-bottom, 0px) + 1rem)" | paddingBottom: embedded\n                ? "calc(var(--safe-area-bottom, 0px) + 1rem)"
+ * @mutate src/components/messages/ConversationListBody.tsx | : "calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px))",\n            }} | : "calc(var(--safe-area-bottom, 0px) + 1rem)",\n            }}
  * @mutate src/hooks/useIsWebDesktop.ts | const WEB_DESKTOP_QUERY = "(min-width: 900px)"; | const WEB_DESKTOP_QUERY = "(min-width: 1024px)";
  */
 import { describe, expect, it, afterEach, vi } from "vitest";

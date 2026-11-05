@@ -6,7 +6,7 @@
  * (lab, Slow 4G: 445 -> 406 KB on the wire through the dock once it left). vite.config.ts keeps it out.
  *
  * @mutate vite.config.ts | test: (id: string) => !BROWSE_GROUP_SKIPS.test(id) && browseOnly.has( | test: (id: string) => browseOnly.has(
- * @mutate vite.config.ts | const BROWSE_GROUP_SKIPS = /[\\/]src[\\/]components[\\/]ui[\\/]skeleton\.tsx$/; | const BROWSE_GROUP_SKIPS = /[\\/]src[\\/]components[\\/]ui[\\/]skeletonX\.tsx$/;
+ * @mutate vite.config.ts | components[\\/]ui[\\/]skeleton\.tsx\|hooks | components[\\/]ui[\\/]skeletonX\.tsx\|hooks
  */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";

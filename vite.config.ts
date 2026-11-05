@@ -1354,7 +1354,7 @@ export default defineConfig(({ mode, command }) => ({
               test: (id: string) => SHARED_DIR_RE.test(id) && homeOnly(norm(id)),
               minShareCount: 2,
               priority: 11,
-              includeDependenciesRecursively: false, // the home-only modules alone
+              includeDependenciesRecursively: false /* the home-only modules, not their deps */,
             },
             // Only the shared code boot runs (bootReach.mjs bootModules: the static closure of src/main.tsx)
             // plus what Home's first screen runs (every signed-in visitor lands there; splitting that out cost

@@ -12,6 +12,7 @@ import { PhotoTileButton } from "@/components/ui/PhotoTileButton";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { jobCategoryLabel } from "@/lib/jobCategories";
 import { signProofPhotoUrls } from "@/lib/proofPhotoStorage";
+import { userFacingError } from "@/lib/userFacingError";
 import {
   MY_JOB_PHOTOS_KEY,
   fetchMyJobPhotos,
@@ -71,7 +72,7 @@ export function MyJobPhotosPicker({ handle }: { handle: string }) {
       await setJobPhotoShown(jobId, path, next);
       await Promise.all([qc.invalidateQueries({ queryKey: MY_JOB_PHOTOS_KEY }), qc.invalidateQueries({ queryKey: publicJobPhotosKey(handle) })]);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Something went wrong. Try again.");
+      toast.error(userFacingError(e, "We couldn't change that photo on your page. Try again."));
     } finally {
       setBusy(null);
     }
@@ -80,7 +81,7 @@ export function MyJobPhotosPicker({ handle }: { handle: string }) {
     <section className="rounded-2xl border border-dashed border-border bg-card p-4" aria-labelledby="pp-my-job-photos" data-testid="pp-my-job-photos">
       <h2 id="pp-my-job-photos" className="text-ds-15 font-semibold text-foreground">Photos from your jobs</h2>
       <p className="mt-1 text-ds-13 text-muted-foreground">
-        Only you see this. Pick the after photos to show on your page. A photo shows only while the customer and everyone on that job allow photo sharing.
+        Only you see this. Pick the after photos to show on your page. A photo shows only while everyone on that job allows photo sharing.
       </p>
       <ul className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 min-[900px]:grid-cols-4">
         {rows.map((r) => (

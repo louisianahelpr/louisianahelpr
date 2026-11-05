@@ -30,7 +30,7 @@ import { lookupParishByZip } from "@/lib/parishLookup";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
-import { splitName } from "@/lib/splitName";
+import { EMPTY_FIELDS, hydratedFieldsOf, unlessEdited, type HydratedFields } from "./profileFieldHydration";
 import { requireOnline } from "@/lib/requireOnline";
 import { useProfileTabQueries } from "./useProfileTabQueries";
 // Only the landing tab + its lightweight header are needed on first paint. Every other tab panel and the rarely-opened
@@ -222,6 +222,7 @@ const ProfilePage = () => {
   // Senior mode — local state shadows profile.senior_mode; applied to
   // <html> as a CSS class so all pages get the enlarged styles.
   const [seniorMode, setSeniorMode] = useState(false);
+  const loadedFields = useRef<HydratedFields>(EMPTY_FIELDS);
 
   useEffect(() => {
     // Once auth loading is done, resolve the loading state
@@ -232,16 +233,13 @@ const ProfilePage = () => {
       if (cachedProfile) {
         setProfile(cachedProfile);
         setFullName(cachedProfile.full_name || "");
-        const { firstName: _firstName, lastName: _lastName } = splitName(cachedProfile.full_name);
-        setFirstName(_firstName);
-        setLastName(_lastName);
-        setPhone(cachedProfile.phone || "");
-        setLocation(cachedProfile.location || "");
-        setZipCode(cachedProfile.zip_code || "");
-        setParish(cachedProfile.parish || null);
-        setBio(cachedProfile.bio || "");
-        setSkills(cachedProfile.skills || "");
-        setDateOfBirth(cachedProfile.date_of_birth || "");
+        // A late load or a refetch never wipes a field the member edited (profileFieldHydration.ts).
+        const was = loadedFields.current, now = (loadedFields.current = hydratedFieldsOf(cachedProfile));
+        setFirstName(unlessEdited(was.firstName, now.firstName)); setLastName(unlessEdited(was.lastName, now.lastName));
+        setPhone(unlessEdited(was.phone, now.phone)); setLocation(unlessEdited(was.location, now.location));
+        setZipCode(unlessEdited(was.zipCode, now.zipCode)); setParish(unlessEdited(was.parish, now.parish));
+        setBio(unlessEdited(was.bio, now.bio)); setSkills(unlessEdited(was.skills, now.skills));
+        setDateOfBirth(unlessEdited(was.dateOfBirth, now.dateOfBirth));
         setSeniorMode(!!(cachedProfile as unknown as { senior_mode?: boolean }).senior_mode);
       }
       setLoading(false);

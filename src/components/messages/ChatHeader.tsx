@@ -169,7 +169,9 @@ export function ChatHeader({
         // to open. The block stays in place (same layout) but is inert.
         onClick={noProfile ? undefined : onViewProfile}
         disabled={noProfile}
-        aria-label={noProfile ? activeConvo.otherUserName : `View ${activeConvo.otherUserName}'s profile`}
+        // Named by content, not aria-label (WCAG 2.5.3, axe 4.14 label-content-name-mismatch, lead 11-04): the drawn
+        // avatar and lines are aria-hidden, the sr-only line is the same name the aria-label gave, and the subtitle
+        // still reads as the description (aria-describedby reaches hidden text).
         aria-describedby={subtitleId}
         className="min-w-0 flex-1 flex items-center gap-2 py-1 pr-1 rounded-ds-sm text-left btn-press disabled:opacity-100"
       >
@@ -188,7 +190,8 @@ export function ChatHeader({
           fallbackClassName="text-ds-15"
         />
 
-        <span className="min-w-0 flex-1 flex flex-col">
+        <span className="sr-only">{noProfile ? activeConvo.otherUserName : `View ${activeConvo.otherUserName}'s profile`}</span>
+        <span aria-hidden="true" className="min-w-0 flex-1 flex flex-col">
           {/* Name line — name, presence/mute marks, then the chevron that
               signals this whole block is a link to the profile. */}
           <span className="flex items-center gap-0.5 w-full min-w-0">

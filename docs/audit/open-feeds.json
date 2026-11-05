@@ -475,14 +475,6 @@
         "status": "open",
         "title": "typeerror: cannot read properties of undefined (reading 'fetchsupporttickets')",
         "issue": null
-      },
-      {
-        "fingerprint": "dd2ccbc600cefe639623d0c8e3339c8c",
-        "source_kind": "user-error-screen",
-        "source": "user-error-screen",
-        "status": "open",
-        "title": "/ · error screen shown: couldn't load the newest jobs.",
-        "issue": null
       }
     ]
   },

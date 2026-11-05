@@ -158,7 +158,7 @@ describe("a spec that intercepts Supabase runs with the service worker blocked (
     expect(chromium && collects(chromium, "e2e/smoke.spec.ts")).toBe(true);
     const happy = PROJECTS.find((p) => p.name === "happy-path");
     expect(happy && collects(happy, "e2e/happy-path/apply-sticky-overlap.spec.ts")).toBe(true);
-    expect(INTERCEPTING.length).toBeGreaterThan(20); // 21 on 2026-11-05: 23 minus apply-dialog-fit + apply-single-sheet, moved to journeys/apply-sheet (Q1035)
+    expect(INTERCEPTING.length).toBeGreaterThan(21); // 22 on 2026-11-05 (measured on the rebase onto main): 23, minus apply-dialog-fit + apply-single-sheet, plus journeys/apply-sheet (it routes to block service workers) (Q1035)
 
     expect(INTERCEPTING.map((s) => s.rel)).toEqual(
       expect.arrayContaining([

@@ -14,9 +14,8 @@ import { RadioCardList } from "@/components/ui/RadioCardList";
 import { DISPUTE_DETAILS_MIN } from "@/components/disputeReasons";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 
-const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
-const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 
 /** `trigger={false}`: the caller has its own "Report a problem" button (seller delivery), so this one shows only the open form (#51). */
@@ -46,7 +45,7 @@ export function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  if (!open) return trigger ? <button type="button" className={btn} onClick={() => setOpen(true)}>Report a problem</button> : null;
+  if (!open) return trigger ? <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" onClick={() => setOpen(true)}>Report a problem</Button> : null;
   return (
     <div ref={formRef} className="space-y-2 rounded-xl border border-border p-3">
       {/* BUY-35: the shared pick-one list, as Jobs' dispute and Declutter's refund use. */}
@@ -62,8 +61,8 @@ export function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange
       {!reason && <p className="text-ds-12 text-muted-foreground" data-problem-pick="">Pick what went wrong.</p>}
       {PROBLEM_FORM_PHOTOS_READY && <ProblemPhotoPicker files={photos} onChange={setPhotos} disabled={send.isPending} />}
       <div className="flex gap-2">
-        <button type="button" className={primary} disabled={send.isPending || !reason || note.trim().length < DISPUTE_DETAILS_MIN} onClick={() => send.mutate()}>Send</button>
-        <button type="button" className={btn} onClick={() => setOpen(false)}>Not now</button>
+        <Button type="button" variant="primary" size="sm" className="text-sm font-semibold" disabled={send.isPending || !reason || note.trim().length < DISPUTE_DETAILS_MIN} onClick={() => send.mutate()}>Send</Button>
+        <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" onClick={() => setOpen(false)}>Not now</Button>
       </div>
     </div>
   );

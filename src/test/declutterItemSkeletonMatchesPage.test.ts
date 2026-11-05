@@ -11,6 +11,7 @@
  * @mutate src/components/declutter/DeclutterSkeletons.tsx | <AppPage title="Item" backTo="/declutter" phoneHidesTitle hidesTitle stickyHeader> | <AppPage title="Item" backTo="/declutter">
  * @mutate src/components/declutter/DeclutterSkeletons.tsx | <AppPage title="Item" backTo="/declutter" phoneHidesTitle hidesTitle stickyHeader> | <AppPage title="Item" backTo="/declutter" phoneHidesTitle hidesTitle>
  * @mutate src/components/declutter/DeclutterSkeletons.tsx |           <Skeleton className={`${ITEM_PHOTO_FRAME_BASE} ${ITEM_PHOTO_ASPECT.item}`} /> |           <Skeleton className="shrink-0 w-[80%] max-w-sm aspect-square rounded-2xl bg-photo-empty" />
+ * @mutate scripts/audit/measure-loading-states.mjs | !e.closest("[data-sonner-toaster]") && !e.closest(".sticky-title-row")) | !e.closest("[data-sonner-toaster]"))
  * @mutate src/components/declutter/DeclutterGallery.tsx | const ASPECT = ITEM_PHOTO_ASPECT; | const ASPECT = { item: "aspect-square bg-photo-empty", banner: "aspect-[16/9] bg-photo-empty" } as const;
  */
 import { describe, it, expect } from "vitest";
@@ -52,5 +53,17 @@ describe("the Declutter item skeleton is the item page's shape (Q1837)", () => {
     expect(photo[0], "built from the shared frame, not a hand-typed size").toContain("${ITEM_PHOTO_FRAME_BASE} ${ITEM_PHOTO_ASPECT.item}");
     const gallery = read("src/components/declutter/DeclutterGallery.tsx");
     expect(gallery, "the gallery draws its photo in the same shared frame").toMatch(/const FRAME_BASE = ITEM_PHOTO_FRAME_BASE;\s*const ASPECT = ITEM_PHOTO_ASPECT;/);
+  });
+
+  it("the loading-state re-measure looks through a pinned title row, as through the toaster", () => {
+    // The sticky header is wider than the page column, so a probe at the page's top stopped inside it and compared
+    // the item page's body skeleton with a 44px header row (run 41949893912, 2026-11-05).
+    const pinned = read("src/components/profile/ProfileTabHeader.tsx");
+    expect(pinned, "the pinned row's class is what the measurer skips").toContain("sticky-title-row");
+    const measurer = read("scripts/audit/measure-loading-states.mjs");
+    const probe = /document\.elementsFromPoint\(pr\.px, pr\.py\)\.find\(\(e\) => ([^\n]+)\);/.exec(measurer);
+    expect(probe, "the loaded probe's elementsFromPoint filter not found").not.toBeNull();
+    expect(probe![1]).toContain('!e.closest("[data-sonner-toaster]")');
+    expect(probe![1]).toContain('!e.closest(".sticky-title-row")');
   });
 });

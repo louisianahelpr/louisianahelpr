@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-05T18:33Z",
+  "measured_at": "2026-11-05T18:52Z",
   "issues": {
     "readable": true,
     "open": [
@@ -43,7 +43,7 @@
         "number": 2436,
         "title": "nightly-red: e2e-journeys",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42011607562",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42074601478",
         "runTruncated": false
       },
       {
@@ -90,14 +90,14 @@
       },
       {
         "number": 3823,
-        "title": "🔴 7 scheduled workflow(s) have stopped running",
+        "title": "🔴 6 scheduled workflow(s) have stopped running",
         "label": "schedule-stalled"
       },
       {
         "number": 3824,
         "title": "nightly-red: schedule-heartbeat",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41889455309",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42087875471",
         "runTruncated": false
       },
       {

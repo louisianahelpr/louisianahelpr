@@ -706,14 +706,14 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - press-every-control: issue #2353, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41817058240. notes: Q1374. feed: issue #2353 · feed: ledger 7e141f206640
   - branch-prune: issue #2366, newest red run: see the issue's latest comment. notes: Q1376. feed: issue #2366 · feed: ledger 7f88b9cc45df
   - a11y-webkit-prod: issue #2375, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41875004762. notes: Q593. feed: issue #2375 · feed: ledger 6205197429d4
-  - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42011607562. notes: Q1429, Q2150. feed: issue #2436 · feed: ledger 43d77e26f272
+  - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42074601478. notes: Q1429, Q2150. feed: issue #2436 · feed: ledger 43d77e26f272
   - loading-states-refresh: issue #2601, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41949893912. notes: Q1427. feed: issue #2601 · feed: ledger 6389f98a9f66
   - vacuity: issue #2894, newest red run: see the issue's latest comment. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
   - slow-network: issue #3454, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41599676917. feed: issue #3454 · feed: ledger a8ceee56bbd5
   - ui-sweep: issue #3491, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41831105960. notes: Q2761. feed: issue #3491 · feed: ledger 2e4f3e726722
   - staleness-watch: issue #3784, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41694061049. feed: issue #3784 · feed: ledger db0fb15c4ec3
   - e2e-real-backend: issue #3813, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42034066135. feed: issue #3813 · feed: ledger 3a3460b71be7
-  - schedule-heartbeat: issue #3824, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41889455309. feed: issue #3824 · feed: ledger 4aa239aefeb6
+  - schedule-heartbeat: issue #3824, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42087875471. feed: issue #3824 · feed: ledger 4aa239aefeb6
   - nightly-webkit: issue #4062, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41680707961. feed: issue #4062 · feed: ledger 70e7b0decb9a
   - scoreboard: issue #4111, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41940832252. feed: issue #4111 · feed: ledger 341247bd7549
   - main: Supabase DB Deploy: issue #4140, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42082050381. feed: issue #4140

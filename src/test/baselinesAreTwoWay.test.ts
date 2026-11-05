@@ -129,6 +129,9 @@ const JSON_TWO_WAY: Record<string, Record<string, SectionDecl>> = {
   "docs/audit/hand-made-controls-baseline.json": {
     files: "src/test/noNewHandMadeControls.test.ts:if (a < b) diffs.push(",
   },
+  "docs/audit/hand-made-toggle-chips-baseline.json": {
+    files: "src/test/toggleChipShared.test.tsx:if (a < b) diffs.push(",
+  },
   "scripts/ci/definer-exec-allowlist.json": {
     anon: "scripts/check-live-privileges.mjs:const definerStale = [...allowedDefiner]",
     authenticated: "scripts/check-live-privileges.mjs:const definerStale = [...allowedDefiner]",

@@ -2276,18 +2276,21 @@ export type Database = {
         Row: {
           created_at: string
           device_id: string | null
+          id: number
           item_id: string
           viewer_id: string | null
         }
         Insert: {
           created_at?: string
           device_id?: string | null
+          id?: never
           item_id: string
           viewer_id?: string | null
         }
         Update: {
           created_at?: string
           device_id?: string | null
+          id?: never
           item_id?: string
           viewer_id?: string | null
         }

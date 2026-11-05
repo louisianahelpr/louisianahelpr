@@ -289,9 +289,6 @@
     "src/components/declutter/DeclutterMeetup.tsx": {
       "input": 1
     },
-    "src/components/declutter/DeclutterOfferRules.tsx": {
-      "button": 2
-    },
     "src/components/declutter/DeclutterPickupTimes.tsx": {
       "button": 1
     },

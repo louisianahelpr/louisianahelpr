@@ -51,7 +51,6 @@ type Kind =
 
 const RECEIVED: Record<string, Kind> = {
   "src/lib/reviewStats.ts": "count",
-  "src/pages/user/useUserProfileData.ts": "count",
   "src/hooks/useProfileTabData.ts": "count",
   "src/components/admin/useAdminUserSummaries.ts": "count",
   "src/components/admin/adminusers/useOpenProfile.ts": "count",

@@ -60,7 +60,6 @@ describe("one label for a deleted person", () => {
       "hooks/useActivityData.ts",
       "hooks/useProfileTabData.ts",
       "components/reviewPanel/ReviewList.tsx",
-      "pages/user/useUserProfileData.ts",
       "pages/profile/giftCards/CreditCard.tsx",
       "pages/messages/messagesData/loadConversations.ts",
       "pages/posts/postedJobCard/steps/CompletedStep.tsx",

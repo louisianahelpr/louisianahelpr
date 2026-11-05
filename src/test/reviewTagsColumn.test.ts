@@ -69,8 +69,8 @@ describe("Q1088: review tags live in reviews.tags", () => {
       expect((src.match(/withReviewTags\(/g) ?? []).length, f).toBe(tagged);
       expect(src, f).toMatch(/reviewText\([^)]*\.feedback,\s*\w+\.tags\)/);
     }
-    // ReviewList, useOpenProfile, useProfileTabData, useUserProfileData (measured 11-03).
-    expect(readers.length).toBeGreaterThan(3);
+    // ReviewList, useOpenProfile, useProfileTabData (measured 11-05; useUserProfileData reads no reviews rows since lead 11-05).
+    expect(readers.length).toBeGreaterThan(2);
   });
 
   it("the SQL readers return public.review_text(feedback, tags)", () => {

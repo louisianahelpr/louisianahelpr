@@ -21,7 +21,7 @@ function rpcData<T>(result: { data: T; error: { message: string } | null }, word
   return result.data;
 }
 
-export interface ShopTalkMessage {
+interface ShopTalkMessage {
   id: string;
   mine: boolean;
   body: string;

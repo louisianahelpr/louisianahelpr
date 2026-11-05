@@ -3686,6 +3686,24 @@ serve(async (req) => {
     // owner decision, not a backfill this cron makes on its own.
     let untoldRefundsSent = 0;
     let untoldRefundsNobody = 0;
+    let untoldRefundsTest = 0;
+    const UNTOLD_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const isTestOrphanPaymentIntent = async (pi: string): Promise<boolean> => {
+      try {
+        const intent = await stripes.clientFor("test").paymentIntents.retrieve(pi);
+        if (intent?.livemode !== false) return false;
+        const jobId = typeof intent?.metadata?.job_id === "string" ? intent.metadata.job_id : "";
+        if (!jobId) return false;
+        if (!UNTOLD_UUID_RE.test(jobId)) return true;
+        const { data, error } = await supabaseAdmin.from("jobs").select("id").eq("id", jobId).maybeSingle();
+        return !error && !data;
+      } catch (e) {
+        // Not a TEST object (a live PI is resource_missing on the test key), no test key, or Stripe down:
+        // the row goes through the normal path, which tells or pages as before.
+        console.log(JSON.stringify({ event: "untold_refund_test_check_skipped", pi, error: e instanceof Error ? e.message : String(e) }));
+        return false;
+      }
+    };
     {
       const from = new Date(Math.max(Date.now() - 7 * 86_400_000, Date.parse(UNTOLD_REFUND_SWEEP_FROM))).toISOString();
       const until = new Date(Date.now() - 15 * 60_000).toISOString();
@@ -3731,6 +3749,15 @@ serve(async (req) => {
             const key = `refund:${r.stripe_refund_id}`;
             if (!r.stripe_refund_id || done.has(key) || !(Number(r.amount_cents) > 0)) continue;
             if (sameMoneyAsRelease(r)) continue;
+            // Q2726 follow-up (lead 11-04, the two $55 TEST refunds re-raised every hour): a row with no job and no
+            // member whose PaymentIntent is a Stripe TEST object naming a job_id that is not ours is a test script's
+            // payment. Nobody is told and nothing is raised, not even the digest. Read-only GET on the TEST key; a
+            // live PI is not found there, and any failed read falls through to the path below (never hidden).
+            if (!r.job_id && !r.customer_id && r.stripe_payment_intent_id && await isTestOrphanPaymentIntent(r.stripe_payment_intent_id)) {
+              untoldRefundsTest++;
+              console.log(JSON.stringify({ event: "untold_refund_test_orphan_skipped", refund: r.stripe_refund_id }));
+              continue;
+            }
             const result = await sendRefundNotice(supabaseAdmin, {
               key,
               kind: "refund",
@@ -3807,6 +3834,7 @@ serve(async (req) => {
         block_fees_retried: blockFeesRetried,
         untold_refunds_sent: untoldRefundsSent,
         untold_refunds_nobody: untoldRefundsNobody,
+        untold_refunds_test: untoldRefundsTest,
         refund_emails_retried: refundEmailsRetried,
         refund_emails_sent: refundEmailsSent,
         fee_transfers_retried: feeTransfersRetried,

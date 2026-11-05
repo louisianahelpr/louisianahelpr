@@ -118,7 +118,7 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
     // The page's one h1 still names the section, for a screen reader; the chips say it on screen.
     expect(within(bar).getByRole("heading", { level: 1 }).textContent).toBe("Jobs");
     const labels = within(bar).getAllByRole("button").map((b) => b.getAttribute("aria-label"));
-    expect(labels).toEqual(["Help", "Notifications", "Profile"]);
+    expect(labels).toEqual(["Help", "Notifications", "Profile, TP"]); // the avatar initials are in its name (WCAG 2.5.3, Q1816)
     expect(within(bar).getByTestId("explore-switcher")).toBeTruthy();
     expect(within(screen.getByTestId("explore-switcher")).getByRole("radio", { name: "Jobs" }).getAttribute("aria-checked")).toBe("true");
     expect(within(screen.getByTestId("section-tabs")).getByRole("button", { name: "Jobs settings" })).toBeTruthy();

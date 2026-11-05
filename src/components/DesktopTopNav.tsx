@@ -10,6 +10,7 @@ import { DeliveryOnlinePill } from "@/components/declutter/DeliveryOnlinePill";
 import { DESKTOP_BAR_PAD_TOP } from "@/lib/desktopBar";
 import { HelpEntry } from "@/components/help/HelpEntry";
 import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
+import { avatarButtonLabel } from "@/lib/avatarImage";
 
 /**
  * The signed-in app bar for the DESKTOP WEBSITE: the notification bell and the
@@ -88,7 +89,7 @@ const DesktopTopNav = () => {
             type="button"
             variant="ghost"
             size="iconCompact"
-            aria-label="Profile"
+            aria-label={avatarButtonLabel("Profile", profile?.full_name)}
             data-testid="desktop-top-profile"
             onClick={() => navigate("/profile")}
           >

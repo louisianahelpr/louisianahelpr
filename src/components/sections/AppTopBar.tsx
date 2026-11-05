@@ -13,6 +13,7 @@ import { ExploreSwitcher } from "./ExploreSwitcher";
 import { sectionByKey, type SectionKey } from "./sectionsConfig";
 import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
+import { avatarButtonLabel } from "@/lib/avatarImage";
 
 /** The tabs row's icon controls (search, filters, map, gear): 40px ghost squares with a 20px glyph, centred on the 44px tabs. */
 const TABS_ROW_ICON_CLASS = "h-10 w-10 shrink-0 self-center btn-press text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&>svg]:w-5 [&>svg]:h-5";
@@ -124,7 +125,7 @@ export function AppTopBar({
           type="button"
           variant="ghost"
           size="iconCompact"
-          aria-label={tr("nav.profile")}
+          aria-label={avatarButtonLabel(tr("nav.profile"), profile?.full_name)}
           data-testid="top-bar-profile"
           onClick={() => navigate("/profile")}
         >

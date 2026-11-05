@@ -63,7 +63,7 @@ describe("Q2254: the desktop top bar's profile photo has a centred 44px hit box 
 
   it("finds the profile button and its photo (a parser that finds none must not pass)", () => {
     expect(b).not.toBeNull();
-    expect(b!.attrs.get("aria-label")).toBe("Profile");
+    expect(b!.attrs.get("aria-label")).toBe('{avatarButtonLabel("Profile", profile?.full_name)}'); // WCAG 2.5.3: the initials are in the name (Q1816)
     expect(b!.avatarClass).not.toBeNull();
   });
 

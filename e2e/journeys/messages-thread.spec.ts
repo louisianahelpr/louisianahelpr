@@ -8,8 +8,8 @@ import { AXE_TAGS } from "../happy-path/axeTags";
 
 // Q2369: the tracker's step tip reaches into half the grid gap on each side (44px at 375, no overlap).
 // @mutate src/components/tracker/JobProgress.tsx | flex flex-col justify-start w-[calc(100%+4px)] -mx-[2px] px-[2px] min-h-[44px] | flex flex-col justify-start w-full min-h-[44px]
-// Reaction chip's 44px finger target (::before reaches 14px above and below a ~17px chip; lead 2026-11-05).
-// @mutate src/components/messages/MessageBubble.tsx | before:-inset-x-3 before:-inset-y-[14px] | before:-inset-3
+// Reaction chip's 44px finger target (::before reaches 16px above and below a 16-17px chip; lead 2026-11-05).
+// @mutate src/components/messages/MessageBubble.tsx | before:-inset-x-3 before:-inset-y-4 | before:-inset-3
 
 /**
  * Messages: the bottom nav must never disappear over the INBOX, and the

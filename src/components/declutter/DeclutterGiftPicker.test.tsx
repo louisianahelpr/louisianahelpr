@@ -6,6 +6,7 @@
  * @mutate src/components/declutter/DeclutterGiftPicker.tsx |   const fromGiftCents = Math.max(0, Math.min(payCents, giftCents)); |   const fromGiftCents = giftCents;
  * @mutate src/lib/declutter/api.ts |     ...(giftCardId ? { gift_card_id: giftCardId } : {}), |     ...{},
  * @mutate src/components/declutter/DeclutterGiftPicker.tsx |   /^This gift has expired$/, |   /^never$/,
+ * @mutate src/components/declutter/DeclutterGiftPicker.tsx | c.claimed && c.amountCents > 0 && (!c.expiresAt \|\| new Date(c.expiresAt).getTime() > now) | c.claimed && c.amountCents > 0
  * @mutate src/hooks/useSpendableGiftCards.ts |             claimed: r.recipient_id === userId, |             claimed: true,
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -58,6 +59,10 @@ describe("Q2106 S5 gifts offered", () => {
       { id: "c", amountCents: 0, expiresAt: null, claimed: true },
     ];
     expect(giftsForCheckout(cards).map((c) => c.id)).toEqual(["a"]);
+    // A gift that expired while the screen sat open is never offered (the read filters it too).
+    const now = Date.parse("2026-11-05T06:00:00Z");
+    expect(giftsForCheckout([{ id: "old", amountCents: 500, expiresAt: "2026-11-05T05:59:59Z", claimed: true },
+      { id: "new", amountCents: 500, expiresAt: "2026-11-05T06:00:01Z", claimed: true }], now).map((c) => c.id)).toEqual(["new"]);
   });
 
   it("useSpendableGiftCards carries the amount, expiry and whether the buyer claimed it", async () => {

@@ -62,6 +62,7 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     vehicle_in_use: "You have a delivery that needs this vehicle. Finish it or back out of it first.",
   },
   helpr_task_accept: {
+    refund_payment_unknown: DC.refund_payment_unknown,
     too_many_taken: DC.too_many_taken,
     too_many_releases: DC.too_many_releases,
     account_restricted: DC.account_restricted,
@@ -93,6 +94,7 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     vehicle_needs_car: "Add your car under Your vehicle to take deliveries.",
   },
   helpr_task_customer_confirm: {
+    refund_payment_unknown: DC.refund_payment_unknown,
     // BUY-36 (20261031231150): reached through the steps it runs (the close, the confirm, the debt take, the lock).
     item_going_back: "This item is going back to the seller.",
     account_restricted: DC.account_restricted,
@@ -112,6 +114,7 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     unknown_task_source: DC.unknown_task_source,
   },
   helpr_task_delivered: {
+    refund_payment_unknown: DC.refund_payment_unknown,
     // BUY-36 (20261031231150): reached through the steps it runs (the close, the confirm, the debt take, the lock).
     delivery_on_hold: "You reported this delivery. Follow the steps on it.",
     account_restricted: DC.account_restricted,
@@ -155,6 +158,7 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     under_18: DC.under_18,
   },
   helpr_task_picked_up: {
+    refund_payment_unknown: DC.refund_payment_unknown,
     account_restricted: DC.account_restricted,
     already_paid_out: DC.already_paid_out,
     delivery_not_done: DC.delivery_not_done,
@@ -204,6 +208,7 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     task_not_found: DC.task_not_found,
   },
   helpr_task_buyer_choose: {
+    refund_payment_unknown: DC.refund_payment_unknown,
     // BUY-36 (20261031231150): reached through the steps it runs (the close, the confirm, the debt take, the lock).
     already_paid_out: DC.already_paid_out,
     delivery_not_done: DC.delivery_not_done,
@@ -238,6 +243,7 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     task_not_found: DC.task_not_found,
   },
   helpr_task_seller_return_answer: {
+    refund_payment_unknown: DC.refund_payment_unknown,
     // BUY-36 (20261031231150): reached through the steps it runs (the close, the confirm, the debt take, the lock).
     already_paid_out: DC.already_paid_out,
     delivery_not_done: DC.delivery_not_done,
@@ -279,6 +285,7 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     too_late: "The pickup time has started. Message the Helpr instead.",
   },
   helpr_task_pickup_no_show: {
+    refund_payment_unknown: DC.refund_payment_unknown,
     account_restricted: DC.account_restricted,
     location_required: DC.location_required,
     not_at_pickup: DC.not_at_pickup,
@@ -301,6 +308,7 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     unknown_task_source: DC.unknown_task_source,
   },
   helpr_task_release: {
+    refund_payment_unknown: DC.refund_payment_unknown,
     task_not_active: DC.task_not_active,
     account_restricted: DC.account_restricted,
     already_paid_out: DC.already_paid_out,

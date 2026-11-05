@@ -40,8 +40,14 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { render, fireEvent, cleanup } from "@testing-library/react";
-import { computeAccessibleName } from "dom-accessibility-api";
+import { render, fireEvent, cleanup, within } from "@testing-library/react";
+
+/** A content-named button's name: its text outside aria-hidden (the tip has no aria-label; asserted below). */
+const contentName = (el: HTMLElement) => {
+  const c = el.cloneNode(true) as HTMLElement;
+  c.querySelectorAll('[aria-hidden="true"]').forEach((n) => n.remove());
+  return (c.textContent ?? "").replace(/\s+/g, " ").trim();
+};
 import { CalendarCheck, CheckCircle2, Clock, FileText, MapPin, PartyPopper, Truck, Wrench } from "lucide-react";
 import { JobProgress, JOB_STEP_ICONS } from "@/components/tracker/JobProgress";
 import { JOB_PROGRESS_STEPS, jobProgress, type JobProgressState, type ProgressJob } from "@/components/tracker/jobProgressState";
@@ -92,7 +98,8 @@ describe("the old tracker's steps and actions are all still here (owner 2026-10-
     const { container } = render(<JobProgress progress={live({ stamps: STAMPS })} />);
     const hired = container.querySelector('[data-step-tip="2"]') as HTMLElement;
     expect(hired).toBeTruthy();
-    expect(computeAccessibleName(hired)).toMatch(/^Hired — Oct 20/);
+    expect(contentName(hired)).toMatch(/^Hired — Oct 20/);
+    expect(within(container).getByRole("button", { name: /^Hired — Oct 20/ })).toBe(hired);
     fireEvent.mouseEnter(hired);
     expect(container.querySelector("[role='tooltip']")?.textContent).toMatch(/^Oct 20/);
     fireEvent.click(hired);
@@ -108,9 +115,9 @@ describe("the old tracker's steps and actions are all still here (owner 2026-10-
     const tips = [...container.querySelectorAll<HTMLElement>("[data-step-tip]")];
     expect(tips.length).toBeGreaterThan(1);
     const arrived = container.querySelector('[data-step-tip="5"]') as HTMLElement;
-    expect(computeAccessibleName(arrived)).toBe("Arrived: what this step is waiting on");
+    expect(within(container).getByRole("button", { name: "Arrived: what this step is waiting on" })).toBe(arrived);
     for (const tip of tips) {
-      const name = computeAccessibleName(tip);
+      const name = contentName(tip);
       // No soft hyphen, no abbreviation ("Arr.", "Conf."), and the step's full name first.
       expect(name, name).not.toMatch(/\u00AD|\b[A-Z][a-z]+\.,/);
       expect(JOB_PROGRESS_STEPS.some((s) => name.startsWith(s)), name).toBe(true);

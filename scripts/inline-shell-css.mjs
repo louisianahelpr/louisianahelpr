@@ -8,8 +8,9 @@
  * without blocking (vite.config.ts html-async-entry-css). On Slow 4G that sheet (~40 KB gz) shares the 180 KB/s link
  * with the boot JavaScript, so the shell painted at ~2.1 s live although the HTML is in at ~0.9 s.
  *
- * This step reads the built sheet, keeps only the rules whose every class, id and element appears in the shell markup
- * (plus the :root / html / body / * rules they read, such as the colour tokens and preflight), and writes them, with
+ * This step reads the built sheet, keeps only the rules whose selector matches something in the first-frame page (the
+ * shell inside the boot document, <html> marked as index.html marks it; :hover/:focus and pseudo-elements read as their
+ * element), plus the @font-face of every family those rules name, and writes them, with
  * the shell's show rule, into a <style id="lh-shell-css"> in <head>. They are the app's own compiled rules, in the
  * app's own order, so the shell looks exactly as it did; the full sheet still loads as before and repeats them.
  *
@@ -23,6 +24,7 @@ import { readFileSync, writeFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
+import { JSDOM } from "jsdom";
 
 export const SHELL_START = '<div id="lh-landing-shell"';
 export const SHELL_END = '<span data-lh-shell="end" hidden></span>';
@@ -33,9 +35,7 @@ export const SHOW_RULE =
 /** Ceiling on the inlined block, gzip bytes: the build fails above it (6,892 B measured on the 11-05 prototype). */
 export const MAX_INLINE_BYTES = 40_000;
 
-const ALWAYS_TAGS = new Set(["*", "html", "body", ":root"]);
-
-/** Classes, ids and element names the shell markup uses. */
+/** Classes, ids and element names the shell markup uses (the test's inventory of what the shell is made of). */
 export function shellVocabulary(shellHtml) {
   const classes = new Set();
   for (const m of shellHtml.matchAll(/\sclass="([^"]*)"/g)) for (const c of m[1].split(/\s+/)) if (c) classes.add(decodeEntities(c));
@@ -48,36 +48,46 @@ function decodeEntities(s) {
   return s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
 }
 
-const unescapeCss = (s) => s.replace(/\\([0-9a-fA-F]{1,6}\s?|.)/g, (_, c) => (/^[0-9a-fA-F]/.test(c) && c.length > 1 ? String.fromCodePoint(parseInt(c, 16)) : c));
+// A first frame has no hover, focus or press, and a pseudo-element hangs off a real element: match each selector with
+// those taken out, so ".x:hover" and ".x::before" are kept exactly when ".x" is on the page.
+const PSEUDO_ELEMENT = /::?(?:before|after|placeholder|selection|marker|backdrop|file-selector-button|first-line|first-letter|-webkit-[\w-]+|-moz-[\w-]+|-ms-[\w-]+)(?![\w-])/g;
+const DYNAMIC = /:(?:hover|focus|focus-visible|focus-within|active|visited|target|autofill)(?![\w-])/g;
 
-/** True when every class, id and element in one selector is in the shell's vocabulary. */
-export function selectorNeeded(sel, vocab) {
-  // Pseudo-class arguments such as :not(.x) or :where(...) are left in for the class check: a rule under
-  // :not(.absent) is kept only when .absent is present too, which can only keep less, never style wrongly.
-  const noAttrs = sel.replace(/\[[^\]]*\]/g, " ");
-  for (const m of noAttrs.matchAll(/\.((?:\\.|[\w-])+)/g)) if (!vocab.classes.has(unescapeCss(m[1]))) return false;
-  for (const m of noAttrs.matchAll(/#((?:\\.|[\w-])+)/g)) if (!vocab.ids.has(unescapeCss(m[1]))) return false;
-  const bare = noAttrs
-    .replace(/::?[\w-]+(\((?:[^()]|\([^()]*\))*\))?/g, " ")
-    .replace(/\.((?:\\.|[\w-])+)/g, " ")
-    .replace(/#((?:\\.|[\w-])+)/g, " ");
-  for (const t of bare.split(/[\s>+~,()]+/).filter(Boolean)) {
-    if (ALWAYS_TAGS.has(t)) continue;
-    if (!vocab.tags.has(t)) return false;
+/**
+ * The page at its first frame: the shell inside the boot document, with <html> marked the way index.html's inline
+ * scripts mark it for a guest on "/" (data-lh-landing-shell), once per theme.
+ */
+export function shellDocuments(shellHtml) {
+  return ["light", "dark"].map(
+    (theme) =>
+      new JSDOM(`<!doctype html><html lang="en" data-theme="${theme}" data-lh-landing-shell=""><head></head><body><div id="root"></div>${shellHtml}</div></body></html>`).window.document,
+  );
+}
+
+/** True when one selector matches something in the first-frame page, in either theme. */
+export function selectorNeeded(sel, docs) {
+  const base = sel.replace(PSEUDO_ELEMENT, "").replace(DYNAMIC, "").trim().replace(/[>+~]\s*$/, "").trim() || "*";
+  for (const doc of docs) {
+    try {
+      if (doc.querySelector(base)) return true;
+    } catch {
+      // A selector the DOM engine cannot parse (a vendor pseudo-class): keep it rather than lose a rule the browser applies.
+      return true;
+    }
   }
-  return true;
+  return false;
 }
 
 /** The subset of `css` the shell markup needs, in source order. */
 export function shellCriticalCss(shellHtml, css) {
-  const vocab = shellVocabulary(shellHtml);
+  const docs = shellDocuments(shellHtml);
   const root = postcss.parse(css);
   root.walkAtRules((at) => {
     // Animations are not part of a first frame.
     if (/keyframes$/.test(at.name)) at.remove();
   });
   root.walkRules((rule) => {
-    const keep = rule.selectors.filter((s) => selectorNeeded(s, vocab));
+    const keep = rule.selectors.filter((s) => selectorNeeded(s, docs));
     if (keep.length === 0) rule.remove();
     else rule.selectors = keep;
   });

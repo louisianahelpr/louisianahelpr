@@ -4,8 +4,10 @@
  * <style id="lh-shell-css"> in dist/index.html's head, with the shell's show rule. Measured before (live, Slow 4G + 4x,
  * 375, guest "/"): LCP 2108-2168 ms while the HTML is in at ~0.9 s.
  *
- * @mutate scripts/inline-shell-css.mjs | if (!vocab.classes.has(unescapeCss(m[1]))) return false; | if (!vocab.classes.has(unescapeCss(m[1]))) {}
- * @mutate scripts/inline-shell-css.mjs |     if (!vocab.tags.has(t)) return false; |     if (!vocab.tags.has(t)) {}
+ * @mutate scripts/inline-shell-css.mjs |       if (doc.querySelector(base)) return true; |       if (doc.querySelector(base) && base.includes(":")) return true;
+ * @mutate scripts/inline-shell-css.mjs | .replace(PSEUDO_ELEMENT, "").replace(DYNAMIC, "") | .replace(PSEUDO_ELEMENT, "")
+ * @mutate scripts/inline-shell-css.mjs |   return false;\n} | return true;\n}
+ * @mutate scripts/inline-shell-css.mjs | data-lh-landing-shell=""><head> | ><head>
  * @mutate scripts/inline-shell-css.mjs | #lh-landing-shell{display:block; | #lh-landing-shell{display:none;
  * @mutate scripts/inline-shell-css.mjs |   const block = `<style id="${STYLE_ID}">${critical}${SHOW_RULE}</style>`; |   const block = `<style id="${STYLE_ID}">${SHOW_RULE}</style>`;
  * @mutate scripts/inline-shell-css.mjs |     if (!families.has(fam)) at.remove(); |     at.remove();
@@ -38,6 +40,13 @@ const SHEET = [
   "@media (min-width:1024px){.lg\\:mt-7{margin-top:1.75rem}.not-in-the-shell-xyz{margin:0}}",
   "@media (min-width:9999px){.not-in-the-shell-xyz{margin:0}}",
   "#some-other-id{display:none}",
+  // Measured 11-05: matching by class names alone dropped rules like these, and the hero painted 190 px too high.
+  ".landing-h1:not(.absent-xyz){padding-top:190px}",
+  "[data-lh-landing-shell] .landing-page{min-height:100vh}",
+  ".landing-h1:hover{color:red}",
+  ".font-display::before{content:''}",
+  ".not-in-the-shell-xyz:hover{color:blue}",
+  "div>.not-in-the-shell-xyz{color:green}",
 ].join("");
 
 describe("the landing shell's own CSS rides in the HTML (Q2705)", () => {
@@ -59,6 +68,10 @@ describe("the landing shell's own CSS rides in the HTML (Q2705)", () => {
     expect(out).toContain(".font-display{");
     expect(out).toContain(".landing-h1{letter-spacing:-.01em}");
     expect(out).toContain("@media (min-width:1024px){.lg\\:mt-7{margin-top:1.75rem}}");
+    expect(out, "a :not() of something absent still matches").toContain(".landing-h1:not(.absent-xyz){padding-top:190px}");
+    expect(out, "the attribute index.html sets on <html>").toContain("[data-lh-landing-shell] .landing-page{min-height:100vh}");
+    expect(out, "hover rules of a present element").toContain(".landing-h1:hover{color:red}");
+    expect(out).toContain(".font-display::before{content:''}");
     expect(out).not.toContain("not-in-the-shell-xyz");
     expect(out).not.toContain("9999px");
     expect(out).not.toContain("table{");

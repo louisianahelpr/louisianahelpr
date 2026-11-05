@@ -4,6 +4,14 @@
   "allow": [],
   "byDesign": [
     {
+      "key": "helper /declutter/item/:id #0",
+      "kind": "jump",
+      "path": "main#main-content > div > div > div > div",
+      "maxDeltaPx": 237,
+      "was": "row 744px → 973px (+229px), rows equal (Δrows 0), loading-states-refresh 41956417981 on ready/b1-q1837-item-skeleton @449651c140 (the skeleton now on main), 2026-11-05",
+      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\"; lead 11-04 (Builder 1 handoff, 8:36 PM): the Declutter item page's skeleton is the page's own shape (one photo bone in the gallery's frame) and its details bone reserves ONE SCREENFUL (src/hooks/useScreenfulBelow.ts), so a listing taller than the screen grows below it. Bounded: only this element (path) and only a growth of at most the measured 229px + the 8px ROW_BUDGET = 237px, as the /post-job entry does; any other /declutter/item jump is still a breach."
+    },
+    {
       "key": "customer /profile?tab=schedule #0",
       "kind": "jump",
       "was": "row 744px → 1667px (+923px)",

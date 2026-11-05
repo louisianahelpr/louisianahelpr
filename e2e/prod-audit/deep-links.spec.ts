@@ -165,7 +165,15 @@ test.describe("signed in (helper)", () => {
     await page.waitForURL(/\/messages\?jobId=/, { timeout: 30_000 });
     await settle(page);
     await assertHealthy(page, info, "messages-thread");
-    await expect(page.getByRole("textbox", { name: /type a message/i }), "the thread composer did not open").toBeVisible({ timeout: 30_000 });
+    // The link lands IN that thread: its composer, or, when the job's messaging has closed (completed 24 h+ ago,
+    // or cancelled), the read-only notice that replaces it (ChatComposer threadClosed). The fixture is the newest job
+    // the two accounts talked on, and those are finished chain jobs: read-only 2026-11-05 06:15Z the poster's three
+    // newest thread jobs were all completed, the newest 2026-11-04 00:20Z (26 h before vacuity 41940585801 ran it),
+    // so the old composer-only check could never pass. The inbox list has neither, so this still fails off-thread.
+    await expect(
+      page.getByRole("textbox", { name: /type a message/i }).or(page.getByTestId("thread-closed-notice")).first(),
+      "the jobId link did not open that thread (no composer and no closed-thread notice)",
+    ).toBeVisible({ timeout: 30_000 });
     await ctx.close();
   });
 

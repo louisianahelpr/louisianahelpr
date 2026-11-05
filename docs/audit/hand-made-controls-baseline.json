@@ -387,9 +387,6 @@
     "src/components/declutter/SellItForMe.tsx": {
       "button": 2
     },
-    "src/components/declutter/SellPorchPlaces.tsx": {
-      "button": 2
-    },
     "src/components/declutter/SellSummaryCard.tsx": {
       "input": 1
     },

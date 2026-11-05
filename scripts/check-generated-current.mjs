@@ -310,6 +310,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/check-quota-usage.mjs": "GITHUB_STEP_SUMMARY only (Q63 daily check in quota-monitor.yml)",
   "scripts/check-stripe-balance.mjs": "GITHUB_STEP_SUMMARY only (Q3 daily check in quota-monitor.yml)",
   "scripts/db-saturation-check.mjs": "GITHUB_STEP_SUMMARY only (Q53 hourly check in prod-errors.yml)",
+  "scripts/e2e/ownRunJobs.mjs": "appends job ids to $SWEEP_OWN_JOB_IDS_FILE (journey-own-jobs.txt in the CI workspace, read by the same job's teardown sweep); a no-op when unset, never a repo file",
   "scripts/e2e/request-budget.mjs": "request-budget/summary.json (gitignored, per CI run) + GITHUB_STEP_SUMMARY (Q104)",
   "scripts/gate.mjs": "~/.lh-gate/last.json — per-machine record of the last local gate, read by the scoreboard's gate row",
   "scripts/gateLock.mjs": "lock file",

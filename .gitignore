@@ -178,3 +178,6 @@ docs/audit/loading-states/**/*.png
 
 # Q1790: the App Review demo password lives only in the ASC_REVIEW_DEMO_PASSWORD secret.
 fastlane/metadata/review_information/demo_password.txt
+
+# Own-run journey job ids for the teardown sweep (scripts/e2e/ownRunJobs.mjs)
+journey-own-jobs.txt

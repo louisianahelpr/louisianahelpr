@@ -18,6 +18,7 @@ import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { fund, retireFundedJob, type Row } from "../prod-audit/fundedOpenJob";
 import { captureHeldCard } from "../cardHold";
 import { settleJobForward } from "../../scripts/e2e/settleForward.mjs";
+import { recordOwnRunJob } from "../../scripts/e2e/ownRunJobs.mjs";
 import { slotAhead } from "./postJobForm";
 import { withChromium } from "./stripeInChromium";
 import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
@@ -98,6 +99,8 @@ async function postJob(api: APIRequestContext, poster: Session, jobTitle: string
   });
   expect(r.ok(), `posting ${jobTitle}: ${r.status()} ${await r.text()}`).toBe(true);
   const [job] = (await r.json()) as JobRow[];
+  // Recorded at once: a cancelled run's teardown sweep settles it (scripts/e2e/ownRunJobs.mjs).
+  recordOwnRunJob(job.id);
   expect(job.parish, "parish must stay null or the Helpr fan-out fires").toBeNull();
   expect(job.is_seed, "the job must be is_seed").toBe(true);
   return job;

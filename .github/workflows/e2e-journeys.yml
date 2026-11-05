@@ -181,6 +181,10 @@ jobs:
       # (docs/OPEN.md). Allowed here only: this job holds the shared-accounts
       # concurrency group, and each run mints fresh sessions by password.
       JOURNEY_GLOBAL_SIGNOUT_OK: "1"
+      # Each journey appends the id of every job it creates; this job's teardown
+      # sweep settles those forward whatever their age, so a run cancelled
+      # mid-chain leaves nothing in escrow (scripts/e2e/ownRunJobs.mjs).
+      SWEEP_OWN_JOB_IDS_FILE: journey-own-jobs.txt
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -354,6 +358,8 @@ jobs:
       # (docs/OPEN.md). Allowed here only: this job holds the shared-accounts
       # concurrency group, and each run mints fresh sessions by password.
       JOURNEY_GLOBAL_SIGNOUT_OK: "1"
+      # Same as the chromium leg: own-run job ids for the teardown sweep, see scripts/e2e/ownRunJobs.mjs
+      SWEEP_OWN_JOB_IDS_FILE: journey-own-jobs.txt
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0

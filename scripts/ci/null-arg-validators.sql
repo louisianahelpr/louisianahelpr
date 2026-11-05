@@ -89,6 +89,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('shop_link_visible',             'allow',    'SH2b (20261019042744): anyone with the link may see this shop (shop_state_ok, not paused, Shops not switched off)'),
   ('shop_extras_readable',          'allow',    'SH12 (20261019072541): this caller may read the shop FAQs and policies (owner, admin, or shop_link_visible)'),
   ('shop_visible_to',               'allow',    'Shops slice 1: this viewer may see this shop (owner, or publicly visible)'),
+  ('shop_review_public',            'allow',    'Shops H9 (20261105230819): TRUE = this shop review may be shown (not removed; handed over 14+ days ago or both sides reviewed; no test review while test data is hidden)'),
   ('job_is_funded',                 'allow',    'job is listed: funded or its card held (applications WITH CHECK; Q2399 20261027185146)'),
   ('job_payment_is_funded',         'allow',    'payment_status counts as funded (award + apply gates)'),
   ('job_payment_is_listed',         'allow',    'payment_status counts as listed: funded or the card held (browse, apply, alerts, offers; Q2399 20261027185146)'),
@@ -366,7 +367,9 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   -- SH12: S is link-visible (above), so even a caller with no uid reads it.
   ('shop_extras_readable',          NULL, ARRAY['''00000000-0000-4000-8140-000000000401''::uuid'], ARRAY[1]),
   -- A owns S, so the non-NULL call is TRUE (the owner branch).
-  ('shop_visible_to',               NULL, ARRAY['''00000000-0000-4000-8140-000000000401''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]);
+  ('shop_visible_to',               NULL, ARRAY['''00000000-0000-4000-8140-000000000401''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]),
+  -- Shops H9: B's review 0403 of order 0402 (handed over 20 days ago, the 'shop' fixture step) is public.
+  ('shop_review_public',            NULL, ARRAY['''00000000-0000-4000-8140-000000000403''::uuid'], ARRAY[1]);
 
 DO $q140$
 DECLARE
@@ -391,7 +394,8 @@ BEGIN
   -- the application notifier's pg_net call dies on a NULL url.
   FOREACH step IN ARRAY ARRAY['public.profiles', 'public.user_roles', 'public.jobs', 'public.applications', 'public.group_job_helpers',
                               'public.declutter_items', 'public.declutter_cart_items', 'public.declutter_pickup_windows', 'public.declutter_meetup_spots',
-                              'public.declutter_orders', 'public.declutter_payouts', 'public.shops', 'public.feature_switches'] LOOP
+                              'public.declutter_orders', 'public.declutter_payouts', 'public.shops', 'public.feature_switches',
+                              'public.shop_orders', 'public.shop_reviews'] LOOP
     BEGIN
       EXECUTE format('ALTER TABLE %s DISABLE TRIGGER USER', step);
     EXCEPTION WHEN OTHERS THEN
@@ -613,6 +617,20 @@ BEGIN
                            'q140 shop', 'bakery', 'Baton Rouge', 30.45, -91.15)$q$;
           INSERT INTO public.feature_switches (key, audience, description) VALUES ('shops', 'testers', 'q140 fixture')
           ON CONFLICT (key) DO UPDATE SET audience = 'testers';
+        END IF;
+        -- Shops H9 (20261105230819): order 0402 from S to B, handed over 20 days ago (so its reviews are public), and
+        -- B's review of it (0403). The amounts satisfy shop_orders' premium and total CHECKs.
+        IF to_regclass('public.shop_reviews') IS NOT NULL THEN
+          EXECUTE $q$INSERT INTO public.shop_orders (id, buyer_id, seller_id, shop_id, status, ready_date, cancel_policy,
+                     items_cents, premium_cents, tax_cents, total_cents, stripe_payment_intent_id, captured_at, handed_over_at)
+                   VALUES ('00000000-0000-4000-8140-000000000402', '00000000-0000-4000-8140-00000000000b',
+                           '00000000-0000-4000-8140-00000000000a', '00000000-0000-4000-8140-000000000401', 'handed_over',
+                           CURRENT_DATE - 21, 'until_accept', 1000, 120, 0, 1120, 'pi_q140shop',
+                           now() - interval '20 days', now() - interval '20 days')$q$;
+          EXECUTE $q$INSERT INTO public.shop_reviews (id, order_id, shop_id, reviewer_id, reviewee_id, reviewer_side, stars)
+                   VALUES ('00000000-0000-4000-8140-000000000403', '00000000-0000-4000-8140-000000000402',
+                           '00000000-0000-4000-8140-000000000401', '00000000-0000-4000-8140-00000000000b',
+                           '00000000-0000-4000-8140-00000000000a', 'buyer', 5)$q$;
         END IF;
       WHEN 'availability' THEN
         -- Instant book (20261101063725): B is free a week from today, 09:00-17:00, so

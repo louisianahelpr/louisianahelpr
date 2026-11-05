@@ -84,12 +84,6 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
     why: "the desktop feed strip's BrowseSearchBar exists only at >=900px (the phone has the permanent compact row, which opens nothing); there is no field to open at the other width",
   },
   {
-    file: "e2e/happy-path/zz-recurring-picker.spec.ts",
-    match: "!RECURRING_ENABLED",
-    verdict: "justified",
-    why: "reads the product's own RECURRING_ENABLED flag from LogisticsSection.tsx; while it is false the picker does not render for anyone",
-  },
-  {
     file: "e2e/happy-path/appstore-screenshots.spec.ts",
     match: "RUN_APPSTORE_SHOTS",
     verdict: "justified",

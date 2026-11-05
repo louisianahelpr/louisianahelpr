@@ -71,7 +71,7 @@ export interface BrowseTasksToolbarProps {
    * `/browse` on WEB renders through `PublicHeaderPage title="Browse Jobs"`,
    * which draws a visible `<h1>` — so the toolbar's sr-only copy made TWO
    * `<h1>Browse Jobs</h1>` on that page: an a11y defect and a Playwright
-   * strict-mode violation, caught by `home-chrome.spec.ts` at 320, 375 and
+   * strict-mode violation, caught by `home-chrome.spec.ts` (now e2e/journeys/feed-chrome.spec.ts) at 320, 375 and
    * 1440. Native keeps rendering it, because `PageScaffold`'s title card there
    * is the H logo and carries no heading of its own.
    */

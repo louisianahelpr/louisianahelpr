@@ -98,7 +98,7 @@ export const TITLE_BAR_PADDING = "!py-1.5 lg:!py-2"; // = Posts/Jobs/Messages (2
  * toolbar's, and the emblem takes its accessible name from the image `alt`.
  *
  * Measured fit — Chrome, seeded authed sweep, 2026-08-18. Every number below
- * is a real getBoundingClientRect from `e2e/happy-path/home-chrome.spec.ts`;
+ * is a real getBoundingClientRect from `e2e/journeys/feed-chrome.spec.ts`;
  * the arithmetic that used to sit here described the arrangement that carried
  * the four icons, and it is no longer what this row does.
  *

@@ -18,7 +18,7 @@
  * with `.withTags(AXE_TAGS)` swapped back for the original hardcoded
  * four-tag array and shows the scan flags it.
  */
-// @mutate e2e/happy-path/home-chrome.spec.ts | .withTags(AXE_TAGS) | .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+// @mutate e2e/journeys/feed-chrome.spec.ts | .withTags(AXE_TAGS) | .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
@@ -79,7 +79,7 @@ describe("every .withTags() call outside axeTags.ts uses the shared AXE_TAGS con
   });
 
   it("RED on the exact Q761 defect: a private four-tag literal reintroduced in a real spec", () => {
-    const file = join(E2E, "happy-path", "home-chrome.spec.ts");
+    const file = join(E2E, "journeys", "feed-chrome.spec.ts");
     const src = readFileSync(file, "utf8");
     const broken = src.replace(
       /\.withTags\(AXE_TAGS\)/,

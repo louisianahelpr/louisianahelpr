@@ -4,7 +4,7 @@
  * These usual times apply to the police safe spots (and an own spot with no times of its own), so the card is named
  * for that and lists the hours themselves.
  *
- * @mutate src/components/declutter/MeetupTimesCard.tsx | <span className="block text-sm font-semibold">Police spot meetup times</span> | <span className="block text-sm font-semibold">Meetup times</span>
+ * @mutate src/components/declutter/MeetupTimesCard.tsx | <CardDisclosureHeader icon={Clock} title="Police spot meetup times" | <CardDisclosureHeader icon={Clock} title="Meetup times"
  * @mutate src/components/declutter/MeetupTimesCard.tsx | rows.length ? weekHoursLine(toWindows(rows)) : "None yet" | rows.length ? `${rows.length} pickup times` : "None yet"
  * @mutate src/components/declutter/MeetupTimesCard.tsx | When you can meet a buyer at a police safe exchange spot, or at one of your meet spots with no times of its own. | When you can meet a buyer at a safe meeting spot.
  */

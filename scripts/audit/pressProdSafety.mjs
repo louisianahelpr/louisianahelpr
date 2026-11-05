@@ -489,6 +489,16 @@ export const SKIP_STRIPE_WRITE_BLOCKED = "writes to Stripe — Stripe is not in 
 export const SKIP_CAPTCHA_GATED = "calls a CAPTCHA-guarded auth endpoint with no Turnstile token (this CI origin cannot get one; request aborted in the browser; control not counted as pressed)";
 export const SKIP_ADMIN ="admin action without a seed test target";
 export const SKIP_ACCOUNT_SETTING = "flips a setting on a SHARED test account (every other sweep renders with it)";
+/**
+ * The `incomplete` seed account (prod-seed.mjs OWNED.incomplete) is only useful
+ * while it is INCOMPLETE: every /complete-profile journey signs in as it. Press
+ * run 41817058240 (leg 1, shard 2, 2026-11-04 10:57:04Z) pressed its own Enter
+ * App, which passed every ownership check (its own account, a self route) and
+ * completed it, so keyboard-focus and trailing-icon-fields failed their
+ * precheck in e2e-journeys 41934715217. No write is ever pressed as it.
+ * Guard: src/test/pressNeverCompletesTheIncompleteSeed.test.ts.
+ */
+export const SKIP_INCOMPLETE_SEED = "writes as the incomplete seed account (every Complete Profile journey needs it to stay incomplete)";
 export const SKIP_SHARED_SEED = "shared SEED fixture (test-owned, but other sweeps depend on it; the run's own fixture covers the action)";
 export const SKIP_NOT_OWNED_URL = "not test-owned (mutating control; target is not a test-account record)";
 export const SKIP_NOT_OWNED_ROW = "not test-owned (mutating control; no record id in the URL and the row names no test entity)";
@@ -507,6 +517,7 @@ export async function mutationGate({ label, meta, chainOwned, persona, routeUrl,
     const m = await stripeMode();
     if (m.mode !== "test") { note(`Stripe mode ${m.mode} (${m.detail})`); return SKIP_STRIPE; }
   }
+  if (persona === "incomplete") return SKIP_INCOMPLETE_SEED;
   const rowOwned = rowNamesTestOwner(meta.rowText, owners) || !!chainOwned;
   if (persona === "admin") return urlOwned.owned || rowOwned ? null : SKIP_ADMIN;
   if (isAccountSettingToggle({ persona, meta, label })) return urlOwned.owned && !urlOwned.shared ? null : SKIP_ACCOUNT_SETTING;

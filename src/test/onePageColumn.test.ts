@@ -54,7 +54,7 @@ describe("one page column for every signed-in page (owner 2026-10-21)", () => {
     const src = read("src/pages/profile/Profile.tsx");
     expect(src).toMatch(/<div className=\{PAGE_COLUMN\}>\s*<ProfileTabPanels/);
     expect(src).toMatch(/<div className=\{`\$\{PAGE_COLUMN\}[^`]*`\}>\s*<ProfileLanding/);
-    expect(src).toMatch(/className=\{`page-measure \$\{PAGE_COLUMN\}`\}/);
+    expect(read("src/pages/profile/ProfileLoadingShell.tsx")).toMatch(/className=\{`page-measure \$\{PAGE_COLUMN\}`\}/);
     expect(read("src/components/job-card/JobListPage.tsx")).toContain("className={`min-h-full flex flex-col ${PAGE_COLUMN}`}");
   });
 

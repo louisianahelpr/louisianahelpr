@@ -8,7 +8,7 @@
  * @mutate src/components/profile/SettingsTab.tsx |                 on ? ( |                 true ? (
  * @mutate src/components/profile/SettingsTab.tsx |       <Group title="Look"> |       <Group title="Display">
  * @mutate src/pages/profile/types.ts |   security: "Account and security", |   security: "Account Security",
- * @mutate src/pages/profile/Profile.tsx | { returnTo.current = "settings"; setTab | { returnTo.current = null; setTab
+ * @mutate src/pages/profile/useProfileTabNav.ts | { returnTo.current = "settings"; setTab | { returnTo.current = null; setTab
  * @mutate src/components/profile/SettingsTab.tsx | onClick={() => onSelectTab("blocked")} | onClick={() => onSelectTab("security")}
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -100,8 +100,9 @@ describe("You › Settings, board 52", () => {
   });
 
   it("a tab opened from Settings backs out to Settings", () => {
+    const nav = blankComments(readFileSync(resolve(__dirname, "../pages/profile/useProfileTabNav.ts"), "utf8"));
+    expect(nav).toMatch(/const openFromSettings = useCallback\(\(key: string\) => \{\s*returnTo\.current = "settings";/);
     const page = blankComments(readFileSync(resolve(__dirname, "../pages/profile/Profile.tsx"), "utf8"));
-    expect(page).toMatch(/const openFromSettings = useCallback\(\(key: string\) => \{\s*returnTo\.current = "settings";/);
     expect(page).toContain("onSelectTab={openFromSettings}");
   });
 });

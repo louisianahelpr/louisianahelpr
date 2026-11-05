@@ -218,13 +218,14 @@ describe("loading states: the Profile tab placeholder fills the screen", () => {
     expect(src, "and applied as a min-height, so short tabs collapse empty space").toMatch(/minHeight/);
   });
 
-  // @mutate src/pages/profile/Profile.tsx | {tab === "landing" ? (\n              <ProfilePageSkeleton /> | {false ? (\n              <ProfilePageSkeleton />
+  // @mutate src/pages/profile/ProfileLoadingShell.tsx | {tab === "landing" ? (\n            <ProfilePageSkeleton /> | {false ? (\n            <ProfilePageSkeleton />
   it("boots into the TAB's placeholder, never the landing's", () => {
     // A cold deep link into ?tab=gift_card used to paint an avatar hero and
     // three stat tiles, because the boot branch special-cased one tab.
-    const src = strip(readFileSync(PROFILE, "utf8"));
-    const branch = src.slice(src.indexOf("if (showSkeleton) {"), src.indexOf("const displayName"));
-    expect(branch.length, "Profile.tsx's loading branch not found - guard rotted").toBeGreaterThan(100);
+    // Profile.tsx's boot branch returns <ProfileLoadingShell /> (Q806 split); the shell is the branch.
+    expect(strip(readFileSync(PROFILE, "utf8"))).toMatch(/if \(showSkeleton\) \{\s*return <ProfileLoadingShell /);
+    const branch = strip(readFileSync(resolve(REPO, "src/pages/profile/ProfileLoadingShell.tsx"), "utf8"));
+    expect(branch.length, "ProfileLoadingShell.tsx not found - guard rotted").toBeGreaterThan(100);
     expect(branch).toContain("ProfileTabFallback");
     // The PAIRING, not the presence of either half. `/tab === "landing"/`
     // alone was satisfied by the container's own `pt-3` gate a few lines up

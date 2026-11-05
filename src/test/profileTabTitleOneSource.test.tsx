@@ -60,12 +60,12 @@ describe("a Profile tab's header has one title, loading or loaded", () => {
     const direct = files.filter((f) => /ProfileTabHeader\s+title=\{\s*TAB_TITLES\[/.test(blankComments(read(f))));
     expect(direct).toEqual([]);
     const asking = files.filter((f) => /\bprofileTabTitle\(/.test(blankComments(read(f))) && !f.endsWith("pages/profile/types.ts"));
-    // ProfileTabFallback, ProfileOfflineGate, SupportInline, Profile (browser tab title).
+    // ProfileTabFallback, ProfileOfflineGate, SupportInline, useProfileTabNav (Profile's browser tab title).
     expect(asking.sort()).toEqual([
       "src/components/profile/ProfileOfflineGate.tsx",
       "src/components/profile/ProfileTabFallback.tsx",
       "src/components/profile/SupportInline.tsx",
-      "src/pages/profile/Profile.tsx",
+      "src/pages/profile/useProfileTabNav.ts",
     ]);
     expect(blankComments(read("src/components/profile/SupportInline.tsx"))).toMatch(
       /ProfileTabHeader title=\{profileTabTitle\("support", searchParams\.toString\(\)\)\}/,

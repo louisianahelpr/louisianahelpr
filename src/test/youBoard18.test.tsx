@@ -46,7 +46,7 @@ describe("You matches board 18", () => {
     expect(PROFILE_PAGE_TITLE).toBe("You");
     const landing = blankComments(readFileSync(resolve(__dirname, "../components/profile/ProfileLanding.tsx"), "utf8"));
     expect(landing).toContain("<YourActivity />");
-    const page = blankComments(readFileSync(resolve(__dirname, "../pages/profile/Profile.tsx"), "utf8"));
+    const page = blankComments(readFileSync(resolve(__dirname, "../pages/profile/useProfileTabNav.ts"), "utf8"));
     expect(page).toContain('"You — Helpr"');
     expect(page).not.toContain("My Profile — Helpr");
   });

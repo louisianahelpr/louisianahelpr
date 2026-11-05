@@ -15,7 +15,7 @@
  * NOTHING outside the entry's own chunks may import this file (see guestJobsPrefetch.ts). So the URLs and the photo
  * sizes are COPIES, and src/boot/declutterItemPrefetch.test.ts holds them equal to the originals.
  */
-import { storedSession } from "./storedSession";
+import { anyStoredSession, storedSession } from "./storedSession";
 
 export const DECLUTTER_ITEM_PREFETCH_KEY = "__lhDeclutterItemPrefetch";
 
@@ -58,19 +58,32 @@ export function firstGalleryPhoto(supabaseUrl: string, rows: unknown): { href: s
 const listOf = (r: Response): Promise<unknown[] | null> =>
   r.ok ? (r.json() as Promise<unknown>).then((x) => (Array.isArray(x) ? x : null)) : Promise.resolve(null);
 
-/** Called by the entry (through signedInPrefetch.ts). No-op unless this is a cold load of an item page with a live session. */
+/**
+ * Called by the entry (through signedInPrefetch.ts). No-op unless this is a cold load of an item page, by a member with a
+ * live session or by a GUEST (no stored session at all).
+ *
+ * GUESTS (Q2707/Q2708, measured 11-04 on prod, item 55e18296, guest, cwv-lab with the HTTP cache kept): a shared item
+ * link is how most guests arrive, and its first photo painted at 9.2 s on Slow 4G (2.5 s on Fast 4G), because a
+ * guest's reads waited for the guest route's whole chain (DeclutterGuestRoute, auth, the sections-open read, the page)
+ * and started only at ~6.7 s. A guest now gets the same two reads as the anonymous role (the page's own reads, the
+ * anon policies of 20261031060656_declutter_guest_read.sql) and the photo preload; the hand-over is for a guest page
+ * only (userId null on both sides, itemPrefetchTake.ts). A stored session that is expiring or unreadable: nothing
+ * (supabase-js refreshes it first, and the page reads as that member).
+ */
 export function startDeclutterItemPrefetch(pathname: string): void {
   const itemId = ITEM_PATH.exec(pathname)?.[1]?.toLowerCase();
   if (!itemId || typeof fetch !== "function") return;
   const base = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
   const session = storedSession(Date.now() / 1000);
-  if (!base || !key || !session) return;
+  const guest = !session && !anyStoredSession();
+  if (!base || !key || (!session && !guest)) return;
   const urls = declutterItemUrls(base, itemId);
-  const headers = { apikey: key, Authorization: `Bearer ${session.token}`, Accept: "application/json" };
+  // The anonymous role sends the publishable key as its bearer, as supabase-js does for a signed-out client.
+  const headers = { apikey: key, Authorization: `Bearer ${session ? session.token : key}`, Accept: "application/json" };
   // A failed prefetch is not an error: the page runs today's reads.
   const read = (url: string) => fetch(url, { headers }).then(listOf).catch(() => null);
-  const slot = { at: Date.now(), userId: session.userId, itemId, item: read(urls.item), photos: read(urls.photos) };
+  const slot = { at: Date.now(), userId: session ? session.userId : null, itemId, item: read(urls.item), photos: read(urls.photos) };
   (window as unknown as Record<string, unknown>)[DECLUTTER_ITEM_PREFETCH_KEY] = slot;
   void slot.photos.then((rows) => {
     const p = firstGalleryPhoto(base, rows);

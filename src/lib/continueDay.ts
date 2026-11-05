@@ -15,7 +15,7 @@ import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 export const CONTINUE_DAY_LABEL = "Not finished? Set a day";
 
 export type { ContinueDay } from "./continueDayWords";
-export { continueDayLabel, continueDayNextStep, continueDayAhead, continueDayDoneNote, continueDayHeader, jobOnContinueDay } from "./continueDayWords";
+export { continueDayAnswer, continueDayLabel, continueDayNextStep, continueDayAhead, continueDayDoneNote, continueDayHeader, jobOnContinueDay } from "./continueDayWords";
 export { fetchContinueDay } from "./continueDayReads";
 
 type ContinueRpc = "propose_job_continue_day" | "answer_job_continue_day" | "confirm_job_continue_day";

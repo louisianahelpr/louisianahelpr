@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { userFacingError } from "@/lib/userFacingError";
 import { ContinueDaySheet } from "@/components/jobs/ContinueDaySheet";
-import { CONTINUE_DAY_LABEL, answerContinueDay, confirmContinueDay, continueDayAhead, continueDayDoneNote, continueDayLabel, continueDayNextStep, fetchContinueDay, type ContinueDay } from "@/lib/continueDay";
+import { CONTINUE_DAY_LABEL, answerContinueDay, continueDayAnswer, confirmContinueDay, continueDayAhead, continueDayDoneNote, continueDayLabel, continueDayNextStep, fetchContinueDay, type ContinueDay } from "@/lib/continueDay";
 import type { NextStepValue } from "@/components/ui/NextStep";
 import type { RowAction } from "./JobPageActionRow";
 import type { PagePrimary } from "./posterPageActions";
@@ -92,11 +92,13 @@ export function useContinueDayActions({
   const helprExtras: RowAction[] = [];
   let setDay: RowAction | null = null;
   const offerSetDay = workStarted || !!row;
+  // The one rule for who answers a proposed day (continueDayAnswer): the job page and both job cards read it.
+  const answer = continueDayAnswer(row, side);
   if (side === "poster") {
     // Q2606 (owner): the poster answers only the Helpr's ask; their own ask waits on the Helpr.
-    if (row?.status === "proposed" && row.proposer !== "poster") {
-      posterLead = { label: "Confirm new day", go: () => void run(() => answerContinueDay(row.id, true), `Set: continuing ${when}.`)(), disabled: busy };
-      posterExtras.push({ key: "continue-decline", label: "Decline new day", go: () => void run(() => answerContinueDay(row.id, false), "Declined. Message them to agree on what's next.")(), disabled: busy });
+    if (row && answer) {
+      posterLead = { label: answer.accept, go: () => void run(() => answerContinueDay(row.id, true), answer.accepted)(), disabled: busy };
+      posterExtras.push({ key: "continue-decline", label: answer.decline, go: () => void run(() => answerContinueDay(row.id, false), answer.declined)(), disabled: busy });
     }
     if (row?.status === "set") {
       // Auditor 11 (11-01): the pair once a day is set is [Change day | Message], never "SOS | Message".
@@ -107,9 +109,9 @@ export function useContinueDayActions({
     }
   } else {
     // Q2606 (owner): the poster's new day is the Helpr's to accept or decline (answer_job_continue_day, 20261102102402).
-    if (row?.status === "proposed" && row.proposer === "poster") {
-      helprLead = { key: "continue-accept", label: "Accept new day", go: () => void run(() => answerContinueDay(row.id, true), `Set: continuing ${when}.`)(), disabled: busy };
-      helprExtras.push({ key: "continue-decline", label: "Decline new day", go: () => void run(() => answerContinueDay(row.id, false), "Declined. Message them to agree on what's next.")(), disabled: busy });
+    if (row && answer) {
+      helprLead = { key: "continue-accept", label: answer.accept, go: () => void run(() => answerContinueDay(row.id, true), answer.accepted)(), disabled: busy };
+      helprExtras.push({ key: "continue-decline", label: answer.decline, go: () => void run(() => answerContinueDay(row.id, false), answer.declined)(), disabled: busy });
     }
     if (row?.status === "set" && !row.helper_confirmed_at) {
       helprLead = { key: "continue-confirm", label: "Confirm I'll be there", go: () => void run(() => confirmContinueDay(row.id), `Confirmed for ${when}.`)(), disabled: busy };

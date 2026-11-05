@@ -33,6 +33,8 @@ import { descriptionAddsToTitle, hasProofPhotos } from "@/lib/jobCardFacts";
 import { JobRequestRows } from "@/components/series/JobSeriesCardControls";
 import { useCardNotes } from "@/components/job-card/JobNotes";
 import { useContinueDay } from "@/hooks/useContinueDays";
+import { useContinueDayOnCard } from "@/components/jobs/ContinueDayOnCard";
+import { JobCardLeadContext } from "@/components/job-card/jobCardLead";
 import { continueDayDoneNote } from "@/lib/continueDayWords";
 import { RentalVisitHelprSlot } from "@/components/rentals/RentalVisitHelprSlot";
 import { HelperJobMetaRow } from "./appliedJobCard/HelperJobMetaRow";
@@ -114,6 +116,12 @@ function AppliedJobCardInner({
   // before the early return (hooks run on every render); only a hired Helpr's solo job under way can have one.
   const continueDay = useContinueDay(job?.id, !!job && job.status === "in_progress" && !job.is_group_job && job.helper_id === app.helper_id);
   const notes = useCardNotes(job, expandedJobIds.has(app.job_id), app.status === "accepted" && job?.status !== "cancelled" && job?.status !== "completed"); // Q1461: access only for a hired Helpr until the job ends
+  // Owner 11-05: the poster's proposed new day is answered ON this card, as its one primary (lead 11-05). Before the
+  // early return (hooks run on every render).
+  const continueDayAnswer = useContinueDayOnCard({
+    job, side: "helpr", mine: !!job && job.helper_id === userId,
+    otherFirst: (app.posterName ?? "").split(" ")[0] || null, otherId: job?.customer_id ?? null,
+  });
   if (!job) {
     // An application can outlive its job row's VISIBILITY: once the job closes to another helper, the jobs SELECT
     // policy hides it from a rejected applicant, so `app.job` comes back null. The bucket counts (activityFilters)
@@ -239,7 +247,7 @@ function AppliedJobCardInner({
        context (jobCardPerson.tsx). The provider wraps the WHOLE card so the
        body fallback below and the shell's claim are answering one question.
        The tile is already null while collapsed — see `posterTile` above. */
-    <JobCardPersonContext.Provider value={personCtx}>
+    <JobCardPersonContext.Provider value={personCtx}><JobCardLeadContext.Provider value={continueDayAnswer.lead}>
         <div ref={cardRef}>
         <JobCardShell
           /* THE FACE OPENS THE JOB PAGE (board 21, lead 2026-10-20); the
@@ -270,7 +278,7 @@ function AppliedJobCardInner({
                 <HelperCollapsedStrip variant="line" app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} reviewed={isFullyDone} tracking={initialTracking} progress={faceProgress} otherFirst={posterFirst} />
               ) : null
             }
-            action={isExpanded ? null : faceAction} onCollapse={isExpanded ? () => toggleExpandedJobId(app.job_id) : undefined}
+            action={isExpanded ? null : continueDayAnswer.faceAction ?? faceAction} onCollapse={isExpanded ? () => toggleExpandedJobId(app.job_id) : undefined}
             progress={!isExpanded ? faceProgress : null} /* the 8 steps on the card (owner, 2026-10-22) */
           />
           {isExpanded && <MineOpenMeta jobId={job.id} meta={addressOnFace ? null : metaRow} />}
@@ -536,7 +544,7 @@ function AppliedJobCardInner({
           />
         </JobCardShell>
         </div>
-    </JobCardPersonContext.Provider>
+    </JobCardLeadContext.Provider></JobCardPersonContext.Provider>
   );
 }
 

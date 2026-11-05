@@ -52,7 +52,6 @@ const BASELINE: string[] = [
   "happy-path/error-state-sweep.spec.ts",
   "happy-path/fixtures.ts",
   "happy-path/guest-feed-progressive.spec.ts",
-  "happy-path/helper-apply.spec.ts",
   "happy-path/messages-thread.spec.ts",
   "happy-path/nav-hide-on-scroll.spec.ts",
   "happy-path/overlay-sweep.spec.ts",

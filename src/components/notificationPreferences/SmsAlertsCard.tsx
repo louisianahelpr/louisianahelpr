@@ -18,7 +18,7 @@ import {
   parseSmsConsent,
   smsConfirmWaitingFresh,
 } from "@/lib/smsConsent";
-import { fetchSmsConsent, smsConsentQueryKey } from "@/lib/smsConsentQuery";
+import { fetchSmsConsent, smsConsentLoadErrorMessage, smsConsentQueryKey } from "@/lib/smsConsentQuery";
 
 
 /**
@@ -215,7 +215,7 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
         {isError ? (
           <div className="flex items-center justify-between gap-3">
             <p className="text-ds-13" style={{ color: "hsl(var(--ink-deep) / 0.75)" }}>
-              {rpcErrorMessage("get_my_sms_consent", loadError) ?? "We couldn't load your text alert settings."}
+              {smsConsentLoadErrorMessage(loadError) ?? "We couldn't load your text alert settings."}
             </p>
             <Button variant="outline" size="sm" onClick={() => { void refetch(); }}>Try again</Button>
           </div>

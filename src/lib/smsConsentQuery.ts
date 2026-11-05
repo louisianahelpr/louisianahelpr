@@ -9,6 +9,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { parseSmsConsent, type SmsConsent } from "@/lib/smsConsent";
 
 const SMS_CONSENT_QUERY_KEY = ["sms-consent"] as const;
@@ -17,4 +18,9 @@ export const smsConsentQueryKey = (userId: string | undefined) => [...SMS_CONSEN
 
 export async function fetchSmsConsent(): Promise<SmsConsent> {
   return parseSmsConsent(unwrap(await supabase.rpc("get_my_sms_consent")));
+}
+
+/** The copy for a failed consent read, read beside the call that raises it (rpcErrorCopyCoverage). */
+export function smsConsentLoadErrorMessage(error: unknown): string | null {
+  return rpcErrorMessage("get_my_sms_consent", error);
 }

@@ -215,6 +215,7 @@ BEGIN
        AND o.is_seed IS NOT TRUE
        AND NOT EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id IN (o.buyer_id, o.seller_id))
        AND NOT EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id IN (o.buyer_id, o.seller_id) AND pr.is_seed)
+       AND NOT public.is_test_subject(o.buyer_id) AND NOT public.is_test_subject(o.seller_id)
      ORDER BY o.ready_date, o.id LIMIT 200
   LOOP
     BEGIN

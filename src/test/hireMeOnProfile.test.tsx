@@ -102,7 +102,9 @@ describe("Hire me on /u/<handle>", () => {
     answer({ data: HELPR });
     show("/u/eli-b?hire=1");
     await waitFor(() => expect(screen.getByTestId("where").textContent).toBe(`/post-job?offerTo=${HELPR}`));
-    expect(rpc.mock.calls.filter(([n]) => n === "rpc_hire_target_by_handle")).toHaveLength(1);
+    // Exactly 2: the tap's continuation once, plus the ONE shared member-id read that Save/Report/Block and the
+    // moving-sale banner make (key public-profile-member-id, profile leftovers 11-05). A second continuation makes 3.
+    expect(rpc.mock.calls.filter(([n]) => n === "rpc_hire_target_by_handle")).toHaveLength(2);
   });
 
   it("a refusal shows its words and stays on the page", async () => {

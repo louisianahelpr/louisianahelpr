@@ -3,17 +3,17 @@
   "summary": {
     "calls": 1162,
     "files": 324,
-    "rendering": 1080,
-    "suppressedByPolicy": 82,
+    "rendering": 1081,
+    "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 221,
+      "toast": 222,
       "toast.error": 784,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 88,
+      "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
@@ -10724,12 +10724,12 @@
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
       "line": 82,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Marked handed over. The buyer has 48 hours to report a problem."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",

@@ -24,7 +24,7 @@
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | {side === "buyer" && v.status === "confirmed" && <DeliveryTipPanel | {side === "buyer" && <DeliveryTipPanel
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | tipCents={tips.data?.get(t.task_id) ?? 0} | tipCents={0}
  * @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |  v_held := NOT EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id = t.helpr_id AND pr.stripe_account_id IS NOT NULL); |  v_held := false;
- * @mutate supabase/migrations/20261028014848_helpr_task_tips.sql | WHERE x.task_id = t.id AND x.held AND x.payment_status = 'paid' AND x.payout_transfer_id IS NULL), '[]'::jsonb) | WHERE x.task_id = t.id AND x.held AND x.payment_status = 'paid'), '[]'::jsonb)
+ * @mutate supabase/migrations/20261105032500_declutter_gift_payouts.sql | WHERE x.task_id = t.id AND x.held AND x.payment_status = 'paid' AND x.payout_transfer_id IS NULL), '[]'::jsonb) | WHERE x.task_id = t.id AND x.held AND x.payment_status = 'paid'), '[]'::jsonb)
  * @mutate supabase/migrations/20261028014848_helpr_task_tips.sql |      AND (p.id IS NULL OR p.status NOT IN ('pending', 'failed', 'held_for_review') |      AND (p.id IS NULL
  */
 import { describe, expect, it } from "vitest";
@@ -125,7 +125,7 @@ describe("tips on Declutter deliveries (Q2453)", () => {
     expect(flat("helpr_task_tip_payout_sent")).toContain("IF NOT FOUND OR NOT r.held OR r.payment_status <> 'paid' THEN RETURN 'mismatch';");
     expect(all).toContain("REVOKE ALL ON FUNCTION public.helpr_task_tip_payout_sent(uuid, text) FROM PUBLIC, anon, authenticated;");
     const money = src("supabase/functions/declutter-money/index.ts");
-    expect(money).toContain("parts = [...helprPayoutParts(h.amount_cents, h.payment_intent_id, h.raised_cents, h.raise_parts), ...heldTipParts(h.tip_parts)];");
+    expect(money).toContain('parts = [...helprPayoutParts(h.amount_cents, h.payment_intent_id ?? "", h.raised_cents, h.raise_parts), ...heldTipParts(h.tip_parts)];');
     expect(money).toContain('admin.rpc("helpr_task_tip_payout_sent"');
     const parts = src("supabase/functions/_shared/helprPayoutParts.ts");
     expect(parts).toContain("return { raiseId: null, tipId: t.tip_id, paymentIntentId: t.payment_intent_id, amountCents: t.cents };");

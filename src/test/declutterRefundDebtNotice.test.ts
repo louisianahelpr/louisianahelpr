@@ -8,9 +8,9 @@
  * without a notice turns this red. (Shops refunds and delivery raises key their debts by other columns.)
  * Backend proof: src/test/pglite/declutterRefundDebtNotice.pglite.mjs (3x; RED without the migration).
  *
- * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql |       IF FOUND AND NOT (p_reason = 'seller_out' |       IF false AND NOT (p_reason = 'seller_out'
- * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql |       IF FOUND AND NOT (p_reason = 'seller_out' |       IF true AND NOT (p_reason = 'seller_out'
- * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql | sale''s payout.',\n                           public.declutter_order_items_named(p_order_id), to_char(v_fee / 100.0 | sale''s payout.',\n                           NULL::text, to_char(v_fee / 100.0
+ * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql |       IF FOUND AND NOT (p_reason = 'seller_out' |       IF false AND NOT (p_reason = 'seller_out'
+ * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql |       IF FOUND AND NOT (p_reason = 'seller_out' |       IF true AND NOT (p_reason = 'seller_out'
+ * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql | sale''s payout.',\n                           public.declutter_order_items_named(p_order_id), to_char(v_fee / 100.0 | sale''s payout.',\n                           NULL::text, to_char(v_fee / 100.0
  * BUY-30 (20261031105148): the notice names the item; proof src/test/pglite/declutterRefundDebtNoticeNamesItem.pglite.mjs (3x; skip red).
  */
 import { describe, expect, it } from "vitest";

@@ -1676,6 +1676,7 @@ export type Database = {
           next_attempt_at: string
           order_id: string
           reason: string
+          gift_refund_cents: number
           refund_cents: number
           review_held_at: string | null
           review_reason: string | null
@@ -1683,7 +1684,7 @@ export type Database = {
           settled_by_hand_note: string | null
           settled_by_hand_ref: string | null
           status: string
-          stripe_payment_intent_id: string
+          stripe_payment_intent_id: string | null
           stripe_refund_ref: string | null
         }
         Insert: {
@@ -1698,6 +1699,7 @@ export type Database = {
           next_attempt_at?: string
           order_id: string
           reason: string
+          gift_refund_cents?: number
           refund_cents: number
           review_held_at?: string | null
           review_reason?: string | null
@@ -1705,7 +1707,7 @@ export type Database = {
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
           status?: string
-          stripe_payment_intent_id: string
+          stripe_payment_intent_id?: string | null
           stripe_refund_ref?: string | null
         }
         Update: {
@@ -1720,6 +1722,7 @@ export type Database = {
           next_attempt_at?: string
           order_id?: string
           reason?: string
+          gift_refund_cents?: number
           refund_cents?: number
           review_held_at?: string | null
           review_reason?: string | null
@@ -1727,7 +1730,7 @@ export type Database = {
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
           status?: string
-          stripe_payment_intent_id?: string
+          stripe_payment_intent_id?: string | null
           stripe_refund_ref?: string | null
         }
         Relationships: [
@@ -3153,6 +3156,8 @@ export type Database = {
       }
       declutter_orders: {
         Row: {
+          gift_card_id: string | null
+          gift_cents: number
           book_by: string | null
           book_by_reminded_24_at: string | null
           book_by_reminded_2_at: string | null
@@ -3189,6 +3194,8 @@ export type Database = {
           total_cents: number
         }
         Insert: {
+          gift_card_id?: string | null
+          gift_cents?: number
           book_by?: string | null
           book_by_reminded_24_at?: string | null
           book_by_reminded_2_at?: string | null
@@ -3223,6 +3230,8 @@ export type Database = {
           total_cents: number
         }
         Update: {
+          gift_card_id?: string | null
+          gift_cents?: number
           book_by?: string | null
           book_by_reminded_24_at?: string | null
           book_by_reminded_2_at?: string | null
@@ -3813,6 +3822,7 @@ export type Database = {
           created_at: string
           executed_at: string | null
           fee_policy: string
+          gift_refund_cents: number
           gave_up_notified_at: string | null
           held_notified_at: string | null
           id: string
@@ -3831,7 +3841,7 @@ export type Database = {
           settled_by_hand_note: string | null
           settled_by_hand_ref: string | null
           status: string
-          stripe_payment_intent_id: string
+          stripe_payment_intent_id: string | null
           stripe_refund_ref: string | null
         }
         Insert: {
@@ -3840,6 +3850,7 @@ export type Database = {
           created_at?: string
           executed_at?: string | null
           fee_policy: string
+          gift_refund_cents?: number
           gave_up_notified_at?: string | null
           held_notified_at?: string | null
           id?: string
@@ -3858,7 +3869,7 @@ export type Database = {
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
           status?: string
-          stripe_payment_intent_id: string
+          stripe_payment_intent_id?: string | null
           stripe_refund_ref?: string | null
         }
         Update: {
@@ -3867,6 +3878,7 @@ export type Database = {
           created_at?: string
           executed_at?: string | null
           fee_policy?: string
+          gift_refund_cents?: number
           gave_up_notified_at?: string | null
           held_notified_at?: string | null
           id?: string
@@ -3885,7 +3897,7 @@ export type Database = {
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
           status?: string
-          stripe_payment_intent_id?: string
+          stripe_payment_intent_id?: string | null
           stripe_refund_ref?: string | null
         }
         Relationships: [
@@ -5154,6 +5166,10 @@ export type Database = {
       }
       gift_cards: {
         Row: {
+          declutter_order_id: string | null
+          restored_declutter_refund_key: string | null
+          restored_from_declutter_order_id: string | null
+          split_for_declutter_order_id: string | null
           amount: number
           category: string | null
           claim_token: string | null
@@ -5178,6 +5194,10 @@ export type Database = {
           stripe_session_id: string | null
         }
         Insert: {
+          declutter_order_id?: string | null
+          restored_declutter_refund_key?: string | null
+          restored_from_declutter_order_id?: string | null
+          split_for_declutter_order_id?: string | null
           amount: number
           category?: string | null
           claim_token?: string | null
@@ -5202,6 +5222,10 @@ export type Database = {
           stripe_session_id?: string | null
         }
         Update: {
+          declutter_order_id?: string | null
+          restored_declutter_refund_key?: string | null
+          restored_from_declutter_order_id?: string | null
+          split_for_declutter_order_id?: string | null
           amount?: number
           category?: string | null
           claim_token?: string | null
@@ -16177,6 +16201,7 @@ export type Database = {
           amount_cents: number
           attempts: number
           buyer_id: string
+          gift_cents: number
           manager_id: string
           order_id: string
           payment_intent_id: string
@@ -16797,6 +16822,7 @@ export type Database = {
       declutter_delivery_refund_executed: { Args: { p_error: string; p_id: string; p_stripe_refund_id: string; p_succeeded: boolean }; Returns: string }
       declutter_delivery_refund_reversed: { Args: { p_id: string; p_stripe_refund_id: string; p_why: string }; Returns: string }
       declutter_delivery_refunds_due: { Args: { p_limit: number }; Returns: unknown }
+      declutter_refund_notice_names_gift: { Args: { p_refund_id: string; p_text: string }; Returns: string }
       declutter_delivery_reserved_cents: { Args: { p_order_id: string }; Returns: number }
       declutter_delivery_slot_ok: { Args: { p_order_id: string; p_start: string }; Returns: boolean }
       declutter_full_refund_cents: { Args: { p_order_id: string }; Returns: number }
@@ -17364,9 +17390,11 @@ export type Database = {
           amount_cents: number
           attempts: number
           buyer_id: string
+          gift_cents: number
           order_id: string
           payment_intent_id: string
           payout_id: string
+          refunds_recorded_cents: number
           seller_id: string
           stripe_account_id: string
         }[]
@@ -17512,6 +17540,7 @@ export type Database = {
           attempts: number
           buyer_id: string
           checkout_session_id: string
+          gift_refund_cents: number
           livemode: boolean
           order_id: string
           payment_intent_id: string

@@ -126,7 +126,10 @@ const distinctive = distinctiveColumns(schema);
 // still attributed by its own columns (capturing_from, notified_state, ...). `step` (needs_you_reminder_sends,
 // A3-85 20261102002011, typed 11-01) is every wizard's and job card's `{ step: "confirm" }`; a reminder-send row is
 // attributed by its own columns (ref_id, rung, deadline).
-const NOT_A_ROW_MARKER = ["state", "step"];
+// `gift_card_id` (declutter_orders, Q2106 20261105030604, its only table column) is the everyday key of every job
+// payment's Stripe metadata and RPC answer (`{ gift_card_id: "gift-1" }` in fundedJobPaymentFailed / release-payout);
+// a Declutter order row is still attributed by its own columns (gift_cents, delivery_cents, handover, ...).
+const NOT_A_ROW_MARKER = ["state", "step", "gift_card_id"];
 for (const k of NOT_A_ROW_MARKER) distinctive.delete(k);
 
 // ---------------------------------------------------------------------------

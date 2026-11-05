@@ -434,8 +434,11 @@ async function settleOrder(
     if (feeStateErr) logStep("Declutter receipt: setup fee state unreadable, fee left out", { orderId, error: feeStateErr.message });
     const feeClaimed = (feeState as { setup_fee_state?: string | null } | null)?.setup_fee_state === "claimed";
     const setupFeeCents = feeClaimed ? Number.parseInt(meta.setup_fee_cents ?? "0", 10) : 0;
+    // Q2106: a gift card paid part of this order (declutter-checkout stamps gift_cents; the page charged the rest).
+    const giftCents = Number.parseInt(meta.gift_cents ?? "0", 10);
+    const giftPart = Number.isInteger(giftCents) && giftCents > 0 ? ` (${dollars(giftCents)} from your gift card, ${dollars(amount)} on your card)` : "";
     await sendMoneyEmail(ctx, meta.buyer_id, "declutter_receipt", "Your Declutter receipt",
-      `You paid ${dollars(amount)} for your Declutter order${
+      `You paid ${dollars(amount + (giftPart ? giftCents : 0))}${giftPart} for your Declutter order${
         setupFeeCents > 0 ? `, including the one-time ${dollars(setupFeeCents)} account setup fee (charged once per account)` : ""
       }. The money is held until you have your items; then the seller is paid. ${
         parties?.handover === "delivery"
@@ -582,10 +585,20 @@ async function executeRefund(
   paymentIntentId: string,
   refund: Extract<MarkPaidAnswer, { result: "refund" }>,
   orderId: string,
-): Promise<"sent" | "already" | "failed"> {
+): Promise<"sent" | "already" | "failed" | "deferred"> {
   // Already handled: sent, or taken out of the automatic path by an admin (held for review /
   // settled by hand, 20261019070737), so a webhook redelivery never sends a second refund.
   if (refund.refund_status === "succeeded" || refund.refund_status === "held_for_review" || refund.refund_status === "settled_by_hand") return "already";
+  // Q2106 S3b: a row with a gift share is left to declutter-money (it is due 2 minutes after it was recorded), the
+  // one path that restores the gift FIRST under the row's key and refunds only the card part. The webhook would
+  // refund the whole refund_cents to the card. Thrown on a read error, so Stripe redelivers.
+  const { data: giftRow, error: giftErr } = await supabase.from("declutter_refunds")
+    .select("gift_refund_cents").eq("id", refund.refund_id).maybeSingle();
+  if (giftErr) throw new Error(`declutter_refunds gift share read failed: ${giftErr.message}`);
+  if (Number((giftRow as { gift_refund_cents?: number | null } | null)?.gift_refund_cents ?? 0) > 0) {
+    logStep("Declutter refund has a gift share: left to declutter-money", { refund_id: refund.refund_id });
+    return "deferred";
+  }
   let stripeRefund: Stripe.Refund;
   try {
     // List-and-adopt first, exactly like declutter-money: Stripe keeps an

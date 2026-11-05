@@ -27,7 +27,7 @@ import { isoDayIn } from "../calendarPicker";
 import { skipLivePay } from "../prod-audit/fundedOpenJob";
 import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
-import { cardByTitle, findChip, findPageAction, openPostedCard } from "./cardChips";
+import { cardByTitle, findChip, findPageAction, openFaceName, openPostedCard } from "./cardChips";
 import { ZONE, fillJobDetails, fillLogistics, fillBudget, slotAhead, slotDeadWindow } from "./postJobForm";
 import { clearJobPostDraft } from "./jobPostDraft";
 import { searchFeed } from "../feedSearch";
@@ -763,7 +763,7 @@ test.describe.serial("marketplace chain", () => {
     await declineLocation(page);
     // The card's face is a LINK "Open <title>" to /jobs/:id (MineJobFace, on Posted AND Working cards); the level-2
     // heading this looked for went with the face rebuild (cardChips.cardByTitle; e2e-journeys 41553090940).
-    const face = page.getByRole("link", { name: `Open ${TITLE}`, exact: true });
+    const face = page.getByRole("link", { name: openFaceName(TITLE) });
     // The expected tab first; the job's bucket is recorded when it is elsewhere,
     // because which tab a job sits in is itself something a user relies on.
     const order = [tab, ...(["Needs You", "Scheduled", "Waiting", "Done", "Cancelled"] as const).filter((t) => t !== tab)];

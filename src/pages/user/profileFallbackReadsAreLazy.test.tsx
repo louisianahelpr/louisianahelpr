@@ -7,7 +7,8 @@ import { useUserProfileData } from "./useUserProfileData";
 /**
  * Q946 (owner rule: pages under 2 s). /user/:id sent two reads on every load whose answers lost
  * to get_public_profile_stats whenever it answered: the posted-total head count and the 50-row
- * worked-timing select. They now go out only when the stats RPC gave no number. And the two pair
+ * worked-timing select; likewise the two review selects behind get_public_profile_reviews and
+ * the stats call. They now go out only when the call they back gave no answer. And the two pair
  * reads (every job the viewer and this person were paired on, and the completed ones) are one read:
  * its exact count gates messaging, its statuses give the "Worked together" tile.
  *
@@ -18,6 +19,10 @@ import { useUserProfileData } from "./useUserProfileData";
  * @mutate src/pages/user/useUserProfileData.ts |       const needsPostedTotal = int(publicStats?.posted_jobs_total) === null; |       const needsPostedTotal = false;
  * @mutate src/pages/user/useUserProfileData.ts |         int(publicStats?.on_time_sample) === null \|\| int(publicStats?.revision_sample) === null; |         false;
  * @mutate src/pages/user/useUserProfileData.ts | .filter((j) => j.status === "completed").length | .length
+ * @mutate src/pages/user/useUserProfileData.ts |       const needsReviewList = !hasPublicReviewRpc \|\| needsReviewCount; |       const needsReviewList = true;
+ * @mutate src/pages/user/useUserProfileData.ts |       const needsReviewList = !hasPublicReviewRpc \|\| needsReviewCount; |       const needsReviewList = needsReviewCount;
+ * @mutate src/pages/user/useUserProfileData.ts |       const needsRatings = needsReviewCount; |       const needsRatings = true;
+ * @mutate src/pages/user/useUserProfileData.ts |       const needsRatings = needsReviewCount; |       const needsRatings = false;
  * @mutate src/pages/user/useUserProfileData.ts |       ? mutualJobsCount > 0 \|\| |       ? false \|\|
  */
 
@@ -88,6 +93,7 @@ beforeEach(() => {
   for (const k of Object.keys(rpcAnswers)) delete rpcAnswers[k];
   rpcAnswers.get_safe_profiles = { data: [{ user_id: USER, full_name: "Hallie Helper" }], error: null };
   rpcAnswers.get_public_profile_stats = { data: [statsRow], error: null };
+  rpcAnswers.get_public_profile_reviews = { data: [], error: null };
 });
 
 async function load() {
@@ -103,6 +109,16 @@ describe("/user/:id fallback reads are lazy (Q946)", () => {
     expect(jobsReads().filter(isTimingRead)).toHaveLength(0);
     expect(jobsReads().filter(isPostedTotal)).toHaveLength(0);
     expect(r.postedTotalCount).toBe(7);
+    // Both review selects back failed RPCs only: none goes out beside two answers.
+    expect(calls.filter((c) => c.table === "reviews")).toHaveLength(0);
+  });
+
+  it("review-list RPC failed (a signed-out visitor's 42501): the list select goes out, the ratings one does not", async () => {
+    rpcAnswers.get_public_profile_reviews = { data: null, error: { code: "42501", message: "permission denied" } };
+    await load();
+    const reviews = calls.filter((c) => c.table === "reviews");
+    expect(reviews).toHaveLength(1);
+    expect(selectOf(reviews[0])).toContain("feedback");
   });
 
   it("stats RPC failed: both fallback reads go out and back the numbers", async () => {
@@ -111,6 +127,8 @@ describe("/user/:id fallback reads are lazy (Q946)", () => {
     expect(jobsReads().filter(isTimingRead)).toHaveLength(1);
     expect(jobsReads().filter(isPostedTotal)).toHaveLength(1);
     expect(r.postedTotalCount).toBe(3);
+    // The ratings select backs the headline rating when the stats call failed.
+    expect(calls.filter((c) => c.table === "reviews" && selectOf(c) === "rating, job_id")).toHaveLength(1);
   });
 
   it("one pair read: its count gates messaging, its completed rows are the Worked together tile", async () => {

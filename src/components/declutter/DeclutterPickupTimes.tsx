@@ -52,8 +52,11 @@ export function sameHoursEveryDay(windows: PickupWindow[]): boolean {
  */
 export function DayChip({ day, on, onToggle, disabled }: { day: number; on: boolean; onToggle: () => void; disabled?: boolean }) {
   return (
-    <ToggleChip pressed={on} aria-label={WEEKDAYS[day]} disabled={disabled} onClick={onToggle} data-day-chip="" className="min-w-[3.25rem] justify-center px-3">
-      {SHORT[day]}
+    // Named by content, not aria-label (WCAG 2.5.3, axe 4.14 label-content-name-mismatch, lead 11-04): the drawn
+    // "Sat" is aria-hidden and the hidden "Saturday" is the name, as the job tracker's step tips do.
+    <ToggleChip pressed={on} disabled={disabled} onClick={onToggle} data-day-chip="" className="min-w-[3.25rem] justify-center px-3">
+      <span aria-hidden="true">{SHORT[day]}</span>
+      <span className="sr-only">{WEEKDAYS[day]}</span>
     </ToggleChip>
   );
 }

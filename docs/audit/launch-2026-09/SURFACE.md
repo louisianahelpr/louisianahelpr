@@ -20,7 +20,7 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 26 |
 | Overlay surfaces | **instance** | 220 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1154 (across 319 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1155 (across 320 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 52 |
 | Multi-step flows — probable | flow | 33 |
 | Back/next navigation only | flow | 67 |
@@ -29,8 +29,8 @@ reports coverage against THIS file, not against the route list.
 | Email templates | **exported template** | 23 |
 | Notification types (defined in notification_type_pref_map) | type | 26 |
 | **Navigable surfaces** (places a person can stand) | mixed | **795** |
-| **Copy surfaces** (strings a person may read) | mixed | **1203** |
-| **Total auditable surface** | mixed | **1998** |
+| **Copy surfaces** (strings a person may read) | mixed | **1204** |
+| **Total auditable surface** | mixed | **1999** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -311,7 +311,7 @@ dismissible, and correct in every state.
 | `src/components/jobs/ContinueDaySheet.tsx` | 1 | Sheet |
 | `src/components/jobs/InstantBookingCard.tsx` | 1 | BrandConfirmDialog |
 | `src/components/jobs/InstantBookPanel.tsx` | 1 | BrandConfirmDialog |
-| `src/components/JobTracking.tsx` | 1 | BrandConfirmDialog |
+| `src/components/JobTrackingView.tsx` | 1 | BrandConfirmDialog |
 | `src/components/MessageAttachment.tsx` | 2 | Dialog, hand-rolled **⚠ hand-rolled** |
 | `src/components/messages/ChatHeader.tsx` | 1 | DropdownMenu |
 | `src/components/messages/ChatView.tsx` | 1 | BrandConfirmDialog |

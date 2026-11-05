@@ -1,15 +1,15 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1154,
+    "calls": 1155,
     "files": 320,
-    "rendering": 1073,
+    "rendering": 1074,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 218,
+      "toast": 219,
       "toast.error": 780,
       "toast.loading": 1,
       "toast.message": 1,
@@ -17,7 +17,7 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 488,
+      "literal": 489,
       "template": 105,
       "dynamic": 613,
       "jsx": 0
@@ -5820,7 +5820,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 157,
+      "line": 159,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5830,7 +5830,17 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 392,
+      "line": 410,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Paid with your gift card."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterTradeViews.tsx",
+      "line": 416,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5840,7 +5850,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 401,
+      "line": 433,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5865,7 +5875,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterTradeViews.tsx",
-      "line": 407,
+      "line": 439,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

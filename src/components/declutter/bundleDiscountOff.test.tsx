@@ -123,11 +123,13 @@ describe("Bundle discount: one dropdown row that saves with Listing defaults' Sa
   it("sits in Listing defaults directly under the free-after row, never back in its own settings section", () => {
     // blankComments keeps a JSX comment's braces: drop the empty {} it leaves.
     const defaults = blankComments(readFileSync("src/components/declutter/DeclutterListingDefaults.tsx", "utf8")).replace(/\{\s*\}/g, "");
+    expect(defaults.length, "inventory floor: the file was read").toBeGreaterThan(6000);
     expect(defaults).toMatch(/<ListingChoiceFields draft=\{draft\} change=\{change\} \/>\s*<BundleDiscountCard pick=\{bundlePick\} /);
     // ListingChoiceFields ends with the free-after row, so the bundle row is the next thing under it.
     const fields = defaults.slice(defaults.indexOf("export function ListingChoiceFields"), defaults.indexOf("function ListingDefaultsForm"));
     expect(fields.trimEnd()).toMatch(/<AutoFreeChoice [^\n]*\/>\s*<\/>\);\s*\}$/);
     const page = blankComments(readFileSync("src/pages/declutter/DeclutterSettingsPage.tsx", "utf8"));
+    expect(page.length, "inventory floor: the file was read").toBeGreaterThan(2000);
     expect(page).not.toContain("BundleDiscountCard");
   });
 });

@@ -172,6 +172,7 @@ describe("DeclutterShippingClaimsCard", () => {
 
   it("the admin settings mount it with the Declutter cards", () => {
     const src = blankComments(readFileSync(resolve(__dirname, "FeatureSwitchesCard.tsx"), "utf8"));
+    expect(src.length, "inventory floor: the file was read").toBeGreaterThan(4000);
     expect(src).toMatch(/<MeetupSpotsCard \/>\s*<DeclutterShippingClaimsCard \/>\s*<DonationPartnersCard \/>/);
   });
 });

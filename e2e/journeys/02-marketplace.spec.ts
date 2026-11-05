@@ -29,6 +29,7 @@ import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 import { cardByTitle, findChip, findPageAction, openPostedCard } from "./cardChips";
 import { ZONE, fillJobDetails, fillLogistics, fillBudget, slotAhead, slotDeadWindow } from "./postJobForm";
+import { clearJobPostDraft } from "./jobPostDraft";
 import { searchFeed } from "../feedSearch";
 
 /**
@@ -289,6 +290,15 @@ test.describe.serial("marketplace chain", () => {
     }
     await S.posterCtx?.close();
     await S.helperCtx?.close();
+    // A post leg that stops before Review (the evening dead window fails it on purpose) leaves the typed draft on
+    // the shared poster account, and an unposted draft earns a reminder (OPS-3). Q1035.
+    if (S.poster) {
+      try {
+        await clearJobPostDraft(request, S.poster);
+      } catch (err) {
+        announceUncovered("Journey job-post draft not cleared", String(err).slice(0, 200));
+      }
+    }
   });
 
   const j2 = title("post", "smooth", "poster-only");

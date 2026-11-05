@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState } from "react";
+import { ToggleChip } from "@/components/ui/ToggleChip";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -143,21 +144,18 @@ export function AboutYouChips({
   const chips = aboutYouChips(rows);
   if (chips.length < 3) return null; // All plus one side says nothing a filter could narrow.
   return (
-    <div role="group" aria-label="Filter reviews" className="min-w-0 flex gap-2 overflow-x-auto px-1 py-0.5 [scrollbar-width:none]">
+    <div role="group" aria-label="Filter reviews" className="min-w-0 flex gap-2 overflow-x-auto px-1 py-1 [scrollbar-width:none]">
       {chips.map((c) => {
         const on = c.value === value;
         return (
-          <button
+          <ToggleChip
             key={c.value}
-            type="button"
-            aria-pressed={on}
+            pressed={on}
             data-review-filter={c.value}
             onClick={() => onChange(c.value)}
-            className={`shrink-0 rounded-full px-3.5 min-h-9 text-ds-13 font-sans font-semibold whitespace-nowrap ${on ? "btn-grad-primary text-[hsl(var(--parchment))]" : ""}`}
-            style={on ? undefined : { background: "hsl(var(--card))", border: "1px solid hsl(var(--olivewood) / 0.18)", color: "hsl(var(--ink-deep))" }}
           >
             {c.label} · {c.count}
-          </button>
+          </ToggleChip>
         );
       })}
     </div>

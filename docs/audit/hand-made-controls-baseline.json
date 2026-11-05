@@ -513,9 +513,6 @@
     "src/components/profile/profileLanding/YourActivity.tsx": {
       "button": 1
     },
-    "src/components/profile/reviewsTab/reviewsAboutYou.tsx": {
-      "button": 1
-    },
     "src/components/quotes/QuotePriceStepper.tsx": {
       "button": 2,
       "input": 1

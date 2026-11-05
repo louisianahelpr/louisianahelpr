@@ -870,6 +870,22 @@ serve(async (req) => {
           // Readiness only after the reconcile and the charge check.
           if (!(await payeeReadyNow(stripe, resolved.mode, "shop", p.payout_id, p.seller_id, p.stripe_account_id as string, p.amount_cents))) continue;
           if (!(await stillPayableNow("shop", p.payout_id, p.seller_id, p.amount_cents))) continue;
+          // H4 (owner 2026-10-30, the Declutter seller's rule): the shop owner's one-time setup fee comes out here,
+          // once the order is final and the send is certain (0 while identity_check is off for them). Never on a
+          // row a send may have started: its Stripe key was sent with the old amount. Fails closed: an unreadable
+          // answer sends nothing this run, no try used.
+          if (!maybeSent_shop(p)) {
+            const { data: shopToSend, error: feeErr } = await admin.rpc("shop_payout_take_setup_fee", { p_payout_id: p.payout_id });
+            if (feeErr) {
+              if ((feeErr as { code?: string }).code !== "PGRST202") {
+                defects.record(`shop payout ${p.payout_id}: setup fee read failed, not sent this run: ${feeErr.message}`.slice(0, 200));
+                await skipRow("shop", p.payout_id, p.seller_id, p.amount_cents, 15, "transient", `setup fee read failed: ${feeErr.message}`);
+                continue;
+              }
+            } else if (typeof shopToSend === "number") {
+              p.amount_cents = shopToSend;
+            }
+          }
           if (!(await markSending("shop", p.payout_id, p.seller_id, p.amount_cents))) continue;
           beforeSend = false;
           shopTransfer = await stripe.transfers.create(

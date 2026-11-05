@@ -13492,6 +13492,8 @@ export type Database = {
           ready_date: string
           ready_tap_cancel: string
           seller_id: string | null
+          setup_fee_cents: number
+          setup_fee_state: string | null
           shop_id: string | null
           status: string
           stripe_checkout_session_id: string | null
@@ -13528,6 +13530,8 @@ export type Database = {
           ready_date: string
           ready_tap_cancel?: string
           seller_id?: string | null
+          setup_fee_cents?: number
+          setup_fee_state?: string | null
           shop_id?: string | null
           status?: string
           stripe_checkout_session_id?: string | null
@@ -13564,6 +13568,8 @@ export type Database = {
           ready_date?: string
           ready_tap_cancel?: string
           seller_id?: string | null
+          setup_fee_cents?: number
+          setup_fee_state?: string | null
           shop_id?: string | null
           status?: string
           stripe_checkout_session_id?: string | null
@@ -13600,6 +13606,8 @@ export type Database = {
           settled_by_hand_cents: number | null
           settled_by_hand_note: string | null
           settled_by_hand_ref: string | null
+          send_tried: boolean
+          setup_fee_cents: number
           status: string
           stripe_transfer_id: string | null
         }
@@ -13621,6 +13629,8 @@ export type Database = {
           settled_by_hand_cents?: number | null
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
+          send_tried?: boolean
+          setup_fee_cents?: number
           status: string
           stripe_transfer_id?: string | null
         }
@@ -13642,6 +13652,8 @@ export type Database = {
           settled_by_hand_cents?: number | null
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
+          send_tried?: boolean
+          setup_fee_cents?: number
           status?: string
           stripe_transfer_id?: string | null
         }
@@ -21350,6 +21362,10 @@ export type Database = {
       shop_order_free_cancel_until: {
         Args: { p_order_id: string }
         Returns: string
+      }
+      shop_payout_take_setup_fee: {
+        Args: { p_payout_id: string }
+        Returns: number
       }
       shop_payout_executed: {
         Args: {

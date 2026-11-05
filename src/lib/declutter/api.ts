@@ -1482,7 +1482,7 @@ export async function fetchItemsCanShip(itemIds: string[], sellerId: string): Pr
 
 /** Check out one seller's cart lines (row 38): the Stripe page's URL, or paid=true when it already went through. */
 export async function startCheckoutPayment(sellerId: string, handover: Handover, slotStart?: string | null, handoff?: "leave" | "hand" | null,
-  expectedDeliveryCents?: number | null, quoteId?: string | null): Promise<{ url: string | null; paid: boolean }> {
+  expectedDeliveryCents?: number | null, quoteId?: string | null, giftCardId?: string | null): Promise<{ url: string | null; paid: boolean; giftCents: number }> {
   // A seller delivery carries the picked time (held while the payment page is open), the buyer's door choice
   // and the delivery price the screen showed ("Free" = 0): a different frozen price stops before Stripe.
   const data = await invokeDeclutter("declutter-checkout", {
@@ -1498,8 +1498,12 @@ export async function startCheckoutPayment(sellerId: string, handover: Handover,
         // (delivery_rate_changed), since routed road miles can land between the quote and Pay.
         : handover === "delivery" && typeof expectedDeliveryCents === "number" ? { expected_delivery_cents: expectedDeliveryCents }
         : {}),
+    // Q2106 S5: the buyer's own gift card pays first (declutter-checkout redeems it); the page charges the rest, and a
+    // gift that covers it all answers paid:true with no page.
+    ...(giftCardId ? { gift_card_id: giftCardId } : {}),
   });
-  return { url: typeof data.url === "string" ? data.url : null, paid: data.paid === true };
+  return { url: typeof data.url === "string" ? data.url : null, paid: data.paid === true,
+    giftCents: typeof data.gift_cents === "number" && Number.isInteger(data.gift_cents) ? data.gift_cents : 0 };
 }
 
 /**

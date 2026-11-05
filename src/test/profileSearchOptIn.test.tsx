@@ -93,7 +93,8 @@ describe("the /u page's robots meta", () => {
       </QueryClientProvider>,
     );
     await screen.findByText("Eli B.", { selector: "h2" });
-    return (meta.mock.calls.at(-1)?.[0] as { robots?: string })?.robots;
+    const calls = meta.mock.calls;
+    return (calls[calls.length - 1]?.[0] as { robots?: string } | undefined)?.robots;
   };
 
   for (const [value, want] of [[undefined, "noindex, follow"], [false, "noindex, follow"], [true, "index, follow"]] as const) {

@@ -1117,6 +1117,55 @@ test.describe.serial("marketplace chain", () => {
     });
 
     /*
+     * Q2000: SUBMITTED AT 375. The test accounts hold no job in this state
+     * between runs (helper_completed_at set, poster not yet answered), so a
+     * read-only pass can never look at SubmittedStep's copy at the narrowest
+     * phone width. This chain is the one moment such a job exists, on a
+     * test-owned is_seed row, so the look is taken here: the Helpr's Waiting
+     * card in a fresh 375 x 812 context, the page and every element in the
+     * card inside the viewport (a scrolling strip excepted), and a milestone
+     * shot for a person to look at (review:record).
+     */
+    await test.step("the submitted card's copy fits at 375 (Q2000)", async () => {
+      const ctx = await newUserContext(browser, S.helper, { rotation: { ...rotation, device: "phone-375" }, timezoneId: ZONE });
+      try {
+        const page = await ctx.newPage();
+        const c = await card(page, "/jobs?tab=working", "Waiting");
+        await expect(
+          c.getByText(/Waiting for the person who posted this job|Marked complete/).first(),
+          "the 375 card does not say the submission is with the poster",
+        ).toBeVisible({ timeout: 45_000 });
+        const fit = await c.evaluate((root) => {
+          const vw = document.documentElement.clientWidth;
+          const scrolls = (el: Element | null): boolean => {
+            for (let e = el; e && e !== root.parentElement; e = e.parentElement) {
+              const ox = getComputedStyle(e).overflowX;
+              if (ox === "auto" || ox === "scroll") return true;
+            }
+            return false;
+          };
+          const out: string[] = [];
+          for (const el of Array.from(root.querySelectorAll("*"))) {
+            const r = el.getBoundingClientRect();
+            if (r.width === 0 || r.height === 0) continue;
+            if ((r.left < -0.5 || r.right > vw + 0.5) && !scrolls(el.parentElement)) {
+              out.push(`${el.tagName.toLowerCase()} "${(el.textContent ?? "").trim().slice(0, 40)}" ${Math.round(r.left)}-${Math.round(r.right)}`);
+            }
+          }
+          return { vw, sw: document.documentElement.scrollWidth, out: out.slice(0, 8) };
+        });
+        test.info().annotations.push({ type: "submitted-375", description: JSON.stringify(fit) });
+        expect(fit.vw, "the 375 context is not 375 wide").toBe(375);
+        expect(fit.sw, "the page scrolls sideways at 375 with the submitted card open").toBeLessThanOrEqual(fit.vw);
+        expect(fit.out, "parts of the submitted card fall outside the 375 viewport").toEqual([]);
+        await c.scrollIntoViewIfNeeded();
+        await journey.milestone(page, "submitted-375");
+      } finally {
+        await ctx.close();
+      }
+    });
+
+    /*
      * TIME TRAVEL: THE REVIEW WINDOW (was time-travel.spec.ts's "UNCOVERED:
      * Review window open → auto-release" placeholder, which could never run:
      * it needs an escrow job the Helpr has marked done, and this is that job,

@@ -25,7 +25,7 @@
  * @mutate src/components/messages/threadAgeOut.ts | if (convo.unread > 0) return false; | if (false) return false;
  * @mutate src/components/messages/threadAgeOut.ts | export const REVIEW_BLIND_HOLD_DAYS = 14; | export const REVIEW_BLIND_HOLD_DAYS = 0;
  * @mutate src/components/messages/threadAgeOut.ts | if (Number.isNaN(closedAt)) return false; | if (Number.isNaN(closedAt)) return true;
- * @mutate src/components/messages/ConversationList.tsx | searching\n                ? orderedConversations\n                : allTabConversations | allTabConversations
+ * @mutate src/components/messages/useConversationListState.ts | searching\n                ? orderedConversations\n                : allTabConversations | allTabConversations
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
 import { render, screen, cleanup, fireEvent, within } from "@testing-library/react";

@@ -49,7 +49,7 @@
  * Re-prove with the @mutate lines.
  *
  * @mutate src/components/messages/ConversationList.tsx | aria-expanded={tabsOpen} | data-expanded={tabsOpen}
- * @mutate src/components/messages/ConversationList.tsx |   const [tabsOpenPhone, setTabsOpenPhone] = useState(false); |   const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultInboxFilter);
+ * @mutate src/components/messages/useConversationListState.ts |   const [tabsOpenPhone, setTabsOpenPhone] = useState(false); |   const [tabsOpenPhone, setTabsOpenPhone] = useState(!isDefaultInboxFilter);
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -63,11 +63,17 @@ const SCREENS = {
   Messages: "src/components/messages/ConversationList.tsx",
 } as const;
 
+/** The screen's state moved into its hook (Q806): read it with the screen. */
+const ALSO_READ: Record<string, string[]> = {
+  "src/components/messages/ConversationList.tsx": ["src/components/messages/useConversationListState.ts"],
+};
+
 const SOURCES = Object.fromEntries(
   Object.entries(SCREENS).map(([name, rel]) => {
     const path = resolve(process.cwd(), rel);
-    const src = readFileSync(path, "utf8");
-    if (!src.trim()) throw new Error(`${rel} is empty — the inventory is not real`);
+    const own = readFileSync(path, "utf8");
+    if (!own.trim()) throw new Error(`${rel} is empty — the inventory is not real`);
+    const src = [own, ...(ALSO_READ[rel] ?? []).map((r) => readFileSync(resolve(process.cwd(), r), "utf8"))].join("\n");
     return [name, src];
   }),
 ) as Record<keyof typeof SCREENS, string>;

@@ -10,7 +10,7 @@
  * Class: every special inbox view (each entry of the options menu) renders its
  * own empty sentence when nothing is in it, whatever the default inbox holds.
  *
- * @mutate src/components/messages/ConversationList.tsx |     !searchQuery.trim() && filteredConversations.length === 0 && (conversations.length > 0 \|\| isSpecialFilterView); |     !searchQuery.trim() && conversations.length > 0 && filteredConversations.length === 0;
+ * @mutate src/components/messages/useConversationListState.ts |     !searchQuery.trim() && filteredConversations.length === 0 && (conversations.length > 0 \|\| isSpecialFilterView); |     !searchQuery.trim() && conversations.length > 0 && filteredConversations.length === 0;
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";

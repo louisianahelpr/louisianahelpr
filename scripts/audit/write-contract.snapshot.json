@@ -32144,15 +32144,7 @@
    "policies": [
     {
      "cmd": "SELECT",
-     "name": "helpr card fee debts: admins read",
-     "permissive": "PERMISSIVE",
-     "roles": [
-      "authenticated"
-     ]
-    },
-    {
-     "cmd": "SELECT",
-     "name": "helpr card fee debts: the Helpr reads own",
+     "name": "helpr card fee debts: own or admin read",
      "permissive": "PERMISSIVE",
      "roles": [
       "authenticated"

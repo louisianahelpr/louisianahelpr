@@ -90,6 +90,21 @@ test(guestTitle, async ({ browser, request, journey }) => {
   const ctx = await newUserContext(browser, null, { rotation });
   const page = journey.track("guest", await ctx.newPage());
 
+  // Ported from the mocked happy-path/customer-post-job.spec.ts (Q1035): the landing paints and its sign-up
+  // action (the close's primary, owner redesign 2026-10-20: "Create your free account") reaches a working
+  // /signup form. Read-only: nothing is typed or submitted.
+  await test.step("guest lands on / and its sign-up action opens /signup", async () => {
+    await page.goto("/");
+    await expect(page).toHaveTitle(/Helpr/i);
+    await expect(page.locator("h1").first()).toBeVisible({ timeout: 45_000 });
+    const signUp = page.getByRole("link", { name: /create your free account/i }).first();
+    await expect(signUp, "the landing has no Create your free account link").toBeVisible({ timeout: 30_000 });
+    await signUp.click();
+    await page.waitForURL("**/signup", { timeout: 30_000 });
+    await expect(page.locator("input").first(), "/signup rendered no form").toBeVisible({ timeout: 30_000 });
+    await assertHealthy(page, "guest /signup");
+  });
+
   let floor = 0;
   await test.step("prod is serving a funded marketplace at all", async () => {
     floor = await fundedFloor(request);

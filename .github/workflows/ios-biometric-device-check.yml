@@ -42,7 +42,7 @@ jobs:
           echo "DEVELOPER_DIR=$XCODE_PATH/Contents/Developer" >> "$GITHUB_ENV"
 
       - name: Install
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Build the web app and copy it into the iOS project
         # The app's own iOS build (deploy.yml's App Store lane): without the PUBLISHABLE Supabase env the bundle

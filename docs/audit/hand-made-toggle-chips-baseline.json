@@ -33,7 +33,6 @@
   "src/pages/posts/postedJobs/BulkDismissibleWrapper.tsx": 1,
   "src/pages/posts/postedJobs/DeclineApplicantSheet.tsx": 1,
   "src/pages/profile/GiftCard.tsx": 2,
-  "src/pages/profile/petProfiles/PetForm.tsx": 1,
   "src/pages/search/SearchPage.tsx": 1,
   "src/pages/user/AtAGlanceCard.tsx": 1,
   "src/pages/user/ReviewsSection.tsx": 2

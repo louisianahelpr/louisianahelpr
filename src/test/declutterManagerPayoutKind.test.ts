@@ -1,7 +1,7 @@
 // @mutate supabase/migrations/20261101233256_declutter_manager_payout_kind.sql |     CHECK (payout_kind IN ('declutter', 'helpr_task', 'shop', 'declutter_refund', 'delivery_refund', 'declutter_manager')); |     CHECK (payout_kind IN ('declutter', 'helpr_task', 'shop', 'declutter_refund', 'delivery_refund'));
 // @mutate supabase/migrations/20261101233256_declutter_manager_payout_kind.sql |   ELSIF p_kind = 'declutter_manager' THEN\n    UPDATE public.declutter_manager_payouts SET next_attempt_at | ELSIF false THEN\n    UPDATE public.declutter_manager_payouts SET next_attempt_at
-// @mutate supabase/migrations/20261101233256_declutter_manager_payout_kind.sql | AND (mp.ban_status IN ('banned', 'temp_banned', 'permanently_banned') | AND (false
-// @mutate supabase/migrations/20261101233256_declutter_manager_payout_kind.sql |      AND NOT EXISTS (SELECT 1 FROM public.payout_holds ph WHERE ph.helper_id = m.manager_id) |
+// @mutate supabase/migrations/20261105032500_declutter_gift_payouts.sql | AND (mp.ban_status IN ('banned', 'temp_banned', 'permanently_banned') | AND (false
+// @mutate supabase/migrations/20261105032500_declutter_gift_payouts.sql |      AND NOT EXISTS (SELECT 1 FROM public.payout_holds ph WHERE ph.helper_id = m.manager_id) |
 // @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql | (p.items_cents - least(p_refunded_cents, p.items_cents)) | (p.items_cents + p.delivery_cents - p_refunded_cents)
 // @mutate supabase/migrations/20261101233256_declutter_manager_payout_kind.sql | 'delivery_refund', 'declutter_manager') OR p_payout_id IS NULL | 'delivery_refund') OR p_payout_id IS NULL
 // @mutate supabase/migrations/20261102150413_declutter_manager_admin_held_after_gave_up.sql |       SELECT 'declutter_manager', p.id, p.manager_id, p.amount_cents, p.review_reason, p.review_held_at, |       SELECT 'x', p.id, p.manager_id, p.amount_cents, p.review_reason, p.review_held_at,

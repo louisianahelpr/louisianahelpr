@@ -13,7 +13,7 @@
  * @mutate supabase/migrations/20261103112014_money_records_and_buy_lock_not_found_is_404.sql |    WHERE i.id = p_item_id\n   FOR UPDATE; |    WHERE i.id = p_item_id;
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | CREATE UNIQUE INDEX IF NOT EXISTS declutter_offers_one_accepted | CREATE INDEX IF NOT EXISTS declutter_offers_one_accepted
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | CREATE UNIQUE INDEX IF NOT EXISTS declutter_cart_one_active | CREATE INDEX IF NOT EXISTS declutter_cart_one_active
- * @mutate supabase/migrations/20261103173111_declutter_late_payment_buyer_block.sql |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id FOR UPDATE;\n  v_found := FOUND; |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;\n  v_found := FOUND;
+ * @mutate supabase/migrations/20261105030604_declutter_gift_cards.sql |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id FOR UPDATE;\n  v_found := FOUND; |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;\n  v_found := FOUND;
  * @mutate supabase/migrations/20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql |   IF p_amount_cents * 2 < v_item.o_price_cents THEN |   IF false THEN
  * @mutate supabase/migrations/20261102113853_declutter_notices_retire_when_their_subject_moves_on.sql |   IF COALESCE(v_rules.auto_offers, false) AND v_rules.floor_price_cents < v_item.o_price_cents THEN |   IF v_rules.floor_price_cents < v_item.o_price_cents THEN
  * @mutate supabase/migrations/20261030154745_declutter_drop_stop_whole_dollar.sql |        SET current_price_cents = greatest(p.floor_price_cents, (ceil(COALESCE(p.drop_stop_cents, p.floor_price_cents) / 100.0) * 100)::integer, |        SET current_price_cents = greatest(
@@ -134,7 +134,7 @@ describe("Declutter slice 3: offers, price drops, checkout records, strikes (202
     expect(paid).toContain("SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id FOR UPDATE;");
     // Slice 3b (B40): every refund now carries a reason that fixes who bears the card fee.
     expect(paid).toContain("RETURN jsonb_build_object('result', 'already_paid');");
-    expect(paid).toContain("IF p_amount_cents IS DISTINCT FROM o.total_cents + o.setup_fee_cents AND NOT (o.setup_fee_cents > 0 AND p_amount_cents = o.total_cents) THEN RETURN public.declutter_refund_answer( public.declutter_record_refund(o.id, p_payment_intent_id, 'amount_mismatch'");
+    expect(paid).toContain("IF p_amount_cents + o.gift_cents IS DISTINCT FROM o.total_cents + o.setup_fee_cents AND NOT (o.setup_fee_cents > 0 AND o.gift_cents = 0 AND p_amount_cents = o.total_cents) THEN RETURN public.declutter_refund_answer( public.declutter_record_refund(o.id, p_payment_intent_id, 'amount_mismatch'");
   });
 
   it("row 56: the evening drop is the seller's step (5% by default), never below the floor, once per Louisiana day; both crons are watched", () => {

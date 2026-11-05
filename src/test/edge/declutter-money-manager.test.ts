@@ -13,7 +13,7 @@
  * @mutate supabase/functions/declutter-money/index.ts |    const hold = await checkPayoutHold(admin, p.manager_id); |    const hold = await checkPayoutHold(admin, p.seller_id);
  * @mutate supabase/functions/declutter-money/index.ts |        if (!(await markSending("declutter_manager", p.payout_id, p.manager_id, p.amount_cents))) continue; |
  * @mutate supabase/functions/declutter-money/index.ts |    if ((managerRes.error as { code?: string }).code !== "PGRST202") defects.record( |    if (true) return cronError(FN, "x"); if (false) defects.record(
- * @mutate supabase/functions/declutter-money/index.ts |            source_transaction: charge,\n            metadata: { kind: "declutter_manager_payout" |            metadata: { kind: "declutter_manager_payout"
+ * @mutate supabase/functions/declutter-money/index.ts |            ...(giftCents > 0 ? {} : { source_transaction: charge as string }),\n            metadata: { kind: "declutter_manager_payout" |            metadata: { kind: "declutter_manager_payout"
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";

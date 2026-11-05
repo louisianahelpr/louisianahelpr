@@ -302,6 +302,10 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   // these lines, and takes the price from it).
   const quoteId = handover === "ship" && typeof body.quote_id === "string" && UUID_RE.test(body.quote_id) ? body.quote_id : null;
   if (handover === "ship" && !quoteId) return json({ error: "shipping_quote_needed" }, 400);
+  // Q2106: ONE gift card the buyer picked pays first (the jobs shape); the card page charges only what is left.
+  const giftCardId = typeof body.gift_card_id === "string" && UUID_RE.test(body.gift_card_id) ? body.gift_card_id : null;
+  /** The order's open page this request closed so the gift can take the order (redeem's p_retired_session). */
+  let retiredSession: string | null = null;
 
   const mode = await stripeModeForParties(admin, [user.id, sellerId], { caller: user.id });
   // Labels are bought in EasyPost TEST mode only until the owner turns shipping on (lead 2026-10-30, money review
@@ -453,8 +457,19 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   if (row!.superseded_session_id) await expirePage(stripeOf(row!.superseded_session_id), row!.superseded_session_id);
   if (row!.checkout_session_id) {
     const existing = await stripeOf(row!.checkout_session_id).checkout.sessions.retrieve(row!.checkout_session_id);
-    if (existing.status === "open" && existing.url) return json({ url: existing.url, order_id: row!.order_id });
+    if (existing.status === "open" && existing.url && !giftCardId) return json({ url: existing.url, order_id: row!.order_id });
     if (existing.status === "complete") return json({ paid: true, order_id: row!.order_id });
+    if (existing.status === "open" && giftCardId) {
+      // Q2106: the buyer now pays with a gift card. Close the open page FIRST (a page Stripe refuses to close was
+      // paid meanwhile), then the gift takes this same order and the remainder gets a new page below.
+      try {
+        await stripeOf(row!.checkout_session_id).checkout.sessions.expire(row!.checkout_session_id);
+      } catch (e) {
+        console.log(JSON.stringify({ event: "declutter_page_expire_refused", session: row!.checkout_session_id, detail: String(e).slice(0, 200) }));
+        return json({ paid: true, order_id: row!.order_id });
+      }
+      retiredSession = row!.checkout_session_id;
+    } else {
     // Timed out unpaid: retire this order, then make a fresh one.
     const { error: retireErr } = await admin.rpc("declutter_retire_order", {
       p_order_id: row!.order_id, p_buyer: user.id, p_session_id: row!.checkout_session_id,
@@ -465,6 +480,7 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     }
     ({ row, refusal } = await startCheckout(asBuyer, sellerId, handover, slotStart, handoff, quoteId));
     if (refusal) return refusal;
+    }
   }
   const order = row!;
   if (expectedRate !== null && Number(order.delivery_cents ?? 0) !== expectedRate) {
@@ -517,7 +533,40 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     console.error(`[declutter-checkout] order ${order.order_id} setup fee is not a whole amount`);
     return json({ error: TRY_AGAIN }, 500);
   }
-  const chargeCents = order.total_cents + setupFeeCents;
+  const fullChargeCents = order.total_cents + setupFeeCents;
+  // Q2106: the gift pays first, in one transaction (redeem_gift_card_for_declutter_order, 20261105030604): covered in
+  // full -> the order is paid now and no page opens; otherwise the gift is set aside and the page charges the rest.
+  let chargeCents = fullChargeCents;
+  let giftCents = 0;
+  if (giftCardId) {
+    // Lead 11-04 9:1x PM (money): the gift pays tax-free lines only. Every Declutter line is NONTAXABLE today and the
+    // page below refuses tax_cents != 0, but a gift that covers the whole order returns before that check. So it is
+    // refused here, BEFORE the redeem. THE TAX SLICE (B33) MUST REVISIT THIS: the remainder line is NONTAXABLE too.
+    if (order.tax_cents !== 0 && giftCardId) {
+      console.error(`[declutter-checkout] order ${order.order_id} carries tax; a gift card cannot pay it before the tax slice`);
+      return json({ error: TRY_AGAIN }, 500);
+    }
+    const { data: redeemed, error: redeemErr } = await admin.rpc("redeem_gift_card_for_declutter_order", {
+      p_credit_id: giftCardId, p_order_id: order.order_id, p_user_id: user.id, p_retired_session: retiredSession,
+    });
+    if (redeemErr) {
+      // The refusals are sentences for the buyer (P0001), or not-yours / not-found (42501 / PT404, Q2390).
+      if (redeemErr.code === "P0001" || redeemErr.code === "42501" || redeemErr.code === "PT404" || redeemErr.code === "P0002") return rpcRefusal(redeemErr);
+      console.error(`[declutter-checkout] gift redeem failed: ${redeemErr.message}`);
+      return json({ error: TRY_AGAIN }, 503);
+    }
+    const r = redeemed as { outcome?: string; difference_cents?: number; applied_cents?: number } | null;
+    if (r?.outcome === "settled") return json({ paid: true, order_id: order.order_id, gift_cents: Number(r.applied_cents ?? 0) });
+    const rest = Number(r?.difference_cents);
+    const applied = Number(r?.applied_cents);
+    if (r?.outcome !== "needs_payment" || !Number.isInteger(rest) || !Number.isInteger(applied) || rest < 50
+        || applied <= 0 || rest + applied !== fullChargeCents) {
+      console.error(`[declutter-checkout] order ${order.order_id} gift answer does not add up: ${JSON.stringify(r)}`);
+      return json({ error: TRY_AGAIN }, 500);
+    }
+    chargeCents = rest;
+    giftCents = applied;
+  }
 
   // One wallet: the buyer's ONE stored customer (in this mode) pre-fills the
   // page. Today it holds the cards saved through Declutter's card page; Jobs'
@@ -540,6 +589,8 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     seller_id: sellerId,
     // Q2352: what the page charges beyond the sale (the webhook's receipt names it).
     setup_fee_cents: String(setupFeeCents),
+    // Q2106: what the buyer's gift card paid toward this order (the page charges the rest).
+    ...(giftCents > 0 ? { gift_cents: String(giftCents) } : {}),
     // Shipping S3: a shipped order's page is a card HOLD (money review fix 2); the webhook records the hold and the
     // label worker captures only after the label is bought (a failed label releases the hold at no cost).
     ...(handover === "ship" ? { ship: "1" } : {}),
@@ -578,7 +629,12 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: shippingCents,
       product_data: { name: "Shipping", tax_code: NONTAXABLE_TAX_CODE } } });
   }
-  if (setupFeeCents > 0) {
+  if (giftCents > 0) {
+    // Q2106: a gift card is not a Checkout discount, so the page charges what is left as ONE line (the app shows the
+    // split: the price, the gift card, the card).
+    lineItems.splice(0, lineItems.length, { quantity: 1, price_data: { currency: "usd", unit_amount: chargeCents,
+      product_data: { name: purchaseName, description: "What is left after your gift card", tax_code: NONTAXABLE_TAX_CODE } } });
+  } else if (setupFeeCents > 0) {
     lineItems.push({ quantity: 1, price_data: { currency: "usd", unit_amount: setupFeeCents,
       product_data: { name: "One-time account setup fee", tax_code: NONTAXABLE_TAX_CODE } } });
   }

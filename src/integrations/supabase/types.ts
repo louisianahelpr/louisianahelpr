@@ -15436,6 +15436,23 @@ export type Database = {
       }
     }
     Functions: {
+      declutter_order_gift_net_cents: {
+        Args: { p_order_id: string }
+        Returns: number
+      }
+      declutter_refund_gift_split: {
+        Args: { p_order_id: string; p_refund_cents: number }
+        Returns: number
+      }
+      redeem_gift_card_for_declutter_order: {
+        Args: {
+          p_credit_id: string
+          p_order_id: string
+          p_retired_session?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       replace_stripe_customer: {
         Args: { p_mode: string; p_new: string; p_old: string; p_user: string }
         Returns: string
@@ -16578,6 +16595,10 @@ export type Database = {
         Returns: boolean
       }
       needs_you_reminder_quiet: { Args: { p_at: string }; Returns: boolean }
+      restore_gift_card_for_declutter_order: {
+        Args: { p_cents: number; p_order_id: string; p_refund_key: string }
+        Returns: Json
+      }
       section_keys_ok: {
         Args: { keys: string[]; max_len: number }
         Returns: boolean

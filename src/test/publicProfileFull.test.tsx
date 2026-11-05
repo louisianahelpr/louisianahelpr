@@ -22,7 +22,8 @@
  * @mutate src/pages/u/PublicProfilePage.tsx | grid grid-cols-2 gap-3 min-[900px]:grid-cols-4 | grid grid-cols-2 gap-3
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "@/test/helpers/trackedFiles";
 import { resolve } from "node:path";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";

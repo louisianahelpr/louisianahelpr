@@ -175,7 +175,8 @@ describe("charge.refund.updated (Q1325 (a))", () => {
     expect(alerts().some((a) => /tax/i.test(a.title))).toBe(false);
     // A redelivery after the Stripe idempotency window finds the reference taken: done, no page.
     stripeMock.tax.transactions.createReversal.mockRejectedValue(
-      Object.assign(new Error("A transaction with reference refund-failed:re_1 already exists"), { type: "StripeInvalidRequestError", param: "reference" }),
+      // Stripe's own refusal (TEST run 41870316864, 2026-11-04), reference swapped for this refund's.
+      Object.assign(new Error("You have already created a tax transaction tax_1UY7KYKp2H4b7tECrLw9WInY with the reference 'refund-failed:re_1'. `reference` must be unique across all tax transactions."), { type: "StripeInvalidRequestError", rawType: "invalid_request_error", param: "reference", statusCode: 400 }),
     );
     await post(fn);
     expect(alerts().some((a) => /tax/i.test(a.title))).toBe(false);

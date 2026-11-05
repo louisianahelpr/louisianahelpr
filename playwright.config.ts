@@ -15,6 +15,7 @@ const PROD_WRITING_E2E = [
   "e2e/helpers/mintedPasswordGrant.ts",
   "e2e/journeys/01-browse.spec.ts",
   "e2e/journeys/04-admin-safety.spec.ts",
+  "e2e/journeys/apply-sheet.spec.ts",
   "e2e/journeys/fixtures.ts",
   "e2e/journeys/throwaway.ts",
   "e2e/journeys/time-travel.spec.ts",

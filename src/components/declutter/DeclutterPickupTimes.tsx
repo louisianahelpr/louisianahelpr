@@ -12,6 +12,7 @@
  */
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Button } from "@/components/ui/button";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
@@ -153,10 +154,10 @@ export function PickupTimesEditor({ windows, setWindows }: { windows: PickupWind
                         removeLabel={`Remove ${WEEKDAYS[d]} ${timeLabel(w.starts)} to ${timeLabel(w.ends)}`} />
                     ))}
                     {windows.length < MAX_WINDOWS && (
-                      <button type="button" className="inline-flex min-h-11 items-center gap-1 text-ds-13 font-semibold text-[hsl(var(--sage-ink))] focus-visible:ring-2 focus-visible:ring-ring"
+                      <InlineTextButton className="inline-flex items-center gap-1 text-ds-13 font-semibold text-[hsl(var(--sage-ink))]" data-add-time-on={d}
                         onClick={() => setWindows((ws) => [...ws, { weekday: d, starts: "17:00", ends: "19:00" }].sort(byDayThenStart))}>
                         <Plus className="h-4 w-4" aria-hidden />Add another time on {WEEKDAYS[d]}
-                      </button>
+                      </InlineTextButton>
                     )}
                   </li>
                 );

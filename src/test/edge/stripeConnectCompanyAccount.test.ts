@@ -20,7 +20,7 @@
  * Runs the REAL function source through the edge harness (Stripe and
  * Supabase are doubled; nothing here reaches Stripe).
  *
- * @mutate supabase/functions/stripe-connect/index.ts | ? { business_type: "company", company: { name: business.name } } | ? { business_type: "individual", company: { name: business.name } }
+ * @mutate supabase/functions/stripe-connect/index.ts | ? { business_type: "company" as const, company: { name: business.name } } | ? { business_type: "individual" as const, company: { name: business.name } }
  * @mutate supabase/functions/stripe-connect/index.ts | const accountId = await freshIfRejected((await getOrCreateAccount({ business })).accountId, business); | const accountId = await freshIfRejected((await getOrCreateAccount()).accountId, business);
  * @mutate supabase/functions/stripe-connect/index.ts | const keyKind = business.type === "company" ? "-company" : ""; | const keyKind = "";
  * @mutate supabase/functions/stripe-connect/index.ts | const { accountId } = await getOrCreateAccount({ business }); | const { accountId } = await getOrCreateAccount();

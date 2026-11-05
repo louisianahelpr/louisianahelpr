@@ -379,9 +379,9 @@ serve(async (req) => {
             product_description: "Local job and errand services",
           },
           ...(business.type === "company"
-            ? { business_type: "company", company: { name: business.name } }
+            ? { business_type: "company" as const, company: { name: business.name } }
             : {
-              business_type: "individual",
+              business_type: "individual" as const,
               individual: {
                 first_name: firstName,
                 last_name: lastName,

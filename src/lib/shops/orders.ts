@@ -208,7 +208,7 @@ async function invokeShopCheckout(body: Record<string, unknown>): Promise<Record
       : null;
     const refusal = new Error(typeof parsed?.error === "string" && parsed.error ? parsed.error : "payment_unavailable");
     // The first order needs the ID check (20261105174853; shop-checkout answers 403 identity_required_to_buy).
-    openShopsIdentityCheckFor(refusal);
+    void openShopsIdentityCheckFor(refusal);
     throw refusal;
   }
   return (data ?? {}) as Record<string, unknown>;

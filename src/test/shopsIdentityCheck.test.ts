@@ -17,8 +17,8 @@
  * @mutate supabase/migrations/20261105174853_shops_identity_check.sql |     PERFORM public.declutter_identity_gate(NEW.owner_id, 'identity_required_to_list'); |     NULL;
  * @mutate supabase/migrations/20261105174853_shops_identity_check.sql |   PERFORM public.declutter_identity_gate(NEW.buyer_id, 'identity_required_to_buy'); |   NULL;
  * @mutate supabase/migrations/20261105174853_shops_identity_check.sql | (TG_OP = 'INSERT' OR OLD.status = 'draft') | (TG_OP = 'INSERT' OR OLD.status IN ('draft', 'live'))
- * @mutate src/lib/shops/orders.ts |     openShopsIdentityCheckFor(refusal);\n | \n
- * @mutate src/lib/shops/items.ts |   openShopsIdentityCheckFor(result.error);\n | \n
+ * @mutate src/lib/shops/orders.ts |     void openShopsIdentityCheckFor(refusal);\n | \n
+ * @mutate src/lib/shops/items.ts |   void openShopsIdentityCheckFor(result.error);\n | \n
  * @mutate src/lib/shops/errors.ts |   if (kind === "buy") return openIdentityCheck("shop_buy"); |   if (kind === "buy") return openIdentityCheck("buy");
  */
 import { describe, expect, it, vi } from "vitest";
@@ -81,11 +81,11 @@ describe("Shops ID check, once per account (20261105174853)", () => {
     expect(src("supabase/functions/shop-checkout/index.ts")).toContain('await asBuyer.rpc("shops_request_order"');
   });
 
-  it("3. the app opens the one ID sheet with Shops' own words, and says what to do", () => {
+  it("3. the app opens the one ID sheet with Shops' own words, and says what to do", async () => {
     opened.reasons.length = 0;
-    expect(openShopsIdentityCheckFor(new Error("identity_required_to_buy"))).toBe(true);
-    expect(openShopsIdentityCheckFor({ message: "identity_required_to_list" })).toBe(true);
-    expect(openShopsIdentityCheckFor(new Error("item_not_found"))).toBe(false);
+    expect(await openShopsIdentityCheckFor(new Error("identity_required_to_buy"))).toBe(true);
+    expect(await openShopsIdentityCheckFor({ message: "identity_required_to_list" })).toBe(true);
+    expect(await openShopsIdentityCheckFor(new Error("item_not_found"))).toBe(false);
     expect(opened.reasons).toEqual(["shop_buy", "shop_list"]);
     expect(shopsErrorMessage(new Error("identity_required_to_buy"))).toBe("Verify your ID with Stripe first. It takes about 2 minutes, once, then order again.");
     expect(shopsErrorMessage(new Error("identity_required_to_list"))).toBe("Verify your ID with Stripe first. It takes about 2 minutes, once, then publish again.");
@@ -96,7 +96,7 @@ describe("Shops ID check, once per account (20261105174853)", () => {
       expect(line).not.toMatch(/Declutter/);
     }
     // Every refusal path the two triggers reach goes through the sheet opener.
-    expect(src("src/lib/shops/items.ts")).toMatch(/function rpcData[\s\S]{0,500}openShopsIdentityCheckFor\(result\.error\);/);
-    expect(src("src/lib/shops/orders.ts")).toMatch(/async function invokeShopCheckout[\s\S]{0,900}openShopsIdentityCheckFor\(refusal\);\s*throw refusal;/);
+    expect(src("src/lib/shops/items.ts")).toMatch(/function rpcData[\s\S]{0,500}void openShopsIdentityCheckFor\(result\.error\);/);
+    expect(src("src/lib/shops/orders.ts")).toMatch(/async function invokeShopCheckout[\s\S]{0,900}void openShopsIdentityCheckFor\(refusal\);\s*throw refusal;/);
   });
 });

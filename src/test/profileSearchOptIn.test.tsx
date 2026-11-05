@@ -35,7 +35,7 @@ vi.mock("@/integrations/supabase/client", () => ({
     from: () => ({ update: (v: unknown) => ({ eq: (_c: string, id: string) => update(v, id) }) }),
   },
 }));
-vi.mock("sonner", () => ({ toast: { error: (...a: unknown[]) => toastError(...a), success: vi.fn() } }));
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (...a: unknown[]) => toastError(...a), success: vi.fn() }) }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
 vi.mock("@/components/AppPage", () => ({ default: ({ children }: { children: ReactNode }) => <main>{children}</main> }));
 vi.mock("@/hooks/usePageMeta", () => ({ usePageMeta: (m: unknown) => meta(m) }));

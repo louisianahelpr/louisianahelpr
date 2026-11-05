@@ -138,7 +138,7 @@ export interface CottageStatus {
 function rpcData<T>(result: { data: T; error: { message: string } | null }, words: (e: unknown) => string | null): T {
   if (!result.error) return result.data;
   // The first live item needs the ID check (20261105174853): open the one ID sheet, not a dead end.
-  openShopsIdentityCheckFor(result.error);
+  void openShopsIdentityCheckFor(result.error);
   try {
     unwrap(result);
   } catch (thrown) {

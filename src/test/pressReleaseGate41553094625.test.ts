@@ -1,8 +1,8 @@
 // @mutate scripts/audit/press-every-control.mjs |     if (liveRecordKey === meta.recordKey) return { verdict: "same" }; |     if (liveRecordKey === "never") return { verdict: "same" };
 // @mutate scripts/audit/press-every-control.mjs |     const keyed = (now ?? []).filter((c) => c.recordKey === meta.recordKey); |     const keyed = now ?? [];
 // @mutate scripts/audit/press-every-control.mjs |       recordKey: el.closest(`[${recordKeyAttr}]`)?.getAttribute(recordKeyAttr) \|\| "", |       recordKey: "",
-// @mutate src/components/NotificationPanel.tsx | "data-record-id": n.id, role: | "data-row-id": n.id, role:
-// @mutate src/components/NotificationPanel.tsx | <div data-record-id="notifications-panel" | <div
+// @mutate src/components/NotificationPanelView.tsx | "data-record-id": n.id, role: | "data-row-id": n.id, role:
+// @mutate src/components/NotificationPanelView.tsx | <div data-record-id="notifications-panel" | <div
 // @mutate scripts/audit/pressProdSafety.mjs |   if (meta.accountSetting === true) return true; |   void meta.accountSetting;
 // @mutate scripts/audit/press-every-control.mjs |       accountSetting: el.hasAttribute("data-account-setting"), |       accountSetting: false,
 // @mutate src/components/sections/CustomizeSheet.tsx | aria-label={`Move ${s.label} up`} data-account-setting | aria-label={`Move ${s.label} up`}
@@ -93,7 +93,7 @@ describe("1. the bell panel's records are matched by id, not by the panel's live
   });
 
   it("the panel and every row carry data-record-id, and ENUMERATE reads it", () => {
-    const panel = code("src/components/NotificationPanel.tsx");
+    const panel = code("src/components/NotificationPanelView.tsx");
     expect(panel).toMatch(/"data-record-id": n\.id,/);
     expect(panel).toMatch(/<div data-record-id="notifications-panel"/);
     const src = code("scripts/audit/press-every-control.mjs");

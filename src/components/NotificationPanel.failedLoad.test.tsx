@@ -188,4 +188,4 @@ describe("NotificationPanel: a failed load renders the error card, never the emp
 // @mutate src/components/NotificationPanel.tsx | if (sessionError) throw sessionError; |
 // And proof the aria-busy pair can fail: drop the attribute and the pending
 // state goes back to looking settled to every waiter.
-// @mutate src/components/NotificationPanel.tsx | aria-busy="true" | aria-busy={undefined}
+// @mutate src/components/NotificationPanelView.tsx | aria-busy="true" | aria-busy={undefined}

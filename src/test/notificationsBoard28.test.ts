@@ -4,11 +4,11 @@
  * unread dot is olive, an unread row has no rust wash, and the icon circle
  * wears the money tint only for MONEY_TYPES; titles in Montserrat.
  *
- * @mutate src/components/NotificationPanel.tsx |                                   style={{ background: "hsl(var(--bark))" }} |                                   style={{ background: "hsl(var(--burnt-sienna))" }}
- * @mutate src/components/NotificationPanel.tsx |                       color: "hsl(var(--muted-foreground))",\n |                       color: "hsl(var(--burnt-sienna))",\n
- * @mutate src/components/NotificationPanel.tsx |                 Mark all read\n |                 <CheckCheck />\n
+ * @mutate src/components/NotificationPanelView.tsx |                                   style={{ background: "hsl(var(--bark))" }} |                                   style={{ background: "hsl(var(--burnt-sienna))" }}
+ * @mutate src/components/NotificationPanelView.tsx |                       color: "hsl(var(--muted-foreground))",\n |                       color: "hsl(var(--burnt-sienna))",\n
+ * @mutate src/components/NotificationPanelView.tsx |                 Mark all read\n |                 <CheckCheck />\n
  * @mutate src/components/notificationPanel/notificationPanelHelpers.tsx | new Set(["payment", "financial_alerts", "declutter_sales", "declutter_refunds"]) | new Set(["payment", "financial_alerts", "declutter_sales", "declutter_refunds", "application"])
- * @mutate src/components/NotificationPanel.tsx | className="min-w-0 flex-1 font-sans font-bold | className="min-w-0 flex-1 font-display font-bold
+ * @mutate src/components/NotificationPanelView.tsx | className="min-w-0 flex-1 font-sans font-bold | className="min-w-0 flex-1 font-display font-bold
  * @mutate src/components/notificationPanel/NotificationLeading.tsx |   const money = MONEY_TYPES.has(n.type); |   const money = true;
  */
 import { describe, it, expect } from "vitest";
@@ -17,7 +17,7 @@ import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 import { MONEY_TYPES } from "@/components/notificationPanel/notificationPanelHelpers";
 
-const src = blankComments(readFileSync(resolve(__dirname, "../components/NotificationPanel.tsx"), "utf8"));
+const src = blankComments(readFileSync(resolve(__dirname, "../components/NotificationPanelView.tsx"), "utf8"));
 // The row's leading circle moved to NotificationLeading (Q2037 faces, 2026-11-04); the panel mounts it per row.
 const leading = blankComments(readFileSync(resolve(__dirname, "../components/notificationPanel/NotificationLeading.tsx"), "utf8"));
 

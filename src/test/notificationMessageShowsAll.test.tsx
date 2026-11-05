@@ -5,7 +5,7 @@
  *
  * @mutate src/components/notificationPanel/NotificationMessage.tsx |       {long && ( |       {false && (
  * @mutate src/components/notificationPanel/NotificationMessage.tsx |             e.stopPropagation();\n            setOpen | setOpen
- * @mutate src/components/NotificationPanel.tsx |                             <NotificationMessage text={n.message} /> |                             <p className="line-clamp-2">{n.message}</p>
+ * @mutate src/components/NotificationPanelView.tsx |                             <NotificationMessage text={n.message} /> |                             <p className="line-clamp-2">{n.message}</p>
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
@@ -36,7 +36,7 @@ describe("a bell row shows its whole message on More (AUD31-19)", () => {
   });
 
   it("the bell's rows draw their message through it (no clamped paragraph of their own)", () => {
-    const src = blankComments(readFileSync(path.resolve(__dirname, "../components/NotificationPanel.tsx"), "utf8"));
+    const src = blankComments(readFileSync(path.resolve(__dirname, "../components/NotificationPanelView.tsx"), "utf8"));
     expect(src.length).toBeGreaterThan(5000);
     expect(src).toContain("<NotificationMessage text={n.message} />");
     expect(src).not.toMatch(/>\s*\{n\.message\}\s*</);

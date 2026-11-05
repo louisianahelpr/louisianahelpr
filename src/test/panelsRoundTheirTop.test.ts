@@ -5,7 +5,7 @@
  * passes `roundTopCorners: true`.
  *
  * (Filters left this class 2026-10-20: board 24 made it a Sheet on every width.)
- * @mutate src/components/NotificationPanel.tsx | screenPanelContentProps(band, { roundTopCorners: true, contentMaxWidth | screenPanelContentProps(band, { contentMaxWidth
+ * @mutate src/components/NotificationPanelView.tsx | screenPanelContentProps(band, { roundTopCorners: true, contentMaxWidth | screenPanelContentProps(band, { contentMaxWidth
  */
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";

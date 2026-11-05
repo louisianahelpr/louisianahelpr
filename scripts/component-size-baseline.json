@@ -3,7 +3,6 @@
   "_threshold": 600,
   "files": {
     "src/components/messages/ConversationList.tsx": 1747,
-    "src/components/NotificationPanel.tsx": 907,
     "src/components/postjob/CheckoutStep.tsx": 710,
     "src/components/profile/SubscriptionTab.tsx": 869,
     "src/pages/auth/CompleteProfile.tsx": 892,

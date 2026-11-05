@@ -13,7 +13,7 @@
  * @mutate supabase/migrations/20261104060659_notification_actor_face.sql |   UPDATE public.notifications SET actor_id = NULL WHERE actor_id = OLD.user_id; |   NULL;
  * @mutate supabase/migrations/20261104060659_notification_actor_face.sql | REVOKE ALL ON FUNCTION public.notifications_stamp_actor() FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.notifications_stamp_actor() FROM PUBLIC;
  * @mutate src/components/notificationPanel/NotificationLeading.tsx |   if (n.actor_id && face) { |   if (false) {
- * @mutate src/components/NotificationPanel.tsx | <NotificationLeading n={n} face={n.actor_id ? faces.get(n.actor_id) : undefined} /> | <NotificationLeading n={n} face={undefined} />
+ * @mutate src/components/NotificationPanelView.tsx | <NotificationLeading n={n} face={n.actor_id ? faces.get(n.actor_id) : undefined} /> | <NotificationLeading n={n} face={undefined} />
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -90,8 +90,10 @@ describe("job notices show the face of the member who caused them (Q2037)", () =
   });
 
   it("the panel hands every row its face", () => {
-    const src = blankComments(readFileSync(join(REPO, "src/components/NotificationPanel.tsx"), "utf8"));
-    expect(src).toMatch(/const faces = useNotificationFaces\(notifications\);/);
+    // Q806 (2026-11-05): the model reads the faces, the view hands them to each row.
+    const model = blankComments(readFileSync(join(REPO, "src/components/NotificationPanel.tsx"), "utf8"));
+    const src = blankComments(readFileSync(join(REPO, "src/components/NotificationPanelView.tsx"), "utf8"));
+    expect(model).toMatch(/const faces = useNotificationFaces\(notifications\);/);
     expect(src).toMatch(/<NotificationLeading n=\{n\} face=\{n\.actor_id \? faces\.get\(n\.actor_id\) : undefined\} \/>/);
   });
 });

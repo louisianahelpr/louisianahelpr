@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { ListRow } from "@/components/ui/ListRow";
 
 /**
  * Shared editorial FAQ row — hairline divider between rows, chevron rotates on
@@ -24,11 +25,22 @@ const FaqRow = ({
       className="border-b last:border-0"
       style={{ borderColor: "hsl(var(--olivewood) / 0.18)" }}
     >
-      <button
-        type="button"
+      {/* The shared row (Q2709): its hover is the sanctioned tint, not a fade. -mx-3 cancels the row's px-3 so the
+          question stays on the hairline's left edge and the tint reaches 12px past it on both sides. */}
+      <ListRow
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-start justify-between gap-6 py-5 sm:py-6 text-left transition-opacity hover:opacity-80"
+        className="-mx-3 w-[calc(100%+1.5rem)] items-start gap-6 py-5 sm:py-6"
+        trailing={
+          <ChevronDown
+            className="w-5 h-5 shrink-0 mt-1 transition-transform duration-200"
+            style={{
+              color: "hsl(var(--olivewood))",
+              transform: open ? "rotate(180deg)" : "rotate(0deg)",
+            }}
+            aria-hidden
+          />
+        }
       >
         <span
           className="font-sans font-semibold text-ds-15 sm:text-ds-17 leading-snug"
@@ -36,15 +48,7 @@ const FaqRow = ({
         >
           {q}
         </span>
-        <ChevronDown
-          className="w-5 h-5 shrink-0 mt-1 transition-transform duration-200"
-          style={{
-            color: "hsl(var(--olivewood))",
-            transform: open ? "rotate(180deg)" : "rotate(0deg)",
-          }}
-          aria-hidden
-        />
-      </button>
+      </ListRow>
       {open && (
         <div className="pb-5 sm:pb-6 pr-8">
           <p

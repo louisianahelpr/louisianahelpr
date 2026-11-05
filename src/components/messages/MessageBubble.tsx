@@ -1,4 +1,5 @@
 import { t } from "@/lib/i18n/language";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import "@/lib/i18n/enScreens";
 import { Trash2, Loader2, RotateCw, MapPin } from "lucide-react";
 import { MessageAttachment } from "@/components/MessageAttachment";
@@ -321,15 +322,14 @@ export function MessageBubble({
             Sending…
           </span>
         ) : isFailed ? (
-          <button
-            type="button"
+          <InlineTextButton
             onClick={() => m.clientId && retryMessage(m.clientId)}
-            className="flex items-center gap-1 text-destructive-ink font-medium hover:underline"
+            className="flex items-center gap-1 text-destructive-ink font-medium"
             title={t("chat.retry")}
           >
             <RotateCw className="w-2.5 h-2.5" />
             {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not sent — tap to retry"}
-          </button>
+          </InlineTextButton>
         ) : isRefused ? (
           <span className="text-destructive-ink font-medium">
             {m.failReason ? REFUSAL_BUBBLE_LABEL[m.failReason] : "Not sent — conversation closed"}

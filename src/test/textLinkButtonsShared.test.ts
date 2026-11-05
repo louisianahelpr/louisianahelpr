@@ -7,6 +7,9 @@
  * - Shops: the daily cap's and an order card's "Try again".
  * - Reviews: "Clear" (the filter), "Add response", "Edit response".
  * - Lease: a missing field's jump-to-step link. A job card's nudge-to-confirm link.
+ * Second slice (same night): Job confirmation's "Cancel job", Photo proof's "View all", a failed message's
+ * retry, the filter sheet's "set hours", a tenancy's end link (their hand-written hover:underline goes: the shared
+ * link draws its own underline on hover).
  * Each file's hand-made button count fell in the same commit (docs/audit/hand-made-controls-baseline.json).
  *
  * @mutate src/components/series/EndSeriesControl.tsx | {trigger && <InlineTextButton | {trigger && <button type="button"
@@ -17,6 +20,11 @@
  * @mutate src/pages/user/ReviewsSection.tsx | <InlineTextButton\n                onClick={() => {\n                  onSetReviewCategoryFilter(null); | <button\n                onClick={() => {\n                  onSetReviewCategoryFilter(null);
  * @mutate src/components/rentals/LeasePanel.tsx | <InlineTextButton className="underline" onClick={() => setStep( | <button type="button" className="underline" onClick={() => setStep(
  * @mutate src/components/job-card/NudgeConfirmLink.tsx | <InlineTextButton\n          disabled={busy} | <button type="button"\n          disabled={busy}
+ * @mutate src/components/JobConfirmation.tsx | <InlineTextButton\n            onClick={() => { setShowConfirmDialog(false); onCantMakeIt(); }} | <button className="underline"\n            onClick={() => { setShowConfirmDialog(false); onCantMakeIt(); }}
+ * @mutate src/components/PhotoProof.tsx | <InlineTextButton onClick={() => setViewOpen(true)} | <button className="underline" onClick={() => setViewOpen(true)}
+ * @mutate src/components/messages/MessageBubble.tsx | <InlineTextButton\n            onClick={() => m.clientId && retryMessage(m.clientId)} | <button className="underline"\n            onClick={() => m.clientId && retryMessage(m.clientId)}
+ * @mutate src/components/dashboard/filterSheet/FilterSheetRows.tsx | <InlineTextButton\n              onClick={() => navigate("/profile?tab=availability")} | <button className="underline"\n              onClick={() => navigate("/profile?tab=availability")}
+ * @mutate src/components/rentals/EndTenancyButton.tsx | <InlineTextButton className="text-sm | <button className="underline text-sm
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -35,6 +43,11 @@ const CASES: [string, number][] = [
   ["src/pages/user/ReviewsSection.tsx", 3],
   ["src/components/rentals/LeasePanel.tsx", 1],
   ["src/components/job-card/NudgeConfirmLink.tsx", 1],
+  ["src/components/JobConfirmation.tsx", 1],
+  ["src/components/PhotoProof.tsx", 1],
+  ["src/components/messages/MessageBubble.tsx", 1],
+  ["src/components/dashboard/filterSheet/FilterSheetRows.tsx", 1],
+  ["src/components/rentals/EndTenancyButton.tsx", 1],
 ];
 
 function scan(file: string) {
@@ -44,7 +57,7 @@ function scan(file: string) {
     if (ts.isJsxOpeningElement(n) || ts.isJsxSelfClosingElement(n)) {
       const tag = n.tagName.getText(sf);
       if (tag === "InlineTextButton") inline += 1;
-      if (tag === "button" && /className="[^"]*\bunderline\b/.test(n.getText(sf))) underlinedButtons += 1;
+      if (tag === "button" && /className="[^"]*\b(hover:)?underline\b/.test(n.getText(sf))) underlinedButtons += 1;
     }
     ts.forEachChild(n, visit);
   };
@@ -53,9 +66,9 @@ function scan(file: string) {
 }
 
 describe("underlined text actions are the shared InlineTextButton (Q2709)", () => {
-  it("checks all eight files, twelve actions (an empty list would pass every case)", () => {
-    expect(CASES.length).toBe(8);
-    expect(CASES.reduce((a, [, n]) => a + n, 0)).toBe(12);
+  it("checks all thirteen files, seventeen actions (an empty list would pass every case)", () => {
+    expect(CASES.length).toBe(13);
+    expect(CASES.reduce((a, [, n]) => a + n, 0)).toBe(17);
   });
 
   it.each(CASES)("%s", (file, n) => {

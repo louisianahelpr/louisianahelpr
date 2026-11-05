@@ -137,8 +137,13 @@ describe("Block and Report are reachable from every profile path", () => {
 });
 
 describe("no in-app link builds /user/<id> by hand", () => {
-  // The one pathname test that is not a link: is the Profile tab active on your own /user page.
+  // The helper itself, and the one pathname test that is not a link (is the Profile tab active on your own /user page).
+  // @two-way src/test/profileLinksGoToTheOnePage.test.tsx:stale baseline entry
   const ALLOWED = new Set(["src/lib/profileLink/memberProfilePath.ts", "src/components/mobileNav/mobileNavHelpers.ts"]);
+  it("each allowed file still builds a /user/ path (else it leaves the list)", () => {
+    const stale = [...ALLOWED].filter((f) => !/\/user\/\$\{/.test(read(f))).map((f) => `stale baseline entry ${f} — remove it (lower the baseline)`);
+    expect(stale).toEqual([]);
+  });
   it("every profile link goes through memberProfilePath", () => {
     const files = trackedFiles("src").filter((f) => /\.(ts|tsx)$/.test(f) && !/\.test\.|\/test\//.test(f));
     const offenders: string[] = [];

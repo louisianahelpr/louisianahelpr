@@ -82,6 +82,40 @@ export const stripeConnectStatusKey = (userId: string) =>
   queryKeys.payoutSetup.status(userId);
 
 /**
+ * Narrows the cached `PayoutAccountStatus` to the three booleans the payout
+ * slot renders, and REPORTS + THROWS on a malformed answer, so a broken
+ * edge-function deploy shows the honest `error` row (and reaches us) instead
+ * of looking healthy. (The transport-level failure is reported by
+ * `fetchPayoutStatus`.)
+ *
+ * WHY THIS IS A MODULE-LEVEL FUNCTION (#185, Q1816 ui-sweep #3491). TanStack
+ * memoises `select` on its identity, so an inline arrow (a new function every
+ * render) re-ran the select on every render. For a malformed answer that is a
+ * fresh Error and a fresh report() per render (measured: 9 reports for ONE
+ * answer over 6 renders). The empty-state sweep answers this call `[]`, and in
+ * CI /profile died with "Maximum update depth exceeded" at ProfileLanding
+ * (dev-build sweep 42008635130). The deps fold moved @tanstack/react-query
+ * 5.104.1 -> 5.106.0, whose useBaseQuery now runs the observer's setOptions
+ * effect before its store subscription; with a new error per select run, that
+ * is the likely path from "re-runs per render" to "never settles". One stable
+ * function runs once per answer. Guarded by
+ * src/hooks/useStripeConnectStatus.test.tsx and
+ * src/test/profilePayoutSlotContained.test.tsx.
+ */
+export function selectConnectStatus(raw: PayoutAccountStatus | null): StripeConnectStatus {
+  if (!raw || typeof raw.payouts_enabled !== "boolean") {
+    const err = new Error("stripe-connect status returned an unexpected shape");
+    report(err, { severity: "warning", tags: { area: "profile", action: "stripe-connect-status" } });
+    throw err;
+  }
+  return {
+    connected: !!raw.connected,
+    details_submitted: !!raw.details_submitted,
+    payouts_enabled: !!raw.payouts_enabled,
+  };
+}
+
+/**
  * The signed-in user's Stripe Connect payout status, for the Profile landing.
  *
  * WHY THIS IS A QUERY AND NOT A useEffect
@@ -133,23 +167,9 @@ export function useStripeConnectStatus(): StripeConnectStatusResult {
     ...payoutStatusQueryOptions,
     // Narrow to the three booleans this screen renders. `select` runs per
     // observer and does NOT write to the cache, so PayoutSetupForm still reads
-    // the full object off the same key.
-    select: (raw): StripeConnectStatus => {
-      if (!raw || typeof raw.payouts_enabled !== "boolean") {
-        // Reported here, not swallowed: a malformed answer renders the same
-        // `error` prompt as a failed call, and if it were silent a broken
-        // edge-function deploy would look to us exactly like a healthy one.
-        // (The transport-level failure is reported by `fetchPayoutStatus`.)
-        const err = new Error("stripe-connect status returned an unexpected shape");
-        report(err, { severity: "warning", tags: { area: "profile", action: "stripe-connect-status" } });
-        throw err;
-      }
-      return {
-        connected: !!raw.connected,
-        details_submitted: !!raw.details_submitted,
-        payouts_enabled: !!raw.payouts_enabled,
-      };
-    },
+    // the full object off the same key. It MUST be the stable module-level
+    // function below, never an inline arrow: see selectConnectStatus.
+    select: selectConnectStatus,
   });
 
   // The last-known bit is written from the RESULT rather than from inside the

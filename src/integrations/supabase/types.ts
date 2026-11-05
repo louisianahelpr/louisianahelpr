@@ -13133,34 +13133,43 @@ export type Database = {
           confirmed_at: string | null
           confirmed_how: string | null
           created_at: string
+          held_admin_at: string | null
+          held_nudged_at: string | null
           is_seed: boolean
           order_id: string
           problem_at: string | null
           problem_note: string | null
           ready_at: string | null
           ready_photo_path: string | null
+          shop_confirmed_at: string | null
         }
         Insert: {
           confirmed_at?: string | null
           confirmed_how?: string | null
           created_at?: string
+          held_admin_at?: string | null
+          held_nudged_at?: string | null
           is_seed?: boolean
           order_id: string
           problem_at?: string | null
           problem_note?: string | null
           ready_at?: string | null
           ready_photo_path?: string | null
+          shop_confirmed_at?: string | null
         }
         Update: {
           confirmed_at?: string | null
           confirmed_how?: string | null
           created_at?: string
+          held_admin_at?: string | null
+          held_nudged_at?: string | null
           is_seed?: boolean
           order_id?: string
           problem_at?: string | null
           problem_note?: string | null
           ready_at?: string | null
           ready_photo_path?: string | null
+          shop_confirmed_at?: string | null
         }
         Relationships: [
           {
@@ -21392,6 +21401,7 @@ export type Database = {
         }[]
       }
       shops_confirm_pickup: { Args: { p_order_id: string }; Returns: Json }
+      shops_mark_handed_over: { Args: { p_order_id: string }; Returns: Json }
       shops_mark_ready: {
         Args: { p_order_id: string; p_photo_path: string }
         Returns: Json

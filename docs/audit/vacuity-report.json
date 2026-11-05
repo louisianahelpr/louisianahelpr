@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-05T09:00:23.037Z",
-  "guards": 3562,
-  "registered": 3562,
+  "generated": "2026-11-05T11:37:58.904Z",
+  "guards": 3570,
+  "registered": 3570,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts"
@@ -12,12 +12,6 @@
       "why": [
         "blocked (literal declared in this file) is both input and oracle",
         "all (literal declared in this file) is both input and oracle"
-      ]
-    },
-    {
-      "file": "src/test/cwvLabBlocksProdWrites.test.ts",
-      "why": [
-        "contexts (literal declared in this file) is both input and oracle"
       ]
     },
     {

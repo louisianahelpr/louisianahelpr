@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -473,14 +474,13 @@ function SignedOpenLink({ path }: { path: string }) {
     setBusy(false);
   };
   return (
-    <button
-      type="button"
+    <InlineTextButton
       onClick={open}
       disabled={busy}
-      className="inline-flex items-center gap-1 text-ds-11 text-primary hover:underline disabled:opacity-50"
+      className="inline-flex items-center gap-1 text-ds-11 text-primary disabled:opacity-50"
     >
       {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <>Open <ExternalLink className="w-3 h-3" /></>}
-    </button>
+    </InlineTextButton>
   );
 }
 

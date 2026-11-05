@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import type { CSSProperties } from "react";
 import { useReducedMotion } from "framer-motion";
@@ -851,15 +852,14 @@ export const SubscriptionTab = ({ profile, user: _user, onBack }: { profile: Pro
           plugin present), so the web storefront is untouched. */}
       {isIapAvailable() && membershipsOn && (
         <div className="mt-4 flex justify-center">
-          <button
-            type="button"
+          <InlineTextButton
             onClick={handleRestorePurchases}
             disabled={restoring}
-            className="text-ds-12 underline underline-offset-2 disabled:opacity-60 rounded-ds-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="text-ds-12 underline disabled:opacity-60"
             style={{ color: "hsl(var(--bark))" }}
           >
             {restoring ? "Restoring…" : "Restore purchases"}
-          </button>
+          </InlineTextButton>
         </div>
       )}
 

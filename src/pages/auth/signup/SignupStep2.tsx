@@ -8,6 +8,7 @@
 // Validation lives in the parent (validateAboutYouStep).
 
 import { useState, type ReactNode } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -335,16 +336,15 @@ export function SignupStep2(props: SignupStep2Props) {
           2026-10-29): "Create account" is the button; Skip is a quiet text
           link that says what it does too, so two buttons that both create the
           account no longer compete. */}
-      <button
-        type="button"
-        className="mx-auto block min-h-11 px-3 text-ds-14 font-semibold underline underline-offset-2 disabled:opacity-50"
+      <InlineTextButton
+        className="mx-auto block text-ds-14 font-semibold underline disabled:opacity-50"
         style={{ color: "hsl(var(--olivewood) / 0.85)" }}
         data-testid="signup-skip"
         onClick={onSkip}
         disabled={loading}
       >
         {t("signup.skip")}
-      </button>
+      </InlineTextButton>
     </div>
   );
 }
@@ -381,18 +381,17 @@ function ReferralCodeField({
   return (
     <div className="space-y-2">
       {!open && (
-        <button
-          type="button"
+        <InlineTextButton
           data-testid="referral-code-toggle"
           onClick={() => setOpen(true)}
-          className="flex items-center gap-1 text-ds-12 underline underline-offset-2 min-h-[44px] [@media(pointer:fine)]:min-h-0 [@media(pointer:fine)]:py-1"
+          className="flex items-center gap-1 text-ds-12 underline"
           style={{ color: "hsl(var(--olivewood) / 0.85)" }}
           aria-expanded={false}
           aria-controls="referralCode"
         >
           {t("signup.referralAsk")}
           <ChevronDown className="w-3.5 h-3.5 shrink-0" aria-hidden />
-        </button>
+        </InlineTextButton>
       )}
       {open && (
         <>

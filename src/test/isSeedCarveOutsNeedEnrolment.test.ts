@@ -253,6 +253,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   shop_order_captured: "tags",
   shop_orders_seed_from_parties: "tags",
   shop_refund_sweep: "alerts",
+  shop_handover_sweep: "alerts", // 20261105182903 (Shops H5): a test order gets no held-money nudge and no 60-day admin alert; no money moves in that loop
   shop_rows_seed_from_owner: "tags",
   shop_state_ok: "hides",
   shops_admin_queue: "tags",

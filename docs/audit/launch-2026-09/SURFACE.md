@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 26 |
 | Overlay surfaces | **instance** | 220 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1151 (across 319 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1154 (across 319 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 52 |
 | Multi-step flows — probable | flow | 33 |
-| Back/next navigation only | flow | 66 |
+| Back/next navigation only | flow | 67 |
 | Forms (submittable) | form | 119 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 182 |
 | Email templates | **exported template** | 23 |
 | Notification types (defined in notification_type_pref_map) | type | 26 |
-| **Navigable surfaces** (places a person can stand) | mixed | **794** |
-| **Copy surfaces** (strings a person may read) | mixed | **1200** |
-| **Total auditable surface** | mixed | **1994** |
+| **Navigable surfaces** (places a person can stand) | mixed | **795** |
+| **Copy surfaces** (strings a person may read) | mixed | **1203** |
+| **Total auditable surface** | mixed | **1998** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -395,7 +395,7 @@ dismissible, and correct in every state.
 | `src/pages/profile/StrSettings.tsx` | 1 | BrandConfirmDialog |
 | `src/pages/user/ProfileBadge.tsx` | 1 | Popover |
 | `src/pages/user/RecognitionRow.tsx` | 1 | Popover |
-| `src/pages/user/UserProfile.tsx` | 1 | DropdownMenu |
+| `src/pages/user/VisitorProfileActions.tsx` | 1 | DropdownMenu |
 
 **⚠ hand-rolled** overlays do NOT go through the shared `Dialog`'s portal, so
 they are the ones subject to the containing-block trap: a `transform`,
@@ -574,11 +574,12 @@ Only an onBack/onNext-style handler matched. Most are plain back buttons, NOT fl
 | `src/pages/profile/InstantBookTab.tsx` | nav-handler |
 | `src/pages/profile/PayoutHistory.tsx` | nav-handler |
 | `src/pages/profile/PetProfiles.tsx` | nav-handler |
-| `src/pages/profile/Profile.tsx` | nav-handler |
+| `src/pages/profile/ProfileLoadingShell.tsx` | nav-handler |
 | `src/pages/profile/ProfileTabPanels.tsx` | nav-handler |
 | `src/pages/profile/Receipts.tsx` | nav-handler |
 | `src/pages/profile/SavedSearchesTab.tsx` | nav-handler |
 | `src/pages/profile/StrSettings.tsx` | nav-handler |
+| `src/pages/profile/useProfileLandingScroller.ts` | nav-handler |
 | `src/pages/profile/WorkRecord.tsx` | nav-handler |
 | `src/pages/search/SearchPage.tsx` | nav-handler |
 

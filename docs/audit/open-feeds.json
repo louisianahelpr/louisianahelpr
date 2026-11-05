@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-05T02:13Z",
+  "measured_at": "2026-11-05T04:59Z",
   "issues": {
     "readable": true,
     "open": [
@@ -78,7 +78,7 @@
         "number": 3743,
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41709358659",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41968943315",
         "runTruncated": false
       },
       {
@@ -125,7 +125,7 @@
         "number": 4084,
         "title": "nightly-red: privacy-journey",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41792903580",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41955626728",
         "runTruncated": false
       },
       {
@@ -479,7 +479,6 @@
     ]
   },
   "mirrored": {
-    "bus TC-004": "Q824",
     "issue #1794": "Q416",
     "issue #2244": "Q1816",
     "issue #2245": "Q1816",

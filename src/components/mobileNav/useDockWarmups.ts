@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { prefetchRoutesWhenIdle } from "@/lib/routePrefetch";
-import { transformedImageUrl } from "@/lib/imageUrl";
+import { buildImageUrl } from "@/lib/imageUrl";
 
 /**
  * Warm the tab chunks while the user is reading the page they're already on.
@@ -43,6 +43,6 @@ export function useWarmAvatar(avatarUrl: string | null | undefined) {
     // so neither copy is reused across loads (B58, 2026-11-03, Q104).
     img.crossOrigin = "anonymous";
     img.decoding = "async";
-    img.src = transformedImageUrl(avatarUrl, { width: 72, height: 72 });
+    img.src = buildImageUrl(avatarUrl, { width: 72 });
   }, [avatarUrl]);
 }

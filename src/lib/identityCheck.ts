@@ -19,7 +19,8 @@ import { hasIdBadge } from "@/lib/awardGate";
 import { report } from "@/lib/errorLogger";
 
 /** Why the sheet opened: picks the first sentence, never the rule. */
-export type IdentityCheckReason = "start" | "post" | "accept" | "buy" | "list" | "deliver" | "claim" | "general";
+// "shop_buy" / "shop_list": Shops reuses Declutter's gate and codes (20261105174853), with its own words.
+export type IdentityCheckReason = "start" | "post" | "accept" | "buy" | "list" | "shop_buy" | "shop_list" | "deliver" | "claim" | "general";
 
 interface SheetState {
   open: boolean;

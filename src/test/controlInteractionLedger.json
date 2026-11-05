@@ -102,8 +102,6 @@
     "notTint  src/pages/profile/petProfiles/PetForm.tsx:213 <button>  hover:border-border",
     "notTint  src/pages/post-job/OfferToSavedHelpr.tsx:178 <button>  hover:border-primary/50",
     "press  src/components/BirthdayPopup.tsx:142 <Button>  active:opacity-70",
-    "press  src/components/DisputeDialog.tsx:347 <button>  active:opacity-70",
-    "press  src/components/DisputeTimelineDialog.tsx:464 <button>  active:opacity-70",
     "press  src/components/JobBoostDialog.tsx:186 <Link>  active:opacity-70",
     "press  src/components/PayoutSetupForm.tsx:301 <button>  active:opacity-70",
     "press  src/components/PhotoProof.tsx:263 <button>  active:opacity-100",

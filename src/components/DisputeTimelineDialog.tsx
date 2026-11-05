@@ -28,6 +28,7 @@ import {
   DialogPrimaryAction,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Upload, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useProofPhotoUrls } from "@/hooks/useProofPhotoUrls";
@@ -536,14 +537,17 @@ export const DisputeTimelineDialog = ({
                       }}
                     >
                       <span className="truncate max-w-[120px] font-sans font-medium">{file.name}</span>
-                      <button
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="iconCompact"
                         onClick={() => removeFile(i)}
                         aria-label="Remove file"
-                        className="inline-flex items-center justify-center h-10 w-10 -my-2 -mr-2 active:opacity-70"
+                        className="-my-2 -mr-2 [&_svg]:size-3"
                         style={{ color: "hsl(var(--burnt-sienna))" }}
                       >
                         <X className="w-3 h-3" />
-                      </button>
+                      </Button>
                     </div>
                   ))}
                 </div>

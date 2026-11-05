@@ -37,7 +37,8 @@
  *   --runs 3   --warm (a second load in the same context: HTTP cache warm)
  *   --return (a second load in the same context with the HTTP cache cleared:
  *            a returning visitor after a deploy; Chromium only)
- *   --expired  --persona customer|helper|admin   --label before   --out ~/.lh-shots/perf
+ *   --expired  --persona customer|helper|admin   --guest (every route signed out)
+ *   --label before   --out ~/.lh-shots/perf
  *   --dist <dir>   --viewport 1366x768   --scheme dark   --shots   --filmstrip
  *   --walk Posts,Jobs,@Earnings   (tap dock/rail destinations, or "@Text"
  *            anywhere, after the cold load; per-tap CLS and the session CLS
@@ -348,46 +349,156 @@ export function sessionInit({ key, value, expired }) {
  * still be blocked, and each allowed request is recorded on its row.
  */
 const WRITE_BLOCK_HOSTS = /(^|\.)supabase\.co$|(^|\.)stripe\.com$/;
-async function installWriteBlock(ctx, clock = () => 0, reads = null, allowed = []) {
-  const blocked = [];
-  await ctx.route(
-    (url) => WRITE_BLOCK_HOSTS.test(url.hostname),
-    (route) => {
-      const req = route.request();
-      const m = req.method();
-      if (m === "GET" || m === "HEAD" || m === "OPTIONS") return route.continue();
-      const mock = mockedRead(reads, m, req.url(), req.postData());
-      if (mock) {
-        allowed.push({ read: mock.read, at: clock() });
-        return route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(mock.body) });
-      }
-      const read = allowedRead(reads, m, req.url(), req.postData());
-      if (read) { allowed.push({ read, at: clock() }); return route.continue(); }
-      const u = new URL(req.url());
-      blocked.push({ method: m, path: `${u.hostname.split(".")[0]}:${u.pathname}${u.searchParams.get("grant_type") ? "?grant_type=" + u.searchParams.get("grant_type") : ""}`, at: clock() });
-      return route.abort("blockedbyclient");
-    },
-  );
-  return blocked;
+
+/**
+ * The block's decision for one request: "go" (a GET, HEAD or OPTIONS, an
+ * allowed read, or a host the block does not cover), {mock} (answered in the
+ * browser) or "abort". Records allowed and blocked requests.
+ */
+function writeBlockDecision(state, m, url, postData) {
+  const { reads, allowed, blocked, clock } = state;
+  let u;
+  try { u = new URL(url); } catch { return "go"; }
+  if (!WRITE_BLOCK_HOSTS.test(u.hostname)) return "go";
+  if (m === "GET" || m === "HEAD" || m === "OPTIONS") return "go";
+  const mock = mockedRead(reads, m, url, postData);
+  if (mock) {
+    allowed.push({ read: mock.read, at: clock() });
+    return { mock };
+  }
+  const read = allowedRead(reads, m, url, postData);
+  if (read) { allowed.push({ read, at: clock() }); return "go"; }
+  blocked.push({ method: m, path: `${u.hostname.split(".")[0]}:${u.pathname}${u.searchParams.get("grant_type") ? "?grant_type=" + u.searchParams.get("grant_type") : ""}`, at: clock() });
+  return "abort";
 }
 
 /**
- * Proves the block is live in `ctx` before any measurement: a POST to the
- * Supabase REST root from a blank page must fail in the browser AND show up in
- * `blocked`. Throws otherwise, so no run measures with writes reaching prod.
+ * HTTP CACHE (Q2707/Q2708, measured 2026-11-04): in Chromium, Playwright's
+ * ctx.route()/page.route() turns the HTTP cache OFF for the whole page
+ * (Network.setCacheDisabled while interception is on), so every --warm load
+ * was really a cold one: on the live item page the warm load fetched the photo
+ * and all 134 scripts again (~/.lh-shots/b3-photo/cachecheck.log). So in
+ * Chromium the block is a CDP Fetch interception on each page the lab opens
+ * (newBlockedPage), which keeps the cache (warm: the photo and 133 of 134
+ * scripts from disk cache). WebKit has no CDP and keeps ctx.route. A page the
+ * lab did not open (a popup) is not covered, so it is closed at once and the
+ * run fails.
  */
-async function probeWriteBlock(ctx, blocked, supabaseUrl = "https://fncmgoasalhdgfwzhsqa.supabase.co") {
+const BLOCKS = new WeakMap();
+async function installWriteBlock(ctx, clock = () => 0, reads = null, allowed = [], browserName = "chromium") {
+  const blocked = [];
+  const state = { reads, allowed, blocked, clock, cdp: browserName === "chromium", strays: [] };
+  BLOCKS.set(ctx, state);
+  if (!state.cdp) {
+    await ctx.route(
+      (url) => WRITE_BLOCK_HOSTS.test(url.hostname),
+      (route) => {
+        const req = route.request();
+        const d = writeBlockDecision(state, req.method(), req.url(), req.postData());
+        if (d === "go") return route.continue();
+        if (d !== "abort") {
+          return route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: JSON.stringify(d.mock.body) });
+        }
+        return route.abort("blockedbyclient");
+      },
+    );
+  }
+  return blocked;
+}
+
+/** The request body Fetch.requestPaused carries (postData, or its entries when large). */
+function pausedBody(request) {
+  if (typeof request.postData === "string") return request.postData;
+  if (Array.isArray(request.postDataEntries)) {
+    return request.postDataEntries.map((e) => (e.bytes ? Buffer.from(e.bytes, "base64").toString("utf8") : "")).join("");
+  }
+  return null;
+}
+
+/**
+ * A new page in `ctx` with the write block on it before anything loads. Every
+ * page the lab measures or probes is opened here, never with ctx.newPage().
+ */
+export async function newBlockedPage(ctx) {
+  const state = BLOCKS.get(ctx);
+  if (!state) throw new Error("newBlockedPage: installWriteBlock was not called on this context");
+  assertNoStrayPages(ctx);
   const page = await ctx.newPage();
+  page.on("popup", (p) => { state.strays.push(p.url()); p.close().catch(() => {}); });
+  if (!state.cdp) return page;
+  const cdp = await ctx.newCDPSession(page);
+  cdp.on("Fetch.requestPaused", (e) => {
+    const d = writeBlockDecision(state, e.request.method, e.request.url, pausedBody(e.request));
+    const send = d === "go"
+      ? cdp.send("Fetch.continueRequest", { requestId: e.requestId })
+      : d !== "abort"
+        ? cdp.send("Fetch.fulfillRequest", { requestId: e.requestId, responseCode: 200, responseHeaders: [{ name: "content-type", value: "application/json" }, { name: "access-control-allow-origin", value: "*" }], body: Buffer.from(JSON.stringify(d.mock.body)).toString("base64") })
+        : cdp.send("Fetch.failRequest", { requestId: e.requestId, errorReason: "BlockedByClient" });
+    send.catch(() => { /* the page closed while the request was paused: nothing left to answer */ });
+  });
+  // Both patterns are re-checked against WRITE_BLOCK_HOSTS in writeBlockDecision.
+  await cdp.send("Fetch.enable", { patterns: [{ urlPattern: "*.supabase.co/*", requestStage: "Request" }, { urlPattern: "*stripe.com/*", requestStage: "Request" }] });
+  return page;
+}
+
+/** Throws when a page the lab did not open (a popup) appeared in `ctx`. */
+function assertNoStrayPages(ctx) {
+  const state = BLOCKS.get(ctx);
+  if (state?.strays.length) throw new Error(`write block: a page the lab did not open appeared (${state.strays.join(", ")})`);
+}
+
+/**
+ * Proves the block is live in `ctx` before any measurement: from a blank page,
+ * a POST to the Supabase REST root by EVERY way a page can send one (fetch,
+ * XHR, sendBeacon, a dedicated worker's fetch, a form post, and a fetch from
+ * a cross-site iframe, which runs in its own process) must fail in the browser
+ * AND show up in `blocked`. Throws otherwise, so no run measures with writes
+ * reaching prod. (Lead 11-04: the CDP Fetch block must be at least as safe as
+ * ctx.route; all six measured blocked on 11-04, ~/.lh-shots/b3-photo/attach.mjs.)
+ * The cross-site frame is example.com (IANA's reserved domain, frameable); if
+ * it cannot load, the probe fails and the run does not start.
+ */
+export const PROBE_KINDS = ["fetch", "xhr", "beacon", "worker", "form", "frame"];
+async function probeWriteBlock(ctx, blocked, supabaseUrl = "https://fncmgoasalhdgfwzhsqa.supabase.co") {
+  const page = await newBlockedPage(ctx);
   try {
     const before = blocked.length;
+    const probe = `${supabaseUrl}/rest/v1/rpc/__cwv_write_block_probe`;
     const outcome = await page.evaluate(async (u) => {
-      try { await fetch(`${u}/rest/v1/rpc/__cwv_write_block_probe`, { method: "POST", body: "{}" }); return "reached"; }
-      catch { return "failed"; }
-    }, supabaseUrl);
-    if (outcome !== "failed" || blocked.length !== before + 1) {
-      throw new Error(`write block NOT live: probe POST ${outcome}, blocked ${before} -> ${blocked.length}`);
+      const out = {};
+      try { await fetch(`${u}_fetch`, { method: "POST", body: "{}" }); out.fetch = "reached"; } catch { out.fetch = "failed"; }
+      out.xhr = await new Promise((res) => { const x = new XMLHttpRequest(); x.open("POST", `${u}_xhr`); x.onload = () => res("reached"); x.onerror = () => res("failed"); x.send("{}"); });
+      navigator.sendBeacon(`${u}_beacon`, "{}");
+      out.beacon = "sent";
+      const w = new Worker(URL.createObjectURL(new Blob([`fetch(${JSON.stringify(`${u}_worker`)},{method:"POST",body:"{}"}).then(()=>postMessage("reached"),()=>postMessage("failed"))`], { type: "text/javascript" })));
+      out.worker = await new Promise((res) => { w.onmessage = (e) => res(e.data); setTimeout(() => res("timeout"), 10_000); });
+      const sink = document.createElement("iframe"); sink.name = "__cwv_form_sink"; document.body.appendChild(sink);
+      const form = document.createElement("form"); form.method = "POST"; form.action = `${u}_form`; form.target = sink.name;
+      document.body.appendChild(form); form.submit();
+      out.form = "sent";
+      const xf = document.createElement("iframe"); xf.src = "https://example.com/"; document.body.appendChild(xf);
+      return out;
+    }, probe);
+    const frame = await (async () => {
+      for (let i = 0; i < 100; i++) {
+        const f = page.frames().find((x) => x.url().startsWith("https://example.com/"));
+        if (f) { await f.waitForLoadState("domcontentloaded").catch(() => {}); return f; }
+        await page.waitForTimeout(100);
+      }
+      return null;
+    })();
+    outcome.frame = frame
+      ? await frame.evaluate(async (u) => { try { await fetch(`${u}_frame`, { method: "POST", body: "{}", mode: "no-cors" }); return "reached"; } catch { return "failed"; } }, probe).catch(() => "no frame")
+      : "no frame";
+    // The beacon and the form report nothing back: they count once recorded.
+    for (let i = 0; i < 50 && blocked.length < before + PROBE_KINDS.length; i++) await page.waitForTimeout(100);
+    const got = blocked.slice(before).map((b) => b.path.replace(/^.*__cwv_write_block_probe_?/, ""));
+    const missing = PROBE_KINDS.filter((k) => !got.includes(k));
+    const reached = PROBE_KINDS.filter((k) => outcome[k] !== undefined && outcome[k] !== "failed" && outcome[k] !== "sent");
+    if (missing.length || reached.length || blocked.length !== before + PROBE_KINDS.length) {
+      throw new Error(`write block NOT live: not blocked ${missing.join(",") || "-"}; not failed ${reached.map((k) => `${k}=${outcome[k]}`).join(",") || "-"}; blocked ${before} -> ${blocked.length}`);
     }
-    blocked.splice(before, 1);
+    blocked.splice(before, PROBE_KINDS.length);
   } finally {
     await page.close();
   }
@@ -576,7 +687,8 @@ async function main() {
           ? { ...PROFILES[profileName], viewport: { width: Number(vp.split("x")[0]), height: Number(vp.split("x")[1]) } }
           : PROFILES[profileName];
         for (const route of routes) {
-          const signedIn = !PUBLIC.has(route) || flag("signed-in-public");
+          // --guest: every route signed out (a visitor from a shared link).
+          const signedIn = !flag("guest") && (!PUBLIC.has(route) || flag("signed-in-public"));
           for (let run = 0; run < runs; run++) {
             const ctx = await browser.newContext({
               viewport: profile.viewport, deviceScaleFactor: profile.deviceScaleFactor,
@@ -589,7 +701,7 @@ async function main() {
             // Strict write block on EVERY context (signed in or not), proven live first.
             let navWallNow = Date.now();
             const allowed = [];
-            const blocked = await installWriteBlock(ctx, () => Date.now() - navWallNow, reads, allowed);
+            const blocked = await installWriteBlock(ctx, () => Date.now() - navWallNow, reads, allowed, browserName);
             await probeWriteBlock(ctx, blocked);
             await ctx.addInitScript(CWV_INIT);
             const ready = arg("ready", "");
@@ -601,7 +713,7 @@ async function main() {
             // and the learned first-screen reads of Q1171 survive).
             const loads = flag("warm") ? ["cold", "warm"] : flag("return") ? ["cold", "return"] : ["cold"];
             for (const kind of loads) {
-              const page = await ctx.newPage();
+              const page = await newBlockedPage(ctx); // the measured load
               if (kind === "return") {
                 const c = await ctx.newCDPSession(page);
                 await c.send("Network.clearBrowserCache");
@@ -633,6 +745,7 @@ async function main() {
                 await page.goto(base + route, { waitUntil: "domcontentloaded", timeout: 60_000 });
                 await settle(page, { quietMs: throttled && profile.cpu > 1 ? 5000 : 3000, maxMs: throttled && profile.cpu > 1 ? 45_000 : 20_000 });
               } catch (e) { error = String(e).slice(0, 160); }
+              assertNoStrayPages(ctx);
               let m = error ? {} : await readCwv(page);
               // --soft /jobs: after the cold load settles, CLICK the visible nav
               // link to that route (a real input, so the 500 ms recent-input

@@ -164,6 +164,8 @@ describe("useAuthReady — auth state changes", () => {
     const { useAuthReady } = await loadHook();
     const { result } = renderHook(() => useAuthReady());
 
+    // The listener subscribes once the client chunk loads (Q2705/Q2706 slice 4).
+    await waitFor(() => expect(capturedAuthCallback).not.toBeNull());
     act(() => {
       capturedAuthCallback?.("INITIAL_SESSION", fakeSession);
     });
@@ -198,7 +200,9 @@ describe("useAuthReady — multi-subscriber + singleton", () => {
     renderHook(() => useAuthReady());
 
     // Bootstrap is a singleton — no matter how many components subscribe,
-    // we register the auth callback exactly once.
+    // we register the auth callback exactly once (after the client loads).
+    await waitFor(() => expect(onAuthStateChangeMock).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
     expect(onAuthStateChangeMock).toHaveBeenCalledTimes(1);
   });
 });

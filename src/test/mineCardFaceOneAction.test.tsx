@@ -13,6 +13,11 @@
  * sheet is the confirmation); it never calls onComplete itself.
  *
  * @mutate src/components/job-card/MineJobFace.tsx |           {buttonLabel(action.label)} |           {action.label}
+ * Q1816 (axe 4.14 label-content-name-mismatch, WCAG 2.5.3): the face link's name holds every word it shows, in order.
+ * @mutate src/components/job-card/MineJobFace.tsx | aria-label={[`Open ${title}`, money, when].filter(Boolean).join(", ")} | aria-label={`Open ${title}`}
+ * @mutate src/components/job-card/MineJobFace.tsx |             {when && " "}\n |
+ * @mutate src/pages/home/HomeDashboard.tsx |                     {" "}\n |
+ * @mutate src/components/DesktopSidebarNav.tsx |                   {soon && " "}\n |
  * @mutate src/components/job-card/MineJobFace.tsx | to={`/jobs/${encodeURIComponent(jobId)}`} | to="/posts"
  * @mutate src/pages/posts/PostedJobCard.tsx | action={isExpanded ? null : faceAction} | action={faceAction}
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | openApplicants: () => a.onLoadApplications(job), | openApplicants: () => {},
@@ -27,6 +32,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { blankComments } from "./helpers/blankNonCode";
 import type { Job } from "@/components/job-card/activityConstants";
 import { POSTER_WAIT_IDS } from "@/components/job-card/jobStatusLine";
 import { posterFaceAction } from "@/pages/posts/postedJobCard/posterFaceAction";
@@ -128,6 +136,20 @@ describe("the Posted card face (board 14)", () => {
     expect(link.getAttribute("href")).toBe("/jobs/job-1");
     fireEvent.click(document.querySelector("[data-activity-card]")!);
     expect(h.toggle, "a tap on the card still expands it in place").not.toHaveBeenCalled();
+  });
+
+  it("the face link's name holds the words it shows, in order (WCAG 2.5.3, axe label-content-name-mismatch, Q1816)", () => {
+    renderCard(base);
+    const link = document.querySelector("[data-mine-face-open]") as HTMLAnchorElement;
+    // axe 4.14's rule: visible text joined with no spaces, split into words, must sit contiguously in the name's words.
+    const words = (t: string) => t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().split(/\s+/).filter(Boolean);
+    const seen = words(link.textContent ?? "");
+    const name = words(link.getAttribute("aria-label") ?? "");
+    expect(seen.length).toBeGreaterThan(2);
+    expect(name.join(" ")).toContain(seen.join(" "));
+    // The Home tile and the rail's closed section keep their two labels apart the same way (a space text node).
+    expect(blankComments(readFileSync(resolve(__dirname, "../pages/home/HomeDashboard.tsx"), "utf8"))).toMatch(/\{s\.label\}<\/span>\s+(?:\{\s*\}\s+)*\{" "\}\s+(?:\{\s*\}\s+)*<span data-tile-line/);
+    expect(blankComments(readFileSync(resolve(__dirname, "../components/DesktopSidebarNav.tsx"), "utf8"))).toMatch(/\{soon && " "\}\s+(?:\{\s*\}\s+)*\{soon && <SoonPill/);
   });
 
   it("has exactly ONE button, and the poster sees their budget, never a take-home", () => {

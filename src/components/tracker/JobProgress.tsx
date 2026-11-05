@@ -142,6 +142,13 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
         // A done step with a time, or the current step with a reason, is a control (full tracker only).
         const tipText = !detailed ? null : ts ? stampText(ts) : i === stage && why ? why : null;
         const key = `step-${i}`;
+        // The words this step DRAWS (the short one at 375, the soft-hyphenated full one from a 368px tracker), so its
+        // name holds what is on screen at every width (WCAG 2.5.3, axe label-content-name-mismatch, Q1816).
+        const problemWord = (s === "problem" || s === "alarm") && label ? PROBLEM_SHORT[label] ?? label : null;
+        const shortWord = problemWord ?? JOB_PROGRESS_SHORT[i];
+        const drawnWord = problemWord ?? JOB_PROGRESS_DRAWN[i];
+        const shownWords = shortWord === drawnWord.replace(/\u00AD/g, "") ? drawnWord : `${shortWord}, ${drawnWord}`;
+        const named = problemWord ? `${shownWords}, ${full}` : shownWords;
         const body = (
           <>
             {detailed && (
@@ -173,7 +180,7 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
                 data-step-tip={i}
                 // A done step names its time; the current step names what its tap shows, not the line itself (the
                 // line is already on screen, and its words must not read as one of the card's own buttons).
-                aria-label={ts ? `${full} — ${tipText}` : `${full}: what this step is waiting on`}
+                aria-label={ts ? `${named} — ${tipText}` : `${named}: what this step is waiting on`}
                 {...tip.handlers(key)}
                 // THE HIT AREA REACHES INTO HALF THE GAP ON EACH SIDE (Q2369): eight steps share one row at 375
                 // (owner, 2026-10-22), so a column is ~43px in CI's fonts, under the 44px tap target. The grid's gap

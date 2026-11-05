@@ -161,6 +161,30 @@ function trackJs(page: Page): Set<string> {
   return seen;
 }
 
+/**
+ * Wait until the start page has stopped asking for chunks: no new /assets/*.js
+ * for `quietMs`, at most `maxMs` in all. A fixed 1.5 s was not enough on a cold
+ * WebKit worker: in pinned run 41961800824 (webkit, /terms warm-armed) /login
+ * asked for PageTransition ~1.9 s after load, just after blockChunks; the abort
+ * fired before armGuard, so recovery reloaded /login?_v=... and ate the client
+ * navigation (screenshot: the Log in page, no honest card). Chromium had it
+ * loaded inside 1.5 s, so only WebKit went red.
+ */
+async function waitForChunksQuiet(page: Page, seen: Set<string>, quietMs = 1500, maxMs = 15_000) {
+  const t0 = Date.now();
+  let last = seen.size;
+  let quietSince = Date.now();
+  while (Date.now() - t0 < maxMs) {
+    await page.waitForTimeout(250);
+    if (seen.size !== last) {
+      last = seen.size;
+      quietSince = Date.now();
+    } else if (Date.now() - quietSince >= quietMs) {
+      return;
+    }
+  }
+}
+
 /** Abort every /assets/*.js not in `allowed`. Returns the abort counter and an unblock fn. */
 async function blockChunks(page: Page, allowed: Set<string>) {
   const aborted = new Set<string>();
@@ -264,7 +288,7 @@ for (const rc of ROUTES) {
         const seen = trackJs(page);
         const forbidden = watchForbidden(page);
         await page.goto(rc.start, { waitUntil: "load" });
-        await page.waitForTimeout(1500);
+        await waitForChunksQuiet(page, seen);
         const docs = countDocumentLoads(page);
         const block = await blockChunks(page, new Set(seen));
         await armGuard(page);
@@ -299,7 +323,7 @@ for (const rc of ROUTES) {
         const seen = trackJs(page);
         const forbidden = watchForbidden(page);
         await page.goto(rc.start, { waitUntil: "load" });
-        await page.waitForTimeout(1500);
+        await waitForChunksQuiet(page, seen);
         await leaveOneAttempt(page);
         const docs = countDocumentLoads(page);
         const block = await blockChunks(page, new Set(seen));
@@ -327,7 +351,7 @@ for (const rc of ROUTES) {
         const seen = trackJs(page);
         const forbidden = watchForbidden(page);
         await page.goto(rc.start, { waitUntil: "load" });
-        await page.waitForTimeout(1500);
+        await waitForChunksQuiet(page, seen);
         await leaveOneAttempt(page);
         const block = await blockChunks(page, new Set(seen));
         const docs = countDocumentLoads(page);

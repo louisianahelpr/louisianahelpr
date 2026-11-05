@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Q2106 (PGlite proof for 20261104131115_declutter_gift_cards; lead decisions 11-04): a Declutter order paid with ONE
+ * Q2106 (PGlite proof for 20261105030604_declutter_gift_cards; lead decisions 11-04): a Declutter order paid with ONE
  * gift card, the jobs shape.
  *   (1) the gift covers the whole order: paid at once with no card page (no payment intent, no card fee, items sold),
  *       the gift lowered to what it paid and redeemed, the leftover split off as the buyer's child gift (value kept);
@@ -32,7 +32,7 @@ import { readFileSync, readdirSync } from "node:fs";
 const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
-const THIS = "20261104131115_declutter_gift_cards.sql";
+const THIS = "20261105030604_declutter_gift_cards.sql";
 const skip = process.env.NEW_MIGRATION === "skip";
 
 /** The newest definition of public.<name> in any migration sorting before `before` (any dollar-quote tag). */

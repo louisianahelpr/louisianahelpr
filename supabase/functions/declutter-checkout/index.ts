@@ -534,7 +534,7 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     return json({ error: TRY_AGAIN }, 500);
   }
   const fullChargeCents = order.total_cents + setupFeeCents;
-  // Q2106: the gift pays first, in one transaction (redeem_gift_card_for_declutter_order, 20261104131115): covered in
+  // Q2106: the gift pays first, in one transaction (redeem_gift_card_for_declutter_order, 20261105030604): covered in
   // full -> the order is paid now and no page opens; otherwise the gift is set aside and the page charges the rest.
   let chargeCents = fullChargeCents;
   let giftCents = 0;

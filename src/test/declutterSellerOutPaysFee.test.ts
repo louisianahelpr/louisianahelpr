@@ -10,13 +10,13 @@
  * src/test/pglite/declutterSellerOutPaysFee.pglite.mjs. The reason -> policy
  * map itself is pinned in src/test/refundsKeepTheCardFee.test.ts.
  *
- * @mutate supabase/migrations/20261104131115_declutter_gift_cards.sql |     ELSIF o.close_reason = 'seller_out' THEN | ELSIF false THEN
- * @mutate supabase/migrations/20261104131115_declutter_gift_cards.sql | WHEN v_items_ok AND v_cant THEN 'seller_out' | WHEN v_cant THEN 'seller_out'
+ * @mutate supabase/migrations/20261105030604_declutter_gift_cards.sql |     ELSIF o.close_reason = 'seller_out' THEN | ELSIF false THEN
+ * @mutate supabase/migrations/20261105030604_declutter_gift_cards.sql | WHEN v_items_ok AND v_cant THEN 'seller_out' | WHEN v_cant THEN 'seller_out'
  * lh-money-escrow review of 905501cb2 #1: (b) judges seller_out on the items alone, so a buyer's block does not hand the fee to us.
- * @mutate supabase/migrations/20261104131115_declutter_gift_cards.sql |       v_reason := CASE WHEN v_items_ok AND EXISTS | v_items_ok := v_items_ok AND NOT EXISTS (SELECT 1 FROM public.user_blocks b WHERE b.blocked_id = o.seller_id OR b.blocker_id = o.seller_id);\n      v_reason := CASE WHEN v_items_ok AND EXISTS
+ * @mutate supabase/migrations/20261105030604_declutter_gift_cards.sql |       v_reason := CASE WHEN v_items_ok AND EXISTS | v_items_ok := v_items_ok AND NOT EXISTS (SELECT 1 FROM public.user_blocks b WHERE b.blocked_id = o.seller_id OR b.blocker_id = o.seller_id);\n      v_reason := CASE WHEN v_items_ok AND EXISTS
  * Q1926: on (b) a SELLER's block reads seller_backed_out (the seller pays the card fee), as on (c), not order_closed.
- * @mutate supabase/migrations/20261104131115_declutter_gift_cards.sql | THEN 'seller_backed_out'\n                       WHEN v_items_ok AND v_cant | THEN 'order_closed'\n                       WHEN v_items_ok AND v_cant
- * @mutate supabase/migrations/20261104131115_declutter_gift_cards.sql | WHEN v_cant AND v_items_ok THEN 'seller_out' | WHEN v_cant THEN 'seller_out'
+ * @mutate supabase/migrations/20261105030604_declutter_gift_cards.sql | THEN 'seller_backed_out'\n                       WHEN v_items_ok AND v_cant | THEN 'order_closed'\n                       WHEN v_items_ok AND v_cant
+ * @mutate supabase/migrations/20261105030604_declutter_gift_cards.sql | WHEN v_cant AND v_items_ok THEN 'seller_out' | WHEN v_cant THEN 'seller_out'
  * @mutate supabase/migrations/20261017060455_declutter_seller_out_pays_fee.sql |   IF o.seller_id IS NULL OR v_debt IS NULL OR v_debt <= 0 THEN |   IF true THEN
  */
 import { describe, expect, it } from "vitest";

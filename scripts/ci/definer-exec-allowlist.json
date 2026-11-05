@@ -23,7 +23,8 @@
     "public_profile_by_handle(text)": "client",
     "handle_for_user(uuid)": "client",
     "declutter_manager_message_labels(text, uuid[])": "client",
-    "declutter_record_item_view(uuid, uuid)": "client"
+    "declutter_record_item_view(uuid, uuid)": "client",
+    "public_profile_work_photos(text)": "client"
   },
   "authenticated": {
     "accept_application(uuid, timestamp with time zone, text)": "client",
@@ -640,7 +641,10 @@
     "declutter_withdraw_bundle(uuid)": "reviewed 2026-11-04 (Q2268): Builder 102, lh-money-escrow + lh-authz-rls review owed before landing. Declutter bundle request behind require_feature('declutter'); only the buyer (buyer_id = auth.uid()) closes their own open request; no money.",
     "rpc_hire_target_by_handle(text)": "reviewed 2026-11-04 (Q14): Builder 113, Hire me on /u/<handle> (owner 2026-11-04), lh-authz-rls approved by the lead 11-04 ~9:00 AM. Signed-in only (anon revoked); returns one user id, only for a member public_profile_by_handle shows, never your own, never across a block either way, refused to a banned caller; no write.",
     "declutter_record_item_view(uuid, uuid)": "client",
-    "declutter_my_item_view_counts()": "client"
+    "declutter_my_item_view_counts()": "client",
+    "public_profile_work_photos(text)": "client",
+    "my_job_photos()": "client",
+    "set_job_photo_shown(uuid, text, boolean)": "client"
   },
   "unscoped": {
     "declutter_road_miles(numeric, numeric, numeric, numeric)": "reviewed 2026-11-04 (Q1930): Lander 69, after DB Deploy 41846860386. SECURITY DEFINER only to read declutter_route_miles (service-role table) for the exact coordinate pair it is given, else straight line x 1.3; returns one whole number of miles, reads no caller row and writes nothing, so it needs no auth.uid() scope. anon revoked; authenticated + service_role execute (the Declutter delivery quote).",
@@ -741,6 +745,7 @@
     "declutter_save_my_meetup_spot(uuid, text, text, text, numeric, numeric, jsonb)": "reviewed 2026-11-01 (Q1284): L29: reads the caller through public.declutter_assert_member(), which refuses a NULL caller; inserts or updates only spots where seller_id = that caller.",
     "declutter_photo_object_attached(text)": "reviewed 2026-11-02 (Q1284): STABLE SQL behind the storage DELETE policy; answers only whether a storage path is named by a declutter_item_photos row (a boolean, no row data), the same answer for every caller by design, so it never reads the caller; EXECUTE for authenticated and service_role, never anon (L40 read the live ACL 2026-11-02).",
     "declutter_request_bundle(uuid[])": "reviewed 2026-11-04 (Q2268): reads the caller through public.declutter_assert_member(), which returns (SELECT auth.uid()) and refuses a NULL caller; asks only as that caller (buyer_id = the caller).",
-    "declutter_answer_bundle(uuid, uuid[])": "reviewed 2026-11-04 (Q2268): reads the caller through public.declutter_assert_member(); answers only when the request's seller_id is that caller."
+    "declutter_answer_bundle(uuid, uuid[])": "reviewed 2026-11-04 (Q2268): reads the caller through public.declutter_assert_member(); answers only when the request's seller_id is that caller.",
+    "public_profile_work_photos(text)": "reviewed 2026-11-05 (Q1284): owner share-profile H4 (20261105172514), the visitor's list of job photos on /u/<handle>; by design the same answer for anon and members: a random pick id, the job's category and its month, 60 at most, only for photos the Helpr picked, while the job's poster and every booked Helpr allow sharing, the job is completed and real, and the page itself is public (profile_page_hidden). Never the job id, the storage path, the address or the customer's name."
   }
 }

@@ -23,7 +23,7 @@
  * @mutate src/components/declutter/SellPorchPlaces.tsx |       {places.length > 0 && <p className="text-ds-13 text-muted-foreground" data-place-days-rule="">{PLACE_DAYS_RULE}</p>}\n |
  * @mutate src/components/declutter/SellPorchPlaces.tsx | export const PLACE_CARD_EDGE = "dark:!border-border"; | export const PLACE_CARD_EDGE = "";
  * @mutate src/components/declutter/SellPorchPlaces.tsx |             <Pencil className="h-[18px] w-[18px]" aria-hidden="true" /> |             Edit
- * @mutate src/components/declutter/SellPorchPlaces.tsx |   "inline-flex min-h-11 min-w-11 items-center | "inline-flex items-center
+ * @mutate src/components/declutter/SellPorchPlaces.tsx | variant="ghost" size="iconCompact" className={PLACE_ICON_BUTTON} onClick={onEdit} | variant="ghost" size="sm" className={PLACE_ICON_BUTTON} onClick={onEdit}
  * @mutate src/components/declutter/SellPorchPlaces.tsx |       <div className="flex items-start gap-2"> |       <div className="space-y-2">
  * @mutate src/components/declutter/SellHandoverChoices.tsx | on ? "!border-[hsl(var(--bark))]" : `border-border ${PLACE_CARD_EDGE}` | on ? "border-[hsl(var(--bark))]" : "border-border"
  * @mutate src/components/declutter/SellPorchPlaces.tsx | {placesWords(places.length, free, helprOnly, card)} | {placesWords(places.length, free, helprOnly)}

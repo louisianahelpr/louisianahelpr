@@ -71,10 +71,12 @@ interface ActivityCoresPayload {
   open_continue_days?: { job_id: string; status: string; new_date: string; new_start_time: string }[];
 }
 
-const KEYS: (keyof ActivityCoresPayload)[] = [
-  "posted_jobs", "poster_applications", "offer_targets", "my_applications",
-  "application_jobs", "direct_offers", "violations", "reviews",
-];
+/** Each core's keys: what fetchPostedActivity and fetchAppliedActivity read (useActivityData.ts), and what p_parts computes. */
+const PART_KEYS: Record<"posted" | "applied", (keyof ActivityCoresPayload)[]> = {
+  posted: ["posted_jobs", "poster_applications", "offer_targets"],
+  applied: ["my_applications", "application_jobs", "direct_offers", "violations", "reviews"],
+};
+const KEYS: (keyof ActivityCoresPayload)[] = [...PART_KEYS.posted, ...PART_KEYS.applied];
 
 /** Column codes that mean "use the old reads": a column is not deployed yet. Expected, not reported. */
 const QUIET_COLUMN_CODES = new Set(["42703", "PGRST204"]);
@@ -92,15 +94,31 @@ export const ACTIVITY_CORES_SHARE_MS = 2_000;
 
 let inFlight: {
   userId: string;
-  p: Promise<ActivityCoresPayload | null>;
+  /**
+   * What each core is handed. Usually both are the one whole read. After a Posted-first cold link (Q2706) they are
+   * the entry's two p_parts answers, each holding ONLY its part's keys (plus its open_continue_days): a part's caller
+   * reads only its own keys (useActivityData.ts), and `whole` merges the two for a caller that names no part.
+   */
+  parts: Record<ActivityCorePart, Promise<ActivityCoresPayload | null>>;
+  whole: Promise<ActivityCoresPayload | null>;
   /** When the answer arrived (null while in flight). */
   doneAt: number | null;
   /** The parts this read has already been handed to: a part asking AGAIN is a refetch and always reads afresh. */
   served: Set<ActivityCorePart>;
 } | null = null;
 
-function isPayload(v: unknown): v is ActivityCoresPayload {
-  return !!v && typeof v === "object" && !Array.isArray(v) && KEYS.every((k) => Array.isArray((v as Record<string, unknown>)[k]));
+function hasKeys(v: unknown, keys: (keyof ActivityCoresPayload)[]): v is ActivityCoresPayload {
+  return !!v && typeof v === "object" && !Array.isArray(v) && keys.every((k) => Array.isArray((v as Record<string, unknown>)[k]));
+}
+const isPayload = (v: unknown): v is ActivityCoresPayload => hasKeys(v, KEYS);
+
+/** The two part answers as one payload (the same object when both parts are one whole read); null if either failed. */
+function mergeParts(posted: ActivityCoresPayload | null, applied: ActivityCoresPayload | null): ActivityCoresPayload | null {
+  if (!posted || !applied) return null;
+  if (posted === applied) return posted;
+  const days = posted.open_continue_days && applied.open_continue_days
+    ? [...posted.open_continue_days, ...applied.open_continue_days] : undefined;
+  return { ...applied, ...posted, ...(days ? { open_continue_days: days } : {}) } as ActivityCoresPayload;
 }
 
 /**
@@ -120,17 +138,38 @@ export function fetchActivityCores(userId: string, part?: ActivityCorePart): Pro
     const fresh = inFlight.doneAt === null || Date.now() - inFlight.doneAt <= ACTIVITY_CORES_SHARE_MS;
     if (fresh) {
       if (part) inFlight.served.add(part);
-      return inFlight.p;
+      return part ? inFlight.parts[part] : inFlight.whole;
     }
   }
   // B100 (Q2708): a cold Posted / Working link sent this same read from the entry (src/boot/activityCoresPrefetch.ts);
-  // taken once, for this member. An answer not in the payload's shape falls through to the read below.
+  // taken once, for this member. An answer not in its part's shape falls through to ONE shared whole read below.
   const boot = takeActivityCoresPrefetch(userId);
-  const p = (async () => {
-    if (boot) {
-      const early = await boot.catch(() => null);
-      if (isPayload(early)) return early;
-    }
+  let whole: Promise<ActivityCoresPayload | null> | null = null;
+  const readWhole = () => (whole ??= readCores());
+  const partRead = (which: ActivityCorePart): Promise<ActivityCoresPayload | null> => (boot ? (async () => {
+    const early = await boot[which].catch(() => null);
+    return hasKeys(early, PART_KEYS[which]) ? early : readWhole();
+  })() : readWhole());
+  const parts = { posted: partRead("posted"), applied: partRead("applied") };
+  const merged = Promise.all([parts.posted, parts.applied]).then(([a, b]) => mergeParts(a, b));
+  const entry: NonNullable<typeof inFlight> = { userId, parts, whole: merged, doneAt: null, served: new Set(part ? [part] : []) };
+  inFlight = entry;
+  // Registered on each part's own promise before any caller awaits it, so the bookkeeping is done by the time a caller
+  // resumes. Only good answers are shared after they land; a null (failed or old database) is never handed on.
+  let settled = 0;
+  const settle = (payload: ActivityCoresPayload | null) => {
+    if (inFlight !== entry) return;
+    if (!payload) inFlight = null;
+    else if (++settled === 2) entry.doneAt = Date.now();
+  };
+  void parts.posted.then(settle);
+  void parts.applied.then(settle);
+  return part ? parts[part] : merged;
+}
+
+/** The whole cores read through supabase-js (every key; p_parts left out). Never rejects. */
+function readCores(): Promise<ActivityCoresPayload | null> {
+  return (async () => {
     try {
       const res = await supabase.rpc("get_my_activity_cores", {
         p_job_columns: [...POSTED_JOB_COLUMNS],
@@ -152,15 +191,6 @@ export function fetchActivityCores(userId: string, part?: ActivityCorePart): Pro
       return null;
     }
   })();
-  const entry: NonNullable<typeof inFlight> = { userId, p, doneAt: null, served: new Set(part ? [part] : []) };
-  inFlight = entry;
-  void p.then((payload) => {
-    if (inFlight !== entry) return;
-    // Only a good answer is shared after it lands; a null (failed or old database) is never handed on.
-    if (payload) entry.doneAt = Date.now();
-    else inFlight = null;
-  });
-  return p;
 }
 
 /** The offer-target rows as fetchJobOfferTargets maps them: job id -> offered Helpr. */

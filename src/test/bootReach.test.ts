@@ -10,6 +10,7 @@
  * boot path"), which reads the real chunks' sourcemaps; this is the source half.
  *
  * @mutate scripts/perf/bootReach.mjs |     itemShared: new Set([...itemPages].filter((f) => restReach.has(f))), |     itemShared: new Set(),
+ * @mutate src/lib/quotes/api.ts | import { loadModule } from "@/lib/loadModule"; | import { loadModule } from "@/lib/loadModule"; import "@/lib/declutter/photos";
  * @mutate vite.config.ts |               name: "item-shared", |               name: "declutter-item-pages",
  * @mutate vite.config.ts |               priority: 15.75, |               priority: 15.6,
  * @mutate scripts/perf/bootReach.mjs | const reach = staticReach(root, [...publicRoots(root), ...GUEST_CHROME_ROOTS.map((r) => toPosix(path.join(root, r)))]); | const reach = new Set();
@@ -38,7 +39,7 @@
  * `browse-first-screen` chunk; the built-bundle half is check-deferred-vendors.mjs ("only guest /browse reaches").
  */
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { GUEST_CHROME_ROOTS, ITEM_PAGES_PINNED_RE, declutterItemSplit, firstScreenRoots, guestBrowseOnlyModules, guestBrowseSplit, homeFirstScreenRoots, publicRoots, signedInOnlyModules, signedInSplit, staticReach } from "../../scripts/perf/bootReach.mjs";
 import { blankComments } from "./helpers/blankNonCode";
@@ -270,7 +271,8 @@ describe("declutterItemSplit itemShared: the job lists do not download Declutter
 
   it("inventory: both sets are real and itemShared is part of itemPages", () => {
     expect(itemPages.size).toBeGreaterThan(15);
-    expect(itemShared.size).toBeGreaterThan(5);
+    // 5 since 11-04: the quote photo upload loads Declutter's photo cleaner (photos, errors, imageCompression) on use.
+    expect(itemShared.size).toBeGreaterThan(4);
     for (const f of itemShared) expect(itemPages.has(f), f).toBe(true);
   });
 
@@ -281,6 +283,18 @@ describe("declutterItemSplit itemShared: the job lists do not download Declutter
     for (const f of used) expect(itemShared.has(f), `${f}: /jobs would fetch declutter-item-pages for it`).toBe(true);
     // offerDeadline.ts left the item page with the refusal words (B48): only lifecycleErrors.ts is pinned here now.
     for (const rel of ["src/lib/lifecycleErrors.ts"]) expect(itemShared.has(abs(rel)), rel).toBe(true);
+  });
+
+  it("Declutter's photo cleaner and its error copy load on the first photo pick, not with /jobs (Q1158/Q2706)", () => {
+    // Measured 11-04 (built, real env): they rode in item-shared because the quote form's photo upload
+    // (src/lib/quotes/api.ts) imported them statically; item-shared 10.3 -> 1.5 KB gz, /jobs' JS 428.7 -> 420.2 KB gz.
+    const off = ["src/lib/declutter/photos.ts", "src/lib/declutter/errors.ts", "src/lib/imageCompression.ts"];
+    expect(jobs.size).toBeGreaterThan(100);
+    for (const rel of off) {
+      expect(existsSync(abs(rel)), rel).toBe(true);
+      expect(jobs.has(abs(rel)), `${rel} is on the /jobs first screen`).toBe(false);
+      expect(itemShared.has(abs(rel)), rel).toBe(false);
+    }
   });
 
   it("Declutter's own item-page code stays out of itemShared", () => {

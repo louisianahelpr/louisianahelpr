@@ -350,9 +350,6 @@
     "src/components/declutter/SellFormParts.tsx": {
       "input": 2
     },
-    "src/components/declutter/SellItForMe.tsx": {
-      "button": 2
-    },
     "src/components/declutter/SellSummaryCard.tsx": {
       "input": 1
     },

@@ -18,6 +18,7 @@ import { itemPriceLabel } from "@/lib/declutter/distance";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { FallbackImg } from "./FallbackImg";
+import { Button } from "@/components/ui/button";
 
 /** fetchSellerItems leaves one item out (the item page's own); none here, so the nil id. */
 const NO_ITEM = "00000000-0000-0000-0000-000000000000";
@@ -45,9 +46,9 @@ export function SellingNowRow({ sellerId }: { sellerId: string }) {
           Selling now · {rest.length}
         </h2>
         {rest.length > SELLING_NOW_FIRST && (
-          <button type="button" className="min-h-11 px-1 text-ds-13 font-semibold" onClick={() => setAll((v) => !v)}>
+          <Button type="button" variant="ghost" size="sm" className="px-1 text-ds-13 font-semibold" onClick={() => setAll((v) => !v)}>
             {all ? "Show fewer" : "See all"}
-          </button>
+          </Button>
         )}
       </div>
       <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">

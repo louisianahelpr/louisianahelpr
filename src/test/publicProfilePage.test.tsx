@@ -83,7 +83,8 @@ describe("the /u/:handle page", () => {
     expect(screen.getByText("crib")).toBeTruthy();
     const apply = screen.getByRole("link", { name: "Apply" });
     expect(apply.getAttribute("href")).toBe(`/signup?redirect=${encodeURIComponent("/jobs?job=j1")}`);
-    expect(screen.getByRole("link", { name: /sign up to reply/i }).getAttribute("href")).toMatch(/^\/signup\?redirect=/);
+    // Audit L8 (11-05): each Wanted post's own reply, through sign-up and back to it (src/test/profileGuestLinks.test.tsx).
+    expect(screen.getByRole("link", { name: "I have this" }).getAttribute("href")).toMatch(/^\/signup\?redirect=%2Fdeclutter%2Fsell%3Fanswer%3D/);
   });
 
   it("a member's button goes straight to the job", async () => {

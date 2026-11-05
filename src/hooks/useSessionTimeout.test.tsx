@@ -26,6 +26,15 @@ vi.mock("@/lib/webPushSupport", async (orig) => ({
   removeWebPushSubscriptionOnUse: async () => {},
 }));
 
+// Sign-out loads nativePush on use (Q2705/Q2706 boot cut): on a busy CI runner the real module's load landed after
+// the fake-timer advance, so sign-out never reached signOut() (#4108 Vitest 6/6). Answered at once here (its own
+// tests cover it), and settle() waits out the dynamic import before the next timer step.
+vi.mock("@/lib/nativePush", () => ({ unregisterPushOnSignOut: async () => {} }));
+const settle = async () => {
+  await vi.dynamicImportSettled();
+  await vi.advanceTimersByTimeAsync(0);
+};
+
 const toastInfoMock = vi.fn();
 vi.mock("sonner", () => ({
   toast: Object.assign(vi.fn(), { info: (...args: unknown[]) => toastInfoMock(...args) }),
@@ -68,6 +77,7 @@ describe("useSessionTimeout", () => {
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(TIMEOUT_MS);
+      await settle();
     });
 
     expect(signOutMock).toHaveBeenCalledOnce();
@@ -106,6 +116,7 @@ describe("useSessionTimeout", () => {
     // But after another 1 min (= 30 since the keypress), should fire
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1 * 60 * 1000);
+      await settle();
     });
     expect(signOutMock).toHaveBeenCalledOnce();
   });

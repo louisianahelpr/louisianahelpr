@@ -14,7 +14,7 @@ import { rpcErrorMessage } from "@/lib/lifecycleErrors";
 import { NEVER_PAID_STATUSES } from "@/lib/neverPaidStatuses";
 import type { Database } from "@/integrations/supabase/types";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
-import { LISTING_PHOTO_UPLOAD_TYPES, cleanListingPhoto } from "@/lib/declutter/photos";
+import { loadModule } from "@/lib/loadModule";
 
 type Fns = Database["public"]["Functions"];
 export type MyQuoteRequest = Fns["get_my_quote_requests"]["Returns"][number];
@@ -153,14 +153,20 @@ export function quotePhotoPath(userId: string, nonce: string): string {
   return `${userId}/quotes/${nonce}.jpg`;
 }
 
+const quotePhotoCleaner = () => loadModule(() => import("@/lib/declutter/photos"));
+
 /**
  * Clean (to JPEG, metadata stripped, as Declutter listing photos) and upload
  * one past-work photo to <uid>/quotes/<random>.jpg. Returns the storage path
  * submit_job_quote takes (it refuses a path outside the quoter's folder).
  */
 export async function uploadQuotePhoto(userId: string, file: File): Promise<string> {
-  const cleaned = await cleanListingPhoto(file);
-  if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("invalid_photo");
+  // Q1158/Q2706: Declutter's photo code (and its error copy, ~8 KB gz) loads on the first quote photo, not with every
+  // signed-in /jobs first screen. Loaded alone, then used (dynamicImportThenDoesNoWork).
+  const photos = await quotePhotoCleaner();
+  if (!photos) throw new Error("invalid_photo");
+  const cleaned = await photos.cleanListingPhoto(file);
+  if (!photos.LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("invalid_photo");
   const nonce = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
   const path = quotePhotoPath(userId, nonce);
   const { error } = await supabase.storage.from(QUOTE_PHOTO_BUCKET).upload(path, cleaned, {

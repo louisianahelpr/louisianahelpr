@@ -236,7 +236,10 @@ export function MessageBubble({
           (index.css `:where(button…)`) made every chip a 44px disc sitting on
           the first line of text (owner, 2026-09-14). The chip is now sized to
           its emoji (`min-h-0 min-w-0`) and keeps a 44px finger target through
-          `before:-inset-3`, the same trick as the delete button below.
+          a ::before overlay, the same trick as the delete button below. The
+          chip is ~17px tall, so -inset-3 gave only 41px; the overlay reaches
+          14px above and below (45px). Measured on prod 11-05 (24x17 chip);
+          guard: e2e/journeys/messages-thread.spec.ts tap-targets.
 
           `-mt-2` tucks the chip 8px into the bubble's 10px bottom padding, so
           it reads as attached without reaching a glyph.
@@ -256,7 +259,7 @@ export function MessageBubble({
                 disabled={!onReact}
                 aria-label={isMine ? `Remove your ${emoji} reaction` : `React with ${emoji}`}
                 aria-pressed={isMine}
-                className="relative min-h-0 min-w-0 inline-flex items-center gap-0.5 rounded-full px-1 py-[2px] text-ds-10 leading-none transition-transform active:scale-90 disabled:active:scale-100 before:absolute before:-inset-3 before:content-['']"
+                className="relative min-h-0 min-w-0 inline-flex items-center gap-0.5 rounded-full px-1 py-[2px] text-ds-10 leading-none transition-transform active:scale-90 disabled:active:scale-100 before:absolute before:-inset-x-3 before:-inset-y-[14px] before:content-['']"
                 style={{
                   // Always a light chip. Two earlier passes got this wrong
                   // in opposite directions: first a page-coloured ring that

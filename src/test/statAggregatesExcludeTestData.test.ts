@@ -103,6 +103,8 @@ const ALLOWED: Record<string, string> = {
   declutter_mark_order_paid: MONEY,
   declutter_notice_names_item: "logic: names the first item of one order in its notice (\"and N more\")",
   declutter_order_refunds_recorded_cents: MONEY,
+  // Q2106 S3b (20261105030604): one order's gift paid less what was already restored to the gift balance; refund arithmetic.
+  declutter_order_gift_net_cents: MONEY,
   declutter_reopen_wanted: "logic: counts the caller's own open wanted posts for the limit of 10, the same whether or not they are a test account",
   declutter_pickup_reminder_sweep: "logic: names the first item of one order in its reminder (\"and N more\")",
   declutter_publish_item: VALID,

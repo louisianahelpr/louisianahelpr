@@ -13,7 +13,7 @@
  *     own charge.
  *
  * Registered mutations - each turns this file RED on its own:
- * @mutate supabase/functions/declutter-money/index.ts |               source_transaction: charges[i] as string, |               source_transaction: charges[0] as string,
+ * @mutate supabase/functions/declutter-money/index.ts |              ...(part === giftPart ? {} : { source_transaction: charges[i] as string }), |              ...(part === giftPart ? {} : { source_transaction: charges[0] as string }),
  * @mutate supabase/functions/declutter-money/index.ts |          && (meta.raise_id ?? "") === (part.raiseId ?? "") && (meta.tip_id ?? "") === (part.tipId ?? ""); |          && (meta.tip_id ?? "") === (part.tipId ?? "");
  * @mutate supabase/functions/declutter-money/index.ts |        { idempotencyKey: mine.length === 0 ? `declutter-raise-refund-${x.raise_id}` : `declutter-raise-refund-${x.raise_id}-r${mine.length}` }, |        {},
  * @mutate supabase/functions/declutter-money/index.ts |      const xRefund = adopted ?? await stripe.refunds.create( |      const xRefund = await stripe.refunds.create(

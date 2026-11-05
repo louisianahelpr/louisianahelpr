@@ -16,6 +16,7 @@ import {
 } from "./fixtures";
 import { skipLivePay } from "../prod-audit/fundedOpenJob";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
+import { recordOwnRunJob } from "../../scripts/e2e/ownRunJobs.mjs";
 import { serviceKey } from "./throwaway";
 import { srFetch } from "../serviceRoleFetch";
 import { cardByTitle, findChip, openPostedCard } from "./cardChips";
@@ -450,6 +451,8 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     });
     expect(ins.ok(), `job insert failed: ${ins.status()} ${await ins.text()}`).toBe(true);
     const [job] = (await ins.json()) as Array<{ id: string; title: string; expires_at: string }>;
+    // Recorded at once: a cancelled run's teardown sweep settles it (scripts/e2e/ownRunJobs.mjs).
+    recordOwnRunJob(job.id);
     expect(Date.parse(job.expires_at), "stored expires_at").toBe(start.getTime());
     const read = async () => {
       const r = await request.get(`${SUPABASE_URL}/rest/v1/jobs?id=eq.${job.id}&select=status,payment_status`, { headers: rest(poster) });

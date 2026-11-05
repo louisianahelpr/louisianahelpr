@@ -22,6 +22,7 @@ import {
 } from "./fixtures";
 // The teardown's third disposition, shared with scripts/e2e/settle-stranded-escrow.mjs.
 import { isSettleForwardRefusal, settleJobForward } from "../../scripts/e2e/settleForward.mjs";
+import { recordOwnRunJob } from "../../scripts/e2e/ownRunJobs.mjs";
 import { isoDayIn } from "../calendarPicker";
 import { skipLivePay } from "../prod-audit/fundedOpenJob";
 import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
@@ -342,6 +343,8 @@ test.describe.serial("marketplace chain", () => {
       const rows = (await jobs.json()) as Array<{ id: string }>;
       expect(rows, "the posted job was not created exactly once").toHaveLength(1);
       S.jobId = rows[0].id;
+      // Recorded at once: a cancelled run's teardown sweep settles it (scripts/e2e/ownRunJobs.mjs).
+      recordOwnRunJob(S.jobId);
       const job = await readJob(request, S.poster, S.jobId);
       expect(job.parish, "parish must stay null or the helper fan-out fires").toBeNull();
       expect(job.is_seed).toBe(true);

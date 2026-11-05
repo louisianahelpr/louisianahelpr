@@ -43,6 +43,7 @@ import {
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { centralDatePlus, fund, readRow } from "../prod-audit/fundedOpenJob";
 import { settleJobForward } from "../../scripts/e2e/settleForward.mjs";
+import { recordOwnRunJob } from "../../scripts/e2e/ownRunJobs.mjs";
 import { ageJobPastEarlyAccess } from "../ageJobPastEarlyAccess";
 import { captureHeldCard } from "../cardHold";
 import { CARD_HOLD_COPY } from "../../supabase/functions/_shared/cardHoldCopy";
@@ -72,6 +73,8 @@ async function postJob(api: APIRequestContext, poster: Session, label: string): 
     `insert the ${label} job`,
   );
   expect(rows).toHaveLength(1);
+  // Recorded at once: a cancelled run's teardown sweep settles it (scripts/e2e/ownRunJobs.mjs).
+  recordOwnRunJob(rows[0].id);
   expect(rows[0].parish, "a job with a parish would notify real Helprs").toBeNull();
   await ageJobPastEarlyAccess(SUPABASE_URL, rows[0].id, `the ${label} job`);
   return rows[0].id;

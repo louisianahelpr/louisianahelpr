@@ -8,10 +8,14 @@
  *   3. RATCHET: every hand-written <button aria-pressed> outside src/components/ui is counted per file from the
  *      TypeScript AST (comments and strings cannot hide or invent one) and pinned in
  *      docs/audit/hand-made-toggle-chips-baseline.json, exact both ways. Measured 11-04 9:40 PM: 58 in 41 files
- *      after Declutter's filter sheet and Buying/Selling status chips moved onto ToggleChip (61 before).
+ *      after Declutter's filter sheet and Buying/Selling status chips moved onto ToggleChip (61 before); 57 in 40
+ *      after the Declutter review sheet's quick tags (11-04 10:25 PM).
+ *   4. WRAP: a phrase chip (the review sheet's tags) may take a second line inside its row; a filter chip keeps one.
  *
  * @mutate src/components/ui/ToggleChip.tsx | aria-pressed={pressed} | role="radio" aria-checked={pressed}
  * @mutate src/components/ui/ToggleChip.tsx | pressed ? "btn-grad-primary !text-[hsl(var(--parchment))]" | pressed ? "bg-primary/20"
+ * @mutate src/components/ui/ToggleChip.tsx | wrap ? "max-w-full justify-center whitespace-normal py-2 text-center leading-tight [overflow-wrap:anywhere]" : "shrink-0 whitespace-nowrap", | "shrink-0 whitespace-nowrap",
+ * @mutate src/components/declutter/DeclutterReviewForm.tsx | <ToggleChip key={tag} pressed={on} wrap onClick= | <ToggleChip key={tag} pressed={on} onClick=
  * @mutate src/components/declutter/DeclutterFilterPanel.tsx | <ToggleChip pressed={on} onClick={onClick}> | <button type="button" aria-pressed={on} onClick={onClick}>
  */
 import { describe, expect, it } from "vitest";
@@ -84,6 +88,38 @@ describe("ToggleChip is the one on/off chip (Q2709)", () => {
     expect(off).not.toContain("bg-card");
   });
 
+  it("wrap lets a phrase chip take a second line inside its row; without it a chip keeps one line", () => {
+    render(
+      <>
+        <ToggleChip pressed={false} wrap>Showed up on time</ToggleChip>
+        <ToggleChip pressed={false}>Filter</ToggleChip>
+      </>,
+    );
+    const wrapped = screen.getByRole("button", { name: "Showed up on time" }).className.split(/\s+/);
+    const one = screen.getByRole("button", { name: "Filter" }).className.split(/\s+/);
+    expect(wrapped).toContain("whitespace-normal");
+    expect(wrapped).toContain("max-w-full");
+    expect(wrapped).not.toContain("whitespace-nowrap");
+    expect(wrapped).not.toContain("shrink-0");
+    expect(wrapped).toContain("min-h-11");
+    expect(one).toContain("whitespace-nowrap");
+    expect(one).not.toContain("whitespace-normal");
+  });
+
+  it("the Declutter review sheet's quick tags are wrapping ToggleChips (Q2709)", () => {
+    const src = readFileSync(resolve(REPO, "src/components/declutter/DeclutterReviewForm.tsx"), "utf8");
+    const sf = ts.createSourceFile("r.tsx", src, ts.ScriptTarget.Latest, false, ts.ScriptKind.TSX);
+    const chips: string[] = [];
+    const visit = (node: ts.Node) => {
+      if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && node.tagName.getText(sf) === "ToggleChip") chips.push(node.getText(sf));
+      ts.forEachChild(node, visit);
+    };
+    visit(sf);
+    expect(chips.length).toBeGreaterThan(0);
+    for (const c of chips) expect(c, c).toMatch(/\swrap[\s>]/);
+    expect(countPressedButtons(src)).toBe(0);
+  });
+
   it("the AST counter sees <button aria-pressed>, not comments or strings (can fail)", () => {
     const src = `// <button aria-pressed>\nconst s = "<button aria-pressed={x}>";\nexport const A = () => <div><button type="button" aria-pressed={true}>x</button><button type="button">y</button></div>;`;
     expect(countPressedButtons(src)).toBe(1);
@@ -91,7 +127,7 @@ describe("ToggleChip is the one on/off chip (Q2709)", () => {
 
   it("hand-written <button aria-pressed> per file equals the baseline (exact, both ways)", () => {
     const now = measure();
-    expect(Object.keys(now).length).toBeGreaterThan(30);
+    expect(Object.keys(now).length).toBeGreaterThan(38);
     const base = BASELINE.files as Record<string, number>;
     const diffs: string[] = [];
     for (const f of new Set([...Object.keys(now), ...Object.keys(base)])) {

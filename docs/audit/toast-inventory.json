@@ -7994,26 +7994,6 @@
       "renders": true
     },
     {
-      "file": "src/components/messages/ConversationList.tsx",
-      "line": 550,
-      "kind": "toast",
-      "title": {
-        "form": "literal",
-        "text": "Louisiana Helpr Team conversations can't be hidden."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/messages/ConversationList.tsx",
-      "line": 556,
-      "kind": "toast",
-      "title": {
-        "form": "template",
-        "text": "You can select up to ${MAX_SELECT} conversations."
-      },
-      "renders": true
-    },
-    {
       "file": "src/components/messages/MessageActionSheet.tsx",
       "line": 92,
       "kind": "toast.error",
@@ -8047,6 +8027,26 @@
       "title": {
         "form": "template",
         "text": "Restored conversation with ${c.otherUserName ?? \"this person\"}"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/messages/useConversationListState.ts",
+      "line": 368,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Louisiana Helpr Team conversations can't be hidden."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/messages/useConversationListState.ts",
+      "line": 374,
+      "kind": "toast",
+      "title": {
+        "form": "template",
+        "text": "You can select up to ${MAX_SELECT} conversations."
       },
       "renders": true
     },

@@ -23,3 +23,20 @@ export function storedSession(nowS: number): { token: string; userId: string } |
   }
   return null;
 }
+
+/**
+ * Whether any Supabase session is stored at all (live, expiring or malformed). False only for a guest. Storage that
+ * cannot be read counts as stored, so an unknown visitor is never read as a guest.
+ */
+export function anyStoredSession(): boolean {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) return true;
+    }
+    return false;
+  } catch {
+    // Storage blocked: not provably a guest, so the caller reads nothing (the page reads for itself).
+    return true;
+  }
+}

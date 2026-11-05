@@ -75,9 +75,9 @@ function QuestionCard({
   const asked = askedWhen(q.created_at);
   const [reporting, setReporting] = useState<"declutter_question" | "declutter_answer" | null>(null);
   const reportLink = (type: "declutter_question" | "declutter_answer", label: string) => (
-    <button type="button" className="min-h-11 pr-4 text-ds-13 text-muted-foreground" onClick={() => setReporting(type)} data-report={type}>
+    <Button type="button" variant="link" size="sm" className="pl-0 pr-4 text-ds-13 font-normal text-muted-foreground" onClick={() => setReporting(type)} data-report={type}>
       {label}
-    </button>
+    </Button>
   );
   return (
     <li className="rounded-2xl border border-border bg-card px-4 py-3 space-y-1" data-question="" data-mine={mine ? "" : undefined}>

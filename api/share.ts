@@ -65,6 +65,7 @@
 import { SHELL_HTML } from "../scripts/generated/og-shell.js";
 import { STATIC_PAGE_BODIES } from "../scripts/generated/static-pages.js";
 import { noindexPageMetaFor, publicPageMetaFor } from "../src/lib/publicPageMeta.mjs";
+import { OG_PROFILE_HEIGHT, OG_PROFILE_WIDTH, ogProfileImageUrl } from "../src/lib/ogProfileCard.mjs";
 import { browseShellRowsUrl, browseShellSeedsHiddenUrl, shellRowsWhenSeedsHidden, withBrowseShell } from "../src/lib/browseShellCards.mjs";
 
 /**
@@ -937,32 +938,20 @@ async function fetchProfileCard(handle: string): Promise<ProfileLookup> {
 }
 
 /**
- * The member's own stored photo, cut square at 630x630 by the storage render endpoint (format=origin keeps the
- * stored type). M1 (audit 11-05): it used to ask 1200x630 and declare that, but render never upscales, so a smaller
- * avatar came back 800x630 (sips, 11-05) under a 1200x630 declaration; a square is what every avatar can fill, and
- * what /book already asks. Only an avatar this project stores under avatars/<user id>/avatar.jpg|png; anything else
- * (a social-login photo, another folder, an unknown type) gives no image block and the brand image stays.
+ * M1 slice 2 (share-profile audit 11-05, Q2759): the /u card's ONE og:image is the branded 1200x630 card drawn by
+ * api/og-profile.ts (photo or initial, name, town, rating, counts, brand), not the bare avatar crop. Its ?v= tag
+ * changes with everything the card draws, so a crawler that caches images by URL fetches the new card after an edit.
+ * og-profile reads the same public_profile_by_handle answer and answers the brand image on any miss.
  */
-function profileImage(avatarUrl: string | null | undefined, name: string): Meta["image"] | undefined {
-  if (typeof avatarUrl !== "string" || !SUPABASE_URL) return undefined;
-  const prefix = `${SUPABASE_URL}/storage/v1/object/public/avatars/`;
-  if (avatarUrl.slice(0, prefix.length) !== prefix) return undefined;
-  const [userId, file, ...rest] = avatarUrl.slice(prefix.length).split(/[?#]/)[0].split("/");
-  if (rest.length || !UUID_RE.test(userId ?? "")) return undefined;
-  const ext = /^avatar\.([a-z]+)$/.exec(file ?? "")?.[1];
-  const type = ext ? AVATAR_TYPES[ext] : undefined;
-  if (!type) return undefined;
+function profileCardImage(handle: string, card: ProfileCard, name: string): Meta["image"] {
   return {
-    url: `${SUPABASE_URL}/storage/v1/render/image/public/avatars/${userId}/${file}?width=${PROFILE_IMAGE_PX}&height=${PROFILE_IMAGE_PX}&resize=cover&quality=80&format=origin`,
-    type,
-    width: PROFILE_IMAGE_PX,
-    height: PROFILE_IMAGE_PX,
+    url: ogProfileImageUrl(SITE_ORIGIN, handle, card),
+    type: "image/png",
+    width: OG_PROFILE_WIDTH,
+    height: OG_PROFILE_HEIGHT,
     alt: clean(`${name} on Louisiana Helpr`, 120),
   };
 }
-
-/** The /u card's photo is a 630x630 square (see profileImage). */
-const PROFILE_IMAGE_PX = 630;
 
 /** "Yard work, Handyman": the first three comma-separated skills, as the page's chips read them. */
 function profileSkillsLine(skills: string | null | undefined): string {
@@ -1019,7 +1008,7 @@ async function metaForProfile(rawHandle: string, url: string): Promise<Meta | nu
     url: typeof card.handle === "string" && HANDLE_RE.test(card.handle) ? `${SITE_ORIGIN}/u/${card.handle}` : url,
     robots: card.show_in_search === true ? PROFILE_ROBOTS_SHOWN : PROFILE_ROBOTS,
     noindexHeader: card.show_in_search !== true,
-    image: profileImage(card.photo_url, name),
+    image: profileCardImage(typeof card.handle === "string" && HANDLE_RE.test(card.handle) ? card.handle : handle, card, name),
     cdnCache: PROFILE_CDN_CACHE,
     singleImage: true,
   };

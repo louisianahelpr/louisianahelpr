@@ -121,6 +121,7 @@
     "@radix-ui/react-switch": "^1.4.1",
     "@radix-ui/react-tabs": "^1.2.1",
     "@radix-ui/react-tooltip": "^1.4.1",
+    "@resvg/resvg-wasm": "2.6.2",
     "@sentry/react": "^11.10.0",
     "@supabase/supabase-js": "^2.118.0",
     "@tanstack/query-async-storage-persister": "^5.105.0",
@@ -148,6 +149,7 @@
     "react-is": "^19.3.1",
     "react-router-dom": "^7.18.5",
     "recharts": "^3.10.1",
+    "satori": "0.63.2",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
     "tailwindcss-animate": "^1.0.7",
@@ -190,6 +192,12 @@
   "overrides": {
     "postcss-selector-parser": "^7.1.6",
     "serialize-javascript": "^7.0.5",
-    "uuid": "^11.1.1"
+    "uuid": "^11.1.1",
+    "satori": {
+      "fflate": "0.8.3"
+    },
+    "@shuding/opentype.js": {
+      "fflate": "0.8.3"
+    }
   }
 }

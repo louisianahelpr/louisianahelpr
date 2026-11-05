@@ -57,7 +57,8 @@ const U = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 const HELPR = U(1), POSTER = U(2), CREW2 = U(3), OTHER = U(4), BANNED = U(5);
 const J1 = U(101), J2 = U(102), JOPEN = U(103), JCREW = U(104), JB = U(105);
 const P1 = `${J1}/after-1.jpg`, P1B = `${J1}/after-2.jpg`, P2 = `${J2}/after-1.png`, PO = `${JOPEN}/after-1.jpg`;
-const PC = `${CREW2}/after-crew.jpg`, PB = `${JB}/after-1.jpg`;
+// Every proof photo is stored under its own job's id (PhotoProof.tsx: `${jobId}/${type}-...`), crew rows included.
+const PC = `${JCREW}/after-crew.jpg`, PB = `${JB}/after-1.jpg`;
 
 const db = new PGlite();
 const all = async (sql) => (await db.query(sql)).rows;
@@ -208,6 +209,21 @@ check("W8 the Helpr's own list: every after photo of a completed job, shown or n
   mine.length === 4 && row(P1)?.shown === true && row(P1)?.consented === false && row(P1B)?.shown === false
     && row(P2)?.month === "2026-09" && !row(PO) && row(PC)?.shown === true,
   JSON.stringify(mine));
+
+// W10 (lh-authz-rls BLOCK, 11-05): a Helpr copies job J1's photo path into job J2's list (J2's customer allows
+// sharing, J1's may not). The path does not start with J2's id, so it can never be picked or served under J2.
+await db.exec(`RESET ROLE; UPDATE public.jobs SET proof_after_urls = ARRAY['${P2}', '${P1B}'] WHERE id = '${J2}';`);
+const crossPick = await pick(HELPR, J2, P1B);
+await as("authenticated", HELPR);
+const crossMine = (await call(`SELECT job_id, photo_path FROM public.my_job_photos()`)).rows ?? [];
+const crossShown = ((await visitor()).v ?? []).length;
+await db.exec("RESET ROLE");
+const crossRow = (await call(`SELECT id FROM public.profile_job_photos WHERE job_id = '${J2}' AND photo_path = '${P1B}'`)).rows ?? [];
+await db.exec(`RESET ROLE; UPDATE public.jobs SET proof_after_urls = ARRAY['${P2}', 'https://x.supabase.co/storage/v1/object/sign/proof-photos/a.jpg?token=t'] WHERE id = '${J2}';`);
+check("W10 a photo path from another job, copied into this job's list, is refused: not pickable, not listed, not served",
+  (!!crossPick.error || crossPick.rows?.[0]?.v === false) && !crossMine.some((m) => m.job_id === J2 && m.photo_path === P1B)
+    && crossRow.length === 0,
+  JSON.stringify({ crossPick, crossMine: crossMine.filter((m) => m.job_id === J2), crossShown, crossRow }), true);
 
 await db.exec("RESET ROLE");
 const acl = (await call(`SELECT

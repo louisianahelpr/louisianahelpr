@@ -38,7 +38,7 @@
 // @mutate .github/workflows/e2e-abuse-notifications.yml |           SWEEP_PHASE: teardown\n          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}\n          PLAYWRIGHT_LIFECYCLE_JOB_ID: ${{ secrets.PLAYWRIGHT_LIFECYCLE_JOB_ID }} |           SWEEP_PHASE: teardown\n          E2E_STRIPE_MODE: ${{ vars.E2E_STRIPE_MODE }}\n          PLAYWRIGHT_LIFECYCLE_JOB_ID: ""
 // @mutate scripts/e2e/stripe-sandbox-off.sh | gh variable set E2E_STRIPE_MODE --body live | gh variable list
 // @mutate scripts/e2e/stripe-sandbox-off.sh |   exit 1\nfi\n\nread -r -s -p "Paste your sk_live key: " |   true\nfi\n\nread -r -s -p "Paste your sk_live key: "
-// @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | export const SETTLE_FORWARD_MIN_AGE_MS = 6 * 60 * 60 * 1000; | export const SETTLE_FORWARD_MIN_AGE_MS = 2 * 60 * 60 * 1000;
+// @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | export const SETTLE_FORWARD_MIN_AGE_MS = 6 * 60 * 60 * 1000; | export const SETTLE_FORWARD_MIN_AGE_MS = 30 * 60 * 1000;
 // @mutate scripts/e2e/prod-lifecycle-sweeper.mjs | if (CAN_SETTLE_FORWARD && oldEnough) { | if (CAN_SETTLE_FORWARD) {
 
 import { describe, it, expect } from "vitest";
@@ -195,7 +195,9 @@ describe("the sweep never settles a job a live run could be driving", () => {
 
   it("the settle-forward branch is gated on that age", () => {
     const code = sweeper.split("\n").filter((l) => !l.trimStart().startsWith("//")).join("\n");
-    expect(code).toMatch(/const oldEnough = [^;]*ageMs >= SETTLE_FORWARD_MIN_AGE_MS;/);
+    // The gate is ownRunJobs.mjs's mayWalkForward (own-run rows lift it at teardown only;
+    // its behaviour: src/test/sweepSettlesOwnRunJobs.test.ts).
+    expect(code).toMatch(/const oldEnough = mayWalkForward\(\{[^;]*minAgeMs: SETTLE_FORWARD_MIN_AGE_MS,[^;]*phase: PHASE,[^;]*\}\);/);
     expect(code).toMatch(/if \(CAN_SETTLE_FORWARD && oldEnough\) \{/);
     expect(code).not.toMatch(/if \(CAN_SETTLE_FORWARD\) \{/);
   });

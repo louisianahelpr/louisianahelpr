@@ -55,6 +55,7 @@ import {
   wasFunded,
 } from "./sweepSummary.mjs";
 import { settleJobForward, heldReason } from "./settleForward.mjs";
+import { mayWalkForward, readOwnRunJobIds } from "./ownRunJobs.mjs";
 import { SEAT_COLUMNS, stripeSeatViolations } from "./seatStripeAccounts.mjs";
 
 const BASE = (process.env.SUPABASE_URL || "https://fncmgoasalhdgfwzhsqa.supabase.co").replace(/\/$/, "");
@@ -141,6 +142,9 @@ const HELPER_TOKEN = process.env.HELPER_ACCESS_TOKEN || "";
  * its own job directly.
  */
 export const SETTLE_FORWARD_MIN_AGE_MS = 6 * 60 * 60 * 1000;
+
+/** Job ids this same workflow job's journeys recorded (teardown only lifts the age gate for them). */
+const OWN_RUN_JOB_IDS = PHASE === "teardown" ? readOwnRunJobIds() : new Set();
 
 /** The `sub` claim of an already-gateway-verified token; a read, not an act of trust. */
 function subjectOf(jwt) {
@@ -454,7 +458,20 @@ for (const job of jobs) {
          does, and no strike is recorded on any leg. Without the helper token it
          is still deferred and still reported. */
       const ageMs = Date.now() - Date.parse(job.created_at);
-      const oldEnough = Number.isFinite(ageMs) && ageMs >= SETTLE_FORWARD_MIN_AGE_MS;
+      /* This run's OWN rows are walked at teardown whatever their age
+         (scripts/e2e/ownRunJobs.mjs): a run cancelled mid-chain never reached
+         02-marketplace's afterAll, and the 6 h gate then left its row for a
+         later sweep that, measured 2026-11-04, did not come for 24 h. */
+      const oldEnough = mayWalkForward({
+        id: job.id,
+        ageMs,
+        minAgeMs: SETTLE_FORWARD_MIN_AGE_MS,
+        phase: PHASE,
+        ownIds: OWN_RUN_JOB_IDS,
+      });
+      if (CAN_SETTLE_FORWARD && oldEnough && ageMs < SETTLE_FORWARD_MIN_AGE_MS) {
+        console.log(`    this run's own job: ${job.id} (${Math.round(ageMs / 60000)} min), settling it forward at teardown`);
+      }
       if (CAN_SETTLE_FORWARD && !oldEnough) {
         console.log(`    too young to settle forward: ${job.id} (${Math.round(ageMs / 60000)} min) may be a live run's job`);
       }

@@ -35,6 +35,7 @@ import {
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { centralDatePlus, fund, invoke, readRow, retireFundedJob, skipLivePay } from "../prod-audit/fundedOpenJob";
 import { settleJobForward } from "../../scripts/e2e/settleForward.mjs";
+import { recordOwnRunJob } from "../../scripts/e2e/ownRunJobs.mjs";
 import { captureHeldCard } from "../cardHold";
 import { OUTCOME_UNDRIVEN, filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 import { uncoveredAdminPaths } from "./adminWritePaths";
@@ -125,6 +126,8 @@ async function postJob(api: APIRequestContext, poster: Session, label: string, d
   );
   expect(rows, `the ${label} job insert returned no row`).toHaveLength(1);
   const job = rows[0];
+  // Recorded at once: a cancelled run's teardown sweep settles it (scripts/e2e/ownRunJobs.mjs).
+  recordOwnRunJob(job.id);
   // A parish would fan this job out to every real Helpr in it once funded.
   expect(job.parish, `the ${label} job came back WITH a parish — funding it would notify real Helprs`).toBeNull();
   expect(job.is_seed, `the ${label} job is not is_seed`).toBe(true);

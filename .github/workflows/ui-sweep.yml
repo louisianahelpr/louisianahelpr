@@ -244,6 +244,7 @@ jobs:
           # under CI, so this always measures a fresh dist/ — the stale-preview
           # trap that has produced false findings locally cannot happen here.
           PLAYWRIGHT_WEB_SERVER: "1"
+          NODE_ENV: development # DEBUG branch only (#185): readable React errors + component stack
           RUN_EMPTY_SWEEP: ${{ steps.scope.outputs.run_empty }}
           RUN_ERROR_SWEEP: ${{ steps.scope.outputs.run_error }}
           # e2e/happy-path/overlay-sweep.spec.ts self-skips its whole describe

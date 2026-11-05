@@ -277,8 +277,9 @@ async function auditEmptyScreen(
     const text = m.text();
     if (HARNESS_NOISE.some((rx) => rx.test(text))) return;
     consoleIssues.push(`${m.type()}: ${text.slice(0, 140)}`);
+    if (m.type() === "error") console.log(`FULLCONSOLE ${meta.name}: ${text.slice(0, 6000)}`); // DEBUG branch only (#185)
   });
-  page.on("pageerror", (e) => consoleIssues.push(`uncaught: ${String(e.message).slice(0, 140)}`));
+  page.on("pageerror", (e) => { consoleIssues.push(`uncaught: ${String(e.message).slice(0, 140)}`); console.log(`FULLPAGEERROR ${meta.name}: ${String(e.stack ?? e.message).slice(0, 6000)}`); });
 
   try {
     await page.setViewportSize({ width: variant.width, height: variant.height });

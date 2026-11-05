@@ -18,6 +18,7 @@ import { cancelOrderRequest, fetchMyOrders, type ShopOrder } from "@/lib/shops/o
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopsNotice } from "./shopsUi";
 import { ShopOrderCard } from "./ShopOrderCard";
+import { ShopTalkFromLink } from "./ShopTalk";
 import { ShopHandoverActions } from "./ShopHandoverActions";
 import { StatusBoxes, useStatusFilter } from "@/components/sections/StatusBoxes";
 import { OrderGroup } from "./shopsUi";
@@ -124,6 +125,8 @@ export default function ShopMyOrdersView({ embedded = false }: { embedded?: bool
           <ul className="space-y-3">{(orders.data ?? []).map((o) => renderOrder(o, user.id))}</ul>
         )
       )}
+      {/* Q1947: the chat an order card's Message opens (?talk=). */}
+      <ShopTalkFromLink />
       <BrandConfirmDialog
         open={!!withdrawing}
         onOpenChange={(open) => { if (!open) setWithdrawing(null); }}

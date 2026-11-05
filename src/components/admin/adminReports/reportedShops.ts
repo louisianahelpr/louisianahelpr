@@ -6,8 +6,9 @@
 import type { ReportedShop } from "@/lib/shops/reports";
 import { report } from "@/lib/errorLogger";
 
-const SHOP_REPORTS: readonly string[] = ["shop", "shop_item"];
-/** A report about a shop or one of its items. */
+// Q1947 (20261105225245): shop_talk_message, a message in a shop chat.
+const SHOP_REPORTS: readonly string[] = ["shop", "shop_item", "shop_talk_message"];
+/** A report about a shop, one of its items, or a message in a shop chat. */
 export const isShopReport = (t: string) => SHOP_REPORTS.includes(t);
 
 /** Shops and items by id. A failed read is reported and yields an empty map (each row then reads "… unavailable"). */
@@ -31,6 +32,11 @@ export async function hydrateReportedShops(rows: { reported_type: string; report
 
 /** What the card calls it. */
 export function shopSubject(type: string, s: ReportedShop | undefined, failed: boolean): string {
+  if (type === "shop_talk_message") {
+    // The chat's shop, and which side wrote the message (the writer is the report's person).
+    if (s) return `Message from ${s.status === "shop" ? "the shop" : "a shopper"} in "${s.label}"`;
+    return failed ? "Shop message unavailable" : "Deleted shop message";
+  }
   const noun = type === "shop_item" ? "Shop item" : "Shop";
   if (s) return `${noun} "${s.label}"`;
   return failed ? `${noun} unavailable` : `Deleted ${noun.toLowerCase()}`;
@@ -38,6 +44,7 @@ export function shopSubject(type: string, s: ReportedShop | undefined, failed: b
 
 /** Still up, so the card offers the take-down: a shop not hidden, an item live or waiting. */
 export function shopCanComeDown(s: ReportedShop | undefined): boolean {
-  if (!s) return false;
+  // A chat message has nothing to take down: the admin acts on the person who wrote it (the queue's person actions).
+  if (!s || s.kind === "shop_talk_message") return false;
   return s.kind === "shop" ? !s.shop_hidden : ["live", "pending_review"].includes(s.status);
 }

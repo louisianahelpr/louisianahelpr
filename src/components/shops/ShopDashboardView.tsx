@@ -33,6 +33,7 @@ import {
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopsNotice } from "./shopsUi";
 import { ShopOrderCard } from "./ShopOrderCard";
+import { ShopTalkFromLink } from "./ShopTalk";
 import CancelPolicyPicker from "./ShopCancelPolicyPicker";
 import ShopPayoutRow from "./ShopPayoutRow";
 import HandoverModePicker from "./ShopHandoverModePicker";
@@ -168,6 +169,8 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
         )}
         {/* Only while payouts are not set up (SH12): an accepted order pays out to this account. */}
         <ShopPayoutRow />
+        {/* Q1947: the chat an order card's Message opens (?talk=). */}
+        <ShopTalkFromLink />
         {orders.isError ? (
           <ErrorState variant="inline" title="We couldn't load your orders." body={shopsErrorMessage(orders.error)} onRetry={() => void orders.refetch()} />
         ) : (

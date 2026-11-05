@@ -20,7 +20,8 @@
  * @mutate src/components/declutter/DeclutterItemView.tsx | {isSeller && <ItemViewsCount | {true && <ItemViewsCount
  * @mutate src/components/declutter/DeclutterItemView.tsx | const viewable = !!item.data && !ownListing && | const viewable = !!item.data &&
  */
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync } from "node:fs";
+import { readdirSync } from "@/test/helpers/trackedFiles";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";
 import { blankComments, blankSqlComments } from "@/test/helpers/blankNonCode";

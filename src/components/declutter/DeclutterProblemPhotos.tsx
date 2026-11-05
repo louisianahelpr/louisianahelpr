@@ -6,6 +6,7 @@
  */
 import { useEffect, useId, useMemo } from "react";
 import { Camera, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { uploadProblemPhoto } from "@/lib/declutter/handover";
 import { PROBLEM_PHOTO_MAX } from "@/lib/declutter/problemPhotos";
 import { FallbackImg } from "./FallbackImg";
@@ -37,13 +38,13 @@ export function ProblemPhotoPicker({ files, onChange, disabled = false }: { file
         {previews.map((src, i) => (
           <li key={src} className="relative h-20 w-20">
             <FallbackImg src={src} alt={`Photo ${i + 1}`} className="h-full w-full rounded-xl bg-photo-empty object-cover" />
-            <button type="button" aria-label={`Remove photo ${i + 1}`} disabled={disabled}
-              className="absolute -right-2 -top-2 flex h-11 w-11 items-center justify-center"
+            <Button type="button" variant="ghost" size="iconCompact" aria-label={`Remove photo ${i + 1}`} disabled={disabled}
+              className="absolute -right-2 -top-2 [&_svg]:size-4"
               onClick={() => onChange(files.filter((_, j) => j !== i))}>
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-background/90 text-foreground shadow" aria-hidden>
                 <X className="h-4 w-4" />
               </span>
-            </button>
+            </Button>
           </li>
         ))}
         {!full && (

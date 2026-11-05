@@ -403,7 +403,11 @@ const MEASURE = ([sel, probes]) => {
         // 36342002299 probed the toast as "the nav, loaded" (58px -> 28px,
         // 2 -> 3 rows) and failed, while runs that captured after it faded
         // passed. Look through the toaster to the page beneath it.
-        const el = document.elementsFromPoint(pr.px, pr.py).find((e) => !e.closest("[data-sonner-toaster]"));
+        // Nor is a PINNED title row (Q1837): AppPage's stickyHeader wraps back + help in a .sticky-title-row that is
+        // wider than the page column (-mx-3 px-3), so a probe at the top of the page landed in it and climbed no
+        // further. Run 41949893912 compared the Declutter item page's whole body skeleton (208px rows) against that
+        // header (44px). Look through it to the page beneath, as through the toaster.
+        const el = document.elementsFromPoint(pr.px, pr.py).find((e) => !e.closest("[data-sonner-toaster]") && !e.closest(".sticky-title-row"));
         if (!el) return { found: false, note: "nothing at the probe point once loaded" };
         const row = rowOf(el, pr.containerW);
         const container = row.parentElement ?? row;

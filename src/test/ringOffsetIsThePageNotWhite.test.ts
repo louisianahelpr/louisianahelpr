@@ -80,7 +80,6 @@ const LEDGER = [
   "src/pages/posts/postedJobs/DeclineApplicantSheet.tsx",
   "src/components/postjob/detailsSection/CredentialTierSelector.tsx",
   "src/components/postjob/detailsSection/PhotoUpload.tsx",
-  "src/pages/profile/petProfiles/PetForm.tsx",
 ];
 
 function walk(dir: string, out: string[] = []): string[] {

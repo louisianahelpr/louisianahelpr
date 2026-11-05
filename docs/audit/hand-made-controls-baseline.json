@@ -48,8 +48,7 @@
       "button": 1
     },
     "src/components/PhotoProof.tsx": {
-      "button": 3,
-      "input": 1
+      "button": 2
     },
     "src/components/ReportDialog.tsx": {
       "button": 1

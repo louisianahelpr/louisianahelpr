@@ -156,6 +156,9 @@ const ShopsPage = lazyWithPreload(() => import("./pages/shops/ShopsPage"));
 const ShopPage = lazyWithPreload(() => import("./pages/shops/ShopPage"));
 const BookHelprPage = lazyWithPreload(() => import("./pages/book/BookHelprPage"));
 const PublicProfilePage = lazyWithPreload(() => import("./pages/u/PublicProfilePage"));
+// H5 (audit 11-05): old /user and /book links forward to /u/<handle> (src/components/profile/PublicProfileForward.tsx).
+const UserProfileRoute = lazy(() => import("./components/profile/PublicProfileForward").then((m) => ({ default: m.UserProfileRoute })));
+const BookHelprRoute = lazy(() => import("./components/profile/PublicProfileForward").then((m) => ({ default: m.BookHelprRoute })));
 const ShopEditPage = lazyWithPreload(() => import("./pages/shops/ShopEditPage"));
 // Rentals S1 (docs/specs/landlord-hub-prep.md): the 404 unless the hidden
 // 'rentals' switch is on for the member (RentalsGate).
@@ -281,7 +284,7 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/explore" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><ExploreRedirect /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/posts" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<JobsSectionSkeleton />}><PostsPage /></ProtectedRoute>, <JobsSectionSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/payment-success" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><PaymentSuccess /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)}</RouteErrorBoundary>} />
+      <Route path="/user/:userId" element={<RouteErrorBoundary>{routeEl(<UserProfileRoute><UserProfile /></UserProfileRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><Admin /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin/preview/declutter" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><AdminDeclutterPreview /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin/preview/job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><AdminJobPreview /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
@@ -304,8 +307,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       {/* SH2b (owner 2026-10-19): a shop page is open to anyone with the link;
           ShopPage picks the full or the public view. noindex via api/share.ts. */}
       <Route path="/shops/:id" element={<RouteErrorBoundary>{routeEl(<ShopPage />)}</RouteErrorBoundary>} />
-      {/* /book/:userId: a Helpr's "Book me" link, open to anyone (B59). Card via api/share.ts. */}
-      <Route path="/book/:userId" element={<RouteErrorBoundary>{routeEl(<BookHelprPage />)}</RouteErrorBoundary>} />
+      {/* /book/:userId: the old "Book me" link (B59) forwards to /u/<handle> (H5); BookHelprPage only until handle_for_user is live. */}
+      <Route path="/book/:userId" element={<RouteErrorBoundary>{routeEl(<BookHelprRoute><BookHelprPage /></BookHelprRoute>)}</RouteErrorBoundary>} />
       {/* /u/:handle: a member's shareable profile, open to anyone (LEAD-PROFILE-LINK). Card via api/share.ts. */}
       <Route path="/u/:handle" element={<RouteErrorBoundary>{routeEl(<PublicProfilePage />)}</RouteErrorBoundary>} />
       <Route path="/rentals" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><RentalsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />

@@ -473,6 +473,70 @@ if (FULL && !BEFORE) {
     JSON.stringify({ before: r0.helpr?.review_total, after: r1.helpr?.review_total, n: fb.length, avg0: r0.stats?.avg_rating, avg1: r1.stats?.avg_rating }));
 }
 
+// H5 slice 2 (audit 11-05): LH_HANDLE_FOR_USER=<migration file> applies handle_for_user (3x) and proves it NULL under
+// exactly this page's rules, member by member and state by state; LH_HANDLE_FOR_USER=skip leaves it out (red).
+const H4U = process.env.LH_HANDLE_FOR_USER ?? "";
+if (H4U && !BEFORE) {
+  if (H4U !== "skip") {
+    const t = readFileSync(H4U.includes("/") ? H4U : DIR + H4U, "utf8");
+    for (let i = 0; i < 3; i++) await db.exec(`RESET ROLE; ${t}`);
+  }
+  const lookup = async (uid, role = "anon") => {
+    await as(null, role);
+    try {
+      return { v: (await db.query(`SELECT public.handle_for_user($1::uuid) AS v`, [uid])).rows[0]?.v ?? null };
+    } catch (e) {
+      return { error: e.message };
+    } finally {
+      await db.exec(`RESET ROLE;`);
+    }
+  };
+  const people = [ELI, SEED, TESTACC, BANNED, UNVER, GONE, BUYER, REVIEWER, TESTREV, U(10), U(777), U(999)];
+  const states = [
+    ["as is", null],
+    ["banned", `UPDATE public.profiles SET ban_status = 'banned' WHERE user_id = '${ELI}'`],
+    ["temp", `UPDATE public.profiles SET ban_status = 'temp_banned', auto_suspended_until = now() + interval '3 day' WHERE user_id = '${ELI}'`],
+    ["temp lapsed", `UPDATE public.profiles SET ban_status = 'temp_banned', auto_suspended_until = now() - interval '1 day' WHERE user_id = '${ELI}'`],
+    ["3 strikes", `INSERT INTO public.member_flags VALUES ('${ELI}', 'strike'), ('${ELI}', 'strike'), ('${ELI}', 'strike')`],
+    ["under 18", `UPDATE public.profiles SET date_of_birth = current_date - interval '16 years' WHERE user_id = '${ELI}'`],
+    ["19", `UPDATE public.profiles SET date_of_birth = current_date - interval '19 years' WHERE user_id = '${ELI}'`],
+    ["no handle", `UPDATE public.profiles SET handle = NULL WHERE user_id = '${ELI}'`],
+    ["unverified", `UPDATE public.profiles SET email_verified = false WHERE user_id = '${ELI}'`],
+    ["deleted", `UPDATE public.profiles SET anonymized_at = now() WHERE user_id = '${ELI}'`],
+    ["test account", `INSERT INTO public.test_accounts VALUES ('${ELI}')`],
+  ];
+  const disagree = [];
+  let shown = 0;
+  for (const [label, sql] of states) {
+    if (sql) await db.exec(`RESET ROLE; ${sql}`);
+    for (const uid of people) {
+      const h = (await db.query(`SELECT handle FROM public.profiles WHERE user_id = $1`, [uid])).rows[0]?.handle ?? null;
+      const pg = h ? (await page(h)).v ?? null : null;
+      const got = await lookup(uid);
+      const want = pg ? pg.handle : null;
+      if (got.error || got.v !== want) disagree.push(`${label}/${uid.slice(-3)}: ${got.error ?? got.v} vs page ${want}`);
+      if (want) shown++;
+    }
+    await db.exec(`RESET ROLE; UPDATE public.profiles SET ban_status = NULL, auto_suspended_until = NULL, date_of_birth = NULL,
+      email_verified = true, anonymized_at = NULL, handle = 'eli-b' WHERE user_id = '${ELI}';
+      UPDATE public.profiles SET email_verified = false WHERE user_id = '${UNVER}';
+      UPDATE public.profiles SET anonymized_at = now() WHERE user_id = '${GONE}';
+      DELETE FROM public.member_flags; DELETE FROM public.test_accounts WHERE user_id = '${ELI}';`);
+  }
+  check("P23 handle_for_user is the current handle exactly when the page shows, NULL exactly when it does not",
+    disagree.length === 0 && shown > states.length, disagree.slice(0, 4).join("; ") || `${shown} shown`);
+  const acl = async (role) => (await db.query(`SELECT has_function_privilege('${role}', 'public.handle_for_user(uuid)', 'EXECUTE') AS v`)
+    .catch(() => ({ rows: [{ v: null }] }))).rows[0]?.v;
+  const pub = (await db.query(`SELECT coalesce(bool_or(a.grantee = 0), false) AS v FROM pg_proc p, aclexplode(p.proacl) a
+    WHERE p.oid = to_regprocedure('public.handle_for_user(uuid)')`).catch(() => ({ rows: [{ v: null }] }))).rows[0]?.v;
+  const def = (await db.query(`SELECT prosecdef AND provolatile = 's' AND array_to_string(proconfig, ',') ~ 'search_path=public, ?pg_temp' AS v
+    FROM pg_proc WHERE oid = to_regprocedure('public.handle_for_user(uuid)')`).catch(() => ({ rows: [] }))).rows[0]?.v;
+  const asMember = await lookup(ELI, "authenticated");
+  check("P24 handle_for_user: anon and members hold EXECUTE, PUBLIC does not; STABLE SECURITY DEFINER with search_path pinned",
+    (await acl("anon")) === true && (await acl("authenticated")) === true && pub === false && def === true && asMember.v === "eli-b",
+    JSON.stringify({ anon: await acl("anon"), auth: await acl("authenticated"), pub, def, asMember }));
+}
+
 if (BEFORE) {
   console.log(`--before: ${failures}/${checks} FAIL (expected ${checks})`);
   process.exit(failures === checks ? 0 : 1);

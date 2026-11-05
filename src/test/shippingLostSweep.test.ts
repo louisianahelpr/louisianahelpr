@@ -6,7 +6,7 @@
  * ship_label debt. Behaviour proven in PGlite: src/test/pglite/shippingLostSweep.pglite.mjs (57/57; 8 planted defects RED).
  *
  * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql | PERFORM public.declutter_close_paid_order(o.id, 'ship_lost', NULL, NULL, | PERFORM public.declutter_close_paid_order(o.id, 'ship_lost', 'seller', 'item_gone_after_sale',
- * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql | v_seller_fault boolean := p_reason IN ('seller_no_show', 'not_as_described', 'seller_backed_out', 'ship_lost'); | v_seller_fault boolean := p_reason IN ('seller_no_show', 'not_as_described', 'seller_backed_out');
+ * @mutate supabase/migrations/20261105052751_declutter_gift_delivery_refunds.sql | v_seller_fault boolean := p_reason IN ('seller_no_show', 'not_as_described', 'seller_backed_out', 'ship_lost'); | v_seller_fault boolean := p_reason IN ('seller_no_show', 'not_as_described', 'seller_backed_out');
  * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql |        AND s.tracking_status IS DISTINCT FROM 'available_for_pickup'\n       AND NOT EXISTS |        AND NOT EXISTS
  * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql | AND s.accepted_at IS NOT NULL AND s.accepted_at + interval '10 days' <= now()\n       AND s.delivered_at IS NULL | AND s.accepted_at IS NOT NULL AND s.accepted_at + interval '1 day' <= now()\n       AND s.delivered_at IS NULL
  */

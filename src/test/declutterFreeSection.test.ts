@@ -67,7 +67,8 @@ describe("the Declutter Free section", () => {
     // (20261102063343: 2d's body + Q1935's fee + an out seller's seller_out); the free branch is untouched in all three.
     // Then the A3 reconcile (20261102084222): 063343 plus A3-72's two delivery_never_booked lines; free branch untouched.
     // Q2259 lost sweep (20261103203204): verbatim plus ship_lost in v_seller_fault (the free-claim branch unchanged).
-    expect(newestFunction("declutter_close_paid_order").file).toContain("20261103203204_shipping_lost_sweep.sql");
+    // Q2106 S3b step 5 (20261105052751): verbatim plus the gift-share wrap of the buyer's refund notice.
+    expect(newestFunction("declutter_close_paid_order").file).toContain("20261105052751_declutter_gift_delivery_refunds.sql");
     const names = ["declutter_free_rules",
       "declutter_buy_now",
       "payout_setup_hire_allowed"];

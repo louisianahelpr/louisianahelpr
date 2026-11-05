@@ -96,7 +96,7 @@
  * @mutate supabase/migrations/20261105030604_declutter_gift_cards.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
  * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
  * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
- * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    0);
+ * @mutate supabase/migrations/20261105052751_declutter_gift_delivery_refunds.sql | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    0);
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql | r.refund_cents - r.gift_refund_cents, r.attempts, | r.paid_cents - r.gift_refund_cents, r.attempts,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_refunds SET card_fee_cents = 0, refund_cents = paid_cents WHERE fee_policy = 'keep_card_fee';\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
@@ -615,7 +615,12 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // A3 reconcile (20261102084222, builder 166, lead verdict pending): 20261102063343 verbatim plus A3-72's two notice
       // lines on 'delivery_never_booked' (from 20261102031000, which 063343 dropped). Amount, fee, reasons unchanged.
       // Q2259 lost sweep (20261103203204, lead PASS 11-03): verbatim (prod md5 58bfd657); only ship_lost joins v_seller_fault.
-      declutter_close_paid_order: "20261103203204_shipping_lost_sweep.sql 3457a20c7372f9ed",
+      // Q2106 S3b step 5 (Builder 3, LEAD REVIEW owed): restated verbatim in 20261105052751; the one change wraps the
+      // buyer notice's text in declutter_refund_notice_names_gift (text only, no amount or fee). Was 20261103203204 3457a20c7372f9ed.
+      declutter_close_paid_order: "20261105052751_declutter_gift_delivery_refunds.sql d65267b1f839dcb6",
+      // Q2106 S3b step 5 (20261105052751): reads one refund row's gift share and total to word the buyer notice; it
+      // records no refund, changes no amount, card fee or policy, and moves no money.
+      declutter_refund_notice_names_gift: "20261105052751_declutter_gift_delivery_refunds.sql e2a84c5dc0583fe1",
       // #26 (20261028204431): only the "It's yours" notice line changed; it still records no refund.
       // #37 (20261028223036): only the "Free item claimed" link changed; it still records no refund.
       // #3730 (20261028235247, lh-money-escrow approved via the lead 2026-10-29): only the handover_not_offered refusal

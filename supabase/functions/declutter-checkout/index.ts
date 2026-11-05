@@ -550,8 +550,8 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       p_credit_id: giftCardId, p_order_id: order.order_id, p_user_id: user.id, p_retired_session: retiredSession,
     });
     if (redeemErr) {
-      // The refusals are sentences for the buyer (P0001), or not-yours / not-found (42501 / P0002).
-      if (redeemErr.code === "P0001" || redeemErr.code === "42501" || redeemErr.code === "P0002") return rpcRefusal(redeemErr);
+      // The refusals are sentences for the buyer (P0001), or not-yours / not-found (42501 / PT404, Q2390).
+      if (redeemErr.code === "P0001" || redeemErr.code === "42501" || redeemErr.code === "PT404" || redeemErr.code === "P0002") return rpcRefusal(redeemErr);
       console.error(`[declutter-checkout] gift redeem failed: ${redeemErr.message}`);
       return json({ error: TRY_AGAIN }, 503);
     }

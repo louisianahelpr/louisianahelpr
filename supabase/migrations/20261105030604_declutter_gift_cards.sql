@@ -328,7 +328,7 @@ BEGIN
   SELECT id, buyer_id, status, total_cents, setup_fee_cents, gift_cents, gift_card_id, stripe_checkout_session_id
     INTO o FROM public.declutter_orders WHERE id = p_order_id FOR UPDATE;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'Order not found' USING ERRCODE = 'P0002';
+    RAISE EXCEPTION 'Order not found' USING ERRCODE = 'PT404';
   END IF;
   IF o.buyer_id IS DISTINCT FROM p_user_id THEN
     RAISE EXCEPTION 'This is not your order' USING ERRCODE = '42501';
@@ -346,7 +346,7 @@ BEGIN
          job_id, declutter_order_id, expires_at
     INTO v_credit FROM public.gift_cards WHERE id = p_credit_id FOR UPDATE;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'Gift not found' USING ERRCODE = 'P0002';
+    RAISE EXCEPTION 'Gift not found' USING ERRCODE = 'PT404';
   END IF;
   IF v_credit.recipient_id IS NULL OR v_credit.recipient_id <> p_user_id THEN
     RAISE EXCEPTION 'This gift is not yours to redeem' USING ERRCODE = '42501';

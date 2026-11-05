@@ -1676,6 +1676,7 @@ export type Database = {
           next_attempt_at: string
           order_id: string
           reason: string
+          gift_refund_cents: number
           refund_cents: number
           review_held_at: string | null
           review_reason: string | null
@@ -1683,7 +1684,7 @@ export type Database = {
           settled_by_hand_note: string | null
           settled_by_hand_ref: string | null
           status: string
-          stripe_payment_intent_id: string
+          stripe_payment_intent_id: string | null
           stripe_refund_ref: string | null
         }
         Insert: {
@@ -1698,6 +1699,7 @@ export type Database = {
           next_attempt_at?: string
           order_id: string
           reason: string
+          gift_refund_cents?: number
           refund_cents: number
           review_held_at?: string | null
           review_reason?: string | null
@@ -1705,7 +1707,7 @@ export type Database = {
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
           status?: string
-          stripe_payment_intent_id: string
+          stripe_payment_intent_id?: string | null
           stripe_refund_ref?: string | null
         }
         Update: {
@@ -1720,6 +1722,7 @@ export type Database = {
           next_attempt_at?: string
           order_id?: string
           reason?: string
+          gift_refund_cents?: number
           refund_cents?: number
           review_held_at?: string | null
           review_reason?: string | null
@@ -1727,7 +1730,7 @@ export type Database = {
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
           status?: string
-          stripe_payment_intent_id?: string
+          stripe_payment_intent_id?: string | null
           stripe_refund_ref?: string | null
         }
         Relationships: [
@@ -16818,6 +16821,7 @@ export type Database = {
       declutter_delivery_refund_executed: { Args: { p_error: string; p_id: string; p_stripe_refund_id: string; p_succeeded: boolean }; Returns: string }
       declutter_delivery_refund_reversed: { Args: { p_id: string; p_stripe_refund_id: string; p_why: string }; Returns: string }
       declutter_delivery_refunds_due: { Args: { p_limit: number }; Returns: unknown }
+      declutter_refund_notice_names_gift: { Args: { p_refund_id: string; p_text: string }; Returns: string }
       declutter_delivery_reserved_cents: { Args: { p_order_id: string }; Returns: number }
       declutter_delivery_slot_ok: { Args: { p_order_id: string; p_start: string }; Returns: boolean }
       declutter_full_refund_cents: { Args: { p_order_id: string }; Returns: number }

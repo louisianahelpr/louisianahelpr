@@ -11,6 +11,8 @@
  *   (5) declutter_delivery_refunds_due hands declutter-money the CARD part as refund_cents and the gift share apart;
  *   (6) a row with no payment intent and any card part is refused (CHECK); a gift share above the refund is refused;
  *   (7) declutter_order_refunds_recorded_cents counts only the card part of a succeeded delivery row;
+ *   (8) step 5: declutter_refund_notice_names_gift (the wrap of declutter_close_paid_order's buyer notice) leaves a
+ *       card-only refund's text as is and names the gift balance for a refund row's gift share;
  *   the file replays 3x.
  *   node src/test/pglite/declutterGiftDeliveryRefunds.pglite.mjs                     # all PASS
  *   NEW_MIGRATION=skip node src/test/pglite/declutterGiftDeliveryRefunds.pglite.mjs  # RED
@@ -51,6 +53,7 @@ await db.exec(`CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_
     gift_cents integer NOT NULL DEFAULT 0, handover text, status text);
   CREATE TABLE public.gift_cards (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), amount numeric, restored_from_declutter_order_id uuid);
   CREATE TABLE public.shipments (declutter_order_id uuid, label_state text);
+  CREATE TABLE public.helpr_tasks (id uuid PRIMARY KEY);
   CREATE TABLE public.notes (user_id uuid, title text, body text);
   CREATE FUNCTION public.declutter_notify(p_user uuid, p_kind text, p_title text, p_body text, p_link text, p_from uuid)
     RETURNS void LANGUAGE sql AS $$ INSERT INTO public.notes VALUES (p_user, p_title, p_body) $$;
@@ -145,5 +148,18 @@ check(await ins("'pi_x'", 200, -1) !== "ok", "(6) a negative gift share is refus
 await db.exec(`UPDATE public.declutter_delivery_refunds SET status = 'succeeded' WHERE order_id = '${MIX}'`);
 const rec = await call(`SELECT public.declutter_order_refunds_recorded_cents('${MIX}') AS c`);
 check(rec?.c === 80, "(7) recorded_cents counts the delivery row's card part only (80, not 200)", JSON.stringify(rec));
+
+// (8) step 5: the close_paid_order notice wrap.
+const nn = async (refundOrder, text) => call(`SELECT public.declutter_refund_notice_names_gift((SELECT id FROM public.declutter_refunds WHERE order_id = '${refundOrder}'), '${text}') AS t`);
+const CARDR = "00000000-0000-4000-8000-000000000007";
+await db.exec(`INSERT INTO public.declutter_orders (id, total_cents) VALUES ('${CARDR}', 1000);
+  INSERT INTO public.declutter_refunds (order_id, stripe_payment_intent_id, reason, fee_policy, paid_cents, card_fee_cents, refund_cents) VALUES
+  ('${CARDR}', 'pi_cardr', 'order_closed', 'full_platform_absorbs', 1000, 0, 1000)`);
+const t1 = await nn(CARDR, "All $10.00 is coming back to your card.");
+check(t1?.t === "All $10.00 is coming back to your card.", "(8) a card-only refund's notice is unchanged", JSON.stringify(t1));
+const t2 = await nn(SHIPM, "All $6.80 is coming back to your card.");
+check(t2?.t === "All $6.80 is coming back to you. $3.50 goes back to your gift balance and $3.30 to your card.", "(8) a mixed refund names both parts", JSON.stringify(t2));
+const t3 = await nn(SHIPG, "All $7.00 is coming back to your card.");
+check(t3?.t === "All $7.00 is coming back to you. It all goes back to your gift balance ($7.00).", "(8) an all-gift refund names the gift balance only", JSON.stringify(t3));
 console.log(failures ? `\n${failures} FAILED` : "\nALL PASS");
 process.exit(failures ? 1 : 0);

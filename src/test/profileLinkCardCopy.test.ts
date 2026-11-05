@@ -3,7 +3,8 @@
  * Lexi L. posts and does… 24 items for sale" for a seller with 201 live items (it counted the capped list), no town
  * or skills, and og:image declared 1200x630 while the served file was 800x630 (render never upscales).
  * Now: the description leads with skills and town, the counts are the read's true listing_count / job_count, and
- * the photo is asked and declared as a 630x630 square (the size every avatar can fill; /book already did this).
+ * the photo was asked and declared as a 630x630 square; since M1 slice 2 the card is the branded 1200x630 PNG
+ * api/og-profile.ts draws (src/test/ogProfileCard.test.ts).
  *
  * @mutate api/share.ts |   const selling = profileCount(card.listing_count, card.listings); |   const selling = Array.isArray(card.listings) ? card.listings.length : 0;
  * @mutate api/share.ts |   const open = profileCount(card.job_count, card.jobs); |   const open = Array.isArray(card.jobs) ? card.jobs.length : 0;
@@ -66,11 +67,11 @@ describe("the /u link card copy and image size (api/share.ts)", () => {
     expect((await description()).d).toContain("24 items for sale");
   });
 
-  it("the photo is asked and declared as the same 630x630 square", async () => {
+  it("the card image is the branded 1200x630 card, declared at its true size", async () => {
     answer = { ...BASE, listing_count: 3 };
     const { html } = await description();
-    expect(html).toContain(`avatars/${USER}/avatar.jpg?width=630&amp;height=630&amp;resize=cover`);
-    expect(html).toContain('<meta property="og:image:width" content="630"');
+    expect(html).toContain("https://www.louisianahelpr.com/api/og-profile?h=lexi-l&amp;v=");
+    expect(html).toContain('<meta property="og:image:width" content="1200"');
     expect(html).toContain('<meta property="og:image:height" content="630"');
   });
 });

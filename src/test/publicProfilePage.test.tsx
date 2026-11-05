@@ -7,8 +7,9 @@
  *  - the owner of the page gets "Share my profile".
  * The page sits in the centred public link column (PUBLIC_LINK_COLUMN), the same as /book/<id>, never full
  * width at 1440 (lead 2026-11-01, B88; measured before: 1392px wide at x=24).
- * The link card: api/share.ts serves /u/<handle> with the member's name, their photo at 1200x630 and exactly
- * ONE og:image; an unknown handle is a noindex "isn't available" card.
+ * The link card: api/share.ts serves /u/<handle> with the member's name, the branded 1200x630 card api/og-profile.ts
+ * draws (M1 slice 2, src/test/ogProfileCard.test.ts) and exactly ONE og:image; an unknown handle is a noindex
+ * "isn't available" card.
  *
  * @mutate src/pages/u/PublicProfilePage.tsx | return signedIn ? path : signupUrlFor(path); | return path;
  * @mutate src/pages/u/PublicProfilePage.tsx | enabled: !!handle, | enabled: true,
@@ -17,7 +18,7 @@
  * @mutate src/pages/book/BookHelprPage.tsx | <div className={`${PUBLIC_LINK_COLUMN} space-y-4 pb-8`}> | <div className="w-full space-y-4 pb-8">
  * @mutate src/lib/pageColumn.ts | export const PUBLIC_LINK_COLUMN = "mx-auto w-full max-w-md"; | export const PUBLIC_LINK_COLUMN = "w-full";
  * @mutate api/share.ts | (tag) => (seen++ === 0 ? tag : "")); | (tag) => tag);
- * @mutate api/share.ts | const PROFILE_IMAGE_PX = 630; | const PROFILE_IMAGE_PX = 1200;
+ * @mutate api/share.ts |     width: OG_PROFILE_WIDTH, |     width: 630,
  * @mutate vercel.json | "destination": "/api/share?_og=profile&_id=:handle" | "destination": "/index.html"
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -161,14 +162,14 @@ describe("the /u/<handle> link card (api/share.ts + vercel.json)", () => {
     expect(v.headers.some((h) => h.source === "/u/(.*)")).toBe(false);
   });
 
-  it("a member's card: their name, their photo as a true 630x630 square (M1), exactly one og:image", async () => {
+  it("a member's card: their name, the branded 1200x630 card (M1 slice 2), exactly one og:image", async () => {
     answer = { ...PAGE, photo_url: `https://example.supabase.co/storage/v1/object/public/avatars/${USER}/avatar.jpg` };
     const html = await card("Eli-B");
     expect(html).toContain('<meta property="og:title" content="Eli B. on Louisiana Helpr"');
     expect(html).toContain('<meta property="og:url" content="https://www.louisianahelpr.com/u/eli-b"');
     expect(html).toContain('<meta name="robots" content="noindex, follow"');
-    expect(html).toContain(`<meta property="og:image" content="https://example.supabase.co/storage/v1/render/image/public/avatars/${USER}/avatar.jpg?width=630&amp;height=630&amp;resize=cover&amp;quality=80&amp;format=origin"`);
-    expect(html).toContain('<meta property="og:image:width" content="630"');
+    expect(html).toMatch(/<meta property="og:image" content="https:\/\/www\.louisianahelpr\.com\/api\/og-profile\?h=eli-b&amp;v=[0-9a-z]+"/);
+    expect(html).toContain('<meta property="og:image:width" content="1200"');
     expect(html).toContain('<meta property="og:image:height" content="630"');
     expect(html.match(/<meta property="og:image" /g)?.length).toBe(1);
   });

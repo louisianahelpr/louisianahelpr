@@ -17,6 +17,7 @@ import { blankSqlComments } from "./helpers/blankNonCode";
 
 const DIR = join(process.cwd(), "supabase/migrations");
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
+it("reads the real migration list (inventory floor)", () => expect(files.length).toBeGreaterThan(1500));
 const flat = (s: string) => s.replace(/\s+/g, " ");
 
 function newest(name: string): { file: string; body: string } {

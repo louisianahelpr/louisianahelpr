@@ -18,6 +18,7 @@ describe("stripe-tax-probe stays in TEST mode", () => {
   });
   it("pays only a cs_test_ Checkout page", () => {
     const src = blankComments(readFileSync("scripts/stripe-tax-probe.mjs", "utf8"));
+    expect(src.length, "inventory floor: the file was read").toBeGreaterThan(9000);
     expect(src).toContain('host !== "checkout.stripe.com" || !/\\/cs_test_[A-Za-z0-9]+/.test(url)');
   });
   it("form-encodes nested Stripe params", () => {

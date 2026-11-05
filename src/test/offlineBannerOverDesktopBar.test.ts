@@ -46,6 +46,16 @@ const bars = () =>
     .filter((f) => /\.tsx$/.test(f) && !/\.test\.tsx$/.test(f) && !f.startsWith("src/test/"))
     .filter((f) => FIXED_TOP_BAR.test(blankComments(read(f))));
 
+/** Every padding-top the desktop #root bar rule declares in the CSS (read from index.css, never a list kept here). */
+function rootBarPaddings(css: string): string[] {
+  const out: string[] = [];
+  postcss.parse(css).walkRules((rule) => {
+    if (!rule.selectors.some((s) => s.trim().replace(/\s+/g, " ") === "html.web-desktop.desktop-rail:not(.app-shell) #root")) return;
+    rule.walkDecls("padding-top", (d) => { out.push(d.value.replace(/\s+/g, " ").trim()); });
+  });
+  return out;
+}
+
 describe("a fixed top bar sits below the offline banner", () => {
   it("every fixed top-0 bar reads the banner offset and moves its top by it", () => {
     const found = bars();
@@ -72,12 +82,7 @@ describe("a fixed top bar sits below the offline banner", () => {
   });
 
   it("the desktop #root padding for the bar also carries the banner offset", () => {
-    const css = blankCssComments(read("src/index.css"));
-    const values: string[] = [];
-    postcss.parse(css).walkRules((rule) => {
-      if (!rule.selectors.some((s) => s.trim().replace(/\s+/g, " ") === "html.web-desktop.desktop-rail:not(.app-shell) #root")) return;
-      rule.walkDecls("padding-top", (d) => { values.push(d.value.replace(/\s+/g, " ").trim()); });
-    });
+    const values = rootBarPaddings(blankCssComments(read("src/index.css")));
     expect(values.length).toBeGreaterThan(0);
     for (const v of values) {
       expect(v).toContain("var(--desktop-bar-h)");

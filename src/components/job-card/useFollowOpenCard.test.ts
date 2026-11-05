@@ -6,6 +6,7 @@ import { followedBucket, useFollowOpenCard } from "./useFollowOpenCard";
 import { appliedActivityBucket } from "./activityFilters";
 import type { AppliedApp } from "./activityConstants";
 
+// @mutate src/components/job-card/useFollowOpenCard.ts |     if (was === filter && is && is !== filter) return is; |     if (was === filter && is && is !== filter) return null;
 // e2e-journeys 41728838626 (11-03): the Helpr's revision job opened under Waiting from a deep link, the list then
 // refreshed it into Needs you, and the open card vanished because the Waiting filter stayed selected.
 const JOB = "job-1";

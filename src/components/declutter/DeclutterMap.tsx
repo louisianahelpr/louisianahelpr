@@ -27,6 +27,7 @@ import { useMapFollowsTheme } from "@/components/browseMap/useMapLayersSync";
 import { FallbackImg } from "./FallbackImg";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
+import { IconActionButton } from "@/components/dashboard/IconActionButton";
 
 const ITEM_NOUN = ["item", "items"] as const;
 
@@ -229,14 +230,10 @@ export default function DeclutterMap({
                 )}
               </span>
             </Link>
-            <button
-              type="button"
-              aria-label="Close preview"
-              onClick={() => setSelectedId(null)}
-              className="ctl-exit ctl-tint absolute right-1.5 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center"
-            >
-              <X className="h-4 w-4" aria-hidden />
-            </button>
+            {/* The one corner-icon look (CHROME_ICON_LOOK: exit disc, tint, press, ring); the span only places it. */}
+            <span className="absolute right-1.5 top-1/2 -translate-y-1/2" data-map-preview-close="">
+              <IconActionButton bare ariaLabel="Close preview" onClick={() => setSelectedId(null)} icon={<X className="h-4 w-4" aria-hidden />} />
+            </span>
           </div>
         </div>
       )}

@@ -47,6 +47,8 @@ const REVIEW = "REVIEW: a displayed number that still counts test data (b62 phas
 
 // @two-way src/test/statAggregatesExcludeTestData.test.ts:Object.keys(ALLOWED).filter((n) => !inventory.has(n)
 const ALLOWED: Record<string, string> = {
+  // 20261105172514 (share-profile H4): counts which of ONE job's own people allow photo sharing (all must); a consent check, not a stat.
+  job_photos_withheld: "logic: a consent check on one job: counts that job's own poster and Helprs who allow photo sharing, never a total shown to anyone",
   // Q2247 (20261102230059): the caller's own future holds on one series, capped at 1 while their setup is unfinished; a cap, not a stat.
   claim_series_dates: LIMIT,
   // Q1805 (20261102082018): the caller's own phone-save attempts in the last day/hour, the rate limit itself.

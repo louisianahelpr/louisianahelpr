@@ -22,6 +22,9 @@
  *   W7 a photo taken off the job stops showing; un-ticking removes it                                 RED before
  *   W8 the Helpr's own list says which are shown and which wait on consent                            RED before
  *   W9 anon: EXECUTE on the visitor read only; never the table, the lookup or the helpers             RED before
+ *   W10 a photo copied from another job into this job's list is refused (lh-authz-rls BLOCK fix)
+ *   W11 a restricted (banned) account cannot add a photo (account_restricted); taking one off works    RED before
+ *   W12 user_id is a FK to auth.users ON DELETE CASCADE: an account's picks go with it                RED before
  */
 import { readFileSync, readdirSync } from "node:fs";
 import os from "node:os";
@@ -69,6 +72,7 @@ await db.exec(`
   GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
   CREATE SCHEMA auth;
   GRANT USAGE ON SCHEMA auth TO anon, authenticated, service_role;
+  CREATE TABLE auth.users (id uuid PRIMARY KEY);
   CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
   CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, handle text, full_name text, email_verified boolean DEFAULT true,
     ban_status text, is_seed boolean DEFAULT false, anonymized_at timestamptz, share_job_photos boolean NOT NULL DEFAULT true,
@@ -77,6 +81,9 @@ await db.exec(`
   CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY);
   CREATE FUNCTION public.is_test_member(p uuid) RETURNS boolean LANGUAGE sql STABLE AS
     $$ SELECT p IS NOT NULL AND EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p) $$;
+  CREATE FUNCTION public.is_caller_banned() RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER AS
+    $$ SELECT EXISTS (SELECT 1 FROM public.profiles WHERE user_id = auth.uid() AND ban_status IN ('banned', 'temp_banned', 'permanently_banned')) $$;
+  GRANT EXECUTE ON FUNCTION public.is_caller_banned() TO authenticated;
   CREATE FUNCTION public.declutter_member_out(p uuid) RETURNS boolean LANGUAGE sql STABLE AS
     $$ SELECT coalesce((SELECT out_of_declutter FROM public.profiles WHERE user_id = p), false) $$;
   CREATE FUNCTION public.member_under_18(p uuid) RETURNS boolean LANGUAGE sql STABLE AS
@@ -103,6 +110,7 @@ if (!BEFORE) {
 }
 
 await db.exec(`
+  INSERT INTO auth.users (id) VALUES ('${HELPR}'), ('${POSTER}'), ('${CREW2}'), ('${OTHER}'), ('${BANNED}');
   INSERT INTO public.profiles (user_id, handle, full_name) VALUES
     ('${HELPR}', 'hal-h', 'Hal Helpr'), ('${POSTER}', 'pat-p', 'Pat Poster'), ('${CREW2}', 'cy-c', 'Cy Crew'),
     ('${OTHER}', 'oz-o', 'Oz Other'), ('${BANNED}', 'ban-b', 'Bo Banned');
@@ -180,6 +188,10 @@ const bBefore = bList.length;
 const bObjBefore = bList[0] ? await lookup(bList[0].id) : undefined;
 await db.exec(`RESET ROLE; UPDATE public.profiles SET ban_status = 'temp_banned' WHERE user_id = '${BANNED}';`);
 const bBanned = (await visitor("ban-b")).v ?? null;
+// W11: a restricted account adds nothing to its page (Q281 ban gate); taking a photo off stays open.
+const bannedAdd = await pick(BANNED, JB, PB);
+const bannedOff = await pick(BANNED, JB, PB, false);
+const bannedReAdd = await pick(BANNED, JB, PB);
 const bObjBanned = bList[0] ? await lookup(bList[0].id) : undefined;
 await db.exec(`RESET ROLE; UPDATE public.profiles SET ban_status = NULL WHERE user_id = '${BANNED}'; INSERT INTO public.test_accounts VALUES ('${BANNED}');`);
 const bTest = (await visitor("ban-b")).v ?? null;
@@ -195,6 +207,9 @@ await db.exec(`RESET ROLE; UPDATE public.jobs SET proof_after_urls = ARRAY['${P1
 const back = (await visitor()).v ?? [];
 const untick = await pick(HELPR, J1, P1, false);
 const unticked = (await visitor()).v ?? [];
+check("W11 a restricted account cannot add a photo to its page (account_restricted); taking one off still works",
+  /account_restricted/.test(bannedAdd.error ?? "") && !bannedOff.error && /account_restricted/.test(bannedReAdd.error ?? ""),
+  JSON.stringify({ bannedAdd, bannedOff, bannedReAdd }));
 check("W7 a photo taken off the job stops showing; un-ticking removes it",
   removed.length === 1 && back.length === 2 && !untick.error && unticked.length === 1 && unticked[0].category === "cleaning",
   JSON.stringify({ removed, back, untick, unticked }));
@@ -224,6 +239,17 @@ check("W10 a photo path from another job, copied into this job's list, is refuse
   (!!crossPick.error || crossPick.rows?.[0]?.v === false) && !crossMine.some((m) => m.job_id === J2 && m.photo_path === P1B)
     && crossRow.length === 0,
   JSON.stringify({ crossPick, crossMine: crossMine.filter((m) => m.job_id === J2), crossShown, crossRow }), true);
+
+// W12: the user_id FK (userIdForeignKeys): deleting the account removes its picks.
+await pick(OTHER, J1, P1).catch(() => null);
+await db.exec("RESET ROLE");
+const picksBefore = (await call(`SELECT count(*)::int AS n FROM public.profile_job_photos WHERE user_id = '${HELPR}'`)).rows?.[0]?.n ?? 0;
+const fk = await call(`DELETE FROM auth.users WHERE id = '${HELPR}'`);
+const picksAfter = (await call(`SELECT count(*)::int AS n FROM public.profile_job_photos WHERE user_id = '${HELPR}'`)).rows?.[0]?.n ?? 0;
+const orphan = await call(`INSERT INTO public.profile_job_photos (user_id, job_id, photo_path) VALUES ('${U(99)}', '${J1}', '${P1}')`);
+check("W12 the picks belong to an account: deleting it removes them, and a pick for no account is refused",
+  picksBefore > 0 && !fk.error && picksAfter === 0 && !!orphan.error,
+  JSON.stringify({ picksBefore, fk, picksAfter, orphan: orphan.error ?? "allowed" }));
 
 await db.exec("RESET ROLE");
 const acl = (await call(`SELECT

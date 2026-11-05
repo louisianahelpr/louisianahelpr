@@ -183,6 +183,8 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   // LEAD-EXPORT-SIGNUP-SOURCE (20261101022048): the member's own sign-up source words.
   member_signup_sources: { by: ["user_id"] },
   profile_handles_retired: { by: ["user_id"] },
+  // Owner share-profile H4 (20261105172514; exported by 20261105184827): the job photos the member picked for their page.
+  profile_job_photos: { by: ["user_id"] },
   // CMP-4 instant book (20261101063725, 20261101065105; exported by 20261101140006): the Helpr's own floors and declines.
   instant_book_floors: { by: ["helper_id"] },
   instant_book_declines: { by: ["helper_id"] },

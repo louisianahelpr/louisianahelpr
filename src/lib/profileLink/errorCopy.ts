@@ -28,6 +28,7 @@ export const PROFILE_LINK_RPC_ERROR_COPY = {
   // Job photos on your page (20261105172514).
   set_job_photo_shown: {
     not_signed_in: "Sign in again to choose the photos on your page.",
+    account_restricted: "Your account is restricted right now, so you can't add photos to your page.",
     not_your_job_photo: "That photo isn't from one of your finished jobs, so it can't go on your page.",
   },
 } satisfies Record<string, Record<string, string>>;

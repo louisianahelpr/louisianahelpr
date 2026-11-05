@@ -78,6 +78,7 @@ const ADMIN_NOTIFIERS: Record<string, Kind> = {
   send_new_member_daily_summary: "explicit",
   settle_one_off_jobs_for_banned_account: "link",
   shop_refund_sweep: "explicit",
+  shop_handover_sweep: "explicit", // 20261105182903 (Shops H5): the held-order nudge and 60-day admin alert; is_seed, test_accounts and is_test_subject on buyer and seller
   shops_report_not_received: "caller",
   sweep_idv_review_waiting: "link",
   sweep_open_ban_settlement_reviews: "explicit",

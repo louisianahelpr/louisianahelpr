@@ -44,7 +44,8 @@ export function shellVocabulary(shellHtml) {
 }
 
 function decodeEntities(s) {
-  return s.replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+  // &amp; last, so "&amp;lt;" decodes once to "&lt;", never twice to "<" (CodeQL js/double-escaping).
+  return s.replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 }
 
 // A first frame has no hover, focus or press, and a pseudo-element hangs off a real element: match each selector with

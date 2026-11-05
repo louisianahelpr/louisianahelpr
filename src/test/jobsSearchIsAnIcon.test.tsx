@@ -254,7 +254,8 @@ describe("Posted / Working cards are as tight as Browse's", () => {
 
   it("face -> tracker -> button gaps are 8px, and bucket groups sit 16px apart", () => {
     expect(face).toMatch(/className="order-2 pt-2 md:order-none/);
-    expect(face.match(/order-3 mt-2 /g)?.length).toBe(2);
+    // 3 button rows, each 8px under the tracker: also, chip + primary (a proposed new day, lead 11-05), the lone button.
+    expect(face.match(/order-3 mt-2 /g)?.length).toBe(3);
     const groups = read("components/job-card/ActivityBucketGroups.tsx");
     expect(groups).toContain('<div className="flex flex-col gap-4" data-testid="activity-bucket-groups">');
   });

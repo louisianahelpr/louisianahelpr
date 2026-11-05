@@ -79,7 +79,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
   const handedOver = useMutation({
     mutationFn: () => markHandedOver(order.id),
     onSuccess: () => {
-      toast.success("Marked handed over. The buyer has 48 hours to report a problem.");
+      toast("Marked handed over. The buyer has 48 hours to report a problem.");
       setHandingOver(false);
       refresh();
     },

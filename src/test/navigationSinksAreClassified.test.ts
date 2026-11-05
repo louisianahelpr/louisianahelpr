@@ -188,6 +188,10 @@ const CLASSIFIED: Record<string, string> = {
   "components/declutter/DeclutterTradeViews.tsx::res.url": STRIPE_EDGE_URL,
   "pages/post-job/useJobSubmit.ts::paymentUrl": STRIPE_EDGE_URL,
   "lib/escrowCheckout.ts::url": STRIPE_EDGE_URL + " (create-payment action escrow, the quote screens' booking)",
+  // --- memberProfilePath(id): always the fixed template `/user/${userId}` (src/lib/profileLink/memberProfilePath.ts), a same-origin path ---
+  "pages/posts/postedJobs/ApplicantsPanel.tsx::memberProfilePath(app.helper_id)": "memberProfilePath(): fixed `/user/` prefix + the applicant's uuid, same-origin path",
+  "pages/posts/postedJobs/applicantsPanel/ApplicantAvatarLink.tsx::memberProfilePath(helperId)": "memberProfilePath(): fixed `/user/` prefix + the applicant's uuid, same-origin path",
+  "pages/posts/postedJobs/applicantsPanel/ApplicantsDesktopTable.tsx::memberProfilePath(app.helper_id)": "memberProfilePath(): fixed `/user/` prefix + the applicant's uuid, same-origin path",
   // --- not a navigation: a <link rel="preload" as="image"> the boot script adds to <head> (B96/B100) ---
   "boot/declutterPrefetch.ts::p.href": "firstCardPhotoPreloads(): the build-time VITE_SUPABASE_URL + /storage/v1/render/image/public/<bucket>/ + a stored path without '?' (an image preload, never navigated)",
   "boot/declutterItemPrefetch.ts::p.href": "firstGalleryPhoto(): the build-time VITE_SUPABASE_URL + /storage/v1/render/image/public/<bucket>/ + a stored path matching ^[A-Za-z0-9/_.-]+$ (an image preload, never navigated)",

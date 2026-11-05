@@ -87,7 +87,7 @@ DECLARE
 BEGIN
   SELECT * INTO p FROM public.shop_payouts WHERE id = p_payout_id FOR UPDATE;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'payout_not_found' USING ERRCODE = 'P0002';
+    RAISE EXCEPTION 'payout_not_found' USING ERRCODE = 'PT404';
   END IF;
   -- A row a send was ever tried for keeps its amount, even after an admin release put attempts back to 0: its
   -- Stripe key may already carry the old amount.

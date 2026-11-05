@@ -88,6 +88,27 @@ describe("useStripeConnectStatus", () => {
     expect(mocks.report).toHaveBeenCalled();
   });
 
+  // #185 (Q1816, ui-sweep #3491): the empty-state sweep answers this call
+  // with `[]`. With the narrowing `select` written INLINE, TanStack saw a new
+  // function on every render and re-ran it, so every render made a fresh Error
+  // and a fresh report(), and in CI /profile died with "Maximum update depth
+  // exceeded". One malformed ANSWER must give one report and one error row,
+  // however often the screen re-renders.
+  it("a malformed answer ([]) settles into the error row: one report, however often it re-renders", async () => {
+    mocks.invoke.mockResolvedValue({ data: [], error: null });
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { result, rerender } = renderHook(() => useStripeConnectStatus(), { wrapper });
+    await waitFor(() => expect(result.current.payoutPrompt).toEqual({ kind: "error" }));
+    for (let i = 0; i < 5; i += 1) rerender();
+    await new Promise((r) => setTimeout(r, 20));
+    const loopErrors = consoleError.mock.calls.filter((c) => String(c[0]).includes("Maximum update depth"));
+    consoleError.mockRestore();
+    expect(loopErrors).toHaveLength(0);
+    expect(mocks.report).toHaveBeenCalledTimes(1);
+    expect(result.current.payoutPrompt).toEqual({ kind: "error" });
+    expect(mocks.invoke).toHaveBeenCalledTimes(1);
+  });
+
   it("reserves the banner's slot while pending when the last answer said payouts were off", async () => {
     mocks.store.set(SEED_KEY, "0");
     mocks.invoke.mockReturnValue(new Promise(() => {}));

@@ -41,7 +41,7 @@
  * point there; the trigger, the list, the sweep and the clock stay on J's file.
  *
  * @mutate supabase/migrations/20261101180708_direct_offer_notice_next_step.sql | AND public.job_payment_is_listed(NEW.payment_status)\n     -- Only a live job | AND true\n     -- Only a live job
- * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql | AND public.job_payment_is_listed(j.payment_status) | AND true
+ * @mutate supabase/migrations/20261105102419_applicant_jobs_hide_private_columns.sql | AND public.job_payment_is_listed(j.payment_status) | AND true
  * @mutate supabase/migrations/20261104084501_apply_and_notices_read_date_window.sql | AND public.job_payment_is_listed(payment_status) | AND true
  * @mutate supabase/migrations/20261018024631_direct_offer_waits_for_funding.sql | AFTER INSERT OR UPDATE OF offered_to_helper_id, payment_status ON public.jobs | AFTER INSERT OR UPDATE OF offered_to_helper_id ON public.jobs
  * @mutate supabase/migrations/20261101180708_direct_offer_notice_next_step.sql |        OR OLD.payment_status IN ('unpaid', 'abandoned', 'failed')\n       -- A funded job |        OR NOT public.job_payment_is_funded(OLD.payment_status)\n       -- A funded job

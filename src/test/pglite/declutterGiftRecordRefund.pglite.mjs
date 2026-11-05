@@ -49,10 +49,19 @@ const create = /CREATE TABLE IF NOT EXISTS public\.declutter_refunds \([\s\S]*?\
 const db = new PGlite();
 await db.exec(`
   CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;
-  CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, seller_id uuid, stripe_payment_intent_id text,
+  CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, seller_id uuid, buyer_id uuid, stripe_payment_intent_id text,
+    stripe_checkout_session_id text,
     total_cents integer, setup_fee_cents integer DEFAULT 0, setup_fee_state text, items_cents integer, premium_cents integer,
     tax_cents integer DEFAULT 0, delivery_cents integer DEFAULT 0, shipping_cents integer DEFAULT 0, gift_cents integer DEFAULT 0);
   ${create}
+  -- The columns and tables this file's two LANGUAGE sql functions read (declutter_refunds_due,
+  -- declutter_order_refunds_recorded_cents): checked when they are created, so the stub has to carry them.
+  ALTER TABLE public.declutter_refunds ADD COLUMN attempts integer NOT NULL DEFAULT 0,
+    ADD COLUMN payment_livemode boolean, ADD COLUMN next_attempt_at timestamptz NOT NULL DEFAULT now();
+  CREATE TABLE public.declutter_payouts (id uuid PRIMARY KEY, order_id uuid, seller_id uuid, status text);
+  CREATE TABLE public.payout_payee_waits (payout_kind text, payout_id uuid, category text);
+  CREATE TABLE public.payout_holds (helper_id uuid);
+  CREATE TABLE public.declutter_delivery_refunds (order_id uuid, stripe_payment_intent_id text, status text, refund_cents integer);
   ALTER TABLE public.declutter_refunds ADD COLUMN kept_cents integer NOT NULL DEFAULT 0;
   ALTER TABLE public.declutter_refunds DROP CONSTRAINT declutter_refunds_reason_check;
   ALTER TABLE public.declutter_refunds DROP CONSTRAINT declutter_refunds_policy;

@@ -533,15 +533,6 @@
       ]
     },
     {
-      "source": "/u/(.*)",
-      "headers": [
-        {
-          "key": "X-Robots-Tag",
-          "value": "noindex"
-        }
-      ]
-    },
-    {
       "source": "/.well-known/apple-app-site-association",
       "headers": [
         {

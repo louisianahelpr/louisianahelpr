@@ -154,17 +154,14 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
           )}
           {syncing ? "Syncing…" : "Sync now"}
         </Button>
-        <button
+        <Button
           type="button"
+          size="sm"
+          variant="outline"
           aria-label="Remove calendar connection"
           disabled={removing}
-          className="flex items-center justify-center rounded-ds-md disabled:opacity-50"
-          style={{
-            width: 40, height: 36,
-            background: "hsl(var(--burnt-sienna) / 0.08)",
-            border: "0.5px solid hsl(var(--burnt-sienna) / 0.22)",
-            color: "hsl(var(--burnt-sienna))",
-          }}
+          className="w-11 shrink-0 px-0 text-[hsl(var(--burnt-sienna))]"
+          style={{ height: 36 }}
           onClick={() => onRequestRemove(conn)}
         >
           {removing ? (
@@ -172,7 +169,7 @@ export function ConnectionCard({ conn, onSync, onRequestRemove, syncing, removin
           ) : (
             <Trash2 className="w-4 h-4" />
           )}
-        </button>
+        </Button>
       </div>
     </div>
   );

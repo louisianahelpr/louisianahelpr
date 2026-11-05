@@ -138,25 +138,28 @@ export const DashboardHome = ({
           should see that first"). No subtitle: "Queues with something waiting on you"
           was a paraphrase of "Priority Alerts", and each row below already names
           its own queue and count — three tellings of one fact. */}
-      {alertsPending && !hasAlerts && (
-        <AdminCard
-          title={<span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-accent" /> Priority Alerts</span>}
-        >
-          {/* One PriorityAlert row's box (same border, padding and badge size), drawn empty while the counts load. */}
-          <div data-testid="priority-alerts-reserved" aria-hidden className="rounded-ds-md border border-border/40 p-2.5 sm:p-3.5">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-ds-sm bg-muted/40 animate-pulse" />
-          </div>
-        </AdminCard>
-      )}
-      {hasAlerts && (
-        <AdminCard
-          title={<span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-accent" /> Priority Alerts</span>}
-        >
-          {/* Column count follows the ALERT count. A fixed 2-up grid meant one
+      {/* The card is ALWAYS drawn (Admin CLS, Builder 3 11-05, lead rule: same as the Money tiles). While the counts are
+          out it holds one PriorityAlert row's box; with nothing open it says so in that same box. A card that arrived
+          late pushed the KPI grid 148 px at 375, and one that left would pull everything up. */}
+      <AdminCard
+        title={<span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-accent" /> Priority Alerts</span>}
+      >
+        {/* Column count follows the ALERT count. A fixed 2-up grid meant one
               open alert sat in the left half of a 1128px card with the right
               half blank — a dead band on the one card an admin is meant to act
               on first. `[grid-template-columns:repeat(auto-fit,minmax(...))]`
               would over-stretch a lone row, so the count drives it directly. */}
+        {!hasAlerts ? (
+          <div
+            data-testid={alertsPending ? "priority-alerts-reserved" : "priority-alerts-none"}
+            className="flex items-center gap-2.5 rounded-ds-md border border-border/40 p-2.5 sm:p-3.5"
+          >
+            <span aria-hidden className={cn("w-8 h-8 sm:w-9 sm:h-9 shrink-0 rounded-ds-sm flex items-center justify-center", alertsPending ? "bg-muted/40 animate-pulse" : "bg-primary/10 text-primary")}>
+              {!alertsPending && <CheckCircle2 className="w-4 h-4" />}
+            </span>
+            {!alertsPending && <span className="text-ds-11 sm:text-ds-13 font-semibold text-muted-foreground leading-tight">No priority alerts right now</span>}
+          </div>
+        ) : (
           <div className={cn("grid gap-2.5 sm:gap-3", alertCount > 1 && "sm:grid-cols-2")}>
             {stats.disputedJobs > 0 && (
               <PriorityAlert label="Active disputes" count={stats.disputedJobs} color="destructive" onClick={() => onNavigate("disputes")} />
@@ -171,8 +174,8 @@ export const DashboardHome = ({
               <PriorityAlert label="Health alerts" count={healthAlerts} color="destructive" onClick={() => onNavigate("health")} />
             )}
           </div>
-        </AdminCard>
-      )}
+        )}
+      </AdminCard>
 
       {/* KPI Summary cards. Tiles in a row are the SAME HEIGHT (owner,
           2026-09-12: siblings match). `items-start` let each tile take its own

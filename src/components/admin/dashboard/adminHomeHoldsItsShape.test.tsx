@@ -3,10 +3,12 @@
  * (Slow and Fast 4G; ~/.lh-shots/b3-errlogs/live-admin.json):
  *   - 0.130: the Priority Alerts card arrived after the counts and pushed the KPI grid down 148 px;
  *   - 0.073: the KPI tiles grew 114 -> 175 px when their compare line and sparkline lane arrived.
- * While those reads are out the dashboard now holds both shapes: one alert row's box in a Priority Alerts card, and
- * each tile's compare line and sparkline lane.
+ * The Priority Alerts card is now always drawn: one alert row's box while the counts are out, "No priority alerts
+ * right now" in that same box when nothing is open (lead 11-05: a card that LEFT would shift everything up). Each range
+ * tile holds its compare line and sparkline lane while loading.
  *
- * @mutate src/components/admin/dashboard/DashboardHome.tsx |       {alertsPending && !hasAlerts && ( |       {false && alertsPending && !hasAlerts && (
+ * @mutate src/components/admin/dashboard/DashboardHome.tsx |         {!hasAlerts ? ( |         {!hasAlerts && alertsPending ? (
+ * @mutate src/components/admin/dashboard/DashboardHome.tsx |             {!alertsPending && <span className="text-ds-11 sm:text-ds-13 font-semibold text-muted-foreground leading-tight">No priority alerts right now</span>} |             {null}
  * @mutate src/components/admin/dashboard/KpiCard.tsx |       {pending && !trend && compareLabel && ( |       {false && pending && !trend && compareLabel && (
  * @mutate src/components/admin/dashboard/KpiCard.tsx |       {pending && sparkline && ( |       {false && pending && sparkline && (
  * @mutate src/pages/admin/Admin.tsx |           alertsPending={statsLoading \|\| pendingCounts.isPending \|\| (seriousAlertCount === undefined && !seriousAlertsFailed)} |           alertsPending={false}
@@ -61,14 +63,15 @@ describe("the admin dashboard holds its shape while it loads (Admin CLS)", () =>
     unmount();
   });
 
-  it("the real card replaces the held row; nothing is held once loaded with no alerts", () => {
+  it("the real rows replace the held row; with nothing open the card stays and says so", () => {
     const a = home({ statsLoading: false, alertsPending: false, seriousAlerts: 20 });
     expect(screen.queryByTestId("priority-alerts-reserved")).toBeNull();
     expect(screen.getByText("Health alerts")).toBeTruthy();
     a.unmount();
     const b = home({ statsLoading: false, alertsPending: false, seriousAlerts: 0 });
     expect(screen.queryByTestId("priority-alerts-reserved")).toBeNull();
-    expect(screen.queryByText("Priority Alerts")).toBeNull();
+    expect(screen.getByText("Priority Alerts")).toBeTruthy();
+    expect(screen.getByTestId("priority-alerts-none").textContent).toBe("No priority alerts right now");
     b.unmount();
   });
 

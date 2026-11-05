@@ -29,11 +29,19 @@
 // @mutate scripts/e2e/wait-shared-accounts.mjs | (DRIVES_ACCOUNTS.has(run.event) \|\| pushDriver) | (DRIVES_ACCOUNTS.has(run.event))
 // @mutate scripts/e2e/wait-shared-accounts.mjs |   if (status !== 403 && status !== 429) return null; |   if (status !== 403) return null;
 // @mutate .github/workflows/feature-switch-audience.yml |     name: Hidden switches stay hidden from an ordinary account\n    needs: wait-accounts\n |     name: Hidden switches stay hidden from an ordinary account\n
+// @mutate scripts/e2e/wait-shared-accounts.mjs | return { go: false, why: `the default branch's workflow list is unreadable | return { go: true, why: `the default branch's workflow list is unreadable
+// @mutate scripts/e2e/wait-shared-accounts.mjs |   for (const [p, js] of Object.entries(other)) { |   for (const [p, js] of Object.entries({})) {
+// @mutate scripts/e2e/wait-shared-accounts.mjs | if (Object.keys(out).length === 0) throw new Error(`the ${branch} | if (false) throw new Error(`the ${branch}
+// @mutate scripts/e2e/wait-shared-accounts.mjs | if (gitBlobSha(local) === e.sha) text = local; | text = local;
+// @mutate scripts/e2e/wait-shared-accounts.mjs | const d = await nextDecision(me, inventory, merged, deps); | const d = await nextDecision(me, inventory, inventory, deps);
 import { describe, expect, it } from "vitest";
 import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { parse } from "yaml";
-import { decide, drivesAccounts, lockedJobs, LOCK, rateLimitWaitMs, STALE_RUN_MS } from "../../scripts/e2e/wait-shared-accounts.mjs";
+import {
+  decide, defaultBranchInventory, drivesAccounts, gitBlobSha, lockedJobs, lockedJobsInText, LOCK, mergeInventories, nextDecision,
+  queueMember, rateLimitWaitMs, STALE_RUN_MS,
+} from "../../scripts/e2e/wait-shared-accounts.mjs";
 import { STALE_RUN_MS as CANARY_STALE_RUN_MS } from "../../scripts/canary/shared-accounts-busy.mjs";
 
 const WF_DIR = resolve(__dirname, "../../.github/workflows");
@@ -306,5 +314,101 @@ describe("wait-shared-accounts rateLimitWaitMs()", () => {
     const loop = src.slice(src.indexOf("for (;;)"));
     expect(loop.indexOf("e?.waitMs != null")).toBeGreaterThan(-1);
     expect(loop.indexOf("e?.waitMs != null")).toBeLessThan(loop.indexOf("failures += 1"));
+  });
+});
+
+// Q1008 triage, 2026-11-05: ios-biometric-device-check 41981626734 was cancelled at 06:59:02Z ("a higher
+// priority waiting request for prod-lifecycle-shared-accounts exists") by e2e-journeys 41983991424, dispatched
+// on ready/b2-q1035-messages-thread. That waiter's inventory came from its own ref, cut before the iOS
+// workflow landed: 12 workflows to main's 13, so it never saw the waiting job and logged GO. The waiter now
+// merges in the default branch's workflow list, and waits (fail closed) when it cannot read it.
+describe("wait-shared-accounts reads the default branch's locked workflows too", () => {
+  const IOS = ".github/workflows/ios-biometric-device-check.yml";
+  const iosText = readFileSync(resolve(__dirname, "../..", IOS), "utf8");
+  const iosJob = "Face ID sheet appears and the gate opens (simulator)";
+  const oldRef = Object.fromEntries(Object.entries(lockedJobs(WF_DIR)).filter(([p]) => p !== IOS));
+  const ours = {
+    id: 41981626734, created_at: "2026-11-05T06:37:13Z", name: "iOS biometric device check", path: IOS, html_url: "u",
+    event: "workflow_dispatch", display_title: "iOS biometric device check",
+    jobs: [{ name: "Wait for the shared accounts (queue)", status: "completed", conclusion: "success" }, { name: iosJob, status: "pending" }],
+  };
+  const me = { id: 41983991424, created_at: "2026-11-05T06:58:36Z" };
+  const TMP = resolve(__dirname, "../../node_modules/.cache/q1008-waiter-guard");
+
+  it("the incident: an old ref's inventory drops the run, the merged one waits for it", () => {
+    expect(lockedJobsInText(iosText).map((j) => j.name)).toEqual([iosJob]);
+    expect(queueMember(ours, oldRef)).toBe(false);
+    const merged = mergeInventories(oldRef, { [IOS]: lockedJobsInText(iosText) });
+    expect(queueMember(ours, merged)).toBe(true);
+    expect(decide(me, [ours], merged).go).toBe(false);
+    expect(Object.keys(merged).length).toBeGreaterThan(Object.keys(oldRef).length);
+  });
+
+  // A fake GitHub: the tree lists two files; `local` is what this ref has on disk.
+  function fakeRepo(files: Record<string, string>, local: Record<string, string>) {
+    const dir = join(TMP, `wf-${Math.random().toString(36).slice(2)}`);
+    mkdirSync(dir, { recursive: true });
+    for (const [f, t] of Object.entries(local)) writeFileSync(join(dir, f), t);
+    const blobReads: string[] = [];
+    const read = async (path: string) => {
+      if (path === "/repos/o/r") return { default_branch: "main" };
+      if (path === "/repos/o/r/git/trees/main:.github/workflows") {
+        return { truncated: false, tree: Object.entries(files).map(([f, t]) => ({ path: f, type: "blob", sha: gitBlobSha(t) })) };
+      }
+      const sha = path.split("/git/blobs/")[1];
+      const hit = Object.values(files).find((t) => gitBlobSha(t) === sha);
+      if (!hit) throw new Error(`unexpected read ${path}`);
+      blobReads.push(sha);
+      return { content: Buffer.from(hit).toString("base64"), encoding: "base64" };
+    };
+    return { dir, read, blobReads };
+  }
+  const plain = "name: x\non: push\njobs:\n  build:\n    runs-on: ubuntu-latest\n";
+
+  it("reads a blob only for a file missing or different here, and finds its locked job", async () => {
+    const { dir, read, blobReads } = fakeRepo({ "ios-biometric-device-check.yml": iosText, "plain.yml": plain }, { "plain.yml": plain });
+    const inv = await defaultBranchInventory("o/r", "t", dir, read);
+    expect(inv).toEqual({ [IOS]: lockedJobsInText(iosText) });
+    expect(blobReads).toEqual([gitBlobSha(iosText)]);
+    // A STALE local copy (this ref has the file without the lock) is not trusted: main's bytes are read.
+    const stale = fakeRepo({ "ios-biometric-device-check.yml": iosText }, { "ios-biometric-device-check.yml": plain });
+    expect(await defaultBranchInventory("o/r", "t", stale.dir, stale.read)).toEqual({ [IOS]: lockedJobsInText(iosText) });
+    expect(stale.blobReads.length).toBe(1);
+  });
+
+  it("an empty answer is a failure, not 'nothing is locked'", async () => {
+    const { dir, read } = fakeRepo({ "plain.yml": plain }, {});
+    await expect(defaultBranchInventory("o/r", "t", dir, read)).rejects.toThrow(/lists no locked job/);
+  });
+
+  it("git blob ids match git's own (the empty blob)", () => {
+    expect(gitBlobSha("")).toBe("e69de29bb2d1d6434b8b29ae775ad8c2e48c5391");
+  });
+
+  it("FAIL CLOSED: an unreadable default branch answers wait, every poll, until it reads", async () => {
+    const snapshotRuns = async () => [];
+    const down = { loadDefault: async () => { throw new Error("HTTP 502"); }, snapshotRuns };
+    for (let i = 0; i < 12; i++) {
+      const d = await nextDecision(me, oldRef, null, down);
+      expect(d.go).toBe(false);
+      expect(d.merged).toBeNull();
+    }
+    const up = { loadDefault: async () => ({ [IOS]: lockedJobsInText(iosText) }), snapshotRuns: async () => [ours] };
+    const waiting = await nextDecision(me, oldRef, null, up);
+    expect(waiting.go).toBe(false);
+    expect(waiting.merged?.[IOS]).toBeTruthy();
+    expect((await nextDecision(me, oldRef, waiting.merged, { ...up, snapshotRuns })).go).toBe(true);
+  });
+
+  it("a rate limit on the default-branch read is rethrown, so the loop sleeps to the reset", async () => {
+    const limited = { loadDefault: async () => { throw Object.assign(new Error("HTTP 403"), { waitMs: 1000 }); }, snapshotRuns: async () => [] };
+    await expect(nextDecision(me, oldRef, null, limited)).rejects.toThrow("HTTP 403");
+  });
+
+  it("main() and --dry-run decide on the merged inventory", () => {
+    const src = readFileSync(resolve(__dirname, "../../scripts/e2e/wait-shared-accounts.mjs"), "utf8");
+    const loop = src.slice(src.indexOf("let merged = null;"));
+    expect(loop).toMatch(/^let merged = null;[\s\S]*?const d = await nextDecision\(me, inventory, merged, deps\);/);
+    expect(src).toMatch(/const all = mergeInventories\(inventory, await defaultBranchInventory\(repo, token\)\);\s*const runs = await snapshot\(repo, token, all\);/);
   });
 });

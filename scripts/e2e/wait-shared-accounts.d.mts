@@ -33,3 +33,22 @@ export function rateLimitWaitMs(
   res: { status: number; headers?: Record<string, string>; body?: string },
   now?: number,
 ): number | null;
+/** The locked jobs of one workflow file's text. */
+export function lockedJobsInText(text: string): LockedJob[];
+/** Git's blob id for a text (matches a git tree entry's sha). */
+export function gitBlobSha(text: string): string;
+/** Both inventories merged per path; the own ref wins a shared job key. */
+export function mergeInventories(own: Inventory, other: Inventory): Inventory;
+/** Is this /actions/runs entry a queue member under this inventory? */
+export function queueMember(run: { event: string; path?: string; display_title?: string | null }, inventory: Inventory): boolean;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type ApiRead = (path: string, token: string) => Promise<any>;
+/** The default branch's locked jobs; throws on any failure or an empty answer. */
+export function defaultBranchInventory(repo: string, token: string, dir?: string, read?: ApiRead): Promise<Inventory>;
+/** One poll: load the default branch's inventory (fail closed), then decide. */
+export function nextDecision(
+  me: { id: number; created_at: string },
+  own: Inventory,
+  merged: Inventory | null,
+  deps: { loadDefault: () => Promise<Inventory>; snapshotRuns: (inv: Inventory) => Promise<InFlightRun[]> },
+): Promise<{ go: boolean; why: string; merged: Inventory | null }>;

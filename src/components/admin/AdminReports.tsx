@@ -308,7 +308,7 @@ const AdminReports = () => {
                           nameFor(), so the label needs no special case. */}
                       {report.reporter_id ? (
                         <InlineTextButton
-                          onClick={() => navigate(memberProfilePath(report.reporter_id))}
+                          onClick={() => navigate(memberProfilePath(String(report.reporter_id)))}
                           className="hover:text-primary"
                         >
                           {report.reporter_name}

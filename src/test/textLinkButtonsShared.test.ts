@@ -32,7 +32,7 @@
  * @mutate src/components/rentals/EndTenancyButton.tsx | <InlineTextButton className="text-sm | <button className="underline text-sm
  * @mutate src/components/admin/AdminCredentialQueue.tsx | <InlineTextButton\n      onClick={open} | <button type="button"\n      onClick={open}
  * @mutate src/components/admin/AdminPayoutBatches.tsx | <InlineTextButton onClick={selectAllReady} | <button type="button" onClick={selectAllReady}
- * @mutate src/components/admin/AdminReports.tsx | <InlineTextButton\n                          onClick={() => navigate(memberProfilePath(report.reporter_id))} | <button type="button"\n                          onClick={() => navigate(memberProfilePath(report.reporter_id))}
+ * @mutate src/components/admin/AdminReports.tsx | <InlineTextButton\n                          onClick={() => navigate(memberProfilePath(String(report.reporter_id)))} | <button type="button"\n                          onClick={() => navigate(memberProfilePath(String(report.reporter_id)))}
  * @mutate src/components/admin/adminDisputes/DisputeFilters.tsx | <InlineTextButton onClick={p.clearFilters} | <button type="button" onClick={p.clearFilters}
  * @mutate src/components/auth/TurnstileField.tsx | <InlineTextButton\n              onClick={() => { | <button type="button"\n              onClick={() => {
  * @mutate src/components/profile/SubscriptionTab.tsx | <InlineTextButton\n            onClick={handleRestorePurchases} | <button type="button"\n            onClick={handleRestorePurchases}

@@ -56,6 +56,30 @@ export function HomeMoneyTiles({
 }) {
   const navigate = useNavigate();
   const setupPaused = usePayoutSetupPaused();
+  // Q2706 (lead 11-05, owner may override): You > Money's tile row never appears or collapses. Live lab (prod,
+  // helper, 375, Fast 4G + 4x): the tiles landing at the top after their reads (~2.2 s) pushed the page down,
+  // CLS 0.385 of 0.41-0.51. On that page the row holds a tile's shape while the reads are out, and a member with
+  // nothing coming or held sees "Coming to you $0.00". Home's strip is unchanged (hidden at $0; its own hold, B98).
+  // src/pages/home/homeDashboard/moneyTabTileRowNeverMoves.test.tsx.
+  if (placement === "money" && money.pending && !money.coming && !money.held) {
+    return (
+      <div data-home-money="money" data-money-loading="" aria-hidden="true" className="grid grid-cols-2 gap-3">
+        <div className="liquid-glass p-card lg:p-4 flex flex-col gap-0.5 col-span-2 animate-pulse">
+          <span className="text-ds-13 invisible">&nbsp;</span>
+          <span className="text-ds-24 font-bold leading-tight invisible">&nbsp;</span>
+          <span className="text-ds-13 leading-snug invisible">&nbsp;</span>
+        </div>
+      </div>
+    );
+  }
+  if (placement === "money" && !money.failed && !money.coming && !money.held) {
+    return (
+      <div data-home-money="money" className="grid grid-cols-2 gap-3">
+        <MoneyTile kind="coming" span="col-span-2" label="Coming to you" cents={0} caption="Nothing on its way yet"
+          onClick={() => (onOpen ? onOpen("coming") : navigate("/profile?tab=earnings"))} />
+      </div>
+    );
+  }
   if (!money.coming && !money.held) return null;
   // A lone tile on the phone takes the row (half a row of empty ground reads as a missing tile);
   // in the desktop column it keeps its half so it lines up with the section tiles under it.

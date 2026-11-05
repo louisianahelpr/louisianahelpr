@@ -105,7 +105,9 @@ CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title t
   -- The CI fixture inserts start_time (jobs.start_time is NOT NULL on prod since Q-start-time).
   is_seed boolean DEFAULT false, credential_tier integer NOT NULL DEFAULT 0, recurring_helper_id uuid, start_time time,
   -- job_announceable_to (20260927015010) reads p_job.parent_job_id (a vacated series visit).
-  parent_job_id uuid);
+  parent_job_id uuid,
+  -- job_announceable_to (20261104084501, Q2408) reads p_job.date_window_end (a window job closes on its last day).
+  date_window_end date);
 -- job_announceable_to (Q392) reads the credential tier; its own gate is not under test here.
 CREATE FUNCTION public.get_user_credential_tier(p_user_id uuid) RETURNS integer LANGUAGE sql STABLE AS $$ SELECT 0 $$;
 -- are_users_blocked (20260926034721) calls is_server_context(), a noarg; stubbed before it loads.

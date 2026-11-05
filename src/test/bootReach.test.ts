@@ -19,6 +19,9 @@
  * @mutate vite.config.ts | includeDependenciesRecursively: false, | includeDependenciesRecursively: true,
  * @mutate scripts/perf/bootReach.mjs | const deep = new Set([...signedInOnly].filter((f) => !reach.has(f))); | const deep = new Set();
  * @mutate vite.config.ts | name: "signed-in-deep", | name: "signed-in-deep-off",
+ * @mutate scripts/perf/bootReach.mjs | toPosix(path.join(root, POST_JOB_ROOT)), | 
+ * @mutate src/boot/routePreload.ts |     signedIn: [postJobRoute, protectedRoute], |     signedIn: [protectedRoute],
+ * @mutate src/boot/postJobRoute.ts | import("@/pages/post-job/PostJob").catch | Promise.resolve().catch
  * @mutate vite.config.ts | const { deep: signedInDeep, declutterOnly, homeOff, homeLate } = signedInSplit(process.cwd()); | const signedInDeep = new Set<string>(); const declutterOnly = new Set<string>(); const homeOff = new Set<string>(); const homeLate = new Set<string>();
  * @mutate vite.config.ts | name: "declutter-first-screen", | name: "signed-in-shared",
  * @mutate scripts/perf/bootReach.mjs | const declutterOnly = new Set([...firstScreen].filter((f) => !others.has(f))); | const declutterOnly = new Set();
@@ -121,9 +124,18 @@ describe("signedInSplit: signed-in code no first screen reaches (signed-in-deep,
   it("starts from every page in ENTRY_ROUTE_CHUNKS, ProtectedRoute and the every-page components", () => {
     const roots = firstScreenRoots(ROOT).map((r) => r.split("\\").join("/"));
     // 2026-10-19: /home opens the Home dashboard and /jobs the Jobs section (which embeds Dashboard).
-    for (const rel of ["src/pages/posts/PostsPage.tsx", "src/pages/home/HomeDashboard.tsx", "src/pages/jobs/JobsSection.tsx", "src/pages/messages/Messages.tsx", "src/pages/profile/Profile.tsx", "src/components/ProtectedRoute.tsx", "src/components/MobileNav.tsx"]) {
+    for (const rel of ["src/pages/posts/PostsPage.tsx", "src/pages/home/HomeDashboard.tsx", "src/pages/jobs/JobsSection.tsx", "src/pages/messages/Messages.tsx", "src/pages/profile/Profile.tsx", "src/pages/post-job/PostJob.tsx", "src/components/ProtectedRoute.tsx", "src/components/MobileNav.tsx"]) {
       expect(roots, rel).toContain(abs(rel));
     }
+  });
+
+  it("/post-job starts its page through src/boot/postJobRoute.ts, which starts PostJob (its list stays out of the entry, 11-04)", () => {
+    const table = blankComments(readFileSync(join(ROOT, "src/boot/routePreload.ts"), "utf8"));
+    expect(table).toMatch(/const postJobRoute = \(\) => import\("@\/boot\/postJobRoute"\)/);
+    expect(table).toMatch(/"\/post-job": \{\s*guest: \[protectedRoute\],\s*signedIn: \[postJobRoute, protectedRoute\]/);
+    expect(table).not.toMatch(/import\("@\/pages\/post-job\/PostJob"\)/);
+    const boot = blankComments(readFileSync(join(ROOT, "src/boot/postJobRoute.ts"), "utf8"));
+    expect(boot).toMatch(/import\("@\/pages\/post-job\/PostJob"\)/);
   });
 
   it("partitions signedInOnly exactly, and both halves are real", () => {

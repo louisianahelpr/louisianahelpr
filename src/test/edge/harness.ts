@@ -930,6 +930,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/adminIds.ts";`,
   );
 
+  // Stripe TEST-mode scope (lead 11-04): `_shared/stripeTestMode.ts` is pure (node:async_hooks only), and adminIds.ts
+  // above reads the same REAL module, so one scope is shared by the webhook and its sinks.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/stripeTestMode\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/stripeTestMode.ts";`,
+  );
+
   // Alert severity policy: `_shared/alertPolicy.ts` is pure (no Deno, no
   // network). REAL module, so "does a warning post to Slack?" stays under test.
   out = out.replace(

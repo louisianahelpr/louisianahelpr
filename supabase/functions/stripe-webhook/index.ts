@@ -1,6 +1,7 @@
 import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { runForStripeMode } from "./testModeScope.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import {
   describeUnverifiedDelivery,
@@ -535,7 +536,8 @@ serve(async (req) => {
     if (connectRefused) {
       logStep("Connect endpoint event not routed (only payout.failed / payout.paid are)", { type: event.type, id: event.id });
     } else if (handler) {
-      await handler(event, ctx);
+      // TEST-mode events are processed as before, but alert and notify no one (_shared/stripeTestMode.ts).
+      await runForStripeMode(event.livemode === false, async () => { await handler(event, ctx); });
     } else {
       logStep("Unhandled event type", { type: event.type });
     }
@@ -545,13 +547,13 @@ serve(async (req) => {
     // event. A transient DB/handler failure must not permanently lose a paid
     // event — the retry re-runs the (idempotent) handler once the fault clears.
     await rollbackIdempotency();
-    await postSlackOpsAlert({
+    await runForStripeMode(event?.livemode === false, () => postSlackOpsAlert({
       kind: "stripe_webhook_error",
       severity: "critical",
       title: "Stripe webhook processing error",
       message: `Failed to process Stripe event \`${event?.type || "unknown"}\` — asking Stripe to retry.`,
       fields: { "Event ID": event?.id || "—", Error: String(err).slice(0, 200) },
-    });
+    }));
     return new Response(JSON.stringify({ received: false, error: "processing_error" }), {
       headers: { "Content-Type": "application/json" },
       status: 500,

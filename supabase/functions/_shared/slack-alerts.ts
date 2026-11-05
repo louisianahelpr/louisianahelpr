@@ -16,6 +16,7 @@
 // log rather than vanishing, so a missing alarm is discoverable.
 
 import { effectiveSeverity, escapeSlackText, safeSlackLink, postsImmediately, utcDayStartIso, type AlertSeverity } from './alertPolicy.ts'
+import { inStripeTestMode } from './stripeTestMode.ts'
 import { recordOpsAlertLedger } from './opsAlertLedger.ts'
 import { getAppUrl } from './appUrl.ts'
 
@@ -312,6 +313,13 @@ export async function postSlackOpsAlert(input: SlackAlertInput): Promise<boolean
   let plainRowId: string | null = null
   try {
     const policySeverity = effectiveSeverity(input.kind, input.severity)
+
+    // A Stripe TEST-mode event (stripe-webhook's scope, _shared/stripeTestMode.ts): logged as test, nothing else.
+    // No Slack, no ledger, no digest row: test data never reaches the owner (lead 11-04, run 41930346999).
+    if (inStripeTestMode()) {
+      console.log(JSON.stringify({ event: 'ops_alert_stripe_test_mode', kind: input.kind, title: input.title }))
+      return true
+    }
 
     // Seed/E2E subject: the digest, not the channel (see SlackAlertInput.seed).
     // Recorded as 'info' so trg_error_logs_slack could never page it even if

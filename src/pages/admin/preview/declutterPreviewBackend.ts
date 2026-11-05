@@ -62,6 +62,8 @@ function tableRows(table: string, s: DeclutterPreviewSample): unknown[] | undefi
     // Manager mode: no sample order has a manager, so no shares and no manager payouts.
     case "declutter_order_manager_shares": return [];
     case "declutter_manager_payouts": return [];
+    // Q2106 gift picker: no sample buyer holds a gift card, so Pay offers card only.
+    case "gift_cards": return [];
     default: return undefined;
   }
 }

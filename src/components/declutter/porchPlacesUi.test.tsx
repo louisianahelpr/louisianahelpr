@@ -147,8 +147,8 @@ describe("the seller's pickup places", () => {
         const b = screen.getByRole("button", { name: `${verb} ${name}` });
         expect(b.textContent).toBe(""); // icon only, no word
         expect(b.querySelector("svg")).not.toBeNull();
-        expect(b.className).toMatch(/\bmin-h-11\b/);
-        expect(b.className).toMatch(/\bmin-w-11\b/);
+        // The shared quiet icon Button's 44px box (ghost iconCompact, Q2709).
+        expect(b.className.split(/\s+/)).toEqual(expect.arrayContaining(["h-11", "w-11"]));
         // Same row as the name, after it (the right side), top-aligned.
         const row = b.closest("[data-place-actions]")!.parentElement!;
         expect(row.className).toMatch(/\bflex\b/);

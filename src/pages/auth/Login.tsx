@@ -19,6 +19,7 @@ import { SocialAuthButtons } from "@/components/auth/SocialAuthButtons";
 import { SOCIAL_SIGN_IN_ENABLED } from "@/lib/socialAuth";
 import { OrRule } from "@/components/auth/OrRule";
 import AuthShell from "@/components/auth/AuthShell";
+import { removeShellOncePainted } from "@/components/landing/landingShell";
 import { TurnstileField } from "@/components/auth/TurnstileField";
 import { useCaptcha } from "@/hooks/useCaptcha";
 import { signInWithTimeout, isTransportFailure } from "@/lib/loginTransport";
@@ -132,6 +133,8 @@ const Login = () => {
   const queryClient = useQueryClient();
   // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
   usePageMeta(NOINDEX_PAGE_META["/login"]);
+  // Q2705 A: index.html draws this page first (#lh-login-shell); take it away once this one is painted.
+  useEffect(() => removeShellOncePainted("lh-login-shell"), []);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);

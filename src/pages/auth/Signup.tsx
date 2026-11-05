@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
+import { removeShellOncePainted } from "@/components/landing/landingShell";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -45,6 +46,8 @@ const Signup = () => {
   const navigate = useNavigate();
   // Q401a: the same table api/share.ts serves pre-JS (src/lib/publicPageMeta.mjs), noindex included.
   usePageMeta(NOINDEX_PAGE_META["/signup"]);
+  // Q2705 A: index.html draws this page first (#lh-signup-shell); take it away once this one is painted.
+  useEffect(() => removeShellOncePainted("lh-signup-shell"), []);
   const [searchParams] = useSearchParams();
   useSignupEntry(searchParams, navigate); // ?job= / ?redirect= / ?ref= kept, signed-in bounce, funnel start
   // Dev-only: `?step=2` seeds the step for inspection; production always starts at step 1.

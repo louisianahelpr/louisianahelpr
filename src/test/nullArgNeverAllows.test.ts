@@ -11,6 +11,7 @@
 // @mutate .github/workflows/db-smoke.yml | -At -f scripts/ci/null-arg-validators.sql) | -At -f scripts/ci/null-uid-trust.sql)
 // @mutate .github/workflows/db-deploy.yml |       - "scripts/ci/null-arg-validators.sql"\n |
 // @mutate src/test/pglite/nullArgNeverAllows.pglite.mjs |   "user_may_see_job_address", "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes", |   "is_crew_member_of_job_folder", "is_series_party", "can_read_job_access_notes",
+// @mutate src/test/pglite/nullArgNeverAllows.pglite.mjs |   parent_job_id uuid,\n  -- job_announceable_to (20261104084501, Q2408) reads p_job.date_window_end (a window job closes on its last day).\n  date_window_end date); |   parent_job_id uuid);
 // @mutate supabase/migrations/20261030071818_declutter_returns.sql | IF v_uid IS NULL OR p_name IS NULL OR p_write IS NULL | IF v_uid IS NULL OR p_name IS NULL
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -188,6 +189,27 @@ describe("a NULL argument never makes an allow check say yes (Q140)", () => {
     const list = twin.match(/const ALLOW = \[([\s\S]*?)\];/)![1];
     const names = [...list.matchAll(/"([a-z_0-9]+)"/g)].map((m) => m[1]).sort();
     expect(names).toEqual(classRows.filter((r) => r.kind === "allow").map((r) => r.fn).sort());
+  });
+
+  // 2026-11-05 (Builder 1): 20261104084501 (Q2408) made job_announceable_to read p_job.date_window_end, the twin's
+  // jobs fixture had no such column, and the twin died loading it ("missing FROM-clause entry for table p_job"), so
+  // every migration branch's precheck went red while prod was fine. Class: a function the twin loads that takes a
+  // jobs ROW reads only columns the twin's jobs fixture has.
+  it("the twin's jobs fixture has every column a loaded jobs-row function reads", () => {
+    const twinSrc = read("src/test/pglite/nullArgNeverAllows.pglite.mjs");
+    const twin = blankComments(twinSrc);
+    const table = blankSqlComments(twinSrc).match(/CREATE TABLE public\.jobs \(([\s\S]*?)\);\n/)![1];
+    const columns = new Set(table.split(/,(?![^(]*\))/).map((c) => ws(c).split(" ")[0]).filter(Boolean));
+    expect(columns.size).toBeGreaterThan(30);
+    const rowFns = new Set<string>();
+    for (const sql of sqlOf.values())
+      for (const m of sql.matchAll(/FUNCTION\s+(?:public\.)?"?([a-z_0-9]+)"?\s*\(\s*p_job\s+(?:public\.)?jobs\b/gi)) rowFns.add(m[1]);
+    const loaded = [...rowFns].filter((fn) => twin.includes(`"${fn}"`) && newestFunction(fn));
+    expect(loaded.length).toBeGreaterThan(0);
+    for (const fn of loaded) {
+      const cols = [...new Set([...newestFunction(fn)!.body.matchAll(/\bp_job\.([a-z_0-9]+)/g)].map((m) => m[1]))];
+      for (const col of cols) expect(columns.has(col), `${fn} reads p_job.${col}; add ${col} to the twin's jobs fixture`).toBe(true);
+    }
   });
 
   describe("the five fixed definitions keep their NULL handling (newest definition)", () => {

@@ -21,6 +21,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { useManagerLabels } from "@/lib/declutter/managerMode";
 import { DeclutterSuggestedReply } from "./DeclutterSuggestedReply";
 import { Textarea } from "@/components/ui/textarea";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 
 const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 
@@ -294,7 +295,7 @@ export function DeclutterQuestions({
           {askError && <p id="declutter-question-error" role="alert" className="text-ds-13 text-destructive-ink">{askError}</p>}
           {/* AUD31-15: "Make an offer" opens the offer box on this page (DeclutterItemView's onMakeOffer), not plain text. */}
           <p className="text-ds-13 text-muted-foreground">Everyone can see questions and answers. Contact info is not allowed.{free ? null : onMakeOffer
-            ? <>{" Want to make a deal? "}<button type="button" className="font-semibold text-foreground underline underline-offset-2" onClick={onMakeOffer} data-question-make-offer="">Make an offer</button>.</>
+            ? <>{" Want to make a deal? "}<InlineTextButton className="font-semibold text-foreground underline underline-offset-2" onClick={onMakeOffer} data-question-make-offer="">Make an offer</InlineTextButton>.</>
             : " Want to make a deal? Make an offer."}</p>
         </form>
       )}

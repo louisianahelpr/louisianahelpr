@@ -17,6 +17,7 @@ import { PaidOrdersSection } from "./DeclutterHandoverViews";
 import type { BuyerOrderView } from "./BuyingOrders";
 import { useLinkedOrder } from "./useLinkedOrder";
 import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 
 // useDeclutterTodo and SectionHeading live in the leaf DeclutterTabHeads (the /declutter first screen loads them without
 // this module's order views); re-exported so every import of them from here still works.
@@ -96,9 +97,9 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
   const doneCounts = [finishedDone > 0 ? `${finishedDone} finished` : null, refundedDone > 0 ? `${refundedDone} refunded` : null].filter(Boolean).join(" and ");
   const doneKinds = [finishedDone > 0 ? "finished" : null, refundedDone > 0 ? "refunded" : null].filter(Boolean).join(" and ");
   const doneToggle = done.size > 0 && (
-    <button type="button" className="text-sm font-medium underline underline-offset-2" aria-expanded={showDone} onClick={() => setShowDone((v) => !v)} data-done-sales-toggle="">
+    <InlineTextButton className="text-sm font-medium underline underline-offset-2" aria-expanded={showDone} onClick={() => setShowDone((v) => !v)} data-done-sales-toggle="">
       {showDone ? `Hide ${doneKinds} sales` : `Show ${doneCounts} ${done.size === 1 ? "sale" : "sales"}`}
-    </button>
+    </InlineTextButton>
   );
   if (allDone && !showDone && !(linked && done.has(linked))) {
     return (

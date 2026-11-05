@@ -9,6 +9,7 @@
  * back null) and for a pickup already booked for a TIME, the card keeps the time picker (`fallback`).
  */
 import { Button } from "@/components/ui/button";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { ToggleChip } from "@/components/ui/ToggleChip";
 import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -136,9 +137,9 @@ export function PorchDayPanel({ orderId, side, booking, fallback, noDays }: {
         </p>
       ) : null /* A3-49: the seller's waiting line is the card's next-step line, said once. */}
       {booked && !moving && !movedAlready && !putOut && (
-        <button type="button" className="min-h-11 text-sm font-semibold underline underline-offset-2" onClick={() => setMoving(true)}>
+        <InlineTextButton className="text-sm font-semibold underline underline-offset-2" data-porch-day-move="" onClick={() => setMoving(true)}>
           Pick another day (once)
-        </button>
+        </InlineTextButton>
       )}
       {choosing && (
         <fieldset className="space-y-2">

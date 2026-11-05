@@ -8,6 +8,36 @@
 export const DEPLOY_WORKFLOW_PATH = ".github/workflows/db-deploy.yml";
 
 /**
+ * GitHub lookups this check makes run at most LOOKUP_CONCURRENCY at a time.
+ * One at a time, 340 run lookups plus a compare and a contents read for each
+ * of the 186 receipts whose run is gone took longer than db-drift-detect's
+ * 5-minute job (run 41709358659, cancelled 2026-11-03 at that step). Measured
+ * 2026-11-04 from a laptop: the 340 run lookups alone took 57.1 s one at a time
+ * and 7.9 s 8 at a time (154 found, 186 gone).
+ */
+export const LOOKUP_CONCURRENCY = 8;
+
+/**
+ * `fn` over `items` with at most `limit` calls in flight; results keep the
+ * input order. The first rejection rejects the whole map (fail closed: a
+ * lookup that could not be made is never read as "the run is gone").
+ */
+export async function mapPooled(items, limit, fn) {
+  if (!Number.isInteger(limit) || limit < 1) throw new Error(`bad limit: ${limit}`);
+  const list = [...items];
+  const out = new Array(list.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < list.length) {
+      const i = next++;
+      out[i] = await fn(list[i], i);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limit, list.length) }, worker));
+  return out;
+}
+
+/**
  * Versions `supabase db push` says it applied. The CLI prints one
  * "Applying migration <version>_<name>.sql..." line per file. Only these are
  * receipts: a before/after diff of schema_migrations would credit db-deploy

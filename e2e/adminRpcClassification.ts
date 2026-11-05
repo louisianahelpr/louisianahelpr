@@ -35,9 +35,11 @@ import { join } from "node:path";
  * RETURN QUERY SELECT, no INSERT/UPDATE/DELETE (read from the migration; re-check provolatile = 's' after deploy).
  * `admin_payout_batch_money_modes` added 2026-11-03 (Q2088, 20261103102100): LANGUAGE sql STABLE SECURITY DEFINER,
  * one SELECT, no INSERT/UPDATE/DELETE (read from the migration; re-check provolatile = 's' after deploy).
+ * `admin_sales_tax_adjustments` added 2026-11-04 (Q1918, 20261105021744): plpgsql STABLE SECURITY DEFINER, an admin
+ * check, then one RETURN QUERY SELECT, no INSERT/UPDATE/DELETE (read from the migration; re-check provolatile = 's' after deploy).
  */
 export const READ_RPC =
-  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_support_replies(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_payouts_held_for_review(\?|$)|shops_admin_queue(\?|$)|admin_last_logins(\?|$)|admin_ban_settlement_reviews(\?|$)|admin_gift_card_paid_job_ids(\?|$)|admin_section_funnel(\?|$)|admin_sms_status(\?|$)|admin_approval_escalation_queue(\?|$)|admin_booking_sources(\?|$)|admin_signup_source_report(\?|$)|declutter_admin_fee_debts(\?|$)|admin_payout_batch_money_modes(\?|$)|declutter_admin_ship_claims_due(\?|$))/;
+  /\/rest\/v1\/rpc\/(get_|list_|count_|admin_get_|admin_list_|search_|admin_support_queue(\?|$)|admin_support_replies(\?|$)|admin_stalled_job_queue(\?|$)|admin_notification_crosses_seed_boundary(\?|$)|admin_last_activity(\?|$)|admin_payouts_held_for_review(\?|$)|shops_admin_queue(\?|$)|admin_last_logins(\?|$)|admin_ban_settlement_reviews(\?|$)|admin_gift_card_paid_job_ids(\?|$)|admin_section_funnel(\?|$)|admin_sms_status(\?|$)|admin_approval_escalation_queue(\?|$)|admin_booking_sources(\?|$)|admin_signup_source_report(\?|$)|declutter_admin_fee_debts(\?|$)|admin_payout_batch_money_modes(\?|$)|declutter_admin_ship_claims_due(\?|$)|admin_sales_tax_adjustments(\?|$))/;
 
 /**
  * Admin RPCs that WRITE. Not an allow-list — the opposite: naming one here is

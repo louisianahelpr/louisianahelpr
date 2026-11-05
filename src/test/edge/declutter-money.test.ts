@@ -50,7 +50,7 @@
  * @mutate supabase/functions/declutter-money/index.ts |    if ((error as { code?: string }).code === "PGRST202") {\n      if (!waitRpcMissing) defects.record(`${name}: | if (false) {\n      if (!waitRpcMissing) defects.record(`${name}:
  * @mutate supabase/functions/declutter-money/index.ts |  const maybeSent_declutter = (x: PayoutDue) => Number(x.attempts ?? 0) > 0 \|\| sellerMarked.has(x.payout_id); |  const maybeSent_declutter = (x: PayoutDue) => Number(x.attempts ?? 0) > 0;
  * @mutate supabase/functions/declutter-money/index.ts |        if (!(await markSending("declutter", p.payout_id, p.seller_id, p.amount_cents))) continue; |
- * @mutate supabase/functions/declutter-money/index.ts |        await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 1440, "data_defect", "no order and no recorded Stripe mode"); |
+ * @mutate supabase/functions/declutter-money/index.ts |        await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 1440, "data_defect", "no order and no recorded Stripe mode"); |
  * @mutate supabase/functions/_shared/connectReadiness.ts |    : transfers === "pending" ? "under_review" : "setup_unfinished"; |    : "setup_unfinished";
  * @mutate supabase/functions/declutter-money/index.ts |        if (await unpayableNow("declutter", p.payout_id, p.seller_id, p.stripe_account_id, p.amount_cents, mode)) continue; |
  * @mutate supabase/functions/declutter-money/index.ts |      if (beforeSend && transientBeforeSend(e)) {\n        // Nothing was sent: later, without using a try.\n        out.payout_retry_later++;\n        console.log(JSON.stringify({ event: "payout_deferred_transient", kind: "declutter" |      if (false) {\n        // Nothing was sent: later, without using a try.\n        out.payout_retry_later++;\n        console.log(JSON.stringify({ event: "payout_deferred_transient", kind: "declutter"
@@ -65,14 +65,14 @@
  * @mutate supabase/functions/declutter-money/index.ts |    if (stuck) await waitRpc("payout_hold_for_review", { p_kind: kind, p_id: payoutId, p_category: category, p_reason: reason }); |    if (false) await waitRpc("payout_hold_for_review", { p_kind: kind, p_id: payoutId, p_category: category, p_reason: reason });
  * @mutate supabase/functions/declutter-money/index.ts |        if (!(await stillPayableNow("declutter", p.payout_id, p.seller_id, p.amount_cents))) continue; |
  * @mutate supabase/functions/declutter-money/index.ts |    if (h.source_kind !== "declutter_delivery" \|\| !h.transfer_group \|\| (!h.payment_intent_id && !(hGiftCents > 0))) { |    if (!h.transfer_group) {
- * @mutate supabase/functions/declutter-money/index.ts |      await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 60, "ban_review", "a party is under ban review"); |      await deferRow("declutter_refund", r.refund_id, 60);
+ * @mutate supabase/functions/declutter-money/index.ts |      await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 60, "ban_review", "a party is under ban review"); |      await deferRow("declutter_refund", r.refund_id, 60);
  * @mutate supabase/functions/_shared/connectReadiness.ts |      if (status === 403 \|\| status === 401 \|\| code === "account_invalid" \|\| /does not have access/i.test(message)) { |      if (false) {
  * @mutate supabase/functions/declutter-money/index.ts |      kind: "payout_wait", severity: "warning", | kind: "custom", severity: "warning",
  * @mutate supabase/functions/declutter-money/index.ts |    if ((category === "mixed_parties" \|\| category === "data_defect") && maybeSentRows.has(payoutId)) { |    if (false) {
  * @mutate supabase/functions/declutter-money/index.ts |    if (suspendedUntil !== null && suspendedUntil > Date.now()) { |    if (false) {
  * @mutate supabase/functions/declutter-money/index.ts |        if (keyBroken) { |        if (true) {
  * @mutate supabase/functions/_shared/connectReadiness.ts |      if (/does not have access to account/i.test(message) && /does not exist/i.test(message)) { |      if (false) {
- * @mutate supabase/functions/declutter-money/index.ts |        await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 15, "record_failed", `refund ${refund.id} not recorded`); |
+ * @mutate supabase/functions/declutter-money/index.ts |        await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 15, "record_failed", `refund ${refund.id} not recorded`); |
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";

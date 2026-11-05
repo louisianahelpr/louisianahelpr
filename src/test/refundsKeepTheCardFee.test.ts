@@ -245,19 +245,12 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
         "refund_cents: number;",
         // Q1929: the raise-refund row's type (its own charge, step 4b; never a declutter_refunds row).
         "refund_cents: number;",
-        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 60, \"ban_review\", \"a party is under ban review\");",
-        // Q2106 S3b: the queue's card part (decided in declutter_refunds_due) read for the gift-only branch, and four
-        // more skipRow deferrals (an amount shown on the wait record, never sent).
+        // Q2106 S3b: the row total (card part + gift share) shown on a wait record (skipRow: never sent), and the
+        // queue's card part (decided in declutter_refunds_due) read for the gift-only branch.
+        "const rowTotal = r.refund_cents + Math.max(0, Number(r.gift_refund_cents ?? 0));",
         "const cardCents = Math.max(0, r.refund_cents);",
-        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 1440, \"data_defect\", \"gift share with no order\");",
-        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 1440, \"data_defect\", `gift restore: ${outcome ?? \"no answer\"}`);",
-        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 1440, \"data_defect\", \"card part with no payment\");",
-        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 15, \"record_failed\", \"gift-only refund not recorded\");",
-        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 1440, \"data_defect\", \"no order and no recorded Stripe mode\");",
         "amount: r.refund_cents,",
-        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 15, \"record_failed\", `refund ${refund.id} not recorded`);",
         "message: `Stripe answered ${refund.status} for refund row ${r.refund_id} (${dollars(r.refund_cents)}, order ${r.order_id ?? \"none\"}). ${r.attempts + 1 >= 12 ? \"That was the last try: refund it by hand.\" : \"It will be retried with back-off.\"}`,",
-        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 1440, \"mixed_parties\", partyWhy(e, \"the order\"));",
         "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 60, \"ban_review\", \"a party is under ban review\");",
         "payment_intent_id: d.payment_intent_id, refund_cents: d.refund_cents, attempts: d.attempts, livemode: null,",
         "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, \"data_defect\", \"no Stripe mode\");",

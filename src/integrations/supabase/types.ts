@@ -17533,6 +17533,7 @@ export type Database = {
           attempts: number
           buyer_id: string
           checkout_session_id: string
+          gift_refund_cents: number
           livemode: boolean
           order_id: string
           payment_intent_id: string

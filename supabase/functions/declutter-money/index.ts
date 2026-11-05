@@ -1009,12 +1009,14 @@ serve(async (req) => {
 
   // 1. Refunds.
   for (const r of refunds) {
+    // Q2106 S3b: the queue's refund_cents is the CARD part; what the buyer is owed (shown on a wait) is card + gift.
+    const rowTotal = r.refund_cents + Math.max(0, Number(r.gift_refund_cents ?? 0));
     groupOf.set(r.refund_id, r.payment_intent_id);
     if (Number(r.attempts ?? 0) > 0) maybeSentRows.add(r.refund_id);
     if ((r.buyer_id && review.users.has(r.buyer_id)) || (r.seller_id && review.users.has(r.seller_id))) {
       out.ban_review++;
       // Deferred like a skipped payout (never the front of its queue) and bounded.
-      await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 60, "ban_review", "a party is under ban review");
+      await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 60, "ban_review", "a party is under ban review");
       continue;
     }
     try {
@@ -1027,7 +1029,7 @@ serve(async (req) => {
         if (giftCents <= 0) return true;
         if (!r.order_id) {
           defects.record(`refund ${r.refund_id}: a gift share of ${dollars(giftCents)} with no order; restore it by hand`);
-          await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 1440, "data_defect", "gift share with no order");
+          await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 1440, "data_defect", "gift share with no order");
           return false;
         }
         const { data: g, error: gErr } = await admin.rpc("restore_gift_card_for_declutter_order", {
@@ -1038,7 +1040,7 @@ serve(async (req) => {
         const outcome = (g as { outcome?: string } | null)?.outcome;
         if (outcome !== "restored" && outcome !== "already_restored") {
           defects.record(`refund ${r.refund_id}: the gift share (${dollars(giftCents)}) could not be restored (${outcome ?? "no answer"}); settle it by hand`);
-          await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 1440, "data_defect", `gift restore: ${outcome ?? "no answer"}`);
+          await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 1440, "data_defect", `gift restore: ${outcome ?? "no answer"}`);
           return false;
         }
         return true;
@@ -1046,14 +1048,14 @@ serve(async (req) => {
       if (cardCents <= 0 || !r.payment_intent_id) {
         if (cardCents > 0) {
           defects.record(`refund ${r.refund_id}: a card part of ${dollars(cardCents)} with no payment; refund it by hand`);
-          await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 1440, "data_defect", "card part with no payment");
+          await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 1440, "data_defect", "card part with no payment");
           continue;
         }
         if (!(await restoreGift())) continue;
         const { error } = await admin.rpc("declutter_refund_executed", { p_refund_id: r.refund_id, p_stripe_refund_id: null, p_succeeded: true });
         if (error) {
           defects.record(`refund ${r.refund_id}: gift-only refund not recorded: ${error.message}`);
-          await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 15, "record_failed", "gift-only refund not recorded");
+          await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 15, "record_failed", "gift-only refund not recorded");
           continue;
         }
         out.refunds_sent++;
@@ -1064,7 +1066,7 @@ serve(async (req) => {
       if (!client) {
         defects.record(`refund ${r.refund_id}: no order and no recorded Stripe mode; refund it by hand`);
         // Cannot be refunded automatically: held for review once the page goes out.
-        await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 1440, "data_defect", "no order and no recorded Stripe mode");
+        await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 1440, "data_defect", "no order and no recorded Stripe mode");
         continue;
       }
       const { stripe } = client;
@@ -1095,7 +1097,7 @@ serve(async (req) => {
       });
       if (error) {
         defects.record(`refund ${r.refund_id}: Stripe ${refund.id} not recorded: ${error.message}`);
-        await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 15, "record_failed", `refund ${refund.id} not recorded`);
+        await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 15, "record_failed", `refund ${refund.id} not recorded`);
         continue;
       }
       if (!ok) {
@@ -1133,7 +1135,7 @@ serve(async (req) => {
       if (isPartyRefusal(e)) {
         out.mixed_parties++;
         defects.record(`refund ${r.refund_id}: ${partyWhy(e, "the order")}; settle it by hand`);
-        await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 1440, "mixed_parties", partyWhy(e, "the order"));
+        await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 1440, "mixed_parties", partyWhy(e, "the order"));
         continue;
       }
       const msg = caughtMessage(e, "refund failed");

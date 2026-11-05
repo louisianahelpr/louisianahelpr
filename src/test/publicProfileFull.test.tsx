@@ -17,7 +17,7 @@
  * @mutate src/pages/u/PublicProfilePage.tsx | {ctaReady && !isMe && <HireMeButton | {!isMe && <HireMeButton
  * @mutate src/pages/u/PublicProfilePage.tsx | ctaReady={!user \|\| !meLoading} | ctaReady={true}
  * @mutate supabase/migrations/20261105165059_public_profile_full.sql | GRANT UPDATE (show_in_search) ON public.profiles TO authenticated; | SELECT 1;
- * @mutate src/pages/u/PublicProfilePage.tsx | export const PROFILE_WIDE = "min-[900px]:max-w-3xl"; | export const PROFILE_WIDE = "";
+ * @mutate src/pages/u/PublicProfilePage.tsx | const PROFILE_WIDE = "min-[900px]:max-w-3xl"; | const PROFILE_WIDE = "";
  * @mutate src/pages/u/PublicProfilePage.tsx | grid grid-cols-2 gap-3 min-[900px]:grid-cols-4 | grid grid-cols-2 gap-3
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";

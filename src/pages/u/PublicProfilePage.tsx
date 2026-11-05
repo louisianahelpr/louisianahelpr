@@ -141,7 +141,7 @@ function skillChips(skills: string | null | undefined): string[] {
 }
 
 /** The profile's column from 900px (the shared public link column is a phone card, 448px). */
-export const PROFILE_WIDE = "min-[900px]:max-w-3xl";
+const PROFILE_WIDE = "min-[900px]:max-w-3xl";
 
 /** How many listings show before "Show all N" (the rest load lazily from the same read). */
 export const LISTINGS_FIRST = 24;

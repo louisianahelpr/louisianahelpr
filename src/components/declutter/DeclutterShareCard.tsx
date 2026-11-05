@@ -55,6 +55,15 @@ export function shareListing(it: Pick<ShareableListing, "id" | "title" | "curren
   void shareNative({ title: it.title, text: shareText(it), url: listingLink(it.id) });
 }
 
+/** Owner request 11-05: the Share button on each of the seller's live listings (Selling → Your listings). */
+export function ListingShareButton({ item }: { item: Pick<ShareableListing, "id" | "title" | "current_price_cents"> }) {
+  return (
+    <Button type="button" variant="outline" size="sm" className="gap-1.5" aria-label={`Share ${item.title}`} data-listing-share="" onClick={() => shareListing(item)}>
+      <Share2 className="h-4 w-4" aria-hidden /> Share
+    </Button>
+  );
+}
+
 /** Facebook's own share page for the item's link: its card is the item (api/share.ts). */
 function facebookShareUrl(itemId: string): string {
   return `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(listingLink(itemId))}`;

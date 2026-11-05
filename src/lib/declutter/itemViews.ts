@@ -18,7 +18,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const sent = new Set<string>();
 
 /** The guest's random device id, made once and kept; null where storage is blocked (the view is then not counted). */
-export function viewerDeviceId(): string | null {
+function viewerDeviceId(): string | null {
   try {
     const kept = window.localStorage.getItem(DEVICE_KEY);
     if (kept && UUID.test(kept)) return kept;
@@ -31,7 +31,7 @@ export function viewerDeviceId(): string | null {
 }
 
 /** Sends the view itself. Never throws: a view that fails to record is not something the viewer should ever see. */
-export async function sendItemView(itemId: string, signedIn: boolean): Promise<void> {
+async function sendItemView(itemId: string, signedIn: boolean): Promise<void> {
   const device = signedIn ? null : viewerDeviceId();
   if (!signedIn && !device) return;
   try {

@@ -10,7 +10,7 @@
  *
  * @mutate e2e/journeys/post-job-day-tap.spec.ts | if (draftOwner) await clearJobPostDraft(request, draftOwner); | if (draftOwner) void 0;
  * @mutate e2e/journeys/recurring-picker.spec.ts | await clearJobPostDraft(request, session); | await Promise.resolve(session);
- * @mutate e2e/journeys/jobPostDraft.ts | if (read.ok() && (body === "" \|| body === "null")) return; | return;
+ * @mutate e2e/journeys/jobPostDraft.ts | if (read.ok() && (body === "" \|\| body === "null")) return; | return;
  */
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";

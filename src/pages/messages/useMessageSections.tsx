@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router-dom";
 import { MailCheck } from "lucide-react";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
@@ -18,6 +18,13 @@ import {
   threadsForFilter,
   type InboxFilter,
 } from "@/components/messages/messageSections";
+
+// Q1947: Messages -> Shops lists the member's shop chats (ShopTalkInbox). Its own chunk: only a member with Shops on
+// the Shops chip loads it, so the inbox every signed-in member opens does not carry the Shops chat sheet.
+const ShopTalkRows = lazy(() => import("@/components/messages/ShopTalkInbox").then((m) => ({ default: m.ShopTalkRows })));
+function ShopTalkLead({ empty }: { empty: ReactNode }) {
+  return <Suspense fallback={null}><ShopTalkRows empty={empty} /></Suspense>;
+}
 
 /**
  * Messages = ONE inbox (board 13, owner 2026-10-20; it replaced the 10-19
@@ -126,6 +133,8 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     empty = { icon: def.icon, title: `No ${copy.noun} messages yet`, body: copy.body, action: { label: copy.browse, to: def.path } };
     // D2-1: Declutter lists the member's order chats above its threads, in place of this empty state when it has any.
     if (section === "declutter") empty.Lead = DeclutterOrderTalkRows;
+    // Q1947: Shops lists the member's shop chats the same way (shops_my_talks needs the switch, so only while it's on).
+    if (section === "shops" && live.shops) empty.Lead = ShopTalkLead;
   }
   // Q2663 (account audit 1102d row 23): Unread with nothing unread said "No messages yet", even beside a full
   // All tab. It says what is true and goes back to All.

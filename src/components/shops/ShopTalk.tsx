@@ -5,10 +5,10 @@
  * in bold. The server is the protection (shops_talk_view / shops_send_talk_message): only the two sides read or write,
  * and the contact-leak filter and the block check run there.
  */
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MessageCircle } from "lucide-react";
+import { Flag, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ListRow } from "@/components/ui/ListRow";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
@@ -17,9 +17,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { talkTime } from "@/lib/declutter/talkTime";
 import { shopsErrorMessage } from "@/lib/shops/errors";
-import { fetchMyShopTalks, fetchShopTalk, markShopTalkRead, MY_SHOP_TALKS_KEY, openShopTalk, sendShopTalkMessage } from "@/lib/shops/talk";
+import { fetchMyShopTalks, fetchShopTalk, markShopTalkRead, MY_SHOP_TALKS_KEY, openShopOrderTalk, openShopTalk, sendShopTalkMessage } from "@/lib/shops/talk";
 import { focusSheetItself } from "@/components/declutter/focusSheetItself";
 import { ShopCard } from "./ShopProfile";
+
+const ReportDialog = lazy(() => import("@/components/ReportDialog"));
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -43,6 +45,24 @@ export function ShopMessageButton({ shopId }: { shopId: string }) {
       <Button type="button" variant="outline" className="rounded-full" disabled={open.isPending} onClick={() => open.mutate()}>
         <MessageCircle className="mr-1.5 h-4 w-4" aria-hidden />
         Message
+      </Button>
+      {open.isError && <p role="alert" className="text-ds-13 text-destructive-ink">{shopsErrorMessage(open.error)}</p>}
+    </div>
+  );
+}
+
+/**
+ * Q1947: "Message" on a shop order's card, for either side (the buyer writes to the shop, the shop to the buyer). It
+ * opens the same one thread per shop and member as the shop page's Message, over the orders screen (?talk=).
+ */
+export function ShopOrderMessageButton({ orderId, side }: { orderId: string; side: "buyer" | "shop" }) {
+  const [, setTalk] = useTalkParam();
+  const open = useMutation({ mutationFn: () => openShopOrderTalk(orderId), onSuccess: (id) => setTalk(id) });
+  return (
+    <div className="space-y-1" data-shop-order-message="">
+      <Button type="button" variant="outline" size="sm" className="rounded-full" disabled={open.isPending} onClick={() => open.mutate()}>
+        <MessageCircle className="mr-1.5 h-4 w-4" aria-hidden />
+        {side === "buyer" ? "Message the shop" : "Message the buyer"}
       </Button>
       {open.isError && <p role="alert" className="text-ds-13 text-destructive-ink">{shopsErrorMessage(open.error)}</p>}
     </div>
@@ -97,6 +117,8 @@ function ShopTalkSheet({ talkId, onClose }: { talkId: string; onClose: () => voi
   }, refetchInterval: 15_000 });
   const [draft, setDraft] = useState("");
   const [refusal, setRefusal] = useState<string | null>(null);
+  // Q1947: the other side's message can be reported (shop_talk_message; the server refuses your own).
+  const [reporting, setReporting] = useState<string | null>(null);
   const send = useMutation({
     mutationFn: () => sendShopTalkMessage(talkId, draft.trim()),
     onSuccess: () => { setDraft(""); setRefusal(null); void qc.invalidateQueries({ queryKey: key }); void qc.invalidateQueries({ queryKey: MY_SHOP_TALKS_KEY }); },
@@ -131,6 +153,14 @@ function ShopTalkSheet({ talkId, onClose }: { talkId: string; onClose: () => voi
                   <div className={`max-w-[85%] rounded-2xl px-3 py-2 ${m.mine ? "bg-[hsl(var(--bark)/0.1)]" : "border border-border bg-card"}`}>
                     <p className="text-ds-12 font-semibold text-muted-foreground">{m.mine ? "You" : t.other_label} · {talkTime(m.created_at)}</p>
                     <p className="whitespace-pre-wrap break-words text-ds-14 text-foreground">{m.body}</p>
+                    {!m.mine && (
+                      <button type="button" data-report-shop-talk-message=""
+                        className="mt-0.5 inline-flex min-h-[44px] items-center gap-1 text-ds-11 text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        aria-label={`Report this message from ${t.other_label}`} onClick={() => setReporting(m.id)}>
+                        <Flag className="h-3 w-3" aria-hidden />
+                        Report
+                      </button>
+                    )}
                   </div>
                 </li>
               ))}
@@ -154,6 +184,11 @@ function ShopTalkSheet({ talkId, onClose }: { talkId: string; onClose: () => voi
             </SheetPrimaryAction>
           )}
         </SheetFooter>
+        {reporting && (
+          <Suspense fallback={null}>
+            <ReportDialog open onClose={() => setReporting(null)} reportedType="shop_talk_message" reportedId={reporting} />
+          </Suspense>
+        )}
       </SheetContent>
     </Sheet>
   );

@@ -23,6 +23,7 @@ import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { invalidateTrades } from "./declutterLightActions";
 import { useLinkedOffer, useScrollToLinkedOrder } from "./useLinkedOrder";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 /** Every Declutter read refetches after a trade (offers, cart, orders). */
 
@@ -173,21 +174,23 @@ function OfferRow({ o, linked = false }: { o: MyOffer; linked?: boolean }) {
         </dl>
       )}
       {myTurn && (
-        <div className="flex flex-wrap gap-2">
-          <button
+        // Q2709: the shared Button (44px tap floor); the green primary on the RIGHT (owner 11-01), the row
+        // right-aligned so a wrap keeps Accept at the bottom right.
+        <div className="flex flex-wrap justify-end gap-2" data-offer-actions="">
+          <Button type="button" variant="outline" size="sm" disabled={act.isPending} onClick={() => setDeclining(true)}>
+            Say no
+          </Button>
+          <Button type="button" variant="outline" size="sm" disabled={act.isPending} onClick={() => setCountering((v) => !v)} aria-expanded={countering}>
+            Answer with a price
+          </Button>
+          <Button
             type="button"
-            className="btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold"
+            size="sm"
             disabled={act.isPending}
             onClick={() => setAccepting(true)}
           >
             Accept
-          </button>
-          <button type="button" className="rounded-full border border-border px-4 py-2 text-sm font-semibold" disabled={act.isPending} onClick={() => setCountering((v) => !v)} aria-expanded={countering}>
-            Answer with a price
-          </button>
-          <button type="button" className="rounded-full border border-border px-4 py-2 text-sm font-semibold" disabled={act.isPending} onClick={() => setDeclining(true)}>
-            Say no
-          </button>
+          </Button>
         </div>
       )}
       {myTurn && countering && (
@@ -215,9 +218,9 @@ function OfferRow({ o, linked = false }: { o: MyOffer; linked?: boolean }) {
                 ref={counterBox}
               />
             </div>
-            <button type="submit" className="btn-grad-primary rounded-full px-4 text-sm font-semibold" disabled={act.isPending || !counterCents || !!counterBad}>
+            <Button type="submit" size="sm" disabled={act.isPending || !counterCents || !!counterBad}>
               Send
-            </button>
+            </Button>
           </div>
           <p id={`counter-range-${o.offer_id}`} className={`text-ds-13 ${counterBad ? "text-[hsl(var(--destructive-ink))]" : "text-muted-foreground"}`}>
             {counterBad ?? `Between ${formatPrice(counterRange(o).min)} and ${formatPrice(counterRange(o).max)}.`}

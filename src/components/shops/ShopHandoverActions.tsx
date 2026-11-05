@@ -197,7 +197,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
           )}
           <p className="w-full text-xs text-muted-foreground" data-testid="shop-handover-wait">
             {porch
-              ? "The buyer taps \"I got it\". With your photo in, you're paid 48 hours after it unless the buyer reports a problem."
+              ? "The buyer taps \"I got it\". With your photo in, you're paid 48 hours after it (or after the ready day starts, if that is later) unless the buyer reports a problem."
               : h?.shop_confirmed_at
                 ? "You marked it handed over. You're paid 48 hours after that unless the buyer reports a problem."
                 : "The buyer taps \"I got it\", or you tap \"Handed over\" once they have it. Until one of you does, the money stays held."}

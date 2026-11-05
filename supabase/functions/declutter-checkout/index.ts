@@ -465,7 +465,7 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       try {
         await stripeOf(row!.checkout_session_id).checkout.sessions.expire(row!.checkout_session_id);
       } catch (e) {
-        console.log(JSON.stringify({ event: "declutter_page_expire_refused", session: row!.checkout_session_id, detail: String(e).slice(0, 200) }));
+        console.warn(JSON.stringify({ event: "declutter_page_expire_refused", session: row!.checkout_session_id, detail: String(e).slice(0, 200) }));
         return json({ paid: true, order_id: row!.order_id });
       }
       retiredSession = row!.checkout_session_id;

@@ -139,7 +139,9 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
     const REFUNDS = blankSqlComments(readFileSync(join(MIG_DIR, "20261019071055_shops_refunds_cancels_strikes.sql"), "utf8"));
     // Shops H5 (20261105182903): the seller's "Handed over" tap (porch_uses_photo, not_ready_date_yet).
     const HANDOVER_RULE = blankSqlComments(readFileSync(join(MIG_DIR, "20261105182903_shops_handover_rule.sql"), "utf8"));
-    // Shops H1 chats (20261105185006): the chat codes are SHOPS_ERROR_COPY's too (lander, train l92).
+    // Shops H1 chats (20261105185006): the chat codes are SHOPS_ERROR_COPY's too (lander, train l92). Q1947's
+    // 20261105225245 is left out: it restates the shared reports trigger (report_* codes are the ReportDialog's, not
+    // SHOPS_ERROR_COPY's), and its shops_open_order_talk raises only codes the files here already raise.
     const TALK = blankSqlComments(readFileSync(join(MIG_DIR, "20261105185006_shops_talk.sql"), "utf8"));
     const raised = new Set([...(MIG + ITEMS + ORDERS + PICKUP + HANDOVER + READY_TAP + FAQS + REFUNDS + HANDOVER_RULE + TALK).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
     raised.add("feature_disabled"); // require_feature's code

@@ -334,7 +334,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/messages/ChatView.tsx` | textarea×1 |  |  | Dismiss safety reminder |
-| `src/components/messages/ConversationList.tsx` | input×2 | search |  | messages-search-row · messages-section-tabs · Bulk hide action bar |
+| `src/components/messages/ConversationList.tsx` | input×2 | search |  | messages-search-row · messages-section-tabs |
 | `src/components/RichMessageInput.tsx` | input×5 | file, text |  |  |
 
 ## /post-job

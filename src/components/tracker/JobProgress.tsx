@@ -180,7 +180,7 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
                 // is 4px (gap-1 above), so the button is 4px wider than its column with -2px margins: 2px of the gap
                 // on each side, which a neighbour never claims (it takes its own 2px), so targets meet and never
                 // overlap. px-[2px] keeps the step's icon, bar and word exactly where they were. The row's layout
-                // does not change. Guard: e2e/happy-path/messages-thread.spec.ts (44px, no overlap).
+                // does not change. Guard: e2e/journeys/messages-thread.spec.ts (44px, no overlap).
                 // flex-col justify-start: a <button> CENTRES its content in the 44px, so a step with a time sat ~2px
                 // lower than a plain step beside it (owner 2026-10-25, "step labels uneven"; measured 188.3 vs 186.1
                 // on the job page). Top-aligned, every step's icon, bar and word share one line.

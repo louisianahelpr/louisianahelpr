@@ -295,7 +295,7 @@ export function DealCard({ convo, userId }: { convo: Conversation; userId: strin
       </div>
 
       {/* The shared next step below replaces the bar's own line; the step tips (the current step's "why") stay
-          (Q2369, e2e/happy-path/messages-thread.spec.ts). */}
+          (Q2369, e2e/journeys/messages-thread.spec.ts). */}
       <JobProgress progress={stage} compact noLine={!!step} />
 
       <div className="flex items-center justify-between gap-3">

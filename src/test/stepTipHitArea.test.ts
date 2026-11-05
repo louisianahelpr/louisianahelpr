@@ -4,7 +4,7 @@
  * button reaches into half of the 4px grid gap on each side (4px wider than its column, -2px margins, 2px inline
  * padding so its content does not move), so neighbours meet and never overlap.
  *
- * The browser proof is e2e/happy-path/messages-thread.spec.ts (every tap target >= 44px with no step-tip skip; tips
+ * The browser proof is e2e/journeys/messages-thread.spec.ts (every tap target >= 44px with no step-tip skip; tips
  * never overlap; each tip is its column + 4px). This guard pins the two facts that proof depends on, so the next
  * edit to the row cannot quietly undo them: the half-gap classes match the grid's gap, and the skip stays gone.
  *
@@ -37,7 +37,7 @@ describe("the tracker's step tip hit area (Q2369)", () => {
   });
 
   it("the e2e tap-target check measures step tips (no skip) and checks they never overlap", () => {
-    const spec = read("e2e/happy-path/messages-thread.spec.ts");
+    const spec = read("e2e/journeys/messages-thread.spec.ts");
     expect(spec).not.toMatch(/hasAttribute\("data-step-tip"\)\)\s*return/);
     expect(spec).toContain('querySelectorAll<HTMLElement>("[data-step-tip]")');
     expect(spec).toContain("overlap by");

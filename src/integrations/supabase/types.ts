@@ -21528,6 +21528,7 @@ export type Database = {
         Returns: boolean
       }
       shops_open_talk: { Args: { p_shop_id: string }; Returns: string }
+      shops_open_order_talk: { Args: { p_order_id: string }; Returns: string }
       shops_talk_view: { Args: { p_talk_id: string }; Returns: Json }
       shops_send_talk_message: { Args: { p_talk_id: string; p_body: string }; Returns: string }
       shops_my_talks: { Args: never; Returns: Json }

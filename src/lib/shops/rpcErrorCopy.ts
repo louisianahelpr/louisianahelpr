@@ -23,6 +23,15 @@ export const SHOPS_RPC_ERROR_COPY = {
     shop_not_found: SC.shop_not_found,
     talk_blocked: SC.talk_blocked,
   },
+  // Q1947 (20261105225245): the chat from an order's card, either side.
+  shops_open_order_talk: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    not_authenticated: SC.not_authenticated,
+    order_not_found: SC.order_not_found,
+    own_shop: SC.own_shop,
+    talk_blocked: SC.talk_blocked,
+  },
   shops_talk_view: {
     feature_disabled: SC.feature_disabled,
     not_authenticated: SC.not_authenticated,

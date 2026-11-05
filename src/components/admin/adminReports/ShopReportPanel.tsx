@@ -36,6 +36,7 @@ export function ShopReportPanel({ shop, reportId, content, open: reportOpen, onD
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const isItem = shop?.kind === "shop_item";
+  const isMessage = shop?.kind === "shop_talk_message";
   const submit = async () => {
     if (!shop) return;
     setBusy(true);
@@ -54,8 +55,8 @@ export function ShopReportPanel({ shop, reportId, content, open: reportOpen, onD
   };
   return (
     <div className="space-y-2 rounded-ds-sm bg-muted/50 p-3 text-ds-11" data-shop-report={shop?.kind ?? "gone"}>
-      {content && <p className="whitespace-pre-wrap [overflow-wrap:anywhere]"><span className="font-semibold">Reported {isItem ? "item" : "shop"}: </span>{content}</p>}
-      {shop && !shopCanComeDown(shop) && (
+      {content && <p className="whitespace-pre-wrap [overflow-wrap:anywhere]"><span className="font-semibold">Reported {isMessage ? "message" : isItem ? "item" : "shop"}: </span>{content}</p>}
+      {shop && !isMessage && !shopCanComeDown(shop) && (
         <p className="font-semibold">{isItem ? "This item is already off the shop." : "This shop is already hidden."}</p>
       )}
       <div className="flex flex-wrap gap-2">

@@ -1136,7 +1136,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 141,
+      "line": 142,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1146,7 +1146,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 159,
+      "line": 160,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -1156,7 +1156,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 171,
+      "line": 172,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -1166,7 +1166,7 @@
     },
     {
       "file": "src/components/PhotoProof.tsx",
-      "line": 230,
+      "line": 231,
       "kind": "toast.warning",
       "title": {
         "form": "template",

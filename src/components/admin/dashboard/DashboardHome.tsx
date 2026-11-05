@@ -29,12 +29,18 @@ interface DashboardHomeProps {
   standing: HomeStanding;
   /** Open serious items in the alert ledger (Health); undefined while loading or unreadable. */
   seriousAlerts: number | undefined;
+  /**
+   * True while the reads that decide the Priority Alerts card (stats, the queue counts, the serious-alert count) are
+   * still out. The card then holds one row's space, so the KPI grid below it is not pushed down when they land (Q2706
+   * Admin CLS 0.209, Builder 3 11-05: the card arriving moved the grid 148 px at 375).
+   */
+  alertsPending?: boolean;
 }
 
 export const DashboardHome = ({
   stats, statsLoading, onNavigate,
   dateRange, setDateRange, customDays, setCustomDays,
-  rangeLabel, prevLabel, dataError, standing, seriousAlerts,
+  rangeLabel, prevLabel, dataError, standing, seriousAlerts, alertsPending = false,
 }: DashboardHomeProps) => {
   const v = (val: number | string) => statsLoading ? "—" : val;
   const healthAlerts = seriousAlerts ?? 0;
@@ -132,6 +138,16 @@ export const DashboardHome = ({
           should see that first"). No subtitle: "Queues with something waiting on you"
           was a paraphrase of "Priority Alerts", and each row below already names
           its own queue and count — three tellings of one fact. */}
+      {alertsPending && !hasAlerts && (
+        <AdminCard
+          title={<span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-accent" /> Priority Alerts</span>}
+        >
+          {/* One PriorityAlert row's box (same border, padding and badge size), drawn empty while the counts load. */}
+          <div data-testid="priority-alerts-reserved" aria-hidden className="rounded-ds-md border border-border/40 p-2.5 sm:p-3.5">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-ds-sm bg-muted/40 animate-pulse" />
+          </div>
+        </AdminCard>
+      )}
       {hasAlerts && (
         <AdminCard
           title={<span className="flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-accent" /> Priority Alerts</span>}
@@ -175,6 +191,7 @@ export const DashboardHome = ({
           trend={newUsersTrend}
           compareLabel={compareCopy}
           sparkline={stats.newUsersSeries}
+          pending={statsLoading}
           onClick={() => onNavigate("people")}
         />
         <KpiCard
@@ -183,6 +200,7 @@ export const DashboardHome = ({
           icon={Briefcase}
           accent="primary"
           sparkline={stats.activeJobsSeries}
+          pending={statsLoading}
           onClick={() => onNavigate("jobs")}
         />
         <KpiCard
@@ -201,6 +219,7 @@ export const DashboardHome = ({
           trend={revenueTrend}
           compareLabel={compareCopy}
           sparkline={stats.revenueSeries}
+          pending={statsLoading}
           accent="accent"
           onClick={() => onNavigate("analytics")}
         />
@@ -242,6 +261,7 @@ export const DashboardHome = ({
               trend={completedTrend}
               compareLabel={compareCopy}
               sparkline={stats.completedJobsSeries}
+              pending={statsLoading}
               onClick={() => onNavigate("analytics")}
             />
           </div>

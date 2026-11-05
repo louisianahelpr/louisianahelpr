@@ -17,6 +17,8 @@
  * functions the migrations define (0 allowed that prod has VOLATILE).
  *
  * @mutate e2e/a11y-prod/a11y-prod.spec.ts | await abortProdWrites(ctx, SUPABASE_URL, OUTPUT_DIR); |
+ * @mutate e2e/a11y-prod/abortProdWrites.ts | if (m === "POST" && /^\/storage\/v1\/object\/sign\/[^/?#]+/.test(path)) return null; |
+ * @mutate e2e/a11y-prod/abortProdWrites.ts | /^\/storage\/v1\/object\/sign\/[^/?#]+/ | /^\/storage\/v1\/object\/(upload\/)?sign\b/
  * @mutate e2e/a11y-prod/readOnlyRpcs.ts | return m ? (m[1].toLowerCase() as Volatility) : "volatile"; | return m ? (m[1].toLowerCase() as Volatility) : "stable";
  */
 import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
@@ -64,6 +66,9 @@ describe("writeVerdict lets through only what cannot write", () => {
     ["GET", "/storage/v1/object/public/a/b.png"],
     ["POST", "/auth/v1/token?grant_type=refresh_token"],
     ["POST", "/rest/v1/rpc/get_reads_only"],
+    // Signing a READ url writes nothing (#2375: the inbox's thumbs; aborted, /messages showed a load failure).
+    ["POST", "/storage/v1/object/sign/message-attachments"],
+    ["POST", "/storage/v1/object/sign/message-attachments/job/sender/a.png"],
   ])("allows %s %s", (m, p) => expect(writeVerdict(m, p, rpcs)).toBeNull());
   it.each([
     ["POST", "/rest/v1/login_history"], // the boot-time write measured on 10-31
@@ -72,6 +77,8 @@ describe("writeVerdict lets through only what cannot write", () => {
     ["PUT", "/rest/v1/saved_searches"],
     ["POST", "/rest/v1/rpc/mark_everything_read"],
     ["POST", "/storage/v1/object/avatars/x.png"],
+    ["POST", "/storage/v1/object/upload/sign/avatars/x.png"], // a signed UPLOAD url is a write
+    ["POST", "/storage/v1/object/sign"],
     ["PUT", "/auth/v1/user"],
     ["POST", "/auth/v1/logout"],
     ["POST", "/graphql/v1"],

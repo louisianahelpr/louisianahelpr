@@ -11,6 +11,11 @@
  *
  *   - GET / HEAD / OPTIONS to REST, storage and auth (reads);
  *   - POST /auth/v1/token (the session refresh the seeded session needs);
+ *   - POST /storage/v1/object/sign/<bucket>[/<path>] (minting a signed READ
+ *     URL; it writes nothing, and RLS on storage.objects still decides). The
+ *     inbox signs its image thumbs this way: aborting it showed "Couldn't load
+ *     image previews" on /messages and failed the gate (a11y-webkit-prod
+ *     41875004762, nightly-red #2375). /object/upload/sign/ stays aborted.
  *   - POST /rest/v1/rpc/<fn> when <fn>'s newest definition is STABLE or
  *     IMMUTABLE (readOnlyRpcs.ts, derived from the migrations at run time);
  *   - /functions/v1/<fn> ONLY for a name in READ_ONLY_FUNCTIONS, whatever the
@@ -47,6 +52,7 @@ export function writeVerdict(method: string, path: string, rpcs: ReadonlySet<str
   if (fn) return READ_ONLY_FUNCTIONS.has(fn[1]) ? null : `edge function ${fn[1]}`;
   if (READ_METHODS.has(m)) return null;
   if (m === "POST" && /^\/auth\/v1\/token(?:[?#]|$)/.test(path)) return null;
+  if (m === "POST" && /^\/storage\/v1\/object\/sign\/[^/?#]+/.test(path)) return null;
   const rpc = /^\/rest\/v1\/rpc\/([^/?#]+)/.exec(path);
   if (rpc) return rpcs.has(rpc[1]) ? null : `volatile rpc ${rpc[1]}`;
   if (path.startsWith("/rest/v1/")) return `table write ${m}`;

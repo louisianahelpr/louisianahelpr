@@ -17,7 +17,7 @@
  * @mutate src/components/profile/publicProfile/PublicProfileMemberActions.tsx |       {showBlock && ( |       {false && (
  * @mutate src/components/profile/publicProfile/PublicProfileMemberActions.tsx |       {showReport && ( |       {false && (
  * @mutate src/components/declutter/DeclutterSellerCard.tsx | to={memberProfilePath(sellerId)} | to={`/user/${sellerId}`}
- * @mutate src/components/profile/PublicProfileForward.tsx |   if (user) return <MemberForward me={user.id} userId={userId} members={members} />; |   if (user) return members;
+ * (The member forward itself is guarded in src/test/profileLinkForwards.test.tsx.)
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";

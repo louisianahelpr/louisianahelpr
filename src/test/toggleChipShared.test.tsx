@@ -9,7 +9,8 @@
  *      TypeScript AST (comments and strings cannot hide or invent one) and pinned in
  *      docs/audit/hand-made-toggle-chips-baseline.json, exact both ways. Measured 11-04 9:40 PM: 58 in 41 files
  *      after Declutter's filter sheet and Buying/Selling status chips moved onto ToggleChip (61 before); 57 in 40
- *      after the Declutter review sheet's quick tags (11-04 10:25 PM).
+ *      after the Declutter review sheet's quick tags (11-04 10:25 PM); 55 in 38 after the pickup-time day chips and
+ *      the porch-day picker (11-04 10:35 PM).
  *   4. WRAP: a phrase chip (the review sheet's tags) may take a second line inside its row; a filter chip keeps one.
  *
  * @mutate src/components/ui/ToggleChip.tsx | aria-pressed={pressed} | role="radio" aria-checked={pressed}
@@ -127,7 +128,7 @@ describe("ToggleChip is the one on/off chip (Q2709)", () => {
 
   it("hand-written <button aria-pressed> per file equals the baseline (exact, both ways)", () => {
     const now = measure();
-    expect(Object.keys(now).length).toBeGreaterThan(38);
+    expect(Object.keys(now).length).toBeGreaterThan(36);
     const base = BASELINE.files as Record<string, number>;
     const diffs: string[] = [];
     for (const f of new Set([...Object.keys(now), ...Object.keys(base)])) {

@@ -7,6 +7,7 @@
  * @mutate src/components/declutter/DeclutterPickupTimes.tsx |       if (ws.some((w) => w.weekday === d)) return ws.filter((w) => w.weekday !== d); |       if (ws.some((w) => w.weekday === d)) return ws;
  * @mutate src/components/declutter/DeclutterPickupTimes.tsx |   if (windows.some((w) => w.ends <= w.starts)) return "Each pickup time must end after it starts."; |
  * @mutate src/components/declutter/DeclutterPickupTimes.tsx |   const [perDay, setPerDay] = useState(() => !sameHoursEveryDay(windows)); |   const [perDay, setPerDay] = useState(() => false);
+ * @mutate src/components/declutter/DeclutterPickupTimes.tsx | <ToggleChip pressed={on} aria-label={WEEKDAYS[day]} | <ToggleChip pressed={!on} aria-label={WEEKDAYS[day]}
  */
 import { describe, expect, it } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";

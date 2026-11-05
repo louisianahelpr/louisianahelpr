@@ -80,7 +80,7 @@ export function ApplyConfirmDialog(props: ApplyConfirmDialogProps) {
             column's minimum equal the item's content-based minimum — one wide
             child (a long unbroken title, a pasted URL in the pitch) would then
             stretch every row past the sheet's right edge. That exact failure
-            is what apply-dialog-fit.spec.ts guards. Do not remove it. */}
+            is what e2e/journeys/apply-sheet.spec.ts guards. Do not remove it. */}
         <div className="min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain px-5 pb-5 pt-3 space-y-3.5">
           {confirmApplyJob && <ApplyJobSummary job={confirmApplyJob} />}
           <ApplyBody {...props} />

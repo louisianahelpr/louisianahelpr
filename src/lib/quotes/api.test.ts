@@ -10,7 +10,7 @@
  *
  * The Supabase client is a recording fake (calls logged, results queued).
  *
- * @mutate src/lib/quotes/api.ts |   if (!LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("invalid_photo"); |
+ * @mutate src/lib/quotes/api.ts |   if (!photos.LISTING_PHOTO_UPLOAD_TYPES.includes(cleaned.type)) throw new Error("invalid_photo"); |
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 

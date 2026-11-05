@@ -13,6 +13,7 @@ import { parseLocalDate } from "@/lib/dateUtils";
 import { cancelPolicyText, formatCents, orderStatusLabel, type ShopOrder } from "@/lib/shops/orders";
 import { fetchOrderPickupAddress } from "@/lib/shops/pickupAddress";
 import { ShopOrderMessageButton } from "./ShopTalk";
+import { ShopOrderReview } from "./ShopReviews";
 
 /** The order statuses in which the buyer may read the shop's pickup address (shops_order_pickup_address). */
 const PICKUP_VISIBLE = new Set(["accepted"]);
@@ -93,6 +94,8 @@ export function ShopOrderCard({
       )}
       {/* Q1947: the chat with the other side, from the order (an order whose buyer deleted their account has none). */}
       {order.buyer_id && <ShopOrderMessageButton orderId={order.id} side={side} />}
+      {/* Shops H9: after the handover, either side reviews the other once. */}
+      <ShopOrderReview orderId={order.id} handedOver={!!order.handed_over_at} />
       {children}
     </li>
   );

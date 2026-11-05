@@ -13936,6 +13936,63 @@ export type Database = {
         }
         Relationships: []
       }
+      shop_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          is_seed: boolean
+          order_id: string
+          removed_at: string | null
+          reviewee_id: string | null
+          reviewer_id: string | null
+          reviewer_side: string
+          shop_id: string
+          stars: number
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          order_id: string
+          removed_at?: string | null
+          reviewee_id?: string | null
+          reviewer_id?: string | null
+          reviewer_side: string
+          shop_id: string
+          stars: number
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          order_id?: string
+          removed_at?: string | null
+          reviewee_id?: string | null
+          reviewer_id?: string | null
+          reviewer_side?: string
+          shop_id?: string
+          stars?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "shop_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shop_reviews_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_strikes: {
         Row: {
           expires_at: string
@@ -21532,6 +21589,11 @@ export type Database = {
         Returns: boolean
       }
       shops_open_talk: { Args: { p_shop_id: string }; Returns: string }
+      shops_leave_review: { Args: { p_order_id: string; p_stars: number; p_comment: string }; Returns: string }
+      shops_shop_reviews: { Args: { p_shop_id: string }; Returns: Json }
+      shops_my_order_review: { Args: { p_order_id: string }; Returns: Json }
+      shop_review_public: { Args: { p_review_id: string }; Returns: boolean }
+      shop_review_rating: { Args: { p_shop_id: string }; Returns: { rating: number; review_count: number }[] }
       shops_open_order_talk: { Args: { p_order_id: string }; Returns: string }
       shops_talk_view: { Args: { p_talk_id: string }; Returns: Json }
       shops_send_talk_message: { Args: { p_talk_id: string; p_body: string }; Returns: string }

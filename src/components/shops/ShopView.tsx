@@ -33,6 +33,7 @@ import ShopPolicies from "./ShopPolicies";
 import ShopItemsList from "./ShopItemsList";
 import { ShopMessageButton, ShopTalkFromLink, ShopTalksCard } from "./ShopTalk";
 import { ShopReportShop } from "./ShopReport";
+import { ShopReviewsCard } from "./ShopReviews";
 import ShopOrderSheet from "./ShopOrderSheet";
 
 function ShopSkeleton() {
@@ -191,6 +192,8 @@ export default function ShopView() {
         )}
         {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} reportable={!s.mine} />}
         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />}
+        {/* Shops H9: the buyers' reviews and the shop's own rating (shown at 3 or more). */}
+        {s.offers_selling && <ShopReviewsCard shopId={s.id} />}
         <ShopHoursCard hours={s.hours} />
         {s.parishes_served.length > 0 && (
           <ShopCard id="shop-parishes" title="Parishes served">

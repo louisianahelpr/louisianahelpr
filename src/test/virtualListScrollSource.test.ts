@@ -1,7 +1,7 @@
 // The registered mutation is the COMMENT shape — the inbox's scroll source
 // deleted but left as a JSX comment, which is exactly what this guard could not
 // see before `blankComments` below. Killing it kills the plain deletion too.
-// @mutate src/components/messages/ConversationList.tsx | scrollElementRef={containerRef} | {/* scrollElementRef={containerRef} */}
+// @mutate src/components/messages/ConversationListBody.tsx | scrollElementRef={containerRef} | {/* scrollElementRef={containerRef} */}
 import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";

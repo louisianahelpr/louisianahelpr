@@ -8,7 +8,7 @@
  * that tab's OWN nav icon (navIconFor), and none draws an illustration instead.
  *
  * @mutate src/components/job-card/ActivityEmptyState.tsx |   const Icon = navIconFor(isPosted ? "/posts" : "/jobs"); |   const Icon = navIconFor("/home");
- * @mutate src/components/messages/ConversationList.tsx |                 icon={navIconFor("/messages")} |                 icon={navIconFor("/home")}
+ * @mutate src/components/messages/ConversationListBody.tsx |                 icon={navIconFor("/messages")} |                 icon={navIconFor("/home")}
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -21,7 +21,7 @@ describe("every main-tab empty page wears its own nav icon in the shared circle"
     expect(src("src/components/job-card/ActivityEmptyState.tsx")).toMatch(/const Icon = navIconFor\(isPosted \? "\/posts" : "\/jobs"\);/);
   });
   it("Messages: the Messages nav icon, and no illustration in its place", () => {
-    const s = src("src/components/messages/ConversationList.tsx");
+    const s = src("src/components/messages/ConversationListBody.tsx");
     const block = s.slice(s.indexOf('title={t("chat.emptyTitle")}') - 400, s.indexOf('title={t("chat.emptyTitle")}'));
     expect(block).toMatch(/icon=\{navIconFor\("\/messages"\)\}/);
     expect(block).not.toMatch(/illustration=/);

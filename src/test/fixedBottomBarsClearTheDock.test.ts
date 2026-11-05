@@ -50,7 +50,7 @@ const FILES = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "u
 
 // @two-way src/test/fixedBottomBarsClearTheDock.test.ts:stale fixed-bottom-bar exception
 const EXACT_EXCEPTIONS: Record<string, { count: number; why: string }> = {
-  "src/components/messages/ConversationList.tsx": {
+  "src/components/messages/ConversationListBody.tsx": {
     count: 1,
     why: "bulk-hide bar at a hand-typed safe-area + 80px, above the dock's 62px box (h-14 pill + mb-1.5); it does not read --bottom-nav-h",
   },

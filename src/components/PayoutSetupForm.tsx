@@ -3,9 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { PayoutBusinessFields } from "@/components/payouts/PayoutBusinessFields";
 import {
   CheckCircle, AlertCircle, Loader2, Trash2, Building2, CreditCard, ExternalLink, RefreshCw,
 } from "lucide-react";
@@ -478,38 +477,7 @@ export function PayoutSetupForm({ onSettled }: {
               in a 246px button, "Stripe" cut at the right). It wraps to a
               second line instead. Guard: PayoutSetupForm.test.tsx. */}
           {!status?.connected && (
-            <div data-payout-business className="space-y-2">
-              <div className="flex items-start gap-2">
-                <Checkbox
-                  id="payout-is-business"
-                  checked={isBusiness}
-                  onCheckedChange={(v) => setIsBusiness(v === true)}
-                  disabled={onboarding}
-                  className="mt-0.5"
-                />
-                <label htmlFor="payout-is-business" className="font-sans text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
-                  This is a registered business (LLC or corporation)
-                </label>
-              </div>
-              {isBusiness && (
-                <div className="space-y-1">
-                  <label htmlFor="payout-business-name" className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
-                    Business legal name
-                  </label>
-                  <Input
-                    id="payout-business-name"
-                    value={businessName}
-                    onChange={(e) => setBusinessName(e.target.value)}
-                    maxLength={120}
-                    autoComplete="organization"
-                    disabled={onboarding}
-                  />
-                  <p className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
-                    Stripe will ask for the business's tax ID (EIN) and for you as its owner.
-                  </p>
-                </div>
-              )}
-            </div>
+            <PayoutBusinessFields isBusiness={isBusiness} onIsBusiness={setIsBusiness} businessName={businessName} onBusinessName={setBusinessName} disabled={onboarding} />
           )}
           <Button
             variant="primary"

@@ -379,7 +379,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/notificationPreferences/QuietTimeInput.tsx` | input×1, date/calendar×1 | time |  |  |
 | `src/components/notificationPreferences/SmsAlertsCard.tsx` | input×2, checkbox/switch/radio×1 | text, tel | 4 | sms-alerts-card · Loading text alert settings · 1234 · Stop text alerts? · (225) 555-0123 |
 | `src/components/notificationPreferences/SwitchSlot.tsx` | checkbox/switch/radio×1 |  |  | Saving |
-| `src/components/PayoutSetupForm.tsx` | input×1, checkbox/switch/radio×1 | text | 120 | payout-is-business · payout-business-name · payout-start-error |
+| `src/components/payouts/PayoutBusinessFields.tsx` | input×1, checkbox/switch/radio×1 | text | 120 | payout-is-business · payout-business-name |
 | `src/components/profile/AccessibilityTab.tsx` | checkbox/switch/radio×1 |  |  | a11y-bigger-text |
 | `src/components/profile/AvailabilityTab.tsx` | checkbox/switch/radio×2 |  |  | show-near-you-row · Show me in Helprs near you |
 | `src/components/profile/CredentialsTab.tsx` | input×1 | text |  | business-name · e.g. Bayou Plumbing LLC · business-name-help |

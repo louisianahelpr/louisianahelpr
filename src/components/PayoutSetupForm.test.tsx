@@ -507,7 +507,7 @@ describe("PayoutSetupForm, the start button fits at 320", () => {
  *
  * @mutate src/components/PayoutSetupForm.tsx | body: { action, return_url: returnUrl, ...business }, | body: { action, return_url: returnUrl },
  * @mutate src/components/PayoutSetupForm.tsx | if (!status?.connected && isBusiness && businessName.trim().length < 2) { | if (false) {
- * @mutate src/components/PayoutSetupForm.tsx | {!status?.connected && (\n            <div data-payout-business | {(\n            <div data-payout-business
+ * @mutate src/components/PayoutSetupForm.tsx | {!status?.connected && (\n            <PayoutBusinessFields | {(\n            <PayoutBusinessFields
  */
 describe("PayoutSetupForm, a registered business sets up a business payout account", () => {
   const noAccount = { connected: false, details_submitted: false, payouts_enabled: false, transfers_status: null, requirements: [] };

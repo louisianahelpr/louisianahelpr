@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useQuery } from "@tanstack/react-query";
 import { Gift, Loader2, Share2 } from "lucide-react";
 import { jobIsUnfundedDraft } from "@/components/job-card/activityFilters";
@@ -499,14 +500,13 @@ const HelprWrapped = ({ onBack }: { onBack?: () => void }) => {
                     style={{ color: "hsl(var(--accent-ink))" }}
                   >
                     Some of your {YEAR} didn't load, so these numbers may be low.{" "}
-                    <button
-                      type="button"
+                    <InlineTextButton
                       onClick={() => void refetch()}
                       disabled={isFetching}
                       className="underline underline-offset-2 disabled:opacity-60"
                     >
                       Try again
-                    </button>
+                    </InlineTextButton>
                   </p>
                 )}
               </div>

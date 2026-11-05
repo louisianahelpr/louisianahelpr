@@ -15,6 +15,7 @@
  */
 
 import { useState } from "react";
+import { ListRow } from "@/components/ui/ListRow";
 
 import { CalendarDays, Plus, ChevronDown, X } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
@@ -343,8 +344,9 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
                       everywhere else a form/sheet closes in this app (see
                       PetForm's header X). Click target and behavior
                       (toggle addOpen) are unchanged — only the icon/label. */}
-                  <button
-                    className="w-full flex items-center justify-between px-4 py-3.5"
+                  <ListRow
+                    variant="flush"
+                    className="min-h-11 justify-between"
                     onClick={() => setAddOpen((v) => !v)}
                     aria-expanded={addOpen}
                     aria-controls={addOpen ? "add-calendar-form" : undefined}
@@ -373,7 +375,7 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
                     ) : (
                       <ChevronDown className="w-4 h-4" style={{ color: "hsl(var(--olivewood) / 0.8)" }} />
                     )}
-                  </button>
+                  </ListRow>
 
                   {addOpen && (
                     <div id="add-calendar-form" className="px-4 pb-4">

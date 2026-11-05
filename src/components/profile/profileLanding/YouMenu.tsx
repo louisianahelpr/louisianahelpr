@@ -1,4 +1,5 @@
 import { Bell, Headphones, LogOut, Settings, ShieldAlert, Wallet } from "lucide-react";
+import { ListRow } from "@/components/ui/ListRow";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -84,14 +85,14 @@ export function YouMenuList({
       {youRows(showAdmin).map((row, i) => {
         const cap = captions?.[row.key];
         return (
-          <button
+          <ListRow
+            variant="flush"
             key={row.key}
-            type="button"
             data-you-row={row.key}
             onClick={onSelect ? () => onSelect(row.key) : undefined}
             disabled={!onSelect}
             tabIndex={onSelect ? undefined : -1}
-            className="glass-press relative w-full min-h-[56px] flex items-center gap-3.5 px-4 py-3 text-left ctl-tint transition-colors disabled:opacity-100"
+            className="glass-press relative min-h-[56px] gap-3.5 py-3 transition-colors disabled:opacity-100"
           >
             {i > 0 && <span aria-hidden className="hairline pointer-events-none absolute top-0 left-4 right-4" />}
             <span className="shrink-0" style={{ color: "hsl(var(--bark))" }}>{ICON[row.key]}</span>
@@ -108,7 +109,7 @@ export function YouMenuList({
                 {cap}
               </span>
             )}
-          </button>
+          </ListRow>
         );
       })}
     </section>

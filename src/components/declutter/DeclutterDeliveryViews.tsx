@@ -14,6 +14,7 @@
  */
 import { NextStep } from "@/components/ui/NextStep";
 import { Button } from "@/components/ui/button";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { stillInHandLine } from "@/lib/declutter/stillInHand";
 import { DELIVERY_ADDRESSES_SHOW } from "@/lib/declutter/deliveryAddressWords";
 import { useEffect, useState } from "react";
@@ -362,10 +363,10 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
   });
   const v = view.data;
   const toRoute = (
-    <button type="button" className="min-h-11 text-left text-ds-13 font-semibold underline" data-task-steps-on-route=""
+    <InlineTextButton className="text-left text-ds-13 font-semibold underline" data-task-steps-on-route=""
       onClick={() => document.querySelector('[aria-label="Your route"]')?.scrollIntoView({ block: "start" })}>
       Take the photo at this stop on your route
-    </button>
+    </InlineTextButton>
   );
   return (
     <li className="rounded-2xl border border-border bg-card p-4 space-y-2">

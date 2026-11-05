@@ -13,6 +13,7 @@ import { TipCostBreakdown, TipPicker, centsLabel } from "@/components/TipCostBre
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchMyPaidDeliveryTips, startDeliveryTip } from "@/lib/declutter/deliveryTip";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { tipsNotReadyLine } from "@/hooks/useHelprTakesTips";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS } from "../../../supabase/functions/_shared/tipFees";
@@ -77,10 +78,10 @@ export function DeliveryTipPanel({ taskId, helprFirstName }: { taskId: string; h
       </div>
       <TipPicker jobPriceDollars={null} valueDollars={dollars} onChange={setDollars} />
       {valid && <TipCostBreakdown tipDollars={dollars!} receiverName={helprFirstName ?? undefined} />}
-      <button type="button" className="btn-grad-primary min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold"
+      <Button type="button" size="sm" className="w-full"
         disabled={!valid || busy} onClick={() => send.mutate(cents)}>
         {busy ? "Opening payment…" : valid ? `Tip ${centsLabel(cents)}` : "Tip"}
-      </button>
+      </Button>
     </section>
   );
 }

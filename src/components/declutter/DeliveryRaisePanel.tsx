@@ -16,6 +16,7 @@ import { startDeliveryRaise, type DeliveryRaise } from "@/lib/declutter/delivery
 import { deliveryRaiseQuery } from "@/lib/declutter/deliveryRaiseQuery";
 import { raiseCardFeeCents, RAISE_MIN_CENTS } from "@/lib/declutter/raiseFee";
 import { openExternalUrl } from "@/lib/openExternalUrl";
+import { Button } from "@/components/ui/button";
 
 const money = "font-semibold tabular-nums text-[hsl(var(--accent-ink))]";
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -115,9 +116,9 @@ export function DeliveryRaisePanel({ orderId }: { orderId: string }) {
             This is a second card payment.
             {s.open_until ? ` If no Helpr takes the delivery by ${when(s.open_until)}, all of it comes back with what you paid for delivery.` : ""}
           </p>
-          <button type="submit" className="btn-grad-primary min-h-11 w-full rounded-full px-4 py-2 text-sm font-semibold" disabled={!valid || busy}>
+          <Button type="submit" size="sm" className="w-full" disabled={!valid || busy}>
             {busy ? "Opening payment…" : "Raise the pay"}
-          </button>
+          </Button>
         </form>
       )}
     </section>

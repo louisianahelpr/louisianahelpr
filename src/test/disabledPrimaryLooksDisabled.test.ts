@@ -48,9 +48,10 @@ describe("a disabled primary looks disabled (deep audit #48)", () => {
         if (/disabled=/.test(m[0]) && /btn-grad-primary|className=\{(?:`\$\{)?primary\b/.test(m[0])) n++;
       }
     }
-    // Floor: 3 hand-rolled disabled primaries on 2026-11-04 after the Q2709 Declutter packets moved the rest onto the
+    // Floor: 1 hand-rolled disabled primary on 2026-11-05 after the Q2709 Declutter packets moved the rest onto the
     // shared Button / ToggleChip (each draws its own disabled look; packet 17 took checkout's Pay, the day chips took
-    // DeclutterPickupTimes' DayChip, the offers packet took Accept and Send); the rule still has these to cover.
-    expect(n).toBeGreaterThan(2);
+    // DeclutterPickupTimes' DayChip, the offers packet took Accept and Send, the delivery pay packet took Raise the pay
+    // and Tip); the rule still has this one to cover.
+    expect(n).toBeGreaterThan(0);
   });
 });

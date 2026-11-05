@@ -60,6 +60,8 @@ const profileRoute = () => import("@/boot/profileRoute");
 // B52 (11-03): the Posted / Working lists are JobsSection's lazy chunk; a link that opens on one starts it from here
 // (see that file, which keeps the URL test and the lists' preload list out of the entry).
 const jobsListRoute = () => import("@/boot/jobsListRoute");
+// postJobRoute keeps PostJob's preload list out of the entry (see that file).
+const postJobRoute = () => import("@/boot/postJobRoute");
 
 /** Path -> the chunks that route cannot paint without. Exported for tests. */
 export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unknown>>; signedIn: Array<() => Promise<unknown>> }> = {
@@ -97,7 +99,7 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
   },
   "/post-job": {
     guest: [protectedRoute],
-    signedIn: [() => import("@/pages/post-job/PostJob"), protectedRoute],
+    signedIn: [postJobRoute, protectedRoute],
   },
   // profileRoute keeps Profile's preload list out of the entry (see that file).
   "/profile": {

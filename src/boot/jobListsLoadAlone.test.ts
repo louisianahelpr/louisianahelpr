@@ -14,7 +14,7 @@
 // @mutate src/boot/jobsListRoute.ts | return tab ? tab === "posted" \|\| tab === "working" : | return tab ? tab === "posted" :
 // @mutate src/boot/jobsListRoute.ts | if (jobListsOpenFirst(location.pathname, location.search)) { | if (false) {
 // @mutate src/boot/jobsListRoute.ts |   if (!before.has(link)) link.setAttribute("data-lh-page-preload", ""); |
-// @mutate scripts/perf/bootReach.mjs | toPosix(path.join(root, PROFILE_ROOT)), toPosix(path.join(root, JOB_LISTS_ROOT))]; | toPosix(path.join(root, PROFILE_ROOT))];
+// @mutate scripts/perf/bootReach.mjs | toPosix(path.join(root, POST_JOB_ROOT)), toPosix(path.join(root, JOB_LISTS_ROOT))]; | toPosix(path.join(root, POST_JOB_ROOT))];
 // @mutate src/pages/jobs/JobsSection.tsx | (onBrowse ? prefetchRoutesWhenIdle([JOB_LISTS_PREFETCH_KEY]) : undefined) | undefined
 // @mutate src/pages/posts/PostsPage.tsx | import("@/components/job-card/JobListPage").catch(() => { | Promise.resolve().catch(() => {
 // @mutate src/lib/routePrefetch.ts |   [JOB_LISTS_PREFETCH_KEY]: () => import("@/components/job-card/JobListPage"), |

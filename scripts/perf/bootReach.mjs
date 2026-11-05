@@ -152,6 +152,12 @@ const DECLUTTER_ROOTS = [
 /** /profile starts its page through src/boot/profileRoute.ts; the page itself is named so the walk reaches it. */
 const PROFILE_ROOT = "src/pages/profile/Profile.tsx";
 /**
+ * /post-job starts its page through src/boot/postJobRoute.ts (11-04: its preload list put the entry over its band);
+ * the page itself is named so the walk reaches it. Unnamed, its first-screen modules fell to signed-in-deep and
+ * regrouped the chunks other pages share (/profile?tab=earnings 363 -> 530 KB gz, 6 -> 7 rounds, measured).
+ */
+const POST_JOB_ROOT = "src/pages/post-job/PostJob.tsx";
+/**
  * B52 (11-03): the Posted / Working lists, JobsSection's lazy chunk, which a list link starts through
  * src/boot/jobsListRoute.ts (a dynamic import the walk does not follow). Named so its modules stay grouped as a first
  * screen's: unnamed, they fell to signed-in-deep and the lists' chunk pulled signed-in-deep, declutter-first-screen
@@ -193,11 +199,11 @@ export function firstScreenRoots(root) {
   for (const r of EVERY_PAGE_ROOTS) {
     if (!fs.existsSync(path.join(root, r))) throw new Error(`bootReach: EVERY_PAGE_ROOTS names ${r}, which does not exist. Fix the list.`);
   }
-  // /declutter and /profile start their pages through boot route files, dynamic imports
+  // /declutter, /profile and /post-job start their pages through boot route files, dynamic imports
   // the walk does not follow, so each page itself is named.
   // HOME_DERIVE_ROOT (B51): Home's derivations, a dynamic import Home's chunk starts; see homeFirstScreenRoots.
   // JOB_LISTS_ROOT (B52): the Posted / Working lists, which src/boot/jobsListRoute.ts starts on a list link.
-  return [...roots, toPosix(path.join(root, HOME_DERIVE_ROOT)), ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r))), ...DECLUTTER_ROOTS.map((r) => toPosix(path.join(root, r))), toPosix(path.join(root, PROFILE_ROOT)), toPosix(path.join(root, JOB_LISTS_ROOT))];
+  return [...roots, toPosix(path.join(root, HOME_DERIVE_ROOT)), ...EVERY_PAGE_ROOTS.map((r) => toPosix(path.join(root, r))), ...DECLUTTER_ROOTS.map((r) => toPosix(path.join(root, r))), toPosix(path.join(root, PROFILE_ROOT)), toPosix(path.join(root, POST_JOB_ROOT)), toPosix(path.join(root, JOB_LISTS_ROOT))];
 }
 
 /**

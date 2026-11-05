@@ -14,7 +14,7 @@
 --      hidden_at (lh-authz-rls note on b5-shops-h1, 11-05).
 --   6. NEW shops_open_order_talk(order): the chat for a shop order, from its card, for either side. The buyer gets
 --      their thread with the shop; the shop's owner gets their thread with that buyer (made on first use). Not for a
---      stranger, an order whose buyer deleted their account, or a blocked pair.
+--      stranger, an order whose buyer deleted their account, a shop the shop-state rule hides, or a blocked pair.
 -- NOT HERE: export_my_data's shop_talks / shop_talk_messages sections (ready/b1-export-item-views restates
 -- export_my_data in 20261105184827 and has not landed; the export slice is built on it after it lands).
 -- MONEY: none. AUTHZ: the report trigger's party rule, an admin read, one new member RPC (lh-authz-rls).
@@ -452,6 +452,11 @@ BEGIN
   END IF;
   IF o.buyer_id = v_owner THEN
     RAISE EXCEPTION 'own_shop' USING ERRCODE = '22023';
+  END IF;
+  -- lh-authz-rls note (db407dedb9): no new thread for a shop the shop-state rule hides (hidden, a test shop while test
+  -- data is hidden, the owner's standing). An existing thread still reads, closed, from Messages.
+  IF NOT public.shop_state_ok(o.shop_id) THEN
+    RAISE EXCEPTION 'talk_closed' USING ERRCODE = '22023', HINT = 'This shop is not on Helpr right now.';
   END IF;
   IF public.are_users_blocked(o.buyer_id, v_owner) THEN
     RAISE EXCEPTION 'talk_blocked' USING ERRCODE = '42501';

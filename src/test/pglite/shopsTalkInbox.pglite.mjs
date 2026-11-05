@@ -181,6 +181,8 @@ const closed = await send(BUYER, "Hello?");
 ok("a shop whose owner is out of good standing refuses a send", /talk_closed/.test(closed.err ?? ""), closed.err ?? "sent");
 const vClosed = (await as(BUYER, `SELECT public.shops_talk_view($1) AS v`, [TALK])).rows[0]?.v;
 ok("and the chat reads as closed", vClosed?.open === false, JSON.stringify(vClosed?.open));
+const oClosed = await as(BUYER, `SELECT public.shops_open_order_talk($1) AS id`, [ORDER]);
+ok("and an order card opens no chat for it (lh-authz-rls note)", /talk_closed/.test(oClosed.err ?? ""), oClosed.err ?? "opened");
 await db.exec(`DELETE FROM public.bad_standing`);
 await db.exec(`UPDATE public.shops SET is_seed = true WHERE id = '${SHOP}'`);
 const seedSend = await send(BUYER, "Hello again?");

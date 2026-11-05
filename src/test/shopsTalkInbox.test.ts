@@ -8,6 +8,7 @@
  * @mutate supabase/migrations/20261105225245_shops_talk_inbox_and_reports.sql |   IF NOT public.shop_state_ok(s.id) THEN\n    RAISE EXCEPTION 'talk_closed' |   IF s.hidden_at IS NOT NULL THEN\n    RAISE EXCEPTION 'talk_closed'
  * @mutate supabase/migrations/20261105225245_shops_talk_inbox_and_reports.sql |      OR (v_uid IS DISTINCT FROM o.buyer_id AND v_uid IS DISTINCT FROM v_owner) THEN |      THEN
  * @mutate supabase/migrations/20261105225245_shops_talk_inbox_and_reports.sql | REVOKE ALL ON FUNCTION public.shops_open_order_talk(uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.shops_open_order_talk(uuid) FROM PUBLIC;
+ * @mutate supabase/migrations/20261105225245_shops_talk_inbox_and_reports.sql |   IF NOT public.shop_state_ok(o.shop_id) THEN | IF false THEN
  * @mutate src/pages/messages/useMessageSections.tsx |     if (section === "shops" && live.shops) empty.Lead = ShopTalkLead;\n |
  * @mutate src/components/shops/ShopOrderCard.tsx |       {order.buyer_id && <ShopOrderMessageButton orderId={order.id} side={side} />}\n |
  * @mutate src/components/shops/ShopTalk.tsx | reportedType="shop_talk_message" | reportedType="message"
@@ -53,6 +54,7 @@ describe("Q1947: shop chats in Messages, from an order, and reportable", () => {
     expect(fn).toContain("PERFORM public.require_feature('shops')");
     expect(fn).toContain("OR (v_uid IS DISTINCT FROM o.buyer_id AND v_uid IS DISTINCT FROM v_owner) THEN RAISE EXCEPTION 'order_not_found'");
     expect(fn).toContain("IF public.are_users_blocked(o.buyer_id, v_owner) THEN RAISE EXCEPTION 'talk_blocked'");
+    expect(fn).toContain("IF NOT public.shop_state_ok(o.shop_id) THEN RAISE EXCEPTION 'talk_closed'");
     const file = blankSqlComments(readFileSync(resolve(ROOT, "supabase/migrations", DEFS.get("shops_open_order_talk")?.file ?? ""), "utf8")).replace(/\s+/g, " ");
     expect(file).toContain("REVOKE ALL ON FUNCTION public.shops_open_order_talk(uuid) FROM PUBLIC, anon;");
   });

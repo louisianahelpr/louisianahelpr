@@ -330,11 +330,14 @@
       "button": 1
     },
     "src/components/messages/ConversationList.tsx": {
-      "button": 5,
+      "button": 4,
       "input": 2
     },
     "src/components/messages/ConversationListBody.tsx": {
       "button": 3
+    },
+    "src/components/messages/ConversationListHeader.tsx": {
+      "button": 1
     },
     "src/components/messages/ConversationRow.tsx": {
       "button": 2

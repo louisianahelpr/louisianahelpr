@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-05T05:00:47.379Z",
-  "guards": 3531,
-  "registered": 3530,
+  "generated": "2026-11-05T05:35:10.083Z",
+  "guards": 3533,
+  "registered": 3532,
   "unregistered": [
     "src/components/job-card/useFollowOpenCard.test.ts"
   ],
@@ -30,6 +30,12 @@
       ]
     },
     {
+      "file": "src/test/cwvLabBlocksProdWrites.test.ts",
+      "why": [
+        "contexts (literal declared in this file) is both input and oracle"
+      ]
+    },
+    {
       "file": "src/test/offlineBannerOverDesktopBar.test.ts",
       "why": [
         "values (literal declared in this file) is both input and oracle"
@@ -39,6 +45,12 @@
       "file": "src/test/prodSeedGroupJobFixture.test.ts",
       "why": [
         "rows (literal declared in this file) is both input and oracle"
+      ]
+    },
+    {
+      "file": "src/test/toggleChipShared.test.tsx",
+      "why": [
+        "chips (literal declared in this file) is both input and oracle"
       ]
     }
   ],

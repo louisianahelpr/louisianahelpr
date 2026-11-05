@@ -81,9 +81,9 @@
  * in the table CHECK; the keep-card-fee amount refunding the fee; (b) a new reason added unclassified; the sites
  * sending something other than the row's refund_cents.
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |     fee_policy = CASE WHEN reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'helpr_fault') THEN |     fee_policy = CASE WHEN reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described') THEN
- * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql |   v_policy := CASE WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'helpr_fault', 'ship_lost') THEN |   v_policy := CASE WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'ship_lost') THEN
- * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql |     IF p_reason = 'helpr_fault' THEN |     IF p_reason = 'helpr_fault_x' THEN
- * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault', 'refund_request_full') THEN 'keep_card_fee' | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'refund_request_full') THEN 'keep_card_fee'
+ * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql |   v_policy := CASE WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'helpr_fault', 'ship_lost') THEN |   v_policy := CASE WHEN p_reason IN ('seller_backed_out', 'seller_out', 'seller_no_show', 'not_as_described', 'ship_lost') THEN
+ * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql |     IF p_reason = 'helpr_fault' THEN |     IF p_reason = 'helpr_fault_x' THEN
+ * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'admin_no_fault', 'refund_request_full') THEN 'keep_card_fee' | WHEN p_reason IN ('buyer_cancelled', 'buyer_restarted_checkout', 'refund_request_full') THEN 'keep_card_fee'
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHEN reason IN ('buyer_no_show', 'admin_buyer_fault') THEN 'keep_buyer_fee' | WHEN reason IN ('buyer_no_show') THEN 'keep_buyer_fee'
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHEN fee_policy = 'keep_card_fee' THEN paid_cents - card_fee_cents | WHEN fee_policy = 'keep_card_fee' THEN paid_cents
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |     'refund_request_full', 'refund_request_part'));   -- 141d |     'refund_request_full', 'refund_request_part', 'buyer_changed_mind'));   -- 141d
@@ -94,8 +94,8 @@
  * M5 the fee estimate, note 1 the reader projection); table statements (M2 an UPDATE, M6 a trigger, an order
  * card-fee UPDATE); the site (M3 the fee handed to the SQL, M12 a second amount spread in).
  * @mutate supabase/migrations/20261105030604_declutter_gift_cards.sql | 'duplicate_payment', p_amount_cents, p_card_fee_cents)); | 'order_closed', p_amount_cents, 0));
- * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
- * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
+ * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql |     v_fee := least(v_fee, p_paid_cents - 1); |     v_fee := least(v_fee, p_paid_cents - 1);\n    IF p_reason = 'admin_no_fault' THEN v_fee := 0; END IF;
+ * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
  * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    0);
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
  * @mutate supabase/migrations/20261103225232_declutter_damage_refund_stops_waiting_on_seller.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
@@ -488,6 +488,11 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // Q2259 shipping lost sweep (20261103203204, B61, lead PASS lh-money-escrow 11-03): the reason CHECK, the policy CHECK and
     // declutter_record_refund restated verbatim (prod md5) with ONE new reason, ship_lost -> full_seller_pays_fee
     // (decision 5: lost in the mail = the seller; everything back, the card fee and the spent label are the seller's debt).
+    // Q2106 S3b (20261105042758, Builder 3, lead review owed): declutter_record_refund restated from 20261103203204 with
+    // the gift share: the card fee is estimated on the CARD part only (a gift-only payment has none), what is kept comes
+    // out of the card part first, and a gift-only order's refund row has no payment intent. Reasons, the v_policy CASE
+    // and the CHECKs on reason/policy/amount are unchanged (still 20261103203204's); the table gains gift_refund_cents
+    // and two CHECKs (functionMigration below).
     migration: "20261103203204_shipping_lost_sweep.sql",
     // A3-72 (20261102031000, lead 11-01 9:05 PM; kept by the A3 reconcile, builder 166): the reason CHECK adds
     // 'delivery_never_booked' and the reason -> policy CHECK is restated unchanged beside it (the new reason takes its
@@ -500,9 +505,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     // card fee (fee * total / (total + setup fee)). Reasons, policies and the CHECKs are unchanged.
     // Q2556 (20261102080936): restated verbatim from 20261102061022; only an out seller's refused payment
     // (seller_out on a payment the order never took) skips record_refund's own notice. Amounts, policies, reasons unchanged.
-    functionMigration: "20261103203204_shipping_lost_sweep.sql",
+    functionMigration: "20261105042758_declutter_gift_refund_rows.sql",
     proofs: ["src/test/pglite/declutterSellerDeliveryBookBy.pglite.mjs", "src/test/pglite/a3StackReconcile.pglite.mjs", "src/test/pglite/declutterCardFeeSetupShare.pglite.mjs", "src/test/pglite/declutterSellerOutAfterPayment.pglite.mjs", "src/test/pglite/helprDeliveryCantFinish.pglite.mjs", "src/test/pglite/declutterSlice3b.pglite.mjs", "src/test/pglite/declutterSlice4.pglite.mjs", "src/test/pglite/declutterDelivery.pglite.mjs",
-      "src/test/pglite/declutterSellerOutPaysFee.pglite.mjs", "src/test/pglite/declutterRefundRequests.pglite.mjs", "src/test/pglite/shippingLostSweep.pglite.mjs"],
+      "src/test/pglite/declutterSellerOutPaysFee.pglite.mjs", "src/test/pglite/declutterRefundRequests.pglite.mjs", "src/test/pglite/shippingLostSweep.pglite.mjs",
+      "src/test/pglite/declutterGiftRefundRows.pglite.mjs", "src/test/pglite/declutterGiftRecordRefund.pglite.mjs"],
     reasonCheck: "declutter_refunds_reason_check",
     policySources: [
       { where: "declutter_refunds_policy", kind: "constraint", name: "declutter_refunds_policy", pattern: /^fee_policy\s*=\s*(CASE\b.*\bEND)$/i, subject: "reason" },
@@ -755,7 +761,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Q2556 (20261102080936): restated verbatim from 20261102061022; only the seller notice skips a seller_out refund
       // of a payment the order never took (mark_order_paid tells that seller). Amounts, policies and the debt row unchanged.
       // Q2259 lost sweep (20261103203204, lead PASS 11-03): verbatim (prod md5 ffe25aeb); only ship_lost joins full_seller_pays_fee.
-      declutter_record_refund: "20261103203204_shipping_lost_sweep.sql e45624435670a008",
+      // Q2106 S3b (20261105042758): the gift share; the card fee on the card part only (see migration above).
+      declutter_record_refund: "20261105042758_declutter_gift_refund_rows.sql 7a1149d2482fbbb0",
       // B100 (20261030134109): take back a problem report. Records no refund: it only marks the problem and the buyer's own
       // to_admin refund request 'withdrawn'; no amount, fee or payout is read or written.
       // T9 (20261031004529): taking back the buyer's no-show report also clears it, so the sweep can't refund on it; verdict owed.
@@ -914,6 +921,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // BUY-36: the reason CHECK and the reason -> policy CHECK swapped to add 'helpr_fault' (full_seller_pays_fee).
       // A3-72: the reason CHECK adds 'delivery_never_booked'; the policy CHECK statements hash the same as 20261031231150's.
       // Q2259 lost sweep (lead PASS 11-03): the reason CHECK and the policy CHECK each add ship_lost.
+      // Q2106 S3b: gift_refund_cents, its 0..refund CHECK, the payment intent nullable only for an all-gift row, one such
+      // row per order. No amount, fee or policy CHECK changes.
+      "declutter_refunds 20261105042758_declutter_gift_refund_rows.sql": ["01a4c9b634c92a93","81bb8bb4a3ee795a","ae954ccab6a92c38","d7f39ce10abc7070","86cf365eaf9d155b","2983c1cd97534153"],
       "declutter_refunds 20261103203204_shipping_lost_sweep.sql": ["1192c0e245b11665", "586eca928b6d3894", "afb94a44f9fb4011", "95c01ec626194161"],
       "declutter_refunds 20261102031000_declutter_seller_delivery_book_by.sql": ["1192c0e245b11665", "ee6fde0ace2bcc93", "afb94a44f9fb4011", "a6c1e85c039a7127"],
       "declutter_refunds 20261031231150_helpr_delivery_cant_finish.sql": ["1192c0e245b11665", "dafbb2cea83bdc81", "afb94a44f9fb4011", "a6c1e85c039a7127"],
@@ -948,7 +958,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     ],
     /** Fragments of declutter_record_refund's body, whitespace-collapsed, that decide the fee and the amount. */
     bodies: { declutter_record_refund: [
-      "v_fee := least(p_paid_cents, greatest(0, COALESCE(p_card_fee_cents, public.declutter_card_fee_estimate(p_paid_cents))));",
+      "v_fee := CASE WHEN v_card_paid <= 0 THEN 0 ELSE least(v_card_paid, greatest(0, COALESCE(p_card_fee_cents, public.declutter_card_fee_estimate(v_card_paid)))) END;",
       "IF v_policy = 'keep_card_fee' THEN v_fee := least(v_fee, p_paid_cents - 1);",
       "v_kept := v_order.premium_cents;",
       "CASE WHEN v_policy = 'keep_card_fee' THEN p_paid_cents - v_fee WHEN v_policy = 'keep_buyer_fee' THEN p_paid_cents - v_kept ELSE p_paid_cents END",

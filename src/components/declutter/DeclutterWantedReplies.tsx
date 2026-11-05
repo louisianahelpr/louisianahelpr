@@ -14,6 +14,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { PhotoTileButton } from "@/components/ui/PhotoTileButton";
 import { RadioCardList } from "@/components/ui/RadioCardList";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { photoPublicUrl } from "@/lib/declutter/api";
@@ -128,9 +129,9 @@ function IHaveThisSheet({ post, userId, onClose, startItemId = null }: { post: W
                 <ul className="mt-2 flex flex-wrap gap-2" aria-label="Photos" data-wanted-sheet-photos="">
                   {photos.map((p, i) => (
                     <li key={p}>
-                      <button type="button" className="block h-20 w-20 overflow-hidden rounded-xl" aria-label={`See photo ${i + 1} of ${post.what}`} onClick={() => setBigPhoto(i)}>
+                      <PhotoTileButton className="block h-20 w-20 rounded-xl" aria-label={`See photo ${i + 1} of ${post.what}`} onClick={() => setBigPhoto(i)}>
                         <FallbackImg src={photoPublicUrl(p)} alt="" className="h-full w-full bg-photo-empty object-cover" />
-                      </button>
+                      </PhotoTileButton>
                     </li>
                   ))}
                 </ul>

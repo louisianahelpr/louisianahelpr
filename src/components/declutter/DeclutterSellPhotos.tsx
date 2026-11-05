@@ -10,6 +10,7 @@
 import { useEffect, useMemo, type ReactNode } from "react";
 import { Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { photoPublicUrl, type DeclutterPhoto } from "@/lib/declutter/api";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS } from "@/lib/declutter/photoRules";
 import { CARD_PHOTO_SMALL_PX, squarePhotoUrl } from "@/lib/declutter/photoSizes";
@@ -143,7 +144,7 @@ export function SellPhotos({
       {coverUndo && (
         <p className="text-ds-13 text-foreground" data-cover-moved="">
           We picked the best photo for the cover.{" "}
-          <button type="button" onClick={coverUndo} className="min-h-11 font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2">Undo</button>
+          <InlineTextButton onClick={coverUndo} className="font-semibold text-[hsl(var(--sage-ink))] underline underline-offset-2">Undo</InlineTextButton>
         </p>
       )}
       {refusedNote && <p role="alert" className="text-ds-13 font-semibold text-destructive-ink [overflow-wrap:anywhere]" data-photo-refused="">{refusedNote}</p>}

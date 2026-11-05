@@ -98,7 +98,7 @@
  * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql |     v_kept := v_order.premium_cents; |     v_kept := v_order.premium_cents;\n    v_kept := 1;
  * @mutate supabase/migrations/20261103203204_shipping_lost_sweep.sql | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    public.declutter_card_fee_left(o.card_fee_cents, o.total_cents, v_reserved)); | v_fee_reason, o.total_cents - v_reserved - v_ship,\n    0);
  * @mutate supabase/migrations/20261014224914_declutter_slice3b_payments.sql | round(greatest(p_amount_cents, 0) * 0.029)::integer + 30 | 0
- * @mutate supabase/migrations/20261103225232_declutter_damage_refund_stops_waiting_on_seller.sql | r.stripe_payment_intent_id, r.refund_cents, r.attempts, | r.stripe_payment_intent_id, r.paid_cents, r.attempts,
+ * @mutate supabase/migrations/20261105042758_declutter_gift_refund_rows.sql | r.refund_cents - r.gift_refund_cents, r.attempts, | r.paid_cents - r.gift_refund_cents, r.attempts,
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_refunds SET card_fee_cents = 0, refund_cents = paid_cents WHERE fee_policy = 'keep_card_fee';\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | CREATE TRIGGER trg_zero_fee BEFORE INSERT ON public.declutter_refunds FOR EACH ROW EXECUTE FUNCTION public.declutter_zero_fee();\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
  * @mutate supabase/migrations/20261015042253_declutter_slice4_handover_payout.sql | ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean; | UPDATE public.declutter_orders SET card_fee_cents = 0;\nALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean;
@@ -246,11 +246,17 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
         // Q1929: the raise-refund row's type (its own charge, step 4b; never a declutter_refunds row).
         "refund_cents: number;",
         "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 60, \"ban_review\", \"a party is under ban review\");",
+        // Q2106 S3b: the queue's card part (decided in declutter_refunds_due) read for the gift-only branch, and four
+        // more skipRow deferrals (an amount shown on the wait record, never sent).
+        "const cardCents = Math.max(0, r.refund_cents);",
+        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 1440, \"data_defect\", \"gift share with no order\");",
+        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 1440, \"data_defect\", `gift restore: ${outcome ?? \"no answer\"}`);",
+        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 1440, \"data_defect\", \"card part with no payment\");",
+        "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 15, \"record_failed\", \"gift-only refund not recorded\");",
         "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 1440, \"data_defect\", \"no order and no recorded Stripe mode\");",
         "amount: r.refund_cents,",
         "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 15, \"record_failed\", `refund ${refund.id} not recorded`);",
         "message: `Stripe answered ${refund.status} for refund row ${r.refund_id} (${dollars(r.refund_cents)}, order ${r.order_id ?? \"none\"}). ${r.attempts + 1 >= 12 ? \"That was the last try: refund it by hand.\" : \"It will be retried with back-off.\"}`,",
-        "await tellBuyerRefunded(admin, r.buyer_id, r.refund_cents);",
         "await skipRow(\"declutter_refund\", r.refund_id, r.buyer_id, r.refund_cents, 1440, \"mixed_parties\", partyWhy(e, \"the order\"));",
         "await skipRow(\"delivery_refund\", d.delivery_refund_id, d.buyer_id, d.refund_cents, 60, \"ban_review\", \"a party is under ban review\");",
         "payment_intent_id: d.payment_intent_id, refund_cents: d.refund_cents, attempts: d.attempts, livemode: null,",
@@ -417,6 +423,8 @@ const TS_MONEY_TOUCHES: string[] = [
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders").select("setup_fee_state").eq("id", orderId).maybeSingle()',
   // Q2352: reads the setup fee owed back (state refund_due); writes nothing, the refund is recorded by RPC.
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders") .select("setup_fee_cents, setup_fee_state, stripe_payment_intent_id").eq("id", orderId).maybeSingle()',
+  // Q2106 S3b: a READ of the row's gift share; a row with one is left to declutter-money (gift restored first, card part only).
+  'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_refunds") .select("gift_refund_cents").eq("id", refund.refund_id).maybeSingle()',
   'supabase/functions/stripe-webhook/handlers/declutterCheckout.ts: .from("declutter_orders") .select("id, setup_fee_cents").eq("stripe_payment_intent_id", paymentIntentId).eq("setup_fee_state", "refund_due").maybeSingle()',
   // Q1940 (a) (builder 144; lh-money-escrow approve 11-01, ~/.lh-shots/verdicts/b144.txt): a late payment on a seller-fault Declutter setup job, refunded in full as a duplicate
   // funding; the card fee Stripe kept (from the retrieved PaymentIntent) goes to the seller's debt, never into a refund.
@@ -839,7 +847,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_refund_set_mode: "20261103103000_refund_mode_rent_waive_payout_deny_repair_cancel_not_found_is_404.sql 119efbd586cdbdc1", // Q2390 p24: ERRCODE-only restatement (md5-verified); stamps the Stripe mode, writes no amount
       // Payout readiness (20261019070737): a deferred pending refund waits for next_attempt_at, and a delivery_damage
       // refund also counts a seller payout settled by hand as paid; the projected refund_cents is unchanged.
-      declutter_refunds_due: "20261103225232_declutter_damage_refund_stops_waiting_on_seller.sql ec2ca25fe103f5d9", // Q1934: only WHEN a delivery_damage row is due changes; it records nothing and the amount (refund_cents) is untouched
+      declutter_refunds_due: "20261105042758_declutter_gift_refund_rows.sql c3521457cdad8f73", // Q2106 S3b (Builder 3, LEAD REVIEW owed): refund_cents is the CARD part (r.refund_cents - r.gift_refund_cents, decided here in SQL) and gift_refund_cents is restored to the gift balance first; the fee policy is decided in declutter_record_refund (unchanged by this queue). Before: Q1934 only WHEN a delivery_damage row is due
       // Reads which order a refund belongs to and tells the seller the debt booked for it; writes no amount.
       declutter_seller_out_fee_notice: "20261017060455_declutter_seller_out_pays_fee.sql b469d8dcc79e1b10",
       // A10 (owner, 2026-10-17): the trigger on a seller-fault refund cancels the buyer's setup job (no fee) and

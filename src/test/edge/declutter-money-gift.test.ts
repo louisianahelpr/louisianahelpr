@@ -23,6 +23,15 @@
  * @mutate supabase/functions/declutter-money/index.ts |        if (giftPart) {\n          await giftCovers( | if (false) {\n          await giftCovers(
  * @mutate supabase/functions/declutter-money/index.ts |        if (giftCents > 0) {\n          await giftCovers(stripe, { group, | if (false) {\n          await giftCovers(stripe, { group,
  * @mutate supabase/functions/declutter-money/index.ts |    if (h.source_kind !== "declutter_delivery" \|\| !h.transfer_group \|\| (!h.payment_intent_id && !(hGiftCents > 0))) { |    if (h.source_kind !== "declutter_delivery" \|\| !h.transfer_group \|\| !h.payment_intent_id) {
+ * Q2106 S3b (the refund side): the gift share is restored FIRST under the row's key, only the card part goes to Stripe,
+ * a gift-only row never reaches Stripe, and a failed card refund retries without a second gift credit.
+ * @mutate supabase/functions/declutter-money/index.ts |      const cardCents = Math.max(0, r.refund_cents); |      const cardCents = Math.max(0, r.refund_cents) + giftCents;
+ * @mutate supabase/functions/declutter-money/index.ts |      if (!(await restoreGift())) continue;\n      // Reconcile first | // Reconcile first
+ * @mutate supabase/functions/declutter-money/index.ts |          p_order_id: r.order_id, p_refund_key: `declutter_refund:${r.refund_id}`, p_cents: giftCents, |          p_order_id: r.order_id, p_refund_key: `declutter_refund:${r.refund_id}:${r.attempts}`, p_cents: giftCents,
+ * @mutate supabase/functions/declutter-money/index.ts |        if (outcome !== "restored" && outcome !== "already_restored") { |        if (false) {
+ * @mutate supabase/functions/declutter-money/index.ts |      if (cardCents <= 0 \|\| !r.payment_intent_id) { |      if (!r.payment_intent_id) {
+ * @mutate supabase/functions/declutter-money/index.ts |        if (gErr) throw new Error(`gift restore failed: ${gErr.message}`); |        if (gErr) return true;
+ * @mutate supabase/functions/declutter-money/index.ts |    const giftLine = giftCents > 0 ? | const giftLine = false ?
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -30,7 +39,7 @@ import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
 import { resetStripeMock, stripeMock } from "./mocks/stripe";
-import { resetEmailMocks } from "./mocks/email";
+import { resetEmailMocks, queuedEmails } from "./mocks/email";
 
 const BUYER = "0000000d-0000-4000-8000-000000000001";
 const SELLER = "0000000d-0000-4000-8000-000000000002";
@@ -69,7 +78,7 @@ const charge = (amount: number, refunded = 0) =>
 const created = () => stripeMock.transfers.create.mock.calls.map(([params, opts]) => ({ params, opts }));
 const total = () => created().reduce((s, c) => s + Number(c.params.amount), 0);
 
-async function run(opts: { payouts?: unknown[]; managerPayouts?: unknown[]; helprPayouts?: unknown[] } = {}) {
+async function run(opts: { payouts?: unknown[]; managerPayouts?: unknown[]; helprPayouts?: unknown[]; refunds?: unknown[] } = {}) {
   setEnv({
     SUPABASE_URL: "https://x.supabase.co",
     SUPABASE_ANON_KEY: "anon-key",
@@ -80,7 +89,7 @@ async function run(opts: { payouts?: unknown[]; managerPayouts?: unknown[]; help
   scenario.rpc.declutter_payouts_due = opts.payouts ?? [];
   scenario.rpc.declutter_manager_payouts_due = opts.managerPayouts ?? [];
   scenario.rpc.helpr_task_payouts_due = opts.helprPayouts ?? [];
-  scenario.rpc.declutter_refunds_due = [];
+  scenario.rpc.declutter_refunds_due = opts.refunds ?? [];
   scenario.rpc.declutter_delivery_refunds_due = [];
   scenario.rpc.declutter_payout_executed = (a: { p_succeeded?: boolean }) => (a?.p_succeeded ? "succeeded" : "failed");
   scenario.rpc.declutter_manager_payout_executed = (a: { p_succeeded?: boolean }) => (a?.p_succeeded ? "succeeded" : "failed");
@@ -214,5 +223,110 @@ describe("declutter-money: a gift-paid order's payouts (Q2106 S2)", () => {
     })] });
     const byAmount = Object.fromEntries(created().map((c) => [c.params.amount, c.params.source_transaction ?? null]));
     expect(byAmount).toEqual({ 640: null, 500: "ch_raise1" });
+  });
+});
+
+describe("declutter-money: a gift-paid order's refunds (Q2106 S3b)", () => {
+  const REFUND = "0000000d-0000-4000-8000-0000000000bb";
+  const refundRow = (o: Record<string, unknown> = {}) => ({
+    refund_id: REFUND, reason: "seller_no_show", order_id: ORDER, buyer_id: BUYER, seller_id: SELLER,
+    // refund_cents is the queue's CARD part (declutter_refunds_due: r.refund_cents - r.gift_refund_cents).
+    payment_intent_id: "pi_order1", refund_cents: 4000, gift_refund_cents: 0, attempts: 0, livemode: true,
+    checkout_session_id: "cs_live_1", ...o,
+  });
+  // A stateful gift ledger: restore_gift_card_for_declutter_order is idempotent by key, as the SQL is
+  // (PGlite: declutterGiftCards.pglite.mjs).
+  let restored: Map<string, number>;
+  beforeEach(() => {
+    restored = new Map();
+    scenario.rpc.restore_gift_card_for_declutter_order = (a: { p_refund_key: string; p_cents: number }) => {
+      if (restored.has(a.p_refund_key)) return { outcome: "already_restored", restore_cents: restored.get(a.p_refund_key) };
+      restored.set(a.p_refund_key, a.p_cents);
+      return { outcome: "restored", restore_cents: a.p_cents };
+    };
+    scenario.rpc.declutter_refund_executed = (a: { p_succeeded?: boolean }) => (a?.p_succeeded ? "succeeded" : "failed");
+    stripeMock.refunds.list.mockResolvedValue({ data: [] });
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_card1", status: "succeeded" });
+  });
+  const refundEmails = () => queuedEmails.filter((e: any) => e.templateName === "declutter_refund") as Array<Record<string, string>>;
+
+  it("card-only row: the whole amount to the card, no gift restore (unchanged)", async () => {
+    const { body } = await run({ refunds: [refundRow()] });
+    expect(body.refunds_sent).toBe(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toMatchObject({ amount: 4000 });
+    expect(rpcs("restore_gift_card_for_declutter_order")).toHaveLength(0);
+  });
+
+  it("mixed row (4000 = 1500 card + 2500 gift): the gift is restored first under the row's key, then only 1500 to the card", async () => {
+    const { body } = await run({ refunds: [refundRow({ refund_cents: 1500, gift_refund_cents: 2500 })] });
+    expect(body.refunds_sent).toBe(1);
+    expect(rpcs("restore_gift_card_for_declutter_order").map((c) => c.args)).toEqual([
+      { p_order_id: ORDER, p_refund_key: `declutter_refund:${REFUND}`, p_cents: 2500 },
+    ]);
+    expect(stripeMock.refunds.create).toHaveBeenCalledTimes(1);
+    expect(stripeMock.refunds.create.mock.calls[0][0]).toMatchObject({ payment_intent: "pi_order1", amount: 1500 });
+    const order = (scenario.rpcCalls ?? []).map((c) => c.name).filter((n) => n === "restore_gift_card_for_declutter_order" || n === "declutter_refund_executed");
+    expect(order).toEqual(["restore_gift_card_for_declutter_order", "declutter_refund_executed"]);
+    expect(rpcs("declutter_refund_executed")[0]?.args).toEqual({ p_refund_id: REFUND, p_stripe_refund_id: "re_card1", p_succeeded: true });
+    const mail = refundEmails();
+    expect(mail).toHaveLength(1);
+    expect(mail[0].text).toContain("$15.00 is on its way back to your card");
+    expect(mail[0].text).toContain("$25.00 is back on your gift card balance");
+  });
+
+  it("gift-only row (no payment intent): restored, executed with no Stripe ref, Stripe never called", async () => {
+    const { body } = await run({ refunds: [refundRow({ payment_intent_id: null, refund_cents: 0, gift_refund_cents: 4000, livemode: null, checkout_session_id: null })] });
+    expect(body.refunds_sent).toBe(1);
+    expect(stripeMock.refunds.list).not.toHaveBeenCalled();
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(rpcs("restore_gift_card_for_declutter_order")[0]?.args).toMatchObject({ p_cents: 4000 });
+    expect(rpcs("declutter_refund_executed")[0]?.args).toEqual({ p_refund_id: REFUND, p_stripe_refund_id: null, p_succeeded: true });
+    const mail = refundEmails();
+    expect(mail).toHaveLength(1);
+    expect(mail[0].text).toContain("$40.00 is back on your gift card balance");
+    expect(mail[0].text).not.toContain("your card. Card refunds");
+  });
+
+  it("LEAD RULE: gift restored, card refund fails -> row failed (retried), never done; the retry reuses the key and the gift is restored once", async () => {
+    stripeMock.refunds.create.mockRejectedValueOnce(new Error("card_declined"));
+    const first = await run({ refunds: [refundRow({ refund_cents: 1500, gift_refund_cents: 2500 })] });
+    expect(first.body.refunds_failed).toBe(1);
+    expect(rpcs("declutter_refund_executed").map((c) => c.args)).toEqual([{ p_refund_id: REFUND, p_stripe_refund_id: null, p_succeeded: false }]);
+    expect(refundEmails()).toHaveLength(0);
+    expect([...restored.entries()]).toEqual([[`declutter_refund:${REFUND}`, 2500]]);
+
+    // The retry (the row is offered again with attempts 1): same key, already_restored, no second credit.
+    resetSupabaseMock();
+    scenario.reads.test_accounts = { rows: [] };
+    scenario.reads.ban_settlement_queue = { rows: [] };
+    scenario.reads.payout_holds = { rows: [] };
+    scenario.reads.declutter_refunds = { rows: [] };
+    scenario.reads.profiles = { rows: [{ user_id: BUYER, email: "buyer@example.test" }] };
+    scenario.rpc.restore_gift_card_for_declutter_order = (a: { p_refund_key: string; p_cents: number }) =>
+      restored.has(a.p_refund_key) ? { outcome: "already_restored", restore_cents: restored.get(a.p_refund_key) }
+        : (restored.set(a.p_refund_key, a.p_cents), { outcome: "restored", restore_cents: a.p_cents });
+    scenario.rpc.declutter_refund_executed = (a: { p_succeeded?: boolean }) => (a?.p_succeeded ? "succeeded" : "failed");
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_card2", status: "succeeded" });
+    const second = await run({ refunds: [refundRow({ refund_cents: 1500, gift_refund_cents: 2500, attempts: 1 })] });
+    expect(second.body.refunds_sent).toBe(1);
+    expect(rpcs("restore_gift_card_for_declutter_order")[0]?.args).toMatchObject({ p_refund_key: `declutter_refund:${REFUND}` });
+    expect(restored.size).toBe(1);
+    expect(stripeMock.refunds.create.mock.calls.at(-1)?.[0]).toMatchObject({ amount: 1500 });
+    expect(rpcs("declutter_refund_executed").map((c) => c.args)).toEqual([{ p_refund_id: REFUND, p_stripe_refund_id: "re_card2", p_succeeded: true }]);
+  });
+
+  it("the gift restore errors -> no card refund, the row is recorded failed and retried", async () => {
+    scenario.rpcErrors = { restore_gift_card_for_declutter_order: { message: "boom" } };
+    const { body } = await run({ refunds: [refundRow({ refund_cents: 1500, gift_refund_cents: 2500 })] });
+    expect(body.refunds_failed).toBe(1);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(rpcs("declutter_refund_executed")[0]?.args).toMatchObject({ p_succeeded: false });
+  });
+
+  it("the gift cannot be restored (no_credit) -> nothing to the card, held for a person, never marked done", async () => {
+    scenario.rpc.restore_gift_card_for_declutter_order = { outcome: "no_credit" };
+    await run({ refunds: [refundRow({ refund_cents: 1500, gift_refund_cents: 2500 })] });
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(rpcs("declutter_refund_executed")).toHaveLength(0);
   });
 });

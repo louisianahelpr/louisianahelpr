@@ -585,10 +585,20 @@ async function executeRefund(
   paymentIntentId: string,
   refund: Extract<MarkPaidAnswer, { result: "refund" }>,
   orderId: string,
-): Promise<"sent" | "already" | "failed"> {
+): Promise<"sent" | "already" | "failed" | "deferred"> {
   // Already handled: sent, or taken out of the automatic path by an admin (held for review /
   // settled by hand, 20261019070737), so a webhook redelivery never sends a second refund.
   if (refund.refund_status === "succeeded" || refund.refund_status === "held_for_review" || refund.refund_status === "settled_by_hand") return "already";
+  // Q2106 S3b: a row with a gift share is left to declutter-money (it is due 2 minutes after it was recorded), the
+  // one path that restores the gift FIRST under the row's key and refunds only the card part. The webhook would
+  // refund the whole refund_cents to the card. Thrown on a read error, so Stripe redelivers.
+  const { data: giftRow, error: giftErr } = await supabase.from("declutter_refunds")
+    .select("gift_refund_cents").eq("id", refund.refund_id).maybeSingle();
+  if (giftErr) throw new Error(`declutter_refunds gift share read failed: ${giftErr.message}`);
+  if (Number((giftRow as { gift_refund_cents?: number | null } | null)?.gift_refund_cents ?? 0) > 0) {
+    logStep("Declutter refund has a gift share: left to declutter-money", { refund_id: refund.refund_id });
+    return "deferred";
+  }
   let stripeRefund: Stripe.Refund;
   try {
     // List-and-adopt first, exactly like declutter-money: Stripe keeps an

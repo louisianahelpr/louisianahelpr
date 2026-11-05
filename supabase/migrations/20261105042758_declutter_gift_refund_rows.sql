@@ -184,3 +184,48 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_record_refund(uuid, text, text, integer, integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.declutter_record_refund(uuid, text, text, integer, integer) TO service_role;
+
+-- Q2106 S3b step 3: the refund queue hands declutter-money each row's gift share, so the cron restores the gift
+-- FIRST (restore_gift_card_for_declutter_order, key 'declutter_refund:'||id: a retry never restores it twice) and
+-- refunds at Stripe only the card part: the queue's refund_cents is r.refund_cents - r.gift_refund_cents (so the
+-- amount sent stays decided in SQL, as refundsKeepTheCardFee requires). A gift-only row (no payment intent) is executed with no
+-- Stripe ref (declutter_refund_executed already keeps a NULL ref). Restated from its newest definition
+-- (20261103225232_declutter_damage_refund_stops_waiting_on_seller); the only changes (the card-part refund_cents and
+-- the gift_refund_cents column) are marked CHANGED. The return type changes, so the function is dropped first (inside this one migration).
+DROP FUNCTION IF EXISTS public.declutter_refunds_due(integer);
+CREATE OR REPLACE FUNCTION public.declutter_refunds_due(p_limit integer)
+RETURNS TABLE (refund_id uuid, reason text, order_id uuid, buyer_id uuid, seller_id uuid, payment_intent_id text,
+               refund_cents integer, attempts integer, livemode boolean, checkout_session_id text,
+               gift_refund_cents integer)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  -- buyer/seller pick the Stripe mode (test accounts on the test key) in declutter-money.
+  -- CHANGED (Q2106 S3b): refund_cents here is the CARD part (what Stripe refunds), decided here in SQL, never in the
+  -- edge function; gift_refund_cents is the part that goes back to the gift balance. Their sum is the row's total.
+  SELECT r.id, r.reason, r.order_id, o.buyer_id, o.seller_id, r.stripe_payment_intent_id,
+         r.refund_cents - r.gift_refund_cents, r.attempts,
+         r.payment_livemode, o.stripe_checkout_session_id,
+         r.gift_refund_cents
+    FROM public.declutter_refunds r
+    LEFT JOIN public.declutter_orders o ON o.id = r.order_id
+   WHERE ((r.status = 'pending' AND r.created_at <= now() - interval '2 minutes' AND r.next_attempt_at <= now())
+          OR (r.status = 'failed' AND r.next_attempt_at <= now()))
+     AND r.attempts < 12
+     AND (r.reason <> 'delivery_damage'
+          OR EXISTS (SELECT 1 FROM public.declutter_payouts p WHERE p.order_id = r.order_id
+                       AND p.status IN ('succeeded', 'nothing_due', 'settled_by_hand'))
+          OR r.created_at <= now() - interval '3 days'
+          OR EXISTS (SELECT 1 FROM public.declutter_payouts p
+                       JOIN public.payout_payee_waits w ON w.payout_kind = 'declutter' AND w.payout_id = p.id
+                      WHERE p.order_id = r.order_id AND w.category IN ('held', 'rejected', 'unusable'))
+          OR EXISTS (SELECT 1 FROM public.declutter_payouts p
+                       JOIN public.payout_holds ph ON ph.helper_id = p.seller_id
+                      WHERE p.order_id = r.order_id))
+   ORDER BY r.created_at
+   LIMIT least(greatest(COALESCE(p_limit, 20), 1), 100);
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_refunds_due(integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_refunds_due(integer) TO service_role;

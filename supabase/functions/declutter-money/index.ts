@@ -132,8 +132,12 @@ type RefundDue = {
   order_id: string | null;
   buyer_id: string | null;
   seller_id: string | null;
-  payment_intent_id: string;
+  /** NULL only for an all-gift row (Q2106 S3b: a gift-only order has no card payment). */
+  payment_intent_id: string | null;
+  /** Q2106 S3b: the CARD part (what Stripe refunds), decided in declutter_refunds_due; the row total is this + gift. */
   refund_cents: number;
+  /** Q2106 S3b: the part that goes back to the buyer's gift balance (restored first, never sent to Stripe). */
+  gift_refund_cents?: number | null;
   attempts: number;
   /** The payment's Stripe mode, recorded by the webhook (null: not recorded). */
   livemode: boolean | null;
@@ -293,14 +297,17 @@ async function giftCovers(stripe: Stripe, o: {
  * A receipt, so it always goes: no notification switch gates it (Q2466, lead 2026-11-01). Settings' Declutter Refunds
  * row shows "Refund receipts are always emailed" instead of an Email switch, and the Terms say the same.
  */
-async function tellBuyerRefunded(admin: Db, buyerId: string | null, cents: number): Promise<void> {
+async function tellBuyerRefunded(admin: Db, buyerId: string | null, cents: number, giftCents = 0): Promise<void> {
   if (!buyerId) return;
   try {
     const { data: profile, error } = await admin.from("profiles").select("email").eq("user_id", buyerId).maybeSingle();
     const to = (profile as { email?: string | null } | null)?.email;
     if (error || !to) return;
     const link = `${getAppUrl()}/declutter?tab=buying`;
-    const body = `${dollars(cents)} is on its way back to your card. Card refunds usually show up in 5 to 10 business days.`;
+    // Q2106 S3b: the gift share is named apart: it is back on the gift balance now, not on its way to the card.
+    const giftLine = giftCents > 0 ? `${dollars(giftCents)} is back on your gift card balance, ready for your next order.` : "";
+    const cardLine = cents > 0 ? `${dollars(cents)} is on its way back to your card. Card refunds usually show up in 5 to 10 business days.` : "";
+    const body = [cardLine, giftLine].filter(Boolean).join(" ");
     await queueEmail(admin, {
       to,
       subject: "Your Declutter refund",
@@ -1011,6 +1018,48 @@ serve(async (req) => {
       continue;
     }
     try {
+      // Q2106 S3b: the gift share goes back to the buyer's gift balance FIRST, under the row's own key
+      // ('declutter_refund:'||id: a retry after a failed card refund answers already_restored, never a second
+      // credit); the queue's refund_cents is already the card part (SQL decides it). A gift-only row never reaches Stripe.
+      const giftCents = Math.max(0, Number(r.gift_refund_cents ?? 0));
+      const cardCents = Math.max(0, r.refund_cents);
+      const restoreGift = async (): Promise<boolean> => {
+        if (giftCents <= 0) return true;
+        if (!r.order_id) {
+          defects.record(`refund ${r.refund_id}: a gift share of ${dollars(giftCents)} with no order; restore it by hand`);
+          await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 1440, "data_defect", "gift share with no order");
+          return false;
+        }
+        const { data: g, error: gErr } = await admin.rpc("restore_gift_card_for_declutter_order", {
+          p_order_id: r.order_id, p_refund_key: `declutter_refund:${r.refund_id}`, p_cents: giftCents,
+        });
+        // Thrown: the catch below records the row failed, so it is retried with back-off under the same key.
+        if (gErr) throw new Error(`gift restore failed: ${gErr.message}`);
+        const outcome = (g as { outcome?: string } | null)?.outcome;
+        if (outcome !== "restored" && outcome !== "already_restored") {
+          defects.record(`refund ${r.refund_id}: the gift share (${dollars(giftCents)}) could not be restored (${outcome ?? "no answer"}); settle it by hand`);
+          await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 1440, "data_defect", `gift restore: ${outcome ?? "no answer"}`);
+          return false;
+        }
+        return true;
+      };
+      if (cardCents <= 0 || !r.payment_intent_id) {
+        if (cardCents > 0) {
+          defects.record(`refund ${r.refund_id}: a card part of ${dollars(cardCents)} with no payment; refund it by hand`);
+          await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 1440, "data_defect", "card part with no payment");
+          continue;
+        }
+        if (!(await restoreGift())) continue;
+        const { error } = await admin.rpc("declutter_refund_executed", { p_refund_id: r.refund_id, p_stripe_refund_id: null, p_succeeded: true });
+        if (error) {
+          defects.record(`refund ${r.refund_id}: gift-only refund not recorded: ${error.message}`);
+          await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 15, "record_failed", "gift-only refund not recorded");
+          continue;
+        }
+        out.refunds_sent++;
+        await tellBuyerRefunded(admin, r.buyer_id, 0, giftCents);
+        continue;
+      }
       const client = await refundClient(r);
       if (!client) {
         defects.record(`refund ${r.refund_id}: no order and no recorded Stripe mode; refund it by hand`);
@@ -1019,6 +1068,7 @@ serve(async (req) => {
         continue;
       }
       const { stripe } = client;
+      if (!(await restoreGift())) continue;
       // Reconcile first: a refund Stripe already took for this row is recorded, not sent again
       // (Stripe's idempotency key lives 24 h; the back-off reaches a day). A refund Stripe failed or
       // cancelled is not adopted: the next try is a NEW refund under a new key.
@@ -1029,6 +1079,7 @@ serve(async (req) => {
       const refund = existing ?? await stripe.refunds.create(
         {
           payment_intent: r.payment_intent_id,
+          // Q2106 S3b: the card part only (declutter_refunds_due; the gift part was restored above).
           amount: r.refund_cents,
           // Same parameters as the webhook (stripe-webhook/handlers/declutterCheckout.ts) under the same key,
           // both built from the refund ROW (an order_missing row: order_id ""). Pinned by declutter-payments.test.ts.
@@ -1077,7 +1128,7 @@ serve(async (req) => {
       }
       // The queue only offers rows not yet succeeded, so this run is the one that recorded the refund:
       // tell the buyer now, whether this run created it or adopted one the webhook did not record.
-      await tellBuyerRefunded(admin, r.buyer_id, r.refund_cents);
+      await tellBuyerRefunded(admin, r.buyer_id, cardCents, giftCents);
     } catch (e) {
       if (isPartyRefusal(e)) {
         out.mixed_parties++;

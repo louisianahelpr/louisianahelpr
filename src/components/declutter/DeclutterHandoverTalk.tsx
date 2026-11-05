@@ -209,7 +209,7 @@ function AddPorchPickup({ sellerId, buyerId }: { sellerId: string; buyerId: stri
       <ul className="space-y-2">
         {noPorch.map((i) => (
           <li key={i.item_id}>
-            <Button type="button" variant="outline" size="wrapSm" className="w-full justify-start text-left font-semibold"
+            <Button type="button" variant="outline" size="wrapSm" className="w-full max-w-full justify-start text-left font-semibold"
               disabled={add.isPending} onClick={() => add.mutate(i.item_id)}>
               Add porch pickup to {i.title}
             </Button>

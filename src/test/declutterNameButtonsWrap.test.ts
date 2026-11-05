@@ -8,6 +8,11 @@
  * item, a person; any length) must be allowed to wrap inside the screen: whitespace-normal, h-auto, max-w-full, and
  * a stated alignment (text-left). Attribute templates (aria-label={`... ${x.name}`}) are not visible text.
  *
+ * A named `size` whose variant in src/components/ui/button.tsx carries the wrap classes counts as stating them
+ * (size="wrapSm" is `h-auto ... whitespace-normal`; Q2709 11-05 Handover porch button). The variant classes are read
+ * from the real file, so a size that stops wrapping turns this red.
+ *
+ * @mutate src/components/ui/button.tsx | wrapSm: "h-auto min-h-11 px-4 py-2 text-ds-14 whitespace-normal" | wrapSm: "h-11 px-4 py-2 text-ds-14"
  * @mutate src/components/declutter/SellMeetupSpots.tsx | className="h-auto max-w-full justify-start whitespace-normal px-3 py-2 text-left text-ds-13 leading-snug" | className="px-3 text-left text-ds-13"
  */
 import { readFileSync } from "node:fs";
@@ -25,6 +30,24 @@ function openTagEnd(code: string, start: number): number {
     else if (ch === ">" && depth === 0) return i;
   }
   return -1;
+}
+
+/** The classes of each named Button size, read from the size block of button.tsx (`name: "classes"`). */
+function sizeVariants(): Record<string, string> {
+  const src = blankComments(readFileSync("src/components/ui/button.tsx", "utf8"));
+  const start = src.indexOf("size: {");
+  expect(start).toBeGreaterThan(-1);
+  const block = src.slice(start, src.indexOf("},", start));
+  const out: Record<string, string> = {};
+  for (const m of block.matchAll(/^\s*(\w+):\s*"([^"]*)"/gm)) out[m[1]] = m[2];
+  expect(out.wrapSm).toBeDefined();
+  return out;
+}
+
+/** The tag plus the classes its named size brings, so a wrap stated by the size variant counts. */
+function withSizeClasses(tag: string, sizes: Record<string, string>): string {
+  const size = /\bsize="(\w+)"/.exec(tag)?.[1];
+  return size && sizes[size] ? `${tag} ${sizes[size]}` : tag;
 }
 
 function nameButtons(): { where: string; tag: string }[] {
@@ -50,7 +73,9 @@ describe("Declutter buttons that show a stored name wrap inside the screen (Q255
   it("each one is whitespace-normal, h-auto, max-w-full and left-aligned", () => {
     const found = nameButtons();
     expect(found.length).toBeGreaterThanOrEqual(1);
+    const sizes = sizeVariants();
     const bad = found
+      .map(({ where, tag }) => ({ where, tag: withSizeClasses(tag, sizes) }))
       .filter(({ tag }) => !(/\bwhitespace-normal\b/.test(tag) && /\bh-auto\b/.test(tag) && /\bmax-w-full\b/.test(tag) && /\btext-(left|start)\b/.test(tag)))
       .map(({ where }) => where);
     expect(bad).toEqual([]);

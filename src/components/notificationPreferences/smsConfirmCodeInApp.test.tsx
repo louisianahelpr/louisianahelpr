@@ -5,7 +5,7 @@
  * the card (no toast, no state change); the right one shows "You're all set".
  *
  * @mutate src/components/notificationPreferences/SmsAlertsCard.tsx | const res = await supabase.rpc("confirm_sms_code", { p_code: code.trim() }); | const res = await supabase.rpc("confirm_sms_code", { p_code: "" });
- * @mutate src/components/notificationPreferences/SmsAlertsCard.tsx |         if (next.sms_opt_in) queryClient.setQueryData([...QUERY_KEY, user.id], next); |         void next;
+ * @mutate src/components/notificationPreferences/SmsAlertsCard.tsx |         if (next.sms_opt_in) queryClient.setQueryData(smsConsentQueryKey(user.id), next); |         void next;
  * @mutate src/components/notificationPreferences/SmsAlertsCard.tsx |           : "That code didn't work. Check the newest text from us and try again.", |           : "",
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";

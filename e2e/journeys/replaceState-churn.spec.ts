@@ -37,15 +37,18 @@
  * "This page hit a problem" and `window.onerror`/`pageerror` must stay
  * clean — the breaker degrades (URL lags state for a moment), it does not
  * unmount the screen.
+ *
+ * ON THE REAL BACKEND (Q1035; moved from the mocked
+ * e2e/happy-path/replaceState-churn.spec.ts). The bodies are the same; the two
+ * sessions are now the shared test poster and test Helpr, signed in for real,
+ * so the screens churn over their own prod rows (and real realtime) instead of
+ * a mock seed. Read-only: typing in the search box and pressing the status
+ * boxes only move URL state. Any user write fails the test.
  */
 
-import { test, expect, type Page } from "@playwright/test";
-import {
-  FAKE_CUSTOMER,
-  FAKE_HELPER,
-  installSupabaseMocks,
-  seedAuthedSession,
-} from "./fixtures";
+import type { BrowserContext, Page, Request } from "@playwright/test";
+import { test, expect, getSession, isUserWrite, newUserContext, sessionsAvailable } from "./fixtures";
+import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenarios";
 
 const ERROR_BOUNDARY_TEXT = /This page hit a problem/i;
 
@@ -154,13 +157,31 @@ const readReplaceStateCount = (page: Page): Promise<number> =>
 /** Mirrors WRITE_HARD_STOP in src/hooks/useSearchParamMirror.ts. */
 const WRITE_HARD_STOP = 60;
 
+/** Records every user write a context makes; the journey is read-only, so any one fails it. */
+function recordWrites(ctx: BrowserContext): string[] {
+  const writes: string[] = [];
+  ctx.on("request", (req: Request) => {
+    if (isUserWrite(req.method(), req.url())) writes.push(`${req.method()} ${req.url().slice(0, 140)}`);
+  });
+  return writes;
+}
+
+const rotation: Rotation = { ...rotationFor(21), network: "fast" };
+const singleTitle = scenarioTitle({ journey: "replacestate-churn-single", persona: "poster-only", state: "approved", rotation, outcome: "smooth" });
+const twoTitle = scenarioTitle({ journey: "replacestate-churn-two-sessions", persona: "both", state: "approved", rotation, outcome: "smooth" });
+
 test.describe("F-2 replaceState churn — circuit breaker holds under a real burst", () => {
-  test("single session: rapid search + filter churn on /posts never crashes the route", async ({
-    page,
-    context,
+  test(`${singleTitle} · single session: rapid search + filter churn on /posts never crashes the route`, async ({
+    browser,
+    request,
+    journey,
   }) => {
-    await seedAuthedSession(context, FAKE_CUSTOMER, "");
-    await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
+    test.skip(filteredOut(singleTitle), "SCENARIO pins another scenario");
+    const avail = sessionsAvailable();
+    test.skip(!avail.ok, avail.why);
+    const context = await newUserContext(browser, await getSession(request, "poster"));
+    const writes = recordWrites(context);
+    const page = journey.track("poster", await context.newPage());
     await countReplaceState(page);
     const { pageErrors, consoleErrors } = collectErrors(page);
 
@@ -221,11 +242,18 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
       consoleErrors.filter((m) => /SecurityError|replaceState|history/i.test(m)),
       "console errors mentioning replaceState/history during the churn burst",
     ).toEqual([]);
+    await context.close();
+    expect(writes, "the churn journey is read-only: no user writes").toEqual([]);
   });
 
-  test("two sessions: a second account's realtime churn lands mid-burst on the first account's screen, route survives", async ({
+  test(`${twoTitle} · two sessions: a second account's realtime churn lands mid-burst on the first account's screen, route survives`, async ({
     browser,
+    request,
+    journey,
   }) => {
+    test.skip(filteredOut(twoTitle), "SCENARIO pins another scenario");
+    const avail = sessionsAvailable();
+    test.skip(!avail.ok, avail.why);
     // Two isolated contexts = two real, independently-authenticated
     // sessions, the same technique e2e/two-role-lifecycle.spec.ts uses for
     // cross-role coverage. Account A (customer) is the one under test on
@@ -233,17 +261,14 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
     // second, concurrently-active session as the task's "two tabs/sessions
     // interacting" hypothesis describes — see the file header for why the
     // code does not actually let B's tab write into A's mirror directly.
-    const posterCtx = await browser.newContext();
-    const helperCtx = await browser.newContext();
+    const posterCtx = await newUserContext(browser, await getSession(request, "poster"));
+    const helperCtx = await newUserContext(browser, await getSession(request, "helper"));
+    const writes = [posterCtx, helperCtx].map(recordWrites);
 
-    const poster = await posterCtx.newPage();
-    await seedAuthedSession(posterCtx, FAKE_CUSTOMER, "");
-    await installSupabaseMocks(poster, { user: FAKE_CUSTOMER, seed: true });
+    const poster = journey.track("poster", await posterCtx.newPage());
     const { pageErrors: posterErrors } = collectErrors(poster);
 
-    const helper = await helperCtx.newPage();
-    await seedAuthedSession(helperCtx, FAKE_HELPER, "");
-    await installSupabaseMocks(helper, { user: FAKE_HELPER, seed: true });
+    const helper = journey.track("helper", await helperCtx.newPage());
 
     await poster.goto("/jobs"); // the search burst runs on Jobs > Browse
     await expectExploreUp(poster, { timeout: 15_000 });
@@ -271,6 +296,7 @@ test.describe("F-2 replaceState churn — circuit breaker holds under a real bur
 
     await posterCtx.close();
     await helperCtx.close();
+    expect(writes.flat(), "the churn journey is read-only: no user writes").toEqual([]);
   });
 });
 

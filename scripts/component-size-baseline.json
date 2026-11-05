@@ -13,7 +13,6 @@
     "src/components/profile/SubscriptionTab.tsx": 871,
     "src/pages/auth/CompleteProfile.tsx": 892,
     "src/pages/home/Dashboard.tsx": 774,
-    "src/pages/home/DashboardGuest.tsx": 790,
     "src/pages/jobs/AppliedJobCard.tsx": 836,
     "src/pages/profile/GiftCard.tsx": 828,
     "src/pages/profile/Profile.tsx": 842,

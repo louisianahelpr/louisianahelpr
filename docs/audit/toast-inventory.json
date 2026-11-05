@@ -65,32 +65,6 @@
       "renders": true
     },
     {
-      "file": "src/components/BrowseMap.tsx",
-      "line": 755,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "geo.message"
-      },
-      "renders": true,
-      "rawError": [
-        "title: geo.message"
-      ]
-    },
-    {
-      "file": "src/components/BrowseMap.tsx",
-      "line": 769,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "geo.message"
-      },
-      "renders": true,
-      "rawError": [
-        "title: geo.message"
-      ]
-    },
-    {
       "file": "src/components/CancellationDialog.tsx",
       "line": 283,
       "kind": "toast.error",
@@ -4655,6 +4629,32 @@
         "text": "userFacingError(result, t(\"auth.socialFailed\", { provider: providerName }))"
       },
       "renders": true
+    },
+    {
+      "file": "src/components/browseMap/useShowMyLocation.ts",
+      "line": 66,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "geo.message"
+      },
+      "renders": true,
+      "rawError": [
+        "title: geo.message"
+      ]
+    },
+    {
+      "file": "src/components/browseMap/useShowMyLocation.ts",
+      "line": 80,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "geo.message"
+      },
+      "renders": true,
+      "rawError": [
+        "title: geo.message"
+      ]
     },
     {
       "file": "src/components/dashboard/BrowseTasksFeed.tsx",

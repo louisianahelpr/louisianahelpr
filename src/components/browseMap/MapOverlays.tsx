@@ -150,3 +150,37 @@ export function PreviewCaret({ dir, left }: { dir: "up" | "down"; left: number }
     </span>
   );
 }
+
+/**
+ * The filters the narrow map row cannot test, named over the map (moved from BrowseMap.tsx unchanged, Q806).
+ * Renders nothing when every active filter applies.
+ */
+export function IgnoredFiltersNote({ ignoredFilters }: { ignoredFilters: string[] }) {
+  return (
+    <>
+    {/* Honest note when a filter the viewer turned on has no field on the
+        map row to test (the RPC returns a narrow, PII-safe shape). Without
+        this the map silently shows pins the list has already excluded and
+        the two surfaces disagree for no visible reason. */}
+    {ignoredFilters.length > 0 && (
+      <div
+        className="absolute top-3 left-3 z-[400] max-w-[60%] px-2.5 py-1.5 rounded-ds-md font-sans text-ds-11 leading-snug"
+        style={{
+          // Tokened, not a literal white — see the same fix on
+          // `MyLocationControl`: `--olivewood` inverts in dark mode, so a
+          // hard-coded white ground put near-white text on near-white.
+          background: "hsl(var(--card) / 0.94)",
+          color: "hsl(var(--olivewood))",
+          border: "0.5px solid hsl(var(--olivewood) / 0.18)",
+          boxShadow: "0 4px 14px -4px hsl(var(--olivewood) / 0.18)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+        }}
+      >
+        {ignoredFilters.join(" and ")} {ignoredFilters.length === 1 ? "isn't" : "aren't"} applied on
+        the map — switch to the list for {ignoredFilters.length === 1 ? "it" : "those"}.
+      </div>
+    )}
+    </>
+  );
+}

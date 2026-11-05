@@ -19,6 +19,7 @@ import { DeclutterEmptyCard } from "./DeclutterEmptyCard";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { AddPhotoTile } from "@/components/ui/AddPhotoTile";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
 import { safeStorage } from "@/lib/safeStorage";
@@ -373,11 +374,11 @@ function WantedPostPhotos({ post, userId }: { post: WantedPost; userId: string }
         <li>
           <input id={inputId} type="file" accept="image/*" className="sr-only" tabIndex={-1} disabled={busy}
             onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f && f.type.startsWith("image/")) add.mutate(f); }} />
-          <button type="button" disabled={busy} onClick={() => document.getElementById(inputId)?.click()}
-            className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[hsl(var(--bark)/0.45)] text-ds-12 font-semibold text-[hsl(var(--bark))] dark:text-foreground">
+          <AddPhotoTile disabled={busy} onClick={() => document.getElementById(inputId)?.click()}
+            className="gap-1 text-ds-12 font-semibold text-[hsl(var(--bark))] dark:text-foreground">
             <Camera className="h-5 w-5" aria-hidden />
             {add.isPending ? "Adding…" : "Add a photo"}
-          </button>
+          </AddPhotoTile>
         </li>
       )}
     </ul>

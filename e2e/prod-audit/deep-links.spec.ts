@@ -47,12 +47,35 @@ test.beforeAll(async ({ request, browser }, info) => {
 });
 
 test.describe("signed out", () => {
+  // A shared job link is NOT a login wall since dc5c71d5bf (owner 10-30: "show jobs to guests"; /jobs/:id is
+  // <ProtectedRoute allowGuest>): a guest stays on /jobs/:id and sees the job's preview, or, for a job that is gone or
+  // no longer browsable, "This job isn't available." with a way to open Jobs. The old "-> sign in" rows for
+  // /jobs/{open} and /jobs/{gone} read the 09-02 rule and kept this file red before any mutation (vacuity 41940585801
+  // leg 3: INCONCLUSIVE), so its /user/:userId @mutate proved nothing.
+  for (const which of ["open", "gone"] as const) {
+    test(`/jobs/{${which}} → a guest stays on the job link and sees the job or that it is gone, never a login wall`, async ({ browser }, info) => {
+      const job = which === "open" ? fx.openJob : null;
+      const id = job?.id ?? fx.goneJobId;
+      const ctx = await newUserContext(browser, null);
+      const page = await ctx.newPage();
+      await page.goto(`/jobs/${id}`);
+      await settle(page);
+      expect(new URL(page.url()).pathname, `a guest on /jobs/{${which}} was moved off the link`).toBe(`/jobs/${id}`);
+      // The open fixture is shown only while it is browsable (open_jobs_browse); either face is a real screen.
+      const face = job
+        ? page.getByText(job.title).first().or(page.getByText("This job isn't available.").first())
+        : page.getByText("This job isn't available.").first();
+      await expect(face, `guest /jobs/{${which}}: no job and no not-available screen`).toBeVisible({ timeout: 30_000 });
+      await expect(page.getByLabel(/^password$/i), "a guest job link met a login form").toHaveCount(0);
+      await assertHealthy(page, info, `signed-out /jobs/{${which}}`);
+      await ctx.close();
+    });
+  }
+
   for (const [from, intended] of [
-    ["/jobs/{open}", "/jobs/{open}"],
     ["/messages?jobId={open}", "/messages?jobId={open}"],
     ["/user/{poster}", "/user/{poster}"],
     ["/profile?tab=earnings", "/profile?tab=earnings"],
-    ["/jobs/{gone}", "/jobs/{gone}"],
   ] as const) {
     test(`${from} → sign in, remembering where they were headed`, async ({ browser }, info) => {
       const sub = (s: string) => s.replace("{open}", fx.openJob?.id ?? fx.goneJobId).replace("{gone}", fx.goneJobId).replace("{poster}", poster.user.id);

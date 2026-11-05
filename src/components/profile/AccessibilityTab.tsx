@@ -5,6 +5,7 @@ import { Sun, Moon, Monitor, Type } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { SegmentedControl, type SegmentedOption } from "@/components/ui/SegmentedControl";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
+import { Switch } from "@/components/ui/switch";
 
 /** "Auto" is the visible label for `system` because the track is three cells
  *  wide on a phone; the accessible name spells it out. */
@@ -48,16 +49,15 @@ export function AccessibilityTab({ seniorMode, onToggleSeniorMode, onBack }: Acc
 
       {onToggleSeniorMode && (
         <div className="rounded-ds-lg liquid-glass overflow-hidden">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={seniorMode}
-            onClick={() => onToggleSeniorMode(!seniorMode)}
-            className="glass-press w-full flex items-center justify-between gap-4 pl-4 pr-3.5 py-3 hover:bg-secondary/40 active:bg-secondary/60 transition-colors text-left"
+          {/* The whole row still toggles (the label is the Switch's), and the switch is the shared one: its 44px hit
+              area, haptic and track colours (Q2709, 11-05; it was a hand-made role=switch). */}
+          <label
+            htmlFor="a11y-bigger-text"
+            className="glass-press w-full flex cursor-pointer items-center justify-between gap-4 pl-4 pr-3.5 py-3 ctl-tint transition-colors text-left"
           >
-            <div className="flex items-center gap-3.5 min-w-0">
-              <div className="shrink-0">
-                <div
+            <span className="flex items-center gap-3.5 min-w-0">
+              <span className="shrink-0">
+                <span
                   className="w-10 h-10 rounded-ds-md flex items-center justify-center"
                   style={{
                     background: "hsl(var(--stormy-sky) / 0.12)",
@@ -65,24 +65,16 @@ export function AccessibilityTab({ seniorMode, onToggleSeniorMode, onBack }: Acc
                   }}
                 >
                   <Type className="w-5 h-5" />
-                </div>
-              </div>
-              <div className="min-w-0">
+                </span>
+              </span>
+              <span className="block min-w-0">
                 {/* One name for the one setting (audit #34): Settings calls it the same. */}
                 <p className="text-ds-13 font-semibold text-foreground leading-tight">{BIGGER_TEXT_LABEL}</p>
                 <p className="text-ds-11 text-muted-foreground mt-0.5">{BIGGER_TEXT_SUB}</p>
-              </div>
-            </div>
-            <div
-              className="shrink-0 w-11 h-6 rounded-full relative transition-colors duration-200"
-              style={{ background: seniorMode ? "hsl(var(--stormy-sky))" : "hsl(var(--sand) / 0.8)" }}
-            >
-              <div
-                className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200"
-                style={{ transform: seniorMode ? "translateX(22px)" : "translateX(2px)" }}
-              />
-            </div>
-          </button>
+              </span>
+            </span>
+            <Switch id="a11y-bigger-text" checked={seniorMode} onCheckedChange={onToggleSeniorMode} aria-label={BIGGER_TEXT_LABEL} />
+          </label>
         </div>
       )}
     </ProfileTabBody>

@@ -327,3 +327,5 @@
 {"sha":"a2b1cd932fe68a43310e8ff1412fe332d4793bf8","reviewer":"code-review","verdict":"approve: lead lexilombas-25 11-02 PASS after the fact (caughtMessage helper + un-exported status list only)","date":"2026-11-03"}
 {"sha":"27816a415eb4da948839a56f5ded9e671137e263","reviewer":"code-review","verdict":"approve: lead lexilombas-25 11-02 PASS after the fact (caughtMessage helper + un-exported status list only)","date":"2026-11-03"}
 {"sha":"222f1268861381489274af69fb374c2de2ffeb64","reviewer":"code-review","verdict":"approve: lead lexilombas-25 11-02 PASS after the fact (admin preview sample data only)","date":"2026-11-03"}
+{"sha":"615bdc988ea5d35c64142c9724d0f6aac9dcc88f","reviewer":"code-review","verdict":"APPROVED (lead lexilombas-42 6:25 PM: dropped 2 unused exports + useDockYield in an admin preview; no money/authz logic)","date":"2026-11-05"}
+{"sha":"de2319818117b014cdc4e42cd486ba77cbe6a9a7","reviewer":"code-review","verdict":"APPROVED (lead lexilombas-42 6:25 PM: dropped 2 unused exports + useDockYield in an admin preview; no money/authz logic)","date":"2026-11-05"}

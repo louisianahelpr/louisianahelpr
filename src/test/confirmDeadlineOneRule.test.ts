@@ -94,7 +94,7 @@ describe("the day-before confirm: one window, one deadline (Q1647)", () => {
     expect(readers.length).toBeGreaterThan(4);
     expect(readers).toContain("src/components/JobConfirmation.tsx");
     expect(readers).toContain("src/components/job-card/confirmationOpensClock.ts");
-    expect(readers).toContain("src/components/JobTracking.tsx");
+    expect(readers).toContain("src/components/JobTrackingView.tsx"); // the open tracker's view (Q806: its JSX left JobTracking.tsx)
     expect(readers).toContain("supabase/functions/auto-expire-jobs/index.ts");
   });
 

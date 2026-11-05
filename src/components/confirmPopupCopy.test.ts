@@ -43,7 +43,8 @@ const src = (f: string) =>
   blankComments(readFileSync(resolve(__dirname, f), "utf8"));
 
 describe("Mark it done confirm popup", () => {
-  const tracking = src("JobTracking.tsx");
+  // Q806 (2026-11-05): the open tracker's JSX lives in JobTrackingView.tsx; the state and handlers stay in JobTracking.tsx.
+  const tracking = src("JobTracking.tsx") + "\n" + src("JobTrackingView.tsx");
 
   it("asks to mark the job complete, not to request a payout", () => {
     expect(tracking).toContain('title="Mark this job complete?"');
@@ -54,7 +55,7 @@ describe("Mark it done confirm popup", () => {
 
   // Audit 2026-10-30: nothing pays out on a timer (escrowTiming.ts: the money moves only after approval, and past the
   // window support is asked to step in), so "starts the clock on your payment" promised something that never runs.
-  // @mutate src/components/JobTracking.tsx | the work is finished, so they can approve it." | the work is finished and starts the clock on your payment."
+  // @mutate src/components/JobTrackingView.tsx | the work is finished, so they can approve it." | the work is finished and starts the clock on your payment."
   it("says what the tap does, with no clock on the payment", () => {
     expect(tracking).toContain("This tells the person who posted this job the work is finished, so they can approve it.");
     expect(tracking).not.toMatch(/clock on your payment/);
@@ -75,7 +76,7 @@ describe("confirm-booking popup cancel link", () => {
 
 // Owner, 2026-09-14: the card says Mark it done and the popup it opens
 // talked about money. This is that popup reverting.
-// @mutate src/components/JobTracking.tsx | title="Mark this job complete?" | title="Request Your Payout?"
+// @mutate src/components/JobTrackingView.tsx | title="Mark this job complete?" | title="Request Your Payout?"
 // The confirm-booking hand-off link reverting to euphemism: it opens the real
 // cancel flow, so it has to say Cancel job (VN-18).
 // @mutate src/components/JobConfirmation.tsx | Cancel job | See what happens

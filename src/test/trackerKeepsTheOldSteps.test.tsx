@@ -98,7 +98,7 @@ describe("the old tracker's steps and actions are all still here (owner 2026-10-
 
   it("every step action the old rail's button offered is still a step action", () => {
     expect(oldRail().map((s) => s.action).filter(Boolean)).toEqual(["I've accepted", "Confirm this job", "I'm on my way", "I've arrived", "Start working", "Mark it done"]);
-    expect(code("src/components/JobTracking.tsx")).toContain('label={arrivalRefusedHere ? "Try my location again" : (nextStatus.action ?? nextStatus.label)}');
+    expect(code("src/components/JobTrackingView.tsx")).toContain('label={arrivalRefusedHere ? "Try my location again" : (nextStatus.action ?? nextStatus.label)}');
   });
 
   it("a done step shows when it happened on tap or hover; a click never hides what the hover showed", () => {
@@ -189,7 +189,7 @@ describe("the old tracker's steps and actions are all still here (owner 2026-10-
   });
 
   it("the open card's tracker reads the card's own inputs (photo rule, tracking row), not a thinner copy", () => {
-    const src = code("src/components/JobTracking.tsx");
+    const src = code("src/components/JobTrackingView.tsx"); // Q806: the tracker's JSX left JobTracking.tsx
     expect(src).toMatch(/require_photo_proof: requirePhotoProof,\s*proof_before_urls: proofBeforeUrls,\s*proof_after_urls: proofAfterUrls,/);
     expect(src).toMatch(/workUnderway: currentStatusIdx >= STATUS_IDX\.working, tracking, card: progressCard \}/);
   });

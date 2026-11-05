@@ -10,7 +10,7 @@
  * @mutate src/pages/posts/PostedJobCard.tsx |               progress={isExpanded ? null : faceProgress} | progress={null && faceProgress}
  * @mutate src/pages/jobs/AppliedJobCard.tsx |             progress={!isExpanded ? faceProgress : null} | progress={false ? faceProgress : null}
  * @mutate src/components/job-card/MineJobFace.tsx |             <JobProgress progress={progress} barOnly /> |             <span />
- * @mutate src/components/JobTracking.tsx |       <JobProgress\n        progress={jobProgress( |       <div role="group" aria-label="Job progress">{displaySteps.map((s) => s.label)}</div>\n      <JobProgress\n        progress={jobProgress(
+ * @mutate src/components/JobTrackingView.tsx |       <JobProgress\n        progress={jobProgress( |       <div role="group" aria-label="Job progress">{displaySteps.map((s) => s.label)}</div>\n      <JobProgress\n        progress={jobProgress(
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -25,7 +25,7 @@ const read = (f: string) => blankComments(readFileSync(join(ROOT, f), "utf8"));
 const RENDERERS = [
   "src/components/messages/chatView/DealCard.tsx",
   "src/pages/jobs/jobPage/JobPageParts.tsx",
-  "src/components/JobTracking.tsx",
+  "src/components/JobTrackingView.tsx", // the open tracker's view (Q806: its JSX left JobTracking.tsx)
 ];
 /** Surfaces that render <JobProgress> with a state they already hold (Home's Live now carries jobProgress from
  *  nextUpStates.ts; the payment screen shows its step with a caption). */
@@ -70,7 +70,7 @@ describe("one job tracker (owner 2026-10-21)", () => {
   });
 
   it("the card tracker draws no stepper of its own", () => {
-    const src = read("src/components/JobTracking.tsx");
+    const src = read("src/components/JobTracking.tsx") + "\n" + read("src/components/JobTrackingView.tsx") + "\n" + read("src/components/TrackingStatusLine.tsx");
     expect(src).not.toMatch(/aria-label="Job progress"/);
     expect(src).not.toMatch(/displaySteps\.map\(/);
   });

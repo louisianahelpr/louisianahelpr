@@ -81,7 +81,7 @@ import type { ReactElement } from "react";
 // the `mode="primary"` mount in the notice; the actions-array chip renders
 // nothing for a one-Helpr job, so removing it SURVIVED a local vacuity run.)
 // @mutate src/pages/jobs/appliedJobCard/steps/OnSiteStep.tsx | <HelperPhotoAsk jobId={app.job_id} job={job} step="on_site" mode="primary" /> | null
-// @mutate src/components/JobTracking.tsx | !hasRequiredProof({ require_photo_proof: requirePhotoProof ?? true }, proofBeforeUrls, proofAfterUrls); | false;
+// @mutate src/components/JobTrackingView.tsx | !hasRequiredProof({ require_photo_proof: requirePhotoProof ?? true }, proofBeforeUrls, proofAfterUrls); | false;
 // The third takes the BEFORE-photo half of the gate off Start working — the
 // owner's 2026-09-19 rule, and the half that only became safe to enforce once
 // 20260919195158 put it in the database. Since photo-first (owner 2026-10-08,
@@ -90,7 +90,7 @@ import type { ReactElement } from "react";
 // `needsBeforePhoto` from the button's `disabled`) changed nothing this row
 // shows and SURVIVED (vacuity push run 38181478413). The gate the row really
 // applies is `photoIsPrimary`; putting Start working back must turn this red.
-// @mutate src/components/JobTracking.tsx | const photoIsPrimary = needsBeforePhoto \|\| needsProof; | const photoIsPrimary = needsProof;
+// @mutate src/components/JobTrackingView.tsx | const photoIsPrimary = needsBeforePhoto \|\| needsProof; | const photoIsPrimary = needsProof;
 // F21 (audit 2026-10-28): the photo primary is sentence case ("Take before photo", was "Take Before photo").
 // @mutate src/components/job-card/photoPrimaryLabel.ts |   return `Take ${label.charAt(0).toLowerCase()}${label.slice(1)}`; |   return `Take ${label}`;
 

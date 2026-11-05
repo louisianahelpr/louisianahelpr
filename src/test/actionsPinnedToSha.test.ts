@@ -1,5 +1,5 @@
 // @mutate .github/workflows/broken-links.yml | uses: lycheeverse/lychee-action@e7477775783ea5526144ba13e8db5eec57747ce8 # v2.9.0 | uses: lycheeverse/lychee-action@v2 # v2.9.0
-// @mutate .github/workflows/sentry-release.yml | uses: getsentry/action-release@6fb9aeade7061441cf3864e34fbe11a1457ad7dc # v3.7.1 | uses: getsentry/action-release@6fb9aeade7061441cf3864e34fbe11a1457ad7dc
+// @mutate .github/workflows/sentry-release.yml | uses: getsentry/action-release@e6703d0b00208e0b3687ba660d18ab5af7892821 # v3.7.2 | uses: getsentry/action-release@e6703d0b00208e0b3687ba660d18ab5af7892821
 /*
  * GUARD (2026-10-05, owner-approved hardening): every GitHub Action this repo
  * runs is pinned to a full 40-hex commit SHA.

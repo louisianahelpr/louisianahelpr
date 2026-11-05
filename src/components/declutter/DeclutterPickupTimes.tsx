@@ -18,6 +18,10 @@ import { Plus, X } from "lucide-react";
 import { type PickupWindow } from "@/lib/declutter/api";
 import { WEEKDAYS } from "./declutterUi";
 import { NativeSelect } from "@/components/ui/select";
+import { byDayThenStart, placeHoursLine, sameHoursEveryDay, shortDays, timeLabel } from "@/lib/declutter/pickupTimesText";
+
+// The text helpers live in lib/declutter/pickupTimesText (the item page reads them without this editor).
+export { placeHoursLine, sameHoursEveryDay, shortDays, timeLabel };
 
 /** declutter_set_pickup_windows takes at most this many windows. */
 const MAX_WINDOWS = 21;
@@ -29,21 +33,6 @@ export const TIME_STEPS: string[] = Array.from({ length: 33 }, (_, i) => {
   const m = 6 * 60 + i * 30;
   return `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 });
-
-/** "09:00" -> "9:00 AM", "17:30" -> "5:30 PM". */
-export function timeLabel(hhmm: string): string {
-  const [h, m] = hhmm.split(":").map(Number);
-  const suffix = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return `${h12}:${String(m).padStart(2, "0")} ${suffix}`;
-}
-
-/** True when every chosen day has exactly one window and they all share one range. */
-export function sameHoursEveryDay(windows: PickupWindow[]): boolean {
-  if (windows.length === 0) return true;
-  const days = new Set(windows.map((w) => w.weekday));
-  return days.size === windows.length && windows.every((w) => w.starts === windows[0].starts && w.ends === windows[0].ends);
-}
 
 /**
  * ONE weekday chip for every Sun-Sat picker in Declutter (audit 1030 DC-3: the porch days and the pickup-time
@@ -60,15 +49,6 @@ export function DayChip({ day, on, onToggle, disabled }: { day: number; on: bool
     </ToggleChip>
   );
 }
-
-/** "Sat, Sun": short weekday names, in week order. */
-export function shortDays(days: readonly number[] | null | undefined): string {
-  // A row missing its days (an older server, a mocked read) shows nothing rather than blanking the page (review 2026-10-31).
-  if (!Array.isArray(days)) return "";
-  return [...days].sort((a, b) => a - b).map((d) => SHORT[d]).filter(Boolean).join(", ");
-}
-
-const byDayThenStart = (a: PickupWindow, b: PickupWindow) => a.weekday - b.weekday || a.starts.localeCompare(b.starts);
 
 function TimeSelect({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (v: string) => void }) {
   // A saved time off the half-hour grid (an older window) is kept and shown, not silently moved.
@@ -200,21 +180,3 @@ export function pickupWindowsProblem(windows: PickupWindow[]): string | null {
 // Declutter settings' separate "Pickup times" card is gone (LEAD-PLACE-TIMES, owner 2026-10-31): each pickup place
 // carries its own days and hours (SellPorchPlaces), set with PickupTimesEditor above.
 
-const SHORT_DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-/**
- * One place's days and hours in words (LEAD-POST-PLACES): "Every day 7:00 AM–9:00 PM", "Mon, Wed 9:00 AM–12:00 PM",
- * or per day when they differ: "Sat 9:00 AM–12:00 PM; Sun 1:00 PM–3:00 PM". No hours (an older server): the days.
- */
-export function placeHoursLine(windows: PickupWindow[] | null | undefined, weekdays: number[] | null | undefined): string {
-  const ws = (windows ?? []).filter((w) => w && typeof w.starts === "string" && typeof w.ends === "string");
-  if (ws.length === 0) return shortDays(weekdays);
-  const range = (w: PickupWindow) => `${timeLabel(w.starts)}–${timeLabel(w.ends)}`;
-  if (sameHoursEveryDay(ws)) {
-    const days = [...new Set(ws.map((w) => w.weekday))];
-    return `${days.length === 7 ? "Every day" : shortDays(days)} ${range(ws[0])}`;
-  }
-  const byDay = new Map<number, PickupWindow[]>();
-  for (const w of [...ws].sort(byDayThenStart)) byDay.set(w.weekday, [...(byDay.get(w.weekday) ?? []), w]);
-  return [...byDay.entries()].map(([d, list]) => `${SHORT_DAY[d]} ${list.map(range).join(", ")}`).join("; ");
-}

@@ -9,7 +9,7 @@ import { fetchItemPickupWindows } from "@/lib/declutter/handover";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { windowsSummary } from "@/lib/declutter/pickupSlots";
 import { fetchItemPickupPlaces, type PickupPlaceHours } from "@/lib/declutter/porchPlaces";
-import { placeHoursLine } from "./DeclutterPickupTimes";
+import { placeHoursLine } from "@/lib/declutter/pickupTimesText";
 
 export function ItemPickupTimes({ itemId, label = "Pickup times" }: { itemId: string; label?: string }) {
   const q = useQuery({ queryKey: ["declutter", "item-pickup-windows", itemId], queryFn: () => fetchItemPickupWindows(itemId) });

@@ -9,6 +9,8 @@ import { decideByWords } from "@/lib/declutter/decideBy";
 import { adminDecideDeliveryDamage, adminDecideStuckDelivery, adminDecideProblem, fetchOpenProblemsWithDetail, handoverPhotoUrl, withDecideBy, type AdminProblem, type AdminProblemDetail } from "@/lib/declutter/handover";
 import { offerCentsFromInput } from "@/lib/declutter/refundRequests";
 import { photoPublicUrl } from "@/lib/declutter/api";
+import { squarePhotoUrl, THUMB_PHOTO_PX } from "@/lib/declutter/photoSizes";
+import { FallbackImg } from "@/components/declutter/FallbackImg";
 import { formatPrice } from "@/lib/declutter/distance";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { AdminCard } from "../AdminViewShell";
@@ -64,7 +66,7 @@ function ProblemDetail({ d }: { d: AdminProblemDetail }) {
     <div className="space-y-3">
       <div className="flex gap-3">
         {d.item_photo_paths[0] ? (
-          <img src={photoPublicUrl(d.item_photo_paths[0])} alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover bg-muted" />
+          <FallbackImg src={squarePhotoUrl(photoPublicUrl(d.item_photo_paths[0]), THUMB_PHOTO_PX) ?? photoPublicUrl(d.item_photo_paths[0])} retrySrc={photoPublicUrl(d.item_photo_paths[0])} width={THUMB_PHOTO_PX} height={THUMB_PHOTO_PX} decoding="async" alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover bg-muted" />
         ) : null}
         <div className="min-w-0 space-y-0.5">
           <p className="font-semibold [overflow-wrap:anywhere]">{title}{more > 0 ? ` and ${more} more` : ""}</p>

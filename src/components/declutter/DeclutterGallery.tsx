@@ -12,13 +12,10 @@ import { PhotoLightbox } from "@/components/dashboard/PhotoLightbox";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { FallbackImg } from "./FallbackImg";
+import { ITEM_PHOTO_ASPECT, ITEM_PHOTO_FRAME_BASE } from "./itemPhotoFrame";
 
-const FRAME_BASE = "relative w-full overflow-hidden rounded-2xl";
-// Items are photo-first (square on a phone); a job page's photo is a banner (boards 15, 168).
-// The item photo is square on a phone but never taller than about half the screen, so the price and title start
-// above the dock on a short or wide phone window (lead walkthrough 2026-10-28, shot 33: at 500x700 the + covered the
-// title). object-cover crops the overflow; the full photo is a tap away in the viewer.
-const ASPECT = { item: "aspect-square max-h-[52dvh] sm:max-h-none sm:aspect-[4/3] bg-photo-empty", banner: "aspect-[16/9] bg-photo-empty" } as const;
+const FRAME_BASE = ITEM_PHOTO_FRAME_BASE;
+const ASPECT = ITEM_PHOTO_ASPECT;
 
 /** `icon`: the placeholder glyph when there is no photo (the job page passes the job category's; default: the Declutter category's). */
 /** `display`: what the frame shows for each of `urls` (a resized photo and its srcSet, B67); `urls` stay the originals,

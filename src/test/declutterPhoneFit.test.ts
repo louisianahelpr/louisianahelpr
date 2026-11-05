@@ -7,7 +7,7 @@
  * Read from the source (jsdom lays nothing out); the screenshots under ~/.lh-shots/declutter-audit-1028/phone-after
  * are the look.
  *
- * @mutate src/components/declutter/DeclutterGallery.tsx | aspect-square max-h-[52dvh] sm:max-h-none | aspect-square
+ * @mutate src/components/declutter/itemPhotoFrame.ts | aspect-square max-h-[52dvh] sm:max-h-none | aspect-square
  * @mutate src/components/declutter/DeclutterFilterPanel.tsx | const CHIP = "flex h-11 min-h-11 items-center | const CHIP = "flex h-10 items-center
  * @mutate src/components/declutter/DeclutterFilterPanel.tsx | : "border border-foreground/25 bg-background text-foreground"}`}> | : "border border-border bg-card text-foreground"}`}>
  */
@@ -21,7 +21,7 @@ const read = (p: string) => blankComments(readFileSync(resolve(ROOT, p), "utf8")
 
 describe("Declutter fits a phone", () => {
   it("the item photo is square on a phone but never taller than about half the screen", () => {
-    const m = read("src/components/declutter/DeclutterGallery.tsx").match(/item:\s*"([^"]+)"/);
+    const m = read("src/components/declutter/itemPhotoFrame.ts").match(/item:\s*"([^"]+)"/);
     expect(m, "ASPECT.item not found").not.toBeNull();
     const cls = m![1].split(/\s+/);
     expect(cls).toContain("aspect-square");

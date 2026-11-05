@@ -220,4 +220,4 @@ describe("/jobs card: a tap opens the job, it never opens Apple Maps", () => {
 /* Shown able to fail: reverting the card to the tap-to-map anchor — i.e.
    dropping `locationPressToMap` from the call site — is the original defect,
    and it fails cases 1 and 2. */
-// @mutate src/pages/jobs/AppliedJobCard.tsx | locationPressToMap | locationPressToMap={false}
+// @mutate src/pages/jobs/appliedJobCard/HelperJobMetaRow.tsx | locationPressToMap | locationPressToMap={false}

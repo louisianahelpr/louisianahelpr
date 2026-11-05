@@ -7,14 +7,14 @@
 //
 // @mutate src/components/postjob/CheckoutStep.tsx | jobDayLabel({ date_needed: whenDate, date_window_end: dateWindowEnd }) | formatJobDate(whenDate)
 // @mutate src/pages/post-job/CheckoutStepView.tsx |         dateWindowEnd={form.dateWindowEnd} |         dateWindowEnd={null}
-// Same walk: the shared card meta row (My Posts' PostedJobMetaRow, the Helpr's AppliedJobCard) printed
+// Same walk: the shared card meta row (My Posts' PostedJobMetaRow, the Helpr's HelperJobMetaRow) printed
 // formatJobDate(dateNeeded) itself, so an open window job's card read its first day too.
 // @mutate src/components/job-card/JobCardMetaRow.tsx | {jobDayLabel({ date_needed: dateNeeded, date_window_end: dateWindowEnd })} | {jobDayLabel({ date_needed: dateNeeded, date_window_end: null })}
 // @mutate src/pages/posts/postedJobCard/PostedJobMetaRow.tsx |         dateWindowEnd={job.date_window_end ?? null} |         dateWindowEnd={null}
 // The hire sheet ("Your job moves from <posted when> to this time") and the Applicants header printed the first day too.
 // @mutate src/components/ResponseDeadlineDialog.tsx | [jobDayLabel(postedJob), jobStartTimeLabel | [formatJobDate(postedJob.date_needed!), jobStartTimeLabel
 // @mutate src/pages/posts/postedJobs/ApplicantsPanel.tsx | selectedJob.date_needed ? jobDayLabel(selectedJob) : null | selectedJob.date_needed ? String(selectedJob.date_needed) : null
-// @mutate src/pages/jobs/AppliedJobCard.tsx |         dateWindowEnd={job.date_window_end ?? null} |         dateWindowEnd={null}
+// @mutate src/pages/jobs/appliedJobCard/HelperJobMetaRow.tsx |         dateWindowEnd={job.date_window_end ?? null} |         dateWindowEnd={null}
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { CheckoutStepView } from "./CheckoutStepView";
@@ -70,7 +70,7 @@ describe("Q2408: the shared card meta row prints the window (My Posts and the He
     render(<JobCardMetaRow dateNeeded="2026-11-05" startTime={null} location="Delcambre, LA" expiresAt={null} />);
     expect(screen.getByText("Thu, Nov 5")).toBeTruthy();
   });
-  const callers = ["src/pages/posts/postedJobCard/PostedJobMetaRow.tsx", "src/pages/jobs/AppliedJobCard.tsx"];
+  const callers = ["src/pages/posts/postedJobCard/PostedJobMetaRow.tsx", "src/pages/jobs/appliedJobCard/HelperJobMetaRow.tsx"];
   for (const f of callers) {
     it(`${f} passes the job's window to the row`, () => {
       const src = blankComments(readFileSync(resolve(__dirname, "..", "..", "..", f), "utf8"));

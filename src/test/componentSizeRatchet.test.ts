@@ -1,4 +1,4 @@
-// @mutate src/components/BrowseMap.tsx | // BrowseMap — Apple MapKit JS map showing open Louisiana jobs as pins. The | // BrowseMap — Apple MapKit JS map showing open Louisiana jobs as pins. The\n//
+// @mutate src/pages/jobs/AppliedJobCard.tsx | export const AppliedJobCard = memo(AppliedJobCardInner); | export const AppliedJobCard = memo(AppliedJobCardInner);\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n
 // @mutate src/components/NotificationPanel.tsx | // Type-only: erased at build, so framer stays off the critical path.\n |
 // @mutate src/components/RichMessageInput.tsx | import { useCallback, useEffect, useState, useRef } from "react"; | import { useCallback, useEffect, useState, useRef } from "react";\n\n\n\n\n
 /*
@@ -42,9 +42,9 @@ describe("god components (non-test .tsx over the line threshold) only shrink, pe
   it("scans the real source tree", () => {
     // A walker that read nothing would report no oversized files and "pass".
     expect(scanned).toBeGreaterThan(400);
-    // Floors lowered as god components are split (Q806; 20 left 2026-11-04, Legal.tsx out; CredentialsTab + AdminDisputes + DashboardGuest + BrowseMap + Dashboard + Profile + UserProfile + JobDetailDialog out 11-04 Builder 1).
-    expect(Object.keys(oversized(sizes)).length).toBeGreaterThan(6); // 7 on 2026-11-05 (JobTracking left, Q806)
-    expect(Object.keys(baseline.files).length).toBeGreaterThan(6);
+    // Floors lowered as god components are split (Q806; 20 left 2026-11-04, Legal.tsx out; CredentialsTab + AdminDisputes + DashboardGuest + BrowseMap + Dashboard + Profile + UserProfile + JobDetailDialog out 11-04 Builder 1; JobTracking + AppliedJobCard out 11-05 Builder 1).
+    expect(Object.keys(oversized(sizes)).length).toBeGreaterThan(5); // 6 on 2026-11-05 (JobTracking + AppliedJobCard left, Q806)
+    expect(Object.keys(baseline.files).length).toBeGreaterThan(5);
     expect(sizes["src/components/messages/ConversationList.tsx"]).toBeGreaterThan(THRESHOLD); // JobTracking was the sample until it fell to 571 (Q806, 2026-11-05)
     expect(Object.keys(sizes).filter(isTestFile), "test files must not be counted").toEqual([]);
     expect(baseline._threshold, "baseline was generated at a different threshold").toBe(THRESHOLD);

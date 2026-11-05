@@ -16,22 +16,29 @@ import { cn } from "@/lib/utils";
  * on Wanted's card, bg-card + border-border vanished in dark mode), so it shows
  * on a card and on the page alike.
  *
- * Guard: src/test/toggleChipShared.test.tsx (one look, aria-pressed, and the
- * ratchet on hand-written aria-pressed chips).
+ * `wrap` (Q2709, 11-04): a chip whose words are a phrase (the review sheet's
+ * "Showed up on time", "Easy to deal with") may take a second line, centred,
+ * inside the row's width, instead of running past a 375px sheet (or a Senior
+ * Mode one). Off by default: a filter chip keeps one line.
+ *
+ * Guard: src/test/toggleChipShared.test.tsx (one look, aria-pressed, wrap, and
+ * the ratchet on hand-written aria-pressed chips).
  */
 export function ToggleChip({
   pressed,
+  wrap = false,
   className,
   children,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { pressed: boolean }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & { pressed: boolean; wrap?: boolean }) {
   return (
     <button
       type="button"
       aria-pressed={pressed}
       {...props}
       className={cn(
-        "flex min-h-11 shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-4 font-sans text-ds-13 font-semibold transition-all",
+        "flex min-h-11 items-center gap-1 rounded-full px-4 font-sans text-ds-13 font-semibold transition-all",
+        wrap ? "max-w-full justify-center whitespace-normal py-2 text-center leading-tight [overflow-wrap:anywhere]" : "shrink-0 whitespace-nowrap",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background",
         pressed ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-foreground/25 bg-background text-foreground",
         className,

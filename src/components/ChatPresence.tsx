@@ -116,15 +116,18 @@ export const ReadReceipt = ({
       onClick={() => setRevealed((v) => !v)}
       // See the unread branch above for the -my-[14px] approach.
       className="relative inline-flex items-center gap-1 ml-1 -my-[14px]"
-      aria-label={
-        recipientName
-          ? `Read by ${recipientName}${readAtLabel ? ` at ${readAtLabel}` : ""}`
-          : `Read${readAtLabel ? ` at ${readAtLabel}` : ""}`
-      }
+      // Named by content, not aria-label (WCAG 2.5.3, axe 4.14 label-content-name-mismatch, lead 11-04): the drawn
+      // initials and "Read 12:00 PM" are aria-hidden; the sr-only line below is the name.
       aria-pressed={revealed}
       title={readAtLabel ? `Read ${readAtLabel}` : "Read"}
     >
+      <span className="sr-only">
+        {recipientName
+          ? `Read by ${recipientName}${readAtLabel ? ` at ${readAtLabel}` : ""}`
+          : `Read${readAtLabel ? ` at ${readAtLabel}` : ""}`}
+      </span>
       <span
+        aria-hidden="true"
         className="inline-flex items-center justify-center w-4 h-4 rounded-full overflow-hidden shrink-0 outline outline-1 outline-dotted outline-offset-1"
         style={{
           background: "hsl(var(--bark) / 0.18)",
@@ -150,7 +153,7 @@ export const ReadReceipt = ({
           2.96:1, and bark clears AA only at ~0.95. Bare `hsl(var(--bark))`
           matches the initials rendered two lines up. 5.44:1 / 5.82:1. */}
       {revealed && (
-        <span className="text-ds-9 font-sans" style={{ color: "hsl(var(--bark))" }}>
+        <span aria-hidden="true" className="text-ds-9 font-sans" style={{ color: "hsl(var(--bark))" }}>
           {readAtLabel ? `Read ${readAtLabel}` : "Read"}
         </span>
       )}

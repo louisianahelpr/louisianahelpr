@@ -52,7 +52,7 @@ function titleGeometry() {
   const visible = (el: Element) => el.getBoundingClientRect().height > 0;
   const h1 = [...document.querySelectorAll("h1")].find(visible);
   const bar = [...document.querySelectorAll("header")].find((h) => visible(h) && getComputedStyle(h).position === "fixed");
-  const bell = bar?.querySelector('[aria-label="Notifications"]');
+  const bell = bar?.querySelector('[aria-label^="Notifications"]');
   const r = (el: Element | null | undefined) => (el ? el.getBoundingClientRect() : null);
   const [t, b, n] = [r(h1), r(bar), r(bell)];
   return {

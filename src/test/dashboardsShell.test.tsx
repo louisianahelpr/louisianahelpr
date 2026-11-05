@@ -186,8 +186,9 @@ const exploreLabels = () =>
 describe("the bottom nav", () => {
   it("is Home, Explore, the center +, Messages (with its unread badge), You", () => {
     wrap(<MobileNav />);
-    expect(dockLabels()).toEqual(["Home", "Explore", "Create", "Messages", "You"]);
-    const msgs = screen.getByRole("button", { name: "Messages" });
+    // A tab with a badge is named with its visible count first (WCAG 2.5.3, axe label-content-name-mismatch, Q1816).
+    expect(dockLabels()).toEqual(["Home", "3 Explore", "Create", "3 Messages", "You"]);
+    const msgs = screen.getByRole("button", { name: "3 Messages" });
     expect(msgs.textContent).toContain("3");
   });
 
@@ -195,7 +196,7 @@ describe("the bottom nav", () => {
     "%s lights Explore, not Home (every section lives in Explore)",
     (at) => {
       wrap(<MobileNav />, at);
-      expect(screen.getByRole("button", { name: "Explore" }).getAttribute("aria-current")).toBe("page");
+      expect(screen.getByRole("button", { name: /^(\d+\+? )?Explore$/ }).getAttribute("aria-current")).toBe("page");
       expect(screen.getByRole("button", { name: "Home" }).getAttribute("aria-current")).toBeNull();
     },
   );

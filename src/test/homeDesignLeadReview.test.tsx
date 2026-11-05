@@ -22,6 +22,15 @@
  * @mutate src/components/notificationPanel/NotificationTrigger.tsx | style={{ background: "hsl(var(--alert))", color: "#fff" }} | style={{ background: "hsl(var(--burnt-sienna))", color: "#fff" }}
  * @mutate src/components/MobileNav.tsx |           <Icon\n            className="w-[22px] h-[22px] transition-all duration-200" |           {path === "/profile" && <img alt="" src="avatar.png" />}\n          <Icon\n            className="w-[22px] h-[22px] transition-all duration-200"
  * @mutate src/components/MobileNav.tsx |             fill={isActive && path !== "/explore" ? "currentColor" : "none"} |             fill="none"
+ *
+ * 5. (Q1816, 11-04) axe 4.14 turned label-content-name-mismatch on (WCAG 2.5.3): the top bar's Profile, the bell and
+ *    the dock's badged tabs had an aria-label without their visible text (initials "TP", the count "4", "3Messages").
+ *    Every icon button's name holds its visible words, in order (axe's own token rule, read from textContent: jsdom
+ *    lays nothing out, so this cannot see visibility; the e2e axe sweeps do).
+ * @mutate src/lib/avatarImage.ts |   return initials ? `${word}, ${initials}` : word; |   return word;
+ * @mutate src/components/notificationPanel/NotificationTrigger.tsx |   return count > 0 ? `Notifications, ${formatUnreadBadge(count)} unread` : "Notifications"; |   return "Notifications";
+ * @mutate src/components/MobileNav.tsx | : showBadge ? `${dockBadgeText(badgeCount)} ${shown}` : shown} | : shown}
+ * @mutate src/components/MobileNav.tsx |         {showBadge && " "}\n |
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 // The account's Customize row (useSectionPrefs, Q2199) is data, not what this spec measures: answered locally
@@ -111,7 +120,7 @@ describe("2. phone Home keeps the H logo (owner 2026-10-20 08:30Z), never the wo
     const logo = bar.firstElementChild as HTMLElement;
     expect(logo.querySelector("img")).not.toBeNull();
     expect(logo.textContent ?? "").not.toMatch(/Helpr/);
-    expect([...bar.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual(["Help", "Notifications", "Profile"]);
+    expect([...bar.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual(["Help", "Notifications", "Profile, TP"]); // the avatar's initials are in its name (WCAG 2.5.3, Q1816)
   });
 
   it("desktop Home: no bar (the left sidebar carries the H logo)", () => {
@@ -143,7 +152,7 @@ describe("3 + 4. the bottom bar: You is a person icon; olive active, --alert bad
   it("the Messages count badge is --alert with white text", () => {
     unread.n = 12;
     renderDock("/home");
-    const badge = [...screen.getByRole("button", { name: "Messages" }).querySelectorAll("span")].find((s) => s.textContent === "9+");
+    const badge = [...screen.getByRole("button", { name: "9+ Messages" }).querySelectorAll("span")].find((s) => s.textContent === "9+");
     expect(badge, "a 9+ badge on Messages").toBeTruthy();
     expect(badge!.getAttribute("style")).toContain("hsl(var(--alert))");
   });
@@ -156,5 +165,50 @@ describe("3 + 4. the bottom bar: You is a person icon; olive active, --alert bad
 
   it("--alert exists as a token (#B3261E)", () => {
     expect(code("src/index.css")).toMatch(/--alert: 4 71% 41%;/);
+  });
+});
+
+/** axe 4.14's label-content-name-mismatch: the visible text's words, in order, inside the name's words. */
+function nameHoldsVisibleText(el: Element): boolean {
+  const words = (t: string) => t.toLowerCase().replace(/\([^()]*\)/g, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim().split(/\s+/).filter(Boolean);
+  const seen = words(el.textContent ?? "");
+  const name = words(el.getAttribute("aria-label") ?? "");
+  if (!seen.length) return true;
+  for (let i = 0; i + seen.length <= name.length; i++) if (seen.every((w, j) => name[i + j] === w)) return true;
+  return false;
+}
+
+describe("5. an icon button's name holds its visible text (WCAG 2.5.3, axe label-content-name-mismatch, Q1816)", () => {
+  it("the checker itself fails a name without the visible text (can fail)", () => {
+    const b = document.createElement("button");
+    b.setAttribute("aria-label", "Messages");
+    b.innerHTML = "<span>3</span>Messages";
+    expect(nameHoldsVisibleText(b)).toBe(false);
+    b.innerHTML = "<span>3</span> Messages";
+    b.setAttribute("aria-label", "3 Messages");
+    expect(nameHoldsVisibleText(b)).toBe(true);
+  });
+
+  it("the top bar's Profile names the initials its avatar shows", () => {
+    render(<MemoryRouter><AppTopBar /></MemoryRouter>);
+    const profile = screen.getByTestId("top-bar-profile");
+    expect(profile.textContent).toContain("TP");
+    expect(nameHoldsVisibleText(profile), profile.getAttribute("aria-label") ?? "").toBe(true);
+  });
+
+  it("the bell with a count names the count", () => {
+    render(<NotificationTrigger unreadCount={4} />);
+    const bell = screen.getByRole("button");
+    expect(bell.textContent).toBe("4");
+    expect(nameHoldsVisibleText(bell), bell.getAttribute("aria-label") ?? "").toBe(true);
+  });
+
+  it("every dock tab, badged or not, names what it shows", () => {
+    unread.n = 3; // a bare digit: "3Messages" is one word to axe, where "9+Messages" splits at the "+"
+    renderDock("/home");
+    const tabs = [...document.querySelectorAll("nav button[aria-label]")];
+    expect(tabs.length).toBeGreaterThan(3);
+    expect(tabs.some((t) => /\d/.test(t.textContent ?? "")), "no badged tab rendered").toBe(true);
+    expect(tabs.filter((t) => !nameHoldsVisibleText(t)).map((t) => `${t.getAttribute("aria-label")} / ${t.textContent}`)).toEqual([]);
   });
 });

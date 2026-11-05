@@ -14,7 +14,7 @@
  * @mutate src/components/DesktopSidebarNav.tsx |                         // Count badges are --alert, never rust (spec v2 §1.1).\n                        background: "hsl(var(--alert))", |                         // Count badges are --alert, never rust (spec v2 §1.1).\n                        background: "hsl(var(--burnt-sienna))",
  * @mutate src/components/sidePanelOpen.tsx |   return true;\n}; |   return safeStorage.getItem(STORAGE_KEY) !== "0";\n};
  * @mutate src/components/DesktopTopNav.tsx |       data-rail-inset="" |       data-rail-off=""
- * @mutate src/components/DesktopTopNav.tsx |             aria-label="Profile"\n            data-testid="desktop-top-profile" |             aria-label="Settings"\n            data-testid="desktop-top-profile"
+ * @mutate src/components/DesktopTopNav.tsx |             aria-label={avatarButtonLabel("Profile", profile?.full_name)}\n            data-testid="desktop-top-profile" |             aria-label="Settings"\n            data-testid="desktop-top-profile"
  * @mutate src/index.css |     padding-left: var(--desktop-sidebar-w); |     padding-right: var(--desktop-sidebar-w);
  */
 import { render, screen, fireEvent, cleanup } from "@testing-library/react";

@@ -22,7 +22,7 @@ import { blankComments } from "./helpers/blankNonCode";
 // @mutate src/components/dashboard/browseTasksToolbar/MapToggleButton.tsx |       size="iconCompact" |       size="icon"
 // @mutate src/components/declutter/DeclutterPickupTimes.tsx |           <Button type="button" variant="ghost" size="iconCompact" onClick={onRemove} | <Button type="button" variant="ghost" size="icon" onClick={onRemove}
 // @mutate src/components/BirthdayPopup.tsx |                   size="iconCompact" |                   size="icon"
-// @mutate src/components/DesktopTopNav.tsx |             size="iconCompact"\n            aria-label="Profile" |             size="icon"\n            aria-label="Profile"
+// @mutate src/components/DesktopTopNav.tsx |             size="iconCompact"\n            aria-label={avatarButtonLabel("Profile", |             size="icon"\n            aria-label={avatarButtonLabel("Profile",
 // @mutate src/pages/profile/SavedSearchesTab.tsx |                   <Button type="button" variant="ghost" size="iconCompact" onClick={() => setEditing(s)} |                   <Button type="button" variant="ghost" size="icon" onClick={() => setEditing(s)}
 // @mutate src/pages/auth/Login.tsx | size="iconCompact" onClick={() => setShowPassword(!showPassword)} | size="icon" onClick={() => setShowPassword(!showPassword)}
 // @mutate src/pages/auth/signup/SignupStep1.tsx | size="iconCompact" onClick={() => setShowPassword(!showPassword)} | size="icon" onClick={() => setShowPassword(!showPassword)}
@@ -97,7 +97,7 @@ describe("the compact icon Button", () => {
     // B78 11-01, the desktop top bar's profile photo on /home (1440, mocked session): 44x44 at (1376,20), the 36px photo
     // at (1380,24), transparent fill, radius 9999px before and after; a press opens /profile. The initials now read
     // 15px/700, the same as the phone top bar's photo (AppTopBar, already this Button).
-    ["src/components/DesktopTopNav.tsx", /<button\b[^>]*aria-label="Profile"/],
+    ["src/components/DesktopTopNav.tsx", /<button\b[^>]*aria-label=\{avatarButtonLabel\("Profile"/],
     // B88 11-01, the password eye on /login and /signup (guest, every backend call answered locally): 44x44 at
     // (290,303.6) / (835,330.3) on /login and (290,380.5) / (827,415.1) on /signup at 375 / 1440, 16px glyph at 14,14,
     // colour rgb(97,94,86), no fill, before and after; element screenshots byte-identical; a press still shows the

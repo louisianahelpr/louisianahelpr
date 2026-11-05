@@ -4,9 +4,14 @@ import { Button } from "@/components/ui/button";
 import { formatUnreadBadge } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+/** WCAG 2.5.3 (axe label-content-name-mismatch, Q1816): the badge's visible count is part of the bell's name. */
+export function bellLabel(count: number): string {
+  return count > 0 ? `Notifications, ${formatUnreadBadge(count)} unread` : "Notifications";
+}
+
 export const NotificationTrigger = forwardRef<HTMLButtonElement, { unreadCount: number } & React.ComponentPropsWithoutRef<typeof Button>>(
   ({ unreadCount, className, ...props }, ref) => (
-    <Button ref={ref} variant="ghost" size="icon" className={cn("relative", className)} aria-label="Notifications" {...props}>
+    <Button ref={ref} variant="ghost" size="icon" className={cn("relative", className)} aria-label={bellLabel(unreadCount)} {...props}>
       <Bell className="w-4 h-4" />
       {unreadCount > 0 && (
         <span

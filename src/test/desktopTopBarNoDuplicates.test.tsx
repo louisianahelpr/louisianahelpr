@@ -32,11 +32,11 @@ const draw = (el: JSX.Element) => render(<MemoryRouter>{el}</MemoryRouter>);
 describe("the section top bar never repeats the desktop header (Q2221)", () => {
   it("phone: a section shows Help, the bell and the avatar; Home shows the logo, Help, bell and avatar", () => {
     draw(<AppTopBar title="Jobs" />);
-    expect(labels()).toEqual(["Help", "Notifications", "Profile"]);
+    expect(labels()).toEqual(["Help", "Notifications", "Profile, TP"]);
     cleanup();
     draw(<AppTopBar />);
     expect(screen.getByTestId("app-top-bar")).toBeTruthy();
-    expect(labels()).toEqual(["Help", "Notifications", "Profile"]);
+    expect(labels()).toEqual(["Help", "Notifications", "Profile, TP"]);
   });
 
   it("desktop: a section keeps its title and its soft '+ Post a job' (no second bell, no avatar)", () => {

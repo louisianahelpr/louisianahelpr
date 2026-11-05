@@ -8,7 +8,7 @@ import { SUPABASE_URL, rest, type Session } from "./fixtures";
  * WHY (Q1035, 2026-11-04). Post a job keeps a draft on the account
  * (save_my_job_post_draft, src/lib/jobPostDraftAccount.ts) as the poster types,
  * and the hourly job-post-draft-reminder cron sends one "Finish your job post?"
- * notice and email for it. Measured on prod 2026-11-04 8:30 PM: the shared
+ * notice and email for it. Measured on prod 2026-11-04 ~8:13 PM CT: the shared
  * poster seat held a draft from the 01:23Z journeys run, reminded_at null. The
  * live sweep skips is_seed accounts, so nothing was sent, but a test that leaves
  * its typing behind on a shared account is one flag away from a reminder: every

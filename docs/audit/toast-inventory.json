@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1151,
+    "calls": 1153,
     "files": 319,
-    "rendering": 1070,
-    "suppressedByPolicy": 81,
+    "rendering": 1071,
+    "suppressedByPolicy": 82,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 217,
-      "toast.error": 778,
+      "toast.error": 779,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 87,
+      "toast.success": 88,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 486,
+      "literal": 487,
       "template": 105,
-      "dynamic": 612,
+      "dynamic": 613,
       "jsx": 0
     }
   },
@@ -2008,7 +2008,7 @@
     },
     {
       "file": "src/components/admin/AdminExport.tsx",
-      "line": 63,
+      "line": 64,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2018,7 +2018,7 @@
     },
     {
       "file": "src/components/admin/AdminExport.tsx",
-      "line": 69,
+      "line": 70,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2028,7 +2028,7 @@
     },
     {
       "file": "src/components/admin/AdminExport.tsx",
-      "line": 73,
+      "line": 74,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2038,7 +2038,7 @@
     },
     {
       "file": "src/components/admin/AdminExport.tsx",
-      "line": 124,
+      "line": 125,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2048,7 +2048,7 @@
     },
     {
       "file": "src/components/admin/AdminExport.tsx",
-      "line": 128,
+      "line": 129,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -2058,7 +2058,7 @@
     },
     {
       "file": "src/components/admin/AdminExport.tsx",
-      "line": 145,
+      "line": 146,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2068,13 +2068,33 @@
     },
     {
       "file": "src/components/admin/AdminExport.tsx",
-      "line": 149,
+      "line": 150,
       "kind": "toast.error",
       "title": {
         "form": "literal",
         "text": "No data to export."
       },
       "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminExport.tsx",
+      "line": 197,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(error, \"Couldn't export that — try again.\")"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/AdminExport.tsx",
+      "line": 202,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "No sales-tax corrections this year: Stripe's Tax report needs none."
+      },
+      "renders": false
     },
     {
       "file": "src/components/admin/AdminFraudDashboard.tsx",

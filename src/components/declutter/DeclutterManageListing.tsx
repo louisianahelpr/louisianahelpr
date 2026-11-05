@@ -18,6 +18,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { ShareListingRow } from "./DeclutterShareCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
@@ -360,9 +361,9 @@ function PriceEditor({
         <p role="alert" className="text-ds-13 text-[hsl(var(--alert,4_71%_41%))]">{problem}</p>
       )}
       {underFloor && (
-        <button type="button" className="min-h-11 text-ds-14 font-semibold underline underline-offset-2" onClick={() => setFloor(price)}>
+        <InlineTextButton className="text-ds-14 font-semibold underline underline-offset-2" onClick={() => setFloor(price)}>
           Also set lowest to {formatPrice(priceCents ?? 0)}
-        </button>
+        </InlineTextButton>
       )}
       <SheetFooter>
         <SheetSecondaryAction type="button" onClick={onBack} disabled={save.isPending}>

@@ -12,6 +12,8 @@ import { Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { photoPublicUrl, type DeclutterPhoto } from "@/lib/declutter/api";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS } from "@/lib/declutter/photoRules";
+import { CARD_PHOTO_SMALL_PX, squarePhotoUrl } from "@/lib/declutter/photoSizes";
+import { FallbackImg } from "./FallbackImg";
 import { useHeldPhotoReorder } from "./heldPhotoReorder";
 
 export const MAX_PHOTOS = DECLUTTER_MAX_PHOTOS;
@@ -99,7 +101,9 @@ export function SellPhotos({
       <ul className="grid grid-cols-3 sm:grid-cols-4 gap-2.5" data-sell-photos="">
         {uploaded.map((p, i) => (
           <li key={p.id} className="relative">
-            <img src={photoPublicUrl(p.storage_path)} alt={`Photo ${i + 1}`} className="aspect-square w-full object-cover rounded-2xl bg-photo-empty" />
+            {/* The 340 square (a 3-column tile is ~105 CSS px at 375), the original only if that fails (Q2707 raw tiles:
+                407,886-573,453 B raw, 17,128-28,794 B as the square, live seller photos 2026-11-05). */}
+            <FallbackImg src={squarePhotoUrl(photoPublicUrl(p.storage_path), CARD_PHOTO_SMALL_PX) ?? photoPublicUrl(p.storage_path)} retrySrc={photoPublicUrl(p.storage_path)} decoding="async" alt={`Photo ${i + 1}`} className="aspect-square w-full object-cover rounded-2xl bg-photo-empty" />
             {i === 0 && <CoverChip />}
             <RemoveButton label={`Remove photo ${i + 1}`} onClick={() => onRemoveUploaded(p.id)} />
           </li>

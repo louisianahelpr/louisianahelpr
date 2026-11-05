@@ -20,6 +20,8 @@ import { firstPhotos } from "@/components/declutter/DeclutterItemCard";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { fetchPhotos, photoPublicUrl } from "@/lib/declutter/api";
+import { squarePhotoUrl, THUMB_PHOTO_PX } from "@/lib/declutter/photoSizes";
+import { FallbackImg } from "@/components/declutter/FallbackImg";
 import { matchesSearch, searchOrFilter } from "@/lib/declutter/searchMatch";
 import { getCategoryIcon } from "@/lib/categoryIcons";
 import { SaveSearchButton } from "@/components/savedSearches/SaveSearchButton";
@@ -106,11 +108,13 @@ const THUMB_CLASS = "shrink-0 w-11 h-11 rounded-xl";
 const GROUP_HEAD_CLASS = "flex min-h-7 items-center justify-between px-1";
 const GROUP_CARD_CLASS = "rounded-2xl overflow-hidden";
 
-/** The 44px square that leads every row: an item's cover photo, a job's category icon. */
+/** The 44px square that leads every row: an item's cover photo, a job's category icon. The photo is the 160 px square
+ * (Q2707 raw tiles: a live seller photo 407,886-573,453 B raw, 5,126-7,184 B as the square, 2026-11-05), the original
+ * only if that fails, then the placeholder. */
 function Thumb({ photo, icon, seed }: { photo?: string | null; icon: LucideIcon; seed: string | null }) {
   return (
     <span className={`${THUMB_CLASS} overflow-hidden bg-photo-empty`} aria-hidden>
-      {photo ? <img loading="lazy" src={photoPublicUrl(photo)} alt="" className="w-full h-full object-cover" /> : <PhotoPlaceholder icon={icon} seed={seed} className="w-full h-full" />}
+      {photo ? <FallbackImg loading="lazy" decoding="async" src={squarePhotoUrl(photoPublicUrl(photo), THUMB_PHOTO_PX) ?? photoPublicUrl(photo)} retrySrc={photoPublicUrl(photo)} width={THUMB_PHOTO_PX} height={THUMB_PHOTO_PX} alt="" className="w-full h-full object-cover" fallback={<PhotoPlaceholder icon={icon} seed={seed} className="w-full h-full" />} /> : <PhotoPlaceholder icon={icon} seed={seed} className="w-full h-full" />}
     </span>
   );
 }

@@ -6,6 +6,7 @@
  * it is needed (rpc_ensure_my_handle), and changeable once (rpc_set_my_handle). Both calls read
  * their refusals' words through ./errorCopy.
  */
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { shareNative, type ShareOutcome } from "@/lib/nativeShare";
@@ -68,6 +69,20 @@ export function shareMyProfile(handle: string, name?: string | null): Promise<Sh
     url: profileLinkUrl(handle),
     dialogTitle: "Share my profile",
   });
+}
+
+/**
+ * Share MY page from any own-profile Share button (owner 2026-11-05, share-profile audit H5: one profile link,
+ * /u/<handle>; never the old /book/<id> or members-only /user/<id>). Reads the handle the same way YourPageLink
+ * does; a failed read says why in a toast and shares nothing.
+ */
+export async function shareMyPage(name?: string | null): Promise<ShareOutcome | "no_handle"> {
+  const out = await ensureMyHandle();
+  if (!out.handle) {
+    toast.error(out.error ?? GENERIC);
+    return "no_handle";
+  }
+  return shareMyProfile(out.handle, name);
 }
 
 /** The public /u/<handle> page's data (public_profile_by_handle, 20261101041833): public fields only. */

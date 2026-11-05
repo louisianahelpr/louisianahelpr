@@ -33,7 +33,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseAppliedVersions, provenanceFindings, receiptInsertSql } from "./lib/migrationProvenance.mjs";
+import { LOOKUP_CONCURRENCY, mapPooled, parseAppliedVersions, provenanceFindings, receiptInsertSql } from "./lib/migrationProvenance.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CONFIG = JSON.parse(readFileSync(join(ROOT, "scripts/audit/migration-provenance.json"), "utf8"));
@@ -91,24 +91,23 @@ async function githubRun(runId) {
  */
 async function shaEvidenceFor(gone) {
   const files = readdirSync(join(ROOT, "supabase/migrations"));
-  const onMainBySha = new Map();
-  const evidence = new Map();
-  for (const r of gone) {
+  const isSha = (sha) => /^[0-9a-f]{40}$/.test(sha);
+  // One compare per distinct sha, then one contents read per receipt; both pooled (LOOKUP_CONCURRENCY).
+  const shas = [...new Set(gone.map((r) => String(r.head_sha ?? "")).filter(isSha))];
+  const onMain = await mapPooled(shas, LOOKUP_CONCURRENCY, async (sha) => {
+    const cmp = await githubGet(`compare/${sha}...main`);
+    return !!cmp && cmp.behind_by === 0 && (cmp.status === "ahead" || cmp.status === "identical");
+  });
+  const onMainBySha = new Map(shas.map((sha, i) => [sha, onMain[i]]));
+  const entries = await mapPooled(gone, LOOKUP_CONCURRENCY, async (r) => {
     const v = String(r.version);
     const sha = String(r.head_sha ?? "");
-    if (!/^[0-9a-f]{40}$/.test(sha)) {
-      evidence.set(v, { onMain: false, fileAtSha: false });
-      continue;
-    }
-    if (!onMainBySha.has(sha)) {
-      const cmp = await githubGet(`compare/${sha}...main`);
-      onMainBySha.set(sha, !!cmp && cmp.behind_by === 0 && (cmp.status === "ahead" || cmp.status === "identical"));
-    }
+    if (!isSha(sha)) return [v, { onMain: false, fileAtSha: false }];
     const file = files.find((f) => f.startsWith(`${v}_`) && f.endsWith(".sql"));
     const atSha = file ? await githubGet(`contents/supabase/migrations/${encodeURIComponent(file)}?ref=${sha}`) : null;
-    evidence.set(v, { onMain: onMainBySha.get(sha), fileAtSha: !!atSha });
-  }
-  return evidence;
+    return [v, { onMain: onMainBySha.get(sha), fileAtSha: !!atSha }];
+  });
+  return new Map(entries);
 }
 
 async function record(file) {
@@ -164,7 +163,9 @@ async function check(plant) {
   if (plant) prodVersions.push("29991231235959");
 
   const runs = new Map();
-  for (const id of new Set(ledger.map((r) => String(r.run_id)))) runs.set(id, await githubRun(id));
+  const runIds = [...new Set(ledger.map((r) => String(r.run_id)))];
+  const looked = await mapPooled(runIds, LOOKUP_CONCURRENCY, (id) => githubRun(id));
+  runIds.forEach((id, i) => runs.set(id, looked[i]));
 
   const gone = ledger.filter((r) => runs.get(String(r.run_id)) === null);
   const shaEvidence = gone.length ? await shaEvidenceFor(gone) : new Map();

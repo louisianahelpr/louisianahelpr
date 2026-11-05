@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessageSquareText } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { unwrap } from "@/lib/supabaseResult";
 import { useFeature } from "@/hooks/useFeature";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { Button } from "@/components/ui/button";
@@ -18,10 +17,9 @@ import {
   normalizeUsPhone,
   parseSmsConsent,
   smsConfirmWaitingFresh,
-  type SmsConsent,
 } from "@/lib/smsConsent";
+import { fetchSmsConsent, smsConsentQueryKey } from "@/lib/smsConsentQuery";
 
-const QUERY_KEY = ["sms-consent"] as const;
 
 /**
  * Text alerts (owner, 2026-10-20), behind the `sms_alerts` switch.
@@ -53,12 +51,12 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
   const codeId = useId();
 
   const { data: consent, isPending, isError, error: loadError, refetch } = useQuery({
-    queryKey: [...QUERY_KEY, user?.id],
+    queryKey: smsConsentQueryKey(user?.id),
     // Read even with the switch off: an opted-in member must always be able
     // to turn texts off here. Before the migration is live the RPC is missing
     // and the card simply stays hidden (error + switch off renders nothing).
     enabled: !!user,
-    queryFn: async (): Promise<SmsConsent> => parseSmsConsent(unwrap(await supabase.rpc("get_my_sms_consent"))),
+    queryFn: fetchSmsConsent,
     // While a confirmation text is waiting, re-read every few seconds so the
     // phone's YES flips this card to On (owner 2026-10-28: the card still said
     // Waiting after YES, and its Cancel then turned the new alerts off). Capped
@@ -141,7 +139,7 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
         toast.error("We couldn't save that. Try again.");
         return;
       }
-      queryClient.setQueryData([...QUERY_KEY, user.id], next);
+      queryClient.setQueryData(smsConsentQueryKey(user.id), next);
       setAgreed(false);
       setAskStop(false);
       // One call (the suppressed-toast count only goes down: src/test/declutterHandoverConfirmationsShow.test.ts).
@@ -167,7 +165,7 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
       if (answer.status === "confirmed") {
         // The RPC returns the stored state; "On" is shown only when it says so (else re-read).
         const next = parseSmsConsent(answer.consent);
-        if (next.sms_opt_in) queryClient.setQueryData([...QUERY_KEY, user.id], next);
+        if (next.sms_opt_in) queryClient.setQueryData(smsConsentQueryKey(user.id), next);
         else void refetch();
         setCode("");
         return;

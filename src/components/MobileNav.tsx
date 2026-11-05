@@ -6,6 +6,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useMyPublicHandle } from "@/components/mobileNav/useMyPublicHandle";
 import { useNeedsYouCounts } from "@/lib/needsYouStore";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
@@ -43,6 +44,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
   const { user, profile, isLoading } = useCurrentUser();
+  // Your own /u/<handle> lights the Profile tab (owner 11-05); read only while on a /u page.
+  const myHandle = useMyPublicHandle(user?.id, location.pathname);
   // While `useCurrentUser` is still resolving there is no `user` to read, and
   // this used to resolve to `!isLoading && !user` — i.e. "not a guest" for
   // EVERYONE during the auth window. That is wrong in both directions on a
@@ -215,7 +218,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   const params = new URLSearchParams(location.search);
   if (location.pathname === "/messages" && params.has("chat")) return null;
 
-  const isInStack = (tabPath: string) => inTabStack(tabPath, location.pathname, user?.id);
+  const isInStack = (tabPath: string) => inTabStack(tabPath, location.pathname, user?.id, myHandle);
 
   const triggerGate = () => {
     setGateOpen(true);

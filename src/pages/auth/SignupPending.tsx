@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -342,21 +343,16 @@ const SignupPending = () => {
           {prefillEmail && (
             <p className="text-ds-13 font-sans shrink-0" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
               Didn't get it?{" "}
-              <button
-                type="button"
+              <InlineTextButton
                 onClick={handleResend}
                 disabled={resending || resendCooldown > 0}
-                /* !min-h-0: the global tap-target rule
-                   `button:not([role=checkbox]):not([role=radio]):not([role=switch])`
-                   has three :not() args, so it outranks a plain utility class
-                   and would leave this paragraph 44px tall — floating its text
-                   above the 19px links beside it. WCAG 2.5.8 exempts controls
-                   inline in a sentence, which is what this is. */
-                className="font-semibold hover:underline align-baseline !min-h-0 !h-auto disabled:no-underline"
+                /* The shared in-sentence link (Q2709): text-sized so this paragraph keeps the 19px line of the links
+                   beside it, with the shared 44px touch overlay. WCAG 2.5.8 exempts controls inline in a sentence. */
+                className="font-semibold disabled:no-underline"
                 style={{ color: resendCooldown > 0 ? "hsl(var(--olivewood) / 0.8)" : "hsl(var(--bark))" }}
               >
                 {resending ? "Sending…" : resent ? `Resent${resendCooldown > 0 ? ` (${resendCooldown}s)` : ""}` : "Resend"}
-              </button>
+              </InlineTextButton>
             </p>
           )}
           {resent && (

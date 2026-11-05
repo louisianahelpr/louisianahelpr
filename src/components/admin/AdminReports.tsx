@@ -1,4 +1,5 @@
 import { logAdminAction } from "@/lib/adminAudit";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
@@ -285,13 +286,13 @@ const AdminReports = () => {
                   {typeIcon(report.reported_type)}
                   <div>
                     <p className="text-ds-13 font-semibold text-foreground">
-                      <button
+                      <InlineTextButton
                         disabled={report.reported_type === WANTED_REPORT && !report.subject_user_id}
                         onClick={() => navigate(`/user/${report.subject_user_id ?? report.reported_id}`)}
-                        className="hover:text-primary underline-offset-2 hover:underline transition-colors"
+                        className="hover:text-primary"
                       >
                         {report.reported_name}
-                      </button>
+                      </InlineTextButton>
                       <span className="text-muted-foreground font-normal"> — {report.reason}</span>
                       
                     </p>
@@ -305,12 +306,12 @@ const AdminReports = () => {
                           `reporter_name` already resolves to ADMIN_DELETED_ACCOUNT_LABEL via
                           nameFor(), so the label needs no special case. */}
                       {report.reporter_id ? (
-                        <button
+                        <InlineTextButton
                           onClick={() => navigate(`/user/${report.reporter_id}`)}
-                          className="hover:text-primary underline-offset-2 hover:underline transition-colors"
+                          className="hover:text-primary"
                         >
                           {report.reporter_name}
-                        </button>
+                        </InlineTextButton>
                       ) : (
                         <span>{report.reporter_name}</span>
                       )}

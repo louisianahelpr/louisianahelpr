@@ -78,9 +78,6 @@
     "src/components/admin/AdminAnalyticsCards.tsx": {
       "button": 1
     },
-    "src/components/admin/AdminAnalyticsDrilldowns.tsx": {
-      "button": 1
-    },
     "src/components/admin/AdminCommandPalette.tsx": {
       "button": 1
     },
@@ -122,9 +119,6 @@
       "button": 2
     },
     "src/components/admin/RestrictApplicationsDialog.tsx": {
-      "button": 1
-    },
-    "src/components/admin/adminAnalytics/SignupLeadsCard.tsx": {
       "button": 1
     },
     "src/components/admin/adminDisputes/DisputeCard.tsx": {
@@ -184,16 +178,10 @@
     "src/components/admin/settings/MeetupSpotsCard.tsx": {
       "input": 7
     },
-    "src/components/admin/settings/RentalsOwnershipCard.tsx": {
-      "button": 1
-    },
     "src/components/admin/userDetail/DetailHeader.tsx": {
       "button": 1
     },
     "src/components/admin/userDetail/DocumentsTab.tsx": {
-      "button": 1
-    },
-    "src/components/admin/userDetail/UserAuditLog.tsx": {
       "button": 1
     },
     "src/components/auth/TurnstileField.tsx": {

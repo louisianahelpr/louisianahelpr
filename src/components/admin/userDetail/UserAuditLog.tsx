@@ -9,6 +9,7 @@
  * joins. Admin names are resolved via a separate lookup against
  * profiles so the timeline doesn't depend on a foreign-key relation.
  */
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useEffect, useState } from "react";
 import { confirmConsequential } from "@/lib/toastPolicy";
 import { supabase } from "@/integrations/supabase/client";
@@ -279,14 +280,13 @@ export const UserAuditLog = ({ userId }: UserAuditLogProps) => {
                     </p>
                   )}
                   {e.violationId && (
-                    <button
-                      type="button"
+                    <InlineTextButton
                       onClick={() => { setReversing(e); setReason(""); setRestoreAccess(false); }}
                       className="mt-1 inline-flex items-center gap-1 text-ds-10 font-medium text-muted-foreground hover:text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-ds-sm"
                     >
                       <Undo2 className="w-2.5 h-2.5" aria-hidden />
                       Reverse this strike
-                    </button>
+                    </InlineTextButton>
                   )}
                 </div>
               </li>

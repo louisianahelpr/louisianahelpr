@@ -12,6 +12,7 @@
  */
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Button } from "@/components/ui/button";
+import { ToggleChip } from "@/components/ui/ToggleChip";
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { type PickupWindow } from "@/lib/declutter/api";
@@ -51,10 +52,9 @@ export function sameHoursEveryDay(windows: PickupWindow[]): boolean {
  */
 export function DayChip({ day, on, onToggle, disabled }: { day: number; on: boolean; onToggle: () => void; disabled?: boolean }) {
   return (
-    <button type="button" aria-pressed={on} aria-label={WEEKDAYS[day]} disabled={disabled} onClick={onToggle} data-day-chip=""
-      className={`flex h-11 min-w-[3.25rem] items-center justify-center rounded-full px-3 text-ds-13 font-semibold focus-visible:ring-2 focus-visible:ring-ring ${on ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"}`}>
+    <ToggleChip pressed={on} aria-label={WEEKDAYS[day]} disabled={disabled} onClick={onToggle} data-day-chip="" className="min-w-[3.25rem] justify-center px-3">
       {SHORT[day]}
-    </button>
+    </ToggleChip>
   );
 }
 

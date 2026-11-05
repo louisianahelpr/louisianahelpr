@@ -25,20 +25,20 @@
  * @mutate src/pages/user/ReviewsSection.tsx | <InlineTextButton\n                onClick={() => {\n                  onSetReviewCategoryFilter(null); | <button\n                onClick={() => {\n                  onSetReviewCategoryFilter(null);
  * @mutate src/components/rentals/LeasePanel.tsx | <InlineTextButton className="underline" onClick={() => setStep( | <button type="button" className="underline" onClick={() => setStep(
  * @mutate src/components/job-card/NudgeConfirmLink.tsx | <InlineTextButton\n          disabled={busy} | <button type="button"\n          disabled={busy}
- * @mutate src/components/JobConfirmation.tsx | <InlineTextButton\n            onClick={() => { setShowConfirmDialog(false); onCantMakeIt(); }} | <button className="underline"\n            onClick={() => { setShowConfirmDialog(false); onCantMakeIt(); }}
- * @mutate src/components/PhotoProof.tsx | <InlineTextButton onClick={() => setViewOpen(true)} | <button className="underline" onClick={() => setViewOpen(true)}
- * @mutate src/components/messages/MessageBubble.tsx | <InlineTextButton\n            onClick={() => m.clientId && retryMessage(m.clientId)} | <button className="underline"\n            onClick={() => m.clientId && retryMessage(m.clientId)}
- * @mutate src/components/dashboard/filterSheet/FilterSheetRows.tsx | <InlineTextButton\n              onClick={() => navigate("/profile?tab=availability")} | <button className="underline"\n              onClick={() => navigate("/profile?tab=availability")}
+ * @mutate src/components/JobConfirmation.tsx | <InlineTextButton\n            onClick={() => { setShowConfirmDialog(false); onCantMakeIt(); }} | <button type="button"\n            onClick={() => { setShowConfirmDialog(false); onCantMakeIt(); }}
+ * @mutate src/components/PhotoProof.tsx | <InlineTextButton onClick={() => setViewOpen(true)} | <button type="button" onClick={() => setViewOpen(true)}
+ * @mutate src/components/messages/MessageBubble.tsx | <InlineTextButton\n            onClick={() => m.clientId && retryMessage(m.clientId)} | <button type="button"\n            onClick={() => m.clientId && retryMessage(m.clientId)}
+ * @mutate src/components/dashboard/filterSheet/FilterSheetRows.tsx | <InlineTextButton\n              onClick={() => navigate("/profile?tab=availability")} | <button type="button"\n              onClick={() => navigate("/profile?tab=availability")}
  * @mutate src/components/rentals/EndTenancyButton.tsx | <InlineTextButton className="text-sm | <button className="underline text-sm
- * @mutate src/components/admin/AdminCredentialQueue.tsx | <InlineTextButton\n      onClick={open} | <button className="hover:underline"\n      onClick={open}
- * @mutate src/components/admin/AdminPayoutBatches.tsx | <InlineTextButton onClick={selectAllReady} | <button className="hover:underline" onClick={selectAllReady}
- * @mutate src/components/admin/AdminReports.tsx | <InlineTextButton\n                          onClick={() => navigate(`/user/${report.reporter_id}`)} | <button className="hover:underline"\n                          onClick={() => navigate(`/user/${report.reporter_id}`)}
- * @mutate src/components/admin/adminDisputes/DisputeFilters.tsx | <InlineTextButton onClick={p.clearFilters} | <button className="hover:underline" onClick={p.clearFilters}
- * @mutate src/components/auth/TurnstileField.tsx | <InlineTextButton\n              onClick={() => { | <button className="underline"\n              onClick={() => {
- * @mutate src/components/profile/SubscriptionTab.tsx | <InlineTextButton\n            onClick={handleRestorePurchases} | <button className="underline"\n            onClick={handleRestorePurchases}
- * @mutate src/pages/auth/SignupPending.tsx | <InlineTextButton\n                onClick={handleResend} | <button className="hover:underline"\n                onClick={handleResend}
+ * @mutate src/components/admin/AdminCredentialQueue.tsx | <InlineTextButton\n      onClick={open} | <button type="button"\n      onClick={open}
+ * @mutate src/components/admin/AdminPayoutBatches.tsx | <InlineTextButton onClick={selectAllReady} | <button type="button" onClick={selectAllReady}
+ * @mutate src/components/admin/AdminReports.tsx | <InlineTextButton\n                          onClick={() => navigate(`/user/${report.reporter_id}`)} | <button type="button"\n                          onClick={() => navigate(`/user/${report.reporter_id}`)}
+ * @mutate src/components/admin/adminDisputes/DisputeFilters.tsx | <InlineTextButton onClick={p.clearFilters} | <button type="button" onClick={p.clearFilters}
+ * @mutate src/components/auth/TurnstileField.tsx | <InlineTextButton\n              onClick={() => { | <button type="button"\n              onClick={() => {
+ * @mutate src/components/profile/SubscriptionTab.tsx | <InlineTextButton\n            onClick={handleRestorePurchases} | <button type="button"\n            onClick={handleRestorePurchases}
+ * @mutate src/pages/auth/SignupPending.tsx | <InlineTextButton\n                onClick={handleResend} | <button type="button"\n                onClick={handleResend}
  * @mutate src/components/sections/StatusBoxes.tsx | <InlineTextButton onClick={onSeeAll} | <button type="button" onClick={onSeeAll}
- * @mutate src/pages/auth/signup/SignupStep2.tsx | <InlineTextButton\n          data-testid="referral-code-toggle" | <button className="underline"\n          data-testid="referral-code-toggle"
+ * @mutate src/pages/auth/signup/SignupStep2.tsx | <InlineTextButton\n          data-testid="referral-code-toggle" | <button type="button"\n          data-testid="referral-code-toggle"
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

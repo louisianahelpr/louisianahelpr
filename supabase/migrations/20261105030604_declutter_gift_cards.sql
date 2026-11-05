@@ -436,8 +436,11 @@ BEGIN
 END;
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_order_gift_follows_status() FROM PUBLIC, anon, authenticated;
-DROP TRIGGER IF EXISTS declutter_order_gift_follows_status ON public.declutter_orders;
-CREATE TRIGGER declutter_order_gift_follows_status
+-- Named trg_declutter_orders_* so it fires AFTER trg_declutter_orders_a_notice_about (same-event row triggers fire in
+-- name order; declutterNoticesNameTheItem.test.ts). It reads only NEW and writes only gift_cards, which no other
+-- declutter_orders trigger reads or writes, so its place among them changes nothing else (lead 12:40 AM 11-05).
+DROP TRIGGER IF EXISTS trg_declutter_orders_gift_follows_status ON public.declutter_orders;
+CREATE TRIGGER trg_declutter_orders_gift_follows_status
   AFTER UPDATE OF status ON public.declutter_orders
   FOR EACH ROW
   WHEN (OLD.status = 'awaiting_payment' AND NEW.status IS DISTINCT FROM OLD.status AND NEW.gift_card_id IS NOT NULL)

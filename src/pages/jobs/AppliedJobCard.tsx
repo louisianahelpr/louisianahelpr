@@ -33,6 +33,7 @@ import { descriptionAddsToTitle, hasProofPhotos } from "@/lib/jobCardFacts";
 import { JobRequestRows } from "@/components/series/JobSeriesCardControls";
 import { useCardNotes } from "@/components/job-card/JobNotes";
 import { useContinueDay } from "@/hooks/useContinueDays";
+import { useContinueDayOnCard } from "@/components/jobs/ContinueDayOnCard";
 import { continueDayDoneNote } from "@/lib/continueDayWords";
 import { RentalVisitHelprSlot } from "@/components/rentals/RentalVisitHelprSlot";
 import { HelperJobMetaRow } from "./appliedJobCard/HelperJobMetaRow";
@@ -232,6 +233,8 @@ function AppliedJobCardInner({
 
   // The one tracker state for the face (only the hired Helpr's): its bar and (A3-16) its next-step line read it.
   const posterFirst = (app.posterName ?? "").split(" ")[0] || null;
+  // Owner 11-05: the poster's proposed new day is answered ON this card (the face's button collapsed, a block open).
+  const continueDayAnswer = useContinueDayOnCard({ job, side: "helpr", mine: job.helper_id === userId, otherFirst: posterFirst });
   const faceProgress = job.helper_id === userId ? jobProgress(job, { viewer: "helpr", otherFirst: posterFirst, card: { line: cardLine, face: faceAction } }) : null;
   return (
     /* The card publishes its own expand state to HelperTrackerPanel, which sits
@@ -270,10 +273,11 @@ function AppliedJobCardInner({
                 <HelperCollapsedStrip variant="line" app={app} job={job} userId={userId} isCrewLive={isCrewLive} unsettledDisputeJobIds={unsettledDisputeJobIds} showStartClock={isConfirmed} hideStatus={isOffered} reviewed={isFullyDone} tracking={initialTracking} progress={faceProgress} otherFirst={posterFirst} />
               ) : null
             }
-            action={isExpanded ? null : faceAction} onCollapse={isExpanded ? () => toggleExpandedJobId(app.job_id) : undefined}
+            action={isExpanded ? null : continueDayAnswer.faceAction ?? faceAction} onCollapse={isExpanded ? () => toggleExpandedJobId(app.job_id) : undefined}
             progress={!isExpanded ? faceProgress : null} /* the 8 steps on the card (owner, 2026-10-22) */
           />
           {isExpanded && <MineOpenMeta jobId={job.id} meta={addressOnFace ? null : metaRow} />}
+          {isExpanded && continueDayAnswer.block}
 
           {/* ONE TRACKER IN THE APP (owner: "remove this tracker globally,
               there should only be the other live tracker").

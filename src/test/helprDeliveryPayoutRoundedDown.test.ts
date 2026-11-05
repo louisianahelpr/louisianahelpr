@@ -119,7 +119,7 @@ describe("Helpr delivery payouts are whole dollars, rounded down (owner 2026-10-
     // Q1929 (delivery-pay raises): the row's amount is split into per-charge parts that add up to it exactly
     // (helprPayoutParts throws otherwise), and each part is sent as it is. Q2453: a held delivery tip is one more
     // part AFTER them, its own exact amount (heldTipParts), never folded into the row's amount.
-    expect(money).toMatch(/parts = \[\.\.\.helprPayoutParts\(h\.amount_cents, h\.payment_intent_id, h\.raised_cents, h\.raise_parts\), \.\.\.heldTipParts\(h\.tip_parts\)\];/);
+    expect(money).toMatch(/parts = \[\.\.\.helprPayoutParts\(h\.amount_cents, h\.payment_intent_id \?\? "", h\.raised_cents, h\.raise_parts\), \.\.\.heldTipParts\(h\.tip_parts\)\];/);
     const leg = money.slice(money.indexOf("sent[i] = await stripe.transfers.create("));
     expect(leg.length).toBeGreaterThan(100);
     expect(leg.slice(0, 200)).toMatch(/\{\s*amount: part\.amountCents,\s*currency: "usd",/);

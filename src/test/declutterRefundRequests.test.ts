@@ -25,8 +25,8 @@
  *     calls declutter_refund_after_handover('refund_request_full').
  *  8. The app shows the panel only behind the switch, and every amount it shows is the server's.
  *
- * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |      AND public.declutter_sale_final(p.order_id)\n | \n
- * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |                         AND rf.reason = 'refund_request_part' AND rf.status IN ('pending', 'failed')) |                         AND rf.reason = 'refund_request_part' AND rf.status IN ('failed'))
+ * @mutate supabase/migrations/20261105032500_declutter_gift_payouts.sql |      AND public.declutter_sale_final(p.order_id)\n | \n
+ * @mutate supabase/migrations/20261105032500_declutter_gift_payouts.sql | rf.order_id = p.order_id AND rf.stripe_payment_intent_id = o.stripe_payment_intent_id\n                        AND rf.reason = 'refund_request_part' AND rf.status IN ('pending', 'failed')) | rf.order_id = p.order_id AND rf.stripe_payment_intent_id = o.stripe_payment_intent_id\n                        AND rf.reason = 'refund_request_part' AND rf.status IN ('failed'))
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |                            + interval '10 minutes' |                            + interval '0 minutes'
  * @mutate supabase/migrations/20261102002217_declutter_my_refund_todos.sql |   IF NOT public.feature_enabled_for('declutter_refund_requests') THEN\n    RETURN;\n  END IF;\n | \n
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHERE r.order_id = o.id AND r.status IN ('open', 'offered', 'returning')) THEN false | WHERE r.order_id = o.id AND r.status IN ('open', 'returning')) THEN false

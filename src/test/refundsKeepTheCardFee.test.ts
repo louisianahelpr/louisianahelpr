@@ -885,7 +885,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // hold-for-review, prune and the held check take the kind 'declutter_manager' (the manager's share row). The
       // manager branches touch only declutter_manager_payouts; the declutter_refunds lines are unchanged.
       // the manager's payout queue: reads declutter_refunds only to wait while a part refund is pending; no amount.
-      declutter_manager_payouts_due: "20261101233256_declutter_manager_payout_kind.sql c3c47f22b43097b7",
+      // Q2106 S2(d) (20261105032500, Builder 3 11-04 night): restated verbatim plus o.gift_cents in the output; the
+      // declutter_refunds read (wait while a part refund is pending) is unchanged; no amount.
+      declutter_manager_payouts_due: "20261105032500_declutter_gift_payouts.sql 6c0c99a09f52d980",
       // pushes next_attempt_at of a pending / failed row; no try used, no amount.
       payout_defer: "20261101233256_declutter_manager_payout_kind.sql 0e08cb79f90f76e5",
       // pages ops and tells the payee once per held row; writes only held_notified_at.

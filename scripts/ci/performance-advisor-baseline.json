@@ -6,6 +6,8 @@
     "auth_db_connections_absolute": 1
   },
   "unused_index": [
+    "public.sales_tax_adjustments.sales_tax_adjustments_occurred_idx",
+    "public.sales_tax_adjustments.sales_tax_adjustments_pi_idx",
     "public.shipping_claim_payouts.shipping_claim_payouts_order_idx",
     "public.shipping_claim_payouts.shipping_claim_payouts_recorded_by_idx",
     "public.shipping_claim_payouts.shipping_claim_payouts_seller_idx",

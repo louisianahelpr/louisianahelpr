@@ -5,7 +5,8 @@
  * - Two-step setup's copy-the-setup-key chip -> the outline Button that wraps (wrapSm), the key in mono, named for
  *   a screen reader ("Copy the setup key" / "Setup key copied").
  * - A rental calendar's "Remove calendar connection" trash -> the outline Button beside its "Sync now" twin, sienna ink.
- * - Edit profile's "I can help with" skill chips (11px, ~26px tall) -> the shared ToggleChip (44px, aria-pressed).
+ * - Edit profile's "I can help with" skill chips (11px words, hand-drawn) -> the shared ToggleChip (13px, aria-pressed).
+ * - A pet's species (one of six) -> ChoicePill radios in a radiogroup named by "Species" (was aria-pressed toggles).
  * The per-file count in noNewHandMadeControls keeps hand-made ones from coming back; this pins which control.
  *
  * @mutate src/components/profile/earningsTab/ThresholdBanner.tsx | <Button type="button" variant="primary" size="sm" onClick={onOpenExport} | <Button type="button" onClick={onOpenExport}
@@ -13,6 +14,8 @@
  * @mutate src/components/profile/TwoFactorCard.tsx | size="wrapSm"\n | size="sm"\n
  * @mutate src/pages/profile/strSettings/ConnectionCard.tsx | <Button\n          type="button"\n          size="sm"\n          variant="outline"\n          aria-label="Remove calendar connection" | <button\n          type="button"\n          aria-label="Remove calendar connection"
  * @mutate src/components/profile/ProfileEditForm.tsx | <ToggleChip\n                          key={value}\n                          pressed={active} | <ToggleChip\n                          key={value}\n                          pressed={false}
+ * @mutate src/pages/profile/petProfiles/PetForm.tsx | <div role="radiogroup" aria-labelledby="pet-species-label" | <div
+ * @mutate src/pages/profile/petProfiles/PetForm.tsx | selected={active}\n                    onClick={() => set("species", s.value)} | selected={false}\n                    onClick={() => set("species", s.value)}
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -43,5 +46,13 @@ describe("profile chips are the shared Button (Q2709)", () => {
     const src = read("src/components/profile/ProfileEditForm.tsx");
     expect(src).toMatch(/<ToggleChip\s+key=\{value\}\s+pressed=\{active\}\s+onClick=\{\(\) => toggleSkillPreset\(label\)\}/);
     expect(src).not.toMatch(/<button\b/);
+  });
+
+  it("a pet's species is one ChoicePill radio of a named radiogroup", () => {
+    const src = read("src/pages/profile/petProfiles/PetForm.tsx");
+    expect(src).toMatch(/<p id="pet-species-label"[^>]*>Species<\/p>/);
+    expect(src).toMatch(/<div role="radiogroup" aria-labelledby="pet-species-label"/);
+    expect(src).toMatch(/<ChoicePill\s+key=\{s\.value\}\s+selected=\{active\}\s+onClick=\{\(\) => set\("species", s\.value\)\}/);
+    expect(src).not.toMatch(/aria-pressed/);
   });
 });

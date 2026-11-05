@@ -32,6 +32,8 @@ const LEAD: Record<IdentityCheckReason, string> = {
   accept: "Before your first job is booked, Stripe checks a photo ID and a selfie.",
   buy: "Before your first Declutter purchase, Stripe checks a photo ID and a selfie.",
   list: "Before your first Declutter listing goes live, Stripe checks a photo ID and a selfie.",
+  shop_buy: "Before your first order from a shop, Stripe checks a photo ID and a selfie.",
+  shop_list: "Before your first shop item goes live, Stripe checks a photo ID and a selfie.",
   deliver: "Before you take a delivery, Stripe checks a photo ID and a selfie.",
   claim: "A claim shares a real person's address, so before your first claim Stripe checks a photo ID and a selfie.",
   general: "Stripe checks a photo ID and a selfie once: before you post, head out on a job or get your first payout, or before your first Declutter purchase, listing or delivery.",

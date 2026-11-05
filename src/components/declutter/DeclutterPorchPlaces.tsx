@@ -14,7 +14,7 @@ import { raceVisibleDeadlineAbortable } from "@/lib/visibleDeadline";
 import {
   chooseSellerPorchPlace, fetchOrderPorchPlace, fetchSellerPorchPlaces, PORCH_PLACES_NOT_DEPLOYED, type SellerPorchPlace,
 } from "@/lib/declutter/porchPlaces";
-import { shortDays } from "./DeclutterPickupTimes";
+import { shortDays } from "@/lib/declutter/pickupTimesText";
 
 const placesKey = (sellerId: string, cartKey: number) => ["declutter", "seller-porch-places", sellerId, cartKey] as const;
 

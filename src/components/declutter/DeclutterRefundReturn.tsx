@@ -8,6 +8,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { RadioCardList } from "@/components/ui/RadioCardList";
+import { Button } from "@/components/ui/button";
 import { hapticLight } from "@/lib/haptics";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { useExactAddressPoint } from "./useExactAddressPoint";
@@ -24,8 +25,6 @@ import {
 } from "@/lib/declutter/refundReturns";
 import { NativeSelect } from "@/components/ui/select";
 
-const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
-const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 
 /**
@@ -149,9 +148,9 @@ export function DeclutterReturnBuyer({ v, who }: { v: RefundRequestView; who: st
         <label htmlFor={fileId} className="sr-only">Photo of the item where you left it, taken at the pickup address</label>
         <input id={fileId} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} disabled={drop.isPending}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) drop.mutate(f); e.target.value = ""; }} />
-        <button type="button" className={primary} disabled={drop.isPending} onClick={() => document.getElementById(fileId)?.click()}>
+        <Button type="button" variant="primary" size="sm" className="text-sm font-semibold" disabled={drop.isPending} onClick={() => document.getElementById(fileId)?.click()}>
           {drop.isPending ? "Saving…" : "Take your drop-off photo"}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -165,9 +164,9 @@ export function DeclutterReturnBuyer({ v, who }: { v: RefundRequestView; who: st
         <>
           <label htmlFor={addrId} className="block text-xs font-medium">Where should they pick it up?</label>
           <input id={addrId} className={input} autoComplete="street-address" maxLength={300} value={address} onChange={(e) => setAddress(e.target.value)} />
-          <button type="button" className={primary} disabled={addr.isPending || address.trim().length < 5} onClick={() => addr.mutate()}>
+          <Button type="button" variant="primary" size="sm" className="text-sm font-semibold" disabled={addr.isPending || address.trim().length < 5} onClick={() => addr.mutate()}>
             {addr.isPending ? "Saving…" : "Send the address"}
-          </button>
+          </Button>
         </>
       )}
     </div>
@@ -208,9 +207,9 @@ export function DeclutterReturnPhotoPick({ orderId, file, onFile }: { orderId: s
       <label htmlFor={fileId} className="sr-only">Photo of the item you got back (optional)</label>
       <input id={fileId} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1}
         onChange={(e) => { onFile(e.target.files?.[0] ?? null); e.target.value = ""; }} />
-      <button type="button" className={btn} onClick={() => document.getElementById(fileId)?.click()}>
+      <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" onClick={() => document.getElementById(fileId)?.click()}>
         {file ? "Retake the photo" : "Add a photo (optional)"}
-      </button>
+      </Button>
       {file && <span className="text-ds-12 text-muted-foreground">Photo ready.</span>}
     </div>
   );

@@ -40,8 +40,6 @@ const E2E = join(REPO, "e2e");
 // @two-way src/test/e2eNoSupabaseMocks.test.ts:const stale = BASELINE.filter
 const BASELINE: string[] = [
   "happy-path/activity-card-density.spec.ts",
-  "happy-path/apply-dialog-fit.spec.ts",
-  "happy-path/apply-single-sheet.spec.ts",
   "happy-path/apply-sticky-overlap.spec.ts",
   "happy-path/appstore-screenshots.spec.ts",
   "happy-path/auditRoutes.ts",

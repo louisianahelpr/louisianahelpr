@@ -43,7 +43,7 @@ export interface DialogContentOwnProps {
    * symmetrically, so it moves by HALF of it. Stepping the job sheet from
    * detail (442px) to apply (575px) moved the whole surface UP 66.4px —
    * every word the user was reading slid out from under them, mid-flow, in
-   * the middle of applying for a job. `apply-single-sheet.spec.ts` has been
+   * the middle of applying for a job. `e2e/journeys/apply-sheet.spec.ts` has been
    * failing on exactly that since a46d6bdc5 centred it, and the assertion is
    * right: what changed was the code, not the requirement.
    *

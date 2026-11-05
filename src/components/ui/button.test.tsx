@@ -30,7 +30,7 @@ import { Button } from "./button";
  *     That the RULE exists and declares a gradient is checked separately, by
  *     reading the stylesheet (the old rail-green guard, retired with the rail 2026-10-21);
  *     that a real element actually computes one is checked only in a browser
- *     (`e2e/happy-path/apply-single-sheet.spec.ts`, the `getComputedStyle`
+ *     (`e2e/journeys/apply-sheet.spec.ts`, the `getComputedStyle`
  *     `backgroundImage` read). Neither of those is this file.
  *   - the arbitrary `shadow-[…]` / `active:scale-[…]` strings likewise prove
  *     only that Tailwind was ASKED for the treatment, not that the JIT emitted

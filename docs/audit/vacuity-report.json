@@ -1,9 +1,8 @@
 {
-  "generated": "2026-11-05T00:49:00.420Z",
-  "guards": 3518,
-  "registered": 3516,
+  "generated": "2026-11-05T01:52:05.573Z",
+  "guards": 3526,
+  "registered": 3525,
   "unregistered": [
-    "e2e/happy-path/iap-review-screenshot.spec.ts",
     "src/components/job-card/useFollowOpenCard.test.ts"
   ],
   "classA_noInventoryFloor": [

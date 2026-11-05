@@ -9,7 +9,9 @@
  *      names is_caller_banned() and (owner writes) runs the owner gate.
  *   2. Publish keeps every gate: order days, 3 photos, the confirmations, the
  *      home-food yearly confirmation and limit, and the admin-review rule
- *      (first 3 items, AI unchecked/flagged, word check).
+ *      (a rejection or the 30-day hold, an AI flag, a word-check hit; no
+ *      first-3 hold and an unanswered AI check fails open since H3,
+ *      20261105173912, proved in pglite/shopsItemsLiveAtOnce.pglite.mjs).
  *   3. 'rental' is reserved, never listable; no permit-food, plant, children's
  *      or skin-product type exists (L6, L11, L12, L14, D1, D11).
  *   4. The type list and the confirmations agree between SQL and the app.
@@ -25,14 +27,15 @@
  * contact-copy steps red on their planted defects, measured 2026-10-17).
  */
 // @mutate supabase/migrations/20261103124851_money_free_switch_handovers_shop_item_not_found_is_404.sql | BEGIN\n  PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n  SELECT * INTO v_shop FROM public.shops WHERE owner_id = v_uid FOR UPDATE; | BEGIN\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n  SELECT * INTO v_shop FROM public.shops WHERE owner_id = v_uid FOR UPDATE;
-// @mutate supabase/migrations/20261103060314_shops_publish_item_not_found_is_404.sql |     WHEN v_approved < 3 THEN 'pending_review' |     WHEN v_approved < 0 THEN 'pending_review'
-// @mutate supabase/migrations/20261103060314_shops_publish_item_not_found_is_404.sql |     WHEN v_text_flag IS NOT NULL THEN 'pending_review'\n | \n
-// @mutate supabase/migrations/20261103060314_shops_publish_item_not_found_is_404.sql |     WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'\n | \n
-// @mutate supabase/migrations/20261103060314_shops_publish_item_not_found_is_404.sql |     WHEN v_recent_rejection THEN 'pending_review'\n | \n
+// @mutate supabase/migrations/20261105173912_shops_items_live_at_once.sql |     WHEN v_priv.ai_checked_at IS NOT NULL AND v_priv.ai_flag_reason IS NOT NULL THEN 'pending_review' |     WHEN v_priv.ai_checked_at IS NULL OR v_priv.ai_flag_reason IS NOT NULL THEN 'pending_review'
+// @mutate supabase/migrations/20261105173912_shops_items_live_at_once.sql |   IF v_item.status = 'live'\n | IF false\n
+// @mutate supabase/migrations/20261105173912_shops_items_live_at_once.sql |     WHEN v_text_flag IS NOT NULL THEN 'pending_review'\n | \n
+// @mutate supabase/migrations/20261105173912_shops_items_live_at_once.sql |     WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'\n | \n
+// @mutate supabase/migrations/20261105173912_shops_items_live_at_once.sql |     WHEN v_recent_rejection THEN 'pending_review'\n | \n
 // @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql | jsonb_build_object('note', v_note, 'owner_id', v_owner, 'shop_id', v_shop)); | jsonb_build_object('note', v_note));
 // @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |            rj.created_at, rj.details->>'note' |            NULL::timestamptz, NULL::text
-// @mutate supabase/migrations/20261103060314_shops_publish_item_not_found_is_404.sql |     IF public.shop_cottage_cap_reached(v_uid) THEN | IF false THEN
-// @mutate supabase/migrations/20261103060314_shops_publish_item_not_found_is_404.sql |   IF v_photos < 3 OR v_photos > 12 THEN | IF v_photos < 1 OR v_photos > 12 THEN
+// @mutate supabase/migrations/20261105173912_shops_items_live_at_once.sql |     IF public.shop_cottage_cap_reached(v_uid) THEN | IF false THEN
+// @mutate supabase/migrations/20261105173912_shops_items_live_at_once.sql |   IF v_photos < 3 OR v_photos > 12 THEN | IF v_photos < 1 OR v_photos > 12 THEN
 // @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish', 'label_says_home_kitchen', | WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish',
 // @mutate supabase/migrations/20261017061157_shops_items.sql |   IF p_kind = 'rental' THEN | IF false THEN
 // @mutate supabase/migrations/20261017061157_shops_items.sql | REVOKE ALL ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], text, text, text, text, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], text, text, text, text, text) FROM PUBLIC, anon;
@@ -131,23 +134,30 @@ describe("Shops slice 2: items, hidden and gated (20261017061157)", () => {
       "RAISE EXCEPTION 'attestation_required'",
       "RAISE EXCEPTION 'cottage_confirmation_required'",
       "IF public.shop_cottage_cap_reached(v_uid) THEN RAISE EXCEPTION 'cottage_cap_reached'",
-      "WHEN v_approved < 3 THEN 'pending_review'",
       "WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'",
-      "WHEN v_priv.ai_checked_at IS NULL OR v_priv.ai_flag_reason IS NOT NULL THEN 'pending_review'",
+      // Owner 2026-11-05 (answer 2, H3): live at once when the automatic checks
+      // pass; an AI check that never answered fails open to the word check.
+      "WHEN v_priv.ai_checked_at IS NOT NULL AND v_priv.ai_flag_reason IS NOT NULL THEN 'pending_review'",
       "WHEN v_text_flag IS NOT NULL THEN 'pending_review'",
       // Hold after a rejection (owner 2026-10-17): 30 days of every publish
       // waiting for an admin, read from the log the owner cannot write.
       "WHEN v_recent_rejection THEN 'pending_review'",
       "WHERE l.action = 'shop_item_rejected' AND l.details->>'owner_id' = v_uid::text AND l.created_at > now() - interval '30 days'",
     ]) expect(p).toContain(must);
+    // No first-3 admin hold (owner 2026-11-05, answer 2): nothing counts approvals.
+    expect(p).not.toMatch(/admin_approved_at|v_approved/);
     expect(flat(body("shops_admin_review_item"))).toContain("jsonb_build_object('note', v_note, 'owner_id', v_owner, 'shop_id', v_shop)");
     // The admin sees why a held item waits: the owner's last rejection (lh-silent-failure finding 1).
     const q = flat(body("shops_admin_pending_items"));
     expect(q).toContain("owner_last_rejected_at timestamptz, owner_last_rejection_note text");
     expect(q).toContain("rj.created_at, rj.details->>'note'");
     expect(q).toContain("WHERE l.action = 'shop_item_rejected' AND l.details->>'owner_id' = i.owner_id::text");
-    // A content edit takes a live item down and clears what was judged (D10).
+    // A live item's edit that keeps its kind and type stays live (owner
+    // 2026-11-05, answer 2); new words re-run the word check and the 30-day
+    // hold. Any other content edit makes it a draft and clears what was judged (D10).
     const u = flat(body("shops_update_item"));
+    expect(u).toContain("IF v_item.status = 'live' AND v_item.kind IS NOT DISTINCT FROM p_kind AND v_item.subtype IS NOT DISTINCT FROM p_subtype THEN v_status := 'live';");
+    expect(u).toContain("IF v_text_flag IS NOT NULL OR EXISTS ( SELECT 1 FROM public.admin_audit_log l WHERE l.action = 'shop_item_rejected' AND l.details->>'owner_id' = v_uid::text AND l.created_at > now() - interval '30 days') THEN v_status := 'pending_review';");
     expect(u).toContain("status = 'draft'");
     expect(u).toContain("SET ai_checked_at = NULL, ai_flag_reason = NULL, text_flag_reason = NULL");
     expect(u).toContain("DELETE FROM public.shop_item_attestations WHERE item_id = p_item_id");

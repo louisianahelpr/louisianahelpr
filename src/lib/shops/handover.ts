@@ -4,9 +4,11 @@
  * picks "left out" or "in person", NO codes anywhere).
  *
  *   left out ('porch'): the shop marks the order ready WITH a photo; the buyer
- *     taps "I got it"; else it finishes 24 h after the ready date (with the photo).
- *   in person ('in_person'): the buyer taps "I got it" or the shop taps "Picked
- *     up"; else it finishes 24 h after the ready date.
+ *     taps "I got it"; else the shop is paid 48 h after the photo (H5).
+ *   in person ('in_person'): the buyer taps "I got it", or the shop taps
+ *     "Handed over" and the shop is paid 48 h later unless the buyer reports a
+ *     problem (H5, Declutter's 10-30 rule, migration 20261105182903). If nobody
+ *     taps, the money stays held and both are nudged; nothing pays on its own.
  *
  * Every RPC refusal comes back with its plain words (rpcErrorMessage). The
  * shop's payout is written by the server at the handover and sent by the money
@@ -25,11 +27,11 @@ export type HandoverMode = "porch" | "in_person";
 export const HANDOVER_MODE_TEXT: Record<HandoverMode, { label: string; detail: string }> = {
   in_person: {
     label: "Pick up in person",
-    detail: "The buyer picks the order up from you. They tap \"I got it\" when they have it. If they don't, the order finishes on its own 24 hours after the ready date.",
+    detail: "The buyer picks the order up from you and taps \"I got it\". Or you tap \"Handed over\", and you're paid 48 hours later unless the buyer reports a problem.",
   },
   porch: {
     label: "Left out for pickup",
-    detail: "You leave the order out and take a photo of it. The buyer taps \"I got it\". With your photo, the order finishes on its own 24 hours after the ready date.",
+    detail: "You leave the order out and take a photo of it. The buyer taps \"I got it\". With your photo, you're paid 48 hours later unless the buyer reports a problem.",
   },
 };
 export const HANDOVER_MODES = Object.keys(HANDOVER_MODE_TEXT) as HandoverMode[];
@@ -41,6 +43,8 @@ export interface ShopHandover {
   confirmed_at: string | null;
   confirmed_how: "buyer" | "auto" | "admin" | null;
   problem_at: string | null;
+  /** H5: the shop's "Handed over" tap (in person); the buyer then has 48 hours. */
+  shop_confirmed_at?: string | null;
 }
 
 /** A payout the shop reads on its dashboard. */
@@ -76,7 +80,7 @@ export async function setHandoverMode(mode: HandoverMode): Promise<HandoverMode>
 export async function fetchHandovers(orderIds: string[]): Promise<Map<string, ShopHandover>> {
   if (orderIds.length === 0) return new Map();
   const rows = unwrap(
-    await supabase.from("shop_handovers").select("order_id, ready_at, ready_photo_path, confirmed_at, confirmed_how, problem_at")
+    await supabase.from("shop_handovers").select("order_id, ready_at, ready_photo_path, confirmed_at, confirmed_how, problem_at, shop_confirmed_at")
       .in("order_id", orderIds),
   ) as unknown as Array<ShopHandover & { order_id: string }> | null;
   return new Map((rows ?? []).map((r) => [r.order_id, r]));
@@ -126,6 +130,12 @@ export async function readyPhotoUrl(path: string): Promise<string | null> {
 export async function markReady(orderId: string, photoPath: string | null): Promise<void> {
   const { error } = await supabase.rpc("shops_mark_ready", { p_order_id: orderId, p_photo_path: photoPath as string });
   if (error) rpcFail(error, rpcErrorMessage("shops_mark_ready", error));
+}
+
+/** The shop (in person): "Handed over". Never finishes the order: the buyer has 48 hours to report a problem. */
+export async function markHandedOver(orderId: string): Promise<void> {
+  const { error } = await supabase.rpc("shops_mark_handed_over", { p_order_id: orderId });
+  if (error) rpcFail(error, rpcErrorMessage("shops_mark_handed_over", error));
 }
 
 /** The buyer: "I got it". The shop is owed right away. */

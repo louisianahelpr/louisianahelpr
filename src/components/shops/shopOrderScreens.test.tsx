@@ -358,7 +358,9 @@ describe("the handover: the buyer confirms, the shop never finishes its own orde
     expect(await screen.findByTestId("shop-handover-wait")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /picked up/i })).toBeNull();
     expect(screen.queryByRole("button", { name: /got it/i })).toBeNull();
-    expect(screen.getByTestId("shop-handover-wait").textContent).toContain("24 hours after the ready date");
+    // H5: nothing pays on its own; the shop's "Handed over" starts the buyer's 48 hours.
+    expect(screen.getByTestId("shop-handover-wait").textContent).toContain("the money stays held");
+    expect(screen.getByRole("button", { name: "Handed over" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Mark ready" }));
     await waitFor(() => expect(handover.markReady).toHaveBeenCalledWith("o9", null));
     expect(handover.confirmPickup).not.toHaveBeenCalled();

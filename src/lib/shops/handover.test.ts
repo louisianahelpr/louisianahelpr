@@ -80,7 +80,7 @@ describe("handover choices", () => {
     expect(HANDOVER_MODES.sort()).toEqual(["in_person", "porch"]);
     for (const m of HANDOVER_MODES) {
       expect(HANDOVER_MODE_TEXT[m].label.length).toBeGreaterThan(5);
-      expect(HANDOVER_MODE_TEXT[m].detail).toMatch(/24 hours after the ready date/);
+      expect(HANDOVER_MODE_TEXT[m].detail).toMatch(/paid 48 hours later unless the buyer reports a problem/);
     }
   });
 

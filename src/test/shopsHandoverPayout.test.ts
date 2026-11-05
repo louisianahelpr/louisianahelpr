@@ -25,12 +25,12 @@
  * (78 PASS; NEW_MIGRATION=skip and planted defects red; bbeb5d877's migration, which still had the shop's
  * "Picked up", fails 4, and a planted shop RPC finishing via 'auto' fails 4, measured 2026-10-18 ~21:40Z).
  */
-// @mutate supabase/migrations/20261018211820_shops_handover_payout.sql |        AND (o.handover_mode = 'in_person' OR h.ready_photo_path IS NOT NULL) |        AND true
+// @mutate supabase/migrations/20261105182903_shops_handover_rule.sql |          OR (o.handover_mode = 'porch' AND h.ready_photo_path IS NOT NULL\n |          OR (o.handover_mode = 'porch'\n
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | REVOKE ALL ON FUNCTION public.shop_payouts_due(integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shop_payouts_due(integer) FROM PUBLIC, anon;
-// @mutate supabase/migrations/20261018211820_shops_handover_payout.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'shop_order_' \|\| o.id::text, o.items_cents); |   v_debt := 0;
-// @mutate supabase/migrations/20261018211820_shops_handover_payout.sql |   VALUES (o.id, o.items_cents, v_debt, o.items_cents - v_debt, |   VALUES (o.id, o.total_cents, v_debt, o.total_cents - v_debt,
-// @mutate supabase/migrations/20261018211820_shops_handover_payout.sql |   IF p_how <> 'admin' AND EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.problem_at IS NOT NULL) THEN |   IF false THEN
-// @mutate supabase/migrations/20261018211820_shops_handover_payout.sql |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'auto', 'admin') THEN |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'shop', 'auto', 'admin') THEN
+// @mutate supabase/migrations/20261105182903_shops_handover_rule.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'shop_order_' \|\| o.id::text, o.items_cents); |   v_debt := 0;
+// @mutate supabase/migrations/20261105182903_shops_handover_rule.sql |   VALUES (o.id, o.items_cents, v_debt, o.items_cents - v_debt, |   VALUES (o.id, o.total_cents, v_debt, o.total_cents - v_debt,
+// @mutate supabase/migrations/20261105182903_shops_handover_rule.sql |   IF p_how <> 'admin' AND EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.problem_at IS NOT NULL) THEN |   IF false THEN
+// @mutate supabase/migrations/20261105182903_shops_handover_rule.sql |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'auto', 'admin') THEN |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'shop', 'auto', 'admin') THEN
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | confirmed_how IN ('buyer', 'auto', 'admin')), | confirmed_how IN ('buyer', 'shop', 'auto', 'admin')),
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | DROP FUNCTION IF EXISTS public.shops_mark_picked_up(uuid); | SELECT 1;
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | REVOKE ALL ON FUNCTION public.shops_confirm_pickup(uuid) FROM PUBLIC, anon; | CREATE OR REPLACE FUNCTION public.shops_mark_picked_up(p uuid) RETURNS jsonb LANGUAGE sql AS $m$ SELECT public.shop_complete_handover(p, 'auto') $m$; REVOKE ALL ON FUNCTION public.shops_confirm_pickup(uuid) FROM PUBLIC, anon;
@@ -115,7 +115,9 @@ describe("Shops M2: the handover and the shop's payout keep their gates (2026101
 
   it("4. a left-out order finishes on its own only with the ready photo; a reported problem stops the clock and the payout", () => {
     const sweep = body("shop_handover_sweep");
-    expect(sweep).toMatch(/o\.handover_mode\s*=\s*'in_person'\s+OR\s+h\.ready_photo_path\s+IS\s+NOT\s+NULL/i);
+    // H5 (20261105182903): left out pays only with the photo; in person only after the shop's "Handed over".
+    expect(sweep).toMatch(/o\.handover_mode\s*=\s*'porch'\s+AND\s+h\.ready_photo_path\s+IS\s+NOT\s+NULL/i);
+    expect(sweep).toMatch(/o\.handover_mode\s*=\s*'in_person'\s+AND\s+h\.shop_confirmed_at\s+IS\s+NOT\s+NULL/i);
     expect(sweep).toMatch(/h\.problem_at\s+IS\s+NULL/i);
     expect(body("shop_complete_handover")).toMatch(/IF\s+p_how\s*<>\s*'admin'\s+AND\s+EXISTS\s*\(SELECT\s+1\s+FROM\s+public\.shop_handovers\s+h\s+WHERE\s+h\.order_id\s*=\s*o\.id\s+AND\s+h\.problem_at\s+IS\s+NOT\s+NULL\)/i);
     expect(body("shop_payouts_due")).toMatch(/h\.problem_at\s+IS\s+NOT\s+NULL/i);

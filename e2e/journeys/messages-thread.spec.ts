@@ -10,6 +10,8 @@ import { AXE_TAGS } from "../happy-path/axeTags";
 // @mutate src/components/tracker/JobProgress.tsx | flex flex-col justify-start w-[calc(100%+4px)] -mx-[2px] px-[2px] min-h-[44px] | flex flex-col justify-start w-full min-h-[44px]
 // Reaction chip's 44px finger target (::before reaches 16px above and below a 16-17px chip; lead 2026-11-05).
 // @mutate src/components/messages/MessageBubble.tsx | before:-inset-x-3 before:-inset-y-4 | before:-inset-3
+// A narrow tracker's 2px gap: the tip reaches 1px, never its neighbour's (Q955 x Q2369, 2026-11-05).
+// @mutate src/index.css | .job-steps-grid [data-step-tip] { width: calc(100% + 2px); margin-left: -1px; margin-right: -1px; padding-left: 1px; padding-right: 1px; } | .job-steps-grid [data-step-tip] { }
 
 /**
  * Messages: the bottom nav must never disappear over the INBOX, and the
@@ -399,16 +401,22 @@ test.describe("Messages thread — fit, a11y and tap targets", () => {
     // their widened hit areas meet but never overlap a neighbour's (Q2369; touching edges are allowed).
     const tips = await page.evaluate(() =>
       [...document.querySelectorAll<HTMLElement>("[data-step-tip]")]
-        .map((el) => ({ r: el.getBoundingClientRect(), col: el.parentElement!.getBoundingClientRect() }))
+        .map((el) => ({
+          r: el.getBoundingClientRect(),
+          col: el.parentElement!.getBoundingClientRect(),
+          gap: parseFloat(getComputedStyle(el.closest(".job-steps-grid")!).columnGap) || 0,
+        }))
         .filter(({ r }) => r.width > 0)
-        .map(({ r, col }) => ({ left: r.left, right: r.right, top: r.top, bottom: r.bottom, grow: r.width - col.width, shift: col.left - r.left })),
+        .map(({ r, col, gap }) => ({ left: r.left, right: r.right, top: r.top, bottom: r.bottom, grow: r.width - col.width, shift: col.left - r.left, gap })),
     );
     expect(tips.length, "the open thread shows the tracker's step tips").toBeGreaterThan(0);
-    // Font-independent: the hit area is its column plus 2px of the 4px gap on each side (CI's fonts make a column
-    // ~43px at 375, local fonts ~44px, so the 44px check alone cannot tell the two builds apart everywhere).
+    // Font-independent: the hit area is its column plus HALF the grid's real column gap on each side: 2px of the 4px
+    // gap, or 1px of the 2px gap a tracker under 320px uses (index.css, Q955). Pin 41983991424 (2026-11-05) measured
+    // 2px overlaps in the thread's ~277px deal card when the tip still took 2px of a 2px gap.
     for (const t of tips) {
-      expect(Math.abs(t.grow - 4), `a step tip is 4px wider than its column (was ${t.grow.toFixed(1)})`).toBeLessThan(0.5);
-      expect(Math.abs(t.shift - 2), `a step tip starts 2px left of its column (was ${t.shift.toFixed(1)})`).toBeLessThan(0.5);
+      expect(t.gap, "the tracker grid has a column gap").toBeGreaterThan(0);
+      expect(Math.abs(t.grow - t.gap), `a step tip is one gap (${t.gap}px) wider than its column (was ${t.grow.toFixed(1)})`).toBeLessThan(0.5);
+      expect(Math.abs(t.shift - t.gap / 2), `a step tip starts half a gap left of its column (was ${t.shift.toFixed(1)})`).toBeLessThan(0.5);
     }
     const overlaps: string[] = [];
     tips.forEach((a, i) => tips.forEach((b, j) => {
@@ -535,14 +543,15 @@ test.describe("Messages thread — system events read as ONE kind of thing", () 
       { stored: /\bcancell?ed\b|\bno longer open\b/i, derived: /cancel|no longer open|listing expired/i },
       { stored: /\bdisput/i, derived: /disput/i },
     ];
-    for (const label of t.systemLabels) {
-      const cover = COVERED.find((c) => c.stored.test(label));
-      const n = await notes.filter({ hasText: label }).count();
-      if (cover && n === 0) {
-        expect(await notes.filter({ hasText: cover.derived }).count(), `"${label}" is dropped only when a derived pill covers it`).toBeGreaterThan(0);
-        continue;
-      }
+    // Auto-waiting assertions only: pin 41983991424 counted with .count() before the thread had drawn (0 notes),
+    // while its screenshot shows both derived pills.
+    const covered = t.systemLabels.map((label) => ({ label, cover: COVERED.find((c) => c.stored.test(label)) }));
+    for (const { label } of covered.filter((c) => !c.cover)) {
       await expect(notes.filter({ hasText: label })).toHaveCount(1);
+    }
+    for (const { label, cover } of covered.filter((c) => c.cover)) {
+      await expect(notes.filter({ hasText: cover!.derived }).first(), `"${label}" may be dropped only when a derived pill covers it`).toBeVisible();
+      expect(await notes.filter({ hasText: label }).count(), `"${label}" is drawn at most once`).toBeLessThanOrEqual(1);
     }
 
     // One treatment: every system row is the same pill, and each carries a

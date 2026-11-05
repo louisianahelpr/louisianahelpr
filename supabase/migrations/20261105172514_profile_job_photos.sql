@@ -121,7 +121,12 @@ AS $fn$
      AND x.photo_path IS NOT NULL
      AND x.photo_path <> ''
      AND x.photo_path !~ '://'
-     AND x.photo_path !~ '(^/|\.\.)';
+     AND x.photo_path !~ '(^/|\.\.)'
+     -- A photo belongs to the job it is listed on: its storage path starts with that job's id. Without this, an
+     -- assigned Helpr (who can still edit proof_after_urls on a completed job) could copy job A's in-home photo,
+     -- whose customer said no, into job B's list and show it under job B's consent (lh-authz-rls BLOCK, 11-05).
+     -- Every one of the 146 live after-photo paths on completed jobs starts with its own job id.
+     AND split_part(x.photo_path, '/', 1) = x.job_id::text;
 $fn$;
 REVOKE ALL ON FUNCTION public.helpr_job_after_photos(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.helpr_job_after_photos(uuid) TO service_role;

@@ -274,6 +274,7 @@ export const es: Record<MsgKey, string> = {
   "tabs.nMore": "{n} más",
   "tabs.nMoreTabs": "{n} pestañas más",
   "tabs.nMoreToDo": "{n} pestañas más, {m} pendientes",
+  "tabs.nToDo": "{n} pendientes",
   "jobs.tabPosted": "Publicados",
   "jobs.tabWorking": "Trabajando",
   "jobs.tabsLabel": "Trabajos y publicaciones",

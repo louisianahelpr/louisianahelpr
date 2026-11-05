@@ -767,7 +767,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
 
   // Audit DC-9 (lead 2026-10-30): the Selling badge counts what "To answer" counts, so a question waiting on a live
   // listing shows on the tab too; the tab row waits for that read (no late re-wrap).
-  // @mutate src/components/declutter/DeclutterHomeView.tsx |         { value: "selling", label: "Selling", count: todo ? todo.selling + questions.count : undefined }, |         { value: "selling", label: "Selling", count: todo?.selling },
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | count: todo ? todo.selling + questions.count : undefined, countAsDot: true }, | count: todo?.selling, countAsDot: true },
   // @mutate src/components/declutter/SellerQuestionsToAnswer.tsx |     enabled: mine.isSuccess && ids.length > 0, |     enabled: mine.isSuccess,
   it("DC-9: the Selling badge counts unanswered questions too, and the read is made only with a listing on sale", async () => {
     everything();
@@ -945,7 +945,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // started 4px under the rule while Browse's first line sits 12px into its 44px Miles from row. jsdom draws no
   // layout, so the guard reads the two causes: (1) every tab but Browse sits in the one tab body that carries pt-3;
   // (2) nowhere in a tab does a space-y parent start with a base-hidden child (the stray margin).
-  // @mutate src/components/declutter/DeclutterHomeView.tsx |     <div className="flex flex-col gap-6">\n      <ListedWhatNext /> |     <div className="space-y-6">\n      <ListedWhatNext />
+  // @mutate src/components/declutter/DeclutterHomeView.tsx |     <div className="flex flex-col gap-6">\n      {/* Owner 2026-11-04: the seller's page link |     <div className="space-y-6">\n      {/* Owner 2026-11-04: the seller's page link
   // @mutate src/components/declutter/DeclutterHomeView.tsx | <div data-declutter-tab-body="" className="flex flex-1 flex-col gap-4 pt-3"> | <div data-declutter-tab-body="" className="flex flex-1 flex-col gap-4 pt-1">
   it("Q2562: every tab but Browse starts at Browse's line under the tabs, and no hidden first child pushes one lower", async () => {
     state.mine = [ITEM];

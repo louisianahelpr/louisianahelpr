@@ -1341,6 +1341,17 @@ export async function fetchMyFreeRequests(userId: string): Promise<MyFreeRequest
   ) ?? []) as MyFreeRequest[];
 }
 
+/** Owner request 11-05 (src/lib/declutter/itemViews.ts): report one view of an item; a guest sends its device id. */
+export async function sendItemViewRpc(itemId: string, deviceId: string | null): Promise<void> {
+  await supabase.rpc("declutter_record_item_view", { p_item_id: itemId, ...(deviceId ? { p_device_id: deviceId } : {}) });
+}
+
+/** Owner request 11-05: how many people saw each of the caller's own items (item id -> people). */
+export async function fetchMyItemViewCounts(): Promise<Map<string, number>> {
+  const rows = (unwrap(await supabase.rpc("declutter_my_item_view_counts")) ?? []) as { item_id: string; views: number }[];
+  return new Map(rows.map((r) => [r.item_id, r.views]));
+}
+
 /** The giver's open asks per free listing (RLS lets the giver read the rows), for the Selling list's "Requests (n)". */
 export async function fetchOpenFreeRequestCounts(userId: string): Promise<Map<string, number>> {
   const rows = (unwrap(

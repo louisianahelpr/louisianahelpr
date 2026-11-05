@@ -58,6 +58,7 @@ export function YourActivity() {
                 type="button"
                 data-activity-tile={`${s.key}:${t.label}`}
                 onClick={() => navigate(t.to)}
+                title={`${s.label} ${t.label}${n > 0 ? ` · ${n}` : ""}`}
                 className="btn-press liquid-glass text-left px-4 py-3 flex flex-col min-w-0"
               >
                 {/* No aria-label: the tile's words ("Jobs Posted 2") are its name, so the visible text is in it (axe

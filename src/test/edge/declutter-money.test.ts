@@ -868,6 +868,12 @@ describe("declutter-money: Helpr delivery payouts (slice 5, row 42)", () => {
     expect(body.held).toBe(1);
     expect(stripeMock.transfers.create).not.toHaveBeenCalled();
     expect(rpcs("helpr_task_payout_executed")).toHaveLength(0);
+    // The queue-time hold stops it, before any Stripe setup. stillPayableNow re-checks the hold right before the
+    // transfer ("an admin payout hold placed during the run"), so held=1 alone could not tell the two gates apart and
+    // the checkPayoutHold(admin, h.helpr_id) @mutate survived vacuity (Builder 3 11-04 / 11-05).
+    expect(rpcs("payout_payee_wait_seen").map((c) => c.args)).toEqual([
+      expect.objectContaining({ p_kind: "helpr_task", p_category: "held", p_reason: "the payee is on an admin payout hold" }),
+    ]);
   });
 
   it("a Helpr under ban review is not paid", async () => {

@@ -21,7 +21,7 @@
  * /posts 195 -> 152. The /posts and kpi critical-path budgets were lowered in the same commit.
  * @mutate vite.config.ts | /src[\\/]lib[\\/]loadModule\.ts$/.test(id), | /src[\\/]lib[\\/]loadModuleNever\.ts$/.test(id),
  * @mutate vite.config.ts | test: (id: string) => SHARED_DIR_RE.test(id) && homeOnly(norm(id)), | test: (id: string) => false && homeOnly(norm(id)),
- * @mutate vite.config.ts | includeDependenciesRecursively: false, // the home-only modules alone | includeDependenciesRecursively: true, // the home-only modules alone
+ * @mutate vite.config.ts | false /* the home-only modules, not their deps | true /* the home-only modules, not their deps
  * @mutate vite.config.ts | const homeOnly = (f: string) => homeSet.has(f) && !bootSet.has(f); | const homeOnly = (f: string) => homeSet.has(f);
  * @mutate src/hooks/useLoginTracking.ts | import { loadModule } from "@/lib/loadModule"; | import { loadModule } from "@/lib/loadModule"; import { supabase } from "@/integrations/supabase/client"; void supabase;
  */

@@ -519,6 +519,8 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
           : Promise.resolve({ data: [] as unknown[], error: null }),
         // feedback_visible_at filter: anti-retaliation reveal — hidden until both sides post or
         // 14 days pass. set_review_visibility trigger stamps this column on insert.
+        // NOT the same-person rule (owner 11-05 L4, profile_review_same_person, server-only): this direct read
+        // runs only when get_public_profile_reviews or get_public_profile_stats failed this load (an error path).
         needsReviewList
           ? withReviewTags(
             () => supabase.from("reviews").select("id, rating, feedback, tags, created_at, reviewer_id, job_id, response_text, response_at, jobs!inner(status)", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).neq("jobs.status", "cancelled").order("created_at", { ascending: false }).limit(20),

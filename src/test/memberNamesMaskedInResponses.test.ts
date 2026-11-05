@@ -74,7 +74,7 @@ const MASKED_RESTATED_LATER: Record<string, string> = {
   // Blockers 10 (lead 2026-11-03): one column added (tip_waits_on_id); the name read is verbatim.
   get_safe_profiles: "20261103154905_tip_waits_on_id_in_safe_profiles.sql",
   // Q1088 (train 7): the review tags column is read (review_text(feedback, tags)); the reviewer name read is verbatim.
-  get_public_profile_reviews: "20261103224601_review_tags_column.sql",
+  get_public_profile_reviews: "20261105184337_profile_review_list_same_person.sql",
 };
 
 const RESTATED_LATER: Record<string, string> = {

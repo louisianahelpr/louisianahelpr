@@ -8,6 +8,8 @@
  * @mutate scripts/inline-shell-css.mjs |     if (!vocab.tags.has(t)) return false; |     if (!vocab.tags.has(t)) {}
  * @mutate scripts/inline-shell-css.mjs | #lh-landing-shell{display:block; | #lh-landing-shell{display:none;
  * @mutate scripts/inline-shell-css.mjs |   const block = `<style id="${STYLE_ID}">${critical}${SHOW_RULE}</style>`; |   const block = `<style id="${STYLE_ID}">${SHOW_RULE}</style>`;
+ * @mutate scripts/inline-shell-css.mjs |     if (!families.has(fam)) at.remove(); |     at.remove();
+ * @mutate scripts/inline-shell-css.mjs |     if (!families.has(fam)) at.remove(); |     {}
  * @mutate package.json | node scripts/inline-shell-css.mjs && node scripts/build-og-shell.mjs | node scripts/build-og-shell.mjs
  */
 import { readFileSync } from "node:fs";
@@ -26,6 +28,7 @@ const SHEET = [
   "*,:before,:after{box-sizing:border-box}",
   "html{line-height:1.5}",
   "@font-face{font-family:Bodoni Moda;src:url(/fonts/b.woff2)}",
+  "@font-face{font-family:Unused Face;src:url(/fonts/u.woff2)}",
   "@keyframes spin{to{transform:rotate(360deg)}}",
   ".landing-h1{font-size:44px}",
   ".font-display{font-family:Bodoni Moda,serif}",
@@ -60,7 +63,8 @@ describe("the landing shell's own CSS rides in the HTML (Q2705)", () => {
     expect(out).not.toContain("9999px");
     expect(out).not.toContain("table{");
     expect(out).not.toContain("#some-other-id");
-    expect(out).not.toContain("@font-face");
+    expect(out, "the hero's own face, or it paints in a fallback and swaps").toContain("@font-face{font-family:Bodoni Moda;src:url(/fonts/b.woff2)}");
+    expect(out).not.toContain("Unused Face");
     expect(out).not.toContain("@keyframes");
   });
 

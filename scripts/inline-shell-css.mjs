@@ -73,13 +73,26 @@ export function shellCriticalCss(shellHtml, css) {
   const vocab = shellVocabulary(shellHtml);
   const root = postcss.parse(css);
   root.walkAtRules((at) => {
-    // Fonts load as files on their own; animations are not part of a first frame.
-    if (at.name === "font-face" || /keyframes$/.test(at.name)) at.remove();
+    // Animations are not part of a first frame.
+    if (/keyframes$/.test(at.name)) at.remove();
   });
   root.walkRules((rule) => {
     const keep = rule.selectors.filter((s) => selectorNeeded(s, vocab));
     if (keep.length === 0) rule.remove();
     else rule.selectors = keep;
+  });
+  // The @font-face of every family a kept rule names stays: without it the hero paints in a fallback face and
+  // swaps when the app sheet arrives (measured 11-05 without it: LCP 1972 -> 3408 ms, CLS 0 -> 0.2254, one run).
+  // The files are fetched only when the face is used, so unused unicode ranges cost nothing.
+  const families = new Set();
+  root.walkDecls(/^font-family$/, (d) => {
+    if (d.parent?.type === "atrule") return;
+    for (const f of d.value.split(",")) families.add(f.trim().replace(/^["']|["']$/g, "").toLowerCase());
+  });
+  root.walkAtRules("font-face", (at) => {
+    let fam = "";
+    at.walkDecls("font-family", (d) => { fam = d.value.trim().replace(/^["']|["']$/g, "").toLowerCase(); });
+    if (!families.has(fam)) at.remove();
   });
   // Drop at-rules left empty (twice: an @media inside an emptied @supports).
   for (let i = 0; i < 2; i++) root.walkAtRules((at) => { if (at.nodes && at.nodes.length === 0) at.remove(); });

@@ -478,6 +478,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/shops/ShopOrderSheet.tsx` | textarea×1 |  |  | Loading ordering · shop-order-date · shop-order-date-help · shop-order-note · shop-order-cancel-policy · shop-order-total |
+| `src/components/shops/ShopTalk.tsx` | textarea×1 |  | 1000 | shop-messages · Messages |
 
 ## /shops/dashboard
 

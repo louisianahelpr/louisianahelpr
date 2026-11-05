@@ -1,0 +1,160 @@
+/**
+ * Message a shop (Shops H1, owner L48: any time, before and after ordering; migration 20261105185006_shops_talk).
+ * A member's "Message" on a shop's page opens their one thread with that shop over the page (?talk=<id>, the link the
+ * notices carry too). On their own shop's page the owner sees "Messages", one row per member who wrote, unread first
+ * in bold. The server is the protection (shops_talk_view / shops_send_talk_message): only the two sides read or write,
+ * and the contact-leak filter and the block check run there.
+ */
+import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { MessageCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { Textarea } from "@/components/ui/textarea";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { talkTime } from "@/lib/declutter/talkTime";
+import { shopsErrorMessage } from "@/lib/shops/errors";
+import { fetchMyShopTalks, fetchShopTalk, markShopTalkRead, MY_SHOP_TALKS_KEY, openShopTalk, sendShopTalkMessage } from "@/lib/shops/talk";
+import { focusSheetItself } from "@/components/declutter/focusSheetItself";
+import { ShopCard } from "./ShopProfile";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function useTalkParam() {
+  const [params, setParams] = useSearchParams();
+  const talkId = params.get("talk");
+  const set = (id: string | null) => {
+    const next = new URLSearchParams(params);
+    if (id) next.set("talk", id); else next.delete("talk");
+    setParams(next, { replace: !id });
+  };
+  return [talkId && UUID.test(talkId) ? talkId : null, set] as const;
+}
+
+/** A member's "Message" button on a shop's page: opens (or makes) their thread with the shop. */
+export function ShopMessageButton({ shopId }: { shopId: string }) {
+  const [, setTalk] = useTalkParam();
+  const open = useMutation({ mutationFn: () => openShopTalk(shopId), onSuccess: (id) => setTalk(id) });
+  return (
+    <div className="space-y-1">
+      <Button type="button" variant="outline" className="rounded-full" disabled={open.isPending} onClick={() => open.mutate()}>
+        <MessageCircle className="mr-1.5 h-4 w-4" aria-hidden />
+        Message
+      </Button>
+      {open.isError && <p role="alert" className="text-ds-13 text-destructive-ink">{shopsErrorMessage(open.error)}</p>}
+    </div>
+  );
+}
+
+/** The owner's threads on their own shop page. */
+export function ShopTalksCard() {
+  const [, setTalk] = useTalkParam();
+  const talks = useQuery({ queryKey: MY_SHOP_TALKS_KEY, queryFn: fetchMyShopTalks });
+  const mine = (talks.data ?? []).filter((t) => t.side === "shop");
+  return (
+    <ShopCard id="shop-messages" title="Messages">
+      {talks.isError ? (
+        <ErrorState variant="inline" title="We couldn't load your messages." body={shopsErrorMessage(talks.error)} onRetry={() => void talks.refetch()} />
+      ) : talks.isPending ? (
+        <p className="text-sm text-muted-foreground" role="status">Loading…</p>
+      ) : mine.length === 0 ? (
+        <p className="text-sm text-muted-foreground">When a shopper messages your shop, the chat shows up here.</p>
+      ) : (
+        <ul className="divide-y divide-border" data-shop-talks="">
+          {mine.map((t) => (
+            <li key={t.talk_id}>
+              <button type="button" className="flex min-h-[44px] w-full items-center justify-between gap-2 py-2 text-left" onClick={() => setTalk(t.talk_id)}>
+                <span className={`truncate text-sm ${t.unread ? "font-bold" : ""}`}>{t.other_label}{t.unread ? " · New" : ""}</span>
+                <span className="shrink-0 text-ds-12 text-muted-foreground">{talkTime(t.last_at)}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </ShopCard>
+  );
+}
+
+/** The thread for ?talk=<id>; closing it takes the parameter off. */
+export function ShopTalkFromLink() {
+  const [talkId, setTalk] = useTalkParam();
+  if (!talkId) return null;
+  return <ShopTalkSheet talkId={talkId} onClose={() => setTalk(null)} />;
+}
+
+function ShopTalkSheet({ talkId, onClose }: { talkId: string; onClose: () => void }) {
+  const webDesktop = useIsWebDesktop();
+  const qc = useQueryClient();
+  const key = ["shops", "talk", talkId] as const;
+  // A light poll while the thread is open (the other side's new message shows within 15 seconds).
+  const talk = useQuery({ queryKey: key, queryFn: async () => {
+    const view = await fetchShopTalk(talkId);
+    // Seen = read. A failed read mark only leaves the thread bold in the owner's list; the chat still shows.
+    void markShopTalkRead(talkId).then(() => qc.invalidateQueries({ queryKey: MY_SHOP_TALKS_KEY }), () => undefined);
+    return view;
+  }, refetchInterval: 15_000 });
+  const [draft, setDraft] = useState("");
+  const [refusal, setRefusal] = useState<string | null>(null);
+  const send = useMutation({
+    mutationFn: () => sendShopTalkMessage(talkId, draft.trim()),
+    onSuccess: () => { setDraft(""); setRefusal(null); void qc.invalidateQueries({ queryKey: key }); void qc.invalidateQueries({ queryKey: MY_SHOP_TALKS_KEY }); },
+    onError: (err) => setRefusal(shopsErrorMessage(err)),
+  });
+  const t = talk.data;
+  const open = !!t?.open;
+  const formId = `shop-talk-form-${talkId}`;
+  return (
+    <Sheet open onOpenChange={(o) => { if (!o) onClose(); }}>
+      <SheetContent side="bottom" floor={!webDesktop} onOpenAutoFocus={focusSheetItself}
+        className={`bg-premium-page max-h-[90dvh] overflow-y-auto ${webDesktop ? "sm:max-w-[520px]" : ""}`} data-shop-talk="">
+        <SheetHero title={t ? `Message ${t.other_label}` : "Messages"} />
+        {talk.isError ? (
+          <ErrorState variant="inline" title="We couldn't load this chat." body={shopsErrorMessage(talk.error)} onRetry={() => void talk.refetch()} />
+        ) : talk.isPending || !t ? (
+          <p className="mt-2 text-ds-14 text-muted-foreground">Loading…</p>
+        ) : (
+          <div className="mt-2 space-y-3">
+            <p className="rounded-xl px-3 py-2 text-ds-13 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }}>
+              Only you and {t.side === "buyer" ? "the shop" : "this shopper"} can read this. Keep phone numbers, emails and payment out of the chat.
+            </p>
+            {!open && (
+              <p className="rounded-xl border border-border bg-card px-3 py-2 text-ds-13 text-foreground" data-shop-talk-closed="">
+                This chat is closed. You can still read it.
+              </p>
+            )}
+            <ol className="space-y-2" aria-label="Messages">
+              {t.messages.length === 0 && <li className="text-ds-13 text-muted-foreground">No messages yet. Ask about an item, an order or a pickup time.</li>}
+              {t.messages.map((m) => (
+                <li key={m.id} className={`flex ${m.mine ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[85%] rounded-2xl px-3 py-2 ${m.mine ? "bg-[hsl(var(--bark)/0.1)]" : "border border-border bg-card"}`}>
+                    <p className="text-ds-12 font-semibold text-muted-foreground">{m.mine ? "You" : t.other_label} · {talkTime(m.created_at)}</p>
+                    <p className="whitespace-pre-wrap break-words text-ds-14 text-foreground">{m.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            {open && (
+              <form id={formId} className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (draft.trim()) send.mutate(); }}>
+                <label htmlFor={`shop-talk-${talkId}`} className="block text-ds-13 font-medium">Message</label>
+                <Textarea id={`shop-talk-${talkId}`} className="min-h-20 w-full rounded-xl border border-input bg-background px-3 py-2 text-ds-14"
+                  maxLength={1000} value={draft} onChange={(e) => { setDraft(e.target.value); setRefusal(null); }}
+                  aria-invalid={refusal ? true : undefined} aria-describedby={refusal ? `shop-talk-refusal-${talkId}` : undefined} />
+                {refusal && <p id={`shop-talk-refusal-${talkId}`} role="alert" className="text-ds-13 text-destructive-ink">{refusal}</p>}
+              </form>
+            )}
+          </div>
+        )}
+        <SheetFooter className="mt-4">
+          <SheetSecondaryAction onClick={onClose}>Close</SheetSecondaryAction>
+          {open && (
+            <SheetPrimaryAction type="submit" form={formId} disabled={send.isPending || draft.trim().length === 0}>
+              {send.isPending ? "Sending…" : "Send"}
+            </SheetPrimaryAction>
+          )}
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}

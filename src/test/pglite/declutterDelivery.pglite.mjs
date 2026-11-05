@@ -541,7 +541,13 @@ ok(Array.isArray(await me(ADMIN, `SELECT public.declutter_admin_decide_problem('
 // 12. A Helpr backing out late, and a Helpr no-show (B64).
 const P5 = await paidDelivery(13, BUYER, SELLER, 2500, "small");
 await svc(`UPDATE public.helpr_tasks SET open_until = now() + interval '1 hour' WHERE id = '${P5.task}'`);
-const soon = one(await svc(`SELECT (date_trunc('minute', now()) + interval '61 minutes')::text`));
+// A slot within 2 h of now, inside the 00:00-23:59 windows (a slot must start by ends - 30 min = 23:29
+// Chicago). From ~10:28 PM to ~11:00 PM Chicago, now + 61 min lands after 23:29, so the run took midnight + 1 min
+// then (still within 2 h). Without this the proof failed every night in that half hour.
+const soon = one(await svc(`SELECT (CASE
+    WHEN ((date_trunc('minute', now()) + interval '61 minutes') AT TIME ZONE 'America/Chicago')::time > time '23:29'
+    THEN (date_trunc('day', (now() + interval '61 minutes') AT TIME ZONE 'America/Chicago') + interval '1 day 1 minute') AT TIME ZONE 'America/Chicago'
+    ELSE date_trunc('minute', now()) + interval '61 minutes' END)::text`));
 await me(HELPR2, `SELECT public.helpr_task_accept('${P5.task}', '${soon}')`);
 const rel = one(await me(HELPR2, `SELECT public.helpr_task_release('${P5.task}')`));
 const T5 = await task(P5.task);

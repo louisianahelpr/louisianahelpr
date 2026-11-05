@@ -43,24 +43,36 @@ const check = (name, ok, detail = "") => {
   if (!ok) failures++;
 };
 
-let reconcile = readFileSync(MIG_DIR + RECONCILE, "utf8");
-const plant = (find, repl) => {
-  if (!reconcile.includes(find)) throw new Error(`plant ${PLANT}: find-string not in the reconcile`);
-  reconcile = reconcile.split(find).join(repl);
+// A later migration may restate one of the three with every hunk kept (20261103203204 restated
+// declutter_close_paid_order). The hunk checks below read the FINAL bodies, so a plant goes into the NEWEST file
+// that defines the planted function, never into a file a later one overrides (that plant would be vacuous).
+const headOf = (fn) => new RegExp(`CREATE\\s+OR\\s+REPLACE\\s+FUNCTION\\s+public\\.${fn}\\s*\\(`, "i");
+const allFiles = readdirSync(MIG_DIR).filter((f) => /^\d{14}_.*\.sql$/.test(f)).sort();
+const text = Object.fromEntries(allFiles.map((f) => [f, readFileSync(MIG_DIR + f, "utf8")]));
+const newestOf = (fn) => allFiles.filter((f) => headOf(fn).test(text[f])).at(-1);
+const reconcile = text[RECONCILE];
+const plant = (fn, find, repl) => {
+  const f = newestOf(fn);
+  if (!text[f].includes(find)) throw new Error(`plant ${PLANT}: find-string not in ${f}`);
+  text[f] = text[f].split(find).join(repl);
 };
-if (PLANT === "strict") plant("PERFORM public.declutter_notify_strict(r.", "PERFORM public.declutter_notify(r.");
-if (PLANT === "never_booked") plant("PERFORM public.declutter_close_paid_order(o.id, 'delivery_never_booked', NULL, NULL, NULL);", "NULL;");
-if (PLANT === "result_key") plant(",\n                            'delivery_never_booked', v_sd_unbooked);", ");");
-if (PLANT === "buyer_copy") plant("THEN format('No delivery time was picked within 7 days, so the order is cancelled. All $%s is coming back to your card.',\n                     to_char((o.total_cents - v_reserved) / 100.0, 'FM999990.00'))\n", "THEN 'x'\n");
-if (PLANT === "seller_copy") plant("THEN 'No delivery time was picked within 7 days, so this sale was cancelled and the buyer refunded. Your item is back on sale.'", "THEN 'x'");
-if (PLANT === "seller_out") plant("    v_fee_reason := 'seller_out';\n", "    NULL;\n");
-if (PLANT === "closed_skip") plant("\n     AND COALESCE(NEW.status::text, '') NOT IN ('cancelled', 'completed') THEN", " THEN");
-if (PLANT === "confirm_next") plant("VALUES (NEW.helper_id, 'Job funded', v_msg,", "VALUES (NEW.helper_id, 'Job funded', 'Payment for \"' || NEW.title || '\" is held safely. Get to work!',");
-// CREATE OR REPLACE keeps an existing ACL, so the plant also drops the three first: the reconcile then creates them
-// fresh, under the emulated default grant, and only its own REVOKE lines can take anon/authenticated off.
+if (PLANT === "strict") plant("declutter_handover_sweep", "PERFORM public.declutter_notify_strict(r.", "PERFORM public.declutter_notify(r.");
+if (PLANT === "never_booked") plant("declutter_handover_sweep", "PERFORM public.declutter_close_paid_order(o.id, 'delivery_never_booked', NULL, NULL, NULL);", "NULL;");
+if (PLANT === "result_key") plant("declutter_handover_sweep", ",\n                            'delivery_never_booked', v_sd_unbooked);", ");");
+if (PLANT === "buyer_copy") plant("declutter_close_paid_order", "THEN format('No delivery time was picked within 7 days, so the order is cancelled. All $%s is coming back to your card.',\n                     to_char((o.total_cents - v_reserved) / 100.0, 'FM999990.00'))\n", "THEN 'x'\n");
+if (PLANT === "seller_copy") plant("declutter_close_paid_order", "THEN 'No delivery time was picked within 7 days, so this sale was cancelled and the buyer refunded. Your item is back on sale.'", "THEN 'x'");
+if (PLANT === "seller_out") plant("declutter_close_paid_order", "    v_fee_reason := 'seller_out';\n", "    NULL;\n");
+if (PLANT === "closed_skip") plant("notify_on_payment_escrowed", "\n     AND COALESCE(NEW.status::text, '') NOT IN ('cancelled', 'completed') THEN", " THEN");
+if (PLANT === "confirm_next") plant("notify_on_payment_escrowed", "VALUES (NEW.helper_id, 'Job funded', v_msg,", "VALUES (NEW.helper_id, 'Job funded', 'Payment for \"' || NEW.title || '\" is held safely. Get to work!',");
+// CREATE OR REPLACE keeps an existing ACL, so the plant also drops each function first: its newest file then creates
+// it fresh, under the emulated default grant, and only that file's own REVOKE lines can take anon/authenticated off.
 if (PLANT === "anon_grant") {
-  reconcile = "DROP FUNCTION IF EXISTS public.declutter_handover_sweep();\nDROP FUNCTION IF EXISTS public.declutter_close_paid_order(uuid, text, text, text, text);\nDROP FUNCTION IF EXISTS public.notify_on_payment_escrowed() CASCADE;\n"
-    + reconcile.replace(/^REVOKE ALL ON FUNCTION .*$/gm, "");
+  const sigs = { declutter_handover_sweep: "()", declutter_close_paid_order: "(uuid, text, text, text, text)", notify_on_payment_escrowed: "() CASCADE" };
+  for (const fn of FNS) {
+    const f = newestOf(fn);
+    text[f] = `DROP FUNCTION IF EXISTS public.${fn}${sigs[fn]};\n`
+      + text[f].replace(new RegExp(`^REVOKE ALL ON FUNCTION public\\.${fn}\\b.*$`, "gm"), "");
+  }
 }
 
 /** One function's CREATE OR REPLACE statement(s) plus the REVOKE/GRANT lines naming it, from one migration's text. */
@@ -84,18 +96,17 @@ function statementsFor(sql, fn) {
   return out;
 }
 
-const files = readdirSync(MIG_DIR).filter((f) => /^\d{14}_.*\.sql$/.test(f)).sort();
 const steps = [];
-for (const f of files) {
+for (const f of allFiles) {
   if (f === RECONCILE && MODE === "skip") continue;
-  const sql = f === RECONCILE ? reconcile : readFileSync(MIG_DIR + f, "utf8");
+  const sql = text[f];
   for (const fn of FNS) {
     const st = statementsFor(sql, fn);
     if (st.length) steps.push({ f, fn, sql: st.join("\n") });
   }
 }
-check("the reconcile is the LAST definition of all three functions",
-  MODE === "skip" || FNS.every((fn) => steps.filter((s) => s.fn === fn).at(-1)?.f === RECONCILE),
+check("the reconcile or a later restatement is the LAST definition of all three functions",
+  MODE === "skip" || FNS.every((fn) => (steps.filter((s) => s.fn === fn).at(-1)?.f ?? "") >= RECONCILE),
   FNS.map((fn) => `${fn}:${steps.filter((s) => s.fn === fn).at(-1)?.f.slice(0, 14)}`).join(" "));
 check("history has more than 5 definitions to replay", steps.length > 5, `${steps.length}`);
 

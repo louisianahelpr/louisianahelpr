@@ -304,6 +304,8 @@ const EXEMPT: Record<string, string> = {
   "_shared/heldTipRepay.ts::stripe.transfers.retrieve(transferId)": EVENT,
   // Review of 9c498193ff #2: the fee transfer whose reversals listReversals just read under the same key.
   "_shared/instantPayoutFeeReturn.ts::stripe.transfers.retrieve(transferId)": REREAD,
+  // Q1918: recordLostDisputeTax's only caller is stripe-webhook's charge.dispute.closed handler; the charge id is the dispute event's own, and the whole write sits in a never-throw try.
+  "_shared/salesTaxAdjustment.ts::stripe.charges.retrieve(chargeId)": EVENT,
   // Q1324: the card that paid this event's own session.
   "stripe-webhook/handlers/_checkoutCardFingerprint.ts::stripe.paymentIntents.retrieve(session.payment_intent)": EVENT,
   "stripe-webhook/handlers/_walletDefaultCard.ts::stripe.paymentIntents.retrieve(session.payment_intent)": EVENT,

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useQuery } from "@tanstack/react-query";
 import { Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -138,13 +139,12 @@ export function SignupLeadsCard() {
             ))}
           </ul>
           {rows.length > LEADS_PREVIEW && (
-            <button
-              type="button"
+            <InlineTextButton
               onClick={() => setShowAll((v) => !v)}
-              className="mt-3 min-h-[44px] text-ds-13 font-medium text-primary link-standard"
+              className="mt-3 text-ds-13 font-medium text-primary"
             >
               {showAll ? "Show fewer" : `Show all ${rows.length}`}
-            </button>
+            </InlineTextButton>
           )}
           {Number(total) > rows.length && (
             <p className="mt-2 text-ds-11 text-muted-foreground">

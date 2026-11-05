@@ -4,7 +4,8 @@
  * picks "left out" or "in person", NO codes anywhere).
  *
  *   left out ('porch'): the shop marks the order ready WITH a photo; the buyer
- *     taps "I got it"; else the shop is paid 48 h after the photo (H5).
+ *     taps "I got it"; else the shop is paid 48 h after the later of the photo
+ *     and the start of the ready day (H5; shop_handover_sweep's rule).
  *   in person ('in_person'): the buyer taps "I got it", or the shop taps
  *     "Handed over" and the shop is paid 48 h later unless the buyer reports a
  *     problem (H5, Declutter's 10-30 rule, migration 20261105182903). If nobody
@@ -31,7 +32,7 @@ export const HANDOVER_MODE_TEXT: Record<HandoverMode, { label: string; detail: s
   },
   porch: {
     label: "Left out for pickup",
-    detail: "You leave the order out and take a photo of it. The buyer taps \"I got it\". With your photo, you're paid 48 hours later unless the buyer reports a problem.",
+    detail: "You leave the order out and take a photo of it. The buyer taps \"I got it\". With your photo, you're paid 48 hours after it (or after the ready day starts, if that is later) unless the buyer reports a problem.",
   },
 };
 export const HANDOVER_MODES = Object.keys(HANDOVER_MODE_TEXT) as HandoverMode[];

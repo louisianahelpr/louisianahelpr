@@ -80,8 +80,10 @@ describe("handover choices", () => {
     expect(HANDOVER_MODES.sort()).toEqual(["in_person", "porch"]);
     for (const m of HANDOVER_MODES) {
       expect(HANDOVER_MODE_TEXT[m].label.length).toBeGreaterThan(5);
-      expect(HANDOVER_MODE_TEXT[m].detail).toMatch(/paid 48 hours later unless the buyer reports a problem/);
+      expect(HANDOVER_MODE_TEXT[m].detail).toMatch(/paid 48 hours (later|after it).* unless the buyer reports a problem/);
     }
+    // H5 review note: a porch order is paid 48 h after the LATER of the photo and the ready day's start (the sweep's rule).
+    expect(HANDOVER_MODE_TEXT.porch.detail).toMatch(/after the ready day starts, if that is later/);
   });
 
   it("reads the shop's mode, and a shop with none set is in person", async () => {

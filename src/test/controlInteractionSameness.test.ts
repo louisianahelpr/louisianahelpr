@@ -77,6 +77,7 @@
  * neither target is imported by this file — it reads both from disk, so it can
  * never end up comparing a constant to itself.
  *
+ * @mutate src/components/profile/ProfileSectionError.tsx | gap-1 text-ds-11 font-semibold" | gap-1 text-ds-11 font-semibold active:opacity-70"
  * @mutate src/components/ui/button.tsx | const GREEN_CTA_HOVER = "hover:brightness-110"; | const GREEN_CTA_HOVER = "hover:brightness-110 hover:-translate-y-px";
  * @mutate src/index.css | filter: brightness(1.1); | transform: translateY(-1px);
  */
@@ -106,7 +107,7 @@ const TS_AND_TSX = SRC.filter((f) => /\.tsx?$/.test(f) && !f.includes(".test."))
 
 /** Elements that ARE a control — the thing a pointer aims at and presses. */
 const CONTROL_TAG =
-  /<(button|a|Button|ListRow|Link|NavLink|DropdownMenuItem|SelectItem|TabsTrigger|ToggleGroupItem)(?=[\s/>])/g;
+  /<(button|a|Button|ListRow|InlineTextButton|Link|NavLink|DropdownMenuItem|SelectItem|TabsTrigger|ToggleGroupItem)(?=[\s/>])/g;
 
 // The `(?<![\w-])` lookbehind is load-bearing: without it this matches the
 // `hover:translate-x-0.5` INSIDE `group-hover:translate-x-0.5` and reports a

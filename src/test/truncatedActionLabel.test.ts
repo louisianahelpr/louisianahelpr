@@ -77,7 +77,7 @@ const CLIP_RE = /(^|\s)(?:[a-z0-9-]+:)*(truncate|text-ellipsis|line-clamp-(?:\d+
 const KNOWN: Record<string, string> = {
   "src/components/profile/LegalTab.tsx:TabsTrigger:{TAB_LABELS[key]}":
     "MEASURED NOT CLIPPED 2026-09-23: Terms/Rules/Privacy sw==cw (35/31/41px) at 320 and 375, 41/37/49 at 1440",
-  "src/components/profile/profileLanding/SettingsSection.tsx:button:{item.desc}":
+  "src/components/profile/profileLanding/SettingsSection.tsx:ListRow:{item.desc}":
     "MEASURED NOT CLIPPED 2026-09-23: all 19 descriptions sh==ch (<=2 lines) at 320, 375 and 1440",
   "src/components/DatePickerField.tsx:button:{formatted}":
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): \"Select a date\" sw==cw on /post-job (Start fresh) at 320, 375 and 1440 as poster-e2e",

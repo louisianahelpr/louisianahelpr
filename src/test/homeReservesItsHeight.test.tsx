@@ -8,7 +8,7 @@
  * @mutate src/pages/home/HomeDashboard.tsx | style={summary.todosLoading && nextUpReserve ? { minHeight: nextUpReserve } : undefined} | style={undefined}
  * @mutate src/pages/home/HomeDashboard.tsx |             {money.pending && !money.coming && !money.held && moneyReserve > 0 |             {false && moneyReserve > 0
  * @mutate src/pages/home/HomeDashboard.tsx |             {money.pending && !money.coming && !money.held && moneyReserve > 0 |             {money.pending && moneyReserve > 0
- * @mutate src/pages/home/homeDashboard/homeMoney.ts |   return { coming, held, pending }; |   return { coming, held };
+ * @mutate src/pages/home/homeDashboard/homeMoney.ts |   return { coming, held, pending, failed }; |   return { coming, held, failed };
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -60,6 +60,6 @@ describe("Home's reserved heights", () => {
     expect(home).toContain("style={summary.todosLoading && nextUpReserve ? { minHeight: nextUpReserve } : undefined}");
     // A tile whose read answered draws at once; the stand-in only covers the wait while neither tile is known.
     expect(home).toMatch(/\{money\.pending && !money\.coming && !money\.held && moneyReserve > 0\s*\?\s*<div data-home-money-reserve/);
-    expect(code("src/pages/home/homeDashboard/homeMoney.ts")).toContain("return { coming, held, pending };");
+    expect(code("src/pages/home/homeDashboard/homeMoney.ts")).toContain("return { coming, held, pending, failed };");
   });
 });

@@ -26,6 +26,8 @@ export interface HomeMoney {
   held: { cents: number; jobs: number; only: { title: string; helper: string | null } | null } | null;
   /** Q2706 (B98): a tile's read has not answered yet (layout only: Home holds the strip's last height meanwhile). */
   pending?: boolean;
+  /** One of the reads failed: You > Money draws no "$0.00" tile on a guess. */
+  failed?: boolean;
 }
 
 /**
@@ -78,5 +80,7 @@ export function useHomeMoney(user: SupaUser | null): HomeMoney {
   });
   if (held && onlyJob?.title) held = { ...held, only: { title: onlyJob.title, helper: helperName.data ?? null } };
   const pending = !!uid && ((spend.data === undefined && !spend.isError) || (earnings.data === undefined && !earnings.isError));
-  return { coming, held, pending };
+  // A failed read is never shown as $0.00 (You > Money's empty tile only stands for reads that answered).
+  const failed = !!uid && (spend.isError || earnings.isError);
+  return { coming, held, pending, failed };
 }

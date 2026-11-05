@@ -12,6 +12,7 @@
  * @mutate src/hooks/useFirstPayoutFee.ts |   return profile.onboarding_fee_paid === true \|\| fee.isSuccess; |   return profile.onboarding_fee_paid === true \|\| !fee.isPending;
  * @mutate src/hooks/useOnboardingFee.ts |       const data = unwrap(res); |       const data = res.error ? null : res.data;
  * @mutate src/pages/home/homeDashboard/homeMoney.ts | hasPayoutAccount: !!profile.stripe_account_id | hasPayoutAccount: true
+ * @mutate src/pages/home/homeDashboard/homeMoney.ts |   const failed = !!uid && (spend.isError \|\| earnings.isError); |   const failed = false;
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
@@ -71,19 +72,19 @@ describe("Home money tiles: a real number or no tile", () => {
   it("loading: no tiles", () => {
     state.earnings = { data: undefined, isError: false };
     state.spend = { data: undefined, isError: false };
-    expect(renderHook(() => useHomeMoney(user)).result.current).toEqual({ coming: null, held: null, pending: true }); // still loading: Home holds the strip's room (Q2706)
+    expect(renderHook(() => useHomeMoney(user)).result.current).toEqual({ coming: null, held: null, pending: true, failed: false }); // still loading: Home holds the strip's room (Q2706)
   });
 
   it("a failed read (even with old data cached) is not $0 and not a stale figure: no tile", () => {
     state.earnings = { data: { jobs: [approved], tips: [] }, isError: true };
     state.spend = { data: spendOf([hired]), isError: true };
-    expect(renderHook(() => useHomeMoney(user)).result.current).toEqual({ coming: null, held: null, pending: false }); // a failed read is an answer: nothing held
+    expect(renderHook(() => useHomeMoney(user)).result.current).toEqual({ coming: null, held: null, pending: false, failed: true }); // a failed read is an answer: nothing held
   });
 
   it("$0: no tile", () => {
     state.earnings = { data: { jobs: [{ ...approved, payment_status: "released" }], tips: [] }, isError: false };
     state.spend = { data: spendOf([{ ...hired, status: "open" }]), isError: false };
-    expect(renderHook(() => useHomeMoney(user)).result.current).toEqual({ coming: null, held: null, pending: false });
+    expect(renderHook(() => useHomeMoney(user)).result.current).toEqual({ coming: null, held: null, pending: false, failed: false });
   });
 
   it("setup fee still owed and its amount not loaded yet: no Coming to you (it would read $2 high)", () => {

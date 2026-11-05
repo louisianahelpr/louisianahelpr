@@ -7,6 +7,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { rpcErrorMessage } from "@/lib/profileLink/errorCopy";
 
 export interface PublicJobPhoto {
   id: string;
@@ -51,7 +52,12 @@ export async function fetchMyJobPhotos(): Promise<MyJobPhoto[]> {
 /** Tick or untick one photo. Throws with plain words on a refusal. */
 export async function setJobPhotoShown(jobId: string, photoPath: string, shown: boolean): Promise<void> {
   const { error } = await supabase.rpc("set_job_photo_shown", { p_job_id: jobId, p_photo_path: photoPath, p_shown: shown });
-  if (error) throw new Error(shown ? "We couldn't add that photo to your page. Try again." : "We couldn't take that photo off your page. Try again.");
+  if (error) {
+    throw new Error(
+      rpcErrorMessage("set_job_photo_shown", error) ??
+        (shown ? "We couldn't add that photo to your page. Try again." : "We couldn't remove that photo from your page. Try again."),
+    );
+  }
 }
 
 /** One picked job photo through the profile-work-photo edge function. */

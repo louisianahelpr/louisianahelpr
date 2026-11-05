@@ -2,12 +2,13 @@ import { Bell, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useProfile } from "@/hooks/useProfile";
 import { useNotifyWhenWorkLands } from "@/hooks/useNotifyWhenWorkLands";
-import { firstNameOf, shareBookMe } from "@/lib/bookMe";
+import { firstNameOf } from "@/lib/bookMe";
+import { shareMyPage } from "@/lib/profileLink/api";
 
 /**
  * UX-4 (owner approved 2026-10-29, Q2484): the empty "jobs I'm doing" list offers two more ways to get work
- * besides browsing: share your own Book me link (/book/<your id>, the same share sheet as the profile's
- * "Book me link" button) and "Notify me when one lands" (the one shared job-alert handler,
+ * besides browsing: share your page (/u/<your handle>, the same share sheet as the profile's "Share my page"
+ * button; owner 2026-11-05, share-profile audit H5) and "Notify me when one lands" (the one shared job-alert handler,
  * useNotifyWhenWorkLands). Both are the shared pill Button; Browse stays the primary.
  * Guard: src/test/emptyJobsListBookMeAndNotify.test.tsx.
  */
@@ -21,11 +22,11 @@ export function EmptyJobsWaysOut({ userId }: { userId: string }) {
           type="button"
           variant="outline"
           size="sm"
-          onClick={() => void shareBookMe(userId, firstNameOf(profile?.full_name))}
+          onClick={() => void shareMyPage(firstNameOf(profile?.full_name))}
           className="gap-1.5"
         >
           <Share2 className="w-4 h-4" aria-hidden="true" />
-          Share your Book me link
+          Share your page
         </Button>
       )}
       <Button

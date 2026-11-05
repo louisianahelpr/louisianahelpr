@@ -16,7 +16,8 @@
  * @mutate src/pages/post-job/useJobFormEffects.ts |     void recordBookingSourceFor(offerTo); |
  * @mutate src/pages/post-job/CheckoutStepView.tsx |       <FirstPostGuarantee oneHelpr={!form.isGroupJob} firstPost={form.isFirstPost === true} /> |
  * @mutate src/components/guarantee/FirstPostGuarantee.tsx |   if (!oneHelpr \|\| !firstPost) return null; |   if (!oneHelpr) return null;
- * @mutate src/pages/user/BookMeShareButton.tsx |       {userId && <BookMeShareButton userId={userId} displayName={displayName} />} |
+ * @mutate src/pages/user/BookMeShareButton.tsx |       {userId && <BookMeShareButton displayName={displayName} />} |
+ * @mutate src/pages/user/BookMeShareButton.tsx | onClick={() => void shareMyPage(firstNameOf(displayName))} | onClick={() => void shareBookMe("", firstNameOf(displayName))}
  * @mutate src/components/profile/profileLanding/useProfileLandingDerived.tsx |           ? [{ key: "book-me", |           ? [{ key: "referral",
  * @mutate src/lib/guarantee/promiseCopy.ts |   "If it still isn't right, Louisiana Helpr steps in."; |   "If it still isn't right, you get your money back.";
  */
@@ -65,7 +66,10 @@ describe("where the link and the guarantee show", () => {
     const profile = blankComments(read("src/pages/user/UserProfile.tsx"));
     expect(profile).toContain("<OwnProfileActions userId={userId} displayName={displayName} />");
     const actions = blankComments(read("src/pages/user/BookMeShareButton.tsx"));
-    expect(actions).toContain("{userId && <BookMeShareButton userId={userId} displayName={displayName} />}");
+    expect(actions).toContain("{userId && <BookMeShareButton displayName={displayName} />}");
+    // Share-profile audit H5 (owner 2026-11-05): the own-profile share button shares /u/<handle>, never /book.
+    expect(actions).toContain("onClick={() => void shareMyPage(firstNameOf(displayName))}");
+    expect(actions).not.toMatch(/shareBookMe/);
     const menu = blankComments(read("src/components/profile/profileLanding/useProfileLandingDerived.tsx"));
     expect(menu).toMatch(/key: "book-me", label: "Book me on Helpr"[^}]*href: `\/book\/\$\{profile\.user_id\}`/);
   });

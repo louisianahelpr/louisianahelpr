@@ -18,6 +18,7 @@ import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchMyCart, type CartLine } from "@/lib/declutter/api";
+import { Button } from "@/components/ui/button";
 
 const KEY = "declutter:paying-seller";
 /** How often the cart is read while the payment settles. */
@@ -126,9 +127,9 @@ export function PaySettlingNotice({ s }: { s: PaySettling }) {
       </p>
       {/* Not an error screen (nothing failed; the card was charged): a plain notice with a way to look again. */}
       {s.slow && (
-        <button type="button" onClick={s.check} className="mt-3 inline-flex h-11 items-center rounded-full border border-border px-4 text-sm font-semibold">
+        <Button type="button" variant="outline" size="sm" onClick={s.check} className="mt-3 text-sm font-semibold">
           Check again
-        </button>
+        </Button>
       )}
     </div>
   );

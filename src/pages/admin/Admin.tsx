@@ -544,7 +544,7 @@ const Admin = () => {
           prevLabel={activePrevLabel}
           dataError={homeDataError}
           seriousAlerts={seriousAlertCount}
-          alertsPending={statsLoading || pendingCounts.isPending || (seriousAlertCount === undefined && !seriousAlertsFailed)}
+          alertsPending={statsLoading || ([openQueues.disputes, openQueues.reports, openQueues.support].includes(undefined) && !pendingCounts.isError) || (seriousAlertCount === undefined && !seriousAlertsFailed)}
           standing={homeStanding({
             queues: openQueues,
             seriousAlerts: seriousAlertCount,

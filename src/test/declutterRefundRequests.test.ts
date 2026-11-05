@@ -25,8 +25,8 @@
  *     calls declutter_refund_after_handover('refund_request_full').
  *  8. The app shows the panel only behind the switch, and every amount it shows is the server's.
  *
- * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |      AND public.declutter_sale_final(p.order_id)\n | \n
- * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |                         AND rf.reason = 'refund_request_part' AND rf.status IN ('pending', 'failed')) |                         AND rf.reason = 'refund_request_part' AND rf.status IN ('failed'))
+ * @mutate supabase/migrations/20261105032500_declutter_gift_payouts.sql |      AND public.declutter_sale_final(p.order_id)\n | \n
+ * @mutate supabase/migrations/20261105032500_declutter_gift_payouts.sql | rf.order_id = p.order_id AND rf.stripe_payment_intent_id = o.stripe_payment_intent_id\n                        AND rf.reason = 'refund_request_part' AND rf.status IN ('pending', 'failed')) | rf.order_id = p.order_id AND rf.stripe_payment_intent_id = o.stripe_payment_intent_id\n                        AND rf.reason = 'refund_request_part' AND rf.status IN ('failed'))
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql |                            + interval '10 minutes' |                            + interval '0 minutes'
  * @mutate supabase/migrations/20261102002217_declutter_my_refund_todos.sql |   IF NOT public.feature_enabled_for('declutter_refund_requests') THEN\n    RETURN;\n  END IF;\n | \n
  * @mutate supabase/migrations/20261026155251_declutter_refund_requests.sql | WHERE r.order_id = o.id AND r.status IN ('open', 'offered', 'returning')) THEN false | WHERE r.order_id = o.id AND r.status IN ('open', 'returning')) THEN false
@@ -41,7 +41,7 @@
  * @mutate supabase/migrations/20261103150842_q2390_returns_withdraw_fee_waiver_visit_lease_not_found_is_404.sql |   PERFORM public.require_feature('declutter_refund_requests');\n  IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  SELECT x.order_id | IF v_uid IS NULL THEN\n    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';\n  END IF;\n  SELECT x.order_id
  * @mutate supabase/migrations/20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql |     IF v_side <> 'buyer' OR NOT public.declutter_problem_window_open(o.id) THEN |     IF v_side <> 'buyer' THEN
  * @mutate supabase/migrations/20261030071818_declutter_returns.sql |      WHERE (x.status = 'open' AND x.answer_by <= now()) OR (x.status = 'offered' AND x.offer_answer_by <= now()) |      WHERE (x.status = 'offered' AND x.offer_answer_by <= now())
- * @mutate supabase/migrations/20261103173111_declutter_late_payment_buyer_block.sql |   IF o.status IN ('paid', 'refunded', 'handed_over') THEN |   IF o.status IN ('paid', 'refunded') THEN
+ * @mutate supabase/migrations/20261105030604_declutter_gift_cards.sql |   IF o.status IN ('paid', 'refunded', 'handed_over') THEN |   IF o.status IN ('paid', 'refunded') THEN
  * @mutate supabase/functions/declutter-money/index.ts |     admin.rpc("declutter_payouts_due", { p_limit: BATCH }), |     admin.from("declutter_payouts").select("*"),
  * @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {refundRequests && items > 0 && ( |           {true && items > 0 && (
  * @mutate src/components/declutter/DeclutterRefundRequest.tsx | then gets ${refundDollars(v.full_refund_cents)} back | then gets ${refundDollars(v.items_cents + 130)} back

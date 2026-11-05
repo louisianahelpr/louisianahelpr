@@ -146,6 +146,8 @@ export function collectDbIds(kind, valuesByColumn) {
  * with the reason. Two-way with types.ts in the test.
  */
 export const NOT_MATCHED = {
+  "declutter_refunds.gift_refund_cents": "Q2106 S3b (20261105042758): the cents of a Declutter refund that go back to the buyer's gift balance (restored in our own gift_cards rows), not a Stripe id; the row's stripe_refund_ref is the matched record of the card part",
+  "declutter_delivery_refunds.gift_refund_cents": "Q2106 S3b (20261105052751): the same for a delivery-fee or shipping refund row; stripe_refund_ref is the matched record of the card part",
   "sales_tax_adjustments.stripe_payment_intent_id": "sales-tax ledger (Q1918, 20261105021744): a copy of the charge's PaymentIntent, kept so the tax correction can be traced; it moves no money, and the job / order row is the matched record",
   "sales_tax_adjustments.stripe_charge_id": "sales-tax ledger (Q1918): the disputed or partly captured charge, for the trace only; no money moves on it, nothing to restore",
   "provider_payouts.payout_transfer_id": "PayPal phase 1 (20261023223419): a uuid FK to public.payout_transfers(id) (our own row), not a Stripe id",

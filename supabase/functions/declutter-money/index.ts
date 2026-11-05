@@ -132,8 +132,12 @@ type RefundDue = {
   order_id: string | null;
   buyer_id: string | null;
   seller_id: string | null;
-  payment_intent_id: string;
+  /** NULL only for an all-gift row (Q2106 S3b: a gift-only order has no card payment). */
+  payment_intent_id: string | null;
+  /** Q2106 S3b: the CARD part (what Stripe refunds), decided in declutter_refunds_due; the row total is this + gift. */
   refund_cents: number;
+  /** Q2106 S3b: the part that goes back to the buyer's gift balance (restored first, never sent to Stripe). */
+  gift_refund_cents?: number | null;
   attempts: number;
   /** The payment's Stripe mode, recorded by the webhook (null: not recorded). */
   livemode: boolean | null;
@@ -151,6 +155,9 @@ type PayoutDue = {
   attempts: number;
   /** Refunds the order recorded (not failed): the most the charge may have given back. */
   refunds_recorded_cents?: number | null;
+  /** Q2106: what the buyer's gift card paid toward the order (declutter_orders.gift_cents; 20261105032500). 0 or
+   *  missing: exactly the card-only path. Above 0: sent from the platform balance, only under giftCovers. */
+  gift_cents?: number | null;
 };
 /** declutter_manager_payouts_due (20261101233256): the manager's share of one sale, paid to the MANAGER's account. */
 type ManagerPayoutDue = {
@@ -164,6 +171,8 @@ type ManagerPayoutDue = {
   payment_intent_id: string | null;
   attempts: number;
   refunds_recorded_cents?: number | null;
+  /** Q2106: the order's gift share (20261105032500); see PayoutDue.gift_cents. */
+  gift_cents?: number | null;
 };
 type HelprPayoutDue = {
   payout_id: string;
@@ -184,6 +193,8 @@ type HelprPayoutDue = {
   raise_parts?: unknown;
   /** Owner #3706: each held delivery tip of this payout, paid and not yet sent (20261028014848). */
   tip_parts?: unknown;
+  /** Q2106: the delivery order's gift share (20261105032500); see PayoutDue.gift_cents. */
+  gift_cents?: number | null;
 };
 type ShopPayoutDue = {
   payout_id: string;
@@ -209,10 +220,13 @@ type DeliveryRefundDue = {
   order_id: string;
   buyer_id: string | null;
   seller_id: string | null;
-  payment_intent_id: string;
+  /** Q2106 S3b: NULL only on an all-gift row (a gift-only order has no card payment). */
+  payment_intent_id: string | null;
+  /** Q2106 S3b: the CARD part (decided in SQL); the gift share is gift_refund_cents. */
   refund_cents: number;
   attempts: number;
   checkout_session_id: string | null;
+  gift_refund_cents?: number | null;
 };
 
 /** Q1929: a paid raise of a delivery's pay to give back in full, on its OWN charge. */
@@ -239,6 +253,9 @@ const tookIt = (status: string | null | undefined) => status !== "failed" && sta
  * "the order's charge is not whole" otherwise, so nothing moves.
  */
 async function wholeCharge(stripe: Stripe, paymentIntentId: string | null, refundsRecordedCents: number | null | undefined): Promise<string> {
+  return (await wholeChargeObj(stripe, paymentIntentId, refundsRecordedCents)).id;
+}
+async function wholeChargeObj(stripe: Stripe, paymentIntentId: string | null, refundsRecordedCents: number | null | undefined): Promise<Stripe.Charge> {
   if (!paymentIntentId) throw new Error("the order has no payment to pay from");
   const pi = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge"] });
   const ch = typeof pi.latest_charge === "object" ? pi.latest_charge : null;
@@ -246,7 +263,36 @@ async function wholeCharge(stripe: Stripe, paymentIntentId: string | null, refun
   if (pi.status !== "succeeded" || !ch || ch.amount_refunded > known || ch.disputed) {
     throw new Error(`the order's charge is not whole (status ${pi.status}, refunded ${ch?.amount_refunded ?? "?"}, recorded ${known}, disputed ${ch?.disputed ?? "?"})`);
   }
-  return ch.id;
+  return ch;
+}
+
+/** Q2106: a gift-paid order's payout is not covered by what the order brought in. Held for a person, never sent. */
+class GiftNotCovered extends Error {}
+
+/**
+ * Q2106 (lead money rule, 11-04): a transfer WITHOUT source_transaction draws on the platform's LIVE balance, so a
+ * gift-paid order's payout (seller, manager, or the Helpr's delivery pay) is sent from it only while EVERYTHING this
+ * order's own money has sent, plus this transfer, stays within what the order brought in: the card's charge (less
+ * what it refunded; 0 when the gift paid it all and there is no PaymentIntent) plus the gift. A raise's or a held
+ * tip's transfer is funded by its own charge and is not counted. The card's charge must still be whole (paid, no
+ * unrecorded refund, no dispute). Fails closed: an unreadable or unbounded transfer list sends nothing.
+ */
+async function giftCovers(stripe: Stripe, o: {
+  group: string; paymentIntentId: string | null; refundsRecordedCents: number | null | undefined; giftCents: number; amountCents: number;
+}): Promise<void> {
+  if (!(o.giftCents > 0)) throw new GiftNotCovered("not a gift-paid order: never sent from the platform balance");
+  const ch = o.paymentIntentId ? await wholeChargeObj(stripe, o.paymentIntentId, o.refundsRecordedCents) : null;
+  const cardNet = ch ? Math.max(0, Number(ch.amount ?? 0) - Number(ch.amount_refunded ?? 0)) : 0;
+  const listed = await stripe.transfers.list({ transfer_group: o.group, limit: 100 });
+  if (listed.has_more) throw new GiftNotCovered(`group ${o.group} has more than 100 transfers: not summed, not sent`);
+  const sent = listed.data.reduce((sum, t) => {
+    const meta = (t.metadata ?? {}) as Record<string, string>;
+    if (t.reversed || meta.raise_id || meta.tip_id) return sum;
+    return sum + Number(t.amount ?? 0) - Number(t.amount_reversed ?? 0);
+  }, 0);
+  if (sent + o.amountCents > cardNet + o.giftCents) {
+    throw new GiftNotCovered(`the gift order's money does not cover this payout: sent ${sent} + this ${o.amountCents} > card ${cardNet} + gift ${o.giftCents}`);
+  }
 }
 
 /**
@@ -254,14 +300,17 @@ async function wholeCharge(stripe: Stripe, paymentIntentId: string | null, refun
  * A receipt, so it always goes: no notification switch gates it (Q2466, lead 2026-11-01). Settings' Declutter Refunds
  * row shows "Refund receipts are always emailed" instead of an Email switch, and the Terms say the same.
  */
-async function tellBuyerRefunded(admin: Db, buyerId: string | null, cents: number): Promise<void> {
+async function tellBuyerRefunded(admin: Db, buyerId: string | null, cents: number, giftCents = 0): Promise<void> {
   if (!buyerId) return;
   try {
     const { data: profile, error } = await admin.from("profiles").select("email").eq("user_id", buyerId).maybeSingle();
     const to = (profile as { email?: string | null } | null)?.email;
     if (error || !to) return;
     const link = `${getAppUrl()}/declutter?tab=buying`;
-    const body = `${dollars(cents)} is on its way back to your card. Card refunds usually show up in 5 to 10 business days.`;
+    // Q2106 S3b: the gift share is named apart: it is back on the gift balance now, not on its way to the card.
+    const giftLine = giftCents > 0 ? `${dollars(giftCents)} is back on your gift card balance, ready for your next order.` : "";
+    const cardLine = cents > 0 ? `${dollars(cents)} is on its way back to your card. Card refunds usually show up in 5 to 10 business days.` : "";
+    const body = [cardLine, giftLine].filter(Boolean).join(" ");
     await queueEmail(admin, {
       to,
       subject: "Your Declutter refund",
@@ -963,23 +1012,68 @@ serve(async (req) => {
 
   // 1. Refunds.
   for (const r of refunds) {
+    // Q2106 S3b: the queue's refund_cents is the CARD part; what the buyer is owed (shown on a wait) is card + gift.
+    const rowTotal = r.refund_cents + Math.max(0, Number(r.gift_refund_cents ?? 0));
     groupOf.set(r.refund_id, r.payment_intent_id);
     if (Number(r.attempts ?? 0) > 0) maybeSentRows.add(r.refund_id);
     if ((r.buyer_id && review.users.has(r.buyer_id)) || (r.seller_id && review.users.has(r.seller_id))) {
       out.ban_review++;
       // Deferred like a skipped payout (never the front of its queue) and bounded.
-      await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 60, "ban_review", "a party is under ban review");
+      await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 60, "ban_review", "a party is under ban review");
       continue;
     }
     try {
+      // Q2106 S3b: the gift share goes back to the buyer's gift balance FIRST, under the row's own key
+      // ('declutter_refund:'||id: a retry after a failed card refund answers already_restored, never a second
+      // credit); the queue's refund_cents is already the card part (SQL decides it). A gift-only row never reaches Stripe.
+      const giftCents = Math.max(0, Number(r.gift_refund_cents ?? 0));
+      const cardCents = Math.max(0, r.refund_cents);
+      const restoreGift = async (): Promise<boolean> => {
+        if (giftCents <= 0) return true;
+        if (!r.order_id) {
+          defects.record(`refund ${r.refund_id}: a gift share of ${dollars(giftCents)} with no order; restore it by hand`);
+          await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 1440, "data_defect", "gift share with no order");
+          return false;
+        }
+        const { data: g, error: gErr } = await admin.rpc("restore_gift_card_for_declutter_order", {
+          p_order_id: r.order_id, p_refund_key: `declutter_refund:${r.refund_id}`, p_cents: giftCents,
+        });
+        // Thrown: the catch below records the row failed, so it is retried with back-off under the same key.
+        if (gErr) throw new Error(`gift restore failed: ${gErr.message}`);
+        const outcome = (g as { outcome?: string } | null)?.outcome;
+        if (outcome !== "restored" && outcome !== "already_restored") {
+          defects.record(`refund ${r.refund_id}: the gift share (${dollars(giftCents)}) could not be restored (${outcome ?? "no answer"}); settle it by hand`);
+          await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 1440, "data_defect", `gift restore: ${outcome ?? "no answer"}`);
+          return false;
+        }
+        return true;
+      };
+      if (cardCents <= 0 || !r.payment_intent_id) {
+        if (cardCents > 0) {
+          defects.record(`refund ${r.refund_id}: a card part of ${dollars(cardCents)} with no payment; refund it by hand`);
+          await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 1440, "data_defect", "card part with no payment");
+          continue;
+        }
+        if (!(await restoreGift())) continue;
+        const { error } = await admin.rpc("declutter_refund_executed", { p_refund_id: r.refund_id, p_stripe_refund_id: null, p_succeeded: true });
+        if (error) {
+          defects.record(`refund ${r.refund_id}: gift-only refund not recorded: ${error.message}`);
+          await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 15, "record_failed", "gift-only refund not recorded");
+          continue;
+        }
+        out.refunds_sent++;
+        await tellBuyerRefunded(admin, r.buyer_id, 0, giftCents);
+        continue;
+      }
       const client = await refundClient(r);
       if (!client) {
         defects.record(`refund ${r.refund_id}: no order and no recorded Stripe mode; refund it by hand`);
         // Cannot be refunded automatically: held for review once the page goes out.
-        await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 1440, "data_defect", "no order and no recorded Stripe mode");
+        await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 1440, "data_defect", "no order and no recorded Stripe mode");
         continue;
       }
       const { stripe } = client;
+      if (!(await restoreGift())) continue;
       // Reconcile first: a refund Stripe already took for this row is recorded, not sent again
       // (Stripe's idempotency key lives 24 h; the back-off reaches a day). A refund Stripe failed or
       // cancelled is not adopted: the next try is a NEW refund under a new key.
@@ -990,6 +1084,7 @@ serve(async (req) => {
       const refund = existing ?? await stripe.refunds.create(
         {
           payment_intent: r.payment_intent_id,
+          // Q2106 S3b: the card part only (declutter_refunds_due; the gift part was restored above).
           amount: r.refund_cents,
           // Same parameters as the webhook (stripe-webhook/handlers/declutterCheckout.ts) under the same key,
           // both built from the refund ROW (an order_missing row: order_id ""). Pinned by declutter-payments.test.ts.
@@ -1005,7 +1100,7 @@ serve(async (req) => {
       });
       if (error) {
         defects.record(`refund ${r.refund_id}: Stripe ${refund.id} not recorded: ${error.message}`);
-        await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 15, "record_failed", `refund ${refund.id} not recorded`);
+        await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 15, "record_failed", `refund ${refund.id} not recorded`);
         continue;
       }
       if (!ok) {
@@ -1038,12 +1133,12 @@ serve(async (req) => {
       }
       // The queue only offers rows not yet succeeded, so this run is the one that recorded the refund:
       // tell the buyer now, whether this run created it or adopted one the webhook did not record.
-      await tellBuyerRefunded(admin, r.buyer_id, r.refund_cents);
+      await tellBuyerRefunded(admin, r.buyer_id, cardCents, giftCents);
     } catch (e) {
       if (isPartyRefusal(e)) {
         out.mixed_parties++;
         defects.record(`refund ${r.refund_id}: ${partyWhy(e, "the order")}; settle it by hand`);
-        await skipRow("declutter_refund", r.refund_id, r.buyer_id, r.refund_cents, 1440, "mixed_parties", partyWhy(e, "the order"));
+        await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 1440, "mixed_parties", partyWhy(e, "the order"));
         continue;
       }
       const msg = caughtMessage(e, "refund failed");
@@ -1112,8 +1207,13 @@ serve(async (req) => {
           await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 15, "transient", `damage refund read failed: ${damageErr.message}`);
           continue;
         }
-        const fromPlatform = ((damageRefund ?? []) as unknown[]).length > 0;
-        const charge = await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents);
+        // Q2106 (WIP, S2): a gift card paid part of this order, so the card's charge is smaller than the seller's share,
+        // and Stripe refuses a source_transaction transfer above its charge. The gift's money is already in the platform
+        // balance (the gift card was bought there), so the payout is sent from it, as the damage case is. A gift-only
+        // order has no charge at all (no PaymentIntent). NEEDS LEAD MONEY REVIEW before queuing.
+        const giftCents = Math.max(0, Number(p.gift_cents ?? 0));
+        const fromPlatform = ((damageRefund ?? []) as unknown[]).length > 0 || giftCents > 0;
+        const charge = giftCents > 0 ? null : await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents);
         if (!(await payeeReadyNow(stripe, mode, "declutter", p.payout_id, p.seller_id, p.stripe_account_id as string, p.amount_cents))) continue;
         if (!(await stillPayableNow("declutter", p.payout_id, p.seller_id, p.amount_cents))) continue;
         // Owner 2026-10-30: the seller's one-time setup fee comes out here, once the sale is final and the send is
@@ -1131,6 +1231,10 @@ serve(async (req) => {
             p.amount_cents = toSend;
           }
         }
+        // Q2106: the platform-balance guard, on the final amount, before the send is marked.
+        if (giftCents > 0) {
+          await giftCovers(stripe, { group, paymentIntentId: p.payment_intent_id, refundsRecordedCents: p.refunds_recorded_cents, giftCents, amountCents: p.amount_cents });
+        }
         if (!(await markSending("declutter", p.payout_id, p.seller_id, p.amount_cents))) continue;
         beforeSend = false;
         transfer = await stripe.transfers.create(
@@ -1139,7 +1243,7 @@ serve(async (req) => {
             currency: "usd",
             destination: p.stripe_account_id as string,
             transfer_group: group,
-            ...(fromPlatform ? {} : { source_transaction: charge }),
+            ...(fromPlatform ? {} : { source_transaction: charge as string }),
             metadata: { kind: "declutter_payout", payout_id: p.payout_id, order_id: p.order_id },
           },
           { idempotencyKey: `declutter-payout-${p.payout_id}` },
@@ -1164,6 +1268,11 @@ serve(async (req) => {
       await emailSeller(admin, p.seller_id, p.order_id, "payout_sent", p.amount_cents,
         (step, detail) => console.log(JSON.stringify({ event: "declutter_seller_email", step, ...detail })));
     } catch (e) {
+      if (e instanceof GiftNotCovered) {
+        defects.record(`payout ${p.payout_id}: ${e.message}`.slice(0, 200));
+        await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 1440, "data_defect", e.message);
+        continue;
+      }
       if (isPartyRefusal(e)) {
         out.mixed_parties++;
         defects.record(`payout ${p.payout_id}: ${partyWhy(e, "the order")}; settle it by hand`);
@@ -1238,9 +1347,14 @@ serve(async (req) => {
       let managerTransfer = existing;
       if (!managerTransfer) {
         if (await unpayableNow("declutter_manager", p.payout_id, p.manager_id, p.stripe_account_id, p.amount_cents, mode)) continue;
-        const charge = await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents);
+        // Q2106: a gift-paid order's share is sent from the platform balance under giftCovers (the card paid less).
+        const giftCents = Math.max(0, Number(p.gift_cents ?? 0));
+        const charge = giftCents > 0 ? null : await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents);
         if (!(await payeeReadyNow(stripe, mode, "declutter_manager", p.payout_id, p.manager_id, p.stripe_account_id as string, p.amount_cents))) continue;
         if (!(await stillPayableNow("declutter_manager", p.payout_id, p.manager_id, p.amount_cents))) continue;
+        if (giftCents > 0) {
+          await giftCovers(stripe, { group: managerGroup, paymentIntentId: p.payment_intent_id, refundsRecordedCents: p.refunds_recorded_cents, giftCents, amountCents: p.amount_cents });
+        }
         if (!(await markSending("declutter_manager", p.payout_id, p.manager_id, p.amount_cents))) continue;
         beforeSend = false;
         managerTransfer = await stripe.transfers.create(
@@ -1249,7 +1363,7 @@ serve(async (req) => {
             currency: "usd",
             destination: p.stripe_account_id as string,
             transfer_group: managerGroup,
-            source_transaction: charge,
+            ...(giftCents > 0 ? {} : { source_transaction: charge as string }),
             metadata: { kind: "declutter_manager_payout", payout_id: p.payout_id, order_id: p.order_id },
           },
           { idempotencyKey: `declutter-manager-payout-${p.payout_id}` },
@@ -1268,6 +1382,11 @@ serve(async (req) => {
       else out.manager_payouts_sent++;
       await clearWait("declutter_manager", p.payout_id);
     } catch (e) {
+      if (e instanceof GiftNotCovered) {
+        defects.record(`manager payout ${p.payout_id}: ${e.message}`.slice(0, 200));
+        await skipRow("declutter_manager", p.payout_id, p.manager_id, p.amount_cents, 1440, "data_defect", e.message);
+        continue;
+      }
       if (isPartyRefusal(e)) {
         out.mixed_parties++;
         defects.record(`manager payout ${p.payout_id}: ${partyWhy(e, "the order")}; settle it by hand`);
@@ -1324,7 +1443,9 @@ serve(async (req) => {
       await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 60, "held", "the payee is on an admin payout hold");
       continue;
     }
-    if (h.source_kind !== "declutter_delivery" || !h.transfer_group || !h.payment_intent_id) {
+    // Q2106: a delivery order the gift paid in full has no PaymentIntent; its order part goes under giftCovers.
+    const hGiftCents = Math.max(0, Number(h.gift_cents ?? 0));
+    if (h.source_kind !== "declutter_delivery" || !h.transfer_group || (!h.payment_intent_id && !(hGiftCents > 0))) {
       // A source this money step cannot pay from (not a Declutter delivery, or no charge / group):
       // a data defect, held for review at once; it never "pays itself".
       defects.record(`helpr payout ${h.payout_id}: source ${h.source_kind} names no payable charge or transfer group`);
@@ -1341,7 +1462,7 @@ serve(async (req) => {
     let parts: PayoutPart[];
     try {
       // Owner #3706: each held delivery tip is one more part, exactly the tip, from the tip's own charge.
-      parts = [...helprPayoutParts(h.amount_cents, h.payment_intent_id, h.raised_cents, h.raise_parts), ...heldTipParts(h.tip_parts)];
+      parts = [...helprPayoutParts(h.amount_cents, h.payment_intent_id ?? "", h.raised_cents, h.raise_parts), ...heldTipParts(h.tip_parts)];
     } catch (e) {
       defects.record(`helpr payout ${h.payout_id}: ${caughtMessage(e, "raise parts unreadable")}`.slice(0, 200));
       await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 1440, "data_defect", caughtMessage(e, "raise parts unreadable"));
@@ -1379,6 +1500,11 @@ serve(async (req) => {
         const dropTip = new Set<number>();
         for (const [i, part] of parts.entries()) {
           if (sent[i]) {
+            charges[i] = null;
+            continue;
+          }
+          // Q2106: the order part of a gift-paid delivery has no source charge; giftCovers checks it before the send.
+          if (hGiftCents > 0 && !part.raiseId && !part.tipId) {
             charges[i] = null;
             continue;
           }
@@ -1423,6 +1549,10 @@ serve(async (req) => {
             h.amount_cents = toSend;
           }
         }
+        const giftPart = hGiftCents > 0 ? parts.find((part, i) => !sent[i] && !part.raiseId && !part.tipId) : undefined;
+        if (giftPart) {
+          await giftCovers(stripe, { group: h.transfer_group, paymentIntentId: h.payment_intent_id, refundsRecordedCents: h.refunds_recorded_cents, giftCents: hGiftCents, amountCents: giftPart.amountCents });
+        }
         if (!(await markSending("helpr_task", h.payout_id, h.helpr_id, h.amount_cents))) continue;
         beforeSend = false;
         for (const [i, part] of parts.entries()) {
@@ -1433,7 +1563,7 @@ serve(async (req) => {
               currency: "usd",
               destination: h.stripe_account_id as string,
               transfer_group: h.transfer_group,
-              source_transaction: charges[i] as string,
+              ...(part === giftPart ? {} : { source_transaction: charges[i] as string }),
               metadata: {
                 kind: "helpr_task_payout", payout_id: h.payout_id, task_id: h.task_id, source_id: h.source_id,
                 ...(part.raiseId ? { raise_id: part.raiseId } : {}),
@@ -1490,6 +1620,11 @@ serve(async (req) => {
       else out.helpr_payouts_sent++;
       await clearWait("helpr_task", h.payout_id);
     } catch (e) {
+      if (e instanceof GiftNotCovered) {
+        defects.record(`helpr payout ${h.payout_id}: ${e.message}`.slice(0, 200));
+        await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 1440, "data_defect", e.message);
+        continue;
+      }
       if (isPartyRefusal(e)) {
         out.mixed_parties++;
         defects.record(`helpr payout ${h.payout_id}: ${partyWhy(e, "the delivery")}; settle it by hand`);
@@ -1532,33 +1667,72 @@ serve(async (req) => {
     // Shipping S6 2d (lead 11-01): this loop also sends the shipping a buyer-fault close held back until the label was
     // voided ('ship_void_refunded'); its pages and defects name it, never "delivery-fee".
     const part = refundPartWord(d.reason);
+    // Q2106 S3b: the queue's refund_cents is the CARD part; what the buyer is owed (shown on a wait) is card + gift.
+    const dGift = Math.max(0, Number(d.gift_refund_cents ?? 0));
+    const dCard = Math.max(0, d.refund_cents);
+    const dTotal = dCard + dGift;
     groupOf.set(d.delivery_refund_id, d.payment_intent_id);
     if (Number(d.attempts ?? 0) > 0) maybeSentRows.add(d.delivery_refund_id);
     if ((d.buyer_id && review.users.has(d.buyer_id)) || (d.seller_id && review.users.has(d.seller_id))) {
       out.ban_review++;
-      await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, d.refund_cents, 60, "ban_review", "a party is under ban review");
+      await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, dTotal, 60, "ban_review", "a party is under ban review");
       continue;
     }
     try {
+      // Q2106 S3b: the gift share goes back to the buyer's gift balance FIRST, under the row's own key
+      // ('declutter_delivery_refund:'||id: a retry after a failed card refund answers already_restored, never a
+      // second credit). A gift-only row never reaches Stripe.
+      if (dGift > 0) {
+        const { data: dg, error: dgErr } = await admin.rpc("restore_gift_card_for_declutter_order", {
+          p_order_id: d.order_id, p_refund_key: `declutter_delivery_refund:${d.delivery_refund_id}`, p_cents: dGift,
+        });
+        // Thrown: the catch below records the row failed, so it is retried with back-off under the same key.
+        if (dgErr) throw new Error(`gift restore failed: ${dgErr.message}`);
+        const dOutcome = (dg as { outcome?: string } | null)?.outcome;
+        if (dOutcome !== "restored" && dOutcome !== "already_restored") {
+          defects.record(`${part} refund ${d.delivery_refund_id}: the gift share (${dollars(dGift)}) could not be restored (${dOutcome ?? "no answer"}); settle it by hand`);
+          await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, dTotal, 1440, "data_defect", `gift restore: ${dOutcome ?? "no answer"}`);
+          continue;
+        }
+      }
+      if (dCard <= 0 || !d.payment_intent_id) {
+        if (dCard > 0) {
+          defects.record(`${part} refund ${d.delivery_refund_id}: a card part of ${dollars(dCard)} with no payment; refund it by hand`);
+          await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, dTotal, 1440, "data_defect", "card part with no payment");
+          continue;
+        }
+        const { error } = await admin.rpc("declutter_delivery_refund_executed", {
+          p_id: d.delivery_refund_id, p_stripe_refund_id: null, p_succeeded: true, p_error: null,
+        });
+        if (error) {
+          defects.record(`${part} refund ${d.delivery_refund_id}: gift-only refund not recorded: ${error.message}`);
+          await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, dTotal, 15, "record_failed", "gift-only refund not recorded");
+          continue;
+        }
+        out.delivery_refunds_sent++;
+        await tellBuyerRefunded(admin, d.buyer_id, 0, dGift);
+        continue;
+      }
+      const piId = d.payment_intent_id;
       const client = await refundClient({
         refund_id: d.delivery_refund_id, reason: d.reason, order_id: d.order_id, buyer_id: d.buyer_id, seller_id: d.seller_id,
-        payment_intent_id: d.payment_intent_id, refund_cents: d.refund_cents, attempts: d.attempts, livemode: null,
+        payment_intent_id: piId, refund_cents: d.refund_cents, attempts: d.attempts, livemode: null,
         checkout_session_id: d.checkout_session_id,
       });
       if (!client) {
         defects.record(`${part} refund ${d.delivery_refund_id}: no Stripe mode; refund it by hand`);
-        await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, "data_defect", "no Stripe mode");
+        await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, dTotal, 1440, "data_defect", "no Stripe mode");
         continue;
       }
       const { stripe } = client;
-      const listed = await stripe.refunds.list({ payment_intent: d.payment_intent_id, limit: 100 });
+      const listed = await stripe.refunds.list({ payment_intent: piId, limit: 100 });
       const mine = listed.data.filter((x) => (x.metadata as Record<string, string> | null)?.delivery_refund_id === d.delivery_refund_id);
       const adopted = mine.find((x) => tookIt(x.status));
       // own-mistake full refund (owner, 2026-10-14): row 40, the delivery we sold did not happen, so the
       // delivery fee goes back whole (the order's other money is untouched).
       const dRefund = adopted ?? await stripe.refunds.create(
         {
-          payment_intent: d.payment_intent_id,
+          payment_intent: piId,
           amount: d.refund_cents,
           metadata: { kind: "declutter_refund", delivery_refund_id: d.delivery_refund_id, reason: d.reason, order_id: d.order_id },
         },
@@ -1570,7 +1744,7 @@ serve(async (req) => {
       });
       if (error) {
         defects.record(`${part} refund ${d.delivery_refund_id}: Stripe ${dRefund.id} not recorded: ${error.message}`);
-        await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, d.refund_cents, 15, "record_failed", `refund ${dRefund.id} not recorded`);
+        await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, dTotal, 15, "record_failed", `refund ${dRefund.id} not recorded`);
         continue;
       }
       if (!ok) {
@@ -1585,12 +1759,12 @@ serve(async (req) => {
       }
       if (adopted) out.delivery_refunds_reconciled++;
       else out.delivery_refunds_sent++;
-      await tellBuyerRefunded(admin, d.buyer_id, d.refund_cents);
+      await tellBuyerRefunded(admin, d.buyer_id, d.refund_cents, dGift);
     } catch (e) {
       if (isPartyRefusal(e)) {
         out.mixed_parties++;
         defects.record(`${part} refund ${d.delivery_refund_id}: ${partyWhy(e, "the order")}; settle it by hand`);
-        await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, d.refund_cents, 1440, "mixed_parties", partyWhy(e, "the order"));
+        await skipRow("delivery_refund", d.delivery_refund_id, d.buyer_id, dTotal, 1440, "mixed_parties", partyWhy(e, "the order"));
         continue;
       }
       const msg = caughtMessage(e, "refund failed");

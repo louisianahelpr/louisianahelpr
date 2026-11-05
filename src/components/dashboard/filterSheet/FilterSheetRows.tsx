@@ -4,6 +4,7 @@
  * Pure presentation, extracted verbatim from FilterSheet.tsx (OPEN.md Q184).
  */
 import type { ReactNode } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowUpRight, ChevronRight, Clock, FileText, type LucideIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -151,14 +152,13 @@ export function AvailabilityRow({
           // sentence — not replacing it.
           <p className="text-ds-11 text-muted-foreground leading-snug">
             Add your weekly hours first —{" "}
-            <button
-              type="button"
+            <InlineTextButton
               onClick={() => navigate("/profile?tab=availability")}
               className="inline-flex items-center gap-0.5 font-semibold text-primary underline underline-offset-2 hover:text-primary/95 transition-colors btn-press"
             >
               set hours
               <ArrowUpRight className="w-2.5 h-2.5" aria-hidden />
-            </button>
+            </InlineTextButton>
           </p>
         )
       }

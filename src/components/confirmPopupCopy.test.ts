@@ -67,7 +67,7 @@ describe("confirm-booking popup cancel link", () => {
   const confirmation = src("JobConfirmation.tsx");
 
   it("reads Cancel job", () => {
-    const link = confirmation.match(/onCantMakeIt\(\); \}\}[\s\S]*?>\s*([^<{]+?)\s*<\/button>/);
+    const link = confirmation.match(/onCantMakeIt\(\); \}\}[\s\S]*?>\s*([^<{]+?)\s*<\/InlineTextButton>/);
     expect(link, "could not find the onCantMakeIt link in JobConfirmation.tsx; re-read it").toBeTruthy();
     expect(link![1]).toBe("Cancel job");
     expect(confirmation).not.toMatch(/See what happens/);

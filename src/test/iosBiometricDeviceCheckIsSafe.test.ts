@@ -17,6 +17,11 @@
  * boot step has its own timeout, prints the runner's runtimes and devices, picks an AVAILABLE iOS runtime and a Face ID
  * iPhone through scripts/ci/pick-ios-simulator.mjs (never a regex over device-list keys), and waits for the boot a
  * bounded time per try, erasing and retrying once before it fails.
+ * Q1008 (11-05 later): run 42003643000 went GREEN on two shots of the update gate (repo build 7112 under prod's
+ * min_supported_build 7117). 11. the simulator build takes max(repo build, prod min_supported_build) read through the
+ * public RPC with the publishable key, failing closed when it cannot read a whole number (the repo's pbxproj and prod's
+ * platform_settings never change); 12. the job fails unless shot 1's OCR text shows the lock or the Face ID sheet,
+ * and always fails on the update gate (scripts/ci/check-lock-shot.mjs over scripts/ci/ocr-png.swift).
  *
  * @mutate .github/workflows/ios-biometric-device-check.yml | CODE_SIGNING_ALLOWED=NO build | build
  * @mutate .github/workflows/ios-biometric-device-check.yml |   workflow_dispatch: {} |   push: {}
@@ -37,6 +42,12 @@
  * @mutate scripts/ci/pick-ios-simulator.mjs | r.isAvailable === true && | (
  * @mutate scripts/ci/pick-ios-simulator.mjs | /^iPhone (X\|1[1-9]\|[2-9]\d)(?!\d)/ | /^iPhone (X\|\d\|[2-9]\d)(?!\d)/
  * @mutate scripts/ci/pick-ios-simulator.mjs | return am !== bm ? (am ? -1 : 1) : newer(b.version, a.version); | return newer(a.version, b.version);
+ * @mutate .github/workflows/ios-biometric-device-check.yml | CURRENT_PROJECT_VERSION="$BUILD" CODE_SIGNING_ALLOWED=NO build | CODE_SIGNING_ALLOWED=NO build
+ * @mutate .github/workflows/ios-biometric-device-check.yml | BUILD=$(( MIN > REPO ? MIN : REPO )) | BUILD=$REPO
+ * @mutate .github/workflows/ios-biometric-device-check.yml |           if [ -z "$MIN" ] \|\| [ -z "$REPO" ]; then | if false; then
+ * @mutate .github/workflows/ios-biometric-device-check.yml | node scripts/ci/check-lock-shot.mjs | cat
+ * @mutate scripts/ci/check-lock-shot.mjs |   if (/update helpr to continue/.test(t)) return | if (false) return
+ * @mutate scripts/ci/check-lock-shot.mjs | return { ok: false, why: "shot 1 shows neither | return { ok: true, why: "shot 1 shows neither
  * @mutate .github/workflows/ios-biometric-device-check.yml |           PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }} |           PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}\n          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
  */
 import { describe, expect, it } from "vitest";
@@ -44,6 +55,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parse } from "yaml";
 import { isFaceIdIphone, pickSimulator } from "../../scripts/ci/pick-ios-simulator.mjs";
+import { judgeLockShot } from "../../scripts/ci/check-lock-shot.mjs";
 
 const FILE = resolve(__dirname, "..", "..", ".github/workflows/ios-biometric-device-check.yml");
 const raw = readFileSync(FILE, "utf8");
@@ -141,6 +153,38 @@ describe("the iOS biometric device check is safe to dispatch (Q1008)", () => {
     expect(bare, "an unbounded bootstatus is back").toEqual([]);
     // One erase-and-retry, then a red with the boot log.
     expect(run).toMatch(/if ! boot_wait; then[\s\S]*xcrun simctl erase "\$\{UDID\}"\n\s*if ! boot_wait; then[\s\S]*exit 1/);
+  });
+  it("Q1008 build number: the simulator app is built at max(repo build, prod min_supported_build), fail closed", () => {
+    const build = steps.find((st) => st.name === "Build an unsigned simulator app");
+    const run = build?.run ?? "";
+    expect(run).toContain("/rest/v1/rpc/get_public_platform_settings");
+    expect(run).toContain("min_supported_build");
+    expect(run).toMatch(/Number\.isInteger\(v\)/);
+    expect(run).toMatch(/if \[ -z "\$MIN" \] \|\| \[ -z "\$REPO" \]; then[^\n]*exit 1; fi/);
+    expect(run).toContain("BUILD=$(( MIN > REPO ? MIN : REPO ))");
+    expect(run).toMatch(/xcodebuild [\s\S]*CURRENT_PROJECT_VERSION="\$BUILD" CODE_SIGNING_ALLOWED=NO build/);
+    // Read-only: the publishable key and a POST to the read RPC only; no write, no service key in this step.
+    expect(JSON.stringify(build?.env ?? {})).not.toMatch(/SERVICE_ROLE/);
+    expect(run).not.toMatch(/agvtool|PlistBuddy|sed -i/);
+  });
+  it("Q1008 shot check: shot 1 must show the lock and never the update gate", () => {
+    const launch = steps.find((st) => st.name === "Launch locked, then match Face ID");
+    const run = launch?.run ?? "";
+    expect(run).toMatch(/OCR1=\$\(swift scripts\/ci\/ocr-png\.swift shots\/1-locked-face-id-sheet\.png\)/);
+    expect(run).toMatch(/screenshot shots\/2-after-match\.png\n\s*printf '%s\\n' "\$OCR1" \| node scripts\/ci\/check-lock-shot\.mjs\n/);
+    // Run 42003643000's shot 1, as macOS Vision read it (~/.lh-shots/b1-q1008run2): red.
+    const gate = "9:46\nUpdate Helpr to continue\nThis version of Louisiana Helpr is no\nlonger supported. Open TestFlight, install\nInstalled build 7112 • requires 7117";
+    const cases: Array<[string, boolean]> = [
+      [gate, false],
+      // The update gate wins even when a Face ID prompt shows over it: the lock never drew.
+      [`${gate}\nFace ID`, false],
+      ["Louisiana Helpr is locked\nYou\u2019re still signed in — Face ID reopens your account without a password.\nUnlock", true],
+      ["Face ID", true],
+      ["Sign in\nEmail\nPassword", false],
+      ["", false],
+    ];
+    expect(cases.length).toBeGreaterThan(4);
+    for (const [text, ok] of cases) expect(judgeLockShot(text).ok, text.slice(0, 40)).toBe(ok);
   });
   it("Q1008 boot: the picker takes only available iOS runtimes, the SDK's first, and a Face ID iPhone", () => {
     const rt = (v: string, ok: boolean, types: string[] = []) => ({ identifier: `com.apple.CoreSimulator.SimRuntime.iOS-${v.replace(".", "-")}`, version: v, isAvailable: ok, platform: "iOS", name: `iOS ${v}`, supportedDeviceTypes: types.map((n) => ({ name: n, productFamily: "iPhone", identifier: `type.${n}` })) });

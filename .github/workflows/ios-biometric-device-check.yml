@@ -84,10 +84,21 @@ jobs:
           npm run build:ios
           npx cap sync ios
 
+      # Q1008 (11-05): run 42003643000 built the repo's CURRENT_PROJECT_VERSION (7112) while prod's
+      # platform_settings.min_supported_build was 7117, so the app stopped at ForceUpdateGate before the lock. The
+      # simulator build now takes max(repo, prod minimum), read through the same public RPC the app reads (publishable
+      # key, read-only), and fails closed when it cannot read a whole number. Nothing in the repo or on prod changes.
       - name: Build an unsigned simulator app
         run: |
+          MIN=$(curl -sS --fail -X POST "https://fncmgoasalhdgfwzhsqa.supabase.co/rest/v1/rpc/get_public_platform_settings" \
+            -H "apikey: sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP" -H "Content-Type: application/json" -d '{}' \
+            | node -e 'const r = JSON.parse(require("fs").readFileSync(0, "utf8")); const v = (Array.isArray(r) ? r[0] : r)?.min_supported_build; process.stdout.write(Number.isInteger(v) ? String(v) : "")')
+          REPO=$(sed -n 's/.*CURRENT_PROJECT_VERSION = \([0-9][0-9]*\);.*/\1/p' ios/App/App.xcodeproj/project.pbxproj | sort -n | tail -1)
+          if [ -z "$MIN" ] || [ -z "$REPO" ]; then echo "::error::could not read min_supported_build ('$MIN') or the repo build ('$REPO')"; exit 1; fi
+          BUILD=$(( MIN > REPO ? MIN : REPO ))
+          echo "repo build $REPO, prod min_supported_build $MIN: building $BUILD"
           xcodebuild -workspace ios/App/App.xcworkspace -scheme App -sdk iphonesimulator -configuration Debug \
-            -derivedDataPath "$RUNNER_TEMP/dd" CODE_SIGNING_ALLOWED=NO build | tail -20
+            -derivedDataPath "$RUNNER_TEMP/dd" CURRENT_PROJECT_VERSION="$BUILD" CODE_SIGNING_ALLOWED=NO build | tail -20
           APP=$(ls -d "$RUNNER_TEMP"/dd/Build/Products/Debug-iphonesimulator/*.app | head -1)
           echo "APP=$APP" >> "$GITHUB_ENV"
 
@@ -181,9 +192,14 @@ jobs:
           xcrun simctl launch "$UDID" "$BUNDLE"
           sleep 15
           xcrun simctl io "$UDID" screenshot shots/1-locked-face-id-sheet.png
+          # Q1008 (11-05): a green job must mean the lock was on screen. Shot 1's text (macOS Vision) must show the
+          # lock or the Face ID sheet and never the update gate (scripts/ci/check-lock-shot.mjs); the match still
+          # runs and shot 2 is still taken first, so the artifact always has both.
+          OCR1=$(swift scripts/ci/ocr-png.swift shots/1-locked-face-id-sheet.png)
           xcrun simctl spawn "$UDID" notifyutil -p com.apple.BiometricKit_Sim.pearl.match
           sleep 5
           xcrun simctl io "$UDID" screenshot shots/2-after-match.png
+          printf '%s\n' "$OCR1" | node scripts/ci/check-lock-shot.mjs
 
       # Lead 11-04 11:18 PM: sign out, delete the seeded keys, then erase the simulator, whatever happened.
       - name: Sign out, delete the seeded keys, erase the simulator

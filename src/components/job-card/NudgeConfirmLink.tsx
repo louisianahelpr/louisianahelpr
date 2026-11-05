@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { userFacingError } from "@/lib/userFacingError";
@@ -35,10 +36,9 @@ export function NudgeConfirmLink({ jobId, otherLabel, lead }: { jobId: string; o
           {result}
         </span>
       ) : (
-        <button
-          type="button"
+        <InlineTextButton
           disabled={busy}
-          className="underline underline-offset-2 font-semibold min-h-[44px]"
+          className="underline underline-offset-2 font-semibold"
           onClick={async (e) => {
             e.stopPropagation();
             setBusy(true);
@@ -54,7 +54,7 @@ export function NudgeConfirmLink({ jobId, otherLabel, lead }: { jobId: string; o
           }}
         >
           {busy ? "Sending…" : "Nudge"}
-        </button>
+        </InlineTextButton>
       )}
     </p>
   );

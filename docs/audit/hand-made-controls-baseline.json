@@ -321,9 +321,6 @@
     "src/components/job-card/JobCardShell.tsx": {
       "button": 1
     },
-    "src/components/job-card/NudgeConfirmLink.tsx": {
-      "button": 1
-    },
     "src/components/job-card/PagedActivityList.tsx": {
       "button": 1
     },
@@ -504,9 +501,6 @@
     "src/components/rentals/LandlordIdReview.tsx": {
       "input": 1
     },
-    "src/components/rentals/LeasePanel.tsx": {
-      "button": 1
-    },
     "src/components/rentals/MaintenanceRequestForm.tsx": {
       "input": 2
     },
@@ -550,7 +544,7 @@
       "button": 3
     },
     "src/components/schedule/ScheduleChangeControl.tsx": {
-      "button": 5,
+      "button": 2,
       "input": 2
     },
     "src/components/sections/ChoiceFilterRow.tsx": {
@@ -570,17 +564,11 @@
     "src/components/sections/StatusBoxes.tsx": {
       "button": 3
     },
-    "src/components/series/EndSeriesControl.tsx": {
-      "button": 1
-    },
     "src/components/series/SeriesDatesPanel.tsx": {
-      "button": 4,
+      "button": 3,
       "input": 1
     },
     "src/components/shops/PublicShopView.tsx": {
-      "button": 1
-    },
-    "src/components/shops/ShopDailyCap.tsx": {
       "button": 1
     },
     "src/components/shops/ShopEditView.tsx": {
@@ -591,9 +579,6 @@
     },
     "src/components/shops/ShopItemEditor.tsx": {
       "input": 1
-    },
-    "src/components/shops/ShopOrderCard.tsx": {
-      "button": 1
     },
     "src/components/tracker/JobProgress.tsx": {
       "button": 1
@@ -707,7 +692,7 @@
       "button": 1
     },
     "src/pages/user/ReviewsSection.tsx": {
-      "button": 8
+      "button": 5
     },
     "src/components/notificationPreferences/TestSendCard.tsx": {
       "button": 1

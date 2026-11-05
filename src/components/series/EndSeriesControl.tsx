@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -118,8 +119,7 @@ export function EndSeriesControl({
 
   return (
     <>
-      {trigger && <button
-        type="button"
+      {trigger && <InlineTextButton
         data-end-series
         onClick={(e) => {
           e.stopPropagation();
@@ -127,11 +127,11 @@ export function EndSeriesControl({
         }}
         // Q778: nowrap (it measured 44px wide at 375, "End / series" on two
         // lines) and --sienna-ink (raw --burnt-sienna was 4.48:1 in dark at 11px).
-        className="shrink-0 min-h-[44px] -my-3 px-1 text-ds-11 font-semibold underline underline-offset-2 whitespace-nowrap"
+        className="shrink-0 text-ds-11 font-semibold underline underline-offset-2 whitespace-nowrap"
         style={{ color: "hsl(var(--sienna-ink))" }}
       >
         {mode === "leave" ? "Leave series" : "End series"}
-      </button>}
+      </InlineTextButton>}
       <BrandConfirmDialog
         open={open}
         onOpenChange={(next) => {

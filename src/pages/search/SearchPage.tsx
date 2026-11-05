@@ -14,7 +14,8 @@ import { useFeatureStatus } from "@/hooks/useFeature";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { getBlockedUserIds } from "@/lib/userBlocks";
 import { usePageTitle } from "@/hooks/usePageTitle";
-import { formatJobDate } from "@/lib/dateUtils";
+import { jobDayLabel } from "@/lib/jobDateWindow";
+import { readJobsAheadOfDb } from "@/lib/jobColumns";
 import { SEARCH_PARAM } from "@/components/landing/heroSearch";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { firstPhotos } from "@/components/declutter/DeclutterItemCard";
@@ -48,7 +49,7 @@ const PER_SECTION = 3;
 /** A chip (or "See all") shows up to this many; beyond it, Jobs opens Browse. */
 const MAX_ROWS = 20;
 
-type JobHit = PricedJobHit & { id: string; title: string; category: string | null; parish: string | null; date_needed: string | null };
+type JobHit = PricedJobHit & { id: string; title: string; category: string | null; parish: string | null; date_needed: string | null; date_window_end?: string | null };
 type ItemHit = { id: string; title: string; description: string | null; category: string | null; current_price_cents: number | null; price_cents: number | null; area_label: string | null };
 
 function useJobHits(q: string, userId: string | null) {
@@ -62,15 +63,18 @@ function useJobHits(q: string, userId: string | null) {
       // getBlockedUserIds throws on a failed read: the error state, never
       // jobs from someone blocked.
       const blocked = [...(await getBlockedUserIds(userId!))];
-      let query = supabase
-        .from("open_jobs_browse")
-        .select("id,title,category,budget,pricing_mode,parish,date_needed,urgent_fee,is_group_job,helpers_needed,customer_id,helper_fee_flat_cents,helper_fee_percent", { count: "exact" })
-        .ilike("title", likePattern(q));
-      if (blocked.length) query = query.not("customer_id", "in", `(${blocked.join(",")})`);
-      const res = await query
-        .order("created_at", { ascending: false })
-        .limit(MAX_ROWS);
-      return { rows: (unwrap(res) ?? []) as JobHit[], count: res.count ?? 0 };
+      // Q2408: + date_window_end, so a window job reads "Any day Nov 4-10" (jobDayLabel); through readJobsAheadOfDb,
+      // which asks once more without it on a database that does not have it yet.
+      const res = await readJobsAheadOfDb(
+        "id,title,category,budget,pricing_mode,parish,date_needed,date_window_end,urgent_fee,is_group_job,helpers_needed,customer_id,helper_fee_flat_cents,helper_fee_percent",
+        (columns) => {
+          let query = supabase.from("open_jobs_browse").select(columns, { count: "exact" }).ilike("title", likePattern(q));
+          if (blocked.length) query = query.not("customer_id", "in", `(${blocked.join(",")})`);
+          return query.order("created_at", { ascending: false }).limit(MAX_ROWS);
+        },
+        { browseView: true },
+      );
+      return { rows: (unwrap(res) ?? []) as unknown as JobHit[], count: res.count ?? 0 };
     },
   });
 }
@@ -368,7 +372,7 @@ export default function SearchPage() {
                 to={`/jobs/${j.id}`}
                 title={j.title}
                 thumb={<Thumb icon={getCategoryIcon(j.category)} seed={j.category} />}
-                sub={[j.parish ? `${j.parish} Parish` : null, j.date_needed ? formatJobDate(j.date_needed) : null].filter(Boolean).join(" · ") || null}
+                sub={[j.parish ? `${j.parish} Parish` : null, j.date_needed ? jobDayLabel(j) : null].filter(Boolean).join(" · ") || null}
                 price={searchJobPrice(j, user?.id ?? null, viewerFee, firstPayoutFee)}
               />
             ))}

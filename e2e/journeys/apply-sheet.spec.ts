@@ -252,31 +252,60 @@ for (const { name, width } of [
     await openFixtureSheet(page, width, 812);
     const detail = page.locator('[role="dialog"]').last();
     await detail.getByRole("button", { name: /^(apply now|book now)$/i }).waitFor({ timeout: 20_000 });
-    await page
-      .waitForFunction(
-        () => {
-          const dlg = document.querySelectorAll('[role="dialog"]');
-          const el = dlg[dlg.length - 1] as HTMLElement | undefined;
-          if (!el) return false;
-          const w = el.getBoundingClientRect().width;
-          const prev = (window as unknown as { __lhDlgW?: number }).__lhDlgW;
-          (window as unknown as { __lhDlgW?: number }).__lhDlgW = w;
-          // Two consecutive identical widths, no residual scale on the box, and
-          // its entry animation FINISHED. A 1% scale tolerance let WebKit
-          // measure the 44px Apply now at 43.7-43.9px (0.993-0.998 of 44: the
-          // zoom-in-95 tail) in nightly-webkit run 38434750617.
-          const m = new DOMMatrixReadOnly(getComputedStyle(el).transform);
-          const running = el.getAnimations({ subtree: true }).some((a) => a.playState === "running");
-          return prev !== undefined && Math.abs(prev - w) < 0.5 && Math.abs(m.a - 1) < 0.001 && !running;
-        },
-        undefined,
-        { timeout: 10_000, polling: 100 },
-      )
-      .catch(() => undefined);
-    // A beat after stability for any paint that follows the last layout.
-    await page.waitForTimeout(200);
-
-    const m = (await page.evaluate(MEASURE)) as Measurement;
+    // MEASURE THE SHEET AT REST (measured 2026-11-05). On a phone the sheet enters with
+    // slide-in-from-bottom: a pure vertical translate, so neither its width nor
+    // its scale moves while it slides. Measured locally in WebKit AND Chromium
+    // at a cold 320x812 and after a 390x844 -> 320x812 resize (same numbers both
+    // ways, so it is not a stale dvh): the box starts at top 812 and lands at
+    // top 113.7 / bottom 812 about 290 ms after the tap, reading bottom 817 at
+    // 270 ms. The old width + scale settle let WebKit measure that tail
+    // (bottom 820 in e2e-journeys 41985120980, 883 in nightly-webkit
+    // 41680707961) while the failure screenshot a moment later painted the
+    // sheet flush at 812. So: settle, measure, and accept the measurement only
+    // if the box is still in the same place 350 ms later. A sheet that really
+    // hangs off the screen is at rest there too, and still fails below.
+    let m: Measurement | undefined;
+    let atRest = false;
+    for (let attempt = 0; attempt < 4 && !atRest; attempt++) {
+      await page.evaluate(() => { delete (window as unknown as { __lhDlgBox?: number[] }).__lhDlgBox; });
+      await page
+        .waitForFunction(
+          () => {
+            const dlg = document.querySelectorAll('[role="dialog"]');
+            const el = dlg[dlg.length - 1] as HTMLElement | undefined;
+            if (!el) return false;
+            const r = el.getBoundingClientRect();
+            const box = [r.left, r.top, r.width, r.height];
+            const win = window as unknown as { __lhDlgBox?: number[] };
+            const prev = win.__lhDlgBox;
+            win.__lhDlgBox = box;
+            // Two consecutive identical BOXES (left, top, width, height), no
+            // residual scale OR TRANSLATION on the box, and its entry animation
+            // FINISHED. A 1% scale tolerance let WebKit measure the 44px Apply now
+            // at 43.7-43.9px (0.993-0.998 of 44: the zoom-in-95 tail) in
+            // nightly-webkit run 38434750617. Width + scale alone missed the phone
+            // sheet's VERTICAL slide-in-from-bottom (it changes neither): WebKit
+            // measured the sheet mid-slide at bottom 820 (e2e-journeys
+            // 41985120980) and 883 (nightly-webkit 41680707961) on an 812 screen
+            // whose screenshot, a moment later, painted it flush at 812 (2026-11-05).
+            const m = new DOMMatrixReadOnly(getComputedStyle(el).transform);
+            const still = Math.abs(m.a - 1) < 0.001 && Math.abs(m.d - 1) < 0.001 && Math.abs(m.e) < 0.5 && Math.abs(m.f) < 0.5;
+            const running = el.getAnimations({ subtree: true }).some((a) => a.playState === "running");
+            return prev !== undefined && box.every((v, i) => Math.abs(v - prev[i]) < 0.5) && still && !running;
+          },
+          undefined,
+          { timeout: 10_000, polling: 100 },
+        )
+        .catch(() => undefined);
+      // A beat after stability for any paint that follows the last layout.
+      await page.waitForTimeout(200);
+      m = (await page.evaluate(MEASURE)) as Measurement;
+      await page.waitForTimeout(350);
+      const again = (await page.evaluate(MEASURE)) as Measurement;
+      atRest = !(m as { error?: string }).error && !!again.dialog && Math.abs(again.dialog.top - m.dialog.top) < 0.5 && Math.abs(again.dialog.bottom - m.dialog.bottom) < 0.5;
+    }
+    expect(atRest, `the sheet never came to rest in 4 settles: ${JSON.stringify(m?.dialog)}`).toBe(true);
+    m = m!;
 
     // 1. Nothing inside the dialog escapes its content box.
     expect(m.offenders, `elements past the dialog content box: ${JSON.stringify(m.offenders, null, 2)}`).toEqual([]);

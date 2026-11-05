@@ -3,6 +3,7 @@
  * 600-line limit). Behaviour unchanged.
  */
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,7 +12,6 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchMyVehicle, saveVehicle, uploadVehiclePhoto } from "@/lib/helprTasks/api";
 
-const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 
 /**
  * Row 41: "I have a car" (every delivery needs one, owner 2026-10-28, Q2452), "I have a truck"
@@ -80,10 +80,10 @@ export function VehicleForm({ userId }: { userId: string }) {
           <PhotoPickButton id={photoId} picked={photo} onPick={setPhoto} />
         </>
       )}
-      <button type="button" className={primary}
+      <Button type="button" variant="primary" size="sm" className="text-sm font-semibold"
         disabled={save.isPending || vehicle.isLoading || !changed || (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}>
         {save.isPending ? "Saving…" : "Save"}
-      </button>
+      </Button>
       {/* Audit 1c D3-8: a plain success toast renders nothing (toastPolicy), so "Saved." never showed. */}
       {save.isSuccess && <p className="text-sm font-medium" role="status">Vehicle saved.</p>}
     </section>

@@ -4,6 +4,7 @@
  * up before the 30-minute window. It changes no status and moves no money. Asked in the app, never window.confirm.
  */
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { markHandedOver } from "@/lib/helprTasks/api";
@@ -12,7 +13,6 @@ import { invalidateTasks } from "./useTaskSteps";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { SellerMoveHelprPickup } from "./SellerMoveHelprPickup";
 
-const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 export function SellerHandedOver({ taskId, orderId, who, handedOverAt, pickupAt = null }: { taskId: string; orderId: string; who: string; handedOverAt: string | null | undefined; pickupAt?: string | null }) {
@@ -30,9 +30,9 @@ export function SellerHandedOver({ taskId, orderId, who, handedOverAt, pickupAt 
   if (handedOverAt) return <p className="text-sm" data-handed-over="">You said you handed it over · {clock(handedOverAt)}</p>;
   return (
     <>
-      <button type="button" className={btn} disabled={handed.isPending} onClick={() => setAsk(true)}>
+      <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" disabled={handed.isPending} onClick={() => setAsk(true)}>
         Handed over
-      </button>
+      </Button>
       {/* BUY-42: until it is handed over, the seller may move the Helpr's pickup once. */}
       <SellerMoveHelprPickup taskId={taskId} orderId={orderId} who={who} current={pickupAt} />
       <ConfirmSheet open={ask} title={`Did you hand it to ${who}?`} confirmLabel="Handed over" pending={handed.isPending}

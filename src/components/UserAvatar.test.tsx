@@ -53,6 +53,32 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+describe("the small copy (Q2707 avatar part: prod originals 3,228 B-4,777,736 B, the edge copy at w=96 412-2,751 B, 2026-11-05)", () => {
+  // @mutate src/components/UserAvatar.tsx |       ? buildImageUrl(src, { width: pixelSize }) |       ? src
+  // @mutate src/components/UserAvatar.tsx |       setEdgeFailedFor(src);\n      return; |       void setEdgeFailedFor;
+  it("asks the edge for a sized copy on the web, then the original, then the monogram", () => {
+    vi.stubGlobal("location", { hostname: "www.louisianahelpr.com" });
+    try {
+      const { container } = render(<UserAvatar userId="u-1" src={PHOTO} name="Lexi Lombas" pixelSize={48} />);
+      const img = () => container.querySelector("img");
+      expect(img()?.getAttribute("src")).toMatch(/^\/_vercel\/image\?url=.*&w=\d+/);
+      fireEvent.error(img()!); // the edge is same-origin: straight to the original
+      expect(img()?.getAttribute("src")).toBe(PHOTO);
+      fireEvent.error(img()!); // the CORS retry of the original
+      expect(img()?.getAttribute("src")).toBe(PHOTO);
+      fireEvent.error(img()!);
+      expect(img()).toBeNull();
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("keeps the original off the edge where there is no edge (local preview, native)", () => {
+    const { container } = render(<UserAvatar userId="u-1" src={PHOTO} name="Lexi Lombas" pixelSize={48} />);
+    expect(container.querySelector("img")?.getAttribute("src")).toBe(PHOTO);
+  });
+});
+
 function setup(src: string | null) {
   const seen: Rejection[] = [];
   const view = render(

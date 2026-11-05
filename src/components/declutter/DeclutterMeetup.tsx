@@ -18,6 +18,7 @@ import {
 } from "@/lib/declutter/meetup";
 import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
 import { ErrorState } from "@/components/ui/ErrorState";
+import { Button } from "@/components/ui/button";
 
 // A3-52 (audit 11-01): only the spots Louisiana Helpr curated are called checked; a seller's own spot never is.
 const KIND_WORDS: Record<MeetupSpotNear["kind"], string> = {
@@ -99,9 +100,9 @@ export function MeetupPanel({ orderId, side, slotStart }: { orderId: string; sid
       </p>
       {!mine && (
         open ? (
-          <button type="button" className="h-11 w-full rounded-full border border-border px-4 text-ds-15 font-semibold" disabled={here.isPending} onClick={() => here.mutate()}>
+          <Button type="button" variant="outline" size="sm" className="w-full text-ds-15 font-semibold" disabled={here.isPending} onClick={() => here.mutate()}>
             {here.isPending ? "Checking in…" : "I'm here"}
-          </button>
+          </Button>
         ) : (
           // Audit 1028 D1-13: only the buyer books the meeting time, so the seller is never told to book it.
           <p className="text-ds-13 text-muted-foreground">{slotStart ? "You can tap \"I'm here\" from an hour before the meeting time." : side === "buyer" ? "Book a time to meet first." : "The buyer books the time; we'll tell you."}</p>

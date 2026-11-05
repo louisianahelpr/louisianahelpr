@@ -555,9 +555,11 @@ describe("CI crosses the mock boundary", () => {
     // being read. What it is actually for is the classifier: a broken
     // `mocksSupabase` reads ~0, and the membership checks below pin both
     // answers by name.
+    // The mocked floor follows the migration down (9 on 2026-11-05 after the
+    // messages-thread and apply-sheet ports); a broken classifier still reads ~0.
     const mocked = reached.filter(mocksSupabase);
     expect(reached.length).toBeGreaterThan(10);
-    expect(mocked.length).toBeGreaterThan(10);
+    expect(mocked.length).toBeGreaterThan(5);
     expect(mocked).toContain("happy-path/apply-sticky-overlap.spec.ts");
     expect(mocksSupabase("auth.spec.ts")).toBe(false);
     // popupFooterFit installs no stubs but reaches no backend either — it runs

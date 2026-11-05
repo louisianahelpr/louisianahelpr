@@ -312,8 +312,11 @@ function EnrollDialog({
               >
                 In your authenticator app, choose “enter a setup key” and paste this:
               </p>
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="wrapSm"
+                aria-label={copied ? "Setup key copied" : "Copy the setup key"}
                 onClick={async () => {
                   try {
                     await navigator.clipboard.writeText(data.secret);
@@ -322,16 +325,11 @@ function EnrollDialog({
                     window.setTimeout(() => setCopied(false), 1500);
                   } catch { /* clipboard unavailable */ }
                 }}
-                className="inline-flex items-center gap-1.5 text-ds-11 font-mono tracking-wider px-2.5 py-1 rounded-ds-sm"
-                style={{
-                  background: "hsl(var(--card) / 0.55)",
-                  border: "0.5px solid hsl(var(--olivewood) / 0.16)",
-                  color: "hsl(var(--ink-deep))",
-                }}
+                className="max-w-full font-mono text-ds-12 font-medium tracking-wider [overflow-wrap:anywhere]"
               >
                 {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                 {data.secret}
-              </button>
+              </Button>
             </div>
 
             <div className="space-y-1.5">

@@ -11,7 +11,7 @@
  * @mutate src/components/admin/dashboard/DashboardHome.tsx |             {!alertsPending && <span className="text-ds-11 sm:text-ds-13 font-semibold text-muted-foreground leading-tight">No priority alerts right now</span>} |             {null}
  * @mutate src/components/admin/dashboard/KpiCard.tsx |       {pending && !trend && compareLabel && ( |       {false && pending && !trend && compareLabel && (
  * @mutate src/components/admin/dashboard/KpiCard.tsx |       {pending && sparkline && ( |       {false && pending && sparkline && (
- * @mutate src/pages/admin/Admin.tsx |           alertsPending={statsLoading \|\| pendingCounts.isPending \|\| (seriousAlertCount === undefined && !seriousAlertsFailed)} |           alertsPending={false}
+ * @mutate src/pages/admin/Admin.tsx |           alertsPending={statsLoading \|\| ([openQueues.disputes, openQueues.reports, openQueues.support].includes(undefined) && !pendingCounts.isError) \|\| (seriousAlertCount === undefined && !seriousAlertsFailed)} |           alertsPending={false}
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -90,6 +90,6 @@ describe("the admin dashboard holds its shape while it loads (Admin CLS)", () =>
     const dash = blankComments(readFileSync(resolve(__dirname, "DashboardHome.tsx"), "utf8"));
     expect(dash.match(/pending=\{statsLoading\}/g)?.length).toBe(4);
     const admin = blankComments(readFileSync(resolve(__dirname, "../../../pages/admin/Admin.tsx"), "utf8"));
-    expect(admin).toContain("alertsPending={statsLoading || pendingCounts.isPending || (seriousAlertCount === undefined && !seriousAlertsFailed)}");
+    expect(admin).toContain("alertsPending={statsLoading || ([openQueues.disputes, openQueues.reports, openQueues.support].includes(undefined) && !pendingCounts.isError) || (seriousAlertCount === undefined && !seriousAlertsFailed)}");
   });
 });

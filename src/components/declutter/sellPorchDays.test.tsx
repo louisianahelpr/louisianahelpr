@@ -53,7 +53,7 @@ function open(ways: ("porch" | "meetup")[] = ["porch"], pickupDays: number[] | n
   return wrap(<SellHandoverChoices ways={ways} setWays={() => {}} free={false} sellerDeliveryOpen={false} pickupDays={pickupDays ?? undefined} />);
 }
 const porch = () => document.querySelector<HTMLElement>("[data-porch-days]")!;
-const chipNames = () => within(porch()).queryAllByRole("button").map((b) => b.getAttribute("aria-label"));
+const chipNames = () => within(porch()).queryAllByRole("button").map((b) => b.querySelector(".sr-only")?.textContent ?? b.getAttribute("aria-label"));
 
 describe("porch days: one choice, offering only the pickup days", () => {
   let stored: number[] | null;

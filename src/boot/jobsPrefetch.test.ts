@@ -21,6 +21,8 @@
 // @mutate src/boot/jobsPrefetch.ts |   const feed = list ? Promise.resolve(null) : get(urls.feed) |   const feed = get(urls.feed)
 // @mutate src/boot/jobsPrefetch.ts |   const ctx = list ? Promise.resolve(null) : Promise.all( |   const ctx = Promise.all(
 // @mutate src/boot/jobsPrefetch.ts |   return tab ? tab === "posted" \|\| tab === "working" : ["job", "filter", "highlight", "q", "quotes"].some((k) => p.has(k)); |   return tab ? tab === "posted" : ["job", "filter", "highlight", "q"].some((k) => p.has(k));
+// @mutate src/entry.ts | if (hasToken() && /^ | void import("./main"); if (hasToken() && /^
+// @mutate src/entry.ts |   setTimeout(startApp); |   startApp();
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -123,8 +125,14 @@ describe("signed-in /jobs' first reads start from the entry (B43, Q1158)", () =>
 
   it("the entry starts it only for a member on /jobs, and only the entry's door imports the boot module", () => {
     const entry = code("src/entry.ts");
-    expect(entry).toMatch(/if \(hasToken\(\) && \/\^\\\/\(declutter\(\\\/item\\\/\[\\w-\]\+\)\?\|home\|jobs\|posts\)\?\\\/\?\$\/\.test\(window\.location\.pathname\)\) \{\s*void signedInPrefetch\(\)/);
+    expect(entry).toMatch(/if \(hasToken\(\) && \/\^\\\/\(declutter\(\\\/item\\\/\[\\w-\]\+\)\?\|home\|jobs\|posts\)\?\\\/\?\$\/\.test\(window\.location\.pathname\)\) \{\s*(\/\/.*\s*)?void import\("\.\/boot\/signedInPrefetch"\)/);
     expect(code("src/boot/signedInPrefetch.ts")).toContain("startJobsPrefetch(pathname);");
+    // Q1158: asked for before main's ~100 chunks, or it arrives behind them (~3.26 s on Slow 4G, measured 11-04).
+    const ask = entry.indexOf('void import("./boot/signedInPrefetch")');
+    expect(ask).toBeGreaterThan(-1);
+    expect(entry.indexOf('void import("./main");')).toBeGreaterThan(ask);
+    // Vite's preload wrapper calls import() a microtask later, while main's links go in at once: main waits one task.
+    expect(entry).toContain("  setTimeout(startApp);\n} else startApp();");
     expect(code("src/hooks/jobsPrefetchTake.ts")).toContain(`const KEY = "${JOBS_PREFETCH_KEY}";`);
     const importers = walkSource([resolve(ROOT, "src")])
       .filter((f) => !/\.test\.tsx?$/.test(f))

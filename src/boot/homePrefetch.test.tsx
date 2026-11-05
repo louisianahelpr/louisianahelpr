@@ -98,8 +98,9 @@ describe("Home's first-card reads start from the entry (B78)", () => {
 
   it("the entry starts it only for a member on /home or /, and only the entry imports the boot module", () => {
     const entry = code("src/entry.ts");
-    expect(entry).toMatch(/if \(hasToken\(\) && \/\^\\\/\(declutter\(\\\/item\\\/\[\\w-\]\+\)\?\|home\|jobs\|posts\)\?\\\/\?\$\/\.test\(window\.location\.pathname\)\) \{\s*void signedInPrefetch\(\)\s*\.then\(\(m\) => m\?\.startSignedInPrefetch\(window\.location\.pathname\)\)/);
-    expect(entry).toContain('const signedInPrefetch = () => import("./boot/signedInPrefetch");');
+    expect(entry).toMatch(/if \(hasToken\(\) && \/\^\\\/\(declutter\(\\\/item\\\/\[\\w-\]\+\)\?\|home\|jobs\|posts\)\?\\\/\?\$\/\.test\(window\.location\.pathname\)\) \{\s*(\/\/.*\s*)?void import\("\.\/boot\/signedInPrefetch"\)\.catch\(/);
+    expect(code("src/boot/signedInPrefetch.ts")).toMatch(/\nstartSignedInPrefetch\(window\.location\.pathname\);\n$/);
+    expect(entry).toContain('void import("./boot/signedInPrefetch").catch(');
     expect(code("src/boot/signedInPrefetch.ts")).toContain("startHomePrefetch(pathname);");
     expect(code("src/pages/home/homeDashboard/homePrefetchTake.ts")).toContain(`const KEY = "${HOME_PREFETCH_KEY}";`);
     const importers = walkSource([resolve(ROOT, "src")])

@@ -34,6 +34,9 @@ export interface PublicShop {
   offers_selling: boolean;
   offers_quotes: boolean;
   badges: ShopBadges;
+  /** Shops H9 (Q2207): the shop's own rating from its buyers' reviews; null with a 0 count below 3 reviews. */
+  rating?: number | null;
+  review_count?: number;
   hours: ShopHour[];
   /** By id only: a storage path names the owner's user id (see publicPhotoUrl). */
   photos: { id: string; kind: ShopPhotoKind; position: number }[];

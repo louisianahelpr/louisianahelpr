@@ -65,7 +65,7 @@ export function ShopHero(props: {
   areaLabel: string;
   storefront: boolean;
   photos: Photo[];
-  /** Members only: the public page omits the owner's person rating (it would fingerprint the owner). */
+  /** The SHOP's own rating from its buyers' reviews, only at 3 or more (Shops H9; never the owner's person rating, Q2207). */
   rating?: number | null;
   reviewCount?: number;
   badges: ShopBadges | null | undefined;

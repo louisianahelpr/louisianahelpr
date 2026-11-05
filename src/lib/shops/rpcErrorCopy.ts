@@ -23,6 +23,28 @@ export const SHOPS_RPC_ERROR_COPY = {
     shop_not_found: SC.shop_not_found,
     talk_blocked: SC.talk_blocked,
   },
+  // Shops H9 (20261105230819): reviews and the shop's rating.
+  shops_leave_review: {
+    account_restricted: SC.account_restricted,
+    already_reviewed: SC.already_reviewed,
+    comment_too_long: SC.comment_too_long,
+    feature_disabled: SC.feature_disabled,
+    invalid_stars: SC.invalid_stars,
+    not_authenticated: SC.not_authenticated,
+    not_handed_over: SC.not_handed_over,
+    order_not_found: SC.order_not_found,
+    review_contact_info: SC.review_contact_info,
+  },
+  shops_shop_reviews: {
+    feature_disabled: SC.feature_disabled,
+    not_authenticated: SC.not_authenticated,
+    shop_not_found: SC.shop_not_found,
+  },
+  shops_my_order_review: {
+    feature_disabled: SC.feature_disabled,
+    not_authenticated: SC.not_authenticated,
+    order_not_found: SC.order_not_found,
+  },
   // Q1947 (20261105225245): the chat from an order's card, either side.
   shops_open_order_talk: {
     account_restricted: SC.account_restricted,

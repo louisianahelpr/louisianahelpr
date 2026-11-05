@@ -143,7 +143,9 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
     // 20261105225245 is left out: it restates the shared reports trigger (report_* codes are the ReportDialog's, not
     // SHOPS_ERROR_COPY's), and its shops_open_order_talk raises only codes the files here already raise.
     const TALK = blankSqlComments(readFileSync(join(MIG_DIR, "20261105185006_shops_talk.sql"), "utf8"));
-    const raised = new Set([...(MIG + ITEMS + ORDERS + PICKUP + HANDOVER + READY_TAP + FAQS + REFUNDS + HANDOVER_RULE + TALK).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
+    // Shops H9 reviews (20261105230819).
+    const REVIEWS = blankSqlComments(readFileSync(join(MIG_DIR, "20261105230819_shops_reviews_and_rating.sql"), "utf8"));
+    const raised = new Set([...(MIG + ITEMS + ORDERS + PICKUP + HANDOVER + READY_TAP + FAQS + REFUNDS + HANDOVER_RULE + TALK + REVIEWS).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
     raised.add("feature_disabled"); // require_feature's code
     // shop-checkout's own answer when Stripe refuses the pickup address (M1b part 2), not a SQL code.
     const CHECKOUT = readFileSync(join(process.cwd(), "supabase/functions/shop-checkout/index.ts"), "utf8");

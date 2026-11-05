@@ -147,6 +147,12 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   // Settle a held Shops refund with a refund made in Stripe (admin, Payouts held for review; run-3 review).
   not_held_for_review: "This refund isn't held for review any more. Another admin may have handled it. Refresh the list.",
   hand_refund_short: "That Stripe refund is less than this refund owes. Once the buyer has the rest, use \"other:\" with the refund ids.",
+  // Shops H1 (20261105185006): messages with a shop.
+  talk_not_found: "This chat isn't available.",
+  talk_closed: "This shop isn't on Helpr right now, so the chat is closed.",
+  talk_blocked: "You can't message each other because one of you blocked the other.",
+  invalid_message: "Write a message of up to 1,000 characters.",
+  message_rate_limited: "Slow down a little, then send again.",
 };
 
 /** shop-checkout's own answers (not RPC codes). */

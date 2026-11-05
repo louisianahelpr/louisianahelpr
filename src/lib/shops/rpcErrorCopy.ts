@@ -14,6 +14,38 @@
 import { SHOPS_ERROR_COPY as SC } from "./errors";
 
 export const SHOPS_RPC_ERROR_COPY = {
+  // Shops H1 (20261105185006): messages with a shop.
+  shops_open_talk: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    not_authenticated: SC.not_authenticated,
+    own_shop: SC.own_shop,
+    shop_not_found: SC.shop_not_found,
+    talk_blocked: SC.talk_blocked,
+  },
+  shops_talk_view: {
+    feature_disabled: SC.feature_disabled,
+    not_authenticated: SC.not_authenticated,
+    talk_not_found: SC.talk_not_found,
+  },
+  shops_send_talk_message: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    invalid_message: SC.invalid_message,
+    message_rate_limited: SC.message_rate_limited,
+    not_authenticated: SC.not_authenticated,
+    talk_blocked: SC.talk_blocked,
+    talk_closed: SC.talk_closed,
+    talk_not_found: SC.talk_not_found,
+  },
+  shops_my_talks: {
+    feature_disabled: SC.feature_disabled,
+    not_authenticated: SC.not_authenticated,
+  },
+  shops_mark_talk_read: {
+    feature_disabled: SC.feature_disabled,
+    talk_not_found: SC.talk_not_found,
+  },
   shops_add_item_photo: {
     account_restricted: SC.account_restricted,
     feature_disabled: SC.feature_disabled,

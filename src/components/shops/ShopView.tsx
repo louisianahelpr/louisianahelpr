@@ -8,9 +8,10 @@
  * ShopOrderSheet, for everyone but the owner while the shop sells and is
  * not paused.
  *
- * NOT here yet (docs/OPEN.md): the Message button (L48: messages are
- * job-threaded today, so a shop thread needs its own backend),
- * request-a-quote (L53), and a map for the pin (L50).
+ * Messages (Shops H1, L48): a member's "Message" opens their thread with the
+ * shop (ShopTalk, ?talk=<id>); the owner sees "Messages" on their own page.
+ * NOT here yet (docs/NOT-LAUNCHED.md): request-a-quote (L53) and a map for
+ * the pin (L50).
  */
 import { useParams, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -30,6 +31,7 @@ import { ShopCard, ShopGallery, ShopHero, ShopHoursCard } from "./ShopProfile";
 import ShopFaqs from "./ShopFaqs";
 import ShopPolicies from "./ShopPolicies";
 import ShopItemsList from "./ShopItemsList";
+import { ShopMessageButton, ShopTalkFromLink, ShopTalksCard } from "./ShopTalk";
 import ShopOrderSheet from "./ShopOrderSheet";
 
 function ShopSkeleton() {
@@ -156,6 +158,7 @@ export default function ShopView() {
                   </Button>
                 </div>
               )}
+              {!s.mine && <ShopMessageButton shopId={s.id} />}
               <Button type="button" variant="outline" className="rounded-full" onClick={() => void shareShop(shareable)}>
                 <Share2 className="mr-1.5 h-4 w-4" aria-hidden />
                 {s.mine ? "Share my shop" : "Share"}
@@ -178,6 +181,8 @@ export default function ShopView() {
         <p className="px-1 text-xs text-muted-foreground">
           {s.follower_count === 1 ? "1 follower" : `${s.follower_count} followers`}
         </p>
+        {s.mine && <ShopTalksCard />}
+        <ShopTalkFromLink />
         {s.about && (
           <ShopCard id="shop-about" title="About">
             <p className="text-sm whitespace-pre-line break-words">{s.about}</p>

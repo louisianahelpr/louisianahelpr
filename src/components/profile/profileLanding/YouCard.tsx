@@ -55,7 +55,10 @@ export function YouCard({
   const open = () => userId && navigate(`/user/${userId}`);
   return (
     <div data-testid="you-card" className="liquid-glass shrink-0 w-full flex items-center gap-4 px-4 py-4 min-w-0">
-      <button type="button" onClick={open} disabled={!userId} aria-label="View my public profile" className="btn-press relative shrink-0 rounded-full">
+      {/* The photo repeats the "View my public profile" button beside it, so it is out of the tab order and the
+          accessibility tree: its only visible text is the monogram, which an aria-label could not contain
+          (axe label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491). */}
+      <button type="button" onClick={open} disabled={!userId} aria-label="View my public profile" className="btn-press relative shrink-0 rounded-full" aria-hidden="true" tabIndex={-1}>
         <UserAvatar userId={userId ?? undefined} src={profile?.avatar_url} name={displayName} pixelSize={128} alt="" className="w-16 h-16" />
         {verified && (
           <span

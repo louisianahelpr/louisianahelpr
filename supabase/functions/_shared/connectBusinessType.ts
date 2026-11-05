@@ -16,11 +16,11 @@ export type ConnectBusiness =
   | { type: "individual" }
   | { type: "company"; name: string };
 
-export const COMPANY_NAME_MIN = 2;
-export const COMPANY_NAME_MAX = 120;
+const COMPANY_NAME_MIN = 2;
+const COMPANY_NAME_MAX = 120;
 
-export const BUSINESS_TYPE_UNKNOWN = "Pick an individual or a registered business.";
-export const COMPANY_NAME_INVALID = "Enter your business's legal name (2 to 120 characters).";
+const BUSINESS_TYPE_UNKNOWN = "Pick an individual or a registered business.";
+const COMPANY_NAME_INVALID = "Enter your business's legal name (2 to 120 characters).";
 
 /**
  * Reads the business choice from an onboard/reset body. A missing or

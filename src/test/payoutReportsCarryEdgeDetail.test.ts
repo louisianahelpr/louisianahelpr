@@ -1,5 +1,5 @@
-// @mutate src/lib/payoutSetupQueries.ts |     report(err, { tags: { source: "PayoutSetupForm.status" }, context: { edge_fn_detail: detail } }); |     report(err, { tags: { source: "PayoutSetupForm.status" } });
-// @mutate src/lib/payoutSetupQueries.ts |       report(res.error, { tags: { source: "PayoutSetupForm.methods" }, context: { edge_fn_detail: detail } }); |       report(res.error, { tags: { source: "PayoutSetupForm.methods" } });
+// @mutate src/lib/payoutSetupQueries.ts |     report(err, { severity: payoutFailureSeverity(err), tags: { source: "PayoutSetupForm.status" }, context: { edge_fn_detail: detail } }); |     report(err, { severity: payoutFailureSeverity(err), tags: { source: "PayoutSetupForm.status" } });
+// @mutate src/lib/payoutSetupQueries.ts |       report(res.error, { severity: payoutFailureSeverity(res.error), tags: { source: "PayoutSetupForm.methods" }, context: { edge_fn_detail: detail } }); |       report(res.error, { severity: payoutFailureSeverity(res.error), tags: { source: "PayoutSetupForm.methods" } });
 /**
  * Sentry JAVASCRIPT-1Q ("FunctionsHttpError: Edge Function returned a non-2xx
  * status code", 13 events, 6 users, last 2026-10-26 14:29Z on an iPhone, source

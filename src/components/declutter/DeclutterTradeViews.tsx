@@ -375,10 +375,11 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       {!held && !opening && payWaitsOn && (
         <p id={`${addressId}-pay-waits`} className="text-ds-14 font-semibold text-foreground" data-pay-waits-on="">{payWaitsOn}</p>
       )}
-      <button
+      <Button
         type="button"
+        variant="primary"
         aria-describedby={!held && !opening && payWaitsOn ? `${addressId}-pay-waits` : undefined}
-        className="btn-grad-primary !text-[hsl(var(--parchment))] h-14 w-full rounded-full px-5 text-ds-16 font-semibold"
+        className="w-full px-5 text-ds-16 font-semibold"
         disabled={held || opening || offered.length === 0 || (delivering && !liveQuote) || (shipping && !shipQuote) || (sellerDelivering && !sdReady) || !meetupReady || !placeReady || !pickupTimeReady}
         onClick={async () => {
           setOpening(true);
@@ -417,7 +418,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
         }}
       >
         {held ? "Confirming your payment…" : opening ? "Opening…" : `Pay ${formatPrice(payCents)}`}
-      </button>
+      </Button>
       {/* Q2633 (owner rule: no line under the buttons): Pay is the last thing in the bill. The secure-page line went, and
           the Add a Helpr offer is on the paid order card (DeclutterAddHelpr), so it no longer sits under Pay. */}
     </div>

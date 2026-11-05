@@ -17,7 +17,7 @@
  * @mutate src/pages/book/BookHelprPage.tsx | <div className={`${PUBLIC_LINK_COLUMN} space-y-4 pb-8`}> | <div className="w-full space-y-4 pb-8">
  * @mutate src/lib/pageColumn.ts | export const PUBLIC_LINK_COLUMN = "mx-auto w-full max-w-md"; | export const PUBLIC_LINK_COLUMN = "w-full";
  * @mutate api/share.ts | (tag) => (seen++ === 0 ? tag : "")); | (tag) => tag);
- * @mutate api/share.ts | ?width=1200&height=630&resize=cover&quality=80&format=origin | ?width=630&height=630&resize=cover&quality=80&format=origin
+ * @mutate api/share.ts | const PROFILE_IMAGE_PX = 630; | const PROFILE_IMAGE_PX = 1200;
  * @mutate vercel.json | "destination": "/api/share?_og=profile&_id=:handle" | "destination": "/index.html"
  */
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -152,21 +152,23 @@ describe("the /u/<handle> link card (api/share.ts + vercel.json)", () => {
   });
   const card = async (h: string) => (await handler.fetch(new Request(`https://www.louisianahelpr.com/api/share?_og=profile&_id=${h}`))).text();
 
-  it("vercel.json sends /u/<handle> through the card, noindex", () => {
+  it("vercel.json sends /u/<handle> through the card; the card, not a static header, says noindex (L7)", () => {
     const v = JSON.parse(readFileSync(resolve("vercel.json"), "utf8")) as { rewrites: { source: string; destination: string }[]; headers: { source: string }[] };
     expect(v.rewrites.length).toBeGreaterThan(5);
     expect(v.rewrites.find((r) => r.source.startsWith("/u/"))?.destination).toBe("/api/share?_og=profile&_id=:handle");
-    expect(v.headers.some((h) => h.source === "/u/(.*)")).toBe(true);
+    // L7 (owner 11-05): a static X-Robots-Tag would override a member's opt-in; api/share.ts sends it per member
+    // (src/test/profileSearchOptIn.test.tsx).
+    expect(v.headers.some((h) => h.source === "/u/(.*)")).toBe(false);
   });
 
-  it("a member's card: their name, their photo at 1200x630, exactly one og:image", async () => {
+  it("a member's card: their name, their photo as a true 630x630 square (M1), exactly one og:image", async () => {
     answer = { ...PAGE, photo_url: `https://example.supabase.co/storage/v1/object/public/avatars/${USER}/avatar.jpg` };
     const html = await card("Eli-B");
     expect(html).toContain('<meta property="og:title" content="Eli B. on Louisiana Helpr"');
     expect(html).toContain('<meta property="og:url" content="https://www.louisianahelpr.com/u/eli-b"');
     expect(html).toContain('<meta name="robots" content="noindex, follow"');
-    expect(html).toContain(`<meta property="og:image" content="https://example.supabase.co/storage/v1/render/image/public/avatars/${USER}/avatar.jpg?width=1200&amp;height=630&amp;resize=cover&amp;quality=80&amp;format=origin"`);
-    expect(html).toContain('<meta property="og:image:width" content="1200"');
+    expect(html).toContain(`<meta property="og:image" content="https://example.supabase.co/storage/v1/render/image/public/avatars/${USER}/avatar.jpg?width=630&amp;height=630&amp;resize=cover&amp;quality=80&amp;format=origin"`);
+    expect(html).toContain('<meta property="og:image:width" content="630"');
     expect(html).toContain('<meta property="og:image:height" content="630"');
     expect(html.match(/<meta property="og:image" /g)?.length).toBe(1);
   });

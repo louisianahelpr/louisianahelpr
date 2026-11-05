@@ -115,6 +115,12 @@ interface Meta {
    */
   robots?: string;
   /**
+   * L7 (owner 11-05): also answer `X-Robots-Tag: noindex`. Set on every /u/<handle> response unless its member
+   * turned "Show my profile in search engines" on; vercel.json no longer sends that header for /u/ because it
+   * would win over the member's choice.
+   */
+  noindexHeader?: boolean;
+  /**
    * SH2b shop cards only: the shop's own photo. Applied as VALUES on the FIRST
    * og:image block (url, type, width, height, alt) and twitter:image; no tag
    * is added, removed or reordered, so the positional binding index.html
@@ -884,6 +890,8 @@ function bookImage(avatarUrl: string | null | undefined, userId: string, name: s
 /** The same handle rule the database checks (profiles_handle_format). */
 const HANDLE_RE = /^[a-z0-9](?:[a-z0-9]|-(?=[a-z0-9])){2,29}$/;
 const PROFILE_ROBOTS = "noindex, follow";
+/** L7 (owner 11-05: search engines opt-in per member, default off): only an exact `true` indexes the page. */
+const PROFILE_ROBOTS_SHOWN = "index, follow";
 const PROFILE_CDN_CACHE = "public, s-maxage=300, stale-while-revalidate=600";
 
 /** The few public fields the card uses from public_profile_by_handle (the same anon read the page makes). */
@@ -894,6 +902,12 @@ interface ProfileCard {
   helpr?: { jobs_done?: number | null } | null;
   listings?: unknown[] | null;
   jobs?: unknown[] | null;
+  show_in_search?: boolean | null;
+  /** M1 (audit 11-05): the true counts (listings holds at most 500) and the header fields (20261105165059). */
+  listing_count?: number | null;
+  job_count?: number | null;
+  town?: string | null;
+  skills?: string | null;
 }
 type ProfileLookup = { state: "found"; card: ProfileCard } | { state: "absent" } | { state: "unknown" };
 
@@ -921,9 +935,11 @@ async function fetchProfileCard(handle: string): Promise<ProfileLookup> {
 }
 
 /**
- * The member's own stored photo at exactly 1200x630, cut by the storage render endpoint (format=origin keeps the
- * stored type). Only an avatar this project stores under avatars/<user id>/avatar.jpg|png; anything else (a
- * social-login photo, another folder, an unknown type) gives no image block and the brand image stays.
+ * The member's own stored photo, cut square at 630x630 by the storage render endpoint (format=origin keeps the
+ * stored type). M1 (audit 11-05): it used to ask 1200x630 and declare that, but render never upscales, so a smaller
+ * avatar came back 800x630 (sips, 11-05) under a 1200x630 declaration; a square is what every avatar can fill, and
+ * what /book already asks. Only an avatar this project stores under avatars/<user id>/avatar.jpg|png; anything else
+ * (a social-login photo, another folder, an unknown type) gives no image block and the brand image stays.
  */
 function profileImage(avatarUrl: string | null | undefined, name: string): Meta["image"] | undefined {
   if (typeof avatarUrl !== "string" || !SUPABASE_URL) return undefined;
@@ -935,12 +951,27 @@ function profileImage(avatarUrl: string | null | undefined, name: string): Meta[
   const type = ext ? AVATAR_TYPES[ext] : undefined;
   if (!type) return undefined;
   return {
-    url: `${SUPABASE_URL}/storage/v1/render/image/public/avatars/${userId}/${file}?width=1200&height=630&resize=cover&quality=80&format=origin`,
+    url: `${SUPABASE_URL}/storage/v1/render/image/public/avatars/${userId}/${file}?width=${PROFILE_IMAGE_PX}&height=${PROFILE_IMAGE_PX}&resize=cover&quality=80&format=origin`,
     type,
-    width: 1200,
-    height: 630,
+    width: PROFILE_IMAGE_PX,
+    height: PROFILE_IMAGE_PX,
     alt: clean(`${name} on Louisiana Helpr`, 120),
   };
+}
+
+/** The /u card's photo is a 630x630 square (see profileImage). */
+const PROFILE_IMAGE_PX = 630;
+
+/** "Yard work, Handyman": the first three comma-separated skills, as the page's chips read them. */
+function profileSkillsLine(skills: string | null | undefined): string {
+  const parts = [...new Set(clean(skills, 200).split(/[,\n]/).map((x) => x.trim()).filter(Boolean))].slice(0, 3);
+  return parts.join(", ");
+}
+
+/** A count the read states, else the length of the list it returned (an older read had no count). */
+function profileCount(count: number | null | undefined, list: unknown[] | null | undefined): number {
+  const n = Number(count);
+  return Number.isFinite(n) && n >= 0 ? n : Array.isArray(list) ? list.length : 0;
 }
 
 function unavailableProfileMeta(url: string): Meta {
@@ -950,6 +981,7 @@ function unavailableProfileMeta(url: string): Meta {
     description: "Find local help and secondhand finds from neighbors on Louisiana Helpr.",
     url,
     robots: PROFILE_ROBOTS,
+    noindexHeader: true,
     cdnCache: PROFILE_CDN_CACHE,
     singleImage: true,
   };
@@ -969,16 +1001,21 @@ async function metaForProfile(rawHandle: string, url: string): Promise<Meta | nu
   if (reviews > 0 && Number.isFinite(avg)) parts.push(`${avg.toFixed(1)} stars (${reviews} review${reviews === 1 ? "" : "s"})`);
   const done = Number(card.helpr?.jobs_done ?? 0);
   if (done > 0) parts.push(`${done} job${done === 1 ? "" : "s"} done`);
-  const selling = Array.isArray(card.listings) ? card.listings.length : 0;
+  // M1 (audit 11-05): the TRUE count (it read "24 items for sale" for a seller with 201), and skills and town lead.
+  const selling = profileCount(card.listing_count, card.listings);
   if (selling > 0) parts.push(`${selling} item${selling === 1 ? "" : "s"} for sale`);
-  const open = Array.isArray(card.jobs) ? card.jobs.length : 0;
+  const open = profileCount(card.job_count, card.jobs);
   if (open > 0) parts.push(`${open} open job${open === 1 ? "" : "s"}`);
+  const skills = profileSkillsLine(card.skills);
+  const town = clean(card.town, 60);
+  const lead = skills ? `${skills}${town ? ` in ${town}` : ""}.` : town ? `${name} in ${town} on Louisiana Helpr.` : `See what ${name} posts and does on Louisiana Helpr.`;
   return {
     title: `${name} on Louisiana Helpr`,
     ogTitle: `${name} on Louisiana Helpr`,
-    description: clean(`See what ${name} posts and does on Louisiana Helpr.${parts.length ? ` ${parts.join(" · ")}.` : ""}`, 200),
+    description: clean(`${lead}${parts.length ? ` ${parts.join(" · ")}.` : ""}`, 200),
     url,
-    robots: PROFILE_ROBOTS,
+    robots: card.show_in_search === true ? PROFILE_ROBOTS_SHOWN : PROFILE_ROBOTS,
+    noindexHeader: card.show_in_search !== true,
     image: profileImage(card.photo_url, name),
     cdnCache: PROFILE_CDN_CACHE,
     singleImage: true,
@@ -1245,13 +1282,13 @@ function isBrowsePage(url: URL): boolean {
   return !!route && route.kind === "page" && route.id === "browse";
 }
 
-function respond(html: string, cdnCache: string = "public, s-maxage=300, stale-while-revalidate=86400", status = 200): Response {
+function respond(html: string, cdnCache: string = "public, s-maxage=300, stale-while-revalidate=86400", status = 200, noindex = false): Response {
   return new Response(html, {
     status,
     headers: {
       // Q2393: an unknown URL is the same shell (the app renders its Not Found
-      // page) but answers 404 and is never indexed.
-      ...(status === 404 ? { "X-Robots-Tag": "noindex" } : {}),
+      // page) but answers 404 and is never indexed. L7: a /u page unless its member opted in.
+      ...(status === 404 || noindex ? { "X-Robots-Tag": "noindex" } : {}),
       "Content-Type": "text/html; charset=utf-8",
       // Browser caching is left to the site-wide `Cache-Control` rule in
       // vercel.json so this response behaves exactly like the static shell.
@@ -1275,13 +1312,14 @@ export default {
       if (url.searchParams.get("_og") === "notfound") return respond(absolutiseIconLinks(SHELL_HTML), undefined, 404);
       const meta = await resolveMeta(url);
       const shell = absolutiseIconLinks(SHELL_HTML);
-      if (!meta) return respond(shell);
+      // L7: a /u page whose card could not be read fails closed (noindex), like every other unknown.
+      if (!meta) return respond(shell, undefined, 200, resolveRoute(url)?.kind === "profile");
       // A shop card goes stale within minutes, never a day: a shop hidden,
       // paused or closed must stop previewing (lh-authz-rls should-fix 2).
       // A Declutter item card likewise: sold or withdrawn stops previewing (Q2426).
       const page = withStaticBody(applyMeta(shell, meta), url);
       if (isBrowsePage(url)) return respond(withBrowseShell(page, await fetchBrowseShellRows()), BROWSE_SHELL_CDN_CACHE);
-      return respond(page, meta.cdnCache);
+      return respond(page, meta.cdnCache, 200, meta.noindexHeader === true);
     } catch {
       // Silence is the contract here: an OG-meta lookup that fails must
       // degrade to the plain shell, never to a broken share page. The
@@ -1296,10 +1334,15 @@ export default {
       // src/test/shareIconLinks.test.ts never looked at this path. The
       // rewrite is pure and idempotent, so degrading still costs a reader
       // nothing but the job-specific preview.
-      return respond(absolutiseIconLinks(SHELL_HTML), undefined, isNotFoundRequest(request) ? 404 : 200);
+      return respond(absolutiseIconLinks(SHELL_HTML), undefined, isNotFoundRequest(request) ? 404 : 200, isProfileRequest(request));
     }
   },
 };
+
+/** L7: a /u/<handle> request (the profile rewrite), read without throwing; it fails closed to noindex. */
+function isProfileRequest(request: Request): boolean {
+  return /[?&]_og=profile(?:&|$)/.test(request.url) || /^https?:\/\/[^/]+\/u\//.test(request.url);
+}
 
 /** Q2393: the catch-all's rewrite, read without throwing (the catch above uses it). */
 function isNotFoundRequest(request: Request): boolean {

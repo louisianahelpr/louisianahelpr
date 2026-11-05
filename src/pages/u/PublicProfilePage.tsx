@@ -46,6 +46,8 @@ import { PublicProfileSkeleton } from "@/components/profile/publicProfile/Public
 import { PublicProfileMemberActions } from "@/components/profile/publicProfile/PublicProfileMemberActions";
 
 const ROBOTS = "noindex, follow";
+/** L7 (owner 11-05): search engines index a page only when its member turned "Show my profile in search engines" on. */
+const ROBOTS_SHOWN = "index, follow";
 
 /** "March 2025". */
 function memberSinceLabel(iso: string): string {
@@ -73,7 +75,7 @@ function Meta({ p, handle }: { p: PublicProfile | null | undefined; handle: stri
     title: p ? `${p.name} on Louisiana Helpr` : "Profile — Louisiana Helpr",
     description: p ? `See what ${p.name} posts and does on Louisiana Helpr.` : "A member's profile on Louisiana Helpr.",
     canonical: handle ? profileLinkUrl(handle) : undefined,
-    robots: ROBOTS,
+    robots: p?.show_in_search === true ? ROBOTS_SHOWN : ROBOTS,
   });
   return null;
 }

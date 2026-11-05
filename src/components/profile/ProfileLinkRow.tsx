@@ -12,6 +12,7 @@ import {
   setMyHandle,
   shareMyProfile,
 } from "@/lib/profileLink/api";
+import { ShowInSearchSwitch } from "@/components/profile/ShowInSearchSwitch";
 
 /**
  * SETTINGS › YOUR ACCOUNT › "Your profile link" (LEAD-PROFILE-LINK, owner 2026-10-31):
@@ -20,9 +21,16 @@ import {
  * Nothing is fetched until the row is opened: the handle is made the first time it is needed
  * (rpc_ensure_my_handle), so opening Settings never writes. Open, it shows the link, the
  * "Share my profile" button, and "Change link" while the member has not changed it yet
- * (rpc_set_my_handle, once; the server refuses a second change either way).
+ * (rpc_set_my_handle, once; the server refuses a second change either way), and the
+ * "Show my profile in search engines" switch (L7, off by default; ShowInSearchSwitch).
  */
-export function ProfileLinkRow({ name, changedOnce }: { name?: string | null; changedOnce?: boolean }) {
+export function ProfileLinkRow({ name, changedOnce, userId, showInSearch }: {
+  name?: string | null;
+  changedOnce?: boolean;
+  /** L7 (owner 11-05): the member's own "Show my profile in search engines" switch; off by default. */
+  userId?: string;
+  showInSearch?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const [handle, setHandle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +114,7 @@ export function ProfileLinkRow({ name, changedOnce }: { name?: string | null; ch
               <Button type="button" data-share-my-profile onClick={() => void shareMyProfile(handle, name)} className="gap-2">
                 <Share2 className="w-4 h-4" aria-hidden /> Share my profile
               </Button>
+              {userId && <ShowInSearchSwitch userId={userId} initial={showInSearch === true} />}
               {!changed && (
                 <Button type="button" variant="ghost" onClick={() => { setDraft(handle); setError(null); setEditing(true); }}>
                   Change link (once)

@@ -110,6 +110,8 @@ export interface PublicProfile {
   licensed?: boolean | null;
   insured?: boolean | null;
   business_name?: string | null;
+  /** L7: the member's own "Show my profile in search engines" switch (default false = noindex). */
+  show_in_search?: boolean;
   /** Every live listing comes back (500 at most); this is their true count. */
   listing_count?: number;
   job_count?: number;

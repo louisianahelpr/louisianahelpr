@@ -435,9 +435,6 @@
     "src/components/messages/DeclutterOrderTalkInbox.tsx": {
       "button": 1
     },
-    "src/components/messages/HiddenUnreadBar.tsx": {
-      "button": 1
-    },
     "src/components/messages/InboxMenus.tsx": {
       "button": 2
     },

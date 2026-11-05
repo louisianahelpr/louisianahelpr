@@ -14,6 +14,8 @@
  * @mutate src/components/ui/ListRow.tsx |     {children}\n    {trailing}\n |     {trailing}\n    {children}\n
  * @mutate src/test/controlInteractionSameness.test.ts | (button\|a\|Button\|ListRow\|Link | (button\|a\|Button\|Link
  * @mutate src/components/marketing/FaqRow.tsx |       <ListRow\n |       <button type="button"\n
+ * @mutate src/components/messages/HiddenUnreadBar.tsx |       <ListRow\n        onClick={onShowAll} |       <button type="button"\n        onClick={onShowAll}
+ * @mutate src/components/messages/HiddenUnreadBar.tsx | w-auto justify-start gap-2 | w-auto gap-2
  */
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -41,6 +43,19 @@ describe("ListRow is the one tappable list row (Q2709)", () => {
     const m = read("src/test/controlInteractionSameness.test.ts").match(/const CONTROL_TAG =\s*\/<\(([^)]+)\)/);
     expect(m, "CONTROL_TAG not found").not.toBeNull();
     expect(m![1].split("|")).toContain("ListRow");
+  });
+
+  it("the inbox's hidden-unread bar shows all through a ListRow, its words on the left", async () => {
+    const { HiddenUnreadBar } = await import("@/components/messages/HiddenUnreadBar");
+    const src = read("src/components/messages/HiddenUnreadBar.tsx");
+    expect(src).toMatch(/<ListRow\b[^>]*onClick=\{onShowAll\}/);
+    expect(src).not.toMatch(/<button\b/);
+    render(<HiddenUnreadBar count={2} onShowAll={() => {}} onDismiss={() => {}} />);
+    const row = screen.getByRole("button", { name: /2 unread conversations/ });
+    const cls = row.className.split(/\s+/);
+    expect(cls).toContain("ctl-tint");
+    expect(cls).toContain("justify-start"); // the dot and the words stay together on the left, never pushed apart
+    expect(cls).not.toContain("justify-between");
   });
 
   it("the FAQ row is a ListRow with no hand-written button", () => {

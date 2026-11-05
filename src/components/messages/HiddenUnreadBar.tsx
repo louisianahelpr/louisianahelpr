@@ -10,6 +10,7 @@
  */
 import { t } from "@/lib/i18n/language";
 import { Button } from "@/components/ui/button";
+import { ListRow } from "@/components/ui/ListRow";
 import "@/lib/i18n/enScreens";
 import { useEffect, useMemo, useState } from "react";
 import { X } from "lucide-react";
@@ -37,11 +38,11 @@ export function HiddenUnreadBar({
         border: "0.5px solid hsl(var(--amber-tint) / 0.30)",
       }}
     >
-      <button
-        type="button"
+      {/* The shared row (Q2709): its tap floor, the sanctioned hover tint and the focus ring; the bar sets its spacing. */}
+      <ListRow
         onClick={onShowAll}
         tabIndex={held ? -1 : undefined}
-        className="flex-1 min-w-0 flex items-center gap-2 pl-3 pr-1 py-2.5 btn-press text-left"
+        className="flex-1 min-w-0 w-auto justify-start gap-2 rounded-ds-md pl-3 pr-1 py-2.5 btn-press"
       >
         <span
           className="shrink-0 w-2 h-2 rounded-full"
@@ -56,7 +57,7 @@ export function HiddenUnreadBar({
             ? "1 unread conversation isn't in active — show all"
             : `${count} unread conversations aren't in Active — show all`}
         </span>
-      </button>
+      </ListRow>
       <Button
         type="button"
         variant="ghost"

@@ -3,6 +3,8 @@ import { cn } from "@/lib/utils";
 import { useOfflineBannerOffset } from "@/lib/offlineBannerLayout";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { DESKTOP_BAR_H } from "@/lib/desktopBar";
+import { isDesktopRailRoute } from "@/lib/desktopNavRoutes";
+import { useStoredSessionHint } from "@/hooks/useStoredSessionHint";
 
 interface AppShellProps {
   /** Optional fixed header (back button + title, tabs, etc.) */
@@ -67,7 +69,15 @@ const AppShell = forwardRef<HTMLDivElement, AppShellProps>(
     //
     // `useIsWebDesktop()` is `!isNativePlatform() && >= 900px`, so this is 0 on
     // phone web and 0 in the native app, leaving both byte-identical.
-    const topBarOffset = useIsWebDesktop() ? DESKTOP_BAR_H : 0;
+    //
+    // Owner request 11-05 (/u/<handle> "the profile title is pushed down"): only when the bar is ON SCREEN. DesktopTopNav
+    // draws only on a rail route for a signed-in member, so a guest page (and a route outside the rail's list) kept a
+    // 70px blank band above its title. Same three inputs as the bar; the session hint is the synchronous stored-token
+    // answer SignedInChrome uses (the bar's chunk loads on it), so this costs no auth read.
+    const isWebDesktop = useIsWebDesktop();
+    const maybeSignedIn = useStoredSessionHint();
+    const pathname = typeof window === "undefined" ? "" : window.location.pathname;
+    const topBarOffset = isWebDesktop && maybeSignedIn && isDesktopRailRoute(pathname) ? DESKTOP_BAR_H : 0;
     const topOffset = bannerOffset + topBarOffset;
 
     return (

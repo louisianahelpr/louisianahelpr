@@ -344,9 +344,6 @@
     "src/components/declutter/GoOnlineCard.tsx": {
       "button": 1
     },
-    "src/components/declutter/MeetupTimesCard.tsx": {
-      "button": 1
-    },
     "src/components/declutter/SellFormParts.tsx": {
       "input": 2
     },
@@ -355,9 +352,6 @@
     },
     "src/components/declutter/SellSummaryCard.tsx": {
       "input": 1
-    },
-    "src/components/declutter/SellerDeliverySettings.tsx": {
-      "button": 1
     },
     "src/components/firstRun/FirstRun.tsx": {
       "button": 1

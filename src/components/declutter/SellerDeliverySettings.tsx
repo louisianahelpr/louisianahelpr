@@ -12,9 +12,10 @@
  */
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Truck } from "lucide-react";
+import { Truck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { CardDisclosureHeader } from "@/components/ui/CardDisclosureHeader";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { ChoicePill } from "@/components/ui/ChoicePill";
 import { Switch } from "@/components/ui/switch";
@@ -68,15 +69,8 @@ export function SellerDeliveryCard() {
   if (mine.isError) return <ErrorState variant="inline" title="We couldn't load your delivery setting." body={declutterErrorMessage(mine.error)} onRetry={() => void mine.refetch()} />;
   return (
     <section className="rounded-2xl border border-border bg-card" aria-label="Your delivery" data-seller-delivery-card="">
-      <button type="button" className="flex w-full min-h-11 items-center gap-3 px-4 py-3 text-left" aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}>
-        <Truck className="h-5 w-5 shrink-0" aria-hidden />
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">I can deliver</span>
-          <span className="block text-xs text-muted-foreground">{mine.isLoading ? "Loading…" : sellerDeliverySummary(mine.data)}</span>
-        </span>
-        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
-      </button>
+      <CardDisclosureHeader icon={Truck} title="I can deliver" open={open} onToggle={() => setOpen((o) => !o)}
+        summary={mine.isLoading ? "Loading…" : sellerDeliverySummary(mine.data)} />
       {open && mine.data && <SellerDeliveryForm current={mine.data} onDone={() => setOpen(false)} />}
     </section>
   );

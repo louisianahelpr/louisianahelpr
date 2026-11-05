@@ -23,6 +23,7 @@ import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { safeStorage } from "@/lib/safeStorage";
 import { DeclutterNotice } from "./declutterUi";
 import { ITEM_PHOTO_ASPECT, ITEM_PHOTO_FRAME_BASE } from "./itemPhotoFrame";
+import { useScreenfulBelow } from "@/hooks/useScreenfulBelow";
 
 /**
  * /declutter: the section shell (top bar), the tab row and the first cards.
@@ -120,14 +121,17 @@ export function DeclutterBrowseBones({ map = false, full = false }: { map?: bool
  * photo bone in the gallery's own frame (a strip of two 80% bones stood in for one full-width square).
  */
 export function DeclutterItemSkeleton() {
+  // The details card reserves the rest of the screen (owner ruling 2026-09-19: "SKELETON FILLS THE SCREEN, GROWS
+  // BELOW"); the real column is taller and grows below the fold.
+  const { ref: columnRef, reserve } = useScreenfulBelow();
   return (
     <AppPage title="Item" backTo="/declutter" phoneHidesTitle hidesTitle stickyHeader>
       <div className="lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8" role="status" aria-label="Loading the item">
         <div>
           <Skeleton className={`${ITEM_PHOTO_FRAME_BASE} ${ITEM_PHOTO_ASPECT.item}`} />
         </div>
-        <div className="mt-4 lg:mt-0 min-w-0 space-y-5">
-          <Skeleton className="h-52 w-full rounded-2xl" aria-hidden />
+        <div ref={columnRef} className="mt-4 lg:mt-0 min-w-0 space-y-5">
+          <Skeleton className="h-52 w-full rounded-2xl" style={{ minHeight: reserve }} aria-hidden />
         </div>
       </div>
     </AppPage>

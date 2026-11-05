@@ -6,7 +6,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, bootModules, bootIconFiles, declutterItemSplit, guestIconFiles, guestBrowseSplit, homeIconFiles, homePageRoots, itemIconFiles, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
+import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, bootModules, bootIconFiles, declutterItemSplit, guestIconSplit, guestBrowseSplit, homeIconFiles, homePageRoots, itemIconFiles, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -192,7 +192,7 @@ const { own: profileFirstScreen, shared: profileSharedLeaves } = profileFirstScr
 const homeIcons = homeIconFiles(process.cwd());
 const bootIcons = bootIconFiles(process.cwd());
 const itemIcons = itemIconFiles(process.cwd());
-const guestIcons = guestIconFiles(process.cwd());
+const { own: guestIcons, shared: guestSharedIcons, declutter: declutterIcons } = guestIconSplit(process.cwd());
 const bootSet = bootModules(process.cwd());
 // B88: Home's PAGE reach. The every-page roots load after Home's first paint; with them here, their shared code
 // (Legal's public page table, ...) rode app-shared onto every page's boot. Build: boot 204 -> 202 KB gz,
@@ -866,6 +866,24 @@ export default defineConfig(({ mode, command }) => ({
               name: "icons-guest",
               test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && guestIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
               priority: 90.6,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
+            // The guest icons the Declutter first screen also draws: their own pin, so /declutter fetches ~30 icons it
+            // draws instead of all 73 guest icons (bootReach.mjs guestIconSplit).
+            {
+              name: "icons-guest-shared",
+              test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && guestSharedIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
+              priority: 90.6,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
+            // The rest of the Declutter first screen's icons (bootReach.mjs guestIconSplit), so /declutter fetches the
+            // icons it draws, not two merged 77-icon chunks.
+            {
+              name: "icons-declutter",
+              test: (id: string) => /lucide-react[\\/]dist[\\/]esm[\\/]icons[\\/]/.test(id) && declutterIcons.has(id.split("?")[0].replace(/^.*[\\/]/, "").replace(/\.mjs$/, "")),
+              priority: 90.55,
               minSize: 0,
               includeDependenciesRecursively: false
             },

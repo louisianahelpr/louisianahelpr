@@ -537,3 +537,42 @@ export function guestIconFiles(root) {
   const taken = new Set([...bootIconFiles(root), ...homeIconFiles(root)]);
   return new Set([...out].filter((i) => !taken.has(i)));
 }
+
+/** The Declutter first screen's roots: the page and its default (Browse) tab, which declutterRoute.ts starts together. */
+export const DECLUTTER_FIRST_SCREEN_ROOTS = ["src/pages/declutter/DeclutterPage.tsx", "src/components/declutter/DeclutterBrowseView.tsx"];
+
+/**
+ * guestIconFiles split in two (Q2707/Q2708, Builder 3 11-05): `shared` = the guest icons the Declutter first screen
+ * (DeclutterPage + its Browse tab, and guest /browse's own chunk, which /declutter fetches) also draws, `own` = the
+ * rest. vite.config pins them as `icons-guest-shared` and
+ * `icons-guest`. As one pin, /declutter fetched all 73 guest icons to draw ~40 of them (on-path icons 18.3 -> 23.2 KB
+ * gz, /declutter 465 -> 469). A guest page fetches both chunks; /declutter fetches only the shared one.
+ */
+export function guestIconSplit(root) {
+  const guest = guestIconFiles(root);
+  const index = fs.readFileSync(path.join(root, "node_modules/lucide-react/dist/esm/lucide-react.mjs"), "utf8");
+  const fileOf = new Map();
+  for (const m of index.matchAll(/export \{([^}]*)\} from '\.\/icons\/([^']+)\.mjs'/g)) {
+    for (const n of m[1].matchAll(/default as (\w+)/g)) fileOf.set(n[1], m[2]);
+  }
+  const drawn = new Set();
+  // Plus guest /browse's own modules: vite.config's browse-first-screen chunk holds them, /declutter fetches that
+  // chunk (its Browse tab shares code with it), and the chunk imports every icon its modules draw.
+  const reach = new Set([...staticReach(root, DECLUTTER_FIRST_SCREEN_ROOTS.map((r) => toPosix(path.join(root, r)))), ...guestBrowseSplit(root).browseOnly]);
+  for (const f of reach) {
+    if (!/\.(tsx?|mjs)$/.test(f)) continue;
+    const src = stripComments(fs.readFileSync(f, "utf8"));
+    for (const x of src.matchAll(/import\s*\{([^}]*)\}\s*from\s*["']lucide-react["']/g)) {
+      for (const n of x[1].split(",")) {
+        const name = n.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0];
+        if (fileOf.has(name)) drawn.add(fileOf.get(name));
+      }
+    }
+  }
+  const shared = new Set([...guest].filter((i) => drawn.has(i)));
+  // `declutter`: the rest of what that first screen draws (not boot, Home, guest or item icons), pinned as
+  // `icons-declutter`. Left to the entriesAware merge, its icons rode in two 77-icon chunks and /declutter fetched
+  // ~220 icons to draw ~120 (465 -> 468 KB gz).
+  const taken = new Set([...guest, ...bootIconFiles(root), ...homeIconFiles(root), ...itemIconFiles(root)]);
+  return { shared, own: new Set([...guest].filter((i) => !shared.has(i))), declutter: new Set([...drawn].filter((i) => !taken.has(i))) };
+}

@@ -1,6 +1,6 @@
 
 // Moved out of ReportDialog.tsx unchanged (component-size ratchet, Q806).
-export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item" | "declutter_wanted" | "declutter_question" | "declutter_answer" | "declutter_review";
+export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item" | "declutter_wanted" | "declutter_question" | "declutter_answer" | "declutter_review" | "shop" | "shop_item";
 
 interface Reason {
   label: string;
@@ -101,6 +101,22 @@ export const REASONS: Record<ReportedType, readonly Reason[]> = {
     { label: "Shares contact info" },
     { label: "Something else" },
   ],
+  // Shops H2 (audit 11-05): shops and items go live at once, so members report the ones that slip through.
+  shop: [
+    { label: "Scam or fake shop" },
+    { label: "Sells something not allowed" },
+    { label: "Offensive" },
+    { label: "Shares contact info" },
+    { label: "Something else" },
+  ],
+  shop_item: [
+    { label: "Not allowed to be sold" },
+    { label: "Scam or fake" },
+    { label: "Wrong category or misleading" },
+    { label: "Offensive" },
+    { label: "Shares contact info" },
+    { label: "Something else" },
+  ],
 };
 
 /**
@@ -120,6 +136,8 @@ export const REPORTED_NOUN: Record<ReportedType, string> = {
   declutter_question: "Question",
   declutter_answer: "Answer",
   declutter_review: "Review",
+  shop: "Shop",
+  shop_item: "Item",
 };
 
 /**
@@ -139,6 +157,8 @@ export const REPORTED_NOUN_INLINE: Record<ReportedType, string> = {
   declutter_question: "question",
   declutter_answer: "answer",
   declutter_review: "review",
+  shop: "shop",
+  shop_item: "item",
 };
 
 /**
@@ -157,4 +177,6 @@ export const REASON_PROMPT: Record<ReportedType, string> = {
   declutter_question: "What's wrong with this question?",
   declutter_answer: "What's wrong with this answer?",
   declutter_review: "What's wrong with this review?",
+  shop: "What's wrong with this shop?",
+  shop_item: "What's wrong with this item?",
 };

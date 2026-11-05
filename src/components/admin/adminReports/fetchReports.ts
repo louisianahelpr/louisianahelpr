@@ -7,6 +7,7 @@ import type { ReportQueueFilter } from "@/components/admin/adminQueueKeys";
 import { hydrateReportedListings, listingCanComeDown, listingSubject, LISTING_REPORT } from "@/components/admin/adminReports/reportedListings";
 import { hydrateReportedWanted, wantedSubject, WANTED_REPORT } from "@/components/admin/adminReports/reportedWanted";
 import { hydrateReportedQuestions, isQuestionReport, questionAuthor, questionSubject } from "@/components/admin/adminReports/reportedQuestions";
+import { hydrateReportedShops, isShopReport, shopSubject } from "@/components/admin/adminReports/reportedShops";
 import type { Report } from "@/components/admin/adminReports/reportType";
 
 // The moderation queue's read, moved out of AdminReports.tsx unchanged (Q806, componentSizeRatchet). The list AND
@@ -40,9 +41,10 @@ export async function fetchReports(filter: ReportQueueFilter): Promise<Report[]>
   // fallback exists to distinguish — gone vs. unreadable — were both wrong
   // for every job report.
   // Item B: a listing report holds a declutter_items id; its person is the seller (reportedListings.ts).
-  const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application" && r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type);
+  const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application" && r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type) && !isShopReport(r.reported_type);
   const { listings, failed: listingsFailed } = await hydrateReportedListings(reportRows);
-  const [{ posts: wantedPosts, failed: wantedFailed }, { questions, failed: questionsFailed }] = await Promise.all([hydrateReportedWanted(reportRows), hydrateReportedQuestions(reportRows)]);
+  const [{ posts: wantedPosts, failed: wantedFailed }, { questions, failed: questionsFailed }, { shops, failed: shopsFailed }] =
+    await Promise.all([hydrateReportedWanted(reportRows), hydrateReportedQuestions(reportRows), hydrateReportedShops(reportRows)]);
   // Q366: an 'application' report holds an APPLICATION id. The person is
   // its helper and the context is its job; both are read from the row.
   const appIds = [...new Set(reportRows.filter(r => r.reported_type === "application").map(r => r.reported_id))];
@@ -64,6 +66,7 @@ export async function fetchReports(filter: ReportQueueFilter): Promise<Report[]>
       : r.reported_type === LISTING_REPORT ? listings.get(r.reported_id)?.seller_id ?? null
       : r.reported_type === WANTED_REPORT ? wantedPosts.get(r.reported_id)?.poster_id ?? null
       : isQuestionReport(r.reported_type) ? questionAuthor(r.reported_type, questions.get(r.reported_id))
+      : isShopReport(r.reported_type) ? shops.get(r.reported_id)?.owner_id ?? null
       : isUserSubject(r) ? r.reported_id : null;
   const userIds = [
     ...new Set(reportRows.flatMap(r => [
@@ -142,6 +145,7 @@ export async function fetchReports(filter: ReportQueueFilter): Promise<Report[]>
       if (r.reported_type === LISTING_REPORT) return listingSubject(listings.get(r.reported_id), listingsFailed);
       if (r.reported_type === WANTED_REPORT) return wantedSubject(wantedPosts.get(r.reported_id), wantedFailed);
       if (isQuestionReport(r.reported_type)) return questionSubject(r.reported_type, questions.get(r.reported_id), questionsFailed);
+      if (isShopReport(r.reported_type)) return shopSubject(r.reported_type, shops.get(r.reported_id), shopsFailed);
       return isUserSubject(r) ? nameFor(r.reported_id) : (jobTitles.get(r.reported_id) ?? "Deleted job");
     };
 
@@ -152,6 +156,7 @@ export async function fetchReports(filter: ReportQueueFilter): Promise<Report[]>
       reporter_name: r.reported_type === WANTED_REPORT && !r.reporter_id ? "Automatic check" : nameFor(r.reporter_id),
       reported_wanted: r.reported_type === WANTED_REPORT ? wantedPosts.get(r.reported_id) : undefined,
       reported_question_gone: isQuestionReport(r.reported_type) && questions.get(r.reported_id)?.removed === true,
+      reported_shop: isShopReport(r.reported_type) ? shops.get(r.reported_id) : undefined,
       reported_name: subjectFor(r),
       // Deleted actors cannot receive a message — the notification would
       // be written against a user_id with nothing behind it.
@@ -166,6 +171,7 @@ export async function fetchReports(filter: ReportQueueFilter): Promise<Report[]>
         || (r.reported_type === LISTING_REPORT && listings.get(r.reported_id)?.is_seed === true)
         || (r.reported_type === WANTED_REPORT && wantedPosts.get(r.reported_id)?.is_seed === true)
         || (isQuestionReport(r.reported_type) && questions.get(r.reported_id)?.is_seed === true)
+        || (isShopReport(r.reported_type) && shops.get(r.reported_id)?.is_seed === true)
         || (r.reporter_id !== null && seedIds.has(r.reporter_id))
         || (r.reported_type === "application"
           && (seedIds.has(appHelper.get(r.reported_id) ?? "") || seedIds.has(appJob.get(r.reported_id) ?? ""))),

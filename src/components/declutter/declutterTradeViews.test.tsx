@@ -1872,7 +1872,9 @@ describe("BUY-15: checkout is two columns from lg, and each cart line shows its 
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | split?.onCardCents === 0 ? "Pay with gift card" : `Pay ${formatPrice(split ? split.onCardCents : payCents)}` | `Pay ${formatPrice(payCents)}`
  * @mutate src/components/declutter/DeclutterTradeViews.tsx | !pickupTimeReady \|\| !!split?.cardPartTooSmall} | !pickupTimeReady}
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |             if (giftWords) { |             if (false) {
- * @mutate src/components/declutter/DeclutterGiftPicker.tsx |   return cards.filter((c) => c.claimed && c.amountCents > 0); |   return cards.filter((c) => c.amountCents > 0);
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx | setGiftRefused((r) => ({ ...r, [gift.id]: giftWords })); setGiftPick(null); | void 0;
+ * @mutate src/components/declutter/DeclutterGiftPicker.tsx |   return !words.startsWith("A card payment for this order is already open"); |   return true;
+ * @mutate src/components/declutter/DeclutterGiftPicker.tsx | return cards.filter((c) => c.claimed && c.amountCents > 0 && | return cards.filter((c) => c.amountCents > 0 &&
  */
 describe("Q2106 S5: paying with a gift card", () => {
   const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
@@ -1954,5 +1956,27 @@ describe("Q2106 S5: paying with a gift card", () => {
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).toBe(refusal);
     expect(state.opened).toEqual([]);
+    // Lead 12:36 AM: the refused gift is no longer a choice; the checkout is back to card only at the full amount.
+    expect(screen.queryByRole("radio", { name: "Use my $5 gift card" })).toBeNull();
+    expect(screen.getByRole("radio", { name: "Pay by card only" })).toBeChecked();
+    const gone = document.querySelector('[data-gift-unavailable="g4"]');
+    expect(gone?.getAttribute("aria-disabled")).toBe("true");
+    expect(gone?.textContent).toContain(refusal);
+    expect(screen.queryByText(/from your gift card/)).toBeNull();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $8.05" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Pay $8.05" }));
+    await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.test/pay"]));
+    expect(state.giftSent).toEqual(["g4", null]);
+  });
+
+  it("a card page already open is not the gift's fault: the gift stays a choice", async () => {
+    state.gifts = [gift("g5", 500)];
+    state.giftRefusal = "A card payment for this order is already open. Finish it or wait a moment, then use the gift.";
+    show(<CartView />);
+    fireEvent.click(await screen.findByRole("radio", { name: "Use my $5 gift card" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $3.05" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Pay $3.05" }));
+    expect((await screen.findByRole("alert")).textContent).toBe(state.giftRefusal);
+    expect(screen.getByRole("radio", { name: "Use my $5 gift card" })).toBeChecked();
   });
 });

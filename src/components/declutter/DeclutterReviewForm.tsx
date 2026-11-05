@@ -19,6 +19,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { StarRow } from "@/components/reviewPanel/StarRow";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { ToggleChip } from "@/components/ui/ToggleChip";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import UserAvatar from "@/components/UserAvatar";
 import { fetchIReviewed, leaveReview } from "@/lib/declutter/handover";
@@ -136,20 +137,14 @@ export function DeclutterReviewForm({ orderId, side, userId, refundPanel = false
             </p>
             <StarRow value={stars} onChange={setStars} label="Stars" />
           </div>
-          {/* Board 163: quick tags, this side's fixed list; selected ones wear the primary olive. */}
+          {/* Board 163: quick tags, this side's fixed list, on the shared ToggleChip (Q2709); a long phrase may wrap. */}
           <div role="group" aria-label="Quick tags" className="flex flex-wrap justify-center gap-2 pt-4" data-review-tags="">
             {REVIEW_TAGS[side].map(([tag, label]) => {
               const on = tags.includes(tag);
               return (
-                <button
-                  key={tag}
-                  type="button"
-                  aria-pressed={on}
-                  className={`min-h-11 rounded-full px-4 text-ds-14 font-semibold ${on ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card"}`}
-                  onClick={() => setTags((t) => (on ? t.filter((x) => x !== tag) : [...t, tag]))}
-                >
+                <ToggleChip key={tag} pressed={on} wrap onClick={() => setTags((t) => (on ? t.filter((x) => x !== tag) : [...t, tag]))}>
                   {label}
-                </button>
+                </ToggleChip>
               );
             })}
           </div>

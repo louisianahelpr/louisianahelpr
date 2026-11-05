@@ -221,7 +221,7 @@ describe("each measured page waits in ONE placeholder and lands once (Q169)", ()
       expect(gate![1], `the landing gate waits for the "${k}" answer`).toContain(`${v![1]}.settled`);
     }
     expect(profile).toContain(`const showSkeleton = tab === "landing" ? !landingReady : loading;`);
-    expect(profile).toMatch(/\n {2}if \(showSkeleton\) \{\s*return <ProfileLoadingShell /);
+    expect(profile).toMatch(/\n {2}if \(showSkeleton\) \{\s*return ProfileLoadingShell\(\{ tab, backFromTab \}\)/);
     // That longer loading frame is the same busy skeleton ProfileRouteSkeleton
     // draws, not a first wave of the page.
     expect(read("pages/profile/ProfileLoadingShell.tsx")).toContain(`<div aria-busy="true" className="container mx-auto px-5 lg:px-6 xl:px-6 pb-4 flex-1 min-h-0 overflow-y-auto">`);

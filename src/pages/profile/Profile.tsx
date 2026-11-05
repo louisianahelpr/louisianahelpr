@@ -337,7 +337,12 @@ const ProfilePage = () => {
   const deleteAccount = useDeleteAccount();
 
   if (showSkeleton) {
-    return <ProfileLoadingShell tab={tab} backFromTab={backFromTab} />;
+    // Called, not mounted (<ProfileLoadingShell />): before the Q806 split this frame was inline, so the skeleton and
+    // the loaded page both put <AppShell> at the root and React kept ONE AppShell across the swap. As its own
+    // component type it made React unmount the whole shell (header, nav, scroller) and mount a new one the moment the
+    // landing settled; ui-sweep #3491 went red on the landing with React #185 from that sha on. ProfileLoadingShell
+    // has no hooks, so calling it is the same as the old inline JSX (src/test/profileShellKeepsItsAppShell.test.ts).
+    return ProfileLoadingShell({ tab, backFromTab });
   }
 
   const displayName = profile?.full_name?.trim() || (user?.email ? user.email.split("@")[0] : "");

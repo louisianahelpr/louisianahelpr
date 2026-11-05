@@ -223,7 +223,7 @@ describe("loading states: the Profile tab placeholder fills the screen", () => {
     // A cold deep link into ?tab=gift_card used to paint an avatar hero and
     // three stat tiles, because the boot branch special-cased one tab.
     // Profile.tsx's boot branch returns <ProfileLoadingShell /> (Q806 split); the shell is the branch.
-    expect(strip(readFileSync(PROFILE, "utf8"))).toMatch(/if \(showSkeleton\) \{\s*return <ProfileLoadingShell /);
+    expect(strip(readFileSync(PROFILE, "utf8"))).toMatch(/if \(showSkeleton\) \{\s*return ProfileLoadingShell\(\{ tab, backFromTab \}\)/);
     const branch = strip(readFileSync(resolve(REPO, "src/pages/profile/ProfileLoadingShell.tsx"), "utf8"));
     expect(branch.length, "ProfileLoadingShell.tsx not found - guard rotted").toBeGreaterThan(100);
     expect(branch).toContain("ProfileTabFallback");

@@ -116,7 +116,7 @@ describe("ProfileTabFallback — the ruling, asserted", () => {
     // resolves and no render test reaches it.
     // Profile.tsx's boot branch returns <ProfileLoadingShell /> (Q806 split); the shell is the branch.
     const page = blankComments(readFileSync(resolve(__dirname, "../../pages/profile/Profile.tsx"), "utf8"));
-    expect(page, "Profile.tsx's loading branch must return the shell").toMatch(/if \(showSkeleton\) \{\s*return <ProfileLoadingShell tab=\{tab\} backFromTab=\{backFromTab\} \/>;/);
+    expect(page, "Profile.tsx's loading branch must return the shell").toMatch(/if \(showSkeleton\) \{\s*return ProfileLoadingShell\(\{ tab, backFromTab \}\);/);
     const branch = blankComments(readFileSync(resolve(__dirname, "../../pages/profile/ProfileLoadingShell.tsx"), "utf8"));
     expect(branch.length, "ProfileLoadingShell.tsx was not found — this guard has rotted").toBeGreaterThan(100);
     expect(branch, "the boot skeleton must render the tab's own placeholder").toContain("ProfileTabFallback");

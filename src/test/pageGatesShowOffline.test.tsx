@@ -110,7 +110,7 @@ describe("page gates that wait on the profile say offline (Q571)", () => {
 
   it("Profile wraps its whole boot placeholder in the gate", () => {
     // Profile.tsx's boot branch returns <ProfileLoadingShell /> (Q806 split); the shell is the branch.
-    expect(blankComments(readFileSync("src/pages/profile/Profile.tsx", "utf8"))).toMatch(/if \(showSkeleton\) \{\s*return <ProfileLoadingShell /);
+    expect(blankComments(readFileSync("src/pages/profile/Profile.tsx", "utf8"))).toMatch(/if \(showSkeleton\) \{\s*return ProfileLoadingShell\(\{ tab, backFromTab \}\)/);
     const branch = blankComments(readFileSync("src/pages/profile/ProfileLoadingShell.tsx", "utf8"));
     expect(branch.length).toBeGreaterThan(100);
     expect(branch).toMatch(/<ProfileOfflineGate tab=\{tab\} onBack=\{backFromTab\}>\s*\{tab === "landing"/);

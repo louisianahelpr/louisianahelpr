@@ -148,6 +148,29 @@ async function applicationsFor(api: APIRequestContext, jobId: string): Promise<n
   return rows.length;
 }
 
+/**
+ * Make every backend call from `page` fail as an expired session does, by
+ * breaking what the page sends (never by answering for prod): the bearer's
+ * signature is replaced, and a token refresh carries a refresh token prod has
+ * never issued. `fallback` keeps any context-level route (write aborts) in force.
+ */
+async function expireSessionOnTheWire(page: Page) {
+  await page.route(`${SUPABASE_URL}/**`, (route) => {
+    const req = route.request();
+    const headers = { ...req.headers() };
+    const bearer = /^Bearer (.+)$/i.exec(headers.authorization ?? "")?.[1];
+    if (bearer) {
+      const parts = bearer.split(".");
+      headers.authorization = `Bearer ${parts.length === 3 ? `${parts[0]}.${parts[1]}.e2e-expired-signature` : `${bearer}-e2e-expired`}`;
+    }
+    let postData = req.postData() ?? undefined;
+    if (/\/auth\/v1\/token/.test(req.url()) && postData && /refresh_token/.test(postData)) {
+      postData = postData.replace(/"refresh_token"\s*:\s*"[^"]*"/, '"refresh_token":"e2e-expired-refresh-token"');
+    }
+    return route.fallback({ headers, postData });
+  });
+}
+
 async function helperContext(browser: import("@playwright/test").Browser): Promise<{ ctx: BrowserContext; page: Page }> {
   const ctx = await newUserContext(browser, helper);
   return { ctx, page: await ctx.newPage() };
@@ -344,20 +367,18 @@ test.describe("apply", () => {
     await ctx.close();
   });
 
-  test("session expires with the apply sheet open: no crash, an honest message or a sign-in that remembers the job", async ({ browser }, info) => {
+  test("session expires with the apply sheet open: no crash, an honest message or a sign-in that remembers the job", async ({ browser, request }, info) => {
     const { ctx, page } = await helperContext(browser);
     const { apply } = await openApply(page, jobId);
-    // The session dies underneath the open form: every backend call now answers
-    // as GoTrue/PostgREST do for an expired JWT, and refresh is refused.
-    await page.route(`${SUPABASE_URL}/auth/v1/token*`, (route) =>
-      route.fulfill({ status: 400, contentType: "application/json", body: JSON.stringify({ error: "invalid_grant", error_description: "Invalid Refresh Token: Refresh Token Not Found" }) }),
-    );
-    await page.route(`${SUPABASE_URL}/rest/v1/**`, (route) =>
-      route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ code: "PGRST301", message: "JWT expired" }) }),
-    );
-    await page.route(`${SUPABASE_URL}/auth/v1/user*`, (route) =>
-      route.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ code: 401, msg: "invalid JWT: token is expired" }) }),
-    );
+    // The session dies underneath the open form, and PROD says so (Q1035: no
+    // mocked answers): every call to the backend now carries a bearer whose
+    // signature is broken, so PostgREST, GoTrue and the edge functions refuse
+    // it themselves (401, as for an expired JWT), and a refresh sends a refresh
+    // token prod has never issued, which GoTrue refuses (400 invalid_grant).
+    // Only what this page SENDS is changed; the seat's real tokens are never
+    // sent, so nothing is revoked (a sign-out the app tries carries the broken
+    // bearer too and is refused).
+    await expireSessionOnTheWire(page);
     await apply.click({ force: true });
     await page.waitForTimeout(4_000);
     await shoot(page, info, "apply-session-expired");
@@ -367,6 +388,7 @@ test.describe("apply", () => {
     const toldUser = await page.getByText(/sign in|signed out|session|expired|log in|couldn't send|try again/i).first().isVisible().catch(() => false);
     expect(onLogin || toldUser, `after expiry the user was neither sent to sign in nor told anything (at ${page.url()})`).toBe(true);
     await expect(page.getByText(/application sent/i), "success shown for a write that was refused").toHaveCount(0);
+    expect(await applicationsFor(request, jobId), "prod refused the write: no application row").toBe(0);
     // Recoverable: with the network honest again, the app comes back.
     await page.unrouteAll({ behavior: "ignoreErrors" });
     await page.goto("/home");

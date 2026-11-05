@@ -55,7 +55,6 @@ const BASELINE: string[] = [
   "happy-path/seedData.ts",
   "happy-path/seedDataHeavy.ts",
   "happy-path/state-matrix/state-sweep.spec.ts",
-  "prod-audit/interruptions.spec.ts",
 ];
 
 /** Every .ts under e2e/, relative to e2e/. */

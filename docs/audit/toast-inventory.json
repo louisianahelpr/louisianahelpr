@@ -8559,7 +8559,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 113,
+      "line": 114,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8569,7 +8569,7 @@
     },
     {
       "file": "src/components/profile/SettingsTab.tsx",
-      "line": 205,
+      "line": 206,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -14385,7 +14385,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 134,
+      "line": 135,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -14395,7 +14395,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 139,
+      "line": 140,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14405,7 +14405,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 165,
+      "line": 166,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -14415,7 +14415,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 179,
+      "line": 180,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -14435,7 +14435,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 186,
+      "line": 187,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14445,7 +14445,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 208,
+      "line": 209,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -14455,7 +14455,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 214,
+      "line": 215,
       "kind": "toast.error",
       "title": {
         "form": "literal",

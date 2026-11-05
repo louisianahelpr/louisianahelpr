@@ -4,7 +4,7 @@
  * The server side (hours stored, copied from the usual times, frozen on the order, the buyer's time checked):
  * src/test/pglite/declutterPlaceHours.pglite.mjs.
  *
- * @mutate src/components/declutter/DeclutterPickupTimes.tsx |     return `${days.length === 7 ? "Every day" : shortDays(days)} ${range(ws[0])}`; |     return shortDays(days);
+ * @mutate src/lib/declutter/pickupTimesText.ts |     return `${days.length === 7 ? "Every day" : shortDays(days)} ${range(ws[0])}`; |     return shortDays(days);
  * @mutate src/components/declutter/ItemPickupDisplay.tsx |       {places.map((p, i) => ( |       {places.slice(0, 1).map((p, i) => (
  * @mutate src/components/declutter/SellOneScreen.tsx |   const pickup = usePickupLines(savedWays, form.areaLabel, windows); |   const pickup: string[] = [];
  * @mutate src/components/declutter/ItemHandoverTimes.tsx |     {(plan.places \|\| read.isError) && <ItemPickupPlaces itemId={itemId} />}\n |
@@ -27,7 +27,7 @@ describe("a pickup place's days and hours in words", () => {
   it("an older server with days only: the days", () => {
     expect(placeHoursLine(null, [6, 0])).toBe("Sun, Sat");
     // Review 2026-10-31: a row with no days and no hours reads as nothing; it never throws and blanks the item page.
-    // @mutate src/components/declutter/DeclutterPickupTimes.tsx |   if (!Array.isArray(days)) return ""; |
+    // @mutate src/lib/declutter/pickupTimesText.ts |   if (!Array.isArray(days)) return ""; |
     expect(placeHoursLine(null, undefined)).toBe("");
     expect(placeHoursLine(undefined, null)).toBe("");
   });

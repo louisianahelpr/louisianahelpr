@@ -42,6 +42,7 @@ import { ReportSubjectButton } from "@/components/admin/adminReports/ReportSubje
 import { SLA_BREACH_HOURS, slaInfo, typeIcon } from "@/components/admin/adminReports/reportRowBits";
 
 import type { Report } from "@/components/admin/adminReports/reportType";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 // Triage states. The DB CHECK (added in migration 20260609160000) allows
 // new/investigating/resolved/dismissed alongside the legacy
@@ -288,7 +289,7 @@ const AdminReports = () => {
                     <p className="text-ds-13 font-semibold text-foreground">
                       <InlineTextButton
                         disabled={report.reported_type === WANTED_REPORT && !report.subject_user_id}
-                        onClick={() => navigate(`/user/${report.subject_user_id ?? report.reported_id}`)}
+                        onClick={() => navigate(memberProfilePath(report.subject_user_id ?? report.reported_id))}
                         className="hover:text-primary"
                       >
                         {report.reported_name}
@@ -307,7 +308,7 @@ const AdminReports = () => {
                           nameFor(), so the label needs no special case. */}
                       {report.reporter_id ? (
                         <InlineTextButton
-                          onClick={() => navigate(`/user/${report.reporter_id}`)}
+                          onClick={() => navigate(memberProfilePath(report.reporter_id))}
                           className="hover:text-primary"
                         >
                           {report.reporter_name}

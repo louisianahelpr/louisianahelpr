@@ -25,6 +25,7 @@ import { SaveBar } from "@/components/profile/profileEditForm/SaveBar";
 import { isProfileEditDirty } from "@/components/profile/profileEditForm/isProfileEditDirty";
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { TAB_TITLES } from "@/pages/profile/types";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 export type { ProfileEditFormProps } from "@/components/profile/profileEditForm/types";
 
@@ -203,7 +204,7 @@ export function ProfileEditForm({
             type="button"
             variant="ghost"
             size="sm"
-            onClick={() => navigate(`/user/${profile.user_id}`)}
+            onClick={() => navigate(memberProfilePath(profile.user_id))}
             className="px-2 text-ds-13 font-semibold tracking-normal"
             style={{ color: "hsl(var(--ink-deep))" }}
           >

@@ -3,8 +3,9 @@
  * members-only (a guest hit the login wall and its card said "Profiles on Helpr are visible to members"), /book/<id>
  * was a separate thin card, /u/<handle> the real public page. Now:
  *   - /book/<id> forwards everyone to /u/<handle>; no public page = "This Helpr isn't available";
- *   - /user/<id> forwards a signed-out visitor to /u/<handle>; no public page = the login wall as before; a member
- *     keeps /user/<id> (Message, Invite, Block and Report live only there);
+ *   - /user/<id> forwards a signed-out visitor to /u/<handle>; no public page = the login wall as before;
+ *   - H5 last slice (Builder 2, 11-05): a member forwards too (the /u page has /user's Save, Report and Block), except
+ *     with no public page or when they blocked this person (only /user has Unblock);
  *   - api/share.ts gives both old links the /u card (og:url the /u link), and keeps the old cards while
  *     handle_for_user is not deployed;
  *   - the profile menu's "Book me on Helpr" row opens /u/<handle>.
@@ -12,7 +13,7 @@
  * src/test/pglite/publicProfileByHandle.pglite.mjs P23/P24 (LH_HANDLE_FOR_USER=20261105171316_handle_for_user.sql).
  *
  * @mutate src/components/profile/PublicProfileForward.tsx | if (q.data.state === "found") return <Navigate | if (q.data.state === "nope") return <Navigate
- * @mutate src/components/profile/PublicProfileForward.tsx |   if (!isReady \|\| user) return members; |   if (!isReady) return members;
+ * @mutate src/components/profile/PublicProfileForward.tsx |   if (!isReady) return members; |   if (!isReady \|\| user) return members;
  * @mutate src/components/profile/PublicProfileForward.tsx |  notDeployed={children} onForward={rememberBookingSource} /> |  notDeployed={children} />
  * @mutate src/App.tsx | routeEl(<BookHelprRoute><BookHelprPage /></BookHelprRoute>) | routeEl(<BookHelprPage />)
  * @mutate src/App.tsx | routeEl(<UserProfileRoute><UserProfile /></UserProfileRoute>) | routeEl(<ProtectedRoute><UserProfile /></ProtectedRoute>)
@@ -34,7 +35,9 @@ import { ensureOgShellSnapshot } from "./helpers/ogShellSnapshot";
 const rpc = vi.fn();
 let signedIn: { id: string } | null = null;
 const remembered = vi.fn();
-vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (...a: unknown[]) => rpc(...a) } }));
+let blockRows: { id: string }[] = [];
+const blockChain = { select: () => blockChain, eq: () => blockChain, limit: async () => ({ data: blockRows, error: null }) };
+vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (...a: unknown[]) => rpc(...a), from: () => blockChain } }));
 vi.mock("@/components/AppPage", () => ({ default: ({ children }: { children: ReactNode }) => <main>{children}</main> }));
 vi.mock("@/components/ProtectedRoute", () => ({ default: ({ children }: { children: ReactNode }) => <div data-testid="members-only">{children}</div> }));
 vi.mock("@/components/RouteSuspenseFallback", () => ({ RouteSuspenseFallback: () => <p>loading</p> }));
@@ -64,6 +67,7 @@ describe("old profile links forward to /u/<handle>", () => {
     rpc.mockReset();
     remembered.mockReset();
     signedIn = null;
+    blockRows = [];
   });
 
   it("a guest on /user/<id> lands on the public page, through handle_for_user", async () => {
@@ -79,8 +83,24 @@ describe("old profile links forward to /u/<handle>", () => {
     expect(await screen.findByTestId("members-only")).toBeTruthy();
   });
 
-  it("a member on /user/<id> keeps the member profile and makes no lookup", async () => {
+  it("a member on /user/<id> lands on the public page too", async () => {
     signedIn = { id: "me" };
+    rpc.mockResolvedValue({ data: "eli-b", error: null });
+    await show(`/user/${ID}`);
+    expect(await screen.findByText("public page")).toBeTruthy();
+    expect(rpc).toHaveBeenCalledWith("handle_for_user", { p_user_id: ID });
+  });
+
+  it("a member on /user/<id> with no public page keeps the member profile (Report and Block stay reachable)", async () => {
+    signedIn = { id: "me" };
+    rpc.mockResolvedValue({ data: null, error: null });
+    await show(`/user/${ID}`);
+    expect(await screen.findByText("the member profile")).toBeTruthy();
+  });
+
+  it("a member who blocked this person keeps /user/<id> (its Unblock) and makes no lookup", async () => {
+    signedIn = { id: "me" };
+    blockRows = [{ id: "b1" }];
     rpc.mockResolvedValue({ data: "eli-b", error: null });
     await show(`/user/${ID}`);
     expect(await screen.findByText("the member profile")).toBeTruthy();

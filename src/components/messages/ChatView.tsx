@@ -30,6 +30,7 @@ import { buildTimeline, resolveLastOwnMessageId } from "./chatView/chatViewHelpe
 import { CHAT_RULES_DISMISSED_KEY, readBannerDismissed } from "./chatView/chatRulesBanner";
 import { DealCard } from "./chatView/DealCard";
 import { Textarea } from "@/components/ui/textarea";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 /**
  * The reading column for the safety banner and the message scroller, NOT the composer's (VN-25, owner 09-14). Owner
@@ -364,7 +365,7 @@ export function ChatView({
           // (otherUserId null); the guards keep a null out of the targets.
           onReportUser={() => { if (otherUserId !== null) setReportTarget({ type: "user", id: otherUserId }); }}
           onBlockUser={() => { if (otherUserId !== null) setBlockTarget({ id: otherUserId, name: activeConvo.otherUserName }); }}
-          onViewProfile={() => { if (otherUserId !== null) navigate(`/user/${otherUserId}`); }}
+          onViewProfile={() => { if (otherUserId !== null) navigate(memberProfilePath(otherUserId)); }}
         />
       }
     >

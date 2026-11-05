@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useFeature } from "@/hooks/useFeature";
 import { fetchItemInMovingSale } from "@/lib/declutter/movingSale";
 import { DeclutterNotice } from "./declutterUi";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 export function DeclutterMovingSaleNote({ itemId, sellerId }: { itemId: string; sellerId: string }) {
   const on = useFeature("declutter_moving_out");
@@ -15,7 +16,7 @@ export function DeclutterMovingSaleNote({ itemId, sellerId }: { itemId: string; 
   return (
     <div data-item-moving-sale="">
       <DeclutterNotice title="Part of a moving sale.">
-        <Link to={`/user/${sellerId}`} className="font-semibold underline underline-offset-2">See the whole sale</Link>.
+        <Link to={memberProfilePath(sellerId)} className="font-semibold underline underline-offset-2">See the whole sale</Link>.
       </DeclutterNotice>
     </div>
   );

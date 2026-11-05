@@ -4,11 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { report } from "@/lib/errorLogger";
 import { Button } from "@/components/ui/button";
-import { Download, Users, Briefcase, DollarSign, Loader2 } from "lucide-react";
+import { Download, Users, Briefcase, DollarSign, Receipt, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AdminViewShell, AdminCard } from "@/components/admin/AdminViewShell";
 import { saveOrShareFile } from "@/lib/fileExport";
 import { userFacingError } from "@/lib/userFacingError";
+import { SALES_TAX_CORRECTIONS_HEADER, salesTaxCorrectionLines, salesTaxCorrectionsPeriod, type SalesTaxCorrectionRow } from "@/lib/salesTaxCorrectionsCsv";
 
 /** A row of the jobs export: the narrow select, plus the two columns only the wide one carries. */
 type ExportJobRow = Pick<
@@ -185,6 +186,24 @@ const AdminExport = () => {
     setExporting(null);
   };
 
+  // Q1918 + Q2148 (2): what to subtract from Stripe's Tax report (lost chargebacks and part-captured holds on
+  // Checkout-taxed charges). The RPC returns only live, non-seed rows; it is admin-only on the server.
+  const exportTaxCorrections = async () => {
+    setExporting("tax");
+    const { from, to } = salesTaxCorrectionsPeriod(new Date());
+    const { data, error } = await supabase.rpc("admin_sales_tax_adjustments", { p_from: from, p_to: to });
+    if (error) {
+      report(error, { tags: { source: "AdminExport.exportTaxCorrections" } });
+      toast.error(userFacingError(error, "Couldn't export that — try again."));
+      setExporting(null);
+      return;
+    }
+    const rows = (data ?? []) as SalesTaxCorrectionRow[];
+    if (!rows.length) { toast.success("No sales-tax corrections this year: Stripe's Tax report needs none."); setExporting(null); return; }
+    await downloadCSV("sales-tax-corrections", SALES_TAX_CORRECTIONS_HEADER, salesTaxCorrectionLines(rows));
+    setExporting(null);
+  };
+
   // One row per dataset, so the three cards are provably identical instead
   // of three hand-copied blocks that could drift apart the next time one is
   // edited (they had already drifted from every other admin card by carrying
@@ -193,6 +212,7 @@ const AdminExport = () => {
     { key: "users", icon: Users, title: "Users", body: "All user profiles including status, role, and subscription info.", label: "Export Users", run: exportUsers },
     { key: "jobs", icon: Briefcase, title: "Jobs", body: "All jobs with status, budgets, and assignment details.", label: "Export Jobs", run: exportJobs },
     { key: "earnings", icon: DollarSign, title: "Earnings", body: "Completed jobs with fee breakdowns for accounting.", label: "Export Earnings", run: exportEarnings },
+    { key: "tax", icon: Receipt, title: "Sales tax corrections", body: "Tax Stripe's report still counts but we did not keep (lost chargebacks, holds captured in part). Subtract these when you file.", label: "Export Tax Corrections", run: exportTaxCorrections },
   ] as const;
 
   return (
@@ -200,7 +220,7 @@ const AdminExport = () => {
       <AdminCard
         title="Data Exports"
         subtitle="Platform data as CSV files for reporting, accounting, and compliance."
-        contentClassName="grid grid-cols-1 sm:grid-cols-3 gap-3"
+        contentClassName="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"
       >
         {DATASETS.map(({ key, icon: Icon, title, body, label, run }) => (
           /* `flex-col` + `mt-auto` on the button: the three descriptions are

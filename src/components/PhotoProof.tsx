@@ -1,4 +1,5 @@
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { storageExtFor } from "@/lib/storageExt";
 import { prepareProofPhotos } from "@/components/prepareProofPhotos";
 import { PROOF_PHOTO_TYPES, isAllowedUploadType } from "@/lib/uploadTypes";
@@ -443,9 +444,9 @@ export const PhotoProofGroup = ({
       title="Photo proof"
       action={
         (hasBefore || hasAfter) ? (
-          <button onClick={() => setViewOpen(true)} className="text-ds-10 text-primary hover:underline font-medium shrink-0">
+          <InlineTextButton onClick={() => setViewOpen(true)} className="text-ds-10 text-primary font-medium shrink-0">
             View all
-          </button>
+          </InlineTextButton>
         ) : undefined
       }
     >

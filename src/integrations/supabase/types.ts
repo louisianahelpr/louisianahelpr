@@ -18111,7 +18111,11 @@ export type Database = {
         Returns: boolean
       }
       get_my_activity_cores: {
-        Args: { p_application_columns: string[]; p_job_columns: string[] }
+        Args: {
+          p_application_columns: string[]
+          p_application_job_columns?: string[]
+          p_job_columns: string[]
+        }
         Returns: Json
       }
       get_my_job_card_hold: {

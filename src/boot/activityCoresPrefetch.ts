@@ -40,6 +40,11 @@ export const CORES_JOB_COLUMNS = [
   "stripe_session_id", "title", "updated_at", "urgent_fee", "zip_code", "materials_note", "onboarding_fee_amount",
   "poster_marked_done_at",
 ];
+/** Copy of APPLICATION_JOB_COLUMNS (src/lib/activityCores.ts: the posted list plus six; the test holds them equal). */
+export const CORES_APPLICATION_JOB_COLUMNS = [
+  ...CORES_JOB_COLUMNS, "offered_to_helper_id", "series_ended_on", "series_split_ok", "series_ban_cancelled_at", "tax_kind",
+  "date_window_end",
+];
 /** Copy of APPLICATION_READABLE_COLUMN_LIST (src/lib/applicationColumns.ts; the test holds them equal). */
 export const CORES_APPLICATION_COLUMNS = [
   "attachment_urls", "closed_reason", "created_at", "decline_reason", "flagged_hidden", "helper_id", "id", "job_id",
@@ -74,7 +79,10 @@ export function startActivityCoresPrefetch(pathname: string, search: string = lo
   const answer = fetch(`${base.replace(/\/$/, "")}/rest/v1/rpc/get_my_activity_cores`, {
     method: "POST",
     headers: { apikey: key, Authorization: `Bearer ${session.token}`, Accept: "application/json", "Content-Type": "application/json" },
-    body: JSON.stringify({ p_job_columns: CORES_JOB_COLUMNS, p_application_columns: CORES_APPLICATION_COLUMNS }),
+    body: JSON.stringify({
+      p_job_columns: CORES_JOB_COLUMNS, p_application_columns: CORES_APPLICATION_COLUMNS,
+      p_application_job_columns: CORES_APPLICATION_JOB_COLUMNS,
+    }),
   })
     .then((r) => (r.ok ? (r.json() as Promise<unknown>) : null))
     // A failed prefetch is not an error: the read asks for itself.

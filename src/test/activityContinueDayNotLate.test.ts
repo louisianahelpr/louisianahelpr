@@ -22,10 +22,10 @@
 // @mutate src/lib/continueDayReads.ts |   if (!Array.isArray(rows)) return null; |   if (!Array.isArray(rows)) return {};
 // @mutate src/hooks/useActivityData.ts |   const continueDays = openContinueDaysFrom(cores?.open_continue_days) ?? await fetchMyOpenContinueDays(userId, "posted"); |   const continueDays = await fetchMyOpenContinueDays(userId, "posted");
 // @mutate src/hooks/useActivityData.ts |   const continueDays = openContinueDaysFrom(cores?.open_continue_days) ?? await fetchMyOpenContinueDays(userId, "applied"); |   const continueDays = openContinueDaysFrom(cores?.open_continue_days) ?? {};
-// @mutate supabase/migrations/20261103231310_activity_cores_carry_open_continue_days.sql |        WHERE d.status = 'set' AND d.closed_at IS NULL | WHERE d.status IN ('proposed', 'set')
-// @mutate supabase/migrations/20261103231310_activity_cores_carry_open_continue_days.sql |          AND d.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid | AND d.job_id IN (SELECT j.id FROM public.jobs j
-// @mutate supabase/migrations/20261103231310_activity_cores_carry_open_continue_days.sql |     'open_continue_days', ( |     'open_days', (
-// @mutate supabase/migrations/20261103231310_activity_cores_carry_open_continue_days.sql |  STABLE SECURITY INVOKER\n SET search_path TO 'public' |  STABLE SECURITY DEFINER\n SET search_path TO 'public'
+// @mutate supabase/migrations/20261105104129_activity_cores_application_job_columns.sql |        WHERE d.status = 'set' AND d.closed_at IS NULL | WHERE d.status IN ('proposed', 'set')
+// @mutate supabase/migrations/20261105104129_activity_cores_application_job_columns.sql |          AND d.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid | AND d.job_id IN (SELECT j.id FROM public.jobs j
+// @mutate supabase/migrations/20261105104129_activity_cores_application_job_columns.sql |     'open_continue_days', ( |     'open_days', (
+// @mutate supabase/migrations/20261105104129_activity_cores_application_job_columns.sql |  STABLE SECURITY INVOKER\n SET search_path TO 'public' |  STABLE SECURITY DEFINER\n SET search_path TO 'public'
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { join } from "node:path";
 import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";

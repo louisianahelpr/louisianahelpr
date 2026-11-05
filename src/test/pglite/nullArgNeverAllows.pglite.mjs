@@ -270,7 +270,12 @@ CREATE FUNCTION public.declutter_active_strike_count(p_user_id uuid) RETURNS int
 -- Shops M1 (20261018164444) reads the shop's own strike count instead; stubbed at 0 the same way.
 CREATE FUNCTION public.shop_active_strike_count(p_user_id uuid) RETURNS integer LANGUAGE sql STABLE AS $$ SELECT 0 $$;
 -- Shops M1/M2: the columns shop_handover_photo_access (20261018211820) reads; no order row (an admin reads without one).
-CREATE TABLE public.shop_orders (id uuid PRIMARY KEY, buyer_id uuid, seller_id uuid, status text NOT NULL, captured_at timestamptz);
+CREATE TABLE public.shop_orders (id uuid PRIMARY KEY, buyer_id uuid, seller_id uuid, status text NOT NULL, captured_at timestamptz,
+  -- Shops H9 (20261105230819): the columns the 'shop' fixture step writes for order 0402 and shop_review_public reads.
+  shop_id uuid, handed_over_at timestamptz, ready_date date, cancel_policy text, items_cents integer, premium_cents integer,
+  tax_cents integer, total_cents integer, stripe_payment_intent_id text);
+CREATE TABLE public.shop_reviews (id uuid PRIMARY KEY, order_id uuid NOT NULL, shop_id uuid NOT NULL, reviewer_id uuid, reviewee_id uuid,
+  reviewer_side text NOT NULL, stars smallint NOT NULL, is_seed boolean NOT NULL DEFAULT false, removed_at timestamptz);
 -- 20261027163240 (payout setup only when owed): payout_setup_hire_allowed also reads a shop's payouts.
 CREATE TABLE public.shop_payouts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid);
 CREATE SCHEMA IF NOT EXISTS storage;
@@ -345,13 +350,17 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Instant book (20261101063725): is this Helpr free on this day (their calendar).
   "instant_book_helper_free_on",
   // Free ask's confirmed time (20261101174857), after declutter_slot_in_windows which it calls; live position (20261101184555).
-  "declutter_seller_slot_open", "helpr_task_position_viewer"];
+  "declutter_seller_slot_open", "helpr_task_position_viewer",
+  // Shops H9 (20261105230819): may this shop review be shown (loaded after the stubs: see AFTER_STUBS).
+  "shop_review_public"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).
 // declutter_item_link_visible (Q2426) calls seed_hidden_in_discovery(), a stubbed noarg, so it loads after the stubs too.
 const AFTER_STUBS = ["job_announceable_to", "shop_state_ok", "shop_publicly_visible", "shop_link_visible", "shop_visible_to", "shop_extras_readable",
-  "declutter_item_link_visible"];
+  "declutter_item_link_visible",
+  // Shops H9 (20261105230819): its SQL body calls seed_jobs_hidden_publicly(), a stubbed noarg.
+  "shop_review_public"];
 // job_offer_cutoff (Q1784): called by the newest allow bodies; loaded verbatim
 // like the rest (SQL bodies are validated at CREATE, so it must exist first).
 const HELPERS = ["job_offer_cutoff", "job_legacy_completed_at", "job_messaging_closes_at", "is_caller_banned", "are_users_blocked", "is_off_job",

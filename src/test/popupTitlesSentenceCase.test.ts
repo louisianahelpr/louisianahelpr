@@ -170,7 +170,8 @@ describe("every pop-up title is sentence case", () => {
     // 216: +1 "Handed over?" (ShopHandoverActions, the shop seller's handover confirm, Shops H5 20261105182903).
     // 218: +2 the admin's shop-report confirm (ShopReportPanel, Shops H2 20261105182210): "Take this item down?" and "Hide this shop?".
     // 220: +2 the shop chat sheet (ShopTalk, Shops H1 20261105185006): "Message ${t.other_label}" and "Messages" while it loads.
-    expect(all.length).toBe(220);
+    // 221: +1 the shop order card's review sheet (ShopReviews, Shops H9 20261105230819): "Leave a review".
+    expect(all.length).toBe(221);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

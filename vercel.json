@@ -10,6 +10,9 @@
   "functions": {
     "api/uptime-heartbeat.ts": {
       "maxDuration": 90
+    },
+    "api/og-profile.ts": {
+      "includeFiles": "{api/_og/**,node_modules/@resvg/resvg-wasm/index_bg.wasm}"
     }
   },
   "redirects": [

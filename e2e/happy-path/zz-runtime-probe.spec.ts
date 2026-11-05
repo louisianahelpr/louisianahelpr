@@ -3,31 +3,20 @@
  *
  * 1. Realtime channel scoping (CLAUDE.md house rule: every `postgres_changes`
  *    binding needs a server-side `filter` scoped to the user, and a unique
- *    channel name via `channelNonce()`). Checked BOTH statically (parse every
- *    `.channel(...).on("postgres_changes", …)` site in src/) and at RUNTIME
- *    (record the real `phx_join` frames the app pushes over the realtime
- *    websocket while walking the authed routes).
+ *    channel name via `channelNonce()`). Checked statically here (parse every
+ *    `.channel(...).on("postgres_changes", …)` site in src/). The RUNTIME half
+ *    (the real `phx_join` frames a signed-in member's app pushes over prod's
+ *    realtime socket) runs on the real backend in
+ *    e2e/journeys/runtime-probe.spec.ts (Q1035: no mocked-Supabase specs).
  *
  * 2. Error boundaries — forced, not assumed: a route-level render crash, a
- *    lazy-chunk 404 (the real post-deploy scenario), a section-level crash
- *    inside a page, and offline.
+ *    lazy-chunk 404 (the real post-deploy scenario) and an offline lazy-route
+ *    navigation, all as a guest. The signed-in section-level crash and the
+ *    offline banner run in e2e/journeys/runtime-probe.spec.ts.
  *
  * 3. Deep links / universal links — the AASA file's claimed paths, the
  *    `deepLinkRoute.ts` normalizer, and what the native-only short paths
  *    actually do in a browser.
- *
- * ── How the realtime capture works ────────────────────────────────────────
- * `page.route()` cannot see a ws:// upgrade, so fixtures.ts installs an
- * "InertSocket" that swallows every send. That is the right default for the
- * rest of the suite (it silences the console error) but it also throws away
- * exactly the frames this spec needs. So this spec installs its OWN websocket
- * stub FIRST and sets the `__helprRealtimeStubbed` flag the fixture checks, so
- * `installSupabaseMocks()` leaves ours in place. Ours speaks enough of the
- * Phoenix v2 wire protocol (`[join_ref, ref, topic, event, payload]`, see
- * @supabase/realtime-js/dist/module/lib/serializer.js) to answer `phx_join`
- * with a matching `phx_reply`, so channels reach SUBSCRIBED and never
- * re-join — which means a repeated channel name in the capture is a REAL
- * duplicate, not a rejoin retry.
  *
  * Run it on its own port so it can't kill another lane's preview server:
  *   HAPPY_PATH_PORT=4177 npx playwright test --project=happy-path zz-runtime-probe
@@ -47,13 +36,7 @@ import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as ts from "typescript";
 
-import {
-  test,
-  expect,
-  FAKE_CUSTOMER,
-  installSupabaseMocks,
-  seedAuthedSession,
-} from "./fixtures";
+import { test, expect } from "./fixtures";
 import { CHUNK_RELOAD_MAX_ATTEMPTS } from "../../src/lib/chunkReload";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -316,228 +299,14 @@ test("1a · static: every postgres_changes binding is nonced and user-filtered",
   expect(badShape, "filters that are not `<column>=eq.<value>`").toEqual([]);
 });
 
-// ───────────────────────────────────────────────────────────────────────────
-// 1b. RUNTIME: record every channel actually subscribed across authed routes
-// ───────────────────────────────────────────────────────────────────────────
-
-/**
- * Replaces window.WebSocket with a recorder that speaks just enough Phoenix v2
- * to keep supabase-realtime happy. MUST be added to the page BEFORE
- * installSupabaseMocks() so the `__helprRealtimeStubbed` flag suppresses the
- * fixture's InertSocket (which would swallow the frames we want).
- */
-function installRecordingRealtimeSocket() {
-  const w = window as unknown as Record<string, unknown>;
-  if (w.__helprRealtimeStubbed) return;
-  w.__helprRealtimeStubbed = true;
-  w.__lhJoins = [];
-  w.__lhSocketUrls = [];
-  const Native = window.WebSocket;
-
-  class RecordingSocket {
-    static CONNECTING = 0;
-    static OPEN = 1;
-    static CLOSING = 2;
-    static CLOSED = 3;
-    CONNECTING = 0;
-    OPEN = 1;
-    CLOSING = 2;
-    CLOSED = 3;
-    url: string;
-    readyState = 0;
-    bufferedAmount = 0;
-    extensions = "";
-    protocol = "";
-    binaryType = "arraybuffer";
-    onopen: ((e: unknown) => void) | null = null;
-    onmessage: ((e: unknown) => void) | null = null;
-    onerror: ((e: unknown) => void) | null = null;
-    onclose: ((e: unknown) => void) | null = null;
-
-    constructor(url: string) {
-      this.url = url;
-      (w.__lhSocketUrls as string[]).push(url);
-      setTimeout(() => {
-        this.readyState = 1;
-        this.onopen?.({ type: "open" });
-      }, 0);
-    }
-    addEventListener() { /* phoenix uses the on* properties */ }
-    removeEventListener() { /* noop */ }
-    dispatchEvent() { return true; }
-
-    send(raw: unknown) {
-      let msg: unknown;
-      try { msg = JSON.parse(String(raw)); } catch { return; }
-      if (!Array.isArray(msg)) return;
-      const [joinRef, ref, topic, event, payload] = msg as [
-        string | null, string | null, string, string, Record<string, unknown> | undefined,
-      ];
-      if (event === "phx_join") {
-        const cfg = (payload?.config ?? {}) as Record<string, unknown>;
-        const pg = (cfg.postgres_changes ?? []) as Record<string, unknown>[];
-        (w.__lhJoins as unknown[]).push({
-          topic,
-          postgresChanges: pg,
-          hasPresence: !!cfg.presence,
-          at: Date.now(),
-        });
-        // Echo the requested bindings back with server ids, or realtime-js
-        // errors the channel out ("mismatch between server and client bindings").
-        const response = { postgres_changes: pg.map((f, i) => ({ id: 900000 + i, ...f })) };
-        this.reply([joinRef, ref, topic, "phx_reply", { status: "ok", response }]);
-        return;
-      }
-      if (ref) {
-        this.reply([joinRef ?? null, ref, topic, "phx_reply", { status: "ok", response: {} }]);
-      }
-    }
-
-    reply(arr: unknown[]) {
-      setTimeout(() => this.onmessage?.({ data: JSON.stringify(arr) }), 0);
-    }
-
-    close() {
-      this.readyState = 3;
-      this.onclose?.({ code: 1000, reason: "", wasClean: true });
-    }
-  }
-
-  window.WebSocket = new Proxy(Native, {
-    construct(target, args: unknown[]) {
-      const url = String(args[0] ?? "");
-      if (url.includes("/realtime/v1/websocket")) {
-        return new RecordingSocket(url) as unknown as WebSocket;
-      }
-      return Reflect.construct(target, args as never) as WebSocket;
-    },
-  }) as typeof WebSocket;
-}
-
-interface CapturedJoin {
-  topic: string;
-  postgresChanges: { event?: string; schema?: string; table?: string; filter?: string }[];
-  hasPresence: boolean;
-}
-
-const AUTHED_ROUTES = ["/home", "/jobs", "/jobs?tab=posted", "/jobs?tab=working", "/messages", "/profile"];
-
-test("1b · runtime: no duplicate channel names, every binding filtered to the user", async ({
-  page,
-  context,
-  baseURL,
-}) => {
-  test.slow();
-  await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-  await page.addInitScript(installRecordingRealtimeSocket);
-  await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
-
-  // `page.goto` is a full document load, so the in-page capture array resets
-  // each time — snapshot it per route and accumulate here. Per-route is also
-  // the honest scope for the "duplicate name" rule: Supabase dedupes by name
-  // on a LIVE socket, so a collision only matters within one page session.
-  const perRoute: { route: string; joins: CapturedJoin[] }[] = [];
-  const socketUrls: string[] = [];
-  for (const route of [...AUTHED_ROUTES, "/home"]) {
-    await page.goto(route, { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(3000); // let the subscribing effects mount + join
-    const j = (await page.evaluate(
-      () => (window as never as { __lhJoins: CapturedJoin[] }).__lhJoins,
-    )) as CapturedJoin[];
-    const u = (await page.evaluate(
-      () => (window as never as { __lhSocketUrls: string[] }).__lhSocketUrls,
-    )) as string[];
-    perRoute.push({ route, joins: j });
-    socketUrls.push(...u);
-  }
-  const joins = perRoute.flatMap((r) => r.joins);
-
-  const perRouteSummary = perRoute.map((r) => ({
-    route: r.route,
-    channelCount: r.joins.length,
-    // How many channels share a purpose (same name minus the nonce)? Each one
-    // is a separate server-side subscription for identical data.
-    byPurpose: Object.entries(
-      r.joins.reduce<Record<string, number>>((acc, j) => {
-        const purpose = j.topic
-          .replace(/realtime:/, "")
-          .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, "<id>");
-        acc[purpose] = (acc[purpose] ?? 0) + 1;
-        return acc;
-      }, {}),
-    ).sort((a, b) => b[1] - a[1]),
-  }));
-  console.log("[realtime/runtime] per-route channel counts:\n" + JSON.stringify(perRouteSummary, null, 2));
-
-  writeArtifact("realtime-runtime-joins.json", { socketUrls, perRoute, perRouteSummary });
-  console.log(
-    "[realtime/runtime] channels subscribed:\n" +
-      joins.map((j) => `  ${j.topic}\n` + j.postgresChanges.map((p) => `      ${p.event} ${p.schema}.${p.table} filter=${p.filter ?? "(NONE)"}`).join("\n")).join("\n"),
-  );
-
-  expect(joins.length, "no realtime channels were subscribed — capture is broken").toBeGreaterThan(0);
-  expect(socketUrls.every((u) => u.includes("/realtime/v1/websocket"))).toBe(true);
-
-  // (1) No duplicate channel names. Our stub answers every join, so channels
-  //     reach SUBSCRIBED and never re-join — a repeat here is a real collision
-  //     and means Supabase silently dropped the second subscription.
-  const dupes: string[] = [];
-  for (const r of perRoute) {
-    const t = r.joins.map((j) => j.topic);
-    dupes.push(...t.filter((x, i) => t.indexOf(x) !== i).map((x) => `${r.route} → ${x}`));
-  }
-  expect([...new Set(dupes)], "duplicate realtime channel names (second subscription is dropped)")
-    .toEqual([]);
-  const topics = joins.map((j) => j.topic);
-
-  // (2) Every name carries a nonce (a UUID from channelNonce()).
-  const UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
-  const unnonced = topics.filter((t) => !UUID.test(t));
-  expect(unnonced, "channel names subscribed at runtime without a channelNonce() UUID").toEqual([]);
-
-  // (3) Every postgres_changes binding sent over the wire carries a
-  //     server-side filter. On the non-admin routes we walk, there should be
-  //     exactly one unfiltered binding: the documented messages DELETE.
-  const wireBindings = joins.flatMap((j) =>
-    j.postgresChanges.map((p) => ({ topic: j.topic, ...p })),
-  );
-  const unfiltered = wireBindings.filter((b) => !b.filter);
-  expect(
-    unfiltered.map((b) => `${b.topic} → ${b.event} ${b.schema}.${b.table}`),
-    "unfiltered postgres_changes bindings sent from a NON-ADMIN session",
-  ).toEqual(
-    unfiltered
-      .filter((b) => b.table === "messages" && b.event === "DELETE")
-      .map((b) => `${b.topic} → ${b.event} ${b.schema}.${b.table}`),
-  );
-
-  // (4) Every FILTERED binding is scoped to this user's id, or to a resource
-  //     id (job/thread) rather than to a constant. A filter that names some
-  //     other user's id would be the serious finding.
-  const foreign = wireBindings
-    .filter((b) => b.filter)
-    .filter((b) => {
-      const value = b.filter!.split("=eq.")[1] ?? "";
-      const isSelf = value === FAKE_CUSTOMER.id;
-      const isUuid = UUID.test(value); // job_id / thread id — resource-scoped
-      return !isSelf && !isUuid;
-    })
-    .map((b) => `${b.topic} → ${b.filter}`);
-  expect(foreign, "postgres_changes filters not scoped to this user or a resource id").toEqual([]);
-
-  // What did the user-scoped ones actually resolve to?
-  const selfScoped = wireBindings.filter((b) => b.filter?.endsWith(`=eq.${FAKE_CUSTOMER.id}`));
-  expect(selfScoped.length, "expected at least one user-scoped filter on the wire").toBeGreaterThan(0);
-});
+// 1b (runtime realtime capture) needs a signed-in member: it runs on the real
+// backend, reading prod's own socket, in e2e/journeys/runtime-probe.spec.ts (Q1035).
 
 // ───────────────────────────────────────────────────────────────────────────
 // 2. Error boundaries — forced, with a screenshot of what the user sees
 // ───────────────────────────────────────────────────────────────────────────
 
 const THROWING_ROUTE_CHUNK =
-  `export default function ProbeCrash(){ throw new Error("PROBE: forced route render crash"); }\n`;
-const THROWING_SECTION_CHUNK =
-  `export function LegalTab(){ throw new Error("PROBE: forced section render crash"); }\n` +
   `export default LegalTab;\n`;
 
 async function shot(page: import("@playwright/test").Page, name: string) {
@@ -710,78 +479,8 @@ test("an offline lazy-route navigation shows chunk/offline copy", async ({
     .not.toContain("This page hit a problem.");
 });
 
-test("2c · section-level crash is contained by SectionBoundary", async ({
-  page,
-  context,
-  baseURL,
-}) => {
-  await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-  await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
-  // The Profile "legal" tab panel is its own lazy chunk consumed as a NAMED
-  // export (`m.LegalTab`), so Rollup keeps the public name — a replacement
-  // module exporting a throwing `LegalTab` drops straight in.
-  await page.route("**/assets/LegalTab-*.js", (route) =>
-    route.fulfill({ status: 200, contentType: "text/javascript", body: THROWING_SECTION_CHUNK }),
-  );
-
-  await page.goto("/profile?tab=legal", { waitUntil: "domcontentloaded" });
-
-  const inline = page.getByText("Couldn't load the legal section.", { exact: false });
-  await expect(inline).toBeVisible({ timeout: 20_000 });
-  await expect(
-    page.getByText("The rest of the page is still fine.", { exact: false }),
-  ).toBeVisible();
-  await expect(page.getByRole("button", { name: /Try again/i })).toBeVisible();
-  await shot(page, "2c-section-crash");
-
-  // Containment: the route did NOT fall through to the route-level boundary.
-  const body = await page.locator("body").innerText();
-  expect(body).not.toContain("This page hit a problem.");
-  expect(body).not.toContain("Something went sideways.");
-});
-
-test("2d · offline: OfflineBanner appears and the app degrades honestly", async ({
-  page,
-  context,
-  baseURL,
-}) => {
-  await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-  await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
-
-  // Load fully FIRST — OfflineBanner is itself a lazy chunk, so going offline
-  // before it loads would only prove the chunk can't be fetched.
-  await page.goto("/home", { waitUntil: "load" });
-  await page.waitForTimeout(1500);
-  await expect(page.getByText("You're offline", { exact: false })).toHaveCount(0);
-
-  // The app confirms "offline" with a probe to the auth health endpoint (src/lib/connectivity.ts); the mocked
-  // backend's catch-all route would answer it even offline, so the probe fails here the way a real one does.
-  const HEALTH = "**/auth/v1/health*";
-  await page.route(HEALTH, (r) => r.abort("internetdisconnected"));
-  await context.setOffline(true);
-  await page.evaluate(() => window.dispatchEvent(new Event("offline")));
-
-  const banner = page.getByRole("status").filter({ hasText: "You're offline" });
-  await expect(banner).toBeVisible({ timeout: 10_000 });
-  await expect(
-    page.getByText("You're offline. Reconnect to load anything new."),
-  ).toBeVisible();
-  await shot(page, "2d-offline-banner");
-
-  // Degrades honestly: content is still on screen, no white screen, and the
-  // banner does not promise a retry queue the app doesn't have.
-  const body = await page.locator("body").innerText();
-  expect(body.trim().length).toBeGreaterThan(50);
-  expect(body).not.toMatch(/will retry automatically|reconnecting…?/i);
-
-  // …and it goes away again.
-  await page.unroute(HEALTH);
-  await context.setOffline(false);
-  await page.evaluate(() => window.dispatchEvent(new Event("online")));
-  await expect(page.getByText("You're offline. Reconnect to load anything new.")).toHaveCount(0, {
-    timeout: 10_000,
-  });
-});
+// 2c (section crash) and 2d (offline) need a signed-in member: they run on the
+// real backend in e2e/journeys/runtime-probe.spec.ts (Q1035).
 
 // ───────────────────────────────────────────────────────────────────────────
 // 3. Deep links / universal links

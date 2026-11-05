@@ -97,6 +97,8 @@ export function navIconFor(path: "/home" | "/posts" | "/jobs" | "/messages") {
 export const authPages = ["/home", "/explore", "/posts", "/jobs", "/post-job", "/profile", "/messages", "/support", "/user", "/jobs/", "/browse",
   // Declutter (hidden switch): the dock stays on its screens.
   "/declutter",
+  // The shareable profile /u/<handle> (owner request 11-05): a member keeps the dock there, as the rail on desktop.
+  "/u/",
   // Quotes on jobs (hidden switch 'quotes'): the same.
   "/quotes",
   "/tips",

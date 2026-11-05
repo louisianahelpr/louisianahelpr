@@ -15,7 +15,8 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
-import { Briefcase, Handshake, Share2, ShoppingBag, Star, UserX, Search } from "lucide-react";
+import { BadgeCheck, Briefcase, Handshake, ImageIcon, MapPin, Share2, ShoppingBag, Star, UserX, Search } from "lucide-react";
+import { HelperWorkPhotos } from "@/components/profile/HelperWorkPhotos";
 import AppPage from "@/components/AppPage";
 import { PUBLIC_LINK_COLUMN } from "@/lib/pageColumn";
 import { Button } from "@/components/ui/button";
@@ -134,17 +135,38 @@ function HireMeButton({ handle, signedIn }: { handle: string; signedIn: boolean 
   );
 }
 
-function ProfileBody({ p, signedIn, isMe }: { p: PublicProfile; signedIn: boolean; isMe: boolean }) {
+/** The skills line is free text ("Yard work, Handyman"); each comma-separated part is a chip. */
+function skillChips(skills: string | null | undefined): string[] {
+  return [...new Set((skills ?? "").split(/[,\n]/).map((s) => s.trim()).filter(Boolean))].slice(0, 20);
+}
+
+/** The profile's column from 900px (the shared public link column is a phone card, 448px). */
+export const PROFILE_WIDE = "min-[900px]:max-w-3xl";
+
+/** How many listings show before "Show all N" (the rest load lazily from the same read). */
+export const LISTINGS_FIRST = 24;
+
+function ProfileBody({ p, signedIn, isMe, ctaReady }: { p: PublicProfile; signedIn: boolean; isMe: boolean; ctaReady: boolean }) {
   const first = p.name.split(/\s+/)[0] || "this member";
+  const skills = skillChips(p.skills);
+  const work = p.portfolio_urls ?? [];
+  const listingTotal = Math.max(p.listing_count ?? 0, p.listings.length);
+  const [allListings, setAllListings] = useState(false);
+  const listingsShown = allListings ? p.listings : p.listings.slice(0, LISTINGS_FIRST);
   const trust = profileTrustLine(p);
   const since = memberSinceLabel(p.member_since);
-  const nothing = p.listings.length + p.jobs.length + p.wanted.length + p.helpr.reviews.length + (p.helpr.jobs_done ?? 0) === 0;
+  const nothing = p.listings.length + p.jobs.length + p.wanted.length + p.helpr.reviews.length + (p.helpr.jobs_done ?? 0) + work.length + skills.length + (p.bio ? 1 : 0) === 0;
   return (
-    <div className={`${PUBLIC_LINK_COLUMN} space-y-4 pb-8`} data-public-profile={p.handle}>
+    // M5 (audit 11-05): from 900px the column widens so the shop and work grids are 4 across, not ~100 rows of 2.
+    <div className={`${PUBLIC_LINK_COLUMN} ${PROFILE_WIDE} space-y-4 pb-8`} data-public-profile={p.handle}>
       <section className="rounded-2xl border border-border bg-card p-5 text-center shadow-sm" aria-labelledby="pp-name">
         <UserAvatar userId={p.handle} src={p.photo_url} name={p.name} pixelSize={96} className="mx-auto h-24 w-24" />
         <h2 id="pp-name" className="mt-3 text-xl font-semibold text-foreground">{p.name}</h2>
+        {p.business_name && <p className="text-ds-14 font-medium text-foreground" data-testid="pp-business">{p.business_name}</p>}
         <div className="mt-1 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+          {p.town && (
+            <span className="inline-flex items-center gap-1" data-testid="pp-town"><MapPin className="h-3.5 w-3.5" aria-hidden />{p.town}</span>
+          )}
           {since && <span>Member since {since}</span>}
           {p.stats.is_id_verified && (
             <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5" style={ID_VERIFIED_PILL_STYLE}>
@@ -152,34 +174,59 @@ function ProfileBody({ p, signedIn, isMe }: { p: PublicProfile; signedIn: boolea
               {ID_VERIFIED_LABEL}
             </span>
           )}
+          {p.licensed && <span className="inline-flex items-center gap-1" data-testid="pp-licensed"><BadgeCheck className="h-3.5 w-3.5" aria-hidden />Licensed</span>}
+          {p.insured && <span className="inline-flex items-center gap-1" data-testid="pp-insured"><BadgeCheck className="h-3.5 w-3.5" aria-hidden />Insured</span>}
         </div>
         <p className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-foreground" data-testid="pp-trust">
           {trust ? (<><Star className="h-3.5 w-3.5" aria-hidden />{trust}</>) : "New on Helpr"}
         </p>
-        {!isMe && <HireMeButton handle={p.handle} signedIn={signedIn} />}
-        <div className={isMe ? "mt-4" : "mt-2"}>
+        {p.bio && <p className="mt-3 whitespace-pre-line text-left text-ds-15 text-foreground [overflow-wrap:anywhere]" data-testid="pp-bio">{p.bio}</p>}
+        {skills.length > 0 && (
+          <ul className="mt-3 flex flex-wrap justify-center gap-1.5" aria-label="Skills" data-testid="pp-skills">
+            {skills.map((s) => (
+              <li key={s} className="rounded-full border border-border bg-muted/60 px-2.5 py-1 text-xs">{s}</li>
+            ))}
+          </ul>
+        )}
+        {/* M3 (audit 11-05): your own page never flashes Hire me while your profile row loads. */}
+        {ctaReady && !isMe && <HireMeButton handle={p.handle} signedIn={signedIn} />}
+        {ctaReady && <div className={isMe ? "mt-4" : "mt-2"}>
           <Button type="button" variant={isMe ? "default" : "outline"} className={isMe ? "btn-grad-primary w-full rounded-full" : "w-full rounded-full"}
             onClick={() => void shareMyProfile(p.handle, isMe ? null : p.name)}>
             <Share2 className="mr-2 h-4 w-4" aria-hidden />
             {isMe ? "Share my profile" : `Share ${first}'s profile`}
           </Button>
-        </div>
+        </div>}
       </section>
+
+      {work.length > 0 ? (
+        <section className="rounded-2xl border border-border bg-card p-4 shadow-sm" aria-label="Recent work" data-testid="pp-work">
+          <HelperWorkPhotos urls={work} />
+        </section>
+      ) : isMe ? (
+        <section className="rounded-2xl border border-dashed border-border bg-card p-4 text-center" aria-label="Recent work" data-testid="pp-work-empty">
+          <ImageIcon className="mx-auto h-6 w-6 text-muted-foreground" aria-hidden />
+          <p className="mt-2 text-ds-14 text-muted-foreground">Add photos of your work so people can see what you do.</p>
+          <Button asChild variant="outline" size="sm" className="mt-3 rounded-full">
+            <Link to="/profile?tab=profile">Add work photos</Link>
+          </Button>
+        </section>
+      ) : null}
 
       {nothing && (
         <p className="text-center text-ds-14 text-muted-foreground">{first} hasn&apos;t posted anything yet.</p>
       )}
 
       {p.listings.length > 0 && (
-        <Section id="pp-listings" title="For sale" icon={ShoppingBag}>
-          <ul className="grid grid-cols-2 gap-3">
-            {p.listings.map((l) => (
+        <Section id="pp-listings" title={`For sale · ${listingTotal}`} icon={ShoppingBag}>
+          <ul className="grid grid-cols-2 gap-3 min-[900px]:grid-cols-4" data-testid="pp-listings-grid">
+            {listingsShown.map((l) => (
               <li key={l.id}>
                 {/* Guests may open an item (BUY-16); buying there asks them to sign up. */}
                 <Link to={`/declutter/item/${l.id}`} className="block overflow-hidden rounded-xl border border-border bg-background">
                   <div className="flex aspect-square w-full items-center justify-center bg-muted">
                     {l.photo_id ? (
-                      <img loading="lazy" src={listingPhotoUrl(l.photo_id)} alt="" className="h-full w-full object-cover" />
+                      <img loading="lazy" decoding="async" src={listingPhotoUrl(l.photo_id, 320)} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <ShoppingBag className="h-8 w-8 text-muted-foreground" aria-hidden />
                     )}
@@ -194,6 +241,11 @@ function ProfileBody({ p, signedIn, isMe }: { p: PublicProfile; signedIn: boolea
               </li>
             ))}
           </ul>
+          {!allListings && p.listings.length > LISTINGS_FIRST && (
+            <Button type="button" variant="outline" className="mt-3 w-full rounded-full" data-testid="pp-listings-all" onClick={() => setAllListings(true)}>
+              Show all {listingTotal}
+            </Button>
+          )}
         </Section>
       )}
 
@@ -277,7 +329,7 @@ export default function PublicProfilePage() {
   const { handle: raw } = useParams();
   const handle = handleFromPath(raw);
   const { user } = useAuthReady();
-  const { profile: me } = useCurrentUser();
+  const { profile: me, isLoading: meLoading } = useCurrentUser();
   const q = useQuery({
     queryKey: ["public-profile", handle],
     queryFn: () => fetchPublicProfile(handle as string),
@@ -296,7 +348,7 @@ export default function PublicProfilePage() {
     />
   );
   return (
-    <AppPage title="Profile" backTo={user ? "/home" : "/"}>
+    <AppPage title={q.data?.name ?? "Profile"} backTo={user ? "/home" : "/"}>
       <Meta p={q.data} handle={handle} />
       {!handle ? (
         unavailable
@@ -307,7 +359,7 @@ export default function PublicProfilePage() {
       ) : !q.data ? (
         unavailable
       ) : (
-        <ProfileBody p={q.data} signedIn={!!user} isMe={!!me?.handle && me.handle === q.data.handle} />
+        <ProfileBody p={q.data} signedIn={!!user} isMe={!!me?.handle && me.handle === q.data.handle} ctaReady={!user || !meLoading} />
       )}
     </AppPage>
   );

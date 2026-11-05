@@ -29,6 +29,14 @@
  * LH_PROFILE_WINDOW=<migration file> (Q2408, lead review 11-04) adds jobs.date_window_end and applies ONLY that file's
  * public_profile_by_handle (3x), after the above; LH_PROFILE_WINDOW=skip adds the column alone (red). Adds
  *   P17 a window job whose first day has passed and last day is ahead stays in "Open jobs"; a window that is over does not
+ *
+ * LH_PROFILE_FULL=<migration file> (owner requests 11-05, "doesn't show all items" / "a full profile"; needs
+ * LH_PROFILE_WINDOW too) adds the profile columns and applies ONLY that file's public_profile_by_handle (3x);
+ * LH_PROFILE_FULL=skip adds the columns alone (red). Adds
+ *   P18 every live listing comes back past the old 24 cap, and listing_count is their true count
+ *   P19 bio, town, skills and Recent work photos come back; the license/insurance badges and business name only verified
+ *   P20 still no contact, address, coordinate, storage path or user id anywhere in the fuller answer
+ *   P21 show_in_search comes back false by default and true once the member turns it on
  */
 import { readFileSync, readdirSync } from "node:fs";
 import os from "node:os";
@@ -405,6 +413,46 @@ if (WINDOW && !BEFORE) {
   const titles = ((await page("eli-b")).v?.jobs ?? []).map((j) => j.title);
   check("P17 a window job past its first day (last day ahead) stays in Open jobs; a window that is over does not",
     titles.includes("Window job") && !titles.includes("Window over"), JSON.stringify(titles));
+}
+
+const FULL = process.env.LH_PROFILE_FULL ?? "";
+if (FULL && !BEFORE) {
+  await db.exec(`RESET ROLE;
+    ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS skills text, ADD COLUMN IF NOT EXISTS portfolio_urls text[],
+      ADD COLUMN IF NOT EXISTS is_licensed boolean, ADD COLUMN IF NOT EXISTS license_status text,
+      ADD COLUMN IF NOT EXISTS is_insured boolean, ADD COLUMN IF NOT EXISTS insurance_status text, ADD COLUMN IF NOT EXISTS business_name text;`);
+  if (FULL !== "skip") {
+    // The whole file, verbatim, 3x (replay-safe): the show_in_search column and its grant, and the page read.
+    const t = readFileSync(FULL.includes("/") ? FULL : DIR + FULL, "utf8");
+    for (let i = 0; i < 3; i++) await db.exec(t);
+  }
+  const before = (await page("eli-b")).v?.listings?.length ?? 0;
+  await db.exec(`RESET ROLE;
+    INSERT INTO public.declutter_items (seller_id, status, title, current_price_cents, area_label, live_at)
+      SELECT '${ELI}', 'live', 'Extra ' || g, 500, 'Baton Rouge', now() - (g || ' minutes')::interval FROM generate_series(1, 30) g;
+    UPDATE public.profiles SET bio = 'I fix fences.', location = 'Delcambre', skills = 'Yard work, Handyman',
+      portfolio_urls = ARRAY['https://x.supabase.co/storage/v1/object/public/avatars/a/portfolio/1.jpg'],
+      is_licensed = true, license_status = 'verified', is_insured = true, insurance_status = 'pending', business_name = 'Eli Fences LLC'
+     WHERE user_id = '${ELI}';`);
+  const v = (await page("eli-b")).v ?? {};
+  const want = before + 30;
+  check("P18 every live listing comes back past the old 24 cap, and listing_count is their true count",
+    (v.listings ?? []).length === want && v.listing_count === want && want > 24, JSON.stringify({ got: (v.listings ?? []).length, count: v.listing_count, want }));
+  check("P19 bio, town, skills, Recent work, verified badges and the business name only with a verified badge",
+    v.bio === "I fix fences." && v.town === "Delcambre" && v.skills === "Yard work, Handyman"
+      && Array.isArray(v.portfolio_urls) && v.portfolio_urls.length === 1
+      && v.licensed === true && v.insured === false && v.business_name === "Eli Fences LLC",
+    JSON.stringify({ bio: v.bio, town: v.town, skills: v.skills, licensed: v.licensed, insured: v.insured, biz: v.business_name }));
+  await db.exec(`RESET ROLE; UPDATE public.profiles SET license_status = 'pending' WHERE user_id = '${ELI}';`);
+  const v2 = (await page("eli-b")).v ?? {};
+  const raw = JSON.stringify(v2);
+  check("P20 no business name without a verified badge; no contact, address, coordinate, storage path or user id",
+    v2.licensed === false && v2.business_name == null && !raw.includes(ELI) && !/@|pickup|area_lat|area_lng|storage_path|555-/.test(raw),
+    JSON.stringify({ licensed: v2.licensed, biz: v2.business_name }));
+  const off = (await page("eli-b")).v?.show_in_search;
+  await db.exec(`RESET ROLE; UPDATE public.profiles SET show_in_search = true WHERE user_id = '${ELI}';`);
+  const on = (await page("eli-b")).v?.show_in_search;
+  check("P21 show_in_search is false by default and true once the member turns it on", off === false && on === true, JSON.stringify({ off, on }));
 }
 
 if (BEFORE) {

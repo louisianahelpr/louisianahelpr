@@ -87,6 +87,17 @@ export interface PublicProfile {
     is_id_verified?: boolean | null;
     is_background_checked?: boolean | null;
   };
+  /** Owner request 11-05 ("a full profile"): the fields get_safe_profiles already gives anyone (20261105_public_profile_full). */
+  bio?: string | null;
+  town?: string | null;
+  skills?: string | null;
+  portfolio_urls?: string[];
+  licensed?: boolean | null;
+  insured?: boolean | null;
+  business_name?: string | null;
+  /** Every live listing comes back (500 at most); this is their true count. */
+  listing_count?: number;
+  job_count?: number;
   listings: { id: string; title: string; price_cents: number; area_label: string | null; photo_id: string | null; live_at: string }[];
   jobs: { id: string; title: string; category: string; town: string | null; budget: number; date_needed: string }[];
   helpr: {

@@ -11,7 +11,7 @@ export const computeTrend = (current: number, previous: number): { pct: number; 
   return { pct: Math.abs(pct), up: pct >= 0 };
 };
 
-export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, sparkline, compareLabel, hint }: {
+export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, sparkline, compareLabel, hint, pending = false }: {
   label: string;
   value: string | number;
   icon: React.ElementType;
@@ -22,6 +22,11 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
   compareLabel?: string;
   /** Native tooltip on the tile — carries the WHY behind an em-dash value. */
   hint?: string;
+  /**
+   * The numbers are still loading. A tile that will show a compare line or a sparkline lane holds their space now, so
+   * it does not grow when they arrive (Admin CLS, Builder 3 11-05: the KPI tiles grew 114 -> 175 px at 375).
+   */
+  pending?: boolean;
 }) => {
   // Icon tint mirrors the metric color. Note: `accent` uses `text-accent`
   // (burnt sienna), NOT `text-accent-foreground` (which is white and was
@@ -65,6 +70,9 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
         )}
       </div>
       <p className="text-ds-17 sm:text-ds-20 font-bold text-foreground tabular-nums leading-tight">{value}</p>
+      {pending && !trend && compareLabel && (
+        <p data-testid="kpi-compare-reserved" aria-hidden className="text-ds-10 tabular-nums mt-0.5 leading-tight invisible">+0% {compareLabel}</p>
+      )}
       {trend && compareLabel && (
         <p className={cn(
           "text-ds-10 tabular-nums mt-0.5 leading-tight",
@@ -87,7 +95,10 @@ export const KpiCard = ({ label, value, icon: Icon, trend, accent, onClick, spar
           a row the same height. `hasSpark` distinguishes "asked and had none"
           from "never asked" — tiles with no sparkline prop still render short,
           which is why the grid no longer stretches them. */}
-      {sparkline && sparkline.length > 0 && (
+      {pending && sparkline && (
+        <div data-testid="kpi-spark-reserved" className="mt-auto pt-2" aria-hidden><div className="h-7 mt-2" /></div>
+      )}
+      {!pending && sparkline && sparkline.length > 0 && (
         sparkline.some((n) => n) ? (
           <div className="mt-auto pt-2">
             <Suspense fallback={<div className="h-7" aria-hidden />}>

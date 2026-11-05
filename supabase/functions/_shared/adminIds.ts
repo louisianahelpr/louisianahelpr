@@ -18,6 +18,7 @@
  * returns an explicit `ok` flag so callers can escalate (e.g. postSlackOpsAlert)
  * instead of quietly moving on.
  */
+import { inStripeTestMode } from "./stripeTestMode.ts";
 export interface AdminIdsResult {
   /** False when the lookup itself failed — NOT the same as "no admins exist". */
   ok: boolean;
@@ -27,6 +28,11 @@ export interface AdminIdsResult {
 
 // deno-lint-ignore no-explicit-any
 export async function loadAdminIds(supabase: any, source: string): Promise<AdminIdsResult> {
+  // A Stripe TEST-mode event notifies no admin (_shared/stripeTestMode.ts): test data never reaches the owner.
+  if (inStripeTestMode()) {
+    console.log(JSON.stringify({ event: "admin_notice_stripe_test_mode", source }));
+    return { ok: true, ids: [] };
+  }
   const { data, error } = await supabase
     .from("user_roles")
     .select("user_id")

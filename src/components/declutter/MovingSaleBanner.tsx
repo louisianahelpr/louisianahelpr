@@ -23,6 +23,7 @@ import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { fetchSellerMovingSale, louisianaToday, movingSaleWhen } from "@/lib/declutter/movingSale";
 import { FallbackImg } from "./FallbackImg";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 const SHOWN = 6;
 
@@ -135,7 +136,7 @@ export function MovingSaleBanner({ sellerId }: { sellerId: string }) {
         <Button
           type="button"
           variant="outline"
-          onClick={() => void shareNative({ title: "Moving sale", text: "A moving sale on Louisiana Helpr", url: `${getPublicOrigin()}/user/${sellerId}` })}
+          onClick={() => void shareNative({ title: "Moving sale", text: "A moving sale on Louisiana Helpr", url: `${getPublicOrigin()}${memberProfilePath(sellerId)}` })}
         >
           <Share2 className="h-4 w-4" aria-hidden />
           Share sale

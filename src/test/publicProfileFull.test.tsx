@@ -15,7 +15,7 @@
  * @mutate src/pages/u/PublicProfilePage.tsx | {p.bio && <p | {false && <p
  * @mutate src/pages/u/PublicProfilePage.tsx | <HelperWorkPhotos urls={work} /> | {null}
  * @mutate src/pages/u/PublicProfilePage.tsx | {ctaReady && !isMe && <HireMeButton | {!isMe && <HireMeButton
- * @mutate src/pages/u/PublicProfilePage.tsx | ctaReady={!user \|\| !meLoading} | ctaReady={true}
+ * @mutate src/pages/u/PublicProfilePage.tsx | const ctaReady = !user \|\| !meLoading; | const ctaReady = true;
  * @mutate supabase/migrations/20261105165059_public_profile_full.sql | GRANT UPDATE (show_in_search) ON public.profiles TO authenticated; | SELECT 1;
  * @mutate src/pages/u/PublicProfilePage.tsx | const PROFILE_WIDE = "min-[900px]:max-w-3xl"; | const PROFILE_WIDE = "";
  * @mutate supabase/migrations/20261105165059_public_profile_full.sql |      AND NOT public.profile_review_same_person(rt.reviewer_id, rt.reviewee_id); |      ;

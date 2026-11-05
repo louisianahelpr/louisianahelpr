@@ -100,4 +100,4 @@ describe("SavedHelperCard", () => {
 // The stretched link's DESTINATION, not its shape. The a11y assertions above
 // are all structural, so they survive a card that opens the wrong person's
 // profile; this pins the one fact that makes the anchor worth having.
-// @mutate src/components/profile/savedHelpersTab/SavedHelperCard.tsx | to={`/user/${h.helper_id}`} | to={`/user/${h.full_name}`}
+// @mutate src/components/profile/savedHelpersTab/SavedHelperCard.tsx | to={memberProfilePath(h.helper_id)} | to={memberProfilePath(h.full_name)}

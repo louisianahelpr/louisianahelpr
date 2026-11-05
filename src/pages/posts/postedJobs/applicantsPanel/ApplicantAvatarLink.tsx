@@ -1,4 +1,5 @@
 import UserAvatar from "@/components/UserAvatar";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 /**
  * Migrated onto the shared `<UserAvatar>` (2026-08-31): a hiring decision gave a
@@ -20,7 +21,7 @@ export function ApplicantAvatarLink({ helperId, avatarUrl, helperName, initials,
 }) {
   return (
     <a
-      href={`/user/${helperId}`}
+      href={memberProfilePath(helperId)}
       // The avatar inside is `aria-hidden`, so this label is the
       // link's only accessible name (it had none with a photo before).
       aria-label={`View ${helperName}'s profile`}

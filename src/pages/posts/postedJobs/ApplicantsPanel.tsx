@@ -33,6 +33,7 @@ import { ApplicantsDesktopTable, useApplicantsTable } from "./applicantsPanel/Ap
 import { ApplicantsNextStep } from "./applicantsPanel/ApplicantsNextStep";
 import type { ApplicantsPanelProps } from "./applicantsPanel/applicantsPanelProps";
 import { useEscapeClosesApplicants } from "./applicantsPanel/useEscapeClosesApplicants";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 /** Trust signals include a raw rating string like "4.9★" (applicantScoring.ts),
     which a screen reader reads literally as "black star" — meaningless next to
@@ -339,7 +340,7 @@ export function ApplicantsPanel({
                             {/* Name + tier badge */}
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <a
-                                href={`/user/${app.helper_id}`}
+                                href={memberProfilePath(app.helper_id)}
                                 title={helperName}
                                 className="font-display font-bold truncate hover:underline text-ds-15"
                                 style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.012em" }}

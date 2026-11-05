@@ -20,6 +20,7 @@ import { ApplicantHireRow } from "./ApplicantHireRow";
 import { ApplicantPrivateNote } from "./ApplicantPrivateNote";
 import { ApplicantsCompareCard } from "./ApplicantsCompareCard";
 import { ApplicantTrustLine, helperInitialsFrom, isImageAttachment } from "./applicantsPanelHelpers";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 /**
  * Board 170: on a wide screen the Applicants list is a table (Compare, Helpr,
@@ -144,11 +145,11 @@ export function ApplicantsDesktopTable({
                       </span>
                     )}
                     <div className="flex items-start gap-2.5">
-                      <a href={`/user/${app.helper_id}`} aria-label={`View ${helperName}'s profile`} className="inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full">
+                      <a href={memberProfilePath(app.helper_id)} aria-label={`View ${helperName}'s profile`} className="inline-flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full">
                         <UserAvatar userId={app.helper_id} src={app.profiles?.avatar_url} name={helperName} initials={helperInitialsFrom(helperName)} pixelSize={44} aria-hidden className="h-full w-full" fallbackClassName="text-ds-14 ring-0" />
                       </a>
                       <div className="min-w-0">
-                        <a href={`/user/${app.helper_id}`} title={helperName} className="block truncate text-ds-15 font-bold hover:text-primary">{helperName}</a>
+                        <a href={memberProfilePath(app.helper_id)} title={helperName} className="block truncate text-ds-15 font-bold hover:text-primary">{helperName}</a>
                         <span
                           className="flex items-center gap-1 text-ds-12 text-muted-foreground"
                           title={reviews > 0 ? `${(app.avgRating ?? 0).toFixed(1)} from ${reviews} public review${reviews === 1 ? "" : "s"}. A new review shows once both sides have reviewed, or after 14 days.` : undefined}

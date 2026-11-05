@@ -33,6 +33,7 @@ import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
 import { AdminApprovalEscalations } from "@/components/admin/AdminApprovalEscalations";
 import { useFilterCounts, pillLabel } from "@/components/admin/useFilterCounts";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 /**
  * STUCK JOBS — the human half of the stalled-completion sweep.
@@ -363,7 +364,7 @@ const StalledJobRow = ({
         <span className="text-muted-foreground">
           Posted by{" "}
           {row.customer_id ? (
-            <Link to={`/user/${row.customer_id}`} className="font-semibold text-foreground underline underline-offset-2">
+            <Link to={memberProfilePath(row.customer_id)} className="font-semibold text-foreground underline underline-offset-2">
               {poster}
             </Link>
           ) : (
@@ -373,7 +374,7 @@ const StalledJobRow = ({
         <span className="text-muted-foreground">
           Helpr{" "}
           {row.helper_id ? (
-            <Link to={`/user/${row.helper_id}`} className="font-semibold text-foreground underline underline-offset-2">
+            <Link to={memberProfilePath(row.helper_id)} className="font-semibold text-foreground underline underline-offset-2">
               {helper}
             </Link>
           ) : (

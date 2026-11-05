@@ -5,6 +5,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { hasIdBadge } from "@/lib/awardGate";
 import type { Profile } from "./types";
 import { PROFILE_NAME_HEADING_LEVEL } from "./headingContract";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 /** Edit profile: You > Settings > Your account > Edit profile, opened directly. */
 export const EDIT_PROFILE_PATH = "/profile?tab=profile";
@@ -52,7 +53,7 @@ export function YouCard({
   const verified = hasIdBadge(profile?.idv_status);
   const facts = youCardFacts(verified, avgRating, reviewCount);
   const Heading = `h${PROFILE_NAME_HEADING_LEVEL}` as "h2";
-  const open = () => userId && navigate(`/user/${userId}`);
+  const open = () => userId && navigate(memberProfilePath(userId));
   return (
     <div data-testid="you-card" className="liquid-glass shrink-0 w-full flex items-center gap-4 px-4 py-4 min-w-0">
       {/* The photo repeats the "View my public profile" button beside it, so it is out of the tab order and the

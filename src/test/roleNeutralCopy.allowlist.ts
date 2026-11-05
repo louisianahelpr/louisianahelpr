@@ -49,7 +49,7 @@ export const ROLE_COPY_ALLOWLIST: readonly RoleCopyException[] = [
       "legal pages. Terms, Community Guidelines and Privacy define the contractual parties to a job and their fees; a contract needs the defined term, not a description.",
   },
   {
-    file: "src/components/NotificationPanel.tsx",
+    file: "src/components/NotificationPanelView.tsx",
     text: "cancelled by the poster",
     reason:
       "not copy — a needle matched against STORED notification bodies. Postgres writes them; since 20260925143327 they say 'cancelled by the person who posted it', but every row stored before it says 'cancelled by the poster' and always will, so dropping the legacy phrasing would silently remove the quick-action pill from all of them.",

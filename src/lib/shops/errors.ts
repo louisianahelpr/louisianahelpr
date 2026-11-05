@@ -12,7 +12,6 @@
  * fails on one with no line here, and on a line here no shops migration raises.
  */
 import { ListingPhotoError } from "@/lib/declutter/errors";
-import { identityRefusal, openIdentityCheck } from "@/lib/identityCheck";
 
 /**
  * Shops H4 (20261105174853): the shop owner's first live item and the buyer's first order need the one ID check,
@@ -23,12 +22,30 @@ const SHOPS_IDENTITY_COPY: Record<"buy" | "list", string> = {
   list: "Verify your ID with Stripe first. It takes about 2 minutes, once, then publish again.",
 };
 
-/** Open the ID sheet for a Shops refusal that is the ID check. True when it opened. */
-export function openShopsIdentityCheckFor(err: unknown): boolean {
-  const kind = identityRefusal(err);
+/**
+ * The two ID-check codes Shops can meet (Declutter's gate, 20261105174853), read the way identityRefusal reads them.
+ * Kept here, not imported from @/lib/identityCheck: src/lib/shops/orders.ts rides in Home's home-shop-reads chunk,
+ * and a static import of identityCheck (and its awardGate) pulled another signed-in chunk into Home's reach
+ * (homeLazyReadsStayLight).
+ */
+function shopIdentityKind(err: unknown): "buy" | "list" | null {
+  const raw = typeof err === "string" ? err : (err as { message?: unknown } | null)?.message;
+  const m = typeof raw === "string" ? raw : "";
+  if (/(^|[^a-z_])identity_required_to_buy($|[^a-z_])/.test(m)) return "buy";
+  if (/(^|[^a-z_])identity_required_to_list($|[^a-z_])/.test(m)) return "list";
+  return null;
+}
+
+/**
+ * Open the ID sheet for a Shops refusal that is the ID check. Resolves true when it opened (false when the refusal is
+ * not the ID check, or the identity_check switch is off). The sheet's module loads on demand, only on that refusal.
+ */
+export async function openShopsIdentityCheckFor(err: unknown): Promise<boolean> {
+  const kind = shopIdentityKind(err);
+  if (!kind) return false;
+  const { openIdentityCheck } = await import("@/lib/identityCheck");
   if (kind === "buy") return openIdentityCheck("shop_buy");
-  if (kind === "list") return openIdentityCheck("shop_list");
-  return false;
+  return openIdentityCheck("shop_list");
 }
 
 export const SHOPS_ERROR_COPY: Record<string, string> = {
@@ -198,7 +215,7 @@ export function shopsErrorMessage(err: unknown): string {
   // already, as declutterErrorMessage reads it (lh-silent-failure re-review).
   if (err instanceof ListingPhotoError && err.message) return err.message;
   const e = err as { message?: unknown; code?: unknown; userMessage?: unknown };
-  const idKind = identityRefusal(err);
+  const idKind = shopIdentityKind(err);
   if (idKind === "buy" || idKind === "list") return SHOPS_IDENTITY_COPY[idKind];
   // Set by src/lib/shops/api.ts from RPC_ERROR_COPY at the call site.
   if (typeof e.userMessage === "string" && e.userMessage) return e.userMessage;

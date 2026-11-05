@@ -290,7 +290,7 @@ export default defineConfig({
       // (mocked) and the dirs that have their own project.
       testIgnore: /(happy-path|journeys|a11y-prod|prod-audit|canary|slow-network|privacy|job-status-fixtures)\//,
       // serviceWorkers "block", as every other project that loads the app does.
-      // This project also collects e2e/visual-audit/responsive (desktop-fill moved to journeys 2026-11-05),
+      // This project collected e2e/visual-audit/{responsive,desktop-fill} (both moved to journeys 2026-11-05, Q1035),
       // which answer Supabase from page.route mocks under a forged session.
       // Workbox's NetworkFirst rule for *.supabase.co sends every call past
       // page.route once the worker (sw-push.js) claims the page, so those

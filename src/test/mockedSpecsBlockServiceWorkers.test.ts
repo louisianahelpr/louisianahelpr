@@ -10,7 +10,7 @@
  * counts each such call twice: once for the page, once for the worker.
  *
  * Measured 2026-10-03: the `chromium` project allowed the worker, and it
- * collects e2e/visual-audit/responsive.spec.ts (desktop-fill moved to journeys 2026-11-05), which install
+ * collected e2e/visual-audit/{responsive,desktop-fill}.spec.ts (both moved to journeys 2026-11-05, Q1035), which installed
  * the happy-path mocks. One of their /home loads at 1440 sent 24 reads to prod
  * that came back 401 PGRST301 ("Expected 3 parts in JWT; got 1"), each retried
  * (104 metered requests, 36 duplicate GETs; 42 and 0 with the worker blocked).
@@ -155,13 +155,12 @@ describe("a spec that intercepts Supabase runs with the service worker blocked (
     expect(chromium?.testDir).toBe("e2e");
     // The ignore pattern survived parsing: it is what keeps chromium off the mocked suite.
     expect(chromium && collects(chromium, "e2e/happy-path/apply-dialog-fit.spec.ts")).toBe(false);
-    expect(chromium && collects(chromium, "e2e/visual-audit/responsive.spec.ts")).toBe(true);
+    expect(chromium && collects(chromium, "e2e/smoke.spec.ts")).toBe(true);
     const happy = PROJECTS.find((p) => p.name === "happy-path");
     expect(happy && collects(happy, "e2e/happy-path/apply-dialog-fit.spec.ts")).toBe(true);
-    expect(INTERCEPTING.length).toBeGreaterThan(24); // 25 on 2026-11-05 after desktop-fill moved to journeys (Q1035)
+    expect(INTERCEPTING.length).toBeGreaterThan(23); // 24 on 2026-11-05 after desktop-fill and responsive moved to journeys (Q1035)
     expect(INTERCEPTING.map((s) => s.rel)).toEqual(
       expect.arrayContaining([
-        "e2e/visual-audit/responsive.spec.ts",
         "e2e/happy-path/apply-dialog-fit.spec.ts",
         // A regex-literal route and a route on a variable are found too.
         "e2e/prod-audit/notification-panel-jump.spec.ts",

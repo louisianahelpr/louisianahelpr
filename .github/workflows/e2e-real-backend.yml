@@ -331,8 +331,9 @@ jobs:
         # would then report these two as unreachable, which is the exact wrong
         # answer in the exact place it matters.
         run: npx playwright test --project=chromium e2e/auth.spec.ts e2e/payment-lifecycle.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts
-      - name: Four chromium specs that ran nowhere until 2026-09-21
-        # post-and-apply, smoke, a11y and visual-audit/responsive were in
+      - name: Three chromium specs that ran nowhere until 2026-09-21
+        # post-and-apply, smoke, a11y and visual-audit/responsive (the fourth;
+        # moved to journeys 2026-11-05, Q1035) were in
         # e2eSpecsReachableInCi's NOT_RUN_IN_CI list, so the reachability guard
         # was green while none of them had ever executed. Two of the stated
         # reasons were false: "ui-sweep.yml covers the same ground" cannot be
@@ -345,6 +346,8 @@ jobs:
         # defect. They point at PLAYWRIGHT_BASE_URL, which this job has already
         # set to the local preview built from this commit.
         #
+        # (visual-audit/responsive left 2026-11-05 for e2e/journeys/visual-responsive.spec.ts,
+        # real backend, Q1035.)
         # (desktop-fill left 2026-11-05 for e2e/journeys/visual-desktop-fill.spec.ts,
         # real backend, Q1035.) desktop-fill joined them 2026-09-21. It was held out because /browse
         # "filled 39% of 1440px" — which turned out to be the MEASUREMENT, not
@@ -358,7 +361,7 @@ jobs:
         # ONE line, for the same reason as the step above: the reachability
         # guard reads workflow files line by line, and a `\` continuation would
         # hide these spec names from it.
-        run: npx playwright test --project=chromium e2e/post-and-apply.spec.ts e2e/smoke.spec.ts e2e/a11y.spec.ts e2e/visual-audit/responsive.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts
+        run: npx playwright test --project=chromium e2e/post-and-apply.spec.ts e2e/smoke.spec.ts e2e/a11y.spec.ts --reporter=list,./e2e/reporters/skipReporter.ts
       - name: Backend request budget (Q104)
         # Sums this job's metered backend requests (e2e/requestMeter.mjs) and
         # fails over e2e/request-budgets.json. Not on cancel: nothing to judge.

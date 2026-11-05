@@ -27,6 +27,7 @@ describe("the guest feed grid fills a desktop viewport", () => {
     const m = /export const GUEST_FEED_GRID_CLASS = "([^"]+)";/.exec(BONE);
     expect(m, "GUEST_FEED_GRID_CLASS is declared in GuestBrowseSkeleton.tsx").toBeTruthy();
     const cls = m![1].split(/\s+/);
+    expect(cls.length, "inventory floor: the class string still lists its utilities").toBeGreaterThan(2);
     expect(cls).toContain("md:grid-cols-2");
     expect(cls.filter((c) => /(^|:)max-w-/.test(c) || /(^|:)w-(?!full)/.test(c)), "no width cap on the feed grid").toEqual([]);
   });

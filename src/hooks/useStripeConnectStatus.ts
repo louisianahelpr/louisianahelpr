@@ -82,31 +82,45 @@ export const stripeConnectStatusKey = (userId: string) =>
   queryKeys.payoutSetup.status(userId);
 
 /**
- * Narrows the cached `PayoutAccountStatus` to the three booleans the payout
- * slot renders, and REPORTS + THROWS on a malformed answer, so a broken
- * edge-function deploy shows the honest `error` row (and reaches us) instead
- * of looking healthy. (The transport-level failure is reported by
- * `fetchPayoutStatus`.)
- *
- * WHY THIS IS A MODULE-LEVEL FUNCTION (#185, Q1816 ui-sweep #3491). TanStack
- * memoises `select` on its identity, so an inline arrow (a new function every
- * render) re-ran the select on every render. For a malformed answer that is a
- * fresh Error and a fresh report() per render (measured: 9 reports for ONE
- * answer over 6 renders). The empty-state sweep answers this call `[]`, and in
- * CI /profile died with "Maximum update depth exceeded" at ProfileLanding
- * (dev-build sweep 42008635130). The deps fold moved @tanstack/react-query
- * 5.104.1 -> 5.106.0, whose useBaseQuery now runs the observer's setOptions
- * effect before its store subscription; with a new error per select run, that
- * is the likely path from "re-runs per render" to "never settles". One stable
- * function runs once per answer. Guarded by
- * src/hooks/useStripeConnectStatus.test.tsx and
- * src/test/profilePayoutSlotContained.test.tsx.
+ * What the select hands back for a malformed answer: one frozen marker, so the
+ * result is the same object however often TanStack rebuilds it. The hook reads
+ * it as the honest `error` row.
  */
-export function selectConnectStatus(raw: PayoutAccountStatus | null): StripeConnectStatus {
+export const MALFORMED_CONNECT_STATUS = Object.freeze({ malformed: true as const });
+type SelectedConnectStatus = StripeConnectStatus | typeof MALFORMED_CONNECT_STATUS;
+
+/**
+ * Narrows the cached `PayoutAccountStatus` to the three booleans the payout
+ * slot renders. A malformed answer is REPORTED and returns
+ * MALFORMED_CONNECT_STATUS, so a broken edge-function deploy shows the honest
+ * `error` row (and reaches us) instead of looking healthy. (The
+ * transport-level failure is reported by `fetchPayoutStatus`.)
+ *
+ * WHY IT NEVER THROWS (Q2761, CI run 42067393130). A select that throws puts
+ * the observer in its select-error state, and TanStack stamps that result
+ * with `errorUpdatedAt = Date.now()` EVERY time it builds it (in render, and
+ * in the setOptions effect 5.106.0's useBaseQuery runs after every render).
+ * When the clock moved between two builds (a loaded CI runner), each build was
+ * a "new" result, the component rendered again, and the payout slot died with
+ * "Maximum update depth exceeded" into its crash fallback. A clock that ticks
+ * on every read reproduces it every time
+ * (src/test/profilePayoutSlotContained.test.tsx). A returned marker carries
+ * no timestamp, so the result settles.
+ *
+ * WHY IT IS A MODULE-LEVEL FUNCTION (#185, Q1816 ui-sweep #3491). TanStack
+ * memoises `select` on its identity, so an inline arrow (a new function every
+ * render) re-ran the select on every render: a fresh report() per render
+ * (measured: 9 reports for ONE answer over 6 renders). One stable function
+ * runs once per answer. Guarded by src/hooks/useStripeConnectStatus.test.tsx
+ * and src/test/profilePayoutSlotContained.test.tsx.
+ */
+export function selectConnectStatus(raw: PayoutAccountStatus | null): SelectedConnectStatus {
   if (!raw || typeof raw.payouts_enabled !== "boolean") {
-    const err = new Error("stripe-connect status returned an unexpected shape");
-    report(err, { severity: "warning", tags: { area: "profile", action: "stripe-connect-status" } });
-    throw err;
+    report(new Error("stripe-connect status returned an unexpected shape"), {
+      severity: "warning",
+      tags: { area: "profile", action: "stripe-connect-status" },
+    });
+    return MALFORMED_CONNECT_STATUS;
   }
   return {
     connected: !!raw.connected,
@@ -157,7 +171,7 @@ export function useStripeConnectStatus(): StripeConnectStatusResult {
   // slot after the real answer had already settled the layout.
   const lastKnownPayoutsEnabled = useMemo(() => readLastKnown(userId), [userId]);
 
-  const { data, isError, refetch } = useQuery<PayoutAccountStatus | null, Error, StripeConnectStatus>({
+  const { data: selected, isError: fetchFailed, refetch } = useQuery<PayoutAccountStatus | null, Error, SelectedConnectStatus>({
     queryKey: stripeConnectStatusKey(userId ?? ""),
     enabled: !!userId && profileLoaded,
     queryFn: fetchPayoutStatus,
@@ -171,6 +185,11 @@ export function useStripeConnectStatus(): StripeConnectStatusResult {
     // function below, never an inline arrow: see selectConnectStatus.
     select: selectConnectStatus,
   });
+
+  // A malformed answer is the same honest error row as a failed fetch.
+  const malformed = selected === MALFORMED_CONNECT_STATUS;
+  const isError = fetchFailed || malformed;
+  const data = selected && !malformed ? (selected as StripeConnectStatus) : undefined;
 
   // The last-known bit is written from the RESULT rather than from inside the
   // queryFn: the fetch is now shared with PayoutSetupForm (and warmed by the

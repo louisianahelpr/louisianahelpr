@@ -7,7 +7,6 @@ Items for areas that have not launched (Homes / Rentals, Quotes, Shops) live in 
 Numbers for everything we test: **[docs/SCOREBOARD.md](SCOREBOARD.md)**.
 
 - **Open: 172** (22 to do, 150 fixed with protection pending; 2046 done). Feeds mirrored in: 24 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 18 red overnight checks), 0 from the audit bus (`node scripts/open-sync-trackers.mjs`).
-- **Open: 172** (21 to do, 151 fixed with protection pending; 2046 done). Feeds mirrored in: 24 from the alert ledger, 3 from alert issues (ONE "Fix the test robots" item lists all 18 red overnight checks), 0 from the audit bus (`node scripts/open-sync-trackers.mjs`).
 - **Launch list: 0 left of 34** (0 to do, 0 fixed awaiting proof; owner-approved 2026-10-05). Only these hold TestFlight and launch; see LAUNCH LIST below.
 <!-- live: carried forward verbatim offline; refreshed by node scripts/scoreboard.mjs --write -->
 - **Workflows on main:** 12 red, 17 stale, 4 unknown, 48 green of 81 — [SCOREBOARD](SCOREBOARD.md). _(2026-11-05T08:35Z)_

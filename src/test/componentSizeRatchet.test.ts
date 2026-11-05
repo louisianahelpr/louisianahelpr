@@ -42,9 +42,9 @@ describe("god components (non-test .tsx over the line threshold) only shrink, pe
   it("scans the real source tree", () => {
     // A walker that read nothing would report no oversized files and "pass".
     expect(scanned).toBeGreaterThan(400);
-    // Floors lowered as god components are split (Q806; 20 left 2026-11-04, Legal.tsx out; CredentialsTab + AdminDisputes + DashboardGuest + BrowseMap out 11-04 Builder 1).
-    expect(Object.keys(oversized(sizes)).length).toBeGreaterThan(11);
-    expect(Object.keys(baseline.files).length).toBeGreaterThan(11);
+    // Floors lowered as god components are split (Q806; 20 left 2026-11-04, Legal.tsx out; CredentialsTab + AdminDisputes + DashboardGuest + BrowseMap + Dashboard out 11-04 Builder 1).
+    expect(Object.keys(oversized(sizes)).length).toBeGreaterThan(10);
+    expect(Object.keys(baseline.files).length).toBeGreaterThan(10);
     expect(sizes["src/components/JobTracking.tsx"]).toBeGreaterThan(THRESHOLD);
     expect(Object.keys(sizes).filter(isTestFile), "test files must not be counted").toEqual([]);
     expect(baseline._threshold, "baseline was generated at a different threshold").toBe(THRESHOLD);

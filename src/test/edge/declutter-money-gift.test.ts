@@ -287,6 +287,13 @@ describe("declutter-money: a gift-paid order's refunds (Q2106 S3b)", () => {
     expect(mail[0].text).not.toContain("your card. Card refunds");
   });
 
+  it("a row on a card payment whose whole refund is gift (card part 0): restored, never sent to Stripe", async () => {
+    const { body } = await run({ refunds: [refundRow({ refund_cents: 0, gift_refund_cents: 1200 })] });
+    expect(body.refunds_sent).toBe(1);
+    expect(stripeMock.refunds.create).not.toHaveBeenCalled();
+    expect(rpcs("declutter_refund_executed")[0]?.args).toEqual({ p_refund_id: REFUND, p_stripe_refund_id: null, p_succeeded: true });
+  });
+
   it("LEAD RULE: gift restored, card refund fails -> row failed (retried), never done; the retry reuses the key and the gift is restored once", async () => {
     stripeMock.refunds.create.mockRejectedValueOnce(new Error("card_declined"));
     const first = await run({ refunds: [refundRow({ refund_cents: 1500, gift_refund_cents: 2500 })] });

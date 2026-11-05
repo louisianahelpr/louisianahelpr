@@ -13,6 +13,16 @@
  * @mutate src/components/OfflineBanner.tsx | import { useRealtimeDegraded } from "@/lib/realtimeHealth"; | import { useRealtimeDegraded } from "@/lib/realtimeRecovery";
  * @mutate src/hooks/useAuthReady.ts | import { loadModule } from "@/lib/loadModule"; | import { loadModule } from "@/lib/loadModule"; import { supabase } from "@/integrations/supabase/client"; void supabase;
  * @mutate src/hooks/useCurrentUser.ts | import { loadModule, untilReload } from "@/lib/loadModule"; | import { loadModule, untilReload } from "@/lib/loadModule"; import { supabase } from "@/integrations/supabase/client"; void supabase;
+ *
+ * The bytes only move when the build's chunk groups let them (Builder 3, 11-04, slice 4 chunking): loadModule.ts
+ * rides in the preload-helper chunk (the "supabase" bucket's recursive capture took it, so every boot chunk that lazy-loads
+ * imported supabase for it), and Home-only shared code gets "home-shared" (in app-shared, a boot chunk, the Home
+ * modules that import the client put it on every page's boot). bundle-size.yml env build: boot 193 -> 151 KB gz,
+ * /posts 195 -> 152. The /posts and kpi critical-path budgets were lowered in the same commit.
+ * @mutate vite.config.ts | /src[\\/]lib[\\/]loadModule\.ts$/.test(id), | /src[\\/]lib[\\/]loadModuleNever\.ts$/.test(id),
+ * @mutate vite.config.ts | test: (id: string) => SHARED_DIR_RE.test(id) && homeOnly(norm(id)), | test: (id: string) => false && homeOnly(norm(id)),
+ * @mutate vite.config.ts | includeDependenciesRecursively: false, // the home-only modules alone | includeDependenciesRecursively: true, // the home-only modules alone
+ * @mutate vite.config.ts | const homeOnly = (f: string) => homeSet.has(f) && !bootSet.has(f); | const homeOnly = (f: string) => homeSet.has(f);
  * @mutate src/hooks/useLoginTracking.ts | import { loadModule } from "@/lib/loadModule"; | import { loadModule } from "@/lib/loadModule"; import { supabase } from "@/integrations/supabase/client"; void supabase;
  */
 import { describe, it, expect } from "vitest";
@@ -37,5 +47,20 @@ describe("the Supabase client leaves the boot path one importer at a time (Q2705
       .map((f) => relative(ROOT, f).split("\\").join("/"))
       .sort();
     expect(importers).toEqual([...STILL_STATIC].sort());
+  });
+
+  it("the build's chunk groups keep the client's chunk off boot (slice 4 chunking)", () => {
+    const config = blankComments(readFileSync(resolve(ROOT, "vite.config.ts"), "utf8"));
+    const groupOf = (name: string) => config.match(new RegExp(`name:\\s*"${name}",[\\s\\S]*?\\}`))?.[0] ?? "";
+    const prio = (g: string) => Number(g.match(/priority:\s*(\d+)/)?.[1] ?? NaN);
+    const loadModule = groupOf("preload-helper");
+    expect(loadModule).toMatch(/\|\|\s*\/src\[\\\\\/\]lib\[\\\\\/\]loadModule\\\.ts\$\/\.test\(id\)/);
+    // Above the vendor buckets (100): otherwise "supabase"'s recursive capture takes it back.
+    expect(prio(loadModule)).toBeGreaterThanOrEqual(110);
+    const homeShared = groupOf("home-shared");
+    expect(homeShared).toMatch(/test:\s*\(id: string\) => SHARED_DIR_RE\.test\(id\) && homeOnly\(norm\(id\)\),/);
+    expect(homeShared).toMatch(/includeDependenciesRecursively:\s*false/);
+    expect(prio(homeShared)).toBeGreaterThan(prio(groupOf("app-shared")));
+    expect(config).toMatch(/const homeOnly = \(f: string\) => homeSet\.has\(f\) && !bootSet\.has\(f\);/);
   });
 });

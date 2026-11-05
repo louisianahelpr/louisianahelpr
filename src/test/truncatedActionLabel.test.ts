@@ -50,7 +50,8 @@ import { readdirSync } from "./helpers/trackedFiles";
 const ROOT = join(__dirname, "..", "..");
 const SCAN_DIR = join(ROOT, "src");
 
-const INTERACTIVE_TAGS = new Set(["a", "button", "Button", "Link", "NavLink"]);
+// ListRow and InlineTextButton (src/components/ui) render a <button> (Q2709 moves hand-made buttons onto them).
+const INTERACTIVE_TAGS = new Set(["a", "button", "Button", "Link", "NavLink", "ListRow", "InlineTextButton"]);
 const INTERACTIVE_ROLES = new Set(["button", "link", "tab", "menuitem"]);
 const CLIP_RE = /(^|\s)(?:[a-z0-9-]+:)*(truncate|text-ellipsis|line-clamp-(?:\d+|\[[^\]]+\]))(?=\s|$)/;
 
@@ -96,7 +97,7 @@ const KNOWN: Record<string, string> = {
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): recent-chat subtitles (\"Helper reply ...\") sw==cw 194/194 at 320 as poster-e2e",
   "src/components/policy/CollapsedPolicy.tsx:CollapsibleTrigger:{isSearching ? highlight(subtitle, query) : subtitle}":
     "MEASURED NOT CLIPPED 2026-09-26 (Q119): all 23 section subtitles on /legal, /terms, /privacy, /rules sh==ch at 320, 375 and 1440 (guest, local build on prod)",
-  "src/pages/profile/petProfiles/PetCard.tsx:button:{SPECIES_OPTIONS.find((s) => s.value === pet.species)?.label":
+  "src/pages/profile/petProfiles/PetCard.tsx:ListRow:{SPECIES_OPTIONS.find((s) => s.value === pet.species)?.label":
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): species line sw==cw 166/166 at 320 on the pets page as poster-e2e",
   "src/pages/post-job/FormStep.tsx:Button:{submitLabel}":
     "MEASURED NOT CLIPPED 2026-09-27 (Q119, prod): \"Add a title to continue\" sw==cw on /post-job (Start fresh) at 320, 375 and 1440 as poster-e2e",

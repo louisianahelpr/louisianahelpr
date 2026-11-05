@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { ListRow } from "@/components/ui/ListRow";
 
 /**
  * Board 177's two doors from You → Money: "Payout history" (bank payouts, each
@@ -15,18 +16,17 @@ export function MoneyRecordRows({ showPayouts }: { showPayouts: boolean }) {
   return (
     <div className="space-y-2" data-money-record-rows="">
       {rows.map((r) => (
-        <button
+        <ListRow
           key={r.key}
-          type="button"
           onClick={() => navigate(`/profile?tab=${r.key}`)}
-          className="w-full rounded-2xl liquid-glass px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
+          className="rounded-2xl liquid-glass gap-3 px-4 py-3"
         >
           <span className="min-w-0 flex-1">
             <span className="block text-ds-13 font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>{r.title}</span>
             <span className="block text-ds-11 mt-0.5" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>{r.sub}</span>
           </span>
           <span className="text-ds-13 shrink-0" style={{ color: "hsl(var(--olivewood) / 0.7)" }} aria-hidden="true">&rsaquo;</span>
-        </button>
+        </ListRow>
       ))}
     </div>
   );

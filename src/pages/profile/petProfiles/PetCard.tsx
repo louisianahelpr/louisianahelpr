@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { ListRow } from "@/components/ui/ListRow";
 import {
   ChevronDown,
   Stethoscope, AlertTriangle, Phone,
@@ -29,9 +30,10 @@ export function PetCard({
       className="rounded-ds-lg liquid-glass overflow-hidden"
     >
       {/* Header row */}
-      <button
-        type="button"
-        className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-secondary/40 transition-colors"
+      <ListRow
+        variant="flush"
+        className="py-3"
+        aria-expanded={isExpanded}
         onClick={onToggle}
       >
         <div
@@ -51,7 +53,7 @@ export function PetCard({
         <ChevronDown
           className={`w-4 h-4 text-muted-foreground/60 shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`}
         />
-      </button>
+      </ListRow>
 
       {/* Expanded detail */}
       {isExpanded && (

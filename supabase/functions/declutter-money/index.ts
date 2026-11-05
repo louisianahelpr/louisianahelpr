@@ -151,9 +151,8 @@ type PayoutDue = {
   attempts: number;
   /** Refunds the order recorded (not failed): the most the charge may have given back. */
   refunds_recorded_cents?: number | null;
-  /** Q2106 (WIP, S2): what the buyer's gift card paid toward the order (declutter_orders.gift_cents). NOT YET returned
-   *  by declutter_payouts_due (newest 20261026155251): the S2 migration must restate it with this column. Until then it
-   *  is undefined, read as 0, and every payout is exactly today's. */
+  /** Q2106: what the buyer's gift card paid toward the order (declutter_orders.gift_cents; 20261105032500). 0 or
+   *  missing: exactly the card-only path. Above 0: sent from the platform balance, only under giftCovers. */
   gift_cents?: number | null;
 };
 /** declutter_manager_payouts_due (20261101233256): the manager's share of one sale, paid to the MANAGER's account. */
@@ -168,6 +167,8 @@ type ManagerPayoutDue = {
   payment_intent_id: string | null;
   attempts: number;
   refunds_recorded_cents?: number | null;
+  /** Q2106: the order's gift share (20261105032500); see PayoutDue.gift_cents. */
+  gift_cents?: number | null;
 };
 type HelprPayoutDue = {
   payout_id: string;
@@ -188,6 +189,8 @@ type HelprPayoutDue = {
   raise_parts?: unknown;
   /** Owner #3706: each held delivery tip of this payout, paid and not yet sent (20261028014848). */
   tip_parts?: unknown;
+  /** Q2106: the delivery order's gift share (20261105032500); see PayoutDue.gift_cents. */
+  gift_cents?: number | null;
 };
 type ShopPayoutDue = {
   payout_id: string;
@@ -243,6 +246,9 @@ const tookIt = (status: string | null | undefined) => status !== "failed" && sta
  * "the order's charge is not whole" otherwise, so nothing moves.
  */
 async function wholeCharge(stripe: Stripe, paymentIntentId: string | null, refundsRecordedCents: number | null | undefined): Promise<string> {
+  return (await wholeChargeObj(stripe, paymentIntentId, refundsRecordedCents)).id;
+}
+async function wholeChargeObj(stripe: Stripe, paymentIntentId: string | null, refundsRecordedCents: number | null | undefined): Promise<Stripe.Charge> {
   if (!paymentIntentId) throw new Error("the order has no payment to pay from");
   const pi = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["latest_charge"] });
   const ch = typeof pi.latest_charge === "object" ? pi.latest_charge : null;
@@ -250,7 +256,36 @@ async function wholeCharge(stripe: Stripe, paymentIntentId: string | null, refun
   if (pi.status !== "succeeded" || !ch || ch.amount_refunded > known || ch.disputed) {
     throw new Error(`the order's charge is not whole (status ${pi.status}, refunded ${ch?.amount_refunded ?? "?"}, recorded ${known}, disputed ${ch?.disputed ?? "?"})`);
   }
-  return ch.id;
+  return ch;
+}
+
+/** Q2106: a gift-paid order's payout is not covered by what the order brought in. Held for a person, never sent. */
+class GiftNotCovered extends Error {}
+
+/**
+ * Q2106 (lead money rule, 11-04): a transfer WITHOUT source_transaction draws on the platform's LIVE balance, so a
+ * gift-paid order's payout (seller, manager, or the Helpr's delivery pay) is sent from it only while EVERYTHING this
+ * order's own money has sent, plus this transfer, stays within what the order brought in: the card's charge (less
+ * what it refunded; 0 when the gift paid it all and there is no PaymentIntent) plus the gift. A raise's or a held
+ * tip's transfer is funded by its own charge and is not counted. The card's charge must still be whole (paid, no
+ * unrecorded refund, no dispute). Fails closed: an unreadable or unbounded transfer list sends nothing.
+ */
+async function giftCovers(stripe: Stripe, o: {
+  group: string; paymentIntentId: string | null; refundsRecordedCents: number | null | undefined; giftCents: number; amountCents: number;
+}): Promise<void> {
+  if (!(o.giftCents > 0)) throw new GiftNotCovered("not a gift-paid order: never sent from the platform balance");
+  const ch = o.paymentIntentId ? await wholeChargeObj(stripe, o.paymentIntentId, o.refundsRecordedCents) : null;
+  const cardNet = ch ? Math.max(0, Number(ch.amount ?? 0) - Number(ch.amount_refunded ?? 0)) : 0;
+  const listed = await stripe.transfers.list({ transfer_group: o.group, limit: 100 });
+  if (listed.has_more) throw new GiftNotCovered(`group ${o.group} has more than 100 transfers: not summed, not sent`);
+  const sent = listed.data.reduce((sum, t) => {
+    const meta = (t.metadata ?? {}) as Record<string, string>;
+    if (t.reversed || meta.raise_id || meta.tip_id) return sum;
+    return sum + Number(t.amount ?? 0) - Number(t.amount_reversed ?? 0);
+  }, 0);
+  if (sent + o.amountCents > cardNet + o.giftCents) {
+    throw new GiftNotCovered(`the gift order's money does not cover this payout: sent ${sent} + this ${o.amountCents} > card ${cardNet} + gift ${o.giftCents}`);
+  }
 }
 
 /**
@@ -1122,7 +1157,7 @@ serve(async (req) => {
         // order has no charge at all (no PaymentIntent). NEEDS LEAD MONEY REVIEW before queuing.
         const giftCents = Math.max(0, Number(p.gift_cents ?? 0));
         const fromPlatform = ((damageRefund ?? []) as unknown[]).length > 0 || giftCents > 0;
-        const charge = giftCents > 0 && !p.payment_intent_id ? null : await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents);
+        const charge = giftCents > 0 ? null : await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents);
         if (!(await payeeReadyNow(stripe, mode, "declutter", p.payout_id, p.seller_id, p.stripe_account_id as string, p.amount_cents))) continue;
         if (!(await stillPayableNow("declutter", p.payout_id, p.seller_id, p.amount_cents))) continue;
         // Owner 2026-10-30: the seller's one-time setup fee comes out here, once the sale is final and the send is
@@ -1140,6 +1175,10 @@ serve(async (req) => {
             p.amount_cents = toSend;
           }
         }
+        // Q2106: the platform-balance guard, on the final amount, before the send is marked.
+        if (giftCents > 0) {
+          await giftCovers(stripe, { group, paymentIntentId: p.payment_intent_id, refundsRecordedCents: p.refunds_recorded_cents, giftCents, amountCents: p.amount_cents });
+        }
         if (!(await markSending("declutter", p.payout_id, p.seller_id, p.amount_cents))) continue;
         beforeSend = false;
         transfer = await stripe.transfers.create(
@@ -1148,7 +1187,7 @@ serve(async (req) => {
             currency: "usd",
             destination: p.stripe_account_id as string,
             transfer_group: group,
-            ...(fromPlatform || !charge ? {} : { source_transaction: charge }),
+            ...(fromPlatform ? {} : { source_transaction: charge as string }),
             metadata: { kind: "declutter_payout", payout_id: p.payout_id, order_id: p.order_id },
           },
           { idempotencyKey: `declutter-payout-${p.payout_id}` },
@@ -1173,6 +1212,11 @@ serve(async (req) => {
       await emailSeller(admin, p.seller_id, p.order_id, "payout_sent", p.amount_cents,
         (step, detail) => console.log(JSON.stringify({ event: "declutter_seller_email", step, ...detail })));
     } catch (e) {
+      if (e instanceof GiftNotCovered) {
+        defects.record(`payout ${p.payout_id}: ${e.message}`.slice(0, 200));
+        await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 1440, "data_defect", e.message);
+        continue;
+      }
       if (isPartyRefusal(e)) {
         out.mixed_parties++;
         defects.record(`payout ${p.payout_id}: ${partyWhy(e, "the order")}; settle it by hand`);
@@ -1247,9 +1291,14 @@ serve(async (req) => {
       let managerTransfer = existing;
       if (!managerTransfer) {
         if (await unpayableNow("declutter_manager", p.payout_id, p.manager_id, p.stripe_account_id, p.amount_cents, mode)) continue;
-        const charge = await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents);
+        // Q2106: a gift-paid order's share is sent from the platform balance under giftCovers (the card paid less).
+        const giftCents = Math.max(0, Number(p.gift_cents ?? 0));
+        const charge = giftCents > 0 ? null : await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents);
         if (!(await payeeReadyNow(stripe, mode, "declutter_manager", p.payout_id, p.manager_id, p.stripe_account_id as string, p.amount_cents))) continue;
         if (!(await stillPayableNow("declutter_manager", p.payout_id, p.manager_id, p.amount_cents))) continue;
+        if (giftCents > 0) {
+          await giftCovers(stripe, { group: managerGroup, paymentIntentId: p.payment_intent_id, refundsRecordedCents: p.refunds_recorded_cents, giftCents, amountCents: p.amount_cents });
+        }
         if (!(await markSending("declutter_manager", p.payout_id, p.manager_id, p.amount_cents))) continue;
         beforeSend = false;
         managerTransfer = await stripe.transfers.create(
@@ -1258,7 +1307,7 @@ serve(async (req) => {
             currency: "usd",
             destination: p.stripe_account_id as string,
             transfer_group: managerGroup,
-            source_transaction: charge,
+            ...(giftCents > 0 ? {} : { source_transaction: charge as string }),
             metadata: { kind: "declutter_manager_payout", payout_id: p.payout_id, order_id: p.order_id },
           },
           { idempotencyKey: `declutter-manager-payout-${p.payout_id}` },
@@ -1277,6 +1326,11 @@ serve(async (req) => {
       else out.manager_payouts_sent++;
       await clearWait("declutter_manager", p.payout_id);
     } catch (e) {
+      if (e instanceof GiftNotCovered) {
+        defects.record(`manager payout ${p.payout_id}: ${e.message}`.slice(0, 200));
+        await skipRow("declutter_manager", p.payout_id, p.manager_id, p.amount_cents, 1440, "data_defect", e.message);
+        continue;
+      }
       if (isPartyRefusal(e)) {
         out.mixed_parties++;
         defects.record(`manager payout ${p.payout_id}: ${partyWhy(e, "the order")}; settle it by hand`);
@@ -1333,7 +1387,9 @@ serve(async (req) => {
       await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 60, "held", "the payee is on an admin payout hold");
       continue;
     }
-    if (h.source_kind !== "declutter_delivery" || !h.transfer_group || !h.payment_intent_id) {
+    // Q2106: a delivery order the gift paid in full has no PaymentIntent; its order part goes under giftCovers.
+    const hGiftCents = Math.max(0, Number(h.gift_cents ?? 0));
+    if (h.source_kind !== "declutter_delivery" || !h.transfer_group || (!h.payment_intent_id && !(hGiftCents > 0))) {
       // A source this money step cannot pay from (not a Declutter delivery, or no charge / group):
       // a data defect, held for review at once; it never "pays itself".
       defects.record(`helpr payout ${h.payout_id}: source ${h.source_kind} names no payable charge or transfer group`);
@@ -1350,7 +1406,7 @@ serve(async (req) => {
     let parts: PayoutPart[];
     try {
       // Owner #3706: each held delivery tip is one more part, exactly the tip, from the tip's own charge.
-      parts = [...helprPayoutParts(h.amount_cents, h.payment_intent_id, h.raised_cents, h.raise_parts), ...heldTipParts(h.tip_parts)];
+      parts = [...helprPayoutParts(h.amount_cents, h.payment_intent_id ?? "", h.raised_cents, h.raise_parts), ...heldTipParts(h.tip_parts)];
     } catch (e) {
       defects.record(`helpr payout ${h.payout_id}: ${caughtMessage(e, "raise parts unreadable")}`.slice(0, 200));
       await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 1440, "data_defect", caughtMessage(e, "raise parts unreadable"));
@@ -1388,6 +1444,11 @@ serve(async (req) => {
         const dropTip = new Set<number>();
         for (const [i, part] of parts.entries()) {
           if (sent[i]) {
+            charges[i] = null;
+            continue;
+          }
+          // Q2106: the order part of a gift-paid delivery has no source charge; giftCovers checks it before the send.
+          if (hGiftCents > 0 && !part.raiseId && !part.tipId) {
             charges[i] = null;
             continue;
           }
@@ -1432,6 +1493,10 @@ serve(async (req) => {
             h.amount_cents = toSend;
           }
         }
+        const giftPart = hGiftCents > 0 ? parts.find((part, i) => !sent[i] && !part.raiseId && !part.tipId) : undefined;
+        if (giftPart) {
+          await giftCovers(stripe, { group: h.transfer_group, paymentIntentId: h.payment_intent_id, refundsRecordedCents: h.refunds_recorded_cents, giftCents: hGiftCents, amountCents: giftPart.amountCents });
+        }
         if (!(await markSending("helpr_task", h.payout_id, h.helpr_id, h.amount_cents))) continue;
         beforeSend = false;
         for (const [i, part] of parts.entries()) {
@@ -1442,7 +1507,7 @@ serve(async (req) => {
               currency: "usd",
               destination: h.stripe_account_id as string,
               transfer_group: h.transfer_group,
-              source_transaction: charges[i] as string,
+              ...(part === giftPart ? {} : { source_transaction: charges[i] as string }),
               metadata: {
                 kind: "helpr_task_payout", payout_id: h.payout_id, task_id: h.task_id, source_id: h.source_id,
                 ...(part.raiseId ? { raise_id: part.raiseId } : {}),
@@ -1499,6 +1564,11 @@ serve(async (req) => {
       else out.helpr_payouts_sent++;
       await clearWait("helpr_task", h.payout_id);
     } catch (e) {
+      if (e instanceof GiftNotCovered) {
+        defects.record(`helpr payout ${h.payout_id}: ${e.message}`.slice(0, 200));
+        await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 1440, "data_defect", e.message);
+        continue;
+      }
       if (isPartyRefusal(e)) {
         out.mixed_parties++;
         defects.record(`helpr payout ${h.payout_id}: ${partyWhy(e, "the delivery")}; settle it by hand`);

@@ -41,7 +41,7 @@
     "src/components/MessageAttachment.tsx": {
       "button": 4
     },
-    "src/components/NotificationPanel.tsx": {
+    "src/components/NotificationPanelView.tsx": {
       "button": 2
     },
     "src/components/PayoutSetupForm.tsx": {

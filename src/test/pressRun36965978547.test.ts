@@ -41,8 +41,10 @@ describe("press-every-control rule from run 36965978547", () => {
   });
 
   it("the app shape the rule exists for is still there: a non-actionable row drops its role", () => {
+    // Q806 (2026-11-05): the predicate stays in NotificationPanel.tsx, the row that reads it moved to the view.
     const panel = readFileSync(resolve(repoRoot, "src/components/NotificationPanel.tsx"), "utf8");
+    const view = readFileSync(resolve(repoRoot, "src/components/NotificationPanelView.tsx"), "utf8");
     expect(panel).toMatch(/const isActionable = \(n: Notification\): boolean => hasDestination\(n\) \|\| !n\.read;/);
-    expect(panel).toMatch(/role: actionable \? "button" : undefined/);
+    expect(view).toMatch(/role: actionable \? "button" : undefined/);
   });
 });

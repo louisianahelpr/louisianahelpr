@@ -30,7 +30,7 @@
 // @mutate src/components/NotificationPanel.tsx | const collapseExit = reducedMotion | const collapseExit = true
 // Q931: on the desktop website the panel's WIDTH followed its content, so the
 // last unread row leaving moved its left edge (445px with a row -> 233px).
-// @mutate src/components/NotificationPanel.tsx |  [.web-desktop_&]:w-[28rem]"> | ">
+// @mutate src/components/NotificationPanelView.tsx |  [.web-desktop_&]:w-[28rem]"> | ">
 import { test, expect, webkit, type Browser, type Page } from "../prodTest";
 import { newUserContext, sessionFor, SUPABASE_URL, ANON, rest, type Session } from "./harness";
 

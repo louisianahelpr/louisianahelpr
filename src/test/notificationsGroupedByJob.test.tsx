@@ -7,7 +7,7 @@
  * face needs an actor column (data model; left open on Q2037).
  *
  * @mutate src/components/notificationPanel/notificationPanelHelpers.tsx |     const lead = n.job_id ? byJob.get(n.job_id) : undefined; |     const lead = undefined as { n: Notification; more: Notification[] } \| undefined;
- * @mutate src/components/NotificationPanel.tsx |                     const rows = foldByJob(group.items).flatMap( |                     const rows = group.items.map((n) => ({ n, more: [] as Notification[] })).flatMap(
+ * @mutate src/components/NotificationPanelView.tsx |                     const rows = foldByJob(group.items).flatMap( |                     const rows = group.items.map((n) => ({ n, more: [] as Notification[] })).flatMap(
  * @mutate src/components/notificationPanel/JobFoldToggle.tsx |     : `${more.length} more on this job${unread > 0 ? ` (${unread} unread)` : ""}`; |     : `${more.length} more on this job`;
  * @mutate src/components/notificationPanel/JobFoldToggle.tsx |         e.stopPropagation();\n        onToggle(); |         onToggle();
  */
@@ -53,7 +53,7 @@ describe("Q2037: notifications grouped by job", () => {
   });
 
   it("the panel renders its rows through foldByJob and shows the toggle on each lead row", () => {
-    const panel = blankComments(readFileSync(resolve(__dirname, "../components/NotificationPanel.tsx"), "utf8"));
+    const panel = blankComments(readFileSync(resolve(__dirname, "../components/NotificationPanelView.tsx"), "utf8"));
     expect(panel).toMatch(/const rows = foldByJob\(group\.items\)\.flatMap\(/);
     expect(panel).toMatch(/<JobFoldToggle more=\{more\}/);
   });

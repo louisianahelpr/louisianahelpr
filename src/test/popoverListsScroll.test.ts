@@ -30,7 +30,7 @@ const SHORT_LISTS: Record<string, string> = {
   "components/profile/ReviewsTab.tsx::sortOptions": "3 fixed sort orders",
   "components/profile/SavedHelpersTab.tsx::sortOptions": "the fixed sort orders in savedHelpersTab/types.ts",
   "components/profile/HelperTierBadge.tsx::progress.missing": "the next tier's missing signals from helperTier.ts, at most 3 lines",
-  "components/NotificationPanel.tsx::groupedNotifications": "screen-anchored band: screenPanelContentProps (ui/anchoredPanel.tsx) sets its maxHeight from useScreenPanelBand",
+  "components/NotificationPanelView.tsx::groupedNotifications": "screen-anchored band: screenPanelContentProps (ui/anchoredPanel.tsx) sets its maxHeight from useScreenPanelBand",
 };
 
 function walk(dir: string, out: string[] = []): string[] {

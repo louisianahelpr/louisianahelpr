@@ -105,7 +105,7 @@ const landings: Record<string, string> = {};
 // 1. the findings ratchet — strip the notification popover's only label and
 //    `/home :: dialog :: no-accessible-name` appears, which is not in the
 //    baseline.
-// @mutate src/components/NotificationPanel.tsx | aria-labelledby={titleId} | data-unlabelled="1"
+// @mutate src/components/NotificationPanelView.tsx | aria-labelledby={titleId} | data-unlabelled="1"
 // 2. the bounce check — signed-in /browse is declared to land on /home.
 //    Send it somewhere else and the sweep must notice it audited the wrong
 //    screen. (It used to mutate the /settings <Navigate>; that route was

@@ -13,7 +13,7 @@ import { tierDisplayName } from "@/lib/subscriptionTiers";
 // formatPriceExact for the payout column: it is budget minus fee to the cent,
 // and an admin reconciling against Stripe needs the real figure, not a rounded one.
 import { formatCategory, formatPrice, formatPriceExact, formatShortDate } from "@/lib/format";
-import { formatJobDate } from "@/lib/dateUtils";
+import { jobDayLabel } from "@/lib/jobDateWindow";
 import { floorPayoutDollars } from "@/lib/helperEarnings";
 import { PIE_COLORS } from "./adminAnalyticsConstants";
 import { toneTextClasses } from "@/components/admin/tones";
@@ -222,7 +222,7 @@ const PayoutsDrillDown = ({ jobs }: { jobs: Job[] }) => {
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="font-semibold text-foreground text-ds-13 truncate">{j.title}</p>
-                <p className="text-ds-11 text-muted-foreground mt-0.5">{j.location} · {formatJobDate(j.date_needed)}</p>
+                <p className="text-ds-11 text-muted-foreground mt-0.5">{j.location} · {jobDayLabel(j)}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <div className={cn("w-2 h-2 rounded-full", statusDot(j.payment_status || ""))} />

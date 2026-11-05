@@ -2,7 +2,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 
-export type ClosedJobLabel = { title: string | null; date_needed: string | null };
+/** date_window_end: an "Any time this week" job's last day (Q2408, 20261105233602); absent before db-deploy, read as none. */
+export type ClosedJobLabel = { title: string | null; date_needed: string | null; date_window_end: string | null };
 
 /**
  * JOBS-12: the title and date of jobs closed to this Helpr. Never throws: without them the row keeps its plain line.
@@ -15,5 +16,5 @@ export async function fetchClosedJobLabels(needed: boolean): Promise<Map<string,
     if (!isMissingRpcNamed(error, "get_closed_application_job_labels")) report(error, { severity: "warning", tags: { source: "useActivityData.closedJobLabels" } });
     return new Map();
   }
-  return new Map((data ?? []).map((row) => [row.job_id, { title: row.title, date_needed: row.date_needed }]));
+  return new Map((data ?? []).map((row) => [row.job_id, { title: row.title, date_needed: row.date_needed, date_window_end: row.date_window_end ?? null }]));
 }

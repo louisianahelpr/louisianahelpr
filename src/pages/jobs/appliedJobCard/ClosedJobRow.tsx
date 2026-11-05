@@ -1,12 +1,12 @@
 import type { Ref } from "react";
-import { formatJobDate } from "@/lib/dateUtils";
+import { jobDayLabel } from "@/lib/jobDateWindow";
 import { JobCardShell } from "@/components/job-card/JobCardShell";
 
 /**
  * JOBS-12: the row for a job that has closed to this Helpr. It names the job when its title and date can still be
  * read (get_closed_application_job_labels); a job with no row left keeps the plain line.
  */
-type ClosedLabel = { title: string | null; date_needed: string | null } | null;
+type ClosedLabel = { title: string | null; date_needed: string | null; date_window_end?: string | null } | null;
 
 export function ClosedJobRow({ label, status }: { label?: ClosedLabel; status: string }) {
   const title = label?.title?.trim();
@@ -22,7 +22,7 @@ export function ClosedJobRow({ label, status }: { label?: ClosedLabel; status: s
     <>
       <p className="text-ds-13 font-medium truncate" style={{ color: "hsl(var(--ink-deep))" }}>{title}</p>
       <p className="text-ds-11 text-muted-foreground">
-        {label?.date_needed ? `${formatJobDate(label.date_needed)} · ` : ""}{status}
+        {label?.date_needed ? `${jobDayLabel(label)} · ` : ""}{status}
       </p>
     </>
   );

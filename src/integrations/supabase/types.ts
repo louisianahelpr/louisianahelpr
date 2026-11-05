@@ -18812,6 +18812,7 @@ export type Database = {
         Args: never
         Returns: {
           date_needed: string
+          date_window_end: string | null
           job_id: string
           title: string
         }[]

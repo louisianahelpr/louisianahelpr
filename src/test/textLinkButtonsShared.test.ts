@@ -10,6 +10,9 @@
  * Second slice (same night): Job confirmation's "Cancel job", Photo proof's "View all", a failed message's
  * retry, the filter sheet's "set hours", a tenancy's end link (their hand-written hover:underline goes: the shared
  * link draws its own underline on hover).
+ * Third slice (sensitive paths, code-reviewed): Admin's credential "Open", payouts' "Select All with Stripe" /
+ * "Clear Selection", a report's two names, disputes' "Reset Filters", the security check's "Retry", the App Store
+ * "Restore purchases", sign-up's "Resend", "Skip and create account" and "Have a referral code?".
  * Each file's hand-made button count fell in the same commit (docs/audit/hand-made-controls-baseline.json).
  *
  * @mutate src/components/series/EndSeriesControl.tsx | {trigger && <InlineTextButton | {trigger && <button type="button"
@@ -25,6 +28,14 @@
  * @mutate src/components/messages/MessageBubble.tsx | <InlineTextButton\n            onClick={() => m.clientId && retryMessage(m.clientId)} | <button className="underline"\n            onClick={() => m.clientId && retryMessage(m.clientId)}
  * @mutate src/components/dashboard/filterSheet/FilterSheetRows.tsx | <InlineTextButton\n              onClick={() => navigate("/profile?tab=availability")} | <button className="underline"\n              onClick={() => navigate("/profile?tab=availability")}
  * @mutate src/components/rentals/EndTenancyButton.tsx | <InlineTextButton className="text-sm | <button className="underline text-sm
+ * @mutate src/components/admin/AdminCredentialQueue.tsx | <InlineTextButton\n      onClick={open} | <button className="hover:underline"\n      onClick={open}
+ * @mutate src/components/admin/AdminPayoutBatches.tsx | <InlineTextButton onClick={selectAllReady} | <button className="hover:underline" onClick={selectAllReady}
+ * @mutate src/components/admin/AdminReports.tsx | <InlineTextButton\n                          onClick={() => navigate(`/user/${report.reporter_id}`)} | <button className="hover:underline"\n                          onClick={() => navigate(`/user/${report.reporter_id}`)}
+ * @mutate src/components/admin/adminDisputes/DisputeFilters.tsx | <InlineTextButton onClick={p.clearFilters} | <button className="hover:underline" onClick={p.clearFilters}
+ * @mutate src/components/auth/TurnstileField.tsx | <InlineTextButton\n              onClick={() => { | <button className="underline"\n              onClick={() => {
+ * @mutate src/components/profile/SubscriptionTab.tsx | <InlineTextButton\n            onClick={handleRestorePurchases} | <button className="underline"\n            onClick={handleRestorePurchases}
+ * @mutate src/pages/auth/SignupPending.tsx | <InlineTextButton\n                onClick={handleResend} | <button className="hover:underline"\n                onClick={handleResend}
+ * @mutate src/pages/auth/signup/SignupStep2.tsx | <InlineTextButton\n          data-testid="referral-code-toggle" | <button className="underline"\n          data-testid="referral-code-toggle"
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -48,6 +59,14 @@ const CASES: [string, number][] = [
   ["src/components/messages/MessageBubble.tsx", 1],
   ["src/components/dashboard/filterSheet/FilterSheetRows.tsx", 1],
   ["src/components/rentals/EndTenancyButton.tsx", 1],
+  ["src/components/admin/AdminCredentialQueue.tsx", 1],
+  ["src/components/admin/AdminPayoutBatches.tsx", 2],
+  ["src/components/admin/AdminReports.tsx", 2],
+  ["src/components/admin/adminDisputes/DisputeFilters.tsx", 1],
+  ["src/components/auth/TurnstileField.tsx", 1],
+  ["src/components/profile/SubscriptionTab.tsx", 1],
+  ["src/pages/auth/SignupPending.tsx", 1],
+  ["src/pages/auth/signup/SignupStep2.tsx", 2],
 ];
 
 function scan(file: string) {
@@ -66,9 +85,9 @@ function scan(file: string) {
 }
 
 describe("underlined text actions are the shared InlineTextButton (Q2709)", () => {
-  it("checks all thirteen files, seventeen actions (an empty list would pass every case)", () => {
-    expect(CASES.length).toBe(13);
-    expect(CASES.reduce((a, [, n]) => a + n, 0)).toBe(17);
+  it("checks all twenty-one files, twenty-eight actions (an empty list would pass every case)", () => {
+    expect(CASES.length).toBe(21);
+    expect(CASES.reduce((a, [, n]) => a + n, 0)).toBe(28);
   });
 
   it.each(CASES)("%s", (file, n) => {

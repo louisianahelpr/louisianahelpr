@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { pillLabel } from "@/components/admin/useFilterCounts";
 import { AdminCard } from "../AdminViewShell";
@@ -30,9 +31,9 @@ export function DisputeFilters(p: {
       action={
         <span className="flex items-center gap-3">
           {active > 0 && (
-            <button type="button" onClick={p.clearFilters} className="text-ds-11 text-primary hover:underline">
+            <InlineTextButton onClick={p.clearFilters} className="text-ds-11 text-primary">
               Reset Filters
-            </button>
+            </InlineTextButton>
           )}
           {isMobile && (
             <button type="button" data-dispute-filters-toggle aria-expanded={shown} aria-controls="dispute-filters"

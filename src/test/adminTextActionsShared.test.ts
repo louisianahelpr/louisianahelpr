@@ -28,6 +28,10 @@ const CASES: [string, RegExp][] = [
 ];
 
 describe("admin text actions are the shared InlineTextButton (Q2709)", () => {
+  it("checks all four admin text actions (an empty list would pass every case)", () => {
+    expect(CASES.length).toBe(4);
+  });
+
   it.each(CASES)("%s", (file, re) => {
     const src = read(file);
     expect(src).toMatch(re);

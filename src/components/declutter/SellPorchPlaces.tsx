@@ -145,8 +145,8 @@ function PlaceForm({ initial, onDone, free }: { initial: Draft; onDone: () => vo
   );
 }
 
-const PLACE_ICON_BUTTON =
-  "inline-flex min-h-11 min-w-11 items-center justify-center rounded-full text-muted-foreground transition hover:bg-muted active:scale-[0.95] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+// The shared quiet icon Button (ghost iconCompact: a 44px tap box) keeps the row's 18px glyphs and muted ink (Q2709).
+const PLACE_ICON_BUTTON = "shrink-0 rounded-full text-muted-foreground [&_svg]:size-[18px]";
 
 function PlaceRow({ place, onEdit }: { place: MyPorchPlace; onEdit: () => void }) {
   const qc = useQueryClient();
@@ -169,12 +169,12 @@ function PlaceRow({ place, onEdit }: { place: MyPorchPlace; onEdit: () => void }
           <p className="text-ds-13 text-muted-foreground" data-place-hours-line="">{placeHoursLine(place.windows, place.weekdays)}</p>
         </div>
         <div className="-mr-2 -mt-2.5 flex shrink-0" data-place-actions="">
-          <button type="button" className={PLACE_ICON_BUTTON} onClick={onEdit} aria-label={`Edit ${place.label}`}>
+          <Button type="button" variant="ghost" size="iconCompact" className={PLACE_ICON_BUTTON} onClick={onEdit} aria-label={`Edit ${place.label}`}>
             <Pencil className="h-[18px] w-[18px]" aria-hidden="true" />
-          </button>
-          <button type="button" className={`${PLACE_ICON_BUTTON} hover:text-destructive-ink`} onClick={() => setAsking(true)} aria-label={`Remove ${place.label}`}>
+          </Button>
+          <Button type="button" variant="ghost" size="iconCompact" className={`${PLACE_ICON_BUTTON} hover:text-destructive-ink`} onClick={() => setAsking(true)} aria-label={`Remove ${place.label}`}>
             <Trash2 className="h-[18px] w-[18px]" aria-hidden="true" />
-          </button>
+          </Button>
         </div>
       </div>
       <ConfirmSheet open={asking} onClose={() => setAsking(false)} title={`Remove ${place.label}?`}

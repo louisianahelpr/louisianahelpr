@@ -1,7 +1,7 @@
 /**
  * THE ITEM PAGE'S LOADING FRAME IS THE ITEM PAGE'S OWN SHAPE (Q1837).
  *
- * loading-states-refresh 41949893912 (11-05 02:01Z, helper, its own draft
+ * loading-states-refresh 41949893912 (2026-11-05 02:01Z, helper, its own draft
  * item) measured /declutter/item/:id at row 208px -> 44px, 3 -> 2 rows: the
  * skeleton painted a visible "Item" title in an unpinned header where the page
  * has back + help only, pinned, and two 80%-wide photo bones where the page

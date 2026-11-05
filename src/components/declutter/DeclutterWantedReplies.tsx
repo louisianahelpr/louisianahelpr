@@ -52,11 +52,11 @@ function WantedPostSafety({ post, onBlocked }: { post: WantedNear; onBlocked?: (
     },
     onError: (err) => { setBlocking(false); toast.error(declutterErrorMessage(err)); },
   });
-  const quiet = "inline-flex min-h-11 items-center text-ds-13 font-medium text-muted-foreground underline underline-offset-2";
+  const quiet = "px-0 text-ds-13 font-medium text-muted-foreground underline decoration-current underline-offset-2";
   return (
     <div className="flex gap-4" data-wanted-safety="">
-      <button type="button" className={quiet} onClick={() => setReporting(true)}>Report</button>
-      <button type="button" className={quiet} onClick={() => setBlocking(true)}>Block</button>
+      <Button type="button" variant="link" size="sm" className={quiet} onClick={() => setReporting(true)}>Report</Button>
+      <Button type="button" variant="link" size="sm" className={quiet} onClick={() => setBlocking(true)}>Block</Button>
       {reporting && (
         <Suspense fallback={null}>
           <ReportDialog open={reporting} onClose={() => setReporting(false)} reportedType="declutter_wanted" reportedId={post.id} />

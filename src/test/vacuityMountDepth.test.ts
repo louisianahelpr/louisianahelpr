@@ -91,7 +91,7 @@ describe("mount-wiring depth", () => {
 
   it("on the real tree SellItForMe is not a gap, and the scan still finds gaps", () => {
     const gaps = real();
-    expect(gaps.length).toBeGreaterThan(4); // 5 on 2026-11-05 once lazy and hook edges counted (3 baselined + BrowseMap, DashboardTitleBar)
+    expect(gaps.length).toBeGreaterThan(2); // 3 on 2026-11-05 (the 3 baselined), once lazy and hook edges counted and DashboardGuest is rendered
     expect(gaps.map((g) => g.module)).not.toContain("src/components/declutter/SellItForMe.tsx");
   }, 120_000);
 

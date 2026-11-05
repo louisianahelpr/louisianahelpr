@@ -4,9 +4,10 @@
  * person", NO codes anywhere).
  *
  *   Shop: "Mark ready" (left out: a photo is required; in person: optional),
- *         and once handed over the payout line. The shop can NEVER finish its
- *         own order (owner 2026-10-18 ~21:00Z): only the buyer's "I got it" or
- *         the automatic finish 24 hours after the ready date does.
+ *         in person "Handed over" from the ready date, and once handed over the
+ *         payout line. The shop can NEVER finish its own order (owner
+ *         2026-10-18 ~21:00Z): its "Handed over" (or left-out photo) only starts
+ *         the buyer's 48 hours (H5, Declutter's 10-30 rule).
  *   Buyer: "I got it" (the shop is paid), "I didn't get it" (the money waits
  *         for Louisiana Helpr), and the shop's ready photo.
  *
@@ -25,6 +26,7 @@ import {
   confirmPickup,
   fetchHandovers,
   fetchMyShopPayouts,
+  markHandedOver,
   markReady,
   payoutText,
   readyPhotoUrl,
@@ -44,6 +46,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
   const qc = useQueryClient();
   const fileId = useId();
   const [confirming, setConfirming] = useState(false);
+  const [handingOver, setHandingOver] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [note, setNote] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -72,6 +75,15 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
     mutationFn: async (file: File | null) => markReady(order.id, file ? await uploadReadyPhoto(userId, order.id, file) : null),
     onSuccess: () => { toast.success("Marked ready. The buyer is told."); refresh(); },
     onError,
+  });
+  const handedOver = useMutation({
+    mutationFn: () => markHandedOver(order.id),
+    onSuccess: () => {
+      toast.success("Marked handed over. The buyer has 48 hours to report a problem.");
+      setHandingOver(false);
+      refresh();
+    },
+    onError: (err) => { setHandingOver(false); onError(err); },
   });
   const finish = useMutation({
     mutationFn: () => confirmPickup(order.id),
@@ -123,7 +135,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
     </BrandConfirmDialog>
   );
   const h = handover.data ?? null;
-  const busy = ready.isPending || finish.isPending || report.isPending;
+  const busy = ready.isPending || finish.isPending || report.isPending || handedOver.isPending;
   const porch = order.handover_mode === "porch";
   const today = louisianaToday();
   const due = today >= order.ready_date;
@@ -150,6 +162,9 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
       <p className="text-xs text-muted-foreground">
         {porch ? "Left out for pickup." : "Pick up in person."}{" "}
         {h?.ready_at ? (side === "buyer" ? "The shop marked it ready." : "You marked it ready.") : ""}
+        {side === "buyer" && h?.shop_confirmed_at
+          ? " The shop says you have it. If you didn't get it, tell us within 48 hours."
+          : ""}
       </p>
       {side === "shop" ? (
         <div className="flex flex-wrap gap-2">
@@ -175,10 +190,17 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
           {!porch && !h?.ready_at && (
             <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => ready.mutate(null)}>Mark ready</Button>
           )}
+          {!porch && due && !h?.shop_confirmed_at && (
+            <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setHandingOver(true)}>
+              Handed over
+            </Button>
+          )}
           <p className="w-full text-xs text-muted-foreground" data-testid="shop-handover-wait">
             {porch
-              ? "The buyer taps \"I got it\". If they don't, it finishes on its own 24 hours after the ready date, once your photo is in."
-              : "The buyer taps \"I got it\" when they have it. If they don't, it finishes on its own 24 hours after the ready date."}
+              ? "The buyer taps \"I got it\". With your photo in, you're paid 48 hours after it unless the buyer reports a problem."
+              : h?.shop_confirmed_at
+                ? "You marked it handed over. You're paid 48 hours after that unless the buyer reports a problem."
+                : "The buyer taps \"I got it\", or you tap \"Handed over\" once they have it. Until one of you does, the money stays held."}
           </p>
         </div>
       ) : (
@@ -191,13 +213,26 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
           <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setConfirming(true)}>
             I got it
           </Button>
-          {(due || !!h?.ready_at) && (
+          {(due || !!h?.ready_at || !!h?.shop_confirmed_at) && (
             <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => { setNote(""); setReporting(true); }}>
               I didn't get it
             </Button>
           )}
         </div>
       )}
+      <BrandConfirmDialog
+        open={handingOver}
+        onOpenChange={(o) => { if (!o) setHandingOver(false); }}
+        title="Handed over?"
+        description="Only tap this once the buyer has the order. They have 48 hours to report a problem; then you're paid."
+        primaryLabel={handedOver.isPending ? "Saving…" : "Handed over"}
+        primaryDisabled={handedOver.isPending}
+        onPrimary={(e) => {
+          e.preventDefault();
+          handedOver.mutate();
+        }}
+        secondaryLabel="Cancel"
+      />
       <BrandConfirmDialog
         open={confirming}
         onOpenChange={(o) => { if (!o) setConfirming(false); }}

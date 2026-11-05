@@ -50,6 +50,9 @@
  * @mutate scripts/perf/cwv-lab.mjs | export const PROBE_KINDS = ["fetch", "xhr", "beacon", "worker", "form", "frame"]; | export const PROBE_KINDS = ["fetch", "xhr", "beacon", "worker", "form"];
  * @mutate scripts/perf/cwv-lab.mjs |       navigator.sendBeacon(`${u}_beacon`, "{}"); |       void u;
  * @mutate scripts/perf/cwv-lab.mjs |               colorScheme: arg("scheme", "light"), serviceWorkers: "block", |               colorScheme: arg("scheme", "light"),
+ * @mutate scripts/perf/cwv-lab.mjs |             const ctx = await browser.newContext({ |             const spare = await browser.newContext(); void spare;\n            const ctx = await browser.newContext({
+ * @mutate scripts/perf/cwv-lab.mjs |             const ctx = await browser.newContext({ |             void (await browser.newPage());\n            const ctx = await browser.newContext({
+ * @mutate scripts/perf/cwv-lab.mjs |     await page.goto("about:blank"); |     await page.goto(process.argv[2] ?? "about:blank");
  * @mutate scripts/perf/cwv-lab.mjs |   const state = { reads, allowed, blocked, clock, cdp: browserName === "chromium", strays: [] }; |   const state = { reads, allowed, blocked, clock, cdp: false, strays: [] };
  */
 import { describe, it, expect } from "vitest";
@@ -132,6 +135,18 @@ describe("cwv-lab blocks every prod write before it measures", () => {
     const contexts = [...src.matchAll(/const ctx = await browser\.newContext\(\{[\s\S]*?\}\);/g)];
     expect(contexts.length).toBeGreaterThan(0);
     for (const c of contexts) expect(c[0]).toContain('serviceWorkers: "block"');
+    // ...and that list IS every context the lab can open. A context under any
+    // other name, or the implicit one browser.newPage() makes, would get no
+    // write block, no probe and live service workers, and every check above
+    // would pass without seeing it.
+    const everyContext = [...src.matchAll(/\bnewContext\(/g)];
+    expect(everyContext.length, "every browser context is the checked `const ctx = await browser.newContext({...})`").toBe(contexts.length);
+    // The one implicit context is the CPU benchmark's blank page: about:blank
+    // only, never a route, so it has nothing to write with.
+    const bench = src.slice(src.indexOf("export async function cpuBenchmarkMs(browser)"), src.indexOf("export function calibratedCpuRate("));
+    expect(bench).toContain("const page = await browser.newPage();");
+    expect([...bench.matchAll(/\.goto\(([^)]*)\)/g)].map((m) => m[1])).toEqual(['"about:blank"']);
+    expect(src.replace(bench, ""), "no other implicit context from browser.newPage()").not.toMatch(/browser\.newPage\(/);
   });
 
   it("the read allowance passes only named STABLE RPCs, the expired refresh and the payout-status read", () => {

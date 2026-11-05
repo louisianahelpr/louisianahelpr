@@ -127,9 +127,14 @@ function visitTaxShares(
 /**
  * Stripe refused a reversal because its reference is already used, so that
  * refund's reversal exists. Matched on the error's structure (an invalid
- * request about the reference) AND its text: Stripe does not document the
- * exact wording, so any other refusal (an over-reversal, an idempotency
- * conflict, a network error) is a failure and is paged, never read as done.
+ * request about the reference) AND its text. Stripe TEST mode (Q1912, runs
+ * 41870316864 + 41871055112) answers a reused reference with 400
+ * invalid_request_error, param reference, "You have already created a tax
+ * transaction ... with the reference '...'. `reference` must be unique across
+ * all tax transactions." Any other refusal (an over-reversal, param
+ * flat_amount; a fully reversed original, param original_transaction; an
+ * idempotency conflict; a network error) is a failure and is paged, never
+ * read as done.
  */
 function referenceTaken(e: unknown): boolean {
   const err = (e ?? {}) as { type?: string; rawType?: string; param?: string };

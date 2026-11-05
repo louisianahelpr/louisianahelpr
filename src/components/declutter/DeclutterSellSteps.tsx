@@ -60,11 +60,13 @@ export function ChipGroup({ label, options, value, onChange, groups, compact = f
 
 export function StepperButton({ label, disabled, onClick, children }: { label: string; disabled?: boolean; onClick: () => void; children: string }) {
   return (
-    <button type="button" aria-label={label} disabled={disabled} onClick={onClick}
-      className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-ds-22 text-foreground disabled:opacity-40"
+    // The shared Button's 48px stepper disc (outline iconMd, as Post a job's budget steppers; Q2709), on the card fill
+    // with the full border and the 22px glyph it always had.
+    <Button type="button" variant="outline" size="iconMd" aria-label={label} disabled={disabled} onClick={onClick}
+      className="border-border bg-card text-ds-22 font-normal tracking-normal text-foreground disabled:opacity-40"
     >
       <span aria-hidden>{children}</span>
-    </button>
+    </Button>
   );
 }
 

@@ -12,6 +12,8 @@
  * @mutate src/components/declutter/DeclutterSkeletons.tsx | <AppPage title="Item" backTo="/declutter" phoneHidesTitle hidesTitle stickyHeader> | <AppPage title="Item" backTo="/declutter" phoneHidesTitle hidesTitle>
  * @mutate src/components/declutter/DeclutterSkeletons.tsx |           <Skeleton className={`${ITEM_PHOTO_FRAME_BASE} ${ITEM_PHOTO_ASPECT.item}`} /> |           <Skeleton className="shrink-0 w-[80%] max-w-sm aspect-square rounded-2xl bg-photo-empty" />
  * @mutate scripts/audit/measure-loading-states.mjs | !e.closest("[data-sonner-toaster]") && !e.closest(".sticky-title-row")) | !e.closest("[data-sonner-toaster]"))
+ * @mutate src/components/declutter/DeclutterSkeletons.tsx | <Skeleton className="h-52 w-full rounded-2xl" style={{ minHeight: reserve }} aria-hidden /> | <Skeleton className="h-52 w-full rounded-2xl" aria-hidden />
+ * @mutate src/hooks/useScreenfulBelow.ts | Math.round(window.innerHeight - el.getBoundingClientRect().top) | 0
  * @mutate src/components/declutter/DeclutterGallery.tsx | const ASPECT = ITEM_PHOTO_ASPECT; | const ASPECT = { item: "aspect-square bg-photo-empty", banner: "aspect-[16/9] bg-photo-empty" } as const;
  */
 import { describe, it, expect } from "vitest";
@@ -65,5 +67,12 @@ describe("the Declutter item skeleton is the item page's shape (Q1837)", () => {
     expect(probe, "the loaded probe's elementsFromPoint filter not found").not.toBeNull();
     expect(probe![1]).toContain('!e.closest("[data-sonner-toaster]")');
     expect(probe![1]).toContain('!e.closest(".sticky-title-row")');
+  });
+
+  it("the details bone reserves the rest of the screen (owner ruling 2026-09-19: fills the screen, grows below)", () => {
+    expect(fn).toMatch(/const \{ ref: columnRef, reserve \} = useScreenfulBelow\(\);/);
+    expect(fn).toMatch(/<div ref=\{columnRef\}[^>]*>\s*<Skeleton [^>]*style=\{\{ minHeight: reserve \}\}/);
+    const hook = read("src/hooks/useScreenfulBelow.ts");
+    expect(hook, "the reserve is measured from the viewport, not a constant").toMatch(/window\.innerHeight - el\.getBoundingClientRect\(\)\.top/);
   });
 });

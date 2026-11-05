@@ -123,9 +123,10 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
   });
 
   const save = useMutation({
-    mutationFn: async () => (id ? (await updateShopItem(id, fields()), id) : createShopItem(fields())),
-    onSuccess: async (savedId) => {
-      toast.success("Saved as a draft.");
+    mutationFn: async () => (id ? { savedId: id, next: await updateShopItem(id, fields()) } : { savedId: await createShopItem(fields()), next: "draft" }),
+    onSuccess: async ({ savedId, next }) => {
+      // A live item's edit stays live unless it changes the kind or type, or a check flags the new words (owner 2026-11-05).
+      toast.success(next === "live" ? "Saved. It's still on your shop." : next === "pending_review" ? "Saved. Our checks sent it for a quick review." : "Saved as a draft.");
       // Wait for the list to hold the new item before the form switches to it.
       await qc.invalidateQueries({ queryKey: ["shops", "items"] });
       if (!id) onCreated(savedId);
@@ -181,11 +182,11 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
       if (JSON.stringify(fromItem(item)) !== JSON.stringify(d)) await updateShopItem(itemId, fields());
       await attestShopItem(itemId, need);
       if (d.kind === "home_food" && cottage.data && !cottage.data.confirmed) await confirmCottageYear();
-      // The photo check is best effort: an unchecked item waits for an admin (the server's fail-safe).
+      // The photo check is best effort: if it does not answer, the word check decides (the server fails open, as Declutter).
       try {
         await requestShopItemAiCheck(itemId);
       } catch (checkErr) {
-        console.warn("[shops] photo check did not run; the item waits for an admin", checkErr);
+        console.warn("[shops] photo check did not run; the word check decides", checkErr);
       }
       return publishShopItem(itemId);
     },
@@ -215,7 +216,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
       )}
       {id && !draft && (
         <p className="text-sm text-muted-foreground">
-          Changing the details below takes this item off your shop until you publish it again. Stock and ready time change right away.
+          Changes stay on your shop right away. Changing what kind of item it is, or its type, takes it off until you publish it again.
         </p>
       )}
       <div className="space-y-1.5">
@@ -293,7 +294,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
       )}
       <div className="flex flex-wrap gap-2">
         <Button type="button" variant="outline" disabled={busy} onClick={() => save.mutate()}>
-          {save.isPending ? "Saving…" : "Save draft"}
+          {save.isPending ? "Saving…" : status === "live" ? "Save changes" : "Save draft"}
         </Button>
         {id && !draft && status !== "rejected" && (
           <Button type="button" variant="outline" disabled={stock.isPending} onClick={() => stock.mutate()}>
@@ -399,7 +400,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
           >
             {publish.isPending ? "Publishing…" : "Publish"}
           </Button>
-          <p className="text-xs text-muted-foreground">Your first 3 items, and anything our checks flag, get a quick review before they show.</p>
+          <p className="text-xs text-muted-foreground">Your item shows on your shop right away. Anything our checks flag gets a quick review first, and for 30 days after an item is turned down, so do new items and new wording.</p>
         </fieldset>
       )}
     </section>

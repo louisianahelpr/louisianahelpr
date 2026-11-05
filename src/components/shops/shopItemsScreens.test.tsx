@@ -19,6 +19,7 @@
  *  5. ShopDailyCap: an emptied box removes a saved limit only as the named
  *     "Remove limit" action, sending NULL (should-fix 3).
  *
+ * @mutate src/components/shops/ShopItemEditor.tsx | toast.success(next === "live" ? "Saved. It's still on your shop." : | toast.success(next === "nope" ? "Saved. It's still on your shop." :
  * @mutate src/components/shops/ShopItemsSection.tsx |       ) : items.isError && !items.data ? ( |       ) : items.isError ? (
  * @mutate src/components/shops/ShopItemsSection.tsx |           <Button type="button" variant="outline" size="sm" onClick={() => void items.refetch()} disabled={items.isFetching}> |           <Button type="button" variant="outline" size="sm" onClick={() => undefined} disabled={items.isFetching}>
  * @mutate src/components/shops/ShopItemsSection.tsx |             <p className="text-sm">This item isn't available any more.</p> |             <p className="text-sm">Loading…</p>
@@ -282,6 +283,25 @@ describe("ShopItemEditor", () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Set how many days you need, from 0 (same day) to 60."));
     expect(api.updateShopItem).not.toHaveBeenCalled();
     expect(api.createShopItem).not.toHaveBeenCalled();
+  });
+
+  // Shops H3 (owner 2026-11-05, answer 2): a live item's edit stays live, and
+  // the screen says so instead of "Saved as a draft".
+  it("saving a live item's edit says it's still on the shop", async () => {
+    api.updateShopItem.mockResolvedValue("live");
+    renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "live" })} onCreated={() => {}} onDone={() => {}} />);
+    expect(screen.getByText(/Changes stay on your shop right away/)).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Price (dollars)"), { target: { value: "24" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Saved. It's still on your shop."));
+    expect(api.updateShopItem).toHaveBeenCalledTimes(1);
+  });
+
+  it("a live edit our checks flag says it went for a review", async () => {
+    api.updateShopItem.mockResolvedValue("pending_review");
+    renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "live" })} onCreated={() => {}} onDone={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Saved. Our checks sent it for a quick review."));
   });
 
   it("home food cannot publish while this year's limit status is unknown", async () => {

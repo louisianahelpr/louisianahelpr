@@ -29,8 +29,8 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 // @mutate supabase/migrations/20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql |                               WHERE g.job_id = j.id AND g.helper_id IS NOT NULL AND g.helper_confirmed_at IS NULL)) |                               WHERE false))
 // @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (j.is_group_job IS TRUE AND EXISTS ( |   JOIN public.jobs j\n    ON j.status = 'completed'\n   AND (j.helper_id = u.id\n        OR (false AND EXISTS (
 // @mutate supabase/migrations/20260927012241_group_crew_reminders_and_counts.sql | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.get_helper_completed_counts(uuid[]) FROM PUBLIC;
-// @mutate supabase/migrations/20261102040000_declutter_review_report.sql | JOIN public.jobs j ON j.id = g.job_id AND j.is_group_job IS TRUE AND j.status = 'completed'\n      AND j.is_seed | JOIN public.jobs j ON j.id = g.job_id AND false\n      AND j.is_seed
-// @mutate supabase/migrations/20261102040000_declutter_review_report.sql |     FROM worked w\n    WHERE w.customer_id IS NOT NULL | FROM target t JOIN public.jobs j ON j.helper_id = t.user_id CROSS JOIN LATERAL (SELECT t.user_id, j.customer_id) w\n    WHERE w.customer_id IS NOT NULL
+// @mutate supabase/migrations/20261105171508_public_profile_stats_same_person.sql | JOIN public.jobs j ON j.id = g.job_id AND j.is_group_job IS TRUE AND j.status = 'completed'\n      AND j.is_seed | JOIN public.jobs j ON j.id = g.job_id AND false\n      AND j.is_seed
+// @mutate supabase/migrations/20261105171508_public_profile_stats_same_person.sql |     FROM worked w\n    WHERE w.customer_id IS NOT NULL | FROM target t JOIN public.jobs j ON j.helper_id = t.user_id CROSS JOIN LATERAL (SELECT t.user_id, j.customer_id) w\n    WHERE w.customer_id IS NOT NULL
 // @mutate supabase/migrations/20261102152453_q2083_job_tax_kind.sql |       WHERE p.job_id = j.id AND p.helper_id = g.helper_id\n |       WHERE false\n
 // @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |            OR (j.is_group_job IS TRUE AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id))) |            OR (false AND EXISTS (\n                 SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p_helper_id)))
 // @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |       OR (j.is_group_job IS TRUE AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id)) |       OR (false AND EXISTS (\n            SELECT 1 FROM public.group_job_helpers g WHERE g.job_id = j.id AND g.helper_id = p.user_id))
@@ -105,11 +105,12 @@ describe("a crew gets its reminders, auto-start and counts (Q728)", () => {
       // test-data exclusion only (test data never counts in any number).
       // 20261031234653 (owner 10-31) leaves an unfilled expired listing out of cancelled_jobs only.
       // 20261102040000 (A3-75) leaves a Declutter review an admin removed out of the rating only.
+      // 20261105171508 (owner 11-05, L4) leaves a review between one person's own accounts out of the rating only.
       // 20261102100421 (Q2588) restates auto_start_due_jobs with a no-start-time job due at its day's end only.
       // 20261103214229 (owner bug 11-03) restates sweep_no_show_alerts with the crew branch skipping a crew with an
       // open SET continue day only (the roster reads are unchanged).
       const want = fn === "get_public_profile_stats"
-        ? [CREW_COUNTS, "20261007033530_seed_switch_hides_test_profiles.sql", "20261015051301_declutter_shared_star_rating.sql", "20261021074131_id_badge_reads_stripe_identity_only.sql", "20261030015205_test_data_never_counts.sql", "20261031234653_public_stats_expired_is_not_cancelled.sql", "20261102040000_declutter_review_report.sql"]
+        ? [CREW_COUNTS, "20261007033530_seed_switch_hides_test_profiles.sql", "20261015051301_declutter_shared_star_rating.sql", "20261021074131_id_badge_reads_stripe_identity_only.sql", "20261030015205_test_data_never_counts.sql", "20261031234653_public_stats_expired_is_not_cancelled.sql", "20261102040000_declutter_review_report.sql", "20261105171508_public_profile_stats_same_person.sql"]
         : fn === "sweep_no_show_alerts"
           ? [THIS, "20261029173937_no_show_alert_says_the_start_time.sql", "20261103214229_continuing_job_admin_stalled_and_crew_no_show.sql"]
           : fn === "get_helper_completed_counts"

@@ -12,6 +12,7 @@ import { bunchItemName } from "./DeclutterBunchCard";
 import { FallbackImg } from "./FallbackImg";
 import { bunchPhotoDrag } from "./bunchPhotoDrag";
 import { Input } from "@/components/ui/input";
+import { ListRow } from "@/components/ui/ListRow";
 
 export function BunchRow({ item, index, url, open, nextPriceId, canDrop, onToggleOpen, onPrice, onPhotoDrop, children }: {
   item: BunchItem;
@@ -59,8 +60,8 @@ export function BunchRow({ item, index, url, open, nextPriceId, canDrop, onToggl
         onPhotoDrop(from.photo);
       }}>
       <div className="flex items-center gap-2 p-2">
-        <button type="button" onClick={onToggleOpen} aria-expanded={open} aria-label={`${open ? "Close" : "Open"} ${name}`} data-bunch-expand=""
-          className="flex min-h-14 min-w-0 flex-1 items-center gap-2 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <ListRow aria-expanded={open} aria-label={`${open ? "Close" : "Open"} ${name}`} data-bunch-expand=""
+          className="min-h-14 min-w-0 flex-1 p-0" onClick={onToggleOpen}>
           <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-photo-empty">
             {url?.startsWith("blob:") && <FallbackImg src={url} alt="" loading="lazy" decoding="async" className="h-14 w-14 object-cover" data-bunch-row-thumb="" />}
           </span>
@@ -70,7 +71,7 @@ export function BunchRow({ item, index, url, open, nextPriceId, canDrop, onToggl
             {!open && problem && <span className="block truncate text-ds-12 font-medium text-foreground" data-bunch-row-problem="">{problem}</span>}
           </span>
           <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
-        </button>
+        </ListRow>
         {!open && (item.free ? (
           <span className="w-[4.5rem] shrink-0 text-center text-ds-14 font-semibold" data-bunch-row-free="">Free</span>
         ) : (

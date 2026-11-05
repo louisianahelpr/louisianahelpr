@@ -2,6 +2,7 @@
 import { useId, useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import type { RouteStop } from "@/lib/helprTasks/api";
 import { fetchTaskView, reportPickupNoShow, uploadTaskPhoto } from "@/lib/helprTasks/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -11,7 +12,6 @@ import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
 import { HelprCantFinish } from "./DeliveryCantFinish";
 
-const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 const clock = (iso: string) => new Date(iso).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 const day = (iso: string) => new Date(iso).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
 
@@ -98,9 +98,9 @@ export function StopActions({ stop, userId }: { stop: RouteStop; userId: string 
         {opensAt && <PickupWindowNote opensAt={opensAt} />}
         <PhotoPickButton id={`${id}-pick`} picked={pickPhoto} disabled={pickedUp.isPending || (opensAt !== null && stop.handed_over_at === null)} onPick={setPickPhoto} />
         {pickPhoto && (
-          <button type="button" className={`${primary} disabled:opacity-50`} disabled={pickedUp.isPending} onClick={() => pickedUp.mutate(pickPhoto)}>
+          <Button type="button" variant="primary" size="sm" className="text-sm font-semibold" disabled={pickedUp.isPending} onClick={() => pickedUp.mutate(pickPhoto)}>
             Picked up
-          </button>
+          </Button>
         )}
         <SellerAwayStep taskId={stop.task_id} userId={userId} slotStart={stop.slot_start} label={`${stop.title}, stop ${stop.seq}`} onReported={done} />
       </div>
@@ -113,9 +113,9 @@ export function StopActions({ stop, userId }: { stop: RouteStop; userId: string 
       {/* Deep audit #41: on a route every stop had the same label; the hidden words tell a screen reader which stop. */}
       <label htmlFor={`${id}-drop`} className="block text-ds-13 font-semibold">Photo at the drop-off address<span className="sr-only"> ({stop.title}, stop {stop.seq})</span></label>
       <PhotoPickButton id={`${id}-drop`} picked={dropPhoto} onPick={setDropPhoto} />
-      <button type="button" className={`${primary} disabled:opacity-50`} disabled={delivered.isPending || !dropPhoto} onClick={() => delivered.mutate(dropPhoto)}>
+      <Button type="button" variant="primary" size="sm" className="text-sm font-semibold" disabled={delivered.isPending || !dropPhoto} onClick={() => delivered.mutate(dropPhoto)}>
         Left at the door
-      </button>
+      </Button>
       <HelprCantFinish taskId={stop.task_id} userId={userId} />
     </div>
   );

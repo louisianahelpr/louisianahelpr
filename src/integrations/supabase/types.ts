@@ -13767,6 +13767,82 @@ export type Database = {
           },
         ]
       }
+      shop_talk_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender_id: string | null
+          sender_side: string
+          talk_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_side: string
+          talk_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_side?: string
+          talk_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_talk_messages_talk_id_fkey"
+            columns: ["talk_id"]
+            isOneToOne: false
+            referencedRelation: "shop_talks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_talks: {
+        Row: {
+          buyer_id: string
+          buyer_notified_at: string | null
+          buyer_read_at: string | null
+          created_at: string
+          id: string
+          shop_id: string
+          shop_notified_at: string | null
+          shop_read_at: string | null
+        }
+        Insert: {
+          buyer_id: string
+          buyer_notified_at?: string | null
+          buyer_read_at?: string | null
+          created_at?: string
+          id?: string
+          shop_id: string
+          shop_notified_at?: string | null
+          shop_read_at?: string | null
+        }
+        Update: {
+          buyer_id?: string
+          buyer_notified_at?: string | null
+          buyer_read_at?: string | null
+          created_at?: string
+          id?: string
+          shop_id?: string
+          shop_notified_at?: string | null
+          shop_read_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_talks_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_refunds: {
         Row: {
           attempts: number
@@ -21300,6 +21376,7 @@ export type Database = {
         Returns: undefined
       }
       shop_state_ok: { Args: { p_shop_id: string }; Returns: boolean }
+      shop_talk_side: { Args: { p_talk_id: string; p_uid: string }; Returns: string }
       shop_text_clean: { Args: { p_text: string }; Returns: string }
       shop_visible_to: {
         Args: { p_shop_id: string; p_viewer: string }

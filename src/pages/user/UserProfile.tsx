@@ -76,10 +76,7 @@ const UserProfile = () => {
   // = "all". Visible count starts at PAGE_SIZE and grows in PAGE_SIZE
   // increments via the "Show more" button at the bottom of the list.
   const [reviewCategoryFilter, setReviewCategoryFilter] = useState<string | null>(null);
-  // Star-filter bucket (#3): "all" | "5" | "4" | "low" (≤3). Three discrete
-  // buckets reads cleaner than five rating chips — a customer scanning
-  // reviews wants to see the negatives or just the perfect-fives, not
-  // the granular per-star breakdown.
+  // Star-filter bucket (#3): "all" | "5" | "4" | "low" (≤3); three buckets read cleaner than five rating chips.
   const [reviewRatingFilter, setReviewRatingFilter] = useState<"all" | "5" | "4" | "low">("all");
   const [reviewVisibleCount, setReviewVisibleCount] = useState(5);
   // All Supabase fetching + derivation lives in this hook (extracted verbatim).

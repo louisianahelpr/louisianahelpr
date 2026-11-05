@@ -77,6 +77,49 @@ export function taxIds(o, found = new Set()) {
   return found;
 }
 
+/** One CSV line split into fields (Stripe's report CSVs quote every field; commas may sit inside quotes). */
+export function csvFields(line) {
+  const out = [];
+  let cur = "";
+  let q = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (q) {
+      if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      else if (ch === '"') q = false;
+      else cur += ch;
+    } else if (ch === '"') q = true;
+    else if (ch === ",") { out.push(cur); cur = ""; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+
+/** A report's date cell as unix seconds: a number, or an ISO / "YYYY-MM-DD HH:MM:SS" UTC time. NaN when neither. */
+export function cellSeconds(v) {
+  if (/^\d+(\.\d+)?$/.test(v)) return Number(v);
+  const iso = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(v) ? `${v.replace(" ", "T")}${/[zZ]|[+-]\d{2}:?\d{2}$/.test(v) ? "" : "Z"}` : v;
+  const ms = Date.parse(iso);
+  return Number.isFinite(ms) ? ms / 1000 : NaN;
+}
+
+/**
+ * The rows dated inside [from, to] (unix seconds) by the report's transaction_date column. Stripe's Tax reports name
+ * the tax transaction, never the charge or PaymentIntent (measured: run 41950902906, 11-04), and the probe's Checkout
+ * Sessions do not name their tax transaction, so the probe's rows are found by time (the TEST account is quiet).
+ */
+export function rowsInWindow(csv, from, to) {
+  const lines = csv.split("\n").filter((l) => l.trim());
+  if (lines.length < 2) return [];
+  const col = csvFields(lines[0]).indexOf("transaction_date");
+  if (col < 0) return [];
+  return lines.slice(1).filter((l) => {
+    const t = cellSeconds(csvFields(l)[col] ?? "");
+    return t >= from && t <= to;
+  });
+}
+
 async function poll(what, fn, every = 3000, timeoutMs = 180_000) {
   const until = Date.now() + timeoutMs;
   for (;;) {
@@ -351,6 +394,10 @@ async function report(since, waitMin) {
     say(`REPORT ${t.id} [${start}..${t.data_available_end}] header: ${lines[0]}`);
     say(`REPORT ${t.id}: ${hits.length} probe row(s)`);
     for (const h of hits) say(`REPORT ${t.id} ROW: ${h}`);
+    // The probe's three Checkout payments were all made within minutes of PROBE_SINCE.
+    const near = rowsInWindow(csv, since - 60, since + 3600);
+    say(`REPORT ${t.id}: ${near.length} row(s) dated within the probe's hour (of ${Math.max(lines.filter((l) => l.trim()).length - 1, 0)})`);
+    for (const h of near.slice(0, 60)) say(`REPORT ${t.id} WINDOW ROW: ${h}`);
   }
 }
 

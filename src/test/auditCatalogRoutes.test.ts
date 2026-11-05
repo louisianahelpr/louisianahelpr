@@ -236,7 +236,7 @@ function isUnconditionalRedirect(element: string): boolean {
 // overlay-sweep's own ROUTES list must fail here, not be probed silently.
 // @mutate e2e/happy-path/overlay-sweep.spec.ts |   "/profile?tab=pets", |   "/profile?tab=pets",\n  "/job-history",
 // Third catalog, same proof: a dead route back in desktop-fill's list must fail.
-// @mutate e2e/visual-audit/desktop-fill.spec.ts |   { path: "/help", auth: "anon" }, |   { path: "/help", auth: "anon" },\n  { path: "/subscription", auth: "anon" },
+// @mutate e2e/journeys/visual-desktop-fill.spec.ts |   { path: "/help", auth: "anon" }, |   { path: "/help", auth: "anon" },\n  { path: "/subscription", auth: "anon" },
 describe("audit catalog matches the real route table", () => {
   it("every ANON screen resolves to a registered, publicly reachable route", () => {
     const broken = screensIn("ANON_SCREENS")
@@ -418,7 +418,8 @@ describe("audit catalog matches the real route table", () => {
    * was written to stop, in the one catalog it was not looking at.
    */
   /**
-   * ONE MORE COPY. e2e/visual-audit/desktop-fill.spec.ts keeps a THIRD route
+   * ONE MORE COPY. e2e/journeys/visual-desktop-fill.spec.ts (the mocked
+   * e2e/visual-audit/desktop-fill.spec.ts until 2026-11-05, Q1035) keeps a THIRD route
    * list, and it had rotted the same way: `/subscription` and `/family` are not
    * registered routes, so both measured the NotFound screen — whose centred
    * card fills 25% of a 1440px viewport — and failed the desktop-fill standard
@@ -426,10 +427,10 @@ describe("audit catalog matches the real route table", () => {
    */
   it("every route desktop-fill measures is a registered route", () => {
     const src = blankComments(
-      readFileSync(resolve(repoRoot, "e2e/visual-audit/desktop-fill.spec.ts"), "utf8"),
+      readFileSync(resolve(repoRoot, "e2e/journeys/visual-desktop-fill.spec.ts"), "utf8"),
     );
     const block = /const ROUTES: Route\[\] = \[([\s\S]*?)\n\];/.exec(src);
-    expect(block, "ROUTES not found in desktop-fill.spec.ts").toBeTruthy();
+    expect(block, "ROUTES not found in visual-desktop-fill.spec.ts").toBeTruthy();
     const routes = [...block![1].matchAll(/path:\s*"([^"]+)"/g)].map((m) => m[1]);
     expect(routes.length).toBeGreaterThan(10);
 

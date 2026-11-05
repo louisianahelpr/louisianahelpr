@@ -6,7 +6,7 @@
  * whitespace-nowrap). The hand-made ratchet lost the file's entry in the same commit.
  *
  * @mutate src/components/declutter/DeclutterHandoverTalk.tsx | <Button type="button" variant="outline" size="wrapSm" | <Button type="button" variant="outline" size="sm"
- * @mutate src/components/declutter/DeclutterHandoverTalk.tsx | size="wrapSm" className="w-full justify-start text-left font-semibold" | size="wrapSm" className="w-full font-semibold"
+ * @mutate src/components/declutter/DeclutterHandoverTalk.tsx | size="wrapSm" className="w-full max-w-full justify-start text-left font-semibold" | size="wrapSm" className="w-full max-w-full font-semibold"
  * @mutate src/components/ui/button.tsx | wrapSm: "h-auto min-h-11 px-4 py-2 text-ds-14 whitespace-normal", | wrapSm: "h-11 px-4 py-2 text-ds-14",
  */
 import { describe, expect, it } from "vitest";

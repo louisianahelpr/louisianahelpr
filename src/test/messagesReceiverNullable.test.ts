@@ -257,7 +257,7 @@ describe("a deleted-account thread can be archived, never pinned (Q335, owner 20
     expect(batchFn.length).toBeGreaterThan(50);
     expect(archiveFn).not.toMatch(/otherUserId === null/);
     expect(batchFn).not.toMatch(/otherUserId === null/);
-    const list = blankComments(read("src/components/messages/ConversationList.tsx") + "\n" + read("src/components/messages/ConversationListBody.tsx"));
+    const list = blankComments(read("src/components/messages/ConversationList.tsx") + "\n" + read("src/components/messages/useConversationListState.ts") + "\n" + read("src/components/messages/ConversationListBody.tsx"));
     const toggle = list.slice(list.indexOf("const toggleSelect"), list.indexOf("const handleBatchDelete"));
     expect(toggle.length).toBeGreaterThan(50);
     expect(toggle).not.toMatch(/otherUserId === null/);
@@ -303,7 +303,7 @@ describe("a deleted-account thread can be archived, never pinned (Q335, owner 20
   });
 
   it("pin stays off for it: the swipe row gets no pin action", () => {
-    const list = blankComments(read("src/components/messages/ConversationList.tsx") + "\n" + read("src/components/messages/ConversationListBody.tsx"));
+    const list = blankComments(read("src/components/messages/ConversationList.tsx") + "\n" + read("src/components/messages/useConversationListState.ts") + "\n" + read("src/components/messages/ConversationListBody.tsx"));
     expect(list).toMatch(/onTogglePin=\{c\.otherUserId === null \? undefined : \(\) => handleTogglePin\(c\)\}/);
     // Q1299: the gesture moved into the lazily loaded ConversationSwipeLayer.
     const row = blankComments(read("src/components/messages/ConversationSwipeLayer.tsx"));

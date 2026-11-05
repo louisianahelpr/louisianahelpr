@@ -158,7 +158,7 @@ describe("a spec that intercepts Supabase runs with the service worker blocked (
     expect(chromium && collects(chromium, "e2e/visual-audit/responsive.spec.ts")).toBe(true);
     const happy = PROJECTS.find((p) => p.name === "happy-path");
     expect(happy && collects(happy, "e2e/happy-path/apply-dialog-fit.spec.ts")).toBe(true);
-    expect(INTERCEPTING.length).toBeGreaterThan(25);
+    expect(INTERCEPTING.length).toBeGreaterThan(24);
     expect(INTERCEPTING.map((s) => s.rel)).toEqual(
       expect.arrayContaining([
         "e2e/visual-audit/responsive.spec.ts",

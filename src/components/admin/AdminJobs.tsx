@@ -86,9 +86,9 @@ const AdminJobs = () => {
 
   useEffect(() => {
     const load = async () => {
-      // Q1461: + materials_note for the job dialog, through readJobsAheadOfDb
+      // Q1461: + materials_note for the job dialog (Q2408: + date_window_end, its window), through readJobsAheadOfDb
       // (a database behind this build answers 42703; it asks again without).
-      const [{ data, error }, nextDates] = await Promise.all([readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note`, (columns) => supabase
+      const [{ data, error }, nextDates] = await Promise.all([readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, materials_note, date_window_end`, (columns) => supabase
         .from("jobs")
         // Named columns: `*` includes offered_to_helper_id, which is not
         // selectable (20260915045110) and 42501s the whole read.

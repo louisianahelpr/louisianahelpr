@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 import { unwrap } from "@/lib/supabaseResult";
-import { JOB_READABLE_COLUMNS, readableJobRows } from "@/lib/jobColumns";
+import { JOB_READABLE_COLUMNS, readJobsAheadOfDb, readableJobRows } from "@/lib/jobColumns";
 import { CAPTURED_PAYMENT_STATUSES, isCapturedPayment, withGiftCardPaid } from "@/lib/capturedPayment";
 import { loadGiftCardPaidJobIds } from "./giftCardPaidJobIds";
 import { PAYOUT_TRANSFER_ANALYTICS_COLUMNS, realPayoutTransfers } from "./adminAnalytics/realPayoutTransfers";
@@ -233,10 +233,14 @@ const AdminAnalyticsBody = () => {
       // fails CI on the shape.
       // Named columns, not `*`: offered_to_helper_id is not selectable
       // (20260915045110) and `*` would 42501 the whole read.
-      let query = supabase.from("jobs").select(JOB_READABLE_COLUMNS).eq("is_seed", false).order("created_at", { ascending: false });
-      if (type === "revenue" || type === "fees") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]);
-      if (type === "payouts") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]);
-      const { data, error } = await query;
+      // Q2408: + date_window_end so the Jobs list prints a window job's window, through readJobsAheadOfDb (a database
+      // without the column is asked once more without it; the filters are rebuilt on that second ask too).
+      const { data, error } = await readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, date_window_end`, (columns) => {
+        let query = supabase.from("jobs").select(columns).eq("is_seed", false).order("created_at", { ascending: false });
+        if (type === "revenue" || type === "fees") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]);
+        if (type === "payouts") query = query.in("payment_status", [...CAPTURED_PAYMENT_STATUSES]);
+        return query;
+      });
       if (error) report(error, { tags: { source: "AdminAnalytics.drillDownJobs" } });
       // A held status is a claim: a money list keeps rows with a job PI or a gift card behind them (Q233, Q443).
       const giftCardPaid = type === "jobs" ? null : await loadGiftCardPaidJobIds();

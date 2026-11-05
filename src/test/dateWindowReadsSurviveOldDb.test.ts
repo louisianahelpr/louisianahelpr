@@ -87,7 +87,10 @@ describe("Q2408: reads that name date_window_end survive a database without it",
     const BOOT_PREFETCH = ["src/boot/guestJobsPrefetch.ts", "src/boot/jobsPrefetch.ts"];
     expect(naming).toEqual([
       ...BOOT_PREFETCH,
+      "src/components/admin/AdminAnalytics.tsx",
+      "src/components/admin/AdminJobs.tsx",
       "src/components/browseMap/fetchJobForPin.ts",
+      "src/pages/search/SearchPage.tsx",
       "src/hooks/useActivityData.ts",
       "src/hooks/useDashboardData.ts",
       "src/hooks/useDashboardJobsCount.ts",

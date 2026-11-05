@@ -9,6 +9,7 @@
  * back null) and for a pickup already booked for a TIME, the card keeps the time picker (`fallback`).
  */
 import { Button } from "@/components/ui/button";
+import { ToggleChip } from "@/components/ui/ToggleChip";
 import { useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -155,10 +156,9 @@ export function PorchDayPanel({ orderId, side, booking, fallback, noDays }: {
           ) : (
             <div className="flex flex-wrap gap-2" role="group" aria-label="Pickup days">
               {otherDays.map((d) => (
-                <button key={d} type="button" aria-pressed={pick === d} onClick={() => setPick(d)}
-                  className={`min-h-11 rounded-full px-4 text-sm font-semibold ${pick === d ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"}`}>
+                <ToggleChip key={d} pressed={pick === d} onClick={() => setPick(d)}>
                   {porchDayWords(d)}
-                </button>
+                </ToggleChip>
               ))}
             </div>
           )}

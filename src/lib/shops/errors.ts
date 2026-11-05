@@ -13,6 +13,14 @@
  */
 import { ListingPhotoError } from "@/lib/declutter/errors";
 
+/**
+ * The most a shop item may cost, in cents (owner 11-05, answer 5: raised for catering and big orders). The SQL holds
+ * the same number (shops_check_item_fields and the shop_items / shop_order_lines CHECKs, 20261105191330_shops_caps);
+ * src/test/shopsCaps.test.ts fails when they disagree.
+ */
+export const SHOP_ITEM_MAX_PRICE_CENTS = 500_000;
+const dollars = (cents: number) => `$${(cents / 100).toLocaleString("en-US")}`;
+
 export const SHOPS_ERROR_COPY: Record<string, string> = {
   feature_disabled: "Shops isn't open for your account yet.",
   not_authenticated: "Please sign in again to continue.",
@@ -53,7 +61,7 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
     "Pick a type from the list. Some things can't be sold in Shops yet: plate lunches and other foods that need a health permit, plants, children's items, and soap or lotion.",
   invalid_title: "Give the item a title of 3 to 80 characters.",
   description_too_long: "Keep the description under 2,000 characters.",
-  invalid_price: "Set a price from $1 to $1,000.",
+  invalid_price: `Set a price from $1 to ${dollars(SHOP_ITEM_MAX_PRICE_CENTS)}.`,
   invalid_lead_time: "Set how many days you need, from 0 (same day) to 60.",
   invalid_stock: "Set how many you have ready, from 0 to 9,999, or leave it blank if you make each order.",
   item_not_found: "This item isn't available.",

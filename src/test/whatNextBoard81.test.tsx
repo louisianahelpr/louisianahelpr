@@ -4,7 +4,7 @@
  * step waited on; the auto-complete hours come from escrowTiming (the cron's real cutoff);
  * no amount or payout date is invented. Every other step keeps its toast.
  *
- * @mutate src/components/JobTracking.tsx |       if (message) announceTransition(newStatus, message, { jobId, at: now }); |       if (message) toast.success(message);
+ * @mutate src/components/statusUpdate.ts |       if (message) announceTransition(newStatus, message, { jobId, at: now }); |       if (message) toast.success(message);
  * @mutate src/components/whatNext/HelperDoneWhatNext.tsx |   if (status === "done" && openSheet) openSheet(moment); |   if (false) openSheet?.(moment);
  * @mutate src/components/job-card/ActivityOfferDialogs.tsx |       <HelperDoneWhatNextHost /> |
  */
@@ -44,7 +44,7 @@ describe("board 81: what next after marking done", () => {
   });
 
   it("the tracker and the Activity page are wired to it", () => {
-    expect(code("src/components/JobTracking.tsx")).toMatch(/if \(message\) announceTransition\(newStatus, message, \{ jobId, at: now \}\);/);
+    expect(code("src/components/statusUpdate.ts")).toMatch(/if \(message\) announceTransition\(newStatus, message, \{ jobId, at: now \}\);/);
     expect(code("src/components/job-card/ActivityOfferDialogs.tsx")).toMatch(/<HelperDoneWhatNextHost \/>/);
   });
 });

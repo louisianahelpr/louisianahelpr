@@ -52,7 +52,7 @@ const HELPER_RESPONSE_WRITER = "src/pages/jobs/appliedJobCard/DisputedSection.ts
  */
 const OPEN_JOB_WRITES: Record<string, string> = {
   "src/components/JobConfirmation.tsx": "`{ [field]: now }` where field is poster_confirmed_at | helper_dayof_confirmed_at",
-  "src/components/JobTracking.tsx": "stampJob(patch): { status: 'in_progress' } and { helper_on_the_way_at }",
+  "src/components/statusUpdate.ts": "stampJob(patch): { status: 'in_progress' } and { helper_on_the_way_at }",
   "src/pages/post-job/useJobSubmit.ts": "job INSERT payloads; on INSERT trg_dispute_markers_server_owned clears every marker for a client",
 };
 

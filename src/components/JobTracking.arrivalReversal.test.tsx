@@ -20,7 +20,7 @@
  * So this file drives the real component: it taps the real button, watches the
  * real `supabase.rpc` call, and reads the copy off the rendered DOM.
  *
- * @mutate src/components/JobTracking.tsx | else toast(arrivalVerdictMessage(v), { duration: 9000 }); | else toast.info(arrivalVerdictMessage(v), { duration: 9000 });
+ * @mutate src/components/statusUpdate.ts | else toast(arrivalVerdictMessage(v), { duration: 9000 }); | else toast.info(arrivalVerdictMessage(v), { duration: 9000 });
  * @mutate src/components/trackingLocation.ts |     if (location) return location; |     if (location \|\| true) return location ?? { lat: 30.1, lng: -92.1 };
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";

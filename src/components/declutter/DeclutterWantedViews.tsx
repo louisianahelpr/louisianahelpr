@@ -360,12 +360,12 @@ function WantedPostPhotos({ post, userId }: { post: WantedPost; userId: string }
         <li key={p} className="relative h-20 w-20">
           <FallbackImg src={photoPublicUrl(p)} alt={`Photo ${i + 1} of ${post.what}`} className="h-full w-full rounded-xl bg-photo-empty object-cover" />
           {open && (
-            <button type="button" aria-label={`Remove photo ${i + 1}`} disabled={busy}
-              className="absolute -right-2 -top-2 flex h-11 w-11 items-center justify-center" onClick={() => remove.mutate(p)}>
+            <Button type="button" variant="ghost" size="iconCompact" aria-label={`Remove photo ${i + 1}`} disabled={busy}
+              className="absolute -right-2 -top-2 [&_svg]:size-4" onClick={() => remove.mutate(p)}>
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-background/90 text-foreground shadow" aria-hidden>
                 <X className="h-4 w-4" />
               </span>
-            </button>
+            </Button>
           )}
         </li>
       ))}

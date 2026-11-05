@@ -11,6 +11,9 @@
 // @mutate src/entry.ts | \|jobs\|posts)? | \|jobs)?
 // @mutate src/boot/activityCoresPrefetch.ts |   if (path === "/home") return true; |
 // @mutate src/boot/activityCoresPrefetch.ts |   if (path === "/posts") return true; |
+// @mutate src/boot/activityCoresPrefetch.ts |   if (isHomePath(pathname) && !onFastLink()) return; |
+// @mutate src/boot/activityCoresPrefetch.ts |   if (!c \|\| c.saveData === true) return false; |   if (!c) return false;
+// @mutate src/boot/activityCoresPrefetch.ts | c.downlink >= 3 && | c.downlink >= 0 &&
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -99,6 +102,30 @@ describe("the Posted / Working lists' read starts from the entry (B100)", () => 
       .map((f) => f.replace(ROOT + "/", ""));
     expect(importers).toEqual(["src/boot/signedInPrefetch.ts"]);
     expect(code("src/lib/activityCoresTake.ts")).toContain(`const KEY = "${ACTIVITY_CORES_PREFETCH_KEY}";`);
+  });
+
+  it("/home sends it only on a link that reports itself fast; /posts on any link", () => {
+    const f = answering(PAYLOAD("boot"));
+    vi.stubGlobal("fetch", f);
+    signIn();
+    const link = (c: unknown) => Object.defineProperty(navigator, "connection", { value: c, configurable: true });
+    try {
+      const slow = [undefined, { downlink: 1.4, rtt: 575 }, { downlink: 10, rtt: 50, saveData: true }, { downlink: 2, rtt: 100 }, { downlink: 10 }];
+      for (const c of slow) {
+        link(c);
+        startActivityCoresPrefetch("/home", "");
+        startActivityCoresPrefetch("/home/", "");
+      }
+      expect(f).not.toHaveBeenCalled();
+      link({ downlink: 1.4, rtt: 575 });
+      startActivityCoresPrefetch("/posts", "");
+      expect(f).toHaveBeenCalledTimes(1);
+      link({ downlink: 8.1, rtt: 175 });
+      startActivityCoresPrefetch("/home", "");
+      expect(f).toHaveBeenCalledTimes(2);
+    } finally {
+      link(undefined);
+    }
   });
 
   it("never for a guest or an expiring session", () => {

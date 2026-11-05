@@ -2,7 +2,7 @@
 // @mutate src/pages/profile/Profile.tsx |     if (tab !== "notifications" \|\| !userId) return; |     if (tab !== "security" \|\| !userId) return;
 // @mutate src/components/notificationPreferences/SmsAlertsCard.tsx |     queryKey: smsConsentQueryKey(user?.id), |     queryKey: ["sms-consent-card", user?.id],
 /**
- * Q2706 (11-05, live lab on prod, helper, 375, Fast 4G + 4x, ~/.lh-shots/b3-errlogs/live-0150.json): You >
+ * Q2706 (2026-11-05, live lab on prod, helper, 375, Fast 4G + 4x, ~/.lh-shots/b3-errlogs/live-0150.json): You >
  * Notifications' largest paint (the text-alerts consent label) waited on get_my_sms_consent, which the card only
  * sent at ~1.87 s, after the tab's lazy chunks: LCP 2044-2096 ms, over the 2 s rule. Profile starts the same read
  * (same key, same queryFn, src/lib/smsConsentQuery.ts) as soon as the member and the Notifications tab are known.

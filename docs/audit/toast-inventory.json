@@ -8072,7 +8072,7 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 124,
+      "line": 122,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -8082,7 +8082,7 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 133,
+      "line": 131,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8092,7 +8092,7 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 141,
+      "line": 139,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8102,7 +8102,7 @@
     },
     {
       "file": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "line": 148,
+      "line": 146,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -14282,7 +14282,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 171,
+      "line": 179,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -14292,7 +14292,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 195,
+      "line": 203,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14302,7 +14302,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 203,
+      "line": 211,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14315,7 +14315,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 218,
+      "line": 226,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14325,7 +14325,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 296,
+      "line": 304,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14345,7 +14345,7 @@
     },
     {
       "file": "src/pages/profile/Profile.tsx",
-      "line": 311,
+      "line": 319,
       "kind": "toast.error",
       "title": {
         "form": "literal",

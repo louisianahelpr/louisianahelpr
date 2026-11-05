@@ -1,6 +1,6 @@
 // @mutate src/components/admin/AdminHelperTiers.tsx | const seed = await fetchSeedUserIds(rows.map((r) => r.user_id)); | const seed = new Set<string>();
 // @mutate src/components/admin/AdminNotificationLogs.tsx | const seedIds = await fetchSeedUserIds(logRows.map((r) => r.user_id)); | const seedIds = new Set<string>();
-// @mutate src/components/admin/AdminAnalytics.tsx | .select(JOB_READABLE_COLUMNS).eq("is_seed", false).order("created_at", { ascending: false }); | .select(JOB_READABLE_COLUMNS).order("created_at", { ascending: false });
+// @mutate src/components/admin/AdminAnalytics.tsx | .select(columns).eq("is_seed", false).order("created_at", { ascending: false }); | .select(columns).order("created_at", { ascending: false });
 // @mutate src/lib/capturedPayment.ts | (!!job.stripe_payment_intent_id \|\| job.gift_card_paid === true) | true
 // @mutate src/lib/capturedPayment.ts | (!!job.stripe_payment_intent_id \|\| job.gift_card_paid === true) | (!!job.stripe_payment_intent_id)
 // @mutate src/lib/capturedPayment.ts | gift_card_paid: giftCardPaidJobIds.has(row.id) | gift_card_paid: false
@@ -201,7 +201,14 @@ describe("Q233: Payments Collected counts only charged payments", () => {
         n++;
         here++;
         const sel = src.lastIndexOf(".select(", i);
-        const selected = src.slice(sel, src.indexOf(")", sel) + 1);
+        let selected = src.slice(sel, src.indexOf(")", sel) + 1);
+        // A read through readJobsAheadOfDb selects the `columns` it is handed: judge the list it was given (Q2408).
+        if (selected === ".select(columns)") {
+          const ahead = src.lastIndexOf("readJobsAheadOfDb(", sel);
+          expect(ahead, `${f}: .select(columns) outside readJobsAheadOfDb`).toBeGreaterThan(-1);
+          const list = /^readJobsAheadOfDb\(\s*(`[^`]*`|"[^"]*")/.exec(src.slice(ahead))?.[1] ?? "";
+          selected = list.startsWith("`${JOB_READABLE_COLUMNS}") ? ".select(JOB_READABLE_COLUMNS)" : `.select(${list})`;
+        }
         // JOB_READABLE_COLUMNS is every column authenticated may read, id and PI included.
         if (selected !== ".select(JOB_READABLE_COLUMNS)") {
           expect(selected, f).toMatch(/\bid\b/);

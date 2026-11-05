@@ -6,6 +6,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { jobPaymentStatusLabel } from "@/lib/statusLabels";
 import { categoryLabels, paymentColors, type Job } from "./types";
 import { formatJobDate } from "@/lib/dateUtils";
+import { jobDayLabel } from "@/lib/jobDateWindow";
 import { formatTimestamp, formatCategory, formatPrice } from "@/lib/format";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { openableDocumentUrl } from "@/lib/storagePath";
@@ -148,7 +149,7 @@ export const JobDetailDialog = ({
               </div>
               <div className="rounded-ds-sm bg-secondary/30 p-3">
                 <p className="text-ds-11 text-muted-foreground flex items-center gap-1"><Calendar className="w-3 h-3" /> Date Needed</p>
-                <p className="font-semibold text-foreground">{formatJobDate(detailJob.date_needed)}</p>
+                <p className="font-semibold text-foreground">{jobDayLabel(detailJob)}</p>
                 {continueDate && <p className="text-ds-12 text-foreground" data-admin-continues="">Continues: {formatJobDate(continueDate)}</p>}
               </div>
               {/* ONE rule for "when" (src/lib/jobDate.ts): a clock time, the

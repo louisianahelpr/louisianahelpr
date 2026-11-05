@@ -97,7 +97,7 @@ describe("the admin card shows the next date", () => {
     const src = blankComments(readFileSync("src/components/admin/AdminJobs.tsx", "utf8"));
     expect(src).toContain("continueDate={detailJob ? continueDates.get(detailJob.id) : undefined}");
     const dialog = blankComments(readFileSync("src/components/admin/adminJobs/JobDetailDialog.tsx", "utf8"));
-    expect(dialog).toContain("{formatJobDate(detailJob.date_needed)}");
+    expect(dialog).toContain("{jobDayLabel(detailJob)}"); // the first date; a window job its window (Q2408)
     expect(dialog).toContain("Continues: {formatJobDate(continueDate)}");
   });
 });

@@ -258,9 +258,6 @@
     "src/components/declutter/DeclutterBundleRow.tsx": {
       "button": 1
     },
-    "src/components/declutter/DeclutterDeliveryViews.tsx": {
-      "button": 1
-    },
     "src/components/declutter/DeclutterEditListing.tsx": {
       "input": 1
     },

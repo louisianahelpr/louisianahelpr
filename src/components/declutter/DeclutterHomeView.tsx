@@ -28,8 +28,8 @@ import { itemPriceLabel } from "@/lib/declutter/distance";
 import { fetchMyPayouts, type MyPayout } from "@/lib/declutter/handover";
 import { soldPayoutWords } from "@/lib/declutter/soldPayout";
 import { sellerStatusLabel } from "./declutterUi";
-import { ChevronRight, Settings, Share2, Tags } from "lucide-react";
-import { shareListing } from "./DeclutterShareCard";
+import { ChevronRight, Settings, Tags } from "lucide-react";
+import { ListingShareButton } from "./DeclutterShareCard";
 import { SellChooserEntry } from "./SellChooserEntry";
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { firstPhotos } from "./DeclutterItemCard";
@@ -338,11 +338,7 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
                   </Button>
                 )}
                 {/* Owner request 11-05: each item for sale shares its own page (never a paused or unreviewed one). */}
-                {item.status === "live" && (
-                  <Button type="button" variant="outline" size="sm" className="gap-1.5" aria-label={`Share ${item.title}`} data-listing-share="" onClick={() => shareListing(item)}>
-                    <Share2 className="h-4 w-4" aria-hidden /> Share
-                  </Button>
-                )}
+                {item.status === "live" && <ListingShareButton item={item} />}
                 {(item.status === "draft" || item.status === "pending_review") && (
                   <Button
                     type="button"

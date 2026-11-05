@@ -12,7 +12,7 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx |       <YourPageLink forSale={liveListingCount(mine.data ?? [])} /> |       <YourPageLink forSale={0} />
  * @mutate src/components/profile/YourPageLink.tsx | if (await copyToClipboard(profileLinkUrl(handle))) | if (await copyToClipboard(handle))
  * @mutate src/components/profile/YourPageLink.tsx |   if (forSale > 0) { |   if (forSale < 0) {
- * @mutate src/components/declutter/DeclutterHomeView.tsx | onClick={() => shareListing(item)} | onClick={() => undefined}
+ * @mutate src/components/declutter/DeclutterShareCard.tsx | data-listing-share="" onClick={() => shareListing(item)} | data-listing-share="" onClick={() => undefined}
  * @mutate src/components/profile/YourPageLink.tsx |     enabled: !knownHandle, |     enabled: true,
  * @mutate src/pages/home/HomeDashboard.tsx | {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mt-2" />} | {null}
  * @mutate supabase/migrations/20261104142602_profile_handle_at_signup.sql |   BEFORE INSERT ON public.profiles\n  FOR EACH ROW EXECUTE FUNCTION public.profile_handle_default_on_insert(); |   BEFORE UPDATE OF bio ON public.profiles\n  FOR EACH ROW EXECUTE FUNCTION public.profile_handle_default_on_insert();
@@ -95,7 +95,9 @@ describe("Your page link (made at sign-up, easy to find)", () => {
     const home = code("src/components/declutter/DeclutterHomeView.tsx");
     const view = home.slice(home.indexOf("function SellingView"), home.indexOf("<SellingDash", home.indexOf("function SellingView")));
     expect(view.indexOf("<YourPageLink")).toBeLessThan(view.indexOf("<ListedWhatNext"));
-    expect(home).toMatch(/\{item\.status === "live" && \(\s*<Button[^>]*aria-label=\{`Share \$\{item\.title\}`\}[^>]*onClick=\{\(\) => shareListing\(item\)\}/);
+    expect(home).toMatch(/\{item\.status === "live" && <ListingShareButton item=\{item\} \/>\}/);
+    const card = code("src/components/declutter/DeclutterShareCard.tsx");
+    expect(card).toMatch(/<Button[^>]*aria-label=\{`Share \$\{item\.title\}`\}[^>]*onClick=\{\(\) => shareListing\(item\)\}/);
   });
 
   it("Home shows it from the profile row it already has: no extra read (owner request 11-05)", async () => {

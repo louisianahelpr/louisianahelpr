@@ -132,6 +132,8 @@ await db.exec(newestDefinition("declutter_area_label_problem").stmt);
 // (20261030015205) would zero the rating this world checks; that rule has its own worlds
 // (declutterReviewReport, ownerDailySummaryStats).
 await db.exec("CREATE FUNCTION public.is_test_member(uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$");
+// 20261105171508: get_public_profile_stats (newest) calls profile_review_same_person; stubbed false here (its own proof is publicProfileFull's PGlite run).
+await db.exec("CREATE OR REPLACE FUNCTION public.profile_review_same_person(uuid, uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT false $$;");
 await db.exec(newestDefinition("get_public_profile_stats").stmt);
 await db.exec(`
   INSERT INTO auth.users (id) SELECT ('00000000-0000-0000-0000-0000000000' || lpad(g::text, 2, '0'))::uuid FROM generate_series(1, 9) g;

@@ -181,6 +181,9 @@ const ALLOWED: Record<string, string> = {
   settle_job_detail_change: "logic: pending changes on the one job being settled",
   shop_active_strike_count: LADDER,
   shop_cottage_sales_cents: "logic: Louisiana cottage-food yearly sales cap for one shop",
+  // Shops H9 (20261105230819): counts only reviews shop_review_public lets through, and that rule drops a test review
+  // while test data is hidden (r.is_seed AND seed_jobs_hidden_publicly()), so the exclusion is one call down.
+  shop_review_rating: "excluded in shop_review_public (is_seed AND seed_jobs_hidden_publicly())",
   shop_day_count: LIMIT,
   // 20261101200929 (owner 11-01): counts one member's own reminder sends in one Declutter chat today (2 a day), not a stat.
   sweep_declutter_talk_reminders: LIMIT,

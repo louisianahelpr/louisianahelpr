@@ -4,10 +4,10 @@
  * (newest) definitions and the screens that offer Report; behaviour on a real database is
  * src/test/pglite/shopsReport.pglite.mjs (3x, Supabase's default anon execute grant emulated).
  *
- * @mutate supabase/migrations/20261105182210_shops_report_shop_and_item.sql | 'declutter_review'::text, 'shop'::text, 'shop_item'::text])); | 'declutter_review'::text]));
- * @mutate supabase/migrations/20261105182210_shops_report_shop_and_item.sql |     IF NOT public.is_server_context() AND NEW.reporter_id IS NOT DISTINCT FROM sh.owner_id THEN |     IF false THEN
- * @mutate supabase/migrations/20261105182210_shops_report_shop_and_item.sql |            AND (NOT public.shop_state_ok(sh.id) |            AND (false
- * @mutate supabase/migrations/20261105182210_shops_report_shop_and_item.sql |                 OR (NEW.reported_type = 'shop_item' AND si.status IS DISTINCT FROM 'live'))) THEN |                 OR false)) THEN
+ * @mutate supabase/migrations/20261105225245_shops_talk_inbox_and_reports.sql | 'declutter_review'::text, 'shop'::text, 'shop_item'::text, 'shop_talk_message'::text])); | 'declutter_review'::text, 'shop_talk_message'::text]));
+ * @mutate supabase/migrations/20261105225245_shops_talk_inbox_and_reports.sql |     IF NOT public.is_server_context() AND NEW.reporter_id IS NOT DISTINCT FROM sh.owner_id THEN |     IF false THEN
+ * @mutate supabase/migrations/20261105225245_shops_talk_inbox_and_reports.sql |            AND (NOT public.shop_state_ok(sh.id) |            AND (false
+ * @mutate supabase/migrations/20261105225245_shops_talk_inbox_and_reports.sql |                 OR (NEW.reported_type = 'shop_item' AND si.status IS DISTINCT FROM 'live'))) THEN |                 OR false)) THEN
  * @mutate supabase/migrations/20261105182210_shops_report_shop_and_item.sql | REVOKE ALL ON FUNCTION public.shops_admin_take_down_item(uuid, text, uuid) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.shops_admin_take_down_item(uuid, text, uuid) FROM PUBLIC;
  * @mutate supabase/migrations/20261105182210_shops_report_shop_and_item.sql |   IF i.owner_id = v_uid THEN |   IF false THEN
  * @mutate src/components/shops/ShopView.tsx | {!s.mine && <ShopReportShop shopId={s.id} />} | <ShopReportShop shopId={s.id} />
@@ -41,7 +41,7 @@ describe("a shop or shop item can be reported (Shops H2)", () => {
   });
 
   it("the database allows both types, and the client's union matches", () => {
-    expect(types).toMatch(/'shop'::text, 'shop_item'::text\]\)\)/);
+    expect(types).toMatch(/'shop'::text, 'shop_item'::text(, 'shop_talk_message'::text)?\]\)\)/);
     expect(REASONS.shop.length).toBeGreaterThan(2);
     expect(REASONS.shop_item.length).toBeGreaterThan(2);
     expect(REPORTED_NOUN.shop).toBe("Shop");

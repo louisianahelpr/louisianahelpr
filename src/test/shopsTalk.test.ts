@@ -4,8 +4,8 @@
  * src/test/pglite/shopsTalk.pglite.mjs (3x, Supabase's default anon execute grant emulated).
  *
  * @mutate supabase/migrations/20261105185006_shops_talk.sql |   IF v_owner = v_uid THEN\n    RAISE EXCEPTION 'own_shop' |   IF false THEN\n    RAISE EXCEPTION 'own_shop'
- * @mutate supabase/migrations/20261105185006_shops_talk.sql |   IF public.are_users_blocked(t.buyer_id, s.owner_id) THEN\n    RAISE EXCEPTION 'talk_blocked' |   IF false THEN\n    RAISE EXCEPTION 'talk_blocked'
- * @mutate supabase/migrations/20261105185006_shops_talk.sql | REVOKE ALL ON FUNCTION public.shops_send_talk_message(uuid, text) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.shops_send_talk_message(uuid, text) FROM PUBLIC;
+ * @mutate supabase/migrations/20261105225245_shops_talk_inbox_and_reports.sql |   IF public.are_users_blocked(t.buyer_id, s.owner_id) THEN\n    RAISE EXCEPTION 'talk_blocked' |   IF false THEN\n    RAISE EXCEPTION 'talk_blocked'
+ * @mutate supabase/migrations/20261105225245_shops_talk_inbox_and_reports.sql | REVOKE ALL ON FUNCTION public.shops_send_talk_message(uuid, text) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.shops_send_talk_message(uuid, text) FROM PUBLIC;
  * @mutate src/components/shops/ShopView.tsx | {!s.mine && <ShopMessageButton shopId={s.id} />} | <ShopMessageButton shopId={s.id} />
  * @mutate src/components/shops/ShopView.tsx |         <ShopTalkFromLink />\n |
  */

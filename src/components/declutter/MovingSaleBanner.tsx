@@ -116,9 +116,9 @@ export function MovingSaleBanner({ sellerId }: { sellerId: string }) {
       </ul>
       <div className="flex flex-wrap items-center gap-2">
         {sale.data.items.length > SHOWN && (
-          <button type="button" className="min-h-11 px-2 text-sm font-semibold underline" onClick={() => setAll((v) => !v)}>
+          <Button type="button" variant="link" size="sm" className="px-2 text-sm font-semibold underline decoration-current text-[color:inherit]" onClick={() => setAll((v) => !v)}>
             {all ? "Show fewer" : `Show all ${sale.data.items.length}`}
-          </button>
+          </Button>
         )}
         {canFollow && (
           <Button

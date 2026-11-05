@@ -90,12 +90,6 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
     why: "reads the product's own RECURRING_ENABLED flag from LogisticsSection.tsx; while it is false the picker does not render for anyone",
   },
   {
-    file: "e2e/happy-path/zz-senior-probe.spec.ts",
-    match: "LH_SENIOR_PROBE",
-    verdict: "justified",
-    why: "opt-in measurement tool for the a11y lane (~15 min), not a suite contract; its findings are written up in the audit report",
-  },
-  {
     file: "e2e/happy-path/appstore-screenshots.spec.ts",
     match: "RUN_APPSTORE_SHOTS",
     verdict: "justified",

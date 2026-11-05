@@ -15,7 +15,9 @@
 -- declutter_record_item_view(item, device): records the caller's view and returns nothing, whatever happened (a
 -- refusal is never an error a page could show). Counted only while the item is live or reserved, not test data and
 -- not a hidden seller's, and while Declutter is open to the caller (feature_enabled_for for a member,
--- declutter_open_to_guests for a guest). A guest must send a device id; a member's device id is ignored.
+-- declutter_open_to_guests for a guest). A guest must send a device id; a member's device id is ignored. GUEST CAP:
+-- at most 30 new guest views per item per hour (the device id is the caller's choice; lh-authz-rls review 11-05).
+-- A member counts once per account, uncapped.
 --
 -- declutter_my_item_view_counts(): (item_id, views) for the caller's own items that have a view. It also drops a
 -- viewer who became a test account after viewing (is_test_member at read time).
@@ -43,6 +45,15 @@ CREATE INDEX IF NOT EXISTS declutter_item_views_viewer
 ALTER TABLE public.declutter_item_views ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.declutter_item_views FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.declutter_item_views TO service_role;
+
+-- Q807: refuse writes from an unconfirmed email on the new table (standard guarded attach, as 20261105021744).
+DO $gate$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gate$;
 
 CREATE OR REPLACE FUNCTION public.declutter_record_item_view(p_item_id uuid, p_device_id uuid DEFAULT NULL)
 RETURNS void
@@ -82,6 +93,12 @@ BEGIN
     VALUES (p_item_id, v_uid)
     ON CONFLICT (item_id, viewer_id) WHERE viewer_id IS NOT NULL DO NOTHING;
   ELSE
+    -- The guest cap (lh-authz-rls review): a device id is the caller's own choice, so at most 30 NEW guest views per
+    -- item per hour count; a script sending random ids cannot push a count up without limit.
+    IF (SELECT count(*) FROM public.declutter_item_views v
+         WHERE v.item_id = p_item_id AND v.device_id IS NOT NULL AND v.created_at > now() - interval '1 hour') >= 30 THEN
+      RETURN;
+    END IF;
     INSERT INTO public.declutter_item_views (item_id, device_id)
     VALUES (p_item_id, p_device_id)
     ON CONFLICT (item_id, device_id) WHERE device_id IS NOT NULL DO NOTHING;

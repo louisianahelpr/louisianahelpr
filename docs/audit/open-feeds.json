@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-05T18:52Z",
+  "measured_at": "2026-11-05T20:22Z",
   "issues": {
     "readable": true,
     "open": [
@@ -78,7 +78,7 @@
         "number": 3784,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41694061049",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42088012539",
         "runTruncated": false
       },
       {

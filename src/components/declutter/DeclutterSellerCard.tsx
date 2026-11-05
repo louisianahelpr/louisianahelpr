@@ -43,13 +43,14 @@ export function DeclutterSellerCard({ sellerId, noun = "seller", extra = null }:
   const reviews = stats.data?.count ?? 0;
   const name = formatName(card.data?.name, "A neighbor");
   const joined = joinedLabel(card.data?.joinedAt);
-  // DA-18: the link's name is all a screen reader says of the card, so the rating is in it (a sentence, not "4.0 · 1 review").
-  const ratingWords = reviews > 0 ? `, ${(stats.data?.avg ?? 0).toFixed(1)} stars from ${reviews} review${reviews === 1 ? "" : "s"}` : "";
+  // DA-18: the rating is in the link's name: the card's words read "4.0 stars from 1 review" (the sr-only words below).
   return (
     <Link
       to={`/user/${sellerId}`}
       data-seller-card=""
-      aria-label={loading ? `See the ${noun}` : `See the ${noun}, ${name}${ratingWords}`}
+      // Loaded, the card's own words are its name ("See the Helpr, " is read before them), so the visible text is in
+      // the accessible name (axe label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491). The skeleton has no words.
+      aria-label={loading ? `See the ${noun}` : undefined}
       className="flex min-h-[72px] items-center gap-3 rounded-2xl border border-border bg-card p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {loading ? (
@@ -62,8 +63,12 @@ export function DeclutterSellerCard({ sellerId, noun = "seller", extra = null }:
         </>
       ) : (
         <>
-          <UserAvatar userId={sellerId} src={card.data?.avatarUrl} name={card.data?.name ?? name} className="h-12 w-12 shrink-0" />
+          {/* The photo's monogram is not words to say; the name beside it is. */}
+          <span aria-hidden="true" className="contents">
+            <UserAvatar userId={sellerId} src={card.data?.avatarUrl} name={card.data?.name ?? name} className="h-12 w-12 shrink-0" />
+          </span>
           <span className="min-w-0 flex-1">
+            <span className="sr-only">See the {noun}, </span>
             <span className="block truncate font-semibold" title={name}>{name}</span>
             {/* Two short lines, never one that wraps a stray "·" at 320. */}
             {reviews > 0 && (

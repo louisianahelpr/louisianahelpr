@@ -791,7 +791,7 @@ describe("job page, the poster sees who they hired (AUD31-80)", () => {
     state.job = hired();
     state.party = true;
     renderPage();
-    const card = await screen.findByRole("link", { name: /^See the Helpr, Rhonda/ });
+    const card = await screen.findByRole("link", { name: /^See the Helpr,\s*Rhonda/ });
     expect(card.getAttribute("href")).toBe(`/user/${POSTER}`);
     expect(screen.getByRole("region", { name: "Your Helpr" }).contains(card)).toBe(true);
     expect(screen.getByRole("button", { name: "Message Rhonda" })).toBeTruthy();

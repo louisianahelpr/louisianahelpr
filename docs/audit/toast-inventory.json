@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1159,
-    "files": 323,
-    "rendering": 1078,
+    "calls": 1160,
+    "files": 324,
+    "rendering": 1079,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 220,
-      "toast.error": 783,
+      "toast.error": 784,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 492,
       "template": 105,
-      "dynamic": 614,
+      "dynamic": 615,
       "jsx": 0
     }
   },
@@ -8895,6 +8895,29 @@
       "renders": true
     },
     {
+      "file": "src/components/profile/publicProfile/PublicJobPhotos.tsx",
+      "line": 74,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "e instanceof Error ? e.message : \"Something went wrong. Try again.\"",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "e.message"
+          },
+          {
+            "form": "literal",
+            "text": "Something went wrong. Try again."
+          }
+        ]
+      },
+      "renders": true,
+      "rawError": [
+        "title: e.message"
+      ]
+    },
+    {
       "file": "src/components/profile/publicProfile/PublicProfileOwnerSteps.tsx",
       "line": 34,
       "kind": "toast",
@@ -14687,7 +14710,7 @@
     },
     {
       "file": "src/pages/u/PublicProfilePage.tsx",
-      "line": 112,
+      "line": 113,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

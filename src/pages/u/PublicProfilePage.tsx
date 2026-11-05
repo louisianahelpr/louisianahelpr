@@ -47,6 +47,7 @@ import { quickListHref } from "@/lib/declutter/wantedLinks";
 import { PublicProfileReviews, reviewTotal } from "@/components/profile/publicProfile/PublicProfileReviews";
 import { PublicProfileOwnerSteps } from "@/components/profile/publicProfile/PublicProfileOwnerSteps";
 import { PublicProfileSkeleton } from "@/components/profile/publicProfile/PublicProfileSkeleton";
+import { MyJobPhotosPicker, PublicJobPhotos } from "@/components/profile/publicProfile/PublicJobPhotos";
 
 const ROBOTS = "noindex, follow";
 /** L7 (owner 11-05): search engines index a page only when its member turned "Show my profile in search engines" on. */
@@ -224,6 +225,10 @@ function ProfileBody({ p, signedIn, isMe, ctaReady }: { p: PublicProfile; signed
           </Button>
         </section>
       ) : null}
+
+      {/* H4 (owner 11-05): job after photos the Helpr picked, only while everyone on the job allows sharing. */}
+      <PublicJobPhotos handle={p.handle} />
+      {ctaReady && isMe && <MyJobPhotosPicker handle={p.handle} />}
 
       {nothing && (
         <p className="text-center text-ds-14 text-muted-foreground">{first} hasn&apos;t posted anything yet.</p>

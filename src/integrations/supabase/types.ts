@@ -10299,6 +10299,30 @@ export type Database = {
         }
         Relationships: []
       }
+      profile_job_photos: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          photo_path: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          photo_path: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          photo_path?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profile_search_rate_log: {
         Row: {
           created_at: string
@@ -19946,6 +19970,44 @@ export type Database = {
         Args: { p_reviewee: string; p_reviewer: string }
         Returns: boolean
       }
+      profile_page_hidden: { Args: { p_user_id: string }; Returns: boolean }
+      job_photos_withheld: { Args: { p_job_id: string }; Returns: boolean }
+      helpr_job_after_photos: {
+        Args: { p_user_id: string }
+        Returns: {
+          category: string
+          completed_at: string
+          job_id: string
+          photo_path: string
+        }[]
+      }
+      my_job_photos: {
+        Args: never
+        Returns: {
+          category: string
+          consented: boolean
+          job_id: string
+          month: string
+          photo_path: string
+          shown: boolean
+        }[]
+      }
+      set_job_photo_shown: {
+        Args: { p_job_id: string; p_photo_path: string; p_shown: boolean }
+        Returns: boolean
+      }
+      profile_job_photo_visible: {
+        Args: { p_pick_id: string }
+        Returns: {
+          category: string
+          completed_at: string
+          month: string
+          photo_path: string
+          user_id: string
+        }[]
+      }
+      public_profile_work_photos: { Args: { p_handle: string }; Returns: Json }
+      profile_work_photo_object: { Args: { p_pick_id: string }; Returns: string }
       profiles_locked_update_columns: { Args: never; Returns: string[] }
       promotions_resubscribe: { Args: { p_user_id: string }; Returns: string }
       promotions_unsubscribe: { Args: { p_user_id: string }; Returns: Json }

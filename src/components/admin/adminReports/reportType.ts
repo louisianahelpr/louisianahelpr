@@ -1,4 +1,5 @@
 import type { ReportedWanted } from "@/lib/declutter/api";
+import type { ReportedShop } from "@/lib/shops/reports";
 
 /** One row of the admin reports queue. */
 export type Report = {
@@ -24,6 +25,8 @@ export type Report = {
   reported_listing_down_ok?: boolean;
   /** Audit 10-30 #8: a reported Wanted post, read through declutter_admin_reported_wanted. */
   reported_wanted?: ReportedWanted;
+  /** Shops H2: a reported shop or shop item, read through shops_admin_reported. */
+  reported_shop?: ReportedShop;
   /** B48: a reported Declutter question already removed, so the card offers no take-down. */
   reported_question_gone?: boolean;
   /** Q366: the person behind the subject — `reported_id` for a user report,

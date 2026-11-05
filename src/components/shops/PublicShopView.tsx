@@ -21,6 +21,7 @@ import { ShopsNotice, ShopUnavailable } from "./shopsUi";
 import { ShopCard, ShopGallery, ShopHero, ShopHoursCard, ShopItemsGrid } from "./ShopProfile";
 import ShopFaqs from "./ShopFaqs";
 import ShopPolicies from "./ShopPolicies";
+import { ShopReportShop } from "./ShopReport";
 
 const SHOP_PAGE_ROBOTS = "noindex, follow";
 
@@ -85,7 +86,7 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
       )}
       {shop.offers_selling && (
         <ShopCard id="shop-items" title="Items">
-          <ShopItemsGrid items={shop.items} />
+          <ShopItemsGrid items={shop.items} reportable={signedIn} />
         </ShopCard>
       )}
       {shop.offers_quotes && (
@@ -108,6 +109,7 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
       <ShopGallery photos={shop.photos} />
       {shop.offers_selling && <ShopPolicies shopId={shop.id} />}
       <ShopFaqs shopId={shop.id} />
+      <ShopReportShop shopId={shop.id} signedIn={signedIn} />
     </div>
   );
 }

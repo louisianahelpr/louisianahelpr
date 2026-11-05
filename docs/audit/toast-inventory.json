@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1163,
-    "files": 325,
-    "rendering": 1082,
-    "suppressedByPolicy": 81,
+    "calls": 1165,
+    "files": 326,
+    "rendering": 1083,
+    "suppressedByPolicy": 82,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 222,
-      "toast.error": 785,
+      "toast.error": 786,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 87,
+      "toast.success": 88,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
       "literal": 493,
       "template": 105,
-      "dynamic": 617,
+      "dynamic": 619,
       "jsx": 0
     }
   },
@@ -2109,7 +2109,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 116,
+      "line": 118,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2119,7 +2119,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 119,
+      "line": 121,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2129,7 +2129,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 134,
+      "line": 136,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2139,7 +2139,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 157,
+      "line": 159,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2149,7 +2149,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 160,
+      "line": 162,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -2159,7 +2159,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 181,
+      "line": 183,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2169,7 +2169,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 221,
+      "line": 223,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3168,6 +3168,42 @@
       "title": {
         "form": "dynamic",
         "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminReports/ShopReportPanel.tsx",
+      "line": 46,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "isItem ? \"Item taken down. Its owner was told why.\" : \"Shop hidden. Its owner sees your reason.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Item taken down. Its owner was told why."
+          },
+          {
+            "form": "literal",
+            "text": "Shop hidden. Its owner sees your reason."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/admin/adminReports/ShopReportPanel.tsx",
+      "line": 50,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "errorWords(err)",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "(err as { userMessage?: string } | null)?.userMessage ?? \"That didn't work. Refresh the reports list and try again.\""
+          }
+        ]
       },
       "renders": true
     },
@@ -11083,7 +11119,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 69,
+      "line": 70,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11093,7 +11129,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 74,
+      "line": 75,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -11113,7 +11149,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 77,
+      "line": 78,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11123,7 +11159,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 168,
+      "line": 169,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

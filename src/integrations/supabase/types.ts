@@ -21450,9 +21450,26 @@ export type Database = {
         Args: { p_shop_id: string; p_verified: boolean }
         Returns: boolean
       }
+      shops_admin_reported: {
+        Args: { p_ids: string[] }
+        Returns: {
+          is_seed: boolean
+          kind: string
+          label: string
+          owner_id: string
+          reported_id: string
+          shop_hidden: boolean
+          shop_id: string
+          status: string
+        }[]
+      }
       shops_admin_set_hidden: {
         Args: { p_hidden: boolean; p_reason: string; p_shop_id: string }
         Returns: boolean
+      }
+      shops_admin_take_down_item: {
+        Args: { p_item_id: string; p_note: string; p_report_id: string }
+        Returns: string
       }
       shops_admin_review_item: {
         Args: {

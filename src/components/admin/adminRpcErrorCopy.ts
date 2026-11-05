@@ -68,6 +68,30 @@ export const ADMIN_RPC_ERROR_COPY = {
     problem_open: "A problem is open on this order.",
     refunded_in_stripe: "This order was refunded in Stripe. Decide its held refund or payout in Payouts held for review.",
   },
+  // Shops H2 (20261105182210): the reports queue's read of reported shops and items, and taking a reported item down.
+  shops_admin_reported: {
+    feature_disabled: "Shops isn't on for your account, so its reports can't be read.",
+    not_admin: "Only an admin can do that.",
+  },
+  shops_admin_take_down_item: {
+    account_restricted: "Your account is restricted, so this can't be done right now.",
+    feature_disabled: "Shops isn't on for your account, so its items can't be taken down.",
+    not_admin: "Only an admin can do that.",
+    review_note_required: "Say why the item came down, so its owner knows what to fix.",
+    review_note_too_long: "Keep the reason under 500 characters.",
+    item_not_found: "This item is already down. Refresh the reports list.",
+    own_item: "Another admin must act on your own item.",
+    report_not_for_item: "That report is about something else. Refresh the reports list.",
+  },
+  shops_admin_set_hidden: {
+    account_restricted: "Your account is restricted, so this can't be done right now.",
+    feature_disabled: "Shops isn't on for your account, so shops can't be hidden.",
+    not_admin: "Only an admin can do that.",
+    invalid_hidden: "Choose hide or show.",
+    hide_reason_required: "Say why the shop is hidden, so its owner knows what to fix.",
+    shop_not_found: "This shop is gone. Refresh the reports list.",
+    own_shop: "Another admin must act on your own shop.",
+  },
   shops_admin_remove_strike: {
     admin_only: "Only admins can remove a Shops strike.",
     invalid_note: "Add a note of up to 500 characters. Other admins see it.",

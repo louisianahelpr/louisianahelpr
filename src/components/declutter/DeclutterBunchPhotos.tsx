@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Check, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ListRow } from "@/components/ui/ListRow";
+import { PhotoTileButton } from "@/components/ui/PhotoTileButton";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { dropBeforeKey, type BunchItem } from "@/lib/declutter/bunch";
@@ -151,13 +152,13 @@ export function BunchPhotos({ item, name, others, urls, files, onMove, onSplit, 
                 bunchPhotoDrag.end();
                 onReorder(from.photo, dropBeforeKey(item.photoKeys, from.photo, k));
               }}>
-              <button type="button" aria-label={`See ${name}, photo ${i + 1}`} onClick={() => setBig(k)} data-bunch-photo={k}
-                className={`block aspect-square w-full overflow-hidden rounded-xl bg-photo-empty ring-offset-2 ring-offset-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${on ? "ring-2 ring-[hsl(var(--bark))]" : ""}`}>
+              <PhotoTileButton aria-label={`See ${name}, photo ${i + 1}`} onClick={() => setBig(k)} data-bunch-photo={k}
+                className={`block w-full rounded-xl bg-photo-empty ring-offset-2 ring-offset-card ${on ? "ring-2 ring-[hsl(var(--bark))]" : ""}`}>
                 {url?.startsWith("blob:") && <FallbackImg src={url} alt="" draggable={false} loading="lazy" decoding="async" className="aspect-square w-full bg-photo-empty object-cover" data-bunch-thumb="" />}
                 {item.failedPhoto === k
                   ? <span className="absolute inset-x-1 bottom-1 rounded-lg bg-background px-1 py-0.5 text-center text-ds-12 font-semibold text-foreground">Not sent</span>
                   : i === 0 && <span className="absolute inset-x-1 bottom-1 rounded-lg bg-background px-1 py-0.5 text-center text-ds-12 font-semibold text-foreground" data-bunch-cover="">Cover</span>}
-              </button>
+              </PhotoTileButton>
               {/* A corner, never the middle (T8 at 375: the 44 px floor every button gets reached the centre of a 61 px photo, so a tap
                   ticked instead of opening). Under half the photo each way, whatever its size; 44 px once the photo is big enough. */}
               <button type="button" aria-pressed={on} aria-label={`Choose ${name}, photo ${i + 1}`} onClick={() => toggle(k)} data-bunch-tick={k}

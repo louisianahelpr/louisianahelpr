@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-04T18:10:13.908Z",
-  "guards": 3500,
-  "registered": 3498,
+  "generated": "2026-11-05T00:49:00.420Z",
+  "guards": 3518,
+  "registered": 3516,
   "unregistered": [
     "e2e/happy-path/iap-review-screenshot.spec.ts",
     "src/components/job-card/useFollowOpenCard.test.ts"
@@ -215,6 +215,7 @@
         "src/pages/post-job/reviewAsksOnce.test.tsx",
         "src/pages/post-job/reviewDesktopRail.test.tsx",
         "src/pages/post-job/reviewNamesVisitsAndCrew.test.tsx",
+        "src/pages/post-job/reviewPrintsDateWindow.test.tsx",
         "src/pages/post-job/reviewTotalSaysItOnce.test.tsx",
         "src/components/quotes/postJobQuoteChoice.test.tsx"
       ],

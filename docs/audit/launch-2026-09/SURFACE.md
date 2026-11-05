@@ -14,23 +14,23 @@ reports coverage against THIS file, not against the route list.
 
 | Surface class | Unit | Count |
 |---|---|---:|
-| Routes (non-redirect) | route | 59 |
+| Routes (non-redirect) | route | 60 |
 | Redirect-only routes | route | 1 |
 | `?tab=` variants | variant | 35 |
 | `?view=` variants | variant | 26 |
 | Overlay surfaces | **instance** | 220 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1153 (across 320 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
-| Multi-step flows — confirmed | flow | 50 |
+| Toast messages | **call site** | 1151 (across 318 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Multi-step flows — confirmed | flow | 52 |
 | Multi-step flows — probable | flow | 33 |
 | Back/next navigation only | flow | 66 |
 | Forms (submittable) | form | 119 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 180 |
 | Email templates | **exported template** | 23 |
 | Notification types (defined in notification_type_pref_map) | type | 26 |
-| **Navigable surfaces** (places a person can stand) | mixed | **789** |
-| **Copy surfaces** (strings a person may read) | mixed | **1202** |
-| **Total auditable surface** | mixed | **1991** |
+| **Navigable surfaces** (places a person can stand) | mixed | **792** |
+| **Copy surfaces** (strings a person may read) | mixed | **1200** |
+| **Total auditable surface** | mixed | **1992** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -67,12 +67,12 @@ they differ, the reason is understood:
 
 | Class | This script | Independent agent | Status |
 |---|---|---|---|
-| Real routes | 59 | 34 | agree |
+| Real routes | 60 | 34 | agree |
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 220 | 130 | agree within method (script counts every menu instance) |
 | Forms | 119 | ~38 | agree |
-| Confirmed multi-step flows | 50 | 9 | agree; the agent excluded section routers this script still counts |
+| Confirmed multi-step flows | 52 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
 **The remaining known floor is notification types** — the count below is from
@@ -102,6 +102,7 @@ database and `lh-notifications` must correct it from there.
 - [ ] `/admin/preview/declutter`
 - [ ] `/admin/preview/job`
 - [ ] `/admin/preview/messages`
+- [ ] `/admin/preview/onboarding`
 - [ ] `/messages`
 - [ ] `/declutter`
 - [ ] `/declutter/sell`
@@ -447,7 +448,9 @@ A strong signal fired (switch on a step variable, an explicit step comparison, a
 | `src/pages/admin/preview/declutterPreviewSamples.ts` | switch, compare |
 | `src/pages/admin/preview/JobPreviewPage.tsx` | compare |
 | `src/pages/admin/preview/jobPreviewSamples.ts` | switch, compare |
+| `src/pages/admin/preview/MessagesPreviewPage.tsx` | compare |
 | `src/pages/admin/preview/messagesPreviewSamples.ts` | compare |
+| `src/pages/admin/preview/OnboardingPreviewPage.tsx` | compare |
 | `src/pages/auth/Signup.tsx` | compare, nav-handler |
 | `src/pages/auth/Unsubscribe.tsx` | compare, nav-handler |
 | `src/pages/helprs/FindHelprs.tsx` | compare, nav-handler |

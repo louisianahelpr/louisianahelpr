@@ -22,7 +22,7 @@ import { blankComments } from "./helpers/blankNonCode";
 const ROOT = resolve(__dirname, "../..");
 const SEED = blankComments(readFileSync(resolve(ROOT, "scripts/audit/prod-seed.mjs"), "utf8"));
 const LIVE_SRC = blankComments(readFileSync(resolve(ROOT, "src/components/messages/liveThread.ts"), "utf8"));
-const LIST_SRC = blankComments(readFileSync(resolve(ROOT, "src/components/messages/ConversationList.tsx"), "utf8"));
+const LIST_SRC = blankComments(readFileSync(resolve(ROOT, "src/components/messages/useConversationListState.ts"), "utf8"));
 
 const quoted = (s: string) => [...s.matchAll(/"([a-z_]+)"/g)].map((m) => m[1]).sort();
 

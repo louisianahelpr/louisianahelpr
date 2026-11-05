@@ -2,6 +2,7 @@ import { devices, type Browser, type Locator, type Page } from "@playwright/test
 import { test, expect, assertHealthy, getSession, sessionsAvailable, AUTH_STORAGE_KEY, type Session } from "./fixtures";
 import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenarios";
 import { TODAY_CLOSES_AFTER_MIN, fillBudget, fillJobDetails, louisianaMinutesNow } from "./postJobForm";
+import { clearJobPostDraft } from "./jobPostDraft";
 
 /**
  * Journey — on a phone, a TAP on Post a job's date and time controls takes,
@@ -160,11 +161,19 @@ async function bottomRowNeverUnderTheBar(page: Page, where: string, touch: boole
   return n;
 }
 
+// The journey types a job it never posts; the form keeps that draft on the shared poster account, and an unposted
+// draft earns a reminder (OPS-3, Q1035). Thrown away after the test, pass or fail.
+let draftOwner: Session | null = null;
+test.afterAll(async ({ request }) => {
+  if (draftOwner) await clearJobPostDraft(request, draftOwner);
+});
+
 test(title, async ({ browser, request, journey }) => {
   test.skip(filteredOut(title), "SCENARIO pins another scenario");
   const avail = sessionsAvailable();
   test.skip(!avail.ok, avail.why);
   const session = await getSession(request, "poster");
+  draftOwner = session;
   // Q2417: the poster account's saved address is its last nightly job's, posted at the parish-less ZIP 99999
   // (postJobForm fillLogistics), so choosing it on When and where fires parishLookup's deliberate warning in
   // the contexts this spec opens. Journey-wide, like fillLogistics's own allowance.

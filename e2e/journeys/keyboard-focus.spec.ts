@@ -1,8 +1,9 @@
 import type { Locator, Page } from "@playwright/test";
-import { test, expect, assertHealthy, getSession, newUserContext, sessionsAvailable, rest, SUPABASE_URL, E2E_TITLE_MARKER } from "./fixtures";
+import { test, expect, assertHealthy, getSession, newUserContext, sessionsAvailable, rest, SUPABASE_URL, E2E_TITLE_MARKER, type Session } from "./fixtures";
 import { fitJobTitle } from "../../scripts/lib/jobTextBounds.mjs";
 import { expectGateSendsToCompleteProfile } from "./incompleteAccount";
 import { fillBudget } from "./postJobForm";
+import { clearJobPostDraft } from "./jobPostDraft";
 import { filteredOut, rotationFor, scenarioTitle } from "./scenarios";
 import { defaultInboxTab } from "../../src/lib/inboxDefault";
 
@@ -127,6 +128,13 @@ test(guestTitle, async ({ browser, request, journey }) => {
 });
 
 const authedTitle = scenarioTitle({ journey: "keyboard", persona: "helper-only", state: "approved", rotation, outcome: "smooth" });
+// Leg d/e walk Post a job as the shared Helpr; the form keeps what it types as a draft on that account, and an
+// unposted draft earns a reminder (OPS-3, Q1035). Thrown away after the test, pass or fail.
+let draftOwner: Session | null = null;
+test.afterAll(async ({ request }) => {
+  if (draftOwner) await clearJobPostDraft(request, draftOwner);
+});
+
 test(authedTitle, async ({ browser, request, journey }) => {
   test.skip(filteredOut(authedTitle), "SCENARIO pins another scenario");
   const avail = sessionsAvailable();
@@ -135,6 +143,7 @@ test(authedTitle, async ({ browser, request, journey }) => {
   // slow rotation that alone is several minutes.
   test.setTimeout(rotation.network === "slow" ? 20 * 60_000 : 10 * 60_000);
   const helper = await getSession(request, "helper");
+  draftOwner = helper;
   const ctx = await newUserContext(browser, helper, { rotation });
   const page = journey.track("helper", await ctx.newPage());
 

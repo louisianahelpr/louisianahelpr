@@ -1,4 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { ChevronRight } from "lucide-react";
 import type { ActivityBucket } from "@/lib/activityBuckets";
 
@@ -51,14 +52,14 @@ export function ActivityBucketGroups<T>({
                 <span className="ml-1.5 text-foreground/70">{list.length}</span>
               </h2>
               {list.length > PREVIEW && (
-                /* `-my-2` in a `min-h-7` row: every button is at least 44px tall (index.css), so this one made the
-                   heading row 44px instead of its 19px line whenever a group held more than three cards, and the first
-                   card sat 25px lower than the loading placeholder's (Q833, mocked harness /posts 201 -> 227). Now the
-                   row is 28px with or without it, and the 44px target reaches exactly 8px past the row: the list's
-                   `gap-2` below, half the sections' `gap-4` above, so it covers no card. */
-                <button type="button" onClick={() => toggle(b)} className="-my-2 text-ds-13 font-semibold text-primary">
+                /* The shared text-sized InlineTextButton (Q2709) in a `min-h-7` row: a plain button is at least 44px
+                   tall (index.css), which made the heading row 44px instead of its 19px line whenever a group held
+                   more than three cards, and the first card sat 25px lower than the loading placeholder's (Q833, mocked
+                   harness /posts 201 -> 227). Text-sized, the row is 28px with or without it; its 44px touch overlay
+                   reaches 8px past the row: the list's `gap-2` below, half the sections' `gap-4` above, over no card. */
+                <InlineTextButton onClick={() => toggle(b)} className="text-ds-13 font-semibold text-primary">
                   {all ? "Show less" : `See all ${list.length}`}
-                </button>
+                </InlineTextButton>
               )}
             </div>
             <div className="space-y-list">

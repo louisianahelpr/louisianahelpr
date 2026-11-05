@@ -300,7 +300,7 @@
       "input": 1
     },
     "src/components/job-card/ActivityBucketGroups.tsx": {
-      "button": 2
+      "button": 1
     },
     "src/components/job-card/JobCardMetaRow.tsx": {
       "button": 1
@@ -549,7 +549,7 @@
       "button": 3
     },
     "src/components/sections/StatusBoxes.tsx": {
-      "button": 3
+      "button": 2
     },
     "src/components/series/SeriesDatesPanel.tsx": {
       "button": 3,
@@ -659,7 +659,7 @@
       "input": 1
     },
     "src/pages/search/SearchPage.tsx": {
-      "button": 3,
+      "button": 2,
       "input": 1
     },
     "src/pages/tips/TipMoment.tsx": {

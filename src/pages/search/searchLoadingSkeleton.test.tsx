@@ -10,12 +10,13 @@
  *
  * The head row is 28px with or without "See all" (the button's 44px floor made
  * it 44px only past PER_SECTION results, so no placeholder could match both):
- * the bone's head row and the real one share the class, and the button keeps
- * its 44px target with -my-2. Mocked harness, 375/1440 light+dark, 3 and 4
+ * the bone's head row and the real one share the class, and "See all" is the
+ * shared text-sized InlineTextButton (min-h-0) whose 44px touch overlay keeps
+ * the target (Q2709; it used -my-2 on a 44px button before). Mocked harness, 375/1440 light+dark, 3 and 4
  * results: Save, group and Shops row move 0px.
  *
  * @mutate src/pages/search/SearchPage.tsx | const GROUP_HEAD_CLASS = "flex min-h-7 items-center justify-between px-1"; | const GROUP_HEAD_CLASS = "flex items-baseline justify-between px-1";
- * @mutate src/pages/search/SearchPage.tsx | className="-my-2 font-sans font-semibold text-ds-13 min-h-[44px]" | className="font-sans font-semibold text-ds-13 min-h-[44px]"
+ * @mutate src/pages/search/SearchPage.tsx | <InlineTextButton onClick={onSeeAll} className="font-sans font-semibold text-ds-13" | <InlineTextButton onClick={onSeeAll} className="font-sans font-semibold text-ds-13 min-h-[44px]"
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { act, render, screen, waitFor } from "@testing-library/react";
@@ -104,7 +105,9 @@ describe("Q2018: /search shows a skeleton in the real row shape while it loads",
     const core = (el: HTMLElement) => el.className.split(/\s+/).filter((c) => /^(flex|min-h-|items-|justify-|px-)/.test(c)).sort().join(" ");
     expect(core(realHead)).toContain("min-h-7");
     expect(core(boneHead)).toBe(core(realHead));
-    expect(seeAll.className).toContain("-my-2");
-    expect(seeAll.className).toContain("min-h-[44px]");
+    // Text-sized (a 44px floor would make the 28px row 44px), with the shared touch overlay.
+    expect(seeAll.className.split(/\s+/)).toContain("min-h-0");
+    expect(seeAll.className.split(/\s+/)).toContain("link-standard");
+    expect(seeAll.className).not.toMatch(/min-h-\[44px\]|min-h-11/);
   });
 });

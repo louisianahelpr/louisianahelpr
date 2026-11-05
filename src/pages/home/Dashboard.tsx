@@ -1,9 +1,6 @@
-import { useState, useCallback, useEffect, useMemo, useRef, Suspense, type ReactNode } from "react";
-import { ApplicationSentDialog } from "@/components/dashboard/ApplicationSentDialog";
+import { useState, useCallback, useEffect, useMemo, useRef, type ReactNode } from "react";
 import { readStoredFeedDensity, type FeedDensity } from "@/components/dashboard/feedDensity";
 
-import { toast } from "sonner";
-import { openJobFromPin } from "@/components/browseMap/openJobFromPin";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useBoostReturn } from "./useBoostReturn";
@@ -22,10 +19,11 @@ import { WantsQuotesSlot } from "@/components/quotes/WantsQuotesSlot";
 import { scrollFeedToTop } from "@/pages/home/scrollFeedToTop";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { MapToggleButton } from "@/components/dashboard/browseTasksToolbar/MapToggleButton";
-import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardBannedScreen } from "@/components/dashboard/DashboardBlockedScreen";
 
-import { ApplyBody, ApplyConfirmDialog, BirthdayPopup, BrowseMap, JobDetailDialog, ReportDialog } from "./dashboardLazyParts";
+import { DashboardDetailSheet, DashboardDialogs } from "./DashboardDialogs";
+import { DashboardMapColumn } from "./DashboardMapColumn";
+import { useDismissJob } from "./useDismissJob";
 import SectionBoundary from "@/components/SectionBoundary";
 import { useDashboardData } from "@/hooks/useDashboardData";
 import { usePendingSaveConsumer } from "@/hooks/usePendingSaveConsumer";
@@ -33,13 +31,11 @@ import { usePrefetchUserData } from "@/hooks/usePrefetchUserData";
 import { useDashboardFilters } from "@/hooks/useDashboardFilters";
 import type { ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
 import { headerJobCount, sheetResultCount } from "@/pages/home/headerJobCount";
-import { safeStorage } from "@/lib/safeStorage";
 import { readJobsMapVisible, saveJobsMapVisible } from "@/lib/jobsMapVisible";
 import { usePersistedBrowseView } from "@/hooks/usePersistedBrowseView";
 import { useJobRef } from "@/hooks/useJobRef";
 import { useViewerCredentialTier } from "@/hooks/useViewerCredentialTier";
 import type { HelperAvailabilitySlot } from "./dashboardTypes";
-import { QuickApplyHandler } from "./QuickApplyHandler";
 import { useDashboardSideQueries } from "./useDashboardSideQueries";
 import { useSaveJob } from "./useSaveJob";
 import { useApplyFlow } from "./useApplyFlow";
@@ -289,31 +285,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
     applicationSent, closeApplicationSent, viewApplication,
   } = useApplyFlow({ user, allJobs });
 
-  // Immediate optimistic dismiss + toast/Undo (owner: the "Not Interested?"
-  // confirm dialog was a whole modal for a reversible, purely-local action —
-  // same mismatch as the attachment-remove undo in AppliedJobsTab). The job
-  // drops off the feed right away; Undo puts the id back in storage + state.
-  const handleDismissRequest = useCallback((jobId: string) => {
-    setDismissedJobIds(prev => {
-      const next = new Set(prev);
-      next.add(jobId);
-      safeStorage.setItem("helpr_dismissed_jobs", JSON.stringify([...next]));
-      return next;
-    });
-    toast.success("Job removed from your feed", {
-      action: {
-        label: "Undo",
-        onClick: () => {
-          setDismissedJobIds(prev => {
-            const next = new Set(prev);
-            next.delete(jobId);
-            safeStorage.setItem("helpr_dismissed_jobs", JSON.stringify([...next]));
-            return next;
-          });
-        },
-      },
-    });
-  }, [setDismissedJobIds]);
+  const handleDismissRequest = useDismissJob(setDismissedJobIds); // optimistic dismiss + Undo toast (see the hook)
 
   // The in-progress pill is no longer rendered in the brand row (owner:
   // "remove"). That row is logo, filter, notification. The job it pointed at is
@@ -556,55 +528,7 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
                     map has real room and doesn't clip at a phone-width edge
                     the way the old side-map did (#12). */}
                 {isWebDesktop && mapVisible && !feedShowingLoadError && !wantsQuotes && (
-                  <div
-                    className="w-[48%] shrink-0 min-h-0 flex flex-col"
-                    style={{ borderLeft: "1px solid hsl(var(--olivewood) / 0.12)" }}
-                  >
-                    <Suspense fallback={<Skeleton className="h-full w-full rounded-2xl" />}>
-                      <BrowseMap
-                        flush
-                        // Same job-detail dialog the feed's cards open on
-                        // tap (openDetailJob), not the quick-apply sheet —
-                        // see the matching note in BrowseTasksFeed.tsx.
-                        //
-                        // VN-10: this was `allJobs.find(...)` alone, so a pin
-                        // for a job this page had not loaded (or had filtered
-                        // out — own posts, past-dated, already applied) was a
-                        // dead tap. Measured on prod at 1440, 2026-09-14:
-                        // "Pressure wash a driveway and patio" was pinned,
-                        // absent from the list, and its card did nothing.
-                        // `openJobFromPin` is the one lookup both maps use.
-                        onJobAction={(jobId) =>
-                          openJobFromPin({
-                            jobId,
-                            lists: [filters.filteredJobs, allJobs],
-                            open: openDetailJob,
-                            onError: (m) => toast.error(m),
-                          })
-                        }
-                        currentUserId={user?.id}
-                        filters={filters.mapFilter}
-                        onClearFilters={filters.clearFilters}
-                        // MUST match the feed column beside it. Without this
-                        // prop BrowseMap falls back to guest pricing and the
-                        // pin preview prints the GROSS budget, so on this exact
-                        // screen "Pressure wash a house exterior" read $368 in
-                        // the list and $400 on the map, side by side, for the
-                        // same job (caught 2026-08-31 at 1440). Same value the
-                        // list's JobCards use — one number per job, everywhere.
-                        effectiveFee={effectiveFee}
-                        // Every viewer-local cull the feed applies — applied,
-                        // dismissed, "Only saved" — so the pins, the cards and
-                        // the header count describe ONE set. Optimistic apply
-                        // and dismiss both update it, so a pin vanishes the
-                        // moment the card does.
-                        exclusions={exclusions}
-                        // Re-read the pins whenever the list re-reads, so the
-                        // map never shows a board older than the list beside it.
-                        refreshKey={jobsUpdatedAt}
-                      />
-                    </Suspense>
-                  </div>
+                  <DashboardMapColumn filters={filters} allJobs={allJobs} openDetailJob={openDetailJob} userId={user?.id} effectiveFee={effectiveFee} exclusions={exclusions} refreshKey={jobsUpdatedAt} />
                 )}
               </div>
             </SectionBoundary>
@@ -614,140 +538,21 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
       {/* Dialog chunks load on demand — only mounted once the user opens
           them, so the Dashboard route chunk doesn't carry them. */}
       {detailJob && (
-        <Suspense fallback={null}>
-          <JobDetailDialog
-            job={detailJob}
-            effectiveFee={effectiveFee}
-            allJobs={allJobs}
-            isSaved={detailJob ? savedJobIds.has(detailJob.id) : false}
-            onToggleSave={handleToggleSave}
-            userLat={filters.userLoc?.status === "ready" ? filters.userLoc.lat : null}
-            userLng={filters.userLoc?.status === "ready" ? filters.userLoc.lng : null}
-            /* Dismissing the sheet abandons the apply too. Without clearing
-               the pending id, closing from the apply step left
-               confirmApplyJobId set with no detail sheet to host it — and the
-               standalone deep-link sheet below (which renders whenever that id
-               is set and does NOT match an open detail job) would immediately
-               pop the apply form back up on the bare feed. */
-            onClose={() => { setConfirmApplyJobId(null); closeDetailJob(); }}
-            onApply={handleApplyRequest}
-            onReport={setReportJobId}
-            onSelect={openDetailJob}
-            /* THE APPLY FORM, ON THIS SAME SHEET — NO SECOND STEP.
-               Applying was a separate centred AlertDialog, then the second
-               STEP of this sheet, and is now simply part of it (owner,
-               2026-09-09: "collapse the TWO steps into ONE ... one less tap
-               to apply"). useApplyFlow still owns the mutation; only where
-               the markup mounts and when the guards run has changed.
-
-               WITHHELD ON YOUR OWN POST, synchronously. `user` is available
-               here without a round trip, while the sheet's own `viewerUserId`
-               resolves a beat after open — so deciding it here is what stops
-               a poster seeing an apply form flash on their own job. The sheet
-               falls back to the footer, which says "This is your post".
-
-               THE GUARDS MOVED TO THE SUBMIT. `handleApplyRequest` (offline,
-               impersonation, signed out, own post) used to run on the
-               Continue tap. There is no Continue, so it runs on Apply Now,
-               immediately before the mutation — same guards, same refusals,
-               one tap later. */
-            /* NO <Suspense> OF ITS OWN — IT SHARES THE SHEET'S, ON PURPOSE.
-               ApplyBody is a separate lazy chunk. Wrapped in its own
-               `<Suspense fallback={null}>`, the sheet painted WITHOUT its apply
-               form and then INSERTED ~340px of it when the chunk landed. The
-               sheet is centred and content-sized, so that insertion moved both
-               edges: measured on the production bundle at 375x812, 4x CPU
-               throttling, 400kbps/400ms link, the top edge sat still at y=227.5
-               for a full second and then jumped to y=56.8 — 170.7px in ONE
-               frame, on a surface the reader was already reading. That is the
-               "very jumpy on open then settles" reported from TestFlight
-               1.0.4/7110, and it was the largest contributor by an order of
-               magnitude (next was 28.9px, and only on a credential-gated job).
-
-               Dropping the inner boundary lets the suspension bubble to the
-               sheet's own <Suspense> just below — the one already withholding
-               JobDetailDialog's chunk. Both lazy imports start in the same
-               commit, so the sheet waits for max(dialog, form) instead of
-               painting at dialog and reflowing at form: one paint, final
-               height, nothing moves. Not a skeleton and not a delay — it is
-               refusing to split ONE surface across two paints. Do not
-               "optimise" this back into a boundary of its own. */
-            applyForm={
-              detailJob.customer_id !== user?.id ? (
-                <ApplyBody
-                  open
-                  onClose={() => setConfirmApplyJobId(null)}
-                  confirmApplyJob={detailJob}
-                  {...applyFieldProps}
-                  hideEarnings
-                  handleApplyConfirm={async () => {
-                    const accepted = await handleApplyRequest(detailJob.id);
-                    if (accepted === false) return;
-                    // Submitting takes the whole sheet down — the helpr is
-                    // done with this job either way, and the success toast
-                    // is the confirmation. The id is passed explicitly:
-                    // handleApplyRequest set it in state one tick ago and
-                    // this render cannot see it yet.
-                    handleApplyConfirm(detailJob.id);
-                    closeDetailJob();
-                  }}
-                />
-              ) : null
-            }
-          />
-        </Suspense>
-      )}
-
-      {reportJobId && (
-        <Suspense fallback={null}>
-          <ReportDialog open={!!reportJobId} onClose={() => setReportJobId(null)} reportedType="job" reportedId={reportJobId} />
-        </Suspense>
-      )}
-
-      {/* Birthday greeting — a popup, not chrome. It used to be mounted as a
-          sibling of the (now removed) app bar inside PageScaffold's `header`
-          slot; it lives with the other overlays now. Still mounted on every
-          Dashboard render — it self-hides unless today is the user's birthday. */}
-      <Suspense fallback={null}>
-        <BirthdayPopup
-          dateOfBirth={profile?.date_of_birth}
-          firstName={firstName}
-          deferred={false}
+        <DashboardDetailSheet
+          detailJob={detailJob} effectiveFee={effectiveFee} allJobs={allJobs} savedJobIds={savedJobIds} handleToggleSave={handleToggleSave}
+          userLoc={filters.userLoc} userId={user?.id} setConfirmApplyJobId={setConfirmApplyJobId} closeDetailJob={closeDetailJob}
+          handleApplyRequest={handleApplyRequest} handleApplyConfirm={handleApplyConfirm} setReportJobId={setReportJobId} openDetailJob={openDetailJob}
+          applyFieldProps={applyFieldProps}
         />
-      </Suspense>
-
-      {/* A job-match notification opens THE JOB SHEET, not a toast (owner,
-          2026-09-11). `openDetailJob` is the exact same entry point a tap on
-          a feed card uses — it snapshots the feed scroll and mirrors `?job=`
-          — so the deep link and the card converge on one surface. The
-          `quickApply` param is then dropped with a functional REPLACE, which
-          is what keeps this off the replaceState-throttle path: one write, no
-          `setSearchParams` loop, and Back can't re-fire the link. */}
-      <QuickApplyHandler
-        searchParams={searchParams}
-        user={user}
-        allJobs={allJobs}
-        onOpenJob={openDetailJob}
-        onHandled={clearQuickApplyParam}
-      />
-
-
-      {/* STANDALONE apply sheet — only for the QuickApply deep link
-          (`?apply=<jobId>`), where no detail sheet is open to host the step.
-          When the detail sheet IS open it renders the apply step itself, and
-          mounting this too would stack a second surface over it. */}
-      <ApplicationSentDialog sent={applicationSent} onClose={closeApplicationSent} onView={viewApplication} platformFee={platformFee} />
-      {confirmApplyJobId && confirmApplyJobId !== detailJob?.id && (
-        <Suspense fallback={null}>
-          <ApplyConfirmDialog
-            open={!!confirmApplyJobId}
-            onClose={() => setConfirmApplyJobId(null)}
-            confirmApplyJob={confirmApplyJob}
-            {...applyFieldProps}
-            handleApplyConfirm={handleApplyConfirm}
-          />
-        </Suspense>
       )}
+
+      <DashboardDialogs
+        reportJobId={reportJobId} setReportJobId={setReportJobId} dateOfBirth={profile?.date_of_birth} firstName={firstName}
+        searchParams={searchParams} user={user} allJobs={allJobs} openDetailJob={openDetailJob} clearQuickApplyParam={clearQuickApplyParam}
+        applicationSent={applicationSent} closeApplicationSent={closeApplicationSent} viewApplication={viewApplication} platformFee={platformFee}
+        confirmApplyJobId={confirmApplyJobId} detailJobId={detailJob?.id} setConfirmApplyJobId={setConfirmApplyJobId} confirmApplyJob={confirmApplyJob}
+        applyFieldProps={applyFieldProps} handleApplyConfirm={handleApplyConfirm}
+      />
 
       {/* No payout-setup dialog here. It was mounted behind a
           `payoutSetupDialogOpen` flag whose setter was never called from

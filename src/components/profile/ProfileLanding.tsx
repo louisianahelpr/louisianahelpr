@@ -1,10 +1,9 @@
 import { AppTopBar } from "@/components/sections/AppTopBar";
-import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
-import { useStripeConnectStatus } from "@/hooks/useStripeConnectStatus";
+import { SectionBoundary } from "@/components/SectionBoundary";
 import type { ProfileLandingProps } from "./profileLanding/types";
 import { YouCard } from "./profileLanding/YouCard";
 import { YouMenu } from "./profileLanding/YouMenu";
-import { PayoutStatusRow } from "./profileLanding/PayoutStatusRow";
+import { PayoutSlot } from "./profileLanding/PayoutSlot";
 import { PROFILE_PAGE_TITLE } from "./profileLanding/headingContract";
 import { YourActivity } from "./profileLanding/YourActivity";
 import { YourPageLink } from "./YourPageLink";
@@ -19,14 +18,6 @@ export function ProfileLanding({
   onRequestDelete,
   onRequestLogout,
 }: ProfileLandingProps) {
-  // Owned here rather than passed in — see the note in `types.ts`. Cached,
-  // so re-opening Profile in the same session paints the payout state on
-  // the first frame instead of re-asking Stripe every mount.
-  const { payoutPrompt, refetchStatus } = useStripeConnectStatus();
-  // Owner ruling 2026-10-23: payout setup is paused; the row says so instead
-  // of offering "Set up".
-  const setupPaused = usePayoutSetupPaused();
-
   return (
     <>
       {/* ── THE TOP BAR (board 18) ─────────────────────────────────
@@ -54,20 +45,11 @@ export function ProfileLanding({
           that anymore"), so the prompt went with the server requirement
           (migration 20261001222911). Guarded by
           src/test/identityNeverGatesPostOrAward.test.ts. */}
-      {payoutPrompt.kind !== "none" && (
-        /* NO CARD BEHIND THIS BANNER. Owner, 2026-09-11: remove the white
-           card behind "Finish setting up". `PayoutStatusRow` draws its own
-           bordered, sienna-tinted surface, so a `liquid-glass` box behind it
-           would be a box inside a box. */
-        <div className="space-y-2">
-          <PayoutStatusRow
-            prompt={payoutPrompt}
-            onSetUp={() => onSelectTab("payment")}
-            onRetry={refetchStatus}
-            setupPaused={setupPaused}
-          />
-        </div>
-      )}
+      {/* Contained (#185): a payout-status failure, even a crash, stays in
+          this slot; the rest of the page is still usable. */}
+      <SectionBoundary label="your payout status">
+        <PayoutSlot onSetUp={() => onSelectTab("payment")} />
+      </SectionBoundary>
 
       {/* ── Settings & navigation ────────────────────────────────────
           One unified pattern: every sub-section is a list row grouped

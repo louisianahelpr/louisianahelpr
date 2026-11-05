@@ -105,7 +105,7 @@ describe("void-cancelled-payments Part G: a ledger row with no job and no member
   });
 
   it("ANY TEST PaymentIntent is skipped: the tax probe (no job_id), a test tip with a tipper, a row with a job (lead 11-04)", async () => {
-    const cases: [string, Record<string, unknown>, string | null, Partial<typeof ROW>][] = [
+    const cases: [string, Record<string, unknown>, string | null, Partial<Record<keyof typeof ROW, unknown>>][] = [
       ["the tax probe", { kind: "tax_probe" }, null, {}],
       ["a test tip with a tipper", {}, TIPPER, {}],
       ["a test account's job", { job_id: "55555555-5555-4555-8555-555555555555" }, null, { job_id: "55555555-5555-4555-8555-555555555555" }],

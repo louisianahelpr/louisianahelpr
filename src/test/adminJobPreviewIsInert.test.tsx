@@ -173,7 +173,7 @@ describe("admin job-page preview", () => {
     await screen.findAllByText(previewSample("working", "helpr").job.title, undefined, { timeout: 10000 });
     const start = where;
     // The sample's people are named on the page (get_safe_profiles and get_public_profile_stats answered from the sample).
-    expect((await screen.findAllByLabelText("See the poster, Lexi L., 4.8 stars from 9 reviews")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByRole("link", { name: /^See the poster,\s*Lexi L\.\s*4\.8\s*stars from\s*9 reviews/ })).length).toBeGreaterThan(0);
     // The hired Helpr's "Open in Jobs" (under More options; Q2598 one name) is a navigation: it stays here and says where it would have gone.
     const more = screen.getAllByRole("button", { name: "More options" })[0];
     fireEvent.pointerDown(more);

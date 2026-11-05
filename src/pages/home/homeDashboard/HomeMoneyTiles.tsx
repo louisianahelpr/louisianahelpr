@@ -122,7 +122,8 @@ function MoneyTile({ kind, span, label, cents, caption, onClick }: { kind: strin
     <button
       type="button"
       data-money-tile={kind}
-      aria-label={`${label}: ${amount}. ${caption}`}
+      // No aria-label: the tile's own text (label, amount, caption) is its name, so a screen reader and a
+      // voice user say the same words (axe label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491).
       onClick={onClick}
       className={`btn-press liquid-glass text-left p-card lg:p-4 flex flex-col gap-0.5 min-w-0 ${span}`}
     >

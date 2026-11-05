@@ -23,6 +23,7 @@
  * @mutate src/pages/auth/Signup.tsx | subtitle: signupSubtitle(searchParams.get("reason"), searchParams.get("redirect")) | subtitle: undefined
  * @mutate src/hooks/useNotifyWhenWorkLands.ts | toast("You're set. We'll ping you when paid work lands."); | toast.success("You're set. We'll ping you when paid work lands.");
  * @mutate src/hooks/useNotifyWhenWorkLands.ts | toast.warning("Job alerts are on | toast.message("Job alerts are on
+ * @mutate src/hooks/useNotifyWhenWorkLands.ts | } else if (outcome === "dismissed") { | } else if (outcome === "never") {
  * @mutate src/lib/jobIntent.ts | return reason === "notify" ? t("signup.notifySubtitle") : undefined; | return undefined;
  */
 import { describe, it, expect } from "vitest";
@@ -144,5 +145,7 @@ describe("Notify me when work lands is push only (Q1313)", () => {
     expect(src).not.toMatch(/\bsuccessToast\(/);
     expect(src).toMatch(/\btoast\("You're set/);
     expect(src).toMatch(/\btoast\.warning\("Job alerts are on/);
+    // Q946: Not now in our own rationale ("dismissed") is not a refusal: it never gets the Settings warning.
+    expect(src).toMatch(/outcome === "dismissed"\) \{[^}]*\btoast\("Job alerts are on\. You can allow notifications on this device later\."\)/);
   });
 });

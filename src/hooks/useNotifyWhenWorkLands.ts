@@ -49,6 +49,10 @@ export function useNotifyWhenWorkLands(): () => Promise<void> {
     // the tap looked like it did nothing (owner, on device, 2026-10-06).
     if (outcome === "granted") {
       toast("You're set. We'll ping you when paid work lands.");
+    } else if (outcome === "dismissed") {
+      // Not now in our own rationale dialog: no OS prompt was shown and nothing is blocked, so
+      // sending them to Settings would be wrong (Q946, the declined-vs-denied signal).
+      toast("Job alerts are on. You can allow notifications on this device later.");
     } else {
       toast.warning("Job alerts are on, but this device isn't allowed to notify you. Turn on notifications for Helpr in Settings.");
     }

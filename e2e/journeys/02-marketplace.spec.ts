@@ -472,6 +472,23 @@ test.describe.serial("marketplace chain", () => {
       await pp.goto("/jobs?tab=posted");
       await openStatusTab(pp, "Needs You");
       await expect(pp.getByText(TITLE).first(), "the job with an applicant is not in My Posts > Needs You").toBeVisible({ timeout: 60_000 });
+      // Ported from the mocked happy-path/customer-sees-application.spec.ts (Q1035): on the list FACE the count
+      // lives on the one button that acts on it, "Review 1 applicant", and nowhere else on this job's card (no
+      // "1 applicant" chip, no "1 applicant · pick someone" pill, no "1 applied" caption), and no status stripe.
+      // Scoped to this run's card: the shared poster seat can hold other runs' jobs with their own counts.
+      // The count comes from useActivityData's applicantCounts tally; drop it and the button is gone:
+      // @mutate src/hooks/useActivityData.ts | applicantCounts[a.job_id] = (applicantCounts[a.job_id] \|\| 0) + 1; |
+      const reviewButton = /^Review \d+ applicants?$/;
+      const card = pp.locator("div")
+        .filter({ has: pp.getByText(TITLE, { exact: true }) })
+        .filter({ has: pp.getByRole("button", { name: reviewButton }) })
+        .last();
+      await expect(card.getByRole("button", { name: "Review 1 applicant", exact: true }), "the face's one button does not carry the applicant count").toBeVisible({ timeout: 30_000 });
+      const counted = card.getByText(/\d+\s+applicants?\b/i);
+      await expect(counted, "the applicant count is stated more than once on the card").toHaveCount(1);
+      expect(await counted.evaluate((el) => el.closest("button")?.textContent?.trim() ?? null), "the count is not the button's").toBe("Review 1 applicant");
+      await expect(card.getByText(/\d+\s+applied\b/i), "a 'N applied' caption came back on the card").toHaveCount(0);
+      await expect(pp.locator("[data-status-stripe]"), "the per-card status stripe came back").toHaveCount(0);
       await pp.getByText(TITLE).first().click();
       // The title opens the job page (the face links to /jobs/:id, owner 2026-10-31). Its one primary, like the
       // Posted face's (posterFaceAction "applicants"), is named "Review 1 applicant" (posterPageActions: it opens

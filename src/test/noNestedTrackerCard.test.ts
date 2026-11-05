@@ -31,6 +31,10 @@ import { readdirSync } from "./helpers/trackedFiles";
 
 const SRC = path.resolve(__dirname, "..");
 const PANELS = new Set(["JobTracking", "JobConfirmation"]);
+// JobTrackingView (Q806, 2026-11-05) is JobTracking's own JSX, rendered only by JobTracking with its model spread in
+// (`embedded` included). Its glass is the panel's prop-gated glass (checked below, "`embedded` really removes the
+// chrome"), so it is exempt where the panels are, and its one use is not a panel use.
+const PANEL_VIEWS = new Set(["JobTrackingView"]);
 const GLASS = /(^|\s)liquid-glass(\s|$)/;
 
 function walkFiles(dir: string, out: string[] = []): string[] {
@@ -337,7 +341,7 @@ export function cardsInsideJobCards(
   }
   // The shell is the card itself; the two status panels have their own
   // per-use `embedded` rule above (their glass is prop-gated, not a fixed root).
-  const exempt = (n: string) => n === "JobCardShell" || PANELS.has(n);
+  const exempt = (n: string) => n === "JobCardShell" || PANELS.has(n) || PANEL_VIEWS.has(n);
   return {
     reached,
     nested: [...reached].filter((n) => cardComponents.has(n) && !exempt(n)).sort(),
@@ -411,7 +415,7 @@ describe("no bordered card nested inside another (JobTracking / JobConfirmation)
     // 1 since 2026-10-08: the poster's JobConfirmation moved into ScheduledStep's row (inline, no box).
     expect(uses.filter((u) => u.includes("PostedJobCard.tsx")).length).toBe(1);
     // Derived, not listed: the shared job card shell and both panels are cards.
-    for (const name of ["JobCardShell", "JobTracking"]) {
+    for (const name of ["JobCardShell", "JobTrackingView"]) {
       expect(cards.has(name), `${name} not detected as a card component`).toBe(true);
     }
     // HelperTrackerPanel was a card component until 2026-09-14; it is now flat
@@ -485,7 +489,7 @@ describe("no bordered card nested inside another (JobTracking / JobConfirmation)
   });
 
   it("`embedded` really removes the chrome: every liquid-glass box in both panels is the embedded=false branch", () => {
-    for (const rel of ["components/JobTracking.tsx", "components/JobConfirmation.tsx"]) {
+    for (const rel of ["components/JobTrackingView.tsx", "components/JobConfirmation.tsx"]) {
       const file = path.join(SRC, rel);
       const sf = parse(file, fs.readFileSync(file, "utf8"));
       const bad: number[] = [];

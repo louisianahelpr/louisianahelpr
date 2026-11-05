@@ -190,4 +190,4 @@ describe("the gate keys on the STEP, not on where the rail happens to sit", () =
 // Narrowing it back to the `job_confirmed` step restores the positional form
 // that shipped the dead button: any route that parks the rail on Confirmed
 // (a stale job_tracking row, or the old status floor) walks straight past it.
-// @mutate src/components/JobTracking.tsx | if (!helperHasConfirmed && (nextStatus.key === "job_confirmed" \|\| nextStatus.key === "on_the_way")) { | if (!helperHasConfirmed && nextStatus.key === "job_confirmed") {
+// @mutate src/components/JobTrackingView.tsx | if (!helperHasConfirmed && (nextStatus.key === "job_confirmed" \|\| nextStatus.key === "on_the_way")) { | if (!helperHasConfirmed && nextStatus.key === "job_confirmed") {

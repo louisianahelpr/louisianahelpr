@@ -2,7 +2,7 @@
  * A3-115 follow-up (lead 11-01): the open Working card's tracker offered "Mark it done" before a day set to finish,
  * which the server refuses (continue_day_ahead). It is greyed with the same note as the job page and the card face.
  *
- * @mutate src/components/JobTracking.tsx |         const doneBeforeContinueDay = isDoneStep && !!continueDayNote; |         const doneBeforeContinueDay = false;
+ * @mutate src/components/JobTrackingView.tsx |         const doneBeforeContinueDay = isDoneStep && !!continueDayNote; |         const doneBeforeContinueDay = false;
  * @mutate src/hooks/useContinueDays.ts |     enabled: enabled && !!jobId && !!client, |     enabled: false,
  */
 import { describe, it, expect, vi } from "vitest";

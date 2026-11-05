@@ -1,0 +1,440 @@
+/**
+ * stale-deploy — simulate a deploy that invalidated the lazy chunks, on MANY
+ * routes, not just the one `zz-runtime-probe` covers.
+ *
+ * Why this exists: the removed "Update ready" screen only ever appeared when a
+ * lazy route chunk failed to load, and no audit created that condition except
+ * on /browse's DashboardGuest chunk. So the screen shipped, and was wrong,
+ * for months with nobody seeing it. This spec makes the condition on every
+ * route listed below, two ways:
+ *
+ *   warm  — the SPA is loaded once, then every /assets/*.js NOT already
+ *           fetched is aborted (those filenames "no longer exist"), then the
+ *           route is reached by client-side navigation. This is the real
+ *           post-deploy case: an open tab referencing old chunk hashes.
+ *   cold  — a fresh document load of the route with its lazy chunks aborted.
+ *           The shell's own module graph (everything a DIFFERENT route
+ *           fetched) stays reachable: a fresh HTML always matches its entry
+ *           graph, so what goes missing on a real cold load is the route
+ *           chunk.
+ *   boot  — the HTML itself is stale: the entry file loads but its static
+ *           imports 404, so no bundle code runs at all. Only index.html's
+ *           inline boot watchdog can act; before it existed the boot mark
+ *           spun forever.
+ *
+ * For each, with the bounded reload guard (`helpr_chunk_reload_at` +
+ * `helpr_chunk_reload_count`, see src/lib/chunkReload.ts) ARMED (every
+ * automatic attempt spent) the boundary must show the honest card and a Try
+ * Again button; with ONE attempt left, exactly one reload must happen and then
+ * the honest card, no loop. The full schedule (CHUNK_RELOAD_SCHEDULE_MS, about
+ * a minute of quiet retries, Q199) is driven against a real build swap in
+ * deploy-stale-chunk.spec.ts and chunkReload.test.ts; here it would cost a
+ * minute per route. Never blank, never "Update ready"/"newer version".
+ * And Try again, once the chunk is reachable again, must actually recover.
+ *
+ * ON THE REAL BACKEND (Q1035; moved from the mocked e2e/happy-path/stale-deploy.spec.ts).
+ * The checks and their bodies are the same. What changed is who the app talks
+ * to: guests are real guests and the signed-in routes are the shared test
+ * Helpr, signed in for real, so every screen draws its own prod rows instead of
+ * a mock seed. The only thing faked is the deploy: the app's OWN /assets/*.js
+ * are aborted on the client, which never touches prod.
+ *
+ * READ-ONLY BY CONSTRUCTION: every context goes through abortProdWrites (the
+ * a11y-prod sweep's allow-list: reads, the token refresh and STABLE RPCs only)
+ * plus an abort of the telemetry hosts, so the error reports this spec MEANS to
+ * cause (an armed guard reports the chunk failure) never leave the browser and
+ * never reach the owner. Any user write is recorded and fails the test.
+ * /complete-profile is not ported: the signed-in test Helpr is complete, so it
+ * would not show that screen, and the incomplete seed must stay untouched.
+ */
+import type { Page, BrowserContext, Browser, APIRequestContext, Request, Route } from "@playwright/test";
+
+import { test, expect, SUPABASE_URL, getSession, isUserWrite, newUserContext, sessionsAvailable } from "./fixtures";
+import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenarios";
+import { abortProdWrites } from "../a11y-prod/abortProdWrites";
+import { CHUNK_RELOAD_MAX_ATTEMPTS, CHUNK_RELOAD_SCHEDULE_MS } from "../../src/lib/chunkReload";
+
+const GUARD_KEY = "helpr_chunk_reload_at";
+const COUNT_KEY = "helpr_chunk_reload_count";
+const HONEST = /This page hit a problem\.|You're offline\./;
+const FORBIDDEN = /Update ready|newer version/i;
+
+interface RouteCase {
+  path: string;
+  authed: boolean;
+  /** Where the warm scenario first loads the SPA. Must not pre-fetch `path`'s chunk. */
+  start: string;
+}
+
+const ROUTES: RouteCase[] = [
+  { path: "/terms", authed: false, start: "/login" },
+  { path: "/rules", authed: false, start: "/login" },
+  { path: "/privacy", authed: false, start: "/login" },
+  { path: "/login", authed: false, start: "/terms" },
+  { path: "/signup", authed: false, start: "/terms" },
+  { path: "/browse", authed: false, start: "/terms" },
+  { path: "/home", authed: true, start: "/terms" },
+  { path: "/profile", authed: true, start: "/terms" },
+  { path: "/messages", authed: true, start: "/terms" },
+];
+
+async function bodyText(page: Page): Promise<string> {
+  return ((await page.locator("body").innerText().catch(() => "")) || "").replace(/\s+/g, " ").trim();
+}
+
+/** Counts real document loads (reloads / hard navigations) of the main frame. */
+function countDocumentLoads(page: Page): { n: number } {
+  const counter = { n: 0 };
+  page.on("request", (req) => {
+    if (req.isNavigationRequest() && req.resourceType() === "document" && req.frame() === page.mainFrame()) {
+      counter.n += 1;
+    }
+  });
+  return counter;
+}
+
+// newUserContext already blocks them; this covers any context the project builds (Q1164).
+test.use({ serviceWorkers: "block" });
+
+/** Telemetry the app sends off-Supabase: never let a deliberate failure reach Sentry, PostHog or Vercel. */
+const TELEMETRY_HOSTS = /(^|\.)(sentry\.io|sentry-cdn\.com|posthog\.com|vercel-insights\.com)$/;
+
+/** Every SCENARIO pin that names this journey runs all of it ("stale-deploy"). */
+const rotation: Rotation = { ...rotationFor(20), network: "fast" };
+function titleFor(rc: RouteCase, kind: string) {
+  const slug = `${rc.path.replace(/^\//, "")}-${kind}`;
+  return scenarioTitle({ journey: `stale-deploy-${slug}`, persona: rc.authed ? "helper-only" : "new", state: "approved", rotation, outcome: "smooth" });
+}
+
+type Opened = { page: Page; context: BrowserContext; writes: string[] };
+
+/**
+ * A real context for `rc`: a guest, or the shared test Helpr signed in for
+ * real. Prod writes and telemetry are aborted; user writes are recorded so
+ * `done` can fail the test on any.
+ */
+async function open(browser: Browser, request: APIRequestContext, rc: RouteCase, title: string): Promise<Opened> {
+  test.skip(filteredOut(title), "SCENARIO pins another scenario");
+  if (rc.authed) {
+    const avail = sessionsAvailable();
+    test.skip(!avail.ok, avail.why);
+  }
+  const session = rc.authed ? await getSession(request, "helper") : null;
+  const context = await newUserContext(browser, session);
+  const writes: string[] = [];
+  context.on("request", (req: Request) => {
+    if (isUserWrite(req.method(), req.url())) writes.push(`${req.method()} ${req.url().slice(0, 140)}`);
+  });
+  await abortProdWrites(context, SUPABASE_URL, test.info().outputPath());
+  await context.route(
+    (u) => TELEMETRY_HOSTS.test(u.hostname),
+    (route) => route.abort("blockedbyclient"),
+  );
+  const page = await context.newPage();
+  await setup(page);
+  return { page, context, writes };
+}
+
+async function done(o: Opened) {
+  await o.context.close().catch(() => {});
+  expect(o.writes, "the stale-deploy journey is read-only: no user writes").toEqual([]);
+}
+
+async function setup(page: Page) {
+  // Every start page now warms the likely next routes once it has loaded
+  // (Q178: guests get /browse, /login and /signup; src/lib/routePrefetch.ts
+  // LIKELY_NEXT_ROUTES). That would fetch `path`'s chunk during the warm-up and
+  // break this spec's own precondition (RouteCase.start "must not pre-fetch
+  // path's chunk"). Save-Data is the switch the app honours for exactly that.
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "connection", { value: { saveData: true }, configurable: true });
+  });
+}
+
+/** Track every /assets/*.js the page has requested so far. */
+function trackJs(page: Page): Set<string> {
+  const seen = new Set<string>();
+  page.on("request", (req) => {
+    const u = new URL(req.url());
+    if (/^\/assets\/.+\.js$/.test(u.pathname)) seen.add(u.pathname);
+  });
+  return seen;
+}
+
+/** Abort every /assets/*.js not in `allowed`. Returns the abort counter and an unblock fn. */
+async function blockChunks(page: Page, allowed: Set<string>) {
+  const aborted = new Set<string>();
+  const handler = (route: Route) => {
+    const p = new URL(route.request().url()).pathname;
+    if (allowed.has(p)) return route.continue();
+    aborted.add(p);
+    return route.abort("failed");
+  };
+  await page.route("**/assets/*.js", handler);
+  return { aborted, unblock: () => page.unroute("**/assets/*.js", handler) };
+}
+
+async function clientNav(page: Page, path: string) {
+  await page.evaluate((p) => {
+    window.history.pushState({}, "", p);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, path);
+}
+
+/** Every automatic attempt spent: recovery must decline at once. */
+async function armGuard(page: Page) {
+  await page.evaluate(
+    ([k, c, max]) => {
+      sessionStorage.setItem(k, String(Date.now()));
+      sessionStorage.setItem(c, String(max));
+    },
+    [GUARD_KEY, COUNT_KEY, CHUNK_RELOAD_MAX_ATTEMPTS] as const,
+  );
+}
+
+/** One attempt left, and its scheduled delay already elapsed: it fires at once. */
+async function leaveOneAttempt(page: Page) {
+  const last = CHUNK_RELOAD_MAX_ATTEMPTS - 1;
+  await page.evaluate(
+    ([k, c, n, ago]) => {
+      sessionStorage.setItem(k, String(Date.now() - ago));
+      sessionStorage.setItem(c, String(n));
+    },
+    [GUARD_KEY, COUNT_KEY, last, CHUNK_RELOAD_SCHEDULE_MS[last] + 1_000] as const,
+  );
+}
+
+/**
+ * Arms the guard before the FIRST document of a clean page runs, and never
+ * again (the reload the test counts must see the guard the app itself left).
+ * The boot tests cannot load a start page first: WebKit keeps that page's
+ * chunks in its in-process memory cache, so the "broken" load that follows
+ * mounts the app from cache and the watchdog never sees a failure.
+ */
+async function armOnFirstLoad(page: Page, count: number, agoMs: number) {
+  await page.addInitScript(
+    ([k, c, n, ago]) => {
+      if (location.protocol === "about:" || sessionStorage.getItem("__lh_armed")) return;
+      sessionStorage.setItem("__lh_armed", "1");
+      sessionStorage.setItem(k, String(Date.now() - ago));
+      sessionStorage.setItem(c, String(n));
+    },
+    [GUARD_KEY, COUNT_KEY, count, agoMs] as const,
+  );
+}
+
+async function expectHonestCard(page: Page, label: string) {
+  // Poll card AND non-blank together, then re-read once the document has
+  // settled. A single read right after the poll could land mid-reload and see
+  // an empty body (seen once under full-suite load on /home cold, never in
+  // 10 isolated repeats).
+  await expect
+    .poll(async () => {
+      const t = await bodyText(page);
+      return HONEST.test(t) && t.length > 20;
+    }, { message: `${label}: honest error card`, timeout: 15_000 })
+    .toBe(true);
+  await page.waitForLoadState("load").catch(() => {});
+  const body = await bodyText(page);
+  expect(body.length, `${label}: never blank`).toBeGreaterThan(20);
+  expect(body, `${label}: no "Update ready" disguise`).not.toMatch(FORBIDDEN);
+  await expect(page.getByRole("button", { name: /Try again/i }).first(), `${label}: Try again`).toBeVisible();
+}
+
+/** Watches the body the whole time so a transient blank or forbidden screen is caught too. */
+function watchForbidden(page: Page): { hits: string[] } {
+  const state = { hits: [] as string[] };
+  const tick = setInterval(async () => {
+    const b = await bodyText(page);
+    if (FORBIDDEN.test(b)) state.hits.push(b.slice(0, 160));
+  }, 150);
+  page.once("close", () => clearInterval(tick));
+  return state;
+}
+
+for (const rc of ROUTES) {
+  test.describe(`stale deploy · ${rc.path}`, () => {
+
+    const tWarmArmed = titleFor(rc, "warm-armed");
+    test(`${tWarmArmed} · warm, guard armed: honest card, then Try again recovers once unblocked`, async ({ browser, request }) => {
+      test.slow();
+      const o = await open(browser, request, rc, tWarmArmed);
+      const { page } = o;
+      try {
+        const seen = trackJs(page);
+        const forbidden = watchForbidden(page);
+        await page.goto(rc.start, { waitUntil: "load" });
+        await page.waitForTimeout(1500);
+        const docs = countDocumentLoads(page);
+        const block = await blockChunks(page, new Set(seen));
+        await armGuard(page);
+        await clientNav(page, rc.path);
+        await expectHonestCard(page, `${rc.path} warm armed`);
+        expect(block.aborted.size, "the route really needed an unfetched chunk").toBeGreaterThan(0);
+        expect(docs.n, "armed guard: no reload").toBe(0);
+        await page.screenshot({ path: test.info().outputPath("honest-card.png") });
+
+        // The deploy "finishes propagating": chunks reachable again.
+        await block.unblock();
+        await page.getByRole("button", { name: /Try again/i }).first().click();
+        await expect
+          .poll(async () => {
+            const b = await bodyText(page);
+            return !HONEST.test(b) && b.length > 40;
+          }, { message: `${rc.path}: Try again recovers`, timeout: 20_000 })
+          .toBe(true);
+        expect(forbidden.hits, "never showed Update ready").toEqual([]);
+        await page.screenshot({ path: test.info().outputPath("recovered.png") });
+      } finally {
+        await done(o);
+      }
+    });
+
+    const tWarmOneLeft = titleFor(rc, "warm-one-left");
+    test(`${tWarmOneLeft} · warm, one attempt left: exactly one reload, no loop, then honest card`, async ({ browser, request }) => {
+      test.slow();
+      const o = await open(browser, request, rc, tWarmOneLeft);
+      const { page } = o;
+      try {
+        const seen = trackJs(page);
+        const forbidden = watchForbidden(page);
+        await page.goto(rc.start, { waitUntil: "load" });
+        await page.waitForTimeout(1500);
+        await leaveOneAttempt(page);
+        const docs = countDocumentLoads(page);
+        const block = await blockChunks(page, new Set(seen));
+        await clientNav(page, rc.path);
+        await expectHonestCard(page, `${rc.path} warm unarmed`);
+        // Give a would-be loop time to show itself (the spent cap must hold: a
+        // loop would reload again right after the first).
+        await page.waitForTimeout(4000);
+        expect(block.aborted.size).toBeGreaterThan(0);
+        expect(docs.n, "exactly one automatic reload").toBe(1);
+        await expectHonestCard(page, `${rc.path} warm unarmed (settled)`);
+        await page.screenshot({ path: test.info().outputPath("one-reload.png") });
+        expect(forbidden.hits).toEqual([]);
+      } finally {
+        await done(o);
+      }
+    });
+
+    const tCold = titleFor(rc, "cold");
+    test(`${tCold} · cold load with route chunk aborted, one attempt left: one reload, no loop, honest card`, async ({ browser, request }) => {
+      test.slow();
+      const o = await open(browser, request, rc, tCold);
+      const { page } = o;
+      try {
+        const seen = trackJs(page);
+        const forbidden = watchForbidden(page);
+        await page.goto(rc.start, { waitUntil: "load" });
+        await page.waitForTimeout(1500);
+        await leaveOneAttempt(page);
+        const block = await blockChunks(page, new Set(seen));
+        const docs = countDocumentLoads(page);
+        await page.goto(rc.path, { waitUntil: "domcontentloaded" });
+        await expectHonestCard(page, `${rc.path} cold`);
+        await page.waitForTimeout(4000);
+        expect(block.aborted.size).toBeGreaterThan(0);
+        // The cold goto + exactly one recovery reload.
+        expect(docs.n, "cold load + exactly one reload").toBe(2);
+        await expectHonestCard(page, `${rc.path} cold (settled)`);
+        await page.screenshot({ path: test.info().outputPath("cold.png") });
+        expect(forbidden.hits).toEqual([]);
+      } finally {
+        await done(o);
+      }
+    });
+  });
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// boot — stale HTML whose entry module graph is gone (index.html watchdog)
+// ───────────────────────────────────────────────────────────────────────────
+
+const BOOT_FAIL = /Helpr couldn't load\.|You're offline\./;
+
+/** Allow only the entry file itself; every static import it needs 404s. */
+async function breakEntryGraph(page: Page) {
+  const aborted = new Set<string>();
+  const handler = (route: Route) => {
+    const p = new URL(route.request().url()).pathname;
+    if (/^\/assets\/index-[^/]+\.js$/.test(p)) return route.continue();
+    aborted.add(p);
+    return route.abort("failed");
+  };
+  await page.route("**/assets/*.js", handler);
+  return { aborted, unblock: () => page.unroute("**/assets/*.js", handler) };
+}
+
+for (const rc of [ROUTES[3], ROUTES[6]]) {
+  test.describe(`stale deploy · boot · ${rc.path}`, () => {
+    const tBootOneLeft = titleFor(rc, "boot-one-left");
+    test(`${tBootOneLeft} · stale HTML, one attempt left: one reload, then an honest message, never an endless spinner`, async ({ browser, request }) => {
+      test.slow();
+      const o = await open(browser, request, rc, tBootOneLeft);
+      const { page } = o;
+      try {
+        const last = CHUNK_RELOAD_MAX_ATTEMPTS - 1;
+        await armOnFirstLoad(page, last, CHUNK_RELOAD_SCHEDULE_MS[last] + 1_000);
+        const forbidden = watchForbidden(page);
+        const block = await breakEntryGraph(page);
+        const docs = countDocumentLoads(page);
+        // "commit": the watchdog's reload fires before DOMContentLoaded, which
+        // would abort a goto that waits for it.
+        await page.goto(rc.path, { waitUntil: "commit" });
+        await expect
+          .poll(async () => BOOT_FAIL.test(await bodyText(page)), { message: "boot failure message", timeout: 15_000 })
+          .toBe(true);
+        await page.waitForTimeout(4000);
+        expect(block.aborted.size).toBeGreaterThan(0);
+        expect(docs.n, "cold load + exactly one reload").toBe(2);
+        await expect(page.getByRole("button", { name: /Try again/i })).toBeVisible();
+        expect(await bodyText(page)).not.toMatch(FORBIDDEN);
+        expect(forbidden.hits).toEqual([]);
+        await page.screenshot({ path: test.info().outputPath("boot-failure.png") });
+      } finally {
+        await done(o);
+      }
+    });
+
+    const tBootArmed = titleFor(rc, "boot-armed");
+    test(`${tBootArmed} · stale HTML, guard armed: honest message, then Try again boots the app and the failure is reported`, async ({ browser, request }) => {
+      test.slow();
+      const o = await open(browser, request, rc, tBootArmed);
+      const { page } = o;
+      try {
+        await armOnFirstLoad(page, CHUNK_RELOAD_MAX_ATTEMPTS, 0);
+        const block = await breakEntryGraph(page);
+        const docs = countDocumentLoads(page);
+        await page.goto(rc.path, { waitUntil: "domcontentloaded" });
+        await expect
+          .poll(async () => BOOT_FAIL.test(await bodyText(page)), { message: "boot failure message", timeout: 15_000 })
+          .toBe(true);
+        expect(docs.n, "armed guard: no automatic reload").toBe(1);
+        expect(await page.evaluate(() => localStorage.getItem("helpr_boot_failure"))).toBeTruthy();
+
+        await block.unblock();
+        await page.getByRole("button", { name: /Try again/i }).click();
+        await expect
+          .poll(async () => {
+            const gone = await page.evaluate(() => !document.getElementById("boot-loader")).catch(() => false);
+            const b = await bodyText(page);
+            return gone && !BOOT_FAIL.test(b) && b.length > 40;
+          }, { message: "Try again boots the app", timeout: 20_000 })
+          .toBe(true);
+        // main.tsx picked the record up and reported it.
+        expect(await page.evaluate(() => localStorage.getItem("helpr_boot_failure"))).toBeNull();
+        await page.screenshot({ path: test.info().outputPath("boot-recovered.png") });
+      } finally {
+        await done(o);
+      }
+    });
+  });
+}
+
+// Proof this guard can fail.
+//
+// `armGuard` (above) spends every attempt, which is the whole reason the
+// "guard armed" tests can assert `docs.n === 0` (no automatic reload, honest
+// card straight away). Lift the cap and an armed guard reloads anyway.
+// @mutate src/lib/chunkReload.ts | if (count >= CHUNK_RELOAD_MAX_ATTEMPTS) return { reload: false }; | if (count >= 99) return { reload: false };

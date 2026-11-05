@@ -3,10 +3,13 @@ import AxeBuilder from "@axe-core/playwright";
 import { test, expect, ANON, SUPABASE_URL, getSession, isUserWrite, newUserContext, sessionsAvailable, type Session } from "./fixtures";
 import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenarios";
 import { abortProdWrites } from "../a11y-prod/abortProdWrites";
+import { isStorageSignPath } from "../readRpc";
 import { AXE_TAGS } from "../happy-path/axeTags";
 
 // Q2369: the tracker's step tip reaches into half the grid gap on each side (44px at 375, no overlap).
 // @mutate src/components/tracker/JobProgress.tsx | flex flex-col justify-start w-[calc(100%+4px)] -mx-[2px] px-[2px] min-h-[44px] | flex flex-col justify-start w-full min-h-[44px]
+// Reaction chip's 44px finger target (::before reaches 14px above and below a ~17px chip; lead 2026-11-05).
+// @mutate src/components/messages/MessageBubble.tsx | before:-inset-x-3 before:-inset-y-[14px] | before:-inset-3
 
 /**
  * Messages: the bottom nav must never disappear over the INBOX, and the
@@ -44,7 +47,11 @@ import { AXE_TAGS } from "../happy-path/axeTags";
  * (PATCH /rest/v1/messages, useMessagesData markRead) and clears that thread's
  * message notifications (PATCH /rest/v1/notifications, type=message): those are
  * the app's own receipts, not the user's action, so they are aborted and
- * allowed; any other user write fails the test.
+ * allowed; any other user write fails the test. Storage SIGN POSTs
+ * (/storage/v1/object/sign/, isStorageSignPath) go through: they only mint a
+ * short-lived read link to an attachment the poster can already see. Aborting
+ * them raised a "Couldn't load image previews" toast whose 28px close button
+ * failed the tap-target sweep (pin 41978318926, 2026-11-05).
  */
 
 /** Telemetry the app sends off-Supabase: an aborted receipt's warning never reaches Sentry or PostHog. */
@@ -124,6 +131,11 @@ async function open(browser: Browser, request: APIRequestContext, title: string)
     if (!READ_RECEIPT.test(line) && !NOTIF_RECEIPT.test(line)) writes.push(line);
   });
   await abortProdWrites(context, SUPABASE_URL, test.info().outputPath());
+  // Registered after abortProdWrites, so it is asked first: a sign POST continues, anything else falls back to it.
+  await context.route(`${SUPABASE_URL}/storage/v1/object/sign/**`, (route) => {
+    const path = new URL(route.request().url()).pathname;
+    return route.request().method() === "POST" && isStorageSignPath(path) ? route.continue() : route.fallback();
+  });
   await context.route(
     (u) => TELEMETRY_HOSTS.test(u.hostname),
     (route) => route.abort("blockedbyclient"),
@@ -344,8 +356,9 @@ test.describe("Messages thread — fit, a11y and tap targets", () => {
     // The card's tracker draws once the job read lands: wait for a step tip, so the sweep below measures them too.
     await expect(page.locator("[data-step-tip]").first()).toBeVisible();
 
-    const small = await page.evaluate(() => {
+    const sweep = await page.evaluate(() => {
       const out: string[] = [];
+      const stepTipsExcepted: string[] = [];
       document
         .querySelectorAll<HTMLElement>(
           'button:not([role="checkbox"]):not([role="radio"]):not([role="switch"]), a[role="button"]',
@@ -354,18 +367,33 @@ test.describe("Messages thread — fit, a11y and tap targets", () => {
           const r = el.getBoundingClientRect();
           // Invisible / unrendered controls have no tap target to measure.
           if (r.width === 0 || r.height === 0) return;
-          // The tracker's step tips (data-step-tip) are measured like every other control (Q2369: their hit area
-          // reaches into half the grid gap on each side, JobProgress.tsx); the skip that stood here is gone.
-          if (r.width < 44 || r.height < 44) {
-            out.push(
-              `${el.getAttribute("aria-label") ?? el.textContent?.trim().slice(0, 24)} ${Math.round(r.width)}x${Math.round(r.height)}`,
-            );
+          // The finger target is the box OR its absolute ::before overlay (the app's 44px trick for small chips:
+          // MessageBubble's reaction chip and delete button). Negative insets grow it; read them, not the pseudo's
+          // width, which is "auto" for an inset-sized box.
+          let w = r.width;
+          let h = r.height;
+          const pre = getComputedStyle(el, "::before");
+          if (pre.content !== "none" && pre.position === "absolute") {
+            const px = (v: string) => (v.endsWith("px") ? parseFloat(v) : 0);
+            w = Math.max(w, r.width - px(pre.left) - px(pre.right));
+            h = Math.max(h, r.height - px(pre.top) - px(pre.bottom));
           }
+          const name = `${el.getAttribute("aria-label") ?? el.textContent?.trim().slice(0, 24)} ${Math.round(w)}x${Math.round(h)}`;
+          // NAMED EXCEPTION (lead 2026-11-05, owner may override): a step tip of the 8-step tracker inside the
+          // thread's deal card. 8 steps x 44px > the card's ~277px row at 375, so a tip is ~37px wide (measured on
+          // prod, pin 41978318926); it meets WCAG 2.2 AA 2.5.8 (>= 24px) and keeps the full 44px height, and the
+          // grow / shift / no-overlap checks below still hold it to Q2369. Only that element, only these bounds.
+          if (el.matches('[data-testid="deal-card"] [data-step-tip]') && w >= 24 && h >= 44) {
+            if (w < 44) stepTipsExcepted.push(name);
+            return;
+          }
+          if (w < 44 || h < 44) out.push(name);
         });
-      return out;
+      return { out, stepTipsExcepted };
     });
 
-    expect(small).toEqual([]);
+    expect(sweep.out).toEqual([]);
+    if (sweep.stepTipsExcepted.length) console.log(`[tap-targets] step tips under 44px wide (named exception): ${sweep.stepTipsExcepted.join("; ")}`);
 
     // The tracker's step tips: at least one is on this thread's card (so the 44px check above measured them), and
     // their widened hit areas meet but never overlap a neighbour's (Q2369; touching edges are allowed).
@@ -498,7 +526,22 @@ test.describe("Messages thread — system events read as ONE kind of thing", () 
     // The rows the job-status trigger really stored on this thread, glyph and all ("▶ Work started"), each drawn
     // exactly once as a pill with the glyph gone.
     const notes = page.locator('[role="note"]');
+    // A stored row whose transition a derived pill already covers is DROPPED on purpose (chatViewHelpers.ts
+    // buildTimeline DUPLICATE_PATTERNS: the derived pill names who acted and when). Pin 41978318926 (2026-11-05)
+    // opened a finished job: "✓ Job completed" was stored and the derived "<Helpr> marked it done." stood for it.
+    // So a covered label is drawn at most once, and then its derived pill must be there; any other label exactly once.
+    const COVERED: { stored: RegExp; derived: RegExp }[] = [
+      { stored: /\bcomplete/i, derived: /marked it done\.|approved it\./ },
+      { stored: /\bcancell?ed\b|\bno longer open\b/i, derived: /cancel|no longer open|listing expired/i },
+      { stored: /\bdisput/i, derived: /disput/i },
+    ];
     for (const label of t.systemLabels) {
+      const cover = COVERED.find((c) => c.stored.test(label));
+      const n = await notes.filter({ hasText: label }).count();
+      if (cover && n === 0) {
+        expect(await notes.filter({ hasText: cover.derived }).count(), `"${label}" is dropped only when a derived pill covers it`).toBeGreaterThan(0);
+        continue;
+      }
       await expect(notes.filter({ hasText: label })).toHaveCount(1);
     }
 
@@ -512,7 +555,7 @@ test.describe("Messages thread — system events read as ONE kind of thing", () 
         radius: getComputedStyle(r).borderTopLeftRadius,
       }));
     });
-    expect(shape.length).toBeGreaterThanOrEqual(t.systemLabels.length);
+    expect(shape.length, "at least one pill per stored label (a covered one by its derived pill)").toBeGreaterThanOrEqual(t.systemLabels.length);
     for (const row of shape) {
       expect(row.svgs).toBeGreaterThanOrEqual(1);
       // No emoji / dingbat survives into the rendered label.

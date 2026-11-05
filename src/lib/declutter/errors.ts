@@ -241,6 +241,8 @@ export const DECLUTTER_ERROR_COPY: Record<string, string> = {
   // Service-only (declutter_refund_after_handover / declutter_rebook_payout); worded for the ops log.
   payout_missing: "This sale has no payout row to change.",
   already_refunded: "This sale was already refunded.",
+  // Q2106 (20261105042758): declutter_record_refund refuses a refund it cannot tie to a payment; the RAISE rolls back.
+  refund_payment_unknown: "This refund couldn't be matched to its payment, so nothing was charged or returned. Please contact us from Help so we can sort it out.",
   order_not_handed_over: "This sale isn't handed over yet.",
   // Service-only (the webhook records a refund's Stripe mode); worded for the ops log.
   invalid_mode: "That refund's payment mode is missing.",

@@ -209,6 +209,7 @@ export const ADMIN_RPC_ERROR_COPY = {
     donation_partner_not_found: "That partner no longer exists. Refresh the list.",
   },
   declutter_admin_decide_problem: {
+    refund_payment_unknown: DC.refund_payment_unknown,
     account_restricted: DC.account_restricted,
     already_paid_out: DC.already_paid_out,
     already_refunded: DC.already_refunded,
@@ -239,6 +240,7 @@ export const ADMIN_RPC_ERROR_COPY = {
     refund_amount_unknown: DC.refund_amount_unknown,
   },
   declutter_admin_decide_stuck_delivery: {
+    refund_payment_unknown: DC.refund_payment_unknown,
     // BUY-36 (20261031231150): reached through the steps it runs (the close, the confirm, the debt take, the lock).
     already_paid_out: DC.already_paid_out,
     delivery_not_done: DC.delivery_not_done,
@@ -257,6 +259,7 @@ export const ADMIN_RPC_ERROR_COPY = {
     problem_not_found: DC.problem_not_found,
   },
   declutter_admin_decide_delivery_damage: {
+    refund_payment_unknown: DC.refund_payment_unknown,
     account_restricted: DC.account_restricted,
     delivery_not_done: DC.delivery_not_done,
     invalid_method: DC.invalid_method,

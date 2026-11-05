@@ -28,12 +28,15 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   DEPLOY_WORKFLOW_PATH,
+  LOOKUP_CONCURRENCY,
   expiredRunVerdict,
+  mapPooled,
   parseAppliedVersions,
   provenanceFindings,
   receiptInsertSql,
 } from "../../scripts/lib/migrationProvenance.mjs";
 import { readdirSync } from "./helpers/trackedFiles";
+import { blankComments } from "./helpers/blankNonCode";
 
 /**
  * Q117 (docs/OPEN.md): every prod migration must have been applied by
@@ -498,5 +501,48 @@ describe("receipts recorded before the 2-day retention ended (db-deploy 41541740
     expect(bad.forged).toHaveLength(1);
     const wide = one("2026-11-01T00:40:00Z", { onMain: true, fileAtSha: true }, { minAgeDays: 14, shortRetention: { ...shortRetention, minAgeDays: 20 } });
     expect(wide.forged).toHaveLength(1);
+  });
+});
+
+// db-drift-detect 41709358659 (2026-11-03) was cancelled by its 5-minute job timeout inside this
+// check: 340 run lookups, then a compare + a contents read for each receipt whose run is gone,
+// all one at a time. The lookups are pooled now; these keep them pooled.
+// @mutate scripts/lib/migrationProvenance.mjs | Array.from({ length: Math.min(limit, list.length) }, worker) | Array.from({ length: 1 }, worker)
+// @mutate scripts/check-migration-provenance.mjs | const looked = await mapPooled(runIds, LOOKUP_CONCURRENCY, (id) => githubRun(id)); | const looked = []; for (const id of runIds) looked.push(await githubRun(id));
+// @mutate scripts/check-migration-provenance.mjs | const entries = await mapPooled(gone, LOOKUP_CONCURRENCY, async (r) => { | const entries = await mapPooled(gone, 1, async (r) => {
+describe("the GitHub lookups run pooled (db-drift-detect 41709358659 timed out)", () => {
+  it("mapPooled keeps input order, caps calls in flight at the limit, and uses all of it", async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const items = Array.from({ length: 40 }, (_, i) => i);
+    const out = await mapPooled(items, 8, async (n) => {
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await new Promise((r) => setTimeout(r, (n * 7) % 5));
+      inFlight--;
+      return n * 2;
+    });
+    expect(out).toEqual(items.map((n) => n * 2));
+    expect(peak).toBe(8);
+  });
+
+  it("mapPooled fails closed: one failed lookup rejects the map", async () => {
+    await expect(mapPooled([1, 2, 3], 2, async (n) => {
+      if (n === 2) throw new Error("GitHub actions/runs/2: 502");
+      return n;
+    })).rejects.toThrow("502");
+    await expect(mapPooled([1], 0, async (n) => n)).rejects.toThrow("bad limit");
+    expect(await mapPooled([], 8, async (n) => n)).toEqual([]);
+  });
+
+  it("check() makes no GitHub lookup one at a time", () => {
+    const src = blankComments(read("scripts/check-migration-provenance.mjs"));
+    expect(LOOKUP_CONCURRENCY).toBeGreaterThan(1);
+    // No lookup awaited inside a for loop.
+    expect(src).not.toMatch(/for \([^)]*\)[^\n]*await (githubRun|githubGet)/);
+    expect(src.match(/for \([^)]*\) \{[^}]*await (githubRun|githubGet)/g) ?? []).toEqual([]);
+    // Every lookup site is inside a mapPooled at LOOKUP_CONCURRENCY.
+    const pooled = src.match(/mapPooled\(\w+, LOOKUP_CONCURRENCY,/g) ?? [];
+    expect(pooled.length).toBe(3);
   });
 });

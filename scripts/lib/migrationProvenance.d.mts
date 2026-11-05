@@ -1,4 +1,6 @@
 export const DEPLOY_WORKFLOW_PATH: string;
+export const LOOKUP_CONCURRENCY: number;
+export function mapPooled<T, R>(items: Iterable<T>, limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]>;
 export function parseAppliedVersions(pushOutput: string): string[];
 export function receiptInsertSql(
   versions: string[],

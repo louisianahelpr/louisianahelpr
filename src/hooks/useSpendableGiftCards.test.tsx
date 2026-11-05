@@ -52,7 +52,7 @@ beforeEach(() => {
 describe("useSpendableGiftCards", () => {
   it("signed out: settled with no gifts and no read", () => {
     const { result: r } = renderHook(() => useSpendableGiftCards(), { wrapper });
-    expect(r.current).toEqual({ userId: undefined, ids: [], settled: true });
+    expect(r.current).toEqual({ userId: undefined, ids: [], cards: [], settled: true });
     expect(orSpy).not.toHaveBeenCalled();
   });
 

@@ -67,6 +67,8 @@ import { pickupDays, porchWindowDays } from "@/lib/declutter/pickupSlots";
 import { CheckoutPickupTime } from "./CheckoutPickupTime";
 import { fetchCheckoutPorchDays, onPorchDays } from "@/lib/declutter/porchDays";
 import { fetchCheckoutSize } from "@/lib/declutter/checkoutSize";
+import { useSpendableGiftCards } from "@/hooks/useSpendableGiftCards";
+import { DeclutterGiftPicker, giftPayErrorMessage, giftSplit, giftsForCheckout } from "./DeclutterGiftPicker";
 
 export { dollarsInputToCents } from "@/lib/declutter/money";
 export { PaidOrders, SectionHeading, useDeclutterTodo } from "./DeclutterTabParts";
@@ -243,6 +245,14 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             : !pickupTimeReady ? (chosen === "porch" ? "Choose a pickup day and time above to pay." : meetingUp ? "Choose when you'll meet above to pay." : "Choose a pickup day and time above to pay.")
               : null;
   const addressId = `dcl-dropoff-${sellerId}`;
+  // Q2106 S5: the buyer's own gift card pays first (DeclutterGiftPicker); the split is from the total Pay carries,
+  // and only once that total is whole (priced delivery or postage, the setup fee known).
+  const gifts = giftsForCheckout(useSpendableGiftCards().cards);
+  const [giftPick, setGiftPick] = useState<string | null>(null);
+  const [giftError, setGiftError] = useState<string | null>(null);
+  const gift = gifts.find((g) => g.id === giftPick) ?? null;
+  const totalWhole = setupFeeKnown && !(delivering && !liveQuote) && !(shipping && !shipQuote);
+  const split = gift && totalWhole ? giftSplit(payCents, gift.amountCents) : null;
   return (
     // BUY-15 (audit 10-30): at 1440 this was one stretched column (Pay 1110 px wide, far down the page). From lg the
     // choices sit on the left and the bill with Pay beside them; a phone keeps the one column in the same order.
@@ -320,6 +330,8 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       </fieldset>
     </div>
     <div className="min-w-0 space-y-3 lg:sticky lg:top-4" data-checkout-summary="">
+      <DeclutterGiftPicker gifts={gifts} value={gift?.id ?? null} split={split} error={giftError}
+        onChange={(id) => { setGiftPick(id); setGiftError(null); }} />
       {/* BUY-34: the notes sit beside the <dl>; a <p> inside one fails axe's definition-list rule. */}
       {/* Q2637 (measured 11-02 at 1440): with bg-card the T2 rule (index.css :where(.bg-card)) made the border
           transparent, so this white box on the white checkout card had no top edge (no clip: every clipping parent
@@ -380,14 +392,24 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
         variant="primary"
         aria-describedby={!held && !opening && payWaitsOn ? `${addressId}-pay-waits` : undefined}
         className="w-full px-5 text-ds-16 font-semibold"
-        disabled={held || opening || offered.length === 0 || (delivering && !liveQuote) || (shipping && !shipQuote) || (sellerDelivering && !sdReady) || !meetupReady || !placeReady || !pickupTimeReady}
+        disabled={held || opening || offered.length === 0 || (delivering && !liveQuote) || (shipping && !shipQuote) || (sellerDelivering && !sdReady) || !meetupReady || !placeReady || !pickupTimeReady || !!split?.cardPartTooSmall}
         onClick={async () => {
           setOpening(true);
+          setGiftError(null);
           rememberPaying(sellerId);
           try {
             await porchPlaces.whenPicked();
             const res = await startCheckoutPayment(sellerId, chosen, sellerDelivering ? slot : timedPickup ? pickupStart : null, sellerDelivering ? handoff : null,
-              sellerDelivering ? sdRate : delivering ? liveQuote?.delivery_cents ?? null : null, shipping ? shipQuote?.quote_id ?? null : null);
+              sellerDelivering ? sdRate : delivering ? liveQuote?.delivery_cents ?? null : null, shipping ? shipQuote?.quote_id ?? null : null,
+              gift?.id ?? null);
+            // The gift's balance moved (spent, or a leftover split off): the picker reads it again.
+            if (gift) void qc.invalidateQueries({ queryKey: ["gift-card-count"] });
+            if (res.paid && res.giftCents > 0) {
+              toast("Paid with your gift card.");
+              invalidateTrades(qc);
+              setOpening(false);
+              return;
+            }
             if (res.paid || !res.url) {
               toast("This order is already paid.");
               invalidateTrades(qc);
@@ -396,7 +418,13 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             }
             await openExternalUrl(res.url, () => { setOpening(false); invalidateTrades(qc); onBack(); });
           } catch (err) {
-            if (sellerDelivering) {
+            const giftWords = gift ? giftPayErrorMessage(err) : null;
+            if (giftWords) {
+              // The gift was refused (expired meanwhile, set aside for another order, a card part under $0.50): say so
+              // under the gift choice in the server's words, and read the gifts again.
+              setGiftError(giftWords);
+              void qc.invalidateQueries({ queryKey: ["gift-card-count"] });
+            } else if (sellerDelivering) {
               // A time taken by someone else meanwhile: say so, show the times again, ask for a new pick.
               toast.error(sellerDeliveryErrorMessage(err));
               if ((err as { message?: string } | null)?.message === "slot_unavailable") setSlot(null);
@@ -417,7 +445,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           }
         }}
       >
-        {held ? "Confirming your payment…" : opening ? "Opening…" : `Pay ${formatPrice(payCents)}`}
+        {held ? "Confirming your payment…" : opening ? "Opening…" : split?.onCardCents === 0 ? "Pay with gift card" : `Pay ${formatPrice(split ? split.onCardCents : payCents)}`}
       </Button>
       {/* Q2633 (owner rule: no line under the buttons): Pay is the last thing in the bill. The secure-page line went, and
           the Add a Helpr offer is on the paid order card (DeclutterAddHelpr), so it no longer sits under Pay. */}

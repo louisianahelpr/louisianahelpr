@@ -1,5 +1,6 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import { Button } from "@/components/ui/button";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { Input } from "@/components/ui/input";
 import { Upload, FileText, X, AlertTriangle } from "lucide-react";
 import { formatBytes, KIND_NOUN, KIND_NOUN_TITLE, type CredState, type Draft, type Kind } from "./credentialKinds";
@@ -144,13 +145,12 @@ const noun = KIND_NOUN[kind];
             // ── Sent ────────────────────────────────────────────────────
             <div className="flex items-center gap-3 rounded-ds-md bg-card p-3">
               <FileText className="w-5 h-5 text-primary shrink-0" />
-              <button
-                type="button"
+              <InlineTextButton
                 onClick={() => openDoc(url)}
                 className="flex-1 min-w-0 text-left text-ds-13 text-primary underline break-words"
               >
                 View the {KIND_NOUN_TITLE[kind].toLowerCase()} you sent
-              </button>
+              </InlineTextButton>
               <Button
                 variant="ghost"
                 size="icon"

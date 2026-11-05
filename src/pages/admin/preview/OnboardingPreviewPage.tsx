@@ -20,6 +20,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ChoicePill } from "@/components/ui/ChoicePill";
+import { useDockYield } from "@/components/mobileNav/useDockYield";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { queryKeys } from "@/lib/queryKeys";
 import { installMessagesPreviewFetch, messagesPreviewChecks } from "./messagesPreviewBackend";
@@ -95,6 +96,9 @@ function PickerStage() {
 }
 
 function Controls({ stage, onStage, onLeave }: { stage: OnboardingPreviewStage; onStage: (s: OnboardingPreviewStage) => void; onLeave: () => void }) {
+  // Q1646: the panel sits on the screen edge, over the phone's tab bar, so the tab bar yields while it shows
+  // (as the Messages preview's open panel does).
+  useDockYield(true);
   return createPortal(
     <div
       data-preview-controls=""

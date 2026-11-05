@@ -381,9 +381,6 @@
     "src/components/declutter/SellerDeliverySettings.tsx": {
       "button": 2
     },
-    "src/components/feedback/NpsPrompt.tsx": {
-      "button": 1
-    },
     "src/components/firstRun/FirstRun.tsx": {
       "button": 1
     },

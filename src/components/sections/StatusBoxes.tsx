@@ -1,4 +1,5 @@
 import { useCallback, useLayoutEffect, useRef } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useSearchParams } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
@@ -174,9 +175,9 @@ export function GroupSection({
           {count !== undefined && <span className="ml-1.5 text-foreground/70">{count}</span>}
         </h2>
         {onSeeAll && (
-          <button type="button" onClick={onSeeAll} className="text-ds-13 font-semibold text-primary">
+          <InlineTextButton onClick={onSeeAll} className="text-ds-13 font-semibold text-primary">
             {seeAllLabel}
-          </button>
+          </InlineTextButton>
         )}
       </div>
       <div className="liquid-glass overflow-hidden">{children}</div>

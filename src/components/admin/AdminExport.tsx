@@ -199,7 +199,7 @@ const AdminExport = () => {
       return;
     }
     const rows = (data ?? []) as SalesTaxCorrectionRow[];
-    if (!rows.length) { toast.success("No sales-tax corrections this year: Stripe's Tax report needs none."); setExporting(null); return; }
+    if (!rows.length) { toast.error("No sales-tax corrections this year: Stripe's Tax report needs none."); setExporting(null); return; }
     await downloadCSV("sales-tax-corrections", SALES_TAX_CORRECTIONS_HEADER, salesTaxCorrectionLines(rows));
     setExporting(null);
   };

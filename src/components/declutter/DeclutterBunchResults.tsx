@@ -11,6 +11,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import type { BunchOutcome } from "@/lib/declutter/bunch";
 import { shareNative } from "@/lib/nativeShare";
 import { NextStep, type NextStepValue } from "@/components/ui/NextStep";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 /** A3-70: the Home screen's words for a listing the auto-check held (DeclutterHomeView). */
 const BEING_CHECKED = "We'll send you a notice when it's done.";
@@ -91,13 +92,13 @@ export function BunchResults({ results, userId, inSale, onFix, onListMore }: {
         <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={onListMore}>List more</Button>
         {shareable && (
           <Button type="button" variant="outline" size="sm" className="rounded-full" data-bunch-share=""
-            onClick={() => void shareNative({ title: inSale ? "My moving sale" : "My listings", text: inSale ? "My moving sale on Louisiana Helpr" : "My listings on Louisiana Helpr", url: `${getPublicOrigin()}/user/${userId}` })}>
+            onClick={() => void shareNative({ title: inSale ? "My moving sale" : "My listings", text: inSale ? "My moving sale on Louisiana Helpr" : "My listings on Louisiana Helpr", url: `${getPublicOrigin()}${memberProfilePath(userId)}` })}>
             {inSale ? "Share your sale" : "Share your listings"}
           </Button>
         )}
         {listed.length > 0 && (
           <Button asChild variant="primary" size="sm" className="rounded-full">
-            {inSale ? <Link to={`/user/${userId}`}>See your sale</Link> : <Link to="/declutter?view=selling">See your listings</Link>}
+            {inSale ? <Link to={memberProfilePath(userId)}>See your sale</Link> : <Link to="/declutter?view=selling">See your listings</Link>}
           </Button>
         )}
       </div>

@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LISTING_REPORT } from "./reportedListings";
 import type { Report } from "./reportType";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 export function ReportSubjectButton({ report }: { report: Report }) {
   const navigate = useNavigate();
@@ -42,7 +43,7 @@ export function ReportSubjectButton({ report }: { report: Report }) {
       variant="outline"
       disabled={report.reported_exists === false}
       title={report.reported_exists === false ? "This account no longer exists" : undefined}
-      onClick={() => navigate(`/user/${report.subject_user_id ?? report.reported_id}`)}
+      onClick={() => navigate(memberProfilePath(report.subject_user_id ?? report.reported_id))}
     >
       <ExternalLink className="w-3.5 h-3.5 mr-1" /> View Profile
     </Button>

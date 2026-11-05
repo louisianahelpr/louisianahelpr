@@ -1,10 +1,11 @@
 /**
  * H5 (share-profile audit 11-05, owner: one public profile link). The old links forward to /u/<handle>:
  *   - /book/<id> for everyone (BookHelprRoute);
- *   - /user/<id> for a signed-out visitor (UserProfileRoute). A member keeps /user/<id>: it holds Message, Invite to a
- *     job, Block and Report, which the public page does not have.
+ *   - /user/<id> for everyone (UserProfileRoute). The /u page gives a member /user's Save, Report and Block
+ *     (PublicProfileMemberActions) and Hire me is its Invite to a job. A member who blocked this person stays on
+ *     /user/<id>, where "You blocked this person" has Unblock.
  * handle_for_user (20261105171316) is NULL under exactly the public page's rules, so a member with no public page
- * never forwards: /user keeps its members-only login wall, /book shows "This Helpr isn't available". Until the read is
+ * never forwards: a member keeps the /user page (Report and Block stay reachable), a guest keeps its login wall, /book shows "This Helpr isn't available". Until the read is
  * deployed (PGRST202) each route keeps its old page. Loaded lazily from App.tsx (useAuthReady pulls the Supabase client).
  */
 import { useEffect, type ReactNode } from "react";
@@ -20,6 +21,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { handleForUser } from "@/lib/profileLink/api";
 import { rememberBookingSource } from "@/lib/bookMe";
+import { useBlockedByMe } from "@/pages/user/useBlockedByMe";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -57,12 +59,25 @@ export function PublicProfileForward({ userId, none, notDeployed, onForward }: {
   return <>{q.data.state === "none" ? none : notDeployed}</>;
 }
 
-/** /user/:userId: members as before; a signed-out visitor goes to the public page, or the login wall without one. */
+/** /user/:userId: everyone goes to the public page; without one, members keep this page and guests the login wall. */
 export function UserProfileRoute({ children }: { children: ReactNode }) {
   const { user, isReady } = useAuthReady();
   const { userId } = useParams();
   const members = <ProtectedRoute>{children}</ProtectedRoute>;
-  if (!isReady || user) return members;
+  if (!isReady) return members;
+  if (user) return <MemberForward me={user.id} userId={userId} members={members} />;
+  return <PublicProfileForward userId={userId} none={members} notDeployed={members} />;
+}
+
+/** A member forwards too, unless they blocked this person (only /user shows "You blocked this person" + Unblock). */
+function MemberForward({ me, userId, members }: { me: string; userId: string | undefined; members: ReactNode }) {
+  const self = !!userId && userId.toLowerCase() === me.toLowerCase();
+  const blocked = useBlockedByMe(me, userId);
+  if (!self && UUID.test(userId ?? "")) {
+    if (blocked.isPending) return <RouteSuspenseFallback />;
+    // A failed block check keeps /user, whose own check shows the error and Retry.
+    if (blocked.isError || blocked.data) return <>{members}</>;
+  }
   return <PublicProfileForward userId={userId} none={members} notDeployed={members} />;
 }
 

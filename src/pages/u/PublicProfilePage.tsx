@@ -43,6 +43,7 @@ import { quickListHref } from "@/lib/declutter/wantedLinks";
 import { PublicProfileReviews, reviewTotal } from "@/components/profile/publicProfile/PublicProfileReviews";
 import { PublicProfileOwnerSteps } from "@/components/profile/publicProfile/PublicProfileOwnerSteps";
 import { PublicProfileSkeleton } from "@/components/profile/publicProfile/PublicProfileSkeleton";
+import { PublicProfileMemberActions } from "@/components/profile/publicProfile/PublicProfileMemberActions";
 
 const ROBOTS = "noindex, follow";
 
@@ -342,8 +343,14 @@ export default function PublicProfilePage() {
       }
     />
   );
+  const isMe = !!me?.handle && !!q.data && me.handle === q.data.handle;
+  const ctaReady = !user || !meLoading;
+  // H5 (audit 11-05): a member on someone else's page gets /user's Save, Report and Block (never a guest, never you).
+  const memberActions = user && q.data && ctaReady && !isMe
+    ? <PublicProfileMemberActions handle={q.data.handle} name={q.data.name} currentUserId={user.id} />
+    : null;
   return (
-    <AppPage title={q.data?.name ?? "Profile"} backTo={user ? "/home" : "/"}>
+    <AppPage title={q.data?.name ?? "Profile"} backTo={user ? "/home" : "/"} titleActions={memberActions}>
       <Meta p={q.data} handle={handle} />
       {!handle ? (
         unavailable
@@ -354,7 +361,7 @@ export default function PublicProfilePage() {
       ) : !q.data ? (
         unavailable
       ) : (
-        <ProfileBody p={q.data} signedIn={!!user} isMe={!!me?.handle && me.handle === q.data.handle} ctaReady={!user || !meLoading} />
+        <ProfileBody p={q.data} signedIn={!!user} isMe={isMe} ctaReady={ctaReady} />
       )}
     </AppPage>
   );

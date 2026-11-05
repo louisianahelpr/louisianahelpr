@@ -1,6 +1,7 @@
 import type { MouseEvent } from "react";
 import { PersonTile } from "@/components/PersonTile";
 import type { PostedJobCardProps } from "./types";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 /* THE HELPR'S PROFILE TILE — built here, rendered DIRECTLY ABOVE THE ACTION
    ROW (owner, 2026-09-19: "the helpr or posted by should be right above the
@@ -41,7 +42,7 @@ export function postedHelperTile({ job, isExpanded, helperName, helperAvatars, o
   return isExpanded && job.helper_id ? (
     <PersonTile
       userId={job.helper_id}
-      to={`/user/${job.helper_id}`}
+      to={memberProfilePath(job.helper_id)}
       name={helperName}
       avatarUrl={helperAvatars?.[job.helper_id] ?? null}
       eyebrow={offerUnanswered ? "Offered to" : "Helpr"}

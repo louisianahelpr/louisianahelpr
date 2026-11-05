@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserAvatar } from "@/components/UserAvatar";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { unwrap } from "@/lib/supabaseResult";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 /**
  * Q2008 "Helprs near you" (owner order 2026-10-17, D5): a row of faces at the top of Home, members in YOUR
@@ -47,7 +48,7 @@ export function HelprsNearYou({ userId }: { userId: string | undefined }) {
           return (
             <li key={h.user_id} className="snap-start shrink-0">
               <Link
-                to={`/user/${h.user_id}`}
+                to={memberProfilePath(h.user_id)}
                 aria-label={h.active_now ? `${name}, active now` : name}
                 className="flex w-16 flex-col items-center gap-1 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >

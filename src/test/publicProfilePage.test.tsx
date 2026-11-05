@@ -12,7 +12,7 @@
  *
  * @mutate src/pages/u/PublicProfilePage.tsx | return signedIn ? path : signupUrlFor(path); | return path;
  * @mutate src/pages/u/PublicProfilePage.tsx | enabled: !!handle, | enabled: true,
- * @mutate src/pages/u/PublicProfilePage.tsx | isMe={!!me?.handle && me.handle === q.data.handle} | isMe={false}
+ * @mutate src/pages/u/PublicProfilePage.tsx | const isMe = !!me?.handle && !!q.data && me.handle === q.data.handle; | const isMe = false;
  * @mutate src/pages/u/PublicProfilePage.tsx | <div className={`${PUBLIC_LINK_COLUMN} ${PROFILE_WIDE} space-y-4 pb-8`} data-public-profile={p.handle}> | <div className={`w-full ${PROFILE_WIDE} space-y-4 pb-8`} data-public-profile={p.handle}>
  * @mutate src/pages/book/BookHelprPage.tsx | <div className={`${PUBLIC_LINK_COLUMN} space-y-4 pb-8`}> | <div className="w-full space-y-4 pb-8">
  * @mutate src/lib/pageColumn.ts | export const PUBLIC_LINK_COLUMN = "mx-auto w-full max-w-md"; | export const PUBLIC_LINK_COLUMN = "w-full";

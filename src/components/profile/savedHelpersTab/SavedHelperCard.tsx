@@ -7,6 +7,7 @@ import { formatDistanceToNow } from "date-fns";
 import type { SavedHelper } from "./types";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { Textarea } from "@/components/ui/textarea";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 interface SavedHelperCardProps {
   h: SavedHelper;
@@ -84,7 +85,7 @@ export function SavedHelperCard({
           contradict, so WCAG 2.5.3 is not in play. `z-0`, with the note block
           and the action row at `z-10`, is what keeps the controls clickable. */}
       <Link
-        to={`/user/${h.helper_id}`}
+        to={memberProfilePath(h.helper_id)}
         aria-label={`View ${formatName(h.full_name)}'s profile`}
         className="absolute inset-0 z-0 rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       />

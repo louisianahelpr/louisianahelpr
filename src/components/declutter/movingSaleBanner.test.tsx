@@ -3,7 +3,7 @@
  * profile): the area and move-out line, each item's price in rust over its
  * title, and "Share sale" sharing the profile where the sale lives. Never an address.
  *
- * @mutate src/components/declutter/MovingSaleBanner.tsx | url: `${getPublicOrigin()}/user/${sellerId}` | url: getPublicOrigin()
+ * @mutate src/components/declutter/MovingSaleBanner.tsx | url: `${getPublicOrigin()}${memberProfilePath(sellerId)}` | url: getPublicOrigin()
  * Q2269: the seller's sale name and dates; "Follow sale" watches every item (the price-drop alert), never on your own sale.
  * @mutate src/components/declutter/MovingSaleBanner.tsx | {sale.data.saleName ?? "Moving sale"} | Moving sale
  * @mutate src/components/declutter/MovingSaleBanner.tsx |   const canFollow = on && !!user && user.id !== sellerId; |   const canFollow = on && !!user;

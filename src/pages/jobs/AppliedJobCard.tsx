@@ -38,6 +38,7 @@ import { RentalVisitHelprSlot } from "@/components/rentals/RentalVisitHelprSlot"
 import { HelperJobMetaRow } from "./appliedJobCard/HelperJobMetaRow";
 import { HelperPendingActions } from "./appliedJobCard/HelperPendingActions";
 import { HelperDoneBands } from "./appliedJobCard/HelperDoneBands";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 /**
  * AppliedJobCard — one card in the helper's "applied jobs" feed: the
@@ -198,7 +199,7 @@ function AppliedJobCardInner({
     isExpanded && posterId && app.posterName ? (
       <PersonTile
         userId={posterId}
-        to={`/user/${posterId}`}
+        to={memberProfilePath(posterId)}
         name={app.posterName}
         eyebrow="Posted by"
         onClick={(e) => e.stopPropagation()}

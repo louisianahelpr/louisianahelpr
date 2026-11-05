@@ -14,6 +14,7 @@ import { AdminViewShell, AdminCard, AdminFilterStrip } from "@/components/admin/
 import { NESTED_EMPTY_SURFACE } from "@/components/admin/adminEmptyState";
 import { report } from "@/lib/errorLogger";
 import { fetchSeedUserIds, withoutTestRows } from "@/components/admin/seedRows";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 interface HelperTier {
   user_id: string;
@@ -216,7 +217,7 @@ const AdminHelperTiers = () => {
                   </div>
                 </div>
                 <Button asChild size="sm" variant="outline" className="shrink-0">
-                  <Link to={`/user/${helper.user_id}`}>
+                  <Link to={memberProfilePath(helper.user_id)}>
                     View <ExternalLink className="w-3 h-3 ml-1" />
                   </Link>
                 </Button>

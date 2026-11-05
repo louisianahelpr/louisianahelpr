@@ -86,7 +86,7 @@ describe("Q366: report or block an applicant", () => {
     const src = read("src/components/admin/adminReports/fetchReports.ts") + read("src/components/admin/AdminReports.tsx");
     expect(src).toContain('const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application" && r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type);');
     expect(src).toContain('r.reported_type === "application" ? appHelper.get(r.reported_id) ?? null');
-    expect(src).toContain("navigate(`/user/${report.subject_user_id ?? report.reported_id}`)");
+    expect(src).toContain("navigate(memberProfilePath(report.subject_user_id ?? report.reported_id))");
     expect(src).toContain("userId: report.subject_user_id ?? report.reported_id");
   });
 });

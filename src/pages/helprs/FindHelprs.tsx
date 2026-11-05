@@ -21,6 +21,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { JOB_CATEGORY_VALUES, skillChipLabel } from "@/lib/jobCategories";
 import { directoryCardFacts, type DirectoryHelpr, type DirectoryStats } from "./findHelprsModel";
+import { memberProfilePath } from "@/lib/profileLink/memberProfilePath";
 
 /**
  * /helprs — "Find a Helpr" (Q2437, owner-approved 2026-10-27).
@@ -148,11 +149,11 @@ export default function FindHelprs() {
               return (
                 <li key={h.user_id} className="rounded-2xl border border-border/60 bg-card p-4 shadow-[var(--card-shadow)]" data-testid="find-helprs-card">
                   <div className="flex items-start gap-3">
-                    <Link to={`/user/${h.user_id}`} className="shrink-0" aria-label={`${f.name}'s profile`}>
+                    <Link to={memberProfilePath(h.user_id)} className="shrink-0" aria-label={`${f.name}'s profile`}>
                       <UserAvatar userId={h.user_id} src={h.avatar_url} name={f.name} pixelSize={48} aria-hidden className="h-12 w-12" />
                     </Link>
                     <div className="min-w-0 flex-1">
-                      <Link to={`/user/${h.user_id}`} className="inline-flex flex-wrap items-center gap-1.5 font-sans text-ds-16 font-bold text-foreground">
+                      <Link to={memberProfilePath(h.user_id)} className="inline-flex flex-wrap items-center gap-1.5 font-sans text-ds-16 font-bold text-foreground">
                         {f.name}
                         {h.is_id_verified && (
                           <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-ds-11 font-semibold" style={ID_VERIFIED_PILL_STYLE}>
@@ -182,7 +183,7 @@ export default function FindHelprs() {
                   </div>
                   <div className="mt-3 flex gap-2">
                     <Button asChild variant="outline" size="sm" className="flex-1">
-                      <Link to={`/user/${h.user_id}`}>View profile</Link>
+                      <Link to={memberProfilePath(h.user_id)}>View profile</Link>
                     </Button>
                     <Button
                       variant="primary"

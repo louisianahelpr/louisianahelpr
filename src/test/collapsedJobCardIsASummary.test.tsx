@@ -57,8 +57,8 @@
  * per section now exists, and each has a mutation that reaches it.
  *
  * @mutate src/pages/jobs/appliedJobCard/helperFaceAction.ts |   if (s.isPending) return { label: "View application", onClick: s.manage, tone: "secondary" }; |
- * @mutate src/pages/jobs/AppliedJobCard.tsx |                   tone="quietDanger" |                   tone="danger"
- * @mutate src/pages/jobs/AppliedJobCard.tsx |                   label="Edit application" |                   label="Edit"
+ * @mutate src/pages/jobs/appliedJobCard/HelperPendingActions.tsx |                   tone="quietDanger" |                   tone="danger"
+ * @mutate src/pages/jobs/appliedJobCard/HelperPendingActions.tsx |                   label="Edit application" |                   label="Edit"
  * @mutate src/pages/jobs/AppliedJobCard.tsx | {isConfirmed && isExpanded && ( | {isConfirmed && (
  * @mutate src/pages/jobs/AppliedJobCard.tsx | {isActive && isExpanded && ( | {isActive && (
  * @mutate src/pages/jobs/AppliedJobCard.tsx | {isDisputed && isExpanded && ( | {isDisputed && (

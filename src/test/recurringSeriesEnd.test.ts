@@ -152,7 +152,7 @@ describe("recurring series: end + schedule lock", () => {
     const strip = blankComments(readFileSync("src/pages/posts/SeriesStrip.tsx", "utf8"));
     expect(strip).toMatch(/canEnd && !seriesEndedOn && next && \([\s\S]*?<EndSeriesControl/);
     // The Helpr's card renders the recurring footer row, which carries Leave.
-    expect(blankComments(readFileSync("src/pages/jobs/AppliedJobCard.tsx", "utf8"))).toMatch(/job\.is_recurring && <HelperSeriesRow job=\{job\}/);
+    expect(blankComments(readFileSync("src/pages/jobs/appliedJobCard/HelperDoneBands.tsx", "utf8"))).toMatch(/job\.is_recurring && <HelperSeriesRow job=\{job\}/);
     const applied = blankComments(readFileSync("src/components/series/JobSeriesCardControls.tsx", "utf8"));
     // Review 2026-09-25: only the standing Helpr who is STILL hired on the parent.
     expect(applied).toMatch(/job\.recurring_helper_id === userId && job\.helper_id === userId[\s\S]{0,200}<EndSeriesControl jobId=\{job\.id\}/);

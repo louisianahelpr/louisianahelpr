@@ -4,18 +4,14 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
 import { tierFeePercent } from "@/lib/subscriptionTiers";
 import { useNavigate } from "react-router-dom";
-import { CheckCircle2, Star, XCircle, Eye, Pencil, Image } from "lucide-react";
-import { PhotoProofDialog } from "@/components/PhotoProof";
 import type { AppliedApp } from "../../components/job-card/activityConstants";
 import { JobCardShell } from "../../components/job-card/JobCardShell";
 import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace"; import { jobProgress } from "@/components/tracker/jobProgressState";
 import { helperFaceAction, helperFaceNextStep } from "./appliedJobCard/helperFaceAction";
 import { doneFloorStart, useDoneFloorMinutesLeft } from "@/components/job-card/useDoneFloor";
 import { PersonTile } from "@/components/PersonTile";
-import { JobActionRow, JobActionChip, JobStepPrimaryButton } from "../../components/job-card/JobActionRow";
-import { JobCardMetaRow } from "../../components/job-card/JobCardMetaRow";
 import { JobCardPhotoStrip } from "../../components/job-card/JobCardPhotoStrip";
-import { formatPriceFloor, formatShortDate } from "@/lib/format";
+import { formatPriceFloor } from "@/lib/format";
 import type { AppliedJobCardProps, ApplicationViewFields } from "./appliedJobCard/types";
 import { useHighlightPulse } from "../../components/job-card/useHighlightPulse";
 import { closedCardLabel, deriveAppliedJobCardState, describeCancellation, posterFirstName } from "./appliedJobCard/appliedJobCardHelpers";
@@ -34,11 +30,14 @@ import { ClosedJobCard } from "./appliedJobCard/ClosedJobRow";
 import { useUnsettledDisputeJobIds } from "@/hooks/useUnsettledDisputeJobIds";
 import { reviewWindowOpen } from "@/lib/reviewWindow";
 import { descriptionAddsToTitle, hasProofPhotos } from "@/lib/jobCardFacts";
-import { HelperSeriesRow, JobRequestRows } from "@/components/series/JobSeriesCardControls";
+import { JobRequestRows } from "@/components/series/JobSeriesCardControls";
 import { useCardNotes } from "@/components/job-card/JobNotes";
 import { useContinueDay } from "@/hooks/useContinueDays";
 import { continueDayDoneNote } from "@/lib/continueDayWords";
 import { RentalVisitHelprSlot } from "@/components/rentals/RentalVisitHelprSlot";
+import { HelperJobMetaRow } from "./appliedJobCard/HelperJobMetaRow";
+import { HelperPendingActions } from "./appliedJobCard/HelperPendingActions";
+import { HelperDoneBands } from "./appliedJobCard/HelperDoneBands";
 
 /**
  * AppliedJobCard — one card in the helper's "applied jobs" feed: the
@@ -215,92 +214,8 @@ function AppliedJobCardInner({
   const showBodyPhotos = !isMinimalCard && isExpanded && !isPending && (job.photos || []).length > 0;
   const hasCardBody = showDescription || bodyCarriesTile || showNotes || showBodyPhotos;
 
-  /**
-   * Location · date · time — built once, placed twice. Desktop puts it on the
-   * TITLE row; phone keeps it below. Mirrors PostedJobCard exactly, which is
-   * the point: these two cards sit in the same two tabs of the same screen.
-   */
-  const metaRow = (
-    <>
-      {/* Who posted the job is NOT drawn in this little meta area any more.
-          It is shown as a PersonTile UNDER the description when the card is
-          expanded (owner V6, 2026-09-15: "same as the poster side") — matching
-          VN-22, which moved the Helpr's profile out of exactly this spot into a
-          tile under the description on the poster card, so the two cards state
-          the other party the same way. See the PersonTile in the body below. */}
-      <JobCardMetaRow
-        dateNeeded={job.date_needed} dateWindowEnd={job.date_window_end ?? null}
-        startTime={job.start_time}
-        /* An anonymised job carries no address (see `posterId` above); the
-           location chip's own normaliser already treats "" as absent. */
-        location={job.location ?? ""}
-        /* TAP EXPANDS, HOLD OPENS THE MAP — the same prop PostedJobCard has
-           carried since 2026-09-14, now on this card too.
-           (Owner, 2026-09-21, pointing at a /jobs card: "any time i click
-           in this job card, it opens apple maps. ths is not correct.")
-
-           WHY IT WAS SO EASY TO HIT HERE, with the arithmetic. The location
-           slot was an `<a href="https://maps.apple.com/…">`, and once
-           `showFullAddress` below is true the location takes `basis-full` — a
-           line of its own inside the wrapping meta row. That class lands on
-           the ANCHOR, so the link box became the whole row: measured on prod
-           (helper-e2e, Chromium at 375, this checkout's build) every card was
-           301x139 with a live 267x32 maps anchor in it — 89% of the card's
-           width, directly under the title, painted exactly like the plain date
-           text beside it. 15% of the card's in-viewport area left the app. The
-           same probe on /posts scored 0%, because My Posts already had this
-           prop; the note on it says "opt-in per card so My Jobs is untouched",
-           and untouched is what the owner is reporting.
-
-           The stopPropagation guards on the maps controls were never going to
-           help: propagation is what makes the CARD also toggle when the map
-           opens. An anchor's own default action is the navigation, so the card
-           tap never reached the card — it activated a link.
-
-           What the prop changes: the visible element becomes a <button> that
-           does not stop the click, so JobCardShell's wrapper onClick expands
-           the card exactly as a tap anywhere else on it does, and the map
-           moves behind a deliberate 500ms hold plus the focus-only anchor that
-           keyboard and screen-reader users already had. Directions are not
-           lost either way — DirectionsButton is a real control in the action
-           row of every state that needs it. Guarded by
-           AppliedJobCard.locationTapExpands.test.tsx (contract) and
-           e2e/prod-audit/card-maps-hit-area.spec.ts (the geometry). */
-        locationPressToMap
-        /* THE FULL ADDRESS TAKES THE CITY'S PLACE (owner, 2026-09-19, with a
-           screenshot of /jobs: "this shouldnt show 2 addresses... the full
-           address needs to go where the city place is. not be on a whole
-           nother line").
-
-           The card used to print BOTH - `getCity(location)` in this row, and
-           the whole street address again on a row of its own below it
-           (`JobAddressLine`, VN-55). That second row is deleted and its
-           condition moved here VERBATIM: the same four states, so nothing is
-           newly revealed and nothing that was visible is lost.
-
-           WHY A CLIENT GATE AT ALL, when the server already masks. It is not
-           an entitlement check - `get_jobs_for_my_applications` rewrites
-           `location` through `user_may_see_job_address` and hands a pending
-           applicant "City, ST" - it is the SECOND lock this card has always
-           had. Until today the meta row could only ever print a city, so a
-           server that leaked could not leak through it; printing `location`
-           whole removes that. Keeping the old mount's condition keeps it.
-           src/test/enRouteAddressVisible.test.tsx pins both halves. */
-        showFullAddress={isOffered || isConfirmed || isActive || isDisputed} oneLine={!isExpanded}
-        latitude={job.latitude}
-        longitude={job.longitude}
-        expiresAt={isPending && !job.helper_id ? job.expires_at : null}
-        /* "👥 3", inline right after the time (owner, 2026-08-30: "3 helprs
-           needed goes to the right of time"). It used to be a line of its own
-           at the very BOTTOM of the card, under the Edit/Withdraw row, in the
-           photos/recurring footer — a fact about the JOB stranded below the
-           helper's own actions, reading like small print. The browse feed
-           already stated it in the meta row; this is the same chip, in the
-           same place, on both surfaces. */
-        helpersNeeded={job.is_group_job ? (job.helpers_needed ?? 2) : null}
-      />
-    </>
-  );
+  // Location · date · time — built once, placed twice (HelperJobMetaRow says why).
+  const metaRow = <HelperJobMetaRow job={job} isOffered={isOffered} isConfirmed={isConfirmed} isActive={isActive} isDisputed={isDisputed} isExpanded={isExpanded} isPending={isPending} />;
 
   // The states the server already hands the full address to (the meta row's own gate).
   const addressOnFace = !isMinimalCard && (isOffered || isConfirmed || isActive || isDisputed);
@@ -513,90 +428,11 @@ function AppliedJobCardInner({
             />
           )}
 
-          {/* Pending actions — Edit alongside Withdraw, in the same
-              icon-over-label chip row the posted card uses.
-
-              Withdraw used to be the only thing here, and it was the only thing
-              a waiting applicant could do: pull out entirely. The owner asked
-              for the obvious middle option — "they should be able to edit app
-              and withdraw" — and the editing surface already existed, it was
-              just unreachable without knowing that "View details" hides it.
-              PendingApplicationSection (rendered above, gated on `isExpanded`)
-              owns the message editor, the bid editor and the attachment list;
-              this chip expands the card AND opens the message editor, so Edit
-              lands the user IN the editor rather than merely near it. No new
-              editing surface was invented.
-
-              Two chips at 2-up cost exactly the height one chip cost at 1-up,
-              so the added affordance is free in vertical space. Spec v2 (audit #48,
-              board 59): Edit application is neutral and Withdraw the quiet destructive
-              outline (no yellow, no pink fill); the face says "View application". */}
-          {/* While the inline editor (PendingApplicationSection) is open it
-              owns Save/Cancel, so the outer Edit/Withdraw pair is hidden —
-              two Cancel-shaped controls a few rows apart, one of which
-              withdraws the whole application, is a trap. The Seen chip is
-              information and stays; when there is none the band is dropped
-              entirely rather than drawing an empty bordered strip. */}
-          {!isMinimalCard && isPending && ((isExpanded && editingMessageAppId !== app.id) || viewedApp.poster_viewed_at) && (
-            <div
-              className="px-4 py-2.5 space-y-1.5"
-              style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              {/* "Seen" trust chip — visible when the poster has opened
-                  the applicant list and viewed this application. Subtle
-                  olivewood colour so it reads as informational, not urgent. */}
-              {viewedApp.poster_viewed_at && (
-                // The date was in a `title=` only. Touch has no hover, and iOS
-                // is the primary surface, so on the device most helpers use
-                // there was no route to it at all. It's short enough to just
-                // say.
-                <span
-                  className="flex items-center gap-1 text-ds-10 font-medium"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  <Eye className="w-3 h-3" aria-hidden="true" /> Seen {formatShortDate(viewedApp.poster_viewed_at)}
-                </span>
-              )}
-              {/* THE CONTROLS ARE BEHIND THE EXPAND; THE "Seen" CHIP IS NOT.
-                  My call, per the owner's ruling that Jobs collapses like
-                  Posts. Edit and Withdraw are an action row — two controls in
-                  a `JobActionRow` — and the standing rule on the other card is
-                  that controls live inside the expanded card while the
-                  collapsed card only SIGNALS (that is exactly what
-                  the collapsed status strip does on My Posts). The "Seen" chip is
-                  the opposite: information, no tap, and the single most
-                  useful thing a waiting applicant can learn at a glance. So
-                  the chip stays collapsed and the pair does not.
-
-                  The band still drops entirely when it would be empty — the
-                  existing rule, and the reason a collapsed pending card with
-                  no "Seen" stamp draws no bordered strip at all. */}
-              {editingMessageAppId !== app.id && isExpanded && (
-              <JobActionRow columns={2}>
-                <JobActionChip
-                  icon={Pencil}
-                  label="Edit application"
-                  ariaLabel="Edit your application"
-                  tone="neutral"
-                  onClick={() => {
-                    if (!isExpanded) toggleExpandedJobId(app.job_id);
-                    setEditingMessageAppId(app.id);
-                    setEditMessageText(app.message || "");
-                  }}
-                />
-                <JobActionChip
-                  icon={XCircle}
-                  label={withdrawingAppId === app.id ? "Withdrawing…" : "Withdraw"}
-                  ariaLabel="Withdraw application"
-                  tone="quietDanger"
-                  disabled={withdrawingAppId === app.id}
-                  onClick={() => setWithdrawTarget({ appId: app.id, jobTitle: job.title || "a job", jobId: job.id ?? null })}
-                />
-              </JobActionRow>
-              )}
-            </div>
-          )}
+          <HelperPendingActions
+            app={app} job={job} viewedApp={viewedApp} isMinimalCard={isMinimalCard} isPending={isPending} isExpanded={isExpanded}
+            editingMessageAppId={editingMessageAppId} toggleExpandedJobId={toggleExpandedJobId} setEditingMessageAppId={setEditingMessageAppId}
+            setEditMessageText={setEditMessageText} withdrawingAppId={withdrawingAppId} setWithdrawTarget={setWithdrawTarget}
+          />
 
           {/* === ACTION SECTIONS === */}
 
@@ -693,139 +529,11 @@ function AppliedJobCardInner({
             />
           )}
 
-          {/* Completed - not yet reviewed: the proof photos and the review, as
-              two chips on one row.
-
-              The BAND itself is gated on having something to put in it. It used
-              to be unconditional because the proof panel was unconditional —
-              it printed "No photos were uploaded for this job" on a job with
-              none. With the panel gone that would leave a bordered strip with
-              nothing in it, which is the silent-band defect this card already
-              has a fallback for further down. */}
-          {isCompleted && !isFullyDone && isExpanded && (canLeaveReview || hasProof) && (
-            <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
-              {/* Same icon-over-label chip PostedJobCard's completed state
-                  uses for Review/Reviewed — this was a plain full-width
-                  outline Button, the one place the two Done-tab cards
-                  visibly diverged in style. */}
-              {/* `payout_pending` counts too. Migration
-                  20260825053000_reviews_allow_payout_pending.sql widened the
-                  reviews INSERT policy to accept BOTH settlement states for
-                  exactly this reason — payment_status only becomes 'released'
-                  when the payout actually settles, ~24h later. The poster's
-                  gate (PostedJobActions.tsx:533) was updated; the helper's was
-                  not, so the helper was locked out for a full day while the
-                  poster's review sat hidden behind feedback_visible_at waiting
-                  for a counter-review that could not be written. */}
-              {/* `posterId &&`: a review needs a reviewee. On an ownerless job
-                  there is no account to address one to, and the INSERT would
-                  fail on a null `reviewee_id` — so the chip doesn't render
-                  rather than offering an action that cannot complete. */}
-              {/* ONE row: the photos beside the review, rather than a proof
-                  PANEL stacked above a one-chip row. `columns` is passed, not
-                  counted, so an absent chip yields a deliberate one-up row
-                  (JobActionRow). The Photos chip is gated on there BEING
-                  photos — a chip is a tap, and an empty gallery is a dead
-                  end — which is why this card no longer prints "No photos were
-                  uploaded for this job" when a job has none. */}
-              <JobActionRow columns={canLeaveReview && hasProof ? 2 : 1}>
-                {hasProof ? (
-                  <JobActionChip
-                    icon={Image}
-                    label="Photos"
-                    ariaLabel="Photos — the before and after proof photos from this job"
-                    tone="neutral"
-                    onClick={() => setPhotosOpen(true)}
-                  />
-                ) : null}
-                {!canLeaveReview ? null : helperReviewedJobIds.has(app.job_id) ? (
-                  <JobActionChip
-                    icon={CheckCircle2}
-                    label="Reviewed"
-                    ariaLabel="Already reviewed the person who posted this job"
-                    tone="done"
-                    disabled
-                    onClick={() => {}}
-                  />
-                ) : (
-                  // The card's next move, so a PRIMARY on the right (owner, 2026-10-08).
-                  <JobStepPrimaryButton
-                    icon={Star}
-                    label="Leave a Review"
-                    ariaLabel="Leave a review for the person who posted this job"
-                    onClick={() => onHelperReview(app.job_id, posterId!, app.posterName || "the person who posted this job")}
-                  />
-                )}
-              </JobActionRow>
-              <PhotoProofDialog
-                open={photosOpen}
-                onOpenChange={setPhotosOpen}
-                beforeUrls={job.proof_before_urls || []}
-                afterUrls={job.proof_after_urls || []}
-              />
-              {/* No dispute link on a completed job (owner, 2026-09-14,
-                  VN-28: "they can't report a job once it's done") — this
-                  replaced the issue-#113 7-day post-completion link. */}
-            </div>
-          )}
-
-          {/* Fully done (reviewed): "Reviewed" rides the ONE bottom line
-              (HelperCollapsedStrip `reviewed`), no band of its own (owner,
-              2026-10-08: "There should only be one section at the bottom"). */}
-          {isFullyDone && isExpanded && hasProof && (
-            <div className="px-4 py-3 border-t border-[hsl(var(--olivewood)/0.1)] bg-card space-y-2.5" onClick={(e) => e.stopPropagation()}>
-              {/* The same Photos button as the completed-not-reviewed branch
-                  above (owner item 10). Alone in its row here: on a job that is
-                  finished AND reviewed there is nothing else left to do. The
-                  band no longer renders at all when the job has no photos,
-                  where it used to print an empty proof panel. */}
-              <JobActionRow columns={1}>
-                <JobActionChip
-                  icon={Image}
-                  label="Photos"
-                  ariaLabel="Photos — the before and after proof photos from this job"
-                  tone="neutral"
-                  onClick={() => setPhotosOpen(true)}
-                />
-              </JobActionRow>
-              <PhotoProofDialog
-                open={photosOpen}
-                onOpenChange={setPhotosOpen}
-                beforeUrls={job.proof_before_urls || []}
-                afterUrls={job.proof_after_urls || []}
-              />
-            </div>
-          )}
-
-
-          {/* Last resort: a live application that matched NO action section.
-              Two cards in visibly the same state, one with a Withdraw button
-              and one with nothing under it, is what the owner reported — and
-              the blank one was not "no actions available", it was a state the
-              card had no branch for. The branch gap itself is fixed above
-              (`isAssigned` now trusts the application's own status), but a card
-              must never again go silent: if some future status slips through,
-              say so rather than rendering an empty band. */}
-          {!isMinimalCard && !hasActionSection && (
-            <div
-              className="px-4 py-2.5"
-              style={{ borderTop: "0.5px solid hsl(var(--olivewood) / 0.10)" }}
-            >
-              <p className="text-ds-11 text-muted-foreground">
-                No actions available on this application right now — open the job to see where it stands.
-              </p>
-            </div>
-          )}
-
-          {/* Footer: the recurring series row */}
-          {/* No group-size line here: it moved into the meta row, after the time
-              (owner), not below the helper's controls; see `helpersNeeded`. No
-              photos here either: they sat below the buttons (owner 2026-10-06). */}
-          {!isMinimalCard && (!isFullyDone || isExpanded) && job.is_recurring && (
-            <div className="px-4 py-2.5 border-t border-border/20 space-y-2">
-              {job.is_recurring && <HelperSeriesRow job={job} userId={userId} />}
-            </div>
-          )}
+          <HelperDoneBands
+            app={app} job={job} userId={userId} helperReviewedJobIds={helperReviewedJobIds} onHelperReview={onHelperReview}
+            isCompleted={isCompleted} isFullyDone={isFullyDone} isExpanded={isExpanded} isMinimalCard={isMinimalCard} hasActionSection={hasActionSection}
+            canLeaveReview={canLeaveReview} hasProof={hasProof} posterId={posterId} photosOpen={photosOpen} setPhotosOpen={setPhotosOpen}
+          />
         </JobCardShell>
         </div>
     </JobCardPersonContext.Provider>

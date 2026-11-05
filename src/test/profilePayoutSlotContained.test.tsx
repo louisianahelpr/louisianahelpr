@@ -14,6 +14,7 @@
  *
  * @mutate src/components/profile/ProfileLanding.tsx |       <SectionBoundary label="your payout status">\n        <PayoutSlot onSetUp={() => onSelectTab("payment")} />\n      </SectionBoundary> |       <PayoutSlot onSetUp={() => onSelectTab("payment")} />
  * @mutate src/hooks/useStripeConnectStatus.ts |     select: selectConnectStatus, |     select: (raw) => selectConnectStatus(raw),
+ * @mutate src/hooks/useStripeConnectStatus.ts |     return MALFORMED_CONNECT_STATUS;\n  } |     throw new Error("unexpected shape");\n  }
  */
 import { Component, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -50,7 +51,7 @@ vi.mock("@/components/profile/profileLanding/YourActivity", () => ({ YourActivit
 vi.mock("@/components/profile/YourPageLink", () => ({ YourPageLink: () => <div data-testid="your-page" /> }));
 
 import { ProfileLanding } from "@/components/profile/ProfileLanding";
-import { selectConnectStatus } from "@/hooks/useStripeConnectStatus";
+import { MALFORMED_CONNECT_STATUS, selectConnectStatus } from "@/hooks/useStripeConnectStatus";
 
 class PageBoundary extends Component<{ children: ReactNode }, { crashed: boolean }> {
   state = { crashed: false };
@@ -93,8 +94,30 @@ describe("the payout slot cannot crash the Profile landing", () => {
     expect(mocks.report).toHaveBeenCalledTimes(1);
   });
 
+  // Q2761 (CI run 42067393130, shard 4/6): under load the clock moves between renders. A select that THROWS makes
+  // TanStack stamp errorUpdatedAt = Date.now() on every result it builds, so each render saw a "new" result, re-rendered,
+  // and the slot hit "Maximum update depth exceeded" (its crash fallback). A clock that ticks on every read is that load.
+  it("the error row holds while the clock moves between renders (CI under load)", async () => {
+    let t = 1_700_000_000_000;
+    const clock = vi.spyOn(Date, "now").mockImplementation(() => (t += 5));
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      mocks.status.mode = "real";
+      mocks.invoke.mockResolvedValue({ data: [], error: null });
+      renderLanding();
+      await waitFor(() => expect(document.querySelector('[data-payout-copy="error"]:not(.invisible)')).not.toBeNull());
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(mocks.report).toHaveBeenCalledTimes(1);
+    } finally {
+      clock.mockRestore();
+      quiet.mockRestore();
+    }
+  });
+
   it("the select is one stable function, never a per-render arrow", () => {
-    expect(() => selectConnectStatus([] as never)).toThrow(/unexpected shape/);
+    // Q2761: a malformed answer is the one frozen marker, never a throw (a thrown select re-stamps errorUpdatedAt).
+    expect(selectConnectStatus([] as never)).toBe(MALFORMED_CONNECT_STATUS);
+    expect(selectConnectStatus(null)).toBe(MALFORMED_CONNECT_STATUS);
     expect(selectConnectStatus({ connected: true, details_submitted: true, payouts_enabled: false } as never)).toEqual({ connected: true, details_submitted: true, payouts_enabled: false });
   });
 });

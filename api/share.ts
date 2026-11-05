@@ -905,6 +905,11 @@ interface ProfileCard {
   listings?: unknown[] | null;
   jobs?: unknown[] | null;
   show_in_search?: boolean | null;
+  /** M1 (audit 11-05): the true counts (listings holds at most 500) and the header fields (20261105165059). */
+  listing_count?: number | null;
+  job_count?: number | null;
+  town?: string | null;
+  skills?: string | null;
 }
 type ProfileLookup = { state: "found"; card: ProfileCard } | { state: "absent" } | { state: "unknown" };
 
@@ -932,9 +937,11 @@ async function fetchProfileCard(handle: string): Promise<ProfileLookup> {
 }
 
 /**
- * The member's own stored photo at exactly 1200x630, cut by the storage render endpoint (format=origin keeps the
- * stored type). Only an avatar this project stores under avatars/<user id>/avatar.jpg|png; anything else (a
- * social-login photo, another folder, an unknown type) gives no image block and the brand image stays.
+ * The member's own stored photo, cut square at 630x630 by the storage render endpoint (format=origin keeps the
+ * stored type). M1 (audit 11-05): it used to ask 1200x630 and declare that, but render never upscales, so a smaller
+ * avatar came back 800x630 (sips, 11-05) under a 1200x630 declaration; a square is what every avatar can fill, and
+ * what /book already asks. Only an avatar this project stores under avatars/<user id>/avatar.jpg|png; anything else
+ * (a social-login photo, another folder, an unknown type) gives no image block and the brand image stays.
  */
 function profileImage(avatarUrl: string | null | undefined, name: string): Meta["image"] | undefined {
   if (typeof avatarUrl !== "string" || !SUPABASE_URL) return undefined;
@@ -946,12 +953,27 @@ function profileImage(avatarUrl: string | null | undefined, name: string): Meta[
   const type = ext ? AVATAR_TYPES[ext] : undefined;
   if (!type) return undefined;
   return {
-    url: `${SUPABASE_URL}/storage/v1/render/image/public/avatars/${userId}/${file}?width=1200&height=630&resize=cover&quality=80&format=origin`,
+    url: `${SUPABASE_URL}/storage/v1/render/image/public/avatars/${userId}/${file}?width=${PROFILE_IMAGE_PX}&height=${PROFILE_IMAGE_PX}&resize=cover&quality=80&format=origin`,
     type,
-    width: 1200,
-    height: 630,
+    width: PROFILE_IMAGE_PX,
+    height: PROFILE_IMAGE_PX,
     alt: clean(`${name} on Louisiana Helpr`, 120),
   };
+}
+
+/** The /u card's photo is a 630x630 square (see profileImage). */
+const PROFILE_IMAGE_PX = 630;
+
+/** "Yard work, Handyman": the first three comma-separated skills, as the page's chips read them. */
+function profileSkillsLine(skills: string | null | undefined): string {
+  const parts = [...new Set(clean(skills, 200).split(/[,\n]/).map((x) => x.trim()).filter(Boolean))].slice(0, 3);
+  return parts.join(", ");
+}
+
+/** A count the read states, else the length of the list it returned (an older read had no count). */
+function profileCount(count: number | null | undefined, list: unknown[] | null | undefined): number {
+  const n = Number(count);
+  return Number.isFinite(n) && n >= 0 ? n : Array.isArray(list) ? list.length : 0;
 }
 
 function unavailableProfileMeta(url: string): Meta {
@@ -981,14 +1003,18 @@ async function metaForProfile(rawHandle: string, url: string): Promise<Meta | nu
   if (reviews > 0 && Number.isFinite(avg)) parts.push(`${avg.toFixed(1)} stars (${reviews} review${reviews === 1 ? "" : "s"})`);
   const done = Number(card.helpr?.jobs_done ?? 0);
   if (done > 0) parts.push(`${done} job${done === 1 ? "" : "s"} done`);
-  const selling = Array.isArray(card.listings) ? card.listings.length : 0;
+  // M1 (audit 11-05): the TRUE count (it read "24 items for sale" for a seller with 201), and skills and town lead.
+  const selling = profileCount(card.listing_count, card.listings);
   if (selling > 0) parts.push(`${selling} item${selling === 1 ? "" : "s"} for sale`);
-  const open = Array.isArray(card.jobs) ? card.jobs.length : 0;
+  const open = profileCount(card.job_count, card.jobs);
   if (open > 0) parts.push(`${open} open job${open === 1 ? "" : "s"}`);
+  const skills = profileSkillsLine(card.skills);
+  const town = clean(card.town, 60);
+  const lead = skills ? `${skills}${town ? ` in ${town}` : ""}.` : town ? `${name} in ${town} on Louisiana Helpr.` : `See what ${name} posts and does on Louisiana Helpr.`;
   return {
     title: `${name} on Louisiana Helpr`,
     ogTitle: `${name} on Louisiana Helpr`,
-    description: clean(`See what ${name} posts and does on Louisiana Helpr.${parts.length ? ` ${parts.join(" · ")}.` : ""}`, 200),
+    description: clean(`${lead}${parts.length ? ` ${parts.join(" · ")}.` : ""}`, 200),
     // og:url and the canonical name the current handle, not an old one the link still carries (L2).
     url: typeof card.handle === "string" && HANDLE_RE.test(card.handle) ? `${SITE_ORIGIN}/u/${card.handle}` : url,
     robots: card.show_in_search === true ? PROFILE_ROBOTS_SHOWN : PROFILE_ROBOTS,

@@ -10,7 +10,7 @@
  *    offered_to_helper_id with direct_offer_status 'pending' (the existing direct-offer path, unchanged).
  * Server side (refusals, block, ban, free member): ~/.lh-pglite/b113-hire.mjs against 20261104143437.
  *
- * @mutate src/pages/u/PublicProfilePage.tsx | {!isMe && <HireMeButton handle={p.handle} signedIn={signedIn} />} | {<HireMeButton handle={p.handle} signedIn={signedIn} />}
+ * @mutate src/pages/u/PublicProfilePage.tsx | {ctaReady && !isMe && <HireMeButton handle={p.handle} signedIn={signedIn} />} | {ctaReady && <HireMeButton handle={p.handle} signedIn={signedIn} />}
  * @mutate src/lib/hireMe.ts |   return signupUrlFor(`/u/${encodeURIComponent(handle)}?${HIRE_PARAM}=1`); |   return signupUrlFor(`/u/${encodeURIComponent(handle)}`);
  * @mutate src/pages/u/PublicProfilePage.tsx |     if (r.id) navigate(hireOfferPath(r.id)); |     if (r.id) navigate("/post-job");
  * @mutate src/pages/u/PublicProfilePage.tsx |     if (!resume \|\| resumed.current) return; |     if (!resume) return;

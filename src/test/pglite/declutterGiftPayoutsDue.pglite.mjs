@@ -5,6 +5,7 @@
  * order's gift_cents, so a gift-paid order's payees are sent from the platform balance under giftCovers. Each body is
  * the newest definition VERBATIM plus that one column: every other column of every row is identical to the old body's
  * answer (compared row by row on the same data, card-only, mixed and gift-only orders); a job's Helpr row answers 0.
+ * S3: gift_cents is NET of what refunds gave back to the gift balance (the real declutter_order_gift_net_cents).
  * Grants: service_role only. The file replays 3x.
  *
  *   node src/test/pglite/declutterGiftPayoutsDue.pglite.mjs                     # all PASS
@@ -63,6 +64,7 @@ await db.exec(`
   CREATE TABLE public.declutter_delivery_raises (id uuid PRIMARY KEY, task_id uuid, stripe_payment_intent_id text, raise_cents integer, status text, applied_at timestamptz);
   CREATE TABLE public.helpr_task_tips (id uuid PRIMARY KEY, task_id uuid, stripe_payment_intent_id text, tip_cents integer, held boolean,
     payment_status text, payout_transfer_id text, paid_at timestamptz);
+  CREATE TABLE public.gift_cards (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), amount numeric, restored_from_declutter_order_id uuid);
   CREATE FUNCTION public.declutter_order_refunds_recorded_cents(uuid) RETURNS integer LANGUAGE sql AS $$ SELECT 0 $$;
   CREATE FUNCTION public.declutter_sale_final(uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT true $$;
   CREATE FUNCTION public.helpr_task_source_held(text, uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT false $$;
@@ -84,6 +86,8 @@ for (const [n, pi, gift] of orders) {
 await db.query(`INSERT INTO public.helpr_tasks (id, source_kind, source_id) VALUES ($1, 'job', $2)`, [u(50), u(51)]);
 await db.query(`INSERT INTO public.helpr_task_payouts (id, task_id, helpr_id, amount_cents) VALUES ($1, $2, $3, 500)`, [u(52), u(50), u(301)]);
 
+// The REAL net helper (20261105030604, S3): gift_cents less what refunds gave back.
+await db.exec(newest("declutter_order_gift_net_cents", THIS));
 const rows = async (fn) => (await db.query(`SELECT * FROM public.${fn}(100)`)).rows;
 // The old bodies' answers, on the same data.
 for (const fn of FNS) await db.exec(newest(fn, THIS));
@@ -118,6 +122,13 @@ for (const fn of FNS) {
   const acl = (await db.query(`SELECT has_function_privilege('anon', 'public.${fn}(integer)', 'EXECUTE') a,
     has_function_privilege('authenticated', 'public.${fn}(integer)', 'EXECUTE') u, has_function_privilege('service_role', 'public.${fn}(integer)', 'EXECUTE') s`)).rows[0];
   check(!acl.a && !acl.u && acl.s, `${fn}: grants service_role only`, JSON.stringify(acl));
+}
+
+// S3: a refund gave $10 of the mixed order's gift back to the gift balance: every queue answers the NET (1500).
+await db.query(`INSERT INTO public.gift_cards (amount, restored_from_declutter_order_id) VALUES (10, $1)`, [u(2)]);
+for (const fn of FNS) {
+  const r = (await rows(fn)).filter((x) => String(fn === "helpr_task_payouts_due" ? x.source_id : x.order_id) === u(2));
+  check(r.length === 1 && r[0].gift_cents === 1500, `${fn}: gift_cents is NET of what refunds gave back to the gift`, JSON.stringify(r.map((x) => x.gift_cents)));
 }
 
 console.log(failures ? `\n${failures} FAILED` : "\nall PASS");

@@ -442,3 +442,103 @@ CREATE TRIGGER declutter_order_gift_follows_status
   FOR EACH ROW
   WHEN (OLD.status = 'awaiting_payment' AND NEW.status IS DISTINCT FROM OLD.status AND NEW.gift_card_id IS NOT NULL)
   EXECUTE FUNCTION public.declutter_order_gift_follows_status();
+
+-- Q2106 S3 (Builder 3, 11-04 night; lead rules 9:4x PM): a refund of a gift-paid share goes back to the gift card
+-- balance, never to a card, idempotent by a refund key; a split order refunds proportionally.
+--   * gift_cards.restored_from_declutter_order_id + restored_declutter_refund_key (partial UNIQUE): each give-back is
+--     one 'sent' child of the order's gift, minted once per key. Its payment_status is INHERITED (a gift whose
+--     donation was refunded gives back an unspendable child, as restore_gift_card_for_job).
+--   * declutter_order_gift_net_cents(order): gift_cents less what was given back. The payout queues and declutter-
+--     money's giftCovers use it (20261105032500), so a restored gift is never also paid out from the platform.
+--   * declutter_refund_gift_split(order, refund_cents): the gift's proportional share of a refund, rounded down
+--     (the card's share takes the odd cent: the gift is never over-restored), all of it on a gift-only order,
+--     never more than the gift's net.
+--   * restore_gift_card_for_declutter_order(order, key, cents): capped at the net, 'already_restored' on a repeat key.
+-- NOT YET: the callers (declutter_record_refund's split and declutter-money's refund step). A refund after a payout
+-- went out stays held for admin by the existing refunds_due gates (no claw-back).
+ALTER TABLE public.gift_cards ADD COLUMN IF NOT EXISTS restored_from_declutter_order_id uuid;
+ALTER TABLE public.gift_cards ADD COLUMN IF NOT EXISTS restored_declutter_refund_key text;
+CREATE UNIQUE INDEX IF NOT EXISTS gift_cards_restored_declutter_refund_key_key
+  ON public.gift_cards (restored_declutter_refund_key) WHERE restored_declutter_refund_key IS NOT NULL;
+COMMENT ON COLUMN public.gift_cards.restored_declutter_refund_key IS
+  'Q2106: the refund this child gives back to the gift balance (one child per key). No FK, as job_id.';
+
+CREATE OR REPLACE FUNCTION public.declutter_order_gift_net_cents(p_order_id uuid)
+RETURNS integer
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT greatest(0, o.gift_cents - COALESCE((SELECT sum(round(g.amount * 100))::integer FROM public.gift_cards g
+                                                WHERE g.restored_from_declutter_order_id = o.id), 0))
+    FROM public.declutter_orders o WHERE o.id = p_order_id;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_order_gift_net_cents(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_order_gift_net_cents(uuid) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.declutter_refund_gift_split(p_order_id uuid, p_refund_cents integer)
+RETURNS integer
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT CASE WHEN p_refund_cents IS NULL OR p_refund_cents <= 0 OR o.gift_cents <= 0 THEN 0
+              WHEN o.stripe_payment_intent_id IS NULL THEN least(p_refund_cents, public.declutter_order_gift_net_cents(o.id))
+              ELSE least(public.declutter_order_gift_net_cents(o.id),
+                         floor(p_refund_cents::numeric * o.gift_cents / (o.total_cents + o.setup_fee_cents))::integer) END
+    FROM public.declutter_orders o WHERE o.id = p_order_id;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_refund_gift_split(uuid, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_refund_gift_split(uuid, integer) TO service_role;
+
+CREATE OR REPLACE FUNCTION public.restore_gift_card_for_declutter_order(p_order_id uuid, p_refund_key text, p_cents integer)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  o record;
+  v_credit record;
+  v_existing record;
+  v_cents integer;
+  v_new uuid;
+BEGIN
+  IF p_order_id IS NULL OR p_refund_key IS NULL OR p_refund_key = '' THEN
+    RAISE EXCEPTION 'p_order_id and p_refund_key are required' USING ERRCODE = '22023';
+  END IF;
+  SELECT id, gift_card_id, gift_cents INTO o FROM public.declutter_orders WHERE id = p_order_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('outcome', 'order_not_found');
+  END IF;
+  SELECT id, amount INTO v_existing FROM public.gift_cards WHERE restored_declutter_refund_key = p_refund_key;
+  IF FOUND THEN
+    RETURN jsonb_build_object('outcome', 'already_restored', 'credit_id', v_existing.id,
+                              'restore_cents', round(v_existing.amount * 100)::integer);
+  END IF;
+  SELECT id, donor_id, recipient_id, recipient_email, category, message, occasion, design_id, expires_at, payment_status
+    INTO v_credit FROM public.gift_cards
+   WHERE id = o.gift_card_id AND declutter_order_id = p_order_id AND status = 'redeemed' FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('outcome', 'no_credit');
+  END IF;
+  v_cents := least(greatest(COALESCE(p_cents, 0), 0), public.declutter_order_gift_net_cents(p_order_id));
+  IF v_cents <= 0 THEN
+    RETURN jsonb_build_object('outcome', 'nothing_to_restore', 'credit_id', v_credit.id, 'restore_cents', 0);
+  END IF;
+  INSERT INTO public.gift_cards (donor_id, recipient_id, recipient_email, amount, status, payment_status, category,
+                                 message, occasion, design_id, parent_credit_id, restored_from_declutter_order_id,
+                                 restored_declutter_refund_key, expires_at)
+  VALUES (v_credit.donor_id, v_credit.recipient_id, v_credit.recipient_email, v_cents::numeric / 100, 'sent',
+          COALESCE(v_credit.payment_status, 'paid'), v_credit.category, v_credit.message, v_credit.occasion,
+          v_credit.design_id, v_credit.id, p_order_id, p_refund_key,
+          greatest(COALESCE(v_credit.expires_at, now() + interval '90 days'), now() + interval '90 days'))
+  RETURNING id INTO v_new;
+  RETURN jsonb_build_object('outcome', 'restored', 'credit_id', v_new, 'parent_credit_id', v_credit.id,
+                            'restore_cents', v_cents, 'payment_status', COALESCE(v_credit.payment_status, 'paid'));
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.restore_gift_card_for_declutter_order(uuid, text, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.restore_gift_card_for_declutter_order(uuid, text, integer) TO service_role;

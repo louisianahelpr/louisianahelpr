@@ -3153,6 +3153,8 @@ export type Database = {
       }
       declutter_orders: {
         Row: {
+          gift_card_id: string | null
+          gift_cents: number
           book_by: string | null
           book_by_reminded_24_at: string | null
           book_by_reminded_2_at: string | null
@@ -3189,6 +3191,8 @@ export type Database = {
           total_cents: number
         }
         Insert: {
+          gift_card_id?: string | null
+          gift_cents?: number
           book_by?: string | null
           book_by_reminded_24_at?: string | null
           book_by_reminded_2_at?: string | null
@@ -3223,6 +3227,8 @@ export type Database = {
           total_cents: number
         }
         Update: {
+          gift_card_id?: string | null
+          gift_cents?: number
           book_by?: string | null
           book_by_reminded_24_at?: string | null
           book_by_reminded_2_at?: string | null
@@ -5154,6 +5160,10 @@ export type Database = {
       }
       gift_cards: {
         Row: {
+          declutter_order_id: string | null
+          restored_declutter_refund_key: string | null
+          restored_from_declutter_order_id: string | null
+          split_for_declutter_order_id: string | null
           amount: number
           category: string | null
           claim_token: string | null
@@ -5178,6 +5188,10 @@ export type Database = {
           stripe_session_id: string | null
         }
         Insert: {
+          declutter_order_id?: string | null
+          restored_declutter_refund_key?: string | null
+          restored_from_declutter_order_id?: string | null
+          split_for_declutter_order_id?: string | null
           amount: number
           category?: string | null
           claim_token?: string | null
@@ -5202,6 +5216,10 @@ export type Database = {
           stripe_session_id?: string | null
         }
         Update: {
+          declutter_order_id?: string | null
+          restored_declutter_refund_key?: string | null
+          restored_from_declutter_order_id?: string | null
+          split_for_declutter_order_id?: string | null
           amount?: number
           category?: string | null
           claim_token?: string | null

@@ -14,7 +14,7 @@ SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
   SELECT p.id, p.order_id, o.buyer_id, p.seller_id, p.amount_cents, pr.stripe_account_id, o.stripe_payment_intent_id, p.attempts,
-         public.declutter_order_refunds_recorded_cents(o.id), o.gift_cents
+         public.declutter_order_refunds_recorded_cents(o.id), public.declutter_order_gift_net_cents(o.id)
     FROM public.declutter_payouts p
     JOIN public.declutter_orders o ON o.id = p.order_id
     LEFT JOIN public.profiles pr ON pr.user_id = p.seller_id
@@ -38,6 +38,8 @@ GRANT EXECUTE ON FUNCTION public.declutter_payouts_due(integer) TO service_role;
 -- under declutter-money's giftCovers guard. Both queues return the order's gift_cents. Restated VERBATIM from the newest
 -- definitions (declutter_manager_payouts_due 20261101233256, helpr_task_payouts_due 20261028014848) plus that one
 -- column; the return type changes, so each is dropped and made again, with the same grants.
+-- S3: every queue's gift_cents is NET of what refunds gave back to the gift balance (declutter_order_gift_net_cents,
+-- 20261105030604), so a restored gift share is never also paid out from the platform balance.
 DROP FUNCTION IF EXISTS public.declutter_manager_payouts_due(integer);
 CREATE FUNCTION public.declutter_manager_payouts_due(p_limit integer)
 RETURNS TABLE (payout_id uuid, order_id uuid, buyer_id uuid, seller_id uuid, manager_id uuid, amount_cents integer,
@@ -49,7 +51,7 @@ SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
   SELECT m.id, m.order_id, o.buyer_id, m.seller_id, m.manager_id, m.amount_cents, pr.stripe_account_id,
-         o.stripe_payment_intent_id, m.attempts, public.declutter_order_refunds_recorded_cents(o.id), o.gift_cents
+         o.stripe_payment_intent_id, m.attempts, public.declutter_order_refunds_recorded_cents(o.id), public.declutter_order_gift_net_cents(o.id)
     FROM public.declutter_manager_payouts m
     JOIN public.declutter_orders o ON o.id = m.order_id
     JOIN public.declutter_payouts sp ON sp.id = m.seller_payout_id
@@ -102,7 +104,7 @@ AS $fn$
                                                        'cents', x.tip_cents) ORDER BY x.paid_at, x.id)
                      FROM public.helpr_task_tips x
                     WHERE x.task_id = t.id AND x.held AND x.payment_status = 'paid' AND x.payout_transfer_id IS NULL), '[]'::jsonb),
-         CASE WHEN t.source_kind = 'declutter_delivery' THEN o.gift_cents ELSE 0 END
+         CASE WHEN t.source_kind = 'declutter_delivery' THEN public.declutter_order_gift_net_cents(o.id) ELSE 0 END
     FROM public.helpr_task_payouts p
     JOIN public.helpr_tasks t ON t.id = p.task_id
     LEFT JOIN public.declutter_orders o ON t.source_kind = 'declutter_delivery' AND o.id = t.source_id

@@ -15,7 +15,10 @@
  *   (7) a fully covered order that is no longer payable (the buyer blocked the seller) raises and rolls back: the gift
  *       is untouched and no refund is recorded;
  *   (8) a second gift on the same order (no page opened) puts the first back to 'sent';
- *   (9) an order with no gift pays exactly as before; grants service_role only; the file replays 3x.
+ *   (9) an order with no gift pays exactly as before; grants service_role only; the file replays 3x;
+ *   (10) S3: a refund's gift share goes back to the gift balance as the buyer's own spendable child, once per refund
+ *       key, capped at the gift (net of earlier give-backs); a split order's share is proportional (rounded down), a
+ *       gift-only order's is all of it, a card-only order's is 0.
  *
  *   node src/test/pglite/declutterGiftCards.pglite.mjs                       # all PASS
  *   NEW_MIGRATION=skip node src/test/pglite/declutterGiftCards.pglite.mjs    # RED: no gift path (the columns only)
@@ -78,7 +81,7 @@ CREATE TABLE public.declutter_seller_fee_debts (id uuid PRIMARY KEY DEFAULT gen_
 CREATE TABLE public.helpr_tasks (helpr_id uuid, source_kind text, source_id uuid);
 CREATE TABLE public.notices (user_id uuid, kind text, title text, message text);
 CREATE TABLE public.gift_cards (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), donor_id uuid, recipient_id uuid, recipient_email text,
-  amount numeric NOT NULL, status text NOT NULL, payment_status text, category text, message text, parent_credit_id uuid,
+  amount numeric NOT NULL, status text NOT NULL, payment_status text, category text, message text, occasion text, design_id text, parent_credit_id uuid,
   job_id uuid, split_for_job_id uuid, restored_from_job_id uuid, expires_at timestamptz, redeemed_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT now());
 CREATE FUNCTION public.declutter_seller_out(a uuid) RETURNS boolean LANGUAGE sql AS $$ SELECT EXISTS (SELECT 1 FROM public.out_sellers WHERE id = a) $$;
@@ -262,9 +265,40 @@ check(p9?.result === "paid" && (await row("declutter_orders", o9.order))?.card_f
 const o9b = await openOrder(S9, B9);
 check((await pay(o9b.order, null, 0))?.error != null, "(9) a call with no payment intent never pays a no-gift order");
 
+// (10) S3: a refund's gift share goes back to the gift balance, once per refund key, proportionally on a split order.
+const sq = async (sql, p) => { try { return (await q(sql, p))[0]; } catch (e) { return { error: e.message }; } };
+const split = async (o, c) => (await sq(`SELECT public.declutter_refund_gift_split($1, $2) AS v`, [o, c]))?.v;
+const net = async (o) => (await sq(`SELECT public.declutter_order_gift_net_cents($1) AS v`, [o]))?.v;
+const restore = async (o, k, c) => (await sq(`SELECT public.restore_gift_card_for_declutter_order($1, $2, $3) AS r`, [o, k, c]))?.r;
+// Mixed (2): $40 order, gift $25, card $15. A full refund: the gift's share is exactly the gift; a $10 part: 625.
+check(await split(o2.order, 4000) === 2500 && await split(o2.order, 1000) === 625 && await split(o2.order, 1) === 0,
+  "(10) a split order's refund is proportional (gift share rounded down, the card takes the odd cent)",
+  JSON.stringify([await split(o2.order, 4000), await split(o2.order, 1000), await split(o2.order, 1)]));
+const r10a = await restore(o2.order, "refund:o2:part1", 625);
+const child10 = r10a?.credit_id ? await row("gift_cards", r10a.credit_id) : null;
+check(r10a?.outcome === "restored" && cents(child10?.amount) === 625 && child10?.status === "sent" && child10?.recipient_id === B2
+  && child10?.parent_credit_id === g2 && child10?.payment_status === "paid", "(10) the gift share comes back as the buyer's own spendable gift", JSON.stringify(r10a));
+const r10b = await restore(o2.order, "refund:o2:part1", 625);
+check(r10b?.outcome === "already_restored" && r10b?.credit_id === r10a?.credit_id
+  && (await q(`SELECT 1 FROM public.gift_cards WHERE restored_from_declutter_order_id = $1`, [o2.order])).length === 1,
+  "(10) the same refund key never restores twice", JSON.stringify(r10b));
+check(await net(o2.order) === 1875 && await split(o2.order, 4000) === 1875, "(10) the net gift drops by what came back; a later split never exceeds it");
+const r10c = await restore(o2.order, "refund:o2:rest", 99999);
+check(r10c?.restore_cents === 1875 && await net(o2.order) === 0 && await restore(o2.order, "refund:o2:more", 100).then((r) => r?.outcome) === "nothing_to_restore",
+  "(10) restores are capped at the gift: never more back than the gift paid", JSON.stringify(r10c));
+// Gift-only (1): $42 paid by the gift, no card. All of a refund is the gift's.
+check(await split(o1.order, 4200) === 4200 && await split(o1.order, 500) === 500, "(10) a gift-only order's refund is all gift (no card to refund)");
+const r10d = await restore(o1.order, "refund:o1:full", 4200);
+check(r10d?.restore_cents === 4200 && await net(o1.order) === 0, "(10) a gift-only order refunds whole to the gift balance", JSON.stringify(r10d));
+// No gift (9): nothing to restore; the split is 0.
+check(await split(o9.order, 4000) === 0 && (await restore(o9.order, "refund:o9", 4000))?.outcome === "no_credit", "(10) a card-only order has no gift share");
+check((await sq(`SELECT public.restore_gift_card_for_declutter_order($1, NULL, 1) AS r`, [o2.order]))?.error?.includes("required"), "(10) no refund key: refused");
+
 if (!skip) {
   for (const sig of ["public.redeem_gift_card_for_declutter_order(uuid, uuid, uuid, text)",
-    "public.declutter_mark_order_paid(uuid, text, integer, timestamptz, integer)"]) {
+    "public.declutter_mark_order_paid(uuid, text, integer, timestamptz, integer)",
+    "public.restore_gift_card_for_declutter_order(uuid, text, integer)", "public.declutter_refund_gift_split(uuid, integer)",
+    "public.declutter_order_gift_net_cents(uuid)"]) {
     const acl = (await q(`SELECT has_function_privilege('anon', '${sig}', 'EXECUTE') a, has_function_privilege('authenticated', '${sig}', 'EXECUTE') u,
       has_function_privilege('service_role', '${sig}', 'EXECUTE') s`))[0];
     check(!acl.a && !acl.u && acl.s, `grants on ${sig}: anon ${acl.a} authenticated ${acl.u} service_role ${acl.s}`);

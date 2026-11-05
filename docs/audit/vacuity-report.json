@@ -1,25 +1,10 @@
 {
-  "generated": "2026-11-05T05:35:10.083Z",
-  "guards": 3533,
-  "registered": 3532,
-  "unregistered": [
-    "src/components/job-card/useFollowOpenCard.test.ts"
-  ],
+  "generated": "2026-11-05T06:23:10.529Z",
+  "guards": 3539,
+  "registered": 3539,
+  "unregistered": [],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/components/admin/settings/DeclutterShippingClaimsCard.test.tsx",
-    "src/components/declutter/bundleDiscountOff.test.tsx",
-    "src/hooks/useWebPush.test.ts",
-    "src/pages/post-job/giftCardBanner.test.tsx",
-    "src/test/desktopProfileButtonFocusRing.test.ts",
-    "src/test/failedBankCancelRepostsTheJob.test.ts",
-    "src/test/shakeToReportLoadsOnlyInTheApp.test.ts",
-    "src/test/shippingClaimPayout.test.ts",
-    "src/test/shippingLostSweep.test.ts",
-    "src/test/shippingNeverShippedSweep.test.ts",
-    "src/test/shippingProblemScans.test.ts",
-    "src/test/stripeTaxProbeRefusesLive.test.ts",
-    "src/test/taxLawCiteIsCurrent.test.ts"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],
   "classD_selfReferential": [
     {
@@ -36,12 +21,6 @@
       ]
     },
     {
-      "file": "src/test/offlineBannerOverDesktopBar.test.ts",
-      "why": [
-        "values (literal declared in this file) is both input and oracle"
-      ]
-    },
-    {
       "file": "src/test/prodSeedGroupJobFixture.test.ts",
       "why": [
         "rows (literal declared in this file) is both input and oracle"
@@ -55,168 +34,6 @@
     }
   ],
   "classB_mountWiring": [
-    {
-      "module": "src/components/admin/AdminBanEvasionReview.tsx",
-      "tests": [
-        "src/components/admin/AdminBanEvasionReview.test.tsx"
-      ],
-      "parents": [
-        "src/components/admin/AdminFraudDashboard.tsx"
-      ]
-    },
-    {
-      "module": "src/components/admin/AdminUserDetailDialog.tsx",
-      "tests": [
-        "src/test/adminMemberDetail.test.tsx",
-        "src/components/admin/AdminUserDetailDialog.test.tsx"
-      ],
-      "parents": [
-        "src/components/admin/AdminUsers.tsx"
-      ]
-    },
-    {
-      "module": "src/components/admin/adminusers/AdminUserRow.tsx",
-      "tests": [
-        "src/test/adminUserSummaryUnknownIsNotAbsent.test.tsx"
-      ],
-      "parents": [
-        "src/components/admin/AdminUsers.tsx"
-      ]
-    },
-    {
-      "module": "src/components/admin/BanDialog.tsx",
-      "tests": [
-        "src/components/admin/BanDialog.test.tsx"
-      ],
-      "parents": [
-        "src/components/admin/AdminUsers.tsx"
-      ]
-    },
-    {
-      "module": "src/components/admin/DeleteUserDialog.tsx",
-      "tests": [
-        "src/components/admin/DeleteUserDialog.test.tsx"
-      ],
-      "parents": [
-        "src/components/admin/AdminUsers.tsx"
-      ]
-    },
-    {
-      "module": "src/components/admin/EditEmailDialog.tsx",
-      "tests": [
-        "src/components/admin/EditEmailDialog.test.tsx"
-      ],
-      "parents": [
-        "src/components/admin/AdminUsers.tsx"
-      ]
-    },
-    {
-      "module": "src/components/admin/FormalWarningDialog.tsx",
-      "tests": [
-        "src/components/admin/FormalWarningDialog.test.tsx",
-        "src/components/admin/adminDialogsInFlight.test.tsx"
-      ],
-      "parents": [
-        "src/components/admin/AdminUsers.tsx"
-      ]
-    },
-    {
-      "module": "src/components/admin/ManualVerifyDialog.tsx",
-      "tests": [
-        "src/components/admin/ManualVerifyDialog.test.tsx",
-        "src/components/admin/adminDialogsInFlight.test.tsx"
-      ],
-      "parents": [
-        "src/components/admin/AdminUsers.tsx"
-      ]
-    },
-    {
-      "module": "src/components/admin/ResetPasswordDialog.tsx",
-      "tests": [
-        "src/components/admin/ResetPasswordDialog.test.tsx",
-        "src/components/admin/adminDialogsInFlight.test.tsx"
-      ],
-      "parents": [
-        "src/components/admin/AdminUsers.tsx"
-      ]
-    },
-    {
-      "module": "src/components/GuestBrowseSkeleton.tsx",
-      "tests": [
-        "src/test/dataAwareSkeletons.test.tsx"
-      ],
-      "parents": [
-        "src/pages/home/DashboardGuest.tsx"
-      ]
-    },
-    {
-      "module": "src/components/jobs/ContinueDaySheet.tsx",
-      "tests": [
-        "src/test/continueDayEverywhere.test.tsx",
-        "src/test/posterContinueDayAsksTheHelpr.test.tsx"
-      ],
-      "parents": [
-        "src/pages/jobs/jobPage/useContinueDayActions.tsx"
-      ]
-    },
-    {
-      "module": "src/components/messages/ChatView.tsx",
-      "tests": [
-        "src/test/cancelledThreadClosesBeforeTheTap.test.tsx",
-        "src/test/chatThreadNoDeadBandAboveMessages.test.tsx",
-        "src/components/messages/ChatView.layout.test.tsx"
-      ],
-      "parents": [
-        "src/pages/messages/Messages.tsx"
-      ]
-    },
-    {
-      "module": "src/components/messages/ConversationList.tsx",
-      "tests": [
-        "src/test/desktopScreenNameIsSrOnly.test.tsx",
-        "src/test/failedListLoadShowsError.test.tsx",
-        "src/test/finishedThreadsAgeOutOfAllNeverDeleted.test.tsx",
-        "src/test/inboxBottomClearanceMatchesTheDock.test.tsx",
-        "src/test/inboxOpensOnActiveWithoutHidingUnread.test.tsx",
-        "src/test/messagesDesktopFilterTabsInline.test.tsx",
-        "src/test/messagesNoSeparateTopPanel.test.tsx",
-        "src/test/messagesSearchOwnLineBelow360.test.tsx",
-        "src/test/messagesSectionTabs.test.tsx",
-        "src/test/searchDismissAndOverlay.test.tsx",
-        "src/test/specialInboxViewsNeverBlank.test.tsx"
-      ],
-      "parents": [
-        "src/pages/messages/Messages.tsx"
-      ]
-    },
-    {
-      "module": "src/components/notificationPreferences/SmsAlertsCard.tsx",
-      "tests": [
-        "src/components/notificationPreferences/smsAlertsNoSilentOptOut.test.tsx",
-        "src/components/notificationPreferences/smsConfirmCodeInApp.test.tsx"
-      ],
-      "parents": [
-        "src/components/notificationPreferences/SmsPhonePromptDialog.tsx"
-      ]
-    },
-    {
-      "module": "src/components/profile/savedHelpersTab/SavedHelperCard.tsx",
-      "tests": [
-        "src/components/profile/savedHelpersTab/SavedHelperCard.test.tsx"
-      ],
-      "parents": [
-        "src/components/profile/SavedHelpersTab.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/messages/MessagesTwoPane.tsx",
-      "tests": [
-        "src/test/messagesComposerReachesEdge.test.tsx"
-      ],
-      "parents": [
-        "src/pages/messages/Messages.tsx"
-      ]
-    },
     {
       "module": "src/pages/post-job/CheckoutStepView.tsx",
       "tests": [
@@ -257,26 +74,6 @@
       ],
       "parents": [
         "src/pages/post-job/PostJob.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/profile/giftCards/CreditCard.tsx",
-      "tests": [
-        "src/pages/profile/giftCards/departedDonorName.test.tsx",
-        "src/pages/profile/giftCards/giftCardSpendGate.test.tsx",
-        "src/pages/profile/giftCards/giftSenderName.test.tsx"
-      ],
-      "parents": [
-        "src/pages/profile/GiftCard.tsx"
-      ]
-    },
-    {
-      "module": "src/pages/profile/giftCards/RecipientPicker.tsx",
-      "tests": [
-        "src/pages/profile/giftCards/RecipientPicker.test.tsx"
-      ],
-      "parents": [
-        "src/pages/profile/GiftCard.tsx"
       ]
     }
   ],

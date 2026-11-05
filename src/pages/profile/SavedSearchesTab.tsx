@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ListRow } from "@/components/ui/ListRow";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronRight, MoreHorizontal } from "lucide-react";
@@ -174,7 +175,7 @@ export default function SavedSearchesTab({ onBack }: { onBack: () => void }) {
             <ul className="rounded-2xl overflow-hidden" style={card}>
               {rows.map((s) => (
                 <li key={s.id} className="flex items-center border-b border-border last:border-b-0" data-saved-search={s.section}>
-                  <button type="button" onClick={() => void open(s)} className="flex-1 min-w-0 flex items-center gap-3 pl-4 pr-1 py-3 min-h-[60px] text-left ctl-tint">
+                  <ListRow variant="flush" onClick={() => void open(s)} className="flex-1 min-w-0 pl-4 pr-1 py-3">
                     <span className="flex-1 min-w-0">
                       <span className="flex items-center gap-2 min-w-0">
                         <span className="font-sans font-semibold text-ds-15 truncate" style={{ color: "hsl(var(--ink-deep))" }} title={s.name}>{s.name}</span>
@@ -183,7 +184,7 @@ export default function SavedSearchesTab({ onBack }: { onBack: () => void }) {
                       <span className="block font-sans text-ds-13 text-muted-foreground truncate" title={rowSummary(s, !!paused.data)}>{rowSummary(s, !!paused.data)}</span>
                     </span>
                     <ChevronRight className="w-4 h-4 shrink-0 text-muted-foreground" aria-hidden />
-                  </button>
+                  </ListRow>
                   {/* The shared compact ghost icon (44 tap, 40 wash), not a hand-made button; 16px glyph kept (B47 10-31). */}
                   <Button type="button" variant="ghost" size="iconCompact" onClick={() => setEditing(s)} aria-label={`Settings for ${s.name}`}
                     className="shrink-0 mr-1 rounded-full text-muted-foreground [&_svg]:size-4">

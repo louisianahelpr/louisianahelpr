@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ListRow } from "@/components/ui/ListRow";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -218,10 +219,10 @@ export default function Receipts({ onBack }: { onBack?: () => void }) {
               const shown = open === r.key;
               return (
                 <li key={r.key} className="py-3">
-                  <button type="button" className="flex w-full min-h-11 items-center justify-between gap-3 text-left" aria-expanded={shown}
+                  <ListRow className="-mx-2 w-[calc(100%+1rem)] gap-3 px-2 py-0" aria-expanded={shown}
                     onClick={() => setOpen(shown ? null : r.key)} data-receipt-toggle="">
                     {row}
-                  </button>
+                  </ListRow>
                   {shown && (
                     <div className="mt-2 space-y-1.5 text-ds-13" data-receipt-detail="">
                       <dl className="space-y-1">

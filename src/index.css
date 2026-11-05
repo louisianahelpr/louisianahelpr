@@ -2777,7 +2777,7 @@ button,
      left implicit, so an older gradient rule can never show through; the
      small soft shadow comes from the Button's ELEV_FILLED. Guards:
      src/test/segmentedControlInvariant.test.tsx (this rule) and
-     e2e/happy-path/apply-single-sheet.spec.ts (computed style on a real CTA). */
+     e2e/journeys/apply-sheet.spec.ts (computed style on a real CTA). */
   background-color: hsl(var(--bark));
   background-image: none;
   /* THE INK COMES WITH THE SURFACE (Q2162). The class used
@@ -3084,11 +3084,11 @@ button,
    rect, and — the part that matters here — nothing to the container's
    SCROLLABLE OVERFLOW. A pseudo-element or extra padding would have added
    scrollable height and made a sheet that hugs its content start to scroll,
-   which is the property `apply-single-sheet.spec.ts` pins. The scroller clips
+   which is the property `e2e/journeys/apply-sheet.spec.ts` pins. The scroller clips
    the shadow at the padding box, so it fills exactly the gutter and no more.
 
    PURELY VERTICAL OFFSET — no spread, no blur. The shadow is the row's own
-   width, so it cannot widen anything: `apply-dialog-fit.spec.ts` went red
+   width, so it cannot widen anything: the apply-dialog-fit spec (now e2e/journeys/apply-sheet.spec.ts) went red
    ("sheet-sticky-actions ... overRight 15") the last time this row tried to
    reach an edge with `-mx-4 px-4`, and horizontal bleed is not being
    reintroduced.

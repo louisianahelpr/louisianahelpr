@@ -1067,6 +1067,23 @@ describe("Declutter slice 3 screens", () => {
     expect(state.opened).toEqual(["https://checkout.stripe.test/pay"]);
   });
 
+  // Q2709 packet 17 (lead 11-04): Pay moved onto the shared Button; a second tap while the pay request is out must not
+  // start a second checkout. Pay turns off ("Opening…") the moment it is tapped.
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx | disabled={held \|\| opening \|\| offered.length === 0 | disabled={held \|\| offered.length === 0
+  it("a double tap on Pay starts one checkout, not two", async () => {
+    const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
+      checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
+    state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", price_cents: 400 }];
+    show(<CartView />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pay $8.05" })).toBeEnabled());
+    const pay = screen.getByRole("button", { name: "Pay $8.05" });
+    fireEvent.click(pay);
+    fireEvent.click(pay);
+    expect(pay).toBeDisabled();
+    await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.test/pay"]));
+    expect(state.paid).toEqual([{ sellerId: "s2", handover: "porch" }]);
+  });
+
   // Owner 2026-11-01 (checkout screenshot): the seller's pickup places sat after Helpr delivery in a box of their own.
   // They go UNDER the chosen way that uses them: porch pickup (the default), a door pickup or Helpr delivery.
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |               {needsPlace && ( |               {false && (

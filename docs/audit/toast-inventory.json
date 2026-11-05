@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1155,
-    "files": 320,
-    "rendering": 1074,
+    "calls": 1156,
+    "files": 321,
+    "rendering": 1075,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 219,
-      "toast.error": 780,
+      "toast.error": 781,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 489,
       "template": 105,
-      "dynamic": 613,
+      "dynamic": 614,
       "jsx": 0
     }
   },
@@ -11866,6 +11866,16 @@
       "title": {
         "form": "literal",
         "text": "Couldn't download the file — try again."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/profileLink/api.ts",
+      "line": 82,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "out.error ?? GENERIC"
       },
       "renders": true
     },

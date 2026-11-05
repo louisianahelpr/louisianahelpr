@@ -34,6 +34,9 @@
  * Assertions are on the nav's own translateY, taken from the computed
  * transform matrix: 0 = docked, ~130 = slid off the bottom. Reading the class
  * list or `aria-hidden` would pass on a bar that never actually moved.
+ *
+ * Shown able to fail: a dock that never hides leaves translateY at 0 on every route ("hidden" waits for > 100).
+ * @mutate src/components/mobileNav/useDockScrollState.ts | setNavHidden(!atEnd && y >= 64 && delta > 0); | setNavHidden(false);
  */
 import type { APIRequestContext, Browser, BrowserContext, Page, Request } from "@playwright/test";
 import { test, expect, SUPABASE_URL, getSession, isUserWrite, newUserContext, sessionsAvailable, type Role } from "./fixtures";

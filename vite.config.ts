@@ -201,6 +201,7 @@ const homeSet = staticReach(process.cwd(), homePageRoots(process.cwd()));
 // other every-page roots' code (Legal's data export, the ID sheet's switch reads, award copy), the dock waited for all of it.
 const dockSet = staticReach(process.cwd(), [path.join(process.cwd(), "src/components/MobileNav.tsx")]);
 const bootOrHome = (f: string) => bootSet.has(f) || homeSet.has(f);
+const homeOnly = (f: string) => homeSet.has(f) && !bootSet.has(f);
 const norm = (id: string) => id.split("?")[0].replace(/\\/g, "/");
 const lateShared = (id: string) => (SHARED_DIR_RE.test(id) || /[\\/]supabase[\\/]functions[\\/]/.test(id)) && !bootOrHome(norm(id));
 const { browseOnly, homeShared: browseHomeShared } = guestBrowseSplit(process.cwd());
@@ -884,7 +885,11 @@ export default defineConfig(({ mode, command }) => ({
             // call it. Its own ~1 KB chunk keeps the entry to itself.
             {
               name: "preload-helper",
-              test: /vite\/preload-helper/,
+              // Q2705/Q2706 slice 4 (Builder 3, 11-04): src/lib/loadModule.ts rides here too (no imports, ~0.4 KB gz). The
+              // supabase-js stand-ins (lazyRealtime.ts, lazyStorage.ts) import it, so the "supabase" bucket's recursive capture
+              // took it and every boot module that lazy-loads anything statically imported the 30 KB gz supabase chunk for it.
+              // Its own chunk cost every route ~0.4 KB gz more than this.
+              test: (id: string) => /vite\/preload-helper/.test(id) || /src[\\/]lib[\\/]loadModule\.ts$/.test(id),
               // Above the vendor buckets (100), B75 11-01: supabase-js imports lazyRealtime/lazyStorage in the build, and
               // the "supabase" bucket's recursive capture took the helper they use with them, so the entry statically
               // imported the 45 KB supabase chunk and every other boot chunk started one round later (+0.7 s).
@@ -1327,6 +1332,18 @@ export default defineConfig(({ mode, command }) => ({
               priority: 10,
               minSize: 0,
               includeDependenciesRecursively: false /* their deps stay put, as in signed-in-shared */,
+            },
+            // Q2705/Q2706 slice 4 (Builder 3, 11-04): the shared code Home's first screen runs but boot does not. In
+            // app-shared (a boot chunk) its modules that import the Supabase client (useFeature, useActivityData,
+            // authSignOut...) put the client, createClient and the 30 KB gz supabase chunk on every page's boot, though
+            // no boot module imports the client statically. Its own chunk, the modules alone (their deps stay where
+            // they are: with the recursive capture, boot modules they import would ride here and pull it onto boot).
+            {
+              name: "home-shared",
+              test: (id: string) => SHARED_DIR_RE.test(id) && homeOnly(norm(id)),
+              minShareCount: 2,
+              priority: 11,
+              includeDependenciesRecursively: false, // the home-only modules alone
             },
             // Only the shared code boot runs (bootReach.mjs bootModules: the static closure of src/main.tsx)
             // plus what Home's first screen runs (every signed-in visitor lands there; splitting that out cost

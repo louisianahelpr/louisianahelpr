@@ -255,7 +255,7 @@ serve(async (req) => {
         delivery,
       }),
     );
-    return webhookRejectResponse("signature_verification_failed");
+    return new Response(JSON.stringify({ received: true, error: "signature_verification_failed" }), { status: 200 });
   }
 
   logStep("Event received", { type: event.type, id: event.id, via: verifiedByTestSecret ? "test_endpoint" : verifiedByConnectSecret ? "connect_endpoint" : "live_endpoint" });

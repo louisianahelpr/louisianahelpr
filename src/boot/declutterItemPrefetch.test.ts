@@ -6,7 +6,11 @@
  */
 // @mutate src/boot/signedInPrefetch.ts |   startDeclutterItemPrefetch(pathname); |
 // @mutate src/lib/declutter/itemPrefetchTake.ts |   s.taken.add(part); |
-// @mutate src/lib/declutter/itemPrefetchTake.ts |   if (!userId \|\| userId !== s.userId) return undefined; |   if (!userId) return undefined;
+// @mutate src/lib/declutter/itemPrefetchTake.ts |   if (s.userId === null ? userId != null : !userId \|\| userId !== s.userId) return undefined; |   if (s.userId === null ? false : !userId) return undefined;
+// @mutate src/boot/declutterItemPrefetch.ts |   const guest = !session && !anyStoredSession(); |   const guest = !session;
+// @mutate src/boot/declutterItemPrefetch.ts |   if (!base \|\| !key \|\| (!session && !guest)) return; |   if (!base \|\| !key \|\| !session) return;
+// @mutate src/boot/storedSession.ts | (the page reads for itself).\n    return true; | (the page reads for itself).\n    return false;
+// @mutate src/entry.ts | } else if (/^\/declutter\/item\/[\w-]+\/?$/.test(window.location.pathname)) { | } else if (false) {
 // @mutate src/lib/declutter/itemPrefetchTake.ts | s.itemId !== itemId \|\| | false \|\|
 // @mutate src/lib/declutter/api.ts |   const prefetched = await takeItemPrefetch(itemId, sessionUserId); |   const prefetched = undefined;
 // @mutate src/lib/declutter/api.ts |   if (bootItem) return bootItem as DeclutterPhoto[]; |
@@ -101,6 +105,13 @@ describe("a cold item page's reads and first photo start from the entry (B100)",
     expect(re.test(PATH)).toBe(true);
     expect(re.test("/declutter")).toBe(true);
     expect(re.test("/messages")).toBe(false);
+    // Q2707: a GUEST's item page reaches the door too (no token), and only that route.
+    const guestGate = /\} else if \((\/\^\\\/declutter\\\/item\\\/.*\/)\.test\(window\.location\.pathname\)\) \{\s*void signedInPrefetch\(\)\s*\.then\(\(m\) => m\?\.startSignedInPrefetch\(window\.location\.pathname\)\)/.exec(code("src/entry.ts"))?.[1];
+    expect(guestGate, "the entry's guest item test").toBeTruthy();
+    const g = new Function(`return ${guestGate}`)() as RegExp;
+    expect(g.test(PATH)).toBe(true);
+    expect(g.test(PATH + "/")).toBe(true);
+    for (const p of ["/declutter", "/home", "/jobs", "/declutter/item/" + ITEM + "/edit"]) expect(g.test(p), p).toBe(false);
     expect(code("src/lib/declutter/itemPrefetchTake.ts")).toContain(`const KEY = "${DECLUTTER_ITEM_PREFETCH_KEY}";`);
     const importers = walkSource([resolve(ROOT, "src")])
       .filter((f) => !/\.test\.tsx?$/.test(f))
@@ -109,13 +120,9 @@ describe("a cold item page's reads and first photo start from the entry (B100)",
     expect(importers).toEqual(["src/boot/signedInPrefetch.ts"]);
   });
 
-  it("fires for a member on an item page only: never a guest, an expiring session or another route", async () => {
+  it("fires for a member or a guest on an item page only: never an expiring session or another route", async () => {
     const f = answering(rows);
     vi.stubGlobal("fetch", f);
-    vi.stubEnv("VITE_SUPABASE_URL", BASE);
-    vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "pk");
-    startDeclutterItemPrefetch(PATH);
-    expect(f, "guest").not.toHaveBeenCalled();
     signIn(30);
     startDeclutterItemPrefetch(PATH);
     expect(f, "a token with under a minute left").not.toHaveBeenCalled();
@@ -133,6 +140,63 @@ describe("a cold item page's reads and first photo start from the entry (B100)",
     expect(links).toHaveLength(1);
     expect(links[0].getAttribute("imagesizes")).toBe(GALLERY_SIZES);
     expect(links[0].href).toBe(firstGalleryPhoto(BASE, rows("declutter_item_photos"))!.href);
+  });
+
+  it("a guest (no stored session) reads as the anonymous role, and the answer goes only to a page with no session (Q2707)", async () => {
+    vi.stubEnv("VITE_SUPABASE_URL", BASE);
+    vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "pk");
+    const f = answering(rows);
+    vi.stubGlobal("fetch", f);
+    startDeclutterItemPrefetch(PATH);
+    const calls = f.mock.calls as unknown as [string, RequestInit][];
+    const urls = declutterItemUrls(BASE, ITEM);
+    expect(calls.map(([u]) => u).sort()).toEqual([urls.item, urls.photos].sort());
+    for (const [, init] of calls) {
+      expect((init.headers as Record<string, string>).Authorization, "the publishable key as bearer, as supabase-js signed out").toBe("Bearer pk");
+      expect((init.headers as Record<string, string>).apikey).toBe("pk");
+    }
+    await flush();
+    expect(document.head.querySelectorAll('link[rel="preload"][as="image"]'), "the photo preload too").toHaveLength(1);
+    expect(await takeItemPrefetch(ITEM, UID), "never to a member").toBeUndefined();
+    expect(await takeItemPrefetch(ITEM, async () => UID), "never to a member (resolved)").toBeUndefined();
+    expect(await takeItemPrefetch(ITEM, async () => undefined)).toEqual({ id: ITEM, title: "Lamp" });
+    expect(await takeItemPrefetch(ITEM, null), "once").toBeUndefined();
+    expect(await takeItemPhotosPrefetch(ITEM, null)).toHaveLength(2);
+    // A member's answer never reaches a page with no session.
+    signIn();
+    startDeclutterItemPrefetch(PATH);
+    expect(await takeItemPrefetch(ITEM, null), "a member's answer to a guest page").toBeUndefined();
+    // Any stored session at all (an expired one, or unreadable storage) is not a guest: nothing is read.
+    const g = answering(rows);
+    vi.stubGlobal("fetch", g);
+    localStorage.clear();
+    signIn(-600);
+    startDeclutterItemPrefetch(PATH);
+    localStorage.clear();
+    localStorage.setItem("sb-proj-auth-token", "not json");
+    startDeclutterItemPrefetch(PATH);
+    localStorage.clear();
+    const keySpy = vi.spyOn(window, "localStorage", "get").mockImplementation(() => { throw new Error("blocked"); });
+    startDeclutterItemPrefetch(PATH);
+    keySpy.mockRestore();
+    expect(g, "a stored, expiring or unreadable session").not.toHaveBeenCalled();
+  });
+
+  it("fetchItem and fetchPhotos hand a guest page the guest answer and ask Supabase nothing", async () => {
+    vi.stubEnv("VITE_SUPABASE_URL", BASE);
+    vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "pk");
+    db.uid = null;
+    vi.stubGlobal("fetch", answering(rows));
+    startDeclutterItemPrefetch(PATH);
+    expect(await api.fetchItem(ITEM)).toEqual({ id: ITEM, title: "Lamp" });
+    expect(await api.fetchPhotos([ITEM])).toHaveLength(2);
+    expect(db.calls, "no double read").toEqual([]);
+    // Signed in by the time the page asks: the guest answer is not used.
+    startDeclutterItemPrefetch(PATH);
+    db.uid = UID;
+    await api.fetchItem(ITEM);
+    await api.fetchPhotos([ITEM]);
+    expect(db.calls).toEqual(["declutter_items", "declutter_item_photos"]);
   });
 
   it("hands each read out once, for that item and that member", async () => {

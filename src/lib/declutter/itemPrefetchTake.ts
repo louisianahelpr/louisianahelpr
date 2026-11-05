@@ -13,14 +13,16 @@ const KEY = "__lhDeclutterItemPrefetch";
 export const DECLUTTER_ITEM_PREFETCH_MAX_AGE_MS = 30_000;
 
 type Part = "item" | "photos";
-type Slot = { at: number; userId: string; itemId: string; taken?: Set<Part> } & Record<Part, Promise<unknown[] | null>>;
+/** userId null: read as a guest (the anonymous role), handed only to a page with no session. */
+type Slot = { at: number; userId: string | null; itemId: string; taken?: Set<Part> } & Record<Part, Promise<unknown[] | null>>;
 type Member = string | null | undefined | (() => Promise<string | null | undefined>);
 
 async function take(part: Part, itemId: string, member: Member, now: number): Promise<unknown[] | undefined> {
   const s = (window as unknown as Record<string, Slot | undefined>)[KEY];
   if (!s || s.itemId !== itemId || now - s.at > DECLUTTER_ITEM_PREFETCH_MAX_AGE_MS || s.taken?.has(part)) return undefined;
   const userId = typeof member === "function" ? await member() : member;
-  if (!userId || userId !== s.userId) return undefined;
+  // A member's answer only to that member; a guest's (userId null) only to a page with no session.
+  if (s.userId === null ? userId != null : !userId || userId !== s.userId) return undefined;
   s.taken ??= new Set();
   if (s.taken.has(part)) return undefined;
   s.taken.add(part);

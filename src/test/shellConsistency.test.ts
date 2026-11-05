@@ -351,8 +351,11 @@ function specifierFor(src: ts.SourceFile, name: string): { spec: string; importe
         if (!ts.isIdentifier(d.name) || d.name.text !== name || !d.initializer) continue;
         const init = unwrap(d.initializer);
         if (ts.isCallExpression(init)) {
-          const m = /import\(\s*["']([^"']+)["']\s*\)/.exec(init.getText());
-          if (m) return { spec: m[1], imported: "default" };
+          const text = init.getText();
+          const m = /import\(\s*["']([^"']+)["']\s*\)/.exec(text);
+          // `lazy(() => import("./X").then((m) => ({ default: m.Named })))` loads the NAMED export.
+          const named = /\.then\(\s*\(?\s*(\w+)\s*\)?\s*=>\s*\(\s*\{\s*default:\s*\1\.(\w+)\s*\}\s*\)\s*\)/.exec(text);
+          if (m) return { spec: m[1], imported: named ? named[2] : "default" };
         }
       }
     }
@@ -416,6 +419,20 @@ type Ctx = {
 
 const SHELL: Verdict = { v: "shell" };
 
+/**
+ * The returns of a followed component (or local helper) are alternatives, one
+ * of which renders at a time, exactly like a ternary's arms: ANY return that
+ * hand-rolls its frame fails, even when another return has a shell. Taking
+ * "some return has a shell" as a pass let Dashboard's banned-user return
+ * (DashboardBannedScreen) lose its AppShell with this file green (vacuity run
+ * 41940585801, 2026-11-05: the DashboardBlockedScreen @mutate SURVIVED).
+ */
+function eitherReturn(rs: Verdict[]): Verdict {
+  const failed = rs.find((r) => r.v === "fail");
+  if (failed) return failed;
+  return rs.some((r) => r.v === "shell") ? SHELL : { v: "none" };
+}
+
 function classify(expr: ts.Node | null, ctx: Ctx): Verdict {
   const here = ctx.trail.length ? ctx.trail.join(" > ") : "the root of the return";
   if (ctx.depth > 16) return { v: "fail", why: `descent limit reached at ${here}` };
@@ -473,8 +490,7 @@ function classify(expr: ts.Node | null, ctx: Ctx): Verdict {
     const rs = returnsOf({ fn: helper }).map((r) =>
       classify(r, { ...ctx, depth: ctx.depth + 1, trail: [...ctx.trail, `${expr.expression.getText()}()`] }),
     );
-    if (rs.some((r) => r.v === "shell")) return SHELL;
-    return rs.find((r) => r.v === "fail") ?? { v: "none" };
+    return eitherReturn(rs);
   }
 
   if (ts.isJsxFragment(expr)) {
@@ -541,9 +557,7 @@ function classify(expr: ts.Node | null, ctx: Ctx): Verdict {
       const ls = returnsOf(local).map((r) =>
         classify(r, { ...ctx, depth: ctx.depth + 1, trail: [...ctx.trail, `<${tag} /> (same file)`] }),
       );
-      if (ls.some((r) => r.v === "shell")) return SHELL;
-      if (ls.every((r) => r.v === "none")) return { v: "none" };
-      return ls.find((r) => r.v === "fail") ?? { v: "none" };
+      return eitherReturn(ls);
     }
     const target = resolveSpec(ctx.abs, spec.spec);
     if (!target)
@@ -564,9 +578,7 @@ function classify(expr: ts.Node | null, ctx: Ctx): Verdict {
         trail: [...ctx.trail, `<${tag} /> → ${relative(REPO, target)}`],
       }),
     );
-    if (rs.some((r) => r.v === "shell")) return SHELL;
-    if (rs.every((r) => r.v === "none")) return { v: "none" };
-    return rs.find((r) => r.v === "fail") ?? { v: "none" };
+    return eitherReturn(rs);
   }
 
   return { v: "fail", why: `the return at ${here} is a ${ts.SyntaxKind[expr.kind]} — nothing here can see what it renders` };

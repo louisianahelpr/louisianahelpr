@@ -26,7 +26,7 @@
  * no-store). prod-freshness.yml re-measures it live after every deploy
  * (scripts/check-missing-asset-headers.mjs).
  *
- * @mutate vercel.json | "source": "/((?!api/\|_vercel/\|assets/\|fonts/).*)" | "source": "/((?!api/\|_vercel/\|fonts/).*)"
+ * @mutate vercel.json | "source": "/((?!api/\|_vercel/\|assets/\|fonts/).*)",\n      "destination": "/api/share?_og=notfound" | "source": "/((?!api/\|_vercel/\|fonts/).*)",\n      "destination": "/index.html"
  * @mutate vercel.json | "source": "/fonts/(.*)",\n      "destination": "/api/missing-asset" | "source": "/fonts-gone/(.*)",\n      "destination": "/api/missing-asset"
  * @mutate api/missing-asset.ts | export const MISSING_ASSET_CACHE_CONTROL = "no-store"; | export const MISSING_ASSET_CACHE_CONTROL = "public, max-age=31536000, immutable";
  * @mutate api/missing-asset.ts |     status: 404, |     status: 200,

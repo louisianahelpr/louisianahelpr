@@ -91,9 +91,9 @@ export function SellerTalks() {
         {mine.map((t) => (
           <li key={t.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-4">
             <p className="min-w-0 flex-1 text-sm">A buyer can't use any way you offer. The chat is open until {when(t.expires_at)}.</p>
-            <button type="button" className="min-h-11 shrink-0 rounded-full border border-border px-4 py-2 text-sm font-semibold" onClick={() => open(t.id)}>
+            <Button type="button" variant="outline" size="sm" className="shrink-0 text-sm font-semibold" onClick={() => open(t.id)}>
               Open chat
-            </button>
+            </Button>
           </li>
         ))}
       </ul>

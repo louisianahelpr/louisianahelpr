@@ -43,6 +43,11 @@ project_id = "fncmgoasalhdgfwzhsqa"
   # that the listing may still be seen; 404 otherwise. Rate limited.
   [functions.listing-photo]
     verify_jwt = false
+  # Public by necessity (owner 11-05, share-profile H4): an <img> sends no Authorization header and /u/<handle> is
+  # for signed-out visitors. It serves one job photo a Helpr picked for their page, by a random pick id (never a
+  # path), re-checking on every fetch that the poster and every Helpr still allow sharing; 404 otherwise. Rate limited.
+  [functions.profile-work-photo]
+    verify_jwt = false
 
   [functions.auth-email-hook]
     verify_jwt = false

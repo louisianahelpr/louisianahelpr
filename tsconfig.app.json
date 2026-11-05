@@ -137,6 +137,7 @@
     "supabase/functions/_shared/boundedFetch.ts",
     "supabase/functions/_shared/webPush.ts",
     "supabase/functions/_shared/jpegStripMetadata.ts",
+    "supabase/functions/_shared/webpStripMetadata.ts",
     "supabase/functions/_shared/functionFetch.ts",
     "supabase/functions/_shared/checkoutNudge.ts",
     // Q1791: src/test/edge/appleSignInRevoke.test.ts imports the real Apple token store/revoke helpers.

@@ -8,11 +8,13 @@
  *    kept device id, a member none.
  *  - display: the "N views" line on the item page is behind isSeller (buyers never see it), and the item page never
  *    reports the seller's own listing.
- * Behaviour on real Postgres: src/test/pglite/declutterItemViews.pglite.mjs (12 PASS; 11 FAIL with NEW_MIGRATION=skip).
+ * Behaviour on real Postgres: src/test/pglite/declutterItemViews.pglite.mjs (14 PASS; FAILs with NEW_MIGRATION=skip).
  *
  * @mutate supabase/migrations/20261105163501_declutter_item_views.sql | IF v_uid = v_seller | IF false
  * @mutate supabase/migrations/20261105163501_declutter_item_views.sql | OR public.is_test_member(v_uid) THEN | THEN
  * @mutate supabase/migrations/20261105163501_declutter_item_views.sql | WHERE i.seller_id = (SELECT auth.uid()) | WHERE true
+ * @mutate supabase/migrations/20261105163501_declutter_item_views.sql | interval '1 hour') >= 30 THEN | interval '1 hour') >= 30000 THEN
+ * @mutate supabase/migrations/20261105163501_declutter_item_views.sql | PERFORM public.attach_unconfirmed_email_gate(); | NULL;
  * @mutate src/lib/declutter/itemViews.ts | sent.add(key); | void key;
  * @mutate src/lib/declutter/itemViews.ts | const device = signedIn ? null : viewerDeviceId(); | const device = signedIn ? null : crypto.randomUUID();
  * @mutate src/components/declutter/DeclutterItemView.tsx | {isSeller && <ItemViewsCount | {true && <ItemViewsCount
@@ -51,6 +53,13 @@ describe("item views: the server counts unique real people, and only the seller 
     expect(b).toMatch(/i\.is_seed\s+IS\s+NOT\s+TRUE/i);
     expect(b).toMatch(/i\.status\s+IN\s*\(\s*'live'\s*,\s*'reserved'\s*\)/i);
     expect((b.match(/DO\s+NOTHING/gi) ?? []).length).toBe(2);
+    // lh-authz-rls review: a guest's device id is the caller's choice, so new guest views are capped per item per hour.
+    expect(b).toMatch(/device_id\s+IS\s+NOT\s+NULL\s+AND\s+v\.created_at\s*>\s*now\(\)\s*-\s*interval\s*'1 hour'\)\s*>=\s*30\s+THEN\s+RETURN/i);
+  });
+
+  it("the new table carries the unconfirmed-email gate (Q807)", () => {
+    const sql = blankSqlComments(readFileSync(`${DIR}/20261105163501_declutter_item_views.sql`, "utf8"));
+    expect(sql).toMatch(/PERFORM\s+public\.attach_unconfirmed_email_gate\(\)/);
   });
 
   it("the count RPC answers only the caller's own items and drops test viewers", () => {

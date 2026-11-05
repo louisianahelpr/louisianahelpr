@@ -20,6 +20,7 @@
  *   V7  a viewer who became a test account after viewing drops out of the count
  *   V8  anon and authenticated hold no grant on the table; anon cannot call the count; no PUBLIC EXECUTE
  *   V9  a guest call with no device id records nothing and raises nothing
+ *   V10 the guest cap: 31 fresh guest ids in one hour on one item count as 30; a member still counts
  */
 import os from "node:os";
 import { readFileSync } from "node:fs";
@@ -154,6 +155,13 @@ ok(acl.rows.length === 2 && acl.rows.every((r) => !/(^|[{,])=X/.test(r.a)), `V8 
 // V9
 const noDevice = await view(null, OTHER_LIVE, null);
 ok(Array.isArray(noDevice) && (await rows(OTHER_LIVE)) === 1, "V9 a guest call without a device id records nothing and raises nothing");
+
+// V10 the guest cap: 31 fresh device ids in one hour on one item count as 30; a member still counts after the cap.
+await db.exec(`INSERT INTO public.declutter_items (id, seller_id, status) VALUES ('${U(106)}', '${SELLER}', 'live')`);
+for (let i = 0; i < 31; i++) await view(null, U(106), U(1000 + i));
+ok((await rows(U(106))) === 30, `V10 31 guest ids in one hour count as 30 (${await rows(U(106))})`);
+await view(BUYER, U(106));
+ok((await rows(U(106))) === 31, "V10 a member still counts once the guest cap is reached");
 
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

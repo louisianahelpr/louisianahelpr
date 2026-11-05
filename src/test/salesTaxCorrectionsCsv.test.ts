@@ -6,6 +6,7 @@
  * @mutate src/lib/salesTaxCorrectionsCsv.ts |     const month = Number.isNaN(when.getTime()) ? "" : when.toISOString().slice(0, 7); |     const month = "";
  * @mutate src/lib/salesTaxCorrectionsCsv.ts |   const from = new Date(Date.UTC(now.getUTCFullYear(), 0, 1)); |   const from = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
  * @mutate src/components/admin/AdminExport.tsx |     const { data, error } = await supabase.rpc("admin_sales_tax_adjustments", { p_from: from, p_to: to }); |     const { data, error } = { data: [], error: null };
+ * @mutate src/components/admin/AdminExport.tsx | className="flex flex-col gap-3 rounded-ds-md | className="flex flex-col space-y-3 rounded-ds-md
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -37,5 +38,19 @@ describe("sales-tax corrections CSV", () => {
     const src = blankComments(readFileSync(join(__dirname, "../components/admin/AdminExport.tsx"), "utf8"));
     expect(src).toMatch(/supabase\.rpc\("admin_sales_tax_adjustments", \{ p_from: from, p_to: to \}\)/);
     expect(src).toMatch(/downloadCSV\("sales-tax-corrections", SALES_TAX_CORRECTIONS_HEADER, salesTaxCorrectionLines\(rows\)\)/);
+  });
+
+  it("every Export button sits on one baseline: the card uses gap, since space-y's margin beats mt-auto", () => {
+    // Measured 11-04 at 1440 (~/.lh-shots/b3-taxcsv/before-fix): with space-y-3 the 4th card's longer copy put its
+    // button 32px below the other three; with gap-3 all four sat at y=345.
+    const src = blankComments(readFileSync(join(__dirname, "../components/admin/AdminExport.tsx"), "utf8"));
+    const cards = [...src.matchAll(/<div key=\{key\} className="([^"]+)"/g)].map((m) => m[1]);
+    expect(cards.length).toBeGreaterThan(0);
+    for (const c of cards) {
+      expect(c).toMatch(/\bflex-col\b/);
+      expect(c).toMatch(/\bgap-\d/);
+      expect(c).not.toMatch(/\bspace-y-/);
+    }
+    expect(src).toMatch(/className="mt-auto self-start"/);
   });
 });

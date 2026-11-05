@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { parseSmsConsent, type SmsConsent } from "@/lib/smsConsent";
 
-export const SMS_CONSENT_QUERY_KEY = ["sms-consent"] as const;
+const SMS_CONSENT_QUERY_KEY = ["sms-consent"] as const;
 
 export const smsConsentQueryKey = (userId: string | undefined) => [...SMS_CONSENT_QUERY_KEY, userId] as const;
 

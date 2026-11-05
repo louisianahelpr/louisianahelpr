@@ -22,7 +22,7 @@ import { resolve } from "node:path";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
 // @mutate src/components/profile/ReviewsTab.tsx | background: "hsl(var(--card) / 0.65)", | background: "hsla(0, 0%, 100%, 0.65)",
-// @mutate src/components/profile/TwoFactorCard.tsx | background: "hsl(var(--card) / 0.55)", | background: "hsla(0, 0%, 100%, 0.55)",
+// @mutate src/components/browseMap/MapOverlays.tsx | background: "hsl(var(--card) / 0.94)", | background: "hsla(0, 0%, 100%, 0.94)",
 
 const ROOT = resolve(__dirname, "..", "..");
 const FILES = execFileSync("git", ["ls-files", "src"], { cwd: ROOT, encoding: "utf8" })

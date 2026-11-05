@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { loadModule } from "@/lib/loadModule";
 import { report } from "@/lib/errorLogger";
 import { recordColdLaunchPhase } from "@/lib/coldLaunchPhases";
 import { noteAuthUser } from "@/lib/authUserChanged";
@@ -142,6 +142,19 @@ const hasPersistedSession = (): boolean => {
 };
 
 /**
+ * Q2705/Q2706 slice 4 (Builder 3, 11-04): the Supabase client (30 KB gz) loads off the boot path; auth takes it on
+ * first use. Null only when a recovery reload prevented the chunk (loadModule); a real load failure rejects.
+ */
+let clientLoad: Promise<SupabaseClientType | null> | null = null;
+type SupabaseClientType = typeof import("@/integrations/supabase/client")["supabase"];
+const loadClient = (): Promise<SupabaseClientType | null> => {
+  // One load shared by the listener and getSession (they start together); a failed load is retried next time.
+  const load = (clientLoad ??= loadModule(() => import("@/integrations/supabase/client")).then((m) => m?.supabase ?? null));
+  load.catch(() => { clientLoad = null; });
+  return load;
+};
+
+/**
  * Returns the session, plus whether we gave up waiting rather than learning
  * there is no session. Those two outcomes used to be the same value (`null`)
  * and that conflation is what logged people out:
@@ -162,7 +175,8 @@ const getSessionWithTimeout = async (): Promise<{ session: Session | null; timed
   const TIMED_OUT = Symbol("auth-bootstrap-timeout");
   try {
     const result = await Promise.race([
-      supabase.auth.getSession(),
+      // No client (a recovery reload is under way): answer as a timeout, so a stored token is never read as signed out.
+      loadClient().then((client) => (client ? client.auth.getSession() : TIMED_OUT)),
       new Promise<typeof TIMED_OUT>((resolve) =>
         window.setTimeout(() => resolve(TIMED_OUT), AUTH_BOOTSTRAP_TIMEOUT_MS),
       ),
@@ -198,7 +212,7 @@ export const useAuthReady = () => {
         emitAuthSnapshot({ user: session?.user ?? null, isReady: true });
       };
 
-      supabase.auth.onAuthStateChange((event, session) => {
+      void loadClient().then((client) => client?.auth.onAuthStateChange((event, session) => {
         if (DEBUG_AUTH) {
           console.log("[auth] onAuthStateChange", {
             event,
@@ -210,6 +224,9 @@ export const useAuthReady = () => {
           initialized = true;
           emitAuthSnapshot({ user: session?.user ?? null, isReady: true });
         }
+      })).catch((err: unknown) => {
+        // The client chunk failed to load: getSession below fails the same way and is reported there.
+        if (DEBUG_AUTH) console.log("[auth] client load failed", err);
       });
 
       // A restore is "in flight" when we timed out waiting for getSession AND

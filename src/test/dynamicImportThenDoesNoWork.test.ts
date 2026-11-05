@@ -140,6 +140,8 @@ describe("no read runs inside Vite's dynamic-import wrapper", () => {
 
   it("an empty module is dropped silently only at the pinned sites where nothing is lost", () => {
     const SILENT: Record<string, number> = {
+      "src/hooks/useAuthReady.ts": 1, // Q2705 slice 4: no client is answered as a getSession timeout (a stored token stays un-ready, the listener waits); nothing is lost
+      "src/hooks/useCurrentUser.ts": 1, // Q2705 slice 4: an empty client module waits on untilReload(); the read is retried, not dropped
       "src/hooks/useSignOutAction.ts": 1, // error-logger send
       "src/integrations/supabase/client.ts": 2, // error-logger sends (refresh hold, Q1596 vanished-session hold)
       "src/integrations/supabase/keychainStorageAdapter.ts": 1, // error-logger send

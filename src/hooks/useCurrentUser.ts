@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { loadModule, untilReload } from "@/lib/loadModule";
 import { unwrap } from "@/lib/supabaseResult";
 import type { Database } from "@/integrations/supabase/types";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -102,8 +102,26 @@ const firstFulfilled = <T,>(promises: Promise<T>[]): Promise<T> =>
     }
   });
 
+/**
+ * Q2705/Q2706 slice 4 (Builder 3, 11-04): the Supabase client loads off the boot path; these reads take it on first
+ * use. A chunk a recovery reload prevented waits for that reload (untilReload), so no error shows first.
+ */
+let clientLoad: ReturnType<typeof loadClientModule> | null = null;
+const loadClientModule = () => loadModule(() => import("@/integrations/supabase/client"));
+const client = async () => {
+  // One load shared by the profile and role reads that start together; a failed load is retried next time.
+  const load = (clientLoad ??= loadClientModule());
+  load.catch(() => { clientLoad = null; });
+  const m = await load;
+  if (!m) {
+    clientLoad = null;
+    return untilReload();
+  }
+  return m.supabase;
+};
+
 const readProfile = (userId: string): Promise<Profile | null> => {
-  const fresh = Promise.resolve(supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle()).then(
+  const fresh = client().then((c) => c.from("profiles").select("*").eq("user_id", userId).maybeSingle()).then(
     (result) => unwrap(result) ?? null,
   );
   const orphan = orphanedProfileReads.get(userId);
@@ -222,8 +240,8 @@ const fetchCurrentUser = async (
   const ADMIN_ROLE_ATTEMPTS = 3;
   const ADMIN_ROLE_RETRY_DELAY_MS = 250;
   const readAdminRoleOnce = () =>
-    Promise.resolve(
-      supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle(),
+    client().then((c) =>
+      c.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle(),
     ).then((result): { ok: true; isAdmin: boolean } => ({ ok: true, isAdmin: !!unwrap(result) }));
   const adminPromise = withTimeout(
     (async (): Promise<{ ok: true; isAdmin: boolean }> => {

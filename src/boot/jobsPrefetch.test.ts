@@ -106,8 +106,8 @@ describe("signed-in /jobs' first reads start from the entry (B43, Q1158)", () =>
       admin: url(sb.from("user_roles").select("role").eq("user_id", UID).eq("role", "admin").maybeSingle()),
     });
     const cur = code("src/hooks/useCurrentUser.ts");
-    expect(cur).toContain('supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle()');
-    expect(cur).toContain('supabase.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle()');
+    expect(cur).toContain('c.from("profiles").select("*").eq("user_id", userId).maybeSingle()');
+    expect(cur).toContain('c.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").maybeSingle()');
     expect(cur).toMatch(/const pre = await takeJobsMePrefetch\(userId\);\s*if \(pre\) return \{ profile: pre\.profile as Profile \| null, isAdmin: pre\.isAdmin, adminCheckFailed: false \};/);
     expect(crewSpotsUrl(BASE, ["a", "b"])).toBe(url(sb.from("open_jobs_browse").select("id, crew_spots_open").in("id", ["a", "b"])));
     // ...and the query asks exactly those chains.

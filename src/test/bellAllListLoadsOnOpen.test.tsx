@@ -18,7 +18,7 @@
 // @mutate src/components/notificationPanel/notificationFeed.ts | () => void load((id) => (listHeldFor(id) ? ensureFreshNotificationFeed(id) : loadBadgeFeed(id))), | () => void load(loadNotificationFeed),
 // @mutate src/components/NotificationPanel.tsx | { if (open) void loadNotifications(false); } | { void loadNotifications(false); }
 // @mutate src/components/NotificationPanel.tsx | { if (open) void loadNotifications(false); } | { if (false) void loadNotifications(false); }
-// @mutate src/components/NotificationPanel.tsx | className={triggerClassName} {...prefetchOnIntent} /> | className={triggerClassName} />
+// @mutate src/components/NotificationPanelView.tsx | className={triggerClassName} {...prefetchOnIntent} /> | className={triggerClassName} />
 // @mutate src/components/notificationPanel/notificationFeed.ts |   onFocus: () => prefetchNotificationList(), |   onFocus: () => {},
 // @mutate src/components/notificationPanel/NotificationBell.tsx |       {...prefetchOnIntent}\n |
 // @mutate src/components/notificationPanel/notificationFeed.ts |   onTouchStart: () => prefetchNotificationList(), |   onTouchStart: () => {},

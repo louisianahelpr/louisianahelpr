@@ -10,7 +10,7 @@
  * @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql | WHEN p_type IN ('warning', 'job_updates') AND p_title IN ('A dispute was opened', 'Job disputed') THEN 'dispute' | WHEN p_type = 'warning' AND p_title IN ('A dispute was opened', 'Job disputed') THEN 'dispute'
  * @mutate supabase/migrations/20261102002011_needs_you_deadline_reminders.sql | WHEN p_type = 'job_updates' AND p_title IN ('Offer declined', 'Offer expired', | WHEN p_type = 'job_updates' AND p_title IN ('Offer never',
  * @mutate supabase/functions/_shared/notification-templates.ts |         type: "new_offers",\n        link: jobPage(f), |         type: "info",\n        link: jobPage(f),
- * @mutate src/components/NotificationPanel.tsx | (n.type === "warning" \|\| n.title === "Your Helpr cancelled") && | n.type === "warning" &&
+ * @mutate src/components/NotificationPanelView.tsx | (n.type === "warning" \|\| n.title === "Your Helpr cancelled") && | n.type === "warning" &&
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -77,7 +77,7 @@ describe("job notices follow the job switches (#17)", () => {
   });
 
   it("the bell keeps its Repost pill on a moved cancellation", () => {
-    const panel = blankComments(readFileSync(resolve(ROOT, "src/components/NotificationPanel.tsx"), "utf8"));
+    const panel = blankComments(readFileSync(resolve(ROOT, "src/components/NotificationPanelView.tsx"), "utf8"));
     expect(panel).toContain('(n.type === "warning" || n.title === "Your Helpr cancelled") &&');
   });
 });

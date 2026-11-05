@@ -92,7 +92,7 @@ const NOT_AN_ENTRY: Record<string, string> = {
   // Secondary links inside god components held by componentSizeRatchet: each
   // opens the /post-job form, whose top line and greyed button say why. The
   // nav's Post button, the empty states and the job sheet's Apply are greyed.
-  "src/components/NotificationPanel.tsx": "the Repost pill on an expired/cancelled job's notification; opens the gated form",
+  "src/components/NotificationPanelView.tsx": "the Repost pill on an expired/cancelled job's notification; opens the gated form",
   "src/components/profile/ScheduleTab.tsx": "Post a job beside Browse on an empty calendar; opens the gated form",
   "src/pages/posts/postedJobCard/PostedCancelledBlock.tsx": "Re-Post this job on a cancelled card (moved out of PostedJobCard, Q806); opens the gated form",
   "src/pages/posts/postedJobCard/posterFaceAction.ts": "Post again on a cancelled card's face (board 14); opens the gated form",

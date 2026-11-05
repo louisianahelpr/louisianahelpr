@@ -75,6 +75,9 @@ import { BROWSE_FIXTURE_TITLE, ensureBrowseFixture, fixtureRow } from "../../scr
 //   5. NO DEAD BAND under the CTA on a short job: the sheet hugs its content.
 
 
+// newUserContext already blocks them; this covers any context the project builds (Q1164).
+test.use({ serviceWorkers: "block" });
+
 /** One SCENARIO pin runs this whole file ("apply-sheet"). */
 const rotation: Rotation = { ...rotationFor(23), network: "fast" };
 const titleFor = (slug: string) =>

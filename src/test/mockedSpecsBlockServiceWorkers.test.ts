@@ -159,6 +159,7 @@ describe("a spec that intercepts Supabase runs with the service worker blocked (
     const happy = PROJECTS.find((p) => p.name === "happy-path");
     expect(happy && collects(happy, "e2e/happy-path/apply-sticky-overlap.spec.ts")).toBe(true);
     expect(INTERCEPTING.length).toBeGreaterThan(20); // 21 on 2026-11-05: 23 minus apply-dialog-fit + apply-single-sheet, moved to journeys/apply-sheet (Q1035)
+
     expect(INTERCEPTING.map((s) => s.rel)).toEqual(
       expect.arrayContaining([
         "e2e/happy-path/apply-sticky-overlap.spec.ts",

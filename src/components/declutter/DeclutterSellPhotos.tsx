@@ -9,6 +9,7 @@
  */
 import { useEffect, useMemo, type ReactNode } from "react";
 import { Camera, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { photoPublicUrl, type DeclutterPhoto } from "@/lib/declutter/api";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS } from "@/lib/declutter/photoRules";
 import { useHeldPhotoReorder } from "./heldPhotoReorder";
@@ -122,9 +123,9 @@ export function SellPhotos({
             <RemoveButton label={`Remove photo ${uploaded.length + i + 1}`} onClick={() => onRemoveHeld(i)} />
             </div>
             {onMakeCover && !heldFailed && uploaded.length + i > 0 && (
-              <button type="button" onClick={() => onMakeCover(i)} aria-label={`Make photo ${uploaded.length + i + 1} the cover`} className="min-h-11 w-full text-center text-ds-12 font-semibold text-[hsl(var(--sage-ink))]">
+              <Button type="button" variant="ghost" size="sm" onClick={() => onMakeCover(i)} aria-label={`Make photo ${uploaded.length + i + 1} the cover`} className="w-full px-0 text-center text-ds-12 font-semibold text-[hsl(var(--sage-ink))]">
                 Make cover
-              </button>
+              </Button>
             )}
           </li>
         ))}

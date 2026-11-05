@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-05T20:22Z",
+  "measured_at": "2026-11-05T20:45Z",
   "issues": {
     "readable": true,
     "open": [
@@ -115,10 +115,10 @@
         "runTruncated": false
       },
       {
-        "number": 4140,
-        "title": "nightly-red: main: Supabase DB Deploy",
+        "number": 4149,
+        "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42082050381",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42105316708",
         "runTruncated": false
       }
     ]
@@ -458,7 +458,7 @@
     "issue #3824": "Q1816",
     "issue #4062": "Q1816",
     "issue #4111": "Q1816",
-    "issue #4140": "Q1816",
+    "issue #4149": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",

@@ -47,7 +47,6 @@ const BASELINE: string[] = [
   "happy-path/auditRoutes.ts",
   "happy-path/browse-feed-completeness.spec.ts",
   "happy-path/customer-post-job.spec.ts",
-  "happy-path/customer-sees-application.spec.ts",
   "happy-path/device-pass-measure.spec.ts",
   "happy-path/empty-state-sweep.spec.ts",
   "happy-path/error-state-sweep.spec.ts",

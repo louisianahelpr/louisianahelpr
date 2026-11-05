@@ -142,13 +142,12 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
         // A done step with a time, or the current step with a reason, is a control (full tracker only).
         const tipText = !detailed ? null : ts ? stampText(ts) : i === stage && why ? why : null;
         const key = `step-${i}`;
-        // The words this step DRAWS (the short one at 375, the soft-hyphenated full one from a 368px tracker), so its
-        // name holds what is on screen at every width (WCAG 2.5.3, axe label-content-name-mismatch, Q1816).
+        // THE NAME READS THE WHOLE WORD (WCAG 2.5.3, Q1816, lead 11-04): the drawn words are aria-hidden (the short
+        // "Arr." at 375 and the soft-hyphenated "Ar-rived" from a 368px tracker), and the name comes from one hidden
+        // line with the full step name the wider tracker shows: "Arrived: what this step is waiting on". A problem
+        // step's drawn word ("Late", "No-show") leads, since it replaces the step name on screen.
         const problemWord = (s === "problem" || s === "alarm") && label ? PROBLEM_SHORT[label] ?? label : null;
-        const shortWord = problemWord ?? JOB_PROGRESS_SHORT[i];
-        const drawnWord = problemWord ?? JOB_PROGRESS_DRAWN[i];
-        const shownWords = shortWord === drawnWord.replace(/\u00AD/g, "") ? drawnWord : `${shortWord}, ${drawnWord}`;
-        const named = problemWord ? `${shownWords}, ${full}` : shownWords;
+        const named = problemWord ? `${problemWord}, ${full}` : full;
         const body = (
           <>
             {detailed && (
@@ -180,7 +179,6 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
                 data-step-tip={i}
                 // A done step names its time; the current step names what its tap shows, not the line itself (the
                 // line is already on screen, and its words must not read as one of the card's own buttons).
-                aria-label={ts ? `${named} — ${tipText}` : `${named}: what this step is waiting on`}
                 {...tip.handlers(key)}
                 // THE HIT AREA REACHES INTO HALF THE GAP ON EACH SIDE (Q2369): eight steps share one row at 375
                 // (owner, 2026-10-22), so a column is ~43px in CI's fonts, under the 44px tap target. The grid's gap
@@ -195,6 +193,7 @@ function JobStepBar({ stage, waitingOnYou, tone = "progress", label, detailed = 
                 className="flex flex-col justify-start w-[calc(100%+4px)] -mx-[2px] px-[2px] min-h-[44px] !min-w-0 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--bark))]"
               >
                 <span aria-hidden="true" className="block">{body}</span>
+                <span className="sr-only">{ts ? `${named} — ${tipText}` : `${named}: what this step is waiting on`}</span>
               </button>
             ) : (
               <div aria-hidden="true">{body}</div>

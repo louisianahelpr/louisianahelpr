@@ -495,3 +495,68 @@ describe("PayoutSetupForm, the start button fits at 320", () => {
     expect(button.className).not.toMatch(/\bwhitespace-nowrap\b/);
   });
 });
+
+/**
+ * M14 (audit 1105, Shops): an LLC or corporation can set up a business payout
+ * account. Before an account exists, "This is a registered business (LLC or
+ * corporation)" reveals a legal-name field; the onboard call then carries
+ * business_type "company" and the name (stripe-connect creates a `company`
+ * account: src/test/edge/stripeConnectCompanyAccount.test.ts). Unticked, the
+ * call is exactly what it was. A blank name is caught on screen and nothing is
+ * called. An existing account shows no choice (its type cannot change).
+ *
+ * @mutate src/components/PayoutSetupForm.tsx | body: { action, return_url: returnUrl, ...business }, | body: { action, return_url: returnUrl },
+ * @mutate src/components/PayoutSetupForm.tsx | if (!status?.connected && isBusiness && businessName.trim().length < 2) { | if (false) {
+ * @mutate src/components/PayoutSetupForm.tsx | {!status?.connected && (\n            <div data-payout-business | {(\n            <div data-payout-business
+ */
+describe("PayoutSetupForm, a registered business sets up a business payout account", () => {
+  const noAccount = { connected: false, details_submitted: false, payouts_enabled: false, transfers_status: null, requirements: [] };
+  const onboardBodies = () =>
+    invokeMock.mock.calls
+      .filter(([fn, o]) => fn === "stripe-connect" && (o as { body?: { action?: string } })?.body?.action === "onboard")
+      .map(([, o]) => (o as { body: Record<string, unknown> }).body);
+
+  beforeEach(() => {
+    invokeMock.mockImplementation(async (_fn: string, opts?: { body?: { action?: string } }) =>
+      opts?.body?.action === "onboard" ? { data: { url: "https://connect.stripe.com/setup/x" }, error: null } : { data: statusFixture, error: null });
+  });
+
+  it("ticked with a name, the onboard call asks for a company account with that name", async () => {
+    statusFixture = noAccount;
+    renderForm();
+    fireEvent.click(await screen.findByRole("checkbox", { name: /registered business \(LLC or corporation\)/ }));
+    fireEvent.change(screen.getByLabelText("Business legal name"), { target: { value: "  Dana's Bakery LLC " } });
+    fireEvent.click(screen.getByRole("button", { name: /Set up payouts with Stripe/ }));
+
+    await waitFor(() => expect(onboardBodies().length).toBeGreaterThan(0));
+    expect(onboardBodies()[0]).toMatchObject({ action: "onboard", business_type: "company", company_name: "Dana's Bakery LLC" });
+  });
+
+  it("unticked, the onboard call carries no business fields", async () => {
+    statusFixture = noAccount;
+    renderForm();
+    fireEvent.click(await screen.findByRole("button", { name: /Set up payouts with Stripe/ }));
+
+    await waitFor(() => expect(onboardBodies().length).toBeGreaterThan(0));
+    expect(onboardBodies()[0]).not.toHaveProperty("business_type");
+    expect(onboardBodies()[0]).not.toHaveProperty("company_name");
+  });
+
+  it("ticked with no name, it says so on screen and calls nothing", async () => {
+    statusFixture = noAccount;
+    renderForm();
+    fireEvent.click(await screen.findByRole("checkbox", { name: /registered business/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Set up payouts with Stripe/ }));
+
+    expect((await screen.findByTestId("payout-start-error")).textContent).toMatch(/business's legal name/);
+    expect(onboardBodies()).toEqual([]);
+    expect(requireBiometricMock).not.toHaveBeenCalled();
+  });
+
+  it("an account already on file shows no business choice", async () => {
+    statusFixture = { connected: true, details_submitted: false, payouts_enabled: false, transfers_status: null, requirements: ["external_account"] };
+    renderForm();
+    await screen.findByRole("button", { name: /Complete Stripe verification/ });
+    expect(screen.queryByRole("checkbox", { name: /registered business/ })).toBeNull();
+  });
+});

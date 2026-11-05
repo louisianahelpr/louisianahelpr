@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   CheckCircle, AlertCircle, Loader2, Trash2, Building2, CreditCard, ExternalLink, RefreshCw,
@@ -54,6 +56,11 @@ export function PayoutSetupForm({ onSettled }: {
   // nothing on screen after the toast faded; the words now stay where the member is looking.
   const [startError, setStartError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<string | null>(null);
+  // M14 (audit 1105): an LLC or corporation sets up a business payout account
+  // (Stripe `company`), named for the business. Read only when a NEW account
+  // is made; an account already on file keeps its type.
+  const [isBusiness, setIsBusiness] = useState(false);
+  const [businessName, setBusinessName] = useState("");
   const [resetting, setResetting] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   // Owner ruling 2026-10-23: payout setup is paused while Stripe reviews our
@@ -106,6 +113,10 @@ export function PayoutSetupForm({ onSettled }: {
     // Gate runs BEFORE track(): a helper who fails the prompt never started
     // onboarding, so the funnel shouldn't record that they did.
     if (setupPaused) return;
+    if (!status?.connected && isBusiness && businessName.trim().length < 2) {
+      setStartError("Enter your business's legal name, as it appears on its tax papers.");
+      return;
+    }
     const ok = await requireBiometric("Confirm changes to your payout account");
     if (!ok) return;
     setStartError(null);
@@ -117,8 +128,11 @@ export function PayoutSetupForm({ onSettled }: {
       // helpers can complete jobs and never get paid if they never finish
       // this flow — instrumentation lets us see the drop-off rate.
       track(AhaEvent.PayoutSetupStarted, { action, ...ppoTrackingProps() });
+      const business = action === "onboard" && !status?.connected && isBusiness
+        ? { business_type: "company", company_name: businessName.trim() }
+        : {};
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action, return_url: returnUrl },
+        body: { action, return_url: returnUrl, ...business },
       });
       // A non-2xx leaves `error` a FunctionsHttpError whose .message is
       // "Edge Function returned a non-2xx status code"; the function's own
@@ -463,6 +477,40 @@ export function PayoutSetupForm({ onSettled }: {
               the button (measured on Money > Earned, helper-e2e: content 249px
               in a 246px button, "Stripe" cut at the right). It wraps to a
               second line instead. Guard: PayoutSetupForm.test.tsx. */}
+          {!status?.connected && (
+            <div data-payout-business className="space-y-2">
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  id="payout-is-business"
+                  checked={isBusiness}
+                  onCheckedChange={(v) => setIsBusiness(v === true)}
+                  disabled={onboarding}
+                  className="mt-0.5"
+                />
+                <label htmlFor="payout-is-business" className="font-sans text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
+                  This is a registered business (LLC or corporation)
+                </label>
+              </div>
+              {isBusiness && (
+                <div className="space-y-1">
+                  <label htmlFor="payout-business-name" className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+                    Business legal name
+                  </label>
+                  <Input
+                    id="payout-business-name"
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    maxLength={120}
+                    autoComplete="organization"
+                    disabled={onboarding}
+                  />
+                  <p className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.7)" }}>
+                    Stripe will ask for the business's tax ID (EIN) and for you as its owner.
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
           <Button
             variant="primary"
             size="wrap"

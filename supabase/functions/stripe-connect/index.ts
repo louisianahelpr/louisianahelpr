@@ -15,6 +15,7 @@ import { featureEnabledForUser } from "../_shared/featureSwitch.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { isRejectedAccount, isRejectedAccountError } from "../_shared/livePayoutGate.ts";
 import { recordConnectChange } from "../_shared/connectRecord.ts";
+import { connectBusinessFrom, type ConnectBusiness } from "../_shared/connectBusinessType.ts";
 
 /** Q863: clears recorded in the last hour before stripe-connect stops clearing. */
 const STALE_CLEAR_HOURLY_CAP = 5;
@@ -308,6 +309,16 @@ serve(async (req) => {
       return payoutSetupNeedsHireResponse(corsHeaders);
     }
 
+    // M14: the member's "registered business" choice, or a 400 in their words.
+    const businessOrRefusal = (b: unknown): ConnectBusiness | Response => {
+      const parsed = connectBusinessFrom(b as { business_type?: unknown; company_name?: unknown });
+      if (!("invalid" in parsed)) return parsed;
+      return new Response(JSON.stringify({ error: parsed.invalid, reason: "invalid_business" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    };
+
     // Helper: get or create Connect account
     // `replacing`: the id of a REJECTED account to swap for a fresh one (owner
     // 2026-10-25: a hired Helpr whose account Stripe rejected gets a new one,
@@ -315,7 +326,9 @@ serve(async (req) => {
     // in place of that exact id, so a failed create changes nothing.
     // `beforeLink` runs after the create and before the link write; if it
     // throws, nothing is linked (the replacement records the old id first).
-    const getOrCreateAccount = async (opts: { replacing?: string; beforeLink?: (newAccountId: string) => Promise<void> } = {}) => {
+    // `business` (M14): the type a NEW account is created as. An account already
+    // on file is used as it is, whatever this says.
+    const getOrCreateAccount = async (opts: { replacing?: string; beforeLink?: (newAccountId: string) => Promise<void>; business?: ConnectBusiness } = {}) => {
       const { data: profile, error: profileReadErr } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id, full_name, phone, date_of_birth, location")
@@ -352,22 +365,31 @@ serve(async (req) => {
         // the SAME Stripe account instead of creating an orphan. Without
         // this, every crashed retry left a dangling Express account on
         // Stripe that no Helpr user pointed to.
+        // M14: a registered business (LLC or corporation) gets a `company`
+        // account named for the business; Stripe's onboarding collects its EIN
+        // and representative. Everyone else stays an `individual`, prefilled
+        // from the profile.
+        const business: ConnectBusiness = opts.business ?? { type: "individual" };
         const createParams = {
           type: "express",
           country: "US",
           email: user.email,
-          business_type: "individual",
           business_profile: {
             mcc: "7299",
             product_description: "Local job and errand services",
           },
-          individual: {
-            first_name: firstName,
-            last_name: lastName,
-            email: user.email,
-            phone: profile?.phone || undefined,
-            dob,
-          },
+          ...(business.type === "company"
+            ? { business_type: "company", company: { name: business.name } }
+            : {
+              business_type: "individual",
+              individual: {
+                first_name: firstName,
+                last_name: lastName,
+                email: user.email,
+                phone: profile?.phone || undefined,
+                dob,
+              },
+            }),
           capabilities: {
             transfers: { requested: true },
           },
@@ -395,9 +417,13 @@ serve(async (req) => {
         // account and the next attempt's key names that dead id, which a
         // replay can never return again. Bounded: three dead replays in a row
         // is not something retrying will fix.
+        // A company create has its own key: Stripe refuses a reused key whose
+        // parameters differ, so an individual attempt in the last 24 h must not
+        // block (or be replayed for) a company one.
+        const keyKind = business.type === "company" ? "-company" : "";
         let idempotencyKey = replacing
-          ? `stripe-connect-create-${user.id}-replacing-${replacing}`
-          : `stripe-connect-create-${user.id}`;
+          ? `stripe-connect-create-${user.id}${keyKind}-replacing-${replacing}`
+          : `stripe-connect-create-${user.id}${keyKind}`;
         let account: { id: string } | null = null;
         for (let attempt = 0; attempt < 3 && !account; attempt++) {
           const created = await stripe.accounts.create(createParams, { idempotencyKey });
@@ -492,7 +518,7 @@ serve(async (req) => {
      * ops are told, so any balance on it stays findable. Any other read error
      * throws to the outer catch and nothing changes.
      */
-    const freshIfRejected = async (accountId: string): Promise<string> => {
+    const freshIfRejected = async (accountId: string, business?: ConnectBusiness): Promise<string> => {
       if (!(await featureEnabledForUser(supabaseAdmin, "payout_after_hire", user))) return accountId;
       let rejected = false;
       try {
@@ -506,6 +532,7 @@ serve(async (req) => {
       let retirementId: string | null = null;
       const { accountId: fresh } = await getOrCreateAccount({
         replacing: accountId,
+        business,
         beforeLink: async (newAccountId) => {
           const { data: recRows, error: recErr } = await supabaseAdmin
             .from("connect_account_retirements")
@@ -613,7 +640,9 @@ serve(async (req) => {
     // ─── ONBOARD: Create account + return Account Link URL ───
     if (action === "onboard") {
       const { return_url, collect } = body;
-      const accountId = await freshIfRejected((await getOrCreateAccount()).accountId);
+      const business = businessOrRefusal(body);
+      if (business instanceof Response) return business;
+      const accountId = await freshIfRejected((await getOrCreateAccount({ business })).accountId, business);
 
       const accountLink = await stripe.accountLinks.create({
         account: accountId,
@@ -860,6 +889,9 @@ serve(async (req) => {
       // seat's account (the sanctioned fixture included) and creates a new one.
       if (callerIsTestSeat) throw new TestSeatConnectRefused(user.id, "reset");
       const { return_url } = body;
+      // Read before anything is deleted, so a bad business name changes nothing.
+      const business = businessOrRefusal(body);
+      if (business instanceof Response) return business;
       const { data: profile, error: profileReadErr } = await supabaseAdmin
         .from("profiles")
         .select("stripe_account_id")
@@ -970,7 +1002,7 @@ serve(async (req) => {
         throw new Error("Could not unlink your current payout account — please try again");
       }
 
-      const { accountId } = await getOrCreateAccount();
+      const { accountId } = await getOrCreateAccount({ business });
       // Q2368 (lead 11-03): the durable record of the reset (old and new account), which was a console line only.
       // A record, not an alert (error_log_is_record_only); a failed insert is logged, never thrown.
       await recordConnectChange(supabaseAdmin, { kind: "connect-reset", userId: user.id, oldAccountId, newAccountId: accountId });

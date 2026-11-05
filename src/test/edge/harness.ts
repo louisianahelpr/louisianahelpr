@@ -1131,6 +1131,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/connectRecord.ts";`,
   );
 
+  // Connect business type (M14): `_shared/connectBusinessType.ts` has ZERO imports; it decides whether a new
+  // payout account is a person or a registered business, so the REAL module serves.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/connectBusinessType\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/connectBusinessType.ts";`,
+  );
+
   // Stripe mode (owner 2026-10-12, test mode for test accounts):
   // `_shared/stripeMode.ts` has ZERO imports and decides which Stripe key a
   // payment runs on. A stub would be the one gate between a test account and

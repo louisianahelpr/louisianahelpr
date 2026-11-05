@@ -314,7 +314,7 @@ describe("hardReloadBypassCache follow-ups", () => {
   it("WebKit replay: a failed /assets chunk is refetched with cache 'reload' BEFORE the reload", async () => {
     // WebKit keeps a failed module load in its memory cache and replays it into
     // the next document without asking the server (measured behind a real 404
-    // proxy, e2e/happy-path/stale-deploy.spec.ts "warm, guard armed").
+    // proxy, e2e/journeys/stale-deploy.spec.ts "warm, guard armed").
     Object.defineProperty(window, "location", {
       value: { href: "https://www.louisianahelpr.com/terms", origin: "https://www.louisianahelpr.com", replace },
       configurable: true,

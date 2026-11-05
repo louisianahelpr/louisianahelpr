@@ -135,7 +135,7 @@ const PAGE_PRELOAD_ATTR = "data-lh-page-preload";
  * paint as a stale HTML page (hard reload, then "Helpr couldn't load"); a
  * stale PAGE chunk is not that, so the watchdog skips marked links and the
  * in-app route recovery keeps the case it always had
- * (e2e/happy-path/stale-deploy.spec.ts, "cold load with route chunk aborted").
+ * (e2e/journeys/stale-deploy.spec.ts, "cold load with route chunk aborted").
  */
 export function preloadEntryRoute(pathname: string): void {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;

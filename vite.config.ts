@@ -995,7 +995,18 @@ export default defineConfig(({ mode, command }) => ({
             // tap downloaded ~47 KB gz for ~14 KB of words. Their own chunk: nothing else comes with them.
             {
               name: "error-copy",
-              test: /[\\/]src[\\/]lib[\\/](lifecycleErrorCopy|rentals[\\/]errorCopy)\.ts$/,
+              test: /[\\/]src[\\/]lib[\\/]lifecycleErrorCopy\.ts$/,
+              priority: 20,
+              minSize: 0,
+              includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
+            // Q2706/Q2707 (Builder 3, 11-05): the rentals refusal words get their own chunk. Sharing error-copy with
+            // lifecycleErrorCopy meant rentals/copy.ts's static import pulled all ~95 KB raw of refusal words onto
+            // Posted's first screen (live /jobs?tab=posted Fast 4G: error-copy 17 KB on the wire, ending ~1957 ms,
+            // LCP 2104/2196).
+            {
+              name: "rentals-error-copy",
+              test: /[\\/]src[\\/]lib[\\/]rentals[\\/]errorCopy\.ts$/,
               priority: 20,
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,

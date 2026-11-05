@@ -75,7 +75,8 @@ CREATE TABLE public.declutter_cart_items (id uuid PRIMARY KEY DEFAULT gen_random
   status text DEFAULT 'in_cart', checkout_by timestamptz, closed_at timestamptz);
 CREATE TABLE public.declutter_strikes (cart_line_id uuid, reason text, removed_at timestamptz);
 CREATE TABLE public.declutter_refunds (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid, stripe_payment_intent_id text UNIQUE,
-  reason text, fee_policy text, paid_cents integer, card_fee_cents integer, kept_cents integer, refund_cents integer);
+  reason text, fee_policy text, paid_cents integer, card_fee_cents integer, kept_cents integer, refund_cents integer,
+  gift_refund_cents integer NOT NULL DEFAULT 0);
 CREATE TABLE public.declutter_seller_fee_debts (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), seller_id uuid, refund_id uuid UNIQUE,
   amount_cents integer, remaining_cents integer, fee_estimated boolean NOT NULL DEFAULT false);
 CREATE TABLE public.helpr_tasks (helpr_id uuid, source_kind text, source_id uuid);

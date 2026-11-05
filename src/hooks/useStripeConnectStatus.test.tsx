@@ -150,3 +150,4 @@ describe("useStripeConnectStatus", () => {
 });
 
 // @mutate src/hooks/useStripeConnectStatus.ts | if (isError) return { kind: "error" }; |
+// @mutate src/hooks/useStripeConnectStatus.ts |     select: selectConnectStatus, |     select: (raw) => selectConnectStatus(raw),

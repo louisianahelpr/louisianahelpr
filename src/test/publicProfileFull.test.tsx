@@ -40,7 +40,7 @@ vi.mock("@/hooks/usePageMeta", () => ({ usePageMeta: () => undefined }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: signedIn, ready: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ profile: me, isLoading: meLoading }) }));
 vi.mock("@/lib/nativeShare", () => ({ shareNative: vi.fn(async () => "shared") }));
-vi.mock("@/lib/hireMe", () => ({ HIRE_PARAM: "hire", hireGuestHref: (h: string) => `/signup?hire=${h}`, hireOfferPath: () => "/post-job", hireTargetByHandle: vi.fn() }));
+vi.mock("@/lib/hireMe", () => ({ HIRE_PARAM: "hire", hireGuestHref: (h: string) => `/signup?hire=${h}`, hireGuestLoginHref: (h: string) => `/login?hire=${h}`, hireOfferPath: () => "/post-job", hireTargetByHandle: vi.fn() }));
 
 const { default: PublicProfilePage, LISTINGS_FIRST } = await import("@/pages/u/PublicProfilePage");
 

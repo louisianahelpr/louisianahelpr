@@ -103,6 +103,8 @@ export interface PublicProfile {
   helpr: {
     jobs_done: number;
     categories: string[];
+    /** Every review under the list's own rules (20261105165059; one person's own accounts left out, L4). The list holds the newest 100. */
+    review_total?: number;
     reviews: { rating: number; feedback: string | null; created_at: string; reviewer_name: string; job_category: string | null; response_text: string | null; response_at: string | null }[];
   };
   wanted: { id: string; what: string; category: string; max_price_cents: number; created_at: string }[];

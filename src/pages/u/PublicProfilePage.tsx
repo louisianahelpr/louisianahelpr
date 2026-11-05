@@ -40,6 +40,9 @@ import {
 } from "@/lib/profileLink/api";
 import { HIRE_PARAM, hireGuestHref, hireGuestLoginHref, hireOfferPath, hireTargetByHandle } from "@/lib/hireMe";
 import { quickListHref } from "@/lib/declutter/wantedLinks";
+import { PublicProfileReviews, reviewTotal } from "@/components/profile/publicProfile/PublicProfileReviews";
+import { PublicProfileOwnerSteps } from "@/components/profile/publicProfile/PublicProfileOwnerSteps";
+import { PublicProfileSkeleton } from "@/components/profile/publicProfile/PublicProfileSkeleton";
 
 const ROBOTS = "noindex, follow";
 
@@ -199,6 +202,9 @@ function ProfileBody({ p, signedIn, isMe, ctaReady }: { p: PublicProfile; signed
         </div>}
       </section>
 
+      {/* M3 (audit 11-05): your own view says what it is and what is still empty. */}
+      {ctaReady && isMe && <PublicProfileOwnerSteps p={p} />}
+
       {work.length > 0 ? (
         <section className="rounded-2xl border border-border bg-card p-4 shadow-sm" aria-label="Recent work" data-testid="pp-work">
           <HelperWorkPhotos urls={work} />
@@ -282,19 +288,8 @@ function ProfileBody({ p, signedIn, isMe, ctaReady }: { p: PublicProfile; signed
               ))}
             </ul>
           )}
-          {p.helpr.reviews.length > 0 && (
-            <ul className="mt-3 flex flex-col gap-3">
-              {p.helpr.reviews.map((r, i) => (
-                <li key={`${r.created_at}-${i}`} className="rounded-xl border border-border bg-background p-3">
-                  <p className="text-ds-13 font-semibold text-foreground">
-                    <span role="img" aria-label={`${r.rating} out of 5 stars`}>{"★".repeat(r.rating)}{"☆".repeat(Math.max(0, 5 - r.rating))}</span>
-                    {" · "}{r.reviewer_name}
-                  </p>
-                  {r.feedback && <p className="mt-1 text-ds-14 text-foreground">{r.feedback}</p>}
-                </li>
-              ))}
-            </ul>
-          )}
+          {/* M2 (audit 11-05): count, kind of work, month, the reply, and See all. */}
+          <PublicProfileReviews reviews={p.helpr.reviews} total={reviewTotal(p)} first={first} />
         </Section>
       )}
 
@@ -353,7 +348,7 @@ export default function PublicProfilePage() {
       {!handle ? (
         unavailable
       ) : q.isPending ? (
-        <p role="status" className={`${PUBLIC_LINK_COLUMN} text-center text-ds-14 text-muted-foreground`}>Loading this profile…</p>
+        <PublicProfileSkeleton column={`${PUBLIC_LINK_COLUMN} ${PROFILE_WIDE}`} />
       ) : q.isError ? (
         <ErrorState variant="inline" title="We couldn't load this profile." onRetry={() => void q.refetch()} />
       ) : !q.data ? (

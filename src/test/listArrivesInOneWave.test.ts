@@ -23,6 +23,9 @@
 // @mutate src/components/dashboard/JobCard.tsx | : "group relative h-full rounded-2xl | : "motion-safe:animate-fade-in group relative h-full rounded-2xl
 // @mutate src/hooks/useArrivalGate.ts | const ready = latched \|\| (primaryReady && (secondaryReady \|\| capped)); | const ready = latched \|\| primaryReady;
 // @mutate src/pages/home/DashboardGuest.tsx | ) : !feedReady ? ( | ) : false ? (
+// The guest feed waits for its enrichment only up to the default cap (moved here 2026-11-04 from the retired mocked
+// e2e/happy-path/guest-feed-progressive.spec.ts, Q1035): a longer cap on DashboardGuest goes red here.
+// @mutate src/pages/home/DashboardGuest.tsx | useArrivalGate(phase === "ready" \|\| phase === "error", enrichmentSettled) | useArrivalGate(phase === "ready" \|\| phase === "error", enrichmentSettled, 60_000)
 // @mutate src/pages/post-job/EntryChoice.tsx | recentPosted !== null && form.openJobCount !== null | true
 // @mutate src/pages/post-job/EntryChoice.tsx | form.openJobCount !== null && savedHelpersSettled && giftCardsSettled, | form.openJobCount !== null && giftCardsSettled,
 // @mutate src/pages/post-job/EntryChoice.tsx | savedHelpersSettled && giftCardsSettled, | savedHelpersSettled,

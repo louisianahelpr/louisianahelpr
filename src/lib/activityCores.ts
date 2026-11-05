@@ -20,8 +20,26 @@ import { isNetworkFailure } from "@/lib/networkFailure";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { takeActivityCoresPrefetch } from "@/lib/activityCoresTake";
 
-/** The posted core's job columns: the readable list plus the three fetchPostedActivity has always added. */
-const POSTED_JOB_COLUMNS: readonly string[] = [...JOB_READABLE_COLUMN_LIST, "materials_note", "onboarding_fee_amount", "poster_marked_done_at"];
+/**
+ * Readable job columns that NO reader of the posted rows names (Q2706, Builder 3 11-05). The posted core feeds
+ * fetchPostedActivity, and through it the Posted tab, NeedsYouBridge (every signed-in page), Home's summary and
+ * to-dos, the job page's poster flows, the Activity dialogs and the optimistic / review / confirm caches. None of
+ * them, nor anything they import, reads these: server-side reminder stamps and admin-only fields. So the cores read
+ * leaves them out (measured, prod read-only, the 728-job test poster: all 119 columns 2,725,418 bytes in 194 ms).
+ * src/test/postedCoresSkipUnreadColumns.test.ts derives the readers' import closure and goes red the moment any of
+ * them names one of these. The old direct read (cores null) still selects the full readable list.
+ */
+export const POSTED_CORES_UNREAD_COLUMNS: readonly string[] = [
+  "boost_auto_extended", "chargeback_evidence_due_by", "commission_tax_amount", "dayof_confirm_reminder_sent_at",
+  "dayof_unanswered_poster_alert_sent_at", "expiring_notif_sent", "expiring_final_notif_sent", "flag_reasons",
+  "instant_booked_at", "late_cancellation", "no_show_alert_sent_at", "protection_fee",
+  "release_last_chance_notif_sent_at", "removal_reason", "removed_by", "requires_w9", "review_reminder_sent",
+  "start_reminder_sent_at",
+];
+
+/** The posted core's job columns: the readable list plus the three fetchPostedActivity has always added, less the unread ones. */
+export const POSTED_JOB_COLUMNS: readonly string[] = [...JOB_READABLE_COLUMN_LIST, "materials_note", "onboarding_fee_amount", "poster_marked_done_at"]
+  .filter((c) => !POSTED_CORES_UNREAD_COLUMNS.includes(c));
 
 interface ActivityCoresPayload {
   posted_jobs: unknown[];

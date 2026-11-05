@@ -15,7 +15,7 @@
  * Exempt: "dispute_resolved" (closing a dispute releases the money; a
  * celebration overlay on a dispute is the wrong tone).
  */
-// @mutate src/components/JobTracking.tsx | helperId)) fireSuccessMoment({ label: "Job completed" }); | helperId)) void 0;
+// @mutate src/components/statusUpdate.ts | helperId)) fireSuccessMoment({ label: "Job completed" }); | helperId)) void 0;
 // @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts |         fireSuccessMoment({ label: "Job completed" }); |         void 0;
 import { describe, expect, it } from "vitest";
 import { relative, resolve } from "node:path";

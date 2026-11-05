@@ -24,6 +24,7 @@ import { invalidateTrades } from "./declutterLightActions";
 import { useLinkedOffer, useScrollToLinkedOrder } from "./useLinkedOrder";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 
 /** Every Declutter read refetches after a trade (offers, cart, orders). */
 
@@ -228,9 +229,9 @@ function OfferRow({ o, linked = false }: { o: MyOffer; linked?: boolean }) {
         </form>
       )}
       {o.status === "open" && o.my_side === "buyer" && !(wantedReply && o.awaiting === "buyer") && (
-        <button type="button" className="text-sm underline underline-offset-2" disabled={act.isPending} onClick={() => setWithdrawing(true)}>
+        <InlineTextButton className="text-sm underline underline-offset-2" disabled={act.isPending} onClick={() => setWithdrawing(true)}>
           Take back my offer
-        </button>
+        </InlineTextButton>
       )}
       <ConfirmSheet open={accepting} pending={act.isPending} onConfirm={() => act.mutate({ action: "accept" })} onClose={() => setAccepting(false)}
         // NIGHT-SELL-offers,sale-1: accepting sells at the lower of the offer and today's price (declutter_respond_offer,
@@ -309,10 +310,10 @@ export function OffersSection({ side, onlyMyTurn = false }: { side: "buyer" | "s
       )}
       {closed.length > 0 && (
         <>
-          <button type="button" className="link-standard text-sm font-medium" aria-expanded={closedOpen}
+          <InlineTextButton className="text-sm font-medium" aria-expanded={closedOpen}
             onClick={() => setShowClosed(!closedOpen)} data-closed-offers-toggle="">
             {closedOpen ? "Hide closed offers" : `Show ${closed.length} closed ${closed.length === 1 ? "offer" : "offers"} from the last 30 days`}
-          </button>
+          </InlineTextButton>
           {closedOpen && <ul className="space-y-3" data-closed-offers="">{closed.map((o) => <OfferRow key={o.offer_id} o={o} linked={o.offer_id === linkedOffer} />)}</ul>}
         </>
       )}

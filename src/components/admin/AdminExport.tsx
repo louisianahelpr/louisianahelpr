@@ -227,8 +227,11 @@ const AdminExport = () => {
              different lengths, so "Users" wrapped to two lines and its Export
              button sat a line lower than its two siblings — three buttons on
              three different baselines across one row. The button now pins to
-             the bottom of every card regardless of copy length. */
-          <div key={key} className="flex flex-col rounded-ds-md border border-border/60 bg-background/40 p-4 space-y-3">
+             the bottom of every card regardless of copy length. `gap-3`, not
+             `space-y-3`: space-y's sibling margin-top outranks `mt-auto`, so the
+             pin never applied (measured 11-04: 4 cards at 1440, the tax card's
+             button 32px below the other three). */
+          <div key={key} className="flex flex-col gap-3 rounded-ds-md border border-border/60 bg-background/40 p-4">
             <div className="w-9 h-9 rounded-ds-sm bg-primary/10 flex items-center justify-center">
               <Icon className="w-4 h-4 text-primary" />
             </div>

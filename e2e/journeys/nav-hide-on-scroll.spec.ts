@@ -163,6 +163,11 @@ function scrollState(page: Page) {
  * the capture phase (MobileNav.tsx's `checkScroll`) and never for `wheel`, so
  * both paths deliver the app exactly the same event.
  */
+/** 120px wheel steps that go well past the 64px hide threshold but stop >=150px short of the list's end. */
+function downSteps(travel: number): number {
+  return Math.max(2, Math.min(8, Math.floor((travel - 150) / 120)));
+}
+
 async function wheel(page: Page, dy: number, steps: number) {
   await page.mouse.move(187, 500).catch(() => undefined);
   for (let i = 0; i < steps; i++) {
@@ -230,7 +235,10 @@ for (const { route, role, slug } of ROUTES) {
 
     await expectDock(page, "docked", `${route} docked at rest`);
 
-    await wheel(page, 120, 8);
+    // Down, but short of the end: at the end the dock comes back on its own (dockRevealsAtEnd, DA-9), so a list
+    // shorter than 8 x 120px would read as "never hid". The real Working list measured ~400-960px of travel
+    // (run 41972344165, 2026-11-05: it hit the end and the dock was rightly back).
+    await wheel(page, 120, downSteps(initial.max));
     await expectDock(page, "hidden", `${route} after scrolling down`);
 
     await wheel(page, -120, 3);
@@ -277,7 +285,8 @@ for (const { route, role, slug } of ROUTES) {
       atEnd = await scrollState(page);
       if (atEnd.top > atEnd.max - 4 || atEnd.top - before < 4) break;
     }
-    expect(atEnd.top, `${route} scrolled deep into the list`).toBeGreaterThan(1_000);
+    // At the real end (the prod lists are the accounts' own rows, some under 1,000px of travel).
+    expect(atEnd.top, `${route} scrolled to the end of the list`).toBeGreaterThan(Math.max(400, atEnd.max - 4));
 
     await wheel(page, -120, 2);
     await expectDock(page, "docked", `${route} recovers at the end of the list`);

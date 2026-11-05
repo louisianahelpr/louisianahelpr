@@ -41,15 +41,22 @@ import { AXE_TAGS } from "../happy-path/axeTags";
  * READ-ONLY BY CONSTRUCTION: every context goes through abortProdWrites (the
  * a11y-prod allow-list: reads, the token refresh and STABLE RPCs only) plus an
  * abort of the telemetry hosts. Opening a thread marks its unread rows read
- * (PATCH /rest/v1/messages, useMessagesData markRead): that one write is the
- * app's own receipt, not the user's action, so it is aborted and allowed; any
- * other user write fails the test.
+ * (PATCH /rest/v1/messages, useMessagesData markRead) and clears that thread's
+ * message notifications (PATCH /rest/v1/notifications, type=message): those are
+ * the app's own receipts, not the user's action, so they are aborted and
+ * allowed; any other user write fails the test.
  */
 
 /** Telemetry the app sends off-Supabase: an aborted receipt's warning never reaches Sentry or PostHog. */
 const TELEMETRY_HOSTS = /(^|\.)(sentry\.io|sentry-cdn\.com|posthog\.com|vercel-insights\.com)$/;
 /** The read receipt an opened thread sends on its own (aborted by abortProdWrites, never reaches prod). */
 const READ_RECEIPT = /^PATCH \S*\/rest\/v1\/messages\?/;
+/**
+ * The opened thread's own notifications cleared with it (useMessagesData clearThreadNotifs: the member's unread
+ * type=message rows). The same kind of app-sent receipt, aborted the same way. Pin 41972344165 (2026-11-05) failed
+ * 11 tests on exactly this one PATCH once the poster had unread message notifications on prod.
+ */
+const NOTIF_RECEIPT = /^PATCH \S*\/rest\/v1\/notifications\?user_id=eq\.[0-9a-f-]{36}&type=eq\.message&read=eq\.false/;
 
 // newUserContext already blocks them; this covers any context the project builds (Q1164).
 test.use({ serviceWorkers: "block" });
@@ -114,7 +121,7 @@ async function open(browser: Browser, request: APIRequestContext, title: string)
   context.on("request", (req: Request) => {
     if (!isUserWrite(req.method(), req.url())) return;
     const line = `${req.method()} ${req.url().slice(0, 140)}`;
-    if (!READ_RECEIPT.test(line)) writes.push(line);
+    if (!READ_RECEIPT.test(line) && !NOTIF_RECEIPT.test(line)) writes.push(line);
   });
   await abortProdWrites(context, SUPABASE_URL, test.info().outputPath());
   await context.route(

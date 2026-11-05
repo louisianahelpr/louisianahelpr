@@ -135,10 +135,15 @@ export async function fetchPublicProfile(handle: string): Promise<PublicProfile 
   return (data as unknown as PublicProfile | null) ?? null;
 }
 
-/** A Declutter item's cover through the shop-photo edge function (kind=declutter): by photo id, never a storage path. */
-export function listingPhotoUrl(photoId: string, width = 480): string {
+/**
+ * A Declutter item's cover through the shop-photo edge function (kind=declutter): by photo id, never a storage path.
+ * M4 (audit 11-05): a square thumbnail (sq=1: cropped to width x width, WebP for a browser that accepts it). The card
+ * is about 150-175 CSS px wide at 375 and at 1440, so 320 covers a 2x screen. Measured on /u/lexi-l's 24 covers
+ * 2026-11-05: w=480 JPEG 122 KB each, w=320 JPEG 34 KB, w=320 square WebP 17.7 KB.
+ */
+export function listingPhotoUrl(photoId: string, width = 320): string {
   const base = String(import.meta.env.VITE_SUPABASE_URL ?? "").replace(/\/$/, "");
-  return `${base}/functions/v1/shop-photo?id=${encodeURIComponent(photoId)}&kind=declutter&w=${width}`;
+  return `${base}/functions/v1/shop-photo?id=${encodeURIComponent(photoId)}&kind=declutter&w=${width}&sq=1`;
 }
 
 /** A handle from the URL, normalised as the server does; null when it can never be one (no request is made). */

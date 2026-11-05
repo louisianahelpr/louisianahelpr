@@ -3819,6 +3819,7 @@ export type Database = {
           created_at: string
           executed_at: string | null
           fee_policy: string
+          gift_refund_cents: number
           gave_up_notified_at: string | null
           held_notified_at: string | null
           id: string
@@ -3837,7 +3838,7 @@ export type Database = {
           settled_by_hand_note: string | null
           settled_by_hand_ref: string | null
           status: string
-          stripe_payment_intent_id: string
+          stripe_payment_intent_id: string | null
           stripe_refund_ref: string | null
         }
         Insert: {
@@ -3846,6 +3847,7 @@ export type Database = {
           created_at?: string
           executed_at?: string | null
           fee_policy: string
+          gift_refund_cents?: number
           gave_up_notified_at?: string | null
           held_notified_at?: string | null
           id?: string
@@ -3864,7 +3866,7 @@ export type Database = {
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
           status?: string
-          stripe_payment_intent_id: string
+          stripe_payment_intent_id?: string | null
           stripe_refund_ref?: string | null
         }
         Update: {
@@ -3873,6 +3875,7 @@ export type Database = {
           created_at?: string
           executed_at?: string | null
           fee_policy?: string
+          gift_refund_cents?: number
           gave_up_notified_at?: string | null
           held_notified_at?: string | null
           id?: string
@@ -3891,7 +3894,7 @@ export type Database = {
           settled_by_hand_note?: string | null
           settled_by_hand_ref?: string | null
           status?: string
-          stripe_payment_intent_id?: string
+          stripe_payment_intent_id?: string | null
           stripe_refund_ref?: string | null
         }
         Relationships: [

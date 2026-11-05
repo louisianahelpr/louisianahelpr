@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-05T07:14:50.315Z",
-  "guards": 3543,
-  "registered": 3543,
+  "generated": "2026-11-05T07:28:21.020Z",
+  "guards": 3545,
+  "registered": 3545,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts"
@@ -24,12 +24,6 @@
       "file": "src/test/prodSeedGroupJobFixture.test.ts",
       "why": [
         "rows (literal declared in this file) is both input and oracle"
-      ]
-    },
-    {
-      "file": "src/test/toggleChipShared.test.tsx",
-      "why": [
-        "chips (literal declared in this file) is both input and oracle"
       ]
     }
   ],

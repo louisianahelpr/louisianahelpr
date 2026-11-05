@@ -57,14 +57,16 @@ export function YourActivity() {
                 key={`${s.key}-${t.label}`}
                 type="button"
                 data-activity-tile={`${s.key}:${t.label}`}
-                aria-label={`${s.label} ${t.label}${n > 0 ? `, ${n}` : ""}`}
                 onClick={() => navigate(t.to)}
                 className="btn-press liquid-glass text-left px-4 py-3 flex flex-col min-w-0"
               >
-                <span className="text-ds-12 text-muted-foreground">{s.label}</span>
+                {/* No aria-label: the tile's words ("Jobs Posted 2") are its name, so the visible text is in it (axe
+                    label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491). The space keeps the two lines two words;
+                    whitespace between flex items draws nothing. */}
+                <span className="text-ds-12 text-muted-foreground">{s.label}</span>{" "}
                 <span className="text-ds-15 font-bold text-foreground truncate">
                   {t.label}
-                  {n > 0 ? ` · ${n}` : ""}
+                  {n > 0 && <><span aria-hidden="true"> ·</span> {n}</>}
                 </span>
               </button>
             );

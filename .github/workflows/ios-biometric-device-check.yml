@@ -4,24 +4,53 @@ name: iOS biometric device check
 # builds an UNSIGNED iOS simulator app (CODE_SIGNING_ALLOWED=NO, no signing secrets at all), boots a simulator
 # headless, enrolls Face ID through the simulator's own notify keys (verified in the iOS 26.5 runtime's dyld cache,
 # ~/.lh-shots/b1-q1008/notify-keys.txt), launches the app and keeps a screenshot. This part proves the runner can
-# build, boot, enroll and launch. NOT YET (part 2): arming the app lock (the gate needs a signed-in user, and a
-# native session lives in the Keychain, so it needs a debug launch argument or a driven sign-in), then the match /
-# no-match x5 legs. Guard: src/test/iosBiometricDeviceCheckIsSafe.test.ts.
+# build, boot, enroll and launch. PART 2 (11-04 night) arms the lock by seeding the app's Preferences before the
+# first launch (see the seed step) and takes a locked shot and an after-match shot. NOT YET (part 3): the
+# no-match x5 leg and a pixel/OCR check that the Face ID sheet is in shot 1. Guard: src/test/iosBiometricDeviceCheckIsSafe.test.ts.
 on:
   workflow_dispatch: {}
 
 concurrency:
   group: ios-biometric-device-check
-  cancel-in-progress: true
+  # false: a cancelled run would strand the seeded session (part 2).
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
+  # Part 2 drives the shared HELPER test account, so it queues for the one shared-accounts lock the way
+  # e2e-real-backend does (scripts/e2e/wait-shared-accounts.mjs; src/test/sharedAccountJobsHoldOneLock.test.ts).
+  wait-accounts:
+    name: Wait for the shared accounts (queue)
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/workflows
+            scripts/e2e/wait-shared-accounts.mjs
+          sparse-checkout-cone-mode: false
+      - name: Wait until joining the shared-accounts lock bumps no waiting job
+        run: node scripts/e2e/wait-shared-accounts.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
   device-check:
     name: Face ID sheet appears and the gate opens (simulator)
+    needs: wait-accounts
+    # Lead 11-04 11:18 PM: main only, dispatch only, so no branch can reach the service-role key.
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: macos-15
     timeout-minutes: 45
+    concurrency:
+      group: prod-lifecycle-shared-accounts
+      cancel-in-progress: false
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
@@ -42,7 +71,7 @@ jobs:
           echo "DEVELOPER_DIR=$XCODE_PATH/Contents/Developer" >> "$GITHUB_ENV"
 
       - name: Install
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Build the web app and copy it into the iOS project
         # The app's own iOS build (deploy.yml's App Store lane): without the PUBLISHABLE Supabase env the bundle
@@ -71,19 +100,75 @@ jobs:
           xcrun simctl spawn "$UDID" notifyutil -s com.apple.BiometricKit.enrollmentChanged 1
           xcrun simctl spawn "$UDID" notifyutil -p com.apple.BiometricKit.enrollmentChanged
 
-      - name: Install, launch, screenshot
+      - name: Install the app
         run: |
           xcrun simctl install "$UDID" "$APP"
-          BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Info.plist")
+          echo "BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$APP/Info.plist")" >> "$GITHUB_ENV"
+
+      # PART 2: arm the lock with NO app code change. The gate covers only a signed-in user, and a native session
+      # lives in the Keychain, which simctl cannot write. But the app's own first-launch migration
+      # (keychainStorageAdapter hydrate) moves a Preferences copy of sb-<ref>-auth-token into the Keychain, and the
+      # lock flag is the Preferences key helpr_app_lock_enabled = "1" (src/lib/appLock.ts). Capacitor Preferences is
+      # UserDefaults with the "CapacitorStorage." prefix, so both are written into the app's data-container plist
+      # before the first launch. The session is the shared HELPER test account's, minted by scripts/lib/adminSession.mjs
+      # (refuses any non-test account; the service-role key lives only in this step's env, never in the bundle) and
+      # signed out again (scope=local, this session only) at the end.
+      - name: Seed a test session and arm the app lock
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PLAYWRIGHT_HELPER_EMAIL: ${{ secrets.PLAYWRIGHT_HELPER_EMAIL }}
+        run: |
+          SESSION=$(node --input-type=module -e 'import { mintAdminSession, resolveServiceKey, DEFAULT_SUPABASE_URL, PUBLIC_ANON_KEY } from "./scripts/lib/adminSession.mjs"; const s = await mintAdminSession({ email: process.env.PLAYWRIGHT_HELPER_EMAIL, serviceKey: resolveServiceKey(), supabaseUrl: DEFAULT_SUPABASE_URL, anonKey: PUBLIC_ANON_KEY }); process.stdout.write(JSON.stringify(s));')
+          test -n "$SESSION"
+          TOKEN=$(printf '%s' "$SESSION" | node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(0,"utf8")).access_token)')
+          REFRESH=$(printf '%s' "$SESSION" | node -e 'process.stdout.write(JSON.parse(require("fs").readFileSync(0,"utf8")).refresh_token)')
+          echo "::add-mask::$TOKEN"
+          echo "::add-mask::$REFRESH"
+          echo "LH_ACCESS_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+          DATA=$(xcrun simctl get_app_container "$UDID" "$BUNDLE" data)
+          PLIST="$DATA/Library/Preferences/$BUNDLE"
+          mkdir -p "$DATA/Library/Preferences"
+          defaults write "$PLIST" "CapacitorStorage.sb-fncmgoasalhdgfwzhsqa-auth-token" -string "$SESSION"
+          defaults write "$PLIST" "CapacitorStorage.helpr_app_lock_enabled" -string "1"
+          defaults read "$PLIST" "CapacitorStorage.helpr_app_lock_enabled"
+
+      - name: Launch locked, then match Face ID
+        run: |
+          mkdir -p shots
           xcrun simctl launch "$UDID" "$BUNDLE"
           sleep 15
-          mkdir -p shots
-          xcrun simctl io "$UDID" screenshot shots/launched.png
+          xcrun simctl io "$UDID" screenshot shots/1-locked-face-id-sheet.png
+          xcrun simctl spawn "$UDID" notifyutil -p com.apple.BiometricKit_Sim.pearl.match
+          sleep 5
+          xcrun simctl io "$UDID" screenshot shots/2-after-match.png
+
+      # Lead 11-04 11:18 PM: sign out, delete the seeded keys, then erase the simulator, whatever happened.
+      - name: Sign out, delete the seeded keys, erase the simulator
+        if: always()
+        run: |
+          if [ -n "${LH_ACCESS_TOKEN:-}" ]; then
+            curl -sS -o /dev/null -w "logout HTTP %{http_code}\n" -X POST "https://fncmgoasalhdgfwzhsqa.supabase.co/auth/v1/logout?scope=local" \
+              -H "apikey: sb_publishable_iYs06Xj5G6Q_ezqzrSncTw_J1EiENRP" -H "Authorization: Bearer $LH_ACCESS_TOKEN"
+          else
+            echo "no session was minted"
+          fi
+          if [ -n "${UDID:-}" ]; then
+            if [ -n "${BUNDLE:-}" ] && DATA=$(xcrun simctl get_app_container "$UDID" "$BUNDLE" data); then
+              # A key the app already removed (the session after its own migration) is not a failure: say so.
+              for KEY in "CapacitorStorage.sb-fncmgoasalhdgfwzhsqa-auth-token" "CapacitorStorage.helpr_app_lock_enabled"; do
+                if ! defaults delete "$DATA/Library/Preferences/$BUNDLE" "$KEY"; then echo "::notice::$KEY was not in the plist"; fi
+              done
+            fi
+            if ! xcrun simctl shutdown "$UDID"; then echo "::notice::the simulator was already shut down"; fi
+            xcrun simctl erase "$UDID"
+          fi
 
       - name: Keep the screenshots
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ios-biometric-device-check
-          path: shots/
+          # ONLY the screenshots (lead 11-04): never the app container, the plist or simctl logs. The shots show the
+          # app's own screens (the lock sheet, then the app as the test Helpr); no token is ever rendered on screen.
+          path: shots/*.png
           retention-days: 14

@@ -6,11 +6,16 @@
  *   2. The row is right-aligned (justify-end), so when it wraps at 375 Accept stays at the bottom right, not alone on
  *      the left.
  *   3. The counter form's Send is the shared primary Button; no hand-made btn-grad-primary <button> is left in the file.
- * The hand-made ratchet (docs/audit/hand-made-controls-baseline.json) fell 6 -> 2 for this file in the same commit.
+ *   4. The two text actions ("Take back my offer", "Show N closed offers") are the shared InlineTextButton
+ *      (link-standard: text-sized box, 44px touch overlay); no hand-made <button> is left in the file.
+ * The hand-made ratchet (docs/audit/hand-made-controls-baseline.json) fell 6 -> 2 for this file, then 2 -> 0 (the
+ * file's entry is gone).
  *
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | <div className="flex flex-wrap justify-end gap-2" data-offer-actions=""> | <div className="flex flex-wrap gap-2" data-offer-actions="">
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | <Button type="button" variant="outline" size="sm" disabled={act.isPending} onClick={() => setDeclining(true)}> | <Button type="button" variant="outline" disabled={act.isPending} onClick={() => setDeclining(true)}>
  * @mutate src/components/declutter/DeclutterOffersSection.tsx | <Button type="submit" size="sm" disabled={act.isPending \|\| !counterCents \|\| !!counterBad}> | <button type="submit" className="btn-grad-primary rounded-full px-4 text-sm font-semibold" disabled={act.isPending \|\| !counterCents \|\| !!counterBad}>
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | <InlineTextButton className="text-sm underline underline-offset-2" disabled={act.isPending} | <button type="button" className="text-sm underline underline-offset-2" disabled={act.isPending}
+ * @mutate src/components/declutter/DeclutterOffersSection.tsx | <InlineTextButton className="text-sm font-medium" aria-expanded={closedOpen} | <button type="button" className="link-standard text-sm font-medium" aria-expanded={closedOpen}
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -62,5 +67,17 @@ describe("Declutter's offer answers use the shared Button, primary on the right 
   it("Send is the shared primary Button and no hand-made primary <button> is left", () => {
     expect(src).toMatch(/<Button type="submit" size="sm"[^>]*>\s*Send\s*<\/Button>/);
     expect(src).not.toMatch(/<button\b[^>]*btn-grad-primary/);
+  });
+
+  it("the two text actions are the shared InlineTextButton and no hand-made <button> is left", () => {
+    const tags = [...src.matchAll(/<InlineTextButton\b[^>]*>[\s\S]*?<\/InlineTextButton>/g)].map((m) => m[0]);
+    expect(tags.length).toBeGreaterThan(1);
+    const take = tags.find((t) => /Take back my offer/.test(t));
+    expect(take, "Take back my offer is an InlineTextButton").toBeDefined();
+    expect(take!, "it keeps its drawn underline").toMatch(/\bunderline underline-offset-2\b/);
+    const closed = tags.find((t) => /data-closed-offers-toggle/.test(t));
+    expect(closed, "the closed-offers toggle is an InlineTextButton").toBeDefined();
+    expect(closed!.match(/className="([^"]*)"/)?.[1], "the toggle keeps its own classes only").toBe("text-sm font-medium");
+    expect(src, "a hand-made <button> is back").not.toMatch(/<button\b/);
   });
 });

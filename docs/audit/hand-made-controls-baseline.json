@@ -292,9 +292,6 @@
     "src/components/declutter/DeclutterOfferRules.tsx": {
       "button": 2
     },
-    "src/components/declutter/DeclutterOffersSection.tsx": {
-      "button": 2
-    },
     "src/components/declutter/DeclutterPickupTimes.tsx": {
       "button": 1
     },

@@ -4,6 +4,8 @@
 --     100, and the public-safe profile fields get_safe_profiles already gives anon (bio, town, skills, Recent work
 --     photos, verified license/insurance badges, the business name only with one).
 -- Body: the newest definition (20261104084501_apply_and_notices_read_date_window.sql) verbatim plus those changes.
+--   - L4 (owner 11-05): a review between two accounts of one person (the same phone) never shows on the page and never
+--     counts in its review count or stars; M2: helpr.review_total and up to 100 reviews.
 --   - L7 (owner 11-05: search engines OPT-IN per person, default off): profiles.show_in_search, the member's own switch
 --     (column-level GRANT UPDATE, like share_job_photos and show_near_you); public_profile_by_handle returns it.
 -- REPLAY-SAFE: ADD COLUMN IF NOT EXISTS; CREATE OR REPLACE; grants restated.
@@ -13,6 +15,29 @@ COMMENT ON COLUMN public.profiles.show_in_search IS
   'Owner 11-05: the member opts in to search engines indexing /u/<handle>. Default false (noindex). Self-writable.';
 GRANT UPDATE (show_in_search) ON public.profiles TO authenticated;
 
+
+-- L4 (owner 11-05): two accounts of one person = the same phone (normalize_phone_for_ban, the ban-evasion rule's own
+-- match). Measured 2026-11-05: lexi-l's only published review came from her own admin account with the same phone.
+CREATE OR REPLACE FUNCTION public.profile_review_same_person(p_reviewer uuid, p_reviewee uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO public, pg_temp
+AS $function$
+  SELECT EXISTS (
+    SELECT 1
+      FROM public.profiles a
+      JOIN public.profiles b ON b.user_id = p_reviewee
+     WHERE a.user_id = p_reviewer
+       AND a.phone IS NOT NULL
+       AND b.phone IS NOT NULL
+       AND public.normalize_phone_for_ban(a.phone) <> ''
+       AND public.normalize_phone_for_ban(a.phone) = public.normalize_phone_for_ban(b.phone));
+$function$;
+
+REVOKE ALL ON FUNCTION public.profile_review_same_person(uuid, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.profile_review_same_person(uuid, uuid) TO service_role;
 
 CREATE OR REPLACE FUNCTION public.public_profile_by_handle(p_handle text)
 RETURNS jsonb
@@ -36,6 +61,8 @@ DECLARE
   v_wanted_on boolean;
   v_listing_count integer;
   v_job_count integer;
+  v_review_total integer;
+  v_review_avg numeric;
 BEGIN
   IF v_handle = '' OR length(v_handle) > 30 THEN
     RETURN NULL;
@@ -195,9 +222,26 @@ BEGIN
          AND j.is_seed IS NOT TRUE
          AND NOT public.is_test_member(rv.reviewer_id)
          AND NOT public.is_test_member(rv.reviewee_id)
+         AND NOT public.profile_review_same_person(rv.reviewer_id, rv.reviewee_id)
        ORDER BY rv.created_at DESC
-       LIMIT 10
+       LIMIT 100
     ) r;
+
+  -- Owner 11-05 (L4): a review between two accounts of one person (the same phone) never shows and never counts.
+  -- M2: the true total under the list's own rules, and the stars from the same rows, so count, stars and list agree.
+  SELECT count(*)::integer, round(avg(rt.rating)::numeric, 2)
+    INTO v_review_total, v_review_avg
+    FROM public.reviews rt
+    JOIN public.jobs jt ON jt.id = rt.job_id
+   WHERE rt.reviewee_id = v_p.user_id
+     AND rt.status = 'published'
+     AND rt.feedback_visible_at IS NOT NULL
+     AND rt.feedback_visible_at <= now()
+     AND jt.status <> 'cancelled'
+     AND jt.is_seed IS NOT TRUE
+     AND NOT public.is_test_member(rt.reviewer_id)
+     AND NOT public.is_test_member(rt.reviewee_id)
+     AND NOT public.profile_review_same_person(rt.reviewer_id, rt.reviewee_id);
 
   SELECT coalesce(jsonb_agg(x ORDER BY x->>'created_at' DESC), '[]'::jsonb) INTO v_wanted
     FROM (
@@ -246,10 +290,13 @@ BEGIN
     'listing_count', coalesce(v_listing_count, 0),
     'show_in_search', coalesce(v_p.show_in_search, false),
     'job_count', coalesce(v_job_count, 0),
-    'stats', coalesce(v_stats, '{}'::jsonb),
+    -- The page's count and stars are this page's reviews (same-person ones out), not get_public_profile_stats' own.
+    'stats', coalesce(v_stats, '{}'::jsonb)
+             || jsonb_build_object('review_count', coalesce(v_review_total, 0), 'avg_rating', v_review_avg),
     'listings', v_listings,
     'jobs', v_jobs,
-    'helpr', jsonb_build_object('jobs_done', v_done, 'categories', v_categories, 'reviews', v_reviews),
+    'helpr', jsonb_build_object('jobs_done', v_done, 'categories', v_categories, 'reviews', v_reviews,
+                               'review_total', coalesce(v_review_total, 0)),
     'wanted', v_wanted);
 END;
 $function$;

@@ -1,4 +1,5 @@
 import { lazy, Suspense, useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Inbox, Loader2, MapPin } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
@@ -331,13 +332,12 @@ export const DrillDownView = ({
 }) => (
   <div className="space-y-4">
     <div className="flex items-center gap-1.5 text-ds-13">
-      <button
-        type="button"
+      <InlineTextButton
         onClick={onBack}
         className="text-muted-foreground hover:text-foreground transition-colors"
       >
         Analytics
-      </button>
+      </InlineTextButton>
       <span className="text-muted-foreground">/</span>
       <span className="font-display font-bold text-foreground">
         {drillDown === "users" ? "All Users" :

@@ -11,6 +11,7 @@
  * approve or reject (with a reason the landlord sees). rentals_admin_review_property
  * refuses non-admins, an admin's own property, and writes admin_audit_log.
  */
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -37,8 +38,7 @@ import { Input } from "@/components/ui/input";
 
 function OpenFile({ path, label }: { path: string; label: string }) {
   return (
-    <button
-      type="button"
+    <InlineTextButton
       className="underline font-semibold"
       // The tab opens inside the click, before any await, or WebKit blocks it silently (Q295).
       onClick={() =>
@@ -50,7 +50,7 @@ function OpenFile({ path, label }: { path: string; label: string }) {
       }
     >
       {label}
-    </button>
+    </InlineTextButton>
   );
 }
 

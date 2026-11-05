@@ -97,6 +97,7 @@ describe("gift card banner", () => {
   it("is not on /home: the Dashboard and its feed no longer render it", () => {
     for (const f of ["src/pages/home/Dashboard.tsx", "src/components/dashboard/BrowseTasksFeed.tsx", "src/pages/home/useDashboardSideQueries.ts"]) {
       const src = readFileSync(resolve(process.cwd(), f), "utf8");
+      expect(src.length, `${f}: inventory floor: the file was read`).toBeGreaterThan(2500);
       expect(src, f).not.toMatch(/GiftCardTeaser|useSpendableGiftCards|giftCardCount|gift_cards/);
     }
   });

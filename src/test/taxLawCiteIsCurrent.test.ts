@@ -24,6 +24,7 @@ describe("the legal tax lines cite La. R.S. 47:301.3 (Q2723)", () => {
     let cites = 0;
     for (const f of FILES) {
       const src = read(f);
+      expect(src.length, `${f}: inventory floor: the file was read`).toBeGreaterThan(10000);
       expect(src, f).toMatch(/La\. R\.S\. 47:301\.3/);
       expect(src, f).toMatch(/cleaning carpets, rugs, furniture or clothes/);
       cites++;

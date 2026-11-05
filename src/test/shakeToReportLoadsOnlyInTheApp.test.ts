@@ -44,6 +44,7 @@ describe("shake-to-report is not on the website's boot path", () => {
 
   it("main.tsx never imports it statically", () => {
     expect(imports).toBeGreaterThan(10);
+    expect(sf.statements.length, "inventory floor: main.tsx parsed").toBeGreaterThan(10);
     expect(statics).toEqual([]);
   });
 

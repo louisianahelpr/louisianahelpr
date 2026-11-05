@@ -54,6 +54,7 @@ describe("Q2076: a 'post it again' notice opens the Repost prefill of its job", 
 
   it("Post a job pre-fills from ?rebook=<id> by reading that job by id (no status filter, so a cancelled job loads)", () => {
     const src = blankComments(readFileSync("src/pages/post-job/useJobFormEffects.ts", "utf8"));
+    expect(src.length, "inventory floor: the file was read").toBeGreaterThan(13000);
     const at = src.indexOf('const rebookId = searchParams.get("rebook");');
     expect(at).toBeGreaterThan(-1);
     const block = src.slice(at, src.indexOf("}, [searchParams]);", at));

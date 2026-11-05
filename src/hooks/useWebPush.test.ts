@@ -161,8 +161,10 @@ describe("PUSH-REACH: the ask is measured and offered after a sent message", () 
   });
   it("a stored message offers the ask; a retry that only recovered its row does not", () => {
     const src = readFileSync("src/pages/messages/messagesData/sendHandlers.ts", "utf8");
+    expect(src.length, "inventory floor: the file was read").toBeGreaterThan(14000);
     expect(src).toMatch(/if \(!alreadyLanded\) offerPushAfterAction\(\);/);
     const hook = readFileSync("src/hooks/useNotificationPermissionPrompt.ts", "utf8");
+    expect(hook.length, "inventory floor: the file was read").toBeGreaterThan(2500);
     expect(hook).toMatch(/export const offerPushAfterAction = \(\): void => \{[^}]*const ask = new Event\(JOB_ACTION_EVENT\);\s*window\.dispatchEvent\(ask\);\s*\};/);
   });
 });
@@ -170,6 +172,7 @@ describe("PUSH-REACH: the ask is measured and offered after a sent message", () 
 describe("SessionManager mounts both halves", () => {
   it("calls the boot sync with the user id and the job-action ask", () => {
     const src = readFileSync("src/components/SessionManager.tsx", "utf8");
+    expect(src.length, "inventory floor: the file was read").toBeGreaterThan(3500);
     expect(src).toMatch(/^\s*useWebPushBootSync\(user\?\.id\);/m);
     expect(src).toMatch(/^\s*useWebPushAskAfterJobAction\(\);/m);
   });

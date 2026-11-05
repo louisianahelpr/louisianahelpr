@@ -413,9 +413,6 @@
     "src/components/landing/LandingAppleButton.tsx": {
       "button": 1
     },
-    "src/components/marketing/FaqRow.tsx": {
-      "button": 1
-    },
     "src/components/messages/ChatHeader.tsx": {
       "button": 1
     },

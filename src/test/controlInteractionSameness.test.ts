@@ -106,7 +106,7 @@ const TS_AND_TSX = SRC.filter((f) => /\.tsx?$/.test(f) && !f.includes(".test."))
 
 /** Elements that ARE a control — the thing a pointer aims at and presses. */
 const CONTROL_TAG =
-  /<(button|a|Button|Link|NavLink|DropdownMenuItem|SelectItem|TabsTrigger|ToggleGroupItem)(?=[\s/>])/g;
+  /<(button|a|Button|ListRow|Link|NavLink|DropdownMenuItem|SelectItem|TabsTrigger|ToggleGroupItem)(?=[\s/>])/g;
 
 // The `(?<![\w-])` lookbehind is load-bearing: without it this matches the
 // `hover:translate-x-0.5` INSIDE `group-hover:translate-x-0.5` and reports a

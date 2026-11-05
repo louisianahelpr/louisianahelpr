@@ -70,6 +70,7 @@ export function opensOnActivityList(pathname: string, search: string): boolean {
 /** Called by the entry (through signedInPrefetch.ts). No-op unless a cold list link with a live session. */
 export function startActivityCoresPrefetch(pathname: string, search: string = location.search): void {
   if (!opensOnActivityList(pathname, search) || typeof fetch !== "function") return;
+  if (isHomePath(pathname) && !onFastLink()) return;
   const base = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
   const session = storedSession(Date.now() / 1000);
@@ -83,4 +84,18 @@ export function startActivityCoresPrefetch(pathname: string, search: string = lo
     // A failed prefetch is not an error: the read asks for itself.
     .catch(() => null);
   (window as unknown as Record<string, unknown>)[ACTIVITY_CORES_PREFETCH_KEY] = { at: Date.now(), userId: session.userId, answer };
+}
+
+const isHomePath = (pathname: string): boolean => (pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname) === "/home";
+
+/**
+ * Q2706 / Q2708 (Builder 3 11-04, cwv-lab local dist, test helper, 375, 3 runs): on /home the early cores read made
+ * Fast 4G content ~330 ms sooner, but on Slow 4G it took bandwidth from the app's JS (the greeting LCP +160 ms, CLS
+ * worse). So /home sends it from the entry only on a link that reports itself fast (Network Information API:
+ * downlink >= 3 Mbps, rtt <= 300 ms, no Save-Data). No API (Safari, Firefox) or a slow link: Home reads as before.
+ */
+export function onFastLink(): boolean {
+  const c = (navigator as Navigator & { connection?: { downlink?: number; rtt?: number; saveData?: boolean } }).connection;
+  if (!c || c.saveData === true) return false;
+  return typeof c.downlink === "number" && c.downlink >= 3 && typeof c.rtt === "number" && c.rtt <= 300;
 }

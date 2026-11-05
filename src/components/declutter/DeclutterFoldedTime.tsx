@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DateTimeField } from "@/components/DateTimeField";
+import { Button } from "@/components/ui/button";
 
-const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 
 /** `<input type="datetime-local">` value -> ISO (the device's own time zone). */
 function toIso(v: string): string | null {
@@ -36,9 +36,9 @@ export function FoldedTimePicker({ id, openLabel, title, fieldLabel, confirmLabe
   };
   if (!open) {
     return (
-      <button type="button" className={btn} aria-expanded={false} disabled={pending} onClick={() => setOpen(true)}>
+      <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" aria-expanded={false} disabled={pending} onClick={() => setOpen(true)}>
         {openLabel}
-      </button>
+      </Button>
     );
   }
   const iso = toIso(value);
@@ -47,10 +47,10 @@ export function FoldedTimePicker({ id, openLabel, title, fieldLabel, confirmLabe
       <label htmlFor={id} className="block text-xs font-medium">{title}</label>
       <DateTimeField id={id} label={fieldLabel} value={value} onChange={setValue} />
       <div className="flex flex-wrap gap-2">
-        <button type="button" className={btn} disabled={pending || !iso} onClick={() => { if (iso) { onConfirm(iso); close(); } }}>
+        <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" disabled={pending || !iso} onClick={() => { if (iso) { onConfirm(iso); close(); } }}>
           {confirmLabel}
-        </button>
-        <button type="button" className={btn} onClick={close}>Cancel</button>
+        </Button>
+        <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" onClick={close}>Cancel</Button>
       </div>
     </div>
   );

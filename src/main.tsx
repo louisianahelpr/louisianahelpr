@@ -229,6 +229,10 @@ adoptBrowseShell(window.location.pathname, tokenProbeAtBoot());
 // <html> only for a guest on "/". Anywhere else the block is dead markup with a second (hidden) h1, so it goes
 // before React renders; on "/" HeroSection removes it once React's hero is painted (landingShell.ts).
 if (!document.documentElement.hasAttribute("data-lh-landing-shell")) document.getElementById("lh-landing-shell")?.remove();
+// Q2705 A: the same for the /login and /signup shells; the inline script names the one it showed.
+for (const page of ["login", "signup"]) {
+  if (document.documentElement.getAttribute("data-lh-auth-shell") !== page) document.getElementById(`lh-${page}-shell`)?.remove();
+}
 
 if (bounceToNativeAppIfReturning()) {
   // A scheme navigation is in flight; rendering now would only paint a screen

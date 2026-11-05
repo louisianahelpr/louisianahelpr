@@ -22,7 +22,7 @@
 // @mutate supabase/functions/shop-photo/index.ts |   const rl = await checkRateLimit(req, | const rl = { allowed: true, retryAfter: 0 }; void (req,
 // @mutate supabase/functions/shop-photo/index.ts |       if (og) {\n | if (false) {\n
 // @mutate supabase/functions/shop-photo/index.ts | !(length > 0 && length <= FALLBACK_MAX_BYTES) | false
-// @mutate supabase/functions/shop-photo/index.ts | &quality=80&format=origin` | &quality=80`
+// @mutate supabase/functions/shop-photo/index.ts | &quality=80${square ? "" : "&format=origin"}` | &quality=80`
 // @mutate supabase/functions/shop-photo/index.ts |     if (og && !type.startsWith("image/jpeg")) { |     if (false) {
 // @mutate supabase/functions/shop-photo/index.ts | maxRequests: 1200, ipMaxRequests: 6000, | maxRequests: 300, ipMaxRequests: 300,
 // @mutate supabase/functions/shop-photo/index.ts |   if (now - lastAlertAt < ALERT_EVERY_MS) return;\n |
@@ -110,7 +110,10 @@ describe("SH2b: shops_public_shop is the anon read, and only the page's fields",
     expect(edge).toMatch(/!\(length > 0 && length <= FALLBACK_MAX_BYTES\)/);
     // #2 format=origin keeps the JPEG a JPEG (format=jpeg is refused by storage, measured);
     // and an og answer that is not image/jpeg is refused, so og:image:type is never false.
-    expect(edge).toMatch(/\/storage\/v1\/render\/image\/public\/job-photos\/[^`]*&format=origin`/);
+    // Every non-square answer (link cards, shop pages) keeps format=origin; only the sq=1 card thumbnail (never og)
+    // lets storage pick WebP (M4, src/test/publicProfilePhotosHandle.test.tsx).
+    expect(edge).toMatch(/\/storage\/v1\/render\/image\/public\/job-photos\/[^`]*&quality=80\$\{square \? "" : "&format=origin"\}`/);
+    expect(edge).toContain('const square = !og && url.searchParams.get("sq") === "1";');
     expect(edge).toMatch(/if \(og && !type\.startsWith\("image\/jpeg"\)\)/);
     // #4 a page bursts ~114 images: the per-address window fits it, the wide one is wider.
     const rate = /const RATE = \{ windowMs: 60_000, maxRequests: (\d+), ipMaxRequests: (\d+),/.exec(edge);

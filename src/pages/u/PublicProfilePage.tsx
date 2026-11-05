@@ -4,6 +4,10 @@
  * member since and public stats, their live Declutter listings, their open jobs (town only), their Helpr work
  * (jobs done, categories, reviews) and their public Wanted posts. Everything comes from ONE read,
  * public_profile_by_handle (20261101041833), which never returns contacts, addresses, coordinates or test data.
+ * It has no user id field, but the photo and Recent work URLs are public avatars-bucket paths whose folder IS the
+ * user id (avatars/<user id>/...; L5, audit 11-05). That id is already public through /book and /user links, so this
+ * is not a leak (20261105172728 says so in the function's comment). Listing photos go by photo id through shop-photo.
+ * An old (retired) handle opens the member's current page and the address bar moves to the current handle (L2).
  *
  * "Hire me" (owner 2026-11-04) opens Post a job with a direct offer to this member, free for everyone; never on your
  * own page (src/lib/hireMe.ts, rpc_hire_target_by_handle).
@@ -12,8 +16,8 @@
  * comes from api/share.ts before JS runs.
  */
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { BadgeCheck, Briefcase, Handshake, ImageIcon, MapPin, Share2, ShoppingBag, Star, UserX, Search } from "lucide-react";
 import { HelperWorkPhotos } from "@/components/profile/HelperWorkPhotos";
@@ -330,6 +334,17 @@ export default function PublicProfilePage() {
     queryFn: () => fetchPublicProfile(handle as string),
     enabled: !!handle,
   });
+  // L2 (audit 11-05): an old (retired) handle answers with the member's CURRENT handle; the address bar moves to it
+  // (replace, so Back skips the old one) with the query and hash kept (?hire=1), and the page is not fetched twice.
+  const current = q.data?.handle ?? null;
+  const navigate = useNavigate();
+  const location = useLocation();
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (!handle || !current || current === handle || !q.data) return;
+    queryClient.setQueryData(["public-profile", current], q.data);
+    navigate({ pathname: `/u/${encodeURIComponent(current)}`, search: location.search, hash: location.hash }, { replace: true });
+  }, [handle, current, q.data, queryClient, navigate, location.search, location.hash]);
   const unavailable = (
     <EmptyState
       icon={UserX}
@@ -344,7 +359,8 @@ export default function PublicProfilePage() {
   );
   return (
     <AppPage title={q.data?.name ?? "Profile"} backTo={user ? "/home" : "/"}>
-      <Meta p={q.data} handle={handle} />
+      {/* The canonical names the current handle, never an old one the link still carries. */}
+      <Meta p={q.data} handle={current ?? handle} />
       {!handle ? (
         unavailable
       ) : q.isPending ? (

@@ -273,9 +273,6 @@
     "src/components/declutter/DeclutterGallery.tsx": {
       "button": 3
     },
-    "src/components/declutter/DeclutterHandoverTalk.tsx": {
-      "button": 1
-    },
     "src/components/declutter/DeclutterHandoverViews.tsx": {
       "input": 1
     },

@@ -17,8 +17,11 @@
 // Structure: static config/types/storage live in ./browseMap/config,
 // marker element builders in ./browseMap/mapMarkers, the MapKit runtime
 // typings + the pixel↔metre bridge in ./browseMap/mapkitRuntime, and the map
-// overlays/controls in ./browseMap/MapLayers. This file owns the data fetch,
-// the imperative map lifecycle, and the pin PREVIEW SHEET.
+// overlays/controls in ./browseMap/MapLayers, the pin halo + popover placement
+// in ./browseMap/usePinPreviewPlacement, the pin tab-order and hover syncs in
+// ./browseMap/usePinFocusability, and the my-location button in
+// ./browseMap/useShowMyLocation (Q806). This file owns the data fetch, the
+// imperative map lifecycle, and the pin PREVIEW SHEET.
 //
 // Pin preview (reworked 2026-08-31): tapping a pin no longer opens a MapKit
 // callout floating over the pin. It opens a bottom sheet this component
@@ -28,12 +31,10 @@
 
 import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { report } from "@/lib/errorLogger";
-import { toast } from "sonner";
-import { useUserLocation } from "@/hooks/useUserLocation";
 import { Loader2 } from "lucide-react";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
-import { isJobExcludedForViewer, type ViewerFeedExclusions } from "@/pages/home/viewerFeedExclusions";
+import { isJobExcludedForViewer } from "@/pages/home/viewerFeedExclusions";
 import {
   LA_BOUNDS,
   MAP_DOCK_CLEARANCE,
@@ -44,16 +45,14 @@ import { useSelectedCrewSpots } from "./browseMap/useSelectedCrewSpots";
 import { useMapJobs } from "./browseMap/useMapJobs";
 import { pinElement, PIN_HEIGHT } from "./browseMap/mapMarkers";
 import { ClusterList, clusterBubble } from "./browseMap/ClusterList";
-import { MapEmptyState, MapUnavailable } from "./browseMap/MapOverlays";
+import { IgnoredFiltersNote, MapEmptyState, MapUnavailable } from "./browseMap/MapOverlays";
 import { PinPreview } from "./browseMap/PinPreview";
 import {
   buildMapJobFilter,
   isAnyFilterActive,
   unsupportedMapFilters,
-  type MapJobFilterInput,
 } from "./browseMap/mapFilter";
 import { BusyAreasMapKey, laRegion, MyLocationCorner } from "./browseMap/MapLayers";
-import { PREVIEW_CARD_MAX_W, PREVIEW_CARET, PREVIEW_EDGE, type PreviewPlacement } from "./browseMap/previewPlacement";
 import { useOnlineStatus } from "@/lib/useOnlineStatus";
 import {
   colorSchemeFor,
@@ -63,98 +62,10 @@ import {
   type MKMap,
 } from "./browseMap/mapkitRuntime";
 import { useBusyAreaShading, useFitPinsOnChange, useMapFollowsTheme } from "./browseMap/useMapLayersSync";
-
-interface BrowseMapProps {
-  /**
-   * Tap anywhere on a pin's preview card (same tap-anywhere-opens-the-job
-   * behaviour as the feed's `JobCard`, which the preview literally
-   * reuses — no separate "Apply" button on the map anymore).
-   */
-  onJobAction?: (jobId: string) => void;
-  /**
-   * Current user id. When set, the popup hides jobs the user posted
-   * themselves (you can't apply to your own post — same rule as the
-   * Dashboard apply path). When undefined (guest), every pin is shown.
-   */
-  currentUserId?: string;
-  /**
-   * Optional CTA rendered in the empty-state ("no jobs on the map
-   * today"). Used by the guest dashboard to nudge sign-up so users
-   * still convert when the marketplace happens to be quiet.
-   */
-  emptyStateCta?: { label: string; onClick: () => void };
-  /**
-   * The browse filters, applied to the map's own rows. The map runs its own
-   * `get_open_jobs_for_map` fetch (the list is paginated; the map is not), so
-   * it has to re-apply the predicate rather than reuse `filteredJobs`.
-   * Omitted by surfaces with no filter UI (the guest dashboard) — then every
-   * open pin shows.
-   */
-  filters?: MapJobFilterInput;
-  /** Clears every filter — the CTA on the "no pins match" empty state. */
-  onClearFilters?: () => void;
-  /**
-   * Fill the parent edge to edge — no rounded top corners, no border of its
-   * own (owner: "map should fill this space").
-   *
-   * Set on the desktop website's side-by-side column, where the map IS the
-   * column: its parent already draws the hairline that separates it from the
-   * feed, so a second border inset the tiles by a pixel on every side and the
-   * rounded top left two corner wedges of panel showing through. The phone's
-   * list⇄map toggle keeps the rounded, bordered treatment — there the map is a
-   * surface floating above the dock, not a column.
-   */
-  flush?: boolean;
-  /**
-   * The viewer's platform commission percent — the SAME value the surrounding
-   * feed passes to `JobCard`. With it the pin popup prints the helper's net
-   * take-home, so a job can't read $110 on the map and $96 in the list beside
-   * it. Without it the popup falls back to the gross posted budget rather than
-   * guessing a fee, because a payout figure must never read higher than the
-   * payout.
-   */
-  effectiveFee?: number;
-  /**
-   * Desktop split-view hover sync: the id of the job whose FEED CARD the
-   * pointer is currently over (BrowseTasksFeed/Dashboard's `hoveredJobId`).
-   * When set, that job's pin scales up on the map so a poster scanning the
-   * list can see at a glance which pin a card corresponds to. `undefined`
-   * on surfaces with no feed alongside the map (the phone list⇄map toggle,
-   * the guest dashboard) — then no pin is ever highlighted this way.
-   */
-  hoveredJobId?: string | null;
-  /**
-   * The viewer-local culls the list feed applies — applied-to, dismissed,
-   * "Only saved" — as ONE object rather than a prop per rule.
-   *
-   * This started as a lone `appliedJobIds` prop (B1/B3): the list hid applied
-   * jobs and the map kept their pins, so a pin opened a detail still offering
-   * "Apply Now". Fixing that one rule did not fix the class — on 2026-09-19
-   * the owner reported "map shows 7 jobs. list shows 4", which was
-   * `dismissedJobIds`, a cull that at the time existed only inside
-   * BrowseTasksFeed. Taking the whole `ViewerFeedExclusions` object means a
-   * newly added rule arrives here automatically and the parity guard
-   * (src/test/dashboardSurfaceExclusionParity.test.ts) names this file if it
-   * is not honoured.
-   *
-   * `blockedUserIds` is the one field this surface CANNOT apply:
-   * `get_open_jobs_for_map` deliberately omits `customer_id` (PII-safe row),
-   * so there is nothing to match on. Documented, exempted by name in the
-   * guard, and NOT to be fixed by widening the RPC.
-   *
-   * Omitted on the guest dashboard, which has none of these.
-   */
-  exclusions?: ViewerFeedExclusions;
-  /**
-   * Re-read the pin RPC whenever this changes. /home passes the list's own
-   * last-read time, so the map re-reads exactly when the list does (after an
-   * apply, a pull-to-refresh, a focus refetch). Before this the pins were
-   * fetched once per mount and never again, so a job that left the board
-   * (applied to, hired, cancelled) stayed pinned beside a list that had
-   * dropped it.
-   */
-  refreshKey?: number;
-}
+import type { BrowseMapProps } from "./browseMap/browseMapProps";
+import { useHoveredPinHighlight, usePinFocusability } from "./browseMap/usePinFocusability";
+import { usePinPreviewPlacement } from "./browseMap/usePinPreviewPlacement";
+import { useShowMyLocation } from "./browseMap/useShowMyLocation";
 
 export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, onClearFilters, effectiveFee, flush = false, hoveredJobId, exclusions, refreshKey }: BrowseMapProps) {
   const shellClass = flush ? "" : " rounded-t-2xl border border-b-0 border-border";
@@ -360,34 +271,6 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
     }
   }, []);
 
-  /**
-   * Keep only the pins a user can actually reach in the tab order.
-   *
-   * MapKit does not remove a clustered pin from the DOM — it leaves the
-   * element parked at the cluster's position, drawn BEHIND the cluster bubble,
-   * and marks it by setting `pointer-events: none` on it (verified 2026-08-31:
-   * every pin under a cluster computed `none`, every standalone pin `auto`).
-   * Because our pins are `tabIndex=0`, that meant a keyboard user could tab to
-   * a pin that is invisible under a bubble and get a focus ring on nothing.
-   * Mirroring MapKit's own signal into `tabindex`/`aria-hidden` fixes it with
-   * no loss: the cluster standing in for those pins is itself focusable and
-   * named ("6 jobs in this area — zoom in to see them"), and expanding it
-   * hands the pins back.
-   */
-  const syncPinFocusability = useCallback(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    map.element.querySelectorAll<HTMLElement>(".browse-map-pin").forEach((el) => {
-      // Never hide the element that currently HAS focus — aria-hidden on the
-      // active element is itself a violation, and the user is mid-interaction.
-      const collapsed =
-        getComputedStyle(el).pointerEvents === "none" && document.activeElement !== el;
-      el.tabIndex = collapsed ? -1 : 0;
-      if (collapsed) el.setAttribute("aria-hidden", "true");
-      else el.removeAttribute("aria-hidden");
-    });
-  }, []);
-
   // Read through a ref so the annotation factories never close over a stale
   // `openPreview`, and so the pins effect does not rebuild every annotation
   // when it changes identity.
@@ -516,259 +399,15 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
    */
   const clearanceProbeRef = useRef<HTMLDivElement | null>(null);
 
-  // Re-run it whenever the clustering can have changed. MapKit rebuilds and
-  // re-styles annotation nodes asynchronously (and re-clusters on every camera
-  // move), so a one-shot call after `addAnnotations` is always too early — a
-  // rAF-debounced MutationObserver on the map's own subtree is what actually
-  // catches it. `attributeFilter: ["style"]` both narrows the work to the
-  // property that carries MapKit's signal AND keeps our own `tabindex` /
-  // `aria-hidden` writes from re-triggering the observer.
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    let raf = 0;
-    const schedule = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(syncPinFocusability);
-    };
-    schedule();
-    const obs = new MutationObserver(schedule);
-    obs.observe(map.element, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ["style"],
-    });
-    map.addEventListener("region-change-end", schedule);
-    return () => {
-      cancelAnimationFrame(raf);
-      obs.disconnect();
-      map.removeEventListener("region-change-end", schedule);
-    };
-  }, [visibleJobs, mapReady, syncPinFocusability]);
+  usePinFocusability(mapRef, mapReady, visibleJobs); // pins under a cluster leave the tab order (browseMap/usePinFocusability.ts)
 
   useFitPinsOnChange(mapRef, mapReady, visibleJobs, clearanceProbeRef); // frames pins + busy circles, above the dock band
 
-  // Desktop split-view hover sync: scale the pin whose feed card the pointer
-  // is over. Pin elements are plain DOM nodes tagged with `data-job-id` (see
-  // pinElement) rather than React-owned, so this reaches into the map's own
-  // container to toggle a class — cheaper than rebuilding annotations on
-  // every mouse move, and MapKit only calls the pin factory once anyway.
-  const prevHoveredElRef = useRef<HTMLElement | null>(null);
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    const prev = prevHoveredElRef.current;
-    if (prev) {
-      prev.classList.remove("browse-map-pin-hovered");
-      prevHoveredElRef.current = null;
-    }
-    if (!hoveredJobId) return;
-    const el = map.element.querySelector<HTMLElement>(
-      `.browse-map-pin[data-job-id="${CSS.escape(hoveredJobId)}"]`,
-    );
-    if (el) {
-      el.classList.add("browse-map-pin-hovered");
-      prevHoveredElRef.current = el;
-    }
-  }, [hoveredJobId, mapReady, visibleJobs]);
+  useHoveredPinHighlight(mapRef, mapReady, visibleJobs, hoveredJobId); // desktop split-view hover sync (browseMap/usePinFocusability.ts)
 
-  // ── Selected pin ⇄ preview card, visibly tied together ──────────────────
-  //
-  // The sheet is deliberately a BOTTOM SHEET (see the long note on the JSX
-  // block below — owner's call, and the reasons still hold). What it was
-  // missing is the other half of that convention: on Apple/Google Maps the
-  // sheet is unambiguous about WHICH pin it describes, because the pin is
-  // visibly selected. Ours rendered the tapped pin exactly like the other
-  // fifteen, so the card was a card about "a job", not about that pin.
-  //
-  // Two cues, both driven from here:
-  //   1. the tapped pin is enlarged and haloed (inline styles, not a class —
-  //      the pin elements are MapKit-owned DOM and this file cannot add CSS);
-  //   2. a caret on the card's top edge sits in the pin's own COLUMN, so the
-  //      card literally points at it. Clamped inside the card, and hidden
-  //      when the pin is clustered away or not above the card.
-  //
-  // Both re-measure on every frame while a preview is open (and only then):
-  // MapKit animates the camera on open, so a one-shot measurement points at
-  // where the pin used to be.
-  const previewWrapRef = useRef<HTMLDivElement | null>(null);
-  // Pin-anchored popover placement (owner, 2026-09-15: the preview card sits AT
-  // the pin, not in a bottom sheet). Computed every frame from the selected
-  // pin's live screen position + the card's measured size, so it tracks the
-  // camera. `null` until the first measurement — the card renders hidden until
-  // then so it never flashes at 0,0. `caretDir` "down" = card is ABOVE the pin
-  // (caret on the card's bottom edge, pointing down at it); "up" = flipped
-  // BELOW the pin when there is no room above.
-  const [preview, setPreview] = useState<PreviewPlacement | null>(null);
-  const prevSelectedElRef = useRef<HTMLElement | null>(null);
-  useEffect(() => {
-    const clearPin = () => {
-      const prev = prevSelectedElRef.current;
-      if (prev) {
-        prev.style.transform = "";
-        prev.style.zIndex = "";
-        prev.style.filter = "";
-        prevSelectedElRef.current = null;
-      }
-    };
-    const map = mapRef.current;
-    if (!map || !selectedJobId) {
-      clearPin();
-      setPreview(null);
-      return;
-    }
-    let frame = 0;
-    const sync = () => {
-      frame = requestAnimationFrame(sync);
-      const el = map.element.querySelector<HTMLElement>(
-        `.browse-map-pin[data-job-id="${CSS.escape(selectedJobId)}"]`,
-      );
-      if (el !== prevSelectedElRef.current) clearPin();
-      if (!el) {
-        setPreview(null);
-        return;
-      }
-      if (prevSelectedElRef.current !== el) {
-        // Scale from the pin's tip (transform-origin: bottom center, set in
-        // pinElement) so the point stays on its coordinate, and halo it so it
-        // reads as selected against any map ground.
-        el.style.transform = "scale(1.45)";
-        el.style.zIndex = "40";
-        el.style.filter =
-          "drop-shadow(0 0 0 hsl(var(--card))) drop-shadow(0 0 3px hsl(var(--card))) " +
-          "drop-shadow(0 4px 8px hsl(var(--olivewood) / 0.45))";
-        prevSelectedElRef.current = el;
-      }
-      const box = mapBoxRef.current;
-      const wrap = previewWrapRef.current;
-      if (!box || !wrap) {
-        setPreview(null);
-        return;
-      }
-      const pinRect = el.getBoundingClientRect();
-      // Clustered to zero size ⇒ the pin isn't really on the map; drop the card
-      // rather than anchor it to a collapsed point.
-      if (pinRect.width === 0) {
-        setPreview(null);
-        return;
-      }
-      const boxRect = box.getBoundingClientRect();
-      const cardRect = wrap.getBoundingClientRect();
-      const cardW = cardRect.width || PREVIEW_CARD_MAX_W;
-      const cardH = cardRect.height;
-      // Pin geometry in mapBox space. The coordinate anchor is the pin's bottom
-      // centre (anchorOffset lifts the element by half its height); its icon
-      // spans [pinTop, pinBottom].
-      const pinX = pinRect.left + pinRect.width / 2 - boxRect.left;
-      const pinTop = pinRect.top - boxRect.top;
-      const pinBottom = pinRect.bottom - boxRect.top;
-      // Bottom band the dock + FAB cover — measured, so the card never lands
-      // under them when it has to flip below the pin.
-      const bottomInset = clearanceProbeRef.current?.offsetHeight ?? 0;
-      // Horizontal: centre the card on the pin, clamped inside the map edges.
-      let left = pinX - cardW / 2;
-      left = Math.min(Math.max(left, PREVIEW_EDGE), Math.max(PREVIEW_EDGE, boxRect.width - cardW - PREVIEW_EDGE));
-      // Vertical: prefer ABOVE the pin (card bottom just over the pin's top).
-      // Flip BELOW only when there isn't room above.
-      let top = pinTop - PREVIEW_CARET - cardH;
-      let caretDir: "up" | "down" = "down";
-      if (top < PREVIEW_EDGE) {
-        top = pinBottom + PREVIEW_CARET;
-        caretDir = "up";
-      }
-      const maxTop = boxRect.height - bottomInset - cardH - PREVIEW_EDGE;
-      top = Math.max(PREVIEW_EDGE, Math.min(top, Math.max(PREVIEW_EDGE, maxTop)));
-      // Caret x: the pin's column relative to the card's left edge, kept off
-      // the rounded corners.
-      const caretLeft = Math.min(Math.max(pinX - left, 16), Math.max(16, cardW - 16));
-      setPreview((cur) =>
-        cur &&
-        Math.abs(cur.left - left) < 0.5 &&
-        Math.abs(cur.top - top) < 0.5 &&
-        Math.abs(cur.caretLeft - caretLeft) < 0.5 &&
-        cur.caretDir === caretDir
-          ? cur
-          : { left, top, caretLeft, caretDir },
-      );
-    };
-    sync();
-    return () => {
-      cancelAnimationFrame(frame);
-      clearPin();
-    };
-  }, [selectedJobId, mapReady, visibleJobs]);
+  const { preview, previewWrapRef } = usePinPreviewPlacement({ mapRef, mapBoxRef, clearanceProbeRef, selectedJobId, mapReady, visibleJobs }); // pin halo + popover placement (browseMap/usePinPreviewPlacement.ts)
 
-  /**
-   * VN-11 (owner decision, 2026-09-14): the crosshair button now does what its
-   * glyph has always promised — centre the map on the user.
-   *
-   * `useUserLocation` is the app's ONE location funnel (permission rationale,
-   * Capacitor on native / `navigator.geolocation` on web, the 5-minute cache,
-   * and the profile/ZIP/parish fallback chain). It is effect-driven off an
-   * `enabled` flag, so the button flips that flag and a second effect acts on
-   * whatever the hook settles to. No `isNativePlatform` branch lives here: the
-   * hook owns that, and it is a capability split, not a layout one.
-   *
-   * Failure is not silent and not a dead end: we fall back to the statewide
-   * Louisiana frame — the old Recenter behaviour, which is still the useful
-   * thing to do with a map you're lost on — and say why in a toast.
-   */
-  const [locationRequested, setLocationRequested] = useState(false);
-  const pendingLocateRef = useRef(false);
-  const geo = useUserLocation(locationRequested);
-  const locating = pendingLocateRef.current && geo.status === "loading";
-
-  const recenterLouisiana = useCallback(() => {
-    const mk = getMapKit();
-    const map = mapRef.current;
-    if (!mk || !map) return;
-    map.setRegionAnimated(laRegion(mk), true);
-  }, []);
-
-  const centerOn = useCallback((lat: number, lng: number, approximate: boolean) => {
-    const mk = getMapKit();
-    const map = mapRef.current;
-    if (!mk || !map) return;
-    // An approximate position is a parish centroid, not a fix — framing it at
-    // neighbourhood zoom would claim an accuracy we do not have, so it gets a
-    // parish-sized span instead.
-    const span = approximate ? 0.6 : 0.08;
-    map.setRegionAnimated(
-      new mk.CoordinateRegion(new mk.Coordinate(lat, lng), new mk.CoordinateSpan(span, span)),
-      true,
-    );
-  }, []);
-
-  const showMyLocation = useCallback(() => {
-    pendingLocateRef.current = true;
-    if (geo.status === "ready") {
-      pendingLocateRef.current = false;
-      centerOn(geo.lat, geo.lng, geo.approximate);
-      return;
-    }
-    if (geo.status === "error") {
-      // Already asked and already refused this session — don't re-prompt, just
-      // do the honest fallback again.
-      pendingLocateRef.current = false;
-      recenterLouisiana();
-      toast.error(geo.message);
-      return;
-    }
-    setLocationRequested(true);
-  }, [geo, centerOn, recenterLouisiana]);
-
-  useEffect(() => {
-    if (!pendingLocateRef.current) return;
-    if (geo.status === "ready") {
-      pendingLocateRef.current = false;
-      centerOn(geo.lat, geo.lng, geo.approximate);
-    } else if (geo.status === "error") {
-      pendingLocateRef.current = false;
-      recenterLouisiana();
-      toast.error(geo.message);
-    }
-  }, [geo, centerOn, recenterLouisiana]);
+  const { showMyLocation, locating } = useShowMyLocation(mapRef); // VN-11 crosshair: centre on the viewer (browseMap/useShowMyLocation.ts)
 
   if (loading) {
     return (
@@ -811,29 +450,7 @@ export function BrowseMap({ onJobAction, currentUserId, emptyStateCta, filters, 
        corners. Top corners stay rounded so the panel still reads as a
        distinct surface above the dock. */
     <div ref={mapBoxRef} className={`relative h-full w-full overflow-hidden${shellClass}`}>
-      {/* Honest note when a filter the viewer turned on has no field on the
-          map row to test (the RPC returns a narrow, PII-safe shape). Without
-          this the map silently shows pins the list has already excluded and
-          the two surfaces disagree for no visible reason. */}
-      {ignoredFilters.length > 0 && (
-        <div
-          className="absolute top-3 left-3 z-[400] max-w-[60%] px-2.5 py-1.5 rounded-ds-md font-sans text-ds-11 leading-snug"
-          style={{
-            // Tokened, not a literal white — see the same fix on
-            // `MyLocationControl`: `--olivewood` inverts in dark mode, so a
-            // hard-coded white ground put near-white text on near-white.
-            background: "hsl(var(--card) / 0.94)",
-            color: "hsl(var(--olivewood))",
-            border: "0.5px solid hsl(var(--olivewood) / 0.18)",
-            boxShadow: "0 4px 14px -4px hsl(var(--olivewood) / 0.18)",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-          }}
-        >
-          {ignoredFilters.join(" and ")} {ignoredFilters.length === 1 ? "isn't" : "aren't"} applied on
-          the map — switch to the list for {ignoredFilters.length === 1 ? "it" : "those"}.
-        </div>
-      )}
+      <IgnoredFiltersNote ignoredFilters={ignoredFilters} />
       {/* The floating "N Jobs"/"N Matches" pill that used to live here was
           removed (owner: redundant with the "N jobs" label already shown in
           the list-view toolbar header — the two counts said the same thing

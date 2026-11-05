@@ -61,8 +61,8 @@ export function ProblemForm({ orderId, side, stage, open: openProp, onOpenChange
       {!reason && <p className="text-ds-12 text-muted-foreground" data-problem-pick="">Pick what went wrong.</p>}
       {PROBLEM_FORM_PHOTOS_READY && <ProblemPhotoPicker files={photos} onChange={setPhotos} disabled={send.isPending} />}
       <div className="flex gap-2">
-        <Button type="button" variant="primary" size="sm" className="text-sm font-semibold" disabled={send.isPending || !reason || note.trim().length < DISPUTE_DETAILS_MIN} onClick={() => send.mutate()}>Send</Button>
         <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" onClick={() => setOpen(false)}>Not now</Button>
+        <Button type="button" variant="primary" size="sm" className="text-sm font-semibold" disabled={send.isPending || !reason || note.trim().length < DISPUTE_DETAILS_MIN} onClick={() => send.mutate()}>Send</Button>
       </div>
     </div>
   );

@@ -352,6 +352,9 @@ describe("fixture-job visibility — one switch, every surface", () => {
     // rendering on your activity screen after the flag flips, or the row you
     // are looking at silently vanishes.
     ["public.get_jobs_for_my_applications", "the caller's OWN applications, not a public feed"],
+    // Q2742 (20261105102419): the offeree's own pending direct offers (offered_to_helper_id = auth.uid()); its
+    // `status = 'open'` keeps a job a Helpr is already on out of the list, as the policy would. Not a feed.
+    ["public.get_my_pending_direct_offers", "the caller's own pending direct offers (offered_to_helper_id = auth.uid()); not a feed"],
     // 20260925154606 (Q407): a BEFORE-UPDATE trigger judging the ONE row being
     // written; `OLD.status = 'open'` is its hire carve-out, and the jobs read
     // the scan pairs it with is the crew fee ledger's RLS policy in the same file.

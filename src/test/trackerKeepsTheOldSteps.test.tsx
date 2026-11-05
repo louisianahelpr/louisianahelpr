@@ -40,14 +40,27 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { render, fireEvent, cleanup } from "@testing-library/react";
-import { computeAccessibleName } from "dom-accessibility-api";
+import { render, fireEvent, cleanup, queryAllByRole } from "@testing-library/react";
 import { CalendarCheck, CheckCircle2, Clock, FileText, MapPin, PartyPopper, Truck, Wrench } from "lucide-react";
 import { JobProgress, JOB_STEP_ICONS } from "@/components/tracker/JobProgress";
 import { JOB_PROGRESS_STEPS, jobProgress, type JobProgressState, type ProgressJob } from "@/components/tracker/jobProgressState";
 import { blankComments } from "./helpers/blankNonCode";
 
 const ROOT = resolve(__dirname, "..", "..");
+
+/** A tip button's accessible name, as Testing Library computes it for getByRole's `name` (dom-accessibility-api,
+ *  which is not a direct dependency and ships no types for its ESM entry, so it is not imported here). */
+function computeAccessibleName(el: HTMLElement): string {
+  let got: string | null = null;
+  queryAllByRole(el.ownerDocument.body, "button", {
+    name: (name, node) => {
+      if (node === el) got = name;
+      return false;
+    },
+  });
+  if (got === null) throw new Error("not a button in the document: " + el.outerHTML.slice(0, 120));
+  return got;
+}
 const code = (f: string) => blankComments(readFileSync(resolve(ROOT, f), "utf8"));
 
 /** The old rail, as JobTracking still defines its steps (PRE_STATUSES + STATUSES, in job-card/trackerSteps.ts). */

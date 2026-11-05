@@ -50,6 +50,15 @@ export interface ShopTalkRow {
 
 export const MY_SHOP_TALKS_KEY = ["shops", "my-talks"] as const;
 
+/**
+ * Q1947: the chat for a shop order, from its card, for either side (shops_open_order_talk, 20261105225245): the buyer's
+ * thread with the shop, or the shop owner's thread with that buyer. Made on first use.
+ */
+export async function openShopOrderTalk(orderId: string): Promise<string> {
+  return rpcData(await supabase.rpc("shops_open_order_talk", { p_order_id: orderId }),
+    (e) => rpcErrorMessage("shops_open_order_talk", e)) as string;
+}
+
 /** The caller's thread with a shop, made on first use. */
 export async function openShopTalk(shopId: string): Promise<string> {
   return rpcData(await supabase.rpc("shops_open_talk", { p_shop_id: shopId }), (e) => rpcErrorMessage("shops_open_talk", e)) as string;

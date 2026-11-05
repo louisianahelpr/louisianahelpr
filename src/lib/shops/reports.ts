@@ -10,11 +10,12 @@ import { loadAdminRpcErrorCopy } from "@/lib/lifecycleErrors";
 
 export type ReportedShop = {
   reported_id: string;
-  kind: "shop" | "shop_item";
+  /** Q1947: shop_talk_message is a message in a shop chat (owner_id is then the person who wrote it). */
+  kind: "shop" | "shop_item" | "shop_talk_message";
   shop_id: string;
   owner_id: string;
   label: string;
-  /** A shop: open, paused or hidden. An item: its status (live, rejected, ...). */
+  /** A shop: open, paused or hidden. An item: its status (live, rejected, ...). A chat message: who wrote it (buyer or shop). */
   status: string;
   shop_hidden: boolean;
   is_seed: boolean;

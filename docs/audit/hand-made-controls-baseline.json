@@ -79,7 +79,6 @@
       "button": 1
     },
     "src/components/admin/AdminCredentialQueue.tsx": {
-      "button": 1,
       "input": 2
     },
     "src/components/admin/AdminExceptionQueue.tsx": {
@@ -95,12 +94,9 @@
       "button": 1
     },
     "src/components/admin/AdminPayoutBatches.tsx": {
-      "button": 4
-    },
-    "src/components/admin/AdminReferrals.tsx": {
       "button": 2
     },
-    "src/components/admin/AdminReports.tsx": {
+    "src/components/admin/AdminReferrals.tsx": {
       "button": 2
     },
     "src/components/admin/AdminShopsOrders.tsx": {
@@ -122,7 +118,7 @@
       "input": 1
     },
     "src/components/admin/adminDisputes/DisputeFilters.tsx": {
-      "button": 2
+      "button": 1
     },
     "src/components/admin/adminDisputes/DisputeTabs.tsx": {
       "button": 2
@@ -179,9 +175,6 @@
       "button": 1
     },
     "src/components/admin/userDetail/DocumentsTab.tsx": {
-      "button": 1
-    },
-    "src/components/auth/TurnstileField.tsx": {
       "button": 1
     },
     "src/components/browseMap/MapLayers.tsx": {
@@ -457,7 +450,7 @@
       "button": 2
     },
     "src/components/profile/SubscriptionTab.tsx": {
-      "button": 3
+      "button": 2
     },
     "src/components/profile/SupportInline.tsx": {
       "button": 1,
@@ -586,11 +579,7 @@
     "src/pages/auth/ResetPassword.tsx": {
       "button": 1
     },
-    "src/pages/auth/SignupPending.tsx": {
-      "button": 1
-    },
     "src/pages/auth/signup/SignupStep2.tsx": {
-      "button": 2,
       "input": 1
     },
     "src/pages/home/HomeDashboard.tsx": {

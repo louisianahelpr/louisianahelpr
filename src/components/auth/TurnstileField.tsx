@@ -1,4 +1,5 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { RefreshCw } from "lucide-react";
 import { loadTurnstile, turnstileSiteKey, type TurnstileApi } from "@/lib/turnstile";
 
@@ -182,19 +183,18 @@ export const TurnstileField = forwardRef<TurnstileHandle, { action: string; clas
         {status === "error" && (
           <p role="status" className="flex flex-wrap items-center gap-x-2 text-ds-12 text-muted-foreground">
             <span>The security check didn't load.</span>
-            <button
-              type="button"
+            <InlineTextButton
               onClick={() => {
                 if (apiRef.current && widgetRef.current) apiRef.current.remove(widgetRef.current);
                 widgetRef.current = undefined;
                 setAttempt((n) => n + 1);
               }}
-              className="link-standard font-semibold"
+              className="font-semibold"
               style={{ color: "hsl(var(--bark))" }}
             >
               <RefreshCw className="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden="true" />
               Retry
-            </button>
+            </InlineTextButton>
           </p>
         )}
       </div>

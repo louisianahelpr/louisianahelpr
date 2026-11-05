@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -354,13 +355,13 @@ const AdminPayoutBatches = () => {
 
       {tab === "ready" && readyBatches.length > 0 && (
         <div className="flex items-center justify-between text-ds-11 px-1">
-          <button type="button" onClick={selectAllReady} className="text-primary hover:underline">
+          <InlineTextButton onClick={selectAllReady} className="text-primary">
             Select All with Stripe ({readyBatches.filter((b) => b.stripe_account_id).length})
-          </button>
+          </InlineTextButton>
           {selected.size > 0 && (
-            <button type="button" onClick={clearSelection} className="text-muted-foreground hover:text-foreground">
+            <InlineTextButton onClick={clearSelection} className="text-muted-foreground hover:text-foreground">
               Clear Selection
-            </button>
+            </InlineTextButton>
           )}
         </div>
       )}

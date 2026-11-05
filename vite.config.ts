@@ -216,7 +216,11 @@ const HOME_SCHEDULE_READS = /[\\/]src[\\/]lib[\\/](scheduleChange|scheduleClashe
 // the moment the feature switches answered, before /home's money tile drew. src/test/homeLazyReadsStayLight.test.ts.
 const HOME_SHOP_READS = /[\\/]src[\\/]lib[\\/]shops[\\/](orders|rpcErrorCopy|errors)\.ts$/;
 const HOME_DERIVE_LEAVES = /[\\/]src[\\/](pages[\\/]home[\\/]homeDashboard[\\/]useNeedsYouTodos|components[\\/]tracker[\\/]jobProgressSteps|components[\\/]job-card[\\/]helperStepRequest)\.ts$/;
-const BROWSE_GROUP_SKIPS = /[\\/]src[\\/]components[\\/]ui[\\/]skeleton\.tsx$/;
+const BROWSE_GROUP_SKIPS = /[\\/]src[\\/](components[\\/]ui[\\/]skeleton\.tsx|hooks[\\/](useMembershipsOn|useArrivalGate)\.ts)$/;
+// Builder 3, 11-04: the dialog primitives guest /browse shares with Money (EarningsTab) and other signed-in screens. In
+// browse-first-screen, Money's static import of them put that whole 28.9 KB gz guest-browse chunk on its critical path.
+const DECLUTTER_CATEGORY_ICONS = /[\\/]src[\\/]lib[\\/]declutter[\\/]categoryIcons\.ts$/;
+const DIALOG_PRIMITIVES = /[\\/]src[\\/]components[\\/]ui[\\/](dialog\.tsx|dialogProse\.tsx|dialogActions\.tsx|popupDismiss\.tsx|popupFooter\.ts|useDialogFocus\.ts)$/;
 
 /**
  * THE ENTRY'S ROUTE PRELOAD LISTS SKIP WHAT main.tsx's LIST ALREADY NAMES (B48, 11-03).
@@ -1286,6 +1290,13 @@ export default defineConfig(({ mode, command }) => ({
             // guestBrowseOnlyModules: its map, filters and job-card helpers, shared with signed-in
             // pages). It rode in app-shared, so /posts, /, /login and /signup each downloaded it
             // (LEAD-POSTS-BOOT-SHRINK, 10-31). Above app-shared's priority so it wins those modules.
+            {
+              name: "dialog-primitives",
+              test: (id: string) => DIALOG_PRIMITIVES.test(id) || DECLUTTER_CATEGORY_ICONS.test(id),
+              priority: 13,
+              minSize: 0,
+              includeDependenciesRecursively: false /* the primitives alone */,
+            },
             {
               name: "browse-first-screen",
               // Not the skeleton bone (BROWSE_GROUP_SKIPS): with it here, the /home route skeleton (App.tsx, drawn

@@ -539,6 +539,13 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   let chargeCents = fullChargeCents;
   let giftCents = 0;
   if (giftCardId) {
+    // Lead 11-04 9:1x PM (money): the gift pays tax-free lines only. Every Declutter line is NONTAXABLE today and the
+    // page below refuses tax_cents != 0, but a gift that covers the whole order returns before that check. So it is
+    // refused here, BEFORE the redeem. THE TAX SLICE (B33) MUST REVISIT THIS: the remainder line is NONTAXABLE too.
+    if (order.tax_cents !== 0 && giftCardId) {
+      console.error(`[declutter-checkout] order ${order.order_id} carries tax; a gift card cannot pay it before the tax slice`);
+      return json({ error: TRY_AGAIN }, 500);
+    }
     const { data: redeemed, error: redeemErr } = await admin.rpc("redeem_gift_card_for_declutter_order", {
       p_credit_id: giftCardId, p_order_id: order.order_id, p_user_id: user.id, p_retired_session: retiredSession,
     });

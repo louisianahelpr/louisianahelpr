@@ -8,6 +8,7 @@
  * @mutate supabase/functions/declutter-checkout/index.ts |     if (r?.outcome === "settled") return json({ paid: true, order_id: order.order_id, gift_cents: Number(r.applied_cents ?? 0) }); |
  * @mutate supabase/functions/declutter-checkout/index.ts |         \|\| applied <= 0 \|\| rest + applied !== fullChargeCents) { |         \|\| applied <= 0) {
  * @mutate supabase/functions/declutter-checkout/index.ts |       retiredSession = row!.checkout_session_id; |
+ * @mutate supabase/functions/declutter-checkout/index.ts |     if (order.tax_cents !== 0 && giftCardId) { |     if (false && giftCardId) {
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -31,5 +32,14 @@ describe("declutter-checkout: one gift card pays first (Q2106)", () => {
   it("closes an open page first and hands it to the redeem as retired", () => {
     expect(SRC).toContain("retiredSession = row!.checkout_session_id;");
     expect(SRC).toContain("p_retired_session: retiredSession");
+  });
+  it("a gift never pays an order that carries tax (lead 11-04: the tax slice B33 must revisit the NONTAXABLE line)", () => {
+    const gift = SRC.indexOf("if (giftCardId) {\n");
+    const redeem = SRC.indexOf('admin.rpc("redeem_gift_card_for_declutter_order"');
+    expect(gift).toBeGreaterThan(0);
+    const refuse = SRC.indexOf("if (order.tax_cents !== 0 && giftCardId) {", gift);
+    expect(refuse).toBeGreaterThan(gift);
+    expect(refuse).toBeLessThan(redeem);
+    expect(SRC.slice(refuse, redeem)).toContain("return json({ error: TRY_AGAIN }, 500);");
   });
 });

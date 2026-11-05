@@ -17,6 +17,8 @@ import { GroupJobHelpers } from "@/components/GroupJobHelpers";
 import { JobCardShell } from "../../components/job-card/JobCardShell"; import { JobProofPhotos } from "@/components/jobs/JobProofPhotos";
 import { MineJobFace, MineOpenMeta, mineFaceWhen } from "../../components/job-card/MineJobFace"; import { jobProgress } from "@/components/tracker/jobProgressState";
 import { usePosterFaceAction } from "./postedJobCard/posterFaceAction";
+import { useContinueDayOnCard } from "@/components/jobs/ContinueDayOnCard";
+import { JobCardLeadContext } from "@/components/job-card/jobCardLead";
 import { posterStatusLine, type PosterWait } from "@/components/job-card/jobStatusLine";
 import { PostedJobMetaRow } from "./postedJobCard/PostedJobMetaRow";
 import { JobCardPersonContext, personSlotValue, useJobCardPersonSlot } from "../../components/job-card/jobCardPerson";
@@ -152,6 +154,8 @@ function PostedJobCardInner({
     confirmingArrival: confirmingArrivalJobId === job.id, completing: completingJobId === job.id,
     onLoadApplications, onConfirmArrival, onReview, onTip, onNoShow, onCancel, onViewDispute,
   });
+  // Owner 11-05: a Helpr's proposed new day is answered ON this card (the face's button collapsed, a block open).
+  const continueDayAnswer = useContinueDayOnCard({ job, side: "poster", mine: job.customer_id === userId && !!job.helper_id, otherFirst: helperName.split(" ")[0] || null, otherId: job.helper_id ?? null });
   const trackerBlock = showsTracker ? (
     <div onClick={(e) => e.stopPropagation()}>
       {/* `embedded`: this card is already a JobCardShell glass card,
@@ -169,7 +173,7 @@ function PostedJobCardInner({
   return (
         /* The Helpr's tile, published to whichever JobStepCard this status mounts (jobCardPerson.tsx). The
            provider wraps the WHOLE card, so the fallback below and the claim above it answer one question. */
-        <JobCardPersonContext.Provider value={personCtx}>
+        <JobCardPersonContext.Provider value={personCtx}><JobCardLeadContext.Provider value={continueDayAnswer.lead}>
         <div ref={cardRef}>
           <JobCardShell
             /* The face links to /jobs/:id (board 14); live controls open in place (its button, or ?highlight=<id>&manage=1). */
@@ -201,7 +205,7 @@ function PostedJobCardInner({
                 />
               )}
               extra={<JobProofPhotos beforeUrls={job.proof_before_urls} afterUrls={job.proof_after_urls} variant="card" />} // opening them releases nothing
-              action={isExpanded ? null : faceAction} onCollapse={isExpanded ? () => toggleExpandedJobId(job.id) : undefined}
+              action={isExpanded ? null : continueDayAnswer.faceAction ?? faceAction} onCollapse={isExpanded ? () => toggleExpandedJobId(job.id) : undefined}
               progress={isExpanded ? null : faceProgress} /* the 8 steps on the card (owner, 2026-10-22) */
             />
             {isExpanded && <MineOpenMeta jobId={job.id} meta={metaRow} />}
@@ -579,7 +583,7 @@ function PostedJobCardInner({
             {!isExpanded && !!(job as { schedule_change_asked_of_me?: boolean }).schedule_change_asked_of_me && /* Q1551 */ <ScheduleChangeForJob job={job} userId={userId} viewer="poster" expanded={false} hideAsk />}
           </JobCardShell>
         </div>
-        </JobCardPersonContext.Provider>
+        </JobCardLeadContext.Provider></JobCardPersonContext.Provider>
   );
 }
 

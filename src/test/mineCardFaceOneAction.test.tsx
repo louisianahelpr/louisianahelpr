@@ -19,7 +19,7 @@
  * @mutate src/pages/home/HomeDashboard.tsx |                     {" "}\n |
  * @mutate src/components/DesktopSidebarNav.tsx |                   {soon && " "}\n |
  * @mutate src/components/job-card/MineJobFace.tsx | to={`/jobs/${encodeURIComponent(jobId)}`} | to="/posts"
- * @mutate src/pages/posts/PostedJobCard.tsx | action={isExpanded ? null : faceAction} | action={faceAction}
+ * @mutate src/pages/posts/PostedJobCard.tsx | action={isExpanded ? null : continueDayAnswer.faceAction ?? faceAction} | action={continueDayAnswer.faceAction ?? faceAction}
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | openApplicants: () => a.onLoadApplications(job), | openApplicants: () => {},
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | confirmArrival: () => a.onConfirmArrival(job.id), | confirmArrival: () => toggle(job.id),
  * @mutate src/pages/posts/postedJobCard/posterFaceAction.ts | h.confirmingArrival ? "Confirming…" : "Confirm they've arrived", | h.confirmingArrival ? "Confirming…" : "Confirm arrival",

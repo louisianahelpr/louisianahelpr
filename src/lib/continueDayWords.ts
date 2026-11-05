@@ -79,6 +79,28 @@ export function continueDayWords(
   return step ? nextStepWords(step) : null;
 }
 
+/**
+ * Q2606 (owner): a proposed new day waits on the side that did NOT ask. Returns that side's two answers, or null when
+ * nothing waits on `side`. ONE rule for the job page (useContinueDayActions) and both job cards (ContinueDayOnCard,
+ * owner 11-05: "accepting the new day should be on the job card"). Guard: src/test/continueDayAnswerOnTheCard.test.tsx.
+ */
+export function continueDayAnswer(
+  row: ContinueDay | null | undefined,
+  side: "poster" | "helpr",
+): { accept: string; decline: string; when: string; accepted: string; declined: string } | null {
+  if (!row || row.status !== "proposed") return null;
+  const waitsOnMe = side === "poster" ? row.proposer !== "poster" : row.proposer === "poster";
+  if (!waitsOnMe) return null;
+  const when = continueDayLabel(row.new_date, row.new_start_time);
+  return {
+    accept: side === "poster" ? "Confirm new day" : "Accept new day",
+    decline: "Decline new day",
+    when,
+    accepted: `Set: continuing ${when}.`,
+    declined: "Declined. Message them to agree on what's next.",
+  };
+}
+
 /** Today in Louisiana ("2026-11-01"), the day the server's continue_day_ahead check reads. */
 function louisianaToday(now: Date): string {
   return now.toLocaleDateString("en-CA", { timeZone: "America/Chicago" });

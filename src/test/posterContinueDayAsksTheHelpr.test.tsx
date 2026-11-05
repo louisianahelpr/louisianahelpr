@@ -7,8 +7,8 @@
  * ("Send to Eli"), never "Set the day".
  * @mutate src/lib/continueDayReads.ts | row.proposed_by === job.customer_id ? "poster" : "helpr" | row.proposed_by === job.customer_id ? "helpr" : "helpr"
  * @mutate src/lib/continueDayWords.ts |     if (row.proposer === "poster") { |     if (false) {
- * @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     if (row?.status === "proposed" && row.proposer !== "poster") { |     if (row?.status === "proposed") {
- * @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |     if (row?.status === "proposed" && row.proposer === "poster") { |     if (false) {
+ * @mutate src/lib/continueDayWords.ts | const waitsOnMe = side === "poster" ? row.proposer !== "poster" : row.proposer === "poster"; | const waitsOnMe = side === "poster" ? true : row.proposer === "poster";
+ * @mutate src/lib/continueDayWords.ts | const waitsOnMe = side === "poster" ? row.proposer !== "poster" : row.proposer === "poster"; | const waitsOnMe = side === "poster" ? row.proposer !== "poster" : false;
  * @mutate src/components/jobs/ContinueDaySheet.tsx | {busy ? "Saving…" : `Send to ${other \|\| (poster ? "your Helpr" : "them")}`} | {busy ? "Saving…" : poster ? "Set the day" : `Send to ${other \|\| "them"}`}
  * @mutate src/lib/continueDayReads.ts | const CONTINUE_DAY_COLUMNS = "id, job_id, proposed_by, new_date, new_start_time, note, status, helper_confirmed_at, job:jobs(customer_id)"; | const CONTINUE_DAY_COLUMNS = "id, job_id, proposed_by, new_date, new_start_time, note, status, helper_confirmed_at";
  */

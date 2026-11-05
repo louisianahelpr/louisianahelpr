@@ -31,6 +31,9 @@ export interface MineFaceAction {
   also?: { label: string; onClick: () => void };
   /** A visible text button under the button: the step's other answer (A3-8: "Something's not right" under Approve). */
   under?: { label: string; onClick: () => void };
+  /** A small outline chip beside the one primary: the face's usual button stepped down (lead 11-05: a proposed new day
+   *  takes the primary and Message becomes this chip). */
+  chip?: { label: string; onClick: () => void };
   disabled?: boolean;
   /** Why a greyed button is greyed, on the line under it (the 30-minute wait on Mark it done). */
   note?: string;
@@ -98,6 +101,7 @@ export function MineJobFace({
     category === "other" || !category ? Briefcase : getCategoryIcon(category);
   const navigate = useNavigate();
   const onOpen = () => navigate(`/jobs/${encodeURIComponent(jobId)}`);
+  const chipFaceLabel = action?.chip ? buttonLabel(action.label) : null;
   return (
     <div data-mine-face="" className="flex flex-col px-3.5 py-3 md:flex-row md:flex-wrap md:items-center md:gap-x-6 md:gap-y-2">
       {/* Tight like Browse's card (owner 2026-10-25, "polish these cards, kind of a lot of spacing"): 14px sides, 12px
@@ -218,6 +222,38 @@ export function MineJobFace({
             }}
           >
             {action.also.label}
+          </Button>
+        </div>
+      ) : action?.chip ? (
+        // One primary with the face's usual button stepped down to a chip beside it (lead 11-05, a proposed new day).
+        <div className="order-3 mt-2 flex items-center gap-2 md:order-none md:mt-0 md:shrink-0">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            data-mine-face-chip=""
+            className="shrink-0 rounded-full px-4 font-semibold"
+            onClick={(e) => {
+              e.stopPropagation();
+              action.chip?.onClick();
+            }}
+          >
+            {action.chip.label}
+          </Button>
+          <Button
+            type="button"
+            variant={action.tone === "primary" ? "primary" : "outline"}
+            disabled={action.disabled}
+            data-mine-face-action={action.tone}
+            size="sm"
+            className="min-w-0 flex-1 rounded-full font-semibold md:min-w-40 md:flex-none md:px-6"
+            aria-label={buttonLabel(action.label) !== action.label ? action.label : undefined}
+            onClick={(e) => {
+              e.stopPropagation();
+              action.onClick();
+            }}
+          >
+            {chipFaceLabel}
           </Button>
         </div>
       ) : action && (

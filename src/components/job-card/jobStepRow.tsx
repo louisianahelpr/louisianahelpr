@@ -39,6 +39,8 @@ export interface JobStepRowHosts {
   noteHost: HTMLElement | null;
   /** Register a control in the primary slot; returns the release. */
   claimPrimary: () => () => void;
+  /** The card's own question leads this row (JobCardLeadContext, jobCardLead.ts): every slot not marked `lead` stands down. */
+  leadActive?: boolean;
 }
 
 export const JobStepRowContext = createContext<JobStepRowHosts | null>(null);
@@ -54,9 +56,11 @@ export function hasRenderable(node: ReactNode): boolean {
   return Children.toArray(node).length > 0;
 }
 
-export function JobStepRowSlot({ slot, children }: { slot: "primary" | "note"; children?: ReactNode }) {
+export function JobStepRowSlot({ slot, children, lead = false }: { slot: "primary" | "note"; children?: ReactNode; lead?: boolean }) {
   const ctx = useContext(JobStepRowContext);
-  const present = hasRenderable(children);
+  // One primary (lead 11-05): while the card's own question leads the row, the step's other claims draw nothing.
+  const standsDown = !!ctx?.leadActive && !lead;
+  const present = hasRenderable(children) && !standsDown;
   const claim = ctx?.claimPrimary;
   useLayoutEffect(() => {
     if (!claim || slot !== "primary" || !present) return;
@@ -64,6 +68,7 @@ export function JobStepRowSlot({ slot, children }: { slot: "primary" | "note"; c
   }, [claim, slot, present]);
 
   if (!ctx) return <>{children}</>;
+  if (standsDown) return null;
   const host = slot === "primary" ? ctx.primaryHost : ctx.noteHost;
   return host && present ? createPortal(children, host) : null;
 }

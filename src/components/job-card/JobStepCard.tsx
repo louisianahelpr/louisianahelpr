@@ -2,12 +2,14 @@ import { isValidElement, useCallback, useContext, useEffect, useLayoutEffect, us
 import { createPortal } from "react-dom";
 import {
   JobStepRowContext,
+  JobStepRowSlot,
   hasRenderable,
   measureJobStepRow,
   partitionJobStepRowChips,
   type JobStepRowLayout,
 } from "./jobStepRow";
 import { useClaimedPersonTile } from "./jobCardPerson";
+import { JobCardLeadContext } from "./jobCardLead";
 import { JobStepOverflowChip } from "./JobActionRow";
 import { JobStepMenuContext, MenuAction, MenuTextAction, primaryButtons } from "./jobStepMenu";
 import { SosShareButton } from "@/components/SosShareButton";
@@ -243,7 +245,10 @@ export function JobStepCard({
   // props because every note arrives by PORTAL, from a component that is not
   // this one's child in the React tree that owns the prop.
   const [noteFilled, setNoteFilled] = useState(false);
-  const hosts = useMemo(() => ({ primaryHost, noteHost, claimPrimary }), [primaryHost, noteHost, claimPrimary]);
+  // The card's own question (a proposed new day waiting on this viewer) leads the row over the step's (jobCardLead.ts).
+  const cardLead = useContext(JobCardLeadContext);
+  const leadActive = !!cardLead;
+  const hosts = useMemo(() => ({ primaryHost, noteHost, claimPrimary, leadActive }), [primaryHost, noteHost, claimPrimary, leadActive]);
 
   // ── Label or icon-only, and whether the row has anything in it at all ──
   // Read from the DOM, not from props: a chip or primary element can render
@@ -404,6 +409,12 @@ export function JobStepCard({
         {header}
         {ask}
         {notice}
+        {cardLead && (
+          <>
+            <JobStepRowSlot slot="primary" lead>{cardLead.primary}</JobStepRowSlot>
+            <JobStepRowSlot slot="note" lead>{cardLead.note}</JobStepRowSlot>
+          </>
+        )}
         {/* WHO, directly above WHAT YOU CAN DO (owner, 2026-09-19). Last thing
             before the controls on both cards; `empty:hidden` is unnecessary
             because `useClaimedPersonTile` returns null rather than an empty

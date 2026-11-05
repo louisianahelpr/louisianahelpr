@@ -114,9 +114,11 @@ describe("ProfileTabFallback — the ruling, asserted", () => {
     // and three stat tiles — because the boot branch special-cased exactly one
     // tab. Read from the source, because this branch runs before any query
     // resolves and no render test reaches it.
-    const src = blankComments(readFileSync(resolve(__dirname, "../../pages/profile/Profile.tsx"), "utf8"));
-    const branch = src.slice(src.indexOf("if (showSkeleton) {"), src.indexOf("const displayName"));
-    expect(branch.length, "Profile.tsx's loading branch was not found — this guard has rotted").toBeGreaterThan(100);
+    // Profile.tsx's boot branch returns <ProfileLoadingShell /> (Q806 split); the shell is the branch.
+    const page = blankComments(readFileSync(resolve(__dirname, "../../pages/profile/Profile.tsx"), "utf8"));
+    expect(page, "Profile.tsx's loading branch must return the shell").toMatch(/if \(showSkeleton\) \{\s*return <ProfileLoadingShell tab=\{tab\} backFromTab=\{backFromTab\} \/>;/);
+    const branch = blankComments(readFileSync(resolve(__dirname, "../../pages/profile/ProfileLoadingShell.tsx"), "utf8"));
+    expect(branch.length, "ProfileLoadingShell.tsx was not found — this guard has rotted").toBeGreaterThan(100);
     expect(branch, "the boot skeleton must render the tab's own placeholder").toContain("ProfileTabFallback");
     // The PAIRING, not the presence of either half: `/tab === "landing"/`
     // on its own is satisfied by the container's `pt-3` gate a few lines up

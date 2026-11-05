@@ -19,7 +19,7 @@
  * @mutate src/hooks/useFeedPhase.ts | return online ? feedPhase(profileQuery ?? { status: "pending", fetchStatus: "idle" }, online) : "offline-empty"; | return feedPhase(profileQuery ?? { status: "pending", fetchStatus: "idle" }, online);
  * @mutate src/pages/jobs/JobDetail.tsx | {(authLoading ? authPhase : phase) === "offline-empty" ? ( | {(authLoading ? "loading" : phase) === "offline-empty" ? (
  * @mutate src/components/profile/ProfileOfflineGate.tsx | if (phase !== "offline-empty") return <>{children}</>; | return <>{children}</>;
- * @mutate src/pages/profile/Profile.tsx |             <ProfileOfflineGate tab={tab} onBack={backFromTab}>\n | \n
+ * @mutate src/pages/profile/ProfileLoadingShell.tsx |           <ProfileOfflineGate tab={tab} onBack={backFromTab}>\n | \n
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -109,8 +109,9 @@ describe("page gates that wait on the profile say offline (Q571)", () => {
   });
 
   it("Profile wraps its whole boot placeholder in the gate", () => {
-    const src = blankComments(readFileSync("src/pages/profile/Profile.tsx", "utf8"));
-    const branch = src.slice(src.indexOf("if (showSkeleton) {"), src.indexOf("const displayName"));
+    // Profile.tsx's boot branch returns <ProfileLoadingShell /> (Q806 split); the shell is the branch.
+    expect(blankComments(readFileSync("src/pages/profile/Profile.tsx", "utf8"))).toMatch(/if \(showSkeleton\) \{\s*return <ProfileLoadingShell /);
+    const branch = blankComments(readFileSync("src/pages/profile/ProfileLoadingShell.tsx", "utf8"));
     expect(branch.length).toBeGreaterThan(100);
     expect(branch).toMatch(/<ProfileOfflineGate tab=\{tab\} onBack=\{backFromTab\}>\s*\{tab === "landing"/);
   });

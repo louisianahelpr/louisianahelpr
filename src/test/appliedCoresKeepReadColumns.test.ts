@@ -12,8 +12,8 @@
  *
  * @mutate src/lib/activityCores.ts | ...POSTED_JOB_COLUMNS, ...JOB_PRIVATE_COLUMNS, ...JOB_SERIES_STATE_COLUMNS, "tax_kind", "date_window_end", | ...POSTED_JOB_COLUMNS, ...JOB_SERIES_STATE_COLUMNS, "tax_kind", "date_window_end",
  * @mutate src/lib/activityCores.ts |         p_application_job_columns: [...APPLICATION_JOB_COLUMNS], |         p_application_job_columns: undefined,
- * @mutate supabase/migrations/20261105104129_activity_cores_application_job_columns.sql | jsonb_agg(CASE WHEN p_application_job_columns IS NULL THEN to_jsonb(d) ELSE ( | jsonb_agg(CASE WHEN true THEN to_jsonb(d) ELSE (
- * @mutate supabase/migrations/20261105104129_activity_cores_application_job_columns.sql | jsonb_agg(CASE WHEN p_application_job_columns IS NULL THEN to_jsonb(j) ELSE ( | jsonb_agg(CASE WHEN true THEN to_jsonb(j) ELSE (
+ * @mutate supabase/migrations/20261105111750_activity_cores_parts.sql | jsonb_agg(CASE WHEN p_application_job_columns IS NULL THEN to_jsonb(d) ELSE ( | jsonb_agg(CASE WHEN true THEN to_jsonb(d) ELSE (
+ * @mutate supabase/migrations/20261105111750_activity_cores_parts.sql | jsonb_agg(CASE WHEN p_application_job_columns IS NULL THEN to_jsonb(j) ELSE ( | jsonb_agg(CASE WHEN true THEN to_jsonb(j) ELSE (
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -39,7 +39,8 @@ describe("the cores keep every applied-job column a reader names, and only those
 
   it("the latest get_my_activity_cores filters application_jobs and direct_offers by the list", () => {
     const def = latestDefinitions().get("function:get_my_activity_cores");
-    expect(def?.file).toBe("20261105104129_activity_cores_application_job_columns.sql");
+    // Q2706 (20261105111750) restated it with p_parts; the filter is unchanged.
+    expect(def?.file).toBe("20261105111750_activity_cores_parts.sql");
     const code = def!.code;
     for (const [key, src, v] of [["application_jobs", "get_jobs_for_my_applications", "j"], ["direct_offers", "get_my_pending_direct_offers", "d"]]) {
       const at = code.indexOf(`'${key}'`);

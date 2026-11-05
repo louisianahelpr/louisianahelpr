@@ -22,10 +22,10 @@
 // @mutate src/lib/continueDayReads.ts |   if (!Array.isArray(rows)) return null; |   if (!Array.isArray(rows)) return {};
 // @mutate src/hooks/useActivityData.ts |   const continueDays = openContinueDaysFrom(cores?.open_continue_days) ?? await fetchMyOpenContinueDays(userId, "posted"); |   const continueDays = await fetchMyOpenContinueDays(userId, "posted");
 // @mutate src/hooks/useActivityData.ts |   const continueDays = openContinueDaysFrom(cores?.open_continue_days) ?? await fetchMyOpenContinueDays(userId, "applied"); |   const continueDays = openContinueDaysFrom(cores?.open_continue_days) ?? {};
-// @mutate supabase/migrations/20261105104129_activity_cores_application_job_columns.sql |        WHERE d.status = 'set' AND d.closed_at IS NULL | WHERE d.status IN ('proposed', 'set')
-// @mutate supabase/migrations/20261105104129_activity_cores_application_job_columns.sql |          AND d.job_id IN (SELECT j.id FROM public.jobs j WHERE j.customer_id = v_uid | AND d.job_id IN (SELECT j.id FROM public.jobs j
-// @mutate supabase/migrations/20261105104129_activity_cores_application_job_columns.sql |     'open_continue_days', ( |     'open_days', (
-// @mutate supabase/migrations/20261105104129_activity_cores_application_job_columns.sql |  STABLE SECURITY INVOKER\n SET search_path TO 'public' |  STABLE SECURITY DEFINER\n SET search_path TO 'public'
+// @mutate supabase/migrations/20261105111750_activity_cores_parts.sql |        WHERE d.status = 'set' AND d.closed_at IS NULL | WHERE d.status IN ('proposed', 'set')
+// @mutate supabase/migrations/20261105111750_activity_cores_parts.sql |          AND d.job_id IN (SELECT j.id FROM public.jobs j WHERE v_posted_part AND j.customer_id = v_uid | AND d.job_id IN (SELECT j.id FROM public.jobs j WHERE v_posted_part
+// @mutate supabase/migrations/20261105111750_activity_cores_parts.sql |     'open_continue_days', ( |     'open_days', (
+// @mutate supabase/migrations/20261105111750_activity_cores_parts.sql |  STABLE SECURITY INVOKER\n SET search_path TO 'public' |  STABLE SECURITY DEFINER\n SET search_path TO 'public'
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { join } from "node:path";
 import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";
@@ -202,7 +202,8 @@ describe("get_my_activity_cores carries the open continue days (20261103231310: 
   it("the newest definition returns open_continue_days: open SET days of my posted or applied jobs, as the caller", () => {
     expect(body).toMatch(/'open_continue_days',/);
     expect(body).toMatch(/FROM public\.job_continue_days d\s+WHERE d\.status = 'set' AND d\.closed_at IS NULL/);
-    expect(body).toMatch(/d\.job_id IN \(SELECT j\.id FROM public\.jobs j WHERE j\.customer_id = v_uid\s+UNION SELECT a\.job_id FROM public\.applications a WHERE a\.helper_id = v_uid\)/);
+    // Q2706 (20261105111750): each half is gated by its part flag (both true when p_parts is NULL: the same union).
+    expect(body).toMatch(/d\.job_id IN \(SELECT j\.id FROM public\.jobs j WHERE v_posted_part AND j\.customer_id = v_uid\s+UNION SELECT a\.job_id FROM public\.applications a WHERE v_applied_part AND a\.helper_id = v_uid\)/);
     expect(body).toMatch(/STABLE SECURITY INVOKER/);
   });
 });

@@ -631,7 +631,7 @@ test.describe("full money loop against production", () => {
     // helpers. `is_seed` is sent for intent only; the column lock will force
     // it false and control 3 above explains why that is correct. The form's
     // own coverage lives in the mocked happy-path suite
-    // (customer-post-job.spec.ts); what is unmocked here is everything
+    // (customer-post-job.spec.ts, retired into the prod journeys 2026-11-04, Q1035); what is unmocked here is everything
     // downstream of the row existing.
     // Letter-prefixed base36, never bare digits: the jobs contact-leak reject
     // trigger reads a 10+-digit run in a title as a phone number.

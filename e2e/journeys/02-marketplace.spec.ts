@@ -314,6 +314,10 @@ test.describe.serial("marketplace chain", () => {
       expect(await page.getByText(/pricing mode|accept bids|open to offers/i).count(), "a pricing-mode picker reappeared; add each mode to this journey").toBe(0);
     });
 
+    // Ported from the mocked happy-path/customer-post-job.spec.ts (Q1035): a group tap must advance the entry
+    // screen into the form (fillJobDetails taps Home > Cleaning, then types the title). Neuter startFresh and
+    // the title field never appears:
+    // @mutate src/pages/post-job/useJobEntry.ts | const startFresh = () => { | const startFresh = () => { return;
     await test.step("fills details with a photo", async () => {
       await fillJobDetails(page, TITLE, join(S.fileDir, "job-photo.png"));
       await journey.milestone(page, "post-details-photo");

@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Heart, Share2 } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import AppPage from "@/components/AppPage";
+import { Button } from "@/components/ui/button";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { DeclutterItemSkeleton, DeclutterItemUnavailable, isItemId } from "./DeclutterSkeletons";
@@ -169,25 +170,29 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const saveShare = (
     <div className="flex shrink-0 items-center gap-2" data-item-save-share="">
       {canAct && user && (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="iconCompact"
           aria-pressed={isWatching}
           aria-label={isWatching ? "Remove from saved" : "Save this item"}
-          className={`w-11 h-11 rounded-full border border-border bg-card flex items-center justify-center ${isWatching ? "text-[hsl(var(--burnt-sienna))]" : ""}`}
+          className={`border border-border bg-card ${isWatching ? "text-[hsl(var(--burnt-sienna))]" : ""}`}
           disabled={toggleWatch.isPending}
           onClick={() => (preview ? noteOwnListing() : toggleWatch.mutate({ id: itemId, on: !isWatching }))}
         >
           <Heart className="w-5 h-5" fill={isWatching ? "currentColor" : "none"} />
-        </button>
+        </Button>
       )}
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="iconCompact"
         aria-label="Share this item"
-        className="w-11 h-11 rounded-full border border-border bg-card flex items-center justify-center"
+        className="border border-border bg-card"
         onClick={() => shareListing(it)}
       >
         <Share2 className="w-5 h-5" aria-hidden />
-      </button>
+      </Button>
     </div>
   );
 

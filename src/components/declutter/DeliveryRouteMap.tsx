@@ -18,6 +18,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMapKitJs } from "@/hooks/useMapKitJs";
+import { Button } from "@/components/ui/button";
 import { nextStep, routeVisits, type LatLng, type NavStep } from "@/lib/declutter/route";
 import { shareMyPosition, stopSharingPosition, type RouteStop } from "@/lib/helprTasks/api";
 
@@ -248,10 +249,10 @@ export default function DeliveryRouteMap({ stops }: { stops: RouteStop[] }) {
               : nav?.line ? nav.line
               : here ? `Arriving at stop ${current.seq}.` : "Finding your location…"}
           </p>
-          <button type="button" className="min-h-11 rounded-full border border-border px-4 py-2 text-sm font-semibold"
+          <Button type="button" variant="outline" size="sm" className="text-sm font-semibold"
             onClick={() => setTracking((t) => !t)} aria-pressed={tracking}>
             {tracking ? "Stop" : "Start"}
-          </button>
+          </Button>
         </div>
         {locError && <p className="text-ds-13" role="alert">{locError}</p>}
         <p className="text-ds-12 text-muted-foreground">After Start, the seller sees where you are until you pick it up, then the buyer until you deliver it. Only while this screen is open: they stop seeing you while you're in Apple Maps. It's deleted when you tap Stop or deliver.</p>

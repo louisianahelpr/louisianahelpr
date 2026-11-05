@@ -20,6 +20,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
+import { LucideProvider } from "lucide-react";
+import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import fs from "node:fs";
 import { blankComments } from "./helpers/blankNonCode";
 
@@ -36,7 +38,8 @@ const ROW = { title: "Mow the front yard", category: "yard_work", budget: 85, lo
 
 describe("/browse's raw HTML draws the app's own Footer", () => {
   it("SHELL_FOOTER_HTML is the real signed-out Footer's render, byte for byte", () => {
-    const real = renderToStaticMarkup(<MemoryRouter><Footer /></MemoryRouter>);
+    // Inside App.tsx's LucideProvider, as the app draws it (Q2027: one icon weight).
+    const real = renderToStaticMarkup(<LucideProvider strokeWidth={ICON_STROKE_PX} nonScalingStroke><MemoryRouter><Footer /></MemoryRouter></LucideProvider>);
     const slotted = real
       .replace(`src="${helprLogoMd}" srcSet="${helprLogoSm} 96w, ${helprLogoMd} 256w"`, 'src="__EMBLEM_SRC__" srcset="__EMBLEM_SRCSET__"')
       .replace(`© ${new Date().getFullYear()} `, "© __YEAR__ ");

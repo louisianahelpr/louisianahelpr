@@ -6,7 +6,7 @@
  *
  * Red first (2026-10-28) against origin/main 6b3206e2bd: all four old labels present.
  *
- * @mutate src/components/JobTracking.tsx | primaryLabel="Mark it done" | primaryLabel="Mark Complete"
+ * @mutate src/components/JobTrackingView.tsx | primaryLabel="Mark it done" | primaryLabel="Mark Complete"
  * @mutate src/components/reviewPanel/ReviewForm.tsx |               No thanks |               No Thanks
  * @mutate src/components/reviewPanel/ReviewForm.tsx |               Send a tip |               Send a Tip
  * @mutate src/components/PhotoProof.tsx |       title="Photo proof"\n      action={ |       title="Photo Proof"\n      action={
@@ -33,14 +33,14 @@ const code = (f: string) => blankComments(readFileSync(resolve(__dirname, "..", 
 
 describe("F35: the job's last steps are sentence case", () => {
   it("the Helpr's done confirm matches the card: Mark it done", () => {
-    const src = code("components/JobTracking.tsx");
+    const src = code("components/JobTrackingView.tsx"); // Q806: the tracker's JSX left JobTracking.tsx
     expect(src).toContain('primaryLabel="Mark it done"');
     expect(src).not.toContain('"Mark Complete"');
   });
 
   it("JA-56: the Helpr's done step has one label, Mark it done, on every surface that names it", () => {
     const files = [
-      "components/JobTracking.tsx",
+      "components/JobTrackingView.tsx",
       "components/job-card/trackerSteps.ts",
       // The job page's done-before-the-day lock compares the face's label with this word (DONE_FACE_LABEL).
       "pages/jobs/jobPage/JobPage.tsx",

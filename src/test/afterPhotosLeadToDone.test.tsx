@@ -3,7 +3,7 @@
  * Mark done (helperStepRequest "done"; the tracker's own Done confirmation still opens first). A crew member's or a
  * before photo's upload asks for nothing.
  * @mutate src/pages/jobs/appliedJobCard/steps/HelperPhotoAsk.tsx |     if (!crew && step === "working") requestHelperStep(jobId, "done"); |     if (false) requestHelperStep(jobId, "done");
- * @mutate src/components/JobTracking.tsx |         if (trackingSettled && !ctaDisabled && takeHelperStepRequest(jobId, nextStatus.key)) queueMicrotask(runNext); |         if (trackingSettled && takeHelperStepRequest(jobId, nextStatus.key) && !ctaDisabled) queueMicrotask(runNext);
+ * @mutate src/components/JobTrackingView.tsx |         if (trackingSettled && !ctaDisabled && takeHelperStepRequest(jobId, nextStatus.key)) queueMicrotask(runNext); |         if (trackingSettled && takeHelperStepRequest(jobId, nextStatus.key) && !ctaDisabled) queueMicrotask(runNext);
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -39,7 +39,8 @@ describe("after photos lead straight into Mark done", () => {
     expect(takeHelperStepRequest("j1", "done")).toBe(false);
   });
   it("the tracker keeps the request through a draw where Done is still greyed (the row not yet re-read)", () => {
-    const src = blankComments(readFileSync(path.resolve(__dirname, "../components/JobTracking.tsx"), "utf8"));
+    // Q806 (2026-11-05): the open tracker's JSX lives in JobTrackingView.tsx; the state and handlers stay in JobTracking.tsx.
+    const src = ["JobTracking.tsx", "JobTrackingView.tsx"].map((f) => blankComments(readFileSync(path.resolve(__dirname, "../components", f), "utf8"))).join("\n");
     expect(src).toMatch(/trackingSettled && !ctaDisabled && takeHelperStepRequest\(jobId, nextStatus\.key\)/);
   });
 });

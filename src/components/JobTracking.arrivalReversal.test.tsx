@@ -364,4 +364,4 @@ describe("the GPS nudge — encouragement, never an accusation", () => {
 // has already vouched for — the "don't nag" half of the owner's 2026-09-19
 // ruling. This SURVIVED until the two "goes quiet" cases stopped asserting on
 // wording the component no longer renders (2026-09-21).
-// @mutate src/components/JobTracking.tsx | isHelper && (currentArrivalEvidence === "claimed" \|\| currentArrivalEvidence === "near_miss") | isHelper && currentArrivalEvidence !== "none"
+// @mutate src/components/JobTrackingView.tsx | isHelper && (currentArrivalEvidence === "claimed" \|\| currentArrivalEvidence === "near_miss") | isHelper && currentArrivalEvidence !== "none"

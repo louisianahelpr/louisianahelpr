@@ -132,8 +132,6 @@
     "e2e/happy-path/fixtures.ts :: unmocked socket failed 135 screens",
     "e2e/happy-path/fixtures.ts :: unt: null` and rendered 0 however many rows",
     "e2e/happy-path/fixtures.ts :: very queue counter read 1 however many accounts",
-    "e2e/happy-path/nav-hide-on-scroll.spec.ts :: filter to suppress all 30 feed rows",
-    "e2e/happy-path/nav-hide-on-scroll.spec.ts :: y call with the same * 30 rows",
     "e2e/happy-path/overlay-sweep.spec.ts :: as invisible to // it: ~91 components",
     "e2e/happy-path/overlay-sweep.spec.ts :: on /home hide the other 65 routes",
     "e2e/happy-path/overlay-sweep.spec.ts :: on path is identical at 2 routes",

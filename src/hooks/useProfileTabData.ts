@@ -146,6 +146,25 @@ export function useProfileStats(userId: string | undefined) {
   });
 }
 
+/** How many review ids one get_public_profile_reviews page asks for. */
+const REVIEW_ID_PAGE = 500;
+
+/**
+ * The ids of the reviews about `userId` that get_public_profile_reviews shows (published, past the blind period, job
+ * not cancelled, never between one person's own accounts), every page of them. Throws on a failed read.
+ */
+async function publicReviewIds(userId: string): Promise<Set<string>> {
+  const ids = new Set<string>();
+  for (let offset = 0; ; offset += REVIEW_ID_PAGE) {
+    const page = unwrap(
+      await supabase.rpc("get_public_profile_reviews", { p_user_id: userId, p_limit: REVIEW_ID_PAGE, p_offset: offset }),
+    ) ?? [];
+    for (const r of page) ids.add(r.id);
+    const total = Number(page[0]?.total_count ?? 0);
+    if (page.length < REVIEW_ID_PAGE || offset + page.length >= total) return ids;
+  }
+}
+
 /**
  * Full reviews list (with reviewer names + job titles resolved). Enabled on
  * the reviews tab only — the landing's hero preview was removed.
@@ -157,12 +176,12 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
     queryFn: async () => {
       const id = userId!;
       const visibleBy = new Date().toISOString();
-      const data = unwrap(
-        await withReviewTags(
+      const [rowsRes, shownIds] = await Promise.all([
+        withReviewTags(
           () =>
             supabase
               .from("reviews")
-              .select("rating, feedback, tags, created_at, reviewer_id, job_id, jobs!inner(status)")
+              .select("id, rating, feedback, tags, created_at, reviewer_id, job_id, jobs!inner(status)")
               .eq("reviewee_id", id)
               .lte("feedback_visible_at", visibleBy)
               .neq("jobs.status", "cancelled")
@@ -170,14 +189,19 @@ export function useProfileReviews(userId: string | undefined, enabled: boolean) 
           () =>
             supabase
               .from("reviews")
-              .select("rating, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
+              .select("id, rating, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
               .eq("reviewee_id", id)
               .lte("feedback_visible_at", visibleBy)
               .neq("jobs.status", "cancelled")
               .order("created_at", { ascending: false }),
         ),
-      );
-      if (!data || data.length === 0) return [];
+        publicReviewIds(id),
+      ]);
+      // Owner 11-05 (L4, Q2759): a review between two accounts of one person (the same phone) shows nowhere, your own
+      // Profile tab included. Only the server can tell (profile_review_same_person is service_role only), so this list
+      // keeps exactly the reviews get_public_profile_reviews shows for you. No fallback: a failed read is the tab's error.
+      const data = (unwrap(rowsRes) ?? []).filter((r) => shownIds.has(r.id));
+      if (data.length === 0) return [];
       // `reviewer_id` is nullable — an account deletion anonymises the review
       // rather than removing it, so the rating survives its author. Null is
       // dropped here rather than tolerated downstream: `get_safe_profiles`

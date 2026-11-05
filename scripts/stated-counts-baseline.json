@@ -115,8 +115,6 @@
     "e2e/happy-path/auditRoutes.ts :: // All 18 Profile tabs",
     "e2e/happy-path/auditRoutes.ts :: min surface clean while 26 views",
     "e2e/happy-path/auditRoutes.ts :: x + EVERY one // of the 18 Profile tabs",
-    "e2e/happy-path/browse-feed-completeness.spec.ts :: // 6 jobs",
-    "e2e/happy-path/browse-feed-completeness.spec.ts :: city (no skill match) + 3 out-of-town jobs",
     "e2e/happy-path/contrastResolve.ts :: 5x812: * * / → 0 violations",
     "e2e/happy-path/empty-state-sweep.spec.ts :: The comma list matters: 608 tests",
     "e2e/happy-path/empty-state-sweep.spec.ts :: he // sweep would score 25 admin rows",

@@ -48,8 +48,8 @@ describe("a disabled primary looks disabled (deep audit #48)", () => {
         if (/disabled=/.test(m[0]) && /btn-grad-primary|className=\{(?:`\$\{)?primary\b/.test(m[0])) n++;
       }
     }
-    // Floor: 7 hand-rolled disabled primaries on 2026-11-04 after the Q2709 Declutter packets moved the rest onto the
-    // shared Button (which draws its own disabled look); the rule still has these to cover.
-    expect(n).toBeGreaterThan(6);
+    // Floor: 6 hand-rolled disabled primaries on 2026-11-04 after the Q2709 Declutter packets moved the rest onto the
+    // shared Button (which draws its own disabled look; packet 17 took checkout's Pay); the rule still has these to cover.
+    expect(n).toBeGreaterThan(5);
   });
 });

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-05T15:39Z",
+  "measured_at": "2026-11-05T18:33Z",
   "issues": {
     "readable": true,
     "open": [
@@ -113,6 +113,13 @@
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41940832252",
         "runTruncated": false
+      },
+      {
+        "number": 4140,
+        "title": "nightly-red: main: Supabase DB Deploy",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42082050381",
+        "runTruncated": false
       }
     ]
   },
@@ -168,6 +175,14 @@
         "issue": null
       },
       {
+        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
+        "source_kind": "workflow",
+        "source": "db-deploy",
+        "status": "open",
+        "title": "db-deploy failed on main",
+        "issue": null
+      },
+      {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -182,14 +197,6 @@
         "status": "open",
         "title": "nightly-red: nightly-red-age",
         "issue": 2244
-      },
-      {
-        "fingerprint": "8018e82cb1674eba274a494805d751d1",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: db-drift-detect",
-        "issue": 3743
       },
       {
         "fingerprint": "3a3460b71be720e02fc185d0e8d8d408",
@@ -237,14 +244,6 @@
         "source": "quota-monitor",
         "status": "open",
         "title": "quota: sentry session replays sent: accepted + dropped by quota (this usage period) at or above #% of its limit",
-        "issue": null
-      },
-      {
-        "fingerprint": "e41c806b9175390a32accafb9b13baa1",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: sensitive review record",
         "issue": null
       },
       {
@@ -416,12 +415,12 @@
         "issue": null
       },
       {
-        "fingerprint": "09cc91c4811642147d800fd894072cd2",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
+        "fingerprint": "aeedd249577285330a97e04195cee7d8",
+        "source_kind": "error_logs",
+        "source": "cron-http",
         "status": "open",
-        "title": "nightly-red: security-audit",
-        "issue": 4020
+        "title": "cron http failure: refund-request-sweep returned 502",
+        "issue": null
       },
       {
         "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
@@ -429,14 +428,6 @@
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: declutter-money returned 502",
-        "issue": null
-      },
-      {
-        "fingerprint": "aeedd249577285330a97e04195cee7d8",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: refund-request-sweep returned 502",
         "issue": null
       },
       {
@@ -467,9 +458,9 @@
     "issue #3824": "Q1816",
     "issue #4062": "Q1816",
     "issue #4111": "Q1816",
+    "issue #4140": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
-    "ledger 09cc91c48116": "Q1816",
     "ledger 0bebf0385b3e": "Q1615",
     "ledger 0fa6c60d7a29": "Q1776",
     "ledger 11f46545733f": "Q2409",
@@ -485,6 +476,7 @@
     "ledger 41f88aeb227f": "Q1777",
     "ledger 43d77e26f272": "Q1816",
     "ledger 4aa239aefeb6": "Q1816",
+    "ledger 54ef0bfdcec3": "Q2762",
     "ledger 5a28db44e912": "Q2410",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 60298a019ea3": "Q1776",
@@ -493,7 +485,6 @@
     "ledger 70e7b0decb9a": "Q1816",
     "ledger 7e141f206640": "Q1816",
     "ledger 7f88b9cc45df": "Q1816",
-    "ledger 8018e82cb167": "Q1816",
     "ledger 88b4addefbcd": "Q2503",
     "ledger 88ecf6e765df": "Q1816",
     "ledger 8a2e802edbe7": "Q2498",
@@ -512,7 +503,6 @@
     "ledger cae29df0662b": "Q2351",
     "ledger d1f8391b44ec": "Q1631",
     "ledger db0fb15c4ec3": "Q1816",
-    "ledger e41c806b9175": "Q1816",
     "ledger e49f68d9cbd6": "Q1475",
     "ledger f1bfed973a2a": "Q2734"
   }

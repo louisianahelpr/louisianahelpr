@@ -49,6 +49,8 @@ export interface ShopPayout {
   order_id: string;
   items_cents: number;
   debt_cents: number;
+  /** H4: the one-time account setup fee taken from this payout (also inside debt_cents). 0 on almost every row. */
+  setup_fee_cents?: number | null;
   amount_cents: number;
   status: "pending" | "succeeded" | "failed" | "nothing_due";
   created_at: string;
@@ -83,7 +85,7 @@ export async function fetchHandovers(orderIds: string[]): Promise<Map<string, Sh
 /** The shop's payouts, newest first (RLS: its own orders only). */
 export async function fetchMyShopPayouts(): Promise<ShopPayout[]> {
   const rows = unwrap(
-    await supabase.from("shop_payouts").select("id, order_id, items_cents, debt_cents, amount_cents, status, created_at, executed_at")
+    await supabase.from("shop_payouts").select("id, order_id, items_cents, debt_cents, setup_fee_cents, amount_cents, status, created_at, executed_at")
       .order("created_at", { ascending: false }).limit(100),
   );
   return (rows ?? []) as unknown as ShopPayout[];
@@ -139,12 +141,19 @@ export async function reportNotReceived(orderId: string, note: string): Promise<
 }
 
 /** The payout line under a handed-over order, in the shop's words. */
-export function payoutText(p: Pick<ShopPayout, "status" | "amount_cents" | "debt_cents">): string {
+export function payoutText(p: Pick<ShopPayout, "status" | "amount_cents" | "debt_cents" | "setup_fee_cents">): string {
   const dollars = (c: number) => `$${(c / 100).toFixed(2)}`;
-  const debt = p.debt_cents > 0 ? ` (${dollars(p.debt_cents)} card fee you owed was taken out)` : "";
+  // H4: the one-time setup fee is counted inside debt_cents on the server; it is named apart from card fees.
+  const setup = Math.max(0, Number(p.setup_fee_cents ?? 0));
+  const cardDebt = Math.max(0, p.debt_cents - setup);
+  const parts = [
+    ...(cardDebt > 0 ? [`${dollars(cardDebt)} card fee you owed`] : []),
+    ...(setup > 0 ? [`the one-time ${dollars(setup)} account setup fee`] : []),
+  ];
+  const debt = parts.length > 0 ? ` (${parts.join(" and ")} ${parts.length > 1 ? "were" : "was"} taken out)` : "";
   switch (p.status) {
     case "succeeded": return `${dollars(p.amount_cents)} sent to your payout account${debt}.`;
-    case "nothing_due": return `This order paid off ${dollars(p.debt_cents)} of card fees you owed, so nothing was sent.`;
+    case "nothing_due": return `This order paid off ${dollars(cardDebt)} of card fees you owed, so nothing was sent.`;
     // Not "on its way": a pending payout may still wait for payout setup, a payout hold or a review (money review 6).
     case "failed": return `${dollars(p.amount_cents)} is owed to you${debt}. Sending it hasn't worked yet; we keep trying, and Louisiana Helpr steps in if it keeps failing.`;
     case "pending": return `${dollars(p.amount_cents)} is owed to you${debt}. It's sent to your payout account once payouts are set up in Settings and nothing is on hold.`;

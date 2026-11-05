@@ -9,7 +9,7 @@
  *
  * @mutate src/lib/shops/handover.ts |   if (orderIds.length === 0) return new Map(); |   if (orderIds.length === -1) return new Map();
  * @mutate src/lib/shops/handover.ts |   return ((row as { handover_mode?: HandoverMode } \| null)?.handover_mode ?? "in_person"); |   return ((row as { handover_mode?: HandoverMode } \| null)?.handover_mode ?? "porch");
- * @mutate src/lib/shops/handover.ts |   const debt = p.debt_cents > 0 ? |   const debt = p.debt_cents > 1e9 ?
+ * @mutate src/lib/shops/handover.ts |     ...(cardDebt > 0 ? [ |     ...(cardDebt > 1e9 ? [
  * @mutate src/lib/shops/handover.ts |   if (!isStorageObjectPath(path)) return null; |   void isStorageObjectPath;
  * @mutate src/lib/shops/handover.ts |   const { error } = await supabase.rpc("shops_report_not_received", { p_order_id: orderId, p_note: note.trim() }); |   const { error } = await supabase.rpc("shops_report_not_received", { p_order_id: orderId, p_note: note });
  * @mutate src/lib/shops/handover.ts |     upsert: false, |     upsert: true,
@@ -229,5 +229,14 @@ describe("payoutText", () => {
     );
     expect(payoutText({ status: "pending", amount_cents: 1000, debt_cents: 250 })).toContain("($2.50 card fee you owed was taken out)");
     expect(payoutText({ status: "pending", amount_cents: 1000, debt_cents: 0 })).not.toContain("card fee");
+  });
+
+  it("names the one-time setup fee apart from card fees (H4)", () => {
+    expect(payoutText({ status: "succeeded", amount_cents: 800, debt_cents: 200, setup_fee_cents: 200 })).toBe(
+      "$8.00 sent to your payout account (the one-time $2.00 account setup fee was taken out).",
+    );
+    expect(payoutText({ status: "pending", amount_cents: 550, debt_cents: 450, setup_fee_cents: 200 })).toContain(
+      "($2.50 card fee you owed and the one-time $2.00 account setup fee were taken out)",
+    );
   });
 });

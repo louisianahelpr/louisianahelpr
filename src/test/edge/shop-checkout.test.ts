@@ -13,7 +13,7 @@
  * @mutate supabase/functions/shop-checkout/index.ts |       payment_intent_data: { metadata: meta, capture_method: "manual", transfer_group: `shop_order_${o.id}` }, |       payment_intent_data: { metadata: meta, transfer_group: `shop_order_${o.id}` },
  * @mutate supabase/functions/shop-checkout/index.ts |       automatic_tax: { enabled: true }, |
  * @mutate supabase/functions/shop-checkout/index.ts |     { idempotencyKey: `shop-order-${o.id}${walletRetry ? ":new-wallet" : ""}` }, |     {},
- * @mutate supabase/functions/shop-checkout/index.ts |   if (session.amount_subtotal !== o.items_cents + o.premium_cents) { |   if (false) {
+ * @mutate supabase/functions/shop-checkout/index.ts |   if (session.amount_subtotal !== o.items_cents + o.premium_cents + setupFeeCents) { |   if (false) {
  * @mutate supabase/functions/shop-checkout/index.ts |   if (frozen.superseded_session_id) await expirePage(frozen.superseded_session_id); |
  * @mutate supabase/functions/shop-checkout/index.ts |     customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined; |     customerId = undefined;
  * @mutate supabase/functions/shop-checkout/index.ts | await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (payer, walletRetry) => | await ((_a: unknown, _b: unknown, _c: unknown, _d: unknown, c: string \| undefined, f: (c: string \| undefined, r: boolean) => unknown) => f(c, false))(admin, stripe, user, mode, customerId, (payer, walletRetry) =>

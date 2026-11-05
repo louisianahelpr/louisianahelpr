@@ -60,6 +60,7 @@ import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { SHOP_KIND_TAX_CODE, shopTaxCode, splitBuyerFeeByTaxCode } from "../_shared/shopTaxCodes.ts";
 import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
+import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { storedStripeCustomer, withStoredWalletCustomer } from "../_shared/stripeCustomer.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { captureShopHold, releaseShopHold, shopOrderMode } from "../_shared/shopHolds.ts";
@@ -352,6 +353,29 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       },
     });
   }
+  // H4 (owner 10-30, "once per account"): the one-time account setup fee the order froze at insert
+  // (trg_shop_orders_setup_fee_frozen, migration 20261105181603), outside total_cents, its own non-taxable line.
+  // shop_mark_order_held claims it when the hold lands; a hold that ends uncaptured puts it back. Column not
+  // deployed yet (42703): no fee line, and the SQL accepts a page without one.
+  const { data: feeRow, error: feeErr } = await admin.from("shop_orders").select("setup_fee_cents").eq("id", o.id).maybeSingle();
+  if (feeErr && (feeErr as { code?: string }).code !== "42703") {
+    console.error(`[shop-checkout] setup fee read failed: ${feeErr.message}`);
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  const setupFeeCents = feeErr ? 0 : Number((feeRow as { setup_fee_cents?: number | null } | null)?.setup_fee_cents ?? 0);
+  if (!Number.isInteger(setupFeeCents) || setupFeeCents < 0) {
+    console.error(`[shop-checkout] order ${o.id} setup fee is not a whole amount`);
+    return json({ error: TRY_AGAIN }, 500);
+  }
+  if (setupFeeCents > 0) {
+    lineItems.push({
+      quantity: 1,
+      price_data: {
+        currency: "usd", unit_amount: setupFeeCents, tax_behavior: "exclusive",
+        product_data: taxed("One-time account setup fee", NONTAXABLE_TAX_CODE),
+      },
+    });
+  }
   const expiresAt = Math.floor(Date.now() / 1000) + PAGE_LIFETIME_S;
   // Q2140: a stored customer Stripe no longer has is replaced once and the page retried (":new-wallet" key).
   const session = await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (payer, walletRetry) => stripe.checkout.sessions.create(
@@ -367,16 +391,16 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       metadata: meta,
       payment_intent_data: { metadata: meta, capture_method: "manual", transfer_group: `shop_order_${o.id}` },
       // Q202: 3D Secure from $300 up (the most it could be before tax).
-      payment_method_options: threeDSecureOptions(o.items_cents + o.premium_cents),
+      payment_method_options: threeDSecureOptions(o.items_cents + o.premium_cents + setupFeeCents),
       expires_at: expiresAt,
       success_url: buildRedirectUrl("/shops/orders?sent=1", native),
       cancel_url: buildRedirectUrl(`/shops/${shopId}`, native),
     },
     { idempotencyKey: `shop-order-${o.id}${walletRetry ? ":new-wallet" : ""}` },
   ));
-  if (session.amount_subtotal !== o.items_cents + o.premium_cents) {
+  if (session.amount_subtotal !== o.items_cents + o.premium_cents + setupFeeCents) {
     await expirePage(session.id);
-    console.error(`[shop-checkout] Stripe subtotal ${session.amount_subtotal} != order ${o.items_cents + o.premium_cents}`);
+    console.error(`[shop-checkout] Stripe subtotal ${session.amount_subtotal} != order ${o.items_cents + o.premium_cents + setupFeeCents}`);
     return json({ error: TRY_AGAIN }, 500);
   }
   const { error: attachErr } = await admin.rpc("shop_attach_checkout_session", { p_order_id: o.id, p_session_id: session.id });

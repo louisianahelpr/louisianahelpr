@@ -29,7 +29,7 @@
  * @mutate src/pages/messages/Messages.tsx |       conversations={inbox.conversations} |       conversations={conversations}
  * @mutate src/components/messages/ConversationList.tsx |       {phoneSearchRow}\n      {sectionTabs && ( |       {phoneSearchRow}\n      {false && (
  * @mutate src/pages/messages/useMessageSections.tsx |     mainEmptyBody: mainInboxEmptyBody(live.declutter), |     mainEmptyBody: mainInboxEmptyBody(false),
- * @mutate src/components/messages/ConversationList.tsx |                 body={mainEmptyBody} |                 body={mainInboxEmptyBody(false)}
+ * @mutate src/components/messages/ConversationListBody.tsx |                 body={mainEmptyBody} |                 body={mainInboxEmptyBody(false)}
  * @mutate src/pages/messages/useMessageSections.tsx | data-more={more ? "" : undefined} | data-more=""
  * @mutate src/index.css | .chip-row[data-more] { | .chip-row, .chip-row[data-more] {
  * @mutate src/index.css | html.web-desktop .chip-row {\n  flex-wrap: wrap !important; | html.web-desktop .chip-row {\n  flex-wrap: nowrap !important;
@@ -41,7 +41,7 @@
  * @mutate src/components/messages/SectionInboxEmpty.tsx |   return empty.Lead ? <empty.Lead empty={box} /> : box; |   return box;
  * Q2663: Unread with nothing unread has its own empty line, not "No messages yet".
  * @mutate src/pages/messages/useMessageSections.tsx |   if (section === "unread" && shown.length === 0) { |   if (section === "unread" && shown.length < 0) {
- * @mutate src/components/messages/ConversationList.tsx | <div className="space-y-2">{sectionEmpty?.Lead && !searchQuery.trim() && !selectMode && <sectionEmpty.Lead empty={null} />} | <div className="space-y-2">{null}
+ * @mutate src/components/messages/ConversationListBody.tsx | <div className="space-y-2">{sectionEmpty?.Lead && !searchQuery.trim() && !selectMode && <sectionEmpty.Lead empty={null} />} | <div className="space-y-2">{null}
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

@@ -12,7 +12,7 @@
  *
  * @mutate src/components/messages/ConversationRow.tsx |       {trailing && <div data-row-trailing className="shrink-0 self-center">{trailing}</div>} |       {trailing && <div data-row-trailing className="absolute right-2 top-1/2 shrink-0 self-center">{trailing}</div>}
  * @mutate src/components/messages/ConversationRow.tsx |       {trailing && <div data-row-trailing className="shrink-0 self-center">{trailing}</div>} |       {null}
- * @mutate src/components/messages/ConversationList.tsx |                           trailing={restore} |                           trailing={undefined}
+ * @mutate src/components/messages/ConversationListBody.tsx |                           trailing={restore} |                           trailing={undefined}
  * @mutate src/components/messages/RestoreConversationButton.tsx |       className="inline-flex items-center gap-1 | className="absolute right-2 inline-flex items-center gap-1
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -68,7 +68,7 @@ describe("Q1465: Recently deleted's Restore sits in the row's flow, never over t
   });
 
   it("the list hands Restore to the row's trailing slot, and Restore is not absolutely positioned", () => {
-    const list = blankComments(fs.readFileSync(path.join(ROOT, "src/components/messages/ConversationList.tsx"), "utf8"));
+    const list = blankComments(fs.readFileSync(path.join(ROOT, "src/components/messages/ConversationListBody.tsx"), "utf8"));
     expect(list).toMatch(/const restore = isRecentlyDeletedView && userId \? <RestoreConversationButton /);
     expect(list).toMatch(/trailing=\{restore\}/);
     const button = blankComments(fs.readFileSync(path.join(ROOT, "src/components/messages/RestoreConversationButton.tsx"), "utf8"));

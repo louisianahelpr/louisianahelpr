@@ -19,7 +19,7 @@
  *
  * @mutate src/components/messages/ConversationRow.tsx |                 {pinned && !selectMode && <PinnedChip />} |                 {false && pinned && !selectMode && <PinnedChip />}
  * @mutate src/components/messages/PinnedChip.tsx |       className="inline-flex items-center justify-center w-4 h-4 rounded-full shrink-0" |       className="absolute top-2 left-2 z-10 inline-flex items-center justify-center w-4 h-4 rounded-full shrink-0"
- * @mutate src/components/messages/ConversationList.tsx |                             pinned={pinned} |                             pinned={false}
+ * @mutate src/components/messages/ConversationListBody.tsx |                             pinned={pinned} |                             pinned={false}
  */
 import { describe, expect, it, afterEach, vi } from "vitest";
 import { render, cleanup } from "@testing-library/react";
@@ -33,7 +33,7 @@ import { ConversationRow } from "@/components/messages/ConversationRow";
 import type { Conversation } from "@/components/messages/types";
 
 const ROOT = path.resolve(__dirname, "../..");
-const LIST_SRC = blankComments(fs.readFileSync(path.join(ROOT, "src/components/messages/ConversationList.tsx"), "utf8"));
+const LIST_SRC = blankComments(fs.readFileSync(path.join(ROOT, "src/components/messages/ConversationListBody.tsx"), "utf8"));
 
 const convo = (unread: number): Conversation =>
   ({

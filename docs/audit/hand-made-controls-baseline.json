@@ -414,9 +414,6 @@
     "src/components/declutter/SellingNowRow.tsx": {
       "button": 1
     },
-    "src/components/declutter/StopActions.tsx": {
-      "button": 2
-    },
     "src/components/feedback/NpsPrompt.tsx": {
       "button": 1
     },

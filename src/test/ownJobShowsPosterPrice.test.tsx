@@ -9,7 +9,7 @@
  * this job's poster?" and shows that poster the price they set.
  *
  * @mutate src/components/dashboard/JobCard.tsx |   const showBudget = guestPricing \|\| isOwnJob; |   const showBudget = guestPricing;
- * @mutate src/components/dashboard/JobDetailDialog.tsx |               showBudget={!!viewerUserId && viewerUserId === job.customer_id} |               showBudget={false}
+ * @mutate src/components/dashboard/jobDetailDialog/JobDetailTitleRow.tsx |               showBudget={!!viewerUserId && viewerUserId === job.customer_id} |               showBudget={false}
  */
 import { join, relative, resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -64,7 +64,7 @@ describe("J1: the poster sees the price they set on their own job", () => {
         "board 189 'Jobs near you' reads get_ranked_open_jobs, which filters j.customer_id <> auth.uid() (20261021062609), so the viewer never posted these; the Helpr take-home is right",
     };
     expect(sites.map((s) => s.f).sort()).toEqual(
-      ["src/components/dashboard/JobCard.tsx", "src/components/dashboard/JobDetailDialog.tsx", "src/pages/home/homeDashboard/FirstJobHome.tsx"].sort(),
+      ["src/components/dashboard/JobCard.tsx", "src/components/dashboard/jobDetailDialog/JobDetailTitleRow.tsx", "src/pages/home/homeDashboard/FirstJobHome.tsx"].sort(),
     );
     for (const { f, src } of sites) {
       if (f in NEVER_OWN) continue;

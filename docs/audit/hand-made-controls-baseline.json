@@ -211,9 +211,6 @@
     "src/components/dashboard/CompactJobCard.tsx": {
       "button": 1
     },
-    "src/components/dashboard/JobDetailDialog.tsx": {
-      "button": 2
-    },
     "src/components/dashboard/JobFilters.tsx": {
       "button": 7
     },
@@ -240,6 +237,9 @@
       "input": 2
     },
     "src/components/dashboard/jobDetailDialog/JobDetailFooter.tsx": {
+      "button": 2
+    },
+    "src/components/dashboard/jobDetailDialog/JobDetailPhotoCover.tsx": {
       "button": 2
     },
     "src/components/declutter/DeclutterBunchCard.tsx": {

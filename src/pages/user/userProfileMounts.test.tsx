@@ -9,7 +9,7 @@
  * @mutate src/pages/user/ProfileHeaderCard.tsx |         {recognition && <div className="mt-4">{recognition}</div>} |
  * @mutate src/pages/user/ProfileHeaderCard.tsx |           {atAGlance} |
  * @mutate src/pages/user/UserProfile.tsx |             {showReviews && (\n              <ReviewsSection |             {false && (\n              <ReviewsSection
- * @mutate src/pages/user/UserProfile.tsx |             <ProfileHeroSkeleton /> |
+ * @mutate src/pages/user/UserProfileLoadingBody.tsx |             <ProfileHeroSkeleton /> |
  *
  * Board 40: "Selling now · N" (the seller's items for sale, two then See all), "Helps with" over the
  * skills, and the bottom bar "Invite to a job" on everyone else's profile, a new member's too (app audit

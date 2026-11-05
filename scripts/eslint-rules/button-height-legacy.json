@@ -26,7 +26,7 @@
   "src/pages/auth/CompleteProfile.tsx",
   "src/pages/home/GuestAuthActions.tsx",
   "src/pages/info/Support.tsx",
-  "src/pages/user/UserProfile.tsx",
+  "src/pages/user/VisitorProfileActions.tsx",
   "src/pages/info/legal/LegalChrome.tsx",
   "src/pages/post-job/DirectOfferBanner.tsx"
 ]

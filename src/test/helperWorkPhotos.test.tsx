@@ -51,7 +51,7 @@ describe("HelperWorkPhotos is mounted", () => {
   it("UserProfile renders it — the section a poster actually sees", () => {
     const rendered = renderedComponents(USER_PROFILE);
     // Floor: an empty/failed parse must not pass by describing nothing.
-    expect(rendered.size).toBeGreaterThan(20);
+    expect(rendered.size).toBeGreaterThan(19); // Q806 11-04: 20 after the masthead, title actions and loading body moved out
     expect(
       rendered.has("HelperWorkPhotos"),
       `${USER_PROFILE} no longer renders <HelperWorkPhotos>: uploaded work photos ` +
@@ -134,7 +134,7 @@ describe("Q2026 past-work grid", () => {
 
   it("the public profile renders no job proof photos", () => {
     const rendered = renderedComponents(USER_PROFILE);
-    expect(rendered.size).toBeGreaterThan(20);
+    expect(rendered.size).toBeGreaterThan(19); // Q806 11-04: 20 after the masthead, title actions and loading body moved out
     for (const name of ["HelperPortfolio", "ProofPhotoImg", "ProofPhotoGallery"]) {
       expect(rendered.has(name), `${USER_PROFILE} renders <${name}>: proof photos are private`).toBe(false);
     }

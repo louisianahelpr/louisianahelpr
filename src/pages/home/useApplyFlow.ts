@@ -331,8 +331,10 @@ export function useApplyFlow({ user, allJobs }: UseApplyFlowArgs) {
         if (isNetworkFailure(err) && !outcomeUnknownJobIds.current.has(vars.jobId)) {
           outcomeUnknownJobIds.current.set(vars.jobId, attemptStartedAt.current.get(vars.jobId) ?? Date.now());
         }
+        // A failure on the wire says so (slow-network 41599676917: Apply pressed offline
+        // only ever said "Couldn't send", never that the connection was the reason).
         errorToast("Couldn't send your application through", {
-          description: "Tap retry to try again.",
+          description: isNetworkFailure(err) ? "Check your connection, then tap retry." : "Tap retry to try again.",
           onRetry: () => applyMutation.mutate(vars),
         });
       }

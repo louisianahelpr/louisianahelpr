@@ -206,15 +206,31 @@ function renderedComponents(rel) {
 function importedLocal(rel) {
   const sf = parse(rel);
   const map = new Map(); // localName -> resolved repo-relative file (best effort)
-  walk(sf, (n) => {
-    if (!ts.isImportDeclaration(n) || !ts.isStringLiteral(n.moduleSpecifier)) return;
-    let spec = n.moduleSpecifier.text;
+  const resolve = (raw) => {
+    let spec = raw;
     if (spec.startsWith("@/")) spec = "src/" + spec.slice(2);
     else if (spec.startsWith(".")) spec = path.posix.normalize(path.posix.join(path.posix.dirname(rel), spec));
-    else return;
-    const resolved = ["", ".tsx", ".ts", "/index.tsx", "/index.ts"]
+    else return null;
+    return ["", ".tsx", ".ts", "/index.tsx", "/index.ts"]
       .map((ext) => spec + ext)
-      .find((p) => fs.existsSync(path.join(REPO, p)) && fs.statSync(path.join(REPO, p)).isFile());
+      .find((p) => fs.existsSync(path.join(REPO, p)) && fs.statSync(path.join(REPO, p)).isFile()) ?? null;
+  };
+  walk(sf, (n) => {
+    // A lazily loaded component mounts exactly like a static one:
+    //   const X = lazy(() => import("./X"))  /  optionalLazy(() => import("./X"), "X")
+    // Without this edge the module looked parentless and everything under it read as an isolated mount.
+    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer && ts.isCallExpression(n.initializer)) {
+      let spec = null;
+      walk(n.initializer, (m) => {
+        if (!spec && ts.isCallExpression(m) && m.expression.kind === ts.SyntaxKind.ImportKeyword && m.arguments[0] && ts.isStringLiteral(m.arguments[0]))
+          spec = m.arguments[0].text;
+      });
+      const resolved = spec && /^[A-Z]/.test(n.name.text) ? resolve(spec) : null;
+      if (resolved) map.set(n.name.text, resolved);
+      return;
+    }
+    if (!ts.isImportDeclaration(n) || !ts.isStringLiteral(n.moduleSpecifier)) return;
+    const resolved = resolve(n.moduleSpecifier.text);
     if (!resolved) return;
     const c = n.importClause;
     if (!c) return;
@@ -225,6 +241,36 @@ function importedLocal(rel) {
   return map;
 }
 
+/** Names of hooks (`useX(...)`) a file calls directly. */
+function calledHooks(rel) {
+  const sf = parse(rel);
+  const out = new Set();
+  walk(sf, (n) => {
+    if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && /^use[A-Z]/.test(n.expression.text)) out.add(n.expression.text);
+  });
+  return out;
+}
+
+/** Local modules a file loads with a dynamic `import("...")` (resolved like importedLocal). */
+function dynamicLocalImports(rel) {
+  const sf = parse(rel);
+  const out = new Set();
+  walk(sf, (n) => {
+    if (!ts.isCallExpression(n) || n.expression.kind !== ts.SyntaxKind.ImportKeyword) return;
+    const a = n.arguments[0];
+    if (!a || !ts.isStringLiteral(a)) return;
+    let spec = a.text;
+    if (spec.startsWith("@/")) spec = "src/" + spec.slice(2);
+    else if (spec.startsWith(".")) spec = path.posix.normalize(path.posix.join(path.posix.dirname(rel), spec));
+    else return;
+    const hit = ["", ".tsx", ".ts", "/index.tsx", "/index.ts"]
+      .map((ext) => spec + ext)
+      .find((p) => fs.existsSync(path.join(REPO, p)) && fs.statSync(path.join(REPO, p)).isFile());
+    if (hit) out.add(hit);
+  });
+  return out;
+}
+
 export function scanMountWiring() {
   const all = srcFiles();
   const tests = all.filter(isTest);
@@ -232,13 +278,27 @@ export function scanMountWiring() {
 
   // who mounts whom, in PRODUCTION code
   const mountedBy = new Map(); // module -> Set(parent modules)
+  const rendersJsx = new Map(); // module -> does it render any component (memo)
+  const drawsJsx = (m) => {
+    if (!rendersJsx.has(m)) rendersJsx.set(m, renderedComponents(m).size > 0);
+    return rendersJsx.get(m);
+  };
+  const edge = (target, parent) => {
+    if (!mountedBy.has(target)) mountedBy.set(target, new Set());
+    mountedBy.get(target).add(parent);
+  };
   for (const f of prod) {
     const imports = importedLocal(f);
     for (const tag of renderedComponents(f)) {
       const target = imports.get(tag);
       if (!target || target === f) continue;
-      if (!mountedBy.has(target)) mountedBy.set(target, new Set());
-      mountedBy.get(target).add(f);
+      edge(target, f);
+    }
+    // A hook that returns JSX (useContinueDayActions draws ContinueDaySheet) is mounted wherever it is CALLED:
+    // nothing renders a hook as a tag, so without this edge everything it draws read as an isolated mount.
+    for (const hook of calledHooks(f)) {
+      const target = imports.get(hook);
+      if (target && target !== f && /\.tsx$/.test(target) && drawsJsx(target)) edge(target, f);
     }
   }
 
@@ -246,11 +306,22 @@ export function scanMountWiring() {
   const renderedByTests = new Map(); // module -> Set(test files)
   for (const t of tests) {
     const imports = importedLocal(t);
-    for (const tag of renderedComponents(t)) {
+    const tags = renderedComponents(t);
+    for (const tag of tags) {
       const target = imports.get(tag);
       if (!target) continue;
       if (!renderedByTests.has(target)) renderedByTests.set(target, new Set());
       renderedByTests.get(target).add(t);
+    }
+    // A test that re-imports its subject per case (`const mod = await import("./X")`, under vi.resetModules, as
+    // MarketingRedirect.test does for its platform mocks) renders it through a local alias the import map cannot
+    // see. A rendering test's dynamic import of a local COMPONENT module (.tsx) counts as rendering it.
+    if (tags.size) {
+      for (const target of dynamicLocalImports(t)) {
+        if (!/\.tsx$/.test(target)) continue;
+        if (!renderedByTests.has(target)) renderedByTests.set(target, new Set());
+        renderedByTests.get(target).add(t);
+      }
     }
   }
 

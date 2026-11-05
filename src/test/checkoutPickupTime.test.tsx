@@ -91,7 +91,7 @@ describe("the checkout sends the pick", () => {
   it("Pay waits on the pick, and each way's details sit inside its option", () => {
     const s = read("src/components/declutter/DeclutterTradeViews.tsx");
     expect(s).toContain("const pickupTimeReady = !timedPickup || pickupChoices.length === 0 || pickupStart !== null;");
-    expect(s).toMatch(/!placeReady \|\| !pickupTimeReady\}/);
+    expect(s).toMatch(/!placeReady \|\| !pickupTimeReady(\}| \|\|)/);
     const nest = s.indexOf("data-details-under={h}");
     const optionsEnd = s.indexOf("{offered.length === 0 && <NoWayWorks");
     for (const inner of ["<MeetupSpotPicker", "<CheckoutPickupTime", "<SellerDeliveryPicker", "<DropoffAddressField"]) {

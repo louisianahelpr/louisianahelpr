@@ -40,8 +40,15 @@ export function giftSplit(payCents: number, giftCents: number): GiftSplit {
 }
 
 /** The gifts this buyer can spend here: claimed by them, with something on them. */
-export function giftsForCheckout(cards: SpendableGift[]): SpendableGift[] {
-  return cards.filter((c) => c.claimed && c.amountCents > 0);
+export function giftsForCheckout(cards: SpendableGift[], now = Date.now()): SpendableGift[] {
+  // The read already drops expired gifts; checked again here so a gift that expired while the screen sat open is
+  // never offered (the redeem refuses it: "This gift has expired").
+  return cards.filter((c) => c.claimed && c.amountCents > 0 && (!c.expiresAt || new Date(c.expiresAt).getTime() > now));
+}
+
+/** A refusal about the gift itself (not "a card payment is already open"): the gift is marked unavailable here. */
+export function refusalRetiresGift(words: string): boolean {
+  return !words.startsWith("A card payment for this order is already open");
 }
 
 /**
@@ -79,9 +86,11 @@ export function giftSplitWords(split: GiftSplit | null): string {
   return `${formatPrice(split.fromGiftCents)} from your gift card, ${formatPrice(split.onCardCents)} on your card.${kept}`;
 }
 
-export function DeclutterGiftPicker({ gifts, value, onChange, split, error }: {
+export function DeclutterGiftPicker({ gifts, refused = {}, value, onChange, split, error }: {
   /** giftsForCheckout(...): the picker is not drawn without one. */
   gifts: SpendableGift[];
+  /** Gifts the server refused in this checkout, with its words: shown unavailable, never picked again. */
+  refused?: Record<string, string>;
   /** The picked gift's id, or null to pay by card only. */
   value: string | null;
   onChange: (id: string | null) => void;
@@ -90,10 +99,12 @@ export function DeclutterGiftPicker({ gifts, value, onChange, split, error }: {
   /** A refusal from the server (giftPayErrorMessage), shown under the choice. */
   error: string | null;
 }) {
-  if (gifts.length === 0) return null;
+  if (gifts.length === 0 && !error) return null;
+  const usable = gifts.filter((g) => !(g.id in refused));
+  const retired = gifts.filter((g) => g.id in refused);
   // RadioCardList's values are strings: "" is "Pay by card only".
   const options = [
-    ...gifts.map((g) => ({ value: g.id, label: `Use my ${formatPrice(g.amountCents)} gift card`,
+    ...usable.map((g) => ({ value: g.id, label: `Use my ${formatPrice(g.amountCents)} gift card`,
       sub: g.expiresAt ? `Use by ${formatShortDate(g.expiresAt)}` : undefined })),
     { value: "", label: "Pay by card only" },
   ];
@@ -101,6 +112,12 @@ export function DeclutterGiftPicker({ gifts, value, onChange, split, error }: {
     <div className="space-y-2" data-gift-picker="">
       <p className="mb-2 text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground" aria-hidden="true">Gift card</p>
       <RadioCardList label="Gift card" options={options} value={value ?? ""} onChange={(v) => onChange(v === "" ? null : v)} />
+      {retired.map((g) => (
+        <div key={g.id} aria-disabled="true" className="rounded-2xl border border-border px-4 py-3" data-gift-unavailable={g.id}>
+          <p className="text-ds-15 font-semibold text-muted-foreground">Your {formatPrice(g.amountCents)} gift card can't be used here</p>
+          <p className="text-ds-13 text-muted-foreground">{refused[g.id]}</p>
+        </div>
+      ))}
       {value !== null && (
         <p className={`text-ds-14 ${split?.cardPartTooSmall ? "font-semibold text-foreground" : "text-muted-foreground"}`} aria-live="polite" data-gift-split="">
           {giftSplitWords(split)}

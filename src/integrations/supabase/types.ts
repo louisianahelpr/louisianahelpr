@@ -2155,18 +2155,21 @@ export type Database = {
         Row: {
           at: string
           from_cents: number
+          id: number
           item_id: string
           to_cents: number
         }
         Insert: {
           at?: string
           from_cents: number
+          id?: never
           item_id: string
           to_cents: number
         }
         Update: {
           at?: string
           from_cents?: number
+          id?: never
           item_id?: string
           to_cents?: number
         }

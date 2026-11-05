@@ -147,6 +147,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_my_offers: "hides", // 20261101175510: same filter on the offers list
   declutter_my_reply_listings: "hides",
   declutter_pick_free_request: "hides", // 20261101181129: a seed item hidden from the picked person takes the old 48-hour path
+  declutter_record_item_view: "hides", // 20261105163501 (owner request 11-05): a view of a test listing (is_seed) is never recorded
   declutter_seller_moving_sale: "hides",
   declutter_set_watch: "hides",
   // Q2352 (20261026154738): an ENROLLED test account (is_seed AND test_accounts) lists without the setup fee

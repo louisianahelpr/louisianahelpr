@@ -47,11 +47,11 @@ export function YourPageLink({ name, className = "", forSale = 0, knownHandle }:
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button type="button" className="gap-1.5" onClick={() => void shareMyProfile(handle, name)} data-your-page-share="">
-            <Share2 className="w-4 h-4" aria-hidden /> Share your listings
-          </Button>
           <Button type="button" variant="outline" className="gap-1.5" onClick={() => void copy()} data-your-page-copy="">
             <Copy className="w-4 h-4" aria-hidden /> Copy link
+          </Button>
+          <Button type="button" className="gap-1.5" onClick={() => void shareMyProfile(handle, name)} data-your-page-share="">
+            <Share2 className="w-4 h-4" aria-hidden /> Share your listings
           </Button>
         </div>
       </section>

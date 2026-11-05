@@ -84,6 +84,8 @@ export function sqlAudits(fn: SqlFn): boolean {
 const SQL_EXEMPT: Readonly<Record<string, string>> = {
   prevent_self_escalation:
     "BEFORE trigger on user_roles that REFUSES a non-admin role write; the admin grant it lets through is audited by admin-user-actions grant_admin / audit_role_changes.",
+  declutter_record_item_view:
+    "not an admin action: any member or guest records a view of a live item; has_role('admin') only SKIPS an admin's own view so it never counts (owner request 11-05, 20261105163501).",
 };
 
 // ── 2. Edge functions ───────────────────────────────────────────────────────

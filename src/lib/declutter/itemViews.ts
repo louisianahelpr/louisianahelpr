@@ -12,10 +12,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { fetchMyItemViewCounts, sendItemViewRpc } from "@/lib/declutter/api";
 import { whenPageSettled } from "@/lib/routePrefetch";
+import { resetSentItemViews, sent } from "@/lib/declutter/itemViewsSent";
 
 const DEVICE_KEY = "lh.declutter.viewer";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const sent = new Set<string>();
 
 /** The guest's random device id, made once and kept; null where storage is blocked (the view is then not counted). */
 function viewerDeviceId(): string | null {
@@ -52,10 +52,7 @@ export function recordItemView(itemId: string, signedIn: boolean): () => void {
   });
 }
 
-/** Test seam: forget which items this session already reported. */
-export function resetSentItemViews() {
-  sent.clear();
-}
+export { resetSentItemViews };
 
 /** The seller's counts, one read shared by the Selling rows and their own item page. */
 export function useMyItemViewCounts(userId: string | null | undefined, enabled = true) {

@@ -3,17 +3,17 @@
   "summary": {
     "calls": 1158,
     "files": 322,
-    "rendering": 1076,
-    "suppressedByPolicy": 82,
+    "rendering": 1077,
+    "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 219,
+      "toast": 220,
       "toast.error": 782,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 88,
+      "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
@@ -8887,12 +8887,12 @@
     {
       "file": "src/components/profile/publicProfile/PublicProfileOwnerSteps.tsx",
       "line": 34,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Link copied"
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/profile/publicProfile/PublicProfileOwnerSteps.tsx",

@@ -186,6 +186,7 @@ const READERS: Record<string, string> = {
   "src/lib/signedInRequestGuard.ts": "waits: awaits the auth client's own storage adapter (getItem), the store auth-js reads; it only names the key",
   // Read only through the waiting helpers above:
   "src/pages/home/useGuestSessionCheck.ts": "via definitelyGuest()",
+  "src/components/AppShell.tsx": "via useStoredSessionHint(): the desktop top bar's 70px room follows the same hint the bar draws on (owner request 11-05), and is read again when the restore lands",
   "src/components/MobileNav.tsx": "via useStoredSessionHint()",
   "src/components/SignedInChrome.tsx": "via useStoredSessionHint(): before the restore the chrome waits, and the hint is read again when it lands",
   // Web only: the native app never reaches the read.

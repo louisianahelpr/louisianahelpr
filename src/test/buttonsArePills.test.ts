@@ -32,7 +32,7 @@
  * @mutate src/components/series/SeriesDatesPanel.tsx | "min-h-[44px] px-3 rounded-full text-ds-11 font-semibold border border-border disabled:opacity-40" | "min-h-[44px] px-3 rounded-ds-md text-ds-11 font-semibold border border-border disabled:opacity-40"
  * @mutate src/components/messages/ConversationList.tsx | btn-press inline-flex items-center justify-center rounded-full px-4 py-1.5 | btn-press inline-flex items-center justify-center rounded-ds-md px-4 py-1.5
  * @mutate src/components/messages/ConversationList.tsx | "h-9 px-3 rounded-full inline-flex | "h-9 px-3 rounded-ds-md inline-flex
- * @mutate src/components/NotificationPanel.tsx | font-semibold rounded-full border transition-all active:scale-[0.94] | font-semibold rounded-ds-md border transition-all active:scale-[0.94]
+ * @mutate src/components/NotificationPanelView.tsx | font-semibold rounded-full border transition-all active:scale-[0.94] | font-semibold rounded-ds-md border transition-all active:scale-[0.94]
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -135,7 +135,7 @@ export const RAW_PILL_SITES: { file: string; anchor: string }[] = [
   { file: "src/components/series/SeriesDatesPanel.tsx", anchor: "offerSeriesDates(jobId, a.id)" },
   { file: "src/components/messages/ConversationList.tsx", anchor: "setShowAllConvos(true)" },
   { file: "src/components/messages/ConversationList.tsx", anchor: "selected conversation" },
-  { file: "src/components/NotificationPanel.tsx", anchor: "key={a.label}" },
+  { file: "src/components/NotificationPanelView.tsx", anchor: "key={a.label}" },
 ];
 
 /** The fourth check, for one file: the raw `<button>`s whose opening tag contains `anchor`, with their className radius tokens. */

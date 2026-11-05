@@ -11,6 +11,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { fetchMyItemPrivate, setListingPrice, setOfferRules } from "@/lib/declutter/api";
 import { requestSuggestedFloor, suggestedReplyErrorMessage, type SuggestedFloor } from "@/lib/declutter/aiReply";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -75,9 +76,9 @@ export function DeclutterOfferRules({
             <span className="block text-ds-13 text-muted-foreground">{floorCents == null ? "Not set" : formatPrice(floorCents)}</span>
           </span>
           {!suggestion && (
-            <button type="button" className="shrink-0 text-ds-14 font-semibold text-[hsl(var(--accent-ink))] underline-offset-2" onClick={() => suggest.mutate()} disabled={suggest.isPending || busy}>
+            <InlineTextButton className="shrink-0 text-ds-14 font-semibold text-[hsl(var(--accent-ink))] underline-offset-2" onClick={() => suggest.mutate()} disabled={suggest.isPending || busy}>
               {suggest.isPending ? "Thinking…" : "Suggest one"}
-            </button>
+            </InlineTextButton>
           )}
           {suggestion && (
             <span className="basis-full flex items-center justify-between gap-3 rounded-xl bg-muted px-3 py-2 text-ds-13" data-floor-suggestion="">
@@ -85,9 +86,9 @@ export function DeclutterOfferRules({
                 Suggested: <span className="font-semibold tabular-nums">{formatPrice(suggestion.floorCents)}</span>
                 {suggestion.reason ? `. ${suggestion.reason}` : ""}
               </span>
-              <button type="button" className="shrink-0 font-semibold text-[hsl(var(--accent-ink))]" onClick={() => saveFloor.mutate(suggestion.floorCents)} disabled={busy}>
+              <InlineTextButton className="shrink-0 font-semibold text-[hsl(var(--accent-ink))]" onClick={() => saveFloor.mutate(suggestion.floorCents)} disabled={busy}>
                 Use {formatPrice(suggestion.floorCents)}
-              </button>
+              </InlineTextButton>
             </span>
           )}
         </li>

@@ -48,6 +48,7 @@ import { PublicProfileReviews, reviewTotal } from "@/components/profile/publicPr
 import { PublicProfileOwnerSteps } from "@/components/profile/publicProfile/PublicProfileOwnerSteps";
 import { PublicProfileSkeleton } from "@/components/profile/publicProfile/PublicProfileSkeleton";
 import { PublicProfileMemberActions } from "@/components/profile/publicProfile/PublicProfileMemberActions";
+import { PublicProfileMovingSale } from "@/components/profile/publicProfile/PublicProfileMovingSale";
 
 const ROBOTS = "noindex, follow";
 /** L7 (owner 11-05): search engines index a page only when its member turned "Show my profile in search engines" on. */
@@ -156,7 +157,7 @@ const PROFILE_WIDE = "min-[900px]:max-w-3xl";
 /** How many listings show before "Show all N" (the rest load lazily from the same read). */
 export const LISTINGS_FIRST = 24;
 
-function ProfileBody({ p, signedIn, isMe, ctaReady }: { p: PublicProfile; signedIn: boolean; isMe: boolean; ctaReady: boolean }) {
+function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null }: { p: PublicProfile; signedIn: boolean; isMe: boolean; ctaReady: boolean; viewerId?: string | null }) {
   const first = p.name.split(/\s+/)[0] || "this member";
   const skills = skillChips(p.skills);
   const work = p.portfolio_urls ?? [];
@@ -229,6 +230,9 @@ function ProfileBody({ p, signedIn, isMe, ctaReady }: { p: PublicProfile; signed
       {nothing && (
         <p className="text-center text-ds-14 text-muted-foreground">{first} hasn&apos;t posted anything yet.</p>
       )}
+
+      {/* Profile leftovers 11-05: "See the whole sale" lands here now; the same moving-sale banner /user draws. */}
+      <PublicProfileMovingSale handle={p.handle} currentUserId={viewerId} isMe={isMe} />
 
       {p.listings.length > 0 && (
         <Section id="pp-listings" title={`For sale · ${listingTotal}`} icon={ShoppingBag}>
@@ -379,7 +383,7 @@ export default function PublicProfilePage() {
       ) : !q.data ? (
         unavailable
       ) : (
-        <ProfileBody p={q.data} signedIn={!!user} isMe={isMe} ctaReady={ctaReady} />
+        <ProfileBody p={q.data} signedIn={!!user} isMe={isMe} ctaReady={ctaReady} viewerId={user?.id ?? null} />
       )}
     </AppPage>
   );

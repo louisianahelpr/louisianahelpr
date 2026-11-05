@@ -175,9 +175,25 @@ const tabStacks: Record<string, string[]> = {
 };
 
 /** Is `pathname` inside the tab `tabPath`'s stack? Someone ELSE's /user/<id> is
- *  not "You" (audit #58, 2026-10-21): it lights You only as your own preview. */
-export function inTabStack(tabPath: string, pathname: string, userId: string | null | undefined): boolean {
+ *  not "You" (audit #58, 2026-10-21): it lights You only as your own preview.
+ *  Your own /u/<handle> lights it too (owner 11-05: /user/<me> now forwards there, and the tab went dark); someone
+ *  else's /u/<handle> does not. `myHandle` is the viewer's own handle (handle_for_user); unknown = not lit.
+ *  Guard: src/test/profileTabLitOnOwnPage.test.ts. */
+export function inTabStack(tabPath: string, pathname: string, userId: string | null | undefined, myHandle?: string | null): boolean {
   if (pathname === tabPath) return true;
   if (tabPath === "/profile" && pathname.startsWith("/user/")) return !!userId && pathname.startsWith(`/user/${userId}`);
+  if (tabPath === "/profile" && pathname.startsWith("/u/")) return !!myHandle && ownPublicPage(pathname, myHandle);
   return (tabStacks[tabPath] || []).some((p) => pathname.startsWith(p));
+}
+
+/** Is `pathname` the viewer's own /u/<handle> page (any case, any sub-path)? */
+function ownPublicPage(pathname: string, myHandle: string): boolean {
+  const seg = pathname.slice("/u/".length).split("/")[0] ?? "";
+  let h = seg;
+  try {
+    h = decodeURIComponent(seg);
+  } catch {
+    // A malformed escape in the URL can never be the viewer's handle: compare the raw segment.
+  }
+  return h.trim().toLowerCase() === myHandle.trim().toLowerCase();
 }

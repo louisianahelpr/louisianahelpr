@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
+import { ListRow } from "@/components/ui/ListRow";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
@@ -96,18 +98,18 @@ function PayoutRow({ p, onOpen }: { p: StripePayout; onOpen: () => void }) {
   const next = payoutNextStep(p);
   return (
     <div className={card} data-payout-item={p.id}>
-      <button
-        type="button"
+      <ListRow
+        variant="flush"
         onClick={onOpen}
         data-payout-row={p.id}
-        className="w-full px-4 py-3 flex items-center gap-3 text-left active:scale-[0.99] transition-transform"
+        className="py-3"
       >
         <span className="min-w-0 flex-1">
           <span className="block text-ds-14 font-semibold" style={ink}>{payoutDay(p.arrival_date)}</span>
           <span className="block text-ds-12 mt-0.5" style={quiet}>{payoutStatusLabel(p.status)}</span>
         </span>
         <span className="shrink-0 font-bold tabular-nums text-ds-15" style={rust}>{formatCents(p.amount, p.currency)}</span>
-      </button>
+      </ListRow>
       {next && (
         <div className="px-4 pb-3 -mt-1 flex flex-wrap items-center justify-between gap-2" data-payout-next={p.status}>
           <NextStep value={next.step} className="!text-ds-13 min-w-0" />
@@ -163,9 +165,9 @@ function PayoutDetailView({ payoutId }: { payoutId: string }) {
             {data.lines.map((l, i) => (
               <li key={`${l.kind}-${i}`} className="flex items-center justify-between gap-3 text-ds-13 min-h-11">
                 {l.href ? (
-                  <button type="button" className="text-left min-w-0 truncate" style={ink} title={l.label} onClick={() => navigate(l.href!)}>
+                  <InlineTextButton className="text-left min-w-0 truncate" style={ink} title={l.label} onClick={() => navigate(l.href!)}>
                     {l.label}
-                  </button>
+                  </InlineTextButton>
                 ) : (
                   <span className="min-w-0 truncate" style={ink}>{l.label}</span>
                 )}

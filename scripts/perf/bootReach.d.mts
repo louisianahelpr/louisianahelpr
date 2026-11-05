@@ -39,3 +39,6 @@ export const PROFILE_SHARING_PAGE_ROOTS: string[];
 export function profileFirstScreenModules(root: string, split?: { deep: Set<string>; homeOff: Set<string> }): { own: Set<string>; shared: Set<string> };
 export function namedLoaders(src: string): Map<string, string>;
 export function loaderSpecs(text: string, loaders: Map<string, string>): string[];
+export const POSTED_ROOT: string;
+export const SIGNED_IN_CHROME_RE: RegExp;
+export function postedDeepModules(root: string, split?: { deep: Set<string>; declutterOnly: Set<string>; homeOff: Set<string> }): { firstScreen: Set<string>; itemPages: Set<string>; deep: Set<string> };

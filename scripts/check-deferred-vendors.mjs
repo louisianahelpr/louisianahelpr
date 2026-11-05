@@ -422,6 +422,34 @@ for (const { label, name } of ROUTE_ROOTS) {
     }
   }
 }
+// Posted (Q2706, Builder 3, 11-05): /jobs?tab=posted was the slowest signed-in route live (Fast 4G LCP 2104-2416 ms).
+// It reached declutter-first-screen, declutter-item-pages and signed-in-deep through a few small leaves (series
+// dates, the maps link, the photo upload helpers, refund requests, ...), and with them Declutter's api and seller
+// tools: 134 chunks / ~620 KB gz of static closure. vite.config.ts's posted-fs / posted-ip / posted-deep groups
+// (bootReach.mjs postedDeepModules) hold those leaves; Posted's built closure must not reach the three chunks again.
+const POSTED_OFF = ["declutter-first-screen-", "declutter-item-pages-", "signed-in-deep-"];
+const postedChunk = all.find((f) => /^PostedJobsTab-[\w-]{6,}\.js$/.test(f));
+if (!postedChunk) fail("no built chunk for Posted (expected PostedJobsTab-<hash>.js). Fix this scan; do not drop the check.");
+{
+  const par = new Map([[postedChunk, null]]);
+  const queue = [postedChunk];
+  while (queue.length) {
+    const f = queue.shift();
+    let text;
+    try { text = readFileSync(`${ASSETS}/${f}`, "utf8"); } catch { continue; }
+    for (const hit of text.matchAll(STATIC_IMPORT)) if (!par.has(hit[1])) { par.set(hit[1], f); queue.push(hit[1]); }
+  }
+  if (par.size < 20) fail(`Posted's closure (${postedChunk}) has ${par.size} chunk(s); the import syntax changed. Fix the walk.`);
+  for (const chunk of [...par.keys()].filter((f) => POSTED_OFF.some((p) => f.startsWith(p)))) {
+    const chain = [chunk]; let cur = chunk; while (par.get(cur)) { cur = par.get(cur); chain.push(cur); }
+    violations.push({
+      chunk,
+      why: `Posted (/jobs?tab=posted) reaches ${POSTED_OFF.find((p) => chunk.startsWith(p)).slice(0, -1)} again: a module it imports statically left the posted-* groups (bootReach.mjs postedDeepModules), or a new one was filed under that chunk`,
+      gzip: bytes(chunk),
+      chain: chain.reverse().join(" → "),
+    });
+  }
+}
 const known = KNOWN_ROUTE_CLOSURE_VIOLATIONS;
 for (const v of routeFound) {
   if (known[v.label] !== v.pkg) violations.push({ chunk: v.chunk, why: `first screen ${v.label}: ${v.why}`, gzip: v.gzip, chain: v.chain });
@@ -464,6 +492,7 @@ if (violations.length) {
 }
 
 console.log(`\n✓ no signed-in-only shared module is on the boot path (bootReach.mjs vs the built sourcemaps), nor in the closure of the guest chrome (${GUEST_CHROME_ROOTS.length} roots)`);
+console.log(`\n✓ Posted's closure reaches none of ${POSTED_OFF.map((p) => p + "*").join(", ")}`);
 console.log(`\n✓ no first-screen closure carries a signed-in-deep module (${deepWanted.size} modules, ${deepCarriers.length} carrier chunk(s))`);
 console.log(`\n✓ no first-screen closure (${ROUTE_ROOTS.length} roots from ENTRY_ROUTE_CHUNKS + MobileNav, PageTransition, ScrollToTop, SuccessMomentHost) carries a deferred package beyond the ${Object.keys(known).length} known`);
 console.log(`\n✓ no deferred vendor (${[...DEFERRED.map((d) => d.prefix + "*"), ...DEFERRED_PACKAGES.map((d) => d.pkg), ...DEFERRED_MODULES.map((d) => d.file)].join(", ")}) is statically reachable from the entry`);

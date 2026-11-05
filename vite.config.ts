@@ -6,7 +6,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, bootModules, bootIconFiles, declutterItemSplit, guestIconSplit, guestBrowseSplit, homeIconFiles, homePageRoots, itemIconFiles, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
+import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, bootModules, bootIconFiles, declutterItemSplit, guestIconSplit, postedDeepModules, guestBrowseSplit, homeIconFiles, homePageRoots, itemIconFiles, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -189,6 +189,7 @@ const { signedInOnly } = signedInOnlyModules(process.cwd());
 const { deep: signedInDeep, declutterOnly, homeOff, homeLate } = signedInSplit(process.cwd());
 const { itemDeep: declutterItemDeep, itemPages: declutterItemPages, itemShared: declutterItemShared } = declutterItemSplit(process.cwd(), { deep: signedInDeep, homeOff });
 const { own: profileFirstScreen, shared: profileSharedLeaves } = profileFirstScreenModules(process.cwd(), { deep: signedInDeep, homeOff });
+const { firstScreen: postedFirstScreen, itemPages: postedItemPages, deep: postedDeep } = postedDeepModules(process.cwd(), { deep: signedInDeep, declutterOnly, homeOff });
 const homeIcons = homeIconFiles(process.cwd());
 const bootIcons = bootIconFiles(process.cwd());
 const itemIcons = itemIconFiles(process.cwd());
@@ -1189,6 +1190,36 @@ export default defineConfig(({ mode, command }) => ({
               priority: 20,
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-shared */,
+            },
+            // Q2706 (Builder 3, 11-05): the modules Posted's page (/jobs?tab=posted) reaches that the three groups below
+            // would file (bootReach.mjs postedDeepModules). In declutter-first-screen, declutter-item-pages and
+            // signed-in-deep they made Posted fetch all three chunks and, through their other modules, Declutter's api
+            // and seller tools: Posted's static closure 134 chunks / ~620 KB gz, live Fast 4G LCP 2104-2416 ms. One
+            // small chunk per origin group, so the Declutter chunks fetch only their own leaves' imports (one chunk for
+            // all three cost declutter-item-pages +46 KB gz of closure). Above declutter-first-screen (17) so they win
+            // them; the priority-20 groups keep theirs. Short names: an entry route that reaches one names it.
+            // scripts/check-deferred-vendors.mjs fails if Posted's built closure reaches any of the three again.
+            {
+              name: "posted-fs",
+              test: (id: string) => postedFirstScreen.has(id.split("?")[0].replace(/\\/g, "/")),
+              priority: 17.5,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
+            {
+              name: "posted-ip",
+              test: (id: string) => postedItemPages.has(id.split("?")[0].replace(/\\/g, "/")),
+              priority: 17.5,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
+            {
+              name: "posted-deep",
+              test: (id: string) => postedDeep.has(id.split("?")[0].replace(/\\/g, "/")),
+              minShareCount: 2,
+              priority: 17.5,
+              minSize: 0,
+              includeDependenciesRecursively: false
             },
             {
               name: "declutter-first-screen",

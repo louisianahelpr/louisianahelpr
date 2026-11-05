@@ -309,6 +309,38 @@ export function profileFirstScreenModules(root, split = signedInSplit(root)) {
   };
 }
 
+/** Posted's page (/jobs?tab=posted, Q2706): the poster's job list, the slowest signed-in route live (11-05). */
+export const POSTED_ROOT = "src/pages/posts/PostedJobsTab.tsx";
+/** The signed-in-chrome group's modules (vite.config.ts, priority 16.5): they stay there. */
+export const SIGNED_IN_CHROME_RE = /[\\/]src[\\/](lib[\\/](capturedPayment|consent|helprTasks[\\/]online)\.ts|hooks[\\/](useInstantQuery\.ts|use-mobile\.tsx))$/;
+
+/**
+ * The modules Posted's page reaches statically that the build would otherwise file under declutter-first-screen,
+ * declutter-item-pages or signed-in-deep (Q2706, Builder 3, 11-05). In those chunks they made every Posted load fetch
+ * all three and, through their other modules, Declutter's api and seller tools: Posted's static closure was 134
+ * chunks / ~620 KB gz, live Fast 4G LCP 2104-2416 ms. vite.config.ts gives each part its own small chunk, so each
+ * importer fetches only what it fetched before plus the leaf:
+ *  - `firstScreen`: from declutterOnly (series dates, the maps link, the support subject);
+ *  - `itemPages`: from declutter-item-pages (the time wheel's step, the photo upload helpers and their errors);
+ *  - `deep`: from signed-in-deep (refund requests, crew lifecycle, proof-photo cleaning, ...).
+ * One chunk for all three put seriesDates' and crewLifecycle's imports on every Declutter chunk's closure
+ * (declutter-item-pages +46 KB gz, Messages +16, PostJob +18: local build, 11-05).
+ * Closed under static imports by construction (a reach intersected with the groups' sets), minus the modules a group
+ * above or beside them keeps (declutter-item-deep, item-shared, the Profile groups, signed-in-chrome).
+ */
+export function postedDeepModules(root, split = signedInSplit(root)) {
+  const reach = staticReach(root, [path.join(root, POSTED_ROOT)]);
+  const item = declutterItemSplit(root, split);
+  const profile = profileFirstScreenModules(root, split);
+  const keep = new Set([...item.itemDeep, ...item.itemShared, ...profile.own, ...profile.shared]);
+  const mine = [...reach].filter((f) => !keep.has(f) && !SIGNED_IN_CHROME_RE.test(f));
+  return {
+    firstScreen: new Set(mine.filter((f) => split.declutterOnly.has(f))),
+    itemPages: new Set(mine.filter((f) => !split.declutterOnly.has(f) && (item.itemPages.has(f) || ITEM_PAGES_PINNED_RE.test(f)))),
+    deep: new Set(mine.filter((f) => !split.declutterOnly.has(f) && !item.itemPages.has(f) && !ITEM_PAGES_PINNED_RE.test(f) && split.deep.has(f))),
+  };
+}
+
 /**
  * Home's PAGE roots (B88, 11-01): homeFirstScreenRoots without EVERY_PAGE_ROOTS. App mounts those (the dock, Legal,
  * the ID sheet, ...) lazily beside every page, after Home's first paint, so their shared code is not Home's first

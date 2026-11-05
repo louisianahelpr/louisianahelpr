@@ -10,6 +10,7 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { Layers } from "lucide-react";
+import { ListRow } from "@/components/ui/ListRow";
 import { fetchItemHandovers, fetchSellerCard, fetchSellerItems, type DeclutterItem } from "@/lib/declutter/api";
 import { noDeliveryWay } from "@/lib/declutter/pickupWords";
 import { formatName } from "@/lib/utils";
@@ -69,11 +70,10 @@ export function DeclutterBundleRow({ item, viewerId }: { item: DeclutterItem; vi
   const b = useBundleSummary(item, viewerId);
   if (!b) return null;
   return (
-    <button
-      type="button"
+    <ListRow
       data-bundle-row=""
       onClick={() => document.getElementById("declutter-more-from-seller")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-      className="flex w-full min-h-[48px] text-left items-center gap-3 rounded-[20px] border border-dashed border-border px-4 py-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="min-h-[48px] justify-start gap-3 rounded-[20px] border border-dashed border-border px-4 py-3 text-sm"
     >
       <Layers className="h-5 w-5 shrink-0 text-primary" aria-hidden />
       <span className="min-w-0">
@@ -83,6 +83,6 @@ export function DeclutterBundleRow({ item, viewerId }: { item: DeclutterItem; vi
         {b.free ? "Get them together: one pickup." : b.pickup ? "Check out together: one pickup, one payment." : "Check out together: one payment."}
         {b.offer ? <span className="font-semibold text-primary" data-bundle-offer=""> {b.offer}.</span> : null}
       </span>
-    </button>
+    </ListRow>
   );
 }

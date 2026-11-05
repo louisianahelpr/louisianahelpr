@@ -255,9 +255,6 @@
     "src/components/declutter/DeclutterBunchView.tsx": {
       "input": 1
     },
-    "src/components/declutter/DeclutterBundleRow.tsx": {
-      "button": 1
-    },
     "src/components/declutter/DeclutterEditListing.tsx": {
       "input": 1
     },

@@ -41,6 +41,7 @@ export const enCore = {
   "tabs.nMore": "{n} more",
   "tabs.nMoreTabs": "{n} more tabs",
   "tabs.nMoreToDo": "{n} more tabs, {m} to do",
+  "tabs.nToDo": "{n} to do",
   "jobs.tabPosted": "Posted",
   "jobs.tabWorking": "Working",
   "jobs.tabsLabel": "Jobs & Posts",

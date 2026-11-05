@@ -28,7 +28,8 @@ import { itemPriceLabel } from "@/lib/declutter/distance";
 import { fetchMyPayouts, type MyPayout } from "@/lib/declutter/handover";
 import { soldPayoutWords } from "@/lib/declutter/soldPayout";
 import { sellerStatusLabel } from "./declutterUi";
-import { ChevronRight, Settings, Tags } from "lucide-react";
+import { ChevronRight, Settings, Share2, Tags } from "lucide-react";
+import { shareListing } from "./DeclutterShareCard";
 import { SellChooserEntry } from "./SellChooserEntry";
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { firstPhotos } from "./DeclutterItemCard";
@@ -40,6 +41,7 @@ import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTabHea
 import { BuyingDash, SellingDash, useWarmMineViews } from "./DeclutterMineLazy";
 import { OrdersUpdating } from "./OrdersUpdating";
 import { useUnansweredQuestions } from "./SellerQuestionsToAnswer";
+import { liveListingCount } from "@/lib/declutter/liveListingCount";
 import { HANDOVER_TITLE } from "./handoverCopy";
 import { DeliverEntry } from "./DeclutterDeliverEntry";
 import { TabletSellRow } from "./TabletSellRow";
@@ -332,6 +334,12 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
                     Manage
                   </Button>
                 )}
+                {/* Owner request 11-05: each item for sale shares its own page (never a paused or unreviewed one). */}
+                {item.status === "live" && (
+                  <Button type="button" variant="outline" size="sm" className="gap-1.5" aria-label={`Share ${item.title}`} data-listing-share="" onClick={() => shareListing(item)}>
+                    <Share2 className="h-4 w-4" aria-hidden /> Share
+                  </Button>
+                )}
                 {(item.status === "draft" || item.status === "pending_review") && (
                   <Button
                     type="button"
@@ -392,13 +400,16 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
  */
 // Board 80: opens once after a publish (router state from DeclutterSellView).
 function SellingView({ userId, haulOn, movingOutOn, todo }: { userId: string; haulOn: boolean; movingOutOn: boolean; todo: DeclutterTodo | null }) {
+  // The same cached read Your listings and the tab's count make.
+  const mine = useQuery(myItemsQuery(userId));
   return (
     // Q2562: a flex gap, not space-y-6 (space-y gave the child after the display:none Sell row a 24px margin).
     <div className="flex flex-col gap-6">
+      {/* Owner 2026-11-04: the seller's page link (every listing shows there), with Copy and Share. Owner request
+          11-05 ("mine is kind of hidden"): it leads the tab, and with an item for sale it is a clear Share button. */}
+      <YourPageLink forSale={liveListingCount(mine.data ?? [])} />
       <ListedWhatNext />
       <ListedForYouCard />
-      {/* Owner 2026-11-04: the seller's page link (every listing shows there), with Copy and Share. */}
-      <YourPageLink />
       <ManagerWaitingForOkGate userId={userId} />
       <ManagerPanelGate />
       <TabletSellRow />
@@ -501,6 +512,10 @@ function DeclutterMemberHome() {
   const { todo, settled: todoSettled } = useDeclutterTodo();
   // Audit DC-9: the Selling badge counts what "To answer" counts, questions too (the chip's own cached read).
   const questions = useUnansweredQuestions(user?.id);
+  // Owner request 11-05: Selling's number is how many items are for sale; its to-dos stay as a dot beside it. The same
+  // cached read useUnansweredQuestions makes (and the tab row already waits for), so nothing new is fetched.
+  const mineForCount = useQuery({ ...myItemsQuery(user?.id ?? ""), enabled: !!user?.id });
+  const forSale = mineForCount.data ? liveListingCount(mineForCount.data) : undefined;
   const tabsReady = useArrivalGate(true, wanted.settled && haulAway.settled && movingOut.settled && todoSettled && questions.settled);
   const wantedOn = wanted.on;
   const [sectionTab] = useSectionTab<DeclutterTab>(wantedOn ? MINE_TABS_WITH_WANTED : MINE_TABS_FREE);
@@ -550,7 +565,7 @@ function DeclutterMemberHome() {
       }
       tabs={[
         { value: "buying", label: "Buying", count: todo?.buying },
-        { value: "selling", label: "Selling", count: todo ? todo.selling + questions.count : undefined },
+        { value: "selling", label: "Selling", quiet: forSale, count: todo ? todo.selling + questions.count : undefined, countAsDot: true },
         { value: "deliver", label: "Deliver" },
         ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []),
         { value: "free", label: "Free" },

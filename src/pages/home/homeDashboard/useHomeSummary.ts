@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { liveListingCount } from "@/lib/declutter/liveListingCount";
 import { useQuery } from "@tanstack/react-query";
 import type { User as SupaUser } from "@supabase/supabase-js";
 import { useActivityData } from "@/hooks/useActivityData";
@@ -175,7 +176,7 @@ export function useHomeSummary(user: SupaUser | null) {
       counts: {
         posted: postedLive.length,
         working: appliedLive.length,
-        selling: items.filter((i) => i.status === "live").length,
+        selling: liveListingCount(items),
         shopOrders: myOrders.length,
       },
       tiles: {

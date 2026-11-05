@@ -9,8 +9,12 @@
  *  - the migration's insert trigger, backfill and grants as the newest definitions.
  *
  * @mutate src/components/profile/ProfileLanding.tsx | <YourPageLink name={displayName?.trim().split(/\s+/)[0] ?? null} /> | {null}
- * @mutate src/components/declutter/DeclutterHomeView.tsx |       <YourPageLink /> |       {null}
+ * @mutate src/components/declutter/DeclutterHomeView.tsx |       <YourPageLink forSale={liveListingCount(mine.data ?? [])} /> |       <YourPageLink forSale={0} />
  * @mutate src/components/profile/YourPageLink.tsx | if (await copyToClipboard(profileLinkUrl(handle))) | if (await copyToClipboard(handle))
+ * @mutate src/components/profile/YourPageLink.tsx |   if (forSale > 0) { |   if (forSale < 0) {
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | onClick={() => shareListing(item)} | onClick={() => undefined}
+ * @mutate src/components/profile/YourPageLink.tsx |     enabled: !knownHandle, |     enabled: true,
+ * @mutate src/pages/home/HomeDashboard.tsx | {profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className="mt-2" />} | {null}
  * @mutate supabase/migrations/20261104142602_profile_handle_at_signup.sql |   BEFORE INSERT ON public.profiles\n  FOR EACH ROW EXECUTE FUNCTION public.profile_handle_default_on_insert(); |   BEFORE UPDATE OF bio ON public.profiles\n  FOR EACH ROW EXECUTE FUNCTION public.profile_handle_default_on_insert();
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -69,6 +73,45 @@ describe("Your page link (made at sign-up, easy to find)", () => {
     expect((share.mock.calls[0][0] as { url: string }).url).toBe("https://www.louisianahelpr.com/u/eli-b");
   });
 
+  it("with items for sale it is a clear Share your listings button (owner request 11-05)", async () => {
+    rpc.mockResolvedValue({ data: "eli-b", error: null });
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <YourPageLink name="Eli" forSale={3} />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    await waitFor(() => expect(screen.getByRole("button", { name: "Share your listings" })).toBeTruthy());
+    expect(screen.getByText("3 items for sale")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Share your listings" }));
+    await waitFor(() => expect(share).toHaveBeenCalledTimes(1));
+    expect((share.mock.calls[0][0] as { url: string }).url).toBe("https://www.louisianahelpr.com/u/eli-b");
+    fireEvent.click(screen.getByRole("button", { name: "Copy link" }));
+    await waitFor(() => expect(copy).toHaveBeenCalledWith("https://www.louisianahelpr.com/u/eli-b"));
+  });
+
+  it("Selling leads with it, and each live listing row has its own Share", () => {
+    const home = code("src/components/declutter/DeclutterHomeView.tsx");
+    const view = home.slice(home.indexOf("function SellingView"), home.indexOf("<SellingDash", home.indexOf("function SellingView")));
+    expect(view.indexOf("<YourPageLink")).toBeLessThan(view.indexOf("<ListedWhatNext"));
+    expect(home).toMatch(/\{item\.status === "live" && \(\s*<Button[^>]*aria-label=\{`Share \$\{item\.title\}`\}[^>]*onClick=\{\(\) => shareListing\(item\)\}/);
+  });
+
+  it("Home shows it from the profile row it already has: no extra read (owner request 11-05)", async () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <YourPageLink knownHandle="eli-b" />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    expect(screen.getByRole("link", { name: "louisianahelpr.com/u/eli-b" })).toBeTruthy();
+    expect(rpc).not.toHaveBeenCalled();
+    const home = code("src/pages/home/HomeDashboard.tsx");
+    expect(home).toContain("{profile?.handle && <YourPageLink knownHandle={profile.handle} name={first ?? null} className=\"mt-2\" />}");
+  });
+
   it("shows nothing when the handle cannot be read", async () => {
     rpc.mockResolvedValue({ data: null, error: { message: "boom", code: "XX000" } });
     const { container } = mount();
@@ -80,7 +123,7 @@ describe("Your page link (made at sign-up, easy to find)", () => {
     expect(code("src/components/profile/ProfileLanding.tsx")).toMatch(/<YourPageLink name=\{displayName/);
     const home = code("src/components/declutter/DeclutterHomeView.tsx");
     const selling = home.slice(home.indexOf("function SellingView"), home.indexOf("<SellingDash", home.indexOf("function SellingView")));
-    expect(selling).toContain("<YourPageLink />");
+    expect(selling).toContain("<YourPageLink forSale={liveListingCount(mine.data ?? [])} />");
   });
 });
 

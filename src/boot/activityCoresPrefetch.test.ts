@@ -18,7 +18,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { ACTIVITY_CORES_PREFETCH_KEY, CORES_APPLICATION_COLUMNS, CORES_JOB_COLUMNS, opensOnActivityList, startActivityCoresPrefetch } from "./activityCoresPrefetch";
+import { ACTIVITY_CORES_PREFETCH_KEY, CORES_APPLICATION_COLUMNS, CORES_APPLICATION_JOB_COLUMNS, CORES_JOB_COLUMNS, opensOnActivityList, startActivityCoresPrefetch } from "./activityCoresPrefetch";
 import { jobListsOpenFirst } from "./jobsListRoute";
 import { ACTIVITY_CORES_PREFETCH_MAX_AGE_MS, takeActivityCoresPrefetch } from "@/lib/activityCoresTake";
 import { JOB_READABLE_COLUMN_LIST } from "@/lib/jobColumns";
@@ -65,8 +65,9 @@ describe("the Posted / Working lists' read starts from the entry (B100)", () => 
     );
     expect(CORES_JOB_COLUMNS).toEqual([...cores.POSTED_JOB_COLUMNS]);
     expect(CORES_APPLICATION_COLUMNS).toEqual([...APPLICATION_READABLE_COLUMN_LIST]);
+    expect(CORES_APPLICATION_JOB_COLUMNS).toEqual([...cores.APPLICATION_JOB_COLUMNS]);
     await cores.fetchActivityCores(UID);
-    expect(db.calls[0]).toEqual({ fn: "get_my_activity_cores", args: { p_job_columns: CORES_JOB_COLUMNS, p_application_columns: CORES_APPLICATION_COLUMNS } });
+    expect(db.calls[0]).toEqual({ fn: "get_my_activity_cores", args: { p_job_columns: CORES_JOB_COLUMNS, p_application_columns: CORES_APPLICATION_COLUMNS, p_application_job_columns: CORES_APPLICATION_JOB_COLUMNS } });
     signIn();
     const f = answering(PAYLOAD("boot"));
     vi.stubGlobal("fetch", f);

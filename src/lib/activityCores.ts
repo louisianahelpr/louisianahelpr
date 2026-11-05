@@ -14,7 +14,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
-import { JOB_READABLE_COLUMN_LIST } from "@/lib/jobColumns";
+import { JOB_PRIVATE_COLUMNS, JOB_READABLE_COLUMN_LIST, JOB_SERIES_STATE_COLUMNS } from "@/lib/jobColumns";
 import { APPLICATION_READABLE_COLUMN_LIST } from "@/lib/applicationColumns";
 import { isNetworkFailure } from "@/lib/networkFailure";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
@@ -40,6 +40,20 @@ export const POSTED_CORES_UNREAD_COLUMNS: readonly string[] = [
 /** The posted core's job columns: the readable list plus the three fetchPostedActivity has always added, less the unread ones. */
 export const POSTED_JOB_COLUMNS: readonly string[] = [...JOB_READABLE_COLUMN_LIST, "materials_note", "onboarding_fee_amount", "poster_marked_done_at"]
   .filter((c) => !POSTED_CORES_UNREAD_COLUMNS.includes(c));
+
+/**
+ * The job keys the cores keep on application_jobs and direct_offers (Q2742 part 2, Builder 3 11-05). Those rows come
+ * from SECURITY DEFINER functions as whole jobs rows; get_my_activity_cores (20261105104129) keeps only these keys.
+ * The applied readers are the same closure as the posted ones (useActivityData and the activity caches), so this is
+ * the posted list plus what only the definers can hand an applicant: offered_to_helper_id (activityFilters,
+ * jobStatusLine: the definers null it unless I am the offeree), the series state (fetchJobSeriesState only covers
+ * series parents) and the two columns ahead of the readable list. src/test/appliedCoresKeepReadColumns.test.ts holds
+ * every jobs column either here or proven unread.
+ */
+export const APPLICATION_CORES_UNREAD_COLUMNS: readonly string[] = [...POSTED_CORES_UNREAD_COLUMNS, "last_edit_notice_at"];
+export const APPLICATION_JOB_COLUMNS: readonly string[] = [
+  ...POSTED_JOB_COLUMNS, ...JOB_PRIVATE_COLUMNS, ...JOB_SERIES_STATE_COLUMNS, "tax_kind", "date_window_end",
+];
 
 interface ActivityCoresPayload {
   posted_jobs: unknown[];
@@ -121,6 +135,7 @@ export function fetchActivityCores(userId: string, part?: ActivityCorePart): Pro
       const res = await supabase.rpc("get_my_activity_cores", {
         p_job_columns: [...POSTED_JOB_COLUMNS],
         p_application_columns: [...APPLICATION_READABLE_COLUMN_LIST],
+        p_application_job_columns: [...APPLICATION_JOB_COLUMNS],
       });
       if (res?.error) {
         const code = String((res.error as { code?: string }).code ?? "");

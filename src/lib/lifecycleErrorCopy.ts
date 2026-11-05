@@ -836,6 +836,7 @@ export const RPC_ERROR_COPY = {
     wrong_side: DC.wrong_side,
   },
   declutter_cancel_after_no_helpr: {
+    refund_payment_unknown: DC.refund_payment_unknown,
     // BUY-36 (20261031231150): reached through the steps it runs (the close, the confirm, the debt take, the lock).
     invalid_payout: DC.invalid_payout,
     account_restricted: DC.account_restricted,
@@ -877,6 +878,7 @@ export const RPC_ERROR_COPY = {
     task_not_found: DC.task_not_found,
   },
   declutter_report_no_show: {
+    refund_payment_unknown: DC.refund_payment_unknown,
     // BUY-36 (20261031231150): reached through the steps it runs (the close, the confirm, the debt take, the lock).
     invalid_payout: DC.invalid_payout,
     account_restricted: DC.account_restricted,
@@ -968,6 +970,7 @@ export const RPC_ERROR_COPY = {
     too_many_problem_photos: DC.too_many_problem_photos,
   },
   declutter_answer_refund: {
+    refund_payment_unknown: DC.refund_payment_unknown,
     account_restricted: DC.account_restricted,
     already_refunded: DC.already_refunded,
     invalid_payout: DC.invalid_payout,
@@ -991,6 +994,7 @@ export const RPC_ERROR_COPY = {
     too_many_problem_photos: DC.too_many_problem_photos,
   },
   declutter_answer_refund_offer: {
+    refund_payment_unknown: DC.refund_payment_unknown,
     account_restricted: DC.account_restricted,
     already_refunded: DC.already_refunded,
     feature_disabled: DC.feature_disabled,
@@ -1017,6 +1021,7 @@ export const RPC_ERROR_COPY = {
     refund_already_answered: DC.refund_already_answered,
     refund_not_found: DC.refund_not_found,
   },  declutter_refund_item_returned: {
+    refund_payment_unknown: DC.refund_payment_unknown,
     account_restricted: DC.account_restricted,
     already_refunded: DC.already_refunded,
     feature_disabled: DC.feature_disabled,

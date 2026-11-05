@@ -11,8 +11,11 @@
  * PaymentIntent is a Stripe TEST object naming a job_id that is not ours is skipped outright (no notice, no digest),
  * read with a GET on the TEST key only. A live PI (not found on the test key), a failed read, or a TEST PI with no
  * job_id (a test tip or gift) goes through the path above unchanged.
- * @mutate supabase/functions/void-cancelled-payments/index.ts |         if (!UNTOLD_UUID_RE.test(jobId)) return true; |         if (!UNTOLD_UUID_RE.test(jobId)) return false;
- * @mutate supabase/functions/void-cancelled-payments/index.ts |         if (intent?.livemode !== false) return false; |
+ * Lead 11-04 10:4x PM (re_3UYDDAKp2H4b7tEC1LuA67q3, the tax probe's TEST refund, no job_id, re-raised hourly): ANY
+ * refund whose PaymentIntent is livemode false is skipped, whatever its metadata or row says.
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |         return intent?.livemode === false; |         return intent?.livemode === false \&\& !!intent?.metadata?.job_id;
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |            if (r.stripe_payment_intent_id && await isTestPaymentIntent(r.stripe_payment_intent_id)) { |            if (!r.job_id && r.stripe_payment_intent_id && await isTestPaymentIntent(r.stripe_payment_intent_id)) {
+ * @mutate supabase/functions/void-cancelled-payments/index.ts |         return intent?.livemode === false; |         return intent?.livemode !== true;
  * @mutate supabase/functions/void-cancelled-payments/index.ts |               continue;\n            }\n            const result = await sendRefundNotice | \n            }\n            const result = await sendRefundNotice
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
@@ -101,12 +104,25 @@ describe("void-cancelled-payments Part G: a ledger row with no job and no member
     expect(pages()[0]).toEqual(expect.objectContaining({ seed: true }));
   });
 
-  it("a TEST PaymentIntent with no job_id (a test tip) is still tried and the tipper is told", async () => {
-    seedSweep(TIPPER);
-    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tip_dash", livemode: false, metadata: {} });
-    const { body } = await run();
-    expect(body.untold_refunds_test).toBe(0);
-    expect(body.untold_refunds_sent).toBe(1);
+  it("ANY TEST PaymentIntent is skipped: the tax probe (no job_id), a test tip with a tipper, a row with a job (lead 11-04)", async () => {
+    const cases: [string, Record<string, unknown>, string | null, Partial<typeof ROW>][] = [
+      ["the tax probe", { kind: "tax_probe" }, null, {}],
+      ["a test tip with a tipper", {}, TIPPER, {}],
+      ["a test account's job", { job_id: "55555555-5555-4555-8555-555555555555" }, null, { job_id: "55555555-5555-4555-8555-555555555555" }],
+    ];
+    expect(cases.length).toBeGreaterThan(2);
+    for (const [why, metadata, tipper, extra] of cases) {
+      resetSupabaseMock(); resetStripeMock(); resetSharedMocks();
+      seedSweep(tipper);
+      scenario.reads.payment_refunds = { rows: [{ ...ROW, ...extra }] };
+      stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_tip_dash", livemode: false, metadata });
+      const { body } = await run();
+      expect(body.untold_refunds_test, why).toBe(1);
+      expect(body.untold_refunds_nobody, why).toBe(0);
+      expect(body.untold_refunds_sent, why).toBe(0);
+      expect(pages(), why).toHaveLength(0);
+      expect(scenario.writes.filter((w) => w.table === "notifications"), why).toHaveLength(0);
+    }
   });
 
   it("a PaymentIntent that is not livemode false is never skipped, whatever its job_id says", async () => {

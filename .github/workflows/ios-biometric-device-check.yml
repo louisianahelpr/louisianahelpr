@@ -91,12 +91,55 @@ jobs:
           APP=$(ls -d "$RUNNER_TEMP"/dd/Build/Products/Debug-iphonesimulator/*.app | head -1)
           echo "APP=$APP" >> "$GITHUB_ENV"
 
+      # Q1008 (11-05): run 41987403403 sat in an unbounded `simctl bootstatus -b` until the 45-minute job timeout. Now
+      # the step has its own timeout, prints what the runner actually has (runtimes + devices), picks an AVAILABLE iOS
+      # runtime and a Face ID iPhone on it (scripts/ci/pick-ios-simulator.mjs; creates one when none exists), and
+      # waits for the boot at most BOOT_WAIT_S seconds per try, erasing and retrying once before it fails.
       - name: Boot a simulator and enroll Face ID
+        timeout-minutes: 15
+        env:
+          BOOT_WAIT_S: "300"
         run: |
-          UDID=$(xcrun simctl list devices available -j | node -e 'const d=JSON.parse(require("fs").readFileSync(0,"utf8")).devices;for(const [rt,l] of Object.entries(d)){if(!/iOS-26/.test(rt))continue;const x=l.find(v=>/^iPhone 1[67]/.test(v.name));if(x){console.log(x.udid);process.exit(0)}}process.exit(1)')
+          echo "::group::installed simulator runtimes and devices"
+          xcrun simctl list runtimes
+          xcrun simctl list devices available
+          echo "::endgroup::"
+          SDK=$(xcrun --sdk iphonesimulator --show-sdk-version)
+          PICK=$(xcrun simctl list -j runtimes devices devicetypes | node scripts/ci/pick-ios-simulator.mjs "$SDK")
+          echo "iphonesimulator SDK $SDK; picked: $PICK"
+          FIRST=$(printf '%s\n' "$PICK" | head -1)
+          case "$FIRST" in
+            udid=*) UDID=${FIRST#udid=} ;;
+            create=*) set -- ${FIRST#create=}; UDID=$(xcrun simctl create "LH Face ID check" "$1" "$2") ;;
+            *) echo "::error::no simulator picked"; exit 1 ;;
+          esac
           echo "UDID=$UDID" >> "$GITHUB_ENV"
-          xcrun simctl boot "$UDID"
-          xcrun simctl bootstatus "$UDID" -b
+          # Bounded boot wait: bootstatus -b boots the device and waits; it runs in the background and is stopped by
+          # its own PID after BOOT_WAIT_S seconds.
+          boot_wait() {
+            xcrun simctl bootstatus "$UDID" -b > "$RUNNER_TEMP/bootstatus.log" 2>&1 &
+            BS=$!
+            for _ in $(seq 1 "$BOOT_WAIT_S"); do
+              if ! kill -0 "$BS" 2>/dev/null; then wait "$BS"; return $?; fi
+              sleep 1
+            done
+            if ! kill "$BS" 2>/dev/null; then echo "::notice::bootstatus had already ended"; fi
+            if ! wait "$BS" 2>/dev/null; then echo "::notice::bootstatus stopped after ${BOOT_WAIT_S}s"; fi
+            return 124
+          }
+          if ! boot_wait; then
+            echo "::warning::the simulator did not finish booting in ${BOOT_WAIT_S}s; erasing it and trying once more"
+            tail -20 "$RUNNER_TEMP/bootstatus.log"
+            if ! xcrun simctl shutdown "$UDID"; then echo "::notice::the simulator was not booted"; fi
+            xcrun simctl erase "${UDID}"
+            if ! boot_wait; then
+              echo "::error::the simulator did not boot in two tries of ${BOOT_WAIT_S}s"
+              tail -20 "$RUNNER_TEMP/bootstatus.log"
+              xcrun simctl list devices
+              exit 1
+            fi
+          fi
+          xcrun simctl list devices booted
           xcrun simctl spawn "$UDID" notifyutil -s com.apple.BiometricKit.enrollmentChanged 1
           xcrun simctl spawn "$UDID" notifyutil -p com.apple.BiometricKit.enrollmentChanged
 

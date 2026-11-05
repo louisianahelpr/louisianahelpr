@@ -3466,8 +3466,12 @@ button,
    late/current step takes its double column the others are 30.78px, while "Hired" is 30.84px at 11px (0.11px
    letter-spacing), so it drew "Hire..." (measured on prod, helper-e2e). 2px between columns gives each 32.33px; the
    words keep their size. */
+/* A step tip's hit area reaches HALF the gap on each side (Q2369, JobProgress.tsx): with the 2px gap that is 1px,
+   not the 4px gap's 2px, or neighbouring tips overlapped by 2px (measured on prod 2026-11-05, the thread's deal card
+   at 375, pin 41983991424). Guards: src/test/trackerWordsFitNarrow.test.ts, e2e/journeys/messages-thread.spec.ts. */
 @container (max-width: 319px) {
   .job-steps-grid { column-gap: 2px; }
+  .job-steps-grid [data-step-tip] { width: calc(100% + 2px); margin-left: -1px; margin-right: -1px; padding-left: 1px; padding-right: 1px; }
 }
 @container (max-width: 299px) {
   .job-step-short { font-size: 0.91em; }

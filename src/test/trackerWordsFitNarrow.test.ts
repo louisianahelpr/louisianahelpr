@@ -15,6 +15,7 @@
  * @mutate src/index.css | @container (max-width: 259px) {\n  .job-steps-grid { grid-template-columns: repeat(8, minmax(0, auto)) !important; } | @container (max-width: 259px) {\n  .job-steps-grid { }
  * @mutate src/index.css |   .job-step-short { font-size: 0.91em; } |   .job-step-short { }
  * @mutate src/index.css | @container (max-width: 319px) {\n  .job-steps-grid { column-gap: 2px; } | @container (max-width: 319px) {\n  .job-steps-grid { }
+ * @mutate src/index.css | margin-left: -1px; margin-right: -1px; | margin-left: -2px; margin-right: -2px;
  *
  * Q955 (375 pass, 2026-11-04, Builder 1): a Working card's tracker is 305px at 375; with the late/current step on a
  * double column the others were 30.78px and "Hired" is 30.84px (11px, 0.11px letter-spacing), so it drew "Hire...".
@@ -46,7 +47,11 @@ describe("narrow trackers keep every short word whole (F17)", () => {
   });
 
   it("under 320px: 2px between columns, so a 305px tracker (a Working card at 375) keeps \"Hired\" whole (Q955)", () => {
-    expect(containerBody(319)).toBe(".job-steps-grid { column-gap: 2px; }");
+    // The step tip's hit area reaches half that gap (1px), never into its neighbour's (Q2369; a 2px overlap was
+    // measured on prod 2026-11-05 while it still reached the 4px gap's 2px).
+    expect(containerBody(319)).toBe(
+      ".job-steps-grid { column-gap: 2px; } .job-steps-grid [data-step-tip] { width: calc(100% + 2px); margin-left: -1px; margin-right: -1px; padding-left: 1px; padding-right: 1px; }",
+    );
   });
 
   it("under 300px: words at 0.91em (relative, so Senior Mode still scales)", () => {

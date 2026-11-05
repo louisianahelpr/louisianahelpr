@@ -2272,6 +2272,35 @@ export type Database = {
           },
         ]
       }
+      declutter_item_views: {
+        Row: {
+          created_at: string
+          device_id: string | null
+          item_id: string
+          viewer_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_id?: string | null
+          item_id: string
+          viewer_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_id?: string | null
+          item_id?: string
+          viewer_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "declutter_item_views_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       declutter_items: {
         Row: {
           accepts_offers: boolean
@@ -17492,6 +17521,17 @@ export type Database = {
           p_seller_id: string
         }
         Returns: string
+      }
+      declutter_record_item_view: {
+        Args: { p_device_id?: string; p_item_id: string }
+        Returns: undefined
+      }
+      declutter_my_item_view_counts: {
+        Args: never
+        Returns: {
+          item_id: string
+          views: number
+        }[]
       }
       declutter_record_hand_refund: {
         Args: {

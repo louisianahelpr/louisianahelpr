@@ -5,7 +5,7 @@
  * the seller card with "12+ more items" folded in; "About this item" then Category and Size; ONE pickup block;
  * the public Questions (board 162); Report at the bottom. Two columns from lg, the item column sticky.
  */
-import { lazy, Suspense, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 
 import { useQuery } from "@tanstack/react-query";
 import { Heart, Share2 } from "lucide-react";
@@ -54,6 +54,8 @@ import { DeclutterReportListing } from "./DeclutterReportListing";
 import { toastWatching } from "./declutterLightActions";
 import { useWatchToggle } from "./useWatchToggle";
 import { pagePhoto } from "@/lib/declutter/pagePhoto";
+import { recordItemView } from "@/lib/declutter/itemViews";
+import { ItemViewsCount } from "./ItemViewsCount";
 
 // B67 (DECL-ITEM-SPEED): only the seller sees the manage panel, so its edit flow (sell steps, handover choices)
 // loads when it shows, not on every buyer's and guest's cold item page.
@@ -120,6 +122,11 @@ export default function ItemView({ itemId }: { itemId: string }) {
   const isWatching = watching.data?.has(itemId) ?? false;
   // SS-5: a new heart says where to find the item again. The heart fills on the tap (Q2018).
   const toggleWatch = useWatchToggle(user?.id, () => toastWatching(navigate));
+  // Owner request 11-05: one view per person, reported once the page has settled; never for the seller's own listing
+  // (the server also drops admins, test accounts and test listings). Fire-and-forget: it never holds the page.
+  const viewable = !!item.data && !ownListing && (item.data.status === "live" || item.data.status === "reserved");
+  const signedIn = !!user;
+  useEffect(() => (viewable ? recordItemView(itemId, signedIn) : undefined), [viewable, itemId, signedIn]);
 
   // One gate for the item and its photos: the gallery paints once, never a placeholder that pops into a photo.
   if (item.isLoading || photos.isLoading) return <DeclutterItemSkeleton />;
@@ -235,6 +242,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
             <p data-item-where="" className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
               {[it.area_label, away, it.porch_ok !== false ? "Porch pickup" : null].filter(Boolean).join(" · ")}
             </p>
+            {isSeller && <ItemViewsCount sellerId={it.seller_id} itemId={it.id} />}
             {drop && (
               <PriceDropBanner lowestCents={drop.lowestCents} at={drop.at} pct={drop.pct} mine={isSeller} />
             )}

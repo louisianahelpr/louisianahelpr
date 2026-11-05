@@ -24,7 +24,7 @@
   "src/components/profile/earningsTab/WalletCard.tsx",
   "src/components/ui/BarkPillButton.tsx",
   "src/pages/auth/CompleteProfile.tsx",
-  "src/pages/home/DashboardGuest.tsx",
+  "src/pages/home/GuestAuthActions.tsx",
   "src/pages/info/Support.tsx",
   "src/pages/user/UserProfile.tsx",
   "src/pages/info/legal/LegalChrome.tsx",

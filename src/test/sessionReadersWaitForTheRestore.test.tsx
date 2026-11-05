@@ -185,7 +185,7 @@ const READERS: Record<string, string> = {
   "src/hooks/useStoredSessionHint.ts": "waits",
   "src/lib/signedInRequestGuard.ts": "waits: awaits the auth client's own storage adapter (getItem), the store auth-js reads; it only names the key",
   // Read only through the waiting helpers above:
-  "src/pages/home/DashboardGuest.tsx": "via definitelyGuest()",
+  "src/pages/home/useGuestSessionCheck.ts": "via definitelyGuest()",
   "src/components/MobileNav.tsx": "via useStoredSessionHint()",
   "src/components/SignedInChrome.tsx": "via useStoredSessionHint(): before the restore the chrome waits, and the hint is read again when it lands",
   // Web only: the native app never reaches the read.
@@ -219,7 +219,7 @@ describe("every synchronous reader of the stored session is accounted for (Q1463
     expect([...readers].sort()).toEqual(Object.keys(READERS).sort());
   });
 
-  // @mutate src/pages/home/DashboardGuest.tsx | useState(definitelyGuest); | useState(() => !Object.keys(localStorage).some((k) => /^sb-.+-auth-token$/.test(k)));
+  // @mutate src/pages/home/useGuestSessionCheck.ts | useState(definitelyGuest); | useState(() => !Object.keys(localStorage).some((k) => /^sb-.+-auth-token$/.test(k)));
   it("a reader that goes 'via' a waiting helper does not also read the store raw", () => {
     for (const [file, how] of Object.entries(READERS)) {
       if (!how.startsWith("via ")) continue;

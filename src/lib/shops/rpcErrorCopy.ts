@@ -31,6 +31,7 @@ export const SHOPS_RPC_ERROR_COPY = {
     order_not_found: SC.order_not_found,
     own_shop: SC.own_shop,
     talk_blocked: SC.talk_blocked,
+    talk_closed: SC.talk_closed,
   },
   shops_talk_view: {
     feature_disabled: SC.feature_disabled,

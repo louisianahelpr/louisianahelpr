@@ -98,6 +98,8 @@ vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1"
 vi.mock("@/components/declutter/SellerPayoutPrompt", () => ({ SellerPayoutPrompt: () => null }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: {}, isLoading: false }) }));
 // Q2352: the cart's one-time setup fee answer (the live platform setting) is not this spec's subject: paid.
+// Q2106: Pay's gift picker reads the buyer's gift cards; none here.
+vi.mock("@/hooks/useSpendableGiftCards", () => ({ useSpendableGiftCards: () => ({ userId: "u1", ids: [], cards: [], settled: true }) }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => 0, useFirstPayoutFeeKnown: () => true }));
 // The whole hook shape: Sell it for me (on Selling) reads explain + gatedProps too.
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false, explain: () => {}, gatedProps: () => ({}) }) }));

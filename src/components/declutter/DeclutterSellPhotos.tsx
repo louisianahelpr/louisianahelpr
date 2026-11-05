@@ -9,6 +9,7 @@
  */
 import { useEffect, useMemo, type ReactNode } from "react";
 import { Camera, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { photoPublicUrl, type DeclutterPhoto } from "@/lib/declutter/api";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS } from "@/lib/declutter/photoRules";
 import { useHeldPhotoReorder } from "./heldPhotoReorder";
@@ -27,11 +28,11 @@ function CoverChip() {
 
 function RemoveButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
-    <button type="button" className="absolute top-0 right-0 w-11 h-11 flex items-center justify-center" onClick={onClick} aria-label={label}>
+    <Button type="button" variant="ghost" size="iconCompact" className="absolute top-0 right-0 [&_svg]:size-4" onClick={onClick} aria-label={label}>
       <span className="w-7 h-7 rounded-full bg-background/90 text-foreground shadow flex items-center justify-center" aria-hidden>
         <X className="w-4 h-4" />
       </span>
-    </button>
+    </Button>
   );
 }
 

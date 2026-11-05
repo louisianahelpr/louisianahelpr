@@ -53,6 +53,19 @@ function measure(): Record<string, number> {
   return out;
 }
 
+
+/** Every <ToggleChip …> tag in a file's source, read from the TSX AST (so a comment or a string is not a tag). */
+function toggleChipTags(src: string): string[] {
+  const sf = ts.createSourceFile("r.tsx", src, ts.ScriptTarget.Latest, false, ts.ScriptKind.TSX);
+  const out: string[] = [];
+  const visit = (node: ts.Node) => {
+    if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && node.tagName.getText(sf) === "ToggleChip") out.push(node.getText(sf));
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return out;
+}
+
 describe("ToggleChip is the one on/off chip (Q2709)", () => {
   it("is a toggle button: aria-pressed, never role=radio", () => {
     render(
@@ -109,13 +122,7 @@ describe("ToggleChip is the one on/off chip (Q2709)", () => {
 
   it("the Declutter review sheet's quick tags are wrapping ToggleChips (Q2709)", () => {
     const src = readFileSync(resolve(REPO, "src/components/declutter/DeclutterReviewForm.tsx"), "utf8");
-    const sf = ts.createSourceFile("r.tsx", src, ts.ScriptTarget.Latest, false, ts.ScriptKind.TSX);
-    const chips: string[] = [];
-    const visit = (node: ts.Node) => {
-      if ((ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) && node.tagName.getText(sf) === "ToggleChip") chips.push(node.getText(sf));
-      ts.forEachChild(node, visit);
-    };
-    visit(sf);
+    const chips = toggleChipTags(src);
     expect(chips.length).toBeGreaterThan(0);
     for (const c of chips) expect(c, c).toMatch(/\swrap[\s>]/);
     expect(countPressedButtons(src)).toBe(0);

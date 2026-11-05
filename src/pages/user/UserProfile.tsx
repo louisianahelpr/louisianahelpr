@@ -101,6 +101,7 @@ const UserProfile = () => {
     badgeStats,
     credentialTier,
     canReadReviewText,
+    reviewsLoadFailed,
     replyLatency,
     mutualJobsCount,
     onTimeArrivalRate,
@@ -526,6 +527,8 @@ const UserProfile = () => {
                 reviewsTotalCount={reviewsTotalCount}
                 trueReviewCount={stats.reviewCount}
                 canReadReviewText={canReadReviewText}
+                reviewsLoadFailed={reviewsLoadFailed}
+                onRetryReviews={() => void refetch()}
                 loadMoreReviews={loadMoreReviews}
                 loadingMoreReviews={loadingMoreReviews}
               />

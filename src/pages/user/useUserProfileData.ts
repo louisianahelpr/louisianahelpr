@@ -18,9 +18,8 @@ import {
   type HelperSideReviews,
 } from "@/lib/helperBadgeStats";
 import type { ProfileReview, ProfileJob, ReplyLatency } from "./types";
-import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
-import { reviewText, withReviewTags } from "@/lib/reviewTags";
+import { toast } from "sonner";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -99,45 +98,6 @@ function num(v: unknown): number | null {
 function int(v: unknown): number | null {
   const n = num(v);
   return n === null ? null : Math.round(n);
-}
-
-// Shared review-enrichment mapper — identical in both the initial queryFn
-// fetch and the loadMore pagination path. Lifted verbatim so behaviour is
-// preserved; both call sites previously inlined this exact same shape.
-/** The `reviews` columns both call sites select (Q806: was `any`). */
-type ReviewRow = {
-  id: string;
-  rating: number;
-  feedback: string | null;
-  /** Q1088: the picked tags (absent on a read that ran before the tags column existed). */
-  tags?: string[] | null;
-  created_at: string;
-  reviewer_id: string | null;
-  job_id: string | null;
-  response_text?: string | null;
-  response_at?: string | null;
-};
-
-function enrichReviewRows(
-  rows: ReviewRow[],
-  nameMap: Map<string | null, string>,
-  jobMap: Map<string | null, { title: string; category: string | null }>,
-): ProfileReview[] {
-  return rows.map((r) => {
-    const j = jobMap.get(r.job_id);
-    return {
-      id: r.id,
-      rating: r.rating,
-      feedback: reviewText(r.feedback, r.tags),
-      created_at: r.created_at,
-      // Q369: a NULL reviewer_id is an author who deleted their account.
-      reviewerName: r.reviewer_id ? nameMap.get(r.reviewer_id) || "a neighbor" : FORMER_MEMBER_LABEL,
-      jobTitle: j?.title || "a job",
-      jobCategory: j?.category ?? null,
-      response_text: r.response_text ?? null,
-      response_at: r.response_at ?? null,
-    };
-  });
 }
 
 /**
@@ -498,10 +458,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       const needsPostedTotal = int(publicStats?.posted_jobs_total) === null;
       const needsTiming =
         int(publicStats?.on_time_sample) === null || int(publicStats?.revision_sample) === null;
-      const needsReviewCount = int(publicStats?.review_count) === null;
-      const needsReviewList = !hasPublicReviewRpc || needsReviewCount;
-      // No stats row means no review_count too, so this also covers a failed stats call.
-      const needsRatings = needsReviewCount;
       const [postedTotalRes, workedTimingRes, reviewsRes, posterReviewsRes] = await Promise.all([
         needsPostedTotal
           ? supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS)
@@ -517,24 +473,12 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
               .order("created_at", { ascending: false })
               .limit(50)
           : Promise.resolve({ data: [] as unknown[], error: null }),
-        // feedback_visible_at filter: anti-retaliation reveal — hidden until both sides post or
-        // 14 days pass. set_review_visibility trigger stamps this column on insert.
-        // NOT the same-person rule (owner 11-05 L4, profile_review_same_person, server-only): this direct read
-        // runs only when get_public_profile_reviews or get_public_profile_stats failed this load (an error path).
-        needsReviewList
-          ? withReviewTags(
-            () => supabase.from("reviews").select("id, rating, feedback, tags, created_at, reviewer_id, job_id, response_text, response_at, jobs!inner(status)", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).neq("jobs.status", "cancelled").order("created_at", { ascending: false }).limit(20),
-            () => supabase.from("reviews").select("id, rating, feedback, created_at, reviewer_id, job_id, response_text, response_at, jobs!inner(status)", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).neq("jobs.status", "cancelled").order("created_at", { ascending: false }).limit(20),
-          )
-          : Promise.resolve({ data: null, error: null, count: null as number | null }),
-        needsRatings
-          ? supabase
-              .from("reviews")
-              .select("rating, job_id")
-              .eq("reviewee_id", userId!)
-              .eq("status", "published")
-              .lte("feedback_visible_at", new Date().toISOString())
-          : Promise.resolve({ data: [] as Array<{ rating: number; job_id: string | null }>, error: null }),
+        /* NO DIRECT REVIEWS READ (lead 11-05, owner L4): the list and the stars come only from the server
+           (get_public_profile_reviews / get_public_profile_stats), which leave out a review between one person's
+           own accounts (profile_review_same_person, server-only). When either fails, the page shows the error
+           state and no number, never an unfiltered select. Guard: src/test/profileReviewsNeverReadDirectly.test.ts. */
+        Promise.resolve({ data: null, error: null, count: null as number | null }),
+        Promise.resolve({ data: [] as Array<{ rating: number; job_id: string | null }>, error: null }),
       ]);
       for (const [label, res] of [["posted_total", postedTotalRes], ["worked_timing", workedTimingRes], ["reviews", reviewsRes], ["poster_reviews", posterReviewsRes]] as const) {
         if (res.error) {
@@ -570,9 +514,8 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       const workedJobs = workedRes.data || [];
       const allJobs = [...postedJobs, ...workedJobs];
       const completedCount = new Set(allJobs.filter(j => j.status === "completed").map(j => j.id)).size;
-      // Use posterReviewsRes (no-limit) for accurate avgRating + reviewCount.
-      // reviewsRes has a .limit(20) now — its .data can't reliably compute
-      // the average across all reviews.
+      // No client-side ratings read any more (lead 11-05): allRatings is empty, so with no stats row the page shows
+      // no stars and no count rather than an unfiltered one.
       const allRatings = (posterReviewsRes?.data?.map((r) => r.rating) ?? []).filter(Number.isFinite) as number[];
       /* THE HEADLINE NUMBERS. The RPC wins whenever it answered — for the
          owner as well as for a visitor, so the page cannot show one person two
@@ -592,7 +535,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
             : allRatings.length > 0
             ? allRatings.reduce((a: number, b: number) => a + b, 0) / allRatings.length
             : 0),
-        reviewCount: int(publicStats?.review_count) ?? reviewsRes.count ?? allRatings.length,
+        reviewCount: int(publicStats?.review_count) ?? 0,
       };
 
       /* CANCELLATION RATE — GONE. The tile it fed was deleted by the owner on
@@ -748,23 +691,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
           response_text: r.response_text ?? null,
           response_at: r.response_at ?? null,
         })) as ProfileReview[];
-      } else if (reviewsRes.data && reviewsRes.data.length > 0) {
-        const reviewerIds = [...new Set(reviewsRes.data.map((r) => r.reviewer_id))] as string[];
-        const jobIds = [...new Set(reviewsRes.data.map((r) => r.job_id))] as string[];
-        const [profilesRes2, jobsRes] = await Promise.all([
-          supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
-          // category pulled in alongside title so the reviews-tab filter
-          // (#27) can group by job type without a follow-up fetch.
-          supabase.from("jobs").select("id, title, category").in("id", jobIds),
-        ]);
-        // Q1194: the names and titles degrade to "a neighbor" / "a job" on a
-        // failed read (the same words a deleted account gets), so say so in
-        // error_logs rather than let the fallback hide it.
-        if (profilesRes2.error) report(profilesRes2.error, { severity: "warning", tags: { source: "useUserProfileData.reviewerNames" } });
-        if (jobsRes.error) report(jobsRes.error, { severity: "warning", tags: { source: "useUserProfileData.reviewJobs" } });
-        const nameMap = new Map<string | null, string>(profilesRes2.data?.map((p) => [p.user_id, formatName(p.full_name)] as [string | null, string]) || []);
-        const jobMap = new Map<string | null, { title: string; category: string | null }>(jobsRes.data?.map((j) => [j.id, { title: j.title, category: j.category as string | null }] as [string, { title: string; category: string | null }]) || []);
-        reviews = enrichReviewRows(reviewsRes.data, nameMap, jobMap);
       }
 
       // Poster-side reputation — determine which reviews were received
@@ -858,12 +784,15 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
            "Load more" button that loads nothing forever. */
         reviewsTotalCount: hasPublicReviewRpc
           ? int(publicReviewRows[0]?.total_count) ?? publicReviewRows.length
-          : reviewsRes.count ?? 0,
+          : 0,
         /* FALSE only for a viewer with no session: review prose is granted to
            `authenticated`, exactly as the `reviews` RLS policy already was.
            The card uses this to say "sign in to read them" instead of the flat
            lie "No reviews yet". */
-        canReadReviewText: hasPublicReviewRpc || !reviewsRes.error,
+        canReadReviewText: hasPublicReviewRpc || reviewsRpcRes.error?.code !== "42501",
+        /* The server's list did not answer (and not because the viewer is signed out): the card shows the shared
+           error state with Try again, never an empty list or an unfiltered one (lead 11-05). */
+        reviewsLoadFailed: !hasPublicReviewRpc && reviewsRpcRes.error?.code !== "42501",
         // Sample sizes behind each gated rate, so the UI can distinguish
         // "measured 0%" from "not enough history yet" and say which.
         statSamples: {
@@ -999,13 +928,12 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     setLoadingMoreReviews(true);
     try {
       const from = reviews.length;
-      const to = from + 19;
 
       /* Page through the DEFINER function first — same source as page 1, so
          page 2 cannot contain a review page 1 filtered out (the cancelled-job
          exclusion applies to both), and it works for a viewer who cannot read
-         `reviews` directly. PGRST202/42501 falls through to the direct select
-         below, which is the pre-existing path, untouched. */
+         `reviews` directly. On any failure nothing is appended (no direct select, lead 11-05);
+         the visitor can tap Load more again. */
       const rpcPage = await supabase.rpc("get_public_profile_reviews", {
         p_user_id: userId,
         p_limit: 20,
@@ -1038,46 +966,8 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         });
       }
 
-      const visibleBy = new Date().toISOString();
-      const { data: moreRows, error } = await withReviewTags(
-        () =>
-          supabase
-            .from("reviews")
-            .select("id, rating, feedback, tags, created_at, reviewer_id, job_id, response_text, response_at")
-            .eq("reviewee_id", userId)
-            .lte("feedback_visible_at", visibleBy)
-            .order("created_at", { ascending: false })
-            .range(from, to),
-        () =>
-          supabase
-            .from("reviews")
-            .select("id, rating, feedback, created_at, reviewer_id, job_id, response_text, response_at")
-            .eq("reviewee_id", userId)
-            .lte("feedback_visible_at", visibleBy)
-            .order("created_at", { ascending: false })
-            .range(from, to),
-      );
-
-      if (error) {
-        // PGRST202 or any other error — silently skip, don't append.
-        report(error, { severity: "warning", tags: { area: "user_profile.load_more_reviews" }, context: { viewed_user_id: userId } });
-        return;
-      }
-
-      if (!moreRows || moreRows.length === 0) return;
-
-      // Enrich with reviewer names + job titles (same pattern as queryFn).
-      const reviewerIds = [...new Set(moreRows.map((r) => r.reviewer_id))] as string[];
-      const jobIds = [...new Set(moreRows.map((r) => r.job_id))] as string[];
-      const [profilesRes2, jobsRes] = await Promise.all([
-        supabase.rpc("get_safe_profiles", { user_ids: reviewerIds }),
-        supabase.from("jobs").select("id, title, category").in("id", jobIds),
-      ]);
-      const nameMap = new Map<string | null, string>(profilesRes2.data?.map((p) => [p.user_id, formatName(p.full_name)] as [string | null, string]) || []);
-      const jobMap = new Map<string | null, { title: string; category: string | null }>(jobsRes.data?.map((j) => [j.id, { title: j.title, category: j.category as string | null }] as [string, { title: string; category: string | null }]) || []);
-      const enriched = enrichReviewRows(moreRows, nameMap, jobMap);
-
-      setLocalReviews((prev) => [...(prev ?? reviewsFromQuery), ...enriched]);
+      // No direct select (lead 11-05): a page the server could not give is not appended; Load more can be tapped again.
+      toast.error("Couldn't load more reviews. Try again.");
     } finally {
       setLoadingMoreReviews(false);
     }
@@ -1100,6 +990,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
      as a Helpr. See src/lib/helperBadgeStats.ts. */
   const badgeStats = buildHelperBadgeStats(completedWorkedCount, data?.helperReviews);
   const canReadReviewText = data?.canReadReviewText ?? true;
+  const reviewsLoadFailed = data?.reviewsLoadFailed ?? false;
   const statSamples = data?.statSamples ?? {
     jobs: 0,
     onTime: 0,
@@ -1147,6 +1038,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     badgeStats,
     credentialTier: data?.credentialTier ?? null,
     canReadReviewText,
+    reviewsLoadFailed,
     statSamples,
     replyLatency,
     mutualJobsCount,

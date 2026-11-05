@@ -7,6 +7,7 @@ import { getCategoryIcon } from "@/lib/categoryIcons";
 import { formatShortDate, formatCategory } from "@/lib/format";
 import type { ProfileReview } from "./types";
 import ReportDialog from "@/components/ReportDialog";
+import { ErrorState } from "@/components/ui/ErrorState";
 // The ONE review-card design. See `src/components/profile/reviewCard.tsx` —
 // the chip and the star row are shared with PublicReviewWall rather than drawn
 // twice, which is the drift the owner caught on 2026-09-19.
@@ -54,6 +55,10 @@ type Props = {
    * the failure mode this whole change exists to end.
    */
   canReadReviewText: boolean;
+  /** The server's review list did not answer (lead 11-05): the shared error state with Try again, never an empty or
+   *  unfiltered list. */
+  reviewsLoadFailed?: boolean;
+  onRetryReviews?: () => void;
   loadMoreReviews: () => void;
   loadingMoreReviews: boolean;
 };
@@ -80,6 +85,8 @@ export const ReviewsSection = ({
   reviewsTotalCount,
   trueReviewCount,
   canReadReviewText,
+  reviewsLoadFailed = false,
+  onRetryReviews,
   loadMoreReviews,
   loadingMoreReviews,
 }: Props) => {
@@ -235,7 +242,9 @@ export const ReviewsSection = ({
           </div>
         </div>
       )}
-      {filteredReviews.length > 0 ? (
+      {reviewsLoadFailed ? (
+        <ErrorState variant="inline" title="Couldn't load reviews" onRetry={onRetryReviews} />
+      ) : filteredReviews.length > 0 ? (
         <>
           {visible.map((r) => {
             const { prose, tags } = splitReviewTags(r.feedback);

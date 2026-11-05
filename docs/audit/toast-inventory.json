@@ -1,23 +1,23 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1162,
-    "files": 324,
-    "rendering": 1081,
+    "calls": 1163,
+    "files": 325,
+    "rendering": 1082,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 222,
-      "toast.error": 784,
+      "toast.error": 785,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 492,
+      "literal": 493,
       "template": 105,
       "dynamic": 617,
       "jsx": 0
@@ -14814,6 +14814,16 @@
         "text": "Unblocked"
       },
       "renders": false
+    },
+    {
+      "file": "src/pages/user/useUserProfileData.ts",
+      "line": 970,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't load more reviews. Try again."
+      },
+      "renders": true
     }
   ]
 }

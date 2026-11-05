@@ -19,10 +19,10 @@ import { useUserProfileData } from "./useUserProfileData";
  * @mutate src/pages/user/useUserProfileData.ts |       const needsPostedTotal = int(publicStats?.posted_jobs_total) === null; |       const needsPostedTotal = false;
  * @mutate src/pages/user/useUserProfileData.ts |         int(publicStats?.on_time_sample) === null \|\| int(publicStats?.revision_sample) === null; |         false;
  * @mutate src/pages/user/useUserProfileData.ts | .filter((j) => j.status === "completed").length | .length
- * @mutate src/pages/user/useUserProfileData.ts |       const needsReviewList = !hasPublicReviewRpc \|\| needsReviewCount; |       const needsReviewList = true;
- * @mutate src/pages/user/useUserProfileData.ts |       const needsReviewList = !hasPublicReviewRpc \|\| needsReviewCount; |       const needsReviewList = needsReviewCount;
- * @mutate src/pages/user/useUserProfileData.ts |       const needsRatings = needsReviewCount; |       const needsRatings = true;
- * @mutate src/pages/user/useUserProfileData.ts |       const needsRatings = needsReviewCount; |       const needsRatings = false;
+ * Lead 11-05: no direct reviews read at all any more (the server readers apply the same-person rule); a failed list
+ * is the error state and a failed stats call shows no count.
+ * @mutate src/pages/user/useUserProfileData.ts | reviewsLoadFailed: !hasPublicReviewRpc && reviewsRpcRes.error?.code !== "42501", | reviewsLoadFailed: !hasPublicReviewRpc,
+ * @mutate src/pages/user/useUserProfileData.ts |         reviewCount: int(publicStats?.review_count) ?? 0, |         reviewCount: int(publicStats?.review_count) ?? 4,
  * @mutate src/pages/user/useUserProfileData.ts |       ? mutualJobsCount > 0 \|\| |       ? false \|\|
  */
 
@@ -113,12 +113,18 @@ describe("/user/:id fallback reads are lazy (Q946)", () => {
     expect(calls.filter((c) => c.table === "reviews")).toHaveLength(0);
   });
 
-  it("review-list RPC failed (a signed-out visitor's 42501): the list select goes out, the ratings one does not", async () => {
+  it("review-list RPC failed: no reviews select; a real failure is the error state, a signed-out 42501 is not", async () => {
+    rpcAnswers.get_public_profile_reviews = { data: null, error: { code: "57014", message: "timeout" } };
+    const failed = await load();
+    expect(calls.filter((c) => c.table === "reviews")).toHaveLength(0);
+    expect(failed.reviewsLoadFailed).toBe(true);
+    expect(failed.reviews).toEqual([]);
+    calls.length = 0;
     rpcAnswers.get_public_profile_reviews = { data: null, error: { code: "42501", message: "permission denied" } };
-    await load();
-    const reviews = calls.filter((c) => c.table === "reviews");
-    expect(reviews).toHaveLength(1);
-    expect(selectOf(reviews[0])).toContain("feedback");
+    const guest = await load();
+    expect(calls.filter((c) => c.table === "reviews")).toHaveLength(0);
+    expect(guest.reviewsLoadFailed).toBe(false);
+    expect(guest.canReadReviewText).toBe(false);
   });
 
   it("stats RPC failed: both fallback reads go out and back the numbers", async () => {
@@ -127,8 +133,10 @@ describe("/user/:id fallback reads are lazy (Q946)", () => {
     expect(jobsReads().filter(isTimingRead)).toHaveLength(1);
     expect(jobsReads().filter(isPostedTotal)).toHaveLength(1);
     expect(r.postedTotalCount).toBe(3);
-    // The ratings select backs the headline rating when the stats call failed.
-    expect(calls.filter((c) => c.table === "reviews" && selectOf(c) === "rating, job_id")).toHaveLength(1);
+    // No ratings select (lead 11-05): with no stats row there is no count and no stars, never an unfiltered number.
+    expect(calls.filter((c) => c.table === "reviews")).toHaveLength(0);
+    expect(r.stats.reviewCount).toBe(0);
+    expect(r.stats.avgRating).toBe(0);
   });
 
   it("one pair read: its count gates messaging, its completed rows are the Worked together tile", async () => {

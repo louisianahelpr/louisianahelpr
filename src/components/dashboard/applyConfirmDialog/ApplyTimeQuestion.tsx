@@ -1,4 +1,5 @@
 import { useEffect, useId } from "react";
+import { ChoicePill } from "@/components/ui/ChoicePill";
 import { FLEXIBLE_TIME_LABEL, jobStartTimeLabel } from "@/lib/jobDate";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import { jobDayLabel, hasDateWindow } from "@/lib/jobDateWindow";
@@ -108,28 +109,24 @@ export function ApplyTimeQuestion({
         </p>
       )}
       {!firstDayGone && <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label={`Does ${when} work for you?`}>
-        <button
-          type="button"
-          role="radio"
-          aria-checked={!suggesting}
+        <ChoicePill
+          selected={!suggesting}
           onClick={() => onChange(null)}
-          className={`min-h-11 rounded-xl border px-3 text-ds-14 font-semibold transition-colors ${!suggesting ? "border-[hsl(var(--bark))] bg-[hsl(var(--bark)/0.08)]" : "border-border bg-card"}`}
+          className="justify-center px-3"
           data-testid="apply-time-yes"
         >
           Yes, that works
-        </button>
-        <button
-          type="button"
-          role="radio"
-          aria-checked={suggesting}
+        </ChoicePill>
+        <ChoicePill
+          selected={suggesting}
           onClick={() => onChange(value ?? { jobId: job.id, date: job.date_needed && job.date_needed >= today ? job.date_needed : today, time: job.start_time ? job.start_time.slice(0, 5) : null })}
-          className={`min-h-11 rounded-xl border px-3 text-ds-14 font-semibold transition-colors ${suggesting ? "border-[hsl(var(--bark))] bg-[hsl(var(--bark)/0.08)]" : "border-border bg-card"}`}
+          className="justify-center px-3"
           data-testid="apply-time-suggest"
           // A3-95 (audit 11-01): a short label so the pair stays on one line at 375 (owner 11-01 12:49 PM); the full words stay here.
           aria-label="Suggest another time"
         >
           Other time
-        </button>
+        </ChoicePill>
       </div>}
       {suggesting && (
         <div className="grid grid-cols-2 gap-2 min-w-0">

@@ -225,7 +225,6 @@
       "button": 1
     },
     "src/components/dashboard/applyConfirmDialog/ApplyTimeQuestion.tsx": {
-      "button": 2,
       "input": 2
     },
     "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx": {

@@ -14,7 +14,7 @@
  *      card in among them.
  * The Declutter API module and the account hooks are stubbed (what each STATE renders), as in declutterTabs.test.tsx.
  *
- * @mutate src/components/declutter/DeclutterMineViews.tsx | const OFF = "border border-border bg-card text-foreground"; | const OFF = "btn-grad-primary";
+ * @mutate src/components/ui/ToggleChip.tsx | : "border border-foreground/25 bg-background text-foreground", | : "btn-grad-primary",
  * @mutate src/components/declutter/DeclutterHomeView.tsx | title="Declutter" globalSearch={false} tabs={tabsFor({ | title="Declutter" globalSearch={view === "deliver"} tabs={tabsFor({
  * LEAD-SEARCH-ALL-TABS (owner 2026-10-31): the icon is on Buying and Selling too, matching Jobs.
  * @mutate src/components/declutter/DeclutterHomeView.tsx | tabs={tabsFor({ end: <ExploreSearchEntry variant="icon" /> })}> | tabs={tabsFor(view === "buying" \|\| view === "selling" ? undefined : { end: <ExploreSearchEntry variant="icon" /> })}>

@@ -10,6 +10,7 @@
  */
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import { ToggleChip } from "@/components/ui/ToggleChip";
 import type { FilterSheetSection } from "@/components/dashboard/FilterSheet";
 import { DISTANCE_CHOICES } from "@/lib/declutter/distance";
 import { CATEGORY_GROUPS, CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
@@ -18,18 +19,13 @@ import { HANDOVER_TITLE } from "./handoverCopy";
 import { CONDITION_LABEL } from "./declutterUi";
 import { offerAsk, type OriginAsk } from "./DeclutterBrowseBar";
 
-// 44px tall, the tap floor (was h-10, 40px: Declutter audit 2026-10-28).
-const CHIP = "flex h-11 min-h-11 items-center rounded-full px-4 text-ds-13 font-semibold whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-
 /** Declutter's one choice chip: the filter sheet's, and Wanted's "Within" (the same distances, the same look). */
 export function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: ReactNode }) {
+  // The shared toggle chip (Q2709): 44px, aria-pressed, the firm unselected edge that shows on Wanted's card in dark.
   return (
-    // The selected look inline, with its declared ink, so the gradInkContrast resolver can rebuild it.
-    // Unselected: the page's own fill with a firm edge, so it shows on a card in dark mode too (lead 2026-10-28: on
-    // Wanted's card, bg-card + border-border vanished in dark).
-    <button type="button" aria-pressed={on} onClick={onClick} className={`${CHIP} ${on ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-foreground/25 bg-background text-foreground"}`}>
+    <ToggleChip pressed={on} onClick={onClick}>
       {children}
-    </button>
+    </ToggleChip>
   );
 }
 

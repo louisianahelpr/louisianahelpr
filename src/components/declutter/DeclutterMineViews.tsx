@@ -10,10 +10,6 @@
  * keeps the choice, as the boxes did.
  */
 
-const CHIP = "flex h-10 shrink-0 items-center gap-1 rounded-full px-4 text-ds-13 font-semibold whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-// Selected chips: the look inline at each site, with its declared ink, so the gradInkContrast resolver can rebuild it.
-const OFF = "border border-border bg-card text-foreground";
-
 function StatusChips<K extends string>({ chips, value, onPick }: { chips: readonly StatusBoxDef<K>[]; value: K | null; onPick: (k: K | null) => void }) {
   const all = chips.reduce((n, c) => n + c.count, 0);
   return (
@@ -21,14 +17,14 @@ function StatusChips<K extends string>({ chips, value, onPick }: { chips: readon
     // edge fades so the cut chip reads as "more to scroll"; the end padding (>= the fade) lets the last chip scroll clear
     // of it, so nothing stays faded once the row is at its end. Never wrapped.
     <div role="group" aria-label="Filter by status" data-status-chips="" className="-mx-3 flex items-center gap-2 overflow-x-auto pb-1 pl-3 pr-10 [mask-image:linear-gradient(to_right,#000_calc(100%-40px),transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <button type="button" aria-pressed={value === null} onClick={() => onPick(null)} className={`${CHIP} ${value === null ? "btn-grad-primary !text-[hsl(var(--parchment))]" : OFF}`}>
+      <ToggleChip pressed={value === null} onClick={() => onPick(null)}>
         All{all > 0 ? ` · ${all}` : ""}
-      </button>
+      </ToggleChip>
       {chips.map((c) => (
-        <button key={c.key} type="button" aria-pressed={value === c.key} data-status-box={c.key} onClick={() => onPick(value === c.key ? null : c.key)} className={`${CHIP} ${value === c.key ? "btn-grad-primary !text-[hsl(var(--parchment))]" : OFF}`}>
+        <ToggleChip key={c.key} pressed={value === c.key} data-status-box={c.key} onClick={() => onPick(value === c.key ? null : c.key)}>
           {c.label}
           {c.count > 0 && <span className={value === c.key || !c.hot ? "" : "text-[hsl(var(--accent-ink))]"}> · {c.count}</span>}
-        </button>
+        </ToggleChip>
       ))}
     </div>
   );
@@ -36,6 +32,7 @@ function StatusChips<K extends string>({ chips, value, onPick }: { chips: readon
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
+import { ToggleChip } from "@/components/ui/ToggleChip";
 import { StatusBoxes, useStatusFilter, type StatusBoxDef } from "@/components/sections/StatusBoxes";
 import { fetchMyOffers } from "@/lib/declutter/api";
 import { myItemsQuery, PAST_LISTING } from "./myItemsQuery";

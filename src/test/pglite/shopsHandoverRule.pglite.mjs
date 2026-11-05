@@ -4,6 +4,11 @@
  *
  *   node src/test/pglite/shopsHandoverRule.pglite.mjs            # GREEN (the migration applied 3x)
  *   node src/test/pglite/shopsHandoverRule.pglite.mjs --before   # RED  (main: the order pays itself 24 h after the ready date)
+ *   node src/test/pglite/shopsHandoverRule.pglite.mjs --before-notes   # RED (H5 alone, without 20261105190034's review notes)
+ *
+ * 20261105190034_shops_handover_notes (the H5 review's LOW notes) is applied after it, 3x: the ready notice says the
+ * buyer's 48 hours (left out: the exact deadline, the later of the photo and the ready date's start), and at 60 days
+ * the order also gets an open problem, as Declutter's sweep opens a system problem.
  *
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite (PGLITE_DIR). The migration runs verbatim on top of
  * the REAL older bodies of what it restates (cut from 20261018211820), with stubs for the rest. Time is simulated by
@@ -23,6 +28,8 @@ const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const url = (p) => new URL(`../../../supabase/migrations/${p}`, import.meta.url).pathname;
 const MIGRATION = readFileSync(url("20261105182903_shops_handover_rule.sql"), "utf8");
+const BEFORE_NOTES = process.argv.includes("--before-notes");
+const NOTES = readFileSync(url("20261105190034_shops_handover_notes.sql"), "utf8");
 
 /** The newest CREATE of a function in one older migration, verbatim. */
 function cutFn(file, name) {
@@ -45,6 +52,8 @@ DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname='service_role') THEN CREATE ROLE service_role; END IF;
 END $$;
 CREATE SCHEMA IF NOT EXISTS auth;
+CREATE SCHEMA IF NOT EXISTS storage;
+CREATE TABLE storage.objects (bucket_id text, name text);
 CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
 CREATE TABLE public.test_accounts (user_id uuid PRIMARY KEY);
 CREATE TABLE public.user_roles (user_id uuid, role text);
@@ -78,12 +87,14 @@ const REAL = [
   cutFn("20261018164442_shops_orders_checkout.sql", "shop_local_today"),
   cutFn(OLD, "shop_complete_handover"),
   cutFn(OLD, "shop_handover_sweep"),
+  cutFn("20261104175521_q2390_last_member_not_found_is_404.sql", "shops_mark_ready"),
 ].join("\n");
 
 const db = new PGlite();
 await db.exec(SCHEMA);
 await db.exec(REAL);
 if (!BEFORE) for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
+if (!BEFORE && !BEFORE_NOTES) for (let i = 0; i < 3; i++) await db.exec(NOTES);
 
 let failed = 0;
 let passed = 0;
@@ -136,6 +147,9 @@ await sweep();
 check("60 days: every admin is told once", (await notes(ADMIN, "Shops order held 60 days")) === 1, String(await notes(ADMIN, "Shops order held 60 days")));
 await sweep();
 check("60 days: ...and only once", (await notes(ADMIN, "Shops order held 60 days")) === 1 && (await status(old)) === "accepted");
+const oldH = (await tryQ(`SELECT problem_at, problem_note FROM public.shop_handovers WHERE order_id = $1`, [old])).rows?.[0];
+check("60 days: the order gets an open problem with the reason, like Declutter (review note)",
+  !!oldH?.problem_at && /60 days/.test(oldH?.problem_note ?? "") && !(await paid(old)), JSON.stringify(oldH));
 const seeded = await order({ daysAgo: 62, seed: true });
 const tester = await order({ daysAgo: 62, buyer: TESTER });
 await sweep();
@@ -183,6 +197,27 @@ await setH(porch, "ready_at = now() - interval '50 hours'");
 await sweep();
 check("left out: 48 hours after the photo (and the ready date), the shop is paid", (await status(porch)) === "handed_over" && (await paid(porch)), await status(porch));
 
+// ---- the ready notice says the buyer's 48 hours (review note)
+const ready = async (o, photo) => {
+  if (photo) await db.exec(`INSERT INTO storage.objects VALUES ('shop-handover', '${photo}')`);
+  await as(SHOP_OWNER);
+  const r = await tryQ(`SELECT public.shops_mark_ready($1, $2) AS a`, [o, photo]);
+  await as(null);
+  return r;
+};
+const readyMsg = async () => (await q(`SELECT message FROM public.notifications WHERE user_id = $1 AND title = 'Your order is ready' ORDER BY ctid DESC LIMIT 1`, [BUYER]))[0]?.message ?? "";
+const porchSoon = await order({ daysAgo: -2, mode: "porch" });
+const rReady = await ready(porchSoon, `${SHOP_OWNER}/shops/handover/${porchSoon}/a.jpg`);
+// The photo is taken 2 days early: the 48 hours run from the start of the ready date, the sweep's own rule.
+const deadline = (await q(`SELECT to_char(((ready_date::timestamp AT TIME ZONE 'America/Chicago') + interval '48 hours') AT TIME ZONE 'America/Chicago', 'FMDay, FMMonth FMDD at FMHH12:MI AM') AS d FROM public.shop_orders WHERE id = $1`, [porchSoon]))[0].d;
+const pMsg = await readyMsg();
+check("left out: the ready notice names the buyer's deadline, 48 h from the ready date's start when the photo is earlier",
+  rReady.rows?.[0]?.a?.result === "ready" && pMsg.includes(`"I didn't get it" by ${deadline}`), `${JSON.stringify(rReady.error ?? "")} ${pMsg}`);
+const inPersonSoon = await order({ daysAgo: -2 });
+await ready(inPersonSoon, null);
+check("in person: the ready notice says the 48 hours start when the shop marks it handed over",
+  /marks it handed over, you have 48 hours/.test(await readyMsg()), await readyMsg());
+
 // ---- the shop never finishes its own order; members cannot run the sweep
 const rShop = await tryQ(`SELECT public.shop_complete_handover($1, 'shop')`, [await order({ daysAgo: 0 })]);
 check("no method 'shop' finishes an order", /invalid_method/.test(rShop.error ?? ""), rShop.error ?? "allowed");
@@ -192,5 +227,5 @@ check("members cannot run the sweep or the transition",
 check("no cron defect was logged", (await q(`SELECT count(*)::int AS n FROM public.cron_defects`))[0].n === 0,
   JSON.stringify(await q(`SELECT * FROM public.cron_defects`)));
 
-console.log(`\n${passed} PASS, ${failed} FAIL${BEFORE ? " (--before: main without the migration; RED expected)" : " (migration applied 3x)"}`);
+console.log(`\n${passed} PASS, ${failed} FAIL${BEFORE ? " (--before: main without the migration; RED expected)" : BEFORE_NOTES ? " (--before-notes: H5 without the review notes; RED expected)" : " (both migrations applied 3x)"}`);
 process.exit(failed > 0 ? 1 : 0);

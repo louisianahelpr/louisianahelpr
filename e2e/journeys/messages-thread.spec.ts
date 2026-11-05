@@ -1,14 +1,9 @@
-import {
-  test,
-  expect,
-  FAKE_CUSTOMER,
-  installSupabaseMocks,
-  mockTable,
-  seedAuthedSession,
-  checkA11y,
-} from "./fixtures";
-import type { BrowserContext, Page } from "@playwright/test";
-import { SEED_JOBS, SEED_MESSAGES, CUSTOMER_ID, HELPER_ID } from "./seedData";
+import type { APIRequestContext, Browser, BrowserContext, Page, Request } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
+import { test, expect, ANON, SUPABASE_URL, getSession, isUserWrite, newUserContext, sessionsAvailable, type Session } from "./fixtures";
+import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenarios";
+import { abortProdWrites } from "../a11y-prod/abortProdWrites";
+import { AXE_TAGS } from "../happy-path/axeTags";
 
 // Q2369: the tracker's step tip reaches into half the grid gap on each side (44px at 375, no overlap).
 // @mutate src/components/tracker/JobProgress.tsx | flex flex-col justify-start w-[calc(100%+4px)] -mx-[2px] px-[2px] min-h-[44px] | flex flex-col justify-start w-full min-h-[44px]
@@ -36,20 +31,129 @@ import { SEED_JOBS, SEED_MESSAGES, CUSTOMER_ID, HELPER_ID } from "./seedData";
  * The contract is now: `?chat=` is present ⟺ a thread is really open, both
  * directions, enforced in src/pages/messages/Messages.tsx. Each case below is one of
  * the paths that broke it.
+ *
+ * ON THE REAL BACKEND (Q1035; moved from the mocked e2e/happy-path/messages-thread.spec.ts).
+ * The checks are the same. The inbox is the real test poster's, signed in for
+ * real, and the thread is the poster's newest one that carries stored system
+ * rows (read as the member before the page opens), so the system-pill check
+ * reads the glyph rows the job-status trigger really wrote instead of planted ones.
+ *
+ * READ-ONLY BY CONSTRUCTION: every context goes through abortProdWrites (the
+ * a11y-prod allow-list: reads, the token refresh and STABLE RPCs only) plus an
+ * abort of the telemetry hosts. Opening a thread marks its unread rows read
+ * (PATCH /rest/v1/messages, useMessagesData markRead): that one write is the
+ * app's own receipt, not the user's action, so it is aborted and allowed; any
+ * other user write fails the test.
  */
 
-const NAV = 'nav[aria-label="Bottom navigation"]';
-/** The seeded thread: SEED_MESSAGES all hang off SEED_JOBS[1]. */
-const THREAD_JOB_ID = SEED_JOBS[1].id;
+/** Telemetry the app sends off-Supabase: an aborted receipt's warning never reaches Sentry or PostHog. */
+const TELEMETRY_HOSTS = /(^|\.)(sentry\.io|sentry-cdn\.com|posthog\.com|vercel-insights\.com)$/;
+/** The read receipt an opened thread sends on its own (aborted by abortProdWrites, never reaches prod). */
+const READ_RECEIPT = /^PATCH \S*\/rest\/v1\/messages\?/;
 
-async function setup(page: Page, context: BrowserContext, baseURL: string | undefined) {
-  await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-  await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true });
+// newUserContext already blocks them; this covers any context the project builds (Q1164).
+test.use({ serviceWorkers: "block" });
+
+/** Every SCENARIO pin that names this journey runs all of it ("messages-thread"). */
+const rotation: Rotation = { ...rotationFor(22), network: "fast" };
+const titleFor = (slug: string) =>
+  scenarioTitle({ journey: `messages-thread-${slug}`, persona: "poster-only", state: "approved", rotation, outcome: "smooth" });
+
+/** The thread every check opens: the poster's newest conversation with stored system rows. */
+type Thread = { jobId: string; withId: string; title: string; systemLabels: string[] };
+let thread: Thread | null = null;
+
+async function memberGet<T>(request: APIRequestContext, s: Session, path: string): Promise<T> {
+  const r = await request.get(`${SUPABASE_URL}/rest/v1/${path}`, {
+    headers: { apikey: ANON, Authorization: `Bearer ${s.access_token}` },
+  });
+  expect(r.ok(), `GET ${path.slice(0, 60)} as the poster: ${r.status()}`).toBe(true);
+  return (await r.json()) as T;
 }
 
+async function findThread(request: APIRequestContext, s: Session): Promise<Thread> {
+  if (thread) return thread;
+  const me = s.user.id;
+  const rows = await memberGet<{ job_id: string; sender_id: string; receiver_id: string }[]>(
+    request,
+    s,
+    `messages?select=job_id,sender_id,receiver_id&is_system=is.true&or=(sender_id.eq.${me},receiver_id.eq.${me})&order=created_at.desc&limit=1`,
+  );
+  expect(rows.length, "the test poster has a thread with stored system rows (the job-status trigger writes them)").toBeGreaterThan(0);
+  const r = rows[0];
+  const jobs = await memberGet<{ title: string }[]>(request, s, `jobs?select=title&id=eq.${r.job_id}`);
+  expect(jobs.length, "the poster can read the thread's job").toBe(1);
+  const sys = await memberGet<{ content: string }[]>(
+    request,
+    s,
+    `messages?select=content&job_id=eq.${r.job_id}&is_system=is.true&or=(sender_id.eq.${me},receiver_id.eq.${me})`,
+  );
+  // The stored text minus its leading glyph: what the pill must read.
+  const systemLabels = [...new Set(sys.map((m) => m.content.replace(/^[^\p{L}\p{N}]+/u, "").trim()).filter(Boolean))];
+  expect(systemLabels.length, "the thread's stored system rows carry text").toBeGreaterThan(0);
+  thread = {
+    jobId: r.job_id,
+    withId: r.sender_id === me ? r.receiver_id : r.sender_id,
+    title: jobs[0].title,
+    systemLabels,
+  };
+  return thread;
+}
+
+type Opened = { page: Page; context: BrowserContext; writes: string[]; t: Thread };
+
+/** The real test poster, signed in, prod writes and telemetry aborted, user writes recorded. */
+async function open(browser: Browser, request: APIRequestContext, title: string): Promise<Opened> {
+  test.skip(filteredOut(title), "SCENARIO pins another scenario");
+  const avail = sessionsAvailable();
+  test.skip(!avail.ok, avail.why);
+  const session = await getSession(request, "poster");
+  const t = await findThread(request, session);
+  const context = await newUserContext(browser, session);
+  const writes: string[] = [];
+  context.on("request", (req: Request) => {
+    if (!isUserWrite(req.method(), req.url())) return;
+    const line = `${req.method()} ${req.url().slice(0, 140)}`;
+    if (!READ_RECEIPT.test(line)) writes.push(line);
+  });
+  await abortProdWrites(context, SUPABASE_URL, test.info().outputPath());
+  await context.route(
+    (u) => TELEMETRY_HOSTS.test(u.hostname),
+    (route) => route.abort("blockedbyclient"),
+  );
+  const page = await context.newPage();
+  await page.setViewportSize({ width: 375, height: 812 });
+  return { page, context, writes, t };
+}
+
+async function done(o: Opened) {
+  await o.context.close().catch(() => {});
+  expect(o.writes, "the messages-thread check is read-only: no user writes").toEqual([]);
+}
+
+/** A test body run as the real poster; the context closes and the write check runs whatever happens. */
+function poster(slug: string, body: (o: Opened) => Promise<void>) {
+  return async ({ browser, request }: { browser: Browser; request: APIRequestContext }) => {
+    const o = await open(browser, request, titleFor(slug));
+    try {
+      await body(o);
+    } finally {
+      await done(o);
+    }
+  };
+}
+
+async function checkA11y(page: Page, context: string) {
+  const results = await new AxeBuilder({ page }).withTags(AXE_TAGS).include(context).analyze();
+  const blocking = results.violations.filter((v) => v.impact === "critical" || v.impact === "serious");
+  expect(blocking.map((v) => `[${v.impact}] ${v.id} — ${v.help} (${v.nodes.length} nodes)`)).toEqual([]);
+}
+
+const NAV = 'nav[aria-label="Bottom navigation"]';
 async function gotoMessages(page: Page, url = "/messages") {
   await page.goto(url);
-  await page.waitForLoadState("networkidle");
+  // Real realtime keeps a socket open, so "networkidle" can wait out its timeout; the page's own landmark is the wait.
+  await page.waitForLoadState("networkidle", { timeout: 10_000 }).catch(() => {});
 }
 
 /**
@@ -60,52 +164,49 @@ async function gotoMessages(page: Page, url = "/messages") {
  * nothing to go "back" from. The composer dock is the surface both layouts
  * share, so that is what we wait on.
  */
-async function openFirstThread(page: Page) {
+async function openFirstThread(page: Page, t: Thread) {
   // The row wrapper contains buttons, so it can't be one itself — the inner
   // name/preview button is what opens the thread (see ConversationRow).
   const row = page
     .locator("button")
-    .filter({ hasText: SEED_JOBS[1].title.slice(0, 40) })
+    .filter({ hasText: t.title.slice(0, 40) })
     .first();
   await row.waitFor();
   await row.click();
-  await expect(page.locator(".glass-dock")).toBeVisible();
+  await expect(page.locator(".glass-dock")).toBeVisible({ timeout: 15_000 });
 }
 
 test.describe("Messages — the bottom nav can never strand the user", () => {
-  test("(e) reached from the bottom nav: the list shows its nav immediately", async ({ page, context, baseURL }) => {
-    await setup(page, context, baseURL);
+  test(`${titleFor("nav-list")} · (e) reached from the bottom nav: the list shows its nav immediately`, poster("nav-list", async ({ page }) => {
     await gotoMessages(page);
     await expect(page.locator(NAV)).toBeVisible();
     expect(new URL(page.url()).searchParams.has("chat")).toBe(false);
-  });
+  }));
 
-  test("(a)+(b) open a thread → nav hidden; back out → nav visible and the flag is gone", async ({ page, context, baseURL }) => {
-    await setup(page, context, baseURL);
+  test(`${titleFor("open-back")} · (a)+(b) open a thread → nav hidden; back out → nav visible and the flag is gone`, poster("open-back", async ({ page, t }) => {
     await gotoMessages(page);
     await expect(page.locator(NAV)).toBeVisible();
 
-    await openFirstThread(page);
+    await openFirstThread(page, t);
     // (a) An open conversation owns the whole screen — no bottom dock.
     await expect(page.locator(NAV)).toBeHidden();
     // F27: the flag names the open thread (the job and the other party), not a bare "1".
-    expect(new URL(page.url()).searchParams.get("chat")).toBe(THREAD_JOB_ID);
-    expect(new URL(page.url()).searchParams.get("with")).toBe(HELPER_ID);
+    expect(new URL(page.url()).searchParams.get("chat")).toBe(t.jobId);
+    expect(new URL(page.url()).searchParams.get("with")).toBe(t.withId);
 
     // (b) The header back button.
     await page.getByRole("button", { name: "Back to conversations" }).click();
     await expect(page.locator(NAV)).toBeVisible();
     expect(new URL(page.url()).pathname).toBe("/messages");
     expect(new URL(page.url()).searchParams.has("chat")).toBe(false);
-  });
+  }));
 
-  test("(c) hardware/gesture back from a thread lands on the LIST with its nav — not out of Messages", async ({ page, context, baseURL }) => {
-    await setup(page, context, baseURL);
+  test(`${titleFor("gesture-back")} · (c) hardware/gesture back from a thread lands on the LIST with its nav — not out of Messages`, poster("gesture-back", async ({ page, t }) => {
     await gotoMessages(page, "/home");
     await gotoMessages(page);
-    await openFirstThread(page);
-    expect(new URL(page.url()).searchParams.get("chat")).toBe(THREAD_JOB_ID);
-    expect(new URL(page.url()).searchParams.get("with")).toBe(HELPER_ID);
+    await openFirstThread(page, t);
+    expect(new URL(page.url()).searchParams.get("chat")).toBe(t.jobId);
+    expect(new URL(page.url()).searchParams.get("with")).toBe(t.withId);
 
     // WAIT FOR THE RISING EDGE BEFORE POPPING IT. `openFirstThread` only waits
     // on the composer dock, which renders off `activeConvo` (component state).
@@ -142,13 +243,12 @@ test.describe("Messages — the bottom nav can never strand the user", () => {
     ).toBeHidden();
     expect(new URL(page.url()).pathname).toBe("/messages");
     expect(new URL(page.url()).searchParams.has("chat")).toBe(false);
-  });
+  }));
 
-  test("(d) deep-linked straight into a thread, then back → list with nav", async ({ page, context, baseURL }) => {
-    await setup(page, context, baseURL);
+  test(`${titleFor("deep-link")} · (d) deep-linked straight into a thread, then back → list with nav`, poster("deep-link", async ({ page, t }) => {
     await gotoMessages(
       page,
-      `/messages?jobId=${THREAD_JOB_ID}&userId=${HELPER_ID}`,
+      `/messages?jobId=${t.jobId}&userId=${t.withId}`,
     );
     await expect(
       page.getByRole("button", { name: "Back to conversations" }),
@@ -158,30 +258,28 @@ test.describe("Messages — the bottom nav can never strand the user", () => {
     await page.getByRole("button", { name: "Back to conversations" }).click();
     await expect(page.locator(NAV)).toBeVisible();
     expect(new URL(page.url()).searchParams.has("chat")).toBe(false);
-  });
+  }));
 
-  test("F27: a resumed ?chat=<job>&with=<user> reopens THAT thread, and back still reaches the list", async ({ page, context, baseURL }) => {
-    await setup(page, context, baseURL);
+  test(`${titleFor("resume")} · F27: a resumed ?chat=<job>&with=<user> reopens THAT thread, and back still reaches the list`, poster("resume", async ({ page, t }) => {
     // What route memory now restores after a native resume or a reload: the URL names the thread.
-    await gotoMessages(page, `/messages?chat=${THREAD_JOB_ID}&with=${HELPER_ID}`);
+    await gotoMessages(page, `/messages?chat=${t.jobId}&with=${t.withId}`);
 
     // The conversation is open again, not the inbox.
     await expect(
       page.getByRole("button", { name: "Back to conversations" }),
     ).toBeVisible();
     await expect(page.locator(NAV)).toBeHidden();
-    expect(new URL(page.url()).searchParams.get("chat")).toBe(THREAD_JOB_ID);
-    expect(new URL(page.url()).searchParams.get("with")).toBe(HELPER_ID);
+    expect(new URL(page.url()).searchParams.get("chat")).toBe(t.jobId);
+    expect(new URL(page.url()).searchParams.get("with")).toBe(t.withId);
 
     // And it can still be left: the header back lands on the list with its nav.
     await page.getByRole("button", { name: "Back to conversations" }).click();
     await expect(page.locator(NAV)).toBeVisible();
     expect(new URL(page.url()).pathname).toBe("/messages");
     expect(new URL(page.url()).searchParams.has("chat")).toBe(false);
-  });
+  }));
 
-  test("a stale ?chat=1 with no thread behind it heals itself — the native-resume repro", async ({ page, context, baseURL }) => {
-    await setup(page, context, baseURL);
+  test(`${titleFor("stale-flag")} · a stale ?chat=1 with no thread behind it heals itself — the native-resume repro`, poster("stale-flag", async ({ page }) => {
     // Exactly what NativeLaunchRouter restores from RouteMemory after iOS
     // jetsams the WebView: the flagged URL, a brand-new app process, no
     // thread open. This is the state the owner was stranded in.
@@ -193,7 +291,7 @@ test.describe("Messages — the bottom nav can never strand the user", () => {
     await expect(
       page.getByRole("button", { name: "Back to conversations" }),
     ).toBeHidden();
-  });
+  }));
 });
 
 test.describe("Messages thread — fit, a11y and tap targets", () => {
@@ -202,12 +300,11 @@ test.describe("Messages thread — fit, a11y and tap targets", () => {
       ["375", { width: 375, height: 812 }],
       ["1440", { width: 1440, height: 900 }],
     ] as const) {
-      test(`fits with zero overflow at ${label} (${scheme})`, async ({ page, context, baseURL }) => {
-    await setup(page, context, baseURL);
+      test(`${titleFor("fit")} · fits with zero overflow at ${label} (${scheme})`, poster("fit", async ({ page, t }) => {
         await page.emulateMedia({ colorScheme: scheme });
         await page.setViewportSize(size);
         await gotoMessages(page);
-        await openFirstThread(page);
+        await openFirstThread(page, t);
 
         const fit = await page.evaluate(() => {
           const de = document.documentElement;
@@ -230,14 +327,13 @@ test.describe("Messages thread — fit, a11y and tap targets", () => {
         expect(fit.wide).toEqual([]);
         expect(fit.scrollWidth).toBeLessThanOrEqual(fit.clientWidth);
         expect(fit.h1).toBe(1);
-      });
+      }));
     }
   }
 
-  test("every tap target in an open thread clears 44px", async ({ page, context, baseURL }) => {
-    await setup(page, context, baseURL);
+  test(`${titleFor("tap-targets")} · every tap target in an open thread clears 44px`, poster("tap-targets", async ({ page, t }) => {
     await gotoMessages(page);
-    await openFirstThread(page);
+    await openFirstThread(page, t);
     // The card's tracker draws once the job read lands: wait for a step tip, so the sweep below measures them too.
     await expect(page.locator("[data-step-tip]").first()).toBeVisible();
 
@@ -286,15 +382,14 @@ test.describe("Messages thread — fit, a11y and tap targets", () => {
       if (shared > 0.5) overlaps.push(`step tips ${i} and ${j} overlap by ${shared.toFixed(1)}px`);
     }));
     expect(overlaps).toEqual([]);
-  });
+  }));
 
-  test("no axe violations on the list or in an open thread", async ({ page, context, baseURL }) => {
-    await setup(page, context, baseURL);
+  test(`${titleFor("axe")} · no axe violations on the list or in an open thread`, poster("axe", async ({ page, t }) => {
     await gotoMessages(page);
-    await checkA11y(page, { context: "#main-content" });
-    await openFirstThread(page);
-    await checkA11y(page, { context: "#main-content" });
-  });
+    await checkA11y(page, "#main-content");
+    await openFirstThread(page, t);
+    await checkA11y(page, "#main-content");
+  }));
 });
 
 test.describe("Messages composer — sits ON the safe area, not past it", () => {
@@ -342,11 +437,10 @@ test.describe("Messages composer — sits ON the safe area, not past it", () => 
     };
   })()`;
 
-  test("with no home indicator the dock still keeps a 12px floor and ends at the viewport edge", async ({ page, context, baseURL }) => {
-    await setup(page, context, baseURL);
+  test(`${titleFor("dock-floor")} · with no home indicator the dock still keeps a 12px floor and ends at the viewport edge`, poster("dock-floor", async ({ page, t }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await gotoMessages(page);
-    await openFirstThread(page);
+    await openFirstThread(page, t);
 
     const m = await page.evaluate<DockMetrics>(measureDock);
     expect(m.error).toBeUndefined();
@@ -356,13 +450,12 @@ test.describe("Messages composer — sits ON the safe area, not past it", () => 
     // clipped below it, and nothing is left over above it.
     expect(Math.abs(m.dockBottom - m.viewportBottom)).toBeLessThanOrEqual(1);
     expect(m.dockTop).toBeGreaterThan(0);
-  });
+  }));
 
-  test("with a 34px home indicator the input clears it and nothing is clipped", async ({ page, context, baseURL }) => {
-    await setup(page, context, baseURL);
+  test(`${titleFor("dock-inset")} · with a 34px home indicator the input clears it and nothing is clipped`, poster("dock-inset", async ({ page, t }) => {
     await page.setViewportSize({ width: 375, height: 812 });
     await gotoMessages(page);
-    await openFirstThread(page);
+    await openFirstThread(page, t);
     await page.evaluate(() =>
       document.documentElement.style.setProperty("--safe-area-bottom", "34px"),
     );
@@ -375,7 +468,7 @@ test.describe("Messages composer — sits ON the safe area, not past it", () => 
     expect(m.viewportBottom - (m.inputBottom as number)).toBeGreaterThanOrEqual(30);
     // And the dock still fits — its top edge is on screen.
     expect(m.dockTop).toBeGreaterThan(0);
-  });
+  }));
 });
 
 test.describe("Messages thread — system events read as ONE kind of thing", () => {
@@ -391,47 +484,16 @@ test.describe("Messages thread — system events read as ONE kind of thing", () 
    * normalised at RENDER — a trigger-only change would fix new threads and
    * leave every existing one mixed.
    */
-  const SYSTEM_ROWS = [
-    ...SEED_MESSAGES,
-    {
-      id: "30000000-0000-4000-8000-0000000000a1",
-      job_id: SEED_JOBS[1].id,
-      sender_id: CUSTOMER_ID,
-      receiver_id: HELPER_ID,
-      content: "✓ Job awarded",
-      created_at: "2026-08-12T09:00:00.000Z",
-      read: true,
-      is_system: true,
-    },
-    {
-      id: "30000000-0000-4000-8000-0000000000a2",
-      job_id: SEED_JOBS[1].id,
-      sender_id: CUSTOMER_ID,
-      receiver_id: HELPER_ID,
-      content: "▶ Work started",
-      created_at: "2026-08-12T09:05:00.000Z",
-      read: true,
-      is_system: true,
-    },
-  ];
-
-  test("stored system rows render as the same pill as derived ones, with icons instead of glyphs", async ({
-    page,
-    context,
-    baseURL,
-  }) => {
-    await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-    await installSupabaseMocks(page, {
-      user: FAKE_CUSTOMER,
-      seed: true,
-      rules: [mockTable("messages", SYSTEM_ROWS)],
-    });
+  test(`${titleFor("system-pills")} · stored system rows render as the same pill as derived ones, with icons instead of glyphs`, poster("system-pills", async ({ page, t }) => {
     await gotoMessages(page);
-    await openFirstThread(page);
+    await openFirstThread(page, t);
 
+    // The rows the job-status trigger really stored on this thread, glyph and all ("▶ Work started"), each drawn
+    // exactly once as a pill with the glyph gone.
     const notes = page.locator('[role="note"]');
-    await expect(notes.filter({ hasText: "Job awarded" })).toHaveCount(1);
-    await expect(notes.filter({ hasText: "Work started" })).toHaveCount(1);
+    for (const label of t.systemLabels) {
+      await expect(notes.filter({ hasText: label })).toHaveCount(1);
+    }
 
     // One treatment: every system row is the same pill, and each carries a
     // real (Lucide) icon rather than a text glyph.
@@ -443,7 +505,7 @@ test.describe("Messages thread — system events read as ONE kind of thing", () 
         radius: getComputedStyle(r).borderTopLeftRadius,
       }));
     });
-    expect(shape.length).toBeGreaterThanOrEqual(2);
+    expect(shape.length).toBeGreaterThanOrEqual(t.systemLabels.length);
     for (const row of shape) {
       expect(row.svgs).toBeGreaterThanOrEqual(1);
       // No emoji / dingbat survives into the rendered label.
@@ -451,7 +513,7 @@ test.describe("Messages thread — system events read as ONE kind of thing", () 
     }
     // All system rows share one radius — i.e. one visual idiom, not two.
     expect(new Set(shape.map((r) => r.radius)).size).toBe(1);
-  });
+  }));
 });
 
 // PROOF THIS SPEC CAN FAIL — delete the stale-flag heal and strand the user.

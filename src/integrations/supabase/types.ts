@@ -16201,6 +16201,7 @@ export type Database = {
           amount_cents: number
           attempts: number
           buyer_id: string
+          gift_cents: number
           manager_id: string
           order_id: string
           payment_intent_id: string
@@ -17389,9 +17390,11 @@ export type Database = {
           amount_cents: number
           attempts: number
           buyer_id: string
+          gift_cents: number
           order_id: string
           payment_intent_id: string
           payout_id: string
+          refunds_recorded_cents: number
           seller_id: string
           stripe_account_id: string
         }[]

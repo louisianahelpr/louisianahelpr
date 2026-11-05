@@ -10399,6 +10399,7 @@ export type Database = {
           saved_helper_seen: Json
           senior_mode: boolean
           share_job_photos: boolean
+          show_in_search: boolean
           show_near_you: boolean
           skills: string | null
           stripe_account_id: string | null
@@ -10510,6 +10511,7 @@ export type Database = {
           saved_helper_seen?: Json
           senior_mode?: boolean
           share_job_photos?: boolean
+          show_in_search?: boolean
           show_near_you?: boolean
           skills?: string | null
           stripe_account_id?: string | null
@@ -10621,6 +10623,7 @@ export type Database = {
           saved_helper_seen?: Json
           senior_mode?: boolean
           share_job_photos?: boolean
+          show_in_search?: boolean
           show_near_you?: boolean
           skills?: string | null
           stripe_account_id?: string | null

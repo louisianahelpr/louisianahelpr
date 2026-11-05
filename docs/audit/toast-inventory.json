@@ -1,23 +1,23 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1156,
-    "files": 321,
-    "rendering": 1075,
+    "calls": 1157,
+    "files": 322,
+    "rendering": 1076,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 219,
-      "toast.error": 781,
+      "toast.error": 782,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 489,
+      "literal": 490,
       "template": 105,
       "dynamic": 614,
       "jsx": 0
@@ -8588,6 +8588,16 @@
       "renders": true
     },
     {
+      "file": "src/components/profile/ShowInSearchSwitch.tsx",
+      "line": 34,
+      "kind": "toast.error",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't save that. Try again."
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/profile/SignInMethodsCard.tsx",
       "line": 57,
       "kind": "toast.error",
@@ -14657,7 +14667,7 @@
     },
     {
       "file": "src/pages/u/PublicProfilePage.tsx",
-      "line": 102,
+      "line": 104,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

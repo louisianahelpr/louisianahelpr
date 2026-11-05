@@ -37,7 +37,8 @@ import {
   shareMyProfile,
   type PublicProfile,
 } from "@/lib/profileLink/api";
-import { HIRE_PARAM, hireGuestHref, hireOfferPath, hireTargetByHandle } from "@/lib/hireMe";
+import { HIRE_PARAM, hireGuestHref, hireGuestLoginHref, hireOfferPath, hireTargetByHandle } from "@/lib/hireMe";
+import { quickListHref } from "@/lib/declutter/wantedLinks";
 
 const ROBOTS = "noindex, follow";
 
@@ -123,6 +124,12 @@ function HireMeButton({ handle, signedIn }: { handle: string; signedIn: boolean 
         </Button>
       )}
       <p className="mt-2 text-ds-13 text-muted-foreground">Offer a job directly. Your payment is held safely until the work is done.</p>
+      {/* Audit L3 (11-05): a guest who already has an account was sent to sign-up only. */}
+      {!signedIn && (
+        <p className="mt-1 text-ds-13 text-muted-foreground" data-testid="pp-hire-login">
+          Have an account? <Link to={hireGuestLoginHref(handle)} className="font-semibold text-foreground underline underline-offset-2">Log in</Link>
+        </p>
+      )}
     </div>
   );
 }
@@ -244,16 +251,22 @@ function ProfileBody({ p, signedIn, isMe }: { p: PublicProfile; signedIn: boolea
           <ul className="flex flex-col gap-2">
             {p.wanted.map((w) => (
               <li key={w.id} className="flex items-center gap-3 rounded-xl border border-border bg-background p-3">
-                <p className="min-w-0 flex-1 truncate text-ds-15 text-foreground">{w.what}</p>
-                <p className="shrink-0 text-ds-13 text-muted-foreground">up to {itemPriceLabel(w.max_price_cents)}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-ds-15 text-foreground">{w.what}</p>
+                  <p className="text-ds-13 text-muted-foreground">up to {itemPriceLabel(w.max_price_cents)}</p>
+                </div>
+                {/* Audit L8 (11-05): "Sign up to reply" went to /declutter, not back to the post. Each post's own
+                    reply (the Wanted quick-list, which answers THIS post once listed); a guest signs up first and
+                    comes back to it. Never on your own page. */}
+                {!isMe && (
+                  <Button asChild variant="outline" size="sm" className="shrink-0 rounded-full">
+                    <Link to={guestAware(quickListHref(w), signedIn)} data-testid="pp-wanted-reply">I have this</Link>
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
-          {!signedIn && (
-            <Button asChild variant="outline" size="sm" className="mt-3 rounded-full">
-              <Link to={signupUrlFor("/declutter")}>Have one? Sign up to reply</Link>
-            </Button>
-          )}
+          {!signedIn && !isMe && <p className="mt-2 text-ds-13 text-muted-foreground">Free to sign up. We bring you right back to this post.</p>}
         </Section>
       )}
     </div>

@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { ShareListingRow } from "./DeclutterShareCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { ListRow, LIST_ROW_FLUSH, LIST_ROW_TINT } from "@/components/ui/ListRow";
 import {
   Sheet,
   SheetContent,
@@ -61,8 +62,8 @@ import { TAKE_DOWN_WORDS } from "./takeDownWords";
 
 type View = "menu" | "price" | "sold" | "delete" | "edit";
 
-const ROW =
-  "flex w-full items-center gap-3 px-4 py-3.5 text-left min-h-[60px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring";
+/** The grouped list's rows (Q2709): the shared flush ListRow; its non-button siblings wear the same tokens. */
+const ROW = LIST_ROW_FLUSH;
 
 function useManageState(itemId: string, enabled: boolean) {
   return useQuery({
@@ -142,7 +143,7 @@ export function ManageListingSheet({
             <ul className="divide-y divide-border overflow-hidden rounded-[20px] border border-border bg-card">
               {item.status === "live" ? (
               <li>
-                <Link to={`/declutter/item/${item.id}?preview=buyer`} className={ROW} data-manage-preview="" onClick={close}>
+                <Link to={`/declutter/item/${item.id}?preview=buyer`} className={`${LIST_ROW_FLUSH} ${LIST_ROW_TINT}`} data-manage-preview="" onClick={close}>
                   <RowText title="Preview">See your listing as buyers do</RowText>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                 </Link>
@@ -151,22 +152,20 @@ export function ManageListingSheet({
               {/* Audit 1028 D1-1: a live listing can be edited (declutter_edit_listing; the owner's review rule). */}
               {item.status === "live" && (
               <li>
-                <button type="button" className={ROW} onClick={() => setView("edit")} disabled={busy}>
+                <ListRow variant="flush" onClick={() => setView("edit")} disabled={busy} trailing={<ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />}>
                   <RowText title="Edit listing">Title, description, category, condition, size, how buyers get it</RowText>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                </button>
+                </ListRow>
               </li>
               )}
               {deployed && (<>
               {!free && (<>
               <li>
-                <button type="button" className={ROW} onClick={() => setView("price")} disabled={busy}>
+                <ListRow variant="flush" onClick={() => setView("price")} disabled={busy} trailing={<ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />}>
                   <RowText title="Change price or lowest price">
                     Now {itemPriceLabel(item.current_price_cents)}
                     {manage ? ` · lowest ${formatPrice(manage.floor_price_cents)}` : ""}
                   </RowText>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                </button>
+                </ListRow>
               </li>
               {/* Audit DC-5: the sell form's own words and direction, on = it drops (it said "Stop price drops", on = stopped). */}
               <li className={ROW}>
@@ -193,29 +192,25 @@ export function ManageListingSheet({
 
               <li>
                 {paused ? (
-                  <button type="button" className={ROW} onClick={() => relist.mutate(undefined)} disabled={busy}>
+                  <ListRow variant="flush" onClick={() => relist.mutate(undefined)} disabled={busy} trailing={<ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />}>
                     <RowText title="Relist">Back on sale with its photos and price</RowText>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                  </button>
+                  </ListRow>
                 ) : (
-                  <button type="button" className={ROW} onClick={() => pause.mutate(undefined)} disabled={busy}>
+                  <ListRow variant="flush" onClick={() => pause.mutate(undefined)} disabled={busy} trailing={<ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />}>
                     <RowText title="Pause listing">Hide it without losing it. Open offers close.</RowText>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                  </button>
+                  </ListRow>
                 )}
               </li>
               </>)}
               <li>
-                <button type="button" className={ROW} onClick={() => setView("sold")} disabled={busy}>
+                <ListRow variant="flush" onClick={() => setView("sold")} disabled={busy} trailing={<ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />}>
                   <RowText title="Mark sold elsewhere">Takes it down and keeps it in your history; no fees</RowText>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                </button>
+                </ListRow>
               </li>
               <li>
-                <button type="button" className={ROW} onClick={() => setView("delete")} disabled={busy}>
+                <ListRow variant="flush" onClick={() => setView("delete")} disabled={busy} trailing={<ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />}>
                   <span className="flex-1 min-w-0 text-ds-15 font-semibold text-[hsl(var(--alert,4_71%_41%))]">Delete listing</span>
-                  <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                </button>
+                </ListRow>
               </li>
             </ul>
           </div>

@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronRight, HandHelping, Store, UserRound } from "lucide-react";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ListRow } from "@/components/ui/ListRow";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { SectionActionPill } from "@/components/ui/SectionActionPill";
 import { useFeature } from "@/hooks/useFeature";
@@ -36,7 +37,8 @@ const MAX_SHOPS = 6;
 /** What a tap on the greyed "Request a quote" says (no shop can be asked yet). */
 export const QUOTE_SOON_LINE = "Asking a business for a quote opens soon. For now, see their shop or hire a Helpr.";
 
-const ROW = "flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+/** The two "who helps" rows wear the shared ListRow (Q2709, 11-05) in this card look: icon, text, chevron. */
+const ROW = "gap-3 rounded-2xl border border-border bg-card px-4 py-3";
 
 /**
  * The way in: on the Sell an item page, for a new listing. Opens the sheet. (The Selling tab's "More ways to sell"
@@ -57,14 +59,14 @@ export function SellItForMeEntry() {
   if (!declutterOn) return null;
   return (
     <>
-      <button type="button" className={ROW} onClick={tap} data-testid="sell-it-for-me-entry" {...(shopsOn ? {} : gatedProps("post"))}>
+      <ListRow className={ROW} onClick={tap} data-testid="sell-it-for-me-entry" {...(shopsOn ? {} : gatedProps("post"))}>
         <HandHelping className="h-5 w-5 shrink-0" aria-hidden />
         <span className="flex-1 min-w-0">
           <span className="block font-semibold text-sm">Sell it for me</span>
           <span className="block text-xs text-muted-foreground">Too busy? Get help photographing and listing your stuff</span>
         </span>
         <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-      </button>
+      </ListRow>
       <SellItForMeSheet open={open} onOpenChange={setOpen} onHire={() => { setOpen(false); setExplaining(true); }} />
       <HelprListExplainSheet open={explaining} onClose={() => setExplaining(false)} />
     </>
@@ -90,7 +92,7 @@ function SellItForMeSheet({ open, onOpenChange, onHire }: { open: boolean; onOpe
           <p className="text-sm text-muted-foreground">
             Pick who helps. It's your choice.
           </p>
-          <button type="button" className={ROW} onClick={hireHelpr} data-testid="sell-for-me-hire-helpr" {...gatedProps("post")}>
+          <ListRow className={ROW} onClick={hireHelpr} data-testid="sell-for-me-hire-helpr" {...gatedProps("post")}>
             <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
               <UserRound className="h-5 w-5" aria-hidden />
             </span>
@@ -101,7 +103,7 @@ function SellItForMeSheet({ open, onOpenChange, onHire }: { open: boolean; onOpe
               </span>
             </span>
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-          </button>
+          </ListRow>
           {shopsOn && open && <LocalBusinesses />}
         </div>
       </SheetContent>

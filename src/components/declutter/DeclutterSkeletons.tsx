@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { safeStorage } from "@/lib/safeStorage";
 import { DeclutterNotice } from "./declutterUi";
+import { ITEM_PHOTO_ASPECT, ITEM_PHOTO_FRAME_BASE } from "./itemPhotoFrame";
 
 /**
  * /declutter: the section shell (top bar), the tab row and the first cards.
@@ -112,15 +113,23 @@ export function DeclutterBrowseBones({ map = false, full = false }: { map?: bool
   );
 }
 
-/** /declutter/item/:id: the photo strip and the price-and-pickup card. Also the item's own loading state. */
+/**
+ * /declutter/item/:id: the photo and the price-and-pickup card. Also the item's own loading state.
+ * Q1837 (loading-states run 41949893912, helper, its own draft item): the frame is the real page's. Same header
+ * (back + help, title only for screen readers, pinned: DeclutterItemView's AppPage props), the same grid, and ONE
+ * photo bone in the gallery's own frame (a strip of two 80% bones stood in for one full-width square).
+ */
 export function DeclutterItemSkeleton() {
   return (
-    <AppPage title="Item" backTo="/declutter">
-      <div className="flex gap-2 overflow-hidden -mx-1 px-1" role="status" aria-label="Loading the item">
-        <Skeleton className="shrink-0 w-[80%] max-w-sm aspect-square rounded-2xl bg-photo-empty" />
-        <Skeleton className="shrink-0 w-[80%] max-w-sm aspect-square rounded-2xl bg-photo-empty" />
+    <AppPage title="Item" backTo="/declutter" phoneHidesTitle hidesTitle stickyHeader>
+      <div className="lg:grid lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-start lg:gap-8" role="status" aria-label="Loading the item">
+        <div>
+          <Skeleton className={`${ITEM_PHOTO_FRAME_BASE} ${ITEM_PHOTO_ASPECT.item}`} />
+        </div>
+        <div className="mt-4 lg:mt-0 min-w-0 space-y-5">
+          <Skeleton className="h-52 w-full rounded-2xl" aria-hidden />
+        </div>
       </div>
-      <Skeleton className="h-52 w-full rounded-2xl" aria-hidden />
     </AppPage>
   );
 }

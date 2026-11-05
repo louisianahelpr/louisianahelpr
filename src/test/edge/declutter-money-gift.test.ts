@@ -324,7 +324,7 @@ describe("declutter-money: a gift-paid order's refunds (Q2106 S3b)", () => {
     expect(second.body.refunds_sent).toBe(1);
     expect(rpcs("restore_gift_card_for_declutter_order")[0]?.args).toMatchObject({ p_refund_key: `declutter_refund:${REFUND}` });
     expect(restored.size).toBe(1);
-    expect(stripeMock.refunds.create.mock.calls.at(-1)?.[0]).toMatchObject({ amount: 1500 });
+    expect(stripeMock.refunds.create.mock.calls[stripeMock.refunds.create.mock.calls.length - 1]?.[0]).toMatchObject({ amount: 1500 });
     expect(rpcs("declutter_refund_executed").map((c) => c.args)).toEqual([{ p_refund_id: REFUND, p_stripe_refund_id: "re_card2", p_succeeded: true }]);
   });
 
@@ -432,7 +432,7 @@ describe("declutter-money: a gift-paid order's delivery-fee and shipping refunds
     expect(second.body.delivery_refunds_sent).toBe(1);
     expect(rpcs("restore_gift_card_for_declutter_order")[0]?.args).toMatchObject({ p_refund_key: `declutter_delivery_refund:${DREFUND}` });
     expect(restored.size).toBe(1);
-    expect(stripeMock.refunds.create.mock.calls.at(-1)?.[0]).toMatchObject({ amount: 200 });
+    expect(stripeMock.refunds.create.mock.calls[stripeMock.refunds.create.mock.calls.length - 1]?.[0]).toMatchObject({ amount: 200 });
     expect(rpcs("declutter_delivery_refund_executed").map((c) => c.args)).toEqual([
       { p_id: DREFUND, p_stripe_refund_id: "re_d2", p_succeeded: true, p_error: null },
     ]);

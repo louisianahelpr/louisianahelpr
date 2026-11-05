@@ -3095,21 +3095,60 @@ describe("stripe-webhook edge function", () => {
 
       // Reviews of 994f077b2: only an invalid-request refusal about the
       // reference reads as "already reversed"; any other error is paged.
+      // Q1912: the refusals are Stripe's own, captured in Stripe TEST mode
+      // (Actions runs 41870316864 and 41871055112, 2026-11-04): type, param,
+      // code, status and message copied from those run logs, ids included.
       // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   return invalidRequest && aboutReference && | return aboutReference &&
-      it("a reference-taken refusal reads as done; a connection error with the same words is paged", async () => {
+      // @mutate supabase/functions/stripe-webhook/handlers/_visitTaxReversal.ts |   return invalidRequest && aboutReference && /(already|exists|unique|duplicate)/i.test(msg); |   return invalidRequest;
+      const stripeRefusal = (message: string, fields: Record<string, unknown>) => Object.assign(new Error(message), fields);
+      it("Stripe's real reused-reference refusal reads as done; a connection error with the same words is paged", async () => {
         piMeta();
         refundsAre([{ id: "re_dup", amount: 3000, created: 100 }]);
         stripeMock.tax.transactions.createReversal.mockRejectedValue(
-          Object.assign(new Error("A transaction with reference refund:re_dup already exists"), { type: "StripeInvalidRequestError", param: "reference" }),
+          stripeRefusal(
+            "You have already created a tax transaction tax_1UY7KYKp2H4b7tECrLw9WInY with the reference 'refund:re_b120mw2cmr3pa'. `reference` must be unique across all tax transactions.",
+            { type: "StripeInvalidRequestError", rawType: "invalid_request_error", param: "reference", statusCode: 400 },
+          ),
         );
         await run("evt_tax_dup");
         const notReversed = () => (slackAlerts as Array<{ title: string }>).filter((a) => /NOT reversed/.test(a.title));
         expect(notReversed()).toHaveLength(0);
         stripeMock.tax.transactions.createReversal.mockRejectedValue(
-          Object.assign(new Error("reference request already in flight"), { type: "StripeConnectionError" }),
+          stripeRefusal("reference request already in flight", { type: "StripeConnectionError" }),
         );
         await run("evt_tax_dup2");
         expect(notReversed()).toHaveLength(1);
+      });
+
+      it.each([
+        [
+          "an over-reversal (more than is left unreversed)",
+          stripeRefusal("The refund amount ('100') is greater than the remaining unrefunded amount ('0') on the Transaction", { type: "StripeInvalidRequestError", rawType: "invalid_request_error", param: "flat_amount", statusCode: 400 }),
+        ],
+        [
+          "a fully reversed original",
+          stripeRefusal("You can't reverse transaction 'tax_1UY7KYKp2H4b7tEC0fSw5vXq' because it has been fully reversed.", { type: "StripeInvalidRequestError", rawType: "invalid_request_error", param: "original_transaction", statusCode: 400 }),
+        ],
+        [
+          "an undo of a full reversal",
+          stripeRefusal("You cannot reverse the transaction 'tax_1UY7KYKp2H4b7tECrLw9WInY' because it's a full reversal of an earlier transaction.", { type: "StripeInvalidRequestError", rawType: "invalid_request_error", param: "original_transaction", statusCode: 400 }),
+        ],
+        [
+          "a reused idempotency key with other parameters",
+          stripeRefusal("Keys for idempotent requests can only be used with the same parameters they were first used with. Try using a key other than 'visit-tax-reversal:re_b120mw2cmr3pa' if you meant to execute a different request.", { type: "StripeIdempotencyError", rawType: "idempotency_error", statusCode: 400 }),
+        ],
+        [
+          "a key still in use by a racing delivery",
+          stripeRefusal("There is currently another in-progress request using this Idempotent Key (that probably means you submitted twice, and the other request is still going through): visit-tax-reversal:re_b120mw2cweced. Please try again later.", { type: "StripeInvalidRequestError", rawType: "invalid_request_error", code: "idempotency_key_in_use", statusCode: 409 }),
+        ],
+      ])("Stripe's real refusal for %s is paged, never read as already reversed (Q1912)", async (_label, refusal) => {
+        piMeta();
+        refundsAre([{ id: "re_dup", amount: 3000, created: 100 }]);
+        stripeMock.tax.transactions.createReversal.mockRejectedValue(refusal);
+        await run("evt_tax_refused");
+        const page = (slackAlerts as Array<{ title: string; message: string }>).filter((a) => /NOT reversed/.test(a.title));
+        expect(page).toHaveLength(1);
+        expect(page[0].message).toContain((refusal as Error).message);
       });
 
       it("control: an ordinary job's PaymentIntent carries no tax transaction, so nothing is reversed", async () => {

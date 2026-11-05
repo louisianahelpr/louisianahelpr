@@ -10,7 +10,7 @@
 // @mutate src/lib/activityCores.ts |   if (inFlight?.userId === userId && !(part && inFlight.served.has(part))) { |   if (inFlight?.userId === userId) {
 // @mutate src/lib/activityCores.ts |     const fresh = inFlight.doneAt === null \|\| Date.now() - inFlight.doneAt <= ACTIVITY_CORES_SHARE_MS; |     const fresh = inFlight.doneAt === null;
 // @mutate src/lib/activityCores.ts |     const fresh = inFlight.doneAt === null \|\| Date.now() - inFlight.doneAt <= ACTIVITY_CORES_SHARE_MS; |     const fresh = true;
-// @mutate src/lib/activityCores.ts |     else inFlight = null; |
+// @mutate src/lib/activityCores.ts |     if (!payload) inFlight = null; |     if (!payload) return;
 // @mutate src/hooks/useActivityData.ts |   const cores = await fetchActivityCores(userId, "applied"); |   const cores = await fetchActivityCores(userId, "posted");
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";

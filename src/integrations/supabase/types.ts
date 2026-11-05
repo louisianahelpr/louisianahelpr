@@ -18115,6 +18115,7 @@ export type Database = {
           p_application_columns: string[]
           p_application_job_columns?: string[]
           p_job_columns: string[]
+          p_parts?: string[]
         }
         Returns: Json
       }

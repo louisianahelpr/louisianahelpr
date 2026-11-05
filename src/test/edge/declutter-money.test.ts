@@ -733,7 +733,7 @@ describe("declutter-money: a known partial refund (slice 5)", () => {
 // (declutter_refunds_due decides when: held, rejected or unusable at once, 3 days otherwise; proven in
 // src/test/pglite/declutterDamageRefundStopsWaitingOnSeller.pglite.mjs). Here: one that goes out before the
 // seller was paid pages ops once, and that order's seller payout is then sent from the platform balance.
-// @mutate supabase/functions/declutter-money/index.ts |            ...(fromPlatform ? {} : { source_transaction: charge }), |            source_transaction: charge,
+// @mutate supabase/functions/declutter-money/index.ts |            ...(fromPlatform \|\| !charge ? {} : { source_transaction: charge }), |            source_transaction: charge as string,
 // @mutate supabase/functions/declutter-money/index.ts |        if (damageErr) {\n          await skipRow( |        if (false) {\n          await skipRow(
 // @mutate supabase/functions/declutter-money/index.ts |      if (r.reason === "delivery_damage" && r.order_id) { |      if (false) {
 // @mutate supabase/functions/declutter-money/index.ts |        if (spErr \|\| !spStatus \|\| !["succeeded", "nothing_due", "settled_by_hand"].includes(spStatus)) { |        if (true) {

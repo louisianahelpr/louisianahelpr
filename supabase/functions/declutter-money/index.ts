@@ -151,6 +151,10 @@ type PayoutDue = {
   attempts: number;
   /** Refunds the order recorded (not failed): the most the charge may have given back. */
   refunds_recorded_cents?: number | null;
+  /** Q2106 (WIP, S2): what the buyer's gift card paid toward the order (declutter_orders.gift_cents). NOT YET returned
+   *  by declutter_payouts_due (newest 20261026155251): the S2 migration must restate it with this column. Until then it
+   *  is undefined, read as 0, and every payout is exactly today's. */
+  gift_cents?: number | null;
 };
 /** declutter_manager_payouts_due (20261101233256): the manager's share of one sale, paid to the MANAGER's account. */
 type ManagerPayoutDue = {
@@ -1112,8 +1116,13 @@ serve(async (req) => {
           await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 15, "transient", `damage refund read failed: ${damageErr.message}`);
           continue;
         }
-        const fromPlatform = ((damageRefund ?? []) as unknown[]).length > 0;
-        const charge = await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents);
+        // Q2106 (WIP, S2): a gift card paid part of this order, so the card's charge is smaller than the seller's share,
+        // and Stripe refuses a source_transaction transfer above its charge. The gift's money is already in the platform
+        // balance (the gift card was bought there), so the payout is sent from it, as the damage case is. A gift-only
+        // order has no charge at all (no PaymentIntent). NEEDS LEAD MONEY REVIEW before queuing.
+        const giftCents = Math.max(0, Number(p.gift_cents ?? 0));
+        const fromPlatform = ((damageRefund ?? []) as unknown[]).length > 0 || giftCents > 0;
+        const charge = giftCents > 0 && !p.payment_intent_id ? null : await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents);
         if (!(await payeeReadyNow(stripe, mode, "declutter", p.payout_id, p.seller_id, p.stripe_account_id as string, p.amount_cents))) continue;
         if (!(await stillPayableNow("declutter", p.payout_id, p.seller_id, p.amount_cents))) continue;
         // Owner 2026-10-30: the seller's one-time setup fee comes out here, once the sale is final and the send is
@@ -1139,7 +1148,7 @@ serve(async (req) => {
             currency: "usd",
             destination: p.stripe_account_id as string,
             transfer_group: group,
-            ...(fromPlatform ? {} : { source_transaction: charge }),
+            ...(fromPlatform || !charge ? {} : { source_transaction: charge }),
             metadata: { kind: "declutter_payout", payout_id: p.payout_id, order_id: p.order_id },
           },
           { idempotencyKey: `declutter-payout-${p.payout_id}` },

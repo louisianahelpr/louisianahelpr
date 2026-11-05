@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-05T06:39Z",
+  "measured_at": "2026-11-05T07:56Z",
   "issues": {
     "readable": true,
     "open": [
@@ -238,14 +238,6 @@
         "issue": 3824
       },
       {
-        "fingerprint": "e9576de5dfb0b5bf8cd0314ff14ff967",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: privacy-journey",
-        "issue": 4084
-      },
-      {
         "fingerprint": "6205197429d4e577570e7970d3a22f83",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -259,14 +251,6 @@
         "source": "quota-monitor",
         "status": "open",
         "title": "quota: sentry session replays sent: accepted + dropped by quota (this usage period) at or above #% of its limit",
-        "issue": null
-      },
-      {
-        "fingerprint": "e41c806b9175390a32accafb9b13baa1",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: sensitive review record",
         "issue": null
       },
       {
@@ -300,14 +284,6 @@
         "status": "open",
         "title": "error: zip # resolved to no louisiana parish",
         "issue": null
-      },
-      {
-        "fingerprint": "18539240a894224e952b88b2b21bb927",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: core-loop-canary",
-        "issue": 3833
       },
       {
         "fingerprint": "f1bfed973a2a75d4ef5bb8ce2a1785df",
@@ -372,6 +348,14 @@
         "status": "open",
         "title": "error: unexpected sign-out",
         "issue": null
+      },
+      {
+        "fingerprint": "341247bd75499ca81fbf89df6319f75f",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: scoreboard",
+        "issue": 4111
       },
       {
         "fingerprint": "3c0d6b003e080de5479e1faf4a1df45a",
@@ -499,8 +483,8 @@
     "ledger 11f46545733f": "Q2409",
     "ledger 15cc2d7f63f3": "Q2347",
     "ledger 16e6e91f6701": "Q1816",
-    "ledger 18539240a894": "Q1816",
     "ledger 2e4f3e726722": "Q1816",
+    "ledger 341247bd7549": "Q1816",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 3712b62a9839": "Q2510",
     "ledger 3a3460b71be7": "Q1816",
@@ -536,9 +520,7 @@
     "ledger cae29df0662b": "Q2351",
     "ledger d1f8391b44ec": "Q1631",
     "ledger db0fb15c4ec3": "Q1816",
-    "ledger e41c806b9175": "Q1816",
     "ledger e49f68d9cbd6": "Q1475",
-    "ledger e9576de5dfb0": "Q1816",
     "ledger f1bfed973a2a": "Q2734"
   }
 }

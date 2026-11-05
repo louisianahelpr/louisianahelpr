@@ -1,5 +1,6 @@
 /**
- * The responsive audit (e2e/visual-audit/responsive.spec.ts) reports an element
+ * The responsive audit (e2e/journeys/visual-responsive.spec.ts; the mocked
+ * e2e/visual-audit/responsive.spec.ts until 2026-11-05, Q1035) reports an element
  * past the phone's right edge by what the member can SEE, not by its raw box.
  *
  * Release gate e2e-real-backend 41330878323 (2026-11-01, sha 2ee45fd687) was red
@@ -75,7 +76,7 @@ describe("responsive audit: off-canvas means visible past the edge", () => {
   });
 
   it("the spec measures with findOffCanvas, never its own raw-box loop", () => {
-    const spec = blankComments(readFileSync(resolve(ROOT, "e2e/visual-audit/responsive.spec.ts"), "utf8"));
+    const spec = blankComments(readFileSync(resolve(ROOT, "e2e/journeys/visual-responsive.spec.ts"), "utf8"));
     expect(spec).toMatch(/page\.evaluate\(findOffCanvas\)/);
     expect(spec).not.toMatch(/getBoundingClientRect/);
     // Inventory floor: the spec still sweeps its six screens at four widths.

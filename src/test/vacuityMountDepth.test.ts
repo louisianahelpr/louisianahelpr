@@ -9,6 +9,8 @@
  * stop at three: a test four levels up does not count.
  *
  * @mutate scripts/vacuity/scan.mjs | export const MOUNT_DEPTH = 3; | export const MOUNT_DEPTH = 2;
+ * @mutate scripts/vacuity/scan.mjs |       if (resolved) map.set(n.name.text, resolved);\n      return; |       return;
+ * @mutate scripts/vacuity/scan.mjs | && drawsJsx(target)) edge(target, f); | && false) edge(target, f);
  * @mutate scripts/vacuity/scan.mjs | for (let d = 1; d <= depth && level.size && !covered; d++) { | for (let d = 1; d <= 99 && level.size && !covered; d++) {
  * @mutate scripts/vacuity/scan.mjs | if (renderedByTests.has(p)) { covered = true; break; } | if (renderedByTests.has(p)) { break; }
  *
@@ -89,7 +91,18 @@ describe("mount-wiring depth", () => {
 
   it("on the real tree SellItForMe is not a gap, and the scan still finds gaps", () => {
     const gaps = real();
-    expect(gaps.length).toBeGreaterThan(5);
+    expect(gaps.length).toBeGreaterThan(4); // 5 on 2026-11-05 once lazy and hook edges counted (3 baselined + BrowseMap, DashboardTitleBar)
     expect(gaps.map((g) => g.module)).not.toContain("src/components/declutter/SellItForMe.tsx");
+  }, 120_000);
+
+  // Q1816 #2894 (2026-11-05): a lazily loaded component mounts like a static one (SmsPhonePrompt ->
+  // lazy SmsPhonePromptDialog -> SmsAlertsCard; Messages -> MessagesTwoPane), and a hook that returns JSX is
+  // mounted where it is called (JobPage -> useContinueDayActions() -> ContinueDaySheet). Without those
+  // edges all three read as isolated mounts on main 5cdb2bcacf.
+  it("on the real tree a lazy() child and a hook-drawn sheet are no gaps", () => {
+    const gaps = real().map((g) => g.module);
+    expect(gaps).not.toContain("src/components/notificationPreferences/SmsAlertsCard.tsx");
+    expect(gaps).not.toContain("src/pages/messages/MessagesTwoPane.tsx");
+    expect(gaps).not.toContain("src/components/jobs/ContinueDaySheet.tsx");
   }, 120_000);
 });

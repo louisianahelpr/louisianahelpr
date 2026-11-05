@@ -1,9 +1,10 @@
 /**
  * JOBS-12: Not picked was a list of nameless rows. Proof of the read: src/test/pglite/closedApplicationJobLabels.pglite.mjs
+ * (its newest SQL, with the window, is pinned by src/test/jobDayPrintsTheWindow.test.tsx).
  *
  * @mutate src/pages/jobs/AppliedJobCard.tsx | <ClosedJobCard cardRef={cardRef} label={app.closed_job_label} status={closedCardLabel(app)} /> | <ClosedJobCard cardRef={cardRef} status={closedCardLabel(app)} />
  * @mutate src/hooks/useActivityData.ts | closed_job_label: job ? null : closedLabels.get(a.job_id) ?? null } | closed_job_label: null }
- * @mutate supabase/migrations/20261105233602_closed_application_job_labels_window.sql |             WHERE a.job_id = j.id AND a.helper_id = v_uid |             WHERE a.job_id = j.id
+ * @mutate src/pages/jobs/appliedJobCard/ClosedJobRow.tsx | const title = label?.title?.trim(); | const title = "";
  */
 import { describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";

@@ -4,7 +4,7 @@ import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { settleOnboardingFee } from "./settleOnboardingFee.ts";
 import { pageGiftLeftSpentOnCardFunding } from "./_giftLeftSpentOnCardFunding.ts";
 import { commitJobSiteTax } from "./_jobTaxCommit.ts";
-import { isTestModeOrphan } from "./_testSubject.ts";
+import { anyIsTestSubject, isTestModeOrphan } from "./_testSubject.ts";
 import { JOB_TAX_CALC_KEY, JOB_TAX_CENTS_KEY } from "../../_shared/jobTaxAddress.ts";
 import { recordPartialCaptureTax } from "../../_shared/salesTaxAdjustment.ts";
 
@@ -68,6 +68,22 @@ async function settleDeferredSetupFee(pi: Stripe.PaymentIntent, ctx: WebhookCont
   }
 }
 
+/**
+ * H6: whether a Shops order's capture is test data (is_seed, or a test buyer or seller), so its tax alerts never
+ * reach the owner as real. Read only for a shop_order PaymentIntent; a failed read counts as real.
+ */
+async function shopOrderTaxIsSeed(pi: Stripe.PaymentIntent, ctx: WebhookContext): Promise<boolean> {
+  const md = (pi.metadata ?? {}) as Record<string, string>;
+  if (md.kind !== "shop_order" || !md.order_id) return false;
+  const { data, error } = await ctx.supabase.from("shop_orders").select("is_seed, buyer_id, seller_id").eq("id", md.order_id).maybeSingle();
+  if (error) {
+    ctx.logStep("WARNING: could not read the shop order's is_seed; its tax alert pages as real", { orderId: md.order_id, error: error.message });
+    return false;
+  }
+  const o = data as { is_seed?: boolean; buyer_id?: string | null; seller_id?: string | null } | null;
+  return o?.is_seed === true || await anyIsTestSubject(ctx.supabase, [o?.buyer_id, o?.seller_id], ctx.logStep);
+}
+
 /** A job in one of these already holds its money: this PI is its own funding. */
 const FUNDED_PAYMENT_STATUSES = new Set(["escrow", "payout_pending", "released"]);
 
@@ -129,7 +145,9 @@ export async function handlePaymentIntentSucceeded(
   // this event beats checkout.session.completed to the job row. Never throws.
   // Q2732: a TEST-mode payment naming a job that is not ours is a test script's: its tax alerts are test data.
   const testOrphan = !taxJob && await isTestModeOrphan(supabase, pi.livemode, (pi.metadata ?? {}).job_id, logStep);
-  await commitJobSiteTax({ stripe, pi, logStep, seed: taxJob?.is_seed === true || testOrphan, supabase });
+  // H6: a Shops order's hold reaches here when the shop accepts and it is captured; its tax commits the same way.
+  const shopSeed = !taxJob && await shopOrderTaxIsSeed(pi, ctx);
+  await commitJobSiteTax({ stripe, pi, logStep, seed: taxJob?.is_seed === true || testOrphan || shopSeed, supabase });
   // Q2148 (2): a manual-capture Checkout automatic_tax charge captured for
   // less than it authorised (a late-cancel fee, a shop order shipped short)
   // stays reported at the whole hold's tax; record the correction. Never throws.

@@ -14,7 +14,7 @@
  * @mutate supabase/functions/stripe-webhook/handlers/_testSubject.ts |   if (livemode !== false \|\| !jobId) return false; |   if (!jobId) return false;
  * @mutate supabase/functions/stripe-webhook/handlers/_testSubject.ts |   if (!UUID_RE.test(jobId)) return true; |   if (!UUID_RE.test(jobId)) return false;
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |     if (await isTestModeOrphan(supabase, event.livemode, testJobId, logStep)) { |     if (false) {
- * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | seed: taxJob?.is_seed === true \|\| testOrphan, supabase }); | seed: taxJob?.is_seed === true, supabase });
+ * @mutate supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts | seed: taxJob?.is_seed === true \|\| testOrphan \|\| shopSeed, supabase }); | seed: taxJob?.is_seed === true \|\| shopSeed, supabase });
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -55,6 +55,6 @@ describe("the three paging paths treat a test-mode orphan as test data", () => {
   it("the job-site tax commit marks it seed (digest only, never paged)", () => {
     const src = read("supabase/functions/stripe-webhook/handlers/paymentIntentSucceeded.ts");
     expect(src).toContain("const testOrphan = !taxJob && await isTestModeOrphan(supabase, pi.livemode, (pi.metadata ?? {}).job_id, logStep);");
-    expect(src).toContain("seed: taxJob?.is_seed === true || testOrphan, supabase });");
+    expect(src).toContain("seed: taxJob?.is_seed === true || testOrphan || shopSeed, supabase });");
   });
 });

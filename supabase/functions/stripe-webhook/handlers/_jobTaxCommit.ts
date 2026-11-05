@@ -37,7 +37,12 @@ export async function commitJobSiteTax(args: {
   const md = (pi.metadata ?? {}) as Record<string, string>;
   const calc = md[JOB_TAX_CALC_KEY];
   const cents = Number(md[JOB_TAX_CENTS_KEY]);
-  if (!md.job_id || typeof calc !== "string" || !calc.startsWith("taxcalc_")) return "none";
+  // H6 (audit 11-05): a Shops order's card hold is taxed at the pickup address the same way (shop-checkout), and
+  // this event reaches it only when the shop accepts and the hold is CAPTURED, so a declined, expired or
+  // withdrawn order never records tax. Its subject is the order; every rule below is the same.
+  const subjectId = md.job_id || (md.kind === "shop_order" ? md.order_id : "");
+  const subjectLabel = md.job_id ? `Job ${md.job_id}` : `Shops order ${md.order_id}`;
+  if (!subjectId || typeof calc !== "string" || !calc.startsWith("taxcalc_")) return "none";
   // A $0 figure reports nothing (Stripe Tax has no tax to record).
   if (!Number.isInteger(cents) || cents <= 0) return "none";
   if (md.tax_transaction_id) return "already";
@@ -66,7 +71,7 @@ export async function commitJobSiteTax(args: {
   const taxAtLeastCents = typeof received === "number" && typeof pi.amount === "number" ? Math.max(0, received - (pi.amount - cents)) : null;
   const stampedKeptCents = cancelFeeCapture && typeof keptRaw === "string" && /^\d+$/.test(keptRaw) && taxAtLeastCents !== null && Number(keptRaw) >= taxAtLeastCents ? Number(keptRaw) : null;
   if (stampedKeptCents === 0) {
-    logStep("Cancelled job's fee capture holds none of its job-site tax; nothing to record", { jobId: md.job_id, piId: pi.id, calc });
+    logStep("Cancelled job's fee capture holds none of its job-site tax; nothing to record", { jobId: subjectId, piId: pi.id, calc });
     return "none";
   }
   const recordCapturedPart = stampedKeptCents !== null && stampedKeptCents <= cents && typeof received === "number" && stampedKeptCents <= received;
@@ -76,8 +81,8 @@ export async function commitJobSiteTax(args: {
       kind: "money_at_risk",
       severity: "warning",
       title: "Job sales tax not recorded: the hold was captured only in part",
-      message: `${cancelFeeCapture ? "This capture is a cancelled job's fee, not the job. " : ""}Job ${md.job_id}'s card hold (PaymentIntent ${pi.id}) was captured for $${(received / 100).toFixed(2)} of $${(pi.amount / 100).toFixed(2)}. Its Stripe Tax calculation ${calc} prices the whole $${(cents / 100).toFixed(2)} tax, so it was NOT committed (the uncaptured part is released, and no refund would ever reverse its tax). Record by hand only the tax inside what was captured, and set metadata.tax_transaction_id on the PaymentIntent.`,
-      fields: { job_id: md.job_id, payment_intent: pi.id, calculation: calc, tax_cents: String(cents), captured_cents: String(received), held_cents: String(pi.amount), cancel_fee_capture: cancelFeeCapture ? "yes" : "no" },
+      message: `${cancelFeeCapture ? "This capture is a cancelled job's fee, not the job. " : ""}${subjectLabel}'s card hold (PaymentIntent ${pi.id}) was captured for $${(received / 100).toFixed(2)} of $${(pi.amount / 100).toFixed(2)}. Its Stripe Tax calculation ${calc} prices the whole $${(cents / 100).toFixed(2)} tax, so it was NOT committed (the uncaptured part is released, and no refund would ever reverse its tax). Record by hand only the tax inside what was captured, and set metadata.tax_transaction_id on the PaymentIntent.`,
+      fields: { job_id: subjectId, payment_intent: pi.id, calculation: calc, tax_cents: String(cents), captured_cents: String(received), held_cents: String(pi.amount), cancel_fee_capture: cancelFeeCapture ? "yes" : "no" },
       oncePerDayKey: `job-site-tax-partial:${pi.id}`,
       seed: seed === true,
     });
@@ -98,8 +103,8 @@ export async function commitJobSiteTax(args: {
       kind: "money_at_risk",
       severity: "warning",
       title: "Job sales tax collected but NOT recorded in Stripe Tax",
-      message: `Job ${md.job_id} paid $${(cents / 100).toFixed(2)} sales tax at the job address (PaymentIntent ${pi.id}), but committing Stripe Tax calculation ${calc} failed (${caughtMessage(e)}). Record it by hand (Stripe Tax > Transactions, or tax.transactions.createFromCalculation with reference ${pi.id}) and set metadata.tax_transaction_id on the PaymentIntent, or the tax is not on the filing reports and a refund will not reverse it.`,
-      fields: { job_id: md.job_id, payment_intent: pi.id, calculation: calc, tax_cents: String(cents) },
+      message: `${subjectLabel} paid $${(cents / 100).toFixed(2)} sales tax at the job address (PaymentIntent ${pi.id}), but committing Stripe Tax calculation ${calc} failed (${caughtMessage(e)}). Record it by hand (Stripe Tax > Transactions, or tax.transactions.createFromCalculation with reference ${pi.id}) and set metadata.tax_transaction_id on the PaymentIntent, or the tax is not on the filing reports and a refund will not reverse it.`,
+      fields: { job_id: subjectId, payment_intent: pi.id, calculation: calc, tax_cents: String(cents) },
       oncePerDayKey: `job-site-tax-commit:${pi.id}`,
       seed: seed === true,
     });
@@ -115,16 +120,16 @@ export async function commitJobSiteTax(args: {
       kind: "money_at_risk",
       severity: "warning",
       title: "Job sales tax recorded, but a refund will not reverse it",
-      message: `Stripe Tax transaction ${txId} records job ${md.job_id}'s sales tax (PaymentIntent ${pi.id}), but stamping it on the PaymentIntent failed (${caughtMessage(e)}). Set metadata.tax_transaction_id=${txId} on ${pi.id} by hand.`,
-      fields: { job_id: md.job_id, payment_intent: pi.id, tax_transaction: txId },
+      message: `Stripe Tax transaction ${txId} records ${subjectLabel}'s sales tax (PaymentIntent ${pi.id}), but stamping it on the PaymentIntent failed (${caughtMessage(e)}). Set metadata.tax_transaction_id=${txId} on ${pi.id} by hand.`,
+      fields: { job_id: subjectId, payment_intent: pi.id, tax_transaction: txId },
       oncePerDayKey: `job-site-tax-stamp:${pi.id}`,
       seed: seed === true,
     });
     return "failed_paged";
   }
-  logStep("Job-site sales tax committed to Stripe Tax", { jobId: md.job_id, piId: pi.id, txId, cents });
+  logStep("Job-site sales tax committed to Stripe Tax", { jobId: subjectId, piId: pi.id, txId, cents });
   if (recordCapturedPart && stampedKeptCents !== null && stampedKeptCents < cents) {
-    if (await reverseReleasedTax({ stripe, pi, txId, jobId: md.job_id, taxCents: cents, keptCents: stampedKeptCents, logStep, seed }) === "failed_paged") {
+    if (await reverseReleasedTax({ stripe, pi, txId, jobId: subjectId, taxCents: cents, keptCents: stampedKeptCents, logStep, seed }) === "failed_paged") {
       return "failed_paged";
     }
   }
@@ -136,7 +141,7 @@ export async function commitJobSiteTax(args: {
   // reversed by the same per-refund path (keyed on the refund id, so one the
   // refund event also reaches is never reversed twice). A refund made after
   // this read sees the stamp on its own charge.refunded event.
-  if (await reverseRefundsMadeBeforeTheStamp({ stripe, pi, txId, logStep, seed, supabase, jobId: md.job_id }) === "failed_paged") {
+  if (await reverseRefundsMadeBeforeTheStamp({ stripe, pi, txId, logStep, seed, supabase, jobId: subjectId }) === "failed_paged") {
     return "failed_paged";
   }
   return "committed";

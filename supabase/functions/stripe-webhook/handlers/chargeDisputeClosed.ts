@@ -18,6 +18,7 @@ import {
 import { alertGiftDisputeClosed } from "./_giftCardRefund.ts";
 import { finalizeLostClawback, notifyPayee, repayClawback, wasToldOnHold, type RepayResult } from "../../_shared/chargebackClawback.ts";
 import { reverseVisitTaxForLostDispute } from "./_visitTaxReversal.ts";
+import { recordLostDisputeTax } from "../../_shared/salesTaxAdjustment.ts";
 
 export async function handleChargeDisputeClosed(
   event: Stripe.Event,
@@ -69,6 +70,10 @@ export async function handleChargeDisputeClosed(
   // job's own branch below.)
   if (closedDispute.status === "lost") {
     await reverseVisitTaxForLostDispute({ stripe, piId: closedPiId, dispute: closedDispute, logStep });
+    // Q1918: a Checkout automatic_tax charge has no Tax API transaction to
+    // reverse, and Stripe's Tax report keeps a lost dispute's tax as
+    // collected; record the correction in our ledger. Never throws.
+    await recordLostDisputeTax({ stripe, supabase, piId: closedPiId, dispute: closedDispute, logStep, alert: postSlackOpsAlert });
   }
 
   const finalDisputeStatus =

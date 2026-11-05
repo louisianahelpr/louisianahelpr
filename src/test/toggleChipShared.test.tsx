@@ -135,7 +135,7 @@ describe("ToggleChip is the one on/off chip (Q2709)", () => {
 
   it("hand-written <button aria-pressed> per file equals the baseline (exact, both ways)", () => {
     const now = measure();
-    expect(Object.keys(now).length).toBeGreaterThan(35); // 36 files at 11-05 5:05 AM (ProfileEditForm left)
+    expect(Object.keys(now).length).toBeGreaterThan(34); // 35 files at 11-05 5:08 AM (ProfileEditForm, PetForm left)
     const base = BASELINE.files as Record<string, number>;
     const diffs: string[] = [];
     for (const f of new Set([...Object.keys(now), ...Object.keys(base)])) {

@@ -680,9 +680,6 @@
       "button": 2,
       "input": 1
     },
-    "src/pages/profile/petProfiles/PetForm.tsx": {
-      "button": 1
-    },
     "src/pages/profile/petProfiles/PetRailRow.tsx": {
       "button": 3
     },

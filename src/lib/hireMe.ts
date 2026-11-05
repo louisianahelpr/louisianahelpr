@@ -54,6 +54,11 @@ export function hireGuestHref(handle: string): string {
   return signupUrlFor(`/u/${encodeURIComponent(handle)}?${HIRE_PARAM}=1`);
 }
 
+/** Share-profile audit L3 (11-05): a guest who already has an account logs in and comes back the same way. */
+export function hireGuestLoginHref(handle: string): string {
+  return `/login?redirect=${encodeURIComponent(`/u/${encodeURIComponent(handle)}?${HIRE_PARAM}=1`)}`;
+}
+
 /** The Helpr's user id for a direct offer, or the words to show. */
 export async function hireTargetByHandle(handle: string): Promise<{ id: string; error?: undefined } | { id?: undefined; error: string }> {
   const { data, error } = await supabase.rpc("rpc_hire_target_by_handle", { p_handle: handle });

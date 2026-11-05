@@ -332,9 +332,6 @@
     "src/components/declutter/DeliveryRaisePanel.tsx": {
       "input": 1
     },
-    "src/components/declutter/GoOnlineCard.tsx": {
-      "button": 1
-    },
     "src/components/declutter/SellFormParts.tsx": {
       "input": 2
     },

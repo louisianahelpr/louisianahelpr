@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchOnlineStatus, isOnline, setOnline } from "@/lib/helprTasks/online";
 import { currentPosition } from "@/lib/declutter/position";
@@ -65,12 +66,9 @@ export function GoOnlineCard({ userId, where }: { userId: string; where: { lat: 
               : "Offline. Go online to get new deliveries near you as soon as they're posted."}
           </p>
         </div>
-        <button type="button" role="switch" aria-checked={online} aria-labelledby={`${id}-label`} disabled={flip.isPending || status.isLoading}
-          onClick={() => flip.mutate(!online)}
-          className={`relative h-8 w-14 shrink-0 rounded-full transition-colors disabled:opacity-50 ${online ? "bg-primary" : "bg-muted-foreground/30"}`}>
-          <span id={`${id}-label`} className="sr-only">Online for deliveries</span>
-          <span aria-hidden className={`absolute left-0 top-1 h-6 w-6 rounded-full bg-white shadow transition-transform ${online ? "translate-x-7" : "translate-x-1"}`} />
-        </button>
+        <span id={`${id}-label`} className="sr-only">Online for deliveries</span>
+        <Switch aria-labelledby={`${id}-label`} checked={online} disabled={flip.isPending || status.isLoading}
+          onCheckedChange={(v) => flip.mutate(v)} />
       </div>
       {/* Browse's 44px chips, not two native selects (lead 2026-10-28: in WebKit they drew about 30px tall). */}
       {!online && (

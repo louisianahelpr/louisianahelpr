@@ -13,6 +13,10 @@ export interface SectionTabDef<T extends string> {
   /** The dictionary key of the shown word (Spanish option, 2026-10-29); `label` stays the English config name. */
   labelKey?: MsgKey;
   count?: number;
+  /** A plain number beside the label, not a to-do (owner 11-05: Selling shows how many items are for sale). */
+  quiet?: number;
+  /** The to-do count draws as a small dot beside `quiet` instead of a second number (still counted by the chevrons). */
+  countAsDot?: boolean;
 }
 
 /**
@@ -80,7 +84,7 @@ export function SectionTabs<T extends string>({
   onlySelected?: boolean;
 }) {
   const { t: tr } = useLanguage();
-  const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map((t) => ({ value: t.value as string, label: t.labelKey ? tr(t.labelKey) : t.label, count: t.count }))] as Array<{ value: string; label: string; count?: number; quiet?: number }>;
+  const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map((t) => ({ value: t.value as string, label: t.labelKey ? tr(t.labelKey) : t.label, count: t.count, quiet: t.quiet, countAsDot: t.countAsDot }))] as Array<{ value: string; label: string; count?: number; quiet?: number; countAsDot?: boolean }>;
   options[0].quiet = browseCount;
   const dense = options.length >= DENSE_TAB_COUNT;
   const denser = options.length >= DENSER_TAB_COUNT;
@@ -222,10 +226,19 @@ export function SectionTabs<T extends string>({
               )}
             >
               {o.value === BROWSE ? tr("tabs.browse") : o.label}
-              {o.quiet !== undefined && (
+              {o.quiet !== undefined && o.value === BROWSE && (
                 <span data-testid="browse-count" className="tabular-nums text-ds-13 font-medium text-muted-foreground">{o.quiet}</span>
               )}
-              {o.count !== undefined && o.count > 0 && (
+              {o.quiet !== undefined && o.value !== BROWSE && o.quiet > 0 && (
+                <span data-testid="tab-quiet-count" data-tab-quiet={o.value} className="tabular-nums text-ds-13 font-medium text-muted-foreground">{o.quiet}</span>
+              )}
+              {o.countAsDot && o.count !== undefined && o.count > 0 && (
+                <>
+                  <span data-testid="tab-todo-dot" aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-[hsl(var(--burnt-sienna))]" />
+                  <span className="sr-only">{tr("tabs.nToDo", { n: o.count })}</span>
+                </>
+              )}
+              {!o.countAsDot && o.count !== undefined && o.count > 0 && (
                 <span className="segmented-count-attention tabular-nums text-ds-11 font-bold rounded-full px-1.5 min-w-[1.25rem] leading-5 text-center">{o.count}</span>
               )}
             </button>

@@ -749,7 +749,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // payment that already paid a settled order answers already_paid (money re-review R1).
       declutter_refund_party_gone: "20261021204947_declutter_sales_outlive_a_deleted_party.sql 59570f1f27aa5011",
       declutter_money_rows_seed: "20261014224914_declutter_slice3b_payments.sql eb41800cf45bee87",
-      declutter_order_refunds_recorded_cents: "20261026154738_declutter_setup_fee_once.sql 22359b307c0f6993",
+      declutter_order_refunds_recorded_cents: "20261105042758_declutter_gift_refund_rows.sql 90540399b9fd2851", // Q2106 S3b (Builder 3, LEAD REVIEW owed): a refund row counts only its CARD part (refund_cents - gift_refund_cents) as gone back on the charge; the gift share went to the gift balance. Was 20261026154738 22359b307c0f6993
       declutter_record_hand_refund: "20261017055500_declutter_refund_hand_settle.sql e91bafe49bc1f340",
       // Board 141: + refund_request_full (keep_card_fee) and refund_request_part (agreed_part, which this function
       // refuses with refund_amount_unknown: only declutter_refund_after_handover writes it, with the offered amount).

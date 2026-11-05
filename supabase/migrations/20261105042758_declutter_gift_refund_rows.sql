@@ -229,3 +229,29 @@ AS $fn$
 $fn$;
 REVOKE ALL ON FUNCTION public.declutter_refunds_due(integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.declutter_refunds_due(integer) TO service_role;
+
+-- Q2106 S3b step 4 (part): declutter_order_refunds_recorded_cents is what has gone back on the order's CARD charge
+-- (it feeds declutter-money's wholeCharge and the payout queues' refunds_recorded_cents). A refund row's gift share
+-- went back to the gift balance, not to the card, so only refund_cents - gift_refund_cents counts. Restated from its
+-- newest definition (20261026154738_declutter_setup_fee_once); the one change is marked CHANGED. A gift-only row has
+-- no payment intent, so the PI match already leaves it out.
+CREATE OR REPLACE FUNCTION public.declutter_order_refunds_recorded_cents(p_order_id uuid)
+RETURNS integer
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  -- CHANGED (Q2106 S3b): the card part of each refund row only.
+  SELECT (COALESCE((SELECT sum(r.refund_cents - r.gift_refund_cents) FROM public.declutter_refunds r
+                     WHERE r.order_id = o.id AND r.stripe_payment_intent_id = o.stripe_payment_intent_id
+                       AND r.status = 'succeeded'), 0)
+        + COALESCE((SELECT sum(d.refund_cents) FROM public.declutter_delivery_refunds d
+                     WHERE d.order_id = o.id AND d.stripe_payment_intent_id = o.stripe_payment_intent_id
+                       AND d.status = 'succeeded'), 0)
+        -- Q2352: a setup fee sent back because the account had paid it elsewhere.
+        + CASE WHEN o.setup_fee_state = 'refunded' THEN o.setup_fee_cents ELSE 0 END)::integer
+    FROM public.declutter_orders o WHERE o.id = p_order_id;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_order_refunds_recorded_cents(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_order_refunds_recorded_cents(uuid) TO service_role;

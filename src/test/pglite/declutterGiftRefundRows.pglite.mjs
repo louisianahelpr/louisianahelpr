@@ -25,7 +25,9 @@ const check = (ok, name, detail = "") => { console.log(`${ok ? "PASS" : "FAIL"} 
 const base = readFileSync(MIG_DIR + "20261014224914_declutter_slice3b_payments.sql", "utf8");
 const create = /CREATE TABLE IF NOT EXISTS public\.declutter_refunds \([\s\S]*?\n\);/.exec(base)[0];
 const db = new PGlite();
-await db.exec(`CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, buyer_id uuid, seller_id uuid, stripe_checkout_session_id text);
+await db.exec(`CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, buyer_id uuid, seller_id uuid, stripe_checkout_session_id text,
+    stripe_payment_intent_id text, setup_fee_state text, setup_fee_cents integer NOT NULL DEFAULT 0);
+  CREATE TABLE public.declutter_delivery_refunds (id uuid PRIMARY KEY, order_id uuid, stripe_payment_intent_id text, refund_cents integer, status text);
   ${create}
   -- Stubs the queue (a LANGUAGE sql body, resolved at CREATE) reads; columns later migrations added.
   ALTER TABLE public.declutter_refunds ADD COLUMN IF NOT EXISTS payment_livemode boolean,
@@ -65,6 +67,12 @@ const giftOnly = Array.isArray(due) ? due.find((r) => r.payment_intent_id === nu
 check(byPi("pi_card1")?.refund_cents === 1000 && byPi("pi_card1")?.gift_refund_cents === 0, "(5) the card row: 1000 to the card, no gift share", JSON.stringify(byPi("pi_card1") ?? due));
 check(byPi("pi_mix3")?.refund_cents === 400 && byPi("pi_mix3")?.gift_refund_cents === 600, "(5) the mixed row: 400 to the card (decided in SQL), 600 to the gift balance", JSON.stringify(byPi("pi_mix3") ?? due));
 check(giftOnly?.refund_cents === 0 && giftOnly?.gift_refund_cents === 1000 && giftOnly?.order_id === O2, "(5) the gift-only row: no payment intent, 0 to the card, 1000 to the gift balance", JSON.stringify(giftOnly ?? due));
+// (6) step 4: what has gone back on the CARD counts only each succeeded row's card part (the mixed row: 400 of 1000).
+await db.exec(`UPDATE public.declutter_orders SET stripe_payment_intent_id = 'pi_mix3' WHERE id = '${O1}';
+  UPDATE public.declutter_refunds SET status = 'succeeded' WHERE stripe_payment_intent_id = 'pi_mix3'`);
+let rec = null;
+try { rec = (await db.query(`SELECT public.declutter_order_refunds_recorded_cents('${O1}') AS c`)).rows[0].c; } catch (e) { rec = String(e.message).slice(0, 120); }
+check(rec === 400, "(6) recorded_cents counts the card part only (400, not 1000)", String(rec));
 // The order can still be deleted (ON DELETE SET NULL): the gift-only row keeps its money record.
 let del = "ok";
 try { await db.exec(`DELETE FROM public.declutter_orders WHERE id = '${O2}'`); } catch (e) { del = String(e.message); }

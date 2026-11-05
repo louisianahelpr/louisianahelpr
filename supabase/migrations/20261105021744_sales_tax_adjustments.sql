@@ -89,3 +89,13 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.admin_sales_tax_adjustments(timestamptz, timestamptz) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.admin_sales_tax_adjustments(timestamptz, timestamptz) TO authenticated, service_role;
+
+-- Q807: refuse writes from an unconfirmed email on the new table (standard guarded attach).
+-- Server contexts (stripe-webhook on service_role) carry no end-user sub and pass untouched.
+DO $gate$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gate$;

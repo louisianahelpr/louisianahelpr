@@ -1,5 +1,6 @@
 import { FieldError } from "@/components/ui/FieldError";
 import { Button } from "@/components/ui/button";
+import { ToggleChip } from "@/components/ui/ToggleChip";
 import { contactLeakFieldError } from "@/lib/contactLeakField";
 import { displayUsPhone } from "@/lib/smsConsent";
 import { profilePhoneComplete, profilePhoneError } from "@/lib/profilePhone";
@@ -385,21 +386,14 @@ export function ProfileEditForm({
                     {g.skills.map(({ value, label }) => {
                       const active = skillList.some((s) => s.toLowerCase() === label.toLowerCase());
                       return (
-                        <button
+                        <ToggleChip
                           key={value}
-                          type="button"
+                          pressed={active}
                           onClick={() => toggleSkillPreset(label)}
-                          aria-pressed={active}
-                          /* Unselected chips are an OUTLINE of the same category colour, not a
-                             45%-opacity copy of the filled one. `opacity-45` multiplied through the
-                             AA-tuned badge tokens and dropped every unselected label to ~1.85:1 — a
-                             WCAG AA failure on all 11 presets. Filled-vs-outline carries the
-                             selected state without touching the text colour. */
-                          /* Board 41 / spec v2 §1.1: one chip style, olive when selected,
-                             never a per-category colour (a rust "Handyman" chip read as money). */
-                          className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-ds-11 font-semibold transition-colors active:scale-95 ${
-                            active ? "btn-grad-primary border-transparent !text-[hsl(var(--parchment))]" : "bg-transparent border-border text-foreground"
-                          }`}
+                          /* Board 41 / spec v2 §1.1: one chip style, olive when selected, never a
+                             per-category colour (a rust "Handyman" chip read as money). The shared
+                             ToggleChip (Q2709, 11-05): 44px, its firm unselected edge, the olive
+                             primary when on; filled-vs-outline carries the state, never opacity. */
                         >
                           {active ? (
                             <Check className="w-3 h-3 shrink-0" />
@@ -407,7 +401,7 @@ export function ProfileEditForm({
                             <CategoryIcon category={value} aria-hidden className="w-3 h-3 shrink-0" />
                           )}
                           <span className="font-sans whitespace-nowrap">{label}</span>
-                        </button>
+                        </ToggleChip>
                       );
                     })}
                   </div>

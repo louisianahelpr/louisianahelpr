@@ -199,6 +199,12 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   talk_blocked: "You can't message each other because one of you blocked the other.",
   invalid_message: "Write a message of up to 1,000 characters.",
   message_rate_limited: "Slow down a little, then send again.",
+  // Shops H9 (20261105230819): reviews.
+  not_handed_over: "Reviews open after the handover.",
+  invalid_stars: "Choose 1 to 5 stars.",
+  comment_too_long: "Keep the review to 1,000 characters.",
+  review_contact_info: "Reviews can't include phone numbers, emails or links.",
+  already_reviewed: "You already reviewed this order.",
 };
 
 /** shop-checkout's own answers (not RPC codes). */

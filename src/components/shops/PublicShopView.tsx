@@ -46,6 +46,8 @@ function PublicShopBody({ shop, signedIn }: { shop: PublicShop; signedIn: boolea
         storefront={shop.storefront}
         photos={shop.photos}
         badges={shop.badges}
+        rating={shop.rating ?? null}
+        reviewCount={shop.review_count ?? 0}
         hours={shop.hours}
         coverAction={
           // A plain 44px round button (the tap-target minimum), not <Button size="icon"> (56px swamps a 160px cover).

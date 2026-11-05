@@ -599,6 +599,8 @@ export function helperReadableViaJob(tables = publicTables()): Map<string, strin
  */
 // @two-way src/test/dataExportCoversEveryUserTable.test.ts:no stale entry: every EXPORTED/EXEMPT column is a live person column
 export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
+  "shop_reviews.reviewer_id": { reason: "Shop reviews (20261105230819, Shops H9; Shops is testers only). Not in export_my_data yet: added with the shop chats on top of Builder 1's job-photos v3 restatement of export_my_data (lead 11-05); then this entry moves to EXPORTED" },
+  "shop_reviews.reviewee_id": { reason: "Shop reviews (20261105230819, Shops H9; Shops is testers only). Not in export_my_data yet: added with the shop chats on top of Builder 1's job-photos v3 restatement of export_my_data (lead 11-05); then this entry moves to EXPORTED" },
   // CMP-4 instant book (20261101063725, 20261101065105); lead 11-01.
   // LEAD-LIST-FOR-SELLER (20261101034159): a private link (item, job, Helpr, seller, sent/decided times), service role only.
   "declutter_listed_for_seller.seller_id": { reason: "link row; the listing itself is a declutter_items row exported under the seller (seller_id), and the job under its poster" },

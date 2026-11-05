@@ -74,7 +74,9 @@ export function ShopBadgeList({ badges, compact = false }: { badges: ShopBadges 
 
 /** The owner's one star rating (G11), or "No reviews yet". */
 export function ShopRating({ rating, count }: { rating: number | null; count: number }) {
-  if (!count || rating == null) return <span className="text-xs text-muted-foreground">No reviews yet</span>;
+  if (!count) return <span className="text-xs text-muted-foreground">No reviews yet</span>;
+  // Shops H9: the shop's rating shows only at 3 or more reviews (the server returns no average below that).
+  if (rating == null) return <span className="text-xs text-muted-foreground">Not rated yet ({count} {count === 1 ? "review" : "reviews"})</span>;
   return (
     <span className="inline-flex items-center gap-1 text-xs">
       <Star className="h-3.5 w-3.5 text-amber-500" fill="currentColor" aria-hidden />

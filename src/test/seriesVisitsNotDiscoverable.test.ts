@@ -42,6 +42,8 @@ const NOT_JOB_SURFACES = new Map([
   ["function:shop_state_ok", "gates a shop row, not a job"],
   // Q2275 (20261021042132): Declutter saved-search alerts gate a test ITEM while seeds are hidden.
   ["function:deliver_saved_search_item_alerts", "gates a Declutter item, not a job"],
+  // Shops H9 (20261105230819): keeps a test account's SHOP REVIEW out of the shop rating while seeds are hidden.
+  ["function:shop_review_public", "gates a shop review, not a job"],
 ]);
 const readsJobs = (code: string) => /\b(?:public\.)?jobs\b(?!_)/i.test(code);
 

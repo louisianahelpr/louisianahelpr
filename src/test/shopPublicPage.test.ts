@@ -18,7 +18,9 @@
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql |      AND public.shop_state_ok(p_shop_id)\n     AND COALESCE | AND COALESCE
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql |      AND public.shop_state_ok(p_shop_id)\n     AND COALESCE | AND public.feature_enabled_for_user('shops', (SELECT owner_id FROM public.shops WHERE id = p_shop_id)) AND public.shop_state_ok(p_shop_id) AND COALESCE
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql |   SELECT public.feature_enabled_for('shops')\n     AND public.shop_state_ok(p_shop_id); |   SELECT public.feature_enabled_for('shops');
-// @mutate supabase/migrations/20261019042744_shops_public_page.sql |     'badges', public.shop_badges(v_s.id), |     'badges', public.shop_badges(v_s.id), 'rating', (SELECT r.rating FROM public.shop_owner_rating(v_s.owner_id) r),
+// @mutate supabase/migrations/20261105230819_shops_reviews_and_rating.sql |     'rating', (SELECT rr.rating FROM public.shop_review_rating(v_s.id) rr), |     'rating', (SELECT r.rating FROM public.shop_owner_rating(v_s.owner_id) r),
+// @mutate supabase/migrations/20261105230819_shops_reviews_and_rating.sql | CASE WHEN count(*) >= 3 THEN round(avg(r.stars)::numeric, 1) END | round(avg(r.stars)::numeric, 1)
+// @mutate supabase/migrations/20261105230819_shops_reviews_and_rating.sql | 'review_count', (SELECT CASE WHEN rr.rating IS NULL THEN 0 ELSE rr.review_count END FROM | 'review_count', (SELECT rr.review_count FROM
 // @mutate supabase/functions/shop-photo/index.ts |   const rl = await checkRateLimit(req, | const rl = { allowed: true, retryAfter: 0 }; void (req,
 // @mutate supabase/functions/shop-photo/index.ts |       if (og) {\n | if (false) {\n
 // @mutate supabase/functions/shop-photo/index.ts | !(length > 0 && length <= FALLBACK_MAX_BYTES) | false
@@ -32,13 +34,13 @@
 // @mutate src/lib/shops/publicShop.ts |   if (isMissingRpcNamed(error, "shops_public_shop")) return null; |
 // @mutate src/pages/shops/ShopPage.tsx |   const { settled, lastAnswer } = useFeatureStatus("shops"); |   const { lastAnswer } = useFeatureStatus("shops"); const settled = true;
 // @mutate src/pages/shops/ShopPage.tsx |   if (lastAnswer === true) return <ShopView />; |   if (useFeatureStatus("shops").on) return <ShopView />;
-// @mutate supabase/migrations/20261019042744_shops_public_page.sql | GRANT EXECUTE ON FUNCTION public.shops_public_shop(uuid) TO anon, authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.shops_public_shop(uuid) TO authenticated, service_role;
-// @mutate supabase/migrations/20261019042744_shops_public_page.sql |     'area_label', v_s.area_label, |     'area_label', v_s.area_label, 'owner_id', v_s.owner_id,
+// @mutate supabase/migrations/20261105230819_shops_reviews_and_rating.sql | GRANT EXECUTE ON FUNCTION public.shops_public_shop(uuid) TO anon, authenticated, service_role; | GRANT EXECUTE ON FUNCTION public.shops_public_shop(uuid) TO authenticated, service_role;
+// @mutate supabase/migrations/20261105230819_shops_reviews_and_rating.sql |     'area_label', v_s.area_label, |     'area_label', v_s.area_label, 'owner_id', v_s.owner_id,
 // @mutate api/share.ts |     robots: SHOP_ROBOTS,\n    image: shopImage(shop), |     image: shopImage(shop),
 // @mutate vercel.json | "source": "/shops/(.*)",\n      "headers": [\n        {\n          "key": "X-Robots-Tag",\n          "value": "noindex" | "source": "/shops/(.*)",\n      "headers": [\n        {\n          "key": "X-Robots-Tag",\n          "value": "index"
 // @mutate public/robots.txt | Allow: /shops/ | Allow: /shopz/
 // @mutate src/lib/shops/publicShop.ts |     url: shopLink(shop.id), |     url: SHOP_LINK_ORIGIN,
-// @mutate supabase/migrations/20261019042744_shops_public_page.sql |                  'id', ph.id, 'kind', ph.photo_kind, 'position', ph.position) |                  'id', ph.id, 'kind', ph.photo_kind, 'storage_path', ph.storage_path, 'position', ph.position)
+// @mutate supabase/migrations/20261105230819_shops_reviews_and_rating.sql |                  'id', ph.id, 'kind', ph.photo_kind, 'position', ph.position) |                  'id', ph.id, 'kind', ph.photo_kind, 'storage_path', ph.storage_path, 'position', ph.position)
 // @mutate supabase/migrations/20261019042744_shops_public_page.sql |        WHERE ph.id = p_photo_id AND public.shop_link_visible(ph.shop_id)) |        WHERE ph.id = p_photo_id)
 // @mutate api/share.ts | return respond(page, meta.cdnCache, 200, meta.noindexHeader === true); | return respond(page, undefined, 200, meta.noindexHeader === true);
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -171,14 +173,27 @@ describe("SH2b: shops_public_shop is the anon read, and only the page's fields",
     const body = blankSqlComments(fn!.stmt);
     const keys = [...body.matchAll(/'([a-z_]+)',\s/g)].map((m) => m[1]);
     expect(keys.length).toBeGreaterThan(15);
-    // rating / review_count: the owner's PERSON rating (get_public_profile_stats) would fingerprint the owner (review #10).
-    for (const banned of ["owner_id", "pin_lat", "pin_lng", "sos_number", "hidden_reason", "hidden", "following", "mine", "pickup_address", "address_line1", "rating", "review_count"]) {
+    // The owner's PERSON rating (get_public_profile_stats) would fingerprint the owner (review #10, Q2207): rating and
+    // review_count are the SHOP's own (Shops H9, shop_review_rating), asserted in the next case.
+    for (const banned of ["owner_id", "pin_lat", "pin_lng", "sos_number", "hidden_reason", "hidden", "following", "mine", "pickup_address", "address_line1"]) {
       expect(keys, banned).not.toContain(banned);
     }
     expect(body).not.toMatch(/shop_pickup_address|shop_item_private|shop_owner_rating|get_public_profile_stats/);
     // A storage path starts with the owner's user id: photos go out by id only.
     expect(keys).not.toContain("storage_path");
     expect(body).toMatch(/i\.status = 'live'/);
+  });
+
+  it("Q2207 / Shops H9: the rating is the shop's own, from its buyers' reviews, and only at 3 or more", () => {
+    const body = blankSqlComments(fn!.stmt).replace(/\s+/g, " ");
+    expect(body).toContain("'rating', (SELECT rr.rating FROM public.shop_review_rating(v_s.id) rr)");
+    // Below three reviews the page shows no count either (Shops H9, 2026-11-05).
+    expect(body).toContain("'review_count', (SELECT CASE WHEN rr.rating IS NULL THEN 0 ELSE rr.review_count END FROM public.shop_review_rating(v_s.id) rr)");
+    const rating = blankSqlComments(defs.get("shop_review_rating")?.stmt ?? "").replace(/\s+/g, " ");
+    expect(rating.length).toBeGreaterThan(100);
+    expect(rating).toContain("CASE WHEN count(*) >= 3 THEN round(avg(r.stars)::numeric, 1) END");
+    expect(rating).toContain("r.reviewer_side = 'buyer' AND public.shop_review_public(r.id)");
+    expect(rating).not.toMatch(/get_public_profile_stats|shop_owner_rating/);
   });
 });
 

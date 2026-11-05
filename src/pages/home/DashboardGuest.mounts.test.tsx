@@ -1,16 +1,17 @@
 /**
- * The guest Browse page really mounts its map in the map view, and not in the list view.
+ * The guest Browse page really mounts its map (map view) and its title bar (the app).
  *
  * Q1816 #2894: once the vacuity mount scanner followed lazy() edges and the tests' dynamic imports
  * (2026-11-05), BrowseMap and DashboardTitleBar read as isolated mounts: each has its own tests, but no
  * test rendered DashboardGuest, the page that mounts them. Here it is rendered with only its data hooks
- * stubbed (no jobs, a known guest). NOT asserted here: the native branch's DashboardTitleBar title card
- * (an isNativePlatform getter mock did not reach the page's binding; next step for Builder 2).
+ * stubbed (no jobs, a known guest): the map view mounts BrowseMap, and the app (native) branch mounts
+ * DashboardTitleBar as the title card.
  *
  * @mutate src/pages/home/DashboardGuest.tsx |       <BrowseMap\n |       <BrowseMapGone\n
+ * @mutate src/pages/home/DashboardGuest.tsx |             emblemTo="/" |             emblemTo="/home"
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -59,6 +60,23 @@ describe("DashboardGuest mounts its children", () => {
     view.current = "map";
     mount();
     expect(await screen.findByTestId("browse-map-stub")).toBeTruthy();
+  });
+
+  it("the app (native) draws DashboardTitleBar as its title card", async () => {
+    vi.resetModules();
+    vi.doMock("@/lib/nativeInit", async (orig) => ({ ...(await orig<typeof import("@/lib/nativeInit")>()), isNativePlatform: true }));
+    const { default: NativeGuest } = await import("./DashboardGuest");
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    const { container } = render(
+      <QueryClientProvider client={qc}>
+        <MemoryRouter initialEntries={["/browse"]}>
+          <NativeGuest />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    // DashboardTitleBar's crest, pointed at the landing page (emblemTo="/"), inside the scaffold's title card.
+    await waitFor(() => expect(container.querySelector('.page-title-card a[href="/"]')).not.toBeNull());
+    vi.doUnmock("@/lib/nativeInit");
   });
 
   it("the list view does not", async () => {

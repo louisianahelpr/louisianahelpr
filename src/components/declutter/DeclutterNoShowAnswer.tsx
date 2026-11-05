@@ -13,7 +13,6 @@ import { NoShowSheet } from "./DeclutterHandoverSheets";
 import { invalidate, type PaidOrder } from "./paidOrders";
 import { Textarea } from "@/components/ui/textarea";
 
-const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
 
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", hour: "numeric", minute: "2-digit" });
 
@@ -77,9 +76,9 @@ export function NoShowButton({ order, slotStart, who }: { order: PaidOrder; slot
   if (handover.data?.no_show_reported_at || handover.data?.seller_confirmed_at) return null;
   return (
     <div>
-      <button type="button" className={btn} disabled={report.isPending} onClick={() => setAsking(true)}>
+      <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" disabled={report.isPending} onClick={() => setAsking(true)}>
         They didn't show
-      </button>
+      </Button>
       <NoShowSheet open={asking} onOpenChange={setAsking} side={order.side} who={who} free={order.lines.every((l) => l.price_cents === 0)} pending={report.isPending} onConfirm={() => report.mutate()} />
     </div>
   );

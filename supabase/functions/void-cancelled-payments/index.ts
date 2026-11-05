@@ -3700,7 +3700,7 @@ serve(async (req) => {
       } catch (e) {
         // Not a TEST object (a live PI is resource_missing on the test key), no test key, or Stripe down:
         // the row goes through the normal path, which tells or pages as before.
-        console.log(JSON.stringify({ event: "untold_refund_test_check_skipped", pi, error: e instanceof Error ? e.message : String(e) }));
+        console.log(JSON.stringify({ event: "untold_refund_test_check_skipped", pi, error: caughtMessage(e) }));
         return false;
       }
     };

@@ -43,12 +43,12 @@ export function SellerMoveHelprPickup({ taskId, orderId, who, current = null }: 
       <PickupSlotPicker orderId={orderId} value={pick} onPick={setPick} own current={current}
         fallback={<p className="text-sm text-muted-foreground">Message the Helpr to agree a new time.</p>} />
       <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" disabled={move.isPending} onClick={() => { setOpen(false); setPick(null); }}>
+          Keep the time
+        </Button>
         <Button type="button" variant="primary" size="sm" className="text-sm font-semibold" disabled={!pick || move.isPending}
           onClick={() => { if (pick) move.mutate(pick); }}>
           Move to this time
-        </Button>
-        <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" disabled={move.isPending} onClick={() => { setOpen(false); setPick(null); }}>
-          Keep the time
         </Button>
       </div>
     </div>

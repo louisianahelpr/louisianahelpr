@@ -198,6 +198,7 @@ export function ChatHeader({
             <span
               className="font-display font-bold leading-tight truncate min-w-0 text-ds-16"
               style={{ color: "hsl(var(--ink-deep))", letterSpacing: "-0.015em" }}
+              title={activeConvo.otherUserName}
             >
               {activeConvo.otherUserName}
             </span>
@@ -249,7 +250,11 @@ export function ChatHeader({
           {/* Subtitle — the job this thread is about, sharing the avatar's
               right-hand column so it reads as one identity block. */}
           <span id={subtitleId} className="flex items-center gap-1.5 w-full min-w-0">
-            <span className="text-ds-11 truncate min-w-0 leading-tight font-sans" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
+            <span
+              className="text-ds-11 truncate min-w-0 leading-tight font-sans"
+              style={{ color: "hsl(var(--olivewood) / 0.8)" }}
+              title={(dealPinned && personFacts ? personFacts : activeConvo.jobTitle) ?? undefined}
+            >
               {dealPinned && personFacts ? personFacts : activeConvo.jobTitle}
             </span>
           </span>

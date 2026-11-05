@@ -20,6 +20,8 @@ import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
+import { LucideProvider } from "lucide-react";
+import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import HeroSection from "@/components/landing/HeroSection";
 import { removeLandingShellOncePainted } from "@/components/landing/landingShell";
@@ -32,11 +34,14 @@ const END = '<span data-lh-shell="end" hidden></span>';
 
 function rendered(): string {
   return renderToStaticMarkup(
-    <MemoryRouter initialEntries={["/"]}>
-      <PublicLayout noNavSpacer landing footer={false}>
-        <HeroSection />
-      </PublicLayout>
-    </MemoryRouter>,
+    // The app draws every icon inside App.tsx's LucideProvider (Q2027: one weight), so the shell is rendered there too.
+    <LucideProvider strokeWidth={ICON_STROKE_PX} nonScalingStroke>
+      <MemoryRouter initialEntries={["/"]}>
+        <PublicLayout noNavSpacer landing footer={false}>
+          <HeroSection />
+        </PublicLayout>
+      </MemoryRouter>
+    </LucideProvider>,
   );
 }
 

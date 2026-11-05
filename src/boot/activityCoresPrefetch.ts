@@ -94,7 +94,7 @@ const isHomePath = (pathname: string): boolean => (pathname.length > 1 ? pathnam
  * worse). So /home sends it from the entry only on a link that reports itself fast (Network Information API:
  * downlink >= 3 Mbps, rtt <= 300 ms, no Save-Data). No API (Safari, Firefox) or a slow link: Home reads as before.
  */
-export function onFastLink(): boolean {
+function onFastLink(): boolean {
   const c = (navigator as Navigator & { connection?: { downlink?: number; rtt?: number; saveData?: boolean } }).connection;
   if (!c || c.saveData === true) return false;
   return typeof c.downlink === "number" && c.downlink >= 3 && typeof c.rtt === "number" && c.rtt <= 300;

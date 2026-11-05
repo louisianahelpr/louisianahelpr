@@ -75,7 +75,13 @@ export async function findPageAction(page: Page, tag: "poster" | "helpr", name: 
  *  A Posted card's face is a LINK named "Open <title>" to /jobs/:id (MineJobFace), not a level-2 heading: the heading
  *  went with the face rebuild, and e2e-journeys 41553090940 timed out on it (04-admin-safety no-show). */
 export function cardByTitle(page: Page, title: string): Locator {
-  return page.locator("div.liquid-glass").filter({ has: page.getByRole("link", { name: `Open ${title}`, exact: true }) }).last();
+  return page.locator("div.liquid-glass").filter({ has: page.getByRole("link", { name: openFaceName(title) }) }).last();
+}
+
+/** The face link's name: "Open <title>", then the money and the date it shows ("Open X, $120, Sat, Nov 8"; WCAG 2.5.3,
+ *  Q1816). Anchored so "Open X" never matches a card titled "X and more". */
+export function openFaceName(title: string): RegExp {
+  return new RegExp(`^Open ${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(,|$)`);
 }
 
 /**

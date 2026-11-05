@@ -31,6 +31,8 @@
  * @mutate src/components/tracker/JobProgress.tsx |   const current: StepState = tone === "problem" ? (label === "Dispute" ? "alarm" : "problem") : waitingOnYou ? "you" : "them"; |   const current: StepState = tone === "problem" ? "problem" : waitingOnYou ? "you" : "them";
  * @mutate src/components/tracker/jobStepFromWait.ts |   if (job.date_needed && !(job.helper_dayof_confirmed_at && job.poster_confirmed_at)) return at(3); |   if (job.date_needed && !job.helper_dayof_confirmed_at) return at(3);
  * @mutate src/components/job-card/trackerSteps.ts |   { key: "arrived", label: "Arrived", action: "I've arrived", icon: MapPin, color: "text-primary" }, |   { key: "arrived", label: "Arrived", action: null, icon: MapPin, color: "text-primary" },
+ * Q1816 (axe 4.14 label-content-name-mismatch, WCAG 2.5.3): a step tip's name holds the word it draws at every width.
+ * @mutate src/components/tracker/JobProgress.tsx | aria-label={ts ? `${named} — ${tipText}` : `${named}: what this step is waiting on`} | aria-label={ts ? `${full} — ${tipText}` : `${full}: what this step is waiting on`}
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
@@ -95,6 +97,21 @@ describe("the old tracker's steps and actions are all still here (owner 2026-10-
     expect(container.querySelector("[role='tooltip']")).toBeNull();
     // A step with no stamp (Offered) is not a control.
     expect(container.querySelector('[data-step-tip="1"]')).toBeNull();
+  });
+
+  it("a step tip's name holds the word it draws, short (375) and full (wider), in axe's words (Q1816)", () => {
+    const { container } = render(<JobProgress progress={live({ stamps: STAMPS })} />);
+    const words = (t: string) => t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().split(/\s+/).filter(Boolean);
+    const tips = [...container.querySelectorAll<HTMLElement>("[data-step-tip]")];
+    expect(tips.length).toBeGreaterThan(1);
+    for (const tip of tips) {
+      const name = ` ${words(tip.getAttribute("aria-label") ?? "").join(" ")} `;
+      for (const cls of ["job-step-short", "job-step-full"]) {
+        const shown = words(tip.querySelector(`.${cls}`)?.textContent ?? "");
+        expect(shown.length, cls).toBeGreaterThan(0);
+        expect(name, `${cls} "${shown.join(" ")}" in "${name}"`).toContain(` ${shown.join(" ")} `);
+      }
+    }
   });
 
   it("a tap on the current step says why it is that colour (the line)", () => {

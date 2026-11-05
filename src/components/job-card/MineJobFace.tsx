@@ -108,7 +108,8 @@ export function MineJobFace({
         <Link
           to={`/jobs/${encodeURIComponent(jobId)}`}
           data-mine-face-open=""
-          aria-label={`Open ${title}`}
+          // WCAG 2.5.3 (axe label-content-name-mismatch, Q1816): the name holds every word the face shows, in order.
+          aria-label={[`Open ${title}`, money, when].filter(Boolean).join(", ")}
           className="flex min-w-0 flex-1 items-start gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span
@@ -151,6 +152,7 @@ export function MineJobFace({
                 </span>
               )}
             </span>
+            {when && " "}
             {when && (
               <span className="mt-0.5 block text-ds-13 text-muted-foreground">
                 {when}

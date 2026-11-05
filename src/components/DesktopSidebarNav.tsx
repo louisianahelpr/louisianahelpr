@@ -270,6 +270,8 @@ const DesktopSidebarRail = () => {
                 >
                   {shown}
                   {/* Audit #42: a closed section says "Coming soon" under its name, as the phone chips do. */}
+                  {/* The space keeps "Declutter" and "Coming soon" two words for axe's label-content-name-mismatch (Q1816). */}
+                  {soon && " "}
                   {soon && <SoonPill variant="rail" aria-hidden="true" />}
                   {/* A2-L17: a tester's open section says "Coming soon" too (olive), as the phone's chips do. */}
                   {preview && <PreviewPill variant="rail" />}

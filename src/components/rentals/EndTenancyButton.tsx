@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -57,9 +58,9 @@ export function EndTenancyButton({ tenancyId, kind, onDone }: { tenancyId: strin
     <>
       {kind === "leave" ? (
         // Quiet, like Delete Account in Profile: the card's one main action stays "Request a repair".
-        <button type="button" className="min-h-[44px] text-sm text-muted-foreground underline-offset-4 hover:underline disabled:opacity-50" disabled={done} onClick={() => setOpen(true)}>
+        <InlineTextButton className="text-sm text-muted-foreground underline-offset-4 disabled:opacity-50" disabled={done} onClick={() => setOpen(true)}>
           {w.button}
-        </button>
+        </InlineTextButton>
       ) : (
         <Button type="button" size="sm" variant="outline" disabled={done} onClick={() => setOpen(true)}>
           {w.button}

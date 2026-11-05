@@ -8,7 +8,7 @@
  * through signup when needed; api/share.ts gives it a real card; and record_booking_source records
  * which Helpr brought a new poster (SQL behaviour: src/test/pglite/bookMeBookingSource.pglite.mjs).
  *
- * @mutate src/App.tsx |       <Route path="/book/:userId" element={<RouteErrorBoundary>{routeEl(<BookHelprPage />)}</RouteErrorBoundary>} /> |       <Route path="/book/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BookHelprPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
+ * @mutate src/App.tsx |       <Route path="/book/:userId" element={<RouteErrorBoundary>{routeEl(<BookHelprRoute><BookHelprPage /></BookHelprRoute>)}</RouteErrorBoundary>} /> |       <Route path="/book/:userId" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><BookHelprRoute><BookHelprPage /></BookHelprRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
  * @mutate src/lib/bookMe.ts |   return signedIn ? bookOfferPath(userId) : signupUrlFor(bookOfferPath(userId)); |   return signedIn ? bookOfferPath(userId) : "/signup";
  * @mutate src/lib/bookMe.ts |   if (remembered !== offerTo) return "none"; |   if (!remembered) return "none";
  * @mutate api/share.ts |   if (route.kind === "book") { |   if (false) {
@@ -49,8 +49,9 @@ describe("the link and the way in", () => {
   });
 
   it("/book/:userId is a public route (no sign-in wall)", () => {
+    // H5 (audit 11-05): it forwards to /u/<handle> (src/test/profileLinkForwards.test.tsx); still no sign-in wall.
     const app = blankComments(read("src/App.tsx"));
-    expect(app).toContain('<Route path="/book/:userId" element={<RouteErrorBoundary>{routeEl(<BookHelprPage />)}</RouteErrorBoundary>} />');
+    expect(app).toContain('<Route path="/book/:userId" element={<RouteErrorBoundary>{routeEl(<BookHelprRoute><BookHelprPage /></BookHelprRoute>)}</RouteErrorBoundary>} />');
   });
 
   it("Post a job records the source on landing with that Helpr's offer", () => {
@@ -61,7 +62,7 @@ describe("the link and the way in", () => {
 });
 
 describe("where the link and the guarantee show", () => {
-  it("own profile has the share button and the profile menu has a Book me row to your /book page", () => {
+  it("own profile has the share button and the profile menu has a Book me row to your /u page", () => {
     // B66: the pair lives in OwnProfileActions (BookMeShareButton.tsx) so UserProfile.tsx keeps its size baseline.
     const profile = blankComments(read("src/pages/user/UserProfile.tsx"));
     expect(profile).toContain("<OwnProfileActions userId={userId} displayName={displayName} />");
@@ -71,7 +72,7 @@ describe("where the link and the guarantee show", () => {
     expect(actions).toContain("onClick={() => void shareMyPage(firstNameOf(displayName))}");
     expect(actions).not.toMatch(/shareBookMe/);
     const menu = blankComments(read("src/components/profile/profileLanding/useProfileLandingDerived.tsx"));
-    expect(menu).toMatch(/key: "book-me", label: "Book me on Helpr"[^}]*href: `\/book\/\$\{profile\.user_id\}`/);
+    expect(menu).toMatch(/key: "book-me", label: "Book me on Helpr"[^}]*href: profile\.handle \? `\/u\/\$\{encodeURIComponent\(profile\.handle\)\}` : `\/book\/\$\{profile\.user_id\}`/);
   });
 
   it("the guarantee shows at Review on a first one-Helpr post, on /book and on the landing's hire steps", () => {

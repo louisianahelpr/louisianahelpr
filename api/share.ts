@@ -773,6 +773,31 @@ async function fetchBookCard(id: string): Promise<BookLookup> {
   }
 }
 
+/**
+ * H5 (share-profile audit 11-05, one public profile link): the member's current /u handle for an old /book/<id> or
+ * /user/<id> link, through handle_for_user (20261105171316; NULL under exactly public_profile_by_handle's rules).
+ * `unknown` (not deployed yet, timeout, any fault) keeps the old card.
+ */
+type HandleLookup = { state: "found"; handle: string } | { state: "absent" } | { state: "unknown" };
+async function fetchHandleForUser(id: string): Promise<HandleLookup> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !UUID_RE.test(id)) return { state: "unknown" };
+  try {
+    const handle = await anonRpc<string | null>("handle_for_user", { p_user_id: id });
+    if (handle === undefined) return { state: "unknown" };
+    return typeof handle === "string" && HANDLE_RE.test(handle) ? { state: "found", handle } : { state: "absent" };
+  } catch {
+    // Timeout, DNS, connection refused: we did not learn anything.
+    return { state: "unknown" };
+  }
+}
+
+/** An old /book or /user link whose member has a public page gets that page's card, its og:url the /u link. */
+async function profileCardForUserId(id: string): Promise<Meta | null | "absent" | "unknown"> {
+  const h = await fetchHandleForUser(id);
+  if (h.state !== "found") return h.state;
+  return metaForProfile(h.handle, `${SITE_ORIGIN}/u/${h.handle}`);
+}
+
 const BOOK_ROBOTS = "noindex, follow";
 const BOOK_CDN_CACHE = "public, s-maxage=300, stale-while-revalidate=600";
 
@@ -800,6 +825,10 @@ function unavailableBookMeta(url: string): Meta {
 
 async function metaForBook(id: string, url: string): Promise<Meta | null> {
   if (!UUID_RE.test(id)) return unavailableBookMeta(url);
+  // H5: the /book page forwards to /u/<handle>, so its card is that page's; no public page = not available.
+  const u = await profileCardForUserId(id);
+  if (u === "absent") return unavailableBookMeta(url);
+  if (u !== "unknown") return u;
   const lookup = await fetchBookCard(id);
   if (lookup.state === "unknown") return null;
   if (lookup.state === "absent") return unavailableBookMeta(url);
@@ -1149,6 +1178,12 @@ async function resolveMeta(url: URL): Promise<Meta | null> {
   }
 
   const seg = safeIdSegment(route.id);
+  // H5: a signed-out visitor to /user/<id> forwards to /u/<handle>, so the card is that page's; without a public page
+  // the members-only card stays.
+  if (seg) {
+    const u = await profileCardForUserId(seg);
+    if (u !== "absent" && u !== "unknown") return u;
+  }
   return metaForUser(seg ? `${SITE_ORIGIN}/user/${seg}` : `${SITE_ORIGIN}/login`);
 }
 

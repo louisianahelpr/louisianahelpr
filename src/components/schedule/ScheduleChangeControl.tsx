@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarClock } from "lucide-react";
 import { toast } from "sonner";
@@ -240,15 +241,14 @@ export function ScheduleChangeControl({
               Decline
             </button>
             {/* Board 66/172: the answer can be another time. Asking again replaces this request and tells them. */}
-            <button
-              type="button"
+            <InlineTextButton
               disabled={busy}
               onClick={() => setAsking(true)}
-              className="min-h-[44px] px-1 text-ds-12 font-semibold underline underline-offset-2 disabled:opacity-40"
+              className="text-ds-12 font-semibold underline underline-offset-2 disabled:opacity-40"
               style={{ color: "hsl(var(--bark))" }}
             >
               Suggest another time
-            </button>
+            </InlineTextButton>
           </div>
         </div>
       )}
@@ -260,8 +260,7 @@ export function ScheduleChangeControl({
             current start time.
           </p>
           {/* Board 66/172 slice 3: whoever asked can take it back while it is pending. */}
-          <button
-            type="button"
+          <InlineTextButton
             disabled={busy}
             onClick={() =>
               act(async () => {
@@ -271,23 +270,22 @@ export function ScheduleChangeControl({
                 return { warn: s === "expired" ? expiredMessage(s) : "It was already answered, so there's nothing to take back." };
               })
             }
-            className="min-h-[44px] px-1 text-ds-11 font-semibold underline underline-offset-2 disabled:opacity-40"
+            className="text-ds-11 font-semibold underline underline-offset-2 disabled:opacity-40"
             style={{ color: "hsl(var(--bark))" }}
           >
             Withdraw request
-          </button>
+          </InlineTextButton>
         </div>
       )}
 
       {!askedOfMe && !hideAsk && (
-        <button
-          type="button"
+        <InlineTextButton
           onClick={() => setAsking(true)}
-          className="min-h-[44px] px-1 text-ds-11 font-semibold underline underline-offset-2"
+          className="text-ds-11 font-semibold underline underline-offset-2"
           style={{ color: "hsl(var(--bark))" }}
         >
           {askedByMe ? "Ask for a different date or time" : "Ask for a new date or time"}
-        </button>
+        </InlineTextButton>
       )}
 
       {(!hideAsk || askedOfMe) && (

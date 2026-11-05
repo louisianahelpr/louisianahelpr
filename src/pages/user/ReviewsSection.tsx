@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Star, ChevronDown } from "lucide-react";
@@ -150,7 +151,7 @@ export const ReviewsSection = ({
           <div className="flex items-center justify-between gap-2">
             <span className="text-ds-10 uppercase tracking-wide text-muted-foreground font-semibold">Filter</span>
             {hasActiveFilter && (
-              <button
+              <InlineTextButton
                 onClick={() => {
                   onSetReviewCategoryFilter(null);
                   onSetReviewRatingFilter("all");
@@ -159,7 +160,7 @@ export const ReviewsSection = ({
                 className="text-ds-11 underline text-muted-foreground hover:text-foreground"
               >
                 Clear
-              </button>
+              </InlineTextButton>
             )}
           </div>
           {distinctCategories.length > 0 && (
@@ -315,8 +316,7 @@ export const ReviewsSection = ({
               )}
               {/* Add/Edit response — own profile only */}
               {isOwnProfile && !r.response_text && (
-                <button
-                  type="button"
+                <InlineTextButton
                   className="mt-2 text-ds-11 font-sans font-semibold underline underline-offset-2"
                   style={{ color: "hsl(var(--bark))" }}
                   onClick={() => {
@@ -324,11 +324,10 @@ export const ReviewsSection = ({
                   }}
                 >
                   Add response
-                </button>
+                </InlineTextButton>
               )}
               {isOwnProfile && r.response_text && (
-                <button
-                  type="button"
+                <InlineTextButton
                   className="mt-2 text-ds-11 font-sans font-semibold underline underline-offset-2"
                   style={{ color: "hsl(var(--olivewood)/0.8)" }}
                   onClick={() => {
@@ -336,7 +335,7 @@ export const ReviewsSection = ({
                   }}
                 >
                   Edit response
-                </button>
+                </InlineTextButton>
               )}
               {/* Inline response editor */}
               {isOwnProfile && respondingToReview === r.id && (

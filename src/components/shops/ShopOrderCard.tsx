@@ -6,6 +6,7 @@
  * private until then, and the server returns nothing earlier).
  */
 import type { ReactNode } from "react";
+import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useQuery } from "@tanstack/react-query";
 import { MapPin } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
@@ -26,7 +27,7 @@ function PickupAddress({ orderId }: { orderId: string }) {
     return (
       <p className="text-sm">
         We couldn't load the pickup address.{" "}
-        <button type="button" className="underline" onClick={() => void q.refetch()}>Try again</button>
+        <InlineTextButton className="underline" onClick={() => void q.refetch()}>Try again</InlineTextButton>
       </p>
     );
   }

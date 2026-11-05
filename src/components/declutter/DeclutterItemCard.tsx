@@ -4,6 +4,7 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { Heart } from "lucide-react";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
@@ -151,20 +152,22 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundl
   return (
     <div className="relative">
       {card}
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="iconCompact"
         data-card-heart=""
         aria-pressed={save.on}
         // A3-98 (audit 7, 11-01): one word for keeping something for later, app-wide: Save (the owner's word; Jobs' "Save job").
         aria-label={save.on ? `Remove ${item.title} from saved` : `Save ${item.title}`}
         disabled={save.pending}
         onClick={save.toggle}
-        className="absolute right-0.5 top-0.5 flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="absolute right-0.5 top-0.5 disabled:opacity-100 [&_svg]:size-4"
       >
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-background/90 shadow-sm">
           <Heart className={`h-4 w-4 ${save.on ? "text-[hsl(var(--burnt-sienna))]" : "text-foreground"}`} fill={save.on ? "currentColor" : "none"} aria-hidden />
         </span>
-      </button>
+      </Button>
     </div>
   );
 }

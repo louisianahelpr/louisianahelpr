@@ -134,7 +134,7 @@ describe("cwv-lab blocks every prod write before it measures", () => {
     // Service workers stay blocked on every measured context.
     const contexts = [...src.matchAll(/const ctx = await browser\.newContext\(\{[\s\S]*?\}\);/g)];
     expect(contexts.length).toBeGreaterThan(0);
-    for (const c of contexts) expect(c[0]).toContain('serviceWorkers: "block"');
+    expect(contexts.filter((c) => !c[0].includes('serviceWorkers: "block"')).map((c) => c[0])).toEqual([]);
     // ...and that list IS every context the lab can open. A context under any
     // other name, or the implicit one browser.newPage() makes, would get no
     // write block, no probe and live service workers, and every check above

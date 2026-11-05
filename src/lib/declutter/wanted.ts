@@ -234,10 +234,7 @@ export interface WantedAnswer { wantedId: string; maxCents: number; what: string
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-export function quickListHref(post: { id: string; max_price_cents: number; what: string }): string {
-  const q = new URLSearchParams({ answer: post.id, max: String(post.max_price_cents), what: post.what });
-  return `/declutter/sell?${q.toString()}`;
-}
+export { quickListHref } from "@/lib/declutter/wantedLinks";
 
 /** The post a new listing answers, from the sell page's address; null when absent or malformed. */
 export function readWantedAnswer(params: URLSearchParams): WantedAnswer | null {

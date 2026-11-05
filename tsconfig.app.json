@@ -95,6 +95,8 @@
     "supabase/functions/_shared/crewCancelQuote.ts",
     "supabase/functions/_shared/claudeMessages.ts",
     "supabase/functions/_shared/instantBookSweep.ts",
+    "supabase/functions/_shared/stripeTestMode.ts",
+    "supabase/functions/stripe-webhook/testModeScope.ts",
     "supabase/functions/_shared/instantBookRefund.ts",
     "supabase/functions/_shared/addressMatch.ts",
     "supabase/functions/_shared/geocodeAddressPoint.ts",

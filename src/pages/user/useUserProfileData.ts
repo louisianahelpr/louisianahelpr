@@ -249,14 +249,9 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       const wantsReplyLatency =
         !!currentUserId && (currentUserId === targetUserId || currentUserId === userId);
 
-      const [reviewsRes, postedRes, workedRes, idCheckRes, lastActiveRes, mutualRes, posterReviewsRes, repeatHireRes, credentialTierRes, existingThreadRes, appliedToMineRes, publicStatsRes, publicReviewsRes, replyLatencyRes] = await Promise.all([
-        // feedback_visible_at filter: anti-retaliation reveal — hidden until
-        // both sides post or 14 days pass. set_review_visibility trigger
-        // stamps this column on insert.
-        withReviewTags(
-          () => supabase.from("reviews").select("id, rating, feedback, tags, created_at, reviewer_id, job_id, response_text, response_at, jobs!inner(status)", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).neq("jobs.status", "cancelled").order("created_at", { ascending: false }).limit(20),
-          () => supabase.from("reviews").select("id, rating, feedback, created_at, reviewer_id, job_id, response_text, response_at, jobs!inner(status)", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).neq("jobs.status", "cancelled").order("created_at", { ascending: false }).limit(20),
-        ),
+      const [postedRes, workedRes, idCheckRes, lastActiveRes, mutualRes, repeatHireRes, credentialTierRes, existingThreadRes, appliedToMineRes, publicStatsRes, publicReviewsRes, replyLatencyRes] = await Promise.all([
+        // The review-list select (feedback_visible_at reveal filter) is a fallback for a failed
+        // get_public_profile_reviews; it is sent below only then (Q946, 2026-11-04).
         // customer_id + helper_id: JobsList shows only rows the viewer was a
         // party to (A3-C8), never another poster's job on a public profile.
         supabase.from("jobs").select("id, title, status, category, budget, created_at, customer_id, helper_id, cancellation_reason, cancelled_by").eq("customer_id", userId!).order("created_at", { ascending: false }).limit(20),
@@ -324,12 +319,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // fallback can over-count a review left on a job that later went
         // completed → disputed → cancelled. Over-counting a rare transition is
         // a far smaller lie than reporting every helper as unrated.
-        supabase
-          .from("reviews")
-          .select("rating, job_id")
-          .eq("reviewee_id", userId!)
-          .eq("status", "published")
-          .lte("feedback_visible_at", new Date().toISOString()),
+        // (That read is a fallback for a failed get_public_profile_stats: sent below only then, Q946.)
         // Repeat-hire % (#milestones) — % of unique customers who hired
         // this helper more than once. PGRST202-safe: function may not be
         // deployed on production yet; falls back to null (milestone hidden).
@@ -405,9 +395,8 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
       // we already have. But don't silently swallow: report so a real outage
       // is observable instead of looking like "this user has 0 reviews".
       for (const [label, res] of [
-        ["reviews", reviewsRes], ["posted_jobs", postedRes], ["worked_jobs", workedRes],
+        ["posted_jobs", postedRes], ["worked_jobs", workedRes],
         ["trust_signals", idCheckRes],
-        ["poster_reviews", posterReviewsRes],
       ] as const) {
         if (res.error) {
           report(res.error, {
@@ -494,15 +483,26 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
             (r) => r?.user_id === targetUserId,
           ) ?? null;
 
-      /* THE TWO FALLBACK READS (Q946, 2026-11-04). The posted-total count and the 50-row
-         worked-timing select only matter when get_public_profile_stats gave no number for them
-         (an error, no matching row, or a NULL field), so they go out only then, instead of on
+      const hasPublicReviewRpc = !reviewsRpcRes.error && Array.isArray(reviewsRpcRes.data);
+      const publicReviewRows: PublicProfileReviewRow[] = hasPublicReviewRpc
+        ? (reviewsRpcRes.data as PublicProfileReviewRow[])
+        : [];
+
+      /* THE FALLBACK READS (Q946, 2026-11-04). The posted-total count, the 50-row worked-timing
+         select and the unlimited ratings select only matter when get_public_profile_stats gave no
+         number for them (an error, no matching row, or a NULL field), so they go out only then, instead of on
          every load beside an answer that already won. Every field they back is a COUNT on the
-         server, never NULL once the RPC answered, so the page reads the same. */
+         server, never NULL once the RPC answered, so the page reads the same. The 20-row review
+         list select backs a failed get_public_profile_reviews (a signed-out visitor's 42501
+         included) and the review count, so it goes out only then too. */
       const needsPostedTotal = int(publicStats?.posted_jobs_total) === null;
       const needsTiming =
         int(publicStats?.on_time_sample) === null || int(publicStats?.revision_sample) === null;
-      const [postedTotalRes, workedTimingRes] = await Promise.all([
+      const needsReviewCount = int(publicStats?.review_count) === null;
+      const needsReviewList = !hasPublicReviewRpc || needsReviewCount;
+      // No stats row means no review_count too, so this also covers a failed stats call.
+      const needsRatings = needsReviewCount;
+      const [postedTotalRes, workedTimingRes, reviewsRes, posterReviewsRes] = await Promise.all([
         needsPostedTotal
           ? supabase.from("jobs").select("id", { count: "exact", head: true }).eq("customer_id", userId!).or(NOT_AN_EXPIRED_LISTING_ANY_STATUS)
           : Promise.resolve({ data: null, error: null, count: null as number | null }),
@@ -517,8 +517,24 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
               .order("created_at", { ascending: false })
               .limit(50)
           : Promise.resolve({ data: [] as unknown[], error: null }),
+        // feedback_visible_at filter: anti-retaliation reveal — hidden until both sides post or
+        // 14 days pass. set_review_visibility trigger stamps this column on insert.
+        needsReviewList
+          ? withReviewTags(
+            () => supabase.from("reviews").select("id, rating, feedback, tags, created_at, reviewer_id, job_id, response_text, response_at, jobs!inner(status)", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).neq("jobs.status", "cancelled").order("created_at", { ascending: false }).limit(20),
+            () => supabase.from("reviews").select("id, rating, feedback, created_at, reviewer_id, job_id, response_text, response_at, jobs!inner(status)", { count: "exact" }).eq("reviewee_id", userId!).lte("feedback_visible_at", new Date().toISOString()).neq("jobs.status", "cancelled").order("created_at", { ascending: false }).limit(20),
+          )
+          : Promise.resolve({ data: null, error: null, count: null as number | null }),
+        needsRatings
+          ? supabase
+              .from("reviews")
+              .select("rating, job_id")
+              .eq("reviewee_id", userId!)
+              .eq("status", "published")
+              .lte("feedback_visible_at", new Date().toISOString())
+          : Promise.resolve({ data: [] as Array<{ rating: number; job_id: string | null }>, error: null }),
       ]);
-      for (const [label, res] of [["posted_total", postedTotalRes], ["worked_timing", workedTimingRes]] as const) {
+      for (const [label, res] of [["posted_total", postedTotalRes], ["worked_timing", workedTimingRes], ["reviews", reviewsRes], ["poster_reviews", posterReviewsRes]] as const) {
         if (res.error) {
           report(res.error, {
             severity: "warning",
@@ -527,11 +543,6 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
           });
         }
       }
-
-      const hasPublicReviewRpc = !reviewsRpcRes.error && Array.isArray(reviewsRpcRes.data);
-      const publicReviewRows: PublicProfileReviewRow[] = hasPublicReviewRpc
-        ? (reviewsRpcRes.data as PublicProfileReviewRow[])
-        : [];
 
       const lastActiveAt =
         lastActiveRes.data?.[0]?.last_active_at

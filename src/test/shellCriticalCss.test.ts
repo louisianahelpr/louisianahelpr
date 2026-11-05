@@ -7,11 +7,13 @@
  * @mutate scripts/inline-shell-css.mjs |       if (doc.querySelector(base)) return true; |       if (doc.querySelector(base) && base.includes(":")) return true;
  * @mutate scripts/inline-shell-css.mjs | .replace(PSEUDO_ELEMENT, "").replace(DYNAMIC, "") | .replace(PSEUDO_ELEMENT, "")
  * @mutate scripts/inline-shell-css.mjs |   return false;\n} | return true;\n}
- * @mutate scripts/inline-shell-css.mjs | data-lh-landing-shell=""><head> | ><head>
- * @mutate scripts/inline-shell-css.mjs | #lh-landing-shell{display:block; | #lh-landing-shell{display:none;
- * @mutate scripts/inline-shell-css.mjs |   const block = `<style id="${STYLE_ID}">${critical}${SHOW_RULE}</style>`; |   const block = `<style id="${STYLE_ID}">${SHOW_RULE}</style>`;
+ * @mutate scripts/inline-shell-css.mjs | data-theme="${theme}" ${htmlAttr}><head> | data-theme="${theme}"><head>
+ * @mutate scripts/inline-shell-css.mjs | const FIXED = "{display:block; | const FIXED = "{display:none;
+ * @mutate scripts/inline-shell-css.mjs | `<style id="${STYLE_ID}">${critical}${present | `<style id="${STYLE_ID}">${present
  * @mutate scripts/inline-shell-css.mjs |     if (!families.has(fam)) at.remove(); |     at.remove();
  * @mutate scripts/inline-shell-css.mjs |     if (!families.has(fam)) at.remove(); |     {}
+ * @mutate scripts/inline-shell-css.mjs |   root.walkDecls((d) => { if (d.prop.startsWith("--") && !used.has(d.prop)) d.remove(); }); |
+ * @mutate scripts/inline-shell-css.mjs | for (const n of refs(v)) if (!used.has(n)) { used.add(n); queue.push(n); } | {}
  * @mutate package.json | node scripts/inline-shell-css.mjs && node scripts/build-og-shell.mjs | node scripts/build-og-shell.mjs
  */
 import { readFileSync } from "node:fs";
@@ -26,6 +28,10 @@ const SHELL = INDEX.slice(INDEX.indexOf(SHELL_START), INDEX.indexOf(SHELL_END));
 // A compiled sheet in the shape Tailwind emits: the tokens, preflight, utilities the shell uses and ones it does not.
 const SHEET = [
   ":root{--lp-money:20 50% 40%}",
+  // Tokens: one read by a kept rule through another token, one read by nothing in the first frame.
+  ":root{--chain-a-xyz:var(--chain-b-xyz);--chain-b-xyz:3px;--unused-token-xyz:1px}",
+  ".landing-h1{margin:var(--chain-a-xyz)}",
+  ".not-in-the-shell-xyz{padding:var(--unused-token-xyz)}",
   '[data-theme="dark"]{--lp-money:20 50% 60%}',
   "*,:before,:after{box-sizing:border-box}",
   "html{line-height:1.5}",
@@ -79,6 +85,8 @@ describe("the landing shell's own CSS rides in the HTML (Q2705)", () => {
     expect(out, "the hero's own face, or it paints in a fallback and swaps").toContain("@font-face{font-family:Bodoni Moda;src:url(/fonts/b.woff2)}");
     expect(out).not.toContain("Unused Face");
     expect(out).not.toContain("@keyframes");
+    expect(out, "a token read through another token stays").toContain(":root{--chain-a-xyz:var(--chain-b-xyz);--chain-b-xyz:3px}");
+    expect(out, "a token nothing in the first frame reads goes (it kept the block over its byte cap)").not.toContain("--unused-token-xyz");
   });
 
   it("writes them with the show rule into <head>, once", () => {

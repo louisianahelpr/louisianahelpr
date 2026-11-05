@@ -12,7 +12,7 @@
  * @mutate src/components/profile/SubscriptionTab.tsx | <MembershipStillBilled profile={profile} onManage={handleManageSubscription} loading={loadingPortal} /> | {null}
  * @mutate src/lib/subscriptionTiers.ts | p.subscription_billing_cycle === "one_time") return false; | p.subscription_billing_cycle === "never") return false;
  * @mutate supabase/functions/stripe-webhook/handlers/customerSubscriptionUpdated.ts | ...(STILL_BILLING_STATUSES.includes(subscription.status) ? { stripe_subscription_id: subscription.id } : {}), | ,
- * @mutate src/components/profile/EarningsTab.tsx | {membershipsOn && profileHasPerk(profile?.subscription_tier, profile?.subscription_expires_at, "advancedAnalytics") && (<button | {membershipsOn && (<button
+ * @mutate src/components/profile/EarningsTab.tsx | {membershipsOn && profileHasPerk(profile?.subscription_tier, profile?.subscription_expires_at, "advancedAnalytics") && (<ListRow | {membershipsOn && (<ListRow
  */
 import { describe, it, expect } from "vitest";
 import { existsSync, readFileSync } from "node:fs";
@@ -31,7 +31,7 @@ describe("plans show only to plan holders (#23)", () => {
     expect(holdsPaidPlan(null, null)).toBe(false);
   });
   it("the Advanced analytics entry needs a plan, and no upgrade panel exists", () => {
-    expect(read("src/components/profile/EarningsTab.tsx")).toMatch(/membershipsOn && profileHasPerk\(profile\?\.subscription_tier, profile\?\.subscription_expires_at, "advancedAnalytics"\) && \(<button/);
+    expect(read("src/components/profile/EarningsTab.tsx")).toMatch(/membershipsOn && profileHasPerk\(profile\?\.subscription_tier, profile\?\.subscription_expires_at, "advancedAnalytics"\) && \(<ListRow/);
     expect(read("src/pages/profile/HelperAnalytics.tsx")).not.toMatch(/no paid plans/);
     expect(existsSync(join(ROOT, "src/components/analytics/AnalyticsUpgradePanel.tsx"))).toBe(false);
     expect(read("src/pages/profile/HelperAnalytics.tsx")).not.toMatch(/AnalyticsUpgradePanel/);

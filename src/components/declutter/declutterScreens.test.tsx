@@ -371,8 +371,9 @@ describe("Declutter screens", () => {
     expect(await screen.findByText("Dana R.")).toBeInTheDocument();
     expect(document.querySelector("[data-seller-rating]")?.textContent).toMatch(/4\.8 stars from .*12 reviews/);
     // DA-18: the link's name is all a screen reader hears of the card, so the rating is said there, as a sentence.
-    // @mutate src/components/declutter/DeclutterSellerCard.tsx | `See the ${noun}, ${name}${ratingWords}` | `See the ${noun}, ${name}`
-    expect(document.querySelector("[data-seller-card]")?.getAttribute("aria-label")).toMatch(/, 4\.8 stars from 12 reviews$/);
+    // Since #3491 (axe label-content-name-mismatch) the name is the card's own words, so they hold the rating sentence.
+    // @mutate src/components/declutter/DeclutterSellerCard.tsx | <span className="sr-only"> stars from </span> | <span className="sr-only"> </span>
+    expect(screen.getByRole("link", { name: /^See the seller,\s*Dana R\.\s*4\.8\s*stars from\s*12 reviews/ })).toHaveAttribute("data-seller-card");
   });
 
   // Deep audit #58: the seller's pickup times on the item page, before anyone buys.

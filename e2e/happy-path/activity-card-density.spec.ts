@@ -584,7 +584,8 @@ test.describe("My Posts — card density + header", () => {
     const row = tracker.locator("[data-job-steps]");
     await expect(row).toHaveCount(1);
     const steps = await row.evaluate((el) =>
-      Array.from(el.children).map((c) => ({ top: (c as HTMLElement).offsetTop, text: ((c as HTMLElement).innerText ?? "").trim() })),
+      // The drawn word is the first line; a step tip's sr-only name line ("Hired — <when>", Q1816) follows it.
+      Array.from(el.children).map((c) => ({ top: (c as HTMLElement).offsetTop, text: ((c as HTMLElement).innerText ?? "").trim().split("\n")[0].trim() })),
     );
     expect(steps.map((s) => s.text), "the eight steps, in order").toEqual(["Post", "Offer", "Hired", "Conf.", "Way", "Arr.", "Work", "Done"]);
     // ONE line, and it FITS: no step wraps, nothing scrolls sideways at 375.

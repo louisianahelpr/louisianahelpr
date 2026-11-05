@@ -94,7 +94,7 @@ import { JobTracking } from "./JobTracking";
  *
  * @mutate src/lib/doneFloor.ts |   return stamps.reduce((a, b) => (Date.parse(b) < Date.parse(a) ? b : a)); |   return stamps[0];
  * @mutate src/components/JobTracking.tsx |   const doneFloorActive = useDoneFloorActive(doneFloorStart(posterConfirmedWorkingAt, jobStamps.arrivedAt)); |   const doneFloorActive = useDoneFloorActive(posterConfirmedWorkingAt ?? jobStamps.arrivedAt);
- * @mutate src/components/JobTracking.tsx |         const doneTooEarly = isDoneStep && doneFloorActive; |         const doneTooEarly = false;
+ * @mutate src/components/JobTrackingView.tsx |         const doneTooEarly = isDoneStep && doneFloorActive; |         const doneTooEarly = false;
  * @mutate src/components/job-card/useDoneFloor.ts |   return unlocksAt !== null && now < unlocksAt; |   return false;
  */
 const AGO_MIN = (m: number) => new Date(Date.now() - m * 60e3).toISOString();

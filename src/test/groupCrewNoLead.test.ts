@@ -239,7 +239,7 @@ describe("a crew has no lead (Q407)", () => {
     // Files whose proof_*_urls object literal is a READ, never a write, each with its reason. Exact:
     // an entry that stops matching is stale and fails below.
     const NOT_WRITERS: Record<string, string> = {
-      "src/components/JobTracking.tsx": "hands the job's proof URLs (read by its own select) to jobProgress for the card's photo line; it writes no proof column",
+      "src/components/JobTrackingView.tsx": "the open tracker's view (Q806: moved out of JobTracking.tsx); hands the job's proof URLs (read by its own select) to jobProgress for the card's photo line; it writes no proof column",
       "src/pages/admin/preview/jobPreviewSamples.ts": "the admin job-page preview's SAMPLE job row (empty proof lists) that its fake backend answers reads with; the preview never sends a write (previewBackend answers every write as 'blocked' without sending it), so it writes no proof column",
     };
     expect(Object.keys(NOT_WRITERS).filter((f) => !writers.includes(f)), "stale NOT_WRITERS entry").toEqual([]);

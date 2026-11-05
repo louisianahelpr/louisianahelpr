@@ -31,13 +31,17 @@
  * @mutate src/components/tracker/JobProgress.tsx |   const current: StepState = tone === "problem" ? (label === "Dispute" ? "alarm" : "problem") : waitingOnYou ? "you" : "them"; |   const current: StepState = tone === "problem" ? "problem" : waitingOnYou ? "you" : "them";
  * @mutate src/components/tracker/jobStepFromWait.ts |   if (job.date_needed && !(job.helper_dayof_confirmed_at && job.poster_confirmed_at)) return at(3); |   if (job.date_needed && !job.helper_dayof_confirmed_at) return at(3);
  * @mutate src/components/job-card/trackerSteps.ts |   { key: "arrived", label: "Arrived", action: "I've arrived", icon: MapPin, color: "text-primary" }, |   { key: "arrived", label: "Arrived", action: null, icon: MapPin, color: "text-primary" },
- * Q1816 (axe 4.14 label-content-name-mismatch, WCAG 2.5.3): a step tip's name holds the word it draws at every width.
- * @mutate src/components/tracker/JobProgress.tsx | aria-label={ts ? `${named} — ${tipText}` : `${named}: what this step is waiting on`} | aria-label={ts ? `${full} — ${tipText}` : `${full}: what this step is waiting on`}
+ * Q1816 (WCAG 2.5.3, lead 11-04): a step tip's name reads the whole step name ("Arrived: what this step is waiting
+ * on"), never the drawn "Arr., Ar-rived"; the drawn words are aria-hidden and the button carries no aria-label.
+ * @mutate src/components/tracker/JobProgress.tsx | const named = problemWord ? `${problemWord}, ${full}` : full; | const named = problemWord ? `${problemWord}, ${full}` : `${JOB_PROGRESS_SHORT[i]}, ${JOB_PROGRESS_DRAWN[i]}`;
+ * @mutate src/components/tracker/JobProgress.tsx | <span aria-hidden="true" className="block">{body}</span> | <span className="block">{body}</span>
+ * @mutate src/components/tracker/JobProgress.tsx | <span className="sr-only">{ts ? `${named} — ${tipText}` : `${named}: what this step is waiting on`}</span> | <span className="sr-only" aria-label={named}>{ts ? `${named} — ${tipText}` : `${named}: what this step is waiting on`}</span>
  */
 import { describe, it, expect, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { render, fireEvent, cleanup } from "@testing-library/react";
+import { computeAccessibleName } from "dom-accessibility-api";
 import { CalendarCheck, CheckCircle2, Clock, FileText, MapPin, PartyPopper, Truck, Wrench } from "lucide-react";
 import { JobProgress, JOB_STEP_ICONS } from "@/components/tracker/JobProgress";
 import { JOB_PROGRESS_STEPS, jobProgress, type JobProgressState, type ProgressJob } from "@/components/tracker/jobProgressState";
@@ -88,7 +92,7 @@ describe("the old tracker's steps and actions are all still here (owner 2026-10-
     const { container } = render(<JobProgress progress={live({ stamps: STAMPS })} />);
     const hired = container.querySelector('[data-step-tip="2"]') as HTMLElement;
     expect(hired).toBeTruthy();
-    expect(hired.getAttribute("aria-label")).toMatch(/^Hired — Oct 20/);
+    expect(computeAccessibleName(hired)).toMatch(/^Hired — Oct 20/);
     fireEvent.mouseEnter(hired);
     expect(container.querySelector("[role='tooltip']")?.textContent).toMatch(/^Oct 20/);
     fireEvent.click(hired);
@@ -99,18 +103,26 @@ describe("the old tracker's steps and actions are all still here (owner 2026-10-
     expect(container.querySelector('[data-step-tip="1"]')).toBeNull();
   });
 
-  it("a step tip's name holds the word it draws, short (375) and full (wider), in axe's words (Q1816)", () => {
+  it("a step tip's name reads the whole step name, not the drawn short and hyphenated words (Q1816, WCAG 2.5.3)", () => {
     const { container } = render(<JobProgress progress={live({ stamps: STAMPS })} />);
-    const words = (t: string) => t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().split(/\s+/).filter(Boolean);
     const tips = [...container.querySelectorAll<HTMLElement>("[data-step-tip]")];
     expect(tips.length).toBeGreaterThan(1);
+    const arrived = container.querySelector('[data-step-tip="5"]') as HTMLElement;
+    expect(computeAccessibleName(arrived)).toBe("Arrived: what this step is waiting on");
     for (const tip of tips) {
-      const name = ` ${words(tip.getAttribute("aria-label") ?? "").join(" ")} `;
+      const name = computeAccessibleName(tip);
+      // No soft hyphen, no abbreviation ("Arr.", "Conf."), and the step's full name first.
+      expect(name, name).not.toMatch(/\u00AD|\b[A-Z][a-z]+\.,/);
+      expect(JOB_PROGRESS_STEPS.some((s) => name.startsWith(s)), name).toBe(true);
+      // axe only compares a name it was GIVEN (aria-label) with the text; the name comes from the hidden line.
+      expect(tip.hasAttribute("aria-label")).toBe(false);
+      // The words the step draws (both widths) are hidden from the name; the full word they spell IS in it.
       for (const cls of ["job-step-short", "job-step-full"]) {
-        const shown = words(tip.querySelector(`.${cls}`)?.textContent ?? "");
-        expect(shown.length, cls).toBeGreaterThan(0);
-        expect(name, `${cls} "${shown.join(" ")}" in "${name}"`).toContain(` ${shown.join(" ")} `);
+        const el = tip.querySelector(`.${cls}`) as HTMLElement;
+        expect(el.closest('[aria-hidden="true"]'), cls).toBeTruthy();
       }
+      const full = (tip.querySelector(".job-step-full")?.textContent ?? "").replace(/\u00AD/g, "");
+      expect(name, name).toContain(full);
     }
   });
 

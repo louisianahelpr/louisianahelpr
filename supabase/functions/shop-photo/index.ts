@@ -14,7 +14,9 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 // draft, must-fix 1). shops_public_shop therefore returns photo IDS only, and
 // this function turns an id into the image without ever saying the path.
 //
-//   GET /functions/v1/shop-photo?id=<photo uuid>&kind=shop|item|declutter&w=<px>[&og=1]
+//   GET /functions/v1/shop-photo?id=<photo uuid>&kind=shop|item|declutter&w=<px>[&og=1|&sq=1]
+//
+// sq=1: a square width x width thumbnail, WebP when the browser accepts it.
 //
 // kind=declutter (Q2426, 20261027194426): a Declutter item's photo for its
 // shared link card, while declutter_public_photo_path finds the item
@@ -111,6 +113,8 @@ serve(async (req: Request) => {
   const askedKind = url.searchParams.get("kind");
   const kind = askedKind === "item" ? "item" : askedKind === "declutter" ? "declutter" : askedKind === "job" ? "job" : "shop";
   const og = url.searchParams.get("og") === "1";
+  // A square card thumbnail (the /u profile grid): never for a link card, which has its own exact size.
+  const square = !og && url.searchParams.get("sq") === "1";
   const asked = Number(url.searchParams.get("w") ?? 640);
   const width = og ? (asked === OG_HEIGHT ? OG_HEIGHT : 1200) : (WIDTHS.find((w) => w >= asked) ?? 1200);
   if (!UUID_RE.test(id)) return notFound();
@@ -136,12 +140,21 @@ serve(async (req: Request) => {
     const path = typeof data === "string" ? data : null;
     if (!path) return notFound();
     const encoded = path.split("/").map(encodeURIComponent).join("/");
-    const size = og ? `width=${width}&height=${OG_HEIGHT}&resize=cover` : `width=${width}&resize=contain`;
+    const size = og ? `width=${width}&height=${OG_HEIGHT}&resize=cover`
+      : square
+      ? `width=${width}&height=${width}&resize=cover`
+      : `width=${width}&resize=contain`;
     // Resized through the image-transform endpoint (enabled on prod: measured
-    // 200 2026-10-19), format=origin so the JPEG stays a JPEG.
+    // 200 2026-10-19), format=origin so the JPEG stays a JPEG. A square
+    // thumbnail (sq=1, M4 audit 11-05) leaves format off and passes the
+    // browser's Accept on, so storage answers WebP to a browser that takes it
+    // and JPEG to one that does not (measured 2026-11-05 on /u/lexi-l's 24
+    // covers at 320: Accept image/webp -> image/webp 17.7 KB each, no Accept ->
+    // image/jpeg 20.5 KB; the old w=320 contain JPEG was 34 KB).
+    const accept = req.headers.get("Accept");
     let upstream = await fetch(
-      `${SUPABASE_URL}/storage/v1/render/image/public/job-photos/${encoded}?${size}&quality=80&format=origin`,
-      { signal: AbortSignal.timeout(8000) },
+      `${SUPABASE_URL}/storage/v1/render/image/public/job-photos/${encoded}?${size}&quality=80${square ? "" : "&format=origin"}`,
+      { signal: AbortSignal.timeout(8000), headers: square && accept ? { Accept: accept } : undefined },
     );
     if (!upstream.ok || !upstream.body) {
       console.error("shop-photo: render answered", upstream.status);
@@ -183,6 +196,8 @@ serve(async (req: Request) => {
         // within minutes, not days.
         "Cache-Control": "public, max-age=300",
         "Access-Control-Allow-Origin": "*",
+        // The square answer's type follows the Accept it was asked with.
+        ...(square ? { Vary: "Accept" } : {}),
       },
     });
   } catch (err) {

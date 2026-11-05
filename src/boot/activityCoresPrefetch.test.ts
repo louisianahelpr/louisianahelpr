@@ -60,11 +60,11 @@ function signIn(expiresInS = 3600) {
 
 describe("the Posted / Working lists' read starts from the entry (B100)", () => {
   it("sends the body fetchActivityCores sends", async () => {
-    expect(CORES_JOB_COLUMNS).toEqual([...JOB_READABLE_COLUMN_LIST, "materials_note", "onboarding_fee_amount", "poster_marked_done_at"]);
-    expect(CORES_APPLICATION_COLUMNS).toEqual([...APPLICATION_READABLE_COLUMN_LIST]);
-    expect(code("src/lib/activityCores.ts")).toContain(
-      'const POSTED_JOB_COLUMNS: readonly string[] = [...JOB_READABLE_COLUMN_LIST, "materials_note", "onboarding_fee_amount", "poster_marked_done_at"];',
+    expect(CORES_JOB_COLUMNS).toEqual(
+      [...JOB_READABLE_COLUMN_LIST, "materials_note", "onboarding_fee_amount", "poster_marked_done_at"].filter((c) => !cores.POSTED_CORES_UNREAD_COLUMNS.includes(c)),
     );
+    expect(CORES_JOB_COLUMNS).toEqual([...cores.POSTED_JOB_COLUMNS]);
+    expect(CORES_APPLICATION_COLUMNS).toEqual([...APPLICATION_READABLE_COLUMN_LIST]);
     await cores.fetchActivityCores(UID);
     expect(db.calls[0]).toEqual({ fn: "get_my_activity_cores", args: { p_job_columns: CORES_JOB_COLUMNS, p_application_columns: CORES_APPLICATION_COLUMNS } });
     signIn();

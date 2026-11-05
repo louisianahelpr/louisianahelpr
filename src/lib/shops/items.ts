@@ -8,6 +8,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "./rpcErrorCopy";
+import { openShopsIdentityCheckFor } from "./errors";
 import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/photos";
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { removeShopObjects } from "./storageCleanup";
@@ -136,6 +137,8 @@ export interface CottageStatus {
 
 function rpcData<T>(result: { data: T; error: { message: string } | null }, words: (e: unknown) => string | null): T {
   if (!result.error) return result.data;
+  // The first live item needs the ID check (20261105174853): open the one ID sheet, not a dead end.
+  openShopsIdentityCheckFor(result.error);
   try {
     unwrap(result);
   } catch (thrown) {

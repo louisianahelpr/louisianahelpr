@@ -18,7 +18,7 @@
  * @mutate src/pages/user/ProfileHeroSkeleton.tsx | <div className={AT_A_GLANCE_GRID}> | <div className="grid grid-cols-2 gap-2">
  * @mutate src/pages/user/ProfileHeroSkeleton.tsx | <div key={i} className={METRIC_CELL_FRAME} | <div key={i} className="rounded-ds-md p-3 space-y-2"
  * @mutate src/pages/user/AtAGlanceCard.tsx | <div className={AT_A_GLANCE_GRID}> | <div className="grid grid-cols-2 gap-2">
- * @mutate src/pages/user/UserProfile.tsx |             <ProfileHeroSkeleton /> |             <div className="h-40 rounded-2xl liquid-glass motion-safe:animate-pulse" />
+ * @mutate src/pages/user/UserProfileLoadingBody.tsx |             <ProfileHeroSkeleton /> |             <div className="h-40 rounded-2xl liquid-glass motion-safe:animate-pulse" />
  * @mutate src/pages/user/UserProfile.tsx |       <div className="h-10 w-10 rounded-ds-md bg-muted motion-safe:animate-pulse" />\n    </div>\n  ) : null; |       <div className="h-10 w-10 rounded-ds-md bg-muted motion-safe:animate-pulse" />\n      <div className="h-10 w-10 rounded-ds-md bg-muted motion-safe:animate-pulse" />\n    </div>\n  ) : null;
  */
 import { describe, it, expect } from "vitest";
@@ -86,17 +86,22 @@ describe("ProfileHeroSkeleton wears the real masthead's frames", () => {
 describe("UserProfile's loading branch", () => {
   const src = blankComments(readFileSync(resolve(__dirname, "UserProfile.tsx"), "utf8"));
   const loading = src.slice(src.indexOf("if (loading || blockCheckPending) {"), src.indexOf("if (isError) {"));
+  // Q806: the loading body (under the header) is UserProfileLoadingBody.tsx; the visitor actions VisitorProfileActions.tsx.
+  const body = blankComments(readFileSync(resolve(__dirname, "UserProfileLoadingBody.tsx"), "utf8"));
+  const visitor = blankComments(readFileSync(resolve(__dirname, "VisitorProfileActions.tsx"), "utf8"));
 
   it("renders the shared masthead skeleton and no bone for deleted sections", () => {
     expect(loading.length).toBeGreaterThan(200);
-    expect(loading).toMatch(/<ProfileHeroSkeleton \/>/);
-    expect(loading).not.toMatch(/h-40/);
+    expect(loading).toMatch(/<UserProfileLoadingBody proReturn=\{proReturn\} \/>/);
+    expect(body).toMatch(/<ProfileHeroSkeleton \/>/);
+    expect(loading + body).not.toMatch(/h-40/);
   });
 
   it("reserves one header bone per loaded header control (Save, overflow menu)", () => {
     const block = src.slice(src.indexOf("const headerActionPlaceholder"), src.indexOf(") : null;", src.indexOf("const headerActionPlaceholder")));
     expect(block.match(/h-10 w-10 rounded-ds-md bg-muted/g)).toHaveLength(2);
-    const actions = src.slice(src.indexOf("titleActions={\n          !isOwnProfile"), src.indexOf("</DropdownMenuTrigger>"));
+    expect(src).toMatch(/titleActions=\{\n {10}!isOwnProfile && currentUserId \? \(\n {12}<VisitorProfileActions /);
+    const actions = visitor.slice(visitor.indexOf("return ("), visitor.indexOf("</DropdownMenuTrigger>"));
     expect(actions).toMatch(/<SaveHelperButton /);
     expect(actions.match(/<Button /g)).toHaveLength(1);
   });

@@ -1,28 +1,16 @@
-import { useState, useEffect, type ComponentProps, type ReactNode } from "react";
-import { toast } from "sonner";
+import { useState, useEffect, type ReactNode } from "react";
 import { formatName } from "@/lib/utils";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { MoreVertical, Flag, Ban, UserX } from "lucide-react";
+import { Ban, UserX } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { HelperWorkPhotos } from "@/components/profile/HelperWorkPhotos";
-import { ProfileHeaderCard } from "./ProfileHeaderCard";
-import { ProfileHeroSkeleton } from "./ProfileHeroSkeleton";
+import { UserProfileMasthead } from "./UserProfileMasthead";
+import { UserProfileLoadingBody } from "./UserProfileLoadingBody";
 import BackgroundCheckCard from "@/components/profile/BackgroundCheckCard";
-import { AtAGlanceCard } from "./AtAGlanceCard";
-import { RecognitionRow } from "./RecognitionRow";
-import { SubscriptionTierBadge } from "./ProfileBadge";
 import { RatingBreakdown } from "./RatingBreakdown";
 import { ReviewsSection } from "./ReviewsSection";
 import { JobsList } from "./JobsList";
@@ -32,20 +20,19 @@ import { DeclutterProfileSection } from "@/components/declutter/DeclutterProfile
 import { useDeclutterReviewCount } from "./useDeclutterReviewCount";
 import { InviteToJobBar } from "./InviteToJobBar";
 import { OwnProfileActions } from "./BookMeShareButton";
+import { VisitorProfileActions } from "./VisitorProfileActions";
 import { useBlockedByMe } from "./useBlockedByMe";
 import { useUserProfileData } from "./useUserProfileData";
+import { useReviewResponse } from "./useReviewResponse";
 import { computeLastActiveLabel } from "./userProfileHelpers";
 
 import ReportDialog from "@/components/ReportDialog";
 import { BlockUserDialog } from "@/components/BlockUserDialog";
-import SaveHelperButton from "@/components/SaveHelperButton";
-import { ProReturnBanner } from "./ProReturnBanner";
 import { useReplySpeed } from "@/lib/trustLine";
 import type { Database } from "@/integrations/supabase/types";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useUnblock } from "./useUnblock";
-import { isMissingRpcNamed } from "@/lib/missingRpc";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -95,11 +82,6 @@ const UserProfile = () => {
   // the granular per-star breakdown.
   const [reviewRatingFilter, setReviewRatingFilter] = useState<"all" | "5" | "4" | "low">("all");
   const [reviewVisibleCount, setReviewVisibleCount] = useState(5);
-  // Response-to-review state: which review is being responded to, and the draft text.
-  const [respondingToReview, setRespondingToReview] = useState<string | null>(null);
-  const [responseText, setResponseText] = useState("");
-  const [savingResponse, setSavingResponse] = useState(false);
-
   // All Supabase fetching + derivation lives in this hook (extracted verbatim).
   const {
     data,
@@ -131,6 +113,7 @@ const UserProfile = () => {
     loading,
     offlineEmpty,
   } = useUserProfileData(userId, currentUserId);
+  const { respondingToReview, setRespondingToReview, responseText, setResponseText, savingResponse, handleSaveResponse } = useReviewResponse(setLocalReviews, reviewsFromQuery);
   const declutterReviewCount = useDeclutterReviewCount(userId);
   // Q2478 2b: the public reply-speed bucket (signed-in viewers only; get_reply_speed refuses anon).
   const replyBucket = useReplySpeed(currentUserId && userId ? [userId] : []).get(userId ?? "") ?? null;
@@ -269,35 +252,7 @@ const UserProfile = () => {
           meta={headerMeta}
           titleActions={headerActionPlaceholder}
         />
-        <div className="page-measure mx-auto px-5 lg:px-6 xl:px-6 pb-8">
-          {/* The SAME wrapper the loaded body uses below — full page measure,
-              one column, gap-section (Q191; this said gap-6 while the loaded body
-              below used gap-5, so the swap moved every card). It used to carry `max-w-2xl mx-auto`, a cap no
-              other state on this page has: 86545cb12 moved all four states onto
-              the shared shell and dropped that cap from the error and not-found
-              branches, but missed this one. Measured at 1440: the skeleton
-              column sat at 672px and the loaded column at 1096px, so the page
-              visibly grew 1.63x the instant the query resolved — the owner's
-              "opens small then gets bigger".
-
-              The bones below also mirror the real card SHAPES rather than
-              approximating them, because width was only half of it: two bones
-              (~300px) were standing in for a body that runs 600–1500px, so the
-              page grew vertically too, on every viewport including phone where
-              the width cap never binds. */}
-          <div className="flex flex-col gap-section items-stretch">
-            <ProReturnBanner result={proReturn} />
-            <ProfileHeroSkeleton />
-            {/* NO bone below the card any more. It held space for
-                "endorsements, availability and portfolio", but endorsements
-                (migration 20260904034410) and the public availability section
-                (VN-12) are gone; what can still render there is work photos
-                and the Pro+ portfolio, which most profiles do not have. So a
-                160px card sat where, for most members, nothing arrives, and
-                the page shrank when the data landed. Those that have photos
-                grow below the fold instead. */}
-          </div>
-        </div>
+        <UserProfileLoadingBody proReturn={proReturn} />
       </>
     );
   }
@@ -363,41 +318,6 @@ const UserProfile = () => {
 
   const lastActiveLabel = computeLastActiveLabel(lastActiveAt);
 
-  // Save or update the reviewee's public response to a review they received.
-  const handleSaveResponse = async (reviewId: string) => {
-    // Tapping Save on an empty textarea used to do nothing at all — no toast,
-    // no state change, no reason given. Say why instead of dead-ending.
-    if (!responseText.trim()) {
-      toast.error("Write a response first.");
-      return;
-    }
-    setSavingResponse(true);
-    try {
-      const { error } = await supabase.rpc("respond_to_review", {
-        _review_id: reviewId,
-        _response_text: responseText.trim(),
-      });
-      if (error) {
-        toast.error(isMissingRpcNamed(error, "respond_to_review") ? "Couldn't save your response right now — try again?" : "Couldn't save your response — try again?");
-        return;
-      }
-      // Optimistic update locally so the response appears immediately.
-      setLocalReviews((prev) =>
-        (prev ?? reviewsFromQuery).map((r) =>
-          r.id === reviewId
-            ? { ...r, response_text: responseText.trim(), response_at: new Date().toISOString() }
-            : r,
-        ),
-      );
-      setRespondingToReview(null);
-      setResponseText("");
-    } catch {
-      toast.error("Couldn't save your response — try again?");
-    } finally {
-      setSavingResponse(false);
-    }
-  };
-
   return wrap(
     <>
       <PageHeader
@@ -434,39 +354,7 @@ const UserProfile = () => {
         // env(), which reads 0 under <PageTransition>'s transform.
         titleActions={
           !isOwnProfile && currentUserId ? (
-            <>
-              {/* NO MESSAGE BUTTON HERE AT ALL (owner: "remove the message
-                  button, only the poster can message").
-
-                  It used to render behind a `canMessage` gate that opened on
-                  any of three grounds — an existing thread, this person having
-                  applied to one of the viewer's jobs, or the two having worked
-                  together. Two of those let a HELPER open a channel, which is
-                  the thing the rule is meant to prevent, and the third only
-                  restated a thread that already exists in Messages.
-
-                  A profile is now a place to READ about someone, never to
-                  start a conversation with them. The poster's route is
-                  unaffected: they message from the application, which is where
-                  they were going to do it anyway, and an existing thread is
-                  still in Messages. */}
-              <SaveHelperButton helperId={userId!} customerId={currentUserId} />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-10 w-10 shrink-0" aria-label="More options">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => setShowReport(true)}>
-                    <Flag className="w-4 h-4 mr-2" /> Report user
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowBlock(true)}>
-                    <Ban className="w-4 h-4 mr-2" /> Block user
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </>
+            <VisitorProfileActions userId={userId} currentUserId={currentUserId} onReport={() => setShowReport(true)} onBlock={() => setShowBlock(true)} />
           ) : isOwnProfile ? (
             <OwnProfileActions userId={userId} displayName={displayName} />
           ) : null
@@ -505,96 +393,14 @@ const UserProfile = () => {
             reading cap. That is how a single column fills a 1440 frame without
             reintroducing a layout the owner has already rejected. */}
         <div className="flex flex-col gap-section items-stretch">
-          {/* ── MASTHEAD ──
-              ONE card: who this person is, what they have earned, and what
-              their record says. It used to be four separate cards stacked in a
-              row (identity, a "CAREER MILESTONES" heading over a single pill,
-              three stat tiles, a "TRACK RECORD" heading over a fourth card) —
-              which is exactly why the screen read as "a stack of unrelated
-              cards rather than one designed screen". */}
-          <ProfileHeaderCard
-            profile={profile}
-            userId={userId!}
-            displayName={displayName}
-            initials={initials}
-            isOwnProfile={isOwnProfile}
-            isIdVerified={isIdVerified}
-            tierBadge={<SubscriptionTierBadge tier={profile.subscription_tier} />}
-            recognition={
-              <RecognitionRow
-                // AS A HELPR (VN-14, owner 2026-09-14): jobs worked, not posted
-                // + worked, and reviews received as a Helpr — `stats` is the
-                // headline total and stays on the tiles. `credentialTier` null
-                // = unknown, which withholds Licensed Pro without asserting 0.
-                milestoneStats={{
-                  ...badgeStats,
-                  repeatHirePercent: data?.repeatHirePercent ?? 0,
-                  credentialTier,
-                }}
-                // Own-row flag OR get_safe_profiles.is_id_verified (RLS blocks the direct select for visitors).
-                idVerified={
-                  isIdVerified ||
-                  (profile as unknown as { is_id_verified?: boolean }).is_id_verified === true
-                }
-                payoutsSetUp={(profile as unknown as { is_payout_ready?: boolean }).is_payout_ready === true}
-                ladderProfile={tierProfile}
-                ladderStats={badgeStats}
-                credentials={profile as unknown as ComponentProps<typeof RecognitionRow>["credentials"]}
-                backgroundChecked={
-                  (profile as unknown as { background_check_status?: string }).background_check_status === "verified"
-                }
-              />
-            }
-            // PRESENCE on the identity line, not in the badge row — it is
-            // live state, not an achievement (owner, 2026-09-11).
-            lastActiveLabel={lastActiveLabel}
-            atAGlance={
-              <AtAGlanceCard
-                isOwnProfile={isOwnProfile}
-                displayName={displayName}
-                memberSinceLabel={memberSinceLabel}
-                stats={stats}
-                // postedTotalCount, NOT postedJobs.length — the `postedJobs`
-                // fetch carries a .limit(20), so the stat read "20 Posted" for
-                // anyone with more than 20 jobs. The exact count is already
-                // fetched on this same load (count: exact, head: true).
-                postedJobsCount={postedTotalCount}
-                // completedWorkedCount, NOT completedWorkedJobs.length: that
-                // array is a .limit(20) page of `jobs` rows RLS hides from
-                // every visitor, so the tile read "0 Jobs completed" on a
-                // stranger's view of a helper with a dozen. The count is a
-                // SECURITY DEFINER aggregate; the list stays the list.
-                workedJobsCount={completedWorkedCount}
-                // #28: the hero's rating tile must not say "No reviews yet" over Declutter reviews.
-                declutterReviewCount={declutterReviewCount}
-                replyLatency={replyLatency}
-                onTimeArrivalRate={onTimeArrivalRate}
-                revisionFrequency={revisionFrequency}
-                repeatHirePercent={data?.repeatHirePercent ?? null}
-                repeatClientSample={data?.statSamples?.repeatClients ?? null}
-                replyBucket={replyBucket}
-                // Moved here from the header line (owner, 2026-09-14, VN-16).
-                mutualJobsCount={mutualJobsCount}
-                showReviews={showReviews}
-                showPostedJobs={showPostedJobs}
-                showWorkedJobs={showWorkedJobs}
-                onToggleReviews={() => {
-                  setShowReviews(!showReviews);
-                  setShowPostedJobs(false);
-                  setShowWorkedJobs(false);
-                }}
-                onTogglePosted={() => {
-                  setShowPostedJobs(!showPostedJobs);
-                  setShowReviews(false);
-                  setShowWorkedJobs(false);
-                }}
-                onToggleWorked={() => {
-                  setShowWorkedJobs(!showWorkedJobs);
-                  setShowReviews(false);
-                  setShowPostedJobs(false);
-                }}
-              />
-            }
+          <UserProfileMasthead
+            profile={profile} userId={userId} displayName={displayName} initials={initials} isOwnProfile={isOwnProfile}
+            isIdVerified={isIdVerified} badgeStats={badgeStats} data={data} credentialTier={credentialTier} tierProfile={tierProfile}
+            lastActiveLabel={lastActiveLabel} memberSinceLabel={memberSinceLabel} stats={stats} postedTotalCount={postedTotalCount}
+            completedWorkedCount={completedWorkedCount} declutterReviewCount={declutterReviewCount} replyLatency={replyLatency}
+            onTimeArrivalRate={onTimeArrivalRate} revisionFrequency={revisionFrequency} replyBucket={replyBucket}
+            mutualJobsCount={mutualJobsCount} showReviews={showReviews} showPostedJobs={showPostedJobs} showWorkedJobs={showWorkedJobs}
+            setShowReviews={setShowReviews} setShowPostedJobs={setShowPostedJobs} setShowWorkedJobs={setShowWorkedJobs}
           />
           <MovingSaleBanner sellerId={userId!} />
           <SellingNowRow sellerId={userId!} />

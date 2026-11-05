@@ -13,6 +13,11 @@
  * @mutate src/lib/declutter/photoSizes.ts |   return small ? `${small} ${CARD_PHOTO_SMALL_PX}w, ${cardUrl} ${cardPx}w` : undefined; |   return undefined;
  * @mutate src/lib/declutter/photoSizes.ts | export const CARD_PHOTO_SMALL_PX = 340; | export const CARD_PHOTO_SMALL_PX = 320;
  * @mutate src/lib/declutter/photoSizes.ts |   if (at < 0 \|\| publicUrl.includes("?")) return null; |
+ * (d) Q2707 raw tiles (2026-11-05): Search's 44 px row thumb, the Sell form's photo grid and Admin's problem thumb ask
+ *     for a square, not the 407-573 KB original (5-7 KB at 160, 17-29 KB at 340, live seller photos).
+ * @mutate src/pages/search/SearchPage.tsx | src={squarePhotoUrl(photoPublicUrl(photo), THUMB_PHOTO_PX) ?? photoPublicUrl(photo)} | src={photoPublicUrl(photo)}
+ * @mutate src/components/declutter/DeclutterSellPhotos.tsx | src={squarePhotoUrl(photoPublicUrl(p.storage_path), CARD_PHOTO_SMALL_PX) ?? photoPublicUrl(p.storage_path)} | src={photoPublicUrl(p.storage_path)}
+ * @mutate src/components/admin/settings/DeclutterProblemsCard.tsx | src={squarePhotoUrl(photoPublicUrl(d.item_photo_paths[0]), THUMB_PHOTO_PX) ?? photoPublicUrl(d.item_photo_paths[0])} | src={photoPublicUrl(d.item_photo_paths[0])}
  */
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, cleanup, fireEvent } from "@testing-library/react";
@@ -68,5 +73,21 @@ describe("Declutter photos are asked for at the size they draw", () => {
     const thumb = views.slice(views.indexOf("function CartThumb"), views.indexOf("function CartThumb") + 900);
     expect(thumb).toContain('src={stage === "thumb" ? squarePhotoUrl(photoPublicUrl(path), THUMB_PHOTO_PX) ?? photoPublicUrl(path) : photoPublicUrl(path)}');
     expect(thumb).toContain('setStage((s) => (s === "thumb" ? "full" : "failed"))');
+  });
+
+  it("(d) Search's row thumb, the Sell photo grid and Admin's problem thumb ask for a square, never the original first (Q2707)", () => {
+    const tiles: Array<[string, string, string]> = [
+      ["../../pages/search/SearchPage.tsx", "squarePhotoUrl(photoPublicUrl(photo), THUMB_PHOTO_PX)", "retrySrc={photoPublicUrl(photo)}"],
+      ["../../components/declutter/DeclutterSellPhotos.tsx", "squarePhotoUrl(photoPublicUrl(p.storage_path), CARD_PHOTO_SMALL_PX)", "retrySrc={photoPublicUrl(p.storage_path)}"],
+      ["../../components/admin/settings/DeclutterProblemsCard.tsx", "squarePhotoUrl(photoPublicUrl(d.item_photo_paths[0]), THUMB_PHOTO_PX)", "retrySrc={photoPublicUrl(d.item_photo_paths[0])}"],
+    ];
+    for (const [file, small, retry] of tiles) {
+      const code = blankComments(readFileSync(resolve(__dirname, file), "utf8"));
+      expect(code, file).toContain(`src={${small} ??`);
+      expect(code, file).toContain(retry);
+      // No tile anywhere in the file asks for the original first.
+      expect(code, file).not.toMatch(/\bsrc=\{photoPublicUrl\(/);
+    }
+    expect(tiles.length).toBeGreaterThan(2);
   });
 });

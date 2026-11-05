@@ -98,8 +98,9 @@ describe("L2: an old handle moves the address bar to the current one", () => {
     show("/u/eli-old?ref=abc");
     expect(await screen.findByText("Oak dresser")).toBeTruthy();
     await vi.waitFor(() => expect(screen.getByTestId("where").textContent).toBe("/u/eli-new?ref=abc"));
-    expect(rpc).toHaveBeenCalledTimes(1);
-    expect(rpc).toHaveBeenCalledWith("public_profile_by_handle", { p_handle: "eli-old" });
+    // The profile itself is read once (the job-photos strip makes its own public_profile_work_photos read).
+    const profileReads = rpc.mock.calls.filter((c) => c[0] === "public_profile_by_handle");
+    expect(profileReads).toEqual([["public_profile_by_handle", { p_handle: "eli-old" }]]);
   });
 
   it("the current handle stays where it is", async () => {

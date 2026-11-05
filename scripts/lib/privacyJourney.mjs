@@ -117,6 +117,8 @@ export const EXPORT_SECTIONS = [
   "job_post_drafts",
   "member_signup_sources",
   "profile_handles_retired",
+  // The job photos a member picked for their public page (20261105172514, owner share-profile H4).
+  "profile_job_photos",
   "instant_book_floors",
   "instant_book_declines",
   // Continue another day (20261101231015; exported by 20261102030000).

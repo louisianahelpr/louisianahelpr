@@ -2,7 +2,8 @@
 /**
  * PGlite proof for 20261105184827_export_declutter_item_views.sql (Q2752): "Download My Data" carries the member's own
  * Declutter item views (declutter_item_views, 20261105163501) as item_id + created_at; never another member's or a
- * device's; every other section, the search_path and the grants unchanged.
+ * device's; and the job photos they picked for their public page (profile_job_photos, 20261105172514; id, job_id,
+ * photo_path, created_at, their own only); every other section, the search_path and the grants unchanged.
  *
  *   node src/test/pglite/exportDeclutterItemViews.pglite.mjs                     # GREEN
  *   NEW_MIGRATION=skip node src/test/pglite/exportDeclutterItemViews.pglite.mjs  # RED: 20261104123305's body only
@@ -75,7 +76,12 @@ const def = await defOf();
 const MARK = "\n  -- Q2752: the member's own Declutter item views";
 const AFTER = "\n  v_out := v_out || jsonb_build_object('pet_profiles',";
 const added = def.includes(MARK) ? def.slice(def.indexOf(MARK), def.indexOf(AFTER)) : null;
-ok(added !== null && def.replace(added, "") === oldDef, "the new body is 20261104123305's verbatim plus the one item-views block", skip ? "skip" : "");
+// The second block: the job photos a member picked for their page (20261105172514), after profile_handles_retired.
+const MARK2 = "\n\n  -- Owner 11-05 share-profile H4 (20261105172514)";
+const AFTER2 = "\n\n  -- CMP-4 instant book";
+const added2 = def.includes(MARK2) ? def.slice(def.indexOf(MARK2), def.indexOf(AFTER2, def.indexOf(MARK2))) : null;
+ok(added !== null && added2 !== null && def.replace(added, "").replace(added2, "") === oldDef,
+  "the new body is 20261104123305's verbatim plus the item-views block and the job-photos block", skip ? "skip" : "");
 ok(/SET search_path TO 'public', 'pg_temp'/.test(def), "search_path still public, pg_temp");
 
 // 2. ACL.
@@ -146,7 +152,10 @@ CREATE OR REPLACE FUNCTION public.user_may_see_job_address(j uuid, u uuid) RETUR
 CREATE OR REPLACE FUNCTION public.shop_local_today() RETURNS date LANGUAGE sql STABLE AS $$ SELECT current_date $$;
 DROP TABLE IF EXISTS public.declutter_item_views;
 CREATE TABLE public.declutter_item_views (item_id uuid NOT NULL, viewer_id uuid, device_id uuid, created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT declutter_item_views_one_viewer CHECK ((viewer_id IS NULL) <> (device_id IS NULL)));`);
+  CONSTRAINT declutter_item_views_one_viewer CHECK ((viewer_id IS NULL) <> (device_id IS NULL)));
+DROP TABLE IF EXISTS public.profile_job_photos;
+CREATE TABLE public.profile_job_photos (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, job_id uuid NOT NULL,
+  photo_path text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());`);
 
 const ME = "00000000-0000-0000-0000-0000000000aa";
 const OTHER = "00000000-0000-0000-0000-0000000000bb";
@@ -158,6 +167,9 @@ INSERT INTO auth.users (id, email, created_at) VALUES ('${ME}', 'me@example.com'
 INSERT INTO public.declutter_item_views (item_id, viewer_id, device_id, created_at) VALUES
   ('${I(1)}', '${ME}', NULL, '2026-11-05 10:00+00'), ('${I(2)}', '${ME}', NULL, '2026-11-05 11:00+00'),
   ('${I(1)}', '${OTHER}', NULL, '2026-11-05 12:00+00'), ('${I(3)}', NULL, '${DEVICE}', '2026-11-05 13:00+00');`);
+const J = "00000000-0000-0000-0000-000000000301";
+await db.exec(`INSERT INTO public.profile_job_photos (user_id, job_id, photo_path, created_at) VALUES
+  ('${ME}', '${J}', '${J}/after-1.jpg', '2026-11-05 10:00+00'), ('${OTHER}', '${J}', '${J}/after-2.jpg', '2026-11-05 11:00+00');`);
 const exportOf = async (uid) => {
   try {
     return (await db.query(`SELECT public.export_my_data('${uid}') AS j`)).rows[0].j;
@@ -177,6 +189,12 @@ ok(me != null && !JSON.stringify(me).includes(OTHER) && !JSON.stringify(me).incl
   "never another member's view or a device's view", "");
 ok(Array.isArray(nobody?.declutter_item_views) && nobody.declutter_item_views.length === 0, "a member with none gets an empty list",
   JSON.stringify(nobody?.declutter_item_views));
+const picks = me?.profile_job_photos;
+ok(Array.isArray(picks) && picks.length === 1 && picks[0].job_id === J && picks[0].photo_path === `${J}/after-1.jpg`
+    && Object.keys(picks[0]).sort().join() === "created_at,id,job_id,photo_path",
+  "the member gets their own job-photo pick (id, job, photo, time), never another member's", JSON.stringify(picks));
+ok(Array.isArray(nobody?.profile_job_photos) && nobody.profile_job_photos.length === 0, "a member with no picks gets an empty list",
+  JSON.stringify(nobody?.profile_job_photos));
 ok(Array.isArray(me?.profile_views) && Array.isArray(me?.declutter_bundle_requests) && me?.email === "me@example.com", "the other sections are still there");
 
 console.log(`\n${pass} passed, ${fail} failed`);

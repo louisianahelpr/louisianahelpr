@@ -12,7 +12,8 @@
 -- itself is served by the profile-work-photo edge function, which calls profile_work_photo_object (service_role
 -- only) to re-check every rule on every fetch and re-encodes the image before it leaves the server.
 --
--- NEW: table profile_job_photos (no table grants; RPCs only), job_photos_withheld (service_role only; NOT the rule of
+-- NEW: table profile_job_photos (no table grants; RPCs only; user_id FK to auth.users ON DELETE CASCADE, the Q807
+-- unconfirmed-email gate attached), job_photos_withheld (service_role only; NOT the rule of
 -- job_photos_shareable, without its admin gate), profile_page_hidden (service_role only; public_profile_by_handle's
 -- page gate, inverted), my_job_photos / set_job_photo_shown (authenticated: the Helpr's own picks),
 -- public_profile_work_photos (anon + authenticated), profile_work_photo_object (service_role only).
@@ -21,7 +22,7 @@
 
 CREATE TABLE IF NOT EXISTS public.profile_job_photos (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   job_id uuid NOT NULL REFERENCES public.jobs(id) ON DELETE CASCADE,
   photo_path text NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -33,6 +34,15 @@ COMMENT ON TABLE public.profile_job_photos IS
 ALTER TABLE public.profile_job_photos ENABLE ROW LEVEL SECURITY;
 REVOKE ALL ON TABLE public.profile_job_photos FROM PUBLIC, anon, authenticated;
 GRANT ALL ON TABLE public.profile_job_photos TO service_role;
+
+-- Q807: refuse writes from an unconfirmed email on the new table (standard guarded attach).
+DO $gate$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gate$;
 
 -- (2) The consent rule of job_photos_shareable (20261021001940), without its admin gate, as a DENY: TRUE = this job's
 -- photos are withheld (no poster, no Helpr, or anyone on it has not allowed sharing). Deny-shaped so a NULL job says
@@ -169,6 +179,10 @@ BEGIN
     DELETE FROM public.profile_job_photos
      WHERE user_id = v_uid AND job_id = p_job_id AND photo_path = p_photo_path;
     RETURN false;
+  END IF;
+  -- Q281 ban gate: a restricted account adds nothing to its page (its page is hidden anyway; taking one off stays open).
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.helpr_job_after_photos(v_uid) a
                   WHERE a.job_id = p_job_id AND a.photo_path = p_photo_path) THEN

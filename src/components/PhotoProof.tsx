@@ -22,6 +22,7 @@ import { Camera, ImagePlus, X, CheckCircle2, Image } from "lucide-react";
 import { CardSubPanel } from "@/components/ui/CardSubPanel";
 import { FieldError } from "@/components/ui/FieldError";
 import { PhotoProofAddFace } from "./PhotoProofAddFace";
+import { AddPhotoTile } from "@/components/ui/AddPhotoTile";
 import { toast } from "sonner";
 import { report } from "@/lib/errorLogger";
 import { unwrapMutation, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
@@ -360,28 +361,13 @@ const PhotoProof = ({ jobId, type, existingUrls, onUploaded, triggerLabel, chip,
               ))}
               {files.length < 5 && (
                 isNativePlatform ? (
-                  <button
-                    type="button"
-                    onClick={handleNativeAdd}
-                    className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all active:scale-[0.97]"
-                    style={{
-                      background: "hsl(var(--card) / 0.4)",
-                      border: "1.5px dashed hsl(var(--bark) / 0.30)",
-                    }}
-                  >
+                  <AddPhotoTile onClick={handleNativeAdd}>
                     <PhotoProofAddFace />
-                  </button>
+                  </AddPhotoTile>
                 ) : (
-                  <label
-                    className="w-20 h-20 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all active:scale-[0.97] focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.45)]"
-                    style={{
-                      background: "hsl(var(--card) / 0.4)",
-                      border: "1.5px dashed hsl(var(--bark) / 0.30)",
-                    }}
-                  >
+                  <AddPhotoTile accept="image/*" multiple onFiles={handleSelect}>
                     <PhotoProofAddFace />
-                    <input type="file" accept="image/*" multiple className="sr-only" onChange={handleSelect} />
-                  </label>
+                  </AddPhotoTile>
                 )
               )}
             </div>

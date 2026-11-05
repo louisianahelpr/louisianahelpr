@@ -12,7 +12,7 @@
  * @mutate src/components/ui/ListRow.tsx | rounded-xl px-3 py-2 text-left ctl-tint | rounded-xl px-3 py-2 text-left hover:opacity-80
  * @mutate src/components/ui/ListRow.tsx | "flex min-h-11 w-full | "flex w-full
  * @mutate src/components/ui/ListRow.tsx |     {children}\n    {trailing}\n |     {trailing}\n    {children}\n
- * @mutate src/test/controlInteractionSameness.test.ts | (button\|a\|Button\|ListRow\|Link | (button\|a\|Button\|Link
+ * @mutate src/test/controlInteractionSameness.test.ts | (button\|a\|Button\|ListRow\|InlineTextButton\|Link | (button\|a\|Button\|InlineTextButton\|Link
  * @mutate src/components/marketing/FaqRow.tsx |       <ListRow\n |       <button type="button"\n
  * @mutate src/components/messages/HiddenUnreadBar.tsx |       <ListRow\n        onClick={onShowAll} |       <button type="button"\n        onClick={onShowAll}
  * @mutate src/components/messages/HiddenUnreadBar.tsx | w-auto justify-start gap-2 | w-auto gap-2

@@ -25,7 +25,7 @@
  * (78 PASS; NEW_MIGRATION=skip and planted defects red; bbeb5d877's migration, which still had the shop's
  * "Picked up", fails 4, and a planted shop RPC finishing via 'auto' fails 4, measured 2026-10-18 ~21:40Z).
  */
-// @mutate supabase/migrations/20261105182903_shops_handover_rule.sql |          OR (o.handover_mode = 'porch' AND h.ready_photo_path IS NOT NULL\n |          OR (o.handover_mode = 'porch'\n
+// @mutate supabase/migrations/20261105190034_shops_handover_notes.sql |          OR (o.handover_mode = 'porch' AND h.ready_photo_path IS NOT NULL\n |          OR (o.handover_mode = 'porch'\n
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | REVOKE ALL ON FUNCTION public.shop_payouts_due(integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shop_payouts_due(integer) FROM PUBLIC, anon;
 // @mutate supabase/migrations/20261105182903_shops_handover_rule.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'shop_order_' \|\| o.id::text, o.items_cents); |   v_debt := 0;
 // @mutate supabase/migrations/20261105182903_shops_handover_rule.sql |   VALUES (o.id, o.items_cents, v_debt, o.items_cents - v_debt, |   VALUES (o.id, o.total_cents, v_debt, o.total_cents - v_debt,

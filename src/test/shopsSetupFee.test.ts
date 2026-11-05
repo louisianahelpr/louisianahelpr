@@ -17,7 +17,7 @@
  * @mutate supabase/migrations/20261105181603_shops_setup_fee.sql | CREATE TRIGGER trg_shop_orders_setup_fee_put_back BEFORE UPDATE OF hold_released_at ON public.shop_orders | CREATE TRIGGER trg_shop_orders_setup_fee_put_back BEFORE UPDATE OF closed_at ON public.shop_orders
  * @mutate supabase/migrations/20261105181603_shops_setup_fee.sql |          total_cents = p_amount_total - CASE WHEN v_fee_charged THEN o.setup_fee_cents ELSE 0 END, |          total_cents = p_amount_total,
  * @mutate supabase/functions/declutter-money/index.ts |               p.amount_cents = shopToSend; |               void shopToSend;
- * @mutate supabase/functions/shop-checkout/index.ts |   if (session.amount_subtotal !== o.items_cents + o.premium_cents + setupFeeCents) { |   if (session.amount_subtotal !== o.items_cents + o.premium_cents) {
+ * @mutate supabase/functions/shop-checkout/index.ts |   const chargedCents = o.items_cents + o.premium_cents + setupFeeCents + tax.cents; |   const chargedCents = o.items_cents + o.premium_cents + tax.cents;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -86,6 +86,7 @@ describe("Shops H4: the one-time setup fee", () => {
   it("the Checkout page carries the fee on its own line and checks it", () => {
     const sc = code("supabase/functions/shop-checkout/index.ts");
     expect(sc).toContain('taxed("One-time account setup fee", NONTAXABLE_TAX_CODE)');
-    expect(sc).toContain("session.amount_subtotal !== o.items_cents + o.premium_cents + setupFeeCents");
+    expect(sc).toContain("const chargedCents = o.items_cents + o.premium_cents + setupFeeCents + tax.cents;");
+    expect(sc).toContain("session.amount_subtotal !== chargedCents");
   });
 });

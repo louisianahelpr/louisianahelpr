@@ -127,6 +127,28 @@ beforeEach(() => {
   errorToastMock.mockClear();
 });
 
+// slow-network 41599676917 (2026-11-03): Apply pressed with the connection gone only ever said
+// "Couldn't send"; a wire failure now names the connection, a server answer does not.
+// @mutate src/pages/home/useApplyFlow.ts | description: isNetworkFailure(err) ? "Check your connection, then tap retry." : "Tap retry to try again.", | description: "Tap retry to try again.",
+describe("a failed apply says when the connection is the reason", () => {
+  it("a wire failure says to check the connection", async () => {
+    const { result } = setup();
+    server.dropNextRequest = true;
+    act(() => { result.current.handleApplyConfirm("job-6"); });
+    await waitFor(() => expect(errorToastMock).toHaveBeenCalledTimes(1));
+    expect(errorToastMock.mock.calls[0][0]).toBe("Couldn't send your application through");
+    expect((errorToastMock.mock.calls[0][1] as { description: string }).description).toMatch(/check your connection/i);
+  });
+
+  it("a server answer does not blame the connection", async () => {
+    const { result } = setup();
+    server.serverErrorNext = true;
+    act(() => { result.current.handleApplyConfirm("job-7"); });
+    await waitFor(() => expect(errorToastMock).toHaveBeenCalledTimes(1));
+    expect((errorToastMock.mock.calls[0][1] as { description: string }).description).not.toMatch(/connection/i);
+  });
+});
+
 describe("Q269: retry after a lost apply response", () => {
   it("the Retry of an apply that already landed ends in 'Application sent', never 'already applied'", async () => {
     const { result } = setup();

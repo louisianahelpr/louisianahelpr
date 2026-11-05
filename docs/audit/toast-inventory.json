@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 487,
+      "literal": 486,
       "template": 105,
-      "dynamic": 611,
+      "dynamic": 612,
       "jsx": 0
     }
   },
@@ -12352,21 +12352,31 @@
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 334,
+      "line": 336,
       "kind": "errorToast",
       "title": {
         "form": "literal",
         "text": "Couldn't send your application through"
       },
       "description": {
-        "form": "literal",
-        "text": "Tap retry to try again."
+        "form": "dynamic",
+        "text": "isNetworkFailure(err) ? \"Check your connection, then tap retry.\" : \"Tap retry to try again.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Check your connection, then tap retry."
+          },
+          {
+            "form": "literal",
+            "text": "Tap retry to try again."
+          }
+        ]
       },
       "renders": true
     },
     {
       "file": "src/pages/home/useApplyFlow.ts",
-      "line": 484,
+      "line": 486,
       "kind": "toast.loading",
       "title": {
         "form": "literal",

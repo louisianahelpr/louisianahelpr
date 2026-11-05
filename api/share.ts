@@ -888,6 +888,8 @@ const PROFILE_CDN_CACHE = "public, s-maxage=300, stale-while-revalidate=600";
 
 /** The few public fields the card uses from public_profile_by_handle (the same anon read the page makes). */
 interface ProfileCard {
+  /** The member's CURRENT handle: an old (retired) one in the link answers with the new one (L2, audit 11-05). */
+  handle?: string | null;
   name: string | null;
   photo_url: string | null;
   stats?: { review_count?: number | null; avg_rating?: number | null } | null;
@@ -977,7 +979,8 @@ async function metaForProfile(rawHandle: string, url: string): Promise<Meta | nu
     title: `${name} on Louisiana Helpr`,
     ogTitle: `${name} on Louisiana Helpr`,
     description: clean(`See what ${name} posts and does on Louisiana Helpr.${parts.length ? ` ${parts.join(" · ")}.` : ""}`, 200),
-    url,
+    // og:url and the canonical name the current handle, not an old one the link still carries (L2).
+    url: typeof card.handle === "string" && HANDLE_RE.test(card.handle) ? `${SITE_ORIGIN}/u/${card.handle}` : url,
     robots: PROFILE_ROBOTS,
     image: profileImage(card.photo_url, name),
     cdnCache: PROFILE_CDN_CACHE,

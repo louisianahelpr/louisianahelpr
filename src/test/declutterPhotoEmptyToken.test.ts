@@ -6,7 +6,7 @@
  * aspect-ratio photo box, incl. skeletons) wears it.
  * @mutate src/index.css |   --photo-empty: 40 23% 82%; |   --photo-empty: 220 13% 91%;
  * @mutate src/components/declutter/DeclutterItemCard.tsx | overflow-hidden rounded-2xl bg-photo-empty"> | overflow-hidden rounded-2xl bg-muted">
- * @mutate src/components/declutter/DeclutterGallery.tsx | item: "aspect-square max-h-[52dvh] sm:max-h-none sm:aspect-[4/3] bg-photo-empty" | item: "aspect-square max-h-[52dvh] sm:max-h-none sm:aspect-[4/3] bg-muted"
+ * @mutate src/components/declutter/itemPhotoFrame.ts | item: "aspect-square max-h-[52dvh] sm:max-h-none sm:aspect-[4/3] bg-photo-empty" | item: "aspect-square max-h-[52dvh] sm:max-h-none sm:aspect-[4/3] bg-muted"
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -29,7 +29,7 @@ describe("Declutter photos paint --photo-empty, never cool grey", () => {
   it("every Declutter photo frame (an <img>, or an aspect-ratio photo box) wears bg-photo-empty", () => {
     const dir = "src/components/declutter";
     const frames: string[] = [];
-    for (const f of readdirSync(join(ROOT, dir)).filter((n) => n.endsWith(".tsx") && !n.includes(".test."))) {
+    for (const f of readdirSync(join(ROOT, dir)).filter((n) => /\.tsx?$/.test(n) && !n.includes(".test."))) {
       const src = blankComments(read(`${dir}/${f}`));
       // The class string of every <img ...> and every className / FRAME holding an aspect ratio.
       for (const m of src.matchAll(/<img[\s\S]*?\/>/g)) frames.push(`${f}: ${m[0]}`);

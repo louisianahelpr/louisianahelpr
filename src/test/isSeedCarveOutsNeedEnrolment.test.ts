@@ -186,6 +186,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   get_public_open_jobs: "hides",
   get_public_profile_reviews: "hides",
   get_public_profile_stats: "hides",
+  helpr_job_after_photos: "hides", // 20261105172514 (share-profile H4): a seed or test job's photos never reach a public page
+  profile_page_hidden: "hides", // 20261105172514 (share-profile H4): a seed or test member has no public page, public_profile_by_handle's gate
   handle_for_user: "hides", // 20261105171316 (share-profile H5): a test member has no public /u page, the same rule as public_profile_by_handle
   get_ranked_open_jobs: "hides",
   // Q2480 (20261030031223): the reply bucket skips test jobs and hides test posters by seed_hidden_from_caller

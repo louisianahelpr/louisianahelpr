@@ -77,6 +77,7 @@ export const STORAGE_REFERENCE_COLUMNS = [
  * object, each with the reason. Two-way with types.ts in the test.
  */
 export const NOT_STORAGE_COLUMNS = {
+  "profile_job_photos.photo_path": "a copy of one path in jobs.proof_after_urls or group_job_helpers.proof_after_urls (both checked above): a Helpr's pick for their public page (20261105172514), shown only while it is still one of that job's after photos, so a missing file is already found through the job",
   "declutter_wanted.photo_added_at": "a timestamp: when the newest photo was added (20261030225143), not a file reference",
   "declutter_wanted.photos_cleared": "a subset of declutter_wanted.photo_paths, the checked column and the whole list: marks which of its paths a check passed (20261030225143); never read as a file to serve on its own",
   "declutter_wanted.photos_held": "a subset of declutter_wanted.photo_paths, the checked column and the whole list: marks which of its paths a check flagged (20261030225143); never read as a file to serve on its own",

@@ -685,7 +685,7 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     await helperAt(PT, openMorning, new RegExp(`\\(${hoursLeft(openMorning)}h left\\)`), true, "pt-open-morning");
   });
 
-  test("membership: a Pro plan that will not renew says when it ends, then the account is on Free", async ({
+  test("membership: a leftover Pro row never brings the retired plans back, before or after its end", async ({
     browser,
     request,
     journey,
@@ -727,10 +727,12 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
     expect(((await set.json()) as unknown[]).length, "the membership fixture was not written").toBe(1);
     const endsLabel = `Ends ${ends.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: CT })}`;
 
-    // The tier card's pill reads "Your plan" (CSS-uppercased), matched EXACTLY: after the end the
-    // page rightly shows MembershipStillBilled's "Your plan has ended. ...", which a loose
-    // getByText("YOUR PLAN") (case-insensitive substring) counted as a plan claim
-    // (e2e-journeys 41553090940: the trace's after-end DOM had Free "Current" and that notice, no pill).
+    // Memberships are RETIRED (owner 2026-11-04, c6ca874551): every member sees
+    // "Memberships aren't available right now" on this tab, whatever their row
+    // says. A leftover Pro row (none exists on prod: 0 of 336 profiles, measured
+    // 11-04) must not bring back a plan card, a "Your plan" pill, an "Ends" date
+    // or a "Renews" line, on either side of its end. e2e-journeys 41934715217
+    // failed the old assertions (a Pro pill before the end) on the retired page.
     const planPill = (page: Page) => page.getByText("Your plan", { exact: true });
     async function planAt(at: Date, name: string, check: (page: Page) => Promise<void>) {
       const { ctx, page } = await openAt(browser, request, CT, at, "helper");
@@ -742,15 +744,13 @@ test.describe("time travel · deployed app, real backend, moved browser clock", 
         await ctx.close();
       }
     }
-    await planAt(new Date(ends.getTime() - 20 * 3_600_000), "day-before-end", async (page) => {
-      await expect(planPill(page).first(), "the Pro card is marked as the member's plan").toBeVisible({ timeout: 45_000 });
-      // A cancelled monthly plan ENDS; it must never claim it renews.
-      await expect(page.getByText(endsLabel).first()).toBeVisible();
+    const retired = async (page: Page) => {
+      await expect(page.getByTestId("memberships-unavailable"), "the Membership tab says memberships are not available").toBeVisible({ timeout: 45_000 });
+      await expect(planPill(page), "no plan claims the member").toHaveCount(0);
+      await expect(page.getByText(endsLabel)).toHaveCount(0);
       await expect(page.getByText(/^Renews/)).toHaveCount(0);
-    });
-    await planAt(new Date(ends.getTime() + 3_600_000), "after-end", async (page) => {
-      await expect(page.getByText("Current").first(), "after the end the account is on the free plan").toBeVisible({ timeout: 45_000 });
-      await expect(planPill(page), "no plan claims the member after it ended").toHaveCount(0);
-    });
+    };
+    await planAt(new Date(ends.getTime() - 20 * 3_600_000), "day-before-end", retired);
+    await planAt(new Date(ends.getTime() + 3_600_000), "after-end", retired);
   });
 });

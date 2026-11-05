@@ -22,7 +22,7 @@
  * moved legs are held in place by a floor on the "time travel:" steps.
  */
 
-// @mutate e2e/journeys/time-travel.spec.ts | test("membership: a Pro plan that will not renew says when it ends, then the account is on Free", async ({\n    browser,\n    request,\n    journey,\n  }) => {\n | test("membership: a Pro plan that will not renew says when it ends, then the account is on Free", async ({\n    browser,\n    request,\n    journey,\n  }) => {\n    skipUncovered("x", "y");\n
+// @mutate e2e/journeys/time-travel.spec.ts | test("membership: a leftover Pro row never brings the retired plans back, before or after its end", async ({\n    browser,\n    request,\n    journey,\n  }) => {\n | test("membership: a leftover Pro row never brings the retired plans back, before or after its end", async ({\n    browser,\n    request,\n    journey,\n  }) => {\n    skipUncovered("x", "y");\n
 // @mutate e2e/journeys/02-marketplace.spec.ts | test.step("time travel: the offer counts down to its deadline, then is gone" | test.step("the offer counts down to its deadline, then is gone"
 // @mutate e2e/journeys/time-travel.spec.ts | test("a funded job's countdown chip: | test.skip("a funded job's countdown chip:
 

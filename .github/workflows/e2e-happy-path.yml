@@ -3,8 +3,8 @@ name: E2E happy-path smoke
 permissions:
   contents: read
 
-# Critical-path Playwright smoke tests covering customer-posts-job and
-# helper-browses-and-applies (customer-sees-application moved to the prod
+# Critical-path Playwright smoke tests covering customer-posts-job
+# (helper-browses-and-applies and customer-sees-application moved to the prod
 # e2e/journeys/02-marketplace.spec.ts, Q1035, 2026-11-04). Run against the
 # local Vite preview build with Supabase calls mocked via route() — no
 # network dependency on the real Supabase project.

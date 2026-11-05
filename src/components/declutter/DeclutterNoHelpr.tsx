@@ -14,9 +14,8 @@ import { formatPrice } from "@/lib/declutter/distance";
 import { answerHelprNoShow, cancelAfterNoHelpr, fetchHelprNoShowReport, fetchNoHelprChoice, reportHelprNoShow } from "@/lib/declutter/noHelpr";
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 
-const btn = "rounded-full border border-border px-4 py-2 text-sm font-semibold";
-const primary = "btn-grad-primary rounded-full px-4 py-2 text-sm font-semibold";
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
 /** The buyer's choice after no Helpr took the delivery. Nothing for any other order. */
@@ -42,9 +41,9 @@ export function NoHelprChoice({ orderId }: { orderId: string }) {
         The {formatPrice(c.delivery_refunded_cents)} you paid for delivery is coming back to your card. Pick it up at the seller's home
         by {when(c.pickup_by)}, or cancel the sale.
       </p>
-      <button type="button" className={btn} disabled={cancel.isPending} onClick={() => setAsking(true)}>
+      <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" disabled={cancel.isPending} onClick={() => setAsking(true)}>
         Cancel and get a refund
-      </button>
+      </Button>
       <ConfirmSheet open={asking} title="Cancel this sale?" confirmLabel="Cancel the sale" cancelLabel="Keep it" pending={cancel.isPending}
         onConfirm={() => cancel.mutate()} onClose={() => setAsking(false)} testId="no-helpr-cancel">
         You get {formatPrice(c.refund_cents)} back.
@@ -81,9 +80,9 @@ export function HelprNoShowReportButton({ orderId, taskId, slotStart, who }: { o
   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null;
   return (
     <div>
-      <button type="button" className={btn} disabled={send.isPending} onClick={() => setAsking(true)}>
+      <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" disabled={send.isPending} onClick={() => setAsking(true)}>
         The Helpr didn't come
-      </button>
+      </Button>
       <ConfirmSheet open={asking} title="The Helpr didn't come?" confirmLabel="Tell them" pending={send.isPending}
         onConfirm={() => send.mutate()} onClose={() => setAsking(false)} testId="helpr-no-show-report">
         We tell {who} now. They have 24 hours to answer. If they don't, they get a strike and another Helpr can take it.
@@ -121,9 +120,9 @@ export function HelprNoShowAnswer({ taskId }: { taskId: string }) {
       <label htmlFor={noteId} className="block text-xs font-medium">What happened? Say when you got there.</label>
       <Textarea id={noteId} rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} className="w-full rounded-2xl border border-input glass-field px-3 py-2 text-ds-15" />
       {failed && <p role="alert" className="text-sm text-destructive-ink">{failed}</p>}
-      <button type="button" className={primary} disabled={answer.isPending || !note.trim()} onClick={() => answer.mutate()}>
+      <Button type="button" variant="primary" size="sm" className="text-sm font-semibold" disabled={answer.isPending || !note.trim()} onClick={() => answer.mutate()}>
         I was there
-      </button>
+      </Button>
     </div>
   );
 }

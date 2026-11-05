@@ -152,11 +152,13 @@ describe("the /u/<handle> link card (api/share.ts + vercel.json)", () => {
   });
   const card = async (h: string) => (await handler.fetch(new Request(`https://www.louisianahelpr.com/api/share?_og=profile&_id=${h}`))).text();
 
-  it("vercel.json sends /u/<handle> through the card, noindex", () => {
+  it("vercel.json sends /u/<handle> through the card; the card, not a static header, says noindex (L7)", () => {
     const v = JSON.parse(readFileSync(resolve("vercel.json"), "utf8")) as { rewrites: { source: string; destination: string }[]; headers: { source: string }[] };
     expect(v.rewrites.length).toBeGreaterThan(5);
     expect(v.rewrites.find((r) => r.source.startsWith("/u/"))?.destination).toBe("/api/share?_og=profile&_id=:handle");
-    expect(v.headers.some((h) => h.source === "/u/(.*)")).toBe(true);
+    // L7 (owner 11-05): a static X-Robots-Tag would override a member's opt-in; api/share.ts sends it per member
+    // (src/test/profileSearchOptIn.test.tsx).
+    expect(v.headers.some((h) => h.source === "/u/(.*)")).toBe(false);
   });
 
   it("a member's card: their name, their photo at 1200x630, exactly one og:image", async () => {

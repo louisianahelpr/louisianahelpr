@@ -79,6 +79,21 @@ if (!existsSync(join(REPO_ROOT, ".env"))) {
     console.warn(`[check:changed] could not link the main checkout's .env: ${e.message}`);
   }
 }
+// The same for node_modules (lander 2026-11-05): with none in the worktree root,
+// vite.config's bootReach reads node_modules/lucide-react/... relative to the root
+// and the local build dies with ENOENT, failing every push from a fresh worktree.
+if (!existsSync(join(REPO_ROOT, "node_modules"))) {
+  try {
+    const common = execFileSync("git", ["rev-parse", "--path-format=absolute", "--git-common-dir"], { cwd: REPO_ROOT, encoding: "utf8" }).trim();
+    const mainModules = join(dirname(common), "node_modules");
+    if (existsSync(mainModules)) {
+      symlinkSync(mainModules, join(REPO_ROOT, "node_modules"));
+      console.log(`[check:changed] linked ${mainModules} into this worktree`);
+    }
+  } catch (e) {
+    console.warn(`[check:changed] could not link the main checkout's node_modules: ${e.message}`);
+  }
+}
 const hasCreds = (role) => process.env[`PLAYWRIGHT_${role}_EMAIL`] && process.env[`PLAYWRIGHT_${role}_PASSWORD`];
 if (!(hasCreds("POSTER") && hasCreds("HELPER")) && !existsSync(join(REPO_ROOT, ".env"))) {
   console.error(

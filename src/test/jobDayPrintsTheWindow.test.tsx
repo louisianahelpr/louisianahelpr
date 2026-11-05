@@ -15,12 +15,15 @@
  * @mutate src/lib/closedJobLabels.ts | date_window_end: row.date_window_end ?? null }]) | date_window_end: null }])
  * @mutate src/components/admin/AdminAnalytics.tsx | readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}, date_window_end`, | readJobsAheadOfDb(`${JOB_READABLE_COLUMNS}`,
  * @mutate src/components/admin/AdminJobs.tsx | materials_note, date_window_end`, | materials_note`,
+ * @mutate supabase/migrations/20261105233602_closed_application_job_labels_window.sql |             WHERE a.job_id = j.id AND a.helper_id = v_uid |             WHERE a.job_id = j.id
+ * @mutate supabase/migrations/20261105233602_closed_application_job_labels_window.sql |   SELECT j.id, j.title, j.date_needed, j.date_window_end |   SELECT j.id, j.title, j.date_needed, NULL::date
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { render, screen } from "@testing-library/react";
-import { blankComments } from "@/test/helpers/blankNonCode";
+import { blankComments, blankSqlComments } from "@/test/helpers/blankNonCode";
+import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";
 import { trackedFiles } from "@/test/helpers/trackedFiles";
 import { ClosedJobRow } from "@/pages/jobs/appliedJobCard/ClosedJobRow";
 
@@ -49,12 +52,21 @@ describe("Q2408: a window job's day prints as its window everywhere", () => {
   });
 
   it("the Not picked row prints the window, and its read carries the window's last day", async () => {
-    render(<ClosedJobRow label={{ title: "Yard", date_needed: "2026-11-04", date_window_end: "2026-11-10" }} status="Not selected" />);
+    render(<ClosedJobRow label={{ title: "Yard", date_needed: "2020-11-04", date_window_end: "2020-11-10" }} status="Not selected" />);
     expect(screen.getByText(/Not selected$/).textContent).toBe("Any day Nov 4-10 · Not selected");
-    rpc.rows = [{ job_id: "j1", title: "Yard", date_needed: "2026-11-04", date_window_end: "2026-11-10" }, { job_id: "j2", title: "Old db", date_needed: "2026-11-05" }];
+    rpc.rows = [{ job_id: "j1", title: "Yard", date_needed: "2020-11-04", date_window_end: "2020-11-10" }, { job_id: "j2", title: "Old db", date_needed: "2020-11-05" }];
     const m = await fetchClosedJobLabels(true);
-    expect(m.get("j1")).toEqual({ title: "Yard", date_needed: "2026-11-04", date_window_end: "2026-11-10" });
-    expect(m.get("j2"), "a database before 20261105233602 returns no column: a one-day row").toEqual({ title: "Old db", date_needed: "2026-11-05", date_window_end: null });
+    expect(m.get("j1")).toEqual({ title: "Yard", date_needed: "2020-11-04", date_window_end: "2020-11-10" });
+    expect(m.get("j2"), "a database before 20261105233602 returns no column: a one-day row").toEqual({ title: "Old db", date_needed: "2020-11-05", date_window_end: null });
+  });
+
+  it("the newest get_closed_application_job_labels returns the window, only for the caller's own applications", () => {
+    const def = effectiveDefs(resolve(REPO, "supabase/migrations")).get("get_closed_application_job_labels");
+    expect(def, "has a definition").toBeTruthy();
+    const body = blankSqlComments(def!.stmt);
+    expect(body).toMatch(/RETURNS TABLE\(job_id uuid, title text, date_needed date, date_window_end date\)/);
+    expect(body).toMatch(/SELECT j\.id, j\.title, j\.date_needed, j\.date_window_end\s+FROM public\.jobs j/);
+    expect(body, "the applicant check (behaviour: closedApplicationJobLabelsWindow.pglite.mjs W2)").toMatch(/WHERE a\.job_id = j\.id AND a\.helper_id = v_uid/);
   });
 
   it("each reader asks for date_window_end through readJobsAheadOfDb", () => {

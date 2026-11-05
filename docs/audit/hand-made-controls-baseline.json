@@ -277,12 +277,6 @@
     "src/components/declutter/DeclutterMeetup.tsx": {
       "input": 1
     },
-    "src/components/declutter/DeclutterPickupTimes.tsx": {
-      "button": 1
-    },
-    "src/components/declutter/DeclutterPorchDay.tsx": {
-      "button": 1
-    },
     "src/components/declutter/DeclutterPorchPlaces.tsx": {
       "input": 1
     },

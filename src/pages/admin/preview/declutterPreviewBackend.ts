@@ -41,6 +41,8 @@ function readRpc(name: string, body: Record<string, unknown>, s: DeclutterPrevie
     case "declutter_my_donations": return s.donations;
     // Manager mode (owner 11-01): no sample order has a manager, so no grants.
     case "declutter_my_manager_grants": return [];
+    // Item views (owner request 11-05): the sample listings have no views yet, so Selling draws no "N views".
+    case "declutter_my_item_view_counts": return [];
     case "declutter_my_handover": {
       const id = typeof body.p_order_id === "string" ? body.p_order_id : "";
       return s.handovers[id] as unknown as Record<string, unknown> | undefined;

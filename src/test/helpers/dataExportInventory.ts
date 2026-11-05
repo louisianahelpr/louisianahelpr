@@ -597,6 +597,7 @@ export function helperReadableViaJob(tables = publicTables()): Map<string, strin
  */
 // @two-way src/test/dataExportCoversEveryUserTable.test.ts:no stale entry: every EXPORTED/EXEMPT column is a live person column
 export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
+  "declutter_item_views.viewer_id": { reason: "Declutter item views (20261105163501, owner request 11-05): one row per item a member opened (item, time); deleted with the account (ON DELETE CASCADE). Not in export_my_data yet: added under OPEN Q2752 (profile_views, the same kind of row, is exported by viewer_user_id)" },
   // CMP-4 instant book (20261101063725, 20261101065105); lead 11-01.
   // LEAD-LIST-FOR-SELLER (20261101034159): a private link (item, job, Helpr, seller, sent/decided times), service role only.
   "declutter_listed_for_seller.seller_id": { reason: "link row; the listing itself is a declutter_items row exported under the seller (seller_id), and the job under its poster" },

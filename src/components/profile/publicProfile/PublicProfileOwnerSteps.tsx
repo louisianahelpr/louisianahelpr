@@ -31,7 +31,7 @@ const STEP_ICON = { photo: Camera, bio: PenLine, skills: Tags } as const;
 export function PublicProfileOwnerSteps({ p }: { p: Pick<PublicProfile, "handle" | "photo_url" | "bio" | "skills"> }) {
   const steps = ownerSteps(p);
   const copy = async () => {
-    if (await copyToClipboard(profileLinkUrl(p.handle))) toast.success("Link copied");
+    if (await copyToClipboard(profileLinkUrl(p.handle))) toast("Link copied");
     else toast.error("Couldn't copy the link. Try Share instead.");
   };
   return (

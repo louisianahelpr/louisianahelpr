@@ -226,6 +226,7 @@ rpc_exempt(fn, why) AS (
   ('search_profiles_by_name', 'a read; its only write is its own rate-limit log'),
   ('rpc_record_application_attempt', 'writes only application_rate_log; the apply it precedes is ban-gated'),
   -- Allowed by product decision.
+  ('declutter_record_item_view', 'Declutter item views (20261105163501, owner request 11-05): a banned account still signs in and browses (Q300); a view only adds one to the seller-only unique-view count, posts no content and moves no money'),
   ('toggle_thread_mute', 'muting is protective and only reduces what the account is sent'),
   ('set_thread_snooze', 'snoozing is muting with an end date'),
   ('clear_my_job_post_draft', 'OPS-3 (20261030223154): deletes only the caller own unfinished job post, which nobody else sees; removing your own data must work for every account'),

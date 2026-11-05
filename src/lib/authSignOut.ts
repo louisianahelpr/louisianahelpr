@@ -8,6 +8,7 @@ import { clearPersistedAuthToken } from "@/lib/persistedAuthToken";
 import { markIntentionalSignOut } from "@/lib/unexpectedSignOut";
 import { clearNativeSessionMirror } from "@/integrations/supabase/keychainStorageAdapter";
 import { resetProofPhotoSignCache } from "@/lib/proofPhotoStorage";
+import { resetSentItemViews } from "@/lib/declutter/itemViewsSent";
 import { purgeApiCache } from "@/lib/apiCachePurge";
 import { beginSignOutAbortScope, endSignOutAbortScope } from "@/lib/signOutAbort";
 import { forceSignedOutSnapshot } from "@/hooks/useAuthReady";
@@ -278,6 +279,8 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   // the next account on this device must not be handed them (Q724). First,
   // because it cannot throw and nothing before it may skip it.
   resetProofPhotoSignCache();
+  // Which Declutter items this run already counted a view for: the next account counts its own (Q724).
+  resetSentItemViews();
   // In-memory first: synchronous, so it is done before anything can hang.
   try {
     queryClient.clear();

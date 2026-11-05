@@ -52,6 +52,7 @@ const sql = `${outsideFunctions}\n${liveFunctionBodies}`;
 
 /** Log-shaped tables deliberately never pruned by age, each with why. */
 const NO_AGE_PRUNE: Record<string, string> = {
+  declutter_item_views: "Declutter item views (20261105163501, owner request 11-05): one row per item and viewer is the seller's unique-view count itself, so an age prune would lower the number the seller sees; rows go with their item or the viewer's account (ON DELETE CASCADE)",
   job_continue_events: "The step history of a job continued on another day (proposed, set, declined, confirmed): the record behind a release held for the new day, which an admin reads in a dispute; rows go with their job (ON DELETE CASCADE), 20261101231015.",
   helpr_task_events: "The step history of a Helpr delivery (taken, picked up, wrong code, delivered, confirmed): the evidence an admin decides a delivery problem or damage with, and the record of money owed to a Helpr; rows go with their task (ON DELETE CASCADE), 20261017055505.",
   declutter_offer_events: "The step history of a Declutter offer (offer, counters, accept/decline): the record of a money agreement between two members; rows go with their offer (ON DELETE CASCADE), 20261014210518.",

@@ -13,6 +13,8 @@
  * Third slice (sensitive paths, code-reviewed): Admin's credential "Open", payouts' "Select All with Stripe" /
  * "Clear Selection", a report's two names, disputes' "Reset Filters", the security check's "Retry", the App Store
  * "Restore purchases", sign-up's "Resend", "Skip and create account" and "Have a referral code?".
+ * Fourth slice: the "See all" heading actions (Activity's bucket groups, the status boxes' group head, Search's
+ * groups), text-sized so their 28px heading rows stay 28px.
  * Each file's hand-made button count fell in the same commit (docs/audit/hand-made-controls-baseline.json).
  *
  * @mutate src/components/series/EndSeriesControl.tsx | {trigger && <InlineTextButton | {trigger && <button type="button"
@@ -35,6 +37,7 @@
  * @mutate src/components/auth/TurnstileField.tsx | <InlineTextButton\n              onClick={() => { | <button className="underline"\n              onClick={() => {
  * @mutate src/components/profile/SubscriptionTab.tsx | <InlineTextButton\n            onClick={handleRestorePurchases} | <button className="underline"\n            onClick={handleRestorePurchases}
  * @mutate src/pages/auth/SignupPending.tsx | <InlineTextButton\n                onClick={handleResend} | <button className="hover:underline"\n                onClick={handleResend}
+ * @mutate src/components/sections/StatusBoxes.tsx | <InlineTextButton onClick={onSeeAll} | <button type="button" onClick={onSeeAll}
  * @mutate src/pages/auth/signup/SignupStep2.tsx | <InlineTextButton\n          data-testid="referral-code-toggle" | <button className="underline"\n          data-testid="referral-code-toggle"
  */
 import { describe, expect, it } from "vitest";
@@ -67,6 +70,9 @@ const CASES: [string, number][] = [
   ["src/components/profile/SubscriptionTab.tsx", 1],
   ["src/pages/auth/SignupPending.tsx", 1],
   ["src/pages/auth/signup/SignupStep2.tsx", 2],
+  ["src/components/job-card/ActivityBucketGroups.tsx", 1],
+  ["src/components/sections/StatusBoxes.tsx", 1],
+  ["src/pages/search/SearchPage.tsx", 1],
 ];
 
 function scan(file: string) {
@@ -85,9 +91,9 @@ function scan(file: string) {
 }
 
 describe("underlined text actions are the shared InlineTextButton (Q2709)", () => {
-  it("checks all twenty-one files, twenty-eight actions (an empty list would pass every case)", () => {
-    expect(CASES.length).toBe(21);
-    expect(CASES.reduce((a, [, n]) => a + n, 0)).toBe(28);
+  it("checks all twenty-four files, thirty-one actions (an empty list would pass every case)", () => {
+    expect(CASES.length).toBe(24);
+    expect(CASES.reduce((a, [, n]) => a + n, 0)).toBe(31);
   });
 
   it.each(CASES)("%s", (file, n) => {

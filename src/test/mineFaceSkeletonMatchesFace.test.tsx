@@ -18,7 +18,7 @@
 // @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx |         {tracker && ( |         {false && (
 // @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx |   status: "font-sans text-ds-13 font-semibold", |   status: "font-sans text-ds-15 font-semibold",
 // @mutate src/components/ui/skeletons/ApplicationCardSkeleton.tsx |   metaLine: "h-7", |   metaLine: "h-4",
-// @mutate src/components/job-card/ActivityBucketGroups.tsx | className="-my-2 text-ds-13 font-semibold text-primary" | className="text-ds-13 font-semibold text-primary"
+// @mutate src/components/job-card/ActivityBucketGroups.tsx | <InlineTextButton onClick={() => toggle(b)} className="text-ds-13 | <button type="button" onClick={() => toggle(b)} className="text-ds-13
 // @mutate src/components/job-card/ActivityBucketGroups.tsx | <div className="flex min-h-7 items-center justify-between px-1"> | <div className="flex items-baseline justify-between px-1">
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -131,14 +131,16 @@ describe("the Working placeholder is the MineJobFace card's box (Q833)", () => {
   });
 
   it("the bucket heading row is 28px with or without \"See all\", and the placeholder reserves that row", () => {
-    // Every button is at least 44px tall (index.css), so an unclamped "See all" made the heading row 44px whenever a
+    // A plain button is at least 44px tall (index.css), so an unclamped "See all" made the heading row 44px whenever a
     // group held more than three cards: the first card landed 25px below the placeholder's (Q833, mocked harness
-    // /posts first-y 201 -> 227). The row is min-h-7 (28px); the button's -my-2 makes its 44px margin box 28px, and
-    // its target reaches 8px past the row: the list's gap-2 below, half the sections' gap-4 above, over no card.
+    // /posts first-y 201 -> 227). The row is min-h-7 (28px); "See all" is the shared text-sized InlineTextButton
+    // (min-h-0, Q2709), and its 44px touch overlay reaches 8px past the row: the list's gap-2 below, half the
+    // sections' gap-4 above, over no card.
     const GROUPS = read("src/components/job-card/ActivityBucketGroups.tsx");
     const ROW = "flex min-h-7 items-center justify-between px-1";
     expect(GROUPS).toContain(`<div className="${ROW}">`);
-    expect(GROUPS).toMatch(/onClick=\{\(\) => toggle\(b\)\} className="-my-2 text-ds-13 font-semibold text-primary"/);
+    expect(GROUPS).toMatch(/<InlineTextButton onClick=\{\(\) => toggle\(b\)\} className="text-ds-13 font-semibold text-primary"/);
+    expect(read("src/components/ui/InlineTextButton.tsx")).toContain("link-standard min-h-0");
     expect(GROUPS).toContain('className="flex flex-col gap-2"');
     expect(BUTTON_FLOOR_PX - 2 * 8).toBe(height("h-7"));
     expect(SKELETON).toContain(`<div className="${ROW}">`);

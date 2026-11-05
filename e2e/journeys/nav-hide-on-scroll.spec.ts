@@ -20,176 +20,76 @@
  * viewport with no gesture able to reveal it — tabs AND the Post FAB gone
  * until the user navigated away.
  *
+ * ON THE REAL BACKEND (Q1035; moved from the mocked e2e/happy-path/nav-hide-on-scroll.spec.ts).
+ * The bodies are the same. The lists are the real test accounts' own prod rows instead of 30 seeded ones: the
+ * poster's inbox and its Posted list (All), and the Helpr's Working list (All). Jobs > Browse is NOT measured here:
+ * prod's open feed held 0 rows (open_jobs_browse, read-only, 2026-11-05 ~04:25Z), so it has nothing to scroll.
+ * That left the map-view case ("a hidden dock comes back when its scroll surface goes away") with no surface on
+ * prod; its invariant and @mutate moved to src/components/mobileNav/useDockScrollState.test.ts, which drives the
+ * real hook's ResizeObserver path.
+ *
+ * READ-ONLY BY CONSTRUCTION: every context goes through abortProdWrites (the a11y-prod allow-list) plus an abort
+ * of the telemetry hosts, and any user write fails the test.
+ *
  * Assertions are on the nav's own translateY, taken from the computed
  * transform matrix: 0 = docked, ~130 = slid off the bottom. Reading the class
  * list or `aria-hidden` would pass on a bar that never actually moved.
  */
-import { test, expect, FAKE_CUSTOMER, installSupabaseMocks, seedAuthedSession, type MockRule } from "./fixtures";
-import type { Page } from "@playwright/test";
+import type { APIRequestContext, Browser, BrowserContext, Page, Request } from "@playwright/test";
+import { test, expect, SUPABASE_URL, getSession, isUserWrite, newUserContext, sessionsAvailable, type Role } from "./fixtures";
+import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenarios";
+import { abortProdWrites } from "../a11y-prod/abortProdWrites";
 import { defaultInboxTab } from "../../src/lib/inboxDefault";
 
-/** Someone else's account — Home's feed hides jobs you posted yourself. */
-const OTHER_POSTER = "33333333-3333-4333-8333-333333333333";
+/** Telemetry the app sends off-Supabase: never let a test run reach Sentry, PostHog or Vercel. */
+const TELEMETRY_HOSTS = /(^|\.)(sentry\.io|sentry-cdn\.com|posthog\.com|vercel-insights\.com)$/;
 
-/** Tall enough to overflow 375x812 several times over on every route. */
-const ROW_COUNT = 30;
+// newUserContext already blocks them; this covers any context the project builds (Q1164).
+test.use({ serviceWorkers: "block" });
 
-/**
- * Job IDs for the applied-jobs mock. Uses a DIFFERENT prefix from manyJobs
- * (which uses 10000000-…) so the dashboard feed does not hide them as
- * "already applied". Overlapping IDs would cause the feed's "you applied for
- * this job" filter to suppress all 30 feed rows, leaving an empty list and
- * tripping the scrollable-region guard on every OTHER route in this suite.
- */
-const APP_JOB_IDS = Array.from(
-  { length: ROW_COUNT },
-  (_, i) => `50000000-0000-4000-8000-0000000${String(i + 100).padStart(5, "0")}`,
-);
+/** One SCENARIO pin runs this file and messages-thread together ("thread-dock"). */
+const rotation: Rotation = { ...rotationFor(23), network: "fast" };
+const scrollName = (slug: string, role: Role) =>
+  scenarioTitle({
+    journey: `thread-dock-scroll-${slug}`,
+    persona: role === "helper" ? "helper-only" : "poster-only",
+    state: "approved",
+    rotation,
+    outcome: "smooth",
+  });
 
-/**
- * /jobs (applied tab) shows jobs the helper applied for, in "pending"
- * state → bucket "waiting". Without these rows the applied tab renders an
- * empty-state with no scrollable region and the dock-hide assertion fires
- * vacuously ("no scrollable content" rather than "dock stayed visible").
- */
-function manyApplications(helperId: string) {
-  const now = Date.now();
-  return Array.from({ length: ROW_COUNT }, (_, i) => ({
-    id: `20000000-0000-4000-8000-0000000${String(i + 100).padStart(5, "0")}`,
-    job_id: APP_JOB_IDS[i],
-    helper_id: helperId,
-    status: "pending",
-    message: `Test application ${i + 1}`,
-    created_at: new Date(now - i * 3_600_000).toISOString(),
-    updated_at: new Date(now - i * 3_600_000).toISOString(),
-  }));
+type Opened = { page: Page; context: BrowserContext; writes: string[] };
+
+/** A real test account signed in, prod writes and telemetry aborted, user writes recorded. */
+async function open(browser: Browser, request: APIRequestContext, role: Role, title: string): Promise<Opened> {
+  test.skip(filteredOut(title), "SCENARIO pins another scenario");
+  const avail = sessionsAvailable();
+  test.skip(!avail.ok, avail.why);
+  const context = await newUserContext(browser, await getSession(request, role));
+  const writes: string[] = [];
+  context.on("request", (req: Request) => {
+    if (isUserWrite(req.method(), req.url())) writes.push(`${req.method()} ${req.url().slice(0, 140)}`);
+  });
+  await abortProdWrites(context, SUPABASE_URL, test.info().outputPath());
+  await context.route(
+    (u) => TELEMETRY_HOSTS.test(u.hostname),
+    (route) => route.abort("blockedbyclient"),
+  );
+  return { page: await context.newPage(), context, writes };
 }
 
-function manyJobs(customerId: string) {
-  const now = Date.now();
-  return Array.from({ length: ROW_COUNT }, (_, i) => ({
-    id: `10000000-0000-4000-8000-0000000${String(i + 100).padStart(5, "0")}`,
-    title: `Seeded job number ${i + 1} — a title long enough to wrap on a phone`,
-    description: "A description that runs a couple of lines so the card has real height.",
-    category: "cleaning",
-    status: "open",
-    budget: 100 + i,
-    location: "New Orleans, LA",
-    parish: "orleans",
-    date_needed: new Date(now + 86_400_000).toISOString().slice(0, 10),
-    start_time: "09:00:00",
-    created_at: new Date(now - i * 3_600_000).toISOString(),
-    updated_at: new Date(now - i * 3_600_000).toISOString(),
-    customer_id: customerId,
-    helper_id: null,
-    is_urgent: false,
-    urgent_fee: 0,
-    is_recurring: false,
-    is_group_job: false,
-    helpers_needed: 1,
-    estimated_hours: 2,
-    special_requirements: null,
-    photos: [],
-    boost_expires_at: null,
-    expires_at: new Date(now + 7 * 86_400_000).toISOString(),
-    recurrence_interval: null,
-    pricing_mode: "set_price",
-  }));
-}
-
-function manyMessages() {
-  const now = Date.now();
-  return Array.from({ length: ROW_COUNT }, (_, i) => ({
-    id: `30000000-0000-4000-8000-0000000${String(i + 100).padStart(5, "0")}`,
-    job_id: `10000000-0000-4000-8000-0000000${String(i + 100).padStart(5, "0")}`,
-    // Every thread is an unread message TO the signed-in user.
-    //
-    // The column is `receiver_id`. This fixture said `recipient_id`, which
-    // exists nowhere in the schema, so loadConversations' unread count
-    // (`m.receiver_id === uid && !m.read`) matched nothing and every
-    // conversation came back with unread: 0. That stayed invisible while the
-    // inbox fell back to All whenever nothing was unread — the seeded inbox
-    // looked fine and the spec passed for the wrong reason. Once Messages
-    // started opening on Unread unconditionally (owner: "messages should open
-    // to unread not all"), the default view became permanently empty and took
-    // this spec's premise with it: an empty list has nothing to scroll.
-    sender_id: OTHER_POSTER,
-    receiver_id: FAKE_CUSTOMER.id,
-    content: `Thread ${i + 1} — latest message text goes here.`,
-    read: false,
-    created_at: new Date(now - i * 60_000).toISOString(),
-    archived_by: [],
-  }));
-}
-
-/**
- * Home reads the RLS-public `open_jobs_browse` view, the Activity tabs read
- * `jobs`. Both are mocked so one fixture covers all four routes; Home's rows
- * belong to someone else (it filters your own posts out of the feed) and the
- * Activity rows belong to the signed-in account.
- */
-/**
- * Home's feed is infinite-scrolling: it re-requests the SAME URL with a new
- * `Range` header for each page. A mock that answers every call with the same
- * 30 rows therefore never ends, and "scroll to the true end of the list" never
- * terminates. Range is a header, not a query param, so the rule can't read the
- * page number — but the URL repeating IS the page-2 signal, so the first call
- * for a given URL serves rows and every repeat reports the end of the feed.
- */
-const pageOneOnly = (() => {
-  const served = new Set<string>();
-  return (url: URL, body: unknown[]) => {
-    const key = url.toString();
-    if (served.has(key)) return { status: 200, body: [] };
-    served.add(key);
-    return { status: 200, body };
+/** A test body run as `role`; the context closes and the write check runs whatever happens. */
+function as(role: Role, slug: string, body: (page: Page) => Promise<void>) {
+  return async ({ browser, request }: { browser: Browser; request: APIRequestContext }) => {
+    const o = await open(browser, request, role, scrollName(slug, role));
+    try {
+      await body(o.page);
+    } finally {
+      await o.context.close().catch(() => {});
+      expect(o.writes, "the dock check is read-only: no user writes").toEqual([]);
+    }
   };
-})();
-
-const listRules: MockRule[] = [
-  {
-    match: (url, method) => method === "GET" && url.pathname === "/rest/v1/open_jobs_browse",
-    handle: (url) => pageOneOnly(url, manyJobs(OTHER_POSTER)),
-  },
-  {
-    match: (url, method) => method === "GET" && url.pathname === "/rest/v1/jobs",
-    handle: () => ({ status: 200, body: manyJobs(FAKE_CUSTOMER.id) }),
-  },
-  {
-    match: (url, method) => method === "GET" && url.pathname === "/rest/v1/messages",
-    handle: () => ({ status: 200, body: manyMessages() }),
-  },
-  // /jobs (applied tab) fetches applications by helper_id. Without these
-  // the route shows an empty-state (no scrollable region) and the dock-hide
-  // test fires vacuously.
-  {
-    match: (url, method) => method === "GET" && url.pathname === "/rest/v1/applications",
-    handle: () => ({ status: 200, body: manyApplications(FAKE_CUSTOMER.id) }),
-  },
-  // The applied tab also calls get_jobs_for_my_applications to build the job
-  // map for each card. Return jobs with the APP_JOB_IDs so cards render with
-  // full job data rather than in minimal (job:null) mode.
-  {
-    match: (url, method) => method === "POST" && url.pathname === "/rest/v1/rpc/get_jobs_for_my_applications",
-    handle: () => ({
-      status: 200,
-      body: APP_JOB_IDS.map((id, i) => ({
-        id,
-        title: `Applied job ${i + 1}`,
-        description: "A job the helper applied for.",
-        category: "cleaning",
-        status: "open",
-        budget: 80 + i,
-        location: "New Orleans, LA",
-        date_needed: new Date(Date.now() + 86_400_000).toISOString().slice(0, 10),
-        customer_id: OTHER_POSTER,
-        helper_id: null,
-        is_urgent: false,
-        created_at: new Date(Date.now() - i * 3_600_000).toISOString(),
-      })),
-    }),
-  },
-];
+}
 
 async function boot(page: Page, url: string) {
   await page.setViewportSize({ width: 375, height: 812 });
@@ -287,20 +187,17 @@ async function wheel(page: Page, dy: number, steps: number) {
   await page.waitForTimeout(500);
 }
 
-// Seeded jobs are open with no applicants → bucket "waiting". The default
-// Activity tab is "needs_you", so /jobs and /posts land on an empty
-// list without the filter param — nothing to scroll, nothing to hide for.
-// "/jobs" is the feed (Jobs > Browse) since 2026-10-19; /home is the short Home dashboard.
-const ROUTES = ["/jobs", "/messages", "/jobs?tab=working&filter=waiting", "/jobs?tab=posted&filter=waiting"] as const;
+// The real accounts' own lists, each long enough to scroll at 375x812 (measured read-only 2026-11-05 ~04:25Z:
+// the poster has 30 threads and 672 posted jobs, 133 completed; the Helpr is hired on 121, 111 completed). "All" so no bucket default can leave a
+// list empty. Jobs > Browse is not here: prod's open feed has nothing to scroll (see the file header).
+const ROUTES: { route: string; role: Role; slug: string }[] = [
+  { route: "/messages", role: "poster", slug: "inbox" },
+  { route: "/jobs?tab=posted&filter=all", role: "poster", slug: "posted" },
+  { route: "/jobs?tab=working&filter=all", role: "helper", slug: "working" },
+];
 
-for (const route of ROUTES) {
-  test(`dock hides on scroll-down and returns on scroll-up @ ${route}`, async ({
-    context,
-    page,
-    baseURL,
-  }) => {
-    await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-    await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: listRules });
+for (const { route, role, slug } of ROUTES) {
+  test(`${scrollName(slug, role)} · dock hides on scroll-down and returns on scroll-up @ ${route}`, as(role, slug, async (page) => {
     await boot(page, route);
 
     // This spec is about the dock hiding on scroll, not about which inbox tab
@@ -384,16 +281,10 @@ for (const route of ROUTES) {
 
     await wheel(page, -120, 2);
     await expectDock(page, "docked", `${route} recovers at the end of the list`);
-  });
+  }));
 }
 
-test("a hidden dock is taken out of the tab order, not just out of the a11y tree", async ({
-  context,
-  page,
-  baseURL,
-}) => {
-  await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-  await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: listRules });
+test(`${scrollName("tab-order", "poster")} · a hidden dock is taken out of the tab order, not just out of the a11y tree`, as("poster", "tab-order", async (page) => {
   // DEEP-LINK TO A BUCKET THAT HAS ROWS. This spec is about the dock leaving
   // the tab order when it hides, not about which bucket My Posts opens on —
   // and it needs a scrollable list to hide the dock at all. The seeded jobs are
@@ -406,7 +297,7 @@ test("a hidden dock is taken out of the tab order, not just out of the a11y tree
   // fallback", and the empty state now offers the jump as a button instead), so
   // this asks for the populated bucket by name — the same accommodation the
   // inbox case above already makes for the same reason.
-  await boot(page, "/jobs?tab=posted&filter=waiting");
+  await boot(page, "/jobs?tab=posted&filter=all");
 
   await wheel(page, 120, 8);
   await expectDock(page, "hidden", "dock hidden");
@@ -432,47 +323,11 @@ test("a hidden dock is taken out of the tab order, not just out of the a11y tree
     return document.activeElement?.closest('nav[aria-label="Bottom navigation"]') !== null;
   });
   expect(focused, "a hidden dock button must not be focusable").toBe(false);
-});
+}));
 
-test("switching Jobs > Browse to map view cannot strand the dock off-screen", async ({
-  context,
-  page,
-  baseURL,
-}) => {
-  await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-  await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: listRules });
-  await boot(page, "/jobs");
-
-  await wheel(page, 120, 8);
-  await expectDock(page, "hidden", "dock hidden by scrolling the feed");
-
-  // Map view sets `display:none` on the list's scroll container and renders a
-  // map that never scrolls, so no further scroll event can ever fire on this
-  // route. Before the fix the dock stayed 130px down — no tabs, no Post FAB.
-  // Map view is no longer a top-level toolbar button — the owner moved it (and
-  // saved searches) INTO the filter sheet, so reaching it is two steps now:
-  // open Filters, then pick Map from the "Feed view" group. The assertion below
-  // is unchanged; only the route to the control moved.
-  await page.getByRole("button", { name: /^Filters/ }).first().click();
-  await page
-    .getByRole("radiogroup", { name: "Feed view" })
-    .getByRole("radio", { name: "Map", exact: true })
-    .click();
-  await page.waitForTimeout(1_200);
-
-  await expectDock(page, "docked", "dock must return when the scroll surface goes away");
-});
-
-// PROOF THIS SPEC CAN FAIL — remove the reveal invariant.
-//
-// Everything else in MobileNav is driven by `scroll` events, so a surface that
-// stops being scrollable (Home's list → map toggle sets display:none on the
-// list container) fires no further scroll and the dock stays parked ~130px off
-// the bottom — tabs AND the Post FAB unreachable until the user navigates away.
-// The ResizeObserver line is the ONLY thing that reveals it. Deleting it leaves
-// hide-on-scroll-down and reveal-on-scroll-up working perfectly, which is why a
-// spec that only scrolled up and down would stay green.
-// @mutate src/components/mobileNav/useDockScrollState.ts | if (!scrollable) setNavHidden(false); |
+// The map-view case ("switching Jobs > Browse to map view cannot strand the dock off-screen") and its
+// useDockScrollState @mutate moved to src/components/mobileNav/useDockScrollState.test.ts: prod's open feed has no
+// rows to scroll, so the case has no surface here (see the file header).
 
 /**
  * THE DOCK LABELS, MEASURED (owner, 2026-10-19: a one-word label under each
@@ -482,9 +337,7 @@ test("switching Jobs > Browse to map view cannot strand the dock off-screen", as
  * no two labels touch.
  */
 for (const width of [320, 375]) {
-  test(`dock labels: one line, uncut, none touching @ ${width}`, async ({ context, page, baseURL }) => {
-    await seedAuthedSession(context, FAKE_CUSTOMER, baseURL ?? "");
-    await installSupabaseMocks(page, { user: FAKE_CUSTOMER, seed: true, rules: listRules });
+  test(`${scrollName(`labels-${width}`, "poster")} · dock labels: one line, uncut, none touching @ ${width}`, as("poster", `labels-${width}`, async (page) => {
     await boot(page, "/home");
     await page.setViewportSize({ width, height: 700 });
     await page.waitForTimeout(400);
@@ -514,5 +367,5 @@ for (const width of [320, 375]) {
       const a = m.labels[i - 1], b = m.labels[i];
       expect(b.left - a.right, `"${a.text}" and "${b.text}" touch at ${width}`).toBeGreaterThanOrEqual(1);
     }
-  });
+  }));
 }

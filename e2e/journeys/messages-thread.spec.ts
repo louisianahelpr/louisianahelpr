@@ -54,10 +54,10 @@ const READ_RECEIPT = /^PATCH \S*\/rest\/v1\/messages\?/;
 // newUserContext already blocks them; this covers any context the project builds (Q1164).
 test.use({ serviceWorkers: "block" });
 
-/** Every SCENARIO pin that names this journey runs all of it ("messages-thread"). */
+/** One SCENARIO pin runs this file and nav-hide-on-scroll together ("thread-dock"). */
 const rotation: Rotation = { ...rotationFor(22), network: "fast" };
 const titleFor = (slug: string) =>
-  scenarioTitle({ journey: `messages-thread-${slug}`, persona: "poster-only", state: "approved", rotation, outcome: "smooth" });
+  scenarioTitle({ journey: `thread-dock-messages-${slug}`, persona: "poster-only", state: "approved", rotation, outcome: "smooth" });
 
 /** The thread every check opens: the poster's newest conversation with stored system rows. */
 type Thread = { jobId: string; withId: string; title: string; systemLabels: string[] };

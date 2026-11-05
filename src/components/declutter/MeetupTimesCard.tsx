@@ -11,9 +11,10 @@
  */
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, Clock } from "lucide-react";
+import { Clock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { CardDisclosureHeader } from "@/components/ui/CardDisclosureHeader";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchMyPickupWindows, setPickupWindows, type PickupWindow } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -51,14 +52,8 @@ export function MeetupTimesCard({ userId }: { userId: string }) {
   };
   return (
     <section className="rounded-2xl border border-border bg-card" aria-label="Police spot meetup times" data-meetup-times-card="">
-      <button type="button" className="flex w-full min-h-11 items-center gap-3 px-4 py-3 text-left" aria-expanded={open} disabled={saved.isLoading} onClick={toggle}>
-        <Clock className="h-5 w-5 shrink-0" aria-hidden />
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">Police spot meetup times</span>
-          <span className="block text-xs text-muted-foreground">{saved.isLoading ? "Loading…" : rows.length ? weekHoursLine(toWindows(rows)) : "None yet"}</span>
-        </span>
-        <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
-      </button>
+      <CardDisclosureHeader icon={Clock} title="Police spot meetup times" open={open} onToggle={toggle} disabled={saved.isLoading}
+        summary={saved.isLoading ? "Loading…" : rows.length ? weekHoursLine(toWindows(rows)) : "None yet"} />
       {open && (
         <div className="space-y-3 border-t border-border px-4 py-3">
           <p className="text-xs text-muted-foreground">When you can meet a buyer at a police safe exchange spot, or at one of your meet spots with no times of its own.</p>

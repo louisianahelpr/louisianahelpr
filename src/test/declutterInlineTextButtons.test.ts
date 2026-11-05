@@ -7,6 +7,7 @@
  *
  * @mutate src/components/declutter/DeclutterPriceNudge.tsx | <InlineTextButton className="font-semibold underline underline-offset-2" onClick={onOpen}> | <button type="button" className="font-semibold underline underline-offset-2" onClick={onOpen}>
  * @mutate src/components/declutter/DeclutterQuestions.tsx | <InlineTextButton className="font-semibold text-foreground underline underline-offset-2" onClick={onMakeOffer} | <InlineTextButton className="font-semibold text-foreground" onClick={onMakeOffer}
+ * @mutate src/components/declutter/DeclutterManageListing.tsx | <InlineTextButton className="text-ds-14 font-semibold underline underline-offset-2" onClick={() => setFloor(price)}> | <button type="button" className="min-h-11 text-ds-14 font-semibold underline underline-offset-2" onClick={() => setFloor(price)}>
  * @mutate src/components/declutter/DeclutterTabParts.tsx | <InlineTextButton className="text-sm font-medium underline underline-offset-2" aria-expanded={showDone} | <span className="text-sm font-medium underline underline-offset-2" aria-expanded={showDone}
  */
 import { describe, expect, it } from "vitest";
@@ -19,11 +20,13 @@ const CASES: Array<[file: string, label: RegExp]> = [
   ["src/components/declutter/DeclutterPriceNudge.tsx", /Drop the price\?/],
   ["src/components/declutter/DeclutterQuestions.tsx", /Make an offer/],
   ["src/components/declutter/DeclutterTabParts.tsx", /data-done-sales-toggle/],
+  // 11-05 night: the price sheet's "Also set lowest to $X" (was a hand-made 44px-tall text button on its own line).
+  ["src/components/declutter/DeclutterManageListing.tsx", /Also set lowest to/],
 ];
 
 describe("Declutter's in-sentence actions are the shared InlineTextButton (Q2709)", () => {
   it("each moved action is an InlineTextButton that keeps its drawn underline", () => {
-    expect(CASES.length).toBeGreaterThan(2);
+    expect(CASES.length).toBeGreaterThan(3);
     for (const [file, label] of CASES) {
       const src = blankComments(readFileSync(resolve(REPO, file), "utf8"));
       const tags = [...src.matchAll(/<InlineTextButton\b[^>]*>[\s\S]*?<\/InlineTextButton>/g)].map((m) => m[0]);

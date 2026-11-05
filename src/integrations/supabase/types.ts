@@ -19938,6 +19938,10 @@ export type Database = {
         Returns: string
       }
       profile_handle_problem: { Args: { p_handle: string }; Returns: string }
+      profile_review_same_person: {
+        Args: { p_reviewee: string; p_reviewer: string }
+        Returns: boolean
+      }
       profiles_locked_update_columns: { Args: never; Returns: string[] }
       promotions_resubscribe: { Args: { p_user_id: string }; Returns: string }
       promotions_unsubscribe: { Args: { p_user_id: string }; Returns: Json }

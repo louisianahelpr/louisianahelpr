@@ -73,6 +73,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('payout_setup_hire_allowed',     'allow',    'may this member open a payout account: chosen for a job that holds money, or owed money (owner 2026-10-25, 20261025162003)'),
   ('payout_setup_hire_allowed_for_me','noarg',  'reads auth.uid() only: payout_setup_hire_allowed for the caller (20261025162003)'),
   ('payout_waits_on_identity',      'deny',     'TRUE = hold this Helpr''s payout claim until the ID check is done (payout_after_hire + identity_check, 20261025162003); a NULL member is never held, and its only caller (refuse_payout_claim_while_held) asks only for a non-NULL helper_id'),
+  ('profile_review_same_person',    'deny',     'TRUE hides a review written between one person''s own accounts (same phone) from the public profile (20261105165059); EXISTS, so NULL arguments are FALSE, never NULL'),
   ('helper_credential_document_ok', 'allow',    'helper_credentials document is the member''s own object'),
   ('helper_has_advanced_analytics', 'allow',    'caller''s own paid-tier entitlement'),
   ('identity_is_verified',          'allow',    'the ID gate verdict: Stripe Identity only (20261021081258)'),

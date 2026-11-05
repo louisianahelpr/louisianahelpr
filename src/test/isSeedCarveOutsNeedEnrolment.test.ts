@@ -61,6 +61,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   get_applicant_category_counts: "hides", // b62 (20261030015205): test data never counts in this total
   shops_admin_pending_items: "hides", // b62 (20261030015205): test data never counts in this total
   is_test_member: "hides", // b62 (20261030015205): test data never counts in this total
+  admin_sales_tax_adjustments: "hides", // Q1918 tax ledger (20261105021744): the admin export leaves seed and TEST rows out
   admin_booking_sources: "hides", // B66 Book me (20261030013347): a test Helpr or test poster never counts in the admin tally
   get_helprs_near_me: "hides", // Q2008 (20261104062747): a test member is never shown in Helprs near you (seed_hidden_in_discovery)
   instant_book_block_reason: "hides", // CMP-4 (20261101065105): a test job is instant-booked only to enrolled test accounts, a real one never to them
@@ -279,6 +280,8 @@ const EDGE_READERS: Record<string, Kind> = {
   "_shared/stripeMode.ts": "money-gate",
   // Q1909: a seed row's test-mode id is not reported by money-reconciliation (read only, moves nothing).
   "_shared/stripeTestIdScan.ts": "alerts",
+  // Q1918 tax ledger: is_seed is copied onto the adjustment row and routes the not-recorded alert to the seed digest; it gates no money.
+  "_shared/salesTaxAdjustment.ts": "alerts",
   "_shared/testRecipient.ts": "hides",
   "arrival-confirm-reminder/index.ts": "hides",
   "auto-release-payment/index.ts": "alerts",

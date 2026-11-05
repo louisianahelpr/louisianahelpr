@@ -13,7 +13,7 @@
  *
  * @mutate src/components/reviewPanel/types.ts | "Fair price", | "Fair price", "Shows up early",
  * @mutate src/components/reviewPanel/ReviewForm.tsx | insertReviewWithTags(feedback, (fields) => | ((fields) =>
- * @mutate src/hooks/useProfileTabData.ts | .select("rating, feedback, tags, created_at, reviewer_id, job_id, jobs!inner(status)") | .select("rating, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
+ * @mutate src/hooks/useProfileTabData.ts | .select("id, rating, feedback, tags, created_at, reviewer_id, job_id, jobs!inner(status)") | .select("id, rating, feedback, created_at, reviewer_id, job_id, jobs!inner(status)")
  * @mutate src/components/reviewPanel/ReviewList.tsx | feedback: reviewText(r.feedback, r.tags), | feedback: r.feedback,
  * @mutate supabase/migrations/20261105165059_public_profile_full.sql | public.review_text(rv.feedback, rv.tags) AS feedback | rv.feedback
  */

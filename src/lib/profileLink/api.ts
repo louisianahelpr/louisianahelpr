@@ -135,6 +135,22 @@ export async function fetchPublicProfile(handle: string): Promise<PublicProfile 
   return (data as unknown as PublicProfile | null) ?? null;
 }
 
+/**
+ * H5 (share-profile audit 11-05, one public profile link): a member's current /u handle from their user id, for the
+ * old /user/<id> and /book/<id> links. `none` = they have no public page (handle_for_user is NULL under exactly
+ * public_profile_by_handle's rules, 20261105171316); `not_deployed` = the read is not live yet, so the caller keeps the
+ * old page. Throws on any other fault (the caller shows a retry).
+ */
+export type HandleForUser = { state: "found"; handle: string } | { state: "none" } | { state: "not_deployed" };
+export async function handleForUser(userId: string): Promise<HandleForUser> {
+  const { data, error } = await supabase.rpc("handle_for_user", { p_user_id: userId });
+  if (error) {
+    if (isMissingRpcNamed(error, "handle_for_user")) return { state: "not_deployed" };
+    throw new Error(GENERIC);
+  }
+  return typeof data === "string" && HANDLE_PATTERN.test(data) ? { state: "found", handle: data } : { state: "none" };
+}
+
 /** A Declutter item's cover through the shop-photo edge function (kind=declutter): by photo id, never a storage path. */
 export function listingPhotoUrl(photoId: string, width = 480): string {
   const base = String(import.meta.env.VITE_SUPABASE_URL ?? "").replace(/\/$/, "");

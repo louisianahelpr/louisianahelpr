@@ -131,9 +131,10 @@ export function useProfileLandingDerived({
           ? [{ key: "subscription", label: "Membership", icon: <Crown className="w-5 h-5" />, desc: subscriptionDesc, tint: SECTION_TINT.money }]
           : []),
         { key: "referral", label: "Referrals", icon: <UserPlus className="w-5 h-5" />, desc: "Invite friends & earn credits", tint: SECTION_TINT.money },
-        // "Book me on Helpr" (B59): your own /book page, where "Share your booking link" opens the share sheet.
+        // "Book me on Helpr" (B59): your own public page. H5 (audit 11-05, one profile link): /u/<handle>; the old
+        // /book/<id> (which forwards there) only for a member whose handle is not loaded yet.
         ...(profile?.user_id
-          ? [{ key: "book-me", label: "Book me on Helpr", icon: <Share2 className="w-5 h-5" />, desc: "Share a link neighbors can book you from", tint: SECTION_TINT.money, href: `/book/${profile.user_id}` }]
+          ? [{ key: "book-me", label: "Book me on Helpr", icon: <Share2 className="w-5 h-5" />, desc: "Share a link neighbors can book you from", tint: SECTION_TINT.money, href: profile.handle ? `/u/${encodeURIComponent(profile.handle)}` : `/book/${profile.user_id}` }]
           : []),
         {
           key: "gift-card",

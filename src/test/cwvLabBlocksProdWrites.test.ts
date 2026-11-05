@@ -10,7 +10,7 @@
  * The block was built on the browser-perf lane (wip/limit-a1e95198, saved at a
  * usage-limit stop on 2026-10-12) and stranded there; this guard keeps it.
  *
- * @mutate scripts/perf/cwv-lab.mjs |       if (m === "GET" \|\| m === "HEAD" \|\| m === "OPTIONS") return route.continue(); |       return route.continue();
+ * @mutate scripts/perf/cwv-lab.mjs |   if (m === "GET" \|\| m === "HEAD" \|\| m === "OPTIONS") return "go"; |   return "go";
  * @mutate scripts/perf/cwv-lab.mjs |             await probeWriteBlock(ctx, blocked); |             void blocked;
  * @mutate scripts/perf/cwv-lab.mjs | const WRITE_BLOCK_HOSTS = /(^\|\.)supabase\.co$\|(^\|\.)stripe\.com$/; | const WRITE_BLOCK_HOSTS = /(^\|\.)stripe\.com$/;
  *
@@ -35,7 +35,22 @@
  *
  * @mutate scripts/perf/readAllowance.mjs |   if (!parsed \|\| typeof parsed !== "object" \|\| "payout_id" in parsed) return null; |   if (!parsed) return null;
  * @mutate scripts/perf/readAllowance.mjs |   if (u.pathname !== "/functions/v1/stripe-payouts") return null; |
- * @mutate scripts/perf/cwv-lab.mjs |         return route.fulfill({ status: 200, | return route.continue({ status: 200,
+ * @mutate scripts/perf/cwv-lab.mjs |           return route.fulfill({ status: 200, | return route.continue({ status: 200,
+ * @mutate scripts/perf/cwv-lab.mjs |         ? cdp.send("Fetch.fulfillRequest", { requestId: e.requestId, responseCode: 200, |         ? cdp.send("Fetch.continueRequest", { requestId: e.requestId, responseCode: 200,
+ *
+ * THE HTTP CACHE (Q2707/Q2708, 2026-11-04): in Chromium, Playwright's
+ * ctx.route() turns the HTTP cache off for the whole page, so every --warm load
+ * was a cold load (live item page: the photo and all 134 scripts fetched
+ * again). Chromium pages get the block as a CDP Fetch interception instead,
+ * opened through newBlockedPage(); WebKit keeps ctx.route.
+ *
+ * @mutate scripts/perf/cwv-lab.mjs |         : cdp.send("Fetch.failRequest", { requestId: e.requestId, errorReason: "BlockedByClient" }); |         : cdp.send("Fetch.continueRequest", { requestId: e.requestId });
+ * @mutate scripts/perf/cwv-lab.mjs | await newBlockedPage(ctx); // the measured load | await ctx.newPage(); // the measured load
+ * @mutate scripts/perf/cwv-lab.mjs |   if (!state.cdp) return page; |   return page;
+ * @mutate scripts/perf/cwv-lab.mjs | export const PROBE_KINDS = ["fetch", "xhr", "beacon", "worker", "form", "frame"]; | export const PROBE_KINDS = ["fetch", "xhr", "beacon", "worker", "form"];
+ * @mutate scripts/perf/cwv-lab.mjs |       navigator.sendBeacon(`${u}_beacon`, "{}"); |       void u;
+ * @mutate scripts/perf/cwv-lab.mjs |               colorScheme: arg("scheme", "light"), serviceWorkers: "block", |               colorScheme: arg("scheme", "light"),
+ * @mutate scripts/perf/cwv-lab.mjs |   const state = { reads, allowed, blocked, clock, cdp: browserName === "chromium", strays: [] }; |   const state = { reads, allowed, blocked, clock, cdp: false, strays: [] };
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -54,7 +69,10 @@ describe("cwv-lab blocks every prod write before it measures", () => {
     expect(re.test("fncmgoasalhdgfwzhsqa.supabase.co")).toBe(true);
     expect(re.test("api.stripe.com")).toBe(true);
     expect(re.test("www.louisianahelpr.com")).toBe(false);
-    expect(src).toMatch(/if \(m === "GET" \|\| m === "HEAD" \|\| m === "OPTIONS"\) return route\.continue\(\);\s*\n[\s\S]*?return route\.abort\("blockedbyclient"\);/);
+    expect(src).toMatch(/if \(m === "GET" \|\| m === "HEAD" \|\| m === "OPTIONS"\) return "go";\s*\n[\s\S]*?return "abort";/);
+    // Both ways of applying it obey that decision: abort means abort.
+    expect(src).toMatch(/if \(d === "go"\) return route\.continue\(\);[\s\S]*?return route\.abort\("blockedbyclient"\);/);
+    expect(src).toMatch(/const send = d === "go"\s*\n\s*\? cdp\.send\("Fetch\.continueRequest"[\s\S]*?: cdp\.send\("Fetch\.failRequest", \{ requestId: e\.requestId, errorReason: "BlockedByClient" \}\);/);
   });
 
   it("every context installs the block and proves it live before any session or navigation", () => {
@@ -73,8 +91,47 @@ describe("cwv-lab blocks every prod write before it measures", () => {
     }
   });
 
+  it("Chromium keeps the HTTP cache: every page is opened through newBlockedPage, which blocks by CDP Fetch (Q2707)", () => {
+    // ctx.route turns Chromium's HTTP cache off, so it is used only off Chromium.
+    expect(src).toContain('cdp: browserName === "chromium"');
+    const routes = [...src.matchAll(/ctx\.route\(/g)];
+    expect(routes.length).toBe(1);
+    expect(src.slice(0, routes[0].index)).toMatch(/if \(!state\.cdp\) \{\s*\n\s*await $/);
+    expect(src).not.toMatch(/page\.route\(/);
+    expect(src).toMatch(/installWriteBlock\(ctx, \(\) => Date\.now\(\) - navWallNow, reads, allowed, browserName\)/);
+    // Every context page comes from newBlockedPage; its only ctx.newPage() is inside it.
+    const opens = [...src.matchAll(/ctx\.newPage\(\)/g)].map((m) => m.index ?? 0);
+    const helper = src.indexOf("export async function newBlockedPage(ctx)");
+    expect(opens.length).toBe(1);
+    expect(opens[0]).toBeGreaterThan(helper);
+    expect(opens[0] - helper).toBeLessThan(400);
+    const uses = [...src.matchAll(/await newBlockedPage\(ctx\)/g)];
+    expect(uses.length).toBeGreaterThan(1);
+    // The block is on before the page can load anything, and a popup fails the run.
+    expect(src).toMatch(/if \(!state\.cdp\) return page;[\s\S]*?await cdp\.send\("Fetch\.enable", \{ patterns: \[\{ urlPattern: "\*\.supabase\.co\/\*", requestStage: "Request" \}, \{ urlPattern: "\*stripe\.com\/\*", requestStage: "Request" \}\] \}\);\s*\n\s*return page;/);
+    expect(src).toMatch(/page\.on\("popup", \(p\) => \{ state\.strays\.push\(p\.url\(\)\); p\.close\(\)/);
+    expect(src).toMatch(/\} catch \(e\) \{ error = String\(e\)\.slice\(0, 160\); \}\s*\n\s*assertNoStrayPages\(ctx\);/);
+  });
+
   it("the probe throws unless its POST failed AND was recorded as blocked", () => {
-    expect(src).toMatch(/if \(outcome !== "failed" \|\| blocked\.length !== before \+ 1\) \{\s*throw new Error/);
+    expect(src).toMatch(/if \(missing\.length \|\| reached\.length \|\| blocked\.length !== before \+ PROBE_KINDS\.length\) \{\s*throw new Error/);
+  });
+
+  it("the probe sends by every route a page has: fetch, XHR, sendBeacon, a worker, a form post and a cross-site frame (lead 11-04)", () => {
+    const kinds = /export const PROBE_KINDS = (\[[^\]]*\]);/.exec(src)?.[1] ?? "[]";
+    expect((JSON.parse(kinds) as string[]).sort()).toEqual(["beacon", "fetch", "form", "frame", "worker", "xhr"]);
+    const body = src.slice(src.indexOf("async function probeWriteBlock("), src.indexOf("export async function applyThrottle("));
+    expect(body).toContain('fetch(`${u}_fetch`, { method: "POST"');
+    expect(body).toContain('x.open("POST", `${u}_xhr`)');
+    expect(body).toContain("navigator.sendBeacon(`${u}_beacon`");
+    expect(body).toContain("new Worker(");
+    expect(body).toMatch(/form\.method = "POST"; form\.action = `\$\{u\}_form`;[\s\S]*?form\.submit\(\);/);
+    expect(body).toContain('xf.src = "https://example.com/"');
+    expect(body).toContain("fetch(`${u}_frame`, { method: \"POST\"");
+    // Service workers stay blocked on every measured context.
+    const contexts = [...src.matchAll(/const ctx = await browser\.newContext\(\{[\s\S]*?\}\);/g)];
+    expect(contexts.length).toBeGreaterThan(0);
+    for (const c of contexts) expect(c[0]).toContain('serviceWorkers: "block"');
   });
 
   it("the read allowance passes only named STABLE RPCs, the expired refresh and the payout-status read", () => {
@@ -115,7 +172,7 @@ describe("cwv-lab blocks every prod write before it measures", () => {
   it("cwv-lab routes every non-GET through the allowance before it blocks", () => {
     expect(allowSrc).toContain("export function allowedRead(");
     expect(src).toMatch(/import \{ allowedRead, mockedRead \} from "\.\/readAllowance\.mjs";/);
-    expect(src).toMatch(/const read = allowedRead\(reads, m, req\.url\(\), req\.postData\(\)\);\s*\n\s*if \(read\) \{ allowed\.push/);
+    expect(src).toMatch(/const read = allowedRead\(reads, m, url, postData\);\s*\n\s*if \(read\) \{ allowed\.push/);
   });
 
   it("the stripe-payouts list read is answered in the browser with test data, never sent", () => {
@@ -137,7 +194,9 @@ describe("cwv-lab blocks every prod write before it measures", () => {
     expect(LAB_STRIPE_PAYOUTS.payouts.length).toBeGreaterThan(0);
     for (const p of LAB_STRIPE_PAYOUTS.payouts) expect(p.id).toMatch(/^po_lab_test_/);
     // cwv-lab fulfills it locally before the allowance, and never continues it.
-    expect(src).toMatch(/const mock = mockedRead\(reads, m, req\.url\(\), req\.postData\(\)\);\s*\n\s*if \(mock\) \{\s*\n\s*allowed\.push\(\{ read: mock\.read, at: clock\(\) \}\);\s*\n\s*return route\.fulfill\(\{ status: 200,/);
+    expect(src).toMatch(/const mock = mockedRead\(reads, m, url, postData\);\s*\n\s*if \(mock\) \{\s*\n\s*allowed\.push\(\{ read: mock\.read, at: clock\(\) \}\);\s*\n\s*return \{ mock \};/);
+    expect(src).toMatch(/if \(d !== "abort"\) \{\s*\n\s*return route\.fulfill\(\{ status: 200,/);
+    expect(src).toMatch(/: d !== "abort"\s*\n\s*\? cdp\.send\("Fetch\.fulfillRequest", \{ requestId: e\.requestId, responseCode: 200,/);
     expect(src.indexOf("const mock = mockedRead(")).toBeLessThan(src.indexOf("const read = allowedRead("));
   });
 

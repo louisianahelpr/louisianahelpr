@@ -21,6 +21,8 @@
  *   V8  anon and authenticated hold no grant on the table; anon cannot call the count; no PUBLIC EXECUTE
  *   V9  a guest call with no device id records nothing and raises nothing
  *   V10 the guest cap: 31 fresh guest ids in one hour on one item count as 30; a member still counts
+ *   V11 20261105232356 (Q1816 #4149, advisor no_primary_key): the table has a primary key on an identity id that
+ *       every recorded view fills; V1-V10 run with it applied (3x). NEW_PK=skip leaves it out: V11 FAILS.
  */
 import os from "node:os";
 import { readFileSync } from "node:fs";
@@ -30,6 +32,8 @@ const PGLITE_DIR = process.env.PGLITE_DIR ?? `${os.homedir()}/.lh-pglite`;
 const { PGlite } = await import(`${PGLITE_DIR}/node_modules/@electric-sql/pglite/dist/index.js`);
 const MIG_DIR = new URL("../../../supabase/migrations/", import.meta.url).pathname;
 const FILE = "20261105163501_declutter_item_views.sql";
+const PK_FILE = "20261105232356_declutter_item_views_pk.sql";
+const skipPk = process.env.NEW_PK === "skip";
 const skip = process.env.NEW_MIGRATION === "skip";
 
 const U = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
@@ -86,6 +90,10 @@ INSERT INTO public.declutter_items (id, seller_id, status, is_seed, seller_hidde
 if (!skip) {
   const sql = readFileSync(MIG_DIR + FILE, "utf8");
   for (let i = 0; i < 3; i++) await db.exec(sql);
+  if (!skipPk) {
+    const pk = readFileSync(MIG_DIR + PK_FILE, "utf8");
+    for (let i = 0; i < 3; i++) await db.exec(pk);
+  }
 }
 
 let pass = 0;
@@ -162,6 +170,17 @@ for (let i = 0; i < 31; i++) await view(null, U(106), U(1000 + i));
 ok((await rows(U(106))) === 30, `V10 31 guest ids in one hour count as 30 (${await rows(U(106))})`);
 await view(BUYER, U(106));
 ok((await rows(U(106))) === 31, "V10 a member still counts once the guest cap is reached");
+
+// V11 the primary key (advisor no_primary_key): on id, and every recorded view has one.
+{
+  const pk = (await db.query(`SELECT a.attname FROM pg_constraint c JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY (c.conkey)
+    WHERE c.conrelid = 'public.declutter_item_views'::regclass AND c.contype = 'p'`)).rows.map((r) => r.attname);
+  ok(pk.length === 1 && pk[0] === "id", `V11 declutter_item_views has a primary key on id (${JSON.stringify(pk)})`);
+  if (pk.length === 1) {
+    const r = (await db.query(`SELECT count(*)::int AS n, count(DISTINCT id)::int AS d FROM public.declutter_item_views`)).rows[0];
+    ok(r.n > 0 && r.n === r.d, `V11 every recorded view has its own id (${r.d} ids for ${r.n} rows)`);
+  }
+}
 
 console.log(`\n${pass} PASS, ${fail} FAIL`);
 process.exit(fail ? 1 : 0);

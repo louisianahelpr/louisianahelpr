@@ -38,6 +38,7 @@
  * @mutate supabase/migrations/20261027185146_card_hold_at_post.sql |   IF public.member_under_18(auth.uid()) THEN\n    RAISE EXCEPTION 'under_18' |   IF false THEN\n    RAISE EXCEPTION 'under_18'
  * @mutate supabase/migrations/20261013010621_under_18_cannot_apply_or_post.sql |       BEFORE INSERT ON public.applications | AFTER INSERT ON public.applications
  * @mutate supabase/migrations/20261013010621_under_18_cannot_apply_or_post.sql |     CREATE TRIGGER trg_job_accept_pending_refuse_under_18 |     CREATE TRIGGER trg_job_accept_pending_refuse_under_18_off
+ * @mutate supabase/migrations/20261013010621_under_18_cannot_apply_or_post.sql |     CREATE TRIGGER trg_applications_refuse_under_18 |     CREATE TRIGGER trg_applications_refuse_under_18_v2
  * @mutate supabase/migrations/20261013010621_under_18_cannot_apply_or_post.sql |       BEFORE INSERT ON public.series_visit_holds | AFTER INSERT ON public.series_visit_holds
  * @mutate supabase/migrations/20261013010621_under_18_cannot_apply_or_post.sql |       BEFORE INSERT OR UPDATE OF helper_id, helper_confirmed_at ON public.jobs |       BEFORE INSERT ON public.jobs
  * @mutate supabase/functions/complete-signup/index.ts |  && savedBirthdayUnder18(savedDob)) { |  && false) {
@@ -185,6 +186,11 @@ describe("Q1586(c) the server refuses an under-18 member too", () => {
   it.each(["jobs", "applications", "job_accept_pending", "series_visit_holds", "group_job_helpers"])("a BEFORE INSERT trigger on %s runs refuse_under_18_member", (table) => {
     const t = triggersOn(triggers, table).filter((x) => x.fn === "refuse_under_18_member");
     expect(t.length).toBe(1);
+    // Pinned by NAME on the newest definition (CREATE minus later DROPs, file
+    // order): a rename leaves the old DROP TRIGGER IF EXISTS <name> in every
+    // later re-attach pointing at nothing, and a drop by name goes red here.
+    expect(t[0].name).toBe(`trg_${table}_refuse_under_18`);
+    expect(triggers.get(`${table}.trg_${table}_refuse_under_18`)?.fn).toBe("refuse_under_18_member");
     expect(t[0].timing.toUpperCase()).toBe("BEFORE");
     expect(t[0].events.toUpperCase()).toMatch(/\bINSERT\b/);
   });

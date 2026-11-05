@@ -17,6 +17,7 @@
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
 import { releaseShopHold } from "../../_shared/shopHolds.ts";
+import { sessionJobTaxCents } from "../../_shared/jobTaxAddress.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 
 /** True for a Checkout Session shop-checkout created. */
@@ -67,7 +68,11 @@ export async function settleShopSession(
     }
     throw new Error(`shop session ${session.id}: payment ${piId} is ${pi.status}, not requires_capture`);
   }
-  const taxCents = session.total_details?.amount_tax ?? 0;
+  // H6: a page priced at the pickup address carries automatic_tax off, so Stripe's total_details.amount_tax is
+  // 0 there and the tax charged is our own "Sales tax" line, named in the metadata (tax_calculation_id +
+  // job_tax_cents). A page opened before H6 still reads Stripe's figure. shop_mark_order_held checks the total
+  // against items + fee + this tax (+ the setup fee), so a wrong figure cancels the hold.
+  const taxCents = sessionJobTaxCents(session) ?? 0;
   const { data, error } = await supabase.rpc("shop_mark_order_held", {
     p_session_id: session.id,
     p_payment_intent_id: piId,

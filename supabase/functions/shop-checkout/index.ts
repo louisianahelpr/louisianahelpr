@@ -42,9 +42,16 @@
  * Money: the buyer pays the item prices + Declutter's F1 fee (5% + 70c, the
  * card cost inside it; the shop keeps 100% of its prices) + Stripe Tax, all
  * frozen or checked in SQL. M1b part 2 (tax memo Q3): a pickup sale is taxed
- * where the buyer takes it, so every line carries the shop's private pickup
- * address as a Stripe Tax performance location (pickupTaxLocation). The money stays on the platform until handover
- * (M2): no transfer_data here.
+ * where the buyer takes it, at the shop's private pickup address.
+ * H6 (Q2102 decision b, audit 11-05): the tax is figured with ONE Stripe Tax
+ * calculation at that address (shopOrderTax) and charged as its own "Sales
+ * tax" line with automatic_tax OFF, exactly as Jobs' job-site tax is
+ * (create-payment). Nothing is recorded at the hold: stripe-webhook commits the
+ * calculation on payment_intent.succeeded, which a card hold reaches only when
+ * it is CAPTURED (_jobTaxCommit.ts), so a declined, expired or withdrawn order
+ * never reports tax it never collected. A refund reverses its share
+ * (_visitTaxReversal.ts). This also retires the tax/locations call (Q2153).
+ * The money stays on the platform until handover (M2): no transfer_data here.
  *
  * L91: order and accept need the 'shops' switch (in SQL); decline and cancel
  * only let a buyer's money go, so they work with the switch off.
@@ -139,82 +146,61 @@ async function stripeForOrder(admin: Db, o: OrderMoneyRow, kind: MoneyKind): Pro
   return stripeFor(mode);
 }
 
+/** The shop's private pickup address as a Stripe Tax address (the place a pickup sale is sourced to). */
+type PickupTaxAddress = { line1: string; line2?: string; city: string; state: string; postal_code: string; country: "US" };
+
 /**
- * The shop's pickup address as a Stripe Tax location (type performance), made
- * once per address and Stripe mode and cached on shop_pickup_addresses (the
- * table's trigger clears the cache when the address changes). Null when the
- * shop has no pickup address (the SQL refuses such an order first; this is the
- * race where it vanished). MEASURED in Stripe TEST mode 2026-10-18 (probe,
- * ~/.lh-wt/handoffs-1017/shops-s3-taxloc-probe-1018.json): stripe@18.5.0 has no
- * stripe.tax.locations, POST /v1/tax/locations works on 2025-08-27.basil
- * through rawRequest, and a Lafayette location taxed a Baton Rouge buyer's
- * line at Lafayette's 9% instead of Baton Rouge's 10.5%.
+ * H6: the shop's pickup address, read before the order is frozen (shops_request_order retires the buyer's
+ * previous page, so a missing address answers first, review 2026-10-18 finding 3). "missing" when the shop has
+ * none (the SQL refuses such an order first; this is the race where it vanished). A failed read throws.
  */
-async function pickupTaxLocation(
-  stripe: Stripe, admin: Db, shopId: string, mode: StripeMode,
-): Promise<{ id: string } | "missing" | "unusable"> {
+async function pickupTaxAddress(admin: Db, shopId: string): Promise<PickupTaxAddress | "missing"> {
   const { data, error } = await admin.from("shop_pickup_addresses")
-    .select("line1, line2, city, state_code, postal_code, stripe_tax_location_id, stripe_tax_location_mode, updated_at")
+    .select("line1, line2, city, state_code, postal_code")
     .eq("shop_id", shopId).maybeSingle();
   if (error) throw new Error(`pickup address read failed: ${error.message}`);
-  const a = data as {
-    line1: string; line2: string | null; city: string; state_code: string; postal_code: string;
-    stripe_tax_location_id: string | null; stripe_tax_location_mode: string | null; updated_at: string;
-  } | null;
+  const a = data as { line1: string; line2: string | null; city: string; state_code: string; postal_code: string } | null;
   if (!a) return "missing";
-  if (a.stripe_tax_location_id && a.stripe_tax_location_mode === mode) return { id: a.stripe_tax_location_id };
-  const make = () => stripe.rawRequest("POST", "/v1/tax/locations", {
-    type: "performance",
-    description: `Shop pickup ${shopId}`,
-    address: { line1: a.line1, ...(a.line2 ? { line2: a.line2 } : {}), city: a.city, state: a.state_code, postal_code: a.postal_code, country: "US" },
-  }, { idempotencyKey: `shop-taxloc-${shopId}-${mode}-${a.updated_at}` }) as unknown as Promise<{ id?: string }>;
-  let created: { id?: string };
-  try {
-    try {
-      created = await make();
-    } catch (e) {
-      // Two first orders at once share the key: Stripe answers the second with
-      // idempotency_key_in_use while the first runs. One retry gets the first's
-      // answer (review 2026-10-18, finding 4).
-      if ((e as { code?: string } | null)?.code !== "idempotency_key_in_use") throw e;
-      await new Promise((r) => setTimeout(r, 750));
-      created = await make();
-    }
-  } catch (e) {
-    // Stripe refusing the address itself (an invalid_request on the address)
-    // will refuse it on every try: say so in its own words instead of a
-    // generic error forever (review 2026-10-18, finding 2). Anything else
-    // (network, 5xx, auth) is a try-again.
-    // Only a 400 that names an address field is the address's fault; any other
-    // invalid_request (Stripe Tax off, an unknown URL, a parameter_unknown after
-    // an API change) is the platform's and must surface as a try-again, never
-    // as "this shop's address needs fixing" to every buyer (money review #1).
-    const err = e as { type?: string; code?: string; message?: string; param?: string; statusCode?: number } | null;
-    if (err?.type === "StripeInvalidRequestError" && err.statusCode === 400 && typeof err.param === "string" && err.param.startsWith("address")) {
-      console.error(JSON.stringify({ event: "shop_pickup_address_unusable", shop: shopId, mode, detail: err.message ?? null }));
-      return "unusable";
-    }
-    throw e;
-  }
-  const id = typeof created?.id === "string" && created.id.startsWith("taxloc_") ? created.id : null;
-  if (!id) throw new Error("tax location create returned no id");
-  // Cache it only for the address it was made from (an edit since then cleared
-  // the cache and moved updated_at, so this matches no row).
-  const { error: saveErr } = await admin.from("shop_pickup_addresses")
-    .update({ stripe_tax_location_id: id, stripe_tax_location_mode: mode })
-    .eq("shop_id", shopId).eq("updated_at", a.updated_at);
-  if (saveErr) {
-    // Not fatal: this order uses the location; the next one makes (or, within
-    // Stripe's idempotency window, gets back) the same one.
-    console.error(JSON.stringify({ event: "shop_tax_location_cache_failed", shop: shopId, detail: saveErr.message }));
-  }
-  return { id };
+  return { line1: a.line1, ...(a.line2 ? { line2: a.line2 } : {}), city: a.city, state: a.state_code, postal_code: a.postal_code, country: "US" };
 }
 
-/** Stripe's product_data with tax_details (tax code + performance location): newer than stripe@18.5.0's types. */
-type TaxedProductData = Omit<Stripe.Checkout.SessionCreateParams.LineItem.PriceData.ProductData, "tax_code"> & {
-  tax_details: { tax_code: string; performance_location: string };
-};
+/**
+ * H6: Stripe names a pickup address it cannot tax by an invalid_request on the customer's tax location
+ * (code customer_tax_location_invalid, or a param under customer_details[address]). Only that is the
+ * address's fault; any other refusal (Stripe Tax off, an API change) is the platform's and answers try-again,
+ * never "this shop's address needs fixing" to every buyer (money review #1 of 2026-10-18).
+ */
+function addressRefused(e: unknown): boolean {
+  const err = e as { type?: string; code?: string; param?: string } | null;
+  if (err?.type !== "StripeInvalidRequestError") return false;
+  return err.code === "customer_tax_location_invalid" || (typeof err.param === "string" && err.param.startsWith("customer_details[address"));
+}
+
+/**
+ * H6: the order's sales tax, figured ONCE at the pickup address (address_source "shipping": the buyer takes
+ * the goods there). Its lines are exactly the taxed Checkout lines: each order line at its own code and the F1
+ * fee split by code (memo Q5). The one-time setup fee is not taxed and is not in it. Keyed on the order, so a
+ * retry of the same order gets the same calculation back.
+ */
+async function shopOrderTax(
+  stripe: Stripe, orderId: string, address: PickupTaxAddress,
+  lines: Array<{ kind: string; line_cents: number }>, feeParts: Array<{ tax_code: string; cents: number }>,
+): Promise<{ calculationId: string; cents: number }> {
+  const calc = await stripe.tax.calculations.create({
+    currency: "usd",
+    line_items: [
+      ...lines.map((l, i) => ({ amount: l.line_cents, reference: `line_${i + 1}`, tax_behavior: "exclusive" as const, tax_code: shopTaxCode(l.kind) })),
+      ...feeParts.map((p, i) => ({ amount: p.cents, reference: `service_fee_${i + 1}`, tax_behavior: "exclusive" as const, tax_code: p.tax_code })),
+    ],
+    customer_details: { address, address_source: "shipping" },
+  }, { idempotencyKey: `shop-tax-${orderId}` });
+  // A missing figure is never read as $0 (Number(null) is 0: an untaxed charge).
+  const cents = typeof calc.tax_amount_exclusive === "number" ? calc.tax_amount_exclusive : NaN;
+  if (typeof calc.id !== "string" || !calc.id.startsWith("taxcalc_") || !Number.isInteger(cents) || cents < 0) {
+    throw new Error(`tax calculation for order ${orderId} returned no usable figure`);
+  }
+  return { calculationId: calc.id, cents };
+}
 
 async function order(body: Record<string, unknown>, user: { id: string; email?: string }, asBuyer: Db, admin: Db) {
   const shopId = typeof body.shop_id === "string" ? body.shop_id : "";
@@ -252,13 +238,12 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   }
   const ownerId = (shopRow as { owner_id?: string | null } | null)?.owner_id ?? null;
   let mode: StripeMode | null = null;
-  let location: string | null = null;
+  let taxAddress: PickupTaxAddress | null = null;
   if (ownerId) {
     mode = await stripeModeForParties(admin, [user.id, ownerId], { caller: user.id });
-    const loc = await pickupTaxLocation(stripeFor(mode), admin, shopId, mode);
-    if (loc === "missing") return json({ error: "pickup_address_missing" }, 409);
-    if (loc === "unusable") return json({ error: "pickup_address_unusable" }, 409);
-    location = loc.id;
+    const addr = await pickupTaxAddress(admin, shopId);
+    if (addr === "missing") return json({ error: "pickup_address_missing" }, 409);
+    taxAddress = addr;
   }
 
   const { data, error } = await asBuyer.rpc("shops_request_order", {
@@ -303,17 +288,14 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
     return json({ error: TRY_AGAIN }, 500);
   }
 
-  // The mode and location were made for the shop's owner; the order must be theirs.
-  if (!mode || !location || o.seller_id !== ownerId) {
+  // The mode and address were read for the shop's owner; the order must be theirs.
+  if (!mode || !taxAddress || o.seller_id !== ownerId) {
     console.error(`[shop-checkout] order ${o.id} seller is not the shop's owner read before it`);
     return json({ error: TRY_AGAIN }, 500);
   }
   const stripe = stripeFor(mode);
-  const performanceLocation = location;
-  // Stripe takes tax_code OR tax_details on a line, never both.
-  const taxed = (name: string, taxCode: string): TaxedProductData => ({
-    name, tax_details: { tax_code: taxCode, performance_location: performanceLocation },
-  });
+  // The tax is our own line (automatic_tax off): each line's code is a label only.
+  const taxed = (name: string, taxCode: string) => ({ name, tax_code: taxCode });
   // One wallet (owner 2026-10-18): the buyer's ONE stored Stripe customer in this mode pre-fills the
   // page, read only through _shared/stripeCustomer.ts (never by email, never declutter_buyer_cards).
   // A failed read stops here rather than opening a page on a guessed customer (declutter-checkout's rule).
@@ -333,7 +315,9 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
     if (code === SHOP_KIND_TAX_CODE.home_food) return `${base}, food items`;
     return `${base}, other items`;
   };
-  const meta = { kind: "shop_order", order_id: o.id, buyer_id: user.id, payer_id: user.id, seller_id: o.seller_id };
+  // H6: tax_calculation_id + job_tax_cents (JOB_TAX_CALC_KEY / JOB_TAX_CENTS_KEY, shared with Jobs so the
+  // webhook's commit, refund reversal and sessionJobTaxCents read a shop order the same way) are added below.
+  const meta: Record<string, string> = { kind: "shop_order", order_id: o.id, buyer_id: user.id, payer_id: user.id, seller_id: o.seller_id };
   const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = lines.map((l) => ({
     quantity: l.quantity,
     price_data: {
@@ -344,6 +328,20 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   // Memo Q5: the buyer's fee is taxed like the items it is charged on, split
   // pro rata when the cart mixes food and other goods (one line per code).
   const feeParts = splitBuyerFeeByTaxCode(lines, o.premium_cents);
+  // H6: the tax, figured once at the pickup address. It fails AFTER the order froze, so the order is closed
+  // first (no page opens on it; the buyer taps again). An address Stripe cannot tax says so in its own words.
+  let tax: { calculationId: string; cents: number };
+  try {
+    tax = await shopOrderTax(stripe, o.id, taxAddress, lines, feeParts);
+  } catch (e) {
+    const unusable = addressRefused(e);
+    console.error(JSON.stringify({ event: unusable ? "shop_pickup_address_unusable" : "shop_tax_calculation_failed", shop: shopId, order: o.id, mode, detail: caughtMessage(e).slice(0, 200) }));
+    const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: o.id });
+    if (closeErr) console.error(`[shop-checkout] order ${o.id} not closed after its tax failed: ${closeErr.message}`);
+    return unusable ? json({ error: "pickup_address_unusable" }, 409) : json({ error: TRY_AGAIN }, 503);
+  }
+  meta.tax_calculation_id = tax.calculationId;
+  meta.job_tax_cents = String(tax.cents);
   for (const part of feeParts) {
     lineItems.push({
       quantity: 1,
@@ -376,6 +374,16 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       },
     });
   }
+  if (tax.cents > 0) {
+    lineItems.push({
+      quantity: 1,
+      price_data: {
+        currency: "usd", unit_amount: tax.cents, tax_behavior: "exclusive",
+        product_data: { name: "Sales tax", description: "Louisiana sales tax where you pick up the order", tax_code: NONTAXABLE_TAX_CODE },
+      },
+    });
+  }
+  const chargedCents = o.items_cents + o.premium_cents + setupFeeCents + tax.cents;
   const expiresAt = Math.floor(Date.now() / 1000) + PAGE_LIFETIME_S;
   // Q2140: a stored customer Stripe no longer has is replaced once and the page retried (":new-wallet" key).
   const session = await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (payer, walletRetry) => stripe.checkout.sessions.create(
@@ -383,24 +391,24 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       mode: "payment",
       payment_method_types: ["card"],
       line_items: lineItems,
-      // O1: Stripe Tax. Each line is taxed at the pickup location; Stripe still needs the buyer's address.
-      automatic_tax: { enabled: true },
+      // H6: no automatic_tax. The tax is the "Sales tax" line above, figured at the pickup address and
+      // committed to Stripe Tax only when the hold is captured (stripe-webhook, payment_intent.succeeded).
       billing_address_collection: "required",
       ...(payer ? { customer: payer, customer_update: { address: "auto" } } : { customer_email: user.email ?? undefined }),
       client_reference_id: o.id,
       metadata: meta,
       payment_intent_data: { metadata: meta, capture_method: "manual", transfer_group: `shop_order_${o.id}` },
-      // Q202: 3D Secure from $300 up (the most it could be before tax).
-      payment_method_options: threeDSecureOptions(o.items_cents + o.premium_cents + setupFeeCents),
+      // Q202: 3D Secure from $300 up (the whole charge, tax included).
+      payment_method_options: threeDSecureOptions(chargedCents),
       expires_at: expiresAt,
       success_url: buildRedirectUrl("/shops/orders?sent=1", native),
       cancel_url: buildRedirectUrl(`/shops/${shopId}`, native),
     },
     { idempotencyKey: `shop-order-${o.id}${walletRetry ? ":new-wallet" : ""}` },
   ));
-  if (session.amount_subtotal !== o.items_cents + o.premium_cents + setupFeeCents) {
+  if (session.amount_subtotal !== chargedCents) {
     await expirePage(session.id);
-    console.error(`[shop-checkout] Stripe subtotal ${session.amount_subtotal} != order ${o.items_cents + o.premium_cents + setupFeeCents}`);
+    console.error(`[shop-checkout] Stripe subtotal ${session.amount_subtotal} != order ${chargedCents}`);
     return json({ error: TRY_AGAIN }, 500);
   }
   const { error: attachErr } = await admin.rpc("shop_attach_checkout_session", { p_order_id: o.id, p_session_id: session.id });

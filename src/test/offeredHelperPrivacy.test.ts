@@ -336,8 +336,9 @@ describe("offer privacy (b): every read path that returns the offeree is caller-
   it("get_jobs_for_my_applications nulls the offeree for everyone but the poster and the offeree", () => {
     const def = latestDefinitions().get("function:get_jobs_for_my_applications");
     const text = def!.code.replace(/\s+/g, " ");
-    // 20261006023437 (Q1409) restates it verbatim but for one more visibility branch (a booked crew's re-listed spot).
-    expect(def!.file, "the latest definition must carry the offer-privacy rule").toBe("20261006023437_crew_free_spot_relisted.sql");
+    // 20261006023437 (Q1409) restates it verbatim but for one more visibility branch (a booked crew's re-listed spot);
+    // 20261105102419 (Q2742) adds the private-columns override after the offeree one.
+    expect(def!.file, "the latest definition must carry the offer-privacy rule").toBe("20261105102419_applicant_jobs_hide_private_columns.sql");
     expect(
       text,
       "the RPC returns SETOF jobs, so it must override the column rather than pass the row through",

@@ -3,17 +3,17 @@
   "summary": {
     "calls": 1165,
     "files": 326,
-    "rendering": 1083,
-    "suppressedByPolicy": 82,
+    "rendering": 1084,
+    "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 222,
+      "toast": 223,
       "toast.error": 786,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 88,
+      "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
@@ -3174,7 +3174,7 @@
     {
       "file": "src/components/admin/adminReports/ShopReportPanel.tsx",
       "line": 46,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "dynamic",
         "text": "isItem ? \"Item taken down. Its owner was told why.\" : \"Shop hidden. Its owner sees your reason.\"",
@@ -3189,7 +3189,7 @@
           }
         ]
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/admin/adminReports/ShopReportPanel.tsx",

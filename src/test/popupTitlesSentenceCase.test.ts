@@ -168,7 +168,8 @@ describe("every pop-up title is sentence case", () => {
     // 215: +3 the poster's cancel title says what it reaches (Q2677, CancellationDialog): "Cancel only the ${day} visit?",
     // "Cancel only this visit?" and "Cancel the whole "${title}" series?" beside "Cancel "${title}"?".
     // 216: +1 "Handed over?" (ShopHandoverActions, the shop seller's handover confirm, Shops H5 20261105182903).
-    expect(all.length).toBe(216);
+    // 218: +2 the admin's shop-report confirm (ShopReportPanel, Shops H2 20261105182210): "Take this item down?" and "Hide this shop?".
+    expect(all.length).toBe(218);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

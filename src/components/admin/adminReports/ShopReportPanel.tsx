@@ -43,7 +43,7 @@ export function ShopReportPanel({ shop, reportId, content, open: reportOpen, onD
       const api = await import("@/lib/shops/reports");
       if (isItem) await api.takeDownShopItem(shop.reported_id, note.trim(), reportId);
       else await api.hideReportedShop(shop.shop_id, note.trim(), reportId);
-      toast.success(isItem ? "Item taken down. Its owner was told why." : "Shop hidden. Its owner sees your reason.");
+      toast(isItem ? "Item taken down. Its owner was told why." : "Shop hidden. Its owner sees your reason.");
       setDialog(false);
       onDone();
     } catch (err) {

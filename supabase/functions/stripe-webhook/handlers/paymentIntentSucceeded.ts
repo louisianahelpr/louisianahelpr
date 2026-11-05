@@ -6,6 +6,7 @@ import { pageGiftLeftSpentOnCardFunding } from "./_giftLeftSpentOnCardFunding.ts
 import { commitJobSiteTax } from "./_jobTaxCommit.ts";
 import { isTestModeOrphan } from "./_testSubject.ts";
 import { JOB_TAX_CALC_KEY, JOB_TAX_CENTS_KEY } from "../../_shared/jobTaxAddress.ts";
+import { recordPartialCaptureTax } from "../../_shared/salesTaxAdjustment.ts";
 
 /**
  * Q1975: the setup fee on a bank (ACH) checkout is settled HERE, when the
@@ -129,6 +130,10 @@ export async function handlePaymentIntentSucceeded(
   // Q2732: a TEST-mode payment naming a job that is not ours is a test script's: its tax alerts are test data.
   const testOrphan = !taxJob && await isTestModeOrphan(supabase, pi.livemode, (pi.metadata ?? {}).job_id, logStep);
   await commitJobSiteTax({ stripe, pi, logStep, seed: taxJob?.is_seed === true || testOrphan, supabase });
+  // Q2148 (2): a manual-capture Checkout automatic_tax charge captured for
+  // less than it authorised (a late-cancel fee, a shop order shipped short)
+  // stays reported at the whole hold's tax; record the correction. Never throws.
+  await recordPartialCaptureTax({ stripe, supabase, pi: pi as any, jobId: taxJob?.id ?? null, isSeed: taxJob?.is_seed === true || testOrphan, logStep, alert: postSlackOpsAlert });
 
   if (taxJob) {
     // Take Stripe's number whenever Stripe HAS one — including a genuine $0.

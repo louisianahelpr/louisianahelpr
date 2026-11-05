@@ -103,6 +103,11 @@ async function recordShopHandRefunds(
   }
 }
 
+/** Every live refund on the charge is an onboarding-fee correction (no refund of the order itself). */
+function isOnboardingCorrectionOnly(live: Stripe.Refund[], ordinary: Stripe.Refund[]): boolean {
+  return live.length > 0 && ordinary.length === 0;
+}
+
 /** What the charge captured; charge.amount stays the authorized amount after a partial capture. 0 or absent: the amount. */
 function capturedCentsOf(charge: Pick<Stripe.Charge, "amount"> & { amount_captured?: number | null }): number {
   const captured = Number(charge.amount_captured ?? 0);
@@ -202,6 +207,15 @@ export async function handleChargeRefunded(
   }
   // Shops (M3, 20261019071055): its refunds are decided, recorded (shop_refunds)
   // and announced by their own RPCs; a Shops charge is not a job.
+  // H6: a Shops order taxed at its pickup address (shop-checkout) has a Stripe Tax transaction the webhook
+  // committed at capture, which Stripe never reverses on its own; each live refund reverses its share, keyed on
+  // the refund id, exactly as a job's or a visit's (an order from before H6 carries no transaction: nothing).
+  const isShopCharge = (allRefunds.length > 0 && allRefunds.every((r) => (r?.metadata as Record<string, string> | null)?.kind === "shop_refund"))
+    || (((charge as { metadata?: Record<string, string> | null }).metadata ?? {}) as Record<string, string>).kind === "shop_order"
+    || allRefunds.some((r) => (r?.metadata as Record<string, string> | null)?.kind === "shop_refund");
+  if (isShopCharge && !isOnboardingCorrectionOnly(liveRefunds, ordinaryRefunds)) {
+    await reverseVisitTaxForRefund({ stripe, piId: refundPiId, charge, refunds: ordinaryRefunds, listedAnyRefund: allRefunds.length > 0, supabase, logStep });
+  }
   if (allRefunds.length > 0 && allRefunds.every((r) => (r?.metadata as Record<string, string> | null)?.kind === "shop_refund")) {
     logStep("Shops refund: recorded and announced by its own path", { chargeId: charge.id });
     return;

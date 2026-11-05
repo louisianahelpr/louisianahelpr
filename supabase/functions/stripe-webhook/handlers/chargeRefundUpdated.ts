@@ -51,6 +51,13 @@ export async function handleChargeRefundUpdated(
   // a new one under a new key (shop_refund_reversed); a Shops charge is not a
   // job, so nothing below applies.
   if (meta.kind === "shop_refund" && meta.shop_refund_id) {
+    // H6: the share of the order's pickup-address tax this refund reversed (charge.refunded) stands no more: the
+    // money stayed. Undone before the row reopens (a re-sent refund then reverses its own share). Never throws.
+    await undoVisitTaxForFailedRefund({
+      stripe, piId: typeof refund.payment_intent === "string" ? refund.payment_intent : refund.payment_intent?.id ?? null,
+      chargeId: typeof refund.charge === "string" ? refund.charge : refund.charge?.id ?? null,
+      refundId: refund.id, refundStatus: String(refund.status), amountCents: Number(refund.amount ?? 0), logStep,
+    });
     const { data: reopened, error: sErr } = await supabase.rpc("shop_refund_reversed", {
       p_refund_id: meta.shop_refund_id, p_stripe_refund_id: refund.id,
     });
@@ -156,6 +163,12 @@ export async function handleChargeRefundUpdated(
       throw new Error(`shop_hand_refund_failed failed for ${refund.id}: ${shErr.message}`);
     }
     if (!shErr && (shopHand === "marked_failed" || shopHand === "reopened_held" || shopHand === "already")) {
+      // H6: a failed hand refund's tax reversal is undone too (the same rule as the app's own Shops refunds).
+      await undoVisitTaxForFailedRefund({
+        stripe, piId: typeof refund.payment_intent === "string" ? refund.payment_intent : refund.payment_intent?.id ?? null,
+        chargeId: typeof refund.charge === "string" ? refund.charge : refund.charge?.id ?? null,
+        refundId: refund.id, refundStatus: String(refund.status), amountCents: Number(refund.amount ?? 0), logStep,
+      });
       if (shopHand === "marked_failed" || shopHand === "reopened_held") {
         await postSlackOpsAlert({
           kind: "money_at_risk", severity: "critical", oncePerDayKey: `shop-hand-refund-failed-${refund.id}`,

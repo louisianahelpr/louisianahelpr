@@ -73,7 +73,7 @@
     "adhocTint  src/pages/profile/petProfiles/PetRailRow.tsx:80 <button>  hover:bg-secondary/60",
     "adhocTint  src/pages/user/ReviewsSection.tsx:373 <button>  hover:bg-muted/30",
     "move  src/components/dashboard/IconActionButton.tsx:108 <Button>  hover:scale-105",
-    "move  src/components/dashboard/JobDetailDialog.tsx:804 <button>  hover:scale-105",
+    "move  src/components/dashboard/jobDetailDialog/JobDetailPhotoCover.tsx:51 <button>  hover:scale-105",
     "move  src/components/dashboard/PhotoLightbox.tsx:346 <button>  hover:scale-105",
     "move  src/components/dashboard/PhotoLightbox.tsx:402 <button>  hover:scale-110",
     "move  src/components/dashboard/PhotoLightbox.tsx:446 <button>  hover:scale-110",

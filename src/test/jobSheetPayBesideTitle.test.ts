@@ -7,18 +7,20 @@
  * figure never moves or shrinks. Still the bare take-home (never the job price; its words stay for a screen reader),
  * still only for someone who is not the poster; the poster's own job keeps its price chip in the same slot.
  *
- * @mutate src/components/dashboard/JobDetailDialog.tsx |             <div className="shrink-0 self-start pt-0.5" data-job-sheet-pay=""> |             <div className="shrink-0" data-job-sheet-pay="">
+ * @mutate src/components/dashboard/jobDetailDialog/JobDetailTitleRow.tsx |             <div className="shrink-0 self-start pt-0.5" data-job-sheet-pay=""> |             <div className="shrink-0" data-job-sheet-pay="">
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 
-const sheet = blankComments(readFileSync(resolve(__dirname, "../components/dashboard/JobDetailDialog.tsx"), "utf8"));
+const sheet = blankComments(readFileSync(resolve(__dirname, "../components/dashboard/jobDetailDialog/JobDetailTitleRow.tsx"), "utf8"));
+// The row lives in JobDetailTitleRow (Q806 pure move); the sheet itself hands it the Hero and draws no pay of its own.
+const dialog = blankComments(readFileSync(resolve(__dirname, "../components/dashboard/JobDetailDialog.tsx"), "utf8"));
 
 describe("the job sheet's pay sits right of the title (owner 2026-10-28)", () => {
   const rowAt = sheet.indexOf('<div className="mt-1 flex items-center gap-3">');
-  const heroAt = sheet.indexOf("<DialogHero title={job.title} />", rowAt);
+  const heroAt = sheet.indexOf("{hero}", rowAt);
   const payAt = sheet.indexOf('data-job-sheet-pay=""', rowAt);
   const chipAt = sheet.indexOf("<JobPrice\n", rowAt);
 
@@ -40,5 +42,10 @@ describe("the job sheet's pay sits right of the title (owner 2026-10-28)", () =>
   it("there is no second take-home line under the row", () => {
     expect(sheet.match(/<JobPriceTakeHome job=\{job\} bare \/>/g) ?? []).toHaveLength(1);
     expect(sheet).not.toMatch(/<p>\s*<JobPriceTakeHome/);
+    expect(dialog).not.toMatch(/<JobPriceTakeHome\b/);
+  });
+
+  it("the sheet hands the title row its own DialogHero", () => {
+    expect(dialog).toMatch(/<JobDetailTitleRow hero=\{<DialogHero title=\{job\.title\} \/>\}/);
   });
 });

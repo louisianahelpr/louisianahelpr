@@ -266,3 +266,13 @@ export function avatarInitials(name: string | null | undefined, fallback = "?"):
   // monogram circle. Same for the ﬁ/ﬀ ligatures.
   return letters.toUpperCase().trim().slice(0, 2) || fallback;
 }
+
+/**
+ * The name of a button whose only content is the member's avatar (the top bars' Profile button): the word, then the
+ * initials the avatar shows when there is no photo, so the visible text is part of the name (WCAG 2.5.3, axe
+ * label-content-name-mismatch, Q1816). No name yet: just the word.
+ */
+export function avatarButtonLabel(word: string, name: string | null | undefined): string {
+  const initials = avatarInitials(name, "");
+  return initials ? `${word}, ${initials}` : word;
+}

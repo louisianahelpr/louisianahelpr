@@ -299,7 +299,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         key={path}
         onTap={handleClick}
         onPrefetch={() => !locked && prefetchRoute(effectivePath)}
-        ariaLabel={locked ? `${shown} — locked until your account is approved` : shown}
+        // WCAG 2.5.3 (axe label-content-name-mismatch, Q1816): the name holds the visible text in its visible order, the
+        // badge's count then the word ("3 Messages"); the " " after the icon (only with a badge) keeps them apart as words.
+        ariaLabel={locked ? `${shown} — locked until your account is approved` : showBadge ? `${dockBadgeText(badgeCount)} ${shown}` : shown}
         ariaCurrent={isActive ? "page" : undefined}
         className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-[color,transform] duration-200 active:scale-[0.95] [-webkit-tap-highlight-color:transparent] select-none ${locked ? "opacity-50" : ""}`}
         style={{ color: isActive ? "hsl(var(--bark))" : "hsl(var(--muted-foreground))" }}
@@ -372,10 +374,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 color: "#fff",
               }}
             >
-              {badgeCount > 9 ? "9+" : badgeCount}
+              {dockBadgeText(badgeCount)}
             </span>
           )}
         </div>
+        {showBadge && " "}
         {/* One-word label under each icon (owner, 2026-10-19): ONE line, never cut, 10px at 320, 11px from 360; no clip,
             so a wide word spills into the slot gap. Guards: dockLabelsOneLine + nav-hide-on-scroll.spec.ts "dock labels". */}
         <span data-dock-label className={`relative z-10 block whitespace-nowrap text-ds-10 min-[360px]:text-ds-11 leading-[13px] tracking-[-0.01em] ${isActive ? "font-bold" : "font-medium"}`}>
@@ -552,5 +555,11 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   );
 });
 MobileNav.displayName = "MobileNav";
+
+
+/** The dock badge's visible count (also the start of the tab's name, WCAG 2.5.3). */
+function dockBadgeText(n: number): string {
+  return n > 9 ? "9+" : String(n);
+}
 
 export default MobileNav;

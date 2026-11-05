@@ -14,7 +14,15 @@
 const LANDING_SHELL_ID = "lh-landing-shell";
 
 export function removeLandingShellOncePainted(doc: Document = document): void {
-  const el = doc.getElementById(LANDING_SHELL_ID);
+  removeShellOncePainted(LANDING_SHELL_ID, doc);
+}
+
+/**
+ * The same handoff for any HTML-drawn first screen (Q2705 A): /login and /signup carry #lh-login-shell and
+ * #lh-signup-shell (src/test/authShellsMatchPages.test.tsx); Login and Signup call this when they mount.
+ */
+export function removeShellOncePainted(id: string, doc: Document = document): void {
+  const el = doc.getElementById(id);
   if (!el) return;
   const raf = typeof requestAnimationFrame === "function" ? requestAnimationFrame : (cb: () => void) => setTimeout(cb, 16);
   raf(() => raf(() => el.remove()));

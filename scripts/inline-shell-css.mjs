@@ -28,11 +28,34 @@ import { JSDOM } from "jsdom";
 export const SHELL_START = '<div id="lh-landing-shell"';
 export const SHELL_END = '<span data-lh-shell="end" hidden></span>';
 export const STYLE_ID = "lh-shell-css";
+const FIXED = "{display:block;position:fixed;inset:0;z-index:2147483000;overflow:hidden}";
 /** The show rule that src/index.css also carries; inline it too, or the inlined rules style a hidden block. */
-export const SHOW_RULE =
-  "[data-lh-landing-shell] #lh-landing-shell{display:block;position:fixed;inset:0;z-index:2147483000;overflow:hidden}";
-/** Ceiling on the inlined block, gzip bytes; the build fails above it. Measured 8,113 B on the 2026-11-05 build of c477530839 (+5%). */
+export const SHOW_RULE = `[data-lh-landing-shell] #lh-landing-shell${FIXED}`;
+/**
+ * Every HTML-drawn first screen in index.html (Q2705 A): its block id, the attribute index.html's inline scripts set
+ * on <html> when it is shown, and its show rule (src/index.css carries the same rules). The landing comes first and
+ * must be there; the /login and /signup shells (src/test/authShellsMatchPages.test.tsx) are read when present.
+ */
+export const SHELLS = [
+  { id: "lh-landing-shell", htmlAttr: 'data-lh-landing-shell=""', show: SHOW_RULE },
+  { id: "lh-login-shell", htmlAttr: 'data-lh-auth-shell="login"', show: `[data-lh-auth-shell="login"] #lh-login-shell${FIXED}` },
+  { id: "lh-signup-shell", htmlAttr: 'data-lh-auth-shell="signup"', show: `[data-lh-auth-shell="signup"] #lh-signup-shell${FIXED}` },
+];
+/**
+ * Ceiling on the inlined block, gzip bytes; the build fails above it. This is a cap on what every page's HTML
+ * carries; not raised (lead 11-05). The landing alone measured 8,113 B on the 2026-11-05 build of c477530839; with
+ * the /login and /signup shells it was 9,888 B, and dropping the tokens no kept rule reads brought all three to 7,730 B
+ * (2026-11-05 build of 8acdf7446d + this change).
+ */
 export const MAX_INLINE_BYTES = 8_500;
+
+/** The markup of the shell with this id in `html` (start of its div up to its end marker), or null when absent. */
+export function shellBlock(html, id) {
+  const a = html.indexOf(`<div id="${id}"`);
+  if (a < 0) return null;
+  const b = html.indexOf(SHELL_END, a);
+  return b < 0 ? null : html.slice(a, b);
+}
 
 /** Classes, ids and element names the shell markup uses (the test's inventory of what the shell is made of). */
 export function shellVocabulary(shellHtml) {
@@ -57,10 +80,10 @@ const DYNAMIC = /:(?:hover|focus|focus-visible|focus-within|active|visited|targe
  * The page at its first frame: the shell inside the boot document, with <html> marked the way index.html's inline
  * scripts mark it for a guest on "/" (data-lh-landing-shell), once per theme.
  */
-export function shellDocuments(shellHtml) {
+export function shellDocuments(shellHtml, htmlAttr = SHELLS[0].htmlAttr) {
   return ["light", "dark"].map(
     (theme) =>
-      new JSDOM(`<!doctype html><html lang="en" data-theme="${theme}" data-lh-landing-shell=""><head></head><body><div id="root"></div>${shellHtml}</div></body></html>`).window.document,
+      new JSDOM(`<!doctype html><html lang="en" data-theme="${theme}" ${htmlAttr}><head></head><body><div id="root"></div>${shellHtml}</div></body></html>`).window.document,
   );
 }
 
@@ -78,9 +101,13 @@ export function selectorNeeded(sel, docs) {
   return false;
 }
 
-/** The subset of `css` the shell markup needs, in source order. */
+/**
+ * The subset of `css` the shell markup needs, in source order. `shellHtml` is one shell's markup (the landing), or a
+ * list of { html, htmlAttr } for several shells: a rule is kept when it matches in any of their first frames.
+ */
 export function shellCriticalCss(shellHtml, css) {
-  const docs = shellDocuments(shellHtml);
+  const shells = typeof shellHtml === "string" ? [{ html: shellHtml, htmlAttr: SHELLS[0].htmlAttr }] : shellHtml;
+  const docs = shells.flatMap((s) => shellDocuments(s.html, s.htmlAttr));
   const root = postcss.parse(css);
   root.walkAtRules((at) => {
     // Animations are not part of a first frame.
@@ -104,19 +131,36 @@ export function shellCriticalCss(shellHtml, css) {
     at.walkDecls("font-family", (d) => { fam = d.value.trim().replace(/^["']|["']$/g, "").toLowerCase(); });
     if (!families.has(fam)) at.remove();
   });
+  // A custom property no kept declaration and no shell style="" reads (directly or through another property) is not
+  // part of the first frame: the token blocks (:root, [data-theme=dark]) carry hundreds the shells never use. The full
+  // sheet still defines every one when it arrives.
+  const used = new Set();
+  const refs = (v) => [...v.matchAll(/var\(\s*(--[\w-]+)/g)].map((m) => m[1]);
+  for (const s of shells) for (const n of refs(s.html)) used.add(n);
+  const custom = new Map();
+  root.walkDecls((d) => {
+    if (d.prop.startsWith("--")) {
+      if (!custom.has(d.prop)) custom.set(d.prop, []);
+      custom.get(d.prop).push(d.value);
+    } else for (const n of refs(d.value)) used.add(n);
+  });
+  for (const queue = [...used]; queue.length; ) {
+    for (const v of custom.get(queue.pop()) ?? []) for (const n of refs(v)) if (!used.has(n)) { used.add(n); queue.push(n); }
+  }
+  root.walkDecls((d) => { if (d.prop.startsWith("--") && !used.has(d.prop)) d.remove(); });
+  root.walkRules((rule) => { if (rule.nodes.length === 0) rule.remove(); });
   // Drop at-rules left empty (twice: an @media inside an emptied @supports).
   for (let i = 0; i < 2; i++) root.walkAtRules((at) => { if (at.nodes && at.nodes.length === 0) at.remove(); });
   return root.toString().replace(/\n+/g, "");
 }
 
-/** index.html with the shell's critical CSS and show rule in <head>; unchanged when it has no shell. */
+/** index.html with every present shell's critical CSS and show rule in <head>. */
 export function inlineShellCss(html, css) {
-  const a = html.indexOf(SHELL_START);
-  const b = html.indexOf(SHELL_END);
-  if (a < 0 || b < a) throw new Error("inline-shell-css: index.html has no #lh-landing-shell block");
+  if (shellBlock(html, SHELLS[0].id) === null) throw new Error("inline-shell-css: index.html has no #lh-landing-shell block");
   if (html.includes(`<style id="${STYLE_ID}">`)) throw new Error("inline-shell-css: already inlined (run once per build)");
-  const critical = shellCriticalCss(html.slice(a, b), css);
-  const block = `<style id="${STYLE_ID}">${critical}${SHOW_RULE}</style>`;
+  const present = SHELLS.map((s) => ({ ...s, html: shellBlock(html, s.id) })).filter((s) => s.html !== null);
+  const critical = shellCriticalCss(present, css);
+  const block = `<style id="${STYLE_ID}">${critical}${present.map((s) => s.show).join("")}</style>`;
   const at = html.indexOf("</head>");
   if (at < 0) throw new Error("inline-shell-css: no </head>");
   return { html: html.slice(0, at) + block + html.slice(at), bytes: block.length };

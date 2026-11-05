@@ -7,6 +7,7 @@
 import { useEffect, useId, useMemo } from "react";
 import { Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AddPhotoTile } from "@/components/ui/AddPhotoTile";
 import { uploadProblemPhoto } from "@/lib/declutter/handover";
 import { PROBLEM_PHOTO_MAX } from "@/lib/declutter/problemPhotos";
 import { FallbackImg } from "./FallbackImg";
@@ -49,11 +50,11 @@ export function ProblemPhotoPicker({ files, onChange, disabled = false }: { file
         ))}
         {!full && (
           <li>
-            <button type="button" disabled={disabled} onClick={() => document.getElementById(id)?.click()}
-              className="flex h-20 w-20 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-[hsl(var(--bark)/0.45)] text-ds-12 font-semibold text-[hsl(var(--bark))] dark:text-foreground">
+            <AddPhotoTile disabled={disabled} onClick={() => document.getElementById(id)?.click()}
+              className="gap-1 text-ds-12 font-semibold text-[hsl(var(--bark))] dark:text-foreground">
               <Camera className="h-5 w-5" aria-hidden />
               Add a photo
-            </button>
+            </AddPhotoTile>
           </li>
         )}
       </ul>

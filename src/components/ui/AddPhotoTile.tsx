@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
  *     tile opens it. `accept` stays a literal at the call site, where uploadMimeParity reads it.
  * Both show the same focus ring (focus-visible on the button, focus-within on the label, which the old native tile
  * never had). The look is PhotoProof's tile, moved here as classes: 80px, rounded-2xl, a 1.5px dashed bark edge
- * at 30% on the card colour at 40%.
+ * at 30% on the card colour at 40%. The button form takes `disabled` (Declutter's problem-report and Wanted photo rows
+ * hold the tile while an upload is running).
  *
  * Guard: src/test/addPhotoTileShared.test.tsx.
  */
@@ -18,11 +19,11 @@ const TILE =
 const RING = "outline-none ring-[hsl(var(--bark)/0.45)]";
 
 type Props = { children: ReactNode; className?: string } & (
-  | { onClick: () => void; onFiles?: never; accept?: never; multiple?: never }
-  | { onFiles: ChangeEventHandler<HTMLInputElement>; accept: string; multiple?: boolean; onClick?: never }
+  | { onClick: () => void; disabled?: boolean; onFiles?: never; accept?: never; multiple?: never }
+  | { onFiles: ChangeEventHandler<HTMLInputElement>; accept: string; multiple?: boolean; onClick?: never; disabled?: never }
 );
 
-export function AddPhotoTile({ children, className, onClick, onFiles, ...picker }: Props) {
+export function AddPhotoTile({ children, className, onClick, onFiles, disabled, ...picker }: Props) {
   if (onFiles) {
     return (
       <label className={cn(TILE, RING, "focus-within:ring-2", className)} data-add-photo-tile="">
@@ -32,7 +33,7 @@ export function AddPhotoTile({ children, className, onClick, onFiles, ...picker 
     );
   }
   return (
-    <button type="button" onClick={onClick} className={cn(TILE, RING, "focus-visible:ring-2", className)} data-add-photo-tile="">
+    <button type="button" onClick={onClick} disabled={disabled} className={cn(TILE, RING, "focus-visible:ring-2", className)} data-add-photo-tile="">
       {children}
     </button>
   );

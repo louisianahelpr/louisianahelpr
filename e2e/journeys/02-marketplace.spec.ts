@@ -431,6 +431,11 @@ test.describe.serial("marketplace chain", () => {
       await hp.getByRole("button", { name: new RegExp(`View .*${RUN}`) }).click();
       const dialog = hp.getByRole("dialog").first();
       await expect(dialog.getByRole("button", { name: "Apply now" })).toBeVisible({ timeout: 30_000 });
+      // Ported from the mocked happy-path/helper-apply.spec.ts (Q1035): the Apply CTA must WORK, not just draw.
+      // A permanently disabled one renders exactly like a live one; this is ApplyBody's own submit (the
+      // footer CTA is never mounted while the inline apply form shows).
+      // @mutate src/components/dashboard/applyConfirmDialog/ApplyBody.tsx | disabled={applyLoading \|\| underAge} | disabled={true}
+      await expect(dialog.getByRole("button", { name: "Apply now" }), "the Apply affordance renders but is disabled").toBeEnabled();
       await dialog.getByRole("textbox").first().fill(NOTE);
       await journey.milestone(hp, "apply-dialog-filled");
       await dialog.getByRole("button", { name: "Apply now" }).click();

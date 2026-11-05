@@ -6,7 +6,7 @@
  *     sees is measured BEFORE (the policies as 20261102072106 made them) and AFTER each of 3 runs:
  *     the Helpr sees only their own debt, an admin sees every debt, another member sees none, anon
  *     sees nothing (no grant), and exactly one permissive SELECT policy is left, no restrictive one.
- * (B) declutter_item_price_drops gets an identity primary key: the 2 existing rows get ids, the
+ * (B) declutter_item_price_drops gets an identity primary key: the fixture rows seeded below get ids, the
  *     writer's own insert (item_id, from_cents, to_cents) still works, twice for one item in ONE
  *     transaction (same now()), and a second and third run change nothing.
  *

@@ -367,13 +367,16 @@ async function main() {
   else if (mode !== "report") throw new Error(`unknown mode ${mode}`);
   if (!since) throw new Error("report mode needs PROBE_SINCE (unix seconds from a run's log)");
   await report(since, waitMin);
-  if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Stripe Tax probe (TEST mode)\n\n\`\`\`\n${out.join("\n")}\n\`\`\`\n`);
+  // The step summary gets a count and fixed text only: the lines come from Stripe's API responses, and writing
+  // network data to a file is CodeQL js/http-to-file-access (PR #4108 alerts 551/552). say() already put every
+  // line in the job log.
+  if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Stripe Tax probe (TEST mode)\n\n${Number(out.length) || 0} line(s) reported. The full report is in this job's log.\n`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch((e) => {
     console.error(`::error::${String(e?.message ?? e).slice(0, 500)}`);
-    if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Stripe Tax probe FAILED\n\n\`\`\`\n${out.join("\n")}\n${String(e?.message ?? e)}\n\`\`\`\n`);
+    if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `## Stripe Tax probe FAILED\n\n${Number(out.length) || 0} line(s) reported before the failure. The error and the full report are in this job's log.\n`);
     process.exit(1);
   });
 }

@@ -176,7 +176,7 @@ const getSessionWithTimeout = async (): Promise<{ session: Session | null; timed
   try {
     const result = await Promise.race([
       // No client (a recovery reload is under way): answer as a timeout, so a stored token is never read as signed out.
-      loadClient().then((client) => (client ? client.auth.getSession() : TIMED_OUT)),
+      loadClient().then(async (client) => (client ? await client.auth.getSession() : TIMED_OUT)),
       new Promise<typeof TIMED_OUT>((resolve) =>
         window.setTimeout(() => resolve(TIMED_OUT), AUTH_BOOTSTRAP_TIMEOUT_MS),
       ),

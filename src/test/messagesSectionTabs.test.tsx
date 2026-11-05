@@ -396,11 +396,13 @@ describe("D2-1: the Declutter chip and its order chats", () => {
     expect(screen.getByRole("button", { name: "Declutter" })).toBeInTheDocument();
   });
 
-  it("with no order chat and Declutter off there is still no chip; Shops never gets the list", async () => {
+  it("with no order chat and Declutter off there is still no chip; Shops gets its own chat list, never the order chats", async () => {
     const off = renderHook(() => useMessageSections([JOB], [JOB]), { wrapper: wrap("/messages?section=declutter") });
     await new Promise((r) => setTimeout(r, 20));
     expect(off.result.current.section).toBe("all");
     const shops = renderHook(() => useMessageSections([JOB], [JOB]), { wrapper: wrap("/messages?section=shops") });
-    expect(shops.result.current.sectionEmpty?.Lead).toBeUndefined();
+    // Q1947: the Shops chip lists the member's shop chats (ShopTalkInbox), not Declutter's order chats.
+    expect(shops.result.current.sectionEmpty?.Lead).not.toBe(DeclutterOrderTalkRows);
+    expect(shops.result.current.sectionEmpty?.Lead?.name).toBe("ShopTalkLead");
   });
 });

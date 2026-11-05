@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ListRow } from "@/components/ui/ListRow";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { dropBeforeKey, type BunchItem } from "@/lib/declutter/bunch";
@@ -29,13 +30,13 @@ function ItemPicker({ others, urls, onPick, label }: { others: BunchOther[]; url
         const url = o.photoKey ? urls.get(o.photoKey) : undefined;
         return (
           <li key={o.key}>
-            <button type="button" aria-label={label(o.name)} onClick={() => onPick(o.key)} data-bunch-pick={o.key}
-              className="flex min-h-12 w-full items-center gap-3 rounded-xl border border-border bg-card p-1.5 text-left text-ds-14 font-medium ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            <ListRow aria-label={label(o.name)} onClick={() => onPick(o.key)} data-bunch-pick={o.key}
+              className="min-h-12 justify-start gap-3 border border-border bg-card p-1.5 text-ds-14 font-medium">
               <span className="h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-photo-empty">
                 {url?.startsWith("blob:") && <FallbackImg src={url} alt="" loading="lazy" decoding="async" className="aspect-square w-full bg-photo-empty object-cover" />}
               </span>
               <span className="min-w-0 break-words">{o.name}</span>
-            </button>
+            </ListRow>
           </li>
         );
       })}

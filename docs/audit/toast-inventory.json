@@ -1,15 +1,15 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1151,
+    "calls": 1152,
     "files": 319,
-    "rendering": 1070,
+    "rendering": 1071,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 217,
+      "toast": 218,
       "toast.error": 778,
       "toast.loading": 1,
       "toast.message": 1,
@@ -17,7 +17,7 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 486,
+      "literal": 487,
       "template": 105,
       "dynamic": 612,
       "jsx": 0
@@ -11529,7 +11529,17 @@
     },
     {
       "file": "src/hooks/useNotifyWhenWorkLands.ts",
-      "line": 53,
+      "line": 55,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Job alerts are on. You can allow notifications on this device later."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/hooks/useNotifyWhenWorkLands.ts",
+      "line": 57,
       "kind": "toast.warning",
       "title": {
         "form": "literal",

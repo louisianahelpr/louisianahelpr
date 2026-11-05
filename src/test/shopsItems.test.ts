@@ -37,7 +37,7 @@
 // @mutate supabase/migrations/20261105173912_shops_items_live_at_once.sql |     IF public.shop_cottage_cap_reached(v_uid) THEN | IF false THEN
 // @mutate supabase/migrations/20261105173912_shops_items_live_at_once.sql |   IF v_photos < 3 OR v_photos > 12 THEN | IF v_photos < 1 OR v_photos > 12 THEN
 // @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish', 'label_says_home_kitchen', | WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish',
-// @mutate supabase/migrations/20261017061157_shops_items.sql |   IF p_kind = 'rental' THEN | IF false THEN
+// @mutate supabase/migrations/20261105191330_shops_caps.sql |   IF p_kind = 'rental' THEN | IF false THEN
 // @mutate supabase/migrations/20261017061157_shops_items.sql | REVOKE ALL ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], text, text, text, text, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], text, text, text, text, text) FROM PUBLIC, anon;
 // @mutate supabase/migrations/20261105184827_export_declutter_item_views.sql |   v_out := v_out \|\| jsonb_build_object('shop_items', | v_out := v_out \|\| jsonb_build_object('shop_items_gone',
 // @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |   IF v_submitted IS DISTINCT FROM p_submitted_at THEN | IF false THEN

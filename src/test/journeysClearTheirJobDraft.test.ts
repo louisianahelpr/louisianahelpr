@@ -4,7 +4,7 @@
  * Post a job keeps a half-finished post on the account (OPS-3, save_my_job_post_draft) and the hourly
  * job-post-draft-reminder cron sends a "Finish your job post?" notice and email for an unposted one. The journeys
  * run on the SHARED test accounts, so a journey that fills the form and never posts leaves a draft behind
- * (measured on prod 2026-11-04 8:30 PM: the poster seat held one from the 01:23Z run, reminded_at null; only the
+ * (measured on prod 2026-11-04 ~8:13 PM CT: the poster seat held one from the 01:23Z run, reminded_at null; only the
  * sweep's is_seed skip kept it quiet). The class, over the journeys' own inventory: every e2e/journeys spec that
  * drives the form (fillJobDetails / fillBudget from postJobForm.ts) imports clearJobPostDraft and calls it.
  *

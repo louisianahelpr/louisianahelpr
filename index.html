@@ -74,7 +74,7 @@
          (scripts/check-csp-inline-scripts.mjs). Never add inline on*= handlers
          or javascript: URLs; use addEventListener. -->
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-v1I7UTW/WshucfZxdbq6Jd3h4asS3NxvHGFyzLrVaSA=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-yUtNpiPXGeAc38WuKK8biiH5mrbfvvi5W7woqMMWHcA=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' 'sha256-AXm2TLBv4U1d/F/T3/dcAbe1QntzVJRWEySfKMS4y9o=' 'sha256-4MuTiLIkqRi1pnJ8C/PEYCMacyyBNy6I6F+KF3qIo5k=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-v1I7UTW/WshucfZxdbq6Jd3h4asS3NxvHGFyzLrVaSA=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-yUtNpiPXGeAc38WuKK8biiH5mrbfvvi5W7woqMMWHcA=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' 'sha256-AXm2TLBv4U1d/F/T3/dcAbe1QntzVJRWEySfKMS4y9o=' 'sha256-4MuTiLIkqRi1pnJ8C/PEYCMacyyBNy6I6F+KF3qIo5k=' 'sha256-LFV+zILJ7NU/39fwnZ/YiRsl7oKdr4p1VKQ6X9yqpZo=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
 
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -739,6 +739,68 @@
           var el = document.getElementById("lh-landing-shell");
           if (el) el.remove();
         }, 10000);
+      })();
+    </script>
+    <!-- GUEST item page early start (Q2708, 11-05). A shared Declutter item link is how most guests arrive, and its
+         largest paint is the first photo. The entry's guest item prefetch (src/boot/declutterItemPrefetch.ts) started
+         the photo rows read only once its own chunk had loaded (~500-720 ms on Fast 4G), so the photo waited ~850 ms
+         to start. This starts the SAME two anonymous reads and the SAME first-photo preload from the HTML, for a
+         GUEST only (never the native app; after the blocked-storage repair above): any stored Supabase session at all (live, expiring or malformed), or storage it cannot read,
+         and it does nothing (a member's reads stay with the entry, as before). It leaves the same hand-over slot the
+         boot module leaves, and the entry then skips its guest door. src/test/guestItemEarlyStartInline.test.ts runs
+         this script and holds its URLs, headers, slot and preload equal to the boot module's. -->
+    <script>
+      (function () {
+        var m = /^\/declutter\/item\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/i.exec(location.pathname);
+        if (!m || window.Capacitor || location.protocol === "capacitor:" || typeof fetch !== "function" || typeof Promise !== "function" || typeof URL !== "function") return;
+        try {
+          for (var i = 0; i < localStorage.length; i++) {
+            var sk = localStorage.key(i);
+            if (sk && sk.indexOf("sb-") === 0 && sk.slice(-11) === "-auth-token") return;
+          }
+        } catch (blocked) {
+          return;
+        }
+        var meta = function (n) {
+          var el = document.querySelector('meta[name="' + n + '"]');
+          return (el && el.getAttribute("content")) || "";
+        };
+        var base = meta("lh-supabase-url").replace(/\/$/, "");
+        var key = meta("lh-supabase-key");
+        if (!/^https:\/\/[^%]+$/.test(base) || !key || key.indexOf("%") !== -1) return;
+        var id = m[1].toLowerCase();
+        var item = new URL(base + "/rest/v1/declutter_items");
+        item.searchParams.set("select", "id,seller_id,status,title,description,category,condition_stars,delivery_size,price_cents,current_price_cents,area_label,area_lat,area_lng,created_at,live_at,porch_ok,accepts_offers");
+        item.searchParams.set("id", "eq." + id);
+        var photos = new URL(base + "/rest/v1/declutter_item_photos");
+        photos.searchParams.set("select", "id,item_id,storage_path,position");
+        photos.searchParams.set("item_id", "in.(" + id + ")");
+        photos.searchParams.set("order", "position.asc");
+        var headers = { apikey: key, Authorization: "Bearer " + key, Accept: "application/json" };
+        var read = function (url) {
+          return fetch(url, { headers: headers })
+            .then(function (r) {
+              return r.ok ? r.json().then(function (x) { return Array.isArray(x) ? x : null; }) : null;
+            })
+            .catch(function () {
+              return null;
+            });
+        };
+        var slot = { at: Date.now(), userId: null, itemId: id, item: read(item.toString()), photos: read(photos.toString()) };
+        window.__lhDeclutterItemPrefetch = slot;
+        slot.photos.then(function (rows) {
+          var path = rows && rows.length ? rows[0] && rows[0].storage_path : null;
+          if (typeof path !== "string" || !/^[A-Za-z0-9\/_.-]+$/.test(path)) return;
+          var at = function (w) { return base + "/storage/v1/render/image/public/job-photos/" + path + "?width=" + w + "&quality=75"; };
+          var link = document.createElement("link");
+          link.rel = "preload";
+          link.setAttribute("as", "image");
+          link.href = at(720);
+          link.setAttribute("imagesrcset", at(720) + " 720w, " + at(1080) + " 1080w");
+          link.setAttribute("imagesizes", "(min-width: 640px) 680px, calc(100vw - 40px)");
+          link.setAttribute("fetchpriority", "high");
+          document.head.appendChild(link);
+        });
       })();
     </script>
 

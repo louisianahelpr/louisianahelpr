@@ -78,6 +78,9 @@ export function startDeclutterItemPrefetch(pathname: string): void {
   const session = storedSession(Date.now() / 1000);
   const guest = !session && !anyStoredSession();
   if (!base || !key || (!session && !guest)) return;
+  // A guest's reads already started by index.html's inline early start (same URLs, same slot): keep them.
+  const prior = (window as unknown as Record<string, { itemId?: unknown; userId?: unknown } | undefined>)[DECLUTTER_ITEM_PREFETCH_KEY];
+  if (guest && prior?.itemId === itemId && prior.userId === null) return;
   const urls = declutterItemUrls(base, itemId);
   // The anonymous role sends the publishable key as its bearer, as supabase-js does for a signed-out client.
   const headers = { apikey: key, Authorization: `Bearer ${session ? session.token : key}`, Accept: "application/json" };

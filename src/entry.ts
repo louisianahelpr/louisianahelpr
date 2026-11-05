@@ -53,9 +53,10 @@ if (hasToken() && /^\/(declutter(\/item\/[\w-]+)?|home|jobs|posts)?\/?$/.test(wi
     .catch(() => {
       /* speculative: the page reads for itself */
     });
-} else if (/^\/declutter\/item\/[\w-]+\/?$/.test(window.location.pathname)) {
+} else if (/^\/declutter\/item\/[\w-]+\/?$/.test(window.location.pathname) && !("__lhDeclutterItemPrefetch" in window)) {
   // Q2707: a GUEST's item page reaches the same door (a shared item link is how most guests arrive; only the item
-  // prefetch acts for a guest, see declutterItemPrefetch.ts).
+  // prefetch acts for a guest, see declutterItemPrefetch.ts). Q2708: index.html's inline guest early start usually
+  // left that slot already, and then this door is skipped (its chunk would only compete with the photo).
   void signedInPrefetch()
     .then((m) => m?.startSignedInPrefetch(window.location.pathname))
     .catch(() => {

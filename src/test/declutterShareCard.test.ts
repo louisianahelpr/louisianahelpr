@@ -102,7 +102,13 @@ describe("Q2426: the link preview (api/share.ts + vercel.json)", () => {
     expect(html).toContain(`<meta property="og:url" content="https://www.louisianahelpr.com/declutter/item/${ITEM}"`);
     expect(html).toContain(`<link rel="canonical" href="https://www.louisianahelpr.com/declutter/item/${ITEM}"`);
     expect(html).toContain(`<meta property="og:image" content="https://example.supabase.co/functions/v1/shop-photo?id=${PHOTO}&amp;kind=declutter&amp;w=1200&amp;og=1"`);
-    expect(html).not.toMatch(/job-photos|storage\/v1/);
+    // The served page names no storage path. The one exception is index.html's guest item early start (Q2708): a
+    // constant script, byte-equal to index.html's (so it carries no item or owner data), that builds the photo URL in
+    // the browser from the photo rows; it is removed whole before the check.
+    const early = /<script>\s*\(function \(\) \{\s*var m = \/\^\\\/declutter[\s\S]*?<\/script>/.exec(html)?.[0];
+    expect(early, "the guest item early start, as in index.html").toBeTruthy();
+    expect(readFileSync(resolve(__dirname, "../../index.html"), "utf8")).toContain(early!);
+    expect(html.replace(early!, "")).not.toMatch(/job-photos|storage\/v1/);
     // Values only: still exactly one og:image tag (owner 10-31: no second, square one).
     expect(html.match(/<meta property="og:image" /g)?.length).toBe(1);
     // Members never see fee numbers anywhere (owner rule): the card names no fee.

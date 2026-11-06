@@ -62,6 +62,7 @@ const profileRoute = () => import("@/boot/profileRoute");
 const jobsListRoute = () => import("@/boot/jobsListRoute");
 // postJobRoute keeps PostJob's preload list out of the entry (see that file).
 const postJobRoute = () => import("@/boot/postJobRoute");
+const declutterItemRoute = () => import("@/boot/declutterItemRoute");
 
 /** Path -> the chunks that route cannot paint without. Exported for tests. */
 export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unknown>>; signedIn: Array<() => Promise<unknown>> }> = {
@@ -117,7 +118,16 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
     guest: [login, protectedRoute],
     signedIn: [() => import("@/boot/declutterRoute"), protectedRoute],
   },
+  // Q2708 (11-05): an item link (how most guests arrive) starts the gate and the page beside the app. Every
+  // /declutter/item/<id> path reads this row (DECLUTTER_ITEM_PATH); declutterItemRoute keeps the lists out of the entry.
+  "/declutter/item/:id": {
+    guest: [declutterItemRoute],
+    signedIn: [declutterItemRoute],
+  },
 };
+
+/** App.tsx's /declutter/item/:id paths, which all read the one row above. */
+const DECLUTTER_ITEM_PATH = /^\/declutter\/item\/[^/]+$/;
 
 /** Set on every <link rel="modulepreload"> the page preload adds; index.html's watchdog skips them. */
 const PAGE_PRELOAD_ATTR = "data-lh-page-preload";
@@ -139,7 +149,7 @@ const PAGE_PRELOAD_ATTR = "data-lh-page-preload";
  */
 export function preloadEntryRoute(pathname: string): void {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
-  const entry = ENTRY_ROUTE_CHUNKS[path];
+  const entry = ENTRY_ROUTE_CHUNKS[path] ?? (DECLUTTER_ITEM_PATH.test(path) ? ENTRY_ROUTE_CHUNKS["/declutter/item/:id"] : undefined);
   if (!entry) return;
   const before = new Set(document.querySelectorAll('link[rel="modulepreload"]'));
   for (const load of hasToken() ? entry.signedIn : entry.guest) {

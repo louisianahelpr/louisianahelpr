@@ -164,6 +164,7 @@ export const SHOPS_RPC_ERROR_COPY = {
     cottage_cap_reached: SC.cottage_cap_reached,
     cottage_confirmation_required: SC.cottage_confirmation_required,
     feature_disabled: SC.feature_disabled,
+    invalid_kind: SC.invalid_kind,
     item_not_a_draft: SC.item_not_a_draft,
     item_not_found: SC.item_not_found,
     not_authenticated: SC.not_authenticated,

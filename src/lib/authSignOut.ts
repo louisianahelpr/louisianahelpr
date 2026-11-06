@@ -18,6 +18,8 @@ import { loadModule } from "@/lib/loadModule";
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
 const errorLogger = () => loadModule(() => import("@/lib/errorLogger"));
+// Home's kept continue days (Q724 sign-out clear): lazy, so a guest page that can sign out (Login) does not pull its chunk group in.
+const resetActiveContinueDaysModule = () => loadModule(() => import("@/lib/activityCoreContinueDays"));
 // The online pill's handoff (Q724 sign-out clear): lazy, so a guest page that can sign out (Login) does not pull its chunk group in.
 const resetOnlineHandoffModule = () => loadModule(() => import("@/lib/helprTasks/onlineHandoff"));
 
@@ -283,6 +285,10 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   resetProofPhotoSignCache();
   // Which Declutter items this run already counted a view for: the next account counts its own (Q724).
   resetSentItemViews();
+  // Home's kept continue days (get_my_activity_cores 'active_continue_days'): never the next account's first answer.
+  void resetActiveContinueDaysModule()
+    .then((m) => m?.resetActiveContinueDays())
+    .catch(() => { /* its chunk would not load, so this run never kept any */ });
   // The online pill's handed-over row (my_badge_reads 'delivery_online'): never the next account's first answer.
   void resetOnlineHandoffModule()
     .then((m) => m?.resetOnlineHandoff())

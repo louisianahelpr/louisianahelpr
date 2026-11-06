@@ -5,13 +5,15 @@
     "e2e/**/*.ts",
     "scripts/**/*.mjs",
     "supabase/functions/*/index.ts",
-    "src/vendorStubs/*.ts"
+    "src/vendorStubs/*.ts",
+    "api/*.ts"
   ],
   "project": [
     "src/**/*.{ts,tsx}",
     "supabase/functions/**/*.{ts,tsx}",
     "scripts/**/*.mjs",
-    "e2e/**/*.ts"
+    "e2e/**/*.ts",
+    "api/**/*.ts"
   ],
   "ignore": [
     "src/integrations/supabase/types.ts"

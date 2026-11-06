@@ -5,10 +5,11 @@
  * - The phone bottom bar is Dashboard, Jobs, Declutter, Shops, Homes: five tabs, no center "+", ICONS ONLY (each
  *   name is the tab's aria-label). Shops and Homes are listed even while closed to the viewer, with no "Soon" mark;
  *   the tab opens their own coming-soon screen (owner: "the screen says it is coming").
- * - The top bar's right side is the bell, Messages, the "+", You (11:42 AM order). The "+" wears the light olive
- *   tint (SECTION_ADD_TINT, shared with the desktop "+ Post a job"); on a section it is that section's own create
- *   (Jobs: Post a job, under the under-18 gate; Declutter: Sell an item; Shops / Homes: their add), and on Dashboard
- *   and every other screen it opens the Create sheet ("What are we doing?").
+ * - The top bar's right side is the bell, Messages, the "+", You (11:42 AM order). The "+" is light green with an
+ *   inset ring and the primary green plus (PHONE_CREATE_TINT on the --create-tint tokens, a deep green pair in dark;
+ *   the approved mock-up's #DFE5CC / #C9D2AE); on an open section it is that section's own create (Jobs: Post a job,
+ *   under the under-18 gate; Declutter: Sell an item; Shops / Homes: their add), and on Dashboard, on a section
+ *   closed to the viewer and on every other screen it opens the Create sheet ("What are we doing?").
  * - The Create sheet (mock-up 20): ONE ROW PER SECTION in Customize order, each with ONE main button (owner 10-31,
  *   LEAD-CREATE-SHEET-TRIM). "Open a shop" becomes "Add a product or service" once the member has a shop. A section
  *   closed to the viewer is a greyed "Coming soon" row with no actions; it never routes into a closed section.
@@ -41,6 +42,10 @@
  * @mutate src/components/create/CreateSheet.tsx | <SheetHero moment title="What are we doing?" /> | <SheetHero title="What are we doing?" />
  * @mutate src/index.css | .font-moment.font-moment.font-moment { | .font-moment {
  * @mutate src/components/sections/AppTopBar.tsx |   const title = sectionTitle; |   const title = explore ? "Explore" : sectionTitle;
+ * @mutate src/components/sections/AppTopBar.tsx |   const target = routeTarget !== "sheet" && !isOn(sectionByKey(routeTarget)) ? "sheet" : routeTarget; |   const target = routeTarget;
+ * @mutate src/components/sections/AppTopBar.tsx |       className={`${PHONE_CREATE_TINT} [&>svg]:w-[22px] [&>svg]:h-[22px]`} |       className={`${SECTION_ADD_TINT} [&>svg]:w-[22px] [&>svg]:h-[22px]`}
+ * @mutate src/index.css |   --create-tint: 74 32% 85%; |   --create-tint: 70 20% 33%;
+ * @mutate src/index.css |   --create-tint: 76 20% 20%; |   --create-tint: 74 32% 85%;
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
@@ -201,10 +206,21 @@ describe("the phone top bar (nav redesign 2026-11-06)", () => {
     expect(where()).toBe("/profile");
   });
 
-  it("the + wears the light olive tint (the desktop '+ Post a job' look)", () => {
+  it("the + is light green with an inset ring and the primary green plus, from tokens (dark: a deep green pair)", () => {
     renderDock();
     const cls = createButton().className.split(/\s+/);
-    for (const c of ["bg-[hsl(var(--bark)/0.12)]", "text-[hsl(var(--bark))]", "rounded-full"]) expect(cls).toContain(c);
+    for (const c of ["bg-[hsl(var(--create-tint))]", "shadow-[inset_0_0_0_1.5px_hsl(var(--create-tint-ring))]", "text-[hsl(var(--bark))]", "rounded-full"]) expect(cls).toContain(c);
+    expect(cls.some((c) => /#|bark\)\/0\.12/.test(c)), "no hex and no grey-olive wash on the +").toBe(false);
+    // The tokens: the approved mock-up's light green in light, a darker green (never the light one) in dark.
+    const css = readFileSync(resolve(ROOT, "src/index.css"), "utf8");
+    const tok = (block: string, name: string) => block.match(new RegExp(`--${name}:\\s*([^;]+);`))?.[1].trim();
+    const light = css.slice(css.indexOf(":root {"), css.indexOf("\n}\n", css.indexOf(":root {")));
+    const dark = css.slice(css.indexOf('[data-theme="dark"] {'), css.indexOf("\n}\n", css.indexOf('[data-theme="dark"] {')));
+    expect(tok(light, "create-tint")).toBe("74 32% 85%"); // #DFE5CC
+    expect(tok(light, "create-tint-ring")).toBe("75 29% 75%"); // #C9D2AE
+    const lightness = (v?: string) => Number(v?.match(/(\d+)%$/)?.[1]);
+    expect(lightness(tok(dark, "create-tint")), "dark fill is a deep green").toBeLessThan(30);
+    expect(lightness(tok(dark, "create-tint-ring"))).toBeGreaterThan(lightness(tok(dark, "create-tint")));
   });
 
   it("on Dashboard the + opens 'What are we doing?' and does not navigate", () => {
@@ -229,6 +245,19 @@ describe("the phone top bar (nav redesign 2026-11-06)", () => {
     openSheet();
     expect(where()).toBe(path);
     expect(screen.queryByTestId("create-sheet")).toBeNull();
+  });
+
+  it.each([
+    ["/shops", "Shops"],
+    ["/rentals", "Homes"],
+  ])("on %s closed to the viewer the + opens the Create sheet, never the closed section", (at, title) => {
+    switches.on = new Set(["declutter"]);
+    renderDock(at, title);
+    expect(createButton().getAttribute("data-create-target")).toBe("sheet");
+    expect(createButton().getAttribute("aria-label")).toBe("Create");
+    openSheet();
+    expect(screen.getByTestId("create-sheet")).toBeTruthy();
+    expect(where()).toBe(at);
   });
 
   it("on Jobs the + keeps the under-18 gate", () => {

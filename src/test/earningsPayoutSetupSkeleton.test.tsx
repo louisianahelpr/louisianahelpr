@@ -18,6 +18,10 @@
 // @mutate src/components/profile/earningsTab/EarningsPageSkeleton.tsx |                   {JOBS_ONLY_PAYOUT_LINE} |                   Add a bank once. Every payout from Jobs, Declutter and your shop goes there.
 // @mutate src/components/payouts/payoutSourcesLine.ts | payoutSourcesLine({ declutter: false, shops: false }) | payoutSourcesLine({ declutter: true, shops: true })
 // @mutate src/components/profile/earningsTab/EarningsPageSkeleton.tsx | const wallet = !!profile?.stripe_account_id; | const wallet = false;
+// Q2708 (11-05): the connect slot's bones take the not-hired-yet note's shape unless the server said this member may set
+// up payouts (prod 11-05: 0 of the 323 profiles with no payout account may; lab CLS 0.1383 -> see the commit).
+// @mutate src/components/profile/earningsTab/EarningsPageSkeleton.tsx |   if (!hireAllowed) { |   if (false) {
+// @mutate src/components/profile/EarningsTab.tsx | <EarningsPayoutSetupSkeleton hireAllowed={payoutHireAllowed} /> | <EarningsPayoutSetupSkeleton hireAllowed />
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
@@ -29,7 +33,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "user-1" }, profile: mockProfile, loading: false }),
 }));
 
-import { EarningsPageSkeleton } from "@/components/profile/earningsTab/EarningsPageSkeleton";
+import { EarningsPageSkeleton, EarningsPayoutSetupSkeleton } from "@/components/profile/earningsTab/EarningsPageSkeleton";
 
 const ROOT = join(__dirname, "..", "..");
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
@@ -50,8 +54,7 @@ describe("Earnings skeleton is data-aware (Q429)", () => {
   // nothing (skeletonsReadAsLoading renders it with no QueryClient), so it reads
   // no switch: it draws the Jobs-only line, true for every member.
   it("draws the Jobs-only payout line on the connect block and reads no switch", () => {
-    mockProfile = { stripe_account_id: null };
-    renderSkeleton();
+    render(<MemoryRouter><EarningsPayoutSetupSkeleton hireAllowed /></MemoryRouter>);
     const block = (screen.getByTestId("earnings-payout-setup-skeleton").textContent ?? "").replace(/\s+/g, " ");
     expect(block).toContain("Add a bank once. Every payout from Jobs goes there.");
     expect(block).not.toMatch(/Declutter|your shop/);
@@ -96,7 +99,7 @@ describe("Earnings skeleton is data-aware (Q429)", () => {
     renderSkeleton({ withHeader: false });
     expect(screen.queryByTestId("earnings-payout-setup-skeleton")).toBeNull();
     expect(read("src/components/profile/EarningsTab.tsx")).toContain(
-      "{!hasStripeAccount && (stripeLoading || (showConnect && !connectSettled)) && <EarningsPayoutSetupSkeleton />}",
+      "{!hasStripeAccount && (stripeLoading || (showConnect && !connectSettled)) && <EarningsPayoutSetupSkeleton hireAllowed={payoutHireAllowed} />}",
     );
   });
 });
@@ -106,11 +109,11 @@ describe("the ghost copy is the real copy, so it wraps like the real lines", () 
   const ghosts = [...skel.matchAll(/<GhostLine[^>]*>\s*([^<]+?)\s*<\/GhostLine>/g)].map((m) => m[1].trim());
 
   it("every ghost line is printed verbatim by PayoutSetupForm or PaymentTab", () => {
-    // 2: the connect card's title and body. The activity card's three lines
-    // left with that card (Q1177).
-    expect(ghosts.length).toBe(2);
+    // 3: the connect card's title and body (the activity card's three lines
+    // left with that card, Q1177), and the not-hired-yet note (Q2708).
+    expect(ghosts.length).toBe(3);
     const form = read("src/components/PayoutSetupForm.tsx");
-    const real = form + read("src/components/PaymentTab.tsx");
+    const real = form + read("src/components/PaymentTab.tsx") + read("src/components/payouts/PayoutSetupPausedNotice.tsx");
     for (const g of ghosts) {
       // The body is the Jobs-only payout line (P4-1); the form prints the same
       // builder's line for the viewer, which is that line while no switch is on.
@@ -121,5 +124,35 @@ describe("the ghost copy is the real copy, so it wraps like the real lines", () 
       }
       expect(real, g).toContain(g);
     }
+  });
+});
+
+describe("the connect slot's bones are the shape that is coming (Q2708)", () => {
+  it("a member not cleared to set up payouts (or not known yet) gets the not-hired-yet note's shape, not the connect card", () => {
+    mockProfile = { stripe_account_id: null };
+    renderSkeleton();
+    const block = screen.getByTestId("earnings-payout-setup-skeleton");
+    expect(block.getAttribute("data-shape")).toBe("needs-hire");
+    const text = (block.textContent ?? "").replace(/\s+/g, " ");
+    expect(text).toContain("You'll set up payouts once you're hired or make your first sale.");
+    expect(text).not.toContain("Where should we send your money?");
+    cleanup();
+    render(<MemoryRouter><EarningsPayoutSetupSkeleton /></MemoryRouter>);
+    expect(screen.getByTestId("earnings-payout-setup-skeleton").getAttribute("data-shape")).toBe("needs-hire");
+  });
+
+  it("a member the server cleared gets the connect card's shape", () => {
+    render(<MemoryRouter><EarningsPayoutSetupSkeleton hireAllowed /></MemoryRouter>);
+    const block = screen.getByTestId("earnings-payout-setup-skeleton");
+    expect(block.getAttribute("data-shape")).toBe("connect");
+    expect(block.textContent).toContain("Where should we send your money?");
+  });
+
+  it("EarningsTab feeds the slot the same hire answer PayoutSetupForm reads (no new read)", () => {
+    const tab = read("src/components/profile/EarningsTab.tsx");
+    expect(tab).toContain("const payoutHireAllowed = usePayoutSetupHireAllowed();");
+    expect(tab).toContain("<EarningsPayoutSetupSkeleton hireAllowed={payoutHireAllowed} />");
+    const uses = [...tab.matchAll(/<EarningsPayoutSetupSkeleton\b/g)].length;
+    expect(uses).toBeGreaterThan(0);
   });
 });

@@ -3,6 +3,7 @@ import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers
 import { STANDARD_PAYOUT_PHRASE } from "../../../../supabase/functions/_shared/escrowTiming";
 import type { HomeMoney } from "./homeMoney";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
+import { GlassTileButton } from "@/components/ui/GlassTileButton";
 
 /** "Fri, Oct 23": the day the approved money reaches the member's wallet. */
 const walletDay = (iso: string) => new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -119,17 +120,16 @@ export function HomeMoneyTiles({
 function MoneyTile({ kind, span, label, cents, caption, onClick }: { kind: string; span: string; label: string; cents: number; caption: string; onClick: () => void }) {
   const amount = formatCents(cents);
   return (
-    <button
-      type="button"
+    <GlassTileButton
       data-money-tile={kind}
       // No aria-label: the tile's own text (label, amount, caption) is its name, so a screen reader and a
       // voice user say the same words (axe label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491).
       onClick={onClick}
-      className={`btn-press liquid-glass text-left p-card lg:p-4 flex flex-col gap-0.5 min-w-0 ${span}`}
+      className={`p-card lg:p-4 gap-0.5 ${span}`}
     >
       <span className="text-ds-13 text-muted-foreground">{label}</span>
       <span data-money-amount className="text-ds-24 font-bold tabular-nums leading-tight" style={{ color: "hsl(var(--accent-ink))" }}>{amount}</span>
       <span className="text-ds-13 text-muted-foreground leading-snug">{caption}</span>
-    </button>
+    </GlassTileButton>
   );
 }

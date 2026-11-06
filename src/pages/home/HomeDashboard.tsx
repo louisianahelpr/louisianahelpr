@@ -31,6 +31,7 @@ import { PosterFirstJobCard } from "./homeDashboard/PosterFirstJobCard";
 import { HelprsNearYou } from "./homeDashboard/HelprsNearYou";
 import { useHomeTopSettled, useHoldWhileFirstVisitReads } from "./homeDashboard/homeTopSettled";
 import { optionalLazy } from "@/lib/optionalLazy";
+import { GlassTileButton } from "@/components/ui/GlassTileButton";
 // Loaded the first time it opens, never with Home's first screen (AUD31-60, B61): it brings Sheet and Switch.
 const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
 const SmsPhonePrompt = optionalLazy(() => import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })), "SmsPhonePrompt");
@@ -384,13 +385,12 @@ function HomeDashboardScreen() {
                 const line = summary.tiles[s.key] ?? SECTION_INVITE[s.key];
                 const Icon = s.icon;
                 return (
-                  <button
+                  <GlassTileButton
                     key={s.key}
-                    type="button"
                     data-section-tile={s.key}
                     aria-label={`${s.label}: ${line}`}
                     onClick={() => navigate(s.path)}
-                    className="btn-press liquid-glass text-left p-card lg:p-4 flex flex-col gap-1 lg:gap-0.5 min-w-0"
+                    className="p-card lg:p-4 gap-1 lg:gap-0.5"
                   >
                     <Icon className="w-6 h-6 lg:w-5 lg:h-5 text-primary" aria-hidden />
                     <span className="text-ds-16 lg:text-ds-15 font-bold mt-2 lg:mt-1.5 truncate text-foreground">{s.label}</span>
@@ -399,7 +399,7 @@ function HomeDashboardScreen() {
                     {/* Two lines' room always (leading-snug x 2): the live "near you" count replaces the line after
                         first paint, and a shorter line must not shrink the card under the reader (owner 2026-11-01). */}
                     <span data-tile-line className="text-ds-14 lg:text-ds-13 text-muted-foreground leading-snug min-h-[2.75em]">{line}</span>
-                  </button>
+                  </GlassTileButton>
                 );
               })}
             </div>

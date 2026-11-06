@@ -264,6 +264,11 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   shop_order_service_address_seed: "tags", // 20261106164313 (Shops H8): an at-home address row is seed data with its order
   shop_item_variants_seed_from_item: "tags", // 20261106165310 (Shops variants): a combination is seed data with its item
   shop_set_order_delivery: "tags", // 20261106180902 (Shops delivery): the drop-off address is seed data with its order
+  // 20261106194913 (Shops Helpr delivery): the drop-off address, the Helpr task and the handover problem copy their
+  // order's is_seed; no money moves on it.
+  shop_set_order_helpr_delivery: "tags",
+  shop_delivery_open_task: "tags",
+  shop_delivery_on_task_event: "tags",
   shop_refund_sweep: "alerts",
   shop_handover_sweep: "alerts", // 20261105182903 (Shops H5): a test order gets no held-money nudge and no 60-day admin alert; no money moves in that loop
   shop_rows_seed_from_owner: "tags",

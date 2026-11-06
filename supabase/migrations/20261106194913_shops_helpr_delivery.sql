@@ -39,7 +39,7 @@
 --   9. trg_shop_orders_close_helpr_task: an order that leaves 'accepted' other than by the handover cancels its open
 --      or booked task (and gives the delivery back on a late cancel / no-show), or, once the Helpr picked it up,
 --      pays the Helpr ('admin' confirm). Declutter's declutter_close_paid_order rule.
---  4b. shop_delivery_refunds (+ shop_delivery_refund, _refunds_due, _refund_executed, shop_delivery_reserved_cents,
+--  4b. shop_delivery_refunds (+ shop_delivery_refund, _refunds_due, _refund_executed, _refund_reversed, shop_delivery_reserved_cents,
 --      shop_order_refunds_recorded_cents): the delivery price given back on its own. RESTATED to read it:
 --      shop_refund_amounts (20261019071055), shops_order_cancel_quote (20261103091013), shop_payouts_due
 --      (20261019071055, + refunds_recorded_cents), helpr_task_customer_confirm (20261104175521). declutter-money
@@ -399,6 +399,32 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.shop_delivery_refund_executed(uuid, text, boolean, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_delivery_refund_executed(uuid, text, boolean, text) TO service_role;
+
+-- Stripe failed or cancelled a delivery refund the row had recorded (stripe-webhook charge.refund.updated): the row
+-- reopens, due now, with one more try counted, so declutter-money sends a NEW refund under a new key (-r<tries>) and
+-- the recorded sum no longer counts it. As declutter_delivery_refund_reversed (20261017055505).
+CREATE OR REPLACE FUNCTION public.shop_delivery_refund_reversed(p_id uuid, p_stripe_refund_id text, p_why text)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_attempts integer;
+BEGIN
+  UPDATE public.shop_delivery_refunds
+     SET status = 'failed', stripe_refund_id = NULL, attempts = least(attempts + 1, 100), next_attempt_at = now(),
+         last_error = left('Stripe moved refund ' || COALESCE(p_stripe_refund_id, '?') || ' to ' || COALESCE(p_why, 'failed'), 500)
+   WHERE id = p_id AND stripe_refund_id = p_stripe_refund_id AND status = 'succeeded'
+  RETURNING attempts INTO v_attempts;
+  IF NOT FOUND THEN
+    RETURN 'unchanged';
+  END IF;
+  RETURN CASE WHEN v_attempts >= 12 THEN 'gave_up' ELSE 'reopened' END;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.shop_delivery_refund_reversed(uuid, text, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.shop_delivery_refund_reversed(uuid, text, text) TO service_role;
 
 -- 5. The task for one captured Helpr order (called by shop_order_captured; idempotent through helpr_task_create's
 -- UNIQUE (source_kind, source_id)). Window: open 48 hours (Declutter's row 40), pickup from the ready date's start to

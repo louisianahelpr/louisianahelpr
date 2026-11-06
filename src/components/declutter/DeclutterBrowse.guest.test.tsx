@@ -4,7 +4,7 @@
  * photos, a sign-up line on top, and none of the reads a guest is refused (watchlist hearts, saved searches, bundle
  * chips, the map's pins), nor Buying / Selling / Deliver / Wanted / Free or the settings gear.
  *
- * @mutate src/App.tsx | routeEl(<DeclutterGuestOrMember><DeclutterPage /></DeclutterGuestOrMember>) | routeEl(<ProtectedRoute><DeclutterPage /></ProtectedRoute>)
+ * @mutate src/App.tsx | routeEl(<DeclutterGuestOrMember fallback={<DeclutterRouteSkeleton />}><DeclutterPage /></DeclutterGuestOrMember>, | routeEl(<ProtectedRoute fallback={<DeclutterRouteSkeleton />}><DeclutterPage /></ProtectedRoute>,
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   if (isLoading) return <DeclutterHomeSkeleton />;\n  return <DeclutterGuestHome />; |   return null;
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | queryFn: () => fetchWatching(userId ?? ""), enabled: member }); | queryFn: () => fetchWatching(userId ?? "") });
  * @mutate src/components/declutter/DeclutterBrowseView.tsx |                   save={member ? { |                   save={true ? {
@@ -87,7 +87,8 @@ describe("BUY-16: guests browse Declutter", () => {
     expect(app.length).toBeGreaterThan(5000);
     const route = app.split("\n").find((l) => l.includes('path="/declutter"'));
     expect(route).toBeDefined();
-    expect(route).toContain("<DeclutterGuestOrMember><DeclutterPage /></DeclutterGuestOrMember>");
+    // Q2705 B: the route's own skeleton rides along as the auth wait's frame; the page is still the guest-or-member one.
+    expect(route).toMatch(/<DeclutterGuestOrMember(?: fallback=\{<DeclutterRouteSkeleton \/>\})?><DeclutterPage \/><\/DeclutterGuestOrMember>/);
     expect(route).not.toContain("ProtectedRoute");
   });
 

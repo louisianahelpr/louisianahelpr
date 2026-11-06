@@ -13,6 +13,7 @@ import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { FallbackImg } from "./FallbackImg";
 import { ITEM_PHOTO_ASPECT, ITEM_PHOTO_FRAME_BASE } from "./itemPhotoFrame";
+import { PhotoArrowButton } from "@/components/ui/PhotoArrowButton";
 
 const FRAME_BASE = ITEM_PHOTO_FRAME_BASE;
 const ASPECT = ITEM_PHOTO_ASPECT;
@@ -82,24 +83,22 @@ export function DeclutterGallery({ urls, display, category, title, icon, shape =
               <span className="sr-only">Photo </span>{at + 1}/{urls.length}
             </span>
             {/* Arrows for a mouse (no swipe on a desktop); a phone swipes. */}
-            <button
-              type="button"
+            <PhotoArrowButton
               aria-label="Previous photo"
               disabled={at === 0}
               onClick={() => go(at - 1)}
-              className="absolute left-3 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm transition-opacity disabled:opacity-0 sm:flex"
+              className="left-3"
             >
               <ChevronLeft className="h-5 w-5" aria-hidden />
-            </button>
-            <button
-              type="button"
+            </PhotoArrowButton>
+            <PhotoArrowButton
               aria-label="Next photo"
               disabled={at === urls.length - 1}
               onClick={() => go(at + 1)}
-              className="absolute right-3 top-1/2 hidden h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 text-foreground shadow-sm transition-opacity disabled:opacity-0 sm:flex"
+              className="right-3"
             >
               <ChevronRight className="h-5 w-5" aria-hidden />
-            </button>
+            </PhotoArrowButton>
           </>
         )}
       </div>

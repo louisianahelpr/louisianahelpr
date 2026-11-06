@@ -13494,6 +13494,53 @@ export type Database = {
           },
         ]
       }
+      shop_order_delivery_addresses: {
+        Row: {
+          buyer_id: string
+          city: string
+          created_at: string
+          is_seed: boolean
+          lat: number
+          line1: string
+          line2: string | null
+          lng: number
+          order_id: string
+          postal_code: string
+        }
+        Insert: {
+          buyer_id: string
+          city: string
+          created_at?: string
+          is_seed?: boolean
+          lat: number
+          line1: string
+          line2?: string | null
+          lng: number
+          order_id: string
+          postal_code: string
+        }
+        Update: {
+          buyer_id?: string
+          city?: string
+          created_at?: string
+          is_seed?: boolean
+          lat?: number
+          line1?: string
+          line2?: string | null
+          lng?: number
+          order_id?: string
+          postal_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_order_delivery_addresses_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "shop_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_order_lines: {
         Row: {
           created_at: string
@@ -13572,6 +13619,9 @@ export type Database = {
           closed_at: string | null
           created_at: string
           decline_reason: string | null
+          delivery_cents: number
+          delivery_miles: number | null
+          fulfillment: string
           handed_over_at: string | null
           handover_mode: string
           held_at: string | null
@@ -13610,6 +13660,9 @@ export type Database = {
           closed_at?: string | null
           created_at?: string
           decline_reason?: string | null
+          delivery_cents?: number
+          delivery_miles?: number | null
+          fulfillment?: string
           handed_over_at?: string | null
           handover_mode?: string
           held_at?: string | null
@@ -13648,6 +13701,9 @@ export type Database = {
           closed_at?: string | null
           created_at?: string
           decline_reason?: string | null
+          delivery_cents?: number
+          delivery_miles?: number | null
+          fulfillment?: string
           handed_over_at?: string | null
           handover_mode?: string
           held_at?: string | null
@@ -14134,6 +14190,9 @@ export type Database = {
           category: string
           created_at: string
           daily_order_cap: number | null
+          delivers: boolean
+          delivery_fee_cents: number
+          delivery_radius_miles: number
           handover_mode: string
           hidden_at: string | null
           hidden_by: string | null
@@ -14162,6 +14221,9 @@ export type Database = {
           category: string
           created_at?: string
           daily_order_cap?: number | null
+          delivers?: boolean
+          delivery_fee_cents?: number
+          delivery_radius_miles?: number
           handover_mode?: string
           hidden_at?: string | null
           hidden_by?: string | null
@@ -14190,6 +14252,9 @@ export type Database = {
           category?: string
           created_at?: string
           daily_order_cap?: number | null
+          delivers?: boolean
+          delivery_fee_cents?: number
+          delivery_radius_miles?: number
           handover_mode?: string
           hidden_at?: string | null
           hidden_by?: string | null
@@ -21675,6 +21740,15 @@ export type Database = {
         Returns: Json
       }
       shops_set_handover_mode: { Args: { p_mode: string }; Returns: string }
+      shops_set_delivery: { Args: { p_delivers: boolean; p_fee_cents: number; p_radius_miles: number }; Returns: Json }
+      shops_order_delivery_address: {
+        Args: { p_order_id: string }
+        Returns: { city: string; line1: string; line2: string; postal_code: string }[]
+      }
+      shop_set_order_delivery: {
+        Args: { p_buyer: string; p_city: string; p_lat: number; p_line1: string; p_line2: string; p_lng: number; p_order_id: string; p_postal_code: string }
+        Returns: Json
+      }
       shops_order_cancel_quote: { Args: { p_order_id: string }; Returns: Json }
       shops_admin_queue: { Args: never; Returns: Json }
       shops_admin_pay_shop: { Args: { p_note: string; p_order_id: string }; Returns: Json }

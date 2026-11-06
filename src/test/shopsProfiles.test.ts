@@ -147,7 +147,9 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
     const REVIEWS = blankSqlComments(readFileSync(join(MIG_DIR, "20261105230819_shops_reviews_and_rating.sql"), "utf8"));
     // Shops variants (20261106165310).
     const VARIANTS = blankSqlComments(readFileSync(join(MIG_DIR, "20261106165310_shops_item_variants.sql"), "utf8"));
-    const raised = new Set([...(MIG + ITEMS + ORDERS + PICKUP + HANDOVER + READY_TAP + FAQS + REFUNDS + HANDOVER_RULE + TALK + REVIEWS + VARIANTS).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
+    // Shops delivery (20261106180902).
+    const DELIVERY = blankSqlComments(readFileSync(join(MIG_DIR, "20261106180902_shops_delivery.sql"), "utf8"));
+    const raised = new Set([...(MIG + ITEMS + ORDERS + PICKUP + HANDOVER + READY_TAP + FAQS + REFUNDS + HANDOVER_RULE + TALK + REVIEWS + VARIANTS + DELIVERY).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
     raised.add("feature_disabled"); // require_feature's code
     // shop-checkout's own answer when Stripe refuses the pickup address (M1b part 2), not a SQL code.
     const CHECKOUT = readFileSync(join(process.cwd(), "supabase/functions/shop-checkout/index.ts"), "utf8");

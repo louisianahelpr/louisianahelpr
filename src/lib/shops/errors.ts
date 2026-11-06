@@ -172,6 +172,14 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   pickup_address_not_in_louisiana: "Enter a Louisiana ZIP code. Shops are for Louisiana pickups only.",
   pickup_address_missing: "This shop isn't taking orders yet. It still needs to add its pickup address.",
   pickup_address_unusable: "This shop's pickup address needs fixing before it can take orders. Try again later.",
+  // Delivery (20261106180902): the shop's own delivery.
+  invalid_delivery: "Choose whether you deliver.",
+  invalid_delivery_fee: "Make delivery free, or a whole-dollar fee from $5 to $150.",
+  invalid_delivery_radius: "Deliver within 1 to 50 miles.",
+  shop_does_not_deliver: "This shop doesn't deliver. Choose pickup.",
+  delivery_too_far: "That address is farther than this shop delivers. Choose pickup or another address.",
+  delivery_outside_louisiana: "Enter a Louisiana address. Shops deliver in Louisiana only.",
+  delivery_frozen: "This order's delivery can't change now. Start a new order to change it.",
   // Service steps: a member only meets these through shop-checkout, which answers "try again".
   invalid_payment: "We couldn't open the payment page just now. Please try again.",
   invalid_session: "We couldn't open the payment page just now. Please try again.",
@@ -228,6 +236,10 @@ const SHOP_CHECKOUT_COPY: Record<string, string> = {
   hold_lost: "The buyer's card could not be charged, so this order is cancelled. Don't make it; nothing was charged.",
   payment_unavailable: "Payments aren't available right now. Nothing was charged. Please try again in a few minutes.",
   invalid_action: "That action isn't available. Reload the page and try again.",
+  // Delivery (shop-checkout geocodes the drop-off address before the order freezes).
+  invalid_address: "Enter the street, city and 5-digit ZIP code to deliver to.",
+  address_not_found: "We couldn't find that address. Check the street, city and ZIP code.",
+  geocode_unavailable: "We couldn't look up that address just now. Nothing was charged. Try again in a minute.",
 };
 
 /** The AI helper's own answers (the declutter-ai-draft edge function, target 'shop_item'): not RPC codes. */

@@ -580,6 +580,8 @@ const SURFACES: {
   /** Why this field legitimately has no row siblings. Declared, never inferred. */
   soloRow?: string;
   minWidth?: number;
+  /** With minWidth: a surface that renders only inside that band (Messages, 900-1139), run at BAND_VW alone. */
+  maxWidth?: number;
   /**
    * A field floor BELOW MIN_TYPABLE_FIELD_PX, for a surface that has not been
    * fixed yet. Declared with its reason and its open-work line, never a quiet
@@ -628,7 +630,12 @@ const SURFACES: {
     url: "/messages",
     // Desktop website only since Q2231 (owner 2026-10-19): on a phone the
     // field is always open in its own slim row, so nothing expands there.
+    // And ONE-PANE desktop only since board 38: the two-pane list (1140+,
+    // TWO_PANE_MIN_WIDTH) wears that same permanent row, so "messages @1440"
+    // waited for a magnifier that is not there (prod-audit 42088200102).
+    // It runs at BAND_VW alone.
     minWidth: 900,
+    maxWidth: 1139,
     ready: "[data-search-trigger]",
     triggerSel: "[data-search-trigger]",
     fieldSel: 'input[aria-label="Search conversations"]',
@@ -686,9 +693,15 @@ const SURFACES: {
   },
 ];
 
-for (const vw of [320, 375, 1440] as const) {
+/** A surface that renders only inside a width band (both minWidth and maxWidth) runs at BAND_VW and nowhere else;
+ * every other surface keeps its 320 / 375 / 1440 runs only. */
+const BAND_VW = 1024;
+const bandOnly = (s: { minWidth?: number; maxWidth?: number }) => !!s.minWidth && !!s.maxWidth;
+
+for (const vw of [320, 375, BAND_VW, 1440] as const) {
   for (const surface of SURFACES) {
-    const skip = !!surface.minWidth && vw < surface.minWidth;
+    if ((vw === BAND_VW) !== bandOnly(surface)) continue;
+    const skip = (!!surface.minWidth && vw < surface.minWidth) || (!!surface.maxWidth && vw > surface.maxWidth);
     test(`${surface.name}: the field covers nothing and the ✕ clears the magnifier @${vw}`, async ({ browser }, info) => {
       test.skip(skip, `${surface.name} does not render at ${vw}`);
       const ctx = await authedContext(browser, vw, info.project.use.baseURL);

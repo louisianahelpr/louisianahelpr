@@ -37,7 +37,9 @@ test.beforeAll(async ({ request }) => {
 const SURFACES: { name: string; file: string; url: string; trigger: string; field: string; minWidth?: number; maxWidth?: number }[] = [
   // jobs (/jobs, My Jobs), posts (/posts, My Posts) and browse-phone (/home) left 2026-10-19 (Q2205) with the old
   // screens. Jobs > Browse's phone search opens in place in the tabs row since owner 2026-10-28 (jobs-browse-phone).
-  { name: "messages", file: "src/components/messages/ConversationList.tsx", url: "/messages", trigger: "[data-search-trigger]", field: 'input[aria-label="Search conversations"]' },
+  // The inbox opens a header search only on the one-pane web desktop, 900-1139 (Q2231 / board 38: the phone and the
+  // two-pane list at 1140+ wear the permanent MessagesSearchRow, nothing opens). So it runs at BAND_VW alone.
+  { name: "messages", file: "src/components/messages/ConversationList.tsx", url: "/messages", trigger: "[data-search-trigger]", field: 'input[aria-label="Search conversations"]', minWidth: 900, maxWidth: 1139 },
   {
     name: "saved-helprs", file: "src/components/profile/SavedHelpersTab.tsx",
     url: "/profile?tab=saved_helpers",
@@ -99,9 +101,14 @@ const measure = (fieldSel: string) => {
 
 const SHOTS = process.env.LH_SEARCH_SHOTS;
 
+// BAND_VW: a surface that renders only inside a width band (both minWidth and maxWidth) runs here and nowhere else.
+const BAND_VW = 1024;
+const bandOnly = (s: { minWidth?: number; maxWidth?: number }) => !!s.minWidth && !!s.maxWidth;
+
 for (const engine of ["chromium", "webkit"] as const) {
-  for (const vw of [375, 1440] as const) {
+  for (const vw of [375, BAND_VW, 1440] as const) {
     for (const s of SURFACES) {
+      if ((vw === BAND_VW) !== bandOnly(s)) continue;
       test(`${s.name}: the open search leaves the page title visible and uncovered @${vw} ${engine}`, async ({ browser: def }, info) => {
         test.skip(!!s.minWidth && vw < s.minWidth, `${s.name} does not render at ${vw}`);
         test.skip(!!s.maxWidth && vw > s.maxWidth, `${s.name} does not render at ${vw}`);

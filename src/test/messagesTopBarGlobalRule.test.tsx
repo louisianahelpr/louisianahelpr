@@ -15,6 +15,7 @@ import { blankComments } from "./helpers/blankNonCode";
 
 const list = blankComments(readFileSync(resolve(__dirname, "../components/messages/ConversationList.tsx"), "utf8"));
 // The menus themselves live in InboxMenus.tsx (out of ConversationList for its size baseline).
+const searchRow = blankComments(readFileSync(resolve(__dirname, "../components/messages/MessagesSearchRow.tsx"), "utf8"));
 const menus = blankComments(readFileSync(resolve(__dirname, "../components/messages/InboxMenus.tsx"), "utf8"));
 
 describe("Messages top bar = the global top bar (Q2231)", () => {
@@ -28,8 +29,10 @@ describe("Messages top bar = the global top bar (Q2231)", () => {
   });
   it("search, Active/All and the options live in the slim search row's one more menu", () => {
     const row = list.slice(list.indexOf("const phoneSearchRow"), list.indexOf("const headerEl ="));
-    expect(row).toContain('aria-label={t("chat.search")}');
-    expect(row).toContain("{moreMenu}");
+    expect(row).toContain("<MessagesSearchRow value={searchQuery} onChange={setSearchQuery} moreMenu={moreMenu} />");
+    // The row itself lives in MessagesSearchRow.tsx (out of ConversationList for its size baseline, Q806).
+    expect(searchRow).toContain('aria-label={t("chat.search")}');
+    expect(searchRow).toContain("{moreMenu}");
     const menu = list.slice(list.indexOf("const moreMenu"), list.indexOf("const phoneSearchRow"));
     expect(menu).toContain("<MessagesMoreMenu");
     const more = menus.slice(menus.indexOf("export function MessagesMoreMenu"));

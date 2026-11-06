@@ -29,11 +29,11 @@ const CSS = join(ROOT, "src/index.css");
 /**
  * Inputs whose bare `outline-none` still loses to the global outline. Countdown list: never add.
  * HeroSection: `.landing-search input:focus-visible { outline: none }` in index.css removes it.
- * ConversationList: the Messages search; its pill has no focus ring of its own yet, so the
+ * MessagesSearchRow (moved out of ConversationList, Q806): the Messages search; its pill has no focus ring of its own yet, so the
  * outline is its only focus mark (not part of #46).
  */
 // @two-way src/test/oneFocusRingOnFields.test.ts:the legacy list only shrinks
-const LEGACY = new Set(["src/components/landing/HeroSection.tsx", "src/components/messages/ConversationList.tsx"]);
+const LEGACY = new Set(["src/components/landing/HeroSection.tsx", "src/components/messages/MessagesSearchRow.tsx"]);
 
 const NOT_TYPING = /\btype=["'](?:checkbox|radio|range|file|color|button|submit|reset|hidden)["']/;
 

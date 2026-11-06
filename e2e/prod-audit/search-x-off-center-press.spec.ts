@@ -17,7 +17,8 @@
  * It also asserts the ✕ is centred in its field (|centre offset| < 1px).
  * Inventory: src/test/searchFieldsAllChecked.test.ts derives every search
  * field with a ✕ from source and fails unless each has a surface here at 375
- * and 1440 (BrowseSearchBar once since Q2205: the desktop feed strip on /jobs).
+ * and 1440 (BrowseSearchBar once since Q2205: the desktop feed strip on /jobs),
+ * or at BAND_VW (1024) alone for a ✕ that renders only inside a width band.
  *
  * Run: PLAYWRIGHT_WEB_SERVER=1 npx playwright test --project=prod-audit search-x-off-center-press
  */
@@ -64,15 +65,27 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     close: CLOSE,
   },
   // Q2231 / board 38: on a phone and in the two-pane desktop list (1140 and up, TWO_PANE_MIN_WIDTH) the inbox search is ONE permanent
-  // row (ConversationList phoneSearchRow), so the field is the trigger and its ✕ clears. The magnifier that opened
+  // row (MessagesSearchRow), so the field is the trigger and its ✕ clears. The magnifier that opened
   // a field ([data-search-trigger], "Close search") is gone at 375 and 1440; it waited 45 s for it and went red at
   // baseline (vacuity 2026-11-06, run 127910764580).
   {
-    name: "messages", file: "src/components/messages/ConversationList.tsx",
+    name: "messages", file: "src/components/messages/MessagesSearchRow.tsx",
     url: "/messages",
     trigger: '[data-testid="messages-search-row"] input[aria-label="Search conversations"]',
     field: '[data-testid="messages-search-row"] input[aria-label="Search conversations"]',
     close: `[data-testid="messages-search-row"] ${CLEAR}`,
+  },
+  // The ONE width band where the inbox still opens a header search: the one-pane web desktop, 900-1139 (isWebDesktop,
+  // not yet two-pane: TWO_PANE_MIN_WIDTH 1140). ConversationList's magnifier opens the field and its "Close search" ✕
+  // closes it. Neither 375 nor 1440 reaches it, so this surface runs at BAND_VW alone (lead, 2026-11-06).
+  {
+    name: "messages-one-pane", file: "src/components/messages/ConversationList.tsx",
+    url: "/messages",
+    trigger: "[data-search-trigger]",
+    field: 'input[aria-label="Search conversations"]',
+    close: CLOSE,
+    minWidth: 900,
+    maxWidth: 1139,
   },
   // The section dashboards (owner, 2026-10-19): every Browse (Jobs, Declutter,
   // Shops, Homes) opens on the ONE shared permanent search row (SectionSearchRow),
@@ -196,9 +209,15 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
 // engine is enough for the cascade). The centring assertion below catches it.
 const MOTIONS = { chromium: ["no-preference", "reduce"], webkit: ["no-preference"] } as const;
 
+// BAND_VW: a surface that renders only inside a width band (it says both minWidth and maxWidth, e.g. 900-1139) runs
+// here and nowhere else; every other surface keeps its 375 and 1440 runs only (src/test/searchFieldsAllChecked.test.ts).
+const BAND_VW = 1024;
+const bandOnly = (s: { minWidth?: number; maxWidth?: number }) => !!s.minWidth && !!s.maxWidth;
+
 for (const engine of ["chromium", "webkit"] as const) {
-  for (const vw of [375, 1440] as const) {
+  for (const vw of [375, BAND_VW, 1440] as const) {
     for (const motion of MOTIONS[engine]) for (const s of SURFACES) {
+      if ((vw === BAND_VW) !== bandOnly(s)) continue;
       const tag = motion === "reduce" ? " reduced-motion" : "";
       test(`${s.name}: an off-centre press on the ✕ acts and the ✕ stays put @${vw} ${engine}${tag}`, async ({ browser: def }, info) => {
         test.skip(!!s.minWidth && vw < s.minWidth, `${s.name} does not render at ${vw}`);

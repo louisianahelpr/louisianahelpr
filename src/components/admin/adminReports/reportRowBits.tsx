@@ -27,7 +27,7 @@ export const slaInfo = (createdAt: string) => {
 
 export const typeIcon = (type: string) => {
   if (type === "user") return <User className="w-4 h-4" />;
-  if (type === "job" || type === "application" || type === LISTING_REPORT || type === WANTED_REPORT || type === "shop" || type === "shop_item") return <Briefcase className="w-4 h-4" />;
+  if (type === "job" || type === "application" || type === LISTING_REPORT || type === WANTED_REPORT || type === "shop" || type === "shop_item" || type === "home_listing") return <Briefcase className="w-4 h-4" />;
   if (type === "review") return <Clock className="w-4 h-4" />;
   return <MessageSquare className="w-4 h-4" />;
 };

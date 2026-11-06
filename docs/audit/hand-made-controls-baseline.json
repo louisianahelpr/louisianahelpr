@@ -549,9 +549,6 @@
     "src/components/shops/ShopItemEditor.tsx": {
       "input": 1
     },
-    "src/components/shops/ShopReport.tsx": {
-      "button": 1
-    },
     "src/components/tracker/JobProgress.tsx": {
       "button": 1
     },

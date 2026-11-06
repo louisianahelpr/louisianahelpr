@@ -18,6 +18,8 @@
  * @mutate src/components/declutter/DeliveryCantFinish.tsx | text: `Tell ${who} how to finish the delivery`, | text: "",
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx | { accepted: 0, picked_up: 1, delivered: 2, confirmed: 2 } | { accepted: 0, picked_up: 1, delivered: 1, confirmed: 2 }
  * @mutate src/lib/declutter/stillInHand.ts |   if (!pickedUpAt \|\| !heldPastADay(pickedUpAt)) return null; |   if (true) return null;
+ * Shops Helpr delivery (20261106203016): a shop task's times start at its ready date, the bound accept checks.
+ * @mutate src/components/declutter/DeclutterPickupWindows.tsx | (q.data.windows, Math.max(Date.now(), earliest), | (q.data.windows, Date.now(),
  * @mutate src/components/declutter/DeliverVehicleForm.tsx |         disabled={save.isPending \|\| vehicle.isLoading \|\| !changed \|\| (hasTruck && !photo && !vehicle.data?.photo_path)} onClick={() => save.mutate()}> |         disabled={save.isPending \|\| vehicle.isLoading \|\| !changed} onClick={() => save.mutate()}>
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -37,7 +39,7 @@ const state = {
   tips: [] as unknown[],
   /** helpr_task_pickup_windows (20261028232930): null = not deployed (the free field). */
   sameSlot: null as string | null,
-  taskWindows: null as null | { windows: { weekday: number; starts: string; ends: string }[]; latestPickupAt: string | null },
+  taskWindows: null as null | { windows: { weekday: number; starts: string; ends: string }[]; latestPickupAt: string | null; earliestPickupAt?: string | null },
 };
 
 // The shared day + time pickers are exercised in their own tests; here a plain input stands in, same value shape.
@@ -477,6 +479,23 @@ describe("DeliverView (the Helpr's screen)", () => {
     expect(state.calls[0]?.[1]).toBe("t9");
     const iso = String(state.calls[0]?.[2]);
     expect(new Date(iso).getTime()).toBeGreaterThan(Date.now());
+  });
+
+  it("a shop delivery offers no time before the order's ready date (accept would refuse it)", async () => {
+    const all = [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({ weekday, starts: "08:00:00", ends: "20:00:00" }));
+    const earliest = new Date(Date.now() + 2 * 864e5);
+    state.taskWindows = { windows: all, latestPickupAt: new Date(Date.now() + 5 * 864e5).toISOString(), earliestPickupAt: earliest.toISOString() };
+    state.open = [{ task_id: "t9", source_kind: "shop_delivery", size: "small", title: "Order from Bayou Bakes", pickup_area: "Mid-City",
+      dropoff_area: "Baker, LA", trip_miles: 9, miles_to_pickup: 3, take_home_cents: 2620, open_until: "2099-10-18T15:00:00Z",
+      latest_pickup_at: "2099-10-23T15:00:00Z" }];
+    show(<DeliverView />);
+    await screen.findByTestId("declutter-slot-picker");
+    const times = within(screen.getByRole("group", { name: /^Pickup time on / })).getAllByRole("button");
+    expect(times.length).toBeGreaterThan(0);
+    fireEvent.click(times[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Accept delivery" }));
+    await waitFor(() => expect(state.calls[0]?.[0]).toBe("accept"));
+    expect(new Date(String(state.calls[0]?.[2])).getTime()).toBeGreaterThanOrEqual(earliest.getTime());
   });
 
   it("an open delivery whose seller has no pickup time left before its deadline says so and cannot be taken", async () => {

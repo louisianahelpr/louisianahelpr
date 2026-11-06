@@ -240,6 +240,10 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
   { file: "supabase/functions/_shared/cardHold.ts", key: "card-hold-nobody-refund-", kind: "own-mistake", why: "Q2399: a held card captured for a job that closed with nobody hired (a capture racing the close); the hold model charges only at a hire" },
   { file: "supabase/functions/_shared/cardHold.ts", key: "instant-book-refund-", kind: "own-mistake", why: "CMP-4 (lead 2026-11-01): an instant booking charged whose hire was then refused; the job is closed for review and refunded in full (instantBookRefund.ts)" },
   { file: "supabase/functions/stripe-webhook/handlers/settleRecurringVisitCheckout.ts", key: "recurring-visit-refund:", kind: "own-mistake", why: "a visit checkout we could not settle" },
+  // Shops custom orders slice 2b (20261106215722, money review owed): the rest of a deposit order paid when the order
+  // no longer owed it (a second payment, or one that landed after the order closed): shop_balance_paid answers
+  // 'refund' and the payment goes back in full (a payment we could not use, as Q1929).
+  { file: "supabase/functions/_shared/shopBalance.ts", key: "shop-balance-refund-", kind: "own-mistake", why: "the rest of a Shops deposit order paid twice, or paid after the order closed (shop_balance_paid answered refund)" },
   {
     file: "supabase/functions/declutter-money/index.ts", key: "payment_intent: r.payment_intent_id", kind: "sql-policy",
     why: "Declutter refund queue: a refund row the webhook did not finish",
@@ -390,6 +394,9 @@ const TS_MONEY_TOUCHES: string[] = [
   'supabase/functions/_shared/shipLabelRun.ts: .from("declutter_orders") .select("id, status, ship_capture, stripe_payment_intent_id") .eq("status", "paid").eq("handover", "ship").eq("ship_capture", "held").limit(50)',
   'supabase/functions/_shared/shipLabelRun.ts: .from("declutter_orders") .select("status, ship_capture, stripe_payment_intent_id").eq("id", s.declutter_order_id).maybeSingle()',
   // Shops M1: the card fee Stripe kept at capture, recorded on the order (no refund here).
+  // Shops custom orders 2b (money review owed): the card fee Stripe kept on the rest's own payment, recorded on the
+  // order as balance_card_fee_cents by shop_balance_paid (no refund here).
+  'supabase/functions/_shared/shopBalance.ts: p_order_id: orderId, p_payment_intent_id: pi.id, p_card_fee_cents: feeOf(pi),',
   'supabase/functions/_shared/shopHolds.ts: const { error } = await admin.rpc("shop_order_captured", { p_order_id: orderId, p_card_fee_cents: fee });',
   // Q2170: admin_bill_helpr_fault READS the ruling's card fee (already billed?) and audits what it billed; the
   // only write is bill_helpr_fault_card_fee below (once per ruling), never a card_fee_cents update.
@@ -999,19 +1006,23 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
    * Proven by src/test/pglite/shopsRefunds.pglite.mjs (every reason and policy named there).
    */
   shop_refund_amounts: {
-    migration: "20261019071055_shops_refunds_cancels_strikes.sql",
+    // Custom orders slice 2b (20261106221300, money review owed): + unpaid_close_tax (keep_card_fee), the reason check
+    // restated there.
+    migration: "20261106221300_shops_custom_balance_edge.sql",
     // Helpr delivery (money review owed): restated to leave out the delivery already refunded or earned.
     // Custom orders slice 2a (money review owed): restated so "paid" is the deposit while a deposit order's rest is unpaid.
     functionMigration: "20261106212437_shops_custom_deposit_split.sql",
-    proofs: ["src/test/pglite/shopsRefunds.pglite.mjs", "src/test/pglite/shopsHelprDelivery.pglite.mjs"],
+    proofs: ["src/test/pglite/shopsRefunds.pglite.mjs", "src/test/pglite/shopsHelprDelivery.pglite.mjs", "src/test/pglite/shopsCustomBalanceEdge.pglite.mjs"],
     reasonCheck: "shop_refunds_reason_check",
     policySources: [
       { where: "shop_refund_fee_policy", kind: "function", name: "shop_refund_fee_policy", pattern: /\bSELECT\s+(CASE\b.*?\bEND)\s*;/i, subject: "p_reason",
-        migration: "20261019071055_shops_refunds_cancels_strikes.sql" },
+        migration: "20261106221300_shops_custom_balance_edge.sql" },
     ],
     reasons: {
       buyer_cancelled: "keep_card_fee",
       problem_no_fault: "keep_card_fee",
+      // The deposit's tax back on a close with the rest unpaid (the buyer's own close): the card fee stays kept.
+      unpaid_close_tax: "keep_card_fee",
       shop_cancelled: "full_shop_pays_fee",
       no_ready_photo: "full_shop_pays_fee",
       shop_removed: "full_shop_pays_fee",
@@ -1056,7 +1067,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shop_record_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 57f661acd2c47d64",
       shop_refund_amounts: "20261106212437_shops_custom_deposit_split.sql 8f31a451803d4743", // Helpr delivery (money review owed): the delivery already refunded or earned by the Helpr is left out, the card fee prorated (declutter_card_fee_left). Custom orders slice 2a (20261106212437, money review owed): "paid" is the deposit while a deposit order's rest is unpaid; the fee policy per reason is unchanged
       shop_refund_executed: "20261103111244_money_webhooks_not_found_is_404.sql e33914e554c0bfea", // Q2390 p25: ERRCODE-only restatement (md5-verified); records Stripe's answer, writes no amount
-      shop_refund_fee_policy: "20261019071055_shops_refunds_cancels_strikes.sql f658275f8b61b0af",
+      shop_refund_fee_policy: "20261106221300_shops_custom_balance_edge.sql 58284415e4ba9704", // Custom orders 2b (money review owed): + unpaid_close_tax under keep_card_fee; every other reason unchanged
+      // Custom orders 2b (money review owed): writes the deposit's tax back as the order's unpaid_close_tax row (keep_card_fee, card fee 0: the
+      // deposit's whole card fee is already kept), once, after Stripe Tax's full reversal.
+      shop_lapse_tax_done: "20261106221300_shops_custom_balance_edge.sql f996f858f561f5a1",
       shop_refund_reversed: "20261019071055_shops_refunds_cancels_strikes.sql df880e58ddff9ccd",
       // 20261030150104 (lead lh-authz-rls approve "refunds ... unchanged"): only the admin alert skips test accounts.
       shop_refund_sweep: "20261030150104_admin_alerts_skip_test_gaps.sql 073f789da078c7c4",
@@ -1076,6 +1090,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     statements: {
       "shop_orders 20261018164442_shops_orders_checkout.sql": ["c270fbd5dcbf5fcd"],
       "shop_refunds 20261019071055_shops_refunds_cancels_strikes.sql": ["75ac5d08aa20b56e", "3b8b9ce1c7e3e63c", "a5b2dee5e1716c6e", "e11df43619a2b9ad"],
+      // Custom orders 2b: the reason check restated with unpaid_close_tax (its fee policy is the one function's).
+      "shop_refunds 20261106221300_shops_custom_balance_edge.sql": ["f816e6c9fcdfc078", "1c8b11ccbbdb5465"],
     },
     bodies: {
       shop_refund_amounts: [
@@ -1738,7 +1754,8 @@ describe("every refund keeps the card fee, except our own mistakes (owner, 2026-
     // 5 since slice 5: the Helpr delivery fee given back on its own (owner row 40).
     // 8 since Q2399 (2026-10-25): a held card captured for a job that closed with nobody hired (_shared/cardHold.ts).
     // 9 since CMP-4 (2026-11-01): an instant booking charged whose hire was then refused (_shared/cardHold.ts).
-    expect(REFUND_SITES.filter((e) => e.kind === "own-mistake").length).toBe(9);
+    // 10 since Shops custom orders 2b (2026-11-06): the rest of a deposit order paid when it was no longer owed.
+    expect(REFUND_SITES.filter((e) => e.kind === "own-mistake").length).toBe(10);
   });
 
   // Boards 66/172 slice 2: posterCancelSplit (the sweep's refund and the poster's quote) is a HELPER above only

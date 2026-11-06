@@ -4,8 +4,9 @@ import type { NavigateFunction } from "react-router-dom";
 import { navIconFor } from "@/components/mobileNav/mobileNavHelpers";
 import { SectionInboxEmpty, type SectionEmpty } from "./SectionInboxEmpty";
 import { UNFILTERED_INBOX_TAB, type InboxView } from "@/lib/inboxDefault";
-import { MessageSquare, Search, Trash2, X } from "lucide-react";
+import { MessageSquare, Search, Trash2 } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
+import { SelectBarExitButton } from "@/components/ui/SelectBarExitButton";
 import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { EmptyState, MAIN_TAB_EMPTY_BODY_LINES } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -533,20 +534,10 @@ export function ConversationListBody({
                     : `${selectedKeys.size} of ${MAX_SELECT} selected`}
                 </span>
                 <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
+                  <SelectBarExitButton
                     onClick={exitSelectMode}
                     aria-label={t("chat.cancelSelection")}
-                    // Rest fill as a CLASS, not inline: an inline background
-                    // beats the stylesheet, so no hover tint could ever land
-                    // on it. Same computed value, and `.ctl-tint-invert` (the
-                    // tone for chrome on a permanently dark ground) can now
-                    // paint. `.ctl-exit` is the one exit shape — src/index.css.
-                    className="h-9 w-9 ctl-exit bg-[hsl(var(--parchment)/0.06)] ctl-tint-invert inline-flex items-center justify-center btn-press transition"
-                    style={{ color: "hsl(var(--parchment) / 0.85)" }}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  />
                   {/* The shared primary Button, sm (Q2709 11-05): the olive pill on the ink bar. */}
                   <Button
                     type="button"

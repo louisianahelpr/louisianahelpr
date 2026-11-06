@@ -20,6 +20,8 @@ const url = (p) => new URL(`../../../supabase/migrations/${p}`, import.meta.url)
 const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? url("20261106202917_shops_custom_requests.sql"), "utf8");
 // Slice 1b (20261106205852): the price becomes a one-line order. CUSTOM_ORDER_MIGRATION=skip leaves sections 7-9 RED.
 const ORDER_MIGRATION = readFileSync(process.env.ORDER_MIGRATION_PATH ?? url("20261106205852_shops_custom_order_accept.sql"), "utf8");
+// Slice 2a (20261106212437): the review follow-ups on 9abcc8018a. DEPOSIT_MIGRATION=skip leaves section 10 RED.
+const DEPOSIT_MIGRATION = readFileSync(process.env.DEPOSIT_MIGRATION_PATH ?? url("20261106212437_shops_custom_deposit_split.sql"), "utf8");
 
 /** The newest CREATE of a function in one older migration, verbatim (any dollar tag). */
 function cutFn(file, name) {
@@ -141,6 +143,21 @@ const skip = process.env.NEW_MIGRATION === "skip";
 if (!skip) for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
 const skipOrder = skip || process.env.CUSTOM_ORDER_MIGRATION === "skip";
 if (!skipOrder) for (let i = 0; i < 3; i++) await db.exec(ORDER_MIGRATION);
+const skipDeposit = skipOrder || process.env.DEPOSIT_MIGRATION === "skip";
+if (!skipDeposit) {
+  // What slice 2a's restated money helpers read (their behaviour is proven in shopsCustomDeposit.pglite.mjs).
+  await db.exec(`
+    ALTER TABLE public.shop_orders ADD COLUMN delivery_cents int NOT NULL DEFAULT 0, ADD COLUMN fulfillment text NOT NULL DEFAULT 'pickup',
+      ADD COLUMN setup_fee_cents int NOT NULL DEFAULT 0, ADD COLUMN setup_fee_state text, ADD COLUMN card_fee_cents int;
+    CREATE TABLE public.shop_handovers (order_id uuid PRIMARY KEY, ready_at timestamptz, ready_photo_path text,
+      shop_confirmed_at timestamptz, confirmed_at timestamptz, confirmed_how text, problem_at timestamptz);
+    CREATE FUNCTION public.shop_delivery_reserved_cents(p_order uuid) RETURNS int LANGUAGE sql STABLE AS $$ SELECT 0 $$;`);
+  await db.exec(cutFn("20261014224914_declutter_slice3b_payments.sql", "declutter_card_fee_estimate"));
+  await db.exec(cutFn("20261102040952_declutter_card_fee_prorated.sql", "declutter_card_fee_left"));
+  await db.exec(cutFn("20261019071055_shops_refunds_cancels_strikes.sql", "shop_refund_fee_policy"));
+  await db.exec(cutFn("20261019071055_shops_refunds_cancels_strikes.sql", "shop_refund_tax_kept"));
+  for (let i = 0; i < 3; i++) await db.exec(DEPOSIT_MIGRATION);
+}
 
 let pass = 0;
 let fail = 0;
@@ -154,7 +171,7 @@ async function as(role, uid, sql) {
     await db.exec(`SET request.jwt.claim.sub = '${uid ?? ""}'; SET ROLE ${role};`);
     return (await db.query(sql)).rows;
   } catch (e) {
-    return { error: String(e.message ?? e), code: e.code };
+    return { error: String(e.message ?? e), code: e.code, hint: e.hint };
   } finally {
     await db.exec(`RESET ROLE; RESET request.jwt.claim.sub;`);
   }
@@ -409,6 +426,55 @@ await svc(`UPDATE public.shops SET paused = false WHERE id = '${SHOP}'`);
 ok(refused(await as("anon", null, `SELECT public.shops_order_custom_quote('${c6}', '${SHOP}', '${plus(5)}', NULL)`), /permission denied/), "anon cannot order");
 ok(refused(await member(OTHER, `SELECT public.shop_orders_custom_request_accepted()`), /permission denied|trigger/), "members cannot call the accept trigger function");
 
+// --- 10. slice 2a: the review follow-ups on 9abcc8018a
+// The asks budget (10 a day) is spent by the sections above: date the earlier asks back a day (no rule here reads it).
+const aged = "UPDATE public.shop_custom_requests SET created_at = created_at - interval '2 days' WHERE buyer_id = '" + OTHER + "'";
+await svc(aged);
+// (a) A declined or withdrawn price closes the buyer's unpaid order for it, so an open page cannot become a hold.
+const f8 = await fresh("Quilt");
+await quote(OWNER, f8, 9000, null, "crafts");
+const g8 = one(await take(OTHER, f8, plus(5)));
+ok(typeof g8?.order_id === "string", "the buyer starts paying for a price");
+ok(one(await decline(OWNER, f8)) === "declined", "the shop declines the price while the buyer's page is open");
+const h8 = (await svc(`SELECT status, close_reason FROM public.shop_orders WHERE id = '${g8?.order_id}'`))[0] ?? {};
+ok(h8.status === "superseded" && h8.close_reason === "superseded", `a declined price closes the buyer's unpaid order for it (${JSON.stringify(h8)})`);
+const c9 = await fresh("Pillow");
+await quote(OWNER, c9, 3000, null, "crafts");
+const t9 = one(await take(OTHER, c9, plus(5)));
+ok(one(await decline(OTHER, c9)) === "withdrawn"
+  && (await svc(`SELECT status FROM public.shop_orders WHERE id = '${t9?.order_id}'`))[0]?.status === "superseded",
+  "a withdrawn price closes the buyer's unpaid order for it too");
+// Declining one price leaves the buyer's unpaid order for another price alone (another shop's, since one shop keeps
+// one unpaid order per buyer).
+await setMode(OWNER2, "full_hold");
+await svc(`INSERT INTO public.shop_hours (shop_id, weekday) SELECT '${SHOP2}', d FROM generate_series(0, 6) d`);
+const c13 = one(await send(OTHER, SHOP2, "Bowl"));
+await quote(OWNER2, c13, 2800, null, "crafts");
+const t13 = one(await take(OTHER, c13, plus(5), null, SHOP2));
+const c10 = await fresh("Placemats");
+await quote(OWNER, c10, 2600, null, "crafts");
+await decline(OWNER, c10);
+ok(typeof t13?.order_id === "string" && (await svc(`SELECT status FROM public.shop_orders WHERE id = '${t13?.order_id}'`))[0]?.status === "awaiting_hold",
+  "declining one price leaves the buyer's unpaid order for another price alone");
+// (b) The shop must still take custom orders when the buyer pays.
+const c11 = await fresh("Coasters");
+await quote(OWNER, c11, 2200, null, "crafts");
+await setMode(OWNER, "off");
+ok(refused(await take(OTHER, c11, plus(5)), /custom_orders_off/), "a price is not taken once the shop turned custom orders off");
+await setMode(OWNER, "full_hold");
+ok(typeof one(await take(OTHER, c11, plus(5)))?.order_id === "string", "it is taken again once custom orders are back on");
+// (c) The plan is frozen on the request, so the hint says to send a new request.
+// One shop keeps 3 open asks per buyer: the two still open above are closed first.
+await svc(`UPDATE public.shop_custom_requests SET status = 'expired', closed_at = now() WHERE buyer_id = '${OTHER}' AND shop_id = '${SHOP}' AND status IN ('requested', 'quoted')`);
+await setMode(OWNER, "deposit_50");
+const c12 = await fresh("Wreath");
+await quote(OWNER, c12, 4000, null, "crafts");
+const dn = await take(OTHER, c12, plus(5));
+ok(refused(dn, /deposit_not_ready/) && /new request/.test(dn.hint ?? "") && !/send the price again/i.test(dn.hint ?? ""),
+  `the deposit hint tells the buyer to send a new request (${JSON.stringify(dn)})`);
+await setMode(OWNER, "full_hold");
+await svc(aged);
+
 // --- 6. seed data and account deletion
 const rs = one(await send(SEED, SHOP, "Test cake"));
 ok((await reqRow(rs)).is_seed === true, "a request from a test account is seed data");
@@ -421,5 +487,5 @@ ok(one(await svc(`SELECT count(*)::int FROM public.shop_custom_requests WHERE bu
 await svc(`DELETE FROM public.shops WHERE id = '${SHOP2}'`);
 ok(one(await svc(`SELECT count(*)::int FROM public.shop_custom_requests WHERE shop_id = '${SHOP2}'`)) === 0, "deleting the shop purges its requests");
 
-console.log(`\n${pass} PASS, ${fail} FAIL${skip ? " (NEW_MIGRATION=skip)" : skipOrder ? " (CUSTOM_ORDER_MIGRATION=skip)" : ""}`);
+console.log(`\n${pass} PASS, ${fail} FAIL${skip ? " (NEW_MIGRATION=skip)" : skipOrder ? " (CUSTOM_ORDER_MIGRATION=skip)" : skipDeposit ? " (DEPOSIT_MIGRATION=skip)" : ""}`);
 process.exit(fail === 0 ? 0 : 1);

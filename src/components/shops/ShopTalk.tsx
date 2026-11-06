@@ -95,7 +95,7 @@ function ShopTalkSheet({ talkId, onClose }: { talkId: string; onClose: () => voi
     const view = await fetchShopTalk(talkId);
     // Seen = read, marked once per newest message (lead 11-05: the 15 s poll wrote every 15 s while a thread sat
     // open). A failed read mark only leaves the thread bold in the owner's list; the next poll tries again.
-    const newest = view.messages.at(-1)?.id ?? "";
+    const newest = view.messages[view.messages.length - 1]?.id ?? "";
     if (markedNewest.current !== newest) {
       markedNewest.current = newest;
       void markShopTalkRead(talkId).then(

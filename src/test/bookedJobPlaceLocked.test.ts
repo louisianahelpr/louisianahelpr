@@ -65,6 +65,8 @@ function editDialogColumns(): string[] {
 const EDIT_EXEMPT: Record<string, string> = {
   require_photo_proof: "relaxing the gate stays open to the poster; raising it is refused by its own branch (asserted below)",
   expires_at: "only recomputed from the schedule columns, which are locked (trg_job_expiry_floor); not a detail the Helpr agreed to",
+  // Lead 2026-11-06 (option B; server lock to follow as its own branch): written only to clear a stale answer.
+  tax_kind: "the dialog sends only require_photo_proof for a booked job (EditJobDialog.taxKind.test.tsx), and trg_funded_category_tax_class refuses a funded change across the taxed line",
 };
 
 describe("a booked job's place and details are locked against the poster (Q1204)", () => {

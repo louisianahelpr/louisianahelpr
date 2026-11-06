@@ -46,7 +46,7 @@ export const TAXED_KINDS: ReadonlySet<string> = new Set([
  * where the work is never taxed (yard, moving, errands, pet care, the real-property trades, ...) nor in auto and
  * appliance repair (taxed anyway, TAXABLE_CATEGORIES). Not asked = jobs.tax_kind NULL.
  */
-export const TAX_KIND_ASKED_CATEGORIES: ReadonlySet<string> = new Set([
+const TAX_KIND_ASKED_CATEGORIES: ReadonlySet<string> = new Set([
   "cleaning",
   "handyman",
   "carpentry",

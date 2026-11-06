@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageReadsSettled } from "@/hooks/usePageReadsSettled";
+import { expectOnlineFromBadge } from "@/lib/helprTasks/onlineHandoff";
 
 // The activity reads load only for a signed-in member (badge = To-do, owner 2026-10-20).
 const NeedsYouBridge = lazy(() => import("./NeedsYouBridge"));
@@ -16,6 +17,9 @@ function WhenPageReadsSettle({ children }: { children: React.ReactNode }) {
 export default function NeedsYouMount() {
   const { user } = useCurrentUser();
   if (!user) return null;
+  // The badge read below also carries the online pill's row (my_badge_reads 'delivery_online'): the pill's first
+  // read waits for it (src/lib/helprTasks/onlineHandoff.ts). Idempotent, so calling it during render is safe.
+  expectOnlineFromBadge(user.id);
   return (
     <WhenPageReadsSettle>
       <Suspense fallback={null}>

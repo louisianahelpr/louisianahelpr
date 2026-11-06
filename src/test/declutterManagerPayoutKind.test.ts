@@ -4,12 +4,12 @@
 // @mutate supabase/migrations/20261105032500_declutter_gift_payouts.sql |      AND NOT EXISTS (SELECT 1 FROM public.payout_holds ph WHERE ph.helper_id = m.manager_id) |
 // @mutate supabase/migrations/20261103230126_q2390_refund_answers_admin_decisions_payout_arrival_ban_not_found_is_404.sql | (p.items_cents - least(p_refunded_cents, p.items_cents)) | (p.items_cents + p.delivery_cents - p_refunded_cents)
 // @mutate supabase/migrations/20261101233256_declutter_manager_payout_kind.sql | 'delivery_refund', 'declutter_manager') OR p_payout_id IS NULL | 'delivery_refund') OR p_payout_id IS NULL
-// @mutate supabase/migrations/20261102150413_declutter_manager_admin_held_after_gave_up.sql |       SELECT 'declutter_manager', p.id, p.manager_id, p.amount_cents, p.review_reason, p.review_held_at, |       SELECT 'x', p.id, p.manager_id, p.amount_cents, p.review_reason, p.review_held_at,
+// @mutate supabase/migrations/20261106203016_shops_helpr_delivery_reads.sql |       SELECT 'declutter_manager', p.id, p.manager_id, p.amount_cents, p.review_reason, p.review_held_at, |       SELECT 'x', p.id, p.manager_id, p.amount_cents, p.review_reason, p.review_held_at,
 // @mutate supabase/migrations/20261101234732_declutter_manager_payout_admin_held.sql |     UPDATE public.declutter_manager_payouts SET status = 'pending', next_attempt_at = now(), attempts = 0, review_reason = NULL, |     UPDATE public.declutter_manager_payouts SET status = status, next_attempt_at = now(), attempts = 0, review_reason = NULL,
-// @mutate supabase/migrations/20261102150413_declutter_manager_admin_held_after_gave_up.sql |     UPDATE public.declutter_manager_payouts SET status = CASE WHEN v_succeeded THEN 'succeeded' ELSE 'settled_by_hand' END, |     UPDATE public.declutter_manager_payouts SET status = status,
+// @mutate supabase/migrations/20261106203016_shops_helpr_delivery_reads.sql |     UPDATE public.declutter_manager_payouts SET status = CASE WHEN v_succeeded THEN 'succeeded' ELSE 'settled_by_hand' END, |     UPDATE public.declutter_manager_payouts SET status = status,
 // @mutate supabase/migrations/20261101234732_declutter_manager_payout_admin_held.sql |       ELSIF r.kind = 'declutter_manager' THEN UPDATE public.declutter_manager_payouts SET held_notified_at = now() WHERE id = r.id; |
-// @mutate supabase/migrations/20261102150413_declutter_manager_admin_held_after_gave_up.sql |        WHERE g.status = 'refunding' AND g.refund_attempts >= 12 |        WHERE false
-// @mutate supabase/migrations/20261102150413_declutter_manager_admin_held_after_gave_up.sql |      AND NOT (p_kind = 'raise_refund' AND v_status = 'refunding' AND v_attempts >= 12) THEN |  THEN
+// @mutate supabase/migrations/20261106203016_shops_helpr_delivery_reads.sql |        WHERE g.status = 'refunding' AND g.refund_attempts >= 12 |        WHERE false
+// @mutate supabase/migrations/20261106203016_shops_helpr_delivery_reads.sql |      AND NOT (p_kind = 'raise_refund' AND v_status = 'refunding' AND v_attempts >= 12) THEN |  THEN
 // @mutate supabase/migrations/20261102150413_declutter_manager_admin_held_after_gave_up.sql | 'shop_refund', 'raise_refund',\n | 'shop_refund',\n
 //
 // Declutter manager mode phase 2b, the SQL half (lead conditions a and b on 87b3df401b, 11-01). Reads the NEWEST

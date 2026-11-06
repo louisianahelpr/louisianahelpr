@@ -9,7 +9,7 @@
  * `SELECT '<kind>' AS kind, `) inside the held-rows sub-select.
  *
  * @mutate src/components/admin/adminPayoutBatches/HeldForReview.tsx |   raise_refund: "Delivery pay-raise refund",\n |
- * @mutate supabase/migrations/20261102150413_declutter_manager_admin_held_after_gave_up.sql |       SELECT 'raise_refund', g.id, | SELECT 'raise_refnd', g.id,
+ * @mutate supabase/migrations/20261106203016_shops_helpr_delivery_reads.sql |       SELECT 'raise_refund', g.id, | SELECT 'raise_refnd', g.id,
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

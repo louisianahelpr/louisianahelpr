@@ -233,6 +233,8 @@ if (!document.documentElement.hasAttribute("data-lh-landing-shell")) document.ge
 for (const page of ["login", "signup"]) {
   if (document.documentElement.getAttribute("data-lh-auth-shell") !== page) document.getElementById(`lh-${page}-shell`)?.remove();
 }
+// Q2705 B: and the signed-in /home skeleton (#lh-home-shell) when the inline script did not show it.
+if (document.documentElement.getAttribute("data-lh-app-shell") !== "home") document.getElementById("lh-home-shell")?.remove();
 
 if (bounceToNativeAppIfReturning()) {
   // A scheme navigation is in flight; rendering now would only paint a screen

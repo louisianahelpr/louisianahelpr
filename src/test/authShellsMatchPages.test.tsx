@@ -113,7 +113,7 @@ describe("/login and /signup paint from the HTML, as the pages themselves (Q2705
     expect(run("/login", [], { nav: "es-US", lang: "en" }).shown, "English chosen on a Spanish browser").toBe("login");
 
     const index = readFileSync(INDEX, "utf8");
-    expect(index).toMatch(/#lh-login-shell,\s*#lh-signup-shell \{\s*display: none;\s*\}/);
+    expect(index).toMatch(/#lh-login-shell,\s*#lh-signup-shell,\s*#lh-home-shell \{\s*display: none;\s*\}/);
     const sheet = readFileSync(join(ROOT, "src/index.css"), "utf8");
     expect(sheet).toMatch(/\[data-lh-auth-shell="login"\] #lh-login-shell,\s*\[data-lh-auth-shell="signup"\] #lh-signup-shell \{\s*display: block;\s*position: fixed;/);
   });

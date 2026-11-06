@@ -7,6 +7,7 @@
  * @mutate src/components/ui/GlassTileButton.tsx | const GLASS_TILE = "btn-press liquid-glass text-left flex flex-col min-w-0"; | const GLASS_TILE = "btn-press liquid-glass text-left flex flex-col min-w-0 rounded-xl";
  * @mutate src/components/ui/GlassTileButton.tsx |     <button ref={ref} type="button" {...props} | <button ref={ref} {...props}
  * @mutate src/pages/home/HomeDashboard.tsx |                     className="p-card lg:p-4 gap-1 lg:gap-0.5" |                     className="p-card lg:p-4 gap-1"
+ * @mutate src/components/profile/profileLanding/YourActivity.tsx |                 className="px-4 py-3" |                 className="px-4"
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |       className={`p-card lg:p-4 gap-0.5 ${span}`} |       className={`p-card gap-0.5 ${span}`}
  */
 import { describe, expect, it } from "vitest";
@@ -37,8 +38,13 @@ describe("Home's glass tiles are the shared GlassTileButton, class for class the
     expect(set(cls)).toEqual(set("btn-press liquid-glass text-left p-card lg:p-4 flex flex-col gap-0.5 min-w-0 col-span-2"));
   });
 
-  it("neither file keeps a hand-made glass tile", () => {
-    for (const f of ["src/pages/home/HomeDashboard.tsx", "src/pages/home/homeDashboard/HomeMoneyTiles.tsx"]) {
+  it("Profile's activity tile (You page, 11-06 Profile packet): the same class set as the hand-made button", () => {
+    const own = literal("src/components/profile/profileLanding/YourActivity.tsx", /data-activity-tile=[\s\S]*?className="([^"]+)"/);
+    expect(set(classOf(own).cls)).toEqual(set("btn-press liquid-glass text-left px-4 py-3 flex flex-col min-w-0"));
+  });
+
+  it("no file keeps a hand-made glass tile", () => {
+    for (const f of ["src/pages/home/HomeDashboard.tsx", "src/pages/home/homeDashboard/HomeMoneyTiles.tsx", "src/components/profile/profileLanding/YourActivity.tsx"]) {
       expect(readFileSync(f, "utf8")).not.toMatch(/<button[^>]*>?[^<]*liquid-glass/);
       expect(readFileSync(f, "utf8")).toContain("<GlassTileButton");
     }

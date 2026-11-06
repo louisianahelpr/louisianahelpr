@@ -457,9 +457,6 @@
     "src/components/profile/profileLanding/YouCard.tsx": {
       "button": 1
     },
-    "src/components/profile/profileLanding/YourActivity.tsx": {
-      "button": 1
-    },
     "src/components/quotes/QuotePriceStepper.tsx": {
       "button": 2,
       "input": 1

@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchOnlineStatus, isOnline, setOnline } from "@/lib/helprTasks/online";
+import { endOnlineHandoff } from "@/lib/helprTasks/onlineHandoff";
 import { currentPosition } from "@/lib/declutter/position";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
@@ -47,6 +48,8 @@ export function GoOnlineCard({ userId, where }: { userId: string; where: { lat: 
     },
     onSuccess: (_r, on) => {
       toast(on ? "You're online. New deliveries near you are sent to you." : "You're offline.");
+      // The switch is newer than any badge answer still on its way: the pill reads its own row from here on.
+      endOnlineHandoff(userId);
       void qc.invalidateQueries({ queryKey: ["helpr-tasks", "online"] });
     },
     onError: (err) =>

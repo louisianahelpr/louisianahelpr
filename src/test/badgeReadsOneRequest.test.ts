@@ -104,7 +104,7 @@ describe("the To-do badge's one read (my_badge_reads)", () => {
     await waitFor(() => expect(titles(result)).toEqual(expect.arrayContaining(WANT_TODOS)));
     expect(titles(result).some((t) => /Pecan pralines/.test(t))).toBe(true);
     await settle();
-    expect(rig.keys).toEqual([["backout", "cart", "free_asks", "offers", "refund_todos", "shop_orders"]]);
+    expect(rig.keys).toEqual([["backout", "cart", "delivery_online", "free_asks", "offers", "refund_todos", "shop_orders"]]);
     expect(rig.calls).toEqual(["rpc:my_badge_reads"]);
     // Inventory floor: the read covers all six sections this guard counts.
     expect(rig.keys[0].length).toBeGreaterThan(5);

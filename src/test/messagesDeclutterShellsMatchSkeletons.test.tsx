@@ -11,7 +11,7 @@
  * show rules; main.tsx drops each when not shown; Messages / DeclutterPage take theirs away once mounted; the app
  * drops them off their route and on every error card (dropHomeShell); the build inlines their CSS.
  *
- * @mutate src/pages/messages/Messages.tsx |   useEffect(() => removeShellOncePainted(MESSAGES_SHELL_ID), []); |
+ * @mutate src/pages/messages/useMessagesPageSetup.ts |   useEffect(() => removeShellOncePainted(MESSAGES_SHELL_ID), []); |
  * @mutate src/pages/declutter/DeclutterPage.tsx |   useEffect(() => removeShellOncePainted(DECLUTTER_SHELL_ID), []); |
  * @mutate src/components/landing/HomeShellLeaves.tsx | !== "/messages") document | === "/x") document
  * @mutate src/components/landing/HomeShellLeaves.tsx | !== "/declutter") document | === "/x") document
@@ -168,7 +168,8 @@ describe("a signed-in phone's /messages and /declutter paint their own route ske
       expect(helper).toContain(`export const ${ID} = "lh-${page}-shell";`);
       expect(drop, "dropHomeShell (every error card)").toContain(`doc.getElementById(${ID})?.remove();`);
     }
-    expect(blankComments(readFileSync(join(ROOT, "src/pages/messages/Messages.tsx"), "utf8"))).toContain("useEffect(() => removeShellOncePainted(MESSAGES_SHELL_ID), []);");
+    expect(blankComments(readFileSync(join(ROOT, "src/pages/messages/useMessagesPageSetup.ts"), "utf8"))).toContain("useEffect(() => removeShellOncePainted(MESSAGES_SHELL_ID), []);");
+    expect(blankComments(readFileSync(join(ROOT, "src/pages/messages/Messages.tsx"), "utf8"))).toContain("useMessagesPageSetup();");
     expect(blankComments(readFileSync(join(ROOT, "src/pages/declutter/DeclutterPage.tsx"), "utf8"))).toContain("useEffect(() => removeShellOncePainted(DECLUTTER_SHELL_ID), []);");
   });
 

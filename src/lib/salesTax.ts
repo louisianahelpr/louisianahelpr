@@ -40,8 +40,9 @@ export const TAXED_KINDS: ReadonlySet<string> = new Set([
 /**
  * The categories that ASK "Is this one of these jobs?" (TaxKindQuestion; owner pop-up 2026-11-06 ~9:40 AM, from the
  * post-a-job video: "show it only where the answer can change the tax"). Only where a TAXED_KINDS answer can be true:
- * cleaning (carpet, rugs, furniture, clothes, linens: R.S. 47:301.3 item 5) and the repair-type categories where the
- * thing fixed can be a movable item (item 7: a chair, a lamp, a trailer), plus Other, the escape hatch. Never asked
+ * cleaning (carpet, rugs, furniture, clothes, linens: R.S. 47:301.3 item 5; pressure washing a rug, outdoor furniture or
+ * cushions) and the repair-type categories where the thing worked on can be a movable item (item 7: a chair, a lamp, a
+ * trailer, a window AC unit; painting: refinishing furniture), plus Other, the escape hatch. Never asked
  * where the work is never taxed (yard, moving, errands, pet care, the real-property trades, ...) nor in auto and
  * appliance repair (taxed anyway, TAXABLE_CATEGORIES). Not asked = jobs.tax_kind NULL.
  */
@@ -51,6 +52,10 @@ export const TAX_KIND_ASKED_CATEGORIES: ReadonlySet<string> = new Set([
   "carpentry",
   "welding",
   "electrical",
+  // lh-money-escrow review 2026-11-06: each can carry item 5/7 work.
+  "painting",
+  "pressure_washing",
+  "hvac",
   "other",
 ]);
 

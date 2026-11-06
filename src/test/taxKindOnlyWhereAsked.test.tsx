@@ -45,7 +45,7 @@ import { usePostJobForm } from "@/pages/post-job/usePostJobForm";
 import { buildJobInsertPayload } from "@/pages/post-job/jobSubmitHelpers";
 
 // Measured 2026-11-06 against the owner's rule; any change to the set is a tax decision and must change this list.
-const ASKED = ["cleaning", "handyman", "carpentry", "welding", "electrical", "other"];
+const ASKED = ["cleaning", "handyman", "carpentry", "welding", "electrical", "painting", "pressure_washing", "hvac", "other"];
 
 const props = (category: string) => ({
   stepNumber: 1, title: "", setTitle: () => {}, description: "", setDescription: () => {},

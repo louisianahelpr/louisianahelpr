@@ -127,6 +127,15 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   invalid_quantity: "Order 1 to 20 of each item.",
   item_unavailable: "An item in this order isn't listed any more. Take it out and try again.",
   out_of_stock: "There aren't enough of an item left for this order. Lower the number and try again.",
+  // Variants (20261106165310): option lists and their combinations.
+  variant_required: "Pick an option for each item that has them, then try again.",
+  variant_not_available: "An option you picked isn't offered any more. Pick another and try again.",
+  invalid_option_name: "Name each option list (like Size or Scent) in 1 to 30 characters, each with its own name.",
+  invalid_option_value: "Keep each choice from 1 to 30 characters.",
+  too_many_option_lists: "An item can have up to 3 option lists.",
+  too_many_option_values: "Each option list can have up to 10 choices.",
+  too_many_variants: "An item can have up to 100 combinations.",
+  invalid_variants: "Give each combination a price and offer at least one of them.",
   invalid_note: "Keep the note under 500 characters.",
   ready_date_too_soon: "That date is too soon for these items. Pick a later day.",
   ready_date_too_far: "Pick a date in the next 90 days.",
@@ -168,7 +177,6 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   invalid_session: "We couldn't open the payment page just now. Please try again.",
   order_not_payable: "This order can't be paid any more. Start a new order.",
   order_not_accepted: "This order isn't accepted yet.",
-  variant_not_available: "That option isn't available. Pick the item without it.",
   // M3 (20261019071055): refunds, cancels and strikes.
   invalid_expect: "Something changed. Reload the order and try again.",
   cancel_terms_changed: "The free-cancel time for this order has changed. Look again before cancelling.",

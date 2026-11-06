@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1168,
-    "files": 328,
-    "rendering": 1087,
-    "suppressedByPolicy": 81,
+    "calls": 1170,
+    "files": 329,
+    "rendering": 1088,
+    "suppressedByPolicy": 82,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 224,
-      "toast.error": 788,
+      "toast.error": 789,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 87,
+      "toast.success": 88,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
       "literal": 493,
       "template": 106,
-      "dynamic": 621,
+      "dynamic": 623,
       "jsx": 0
     }
   },
@@ -10968,8 +10968,38 @@
       "renders": true
     },
     {
+      "file": "src/components/shops/ShopItemOptionsEditor.tsx",
+      "line": 106,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "clear ? \"Options removed.\" : \"Options saved.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Options removed."
+          },
+          {
+            "form": "literal",
+            "text": "Options saved."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopItemOptionsEditor.tsx",
+      "line": 110,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/shops/ShopItemsSection.tsx",
-      "line": 72,
+      "line": 73,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10979,7 +11009,7 @@
     },
     {
       "file": "src/components/shops/ShopItemsSection.tsx",
-      "line": 75,
+      "line": 76,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11079,7 +11109,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderSheet.tsx",
-      "line": 139,
+      "line": 134,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

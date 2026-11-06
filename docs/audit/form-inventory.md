@@ -477,6 +477,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/shops/ShopEditView.tsx` | input×6, textarea×1, checkbox/switch/radio×5, date/calendar×2 | file, text, time | 60, 2000, 80, 20 | Loading your shop · shop-name · shop-category · shop-about · shop-area · Broussard · shop-storefront · shop-selling |
 | `src/components/shops/ShopFaqsEditor.tsx` | input×1, textarea×1 | text |  | shop-faqs-editor · shop-faqs-heading · Loading your questions · Do you deliver? |
 | `src/components/shops/ShopItemEditor.tsx` | input×5, textarea×1, checkbox/switch/radio×3 | text, number, file | 80, 2000 | item-editor-title · item-kind · item-type · item-title · item-description · item-price · 18 · item-lead |
+| `src/components/shops/ShopItemOptionsEditor.tsx` | input×4, checkbox/switch/radio×1 | text, number | 30 | item-options-title · Size · Small, Medium, Large · Combinations · Any |
 | `src/components/shops/ShopPickupAddressSection.tsx` | input×4 | text | 120, 60, 5 | shop-pickup-address · shop-pickup-heading · Loading your pickup address · pickup-line1 · pickup-line2 · pickup-city · pickup-zip |
 
 ## /shops/orders, /shops/dashboard

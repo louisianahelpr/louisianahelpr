@@ -24,7 +24,7 @@
  * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />} |         {s.offers_selling && !s.paused && <ShopOrderSheet shopId={s.id} />}
  * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />} |         {s.offers_selling && !s.mine && <ShopOrderSheet shopId={s.id} />}
  * @mutate src/components/shops/ShopOrderSheet.tsx |     () => (items.data ?? []).filter((i) => i.status === "live" && (i.stock_count == null \|\| i.stock_count > 0)), |     () => (items.data ?? []).filter((i) => i.status === "live"),
- * @mutate src/components/shops/ShopOrderSheet.tsx |   const leadDays = chosen.reduce((m, i) => Math.max(m, i.lead_time_days), 0); |   const leadDays = 0;
+ * @mutate src/components/shops/ShopOrderSheet.tsx |   const leadDays = chosen.reduce((m, l) => Math.max(m, l.item.lead_time_days), 0); |   const leadDays = 0;
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const feeCents = itemsCents > 0 ? buyerFeeCents(itemsCents) : 0; |   const feeCents = 0;
  * @mutate src/components/shops/ShopOrderSheet.tsx |         <p className="text-sm font-semibold">{policy.label}</p> |         <p className="text-sm font-semibold"></p>
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const policy = cancelPolicyText(t.cancel_policy, t.ready_tap_cancel); |   const policy = cancelPolicyText(t.cancel_policy, undefined);
@@ -127,6 +127,8 @@ const orders = vi.hoisted(() => ({
   fetchReadyTapCancel: vi.fn(), setReadyTapCancel: vi.fn(),
 }));
 vi.mock("@/lib/shops/orders", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/orders")>()), ...orders }));
+// Variants (20261106165310): no item here has option lists (shopVariantsScreens.test.tsx covers those).
+vi.mock("@/lib/shops/variants", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/variants")>()), fetchItemOptions: async () => new Map() }));
 // Shops M2: the handover parts load on their own; answered here so the order screens stay offline.
 const handover = vi.hoisted(() => ({
   fetchHandoverMode: vi.fn(async () => "in_person"), setHandoverMode: vi.fn(), fetchHandovers: vi.fn(async () => new Map()),

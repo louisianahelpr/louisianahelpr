@@ -194,6 +194,7 @@ const ALLOWED: Record<string, string> = {
   shop_record_hand_refund: MONEY,
   shops_accept_order: MONEY,
   shops_create_item: LIMIT,
+  shops_set_item_variants: LIMIT, // 20261106165310: counts one item's own option choices (at most 10 a list)
   shops_get_shop: REVIEW,
   shops_order_terms: LIMIT,
   shops_publish_item: VALID,

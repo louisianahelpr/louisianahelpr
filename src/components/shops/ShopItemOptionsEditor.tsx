@@ -1,0 +1,192 @@
+/**
+ * The owner's option lists for one saved item (Shops variants, owner 11-05 answer 4; 20261106165310): up to 3 lists
+ * (Size, Scent), each with up to 10 choices, and one price, stock and on/off for every combination. Saved as one set
+ * by shops_set_item_variants, which holds every limit; while an item has lists, its card shows the lowest price
+ * ("From $X") and the summed stock.
+ */
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { shopsErrorMessage } from "@/lib/shops/errors";
+import {
+  combinations,
+  fetchItemOptions,
+  MAX_OPTION_LISTS,
+  MAX_OPTION_VALUES,
+  MAX_VARIANTS,
+  saveItemOptions,
+  variantLabel,
+  type ShopItemOptions,
+} from "@/lib/shops/variants";
+
+interface ListDraft { name: string; values: string }
+interface RowDraft { price: string; stock: string; active: boolean }
+
+/** "Small, Large ,small" -> ["Small", "Large"]: trimmed, blanks and repeats dropped. */
+export function splitChoices(s: string): string[] {
+  const out: string[] = [];
+  for (const raw of s.split(",")) {
+    const v = raw.trim();
+    if (v && !out.some((x) => x.toLowerCase() === v.toLowerCase())) out.push(v);
+  }
+  return out;
+}
+
+function draftsFrom(opts: ShopItemOptions | undefined): { lists: ListDraft[]; rows: Record<string, RowDraft> } {
+  if (!opts) return { lists: [], rows: {} };
+  const lists = opts.option_names.map((name, i) => ({
+    name,
+    values: [...new Set(opts.variants.map((v) => v.values[i]))].join(", "),
+  }));
+  const rows: Record<string, RowDraft> = {};
+  for (const v of opts.variants) {
+    rows[variantLabel(v.values)] = { price: String(v.price_cents / 100), stock: v.stock_count == null ? "" : String(v.stock_count), active: v.active };
+  }
+  return { lists, rows };
+}
+
+export default function ShopItemOptionsEditor({ shopId, itemId, basePriceCents }: { shopId: string; itemId: string; basePriceCents: number }) {
+  const qc = useQueryClient();
+  const options = useQuery({ queryKey: ["shops", "item-options", shopId], queryFn: () => fetchItemOptions(shopId) });
+  if (options.isLoading) return null;
+  if (options.isError) {
+    return (
+      <div role="alert" className="space-y-2">
+        <p className="text-sm">{shopsErrorMessage(options.error)}</p>
+        <Button type="button" variant="outline" size="sm" onClick={() => void options.refetch()}>Try again</Button>
+      </div>
+    );
+  }
+  return (
+    <OptionsForm
+      key={itemId}
+      itemId={itemId}
+      basePriceCents={basePriceCents}
+      initial={options.data?.get(itemId)}
+      onSaved={() => {
+        void qc.invalidateQueries({ queryKey: ["shops", "item-options", shopId] });
+        void qc.invalidateQueries({ queryKey: ["shops", "items"] });
+      }}
+    />
+  );
+}
+
+function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
+  itemId: string; basePriceCents: number; initial: ShopItemOptions | undefined; onSaved: () => void;
+}) {
+  const start = useMemo(() => draftsFrom(initial), [initial]);
+  const [lists, setLists] = useState<ListDraft[]>(start.lists);
+  const [rows, setRows] = useState<Record<string, RowDraft>>(start.rows);
+  const parsed = lists.map((l) => splitChoices(l.values));
+  const combos = lists.length > 0 && parsed.every((p) => p.length > 0) ? combinations(parsed) : [];
+  const tooMany = combos.length > MAX_VARIANTS || parsed.some((p) => p.length > MAX_OPTION_VALUES);
+  const rowFor = (values: string[]): RowDraft =>
+    rows[variantLabel(values)] ?? { price: String(basePriceCents / 100), stock: "", active: true };
+  const setRow = (values: string[], patch: Partial<RowDraft>) =>
+    setRows((r) => ({ ...r, [variantLabel(values)]: { ...rowFor(values), ...patch } }));
+
+  const save = useMutation({
+    mutationFn: async (clear: boolean) => {
+      if (clear) return saveItemOptions(itemId, [], []);
+      return saveItemOptions(itemId, lists.map((l) => l.name.trim()), combos.map((values) => {
+        const r = rowFor(values);
+        return {
+          values,
+          price_cents: Math.round(Number(r.price) * 100),
+          stock_count: r.stock.trim() === "" ? null : Number(r.stock),
+          active: r.active,
+        };
+      }));
+    },
+    onSuccess: (_v, clear) => {
+      toast.success(clear ? "Options removed." : "Options saved.");
+      if (clear) { setLists([]); setRows({}); }
+      onSaved();
+    },
+    onError: (err) => toast.error(shopsErrorMessage(err)),
+  });
+
+  return (
+    <section className="space-y-3 rounded-2xl border border-border p-4" aria-labelledby="item-options-title">
+      <div className="space-y-1">
+        <h4 id="item-options-title" className="text-sm font-semibold">Options (optional)</h4>
+        <p className="text-xs text-muted-foreground">
+          Like Size or Scent. Each combination gets its own price and stock, and buyers pick one when they order.
+        </p>
+      </div>
+
+      {lists.map((l, i) => (
+        <div key={i} className="grid gap-2 sm:grid-cols-[10rem_1fr_auto] sm:items-end">
+          <div className="space-y-1">
+            <Label htmlFor={`option-name-${i}`}>Option name</Label>
+            <Input id={`option-name-${i}`} value={l.name} maxLength={30} placeholder="Size"
+              onChange={(e) => setLists((ls) => ls.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor={`option-values-${i}`}>Choices, separated by commas</Label>
+            <Input id={`option-values-${i}`} value={l.values} placeholder="Small, Medium, Large"
+              onChange={(e) => setLists((ls) => ls.map((x, j) => (j === i ? { ...x, values: e.target.value } : x)))} />
+          </div>
+          <Button type="button" variant="ghost" size="sm" onClick={() => setLists((ls) => ls.filter((_, j) => j !== i))}>
+            Remove
+          </Button>
+        </div>
+      ))}
+      {lists.length < MAX_OPTION_LISTS && (
+        <Button type="button" variant="outline" size="sm" onClick={() => setLists((ls) => [...ls, { name: "", values: "" }])}>
+          Add an option list
+        </Button>
+      )}
+
+      {tooMany && (
+        <p role="alert" className="text-sm">
+          Up to {MAX_OPTION_VALUES} choices in a list and {MAX_VARIANTS} combinations in all.
+        </p>
+      )}
+      {combos.length > 0 && !tooMany && (
+        <ul className="space-y-2" aria-label="Combinations">
+          {combos.map((values) => {
+            const label = variantLabel(values);
+            const r = rowFor(values);
+            const key = label.replace(/[^A-Za-z0-9]+/g, "-");
+            return (
+              <li key={label} className="grid grid-cols-[1fr_5rem_5rem] items-end gap-2">
+                <div className="flex items-center gap-2 pb-3">
+                  <Checkbox id={`combo-on-${key}`} checked={r.active} onCheckedChange={(v) => setRow(values, { active: v === true })} />
+                  <Label htmlFor={`combo-on-${key}`} className="[overflow-wrap:anywhere]">{label}</Label>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor={`combo-price-${key}`} className="text-xs">Price ($)</Label>
+                  <Input id={`combo-price-${key}`} inputMode="decimal" value={r.price} onChange={(e) => setRow(values, { price: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor={`combo-stock-${key}`} className="text-xs">Stock</Label>
+                  <Input id={`combo-stock-${key}`} type="number" min={0} max={9999} value={r.stock} placeholder="Any"
+                    onChange={(e) => setRow(values, { stock: e.target.value })} />
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        {lists.length > 0 && (
+          <Button type="button" variant="outline" disabled={save.isPending || combos.length === 0 || tooMany} onClick={() => save.mutate(false)}>
+            {save.isPending ? "Saving…" : "Save options"}
+          </Button>
+        )}
+        {initial && (
+          <Button type="button" variant="ghost" disabled={save.isPending} onClick={() => save.mutate(true)}>
+            Remove all options
+          </Button>
+        )}
+      </div>
+      <p className="text-xs text-muted-foreground">Leave stock blank if you make each one to order.</p>
+    </section>
+  );
+}

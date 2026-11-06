@@ -216,7 +216,7 @@ async function invokeShopCheckout(body: Record<string, unknown>): Promise<Record
 
 /** Ask for an order: the Stripe page's URL (a card HOLD; nothing is charged until the shop accepts). */
 export async function requestOrder(args: {
-  shopId: string; lines: { item_id: string; quantity: number }[]; readyDate: string; note: string;
+  shopId: string; lines: { item_id: string; variant_id?: string; quantity: number }[]; readyDate: string; note: string;
   /** The cancel terms the buyer read (shops_order_terms): shop-checkout answers terms_changed if the shop changed them since. */
   terms: Pick<OrderTerms, "cancel_policy" | "ready_tap_cancel">;
 }): Promise<string> {

@@ -20,7 +20,7 @@
  * @mutate src/components/messages/useMessageReactions.ts | "‼️", "❓"] as const; | "‼️", "❓", "🔥"] as const;
  * @mutate supabase/migrations/20260811120000_message_pins_reactions_replies.sql | CHECK (emoji IN ('❤️', '👍', '👎', '😂', '‼️', '❓')) | CHECK (emoji IN ('❤️', '👍', '👎', '😂', '‼️'))
  * @mutate src/components/reportDialog/reportReasons.ts | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application" \| "declutter_item" \| "declutter_wanted" \| "declutter_question" \| "declutter_answer" \| "declutter_review" \| "shop" \| "shop_item" \| "shop_talk_message"; | type ReportedType = "job" \| "message" \| "user" \| "review" \| "application" \| "declutter_item" \| "declutter_wanted" \| "declutter_question" \| "declutter_answer" \| "declutter_review" \| "shop" \| "shop_item" \| "shop_talk_message" \| "profile";
- * @mutate supabase/migrations/20260924182505_report_against_application.sql | 'review'::text, 'application'::text])); | 'review'::text]));
+ * @mutate supabase/migrations/20261105225245_shops_talk_inbox_and_reports.sql | 'review'::text, 'application'::text, 'declutter_item'::text, | 'review'::text, 'declutter_item'::text,
  * @mutate src/components/admin/adminQueueKeys.ts | type ReportQueueFilter = "pending" \| "investigating" | type ReportQueueFilter = "pending" \| "triage"
  * @mutate src/components/DisputeTimelineDialog.tsx | status: "open" \| "decided" \| "withdrawn" \| "superseded"; | status: "open" \| "decided" \| "withdrawn";
  * @mutate supabase/migrations/20260915071502_reapply_dispute_settlement_objects.sql | 'withdrawn'::text, 'superseded'::text])); | 'withdrawn'::text, 'superseded'::text, 'escalated'::text]));

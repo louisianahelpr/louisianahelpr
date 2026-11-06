@@ -11,6 +11,8 @@
 //
 // @mutate src/lib/rentals/api.ts |       .eq("job_id", jobId)\n      .eq("landlord_id", uid) |       .eq("job_id", jobId)\n      .eq("tenant_id", uid)
 // @mutate src/components/rentals/TenantFixedAnswer.tsx |     enabled: on, |     enabled: true,
+// @mutate src/lib/rentals/api.ts |   const beforeRework = Number.isFinite(reworkAt) && Date.parse(row.tenant_answered_at) < reworkAt; |   const beforeRework = false;
+// @mutate src/components/rentals/TenantFixedAnswer.tsx |         {a.beforeRework\n | {false\n
 // @mutate src/pages/posts/CompletionChoiceSheet.tsx |                 <TenantFixedAnswer jobId={jobId} userId={userId} /> |                 {null}
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
@@ -19,13 +21,18 @@ import { MemoryRouter } from "react-router-dom";
 
 const LANDLORD = "11111111-0000-4000-8000-000000000001";
 const TENANT = "22222222-0000-4000-8000-000000000002";
-const server = vi.hoisted(() => ({ rows: [] as Array<Record<string, unknown>>, reads: 0, switchOn: true }));
+const server = vi.hoisted(() => ({ rows: [] as Array<Record<string, unknown>>, jobs: {} as Record<string, string | null>, reads: 0, switchOn: true }));
 
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => server.switchOn }));
 vi.mock("@/integrations/supabase/client", () => {
   const from = (table: string) => {
     const filters: Array<[string, unknown]> = [];
     const run = () => {
+      // Q2069: the poster's own job row, for its latest revision request.
+      if (table === "jobs") {
+        const id = filters.find(([k]) => k === "id")?.[1] as string;
+        return { data: id in server.jobs ? { revision_requested_at: server.jobs[id] } : null, error: null };
+      }
       if (table !== "maintenance_requests") return { data: null, error: null };
       server.reads += 1;
       const hit = server.rows.filter((r) => filters.every(([k, v]) => r[k] === v));
@@ -70,6 +77,7 @@ const sheet = (userId: string, jobId = "job-1") =>
 beforeEach(() => {
   server.switchOn = true;
   server.reads = 0;
+  server.jobs = {};
   server.rows = [
     {
       id: "req-1",
@@ -98,6 +106,21 @@ describe("Rentals: the release decision shows the tenant's 'Was it fixed?' answe
     for (const choice of [/^Approve and release/, "Something's not right"]) {
       expect(screen.getByText(choice).compareDocumentPosition(box) & Node.DOCUMENT_POSITION_FOLLOWING, `the answer sits above "${choice}"`).toBeTruthy();
     }
+  });
+
+  it("Q2069: an answer from before the latest revision request reads as the earlier answer, not the current one", async () => {
+    server.jobs["job-1"] = "2026-10-18T09:00:00Z";
+    sheet(LANDLORD);
+    expect(await screen.findByText("Before the rework, your tenant said it was NOT fixed")).toBeTruthy();
+    expect(screen.getByText("They haven't answered since the Helpr redid the work.")).toBeTruthy();
+    expect(screen.queryByText("Your tenant says it's NOT fixed")).toBeNull();
+  });
+
+  it("Q2069: an answer given after the latest revision request is the current one", async () => {
+    server.jobs["job-1"] = "2026-10-16T09:00:00Z";
+    sheet(LANDLORD);
+    expect(await screen.findByText("Your tenant says it's NOT fixed")).toBeTruthy();
+    expect(screen.queryByText(/Before the rework/)).toBeNull();
   });
 
   it("a yes reads as fixed", async () => {

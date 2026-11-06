@@ -5,7 +5,7 @@
  * in bold. The server is the protection (shops_talk_view / shops_send_talk_message): only the two sides read or write,
  * and the contact-leak filter and the block check run there.
  */
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Flag, MessageCircle } from "lucide-react";
@@ -108,11 +108,21 @@ function ShopTalkSheet({ talkId, onClose }: { talkId: string; onClose: () => voi
   const webDesktop = useIsWebDesktop();
   const qc = useQueryClient();
   const key = ["shops", "talk", talkId] as const;
+  // The newest message this open sheet has marked read: undefined until the first mark ("" for a chat with none).
+  const markedNewest = useRef<string | undefined>(undefined);
   // A light poll while the thread is open (the other side's new message shows within 15 seconds).
   const talk = useQuery({ queryKey: key, queryFn: async () => {
     const view = await fetchShopTalk(talkId);
-    // Seen = read. A failed read mark only leaves the thread bold in the owner's list; the chat still shows.
-    void markShopTalkRead(talkId).then(() => qc.invalidateQueries({ queryKey: MY_SHOP_TALKS_KEY }), () => undefined);
+    // Seen = read, marked once per newest message (lead 11-05: the 15 s poll wrote every 15 s while a thread sat
+    // open). A failed read mark only leaves the thread bold in the owner's list; the next poll tries again.
+    const newest = view.messages.at(-1)?.id ?? "";
+    if (markedNewest.current !== newest) {
+      markedNewest.current = newest;
+      void markShopTalkRead(talkId).then(
+        () => qc.invalidateQueries({ queryKey: MY_SHOP_TALKS_KEY }),
+        () => { markedNewest.current = undefined; },
+      );
+    }
     return view;
   }, refetchInterval: 15_000 });
   const [draft, setDraft] = useState("");

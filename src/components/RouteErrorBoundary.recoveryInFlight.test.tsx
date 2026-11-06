@@ -105,6 +105,45 @@ describe("RouteErrorBoundary while a recovery reload is in flight", () => {
     expect(report).not.toHaveBeenCalled();
   });
 
+  it("the card never commits, not even for the first fallback render", () => {
+    expect(recoverFromChunkError()).toBe(true);
+    // Every node React adds is recorded, so a card that commits for one frame and is then replaced by the quiet
+    // state (getDerivedStateFromError not reading the flag) is caught, though the final DOM looks right.
+    const container = document.body.appendChild(document.createElement("div"));
+    const seen = new MutationObserver(() => {});
+    seen.observe(container, { childList: true, subtree: true, characterData: true });
+    render(
+      <MemoryRouter initialEntries={["/browse"]}>
+        <Routes>
+          <Route path="/browse" element={<RouteErrorBoundary><PreventedPreloadLazy /></RouteErrorBoundary>} />
+        </Routes>
+      </MemoryRouter>,
+      { container },
+    );
+    const added = seen.takeRecords().flatMap((r) => [...r.addedNodes].map((n) => n.textContent ?? ""));
+    seen.disconnect();
+    expect(added.length).toBeGreaterThan(0);
+    expect(added.join(" ")).not.toMatch(/This page hit a problem/);
+    container.remove();
+  });
+
+  it("an ordinary render bug while the reload is on its way is not reported either (the page is leaving)", () => {
+    // Not a chunk error, so only componentDidCatch's in-flight check keeps it quiet and unreported.
+    expect(recoverFromChunkError()).toBe(true);
+    const RenderBug = (): never => {
+      throw new TypeError("undefined is not an object (evaluating 'job.title')");
+    };
+    render(
+      <MemoryRouter initialEntries={["/browse"]}>
+        <Routes>
+          <Route path="/browse" element={<RouteErrorBoundary><RenderBug /></RouteErrorBoundary>} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.queryByText(/This page hit a problem/)).toBeNull();
+    expect(report).not.toHaveBeenCalled();
+  });
+
   it("control: a non-chunk render error with NO reload in flight is a real failure — card and report", () => {
     // Since 2026-10-27 the prevented-preload TypeError itself is a chunk error
     // (isChunkLoadError): with no reload in flight it STARTS one (see
@@ -161,5 +200,8 @@ describe("RouteErrorBoundary while a recovery reload is in flight", () => {
 // @mutate src/lib/chunkReload.ts | // arrive on the very next microtasks.\n  setRecoveryReloadInFlight(true); | // arrive on the very next microtasks.\n  setRecoveryReloadInFlight(false);
 // And the boundary must read it on the FIRST fallback render, not only in
 // componentDidCatch — otherwise the card commits for a frame before the quiet
-// state replaces it, which is the thing the owner saw.
+// state replaces it, which is the thing the owner saw ("the card never commits" case). componentDidCatch's own
+// check is what keeps a NON-chunk error during the reload unreported ("an ordinary render bug" case): the
+// prevented-preload TypeError is a chunk error since 2026-10-27, so it no longer needs that check.
+// @mutate src/components/RouteErrorBoundary.tsx | return { hasError: true, error, recovering: isRecoveryReloadInFlight() }; | return { hasError: true, error, recovering: false };
 // @mutate src/components/RouteErrorBoundary.tsx | if (isRecoveryReloadInFlight()) { | if (false) {

@@ -425,6 +425,9 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   if (atHome && fulfillment === "shop_delivers") {
     const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: o.id });
     if (closeErr) console.error(`[shop-checkout] order ${o.id} not closed after at-home work came with a delivery: ${closeErr.message}`);
+    // The closed order keeps no copy of the drop-off (as the at-home tax failure purges its address).
+    const { error: purgeErr } = await admin.from("shop_order_delivery_addresses").delete().eq("order_id", o.id);
+    if (purgeErr) console.error(`[shop-checkout] order ${o.id} delivery address not purged: ${purgeErr.message}`);
     return json({ error: "at_buyer_no_delivery" }, 409);
   }
   let calcAddress: PickupTaxAddress = taxAddress;

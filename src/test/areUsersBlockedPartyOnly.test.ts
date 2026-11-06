@@ -192,8 +192,14 @@ const EXPECTED_CALLERS = [
   // owner (order terms, request order).
   "rpc_hire_target_by_handle", // B113 Hire me (20261104143437): are_users_blocked(v_me := auth.uid(), v_target)
   "shops_accept_order",
+  // Shops H1 (20261105185006): open_talk passes v_uid := auth.uid() vs the shop's owner; talk_view and
+  // send_talk_message pass (the talk's buyer, the shop's owner) only after shop_talk_side(talk, auth.uid())
+  // refused a caller who is neither, so the caller is always one of the two.
+  "shops_open_talk",
   "shops_order_terms",
   "shops_request_order",
+  "shops_send_talk_message",
+  "shops_talk_view",
   "submit_job_quote",
   // Unread-message reminders (20261101200929): asks about the sender vs the
   // recipient, neither of whom is auth.uid(). EXECUTE is service_role only and

@@ -10,6 +10,7 @@ import { useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ListRow } from "@/components/ui/ListRow";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetSecondaryAction } from "@/components/ui/sheet";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Textarea } from "@/components/ui/textarea";
@@ -65,10 +66,9 @@ export function ShopTalksCard() {
         <ul className="divide-y divide-border" data-shop-talks="">
           {mine.map((t) => (
             <li key={t.talk_id}>
-              <button type="button" className="flex min-h-[44px] w-full items-center justify-between gap-2 py-2 text-left" onClick={() => setTalk(t.talk_id)}>
-                <span className={`truncate text-sm ${t.unread ? "font-bold" : ""}`}>{t.other_label}{t.unread ? " · New" : ""}</span>
-                <span className="shrink-0 text-ds-12 text-muted-foreground">{talkTime(t.last_at)}</span>
-              </button>
+              <ListRow onClick={() => setTalk(t.talk_id)} trailing={<span className="shrink-0 text-ds-12 text-muted-foreground">{talkTime(t.last_at)}</span>}>
+                <span className={`truncate text-sm ${t.unread ? "font-bold" : ""}`} title={t.other_label}>{t.other_label}{t.unread ? " · New" : ""}</span>
+              </ListRow>
             </li>
           ))}
         </ul>

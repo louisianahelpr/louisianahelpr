@@ -3,6 +3,8 @@ import "@/lib/i18n/enScreens";
 import { Ban, Copy, Flag, Pencil, Reply, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { ListRow } from "@/components/ui/ListRow";
 import { hapticLight } from "@/lib/haptics";
 import type { Message } from "./types";
 import { TAPBACKS } from "./useMessageReactions";
@@ -142,17 +144,20 @@ export function MessageActionSheet({
             {TAPBACKS.map((emoji) => {
               const active = myReaction === emoji;
               return (
-                <button
+                // The shared Button (ghost, the 44px iconCompact tap box; Q2709 11-05); the emoji keeps its size.
+                <Button
                   key={emoji}
                   type="button"
+                  variant="ghost"
+                  size="iconCompact"
                   aria-label={active ? `Remove ${emoji} reaction` : `React with ${emoji}`}
                   aria-pressed={active}
                   onClick={() => { onReact(message.id, emoji); onClose(); }}
-                  className="h-11 w-11 rounded-full inline-flex items-center justify-center text-ds-22 leading-none transition-transform active:scale-90"
+                  className="text-ds-22 font-normal leading-none active:scale-90"
                   style={active ? { background: "hsl(var(--bark) / 0.16)", outline: "1.5px solid hsl(var(--bark) / 0.45)" } : undefined}
                 >
                   {emoji}
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -228,10 +233,10 @@ function ActionRow({
 }) {
   const isDanger = tone === "danger";
   return (
-    <button
-      type="button"
+    // The shared ListRow (Q2709 11-05): its tint, ring and tap floor; the action keeps its icon-then-label 48px row.
+    <ListRow
       onClick={onClick}
-      className="flex items-center gap-3 px-3 py-3 rounded-ds-md min-h-[48px] text-left active:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))]"
+      className="justify-start gap-3 px-3 py-3 rounded-ds-md min-h-[48px] active:bg-muted/50"
       style={{
         color: isDanger ? "hsl(var(--destructive-ink))" : "hsl(var(--ink-deep))",
       }}
@@ -248,6 +253,6 @@ function ActionRow({
         {icon}
       </span>
       <span className="font-sans font-semibold text-ds-13">{label}</span>
-    </button>
+    </ListRow>
   );
 }

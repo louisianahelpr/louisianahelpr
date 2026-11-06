@@ -13,6 +13,7 @@ import {
   DialogContent,
   DialogHero,
 } from "@/components/ui/dialog";
+import { ListRow } from "@/components/ui/ListRow";
 import {
   SNOOZE_PRESETS,
   snoozeRemainingLabel,
@@ -84,11 +85,11 @@ export function MuteSheet({
 
         <div className="mt-4 grid gap-1.5">
           {SNOOZE_PRESETS.map((preset) => (
-            <button
+            // The shared ListRow (Q2709 11-05): its tint, ring and tap floor; the preset keeps its 48px card look.
+            <ListRow
               key={preset.id}
-              type="button"
               onClick={() => handlePick(preset)}
-              className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-ds-md text-left transition-colors hover:bg-secondary/40 min-h-[48px]"
+              className="gap-3 px-4 py-3 rounded-ds-md min-h-[48px]"
               style={{
                 background: "var(--surface-premium)",
                 border: "0.5px solid hsl(var(--olivewood) / 0.14)",
@@ -111,16 +112,15 @@ export function MuteSheet({
                   style={{ color: "hsl(var(--olivewood) / 0.8)" }}
                 />
               )}
-            </button>
+            </ListRow>
           ))}
           {isMuted && (
-            <button
-              type="button"
+            <ListRow
               onClick={() => {
                 onUnmute(convo);
                 onOpenChange(false);
               }}
-              className="w-full flex items-center justify-between gap-3 px-4 py-3 rounded-ds-md text-left transition-colors hover:bg-secondary/40 min-h-[48px] mt-1"
+              className="gap-3 px-4 py-3 rounded-ds-md min-h-[48px] mt-1"
               style={{
                 background: "hsl(var(--bark) / 0.06)",
                 border: "0.5px solid hsl(var(--bark) / 0.22)",
@@ -136,7 +136,7 @@ export function MuteSheet({
                 className="w-4 h-4 shrink-0"
                 style={{ color: "hsl(var(--bark))" }}
               />
-            </button>
+            </ListRow>
           )}
         </div>
       </DialogContent>

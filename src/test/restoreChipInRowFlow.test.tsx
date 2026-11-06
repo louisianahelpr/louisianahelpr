@@ -13,7 +13,7 @@
  * @mutate src/components/messages/ConversationRow.tsx |       {trailing && <div data-row-trailing className="shrink-0 self-center">{trailing}</div>} |       {trailing && <div data-row-trailing className="absolute right-2 top-1/2 shrink-0 self-center">{trailing}</div>}
  * @mutate src/components/messages/ConversationRow.tsx |       {trailing && <div data-row-trailing className="shrink-0 self-center">{trailing}</div>} |       {null}
  * @mutate src/components/messages/ConversationListBody.tsx |                           trailing={restore} |                           trailing={undefined}
- * @mutate src/components/messages/RestoreConversationButton.tsx |       className="inline-flex items-center gap-1 | className="absolute right-2 inline-flex items-center gap-1
+ * @mutate src/components/messages/RestoreConversationButton.tsx |       className="gap-1 px-3 | className="absolute right-2 gap-1 px-3
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";

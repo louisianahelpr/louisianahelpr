@@ -1,5 +1,6 @@
 import type { MutableRefObject } from "react";
 import { ChevronsDown, ChevronsUp } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 /**
  * Jump-to-new-messages / jump-to-newest button.
@@ -29,16 +30,12 @@ export function JumpToBottomButton({
   if (!((firstUnreadOffscreen || showJumpToBottom) && hasMessages)) return null;
   return (
     <div className="flex justify-center -mt-1 mb-1 pointer-events-none">
-      <button
+      {/* The shared primary Button, sm (Q2709 11-05): the olive pill, its press and focus ring. */}
+      <Button
         type="button"
-        className="pointer-events-auto flex items-center gap-1 px-3 py-1 rounded-full text-ds-11 font-medium shadow-md transition-all active:scale-95"
-        style={{
-          background: "hsl(var(--bark))",
-          color: "hsl(var(--parchment))",
-          boxShadow:
-            "0 2px 8px hsl(var(--bark) / 0.28), " +
-            "inset 0 1px 0 0 rgba(255,255,255,0.12)",
-        }}
+        variant="primary"
+        size="sm"
+        className="pointer-events-auto gap-1 px-3 text-ds-13 [&_svg]:size-3"
         aria-label={
           firstUnreadOffscreen
             ? `Jump to ${initialUnreadCountRef.current} new message${initialUnreadCountRef.current === 1 ? "" : "s"}`
@@ -72,7 +69,7 @@ export function JumpToBottomButton({
         {firstUnreadOffscreen
           ? `${initialUnreadCountRef.current} New Message${initialUnreadCountRef.current === 1 ? "" : "s"}`
           : "Jump to latest"}
-      </button>
+      </Button>
     </div>
   );
 }

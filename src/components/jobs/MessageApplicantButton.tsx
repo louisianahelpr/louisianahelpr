@@ -63,15 +63,18 @@ export function MessageApplicantButton({
   };
   if (appearance === "row") {
     return (
-      <button
+      // The shared Button (outline, sm; Q2709 11-05), compact for the applicant row.
+      <Button
         type="button"
+        variant="outline"
+        size="sm"
         aria-label={`Message ${helperName}`}
         onClick={open}
-        className={`min-h-[44px] px-3 rounded-ds-md text-ds-11 font-semibold border border-border inline-flex items-center gap-1 ${className ?? ""}`}
+        className={`gap-1 px-3 text-ds-13 [&_svg]:size-3.5 ${className ?? ""}`}
       >
         <MessageCircle className="w-3.5 h-3.5" aria-hidden />
         Message
-      </button>
+      </Button>
     );
   }
   return (

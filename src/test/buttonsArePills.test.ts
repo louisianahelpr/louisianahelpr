@@ -22,7 +22,9 @@
  *      named on 2026-10-30 (SeriesDatesPanel "Offer dates", ConversationList
  *      "Show all" and the bulk "Hide" bar, the NPS score buttons, the
  *      notification row actions) are pills: each is found by an anchor in its
- *      opening tag, carries rounded-full and no other radius.
+ *      opening tag, carries rounded-full and no other radius. (The NPS buttons
+ *      and the inbox's "Show all" / "Hide" have since become shared controls,
+ *      Q2709; check 1 reads those.)
  * Cards, inputs, sheets, chips and avatars are not buttons and are not read.
  *
  * @mutate src/components/ui/button.tsx | whitespace-nowrap rounded-full text-ds-15 | whitespace-nowrap rounded-ds-md text-ds-15
@@ -30,8 +32,8 @@
  * @mutate src/components/sections/AppTopBar.tsx | "h-10 w-10 shrink-0 self-center btn-press | "h-10 w-10 shrink-0 self-center rounded-ds-md btn-press
  * @mutate src/components/series/SeriesDatesPanel.tsx | btn-grad-primary min-h-[44px] px-4 rounded-full text-ds-12 | btn-grad-primary min-h-[44px] px-4 rounded-ds-md text-ds-12
  * @mutate src/components/series/SeriesDatesPanel.tsx | "min-h-[44px] px-3 rounded-full text-ds-11 font-semibold border border-border disabled:opacity-40" | "min-h-[44px] px-3 rounded-ds-md text-ds-11 font-semibold border border-border disabled:opacity-40"
- * @mutate src/components/messages/ConversationListBody.tsx | btn-press inline-flex items-center justify-center rounded-full px-4 py-1.5 | btn-press inline-flex items-center justify-center rounded-ds-md px-4 py-1.5
- * @mutate src/components/messages/ConversationListBody.tsx | "h-9 px-3 rounded-full inline-flex | "h-9 px-3 rounded-ds-md inline-flex
+ * @mutate src/components/messages/ConversationListBody.tsx | className="text-ds-13 font-medium text-[hsl(var(--bark))]" | className="text-ds-13 font-medium text-[hsl(var(--bark))] rounded-ds-md"
+ * @mutate src/components/messages/ConversationListBody.tsx | className="gap-1.5 px-3 text-ds-13 font-semibold disabled:opacity-40 [&_svg]:size-4" | className="gap-1.5 px-3 text-ds-13 font-semibold disabled:opacity-40 [&_svg]:size-4 rounded-ds-md"
  * @mutate src/components/NotificationPanelView.tsx | font-semibold rounded-full border transition-all active:scale-[0.94] | font-semibold rounded-ds-md border transition-all active:scale-[0.94]
  */
 import { describe, expect, it } from "vitest";
@@ -133,8 +135,6 @@ export function primaryRadiusHits(file: string, src: string): { primaries: numbe
 /** Raw `<button>`s styled as buttons (owner, 2026-10-29 "should all be pill shaped"; named by the lead 2026-10-30). */
 export const RAW_PILL_SITES: { file: string; anchor: string }[] = [
   { file: "src/components/series/SeriesDatesPanel.tsx", anchor: "offerSeriesDates(jobId, a.id)" },
-  { file: "src/components/messages/ConversationListBody.tsx", anchor: "setShowAllConvos(true)" },
-  { file: "src/components/messages/ConversationListBody.tsx", anchor: "selected conversation" },
   { file: "src/components/NotificationPanelView.tsx", anchor: "key={a.label}" },
 ];
 
@@ -211,7 +211,9 @@ describe("every button is a pill (owner, 2026-10-29)", () => {
   });
 
   it("the hand-built raw <button>s styled as buttons are pills", () => {
-    expect(RAW_PILL_SITES.length).toBeGreaterThan(3); // 4: NpsPrompt moved to the shared ChoicePill (Q2709, 11-04)
+    // 2: NpsPrompt moved to the shared ChoicePill (Q2709, 11-04); the inbox's "Show all" and bulk "Hide" are the shared
+    // Button (Q2709, 11-05), so the first check reads their radius now.
+    expect(RAW_PILL_SITES.length).toBeGreaterThan(1);
     const bad: string[] = [];
     for (const { file, anchor } of RAW_PILL_SITES) {
       const found = rawButtonsAt(file, read(file), anchor);

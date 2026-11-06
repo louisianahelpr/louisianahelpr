@@ -34,9 +34,13 @@ import { removeMessageAttachment } from "@/lib/storageCleanup";
 import { report } from "@/lib/errorLogger";
 import { useMessagesTwoPane } from "./useTwoPane";
 import { MessagesTwoPane } from "./MessagesTwoPane";
+import { removeShellOncePainted } from "@/components/landing/landingShell";
+import { MESSAGES_SHELL_ID } from "@/components/landing/homeShell";
 
 const Messages = () => {
   usePageTitle("Messages — Helpr");
+  // Q2705 B: index.html drew the inbox's loading frame first (#lh-messages-shell); take it away once this is painted.
+  useEffect(() => removeShellOncePainted(MESSAGES_SHELL_ID), []);
   const navigate = useNavigate();
   // Board 38: the list and the open chat side by side, only where the chat keeps >= 480px.
   const twoPane = useMessagesTwoPane();

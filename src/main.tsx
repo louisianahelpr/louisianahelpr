@@ -236,6 +236,8 @@ for (const page of ["login", "signup"]) {
 // Q2705 B: and the signed-in /home skeleton (#lh-home-shell) when the inline script did not show it.
 if (document.documentElement.getAttribute("data-lh-app-shell") !== "home") document.getElementById("lh-home-shell")?.remove();
 if (document.documentElement.getAttribute("data-lh-app-shell") !== "jobs") document.getElementById("lh-jobs-shell")?.remove();
+if (document.documentElement.getAttribute("data-lh-app-shell") !== "messages") document.getElementById("lh-messages-shell")?.remove();
+if (document.documentElement.getAttribute("data-lh-app-shell") !== "declutter") document.getElementById("lh-declutter-shell")?.remove();
 
 if (bounceToNativeAppIfReturning()) {
   // A scheme navigation is in flight; rendering now would only paint a screen

@@ -91,8 +91,7 @@ const ACCEPTED = new Map<string, number>([
   ["src/components/profile/profileLanding/SettingsSection.tsx --muted-foreground/0.7", 1], // 3.07:1 — <ChevronRightIcon> row affordance beside its label
 
   // (b) painted on a dark ground the static scan cannot see
-  ["src/components/messages/ConversationListBody.tsx --parchment/0.85", 1], // "1.00:1" — near-white on bark
-  ["src/pages/posts/BulkDismissBar.tsx --parchment/0.85", 1], //       "1.00:1" — near-white on bark
+  ["src/components/ui/SelectBarExitButton.tsx --parchment/0.85", 1], // "1.00:1" — near-white on bark (the Posts and Messages select bars' ✕)
 
   // (c) a different WCAG threshold applies, and is met
   //

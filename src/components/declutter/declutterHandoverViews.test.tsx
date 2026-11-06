@@ -914,6 +914,10 @@ describe("Declutter slice 4: paid-order cards", () => {
     expect(await screen.findByRole("button", { name: "Retake the porch photo" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Take the porch photo" })).toBeNull();
     expect(screen.queryByText(/You need it before you can be paid automatically/)).toBeNull();
+    // Vacuity (l102 --only): "const putOut = false" stayed green, because the days had not loaded when this was read.
+    // Wait for the booked-day line and the seller's own handover read, then look for the move button.
+    expect(await screen.findByText(/The buyer can come any time that day once you post the porch photo/)).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 50));
     expect(screen.queryByRole("button", { name: "Pick another day (once)" })).toBeNull();
     v.unmount();
   });

@@ -37,6 +37,7 @@ import {
 } from "./declutterUi";
 import { FreeClaimPanel, FreeRequestsForGiver, isFreeItem } from "./DeclutterFreeClaim";
 import { OfferPanel } from "./DeclutterOfferPanel";
+import { OfferTradeButton } from "./DeclutterOfferTrade";
 import PriceHint from "./DeclutterPriceHint";
 import { DeclutterGallery } from "./DeclutterGallery";
 import { DeclutterSellerCard } from "./DeclutterSellerCard";
@@ -167,6 +168,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
     {/* Owner mockup 11-01: Make an offer (left) and Buy now (right) sit right under the price and place. */}
     {/* The Free section (20261027170717): a free item is claimed, never bought or offered on, and has no price hint. */}
     {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} footer={deliveredLine} />)}
+    {/* Declutter trades (owner 10-31): a listing Open to trades also takes one of the buyer's own listings in trade. */}
+    {canAct && user && !free && it.status === "live" && <OfferTradeButton item={it} userId={user.id} />}
     {/* BUY-16: a guest signs up (or logs in) to buy, offer or ask, and comes back here. */}
     {canAct && !user && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} />}
   </>);

@@ -62,6 +62,7 @@ import { FULL_LISTING_COPY } from "@/lib/declutter/photoRules";
 import { useSellerDefaultsPrefill } from "./useSellerDefaultsPrefill";
 import { useSellSaved } from "./useSellSaved";
 import { offersOffAfterPublish, offersOffOnDraft } from "@/lib/declutter/offersOnPost";
+import { tradesOnFromDefault } from "@/lib/declutter/tradesOnPost";
 import { DEFAULT_DROP_PCT, dropPctOf } from "@/lib/declutter/priceDrop";
 import { EMPTY, formProblem, priceChoiceToSave, type FormState } from "./sellForm";
 
@@ -480,13 +481,14 @@ export function useSellFlowState(urlItemId: string | null) {
 
   /** A setting that never blocks Post: if it fails it is said, with where to set it, and Post goes on. The words are
    *  written here (not passed in) so the toast check can read that the sentence ends. */
-  async function notBlocking(run: () => Promise<unknown>, setting: "keepUp" | "autoFree" | "offers"): Promise<void> {
+  async function notBlocking(run: () => Promise<unknown>, setting: "keepUp" | "autoFree" | "offers" | "trades"): Promise<void> {
     try {
       await run();
     } catch (err) {
       const where = setting === "keepUp"
         ? 'You can turn on "Keep it up" from Manage listing.'
-        : setting === "offers" ? "You can turn offers off from Manage listing." : "You can choose when it becomes free from Manage listing.";
+        : setting === "offers" ? "You can turn offers off from Manage listing."
+        : setting === "trades" ? "You can turn trades on from Manage listing." : "You can choose when it becomes free from Manage listing.";
       toast.error(`${declutterErrorMessage(err)} ${where}`);
     }
   }
@@ -540,6 +542,9 @@ export function useSellFlowState(urlItemId: string | null) {
       void requestAiCheckWithRetry(id);
       // A server without 20261031201036 refuses a draft: offers go off now that it is up.
       if (offersAfter.current) await notBlocking(() => offersOffAfterPublish(id, status), "offers");
+      // Declutter trades (owner 10-31): a new priced listing is "Open to trades" when the seller's saved default says so
+      // (Settings > Listing defaults; OFF unless turned on). After it is up, not awaited: the seller is already on Selling.
+      if (!urlItemId && !form.free && user) void notBlocking(() => tradesOnFromDefault(user.id, id), "trades");
       void keptWork.finish();
       if (!urlItemId) void prefs.rememberChoices(keepUpWanted, autoFreeWanted);
       void qc.invalidateQueries({ queryKey: ["declutter"] });

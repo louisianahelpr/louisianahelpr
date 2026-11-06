@@ -26,6 +26,11 @@ export interface SellerDefaults {
   handovers: SellerHandover[];
   /** LEAD-OFFERS-CHOICE (owner 2026-10-31): "Accept offers" on a new listing; off is Buy now only. */
   acceptsOffers: boolean;
+  /**
+   * Declutter trades (20261106163703, owner 10-31): "Open to trades" on a new listing; OFF unless saved on. Optional:
+   * a save that leaves it out (Sell a bunch saves its own choices) leaves the saved choice as it is.
+   */
+  acceptsTrades?: boolean;
 }
 
 /** No saved row: keep it up ON, drops ON at 5% a night down to half the price, never free, porch pickup. */
@@ -39,14 +44,19 @@ interface Row {
   free_after_days: number | null;
   handovers: string[];
   accepts_offers?: boolean;
+  accepts_trades?: boolean;
 }
 
 const BASE_COLUMNS = "keep_up, drops, drop_pct, floor_pct, free_after_days, handovers";
 // LEAD-OFFERS-CHOICE: accepts_offers is migration 20261031201036; until it is on prod (42703 / PGRST204) the rest still
 // reads and saves, and a new listing takes offers, as before.
 const COLUMNS = `${BASE_COLUMNS}, accepts_offers`;
+// Declutter trades: accepts_trades is migration 20261106163703; until it is on prod the rest reads and saves as before.
+const TRADES_COLUMNS = `${COLUMNS}, accepts_trades`;
 const noOffersColumn = (e: { code?: string; message?: string } | null) =>
   !!e && (e.code === "42703" || e.code === "PGRST204") && /accepts_offers/.test(e.message ?? "");
+const noTradesColumn = (e: { code?: string; message?: string } | null) =>
+  !!e && (e.code === "42703" || e.code === "PGRST204") && /accepts_trades/.test(e.message ?? "");
 const WAYS: readonly SellerHandover[] = ["porch", "seller_delivery", "meetup", "delivery"];
 
 const table = () => supabase.from("declutter_seller_defaults");
@@ -64,12 +74,14 @@ function fromRow(r: Row): SellerDefaults {
     freeAfterDays: r.free_after_days,
     handovers: ways.length > 0 ? ways : SELLER_DEFAULTS.handovers,
     acceptsOffers: r.accepts_offers !== false,
+    acceptsTrades: r.accepts_trades === true,
   };
 }
 
 /** The member's saved choices, or null when they have none saved yet (then use SELLER_DEFAULTS). */
 export async function fetchSellerDefaults(userId: string): Promise<SellerDefaults | null> {
-  let res = await table().select(COLUMNS).eq("member_id", userId).maybeSingle();
+  let res = await table().select(TRADES_COLUMNS).eq("member_id", userId).maybeSingle();
+  if (noTradesColumn(res.error)) res = await table().select(COLUMNS).eq("member_id", userId).maybeSingle();
   if (noOffersColumn(res.error)) res = await table().select(BASE_COLUMNS).eq("member_id", userId).maybeSingle();
   if (res.error && notDeployed(res.error.code)) return null;
   const data = unwrap(res);
@@ -88,8 +100,11 @@ export async function saveSellerDefaults(userId: string, d: SellerDefaults): Pro
     handovers: d.handovers.length > 0 ? d.handovers : SELLER_DEFAULTS.handovers,
     updated_at: new Date().toISOString(),
   };
-  const upsert = (r: typeof row & { accepts_offers?: boolean }) => table().upsert(r, { onConflict: "member_id" }).select("member_id");
-  let { error } = await upsert({ ...row, accepts_offers: d.acceptsOffers });
+  const upsert = (r: typeof row & { accepts_offers?: boolean; accepts_trades?: boolean }) => table().upsert(r, { onConflict: "member_id" }).select("member_id");
+  // accepts_trades only when this save chose it, so a save without it never turns trades off.
+  const trades = d.acceptsTrades === undefined ? {} : { accepts_trades: d.acceptsTrades };
+  let { error } = await upsert({ ...row, accepts_offers: d.acceptsOffers, ...trades });
+  if (noTradesColumn(error)) ({ error } = await upsert({ ...row, accepts_offers: d.acceptsOffers }));
   // Before 20261031201036 the rest is still saved; the offers choice waits for the column.
   if (noOffersColumn(error)) ({ error } = await upsert(row));
   if (error) {

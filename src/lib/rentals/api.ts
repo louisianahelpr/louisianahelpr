@@ -359,6 +359,11 @@ interface FixedAnswer {
   saysFixed: boolean;
   note: string | null;
   answeredAt: string;
+  /**
+   * Q2069: the answer was given before the landlord's latest revision request (jobs.revision_requested_at), so it is
+   * about the work before the rework, not the work now waiting for release.
+   */
+  beforeRework: boolean;
 }
 /**
  * The tenant's latest "Was it fixed?" answer on the request this job was
@@ -377,5 +382,9 @@ export async function fetchFixedAnswerForJob(jobId: string, uid: string): Promis
       .maybeSingle(),
   ) as Pick<MaintenanceRequest, "id" | "tenant_says_fixed" | "tenant_fixed_note" | "tenant_answered_at"> | null;
   if (!row || row.tenant_says_fixed == null || !row.tenant_answered_at) return null;
-  return { requestId: row.id, saysFixed: row.tenant_says_fixed, note: row.tenant_fixed_note, answeredAt: row.tenant_answered_at };
+  // The poster reads their own job (jobs RLS). A failed read throws, and the card then shows nothing (display only).
+  const job = unwrap(await supabase.from("jobs").select("revision_requested_at").eq("id", jobId).maybeSingle()) as { revision_requested_at: string | null } | null;
+  const reworkAt = job?.revision_requested_at ? Date.parse(job.revision_requested_at) : NaN;
+  const beforeRework = Number.isFinite(reworkAt) && Date.parse(row.tenant_answered_at) < reworkAt;
+  return { requestId: row.id, saysFixed: row.tenant_says_fixed, note: row.tenant_fixed_note, answeredAt: row.tenant_answered_at, beforeRework };
 }

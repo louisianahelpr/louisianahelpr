@@ -13,6 +13,8 @@ const PROPER = new Set([
   "App", "Store", "AI", "Jobs", "Home", "Wrapped",
   // Jobs tab names, when a line points at the tab ("See it under Posted", Q2392).
   "Posted",
+  // The phone dock's Dashboard tab, when a link names it ("Go to Dashboard"; owner nav redesign 2026-11-06).
+  "Dashboard",
   // Days and months are names.
   "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun",
   "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December",

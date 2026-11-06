@@ -86,14 +86,14 @@
 // 320-414px, and "it fits" is worthless if the words are gone. Blanking them
 // reds "a tab button painted no word at all".
 // RE-POINTED 2026-10-19 (Q2205): My Posts / My Jobs and their folding tab row
-// were retired; Jobs > Posted / Working filter with four STATUS BOXES that are
+// were retired; Jobs > Posted / Working filter with STATUS BOXES (BOX_BUCKETS, five since cancelled joined) that are
 // always up. Same claim — this screen's navigation is on the screen without a
 // press, every word painted and WHOLE — measured on the boxes: a box that
 // paints no word, or cuts it ("Needs y…"), goes red.
 // @mutate src/components/sections/StatusBoxes.tsx | <span data-chip-label="">{label}</span> | <span data-chip-label=""></span>
 // @mutate src/components/sections/StatusBoxes.tsx | shrink-0 whitespace-nowrap | shrink-0 truncate max-w-[3rem]
 import { test, expect, type Browser, type Page, type TestInfo } from "../prodTest";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getSession, sessionFor, type Session } from "./harness";
 import { AUTH_STORAGE_KEY } from "../journeys/fixtures";
@@ -128,13 +128,27 @@ const INBOX_WORDS = INBOX_TAB_ORDER.map((k) => INBOX_TAB_LABEL[k]);
  * definitions, never restated. A sixth bucket appears here the day it is
  * added, which is the point.
  */
+// `as`: whose list. A tab with nothing in any bucket draws NO boxes (Q2610, embeddedActivity.tsx `noRows`), and
+// poster-e2e has 0 applications (prod read-only 2026-11-06: 0 applications, 813 jobs), so Working signed in as the
+// poster waited 45 s for a box that is never drawn (prod-audit 42088200102). Working signs in helper-e2e, whose
+// list is populated.
 const ROUTES = [
-  { name: "posted", url: "/jobs?tab=posted", labels: POSTED_GROUP_LABEL },
-  { name: "working", url: "/jobs?tab=working", labels: WORKING_GROUP_LABEL },
+  { name: "posted", url: "/jobs?tab=posted", labels: POSTED_GROUP_LABEL, as: "poster" },
+  { name: "working", url: "/jobs?tab=working", labels: WORKING_GROUP_LABEL, as: "helper" },
 ] as const;
 
-/** The four boxes (EmbeddedActivityHeader's BOX_BUCKETS): every bucket but the terminal "cancelled". */
-const BOXES = BUCKET_ORDER.filter((k) => k !== "cancelled");
+/** The boxes, read from the app's own BOX_BUCKETS (embeddedActivity.tsx), never restated: since 2026-10 they are
+ * every bucket INCLUDING "cancelled" (five). The spec once hard-coded "every bucket but cancelled" and went red at
+ * baseline on the fifth box (prod-audit 42088200102). Read as text: that module imports React components the e2e
+ * tsconfig cannot pull in. */
+const BOX_SRC = readFileSync(join(process.cwd(), "src/components/job-card/embeddedActivity.tsx"), "utf8");
+const BOXES: string[] = (() => {
+  const m = /export const BOX_BUCKETS = \[([^\]]*)\] as const;/.exec(BOX_SRC);
+  if (!m) throw new Error("embeddedActivity.tsx: no `export const BOX_BUCKETS = [...] as const;`");
+  return [...m[1].matchAll(/"([a-z_]+)"/g)].map((x) => x[1]);
+})();
+// Every box is a real bucket (BUCKET_ORDER), so its label is the app's own word.
+for (const k of BOXES) if (!(BUCKET_ORDER as readonly string[]).includes(k)) throw new Error(`BOX_BUCKETS ${k} is not a bucket`);
 
 type TabShot = {
   /** The group's box. `null` when the row is not rendered at all. */
@@ -216,9 +230,12 @@ function note(info: TestInfo, line: string) {
 }
 
 let poster: Session;
+let helper: Session;
 test.beforeAll(async ({ request }) => {
   poster = await getSession(request, "poster");
+  helper = await getSession(request, "helper");
 });
+const routeSession = (r: (typeof ROUTES)[number]) => (r.as === "helper" ? helper : poster);
 
 async function authedContext(
   browser: Browser,
@@ -295,7 +312,7 @@ async function readBoxes(page: Page): Promise<BoxShot> {
   }, GROUP);
 }
 
-/** THE CLAIM, at one width on one screen: four boxes on screen, each word painted, whole, and the app's own. */
+/** THE CLAIM, at one width on one screen: every box on screen, each word painted, whole, and the app's own. */
 function assertBoxes(shot: BoxShot, tag: string, labels: Record<string, string>) {
   expect(shot.collapsedBy, `${tag}: the status filter is behind a closed disclosure ("${shot.collapsedBy}")`).toBeNull();
   expect(shot.group, `${tag}: no status boxes in the DOM at all`).not.toBeNull();
@@ -312,8 +329,8 @@ function assertBoxes(shot: BoxShot, tag: string, labels: Record<string, string>)
 // ── 1. ON ARRIVAL, NO PRESS: every box, every word, whole ──────────────────
 for (const vw of [320, 375, 414, 1440] as const) {
   for (const route of ROUTES) {
-    test(`${route.name}: the four status boxes are on the screen, words whole @${vw}`, async ({ browser }, info) => {
-      const ctx = await authedContext(browser, vw, info.project.use.baseURL);
+    test(`${route.name}: the status boxes are on the screen, words whole @${vw}`, async ({ browser }, info) => {
+      const ctx = await authedContext(browser, vw, info.project.use.baseURL, routeSession(route));
       const page = await ctx.newPage();
       try {
         await openActivity(page, route.url);
@@ -341,12 +358,13 @@ for (const vw of [320, 375, 414, 1440] as const) {
  * would be green for the wrong reason.
  */
 test("every box on Posted and Working keeps the boxes up, empty or full @375", async ({ browser }, info) => {
-  const ctx = await authedContext(browser, 375, info.project.use.baseURL);
-  const page = await ctx.newPage();
-  try {
-    let sawEmpty = 0;
-    let sawFull = 0;
-    for (const route of ROUTES) {
+  let sawEmpty = 0;
+  let sawFull = 0;
+  for (const route of ROUTES) {
+    // One context per route: each tab signs in the account whose list is populated (see ROUTES).
+    const ctx = await authedContext(browser, 375, info.project.use.baseURL, routeSession(route));
+    const page = await ctx.newPage();
+    try {
       for (const key of BOXES) {
         await openActivity(page, `${route.url}&filter=${key}`);
         const shot = await readBoxes(page);
@@ -356,12 +374,12 @@ test("every box on Posted and Working keeps the boxes up, empty or full @375", a
         note(info, `${route.name}&filter=${key} @375 count=${live?.count ?? "?"} box=${shot.group ? `${shot.group.w}×${shot.group.h}` : "none"}`);
         assertBoxes(shot, `${route.name}&filter=${key}@375`, route.labels);
       }
+    } finally {
+      await ctx.close();
     }
-    expect(sawEmpty, "no EMPTY box was exercised — the claim is untested").toBeGreaterThan(0);
-    expect(sawFull, "no POPULATED box was exercised — the claim is untested").toBeGreaterThan(0);
-  } finally {
-    await ctx.close();
   }
+  expect(sawEmpty, "no EMPTY box was exercised — the claim is untested").toBeGreaterThan(0);
+  expect(sawFull, "no POPULATED box was exercised — the claim is untested").toBeGreaterThan(0);
 });
 
 /**

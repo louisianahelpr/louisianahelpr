@@ -9,12 +9,13 @@
  * beat the sheet's `@media (min-width:900px){.lg\:flex{display:flex}}`; the rail's classes are `hidden lg:flex`.
  *
  * The claim, on the BUILT dist this PR job serves (`npm run build` = vite + every post-processor, then vite preview):
- * the real built index.html head, every script removed (no app JS, no Supabase, no request beyond this preview
+ * the real built index.html head, every script blocked by the probe's CSP (no app JS, no Supabase, no request beyond this preview
  * server: there is nothing to mock), the async app sheet switched on the way its own swap script does it, and an
  * element wearing the rail's own static classes (read from src/components/DesktopSidebarNav.tsx). From the `lg`
  * breakpoint (tailwind.config.ts, 900 px) and at 1024 and 1440 it is display:flex, 248 px wide, flush at x=0; one px
  * below `lg` it is display:none. Red on 2e5de1df25's parent (block after the sheet link): display none at every width.
  */
+// @mutate src/components/DesktopSidebarNav.tsx | hidden lg:flex lg:flex-col | hidden lg:flex-col
 import { readFileSync } from "node:fs";
 import { test, expect } from "./fixtures";
 
@@ -24,16 +25,11 @@ const RAIL_CLASSES = /data-desktop-sidebar="left"\s+className=\{`([^`$]+)\$\{sid
 const LG = Number(/screens:\s*\{\s*lg:\s*"(\d+)px"/.exec(readFileSync("tailwind.config.ts", "utf8"))?.[1]);
 const PROBE = "/__rail-css-probe";
 
-/** Our own built head with every script element dropped (any case; repeated until nothing is left to drop). */
-function withoutScripts(html: string): string {
-  let prev: string;
-  let out = html;
-  do {
-    prev = out;
-    out = out.replace(/<script\b[\s\S]*?<\/script\s*>/gi, "").replace(/<script\b[^>]*>/gi, "");
-  } while (out !== prev);
-  return out;
-}
+/**
+ * No script in the probe runs: the response carries `script-src 'none'`, so the browser itself refuses every script
+ * element in the built head (no HTML filtering of our own; CodeQL flagged two regex strippers on #4174).
+ */
+const NO_SCRIPTS = { "Content-Security-Policy": "script-src 'none'" };
 
 test("the rail's own classes read from the component (the parser works)", () => {
   expect(RAIL_CLASSES).toMatch(/\bhidden\b/);
@@ -46,11 +42,11 @@ for (const [width, display] of [[LG - 1, "none"], [LG, "flex"], [1024, "flex"], 
     const built = await (await page.request.get(`${baseURL ?? ""}/`)).text();
     expect(built, "the built head carries the inlined first-screen CSS").toContain('<style id="lh-shell-css">');
     expect(built, "the built head carries the async app sheet").toMatch(/<link rel="stylesheet" href="\/assets\/[^"]+\.css" media="print" data-async-css>/);
-    const head = withoutScripts(built.slice(0, built.indexOf("</head>")))
+    const head = built.slice(0, built.indexOf("</head>"))
       // What vite.config.ts's swap script does once the sheet loads: same element, same place in the head.
       .replace(/ media="print" data-async-css>/g, ' media="all" data-async-css>');
     const probe = `${head}</head><body><nav data-probe class="${RAIL_CLASSES} visible" style="width:var(--desktop-sidebar-w, 248px)"></nav></body></html>`;
-    await page.route(`**${PROBE}`, (route) => route.fulfill({ status: 200, contentType: "text/html", body: probe }));
+    await page.route(`**${PROBE}`, (route) => route.fulfill({ status: 200, contentType: "text/html", headers: NO_SCRIPTS, body: probe }));
     await page.setViewportSize({ width, height: 900 });
     await page.goto(PROBE);
     await page.waitForFunction(() => [...document.styleSheets].some((s) => s.href?.includes("/assets/")));

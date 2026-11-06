@@ -142,7 +142,7 @@ describe("create-payment edge function", () => {
   // @mutate supabase/functions/_shared/stripeCustomer.ts | !c.deleted && c.metadata?.supabase_user_id === userId && CUSTOMER_ID_RE.test(c.id) | !c.deleted && CUSTOMER_ID_RE.test(c.id)
   // @mutate supabase/functions/_shared/stripeCustomer.ts |       .sort((a, b) => (b.created ?? 0) - (a.created ?? 0)); |       ;
   // @mutate supabase/functions/_shared/stripeCustomer.ts |         && !c.invoice_settings?.default_payment_method) |         )
-  // @mutate supabase/functions/create-payment/index.ts | wallet_save: paymentIntentExtras.setup_future_usage === "off_session" ? "1" : "" }, | wallet_save: "" },
+  // @mutate supabase/functions/create-payment/index.ts | wallet_save: save ? "1" : "" }, | wallet_save: "" },
   describe("one wallet: the payer's Stripe customer (Q2139)", () => {
     const WALLET_POSTER = { id: "0000000c-0000-4000-8000-000000000001", email: "wallet-poster@test.com" };
     function seedEscrow() {
@@ -229,6 +229,78 @@ describe("create-payment edge function", () => {
       const fn = await load();
       await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1", saveCardForFuture: false } }));
       expect(stripeMock.checkout.sessions.create.mock.calls[0]?.[0]?.metadata?.wallet_save).not.toBe("1");
+    });
+
+    // Q1816 (core-loop-canary #4151): Stripe's "Customer has maximum number of payment methods attached".
+    // @mutate supabase/functions/create-payment/index.ts | const session = await withSavedCardLimit(savingCard, job.recurrence_days == null, | const session = await withSavedCardLimit(savingCard, true,
+    // @mutate supabase/functions/create-payment/index.ts | payment_intent_data: save ? paymentIntentExtras : withoutSave(paymentIntentExtras), | payment_intent_data: paymentIntentExtras,
+    // @mutate supabase/functions/create-payment/index.ts | ${walletRetry ? ":new-wallet" : ""}${save === savingCard ? "" : ":nosave"}` | ${walletRetry ? ":new-wallet" : ""}`
+    // @mutate supabase/functions/create-payment/index.ts | if (error instanceof TooManySavedCards \|\| isTooManySavedCardsError(error)) { | if (false) {
+    // @mutate supabase/functions/_shared/savedCardLimit.ts |     if (!save \|\| !mayDropSave) { |     if (false) {
+    describe("a wallet at Stripe's payment-method limit (Q1816)", () => {
+      const tooMany = () => Object.assign(new Error("Customer has maximum number of payment methods attached."), { type: "StripeInvalidRequestError", statusCode: 400 });
+      const creates = () => stripeMock.checkout.sessions.create.mock.calls as Array<[Record<string, any>, { idempotencyKey: string }]>;
+
+      it("saving: retried ONCE without saving the card, under its own idempotency key, and the page opens", async () => {
+        seedEscrow();
+        scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_full" }] };
+        stripeMock.checkout.sessions.create.mockRejectedValueOnce(tooMany());
+        const res = await escrow();
+        expect(res.status).toBe(200);
+        expect((await json(res)).url).toBe("https://checkout.stripe.test/cs_fresh");
+        expect(creates()).toHaveLength(2);
+        const [[first, firstOpts], [second, secondOpts]] = creates();
+        expect(first.payment_intent_data.setup_future_usage).toBe("off_session");
+        expect(first.metadata.wallet_save).toBe("1");
+        expect("setup_future_usage" in second.payment_intent_data).toBe(false);
+        expect(second.metadata.wallet_save).toBe("");
+        expect(second.customer).toBe("cus_full");
+        expect(second.payment_intent_data.metadata).toEqual(first.payment_intent_data.metadata);
+        expect(secondOpts.idempotencyKey).toBe(`${firstOpts.idempotencyKey}:nosave`);
+      });
+
+      it("the retry refused the same way: a 409 with a plain sentence, never a 500 or Stripe's words", async () => {
+        seedEscrow();
+        scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_full" }] };
+        stripeMock.checkout.sessions.create.mockRejectedValueOnce(tooMany()).mockRejectedValueOnce(tooMany());
+        const res = await escrow();
+        expect(res.status).toBe(409);
+        const body = await json(res);
+        expect(body.tooManySavedCards).toBe(true);
+        expect(String(body.error)).toMatch(/too many saved cards.*Nothing was charged.*Help & Support/);
+        expect(String(body.error)).not.toMatch(/maximum number|payment methods attached/);
+        expect(creates()).toHaveLength(2);
+      });
+
+      it("not saving: nothing to drop, so no retry, a 409", async () => {
+        seedEscrow();
+        scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_full" }] };
+        stripeMock.checkout.sessions.create.mockRejectedValueOnce(tooMany());
+        const fn = await load();
+        const res = await fn.fetch(fn.request({ headers: AUTH, body: { action: "escrow", jobId: "job-1", saveCardForFuture: false } }));
+        expect(res.status).toBe(409);
+        expect(creates()).toHaveLength(1);
+      });
+
+      it("a repeating job keeps its save (its later visits charge that card, Q734): no retry, a 409", async () => {
+        seedEscrow();
+        scenario.reads.jobs = { rows: [{ ...(scenario.reads.jobs as any).rows[0], recurrence_days: 7 }] };
+        scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_full" }] };
+        stripeMock.checkout.sessions.create.mockRejectedValueOnce(tooMany());
+        const res = await escrow();
+        expect(res.status).toBe(409);
+        expect(creates()).toHaveLength(1);
+        expect(creates()[0][0].payment_intent_data.setup_future_usage).toBe("off_session");
+      });
+
+      it("any other Stripe refusal is never retried and stays the old 500", async () => {
+        seedEscrow();
+        scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_full" }] };
+        stripeMock.checkout.sessions.create.mockRejectedValueOnce(Object.assign(new Error("Invalid currency"), { type: "StripeInvalidRequestError", statusCode: 400 }));
+        const res = await escrow();
+        expect(res.status).toBe(500);
+        expect(creates()).toHaveLength(1);
+      });
     });
 
     it("no tagged customer: a new wallet customer is made (idempotent per member and mode) and claimed", async () => {
@@ -776,8 +848,8 @@ describe("create-payment edge function", () => {
         expect(call?.args).toMatchObject({ p_retired_session: null });
       });
 
-      // @mutate supabase/functions/create-payment/index.ts | ...(saveCardForFuture === true ? { setup_future_usage: "off_session" as const } : {}), |
-      // @mutate supabase/functions/create-payment/index.ts | wallet_save: saveCardForFuture === true ? "1" : "" }, | wallet_save: "" },
+      // @mutate supabase/functions/create-payment/index.ts | ...(saveDiff ? { setup_future_usage: "off_session" as const } : {}), |
+      // @mutate supabase/functions/create-payment/index.ts | wallet_save: saveDiff ? "1" : "" }, | wallet_save: "" },
       it("sets setup_future_usage off_session on the shortfall intent when saveCardForFuture is true", async () => {
         seedGiftShortfall();
         scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_existing" }] };
@@ -796,6 +868,36 @@ describe("create-payment edge function", () => {
         expect(params.payment_intent_data.metadata.gift_card_id).toBe("gift-1");
         // Marked so stripe-webhook makes the saved card the wallet's default (Q2139).
         expect(params.metadata.wallet_save).toBe("1");
+      });
+
+      // Q1816 (lh-money-escrow follow-up on 3282b2b26d): the shortfall Checkout at Stripe's payment-method limit.
+      // @mutate supabase/functions/create-payment/index.ts | const diffSession = await withSavedCardLimit(saveCardForFuture === true, job.recurrence_days == null, | const diffSession = await withSavedCardLimit(false, job.recurrence_days == null,
+      // @mutate supabase/functions/create-payment/index.ts | ${saveDiff === (saveCardForFuture === true) ? "" : ":nosave"}` | `
+      it("at Stripe's payment-method limit the shortfall retries ONCE without saving, same lines and gift, its own key", async () => {
+        seedGiftShortfall();
+        scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_full" }] };
+        stripeMock.checkout.sessions.create.mockRejectedValueOnce(
+          Object.assign(new Error("Customer has maximum number of payment methods attached."), { type: "StripeInvalidRequestError", statusCode: 400 }),
+        );
+        const fn = await load();
+        const res = await fn.fetch(fn.request({
+          headers: AUTH,
+          body: { action: "escrow", jobId: "job-1", giftCardId: "gift-1", saveCardForFuture: true },
+        }));
+        expect(res.status).toBe(200);
+        expect((await json(res)).url).toBe("https://checkout.stripe.test/cs_diff");
+        const calls = stripeMock.checkout.sessions.create.mock.calls as Array<[Record<string, any>, { idempotencyKey: string }]>;
+        expect(calls).toHaveLength(2);
+        const [[first, firstOpts], [second, secondOpts]] = calls;
+        expect(first.payment_intent_data.setup_future_usage).toBe("off_session");
+        expect("setup_future_usage" in second.payment_intent_data).toBe(false);
+        expect(second.metadata.wallet_save).toBe("");
+        expect(second.line_items).toEqual(first.line_items);
+        expect(second.payment_intent_data.metadata).toEqual(first.payment_intent_data.metadata);
+        expect(second.payment_intent_data.metadata.gift_card_id).toBe("gift-1");
+        expect(firstOpts.idempotencyKey).toMatch(/^gift-card-diff-job-1/);
+        expect(secondOpts.idempotencyKey).toBe(`${firstOpts.idempotencyKey}:nosave`);
+        expect(shortfallStamp().stripe_session_id).toBe("cs_diff");
       });
 
       // Roadmap F3b (owner 2026-10-15): the urgent bonus is part of the job
@@ -837,7 +939,7 @@ describe("create-payment edge function", () => {
         expect(shortfallStamp()).toHaveProperty("customer_fee_amount", 0);
       });
 
-      // @mutate supabase/functions/create-payment/index.ts | ...(saveCardForFuture === true ? { setup_future_usage: "off_session" as const } : {}), | setup_future_usage: "off_session" as const,
+      // @mutate supabase/functions/create-payment/index.ts | ...(saveDiff ? { setup_future_usage: "off_session" as const } : {}), | setup_future_usage: "off_session" as const,
       it("does not save the card when the poster did not ask", async () => {
         seedGiftShortfall();
         const fn = await load();

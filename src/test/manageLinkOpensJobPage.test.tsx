@@ -17,7 +17,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import type { ReactNode } from "react";
-import { manageLinkOpensJobPage } from "@/components/job-card/useManageDeepLink";
+import { manageLinkOpensJobPage } from "@/components/job-card/manageLinkOpensJobPage";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
 // The Posted list and Browse stand in as markers: what matters is whether JobsSection mounts the list at all.

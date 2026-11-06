@@ -1,4 +1,5 @@
 import { lazy, type ComponentType } from "react";
+import { loadModule, untilReload } from "@/lib/loadModule";
 import type { JobDetailDialogProps } from "@/components/dashboard/JobDetailDialog";
 import type { ReportDialogProps } from "@/components/ReportDialog";
 import type { BirthdayPopupProps } from "@/components/BirthdayPopup";
@@ -11,6 +12,10 @@ export const ApplyBody = lazy(() => import("@/components/dashboard/applyConfirmD
 export const ApplyConfirmDialog = lazy(() => import("@/components/dashboard/ApplyConfirmDialog").then(m => ({ default: m.ApplyConfirmDialog })));
 export const ReportDialog = lazy<ComponentType<ReportDialogProps>>(() => import("@/components/ReportDialog"));
 export const BirthdayPopup = lazy<ComponentType<BirthdayPopupProps>>(() => import("@/components/BirthdayPopup"));
+// The "Application sent" sheet (Q1158, 11-06): shown only after an apply, so off /jobs' first round.
+export const ApplicationSentDialog = lazy(() =>
+  loadModule(() => import("@/components/dashboard/ApplicationSentDialog")).then((m) => (m ? { default: m.ApplicationSentDialog } : untilReload())),
+);
 // Map column for the web-desktop two-pane (the map surface pulls Apple's
 // MapKit JS from the CDN — lazy so the phone/native feed never pays for it).
 export const BrowseMap = lazy(() => import("@/components/BrowseMap").then(m => ({ default: m.BrowseMap })));

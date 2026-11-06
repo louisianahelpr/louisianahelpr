@@ -4,7 +4,7 @@ import { Sheet, SheetContent, SheetDestructiveAction, SheetFooter, SheetHero, Sh
 import { TimePickerWheel } from "@/components/TimePickerWheel";
 import { formatJobDate } from "@/lib/dateUtils";
 import { jobStartTimeLabel } from "@/lib/jobDate";
-import { chipStyles } from "@/components/dashboard/JobFilters";
+import { FilterChip } from "@/components/ui/FilterChip";
 import { useScheduleChangeAct } from "./ScheduleChangeControl";
 import { requestScheduleChange } from "@/lib/scheduleChange";
 
@@ -54,9 +54,6 @@ export function ChangeJobSheet({
   const first = helperName.split(" ")[0] || helperName;
   const now = [formatJobDate(dateNeeded), jobStartTimeLabel(startTime)].filter(Boolean).join(" · ");
   const unchanged = date === dateNeeded && time === (startTime ?? "").slice(0, 5);
-  const { chipBase, chipActive, chipIdle } = chipStyles;
-  // The shared chip is 40 px (board 24); this strip is thumbed sideways on a phone, so its chips meet the 44 px floor.
-  const dayChip = chipBase.replace("min-h-10", "min-h-11");
   const card = (on: boolean) =>
     `flex w-full items-start gap-3 rounded-[20px] bg-card px-4 py-3.5 text-left ${on ? "border-2 border-primary" : "border border-border"}`;
 
@@ -92,10 +89,11 @@ export function ChangeJobSheet({
           <div className="mt-4 space-y-3">
             <p className="text-ds-14 font-semibold">New time</p>
             <div role="group" aria-label="New day" className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
+              {/* The shared chip is 40 px (board 24); this strip is thumbed sideways on a phone: size="tall" meets the 44 px floor. */}
               {days.map((d) => (
-                <button key={d} type="button" aria-pressed={date === d} className={`${dayChip} shrink-0 ${date === d ? chipActive : chipIdle}`} onClick={() => setDate(d)}>
+                <FilterChip key={d} size="tall" pressed={date === d} className="shrink-0" onClick={() => setDate(d)}>
                   {formatJobDate(d)}
-                </button>
+                </FilterChip>
               ))}
             </div>
             <TimePickerWheel value={time} onChange={setTime} ariaLabel="New start time" />

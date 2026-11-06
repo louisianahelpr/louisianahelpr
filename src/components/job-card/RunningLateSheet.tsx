@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
-import { chipStyles } from "@/components/dashboard/JobFilters";
+import { FilterChip } from "@/components/ui/FilterChip";
 import { hapticError, hapticSuccess } from "@/lib/haptics";
 
 const MINUTES = [10, 20, 30] as const;
@@ -43,7 +43,6 @@ export function RunningLateSheet({
   const [sending, setSending] = useState(false);
   // By first name when the card has it; never he/she, never "the poster".
   const first = posterName.trim().split(/\s+/)[0] ?? "";
-  const { chipBase, chipActive, chipIdle } = chipStyles;
   const send = async () => {
     setSending(true);
     try {
@@ -76,14 +75,14 @@ export function RunningLateSheet({
         <SheetHero title="Running late?" />
         <div role="group" aria-label="How late" className="flex flex-wrap gap-2">
           {MINUTES.map((m) => (
-            <button key={m} type="button" aria-pressed={minutes === m} className={`${chipBase} ${minutes === m ? chipActive : chipIdle}`} onClick={() => setMinutes(m)}>
+            <FilterChip key={m} pressed={minutes === m} onClick={() => setMinutes(m)}>
               {m} min
-            </button>
+            </FilterChip>
           ))}
           {onNeedNewTime && (
-            <button type="button" className={`${chipBase} ${chipIdle}`} onClick={() => { onOpenChange(false); onNeedNewTime(); }}>
+            <FilterChip onClick={() => { onOpenChange(false); onNeedNewTime(); }}>
               Need a new time
-            </button>
+            </FilterChip>
           )}
         </div>
         <p className="mt-3 text-ds-13 text-muted-foreground">{first || "They"} get{first ? "s" : ""} a message right away with your new arrival time.</p>

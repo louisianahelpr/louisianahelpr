@@ -3,8 +3,27 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { FIELD_SURFACE_CLS } from "./fieldSurface";
 
-const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+/**
+ * The Declutter Sell form's field look (52 px, 14 px corners, on the card colour, olive edge on focus): the
+ * `look="card"` Input below, and the className the Sell form's description Textarea and address field share
+ * (SellFormParts' SELL_INPUT). Q2709 Declutter packet, 2026-11-06: the Sell / Edit title boxes were hand-made
+ * <input>s with exactly this class set; they are `<Input look="card">` now. Plain concatenation, not
+ * tailwind-merge, so the rendered class SET is the hand-made one (lead 11-06: convert only what stays
+ * look-identical). Guard: src/test/inputCardLookShared.test.tsx.
+ */
+export const CARD_FIELD_CLS =
+  "w-full h-[52px] rounded-[14px] border border-border bg-card px-4 text-ds-15 text-foreground focus:border-primary focus:outline-none placeholder:text-muted-foreground";
+
+type InputProps = React.ComponentProps<"input"> & {
+  /** "card": the Sell form's field look (CARD_FIELD_CLS), class for class; the default is the shared glass field. */
+  look?: "field" | "card";
+};
+
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+  ({ className, type, look = "field", ...props }, ref) => {
+    if (look === "card") {
+      return <input type={type} className={`${CARD_FIELD_CLS} ${className ?? ""}`.trim()} ref={ref} {...props} />;
+    }
     return (
       <input
         type={type}

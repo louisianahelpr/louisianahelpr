@@ -6,6 +6,7 @@
 import type { ReactNode } from "react";
 import { AddressNeedsExactSpot } from "./AddressNeedsExactSpot";
 import { Checkbox } from "@/components/ui/checkbox";
+import { CARD_FIELD_CLS } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import type { SellerHandover } from "@/lib/declutter/api";
 import { centsToDollars } from "@/lib/declutter/money";
@@ -20,8 +21,8 @@ import { TaxStatementsCheck } from "./declutterUi";
 import { DROPS_SWITCH_LABEL, priceTooLowForDrops } from "./sellForm";
 import type { SellFlow } from "./useSellFlowState";
 
-export const SELL_INPUT =
-  "w-full h-[52px] rounded-[14px] border border-border bg-card px-4 text-ds-15 text-foreground focus:border-primary focus:outline-none placeholder:text-muted-foreground";
+/** The Sell form field look, shared with the card-look Input (src/components/ui/input.tsx). */
+export const SELL_INPUT = CARD_FIELD_CLS;
 
 export function FieldLabel({ htmlFor, text, extra }: { htmlFor: string; text: string; extra?: string }) {
   return (

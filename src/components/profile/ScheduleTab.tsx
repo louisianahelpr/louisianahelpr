@@ -1,3 +1,4 @@
+import { PopoverPillTrigger } from "@/components/ui/PopoverPillTrigger";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -410,19 +411,10 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                     ScheduleCard's own "Posted"/"Assigned" chip labels. */}
                 <Popover>
                   <PopoverTrigger asChild>
-                    <button
-                      type="button"
-                      aria-label={`Filter: ${UPCOMING_FILTERS.find((f) => f.value === upcomingFilter)?.label}`}
-                      className="shrink-0 inline-flex items-center gap-1.5 rounded-full h-8 px-3 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all"
-                      style={{
-                        background: "hsl(var(--ivory-sand) / 0.65)",
-                        border: "1px solid hsl(var(--olivewood) / 0.18)",
-                        color: "hsl(var(--olivewood))",
-                      }}
-                    >
+                    <PopoverPillTrigger compact aria-label={`Filter: ${UPCOMING_FILTERS.find((f) => f.value === upcomingFilter)?.label}`}>
                       <ListFilter className="w-3.5 h-3.5 shrink-0" />
                       {UPCOMING_FILTERS.find((f) => f.value === upcomingFilter)?.label}
-                    </button>
+                    </PopoverPillTrigger>
                   </PopoverTrigger>
                   <PopoverContent
                     aria-label="Filter upcoming jobs"

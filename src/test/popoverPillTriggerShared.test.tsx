@@ -1,6 +1,6 @@
 /**
  * Q2709 "nothing hand-made" (Profile packet, Builder 2, 2026-11-06; lead: convert ONLY what stays look-identical).
- * Saved Helprs' Filter and Sort pills (the two popover triggers) were hand-made <button>s with one class set and one
+ * Saved Helprs' Filter and Sort pills (the two popover triggers) and Schedule's Upcoming filter (compact) were hand-made <button>s with one class set and one
  * inline fill; they are the shared PopoverPillTrigger now. Look-identical by construction: the rendered class SET
  * equals the hand-made literal (CSS does not read class order), the off fill/edge/ink are the same inline style, the
  * on state is the glossy primary with no inline fill, and type stays "button". Radix's PopoverTrigger asChild still
@@ -10,6 +10,8 @@
  * @mutate src/components/ui/PopoverPillTrigger.tsx |         style={on ? style : { ...OFF_STYLE, ...style }} |         style={{ ...OFF_STYLE, ...style }}
  * @mutate src/components/ui/PopoverPillTrigger.tsx |         ref={ref}\n |         \n
  * @mutate src/components/profile/SavedHelpersTab.tsx |                     on={!!categoryFilter} |                     on={false}
+ * @mutate src/components/ui/PopoverPillTrigger.tsx | rounded-full h-8 px-3 | rounded-full h-9 px-3
+ * @mutate src/components/profile/ScheduleTab.tsx |                     <PopoverPillTrigger compact aria-label | <PopoverPillTrigger aria-label
  */
 import { createRef } from "react";
 import { describe, expect, it } from "vitest";
@@ -37,6 +39,15 @@ describe("Saved Helprs' Filter and Sort pills are the shared PopoverPillTrigger,
     const b = render(<PopoverPillTrigger on aria-label="Filter">x</PopoverPillTrigger>).container.querySelector("button")!;
     expect(set(b.className)).toEqual(set(`${HAND_MADE} btn-grad-primary text-[hsl(var(--parchment))]`));
     expect(b.getAttribute("style")).toBeNull();
+  });
+
+  it("compact (Schedule's Upcoming filter): the hand-made 32 px round set, same fill", () => {
+    const b = render(<PopoverPillTrigger compact aria-label="Filter">x</PopoverPillTrigger>).container.querySelector("button")!;
+    expect(set(b.className)).toEqual(set(HAND_MADE.replace("rounded-ds-md h-11", "rounded-full h-8")));
+    expect(b.getAttribute("style")).toContain("ivory-sand");
+    const s = readFileSync("src/components/profile/ScheduleTab.tsx", "utf8");
+    expect(s).not.toContain("rounded-full h-8 px-3 text-ds-11 font-sans font-semibold");
+    expect((s.match(/<PopoverPillTrigger compact\b/g) ?? []).length).toBeGreaterThan(0);
   });
 
   it("a Radix PopoverTrigger asChild still opens its popover from it", async () => {

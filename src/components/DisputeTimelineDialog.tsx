@@ -48,6 +48,7 @@ import { DisputeDecisionCard, DisputeTrack, cardCls, cardStyle, outcomeHeadline 
 import { userFacingError } from "@/lib/userFacingError";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 
 interface DisputeRow {
   id: string;
@@ -557,7 +558,7 @@ export const DisputeTimelineDialog = ({
                     style={{ color: "hsl(var(--bark))" }}
                   >
                     <Upload className="w-3.5 h-3.5" /> {evidenceFiles.length === 0 ? "Add photos" : "Add more"}
-                    <input type="file" accept="image/*" multiple onChange={handleFileChange} className="sr-only" />
+                    <HiddenFileInput accept="image/*" multiple onChange={handleFileChange} />
                   </label>
                 )}
               </div>

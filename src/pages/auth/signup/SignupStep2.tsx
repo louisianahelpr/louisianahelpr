@@ -7,6 +7,7 @@
 //
 // Validation lives in the parent (validateAboutYouStep).
 
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 import { useState, type ReactNode } from "react";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { Button } from "@/components/ui/button";
@@ -180,11 +181,9 @@ export function SignupStep2(props: SignupStep2Props) {
                 user's reach entirely. sr-only keeps it focusable; the dashed
                 circle shows the ring via focus-within. */}
             <span className="sr-only">{t("signup.photoUpload")}</span>
-            <input
+            <HiddenFileInput
               id="avatar"
-              type="file"
               accept="image/*"
-              className="sr-only"
               aria-invalid={!!fieldErrors.avatar}
               aria-describedby={fieldErrors.avatar ? "avatar-error" : undefined}
               onChange={(e) => { onAvatarChange(e); clearFieldError?.("avatar"); }}

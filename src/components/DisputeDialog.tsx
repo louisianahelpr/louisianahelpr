@@ -32,6 +32,7 @@ import { PROOF_PHOTO_TYPES, isAllowedUploadType, unsupportedUploadCopy } from "@
 import { report } from "@/lib/errorLogger";
 import { hapticHeavy, hapticSuccess, hapticError } from "@/lib/haptics";
 import { userFacingError } from "@/lib/userFacingError";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 
 interface DisputeDialogProps {
   jobId: string;
@@ -383,7 +384,7 @@ export const DisputeDialog = ({ jobId, side, open, onClose, onDisputed, jobTitle
                 style={{ color: "hsl(var(--bark))" }}
               >
                 <Upload className="w-3.5 h-3.5" /> {evidenceFiles.length === 0 ? "Add photos" : "Add more"}
-                <input type="file" accept="image/*" multiple onChange={handleFileChange} className="sr-only" />
+                <HiddenFileInput accept="image/*" multiple onChange={handleFileChange} />
               </label>
             )}
           </div>

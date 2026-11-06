@@ -7,6 +7,7 @@
  * stands. While it is open the Helpr's pay waits; an admin decides anything not fixed, and a refund is of the job
  * price. No fee numbers anywhere (owner rule).
  */
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 import { endSentence } from "@/lib/endSentence";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -120,12 +121,10 @@ function AskForFix({ job, userId }: { job: GuaranteeJob; userId: string }) {
           >
             <ImagePlus className="h-4 w-4" aria-hidden />
             Add photos
-            <input
+            <HiddenFileInput
               id="guarantee-photos"
-              type="file"
               accept="image/*"
               multiple
-              className="sr-only"
               onChange={(e) => setFiles(Array.from(e.target.files ?? []).slice(0, GUARANTEE_RULES.maxPhotos))}
             />
           </label>

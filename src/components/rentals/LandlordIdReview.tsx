@@ -10,6 +10,7 @@
  *   SendForReview    the one form: ID photos when the ID is still needed, the
  *                    ownership proof when the property needs it.
  */
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 import { useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Clock, ImageUp, ShieldAlert, ShieldCheck } from "lucide-react";
@@ -94,11 +95,9 @@ function FileField({ label, accept, onPick, disabled }: { label: string; accept:
           {name ?? "Tap to choose a file"}
         </span>
       </span>
-      <input
-        type="file"
+      <HiddenFileInput
         accept={accept}
         disabled={disabled}
-        className="sr-only"
         onChange={(e) => {
           const f = e.target.files?.[0] ?? null;
           setName(f?.name ?? null);

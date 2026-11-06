@@ -5,6 +5,7 @@
  */
 import { formatPrice } from "@/lib/declutter/distance";
 import { Button } from "@/components/ui/button";
+import { ChoicePill } from "@/components/ui/ChoicePill";
 import { PRICE_DROP_RUN_UTC, dropStepCents } from "@/lib/declutter/priceDrop";
 
 /** A step's Bodoni question and its one-line helper (spec §1.2, §3 "Step-by-step flows"). */
@@ -33,13 +34,12 @@ export function ChipGroup({ label, options, value, onChange, groups, compact = f
   onChange: (v: string) => void;
   groups?: { heading: string; values: string[] }[];
 }) {
+  // Q2709 (owner pop-up 11-06 7 AM, "switch"): the app's shared ChoicePill, 44 px tall with its focus ring (was a 40 px copy).
   const chip = (o: { value: string; label: string }) => (
-    <button key={o.value} type="button" role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)}
-      // The selected look inline, with its declared ink, so the gradInkContrast resolver can rebuild it.
-      data-chip-compact={compact ? "" : undefined}
-      className={`flex min-h-10 items-center rounded-full ${compact ? "px-3" : "px-4"} text-ds-13 font-semibold ${value === o.value ? "btn-grad-primary !text-[hsl(var(--parchment))]" : "border border-border bg-card text-foreground"}`}>
+    <ChoicePill key={o.value} selected={value === o.value} onClick={() => onChange(o.value)}
+      data-chip-compact={compact ? "" : undefined} className={compact ? "px-3" : undefined}>
       {o.label}
-    </button>
+    </ChoicePill>
   );
   return (
     <div className="space-y-2" role="radiogroup" aria-label={label}>

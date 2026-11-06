@@ -26,6 +26,7 @@ import {
   acceptOrder,
   declineOrder,
   fetchShopOrders,
+  fetchShopOrderBuyerNames,
   formatCents,
   timeLeftText,
   type ShopOrder,
@@ -78,6 +79,17 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
     queryFn: () => fetchShopOrders(user!.id),
     enabled: !!user?.id && !!myId.data,
   });
+  // Q2104: who ordered (first names only). A failed read leaves the headings without a name; the orders still show.
+  const orderIds = (orders.data ?? []).map((o) => o.id);
+  const buyerNames = useQuery({
+    queryKey: ["shops", "shop-orders", user?.id ?? null, "buyer-names", orderIds],
+    queryFn: () => fetchShopOrderBuyerNames(orderIds),
+    enabled: orderIds.length > 0,
+  });
+  const from = (o: ShopOrder, base: string, word: string) => {
+    const name = buyerNames.data?.[o.id];
+    return name ? `${base} ${word} ${name}` : base;
+  };
   const [status, toggleStatus] = useStatusFilter(SHOP_GROUPS);
   const show = (g: ShopGroup) => status === null || status === g;
   const Frame = embedded ? EmbeddedFrame : AppPage;
@@ -182,7 +194,7 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
               ) : (
                 <ul className="space-y-3">
                   {waiting.map((o) => (
-                    <ShopOrderCard key={o.id} order={o} side="shop" heading="New order">
+                    <ShopOrderCard key={o.id} order={o} side="shop" heading={from(o, "New order", "from")}>
                       <p className="text-xs font-semibold" data-testid="shop-order-time-left">
                         {timeLeftText(o.accept_by, now) ?? "The time to answer has passed; this order is closing."}
                       </p>
@@ -216,7 +228,7 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
                 <h2 id="shop-accepted" className="text-sm font-semibold">Accepted: make these</h2>
                 <ul className="space-y-3">
                   {accepted.map((o) => (
-                    <ShopOrderCard key={o.id} order={o} side="shop" heading="Accepted order">
+                    <ShopOrderCard key={o.id} order={o} side="shop" heading={from(o, "Accepted order", "for")}>
                       {user && <ShopHandoverActions order={o} side="shop" userId={user.id} />}
                       <ShopCancelOrder order={o} />
                     </ShopOrderCard>
@@ -229,7 +241,7 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
                 <h2 id="shop-earlier" className="text-sm font-semibold">Earlier orders</h2>
                 <ul className="space-y-3">
                   {earlier.map((o) => (
-                    <ShopOrderCard key={o.id} order={o} side="shop" heading="Order">
+                    <ShopOrderCard key={o.id} order={o} side="shop" heading={from(o, "Order", "from")}>
                       {user && o.status === "handed_over" && <ShopHandoverActions order={o} side="shop" userId={user.id} />}
                     </ShopOrderCard>
                   ))}

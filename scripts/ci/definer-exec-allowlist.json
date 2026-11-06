@@ -660,6 +660,7 @@
     "shops_leave_review(uuid, integer, text)": "client",
     "shops_shop_reviews(uuid)": "client",
     "shops_my_order_review(uuid)": "client",
+    "shops_my_order_buyer_names(uuid[])": "client",
     "public_profile_work_photos(text)": "client",
     "my_job_photos()": "client",
     "set_job_photo_shown(uuid, text, boolean)": "client"

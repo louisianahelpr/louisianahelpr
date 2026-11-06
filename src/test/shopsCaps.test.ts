@@ -6,7 +6,7 @@
  * (no later migration may narrow them back without failing here), the limit the migrations leave, and the app's copy.
  * Behaviour: src/test/pglite/shopsCaps.pglite.mjs (11/11 applied 3x; --before 5 FAIL).
  *
- * @mutate supabase/migrations/20261105191330_shops_caps.sql |   IF p_price_cents IS NULL OR p_price_cents NOT BETWEEN 100 AND 500000 THEN | IF p_price_cents IS NULL OR p_price_cents NOT BETWEEN 100 AND 100000 THEN
+ * @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |   IF p_price_cents IS NULL OR p_price_cents NOT BETWEEN 100 AND 500000 THEN | IF p_price_cents IS NULL OR p_price_cents NOT BETWEEN 100 AND 100000 THEN
  * @mutate supabase/migrations/20261105191330_shops_caps.sql |    SET cap_cents = 10000000, |    SET cap_cents = 3000000,
  * @mutate supabase/migrations/20261105191330_shops_caps.sql | ADD CONSTRAINT shop_items_price_cents_check CHECK (price_cents BETWEEN 100 AND 500000); | ADD CONSTRAINT shop_items_price_cents_check CHECK (price_cents BETWEEN 100 AND 100000);
  * @mutate supabase/migrations/20261105191330_shops_caps.sql | ADD CONSTRAINT shop_order_lines_unit_cents_check CHECK (unit_cents BETWEEN 100 AND 500000); | ADD CONSTRAINT shop_order_lines_unit_cents_check CHECK (unit_cents BETWEEN 100 AND 100000);

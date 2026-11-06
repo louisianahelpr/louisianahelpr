@@ -57,12 +57,17 @@ export async function fetchItemOptions(shopId: string): Promise<Map<string, Shop
   return new Map(list.map((x) => [x.item_id, x]));
 }
 
-export async function saveItemOptions(itemId: string, optionNames: string[], variants: VariantInput[]): Promise<void> {
-  withWords(await supabase.rpc("shops_set_item_variants", {
+/**
+ * Saves the lists. Returns true when the words in the options failed the automatic check and a live item now waits
+ * for an admin (20261106194243: held_for_review), so the screen can say so instead of a plain "saved".
+ */
+export async function saveItemOptions(itemId: string, optionNames: string[], variants: VariantInput[]): Promise<boolean> {
+  const data = withWords(await supabase.rpc("shops_set_item_variants", {
     p_item_id: itemId,
     p_option_names: optionNames,
     p_variants: variants.map((v) => ({ values: v.values, price_cents: v.price_cents, stock_count: v.stock_count, active: v.active })),
   }), (e) => rpcErrorMessage("shops_set_item_variants", e));
+  return (data as { held_for_review?: boolean } | null)?.held_for_review === true;
 }
 
 /** "Large / Vanilla": the label an order line keeps (the SQL joins the values the same way). */

@@ -1,23 +1,24 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1172,
+    "calls": 1173,
     "files": 329,
     "rendering": 1089,
-    "suppressedByPolicy": 83,
+    "suppressedByPolicy": 84,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 224,
       "toast.error": 790,
+      "toast.info": 1,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 89,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 494,
+      "literal": 495,
       "template": 106,
       "dynamic": 624,
       "jsx": 0
@@ -10990,6 +10991,16 @@
     {
       "file": "src/components/shops/ShopItemOptionsEditor.tsx",
       "line": 106,
+      "kind": "toast.info",
+      "title": {
+        "form": "literal",
+        "text": "Options saved. A word in them needs a quick check, so the item is hidden until Louisiana Helpr looks at it."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopItemOptionsEditor.tsx",
+      "line": 107,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -11009,7 +11020,7 @@
     },
     {
       "file": "src/components/shops/ShopItemOptionsEditor.tsx",
-      "line": 110,
+      "line": 111,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

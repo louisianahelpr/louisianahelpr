@@ -102,8 +102,9 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
         };
       }));
     },
-    onSuccess: (_v, clear) => {
-      toast.success(clear ? "Options removed." : "Options saved.");
+    onSuccess: (held, clear) => {
+      if (held) toast.info("Options saved. A word in them needs a quick check, so the item is hidden until Louisiana Helpr looks at it.");
+      else toast.success(clear ? "Options removed." : "Options saved.");
       if (clear) { setLists([]); setRows({}); }
       onSaved();
     },

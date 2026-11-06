@@ -16,6 +16,9 @@
 --
 -- REPLAY-SAFETY: DROP CONSTRAINT IF EXISTS + ADD; CREATE OR REPLACE.
 
+-- DESTRUCTIVE-DDL-ACK: DROP CONSTRAINT public.shop_pickup_addresses.shop_pickup_addresses_postal_code_check
+-- ACK-REASON: the old '^7[01][0-9]{3}$' check let in Arkansas and unassigned ZIPs; the Louisiana-only CHECK is added just below.
+-- ACK-DATA-LOSS: no rows or values; only the looser check goes, and prod held 0 pickup addresses on 2026-11-06 (reviewer read).
 ALTER TABLE public.shop_pickup_addresses DROP CONSTRAINT IF EXISTS shop_pickup_addresses_postal_code_check;
 ALTER TABLE public.shop_pickup_addresses DROP CONSTRAINT IF EXISTS shop_pickup_addresses_postal_code_louisiana;
 ALTER TABLE public.shop_pickup_addresses

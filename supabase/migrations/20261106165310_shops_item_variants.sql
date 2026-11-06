@@ -86,6 +86,9 @@ CREATE INDEX IF NOT EXISTS shop_order_lines_variant_idx ON public.shop_order_lin
 -- once, each plain item once. (Not one NULLS NOT DISTINCT key: an item's
 -- deletion sets item_id and variant_id NULL on every line it had, and two
 -- combinations of one deleted item must not collide.)
+-- DESTRUCTIVE-DDL-ACK: DROP CONSTRAINT public.shop_order_lines.shop_order_lines_one_item
+-- ACK-REASON: the one-line-per-item key is replaced by the two partial unique indexes just below (one per combination, one per plain item).
+-- ACK-DATA-LOSS: no rows or values; only the old unique key goes, and prod held 0 shop order lines on 2026-11-06.
 ALTER TABLE public.shop_order_lines DROP CONSTRAINT IF EXISTS shop_order_lines_one_item;
 CREATE UNIQUE INDEX IF NOT EXISTS shop_order_lines_one_variant
   ON public.shop_order_lines (order_id, variant_id) WHERE variant_id IS NOT NULL;

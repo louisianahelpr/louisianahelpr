@@ -4,6 +4,7 @@ import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useSectionTabs, openingSoonLine } from "@/components/mobileNav/useSectionTabs";
 import { useHomeSummary } from "@/pages/home/homeDashboard/useHomeSummary";
 import type { SectionKey } from "@/components/sections/sectionsConfig";
+import { GlassTileButton } from "@/components/ui/GlassTileButton";
 
 type CountKey = "posted" | "working" | "selling" | "shopOrders";
 
@@ -53,13 +54,12 @@ export function YourActivity() {
           ACTIVITY_TILES[s.key].map((t) => {
             const n = t.count ? summary.counts[t.count] : 0;
             return (
-              <button
+              <GlassTileButton
                 key={`${s.key}-${t.label}`}
-                type="button"
                 data-activity-tile={`${s.key}:${t.label}`}
                 onClick={() => navigate(t.to)}
                 title={`${s.label} ${t.label}${n > 0 ? ` · ${n}` : ""}`}
-                className="btn-press liquid-glass text-left px-4 py-3 flex flex-col min-w-0"
+                className="px-4 py-3"
               >
                 {/* No aria-label: the tile's words ("Jobs Posted 2") are its name, so the visible text is in it (axe
                     label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491). The space keeps the two lines two words;
@@ -69,7 +69,7 @@ export function YourActivity() {
                   {t.label}
                   {n > 0 && <><span aria-hidden="true"> ·</span> {n}</>}
                 </span>
-              </button>
+              </GlassTileButton>
             );
           }),
         )}

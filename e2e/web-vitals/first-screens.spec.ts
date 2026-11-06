@@ -118,7 +118,9 @@ function firstScreens(): Screen[] {
   const src = readFileSync(join(ROOT, "src/boot/routePreload.ts"), "utf8");
   const block = src.slice(src.indexOf("export const ENTRY_ROUTE_CHUNKS"));
   const out: Screen[] = [];
-  for (const m of block.matchAll(/^ {2}"(\/[^"]*)": \{\n\s*guest: \[([^\]]*)\]/gm)) {
+  // A row keyed by a route PATTERN ("/declutter/item/:id", Q2708 11-05) has no URL to load here (an item id is live
+  // data); `[^":]` skips it. The item page's speed is measured on a live item by cwv-lab (Q2708's done-when).
+  for (const m of block.matchAll(/^ {2}"(\/[^":]*)": \{\n\s*guest: \[([^\]]*)\]/gm)) {
     // Signed in when the guest list only starts the sign-in gate; a page there (inline, or a shared loader such as
     // `login`) makes the screen public.
     out.push({ path: m[1], signedIn: m[2].trim() === "protectedRoute" });

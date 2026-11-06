@@ -5,11 +5,13 @@
  * "peer sr-only"); they are the shared HiddenFileInput now. Nothing visible can change: the class SET is the
  * hand-made one, the input stays type=file and focusable, and every caller keeps its own accept / capture /
  * multiple / tabIndex / handlers (uploadMimeParity still reads each accept= at the call site).
+ * Post a job (packet 2, same day): the photo grid, first-photo tile and video tile pickers.
  *
  * @mutate src/components/ui/HiddenFileInput.tsx | className={peer ? "peer sr-only" : "sr-only"} | className={peer ? "peer hidden" : "hidden"}
  * @mutate src/components/ui/HiddenFileInput.tsx | <input ref={ref} type="file" | <input ref={ref}
  * @mutate src/components/declutter/DeclutterBunchPhotos.tsx | <HiddenFileInput id={addId} accept="image/*" multiple peer | <HiddenFileInput id={addId} accept="image/*" multiple
  * @mutate src/components/declutter/DeclutterSellPhotos.tsx | <HiddenFileInput id="sell-files" accept="image/*" multiple | <HiddenFileInput id="sell-files" accept="image/*"
+ * @mutate src/components/postjob/detailsSection/VideoScope.tsx | <HiddenFileInput accept="video/*" | <HiddenFileInput accept="image/*"
  */
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
@@ -50,5 +52,21 @@ describe("Declutter's hidden photo pickers are the shared HiddenFileInput, class
       expect(tags.some((t) => /\speer\s/.test(t)), f).toBe(Boolean(peer));
     }
     expect(readFileSync("src/components/declutter/DeclutterSellPhotos.tsx", "utf8")).toContain('<HiddenFileInput id="sell-files" accept="image/*" multiple ');
+  });
+
+  it("Post a job (packet 2): the photo and video pickers inside their dashed tiles use it too", () => {
+    const POST: Record<string, string> = {
+      "src/components/postjob/detailsSection/PhotoReorderGrid.tsx": 'accept="image/*"',
+      "src/components/postjob/detailsSection/PhotoUpload.tsx": 'accept="image/*"',
+      "src/components/postjob/detailsSection/VideoScope.tsx": 'accept="video/*"',
+    };
+    expect(Object.keys(POST).length).toBeGreaterThan(2);
+    for (const [f, accept] of Object.entries(POST)) {
+      const s = readFileSync(f, "utf8");
+      expect(s, f).not.toMatch(/type="file"/);
+      const tags = s.split("<HiddenFileInput").slice(1).map((t) => t.slice(0, t.indexOf("/>")));
+      expect(tags.length, f).toBe(1);
+      expect(tags[0], f).toContain(accept);
+    }
   });
 });

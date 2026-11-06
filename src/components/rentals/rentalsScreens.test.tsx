@@ -606,10 +606,15 @@ describe("Rentals screens", () => {
     expect(await screen.findByText(/must be 18 or older/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Request a repair" })).toBeNull();
     unmount();
-    renderAt("/rentals?tab=own&add=1");
+    const added = renderAt("/rentals?tab=own&add=1");
     expect(await screen.findByText(/must be 18 or older/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Add a property" })).toBeNull();
     expect(screen.queryByLabelText("Property name")).toBeNull();
+    added.unmount();
+    // No property yet and not adding: the "Own a rental?" empty state, still without its Add a property button.
+    renderAt("/rentals?tab=own");
+    expect(await screen.findByText("Own a rental?")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Add a property" })).toBeNull();
   });
 
   it("the landlord can only decline after picking a reason (Q46)", async () => {

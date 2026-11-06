@@ -38,6 +38,7 @@ describe("the admin search ✕ is the shared FieldClearButton, class for class t
   });
 
   it("every admin search field uses it with right-1.5 and keeps focus on press; none keeps the hand-made ✕", () => {
+    const seen: string[] = [];
     for (const f of FILES) {
       const s = readFileSync(f, "utf8");
       expect(s, f).not.toContain("!min-h-0 !min-w-0 h-7 w-7 ctl-exit");
@@ -49,7 +50,10 @@ describe("the admin search ✕ is the shared FieldClearButton, class for class t
       expect(tag, f).toContain('aria-label="Clear search"');
       expect(tag, f).toContain("onMouseDown={(e) => e.preventDefault()}");
       expect(tag, f).toContain('className="right-1.5"');
+      seen.push(f);
     }
+    // Inventory floor: the 5 admin search fields measured 2026-11-06, each with its shared ✕.
+    expect(seen.length).toBeGreaterThan(4);
   });
 
   it("Messages' search ✕ (Messages packet): the shared one at its own inset, right-2.5", () => {

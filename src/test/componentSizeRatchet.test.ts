@@ -1,6 +1,7 @@
 // @mutate src/pages/jobs/AppliedJobCard.tsx | export const AppliedJobCard = memo(AppliedJobCardInner); | export const AppliedJobCard = memo(AppliedJobCardInner);\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n
 // @mutate src/components/messages/ConversationList.tsx | import "@/lib/i18n/enScreens";\n |
-// @mutate src/components/RichMessageInput.tsx | import { useCallback, useEffect, useState, useRef } from "react"; | import { useCallback, useEffect, useState, useRef } from "react";\n\n\n\n\n
+// @mutate src/components/RichMessageInput.tsx | import { useCallback, useEffect, useState, useRef } from "react"; | import { useCallback, useEffect, useState, useRef } from "react";\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n
+// @mutate src/components/messages/ConversationList.tsx | import "@/lib/i18n/enScreens";\n | import "@/lib/i18n/enScreens";\n\n
 /*
  * God components may only SHRINK, file by file (OPEN.md Q184).
  *

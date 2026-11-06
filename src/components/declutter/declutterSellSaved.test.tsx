@@ -10,7 +10,6 @@
  * @mutate src/components/declutter/useSellFlowState.ts |       setCreatedId(back.createdId); |       void setCreatedId;
  * @mutate src/components/declutter/useSellSaved.ts |     warn: hasWork && !finished.current, |     warn: false,
  * @mutate src/components/declutter/useSellSaved.ts |           if (!row) draftId = null; |           void row;
- * @mutate src/lib/authSignOut.ts |     clearSavedSellOne(), |     Promise.resolve(),
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";

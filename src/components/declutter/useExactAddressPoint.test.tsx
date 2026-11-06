@@ -158,8 +158,12 @@ describe("the four callers share it", () => {
   it("the moving sale's place comes from the shared lookup", () => {
     // The moving sale is the bunch flow now.
     const src = blankComments(readFileSync("src/components/declutter/DeclutterBunchView.tsx", "utf8"));
-    expect(src).toContain("const c = await place.locate(pickupAddress);");
-    expect(src).toContain("pickupLat: c.lat, pickupLng: c.lng");
+    // The List run itself, not the price-hint lookup above it (hintPoint has the same line).
+    const at = src.indexOf("startBunchRun(");
+    expect(at).toBeGreaterThan(-1);
+    const run = src.slice(at, src.indexOf("pickupLat: c.lat, pickupLng: c.lng", at));
+    expect(run).toContain("const c = await place.locate(pickupAddress);");
+    expect(src.slice(at)).toContain("pickupLat: c.lat, pickupLng: c.lng");
   });
   it("the hook import()s the lookup rather than bundling it", () => {
     const src = readFileSync("src/components/declutter/useExactAddressPoint.ts", "utf8");

@@ -25,16 +25,35 @@
 // the fee taxed like its items, candy on the food code). src/test/shopTaxCodes.test.ts pins this table.
 // Both codes live in salesTax.ts, the one module that may spell a txcd_ code
 // (src/test/stripeTaxCodes.test.ts).
-import { FOOD_FOR_HOME_TAX_CODE, GENERAL_TANGIBLE_GOODS_TAX_CODE } from "./salesTax.ts";
+//
+// Shops H8 (owner 11-05, answer 1: every category sells; migration 20261105235833):
+// - a RENTAL is the lease of tangible personal property, taxed like a sale of it (La. R.S. 47:301(7)(a) "lease or
+//   rental", 47:302(B)), so General - Tangible Goods;
+// - a SERVICE is taxed exactly as Jobs taxes labor (salesTax.ts laborTaxCode; R.S. 47:301.3, the enumerated list):
+//   untaxed unless its type is a repair of a movable item, carpet/furniture cleaning, clothes cleaning or
+//   alterations, which the order line carries as tax_kind (snapshotted from the item's type at the order).
+import { FOOD_FOR_HOME_TAX_CODE, GENERAL_TANGIBLE_GOODS_TAX_CODE, laborTaxCode } from "./salesTax.ts";
 
-export const SHOP_KIND_TAX_CODE: Readonly<Record<"made" | "home_food" | "farm", string>> = {
+export const SHOP_KIND_TAX_CODE: Readonly<Record<"made" | "home_food" | "farm" | "rental", string>> = {
   made: GENERAL_TANGIBLE_GOODS_TAX_CODE,
   home_food: FOOD_FOR_HOME_TAX_CODE,
   farm: FOOD_FOR_HOME_TAX_CODE,
+  rental: GENERAL_TANGIBLE_GOODS_TAX_CODE,
 };
 
-/** The code for a line's kind; an unknown kind fails closed (throws) so nothing is charged untaxed by accident. */
-export function shopTaxCode(kind: string): string {
+/** The four service answers an order line may carry (shop_order_lines.tax_kind, the jobs.tax_kind words). */
+export const SHOP_SERVICE_TAX_KINDS: ReadonlySet<string> = new Set(["item_repair", "fabric_cleaning", "clothes_cleaning", "clothing_alterations"]);
+
+/**
+ * The code for a line's kind (and, for a service, its tax answer). An unknown kind, or a tax answer that is not one of
+ * the four, fails closed (throws) so nothing is charged at a guessed rate.
+ */
+export function shopTaxCode(kind: string, taxKind?: string | null): string {
+  if (kind === "service") {
+    if (taxKind != null && !SHOP_SERVICE_TAX_KINDS.has(taxKind)) throw new Error(`no tax code for shop service answer ${taxKind}`);
+    return laborTaxCode(null, taxKind ?? null);
+  }
+  if (taxKind != null) throw new Error(`a ${kind} line carries no tax answer (${taxKind})`);
   const code = (SHOP_KIND_TAX_CODE as Record<string, string | undefined>)[kind];
   if (!code) throw new Error(`no tax code for shop item kind ${kind}`);
   return code;
@@ -51,14 +70,14 @@ export function shopTaxCode(kind: string): string {
  * dropped. Throws on an empty or zero-cents cart (nothing to split against).
  */
 export function splitBuyerFeeByTaxCode(
-  lines: ReadonlyArray<{ kind: string; line_cents: number }>,
+  lines: ReadonlyArray<{ kind: string; tax_kind?: string | null; line_cents: number }>,
   feeCents: number,
 ): Array<{ tax_code: string; cents: number }> {
   if (!Number.isInteger(feeCents) || feeCents < 0) throw new Error(`bad buyer fee ${feeCents}`);
   const byCode = new Map<string, number>();
   for (const l of lines) {
     if (!Number.isInteger(l.line_cents) || l.line_cents < 0) throw new Error(`bad line cents ${l.line_cents}`);
-    const code = shopTaxCode(l.kind);
+    const code = shopTaxCode(l.kind, l.tax_kind);
     byCode.set(code, (byCode.get(code) ?? 0) + l.line_cents);
   }
   const total = [...byCode.values()].reduce((a, b) => a + b, 0);

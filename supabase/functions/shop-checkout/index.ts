@@ -184,12 +184,12 @@ function addressRefused(e: unknown): boolean {
  */
 async function shopOrderTax(
   stripe: Stripe, orderId: string, address: PickupTaxAddress,
-  lines: Array<{ kind: string; line_cents: number }>, feeParts: Array<{ tax_code: string; cents: number }>,
+  lines: Array<{ kind: string; tax_kind: string | null; line_cents: number }>, feeParts: Array<{ tax_code: string; cents: number }>,
 ): Promise<{ calculationId: string; cents: number }> {
   const calc = await stripe.tax.calculations.create({
     currency: "usd",
     line_items: [
-      ...lines.map((l, i) => ({ amount: l.line_cents, reference: `line_${i + 1}`, tax_behavior: "exclusive" as const, tax_code: shopTaxCode(l.kind) })),
+      ...lines.map((l, i) => ({ amount: l.line_cents, reference: `line_${i + 1}`, tax_behavior: "exclusive" as const, tax_code: shopTaxCode(l.kind, l.tax_kind) })),
       ...feeParts.map((p, i) => ({ amount: p.cents, reference: `service_fee_${i + 1}`, tax_behavior: "exclusive" as const, tax_code: p.tax_code })),
     ],
     customer_details: { address, address_source: "shipping" },
@@ -276,12 +276,12 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   const o = await readOrder(admin, frozen.order_id);
   if (!o || o.status !== "awaiting_hold" || !o.seller_id) return json({ error: TRY_AGAIN }, 500);
   const { data: lineRows, error: linesErr } = await admin.from("shop_order_lines")
-    .select("title, kind, unit_cents, quantity, line_cents").eq("order_id", o.id);
+    .select("title, kind, tax_kind, unit_cents, quantity, line_cents").eq("order_id", o.id);
   if (linesErr) {
     console.error(`[shop-checkout] lines read failed: ${linesErr.message}`);
     return json({ error: TRY_AGAIN }, 503);
   }
-  const lines = (lineRows ?? []) as Array<{ title: string; kind: string; unit_cents: number; quantity: number; line_cents: number }>;
+  const lines = (lineRows ?? []) as Array<{ title: string; kind: string; tax_kind: string | null; unit_cents: number; quantity: number; line_cents: number }>;
   const itemsCents = lines.reduce((a, l) => a + l.line_cents, 0);
   if (lines.length === 0 || itemsCents !== o.items_cents || o.items_cents !== frozen.items_cents || o.premium_cents !== frozen.premium_cents) {
     console.error(`[shop-checkout] order ${o.id} amounts do not add up`);
@@ -322,7 +322,7 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
     quantity: l.quantity,
     price_data: {
       currency: "usd", unit_amount: l.unit_cents, tax_behavior: "exclusive",
-      product_data: taxed(l.title.slice(0, 120), shopTaxCode(l.kind)),
+      product_data: taxed(l.title.slice(0, 120), shopTaxCode(l.kind, l.tax_kind)),
     },
   }));
   // Memo Q5: the buyer's fee is taxed like the items it is charged on, split

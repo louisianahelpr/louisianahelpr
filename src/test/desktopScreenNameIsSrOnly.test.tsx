@@ -147,7 +147,10 @@ function renderActivity(tab: "posted" | "applied") {
 }
 
 function renderInbox() {
+  // The phone inbox shows the section tabs (nav redesign 2026-11-06), which read the feature switches.
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
+    <QueryClientProvider client={qc}>
     <MemoryRouter>
       <ConversationList
         conversations={[]}
@@ -160,7 +163,8 @@ function renderInbox() {
         setDeleteConvoConfirm={vi.fn()}
         onBatchArchive={vi.fn()}
       />
-    </MemoryRouter>,
+    </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

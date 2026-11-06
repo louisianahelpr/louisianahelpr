@@ -75,6 +75,7 @@ function routes(): { path: string; element: string }[] {
   }));
 }
 
+const ROUTE_PATHS = routes().map((r) => r.path);
 const PATTERNS = routes()
   .map((r) => r.path)
   .filter((p) => p !== "*")
@@ -83,7 +84,10 @@ const PATTERNS = routes()
 /** A path, or a path prefix ending in "/" (a template like `/jobs/${id}`), that some route serves. */
 function served(path: string): boolean {
   const probe = path.endsWith("/") && path !== "/" ? `${path}x` : path.replace(/(.)\/$/, "$1");
-  return PATTERNS.some((re) => re.test(probe));
+  if (PATTERNS.some((re) => re.test(probe))) return true;
+  // A section prefix used with startsWith ("/declutter/" lights the Declutter tab on /declutter/sell and
+  // /declutter/item/:id) is served when App.tsx serves the section root AND at least one route under it.
+  return path.endsWith("/") && path !== "/" && served(path.slice(0, -1)) && ROUTE_PATHS.some((p) => p.startsWith(path) && p.length > path.length);
 }
 
 /** A path at the start of a string literal (JS quotes, SQL quotes) or after our own host. */

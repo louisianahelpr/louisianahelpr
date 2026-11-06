@@ -27,15 +27,15 @@
  * contact-copy steps red on their planted defects, measured 2026-10-17).
  */
 // @mutate supabase/migrations/20261103124851_money_free_switch_handovers_shop_item_not_found_is_404.sql | BEGIN\n  PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n  SELECT * INTO v_shop FROM public.shops WHERE owner_id = v_uid FOR UPDATE; | BEGIN\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n  SELECT * INTO v_shop FROM public.shops WHERE owner_id = v_uid FOR UPDATE;
-// @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |     WHEN v_priv.ai_checked_at IS NOT NULL AND v_priv.ai_flag_reason IS NOT NULL THEN 'pending_review' |     WHEN v_priv.ai_checked_at IS NULL OR v_priv.ai_flag_reason IS NOT NULL THEN 'pending_review'
+// @mutate supabase/migrations/20261106194243_shops_option_words_checked.sql |     WHEN v_priv.ai_checked_at IS NOT NULL AND v_priv.ai_flag_reason IS NOT NULL THEN 'pending_review' |     WHEN v_priv.ai_checked_at IS NULL OR v_priv.ai_flag_reason IS NOT NULL THEN 'pending_review'
 // @mutate supabase/migrations/20261105173912_shops_items_live_at_once.sql |   IF v_item.status = 'live'\n | IF false\n
-// @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |     WHEN v_text_flag IS NOT NULL THEN 'pending_review'\n | \n
-// @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |     WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'\n | \n
-// @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |     WHEN v_recent_rejection THEN 'pending_review'\n | \n
+// @mutate supabase/migrations/20261106194243_shops_option_words_checked.sql |     WHEN v_text_flag IS NOT NULL THEN 'pending_review'\n | \n
+// @mutate supabase/migrations/20261106194243_shops_option_words_checked.sql |     WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'\n | \n
+// @mutate supabase/migrations/20261106194243_shops_option_words_checked.sql |     WHEN v_recent_rejection THEN 'pending_review'\n | \n
 // @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql | jsonb_build_object('note', v_note, 'owner_id', v_owner, 'shop_id', v_shop)); | jsonb_build_object('note', v_note));
 // @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |            rj.created_at, rj.details->>'note' |            NULL::timestamptz, NULL::text
-// @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |     IF public.shop_cottage_cap_reached(v_uid) THEN | IF false THEN
-// @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |   IF v_photos < 3 OR v_photos > 12 THEN | IF v_photos < 1 OR v_photos > 12 THEN
+// @mutate supabase/migrations/20261106194243_shops_option_words_checked.sql |     IF public.shop_cottage_cap_reached(v_uid) THEN | IF false THEN
+// @mutate supabase/migrations/20261106194243_shops_option_words_checked.sql |   IF v_photos < 3 OR v_photos > 12 THEN | IF v_photos < 1 OR v_photos > 12 THEN
 // @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |     WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish', 'label_says_home_kitchen', | WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish',
 // @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |   IF p_kind IS NULL OR p_kind NOT IN ('made', 'home_food', 'farm', 'service', 'rental') THEN |   IF p_kind IS NULL OR p_kind NOT IN ('made', 'home_food', 'farm', 'service') THEN
 // @mutate supabase/migrations/20261017061157_shops_items.sql | REVOKE ALL ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], text, text, text, text, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], text, text, text, text, text) FROM PUBLIC, anon;

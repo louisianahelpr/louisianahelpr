@@ -1069,6 +1069,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shops_admin_settle_held_refund: "20261019071055_shops_refunds_cancels_strikes.sql 6d0001f095b1ff76",
       shops_buyer_cancel_order: "20261104175521_q2390_last_member_not_found_is_404.sql 7ebae7958a42f34f", // Q2390 11-04: ERRCODE P0002 -> PT404 only
       shops_order_cancel_quote: "20261106194913_shops_helpr_delivery.sql 68b55433d93cc393", // Q2390 p22 read-only quote; Helpr delivery (20261106194913, money review owed): a late cancel quotes the delivery no Helpr picked up coming back
+      shop_order_refunds_recorded_cents: "20261106194913_shops_helpr_delivery.sql 0637300959ca02d6", // Helpr delivery money review: a read-only sum of the Stripe-confirmed delivery and order refunds on the charge, so a payout from it reads it whole; records no refund
       shops_shop_cancel_order: "20261103162420_q2390_handover_paid_refund_shop_cancel_photo_no_show_decline_not_found_is_404.sql ae7a26b0a9ef9269",
     },
     statements: {

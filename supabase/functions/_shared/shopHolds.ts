@@ -68,6 +68,22 @@ async function capturedFee(stripe: Stripe, paymentIntentId: string): Promise<num
   }
 }
 
+/** The deposit to capture for a deposit order; null for a full-payment order (capture the whole hold). */
+async function depositToCapture(admin: Db, orderId: string): Promise<number | null> {
+  const { data, error } = await admin.from("shop_orders").select("payment_plan, deposit_cents").eq("id", orderId).maybeSingle();
+  // Column not deployed yet (42703, edge ahead of the database): there is no deposit order yet, so capture in full.
+  if (error && (error as { code?: string }).code === "42703") return null;
+  if (error) throw new Error(`shop order plan read failed for ${orderId}: ${error.message}`);
+  const row = data as { payment_plan?: string | null; deposit_cents?: number | null } | null;
+  if (!row) throw new Error(`shop order ${orderId} not found for capture`);
+  if (row.payment_plan === "full_hold") return null;
+  const cents = row.deposit_cents;
+  if (row.payment_plan !== "deposit_50" || typeof cents !== "number" || !Number.isInteger(cents) || cents <= 0) {
+    throw new Error(`shop order ${orderId} has plan ${row.payment_plan} with no frozen deposit; not capturing`);
+  }
+  return cents;
+}
+
 export type CaptureOutcome = "captured" | "will_retry" | "hold_lost";
 
 /** The capture idempotency key of one attempt (the order's capture_attempts so far). */
@@ -83,11 +99,16 @@ function shopCaptureKey(orderId: string, attempt: number): string {
 export async function captureShopHold(
   stripe: Stripe, admin: Db, orderId: string, paymentIntentId: string, attempt: number,
 ): Promise<CaptureOutcome> {
+  // Custom orders slice 2 (20261106212437): a 50% deposit order captures ONLY its frozen deposit; Stripe captures a
+  // manual hold once and releases the rest (amount_to_capture). A deposit order with no frozen split is never
+  // captured in full: it throws, and the caller retries.
+  const amountToCapture = await depositToCapture(admin, orderId);
   let captured = false;
   let lost = false;
   let why = "";
   try {
-    const pi = await stripe.paymentIntents.capture(paymentIntentId, {}, { idempotencyKey: shopCaptureKey(orderId, attempt) });
+    const pi = await stripe.paymentIntents.capture(paymentIntentId, amountToCapture === null ? {} : { amount_to_capture: amountToCapture },
+      { idempotencyKey: shopCaptureKey(orderId, attempt) });
     captured = pi.status === "succeeded";
     if (!captured) why = `capture left the payment ${pi.status}`;
   } catch (e) {

@@ -57,6 +57,23 @@ export const TRADE_RPC_ERROR_COPY = {
     trade_rate_limited: TRADE_ERROR_COPY.trade_rate_limited,
     trades_off: TRADE_ERROR_COPY.trades_off,
   },
+  declutter_respond_swap: {
+    ...MEMBER,
+    free_item_no_trades: TRADE_ERROR_COPY.free_item_no_trades,
+    invalid_action: DC.invalid_action,
+    item_not_available: DC.item_not_available,
+    item_not_found: DC.item_not_found,
+    offered_item_not_available: TRADE_ERROR_COPY.offered_item_not_available,
+    offered_item_not_yours: TRADE_ERROR_COPY.offered_item_not_yours,
+    other_side_unavailable: DC.other_side_unavailable,
+    own_item: DC.own_item,
+    trade_expired: TRADE_ERROR_COPY.trade_expired,
+    trade_not_found: TRADE_ERROR_COPY.trade_not_found,
+    trade_not_open: TRADE_ERROR_COPY.trade_not_open,
+    // declutter_take_item's (the accept holds both items through it): the trade reads as closed.
+    offer_not_open: TRADE_ERROR_COPY.trade_not_open,
+    trades_off: TRADE_ERROR_COPY.trades_off,
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type TradeRpc = keyof typeof TRADE_RPC_ERROR_COPY;

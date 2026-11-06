@@ -21,6 +21,8 @@ import { declutterPreviewChecks } from "./declutterPreviewBackend";
 const ADMIN = "00000000-0000-4000-a000-000000000001";
 // Q2268: the bundle-request reads (no request here).
 vi.mock("@/lib/declutter/bundleRequest", async (orig) => ({ ...(await orig<object>()), fetchBundleRequests: async () => [] }));
+// Declutter trades slice 3: the trade cards' read (none here).
+vi.mock("@/lib/declutter/trades", async (orig) => ({ ...(await orig<object>()), fetchMyTrades: async () => [] }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: ADMIN }, profile: {}, isLoading: false }) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: ADMIN }, isReady: true }) }));
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));

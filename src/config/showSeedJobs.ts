@@ -188,4 +188,6 @@ export const SEED_GATED_SURFACES = [
   { surface: "shop state rule (members and anyone with the link)", object: "public.shop_state_ok" },
   { surface: "shop visibility (shops read policy, browse, shop page)", object: "public.shop_publicly_visible", via: "public.shop_state_ok" },
   { surface: "public shop page for anyone with the link (SH2b)", object: "public.shop_link_visible", via: "public.shop_state_ok" },
+  // Shops H9 (20261105230819): a test order's review stays out of every shop review reader while seeds are hidden.
+  { surface: "shop review blind rule (every shop review reader)", object: "public.shop_review_public" },
 ] as const;

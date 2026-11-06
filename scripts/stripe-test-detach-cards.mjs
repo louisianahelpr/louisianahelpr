@@ -25,6 +25,9 @@
  * Test seam: LH_STRIPE_API_BASE (loopback only). Guard: src/test/stripeTestDetachCards.test.ts.
  */
 import { apiBase } from "./lib/apiBase.mjs";
+import { assertFreshCheckout } from "./lib/freshCheckout.mjs";
+
+assertFreshCheckout(import.meta.url);
 
 export const DEFAULT_KEEP_NEWEST = 3;
 

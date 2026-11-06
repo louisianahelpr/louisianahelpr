@@ -53,7 +53,28 @@ $fn$;
 REVOKE ALL ON FUNCTION public.rentals_request_photo_rows(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.rentals_request_photo_rows(uuid) TO service_role;
 
--- 2. The request screen's read: the request's tenant or landlord, with the Homes switch on.
+-- The tenant's window (owner, 11-06): while the request's tenancy is active and for 90 days after it ends (the same
+-- window the rent sweep keeps an ended tenancy in, 20261019073106); then it stops. The landlord keeps access.
+CREATE OR REPLACE FUNCTION public.rentals_request_tenant_window_open(p_request_id uuid, p_uid uuid)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  SELECT p_uid IS NOT NULL AND EXISTS (
+    SELECT 1
+      FROM public.maintenance_requests r
+      JOIN public.rental_tenancies t ON t.id = r.tenancy_id
+     WHERE r.id = p_request_id
+       AND r.tenant_id = p_uid
+       AND t.tenant_id = p_uid
+       AND (t.status = 'active' OR (t.status = 'ended' AND t.ended_at > now() - interval '90 days')));
+$fn$;
+REVOKE ALL ON FUNCTION public.rentals_request_tenant_window_open(uuid, uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.rentals_request_tenant_window_open(uuid, uuid) TO service_role;
+
+-- 2. The request screen's read: the request's landlord, or its tenant inside their window, with the Homes switch on.
 CREATE OR REPLACE FUNCTION public.rentals_request_job_photos(p_request_id uuid)
 RETURNS TABLE (kind text, photo_path text)
 LANGUAGE plpgsql
@@ -69,7 +90,8 @@ BEGIN
     RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM public.maintenance_requests r
-                  WHERE r.id = p_request_id AND (r.tenant_id = v_uid OR r.landlord_id = v_uid)) THEN
+                  WHERE r.id = p_request_id
+                    AND (r.landlord_id = v_uid OR public.rentals_request_tenant_window_open(r.id, v_uid))) THEN
     RETURN;
   END IF;
   RETURN QUERY SELECT p.kind, p.photo_path FROM public.rentals_request_photo_rows(p_request_id) p ORDER BY p.kind DESC, p.photo_path;
@@ -92,6 +114,7 @@ AS $fn$
        SELECT 1
          FROM public.maintenance_requests r
         WHERE r.tenant_id = auth.uid()
+          AND public.rentals_request_tenant_window_open(r.id, auth.uid())
           AND r.job_id IS NOT NULL
           AND r.job_id::text = split_part(object_name, '/', 1)
           AND EXISTS (SELECT 1 FROM public.rentals_request_photo_rows(r.id) p WHERE p.photo_path = object_name));

@@ -22,6 +22,7 @@ import {
 } from "@/lib/rentals/listingCopy";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { RentalsCard } from "../rentalsUi";
+import { HomeListingReport } from "./HomeListingReport";
 
 const LISTING_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -110,7 +111,7 @@ function Gallery({ refs, listingId }: { refs: string[]; listingId: string }) {
 /**
  * /rentals/listings/:id (Homes -> Rent, RL1a): the listing page. Photos,
  * rent, facts, where (city + ZIP only, Q12). The owner sees its status and
- * an Edit link. Applying and messages come in the next slices.
+ * an Edit link; anyone else gets "Report this listing". Applying and messages come in the next slices.
  */
 export default function ListingView() {
   const { id } = useParams();
@@ -196,6 +197,7 @@ export default function ListingView() {
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <span>Louisiana Helpr checked that the person listing this home owns it. The street address is not shown here.</span>
         </p>
+        {!l.is_mine && <HomeListingReport listingId={l.id} />}
       </div>
     </AppPage>
   );

@@ -1,6 +1,6 @@
 
 // Moved out of ReportDialog.tsx unchanged (component-size ratchet, Q806).
-export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item" | "declutter_wanted" | "declutter_question" | "declutter_answer" | "declutter_review" | "shop" | "shop_item" | "shop_talk_message";
+export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item" | "declutter_wanted" | "declutter_question" | "declutter_answer" | "declutter_review" | "shop" | "shop_item" | "shop_talk_message" | "home_listing";
 
 interface Reason {
   label: string;
@@ -126,6 +126,17 @@ export const REASONS: Record<ReportedType, readonly Reason[]> = {
     { label: "Payment requested off Helpr" },
     { label: "Something else" },
   ],
+  // Homes report (audit 11-05 A-H2): a rent or for-sale listing. Listings go live at once once the property is
+  // approved, so members report the ones that slip through. Fair housing first: a listing may not state a preference
+  // by a protected class (42 U.S.C. 3604(c); La. R.S. 51:2606).
+  home_listing: [
+    { label: "Discriminates (fair housing)" },
+    { label: "Scam or fake listing" },
+    { label: "Not the real owner" },
+    { label: "Wrong or misleading details" },
+    { label: "Shares contact info" },
+    { label: "Something else" },
+  ],
 };
 
 /**
@@ -148,6 +159,7 @@ export const REPORTED_NOUN: Record<ReportedType, string> = {
   shop: "Shop",
   shop_item: "Item",
   shop_talk_message: "Message",
+  home_listing: "Listing",
 };
 
 /**
@@ -170,6 +182,7 @@ export const REPORTED_NOUN_INLINE: Record<ReportedType, string> = {
   shop: "shop",
   shop_item: "item",
   shop_talk_message: "message",
+  home_listing: "listing",
 };
 
 /**
@@ -191,4 +204,5 @@ export const REASON_PROMPT: Record<ReportedType, string> = {
   shop: "What's wrong with this shop?",
   shop_item: "What's wrong with this item?",
   shop_talk_message: "What's wrong with this message?",
+  home_listing: "What's wrong with this listing?",
 };

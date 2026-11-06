@@ -245,6 +245,14 @@ jobs:
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
             bash scripts/e2e/sweep-both-seats.sh
 
+      - name: Detach the test accounts' piled-up TEST saved cards (Q1816, #4151)
+        # "Customer has maximum number of payment methods attached" turns every
+        # money journey's checkout red. TEST key only (sk_test_, refused
+        # otherwise); customers read from stripe_customers for test/is_seed accounts.
+        env:
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+        run: node scripts/stripe-test-detach-cards.mjs
       - name: Run the journeys
         timeout-minutes: 48
         run: npx playwright test --project=journeys --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
@@ -414,6 +422,14 @@ jobs:
           SUPABASE_URL="$URL" SUPABASE_ANON_KEY="$KEY" POSTER_ACCESS_TOKEN="$TOKEN" \
             bash scripts/e2e/sweep-both-seats.sh
 
+      - name: Detach the test accounts' piled-up TEST saved cards (Q1816, #4151)
+        # "Customer has maximum number of payment methods attached" turns every
+        # money journey's checkout red. TEST key only (sk_test_, refused
+        # otherwise); customers read from stripe_customers for test/is_seed accounts.
+        env:
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+        run: node scripts/stripe-test-detach-cards.mjs
       - name: Run the journeys
         timeout-minutes: 48
         run: npx playwright test --project=journeys-webkit --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts

@@ -8,6 +8,7 @@
  * Post a job (packet 2, same day): the photo grid, first-photo tile and video tile pickers.
  * Profile (packet 3): Edit profile photo and the profile gate (CompleteProfile) required photo.
  * Jobs (packet 4): the applied job card's "Add cert or work sample" picker.
+ * The rest (packet 5): dispute evidence (2), Helpr Guarantee, sign-up photo, send-a-quote photos, rentals (2).
  *
  * @mutate src/components/ui/HiddenFileInput.tsx | className={peer ? "peer sr-only" : "sr-only"} | className={peer ? "peer hidden" : "hidden"}
  * @mutate src/components/ui/HiddenFileInput.tsx | <input ref={ref} type="file" | <input ref={ref}
@@ -16,6 +17,7 @@
  * @mutate src/components/postjob/detailsSection/VideoScope.tsx | <HiddenFileInput accept="video/*" | <HiddenFileInput accept="image/*"
  * @mutate src/pages/auth/CompleteProfile.tsx |                   id="avatar"\n                  accept="image/*" |                   accept="image/*"
  * @mutate src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx |             <HiddenFileInput |             <input type="file" className="sr-only"
+ * @mutate src/components/DisputeDialog.tsx | <HiddenFileInput accept="image/*" multiple onChange={handleFileChange} /> | <input type="file" accept="image/*" multiple onChange={handleFileChange} className="sr-only" />
  */
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
@@ -75,6 +77,26 @@ describe("Declutter's hidden photo pickers are the shared HiddenFileInput, class
     const at = s.indexOf("<HiddenFileInput");
     expect(at).toBeGreaterThan(-1);
     expect(s.slice(at, s.indexOf("onChange", at))).toContain('accept="image/*,application/pdf"');
+  });
+
+  it("the rest (packet 5): dispute, guarantee, sign-up, quote and rentals pickers use it; no sr-only file input is left", () => {
+    const REST: Record<string, string> = {
+      "src/components/DisputeDialog.tsx": 'accept="image/*"',
+      "src/components/DisputeTimelineDialog.tsx": 'accept="image/*"',
+      "src/components/guarantee/HelprGuaranteePanel.tsx": "accept=",
+      "src/pages/auth/signup/SignupStep2.tsx": "accept=",
+      "src/pages/quotes/SendQuotePage.tsx": 'accept="image/*"',
+      "src/components/rentals/LandlordIdReview.tsx": "accept=",
+      "src/components/rentals/listings/editorParts.tsx": "accept=",
+    };
+    expect(Object.keys(REST).length).toBeGreaterThan(6);
+    for (const [f, accept] of Object.entries(REST)) {
+      const s = readFileSync(f, "utf8");
+      expect(s, f).not.toMatch(/type="file"/);
+      const at = s.indexOf("<HiddenFileInput");
+      expect(at, f).toBeGreaterThan(-1);
+      expect(s.slice(at, s.indexOf("/>", at)), f).toContain(accept);
+    }
   });
 
   it("Post a job (packet 2): the photo and video pickers inside their dashed tiles use it too", () => {

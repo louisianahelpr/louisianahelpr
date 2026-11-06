@@ -5,6 +5,7 @@
  * Contact details in the note are refused by the server (the same filter as
  * messages), and that sentence is shown as it is.
  */
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 import { useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -181,13 +182,11 @@ function SendQuoteForm({ requestId, userId }: { requestId: string; userId: strin
           )}
           {photos.length < MAX_QUOTE_PHOTOS && (
             <>
-              <input
+              <HiddenFileInput
                 ref={fileRef}
                 id="quote-photos"
-                type="file"
                 accept="image/*"
                 multiple
-                className="sr-only"
                 onChange={(e) => void onFiles(e.target.files)}
               />
               <Button type="button" variant="outline" size="sm" disabled={uploading} onClick={() => fileRef.current?.click()}>

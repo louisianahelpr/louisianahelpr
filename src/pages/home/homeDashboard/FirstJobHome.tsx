@@ -3,6 +3,7 @@ import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { ListRow } from "@/components/ui/ListRow";
 import { Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
@@ -152,7 +153,7 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
           </h2>
           <div className="liquid-glass flex flex-col divide-y divide-border/60">
             {jobs.slice(0, NEAR_SHOWN).map((j) => (
-              <button key={j.id} type="button" title={j.title} onClick={() => navigate(`/jobs/${j.id}`)} className="min-h-11 flex items-center gap-3 px-card py-3 text-left">
+              <ListRow key={j.id} title={j.title} onClick={() => navigate(`/jobs/${j.id}`)} className="min-h-11 flex items-center gap-3 px-card py-3 text-left">
                 <span className="flex-1 min-w-0">
                   <span className="block text-ds-15 font-semibold text-foreground truncate">{j.title}</span>
                   <span className="block text-ds-13 text-muted-foreground truncate">
@@ -170,7 +171,7 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
                     feeStamp={{ helper_fee_flat_cents: j.helper_fee_flat_cents, helper_fee_percent: j.helper_fee_percent }}
                   />
                 )}
-              </button>
+              </ListRow>
             ))}
           </div>
         </section>

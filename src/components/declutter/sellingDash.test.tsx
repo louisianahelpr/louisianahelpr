@@ -77,6 +77,8 @@ const state = {
 // The Selling tab's "Your page" link reads the member's handle (its own test: src/test/yourPageLink.test.tsx).
 vi.mock("@/components/profile/YourPageLink", () => ({ YourPageLink: () => null }));
 vi.mock("@/lib/declutter/bundleRequest", async (orig) => ({ ...(await orig<object>()), fetchBundleRequests: async () => [] }));
+// Declutter trades slice 3: the trade cards' read (none here).
+vi.mock("@/lib/declutter/trades", async (orig) => ({ ...(await orig<object>()), fetchMyTrades: async () => [] }));
 vi.mock("@/lib/declutter/handover", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/handover")>()),
   fetchMyPayouts: async () => state.payouts,
@@ -861,7 +863,7 @@ describe("Selling tab: a sold listing says where its payout stands", () => {
 
   // NIGHT-BUYINGopenpr-3 (lead 10-31): "To answer" was empty with a buyer's report waiting on the seller's side. It
   // now counts each sale whose report waits on the seller and lists those sale cards (a chip never counts what it hides).
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks; |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + bundleAsks;
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks + tradeAsks; |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + bundleAsks + tradeAsks;
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} />}\n |
   // @mutate src/components/declutter/useSellerReportsToAnswer.ts |   return !!p && p.status === "open" && p.reporter_side !== "seller" && !p.other_side_note; |   return !!p && p.status === "open" && !p.other_side_note;
   // @mutate src/components/declutter/useSellerReportsToAnswer.ts |   return !!p && p.status === "open" && p.reporter_side !== "seller" && !p.other_side_note; |   return !!p && p.status === "open" && p.reporter_side !== "seller";

@@ -65,6 +65,8 @@ const state = {
 // The Selling tab's "Your page" link reads the member's handle (its own test: src/test/yourPageLink.test.tsx).
 vi.mock("@/components/profile/YourPageLink", () => ({ YourPageLink: () => null }));
 vi.mock("@/lib/declutter/bundleRequest", async (orig) => ({ ...(await orig<object>()), fetchBundleRequests: async () => [] }));
+// Declutter trades slice 3: the trade cards' read (none here).
+vi.mock("@/lib/declutter/trades", async (orig) => ({ ...(await orig<object>()), fetchMyTrades: async () => [] }));
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
 vi.mock("@/lib/declutter/bundle", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/bundle")>()),
@@ -884,7 +886,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
 
   // Audit DC-9: "To answer" left out unanswered questions and showed buyer-turn offers and the settings. It counts
   // and shows the seller-turn offers AND the unanswered questions on listings on sale, and nothing else.
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks; |   const toAnswer = (todo?.sellerOffers ?? 0) + reports.size + bundleAsks;
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |   const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks + tradeAsks; |   const toAnswer = (todo?.sellerOffers ?? 0) + reports.size + bundleAsks + tradeAsks;
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       {show("offers") && <QuestionsToAnswer userId={userId} />} |
   // @mutate src/components/declutter/DeclutterOffersSection.tsx |     const waiting = mine.filter((o) => o.status === "open" && o.awaiting === side); |     const waiting = mine.filter((o) => o.status === "open");
   // @mutate src/components/declutter/DeclutterMineViews.tsx |       {only === null && settings} |       {settings}

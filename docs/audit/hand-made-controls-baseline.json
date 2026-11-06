@@ -428,11 +428,11 @@
       "button": 2
     },
     "src/components/profile/SavedHelpersTab.tsx": {
-      "button": 7,
+      "button": 4,
       "input": 1
     },
     "src/components/profile/ScheduleTab.tsx": {
-      "button": 4
+      "button": 3
     },
     "src/components/profile/schedule/ScheduleCard.tsx": {
       "button": 2

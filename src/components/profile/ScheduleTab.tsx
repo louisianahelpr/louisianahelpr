@@ -1,3 +1,4 @@
+import { PopoverOptionButton } from "@/components/ui/PopoverOptionButton";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -431,17 +432,13 @@ export function ScheduleTab({ postedJobs, assignedJobs, loading, userId, onBack,
                     {UPCOMING_FILTERS.map((opt) => {
                       const active = opt.value === upcomingFilter;
                       return (
-                        <button
-                          aria-pressed={active}
+                        <PopoverOptionButton
                           key={opt.value}
-                          type="button"
                           onClick={() => setUpcomingFilter(opt.value)}
-                          className={`w-full text-left px-2.5 h-9 rounded-md text-ds-13 font-sans font-medium transition-colors ${
-                            active ? "btn-grad-primary text-[hsl(var(--parchment))]" : "text-foreground hover:bg-secondary/70"
-                          }`}
+                          selected={active}
                         >
                           {opt.label}
-                        </button>
+                        </PopoverOptionButton>
                       );
                     })}
                   </PopoverContent>

@@ -6,6 +6,7 @@
 // container) so the back button, top padding, and dock alignment
 // stay consistent with every other Profile sub-tab.
 
+import { PopoverOptionButton } from "@/components/ui/PopoverOptionButton";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Heart, Search, ArrowUpDown, ListFilter, X } from "lucide-react";
@@ -286,28 +287,20 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                       popover a few lines below used `btn-grad-primary` —
                       two menus on one row, selecting in two different
                       visual languages. */}
-                  <button
-                    aria-pressed={categoryFilter === null}
-                    type="button"
+                  <PopoverOptionButton
                     onClick={() => setCategoryFilter(null)}
-                    className={`w-full text-left px-2.5 h-9 rounded-md text-ds-13 font-sans font-medium transition-colors ${
-                      categoryFilter === null ? "btn-grad-primary text-[hsl(var(--parchment))]" : "text-foreground hover:bg-secondary/70"
-                    }`}
+                    selected={categoryFilter === null}
                   >
                     All Helprs
-                  </button>
+                  </PopoverOptionButton>
                   {CATEGORY_FILTER_OPTIONS.map(([value, label]) => (
-                    <button
-                      aria-pressed={categoryFilter === value}
+                    <PopoverOptionButton
                       key={value}
-                      type="button"
                       onClick={() => setCategoryFilter(value)}
-                      className={`w-full text-left px-2.5 h-9 rounded-md text-ds-13 font-sans font-medium transition-colors ${
-                        categoryFilter === value ? "btn-grad-primary text-[hsl(var(--parchment))]" : "text-foreground hover:bg-secondary/70"
-                      }`}
+                      selected={categoryFilter === value}
                     >
                       {label}
-                    </button>
+                    </PopoverOptionButton>
                   ))}
                 </PopoverContent>
               </Popover>
@@ -344,17 +337,13 @@ export function SavedHelpersTab({ onBack }: SavedHelpersTabProps) {
                   {sortOptions.map((opt) => {
                     const active = opt.value === sortBy;
                     return (
-                      <button
-                        aria-pressed={active}
+                      <PopoverOptionButton
                         key={opt.value}
-                        type="button"
                         onClick={() => setSortBy(opt.value)}
-                        className={`w-full text-left px-2.5 h-9 rounded-md text-ds-13 font-sans font-medium transition-colors ${
-                          active ? "btn-grad-primary text-[hsl(var(--parchment))]" : "text-foreground hover:bg-secondary/70"
-                        }`}
+                        selected={active}
                       >
                         {opt.label}
-                      </button>
+                      </PopoverOptionButton>
                     );
                   })}
                 </PopoverContent>

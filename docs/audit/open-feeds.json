@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-06T22:08Z",
+  "measured_at": "2026-11-06T22:44Z",
   "issues": {
     "readable": true,
     "open": [
@@ -111,7 +111,7 @@
         "number": 4149,
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42105316708",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42284047569",
         "runTruncated": false
       },
       {
@@ -132,6 +132,20 @@
         "number": 4199,
         "title": "🔴 Migration drift: 4 unapplied / 0 unrecorded",
         "label": "migration-drift"
+      },
+      {
+        "number": 4201,
+        "title": "nightly-red: main: Supabase DB Deploy",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42299568950",
+        "runTruncated": false
+      },
+      {
+        "number": 4202,
+        "title": "nightly-red: feature-switch-audience",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42268985095",
+        "runTruncated": false
       }
     ]
   },
@@ -184,6 +198,14 @@
         "source": "slack-ops-alert:custom",
         "status": "open",
         "title": "# cron http failure(s) in the last hour",
+        "issue": null
+      },
+      {
+        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
+        "source_kind": "workflow",
+        "source": "db-deploy",
+        "status": "open",
+        "title": "db-deploy failed on main",
         "issue": null
       },
       {
@@ -465,6 +487,8 @@
     "issue #4151": "Q1816",
     "issue #4197": "Q1816",
     "issue #4199": "Q2769",
+    "issue #4201": "Q1816",
+    "issue #4202": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",
@@ -482,6 +506,7 @@
     "ledger 41f88aeb227f": "Q1777",
     "ledger 43d77e26f272": "Q1816",
     "ledger 4aa239aefeb6": "Q1816",
+    "ledger 54ef0bfdcec3": "Q2770",
     "ledger 5a28db44e912": "Q2410",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 60298a019ea3": "Q1776",

@@ -218,9 +218,6 @@
     "src/components/declutter/DeclutterFilterPanel.tsx": {
       "input": 1
     },
-    "src/components/declutter/DeclutterFreeClaim.tsx": {
-      "input": 1
-    },
     "src/components/declutter/DeclutterGallery.tsx": {
       "button": 3
     },
@@ -229,12 +226,6 @@
     },
     "src/components/declutter/DeclutterManageListing.tsx": {
       "input": 2
-    },
-    "src/components/declutter/DeclutterMeetup.tsx": {
-      "input": 1
-    },
-    "src/components/declutter/DeclutterPorchPlaces.tsx": {
-      "input": 1
     },
     "src/components/declutter/DeclutterProblemPhotos.tsx": {
       "input": 1
@@ -257,17 +248,11 @@
     "src/components/declutter/DeclutterSellView.tsx": {
       "input": 1
     },
-    "src/components/declutter/DeclutterTradeViews.tsx": {
-      "input": 1
-    },
     "src/components/declutter/DeclutterWantedReplies.tsx": {
       "input": 1
     },
     "src/components/declutter/DeclutterWantedViews.tsx": {
       "input": 2
-    },
-    "src/components/declutter/DeliveryCantFinish.tsx": {
-      "input": 1
     },
     "src/components/declutter/DeliveryRaisePanel.tsx": {
       "input": 1

@@ -122,6 +122,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('rentals_public_listing_visible','allow',    'may anyone with the link see this Homes listing (visible, Homes open to everyone, not a test or seed owner; 20261019062540)'),
   ('rentals_listing_photo_access',  'allow',    'TRUE = the caller may upload into / read this listing-photos object (own folder, own open listing, not taken down; 20261019071203)'),
   ('rentals_listing_photo_deletable','allow',   'TRUE = the caller may delete this listing-photos object (own folder, readable, attached to nothing; 20261019071203)'),
+  ('rentals_request_tenant_window_open','allow', 'TRUE = this member is the tenant of this repair request and its tenancy is active or ended under 90 days ago (Q2058, 20261106215556)'),
   ('is_tenant_repair_photo',        'allow',    'TRUE = the caller may read this proof-photos object as the tenant of a repair request linked to its booked job (Q2058, 20261106215556)'),
   ('application_email_should_wait', 'action',   'VOLATILE: paces a poster''s applicant emails (counts or stamps); a NULL user answers false = send now, never a held email (20261025182522)'),
   ('job_match_email_should_wait',   'action',   'VOLATILE: paces a member''s job-match emails to one a day; a NULL user answers false = send now (20261025182522)'),
@@ -326,6 +327,7 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('rentals_public_listing_visible', NULL, ARRAY['''00000000-0000-4000-8140-000000000304''::uuid'], ARRAY[1]),
   -- D reads an object in D's own folder for D's listing L (not taken down), so TRUE for D.
   ('rentals_listing_photo_access',  '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000d/rental-listings/00000000-0000-4000-8140-000000000304/x.jpg''', '''select'''], ARRAY[1,2]),
+  ('rentals_request_tenant_window_open', NULL, ARRAY['''00000000-0000-4000-8140-000000000305''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]),
   ('is_tenant_repair_photo',        '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000101/00000000-0000-4000-8140-00000000000b/q140.jpg'''], ARRAY[1]),
   -- The same object is attached to nothing, so D may delete it.
   ('rentals_listing_photo_deletable','00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000d/rental-listings/00000000-0000-4000-8140-000000000304/x.jpg'''], ARRAY[1]),

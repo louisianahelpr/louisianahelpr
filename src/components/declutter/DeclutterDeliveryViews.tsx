@@ -419,7 +419,7 @@ function MyTaskCard({ t, userId, tipCents = 0 }: { t: MyTask; userId: string; ti
               </div>
             </>
           )}
-          {(v.status === "accepted" || v.status === "picked_up") && <HelprNoShowAnswer taskId={t.task_id} />}
+          {(v.status === "accepted" || v.status === "picked_up") && <HelprNoShowAnswer taskId={t.task_id} sourceKind={v.source_kind} />}
           {v.status === "picked_up" && !v.stuck_stage && toRoute}
           {["accepted", "picked_up", "delivered"].includes(v.status) && <DeliveryTalkButton taskId={t.task_id} />}
           {v.status === "picked_up" && <HelprCantFinish taskId={t.task_id} userId={userId} />}

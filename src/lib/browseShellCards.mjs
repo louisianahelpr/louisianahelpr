@@ -64,13 +64,14 @@ export const SHELL_JOB_COLUMNS =
 
 /**
  * The anon REST read api/share.ts (and the lab's dist server, scripts/perf/cwv-lab.mjs) makes: the masked
- * open_jobs_browse view, open jobs only, the guest feed's own filter, order and limit (src/lib/guestJobsQuery.ts),
- * only the drawn columns.
+ * open_jobs_browse view with the guest feed's own filter, order and limit (src/pages/home/fetchGuestJobs.ts), only
+ * the drawn columns. No status filter (Q2705): the view itself admits only open jobs and crews with spots left, the
+ * same rows the guest feed reads, so an empty answer means the feed is empty too (shellFeedIsEmpty); cards are drawn
+ * only for `open` rows (selectShellJobs).
  */
 export function browseShellRowsUrl(supabaseUrl) {
   const u = new URL(`${String(supabaseUrl).replace(/\/$/, "")}/rest/v1/open_jobs_browse`);
   u.searchParams.set("select", SHELL_JOB_COLUMNS);
-  u.searchParams.set("status", "eq.open");
   u.searchParams.set("payment_status", "neq.abandoned");
   u.searchParams.set("order", "boosted_at.desc.nullslast,created_at.desc");
   u.searchParams.set("limit", "40");
@@ -196,6 +197,15 @@ export function selectShellJobs(rows, now = Date.now()) {
     .map(({ j }) => j);
 }
 
+/**
+ * True when the read SUCCEEDED and the guest feed will draw no job at all: every row (if any) is past its
+ * expires_at, the one filter fetchGuestJobs applies to the same rows. A failed read (null) is never "empty".
+ */
+export function shellFeedIsEmpty(rows, now = Date.now()) {
+  if (!Array.isArray(rows)) return false;
+  return !rows.some((j) => j && typeof j === "object" && (!j.expires_at || Date.parse(j.expires_at) > now));
+}
+
 /** Text and attribute escaping for user-written values (a title). */
 export function escapeShellText(value) {
   return String(value)
@@ -276,6 +286,18 @@ export function shellFooterHtml(emblem, now = Date.now()) {
     .replace("<footer ", '<footer aria-hidden="true" inert="" ');
 }
 
+/**
+ * The guest feed's unfiltered empty state (DashboardGuest's web empty wrapper around EmptyState and
+ * GuestEmptyStateActions), byte for byte as React renders it (src/test/browseShellEmptyState.test.tsx renders the
+ * real components and requires this exact string), made a picture only (aria-hidden + inert: its buttons are the
+ * app's to press). WHY (Q2705, measured 11-06): with no guest-visible job open, the shell drew nothing and the page's
+ * LCP was this empty state's sentence at ~4.6 s live on Slow 4G, painted only by the app. Drawn here at the same
+ * place, the app's own copy later lands on the same pixels at the same size, which is not a larger paint.
+ * Edit the empty state, then paste the string the test prints.
+ */
+export const SHELL_EMPTY_HTML =
+  `<div aria-hidden="true" inert="" class="flex"><div class="empty-state-dock flex-1 min-w-0 max-w-full flex flex-col items-center text-center justify-center gap-5 px-5 sm:px-8 py-10" style="border-top-left-radius:0;border-top-right-radius:0;border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom:none;padding-bottom:calc(var(--safe-area-bottom, 0px) + var(--bottom-nav-h, 96px) + 2rem)" data-empty-state="dock"><div class="w-[88px] h-[88px] rounded-full flex items-center justify-center" style="background-color:var(--empty-bubble-bg);backdrop-filter:blur(20px) saturate(160%);-webkit-backdrop-filter:blur(20px) saturate(160%);border:1px solid hsl(var(--olivewood) / 0.09);box-shadow:inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.75), inset 0 -1px 1px 0 hsl(var(--bark) / 0.06), 0 1px 3px hsl(var(--olivewood) / 0.06), 0 6px 18px -4px hsl(var(--olivewood) / 0.10)" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search w-9 h-9" aria-hidden="true" style="color:hsl(var(--bark))"><path vector-effect="non-scaling-stroke" d="m21 21-4.34-4.34"></path><circle vector-effect="non-scaling-stroke" cx="11" cy="11" r="8"></circle></svg></div><div class="w-full min-w-0 flex flex-col items-center gap-3"><div class="w-full min-w-0 space-y-2"><p data-empty-title="" class="font-sans font-bold leading-tight break-words [text-wrap:balance] text-headline-section" style="color:hsl(var(--ink-deep));letter-spacing:-0.015em">Nothing today, neighbor.</p><p class="font-sans text-ds-13 leading-relaxed max-w-[26rem] mx-auto break-words [text-wrap:balance]" style="color:hsl(var(--olivewood) / 0.8)">New jobs post throughout the day — fresh work lands here as neighbors post it. Check back soon.</p></div><div class="flex flex-col items-center gap-2.5"><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 ctl-tint border border-border/60 bg-background/70 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_1px_1px_hsl(var(--ink-deep)/0.08),0_2px_6px_hsl(var(--ink-deep)/0.10),0_4px_12px_-2px_hsl(var(--ink-deep)/0.06)] active:scale-[0.97] active:shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_1px_1px_hsl(var(--ink-deep)/0.10)] h-11 px-5 text-ds-16 font-semibold">Notify me when work lands</button><button class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-bold tracking-[-0.01em] ring-offset-background transition-[transform,box-shadow,filter,background-color] duration-[150ms] ease-ds-spring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:active:scale-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:size-[18px] [&amp;_svg]:shrink-0 link-standard shadow-none h-11 px-4 text-ds-14 text-muted-foreground" type="button">Or hire someone for a job</button></div></div></div></div>`;
+
 /** PublicLayout's root class for a signed-out web visitor (src/test/browseShellFooter.test.tsx holds them equal). */
 export const SHELL_LAYOUT_CLASS =
   "min-h-screen page-warmth pb-[calc(var(--safe-area-bottom,0px)_+_var(--bottom-nav-h,96px))] relative flex flex-col overflow-x-clip";
@@ -285,11 +307,14 @@ export const BROWSE_SHELL_ID = "lh-browse-shell";
 
 /**
  * The whole overlay: GuestBrowseSkeleton's web frame (nav box, its spacer, the "Browse jobs" header, the card grid)
- * with real cards in the grid. Hidden inline until the app's stylesheet (async) applies: src/index.css shows it. "" when no row may be drawn: the page is then exactly what it was.
+ * with real cards in the grid, or the feed's empty state when the read succeeded with no live row (Q2705). Hidden inline
+ * until the app's stylesheet (async) applies: src/index.css shows it. "" when no row may be drawn and the feed is not
+ * known empty: the page is then exactly what it was.
  */
 export function browseShellHtml(rows, now = Date.now(), emblem = null) {
   const jobs = selectShellJobs(rows, now);
-  if (jobs.length === 0) return "";
+  const empty = shellFeedIsEmpty(rows, now);
+  if (jobs.length === 0 && !empty) return "";
   // The nav's H emblem (HelprMark size md, emblemOnly), the very file the page's own <img> and index.html's
   // #emblem-preload fetch, so the bar reads as the page's own from the first paint.
   const mark = emblem
@@ -298,7 +323,7 @@ export function browseShellHtml(rows, now = Date.now(), emblem = null) {
   // z-index above every layer the booting app draws (its nav is z-50, card tabs z-20): in the 11-01 lab filmstrip,
   // at z-index 2 the app's skeleton tabs showed through the overlay.
   return (
-    `<div id="${BROWSE_SHELL_ID}" class="min-h-screen bg-premium-page" style="position:fixed;inset:0;z-index:2147483000;overflow:hidden;visibility:hidden">` +
+    `<div id="${BROWSE_SHELL_ID}"${empty ? ' data-shell-empty=""' : ""} class="min-h-screen bg-premium-page" style="position:fixed;inset:0;z-index:2147483000;overflow:hidden;visibility:hidden">` +
     // PublicLayout's own frame (its class, its mesh, the flex-1 body, then the Footer), so the footer stands where the
     // app's does: on a short list the flex column pins it to the bottom of the first screen.
     // --bottom-nav-h 0: the overlay is only ever on a signed-out web /browse, where MobileNav zeroes it
@@ -308,9 +333,9 @@ export function browseShellHtml(rows, now = Date.now(), emblem = null) {
     `<div aria-hidden="true" class="fixed top-0 left-0 right-0 z-50 glass-nav" style="padding-top:max(var(--safe-area-top, 0px), 0.25rem)"><div class="w-full flex items-center justify-between h-[var(--public-nav-h)] px-5 sm:px-8 lg:px-12">${mark}</div></div>` +
     `<div aria-hidden="true" style="height:calc(max(var(--safe-area-top, 0px), 0.25rem) + var(--public-nav-h))"></div>` +
     `<div class="flex-1"><div class="mx-auto page-measure px-5 sm:px-8 lg:px-12 pt-[var(--shell-gap)] pb-[var(--shell-gap)] sm:pt-6 sm:pb-6"><div class="flex items-center gap-3"><div class="shrink-0"><span aria-hidden="true" class="w-11 h-11 -ml-2 flex items-center justify-center shrink-0" style="color:hsl(var(--olivewood))"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="m12 19-7-7 7-7"></path><path d="M19 12H5"></path></svg></span></div><div class="flex flex-col leading-none min-w-0"><h1 class="text-page-title leading-tight truncate">Browse jobs</h1></div></div></div>` +
-    `<div class="px-5 sm:px-8 lg:px-12 pb-16"><div class="mx-auto page-measure"><div class="grid grid-cols-1 gap-list md:grid-cols-2 md:gap-4">` +
-    jobs.map(cardHtml).join("") +
-    `</div></div></div></div>` +
+    `<div class="px-5 sm:px-8 lg:px-12 pb-16"><div class="mx-auto page-measure">` +
+    (empty ? SHELL_EMPTY_HTML : `<div class="grid grid-cols-1 gap-list md:grid-cols-2 md:gap-4">${jobs.map(cardHtml).join("")}</div>`) +
+    `</div></div></div>` +
     (emblem ? shellFooterHtml(emblem, now) : "") +
     `</div></div>`
   );

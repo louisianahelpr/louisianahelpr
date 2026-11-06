@@ -4,6 +4,7 @@
  * once its own feed has settled. One id across the renderer, the hand-off and the page.
  *
  * @mutate src/boot/browseShellHandoff.ts |   if (path !== "/browse" \|\| signedIn) { |   if (path !== "/browse") {
+ * @mutate src/boot/browseShellHandoff.ts |   const filteredEmpty = el.hasAttribute("data-shell-empty") && search !== "" && search !== "?"; |   const filteredEmpty = false;
  * @mutate src/boot/browseShellHandoff.ts |   doc.body.appendChild(el); |   void doc.body;
  * @mutate src/boot/browseShellHandoff.ts |   setTimeout(() => el.remove(), SHELL_MAX_MS); |   void SHELL_MAX_MS;
  * @mutate src/pages/home/useBrowseShellHandoff.ts |     if (settled) document.getElementById("lh-browse-shell")?.remove(); |     if (settled) void 0;
@@ -48,9 +49,20 @@ describe("adoptBrowseShell", () => {
       expect(shell(), `${path} ${signedIn}`).toBeNull();
     }
   });
+  it("the empty-state overlay (no job open) is dropped on a filtered URL, kept on the bare one", () => {
+    for (const [search, kept] of [["", true], ["?", true], ["?cat=moving", false], ["?q=yard", false]] as const) {
+      document.body.innerHTML = `<div id="root"><div id="boot-loader"><div id="${BROWSE_SHELL_ID}" data-shell-empty="">empty</div></div></div>`;
+      adoptBrowseShell("/browse", false, document, search);
+      expect(shell()?.parentElement ?? null, search).toBe(kept ? document.body : null);
+    }
+    // Cards are kept on a filtered URL as before (the app replaces them once its list draws).
+    page();
+    adoptBrowseShell("/browse", false, document, "?cat=moving");
+    expect(shell()?.parentElement).toBe(document.body);
+  });
   it("main.tsx adopts before the first createRoot, with the boot token probe", () => {
     const main = blankComments(readFileSync("src/main.tsx", "utf8"));
-    const at = main.indexOf("adoptBrowseShell(window.location.pathname, tokenProbeAtBoot());");
+    const at = main.indexOf("adoptBrowseShell(window.location.pathname, tokenProbeAtBoot(), document, window.location.search);");
     expect(at).toBeGreaterThan(0);
     expect(at).toBeLessThan(main.indexOf("createRoot(document.getElementById"));
   });

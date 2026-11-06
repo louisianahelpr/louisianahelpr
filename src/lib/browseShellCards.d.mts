@@ -40,4 +40,6 @@ export function browseShellSeedsHiddenUrl(supabaseUrl: string): string;
 export function shellRowsWhenSeedsHidden(rows: unknown[] | null, seedsHidden: unknown): unknown[] | null;
 export const SHELL_FOOTER_HTML: string;
 export const SHELL_LAYOUT_CLASS: string;
+export const SHELL_EMPTY_HTML: string;
+export function shellFeedIsEmpty(rows: unknown, now?: number): boolean;
 export function shellFooterHtml(emblem: { src: string; srcset: string }, now?: number): string;

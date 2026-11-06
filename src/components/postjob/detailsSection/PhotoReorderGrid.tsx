@@ -1,5 +1,6 @@
 import { ImagePlus, X, Plus, GripVertical } from "lucide-react";
 import { Reorder } from "framer-motion";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 
 /**
  * The drag-to-reorder photo grid of PhotoUpload. This file is the Post-a-Job
@@ -126,11 +127,9 @@ export default function PhotoReorderGrid({
             className="w-7 h-7"
             style={{ color: "hsl(var(--bark))" }}
           />
-          <input
-            type="file"
+          <HiddenFileInput
             accept="image/*"
             multiple
-            className="sr-only"
             aria-label="Add another photo"
             onChange={onImageSelect}
           />

@@ -1,5 +1,6 @@
 import { X, Video } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 
 interface VideoScopeProps {
   scopeVideoUrl?: string | null;
@@ -47,7 +48,7 @@ export function VideoScope({
           <span className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>
             Upload a video (30s max)
           </span>
-          <input type="file" accept="video/*" className="sr-only" onChange={onVideoSelect} />
+          <HiddenFileInput accept="video/*" onChange={onVideoSelect} />
         </label>
       )}
     </div>

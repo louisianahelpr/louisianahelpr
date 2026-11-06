@@ -14,7 +14,7 @@
  * @mutate src/pages/jobs/JobsSection.tsx |   useEffect(() => removeShellOncePainted(JOBS_SHELL_ID), []); |
  * @mutate src/components/landing/HomeShellLeaves.tsx | !== "/jobs") dropJobsShell(); | === "/x") dropJobsShell();
  * @mutate src/components/landing/homeShell.ts |   dropJobsShell(doc);\n |\n
- * @mutate index.html | var page = { "/home": "home", "/jobs": "jobs" } | var page = { "/home": "home" }
+ * @mutate index.html | var page = { "/home": "home", "/jobs": "jobs", | var page = { "/home": "home",
  * @mutate src/index.css | [data-lh-app-shell="jobs"] #lh-jobs-shell {\n  display: block; | [data-lh-app-shell="jobs"] #lh-jobs-shell {\n  display: none;
  * @mutate src/main.tsx | if (document.documentElement.getAttribute("data-lh-app-shell") !== "jobs") document.getElementById("lh-jobs-shell")?.remove(); |
  * @mutate scripts/inline-shell-css.mjs |   { id: "lh-jobs-shell", | //{ id: "lh-jobs-shell",

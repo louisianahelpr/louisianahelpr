@@ -149,7 +149,9 @@ function subscribe(cb: () => void) {
 export function useSectionPrefs() {
   const { user } = useCurrentUser();
   const userId = user?.id;
-  const prefs = useSyncExternalStore(subscribe, () => read(userId));
+  // The third argument lets index.html's /declutter shell be rendered from the skeleton (renderToStaticMarkup):
+  // the same read, so it is the defaults, as a member with no saved order sees (Q2705 B).
+  const prefs = useSyncExternalStore(subscribe, () => read(userId), () => read(userId));
 
   useEffect(() => {
     if (!userId || pulled.has(userId) || pulledThisTab(userId)) return;

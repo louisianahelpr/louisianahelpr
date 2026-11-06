@@ -54,7 +54,9 @@ describe("TEST-mode saved-card cleanup never touches live mode or a real member"
 
   it("a planted sk_live_ key exits 1 before any network call", () => {
     const r = spawnSync(process.execPath, [SCRIPT], {
-      env: { PATH: process.env.PATH, STRIPE_TEST_SECRET_KEY: "sk_live_planted", SUPABASE_SERVICE_ROLE_KEY: "x",
+      // VITEST: the child is this test's planted-key run, not a prod write, so assertFreshCheckout steps
+      // aside (a CI checkout has no origin/main ref, and this env drops GITHUB_ACTIONS).
+      env: { PATH: process.env.PATH, VITEST: "true", STRIPE_TEST_SECRET_KEY: "sk_live_planted", SUPABASE_SERVICE_ROLE_KEY: "x",
         // a dead loopback port: any request would fail with a DIFFERENT message
         SUPABASE_URL: "http://127.0.0.1:9", LH_STRIPE_API_BASE: "http://127.0.0.1:9" },
       encoding: "utf8",

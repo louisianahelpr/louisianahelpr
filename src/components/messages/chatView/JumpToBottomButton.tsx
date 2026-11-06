@@ -39,7 +39,9 @@ export function JumpToBottomButton({
         aria-label={
           firstUnreadOffscreen
             ? `Jump to ${initialUnreadCountRef.current} new message${initialUnreadCountRef.current === 1 ? "" : "s"}`
-            : "Jump to newest message"
+            // Holds the visible "Jump to latest" (WCAG 2.5.3, axe 4.14 label-content-name-mismatch): "Jump to newest
+            // message" did not, and the open-thread axe check went red whenever the chip showed (webkit, 11-06).
+            : "Jump to latest message"
         }
         onClick={() => {
           const el = scrollContainerRef.current;

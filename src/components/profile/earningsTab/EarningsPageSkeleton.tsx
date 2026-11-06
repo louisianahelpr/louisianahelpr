@@ -5,6 +5,7 @@ import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
 import { TAB_TITLES } from "@/pages/profile/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { JOBS_ONLY_PAYOUT_LINE } from "@/components/payouts/payoutSourcesLine";
+import { PAYOUT_SETUP_NEEDS_HIRE_COPY } from "@/lib/payoutSetupPaused";
 
 /**
  * ONE skeleton for the Money tab (VN-3, owner 2026-09-15: "One skeleton.
@@ -131,11 +132,36 @@ export function EarningsWalletBones({ testId = "earnings-wallet-loading" }: { te
   );
 }
 
-export function EarningsPayoutSetupSkeleton() {
+export function EarningsPayoutSetupSkeleton({ hireAllowed = false }: { hireAllowed?: boolean } = {}) {
+  // Q2708 (11-05): the connect card is drawn only for a member the server lets set up payouts
+  // (payout_setup_hire_allowed_for_me); everyone else gets PayoutSetupPausedNotice's one-line note in the same glass
+  // card. Measured on prod 11-05: of the 323 profiles with no payout account, 0 may set up yet, so the full-card
+  // bone was wrong for every one of them and the page jumped up 166 px when the note replaced it (lab CLS 0.126 at
+  // 375, Fast 4G). A skeleton fetches nothing: EarningsTab passes the answer when it has it; unknown = the note.
+  if (!hireAllowed) {
+    return (
+      <div aria-hidden data-testid="earnings-payout-setup-skeleton" data-shape="needs-hire" className="space-y-section">
+        <section className="space-y-2">
+          <div className="rounded-2xl liquid-glass p-card">
+            <div className="space-y-4">
+              <div className="rounded-2xl px-4 py-3 text-ds-13 leading-snug" style={{ background: "hsl(var(--olivewood) / 0.05)" }}>
+                <div className="flex items-start gap-2.5">
+                  <Skeleton className="w-4 h-4 shrink-0 mt-0.5 rounded" />
+                  <GhostLine className="min-w-0">
+                    {PAYOUT_SETUP_NEEDS_HIRE_COPY}
+                  </GhostLine>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
   // A skeleton fetches nothing, so it reads no switch: it draws the Jobs-only
   // line, the one true for every member (audit 2026-10-28 P4-1).
   return (
-    <div aria-hidden data-testid="earnings-payout-setup-skeleton" className="space-y-section">
+    <div aria-hidden data-testid="earnings-payout-setup-skeleton" data-shape="connect" className="space-y-section">
       <section className="space-y-2">
         <div className="rounded-2xl liquid-glass p-card">
           <div className="space-y-4">

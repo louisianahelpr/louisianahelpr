@@ -33,7 +33,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import type { AddFormState, StrConnection } from "./strSettings/types";
-import { cardStyle } from "./strSettings/strSettingsHelpers";
+import { cardStyle, connectedToastText, firstSyncError } from "./strSettings/strSettingsHelpers";
 import { ReadyTurnovers } from "./strSettings/ReadyTurnovers";
 import { ConnectionCard } from "./strSettings/ConnectionCard";
 import { AddCalendarForm, validateCleaningBudget } from "./strSettings/AddCalendarForm";
@@ -110,12 +110,14 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
 
       if (error) throw error;
 
-      // Trigger an immediate sync for the new connection — best-effort
+      // Trigger an immediate sync for the new connection. Best-effort, but its answer is READ (Q1996): a feed it
+      // couldn't load is said in the toast instead of a plain "Calendar connected".
+      let syncError: string | null = null;
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/str-ical-sync`;
-          await fetch(fnUrl, {
+          const res = await fetch(fnUrl, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -123,16 +125,17 @@ export default function StrSettings({ onBack }: { onBack?: () => void }) {
             },
             body: JSON.stringify({ connection_id: data.id }),
           });
+          if (res.ok) syncError = firstSyncError(await res.json());
         }
       } catch {
-        // Non-fatal — sync will happen on next cron run
+        // Non-fatal: no answer means the next cron run syncs it, and the card shows how that went.
       }
 
-      return data;
+      return { ...data, syncError };
     },
-    onSuccess: () => {
+    onSuccess: (saved) => {
       hapticSuccess();
-      toast("Calendar connected");
+      toast(connectedToastText(saved.syncError));
       setAddOpen(false);
       queryClient.invalidateQueries({ queryKey: ["str-calendar-connections"] });
     },

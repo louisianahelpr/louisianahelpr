@@ -13112,6 +13112,7 @@ export type Database = {
         Row: {
           buyer_id: string
           closed_at: string | null
+          order_id: string | null
           created_at: string
           description: string
           expires_at: string | null
@@ -13122,13 +13123,17 @@ export type Database = {
           quote_note: string | null
           quoted_at: string | null
           shop_id: string
+          statements: string[] | null
+          statements_at: string | null
           status: string
+          subtype: string | null
           updated_at: string
           wanted_date: string | null
         }
         Insert: {
           buyer_id: string
           closed_at?: string | null
+          order_id?: string | null
           created_at?: string
           description: string
           expires_at?: string | null
@@ -13139,13 +13144,17 @@ export type Database = {
           quote_note?: string | null
           quoted_at?: string | null
           shop_id: string
+          statements?: string[] | null
+          statements_at?: string | null
           status?: string
+          subtype?: string | null
           updated_at?: string
           wanted_date?: string | null
         }
         Update: {
           buyer_id?: string
           closed_at?: string | null
+          order_id?: string | null
           created_at?: string
           description?: string
           expires_at?: string | null
@@ -13156,7 +13165,10 @@ export type Database = {
           quote_note?: string | null
           quoted_at?: string | null
           shop_id?: string
+          statements?: string[] | null
+          statements_at?: string | null
           status?: string
+          subtype?: string | null
           updated_at?: string
           wanted_date?: string | null
         }
@@ -13664,6 +13676,7 @@ export type Database = {
         Row: {
           at_buyer: boolean
           created_at: string
+          custom_request_id: string | null
           id: string
           is_seed: boolean
           item_id: string | null
@@ -13680,6 +13693,7 @@ export type Database = {
         Insert: {
           at_buyer?: boolean
           created_at?: string
+          custom_request_id?: string | null
           id?: string
           is_seed?: boolean
           item_id?: string | null
@@ -13696,6 +13710,7 @@ export type Database = {
         Update: {
           at_buyer?: boolean
           created_at?: string
+          custom_request_id?: string | null
           id?: string
           is_seed?: boolean
           item_id?: string | null
@@ -21951,7 +21966,7 @@ export type Database = {
       shops_set_delivery: { Args: { p_delivers: boolean; p_fee_cents: number; p_radius_miles: number }; Returns: Json }
       shops_set_custom_orders: { Args: { p_mode: string }; Returns: string }
       shops_send_custom_request: { Args: { p_shop_id: string; p_description: string; p_wanted_date?: string | null }; Returns: string }
-      shops_quote_custom_request: { Args: { p_request_id: string; p_quote_cents: number; p_note?: string | null; p_subtype: string }; Returns: Json }
+      shops_quote_custom_request: { Args: { p_request_id: string; p_quote_cents: number; p_note?: string | null; p_subtype: string; p_statements: string[] }; Returns: Json }
       shops_order_custom_quote: { Args: { p_request_id: string; p_shop_id: string; p_ready_date: string; p_note?: string | null }; Returns: Json }
       shops_decline_custom_request: { Args: { p_request_id: string }; Returns: string }
       shops_my_custom_requests: { Args: never; Returns: Json }

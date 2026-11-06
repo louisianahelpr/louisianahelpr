@@ -6,6 +6,7 @@
  *   node src/test/pglite/rentalsMaintenance.pglite.mjs
  *   NEW_MIGRATION=skip node src/test/pglite/rentalsMaintenance.pglite.mjs     # RED: every check fails
  *   S3=skip node src/test/pglite/rentalsMaintenance.pglite.mjs                # RED for the slice 3 restatements only
+ *   Q2068=skip node src/test/pglite/rentalsMaintenance.pglite.mjs             # RED for "end tenancy tells the other side"
  *   MIGRATION_PATH=<planted copy> node src/test/pglite/rentalsMaintenance.pglite.mjs
  *
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite (PGLITE_DIR).
@@ -55,6 +56,10 @@ const S3 = process.env.S3 === "skip" ? "SELECT 1" : S3_FILES.map((f) => readFile
 // reject / storage / retention / every-section rule): src/test/pglite/landlordIdReview.pglite.mjs.
 const LID_FILE = "20261019051407_rentals_landlord_id_review.sql";
 const LID = process.env.LID === "skip" ? "SELECT 1" : readFileSync(`${MIG_DIR}${LID_FILE}`, "utf8");
+// Q2068 (20261106171605): rentals_end_tenancy restated to tell the OTHER party in the app. Q2068=skip leaves the
+// silent body (the RED run for the "end tenancy tells the other side" checks).
+const Q2068_FILE = "20261106171605_homes_end_tenancy_tells_other_side.sql";
+const Q2068 = process.env.Q2068 === "skip" ? "SELECT 1" : readFileSync(process.env.Q2068_PATH ?? `${MIG_DIR}${Q2068_FILE}`, "utf8");
 
 /** The newest CREATE [OR REPLACE] FUNCTION public.<name>( statement in the migrations, any dollar tag. */
 function newestDefinition(name) {
@@ -171,6 +176,7 @@ if (!skip) {
   for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
   for (let i = 0; i < 3; i++) await db.exec(S3);
   for (let i = 0; i < 3; i++) await db.exec(LID);
+  for (let i = 0; i < 3; i++) await db.exec(Q2068);
 }
 
 async function as(role, uid, sql) {
@@ -204,6 +210,7 @@ await svc(`UPDATE public.feature_switches SET audience = 'testers' WHERE key = '
 await db.exec(skip ? "SELECT 1" : MIGRATION);
 await db.exec(skip ? "SELECT 1" : S3);
 await db.exec(skip ? "SELECT 1" : LID);
+await db.exec(skip ? "SELECT 1" : Q2068);
 ok(one(await svc(`SELECT audience FROM public.feature_switches WHERE key = 'rentals'`)) === "testers",
   "a replay keeps the audience an admin chose");
 ok(refused(await as("authenticated", ORDINARY, createProp()), /feature_disabled/, "42501"),
@@ -564,7 +571,14 @@ ok(one(await svc(`SELECT status FROM public.maintenance_requests WHERE id = '${a
   "an emergency is never auto-approved: it waits for the landlord");
 
 // --- end tenancy cuts access
+const endedNotices = (uid) => svc(`SELECT message FROM public.notifications WHERE user_id = '${uid}' AND title = 'Tenancy ended'`);
+ok(empty(await endedNotices(LANDLORD)) && empty(await endedNotices(TENANT)), "no 'Tenancy ended' notice before anyone ends it");
 ok(Array.isArray(await as("authenticated", TENANT, `SELECT public.rentals_end_tenancy('${tenancy}')`)), "the tenant can end their tenancy");
+// Q2068: the tenant ended it, so the landlord is told once (with the deposit clock) and the tenant is not.
+const toLandlord = rows(await endedNotices(LANDLORD));
+ok(toLandlord.length === 1 && /^Your tenant ended their tenancy at Oak Street duplex\. .*R\.S\. 9:3251/.test(toLandlord[0]?.message ?? ""),
+  `end tenancy tells the other side: the landlord gets one notice naming the home and the deposit clock (${JSON.stringify(toLandlord)})`);
+ok(empty(await endedNotices(TENANT)), "end tenancy tells the other side: never the tenant who ended it");
 ok(refused(await file(TENANT, tenancy), /tenancy_not_found/, "P0002"), "an ended tenancy cannot file");
 ok(empty(await as("authenticated", TENANT, `SELECT label FROM public.rentals_my_homes()`)),
   "an ended tenant no longer has the home");
@@ -587,6 +601,24 @@ ok(refused(await as("authenticated", LANDLORD, `SELECT public.rentals_invite_ten
 await svc(`UPDATE public.profiles SET idv_status = 'verified', stripe_identity_verified = false WHERE user_id = '${LANDLORD}'`);
 ok(typeof one(await as("authenticated", LANDLORD, `SELECT public.rentals_invite_tenant('${unit}') AS t`)) === "string",
   "verified again by Stripe Identity, the landlord invites again");
+
+// --- Q2068: the landlord ends an active tenancy -> only the tenant is told; revoking an unused invite tells nobody.
+const token4 = one(await as("authenticated", LANDLORD, `SELECT public.rentals_invite_tenant('${unit}') AS t`));
+const ten4 = one(await as("authenticated", TENANT, `SELECT public.rentals_accept_invite('${token4}') AS id`));
+const landlordBefore = rows(await endedNotices(LANDLORD)).length;
+ok(typeof ten4 === "string" && Array.isArray(await as("authenticated", LANDLORD, `SELECT public.rentals_end_tenancy('${ten4}')`)),
+  "the landlord ends an active tenancy");
+const toTenant = rows(await endedNotices(TENANT));
+ok(toTenant.length === 1 && toTenant[0]?.message === "Your landlord ended your tenancy at Oak Street duplex. Your rent, deposit and lease records stay under Homes.",
+  `end tenancy tells the other side: the tenant gets one notice (${JSON.stringify(toTenant)})`);
+ok(rows(await endedNotices(LANDLORD)).length === landlordBefore, "end tenancy tells the other side: never the landlord who ended it");
+await as("authenticated", LANDLORD, `SELECT public.rentals_invite_tenant('${unit}') AS t`);
+const invited = one(await svc(`SELECT id::text FROM public.rental_tenancies WHERE status = 'invited' ORDER BY created_at DESC LIMIT 1`));
+const allBefore = one(await svc(`SELECT count(*)::int FROM public.notifications WHERE title = 'Tenancy ended'`));
+ok(typeof invited === "string" && Array.isArray(await as("authenticated", LANDLORD, `SELECT public.rentals_end_tenancy('${invited}')`))
+  && one(await svc(`SELECT status FROM public.rental_tenancies WHERE id = '${invited}'`)) === "revoked"
+  && one(await svc(`SELECT count(*)::int FROM public.notifications WHERE title = 'Tenancy ended'`)) === allBefore,
+  "end tenancy tells the other side: revoking an unused invite tells nobody");
 
 // --- a tenant with an ACTIVE tenancy can delete their account
 const token3 = one(await as("authenticated", LANDLORD, `SELECT public.rentals_invite_tenant('${unit}') AS t`));

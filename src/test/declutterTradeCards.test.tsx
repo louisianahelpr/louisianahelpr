@@ -1,0 +1,121 @@
+/**
+ * Declutter trades slice 3 (owner 10-31): the trade cards. Selling shows each open trade offer with Accept / Decline
+ * and counts it under "To answer"; Buying shows the member's trade offers with Take it back while open; an accepted
+ * trade points to the pickup choice only while the member's own $0 line still waits for it.
+ * Server: src/test/declutterTrades.test.ts, src/test/pglite/declutterTrades.pglite.mjs.
+ *
+ * @mutate src/components/declutter/DeclutterTradeOffers.tsx |       {open && t.my_side === "seller" && ( |       {open && (
+ * @mutate src/components/declutter/DeclutterTradeOffers.tsx |       {open && t.my_side === "buyer" && ( |       {t.my_side === "buyer" && (
+ * @mutate src/components/declutter/DeclutterTradeOffers.tsx |       {t.status === "accepted" && t.my_line_status === "in_cart" && ( |       {t.status === "accepted" && (
+ * @mutate src/components/declutter/DeclutterTradeOffers.tsx |   return (useMyTrades("seller", userId).data ?? []).filter((t) => t.status === "open").length; |   return 0;
+ * @mutate src/components/declutter/DeclutterMineViews.tsx | + bundleAsks + tradeAsks; | + bundleAsks;
+ * @mutate src/lib/declutter/trades.ts |     my_line_status: (side === "seller" ? seller_line : buyer_line)?.status ?? null, |     my_line_status: (side === "seller" ? buyer_line : seller_line)?.status ?? null,
+ */
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { MemoryRouter } from "react-router-dom";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { blankComments } from "./helpers/blankNonCode";
+import type { MyTrade } from "@/lib/declutter/trades";
+
+const later = new Date(Date.now() + 10 * 3_600_000).toISOString();
+const lamp = { id: "lamp", title: "Lamp", current_price_cents: 2000 };
+const chair = { id: "chair", title: "Chair", current_price_cents: 3000 };
+const row = (over: Partial<MyTrade>): MyTrade => ({
+  id: "t1", status: "open", respond_by: later, created_at: later, my_side: "seller", item: lamp, offered: chair, my_line_status: null, ...over,
+});
+
+const state = { rows: [] as MyTrade[], sent: [] as [string, string][] };
+
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
+vi.mock("@/lib/declutter/trades", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/trades")>()),
+  fetchMyTrades: async (side: string) => state.rows.map((r) => ({ ...r, my_side: side })),
+  respondSwap: async (id: string, a: string) => {
+    state.sent.push([id, a]);
+    return a;
+  },
+}));
+
+const { TradeOffersSection } = await import("@/components/declutter/DeclutterTradeOffers");
+
+const show = (side: "buyer" | "seller") =>
+  render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <MemoryRouter>
+        <TradeOffersSection side={side} userId="u1" />
+      </MemoryRouter>
+    </QueryClientProvider>,
+  );
+
+const src = (f: string) => blankComments(readFileSync(f, "utf8"));
+
+beforeEach(() => {
+  state.rows = [];
+  state.sent = [];
+});
+
+describe("Declutter trade cards (slice 3)", () => {
+  it("the seller accepts or declines an open trade offer; nothing shows with none", async () => {
+    const { container, unmount } = show("seller");
+    await waitFor(() => expect(container.querySelector("[data-trade-offers]")).toBeNull());
+    unmount();
+    state.rows = [row({})];
+    show("seller");
+    fireEvent.click(await screen.findByRole("button", { name: "Accept trade" }));
+    await waitFor(() => expect(state.sent).toEqual([["t1", "accept"]]));
+    fireEvent.click(screen.getByRole("button", { name: "Decline" }));
+    await waitFor(() => expect(state.sent).toEqual([["t1", "accept"], ["t1", "decline"]]));
+    expect(screen.queryByRole("button", { name: "Take it back" })).toBeNull();
+    // The seller gives their own listing and gets the buyer's.
+    expect(screen.getByText("You give").parentElement?.textContent).toContain("Lamp");
+    expect(screen.getByText("You get").parentElement?.textContent).toContain("Chair");
+  });
+
+  it("the buyer takes back an open offer and can't answer it; a closed one says what became of it", async () => {
+    state.rows = [row({})];
+    const { unmount } = show("buyer");
+    fireEvent.click(await screen.findByRole("button", { name: "Take it back" }));
+    await waitFor(() => expect(state.sent).toEqual([["t1", "withdraw"]]));
+    expect(screen.queryByRole("button", { name: "Accept trade" })).toBeNull();
+    unmount();
+    state.rows = [row({ status: "declined" })];
+    show("buyer");
+    expect(await screen.findByText(/Declined\. Nothing changed hands\./)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Take it back" })).toBeNull();
+  });
+
+  it("an accepted trade points to the pickup only while the member's own line waits for it", async () => {
+    state.rows = [row({ id: "a", status: "accepted", my_line_status: "in_cart" }), row({ id: "b", status: "accepted", my_line_status: "paid" })];
+    const { container } = show("seller");
+    await screen.findAllByText(/Accepted\./);
+    const links = container.querySelectorAll("[data-trade-pickup]");
+    expect(links.length).toBe(1);
+    expect(links[0].closest("[data-trade-card]")?.getAttribute("data-trade-card")).toBe("a");
+  });
+
+  it("Selling's To answer counts the open trade offers, and both tabs show the section", () => {
+    const views = src("src/components/declutter/DeclutterMineViews.tsx");
+    expect(views).toMatch(/\+ bundleAsks \+ tradeAsks;/);
+    expect(views).toMatch(/const tradeAsks = useTradeOffersToAnswer\(userId\)/);
+    expect(views).toMatch(/<TradeOffersSection side="seller" userId=\{userId\} \/>/);
+    expect(views).toMatch(/<TradeOffersSection side="buyer" userId=\{user\?\.id \?\? null\} \/>/);
+    const cards = src("src/components/declutter/DeclutterTradeOffers.tsx");
+    expect(cards).toMatch(/\.filter\(\(t\) => t\.status === "open"\)\.length/);
+  });
+
+  it("each side reads its OWN line (the seller gets the buyer's item on seller_line)", async () => {
+    const lib = src("src/lib/declutter/trades.ts");
+    expect(lib).toMatch(/my_line_status: \(side === "seller" \? seller_line : buyer_line\)\?\.status \?\? null/);
+    const n = (lib.match(/declutter_swap_offers_[a-z_]+_fkey/g) ?? []).length;
+    expect(n).toBeGreaterThan(3);
+  });
+
+  it("every respond_swap refusal has words", async () => {
+    const { rpcErrorMessage } = await import("@/lib/declutter/tradeErrors");
+    for (const code of ["trade_not_open", "trade_expired", "trade_not_found", "invalid_action", "item_not_available"]) {
+      expect(rpcErrorMessage("declutter_respond_swap", new Error(code)), code).toBeTruthy();
+    }
+  });
+});

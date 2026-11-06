@@ -4437,7 +4437,36 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "declutter_swap_offers_buyer_line_id_fkey"
+            columns: ["buyer_line_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_cart_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "declutter_swap_offers_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "declutter_swap_offers_offered_item_id_fkey"
+            columns: ["offered_item_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "declutter_swap_offers_seller_line_id_fkey"
+            columns: ["seller_line_id"]
+            isOneToOne: false
+            referencedRelation: "declutter_cart_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       declutter_tax_attestations: {
         Row: {

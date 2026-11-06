@@ -28,12 +28,12 @@
  * admin_user_notes, login_history, helper_verifications, platform_settings,
  * and any job status past `open` that the real flow reaches only after funding.
  *
- * The four admin queues that were never seen POPULATED on prod (Q238) each get
+ * The admin queues that were never seen POPULATED on prod (Q238) each get
  * one row on an OWNED account: IDV review (denied: idv_status manual_review),
- * ban review (banned: a pending_ban_review violation), exceptions (pending: an
- * open verification_exceptions row) and expired subscriptions (heavy:
- * subscription_tier NULL with a past subscription_expires_at, which the
- * expire-subscriptions cron never selects: it reads non-null tiers only).
+ * ban review (banned: a pending_ban_review violation) and exceptions (pending: an
+ * open verification_exceptions row). The fourth, expired subscriptions (heavy),
+ * left 2026-11-06: /admin?view=subscriptions was retired with memberships on
+ * 2026-11-04, so nothing reads that seed.
  *
  * SAFETY MODEL
  * ------------
@@ -298,10 +298,9 @@ const OWNED = {
   // Admin role (one user_roles row, upserted on --apply, deleted on --teardown)
   // so the admin screens can be swept on prod. Owner-approved 2026-09-12.
   admin: { email: "helpr-seed-admin-0912@louisianahelpr.com", full_name: "Seed Admin Tester", ban_status: "active", role: "admin" },
-  // An EXPIRED membership for /admin?view=subscriptions (Q238): no tier, a past
-  // expiry. expire-subscriptions selects only non-null tiers, so no cron clears
-  // or emails it; AdminSubscriptions lists it as "expired".
-  heavy: { email: "helpr-seed-heavy-0912@mailinator.com", full_name: "Marie-Thérèse Boudreaux-Fontenot de la Houssaye 🦞 (Seed Heavy)", ban_status: "active", profile: { subscription_tier: null, subscription_expires_at: "2026-09-01T00:00:00Z" } },
+  // The heavy account. Until 2026-11-06 it also carried an EXPIRED membership for /admin?view=subscriptions (Q238);
+  // that view left with memberships on 2026-11-04, so the seed no longer writes subscription_* fields.
+  heavy: { email: "helpr-seed-heavy-0912@mailinator.com", full_name: "Marie-Thérèse Boudreaux-Fontenot de la Houssaye 🦞 (Seed Heavy)", ban_status: "active" },
 };
 /**
  * THE HELPER'S WEEKLY HOURS — the SEEDER owns them, and it owns all SEVEN days.
@@ -1297,7 +1296,6 @@ async function verify() {
   await check("admin queue: IDV review (seed)", `profiles?email=eq.${encodeURIComponent(OWNED.denied.email)}&is_seed=eq.true&idv_status=eq.manual_review&select=user_id`, 1);
   await check("admin queue: ban review (seed)", `user_violations?id=eq.${sid("viol:ban-review")}&action_taken=eq.pending_ban_review&select=id`, 1);
   await check("admin queue: open exception (seed)", `verification_exceptions?id=eq.${sid("exception:pending")}&status=eq.open&select=id`, 1);
-  await check("admin queue: expired subscription (seed)", `profiles?email=eq.${encodeURIComponent(OWNED.heavy.email)}&is_seed=eq.true&subscription_tier=is.null&subscription_expires_at=lt.${new Date().toISOString()}&select=user_id`, 1);
   await check("fraud_flags (seed)", `fraud_flags?id=${inList([sid("fraud:banned"), sid("fraud:denied")])}&select=id`, 2);
   await check("user_bans (seed)", `user_bans?id=${inList([sid("ban:banned"), sid("ban:restricted")])}&select=id`, 2);
   for (const [k, spec] of Object.entries({ pending: OWNED.pending, denied: OWNED.denied, banned: OWNED.banned, restricted: OWNED.restricted })) {

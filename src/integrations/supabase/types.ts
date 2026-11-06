@@ -19900,6 +19900,7 @@ export type Database = {
         Args: { p_name: string }
         Returns: boolean
       }
+      is_tenant_repair_photo: { Args: { object_name: string }; Returns: boolean }
       is_test_member: { Args: { p_user_id: string }; Returns: boolean }
       is_test_subject: { Args: { p_user_id: string }; Returns: boolean }
       is_thread_muted: {
@@ -20966,12 +20967,26 @@ export type Database = {
       }
       rentals_rent_side: { Args: { p_tenancy_id: string; p_uid: string }; Returns: string }
       rentals_rent_sweep: { Args: never; Returns: Json }
+      rentals_request_job_photos: {
+        Args: { p_request_id: string }
+        Returns: {
+          kind: string
+          photo_path: string
+        }[]
+      }
       rentals_request_job_state: {
         Args: { p_request_id: string }
         Returns: {
           booking: string
           job_id: string
           job_status: string
+        }[]
+      }
+      rentals_request_photo_rows: {
+        Args: { p_request_id: string }
+        Returns: {
+          kind: string
+          photo_path: string
         }[]
       }
       rentals_save_listing: {

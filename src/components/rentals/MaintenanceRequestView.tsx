@@ -26,6 +26,7 @@ import {
   type Urgency,
 } from "@/lib/rentals/copy";
 import { RentalsCard, fmtDate } from "./rentalsUi";
+import RequestJobPhotos from "./RequestJobPhotos";
 import { MaintenanceRequestSkeleton, MaintenanceRequestUnavailable, isRequestId } from "./RentalsSkeletons";
 
 function Photo({ path }: { path: string }) {
@@ -177,6 +178,8 @@ export default function MaintenanceRequestView() {
           </RentalsCard>
         )}
 
+        {/* Q2058 (owner Q42): the Helpr's before/after photos, for both sides, once the job is booked. */}
+        {job.booking === "booked" && <RequestJobPhotos requestId={r.id} />}
         {isLandlord && r.status === "approved" && job.booking === "none" && (
           <RentalsCard title="Post the job">
             <p className="text-sm">We filled in a job from this request. Check the price, then post and pay like any job.</p>

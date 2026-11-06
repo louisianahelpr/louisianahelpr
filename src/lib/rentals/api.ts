@@ -123,6 +123,14 @@ export interface RequestJobState {
   booking: "booked" | "paying" | "refunding" | "unpaid" | "none";
   jobStatus: string | null;
 }
+/** Q2058: the Helpr's proof photos of the request's booked job (proof-photos bucket paths), for both sides. */
+export interface RequestJobPhoto {
+  kind: "before" | "after";
+  photo_path: string;
+}
+export async function fetchRequestJobPhotos(requestId: string): Promise<RequestJobPhoto[]> {
+  return (unwrap(await supabase.rpc("rentals_request_job_photos", { p_request_id: requestId })) ?? []) as RequestJobPhoto[];
+}
 /** The linked job's state (rentals_request_job_state): "a job id is set" is not "booked". */
 export async function fetchRequestJobState(requestId: string): Promise<RequestJobState> {
   const row = (unwrap(await supabase.rpc("rentals_request_job_state", { p_request_id: requestId })) ?? [])[0];

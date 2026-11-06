@@ -114,13 +114,14 @@ function metaRowConsumers(): string[] {
 /** Per-card maps hit area, by asking elementFromPoint the user's question. */
 async function probeCards(page: Page) {
   return page.evaluate((mapsSel) => {
-    /* A card is the frame JobCardShell draws (`rounded-2xl liquid-glass`)
-       around a title. Resolved from the TITLE outwards so a nested rounded box
-       inside a card can never be mistaken for one. */
+    /* A card is the frame JobCardShell draws ([data-activity-card]) around a MineJobFace ([data-mine-face], board
+       21: the face is one link that opens the job page). Resolved from the FACE outwards so a nested box inside a
+       card can never be mistaken for one. Until 2026-11-06 this read `h2.font-display`, a title the face no longer
+       draws, and every run timed out at 45 s (prod-audit 42088200102). */
     const cards = [
       ...new Set(
-        [...document.querySelectorAll("h2.font-display")]
-          .map((h) => h.closest<HTMLElement>("div.rounded-2xl"))
+        [...document.querySelectorAll("[data-mine-face]")]
+          .map((f) => f.closest<HTMLElement>("[data-activity-card]"))
           .filter((c): c is HTMLElement => !!c),
       ),
     ];
@@ -158,16 +159,12 @@ async function probeCards(page: Page) {
           return a.classList.contains("sr-only") ? 0 : ar.width;
         }),
       );
-      /* COLLAPSED, read from JobCardShell's own sr-only toggle
-         (`button[aria-expanded]`, a direct child of the frame). A collapsed
-         card has no action row, so none of the legitimate maps controls the
-         4% budget exists for is on it: DirectionsButton renders only in an
-         expanded card's actions, and the focus-only address anchor is a
-         clipped 1x1 box that elementFromPoint cannot hit until it is focused.
-         On a collapsed card, then, ANY maps hit is the card tap leaving the
-         app. */
-      const toggle = card.querySelector(':scope > button[aria-expanded]');
-      const collapsed = toggle?.getAttribute("aria-expanded") === "false";
+      /* COLLAPSED: the face shows no Close ✕ ([data-mine-close] renders only while the card is open in place). A
+         collapsed card has no action body, so none of the legitimate maps controls the 4% budget exists for is on
+         it: DirectionsButton renders only in an open card, and the focus-only address anchor is a clipped 1x1 box
+         that elementFromPoint cannot hit until it is focused. On a collapsed card, then, ANY maps hit is the card
+         tap leaving the app. */
+      const collapsed = !card.querySelector("[data-mine-close]");
       /* The location slot is actually drawn — either JobCardMetaRow branch:
          the press-to-map button or the plain maps anchor. A card with no
          address has no slot, and zero hits there proves nothing. */
@@ -176,7 +173,7 @@ async function probeCards(page: Page) {
       return {
         collapsed,
         hasLocation,
-        title: (card.querySelector("h2")?.textContent ?? "?").trim().slice(0, 44),
+        title: (card.querySelector("[data-mine-face-title]")?.textContent ?? "?").trim().slice(0, 44),
         box: `${Math.round(r.width)}x${Math.round(r.height)}`,
         sampled,
         areaPct: sampled ? (maps / sampled) * 100 : 0,
@@ -222,12 +219,16 @@ async function authedContext(browser: Browser, vw: number, baseURL: string | und
   return ctx;
 }
 
-/** Route → which account sees cards there → which source file draws them. */
-const SURFACES: { name: string; url: string; as: "poster" | "helper"; drawnBy: string }[] = [
+/** Route → which account sees cards there → which source file draws them. `faceLocation`: whether a COLLAPSED
+ * card's face carries the location slot. AppliedJobCard puts the meta row on the face for an offered, confirmed,
+ * under-way or disputed job (`addressOnFace`; helper-e2e holds in_progress, disputed and confirmed jobs, prod read
+ * 2026-11-06), so the zero-budget clause must find one there. PostedJobCard's face never does (the row opens with
+ * the card, MineOpenMeta), so there it must find none: the flag is two-way. */
+const SURFACES: { name: string; url: string; as: "poster" | "helper"; drawnBy: string; faceLocation: boolean }[] = [
   // drawnBy is the file that renders <JobCardMetaRow>: Q806 moved each card's meta row into its own file
   // (HelperJobMetaRow, PostedJobMetaRow), and the inventory test below went red on the old card paths.
-  { name: "jobs", url: "/jobs?tab=working", as: "helper", drawnBy: "pages/jobs/appliedJobCard/HelperJobMetaRow.tsx" },
-  { name: "posts", url: "/jobs?tab=posted", as: "poster", drawnBy: "pages/posts/postedJobCard/PostedJobMetaRow.tsx" },
+  { name: "jobs", url: "/jobs?tab=working", as: "helper", drawnBy: "pages/jobs/appliedJobCard/HelperJobMetaRow.tsx", faceLocation: true },
+  { name: "posts", url: "/jobs?tab=posted", as: "poster", drawnBy: "pages/posts/postedJobCard/PostedJobMetaRow.tsx", faceLocation: false },
 ];
 
 test("every file that draws the shared meta row is on a route this spec measures", () => {
@@ -251,7 +252,7 @@ for (const vw of [375, 1440] as const) {
       try {
         await page.goto(surface.url, { waitUntil: "domcontentloaded" });
         await page.waitForFunction(() => !document.getElementById("boot-loader"), null, { timeout: 45_000 });
-        await page.waitForSelector("h2.font-display", { state: "visible", timeout: 45_000 });
+        await page.waitForSelector("[data-activity-card] [data-mine-face]", { state: "visible", timeout: 45_000 });
         await page.waitForTimeout(1_200);
 
         const cards = await probeCards(page);
@@ -295,11 +296,20 @@ for (const vw of [375, 1440] as const) {
            report the prop was made for). So a collapsed card, which carries
            none of the legitimate maps controls, may own no maps hit at all. */
         const collapsedWithLocation = probed.filter((c) => c.collapsed && c.hasLocation);
-        expect(
-          collapsedWithLocation.length,
-          `${surface.name}@${vw}: no collapsed card with a location slot was probed — the zero-budget half measured nothing`,
-        ).toBeGreaterThan(0);
-        const collapsedOffenders = collapsedWithLocation.filter((c) => c.areaPct > 0);
+        if (surface.faceLocation) {
+          expect(
+            collapsedWithLocation.length,
+            `${surface.name}@${vw}: no collapsed card with a location slot was probed — the zero-budget half measured nothing`,
+          ).toBeGreaterThan(0);
+        } else {
+          expect(
+            collapsedWithLocation.map((c) => c.title),
+            `${surface.name}@${vw}: a collapsed card's face now draws the location slot; set faceLocation: true`,
+          ).toEqual([]);
+        }
+        expect(probed.filter((c) => c.collapsed).length, `${surface.name}@${vw}: no collapsed card was probed`).toBeGreaterThan(0);
+        // Every collapsed card, location slot or not: a tap on a face must never leave the app.
+        const collapsedOffenders = probed.filter((c) => c.collapsed && c.areaPct > 0);
         expect(
           collapsedOffenders.map((c) => `"${c.title}" ${c.box}: ${c.areaPct.toFixed(1)}% → ${c.hits.join(" | ")}`),
           `${surface.name}@${vw}: a COLLAPSED card's tap lands on a maps link. Drawn by ${surface.drawnBy}; ` +

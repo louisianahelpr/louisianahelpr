@@ -13351,18 +13351,21 @@ export type Database = {
           label: string
           position: number
           slug: string
+          tax_kind: string | null
         }
         Insert: {
           kind: string
           label: string
           position: number
           slug: string
+          tax_kind?: string | null
         }
         Update: {
           kind?: string
           label?: string
           position?: number
           slug?: string
+          tax_kind?: string | null
         }
         Relationships: []
       }
@@ -13452,6 +13455,7 @@ export type Database = {
           order_id: string
           quantity: number
           title: string
+          tax_kind: string | null
           unit_cents: number
           variant_id: string | null
         }
@@ -13465,6 +13469,7 @@ export type Database = {
           order_id: string
           quantity: number
           title: string
+          tax_kind?: string | null
           unit_cents: number
           variant_id?: string | null
         }
@@ -13478,6 +13483,7 @@ export type Database = {
           order_id?: string
           quantity?: number
           title?: string
+          tax_kind?: string | null
           unit_cents?: number
           variant_id?: string | null
         }

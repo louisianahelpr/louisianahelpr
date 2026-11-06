@@ -12,7 +12,8 @@
  * One fixture through the real bridge, the real dock, the real sidebar and the
  * real Home (only the network is faked): badge == to-dos == "See all (n)".
  *
- * @mutate src/components/mobileNav/dockBadgeCount.ts |     : badgeKey === "todo"\n      ? todo.total |     : badgeKey === "todo"\n      ? todo.jobs
+ * @mutate src/components/mobileNav/dockBadgeCount.ts |     : badgeKey === "todoShops"\n          ? todo.shops |     : badgeKey === "todoShops"\n          ? todo.total
+ * @mutate src/components/mobileNav/dockItems.ts |     { path: shops.path, icon: shops.icon, label: shops.label, badgeKey: "todoShops" }, |     { path: shops.path, icon: shops.icon, label: shops.label },
  * @mutate src/components/NeedsYouBridge.tsx | publishNeedsYou(uid, { total: jobs + shops + declutter, jobs, shops, declutter }); | publishNeedsYou(uid, { total: jobs, jobs, shops, declutter });
  * @mutate src/components/DesktopSidebarNav.tsx |     if (key === "todoShops") return todo.shops; |     if (key === "todoShops") return 0;
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |   const { todos, loading: todosLoading, onOldCall } = useNeedsYouTodos(user); |   const { loading: todosLoading, onOldCall } = useNeedsYouTodos(user); const todos = useNeedsYouTodos(user).todos.slice(1);
@@ -136,13 +137,17 @@ async function mountAll() {
 const sidebarCount = (path: string) => document.querySelector(`[data-sidebar-item="${path}"] [data-sidebar-badge]`)?.textContent ?? "0";
 
 describe("badge = To-do (owner, 2026-10-20)", () => {
-  it("21 new applicants on one job + one order to answer = 2 everywhere: Explore badge, sidebar, Next up, See all", async () => {
+  it("21 new applicants on one job + one order to answer = 2 everywhere: the dock's section badges, sidebar, Next up, See all", async () => {
     await mountAll();
     // Home: the to-do list is one per job / order.
     expect(screen.getByTestId("next-up-label").textContent).toBe("Next up · 1 of 2");
     expect(screen.getByTestId("next-up-see-all").textContent).toBe("See all (2)");
-    // The phone dock's Explore badge is the same number (never "9+" from 21 applicants).
-    expect(document.querySelector('[data-dock-badge="/explore"]')?.textContent).toBe("2");
+    // The phone dock (nav redesign 2026-11-06: Dashboard, Jobs, Declutter, Shops, Homes): each section tab carries its
+    // share, as the sidebar does (never "9+" from 21 applicants); Dashboard carries none (it would double-count).
+    expect(document.querySelector('[data-dock-badge="/jobs"]')?.textContent).toBe("1");
+    expect(document.querySelector('[data-dock-badge="/shops"]')?.textContent).toBe("1");
+    expect(document.querySelector('[data-dock-badge="/declutter"]')).toBeNull();
+    expect(document.querySelector('[data-dock-badge="/home"]')).toBeNull();
     // Desktop sidebar: Explore = total, Jobs and Shops = their share.
     expect(sidebarCount("/explore")).toBe("2");
     expect(sidebarCount("/jobs")).toBe("1");

@@ -5,11 +5,14 @@
  * bells (dashboards build run 4 shot 21-home-1440-light.png). On web-desktop
  * the bar keeps the section title and the section's soft "+ Post a job" (owner
  * 2026-10-28, topBarAddMatchesBell), and on Home draws nothing; on a phone it is
- * unchanged (title or logo, bell, avatar).
+ * the title or logo, then the bell, Messages, the "+" and the avatar (owner nav redesign 2026-11-06; Help is in
+ * You). Messages and the phone "+" are phone-only: the desktop rail has Messages and "+ Create".
  *
  * @mutate src/components/sections/AppTopBar.tsx |   if (isWebDesktop && !title) return null; |
  * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && (\n      <span data-testid="top-bar-bell"> |       {user && true && (\n      <span data-testid="top-bar-bell">
  * @mutate src/components/sections/AppTopBar.tsx |         {user && !isWebDesktop && showProfile && ( |         {user && showProfile && (
+ * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && <PhoneMessagesButton />} |       {user && <PhoneMessagesButton />}
+ * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && <PhoneCreateButton />} |       {user && <PhoneCreateButton />}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
@@ -30,13 +33,13 @@ const labels = () => screen.queryAllByRole("button").map((b) => b.getAttribute("
 const draw = (el: JSX.Element) => render(<MemoryRouter>{el}</MemoryRouter>);
 
 describe("the section top bar never repeats the desktop header (Q2221)", () => {
-  it("phone: a section shows Help, the bell and the avatar; Home shows the logo, Help, bell and avatar", () => {
+  it("phone: a section and Dashboard both show the bell, Messages, the + and the avatar (Dashboard: the logo too)", () => {
     draw(<AppTopBar title="Jobs" />);
-    expect(labels()).toEqual(["Help", "Notifications", "Profile, TP"]);
+    expect(labels()).toEqual(["Notifications", "Messages", "Create", "Profile, TP"]);
     cleanup();
     draw(<AppTopBar />);
     expect(screen.getByTestId("app-top-bar")).toBeTruthy();
-    expect(labels()).toEqual(["Help", "Notifications", "Profile, TP"]);
+    expect(labels()).toEqual(["Notifications", "Messages", "Create", "Profile, TP"]);
   });
 
   it("desktop: a section keeps its title and its soft '+ Post a job' (no second bell, no avatar)", () => {

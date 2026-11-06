@@ -272,7 +272,7 @@ describe("PaymentSuccess", () => {
       expect(screen.queryByRole("button", { name: /post another/i })).toBeNull();
       expect(screen.queryByRole("button", { name: /see your posted jobs/i })).toBeNull();
       // …and a way back.
-      expect(screen.getByRole("button", { name: /go home/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /go to dashboard/i })).toBeInTheDocument();
     });
 
     it("treats a job with no poster left (anonymised) as not the viewer's", async () => {

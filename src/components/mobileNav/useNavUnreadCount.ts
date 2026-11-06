@@ -17,6 +17,7 @@ import {
 } from "@/components/notificationPanel/notificationStore";
 import { useNotificationFeed } from "@/components/notificationPanel/notificationFeed";
 import { useChromeReadsMayStart } from "@/hooks/usePageReadsSettled";
+import { stores, notifyUnreadWatchers, type UnreadListener, type UnreadStore } from "./navUnreadStore";
 
 /**
  * Owns the Messages badge unread count for the bottom nav: the durable-cache
@@ -26,14 +27,6 @@ import { useChromeReadsMayStart } from "@/hooks/usePageReadsSettled";
  * MobileNav — hook call order, `useEffect` dep arrays and the query's error
  * handling are unchanged; the realtime binding moved onto the shared user bus.
  */
-type UnreadListener = (n: number) => void;
-
-interface UnreadStore {
-  count: number;
-  listeners: Set<UnreadListener>;
-  publish: (n: number) => void;
-  close: () => void;
-}
 
 /**
  * ONE unread count per user, shared by every nav that shows it (Q103, the
@@ -42,7 +35,7 @@ interface UnreadStore {
  * own realtime channel: 24,549 `messages` requests from CI in 24 h. The store
  * is reference-counted; the last consumer out closes the channel.
  */
-const stores = new Map<string, UnreadStore>();
+// `stores` lives in navUnreadStore.ts, so the top bar's Messages button reads it without this module.
 
 function openStore(userId: string): UnreadStore {
   const store: UnreadStore = {
@@ -51,6 +44,7 @@ function openStore(userId: string): UnreadStore {
     publish: (n) => {
       store.count = n;
       store.listeners.forEach((l) => l(n));
+      notifyUnreadWatchers();
     },
     close: () => {},
   };
@@ -128,6 +122,7 @@ export function useNavUnreadCount(user: User | null | undefined) {
     if (!store) {
       store = openStore(userId);
       stores.set(userId, store);
+      notifyUnreadWatchers();
     }
     const s = store;
     const listener: UnreadListener = (n) => setUnreadCount(n);
@@ -138,6 +133,7 @@ export function useNavUnreadCount(user: User | null | undefined) {
       if (s.listeners.size === 0) {
         s.close();
         if (stores.get(userId) === s) stores.delete(userId);
+        notifyUnreadWatchers();
       }
     };
   }, [user?.id, chromeReadsMayStart]);

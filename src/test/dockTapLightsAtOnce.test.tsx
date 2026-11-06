@@ -10,7 +10,8 @@
  * The real dock is RENDERED here under the real router (transitions on, as in
  * App.tsx's BrowserRouter), with a destination page that never finishes
  * loading: the tapped tab must be lit while the old page is still shown, and
- * the router's own answer must win once a navigation commits.
+ * the router's own answer must win once a navigation commits. (Nav redesign, owner 2026-11-06: the dock is
+ * Dashboard, Jobs, Declutter, Shops, Homes; the slow page is Jobs and the committing one Declutter.)
  *
  * @mutate src/components/MobileNav.tsx |     const isActive = litNow ? litNow === path : active \|\| inStack; |     const isActive = active \|\| inStack;
  * @mutate src/components/MobileNav.tsx |         goTab(path, effectivePath); |         navigate(effectivePath);
@@ -50,12 +51,12 @@ vi.mock("@/lib/shops/api", () => ({ fetchMyShopId: async () => null }));
 import MobileNav from "@/components/MobileNav";
 
 /** A page chunk still on the wire: it never resolves. */
-const SlowMessages = lazy(() => new Promise<{ default: () => JSX.Element }>(() => {}));
+const SlowJobs = lazy(() => new Promise<{ default: () => JSX.Element }>(() => {}));
 
-let goProfile: (() => void) | null = null;
+let goDeclutter: (() => void) | null = null;
 function HomePage() {
   const nav = useNavigate();
-  goProfile = () => nav("/profile");
+  goDeclutter = () => nav("/declutter");
   return <p>Home page</p>;
 }
 
@@ -68,8 +69,8 @@ function renderApp() {
         <Suspense fallback={<p>Loading</p>}>
           <Routes>
             <Route path="/home" element={<HomePage />} />
-            <Route path="/messages" element={<SlowMessages />} />
-            <Route path="/profile" element={<p>Profile page</p>} />
+            <Route path="/jobs" element={<SlowJobs />} />
+            <Route path="/declutter" element={<p>Declutter page</p>} />
           </Routes>
         </Suspense>
       </MemoryRouter>
@@ -84,21 +85,21 @@ afterEach(cleanup);
 describe("a dock tap answers at once (AUD31-62)", () => {
   it("lights the tapped tab while its page is still loading", () => {
     renderApp();
-    expect(lit()).toEqual(["Home"]);
-    fireEvent.click(screen.getByRole("button", { name: "Messages" }));
+    expect(lit()).toEqual(["Dashboard"]);
+    fireEvent.click(screen.getByRole("button", { name: "Jobs" }));
     // The transition holds the old page (the exact state the auditor saw)...
     expect(screen.getByText("Home page")).toBeTruthy();
     // ...but the dock already answers the tap.
-    expect(lit()).toEqual(["Messages"]);
+    expect(lit()).toEqual(["Jobs"]);
   });
 
   it("lets the router's answer win once a navigation commits", async () => {
     renderApp();
-    fireEvent.click(screen.getByRole("button", { name: "Messages" }));
-    expect(lit()).toEqual(["Messages"]);
+    fireEvent.click(screen.getByRole("button", { name: "Jobs" }));
+    expect(lit()).toEqual(["Jobs"]);
     // Another navigation that does commit (a link on the page): the dock follows the router again.
-    await act(async () => goProfile?.());
-    expect(screen.getByText("Profile page")).toBeTruthy();
-    expect(lit()).toEqual(["You"]);
+    await act(async () => goDeclutter?.());
+    expect(screen.getByText("Declutter page")).toBeTruthy();
+    expect(lit()).toEqual(["Declutter"]);
   });
 });

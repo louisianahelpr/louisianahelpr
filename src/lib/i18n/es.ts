@@ -53,7 +53,7 @@ export const es: Record<MsgKey, string> = {
   "lang.switchTo": "Cambiar el idioma a {lang}",
   "lang.legalInEnglish": "Los términos legales están en inglés.",
 
-  "nav.home": "Inicio",
+  "nav.home": "Panel",
   "nav.posts": "Publicaciones",
   "nav.jobs": "Trabajos",
   "nav.messages": "Mensajes",

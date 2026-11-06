@@ -69,8 +69,9 @@ const FRESH_MOBILE_LCP = new Map<string, (number | null)[]>();
 /** A tap's own jump (page-settle's cold-load budget) and the session's (Speed Insights' GOOD). */
 const WALK_HOP_CLS = 0.02;
 const WALK = ["Posts", "Jobs", "Messages", "Profile", "@Earnings", "Jobs", "Home"] as const;
-/** The phone bar since 2026-10-20 (Home, Explore, +, Messages, You): the sections sit under Explore. */
-const WALK_PHONE = ["Explore", "@Jobs", "Messages", "You", "@Earnings", "Explore", "Home"] as const;
+/** The phone since the nav redesign (owner 2026-11-06): the bottom bar is Dashboard, Jobs, Declutter, Shops, Homes;
+ *  Messages and You are on the top bar ("^" = a top-bar control by its data-testid). */
+const WALK_PHONE = ["Jobs", "^top-bar-messages", "^top-bar-profile", "@Earnings", "Declutter", "Dashboard"] as const;
 
 type ProfileName = "mobile" | "desktop";
 type Metric = "fcp" | "lcp";
@@ -323,7 +324,9 @@ test("a tap never leads to a jump: walk the dock / rail, per-tap CLS < 0.02, ses
       const before = await page.evaluate(() => (window as unknown as { __cwv: { shifts: unknown[] } }).__cwv.shifts.length);
       const ctl = label.startsWith("@")
         ? page.locator('button:visible, a:visible, [role="tab"]:visible').filter({ hasText: label.slice(1) }).first()
-        : page.locator(`${nav} [aria-label="${label}"], ${nav} button:has-text("${label}")`).first();
+        : label.startsWith("^")
+          ? page.locator(`[data-testid="app-top-bar"] [data-testid="${label.slice(1)}"]:visible`).first()
+          : page.locator(`${nav} [aria-label="${label}"], ${nav} button:has-text("${label}")`).first();
       await ctl.click({ timeout: 15_000 });
       await settle(page, { quietMs: 2500, maxMs: 20_000 });
       const after = await page.evaluate((n) => (window as unknown as { __cwv: { shifts: Parameters<typeof clsOf>[0] } }).__cwv.shifts.slice(n), before);

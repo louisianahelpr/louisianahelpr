@@ -57,20 +57,22 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     expect(skeleton).toContain('<div className="flex min-h-full flex-col gap-4 pt-1 pb-6">');
   });
 
-  it("draws Home's top bar: the same box, the same emblem size, bell + avatar and no '+'", () => {
+  it("draws Dashboard's top bar: the same box, the same emblem size, then the bell, Messages, the round '+' and the avatar", () => {
     expect(classOf(call(skeleton, "div className=\"app-top-bar"))).toBe(classOf(call(bar, "header")));
     const size = (s: string) => call(s, "HelprMark").match(/size="(\w+)"/)?.[1];
     expect(size(bar)).toBeTruthy();
     expect(size(skeleton)).toBe(size(bar));
     expect(call(skeleton, "HelprMark")).toContain("emblemOnly");
-    // The right cluster: the bar's gap classes, and on Home exactly two controls (bell h-11, avatar h-10 in the
-    // skeleton; the bar's avatar is the shared iconCompact Button since B61, 11-01, its box 44x44 before and after).
+    // The right cluster: the bar's gap classes, and on Dashboard four 44px controls (nav redesign, owner 2026-11-06:
+    // the bell, Messages, the round "+" as one round bone, the avatar; every one is a 44x44 iconCompact box).
     expect(bar).toContain('className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0"');
     const cluster = skeleton.slice(skeleton.indexOf('className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0"'));
     expect(cluster.length).toBeGreaterThan(100);
-    const boxes = cluster.slice(0, cluster.indexOf("</div>")).match(/<span className="h-1[01] w-1[01]/g) ?? [];
-    expect(boxes).toEqual(['<span className="h-11 w-11', '<span className="h-10 w-10']);
+    const right = cluster.slice(0, cluster.indexOf("</div>"));
+    const boxes = right.match(/<span className="h-1[01] w-1[01]|<Skeleton className="h-11 w-11 shrink-0 rounded-full" \/>/g) ?? [];
+    expect(boxes).toEqual(['<span className="h-11 w-11', '<span className="h-11 w-11', '<Skeleton className="h-11 w-11 shrink-0 rounded-full" />', '<span className="h-11 w-11']);
     expect(bar).toMatch(/NotificationPanel triggerClassName="h-11 w-11/);
+    expect(bar.match(/size="iconCompact"/g)?.length, "Messages, the +, the avatar: 44px iconCompact").toBe(3);
     expect(bar).toMatch(/variant="ghost"\s+size="iconCompact"\s+aria-label=\{avatarButtonLabel\(tr\("nav\.profile"\), profile\?\.full_name\)\}/);
   });
 
@@ -104,5 +106,6 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
 // @mutate src/components/DashboardRouteSkeleton.tsx | <HelprMark to={null} size="sm" emblemOnly className="shrink-0" /> | <HelprMark to={null} size="md" emblemOnly className="shrink-0" />
 // @mutate src/components/DashboardRouteSkeleton.tsx | data-skeleton-part="next-up"> | data-skeleton-part="stats">
 // @mutate src/components/DashboardRouteSkeleton.tsx |                 <Skeleton className="h-11 w-36 mt-2 rounded-full" /> |
-// @mutate src/components/DashboardRouteSkeleton.tsx |               <span className="h-10 w-10 flex items-center justify-center"> |               <span className="h-11 w-11 flex items-center justify-center">
+// @mutate src/components/DashboardRouteSkeleton.tsx |               <Skeleton className="h-11 w-11 shrink-0 rounded-full" />\n |
+// @mutate src/components/DashboardRouteSkeleton.tsx |                 <Skeleton className="w-9 h-9 rounded-full" />\n              </span> |                 <Skeleton className="w-9 h-9 rounded-full" />\n              </span>\n              <span className="h-10 w-10" />
 // @mutate src/components/DashboardRouteSkeleton.tsx |     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top"> |     <AppShell scrollable={false} className="bg-premium-page pt-safe-top">

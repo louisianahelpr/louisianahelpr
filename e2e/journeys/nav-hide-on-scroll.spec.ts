@@ -342,42 +342,47 @@ test(`${scrollName("tab-order", "poster")} · a hidden dock is taken out of the 
 // rows to scroll, so the case has no surface here (see the file header).
 
 /**
- * THE DOCK LABELS, MEASURED (owner, 2026-10-19: a one-word label under each
- * icon, one line, never cut, at 320 with all six tabs). The source half is
- * src/test/dockLabelsOneLine.test.ts; this is the pixel half: each label is
- * one line, shows every letter, stays inside the dock and the viewport, and
- * no two labels touch.
+ * THE DOCK IS ICONS ONLY, MEASURED (owner, nav redesign 2026-11-06 11:40 AM: "the phone bottom bar is icons only (no
+ * words); the names stay as aria-labels"). Replaces the 2026-10-19 one-word-label check. The source half is
+ * src/test/dockLabelsOneLine.test.ts; this is the pixel half: the five tabs (Dashboard, Jobs, Declutter, Shops,
+ * Homes) each paint an icon and no word, each is named, each is at least 44px wide inside the dock and the viewport,
+ * and no two touch.
  */
 for (const width of [320, 375]) {
-  test(`${scrollName(`labels-${width}`, "poster")} · dock labels: one line, uncut, none touching @ ${width}`, as("poster", `labels-${width}`, async (page) => {
+  test(`${scrollName(`labels-${width}`, "poster")} · dock icons only: five named tabs, no words, none touching @ ${width}`, as("poster", `labels-${width}`, async (page) => {
     await boot(page, "/home");
     await page.setViewportSize({ width, height: 700 });
     await page.waitForTimeout(400);
     const m = await page.evaluate(() => {
       const nav = document.querySelector<HTMLElement>('nav[aria-label="Bottom navigation"]');
       const navBox = nav?.getBoundingClientRect();
-      const labels = [...document.querySelectorAll<HTMLElement>('nav[aria-label="Bottom navigation"] [data-dock-label]')]
+      const tabs = [...document.querySelectorAll<HTMLElement>('nav[aria-label="Bottom navigation"] button[aria-label]')]
         .filter((el) => el.getClientRects().length > 0)
         .map((el) => {
           const r = el.getBoundingClientRect();
-          const lh = parseFloat(getComputedStyle(el).lineHeight) || 13;
-          return { text: (el.textContent ?? "").trim(), left: r.left, right: r.right, h: r.height, lh, cut: el.scrollWidth > el.clientWidth + 0.5 };
+          // The words a tab paints: its text minus its count badge.
+          const words = [...el.querySelectorAll<HTMLElement>("*")].concat(el)
+            .flatMap((n) => [...n.childNodes].filter((c) => c.nodeType === 3).map((c) => ({ c, parent: n })))
+            .filter(({ parent }) => !parent.closest("[data-dock-badge]"))
+            .map(({ c }) => (c.textContent ?? "").trim())
+            .join("");
+          return { name: el.getAttribute("aria-label") ?? "", words, icon: !!el.querySelector("svg"), left: r.left, right: r.right, w: r.width };
         })
         .sort((a, b) => a.left - b.left);
-      return { labels, navLeft: navBox?.left ?? 0, navRight: navBox?.right ?? 0, vw: innerWidth };
+      return { tabs, navLeft: navBox?.left ?? 0, navRight: navBox?.right ?? 0, vw: innerWidth };
     });
-    // Floor: Home + Messages always, plus the member's sections.
-    expect(m.labels.length, `labels=${JSON.stringify(m.labels.map((l) => l.text))}`).toBeGreaterThanOrEqual(4);
-    for (const l of m.labels) {
-      expect(l.text.length, "a dock label is empty").toBeGreaterThan(1);
-      expect(l.h, `"${l.text}" wraps to a second line`).toBeLessThanOrEqual(l.lh * 1.5);
-      expect(l.cut, `"${l.text}" is cut`).toBe(false);
-      expect(l.left, `"${l.text}" leaves the dock on the left`).toBeGreaterThanOrEqual(Math.max(0, m.navLeft) - 0.5);
-      expect(l.right, `"${l.text}" leaves the dock on the right`).toBeLessThanOrEqual(Math.min(m.vw, m.navRight) + 0.5);
+    const names = m.tabs.map((t) => t.name.replace(/^\d+\+? /, ""));
+    expect(names, `tabs=${JSON.stringify(names)}`).toEqual(["Dashboard", "Jobs", "Declutter", "Shops", "Homes"]);
+    for (const t of m.tabs) {
+      expect(t.words, `"${t.name}" paints a word under its icon`).toBe("");
+      expect(t.icon, `"${t.name}" has no icon`).toBe(true);
+      expect(t.w, `"${t.name}" is narrower than 44px at ${width}`).toBeGreaterThanOrEqual(44);
+      expect(t.left, `"${t.name}" leaves the dock on the left`).toBeGreaterThanOrEqual(Math.max(0, m.navLeft) - 0.5);
+      expect(t.right, `"${t.name}" leaves the dock on the right`).toBeLessThanOrEqual(Math.min(m.vw, m.navRight) + 0.5);
     }
-    for (let i = 1; i < m.labels.length; i++) {
-      const a = m.labels[i - 1], b = m.labels[i];
-      expect(b.left - a.right, `"${a.text}" and "${b.text}" touch at ${width}`).toBeGreaterThanOrEqual(1);
+    for (let i = 1; i < m.tabs.length; i++) {
+      const a = m.tabs[i - 1], b = m.tabs[i];
+      expect(b.left - a.right, `"${a.name}" and "${b.name}" overlap at ${width}`).toBeGreaterThanOrEqual(0);
     }
   }));
 }

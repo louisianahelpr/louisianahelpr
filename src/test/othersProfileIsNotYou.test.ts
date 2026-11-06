@@ -16,7 +16,7 @@ describe("someone else's profile is not You", () => {
   it("leaves the other stacks as they were", () => {
     expect(inTabStack("/profile", "/support", "me")).toBe(true);
     expect(inTabStack("/jobs", "/jobs/abc", "me")).toBe(true);
-    expect(inTabStack("/explore", "/declutter/x", "me")).toBe(true);
+    expect(inTabStack("/declutter", "/declutter/x", "me")).toBe(true);
     expect(inTabStack("/home", "/jobs/abc", "me")).toBe(false);
   });
 });

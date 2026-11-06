@@ -7,10 +7,12 @@
  * The class, from the app's own inventory (SECTIONS): on the desktop website every section's bar carries ONE soft
  * button beside the bell, "+ <cta or label>", named by the full label, going to the section's add path, a soft olive
  * tint with no shadow and no filled primary (clearly second to the rail's solid "+ Create"); "Post a job" keeps the
- * under-18 post gate. A phone bar carries none (the bottom bar's center "+" creates), and the bell keeps its 44px
- * size. Before 2026-10-19 the phone "+" was a filled olive circle; this file was topBarAddMatchesBell.test.ts.
+ * under-18 post gate. A phone bar carries no desktop "+ Post a job" pill: since the nav redesign (owner 2026-11-06)
+ * its create is the round icon "+" (PhoneCreateButton, the same soft tint; src/test/centerCreateNav.test.tsx), and the
+ * bell keeps its 44px size. Before 2026-10-19 the phone "+" was a filled olive circle; this file was
+ * topBarAddMatchesBell.test.ts.
  *
- * @mutate src/components/sections/AppTopBar.tsx | <div className="flex items-center gap-1 min-[360px]:gap-0 shrink-0">{personal}</div> | <div className="flex items-center gap-1 min-[360px]:gap-0 shrink-0">{section && <button type="button" data-testid="section-add" />}{personal}</div>
+ * @mutate src/components/sections/AppTopBar.tsx |             {personal}\n | {section && <button type="button" data-testid="section-add" />}{personal}\n
  * @mutate src/components/sections/AppTopBar.tsx |       {add.cta ?? add.label} |       {add.label}
  * @mutate src/components/sections/AppTopBar.tsx |       variant="ghost"\n      size="sm"\n      aria-label={add.label} |       variant="primary"\n      size="sm"\n      aria-label={add.label}
  * @mutate src/components/sections/AppTopBar.tsx |       onClick={isPost ? gate.gate("post", go) : go} |       onClick={go}
@@ -106,7 +108,7 @@ describe("the section's soft '+' in its top bar, desktop website only (owner 202
     expect(screen.getByTestId("where").textContent).toBe("/start");
   });
 
-  it("a phone bar carries no '+' (the bottom bar's center '+' creates)", () => {
+  it("a phone bar carries no desktop '+ Post a job' pill (its create is the round top-bar '+')", () => {
     env.desktop = false;
     for (const s of SECTIONS) {
       draw(s);

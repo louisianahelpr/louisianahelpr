@@ -29,23 +29,29 @@ import type { AppliedActivity, PostedActivity } from "@/hooks/useActivityData";
 function JobsHeaderBones() {
   return (
     <div className="explore-header flex flex-col gap-1" aria-hidden>
-      {/* The Explore header's top row. On the DESKTOP WEBSITE it is the settled bar itself: the real "Jobs" title in
+      {/* The section header's top row. On the DESKTOP WEBSITE it is the settled bar itself: the real "Jobs" title in
           the global top bar with its soft "+ Post a job", no back arrow (owner 2026-10-28: the loading frame draws exactly the settled
-          header; src/test/sectionLoadingHeaderIsSettled.test.tsx). On a phone (AppTopBar `section`): `app-top-bar
-          h-12`, the section chips, the bell, the photo, as bones. */}
+          header; src/test/sectionLoadingHeaderIsSettled.test.tsx). On a phone (AppTopBar, nav redesign 2026-11-06):
+          the real "Jobs" title, then the bell, Messages, the round "+" and the photo, as bones. */}
       <PageTitleBar
         title="Jobs"
         desktopGap={false}
         actions={<SectionAddButton section="jobs" />}
         phone={
-          <div className="app-top-bar flex items-center gap-1 h-12">
-            <Skeleton className="explore-switcher-bone h-12 min-w-0 flex-1 rounded-full" />
-            <span className="h-11 w-11 shrink-0 flex items-center justify-center">
-              <Skeleton className="h-6 w-6 rounded-full" />
-            </span>
-            <span className="h-10 w-10 shrink-0 flex items-center justify-center">
-              <Skeleton className="w-9 h-9 rounded-full" />
-            </span>
+          <div className="app-top-bar flex items-center justify-between gap-2 h-16">
+            <span className="min-w-0 truncate text-page-title text-foreground">Jobs</span>
+            <div className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0">
+              <span className="h-11 w-11 shrink-0 flex items-center justify-center">
+                <Skeleton className="h-6 w-6 rounded-full" />
+              </span>
+              <span className="h-11 w-11 shrink-0 flex items-center justify-center">
+                <Skeleton className="h-6 w-6 rounded-full" />
+              </span>
+              <Skeleton className="h-11 w-11 shrink-0 rounded-full" />
+              <span className="h-11 w-11 shrink-0 flex items-center justify-center">
+                <Skeleton className="w-9 h-9 rounded-full" />
+              </span>
+            </div>
           </div>
         }
       />

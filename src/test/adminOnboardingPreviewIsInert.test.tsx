@@ -92,7 +92,7 @@ describe("admin onboarding preview (Q2664 b)", () => {
     expect(options.length).toBeGreaterThan(1);
     fireEvent.click(options[options.length - 1]);
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Continue" })); });
-    expect(await screen.findByText("Home shows what needs you")).toBeInTheDocument();
+    expect(await screen.findByText("Dashboard shows what needs you")).toBeInTheDocument();
     expect(localStorage.getItem(`helpr_section_prefs:${ME}`)).toBe(before);
     expect(supabaseCalls()).toEqual([]);
   });

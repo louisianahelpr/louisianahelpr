@@ -83,9 +83,10 @@ describe("Home's first screen carries only Home's code (AUD31-60/66)", () => {
 
   it("gives the icons Home's page draws their own chunk, above the merged icon groups (B79)", () => {
     const icons = homeIconFiles(ROOT);
-    // Floor: the title bar's bell and help, the dock's house and compass, the first-job card's checks (34 when written).
+    // Floor: the title bar's bell, Messages and "+" (nav redesign 2026-11-06: Help moved into You), the dock's section
+    // icons, the first-job card's checks (34 when written).
     expect(icons.size).toBeGreaterThan(20);
-    for (const i of ["bell", "life-buoy", "circle-check"]) expect([...icons], i).toContain(i);
+    for (const i of ["bell", "message-square", "plus", "circle-check"]) expect([...icons], i).toContain(i);
     const config = blankComments(readFileSync(resolve(ROOT, "vite.config.ts"), "utf8"));
     const group = config.match(/name:\s*"icons-home",[\s\S]*?\n\s*\},/)?.[0] ?? "";
     expect(group).toMatch(/homeIcons\.has\(/);

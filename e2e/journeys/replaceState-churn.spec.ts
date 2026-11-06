@@ -53,13 +53,13 @@ import { filteredOut, rotationFor, scenarioTitle, type Rotation } from "./scenar
 const ERROR_BOUNDARY_TEXT = /This page hit a problem/i;
 
 /**
- * The Explore page is up (Q2359, owner 2026-10-22): on a phone its header is the section chips with the bell and the
- * photo, and the page's h1 is the section's name, screen-reader only ("Jobs"). There is no visible "Explore" title
- * any more, which is what these waits used to look for.
+ * The Jobs section is up (/explore opens it). Since the nav redesign (owner 2026-11-06) a phone's top bar is the
+ * visible "Jobs" title with the bell, Messages, "+" and the photo; the Explore chips row these waits once looked for
+ * is gone (the bottom bar switches sections).
  */
 async function expectExploreUp(page: Page, opts?: { timeout?: number }): Promise<void> {
-  await expect(page.getByTestId("explore-switcher")).toBeVisible(opts);
-  await expect(page.getByTestId("app-top-bar").getByRole("heading", { level: 1, name: "Jobs" })).toHaveCount(1);
+  await expect(page.getByTestId("app-top-bar").getByRole("heading", { level: 1, name: "Jobs" })).toBeVisible(opts);
+  await expect(page.getByTestId("app-top-bar").getByTestId("top-bar-create")).toHaveAttribute("aria-label", "Post a job");
 }
 
 /** Attach console/page-error collectors before any navigation. */

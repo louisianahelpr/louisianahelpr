@@ -58,7 +58,7 @@ export function guestTabPath(path: string): string {
 }
 
 export const leftItems = [
-  { path: "/home", icon: Home, label: "Home" },
+  { path: "/home", icon: Home, label: "Dashboard" },
   { path: "/posts", icon: ClipboardList, label: "Posts" },
 ];
 
@@ -167,10 +167,13 @@ const tabStacks: Record<string, string[]> = {
   // and it competed with the FAB, which is the control they actually pressed.
   // The tab highlights for the Posts LIST only.
   "/posts": [],
-  "/jobs": ["/jobs/"],
+  // The phone dock's section tabs (owner, nav redesign 2026-11-06: Dashboard, Jobs, Declutter, Shops, Homes): each is
+  // lit anywhere inside its section. Jobs holds Posted (/posts) and quotes, as the Jobs section's own tabs do.
+  "/jobs": ["/jobs/", "/posts", "/quotes"],
+  "/declutter": ["/declutter/"],
+  "/shops": ["/shops/"],
+  "/rentals": ["/rentals/"],
   "/messages": [],
-  // Every section lives under Explore (2026-10-20), so Explore is lit inside any of them.
-  "/explore": ["/jobs", "/posts", "/declutter", "/shops", "/rentals", "/quotes"],
   "/profile": ["/support", "/user", "/admin"],
 };
 

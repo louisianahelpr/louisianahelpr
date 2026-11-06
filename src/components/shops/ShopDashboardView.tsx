@@ -38,6 +38,7 @@ import { ShopTalkFromLink } from "./ShopTalk";
 import CancelPolicyPicker from "./ShopCancelPolicyPicker";
 import ShopPayoutRow from "./ShopPayoutRow";
 import HandoverModePicker from "./ShopHandoverModePicker";
+import ShopDeliveryPicker from "./ShopDeliveryPicker";
 import { ShopHandoverActions } from "./ShopHandoverActions";
 import { StatusBoxes, useStatusFilter } from "@/components/sections/StatusBoxes";
 
@@ -251,6 +252,7 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
           </>
         )}
         <HandoverModePicker shopId={myId.data} />
+        <ShopDeliveryPicker shopId={myId.data} />
         <CancelPolicyPicker shopId={myId.data} />
         {footer}
       </div>

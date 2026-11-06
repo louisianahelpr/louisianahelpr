@@ -19,6 +19,7 @@
  * @mutate supabase/functions/shop-checkout/index.ts | await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (payer, walletRetry) => | await ((_a: unknown, _b: unknown, _c: unknown, _d: unknown, c: string \| undefined, f: (c: string \| undefined, r: boolean) => unknown) => f(c, false))(admin, stripe, user, mode, customerId, (payer, walletRetry) =>
  * @mutate supabase/functions/shop-checkout/index.ts |     return json({ error: TRY_AGAIN }, 503);\n  }\n\n  /** The order sheet's own name | }\n\n  /** The order sheet's own name
  * @mutate supabase/functions/_shared/shopHolds.ts |       { idempotencyKey: shopCaptureKey(orderId, attempt) }); |       );
+ * @mutate supabase/functions/shop-checkout/index.ts |        if (pg.stripe_checkout_session_id) await expirePage(pg.stripe_checkout_session_id); |        if (pg.stripe_checkout_session_id) void 0;
  * @mutate supabase/functions/_shared/shopHolds.ts | amountToCapture === null ? {} : { amount_to_capture: amountToCapture }, | {},
  * @mutate supabase/functions/_shared/shopHolds.ts |   if (row.payment_plan !== "deposit_50" \|\| typeof cents !== "number" | if (row.payment_plan !== "deposit_50" \|\| typeof cents === "symbol"
  * @mutate supabase/functions/_shared/shopHolds.ts |   return `shop-capture-${orderId}-${Number.isInteger(attempt) && attempt >= 0 ? attempt : 0}`; |   return `shop-capture-${orderId}`;
@@ -893,6 +894,29 @@ describe("shop-checkout: the maker answers", () => {
     expect(res.status).toBe(200);
     expect(stripeMock.paymentIntents.capture).toHaveBeenCalledTimes(1);
     expect(stripeMock.paymentIntents.capture).toHaveBeenCalledWith("pi_shop", { amount_to_capture: 3240 }, { idempotencyKey: `shop-capture-${ORDER}-3` });
+  });
+
+  // Custom orders slice 2a (review follow-up a on 9abcc8018a): a closed request's unpaid page is expired.
+  it("close_request: the member closes the request in SQL, then the unpaid page for that price is expired", async () => {
+    const fn = await load();
+    const REQ = "0000000c-0000-4000-8000-0000000000c1";
+    scenario.rpc.shops_decline_custom_request = "declined";
+    scenario.reads.shop_order_lines = { rows: [{ order_id: ORDER }] };
+    scenario.reads.shop_orders = { rows: [{ stripe_checkout_session_id: "cs_live_custom" }] };
+    const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer maker-jwt" }, body: { action: "close_request", request_id: REQ } }));
+    expect(res.status).toBe(200);
+    expect(await json(res)).toEqual({ closed: true, status: "declined" });
+    expect(rpcs("shops_decline_custom_request")[0]?.args).toEqual({ p_request_id: REQ });
+    expect(clientOf(rpcs("shops_decline_custom_request")[0])?.key).toBe("anon-key");
+    expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_live_custom");
+  });
+
+  it("close_request: a refusal from SQL expires nothing", async () => {
+    const fn = await load();
+    scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), shops_decline_custom_request: { message: "request_not_open", code: "55000" } };
+    const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer maker-jwt" }, body: { action: "close_request", request_id: "0000000c-0000-4000-8000-0000000000c2" } }));
+    expect(res.status).toBe(409);
+    expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
   });
 
   it("accept: a deposit order with no frozen deposit is never captured (the cron retries)", async () => {

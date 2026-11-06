@@ -10,6 +10,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { assertNever } from "@/lib/assertNever";
 import { rpcData } from "@/lib/declutter/api";
 import { rpcErrorMessage } from "@/lib/declutter/tradeErrors";
 
@@ -116,6 +117,7 @@ export function tradeStatusWords(t: Pick<MyTrade, "status" | "my_side">): string
     case "withdrawn": return "Taken back.";
     case "voided": return "Closed: one of the items is no longer available.";
     case "lapsed": return "Ended: the trade didn't finish, so it closed. Nothing was charged.";
-    default: return "";
+    case "open": return ""; // still open: the card shows its buttons, not a closing line
+    default: return assertNever(t.status);
   }
 }

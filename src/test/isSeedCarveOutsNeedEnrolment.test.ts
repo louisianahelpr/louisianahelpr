@@ -264,6 +264,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   shop_set_order_helpr_delivery: "tags",
   shop_delivery_open_task: "tags",
   shop_delivery_on_task_event: "tags",
+  shop_custom_requests_seed_from_parties: "tags", // 20261106202917 (Shops custom orders): a request with a test account or test shop is seed data
   shop_refund_sweep: "alerts",
   shop_handover_sweep: "alerts", // 20261105182903 (Shops H5): a test order gets no held-money nudge and no 60-day admin alert; no money moves in that loop
   shop_rows_seed_from_owner: "tags",

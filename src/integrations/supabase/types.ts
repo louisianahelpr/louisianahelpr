@@ -13054,6 +13054,68 @@ export type Database = {
         }
         Relationships: []
       }
+      shop_custom_requests: {
+        Row: {
+          buyer_id: string
+          closed_at: string | null
+          created_at: string
+          description: string
+          expires_at: string | null
+          id: string
+          is_seed: boolean
+          payment_plan: string
+          quote_cents: number | null
+          quote_note: string | null
+          quoted_at: string | null
+          shop_id: string
+          status: string
+          updated_at: string
+          wanted_date: string | null
+        }
+        Insert: {
+          buyer_id: string
+          closed_at?: string | null
+          created_at?: string
+          description: string
+          expires_at?: string | null
+          id?: string
+          is_seed?: boolean
+          payment_plan: string
+          quote_cents?: number | null
+          quote_note?: string | null
+          quoted_at?: string | null
+          shop_id: string
+          status?: string
+          updated_at?: string
+          wanted_date?: string | null
+        }
+        Update: {
+          buyer_id?: string
+          closed_at?: string | null
+          created_at?: string
+          description?: string
+          expires_at?: string | null
+          id?: string
+          is_seed?: boolean
+          payment_plan?: string
+          quote_cents?: number | null
+          quote_note?: string | null
+          quoted_at?: string | null
+          shop_id?: string
+          status?: string
+          updated_at?: string
+          wanted_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_custom_requests_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_faqs: {
         Row: {
           answer: string
@@ -14189,6 +14251,7 @@ export type Database = {
           cancel_policy: string
           category: string
           created_at: string
+          custom_orders: string
           daily_order_cap: number | null
           delivers: boolean
           delivery_fee_cents: number
@@ -14220,6 +14283,7 @@ export type Database = {
           cancel_policy?: string
           category: string
           created_at?: string
+          custom_orders?: string
           daily_order_cap?: number | null
           delivers?: boolean
           delivery_fee_cents?: number
@@ -14251,6 +14315,7 @@ export type Database = {
           cancel_policy?: string
           category?: string
           created_at?: string
+          custom_orders?: string
           daily_order_cap?: number | null
           delivers?: boolean
           delivery_fee_cents?: number
@@ -21742,6 +21807,11 @@ export type Database = {
       }
       shops_set_handover_mode: { Args: { p_mode: string }; Returns: string }
       shops_set_delivery: { Args: { p_delivers: boolean; p_fee_cents: number; p_radius_miles: number }; Returns: Json }
+      shops_set_custom_orders: { Args: { p_mode: string }; Returns: string }
+      shops_send_custom_request: { Args: { p_shop_id: string; p_description: string; p_wanted_date?: string | null }; Returns: string }
+      shops_quote_custom_request: { Args: { p_request_id: string; p_quote_cents: number; p_note?: string | null }; Returns: Json }
+      shops_decline_custom_request: { Args: { p_request_id: string }; Returns: string }
+      shops_my_custom_requests: { Args: never; Returns: Json }
       shops_order_delivery_address: {
         Args: { p_order_id: string }
         Returns: { city: string; line1: string; line2: string; postal_code: string }[]

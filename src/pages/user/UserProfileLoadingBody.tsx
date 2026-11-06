@@ -1,5 +1,30 @@
+import PageHeader from "@/components/PageHeader";
 import { ProfileHeroSkeleton } from "./ProfileHeroSkeleton";
 import { ProReturnBanner } from "./ProReturnBanner";
+
+/**
+ * Q1695 (loading-states-refresh 42123572431, customer /user/<id> 487px blank -> 812px): while /user/<id> works out
+ * where a MEMBER goes (PublicProfileForward's handle read, MemberForward's block check), the route drew the plain
+ * RouteSuspenseFallback, so the page was blank and then the profile arrived. This is UserProfile's own loading frame
+ * (its page wrapper, its "Profile" header with the Save + overflow bones, the same body), so a member who stays on
+ * /user keeps the frame they see first. `own`: the member's own /user page (its title, no action bones).
+ */
+export function UserProfileForwardWait({ own }: { own: boolean }) {
+  return (
+    <div className="min-h-screen bg-premium-page pb-safe-nav" data-testid="user-profile-forward-wait">
+      <PageHeader
+        title={own ? "How others see you" : "Profile"}
+        titleActions={own ? null : (
+          <div className="flex items-center gap-1" aria-hidden>
+            <div className="h-10 w-10 rounded-ds-md bg-muted motion-safe:animate-pulse" />
+            <div className="h-10 w-10 rounded-ds-md bg-muted motion-safe:animate-pulse" />
+          </div>
+        )}
+      />
+      <UserProfileLoadingBody proReturn={null} />
+    </div>
+  );
+}
 
 /**
  * Q806: UserProfile's loading body (under the page header), moved verbatim out of UserProfile.tsx (pure move).

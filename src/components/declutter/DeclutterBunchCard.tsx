@@ -14,7 +14,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
 import { OFFERS_TITLE, offersSettingLine } from "@/lib/declutter/offersOnPost";
 import type { DeliverySize } from "@/lib/declutter/api";
-import { bunchItemProblem, bunchItemTakesOffers, type BunchItem } from "@/lib/declutter/bunch";
+import { bunchItemProblem, bunchItemTakesOffers, bunchItemTakesTrades, type BunchItem } from "@/lib/declutter/bunch";
+import { TRADES_TITLE, tradesSettingLine } from "@/lib/declutter/trades";
 import { TwoStepCategoryPicker } from "@/components/ui/TwoStepCategoryPicker";
 import { CATEGORY_PICKER_GROUPS } from "@/lib/declutter/categoryIcons";
 import { CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
@@ -30,6 +31,8 @@ interface BunchCardProps {
   item: BunchItem;
   /** LEAD-OFFERS-CHOICE part (2): the seller's saved "Accept offers", for an item with no choice of its own. Absent: on. */
   offersDefault?: boolean;
+  /** Declutter trades item 4: the seller's saved "Open to trades", for an item with no choice of its own. Absent: off. */
+  tradesDefault?: boolean;
   index: number;
   /** The other items, for "Move to" and "Merge into": key, the name the seller sees, and a first photo. */
   others: BunchOther[];
@@ -66,7 +69,7 @@ export function bunchItemName(it: BunchItem, index: number): string {
   return it.title.trim() || `Item ${index + 1}`;
 }
 
-export function BunchCard({ item, offersDefault, index, others, urls, files, at, rewriting, rewriteNote, onChange, onMove, onSplit, onRemovePhoto, onCover, onReorder, canDrag, onAddPhotos, onMerge, onDrop, onRewrite, onRetryUpload }: BunchCardProps) {
+export function BunchCard({ item, offersDefault, tradesDefault, index, others, urls, files, at, rewriting, rewriteNote, onChange, onMove, onSplit, onRemovePhoto, onCover, onReorder, canDrag, onAddPhotos, onMerge, onDrop, onRewrite, onRetryUpload }: BunchCardProps) {
   const [mergeInto, setMergeInto] = useState("");
   const id = item.key;
   const problem = bunchItemProblem(item);
@@ -148,6 +151,19 @@ export function BunchCard({ item, offersDefault, index, others, urls, files, at,
                 <span className="block text-ds-13 text-muted-foreground">{offersSettingLine(on)}</span>
               </label>
               <Switch id={`offers-${id}`} aria-label={`${OFFERS_TITLE} for ${name}`} checked={on} onCheckedChange={(v) => onChange({ acceptsOffers: v === true })} />
+            </div>
+          );
+        })()}
+        {/* Declutter trades item 4: "Open to trades" under Accept offers; a free item is claimed, never traded. */}
+        {!item.free && (() => {
+          const on = bunchItemTakesTrades(item, { acceptsTrades: tradesDefault });
+          return (
+            <div className="flex min-h-11 items-center gap-3 sm:col-span-2" data-bunch-trades={on ? "on" : "off"}>
+              <label htmlFor={`trades-${id}`} className="min-w-0 flex-1">
+                <span className="block text-ds-14 font-medium">{TRADES_TITLE}</span>
+                <span className="block text-ds-13 text-muted-foreground">{tradesSettingLine(on)}</span>
+              </label>
+              <Switch id={`trades-${id}`} aria-label={`${TRADES_TITLE} for ${name}`} checked={on} onCheckedChange={(v) => onChange({ acceptsTrades: v === true })} />
             </div>
           );
         })()}

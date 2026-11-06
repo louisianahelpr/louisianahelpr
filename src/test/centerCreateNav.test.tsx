@@ -36,6 +36,8 @@
  * @mutate src/pages/post-job/usePostJobForm.ts |     searchParams.get("start") === "ai" ? "ai" : null, |     null,
  * @mutate src/pages/explore/Explore.tsx |   const target = open.find((s) => s.key === last) ?? open[0] ?? sectionByKey("jobs"); |   const target = sectionByKey("jobs");
  * @mutate src/components/sections/ExploreSwitcher.tsx |   useEffect(() => writeLastSection(user?.id, current), [user?.id, current]); |
+ * Q104 (loading-states-refresh 42123572431, shops_my_shop_id x92): the closed phone sheet never reads the member's shop.
+ * @mutate src/components/create/CreateSheet.tsx | enabled: shopsOn && open }); | enabled: shopsOn });
  * @mutate src/components/create/CreateSheet.tsx | <SheetHero moment title="What are we doing?" /> | <SheetHero title="What are we doing?" />
  * @mutate src/index.css | .font-moment.font-moment.font-moment { | .font-moment {
  * @mutate src/components/sections/AppTopBar.tsx |   const phoneExplore = explore && !isWebDesktop; |   const phoneExplore = false;
@@ -92,8 +94,8 @@ vi.mock("@/hooks/useAgeGate", () => ({
 import MobileNav from "@/components/MobileNav";
 import Explore from "@/pages/explore/Explore";
 import { ExploreSwitcher } from "@/components/sections/ExploreSwitcher";
-const shop = vi.hoisted(() => ({ id: null as string | null }));
-vi.mock("@/lib/shops/api", () => ({ fetchMyShopId: async () => shop.id }));
+const shop = vi.hoisted(() => ({ id: null as string | null, asked: 0 }));
+vi.mock("@/lib/shops/api", () => ({ fetchMyShopId: async () => { shop.asked++; return shop.id; } }));
 
 const ROOT = resolve(__dirname, "../..");
 const code = (rel: string) => blankComments(readFileSync(resolve(ROOT, rel), "utf8"));
@@ -127,6 +129,7 @@ beforeEach(() => {
   age.under = false;
   age.explained.length = 0;
   shop.id = null;
+  shop.asked = 0;
 });
 afterEach(cleanup);
 
@@ -163,6 +166,15 @@ describe("the phone bottom bar (2026-10-20)", () => {
 });
 
 describe("the create sheet (mock-up 20: one row per section)", () => {
+  it("Q104: the closed sheet never asks for the member's shop; opening it asks once", async () => {
+    renderDock();
+    await new Promise((r) => setTimeout(r, 30));
+    expect(shop.asked).toBe(0);
+    openSheet();
+    expect(await screen.findByText("Open a shop")).toBeTruthy();
+    expect(shop.asked).toBe(1);
+  });
+
   it("lists one row per shown section in Customize order, each with its real actions", async () => {
     switches.on = new Set(["declutter", "shops", "rentals", "declutter_moving_out"]);
     renderDock();

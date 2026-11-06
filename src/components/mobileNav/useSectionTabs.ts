@@ -27,8 +27,13 @@ export function useSectionTabs() {
   // everyone (the same features_open_to_everyone answer the guest gate reads).
   const { user, isReady } = useAuthReady();
   const guest = isReady && !user;
-  // Asked only once some section is live for this viewer, or for a guest: a member with nothing live never asks.
-  const openToEveryone = useOpenToEveryoneAnswer(declutter || shops || rentals || guest);
+  // Asked only when the answer can change what is drawn: for a guest (Declutter's chip), or when a section is live
+  // for this viewer that can still be a preview (sectionIsPreview: never one in OPEN_FOR_THOSE_WHO_HAVE_IT). A member
+  // with only Declutter live never asks (Q104, loading-states-refresh 42123572431: features_open_to_everyone x114,
+  // one per cold page load, beside feature_switches_for_me).
+  const live = { declutter, shops, rentals } as const;
+  const mayBePreview = (Object.keys(live) as (keyof typeof live)[]).some((f) => live[f] && !OPEN_FOR_THOSE_WHO_HAVE_IT.has(f));
+  const openToEveryone = useOpenToEveryoneAnswer(mayBePreview || guest);
   // Declutter only: it is the one section with guest pages (BUY-16's DeclutterGuestGate).
   const on = { declutter: declutter || (guest && !!openToEveryone?.has("declutter")), shops, rentals } as const;
   return sectionItems.map((s) => {

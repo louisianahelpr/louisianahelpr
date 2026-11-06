@@ -38,12 +38,15 @@ interface CreateAction {
 // JAVASCRIPT-54, '["shops","mine"] data is undefined'). Guard: src/test/dynamicImportThenDoesNoWork.test.ts.
 const shopsApi = () => loadModule(() => import("@/lib/shops/api"));
 
-function useCreateRows() {
+function useCreateRows(open: boolean) {
   const isOn = useSectionIsOn();
   const isPreview = useSectionIsPreview();
   const shopsOn = useFeature("shops");
   // The Shops data code loads with this query (only when Shops is on), not with the dock on every screen (/home cut).
-  const myShop = useQuery({ queryKey: ["shops", "mine"], queryFn: () => shopsApi().then((m) => (m ? m.fetchMyShopId() : untilReload())), enabled: shopsOn });
+  // Asked only while the sheet is OPEN (Q104, loading-states-refresh 42123572431: shops_my_shop_id x92, one per phone
+  // page load, because the phone dock keeps this sheet mounted closed). The desktop rail mounts it only when open, so
+  // both now read it at the same moment; the answer is then cached for the next open.
+  const myShop = useQuery({ queryKey: ["shops", "mine"], queryFn: () => shopsApi().then((m) => (m ? m.fetchMyShopId() : untilReload())), enabled: shopsOn && open });
   const hasShop = !!myShop.data;
   const actions: Record<SectionKey, CreateAction[]> = {
     jobs: [{ label: "Post a job", path: "/post-job", gated: true }],
@@ -68,7 +71,7 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
   const navigate = useNavigate();
   const gate = useAgeGate();
   const { visible: shownSections, prefs, setHidden } = useSectionPrefs();
-  const { isOn, isPreview, actions } = useCreateRows();
+  const { isOn, isPreview, actions } = useCreateRows(open);
   // In the iPhone app a section not open to everyone has no row (owner 10-31, src/lib/hideUnopenedInApp.ts).
   const isListed = useSectionIsListed();
   const visible = shownSections.filter(isListed);

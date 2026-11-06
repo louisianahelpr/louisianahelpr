@@ -84,6 +84,13 @@ async function depositToCapture(admin: Db, orderId: string): Promise<number | nu
   return cents;
 }
 
+/**
+ * Slice 2b: stamped on a deposit capture (the cents captured). _jobTaxCommit.ts commits the order's WHOLE tax
+ * calculation on it (the sale stands; the rest is charged from the ready date, and a close with the rest unpaid
+ * reverses it in full, shopBalance.ts), instead of paging the partial capture as tax on money never collected.
+ */
+export const SHOP_DEPOSIT_CAPTURE_KEY = "shop_deposit_capture_cents";
+
 export type CaptureOutcome = "captured" | "will_retry" | "hold_lost";
 
 /** The capture idempotency key of one attempt (the order's capture_attempts so far). */
@@ -107,7 +114,7 @@ export async function captureShopHold(
   let lost = false;
   let why = "";
   try {
-    const pi = await stripe.paymentIntents.capture(paymentIntentId, amountToCapture === null ? {} : { amount_to_capture: amountToCapture },
+    const pi = await stripe.paymentIntents.capture(paymentIntentId, amountToCapture === null ? {} : { amount_to_capture: amountToCapture, metadata: { [SHOP_DEPOSIT_CAPTURE_KEY]: String(amountToCapture) } },
       { idempotencyKey: shopCaptureKey(orderId, attempt) });
     captured = pi.status === "succeeded";
     if (!captured) why = `capture left the payment ${pi.status}`;

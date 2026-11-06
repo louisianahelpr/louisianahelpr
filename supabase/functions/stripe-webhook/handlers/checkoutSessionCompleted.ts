@@ -29,6 +29,7 @@ import { checkCheckoutCardFingerprint } from "./_checkoutCardFingerprint.ts";
 import { recordWalletDefaultCard } from "./_walletDefaultCard.ts";
 import { isDeclutterSession, settleDeclutterSession } from "./declutterCheckout.ts";
 import { isShopSession, settleShopSession } from "./shopCheckout.ts";
+import { SHOP_BALANCE_KIND } from "../../_shared/shopBalance.ts";
 import { isCardHoldSession, settleCardHoldCheckout } from "./cardHoldCheckout.ts";
 import { memberDisplayName } from "../../_shared/memberDisplayName.ts";
 import { pageGiftLeftSpentOnCardFunding } from "./_giftLeftSpentOnCardFunding.ts";
@@ -61,6 +62,12 @@ async function settleCheckoutSession(
   // charged here; the maker's acceptance captures it (shop-checkout).
   if (isShopSession(session)) {
     await settleShopSession(event, session, { stripe, supabase, logStep });
+    return;
+  }
+  // Custom orders slice 2b: the buyer's pay-the-rest page. Its payment is recorded from payment_intent.succeeded
+  // (the same path as the off-session charge), never down the job path below.
+  if ((session.metadata as Record<string, string> | null)?.kind === SHOP_BALANCE_KIND) {
+    logStep("Shop rest-of-order page completed; recorded on payment_intent.succeeded", { id: session.id });
     return;
   }
   // Q2399: a job checkout that HELD the card (card_hold_at_post). A bank

@@ -85,6 +85,21 @@ export async function settleShopSession(
   if (!answer) throw new Error(`shop_mark_order_held returned nothing for ${session.id}`);
   if (answer.result === "held" || answer.result === "already_held") {
     logStep("Shop order held", { order: answer.order_id, result: answer.result });
+    // Custom orders slice 2b: a 50% deposit order's page saved the card for the rest (setup_future_usage off_session,
+    // shop-checkout). It is recorded on the order once (shop_order_record_saved_card answers not_deposit for any other
+    // order). A page that saved no card leaves none: the rest then goes to the buyer's pay-the-rest page.
+    if (meta.payment_plan === "deposit_50") {
+      const pm = typeof pi.payment_method === "string" ? pi.payment_method : pi.payment_method?.id;
+      const cus = typeof pi.customer === "string" ? pi.customer : pi.customer?.id;
+      if (pm && cus) {
+        const { error: cardErr } = await supabase.rpc("shop_order_record_saved_card", {
+          p_order_id: answer.order_id, p_customer_id: cus, p_payment_method_id: pm,
+        });
+        if (cardErr) throw new Error(`shop_order_record_saved_card failed for ${answer.order_id}: ${cardErr.message}`);
+      } else {
+        logStep("Deposit order held with no saved card; the rest goes to the buyer's page", { order: answer.order_id });
+      }
+    }
     return;
   }
   // 'cancel_hold': the order closed, the amount was wrong, or the day filled.

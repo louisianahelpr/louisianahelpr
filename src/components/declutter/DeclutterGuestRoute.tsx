@@ -7,8 +7,9 @@ import type { ReactNode } from "react";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import { useAuthReady } from "@/hooks/useAuthReady";
 
-export default function DeclutterGuestOrMember({ children }: { children: ReactNode }) {
+/** `fallback`: the route's page-shaped frame, so ProtectedRoute's wait draws the same one as the route's Suspense. */
+export default function DeclutterGuestOrMember({ children, fallback }: { children: ReactNode; fallback?: ReactNode }) {
   const { user, isReady } = useAuthReady();
-  if (!isReady || user) return <ProtectedRoute>{children}</ProtectedRoute>;
+  if (!isReady || user) return <ProtectedRoute fallback={fallback}>{children}</ProtectedRoute>;
   return <>{children}</>;
 }

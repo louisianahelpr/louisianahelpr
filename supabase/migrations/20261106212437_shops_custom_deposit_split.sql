@@ -1,6 +1,6 @@
 -- Shops custom orders, slice 2a: the 50% deposit plan's split, gates and payout (Builder 4, 11-06; plan
 -- ~/.lh-shots/handoffs-1106/builder4-shops.md; OWNER 11-06 ~3:40 PM balance-failure rule; LEAD 11-06 lapse-tax rule).
--- Stacked on slice 1b (20261106205852). The balance charge itself (an off-session PaymentIntent on the saved card,
+-- Stacked on slice 1b (20261106205852), on Shops Helpr delivery (20261106194913/20261106203016). The balance charge itself (an off-session PaymentIntent on the saved card,
 -- the pay-the-rest Checkout page, and the 7-days-after-the-ready-date lapse) is slice 2b. Until 2b lands,
 -- shops_order_custom_quote still refuses a deposit price (deposit_not_ready), so nothing here is reachable by a member
 -- and nothing is ever taken on a deposit promise.
@@ -17,8 +17,8 @@
 --   * Nothing is handed over while the rest is unpaid: the shop's "Handed over" tap, the left-out ready photo, the
 --     buyer's "I got it" and every path to status 'handed_over' are refused (balance_not_paid), by trigger, so every
 --     writer (shops_mark_handed_over, shops_confirm_pickup, shop_complete_handover, admins) is covered.
---   * An order that ends with the rest unpaid pays the shop its half only: items - floor(items/2) plus
---     delivery - floor(delivery/2) (shop_order_shop_cents, read by shop_owe_shop), and a refund gives back at most what
+--   * An order that ends with the rest unpaid is paid like a late cancel on the deposit only: the shop gets
+--     items - floor(items/2) and never the delivery (shop_order_shop_cents, read by shop_owe_shop), and a refund gives back at most what
 --     the deposit took (shop_refund_amounts). On a lapse (2b) the order's Stripe Tax transaction is reversed in full and
 --     the deposit's tax is refunded (LEAD 11-06: no item changes hands, so no taxable sale, La. R.S. 47:301(12)).
 -- A full-payment order (payment_plan 'full_hold', the default and every order that is not a custom deposit) is
@@ -31,7 +31,7 @@
 -- REPLAY-SAFE: ADD COLUMN IF NOT EXISTS, constraints added only when missing, DROP TRIGGER IF EXISTS, CREATE OR REPLACE
 --   with unchanged signatures, grants restated.
 -- Restated from their NEWEST CREATE: shops_decline_custom_request and shops_order_custom_quote (20261106205852),
---   shop_owe_shop (20261106180902), shop_refund_amounts (20261019071055).
+--   shop_owe_shop and shop_refund_amounts (20261106194913).
 -- Proof: src/test/pglite/shopsCustomDeposit.pglite.mjs (applied 3x; DEPOSIT_MIGRATION=skip is red).
 
 -- 1. Columns.
@@ -90,8 +90,10 @@ $fn$;
 REVOKE ALL ON FUNCTION public.shop_order_balance_open(public.shop_orders) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_order_balance_open(public.shop_orders) TO service_role;
 
--- What the shop is owed for an order that is paid out (handover, late cancel, no-show): its items and its delivery
--- fee; for a deposit order whose rest was never paid, its half of each (the half the deposit took).
+-- What the shop is owed for an order that is paid out (handover, late cancel, no-show): its items and, for an order it
+-- delivered itself, its delivery fee (never a Helpr's; 20261106194913). A deposit order whose rest was never paid is paid
+-- like a late cancel on the deposit only (OWNER 11-06 ~3:40 PM; LEAD 11-06 ~5:20 PM): the items' half the deposit took;
+-- the delivery was not done, so the shop never keeps it (it goes back to the buyer under the delivery refund rules, 2b).
 CREATE OR REPLACE FUNCTION public.shop_order_shop_cents(o public.shop_orders)
 RETURNS integer
 LANGUAGE sql
@@ -99,8 +101,8 @@ IMMUTABLE
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
   SELECT CASE WHEN public.shop_order_balance_open(o)
-              THEN (o.items_cents - o.items_cents / 2) + (o.delivery_cents - o.delivery_cents / 2)
-              ELSE o.items_cents + o.delivery_cents END;
+              THEN o.items_cents - o.items_cents / 2
+              ELSE o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END END;
 $fn$;
 REVOKE ALL ON FUNCTION public.shop_order_shop_cents(public.shop_orders) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_order_shop_cents(public.shop_orders) TO service_role;
@@ -374,7 +376,7 @@ $fn$;
 REVOKE ALL ON FUNCTION public.shops_order_custom_quote(uuid, uuid, date, text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.shops_order_custom_quote(uuid, uuid, date, text) TO authenticated, service_role;
 
--- 8. RESTATED from 20261106180902_shops_delivery.sql (newest CREATE): the shop's amount reads shop_order_shop_cents.
+-- 8. RESTATED from 20261106194913_shops_helpr_delivery.sql (newest CREATE): the shop's amount reads shop_order_shop_cents.
 CREATE OR REPLACE FUNCTION public.shop_owe_shop(p_order_id uuid)
 RETURNS integer
 LANGUAGE plpgsql
@@ -387,7 +389,8 @@ DECLARE
   v_due integer;
 BEGIN
   SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;
-  -- Slice 2a: a deposit order whose rest was never paid pays the shop its half only (shop_order_shop_cents).
+  -- Slice 2a: the amount is shop_order_shop_cents (unchanged for every order whose payment is whole; a deposit order
+  -- whose rest was never paid is paid like a late cancel on the deposit only, and the shop never keeps delivery).
   v_due := public.shop_order_shop_cents(o);
   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'shop_order_' || o.id::text,
                                               v_due);
@@ -402,7 +405,7 @@ $fn$;
 REVOKE ALL ON FUNCTION public.shop_owe_shop(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_owe_shop(uuid) TO service_role;
 
--- 9. RESTATED from 20261019071055_shops_refunds_cancels_strikes.sql (newest CREATE): a refund never gives back more
+-- 9. RESTATED from 20261106194913_shops_helpr_delivery.sql (newest CREATE): a refund never gives back more
 --    than the payment took.
 CREATE OR REPLACE FUNCTION public.shop_refund_amounts(p_order_id uuid, p_reason text)
 RETURNS TABLE (fee_policy text, paid_cents integer, tax_cents integer, card_fee_cents integer,
@@ -412,13 +415,22 @@ STABLE
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
   WITH o AS (
-    -- Slice 2a: what the order's payment really took. A deposit order with its rest unpaid took the deposit only
-    -- (its share of the tax is the tax less the balance's half); otherwise the whole sale, as before.
-    SELECT p.total_cents, p.tax_cents,
-           least(p.total_cents, COALESCE(p.card_fee_cents, public.declutter_card_fee_estimate(p.total_cents))) AS fee,
+    -- Helpr delivery (20261106194913): the delivery price already given back, or earned by the Helpr who picked
+    -- the order up, is never refunded again; the card fee is prorated to the part refunded (Declutter's rule,
+    -- declutter_card_fee_left).
+    -- Slice 2a: "paid" is what the order's payment really took: the deposit while a deposit order's rest is unpaid
+    -- (its tax share is the tax less the rest's half; its delivery share is the delivery less the rest's half, and no
+    -- more of the reserved delivery than that), otherwise the whole sale, exactly as before.
+    SELECT p.paid - p.reserved AS total_cents, p.tax AS tax_cents,
+           public.declutter_card_fee_left(
+             least(p.paid, COALESCE(p.card_fee_cents, public.declutter_card_fee_estimate(p.paid))),
+             p.paid, p.reserved) AS fee,
            public.shop_refund_fee_policy(p_reason) AS policy
-      FROM (SELECT CASE WHEN public.shop_order_balance_open(so) THEN so.total_cents - so.balance_cents ELSE so.total_cents END AS total_cents,
-                   CASE WHEN public.shop_order_balance_open(so) THEN so.tax_cents - so.tax_cents / 2 ELSE so.tax_cents END AS tax_cents,
+      FROM (SELECT CASE WHEN public.shop_order_balance_open(so) THEN so.total_cents - so.balance_cents ELSE so.total_cents END AS paid,
+                   CASE WHEN public.shop_order_balance_open(so) THEN so.tax_cents - so.tax_cents / 2 ELSE so.tax_cents END AS tax,
+                   CASE WHEN public.shop_order_balance_open(so)
+                        THEN least(public.shop_delivery_reserved_cents(so.id), so.delivery_cents - so.delivery_cents / 2)
+                        ELSE public.shop_delivery_reserved_cents(so.id) END AS reserved,
                    so.card_fee_cents
               FROM public.shop_orders so WHERE so.id = p_order_id) p
   ), k AS (

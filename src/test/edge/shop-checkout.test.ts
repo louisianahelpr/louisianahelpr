@@ -18,7 +18,9 @@
  * @mutate supabase/functions/shop-checkout/index.ts |     customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined; |     customerId = undefined;
  * @mutate supabase/functions/shop-checkout/index.ts | await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (payer, walletRetry) => | await ((_a: unknown, _b: unknown, _c: unknown, _d: unknown, c: string \| undefined, f: (c: string \| undefined, r: boolean) => unknown) => f(c, false))(admin, stripe, user, mode, customerId, (payer, walletRetry) =>
  * @mutate supabase/functions/shop-checkout/index.ts |     return json({ error: TRY_AGAIN }, 503);\n  }\n\n  /** The order sheet's own name | }\n\n  /** The order sheet's own name
- * @mutate supabase/functions/_shared/shopHolds.ts |     const pi = await stripe.paymentIntents.capture(paymentIntentId, {}, { idempotencyKey: shopCaptureKey(orderId, attempt) }); |     const pi = await stripe.paymentIntents.capture(paymentIntentId);
+ * @mutate supabase/functions/_shared/shopHolds.ts |       { idempotencyKey: shopCaptureKey(orderId, attempt) }); |       );
+ * @mutate supabase/functions/_shared/shopHolds.ts | amountToCapture === null ? {} : { amount_to_capture: amountToCapture }, | {},
+ * @mutate supabase/functions/_shared/shopHolds.ts |   if (row.payment_plan !== "deposit_50" \|\| typeof cents !== "number" | if (row.payment_plan !== "deposit_50" \|\| typeof cents === "symbol"
  * @mutate supabase/functions/_shared/shopHolds.ts |   return `shop-capture-${orderId}-${Number.isInteger(attempt) && attempt >= 0 ? attempt : 0}`; |   return `shop-capture-${orderId}`;
  * @mutate supabase/functions/_shared/shopHolds.ts |       await recordReleaseFailure(admin, row.order_id, "payment captured on a closed order"); |
  * @mutate supabase/functions/stripe-webhook/handlers/shopCheckout.ts |       if (applied) return; |       if (true) return;
@@ -111,7 +113,8 @@ const clientOf = (call: { client?: number }) => scenario.clients?.[call.client ?
 const orderRow = (over: Record<string, unknown> = {}) => ({
   id: ORDER, buyer_id: BUYER, seller_id: MAKER, status: "awaiting_hold", items_cents: 6100, premium_cents: 375,
   stripe_checkout_session_id: null, stripe_payment_intent_id: null, payment_livemode: null, captured_at: null,
-  capture_attempts: 0, cancel_policy: "until_24h_before_ready", ready_tap_cancel: "from_day_before", ...over,
+  capture_attempts: 0, cancel_policy: "until_24h_before_ready", ready_tap_cancel: "from_day_before",
+  payment_plan: "full_hold", deposit_cents: null, ...over,
 });
 
 beforeEach(() => {
@@ -878,6 +881,29 @@ describe("shop-checkout: the maker answers", () => {
     expect(rpcs("shop_order_captured")[0]?.args).toEqual({ p_order_id: ORDER, p_card_fee_cents: 211 });
   });
 
+  // Custom orders slice 2 (20261106212437): a 50% deposit order captures ONLY its frozen deposit; Stripe releases the rest.
+  it("accept: a deposit order captures its frozen deposit only, never the whole hold", async () => {
+    const fn = await load();
+    scenario.rpc.shops_accept_order = { result: "accepted", order_id: ORDER, captured: false };
+    scenario.reads.shop_orders = { rows: [{ ...held, payment_plan: "deposit_50", deposit_cents: 3240 }] };
+    stripeMock.paymentIntents.capture.mockResolvedValue({ id: "pi_shop", status: "succeeded" });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_shop", status: "succeeded", latest_charge: { balance_transaction: { fee: 124 } } });
+    scenario.rpc.shop_order_captured = { result: "captured" };
+    const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer maker-jwt" }, body: { action: "accept", order_id: ORDER } }));
+    expect(res.status).toBe(200);
+    expect(stripeMock.paymentIntents.capture).toHaveBeenCalledTimes(1);
+    expect(stripeMock.paymentIntents.capture).toHaveBeenCalledWith("pi_shop", { amount_to_capture: 3240 }, { idempotencyKey: `shop-capture-${ORDER}-3` });
+  });
+
+  it("accept: a deposit order with no frozen deposit is never captured (the cron retries)", async () => {
+    const fn = await load();
+    scenario.rpc.shops_accept_order = { result: "accepted", order_id: ORDER, captured: false };
+    scenario.reads.shop_orders = { rows: [{ ...held, payment_plan: "deposit_50", deposit_cents: null }] };
+    const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer maker-jwt" }, body: { action: "accept", order_id: ORDER } }));
+    expect(res.status).toBeGreaterThanOrEqual(500);
+    expect(stripeMock.paymentIntents.capture).not.toHaveBeenCalled();
+  });
+
   it("accept: a hold Stripe already let go ends the order (hold_lost), it is never left 'accepted'", async () => {
     const fn = await load();
     scenario.rpc.shops_accept_order = { result: "accepted", order_id: ORDER, captured: false };
@@ -1171,6 +1197,7 @@ describe("declutter-money: the shop step", () => {
     scenario.rpc.shop_captures_due = [{ order_id: "0000000b-0000-4000-8000-0000000000ab", buyer_id: BUYER, seller_id: MAKER, payment_intent_id: "pi_cap", livemode: true, checkout_session_id: "cs_live_cap", attempts: 1 }];
     scenario.rpc.shop_hold_released = null;
     scenario.rpc.shop_order_captured = { result: "captured" };
+    scenario.reads.shop_orders = { rows: [{ payment_plan: "full_hold", deposit_cents: null }] };
     stripeMock.paymentIntents.retrieve.mockImplementation(async (id: string) => ({ id, status: id === "pi_rel" ? "requires_capture" : "succeeded", latest_charge: { balance_transaction: { fee: 99 } } }));
     stripeMock.paymentIntents.cancel.mockResolvedValue({ status: "canceled" });
     stripeMock.paymentIntents.capture.mockResolvedValue({ status: "succeeded" });

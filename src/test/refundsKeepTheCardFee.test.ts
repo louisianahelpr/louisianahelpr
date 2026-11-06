@@ -113,7 +113,7 @@
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault') THEN 'keep_card_fee' |     WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault') THEN 'full_platform_absorbs'
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     WHEN p_reason = 'problem_our_mistake' THEN 'full_platform_absorbs' |     WHEN p_reason IN ('problem_our_mistake', 'shop_removed') THEN 'full_platform_absorbs'
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |   CONSTRAINT shop_refunds_policy CHECK (fee_policy = public.shop_refund_fee_policy(reason)), |   CONSTRAINT shop_refunds_policy CHECK (fee_policy IN ('keep_card_fee', 'full_shop_pays_fee', 'full_platform_absorbs')),
- * @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql |     SELECT o.*, CASE WHEN o.policy = 'keep_card_fee' THEN o.fee ELSE 0 END AS kept FROM o |     SELECT o.*, 0 AS kept FROM o
+ * @mutate supabase/migrations/20261106212437_shops_custom_deposit_split.sql |     SELECT o.*, CASE WHEN o.policy = 'keep_card_fee' THEN o.fee ELSE 0 END AS kept FROM o |     SELECT o.*, 0 AS kept FROM o
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     'buyer_cancelled', 'shop_cancelled', 'no_ready_photo', 'shop_removed', |     'buyer_cancelled', 'shop_cancelled', 'no_ready_photo', 'shop_removed', 'goodwill',
  * @mutate supabase/functions/_shared/shopRefunds.ts |           amount: row.refund_cents, |           amount: row.refund_cents + 30,
  * @mutate supabase/functions/declutter-money/index.ts |         const done = await sendShopRefund(stripe, admin, r); |         r.refund_cents = r.refund_cents + 30;\n        const done = await sendShopRefund(stripe, admin, r);
@@ -924,7 +924,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Shops M3: the ONE refund formula for a Shops order (quote, write and CHECKs read it): keep_card_fee keeps the
       // card fee and its tax for buyer_cancelled / problem_no_fault; full otherwise (the shop is billed the fee as debt
       // for its own faults; the platform carries it only for problem_our_mistake).
-      shop_refund_amounts: "20261106194913_shops_helpr_delivery.sql 124b645b7118ba24", // Helpr delivery (money review owed): the delivery already refunded or earned by the Helpr is left out, the card fee prorated (declutter_card_fee_left)
+      shop_refund_amounts: "20261106212437_shops_custom_deposit_split.sql 8f31a451803d4743", // Helpr delivery (money review owed): the delivery already refunded or earned by the Helpr is left out, the card fee prorated (declutter_card_fee_left). Custom orders slice 2a (20261106212437, money review owed): "paid" is the deposit while a deposit order's rest is unpaid; the fee policy per reason is unchanged
       // the payout run holds a pending / failed row for review (status + reason); no amount.
       payout_hold_for_review: "20261101233256_declutter_manager_payout_kind.sql a620256e1b71a72e",
       // deletes wait / send-mark bookkeeping rows of ended payouts; reads declutter_refunds status only.
@@ -1001,7 +1001,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
   shop_refund_amounts: {
     migration: "20261019071055_shops_refunds_cancels_strikes.sql",
     // Helpr delivery (money review owed): restated to leave out the delivery already refunded or earned.
-    functionMigration: "20261106194913_shops_helpr_delivery.sql",
+    // Custom orders slice 2a (money review owed): restated so "paid" is the deposit while a deposit order's rest is unpaid.
+    functionMigration: "20261106212437_shops_custom_deposit_split.sql",
     proofs: ["src/test/pglite/shopsRefunds.pglite.mjs", "src/test/pglite/shopsHelprDelivery.pglite.mjs"],
     reasonCheck: "shop_refunds_reason_check",
     policySources: [
@@ -1053,7 +1054,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shop_money_rows_seed: "20261018211820_shops_handover_payout.sql 55e7c11ee19013d2",
       shop_order_captured: "20261106194913_shops_helpr_delivery.sql f3f3d453bb758291", // Shops H4 setup fee (lh-money-escrow PASS on 0a306f59cb): the card fee it records is Stripe's estimate on total + the one-time setup fee, capped at the order total; it records no refund. Helpr delivery (20261106194913, money review owed): it also opens the Helpr task; still no refund
       shop_record_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 57f661acd2c47d64",
-      shop_refund_amounts: "20261106194913_shops_helpr_delivery.sql 124b645b7118ba24", // Helpr delivery (money review owed): the delivery already refunded or earned by the Helpr is left out, the card fee prorated (declutter_card_fee_left)
+      shop_refund_amounts: "20261106212437_shops_custom_deposit_split.sql 8f31a451803d4743", // Helpr delivery (money review owed): the delivery already refunded or earned by the Helpr is left out, the card fee prorated (declutter_card_fee_left). Custom orders slice 2a (20261106212437, money review owed): "paid" is the deposit while a deposit order's rest is unpaid; the fee policy per reason is unchanged
       shop_refund_executed: "20261103111244_money_webhooks_not_found_is_404.sql e33914e554c0bfea", // Q2390 p25: ERRCODE-only restatement (md5-verified); records Stripe's answer, writes no amount
       shop_refund_fee_policy: "20261019071055_shops_refunds_cancels_strikes.sql f658275f8b61b0af",
       shop_refund_reversed: "20261019071055_shops_refunds_cancels_strikes.sql df880e58ddff9ccd",
@@ -1078,8 +1079,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     },
     bodies: {
       shop_refund_amounts: [
-        "least(so.total_cents, COALESCE(so.card_fee_cents, public.declutter_card_fee_estimate(so.total_cents))),",
-        "so.total_cents, public.shop_delivery_reserved_cents(so.id)) AS fee,",
+        "least(p.paid, COALESCE(p.card_fee_cents, public.declutter_card_fee_estimate(p.paid))),",
+        "p.paid, p.reserved) AS fee,",
         "public.shop_refund_fee_policy(p_reason) AS policy",
         "CASE WHEN o.policy = 'keep_card_fee' THEN o.fee ELSE 0 END AS kept",
         "k.total_cents - k.kept - public.shop_refund_tax_kept(k.kept, k.tax_cents, k.total_cents)",

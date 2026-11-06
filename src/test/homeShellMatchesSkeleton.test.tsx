@@ -86,7 +86,7 @@ describe("a signed-in phone's /home paints Home's own skeleton from the HTML (Q2
     expect(block(html)).toBe(want);
     expect(want.length).toBeGreaterThan(2000);
     expect(want).toContain('data-testid="dashboard-route-skeleton"');
-    expect(want).toContain('data-skeleton="next-up"');
+    expect(want).toContain('data-skeleton-part="next-up"');
   });
 
   it("is shown only on /home, with a stored session, on the phone web, and removed after 10 s at most", () => {

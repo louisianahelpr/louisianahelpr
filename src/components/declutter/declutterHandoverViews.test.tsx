@@ -2016,7 +2016,7 @@ describe("A3-63: a porch booking says its 2-hour window, not (30 minutes)", () =
 
 // A3-63 follow-up (lead 11-01): "Move the pickup" on a porch order offers 2-hour windows, as checkout does; a door
 // order keeps its 30-minute times.
-// @mutate src/components/declutter/DeclutterPickupWindows.tsx |     () => (q.data ? (porch ? porchWindowDays : pickupDays)( |     () => (q.data ? (pickupDays)(
+// @mutate src/components/declutter/DeclutterPickupWindows.tsx |     return (porch ? porchWindowDays : pickupDays)(q.data.windows, |     return (pickupDays)(q.data.windows,
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | noTimes={booked ? null : noTimes} porch={porch} | noTimes={booked ? null : noTimes}
 // @mutate src/components/declutter/paidOrders.ts |   void qc.invalidateQueries({ queryKey: ["declutter", "order-pickup-times"] }); |
 describe("A3-63 follow-up: moving a porch pickup offers 2-hour windows", () => {

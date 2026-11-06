@@ -4,8 +4,8 @@
  * signed-in member (and a session still loading) goes through ProtectedRoute with the page inside it; a signed-out
  * guest gets the page directly. ProtectedRoute itself is a marker here (its gates have their own tests).
  *
- * @mutate src/components/declutter/DeclutterGuestRoute.tsx |   if (!isReady \|\| user) return <ProtectedRoute>{children}</ProtectedRoute>; |   if (!isReady) return <ProtectedRoute>{children}</ProtectedRoute>;
- * @mutate src/components/declutter/DeclutterGuestRoute.tsx |   if (!isReady \|\| user) return <ProtectedRoute>{children}</ProtectedRoute>; |   if (!isReady \|\| user) return <ProtectedRoute>{null}</ProtectedRoute>;
+ * @mutate src/components/declutter/DeclutterGuestRoute.tsx |   if (!isReady \|\| user) return <ProtectedRoute fallback={fallback}>{children}</ProtectedRoute>; |   if (!isReady) return <ProtectedRoute fallback={fallback}>{children}</ProtectedRoute>;
+ * @mutate src/components/declutter/DeclutterGuestRoute.tsx |   if (!isReady \|\| user) return <ProtectedRoute fallback={fallback}>{children}</ProtectedRoute>; |   if (!isReady \|\| user) return <ProtectedRoute fallback={fallback}>{null}</ProtectedRoute>;
  */
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";

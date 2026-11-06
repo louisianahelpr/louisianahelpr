@@ -27,10 +27,10 @@
  */
 // @mutate supabase/migrations/20261105190034_shops_handover_notes.sql |          OR (o.handover_mode = 'porch' AND h.ready_photo_path IS NOT NULL\n |          OR (o.handover_mode = 'porch'\n
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | REVOKE ALL ON FUNCTION public.shop_payouts_due(integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shop_payouts_due(integer) FROM PUBLIC, anon;
-// @mutate supabase/migrations/20261105182903_shops_handover_rule.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'shop_order_' \|\| o.id::text, o.items_cents); |   v_debt := 0;
-// @mutate supabase/migrations/20261105182903_shops_handover_rule.sql |   VALUES (o.id, o.items_cents, v_debt, o.items_cents - v_debt, |   VALUES (o.id, o.total_cents, v_debt, o.total_cents - v_debt,
-// @mutate supabase/migrations/20261105182903_shops_handover_rule.sql |   IF p_how <> 'admin' AND EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.problem_at IS NOT NULL) THEN |   IF false THEN
-// @mutate supabase/migrations/20261105182903_shops_handover_rule.sql |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'auto', 'admin') THEN |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'shop', 'auto', 'admin') THEN
+// @mutate supabase/migrations/20261106180902_shops_delivery.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'shop_order_' \|\| o.id::text, (o.items_cents + o.delivery_cents)); |   v_debt := 0;
+// @mutate supabase/migrations/20261106180902_shops_delivery.sql |   VALUES (o.id, (o.items_cents + o.delivery_cents), v_debt, (o.items_cents + o.delivery_cents) - v_debt, |   VALUES (o.id, o.total_cents, v_debt, o.total_cents - v_debt,
+// @mutate supabase/migrations/20261106180902_shops_delivery.sql |   IF p_how <> 'admin' AND EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.problem_at IS NOT NULL) THEN |   IF false THEN
+// @mutate supabase/migrations/20261106180902_shops_delivery.sql |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'auto', 'admin') THEN |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'shop', 'auto', 'admin') THEN
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | confirmed_how IN ('buyer', 'auto', 'admin')), | confirmed_how IN ('buyer', 'shop', 'auto', 'admin')),
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | DROP FUNCTION IF EXISTS public.shops_mark_picked_up(uuid); | SELECT 1;
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | REVOKE ALL ON FUNCTION public.shops_confirm_pickup(uuid) FROM PUBLIC, anon; | CREATE OR REPLACE FUNCTION public.shops_mark_picked_up(p uuid) RETURNS jsonb LANGUAGE sql AS $m$ SELECT public.shop_complete_handover(p, 'auto') $m$; REVOKE ALL ON FUNCTION public.shops_confirm_pickup(uuid) FROM PUBLIC, anon;
@@ -106,8 +106,9 @@ describe("Shops M2: the handover and the shop's payout keep their gates (2026101
 
   it("3. the payout is the item price minus the shared card-fee debt, under the order's own ref", () => {
     const done = body("shop_complete_handover");
-    expect(done).toMatch(/v_debt\s*:=\s*public\.declutter_consume_fee_debt\(o\.seller_id,\s*'shop_order_'\s*\|\|\s*o\.id::text,\s*o\.items_cents\)/i);
-    expect(done).toMatch(/VALUES\s*\(o\.id,\s*o\.items_cents,\s*v_debt,\s*o\.items_cents\s*-\s*v_debt,/i);
+    // Delivery (20261106180902): the shop's own delivery fee is the shop's too (0 for a pickup order).
+    expect(done).toMatch(/v_debt\s*:=\s*public\.declutter_consume_fee_debt\(o\.seller_id,\s*'shop_order_'\s*\|\|\s*o\.id::text,\s*\(o\.items_cents\s*\+\s*o\.delivery_cents\)\)/i);
+    expect(done).toMatch(/VALUES\s*\(o\.id,\s*\(o\.items_cents\s*\+\s*o\.delivery_cents\),\s*v_debt,\s*\(o\.items_cents\s*\+\s*o\.delivery_cents\)\s*-\s*v_debt,/i);
     expect(done).not.toMatch(/total_cents|premium_cents|tax_cents/i);
     expect(MIG).toMatch(/CONSTRAINT\s+shop_payouts_amount\s+CHECK\s*\(\s*amount_cents\s*=\s*items_cents\s*-\s*debt_cents\s+AND\s+amount_cents\s*>=\s*0\s*\)/i);
     expect(MIG).toMatch(/order_id\s+uuid\s+NOT\s+NULL\s+UNIQUE\s+REFERENCES\s+public\.shop_orders\(id\)/i);

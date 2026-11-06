@@ -3,6 +3,7 @@ import { formatCents } from "@/components/profile/earningsTab/earningsTabHelpers
 import { STANDARD_PAYOUT_PHRASE } from "../../../../supabase/functions/_shared/escrowTiming";
 import type { HomeMoney } from "./homeMoney";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
+import { MoneyTilesLoading } from "./MoneyTilesLoading";
 
 /** "Fri, Oct 23": the day the approved money reaches the member's wallet. */
 const walletDay = (iso: string) => new Date(iso).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
@@ -61,17 +62,7 @@ export function HomeMoneyTiles({
   // CLS 0.385 of 0.41-0.51. On that page the row holds a tile's shape while the reads are out, and a member with
   // nothing coming or held sees "Coming to you $0.00". Home's strip is unchanged (hidden at $0; its own hold, B98).
   // src/pages/home/homeDashboard/moneyTabTileRowNeverMoves.test.tsx.
-  if (placement === "money" && money.pending && !money.coming && !money.held) {
-    return (
-      <div data-home-money="money" data-money-loading="" aria-hidden="true" className="grid grid-cols-2 gap-3">
-        <div className="liquid-glass p-card lg:p-4 flex flex-col gap-0.5 col-span-2 animate-pulse">
-          <span className="text-ds-13 invisible">&nbsp;</span>
-          <span className="text-ds-24 font-bold leading-tight invisible">&nbsp;</span>
-          <span className="text-ds-13 leading-snug invisible">&nbsp;</span>
-        </div>
-      </div>
-    );
-  }
+  if (placement === "money" && money.pending && !money.coming && !money.held) return <MoneyTilesLoading />;
   if (placement === "money" && !money.failed && !money.coming && !money.held) {
     return (
       <div data-home-money="money" className="grid grid-cols-2 gap-3">

@@ -237,7 +237,8 @@ describe("upload MIME types stay inside their bucket's allowed_mime_types (Q54)"
   const mimeOf = (b: string) => state.get(b)?.mime ?? [];
   const files = listSrc(join(ROOT, "src")).map((f) => relative(ROOT, f).split("\\").join("/"));
   const uploaders = files.filter((f) => /\.upload\(/.test(blankComments(read(f))));
-  const pickerFiles = files.filter((f) => /\baccept=["{]/.test(blankComments(read(f))));
+  // (?<![-\w]): an input's accept= attribute, not data-trade-accept="" (DeclutterTradeOffers, l107).
+  const pickerFiles = files.filter((f) => /(?<![-\w])accept=["{]/.test(blankComments(read(f))));
 
   it("finds the buckets' MIME lists, the sites and the pickers (cannot pass vacuously)", () => {
     expect(mimeOf("proof-photos")).toEqual(["image/jpeg", "image/png", "image/webp", "image/heic"]);

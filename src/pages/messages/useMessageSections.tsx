@@ -25,6 +25,12 @@ const ShopTalkRows = lazy(() => import("@/components/messages/ShopTalkInbox").th
 function ShopTalkLead({ empty }: { empty: ReactNode }) {
   return <Suspense fallback={null}><ShopTalkRows empty={empty} /></Suspense>;
 }
+// Q2209 (audit 11-05 A-H1): Messages -> Homes lists the member's Homes chats (HomeTalkInbox), in its own chunk the
+// same way: only a member with Homes on the Homes chip loads it.
+const HomeTalkRows = lazy(() => import("@/components/messages/HomeTalkInbox").then((m) => ({ default: m.HomeTalkRows })));
+function HomeTalkLead({ empty }: { empty: ReactNode }) {
+  return <Suspense fallback={null}><HomeTalkRows empty={empty} /></Suspense>;
+}
 
 /**
  * Messages = ONE inbox (board 13, owner 2026-10-20; it replaced the 10-19
@@ -135,6 +141,8 @@ export function useMessageSections(conversations: Conversation[], allConversatio
     if (section === "declutter") empty.Lead = DeclutterOrderTalkRows;
     // Q1947: Shops lists the member's shop chats the same way (shops_my_talks needs the switch, so only while it's on).
     if (section === "shops" && live.shops) empty.Lead = ShopTalkLead;
+    // Q2209: Homes the same way (rentals_my_talks needs the rentals switch, so only while it's on).
+    if (section === "homes" && live.homes) empty.Lead = HomeTalkLead;
   }
   // Q2663 (account audit 1102d row 23): Unread with nothing unread said "No messages yet", even beside a full
   // All tab. It says what is true and goes back to All.

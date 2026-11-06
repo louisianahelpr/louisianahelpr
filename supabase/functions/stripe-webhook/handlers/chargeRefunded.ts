@@ -213,9 +213,16 @@ export async function handleChargeRefunded(
   const isShopCharge = (allRefunds.length > 0 && allRefunds.every((r) => (r?.metadata as Record<string, string> | null)?.kind === "shop_refund"))
     || (((charge as { metadata?: Record<string, string> | null }).metadata ?? {}) as Record<string, string>).kind === "shop_order"
     || allRefunds.some((r) => (r?.metadata as Record<string, string> | null)?.kind === "shop_refund");
-  if (isShopCharge && !isOnboardingCorrectionOnly(liveRefunds, ordinaryRefunds)) {
+  // Helpr delivery (20261106194913): a delivery-only refund (metadata.shop_delivery_refund_id) gives back the
+  // delivery line, which is NOT taxed (shop-checkout sends it nontaxable), so it reverses no tax; a reversal sized on
+  // it would cut the tax still owed on the items (money review BLOCK on 85549dc06a). Only the order's own refunds
+  // and hand refunds reverse their share; when every live refund is a delivery refund, nothing is called and nobody
+  // is paged (a charge with NO live refund listed still goes in, for its "every refund failed" / unlisted page).
+  const taxRefunds = ordinaryRefunds.filter((r) => !(r?.metadata as Record<string, string> | null)?.shop_delivery_refund_id);
+  if (isShopCharge && !isOnboardingCorrectionOnly(liveRefunds, ordinaryRefunds)
+      && (taxRefunds.length > 0 || ordinaryRefunds.length === 0)) {
     await reverseVisitTaxForRefund({
-      stripe, piId: refundPiId, charge, refunds: ordinaryRefunds, listedAnyRefund: allRefunds.length > 0, supabase, logStep,
+      stripe, piId: refundPiId, charge, refunds: taxRefunds, listedAnyRefund: allRefunds.length > 0, supabase, logStep,
     });
   }
   if (allRefunds.length > 0 && allRefunds.every((r) => (r?.metadata as Record<string, string> | null)?.kind === "shop_refund")) {

@@ -58,7 +58,7 @@ export function guestTabPath(path: string): string {
 }
 
 export const leftItems = [
-  { path: "/home", icon: Home, label: "Home" },
+  { path: "/home", icon: Home, label: "Dashboard" },
   { path: "/posts", icon: ClipboardList, label: "Posts" },
 ];
 

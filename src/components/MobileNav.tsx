@@ -1,17 +1,15 @@
 import { useEffect, useState, useRef, forwardRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useReducedMotion } from "@/lib/accessibility";
-import {
-  Plus,
-  type LucideIcon,
-} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useMyPublicHandle } from "@/components/mobileNav/useMyPublicHandle";
 import { useNeedsYouCounts } from "@/lib/needsYouStore";
 import { prefetchRoute } from "@/lib/routePrefetch";
 import { hapticLight, hapticMedium } from "@/lib/haptics";
+import { useSectionTabs } from "@/components/mobileNav/useSectionTabs";
+import { useCreateSheetOpen, setCreateSheetOpen } from "@/components/mobileNav/createSheetStore";
 import { TabButton } from "@/components/mobileNav/TabButton";
-import { Button } from "@/components/ui/button";
 import { announceTabReselect } from "@/components/mobileNav/tabReselect";
 import { useNavUnreadCount } from "@/components/mobileNav/useNavUnreadCount";
 import { useLongPress } from "@/hooks/useLongPress";
@@ -29,7 +27,7 @@ import {
   inTabStack,
   guestTabPath,
 } from "@/components/mobileNav/mobileNavHelpers";
-import { phoneDockItems, type DockItem } from "@/components/mobileNav/dockItems";
+import { phoneDockItems, DOCK_LISTS_CLOSED_SECTIONS_IN_APP, type DockItem } from "@/components/mobileNav/dockItems";
 import { dockBadgeCount } from "@/components/mobileNav/dockBadgeCount";
 import { DockPill } from "@/components/mobileNav/DockPill";
 import { conversationLink } from "@/lib/teamThread";
@@ -79,11 +77,20 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
   // lazily-mounted NeedsYouBridge. This file reads only the tiny store, never
   // the activity reads (MobileNav is a first-screen root).
   const todo = useNeedsYouCounts(user?.id);
-  // THE PHONE BOTTOM BAR (owner-approved mock-up, 2026-10-20): Home,
-  // Explore, the center "+", Messages, You. The four sections live in Explore
-  // (their switches and Customize apply there); the "+" opens the create sheet.
-  const dock = phoneDockItems();
-  const [createOpen, setCreateOpen] = useState(false);
+  // THE PHONE BOTTOM BAR (owner, nav redesign 2026-11-06, final 11:35 AM): Dashboard, Jobs, Declutter, Shops,
+  // Homes, no center "+". A section not open to this viewer carries NO "Soon" mark on its tab: the tab opens the
+  // section's own coming-soon screen (owner: "the screen says it is coming"). It is listed on the web and in the
+  // native app alike (DOCK_LISTS_CLOSED_SECTIONS_IN_APP). The Create sheet still mounts here; the top bar's "+"
+  // opens it (createSheetStore).
+  const sectionTabs = useSectionTabs();
+  const dock = phoneDockItems()
+    .map((item) => {
+      const t = sectionTabs.find((x) => x.path === item.path);
+      return { ...item, listed: t ? DOCK_LISTS_CLOSED_SECTIONS_IN_APP || t.listed : true };
+    })
+    .filter((item) => item.listed);
+  const createOpen = useCreateSheetOpen();
+  const setCreateOpen = setCreateSheetOpen;
   // Signed-out visitors get no bottom dock (below), so nothing should reserve
   // space for one. This class zeroes `--bottom-nav-h`, which feeds Tailwind's
   // `safe-nav` token — collapsing the ~112px strip on all 22 `pb-safe-nav`
@@ -113,7 +120,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
     return () => document.documentElement.classList.remove("no-bottom-nav");
   }, [dockHidden]);
 
-  useWarmTabChunks(dockHidden, [...dock.left, ...dock.right].map((i) => i.path));
+  useWarmTabChunks(dockHidden, dock.map((i) => i.path));
 
   useWarmPostedJobs(!dockHidden, user?.id);
 
@@ -302,8 +309,8 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
         key={path}
         onTap={handleClick}
         onPrefetch={() => !locked && prefetchRoute(effectivePath)}
-        // WCAG 2.5.3 (axe label-content-name-mismatch, Q1816): the name holds the visible text in its visible order, the
-        // badge's count then the word ("3 Messages"); the " " after the icon (only with a badge) keeps them apart as words.
+        // WCAG 2.5.3 (axe label-content-name-mismatch, Q1816): the name starts with the only visible text, the badge's
+        // count ("3 Jobs"); the tabs are icons only since 2026-11-06, so the word lives in the name alone.
         ariaLabel={locked ? `${shown} — locked until your account is approved` : showBadge ? `${dockBadgeText(badgeCount)} ${shown}` : shown}
         ariaCurrent={isActive ? "page" : undefined}
         className={`relative flex flex-col items-center justify-center gap-0.5 flex-1 min-h-[48px] h-full transition-[color,transform] duration-200 active:scale-[0.95] [-webkit-tap-highlight-color:transparent] select-none ${locked ? "opacity-50" : ""}`}
@@ -381,14 +388,9 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
             </span>
           )}
         </div>
-        {showBadge && " "}
-        {/* One-word label under each icon (owner, 2026-10-19): ONE line, never cut, 10px at 320, 11px from 360; no clip,
-            so a wide word spills into the slot gap. Guards: dockLabelsOneLine + nav-hide-on-scroll.spec.ts "dock labels". */}
-        <span data-dock-label className={`relative z-10 block whitespace-nowrap text-ds-10 min-[360px]:text-ds-11 leading-[13px] tracking-[-0.01em] ${isActive ? "font-bold" : "font-medium"}`}>
-          {shown}
-        </span>
-        {/* No underline: the active tab is its filled icon + bold olive label (spec v2 §3;
-            the rust underline broke "rust is money only", lead review 2026-10-20). */}
+        {/* ICONS ONLY (owner, nav redesign 2026-11-06): no word under the icon. The tab's name is its aria-label
+            ("Dashboard", "Jobs", ... or "3 Jobs" with a badge, whose visible "3" it starts with: WCAG 2.5.3); the
+            active tab reads from its filled olive icon and the round pill behind it. Guard: centerCreateNav. */}
       </TabButton>
       {path === "/posts" && dockMotion && (
         <dockMotion.NavQuickMenu open={quickMenuTab === "posts"} onClose={closeQuickMenu} title="Quick filter">
@@ -510,39 +512,7 @@ const MobileNav = forwardRef<HTMLElement>((_props, ref) => {
                 container padding the Home chip sat 10px in from the dock's inner
                 edge; at 6px it sits 8px in. Height is untouched (h-14). */}
             <div className="flex items-stretch h-14 px-1.5">
-              {dock.left.map((item) => (
-                <div key={item.path} className="flex flex-1 items-stretch relative">
-                  {renderItem(item)}
-                </div>
-              ))}
-              {/* The center "+" (owner-approved mock-up, 2026-10-20): one raised
-                  olive disc that opens "What are we doing?". The only loud
-                  thing in the bar; it turns into an X while the sheet is open. */}
-              <div className="flex flex-1 items-start justify-center relative">
-                <Button
-                  type="button" variant="primary" size="iconLarge"
-                  data-testid="dock-create"
-                  aria-label={tr("nav.create")}
-                  aria-haspopup="dialog" aria-expanded={createOpen}
-                  onClick={() => {
-                    hapticMedium();
-                    setCreateOpen((o) => !o);
-                  }}
-                  // HELPR-DESIGN-SPEC §3: a 60px disc raised half above the bar, in a 4px ring of the page's own ground.
-                  className="btn-press absolute -top-[30px] [-webkit-tap-highlight-color:transparent]"
-                  style={{
-                    color: "hsl(var(--primary-foreground))",
-                    boxShadow: "0 0 0 4px hsl(var(--background)), 0 4px 18px rgba(32, 30, 26, 0.12)",
-                  }}
-                >
-                  <Plus
-                    className="transition-transform duration-200"
-                    aria-hidden
-                    style={{ transform: createOpen ? "rotate(45deg)" : undefined }}
-                  />
-                </Button>
-              </div>
-              {dock.right.map((item) => (
+              {dock.map((item) => (
                 <div key={item.path} className="flex flex-1 items-stretch relative">
                   {renderItem(item)}
                 </div>

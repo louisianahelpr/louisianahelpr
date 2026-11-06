@@ -252,7 +252,7 @@ const ResetPassword = () => {
                 navigate("/home", { replace: true });
               }}
             >
-              Go home
+              Go to Dashboard
             </Button>
           </div>
         ) : !ready && verifying ? (

@@ -14,7 +14,7 @@ export const enCore = {
   "lang.legalInEnglish": "The legal terms are in English.",
 
   // Main nav (desktop rail + phone dock)
-  "nav.home": "Home",
+  "nav.home": "Dashboard",
   "nav.posts": "Posts",
   "nav.jobs": "Jobs",
   "nav.messages": "Messages",

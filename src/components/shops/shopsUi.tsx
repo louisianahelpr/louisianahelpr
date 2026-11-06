@@ -159,7 +159,7 @@ export function ShopUnavailable({ body = "It may be paused or closed. Check the 
         body={body}
         action={
           <Button asChild variant="primary" size="lg" className="rounded-full px-8">
-            <Link to={user ? "/home" : "/"}>Go home</Link>
+            <Link to={user ? "/home" : "/"}>{user ? "Go to Dashboard" : "Go home"}</Link>
           </Button>
         }
       />

@@ -104,8 +104,22 @@ CREATE TABLE public.helpr_tasks (
   seller_no_show_settled_at timestamptz, UNIQUE (source_kind, source_id));
 CREATE TABLE public.helpr_task_payouts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), task_id uuid NOT NULL UNIQUE, helpr_id uuid, pay_cents int NOT NULL,
-  fee_cents int NOT NULL, debt_cents int NOT NULL, amount_cents int NOT NULL, status text NOT NULL);
+  fee_cents int NOT NULL, debt_cents int NOT NULL, amount_cents int NOT NULL, status text NOT NULL,
+  attempts int NOT NULL DEFAULT 0, next_attempt_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE public.task_log (task_id uuid, event text, note text);
+-- The order's own refund row, in the columns shop_refund_executed and the recorded sum read (20261019071055).
+CREATE TABLE public.shop_refunds (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid NOT NULL UNIQUE,
+  stripe_payment_intent_id text NOT NULL, reason text NOT NULL, refund_cents int NOT NULL, status text NOT NULL DEFAULT 'pending',
+  stripe_refund_id text, attempts int NOT NULL DEFAULT 0, next_attempt_at timestamptz NOT NULL DEFAULT now(), last_error text,
+  executed_at timestamptz);
+-- What helpr_task_payouts_due joins for a Declutter task (empty here: only shop tasks are read).
+CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, stripe_payment_intent_id text);
+CREATE TABLE public.declutter_delivery_raises (id uuid PRIMARY KEY, task_id uuid, status text, stripe_payment_intent_id text,
+  raise_cents int, applied_at timestamptz);
+CREATE TABLE public.helpr_task_tips (id uuid PRIMARY KEY, task_id uuid, held boolean, payment_status text, payout_transfer_id text,
+  stripe_payment_intent_id text, tip_cents int, paid_at timestamptz);
+CREATE FUNCTION public.declutter_order_refunds_recorded_cents(uuid) RETURNS int LANGUAGE sql AS $$ SELECT 0 $$;
+CREATE FUNCTION public.declutter_order_gift_net_cents(uuid) RETURNS int LANGUAGE sql AS $$ SELECT 0 $$;
 CREATE FUNCTION public.helpr_task_log(p_task uuid, p_event text, p_actor uuid, p_note text) RETURNS void LANGUAGE sql AS
   $$ INSERT INTO public.task_log VALUES (p_task, p_event, p_note) $$;
 `;
@@ -122,6 +136,7 @@ const REAL = [
   cutFn("20261019071055_shops_refunds_cancels_strikes.sql", "shop_refund_amounts"),
   cutFn("20261019071055_shops_refunds_cancels_strikes.sql", "shop_order_unaccounted_hand_refund"),
   cutFn("20261019071055_shops_refunds_cancels_strikes.sql", "shop_payouts_due"),
+  cutFn("20261103111244_money_webhooks_not_found_is_404.sql", "shop_refund_executed"),
   cutFn("20261103091013_shops_promotions_team_message_not_found_is_404.sql", "shops_order_cancel_quote"),
   cutFn("20261031231150_helpr_delivery_cant_finish.sql", "helpr_task_confirm"),
   cutFn("20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql", "helpr_task_close"),
@@ -243,6 +258,16 @@ const amounts = async (o, reason) => (await svc(`SELECT * FROM public.shop_refun
   ok(take > 0 && p?.amount_cents === take && p?.status === "pending",
     `the Helpr is owed the price less the Helpr fee, Declutter's round-down (${JSON.stringify(p)}, expected ${take})`);
   ok((await deliveryRefunds(o)).length === 0, "nothing of the delivery goes back");
+  // Money review BLOCK on ab7172ee77: once Stripe confirms the order's refund, the Helpr's payout still reads the charge
+  // whole (amount_refunded 2170 = recorded 2170), so the trip is paid from what is left of it.
+  const rf = one(await svc(`INSERT INTO public.shop_refunds (order_id, stripe_payment_intent_id, reason, refund_cents)
+      SELECT '${o}', stripe_payment_intent_id, 'problem_shop_fault', ${a.refund_cents} FROM public.shop_orders WHERE id = '${o}' RETURNING id`));
+  const pend = await svc(`SELECT refunds_recorded_cents FROM public.helpr_task_payouts_due(50) WHERE task_id = '${t}'`);
+  ok(Array.isArray(pend) && pend[0]?.refunds_recorded_cents === 0, `a pending order refund is not recorded yet (${JSON.stringify(pend)})`);
+  ok(one(await svc(`SELECT public.shop_refund_executed('${rf}', 're_order_${n}', true, NULL)`)) === "succeeded", "Stripe confirms the order's refund");
+  const due = await svc(`SELECT refunds_recorded_cents, transfer_group, payment_intent_id FROM public.helpr_task_payouts_due(50) WHERE task_id = '${t}'`);
+  ok(Array.isArray(due) && due[0]?.refunds_recorded_cents === 2170 && due[0]?.transfer_group === `shop_order_${o}` && due[0]?.payment_intent_id === `pi_${n}`,
+    `the Helpr's payout counts the order's refund as recorded, from the shop order's charge (${JSON.stringify(due)})`);
   ok(refused(await svc(`SELECT public.shop_delivery_refund('${o}', 'delivery_not_done')`), /delivery_made/), "a delivery refund is refused once the Helpr made the trip");
 }
 

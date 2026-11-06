@@ -43,6 +43,7 @@ import { FieldLabel, SELL_INPUT, SellDropsCard, SellFreeToggle, SellPriceInput, 
 import { SellOneScreen } from "./SellOneScreen";
 import { useSellFlowState } from "./useSellFlowState";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 export default function SellFlow() {
   const [params] = useSearchParams();
@@ -137,7 +138,7 @@ function SellSteps({ itemId }: { itemId: string }) {
           <StepHead title="What is it?" sub="Plain words work best. Buyers search for what they'd call it." />
           <div className="space-y-2">
             <FieldLabel htmlFor="sell-title" text="Title" />
-            <input id="sell-title" className={SELL_INPUT} maxLength={80} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Oak rocking chair" />
+            <Input look="card" id="sell-title" maxLength={80} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Oak rocking chair" />
           </div>
           <ChipGroup label="Category" options={Object.entries(CATEGORY_LABEL).map(([k, v]) => ({ value: k, label: v }))} groups={CATEGORY_GROUPS} value={form.category} onChange={(v) => set("category", v)} />
           {/* I1 (Q1836 a): same link as the one-screen form (SellSummaryCard). */}

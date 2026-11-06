@@ -18,6 +18,7 @@ import { FieldLabel, SELL_INPUT, SellPriceInput } from "./SellFormParts";
 import type { SellFlow } from "./useSellFlowState";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export type SummaryField = "title" | "price" | "category" | "condition" | "size" | "description";
 
@@ -104,7 +105,7 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems, setti
         <Row {...row("title")} title="Title" value={form.title.trim()} empty={!form.title.trim()}>
           <div className="space-y-2">
             <FieldLabel htmlFor="sell-title" text="Title" />
-            <input id="sell-title" className={SELL_INPUT} maxLength={80} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Oak rocking chair" />
+            <Input look="card" id="sell-title" maxLength={80} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Oak rocking chair" />
           </div>
         </Row>
         <Row

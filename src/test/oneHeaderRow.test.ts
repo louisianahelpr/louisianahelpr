@@ -41,6 +41,7 @@ const NOT_A_PAGE_HEADER: Record<string, string> = {
   "src/components/ForceUpdateGate.tsx": "the update-required screen, outside the router",
   "src/components/JobsSectionSkeleton.tsx": "sr-only heading of a loading skeleton",
   "src/components/LoginRouteSkeleton.tsx": "the sign-in screen's loading skeleton (signed out)",
+  "src/components/MessagesRouteSkeleton.tsx": "sr-only heading of a loading skeleton (Messages, only while the title is not in the desktop bar)",
   "src/components/admin/dashboard/DashboardHome.tsx": "the admin Dashboard's greeting plate (with its range picker), not a back+title row; every other admin view's row is AdminSectionHeader",
   "src/components/auth/AuthCardHead.tsx": "signed-out auth card",
   "src/components/auth/AuthShell.tsx": "signed-out / account-state card (AuthShell)",

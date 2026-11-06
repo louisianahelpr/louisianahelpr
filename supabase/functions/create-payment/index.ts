@@ -81,6 +81,7 @@ import { TIP_WAITS_ON_ID_CODE, TIP_WAITS_ON_ID_MESSAGE, checkIdentityHold, check
 import { holdUnlessPayable, noteDestinationChargeRefused, reportLiveGateDefect } from "../_shared/livePayoutHold.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { withWalletCustomer, StripeCustomerUnavailable } from "../_shared/stripeCustomer.ts";
+import { withSavedCardLimit, withoutSave, TooManySavedCards, isTooManySavedCardsError, TOO_MANY_SAVED_CARDS_COPY } from "../_shared/savedCardLimit.ts";
 import { clawBackReleasedPayout } from "../_shared/chargebackClawback.ts";
 import { loadBanReviewUsers } from "../_shared/banReview.ts";
 import { paymentMethodFromCharge, refundNoticeProblem, sendRefundNotice, type RefundNoticeInput } from "../_shared/refundNotice.ts";
@@ -1159,7 +1160,8 @@ serve(async (req) => {
         const giftTaxMetadata: Record<string, string> = giftJobTax
           ? { [JOB_TAX_CALC_KEY]: giftJobTax.calculationId, [JOB_TAX_CENTS_KEY]: String(giftJobTax.cents), [JOB_TAXABLE_CENTS_KEY]: String(giftJobTax.taxableCents) }
           : {};
-        const diffSession = await payerWallet((walletCustomer, walletRetry) => stripe.checkout.sessions.create({
+        // Q1816: at Stripe's payment-method limit, retry once without saving (never for a series, Q734).
+        const diffSession = await withSavedCardLimit(saveCardForFuture === true, job.recurrence_days == null, (saveDiff) => payerWallet((walletCustomer, walletRetry) => stripe.checkout.sessions.create({
           customer: walletCustomer,
           // Q1728: a job-site-taxed shortfall carries its own "Sales tax" line, so no billing-address tax.
           ...(giftJobTax ? {} : { customer_update: { address: "auto" as const } }),
@@ -1179,7 +1181,7 @@ serve(async (req) => {
             // (charge-recurring-visits seriesCard), which for a gift-funded
             // post is THIS shortfall intent. Without setup_future_usage the
             // card is never attached to the customer and every visit declines.
-            ...(saveCardForFuture === true ? { setup_future_usage: "off_session" as const } : {}),
+            ...(saveDiff ? { setup_future_usage: "off_session" as const } : {}),
           },
           success_url: buildRedirectUrl(`/payment-success?job_id=${jobId}`, isNative),
           // Carry the credit back with them. A bare `/post-job` cancel_url
@@ -1194,10 +1196,10 @@ serve(async (req) => {
           metadata: { job_id: jobId, customer_id: user.id, gift_card_id: giftCardId, ...giftTaxMetadata,
             // wallet_save "1": stripe-webhook makes the saved card the wallet's
             // default card (Q2139) only on a session marked so ("" = unset).
-            wallet_save: saveCardForFuture === true ? "1" : "" },
+            wallet_save: saveDiff ? "1" : "" },
         }, {
-          idempotencyKey: `gift-card-diff-${jobId}${priceKey}${checkoutKeySuffix}${walletRetry ? ":new-wallet" : ""}`,
-        }));
+          idempotencyKey: `gift-card-diff-${jobId}${priceKey}${checkoutKeySuffix}${walletRetry ? ":new-wallet" : ""}${saveDiff === (saveCardForFuture === true) ? "" : ":nosave"}`,
+        })), `gift shortfall ${jobId}`);
 
         // Record the session on the job, exactly as the full-escrow path below
         // does. Two things depend on it and BOTH were blind on this branch:
@@ -1554,7 +1556,10 @@ serve(async (req) => {
       // the labor's tax, which stood in while Checkout added the tax later.
       // No card options on a Pay-in-4 session (no card can be used there).
       const threeDSCents = payInFour ? 0 : lineItemsCents + (jobTax?.cents ?? 0);
-      const session = await payerWallet((walletCustomer, walletRetry) => stripe.checkout.sessions.create({
+      // Q1816: at Stripe's payment-method limit, retry once without saving the card (never for a series:
+      // its later visits are charged to the card saved here, Q734); still refused = 409 TooManySavedCards.
+      const savingCard = paymentIntentExtras.setup_future_usage === "off_session";
+      const session = await withSavedCardLimit(savingCard, job.recurrence_days == null, (save) => payerWallet((walletCustomer, walletRetry) => stripe.checkout.sessions.create({
         customer: walletCustomer,
         // Billing-address tax only on an untaxed job (it computes $0 there);
         // a taxed job carries its job-site "Sales tax" line instead (Q2083 b).
@@ -1577,7 +1582,7 @@ serve(async (req) => {
         // (tax is only known once Checkout has the address; it can only add).
         // A card HOLD (Q2399) carries the same 3D Secure rule plus manual capture.
         payment_method_options: holdPlan ? holdCheckoutPaymentMethodOptions(threeDSecureOptions(threeDSCents)) : threeDSecureOptions(threeDSCents),
-        payment_intent_data: paymentIntentExtras,
+        payment_intent_data: save ? paymentIntentExtras : withoutSave(paymentIntentExtras),
         success_url: successUrl,
         cancel_url: cancelUrl,
         expires_at: checkoutExpiresAt,
@@ -1589,7 +1594,7 @@ serve(async (req) => {
           [JOB_TAX_CENTS_KEY]: jobTax ? String(jobTax.cents) : "",
           // wallet_save "1": stripe-webhook makes the saved card the wallet's
           // default card (Q2139) only on a session marked so ("" = unset).
-          wallet_save: paymentIntentExtras.setup_future_usage === "off_session" ? "1" : "" },
+          wallet_save: save ? "1" : "" },
       }, {
         // Idempotency: a double-submit (double-tap, retried request) for the same
         // job reuses the existing Checkout Session instead of creating a second
@@ -1597,10 +1602,10 @@ serve(async (req) => {
         // The fee model and Pay-in-4 choice are part of the price (owner
         // 2026-10-18): a session opened on one model is never replayed for
         // a request on the other.
-        idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${holdPlan ? "-h" : ""}${checkoutKeySuffix}${walletRetry ? ":new-wallet" : ""}`,
+        idempotencyKey: `escrow-${jobId}${priceKey}-m${feeModel}${payInFour ? "4" : ""}${holdPlan ? "-h" : ""}${checkoutKeySuffix}${walletRetry ? ":new-wallet" : ""}${save === savingCard ? "" : ":nosave"}`,
         // Q2399: per-method capture on Checkout needs this API version (one call only).
         ...(holdPlan ? { apiVersion: CARD_HOLD_CHECKOUT_API_VERSION } : {}),
-      } as Stripe.RequestOptions));
+      } as Stripe.RequestOptions)), `escrow ${jobId}`);
 
       // Store both fee structures on the job. Fail the request if this write
       // fails: without stripe_session_id the double-payment guard is blind and
@@ -5645,6 +5650,16 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "We couldn't open the payment page just now. Please try again." }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 503,
+      });
+    }
+    // Q1816: the payer's wallet is at Stripe's payment-method limit and dropping the save (where allowed) did
+    // not help, or this Checkout never saves (tip, visit, scheduled hold). No page was opened and nothing was
+    // charged; the earlier steps are the ones a retry repeats. A 409 with a plain sentence, not a 500.
+    if (error instanceof TooManySavedCards || isTooManySavedCardsError(error)) {
+      console.error(`[create-payment] 409 — wallet at Stripe's payment-method limit: ${(error as Error).message}`);
+      return new Response(JSON.stringify({ error: TOO_MANY_SAVED_CARDS_COPY, tooManySavedCards: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 409,
       });
     }
     // A stored id from the Stripe sandbox read under the live key (a job paid

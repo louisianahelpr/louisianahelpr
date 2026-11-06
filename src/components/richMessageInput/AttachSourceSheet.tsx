@@ -2,6 +2,7 @@ import { type RefObject } from "react";
 import { Camera, Image as ImageIcon, FilePlus2, MapPin, AudioLines } from "lucide-react";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
 import { MESSAGE_ATTACHMENT_MAX_BYTES } from "@/lib/messageAttachments";
+import { ListRow } from "@/components/ui/ListRow";
 
 interface AttachSourceSheetProps {
   open: boolean;
@@ -94,9 +95,11 @@ export const AttachSourceSheet = ({
             const tintFg = row.tint === "bark" ? "hsl(var(--bark))" : "hsl(var(--burnt-sienna))";
             const tintBg = row.tint === "bark" ? "hsl(var(--bark) / 0.10)" : "hsl(var(--burnt-sienna) / 0.14)";
             return (
-              <button
+              // The shared grouped-list row (ListRow flush, Q2709 11-05): its tint, inset ring and padding; the menu keeps
+              // its 56px rows and its own hairline dividers.
+              <ListRow
                 key={row.key}
-                type="button"
+                variant="flush"
                 onClick={pick(row.onPick)}
                 disabled={"disabled" in row ? row.disabled : false}
                 // Voice note records and sends an audio CLIP as its own
@@ -107,7 +110,7 @@ export const AttachSourceSheet = ({
                 // since this menu is the more likely place to wonder "wait,
                 // isn't there already a mic icon?"
                 title={row.key === "voice" ? "Records and sends an audio clip (the mic icon in the composer instead types out what you say)" : undefined}
-                className="w-full min-h-[56px] flex items-center gap-3 px-4 text-left transition-colors hover:bg-secondary/40 active:bg-secondary/60 disabled:opacity-40 disabled:pointer-events-none"
+                className="min-h-[56px] py-0 disabled:opacity-40 disabled:pointer-events-none"
                 style={i > 0 ? { borderTop: "0.5px solid hsl(var(--olivewood) / 0.12)" } : undefined}
               >
                 <span
@@ -119,7 +122,7 @@ export const AttachSourceSheet = ({
                 <span className="font-sans text-ds-14 font-medium" style={{ color: "hsl(var(--ink-deep))" }}>
                   {row.label}
                 </span>
-              </button>
+              </ListRow>
             );
           })}
         </div>

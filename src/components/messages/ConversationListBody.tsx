@@ -10,6 +10,7 @@ import PullToRefreshWrapper from "@/components/PullToRefreshWrapper";
 import { EmptyState, MAIN_TAB_EMPTY_BODY_LINES } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
+import { Button } from "@/components/ui/button";
 // Card-matching skeleton — mirrors the actual ConversationRow shape (avatar + name/job/last-msg lines +
 // timestamp + unread dot) so the loading→loaded swap doesn't shift the row. See task #121.
 import { MessageThreadSkeleton } from "@/components/ui/skeletons/MessageThreadSkeleton";
@@ -469,20 +470,16 @@ export function ConversationListBody({
               })()}
               {!showAllConvos && filteredConversations.length > CONVO_LIMIT && (
                 <div className="flex justify-center py-3">
-                  <button
+                  {/* The shared Button (outline, sm; Q2709 11-05), bark ink. */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => setShowAllConvos(true)}
-                    className="btn-press inline-flex items-center justify-center rounded-full px-4 py-1.5 text-ds-13 font-medium transition-colors"
-                    style={{
-                      background: "hsl(var(--parchment) / 0.8)",
-                      color: "hsl(var(--bark))",
-                      border: "1px solid hsl(var(--bark) / 0.22)",
-                      boxShadow:
-                        "inset 0 1px 1px 0 rgba(255,255,255,0.55), " +
-                        "0 1px 2px hsl(var(--bark) / 0.10)",
-                    }}
+                    className="text-ds-13 font-medium text-[hsl(var(--bark))]"
                   >
                     Show all {filteredConversations.length} conversations
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -550,23 +547,22 @@ export function ConversationListBody({
                   >
                     <X className="w-4 h-4" />
                   </button>
-                  <button
+                  {/* The shared primary Button, sm (Q2709 11-05): the olive pill on the ink bar. */}
+                  <Button
                     type="button"
+                    variant="primary"
+                    size="sm"
                     onClick={handleBatchDelete}
                     disabled={selectedKeys.size === 0}
                     // "Hide", not "Delete" — the action is the same honest
                     // local archive every other surface calls hiding ("no
                     // messages are deleted"); the bar must not promise more.
                     aria-label={`Hide ${selectedKeys.size} selected conversation${selectedKeys.size === 1 ? "" : "s"}`}
-                    className="h-9 px-3 rounded-full inline-flex items-center gap-1.5 text-ds-13 font-semibold btn-press transition disabled:opacity-40 disabled:pointer-events-none"
-                    style={{
-                      background: "hsl(var(--bark))",
-                      color: "hsl(var(--parchment))",
-                    }}
+                    className="gap-1.5 px-3 text-ds-13 font-semibold disabled:opacity-40 [&_svg]:size-4"
                   >
                     <Trash2 className="w-4 h-4" />
                     Hide
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

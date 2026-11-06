@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { Pin, Trash2, X } from "lucide-react";
 import { UnderlineTabs } from "@/components/ui/UnderlineTabs";
+import { Button } from "@/components/ui/button";
 import { INBOX_TAB_LABEL, INBOX_TAB_ORDER, type InboxView } from "@/lib/inboxDefault";
 import type { Conversation } from "./types";
 
@@ -59,16 +60,18 @@ export function InboxFilterTabs({ isWebDesktop, activeThreads, allTabConversatio
 export function PinnedFilterChip({ inboxTab, setInboxFilter }: { inboxTab: InboxView; setInboxFilter: Dispatch<SetStateAction<string | null>> }) {
   return (inboxTab === "pinned" || inboxTab === "recentlyDeleted") && (
     <div className="shrink-0">
-      <button
+      {/* The shared Button (ghost, sm; Q2709 11-05): the way back to All, bark ink. */}
+      <Button
         type="button"
+        variant="ghost"
+        size="sm"
         onClick={() => setInboxFilter("all")}
-        className="flex items-center gap-1.5 px-4 py-1.5 text-ds-11 font-sans font-semibold"
-        style={{ color: "hsl(var(--bark))" }}
+        className="gap-1.5 text-ds-13 font-semibold text-[hsl(var(--bark))] [&_svg]:size-3"
       >
         {inboxTab === "pinned" ? <Pin className="w-3 h-3" /> : <Trash2 className="w-3 h-3" />}
         {inboxTab === "pinned" ? "Showing pinned only" : "Showing recently deleted"}
         <X className="w-3 h-3" />
-      </button>
+      </Button>
       {/* Two honesty notes, since "Recently Deleted" as a name implies both
           "temporary" and "complete" and this view is neither: hiding a
           thread never expires it on its own (it stays hidden until you

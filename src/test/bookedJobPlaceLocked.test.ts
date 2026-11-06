@@ -24,14 +24,15 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  * Behaviour (PATCH refused when booked, allowed when open, server write
  * passes, 3x replay, red on main): src/test/pglite/bookedJobLocked.pglite.mjs.
  *
- * @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |     'scope_video_url',\n |     -- removed\n
- * @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |     'estimated_hours',\n |     -- removed\n
- * @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |     'latitude',\n |     -- removed\n
- * @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |     'location',\n |     'location_x',\n
+ * @mutate supabase/migrations/20261106155941_booked_job_tax_kind_locked.sql |     'scope_video_url',\n |     -- removed\n
+ * @mutate supabase/migrations/20261106155941_booked_job_tax_kind_locked.sql |     'estimated_hours',\n |     -- removed\n
+ * @mutate supabase/migrations/20261106155941_booked_job_tax_kind_locked.sql |     'latitude',\n |     -- removed\n
+ * @mutate supabase/migrations/20261106155941_booked_job_tax_kind_locked.sql |     'location',\n |     'location_x',\n
  * @mutate supabase/migrations/20261005060416_direct_offer_markers_server_owned_on_insert.sql |   NEW.created_at                  := now();\n |     -- removed\n
- * @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |     'created_at',\n |     -- removed\n
- * @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |        AND NEW.require_photo_proof IS TRUE THEN | AND false THEN
- * @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |        IF changed_col IN ('date_needed', 'start_time')\n           AND current_setting | IF current_setting
+ * @mutate supabase/migrations/20261106155941_booked_job_tax_kind_locked.sql |     'created_at',\n |     -- removed\n
+ * @mutate supabase/migrations/20261106155941_booked_job_tax_kind_locked.sql |        AND NEW.require_photo_proof IS TRUE THEN | AND false THEN
+ * @mutate supabase/migrations/20261106155941_booked_job_tax_kind_locked.sql |        IF changed_col IN ('date_needed', 'start_time')\n           AND current_setting | IF current_setting
+ * @mutate supabase/migrations/20261106155941_booked_job_tax_kind_locked.sql |     'tax_kind'\n  ]; |     'tax_kind_x'\n  ];
  * @mutate src/pages/posts/EditJobDialog.tsx | { materials_note: materialsNote.trim() \|\| null } | { materials_note: materialsNote.trim() \|\| null, is_urgent_x: false }
  */
 
@@ -65,8 +66,6 @@ function editDialogColumns(): string[] {
 const EDIT_EXEMPT: Record<string, string> = {
   require_photo_proof: "relaxing the gate stays open to the poster; raising it is refused by its own branch (asserted below)",
   expires_at: "only recomputed from the schedule columns, which are locked (trg_job_expiry_floor); not a detail the Helpr agreed to",
-  // Lead 2026-11-06 (option B; server lock to follow as its own branch): written only to clear a stale answer.
-  tax_kind: "the dialog sends only require_photo_proof for a booked job (EditJobDialog.taxKind.test.tsx), and trg_funded_category_tax_class refuses a funded change across the taxed line",
 };
 
 describe("a booked job's place and details are locked against the poster (Q1204)", () => {
@@ -90,6 +89,11 @@ describe("a booked job's place and details are locked against the poster (Q1204)
   it("the exemption map is exact (two-way)", () => {
     const cols = editDialogColumns();
     expect(Object.keys(EDIT_EXEMPT).filter((c) => !cols.includes(c) || booked.has(c))).toEqual([]);
+  });
+
+  it("the taxed-kind answer is locked once booked (20261106155941, owner 2026-11-06 option A)", () => {
+    expect(editDialogColumns()).toContain("tax_kind");
+    expect(booked.has("tax_kind"), "tax_kind must be in locked_when_booked").toBe(true);
   });
 
   it("the place and scope columns the dialog does not write are locked too (the map pin, area, media, size)", () => {

@@ -10,6 +10,8 @@
  * @mutate src/components/shops/ShopOrderSheet.tsx |         lines: chosen.map((l) => (l.variantId ? { item_id: l.item.id, variant_id: l.variantId, quantity: l.n } : { item_id: l.item.id, quantity: l.n })), |         lines: chosen.map((l) => ({ item_id: l.item.id, quantity: l.n })),
  * @mutate src/components/shops/ShopOrderSheet.tsx |       .map((v) => ({ item: i, variantId: v.id as string \| null, unit: v.price_cents, n: qty[lineKey(i.id, v.id)] })); |       .map((v) => ({ item: i, variantId: v.id as string \| null, unit: i.price_cents, n: qty[lineKey(i.id, v.id)] }));
  * @mutate src/components/shops/ShopOrderOptions.tsx |         {variant && inStock && ( |         {variant && (
+ * @mutate src/components/shops/ShopItemOptionsEditor.tsx |       if (held) toast.info( |       if (false) toast.info(
+ * @mutate src/lib/shops/variants.ts |   return (data as { held_for_review?: boolean } \| null)?.held_for_review === true; |   return false;
  * @mutate src/components/shops/ShopItemOptionsEditor.tsx |     rows[variantLabel(values)] ?? { price: String(basePriceCents / 100), stock: "", active: true }; |     rows[variantLabel(values)] ?? { price: "", stock: "", active: true };
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -21,8 +23,9 @@ import type { ShopItem } from "@/lib/shops/items";
 import type { OrderTerms } from "@/lib/shops/orders";
 import type { ShopItemOptions } from "@/lib/shops/variants";
 
-vi.mock("@/integrations/supabase/client", () => ({ supabase: {} }));
-const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+const rpc = vi.hoisted(() => vi.fn());
+vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc } }));
+const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), info: vi.fn() }));
 vi.mock("sonner", () => ({ toast }));
 vi.mock("@/components/DatePickerField", () => ({
   DatePickerField: ({ onChange }: { onChange: (v: string) => void }) => (
@@ -127,6 +130,26 @@ describe("the owner's Options section", () => {
       { values: ["Small"], price_cents: 1500, stock_count: null, active: true },
       { values: ["Large"], price_cents: 2400, stock_count: 2, active: true },
     ]);
+  });
+
+  it("says so when a word in the options sends the item to a check (20261106194243 held_for_review)", async () => {
+    variants.fetchItemOptions.mockResolvedValue(new Map());
+    variants.saveItemOptions.mockResolvedValueOnce(true);
+    renderIt(<ShopItemOptionsEditor shopId="s1" itemId="c1" basePriceCents={1500} />);
+    fireEvent.click(await screen.findByRole("button", { name: "Add an option list" }));
+    fireEvent.change(screen.getByLabelText("Option name"), { target: { value: "Fill" } });
+    fireEvent.change(screen.getByLabelText("Choices, separated by commas"), { target: { value: "Plain" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save options" }));
+    await waitFor(() => expect(toast.info).toHaveBeenCalledWith(expect.stringMatching(/needs a quick check/)));
+    expect(toast.success).not.toHaveBeenCalledWith("Options saved.");
+  });
+
+  it("reads held_for_review from the save (the server's word, not a guess)", async () => {
+    const real = await vi.importActual<typeof import("@/lib/shops/variants")>("@/lib/shops/variants");
+    rpc.mockResolvedValueOnce({ data: { item_id: "c1", held_for_review: true }, error: null });
+    expect(await real.saveItemOptions("c1", ["Fill"], [])).toBe(true);
+    rpc.mockResolvedValueOnce({ data: { item_id: "c1", held_for_review: false }, error: null });
+    expect(await real.saveItemOptions("c1", ["Fill"], [])).toBe(false);
   });
 
   it("splits choices on commas, trimmed, without blanks or repeats", () => {

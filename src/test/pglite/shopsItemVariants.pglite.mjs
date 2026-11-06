@@ -22,6 +22,8 @@ const CATEGORIES = readFileSync(`${MIG_DIR}20261017224153_shop_categories_v2.sql
 const ORDERS = readFileSync(`${MIG_DIR}20261018164442_shops_orders_checkout.sql`, "utf8");
 const H8 = readFileSync(`${MIG_DIR}20261105235833_shops_every_category_sells.sql`, "utf8");
 const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261106165310_shops_item_variants.sql`, "utf8");
+// Option words pass the item word check (Builder 4, 11-06): WORDS_MIGRATION=skip leaves section 8b RED.
+const WORDS = readFileSync(process.env.WORDS_PATH ?? `${MIG_DIR}20261106194243_shops_option_words_checked.sql`, "utf8");
 const SLICE1 = readFileSync(`${MIG_DIR}20261017061155_shops_profiles.sql`, "utf8");
 const SWITCHES = readFileSync(`${MIG_DIR}20261012031120_hidden_feature_switches.sql`, "utf8");
 const DECLUTTER = readFileSync(`${MIG_DIR}20261014193955_declutter_foundation.sql`, "utf8");
@@ -194,6 +196,8 @@ for (const name of ["shops_accept_order", "shop_return_stock"]) await db.exec(ne
 const skip = process.env.NEW_MIGRATION === "skip";
 if (!skip) for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
 if (!skip) for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
+const skipWords = skip || process.env.WORDS_MIGRATION === "skip";
+if (!skipWords) for (let i = 0; i < 3; i++) await db.exec(WORDS);
 
 async function as(role, uid, sql) {
   try {
@@ -373,6 +377,40 @@ await svc(`UPDATE public.shop_items SET price_cents = 9900, stock_count = 50 WHE
 ir = await itemRow(candle);
 ok(ir.price_cents === 1500 && ir.stock_count === 2, "a direct item write is overridden by the combinations");
 
+// --- 8b. the option lists and choices pass the same word check as the title (owner rule: live at once, only a
+// failed automatic check goes to an admin; recommendation logged 11-06)
+const withPrivate = async (id) => { await svc(`INSERT INTO public.shop_item_private (item_id, owner_id) VALUES ('${id}', '${OWNER}')`); return id; };
+const wordsRow = async (id) => (await svc(`SELECT i.status, p.text_flag_reason AS flag FROM public.shop_items i
+  JOIN public.shop_item_private p ON p.item_id = i.id WHERE i.id = '${id}'`))[0] ?? {};
+const gift = await withPrivate(await item(shopA, OWNER, "made", "crafts", "Gift box", 2000, 0, "NULL"));
+const clean = await setVariants(OWNER, gift, ["Flavor"], [{ values: ["Pecan"], price_cents: 2000 }, { values: ["Plain"], price_cents: 1800 }]);
+ok(one(clean)?.held_for_review === false && (await wordsRow(gift)).status === "live" && (await wordsRow(gift)).flag === null,
+  `clean options keep a live item live (${JSON.stringify(clean)} ${JSON.stringify(await wordsRow(gift))})`);
+const boozy = await setVariants(OWNER, gift, ["Flavor"], [{ values: ["Bourbon pecan"], price_cents: 2000 }, { values: ["Plain"], price_cents: 1800 }]);
+let wr = await wordsRow(gift);
+ok(one(boozy)?.held_for_review === true && wr.status === "pending_review" && /alcohol/i.test(wr.flag ?? ""),
+  `an option choice that fails the word check sends a live item to an admin (${JSON.stringify(boozy)} ${JSON.stringify(wr)})`);
+const gift2 = await withPrivate(await item(shopA, OWNER, "made", "crafts", "Mug", 2000, 0, "NULL"));
+await setVariants(OWNER, gift2, ["Vape flavor"], [{ values: ["Mint"], price_cents: 2000 }]);
+wr = await wordsRow(gift2);
+ok(wr.status === "pending_review" && /vape|tobacco/i.test(wr.flag ?? ""), `an option list NAME is checked too (${JSON.stringify(wr)})`);
+// A switched-off choice is not shown to buyers, so it is not what the check reads.
+const gift3 = await withPrivate(await item(shopA, OWNER, "made", "crafts", "Tote", 2000, 0, "NULL"));
+await setVariants(OWNER, gift3, ["Print"], [{ values: ["Wine glass"], price_cents: 2000, active: false }, { values: ["Fleur"], price_cents: 2000 }]);
+ok((await wordsRow(gift3)).status === "live", "a switched-off choice does not hold the item");
+// A draft is checked when it is listed: shops_publish_item reads the options too.
+const draft2 = await withPrivate(await item(shopA, OWNER, "made", "crafts", "Draft box", 2000, 0, "NULL", "draft"));
+await setVariants(OWNER, draft2, ["Fill"], [{ values: ["Whiskey truffles"], price_cents: 2000 }]);
+ok((await wordsRow(draft2)).status === "draft", "setting options on a draft leaves it a draft");
+for (let i = 0; i < 3; i++) await svc(`INSERT INTO public.shop_item_photos (item_id, owner_id, storage_path, position)
+  VALUES ('${draft2}', '${OWNER}', '${OWNER}/shop-items/${draft2}/p${i}.jpg', ${i})`);
+await svc(`INSERT INTO public.shop_item_attestations (item_id, owner_id, statements)
+  SELECT '${draft2}', '${OWNER}', array_agg(DISTINCT y ORDER BY y) FROM unnest(public.shop_item_required_statements('made', 'crafts')) y`);
+const pub = await member(OWNER, `SELECT public.shops_publish_item('${draft2}') AS r`);
+wr = await wordsRow(draft2);
+ok(one(pub) === "pending_review" && /alcohol/i.test(wr.flag ?? ""), `listing a draft whose option fails the check waits for an admin (${JSON.stringify(pub)} ${JSON.stringify(wr)})`);
+ok(refused(await member(OWNER, `SELECT public.shop_item_option_words('${gift}')`), /permission denied/), "members cannot call the option-words helper");
+
 // --- 9. grants and seed
 const gr = await svc(`SELECT has_table_privilege('authenticated', 'public.shop_item_variants', 'SELECT') AS a,
   has_table_privilege('anon', 'public.shop_item_variants', 'SELECT') AS b,
@@ -388,5 +426,5 @@ const del = await svc(`DELETE FROM public.shop_items WHERE id = '${candle}' RETU
 ok(Array.isArray(del) && del.length === 1 && one(await svc(`SELECT count(*)::int FROM public.shop_item_variants WHERE item_id = '${candle}'`)) === 0, `deleting the item purges its combinations (${JSON.stringify(del)})`);
 ok(one(await svc(`SELECT variant_label FROM public.shop_order_lines WHERE order_id = '${o1}' AND unit_cents = 2400`)) === "Large / Fig", "the order line keeps its label after the purge");
 
-console.log(`\n${pass} PASS, ${fail} FAIL${skip ? " (NEW_MIGRATION=skip)" : ""}`);
+console.log(`\n${pass} PASS, ${fail} FAIL${skip ? " (NEW_MIGRATION=skip)" : skipWords ? " (WORDS_MIGRATION=skip)" : ""}`);
 process.exit(fail === 0 ? 0 : 1);

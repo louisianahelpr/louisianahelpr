@@ -18359,6 +18359,20 @@ export type Database = {
         }
         Returns: undefined
       }
+      declutter_swap_items_ok: {
+        Args: { p_buyer: string; p_item_id: string; p_offered_item_id: string }
+        Returns: {
+          o_offered_title: string
+          o_seed: boolean
+          o_seller_id: string
+          o_title: string
+        }[]
+      }
+      declutter_swap_sweep: { Args: never; Returns: Json }
+      declutter_void_swaps: {
+        Args: { p_item_id: string; p_why: string }
+        Returns: number
+      }
       declutter_set_listing_price: {
         Args: {
           p_floor_price_cents: number

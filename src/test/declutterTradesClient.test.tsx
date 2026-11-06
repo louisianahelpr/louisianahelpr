@@ -42,9 +42,13 @@ vi.mock("@/lib/declutter/api", async (orig) => ({
 
 const { OfferTradeButton } = await import("@/components/declutter/DeclutterOfferTrade");
 
+let client: QueryClient;
+/** Every query this render started has settled: the "nothing shows" asserts below wait for the DATA, not first paint. */
+const settled = (c: QueryClient) => c.getQueryCache().getAll().some((q) => q.state.status === "success") && c.getQueryCache().getAll().every((q) => q.state.fetchStatus === "idle");
+
 const renderButton = () =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={(client = new QueryClient({ defaultOptions: { queries: { retry: false } } }))}>
       <MemoryRouter>
         <OfferTradeButton item={{ id: "want", title: "Lamp" }} userId="u1" />
       </MemoryRouter>
@@ -83,7 +87,10 @@ describe("Declutter trades, client (slice 2)", () => {
   it("no Offer a trade on a listing that is not open to trades", async () => {
     state.takes = false;
     const { container } = renderButton();
-    await waitFor(() => expect(container.querySelector("[data-offer-trade]")).toBeNull());
+    await waitFor(() => {
+      expect(settled(client)).toBe(true);
+      expect(container.querySelector("[data-offer-trade]")).toBeNull();
+    });
     expect(screen.queryByRole("button", { name: "Offer a trade" })).toBeNull();
   });
 

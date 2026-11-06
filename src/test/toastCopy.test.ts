@@ -13,7 +13,7 @@
  *     request to the Edge Function", "new row violates row-level security")
  *     reached a person as if it were advice. 43 now go through
  *     userFacingError(), which keeps a human sentence and drops a machine
- *     one; the 6 that carry copy the app wrote itself are RAW_ERROR_EXEMPT.
+ *     one; the 7 that carry copy the app wrote itself are RAW_ERROR_EXEMPT.
  *   - an error title with no closing punctuation next to hundreds that have
  *     one (43 → 0 outside message-ending templates), a title with a
  *     description ending in "." against the label style of the rest (4 → 0),
@@ -129,6 +129,8 @@ const VAGUE_MAPPER_FALLBACK_KNOWN = new Set<string>([]);
  */
 // @two-way src/test/toastCopy.test.ts:stale RAW_ERROR_EXEMPT entry
 const RAW_ERROR_EXEMPT: Record<string, string> = {
+  "src/pages/profile/StrSettings.tsx: ${syncError}":
+    "connectedToastText(saved.syncError) (strSettingsHelpers.ts), from firstSyncError(): str-ical-sync's results[0].error, which is only ever sanitizeSyncError()'s copy (supabase/functions/str-ical-sync/index.ts: the rejected-URL, too-large and could-not-load sentences); the raw transport error goes to the function log only.",
   "src/components/guarantee/HelprGuaranteePanel.tsx: e.message":
     "guaranteeErrorText(): only a GuaranteeError's message, which is copy from GUARANTEE_RPC_ERROR_COPY (src/lib/guarantee/errorCopy.ts) or the module's own GENERIC line; any other error gets GENERIC, never its own text.",
   "src/pages/profile/Profile.tsx: phoneResult.message":

@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation } from "@/lib/mutationResult";
+import { logAdminAction } from "@/lib/adminAudit";
 import { homeCanComeDown, type ReportedHome } from "./reportedHomes";
 
 /** rentals_admin_remove_listing refuses a reason under 5 characters (reason_required). */
@@ -52,6 +53,8 @@ export function HomeReportPanel({ home, reportId, content, open: reportOpen, onD
       // The listing is down either way; a report that didn't resolve stays in the queue for the next look.
       unwrapMutation(await supabase.from("reports").update({ status: "resolved" }).eq("id", reportId).select("id"),
         { action: "close this report", context: { reportId } });
+      // The status change is a direct table write, so its audit row is written here (the take-down RPC audits itself).
+      await logAdminAction("report_resolved", "report", reportId, { report_id: reportId, new_status: "resolved", via: "home_take_down" });
       toast("Listing taken down. Its owner was told why.");
       setDialog(false);
       onDone();

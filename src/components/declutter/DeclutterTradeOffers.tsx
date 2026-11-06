@@ -42,7 +42,7 @@ function Pair({ t }: { t: MyTrade }) {
       <li className="flex min-h-11 items-center gap-3 py-2">
         <span className="shrink-0 text-muted-foreground">You get</span>
         {get ? (
-          <Link to={`/declutter/item/${get.id}`} className="min-w-0 flex-1 line-clamp-2 break-words font-semibold underline-offset-2 hover:underline">{get.title}</Link>
+          <Link to={`/declutter/item/${get.id}`} className="min-w-0 flex-1 line-clamp-2 break-words font-semibold underline-offset-2 hover:underline" title={get.title}>{get.title}</Link>
         ) : <span className="min-w-0 flex-1 font-semibold">An item</span>}
         {get && <span className="shrink-0 tabular-nums text-muted-foreground">{itemPriceLabel(get.current_price_cents)}</span>}
       </li>
@@ -75,8 +75,8 @@ function TradeCard({ t }: { t: MyTrade }) {
       <Pair t={t} />
       {open && t.my_side === "seller" && (
         <div className="flex flex-wrap gap-2">
-          <Button type="button" className="btn-grad-primary" data-trade-accept="" disabled={act.isPending} onClick={() => act.mutate("accept")}>Accept trade</Button>
           <Button type="button" variant="ghost" data-trade-decline="" disabled={act.isPending} onClick={() => act.mutate("decline")}>Decline</Button>
+          <Button type="button" className="btn-grad-primary" data-trade-accept="" disabled={act.isPending} onClick={() => act.mutate("accept")}>Accept trade</Button>
         </div>
       )}
       {open && t.my_side === "buyer" && (

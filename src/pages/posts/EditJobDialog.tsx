@@ -30,7 +30,7 @@ import { categories, type Job } from "../../components/job-card/activityConstant
 import { todayLocalISO } from "@/lib/dateUtils";
 import { formatPriceExact } from "@/lib/format";
 import { computeJobExpiresAt } from "@/lib/jobExpiry";
-import { isLaborTaxable } from "@/lib/salesTax";
+import { asksTaxKind, isLaborTaxable } from "@/lib/salesTax";
 import { useJobAccessNote } from "@/hooks/useJobAccessNote";
 import { saveJobAccessNote } from "@/lib/jobAccessNotes";
 import { geocodeAddress } from "@/lib/geocode";
@@ -148,6 +148,9 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
       // the whole save in the minutes between the web deploy and db-deploy.
       ...(materialsNote.trim() !== (job.materials_note ?? "") ? { materials_note: materialsNote.trim() || null } : {}),
       require_photo_proof: requirePhotoProof,
+      // Owner 2026-11-06: a category that does not ask the taxed-kind question has no answer, so moving a job there
+      // clears it (else a Cleaning + carpet job edited to Yard work stayed taxed with no question to change it).
+      ...(!asksTaxKind(category) && ((job as { tax_kind?: string | null }).tax_kind ?? null) != null ? { tax_kind: null } : {}),
       // Moving the schedule MUST move the listing expiry with it. It didn't:
       // a job pushed 08-31 -> 09-03 kept its 08-31 expires_at, which is what
       // the feed and the map filter on, so the poster's paid listing stayed
@@ -253,7 +256,9 @@ export function EditJobDialog({ job, onClose, onSaved }: EditJobDialogProps) {
   // this read carries no tax_kind it reads as none: that can only block an edit
   // the server would allow, never allow one it refuses.
   const jobTaxKind = (job as { tax_kind?: string | null }).tax_kind ?? null;
-  const crossesTaxClass = (value: string) => funded && isLaborTaxable(value, jobTaxKind) !== isLaborTaxable(job.category, jobTaxKind);
+  // The answer the job WOULD carry in that category: none where the question is not asked (save clears it).
+  const crossesTaxClass = (value: string) =>
+    funded && isLaborTaxable(value, asksTaxKind(value) ? jobTaxKind : null) !== isLaborTaxable(job.category, jobTaxKind);
 
   return (
     <>

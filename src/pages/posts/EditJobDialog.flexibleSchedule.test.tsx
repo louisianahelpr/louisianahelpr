@@ -87,7 +87,7 @@ const NOT_EDITABLE: Record<string, string> = {
   parish: "derived from the posted location by the wizard",
   estimated_hours: "prices the job; not re-priced from this dialog",
   budget: "price; not re-priced from this dialog",
-  tax_kind: "Q2083 tax answer, asked at posting and priced at checkout; not re-asked or re-priced from this dialog (a paid job cannot cross the taxed line: enforce_funded_category_tax_class)",
+  // tax_kind left this list 2026-11-06: the dialog clears it when the new category does not ask (EditJobDialog.taxKind.test.tsx).
   is_recurring: "series shape; not changed from this dialog",
   recurrence_interval: "series shape; not changed from this dialog",
   recurrence_end_date: "series shape; enforce_series_columns_client_lock",

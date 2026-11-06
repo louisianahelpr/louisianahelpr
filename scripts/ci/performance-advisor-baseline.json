@@ -253,10 +253,10 @@
     "public.declutter_bundle_requests.declutter_bundle_requests_seller_idx",
     "public.helpr_travel_estimates.helpr_travel_estimates_user_id_idx",
     "public.declutter_item_views.declutter_item_views_viewer",
-    "public.profile_job_photos.profile_job_photos_job_idx",
     "public.sales_tax_adjustments.sales_tax_adjustments_job_id_idx",
-    "public.shop_talk_messages.shop_talk_messages_sender_idx",
+    "public.shop_talks.shop_talks_buyer_idx",
     "public.shop_talk_messages.shop_talk_messages_talk_idx",
-    "public.shop_talks.shop_talks_buyer_idx"
+    "public.shop_talk_messages.shop_talk_messages_sender_idx",
+    "public.profile_job_photos.profile_job_photos_job_idx"
   ]
 }

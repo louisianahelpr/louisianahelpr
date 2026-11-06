@@ -357,6 +357,9 @@ describe("every fixture literal could be inserted", () => {
     // latest_charge }`), not a recurring_visit_payments row: Q2717 (B94) put job-site tax metadata on the crew PI, and
     // `tax_calculation_id` is a column only recurring_visit_payments has.
     { file: "src/test/edge/void-cancelled-payments-crew-deleted-member.test.ts", keys: ["amount_received", "tax_calculation_id", "latest_charge"] },
+    // The AI item helper's raw answer (`{ title, kind, subtype, possibly_banned }`, declutter-ai-draft's shop JSON) as
+    // sanitizeShopItemDraft reads it, not a shop_items row: the sanitizer exists to turn an off-list kind into an allowed one.
+    { file: "src/test/shopsItems.test.ts", keys: ["title", "kind", "subtype", "possibly_banned"] },
   ];
   type Graded = { file: string; table: string; violations: Violation[] };
   const graded: Graded[] = [];

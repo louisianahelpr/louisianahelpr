@@ -40,9 +40,13 @@ vi.mock("@/lib/declutter/trades", async (orig) => ({
 
 const { TradeOffersSection } = await import("@/components/declutter/DeclutterTradeOffers");
 
+let client: QueryClient;
+/** Every query this render started has settled: the "nothing shows" asserts below wait for the DATA, not first paint. */
+const settled = (c: QueryClient) => c.getQueryCache().getAll().some((q) => q.state.status === "success") && c.getQueryCache().getAll().every((q) => q.state.fetchStatus === "idle");
+
 const show = (side: "buyer" | "seller") =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider client={(client = new QueryClient({ defaultOptions: { queries: { retry: false } } }))}>
       <MemoryRouter>
         <TradeOffersSection side={side} userId="u1" />
       </MemoryRouter>
@@ -59,7 +63,10 @@ beforeEach(() => {
 describe("Declutter trade cards (slice 3)", () => {
   it("the seller accepts or declines an open trade offer; nothing shows with none", async () => {
     const { container, unmount } = show("seller");
-    await waitFor(() => expect(container.querySelector("[data-trade-offers]")).toBeNull());
+    await waitFor(() => {
+      expect(settled(client)).toBe(true);
+      expect(container.querySelector("[data-trade-offers]")).toBeNull();
+    });
     unmount();
     state.rows = [row({})];
     show("seller");

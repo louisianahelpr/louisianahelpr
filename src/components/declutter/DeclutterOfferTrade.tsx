@@ -54,7 +54,7 @@ export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "
             Pick one of your listings to trade for "{item.title}". No money changes hands. The seller has 48 hours to answer.
           </p>
           {mine.isLoading && <p role="status" className="mt-3 text-sm text-muted-foreground">Loading your listings…</p>}
-          {mine.isError && <p role="alert" className="mt-3 text-sm text-destructive">{declutterErrorMessage(mine.error)}</p>}
+          {mine.isError && <p role="alert" className="mt-3 text-sm text-destructive-ink">{declutterErrorMessage(mine.error)}</p>}
           {mine.isSuccess && choices.length === 0 && (
             <p className="mt-3 text-ds-14" data-offer-trade-empty="">
               You have no listings up to trade. <Link to={SELL_CHOOSER_PATH} className="font-semibold underline underline-offset-2">List an item</Link> first.

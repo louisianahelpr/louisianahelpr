@@ -540,9 +540,6 @@
     "src/pages/jobs/AppliedJobsTab.tsx": {
       "button": 1
     },
-    "src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx": {
-      "input": 1
-    },
     "src/pages/jobs/jobPage/NoApplicantsYet.tsx": {
       "button": 1
     },

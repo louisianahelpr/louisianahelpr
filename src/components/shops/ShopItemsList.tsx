@@ -9,11 +9,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchShopItems } from "@/lib/shops/items";
+import { fetchItemOptions } from "@/lib/shops/variants";
 import { ShopItemsGrid } from "./ShopProfile";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 
 export default function ShopItemsList({ shopId, reportable = false }: { shopId: string; reportable?: boolean }) {
   const items = useQuery({ queryKey: ["shops", "items", shopId], queryFn: () => fetchShopItems(shopId), enabled: !!shopId });
+  // The same query the order sheet reads (one fetch); a failed read only drops the "From" word.
+  const options = useQuery({ queryKey: ["shops", "item-options", shopId], queryFn: () => fetchItemOptions(shopId), enabled: !!shopId });
   const live = (items.data ?? []).filter((i) => i.status === "live");
   return (
     <section className="space-y-2 rounded-2xl border border-border bg-card p-4 shadow-sm" aria-labelledby="shop-items">
@@ -31,7 +34,7 @@ export default function ShopItemsList({ shopId, reportable = false }: { shopId: 
           </Button>
         </div>
       ) : (
-        <ShopItemsGrid items={live} reportable={reportable} />
+        <ShopItemsGrid items={live} reportable={reportable} withOptions={options.data} />
       )}
     </section>
   );

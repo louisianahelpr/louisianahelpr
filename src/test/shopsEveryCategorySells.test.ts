@@ -9,13 +9,15 @@
  * @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql | CREATE TRIGGER shop_order_lines_snapshot_tax_kind BEFORE INSERT ON public.shop_order_lines | CREATE TRIGGER shop_order_lines_snapshot_tax_kind AFTER INSERT ON public.shop_order_lines
  * @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |   IF p_price_cents IS NULL OR p_price_cents NOT BETWEEN 100 AND 500000 THEN |   IF p_price_cents IS NULL OR p_price_cents NOT BETWEEN 100 AND 100000 THEN
  * @mutate supabase/functions/declutter-ai-draft/shopItemSanitize.ts |   rental: ["equipment_rental", "party_rental"],\n |
+ * @mutate src/lib/shops/items.ts | ["item_repair", "fabric_cleaning", "clothes_cleaning", "clothing_alterations"]; | ["item_repair", "fabric_cleaning", "clothes_cleaning", "clothing_alterations", "home_service"];
+ * @mutate src/lib/shops/items.ts |   return kind === "service" && !SHOP_TAXED_SERVICE_TYPES.includes(subtype) ? SERVICE_TYPE_HINT : null; |   return !SHOP_TAXED_SERVICE_TYPES.includes(subtype) ? SERVICE_TYPE_HINT : null;
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
-import { SHOP_ITEM_KIND_LABEL, SHOP_ITEM_TYPE_LABEL } from "@/lib/shops/items";
+import { SHOP_ITEM_KIND_LABEL, SHOP_ITEM_TYPE_LABEL, SHOP_TAXED_SERVICE_TYPES, serviceTypeHint } from "@/lib/shops/items";
 import { SHOP_ITEM_SYSTEM_PROMPT, SHOP_ITEM_TYPES } from "../../supabase/functions/declutter-ai-draft/shopItemSanitize";
 
 const ROOT = resolve(__dirname, "../..");
@@ -58,6 +60,17 @@ describe("Shops H8: every category sells (services and rentals, with a price)", 
     expect(SHOP_ITEM_KIND_LABEL.service).toBeTruthy();
     expect(SHOP_ITEM_KIND_LABEL.rental).toBeTruthy();
     expect(rows.some((r) => /bounce|inflat/.test(r.slug))).toBe(false);
+  });
+
+  it("the repair hint shows under every general service type and no taxed one; the taxed list is the SQL's (lead 11-05)", () => {
+    const ins = /INSERT INTO public\.shop_item_subtypes \(slug, kind, label, position, tax_kind\) VALUES([\s\S]*?)ON CONFLICT/.exec(SQL)?.[1] ?? "";
+    const rows = [...ins.matchAll(/\('([a-z_]+)', '([a-z_]+)', '[^']+', \d+, (NULL|'[a-z_]+')\)/g)].map((m) => ({ slug: m[1], kind: m[2], taxed: m[3] !== "NULL" }));
+    const services = rows.filter((r) => r.kind === "service");
+    expect(services.length).toBeGreaterThan(10);
+    expect([...SHOP_TAXED_SERVICE_TYPES].sort()).toEqual(services.filter((r) => r.taxed).map((r) => r.slug).sort());
+    for (const r of services) expect(serviceTypeHint("service", r.slug) === null, r.slug).toBe(r.taxed);
+    for (const t of SHOP_ITEM_TYPES.rental) expect(serviceTypeHint("rental", t), t).toBeNull();
+    expect(serviceTypeHint("made", "candles")).toBeNull();
   });
 
   it("the AI draft knows the two kinds, and still flags an inflatable", () => {

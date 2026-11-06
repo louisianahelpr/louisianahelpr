@@ -93,6 +93,18 @@ export const SHOP_ITEM_STATEMENTS: Record<string, string> = {
   not_inflatable: "It is not a bounce house or another inflatable (those need state inspection papers, coming later).",
 };
 
+/**
+ * Service types whose tax answer comes from the type (shop_item_subtypes.tax_kind, 20261105235833): the work Louisiana
+ * taxes. Every other service type is untaxed labour, so a repair listed under a general type would go untaxed by
+ * mistake: the editor shows SERVICE_TYPE_HINT under those (lead 11-05, after H8's money review).
+ */
+export const SHOP_TAXED_SERVICE_TYPES: readonly string[] = ["item_repair", "fabric_cleaning", "clothes_cleaning", "clothing_alterations"];
+export const SERVICE_TYPE_HINT = "Fixing an item someone brings you? Choose Repair of an item.";
+/** The hint under the Type picker, or null: only for a general (untaxed) service type. */
+export function serviceTypeHint(kind: ShopItemKind, subtype: string): string | null {
+  return kind === "service" && !SHOP_TAXED_SERVICE_TYPES.includes(subtype) ? SERVICE_TYPE_HINT : null;
+}
+
 /** The statements the maker ticks for this kind and type, in order. Mirrors shop_item_required_statements. */
 export function requiredStatements(kind: ShopItemKind, subtype: string): string[] {
   if (kind === "made") return ["made_by_me", "new_not_used", "not_for_children", "not_skin_product", "not_banned"];

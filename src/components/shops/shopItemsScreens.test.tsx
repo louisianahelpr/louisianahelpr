@@ -37,6 +37,7 @@
  * @mutate src/components/shops/ShopDailyCap.tsx |   const clearing = shown.trim() === "" && cap.data != null; |   const clearing = false;
  * @mutate src/components/shops/ShopDailyCap.tsx |       return setDailyOrderCap(shown.trim() === "" ? null : Number(shown)); |       return setDailyOrderCap(Number(shown));
  * @mutate src/components/shops/ShopProfile.tsx |                 {item.home_kitchen && ( |                 {false && (
+ * @mutate src/components/shops/ShopItemEditor.tsx |         {serviceTypeHint(d.kind, d.subtype) && ( |         {false && (
  * @mutate src/components/shops/ShopProfile.tsx |       {anyHomeKitchen && ( |       {false && (
  * @mutate src/components/shops/ShopProfile.tsx |                     <span className="sr-only">{HOME_KITCHEN_NOTICE}</span>\n |
  */
@@ -276,6 +277,17 @@ describe("ShopItemsReviewCard (admin)", () => {
 });
 
 describe("ShopItemEditor", () => {
+  // Lead 11-05 (after H8's money review): a repair listed under a general service type would go untaxed, so the
+  // Type picker says where a repair belongs, under the general types only.
+  it("a general service type shows the repair hint; a taxed type does not", () => {
+    renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft", kind: "service", subtype: "home_service" })} onCreated={() => {}} onDone={() => {}} />);
+    expect(screen.getByText("Fixing an item someone brings you? Choose Repair of an item.")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Type"), { target: { value: "item_repair" } });
+    expect(screen.queryByText("Fixing an item someone brings you? Choose Repair of an item.")).toBeNull();
+    fireEvent.change(screen.getByLabelText("What kind of item"), { target: { value: "made" } });
+    expect(screen.queryByText("Fixing an item someone brings you? Choose Repair of an item.")).toBeNull();
+  });
+
   it("an empty 'days' box is refused, never saved as 0 (same day)", async () => {
     renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft" })} onCreated={() => {}} onDone={() => {}} />);
     fireEvent.change(screen.getByLabelText("Days you need to make it"), { target: { value: "" } });

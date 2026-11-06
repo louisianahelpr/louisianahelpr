@@ -33,6 +33,7 @@ import {
   requestShopItemAiCheck,
   requestShopItemAiDraft,
   requiredStatements,
+  serviceTypeHint,
   setShopItemStock,
   SHOP_ITEM_KIND_LABEL,
   SHOP_ITEM_STATEMENTS,
@@ -251,6 +252,9 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
             <option key={t} value={t}>{SHOP_ITEM_TYPE_LABEL[t] ?? t}</option>
           ))}
         </NativeSelect>
+        {serviceTypeHint(d.kind, d.subtype) && (
+          <p className="text-xs text-muted-foreground">{serviceTypeHint(d.kind, d.subtype)}</p>
+        )}
         {d.kind === "home_food" && (
           <p className="text-xs text-muted-foreground">
             Only foods Louisiana allows from a home kitchen, with no meat or fish. Plate lunches and other foods that need a health permit can't be listed yet.

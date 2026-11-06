@@ -116,6 +116,10 @@ export interface ShopOrder {
   closed_at: string | null;
   /** Shops M2 (20261018211820): how this order is handed over, frozen when it was asked for. */
   handover_mode: "porch" | "in_person";
+  /** Delivery (20261106180902): pickup, or the shop delivers for its own frozen fee (in total_cents). */
+  /** Optional: a row read before the columns deploy has neither (a pickup, no fee). */
+  fulfillment?: "pickup" | "shop_delivers";
+  delivery_cents?: number;
   handed_over_at: string | null;
   shop_order_lines: OrderLine[];
   /** The shop's name (buyer list only); null once the shop is gone or hidden from the buyer. */
@@ -136,7 +140,7 @@ export interface OrderTerms {
 
 const ORDER_COLUMNS =
   "id, buyer_id, seller_id, shop_id, status, close_reason, ready_date, cancel_policy, ready_tap_cancel, note, decline_reason, items_cents, " +
-  "premium_cents, tax_cents, total_cents, created_at, held_at, accept_by, accepted_at, captured_at, closed_at, handover_mode, handed_over_at, " +
+  "premium_cents, tax_cents, total_cents, created_at, held_at, accept_by, accepted_at, captured_at, closed_at, handover_mode, fulfillment, delivery_cents, handed_over_at, " +
   "shop_order_lines (id, item_id, title, kind, unit_cents, quantity, line_cents, at_buyer)";
 
 /** The member's orders as a buyer (newest first); a page that was never paid is not an order to show. */
@@ -236,11 +240,14 @@ export async function requestOrder(args: {
   terms: Pick<OrderTerms, "cancel_policy" | "ready_tap_cancel">;
   /** H8 (b): where an at-home carpet or furniture cleaning is done (taxed there); sent only for such an order. */
   serviceAddress?: ServiceAddressInput | null;
+  /** Shop delivers (20261106180902): the drop-off address; none for a pickup. */
+  delivery?: { line1: string; line2?: string; city: string; postal_code: string } | null;
 }): Promise<string> {
   const data = await invokeShopCheckout({
     action: "order", shop_id: args.shopId, lines: args.lines, ready_date: args.readyDate, note: args.note,
     terms: { cancel_policy: args.terms.cancel_policy, ready_tap_cancel: args.terms.ready_tap_cancel ?? "from_day_before" },
     ...(args.serviceAddress ? { service_address: args.serviceAddress } : {}),
+    ...(args.delivery ? { delivery: args.delivery } : {}),
   });
   if (typeof data.url !== "string" || !data.url) throw new Error("payment_unavailable");
   return data.url;

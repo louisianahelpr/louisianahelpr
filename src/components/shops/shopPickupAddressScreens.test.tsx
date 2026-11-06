@@ -13,7 +13,7 @@
  *  3. ShopEditView mounts the form for an existing shop.
  *
  * @mutate src/components/shops/ShopOrderCard.tsx | const PICKUP_VISIBLE = new Set(["accepted"]); | const PICKUP_VISIBLE = new Set(["held", "accepted", "handed_over"]);
- * @mutate src/components/shops/ShopOrderCard.tsx |       {side === "buyer" && PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />} |       {PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />}
+ * @mutate src/components/shops/ShopOrderCard.tsx |       {side === "buyer" && !delivered && PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />} |       {!delivered && PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />}
  * @mutate src/components/shops/ShopPickupAddressSection.tsx |     if (!isLouisianaZip5(zip.trim())) { |     if (false) {
  * @mutate src/lib/shops/pickupAddress.ts |   return /^[0-9]{5}$/.test(zip) && isLouisianaZip(zip); |   return /^7[01][0-9]{3}$/.test(zip);
  * @mutate src/components/shops/ShopPickupAddressSection.tsx |     mutationFn: () => saveMyPickupAddress({ line1, line2, city, postal_code: zip.trim() }), |     mutationFn: async () => undefined,

@@ -1,4 +1,5 @@
 import { t } from "@/lib/i18n/language";
+import { MessagesSearchRow } from "./MessagesSearchRow";
 import "@/lib/i18n/enScreens";
 import { mainInboxEmptyBody } from "./messageSections";
 import { ChevronDown, Search, X } from "lucide-react";
@@ -418,34 +419,7 @@ export function ConversationList({
       onTab={setInboxFilter}
     />
   );
-  const phoneSearchRow = (
-    <div data-testid="messages-search-row" className="shrink-0 pb-1.5">
-      <div role="search" className="flex h-11 items-center gap-1 rounded-full border border-border bg-card pl-3.5 pr-1">
-        <Search className="h-[18px] w-[18px] shrink-0 text-muted-foreground" aria-hidden />
-        <input
-          type="search"
-          aria-label={t("chat.search")}
-          placeholder={t("chat.search")}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          enterKeyHint="search"
-          spellCheck={false}
-          className="min-w-0 flex-1 bg-transparent pl-1.5 text-ds-15 outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
-        />
-        {searchQuery && (
-          <button
-            type="button"
-            aria-label={t("chat.clearSearch")}
-            onClick={() => setSearchQuery("")}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground"
-          >
-            <X className="h-4 w-4" aria-hidden />
-          </button>
-        )}
-        {moreMenu}
-      </div>
-    </div>
-  );
+  const phoneSearchRow = <MessagesSearchRow value={searchQuery} onChange={setSearchQuery} moreMenu={moreMenu} />;
 
   const headerEl = phoneTopBar && !selectMode ? (
     <>

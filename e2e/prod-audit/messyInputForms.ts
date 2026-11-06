@@ -973,7 +973,6 @@ export const GAPS: Record<string, string> = {
   // Shops slice 2 (2026-10-16): items, behind the same switch (off). The server refuses each field (fixed kind/type
   // list, title 3-80, description <= 2000, price $1-$1,000, lead time 0-60, stock 0-9999, daily limit 1-200,
   // contact-leak trigger on title/description) as pinned by src/test/pglite/shopsItems.pglite.mjs.
-  "src/components/shops/ShopItemOptionsEditor.tsx": "behind the 'shops' switch (testers); option names, values, prices and stock pinned by src/test/pglite/shopsItemVariants.pglite.mjs; FORMS sweep owed once on for testers",
   "src/components/shops/ShopItemEditor.tsx": "behind the 'shops' switch (off); field rules pinned by src/test/pglite/shopsItems.pglite.mjs; FORMS sweep owed once on for testers",
   "src/components/shops/ShopItemOptionsEditor.tsx": "behind the 'shops' switch (testers only); option names and choices, prices ($1-$5,000) and stock (0-9999) pinned by src/test/pglite/shopsItemVariants.pglite.mjs and src/components/shops/shopVariantsScreens.test.tsx; FORMS sweep owed once on for testers",
   "src/components/shops/ShopDeliveryPicker.tsx": "behind the 'shops' switch (testers only); the fee (free or whole-dollar $5-$150) and radius (1-50 miles) pinned by src/test/pglite/shopsDelivery.pglite.mjs; FORMS sweep owed once on for testers",

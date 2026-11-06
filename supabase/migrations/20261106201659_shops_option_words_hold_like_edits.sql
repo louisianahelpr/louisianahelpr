@@ -1,7 +1,8 @@
 -- Shops variants: option words hold an item the same way a live title edit does (Builder 4, 11-06; the lead's two
 -- review follow-ups on ready/b4-shops-variant-textflag@3e3df6a539, lh-authz-rls PASS).
 --   1. When new option words hold a live item: submitted_at moves to now and live_at clears; the AI verdict (it judged
---      the old words) and the admin approval clear, as shops_update_item does (20261105173912).
+--      the old words) and the admin approval clear, as shops_update_item does (20261105173912). An item already
+--      waiting for an admin keeps its word flag and AI photo flag, so the admin still sees why it was held.
 --   2. Only new words re-run the check: a price, stock or on/off change that leaves the words a buyer reads the same
 --      never re-holds an item an admin approved.
 --   RESTATED shops_set_item_variants from its NEWEST CREATE, 20261106194243_shops_option_words_checked.sql (only the
@@ -170,9 +171,14 @@ BEGIN
             AND l.created_at > now() - interval '30 days')) THEN
       v_status := 'pending_review';
     END IF;
+    -- An item already waiting for an admin keeps the reasons it was held for (lead nit, 11-06): the admin still
+    -- sees why; a new word flag is added on top, never a cleared one.
     UPDATE public.shop_item_private
-       SET ai_checked_at = NULL, ai_flag_reason = NULL,
-           text_flag_reason = CASE WHEN v_item.status = 'draft' THEN text_flag_reason ELSE v_flag END,
+       SET ai_checked_at = CASE WHEN v_item.status = 'pending_review' THEN ai_checked_at END,
+           ai_flag_reason = CASE WHEN v_item.status = 'pending_review' THEN ai_flag_reason END,
+           text_flag_reason = CASE WHEN v_item.status = 'draft' THEN text_flag_reason
+                                   WHEN v_item.status = 'pending_review' THEN COALESCE(v_flag, text_flag_reason)
+                                   ELSE v_flag END,
            updated_at = now()
      WHERE item_id = v_item.id;
     UPDATE public.shop_items

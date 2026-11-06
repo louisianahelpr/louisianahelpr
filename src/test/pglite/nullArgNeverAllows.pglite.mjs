@@ -107,7 +107,9 @@ CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title t
   -- job_announceable_to (20260927015010) reads p_job.parent_job_id (a vacated series visit).
   parent_job_id uuid,
   -- job_announceable_to (20261104084501, Q2408) reads p_job.date_window_end (a window job closes on its last day).
-  date_window_end date);
+  date_window_end date,
+  -- Q2058 (20261106215556): rentals_request_photo_rows reads the job's proof photo paths.
+  proof_before_urls text[], proof_after_urls text[]);
 -- job_announceable_to (Q392) reads the credential tier; its own gate is not under test here.
 CREATE FUNCTION public.get_user_credential_tier(p_user_id uuid) RETURNS integer LANGUAGE sql STABLE AS $$ SELECT 0 $$;
 -- are_users_blocked (20260926034721) calls is_server_context(), a noarg; stubbed before it loads.
@@ -120,7 +122,8 @@ CREATE TABLE public.series_visit_holds (parent_job_id uuid, visit_date date, hel
 CREATE TABLE public.series_date_offers (parent_job_id uuid, helper_id uuid);
 CREATE TABLE public.applications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid NOT NULL, helper_id uuid NOT NULL,
   status text DEFAULT 'pending', UNIQUE (job_id, helper_id));
-CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid);
+-- Q2058: rentals_request_photo_rows also reads each crew row's proof photo paths.
+CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid, proof_before_urls text[], proof_after_urls text[]);
 -- payout_setup_hire_allowed (20261025162003) reads these money rows by helper_id.
 CREATE TABLE public.job_accept_pending (job_id uuid PRIMARY KEY, helper_id uuid NOT NULL);
 CREATE TABLE public.payout_transfers (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, helper_id uuid);
@@ -146,6 +149,11 @@ CREATE TABLE public.rental_tenancies (id uuid PRIMARY KEY, unit_id uuid, propert
 CREATE TABLE public.rental_listings (id uuid PRIMARY KEY, unit_id uuid, property_id uuid, owner_id uuid, status text,
   headline text, rent_cents integer, beds numeric, baths numeric, available_on date, published_at timestamptz, expires_at timestamptz,
   kind text NOT NULL DEFAULT 'rent', removed_by_admin boolean NOT NULL DEFAULT false);
+-- Q2058 (20261106215556): is_tenant_repair_photo reads the repair request; the class SQL's fixture inserts one
+-- (the columns it writes).
+CREATE TABLE public.maintenance_requests (id uuid PRIMARY KEY, tenancy_id uuid, unit_id uuid, property_id uuid, tenant_id uuid,
+  landlord_id uuid, property_label text, unit_label text, property_address text, category text, description text,
+  urgency text, status text, job_id uuid);
 -- Homes photos (20261019071203): the delete check reads the photo rows.
 CREATE TABLE public.rental_listing_photos (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), listing_id uuid, owner_id uuid, storage_path text, position integer);
 -- Homes Buy (20261019061241): rentals_listing_visible reads the sale-listing fee for a sale listing.
@@ -329,6 +337,8 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "rentals_tenancy_party",
   // Homes messages (20261106182837): are a listing's threads open (reads rental_listings and profiles).
   "home_talk_listing_ok",
+  // Q2058 (20261106215556): the tenant's repair-photo read; after feature_enabled_for_user and the photo list it calls.
+  "is_tenant_repair_photo",
   // Payout setup only after a hire (20261025162003); after feature_enabled_for_user and job_payment_is_funded, which its SQL body calls.
   "payout_setup_hire_allowed", "referral_member_has_completed_job",
   // Card hold at post (Q2399, 20261027185146): listed = funded or the card held; job_is_funded's SQL body calls it.
@@ -373,7 +383,9 @@ const HELPERS = ["job_offer_cutoff", "job_legacy_completed_at", "job_messaging_c
   // Q2425: declutter_meetup_spot_near_lines' SQL body calls both (validated at CREATE).
   "declutter_miles_between", "declutter_meetup_rules",
   // Q2462: declutter_pair_needs_talk's SQL body calls it (validated at CREATE).
-  "declutter_pair_shared_ways"];
+  "declutter_pair_shared_ways",
+  // Q2058: is_tenant_repair_photo's SQL body calls it (validated at CREATE).
+  "rentals_request_photo_rows"];
 // Load order: a SQL body is validated at CREATE, so a callee comes first.
 // declutter_order_slot_in_windows (20261031145652): declutter_delivery_slot_ok's SQL body calls it.
 // BUY-43 (20261101051951): declutter_delivery_tip_open's SQL body calls payout_waits_on_identity, whose SQL body calls

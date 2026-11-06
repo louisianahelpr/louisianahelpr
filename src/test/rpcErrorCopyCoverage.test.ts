@@ -321,6 +321,11 @@ const UNREACHABLE: Allowlist = {
     feature_disabled: { reason: RENTALS_READ },
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
   },
+  // Q2058 (20261106215556): the Helpr's photos on the request screen (RequestJobPhotos).
+  rentals_request_job_photos: {
+    feature_disabled: { reason: "no code's words at this site: RequestJobPhotos shows its own load-error line with a retry, and RentalsGate shows the 404 while the switch is off." },
+    not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
+  },
   rentals_visit_for_job: {
     feature_disabled: { reason: RENTALS_READ },
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },

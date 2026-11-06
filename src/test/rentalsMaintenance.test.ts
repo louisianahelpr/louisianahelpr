@@ -114,7 +114,9 @@ const OTHER_RPCS = ["rentals_end_tenancy", "rentals_withdraw_request", "link_mai
   "rentals_set_saved_home"];
 const READ_RPCS = ["rentals_request_job_state", "rentals_my_homes", "rentals_visit_for_job", "rentals_browse_listings", "rentals_listing", "rentals_my_identity",
   "rentals_browse_sale_listings", "rentals_my_listing_photos", "rentals_rent_ledger", "rentals_deposit", "rentals_my_ended_deposits",
-  "rentals_lease", "rentals_my_leases", "rentals_saved_listings"];
+  "rentals_lease", "rentals_my_leases", "rentals_saved_listings",
+  // Q2058 (20261106215556): the Helpr's before/after photos on a repair request.
+  "rentals_request_job_photos"];
 /** Listings helpers (20261019043000): server-only. */
 const LISTING_INTERNAL = ["rentals_listing_wording_flags", "rentals_lock_own_listing", "rentals_listing_visible", "homes_sale_wording_flags"];
 /** Slice 3 writes: visit time (the Helpr, not a Rentals member, proposes; the tenant confirms through
@@ -122,7 +124,9 @@ const LISTING_INTERNAL = ["rentals_listing_wording_flags", "rentals_lock_own_lis
 const VISIT_RPCS = ["rentals_propose_visit", "rentals_confirm_visit", "rentals_cancel_request_job"];
 /** Shared helpers this migration restates with their live grants (authenticated keeps EXECUTE). */
 const SHARED_RESTATED = ["is_submitted_credential_object"];
-const POLICY_HELPERS = ["rentals_caller_is_active_tenant_of", "rentals_listing_photo_access", "rentals_listing_photo_deletable", "rentals_tenancy_party"];
+const POLICY_HELPERS = ["rentals_caller_is_active_tenant_of", "rentals_listing_photo_access", "rentals_listing_photo_deletable", "rentals_tenancy_party",
+  // Q2058 (20261106215556): the tenant's proof-photos storage read.
+  "is_tenant_repair_photo"];
 /** Never switch-gated by design (20261019062540): the public link (anyone with it, signed out too; it checks the
  *  switch audience itself) and the admin take-down (moderation works whatever the audience). */
 const UNGATED = ["rentals_public_listing", "rentals_admin_remove_listing", "rentals_admin_lift_takedown", "rentals_admin_listings",

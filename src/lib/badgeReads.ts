@@ -9,13 +9,19 @@
  * - A section the server could not read comes back null: it is NOT seeded, and the caller makes that section's old
  *   single call (the badge never goes blank because one section broke).
  * - The RPC not deployed yet (PGRST202): returns null, and the caller makes all six old calls.
- * Proof: src/test/pglite/myBadgeReads.pglite.mjs. Guard: src/test/badgeReadsOneRequest.test.ts.
+ * - The same read carries the "Online for deliveries" pill's row ('delivery_online', migration 20261106053703),
+ *   handed to the pill through src/lib/helprTasks/onlineHandoff.ts; anything but an array hands over "could not read",
+ *   and the pill makes its own old read.
+ * Proof: src/test/pglite/myBadgeReads.pglite.mjs. Guards: src/test/badgeReadsOneRequest.test.ts,
+ * src/test/onlinePillTakesBadgeRow.test.tsx.
  */
 import type { QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { backoutNoticesKey } from "@/lib/backoutNotices";
 import { groupFreeAsks } from "@/lib/declutter/freeAsks";
+import { handOnlineFromBadge } from "@/lib/helprTasks/onlineHandoff";
+import type { OnlineStatus } from "@/lib/helprTasks/online";
 
 export type BadgeSection = "cart" | "offers" | "refund_todos" | "free_asks" | "backout" | "shop_orders";
 
@@ -47,12 +53,16 @@ export type BadgeAnswered = Partial<Record<BadgeSection, boolean>>;
  */
 export async function fetchBadgeReads(qc: QueryClient, uid: string, sections: BadgeSection[]): Promise<BadgeAnswered | null> {
   if (sections.length === 0) return {};
-  const res = await supabase.rpc("my_badge_reads", { p_keys: sections });
+  const res = await supabase.rpc("my_badge_reads", { p_keys: [...sections, "delivery_online"] });
   if (res.error) {
+    handOnlineFromBadge(uid, false);
     if (isMissingRpcNamed(res.error, "my_badge_reads")) return null;
     throw res.error;
   }
-  const data = (res.data ?? {}) as Partial<Record<BadgeSection, unknown[] | null>>;
+  const data = (res.data ?? {}) as Partial<Record<BadgeSection | "delivery_online", unknown[] | null>>;
+  // The pill's own row: [row] or [] (never went online). Not an array = the server could not read it.
+  const online = data.delivery_online;
+  handOnlineFromBadge(uid, Array.isArray(online) ? ((online[0] ?? null) as OnlineStatus | null) : false);
   const answered: BadgeAnswered = {};
   for (const s of sections) {
     const rows = data[s];

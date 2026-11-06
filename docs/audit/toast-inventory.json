@@ -6276,7 +6276,7 @@
     },
     {
       "file": "src/components/declutter/GoOnlineCard.tsx",
-      "line": 49,
+      "line": 50,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -6296,7 +6296,7 @@
     },
     {
       "file": "src/components/declutter/GoOnlineCard.tsx",
-      "line": 53,
+      "line": 56,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

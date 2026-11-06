@@ -12,6 +12,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useChromeReadsMayStart } from "@/hooks/usePageReadsSettled";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { fetchOnlineStatus, isOnline, type OnlineStatus } from "@/lib/helprTasks/online";
+import { takeOnlineFromBadge } from "@/lib/helprTasks/onlineHandoff";
 
 const ONLINE_STALE_MS = 60_000;
 
@@ -49,7 +50,10 @@ function useOnlineNow(): boolean {
   const q = useQuery({
     queryKey: ["helpr-tasks", "online", uid],
     queryFn: async () => {
-      const row = await fetchOnlineStatus(uid);
+      // The first read of a page load takes the row from the badge's one read (my_badge_reads 'delivery_online',
+      // src/lib/helprTasks/onlineHandoff.ts); its own read only when the badge could not read it in time.
+      const handed = await takeOnlineFromBadge(uid);
+      const row = handed ? handed.row : await fetchOnlineStatus(uid);
       writeTabCopy(uid, row);
       return row;
     },

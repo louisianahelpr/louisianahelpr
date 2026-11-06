@@ -198,6 +198,7 @@ const ALLOWED: Record<string, string> = {
   shops_accept_order: MONEY,
   shops_create_item: LIMIT,
   shops_set_item_variants: LIMIT, // 20261106165310: counts one item's own option choices (at most 10 a list)
+  shops_send_custom_request: LIMIT, // 20261106202917: 3 open custom requests per shop and 10 a day per buyer
   shops_get_shop: REVIEW,
   shops_order_terms: LIMIT,
   shops_publish_item: VALID,

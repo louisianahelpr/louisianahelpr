@@ -87,8 +87,8 @@ export async function takeOnlineFromBadge(uid: string, capMs = ONLINE_HANDOFF_CA
   return { row: a.row };
 }
 
-/** Tests only: a fresh page load. */
-export function __resetOnlineHandoff(): void {
+/** Sign-out (authSignOut.ts, Q724) and tests: forget every member's handoff, so the next account on this device never takes the last one's row. */
+export function resetOnlineHandoff(): void {
   answers.clear();
   done.clear();
   expected.clear();

@@ -237,7 +237,8 @@ const EXEMPT: Record<string, string> = {
   "stripe-webhook/handlers/cardHoldCheckout.ts::stripe.setupIntents.retrieve(siId)": "the setup session's own SetupIntent, from the event, on the event's mode",
   "stripe-webhook/handlers/cardHoldCheckout.ts::stripe.paymentIntents.retrieve(piId)": "the hold session's own PaymentIntent, from the event, on the event's mode",
   "stripe-webhook/handlers/cardHoldCheckout.ts::stripe.paymentIntents.retrieve(pi.id)": "the same event's PaymentIntent, re-read after Stripe refused cancelling it as a duplicate, on the event's mode",
-  "stripe-webhook/handlers/paymentIntentSucceeded.ts::stripe.paymentIntents.retrieve(pi.id)": "the succeeded event's own PaymentIntent, re-read with latest_charge expanded to name the payment method, on the event's mode",
+  "stripe-webhook/handlers/paymentIntentSucceeded.ts::stripe.paymentIntents.retrieve(pi.id)#2": "the succeeded event's own PaymentIntent, re-read with latest_charge expanded to name the payment method, on the event's mode",
+  "stripe-webhook/handlers/paymentIntentSucceeded.ts::stripe.paymentIntents.retrieve(pi.id)": "a Shops deposit order's rest payment (the event's own PaymentIntent), re-read with its balance transaction for the card fee, on the event's mode",
   // Declutter (slice 3b): ids from the webhook event itself, read on the client of the event's own mode
   // (stripe-webhook builds the test-key client for a test-endpoint event), never a stored id.
   "stripe-webhook/handlers/declutterCheckout.ts::stripe.paymentIntents.retrieve(paymentIntentId)": "Buy now one page (20261107174801, saveOrderCard): the paid session's own PaymentIntent (from the event), read with payment_method expanded on the event's mode to save the card it attached",
@@ -261,6 +262,7 @@ const EXEMPT: Record<string, string> = {
   "_shared/shopHolds.ts::stripe.paymentIntents.retrieve(paymentIntentId)": "a Shops order's own hold after capture (its charge and fee), on the order's recorded mode; minted after the live switch",
   "_shared/shopHolds.ts::stripe.paymentIntents.retrieve(paymentIntentId)#2": "a Shops order's own hold, re-read when a capture is refused, on the order's recorded mode; minted after the live switch",
   "_shared/shopHolds.ts::stripe.paymentIntents.retrieve(piId)": "a Shops order's own hold before it is cancelled, on the order's recorded mode; minted after the live switch",
+  "_shared/shopBalance.ts::stripe.paymentIntents.retrieve(row.payment_intent_id)": "a lapsed Shops deposit order's own captured deposit, read for its tax transaction on the order's recorded mode; minted after the live switch",
   "stripe-webhook/handlers/shopCheckout.ts::stripe.paymentIntents.retrieve(piId)": "the completed session's own PaymentIntent, from the event, on the event's mode",
   // Board 177: ONE PAYOUT. The id is one the member picked from their own payout list (stripe-payouts' list, read on
   // their own account and key); a test-mode, foreign or stale id is Stripe's resource_missing, which stripe-payouts'

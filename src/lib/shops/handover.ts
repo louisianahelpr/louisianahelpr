@@ -21,6 +21,7 @@ import { cleanListingPhoto, LISTING_PHOTO_UPLOAD_TYPES } from "@/lib/declutter/p
 import { IMMUTABLE_OBJECT_CACHE_CONTROL } from "@/lib/storageCacheControl";
 import { isStorageObjectPath } from "@/lib/storagePath";
 import { rpcErrorMessage } from "./rpcErrorCopy";
+import { chargeOrderRest } from "./orders";
 
 export type HandoverMode = "porch" | "in_person";
 
@@ -136,7 +137,18 @@ export async function markReady(orderId: string, photoPath: string | null): Prom
 /** The shop (in person): "Handed over". Never finishes the order: the buyer has 48 hours to report a problem. */
 export async function markHandedOver(orderId: string): Promise<void> {
   const { error } = await supabase.rpc("shops_mark_handed_over", { p_order_id: orderId });
-  if (error) rpcFail(error, rpcErrorMessage("shops_mark_handed_over", error));
+  if (!error) return;
+  // Custom orders (50% deposit): the rest is not paid yet. The tap tries the saved card once, then hands over only
+  // if it took; otherwise the refusal's own words stand (the buyer has been asked to pay it).
+  if (/balance_not_paid/.test(error.message ?? "")) {
+    const { paid } = await chargeOrderRest(orderId);
+    if (paid) {
+      const again = await supabase.rpc("shops_mark_handed_over", { p_order_id: orderId });
+      if (!again.error) return;
+      rpcFail(again.error, rpcErrorMessage("shops_mark_handed_over", again.error));
+    }
+  }
+  rpcFail(error, rpcErrorMessage("shops_mark_handed_over", error));
 }
 
 /** The buyer: "I got it". The shop is owed right away. */

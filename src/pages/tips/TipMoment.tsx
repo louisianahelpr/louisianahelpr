@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { tipChargeBreakdown } from "../../../supabase/functions/_shared/tipFees";
 import { isGiveawayFixedPayJob } from "@/lib/helprFlatFee";
 
+const TIP_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MONEY = { color: "hsl(var(--sienna-ink))" };
 const dollars = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
@@ -42,6 +43,10 @@ export default function TipMoment() {
     queryKey: ["tip-moment", tipId, user?.id],
     enabled: !!tipId && !!user,
     queryFn: async (): Promise<TipMomentData | null> => {
+      // A link whose id is not a tip id (a typo, a cut-off link, /tips/test) is "We can't find this tip", never
+      // "our end is having a hiccup": the uuid column refuses it (22P02) and that read as an outage (Q1695,
+      // loading-states-refresh 42123572431). No request is sent for it.
+      if (!TIP_ID.test(tipId!)) return null;
       const tip = unwrap(await supabase.from("tips").select("id, amount, job_id, tipper_id, helper_id, payment_status").eq("id", tipId!).maybeSingle());
       if (!tip) return null;
       const [jobRes, paidRes, tipperRes] = await Promise.all([

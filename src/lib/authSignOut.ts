@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { clearRememberedRoute } from "@/lib/lastRoute";
+import { clearGreetingName } from "@/components/landing/homeGreetingShell.mjs";
 import { queryClient } from "@/lib/queryClient";
 import { removePersistedClient } from "@/lib/queryPersister";
 import { clearSavedBunch, clearSavedSellOne } from "@/lib/declutter/bunchSaved";
@@ -167,6 +168,8 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   // No data leaks (ProtectedRoute and RLS still gate it), yet it plainly
   // isn't B's app. Cheap to clear, so clear it.
   clearRememberedRoute();
+  // Q1158: the first name the HTML-drawn Dashboard greeting reads is this account's; the next one never sees it.
+  clearGreetingName();
   // Q1942: an Add a Helpr order link left for PaymentSuccess to retry (ids only) is this account's, never the next.
   clearPendingSetupLink();
   // ── THE FLOOR UNDER A FAILED SIGN-OUT ────────────────────────────────────

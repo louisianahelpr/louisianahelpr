@@ -568,13 +568,10 @@
       "input": 1
     },
     "src/pages/home/HomeDashboard.tsx": {
-      "button": 4
+      "button": 3
     },
     "src/pages/home/homeDashboard/FirstJobHome.tsx": {
       "button": 2
-    },
-    "src/pages/home/homeDashboard/HomeMoneyTiles.tsx": {
-      "button": 1
     },
     "src/pages/info/HelpCenter.tsx": {
       "button": 1

@@ -204,7 +204,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
         <fieldset className="space-y-2" data-testid="shop-order-service-address">
           <legend className="text-sm font-semibold">Where the work will be done</legend>
           {atHomeMixed && (
-            <p className="text-xs text-destructive">Work done at your place is ordered on its own. Order the other items separately.</p>
+            <p className="text-xs text-destructive-ink">Work done at your place is ordered on its own. Order the other items separately.</p>
           )}
           <div className="space-y-1">
             <Label htmlFor="shop-order-svc-line1">Street address</Label>

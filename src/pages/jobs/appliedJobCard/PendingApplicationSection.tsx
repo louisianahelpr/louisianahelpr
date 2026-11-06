@@ -4,6 +4,7 @@ import { Paperclip, Trash2, Pencil, Check, X } from "lucide-react";
 import { AttachmentLink } from "@/components/AttachmentLink";
 import { JobCardPhotoStrip } from "../../../components/job-card/JobCardPhotoStrip";
 import type { AppliedApp, Job } from "../../../components/job-card/activityConstants";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 
 interface PendingApplicationSectionProps {
   app: AppliedApp;
@@ -202,9 +203,7 @@ export function PendingApplicationSection({
           >
             <Paperclip className="w-3.5 h-3.5" />
             <span>{uploadingAttachment === app.id ? "Uploading…" : "Add cert or work sample"}</span>
-            <input
-              type="file"
-              className="sr-only"
+            <HiddenFileInput
               accept="image/*,application/pdf"
               disabled={uploadingAttachment === app.id}
               onChange={(e) => {

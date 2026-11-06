@@ -104,7 +104,7 @@ describe("Shops tax codes: one table, every kind mapped (owner O1, lead 2026-10-
       'import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";',
       'product_data: taxed("One-time account setup fee", NONTAXABLE_TAX_CODE),',
       // Shops H6 (lh-money-escrow PASS d9f38cc9f7): the sales tax line itself is not taxed again.
-      'product_data: { name: "Sales tax", description: "Louisiana sales tax where you pick up the order", tax_code: NONTAXABLE_TAX_CODE },',
+      'product_data: { name: "Sales tax", description: atHome ? "Louisiana sales tax where the work is done" : "Louisiana sales tax where you pick up the order", tax_code: NONTAXABLE_TAX_CODE },',
     ]);
     expect(src).toMatch(/splitBuyerFeeByTaxCode\(lines, o\.premium_cents\)/);
   });

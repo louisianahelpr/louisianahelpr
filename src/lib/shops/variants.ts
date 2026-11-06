@@ -6,7 +6,6 @@
  * prices and stock-checks the picked combination itself); these helpers only shape the screens.
  */
 import { supabase } from "@/integrations/supabase/client";
-import type { Json } from "@/integrations/supabase/types";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "./rpcErrorCopy";
 
@@ -62,7 +61,7 @@ export async function saveItemOptions(itemId: string, optionNames: string[], var
   withWords(await supabase.rpc("shops_set_item_variants", {
     p_item_id: itemId,
     p_option_names: optionNames,
-    p_variants: variants as unknown as Json,
+    p_variants: variants.map((v) => ({ values: v.values, price_cents: v.price_cents, stock_count: v.stock_count, active: v.active })),
   }), (e) => rpcErrorMessage("shops_set_item_variants", e));
 }
 

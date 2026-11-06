@@ -150,7 +150,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
 
-  // H8 (b): carpet or furniture cleaning done at the customer's place is taxed there; saved on its own, like stock.
+  // H8 (b): carpet or furniture cleaning done at the buyer's place is taxed there; saved on its own, like stock.
   const atBuyer = useMutation({
     mutationFn: (v: boolean) => setShopItemAtBuyer(id as string, v),
     onSuccess: () => {
@@ -284,10 +284,10 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
             onChange={(e) => atBuyer.mutate(e.target.value === "buyer")}
           >
             <option value="shop">At my place (they bring it to me)</option>
-            <option value="buyer">At the customer's place</option>
+            <option value="buyer">At the buyer's place</option>
           </NativeSelect>
           <p className="text-xs text-muted-foreground">
-            At the customer's place, they give the address when they order, and sales tax is figured there. It is ordered on its own.
+            At the buyer's place, they give the address when they order, and sales tax is figured there. It is ordered on its own.
           </p>
         </div>
       )}

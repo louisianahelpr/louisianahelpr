@@ -1,4 +1,4 @@
-// @mutate docs/OPEN.md | **Q1481 LOW Speed Insights | **Q1481 Speed Insights
+// @mutate docs/OPEN.md | **Q806 MEDIUM Q184 residue | **Q806 Q184 residue
 // @mutate scripts/lib/openFeeds.mjs | POLISH: "LOW" }) | POLISH: "POLISH" })
 // @mutate src/test/openItemsHaveTier.test.ts | const ID = String.raw`Q(?:\d+\|\?[a-z0-9][a-z0-9-]*)`; | const ID = String.raw`Q\d+`;
 /*

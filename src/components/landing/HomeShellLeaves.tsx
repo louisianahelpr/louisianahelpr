@@ -2,8 +2,6 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { dropHomeShell } from "./homeShell";
 
-export { HOME_SHELL_ID } from "./homeShell";
-
 /**
  * Q2705 B: index.html draws a signed-in phone's /home skeleton (#lh-home-shell) before the app arrives, and
  * HomeDashboard takes it away once its greeting is painted. When the app lands anywhere else instead (an expired

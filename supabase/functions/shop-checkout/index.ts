@@ -255,7 +255,13 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   const readyDate = typeof body.ready_date === "string" ? body.ready_date : "";
   if (!UUID_RE.test(shopId)) return json({ error: "shop_not_found" }, 404);
   if (!DATE_RE.test(readyDate)) return json({ error: "ready_date_too_soon" }, 400);
-  if (!Array.isArray(body.lines)) return json({ error: "invalid_order_lines" }, 400);
+  // Custom orders (20261106205852): a price the shop sent becomes the order's one line, so the buyer sends no lines.
+  // shop_id is still sent (the terms, the Stripe mode and the tax address read it); the SQL refuses a request of
+  // another shop, so those can never come from a different shop than the order's.
+  const customRequestId = body.custom_request_id === undefined ? null
+    : typeof body.custom_request_id === "string" && UUID_RE.test(body.custom_request_id) ? body.custom_request_id : "invalid";
+  if (customRequestId === "invalid") return json({ error: "request_not_found" }, 404);
+  if (!customRequestId && !Array.isArray(body.lines)) return json({ error: "invalid_order_lines" }, 400);
   const note = typeof body.note === "string" ? body.note : "";
   const delivery = deliveryAddressFrom(body.delivery);
   if (delivery === "invalid") return json({ error: "invalid_address" }, 400);
@@ -328,9 +334,13 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
     dropoff = { lat: point.lat, lng: point.lng };
   }
 
-  const { data, error } = await asBuyer.rpc("shops_request_order", {
-    p_shop_id: shopId, p_lines: body.lines, p_ready_date: readyDate, p_note: note,
-  });
+  const { data, error } = customRequestId
+    ? await asBuyer.rpc("shops_order_custom_quote", {
+      p_request_id: customRequestId, p_shop_id: shopId, p_ready_date: readyDate, p_note: note,
+    })
+    : await asBuyer.rpc("shops_request_order", {
+      p_shop_id: shopId, p_lines: body.lines, p_ready_date: readyDate, p_note: note,
+    });
   if (error) return rpcRefusal(error);
   const frozen = data as { order_id?: string; items_cents?: number; premium_cents?: number; superseded_session_id?: string | null } | null;
   if (!frozen?.order_id) return json({ error: TRY_AGAIN }, 500);

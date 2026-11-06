@@ -54,7 +54,9 @@ const ACTION_ANSWERS: Record<string, unknown> = { block_user_and_settle: { settl
 const QUIET_WRITES = new Set(["PATCH notifications", "PATCH messages"]);
 
 const OWN_ROW_TABLES = new Set(["profiles", "user_roles"]);
-const PASS_THROUGH_RPC = new Set(["feature_switches_for_me"]);
+// features_open_to_everyone: which sections are open to every member (the phone dock's section tabs read it since
+// the nav redesign, 2026-11-06). A read with no member data in it, like the switches.
+const PASS_THROUGH_RPC = new Set(["feature_switches_for_me", "features_open_to_everyone"]);
 const READ_RPC = /^(get_|list_|fetch_|can_|is_|has_|are_|count_|check_|search_)/;
 const VERB: Record<string, string> = { POST: "save", PATCH: "update", PUT: "save", DELETE: "delete" };
 

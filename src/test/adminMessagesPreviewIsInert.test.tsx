@@ -96,6 +96,7 @@ function leaked() {
     const u = new URL(r.url);
     if (u.pathname.startsWith("/auth/v1/")) return false;
     if (u.pathname === "/rest/v1/rpc/feature_switches_for_me") return false;
+    if (u.pathname === "/rest/v1/rpc/features_open_to_everyone") return false; // the dock's open sections (nav 2026-11-06)
     const ownRead = r.method === "GET" && /^\/rest\/v1\/(profiles|user_roles)$/.test(u.pathname) && [...u.searchParams.values()].includes(`eq.${ADMIN_ID}`);
     return !ownRead;
   });

@@ -115,7 +115,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
 
   const policy = cancelPolicyText(t.cancel_policy, t.ready_tap_cancel);
   const feeCents = itemsCents > 0 ? buyerFeeCents(itemsCents) : 0;
-  const atHome = chosen.some((i) => i.at_buyer === true);
+  const atHome = chosen.some((l) => l.item.at_buyer === true);
   // One address per calculation: an at-home cleaning is ordered on its own (the server refuses a mix too).
   const atHomeMixed = atHome && chosen.length > 1;
   const svcOk = svc.line1.trim().length >= 3 && svc.city.trim().length >= 2 && /^[0-9]{5}$/.test(svc.postal_code.trim()) && isLouisianaZip(svc.postal_code);

@@ -242,6 +242,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('shops_admin_check_registration','action',   'Shops slice 1: admin marks a Secretary of State number checked (writes; returns the new state)'),
   ('shops_admin_set_hidden',        'action',   'Shops slice 1: admin hides or shows a shop (writes; returns the new state)'),
   ('shops_set_follow',              'action',   'Shops slice 1: the caller follows or unfollows a shop (writes; returns the new state)'),
+  ('shops_set_item_at_buyer',       'action',   'Shops H8: the owner marks a cleaning item as done at the buyer''s place, or not (writes; returns the new state; NULL refused)'),
   ('shops_set_paused',              'action',   'Shops slice 1: the caller pauses or reopens their own shop (writes; returns the new state)'),
   ('sms_record_result',             'action',   'SMS alerts (20261021193738): service-only, records Twilio''s answer for a queued text (writes; TRUE = a queued row was updated)'),
   ('instant_book_helper_free_on',   'allow',    'instant book (20261101063725): TRUE = this Helpr''s calendar marks them free on this day, so the job can be booked straight away'),

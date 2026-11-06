@@ -766,6 +766,11 @@
      badges only (rust is money, olive is action, so a count is neither). White
      text on it measures 6.5:1; the same value serves dark mode. */
   --alert: 4 71% 41%;
+  /* THE PHONE TOP BAR'S "+" (owner nav redesign 2026-11-06: "light green background with the primary green plus";
+     the approved mock-up's #DFE5CC fill with a 1.5px #C9D2AE inset ring, the --bark glyph). Light green, never the
+     grey-olive a --bark/0.12 wash read as. Guard: src/test/centerCreateNav.test.tsx. */
+  --create-tint: 74 32% 85%;      /* #DFE5CC */
+  --create-tint-ring: 75 29% 75%; /* #C9D2AE */
   /* --alert AS TEXT. In light the fill is already legible as text: 5.80:1 on
      parchment, 4.96:1 on a /0.10 alert wash over parchment (the worst surface
      the old --destructive-ink note measured). Dark lifts it below. */
@@ -1011,6 +1016,10 @@
   --olive:        78 15% 42%;   /* secondary green — lightened for dark bg */
   --sage:         78 12% 60%;   /* primary accent — noticeably lighter */
   --bark:         66 19% 60%;   /* action #A9AD86 with dark text (spec v2 §2; 7.5:1) */
+  /* The top bar "+" in dark: a deep green fill with a lighter green ring, so it reads as the same green control
+     (the --bark glyph is the light action olive here). */
+  --create-tint: 76 20% 20%;      /* #353D29 */
+  --create-tint-ring: 75 18% 32%; /* #4F5A43 */
   /* DELIBERATELY NOT the light value any more. The two themes put opposite
      labels on this gradient — near-white --primary-foreground on light,
      near-black on dark — so the stop that is too light for one is correct for

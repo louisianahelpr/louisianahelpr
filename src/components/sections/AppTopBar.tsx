@@ -13,14 +13,19 @@ import { useSharedUnreadCount } from "@/components/mobileNav/navUnreadStore";
 import { setCreateSheetOpen, useCreateSheetOpen } from "@/components/mobileNav/createSheetStore";
 import { hapticMedium } from "@/lib/haptics";
 import { useLanguage } from "@/lib/i18n/language";
+import { useSectionIsOn } from "./ExploreSwitcher";
 import type { MsgKey } from "@/lib/i18n/en";
 import { avatarButtonLabel } from "@/lib/avatarImage";
 
 /** The tabs row's icon controls (search, filters, map, gear): 40px ghost squares with a 20px glyph, centred on the 44px tabs. */
 const TABS_ROW_ICON_CLASS = "h-10 w-10 shrink-0 self-center btn-press text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&>svg]:w-5 [&>svg]:h-5";
 
-/** The soft create look (the light olive tint, the olive glyph) the desktop "+ Post a job" and the phone "+" share. */
+/** The soft create look (the light olive tint, the olive glyph) of the desktop "+ Post a job". */
 const SECTION_ADD_TINT = "rounded-full shadow-none bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] ctl-tint-on-tint";
+
+/** The phone top bar's "+": the light green fill with its inset ring and the primary green plus (owner 2026-11-06,
+ *  the approved mock-up; tokens --create-tint / --create-tint-ring, a deep green pair in dark). */
+const PHONE_CREATE_TINT = "rounded-full shadow-[inset_0_0_0_1.5px_hsl(var(--create-tint-ring))] bg-[hsl(var(--create-tint))] text-[hsl(var(--bark))] hover:bg-[hsl(var(--create-tint))]";
 
 /** The section's soft "+ Post a job" (etc.) for the DESKTOP bar; the /jobs loading frame draws the same one so the bar
  *  does not change when the page settles (src/test/sectionLoadingHeaderIsSettled.test.tsx). */
@@ -65,16 +70,20 @@ function phoneCreateTarget(pathname: string): SectionKey | "sheet" {
 /**
  * THE PHONE "+" (owner, nav redesign 2026-11-06): it left the bottom bar's centre for the top bar, per section. On
  * Jobs it posts a job, on Declutter it sells, on Shops and Homes it is their own create (sectionsConfig `add`), and on
- * Dashboard and every other screen it opens the Create sheet ("What are we doing?"). It wears the desktop bar's soft "+ Post a job" look
- * (SECTION_ADD_TINT: the light olive tint with the olive glyph; owner 2026-11-06: "light green background with the
- * primary green plus"), so the one create control looks the same on both. Guard: src/test/centerCreateNav.test.tsx.
+ * Dashboard, on a section closed to the viewer, and on every other screen it opens the Create sheet ("What are we
+ * doing?"). It wears PHONE_CREATE_TINT (owner 2026-11-06: "light green background with the primary green plus"; the
+ * approved mock-up's light green fill and inset ring). Guard: src/test/centerCreateNav.test.tsx.
  */
 function PhoneCreateButton() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const gate = useAgeGate();
   const { t: tr } = useLanguage();
-  const target = phoneCreateTarget(pathname);
+  const isOn = useSectionIsOn();
+  const routeTarget = phoneCreateTarget(pathname);
+  // A section closed to this viewer (its screen says "Opens soon") never routes into itself: the "+" opens the Create
+  // sheet, whose row for it is the greyed "Coming soon" (lead 11-06, from the 375 shots).
+  const target = routeTarget !== "sheet" && !isOn(sectionByKey(routeTarget)) ? "sheet" : routeTarget;
   const add = target === "sheet" ? null : sectionByKey(target).add;
   const isPost = add?.path === "/post-job";
   const sheetOpen = useCreateSheetOpen();
@@ -94,9 +103,9 @@ function PhoneCreateButton() {
       data-create-target={target}
       onClick={isPost ? gate.gate("post", make) : make}
       {...(isPost ? gate.gatedProps("post") : {})}
-      className={`${SECTION_ADD_TINT} [&>svg]:w-[22px] [&>svg]:h-[22px]`}
+      className={`${PHONE_CREATE_TINT} [&>svg]:w-[22px] [&>svg]:h-[22px]`}
     >
-      <Plus aria-hidden strokeWidth={2.5} />
+      <Plus aria-hidden />
     </Button>
   );
 }

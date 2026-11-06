@@ -17,7 +17,7 @@
  * @mutate src/index.css |   [data-feed-card]:active, [data-activity-card]:active, button:active {\n    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.97); |   [data-feed-card]:active, [data-activity-card]:active, button:active {\n    transform: none;
  * @mutate src/lib/declutter/browseFilters.ts |     maxMiles: positive(p.get("mi")), |     maxMiles: positive(p.get("mi")) ?? 25,
  * @mutate src/components/MobileNav.tsx |             <div className="flex items-stretch h-14 px-1.5"> |             <div className="flex items-stretch h-14 px-1.5"><button aria-label="Post a new job"><Plus /></button>
- * @mutate src/components/sections/AppTopBar.tsx |       <Plus aria-hidden strokeWidth={2.5} /> |       <Plus aria-hidden strokeWidth={2.5} /><Plus aria-hidden />
+ * @mutate src/components/sections/AppTopBar.tsx | [&>svg]:h-[22px]`}\n    >\n      <Plus aria-hidden /> | [&>svg]:h-[22px]`}\n    >\n      <Plus aria-hidden /><Plus aria-hidden />
  * @mutate src/components/shops/ShopDashboardView.tsx | <SectionActionPill className="mt-3" onClick={() => navigate("/shops/mine")}>Open a shop</SectionActionPill> | <Button className="mt-3" onClick={() => navigate("/shops/mine")}>Open a shop</Button>
  * @mutate src/components/declutter/DeclutterHomeView.tsx |             <SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}> |             <SectionActionPill className="mt-3" onClick={() => navigate("/declutter")}>
  * @mutate src/components/DesktopSidebarNav.tsx |           data-testid="sidebar-create" |           data-testid="sidebar-made"

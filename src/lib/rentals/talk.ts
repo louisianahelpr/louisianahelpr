@@ -8,36 +8,30 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { rentalsErrorMessage } from "./copy";
+import { HOME_TALK_ERROR_COPY, rpcErrorMessage } from "./talkRpcErrorCopy";
 
-/**
- * Every code the Homes message RPCs RAISE (20261106182837_homes_talk), in plain words. EXACT:
- * src/test/homesTalkClient.test.ts reads the migration's RAISE codes and fails on one with no line here or in
- * RENTALS_ERROR_COPY, and on a line here that migration does not raise.
- */
-export const HOME_TALK_ERROR_COPY: Record<string, string> = {
-  invalid_message: "Write a message of up to 1,000 characters.",
-  message_rate_limited: "You've sent a lot of messages this hour. Try again later.",
-  talk_blocked: "You can't message this person.",
-  talk_closed: "This chat is closed. You can still read it.",
-  talk_not_found: "This chat isn't available.",
-};
+// The words, per RPC, live in ./talkRpcErrorCopy (rpcErrorCopyCoverage reads them there).
+export { HOME_TALK_ERROR_COPY };
 
 /** The contact-leak trigger (reject_contact_leak_in_home_talk) raises a sentence written for the member; it is shown as it is. */
 const LEAK_SENTENCE = /does not allow contact details in Homes messages\.$/;
 
 export function homeTalkErrorMessage(err: unknown): string {
+  // The call site's own words for its RPC (rpcData below), when it named one.
+  const own = err && typeof err === "object" && "userMessage" in err ? (err as { userMessage: unknown }).userMessage : null;
+  if (typeof own === "string" && own) return own;
   const msg = err && typeof err === "object" && "message" in err ? String((err as { message: unknown }).message).trim() : "";
   if (LEAK_SENTENCE.test(msg)) return msg;
   return HOME_TALK_ERROR_COPY[msg] ?? rentalsErrorMessage(err);
 }
 
-function rpcData<T>(result: { data: T; error: { message: string } | null }): T {
+function rpcData<T>(result: { data: T; error: { message: string } | null }, words: (e: unknown) => string | null = () => null): T {
   if (!result.error) return result.data;
   try {
     unwrap(result);
   } catch (thrown) {
     const e = thrown as Error & { userMessage?: string };
-    if (Object.isExtensible(e)) e.userMessage = homeTalkErrorMessage(result.error);
+    if (Object.isExtensible(e)) e.userMessage = words(result.error) ?? homeTalkErrorMessage(result.error);
     throw e;
   }
   return result.data;
@@ -78,23 +72,24 @@ export const MY_HOME_TALKS_KEY = ["rentals", "my-talks"] as const;
 
 /** The caller's thread about a listing, made on first use (never on your own listing). */
 export async function openHomeTalk(listingId: string): Promise<string> {
-  return rpcData(await supabase.rpc("rentals_open_talk", { p_listing_id: listingId })) as string;
+  return rpcData(await supabase.rpc("rentals_open_talk", { p_listing_id: listingId }), (e) => rpcErrorMessage("rentals_open_talk", e)) as string;
 }
 
 export async function fetchHomeTalk(talkId: string): Promise<HomeTalkView> {
-  return rpcData(await supabase.rpc("rentals_talk_view", { p_talk_id: talkId })) as unknown as HomeTalkView;
+  return rpcData(await supabase.rpc("rentals_talk_view", { p_talk_id: talkId }), (e) => rpcErrorMessage("rentals_talk_view", e)) as unknown as HomeTalkView;
 }
 
 /** Send one message. A message with contact details is refused by the server's filter (its words are shown). */
 export async function sendHomeTalkMessage(talkId: string, body: string): Promise<string> {
-  return rpcData(await supabase.rpc("rentals_send_talk_message", { p_talk_id: talkId, p_body: body })) as string;
+  return rpcData(await supabase.rpc("rentals_send_talk_message", { p_talk_id: talkId, p_body: body }), (e) => rpcErrorMessage("rentals_send_talk_message", e)) as string;
 }
 
 /** The caller's threads, both sides, newest first (at most 50). */
 export async function fetchMyHomeTalks(): Promise<HomeTalkRow[]> {
-  return (rpcData(await supabase.rpc("rentals_my_talks")) ?? []) as unknown as HomeTalkRow[];
+  return (rpcData(await supabase.rpc("rentals_my_talks"), (e) => rpcErrorMessage("rentals_my_talks", e)) ?? []) as unknown as HomeTalkRow[];
 }
 
+/** Runs in the background; a failure only leaves the thread bold (HomeTalk), so no words are read here. */
 export async function markHomeTalkRead(talkId: string): Promise<void> {
   rpcData(await supabase.rpc("rentals_mark_talk_read", { p_talk_id: talkId }));
 }

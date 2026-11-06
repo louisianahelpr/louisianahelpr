@@ -20989,6 +20989,10 @@ export type Database = {
           photo_path: string
         }[]
       }
+      rentals_request_tenant_window_open: {
+        Args: { p_request_id: string; p_uid: string }
+        Returns: boolean
+      }
       rentals_save_listing: {
         Args: { p_fields: Json; p_listing_id: string; p_unit_id: string }
         Returns: string

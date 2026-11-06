@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
+import { QueryClientContext } from "@tanstack/react-query";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -64,9 +64,11 @@ export function useSectionIsListed() {
  * drawn like a live section's chip. Only a read that is IN the cache and still pending counts, so a
  * screen that never asks (or a test that stubs the switches) reads as answered.
  */
-export function useSoonAnswerPending(): boolean {
-  const qc = useQueryClient();
+function useSoonAnswerPending(): boolean {
+  // The context, not useQueryClient(): a screen rendered without a provider (some tests) reads as answered.
+  const qc = useContext(QueryClientContext);
   const { user, isReady } = useAuthReady();
+  if (!qc) return false;
   if (isReady && !user) return qc.getQueryState(SECTIONS_OPEN_QUERY_KEY)?.status === "pending";
   return qc.getQueryState(featureSwitchBatchKey(user?.id ?? null))?.status === "pending";
 }

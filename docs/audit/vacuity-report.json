@@ -1,10 +1,12 @@
 {
-  "generated": "2026-11-06T05:24:09.754Z",
-  "guards": 3622,
-  "registered": 3622,
+  "generated": "2026-11-06T06:48:03.918Z",
+  "guards": 3627,
+  "registered": 3627,
   "unregistered": [],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
+    "e2e/happy-path/rail-css-cascade.spec.ts",
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
+    "src/test/buildScriptsAreDeployPaths.test.ts"
   ],
   "classD_selfReferential": [
     {

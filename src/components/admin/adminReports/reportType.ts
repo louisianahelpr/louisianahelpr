@@ -1,5 +1,6 @@
 import type { ReportedWanted } from "@/lib/declutter/api";
 import type { ReportedShop } from "@/lib/shops/reports";
+import type { ReportedHome } from "@/components/admin/adminReports/reportedHomes";
 
 /** One row of the admin reports queue. */
 export type Report = {
@@ -27,6 +28,8 @@ export type Report = {
   reported_wanted?: ReportedWanted;
   /** Shops H2: a reported shop or shop item, read through shops_admin_reported. */
   reported_shop?: ReportedShop;
+  /** Homes report (20261106165850): a reported rent or for-sale listing, read as admin. */
+  reported_home?: ReportedHome;
   /** B48: a reported Declutter question already removed, so the card offers no take-down. */
   reported_question_gone?: boolean;
   /** Q366: the person behind the subject — `reported_id` for a user report,

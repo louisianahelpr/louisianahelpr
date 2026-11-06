@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1168,
-    "files": 328,
-    "rendering": 1087,
+    "calls": 1170,
+    "files": 329,
+    "rendering": 1089,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 224,
-      "toast.error": 788,
+      "toast": 225,
+      "toast.error": 789,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 493,
+      "literal": 494,
       "template": 106,
-      "dynamic": 621,
+      "dynamic": 622,
       "jsx": 0
     }
   },
@@ -2109,7 +2109,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 118,
+      "line": 120,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2119,7 +2119,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 121,
+      "line": 123,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2129,7 +2129,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 136,
+      "line": 138,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2139,7 +2139,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 159,
+      "line": 161,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2149,7 +2149,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 162,
+      "line": 164,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -2159,7 +2159,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 183,
+      "line": 185,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2169,7 +2169,7 @@
     },
     {
       "file": "src/components/admin/AdminReports.tsx",
-      "line": 223,
+      "line": 225,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -3148,6 +3148,32 @@
       "title": {
         "form": "dynamic",
         "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminReports/HomeReportPanel.tsx",
+      "line": 55,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Listing taken down. Its owner was told why."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/admin/adminReports/HomeReportPanel.tsx",
+      "line": 59,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "errorWords(err)",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "e?.words ?? e?.userMessage ?? \"That didn't work. Refresh the reports list and try again.\""
+          }
+        ]
       },
       "renders": true
     },

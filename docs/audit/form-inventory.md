@@ -37,6 +37,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/admin/AdminReferrals.tsx` | input×1 | search |  | Search referrals by name or code · Search by name or code… · Clear search · Copy referral code |
 | `src/components/admin/AdminReports.tsx` | textarea×1 |  |  | Message to user |
 | `src/components/admin/adminReports/DeclutterTakeDown.tsx` | textarea×1 |  | 500 | Reason the seller reads |
+| `src/components/admin/adminReports/HomeReportPanel.tsx` | textarea×1 |  | 500 | Reason the owner reads |
 | `src/components/admin/adminReports/ShopReportPanel.tsx` | textarea×1 |  | 500 | Reason the owner reads |
 | `src/components/admin/adminReports/WantedReportPanel.tsx` | textarea×1 |  | 500 | Photos on this post · Reason the poster reads |
 | `src/components/admin/AdminSettings.tsx` | input×1 | url |  | socialWebhook · Remove admin · Search users |

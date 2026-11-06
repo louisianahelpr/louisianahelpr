@@ -133,7 +133,15 @@ export function ShopHoursCard({ hours }: { hours: ShopHour[] }) {
 }
 
 /** `reportable`: a visitor's view, so each item carries a Report (Shops H2); never on the owner's own shop. */
-export function ShopItemsGrid({ items, reportable = false }: { items: (Omit<ShopItem, "photos"> & { photos: ItemPhoto[] })[]; reportable?: boolean }) {
+/**
+ * `withOptions`: the items that have option lists (variants, 20261106165310), keyed by id; their price is the lowest
+ * offered combination's (shop_items_variant_rollup), so the card says "From $X".
+ */
+export function ShopItemsGrid({ items, reportable = false, withOptions }: {
+  items: (Omit<ShopItem, "photos"> & { photos: ItemPhoto[] })[];
+  reportable?: boolean;
+  withOptions?: ReadonlyMap<string, unknown>;
+}) {
   if (items.length === 0) return <p className="text-sm text-muted-foreground">No items listed yet.</p>;
   const anyHomeKitchen = items.some((i) => i.home_kitchen);
   return (
@@ -159,7 +167,7 @@ export function ShopItemsGrid({ items, reportable = false }: { items: (Omit<Shop
               </div>
               <div className="space-y-0.5 p-2.5">
                 <p className="line-clamp-2 text-sm font-semibold leading-snug [overflow-wrap:anywhere]">{item.title}</p>
-                <p className="text-sm font-bold text-foreground">{formatItemPrice(item.price_cents)}</p>
+                <p className="text-sm font-bold text-foreground">{withOptions?.has(item.id) ? `From ${formatItemPrice(item.price_cents)}` : formatItemPrice(item.price_cents)}</p>
                 <p className="text-ds-11 text-muted-foreground">{SHOP_ITEM_TYPE_LABEL[item.subtype] ?? "Item"} · {readinessLabel(item)}</p>
                 {item.home_kitchen && (
                   // L7 on EVERY home-food card, as one compact line; the full words for screen readers.

@@ -893,7 +893,7 @@ describe("shop-checkout: the maker answers", () => {
     const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer maker-jwt" }, body: { action: "accept", order_id: ORDER } }));
     expect(res.status).toBe(200);
     expect(stripeMock.paymentIntents.capture).toHaveBeenCalledTimes(1);
-    expect(stripeMock.paymentIntents.capture).toHaveBeenCalledWith("pi_shop", { amount_to_capture: 3240 }, { idempotencyKey: `shop-capture-${ORDER}-3` });
+    expect(stripeMock.paymentIntents.capture).toHaveBeenCalledWith("pi_shop", { amount_to_capture: 3240, metadata: { shop_deposit_capture_cents: "3240" } }, { idempotencyKey: `shop-capture-${ORDER}-3` });
   });
 
   // Custom orders slice 2a (review follow-up a on 9abcc8018a): a closed request's unpaid page is expired.

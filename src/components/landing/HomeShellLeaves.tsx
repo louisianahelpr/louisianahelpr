@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { dropHomeShell } from "./homeShell";
 
-export const HOME_SHELL_ID = "lh-home-shell";
+export { HOME_SHELL_ID } from "./homeShell";
 
 /**
  * Q2705 B: index.html draws a signed-in phone's /home skeleton (#lh-home-shell) before the app arrives, and
@@ -12,7 +13,7 @@ export const HOME_SHELL_ID = "lh-home-shell";
 export function HomeShellLeaves() {
   const { pathname } = useLocation();
   useEffect(() => {
-    if ((pathname.replace(/\/+$/, "") || "/") !== "/home") document.getElementById(HOME_SHELL_ID)?.remove();
+    if ((pathname.replace(/\/+$/, "") || "/") !== "/home") dropHomeShell();
   }, [pathname]);
   return null;
 }

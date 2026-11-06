@@ -44,6 +44,9 @@ export const SHELLS = [
   { id: "lh-home-shell", htmlAttr: 'data-lh-app-shell="home"', show: `[data-lh-app-shell="home"] #lh-home-shell${FIXED}` },
   // Q2705 B: and its /jobs (src/test/jobsShellMatchesSkeleton.test.tsx).
   { id: "lh-jobs-shell", htmlAttr: 'data-lh-app-shell="jobs"', show: `[data-lh-app-shell="jobs"] #lh-jobs-shell${FIXED}` },
+  // Q2705 B: its /messages and /declutter (src/test/messagesDeclutterShellsMatchSkeletons.test.tsx).
+  { id: "lh-messages-shell", htmlAttr: 'data-lh-app-shell="messages"', show: `[data-lh-app-shell="messages"] #lh-messages-shell${FIXED}` },
+  { id: "lh-declutter-shell", htmlAttr: 'data-lh-app-shell="declutter"', show: `[data-lh-app-shell="declutter"] #lh-declutter-shell${FIXED}` },
 ];
 /**
  * Ceiling on the inlined block, gzip bytes; the build fails above it. This is a cap on what every page's HTML

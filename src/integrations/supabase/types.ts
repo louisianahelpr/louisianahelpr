@@ -2306,6 +2306,7 @@ export type Database = {
       }
       declutter_items: {
         Row: {
+          accepts_trades: boolean
           accepts_offers: boolean
           admin_approved_at: string | null
           area_label: string
@@ -2342,6 +2343,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accepts_trades?: boolean
           accepts_offers?: boolean
           admin_approved_at?: string | null
           area_label: string
@@ -2378,6 +2380,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accepts_trades?: boolean
           accepts_offers?: boolean
           admin_approved_at?: string | null
           area_label?: string
@@ -4268,6 +4271,7 @@ export type Database = {
       }
       declutter_seller_defaults: {
         Row: {
+          accepts_trades: boolean
           accepts_offers: boolean
           drop_pct: number
           drops: boolean
@@ -4279,6 +4283,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          accepts_trades?: boolean
           accepts_offers?: boolean
           drop_pct?: number
           drops?: boolean
@@ -4290,6 +4295,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          accepts_trades?: boolean
           accepts_offers?: boolean
           drop_pct?: number
           drops?: boolean
@@ -4384,6 +4390,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      declutter_swap_offers: {
+        Row: {
+          buyer_id: string
+          buyer_line_id: string | null
+          closed_at: string | null
+          created_at: string
+          id: string
+          is_seed: boolean
+          item_id: string
+          offered_item_id: string
+          respond_by: string
+          seller_id: string
+          seller_line_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          buyer_line_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          item_id: string
+          offered_item_id: string
+          respond_by: string
+          seller_id: string
+          seller_line_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          buyer_line_id?: string | null
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          item_id?: string
+          offered_item_id?: string
+          respond_by?: string
+          seller_id?: string
+          seller_line_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       declutter_tax_attestations: {
         Row: {
@@ -18276,10 +18330,31 @@ export type Database = {
         Args: { p_item_id: string; p_on: boolean }
         Returns: boolean
       }
+      declutter_offer_swap: {
+        Args: {
+          p_item_id: string
+          p_offered_item_id: string
+        }
+        Returns: string
+      }
+      declutter_respond_swap: {
+        Args: {
+          p_action: string
+          p_swap_id: string
+        }
+        Returns: string
+      }
       declutter_set_offer_rules: {
         Args: {
           p_accepts_offers: boolean
           p_auto_offers: boolean
+          p_item_id: string
+        }
+        Returns: undefined
+      }
+      declutter_set_trade_rules: {
+        Args: {
+          p_accepts_trades: boolean
           p_item_id: string
         }
         Returns: undefined

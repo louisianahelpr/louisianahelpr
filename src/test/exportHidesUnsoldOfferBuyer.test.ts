@@ -4,9 +4,9 @@
  * poster's user id; declutter_my_offers returns no counterparty id for the same reason. Read from the definition the
  * database runs (effectiveDefs, comments blanked).
  *
- * @mutate supabase/migrations/20261106002300_export_profile_job_photos.sql | THEN to_jsonb(t) - 'buyer_id' ELSE to_jsonb(t) END) | THEN to_jsonb(t) ELSE to_jsonb(t) END)
- * @mutate supabase/migrations/20261106002300_export_profile_job_photos.sql | AND t.status <> 'accepted' | AND true
- * @mutate supabase/migrations/20261106002300_export_profile_job_photos.sql | ELSE to_jsonb(t) - 'asker_id' END) | ELSE to_jsonb(t) END)
+ * @mutate supabase/migrations/20261106164100_export_declutter_swap_offers.sql | THEN to_jsonb(t) - 'buyer_id' ELSE to_jsonb(t) END) | THEN to_jsonb(t) ELSE to_jsonb(t) END)
+ * @mutate supabase/migrations/20261106164100_export_declutter_swap_offers.sql | AND t.status <> 'accepted' | AND true
+ * @mutate supabase/migrations/20261106164100_export_declutter_swap_offers.sql | ELSE to_jsonb(t) - 'asker_id' END) | ELSE to_jsonb(t) END)
  */
 import { describe, expect, it } from "vitest";
 import path from "node:path";

@@ -206,6 +206,7 @@ export const EXPORTED: Record<string, { section?: string; by: string[] }> = {
   declutter_manager_payouts: { by: ["seller_id", "manager_id"] },
   // Bundle requests (Q2268, 20261104103528, exported by 20261104123305): the member's own asks, as the buyer or the seller.
   declutter_bundle_requests: { by: ["buyer_id", "seller_id"] },
+  declutter_swap_offers: { by: ["buyer_id", "seller_id"] },
   // Bundle discounts (20261027211754, exported by 20261028003604): the seller's own setting.
   declutter_bundle_rules: { by: ["seller_id"] },
   // Q2462 (20261028235249, exported by 20261028235250): the handover talks, buyer or seller, and their messages.
@@ -634,6 +635,7 @@ export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
   "declutter_strikes.appeal_decided_by": { reason: "the staff member who decided a Declutter strike appeal; the strike is the member's (the strike is exported by declutter_strikes.user_id, 20261014200728, with this staff id dropped)" },
   "declutter_orders.book_by": { reason: "a deadline timestamp (when the buyer must pick a pickup or delivery time, the handover sweep's 7-day mark; 20261101230519), not a person; the order is exported by declutter_orders.buyer_id/seller_id" },
   "declutter_bundle_requests.respond_by": { reason: "a deadline timestamp (when the seller must answer a bundle request), not a person; the request is exported by declutter_bundle_requests.buyer_id/seller_id (20261104123305)" },
+  "declutter_swap_offers.respond_by": { reason: "a deadline timestamp (when the seller must answer a trade offer), not a person; the trade is exported by declutter_swap_offers.buyer_id/seller_id (20261106164100)" },
   "declutter_offers.respond_by": { reason: "a deadline timestamp (when the offer must be answered), not a person; the offer is exported by declutter_offers.buyer_id/seller_id (20261014210518)" },
   "declutter_refund_requests.answer_by": { reason: "a deadline timestamp (when the seller must answer a refund request), not a person; the table has no person column (keyed by order_id; the buyer and seller are the order's, exported by declutter_orders.buyer_id/seller_id; 20261026155251)" },
   "declutter_refund_requests.return_by": { reason: "a deadline timestamp (when the seller must confirm the item came back after agreeing a full refund, #3558), not a person; the table has no person column (keyed by order_id; 20261026155251)" },

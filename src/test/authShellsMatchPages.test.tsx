@@ -15,7 +15,7 @@
  * @mutate src/pages/auth/Signup.tsx |   useEffect(() => removeShellOncePainted("lh-signup-shell"), []); |
  * @mutate src/pages/auth/Login.tsx | <p className="text-ds-14 text-muted-foreground">{t("login.welcome")}</p> | <p className="text-ds-13 text-muted-foreground">{t("login.welcome")}</p>
  * @mutate index.html |         if (!page \|\| location.search \|\| location.hash \|\| window.Capacitor |         if (!page \|\| window.Capacitor
- * @mutate index.html |           if (lang === "es" \|\| (lang !== "en" && /^es/i.test(navigator.language \|\| ""))) return; |
+ * @mutate index.html | "helpr_lang");\n          if (lang === "es" \|\| (lang !== "en" && /^es/i.test(navigator.language \|\| ""))) return; | "helpr_lang");\n
  * @mutate src/index.css | [data-lh-auth-shell="signup"] #lh-signup-shell {\n  display: block; | [data-lh-auth-shell="signup"] #lh-signup-shell {\n  display: none;
  * @mutate src/main.tsx | !== page) document.getElementById(`lh-${page}-shell`)?.remove(); | === "x") document.getElementById(`lh-${page}-shell`)?.remove();
  * @mutate scripts/inline-shell-css.mjs |   const present = SHELLS.map( |   const present = SHELLS.slice(0, 1).map(

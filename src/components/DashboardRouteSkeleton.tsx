@@ -50,7 +50,7 @@ const DashboardRouteSkeleton = () => (
                 <Skeleton className="h-4 w-32 mt-1.5 rounded-ds-md" />
               </div>
               {/* The Next up card: label, title, one line, the action pill. */}
-              <div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton="next-up">
+              <div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton-part="next-up">
                 <Skeleton className="h-3.5 w-16 rounded-ds-md" />
                 <Skeleton className="h-6 w-48 max-w-full rounded-ds-md" />
                 <Skeleton className="h-4 w-40 max-w-full rounded-ds-md" />
@@ -61,7 +61,7 @@ const DashboardRouteSkeleton = () => (
                 <div className="px-1">
                   <Skeleton className="h-4 w-24 rounded-ds-md" />
                 </div>
-                <div className="liquid-glass overflow-hidden" data-skeleton="coming-up">
+                <div className="liquid-glass overflow-hidden" data-skeleton-part="coming-up">
                   {[0, 1].map((i) => (
                     <div key={i} className={`flex items-center gap-3 px-4 py-3 ${i === 0 ? "border-b border-border/70" : ""}`}>
                       <Skeleton className="w-10 h-10 shrink-0 rounded-full" />
@@ -79,7 +79,7 @@ const DashboardRouteSkeleton = () => (
                   <Skeleton className="h-4 w-28 rounded-ds-md" />
                   <Skeleton className="h-4 w-16 rounded-ds-md" />
                 </div>
-                <div className="grid grid-cols-2 gap-3" data-skeleton="tiles">
+                <div className="grid grid-cols-2 gap-3" data-skeleton-part="tiles">
                   {[0, 1, 2, 3].map((i) => (
                     <div key={i} className="liquid-glass p-card flex flex-col gap-1 min-w-0">
                       <Skeleton className="w-6 h-6 rounded-ds-md" />

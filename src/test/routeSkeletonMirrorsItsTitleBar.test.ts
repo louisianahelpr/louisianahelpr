@@ -79,17 +79,17 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
     // The card measures and holds its own height while to-dos load (ref + a reserved minHeight style), so match
     // the tag's shell classes, not the whole tag.
     expect(home).toMatch(/<section (?:ref=\{nextUpRef\} )?data-testid="next-up" aria-label="Next up" className="liquid-glass p-card flex flex-col gap-1\.5"[ >]/);
-    expect(skeleton).toContain('<div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton="next-up">');
-    expect(skeleton).toMatch(/data-skeleton="next-up">[\s\S]*?<Skeleton className="h-11 w-36 mt-2 rounded-full" \/>/);
+    expect(skeleton).toContain('<div className="liquid-glass p-card flex flex-col gap-1.5" data-skeleton-part="next-up">');
+    expect(skeleton).toMatch(/data-skeleton-part="next-up">[\s\S]*?<Skeleton className="h-11 w-36 mt-2 rounded-full" \/>/);
     // 2x2 tiles, same grid.
     expect(home).toContain('<div className="grid grid-cols-2 gap-3">');
-    expect(skeleton).toContain('<div className="grid grid-cols-2 gap-3" data-skeleton="tiles">');
+    expect(skeleton).toContain('<div className="grid grid-cols-2 gap-3" data-skeleton-part="tiles">');
     expect(skeleton).toMatch(/\[0, 1, 2, 3\]\.map\(\(i\) => \(\s*<div key=\{i\} className="liquid-glass p-card/);
     // Board 7: Coming up sits ABOVE the sections in both.
     expect(home.lastIndexOf('title="Coming up"')).toBeGreaterThan(0);
     expect(home.lastIndexOf('title="Coming up"')).toBeLessThan(home.indexOf('aria-label="Your sections"'));
-    expect(skeleton.indexOf('data-skeleton="coming-up"')).toBeGreaterThan(0);
-    expect(skeleton.indexOf('data-skeleton="coming-up"')).toBeLessThan(skeleton.indexOf('data-skeleton="tiles"'));
+    expect(skeleton.indexOf('data-skeleton-part="coming-up"')).toBeGreaterThan(0);
+    expect(skeleton.indexOf('data-skeleton-part="coming-up"')).toBeLessThan(skeleton.indexOf('data-skeleton-part="tiles"'));
     // Same column gap as Home's stack.
     expect(home).toContain('className="flex flex-col gap-section"');
     expect(skeleton).toContain('<div className="flex flex-col gap-section">');
@@ -102,7 +102,7 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
 
 // Proof this is able to fail: each restores a real way the two drift.
 // @mutate src/components/DashboardRouteSkeleton.tsx | <HelprMark to={null} size="sm" emblemOnly className="shrink-0" /> | <HelprMark to={null} size="md" emblemOnly className="shrink-0" />
-// @mutate src/components/DashboardRouteSkeleton.tsx | data-skeleton="next-up"> | data-skeleton="stats">
+// @mutate src/components/DashboardRouteSkeleton.tsx | data-skeleton-part="next-up"> | data-skeleton-part="stats">
 // @mutate src/components/DashboardRouteSkeleton.tsx |                 <Skeleton className="h-11 w-36 mt-2 rounded-full" /> |
 // @mutate src/components/DashboardRouteSkeleton.tsx |               <span className="h-10 w-10 flex items-center justify-center"> |               <span className="h-11 w-11 flex items-center justify-center">
 // @mutate src/components/DashboardRouteSkeleton.tsx |     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top"> |     <AppShell scrollable={false} className="bg-premium-page pt-safe-top">

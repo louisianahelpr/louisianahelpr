@@ -8,9 +8,9 @@
  * that every exclusion the accept makes on those two counts, the list makes too.
  * Backend proof: src/test/pglite/helprOpenDeliveriesHideBackedOut.pglite.mjs (3x replay; NEW_MIGRATION=skip RED).
  *
- * @mutate supabase/migrations/20261031075157_helpr_open_deliveries_hide_backed_out.sql |      AND NOT public.helpr_task_source_held(t.source_kind, t.source_id)\n |      AND true\n
- * @mutate supabase/migrations/20261031075157_helpr_open_deliveries_hide_backed_out.sql | e.task_event IN ('released', 'helpr_no_show')) | e.task_event IN ('released'))
- * @mutate supabase/migrations/20261031075157_helpr_open_deliveries_hide_backed_out.sql |      AND NOT EXISTS (SELECT 1 FROM public.helpr_task_events e | AND EXISTS (SELECT 1 FROM public.helpr_task_events e
+ * @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql |      AND NOT public.helpr_task_source_held(t.source_kind, t.source_id)\n   ORDER BY CASE |      AND true\n   ORDER BY CASE
+ * @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql | e.task_event IN ('released', 'helpr_no_show'))\n     -- ... and never one whose sale is held by an open problem (refused | e.task_event IN ('released'))\n     -- ... and never one whose sale is held by an open problem (refused
+ * @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql | (helpr_task_accept refuses it: task_taken) ...\n     AND NOT EXISTS (SELECT 1 FROM public.helpr_task_events e | (helpr_task_accept refuses it: task_taken) ...\n     AND EXISTS (SELECT 1 FROM public.helpr_task_events e
  */
 import { describe, expect, it } from "vitest";
 import { join, resolve } from "node:path";

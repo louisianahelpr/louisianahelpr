@@ -141,7 +141,9 @@ describe("which rows are drawn, and what reaches the markup", () => {
     ];
     expect(selectShellJobs(rows, NOW).map((j) => j.title)).toEqual(["Urgent", "Boosted", "Newest", "Second"]);
     expect(SHELL_CARD_COUNT).toBe(4);
-    expect(browseShellHtml([], NOW)).toBe("");
+    expect(browseShellHtml(null, NOW)).toBe("");
+    // A live crew is not drawn as a card, and the feed is not empty either: no shell (browseShellEmptyState.test.tsx
+    // pins the empty state an answer with no live row draws instead).
     expect(browseShellHtml([row({ status: "accepted" })], NOW)).toBe("");
   });
   it("escapes the title and carries no private field", () => {
@@ -157,7 +159,7 @@ describe("which rows are drawn, and what reaches the markup", () => {
     const doc = `<body><div id="root" style="x"><div id="boot-loader"></div></div></body>`;
     expect(withBrowseShell(doc, [row()], NOW)).toMatch(/^<body><div id="root" style="x"><div id="boot-loader"><div id="lh-browse-shell"[\s\S]*<\/div><\/div><\/body>$/);
     expect(withBrowseShell(`<div id="root">\n<div\n  id="boot-loader"\n  role="status"\n>`, [row()], NOW)).toMatch(/role="status"\n><div id="lh-browse-shell"/);
-    expect(withBrowseShell(doc, [], NOW)).toBe(doc);
+    expect(withBrowseShell(doc, null, NOW)).toBe(doc);
     // The nav's H emblem is the page's own file, taken from index.html's #emblem-preload; none without it.
     expect(withBrowseShell(doc, [row()], NOW)).not.toContain("<img");
     const withPreload = `<link id="emblem-preload" rel="preload" as="image" media="not all"\n href="/assets/helpr-logo-256-X.webp"\n imagesrcset="/assets/helpr-logo-96-Y.webp 96w, /assets/helpr-logo-256-X.webp 256w"\n imagesizes="40px" />${doc}`;

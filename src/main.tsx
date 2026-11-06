@@ -219,7 +219,7 @@ if (import.meta.env.PROD && typeof navigator !== "undefined" && "serviceWorker" 
 // lands. See prePaintShellClasses for the full reasoning.
 applyPrePaintShellClasses();
 // /browse's server-drawn cards leave #boot-loader before React's first commit removes it (PERF-SHELL, Q652).
-adoptBrowseShell(window.location.pathname, tokenProbeAtBoot());
+adoptBrowseShell(window.location.pathname, tokenProbeAtBoot(), document, window.location.search);
 
 // If this page is a Stripe return being shown inside the app's in-app browser
 // sheet, hand control back to the app instead of rendering a web page the user

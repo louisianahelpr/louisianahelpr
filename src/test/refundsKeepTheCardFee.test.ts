@@ -113,7 +113,7 @@
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault') THEN 'keep_card_fee' |     WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault') THEN 'full_platform_absorbs'
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     WHEN p_reason = 'problem_our_mistake' THEN 'full_platform_absorbs' |     WHEN p_reason IN ('problem_our_mistake', 'shop_removed') THEN 'full_platform_absorbs'
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |   CONSTRAINT shop_refunds_policy CHECK (fee_policy = public.shop_refund_fee_policy(reason)), |   CONSTRAINT shop_refunds_policy CHECK (fee_policy IN ('keep_card_fee', 'full_shop_pays_fee', 'full_platform_absorbs')),
- * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     SELECT o.*, CASE WHEN o.policy = 'keep_card_fee' THEN o.fee ELSE 0 END AS kept FROM o |     SELECT o.*, 0 AS kept FROM o
+ * @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql |     SELECT o.*, CASE WHEN o.policy = 'keep_card_fee' THEN o.fee ELSE 0 END AS kept FROM o |     SELECT o.*, 0 AS kept FROM o
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     'buyer_cancelled', 'shop_cancelled', 'no_ready_photo', 'shop_removed', |     'buyer_cancelled', 'shop_cancelled', 'no_ready_photo', 'shop_removed', 'goodwill',
  * @mutate supabase/functions/_shared/shopRefunds.ts |           amount: row.refund_cents, |           amount: row.refund_cents + 30,
  * @mutate supabase/functions/declutter-money/index.ts |         const done = await sendShopRefund(stripe, admin, r); |         r.refund_cents = r.refund_cents + 30;\n        const done = await sendShopRefund(stripe, admin, r);
@@ -153,7 +153,7 @@ interface SqlSite {
    * straight off `table`), declares it by the pinned `chain`, and hands it on unchanged by `call`, called exactly
    * `calls` times in that file. The site's own `chain` then starts at the parameter.
    */
-  feeders?: Array<{ file: string; rpc: string; row: string; chain: string[]; call: string; calls: Record<string, number> }>;
+  feeders?: Array<{ file: string; rpc: string; row: string; chain: string[]; call: string; calls: Record<string, number>; /** The feeder reads another table (default: the family's). */ table?: string }>;
   /**
    * Every line of the site's file that names refund_cents (comments blanked, whitespace-collapsed), in order.
    * EXACT: a write to the row's refund_cents anywhere in the file (before the chain, on an alias) adds a line
@@ -186,12 +186,15 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
     // Shops M3 (20261019071055): the shared sender sends exactly a shop_refunds row's refund_cents. The amount is
     // decided in SQL (shop_refund_amounts by reason, held by the shop_refunds CHECKs); the row comes from
     // shop-checkout's tap (shop_refund_to_send) and declutter-money's retry (shop_refunds_due).
+    // Helpr delivery (20261106194913, money review owed): the same sender also sends a shop_delivery_refunds row
+    // (table "delivery", shop_delivery_refunds_due): the delivery price alone, in full, when no Helpr took it or the
+    // order closed before the pickup (Declutter's own-mistake delivery refund, row 40, registered below for Declutter).
     file: "supabase/functions/_shared/shopRefunds.ts", key: "payment_intent: row.payment_intent_id", kind: "sql-policy",
     why: "Shops refund row, sent by the tap or the retry",
     sql: {
       decidedBy: "shop_refund_amounts", rpc: "shop_refunds_due", reader: "shop_refunds_due", table: "shop_refunds",
       amount: "row.refund_cents", row: "row",
-      chain: ["export async function sendShopRefund(stripe: Stripe, admin: Db, row: ShopRefundRow): Promise<ShopRefundOutcome> {"],
+      chain: ["export async function sendShopRefund(stripe: Stripe, admin: Db, row: ShopRefundRow, table: ShopRefundTable = \"order\"): Promise<ShopRefundOutcome> {"],
       feeders: [
         {
           file: "supabase/functions/shop-checkout/index.ts", rpc: "shop_refund_to_send", row: "row",
@@ -207,7 +210,17 @@ const REFUND_SITES: Array<{ file: string; key: string; kind: Kind; why: string; 
             "const dueRefunds = await admin.rpc(\"shop_refunds_due\", { p_limit: BATCH });",
             "for (const r of (dueRefunds.data ?? []) as ShopRefundRow[]) {",
           ],
-          call: "sendShopRefund(stripe, admin, r)", calls: { sendShopRefund: 1 },
+          call: "sendShopRefund(stripe, admin, r)", calls: { sendShopRefund: 2 },
+        },
+        {
+          // Helpr delivery (20261106194913): the delivery price alone, refund_cents = the order's frozen delivery_cents
+          // (shop_delivery_refund), sent in full (own-mistake, as Declutter's row 40 delivery refund).
+          file: "supabase/functions/declutter-money/index.ts", rpc: "shop_delivery_refunds_due", row: "r", table: "shop_delivery_refunds",
+          chain: [
+            "const dueDelivery = await admin.rpc(\"shop_delivery_refunds_due\", { p_limit: BATCH });",
+            "for (const r of (dueDelivery.error ? [] : (dueDelivery.data ?? [])) as ShopRefundRow[]) {",
+          ],
+          call: "sendShopRefund(stripe, admin, r, \"delivery\")", calls: { sendShopRefund: 2 },
         },
       ],
       mentions: [
@@ -457,7 +470,7 @@ interface SqlPolicy {
   /** The table CHECK listing the reasons a refund row may carry: exactly the classified reasons. */
   reasonCheck: string;
   /** Every place the reason -> fee policy map is decided, each read as a plain CASE (subject IN (...) THEN '...'). */
-  policySources: Array<{ where: string; kind: "constraint" | "function"; name: string; pattern: RegExp; subject: string }>;
+  policySources: Array<{ where: string; kind: "constraint" | "function"; name: string; pattern: RegExp; subject: string; /** Its own newest file, when neither migration nor functionMigration holds it. */ migration?: string }>;
   reasons: Record<string, string>;
   /** Our own mistakes, the only reasons the platform refunds the fee on (owner, 2026-10-14). EXACT. */
   ownMistakes: string[];
@@ -867,7 +880,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       declutter_setup_job_fee_debt: "20261103214533_declutter_seller_fault_pays_helpr.sql e3fac1112e34e309",
       // Shops M1: records the card fee Stripe kept when a held order is captured (or the 2.9% + 30c estimate),
       // for a later refund to keep; it records no refund and decides no refund amount.
-      shop_order_captured: "20261105181603_shops_setup_fee.sql 8acd63607113b6f0", // Shops H4 setup fee (lh-money-escrow PASS on 0a306f59cb): the card fee it records is Stripe's estimate on total + the one-time setup fee, capped at the order total; it records no refund
+      shop_order_captured: "20261106194913_shops_helpr_delivery.sql f3f3d453bb758291", // Shops H4 setup fee (lh-money-escrow PASS on 0a306f59cb): the card fee it records is Stripe's estimate on total + the one-time setup fee, capped at the order total; it records no refund. Helpr delivery (20261106194913, money review owed): it also opens the Helpr task; still no refund
       // Payout readiness (20261019070737, lander33 pin for the lead's review). None of these decides or changes a refund
       // amount; each touches declutter_refunds only by status / time / review columns:
       // the admin page's list of held rows (a read; shows refund_cents as recorded).
@@ -911,7 +924,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Shops M3: the ONE refund formula for a Shops order (quote, write and CHECKs read it): keep_card_fee keeps the
       // card fee and its tax for buyer_cancelled / problem_no_fault; full otherwise (the shop is billed the fee as debt
       // for its own faults; the platform carries it only for problem_our_mistake).
-      shop_refund_amounts: "20261019071055_shops_refunds_cancels_strikes.sql e33a946acc47db26",
+      shop_refund_amounts: "20261106194913_shops_helpr_delivery.sql 124b645b7118ba24", // Helpr delivery (money review owed): the delivery already refunded or earned by the Helpr is left out, the card fee prorated (declutter_card_fee_left)
       // the payout run holds a pending / failed row for review (status + reason); no amount.
       payout_hold_for_review: "20261101233256_declutter_manager_payout_kind.sql a620256e1b71a72e",
       // deletes wait / send-mark bookkeeping rows of ended payouts; reads declutter_refunds status only.
@@ -987,10 +1000,13 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
    */
   shop_refund_amounts: {
     migration: "20261019071055_shops_refunds_cancels_strikes.sql",
-    proofs: ["src/test/pglite/shopsRefunds.pglite.mjs"],
+    // Helpr delivery (money review owed): restated to leave out the delivery already refunded or earned.
+    functionMigration: "20261106194913_shops_helpr_delivery.sql",
+    proofs: ["src/test/pglite/shopsRefunds.pglite.mjs", "src/test/pglite/shopsHelprDelivery.pglite.mjs"],
     reasonCheck: "shop_refunds_reason_check",
     policySources: [
-      { where: "shop_refund_fee_policy", kind: "function", name: "shop_refund_fee_policy", pattern: /\bSELECT\s+(CASE\b.*?\bEND)\s*;/i, subject: "p_reason" },
+      { where: "shop_refund_fee_policy", kind: "function", name: "shop_refund_fee_policy", pattern: /\bSELECT\s+(CASE\b.*?\bEND)\s*;/i, subject: "p_reason",
+        migration: "20261019071055_shops_refunds_cancels_strikes.sql" },
     ],
     reasons: {
       buyer_cancelled: "keep_card_fee",
@@ -1035,9 +1051,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shop_hand_refund_failed: "20261019071055_shops_refunds_cancels_strikes.sql ba27ff33a9f0c110",
       shop_hold_order_for_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 1e75907ab8fb3269",
       shop_money_rows_seed: "20261018211820_shops_handover_payout.sql 55e7c11ee19013d2",
-      shop_order_captured: "20261105181603_shops_setup_fee.sql 8acd63607113b6f0", // Shops H4 setup fee (lh-money-escrow PASS on 0a306f59cb): the card fee it records is Stripe's estimate on total + the one-time setup fee, capped at the order total; it records no refund
+      shop_order_captured: "20261106194913_shops_helpr_delivery.sql f3f3d453bb758291", // Shops H4 setup fee (lh-money-escrow PASS on 0a306f59cb): the card fee it records is Stripe's estimate on total + the one-time setup fee, capped at the order total; it records no refund. Helpr delivery (20261106194913, money review owed): it also opens the Helpr task; still no refund
       shop_record_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 57f661acd2c47d64",
-      shop_refund_amounts: "20261019071055_shops_refunds_cancels_strikes.sql e33a946acc47db26",
+      shop_refund_amounts: "20261106194913_shops_helpr_delivery.sql 124b645b7118ba24", // Helpr delivery (money review owed): the delivery already refunded or earned by the Helpr is left out, the card fee prorated (declutter_card_fee_left)
       shop_refund_executed: "20261103111244_money_webhooks_not_found_is_404.sql e33914e554c0bfea", // Q2390 p25: ERRCODE-only restatement (md5-verified); records Stripe's answer, writes no amount
       shop_refund_fee_policy: "20261019071055_shops_refunds_cancels_strikes.sql f658275f8b61b0af",
       shop_refund_reversed: "20261019071055_shops_refunds_cancels_strikes.sql df880e58ddff9ccd",
@@ -1052,7 +1068,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shops_admin_refund_order: "20261019071055_shops_refunds_cancels_strikes.sql a7df4ee33cc5ef18",
       shops_admin_settle_held_refund: "20261019071055_shops_refunds_cancels_strikes.sql 6d0001f095b1ff76",
       shops_buyer_cancel_order: "20261104175521_q2390_last_member_not_found_is_404.sql 7ebae7958a42f34f", // Q2390 11-04: ERRCODE P0002 -> PT404 only
-      shops_order_cancel_quote: "20261103091013_shops_promotions_team_message_not_found_is_404.sql d028eafd729cb911", // Q2390 p22: ERRCODE-only restatement (md5-verified), read-only quote
+      shops_order_cancel_quote: "20261106194913_shops_helpr_delivery.sql 68b55433d93cc393", // Q2390 p22 read-only quote; Helpr delivery (20261106194913, money review owed): a late cancel quotes the delivery no Helpr picked up coming back
       shops_shop_cancel_order: "20261103162420_q2390_handover_paid_refund_shop_cancel_photo_no_show_decline_not_found_is_404.sql ae7a26b0a9ef9269",
     },
     statements: {
@@ -1061,7 +1077,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     },
     bodies: {
       shop_refund_amounts: [
-        "least(so.total_cents, COALESCE(so.card_fee_cents, public.declutter_card_fee_estimate(so.total_cents))) AS fee,",
+        "least(so.total_cents, COALESCE(so.card_fee_cents, public.declutter_card_fee_estimate(so.total_cents))),",
+        "so.total_cents, public.shop_delivery_reserved_cents(so.id)) AS fee,",
         "public.shop_refund_fee_policy(p_reason) AS policy",
         "CASE WHEN o.policy = 'keep_card_fee' THEN o.fee ELSE 0 END AS kept",
         "k.total_cents - k.kept - public.shop_refund_tax_kept(k.kept, k.tax_cents, k.total_cents)",
@@ -1487,7 +1504,7 @@ function checkSqlPolicy(name: keyof typeof SQL_POLICIES): string[] {
       text = d ? norm(blankSqlComments(d.stmt)).match(src.pattern)?.[1] : undefined;
       file = d?.file;
     }
-    const want = src.kind === "function" ? (p.functionMigration ?? p.migration) : p.migration;
+    const want = src.migration ?? (src.kind === "function" ? (p.functionMigration ?? p.migration) : p.migration);
     if (file !== want) problems.push(`${src.where} is now defined by ${file ?? "nothing"}, not ${want}`);
     const c = text ? readCase(text, src.subject) : null;
     if (!c) {
@@ -1624,10 +1641,10 @@ function checkSqlSite(file: string, call: string, argExpr: string | null, sql: S
   }
   const defs = effDefs();
   const table = sql.table ?? "declutter_refunds";
-  const readsRow = (fn: string) => {
+  const readsRow = (fn: string, t: string = table) => {
     const d = defs.get(fn);
     const b = d ? norm(blankSqlComments(d.stmt)) : "";
-    return /\br\.refund_cents\b/.test(b) && new RegExp(`FROM public\\.${table} r\\b`).test(b);
+    return /\br\.refund_cents\b/.test(b) && new RegExp(`FROM public\\.${t} r\\b`).test(b);
   };
   if (!readsRow(sql.reader)) problems.push(`${sql.reader}: does not return refund_cents straight off the ${table} row`);
   // A shared sender's callers: each reads the row through its RPC (straight off the table) and hands it on unchanged.
@@ -1635,7 +1652,7 @@ function checkSqlSite(file: string, call: string, argExpr: string | null, sql: S
     const fcode = blankComments(readFileSync(join(ROOT, f.file), "utf8"));
     const fflat = norm(fcode);
     if (!fcode.includes(`.rpc("${f.rpc}"`)) problems.push(`${f.file}: does not read the refund row through ${f.rpc}`);
-    if (!readsRow(f.rpc)) problems.push(`${f.rpc}: does not return refund_cents straight off the ${table} row`);
+    if (!readsRow(f.rpc, f.table ?? table)) problems.push(`${f.rpc}: does not return refund_cents straight off the ${f.table ?? table} row`);
     let fpos = 0;
     let lost = false;
     for (const frag of f.chain) {

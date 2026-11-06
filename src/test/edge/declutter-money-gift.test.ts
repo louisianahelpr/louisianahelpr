@@ -22,7 +22,7 @@
  * @mutate supabase/functions/declutter-money/index.ts |        if (giftCents > 0) {\n          await giftCovers(stripe, { group: managerGroup, | if (false) {\n          await giftCovers(stripe, { group: managerGroup,
  * @mutate supabase/functions/declutter-money/index.ts |        if (giftPart) {\n          await giftCovers( | if (false) {\n          await giftCovers(
  * @mutate supabase/functions/declutter-money/index.ts |        if (giftCents > 0) {\n          await giftCovers(stripe, { group, | if (false) {\n          await giftCovers(stripe, { group,
- * @mutate supabase/functions/declutter-money/index.ts |    if (h.source_kind !== "declutter_delivery" \|\| !h.transfer_group \|\| (!h.payment_intent_id && !(hGiftCents > 0))) { |    if (h.source_kind !== "declutter_delivery" \|\| !h.transfer_group \|\| !h.payment_intent_id) {
+ * @mutate supabase/functions/declutter-money/index.ts |     if (!payableKind \|\| !h.transfer_group \|\| (!h.payment_intent_id && !(hGiftCents > 0))) { |     if (!payableKind \|\| !h.transfer_group \|\| !h.payment_intent_id) {
  * Q2106 S3b (the refund side): the gift share is restored FIRST under the row's key, only the card part goes to Stripe,
  * a gift-only row never reaches Stripe, and a failed card refund retries without a second gift credit.
  * @mutate supabase/functions/declutter-money/index.ts |      const cardCents = Math.max(0, r.refund_cents); |      const cardCents = Math.max(0, r.refund_cents) + giftCents;

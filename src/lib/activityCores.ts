@@ -69,6 +69,11 @@ interface ActivityCoresPayload {
    * fetchMyOpenContinueDays reads them itself (src/lib/continueDayReads.ts openContinueDaysFrom).
    */
   open_continue_days?: { job_id: string; status: string; new_date: string; new_start_time: string }[];
+  /**
+   * The ACTIVE (proposed or set) continue days of the same jobs (20261106054856), Home's first answer for
+   * useContinueDays (src/lib/activityCoreContinueDays.ts). Optional: an older database leaves it out.
+   */
+  active_continue_days?: unknown[];
 }
 
 /** Each core's keys: what fetchPostedActivity and fetchAppliedActivity read (useActivityData.ts), and what p_parts computes. */
@@ -118,7 +123,13 @@ function mergeParts(posted: ActivityCoresPayload | null, applied: ActivityCoresP
   if (posted === applied) return posted;
   const days = posted.open_continue_days && applied.open_continue_days
     ? [...posted.open_continue_days, ...applied.open_continue_days] : undefined;
-  return { ...applied, ...posted, ...(days ? { open_continue_days: days } : {}) } as ActivityCoresPayload;
+  // The active days likewise: both parts' lists, or none (a part without the key would hide the other's jobs).
+  const active = Array.isArray(posted.active_continue_days) && Array.isArray(applied.active_continue_days)
+    ? [...posted.active_continue_days, ...applied.active_continue_days] : undefined;
+  const merged = { ...applied, ...posted, ...(days ? { open_continue_days: days } : {}) } as ActivityCoresPayload;
+  if (active) merged.active_continue_days = active;
+  else delete merged.active_continue_days;
+  return merged;
 }
 
 /**

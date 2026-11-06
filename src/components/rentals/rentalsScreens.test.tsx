@@ -49,7 +49,7 @@
  * @mutate src/components/rentals/RentalsHomeView.tsx |                action={\n                  !underAge && ( |                action={\n                  (
  * @mutate src/components/rentals/RentalsHomeView.tsx |               !adding && !underAge && data.data.properties.length > 0 && ( |               !adding && !underAge && (
  * @mutate src/components/rentals/LandlordIdReview.tsx |           setName(f?.name ?? null); |           setName(null);
- * @mutate src/components/rentals/LandlordIdReview.tsx |         className="sr-only" |         className=""
+ * @mutate src/components/rentals/LandlordIdReview.tsx |       <HiddenFileInput\n        accept={accept} |       <input type="file" className=""\n        accept={accept}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";

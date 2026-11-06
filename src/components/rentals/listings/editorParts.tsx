@@ -1,3 +1,4 @@
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -99,11 +100,9 @@ export function Photos({ listing, uid }: { listing: RentalListing; uid: string }
       >
         <ImagePlus className="h-5 w-5" aria-hidden />
         <span>{add.isPending ? "Adding photos…" : "Add photos"}</span>
-        <input
-          type="file"
+        <HiddenFileInput
           accept="image/*"
           multiple
-          className="sr-only"
           disabled={add.isPending || n >= 25}
           onChange={(e) => {
             const files = Array.from(e.target.files ?? []).slice(0, 25 - n);

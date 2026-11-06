@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-06T09:14Z",
+  "measured_at": "2026-11-06T12:26Z",
   "issues": {
     "readable": true,
     "open": [
@@ -151,14 +151,6 @@
         "issue": 2353
       },
       {
-        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: main: vitest",
-        "issue": null
-      },
-      {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -245,14 +237,6 @@
         "status": "open",
         "title": "nightly-red: a11y-webkit-prod",
         "issue": 2375
-      },
-      {
-        "fingerprint": "b75d265e62012a472e62221e79c5ce28",
-        "source_kind": "workflow",
-        "source": "quota-monitor",
-        "status": "open",
-        "title": "quota: sentry session replays sent: accepted + dropped by quota (this usage period) at or above #% of its limit",
-        "issue": null
       },
       {
         "fingerprint": "70e7b0decb9a9e19db5e1f2de4e52559",
@@ -423,19 +407,19 @@
         "issue": null
       },
       {
-        "fingerprint": "aeedd249577285330a97e04195cee7d8",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: refund-request-sweep returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: declutter-money returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "aeedd249577285330a97e04195cee7d8",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: refund-request-sweep returned 502",
         "issue": null
       },
       {
@@ -512,7 +496,6 @@
     "ledger d1f8391b44ec": "Q1631",
     "ledger db0fb15c4ec3": "Q1816",
     "ledger e49f68d9cbd6": "Q1475",
-    "ledger f1bfed973a2a": "Q2734",
-    "ledger f22e3275d50d": "Q1816"
+    "ledger f1bfed973a2a": "Q2734"
   }
 }

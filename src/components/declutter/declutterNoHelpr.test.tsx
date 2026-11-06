@@ -7,6 +7,9 @@
  * @mutate src/components/declutter/DeclutterNoHelpr.tsx | onClick={() => setAsking(true)}>\n        Cancel and get a refund | onClick={() => cancel.mutate()}>\n        Cancel and get a refund
  * @mutate src/components/declutter/DeclutterNoHelpr.tsx |   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null; |   if (false) return null;
  * @mutate src/components/declutter/DeclutterNoHelpr.tsx |   if (!r \|\| r.settled_at) return null; |   if (!r) return null;
+ * Shops (20261106211136): a shop delivery's answer goes to shop_helpr_answer_no_show and names "the shop".
+ * @mutate src/components/declutter/DeclutterNoHelpr.tsx |     mutationFn: () => answerHelprNoShow(taskId, note.trim(), sourceKind), |     mutationFn: () => answerHelprNoShow(taskId, note.trim()),
+ * @mutate src/components/declutter/DeclutterNoHelpr.tsx | {sourceKind === "shop_delivery" ? "The shop" : "The seller"} says | The seller says
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -24,7 +27,7 @@ vi.mock("@/lib/declutter/noHelpr", () => ({
   cancelAfterNoHelpr: async (id: string) => { state.calls.push(`cancel:${id}`); return { result: "refunding" }; },
   fetchHelprNoShowReport: async () => state.report,
   reportHelprNoShow: async (id: string) => { state.calls.push(`report:${id}`); return { result: "helpr_told", answer_by: "" }; },
-  answerHelprNoShow: async (id: string, note: string) => { state.calls.push(`answer:${id}:${note}`); return "p1"; },
+  answerHelprNoShow: async (id: string, note: string, kind?: string) => { state.calls.push(`answer:${id}:${note}${kind ? `:${kind}` : ""}`); return "p1"; },
 }));
 
 import { HelprNoShowAnswer, HelprNoShowReportButton, NoHelprChoice } from "./DeclutterNoHelpr";
@@ -83,5 +86,14 @@ describe("soldstates-5: the seller's report and the Helpr's answer", () => {
     const { container } = wrap(<HelprNoShowAnswer taskId="t1" />);
     await new Promise((r) => setTimeout(r, 20));
     expect(container.textContent).toBe("");
+  });
+
+  it("a shop delivery: the shop said it, and the answer goes the shop's way", async () => {
+    state.report = { reported_at: "2026-10-31T15:00:00Z", answer_by: "2026-11-01T15:00:00Z", answered_at: null, settled_at: null };
+    wrap(<HelprNoShowAnswer taskId="t2" sourceKind="shop_delivery" />);
+    expect(await screen.findByText("The shop says you didn't come.")).toBeTruthy();
+    fireEvent.change(screen.getByLabelText(/What happened\?/), { target: { value: "Knocked at 2" } });
+    fireEvent.click(screen.getByRole("button", { name: "I was there" }));
+    await waitFor(() => expect(state.calls).toEqual(["answer:t2:Knocked at 2:shop_delivery"]));
   });
 });

@@ -8,7 +8,6 @@ import { BrandConfirmDialog } from "@/components/ui/BrandConfirmDialog";
 import { toast } from "sonner";
 import ReportDialog from "@/components/ReportDialog";
 import { useChatPresence } from "@/hooks/useChatPresence";
-import { usePageTitle } from "@/hooks/usePageTitle";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 
@@ -34,13 +33,10 @@ import { removeMessageAttachment } from "@/lib/storageCleanup";
 import { report } from "@/lib/errorLogger";
 import { useMessagesTwoPane } from "./useTwoPane";
 import { MessagesTwoPane } from "./MessagesTwoPane";
-import { removeShellOncePainted } from "@/components/landing/landingShell";
-import { MESSAGES_SHELL_ID } from "@/components/landing/homeShell";
+import { useMessagesPageSetup } from "./useMessagesPageSetup";
 
 const Messages = () => {
-  usePageTitle("Messages — Helpr");
-  // Q2705 B: index.html drew the inbox's loading frame first (#lh-messages-shell); take it away once this is painted.
-  useEffect(() => removeShellOncePainted(MESSAGES_SHELL_ID), []);
+  useMessagesPageSetup(); // tab title + Q2705 B: removes index.html's #lh-messages-shell once painted
   const navigate = useNavigate();
   // Board 38: the list and the open chat side by side, only where the chat keeps >= 480px.
   const twoPane = useMessagesTwoPane();

@@ -16,7 +16,6 @@ import { useId, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Minus, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DatePickerField } from "@/components/DatePickerField";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { fetchShopItems, formatItemPrice, type ShopItem } from "@/lib/shops/items";
+import { fetchItemOptions } from "@/lib/shops/variants";
 import {
   buyerFeeCents,
   cancelPolicyText,
@@ -38,27 +38,13 @@ import {
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopsNotice } from "./shopsUi";
 import { HandoverModeNote } from "./ShopHandoverModePicker";
+import ShopOrderOptions, { lineKey, QuantityStepper } from "./ShopOrderOptions";
 
 const MAX_PER_LINE = 20;
 const NOTE_MAX = 500;
 
 function maxFor(item: ShopItem): number {
   return item.stock_count == null ? MAX_PER_LINE : Math.min(MAX_PER_LINE, item.stock_count);
-}
-
-function QuantityStepper({ item, value, onChange }: { item: ShopItem; value: number; onChange: (n: number) => void }) {
-  const max = maxFor(item);
-  return (
-    <div className="flex items-center gap-2" role="group" aria-label={`How many ${item.title}`}>
-      <Button type="button" size="icon" variant="outline" aria-label={`One less ${item.title}`} disabled={value <= 0} onClick={() => onChange(value - 1)}>
-        <Minus className="h-4 w-4" aria-hidden />
-      </Button>
-      <span className="w-6 text-center text-sm font-semibold" aria-live="polite">{value}</span>
-      <Button type="button" size="icon" variant="outline" aria-label={`One more ${item.title}`} disabled={value >= max} onClick={() => onChange(value + 1)}>
-        <Plus className="h-4 w-4" aria-hidden />
-      </Button>
-    </div>
-  );
 }
 
 export default function ShopOrderSheet({ shopId }: { shopId: string }) {
@@ -68,6 +54,8 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   const headId = useId();
   const items = useQuery({ queryKey: ["shops", "items", shopId], queryFn: () => fetchShopItems(shopId), enabled: !!shopId });
   const terms = useQuery({ queryKey: ["shops", "order-terms", shopId], queryFn: () => fetchOrderTerms(shopId), enabled: !!shopId });
+  // Items with option lists (variants): their combinations, prices and stock.
+  const options = useQuery({ queryKey: ["shops", "item-options", shopId], queryFn: () => fetchItemOptions(shopId), enabled: !!shopId });
   const [qty, setQty] = useState<Record<string, number>>({});
   const [readyDate, setReadyDate] = useState("");
   const [note, setNote] = useState("");
@@ -77,14 +65,21 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
     () => (items.data ?? []).filter((i) => i.status === "live" && (i.stock_count == null || i.stock_count > 0)),
     [items.data],
   );
-  const chosen = orderable.filter((i) => (qty[i.id] ?? 0) > 0);
-  const leadDays = chosen.reduce((m, i) => Math.max(m, i.lead_time_days), 0);
-  const itemsCents = chosen.reduce((sum, i) => sum + i.price_cents * (qty[i.id] ?? 0), 0);
+  // Each chosen line: a plain item, or one combination of an item with option lists (keyed item:variant).
+  const chosen = orderable.flatMap((i) => {
+    const opts = options.data?.get(i.id);
+    if (!opts) return (qty[i.id] ?? 0) > 0 ? [{ item: i, variantId: null as string | null, unit: i.price_cents, n: qty[i.id] }] : [];
+    return opts.variants
+      .filter((v) => v.active && (qty[lineKey(i.id, v.id)] ?? 0) > 0)
+      .map((v) => ({ item: i, variantId: v.id as string | null, unit: v.price_cents, n: qty[lineKey(i.id, v.id)] }));
+  });
+  const leadDays = chosen.reduce((m, l) => Math.max(m, l.item.lead_time_days), 0);
+  const itemsCents = chosen.reduce((sum, l) => sum + l.unit * l.n, 0);
   const t = terms.data;
   const dateProblem = t && readyDate ? readyDateProblem(readyDate, t, leadDays) : null;
   const firstDate = t ? firstOpenReadyDate(t, leadDays) : null;
 
-  if (items.isLoading || terms.isLoading) {
+  if (items.isLoading || terms.isLoading || options.isLoading) {
     return (
       <section className="space-y-2" aria-labelledby={headId} role="status" aria-label="Loading ordering">
         <h2 id={headId} className="text-sm font-semibold">Order</h2>
@@ -92,13 +87,13 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
       </section>
     );
   }
-  if (terms.isError || !t) {
+  if (terms.isError || !t || options.isError) {
     return (
       <section className="space-y-2" aria-labelledby={headId}>
         <h2 id={headId} className="text-sm font-semibold">Order</h2>
         <div role="alert" className="space-y-2">
-          <p className="text-sm">{shopsErrorMessage(terms.error)}</p>
-          <Button type="button" variant="outline" size="sm" onClick={() => void terms.refetch()} disabled={terms.isFetching}>
+          <p className="text-sm">{shopsErrorMessage(terms.error ?? options.error)}</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => { void terms.refetch(); void options.refetch(); }} disabled={terms.isFetching || options.isFetching}>
             Try again
           </Button>
         </div>
@@ -123,7 +118,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
     try {
       const url = await requestOrder({
         shopId,
-        lines: chosen.map((i) => ({ item_id: i.id, quantity: qty[i.id] ?? 0 })),
+        lines: chosen.map((l) => (l.variantId ? { item_id: l.item.id, variant_id: l.variantId, quantity: l.n } : { item_id: l.item.id, quantity: l.n })),
         readyDate,
         note,
         // The cancel terms shown above: shop-checkout refuses (terms_changed) if the shop changed them since.
@@ -150,15 +145,24 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
       </div>
 
       <ul className="space-y-3">
-        {orderable.map((i) => (
-          <li key={i.id} className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm font-semibold [overflow-wrap:anywhere]">{i.title}</p>
-              <p className="text-xs text-muted-foreground">{formatItemPrice(i.price_cents)} each</p>
-            </div>
-            <QuantityStepper item={i} value={qty[i.id] ?? 0} onChange={(n) => setQty((q) => ({ ...q, [i.id]: n }))} />
-          </li>
-        ))}
+        {orderable.map((i) => {
+          const opts = options.data?.get(i.id);
+          if (opts) {
+            return (
+              <ShopOrderOptions key={i.id} item={i} options={opts} qty={qty} maxPerLine={MAX_PER_LINE}
+                onQty={(key, n) => setQty((q) => ({ ...q, [key]: n }))} />
+            );
+          }
+          return (
+            <li key={i.id} className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold [overflow-wrap:anywhere]">{i.title}</p>
+                <p className="text-xs text-muted-foreground">{formatItemPrice(i.price_cents)} each</p>
+              </div>
+              <QuantityStepper label={i.title} max={maxFor(i)} value={qty[i.id] ?? 0} onChange={(n) => setQty((q) => ({ ...q, [i.id]: n }))} />
+            </li>
+          );
+        })}
       </ul>
 
       <div className="space-y-1">

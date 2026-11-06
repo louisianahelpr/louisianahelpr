@@ -33,6 +33,8 @@
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_wanted_sweep: "declutterWantedSweepClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_listing_rounds_sweep: "declutterListingRoundsClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_price_nudge_sweep: "declutterPriceNudgeClock.pglite.mjs",\n | \n
+// @mutate src/test/clockFunctionsProven.test.ts |   rentals_rent_sweep: "homesSweepsClock.pglite.mjs",\n | \n
+// @mutate src/test/pglite/homesSweepsClock.pglite.mjs |   rentals_deposit_sweep: newestFunction("rentals_deposit_sweep"), | 
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_hold_unchecked_listings: "declutterHoldUncheckedClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_move_reminder_sweep: "declutterMoveReminderClock.pglite.mjs",\n | \n
 // @mutate src/test/clockFunctionsProven.test.ts |   declutter_alert_overdue_checks: "declutterOverdueCheckClock.pglite.mjs",\n | \n
@@ -91,6 +93,8 @@ const PROVEN: Record<string, string> = {
   declutter_wanted_sweep: "declutterWantedSweepClock.pglite.mjs",
   declutter_listing_rounds_sweep: "declutterListingRoundsClock.pglite.mjs",
   declutter_price_nudge_sweep: "declutterPriceNudgeClock.pglite.mjs",
+  rentals_rent_sweep: "homesSweepsClock.pglite.mjs",
+  rentals_deposit_sweep: "homesSweepsClock.pglite.mjs",
   declutter_hold_unchecked_listings: "declutterHoldUncheckedClock.pglite.mjs",
   declutter_move_reminder_sweep: "declutterMoveReminderClock.pglite.mjs",
   declutter_alert_overdue_checks: "declutterOverdueCheckClock.pglite.mjs",
@@ -120,8 +124,6 @@ const NOT_PROVEN: Record<string, string> = {
   // Train D (2026-10-27), measured: neither probe imports fixedClock.mjs; both move row timestamps.
   cron_http_tag: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
   cron_record_work: "reads the clock only to stamp a row or a message; it has no time window to prove (newest body read 2026-10-13)",
-  rentals_rent_sweep: "named by homesRentTracker.pglite.mjs (it moves due dates and created_at, not the clock: rent rows, late fees after due + grace, reminders); no probe runs it on fixedClock.mjs across a Louisiana midnight (Homes D2, 2026-10-19).",
-  rentals_deposit_sweep: "named by homesDepositTracker.pglite.mjs (it moves ended_at, not the clock: the end-day, 7-days-before and overdue reminders of the one-month return); no probe runs it on fixedClock.mjs across a Louisiana midnight (Homes D6, 2026-10-19).",
 };
 
 const files = readdirSync(MIGRATIONS)

@@ -73,6 +73,14 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // Shops H8 (b) (20261106164313): fetchOrderServiceAddress (src/lib/shops/pickupAddress.ts) feeds the order card's
+  // "Work done at" line; any error shows that card's fixed "We couldn't load the work address. Try again", no code's words.
+  shops_order_service_address: {
+    account_restricted: { reason: "no code's words at this site: the order card shows one fixed load-error line and a Try again" },
+    feature_disabled: { reason: "no code's words at this site: the order card shows one fixed load-error line and a Try again" },
+    not_authenticated: { reason: ANON_REVOKED },
+    order_not_found: { reason: "no code's words at this site: the card only asks for an order the member already holds (their own order list)" },
+  },
   // B112 (20261101200929): markTalkRead (src/lib/declutter/talkRead.ts) runs in the background when a Declutter chat
   // opens; any error is console.warn()ed and no message exists at that site.
   declutter_mark_talk_read: {

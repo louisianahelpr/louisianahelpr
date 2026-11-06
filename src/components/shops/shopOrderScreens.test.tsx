@@ -22,6 +22,11 @@
  *     member has a shop.
  *
  * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />} |         {s.offers_selling && !s.paused && <ShopOrderSheet shopId={s.id} />}
+ * H8 (b) (lead 11-05): an at-home carpet or furniture cleaning asks where, is ordered on its own, and the shop sees the
+ * address only once it accepted:
+ * @mutate src/components/shops/ShopOrderSheet.tsx |     && (!atHome \|\| (svcOk && !atHomeMixed)); |     ;
+ * @mutate src/components/shops/ShopOrderSheet.tsx |         ...(atHome ? { serviceAddress: | ...(false ? { serviceAddress:
+ * @mutate src/components/shops/ShopOrderCard.tsx | const SERVICE_VISIBLE_TO_SHOP = new Set(["accepted", "handed_over"]); | const SERVICE_VISIBLE_TO_SHOP = new Set(["accepted", "handed_over", "held"]);
  * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />} |         {s.offers_selling && !s.mine && <ShopOrderSheet shopId={s.id} />}
  * @mutate src/components/shops/ShopOrderSheet.tsx |     () => (items.data ?? []).filter((i) => i.status === "live" && (i.stock_count == null \|\| i.stock_count > 0)), |     () => (items.data ?? []).filter((i) => i.status === "live"),
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const leadDays = chosen.reduce((m, l) => Math.max(m, l.item.lead_time_days), 0); |   const leadDays = 0;
@@ -135,6 +140,8 @@ const handover = vi.hoisted(() => ({
   fetchMyShopPayouts: vi.fn(async () => []), markReady: vi.fn(), confirmPickup: vi.fn(), reportNotReceived: vi.fn(),
 }));
 vi.mock("@/lib/shops/handover", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/handover")>()), ...handover }));
+const where = vi.hoisted(() => ({ fetchOrderServiceAddress: vi.fn() }));
+vi.mock("@/lib/shops/pickupAddress", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/pickupAddress")>()), ...where }));
 vi.mock("@/components/declutter/useDeclutterOrigin", () => ({ useDeclutterOrigin: () => ({ origin: { status: "none" } }) }));
 
 import ShopPage from "@/pages/shops/ShopPage";
@@ -250,6 +257,34 @@ describe("the order sheet", () => {
     expect(ext.openExternalUrl.mock.calls[0][0]).toBe("https://checkout.stripe.com/c/pay/test");
   });
 
+  it("H8 (b): an at-home cleaning asks where the work is done, alone, and sends that address", async () => {
+    items.fetchShopItems.mockResolvedValue([
+      item({ id: "a", title: "Candle", price_cents: 1000, lead_time_days: 0 }),
+      item({ id: "h", title: "Couch cleaning", kind: "service", subtype: "fabric_cleaning", price_cents: 12000, at_buyer: true }),
+    ]);
+    renderAt("/shops/s1", "/shops/:id", <ShopPage />);
+    expect(await screen.findByText("Couch cleaning")).toBeTruthy();
+    expect(screen.queryByTestId("shop-order-service-address")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "One more Couch cleaning" }));
+    expect(screen.getByTestId("shop-order-service-address")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "day 2026-10-21" }));
+    const send = screen.getByRole("button", { name: "Hold my card and send the order" }) as HTMLButtonElement;
+    expect(send.disabled).toBe(true);
+    fireEvent.change(screen.getByLabelText("Street address"), { target: { value: "12 Oak St" } });
+    fireEvent.change(screen.getByLabelText("City"), { target: { value: "Lafayette" } });
+    fireEvent.change(screen.getByLabelText("ZIP code"), { target: { value: "77002" } });
+    expect(send.disabled).toBe(true); // not a Louisiana ZIP
+    fireEvent.change(screen.getByLabelText("ZIP code"), { target: { value: "70501" } });
+    expect(send.disabled).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "One more Candle" }));
+    expect(screen.getByText("Work done at your place is ordered on its own. Order the other items separately.")).toBeTruthy();
+    expect(send.disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "One less Candle" }));
+    fireEvent.click(send);
+    await waitFor(() => expect(orders.requestOrder).toHaveBeenCalledTimes(1));
+    expect(orders.requestOrder.mock.calls[0][0].serviceAddress).toEqual({ line1: "12 Oak St", city: "Lafayette", postal_code: "70501" });
+  });
+
   it("words the shop's ready-tap choice before the buyer pays (owner 2026-10-19)", async () => {
     orders.fetchOrderTerms.mockResolvedValue({ ...TERMS, cancel_policy: "until_handover", ready_tap_cancel: "ends_at_tap" });
     const { unmount } = renderAt("/shops/s1", "/shops/:id", <ShopPage />);
@@ -288,6 +323,22 @@ describe("/shops/orders", () => {
 });
 
 describe("/shops/dashboard", () => {
+  it("H8 (b): the shop sees an at-home cleaning's address once it accepted, never while the order is only held", async () => {
+    api.fetchMyShopId.mockResolvedValue("s1");
+    orders.fetchCancelPolicy.mockResolvedValue("until_accept");
+    where.fetchOrderServiceAddress.mockResolvedValue({ line1: "12 Oak St", city: "Lafayette", state: "LA", postal_code: "70501" });
+    const line = { id: "l9", item_id: "h", title: "Couch cleaning", kind: "service", unit_cents: 12000, quantity: 1, line_cents: 12000, at_buyer: true };
+    orders.fetchShopOrders.mockResolvedValue([
+      order({ id: "held1", shop_order_lines: [line] }),
+      order({ id: "acc1", status: "accepted", accepted_at: "2026-10-19T11:00:00Z", shop_order_lines: [line] }),
+    ]);
+    renderAt("/shops/dashboard", "/shops/dashboard", <ShopDashboardPage />);
+    const shown = await screen.findByTestId("shop-order-service-address");
+    expect(shown.textContent).toContain("12 Oak St");
+    expect(screen.getAllByTestId("shop-order-service-address")).toHaveLength(1);
+    expect(where.fetchOrderServiceAddress.mock.calls.map((c) => c[0])).toEqual(["acc1"]);
+  });
+
   it("shows orders waiting with the time left; Accept charges, Decline sends the reason", async () => {
     api.fetchMyShopId.mockResolvedValue("s1");
     orders.fetchCancelPolicy.mockResolvedValue("until_accept");

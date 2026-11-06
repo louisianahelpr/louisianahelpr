@@ -13419,6 +13419,7 @@ export type Database = {
       shop_items: {
         Row: {
           admin_approved_at: string | null
+          at_buyer: boolean
           created_at: string
           description: string
           id: string
@@ -13439,6 +13440,7 @@ export type Database = {
         }
         Insert: {
           admin_approved_at?: string | null
+          at_buyer?: boolean
           created_at?: string
           description?: string
           id?: string
@@ -13459,6 +13461,7 @@ export type Database = {
         }
         Update: {
           admin_approved_at?: string | null
+          at_buyer?: boolean
           created_at?: string
           description?: string
           id?: string
@@ -13496,6 +13499,7 @@ export type Database = {
       }
       shop_order_lines: {
         Row: {
+          at_buyer: boolean
           created_at: string
           id: string
           is_seed: boolean
@@ -13511,6 +13515,7 @@ export type Database = {
           variant_id: string | null
         }
         Insert: {
+          at_buyer?: boolean
           created_at?: string
           id?: string
           is_seed?: boolean
@@ -13526,6 +13531,7 @@ export type Database = {
           variant_id?: string | null
         }
         Update: {
+          at_buyer?: boolean
           created_at?: string
           id?: string
           is_seed?: boolean
@@ -13552,6 +13558,47 @@ export type Database = {
             foreignKeyName: "shop_order_lines_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
+            referencedRelation: "shop_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_order_service_addresses: {
+        Row: {
+          buyer_id: string
+          city: string
+          created_at: string
+          is_seed: boolean
+          line1: string
+          order_id: string
+          postal_code: string
+          state: string
+        }
+        Insert: {
+          buyer_id: string
+          city: string
+          created_at?: string
+          is_seed?: boolean
+          line1: string
+          order_id: string
+          postal_code: string
+          state?: string
+        }
+        Update: {
+          buyer_id?: string
+          city?: string
+          created_at?: string
+          is_seed?: boolean
+          line1?: string
+          order_id?: string
+          postal_code?: string
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_order_service_addresses_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
             referencedRelation: "shop_orders"
             referencedColumns: ["id"]
           },
@@ -21608,6 +21655,7 @@ export type Database = {
           state: string
         }[]
       }
+      shops_order_service_address: { Args: { p_order_id: string }; Returns: Json }
       shops_order_terms: { Args: { p_shop_id: string }; Returns: Json }
       shops_report_no_show: {
         Args: { p_order_id: string }
@@ -21920,6 +21968,10 @@ export type Database = {
       shops_set_hours: { Args: { p_hours: Json }; Returns: number }
       shops_set_my_faqs: { Args: { p_faqs: Json }; Returns: number }
       shops_set_paused: { Args: { p_paused: boolean }; Returns: boolean }
+      shops_set_item_at_buyer: {
+        Args: { p_at_buyer: boolean; p_item_id: string }
+        Returns: boolean
+      }
       shops_set_item_stock: {
         Args: { p_item_id: string; p_lead_time_days: number; p_stock_count: number }
         Returns: number

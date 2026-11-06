@@ -14,7 +14,7 @@
 // @mutate supabase/functions/shop-checkout/index.ts | product_data: taxed(feeLineName(part.tax_code, feeParts.length), part.tax_code), | product_data: taxed(feeLineName(part.tax_code, feeParts.length), "txcd_00000000"),
 // @mutate supabase/functions/shop-checkout/index.ts | product_data: taxed(l.title.slice(0, 120), shopTaxCode(l.kind, l.tax_kind)), | product_data: taxed(l.title.slice(0, 120), "txcd_99999999"),
 // @mutate supabase/functions/shop-checkout/index.ts | product_data: taxed(l.title.slice(0, 120), shopTaxCode(l.kind, l.tax_kind)), | product_data: taxed(l.title.slice(0, 120), shopTaxCode(l.kind, null)),
-// @mutate supabase/functions/shop-checkout/index.ts | .select("title, kind, tax_kind, unit_cents, quantity, line_cents") | .select("title, kind, unit_cents, quantity, line_cents")
+// @mutate supabase/functions/shop-checkout/index.ts | .select("title, kind, tax_kind, at_buyer, unit_cents, quantity, line_cents") | .select("title, kind, at_buyer, unit_cents, quantity, line_cents")
 // @mutate supabase/functions/_shared/shopTaxCodes.ts |   rental: GENERAL_TANGIBLE_GOODS_TAX_CODE, |   rental: FOOD_FOR_HOME_TAX_CODE,
 // @mutate supabase/functions/_shared/shopTaxCodes.ts |     return laborTaxCode(null, taxKind ?? null); |     return laborTaxCode(null, null);
 // @mutate supabase/functions/_shared/shopTaxCodes.ts |   if (taxKind != null) throw new Error(`a ${kind} line carries no tax answer (${taxKind})`);\n |
@@ -95,7 +95,7 @@ describe("Shops tax codes: one table, every kind mapped (owner O1, lead 2026-10-
     const src = blankComments(readFileSync(join(ROOT, "supabase/functions/shop-checkout/index.ts"), "utf8"));
     expect(src).toMatch(/taxed\(l\.title\.slice\(0, 120\), shopTaxCode\(l\.kind, l\.tax_kind\)\)/);
     // H8: the line's tax answer is read with it (a service's code needs it).
-    expect(src).toContain('.select("title, kind, tax_kind, unit_cents, quantity, line_cents")');
+    expect(src).toContain('.select("title, kind, tax_kind, at_buyer, unit_cents, quantity, line_cents")');
     expect(src.match(/txcd_\d{8}/g) ?? []).toEqual([]);
     // The buyer's fee carries the items' codes (memo Q5), never the non-taxable one. The non-taxable lines are
     // the one-time account setup fee (Shops H4, 20261105181603; same as declutter-checkout's): import + that line.

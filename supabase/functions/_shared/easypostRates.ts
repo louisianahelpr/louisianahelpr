@@ -207,6 +207,11 @@ export function bundleParcel(presets: ReadonlyArray<string | null | undefined>):
 /** Same rule as src/lib/shipping/policy.ts isLouisianaZip (a vitest sweep over every ZIP keeps the two equal). */
 const LA_ZIP = /^(70[013-8]|71[0-4])[0-9]{2}$/;
 
+/** A 5-digit Louisiana ZIP by the rule above (Shops' at-home service address reads it too). */
+export function isLouisianaZip5(zip: string): boolean {
+  return LA_ZIP.test(zip);
+}
+
 /**
  * The seller's ZIP from their one-line pickup address (declutter_item_private.pickup_address is free text): the
  * LAST Louisiana 5-digit ZIP in it (a house number like 12345 comes first). Null when there is none: no quote.

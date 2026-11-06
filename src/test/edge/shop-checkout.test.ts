@@ -310,6 +310,51 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     expect((await json(res)).error).toBe("day_full");
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
+
+  // One wallet (owner 2026-10-18): the buyer's stored Stripe customer pre-fills the page. Every case above has no
+  // stored customer, so these three paths were never seen (post-merge vacuity, run 42136050907: @mutates 6-8 survived).
+  it("a buyer with a stored wallet customer gets the page ON that customer, not a bare email", async () => {
+    const fn = await load();
+    frozen();
+    scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_buyerwallet" }] };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6625 });
+    const res = await fn.fetch(ask(fn));
+    expect(res.status).toBe(200);
+    const [params, opts] = stripeMock.checkout.sessions.create.mock.calls[0];
+    expect(params.customer).toBe("cus_buyerwallet");
+    expect(params.customer_update).toEqual({ address: "auto" });
+    expect(params.customer_email).toBeUndefined();
+    expect(opts.idempotencyKey).toBe(`shop-order-${ORDER}`);
+  });
+
+  it("a stored customer Stripe no longer has is replaced once and the page retried on the new one (Q2140)", async () => {
+    const fn = await load();
+    frozen();
+    scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_deadwallet" }] };
+    scenario.rpc.replace_stripe_customer = "cus_newwallet";
+    stripeMock.customers.create.mockResolvedValue({ id: "cus_newwallet" });
+    stripeMock.checkout.sessions.create
+      .mockRejectedValueOnce(Object.assign(new Error("No such customer: 'cus_deadwallet'"), { type: "StripeInvalidRequestError", code: "resource_missing", param: "customer" }))
+      .mockResolvedValueOnce({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6625 });
+    const res = await fn.fetch(ask(fn));
+    expect(res.status).toBe(200);
+    const calls = stripeMock.checkout.sessions.create.mock.calls;
+    expect(calls).toHaveLength(2);
+    expect(calls[0][0].customer).toBe("cus_deadwallet");
+    expect(calls[1][0].customer).toBe("cus_newwallet");
+    expect(calls[1][1].idempotencyKey).toBe(`shop-order-${ORDER}:new-wallet`);
+    expect(rpcs("replace_stripe_customer")[0]?.args).toEqual({ p_user: BUYER, p_mode: "live", p_old: "cus_deadwallet", p_new: "cus_newwallet" });
+  });
+
+  it("a wallet read that fails is a try-again (503) and opens no page on a guessed customer", async () => {
+    const fn = await load();
+    frozen();
+    scenario.reads.stripe_customers = { rows: [], error: { message: "connection reset" } };
+    const res = await fn.fetch(ask(fn));
+    expect(res.status).toBe(503);
+    expect((await json(res)).error).toMatch(/try again/i);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
 });
 
 describe("shop-checkout: the maker answers", () => {

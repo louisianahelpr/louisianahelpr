@@ -245,16 +245,19 @@ function HomeDashboardScreen() {
                     {/* Desktop (board 11): no dots; the action first, then See all beside it. */}
                     <div data-next-up-actions className="ml-auto grow flex items-center justify-between gap-3 lg:ml-0 lg:grow-0 lg:flex-row-reverse lg:justify-end">
                       {rest > 0 ? (
-                        <button
+                        // The shared link Button (owner 11-06 pop-up: switch; 2px narrower, desktop hover underline).
+                        <Button
                           type="button"
+                          variant="link"
+                          size="sm"
                           data-testid="next-up-see-all"
                           aria-expanded={todoOpen}
                           aria-controls={todoOpen ? "home-todo-list" : undefined}
                           onClick={toggleTodo}
-                          className="min-h-11 px-1 -ml-1 text-ds-13 font-bold text-primary whitespace-nowrap"
+                          className="px-1 -ml-1 text-ds-13 font-bold text-primary whitespace-nowrap"
                         >
                           {todoOpen ? "Hide" : `See all (${todoCount})`}
-                        </button>
+                        </Button>
                       ) : <span />}
                       <Button type="button" size="sm" data-testid="next-up-action" onClick={() => navigate(todoTarget(next, requestHelperStep))} className="px-5 text-ds-15 font-semibold tracking-normal shadow-none shrink-0">
                         {next.action}

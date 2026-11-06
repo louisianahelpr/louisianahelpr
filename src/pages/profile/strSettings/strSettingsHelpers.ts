@@ -3,6 +3,24 @@ import type React from "react";
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+/**
+ * Q1996: what the host is told after "Connect calendar". The connection row is saved first, then str-ical-sync runs
+ * once for it; its answer is `{ synced, results: [{ connection_id, turnovers_imported?, error? }] }`. A saved row
+ * whose first read failed must not say a plain "Calendar connected" while the card below already reads
+ * "Sync failed". `syncError` is that first result's error (null when the read worked, or when no answer came back:
+ * the 6-hourly cron syncs it then, and the card shows the outcome).
+ */
+export function connectedToastText(syncError: string | null): string {
+  return syncError ? `Calendar saved, but we couldn't read it yet: ${syncError}` : "Calendar connected";
+}
+
+/** The first result's error from a str-ical-sync answer, or null. Anything unreadable is null (see above). */
+export function firstSyncError(body: unknown): string | null {
+  const results = (body as { results?: Array<{ error?: unknown }> } | null)?.results;
+  const err = Array.isArray(results) ? results[0]?.error : undefined;
+  return typeof err === "string" && err.trim() ? err.trim() : null;
+}
+
 export function formatSyncTime(ts: string | null): string {
   if (!ts) return "Never synced";
   const d = new Date(ts);

@@ -17,9 +17,9 @@
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 493,
+      "literal": 492,
       "template": 106,
-      "dynamic": 621,
+      "dynamic": 622,
       "jsx": 0
     }
   },
@@ -14559,17 +14559,17 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 135,
+      "line": 138,
       "kind": "toast",
       "title": {
-        "form": "literal",
-        "text": "Calendar connected"
+        "form": "dynamic",
+        "text": "connectedToastText(saved.syncError)"
       },
       "renders": true
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 140,
+      "line": 143,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14579,7 +14579,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 166,
+      "line": 169,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -14589,7 +14589,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 180,
+      "line": 183,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -14609,7 +14609,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 187,
+      "line": 190,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14619,7 +14619,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 209,
+      "line": 212,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -14629,7 +14629,7 @@
     },
     {
       "file": "src/pages/profile/StrSettings.tsx",
-      "line": 215,
+      "line": 218,
       "kind": "toast.error",
       "title": {
         "form": "literal",

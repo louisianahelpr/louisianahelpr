@@ -23,6 +23,7 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 import type { ShopOrder } from "@/lib/shops/orders";
 import { blankComments } from "@/test/helpers/blankNonCode";
@@ -47,7 +48,12 @@ const ADDRESS = { line1: "705 W University Ave", line2: null, city: "Lafayette",
 
 function wrap(node: ReactNode) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
-  return render(<QueryClientProvider client={qc}>{node}</QueryClientProvider>);
+  // The order card's Message button (Shops chat, Q1947) reads ?talk= from the router.
+  return render(
+    <MemoryRouter>
+      <QueryClientProvider client={qc}>{node}</QueryClientProvider>
+    </MemoryRouter>,
+  );
 }
 
 const order = (status: ShopOrder["status"]): ShopOrder => ({

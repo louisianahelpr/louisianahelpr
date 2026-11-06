@@ -10,7 +10,9 @@
  *    the phone bar draws the H emblem, bell and avatar; the desktop bar draws
  *    nothing on Home (the left sidebar carries the H logo).
  * 3. The bottom bar's "You" was the member's avatar while the top bar also
- *    showed it. Boards: "You" is a person icon, filled when active.
+ *    showed it. Boards: "You" is a person icon, filled when active. (Nav
+ *    redesign, owner 2026-11-06: You moved to the top bar as the photo; the
+ *    dock's five tabs each stay an icon, filled when active, never a photo.)
  * 4. The active tab had a RUST underline and the count badges were rust.
  *    Rust is money only: the active tab is olive (filled icon + label), count
  *    badges are --alert (#B3261E).
@@ -20,7 +22,7 @@
  * @mutate src/components/sections/AppTopBar.tsx |         <HelprMark size="sm" emblemOnly to="/home" /> |         <HelprMark size="sm" to="/home" />
  * @mutate src/components/MobileNav.tsx |                 background: "hsl(var(--alert))", |                 background: "hsl(var(--burnt-sienna))",
  * @mutate src/components/notificationPanel/NotificationTrigger.tsx | style={{ background: "hsl(var(--alert))", color: "#fff" }} | style={{ background: "hsl(var(--burnt-sienna))", color: "#fff" }}
- * @mutate src/components/MobileNav.tsx |           <Icon\n            className="w-[22px] h-[22px] transition-all duration-200" |           {path === "/profile" && <img alt="" src="avatar.png" />}\n          <Icon\n            className="w-[22px] h-[22px] transition-all duration-200"
+ * @mutate src/components/MobileNav.tsx |           <Icon\n            className="w-[22px] h-[22px] transition-all duration-200" |           {path === "/jobs" && <img alt="" src="avatar.png" />}\n          <Icon\n            className="w-[22px] h-[22px] transition-all duration-200"
  * @mutate src/components/MobileNav.tsx |             fill={isActive && path !== "/explore" ? "currentColor" : "none"} |             fill="none"
  *
  * 5. (Q1816, 11-04) axe 4.14 turned label-content-name-mismatch on (WCAG 2.5.3): the top bar's Profile, the bell and
@@ -30,7 +32,8 @@
  * @mutate src/lib/avatarImage.ts |   return initials ? `${word}, ${initials}` : word; |   return word;
  * @mutate src/components/notificationPanel/NotificationTrigger.tsx |   return count > 0 ? `Notifications, ${formatUnreadBadge(count)} unread` : "Notifications"; |   return "Notifications";
  * @mutate src/components/MobileNav.tsx | : showBadge ? `${dockBadgeText(badgeCount)} ${shown}` : shown} | : shown}
- * @mutate src/components/MobileNav.tsx |         {showBadge && " "}\n |
+ * @mutate src/components/sections/AppTopBar.tsx |           style={{ background: "hsl(var(--alert))", color: "#fff" }}\n        >\n          {n} |           style={{ background: "hsl(var(--burnt-sienna))", color: "#fff" }}\n        >\n          {n}
+ * @mutate src/components/sections/AppTopBar.tsx |       aria-label={unreadCount > 0 ? `${n} ${tr("nav.messages")}` : tr("nav.messages")} |       aria-label={tr("nav.messages")}
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 // The account's Customize row (useSectionPrefs, Q2199) is data, not what this spec measures: answered locally
@@ -47,6 +50,7 @@ import { resolve } from "node:path";
 import { blankComments } from "./helpers/blankNonCode";
 
 const unread = vi.hoisted(() => ({ n: 0 }));
+const todo = vi.hoisted(() => ({ jobs: 0 }));
 const desktop = vi.hoisted(() => ({ on: false }));
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
@@ -59,7 +63,7 @@ vi.mock("@/hooks/useCurrentUser", () => ({
   useCurrentUser: () => ({ user: { id: "u-review", email_confirmed_at: "2026-01-01T00:00:00Z" }, profile: { avatar_url: null, full_name: "Test Person" }, isLoading: false, isAdmin: false }),
 }));
 vi.mock("@/components/mobileNav/useNavUnreadCount", () => ({ useNavUnreadCount: () => ({ unreadCount: unread.n, markAllRead: () => {} }) }));
-vi.mock("@/lib/needsYouStore", () => ({ useNeedsYouCounts: () => ({ total: 0, jobs: 0, shops: 0 }) }));
+vi.mock("@/lib/needsYouStore", () => ({ useNeedsYouCounts: () => ({ total: todo.jobs, jobs: todo.jobs, shops: 0, declutter: 0 }) }));
 vi.mock("@/hooks/useRecentPostedJobs", () => ({ prefetchRecentPostedJobs: () => {} }));
 vi.mock("@/lib/routePrefetch", () => ({ prefetchRoute: () => {}, prefetchRoutesWhenIdle: () => () => {} }));
 vi.mock("@/components/mobileNav/useDockSheets", async () => { const m = await import("@/components/mobileNav/dockSheets"); return { useDockSheetsLoader: () => m }; }); // sheets at once: their lazy load is dockSheetsLoadOnTap.test.tsx
@@ -72,6 +76,7 @@ vi.mock("@/lib/shops/api", () => ({ fetchMyShopId: async () => null }));
 
 import MobileNav from "@/components/MobileNav";
 import { AppTopBar } from "@/components/sections/AppTopBar";
+import { stores } from "@/components/mobileNav/navUnreadStore";
 import { NotificationTrigger } from "@/components/notificationPanel/NotificationTrigger";
 import { countLine, SECTION_INVITE } from "@/pages/home/homeDashboard/useHomeSummary";
 
@@ -88,7 +93,7 @@ function renderDock(at = "/home") {
     </QueryClientProvider>,
   );
 }
-afterEach(() => { cleanup(); unread.n = 0; desktop.on = false; });
+afterEach(() => { cleanup(); unread.n = 0; todo.jobs = 0; desktop.on = false; });
 
 describe("1. Home section cards never show a 0 (spec v2 §1.5/§5.5, board 19)", () => {
   it("one line of the NON-zero counts, singular/plural from the real number", () => {
@@ -114,13 +119,13 @@ describe("1. Home section cards never show a 0 (spec v2 §1.5/§5.5, board 19)",
 });
 
 describe("2. phone Home keeps the H logo (owner 2026-10-20 08:30Z), never the wordmark", () => {
-  it("phone: H emblem left, Help + bell + avatar right", () => {
+  it("phone: H emblem left; the bell, Messages, the +, the avatar right (nav redesign 2026-11-06; Help is in You)", () => {
     render(<MemoryRouter><AppTopBar /></MemoryRouter>);
     const bar = screen.getByTestId("app-top-bar");
     const logo = bar.firstElementChild as HTMLElement;
     expect(logo.querySelector("img")).not.toBeNull();
     expect(logo.textContent ?? "").not.toMatch(/Helpr/);
-    expect([...bar.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual(["Help", "Notifications", "Profile, TP"]); // the avatar's initials are in its name (WCAG 2.5.3, Q1816)
+    expect([...bar.querySelectorAll("button")].map((b) => b.getAttribute("aria-label"))).toEqual(["Notifications", "Messages", "Create", "Profile, TP"]); // the avatar's initials are in its name (WCAG 2.5.3, Q1816)
   });
 
   it("desktop Home: no bar (the left sidebar carries the H logo)", () => {
@@ -131,30 +136,49 @@ describe("2. phone Home keeps the H logo (owner 2026-10-20 08:30Z), never the wo
 });
 
 describe("3 + 4. the bottom bar: You is a person icon; olive active, --alert badges", () => {
-  it("You draws an icon, never the member's photo or monogram", () => {
-    renderDock("/profile");
-    const you = screen.getByRole("button", { name: "You" });
-    expect(you.querySelector("svg")).not.toBeNull();
-    expect(you.querySelector("img")).toBeNull();
-    expect(you.textContent).toBe("You"); // no "TP" monogram beside the label
-    expect(you.getAttribute("aria-current")).toBe("page");
-    expect(you.querySelector("svg")?.getAttribute("fill")).toBe("currentColor");
+  it("every dock tab draws an icon, never the member's photo or monogram; the active one is filled", () => {
+    renderDock("/jobs");
+    const tabs = [...document.querySelectorAll('nav[aria-label="Bottom navigation"] button[aria-label]')];
+    expect(tabs.length).toBe(5); // vacuity floor
+    for (const t of tabs) {
+      expect(t.querySelector("svg"), t.getAttribute("aria-label") ?? "").not.toBeNull();
+      expect(t.querySelector("img"), t.getAttribute("aria-label") ?? "").toBeNull();
+    }
+    const jobs = screen.getByRole("button", { name: "Jobs" });
+    expect(jobs.textContent).toBe(""); // icons only: no word, no "TP" monogram
+    expect(jobs.getAttribute("aria-current")).toBe("page");
+    expect(jobs.querySelector("svg")?.getAttribute("fill")).toBe("currentColor");
   });
 
   it("the active tab is olive with no rust anywhere in the bar", () => {
-    unread.n = 3;
+    todo.jobs = 3;
     const { container } = renderDock("/home");
-    const home = screen.getByRole("button", { name: "Home" });
+    const home = screen.getByRole("button", { name: "Dashboard" });
     expect(home.getAttribute("style")).toContain("hsl(var(--bark))");
     expect(container.innerHTML).not.toMatch(/burnt-sienna|accent-ink/);
   });
 
-  it("the Messages count badge is --alert with white text", () => {
-    unread.n = 12;
+  it("the Jobs to-do badge is --alert with white text", () => {
+    todo.jobs = 12;
     renderDock("/home");
-    const badge = [...screen.getByRole("button", { name: "9+ Messages" }).querySelectorAll("span")].find((s) => s.textContent === "9+");
-    expect(badge, "a 9+ badge on Messages").toBeTruthy();
+    const badge = [...screen.getByRole("button", { name: "9+ Jobs" }).querySelectorAll("span")].find((s) => s.textContent === "9+");
+    expect(badge, "a 9+ badge on Jobs").toBeTruthy();
     expect(badge!.getAttribute("style")).toContain("hsl(var(--alert))");
+  });
+
+  it("the top bar's Messages count badge is --alert with white text, and its name starts with the count", () => {
+    stores.set("u-review", { count: 12, listeners: new Set(), publish: () => {}, close: () => {} });
+    try {
+      render(<MemoryRouter><AppTopBar /></MemoryRouter>);
+      const msgs = screen.getByTestId("top-bar-messages");
+      expect(msgs.getAttribute("aria-label")).toBe("9+ Messages");
+      const badge = msgs.querySelector('[data-top-bar-badge="messages"]');
+      expect(badge?.textContent).toBe("9+");
+      expect(badge?.getAttribute("style")).toContain("hsl(var(--alert))");
+      expect(nameHoldsVisibleText(msgs), msgs.getAttribute("aria-label") ?? "").toBe(true);
+    } finally {
+      stores.delete("u-review");
+    }
   });
 
   it("the bell's count badge is --alert too", () => {
@@ -204,7 +228,7 @@ describe("5. an icon button's name holds its visible text (WCAG 2.5.3, axe label
   });
 
   it("every dock tab, badged or not, names what it shows", () => {
-    unread.n = 3; // a bare digit: "3Messages" is one word to axe, where "9+Messages" splits at the "+"
+    todo.jobs = 3; // a bare digit: the badge "3" must start the name ("3 Jobs")
     renderDock("/home");
     const tabs = [...document.querySelectorAll("nav button[aria-label]")];
     expect(tabs.length).toBeGreaterThan(3);

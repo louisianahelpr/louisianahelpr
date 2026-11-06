@@ -3,10 +3,15 @@ import type { ReactNode } from "react";
 import { useFeature } from "@/hooks/useFeature";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { featureSwitchSettled } from "@/lib/featureSwitchQuery";
+import { Link } from "react-router-dom";
+import { KeyRound } from "lucide-react";
 import NotFound from "@/pages/info/NotFound";
+import { Button } from "@/components/ui/button";
+import { BrowseEmptyState } from "@/components/ui/BrowseEmptyState";
+import { SectionScreen } from "@/components/sections/SectionScreen";
 
 /**
- * Every Rentals page renders the 404 unless the hidden 'rentals' switch is on
+ * Every Rentals page renders the 404 (the section's own root /rentals: "Opens soon", below) unless the hidden 'rentals' switch is on
  * for the member (the DeclutterGate pattern). While the server's answer is
  * loading it renders the screen's own `skeleton` (RentalsSkeletons.tsx: the
  * page's real AppPage shell and title), never a
@@ -14,13 +19,39 @@ import NotFound from "@/pages/info/NotFound";
  * regardless (require_feature in every rentals_* RPC); this only keeps the
  * screens hidden.
  */
-export function RentalsGate({ children, skeleton }: { children: ReactNode; skeleton: ReactNode }) {
+export function RentalsGate({ children, skeleton, sectionRoot = false }: { children: ReactNode; skeleton: ReactNode; sectionRoot?: boolean }) {
   const enabled = useFeature("rentals");
   const { user, isReady } = useAuthReady();
   const qc = useQueryClient();
   if (enabled) return <>{children}</>;
   const settled = isReady && (!user || featureSwitchSettled(qc, "rentals", user.id));
-  return settled ? <NotFound /> : <>{skeleton}</>;
+  if (!settled) return <>{skeleton}</>;
+  return sectionRoot ? <HomesOpensSoon /> : <NotFound />;
+}
+
+/** The words a member sees on the Homes tab while Homes has not opened to them. */
+export const HOMES_OPENS_SOON_BODY = "Homes opens here soon. Until then, hire help in Jobs or buy and sell in Declutter.";
+
+/**
+ * The phone dock lists Homes before it opens (owner, nav redesign 2026-11-06 11:35 AM: no "Soon" on the tab,
+ * "the screen says it is coming"), so /rentals with the switch off is its section frame holding "Opens soon" in the
+ * shared Browse empty state (the Shops Q2005 screen), never the bare 404.
+ */
+function HomesOpensSoon() {
+  return (
+    <SectionScreen section="homes" title="Homes" globalSearch={false}>
+      <BrowseEmptyState
+        icon={KeyRound}
+        title="Opens soon"
+        body={HOMES_OPENS_SOON_BODY}
+        action={
+          <Button asChild variant="outline" size="sm">
+            <Link to="/home">Go to Dashboard</Link>
+          </Button>
+        }
+      />
+    </SectionScreen>
+  );
 }
 
 /**

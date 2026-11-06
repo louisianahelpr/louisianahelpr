@@ -586,7 +586,7 @@ const PaymentSuccess = () => {
             className="w-full rounded-full"
             style={{ color: "hsl(var(--bark))" }}
           >
-            Go home
+            Go to Dashboard
           </Button>
         </div>
 

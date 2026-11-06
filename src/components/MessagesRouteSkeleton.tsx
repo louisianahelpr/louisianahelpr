@@ -73,9 +73,11 @@ function PhoneHeaderBones() {
           phone={
             <header className="app-top-bar flex items-center justify-between gap-2 h-16" aria-hidden>
               <span className="min-w-0 truncate text-page-title text-foreground">Messages</span>
+              {/* The bell, Messages, the round "+", the photo (nav redesign 2026-11-06). */}
               <div className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0">
                 <ControlBone />
                 <ControlBone />
+                <Skeleton className="h-11 w-11 shrink-0 rounded-full" />
                 <ControlBone round />
               </div>
             </header>

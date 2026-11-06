@@ -16,7 +16,7 @@
  *   - Jobs (no switch): the /jobs route skeleton against JobsSection's own header (its lists stubbed).
  *
  * @mutate src/pages/shops/ShopsPage.tsx | <ShopsGate title="Shops" skeleton={<SectionGateFrame section="shops" label="Loading Shops" />}> | <ShopsGate title="Shops">
- * @mutate src/pages/rentals/RentalsPage.tsx | <RentalsGate skeleton={<SectionGateFrame section="homes" label="Loading Homes" />}> | <RentalsGate skeleton={<AppPage title="Homes"><p>Loading Homes</p></AppPage>}>
+ * @mutate src/pages/rentals/RentalsPage.tsx | <RentalsGate sectionRoot skeleton={<SectionGateFrame section="homes" label="Loading Homes" />}> | <RentalsGate sectionRoot skeleton={<AppPage title="Homes"><p>Loading Homes</p></AppPage>}>
  * @mutate src/components/JobsSectionSkeleton.tsx |       <PageTitleBar\n        title="Jobs" |       <PageTitleBar\n        title="Jobs"\n        back={{ backTo: "/home" }}
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";

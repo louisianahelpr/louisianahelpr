@@ -145,7 +145,7 @@ function ShopsOpensSoon({ title, backTo, sectionRoot }: { title: string; backTo?
       body={SHOPS_OPENS_SOON_BODY}
       action={
         <Button asChild variant="outline" size="sm">
-          <Link to="/home">Go home</Link>
+          <Link to="/home">Go to Dashboard</Link>
         </Button>
       }
     />
@@ -195,7 +195,7 @@ export function ShopUnavailable({ body = "It may be paused or closed. Check the 
         body={body}
         action={
           <Button asChild variant="primary" size="lg" className="rounded-full px-8">
-            <Link to={user ? "/home" : "/"}>Go home</Link>
+            <Link to={user ? "/home" : "/"}>{user ? "Go to Dashboard" : "Go home"}</Link>
           </Button>
         }
       />

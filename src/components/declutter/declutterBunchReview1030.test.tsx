@@ -247,6 +247,9 @@ describe("finding 3: a photo can be seen, added, removed, made the cover and mov
     expect(undoBar()!.textContent).toContain("last photo");
     undo();
     expect(row("i2")).toBeTruthy();
+    // ...with its picture: Undo puts the photo itself back, not only the item that names it.
+    if (!row("i2").querySelector("[data-bunch-photo]")) openRow("i2");
+    await waitFor(() => expect(row("i2").querySelector("[data-bunch-thumb]")).toBeTruthy());
   });
 
   it("Add photo joins this item without the photo tool", async () => {

@@ -1232,6 +1232,15 @@ describe("#6: a free claim never reads like a paid order", () => {
     state.features = ["declutter_refund_requests"];
   });
 
+  // The tracker reads the ORDER's item total (every line's price), never one line's charge: a bunch that is part free,
+  // part paid is a paid order, whichever line comes first.
+  it("a part-free order (free line first, paid line second) reads Paid, never Claimed", async () => {
+    show([free({ my_side: "seller" }), line({ line_id: "l2", item_id: "i2", item_title: "Brass lamp", my_side: "seller", price_cents: 2000, total_cents: 2135 })]);
+    const card = (await screen.findByText(/Brass lamp/)).closest("article")!;
+    await waitFor(() => expect(within(card).getAllByText(/^Paid/).length).toBeGreaterThan(0));
+    expect(card.textContent).not.toMatch(/Claimed/);
+  });
+
   it("each side, each pickup kind and step: the card and its sheets have no money words, and the first step says Claimed", async () => {
     let read = 0;
     for (const handover of ["porch", "pickup_home"] as const) {
@@ -1527,7 +1536,7 @@ describe("D2-11 / D2-8: problem reasons fit the side and the stage", () => {
 // Audit 1b D2-2 (1b-problem-after-375, 1b-s-order-afterprob-p1-1440): after "Report a problem" neither card said a
 // problem was open. The buyer was still asked to pick a day, offered "Book" and a second "Report a problem"; the
 // seller was still told "You get $12 once the sale is final" while the money was held.
-// @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {problem && view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />} |
+// (The buyer's card WITH its Buying view, `problem && view`, is proved in buyingOrders.test.tsx: this file renders no views.)
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {problem && !view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />} |
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx |           {problem ? null : noShowWaiting ? <BookingPanel order={order} booking={booking} frozen /> : order.handover === "porch" |           {false ? null : noShowWaiting ? <BookingPanel order={order} booking={booking} frozen /> : order.handover === "porch"
 // @mutate src/components/declutter/DeclutterHandoverViews.tsx | problemForm={problem ? null : <ProblemForm | problemForm={false ? null : <ProblemForm

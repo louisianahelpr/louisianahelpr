@@ -21885,6 +21885,10 @@ export type Database = {
       shops_leave_review: { Args: { p_order_id: string; p_stars: number; p_comment: string }; Returns: string }
       shops_shop_reviews: { Args: { p_shop_id: string }; Returns: Json }
       shops_my_order_review: { Args: { p_order_id: string }; Returns: Json }
+      shops_my_order_buyer_names: {
+        Args: { p_order_ids: string[] }
+        Returns: { first_name: string; order_id: string }[]
+      }
       shop_review_public: { Args: { p_review_id: string }; Returns: boolean }
       shop_review_rating: { Args: { p_shop_id: string }; Returns: { rating: number; review_count: number }[] }
       shops_open_order_talk: { Args: { p_order_id: string }; Returns: string }

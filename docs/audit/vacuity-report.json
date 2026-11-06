@@ -1,9 +1,12 @@
 {
-  "generated": "2026-11-06T04:49:35.802Z",
-  "guards": 3621,
-  "registered": 3621,
-  "unregistered": [],
+  "generated": "2026-11-06T05:26:48.869Z",
+  "guards": 3626,
+  "registered": 3625,
+  "unregistered": [
+    "e2e/happy-path/rail-css-cascade.spec.ts"
+  ],
   "classA_noInventoryFloor": [
+    "e2e/happy-path/rail-css-cascade.spec.ts",
     "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],
   "classD_selfReferential": [

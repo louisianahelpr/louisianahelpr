@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
-import { fetchMyPickupAddress, LOUISIANA_ZIP, saveMyPickupAddress } from "@/lib/shops/pickupAddress";
+import { fetchMyPickupAddress, isLouisianaZip5, saveMyPickupAddress } from "@/lib/shops/pickupAddress";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 
 const KEY = ["shops", "my-pickup-address"] as const;
@@ -58,7 +58,7 @@ export default function ShopPickupAddressSection() {
       setProblem("Enter the street and city where buyers pick up.");
       return;
     }
-    if (!LOUISIANA_ZIP.test(zip.trim())) {
+    if (!isLouisianaZip5(zip.trim())) {
       setProblem("Enter a Louisiana ZIP code. Shops are for Louisiana pickups only.");
       return;
     }

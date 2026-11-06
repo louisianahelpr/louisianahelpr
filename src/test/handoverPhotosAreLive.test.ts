@@ -82,7 +82,8 @@ describe("every Declutter handover photo is live (camera at that moment, server'
   it("the device: every handover photo input opens the camera, and both upload paths check the file's time", () => {
     for (const f of ["src/components/ui/PhotoPickButton.tsx", "src/components/declutter/DeclutterHandoverViews.tsx"]) {
       const s = src(f);
-      const inputs = [...s.matchAll(/<input\b[^>]*type="file"[^>]*>/g)].map((m) => m[0]);
+      // A raw file input, or the shared hidden picker (Q2709, 11-06: it is always type=file; capture stays at the call site).
+      const inputs = [...s.matchAll(/<input\b[^>]*type="file"[^>]*>|<HiddenFileInput\b[^>]*>/g)].map((m) => m[0]);
       expect(inputs.length, f).toBeGreaterThan(0);
       for (const i of inputs) expect(i, f).toContain('capture="environment"');
     }

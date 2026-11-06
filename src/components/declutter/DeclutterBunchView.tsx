@@ -62,6 +62,7 @@ import { useSortingThumbs } from "./useBunchThumbs";
 import { useBunchStager } from "./useBunchStager";
 import { BunchIntake } from "./DeclutterBunchIntake";
 import { ReadingPhotos } from "./SellProgress";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 
 const input = "h-12 w-full min-w-0 rounded-2xl border border-input glass-field px-4 text-ds-15";
 
@@ -505,7 +506,7 @@ export default function BunchFlow({ moving = false }: { moving?: boolean }) {
         <p className="text-xs text-muted-foreground">
           Pick them all at once, up to {BUNCH_MAX_PHOTOS}. Take a few of each thing, one thing at a time. Smaller copies, with location data removed, are sent to sort them and write your listings. Nothing is saved or shown to buyers until you list.
         </p>
-        <input ref={fileRef} type="file" accept="image/*" multiple className="sr-only" id="bunch-files" aria-label="Add photos" disabled={blocked} onChange={(e) => void onPhotos(e.target.files)} />
+        <HiddenFileInput ref={fileRef} accept="image/*" multiple id="bunch-files" aria-label="Add photos" disabled={blocked} onChange={(e) => void onPhotos(e.target.files)} />
         {blocked ? (
           <Button type="button" variant="outline" size="sm" disabled>Add photos</Button>
         ) : (

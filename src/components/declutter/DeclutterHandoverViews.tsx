@@ -80,6 +80,7 @@ const OrderDeliveryPanel = lazy(() => import("./DeclutterDeliveryViews").then((m
 // Seller delivery (20261027153244) loads with its own orders only (Q178).
 import { NoShowAnswer, NoShowButton } from "./DeclutterNoShowAnswer";
 import { NoHelprChoice } from "./DeclutterNoHelpr";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 const ShipOrderPanel = lazy(() => import("./ShipOrderPanel").then((m) => ({ default: m.ShipOrderPanel }))); // B134: label (seller) and tracking (buyer), ship orders only (Q178).
 const ReturnLabelPanel = lazy(() => import("./ReturnLabelPanel").then((m) => ({ default: m.ReturnLabelPanel }))); // 20261103212046: the buyer's return label, ship orders only.
 const SellerDeliveryOrderPanel = lazy(() => import("./SellerDeliveryOrder").then((m) => ({ default: m.SellerDeliveryOrderPanel })));
@@ -567,7 +568,7 @@ function PorchPanel({ order, userId, booking, who, held }: { order: PaidOrder; u
         {order.side === "seller" ? `Photo of the item on your porch ("Left on porch"${payWords ? ": needed before you can be paid automatically)" : ")"}` : `Photo when you pick it up, taken at the address ("Picked up"${payWords ? ": this pays the seller 24 hours later)" : ")"}`}
       </label>
       {/* The shops' handover pattern (ShopHandoverActions): a hidden camera input opened by a real button. */}
-      <input id={fileId} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} disabled={photo.isPending}
+      <HiddenFileInput id={fileId} accept="image/*" capture="environment" tabIndex={-1} disabled={photo.isPending}
         onChange={(e) => { const f = e.target.files?.[0]; if (f) { if (order.side === "seller") setPreview(f); else setShot(f); } e.target.value = ""; }} />
       <Button type="button" variant={order.side === "seller" && !posted ? "primary" : "outline"} size="sm" disabled={photo.isPending}
         onClick={() => document.getElementById(fileId)?.click()}>

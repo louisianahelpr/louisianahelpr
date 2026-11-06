@@ -22,8 +22,8 @@
  * @mutate src/components/dashboard/BrowseTasksToolbar.tsx |         title="Filter jobs" |         title="Filters"
  * @mutate src/components/dashboard/FilterSheet.tsx |         floor\n        // The Filters button |         floor={false}\n        // The Filters button
  * @mutate src/components/dashboard/filterSheet/jobFilterSections.tsx |           style={minBudget \|\| maxBudget ? { color: "hsl(var(--burnt-sienna))" } : undefined} |           style={{ color: "hsl(var(--burnt-sienna))" }}
- * @mutate src/components/dashboard/JobFilters.tsx | btn-press border min-h-10"; | btn-press border h-11";
- * @mutate src/components/dashboard/JobFilters.tsx | const radiusChip = chipBase.replace("px-4", "px-3"); | const radiusChip = chipBase;
+ * @mutate src/components/ui/FilterChip.tsx | btn-press border min-h-10"; | btn-press border h-11";
+ * @mutate src/components/ui/FilterChip.tsx |   tight: FILTER_CHIP.replace("px-4", "px-3"), |   tight: FILTER_CHIP,
  * @mutate src/components/dashboard/browseTasksToolbar/BrowseViewToggle.tsx |     <SegmentedControl | <SegmentedControl semantics="tab"
  */
 import { describe, expect, it, vi } from "vitest";

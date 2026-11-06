@@ -71,6 +71,8 @@ export async function recordShopBalance(
   if (result === "paid") return "paid";
   if (result === "already_paid") return "already_paid";
   if (result === "refund") {
+    // own-mistake full refund (owner, 2026-10-14): a payment the order no longer owed (a second one, or one that landed
+    // after the order closed) is a payment we could not use; it goes back whole, card fee included.
     await stripe.refunds.create(
       { payment_intent: pi.id, metadata: { kind: "shop_balance_refund", order_id: orderId } },
       { idempotencyKey: `shop-balance-refund-${pi.id}` },

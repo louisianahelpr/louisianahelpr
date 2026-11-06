@@ -1,11 +1,12 @@
 -- Shops custom orders, slice 2b part 2: the SQL the edge side needs (Builder 4, 11-06; plan
 -- ~/.lh-shots/handoffs-1106/builder4-shops.md; OWNER 11-06 balance-failure rule; LEAD 11-06 tax rule).
 -- Stacked on 2b part 1 (20261106215722).
---   1. A new Shops refund reason, unpaid_close_tax (fee policy full_platform_absorbs): on a close where no item changes
---      hands with the rest unpaid (the lapse, the buyer's late cancel, a no-show; trg_shop_orders_mark_unpaid_close),
---      the deposit's sales tax goes back to the buyer. The row is the order's one shop_refunds row: paid_cents is the
---      deposit's tax, tax_cents 0 (the money returned IS the tax, so none of it is "tax inside" to keep), nothing kept.
---      MONEY REVIEW: flagged (new reason, and its tax_cents = 0 reading).
+--   1. A new Shops refund reason, unpaid_close_tax (fee policy keep_card_fee: the buyer's own close, so it is not one
+--      of our mistakes; the deposit's whole card fee is already kept, so card_fee_cents 0 and nothing more is kept):
+--      on a close where no item changes hands with the rest unpaid (the lapse, the buyer's late cancel, a no-show;
+--      trg_shop_orders_mark_unpaid_close), the deposit's sales tax goes back to the buyer. The row is the order's one
+--      shop_refunds row: paid_cents is the deposit's tax, tax_cents 0 (the money returned IS the tax, so none of it is
+--      "tax inside" to keep), nothing kept. MONEY REVIEW: flagged (new reason, its tax_cents = 0 and card_fee_cents 0).
 --   2. shop_lapse_tax_done: the edge calls it after Stripe Tax's FULL reversal of the order's transaction; it writes
 --      that refund row (sent by declutter-money's shop_refunds_due like every other) and marks the step done, at once.
 --   (LEAD 11-06: shops_order_custom_quote keeps deposit_not_ready until every 2b part is built and tested; only the
@@ -22,9 +23,10 @@ SET search_path TO 'public', 'pg_temp'
 AS $fn$
   SELECT CASE
     WHEN p_reason IN ('shop_cancelled', 'no_ready_photo', 'shop_removed', 'problem_shop_fault') THEN 'full_shop_pays_fee'
-    WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault') THEN 'keep_card_fee'
-    -- unpaid_close_tax: the tax goes back whole; no card fee is ever kept out of tax.
-    WHEN p_reason IN ('problem_our_mistake', 'unpaid_close_tax') THEN 'full_platform_absorbs'
+    -- unpaid_close_tax: the buyer's own close (late cancel, lapse, no-show). The card fee stays kept: the deposit's
+    -- whole card fee was already kept (nothing else of the deposit comes back), so the row keeps 0 more of it.
+    WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault', 'unpaid_close_tax') THEN 'keep_card_fee'
+    WHEN p_reason = 'problem_our_mistake' THEN 'full_platform_absorbs'
   END;
 $fn$;
 REVOKE ALL ON FUNCTION public.shop_refund_fee_policy(text) FROM PUBLIC, anon, authenticated;
@@ -65,7 +67,7 @@ BEGIN
   IF v_tax > 0 AND o.stripe_payment_intent_id IS NOT NULL THEN
     INSERT INTO public.shop_refunds (order_id, stripe_payment_intent_id, reason, fee_policy, paid_cents, tax_cents,
                                      card_fee_cents, kept_cents, tax_kept_cents, refund_cents, note)
-    VALUES (o.id, o.stripe_payment_intent_id, 'unpaid_close_tax', 'full_platform_absorbs', v_tax, 0,
+    VALUES (o.id, o.stripe_payment_intent_id, 'unpaid_close_tax', 'keep_card_fee', v_tax, 0,
             0, 0, 0, v_tax, 'Sales tax on the deposit: the order closed with no item handed over.')
     ON CONFLICT (order_id) DO NOTHING
     RETURNING id INTO v_refund;

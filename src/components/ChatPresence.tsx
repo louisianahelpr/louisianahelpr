@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ReceiptToggleButton } from "@/components/ui/ReceiptToggleButton";
 
 /**
  * Presence dot. Online is the assumed default, so we render nothing when the
@@ -63,17 +64,12 @@ export const ReadReceipt = ({
   if (!sentByMe) return null;
   if (!read) {
     return (
-      <button
-        type="button"
+      <ReceiptToggleButton
         onClick={() => setRevealed((v) => !v)}
-        // Negative vertical margins absorb the 44px HIG minimum imposed by the
-        // global `button { min-height: 44px }` rule (index.css) so the compact
-        // message-meta row stays visually tight while the element's own bounding
-        // box meets the tap-target floor. -my-[14px]: 44 − 28 = 16px contribution
-        // to the line height, matching the unresized visual content.
-        className="relative inline-flex items-center gap-1 ml-1 -my-[14px]"
+        // ReceiptToggleButton's -my-[14px] absorbs the global 44px button floor (index.css) so the compact
+        // message-meta row stays visually tight while the hit box meets the tap-target floor.
         aria-label="Delivered"
-        aria-pressed={revealed}
+        pressed={revealed}
         title="Delivered"
       >
         {/* FULL BARK on both, no alpha. At 0.55 the tick and its label measured
@@ -97,7 +93,7 @@ export const ReadReceipt = ({
             Delivered
           </span>
         )}
-      </button>
+      </ReceiptToggleButton>
     );
   }
   const readAtLabel = readAt
@@ -111,14 +107,11 @@ export const ReadReceipt = ({
     .toUpperCase()
     .slice(0, 2) || "?";
   return (
-    <button
-      type="button"
+    <ReceiptToggleButton
       onClick={() => setRevealed((v) => !v)}
-      // See the unread branch above for the -my-[14px] approach.
-      className="relative inline-flex items-center gap-1 ml-1 -my-[14px]"
       // Named by content, not aria-label (WCAG 2.5.3, axe 4.14 label-content-name-mismatch, lead 11-04): the drawn
       // initials and "Read 12:00 PM" are aria-hidden; the sr-only line below is the name.
-      aria-pressed={revealed}
+      pressed={revealed}
       title={readAtLabel ? `Read ${readAtLabel}` : "Read"}
     >
       <span className="sr-only">
@@ -157,6 +150,6 @@ export const ReadReceipt = ({
           {readAtLabel ? `Read ${readAtLabel}` : "Read"}
         </span>
       )}
-    </button>
+    </ReceiptToggleButton>
   );
 };

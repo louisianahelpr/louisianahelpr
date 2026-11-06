@@ -29,6 +29,9 @@
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | REVOKE ALL ON FUNCTION public.shop_payouts_due(integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shop_payouts_due(integer) FROM PUBLIC, anon;
 // @mutate supabase/migrations/20261106180902_shops_delivery.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'shop_order_' \|\| o.id::text, (o.items_cents + o.delivery_cents)); |   v_debt := 0;
 // @mutate supabase/migrations/20261106180902_shops_delivery.sql |   VALUES (o.id, (o.items_cents + o.delivery_cents), v_debt, (o.items_cents + o.delivery_cents) - v_debt, |   VALUES (o.id, o.total_cents, v_debt, o.total_cents - v_debt,
+// @mutate supabase/migrations/20261106180902_shops_delivery.sql | o.id::text,\n                                              (o.items_cents + o.delivery_cents)); | o.id::text,\n                                              o.items_cents);
+// @mutate supabase/migrations/20261106180902_shops_delivery.sql |   VALUES (o.id, (o.items_cents + o.delivery_cents), v_debt,\n          (o.items_cents + o.delivery_cents) - v_debt, |   VALUES (o.id, o.items_cents, v_debt,\n          o.items_cents - v_debt,
+// @mutate supabase/migrations/20261106180902_shops_delivery.sql |   RETURN (o.items_cents + o.delivery_cents) - v_debt; |   RETURN o.items_cents - v_debt;
 // @mutate supabase/migrations/20261106180902_shops_delivery.sql |   IF p_how <> 'admin' AND EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.problem_at IS NOT NULL) THEN |   IF false THEN
 // @mutate supabase/migrations/20261106180902_shops_delivery.sql |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'auto', 'admin') THEN |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'shop', 'auto', 'admin') THEN
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | confirmed_how IN ('buyer', 'auto', 'admin')), | confirmed_how IN ('buyer', 'shop', 'auto', 'admin')),
@@ -112,6 +115,17 @@ describe("Shops M2: the handover and the shop's payout keep their gates (2026101
     expect(done).not.toMatch(/total_cents|premium_cents|tax_cents/i);
     expect(MIG).toMatch(/CONSTRAINT\s+shop_payouts_amount\s+CHECK\s*\(\s*amount_cents\s*=\s*items_cents\s*-\s*debt_cents\s+AND\s+amount_cents\s*>=\s*0\s*\)/i);
     expect(MIG).toMatch(/order_id\s+uuid\s+NOT\s+NULL\s+UNIQUE\s+REFERENCES\s+public\.shop_orders\(id\)/i);
+  });
+
+  it("3b. a late cancel or a no-show pays the shop what a handover would: items AND its delivery fee (money BLOCK on 33156ebb22)", () => {
+    const owe = body("shop_owe_shop");
+    expect(owe.length).toBeGreaterThan(200);
+    expect(owe).toMatch(/v_debt\s*:=\s*public\.declutter_consume_fee_debt\(o\.seller_id,\s*'shop_order_'\s*\|\|\s*o\.id::text,\s*\(o\.items_cents\s*\+\s*o\.delivery_cents\)\)/i);
+    expect(owe).toMatch(/VALUES\s*\(o\.id,\s*\(o\.items_cents\s*\+\s*o\.delivery_cents\),\s*v_debt,\s*\(o\.items_cents\s*\+\s*o\.delivery_cents\)\s*-\s*v_debt,/i);
+    expect(owe).toMatch(/WHEN\s+\(o\.items_cents\s*\+\s*o\.delivery_cents\)\s*-\s*v_debt\s*=\s*0\s+THEN\s+'nothing_due'/i);
+    expect(owe).toMatch(/RETURN\s+\(o\.items_cents\s*\+\s*o\.delivery_cents\)\s*-\s*v_debt;/i);
+    // Every "items only" spot is gone (a bare o.items_cents never stands alone as the amount).
+    expect(owe.replace(/\(o\.items_cents\s*\+\s*o\.delivery_cents\)/gi, "X")).not.toMatch(/o\.items_cents/i);
   });
 
   it("4. a left-out order finishes on its own only with the ready photo; a reported problem stops the clock and the payout", () => {

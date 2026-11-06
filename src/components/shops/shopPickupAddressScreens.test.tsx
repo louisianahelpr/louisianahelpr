@@ -14,7 +14,8 @@
  *
  * @mutate src/components/shops/ShopOrderCard.tsx | const PICKUP_VISIBLE = new Set(["accepted"]); | const PICKUP_VISIBLE = new Set(["held", "accepted", "handed_over"]);
  * @mutate src/components/shops/ShopOrderCard.tsx |       {side === "buyer" && PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />} |       {PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />}
- * @mutate src/components/shops/ShopPickupAddressSection.tsx |     if (!LOUISIANA_ZIP.test(zip.trim())) { |     if (false) {
+ * @mutate src/components/shops/ShopPickupAddressSection.tsx |     if (!isLouisianaZip5(zip.trim())) { |     if (false) {
+ * @mutate src/lib/shops/pickupAddress.ts |   return /^[0-9]{5}$/.test(zip) && isLouisianaZip(zip); |   return /^7[01][0-9]{3}$/.test(zip);
  * @mutate src/components/shops/ShopPickupAddressSection.tsx |     mutationFn: () => saveMyPickupAddress({ line1, line2, city, postal_code: zip.trim() }), |     mutationFn: async () => undefined,
  * @mutate src/components/shops/ShopEditView.tsx |       {myId.data && <div className="pb-6"><ShopPickupAddressSection /></div>} |
  */
@@ -120,6 +121,23 @@ describe("the owner's pickup address form", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add pickup address" }));
     expect((await screen.findByRole("alert")).textContent).toMatch(/Louisiana ZIP code/);
     expect(api.saveMyPickupAddress).not.toHaveBeenCalled();
+  });
+
+  // Money (11-06): 715-719 are Arkansas and 702xx/709xx are unassigned; the old
+  // /^7[01][0-9]{3}$/ let them in and a pickup sale is taxed where it is picked up.
+  it.each(["71601", "70200", "70900", "71999", "70112-1234"])("refuses %s (not a 5-digit Louisiana ZIP) before sending", async (zip) => {
+    wrap(<ShopPickupAddressSection />);
+    await screen.findByLabelText("Street address");
+    fill("12 Main St", "Pine Bluff", zip);
+    fireEvent.click(screen.getByRole("button", { name: "Add pickup address" }));
+    expect((await screen.findByRole("alert")).textContent).toMatch(/Louisiana ZIP code/);
+    expect(api.saveMyPickupAddress).not.toHaveBeenCalled();
+  });
+
+  it("isLouisianaZip5 takes the Louisiana edges and nothing past them", async () => {
+    const { isLouisianaZip5 } = await vi.importActual<typeof import("@/lib/shops/pickupAddress")>("@/lib/shops/pickupAddress");
+    for (const z of ["70001", "70112", "70399", "70899", "71001", "71497"]) expect(isLouisianaZip5(z), z).toBe(true);
+    for (const z of ["69999", "70200", "70299", "70900", "70999", "71500", "71601", "71999", "72201", "7011", "701123"]) expect(isLouisianaZip5(z), z).toBe(false);
   });
 
   it("sends the fields and says it is saved", async () => {

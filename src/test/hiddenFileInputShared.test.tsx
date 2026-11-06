@@ -7,6 +7,7 @@
  * multiple / tabIndex / handlers (uploadMimeParity still reads each accept= at the call site).
  * Post a job (packet 2, same day): the photo grid, first-photo tile and video tile pickers.
  * Profile (packet 3): Edit profile photo and the profile gate (CompleteProfile) required photo.
+ * Jobs (packet 4): the applied job card's "Add cert or work sample" picker.
  *
  * @mutate src/components/ui/HiddenFileInput.tsx | className={peer ? "peer sr-only" : "sr-only"} | className={peer ? "peer hidden" : "hidden"}
  * @mutate src/components/ui/HiddenFileInput.tsx | <input ref={ref} type="file" | <input ref={ref}
@@ -14,6 +15,7 @@
  * @mutate src/components/declutter/DeclutterSellPhotos.tsx | <HiddenFileInput id="sell-files" accept="image/*" multiple | <HiddenFileInput id="sell-files" accept="image/*"
  * @mutate src/components/postjob/detailsSection/VideoScope.tsx | <HiddenFileInput accept="video/*" | <HiddenFileInput accept="image/*"
  * @mutate src/pages/auth/CompleteProfile.tsx |                   id="avatar"\n                  accept="image/*" |                   accept="image/*"
+ * @mutate src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx |             <HiddenFileInput |             <input type="file" className="sr-only"
  */
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
@@ -65,6 +67,14 @@ describe("Declutter's hidden photo pickers are the shared HiddenFileInput, class
     const tag = gate.slice(gate.indexOf("<HiddenFileInput"), gate.indexOf("/>", gate.indexOf("<HiddenFileInput")));
     expect(tag).toContain('id="avatar"');
     expect(tag).toContain("aria-label={avatarPreview");
+  });
+
+  it("Jobs (packet 4): an applied job's 'Add cert or work sample' picker uses it, photos and PDFs", () => {
+    const s = readFileSync("src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx", "utf8");
+    expect(s).not.toMatch(/type="file"/);
+    const at = s.indexOf("<HiddenFileInput");
+    expect(at).toBeGreaterThan(-1);
+    expect(s.slice(at, s.indexOf("onChange", at))).toContain('accept="image/*,application/pdf"');
   });
 
   it("Post a job (packet 2): the photo and video pickers inside their dashed tiles use it too", () => {

@@ -3173,7 +3173,7 @@
     },
     {
       "file": "src/components/admin/adminReports/ShopReportPanel.tsx",
-      "line": 46,
+      "line": 47,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -3193,7 +3193,7 @@
     },
     {
       "file": "src/components/admin/adminReports/ShopReportPanel.tsx",
-      "line": 50,
+      "line": 51,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10589,7 +10589,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 88,
+      "line": 89,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -10609,7 +10609,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 93,
+      "line": 94,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10619,7 +10619,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 101,
+      "line": 102,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10629,7 +10629,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 107,
+      "line": 108,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10979,7 +10979,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 55,
+      "line": 56,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10989,7 +10989,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 65,
+      "line": 66,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10999,7 +10999,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 70,
+      "line": 71,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

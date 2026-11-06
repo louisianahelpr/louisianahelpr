@@ -707,10 +707,10 @@ Each item mirrors one open problem; its `feed:` tags are sticky (never edit them
   - e2e-journeys: issue #2436, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42074601478. notes: Q1429, Q2150. feed: issue #2436 · feed: ledger 43d77e26f272
   - loading-states-refresh: issue #2601, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42123572431. notes: Q1427. feed: issue #2601 · feed: ledger 6389f98a9f66
   - vacuity: issue #2894, newest red run: see the issue's latest comment. notes: Q1426. feed: issue #2894 · feed: ledger 88ecf6e765df
-  - slow-network: issue #3454, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41599676917. feed: issue #3454 · feed: ledger a8ceee56bbd5
-  - ui-sweep: issue #3491, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41831105960. notes: Q2761. feed: issue #3491 · feed: ledger 2e4f3e726722
+  - slow-network: issue #3454, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42184212427. feed: issue #3454 · feed: ledger a8ceee56bbd5
+  - ui-sweep: issue #3491, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42218510944. notes: Q2761. feed: issue #3491 · feed: ledger 2e4f3e726722
   - staleness-watch: issue #3784, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42088012539. feed: issue #3784 · feed: ledger db0fb15c4ec3
-  - e2e-real-backend: issue #3813, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42034066135. feed: issue #3813 · feed: ledger 3a3460b71be7
+  - e2e-real-backend: issue #3813, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42206493836. feed: issue #3813 · feed: ledger 3a3460b71be7
   - schedule-heartbeat: issue #3824, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42087875471. feed: issue #3824 · feed: ledger 4aa239aefeb6
   - nightly-webkit: issue #4062, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/41680707961. feed: issue #4062 · feed: ledger 70e7b0decb9a
   - db-drift-detect: issue #4149, newest red run https://github.com/louisianahelpr/louisianahelpr/actions/runs/42105316708. feed: issue #4149 · feed: ledger 8018e82cb167

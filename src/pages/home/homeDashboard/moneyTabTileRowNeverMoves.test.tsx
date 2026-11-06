@@ -5,7 +5,7 @@
  * member with nothing coming or held sees "Coming to you $0.00". A failed read still draws nothing (never $0 on a
  * guess). Home's strip is unchanged: hidden at $0 (its own hold, B98).
  *
- * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (placement === "money" && money.pending && !money.coming && !money.held) { |   if (false) {
+ * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (placement === "money" && money.pending && !money.coming && !money.held) return <MoneyTilesLoading />; |   if (false) return <MoneyTilesLoading />;
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (placement === "money" && !money.failed && !money.coming && !money.held) { |   if (placement === "money" && !money.coming && !money.held) {
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |   if (placement === "money" && !money.failed && !money.coming && !money.held) { |   if (false) {
  */

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { ListRow } from "@/components/ui/ListRow";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Zap, Info } from "lucide-react";
@@ -83,7 +83,7 @@ const PayoutCelebration = lazy(() => import("@/components/wallet/PayoutCelebrati
 const EarningsBreakdownCharts = lazy(() => import("@/components/profile/EarningsBreakdownCharts").then(m => ({ default: m.EarningsBreakdownCharts })));
 const PaymentTab = lazy(() => import("@/components/PaymentTab").then(m => ({ default: m.PaymentTab })));
 
-export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, helperName }: EarningsTabProps) {
+export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, helperName, onSettled }: EarningsTabProps) {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
   const money = useHomeMoney(user);
@@ -264,6 +264,10 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
      Drawn only for a profile with a Stripe account (data-aware, owner
      2026-10-03): without one there is no wallet and no bank payouts. */
   const stripeBones = stripeLoading && hasStripeAccount;
+  // Q2708: every part of the open half is in, so what ProfileTabPanels draws under it (MoneyHelp) cannot be pushed.
+  const settled = !!profile && !money.pending && !stripeLoading && (view === "spent" || (pageReady && (!showConnect || connectSettled)));
+  useEffect(() => { onSettled?.(settled); }, [settled, onSettled]);
+  useEffect(() => () => onSettled?.(false), [onSettled]);
 
   return (
     <ProfileTabBody>
@@ -456,7 +460,8 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           )}
 
           {/* Board 177: Payout history and Receipts, each its own screen. */}
-          <MoneyRecordRows showPayouts={!!stripeData?.connected} />
+          {/* While the wallet bones show, its row is held too: an account on the profile row reads connected. */}
+          <MoneyRecordRows showPayouts={!!stripeData?.connected || stripeBones} />
 
           <SectionRule />
           {/* BOTH ROWS BELOW ARE olivewood/0.7 — subtitles and chevrons alike.
@@ -516,12 +521,12 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
               the bank account and when the next payout is expected. A helpr
               who has not connected gets this block at the top instead. It
               draws its own bones while its Stripe read answers. */}
-          {stripeAnswered && stripeData?.connected && (
+          {((stripeAnswered && stripeData?.connected) || stripeBones) && (
             <>
               <SectionRule />
               <section id="earnings-bank-account" className="space-y-4">
                 <Suspense fallback={<Skeleton className="h-24 w-full rounded-2xl" />}>
-                  <PaymentTab />
+                  {stripeBones ? <Skeleton className="h-24 w-full rounded-2xl" /> : <PaymentTab />}
                 </Suspense>
               </section>
             </>

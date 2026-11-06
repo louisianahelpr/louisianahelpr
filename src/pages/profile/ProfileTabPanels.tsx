@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { MoneyHelp } from "@/components/money/MoneyHelp";
 import { useFeature } from "@/hooks/useFeature";
 import type { User } from "@supabase/supabase-js";
@@ -195,6 +195,9 @@ export const ProfileTabPanels = ({
   useEffect(() => {
     if (moneyFor) prefetchEarningsReads(qc, moneyFor);
   }, [qc, moneyFor]);
+  // Q2708: MoneyHelp sits under the whole Money half, so it draws only once that half has settled; drawn earlier,
+  // each part arriving above it (the money tile, the wallet, the Earned section) pushed it down (live CLS 0.1286).
+  const [moneySettled, setMoneySettled] = useState(false);
   return (
     <>
       {/* PROFILE TAB */}
@@ -254,10 +257,13 @@ export const ProfileTabPanels = ({
               onBack={onBackFromTab}
               helperId={user.id}
               helperName={profile?.full_name || user.email || "Helpr"}
+              onSettled={setMoneySettled}
             />
           </Suspense>
           {/* Q2471 (4): plain-words money help, answered from our Help Center. */}
-          <div className="mt-4"><MoneyHelp /></div>
+          {moneySettled && (
+            <div className="mt-4"><MoneyHelp /></div>
+          )}
         </ProfileTabBody>
       )}
 

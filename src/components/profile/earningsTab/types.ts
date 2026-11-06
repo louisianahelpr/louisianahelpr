@@ -27,6 +27,8 @@ export interface EarningsTabProps {
   onBack: () => void;
   helperId: string;
   helperName: string;
+  /** Q2708: true once every part of the open half is in (the page under it may draw then without a shift). */
+  onSettled?: (settled: boolean) => void;
 }
 
 export interface StripePayout {

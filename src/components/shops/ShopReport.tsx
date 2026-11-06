@@ -51,16 +51,18 @@ export function ShopReportItem({ itemId, title }: { itemId: string; title: strin
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button
+      <Button
         type="button"
-        className="inline-flex min-h-[44px] items-center gap-1 text-ds-11 text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        variant="ghost"
+        size="sm"
+        className="gap-1 px-1 text-ds-11 font-normal tracking-normal text-muted-foreground [&_svg]:size-3"
         aria-label={`Report ${title}`}
         data-report-item=""
         onClick={() => setOpen(true)}
       >
         <Flag className="h-3 w-3" aria-hidden />
         Report
-      </button>
+      </Button>
       {open && (
         <Suspense fallback={null}>
           <ReportDialog open={open} onClose={() => setOpen(false)} reportedType="shop_item" reportedId={itemId} />

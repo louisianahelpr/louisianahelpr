@@ -19705,6 +19705,7 @@ export type Database = {
       helpr_task_pickup_windows: {
         Args: { p_task_id: string }
         Returns: {
+          earliest_pickup_at: string
           ends: string
           latest_pickup_at: string
           starts: string

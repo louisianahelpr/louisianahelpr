@@ -2,8 +2,10 @@
 -- ready/b5-shops-helpr-delivery). The task flow is Declutter's, but these functions answered only for a Declutter
 -- task, so a Helpr who took a shop delivery got no pickup times, no chat, and the shop and the admin saw less:
 --   helpr_task_pickup_windows / helpr_task_same_pickup_slot: a shop task (only for a Helpr the shops switch is on
---     for, as helpr_tasks_open_near) offers 8 AM to 8 PM every day up to its latest pickup; its latest pickup is
---     its own (no Declutter 7-day deadline). shop_delivery_slot_ok still refuses a slot before the ready date.
+--     for, as helpr_tasks_open_near) offers 8 AM to 8 PM every day from its ready date up to its latest pickup; its
+--     latest pickup is its own (no Declutter 7-day deadline). The windows read gains earliest_pickup_at (the ready
+--     date at 8 AM Chicago for a shop task, NULL for a Declutter one) so the Helpr is never offered a time before
+--     the ready date that shop_delivery_slot_ok (accept) then refuses. A new OUT column needs DROP + CREATE.
 --   helpr_task_send_message / helpr_task_talk_view: the three-way delivery chat for a shop task (Helpr, buyer, the
 --     shop); the shops switch is checked; notices link to Shops pages and call the seller side "the shop".
 --   helpr_task_no_show_report: the shop reads its own order's "the Helpr didn't come" report, as a Declutter seller.
@@ -15,9 +17,11 @@
 -- REPLAY-SAFE: CREATE OR REPLACE only, grants restated.
 
 
--- RESTATED from 20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql (a shop task's pickup times).
+-- RESTATED from 20261103061500_homes_declutter_helpr_reads_not_found_is_404.sql (a shop task's pickup times; the new
+-- earliest_pickup_at column changes the row type, so the old function is dropped first).
+DROP FUNCTION IF EXISTS public.helpr_task_pickup_windows(uuid);
 CREATE OR REPLACE FUNCTION public.helpr_task_pickup_windows(p_task_id uuid)
-RETURNS TABLE(weekday smallint, starts time, ends time, latest_pickup_at timestamptz)
+RETURNS TABLE(weekday smallint, starts time, ends time, latest_pickup_at timestamptz, earliest_pickup_at timestamptz)
 LANGUAGE plpgsql
 STABLE
 SECURITY DEFINER
@@ -28,6 +32,7 @@ DECLARE
   t public.helpr_tasks;
   o public.declutter_orders;
   v_hours jsonb;
+  v_earliest timestamptz;
 BEGIN
   PERFORM public.helpr_task_source_require_feature('declutter_delivery');
   v_uid := public.helpr_task_assert_helpr();
@@ -48,10 +53,15 @@ BEGIN
   IF t.id IS NULL THEN
     RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'PT404';
   END IF;
-  -- A shop order (20261106203016): the shop hands over any day from 8 AM to 8 PM up to the task's latest pickup;
-  -- shop_delivery_slot_ok keeps it on or after the ready date.
+  -- A shop order (20261106203016): the shop hands over any day from 8 AM to 8 PM, from the ready date at 8 AM (the
+  -- bound shop_delivery_slot_ok checks at accept) up to the task's latest pickup.
   IF t.source_kind = 'shop_delivery' THEN
-    RETURN QUERY SELECT d::smallint, time '08:00', time '20:00', t.latest_pickup_at FROM generate_series(0, 6) d;
+    SELECT (so.ready_date::timestamp + interval '8 hours') AT TIME ZONE 'America/Chicago' INTO v_earliest
+      FROM public.shop_orders so WHERE so.id = t.source_id;
+    IF v_earliest IS NULL THEN
+      RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'PT404';
+    END IF;
+    RETURN QUERY SELECT d::smallint, time '08:00', time '20:00', t.latest_pickup_at, v_earliest FROM generate_series(0, 6) d;
     RETURN;
   END IF;
   SELECT * INTO o FROM public.declutter_orders WHERE id = t.source_id;
@@ -63,13 +73,13 @@ BEGIN
   IF v_hours IS NOT NULL THEN
     RETURN QUERY
       SELECT (e ->> 'weekday')::smallint, (e ->> 'starts')::time, (e ->> 'ends')::time,
-             LEAST(t.latest_pickup_at, o.paid_at + interval '7 days')
+             LEAST(t.latest_pickup_at, o.paid_at + interval '7 days'), NULL::timestamptz
         FROM jsonb_array_elements(v_hours) e
        ORDER BY 1, 2;
     RETURN;
   END IF;
   RETURN QUERY
-    SELECT w.weekday, w.starts_local, w.ends_local, LEAST(t.latest_pickup_at, o.paid_at + interval '7 days')
+    SELECT w.weekday, w.starts_local, w.ends_local, LEAST(t.latest_pickup_at, o.paid_at + interval '7 days'), NULL::timestamptz
       FROM public.declutter_pickup_windows w
      WHERE w.seller_id = o.seller_id
      ORDER BY w.weekday, w.starts_local;
@@ -240,6 +250,8 @@ BEGIN
   IF v_side IS NULL THEN
     RAISE EXCEPTION 'task_not_found' USING ERRCODE = 'PT404';
   END IF;
+  -- As helpr_task_send_message: a party the task's switch is off for reads nothing (lh-authz-rls nit, e5ab46080e).
+  PERFORM public.helpr_task_source_require_feature(t.source_kind);
   RETURN jsonb_build_object(
     'task_id', t.id,
     'side', v_side,

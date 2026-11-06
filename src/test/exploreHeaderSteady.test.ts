@@ -24,7 +24,7 @@
  * @mutate src/index.css | :root.page-scrolled[data-theme] .page-title-card:has(.explore-header) {\n  transition: none !important; | :root.page-scrolled[data-theme] .page-title-card:has(.explore-header) {
  * @mutate src/components/sections/SectionScreen.tsx |         {section && (\n          // py/gap | {false && (\n          // py/gap
  * @mutate src/components/sections/AppTopBar.tsx |             <h1 className="sr-only">{title}</h1> |             <h1 className="text-page-title">{title}</h1>
- * @mutate src/components/sections/ExploreSwitcher.tsx |     const soon = !on \|\| isPreview(s); |     const soon = !on;
+ * @mutate src/components/sections/ExploreSwitcher.tsx |     const soon = !unknown && (!on \|\| isPreview(s)); |     const soon = !unknown && (!on);
  * @mutate src/components/sections/SectionScreen.tsx |           <div className="flex min-h-full flex-col gap-4 pt-1 pb-6">\n |           <div className="flex flex-col gap-4 pt-1 pb-6">\n            {section && <p role="status">Coming soon – early preview</p>}\n
  */
 import { describe, it, expect } from "vitest";
@@ -115,7 +115,8 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
   it("4. 'Coming soon' for everyone: no Preview mark on the chips, no 'early preview' banner anywhere, 'Opens soon'", () => {
     const sw = code("src/components/sections/ExploreSwitcher.tsx");
     expect(sw).not.toMatch(/PreviewPill|previewLabel/);
-    expect(sw).toMatch(/const soon = !on \|\| isPreview\(s\);/);
+    // While the switch answer is out the chip is neutral instead (exploreChipNeverSoonWhileAsking, lead 11-05).
+    expect(sw).toMatch(/const soon = !unknown && \(!on \|\| isPreview\(s\)\);/);
     // The banner's class, from source (owner 2026-10-28): no screen draws the "early preview" words again.
     const screens = trackedFiles("src").filter((f) => f.endsWith(".tsx") && !f.endsWith(".test.tsx") && !f.startsWith("src/test/"));
     expect(screens.length).toBeGreaterThan(200);

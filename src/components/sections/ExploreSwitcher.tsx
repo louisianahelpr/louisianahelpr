@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
@@ -10,6 +11,9 @@ import { sectionByKey, type SectionDef, type SectionKey } from "./sectionsConfig
 import { SoonPill } from "./SoonPill";
 import { useLanguage } from "@/lib/i18n/language";
 import { navKey } from "@/lib/i18n/navLabels";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
+import { SECTIONS_OPEN_QUERY_KEY } from "@/components/landing/useSectionsOpen";
 
 const LAST_KEY = "helpr_explore_last";
 
@@ -53,6 +57,20 @@ export function useSectionIsListed() {
   return (s: SectionDef) => s.feature === null || live.find((t) => t.path === s.path)?.listed !== false;
 }
 
+/**
+ * Is the answer that decides "Soon" still OUT? (lead 11-05, ExploreSwitcher.) useFeature reads false while the
+ * switch read is loading, so a member's chips said "Declutter / Soon" for a live Declutter until feature_switches_for_me
+ * answered (and a guest's until features_open_to_everyone did). While the read is out the chip is neutral: its name,
+ * drawn like a live section's chip. Only a read that is IN the cache and still pending counts, so a
+ * screen that never asks (or a test that stubs the switches) reads as answered.
+ */
+export function useSoonAnswerPending(): boolean {
+  const qc = useQueryClient();
+  const { user, isReady } = useAuthReady();
+  if (isReady && !user) return qc.getQueryState(SECTIONS_OPEN_QUERY_KEY)?.status === "pending";
+  return qc.getQueryState(featureSwitchBatchKey(user?.id ?? null))?.status === "pending";
+}
+
 /** One section's preview answer: its empty Browse says "Opens soon" to a tester (owner, 2026-10-22). */
 export function useSectionPreview(key: SectionKey): boolean {
   return useSectionIsPreview()(sectionByKey(key));
@@ -83,6 +101,7 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
   const isOn = useSectionIsOn();
   const isPreview = useSectionIsPreview();
   const isListed = useSectionIsListed();
+  const answerPending = useSoonAnswerPending();
   const { t: tr } = useLanguage();
   useEffect(() => writeLastSection(user?.id, current), [user?.id, current]);
   // FOUR CHIPS ON ONE LINE, EVEN WHEN THEY DO NOT FIT (measured 2026-10-23, WebKit: the track is 237px at 375 and
@@ -120,10 +139,17 @@ export function ExploreSwitcher({ current }: { current: SectionKey }) {
     const name = navKeyed ? tr(navKeyed) : s.navLabel;
     // ONE word for a section not open to everyone (owner, 2026-10-22): "Soon" (was "Coming soon"; A2-L11), for a member (closed: a tap
     // does nothing) and for a tester alike (open to them; inside, an empty Browse says "Opens soon").
-    const soon = !on || isPreview(s);
+    // A section with a switch whose answer is still out: neutral, never "Soon" (a live Declutter said it).
+    const unknown = answerPending && s.feature !== null && !on;
+    const soon = !unknown && (!on || isPreview(s));
     return {
       value: s.key,
-      label: soon ? (
+      label: unknown ? (
+        // The plain name, as a live section's chip draws it (the chip is 44 px high with or without a caption, and
+        // "Soon" is narrower than every name, so the chip keeps its size when the answer lands). Looked at 375:
+        // an empty caption slot left the names sitting high beside Jobs.
+        <span data-soon-pending="" className="px-0.5">{name}</span>
+      ) : soon ? (
         <span data-soon="" className="flex flex-col items-center leading-[1.15]">
           <span className={on ? undefined : "text-muted-foreground font-medium"}>{name}</span>
           {/* "Soon" at 11px, the app's floor (owner 2026-10-29, A2-L11); the chip's name says "coming soon". */}

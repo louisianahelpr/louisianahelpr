@@ -1241,9 +1241,10 @@ function withStaticBody(html: string, url: URL): string {
  * /browse's first job cards in the raw HTML (PERF-SHELL, Q652; lead decision 11-01): a guest's first screen used to
  * wait ~4 s on Slow 4G for the whole app before any card painted. The rows come from the same anon read of the
  * masked open_jobs_browse view the guest feed makes (browseShellRowsUrl: the feed's payment_status, order and limit,
- * open jobs only, only the columns src/lib/browseShellCards.mjs draws from); it picks, checks and renders them (title, category,
- * town, take-home; nothing else). A slow or failed read serves the page exactly as before (null rows draw nothing),
- * and its budget is short because this read sits in front of the HTML on a CDN miss.
+ * only the columns src/lib/browseShellCards.mjs draws from); it picks, checks and renders the open ones (title, category,
+ * town, take-home; nothing else). A read that succeeds with no live row draws the feed's own empty state instead
+ * (Q2705: with no job open, that sentence was the LCP at ~4.6 s). A slow or failed read serves the page exactly as
+ * before (null rows draw nothing), and its budget is short because this read sits in front of the HTML on a CDN miss.
  */
 const BROWSE_SHELL_TIMEOUT_MS = 700;
 /** Shorter than the default: a filled job must leave the HTML within minutes (the app replaces the cards anyway). */

@@ -3,7 +3,7 @@
  * public view with only the columns the card draws, and degrades to the plain page on any failed read.
  * What a card may carry is pinned by browseShellCards.test.tsx; this pins the handler's read and placement.
  *
- * @mutate src/lib/browseShellCards.mjs |   u.searchParams.set("status", "eq.open"); |   u.searchParams.set("status", "neq.cancelled");
+ * @mutate src/lib/browseShellCards.mjs |   u.searchParams.set("payment_status", "neq.abandoned"); |   u.searchParams.set("status", "neq.cancelled");
  * @mutate api/share.ts |       if (isBrowsePage(url)) return respond(withBrowseShell(page, await fetchBrowseShellRows()), BROWSE_SHELL_CDN_CACHE); |       if (isBrowsePage(url)) return respond(page, BROWSE_SHELL_CDN_CACHE);
  * @mutate api/share.ts |   return !!route && route.kind === "page" && route.id === "browse"; |   return !!route && route.kind === "page";
  * @mutate api/share.ts |     return shellRowsWhenSeedsHidden(Array.isArray(rows) ? rows : null, seedsHidden); |     return Array.isArray(rows) ? rows : null;
@@ -50,7 +50,7 @@ describe("/browse's raw HTML carries its first job cards", () => {
   });
   const get = (q: string) => handler.fetch(new Request(`https://www.louisianahelpr.com/api/share?${q}`));
 
-  it("reads the masked view, open jobs only, only the drawn columns, the feed's order", async () => {
+  it("reads the masked view with the guest feed's own filter, order and limit, only the drawn columns", async () => {
     mode = "ok";
     asked.length = 0;
     const res = await get("_og=page&_id=browse");
@@ -61,8 +61,11 @@ describe("/browse's raw HTML carries its first job cards", () => {
     expect(u.searchParams.get("select")).toBe(SHELL_JOB_COLUMNS);
     expect(SHELL_JOB_COLUMNS.split(",")).not.toEqual(expect.arrayContaining(["id"]));
     expect(SHELL_JOB_COLUMNS).not.toMatch(/description|latitude|longitude|customer_id|photos|\bid\b/);
-    expect(u.searchParams.get("status")).toBe("eq.open");
+    // The feed's own read (fetchGuestJobs): no status filter, so an empty answer means an empty feed (Q2705);
+    // only `open` rows become cards (browseShellCards.test.tsx).
+    expect([...u.searchParams.keys()].sort()).toEqual(["limit", "order", "payment_status", "select"]);
     expect(u.searchParams.get("payment_status")).toBe("neq.abandoned");
+    expect(u.searchParams.get("limit")).toBe("40");
     expect(u.searchParams.get("order")).toBe("boosted_at.desc.nullslast,created_at.desc");
     const html = await res.text();
     expect(html).toMatch(/<div\s+id="boot-loader"[^>]*><div id="lh-browse-shell"/);

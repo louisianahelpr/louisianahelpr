@@ -411,6 +411,12 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   // H8 (b): an at-home cleaning (frozen on its line) is taxed where the work is done: the buyer's address, kept
   // for this order only (service role; the shop reads it after accepting). Stripe gets only what the tax needs.
   const atHome = lines.some((l) => l.at_buyer === true);
+  // The frozen line is the truth (the early check above read live shop_items): at-home work takes no delivery.
+  if (atHome && fulfillment === "shop_delivers") {
+    const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: o.id });
+    if (closeErr) console.error(`[shop-checkout] order ${o.id} not closed after at-home work came with a delivery: ${closeErr.message}`);
+    return json({ error: "at_buyer_no_delivery" }, 409);
+  }
   let calcAddress: PickupTaxAddress = taxAddress;
   if (atHome) {
     if (!serviceAddress) {

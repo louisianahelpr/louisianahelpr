@@ -21,6 +21,7 @@ import { fetchAcceptsTrades, offerSwap, tradeableListings } from "@/lib/declutte
 import { tradesKey } from "./DeclutterTradeRules";
 import { focusSheetItself } from "./focusSheetItself";
 import { myItemsQuery } from "./myItemsQuery";
+import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 
 export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "id" | "title">; userId: string }) {
   const qc = useQueryClient();
@@ -56,7 +57,7 @@ export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "
           {mine.isError && <p role="alert" className="mt-3 text-sm text-destructive">{declutterErrorMessage(mine.error)}</p>}
           {mine.isSuccess && choices.length === 0 && (
             <p className="mt-3 text-ds-14" data-offer-trade-empty="">
-              You have no listings up to trade. <Link to="/declutter/sell" className="font-semibold underline underline-offset-2">List an item</Link> first.
+              You have no listings up to trade. <Link to={SELL_CHOOSER_PATH} className="font-semibold underline underline-offset-2">List an item</Link> first.
             </p>
           )}
           {choices.length > 0 && (

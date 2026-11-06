@@ -8,7 +8,7 @@
 import { DECLUTTER_ERROR_COPY as DC } from "./errors";
 
 /** Server codes only the trade RPCs raise. */
-export const TRADE_ERROR_COPY: Record<string, string> = {
+const TRADE_ERROR_COPY: Record<string, string> = {
   invalid_trade_rules: "Choose on or off.",
   free_item_no_trades: "Free items are claimed, not traded.",
   invalid_trade: "Pick one of your listings to offer.",
@@ -55,22 +55,6 @@ export const TRADE_RPC_ERROR_COPY = {
     own_item: DC.own_item,
     trade_already_open: TRADE_ERROR_COPY.trade_already_open,
     trade_rate_limited: TRADE_ERROR_COPY.trade_rate_limited,
-    trades_off: TRADE_ERROR_COPY.trades_off,
-  },
-  declutter_respond_swap: {
-    ...MEMBER,
-    free_item_no_trades: TRADE_ERROR_COPY.free_item_no_trades,
-    invalid_action: DC.invalid_action,
-    item_not_available: DC.item_not_available,
-    item_not_found: DC.item_not_found,
-    offered_item_not_available: TRADE_ERROR_COPY.offered_item_not_available,
-    offered_item_not_yours: TRADE_ERROR_COPY.offered_item_not_yours,
-    other_side_unavailable: DC.other_side_unavailable,
-    own_item: DC.own_item,
-    trade_expired: TRADE_ERROR_COPY.trade_expired,
-    trade_not_found: TRADE_ERROR_COPY.trade_not_found,
-    trade_not_open: TRADE_ERROR_COPY.trade_not_open,
-    offer_not_open: DC.offer_not_open,
     trades_off: TRADE_ERROR_COPY.trades_off,
   },
 } satisfies Record<string, Record<string, string>>;

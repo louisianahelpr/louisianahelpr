@@ -5,6 +5,7 @@ import { RoutedBoundary } from "@/components/RoutedBoundary";
 import { lazyWithPreload } from "@/lib/lazyWithPreload";
 import { whenPageSettled } from "@/lib/routePrefetch";
 import { SpeedInsightsRouted } from "@/components/SpeedInsightsRouted";
+import { HomeShellLeaves } from "@/components/landing/HomeShellLeaves";
 import { Analytics } from "@vercel/analytics/react";
 
 import QueryCacheHydrator from "@/components/QueryCacheHydrator";
@@ -583,6 +584,7 @@ const App = () => (
           </SignedInChrome>
           <Suspense fallback={null}><PermissionRationaleMount /></Suspense>
           </SidePanelProvider>
+          <HomeShellLeaves />
           <SpeedInsightsRouted />
         </OfflineBannerLayoutProvider>
         </AppLockGate>

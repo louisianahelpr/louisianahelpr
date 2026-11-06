@@ -8,7 +8,7 @@
  * @mutate src/lib/declutter/offersForAll.ts |  return items.filter((it) => (it.status === "live" \|\| it.status === "paused") && (it.accepts_offers !== false) !== on); |  return items.filter((it) => it.accepts_offers !== on);
  * @mutate src/lib/declutter/offersForAll.ts |        failed += 1; |        void err;
  * @mutate src/lib/declutter/sellerDefaults.ts |    acceptsOffers: r.accepts_offers !== false, |    acceptsOffers: true,
- * @mutate src/lib/declutter/sellerDefaults.ts |  let { error } = await upsert({ ...row, accepts_offers: d.acceptsOffers }); |  let { error } = await upsert(row);
+ * @mutate src/lib/declutter/sellerDefaults.ts |  let { error } = await upsert({ ...row, accepts_offers: d.acceptsOffers, ...trades }); |  let { error } = await upsert({ ...row, ...trades });
  * @mutate src/lib/declutter/sellerDefaults.ts |  if (noOffersColumn(error)) ({ error } = await upsert(row)); |  void noOffersColumn;
  * @mutate src/lib/declutter/sellerDefaults.ts |  if (noOffersColumn(res.error)) res = | if (false) res =
  */

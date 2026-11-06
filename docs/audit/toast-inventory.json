@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1168,
-    "files": 328,
-    "rendering": 1087,
+    "calls": 1172,
+    "files": 330,
+    "rendering": 1091,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 224,
-      "toast.error": 788,
+      "toast": 226,
+      "toast.error": 790,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 493,
+      "literal": 494,
       "template": 106,
-      "dynamic": 621,
+      "dynamic": 624,
       "jsx": 0
     }
   },
@@ -4968,7 +4968,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 124,
+      "line": 133,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -4978,7 +4978,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 127,
+      "line": 136,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4998,7 +4998,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 144,
+      "line": 153,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5023,7 +5023,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 147,
+      "line": 156,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5033,7 +5033,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterListingDefaults.tsx",
-      "line": 198,
+      "line": 207,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5043,7 +5043,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterManageListing.tsx",
-      "line": 83,
+      "line": 84,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -5053,7 +5053,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterManageListing.tsx",
-      "line": 87,
+      "line": 88,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5271,6 +5271,26 @@
     {
       "file": "src/components/declutter/DeclutterOfferRules.tsx",
       "line": 59,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterOfferTrade.tsx",
+      "line": 36,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Trade offer sent. The seller has 48 hours to answer."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterOfferTrade.tsx",
+      "line": 41,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5847,6 +5867,36 @@
     {
       "file": "src/components/declutter/DeclutterStillAvailable.tsx",
       "line": 40,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "declutterErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterTradeRules.tsx",
+      "line": 22,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "v ? \"Trades are on for this listing.\" : \"Trades are off. Open trade offers on it are closed.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Trades are on for this listing."
+          },
+          {
+            "form": "literal",
+            "text": "Trades are off. Open trade offers on it are closed."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/declutter/DeclutterTradeRules.tsx",
+      "line": 26,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7057,7 +7107,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 299,
+      "line": 300,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7067,7 +7117,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 304,
+      "line": 305,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7077,7 +7127,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 331,
+      "line": 332,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -7087,7 +7137,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 374,
+      "line": 375,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -7097,7 +7147,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 378,
+      "line": 379,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7107,7 +7157,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 394,
+      "line": 395,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7117,7 +7167,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 444,
+      "line": 445,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7127,7 +7177,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 477,
+      "line": 478,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -7137,7 +7187,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 490,
+      "line": 492,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -7146,7 +7196,7 @@
           "where": [
             {
               "form": "dynamic",
-              "text": "setting === \"keepUp\" ? 'You can turn on \"Keep it up\" from Manage listing.' : setting === \"offers\" ? \"You can turn offers off from Manage listing.\" : \"You can choose when it becomes free from Manage listing.\"",
+              "text": "setting === \"keepUp\" ? 'You can turn on \"Keep it up\" from Manage listing.' : setting === \"offers\" ? \"You can turn offers off from Manage listing.\" : setting === \"trades\" ? \"You can turn trades on from Manage listing.\" : \"You can choose when it becomes free from Manage listing.\"",
               "branches": [
                 {
                   "form": "literal",
@@ -7154,15 +7204,25 @@
                 },
                 {
                   "form": "dynamic",
-                  "text": "setting === \"offers\" ? \"You can turn offers off from Manage listing.\" : \"You can choose when it becomes free from Manage listing.\"",
+                  "text": "setting === \"offers\" ? \"You can turn offers off from Manage listing.\" : setting === \"trades\" ? \"You can turn trades on from Manage listing.\" : \"You can choose when it becomes free from Manage listing.\"",
                   "branches": [
                     {
                       "form": "literal",
                       "text": "You can turn offers off from Manage listing."
                     },
                     {
-                      "form": "literal",
-                      "text": "You can choose when it becomes free from Manage listing."
+                      "form": "dynamic",
+                      "text": "setting === \"trades\" ? \"You can turn trades on from Manage listing.\" : \"You can choose when it becomes free from Manage listing.\"",
+                      "branches": [
+                        {
+                          "form": "literal",
+                          "text": "You can turn trades on from Manage listing."
+                        },
+                        {
+                          "form": "literal",
+                          "text": "You can choose when it becomes free from Manage listing."
+                        }
+                      ]
                     }
                   ]
                 }
@@ -7175,7 +7235,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 499,
+      "line": 501,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -7185,7 +7245,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 550,
+      "line": 555,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -7195,7 +7255,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 554,
+      "line": 559,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -7215,7 +7275,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 559,
+      "line": 564,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -7225,7 +7285,7 @@
     },
     {
       "file": "src/components/declutter/useSellFlowState.ts",
-      "line": 565,
+      "line": 570,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -47,16 +47,6 @@ export async function offerSwap(itemId: string, offeredItemId: string): Promise<
   ) as string;
 }
 
-export type SwapAction = "accept" | "decline" | "withdraw";
-
-/** The seller accepts or declines; the buyer withdraws. */
-export async function respondSwap(swapId: string, action: SwapAction): Promise<string> {
-  return rpcData(
-    await supabase.rpc("declutter_respond_swap", { p_swap_id: swapId, p_action: action }),
-    (e) => rpcErrorMessage("declutter_respond_swap", e),
-  ) as string;
-}
-
 /** Which of the member's listings they can offer: live and priced (a free item is claimed, never traded). */
 export function tradeableListings<T extends { id: string; status: string; current_price_cents: number }>(
   mine: readonly T[],

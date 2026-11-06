@@ -7,10 +7,10 @@ import { forwardRef, type ButtonHTMLAttributes } from "react";
  * olive edge and ink. Classes are joined, not tailwind-merged, so the set is exactly the hand-made one. A forwardRef
  * with the props spread, so Radix's `PopoverTrigger asChild` can own it.
  */
-export const POPOVER_PILL_TRIGGER_CLS =
+const POPOVER_PILL_TRIGGER_CLS =
   "shrink-0 inline-flex items-center gap-1.5 rounded-ds-md h-11 px-3 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all";
 /** `compact`: Schedule's Upcoming filter pill, the same pill at 32 px and fully round (its hand-made look, kept). */
-export const POPOVER_PILL_TRIGGER_COMPACT_CLS =
+const POPOVER_PILL_TRIGGER_COMPACT_CLS =
   "shrink-0 inline-flex items-center gap-1.5 rounded-full h-8 px-3 text-ds-11 font-sans font-semibold active:scale-[0.96] transition-all";
 const OFF_STYLE = {
   background: "hsl(var(--ivory-sand) / 0.65)",

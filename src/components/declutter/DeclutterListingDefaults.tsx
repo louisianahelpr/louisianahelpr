@@ -26,6 +26,7 @@ import { KEEP_UP_TITLE, keepUpSettingLine } from "./KeepUpRow";
 import { SELLER_WAYS, SellWayTiles } from "./SellHandoverChoices";
 import { DROPS_SWITCH_LABEL } from "./sellForm";
 import { OffersForAllListings } from "./DeclutterOffersForAll";
+import { TRADES_TITLE, tradesSettingLine } from "@/lib/declutter/trades";
 
 
 /** The everyday choices; a saved share that is none of these (from a typed lowest price) is added so it stays selected. */
@@ -36,7 +37,7 @@ function floorOptions(current: number) {
 }
 
 const same = (a: SellerDefaults, b: SellerDefaults) =>
-  a.keepUp === b.keepUp && a.acceptsOffers === b.acceptsOffers && a.drops === b.drops && a.dropPct === b.dropPct && a.floorPct === b.floorPct && a.freeAfterDays === b.freeAfterDays
+  a.keepUp === b.keepUp && a.acceptsOffers === b.acceptsOffers && (a.acceptsTrades === true) === (b.acceptsTrades === true) && a.drops === b.drops && a.dropPct === b.dropPct && a.floorPct === b.floorPct && a.freeAfterDays === b.freeAfterDays
   && a.handovers.length === b.handovers.length && a.handovers.every((w) => b.handovers.includes(w));
 
 export function ListingDefaultsCard({ userId }: { userId: string }) {
@@ -78,6 +79,14 @@ export function ListingChoiceFields({ draft, change, idPrefix = "defaults" }: { 
           <span className="block text-ds-13 text-muted-foreground">{offersSettingLine(draft.acceptsOffers)}</span>
         </label>
         <Switch id={`${idPrefix}-offers`} checked={draft.acceptsOffers} onCheckedChange={(v) => change({ acceptsOffers: v === true })} />
+      </div>
+      {/* Declutter trades (owner 10-31): a new listing's "Open to trades", OFF unless the seller turns it on here. */}
+      <div className="flex items-start gap-3" data-trades-default="">
+        <label htmlFor={`${idPrefix}-trades`} className="min-w-0 flex-1">
+          <span className="block text-ds-15 font-semibold text-foreground">{TRADES_TITLE}</span>
+          <span className="block text-ds-13 text-muted-foreground">{tradesSettingLine(draft.acceptsTrades === true)}</span>
+        </label>
+        <Switch id={`${idPrefix}-trades`} checked={draft.acceptsTrades === true} onCheckedChange={(v) => change({ acceptsTrades: v === true })} />
       </div>
       <AutoFreeChoice days={draft.freeAfterDays} onChange={(days) => change({ freeAfterDays: days })} />
   </>);

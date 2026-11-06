@@ -52,6 +52,7 @@ import { ItemDeliveryRow } from "./SellerDeliverySettings";
 import { AutoFreeRow } from "./AutoFreeRow";
 import { ShipItRow } from "./ShipItRow";
 import { DeclutterOfferRules } from "./DeclutterOfferRules";
+import { DeclutterTradeRules } from "./DeclutterTradeRules";
 import { KeepUpRow } from "./KeepUpRow";
 import { FallbackImg } from "./FallbackImg";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
@@ -182,6 +183,8 @@ export function ManageListingSheet({
               </li>
               {/* Smart offers (owner 2026-10-29): Accept offers, Lowest you'll take (with Claude's suggestion), auto answers. */}
               <DeclutterOfferRules itemId={item.id} priceCents={item.current_price_cents} acceptsOffers={item.accepts_offers} floorCents={manage?.floor_price_cents ?? null} rowClassName={ROW} />
+              {/* Declutter trades (owner 10-31): this listing's own "Open to trades", beside Accept offers. */}
+              <DeclutterTradeRules itemId={item.id} rowClassName={ROW} />
               <ItemDeliveryRow itemId={item.id} rowClassName={ROW} />
               {/* OWN-FREE: make it free after Never/7/14/21/30 days if unsold (only while it is live or paused and still priced). */}
               <AutoFreeRow itemId={item.id} rowClassName={ROW} />

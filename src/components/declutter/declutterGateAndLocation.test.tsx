@@ -103,6 +103,11 @@ vi.mock("@/components/sections/SectionScreen", () => ({
   ),
 }));
 vi.mock("@/pages/info/NotFound", () => ({ default: () => <p>Page not found</p> }));
+// Declutter trades (20261106163703): the listing's "Open to trades" read is the trade module's; off here.
+vi.mock("@/lib/declutter/trades", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/trades")>()),
+  fetchAcceptsTrades: async () => false,
+}));
 vi.mock("@/lib/declutter/api", () => ({
   fetchHasAgreedSales: async () => false,
   // The Buying / Selling badges (DeclutterHome reads them with the tab row).

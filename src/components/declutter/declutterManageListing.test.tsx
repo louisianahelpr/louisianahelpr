@@ -45,6 +45,11 @@ const dropPct = vi.hoisted(() => ({ value: 5 }));
 // The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
 vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({ ...(await orig<object>()), fetchMyPorchPlaces: async () => [], fetchSellerPorchPlaces: async () => [], fetchOrderPorchPlace: async () => null }));
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
+// Declutter trades (20261106163703): the listing's "Open to trades" read is the trade module's; off here.
+vi.mock("@/lib/declutter/trades", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/trades")>()),
+  fetchAcceptsTrades: async () => false,
+}));
 vi.mock("@/lib/declutter/api", () => ({
   // Records that the manage-state read RESOLVED, so a test can wait for the data before asserting an absence.
   fetchManageState: async () => { const r = deployed ? manage : "not_deployed"; stateReads.n++; return r; },

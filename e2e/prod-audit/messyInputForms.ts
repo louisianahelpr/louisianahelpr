@@ -441,7 +441,7 @@ export const FORMS: FormSpec[] = [
   // dashboard-search left 2026-10-28: Jobs > Browse's phone search became an icon at the tabs row's end that opens
   // in place (owner: "search and filter should be next to gear"), InlineListSearch, a decided gap below (it writes
   // nothing: it filters the loaded feed).
-  { name: "messages-list", url: "/messages", as: "helper", prepare: openSearch, covers: ["src/components/messages/ConversationList.tsx"] },
+  { name: "messages-list", url: "/messages", as: "helper", prepare: openSearch, covers: ["src/components/messages/ConversationList.tsx", "src/components/messages/MessagesSearchRow.tsx"] },
   // Board 89: /search, the one search across the sections (its field is always open).
   { name: "search-page", url: "/search", as: "helper", prepare: openSearch, covers: ["src/pages/search/SearchPage.tsx"] },
   // Q2437: Find a Helpr's town box (find_helprs matches it literally and refuses over 60 characters).

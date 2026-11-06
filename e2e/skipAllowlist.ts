@@ -69,7 +69,7 @@ export const SKIP_ALLOWLIST: SkipEntry[] = [
     file: "e2e/prod-audit/expanding-search-geometry.spec.ts",
     match: "does not render at",
     verdict: "justified",
-    why: "the surface declares a minWidth and is not rendered below it at all; there is no field to measure at that viewport",
+    why: "the surface declares a minWidth (or a minWidth-maxWidth band, run at 1024 alone) and is not rendered outside it at all; there is no field to measure at that viewport",
   },
   {
     file: "e2e/prod-audit/search-x-off-center-press.spec.ts",

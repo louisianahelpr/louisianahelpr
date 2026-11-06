@@ -180,6 +180,18 @@
       "function": "public.declutter_create_item",
       "code": "area_looks_like_address",
       "reason": "Not dropped, MOVED: declutter_create_item is now a wrapper (switch, ban and member gates restated) that returns public.declutter_create_item_with_id(gen_random_uuid(), ...) (LEAD-POST-SLOW a), and declutter_create_item_with_id in the same migration raises 'area_looks_like_address' on the same condition."
+    },
+    {
+      "migration": "20261105235833_shops_every_category_sells.sql",
+      "function": "public.shops_check_item_fields",
+      "code": "rental_not_available",
+      "reason": "Shops H8 (owner 11-05, answer 1: every category sells, services and rentals with a price): renting things out is no longer refused, so the reserved rental_not_available refusal is removed on purpose. Off-list kinds are still refused (invalid_kind), and the rentals calendar, deposits and inflatables stay NOT-LAUNCHED Q1949 (an inflatable rental is sent to an admin by shop_item_text_flag). Proof: src/test/pglite/shopsEveryCategorySells.pglite.mjs."
+    },
+    {
+      "migration": "20261105235833_shops_every_category_sells.sql",
+      "function": "public.shops_publish_item",
+      "code": "rental_not_available",
+      "reason": "Shops H8 (owner 11-05, answer 1: every category sells, services and rentals with a price): renting things out is no longer refused, so the reserved rental_not_available refusal is removed on purpose. Off-list kinds are still refused (invalid_kind), and the rentals calendar, deposits and inflatables stay NOT-LAUNCHED Q1949 (an inflatable rental is sent to an admin by shop_item_text_flag). Proof: src/test/pglite/shopsEveryCategorySells.pglite.mjs."
     }
   ]
 }

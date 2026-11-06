@@ -4,6 +4,7 @@ import { formatExactDollars } from "../../_shared/money.ts";
 import { caughtMessage } from "../../_shared/caughtMessage.ts";
 import { anyIsTestSubject } from "./_testSubject.ts";
 import { JOB_TAX_BACK_KEY } from "../../_shared/jobTaxAddress.ts";
+import { SHOP_UNPAID_CLOSE_TAX_REV_KEY } from "../../_shared/shopBalance.ts";
 
 /**
  * Whether the visit this PaymentIntent paid is test data: its series job is
@@ -223,6 +224,13 @@ export async function reverseVisitTaxForRefund(args: {
   // shares below are figured on the transaction as committed, so a refund of that capture would also reverse tax
   // that was already reversed (tax under-reported). Never figured here: each refund not yet reversed pages for a
   // person, who reverses only the kept tax that refund returns.
+  // Shops custom orders slice 2b: an order that closed with the rest unpaid had its WHOLE transaction reversed
+  // (shopBalance.ts settleUnpaidCloseTax, stamped before the deposit-tax refund is queued). Nothing is left to
+  // reverse, so no refund on that charge reverses again (a second reversal would be refused, or under-report).
+  if (piMeta[SHOP_UNPAID_CLOSE_TAX_REV_KEY]) {
+    logStep("Shops order's tax was reversed in full when it closed unpaid; nothing more to reverse", { txId, piId });
+    return "reversed";
+  }
   if (piMeta.tax_rev_uncaptured) {
     const pending = refunds.filter((r) => !piMeta[taxReversalMetadataKey(r.id)]);
     if (pending.length === 0) return "reversed";

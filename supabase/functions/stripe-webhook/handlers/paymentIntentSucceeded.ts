@@ -7,6 +7,7 @@ import { commitJobSiteTax } from "./_jobTaxCommit.ts";
 import { anyIsTestSubject, isTestModeOrphan } from "./_testSubject.ts";
 import { JOB_TAX_CALC_KEY, JOB_TAX_CENTS_KEY } from "../../_shared/jobTaxAddress.ts";
 import { recordPartialCaptureTax } from "../../_shared/salesTaxAdjustment.ts";
+import { recordShopBalance, SHOP_BALANCE_KIND } from "../../_shared/shopBalance.ts";
 
 /**
  * Q1975: the setup fee on a bank (ACH) checkout is settled HERE, when the
@@ -119,6 +120,22 @@ export async function handlePaymentIntentSucceeded(
   const { stripe, supabase, logStep } = ctx;
   const pi = event.data.object as Stripe.PaymentIntent;
   logStep("Payment intent succeeded", { id: pi.id, amount: pi.amount });
+
+  // Custom orders slice 2b: the rest of a 50% deposit order (off-session from declutter-money / the shop's tap, or the
+  // buyer's pay-the-rest page). Recorded once by shop_balance_paid (idempotent); a payment the order no longer owes is
+  // refunded in full. Untaxed here (the order's tax committed in full at the deposit capture), never a job. THROWS on
+  // a failed write so Stripe redelivers.
+  const piMeta = (pi.metadata ?? {}) as Record<string, string>;
+  if (piMeta.kind === SHOP_BALANCE_KIND) {
+    if (!piMeta.order_id) {
+      logStep("Shop rest payment with no order id; ignored", { id: pi.id });
+      return;
+    }
+    const full = await stripe.paymentIntents.retrieve(pi.id, { expand: ["latest_charge.balance_transaction"] });
+    const done = await recordShopBalance(stripe, supabase, piMeta.order_id, full);
+    logStep("Shop rest payment recorded", { order: piMeta.order_id, pi: pi.id, done });
+    return;
+  }
 
   // Record the confirmed sales tax amount on the job.
   // Stripe Tax writes the final collected tax on the PaymentIntent at

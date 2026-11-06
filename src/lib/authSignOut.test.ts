@@ -101,6 +101,8 @@ describe("signOutWithPushCleanup", () => {
     disk.set("lh-bunch-v1", { userId: "u1", savedAt: Date.now(), photos: [] });
     disk.set("lh-bunch-v1-photo:p2", new Blob(["y"]));
     disk.set("someone-elses-key", 1);
+    // Inventory floor: the 5 keys seeded above are in the store before sign-out (an empty store would pass vacuously).
+    expect(disk.size).toBeGreaterThan(4);
     const { signOutWithPushCleanup } = await import("./authSignOut");
     await signOutWithPushCleanup();
     expect([...disk.keys()]).toEqual(["someone-elses-key"]);

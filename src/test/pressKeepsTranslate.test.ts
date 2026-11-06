@@ -190,7 +190,6 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
     // fails here until it is reviewed; a removed one fails too.
     expect([...files].sort()).toEqual([
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
-      "src/components/messages/ConversationList.tsx",
       "src/components/profile/SavedHelpersTab.tsx",
     ]);
     // 11 since 2026-10-19 (Q2205): PostsHeader / JobsHeader's Xs left with the old My Posts / My Jobs pages.
@@ -203,7 +202,8 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
     // holds its -translate-y-1/2, so the button's btn-press never meets the translate.
     // 3 since 2026-11-06: the five admin search clear-Xs are the shared FieldClearButton (Q2709); its press class is
     // btn-press only (src/test/fieldClearButtonShared.test.tsx), whose :active rule keeps the translate (cases above).
-    expect(xs.length).toBe(3);
+    // 2 since 2026-11-06: Messages' search ✕ is the shared FieldClearButton too.
+    expect(xs.length).toBe(2);
 
     // Any class on these Xs that has an :active transform rule anywhere in
     // src CSS was checked translate-safe above, so the class is covered. What
@@ -221,6 +221,6 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
     // JobsHeader, four until Legal's became the shared Button — and six admin) are the
     // ones that press; ChatView's dismiss has no press feedback, so it has no :active
     // transform to lose its centring to.
-    expect(xs.filter((x) => x.className.split(/\s+/).some((c) => covered.has(c))).length).toBe(3); // 2026-11-06: 3 (the five admin Xs are the shared FieldClearButton); 2026-11-04: 8, AdminSubscriptions retired
+    expect(xs.filter((x) => x.className.split(/\s+/).some((c) => covered.has(c))).length).toBe(2); // 2026-11-06: 2 (Messages' ✕ too); 3 (the five admin Xs are the shared FieldClearButton); 2026-11-04: 8, AdminSubscriptions retired
   });
 });

@@ -201,6 +201,7 @@ const EXPECTED_CALLERS = [
   // owner (order terms, request order).
   "rpc_hire_target_by_handle", // B113 Hire me (20261104143437): are_users_blocked(v_me := auth.uid(), v_target)
   "shops_accept_order",
+  "shops_my_order_buyer_names",
   // Q1947 (20261105225245): open_order_talk passes (the order's buyer, the shop's owner) only after refusing a caller
   // who is neither (order_not_found), so the caller is always one of the two.
   "shops_open_order_talk",

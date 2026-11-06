@@ -2,7 +2,7 @@ import { ShopsGate } from "@/components/shops/shopsUi";
 import ShopMyOrdersView from "@/components/shops/ShopMyOrdersView";
 import AppPage from "@/components/AppPage";
 
-/** The 404 unless the hidden 'shops' switch is on (ShopsGate). */
+/** "Opens soon" unless the hidden 'shops' switch is on (ShopsGate, Q2005). */
 export default function ShopOrdersPage() {
   return (
     <ShopsGate title="My orders" backTo="/shops">

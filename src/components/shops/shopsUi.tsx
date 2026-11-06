@@ -13,7 +13,8 @@ import AppPage from "@/components/AppPage";
 import { useFeature } from "@/hooks/useFeature";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { featureSwitchSettled } from "@/lib/featureSwitchQuery";
-import NotFound from "@/pages/info/NotFound";
+import { BrowseEmptyState } from "@/components/ui/BrowseEmptyState";
+import { SectionScreen } from "@/components/sections/SectionScreen";
 import { fetchShopCategories, type ShopBadges, type ShopCategory } from "@/lib/shops/api";
 
 export const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -109,8 +110,9 @@ export function ShopsNotice({ title, children, tone = "info" }: { title: string;
  * Renders Shops only when the hidden 'shops' switch is on for this member.
  * While the server's answer loads it renders the page's real AppPage header
  * (same title and back link) with a screen-reader status and no bones (the
- * Rentals/Quotes loading-frame pattern); a settled "off" is the 404, exactly
- * as if the route did not exist. Never the protection: every RPC refuses too.
+ * Rentals/Quotes loading-frame pattern). A settled "off" is "Opens soon" in
+ * the shared Browse empty state (Q2005: an old or shared link never lands on
+ * a bare 404). Never the protection: every RPC refuses too.
  */
 export function ShopsGate({ children, title, backTo, skeleton }: { children: ReactNode; title: string; backTo?: string; skeleton?: ReactNode }) {
   const enabled = useFeature("shops");
@@ -118,12 +120,46 @@ export function ShopsGate({ children, title, backTo, skeleton }: { children: Rea
   const qc = useQueryClient();
   if (enabled) return <>{children}</>;
   const settled = isReady && (!user || featureSwitchSettled(qc, "shops", user.id));
-  if (settled) return <NotFound />;
+  if (settled) return <ShopsOpensSoon title={title} backTo={backTo} sectionRoot={!!skeleton} />;
   // A section's own root (/shops) passes its section frame: a sub-screen's AppPage draws a back arrow there.
   if (skeleton) return <>{skeleton}</>;
   return (
     <AppPage title={title} backTo={backTo}>
       <p className="sr-only" role="status">Loading</p>
+    </AppPage>
+  );
+}
+
+/** The words a member sees while Shops has not opened to them (Q2005). */
+export const SHOPS_OPENS_SOON_BODY = "Local shops open here soon. Until then, hire help in Jobs or buy and sell in Declutter.";
+
+/**
+ * Q2005: Shops is still switched off for this member. The section's own root (/shops) keeps its section frame; a
+ * sub-screen keeps its AppPage title and back link. Both show the one shared Browse empty state, in its one spot.
+ */
+function ShopsOpensSoon({ title, backTo, sectionRoot }: { title: string; backTo?: string; sectionRoot: boolean }) {
+  const empty = (
+    <BrowseEmptyState
+      icon={Store}
+      title="Opens soon"
+      body={SHOPS_OPENS_SOON_BODY}
+      action={
+        <Button asChild variant="outline" size="sm">
+          <Link to="/home">Go home</Link>
+        </Button>
+      }
+    />
+  );
+  if (sectionRoot) {
+    return (
+      <SectionScreen section="shops" title="Shops" globalSearch={false}>
+        {empty}
+      </SectionScreen>
+    );
+  }
+  return (
+    <AppPage title={title} backTo={backTo}>
+      {empty}
     </AppPage>
   );
 }

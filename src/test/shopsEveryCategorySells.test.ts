@@ -28,7 +28,8 @@ const SELL = "('made', 'home_food', 'farm', 'service', 'rental')";
 describe("Shops H8: every category sells (services and rentals, with a price)", () => {
   it("reads the newest definitions, and they are this migration's (floor)", () => {
     for (const fn of ["shops_check_item_fields", "shops_publish_item", "shops_request_order", "shop_item_required_statements", "shop_item_text_flag"]) {
-      expect(DEFS.get(fn)?.file, fn).toBe(MIG);
+      // A floor: a later migration may restate one (shops_request_order: 20261106165310 variants).
+      expect((DEFS.get(fn)?.file ?? "") >= MIG, fn).toBe(true);
       expect(flat(fn).length, fn).toBeGreaterThan(200);
     }
   });

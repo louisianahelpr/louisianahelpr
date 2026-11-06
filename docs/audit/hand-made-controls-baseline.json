@@ -212,9 +212,6 @@
     "src/components/declutter/DeclutterBunchView.tsx": {
       "input": 1
     },
-    "src/components/declutter/DeclutterEditListing.tsx": {
-      "input": 1
-    },
     "src/components/declutter/DeclutterFilterPanel.tsx": {
       "input": 1
     },
@@ -254,9 +251,6 @@
     "src/components/declutter/DeclutterSellSteps.tsx": {
       "button": 1
     },
-    "src/components/declutter/DeclutterSellView.tsx": {
-      "input": 1
-    },
     "src/components/declutter/DeclutterTradeViews.tsx": {
       "input": 1
     },
@@ -274,9 +268,6 @@
     },
     "src/components/declutter/SellFormParts.tsx": {
       "input": 2
-    },
-    "src/components/declutter/SellSummaryCard.tsx": {
-      "input": 1
     },
     "src/components/firstRun/FirstRun.tsx": {
       "button": 1

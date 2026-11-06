@@ -31,6 +31,7 @@ import { MAX_PHOTOS, SellPhotos } from "./DeclutterSellPhotos";
 import { FieldLabel, SELL_INPUT } from "./SellFormParts";
 import { SellHandoverChoices } from "./SellHandoverChoices";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
 /** What the seller is told after saving (item B: only a failed automatic check holds a listing). */
 export const EDIT_SAVED = {
@@ -114,7 +115,7 @@ export function DeclutterEditListing({ item, onDone }: { item: DeclutterItem; on
       </div>
       <div className="space-y-2">
         <FieldLabel htmlFor="edit-title" text="Title" />
-        <input id="edit-title" className={SELL_INPUT} value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} />
+        <Input look="card" id="edit-title" value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} />
       </div>
       <div className="space-y-2">
         <FieldLabel htmlFor="edit-description" text="Description" />

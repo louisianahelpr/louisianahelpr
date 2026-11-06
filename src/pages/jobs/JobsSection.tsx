@@ -17,6 +17,8 @@ import { lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from
 import { Navigate, useSearchParams } from "react-router-dom";
 import Dashboard from "@/pages/home/Dashboard";
 import { JobsListLoadingFrame } from "@/components/JobsSectionSkeleton";
+import { removeShellOncePainted } from "@/components/landing/landingShell";
+import { JOBS_SHELL_ID } from "@/components/landing/homeShell";
 import { manageLinkOpensJobPage } from "@/components/job-card/useManageDeepLink";
 import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
 import { AppTopBar, SectionSettingsButton } from "@/components/sections/AppTopBar";
@@ -67,6 +69,8 @@ const JobsSection = () => {
   // Browse warms the lists' chunk once the page has settled (prefetchRoutesWhenIdle waits for it, skips Save-Data).
   const onBrowse = tab === "browse";
   useEffect(() => (onBrowse ? prefetchRoutesWhenIdle([JOB_LISTS_PREFETCH_KEY]) : undefined), [onBrowse]);
+  // Q2705 B: index.html drew this section's skeleton first (#lh-jobs-shell); take it away once this is painted.
+  useEffect(() => removeShellOncePainted(JOBS_SHELL_ID), []);
   const { t: tr } = useLanguage();
 
   const onTab = useCallback(

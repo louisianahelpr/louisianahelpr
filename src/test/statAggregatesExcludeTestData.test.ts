@@ -165,6 +165,7 @@ const ALLOWED: Record<string, string> = {
   rentals_remove_listing_photo: VALID,
   rentals_rent_ledger: MONEY,
   rentals_rent_sweep: MONEY,
+  rentals_send_talk_message: LIMIT,
   rentals_set_listing_status: VALID,
   rentals_set_saved_home: LIMIT,
   report_helper_no_show: LADDER,

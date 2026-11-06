@@ -6,6 +6,7 @@ import { TAB_TITLES } from "@/pages/profile/types";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { JOBS_ONLY_PAYOUT_LINE } from "@/components/payouts/payoutSourcesLine";
 import { PAYOUT_SETUP_NEEDS_HIRE_COPY } from "@/lib/payoutSetupPaused";
+import { MoneyTilesLoading } from "@/pages/home/homeDashboard/MoneyTilesLoading";
 
 /**
  * ONE skeleton for the Money tab (VN-3, owner 2026-09-15: "One skeleton.
@@ -42,6 +43,8 @@ export function EarningsPageSkeleton({ withHeader = true }: { withHeader?: boole
           <ProfileTabHeader title={TAB_TITLES.earnings} />
         </>
       )}
+      {/* The money tile's loading frame (HomeMoneyTiles), the first thing EarningsTab draws under the header. */}
+      {withHeader && <MoneyTilesLoading />}
       {payoutSetup && <EarningsPayoutSetupSkeleton />}
       {/* The Earned | Spent switcher's slot (its measured 50px). The in-tab
           wait draws the REAL switcher, which needs no data. */}
@@ -111,23 +114,53 @@ function GhostLine({ className, style, children }: { className?: string; style?:
  * card is gone). Whether it comes is known only from the data, so its bone
  * would be wrong for every account that has no activity.
  */
-/** WalletCard's shape (Available + Pending side by side, the action row). A
- *  connected Helpr's Earned half opens on it; it also holds the wallet's own
- *  slot while Stripe answers (the page itself never waits for Stripe). */
-export function EarningsWalletBones({ testId = "earnings-wallet-loading" }: { testId?: string }) {
+/** WalletCard's shape, in WalletCard's own markup: the title row (its 44px refresh button), Available + Pending side
+ *  by side, each with its amount and its line. A connected Helpr's Earned half opens on it; it also holds the
+ *  wallet's own slot while Stripe answers (the page itself never waits for Stripe).
+ *  Q2708 (11-06): the old bones (two bars and an action row WalletCard has not drawn since instant payouts went
+ *  behind memberships) were 130px against the card's 170px at 375, so the page under it jumped 40px when Stripe
+ *  answered (live CLS step 0.0579). The ghost lines carry WalletCard's own classes; the Available line is the
+ *  "on its way" sentence's shape (two lines at 375), which the measured live account shows. Guard:
+ *  src/test/walletBonesMatchWalletCard.test.ts. */
+/** GhostLine's paint for the wallet bones' lines. Not GhostLine: those are fixed copy the real card prints verbatim
+ *  (earningsPayoutSetupSkeleton.test.tsx); these hold data's shape ("$000.00", the "on its way" sentence), pinned to
+ *  WalletCard by src/test/walletBonesMatchWalletCard.test.ts. */
+function WalletGhost({ className, style, children }: { className?: string; style?: CSSProperties; children: string }) {
   return (
-    <div data-testid={testId} className="rounded-2xl liquid-glass p-card space-y-3">
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <Skeleton className="h-3 w-20 rounded" />
-          <Skeleton className="h-7 w-24 rounded" />
+    <p className={className} style={style}>
+      <span
+        className="text-transparent select-none rounded [box-decoration-break:clone] [-webkit-box-decoration-break:clone]"
+        style={{ background: "hsl(var(--olivewood) / 0.10)" }}
+      >
+        {children}
+      </span>
+    </p>
+  );
+}
+
+export function EarningsWalletBones({ testId = "earnings-wallet-loading" }: { testId?: string }) {
+  const amount = "font-sans font-bold tabular-nums leading-none text-ds-28";
+  return (
+    <div data-testid={testId} aria-hidden className="rounded-2xl liquid-glass p-card">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2.5">
+          <Skeleton className="w-9 h-9 rounded-full shrink-0" />
+          <WalletGhost className="font-display font-bold leading-tight text-ds-17">Wallet</WalletGhost>
         </div>
-        <div className="space-y-2">
-          <Skeleton className="h-3 w-20 rounded" />
-          <Skeleton className="h-7 w-24 rounded" />
+        <div className="h-11 w-11" />
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <div className="flex items-center gap-1.5 mb-1"><Skeleton className="w-3 h-3 rounded-sm" /></div>
+          <WalletGhost className={amount} style={{ letterSpacing: "-0.02em" }}>$000.00</WalletGhost>
+          <WalletGhost className="font-sans mt-1 text-ds-12">on its way · reaches your bank Mon, Nov 9</WalletGhost>
+        </div>
+        <div className="border-l border-border/40 pl-4">
+          <div className="flex items-center gap-1.5 mb-1"><Skeleton className="w-3 h-3 rounded-sm" /></div>
+          <WalletGhost className={amount} style={{ letterSpacing: "-0.02em" }}>$00.00</WalletGhost>
+          <WalletGhost className="font-sans mt-1 text-ds-12">clearing soon</WalletGhost>
         </div>
       </div>
-      <Skeleton className="h-9 w-full rounded-md" />
     </div>
   );
 }

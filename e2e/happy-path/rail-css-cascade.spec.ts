@@ -32,6 +32,8 @@ const PROBE = "/__rail-css-probe";
 const NO_SCRIPTS = { "Content-Security-Policy": "script-src 'none'" };
 
 test("the rail's own classes read from the component (the parser works)", () => {
+  // Floor (vacuity class a): the class list read from the component is not empty (measured 2026-11-06: 59 chars).
+  expect(`${RAIL_CLASSES ?? ""}`.length).toBeGreaterThan(20);
   expect(RAIL_CLASSES).toMatch(/\bhidden\b/);
   expect(RAIL_CLASSES).toMatch(/\blg:flex\b/);
   expect(LG).toBeGreaterThan(0);

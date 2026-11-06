@@ -333,6 +333,13 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/stripeCustomer.ts";`,
   );
 
+  // Q1816: `_shared/savedCardLimit.ts` has ZERO imports (the payment-method
+  // limit retry and its 409), so the REAL module serves.
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/savedCardLimit\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/savedCardLimit.ts";`,
+  );
+
   // A raised delivery's payout parts (Q1929): `_shared/helprPayoutParts.ts` has
   // ZERO imports (pure arithmetic), so the REAL module serves.
   out = out.replace(

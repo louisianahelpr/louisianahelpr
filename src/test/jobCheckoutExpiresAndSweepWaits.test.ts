@@ -62,8 +62,9 @@ describe("Q770: job checkouts carry a short, idempotency-safe expires_at", () =>
 
   it.each(found.map((f, i) => [i, f] as const))("job checkout #%i sets expires_at and keys on its bucket", (_i, f) => {
     expect(f.block).toMatch(/expires_at:\s*checkoutExpiresAt/);
-    // Q2140: a wallet-replaced retry adds ":new-wallet" after the bucket (its params changed).
-    expect(f.block).toMatch(/idempotencyKey:\s*`[^`]*\$\{checkoutKeySuffix\}(\$\{walletRetry \? ":new-wallet" : ""\})?`/);
+    // Q2140: a wallet-replaced retry adds ":new-wallet" after the bucket (its params changed). Q1816: the
+    // save-off retry at Stripe's payment-method limit adds ":nosave" after that (its params changed too).
+    expect(f.block).toMatch(/idempotencyKey:\s*`[^`]*\$\{checkoutKeySuffix\}(\$\{walletRetry \? ":new-wallet" : ""\})?(\$\{\w+ === [^}]+ \? "" : ":nosave"\})?`/);
   });
 
   it("the expiry is bucketed and inside Stripe's 30 min..24h window", () => {

@@ -1,7 +1,7 @@
 /**
  * Q2005 (NOT-LAUNCHED Shops; audit 11-05 M16): while Shops is switched off for a member, every Shops route shows
  * "Opens soon" in the shared Browse empty state, never the bare 404 (old links, shared links). /shops keeps its
- * section frame; a sub-screen keeps its own title. The 404 page also files a "non-existent route" error report,
+ * section frame; a sub-screen keeps its own title. The not-found page also files a "non-existent route" error report,
  * which an old Shops link must never do.
  *
  * @mutate src/components/shops/shopsUi.tsx |   if (settled) return <ShopsOpensSoon title={title} backTo={backTo} sectionRoot={!!skeleton} />; |   if (settled) return null;

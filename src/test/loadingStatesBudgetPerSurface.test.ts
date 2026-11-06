@@ -4,7 +4,7 @@
  *
  * measure-loading-states.mjs never set the meter's `tests`, so request-budget.mjs
  * read perTest as the WHOLE RUN's total. That total grows with the surface
- * list (139 surfaces on 10-01, 232 on 11-05), so the 2116 budget went red at
+ * list (139 surfaces on 2026-10-01, 232 on 2026-11-05), so the 2116 budget went red at
  * 3375 while requests per surface FELL (2099/139 = 15.1 -> 3375/232 = 14.5).
  * Now `tests` = surfaces measured, and the budget is 15.1 per surface: a list
  * that grows passes, a real per-surface rise still fails, both ways.
@@ -25,7 +25,7 @@ const budget = budgetFor(budgets, "loading-states");
 
 /** One run's sample, as the meter flushes it. */
 const run = (total: number, tests: number) =>
-  aggregate([{ label: "loading-states", total, byClass: {}, signIns: 0, duplicates: 0, tests, minutes: { m: 1 }, topDuplicates: {} }])["loading-states"];
+  aggregate([{ label: "loading-states", total, byClass: {}, signIns: 0, duplicates: 0, tests, minutes: { m: 1 }, topDuplicates: {}, startedAt: 0, endedAt: 0 }])["loading-states"];
 
 // The three measured runs (requests summed from measurements.json; each run's
 // per-surface `requests` sums to its meter total exactly).
@@ -61,7 +61,7 @@ describe("loading-states request budget is requests per surface", () => {
   });
 
   it("a real per-surface rise goes red, and so does a stale budget", () => {
-    // +1 request on every one of today's 232 surfaces: 15.5 per surface.
+    // +1 request on every one of the 232 surfaces measured 2026-11-05: 15.5 per surface.
     const over = judge(run(3375 + 232, 232), budget).failures;
     expect(over.join("\n")).toMatch(/perTest 15\.5 is over its budget 15\.1/);
     // Under half (7.55): the budget is stale and must be lowered.

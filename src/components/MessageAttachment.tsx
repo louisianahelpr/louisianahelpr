@@ -1,3 +1,4 @@
+import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { FileText, ExternalLink, Loader2, X, Play, Pause } from "lucide-react";
@@ -114,12 +115,11 @@ function AudioPlayer({
       )}
 
       {/* Play / Pause button */}
-      <button
-        type="button"
+      <RoundIconButton
+        size="sm"
         aria-label={playing ? "Pause voice note" : "Play voice note"}
         onClick={togglePlay}
         disabled={loading || !audioUrl}
-        className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90"
         style={{
           background: fgColor,
           opacity: loading ? 0.5 : 1,
@@ -141,7 +141,7 @@ function AudioPlayer({
             style={{ color: mine ? "hsl(var(--bark))" : "hsl(var(--parchment))" }}
           />
         )}
-      </button>
+      </RoundIconButton>
 
       {/* Progress track + time */}
       <div className="flex-1 flex flex-col gap-1 min-w-0">

@@ -25,6 +25,7 @@ import {
 import { AttachSourceSheet } from "@/components/richMessageInput/AttachSourceSheet";
 import { ViolationDialog } from "@/components/richMessageInput/ViolationDialog";
 import type { SendAttachment, RichMessageInputProps } from "@/components/richMessageInput/types";
+import { RoundIconButton } from "@/components/ui/RoundIconButton";
 
 export type { SendAttachment } from "@/components/richMessageInput/types";
 
@@ -400,37 +401,31 @@ export const RichMessageInput = ({
               : `Voice note — ${recorder.duration}s`}
           </span>
           {/* Discard */}
-          <button
-            type="button"
+          <RoundIconButton
             aria-label={t("chat.discardVoice")}
             onClick={handleVoiceNoteDiscard}
-            className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90"
             style={{ background: "hsl(var(--olivewood) / 0.10)", color: "hsl(var(--olivewood))" }}
           >
             <X className="w-4 h-4" />
-          </button>
+          </RoundIconButton>
           {/* Stop (while recording) or Send (when stopped) */}
           {recorder.state === "recording" ? (
-            <button
-              type="button"
+            <RoundIconButton
               aria-label={t("chat.stopRecording")}
               onClick={() => { hapticLight(); recorder.stop(); }}
-              className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90"
               style={{ background: "hsl(var(--burnt-sienna))", color: "white" }}
             >
               <Square className="w-3.5 h-3.5 fill-current" />
-            </button>
+            </RoundIconButton>
           ) : (
-            <button
-              type="button"
+            <RoundIconButton
               aria-label={t("chat.sendVoice")}
               onClick={() => void handleVoiceNoteRecord()}
               disabled={uploading}
-              className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90"
               style={{ background: "hsl(var(--bark))", color: "hsl(var(--parchment))" }}
             >
               {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-            </button>
+            </RoundIconButton>
           )}
         </div>
       )}

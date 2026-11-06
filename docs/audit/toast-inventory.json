@@ -875,7 +875,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 99,
+      "line": 100,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -885,7 +885,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 103,
+      "line": 104,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -895,7 +895,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 128,
+      "line": 129,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -905,7 +905,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 136,
+      "line": 137,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -915,7 +915,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 156,
+      "line": 157,
       "kind": "toast.error",
       "title": {
         "form": "template",
@@ -925,7 +925,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 192,
+      "line": 193,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -935,7 +935,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 208,
+      "line": 209,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -945,7 +945,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 223,
+      "line": 224,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -955,7 +955,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 230,
+      "line": 231,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -965,7 +965,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 246,
+      "line": 247,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -975,7 +975,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 271,
+      "line": 272,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -985,7 +985,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 283,
+      "line": 284,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -995,7 +995,7 @@
     },
     {
       "file": "src/components/RichMessageInput.tsx",
-      "line": 337,
+      "line": 338,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

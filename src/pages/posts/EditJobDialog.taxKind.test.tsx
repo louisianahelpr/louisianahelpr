@@ -9,6 +9,7 @@
  *
  * @mutate src/pages/posts/EditJobDialog.tsx |       ...(!asksTaxKind(category) && ((job as { tax_kind?: string \| null }).tax_kind ?? null) != null ? { tax_kind: null } : {}), |
  * @mutate src/pages/posts/EditJobDialog.tsx | isLaborTaxable(value, asksTaxKind(value) ? jobTaxKind : null) | isLaborTaxable(value, jobTaxKind)
+ * @mutate src/pages/posts/EditJobDialog.tsx | job.helper_id ? { require_photo_proof: requirePhotoProof } : updateData | updateData
  */
 import { describe, it, expect, vi } from "vitest";
 import { createContext, useContext, type ReactNode } from "react";
@@ -77,6 +78,18 @@ describe("Edit job never keeps a stale taxed-kind answer (owner 11-06)", () => {
     // A job with no answer has nothing to clear.
     const none = await saveAfterPicking("yard_work", job({ tax_kind: null }));
     expect(none).not.toHaveProperty("tax_kind");
+  });
+
+  it("a BOOKED job never sends tax_kind: picking Yard work and saving sends only the photo-proof switch", async () => {
+    writes.length = 0;
+    render(<EditJobDialog job={job({ helper_id: "h1", payment_status: "escrow" })} onClose={() => {}} onSaved={() => {}} />);
+    fireEvent.click(document.querySelector('li[data-value="yard_work"]')!);
+    fireEvent.click(screen.getByRole("switch", { name: "Require before and after photos" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    const confirm = await screen.findAllByRole("button", { name: "Save changes" });
+    fireEvent.click(confirm[confirm.length - 1]);
+    await waitFor(() => expect(writes.length).toBeGreaterThan(0));
+    expect(writes[0]).toEqual({ require_photo_proof: false });
   });
 
   it("a funded job taxed by its answer greys the categories that would drop the answer, and only those", () => {

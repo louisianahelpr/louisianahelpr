@@ -93,13 +93,13 @@ export function HelprNoShowReportButton({ orderId, taskId, slotStart, who }: { o
 }
 
 /** The Helpr's side: the seller's report and the 24 hours to answer. */
-export function HelprNoShowAnswer({ taskId }: { taskId: string }) {
+export function HelprNoShowAnswer({ taskId, sourceKind }: { taskId: string; sourceKind?: string }) {
   const qc = useQueryClient();
   const report = useQuery({ queryKey: ["helpr-tasks", "no-show", taskId], queryFn: () => fetchHelprNoShowReport(taskId) });
   const [note, setNote] = useState("");
   const [failed, setFailed] = useState<string | null>(null);
   const answer = useMutation({
-    mutationFn: () => answerHelprNoShow(taskId, note.trim()),
+    mutationFn: () => answerHelprNoShow(taskId, note.trim(), sourceKind),
     onSuccess: () => { setFailed(null); void qc.invalidateQueries({ queryKey: ["helpr-tasks"] }); },
     // On the card, beside the button: it is a deadline with a strike behind it.
     onError: (err) => setFailed(declutterErrorMessage(err)),
@@ -112,7 +112,7 @@ export function HelprNoShowAnswer({ taskId }: { taskId: string }) {
   const noteId = `helpr-no-show-answer-${taskId}`;
   return (
     <div className="space-y-2 rounded-xl border border-border px-3 py-2" data-helpr-no-show-answer="">
-      <p className="text-ds-14 font-semibold">The seller says you didn't come.</p>
+      <p className="text-ds-14 font-semibold">{sourceKind === "shop_delivery" ? "The shop" : "The seller"} says you didn't come.</p>
       <p className="text-ds-13 text-muted-foreground">
         Answer by {when(r.answer_by)}. If you don't, you get a strike and the delivery goes to another Helpr. If you answer,
         Louisiana Helpr looks at both sides, and no one gets a strike until they decide.

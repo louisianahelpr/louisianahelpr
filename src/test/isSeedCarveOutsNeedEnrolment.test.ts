@@ -60,6 +60,8 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   get_neighbor_hire_count: "hides", // b62 (20261030015205): test data never counts in this total
   get_applicant_category_counts: "hides", // b62 (20261030015205): test data never counts in this total
   shops_admin_pending_items: "hides", // b62 (20261030015205): test data never counts in this total
+  shop_review_public: "hides", // Shops H9 (20261105230819): a test review never shows publicly or counts in the shop rating (seed_jobs_hidden_publicly)
+  shops_leave_review: "tags", // Shops H9 (20261105230819): the review row copies its order's is_seed
   is_test_member: "hides", // b62 (20261030015205): test data never counts in this total
   admin_sales_tax_adjustments: "hides", // Q1918 tax ledger (20261105021744): the admin export leaves seed and TEST rows out
   admin_booking_sources: "hides", // B66 Book me (20261030013347): a test Helpr or test poster never counts in the admin tally

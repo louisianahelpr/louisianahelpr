@@ -208,7 +208,7 @@ type ShopPayoutDue = {
   livemode: boolean | null;
   checkout_session_id: string | null;
   attempts: number;
-  /** Helpr delivery (20261106194913): delivery refunds the app made on this charge (shop_order_refunds_recorded_cents). */
+  /** Helpr delivery (20261106194913): the refunds the app made on this charge, Stripe-confirmed (shop_order_refunds_recorded_cents). */
   refunds_recorded_cents?: number | null;
 };
 /** What a declutter_delivery_refunds row gives back, in an ops page ("shipping refund", "delivery-fee refund"). */
@@ -888,8 +888,8 @@ serve(async (req) => {
         let shopTransfer = existing;
         if (!shopTransfer) {
           if (await unpayableNow("shop", p.payout_id, p.seller_id, p.stripe_account_id, p.amount_cents, resolved.mode)) continue;
-          // From the order's OWN charge, only while it is whole (paid, nothing refunded but the delivery refunds the
-          // app recorded (Helpr delivery, 20261106194913), not disputed).
+          // From the order's OWN charge, only while it is whole (paid, nothing refunded but what the app recorded
+          // (Helpr delivery, 20261106194913: a delivery refund), not disputed).
           const charge = await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents ?? 0);
           // Readiness only after the reconcile and the charge check.
           if (!(await payeeReadyNow(stripe, resolved.mode, "shop", p.payout_id, p.seller_id, p.stripe_account_id as string, p.amount_cents))) continue;

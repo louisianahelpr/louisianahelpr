@@ -115,11 +115,17 @@ export function shellCriticalCss(shellHtml, css) {
     // Animations are not part of a first frame.
     if (/keyframes$/.test(at.name)) at.remove();
   });
+  // A first frame has no hover, focus or press (the trim plan, Q2705 B): a selector that needs one is dropped here
+  // (".x" stays, ".x:hover" goes); the full app sheet brings it back when it arrives, before anyone can use it.
+  // Inside :not() it is the other way round: ".x:not(:focus-visible)" applies at first frame, so it is judged as before.
+  const dynamic = (s) => new RegExp(DYNAMIC.source).test(s.replace(/:not\([^()]*\)/g, ""));
   root.walkRules((rule) => {
-    const keep = rule.selectors.filter((s) => selectorNeeded(s, docs));
+    const keep = rule.selectors.filter((s) => !dynamic(s) && selectorNeeded(s, docs));
     if (keep.length === 0) rule.remove();
     else rule.selectors = keep;
   });
+  // Nor motion: with the @keyframes gone an animation draws nothing, and a transition only acts on a later change.
+  root.walkDecls(/^(?:-webkit-)?(?:transition|animation)(?:-[\w-]+)?$|^will-change$/, (d) => d.remove());
   // The @font-face of every family a kept rule names stays: without it the hero paints in a fallback face and
   // swaps when the app sheet arrives (measured 11-05 without it: LCP 1972 -> 3408 ms, CLS 0 -> 0.2254, one run).
   // The files are fetched only when the face is used, so unused unicode ranges cost nothing.

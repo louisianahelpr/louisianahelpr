@@ -5,7 +5,13 @@
  * 375, guest "/"): LCP 2108-2168 ms while the HTML is in at ~0.9 s.
  *
  * @mutate scripts/inline-shell-css.mjs |       if (doc.querySelector(base)) return true; |       if (doc.querySelector(base) && base.includes(":")) return true;
- * @mutate scripts/inline-shell-css.mjs | .replace(PSEUDO_ELEMENT, "").replace(DYNAMIC, "") | .replace(PSEUDO_ELEMENT, "")
+ * Trim plan (Q2705 B, 11-05): a first frame has no hover/focus/press and no motion, so those selectors and the
+ * transition/animation/will-change declarations stay in the app sheet only (":not(:focus-visible)" still applies).
+ * @mutate scripts/inline-shell-css.mjs | (s) => !dynamic(s) && selectorNeeded(s, docs) | (s) => selectorNeeded(s, docs)
+ * @mutate scripts/inline-shell-css.mjs | (d) => d.remove());
+ | (d) => void d);
+
+ * @mutate scripts/inline-shell-css.mjs | s.replace(/:not\([^()]*\)/g, "") | s
  * @mutate scripts/inline-shell-css.mjs |   return false;\n} | return true;\n}
  * @mutate scripts/inline-shell-css.mjs | data-theme="${theme}" ${htmlAttr}><head> | data-theme="${theme}"><head>
  * @mutate scripts/inline-shell-css.mjs | const FIXED = "{display:block; | const FIXED = "{display:none;
@@ -50,6 +56,8 @@ const SHEET = [
   ".landing-h1:not(.absent-xyz){padding-top:190px}",
   "[data-lh-landing-shell] .landing-page{min-height:100vh}",
   ".landing-h1:hover{color:red}",
+  ".landing-h1:not(:focus-visible){outline:none}",
+  ".landing-h1{transition:color .2s;-webkit-animation:spin 1s;animation:spin 1s;will-change:transform;color:#111}",
   ".font-display::before{content:''}",
   ".not-in-the-shell-xyz:hover{color:blue}",
   "div>.not-in-the-shell-xyz{color:green}",
@@ -76,7 +84,10 @@ describe("the landing shell's own CSS rides in the HTML (Q2705)", () => {
     expect(out).toContain("@media (min-width:1024px){.lg\\:mt-7{margin-top:1.75rem}}");
     expect(out, "a :not() of something absent still matches").toContain(".landing-h1:not(.absent-xyz){padding-top:190px}");
     expect(out, "the attribute index.html sets on <html>").toContain("[data-lh-landing-shell] .landing-page{min-height:100vh}");
-    expect(out, "hover rules of a present element").toContain(".landing-h1:hover{color:red}");
+    expect(out, "a first frame has no hover: the app sheet brings it").not.toContain(":hover");
+    expect(out, "a :not() of a dynamic state applies at first frame").toContain(".landing-h1:not(:focus-visible){outline:none}");
+    expect(out, "the colour stays, the motion goes").toContain(".landing-h1{color:#111}");
+    expect(out).not.toMatch(/transition|animation|will-change/);
     expect(out).toContain(".font-display::before{content:''}");
     expect(out).not.toContain("not-in-the-shell-xyz");
     expect(out).not.toContain("9999px");

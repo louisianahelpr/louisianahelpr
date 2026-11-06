@@ -149,6 +149,8 @@ export interface ShopItem {
   lead_time_days: number;
   stock_count: number | null;
   home_kitchen: boolean;
+  /** H8 (b): the shop does this carpet or furniture cleaning at the buyer's place (shops_shop_items). */
+  at_buyer?: boolean;
   photos: ShopItemPhoto[];
 }
 
@@ -214,6 +216,14 @@ export async function setShopItemStock(itemId: string, stockCount: number | null
   rpcData(
     await supabase.rpc("shops_set_item_stock", { p_item_id: itemId, p_stock_count: stockCount as number, p_lead_time_days: leadTimeDays }),
     (e) => rpcErrorMessage("shops_set_item_stock", e),
+  );
+}
+
+/** H8 (b): the owner's answer to "Where do you do this work?" for a carpet or furniture cleaning item. */
+export async function setShopItemAtBuyer(itemId: string, atBuyer: boolean): Promise<void> {
+  rpcData(
+    await supabase.rpc("shops_set_item_at_buyer", { p_item_id: itemId, p_at_buyer: atBuyer }),
+    (e) => rpcErrorMessage("shops_set_item_at_buyer", e),
   );
 }
 

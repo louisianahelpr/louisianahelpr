@@ -29,6 +29,8 @@ ALTER TABLE public.shop_order_lines ADD COLUMN IF NOT EXISTS at_buyer boolean NO
 ALTER TABLE public.shop_order_lines DROP CONSTRAINT IF EXISTS shop_order_lines_at_buyer_fabric;
 ALTER TABLE public.shop_order_lines ADD CONSTRAINT shop_order_lines_at_buyer_fabric
   CHECK (NOT at_buyer OR tax_kind = 'fabric_cleaning');
+-- The order card reads it (the lines' own RLS keeps it to the order's two sides, as for every other line column).
+GRANT SELECT (at_buyer) ON TABLE public.shop_order_lines TO authenticated;
 
 -- RESTATED from 20261105235833 (verbatim plus at_buyer): the line keeps its item's answers from the moment it is written.
 CREATE OR REPLACE FUNCTION public.shop_order_line_snapshot_tax_kind()

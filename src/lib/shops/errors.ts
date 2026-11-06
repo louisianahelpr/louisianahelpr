@@ -163,6 +163,12 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   pickup_address_not_in_louisiana: "Enter a Louisiana ZIP code. Shops are for Louisiana pickups only.",
   pickup_address_missing: "This shop isn't taking orders yet. It still needs to add its pickup address.",
   pickup_address_unusable: "This shop's pickup address needs fixing before it can take orders. Try again later.",
+  // H8 (b): carpet or furniture cleaning done at the buyer's place (shop-checkout, 20261106011021).
+  service_address_needed: "Add the address where the work will be done.",
+  invalid_service_address: "Check the address: a street address, a city and a Louisiana ZIP code.",
+  service_address_unusable: "We couldn't use that address for sales tax. Check it and try again.",
+  service_at_buyer_alone: "Work done at your place is ordered on its own. Order the other items separately.",
+  at_buyer_not_allowed: "Only carpet or furniture cleaning can be done at the customer's place.",
   // Service steps: a member only meets these through shop-checkout, which answers "try again".
   invalid_payment: "We couldn't open the payment page just now. Please try again.",
   invalid_session: "We couldn't open the payment page just now. Please try again.",

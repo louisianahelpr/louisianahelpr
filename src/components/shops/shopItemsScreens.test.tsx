@@ -38,6 +38,8 @@
  * @mutate src/components/shops/ShopDailyCap.tsx |       return setDailyOrderCap(shown.trim() === "" ? null : Number(shown)); |       return setDailyOrderCap(Number(shown));
  * @mutate src/components/shops/ShopProfile.tsx |                 {item.home_kitchen && ( |                 {false && (
  * @mutate src/components/shops/ShopItemEditor.tsx |         {serviceTypeHint(d.kind, d.subtype) && ( |         {false && (
+ * @mutate src/components/shops/ShopItemEditor.tsx |     mutationFn: (v: boolean) => setShopItemAtBuyer(id as string, v), |     mutationFn: (v: boolean) => setShopItemAtBuyer(id as string, !v),
+ * @mutate src/components/shops/ShopItemEditor.tsx |       {id && item?.kind === "service" && item.subtype === "fabric_cleaning" && d.subtype === "fabric_cleaning" && ( |       {id && item?.kind === "service" && d.subtype === "fabric_cleaning" && (
  * @mutate src/components/shops/ShopProfile.tsx |       {anyHomeKitchen && ( |       {false && (
  * @mutate src/components/shops/ShopProfile.tsx |                     <span className="sr-only">{HOME_KITCHEN_NOTICE}</span>\n |
  */
@@ -73,6 +75,7 @@ const api = vi.hoisted(() => ({
   updateShopItem: vi.fn(),
   withdrawShopItem: vi.fn(),
   requestShopItemAiDraft: vi.fn(),
+  setShopItemAtBuyer: vi.fn(),
 }));
 vi.mock("@/lib/shops/items", async (orig) => ({
   ...(await orig<typeof import("@/lib/shops/items")>()),
@@ -279,6 +282,23 @@ describe("ShopItemsReviewCard (admin)", () => {
 describe("ShopItemEditor", () => {
   // Lead 11-05 (after H8's money review): a repair listed under a general service type would go untaxed, so the
   // Type picker says where a repair belongs, under the general types only.
+  // H8 (b): only a saved carpet or furniture cleaning item asks where the work is done, and saves the answer at once.
+  it("a cleaning item asks where the work is done and saves it; other types never ask", async () => {
+    api.setShopItemAtBuyer.mockResolvedValue(undefined);
+    const { unmount } = renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "live", kind: "service", subtype: "fabric_cleaning", at_buyer: false })} onCreated={() => {}} onDone={() => {}} />);
+    const where = screen.getByLabelText("Where do you do this work?") as HTMLSelectElement;
+    expect(where.value).toBe("shop");
+    fireEvent.change(where, { target: { value: "buyer" } });
+    await waitFor(() => expect(api.setShopItemAtBuyer).toHaveBeenCalledWith("it1", true));
+    // Switching the unsaved type away hides it (the saved type decides once saved).
+    fireEvent.change(screen.getByLabelText("Type"), { target: { value: "item_repair" } });
+    expect(screen.queryByLabelText("Where do you do this work?")).toBeNull();
+    unmount();
+    renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "live", kind: "service", subtype: "item_repair" })} onCreated={() => {}} onDone={() => {}} />);
+    fireEvent.change(screen.getByLabelText("Type"), { target: { value: "fabric_cleaning" } });
+    expect(screen.queryByLabelText("Where do you do this work?")).toBeNull();
+  });
+
   it("a general service type shows the repair hint; a taxed type does not", () => {
     renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "draft", kind: "service", subtype: "home_service" })} onCreated={() => {}} onDone={() => {}} />);
     expect(screen.getByText("Fixing an item someone brings you? Choose Repair of an item.")).toBeTruthy();

@@ -36,6 +36,15 @@ export async function fetchOrderPickupAddress(orderId: string): Promise<PickupAd
   return r ? { line1: r.line1, line2: r.line2, city: r.city, state: r.state, postal_code: r.postal_code } : null;
 }
 
+/** H8 (b): where an at-home cleaning is done. The buyer reads their own; the shop only once it accepted (else null). */
+export async function fetchOrderServiceAddress(orderId: string): Promise<{ line1: string; city: string; state: string; postal_code: string } | null> {
+  const r = unwrap(await supabase.rpc("shops_order_service_address", { p_order_id: orderId })) as
+    { line1?: string; city?: string; state?: string; postal_code?: string } | null;
+  return r && typeof r.line1 === "string"
+    ? { line1: r.line1, city: r.city ?? "", state: r.state ?? "LA", postal_code: r.postal_code ?? "" }
+    : null;
+}
+
 /** Save (or change) the owner's pickup address. */
 export async function saveMyPickupAddress(a: { line1: string; line2?: string | null; city: string; postal_code: string }): Promise<void> {
   const { error } = await supabase.rpc("shops_save_my_pickup_address", {

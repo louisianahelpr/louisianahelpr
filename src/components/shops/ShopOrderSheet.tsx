@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { DatePickerField } from "@/components/DatePickerField";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { fetchShopItems, formatItemPrice, type ShopItem } from "@/lib/shops/items";
@@ -35,6 +36,7 @@ import {
   readyDateProblem,
   requestOrder,
 } from "@/lib/shops/orders";
+import { LOUISIANA_ZIP } from "@/lib/shops/pickupAddress";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopsNotice } from "./shopsUi";
 import { HandoverModeNote } from "./ShopHandoverModePicker";
@@ -72,6 +74,8 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   const [readyDate, setReadyDate] = useState("");
   const [note, setNote] = useState("");
   const [opening, setOpening] = useState(false);
+  // H8 (b): where an at-home carpet or furniture cleaning is done (taxed there).
+  const [svc, setSvc] = useState({ line1: "", city: "", postal_code: "" });
 
   const orderable = useMemo(
     () => (items.data ?? []).filter((i) => i.status === "live" && (i.stock_count == null || i.stock_count > 0)),
@@ -116,7 +120,12 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
 
   const policy = cancelPolicyText(t.cancel_policy, t.ready_tap_cancel);
   const feeCents = itemsCents > 0 ? buyerFeeCents(itemsCents) : 0;
-  const canSend = chosen.length > 0 && !!readyDate && dateProblem === null && note.length <= NOTE_MAX && !opening;
+  const atHome = chosen.some((i) => i.at_buyer === true);
+  // One address per calculation: an at-home cleaning is ordered on its own (the server refuses a mix too).
+  const atHomeMixed = atHome && chosen.length > 1;
+  const svcOk = svc.line1.trim().length >= 3 && svc.city.trim().length >= 2 && LOUISIANA_ZIP.test(svc.postal_code.trim());
+  const canSend = chosen.length > 0 && !!readyDate && dateProblem === null && note.length <= NOTE_MAX && !opening
+    && (!atHome || (svcOk && !atHomeMixed));
 
   const send = async () => {
     setOpening(true);
@@ -128,6 +137,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
         note,
         // The cancel terms shown above: shop-checkout refuses (terms_changed) if the shop changed them since.
         terms: { cancel_policy: t.cancel_policy, ready_tap_cancel: t.ready_tap_cancel },
+        ...(atHome ? { serviceAddress: { line1: svc.line1.trim(), city: svc.city.trim(), postal_code: svc.postal_code.trim() } } : {}),
       });
       await openExternalUrl(url, () => {
         setOpening(false);
@@ -185,6 +195,33 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
                   : "Greyed-out days are closed, full or too soon."}
         </p>
       </div>
+
+      {atHome && (
+        <fieldset className="space-y-2" data-testid="shop-order-service-address">
+          <legend className="text-sm font-semibold">Where the work will be done</legend>
+          {atHomeMixed && (
+            <p className="text-xs text-destructive">Work done at your place is ordered on its own. Order the other items separately.</p>
+          )}
+          <div className="space-y-1">
+            <Label htmlFor="shop-order-svc-line1">Street address</Label>
+            <Input id="shop-order-svc-line1" autoComplete="address-line1" maxLength={120} value={svc.line1}
+              onChange={(e) => setSvc((a) => ({ ...a, line1: e.target.value }))} />
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label htmlFor="shop-order-svc-city">City</Label>
+              <Input id="shop-order-svc-city" autoComplete="address-level2" maxLength={60} value={svc.city}
+                onChange={(e) => setSvc((a) => ({ ...a, city: e.target.value }))} />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="shop-order-svc-zip">ZIP code</Label>
+              <Input id="shop-order-svc-zip" autoComplete="postal-code" inputMode="numeric" maxLength={5} value={svc.postal_code}
+                onChange={(e) => setSvc((a) => ({ ...a, postal_code: e.target.value }))} />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">Louisiana only. Sales tax is figured for this address. The shop sees it only after it accepts your order.</p>
+        </fieldset>
+      )}
 
       <div className="space-y-1">
         <Label htmlFor="shop-order-note">Note for the shop (optional)</Label>

@@ -18,6 +18,9 @@
  *           is cancelled at no cost.
  *   cancel  { order_id }  THE BUYER, before the maker answers. The page is
  *           expired or the hold cancelled; nothing is kept (O2).
+ *   close_request { request_id }  THE SHOP declines or THE BUYER withdraws a
+ *           custom request (shops_decline_custom_request); the buyer's unpaid
+ *           page for that price is expired (custom orders slice 2a).
  *
  * M3 (migration 20261019071055_shops_refunds_cancels_strikes): each action
  * below runs its member RPC FIRST. That RPC locks the order row, decides
@@ -757,6 +760,36 @@ async function cancel(body: Record<string, unknown>, asBuyer: Db, admin: Db) {
 }
 
 /**
+ * Custom orders slice 2a (20261106212437, review follow-up a on 9abcc8018a): the shop declines or the buyer withdraws
+ * a custom request (shops_decline_custom_request AS THE MEMBER, every rule in SQL). The SQL closes the buyer's unpaid
+ * order for that price ('superseded'); its Stripe page is expired here, so the buyer cannot even start paying. A page
+ * that still completes is answered cancel_hold by shop_mark_order_held (the order is closed), so nothing is charged.
+ */
+async function closeRequest(body: Record<string, unknown>, asMember: Db, admin: Db) {
+  const requestId = typeof body.request_id === "string" ? body.request_id : "";
+  if (!UUID_RE.test(requestId)) return json({ error: "request_not_found" }, 404);
+  const { data, error } = await asMember.rpc("shops_decline_custom_request", { p_request_id: requestId });
+  if (error) return rpcRefusal(error);
+  // The request is closed in SQL whatever happens next, and a page left open cannot charge (above): a failed read is logged.
+  try {
+    const { data: lineRows, error: lineErr } = await admin.from("shop_order_lines").select("order_id").eq("custom_request_id", requestId);
+    if (lineErr) throw new Error(`custom order lines read failed: ${lineErr.message}`);
+    const orderIds = [...new Set(((lineRows ?? []) as { order_id: string }[]).map((l) => l.order_id))];
+    if (orderIds.length > 0) {
+      const { data: pages, error: pageErr } = await admin.from("shop_orders").select("stripe_checkout_session_id")
+        .in("id", orderIds).eq("status", "superseded").is("stripe_payment_intent_id", null);
+      if (pageErr) throw new Error(`custom order pages read failed: ${pageErr.message}`);
+      for (const pg of (pages ?? []) as { stripe_checkout_session_id: string | null }[]) {
+        if (pg.stripe_checkout_session_id) await expirePage(pg.stripe_checkout_session_id);
+      }
+    }
+  } catch (e) {
+    console.error(JSON.stringify({ event: "shop_request_page_expire_skipped", request: requestId, detail: caughtMessage(e).slice(0, 200) }));
+  }
+  return json({ closed: true, status: data ?? null });
+}
+
+/**
  * After a member RPC committed a refund row: send it now. A failure here is not
  * the member's: the row is pending and declutter-money sends it within 10 minutes.
  */
@@ -954,6 +987,7 @@ serve(async (req) => {
     if (body.action === "accept") return await accept(body, asMember, admin);
     if (body.action === "decline") return await decline(body, asMember, admin);
     if (body.action === "cancel") return await cancel(body, asMember, admin);
+    if (body.action === "close_request") return await closeRequest(body, asMember, admin);
     if (body.action === "buyer_cancel") return await buyerCancel(body, asMember, admin);
     if (body.action === "shop_cancel") return await shopCancel(body, asMember, admin);
     if (body.action === "no_show") return await noShow(body, asMember);

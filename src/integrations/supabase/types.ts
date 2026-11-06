@@ -13950,6 +13950,14 @@ export type Database = {
         Row: {
           accept_by: string | null
           accepted_at: string | null
+          balance_attempts: number
+          balance_captured_at: string | null
+          balance_card_fee_cents: number | null
+          balance_cents: number | null
+          balance_checkout_session_id: string | null
+          balance_failed_at: string | null
+          balance_last_error: string | null
+          balance_payment_intent_id: string | null
           buyer_id: string | null
           cancel_policy: string
           capture_attempts: number
@@ -13961,6 +13969,7 @@ export type Database = {
           closed_at: string | null
           created_at: string
           decline_reason: string | null
+          deposit_cents: number | null
           delivery_cents: number
           delivery_miles: number | null
           fulfillment: string
@@ -13976,6 +13985,7 @@ export type Database = {
           items_cents: number
           note: string
           payment_livemode: boolean | null
+          payment_plan: string
           premium_cents: number
           ready_date: string
           ready_tap_cancel: string
@@ -13992,6 +14002,14 @@ export type Database = {
         Insert: {
           accept_by?: string | null
           accepted_at?: string | null
+          balance_attempts?: number
+          balance_captured_at?: string | null
+          balance_card_fee_cents?: number | null
+          balance_cents?: number | null
+          balance_checkout_session_id?: string | null
+          balance_failed_at?: string | null
+          balance_last_error?: string | null
+          balance_payment_intent_id?: string | null
           buyer_id?: string | null
           cancel_policy: string
           capture_attempts?: number
@@ -14003,6 +14021,7 @@ export type Database = {
           closed_at?: string | null
           created_at?: string
           decline_reason?: string | null
+          deposit_cents?: number | null
           delivery_cents?: number
           delivery_miles?: number | null
           fulfillment?: string
@@ -14018,6 +14037,7 @@ export type Database = {
           items_cents: number
           note?: string
           payment_livemode?: boolean | null
+          payment_plan?: string
           premium_cents: number
           ready_date: string
           ready_tap_cancel?: string
@@ -14034,6 +14054,14 @@ export type Database = {
         Update: {
           accept_by?: string | null
           accepted_at?: string | null
+          balance_attempts?: number
+          balance_captured_at?: string | null
+          balance_card_fee_cents?: number | null
+          balance_cents?: number | null
+          balance_checkout_session_id?: string | null
+          balance_failed_at?: string | null
+          balance_last_error?: string | null
+          balance_payment_intent_id?: string | null
           buyer_id?: string | null
           cancel_policy?: string
           capture_attempts?: number
@@ -14045,6 +14073,7 @@ export type Database = {
           closed_at?: string | null
           created_at?: string
           decline_reason?: string | null
+          deposit_cents?: number | null
           delivery_cents?: number
           delivery_miles?: number | null
           fulfillment?: string
@@ -14060,6 +14089,7 @@ export type Database = {
           items_cents?: number
           note?: string
           payment_livemode?: boolean | null
+          payment_plan?: string
           premium_cents?: number
           ready_date?: string
           ready_tap_cancel?: string

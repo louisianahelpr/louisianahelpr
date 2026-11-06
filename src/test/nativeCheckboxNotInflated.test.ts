@@ -46,7 +46,9 @@ function scan() {
       if (!/\btype="(checkbox|radio)"/.test(attrs)) continue;
       inputs++;
       n++;
-      const cls = /className=(?:"([^"]*)"|\{`([^`]*)`\})/.exec(attrs)?.slice(1).find((x) => x !== undefined) ?? "";
+      // A shared wrapper's `{`...${className}`.trim()}` is read too (NativeRadio, Q2709 11-06): the literal's own
+      // min-h-0 min-w-0 is what the browser gets.
+      const cls = /className=(?:"([^"]*)"|\{`([^`]*)`(?:\.trim\(\))?\})/.exec(attrs)?.slice(1).find((x) => x !== undefined) ?? "";
       // Sized or bare, a box without its own min-h/min-w is drawn at index.css's 44px floor.
       const hasMin = /(^|\s)min-h-/.test(cls) && /(^|\s)min-w-/.test(cls);
       if (!hasMin) inflated.push(`${path.relative(ROOT, file)}#${n}`);

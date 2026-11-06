@@ -89,7 +89,9 @@ const dollars = (c: number) => `$${(c / 100).toLocaleString("en-US", { maximumFr
  * null for a new item; the parent remounts this form (key) when it changes
  * which item is open, and `onCreated` hands it the new item's id.
  */
-export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
+export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOptions = false }: {
+  /** The item has option lists: its stock is set per combination in the Options section (20261106165310). */
+  hasOptions?: boolean;
   ownerId: string;
   item: ShopItem | null;
   onCreated: (itemId: string) => void;
@@ -309,11 +311,15 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
         </div>
       </div>
       <div className="space-y-2">
+        {hasOptions ? (
+          <p className="text-sm text-muted-foreground" data-testid="item-stock-per-option">How many are ready is set for each option below.</p>
+        ) : (
         <div className="flex items-start gap-2">
           <Checkbox id="item-ready" checked={d.readyNow} onCheckedChange={(v) => set("readyNow", v === true)} />
           <Label htmlFor="item-ready" className="block min-h-11 flex-1 font-normal leading-snug">I have some ready now</Label>
         </div>
-        {d.readyNow && (
+        )}
+        {d.readyNow && !hasOptions && (
           <div className="space-y-1.5">
             <Label htmlFor="item-stock">How many are ready</Label>
             <Input id="item-stock" type="number" min={0} max={9999} value={d.stock} onChange={(e) => set("stock", e.target.value)} />
@@ -330,7 +336,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
         </Button>
         {id && !draft && status !== "rejected" && (
           <Button type="button" variant="outline" disabled={stock.isPending} onClick={() => stock.mutate()}>
-            Save stock and ready time
+            {hasOptions ? "Save ready time" : "Save stock and ready time"}
           </Button>
         )}
         <Button type="button" variant="ghost" onClick={onDone}>Cancel</Button>

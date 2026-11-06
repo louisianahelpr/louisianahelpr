@@ -140,6 +140,11 @@ vi.mock("@/lib/declutter/lastSetup", () => ({ fetchLastSetup: async () => null }
 vi.mock("@/lib/declutter/sellerDefaults", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/sellerDefaults")>()), fetchSellerDefaults: async () => null, saveSellerDefaults: async () => true }));
 // The porch weekday chips' read (SellPorchDays.tsx; its own test is sellPorchDays): none picked.
 vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null, saveMyPorchDays: async () => [], PORCH_DAYS_NOT_DEPLOYED: "not_deployed" }));
+// Declutter trades (20261106163703): the listing's "Open to trades" read is the trade module's; off here.
+vi.mock("@/lib/declutter/trades", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/trades")>()),
+  fetchAcceptsTrades: async () => false,
+}));
 vi.mock("@/lib/declutter/api", () => ({
   fetchLiveItems: async () => [],
   fetchMapPins: async () => new Map(),

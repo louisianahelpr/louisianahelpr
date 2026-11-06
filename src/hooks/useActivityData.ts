@@ -21,6 +21,7 @@ import { fetchJobSeriesState } from "@/lib/jobSeriesState";
 import { fetchClosedJobLabels } from "@/lib/closedJobLabels";
 import { fetchMyOpenContinueDays, openContinueDaysFrom, type OpenContinueDay } from "@/lib/continueDayReads";
 import { jobOnContinueDay } from "@/lib/continueDayWords";
+import { keepActiveContinueDays } from "@/lib/activityCoreContinueDays";
 import { FORMER_MEMBER_LABEL } from "@/lib/deletedPerson";
 import { backoutNoticeApplies, useBackoutNotices } from "@/lib/backoutNotices";
 import { loadModule, untilReload } from "@/lib/loadModule";
@@ -201,6 +202,8 @@ export async function fetchPostedActivity(userId: string): Promise<PostedActivit
   // Owner bug 11-03: the open continue days come in the cores payload (20261103231310), so a continuing job is never
   // "Late" and Activity stays ONE request; an older database or a failed cores read sends their own read.
   const cores = await fetchActivityCores(userId, "posted");
+  // Home's first continue-days answer for the jobs I posted (20261106054856; src/lib/activityCoreContinueDays.ts).
+  if (cores) keepActiveContinueDays(userId, "posted", (cores.posted_jobs as { id?: string }[]).map((j) => j?.id), cores.active_continue_days);
   const continueDays = openContinueDaysFrom(cores?.open_continue_days) ?? await fetchMyOpenContinueDays(userId, "posted");
   const [jobsRes, appCountRes, offerTargets] = cores ? [
     { data: cores.posted_jobs, error: null },
@@ -512,6 +515,8 @@ export async function fetchAppliedActivity(userId: string): Promise<AppliedActiv
   // Both cores in one request when the database has get_my_activity_cores (Q104; src/lib/activityCores.ts).
   // Null: the five reads below, as before.
   const cores = await fetchActivityCores(userId, "applied");
+  // ...and for the jobs I applied to (the server scopes the key to my applications' job ids).
+  if (cores) keepActiveContinueDays(userId, "applied", (cores.my_applications as { job_id?: string }[]).map((a) => a?.job_id), cores.active_continue_days);
   const continueDays = openContinueDaysFrom(cores?.open_continue_days) ?? await fetchMyOpenContinueDays(userId, "applied");
   const [appsRes, jobsRes, directOffersRes, violationsRes, helperReviewsRes] = cores ? [
     { data: cores.my_applications, error: null },

@@ -22,7 +22,8 @@ import { walkSource } from "./helpers/walkSource";
 
 // @mutate src/components/dashboard/JobPrice.tsx | helpersNeeded, firstPayoutFee, feeStamp); | helpersNeeded, 0, feeStamp);
 // @mutate src/components/dashboard/CompactJobCard.tsx | helpers, firstPayoutFee, job).netEarnings | helpers, 0, job).netEarnings
-// @mutate src/components/dashboard/JobCard.tsx | helpersCount, firstPayoutFee, job).netEarnings | helpersCount, 0, job).netEarnings
+// JobCard's own spoken-price call went 11-06 (its name is now the chip's text, jobCardNameIsItsWords); the card's figure is JobPrice's:
+// @mutate src/components/dashboard/JobPrice.tsx |   const { netEarnings } = computeNet(budget, effectiveFee, urgentFee, helpersNeeded, firstPayoutFee, feeStamp); |   const { netEarnings } = computeNet(budget, effectiveFee, urgentFee, helpersNeeded, 0, feeStamp);
 // @mutate src/pages/jobs/appliedJobCard/appliedJobCardHelpers.ts | isSettledForDisplay(job) ? 0 : firstPayoutFeeDollars, | 0,
 // @mutate src/components/profile/schedule/ScheduleCard.tsx | isSettledForDisplay(job) ? 0 : firstPayoutFee | 0
 // @mutate src/components/profile/EarningsTab.tsx | earnedDollarsWithLedger(rangeJobs, helperFeeFallbackPct, firstPayoutFee, payoutLedger) | earnedDollarsWithLedger(rangeJobs, helperFeeFallbackPct, 0, payoutLedger)
@@ -84,7 +85,7 @@ describe("every payout surface takes the first-payout fee off (Q753)", () => {
   it("the scan reads the real tree", () => {
     expect(walkSource([resolve(ROOT, "src")]).length).toBeGreaterThan(500);
     const awareFiles = Object.values(found).filter((c) => c.aware > 0).length;
-    // JobPrice, CompactJobCard, JobCard, ScheduleTab, appliedJobCardHelpers,
+    // JobPrice, CompactJobCard, ScheduleTab, appliedJobCardHelpers (JobCard reads JobPrice's chip since 11-06),
     // EarningsTab, EarningHistory, Profile (+ helperEarnings' own sum, outside the scan).
     expect(awareFiles).toBeGreaterThan(5); // 6 aware files on 2026-10-04 (EarningHistory states the fee on its own line)
     expect(Object.keys(found).length).toBeGreaterThan(15);

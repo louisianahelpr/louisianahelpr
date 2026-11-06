@@ -19,14 +19,12 @@ export function jobCardInteractiveProps({
   job,
   onSelect,
   handleTap,
-  priceAria,
   prefetchHandlers,
 }: {
   isGuest: boolean;
   job: JobCardProps["job"];
   onSelect: JobCardProps["onSelect"];
   handleTap: () => void;
-  priceAria: string;
   prefetchHandlers: ReturnType<typeof import("@/lib/usePrefetchOnTouch").usePrefetchOnTouch>;
 }) {
   return isGuest
@@ -41,7 +39,10 @@ export function jobCardInteractiveProps({
         onClick: handleTap,
         role: "button" as const,
         tabIndex: 0,
-        "aria-label": `View ${job.title} — ${priceAria}`,
+        // No aria-label (WCAG 2.5.3 Label in Name, axe label-content-name-mismatch on /explore, 11-06):
+        // "View <title> — $<price>" left out the card's other words (category, place, date), so a voice
+        // user who said what they saw hit nothing. The card's own words are its name now, after an
+        // sr-only "View " (JobCard.tsx). Guard: src/test/labelContainsVisibleText.test.ts.
         onKeyDown: (e: KeyboardEvent) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();

@@ -194,7 +194,8 @@ test(authedTitle, async ({ browser, request, journey }) => {
   await ensureBrowseFixture({ supabaseUrl: SUPABASE_URL, serviceKey: serviceKey!, posterId: POSTER_E2E_ID, helperId: HELPER_E2E_ID });
   const ctx = await newUserContext(browser, helper, { rotation });
   const page = journey.track("helper", await ctx.newPage());
-  const cards = page.getByRole("button", { name: /^View .+ — \$/ });
+  // The signed-in card's words are its name since 11-06 (no aria-label, WCAG 2.5.3): read its title and chip.
+  const cards = page.locator('[data-feed-card][role="button"]');
 
   let total = 0;
   await test.step("signed-in Browse lists jobs", async () => {
@@ -207,7 +208,8 @@ test(authedTitle, async ({ browser, request, journey }) => {
   });
 
   await test.step("search narrows the feed", async () => {
-    const firstName = (await cards.first().getAttribute("aria-label"))!.replace(/^View /, "").replace(/ — \$.*$/, "");
+    const firstName = ((await cards.first().locator(".job-card-title").textContent()) ?? "").trim();
+    expect(firstName, "the first card has no title").toBeTruthy();
     const word = firstName.split(/\s+/).find((w) => w.length >= 5) ?? firstName.split(/\s+/)[0];
     // Phone: the permanent row; desktop: the feed strip's field behind its magnifier (see e2e/feedSearch.ts).
     await searchFeed(page, "zzqxj-no-such-job");
@@ -221,7 +223,7 @@ test(authedTitle, async ({ browser, request, journey }) => {
     await page.waitForTimeout(1_000);
     await assertHealthy(page, "search with a hit");
     await expect(cards.first(), "search hit rendered and then vanished").toBeInViewport();
-    for (const label of await cards.evaluateAll((els) => els.map((e) => e.getAttribute("aria-label") ?? ""))) {
+    for (const label of await cards.evaluateAll((els) => els.map((e) => (e.querySelector(".job-card-title")?.textContent ?? "").trim()))) {
       expect.soft(label.toLowerCase(), `search "${word}" returned a card whose title does not contain it`).toContain(word.toLowerCase());
     }
     await journey.milestone(page, "search-hit");
@@ -241,7 +243,7 @@ test(authedTitle, async ({ browser, request, journey }) => {
     await expect(sort.getByRole("button", { name: /high/i }).first()).toHaveAttribute("aria-pressed", "true");
     await closeFilterSheet(page);
     const prices = await cards.evaluateAll((els) =>
-      els.map((e) => Number(/— \$([\d,]+)/.exec(e.getAttribute("aria-label") ?? "")?.[1]?.replace(/,/g, "") ?? "NaN")),
+      els.map((e) => Number(/\$\s*([\d,]+)/.exec(e.querySelector(".money-chip")?.textContent ?? "")?.[1]?.replace(/,/g, "") ?? "NaN")),
     );
     expect(prices.length).toBeGreaterThan(0);
     expect(prices, "Highest pay did not order the feed by price").toEqual([...prices].sort((a, b) => b - a));

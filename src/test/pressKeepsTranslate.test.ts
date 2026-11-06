@@ -189,11 +189,6 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
     // on 2026-11-05 as the shared IconActionButton. A new one
     // fails here until it is reviewed; a removed one fails too.
     expect([...files].sort()).toEqual([
-      "src/components/admin/AdminCommandPalette.tsx",
-      "src/components/admin/AdminNotificationLogs.tsx",
-      "src/components/admin/AdminReferrals.tsx",
-      "src/components/admin/AdminUsers.tsx",
-      "src/components/admin/settings/AdminUserSearchField.tsx",
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
       "src/components/messages/ConversationList.tsx",
       "src/components/profile/SavedHelpersTab.tsx",
@@ -206,7 +201,9 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
     // a ghost Button carries no :active transform, so its -translate-y-1/2 holds on press.
     // 8 since 2026-11-05: the Declutter map's "Close preview" X is the shared bare IconActionButton (Q2709); a span
     // holds its -translate-y-1/2, so the button's btn-press never meets the translate.
-    expect(xs.length).toBe(8);
+    // 3 since 2026-11-06: the five admin search clear-Xs are the shared FieldClearButton (Q2709); its press class is
+    // btn-press only (src/test/fieldClearButtonShared.test.tsx), whose :active rule keeps the translate (cases above).
+    expect(xs.length).toBe(3);
 
     // Any class on these Xs that has an :active transform rule anywhere in
     // src CSS was checked translate-safe above, so the class is covered. What
@@ -224,6 +221,6 @@ describe("press feedback keeps a centred control in place (owner 2026-10-01: dea
     // JobsHeader, four until Legal's became the shared Button — and six admin) are the
     // ones that press; ChatView's dismiss has no press feedback, so it has no :active
     // transform to lose its centring to.
-    expect(xs.filter((x) => x.className.split(/\s+/).some((c) => covered.has(c))).length).toBe(8); // 2026-11-04: 8, AdminSubscriptions retired
+    expect(xs.filter((x) => x.className.split(/\s+/).some((c) => covered.has(c))).length).toBe(3); // 2026-11-06: 3 (the five admin Xs are the shared FieldClearButton); 2026-11-04: 8, AdminSubscriptions retired
   });
 });

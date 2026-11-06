@@ -129,7 +129,7 @@ export function ShopOrderCard({
       ) : (
         <p className="text-xs text-muted-foreground">
           {delivered && deliveryCents > 0
-            ? `You get the item price in full plus your delivery fee: ${formatCents(shopGets)}. You deliver this order.`
+            ? `You get the item price in full plus what the buyer paid for delivery: ${formatCents(shopGets)}. You deliver this order.`
             : delivered
               ? `You get the item price in full: ${formatCents(shopGets)}. You deliver this order.`
               : `You get the item price in full: ${formatCents(shopGets)}.`}

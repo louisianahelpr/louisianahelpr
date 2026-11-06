@@ -12,6 +12,8 @@
  *   - both checked out and one order then closed unfinished: the other free order is closed too, no strike;
  *   - both handed over: the trade is 'completed';
  *   - one handed over and the other ended unfinished: the trade is 'lapsed' and the handed-over order is untouched;
+ *   - a bundled $0 order (declutter_checkout_free puts every free line from one seller in ONE order) holding the trade
+ *     line and an unrelated free claim: only the trade line is released, the claim stays paid and the order open;
  *   - a card order is never closed by the sweep; a second sweep changes nothing; the sweep stays service_role only.
  */
 import { PGlite, U, makeCheck, liveFunctionSql, readMigration } from "./messageAlertsWorld.mjs";
@@ -110,6 +112,15 @@ const t4 = await trade({ bLine: "paid", bOrder: "handed_over", aLine: "missed" }
 const t5 = await trade({ bLine: "paid", bOrder: "paid", aLine: "in_cart" });
 // 6. A card order (never a trade's, but the sweep must never close one).
 const t6 = await trade({ bLine: "paid", bOrder: "paid", aLine: "missed", paidWith: "card" });
+// 7. Like 1, but declutter_checkout_free bundled B's trade line with an unrelated free claim from the same seller (A)
+//    into ONE $0 order: only the trade line is released; the claim stays paid and its item stays sold.
+const t7 = await trade({ bLine: "paid", bOrder: "paid", aLine: "missed" });
+const [claimItem, claimLine] = [U(900), U(901)];
+await db.exec(`
+  INSERT INTO public.declutter_items (id, seller_id, title, status, price_cents, current_price_cents) VALUES
+    ('${claimItem}', '${A}', 'Free rug', 'sold', 0, 0);
+  INSERT INTO public.declutter_cart_items (id, item_id, buyer_id, seller_id, status, order_id) VALUES
+    ('${claimLine}', '${claimItem}', '${B}', '${A}', 'paid', '${t7.ob}');`);
 
 const sw = await one(`SELECT public.declutter_swap_sweep() AS r`);
 check("the sweep runs", !sw?.error, JSON.stringify(sw));
@@ -123,7 +134,15 @@ check("one order closed unfinished: the other free order is closed too",
 const strikes = await one(`SELECT count(*)::int AS c FROM public.strikes`);
 check("nobody gets a strike from the sweep", strikes?.c === 0, JSON.stringify(strikes));
 const told = await one(`SELECT count(*)::int AS c FROM public.notices WHERE title = 'Free pickup cancelled'`);
-check("both sides of each closed order are told", told?.c === 4, JSON.stringify(told));
+check("both sides of each closed order are told (the bundled order is not closed)", told?.c === 4, JSON.stringify(told));
+check("bundled order: the trade lapses", (await st("declutter_swap_offers", t7.s)) === "lapsed", await st("declutter_swap_offers", t7.s));
+check("bundled order: only the trade line is released", (await st("declutter_cart_items", t7.lb)) === "missed", await st("declutter_cart_items", t7.lb));
+check("bundled order: the trade item is back up", (await st("declutter_items", t7.ia)) === "live", await st("declutter_items", t7.ia));
+check("bundled order: the order itself stays paid", (await st("declutter_orders", t7.ob)) === "paid", await st("declutter_orders", t7.ob));
+check("bundled order: the unrelated free claim stays paid", (await st("declutter_cart_items", claimLine)) === "paid", await st("declutter_cart_items", claimLine));
+check("bundled order: the claimed item stays sold", (await st("declutter_items", claimItem)) === "sold", await st("declutter_items", claimItem));
+const toldPart = (await db.query(`SELECT user_id FROM public.notices WHERE title LIKE 'Trade item taken off%' ORDER BY user_id`)).rows.map((r) => r.user_id);
+check("bundled order: both sides are told", toldPart.length === 2 && toldPart.includes(A) && toldPart.includes(B), JSON.stringify(toldPart));
 check("both handed over: the trade is completed", (await st("declutter_swap_offers", t3.s)) === "completed", await st("declutter_swap_offers", t3.s));
 check("one handed over, the other ran out: the trade lapses and the handed-over order is untouched",
   (await st("declutter_swap_offers", t4.s)) === "lapsed" && (await st("declutter_orders", t4.ob)) === "handed_over",
@@ -132,7 +151,7 @@ check("a side still choosing keeps the trade open",
   (await st("declutter_swap_offers", t5.s)) === "accepted" && (await st("declutter_orders", t5.ob)) === "paid",
   `${await st("declutter_swap_offers", t5.s)} / ${await st("declutter_orders", t5.ob)}`);
 check("a card order is never closed by the sweep", (await st("declutter_orders", t6.ob)) === "paid", await st("declutter_orders", t6.ob));
-check("the sweep counts what it did", sw?.r?.lapsed === 3 && sw?.r?.completed === 1, JSON.stringify(sw?.r));
+check("the sweep counts what it did", sw?.r?.lapsed === 4 && sw?.r?.completed === 1, JSON.stringify(sw?.r));
 
 const sw2 = await one(`SELECT public.declutter_swap_sweep() AS r`);
 check("a second sweep changes nothing", sw2?.r?.lapsed === 0 && sw2?.r?.expired === 0 && (sw2?.r?.completed ?? 0) === 0, JSON.stringify(sw2));

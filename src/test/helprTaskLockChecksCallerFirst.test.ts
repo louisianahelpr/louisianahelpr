@@ -35,7 +35,8 @@ describe("helpr_task_lock refuses a stranger before it locks anything", () => {
     // page / webhook; the raise checks its own order party).
     const nonParty = new Set(["helpr_task_sweep", "helpr_task_accept", "declutter_delivery_raise_start", "declutter_delivery_raise_paid"]);
     for (const n of callers.filter((c) => !nonParty.has(c))) {
-      expect(body(n), n).toMatch(/helpr_task_lock\(p_task_id\); (?:IF t\.(?:helpr_id|customer_id|pickup_contact_id) IS DISTINCT FROM v_uid|v_side := CASE WHEN t\.helpr_id = v_uid)/);
+      // Shops (20261106203016): helpr_task_send_message checks the task kind's switch first, then the party.
+      expect(body(n), n).toMatch(/helpr_task_lock\(p_task_id\); (?:PERFORM public\.helpr_task_source_require_feature\(t\.source_kind\); )?(?:IF t\.(?:helpr_id|customer_id|pickup_contact_id) IS DISTINCT FROM v_uid|v_side := CASE WHEN t\.helpr_id = v_uid)/);
     }
   });
 });

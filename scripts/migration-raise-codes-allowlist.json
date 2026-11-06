@@ -192,6 +192,12 @@
       "function": "public.shops_publish_item",
       "code": "rental_not_available",
       "reason": "Shops H8 (owner 11-05, answer 1: every category sells, services and rentals with a price): renting things out is no longer refused, so the reserved rental_not_available refusal is removed on purpose. Off-list kinds are still refused (invalid_kind), and the rentals calendar, deposits and inflatables stay NOT-LAUNCHED Q1949 (an inflatable rental is sent to an admin by shop_item_text_flag). Proof: src/test/pglite/shopsEveryCategorySells.pglite.mjs."
+    },
+    {
+      "migration": "20261106221300_shops_custom_balance_edge.sql",
+      "function": "public.shops_order_custom_quote",
+      "code": "deposit_not_ready",
+      "reason": "Shops custom orders slice 2b (lead order 11-06): the refusal was a placeholder until the rest of a 50% deposit order could be charged. 2b builds the off-session charge (_shared/shopBalance.ts via declutter-money), the pay-the-rest page (shop-checkout pay_balance), the 7-day lapse (shop_balance_lapse_sweep) and the unpaid-close tax step, so a deposit price is now taken on purpose. Proof: src/test/pglite/shopsCustomRequests.pglite.mjs + shopsCustomBalance.pglite.mjs."
     }
   ]
 }

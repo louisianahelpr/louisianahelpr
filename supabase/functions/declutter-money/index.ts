@@ -117,6 +117,7 @@ const partyWhy = (e: StripeModeRefused, what: string): string =>
     : `a party on ${what} looks like a test account but is not enrolled`;
 import { captureShopHold, releaseShopHold, shopOrderMode, type ShopHoldRow } from "../_shared/shopHolds.ts";
 import { sendShopRefund, type ShopRefundRow } from "../_shared/shopRefunds.ts";
+import { chargeShopBalance, settleUnpaidCloseTax, type ShopBalanceDueRow, type UnpaidCloseTaxRow } from "../_shared/shopBalance.ts";
 import { heldTipParts, helprPayoutParts, type PayoutPart } from "../_shared/helprPayoutParts.ts";
 import { runShipLabels } from "../_shared/shipLabelRun.ts";
 
@@ -385,6 +386,7 @@ serve(async (req) => {
     held: 0, ban_review: 0, no_payout_account: 0, payout_account_not_ready: 0, payout_account_unreadable: 0,
     payee_setup_paged: 0, payee_banned: 0, payout_retry_later: 0, mixed_parties: 0,
     shop_expired: 0, shop_holds_released: 0, shop_captures: 0, shop_capture_retries: 0, shop_holds_lost: 0,
+    shop_balances_paid: 0, shop_balances_to_buyer: 0, shop_balance_retries: 0, shop_balances_lapsed: 0, shop_unpaid_close_tax: 0,
     shop_handed_over: 0, shop_payouts_sent: 0, shop_payouts_reconciled: 0, shop_payouts_failed: 0,
     shop_no_photo_refunded: 0, shop_refunds_sent: 0, shop_refunds_reconciled: 0, shop_refunds_failed: 0,
   };
@@ -738,6 +740,39 @@ serve(async (req) => {
         else out.shop_capture_retries++;
       } catch (e) {
         defects.record(`shop capture ${c.order_id}: ${caughtMessage(e, "capture failed")}`.slice(0, 200));
+      }
+    }
+    // Custom orders slice 2b (20261106215722 + 20261106221300): a 50% deposit order's rest, from the ready date, on the
+    // card saved at Checkout (_shared/shopBalance.ts; one key per order and attempt). Then the 7-day lapse (OWNER rule:
+    // the buyer's late cancel on the deposit only), then the tax step every close with the rest unpaid owes (LEAD
+    // 11-06: Stripe Tax reversed in full, the deposit's tax queued back to the buyer). PGRST202: not deployed yet.
+    const notDeployed = (err: unknown) => (err as { code?: string } | null)?.code === "PGRST202";
+    const balances = await admin.rpc("shop_balances_due", { p_limit: BATCH });
+    if (balances.error && !notDeployed(balances.error)) defects.record(`shop_balances_due failed: ${balances.error.message}`);
+    for (const b of (balances.error ? [] : (balances.data ?? [])) as ShopBalanceDueRow[]) {
+      try {
+        const stripe = await shopClient({ ...b, payment_intent_id: null }, "new");
+        const done = await chargeShopBalance(stripe, admin, b);
+        if (done === "paid" || done === "already_paid") out.shop_balances_paid++;
+        else if (done === "buyer_pays") out.shop_balances_to_buyer++;
+        else if (done === "refunded") defects.record(`shop order ${b.order_id}: a rest payment it no longer owed was refunded`);
+        else out.shop_balance_retries++;
+      } catch (e) {
+        defects.record(`shop rest ${b.order_id}: ${caughtMessage(e, "charge failed")}`.slice(0, 200));
+      }
+    }
+    const lapsed = await admin.rpc("shop_balance_lapse_sweep", {});
+    if (lapsed.error && !notDeployed(lapsed.error)) defects.record(`shop_balance_lapse_sweep failed: ${lapsed.error.message}`);
+    else if (!lapsed.error) out.shop_balances_lapsed = ((lapsed.data ?? []) as unknown[]).length;
+    const taxDue = await admin.rpc("shop_lapse_tax_due", { p_limit: BATCH });
+    if (taxDue.error && !notDeployed(taxDue.error)) defects.record(`shop_lapse_tax_due failed: ${taxDue.error.message}`);
+    for (const t of (taxDue.error ? [] : (taxDue.data ?? [])) as Array<UnpaidCloseTaxRow & ShopHoldRow>) {
+      try {
+        const stripe = await shopClient(t, "refund");
+        await settleUnpaidCloseTax(stripe, admin, t);
+        out.shop_unpaid_close_tax++;
+      } catch (e) {
+        defects.record(`shop unpaid-close tax ${t.order_id}: ${caughtMessage(e, "tax step failed")}`.slice(0, 200));
       }
     }
   } catch (e) {

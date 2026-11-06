@@ -3,6 +3,7 @@ import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { caughtMessage } from "../../_shared/caughtMessage.ts";
 import { CANCEL_FEE_CAPTURE_KEY, CANCEL_FEE_TAX_KEPT_KEY, JOB_TAX_CALC_KEY, JOB_TAX_CENTS_KEY, SETUP_FEE_LEFT_OUT_KEY } from "../../_shared/jobTaxAddress.ts";
 import { reverseVisitTaxForRefund } from "./_visitTaxReversal.ts";
+import { SHOP_DEPOSIT_CAPTURE_KEY } from "../../_shared/shopHolds.ts";
 
 /**
  * Q2083 (b) / Q1727 (a): commit a job's job-site sales tax to Stripe Tax once
@@ -75,7 +76,13 @@ export async function commitJobSiteTax(args: {
     return "none";
   }
   const recordCapturedPart = stampedKeptCents !== null && stampedKeptCents <= cents && typeof received === "number" && stampedKeptCents <= received;
-  if (!recordCapturedPart && (cancelFeeCapture || (shortfall !== 0 && shortfall !== setupFeeLeftOutCents))) {
+  // Shops custom orders slice 2b: a 50% deposit order's accept captures only the deposit (stamped by shopHolds.ts with
+  // the exact cents captured). The sale stands, so the WHOLE calculation commits here: the rest is charged from the
+  // ready date, and a close with the rest unpaid (no item handed over) reverses it in full (shopBalance.ts, LEAD 11-06).
+  const depositRaw = md[SHOP_DEPOSIT_CAPTURE_KEY];
+  const depositCapture = md.kind === "shop_order" && typeof depositRaw === "string" && /^\d+$/.test(depositRaw)
+    && typeof received === "number" && Number(depositRaw) === received && shortfall > 0;
+  if (!recordCapturedPart && !depositCapture && (cancelFeeCapture || (shortfall !== 0 && shortfall !== setupFeeLeftOutCents))) {
     console.error(`[stripe-webhook] job-site tax NOT committed for ${pi.id}: captured ${received} of ${pi.amount}${cancelFeeCapture ? " (cancellation fee capture)" : ""}`);
     await postSlackOpsAlert({
       kind: "money_at_risk",

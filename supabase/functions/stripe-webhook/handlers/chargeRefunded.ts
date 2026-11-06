@@ -205,6 +205,14 @@ export async function handleChargeRefunded(
     logStep("Declutter refund: recorded and announced by its own path", { chargeId: charge.id });
     return;
   }
+  // Custom orders slice 2b: the rest of a deposit order paid when the order no longer owed it (a second payment, or
+  // the order closed) is refunded in full by _shared/shopBalance.ts. That payment was never recorded on the order and
+  // carries no tax transaction, so nothing below applies (no job, no shop refund row, no tax reversal).
+  if ((((charge as { metadata?: Record<string, string> | null }).metadata ?? {}) as Record<string, string>).kind === "shop_balance"
+      && allRefunds.every((r) => (r?.metadata as Record<string, string> | null)?.kind === "shop_balance_refund")) {
+    logStep("Shop rest payment refunded (not owed); nothing to record", { chargeId: charge.id });
+    return;
+  }
   // Shops (M3, 20261019071055): its refunds are decided, recorded (shop_refunds)
   // and announced by their own RPCs; a Shops charge is not a job.
   // H6: a Shops order taxed at its pickup address (shop-checkout) has a Stripe Tax transaction the webhook

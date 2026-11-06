@@ -8,7 +8,10 @@
  *   - the report sets the task's seller_no_show_reported_at / answer_by (24 h) and tells the Helpr and the buyer;
  *   - the money is held while the Helpr answers (helpr_task_source_held, cut from 20261106194913);
  *   - the Helpr's answer opens a handover problem (the payout hold), tells the shop, and is refused to anyone else,
- *     late, empty, with contact details, or twice with a different note.
+ *     late, empty, with contact details, or twice with a different note;
+ *   - helpr_task_sweep (restated here) steps aside while a SHOP handover problem is open: the shop reports, the buyer
+ *     reports "I didn't get it", 24 hours pass, the sweep runs: no strike and the task stays booked. Its control (no
+ *     problem): a strike and the task goes back up, so the case is not vacuous.
  *
  *   node src/test/pglite/shopsReportHelprNoShow.pglite.mjs                     # ALL PASS (applied 3x)
  *   NEW_MIGRATION=skip node src/test/pglite/shopsReportHelprNoShow.pglite.mjs  # RED
@@ -35,8 +38,8 @@ function cutFn(file, name) {
 
 const id = (n) => `00000000-0000-0000-0000-${String(n).padStart(12, "0")}`;
 const [BUYER, SHOP_OWNER, HELPR, STRANGER, OFF_OWNER, ADMIN] = [1, 11, 21, 31, 12, 51].map(id);
-const [ORDER, ORDER_EARLY, ORDER_PICKUP, ORDER_OFF] = [91, 92, 93, 94].map(id);
-const [TASK, TASK_EARLY, TASK_OFF] = [81, 82, 84].map(id);
+const [ORDER, ORDER_EARLY, ORDER_PICKUP, ORDER_OFF, ORDER_HELD, ORDER_CTRL] = [91, 92, 93, 94, 95, 96].map(id);
+const [TASK, TASK_EARLY, TASK_OFF, TASK_HELD, TASK_CTRL] = [81, 82, 84, 85, 86].map(id);
 
 const SCHEMA = `
 DO $$ BEGIN
@@ -74,7 +77,23 @@ CREATE TABLE public.helpr_tasks (id uuid PRIMARY KEY, source_kind text NOT NULL,
   title text NOT NULL DEFAULT 'Order from Bayou Bakes', customer_id uuid, pickup_contact_id uuid, helpr_id uuid,
   pickup_slot_start timestamptz, handed_over_at timestamptz, handed_over_to uuid, updated_at timestamptz,
   seller_no_show_reported_at timestamptz, seller_no_show_answer_by timestamptz,
-  seller_no_show_answered_at timestamptz, seller_no_show_settled_at timestamptz);
+  seller_no_show_answered_at timestamptz, seller_no_show_settled_at timestamptz,
+  -- Read by helpr_task_sweep's other steps (none fires on these rows).
+  open_until timestamptz, delivered_at timestamptz, picked_up_at timestamptz, stuck_stage text, in_hand_nudged_at timestamptz,
+  stuck_fix_by timestamptz, return_answer_by timestamptz, stuck_return_by timestamptz, stuck_choice_by timestamptz,
+  is_seed boolean NOT NULL DEFAULT false);
+CREATE TABLE public.declutter_problems (order_id uuid, status text);
+CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY);
+CREATE TABLE public.profiles (user_id uuid PRIMARY KEY, is_seed boolean DEFAULT false);
+CREATE TABLE public.strikes (helpr_id uuid, reason text, task_id uuid);
+CREATE TABLE public.cron_defects (fn text, ref text, err text);
+CREATE FUNCTION public.log_cron_defect(p_fn text, p_ref text, p_err text) RETURNS void LANGUAGE sql AS
+  $$ INSERT INTO public.cron_defects VALUES (p_fn, p_ref, p_err) $$;
+CREATE FUNCTION public.helpr_task_give_job_strike(p_helpr uuid, p_reason text, p_task uuid, p_note text) RETURNS void LANGUAGE sql AS
+  $$ INSERT INTO public.strikes VALUES (p_helpr, p_reason, p_task) $$;
+CREATE FUNCTION public.helpr_task_reopen(p_task uuid, p_why text, p_helpr uuid, p_note text) RETURNS void LANGUAGE sql AS
+  $$ UPDATE public.helpr_tasks SET status = 'open', helpr_id = NULL, seller_no_show_reported_at = NULL,
+       seller_no_show_answer_by = NULL WHERE id = p_task $$;
 CREATE FUNCTION public.helpr_task_lock(p uuid) RETURNS public.helpr_tasks LANGUAGE sql AS
   $$ SELECT * FROM public.helpr_tasks WHERE id = p FOR UPDATE $$;
 CREATE TABLE public.helpr_task_events (task_id uuid, actor_id uuid, task_event text, note text);
@@ -183,6 +202,34 @@ ok(refused(await as(HELPR, `SELECT public.shop_helpr_answer_no_show('${TASK}', '
   "a different second answer is refused");
 await db.exec(`UPDATE public.helpr_tasks SET seller_no_show_answered_at = NULL, seller_no_show_answer_by = now() - interval '1 minute' WHERE id = '${TASK}'`);
 ok(refused(await as(HELPR, `SELECT public.shop_helpr_answer_no_show('${TASK}', 'late')`), /no_show_answer_late/), "no answer after 24 hours");
+
+// --- the sweep steps aside while a shop handover problem is open (lh-money-escrow BLOCK on 858bb092bf)
+await db.exec(`
+  INSERT INTO public.shop_orders (id, buyer_id, seller_id) VALUES ('${ORDER_HELD}', '${BUYER}', '${SHOP_OWNER}'),
+    ('${ORDER_CTRL}', '${BUYER}', '${SHOP_OWNER}');
+  INSERT INTO public.helpr_tasks (id, source_kind, source_id, status, customer_id, pickup_contact_id, helpr_id, pickup_slot_start) VALUES
+    ('${TASK_HELD}', 'shop_delivery', '${ORDER_HELD}', 'accepted', '${BUYER}', '${SHOP_OWNER}', '${HELPR}', now() - interval '20 minutes'),
+    ('${TASK_CTRL}', 'shop_delivery', '${ORDER_CTRL}', 'accepted', '${BUYER}', '${SHOP_OWNER}', '${HELPR}', now() - interval '20 minutes');`);
+const rh = await as(SHOP_OWNER, `SELECT public.shop_report_helpr_no_show('${ORDER_HELD}') AS r`);
+const rc = await as(SHOP_OWNER, `SELECT public.shop_report_helpr_no_show('${ORDER_CTRL}') AS r`);
+ok(Array.isArray(rh) && Array.isArray(rc), "the shop reports both no-shows");
+// The buyer's "I didn't get it" (shops_report_not_received writes exactly this) opens while the report waits.
+await db.exec(`INSERT INTO public.shop_handovers (order_id, problem_at, problem_note) VALUES ('${ORDER_HELD}', now(), 'I did not get it')`);
+// 24 hours pass with no answer, and the slot's own 2-hour clock is not due.
+await db.exec(`UPDATE public.helpr_tasks SET seller_no_show_answer_by = now() - interval '1 minute' WHERE id IN ('${TASK_HELD}', '${TASK_CTRL}')`);
+await db.exec(`DELETE FROM public.strikes`);
+const sw = (await db.query(`SELECT public.helpr_task_sweep() AS r`)).rows[0]?.r;
+ok(sw?.seller_report_unanswered === 1, `the sweep acts on one report only (${JSON.stringify(sw)})`);
+const th = (await db.query(`SELECT status, helpr_id, seller_no_show_settled_at FROM public.helpr_tasks WHERE id = '${TASK_HELD}'`)).rows[0];
+ok(th.status === "accepted" && th.helpr_id === HELPR && th.seller_no_show_settled_at === null,
+  `with a shop handover problem open the task stays booked to its Helpr (${JSON.stringify(th)})`);
+ok((await db.query(`SELECT count(*)::int n FROM public.strikes WHERE task_id = '${TASK_HELD}'`)).rows[0].n === 0,
+  "and the Helpr gets no strike");
+const tc = (await db.query(`SELECT status, seller_no_show_settled_at FROM public.helpr_tasks WHERE id = '${TASK_CTRL}'`)).rows[0];
+ok(tc.status === "open" && tc.seller_no_show_settled_at !== null &&
+   (await db.query(`SELECT count(*)::int n FROM public.strikes WHERE task_id = '${TASK_CTRL}'`)).rows[0].n === 1,
+  `control: with no problem the Helpr gets a strike and the task goes back up (${JSON.stringify(tc)})`);
+ok((await db.query(`SELECT count(*)::int n FROM public.cron_defects`)).rows[0].n === 0, "the sweep logged no defect");
 
 // --- grants
 const acl = (await db.query(`SELECT proname, proacl::text a FROM pg_proc WHERE proname IN ('shop_report_helpr_no_show', 'shop_helpr_answer_no_show')`)).rows;

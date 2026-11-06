@@ -8,6 +8,7 @@
  * @mutate src/components/ui/FieldClearButton.tsx | !min-h-0 !min-w-0 h-7 w-7 ctl-exit | h-7 w-7 ctl-exit
  * @mutate src/components/ui/FieldClearButton.tsx |     <button ref={ref} type="button" {...props} |     <button ref={ref} {...props}
  * @mutate src/components/admin/AdminUsers.tsx |               className="right-1.5" |               className="right-2"
+ * @mutate src/components/messages/ConversationList.tsx | <FieldClearButton onClick={closeSearch} aria-label={t("chat.closeSearch")} className="right-2.5"> | <FieldClearButton onClick={closeSearch} aria-label={t("chat.closeSearch")} className="right-1.5">
  * @mutate src/components/admin/settings/AdminUserSearchField.tsx |           onMouseDown={(e) => e.preventDefault()} |           onMouseDown={() => undefined}
  */
 import { describe, expect, it } from "vitest";
@@ -49,5 +50,13 @@ describe("the admin search ✕ is the shared FieldClearButton, class for class t
       expect(tag, f).toContain("onMouseDown={(e) => e.preventDefault()}");
       expect(tag, f).toContain('className="right-1.5"');
     }
+  });
+
+  it("Messages' search ✕ (Messages packet): the shared one at its own inset, right-2.5", () => {
+    const s = readFileSync("src/components/messages/ConversationList.tsx", "utf8");
+    expect(s).not.toContain("!min-h-0 !min-w-0 h-7 w-7 ctl-exit");
+    expect(s).toContain('<FieldClearButton onClick={closeSearch} aria-label={t("chat.closeSearch")} className="right-2.5">');
+    const b = render(<FieldClearButton className="right-2.5">x</FieldClearButton>).container.querySelector("button")!;
+    expect(set(b.className)).toEqual(set(HAND_MADE.replace("right-1.5", "right-2.5")));
   });
 });

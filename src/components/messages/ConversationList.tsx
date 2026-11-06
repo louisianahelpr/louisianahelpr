@@ -11,6 +11,7 @@ import { InboxOptionsMenu, MessagesMoreMenu } from "./InboxMenus";
 import { InboxFilterTabs, PinnedFilterChip } from "./ConversationListHeader";
 import { COMPACT_HEADER_ROW_MIN_HEIGHT, ScreenHeaderRow, SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { ConversationListBody } from "./ConversationListBody";
+import { FieldClearButton } from "@/components/ui/FieldClearButton";
 import type { Conversation } from "./types";
 import { CONVO_LIMIT, useConversationListState } from "./useConversationListState";
 
@@ -291,20 +292,11 @@ export function ConversationList({
         spellCheck={false}
         className={`w-full pl-9 pr-10 ${isWebDesktop ? "h-[34px]" : "h-9"} text-ds-13 rounded-ds-md glass-field focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:text-muted-foreground`}
       />
-      {/* `.ctl-exit` is the app's one exit shape and `.ctl-tint` its sanctioned
-          hover tone — both kept from the control-sameness pass that put them
-          on this button when it lived outside the field.
-          `!min-h-0 !min-w-0` because index.css's bare 44px HIG floor on every
-          `button` otherwise wins over `h-7 w-7`, rendering a 44x44 hit box
-          inside a 36px-tall field and spilling past its edges. */}
-      <button
-        type="button"
-        onClick={closeSearch}
-        aria-label={t("chat.closeSearch")}
-        className="absolute right-2.5 top-1/2 -translate-y-1/2 !min-h-0 !min-w-0 h-7 w-7 ctl-exit inline-flex items-center justify-center text-muted-foreground hover:text-foreground ctl-tint btn-press transition"
-      >
+      {/* The shared field ✕ (FieldClearButton: .ctl-exit, .ctl-tint, and `!min-h-0 !min-w-0` so index.css's 44px
+          button floor does not spill past this 36px field). */}
+      <FieldClearButton onClick={closeSearch} aria-label={t("chat.closeSearch")} className="right-2.5">
         <X className="w-4 h-4" />
-      </button>
+      </FieldClearButton>
     </div>
   );
 

@@ -154,7 +154,7 @@ const TipMoment = lazyWithPreload(() => import("./pages/tips/TipMoment"));
 // The retired /quotes hub: a route like every other, loaded on demand (it resolves a quote notice's side at open time).
 const QuotesHubRedirect = lazyWithPreload(() => import("./components/quotes/QuotesHubRedirect"));
 const SendQuotePage = lazyWithPreload(() => import("./pages/quotes/SendQuotePage"));
-// Shops (docs/specs/local-shops-prep.md): each page renders the 404 unless the hidden 'shops' switch is on for the member (ShopsGate).
+// Shops (docs/specs/local-shops-prep.md): each page shows "Opens soon" unless the hidden 'shops' switch is on for the member (ShopsGate, Q2005).
 const ShopsPage = lazyWithPreload(() => import("./pages/shops/ShopsPage"));
 const ShopPage = lazyWithPreload(() => import("./pages/shops/ShopPage"));
 const BookHelprPage = lazyWithPreload(() => import("./pages/book/BookHelprPage"));

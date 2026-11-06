@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-06T18:26Z",
+  "measured_at": "2026-11-06T22:08Z",
   "issues": {
     "readable": true,
     "open": [
@@ -36,7 +36,7 @@
         "number": 2375,
         "title": "nightly-red: a11y-webkit-prod",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41875004762",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42255030839",
         "runTruncated": false
       },
       {
@@ -120,6 +120,18 @@
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42120720415",
         "runTruncated": false
+      },
+      {
+        "number": 4197,
+        "title": "nightly-red: prod-freshness",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42293432612",
+        "runTruncated": false
+      },
+      {
+        "number": 4199,
+        "title": "🔴 Migration drift: 4 unapplied / 0 unrecorded",
+        "label": "migration-drift"
       }
     ]
   },
@@ -451,6 +463,8 @@
     "issue #4062": "Q1816",
     "issue #4149": "Q1816",
     "issue #4151": "Q1816",
+    "issue #4197": "Q1816",
+    "issue #4199": "Q2769",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",

@@ -46,6 +46,8 @@ const SQL_SOMEONE_OK: Record<string, string> = {
     "'Someone asked about ...': who asked a Declutter question is never shown to the seller (Q2278, src/test/declutterQuestionAskerHidden.test.ts; the item page says \"Asked by a neighbor\")",
   declutter_take_item:
     "HINT 'Someone else got this item first.': an error to the member trying to take an item, not a notice; the member who got it first is a stranger the app never names to them",
+  rentals_send_talk_message:
+    "'Someone sent a message about <home>': the owner's notice never names the member who wrote in (fair housing, 42 U.S.C. 3604(c); La. R.S. 51:2606: a first name can hint at a protected trait before the owner answers); the thread shows only a first name (src/test/pglite/homesTalk.pglite.mjs 'no notice names the member', 20261106182837)",
   declutter_wanted_record_match:
     "'Someone near you wants one': a wanted post is private to its poster (RLS 'poster reads own'); a seller never learns who wants an item",
 };

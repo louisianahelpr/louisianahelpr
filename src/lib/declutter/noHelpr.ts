@@ -57,7 +57,13 @@ export async function fetchHelprNoShowReport(taskId: string): Promise<HelprNoSho
   return (withWords(res, () => null) as unknown as HelprNoShowReport | null) ?? null;
 }
 
-/** The Helpr's answer, within 24 hours: their words (and a photo from their task folder, when they have one). */
-export async function answerHelprNoShow(taskId: string, note: string): Promise<string> {
+/**
+ * The Helpr's answer, within 24 hours: their words (and a photo from their task folder, when they have one). A shop
+ * delivery's report is answered by shop_helpr_answer_no_show (20261106211136): it holds the shop order instead.
+ */
+export async function answerHelprNoShow(taskId: string, note: string, sourceKind?: string): Promise<string> {
+  if (sourceKind === "shop_delivery") {
+    return withWords(await supabase.rpc("shop_helpr_answer_no_show", { p_task_id: taskId, p_note: note }), (e) => rpcErrorMessage("shop_helpr_answer_no_show", e)) as string;
+  }
   return withWords(await supabase.rpc("declutter_helpr_answer_no_show", { p_task_id: taskId, p_note: note }), (e) => rpcErrorMessage("declutter_helpr_answer_no_show", e)) as string;
 }

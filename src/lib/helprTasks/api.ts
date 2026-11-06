@@ -251,14 +251,19 @@ export async function saveVehicle(hasCar: boolean, hasTruck: boolean, secondPers
 
 /**
  * The seller's pickup windows for an OPEN delivery the caller may take (helpr_task_pickup_windows, 20261028232930),
- * and the latest a pickup may end: both bounds helpr_task_accept checks. Null before the read is deployed (the
- * accept card keeps its free time field then).
+ * the latest a pickup may end and, for a shop order, the earliest it may start (its ready date at 8 AM,
+ * 20261106203016): the bounds helpr_task_accept checks. Null before the read is deployed (the accept card keeps its
+ * free time field then).
  */
-export async function fetchTaskPickupWindows(taskId: string): Promise<{ windows: SellerWindow[]; latestPickupAt: string | null } | null> {
+export async function fetchTaskPickupWindows(taskId: string): Promise<{ windows: SellerWindow[]; latestPickupAt: string | null; earliestPickupAt?: string | null } | null> {
   const res = await supabase.rpc("helpr_task_pickup_windows", { p_task_id: taskId });
   if (res.error && isMissingRpcNamed(res.error, "helpr_task_pickup_windows")) return null;
-  const rows = (data<(SellerWindow & { latest_pickup_at: string | null })[] | null>(res, (e) => rpcErrorMessage("helpr_task_pickup_windows", e)) ?? []);
-  return { windows: rows.map(({ weekday, starts, ends }) => ({ weekday, starts, ends })), latestPickupAt: rows[0]?.latest_pickup_at ?? null };
+  const rows = (data<(SellerWindow & { latest_pickup_at: string | null; earliest_pickup_at?: string | null })[] | null>(res, (e) => rpcErrorMessage("helpr_task_pickup_windows", e)) ?? []);
+  return {
+    windows: rows.map(({ weekday, starts, ends }) => ({ weekday, starts, ends })),
+    latestPickupAt: rows[0]?.latest_pickup_at ?? null,
+    earliestPickupAt: rows[0]?.earliest_pickup_at ?? null,
+  };
 }
 
 /**

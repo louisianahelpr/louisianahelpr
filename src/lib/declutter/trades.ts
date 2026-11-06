@@ -5,7 +5,7 @@
  * "trade".
  *
  * The one client helper for it. Every RPC refusal is thrown with RPC_ERROR_COPY's words on `userMessage` (api.ts
- * rpcData), never dropped. Until 20261106163703 is on prod (42703 / PGRST202 / PGRST204), reads answer "not open to
+ * rpcData), never dropped. Until 20261106163703 is on prod (42703 / PGRST204), reads answer "not open to
  * trades" and the switch says it can't be saved yet.
  */
 import { supabase } from "@/integrations/supabase/client";
@@ -20,9 +20,9 @@ export const TRADES_TITLE = "Open to trades";
 export const tradesSettingLine = (on: boolean) =>
   on ? "Buyers can offer one of their listings in trade. No money changes hands." : "Off. Buyers can't offer a trade.";
 
-/** The column or RPC is not on this database yet. */
+/** The column is not on this database yet (a table read: PostgREST never answers it with PGRST202). */
 const notDeployed = (e: { code?: string; message?: string } | null) =>
-  !!e && (e.code === "42703" || e.code === "PGRST202" || e.code === "PGRST204") && /trade|swap/.test(e.message ?? "");
+  !!e && (e.code === "42703" || e.code === "PGRST204") && /trade|swap/.test(e.message ?? "");
 
 /** Whether one listing is open to trades (false before the column is live). */
 export async function fetchAcceptsTrades(itemId: string): Promise<boolean> {

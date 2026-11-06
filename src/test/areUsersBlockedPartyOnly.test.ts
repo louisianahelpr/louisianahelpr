@@ -122,6 +122,9 @@ const EXPECTED_CALLERS = [
   "declutter_set_porch_place",
   "declutter_set_watch",
   "declutter_start_checkout",
+  // Trades (20261106163703): service role only; its two callers pass (wanted item's seller, p_buyer) where p_buyer is
+  // v_uid (declutter_offer_swap) or the trade's buyer while the caller is its seller (declutter_respond_swap accept).
+  "declutter_swap_items_ok",
   // Declutter Wanted public replies (20261021031757, board 117): v_uid := declutter_assert_member(true)
   // is one argument, the Wanted post's owner (w.user_id) the other, in both the browse and the reply.
   "declutter_wanted_browse",

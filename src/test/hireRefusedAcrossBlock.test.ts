@@ -83,6 +83,9 @@ const NOT_HIRES: Record<string, string> = {
   // (status 'accepted'); no application or roster row, and nobody hires them.
   // It refuses a blocked pair before the write (are_users_blocked with the
   // task's buyer or seller -> task_not_found, which says nothing of a block).
+  // 20261106163703 (Declutter trades): accepts a TRADE offer (an item-for-item swap, not a job hire); the
+  // block is checked first, in declutter_swap_items_ok (are_users_blocked(seller, buyer) -> item_not_found).
+  declutter_respond_swap: "accepts a Declutter trade offer (an item swap); hires no one",
   helpr_task_accept: "a Helpr takes a delivery task; no application, the block is checked first (task_not_found)",
   settle_job_detail_change: "applies an agreed detail-change REQUEST (Q1500); hires no one",
   // 20260925154606 (Q407): an under-filled crew whose every HIRED member is

@@ -138,7 +138,7 @@ describe("admin Messages preview backend: the writes a thread makes on its own a
 });
 
 describe("admin Messages preview backend: every app RPC and table, read and written, reaches the network zero times", () => {
-  it("sends none of them (only feature_switches_for_me, a read of which switches are on, passes)", async () => {
+  it("sends none of them (only feature_switches_for_me and features_open_to_everyone, reads of which switches and sections are on, pass)", async () => {
     const { rpcs, tables } = appSchemaNames();
     // Inventory floors (counted 11-02 on main 6c325f3909: hundreds of each).
     expect(rpcs.length).toBeGreaterThan(400);
@@ -158,6 +158,8 @@ describe("admin Messages preview backend: every app RPC and table, read and writ
       uninstall();
     }
     const reached = supabaseCalls().map(([u]) => new URL(String(u instanceof Request ? u.url : u)).pathname);
-    expect(reached).toEqual(rpcs.includes("feature_switches_for_me") ? ["/rest/v1/rpc/feature_switches_for_me"] : []);
+    // Exact: the two read-only switch RPCs pass (features_open_to_everyone since the nav redesign, 2026-11-06), nothing else.
+    const passes = ["feature_switches_for_me", "features_open_to_everyone"].filter((n) => rpcs.includes(n));
+    expect([...reached].sort()).toEqual(passes.map((n) => `/rest/v1/rpc/${n}`).sort());
   });
 });

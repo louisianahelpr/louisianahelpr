@@ -53,6 +53,12 @@ vi.mock("@/lib/pinnedConversations", async (io) =>
 vi.mock("@/lib/archivedConversations", async (io) =>
   (await import("@/test/helpers/threadStoresOffline")).archivedConversationsOffline(io));
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
+// The phone inbox's section tabs (nav redesign 2026-11-06) ask which sections are open to everyone; answered here.
+vi.mock("@/components/landing/useSectionsOpen", async (io) => ({
+  ...(await io<typeof import("@/components/landing/useSectionsOpen")>()),
+  useOpenToEveryoneAnswer: () => new Set<string>(),
+  useSectionsOpen: () => ({ open: new Set<string>(), settled: true }),
+}));
 vi.mock("@/lib/haptics", () => ({
   hapticLight: vi.fn(), hapticError: vi.fn(), hapticSuccess: vi.fn(),
   hapticMedium: vi.fn(), hapticSelection: vi.fn(), hapticWarning: vi.fn(), hapticHeavy: vi.fn(),

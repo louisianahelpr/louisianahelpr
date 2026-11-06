@@ -55,7 +55,9 @@ export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, ena
   // a slot AT that instant is bookable, so the floor sits 1 ms before it (the slot builders keep starts > floor).
   const days = useMemo(() => {
     if (!q.data) return [];
-    const earliest = "earliestPickupAt" in q.data && q.data.earliestPickupAt ? Date.parse(q.data.earliestPickupAt) - 1 : 0;
+    // Only the task read carries it (fetchTaskPickupWindows); the order read has no ready-date bound.
+    const earliestIso = (q.data as { earliestPickupAt?: string | null }).earliestPickupAt;
+    const earliest = earliestIso ? Date.parse(earliestIso) - 1 : 0;
     return (porch ? porchWindowDays : pickupDays)(q.data.windows, Math.max(Date.now(), earliest), q.data.latestPickupAt ? Date.parse(q.data.latestPickupAt) : null);
   }, [q.data, porch]);
   const [dayPick, setDayPick] = useState<string | null>(null);

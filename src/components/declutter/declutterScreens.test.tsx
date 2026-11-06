@@ -144,6 +144,7 @@ vi.mock("@/lib/declutter/porchDays", () => ({ fetchMyPorchDays: async () => null
 vi.mock("@/lib/declutter/trades", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/trades")>()),
   fetchAcceptsTrades: async () => false,
+  fetchMyTrades: async () => [],
 }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchLiveItems: async () => [],

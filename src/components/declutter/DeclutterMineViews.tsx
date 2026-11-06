@@ -52,6 +52,7 @@ import { FreePauseLine, MyFreeAsks, useMyFreeAsks } from "./DeclutterFreeClaim";
 import { WatchingList } from "./DeclutterWatching";
 import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
 import { BundleRequestsSection, useBundleAsksToAnswer } from "./DeclutterBundleRequests";
+import { TradeOffersSection, useTradeOffersToAnswer } from "./DeclutterTradeOffers";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 
 const BUCKET_KEYS = ORDER_BUCKETS.map((b) => b.key);
@@ -116,6 +117,8 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       {offers.has && offers.toAnswer && <OffersSection side="buyer" />}
       {/* Q2268: the buyer's asks for several items, and what the seller answered. */}
       <BundleRequestsSection side="buyer" userId={user?.id ?? null} />
+      {/* Declutter trades slice 3: the buyer's trade offers from the last 7 days, with Take it back while open. */}
+      <TradeOffersSection side="buyer" userId={user?.id ?? null} />
       <PaidOrders side="buyer" views={t.views} scope={(id) => !refunded(id)} show={(id) => only === null || t.views.get(id)?.bucket === only} />
       {(ended.length > 0 || endedOrders > 0) && (
         <section className="space-y-2" aria-label="Ended">
@@ -162,7 +165,8 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
   const questions = useUnansweredQuestions(userId);
   const reports = useSellerReportsToAnswer();
   const bundleAsks = useBundleAsksToAnswer(userId); // Q2268
-  const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks;
+  const tradeAsks = useTradeOffersToAnswer(userId); // Declutter trades slice 3: open trade offers wait on the seller too
+  const toAnswer = (todo?.sellerOffers ?? 0) + questions.count + reports.size + bundleAsks + tradeAsks;
   const waitingLabel = useWaitingChipLabel();
   // AUD31-4: a sale to hand over is the seller's next move, so on the whole tab it comes before the offers, the
   // listings and their empty cards (at 375 it sat at the very bottom, behind the floating +).
@@ -193,6 +197,7 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
       {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} />}
       {show("offers") && <QuestionsToAnswer userId={userId} />}
       {show("offers") && <BundleRequestsSection side="seller" userId={userId} />}
+      {show("offers") && <TradeOffersSection side="seller" userId={userId} />}
       {show("offers") && <OffersSection side="seller" onlyMyTurn={only === "offers"} />}
       {show("listings") && listings}
       {show("waiting") && <SalesWaiting emptyNotice={only === "waiting"} />}

@@ -1,4 +1,5 @@
 import { RotateCcw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { hapticLight } from "@/lib/haptics";
 import { unarchiveConversation } from "@/lib/archivedConversations";
@@ -13,8 +14,11 @@ import type { Conversation } from "./types";
  */
 export function RestoreConversationButton({ convo: c, userId }: { convo: Conversation; userId: string }) {
   return (
-    <button
+    // The shared Button (outline, sm; Q2709 11-05), in the row's trailing slot, in flow.
+    <Button
       type="button"
+      variant="outline"
+      size="sm"
       onClick={(e) => {
         e.stopPropagation();
         unarchiveConversation(userId, c.jobId, c.otherUserId);
@@ -26,14 +30,10 @@ export function RestoreConversationButton({ convo: c, userId }: { convo: Convers
         toast(`Restored conversation with ${c.otherUserName ?? "this person"}`);
       }}
       aria-label={`Restore conversation with ${c.otherUserName ?? "this person"}`}
-      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-ds-sm text-ds-11 font-sans font-semibold btn-press transition-colors"
-      style={{
-        background: "hsl(var(--bark) / 0.10)",
-        color: "hsl(var(--bark))",
-      }}
+      className="gap-1 px-3 text-ds-13 text-[hsl(var(--bark))] [&_svg]:size-3"
     >
       <RotateCcw className="w-3 h-3" />
       Restore
-    </button>
+    </Button>
   );
 }

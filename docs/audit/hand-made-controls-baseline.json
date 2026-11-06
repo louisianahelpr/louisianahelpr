@@ -317,9 +317,6 @@
     "src/components/jobs/JobProofPhotos.tsx": {
       "button": 1
     },
-    "src/components/jobs/MessageApplicantButton.tsx": {
-      "button": 1
-    },
     "src/components/landing/HeroSection.tsx": {
       "input": 1
     },
@@ -334,9 +331,6 @@
       "input": 2
     },
     "src/components/messages/ConversationListBody.tsx": {
-      "button": 3
-    },
-    "src/components/messages/ConversationListHeader.tsx": {
       "button": 1
     },
     "src/components/messages/ConversationRow.tsx": {
@@ -345,20 +339,8 @@
     "src/components/messages/InboxMenus.tsx": {
       "button": 2
     },
-    "src/components/messages/MessageActionSheet.tsx": {
-      "button": 2
-    },
     "src/components/messages/MessageBubble.tsx": {
       "button": 2
-    },
-    "src/components/messages/MuteSheet.tsx": {
-      "button": 2
-    },
-    "src/components/messages/RestoreConversationButton.tsx": {
-      "button": 1
-    },
-    "src/components/messages/chatView/JumpToBottomButton.tsx": {
-      "button": 1
     },
     "src/components/mobileNav/GateSheet.tsx": {
       "button": 1
@@ -519,9 +501,6 @@
       "button": 1
     },
     "src/components/reviewPanel/StarRow.tsx": {
-      "button": 1
-    },
-    "src/components/richMessageInput/AttachSourceSheet.tsx": {
       "button": 1
     },
     "src/components/savedSearches/SaveSearchButton.tsx": {

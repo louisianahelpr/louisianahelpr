@@ -14,6 +14,7 @@ import { GROUP_EMOJI } from "@/lib/categoryEmoji";
 import { hapticLight } from "@/lib/haptics";
 import { X } from "lucide-react";
 import { JOB_WHEN_OPTIONS } from "@/lib/jobWhenFilter";
+import { FilterChip, FILTER_CHIP, FILTER_CHIP_ON, FILTER_CHIP_OFF } from "@/components/ui/FilterChip";
 
 export { categoryLabels };
 
@@ -34,34 +35,13 @@ export { categoryLabels };
  * must break BETWEEN chips, not inside one — the height is fixed, so an
  * internal line break overflows the chip instead of growing it.
  *
- * Size (board 24, lead review 2026-10-20): the Declutter ChipGroup recipe
- * (min-h-10, px-4, text-ds-13; DeclutterSellSteps.tsx). Measured in Chromium
- * on /jobs: each chip renders 40px tall (the global 44px button floor does not
- * reach these aria-pressed chips), the same as the Declutter chips.
+ * The chip itself is the shared FilterChip (src/components/ui/FilterChip.tsx,
+ * Q2709): its size, selected gloss and idle look live there.
  */
-const chipBase =
-  "inline-flex items-center gap-1.5 px-4 rounded-full text-ds-13 font-semibold whitespace-nowrap transition-colors duration-200 btn-press border min-h-10";
-/** The one row layout, paired with `chipBase`. Wrapping and content-sized:
+/** The one row layout, paired with the chip. Wrapping and content-sized:
  *  no empty grid cells at any option count, no hidden off-screen options, and
  *  every chip is exactly as wide as its own label. */
 const chipRow = "flex flex-wrap gap-2";
-// Selected = the app's GLOSSY primary surface (`btn-grad-primary`), never a
-// flat fill. Standing project rule: every green/bark primary button and every
-// selected/active control wears the gloss — flat bark reads cheap and has been
-// corrected every time it has appeared. This chip was the last flat one: an
-// 18% bark TINT, which is what "Best match / List / Any / Any time" rendering
-// as flat grey-green was.
-//
-// (The 2026-08-24 note that the owner "rejected olive-filled chips" was about
-// a flat solid olive block. The gloss is the treatment that was asked for in
-// its place, and it is what every other selected control in the app uses.)
-//
-// `[&_*]` pins the CategoryIcon inside an active chip to parchment too —
-// otherwise it keeps its per-category tint and disappears into the gradient.
-const chipActive =
-  "btn-grad-primary !text-[hsl(var(--parchment))] [&_*]:!text-[hsl(var(--parchment))] border-transparent";
-const chipIdle =
-  "bg-card text-foreground border-border hover:bg-[hsl(var(--bark)/0.06)]";
 
 const sortOptions = [
   // "Best match" (value "smart") is the default — a composite recency +
@@ -91,7 +71,8 @@ const expiresOptions = [
 // signed-in browse toolbar and the signed-out /jobs board — builds its
 // sheet from these, so the controls can't drift apart between surfaces.
 
-export const chipStyles = { chipBase, chipActive, chipIdle, chipRow };
+// The chip strings for the one non-Jobs caller still drawing its own chips (Homes' RentBrowse; not launched).
+export const chipStyles = { chipBase: FILTER_CHIP, chipActive: FILTER_CHIP_ON, chipIdle: FILTER_CHIP_OFF, chipRow };
 
 /*
  * Every row WRAPS. Sort and Category used to render through a horizontal
@@ -110,15 +91,13 @@ export const SortContent = ({
 }: { sortBy: string; setSortBy: (v: string) => void; onSelect?: () => void }) => (
   <div role="group" aria-label="Sort results" className={chipRow}>
     {sortOptions.map((opt) => (
-      <button
+      <FilterChip
         key={opt.value}
-        type="button"
-        aria-pressed={sortBy === opt.value}
+        pressed={sortBy === opt.value}
         onClick={() => { hapticLight(); setSortBy(opt.value); onSelect?.(); }}
-        className={`${chipBase} ${sortBy === opt.value ? chipActive : chipIdle}`}
       >
         {opt.label}
-      </button>
+      </FilterChip>
     ))}
   </div>
 );
@@ -145,38 +124,33 @@ export const CategoryContent = ({
       {JOB_CATEGORY_GROUPS.map((g) => {
         const isActive = selectedCategory === g.id;
         return (
-          <button
-            type="button"
-            aria-pressed={isActive}
+          <FilterChip
+            pressed={isActive}
             key={g.id}
             data-category-group={g.id}
             onClick={() => { hapticLight(); setSelectedCategory(isActive ? null : g.id); onSelect?.(); }}
-            className={`${chipBase} ${isActive ? chipActive : chipIdle}`}
           >
             <span aria-hidden className="text-ds-14 leading-none">{GROUP_EMOJI[g.id]}</span>
             {g.label}
-          </button>
+          </FilterChip>
         );
       })}
       {legacy && (
-        <button
-          type="button"
-          aria-pressed
+        <FilterChip
+          pressed
           onClick={() => { hapticLight(); setSelectedCategory(null); onSelect?.(); }}
-          className={`${chipBase} ${chipActive}`}
         >
           {categoryFilterLabel(legacy)}
           <X className="w-3.5 h-3.5" aria-hidden />
           <span className="sr-only">, remove</span>
-        </button>
+        </FilterChip>
       )}
     </div>
   );
 };
 
 const radiusOptions = [5, 10, 25, 50];
-// Five chips (Any + four radii) on one line at 375 (lead, board 24 r2): px-3, not px-4.
-const radiusChip = chipBase.replace("px-4", "px-3");
+// Five chips (Any + four radii) on one line at 375 (lead, board 24 r2): the tight FilterChip (px-3, not px-4).
 
 export const NearbyContent = ({
   locationFilter, setLocationFilter, status, message, onSelect,
@@ -196,26 +170,24 @@ export const NearbyContent = ({
       <div role="group" aria-label="Filter by distance" className={chipRow}>
         {/* Explicit "Any" so the unfiltered state is a lit chip rather than the
             absence of one — same treatment as Budget and When. */}
-        <button
-          type="button"
-          aria-pressed={current === null}
+        <FilterChip
+          size="tight"
+          pressed={current === null}
           onClick={() => { hapticLight(); setLocationFilter(""); onSelect?.(); }}
-          className={`${radiusChip} ${current === null ? chipActive : chipIdle}`}
         >
           Any
-        </button>
+        </FilterChip>
         {radiusOptions.map((mi) => {
           const active = current === mi;
           return (
-            <button
+            <FilterChip
               key={mi}
-              type="button"
-              aria-pressed={active}
+              size="tight"
+              pressed={active}
               onClick={() => { hapticLight(); setLocationFilter(active ? "" : `nearby:${mi}`); onSelect?.(); }}
-              className={`${radiusChip} ${active ? chipActive : chipIdle}`}
             >
               {mi} mi
-            </button>
+            </FilterChip>
           );
         })}
       </div>
@@ -240,27 +212,23 @@ export const WhenContent = ({
 }: { jobWhen: string; setJobWhen: (v: string) => void; expiresWithin: string; setExpiresWithin: (v: string) => void }) => (
   <div role="group" aria-label="Filter by job day" className={chipRow}>
     {JOB_WHEN_OPTIONS.map((opt) => (
-      <button
+      <FilterChip
         key={opt.value}
-        type="button"
-        aria-pressed={jobWhen === opt.value}
+        pressed={jobWhen === opt.value}
         onClick={() => { hapticLight(); setJobWhen(jobWhen === opt.value ? "" : opt.value); }}
-        className={`${chipBase} ${jobWhen === opt.value ? chipActive : chipIdle}`}
       >
         {opt.label}
-      </button>
+      </FilterChip>
     ))}
     {expiresWithin && (
-      <button
-        type="button"
-        aria-pressed
+      <FilterChip
+        pressed
         onClick={() => { hapticLight(); setExpiresWithin(""); }}
-        className={`${chipBase} ${chipActive}`}
       >
         Closes within {expiresOptions.find((o) => o.value === expiresWithin)?.label ?? expiresWithin}
         <X className="w-3.5 h-3.5" aria-hidden />
         <span className="sr-only">, remove</span>
-      </button>
+      </FilterChip>
     )}
   </div>
 );

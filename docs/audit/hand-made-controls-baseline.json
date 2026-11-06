@@ -189,9 +189,6 @@
     "src/components/dashboard/CompactJobCard.tsx": {
       "button": 1
     },
-    "src/components/dashboard/JobFilters.tsx": {
-      "button": 7
-    },
     "src/components/dashboard/PhotoLightbox.tsx": {
       "button": 6
     },
@@ -310,9 +307,6 @@
     },
     "src/components/job-card/PagedActivityList.tsx": {
       "button": 1
-    },
-    "src/components/job-card/RunningLateSheet.tsx": {
-      "button": 2
     },
     "src/components/jobs/JobProofPhotos.tsx": {
       "button": 1
@@ -510,7 +504,7 @@
       "button": 1
     },
     "src/components/schedule/ChangeJobSheet.tsx": {
-      "button": 3
+      "button": 2
     },
     "src/components/schedule/ScheduleChangeControl.tsx": {
       "button": 2,

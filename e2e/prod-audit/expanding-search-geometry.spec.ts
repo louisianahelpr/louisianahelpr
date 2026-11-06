@@ -64,7 +64,9 @@
 // rest. Un-holding the chevron's box below 360 moves the hamburger on open
 // (measured 187 -> 235, the first run of this clause).
 // @mutate src/components/messages/ConversationList.tsx | <div aria-hidden className="shrink-0 pointer-events-none w-11 self-stretch" /> | <div aria-hidden className="shrink-0 pointer-events-none w-11 self-stretch max-[359px]:hidden" />
-// The posts / jobs surfaces (My Posts / My Jobs headers, and their "open search
+// Saved Helprs' own-line proof (2026-11-06): without the held slot the header cluster closes up and the magnifier
+// comes back somewhere else; the own-line clause must fail on it ("no held slot in the header row").
+// @mutate src/components/profile/SavedHelpersTab.tsx | <SearchTriggerSlot /> | <span />// The posts / jobs surfaces (My Posts / My Jobs headers, and their "open search
 // must not grow the top piece" clause, owner 2026-10-01) left with those screens
 // on 2026-10-19 (Q2205): Jobs > Posted / Working carry no search.
 
@@ -659,8 +661,18 @@ const SURFACES: {
     triggerSel: "[data-search-trigger]",
     fieldSel: 'input[aria-label="Search saved Helprs"]',
     closeSel: 'button[aria-label="Close search"]',
-    soloRow:
-      "the Saved-Helprs field is a full-width row of its own under ProfileTabHeader — it has no row neighbours to cover, and its magnifier sits in the header above it. (a) is therefore vacuous here BY DESIGN; (b) and (c) still carry the surface.",
+    /* The field opens on its OWN LINE at every width: a full-width row under ProfileTabHeader, its magnifier in the
+       header above it. So the ✕ can never land on the magnifier's box, with or without the held slot, and the
+       slot-removal proof of (c) failed at 320 / 375 / 1440 by construction (prod-audit 42088200102: "with the
+       landing slot removed -> 0px"). The own-line proof is the one that can fail here: field below the magnifier's
+       row, the page title unmoved, the held slot exactly where the magnifier was, and deleting it moves the header
+       cluster's leading edge (lab 2026-11-06, local dist: 208 -> 256 at 320, 263 -> 311 at 375, 1220 -> 1264 at
+       1440). The line's other child is the Filter / Sort row, so (a) has a real neighbour. */
+    ownLine: {
+      belowPx: Number.POSITIVE_INFINITY,
+      lineSel: 'div.space-y-2:has(> div > input[aria-label="Search saved Helprs"])',
+      clusterSel: "h1",
+    },
   },
   {
     name: "legal",

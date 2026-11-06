@@ -99,10 +99,12 @@ describe("every way out of a surface looks the same", () => {
     // 2026-09-19: 99 exit controls across 84 files — 29 bare-glyph (26 that
     // paint their own box + 3 delegating to BackButton) and 70 labelled.
     expect(controls.length).toBeGreaterThanOrEqual(95);
-    expect(icons.length).toBeGreaterThanOrEqual(28);
+    // 27 since 2026-11-06 (Q2709): the two select bars' ✕ (Posts, Messages) are one shared SelectBarExitButton.
+    expect(icons.length).toBeGreaterThanOrEqual(27);
     // 24 since 2026-11-05 (Q2709): the Declutter map's "Close preview" X is the shared bare IconActionButton, whose
     // CHROME_ICON_LOOK sheetCornerIconsOneLook holds to ctl-exit (measured 141 / 28 / 24 / 113 / 121 files).
-    expect(own.length).toBeGreaterThanOrEqual(24);
+    // 23 since 2026-11-06: the two select-bar ✕ sites are one (SelectBarExitButton, scanned in src/components/ui).
+    expect(own.length).toBeGreaterThanOrEqual(23);
     expect(labelled.length).toBeGreaterThanOrEqual(65);
     expect(new Set(controls.map((c) => c.file)).size).toBeGreaterThanOrEqual(80);
     // Both arms of the scan really reach the surfaces that matter: the page

@@ -1,5 +1,6 @@
-import { Trash2, X } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { hapticLight } from "@/lib/haptics";
+import { SelectBarExitButton } from "@/components/ui/SelectBarExitButton";
 
 /**
  * BulkDismissBar — sticky bottom action bar shown when the user enters
@@ -46,19 +47,10 @@ export function BulkDismissBar({
             : `${selectedCount} selected`}
         </span>
         <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            type="button"
+          <SelectBarExitButton
             onClick={() => { hapticLight(); onCancel(); }}
             aria-label="Cancel selection"
-            // Rest fill as a CLASS, not inline — see the identical control in
-            // ConversationList: an inline background beats the stylesheet, so
-            // the hover tint could never paint. `.ctl-exit` + the dark-ground
-            // tone, both declared once in src/index.css.
-            className="h-9 w-9 ctl-exit bg-[hsl(var(--parchment)/0.06)] ctl-tint-invert inline-flex items-center justify-center btn-press transition"
-            style={{ color: "hsl(var(--parchment) / 0.85)" }}
-          >
-            <X className="w-4 h-4" />
-          </button>
+          />
           <button
             type="button"
             onClick={onDismiss}

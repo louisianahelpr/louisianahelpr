@@ -155,6 +155,15 @@ describe("the four callers share it", () => {
     expect(src).toContain("useExactAddressPoint");
     expect(src).not.toMatch(/from "@\/lib\/(geocode|addressLookup)"/);
   });
+  it("the one-item listing's save sends the looked-up point, not a placeholder", () => {
+    // Vacuity (l102 --only): replacing the lookup with { lat: 0, lng: 0 } stayed green; the import check alone cannot see it.
+    const src = blankComments(readFileSync("src/components/declutter/useSellFlowState.ts", "utf8"));
+    const at = src.indexOf("const c = await place.locate(form.pickupAddress);");
+    expect(at).toBeGreaterThan(-1);
+    const fields = src.slice(at, src.indexOf("};", at));
+    expect(fields).toContain("pickupLat: c.lat");
+    expect(fields).toContain("pickupLng: c.lng");
+  });
   it("the moving sale's place comes from the shared lookup", () => {
     // The moving sale is the bunch flow now.
     const src = blankComments(readFileSync("src/components/declutter/DeclutterBunchView.tsx", "utf8"));

@@ -161,6 +161,9 @@ describe("a new listing is kept on this device", () => {
     expect(document.querySelector("[data-photo-count]")?.textContent).toContain("2 of 12");
     expect(rowValue("title")).toBe("Grandma's dresser");
     expect(rowValue("price")).toBe("$45");
+    // Vacuity (l102 --only): bringing a written listing back as "unwritten" re-asked the AI a moment later; the
+    // count was read before that could happen. Give the auto-start its time, then count.
+    await new Promise((r) => setTimeout(r, 600));
     expect(h.aiCalls).toBe(1);
   });
 
@@ -243,6 +246,22 @@ describe("a new listing is kept on this device", () => {
     await waitFor(() => expect(h.disk.has("lh-sell-one-v1")).toBe(false));
     expect(screen.queryByText("We kept your listing from last time.")).toBeNull();
     expect(document.querySelector("[data-photo-count]")?.textContent).toContain("0 of 12");
+  });
+
+  // Vacuity (l102 --only): dropping `if (!row) draftId = null;` stayed green. A saved draft id whose row is GONE (deleted
+  // on the server) is forgotten: the kept work comes back and Post makes a new draft, never an update of a missing one.
+  it("a kept draft whose row is gone comes back as work, and Post makes a new draft", async () => {
+    await startAndEdit();
+    h.disk.set("lh-sell-one-v1", { ...savedMeta(), createdId: NEW_ID });
+    cleanup();
+    h.draftRow = null;
+    h.calls.length = 0;
+    open();
+    await screen.findByText("We kept your listing from last time.");
+    fireEvent.click(document.getElementById("sell-tax")!);
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await screen.findByText("Selling tab");
+    expect(h.calls).toEqual(["createDraft", "publish"]);
   });
 
   it("Start over clears it and gives a fresh form", async () => {

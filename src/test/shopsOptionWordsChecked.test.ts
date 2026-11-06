@@ -8,7 +8,7 @@
  * 5 planted defects RED, measured 11-06). This file keeps the newest bodies wired the same way.
  */
 // @mutate supabase/migrations/20261106194243_shops_option_words_checked.sql |       UPDATE public.shop_items SET status = 'pending_review', admin_approved_at = NULL WHERE id = v_item.id; |       NULL;
-// @mutate supabase/migrations/20261106194243_shops_option_words_checked.sql |                    COALESCE(v_item.description, '') \|\| ' ' \|\| public.shop_item_option_words(v_item.id)); |                    v_item.description);
+// @mutate supabase/migrations/20261106194243_shops_option_words_checked.sql |   v_text_flag := public.shop_item_text_flag(v_item.kind, v_item.title,\n                   COALESCE(v_item.description, '') \|\| ' ' \|\| public.shop_item_option_words(v_item.id)); |   v_text_flag := public.shop_item_text_flag(v_item.kind, v_item.title, v_item.description);
 // @mutate supabase/migrations/20261106194243_shops_option_words_checked.sql |   v_flag := public.shop_item_text_flag(v_item.kind, v_item.title,\n              COALESCE(v_item.description, '') \|\| ' ' \|\| public.shop_item_option_words(v_item.id)); |   v_flag := public.shop_item_text_flag(v_item.kind, v_item.title, v_item.description);
 // @mutate supabase/migrations/20261106194243_shops_option_words_checked.sql | REVOKE ALL ON FUNCTION public.shop_item_option_words(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shop_item_option_words(uuid) FROM anon;
 // @mutate supabase/migrations/20261106194243_shops_option_words_checked.sql |                WHERE v.item_id = p_item_id AND v.active), '')); |                WHERE v.item_id = p_item_id), ''));

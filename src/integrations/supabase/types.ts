@@ -21537,6 +21537,7 @@ export type Database = {
         Args: { p_kind: string; p_subtype: string }
         Returns: string[]
       }
+      shop_item_option_words: { Args: { p_item_id: string }; Returns: string }
       shop_item_text_flag: {
         Args: { p_description: string; p_kind: string; p_title: string }
         Returns: string

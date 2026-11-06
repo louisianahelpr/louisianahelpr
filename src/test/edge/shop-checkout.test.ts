@@ -64,6 +64,7 @@
  * @mutate supabase/functions/shop-checkout/index.ts |      p_city: delivery.city, p_postal_code: delivery.postal_code, p_lat: dropoff.lat, p_lng: dropoff.lng, |      p_city: delivery.city, p_postal_code: delivery.postal_code, p_lat: 30.22, p_lng: -92.02,
  * @mutate supabase/functions/shop-checkout/index.ts |      const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });\n      if (closeErr) console.error(`[shop-checkout] order ${frozen.order_id} not closed after its delivery | const closeErr = null;\n      if (closeErr) console.error(`[shop-checkout] order ${frozen.order_id} not closed after its delivery
  * @mutate supabase/functions/shop-checkout/index.ts |  if (atHome && fulfillment === "shop_delivers") { |  if (false) {
+ * @mutate supabase/functions/shop-checkout/index.ts |    const { error: purgeErr } = await admin.from("shop_order_delivery_addresses").delete().eq("order_id", o.id); |    const purgeErr = null;
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -567,6 +568,8 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
       expect(res.status).toBe(409);
       expect((await json(res)).error).toBe("at_buyer_no_delivery");
       expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
+      // The closed order keeps no copy of the drop-off (lead + authz review of 551ea68e0c).
+      expect(scenario.writes.filter((w) => w.table === "shop_order_delivery_addresses").map((w) => w.op)).toEqual(["delete"]);
       expect(stripeMock.tax.calculations.create).not.toHaveBeenCalled();
       expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
     });

@@ -16,6 +16,7 @@ import { dropBeforeKey, type BunchItem } from "@/lib/declutter/bunch";
 import { focusSheetItself } from "./focusSheetItself";
 import { FallbackImg } from "./FallbackImg";
 import { bunchPhotoDrag } from "./bunchPhotoDrag";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 
 /** Another item on the list, as a choice: its name and first photo. */
 export interface BunchOther {
@@ -171,7 +172,7 @@ export function BunchPhotos({ item, name, others, urls, files, onMove, onSplit, 
           );
         })}
         <li>
-          <input id={addId} type="file" accept="image/*" multiple className="peer sr-only" aria-label={`Add a photo to ${name}`}
+          <HiddenFileInput id={addId} accept="image/*" multiple peer aria-label={`Add a photo to ${name}`}
             onChange={(e) => { onAdd(e.target.files); e.target.value = ""; }} />
           <label htmlFor={addId} data-bunch-add-photo=""
             className="flex aspect-square w-full cursor-pointer flex-col items-center justify-center gap-0.5 rounded-xl border border-dashed border-border text-center text-ds-12 font-medium text-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-ring">

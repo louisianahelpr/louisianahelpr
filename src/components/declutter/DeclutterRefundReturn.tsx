@@ -24,6 +24,7 @@ import {
   type ReturnWay,
 } from "@/lib/declutter/refundReturns";
 import { NativeSelect } from "@/components/ui/select";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 
@@ -146,7 +147,7 @@ export function DeclutterReturnBuyer({ v, who }: { v: RefundRequestView; who: st
         <p className="text-sm">Bring the item back to {who}'s pickup address{r.return_day ? ` on ${returnDayWords(r.return_day)} or after` : ""}, then take a photo there.</p>
         {r.drop_off_address && <p className="text-sm" data-return-drop-address="">Address: <span className="font-medium">{r.drop_off_address}</span></p>}
         <label htmlFor={fileId} className="sr-only">Photo of the item where you left it, taken at the pickup address</label>
-        <input id={fileId} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1} disabled={drop.isPending}
+        <HiddenFileInput id={fileId} accept="image/*" capture="environment" tabIndex={-1} disabled={drop.isPending}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) drop.mutate(f); e.target.value = ""; }} />
         <Button type="button" variant="primary" size="sm" className="text-sm font-semibold" disabled={drop.isPending} onClick={() => document.getElementById(fileId)?.click()}>
           {drop.isPending ? "Saving…" : "Take your drop-off photo"}
@@ -205,7 +206,7 @@ export function DeclutterReturnPhotoPick({ orderId, file, onFile }: { orderId: s
   return (
     <div className="flex flex-wrap items-center gap-2">
       <label htmlFor={fileId} className="sr-only">Photo of the item you got back (optional)</label>
-      <input id={fileId} type="file" accept="image/*" capture="environment" className="sr-only" tabIndex={-1}
+      <HiddenFileInput id={fileId} accept="image/*" capture="environment" tabIndex={-1}
         onChange={(e) => { onFile(e.target.files?.[0] ?? null); e.target.value = ""; }} />
       <Button type="button" variant="outline" size="sm" className="text-sm font-semibold" onClick={() => document.getElementById(fileId)?.click()}>
         {file ? "Retake the photo" : "Add a photo (optional)"}

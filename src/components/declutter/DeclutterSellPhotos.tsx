@@ -16,6 +16,7 @@ import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS } from "@/lib/declutter/phot
 import { CARD_PHOTO_SMALL_PX, squarePhotoUrl } from "@/lib/declutter/photoSizes";
 import { FallbackImg } from "./FallbackImg";
 import { useHeldPhotoReorder } from "./heldPhotoReorder";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 
 export const MAX_PHOTOS = DECLUTTER_MAX_PHOTOS;
 const MIN_PHOTOS = DECLUTTER_MIN_PHOTOS;
@@ -98,7 +99,7 @@ export function SellPhotos({
   );
   return (
     <div className="space-y-3" aria-label="Photos" role="group">
-      <input id="sell-files" type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { onFiles(e.target.files); e.target.value = ""; }} />
+      <HiddenFileInput id="sell-files" accept="image/*" multiple onChange={(e) => { onFiles(e.target.files); e.target.value = ""; }} />
       <ul className="grid grid-cols-3 sm:grid-cols-4 gap-2.5" data-sell-photos="">
         {uploaded.map((p, i) => (
           <li key={p.id} className="relative">

@@ -53,7 +53,8 @@ describe("#3491: a control's accessible name contains the words it shows (WCAG 2
     const at = src.indexOf("function MoneyTile(");
     expect(at).toBeGreaterThan(-1);
     const body = src.slice(at, src.indexOf("\n}\n", at));
-    const tag = openingTag(body, body.indexOf("<button"));
+    // Q2709 (11-06): the tile is the shared GlassTileButton (a <button> that passes props through, no name of its own).
+    const tag = openingTag(body, body.indexOf("<GlassTileButton"));
     expect(tag).toContain("data-money-tile={kind}");
     expect(tag).not.toMatch(/aria-label/);
   });

@@ -224,8 +224,10 @@ async function authedContext(browser: Browser, vw: number, baseURL: string | und
 
 /** Route → which account sees cards there → which source file draws them. */
 const SURFACES: { name: string; url: string; as: "poster" | "helper"; drawnBy: string }[] = [
-  { name: "jobs", url: "/jobs?tab=working", as: "helper", drawnBy: "pages/jobs/AppliedJobCard.tsx" },
-  { name: "posts", url: "/jobs?tab=posted", as: "poster", drawnBy: "pages/posts/PostedJobCard.tsx" },
+  // drawnBy is the file that renders <JobCardMetaRow>: Q806 moved each card's meta row into its own file
+  // (HelperJobMetaRow, PostedJobMetaRow), and the inventory test below went red on the old card paths.
+  { name: "jobs", url: "/jobs?tab=working", as: "helper", drawnBy: "pages/jobs/appliedJobCard/HelperJobMetaRow.tsx" },
+  { name: "posts", url: "/jobs?tab=posted", as: "poster", drawnBy: "pages/posts/postedJobCard/PostedJobMetaRow.tsx" },
 ];
 
 test("every file that draws the shared meta row is on a route this spec measures", () => {

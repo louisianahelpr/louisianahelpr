@@ -111,7 +111,7 @@ test("every RPC the admin surface calls is classified read or write", () => {
 /**
  * SEEN POPULATED (Q238, 2026-10-13). An admin queue that renders "nothing
  * waiting" passes the error-screen check whether its list works or not, and the
- * IDV review, ban review, exception and expired-subscription views had never
+ * IDV review, ban review, exception (and, until 2026-11-04, expired-subscription) views had never
  * shown a row on prod. scripts/audit/prod-seed.mjs --apply (run before this
  * suite in every prod-audit leg) puts one row in each, on an account it owns;
  * each view must show that account's name. The names are the seeder's own
@@ -127,8 +127,8 @@ const POPULATED_BY_SEED: Record<string, string> = {
   idvreview: ownedName("denied"),
   banreview: ownedName("banned"),
   exceptions: ownedName("pending"),
-  // The heavy account's name is long and ends "(Seed Heavy)"; the row may cut it.
-  subscriptions: "Marie-Th",
+  // subscriptions left 2026-11-04 with AdminSubscriptions (memberships retired; `type View` in Admin.tsx no longer
+  // has it), so this test went red at baseline on "expected VIEWS to contain subscriptions" (prod-audit 42088200102).
 };
 
 test("every seeded admin queue names a view that exists and a seeded account", () => {
@@ -136,8 +136,7 @@ test("every seeded admin queue names a view that exists and a seeded account", (
     expect(VIEWS, view).toContain(view);
     expect(name.length, view).toBeGreaterThan(3);
   }
-  expect(ownedName("heavy").startsWith(POPULATED_BY_SEED.subscriptions)).toBe(true);
-  expect(Object.keys(POPULATED_BY_SEED).length).toBe(4);
+  expect(Object.keys(POPULATED_BY_SEED).length).toBe(3);
 });
 
 for (const view of VIEWS) {

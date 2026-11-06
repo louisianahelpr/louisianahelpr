@@ -154,12 +154,12 @@ function ShopTalkSheet({ talkId, onClose }: { talkId: string; onClose: () => voi
                     <p className="text-ds-12 font-semibold text-muted-foreground">{m.mine ? "You" : t.other_label} · {talkTime(m.created_at)}</p>
                     <p className="whitespace-pre-wrap break-words text-ds-14 text-foreground">{m.body}</p>
                     {!m.mine && (
-                      <button type="button" data-report-shop-talk-message=""
-                        className="mt-0.5 inline-flex min-h-[44px] items-center gap-1 text-ds-11 text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      <Button type="button" variant="ghost" size="sm" data-report-shop-talk-message=""
+                        className="mt-0.5 gap-1 px-1 text-ds-11 font-normal tracking-normal text-muted-foreground [&_svg]:size-3"
                         aria-label={`Report this message from ${t.other_label}`} onClick={() => setReporting(m.id)}>
                         <Flag className="h-3 w-3" aria-hidden />
                         Report
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </li>

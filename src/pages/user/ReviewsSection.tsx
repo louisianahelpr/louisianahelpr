@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
+import { ReviewFilterChip } from "@/components/ui/ReviewFilterChip";
 import { formatName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Star, ChevronDown } from "lucide-react";
@@ -176,23 +177,17 @@ export const ReviewsSection = ({
                 const Icon = getCategoryIcon(cat);
                 const active = reviewCategoryFilter === cat;
                 return (
-                  <button
-                    aria-pressed={active}
+                  <ReviewFilterChip
+                    pressed={active}
                     key={cat}
                     onClick={() => {
                       onSetReviewCategoryFilter(active ? null : cat);
                       onResetVisibleCount(PAGE_SIZE);
                     }}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-ds-md text-ds-11 font-sans font-semibold transition-colors"
-                    style={{
-                      color: active ? "hsl(var(--parchment))" : "hsl(var(--bark))",
-                      background: active ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.08)",
-                      border: `0.5px solid hsl(var(--bark) / ${active ? "0.6" : "0.18"})`,
-                    }}
                   >
                     <Icon className="w-3 h-3" />
                     <span>{formatCategory(cat)}</span>
-                  </button>
+                  </ReviewFilterChip>
                 );
               })}
             </div>
@@ -212,19 +207,14 @@ export const ReviewsSection = ({
               if (bucket.key !== "all" && bucket.count === 0) return null;
               const active = reviewRatingFilter === bucket.key;
               return (
-                <button
-                  aria-pressed={active}
+                <ReviewFilterChip
+                  pressed={active}
                   key={bucket.key}
                   onClick={() => {
                     onSetReviewRatingFilter(bucket.key);
                     onResetVisibleCount(PAGE_SIZE);
                   }}
-                  className="inline-flex items-center gap-1 px-2 py-1 rounded-ds-md text-ds-11 font-sans font-semibold transition-colors tabular-nums"
-                  style={{
-                    color: active ? "hsl(var(--parchment))" : "hsl(var(--bark))",
-                    background: active ? "hsl(var(--bark))" : "hsl(var(--bark) / 0.08)",
-                    border: `0.5px solid hsl(var(--bark) / ${active ? "0.6" : "0.18"})`,
-                  }}
+                  className="tabular-nums"
                 >
                   {bucket.key === "all" ? (
                     <span>{bucket.label}</span>
@@ -236,7 +226,7 @@ export const ReviewsSection = ({
                     </>
                   )}
                   <span className="opacity-70">({bucket.count})</span>
-                </button>
+                </ReviewFilterChip>
               );
             })}
           </div>

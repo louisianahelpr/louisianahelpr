@@ -135,7 +135,7 @@ describe("ToggleChip is the one on/off chip (Q2709)", () => {
 
   it("hand-written <button aria-pressed> per file equals the baseline (exact, both ways)", () => {
     const now = measure();
-    expect(Object.keys(now).length).toBeGreaterThan(29); // 30 files at 11-06 6:37 AM (ChatPresence read receipts -> ReceiptToggleButton, q2709-chat-receipt); 31 files at 11-06 12:25 AM (Jobs chips -> FilterChip: JobFilters, RunningLateSheet, ChangeJobSheet); 34 files at 11-05 8:05 PM (MessageActionSheet reactions moved to the shared Button, q2709-messages); 35 at 11-05 5:08 AM (ProfileEditForm, PetForm left)
+    expect(Object.keys(now).length).toBeGreaterThan(28); // 29 files at 11-06 9:40 AM (public profile Reviews chips -> ReviewFilterChip, q2709-review-chips); 30 files at 11-06 6:37 AM (ChatPresence read receipts -> ReceiptToggleButton, q2709-chat-receipt); 31 files at 11-06 12:25 AM (Jobs chips -> FilterChip: JobFilters, RunningLateSheet, ChangeJobSheet); 34 files at 11-05 8:05 PM (MessageActionSheet reactions moved to the shared Button, q2709-messages); 35 at 11-05 5:08 AM (ProfileEditForm, PetForm left)
     const base = BASELINE.files as Record<string, number>;
     const diffs: string[] = [];
     for (const f of new Set([...Object.keys(now), ...Object.keys(base)])) {

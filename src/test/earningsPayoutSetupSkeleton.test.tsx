@@ -14,7 +14,7 @@
  * light/dark, on /profile?tab=earnings and /profile?tab=payment.
  */
 // @mutate src/components/profile/earningsTab/EarningsPageSkeleton.tsx | const payoutSetup = withHeader && !profile?.stripe_account_id; | const payoutSetup = false;
-// @mutate src/components/profile/EarningsTab.tsx | {!hasStripeAccount && (stripeLoading \|\| (showConnect && !connectSettled)) && <EarningsPayoutSetupSkeleton />} | {false && <EarningsPayoutSetupSkeleton />}
+// @mutate src/components/profile/EarningsTab.tsx | {!hasStripeAccount && (stripeLoading \|\| (showConnect && !connectSettled)) && <EarningsPayoutSetupSkeleton hireAllowed={payoutHireAllowed} />} | {false && <EarningsPayoutSetupSkeleton hireAllowed={payoutHireAllowed} />}
 // @mutate src/components/profile/earningsTab/EarningsPageSkeleton.tsx |                   {JOBS_ONLY_PAYOUT_LINE} |                   Add a bank once. Every payout from Jobs, Declutter and your shop goes there.
 // @mutate src/components/payouts/payoutSourcesLine.ts | payoutSourcesLine({ declutter: false, shops: false }) | payoutSourcesLine({ declutter: true, shops: true })
 // @mutate src/components/profile/earningsTab/EarningsPageSkeleton.tsx | const wallet = !!profile?.stripe_account_id; | const wallet = false;

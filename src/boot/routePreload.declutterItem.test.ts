@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * App.tsx to run. Lab (local dummy-backend dists, guest cold, 375 Fast 4G + 4x, 5 interleaved runs, 0 requests past
  * localhost): DeclutterItemPage request start 1080 -> 596 ms, LCP (the first photo) median 1756 -> 1416 ms.
  *
- * @mutate src/boot/routePreload.ts |   const entry = ENTRY_ROUTE_CHUNKS[path] ?? (DECLUTTER_ITEM_PATH.test(path) ? ENTRY_ROUTE_CHUNKS["/declutter/item/:id"] : undefined); |   const entry = ENTRY_ROUTE_CHUNKS[path];
+ * @mutate src/boot/routePreload.ts | (DECLUTTER_ITEM_PATH.test(path) ? ENTRY_ROUTE_CHUNKS["/declutter/item/:id"] : | (false ? ENTRY_ROUTE_CHUNKS["/declutter/item/:id"] :
  * @mutate src/boot/declutterItemRoute.ts | import("@/pages/declutter/DeclutterItemPage").catch(() => { | Promise.resolve().catch(() => {
  * @mutate src/boot/routePreload.ts |     guest: [declutterItemRoute], |     guest: [],
  */

@@ -19,6 +19,7 @@ import {
 import { meetupErrorMessage } from "@/lib/declutter/meetupErrors";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/button";
+import { NativeRadio } from "@/components/ui/NativeRadio";
 
 // A3-52 (audit 11-01): only the spots Louisiana Helpr curated are called checked; a seller's own spot never is.
 const KIND_WORDS: Record<MeetupSpotNear["kind"], string> = {
@@ -43,14 +44,12 @@ export function MeetupSpotPicker({ sellerId, spots, onChosen }: { sellerId: stri
         : "Public places to meet. Nobody's home address is shared."}</p>
       {spots.map((s) => (
         <label key={s.id} className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 ${s.chosen ? "border-2 border-primary" : "border-border"}`}>
-          <input
-            type="radio"
-            className="mt-1 h-4 w-4 min-h-0 min-w-0 shrink-0"
+          <NativeRadio
+            className="mt-1"
             name={`meetup-${sellerId}`}
             checked={s.chosen}
             disabled={choose.isPending}
             onChange={() => choose.mutate(s.id)}
-            style={{ accentColor: "hsl(var(--primary))" }}
           />
           <span className="min-w-0 flex-1">
             <span className="block text-ds-14 font-semibold [overflow-wrap:anywhere]">{s.name}</span>

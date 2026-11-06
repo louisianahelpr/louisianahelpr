@@ -35,6 +35,7 @@ import { DeclutterNotice } from "./declutterUi";
 import { HoldChecking, myHoldOn, ReservedForYou } from "./DeclutterYourOffer";
 import { cn, formatName } from "@/lib/utils";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
+import { NativeRadio } from "@/components/ui/NativeRadio";
 
 // Owner 11-01 (Mockup 3): the "Ask for it" sheet loads when the button is pressed, never with the item page.
 const FreeAskSheet = lazy(() => import("./FreeAskSheet"));
@@ -359,8 +360,8 @@ export function FreeCheckoutForSeller({ sellerId, porchOk, ways = null, onDone }
         <legend className="text-sm font-medium">How you'll get it</legend>
         {offered.map((h) => (
           <label key={h} className="flex items-start gap-3 rounded-xl border border-border p-3 text-sm">
-            <input type="radio" className="mt-1 h-4 w-4 min-h-0 min-w-0 shrink-0" name={`free-handover-${sellerId}`} value={h}
-              checked={chosen === h} onChange={() => setHandover(h)} style={{ accentColor: "hsl(var(--primary))" }} />
+            <NativeRadio className="mt-1" name={`free-handover-${sellerId}`} value={h}
+              checked={chosen === h} onChange={() => setHandover(h)} />
             <span className="min-w-0">
               <span className="block font-semibold">{FREE_HANDOVER[h].title}</span>
               <span className="block text-muted-foreground">{FREE_HANDOVER[h].words}</span>

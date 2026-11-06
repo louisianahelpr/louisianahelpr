@@ -67,7 +67,8 @@ describe("job photos on the shareable profile (owner 11-05, H4)", () => {
     expect(anonGrants).toEqual(["public_profile_work_photos"]);
     const revoked = [...sql.matchAll(/REVOKE ALL ON FUNCTION public\.(\w+)\([^)]*\) FROM ([^;]+);/g)];
     expect(revoked.length).toBeGreaterThan(6);
-    for (const m of revoked) expect(m[2], m[1]).toMatch(/PUBLIC, anon/);
+    // Every REVOKE names both roles (CLAUDE.md: FROM PUBLIC alone leaves anon's grant); the names of any that do not.
+    expect(revoked.filter((m) => !/\bPUBLIC, anon\b/.test(m[2])).map((m) => m[1])).toEqual([]);
     expect(sql).toMatch(/REVOKE ALL ON TABLE public\.profile_job_photos FROM PUBLIC, anon, authenticated;/);
   });
 

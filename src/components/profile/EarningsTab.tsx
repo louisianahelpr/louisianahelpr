@@ -54,6 +54,7 @@ import { MoneyRecordRows } from "@/components/profile/earningsTab/MoneyRecordRow
 import { ProfileTabBody } from "@/components/profile/ProfileTabBody";
 import { FeesOwedLine } from "@/components/money/FeesOwedLine";
 import { SectionRule } from "./SectionRule";
+import { usePayoutSetupHireAllowed } from "@/hooks/usePayoutSetupHireAllowed";
 // MERGED IN 2026-08-19 (owner request, stated three times): "My earnings",
 // "Earnings & Analytics" (/analytics) and "Payout & Payments" were three
 // separate Profile entry points onto three screens about the same subject —
@@ -141,6 +142,9 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
   const markConnectSettled = useCallback(() => setConnectSettled(true), []);
   const pageReady = useArrivalGate(!loading, streakState.settled && !ledgerPending);
   const hasStripeAccount = !!profile?.stripe_account_id;
+  // Q2708: which shape the connect slot's bones take (the connect card, or the not-hired-yet note). The same query
+  // PayoutSetupForm reads, so starting it here adds no request and the answer is usually in before the bones paint.
+  const payoutHireAllowed = usePayoutSetupHireAllowed();
   const stripeAnswered = !stripeLoading && !stripeError;
   const showConnect = stripeAnswered && !stripeData?.connected;
 
@@ -328,7 +332,7 @@ export function EarningsTab({ earningsJobs, tips, loading, onBack, helperId, hel
           </Suspense>
         </div>
       )}
-      {!hasStripeAccount && (stripeLoading || (showConnect && !connectSettled)) && <EarningsPayoutSetupSkeleton />}
+      {!hasStripeAccount && (stripeLoading || (showConnect && !connectSettled)) && <EarningsPayoutSetupSkeleton hireAllowed={payoutHireAllowed} />}
 
       {/* 1099-K banner — appears once YTD payouts cross the federal gross
           threshold (FORM_1099K_GROSS_THRESHOLD_DOLLARS). Quiet, dismissible

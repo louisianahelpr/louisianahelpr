@@ -464,6 +464,18 @@ const rej = one(await svc(`INSERT INTO public.admin_audit_log (admin_id, action,
 await setVariants(OWNER, tray, ["Color"], [{ values: ["Green"], price_cents: 2000 }]);
 ok((await holdRow(tray)).status === "pending_review", "after a recent rejection, new option words on a live item wait for an admin");
 await svc(`DELETE FROM public.admin_audit_log WHERE id = '${rej}'`);
+// Lead nit (11-06): an item already waiting for an admin keeps the reasons it was held for when its words change.
+const jar = await withPrivate(await item(shopA, OWNER, "made", "crafts", "Jar", 2000, 0, "NULL", "pending_review"));
+await svc(`UPDATE public.shop_item_private SET text_flag_reason = 'Mentions alcohol (not allowed in Shops).',
+  ai_checked_at = '${OLD}', ai_flag_reason = 'A photo shows a bottle' WHERE item_id = '${jar}'`);
+await setVariants(OWNER, jar, ["Lid"], [{ values: ["Copper"], price_cents: 2000 }]);
+hr = await holdRow(jar);
+ok(hr.status === "pending_review" && /alcohol/i.test(hr.flag ?? ""), `a waiting item keeps its word flag when clean option words are saved (${JSON.stringify(hr)})`);
+ok(hr.ai_flag_reason === "A photo shows a bottle" && hr.ai_checked_at instanceof Date, `a waiting item keeps its AI photo flag (${JSON.stringify(hr)})`);
+await setVariants(OWNER, jar, ["Lid"], [{ values: ["Vape cap"], price_cents: 2000 }]);
+hr = await holdRow(jar);
+ok(/vape|tobacco/i.test(hr.flag ?? ""), `a new word flag on a waiting item shows the newest reason (${JSON.stringify(hr)})`);
+ok(hr.ai_flag_reason === "A photo shows a bottle", "and the AI photo flag stays");
 
 // --- 9. grants and seed
 const gr = await svc(`SELECT has_table_privilege('authenticated', 'public.shop_item_variants', 'SELECT') AS a,

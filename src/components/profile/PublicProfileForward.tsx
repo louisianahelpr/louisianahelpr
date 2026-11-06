@@ -22,14 +22,17 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { handleForUser } from "@/lib/profileLink/api";
 import { rememberBookingSource } from "@/lib/bookMe";
 import { useBlockedByMe } from "@/pages/user/useBlockedByMe";
+import { UserProfileForwardWait } from "@/pages/user/UserProfileLoadingBody";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** Forwards to the member's /u page (keeping ?query and #hash); `none` and `notDeployed` say what shows otherwise. */
-export function PublicProfileForward({ userId, none, notDeployed, onForward }: {
+export function PublicProfileForward({ userId, none, notDeployed, onForward, wait }: {
   userId: string | undefined;
   none: ReactNode;
   notDeployed: ReactNode;
+  /** What shows while the handle read is pending (default: the plain route fallback). */
+  wait?: ReactNode;
   /** Runs once when the visitor is forwarded (the /book link keeps its booking-source note). */
   onForward?: (userId: string) => void;
 }) {
@@ -47,7 +50,7 @@ export function PublicProfileForward({ userId, none, notDeployed, onForward }: {
     // Once per forward: onForward is a fresh closure every render on purpose.
   }, [found, id]);
   if (!id) return <>{none}</>;
-  if (q.isPending) return <RouteSuspenseFallback />;
+  if (q.isPending) return <>{wait ?? <RouteSuspenseFallback />}</>;
   if (q.isError) {
     return (
       <AppPage title="Profile" backTo="/">
@@ -73,12 +76,14 @@ export function UserProfileRoute({ children }: { children: ReactNode }) {
 function MemberForward({ me, userId, members }: { me: string; userId: string | undefined; members: ReactNode }) {
   const self = !!userId && userId.toLowerCase() === me.toLowerCase();
   const blocked = useBlockedByMe(me, userId);
+  // Q1695: the wait draws /user's own loading frame, not a blank page (UserProfileForwardWait).
+  const wait = <UserProfileForwardWait own={self} />;
   if (!self && UUID.test(userId ?? "")) {
-    if (blocked.isPending) return <RouteSuspenseFallback />;
+    if (blocked.isPending) return wait;
     // A failed block check keeps /user, whose own check shows the error and Retry.
     if (blocked.isError || blocked.data) return <>{members}</>;
   }
-  return <PublicProfileForward userId={userId} none={members} notDeployed={members} />;
+  return <PublicProfileForward userId={userId} none={members} notDeployed={members} wait={wait} />;
 }
 
 /** /book/:userId: everyone goes to the public page; without one, "This Helpr isn't available". */

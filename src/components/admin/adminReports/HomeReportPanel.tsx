@@ -23,7 +23,7 @@ import { unwrapMutation } from "@/lib/mutationResult";
 import { homeCanComeDown, type ReportedHome } from "./reportedHomes";
 
 /** rentals_admin_remove_listing refuses a reason under 5 characters (reason_required). */
-export const HOME_TAKEDOWN_MIN_REASON = 5;
+const HOME_TAKEDOWN_MIN_REASON = 5;
 
 // RentalsCopyError carries the admin copy's words for a refusal (adminRemoveListing); a report that didn't close
 // carries unwrapMutation's userMessage.

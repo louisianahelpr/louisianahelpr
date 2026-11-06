@@ -12,7 +12,7 @@
  * @mutate src/components/shops/ShopOrderOptions.tsx |         {variant && inStock && ( |         {variant && (
  * @mutate src/components/shops/ShopProfile.tsx | {withOptions?.has(item.id) ? `From ${formatItemPrice(item.price_cents)}` : formatItemPrice(item.price_cents)} | {formatItemPrice(item.price_cents)}
  * @mutate src/components/shops/ShopItemsList.tsx | withOptions={options.data} /> | />
- * @mutate src/components/shops/ShopItemOptionsEditor.tsx |       if (held) toast.info( |       if (false) toast.info(
+ * @mutate src/components/shops/ShopItemOptionsEditor.tsx |       if (held) toast( |       if (false) toast(
  * @mutate src/lib/shops/variants.ts |   return (data as { held_for_review?: boolean } \| null)?.held_for_review === true; |   return false;
  * @mutate src/components/shops/ShopItemOptionsEditor.tsx |     rows[variantLabel(values)] ?? { price: String(basePriceCents / 100), stock: "", active: true }; |     rows[variantLabel(values)] ?? { price: "", stock: "", active: true };
  */
@@ -27,7 +27,8 @@ import type { ShopItemOptions } from "@/lib/shops/variants";
 
 const rpc = vi.hoisted(() => vi.fn());
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc } }));
-const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), info: vi.fn() }));
+// toast() itself renders (src/lib/toastPolicy.ts makes toast.success / toast.info no-ops), so the mock is callable.
+const toast = vi.hoisted(() => Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn(), info: vi.fn() }));
 vi.mock("sonner", () => ({ toast }));
 vi.mock("@/components/DatePickerField", () => ({
   DatePickerField: ({ onChange }: { onChange: (v: string) => void }) => (
@@ -153,8 +154,9 @@ describe("the owner's Options section", () => {
     fireEvent.change(screen.getByLabelText("Option name"), { target: { value: "Fill" } });
     fireEvent.change(screen.getByLabelText("Choices, separated by commas"), { target: { value: "Plain" } });
     fireEvent.click(screen.getByRole("button", { name: "Save options" }));
-    await waitFor(() => expect(toast.info).toHaveBeenCalledWith(expect.stringMatching(/needs a quick check/)));
-    expect(toast.success).not.toHaveBeenCalledWith("Options saved.");
+    await waitFor(() => expect(toast).toHaveBeenCalledWith(expect.stringMatching(/needs a quick check/)));
+    expect(toast.info).not.toHaveBeenCalled(); // a no-op channel: the seller would never see it
+    expect(toast.success).not.toHaveBeenCalled();
   });
 
   it("reads held_for_review from the save (the server's word, not a guess)", async () => {

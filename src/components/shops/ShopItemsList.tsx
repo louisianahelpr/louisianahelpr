@@ -17,11 +17,13 @@ export default function ShopItemsList({ shopId, reportable = false }: { shopId: 
   const items = useQuery({ queryKey: ["shops", "items", shopId], queryFn: () => fetchShopItems(shopId), enabled: !!shopId });
   // The same query the order sheet reads (one fetch); a failed read only drops the "From" word.
   const options = useQuery({ queryKey: ["shops", "item-options", shopId], queryFn: () => fetchItemOptions(shopId), enabled: !!shopId });
+  // One gate (oneLoadingGatePerScreen): the items and their "From" words paint together.
+  const listLoading = items.isLoading || options.isLoading;
   const live = (items.data ?? []).filter((i) => i.status === "live");
   return (
     <section className="space-y-2 rounded-2xl border border-border bg-card p-4 shadow-sm" aria-labelledby="shop-items">
       <h2 id="shop-items" className="font-sans text-base font-bold not-italic text-foreground">Items</h2>
-      {items.isLoading ? (
+      {listLoading ? (
         <div role="status" aria-label="Loading items" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Skeleton className="h-48 w-full rounded-2xl" />
           <Skeleton className="h-48 w-full rounded-2xl" />

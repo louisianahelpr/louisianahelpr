@@ -103,8 +103,8 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
       }));
     },
     onSuccess: (held, clear) => {
-      if (held) toast.info("Options saved. A word in them needs a quick check, so the item is hidden until Louisiana Helpr looks at it.");
-      else toast.success(clear ? "Options removed." : "Options saved.");
+      // toast() renders; toast.info would be a no-op (src/lib/toastPolicy.ts), and the seller must hear the item is hidden.
+      if (held) toast("Options saved. A word in them needs a quick check, so the item is hidden until Louisiana Helpr looks at it.");
       if (clear) { setLists([]); setRows({}); }
       onSaved();
     },
@@ -158,7 +158,7 @@ function OptionsForm({ itemId, basePriceCents, initial, onSaved }: {
               <li key={label} className="grid grid-cols-[1fr_5rem_5rem] items-end gap-2">
                 <div className="flex items-center gap-2 pb-3">
                   <Checkbox id={`combo-on-${key}`} checked={r.active} onCheckedChange={(v) => setRow(values, { active: v === true })} />
-                  <Label htmlFor={`combo-on-${key}`} className="[overflow-wrap:anywhere]">{label}</Label>
+                  <Label htmlFor={`combo-on-${key}`} className="flex min-h-11 flex-1 items-center [overflow-wrap:anywhere]">{label}</Label>
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor={`combo-price-${key}`} className="text-xs">Price ($)</Label>

@@ -7,6 +7,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { rpcErrorMessage } from "./rpcErrorCopy";
 
 /** The limits shops_set_item_variants holds (20261106165310). */
@@ -51,7 +52,7 @@ function withWords<T>(result: { data: T; error: { message: string } | null }, wo
 export async function fetchItemOptions(shopId: string): Promise<Map<string, ShopItemOptions>> {
   const result = await supabase.rpc("shops_item_variants", { p_shop_id: shopId });
   // A brand-new RPC (CLAUDE.md): until 20261106165310 is on the database, no item has option lists.
-  if ((result.error as { code?: string } | null)?.code === "PGRST202") return new Map();
+  if (isMissingRpcNamed(result.error, "shops_item_variants")) return new Map();
   const rows = withWords(result, (e) => rpcErrorMessage("shops_item_variants", e));
   const list = (rows ?? []) as unknown as ShopItemOptions[];
   return new Map(list.map((x) => [x.item_id, x]));

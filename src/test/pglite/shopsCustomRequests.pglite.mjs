@@ -124,6 +124,15 @@ CREATE FUNCTION public.shop_visible_to(p_shop uuid, p_uid uuid) RETURNS boolean 
 
 const db = new PGlite();
 await db.exec(SCHEMA);
+// The seller statements listing needs, as main has them (newest body).
+await db.exec(cutFn("20261105235833_shops_every_category_sells.sql", "shop_item_required_statements"));
+const NEED = {
+  crafts: ["made_by_me", "new_not_used", "not_for_children", "not_skin_product", "not_banned"],
+  cakes: ["made_in_my_home_kitchen", "low_risk_no_meat_fish", "label_says_home_kitchen", "kitchen_rules", "no_cbd_or_alcohol", "sales_tax_registered", "not_banned"],
+  lessons: ["i_do_this_work", "licensed_if_needed", "not_banned"],
+  item_repair: ["i_do_this_work", "licensed_if_needed", "not_banned"],
+};
+const arr = (xs) => (xs === null ? "NULL" : `ARRAY[${xs.map((x) => `'${x}'`).join(", ")}]::text[]`);
 // The tax answer trigger as main has it (the --before state slice 1b restates).
 await db.exec(cutFn("20261105235833_shops_every_category_sells.sql", "shop_order_line_snapshot_tax_kind"));
 await db.exec(`CREATE TRIGGER shop_order_lines_snapshot_tax_kind BEFORE INSERT ON public.shop_order_lines
@@ -173,9 +182,9 @@ const plus = (n) => new Date(Date.parse(`${today}T12:00:00Z`) + n * 86400000).to
 const setMode = (uid, mode) => member(uid, `SELECT public.shops_set_custom_orders(${mode === null ? "NULL" : `'${mode}'`}) AS r`);
 const send = (uid, shop, text, by = null) => member(uid,
   `SELECT public.shops_send_custom_request('${shop}', ${text === null ? "NULL" : `'${text.replace(/'/g, "''")}'`}, ${by ? `'${by}'` : "NULL"}) AS r`);
-const quote = (uid, req, cents, note = null, subtype = "crafts") => member(uid, skipOrder
+const quote = (uid, req, cents, note = null, subtype = "crafts", statements = NEED[subtype] ?? []) => member(uid, skipOrder
   ? `SELECT public.shops_quote_custom_request('${req}', ${cents === null ? "NULL" : cents}, ${note === null ? "NULL" : `'${note}'`}) AS r`
-  : `SELECT public.shops_quote_custom_request('${req}', ${cents === null ? "NULL" : cents}, ${note === null ? "NULL" : `'${note}'`}, ${subtype === null ? "NULL" : `'${subtype}'`}) AS r`);
+  : `SELECT public.shops_quote_custom_request('${req}', ${cents === null ? "NULL" : cents}, ${note === null ? "NULL" : `'${note}'`}, ${subtype === null ? "NULL" : `'${subtype}'`}, ${arr(statements)}) AS r`);
 const decline = (uid, req) => member(uid, `SELECT public.shops_decline_custom_request('${req}') AS r`);
 const mine = async (uid) => { const r = one(await member(uid, `SELECT public.shops_my_custom_requests() AS r`)); return Array.isArray(r) ? r : []; };
 const reqRow = async (r) => (await svc(`SELECT * FROM public.shop_custom_requests WHERE id = '${r}'`))[0] ?? {};
@@ -292,6 +301,13 @@ const c1 = await fresh("A birthday cake");
 ok(refused(await quote(OWNER, c1, 4000, null, null), /invalid_subtype/) && refused(await quote(OWNER, c1, 4000, null, "equipment_rental"), /invalid_subtype/),
   "a price names what is made, never a rental");
 ok(refused(await quote(OWNER, c1, 4000, null, "cakes"), /cottage_confirmation_required/), "a home-food price needs this year's cottage confirmation");
+// Lead decision 11-06: the same seller statements as listing that kind.
+ok(refused(await quote(OWNER, c1, 4000, null, "cakes", NEED.crafts), /attestation_incomplete/),
+  "a home-food price with the craft statements is refused");
+ok(refused(await quote(OWNER, c1, 4000, null, "cakes", NEED.cakes.slice(1)), /attestation_incomplete/),
+  "a home-food price missing one cottage-food statement is refused");
+ok(refused(await quote(OWNER, c1, 4000, null, "cakes", null), /attestation_incomplete/), "a price with no statements is refused");
+ok(refused(await quote(OWNER, c1, 4000, null, "cakes", [...NEED.cakes, "made_up"]), /attestation_incomplete/), "an extra statement is refused");
 await svc(`INSERT INTO public.shop_cottage_confirmations VALUES ('${OWNER}', 2026)`);
 await svc(`INSERT INTO public.cottage_full VALUES ('${OWNER}')`);
 ok(refused(await quote(OWNER, c1, 4000, null, "cakes"), /cottage_cap_reached/), "a home kitchen at its yearly limit cannot price home food");
@@ -303,6 +319,9 @@ await svc(`UPDATE public.shops SET paused = true WHERE id = '${SHOP}'`);
 ok(refused(await quote(OWNER, c1, 4000, null, "cakes"), /custom_orders_off/), "a paused shop cannot send a price");
 await svc(`UPDATE public.shops SET paused = false WHERE id = '${SHOP}'`);
 ok(one(await quote(OWNER, c1, 4000, null, "cakes"))?.subtype === "cakes" && (await reqRow(c1)).subtype === "cakes", "the price is stored with what is made");
+const st = await reqRow(c1);
+ok(JSON.stringify(st.statements) === JSON.stringify([...NEED.cakes].sort()) && st.statements_at instanceof Date,
+  `the shop's cottage-food statements are stored with the price (${JSON.stringify(st.statements)})`);
 
 // --- 8. the buyer takes the price: one order, one line
 const take = (uid, req, day, note = null, shop = SHOP) => member(uid,
@@ -352,6 +371,12 @@ ok((await svc(`SELECT bool_or(at_buyer) AS a FROM public.shop_order_lines WHERE 
 ok(/NEW\.at_buyer := COALESCE\(NEW\.tax_kind = 'fabric_cleaning'/.test((await svc(`SELECT prosrc FROM pg_proc WHERE proname = 'shop_order_line_snapshot_tax_kind'`))[0]?.prosrc ?? ""),
   "the restated tax-kind trigger keeps H8's at_buyer rule");
 await svc(`UPDATE public.shop_orders SET status = 'held' WHERE id IN ('${t3?.order_id}', '${t4?.order_id}')`);
+// A price whose stored statements do not match its kind is never ordered.
+const c8 = await fresh("A doll");
+await quote(OWNER, c8, 3000, null, "crafts");
+await svc(`UPDATE public.shop_custom_requests SET statements = ARRAY['not_banned'] WHERE id = '${c8}'`);
+ok(refused(await take(OTHER, c8, plus(5)), /quote_not_open/), "a price without its full statements cannot be ordered");
+await decline(OTHER, c8);
 // A price past its 7 days cannot be taken.
 const c4 = await fresh("A quilt");
 await quote(OWNER, c4, 9000, null, "crafts");

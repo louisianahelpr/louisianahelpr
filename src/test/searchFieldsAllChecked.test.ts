@@ -41,6 +41,7 @@
 // @mutate src/index.css | input[type="search"]::-webkit-search-cancel-button, | input[type="search"]::-webkit-search-cancelled,
 // @mutate src/components/admin/AdminUsers.tsx | aria-label="Clear search" | aria-label="Clear"
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: `[data-browse-phone-controls] ${CLOSE}`,\n    maxWidth: 899, | close: `[data-browse-phone-controls] ${CLOSE}`,
+// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | field: '[data-browse-phone-controls] input[aria-label="Search items"]',\n    maxWidth: 899, | field: '[data-browse-phone-controls] input[aria-label="Search items"]',
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: CLOSE,\n    minWidth: 900,\n    maxWidth: 1139, | close: CLOSE,\n    minWidth: 900,
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | if ((vw === BAND_VW) !== bandOnly(s)) continue; | if (vw === BAND_VW && !bandOnly(s)) continue;
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | name: "messages-one-pane", file: "src/components/messages/ConversationList.tsx", | name: "messages-one-pane", file: "src/components/messages/MessagesSearchRow.tsx",
@@ -86,6 +87,19 @@ const DESKTOP_ONLY: Record<string, string> = {
   // left with the old Home feed; its one caller is Jobs > Browse's desktop feed
   // strip (Dashboard renders the strip only when isWebDesktop).
   "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx": "desktop feed strip only; phone uses the compact row",
+};
+
+/** Every press-spec SURFACE whose screen exists only on one side of a breakpoint, by surface name, with the bounds
+ * it must state. Exact both ways (lead, 2026-11-06): a bound dropped from or added to a surface fails, so a
+ * phone-only search cannot quietly start pressing at 1440 (where it is not rendered and would wait 45 s and go red)
+ * and a shared file's surface cannot lose its width. A surface not listed must state no bound at all. */
+const SURFACE_BOUNDS: Record<string, { minWidth?: number; maxWidth?: number; why: string }> = {
+  // Owner 2026-10-28: Jobs > Browse's and Declutter's phone search sits at the tabs row's end
+  // ([data-browse-phone-controls]); at 900+ the desktop feed strip / section row carries search instead.
+  "jobs-browse-phone": { maxWidth: 899, why: "phone tabs row search only below 900" },
+  "declutter-browse-phone": { maxWidth: 899, why: "phone tabs row search only below 900" },
+  "browse-desktop-strip": { minWidth: 900, why: "desktop feed strip only (isWebDesktop)" },
+  "messages-one-pane": { minWidth: 900, maxWidth: 1139, why: "one-pane web desktop only (TWO_PANE_MIN_WIDTH 1140)" },
 };
 
 /** ✕ files that render ONLY inside a width band that neither 375 nor 1440 reaches, so the press spec drives them at
@@ -272,6 +286,16 @@ describe("every search field is driven in a real browser (inventory minus checke
       expect(band.minWidth <= BAND_VW && BAND_VW <= band.maxWidth, `${f}: BAND_VW ${BAND_VW} is outside its band`).toBe(true);
     }
     for (const s of surfaces.filter(bandSurface)) expect(BAND_ONLY[s.file], `${s.name} names a band but its file is not on BAND_ONLY`).toBeDefined();
+    // Every surface states exactly its listed bounds (none when unlisted), and every listed surface exists.
+    expect(Object.keys(SURFACE_BOUNDS).length, "SURFACE_BOUNDS floor").toBeGreaterThan(3);
+    for (const name of Object.keys(SURFACE_BOUNDS)) expect(surfaces.map((s) => s.name), `SURFACE_BOUNDS entry ${name} is no press-spec surface — remove it`).toContain(name);
+    for (const s of surfaces) {
+      const want = SURFACE_BOUNDS[s.name];
+      expect({ minWidth: s.minWidth, maxWidth: s.maxWidth }, `${s.name}: stated width bounds differ from SURFACE_BOUNDS`).toEqual({
+        minWidth: want?.minWidth,
+        maxWidth: want?.maxWidth,
+      });
+    }
     for (const f of X_FILES) {
       for (const vw of PHONE_ONLY[f] ? [375] : DESKTOP_ONLY[f] ? [1440] : BAND_ONLY[f] ? [BAND_VW] : [375, 1440]) {
         if (!surfaces.some((s) => s.file === f && runsAt(s, vw))) missing.push(`${f} @${vw}`);

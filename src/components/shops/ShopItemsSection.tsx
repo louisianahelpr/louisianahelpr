@@ -22,6 +22,7 @@ import {
 } from "@/lib/shops/items";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import ShopItemEditor from "./ShopItemEditor";
+import ShopItemOptionsEditor from "./ShopItemOptionsEditor";
 import ShopDailyCap from "./ShopDailyCap";
 
 const STATUS_LABEL: Record<ShopItemStatus, string> = {
@@ -122,13 +123,17 @@ export default function ShopItemsSection({ shopId, ownerId, startAdding = false 
           </div>
         )
       ) : editing ? (
-        <ShopItemEditor
-          key={editing}
-          ownerId={ownerId}
-          item={open}
-          onCreated={(itemId) => setEditing(itemId)}
-          onDone={() => setEditing(null)}
-        />
+        <>
+          <ShopItemEditor
+            key={editing}
+            ownerId={ownerId}
+            item={open}
+            onCreated={(itemId) => setEditing(itemId)}
+            onDone={() => setEditing(null)}
+          />
+          {/* Variants (20261106165310): option lists for a saved item. */}
+          {open && <ShopItemOptionsEditor shopId={shopId} itemId={open.id} basePriceCents={open.price_cents} />}
+        </>
       ) : (
         <>
           {items.isError ? (

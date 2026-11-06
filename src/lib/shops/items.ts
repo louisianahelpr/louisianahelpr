@@ -25,6 +25,8 @@ export const SHOP_ITEM_KIND_LABEL: Record<ShopItemKind, string> = {
   made: "Made by me",
   home_food: "Home-kitchen food",
   farm: "From my farm or yard",
+  service: "A service I do",
+  rental: "Something I rent out",
 };
 
 export const SHOP_ITEM_TYPE_LABEL: Record<string, string> = {
@@ -45,6 +47,21 @@ export const SHOP_ITEM_TYPE_LABEL: Record<string, string> = {
   spices: "Spices",
   eggs: "Eggs (own hens)",
   produce: "Fruit and vegetables (whole, uncut)",
+  home_service: "Home services",
+  trade_work: "Trade work",
+  beauty_service: "Beauty and grooming",
+  fitness_service: "Health and fitness",
+  pet_care: "Pet care",
+  lessons: "Lessons and classes",
+  pro_service: "Professional services",
+  outdoor_work: "Yard and outdoor work",
+  event_service: "Events and parties",
+  item_repair: "Repair of an item",
+  fabric_cleaning: "Carpet or furniture cleaning",
+  clothes_cleaning: "Laundry or dry cleaning",
+  clothing_alterations: "Clothing alterations",
+  equipment_rental: "Equipment and tools",
+  party_rental: "Tables, chairs and tents",
 };
 
 /**
@@ -69,6 +86,11 @@ export const SHOP_ITEM_STATEMENTS: Record<string, string> = {
   no_cracked_dirty: "I take out cracked or dirty eggs.",
   home_grown: "I grew it myself.",
   whole_uncut: "It is whole and uncut (cut or cooked produce needs a permit).",
+  i_do_this_work: "I or my business do this work.",
+  licensed_if_needed: "If Louisiana needs a licence for this work, I have it.",
+  i_own_it: "I own what I rent out.",
+  safe_to_use: "It is clean, works and is safe to use, and I show the renter how to use it.",
+  not_inflatable: "It is not a bounce house or another inflatable (those need state inspection papers, coming later).",
 };
 
 /** The statements the maker ticks for this kind and type, in order. Mirrors shop_item_required_statements. */
@@ -77,6 +99,8 @@ export function requiredStatements(kind: ShopItemKind, subtype: string): string[
   if (kind === "home_food") {
     return ["made_in_my_home_kitchen", "low_risk_no_meat_fish", "label_says_home_kitchen", "kitchen_rules", "no_cbd_or_alcohol", "sales_tax_registered", "not_banned"];
   }
+  if (kind === "service") return ["i_do_this_work", "licensed_if_needed", "not_banned"];
+  if (kind === "rental") return ["i_own_it", "safe_to_use", "not_inflatable", "not_banned"];
   if (subtype === "eggs") return ["own_hens", "kept_cold", "no_cracked_dirty", "not_banned"];
   return ["home_grown", "whole_uncut", "not_banned"];
 }

@@ -62,10 +62,10 @@ export default function ShopDeliveryPicker({ shopId }: { shopId: string }) {
           {delivers ? (
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <Label htmlFor="shop-delivery-fee">Fee ($)</Label>
-                <Input id="shop-delivery-fee" inputMode="numeric" value={fee} onChange={(e) => setFee(e.target.value)}
-                  aria-invalid={feeProblem !== null} aria-describedby="shop-delivery-fee-help" />
-                <p id="shop-delivery-fee-help" className="text-xs text-muted-foreground">{feeProblem ?? "0 for free, or $5 to $150."}</p>
+                <Label htmlFor="shop-delivery-price">Delivery price ($)</Label>
+                <Input id="shop-delivery-price" inputMode="numeric" value={fee} onChange={(e) => setFee(e.target.value)}
+                  aria-invalid={feeProblem !== null} aria-describedby="shop-delivery-price-help" />
+                <p id="shop-delivery-price-help" className="text-xs text-muted-foreground">{feeProblem ?? "0 for free, or $5 to $150."}</p>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="shop-delivery-radius">Up to (miles)</Label>

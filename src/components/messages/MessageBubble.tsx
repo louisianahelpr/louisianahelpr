@@ -259,7 +259,9 @@ export function MessageBubble({
                 type="button"
                 onClick={() => onReact?.(m.id, emoji)}
                 disabled={!onReact}
-                aria-label={isMine ? `Remove your ${emoji} reaction` : `React with ${emoji}`}
+                // The count shows once two people used it, so the name says it too (WCAG 2.5.3, axe 4.14
+                // label-content-name-mismatch: a visible "2" missing from the name).
+                aria-label={`${isMine ? `Remove your ${emoji} reaction` : `React with ${emoji}`}${count > 1 ? `, ${count} reactions` : ""}`}
                 aria-pressed={isMine}
                 className="relative min-h-0 min-w-0 inline-flex items-center gap-0.5 rounded-full px-1 py-[2px] text-ds-10 leading-none transition-transform active:scale-90 disabled:active:scale-100 before:absolute before:-inset-x-3 before:-inset-y-4 before:content-['']"
                 style={{

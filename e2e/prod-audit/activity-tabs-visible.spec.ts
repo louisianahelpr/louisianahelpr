@@ -461,11 +461,15 @@ for (const vw of INBOX_WIDTHS) {
       // the slim search row's one "more" menu; the search field is always on
       // the screen. The claim on a phone is that both are reachable on an
       // EMPTY inbox: the field is painted, and the menu lists the inbox's own
-      // words. The desktop website keeps the inline strip asserted below.
-      if (vw < 900) {
+      // words. Board 38 (owner 2026-10-20): the two-pane desktop list (TWO_PANE_MIN_WIDTH = 1140 in
+      // src/pages/messages/useTwoPane.ts) wears the same header, so 1440 is this branch too; only the
+      // one-pane desktop band (900-1139) keeps the inline strip asserted below. Q1816 (2026-11-06): the menu
+      // is "Inbox views and options" (chat.inboxOptions); the old "More conversation options" name and the
+      // desktop strip at 1440 made every width red.
+      if (vw < 900 || vw >= 1140) {
         const field = page.getByRole("searchbox", { name: "Search conversations" });
         await expect(field, `messages EMPTY@${vw}: no search field on an empty inbox`).toBeVisible();
-        const more = page.getByRole("button", { name: "More conversation options" });
+        const more = page.getByRole("button", { name: "Inbox views and options" });
         await expect(more, `messages EMPTY@${vw}: no "more" menu on an empty inbox`).toBeVisible();
         await more.click();
         // Active / All are a radio pair (menuitemradio); the views are plain items.

@@ -63,12 +63,16 @@ const SURFACES: { name: string; file: string; url: string; trigger: string; fiel
     field: 'input[aria-label="Search saved Helprs"]',
     close: CLOSE,
   },
+  // Q2231 / board 38: on a phone and in the two-pane desktop list (1140 and up, TWO_PANE_MIN_WIDTH) the inbox search is ONE permanent
+  // row (ConversationList phoneSearchRow), so the field is the trigger and its ✕ clears. The magnifier that opened
+  // a field ([data-search-trigger], "Close search") is gone at 375 and 1440; it waited 45 s for it and went red at
+  // baseline (vacuity 2026-11-06, run 127910764580).
   {
     name: "messages", file: "src/components/messages/ConversationList.tsx",
     url: "/messages",
-    trigger: "[data-search-trigger]",
-    field: 'input[aria-label="Search conversations"]',
-    close: CLOSE,
+    trigger: '[data-testid="messages-search-row"] input[aria-label="Search conversations"]',
+    field: '[data-testid="messages-search-row"] input[aria-label="Search conversations"]',
+    close: `[data-testid="messages-search-row"] ${CLEAR}`,
   },
   // The section dashboards (owner, 2026-10-19): every Browse (Jobs, Declutter,
   // Shops, Homes) opens on the ONE shared permanent search row (SectionSearchRow),
@@ -226,6 +230,11 @@ for (const engine of ["chromium", "webkit"] as const) {
             await page.waitForLoadState("networkidle", { timeout: 45_000 }).catch(() => {});
             await page.waitForTimeout(1000);
             await page.keyboard.press(s.key);
+          } else if (!s.trigger) {
+            // Always open (search-page): nothing to press first. page.locator("") threw a selector parse error
+            // here, so this surface never ran (vacuity 2026-11-06).
+            await page.locator(s.field).first().waitFor({ state: "visible", timeout: 45_000 });
+            await page.waitForTimeout(1000);
           } else {
             const trigger = page.locator(s.trigger).first();
             await trigger.waitFor({ state: "visible", timeout: 45_000 });

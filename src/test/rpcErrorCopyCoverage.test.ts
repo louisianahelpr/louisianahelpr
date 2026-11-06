@@ -73,6 +73,14 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // Q2104 (20261106170629): fetchShopOrderBuyerNames feeds the Shop dashboard's card headings ("New order from Ana");
+  // a failed read leaves the plain heading ("New order") and the orders still show, so no code's words exist there.
+  shops_my_order_buyer_names: {
+    account_restricted: { reason: "no code's words at this site: a failed name read leaves the dashboard's plain headings" },
+    feature_disabled: { reason: "no code's words at this site: a failed name read leaves the dashboard's plain headings" },
+    not_authenticated: { reason: ANON_REVOKED },
+    too_many_orders: { reason: "fetchShopOrderBuyerNames sends at most 100 ids (slice(0, 100)); the dashboard reads its newest 100 orders" },
+  },
   // B112 (20261101200929): markTalkRead (src/lib/declutter/talkRead.ts) runs in the background when a Declutter chat
   // opens; any error is console.warn()ed and no message exists at that site.
   declutter_mark_talk_read: {

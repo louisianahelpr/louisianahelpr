@@ -42,6 +42,9 @@
  * @mutate src/components/shops/ShopDashboardView.tsx |           if (declining) decline.mutate({ id: declining.id, why: reason }); |           if (declining) decline.mutate({ id: declining.id, why: "" });
  * @mutate src/components/shops/ShopDashboardView.tsx |           if (accepting) accept.mutate(accepting.id); |           void accepting;
  * @mutate src/pages/shops/ShopOrdersPage.tsx |         <ShopMyOrdersView embedded />\n | \n
+ * @mutate src/components/shops/ShopDashboardView.tsx | side="shop" heading={from(o, "New order", "from")}> | side="shop" heading="New order">
+ * @mutate src/components/shops/ShopDashboardView.tsx | side="shop" heading={from(o, "Accepted order", "for")}> | side="shop" heading="Accepted order">
+ * @mutate src/components/shops/ShopDashboardView.tsx |     return name ? `${base} ${word} ${name}` : base; |     return base;
  * @mutate src/pages/shops/ShopDashboardPage.tsx |         <ShopDashboardView embedded />\n | \n
  */
 import { readFileSync } from "node:fs";
@@ -125,6 +128,8 @@ const orders = vi.hoisted(() => ({
   fetchOrderTerms: vi.fn(), requestOrder: vi.fn(), fetchMyOrders: vi.fn(), fetchShopOrders: vi.fn(),
   cancelOrderRequest: vi.fn(), acceptOrder: vi.fn(), declineOrder: vi.fn(), fetchCancelPolicy: vi.fn(), setCancelPolicy: vi.fn(),
   fetchReadyTapCancel: vi.fn(), setReadyTapCancel: vi.fn(),
+  // Q2104: who ordered (first names); none unless a case answers.
+  fetchShopOrderBuyerNames: vi.fn(async () => ({}) as Record<string, string>),
 }));
 vi.mock("@/lib/shops/orders", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/orders")>()), ...orders }));
 // Shops M2: the handover parts load on their own; answered here so the order screens stay offline.
@@ -305,6 +310,19 @@ describe("/shops/dashboard", () => {
     fireEvent.click(screen.getByRole("button", { name: "confirm Decline order" }));
     await waitFor(() => expect(orders.declineOrder).toHaveBeenCalledWith("o2", "Booked up"));
     expect(await screen.findByRole("button", { name: /Free to cancel until the shop accepts/ })).toBeTruthy();
+  });
+
+  it("says who ordered: the buyer's first name on each order, and the plain heading when the server gives none (Q2104)", async () => {
+    api.fetchMyShopId.mockResolvedValue("s1");
+    orders.fetchCancelPolicy.mockResolvedValue("until_accept");
+    orders.fetchShopOrders.mockResolvedValue([order({ id: "o1" }), order({ id: "o2" }), order({ id: "o3", status: "accepted" })]);
+    orders.fetchShopOrderBuyerNames.mockResolvedValue({ o1: "Ana", o3: "Bob" });
+    renderAt("/shops/dashboard", "/shops/dashboard", <ShopDashboardPage />);
+    expect(await screen.findByText("New order from Ana")).toBeTruthy();
+    expect(screen.getByText("Accepted order for Bob")).toBeTruthy();
+    // o2: a blocked pair or a deleted buyer has no name; the card still shows.
+    expect(screen.getAllByText("New order")).toHaveLength(1);
+    expect(orders.fetchShopOrderBuyerNames).toHaveBeenCalledWith(["o1", "o2", "o3"]);
   });
 
   it("under 'until your order is ready' the shop picks what an early ready tap does, in plain words (owner 2026-10-19)", async () => {

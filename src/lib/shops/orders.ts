@@ -155,6 +155,16 @@ export async function fetchShopOrders(userId: string): Promise<ShopOrder[]> {
   return (rows ?? []) as unknown as ShopOrder[];
 }
 
+/**
+ * Q2104: the buyer's first name for each of the shop's own orders (20261106170629). No entry for a pair that blocked
+ * each other or a buyer who deleted their account; another shop's order is skipped by the server.
+ */
+export async function fetchShopOrderBuyerNames(orderIds: string[]): Promise<Record<string, string>> {
+  if (orderIds.length === 0) return {};
+  const rows = unwrap(await supabase.rpc("shops_my_order_buyer_names", { p_order_ids: orderIds.slice(0, 100) }));
+  return Object.fromEntries((rows ?? []).map((r) => [r.order_id, r.first_name]));
+}
+
 /** The RPC's error with its plain-words copy (read at each call site) as userMessage. */
 function rpcFail(error: { message: string }, words: string | null | undefined): never {
   throw Object.assign(new Error(error.message), error, words ? { userMessage: words } : {});

@@ -6,6 +6,12 @@
  *
  *   node src/test/pglite/bookedJobLocked.pglite.mjs                    # AFTER: migration applied 3x
  *   NEW_MIGRATION=skip node src/test/pglite/bookedJobLocked.pglite.mjs # RED: the state on main
+ *   TAX_LOCK=skip node src/test/pglite/bookedJobLocked.pglite.mjs      # RED: without 20261106155941 (tax_kind lands)
+ *
+ * 20261106155941 (owner 2026-11-06, lead option A) restates the newest
+ * enforce_poster_jobs_money_lock (20261031221529) with tax_kind in
+ * locked_when_booked; it is applied 3x after the Q1204 migration, so every
+ * case below also runs on the newest body.
  *
  * pglite is not a dependency (CLAUDE.md): it is loaded from ~/.lh-pglite
  * (override with PGLITE_DIR).
@@ -31,6 +37,9 @@ const LIVE = read("../../../scripts/probes/fixtures/dispute-table-door.live.sql"
 const MIGDIR = "../../../supabase/migrations/";
 const NEW = read(`${MIGDIR}20261004165404_booked_job_place_and_details_locked.sql`);
 const MODE = process.env.NEW_MIGRATION ?? "";
+const TAX_LOCK = read(`${MIGDIR}20261106155941_booked_job_tax_kind_locked.sql`);
+const TAX_MODE = MODE || (process.env.TAX_LOCK ?? "");
+if (TAX_MODE && !MODE) console.log(`TAX_LOCK=${TAX_MODE}: running without 20261106155941 (expect the tax_kind FAILs)`);
 if (MODE) console.log(`NEW_MIGRATION=${MODE}: running against the state on main (expect FAILs)`);
 
 // The newest CREATE of one function inside one migration file.
@@ -71,7 +80,8 @@ ALTER TABLE public.jobs ADD COLUMN IF NOT EXISTS helper_arrival_near_miss_at tim
   ADD COLUMN IF NOT EXISTS recurring_helper_id uuid,
   ADD COLUMN IF NOT EXISTS helper_arrival_verified_at timestamptz,
   ADD COLUMN IF NOT EXISTS helper_arrived_at timestamptz,
-  ADD COLUMN IF NOT EXISTS helper_on_the_way_at timestamptz;
+  ADD COLUMN IF NOT EXISTS helper_on_the_way_at timestamptz,
+  ADD COLUMN IF NOT EXISTS tax_kind text;
 CREATE TABLE public.group_job_helpers (job_id uuid, helper_id uuid);
 GRANT SELECT ON public.group_job_helpers TO authenticated, service_role;
 `);
@@ -79,6 +89,7 @@ await db.exec(cut("20260915101102_null_uid_is_not_server.sql", "is_server_contex
 await db.exec(cut("20261003193541_accept_completes_after_stripe_setup.sql", "enforce_poster_jobs_money_lock"));
 await db.exec(cut("20260924044812_recurring_helper_rpc_only.sql", "enforce_jobs_insert_column_lock"));
 if (MODE !== "skip") for (let i = 0; i < 3; i++) await db.exec(NEW);
+if (TAX_MODE !== "skip") for (let i = 0; i < 3; i++) await db.exec(TAX_LOCK);
 
 const OLD_DAY = "2020-01-01T00:00:00Z";
 await db.exec(`
@@ -147,6 +158,8 @@ const LOCKED = [
   ["scope_video_url", `scope_video_url = 'v2.mp4'`],
   ["estimated_hours", `estimated_hours = 8`],
   ["is_flexible_schedule", `is_flexible_schedule = true`],
+  // 20261106155941: the taxed-kind answer decides whether the labor is taxed.
+  ["tax_kind", `tax_kind = 'item_repair'`],
 ];
 const MSG = /Posters may not change jobs\.(\w+) once a Helpr is booked/;
 const MSG_MOVE = /Posters may not move jobs\./;

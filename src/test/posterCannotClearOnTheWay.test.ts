@@ -16,9 +16,9 @@ import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
  * Behaviour (red before, 3x replay, every writer still lands):
  * src/test/pglite/posterCannotClearOnTheWay.pglite.mjs.
  */
-// @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |       IF changed_col IN ('helper_confirmed_at', 'helper_dayof_confirmed_at', 'helper_on_the_way_at')\n |       IF changed_col IN ('helper_confirmed_at', 'helper_dayof_confirmed_at')\n
-// @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |                               WHEN 'helper_on_the_way_at' THEN NEW.helper_on_the_way_at\n |                               WHEN 'helper_on_the_way_at' THEN NULL\n
-// @mutate supabase/migrations/20261031221529_poster_cannot_clear_on_the_way_restated.sql |          AND NEW.helper_id IS NULL AND OLD.helper_id IS NOT NULL\n         AND current_setting('app.trusted_ladder_write', true) = 'on' THEN\n        CONTINUE; |          AND current_setting('app.trusted_ladder_write', true) = 'on' THEN\n        CONTINUE;
+// @mutate supabase/migrations/20261106155941_booked_job_tax_kind_locked.sql |       IF changed_col IN ('helper_confirmed_at', 'helper_dayof_confirmed_at', 'helper_on_the_way_at')\n |       IF changed_col IN ('helper_confirmed_at', 'helper_dayof_confirmed_at')\n
+// @mutate supabase/migrations/20261106155941_booked_job_tax_kind_locked.sql |                               WHEN 'helper_on_the_way_at' THEN NEW.helper_on_the_way_at\n |                               WHEN 'helper_on_the_way_at' THEN NULL\n
+// @mutate supabase/migrations/20261106155941_booked_job_tax_kind_locked.sql |          AND NEW.helper_id IS NULL AND OLD.helper_id IS NOT NULL\n         AND current_setting('app.trusted_ladder_write', true) = 'on' THEN\n        CONTINUE; |          AND current_setting('app.trusted_ladder_write', true) = 'on' THEN\n        CONTINUE;
 
 const DEFS = effectiveDefs(resolve(__dirname, "..", "..", "supabase", "migrations"));
 

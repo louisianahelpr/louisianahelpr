@@ -51,6 +51,7 @@
  * @mutate supabase/functions/shop-checkout/index.ts | \|\| !isLouisianaZip5(zip)) return "invalid"; | \|\| !/^7[01][0-9]{3}$/.test(zip)) return "invalid";
  * @mutate supabase/functions/shop-checkout/index.ts | description: atHome ? "Louisiana sales tax where the work is done" : | description: atHome ? "Louisiana sales tax where you pick up the order" :
  * @mutate supabase/functions/shop-checkout/index.ts |     if (atHome && body.lines.length > 1) return json({ error: "service_at_buyer_alone" }, 409); |
+ * @mutate supabase/functions/shop-checkout/index.ts |     if (atHome && delivery) return json({ error: "at_buyer_no_delivery" }, 409); |
  * @mutate supabase/functions/shop-checkout/index.ts |     if (atHome && !serviceAddress) return json({ error: "service_address_needed" }, 400); |
  * @mutate supabase/functions/shop-checkout/index.ts |   const atHome = lines.some((l) => l.at_buyer === true); |   const atHome = false;
  * @mutate supabase/functions/shop-checkout/index.ts |   if (serviceAddress === "invalid") return json({ error: "invalid_service_address" }, 400); |
@@ -208,6 +209,10 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     const mixed = await fn.fetch(askAtHome(fn, { lines: [{ item_id: ITEM, quantity: 1 }, { item_id: SHOP, quantity: 1 }] }));
     expect(mixed.status).toBe(409);
     expect((await json(mixed)).error).toBe("service_at_buyer_alone");
+    // Restack (l106 + delivery): work done at the buyer's place has nothing to deliver.
+    const delivered = await fn.fetch(askAtHome(fn, { delivery: { line1: "100 Main St", city: "Lafayette", postal_code: "70501" } }));
+    expect(delivered.status).toBe(409);
+    expect((await json(delivered)).error).toBe("at_buyer_no_delivery");
     const bad = await fn.fetch(askAtHome(fn, { service_address: { ...SERVICE, postal_code: "77002" } }));
     expect(bad.status).toBe(400);
     expect((await json(bad)).error).toBe("invalid_service_address");

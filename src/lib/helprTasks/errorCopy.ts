@@ -12,6 +12,12 @@
  */
 import { DECLUTTER_ERROR_COPY as DC } from "@/lib/declutter/errors";
 
+// Shops Helpr delivery: SHOPS_ERROR_COPY's words (src/lib/shops/errors.ts), copied so the delivery screens' chunk
+// does not load the Shops table.
+const SHOP_ORDER_NOT_FOUND = "This order isn't available.";
+const SHOP_ORDER_NOT_CHARGED_YET = "The buyer's card isn't charged yet. Try again in a few minutes.";
+const SHOP_DELIVERY_MADE = "The delivery was already made, so its price doesn't come back.";
+
 export const HELPR_TASK_RPC_ERROR_COPY = {
   helpr_my_tasks: {
     not_authenticated: DC.not_authenticated,
@@ -62,6 +68,10 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     vehicle_in_use: "You have a delivery that needs this vehicle. Finish it or back out of it first.",
   },
   helpr_task_accept: {
+    // Shops Helpr delivery (20261106194913): reached through a shop task's step (shop_complete_handover, shop_delivery_refund).
+    delivery_made: SHOP_DELIVERY_MADE,
+    order_not_charged_yet: SHOP_ORDER_NOT_CHARGED_YET,
+    order_not_found: SHOP_ORDER_NOT_FOUND,
     refund_payment_unknown: DC.refund_payment_unknown,
     too_many_taken: DC.too_many_taken,
     too_many_releases: DC.too_many_releases,
@@ -94,6 +104,10 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     vehicle_needs_car: "Add your car under Your vehicle to take deliveries.",
   },
   helpr_task_customer_confirm: {
+    // Shops Helpr delivery (20261106194913): reached through a shop task's step (shop_complete_handover, shop_delivery_refund).
+    delivery_made: SHOP_DELIVERY_MADE,
+    order_not_charged_yet: SHOP_ORDER_NOT_CHARGED_YET,
+    order_not_found: SHOP_ORDER_NOT_FOUND,
     refund_payment_unknown: DC.refund_payment_unknown,
     // BUY-36 (20261031231150): reached through the steps it runs (the close, the confirm, the debt take, the lock).
     item_going_back: "This item is going back to the seller.",
@@ -114,6 +128,10 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     unknown_task_source: DC.unknown_task_source,
   },
   helpr_task_delivered: {
+    // Shops Helpr delivery (20261106194913): reached through a shop task's step (shop_complete_handover, shop_delivery_refund).
+    delivery_made: SHOP_DELIVERY_MADE,
+    order_not_charged_yet: SHOP_ORDER_NOT_CHARGED_YET,
+    order_not_found: SHOP_ORDER_NOT_FOUND,
     refund_payment_unknown: DC.refund_payment_unknown,
     // BUY-36 (20261031231150): reached through the steps it runs (the close, the confirm, the debt take, the lock).
     delivery_on_hold: "You reported this delivery. Follow the steps on it.",
@@ -158,6 +176,10 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     under_18: DC.under_18,
   },
   helpr_task_picked_up: {
+    // Shops Helpr delivery (20261106194913): reached through a shop task's step (shop_complete_handover, shop_delivery_refund).
+    delivery_made: SHOP_DELIVERY_MADE,
+    order_not_charged_yet: SHOP_ORDER_NOT_CHARGED_YET,
+    order_not_found: SHOP_ORDER_NOT_FOUND,
     refund_payment_unknown: DC.refund_payment_unknown,
     account_restricted: DC.account_restricted,
     already_paid_out: DC.already_paid_out,
@@ -208,6 +230,10 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     task_not_found: DC.task_not_found,
   },
   helpr_task_buyer_choose: {
+    // Shops Helpr delivery (20261106194913): reached through a shop task's step (shop_complete_handover, shop_delivery_refund).
+    delivery_made: SHOP_DELIVERY_MADE,
+    order_not_charged_yet: SHOP_ORDER_NOT_CHARGED_YET,
+    order_not_found: SHOP_ORDER_NOT_FOUND,
     refund_payment_unknown: DC.refund_payment_unknown,
     // BUY-36 (20261031231150): reached through the steps it runs (the close, the confirm, the debt take, the lock).
     already_paid_out: DC.already_paid_out,
@@ -243,6 +269,10 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     task_not_found: DC.task_not_found,
   },
   helpr_task_seller_return_answer: {
+    // Shops Helpr delivery (20261106194913): reached through a shop task's step (shop_complete_handover, shop_delivery_refund).
+    delivery_made: SHOP_DELIVERY_MADE,
+    order_not_charged_yet: SHOP_ORDER_NOT_CHARGED_YET,
+    order_not_found: SHOP_ORDER_NOT_FOUND,
     refund_payment_unknown: DC.refund_payment_unknown,
     // BUY-36 (20261031231150): reached through the steps it runs (the close, the confirm, the debt take, the lock).
     already_paid_out: DC.already_paid_out,
@@ -285,6 +315,10 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     too_late: "The pickup time has started. Message the Helpr instead.",
   },
   helpr_task_pickup_no_show: {
+    // Shops Helpr delivery (20261106194913): reached through a shop task's step (shop_complete_handover, shop_delivery_refund).
+    delivery_made: SHOP_DELIVERY_MADE,
+    order_not_charged_yet: SHOP_ORDER_NOT_CHARGED_YET,
+    order_not_found: SHOP_ORDER_NOT_FOUND,
     refund_payment_unknown: DC.refund_payment_unknown,
     account_restricted: DC.account_restricted,
     location_required: DC.location_required,
@@ -308,6 +342,10 @@ export const HELPR_TASK_RPC_ERROR_COPY = {
     unknown_task_source: DC.unknown_task_source,
   },
   helpr_task_release: {
+    // Shops Helpr delivery (20261106194913): reached through a shop task's step (shop_complete_handover, shop_delivery_refund).
+    delivery_made: SHOP_DELIVERY_MADE,
+    order_not_charged_yet: SHOP_ORDER_NOT_CHARGED_YET,
+    order_not_found: SHOP_ORDER_NOT_FOUND,
     refund_payment_unknown: DC.refund_payment_unknown,
     task_not_active: DC.task_not_active,
     account_restricted: DC.account_restricted,

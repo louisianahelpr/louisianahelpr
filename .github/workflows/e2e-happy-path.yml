@@ -76,6 +76,13 @@ jobs:
               - "src/**"
               - "public/**"
               - "index.html"
+              # The build's post-processors (package.json "build") rewrite dist/index.html, so a PR touching only them
+              # still changes what ships (2026-11-05: inline-shell-css hid the desktop rail; rail-css-cascade.spec).
+              - "scripts/check-csp-inline-scripts.mjs"
+              - "scripts/inline-shell-css.mjs"
+              - "scripts/build-og-shell.mjs"
+              - "scripts/prerender-static-pages.mjs"
+              - "scripts/strip-web-sourcemaps.mjs"
               - "vite.config.ts"
               - "tailwind.config.ts"
               - "package.json"

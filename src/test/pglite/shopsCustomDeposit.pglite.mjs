@@ -51,10 +51,15 @@ CREATE TABLE public.shop_orders (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), buyer_id uuid, seller_id uuid, shop_id uuid,
   status text NOT NULL DEFAULT 'awaiting_hold', close_reason text, ready_date date NOT NULL DEFAULT '2026-12-01',
   items_cents int NOT NULL, premium_cents int NOT NULL, tax_cents int NOT NULL DEFAULT 0, delivery_cents int NOT NULL DEFAULT 0,
+  fulfillment text NOT NULL DEFAULT 'shop_delivers',
   total_cents int NOT NULL, setup_fee_cents int NOT NULL DEFAULT 0, setup_fee_state text, card_fee_cents int,
   stripe_payment_intent_id text, captured_at timestamptz, handed_over_at timestamptz, closed_at timestamptz);
 CREATE TABLE public.shop_handovers (order_id uuid PRIMARY KEY, ready_at timestamptz, ready_photo_path text,
   shop_confirmed_at timestamptz, confirmed_at timestamptz, confirmed_how text, problem_at timestamptz);
+-- The delivery price already given back or earned (Helpr delivery, 20261106194913): a stub driven by a table.
+CREATE TABLE public.reserved (order_id uuid PRIMARY KEY, cents int NOT NULL);
+CREATE FUNCTION public.shop_delivery_reserved_cents(p_order uuid) RETURNS int LANGUAGE sql STABLE AS
+  $$ SELECT COALESCE((SELECT cents FROM public.reserved WHERE order_id = p_order), 0) $$;
 CREATE TABLE public.shop_payouts (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), order_id uuid NOT NULL UNIQUE, items_cents int NOT NULL,
   debt_cents int NOT NULL, amount_cents int NOT NULL, status text NOT NULL, next_attempt_at timestamptz,
@@ -67,8 +72,9 @@ await db.exec(cutFn("20261014224914_declutter_slice3b_payments.sql", "declutter_
 await db.exec(cutFn("20261019071055_shops_refunds_cancels_strikes.sql", "shop_refund_fee_policy"));
 await db.exec(cutFn("20261019071055_shops_refunds_cancels_strikes.sql", "shop_refund_tax_kept"));
 // The --before state of what the migration restates (newest bodies).
-await db.exec(cutFn("20261106180902_shops_delivery.sql", "shop_owe_shop"));
-await db.exec(cutFn("20261019071055_shops_refunds_cancels_strikes.sql", "shop_refund_amounts"));
+await db.exec(cutFn("20261102040952_declutter_card_fee_prorated.sql", "declutter_card_fee_left"));
+await db.exec(cutFn("20261106194913_shops_helpr_delivery.sql", "shop_owe_shop"));
+await db.exec(cutFn("20261106194913_shops_helpr_delivery.sql", "shop_refund_amounts"));
 const skip = process.env.DEPOSIT_MIGRATION === "skip";
 if (!skip) for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
 
@@ -146,8 +152,8 @@ ok(Array.isArray(await svc(`INSERT INTO public.shop_handovers (order_id, shop_co
 
 // --- 3. the shop's payout and the refund read what the deposit took
 const owe = async (id) => (await svc(`SELECT public.shop_owe_shop('${id}') AS v`))[0]?.v;
-// shop half = (4001 - 2000) + (501 - 250) = 2252
-ok(await owe(d1) === 2252, "an order ending with the rest unpaid pays the shop its half of the items and delivery");
+// LEAD 11-06: a late cancel on the deposit only: the items' half (4001 - 2000), never the delivery.
+ok(await owe(d1) === 2001, "an order ending with the rest unpaid pays the shop the deposit's half of the items, never the delivery");
 const amounts = async (id, reason) => (await svc(`SELECT * FROM public.shop_refund_amounts('${id}', '${reason}')`))[0] ?? {};
 const a2 = await amounts(d2, "shop_cancelled");
 // paid = sale less the rest = 5136 - 2566 = 2570; tax = 363 - 181 = 182
@@ -156,6 +162,11 @@ ok(a2.paid_cents === 2570 && a2.tax_cents === 182 && a2.refund_cents === 2570,
 const a2b = await amounts(d2, "buyer_cancelled");
 ok(a2b.paid_cents === 2570 && a2b.card_fee_cents === Math.min(2570, (await svc(`SELECT public.declutter_card_fee_estimate(2570) AS v`))[0]?.v),
   "the card fee is the deposit's own fee");
+// A delivery price already given back is left out, but never more than the deposit's own share of it (501 - 250 = 251).
+await svc(`INSERT INTO public.reserved VALUES ('${d2}', 501)`);
+const a2c = await amounts(d2, "shop_cancelled");
+ok(a2c.paid_cents === 2570 - 251, `a delivery already given back leaves out only the deposit's share of it (${JSON.stringify(a2c)})`);
+await svc(`DELETE FROM public.reserved WHERE order_id = '${d2}'`);
 // The rest paid: the whole order (a second refund row for the rest's payment is slice 2b).
 await svc(`UPDATE public.shop_orders SET balance_payment_intent_id = 'pi_bal', balance_captured_at = now() WHERE id = '${d2}'`);
 const a3 = await amounts(d2, "shop_cancelled");
@@ -164,6 +175,12 @@ ok(await owe(d2) === 4502, "with the rest paid the shop is owed its items and de
 const f2 = await order(null);
 await hold(f2);
 ok(await owe(f2) === 4502 && (await amounts(f2, "shop_cancelled")).paid_cents === 5136, "a full-payment order's payout and refund are unchanged");
+await svc(`INSERT INTO public.reserved VALUES ('${f2}', 501)`);
+const f3 = await order(null);
+await svc(`UPDATE public.shop_orders SET fulfillment = 'helpr' WHERE id = '${f3}'`);
+await hold(f3);
+ok((await amounts(f2, "shop_cancelled")).paid_cents === 5136 - 501 && await owe(f3) === 4001,
+  "Helpr delivery's rules are kept: a reserved delivery is left out of a refund, and the shop is never owed a Helpr's delivery");
 ok(refused(await svc(`UPDATE public.shop_orders SET balance_payment_intent_id = 'pi_bal' WHERE id = '${d1}'`), /unique|duplicate/),
   "one payment is the rest of one order only");
 

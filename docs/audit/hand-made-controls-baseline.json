@@ -75,9 +75,6 @@
     "src/components/admin/AdminAnalyticsCards.tsx": {
       "button": 1
     },
-    "src/components/admin/AdminCommandPalette.tsx": {
-      "button": 1
-    },
     "src/components/admin/AdminCredentialQueue.tsx": {
       "input": 2
     },
@@ -90,22 +87,16 @@
     "src/components/admin/AdminIDVReview.tsx": {
       "input": 1
     },
-    "src/components/admin/AdminNotificationLogs.tsx": {
-      "button": 1
-    },
     "src/components/admin/AdminPayoutBatches.tsx": {
       "button": 2
     },
     "src/components/admin/AdminReferrals.tsx": {
-      "button": 2
+      "button": 1
     },
     "src/components/admin/AdminShopsOrders.tsx": {
       "input": 1
     },
     "src/components/admin/AdminSidebar.tsx": {
-      "button": 1
-    },
-    "src/components/admin/AdminUsers.tsx": {
       "button": 1
     },
     "src/components/admin/BanDialog.tsx": {
@@ -157,9 +148,6 @@
       "input": 1
     },
     "src/components/admin/marketing/MarketingQueue.tsx": {
-      "button": 1
-    },
-    "src/components/admin/settings/AdminUserSearchField.tsx": {
       "button": 1
     },
     "src/components/admin/settings/DeclutterProblemsCard.tsx": {

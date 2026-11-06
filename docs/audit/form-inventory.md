@@ -151,7 +151,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/components/postjob/CityAutocomplete.tsx` | input×1 | text | 100 | City |
 | `src/hooks/useComboboxKeyboard.ts` | input×1 | search |  |  |
-| `src/pages/auth/CompleteProfile.tsx` | input×4, textarea×1, checkbox/switch/radio×2 | file, text | 5 | avatar · complete-profile-names · firstName · lastName · city · zipCode · bio · bio-contact-leak |
+| `src/pages/auth/CompleteProfile.tsx` | input×3, textarea×1, checkbox/switch/radio×2 | text | 5 | avatar · complete-profile-names · firstName · lastName · city · zipCode · bio · bio-contact-leak |
 
 ## /complete-profile, /account-banned, /profile
 
@@ -369,7 +369,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/profile/credentialsTab/CredentialCard.tsx` | input×2 | text, file |  |  |
 | `src/components/profile/MonthlyGoalCard.tsx` | input×1 | number |  | Edit monthly goal · Monthly earnings goal in dollars · Save goal · Cancel |
 | `src/components/profile/ProfileEditForm.tsx` | input×4, textarea×1 | tel, text | 5 | phone · phone-error · location · zipCode · bio · bio-contact-leak · skillsOther · Anything else you offer… |
-| `src/components/profile/profileEditForm/PhotoNameSection.tsx` | input×3 | text, file |  |  |
+| `src/components/profile/profileEditForm/PhotoNameSection.tsx` | input×2 | text |  |  |
 | `src/components/profile/profileEditForm/RecentWorkSection.tsx` | input×1 | file |  | Remove this photo |
 | `src/components/profile/ProfileLinkRow.tsx` | input×1 | text | 30 | profile-link-panel · profile-handle · profile-handle-hint |
 | `src/components/profile/SavedHelpersTab.tsx` | input×1 | search |  | Search saved Helprs · Search saved Helprs… · Close search · Filter saved Helprs by skill · Sort saved Helprs |

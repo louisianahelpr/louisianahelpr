@@ -41,6 +41,7 @@ import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 import { userFacingError } from "@/lib/userFacingError";
 import { useLanguage } from "@/lib/i18n/language";
 import { ProfileNextStep } from "./completeProfile/ProfileNextStep";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 
 // Q292: an incomplete account cannot reach /profile (the gate sends it here),
 // so in-app deletion (Apple 5.1.1(v), GDPR Art. 17) has to be offered here.
@@ -575,11 +576,9 @@ const CompleteProfile = () => {
                     one. The aria-label sat on the <label>, where axe flags it
                     as prohibited (aria-prohibited-attr) and AT ignores it.
                     Found the first time the sweep rendered this gate. */}
-                <input
+                <HiddenFileInput
                   id="avatar"
-                  type="file"
                   accept="image/*"
-                  className="sr-only"
                   aria-label={avatarPreview ? t("profileGate.photoChange") : t("profileGate.photoUpload")}
                   onChange={handleAvatarChange}
                 />

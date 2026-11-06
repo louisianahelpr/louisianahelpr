@@ -166,6 +166,34 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     expect(clientOf(attach)?.key).toBe("service-key");
   });
 
+  // @mutate supabase/functions/shop-checkout/index.ts |       p_request_id: customRequestId, p_shop_id: shopId, p_ready_date: readyDate, p_note: note, |       p_request_id: customRequestId, p_ready_date: readyDate, p_note: note,
+  // @mutate supabase/functions/shop-checkout/index.ts |   if (customRequestId === "invalid") return json({ error: "request_not_found" }, 404); |   if (customRequestId === "invalid") return json({ error: "request_not_found" }, 200);
+  it("custom orders (20261106205852): a price the shop sent is ordered AS THE BUYER for its own shop, with no lines, then the ordinary page", async () => {
+    const fn = await load();
+    frozen();
+    scenario.rpc.shops_order_custom_quote = { order_id: ORDER, items_cents: 6100, premium_cents: 375, superseded_session_id: null };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://checkout.stripe.test/shop", amount_subtotal: 6625 });
+    const REQ = "00000000-0000-4000-8000-00000000c0de";
+    const res = await fn.fetch(fn.request({
+      headers: { Authorization: "Bearer buyer-jwt" },
+      body: { action: "order", shop_id: SHOP, custom_request_id: REQ, ready_date: "2026-10-30", note: "No nuts",
+        terms: { cancel_policy: "until_24h_before_ready", ready_tap_cancel: "from_day_before" } },
+    }));
+    expect(res.status).toBe(200);
+    expect(rpcs("shops_request_order")).toHaveLength(0);
+    const req = rpcs("shops_order_custom_quote")[0];
+    expect(req?.args).toEqual({ p_request_id: REQ, p_shop_id: SHOP, p_ready_date: "2026-10-30", p_note: "No nuts" });
+    expect(JSON.stringify(clientOf(req)?.options)).toContain("Bearer buyer-jwt");
+    expect(stripeMock.checkout.sessions.create).toHaveBeenCalledTimes(1);
+    // A malformed request id is refused before anything is asked of Stripe or the SQL.
+    const bad = await fn.fetch(fn.request({
+      headers: { Authorization: "Bearer buyer-jwt" },
+      body: { action: "order", shop_id: SHOP, custom_request_id: "nope", ready_date: "2026-10-30" },
+    }));
+    expect(bad.status).toBe(404);
+    expect(rpcs("shops_order_custom_quote")).toHaveLength(1);
+  });
+
   it("H6: the tax is figured ONCE at the shop's pickup address, from exactly the taxed lines; no tax/locations call (Q2153)", async () => {
     const fn = await load();
     frozen();

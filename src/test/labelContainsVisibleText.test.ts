@@ -69,7 +69,7 @@ describe("#3491: a control's accessible name contains the words it shows (WCAG 2
 
   it("YourActivity tiles have no aria-label: their two lines are their name", () => {
     const src = read("components/profile/profileLanding/YourActivity.tsx");
-    const at = src.indexOf("<button");
+    const at = src.indexOf("<GlassTileButton");
     expect(at).toBeGreaterThan(-1);
     const tag = openingTag(src, at);
     expect(tag).toContain("data-activity-tile=");

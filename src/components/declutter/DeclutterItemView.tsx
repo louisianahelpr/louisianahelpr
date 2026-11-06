@@ -37,7 +37,6 @@ import {
 } from "./declutterUi";
 import { FreeClaimPanel, FreeRequestsForGiver, isFreeItem } from "./DeclutterFreeClaim";
 import { OfferPanel } from "./DeclutterOfferPanel";
-import { OfferTradeButton } from "./DeclutterOfferTrade";
 import PriceHint from "./DeclutterPriceHint";
 import { DeclutterGallery } from "./DeclutterGallery";
 import { DeclutterSellerCard } from "./DeclutterSellerCard";
@@ -61,6 +60,9 @@ import { ItemViewsCount } from "./ItemViewsCount";
 // B67 (DECL-ITEM-SPEED): only the seller sees the manage panel, so its edit flow (sell steps, handover choices)
 // loads when it shows, not on every buyer's and guest's cold item page.
 const SellerListingPanel = lazy(() => import("./DeclutterManageListing").then((m) => ({ default: m.SellerListingPanel })));
+// Off the critical path (Q178: the item page went 400 -> 441 KB gz with it eager). The button shows only after its own
+// "open to trades" read answers, so loading its chunk alongside that read adds no visible wait.
+const OfferTradeButton = lazy(() => import("./DeclutterOfferTrade").then((m) => ({ default: m.OfferTradeButton })));
 
 /** What a pressed Buy or Offer says in the seller's own preview. */
 const PREVIEW_ACTION_NOTE = "This is your listing. Buyers can press this; you can't buy your own.";
@@ -169,7 +171,7 @@ export default function ItemView({ itemId }: { itemId: string }) {
     {/* The Free section (20261027170717): a free item is claimed, never bought or offered on, and has no price hint. */}
     {canAct && user && (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} footer={deliveredLine} />)}
     {/* Declutter trades (owner 10-31): a listing Open to trades also takes one of the buyer's own listings in trade. */}
-    {canAct && user && !free && it.status === "live" && <OfferTradeButton item={it} userId={user.id} />}
+    {canAct && user && !free && it.status === "live" && <Suspense fallback={null}><OfferTradeButton item={it} userId={user.id} /></Suspense>}
     {/* BUY-16: a guest signs up (or logs in) to buy, offer or ask, and comes back here. */}
     {canAct && !user && <DeclutterGuestJoin free={free} offers={it.accepts_offers !== false} />}
   </>);

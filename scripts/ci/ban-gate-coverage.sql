@@ -203,6 +203,7 @@ rpc_exempt(fn, why) AS (
   ('declutter_claim_free', 'one-line wrapper: returns declutter_request_free, which refuses a banned caller itself (is_caller_banned, account_restricted; Q2487, 20261030064021)'),
   ('declutter_request_free_at', 'wrapper: calls declutter_request_free first, which refuses a banned caller itself (is_caller_banned, account_restricted); then only sets pickup_at on the callers own new ask (owner 11-01, 20261101174857)'),
   ('declutter_mark_talk_read', 'Declutter chats (20261101200929): only stamps the callers own read time on a chat they are a party to; posts no content and moves no money, so a banned member can still read'),
+  ('shops_set_delivery', 'Shops delivery (20261106180902): gated through shops_assert_owner_eligible(), which raises account_restricted for a banned caller before the one UPDATE of the callers own shop'),
   ('shops_mark_talk_read', 'Shops chats (20261105185006): only stamps the callers own read time on a shop chat they are a party to; posts no content and moves no money, so a banned member can still read'),
   ('rentals_mark_talk_read', 'Homes messages (20261106182837): only stamps the callers own read mark on a Homes thread they are a side of; posts no content and moves no money, so a banned member can still read'),
   ('helpr_stop_sharing', 'live delivery map (20261101184555): only deletes the callers own live-position rows; a banned Helpr can always stop sharing their location (privacy), and it posts no content and moves no money'),

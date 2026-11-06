@@ -25,7 +25,12 @@
 --                                + tax [+ setup fee])
 --        shop_complete_handover 20261105182903_shops_handover_rule.sql (the shop is paid its items AND its delivery
 --                                fee; shop_payouts.items_cents carries both, so shop_payouts_amount is unchanged)
+--        shop_owe_shop          20261019071055_shops_refunds_cancels_strikes.sql (equal to LIVE, read 11-06; a late
+--                                cancel or a no-show pays the shop its items AND its delivery fee, as the copy says
+--                                "you are paid for it"; money review BLOCK on 33156ebb22)
+--        shops_report_no_show   20261103162420 (copy only: a delivery order says "didn't receive the delivery")
 --      Refunds already read total_cents (20261019071055), so a full refund gives the delivery back too.
+--      NOTE (Q1948): shops' facilitated_la_sales_cents counts items only; the delivery fee is not in it.
 -- Tax: the delivery line goes to Stripe as non-taxable, exactly as Declutter's "Seller delivery" line
 --   (declutter-checkout NONTAXABLE_TAX_CODE); it is not in the tax calculation.
 -- MONEY: yes (lh-money-escrow). AUTHZ: one table, two setters, one read (lh-authz-rls).
@@ -408,3 +413,92 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.shop_complete_handover(uuid, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_complete_handover(uuid, text) TO service_role;
+
+-- 9. RESTATED from 20261019071055_shops_refunds_cancels_strikes.sql (equal to LIVE, read 11-06). A late cancel or a
+-- no-show pays the shop what a handover would: its items AND its own delivery fee (lead decision 11-06 on the money
+-- BLOCK of 33156ebb22: the shop is told "you are paid for it", so the fee is never silently kept).
+CREATE OR REPLACE FUNCTION public.shop_owe_shop(p_order_id uuid)
+RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  o public.shop_orders;
+  v_debt integer;
+BEGIN
+  SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;
+  v_debt := public.declutter_consume_fee_debt(o.seller_id, 'shop_order_' || o.id::text,
+                                              (o.items_cents + o.delivery_cents));
+  INSERT INTO public.shop_payouts (order_id, items_cents, debt_cents, amount_cents, status, next_attempt_at)
+  VALUES (o.id, (o.items_cents + o.delivery_cents), v_debt,
+          (o.items_cents + o.delivery_cents) - v_debt,
+          CASE WHEN (o.items_cents + o.delivery_cents) - v_debt = 0 THEN 'nothing_due' ELSE 'pending' END, now())
+  ON CONFLICT (order_id) DO NOTHING;
+  RETURN (o.items_cents + o.delivery_cents) - v_debt;
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.shop_owe_shop(uuid) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.shop_owe_shop(uuid) TO service_role;
+
+-- 10. RESTATED from 20261103162420_q2390_handover_paid_refund_shop_cancel_photo_no_show_decline_not_found_is_404.sql
+-- (only the buyer's notice changes: a delivery order says it was not received).
+CREATE OR REPLACE FUNCTION public.shops_report_no_show(p_order_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  o public.shop_orders;
+  v_owed integer;
+BEGIN
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  IF public.is_caller_banned() THEN
+    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';
+  END IF;
+  SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;
+  IF NOT FOUND OR o.seller_id IS DISTINCT FROM v_uid THEN
+    RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'PT404';
+  END IF;
+  o := public.shop_lock_open_charged_order(o.id, false);
+  IF o.handover_mode <> 'in_person' THEN
+    RAISE EXCEPTION 'not_in_person' USING ERRCODE = '55000',
+      HINT = 'A left-out order cannot be a no-show; it finishes on its own after the ready date.';
+  END IF;
+  -- Only an order the shop marked ready (/code-review of shops-m3-v1 #2): a shop
+  -- that never said "it's ready" cannot say the buyer failed to come for it.
+  IF NOT EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.ready_at IS NOT NULL) THEN
+    RAISE EXCEPTION 'not_ready' USING ERRCODE = '55000',
+      HINT = 'Mark the order ready first. A no-show can only be reported for an order you had ready.';
+  END IF;
+  IF now() < ((o.ready_date + 1)::timestamp AT TIME ZONE 'America/Chicago') THEN
+    RAISE EXCEPTION 'too_early_for_no_show' USING ERRCODE = '55000',
+      HINT = 'You can report a no-show once the ready date is over.';
+  END IF;
+  UPDATE public.shop_orders SET status = 'cancelled', close_reason = 'buyer_no_show', closed_at = now()
+   WHERE id = o.id AND status = 'accepted';
+  v_owed := public.shop_owe_shop(o.id);
+  PERFORM public.shop_give_strike(o.buyer_id, 'buyer', 'buyer_no_show', o.id);
+  -- Delivery (20261106180902): a shop-delivered order was not received, not "not picked up".
+  PERFORM public.declutter_notify(o.buyer_id, 'warning', CASE WHEN o.fulfillment = 'shop_delivers' THEN 'Missed delivery' ELSE 'Missed pickup' END,
+    CASE WHEN o.fulfillment = 'shop_delivers' THEN
+      format('The shop says you didn''t receive the delivery of your order for %s. A missed delivery counts as a late cancel: nothing is refunded and the shop is paid. If you did receive it, contact Louisiana Helpr support.',
+             to_char(o.ready_date, 'FMMonth FMDD'))
+    ELSE
+      format('The shop says you did not pick up your order for %s. A missed pickup counts as a late cancel: nothing is refunded and the shop is paid. If you did pick it up, contact Louisiana Helpr support.',
+             to_char(o.ready_date, 'FMMonth FMDD'))
+    END,
+    '/shops/orders', o.seller_id);
+  PERFORM public.declutter_notify(o.seller_id, 'payment', 'No-show recorded',
+    format('You are paid for the order ($%s).', to_char(v_owed / 100.0, 'FM999999990.00')),
+    '/shops/dashboard', o.buyer_id);
+  RETURN jsonb_build_object('result', 'no_show', 'order_id', o.id, 'refund_id', NULL, 'refund_cents', 0);
+END;
+$fn$;
+
+REVOKE ALL ON FUNCTION public.shops_report_no_show(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.shops_report_no_show(uuid) TO authenticated, service_role;

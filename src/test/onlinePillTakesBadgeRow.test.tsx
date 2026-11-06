@@ -169,6 +169,9 @@ describe("the online pill takes its row from the badge's one read", () => {
     expect(await takeOnlineFromBadge("u1", 20)).toBeNull();
     const src = (await import("node:fs")).readFileSync("src/lib/authSignOut.ts", "utf8");
     const body = src.slice(src.indexOf("export async function signOutWithPushCleanup"));
-    expect(body.slice(0, body.indexOf("\n}\n"))).toMatch(/\bresetOnlineHandoff\(\)/);
+    const fn = body.slice(0, body.indexOf("\n}\n"));
+    expect(fn).toMatch(/\bresetOnlineHandoff\(\)/);
+    // Inventory floor: signOutWithPushCleanup calls it once (measured 2026-11-06); a body cut short at the wrong "}" finds none.
+    expect((fn.match(/\bresetOnlineHandoff\(\)/g) ?? []).length).toBeGreaterThan(0);
   });
 });

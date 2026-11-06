@@ -438,6 +438,7 @@ describe("Buying tracker: every order card shows its steps and its ONE next acti
   // you'll come for it" with "Pick a pickup time" as its next action. Now it says the problem is open and asks nothing.
   // @mutate src/components/declutter/BuyingOrders.tsx |       problem: problems.has(o.orderId), |       problem: false,
   // @mutate src/components/declutter/BuyingOrders.tsx |   if (f.problem) return f.problemAwaitsYou ? you("Add your side to the problem") : info(PROBLEM_ON_HOLD); |
+  // @mutate src/components/declutter/DeclutterHandoverViews.tsx |       {problem && view && <ProblemOpenNote problem={problem} side={order.side} answered={!!handoverRow.data?.no_show_reported_at} delivery={order.handover === "seller_delivery"} />} |
   it("an open problem: the collapsed card says so, with no next action and no booking (D2-2)", async () => {
     load(CASES.filter((c) => c.id === "porch0" || c.id === "home0"));
     state.problems = [{ id: "p1", order_id: "porch0", reporter_side: "buyer", reason: "not_as_described" }];

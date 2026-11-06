@@ -54,10 +54,12 @@ describe("a capped sign-out cannot wipe the next sign-in", () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     let failLateLogout: () => void = () => {};
     const logoutCalls: string[] = [];
+    const logoutSignals: (AbortSignal | undefined | null)[] = [];
     vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
       if (url.includes("/auth/v1/logout")) {
         logoutCalls.push(url);
+        logoutSignals.push(init?.signal);
         // Like a real fetch on a hung line: it settles only if aborted, or
         // when the line finally drops (failLateLogout).
         return new Promise<Response>((_, reject) => {
@@ -91,6 +93,10 @@ describe("a capped sign-out cannot wipe the next sign-in", () => {
     const result = await out;
     vi.useRealTimers();
     expect(logoutCalls).toHaveLength(1);
+    // CANCELLED, not abandoned: the cap aborts the hung /logout itself. (auth-js 2.119 removes a
+    // "local" session before sending /logout, so the SIGNED_OUT order below holds either way;
+    // only this line sees a dropped scope.abort().)
+    expect(logoutSignals[0]?.aborted).toBe(true);
     expect(result.error).toBeTruthy();
     // Signed out while the dialog is still up, not later.
     expect(events).toEqual(["SIGNED_OUT:none"]);

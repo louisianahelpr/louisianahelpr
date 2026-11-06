@@ -67,6 +67,16 @@ vi.mock("@/lib/nativePush", () => ({ unregisterPushOnSignOut }));
 vi.mock("@/lib/lastRoute", () => ({ clearRememberedRoute }));
 const report = vi.fn();
 vi.mock("@/lib/errorLogger", () => ({ report }));
+// Selling work kept on the device (lib/declutter/bunchSaved.ts), in an in-memory idb-keyval: the clears really run.
+const disk = vi.hoisted(() => new Map<string, unknown>());
+vi.mock("idb-keyval", () => ({
+  get: async (k: string) => disk.get(k),
+  set: async (k: string, v: unknown) => void disk.set(k, v),
+  del: async (k: string) => void disk.delete(k),
+  delMany: async (ks: string[]) => ks.forEach((k) => disk.delete(k)),
+  keys: async () => [...disk.keys()],
+  createStore: () => ({}),
+}));
 
 beforeEach(() => {
   order.length = 0;
@@ -80,6 +90,20 @@ describe("signOutWithPushCleanup", () => {
     await signOutWithPushCleanup();
     expect(clear).toHaveBeenCalledTimes(1);
     expect(removePersistedClient).toHaveBeenCalledTimes(1);
+  });
+
+  // @mutate src/lib/authSignOut.ts |     clearSavedSellOne(), |     Promise.resolve(),
+  // @mutate src/lib/authSignOut.ts |     clearSavedBunch(), |     Promise.resolve(),
+  it("clears the selling work kept on this device (one listing and a bunch), so the next member never gets it", async () => {
+    disk.clear();
+    disk.set("lh-sell-one-v1", { userId: "u1", savedAt: Date.now(), photos: [] });
+    disk.set("lh-sell-one-v1-photo:p1", new Blob(["x"]));
+    disk.set("lh-bunch-v1", { userId: "u1", savedAt: Date.now(), photos: [] });
+    disk.set("lh-bunch-v1-photo:p2", new Blob(["y"]));
+    disk.set("someone-elses-key", 1);
+    const { signOutWithPushCleanup } = await import("./authSignOut");
+    await signOutWithPushCleanup();
+    expect([...disk.keys()]).toEqual(["someone-elses-key"]);
   });
 
   it("a plain Log Out ends THIS device's session only; Sign out Everywhere stays global", async () => {

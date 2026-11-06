@@ -1,12 +1,10 @@
 {
-  "generated": "2026-11-06T13:54:34.290Z",
-  "guards": 3643,
-  "registered": 3643,
+  "generated": "2026-11-06T16:27:52.454Z",
+  "guards": 3647,
+  "registered": 3647,
   "unregistered": [],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/test/fieldClearButtonShared.test.tsx",
-    "src/test/onlinePillTakesBadgeRow.test.tsx"
+    "e2e/happy-path/state-matrix/state-sweep.spec.ts"
   ],
   "classD_selfReferential": [
     {

@@ -149,6 +149,24 @@ async function stripeForOrder(admin: Db, o: OrderMoneyRow, kind: MoneyKind): Pro
 /** The shop's private pickup address as a Stripe Tax address (the place a pickup sale is sourced to). */
 type PickupTaxAddress = { line1: string; line2?: string; city: string; state: string; postal_code: string; country: "US" };
 
+/** H8 (b): the buyer's Louisiana service address, for carpet or furniture cleaning done at their place. */
+type ServiceAddress = { line1: string; city: string; postal_code: string };
+
+/**
+ * H8 (b) (lead 11-05): the service address the buyer's order sheet sent. null when none was sent; "invalid" when the
+ * shape is wrong (the table's own CHECKs are the same: 3-120 / 2-60 characters, a Louisiana ZIP).
+ */
+function parseServiceAddress(v: unknown): ServiceAddress | null | "invalid" {
+  if (v === undefined || v === null) return null;
+  if (typeof v !== "object" || Array.isArray(v)) return "invalid";
+  const a = v as Record<string, unknown>;
+  const line1 = typeof a.line1 === "string" ? a.line1.trim() : "";
+  const city = typeof a.city === "string" ? a.city.trim() : "";
+  const zip = typeof a.postal_code === "string" ? a.postal_code.trim() : "";
+  if (line1.length < 3 || line1.length > 120 || city.length < 2 || city.length > 60 || !/^7[01][0-9]{3}$/.test(zip)) return "invalid";
+  return { line1, city, postal_code: zip };
+}
+
 /**
  * H6: the shop's pickup address, read before the order is frozen (shops_request_order retires the buyer's
  * previous page, so a missing address answers first, review 2026-10-18 finding 3). "missing" when the shop has
@@ -210,6 +228,8 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   if (!Array.isArray(body.lines)) return json({ error: "invalid_order_lines" }, 400);
   const note = typeof body.note === "string" ? body.note : "";
   const native = isNativeRequest(body);
+  const serviceAddress = parseServiceAddress(body.service_address);
+  if (serviceAddress === "invalid") return json({ error: "invalid_service_address" }, 400);
   // The cancel terms the buyer's screen showed (shops_order_terms). OPTIONAL
   // (/code-review of shops-m3-v1 #5): an app build from before this field sends
   // none, and its order freezes the shop's current terms server-side and goes
@@ -246,6 +266,22 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
     taxAddress = addr;
   }
 
+  // H8 (b): an at-home cleaning is ordered on its own and needs the buyer's address, answered BEFORE the order
+  // freezes (shops_request_order retires the buyer's previous page). The frozen line below is the truth; this is
+  // the early, plain answer.
+  const itemIds = (body.lines as unknown[]).map((l) => (l && typeof l === "object" ? (l as { item_id?: unknown }).item_id : null))
+    .filter((id): id is string => typeof id === "string" && UUID_RE.test(id));
+  if (itemIds.length > 0) {
+    const { data: atRows, error: atErr } = await admin.from("shop_items").select("id, subtype, at_buyer").in("id", itemIds);
+    if (atErr) {
+      console.error(`[shop-checkout] item read failed: ${atErr.message}`);
+      return json({ error: TRY_AGAIN }, 503);
+    }
+    const atHome = ((atRows ?? []) as Array<{ subtype: string; at_buyer: boolean }>).some((r) => r.at_buyer && r.subtype === "fabric_cleaning");
+    if (atHome && body.lines.length > 1) return json({ error: "service_at_buyer_alone" }, 409);
+    if (atHome && !serviceAddress) return json({ error: "service_address_needed" }, 400);
+  }
+
   const { data, error } = await asBuyer.rpc("shops_request_order", {
     p_shop_id: shopId, p_lines: body.lines, p_ready_date: readyDate, p_note: note,
   });
@@ -276,12 +312,12 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   const o = await readOrder(admin, frozen.order_id);
   if (!o || o.status !== "awaiting_hold" || !o.seller_id) return json({ error: TRY_AGAIN }, 500);
   const { data: lineRows, error: linesErr } = await admin.from("shop_order_lines")
-    .select("title, kind, tax_kind, unit_cents, quantity, line_cents").eq("order_id", o.id);
+    .select("title, kind, tax_kind, at_buyer, unit_cents, quantity, line_cents").eq("order_id", o.id);
   if (linesErr) {
     console.error(`[shop-checkout] lines read failed: ${linesErr.message}`);
     return json({ error: TRY_AGAIN }, 503);
   }
-  const lines = (lineRows ?? []) as Array<{ title: string; kind: string; tax_kind: string | null; unit_cents: number; quantity: number; line_cents: number }>;
+  const lines = (lineRows ?? []) as Array<{ title: string; kind: string; tax_kind: string | null; at_buyer: boolean; unit_cents: number; quantity: number; line_cents: number }>;
   const itemsCents = lines.reduce((a, l) => a + l.line_cents, 0);
   if (lines.length === 0 || itemsCents !== o.items_cents || o.items_cents !== frozen.items_cents || o.premium_cents !== frozen.premium_cents) {
     console.error(`[shop-checkout] order ${o.id} amounts do not add up`);
@@ -292,6 +328,28 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   if (!mode || !taxAddress || o.seller_id !== ownerId) {
     console.error(`[shop-checkout] order ${o.id} seller is not the shop's owner read before it`);
     return json({ error: TRY_AGAIN }, 500);
+  }
+  // H8 (b): an at-home cleaning (frozen on its line) is taxed where the work is done: the buyer's address, kept
+  // for this order only (service role; the shop reads it after accepting). Stripe gets only what the tax needs.
+  const atHome = lines.some((l) => l.at_buyer === true);
+  let calcAddress: PickupTaxAddress = taxAddress;
+  if (atHome) {
+    if (!serviceAddress) {
+      const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: o.id });
+      if (closeErr) console.error(`[shop-checkout] order ${o.id} not closed without its service address: ${closeErr.message}`);
+      return json({ error: "service_address_needed" }, 400);
+    }
+    const { error: addrErr } = await admin.from("shop_order_service_addresses").upsert({
+      order_id: o.id, buyer_id: user.id, line1: serviceAddress.line1, city: serviceAddress.city, state: "LA",
+      postal_code: serviceAddress.postal_code,
+    }, { onConflict: "order_id" });
+    if (addrErr) {
+      console.error(`[shop-checkout] order ${o.id} service address not saved: ${addrErr.message}`);
+      const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: o.id });
+      if (closeErr) console.error(`[shop-checkout] order ${o.id} not closed after its address failed: ${closeErr.message}`);
+      return json({ error: TRY_AGAIN }, 503);
+    }
+    calcAddress = { line1: serviceAddress.line1, city: serviceAddress.city, state: "LA", postal_code: serviceAddress.postal_code, country: "US" };
   }
   const stripe = stripeFor(mode);
   // The tax is our own line (automatic_tax off): each line's code is a label only.
@@ -332,13 +390,19 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   // first (no page opens on it; the buyer taps again). An address Stripe cannot tax says so in its own words.
   let tax: { calculationId: string; cents: number };
   try {
-    tax = await shopOrderTax(stripe, o.id, taxAddress, lines, feeParts);
+    tax = await shopOrderTax(stripe, o.id, calcAddress, lines, feeParts);
   } catch (e) {
     const unusable = addressRefused(e);
-    console.error(JSON.stringify({ event: unusable ? "shop_pickup_address_unusable" : "shop_tax_calculation_failed", shop: shopId, order: o.id, mode, detail: caughtMessage(e).slice(0, 200) }));
+    console.error(JSON.stringify({ event: unusable ? (atHome ? "shop_service_address_unusable" : "shop_pickup_address_unusable") : "shop_tax_calculation_failed", shop: shopId, order: o.id, mode, detail: caughtMessage(e).slice(0, 200) }));
     const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: o.id });
     if (closeErr) console.error(`[shop-checkout] order ${o.id} not closed after its tax failed: ${closeErr.message}`);
-    return unusable ? json({ error: "pickup_address_unusable" }, 409) : json({ error: TRY_AGAIN }, 503);
+    // The closed order keeps no copy of the buyer's address.
+    if (atHome) {
+      const { error: purgeErr } = await admin.from("shop_order_service_addresses").delete().eq("order_id", o.id);
+      if (purgeErr) console.error(`[shop-checkout] order ${o.id} service address not purged: ${purgeErr.message}`);
+    }
+    if (unusable) return json({ error: atHome ? "service_address_unusable" : "pickup_address_unusable" }, 409);
+    return json({ error: TRY_AGAIN }, 503);
   }
   meta.tax_calculation_id = tax.calculationId;
   meta.job_tax_cents = String(tax.cents);

@@ -44,6 +44,14 @@
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |  if (isShopCharge && !isOnboardingCorrectionOnly(liveRefunds, ordinaryRefunds)) { |  if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |    // money stayed. Undone before the row reopens (a re-sent refund then reverses its own share). Never throws.\n    await undoVisitTaxForFailedRefund({ |    // money stayed.\n    void ({
  * @mutate supabase/functions/shop-checkout/index.ts |   if (termsErr) return rpcRefusal(termsErr); |
+ * H8 (b) (at-home cleaning taxed at the buyer's address):
+ * @mutate supabase/functions/shop-checkout/index.ts |     calcAddress = { line1: serviceAddress.line1, | void { line1: serviceAddress.line1,
+ * @mutate supabase/functions/shop-checkout/index.ts |     if (atHome && body.lines.length > 1) return json({ error: "service_at_buyer_alone" }, 409); |
+ * @mutate supabase/functions/shop-checkout/index.ts |     if (atHome && !serviceAddress) return json({ error: "service_address_needed" }, 400); |
+ * @mutate supabase/functions/shop-checkout/index.ts |   const atHome = lines.some((l) => l.at_buyer === true); |   const atHome = false;
+ * @mutate supabase/functions/shop-checkout/index.ts |   if (serviceAddress === "invalid") return json({ error: "invalid_service_address" }, 400); |
+ * @mutate supabase/functions/shop-checkout/index.ts |     if (unusable) return json({ error: atHome ? "service_address_unusable" : "pickup_address_unusable" }, 409); |     if (unusable) return json({ error: "pickup_address_unusable" }, 409);
+ * @mutate supabase/functions/shop-checkout/index.ts |      const { error: purgeErr } = await admin.from("shop_order_service_addresses").delete().eq("order_id", o.id); |      const purgeErr = null;
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -120,6 +128,88 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
   const pickup = (over: Record<string, unknown> = {}) => ({
     line1: "705 W University Ave", line2: null, city: "Lafayette", state_code: "LA", postal_code: "70506",
     stripe_tax_location_id: null, stripe_tax_location_mode: null, updated_at: "2026-10-18T03:00:00.123456+00:00", ...over,
+  });
+
+  // H8 (b) (lead 11-05; migration 20261106011021): carpet or furniture cleaning done at the buyer's place is taxed at
+  // the buyer's address, ordered on its own; the address is kept for the order only (the shop reads it after accepting).
+  const SERVICE = { line1: "12 Oak St", city: "Lafayette", postal_code: "70501" };
+  const askAtHome = (fn: Awaited<ReturnType<typeof load>>, over: Record<string, unknown> = {}) => fn.request({
+    headers: { Authorization: "Bearer buyer-jwt" },
+    body: { action: "order", shop_id: SHOP, lines: [{ item_id: ITEM, quantity: 1 }], ready_date: "2026-10-30", note: "",
+      terms: { cancel_policy: "until_24h_before_ready", ready_tap_cancel: "from_day_before" }, service_address: SERVICE, ...over },
+  });
+  function frozenAtHome() {
+    frozen({ items_cents: 12000, premium_cents: 670 });
+    scenario.reads.shop_orders = { rows: [orderRow({ items_cents: 12000, premium_cents: 670 })] };
+    scenario.reads.shop_items = { rows: [{ id: ITEM, subtype: "fabric_cleaning", at_buyer: true }] };
+    scenario.reads.shop_order_lines = { rows: [
+      { title: "Couch cleaning at your home", kind: "service", tax_kind: "fabric_cleaning", at_buyer: true, unit_cents: 12000, quantity: 1, line_cents: 12000 },
+    ] };
+  }
+
+  it("H8 (b): an at-home cleaning is taxed at the buyer's service address, never the pickup address, and the address is kept for the order", async () => {
+    const fn = await load();
+    frozenAtHome();
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://checkout.stripe.test/shop", amount_subtotal: 12820 });
+    const res = await fn.fetch(askAtHome(fn));
+    expect(res.status).toBe(200);
+    const [calc] = stripeMock.tax.calculations.create.mock.calls[0];
+    expect(calc.customer_details.address).toEqual({ line1: "12 Oak St", city: "Lafayette", state: "LA", postal_code: "70501", country: "US" });
+    const saved = scenario.writes.filter((w) => w.table === "shop_order_service_addresses");
+    expect(saved).toHaveLength(1);
+    expect(saved[0].payload).toEqual({ order_id: ORDER, buyer_id: BUYER, line1: "12 Oak St", city: "Lafayette", state: "LA", postal_code: "70501" });
+    // Stripe gets the address only in the tax calculation: never in the page's metadata.
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+    expect(JSON.stringify(params)).not.toContain("12 Oak St");
+  });
+
+  it("H8 (b): an in-shop order is still taxed at the pickup address and stores no service address", async () => {
+    const fn = await load();
+    frozen();
+    scenario.reads.shop_items = { rows: [{ id: ITEM, subtype: "baked_goods", at_buyer: false }] };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://checkout.stripe.test/shop", amount_subtotal: 6625 });
+    const res = await fn.fetch(ask(fn));
+    expect(res.status).toBe(200);
+    expect(stripeMock.tax.calculations.create.mock.calls[0][0].customer_details.address.postal_code).toBe("70506");
+    expect(scenario.writes.filter((w) => w.table === "shop_order_service_addresses")).toHaveLength(0);
+  });
+
+  it("H8 (b): an at-home cleaning with no address, or with other items, is refused before the order freezes", async () => {
+    const fn = await load();
+    frozenAtHome();
+    const none = await fn.fetch(askAtHome(fn, { service_address: undefined }));
+    expect(none.status).toBe(400);
+    expect((await json(none)).error).toBe("service_address_needed");
+    const mixed = await fn.fetch(askAtHome(fn, { lines: [{ item_id: ITEM, quantity: 1 }, { item_id: SHOP, quantity: 1 }] }));
+    expect(mixed.status).toBe(409);
+    expect((await json(mixed)).error).toBe("service_at_buyer_alone");
+    const bad = await fn.fetch(askAtHome(fn, { service_address: { ...SERVICE, postal_code: "77002" } }));
+    expect(bad.status).toBe(400);
+    expect((await json(bad)).error).toBe("invalid_service_address");
+    expect(rpcs("shops_request_order")).toHaveLength(0);
+    expect(stripeMock.tax.calculations.create).not.toHaveBeenCalled();
+  });
+
+  it("H8 (b): a frozen at-home line with no address closes the order (the item changed after the early check)", async () => {
+    const fn = await load();
+    frozenAtHome();
+    scenario.reads.shop_items = { rows: [{ id: ITEM, subtype: "fabric_cleaning", at_buyer: false }] };
+    const res = await fn.fetch(askAtHome(fn, { service_address: undefined }));
+    expect(res.status).toBe(400);
+    expect((await json(res)).error).toBe("service_address_needed");
+    expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
+    expect(stripeMock.tax.calculations.create).not.toHaveBeenCalled();
+  });
+
+  it("H8 (b): an address Stripe cannot tax says so in the buyer's words, closes the order and keeps no copy", async () => {
+    const fn = await load();
+    frozenAtHome();
+    stripeMock.tax.calculations.create.mockRejectedValue(Object.assign(new Error("bad address"), { type: "StripeInvalidRequestError", code: "customer_tax_location_invalid" }));
+    const res = await fn.fetch(askAtHome(fn));
+    expect(res.status).toBe(409);
+    expect((await json(res)).error).toBe("service_address_unusable");
+    expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
+    expect(scenario.writes.filter((w) => w.table === "shop_order_service_addresses").map((w) => w.op)).toEqual(["insert", "delete"]);
   });
 
   it("freezes the order AS THE BUYER and opens a manual-capture page: the items + the F1 fee + our own Sales tax line (H6)", async () => {

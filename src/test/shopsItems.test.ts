@@ -27,17 +27,17 @@
  * contact-copy steps red on their planted defects, measured 2026-10-17).
  */
 // @mutate supabase/migrations/20261103124851_money_free_switch_handovers_shop_item_not_found_is_404.sql | BEGIN\n  PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n  SELECT * INTO v_shop FROM public.shops WHERE owner_id = v_uid FOR UPDATE; | BEGIN\n  IF public.is_caller_banned() THEN\n    RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  v_uid := public.shops_assert_owner_eligible();\n  SELECT * INTO v_shop FROM public.shops WHERE owner_id = v_uid FOR UPDATE;
-// @mutate supabase/migrations/20261105173912_shops_items_live_at_once.sql |     WHEN v_priv.ai_checked_at IS NOT NULL AND v_priv.ai_flag_reason IS NOT NULL THEN 'pending_review' |     WHEN v_priv.ai_checked_at IS NULL OR v_priv.ai_flag_reason IS NOT NULL THEN 'pending_review'
+// @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |     WHEN v_priv.ai_checked_at IS NOT NULL AND v_priv.ai_flag_reason IS NOT NULL THEN 'pending_review' |     WHEN v_priv.ai_checked_at IS NULL OR v_priv.ai_flag_reason IS NOT NULL THEN 'pending_review'
 // @mutate supabase/migrations/20261105173912_shops_items_live_at_once.sql |   IF v_item.status = 'live'\n | IF false\n
-// @mutate supabase/migrations/20261105173912_shops_items_live_at_once.sql |     WHEN v_text_flag IS NOT NULL THEN 'pending_review'\n | \n
-// @mutate supabase/migrations/20261105173912_shops_items_live_at_once.sql |     WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'\n | \n
-// @mutate supabase/migrations/20261105173912_shops_items_live_at_once.sql |     WHEN v_recent_rejection THEN 'pending_review'\n | \n
+// @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |     WHEN v_text_flag IS NOT NULL THEN 'pending_review'\n | \n
+// @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |     WHEN v_priv.admin_rejected_at IS NOT NULL THEN 'pending_review'\n | \n
+// @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |     WHEN v_recent_rejection THEN 'pending_review'\n | \n
 // @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql | jsonb_build_object('note', v_note, 'owner_id', v_owner, 'shop_id', v_shop)); | jsonb_build_object('note', v_note));
 // @mutate supabase/migrations/20261030015205_test_data_never_counts.sql |            rj.created_at, rj.details->>'note' |            NULL::timestamptz, NULL::text
-// @mutate supabase/migrations/20261105173912_shops_items_live_at_once.sql |     IF public.shop_cottage_cap_reached(v_uid) THEN | IF false THEN
-// @mutate supabase/migrations/20261105173912_shops_items_live_at_once.sql |   IF v_photos < 3 OR v_photos > 12 THEN | IF v_photos < 1 OR v_photos > 12 THEN
-// @mutate supabase/migrations/20261017061157_shops_items.sql |     WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish', 'label_says_home_kitchen', | WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish',
-// @mutate supabase/migrations/20261105191330_shops_caps.sql |   IF p_kind = 'rental' THEN | IF false THEN
+// @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |     IF public.shop_cottage_cap_reached(v_uid) THEN | IF false THEN
+// @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |   IF v_photos < 3 OR v_photos > 12 THEN | IF v_photos < 1 OR v_photos > 12 THEN
+// @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |     WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish', 'label_says_home_kitchen', | WHEN 'home_food' THEN ARRAY['made_in_my_home_kitchen', 'low_risk_no_meat_fish',
+// @mutate supabase/migrations/20261105235833_shops_every_category_sells.sql |   IF p_kind IS NULL OR p_kind NOT IN ('made', 'home_food', 'farm', 'service', 'rental') THEN |   IF p_kind IS NULL OR p_kind NOT IN ('made', 'home_food', 'farm', 'service') THEN
 // @mutate supabase/migrations/20261017061157_shops_items.sql | REVOKE ALL ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], text, text, text, text, text) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shops_record_item_ai_check(uuid, uuid, uuid[], text, text, text, text, text) FROM PUBLIC, anon;
 // @mutate supabase/migrations/20261105184827_export_declutter_item_views.sql |   v_out := v_out \|\| jsonb_build_object('shop_items', | v_out := v_out \|\| jsonb_build_object('shop_items_gone',
 // @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |   IF v_submitted IS DISTINCT FROM p_submitted_at THEN | IF false THEN
@@ -86,7 +86,7 @@ function sqlStatements(): Map<string, string[]> {
   const b = body("shop_item_required_statements");
   const out = new Map<string, string[]>();
   const arr = (s: string) => [...s.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
-  for (const k of ["made", "home_food"]) {
+  for (const k of ["made", "home_food", "service", "rental"]) {
     const m = new RegExp(String.raw`WHEN '${k}' THEN ARRAY\[([^\]]*)\]`).exec(b);
     out.set(k, m ? arr(m[1]) : []);
   }
@@ -97,10 +97,14 @@ function sqlStatements(): Map<string, string[]> {
   return out;
 }
 
-/** (slug, kind) rows the migration seeds into shop_item_subtypes. */
+/** (slug, kind) rows seeded into shop_item_subtypes: slice 2's, plus Shops H8's services and rentals (20261105235833). */
+const H8 = blankSqlComments(readFileSync(join(MIG_DIR, "20261105235833_shops_every_category_sells.sql"), "utf8"));
 function sqlSubtypes(): Map<string, string> {
-  const ins = /INSERT INTO public\.shop_item_subtypes \(slug, kind, label, position\) VALUES([\s\S]*?)ON CONFLICT/.exec(MIG)?.[1] ?? "";
-  return new Map([...ins.matchAll(/\('([a-z_]+)', '([a-z_]+)'/g)].map((m) => [m[1], m[2]]));
+  const rows = [MIG, H8].flatMap((sql) => {
+    const ins = /INSERT INTO public\.shop_item_subtypes \(slug, kind, label, position(?:, tax_kind)?\) VALUES([\s\S]*?)ON CONFLICT/.exec(sql)?.[1] ?? "";
+    return [...ins.matchAll(/\('([a-z_]+)', '([a-z_]+)'/g)].map((m) => [m[1], m[2]] as [string, string]);
+  });
+  return new Map(rows);
 }
 
 describe("Shops slice 2: items, hidden and gated (20261017061157)", () => {
@@ -166,12 +170,16 @@ describe("Shops slice 2: items, hidden and gated (20261017061157)", () => {
     expect(flat(body("shops_admin_review_item"))).toContain("admin_rejected_at = CASE WHEN p_approve THEN NULL ELSE now() END");
   });
 
-  it("3. rental is reserved, never listable; the not-at-launch things have no type", () => {
+  it("3. services and rentals sell (owner 11-05, H8); the not-at-launch things have no type", () => {
     expect(MIG).toMatch(/kind text NOT NULL CHECK \(kind IN \('made', 'home_food', 'farm', 'rental'\)\)/);
-    expect(flat(body("shops_check_item_fields"))).toContain("IF p_kind = 'rental' THEN RAISE EXCEPTION 'rental_not_available'");
+    // Owner 11-05 answer 1 (20261105235833): rental_not_available is gone; the five kinds sell.
+    expect(flat(body("shops_check_item_fields"))).not.toContain("rental_not_available");
+    expect(flat(body("shops_check_item_fields"))).toContain("p_kind NOT IN ('made', 'home_food', 'farm', 'service', 'rental')");
     const subs = sqlSubtypes();
-    expect(subs.size).toBe(17);
-    expect([...subs.values()]).not.toContain("rental");
+    // 17 slice-2 types + 13 service + 2 rental types (H8, 2026-11-05).
+    expect(subs.size).toBe(32);
+    expect([...subs.values()].filter((k) => k === "rental").length).toBe(2);
+    for (const inflatable of ["bounce_houses", "bounce_house", "inflatables", "water_slides"]) expect(subs.has(inflatable), inflatable).toBe(false);
     for (const never of ["soap", "lotion", "plants", "seedlings", "toys", "baby", "plate_lunch", "gumbo", "boudin", "seafood"]) {
       expect(subs.has(never), never).toBe(false);
     }
@@ -188,6 +196,9 @@ describe("Shops slice 2: items, hidden and gated (20261017061157)", () => {
     expect(requiredStatements("home_food", "honey")).toEqual(sql.get("home_food"));
     expect(requiredStatements("farm", "eggs")).toEqual(sql.get("farm/eggs"));
     expect(requiredStatements("farm", "produce")).toEqual(sql.get("farm/produce"));
+    expect(requiredStatements("service", "lessons")).toEqual(sql.get("service"));
+    expect(requiredStatements("rental", "party_rental")).toEqual(sql.get("rental"));
+    expect(sql.get("rental")).toContain("not_inflatable");
     const used = new Set([...sql.values()].flat());
     expect(used.size).toBeGreaterThan(12);
     expect(Object.keys(SHOP_ITEM_STATEMENTS).sort()).toEqual([...used].sort());
@@ -222,7 +233,7 @@ describe("Shops slice 2: items, hidden and gated (20261017061157)", () => {
     expect(sanitizeShopItemDraft({ title: "Fig jam", kind: "home_food", subtype: "gumbo", possibly_banned: false })).toMatchObject({
       kind: "home_food", subtype: "baked_goods", flagged: false,
     });
-    expect(sanitizeShopItemDraft({ title: "Fig jam", kind: "rental", subtype: "jams_jellies", possibly_banned: false })).toMatchObject({
+    expect(sanitizeShopItemDraft({ title: "Fig jam", kind: "auction", subtype: "jams_jellies", possibly_banned: false })).toMatchObject({
       kind: "made", subtype: "crafts",
     });
     expect(sanitizeShopItemDraft({ title: "x" })).toBeNull();

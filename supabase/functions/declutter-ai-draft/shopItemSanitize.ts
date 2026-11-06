@@ -10,6 +10,10 @@ export const SHOP_ITEM_TYPES = {
   made: ["candles", "crafts", "decor", "furniture", "adult_clothing", "art"],
   home_food: ["baked_goods", "candy", "cane_syrup", "dried_mixes", "honey", "jams_jellies", "pickles", "sauces_syrups", "spices"],
   farm: ["eggs", "produce"],
+  // Shops H8 (owner 11-05, answer 1; 20261105235833): services and rentals sell too.
+  service: ["home_service", "trade_work", "beauty_service", "fitness_service", "pet_care", "lessons", "pro_service", "outdoor_work",
+    "event_service", "item_repair", "fabric_cleaning", "clothes_cleaning", "clothing_alterations"],
+  rental: ["equipment_rental", "party_rental"],
 } as const;
 
 export type ShopItemKind = keyof typeof SHOP_ITEM_TYPES;
@@ -23,7 +27,8 @@ const SHOP_ITEM_SUBTYPES: string[] = SHOP_ITEM_KINDS.flatMap((k) => [...SHOP_ITE
  */
 export const SHOP_ITEM_SYSTEM_PROMPT = `You help a maker in Louisiana list ONE NEW item they made or grew in their shop on Louisiana Helpr, from photos.
 Write a short, honest title (80 characters or fewer, no prices, no contact details), a plain description of what is visible (2-4 sentences), the kind and the type.
-Kinds and types: made (made by the seller, new): ${SHOP_ITEM_TYPES.made.join(", ")}. home_food (made in a home kitchen, ONLY Louisiana's low-risk list, with no meat or fish in it): ${SHOP_ITEM_TYPES.home_food.join(", ")}. farm: eggs (from the seller's own hens), produce (whole, uncut, home-grown fruit and vegetables).
+Kinds and types: made (made by the seller, new): ${SHOP_ITEM_TYPES.made.join(", ")}. home_food (made in a home kitchen, ONLY Louisiana's low-risk list, with no meat or fish in it): ${SHOP_ITEM_TYPES.home_food.join(", ")}. farm: eggs (from the seller's own hens), produce (whole, uncut, home-grown fruit and vegetables). service (work the seller does, the photos show past work): ${SHOP_ITEM_TYPES.service.join(", ")}. rental (a thing the seller rents out; it may be used): ${SHOP_ITEM_TYPES.rental.join(", ")}.
+For a service or a rental, "used or second-hand", "children's items", "skin products", "live animals" and "plants" below do not apply (a rental may be used; a lesson may be for kids; pet care may show a pet). A bounce house or any other inflatable is possibly_banned (it needs state inspection papers first).
 Set possibly_banned to true, with a short reason, if the item may be any of these, which cannot be listed: weapons, ammunition or weapon knives; alcohol or food made with alcohol; anything with CBD, THC or hemp; vapes, e-cigarettes or tobacco; raw milk; home-canned vegetables or meat; any food with meat, poultry, fish or seafood in it; medicines, supplements or remedies; live animals; plants, seedlings or cut flowers; children's items (toys, baby clothes, blankets, cribs); soap, lotion, balms or other skin products; anything used or second-hand; recalled products; counterfeit goods; adult items; vehicles or boats. If you are not sure, set it to true.
 Always answer with the draft_shop_item tool.`;
 

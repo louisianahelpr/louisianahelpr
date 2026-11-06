@@ -63,6 +63,7 @@
  * @mutate supabase/functions/shop-checkout/index.ts |    taxAddress = { line1: delivery.line1, | void { line1: delivery.line1,
  * @mutate supabase/functions/shop-checkout/index.ts |      p_city: delivery.city, p_postal_code: delivery.postal_code, p_lat: dropoff.lat, p_lng: dropoff.lng, |      p_city: delivery.city, p_postal_code: delivery.postal_code, p_lat: 30.22, p_lng: -92.02,
  * @mutate supabase/functions/shop-checkout/index.ts |      const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });\n      if (closeErr) console.error(`[shop-checkout] order ${frozen.order_id} not closed after its delivery | const closeErr = null;\n      if (closeErr) console.error(`[shop-checkout] order ${frozen.order_id} not closed after its delivery
+ * @mutate supabase/functions/shop-checkout/index.ts |  if (atHome && fulfillment === "shop_delivers") { |  if (false) {
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -543,6 +544,31 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
       const res = await fn.fetch(askDelivered(fn, { line1: "1", city: "", postal_code: "7050" }));
       expect(res.status).toBe(400);
       expect(rpcs("shops_request_order")).toHaveLength(0);
+    });
+
+    it("a frozen at-home line on a delivered order closes the order (the item changed after the early check)", async () => {
+      const fn = await load();
+      delivered();
+      // An earlier case leaves the geocoder answering "not found" (mockClear keeps an implementation).
+      geocoder.mockImplementation(async () => new Response(JSON.stringify([
+        { lat: "30.2400", lon: "-92.0600", address: { house_number: "100", road: "Main St", city: "Lafayette", state: "Louisiana" } },
+      ]), { status: 200 }));
+      // The live item read says in-shop; the frozen line says at the buyer's place.
+      scenario.reads.shop_items = { rows: [{ id: ITEM, subtype: "fabric_cleaning", at_buyer: false }] };
+      scenario.reads.shop_order_lines = { rows: [
+        { title: "Couch cleaning at your home", kind: "service", tax_kind: "fabric_cleaning", at_buyer: true, unit_cents: 3050, quantity: 2, line_cents: 6100 },
+      ] };
+      const res = await fn.fetch(fn.request({
+        headers: { Authorization: "Bearer buyer-jwt" },
+        body: { action: "order", shop_id: SHOP, lines: [{ item_id: ITEM, quantity: 2 }], ready_date: "2026-10-30", note: "",
+          terms: { cancel_policy: "until_24h_before_ready", ready_tap_cancel: "from_day_before" }, delivery: DROP,
+          service_address: { line1: "12 Oak St", city: "Lafayette", postal_code: "70501" } },
+      }));
+      expect(res.status).toBe(409);
+      expect((await json(res)).error).toBe("at_buyer_no_delivery");
+      expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
+      expect(stripeMock.tax.calculations.create).not.toHaveBeenCalled();
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
     });
 
     it("a pickup order carries no delivery line", async () => {

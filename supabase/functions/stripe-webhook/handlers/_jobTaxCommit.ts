@@ -245,9 +245,12 @@ async function reverseRefundsMadeBeforeTheStamp(args: {
   }
   // The same filter as charge.refunded: failed and canceled refunds moved no
   // money; an onboarding-fee correction is not a refund of the job.
+  // Helpr delivery (20261106194913): a Shops delivery-only refund returns the untaxed delivery line, so it reverses
+  // no tax (as charge.refunded's taxRefunds).
   const ordinary = all.filter((r) =>
     !!r?.id && r.status !== "failed" && r.status !== "canceled"
     && (r?.metadata as Record<string, string> | null)?.reason !== "duplicate_onboarding_fee"
+    && !(r?.metadata as Record<string, string> | null)?.shop_delivery_refund_id
   );
   if (ordinary.length === 0) return "none";
   const chargeId = String(ordinary.find((r) => typeof r.charge === "string")?.charge ?? (typeof pi.latest_charge === "string" ? pi.latest_charge : pi.latest_charge?.id) ?? pi.id);

@@ -39,9 +39,11 @@
  * @mutate supabase/functions/shop-checkout/index.ts |    const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: o.id });\n    if (closeErr) console.error(`[shop-checkout] order ${o.id} not closed after its tax failed | const closeErr = null;\n    if (closeErr) console.error(`[shop-checkout] order ${o.id} not closed after its tax failed
  * @mutate supabase/functions/shop-checkout/index.ts |  return err.code === "customer_tax_location_invalid" \|\| | return true \|\|
  * @mutate supabase/functions/shop-checkout/index.ts |      ...feeParts.map((p, i) => ({ amount: p.cents, | ...feeParts.slice(1).map((p, i) => ({ amount: p.cents,
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   const taxRefunds = ordinaryRefunds.filter((r) => !(r?.metadata as Record<string, string> \| null)?.shop_delivery_refund_id); |   const taxRefunds = ordinaryRefunds;
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (meta.kind === "shop_refund" && meta.shop_delivery_refund_id) { |   if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/shopCheckout.ts |  const taxCents = sessionJobTaxCents(session) ?? 0; |  const taxCents = session.total_details?.amount_tax ?? 0;
  * @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |  const subjectId = md.job_id \|\| (md.kind === "shop_order" ? md.order_id : ""); |  const subjectId = md.job_id;
- * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |  if (isShopCharge && !isOnboardingCorrectionOnly(liveRefunds, ordinaryRefunds)) { |  if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |  if (isShopCharge && !isOnboardingCorrectionOnly(liveRefunds, ordinaryRefunds)\n      && (taxRefunds.length > 0 \|\| ordinaryRefunds.length === 0)) { |  if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |    // money stayed. Undone before the row reopens (a re-sent refund then reverses its own share). Never throws.\n    await undoVisitTaxForFailedRefund({ |    // money stayed.\n    void ({
  * @mutate supabase/functions/shop-checkout/index.ts |   if (termsErr) return rpcRefusal(termsErr); |
  * Delivery (migration 20261106180902, "Shop delivers"):
@@ -696,6 +698,48 @@ describe("stripe-webhook: H6, a shop order's tax is recorded at CAPTURE and reve
     // The whole order: a partial flat reversal of the whole total (never mode full: it could not be undone).
     expect(stripeMock.tax.transactions.createReversal.mock.calls[0][0]).toMatchObject({ mode: "partial", flat_amount: -6625, reference: "refund:re_hand" });
     expect(rpcs("shop_record_hand_refund")).toHaveLength(1);
+  });
+
+  // Helpr delivery (20261106194913, money review BLOCK on 85549dc06a): the delivery line is untaxed, so a
+  // delivery-only refund reverses no tax, and beside an order refund only the order refund's share is reversed.
+  const DELIVERY_REFUND = { id: "re_dlv", amount: 1200, created: 50, status: "succeeded", charge: "ch_shop",
+    metadata: { kind: "shop_refund", shop_delivery_refund_id: "d1", order_id: ORDER } };
+  it("a delivery-only refund reverses no tax and pages nobody", async () => {
+    stripeMock.refunds.list.mockResolvedValue({ data: [DELIVERY_REFUND], has_more: false });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_shop", metadata: { ...TAXED, tax_transaction_id: "tax_txn_shop" } });
+    stripeMock.tax.transactions.listLineItems.mockResolvedValue({ data: [{ amount: 6475, amount_tax: 150, tax_behavior: "exclusive" }], has_more: false });
+    const res = await deliver({ id: "evt_ref_dlv", type: "charge.refunded",
+      data: { object: { id: "ch_shop", payment_intent: "pi_shop", amount: 6625, amount_captured: 6625, amount_refunded: 1200, metadata: { kind: "shop_order", order_id: ORDER } } } });
+    expect(res.status).toBe(200);
+    expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+    expect((slackAlerts as Array<{ title: string }>).filter((a) => /tax/i.test(a.title))).toEqual([]);
+  });
+
+  it("a delivery refund beside the order's refund: only the order refund's share is reversed", async () => {
+    stripeMock.refunds.list.mockResolvedValue({ data: [
+      { id: "re_shop", amount: 3000, created: 60, status: "succeeded", charge: "ch_shop", metadata: { kind: "shop_refund", shop_refund_id: "r1", order_id: ORDER } },
+      DELIVERY_REFUND,
+    ], has_more: false });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_shop", metadata: { ...TAXED, tax_transaction_id: "tax_txn_shop" } });
+    stripeMock.tax.transactions.listLineItems.mockResolvedValue({ data: [{ amount: 6475, amount_tax: 150, tax_behavior: "exclusive" }], has_more: false });
+    stripeMock.tax.transactions.createReversal.mockResolvedValue({ id: "taxrev_shop" });
+    const res = await deliver({ id: "evt_ref_both", type: "charge.refunded",
+      data: { object: { id: "ch_shop", payment_intent: "pi_shop", amount: 6625, amount_captured: 6625, amount_refunded: 4200, metadata: { kind: "shop_order", order_id: ORDER } } } });
+    expect(res.status).toBe(200);
+    expect(stripeMock.tax.transactions.createReversal.mock.calls).toEqual([[
+      { mode: "partial", flat_amount: -3000, original_transaction: "tax_txn_shop", reference: "refund:re_shop", metadata: { refund_id: "re_shop", charge_id: "ch_shop" } },
+      { idempotencyKey: "visit-tax-reversal:re_shop" },
+    ]]);
+  });
+
+  it("a delivery refund that later FAILS reopens its row and undoes no tax reversal", async () => {
+    scenario.rpc.shop_delivery_refund_reversed = "reopened";
+    const res = await deliver({ id: "evt_ref_dlv_fail", type: "charge.refund.updated",
+      data: { object: { ...DELIVERY_REFUND, status: "failed", payment_intent: "pi_shop" } } });
+    expect(res.status).toBe(200);
+    expect(rpcs("shop_delivery_refund_reversed")).toHaveLength(1);
+    expect(rpcs("shop_refund_reversed")).toHaveLength(0);
+    expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
   });
 
   it("a Shops refund that later FAILS undoes its own tax reversal before the row reopens", async () => {

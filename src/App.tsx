@@ -24,6 +24,8 @@ const DashboardRouteSkeleton = skeletonOnDemand(() => import("@/components/Dashb
 const JobsSectionSkeleton = skeletonOnDemand(() => import("@/components/JobsSectionSkeleton"));
 const ProfileRouteSkeleton = skeletonOnDemand(() => import("@/components/ProfileRouteSkeleton"));
 const LoginRouteSkeleton = skeletonOnDemand(() => import("@/components/LoginRouteSkeleton"));
+const MessagesRouteSkeleton = skeletonOnDemand(() => import("@/components/MessagesRouteSkeleton"));
+const DeclutterRouteSkeleton = skeletonOnDemand(() => import("@/components/DeclutterRouteSkeleton"));
 // Static on purpose (Q1107): a lazy banner must be fetched to say the network
 // is down. lucide and supabase are in main's graph anyway (2026-10-05 build).
 // Guard: src/test/offlineSurfacesAreStatic.test.ts.
@@ -291,8 +293,8 @@ const AnimatedRoutes = forwardRef<HTMLDivElement>((_props, _ref) => {
       <Route path="/admin/preview/job" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><AdminJobPreview /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin/preview/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><AdminMessagesPreview /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/admin/preview/onboarding" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><AdminRoute><AdminOnboardingPreview /></AdminRoute></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><Messages /></ProtectedRoute>)}</RouteErrorBoundary>} />
-      <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember><DeclutterPage /></DeclutterGuestOrMember>)}</RouteErrorBoundary>} />
+      <Route path="/messages" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute fallback={<MessagesRouteSkeleton />}><Messages /></ProtectedRoute>, <MessagesRouteSkeleton />)}</RouteErrorBoundary>} />
+      <Route path="/declutter" element={<RouteErrorBoundary>{routeEl(<DeclutterGuestOrMember fallback={<DeclutterRouteSkeleton />}><DeclutterPage /></DeclutterGuestOrMember>, <DeclutterRouteSkeleton />)}</RouteErrorBoundary>} />
       <Route path="/declutter/sell" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSellPage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/move" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterMovePage /></ProtectedRoute>)}</RouteErrorBoundary>} />
       <Route path="/declutter/settings" element={<RouteErrorBoundary>{routeEl(<ProtectedRoute><DeclutterSettingsPage /></ProtectedRoute>)}</RouteErrorBoundary>} />

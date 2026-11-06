@@ -3,10 +3,10 @@
  * PGlite proof for 20261106203016_shops_helpr_delivery_reads.sql (Shops Helpr delivery, the Helpr's and the shop's
  * reads; Builder 5, 11-06). A shop task (helpr_tasks.source_kind 'shop_delivery') now answers where it used to be
  * refused, for exactly the people Declutter's answers serve, and nobody else:
- *   - pickup times: an eligible Helpr the shops switch is on for gets 8 AM to 8 PM every day up to the task's latest
- *     pickup; a Helpr the switch is off for, the buyer and the shop get task_not_found;
+ *   - pickup times: an eligible Helpr the shops switch is on for gets 8 AM to 8 PM every day from the ready date at
+ *     8 AM (earliest_pickup_at, the bound accept checks) up to the task's latest pickup; a Helpr the switch is off for, the buyer and the shop get task_not_found;
  *   - same pickup slot: reads the task's own latest pickup (no Declutter order);
- *   - the delivery chat: the three parties read and write it; a stranger cannot; the shop is "the shop" in the
+ *   - the delivery chat: the three parties read and write it; a stranger cannot, nor a party the switch is off for; the shop is "the shop" in the
  *     notice and the links are Shops pages;
  *   - the "Helpr didn't come" report: the shop reads its own order's, a stranger reads nothing;
  *   - a moved pickup tells the shop order's buyer;
@@ -85,7 +85,7 @@ CREATE FUNCTION public.helpr_task_log(p_task uuid, p_event text, p_actor uuid, p
   $$ INSERT INTO public.helpr_task_events (task_id, actor_id, task_event) VALUES (p_task, p_actor, p_event) $$;
 CREATE TABLE public.helpr_task_talk_messages (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), task_id uuid, sender_id uuid,
   sender_side text, body text, created_at timestamptz DEFAULT now());
-CREATE TABLE public.shop_orders (id uuid PRIMARY KEY, buyer_id uuid, seller_id uuid);
+CREATE TABLE public.shop_orders (id uuid PRIMARY KEY, buyer_id uuid, seller_id uuid, ready_date date NOT NULL DEFAULT current_date + 2);
 CREATE TABLE public.shop_handovers (order_id uuid PRIMARY KEY, problem_at timestamptz);
 CREATE TABLE public.declutter_orders (id uuid PRIMARY KEY, seller_id uuid, paid_at timestamptz);
 CREATE TABLE public.declutter_problems (order_id uuid, status text);
@@ -154,12 +154,16 @@ ok(Array.isArray(w) && w.length === 7 && w.every((r) => r.starts === "08:00:00" 
   `a shops Helpr gets 8 AM to 8 PM every day for a shop task (${JSON.stringify(Array.isArray(w) ? w.length : w)})`);
 const lat = one(await db.query(`SELECT latest_pickup_at FROM public.helpr_tasks WHERE id = '${OPEN_SHOP_TASK}'`));
 ok(Array.isArray(w) && w[0] && String(w[0].latest_pickup_at) === String(lat), "up to the task's own latest pickup");
+const ready8 = one(await db.query(`SELECT (ready_date::timestamp + interval '8 hours') AT TIME ZONE 'America/Chicago' FROM public.shop_orders WHERE id = '${SHOP_ORDER2}'`));
+ok(Array.isArray(w) && w.length > 0 && w.every((r) => r.earliest_pickup_at && String(r.earliest_pickup_at) === String(ready8)),
+  `from the ready date at 8 AM Chicago, never before it (${JSON.stringify(Array.isArray(w) ? w[0]?.earliest_pickup_at : w)} vs ${String(ready8)})`);
 ok(refused(await as(OFF_HELPR, `SELECT * FROM public.helpr_task_pickup_windows('${OPEN_SHOP_TASK}')`), /task_not_found/),
   "a Helpr the shops switch is off for gets task_not_found");
 ok(refused(await as(BUYER, `SELECT * FROM public.helpr_task_pickup_windows('${OPEN_SHOP_TASK}')`), /task_not_found/),
   "the buyer is no Helpr for their own order");
 const dw = await as(OFF_HELPR, `SELECT * FROM public.helpr_task_pickup_windows('${DEC_TASK}')`);
 ok(Array.isArray(dw) && dw.length === 1 && dw[0].starts === "09:00:00", `a Declutter task keeps the seller's hours (${JSON.stringify(dw)})`);
+ok(Array.isArray(dw) && dw[0] && dw[0].earliest_pickup_at === null, "and no ready-date bound (earliest_pickup_at NULL)");
 const same = await as(HELPR, `SELECT public.helpr_task_same_pickup_slot('${OPEN_SHOP_TASK}') AS s`);
 ok(Array.isArray(same), `the same-pickup check answers for a shop task (${JSON.stringify(same)})`);
 ok(refused(await as(OFF_HELPR, `SELECT public.helpr_task_same_pickup_slot('${OPEN_SHOP_TASK}')`), /task_not_found/),
@@ -178,6 +182,10 @@ const view = await as(BUYER, `SELECT public.helpr_task_talk_view('${SHOP_TASK}')
 const v = Array.isArray(view) ? view[0].v : view;
 ok(v?.side === "buyer" && v?.open === true && v?.messages?.length === 1, `the buyer reads it (${JSON.stringify(v)})`);
 ok(refused(await as(STRANGER, `SELECT public.helpr_task_talk_view('${SHOP_TASK}')`), /task_not_found/), "a stranger cannot read it");
+await db.exec(`DELETE FROM public.test_accounts WHERE user_id = '${BUYER}'`);
+ok(refused(await as(BUYER, `SELECT public.helpr_task_talk_view('${SHOP_TASK}')`), /feature_disabled/),
+  "a party the shops switch is off for reads nothing (as send_message)");
+await db.exec(`INSERT INTO public.test_accounts VALUES ('${BUYER}')`);
 
 // --- the "Helpr didn't come" report
 const rep = await as(SHOP_OWNER, `SELECT public.helpr_task_no_show_report('${SHOP_TASK}') AS r`);

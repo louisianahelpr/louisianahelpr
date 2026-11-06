@@ -15,6 +15,8 @@
  *
  * @mutate src/lib/badgeReads.ts | p_keys: [...sections, "delivery_online"] | p_keys: sections
  * @mutate src/lib/badgeReads.ts |     handOnlineFromBadge(uid, false); |     // no handoff on failure
+ * @mutate src/lib/authSignOut.ts |     .then((m) => m?.resetOnlineHandoff()) |     .then(() => undefined)
+ * @mutate src/lib/helprTasks/onlineHandoff.ts |   answers.clear();\n  done.clear();\n  expected.clear(); |   done.clear();\n  expected.clear();
  * @mutate src/components/declutter/DeliveryOnlinePill.tsx | const row = handed ? handed.row : await fetchOnlineStatus(uid); | const row = await fetchOnlineStatus(uid);
  * @mutate src/lib/helprTasks/onlineHandoff.ts | if (!uid \|\| done.has(uid) \|\| !expected.has(uid)) return null; | if (!uid \|\| done.has(uid)) return null;
  * @mutate src/lib/helprTasks/onlineHandoff.ts |   done.add(uid);\n  answers.delete(uid);\n  if (!a | answers.delete(uid);\n  if (!a
@@ -54,7 +56,7 @@ vi.mock("@/integrations/supabase/client", () => {
 
 import { fetchBadgeReads } from "@/lib/badgeReads";
 import { DeliveryOnlinePill } from "@/components/declutter/DeliveryOnlinePill";
-import { __resetOnlineHandoff, endOnlineHandoff, expectOnlineFromBadge, handOnlineFromBadge, takeOnlineFromBadge } from "@/lib/helprTasks/onlineHandoff";
+import { resetOnlineHandoff, endOnlineHandoff, expectOnlineFromBadge, handOnlineFromBadge, takeOnlineFromBadge } from "@/lib/helprTasks/onlineHandoff";
 
 const ROW = { online_until: "2099-01-01T00:00:00Z", radius_miles: 10 };
 const PILL = /Online for deliveries/;
@@ -69,7 +71,7 @@ function mountPill(qc: QueryClient) {
 const tick = (ms = 30) => act(async () => { await new Promise((r) => setTimeout(r, ms)); });
 
 beforeEach(() => {
-  __resetOnlineHandoff();
+  resetOnlineHandoff();
   sessionStorage.clear();
   rig.calls = [];
   rig.keys = [];
@@ -117,7 +119,7 @@ describe("the online pill takes its row from the badge's one read", () => {
 
   it("my_badge_reads not deployed or failing: the pill makes its own old read", async () => {
     for (const error of [{ code: "PGRST202", message: "Could not find the function public.my_badge_reads(p_keys) in the schema cache" }, { code: "500", message: "upstream timeout" }]) {
-      __resetOnlineHandoff();
+      resetOnlineHandoff();
       sessionStorage.clear();
       rig.calls = [];
       rig.badge = () => ({ data: null, error });
@@ -147,16 +149,26 @@ describe("the online pill takes its row from the badge's one read", () => {
     handOnlineFromBadge("u1", null); // a later badge refresh is not handed over
     expect(await takeOnlineFromBadge("u1")).toBeNull();
 
-    __resetOnlineHandoff();
+    resetOnlineHandoff();
     expectOnlineFromBadge("u1");
     endOnlineHandoff("u1"); // the member just went online/offline
     handOnlineFromBadge("u1", null);
     expect(await takeOnlineFromBadge("u1")).toBeNull();
 
-    __resetOnlineHandoff();
+    resetOnlineHandoff();
     expectOnlineFromBadge("u1");
     const t0 = Date.now();
     expect(await takeOnlineFromBadge("u1", 40)).toBeNull();
     expect(Date.now() - t0).toBeGreaterThanOrEqual(35);
+  });
+
+  it("sign-out empties the handoff: the next account never takes the last member's row", async () => {
+    expectOnlineFromBadge("u1");
+    handOnlineFromBadge("u1", ROW);
+    resetOnlineHandoff(); // what signOutWithPushCleanup calls (src/lib/authSignOut.ts)
+    expect(await takeOnlineFromBadge("u1", 20)).toBeNull();
+    const src = (await import("node:fs")).readFileSync("src/lib/authSignOut.ts", "utf8");
+    const body = src.slice(src.indexOf("export async function signOutWithPushCleanup"));
+    expect(body.slice(0, body.indexOf("\n}\n"))).toMatch(/\bresetOnlineHandoff\(\)/);
   });
 });

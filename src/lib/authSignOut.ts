@@ -18,6 +18,8 @@ import { loadModule } from "@/lib/loadModule";
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
 const errorLogger = () => loadModule(() => import("@/lib/errorLogger"));
+// The online pill's handoff (Q724 sign-out clear): lazy, so a guest page that can sign out (Login) does not pull its chunk group in.
+const resetOnlineHandoffModule = () => loadModule(() => import("@/lib/helprTasks/onlineHandoff"));
 
 // "others" is deliberately absent: everything below tears down THIS device
 // (push token, remembered route, caches). Ending only the other sessions is
@@ -281,6 +283,10 @@ export async function signOutWithPushCleanup(requested?: SignOutOptions) {
   resetProofPhotoSignCache();
   // Which Declutter items this run already counted a view for: the next account counts its own (Q724).
   resetSentItemViews();
+  // The online pill's handed-over row (my_badge_reads 'delivery_online'): never the next account's first answer.
+  void resetOnlineHandoffModule()
+    .then((m) => m?.resetOnlineHandoff())
+    .catch(() => { /* its chunk would not load, so this run never held a handoff */ });
   // In-memory first: synchronous, so it is done before anything can hang.
   try {
     queryClient.clear();

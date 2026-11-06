@@ -233,6 +233,14 @@ const amounts = async (o, reason) => (await svc(`SELECT * FROM public.shop_refun
   await svc(`INSERT INTO public.shop_payouts (order_id, items_cents, debt_cents, amount_cents, status, next_attempt_at) VALUES ('${o}', 2000, 0, 2000, 'pending', now() - interval '1 minute')`);
   const due = await svc(`SELECT order_id, refunds_recorded_cents FROM public.shop_payouts_due(50) WHERE order_id = '${o}'`);
   ok(Array.isArray(due) && due[0]?.refunds_recorded_cents === DELIVERY, `shop_payouts_due carries the recorded delivery refund (${JSON.stringify(due)})`);
+  // Stripe later fails that refund (charge.refund.updated): the row reopens for a new send and stops counting.
+  ok(one(await svc(`SELECT public.shop_delivery_refund_reversed('${rid}', 're_other', 'failed')`)) === "unchanged", "another refund id reopens nothing");
+  ok(one(await svc(`SELECT public.shop_delivery_refund_reversed('${rid}', 're_1', 'failed: lost')`)) === "reopened", "the recorded refund's failure reopens the row");
+  const back = (await svc(`SELECT status, attempts, stripe_refund_id FROM public.shop_delivery_refunds WHERE id = '${rid}'`))[0];
+  ok(back?.status === "failed" && back?.attempts === 1 && back?.stripe_refund_id === null, `due again under a new key (${JSON.stringify(back)})`);
+  ok(one(await svc(`SELECT public.shop_order_refunds_recorded_cents('${o}')`)) === 0, "a failed refund is no longer counted on the charge");
+  ok(Array.isArray(await svc(`SELECT 1 FROM public.shop_delivery_refunds_due(50) WHERE refund_id = '${rid}'`))
+     && (await svc(`SELECT 1 FROM public.shop_delivery_refunds_due(50) WHERE refund_id = '${rid}'`)).length === 1, "declutter-money picks it up again");
 }
 
 // --- 2. a refund of the order before the pickup: the delivery goes back WITH the order

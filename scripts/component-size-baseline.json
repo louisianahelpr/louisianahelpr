@@ -5,7 +5,7 @@
     "src/components/messages/ConversationList.tsx": 688,
     "src/components/postjob/CheckoutStep.tsx": 710,
     "src/components/profile/SubscriptionTab.tsx": 869,
-    "src/pages/auth/CompleteProfile.tsx": 892,
+    "src/pages/auth/CompleteProfile.tsx": 891,
     "src/pages/profile/GiftCard.tsx": 828
   }
 }

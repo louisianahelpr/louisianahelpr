@@ -163,6 +163,22 @@ describe("a new listing is kept on this device", () => {
     expect(h.aiCalls).toBe(1);
   });
 
+  // Vacuity (l102 --only): bringing every listing back as "unwritten" stayed green, because the case above keeps the
+  // AI's memory, which marks the photos read either way. A listing the seller wrote with no AI answer kept (it failed,
+  // or they typed first) is the one "written" protects: the AI must not run over their words by itself.
+  it("a kept listing the seller wrote, with no AI answer kept, does not ask the AI by itself", async () => {
+    await startAndEdit();
+    h.disk.set("lh-sell-one-v1", { ...savedMeta(), aiMemory: null });
+    cleanup();
+    h.aiCalls = 0;
+    open();
+    await screen.findByText("We kept your listing from last time.");
+    expect(document.querySelector("[data-photo-count]")?.textContent).toContain("2 of 12");
+    await new Promise((r) => setTimeout(r, 300));
+    expect(h.aiCalls).toBe(0);
+    expect(rowValue("title")).toBe("Grandma's dresser");
+  });
+
   it("after a reload, Write it again still keeps the seller's edit", async () => {
     await startAndEdit();
     cleanup();
@@ -242,6 +258,22 @@ describe("a new listing is kept on this device", () => {
     await waitFor(() => expect(h.disk.has("lh-sell-one-v1")).toBe(false));
     expect(screen.queryByText("We kept your listing from last time.")).toBeNull();
     expect(document.querySelector("[data-photo-count]")?.textContent).toContain("0 of 12");
+  });
+
+  // Vacuity (l102 --only): dropping `if (!row) draftId = null;` stayed green. A saved draft id whose row is GONE (deleted
+  // on the server) is forgotten: the kept work comes back and Post makes a new draft, never an update of a missing one.
+  it("a kept draft whose row is gone comes back as work, and Post makes a new draft", async () => {
+    await startAndEdit();
+    h.disk.set("lh-sell-one-v1", { ...savedMeta(), createdId: NEW_ID });
+    cleanup();
+    h.draftRow = null;
+    h.calls.length = 0;
+    open();
+    await screen.findByText("We kept your listing from last time.");
+    fireEvent.click(document.getElementById("sell-tax")!);
+    fireEvent.click(screen.getByRole("button", { name: "Post it" }));
+    await screen.findByText("Selling tab");
+    expect(h.calls).toEqual(["createDraft", "publish"]);
   });
 
   it("Start over clears it and gives a fresh form", async () => {

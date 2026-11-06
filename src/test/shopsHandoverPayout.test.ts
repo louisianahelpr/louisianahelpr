@@ -27,11 +27,11 @@
  */
 // @mutate supabase/migrations/20261105190034_shops_handover_notes.sql |          OR (o.handover_mode = 'porch' AND h.ready_photo_path IS NOT NULL\n |          OR (o.handover_mode = 'porch'\n
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | REVOKE ALL ON FUNCTION public.shop_payouts_due(integer) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.shop_payouts_due(integer) FROM PUBLIC, anon;
-// @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql |   v_debt := public.declutter_consume_fee_debt(o.seller_id, 'shop_order_' \|\| o.id::text, (o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END)); |   v_debt := 0;
-// @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql |   VALUES (o.id, (o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END), v_debt, (o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END) - v_debt, |   VALUES (o.id, o.total_cents, v_debt, o.total_cents - v_debt,
-// @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql | o.id::text,\n                                              (o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END)); | o.id::text,\n                                              o.items_cents);
-// @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql |   VALUES (o.id, (o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END), v_debt,\n          (o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END) - v_debt, |   VALUES (o.id, o.items_cents, v_debt,\n          o.items_cents - v_debt,
-// @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql |   RETURN (o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END) - v_debt; |   RETURN o.items_cents - v_debt;
+// @mutate supabase/migrations/20261106212437_shops_custom_deposit_split.sql |   v_due := public.shop_order_shop_cents(o); |   v_due := o.items_cents;
+// @mutate supabase/migrations/20261106212437_shops_custom_deposit_split.sql |   VALUES (o.id, v_due, v_debt, |   VALUES (o.id, o.total_cents, v_debt,
+// @mutate supabase/migrations/20261106212437_shops_custom_deposit_split.sql | o.id::text,\n                                              v_due); | o.id::text,\n                                              o.items_cents);
+// @mutate supabase/migrations/20261106212437_shops_custom_deposit_split.sql |   RETURN v_due - v_debt; |   RETURN o.items_cents - v_debt;
+// @mutate supabase/migrations/20261106212437_shops_custom_deposit_split.sql |               ELSE o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END END; |               ELSE o.items_cents END;
 // @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql |   IF p_how <> 'admin' AND EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.problem_at IS NOT NULL) THEN |   IF false THEN
 // @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'auto', 'admin') THEN |   IF p_how IS NULL OR p_how NOT IN ('buyer', 'shop', 'auto', 'admin') THEN
 // @mutate supabase/migrations/20261018211820_shops_handover_payout.sql | confirmed_how IN ('buyer', 'auto', 'admin')), | confirmed_how IN ('buyer', 'shop', 'auto', 'admin')),
@@ -122,7 +122,14 @@ describe("Shops M2: the handover and the shop's payout keep their gates (2026101
   });
 
   it("3b. a late cancel or a no-show pays the shop what a handover would: items AND its own delivery fee (money BLOCK on 33156ebb22)", () => {
-    const owe = owedOf(body("shop_owe_shop"));
+    // Custom orders slice 2a (20261106212437): the amount is ONE value, v_due := shop_order_shop_cents(o), whose
+    // whole-payment branch is exactly OWED (a deposit order with its rest unpaid is paid on the deposit only, never delivery).
+    const raw = body("shop_owe_shop");
+    expect(raw).toMatch(/v_due\s*:=\s*public\.shop_order_shop_cents\(o\);/i);
+    const shopCents = owedOf(body("shop_order_shop_cents"));
+    expect(shopCents).toMatch(/THEN\s+o\.items_cents\s*-\s*o\.items_cents\s*\/\s*2\s+ELSE\s+o\.items_cents\s*\+\s*CASE\s+WHEN\s+o\.fulfillment\s*=\s*'shop_delivers'\s+THEN\s+o\.delivery_cents\s+ELSE\s+0\s+END\s+END/i);
+    expect(shopCents).toMatch(/WHEN\s+public\.shop_order_balance_open\(o\)/i);
+    const owe = owedOf(raw).replace(/v_due\s*:=\s*public\.shop_order_shop_cents\(o\);/i, "").replace(/\bv_due\b/g, "OWED");
     expect(owe.length).toBeGreaterThan(200);
     expect(owe).toMatch(/v_debt\s*:=\s*public\.declutter_consume_fee_debt\(o\.seller_id,\s*'shop_order_'\s*\|\|\s*o\.id::text,\s*OWED\)/i);
     expect(owe).toMatch(/VALUES\s*\(o\.id,\s*OWED,\s*v_debt,\s*OWED\s*-\s*v_debt,/i);

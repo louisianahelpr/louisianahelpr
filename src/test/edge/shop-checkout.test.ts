@@ -54,8 +54,14 @@
  * @mutate supabase/functions/shop-checkout/index.ts |   if (serviceAddress === "invalid") return json({ error: "invalid_service_address" }, 400); |
  * @mutate supabase/functions/shop-checkout/index.ts |     if (unusable) return json({ error: atHome ? "service_address_unusable" : "pickup_address_unusable" }, 409); |     if (unusable) return json({ error: "pickup_address_unusable" }, 409);
  * @mutate supabase/functions/shop-checkout/index.ts |      const { error: purgeErr } = await admin.from("shop_order_service_addresses").delete().eq("order_id", o.id); |      const purgeErr = null;
+ * Delivery (migration 20261106180902, "Shop delivers"):
+ * @mutate supabase/functions/shop-checkout/index.ts |  const chargedCents = o.items_cents + o.premium_cents + deliveryCents + setupFeeCents + tax.cents; |  const chargedCents = o.items_cents + o.premium_cents + setupFeeCents + tax.cents;
+ * @mutate supabase/functions/shop-checkout/index.ts |  if (deliveryCents > 0) {\n    lineItems.push({ |  if (false) {\n    lineItems.push({
+ * @mutate supabase/functions/shop-checkout/index.ts |    taxAddress = { line1: delivery.line1, | void { line1: delivery.line1,
+ * @mutate supabase/functions/shop-checkout/index.ts |      p_city: delivery.city, p_postal_code: delivery.postal_code, p_lat: dropoff.lat, p_lng: dropoff.lng, |      p_city: delivery.city, p_postal_code: delivery.postal_code, p_lat: 30.22, p_lng: -92.02,
+ * @mutate supabase/functions/shop-checkout/index.ts |      const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });\n      if (closeErr) console.error(`[shop-checkout] order ${frozen.order_id} not closed after its delivery | const closeErr = null;\n      if (closeErr) console.error(`[shop-checkout] order ${frozen.order_id} not closed after its delivery
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
@@ -461,6 +467,86 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     expect(res.status).toBe(503);
     expect((await json(res)).error).toMatch(/try again/i);
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  describe("delivery: the shop delivers (migration 20261106180902)", () => {
+    const geocoder = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify([
+      { lat: "30.2400", lon: "-92.0600", address: { house_number: "100", road: "Main St", city: "Lafayette", state: "Louisiana" } },
+    ]), { status: 200 }));
+    beforeEach(() => { geocoder.mockClear(); vi.stubGlobal("fetch", geocoder); });
+    afterEach(() => { vi.unstubAllGlobals(); });
+    const DROP = { line1: "100 Main St", city: "Lafayette", postal_code: "70501" };
+    const askDelivered = (fn: Awaited<ReturnType<typeof load>>, delivery: unknown = DROP) => fn.request({
+      headers: { Authorization: "Bearer buyer-jwt" },
+      body: { action: "order", shop_id: SHOP, lines: [{ item_id: ITEM, quantity: 2 }], ready_date: "2026-10-30", note: "",
+        terms: { cancel_policy: "until_24h_before_ready", ready_tap_cancel: "from_day_before" }, delivery },
+    });
+    function delivered() {
+      frozen();
+      scenario.rpc.shop_set_order_delivery = { order_id: ORDER, delivery_cents: 800, delivery_miles: 4, total_cents: 7275 };
+      scenario.reads.shop_orders = { rows: [orderRow({ fulfillment: "shop_delivers", delivery_cents: 800 })] };
+    }
+
+    it("geocodes ON THE SERVER, sets the delivery as the service, adds a non-taxable Shop delivery line and taxes at the drop-off", async () => {
+      const fn = await load();
+      delivered();
+      stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6100 + 375 + 800 + 150 });
+      const res = await fn.fetch(askDelivered(fn));
+      expect(res.status).toBe(200);
+      expect(geocoder).toHaveBeenCalled();
+      const set = rpcs("shop_set_order_delivery")[0];
+      expect(clientOf(set)?.key).toBe("service-key");
+      expect(set?.args).toEqual({ p_order_id: ORDER, p_buyer: BUYER, p_line1: "100 Main St", p_line2: null, p_city: "Lafayette",
+        p_postal_code: "70501", p_lat: 30.24, p_lng: -92.06 });
+      const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+      const line = params.line_items.find((l: any) => l.price_data.product_data.name === "Shop delivery");
+      expect(line?.price_data.unit_amount).toBe(800);
+      expect(line?.price_data.product_data.tax_code).toBe("txcd_00000000");
+      const sum = params.line_items.reduce((t: number, l: any) => t + l.price_data.unit_amount * l.quantity, 0);
+      expect(sum).toBe(6100 + 375 + 800 + 150);
+      const [calc] = stripeMock.tax.calculations.create.mock.calls[0];
+      expect(calc.customer_details.address).toMatchObject({ line1: "100 Main St", city: "Lafayette", postal_code: "70501", state: "LA" });
+      // The delivery is not in the tax calculation (only the items and the fee).
+      expect(calc.line_items.reduce((t: number, l: any) => t + l.amount, 0)).toBe(6100 + 375);
+    });
+
+    it("a drop-off the SQL refuses (too far) closes the just-frozen order and opens no page", async () => {
+      const fn = await load();
+      delivered();
+      scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), shop_set_order_delivery: { message: "delivery_too_far", code: "22023" } };
+      const res = await fn.fetch(askDelivered(fn));
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    });
+
+    it("an address the geocoder cannot find never freezes an order", async () => {
+      const fn = await load();
+      delivered();
+      geocoder.mockImplementation(async () => new Response("[]", { status: 200 }));
+      const res = await fn.fetch(askDelivered(fn));
+      expect(res.status).toBe(422);
+      expect((await json(res)).error).toBe("address_not_found");
+      expect(rpcs("shops_request_order")).toHaveLength(0);
+    });
+
+    it("a malformed address is a bad request", async () => {
+      const fn = await load();
+      delivered();
+      const res = await fn.fetch(askDelivered(fn, { line1: "1", city: "", postal_code: "7050" }));
+      expect(res.status).toBe(400);
+      expect(rpcs("shops_request_order")).toHaveLength(0);
+    });
+
+    it("a pickup order carries no delivery line", async () => {
+      const fn = await load();
+      frozen();
+      stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6625 });
+      expect((await fn.fetch(ask(fn))).status).toBe(200);
+      expect(rpcs("shop_set_order_delivery")).toHaveLength(0);
+      const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+      expect(params.line_items.some((l: any) => l.price_data.product_data.name === "Shop delivery")).toBe(false);
+    });
   });
 });
 

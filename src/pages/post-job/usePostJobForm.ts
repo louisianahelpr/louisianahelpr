@@ -1,6 +1,6 @@
 import { useFeature } from "@/hooks/useFeature";
 import { useCallback, useEffect, useState } from "react";
-import { TAXABLE_CATEGORIES } from "@/lib/salesTax";
+import { asksTaxKind } from "@/lib/salesTax";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useDeclutterIntent } from "./useDeclutterIntent";
 import { useDraftJob } from "@/hooks/useDraftJob";
@@ -123,11 +123,12 @@ export function usePostJobForm() {
   const [category, setCategory] = useState<string>("");
   /* The poster's answer that taxes the labor (Q2083, owner Option 1): does
      the job fix a movable item, clean carpet, rugs, furniture or clothes, or
-     alter clothes? Asked outside auto and appliance repair (those are taxed
-     anyway), so moving into one of them clears it. null = neither / not asked. */
+     alter clothes? Asked only where that can be true (asksTaxKind, owner
+     2026-11-06), so moving to a category that does not ask clears it (the row
+     builder drops one too: buildJobInsertPayload). null = neither / not asked. */
   const [taxKind, setTaxKind] = useState<"item_repair" | "fabric_cleaning" | "clothes_cleaning" | "clothing_alterations" | null>(null);
   useEffect(() => {
-    if (TAXABLE_CATEGORIES.has(category)) setTaxKind(null);
+    if (!asksTaxKind(category)) setTaxKind(null);
   }, [category]);
   /* Pet profiles attached to this job — written to `job_pets` after the insert.
      Cleared when the category leaves pet_care so a poster who starts a dog-walk

@@ -4,7 +4,7 @@ import { GROUP_JOBS_ENABLED } from "@/lib/groupJobs";
 import { computeJobExpiresAt } from "@/lib/jobExpiry";
 import { DEFAULT_OFFER_RESPONSE_HOURS } from "@/lib/offerResponseWindow";
 import { recurringVisitDates } from "@/lib/recurringSchedule";
-import { isLaborTaxable, salesTaxCents } from "@/lib/salesTax";
+import { asksTaxKind, isLaborTaxable, salesTaxCents } from "@/lib/salesTax";
 import { POSTER_SERVICE_FEE_PERCENT } from "@/lib/posterFees";
 import { composeLocationString } from "./postJobFormHelpers";
 import { jobLastDay, weekWindowEnd } from "@/lib/jobDateWindow";
@@ -125,7 +125,7 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     estimatedHours,
     budget,
     materialsNote,
-    taxKind,
+    taxKind: taxKindAnswer,
     isRecurring,
     recurrenceInterval,
     recurrenceEndDate,
@@ -188,6 +188,9 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
   // never collected and the admin revenue rollups then summed. Store the
   // EFFECTIVE rate (0 when the category is exempt) so rate x budget always
   // reconciles with the amount.
+  // Owner 2026-11-06: a category that does not ask the taxed-kind question has no answer (tax_kind NULL), whatever
+  // the form held, so neither the stored tax nor the row can carry a stale one.
+  const taxKind = asksTaxKind(category) ? (taxKindAnswer ?? null) : null;
   const lockedSalesTaxRate = isLaborTaxable(category, taxKind) ? salesTaxRate : 0;
   // The urgent bonus is taxed like the labor (owner 2026-10-21, Q1843), so the
   // taxed base is budget + bonus; an exempt category taxes neither.
@@ -222,7 +225,8 @@ export function buildJobInsertPayload(input: BuildJobInsertPayloadInput): JobIns
     // db-deploy (the series_split_ok pattern below; the deploy-lag retry in
     // useJobSubmit also strips it).
     ...(materialsNote?.trim() ? { materials_note: materialsNote.trim() } : {}),
-    // Sent ONLY when answered, for the same deploy-lag reason as the note.
+    // Sent ONLY when answered, for the same deploy-lag reason as the note, and
+    // only for a category that asks it (owner 2026-11-06): otherwise NULL.
     ...(taxKind ? { tax_kind: taxKind } : {}),
     is_recurring: isRecurring,
     recurrence_interval: isRecurring ? recurrenceInterval : null,

@@ -192,6 +192,7 @@ const ALLOWED: Record<string, string> = {
   shops_get_shop: REVIEW,
   shops_order_terms: LIMIT,
   shops_publish_item: VALID,
+  shops_send_talk_message: LIMIT,
   sms_dispatch_due: OPS,
   sms_inbound_keyword: LIMIT,
   sms_phone_prompt_due: "logic: asks for a phone only after the caller's own first job",

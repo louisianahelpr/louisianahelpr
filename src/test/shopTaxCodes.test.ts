@@ -67,12 +67,14 @@ describe("Shops tax codes: one table, every kind mapped (owner O1, lead 2026-10-
     const src = blankComments(readFileSync(join(ROOT, "supabase/functions/shop-checkout/index.ts"), "utf8"));
     expect(src).toMatch(/taxed\(l\.title\.slice\(0, 120\), shopTaxCode\(l\.kind\)\)/);
     expect(src.match(/txcd_\d{8}/g) ?? []).toEqual([]);
-    // The buyer's fee carries the items' codes (memo Q5), never the non-taxable one. The only non-taxable line is
+    // The buyer's fee carries the items' codes (memo Q5), never the non-taxable one. The non-taxable lines are
     // the one-time account setup fee (Shops H4, 20261105181603; same as declutter-checkout's): import + that line.
     const nontaxable = [...src.matchAll(/^.*\bNONTAXABLE_TAX_CODE\b.*$/gm)].map((m) => m[0].trim());
     expect(nontaxable).toEqual([
       'import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";',
       'product_data: taxed("One-time account setup fee", NONTAXABLE_TAX_CODE),',
+      // Shops H6 (lh-money-escrow PASS d9f38cc9f7): the sales tax line itself is not taxed again.
+      'product_data: { name: "Sales tax", description: "Louisiana sales tax where you pick up the order", tax_code: NONTAXABLE_TAX_CODE },',
     ]);
     expect(src).toMatch(/splitBuyerFeeByTaxCode\(lines, o\.premium_cents\)/);
   });

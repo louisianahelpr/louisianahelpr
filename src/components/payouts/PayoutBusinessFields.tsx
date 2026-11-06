@@ -16,7 +16,7 @@ export function PayoutBusinessFields({ isBusiness, onIsBusiness, businessName, o
 }) {
   return (
     <div data-payout-business className="space-y-2">
-      <div className="flex items-start gap-2">
+      <label htmlFor="payout-is-business" className="flex min-h-11 cursor-pointer items-start gap-2">
         <Checkbox
           id="payout-is-business"
           checked={isBusiness}
@@ -24,10 +24,10 @@ export function PayoutBusinessFields({ isBusiness, onIsBusiness, businessName, o
           disabled={disabled}
           className="mt-0.5"
         />
-        <label htmlFor="payout-is-business" className="font-sans text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
+        <span className="font-sans text-ds-13 leading-snug" style={{ color: "hsl(var(--ink-deep))" }}>
           This is a registered business (LLC or corporation)
-        </label>
-      </div>
+        </span>
+      </label>
       {isBusiness && (
         <div className="space-y-1">
           <label htmlFor="payout-business-name" className="font-sans text-ds-12" style={{ color: "hsl(var(--olivewood) / 0.8)" }}>

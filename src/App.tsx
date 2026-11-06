@@ -190,7 +190,6 @@ const Support = lazyWithPreload(() => import("./pages/info/Support"));
 
 // Lazy load less-critical global components
 
-
 const StrikeBanner = lazy(() => import("./components/StrikeBanner"));
 
 // Lazy load route wrappers

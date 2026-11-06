@@ -87,6 +87,8 @@ interface OrderLine {
   unit_cents: number;
   quantity: number;
   line_cents: number;
+  /** H8 (b): carpet or furniture cleaning done at the buyer's place (frozen on the line). */
+  at_buyer?: boolean;
 }
 
 export interface ShopOrder {
@@ -135,7 +137,7 @@ export interface OrderTerms {
 const ORDER_COLUMNS =
   "id, buyer_id, seller_id, shop_id, status, close_reason, ready_date, cancel_policy, ready_tap_cancel, note, decline_reason, items_cents, " +
   "premium_cents, tax_cents, total_cents, created_at, held_at, accept_by, accepted_at, captured_at, closed_at, handover_mode, handed_over_at, " +
-  "shop_order_lines (id, item_id, title, kind, unit_cents, quantity, line_cents)";
+  "shop_order_lines (id, item_id, title, kind, unit_cents, quantity, line_cents, at_buyer)";
 
 /** The member's orders as a buyer (newest first); a page that was never paid is not an order to show. */
 export async function fetchMyOrders(userId: string): Promise<ShopOrder[]> {
@@ -215,14 +217,20 @@ async function invokeShopCheckout(body: Record<string, unknown>): Promise<Record
 }
 
 /** Ask for an order: the Stripe page's URL (a card HOLD; nothing is charged until the shop accepts). */
+/** H8 (b): the buyer's service address as the order sheet sends it (Louisiana only; the server checks the same). */
+export interface ServiceAddressInput { line1: string; city: string; postal_code: string }
+
 export async function requestOrder(args: {
   shopId: string; lines: { item_id: string; variant_id?: string; quantity: number }[]; readyDate: string; note: string;
   /** The cancel terms the buyer read (shops_order_terms): shop-checkout answers terms_changed if the shop changed them since. */
   terms: Pick<OrderTerms, "cancel_policy" | "ready_tap_cancel">;
+  /** H8 (b): where an at-home carpet or furniture cleaning is done (taxed there); sent only for such an order. */
+  serviceAddress?: ServiceAddressInput | null;
 }): Promise<string> {
   const data = await invokeShopCheckout({
     action: "order", shop_id: args.shopId, lines: args.lines, ready_date: args.readyDate, note: args.note,
     terms: { cancel_policy: args.terms.cancel_policy, ready_tap_cancel: args.terms.ready_tap_cancel ?? "from_day_before" },
+    ...(args.serviceAddress ? { service_address: args.serviceAddress } : {}),
   });
   if (typeof data.url !== "string" || !data.url) throw new Error("payment_unavailable");
   return data.url;

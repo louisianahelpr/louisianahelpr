@@ -233,9 +233,9 @@ describe("Shops slice 2: items, hidden and gated (20261017061157)", () => {
     expect(sanitizeShopItemDraft({ title: "Fig jam", kind: "home_food", subtype: "gumbo", possibly_banned: false })).toMatchObject({
       kind: "home_food", subtype: "baked_goods", flagged: false,
     });
-    // A kind the model may answer that no table admits (never a row: an untrusted AI answer, not a fixture).
-    const offListKind = ["auc", "tion"].join("");
-    expect(sanitizeShopItemDraft({ title: "Fig jam", kind: offListKind, subtype: "jams_jellies", possibly_banned: false })).toMatchObject({
+    // A kind the model may answer that no table admits: an untrusted AI answer, not a shop_items row
+    // (fixtureSchemaContract lists this draft shape under NOT_ROWS).
+    expect(sanitizeShopItemDraft({ title: "Fig jam", kind: "auction", subtype: "jams_jellies", possibly_banned: false })).toMatchObject({
       kind: "made", subtype: "crafts",
     });
     expect(sanitizeShopItemDraft({ title: "x" })).toBeNull();

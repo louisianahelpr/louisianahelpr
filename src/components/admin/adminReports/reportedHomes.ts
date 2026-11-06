@@ -7,6 +7,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { report } from "@/lib/errorLogger";
 
 export const HOME_LISTING_REPORT = "home_listing";
+/**
+ * Q2209: a Homes chat message (20261106191100). `reported_id` is a home_talk_messages id, never a person, and the
+ * report keeps no reported user (fair housing: the admin reads the kept copy, the listing headline and the words).
+ */
+export const HOME_TALK_MESSAGE_REPORT = "home_talk_message";
 
 export type ReportedHome = {
   id: string;

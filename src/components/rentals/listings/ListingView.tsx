@@ -23,6 +23,8 @@ import {
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { RentalsCard } from "../rentalsUi";
 import { HomeListingReport } from "./HomeListingReport";
+import { HomeMessageButton, HomeTalkFromLink } from "./HomeTalk";
+import { WIRE_FRAUD_LINE } from "@/lib/rentals/talk";
 
 const LISTING_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -111,7 +113,8 @@ function Gallery({ refs, listingId }: { refs: string[]; listingId: string }) {
 /**
  * /rentals/listings/:id (Homes -> Rent, RL1a): the listing page. Photos,
  * rent, facts, where (city + ZIP only, Q12). The owner sees its status and
- * an Edit link; anyone else gets "Report this listing". Applying and messages come in the next slices.
+ * an Edit link; anyone else gets "Message the owner" (Q2209, HomeTalk) and "Report this listing". ?talk=<id> opens
+ * that chat over the page for either side (the notices link here). A for-sale page carries the wire-fraud line (D-M1).
  */
 export default function ListingView() {
   const { id } = useParams();
@@ -193,12 +196,15 @@ export default function ListingView() {
         </RentalsCard>
         )}
         {sale && <p className="px-1 text-ds-14">{SALE_HOW_IT_WORKS}</p>}
+        {sale && <p className="px-1 text-ds-14 font-medium" data-home-wire-line="">{WIRE_FRAUD_LINE}</p>}
+        {!l.is_mine && <HomeMessageButton listingId={l.id} />}
         <p className="flex items-start gap-2 px-1 text-ds-13 text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <span>Louisiana Helpr checked that the person listing this home owns it. The street address is not shown here.</span>
         </p>
         {!l.is_mine && <HomeListingReport listingId={l.id} />}
       </div>
+      <HomeTalkFromLink />
     </AppPage>
   );
 }

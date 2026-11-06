@@ -4,7 +4,7 @@
  * takes the whole entry off the listing. Server rules: src/test/pglite/declutterQuestionReport.pglite.mjs.
  *
  * @mutate src/components/admin/adminReports/ReportedCopy.tsx | removeButton("answer", "Remove Answer") | removeButton("question", "Remove Answer")
- * @mutate src/components/admin/adminReports/ReportedCopy.tsx | {report.reported_type !== "message" && open && !gone && ( | {report.reported_type !== "message" && open && (
+ * @mutate src/components/admin/adminReports/ReportedCopy.tsx | {removable && open && !gone && ( | {removable && open && (
  * @mutate src/components/admin/adminReports/reportedQuestions.ts | type === "declutter_answer" ? q.seller_id : q.asker_id; | q.asker_id;
  * A3-75 (audit 11-01): a reported Declutter review shows its stars and words and "Remove Review".
  * @mutate src/components/admin/adminReports/ReportedCopy.tsx |       if (part === "review") await removeReportedReview(report.reported_id, report.id); |       if (part === "review") await removeReportedQuestion(report.reported_id, "question", report.id);

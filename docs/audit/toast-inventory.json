@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1167,
-    "files": 327,
-    "rendering": 1086,
+    "calls": 1168,
+    "files": 328,
+    "rendering": 1087,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 224,
-      "toast.error": 787,
+      "toast.error": 788,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 493,
       "template": 106,
-      "dynamic": 620,
+      "dynamic": 621,
       "jsx": 0
     }
   },
@@ -8961,6 +8961,16 @@
       "renders": true
     },
     {
+      "file": "src/components/profile/publicProfile/PublicJobPhotos.tsx",
+      "line": 75,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"We couldn't change that photo on your page. Try again.\")"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/profile/publicProfile/PublicProfileOwnerSteps.tsx",
       "line": 34,
       "kind": "toast",
@@ -14811,7 +14821,7 @@
     },
     {
       "file": "src/pages/u/PublicProfilePage.tsx",
-      "line": 114,
+      "line": 115,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

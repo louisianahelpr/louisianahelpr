@@ -1,0 +1,12 @@
+-- TODO: say, in plain language, WHAT was broken and WHY this fixes it.
+--
+-- House style: the header explains the problem a reader would otherwise have
+-- to reconstruct from the SQL. Name the symptom, the blast radius, and the
+-- decision you made. Delete this paragraph once you have written that.
+--
+-- REPLAY-SAFETY: a from-scratch rebuild runs every migration in timestamp
+-- order, so this file must be safe to run against a database that does not yet
+-- contain objects defined by LATER migrations. Guard DDL accordingly:
+--   IF to_regprocedure('public.some_fn(uuid)') IS NOT NULL THEN ... END IF;
+-- and prefer CREATE ... IF NOT EXISTS / CREATE OR REPLACE throughout.
+

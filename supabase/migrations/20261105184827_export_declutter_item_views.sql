@@ -1,10 +1,7 @@
 -- Q2752 LOW: a member's Declutter item views (declutter_item_views, 20261105163501, owner request 11-05) are in their
 -- data export. export_my_data is restated VERBATIM from 20261104123305_bundle_request_export_and_notice_kinds.sql (the
 -- newest definition) plus ONE section, 'declutter_item_views' (item_id, created_at) for the caller (viewer_id = v_uid),
--- next to profile_views, and ONE more, 'profile_job_photos' (the job photos the member picked for their public page,
--- 20261105172514, owner 11-05 share-profile H4; user_id = v_uid), after profile_handles_retired. Both sections ride
--- one restatement so neither branch drops the other. Signature, SECURITY, search_path and grants (service_role only)
--- unchanged.
+-- next to profile_views; signature, SECURITY, search_path and grants (service_role only) unchanged.
 -- Replay-safe: CREATE OR REPLACE (plpgsql reads declutter_item_views only when it runs, so no table guard is needed).
 -- Guard: src/test/dataExportCoversEveryUserTable.test.ts (the column moves from EXEMPT to EXPORTED).
 
@@ -564,13 +561,6 @@ BEGIN
   -- LEAD-PROFILE-LINK (20261101034834): the profile links this member used before, kept so old links still find them.
   v_out := v_out || jsonb_build_object('profile_handles_retired', (SELECT coalesce(jsonb_agg(jsonb_build_object(
              'handle', t.handle, 'retired_at', t.retired_at)), '[]'::jsonb) FROM public.profile_handles_retired t
-             WHERE t.user_id = v_uid));
-
-  -- Owner 11-05 share-profile H4 (20261105172514): the job after photos this member picked for their public page.
-  -- Their own picks only (user_id = the member); the pick id, the job, the photo and when it was picked.
-  v_out := v_out || jsonb_build_object('profile_job_photos', (SELECT coalesce(jsonb_agg(jsonb_build_object(
-             'id', t.id, 'job_id', t.job_id, 'photo_path', t.photo_path, 'created_at', t.created_at)
-             ORDER BY t.created_at, t.id), '[]'::jsonb) FROM public.profile_job_photos t
              WHERE t.user_id = v_uid));
 
   -- CMP-4 instant book (20261101063725, 20261101065105): the member's own auto-accept floors, and the jobs they said

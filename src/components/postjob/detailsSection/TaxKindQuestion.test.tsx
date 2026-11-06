@@ -1,10 +1,10 @@
 /**
- * Q2083 (owner Option 1): outside auto and appliance repair, Post a Job asks
+ * Q2083 (owner Option 1; since 2026-11-06 only in the asksTaxKind categories, src/test/taxKindOnlyWhereAsked.test.tsx): Post a Job asks
  * whether the job fixes a movable item, cleans carpet, rugs or furniture,
  * washes or cleans clothes, or alters clothes (jobs.tax_kind; La. R.S.
  * 47:301.3 items 5 and 7).
  *
- * @mutate src/components/postjob/DetailsSection.tsx |       {setTaxKind && category && !TAXABLE_CATEGORIES.has(category) && ( |       {false && (
+ * @mutate src/components/postjob/DetailsSection.tsx |       {setTaxKind && asksTaxKind(category) && ( |       {false && (
  * @mutate src/components/postjob/detailsSection/TaxKindQuestion.tsx |           setTaxKind(next === NONE ? null : (next as JobTaxKind)); |           setTaxKind(null);
  * @mutate src/components/postjob/detailsSection/TaxKindQuestion.tsx |   { value: "clothes_cleaning", label: "It washes or cleans clothes", sub: "Laundry, ironing, dry cleaning, or washing linens." },\n |
  */
@@ -39,7 +39,7 @@ describe("TaxKindQuestion", () => {
   });
 });
 
-describe("Post a Job asks it outside the movable-repair categories", () => {
+describe("Post a Job asks it where the answer can change the tax", () => {
   const props = (category: string) => ({
     stepNumber: 1, title: "", setTitle: () => {}, description: "", setDescription: () => {},
     category, setCategory: () => {}, imagePreviews: [], imageFiles: [], onImageSelect: () => {},

@@ -37,6 +37,28 @@ export const TAXED_KINDS: ReadonlySet<string> = new Set([
   "clothing_alterations",
 ]);
 
+/**
+ * The categories that ASK "Is this one of these jobs?" (TaxKindQuestion; owner pop-up 2026-11-06 ~9:40 AM, from the
+ * post-a-job video: "show it only where the answer can change the tax"). Only where a TAXED_KINDS answer can be true:
+ * cleaning (carpet, rugs, furniture, clothes, linens: R.S. 47:301.3 item 5) and the repair-type categories where the
+ * thing fixed can be a movable item (item 7: a chair, a lamp, a trailer), plus Other, the escape hatch. Never asked
+ * where the work is never taxed (yard, moving, errands, pet care, the real-property trades, ...) nor in auto and
+ * appliance repair (taxed anyway, TAXABLE_CATEGORIES). Not asked = jobs.tax_kind NULL.
+ */
+export const TAX_KIND_ASKED_CATEGORIES: ReadonlySet<string> = new Set([
+  "cleaning",
+  "handyman",
+  "carpentry",
+  "welding",
+  "electrical",
+  "other",
+]);
+
+/** Whether Post a job asks the taxed-kind question for this category (else the answer is NULL). */
+export function asksTaxKind(category: string | null | undefined): boolean {
+  return TAX_KIND_ASKED_CATEGORIES.has(category ?? "");
+}
+
 /** Whether the job's LABOR line is subject to LA sales tax: a taxed category, or a taxed kind. */
 export function isLaborTaxable(category: string | null | undefined, taxKind?: string | null): boolean {
   return TAXABLE_CATEGORIES.has(category ?? "") || TAXED_KINDS.has(taxKind ?? "");

@@ -6,7 +6,7 @@ import { TitleField } from "./detailsSection/TitleField";
 import { DescriptionField } from "./detailsSection/DescriptionField";
 import { CredentialTierSelector } from "./detailsSection/CredentialTierSelector";
 import { TaxKindQuestion } from "./detailsSection/TaxKindQuestion";
-import { TAXABLE_CATEGORIES } from "@/lib/salesTax";
+import { asksTaxKind } from "@/lib/salesTax";
 import { PhotoProofToggle } from "./detailsSection/PhotoProofToggle";
 import { PhotoUpload } from "./detailsSection/PhotoUpload";
 import { VideoScope } from "./detailsSection/VideoScope";
@@ -84,11 +84,11 @@ export function DetailsSection({
         </>
       )}
 
-      {/* Q2083 (owner Option 1): outside auto and appliance repair (taxed
-          anyway), the poster says whether the job fixes a movable item, cleans
-          carpet, rugs, furniture or clothes, or alters clothes, the work
-          Louisiana taxes (La. R.S. 47:301.3 items 5 and 7; jobs.tax_kind). */}
-      {setTaxKind && category && !TAXABLE_CATEGORIES.has(category) && (
+      {/* Q2083 (owner Option 1): the poster says whether the job fixes a movable
+          item, cleans carpet, rugs, furniture or clothes, or alters clothes, the
+          work Louisiana taxes (La. R.S. 47:301.3 items 5 and 7; jobs.tax_kind).
+          Owner 2026-11-06: asked ONLY where that can be true (asksTaxKind). */}
+      {setTaxKind && asksTaxKind(category) && (
         <TaxKindQuestion taxKind={taxKind ?? null} setTaxKind={setTaxKind} />
       )}
 

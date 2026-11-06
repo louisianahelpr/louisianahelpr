@@ -100,12 +100,25 @@ const REAL = [
   // The --before state of what the migration restates, and the miles it measures with (newest bodies).
   cutFn("20261105181603_shops_setup_fee.sql", "shop_mark_order_held"),
   cutFn("20261105182903_shops_handover_rule.sql", "shop_complete_handover"),
+  // Late cancel / no-show (money BLOCK on 33156ebb22): the shop is owed items + delivery.
+  cutFn("20261019071055_shops_refunds_cancels_strikes.sql", "shop_owe_shop"),
+  cutFn("20261103162420_q2390_handover_paid_refund_shop_cancel_photo_no_show_decline_not_found_is_404.sql", "shops_report_no_show"),
 ].join("\n");
+// What shops_report_no_show reads, in the shape it needs (prod: 20261018211820 handover_mode, ready_at; the lock and
+// the strike are their own proofs, shopsRefunds.pglite.mjs).
+const NO_SHOW_STUBS = `
+ALTER TABLE public.shop_orders ADD COLUMN handover_mode text NOT NULL DEFAULT 'in_person';
+ALTER TABLE public.shop_handovers ADD COLUMN ready_at timestamptz;
+CREATE FUNCTION public.shop_lock_open_charged_order(p_order uuid, p_x boolean) RETURNS public.shop_orders LANGUAGE sql AS
+  $$ SELECT * FROM public.shop_orders WHERE id = p_order $$;
+CREATE FUNCTION public.shop_give_strike(uuid, text, text, uuid) RETURNS void LANGUAGE sql AS $$ SELECT $$;
+`;
 const ROUTED = readFileSync(url("20261104105545_declutter_road_miles_routed.sql"), "utf8")
   .split("-- Q807:")[0]; // the table and declutter_road_miles; the unconfirmed-email gate needs prod's helper
 
 const db = new PGlite();
 await db.exec(SCHEMA);
+await db.exec(NO_SHOW_STUBS);
 await db.exec(REAL);
 await db.exec(ROUTED);
 const skip = process.env.NEW_MIGRATION === "skip";
@@ -237,6 +250,26 @@ await svc(`UPDATE public.shop_orders SET status = 'accepted', captured_at = now(
 await svc(`SELECT public.shop_complete_handover('${o5}', 'buyer')`);
 ok((await svc(`SELECT items_cents FROM public.shop_payouts WHERE order_id = '${o5}'`))[0]?.items_cents === 2000, "a pickup order's payout is its items only");
 
+// --- 5b. a late cancel or a no-show pays the shop items + delivery (money BLOCK on 33156ebb22, lead 11-06)
+const late = await newOrder();
+await deliver(late);
+await svc(`UPDATE public.shop_orders SET status = 'cancelled', close_reason = 'buyer_cancelled_late', captured_at = now() WHERE id = '${late}'`);
+const owed = one(await svc(`SELECT public.shop_owe_shop('${late}') AS r`));
+const latePay = (await svc(`SELECT items_cents, debt_cents, amount_cents FROM public.shop_payouts WHERE order_id = '${late}'`))[0] ?? {};
+ok(owed === 2800 && latePay.items_cents === 2800 && latePay.amount_cents === 2800,
+  `a late-cancelled delivery order pays the shop items + delivery ($28) (${owed} ${JSON.stringify(latePay)})`);
+const ns = await newOrder();
+await deliver(ns);
+await svc(`UPDATE public.shop_orders SET status = 'accepted', accepted_at = now(), captured_at = now(), ready_date = current_date - 2 WHERE id = '${ns}'`);
+await svc(`INSERT INTO public.shop_handovers (order_id, ready_at) VALUES ('${ns}', now() - interval '2 days')`);
+const nsr = await member(OWNER, `SELECT public.shops_report_no_show('${ns}') AS r`);
+ok(one(nsr)?.result === "no_show", `the shop reports a delivery no-show (${JSON.stringify(nsr)})`);
+const nsPay = (await svc(`SELECT items_cents, amount_cents FROM public.shop_payouts WHERE order_id = '${ns}'`))[0] ?? {};
+ok(nsPay.items_cents === 2800 && nsPay.amount_cents === 2800, `a delivery no-show pays the shop items + delivery (${JSON.stringify(nsPay)})`);
+const nsNote = (await svc(`SELECT title, message FROM public.notifications WHERE user_id = '${BUYER}' AND title LIKE 'Missed%' ORDER BY title`))[0] ?? {};
+ok(nsNote.title === "Missed delivery" && /didn't receive the delivery/.test(nsNote.message ?? ""),
+  `a delivery no-show tells the buyer they didn't receive the delivery (${JSON.stringify(nsNote)})`);
+
 // --- 6. grants, seed and purge
 const gr = (await svc(`SELECT has_function_privilege('authenticated', 'public.shop_set_order_delivery(uuid, uuid, text, text, text, text, numeric, numeric)', 'EXECUTE') AS a,
   has_function_privilege('anon', 'public.shops_order_delivery_address(uuid)', 'EXECUTE') AS b,
@@ -247,7 +280,7 @@ const o6 = await newOrder();
 await svc(`UPDATE public.shop_orders SET is_seed = true WHERE id = '${o6}'`);
 await deliver(o6);
 ok((await svc(`SELECT is_seed FROM public.shop_order_delivery_addresses WHERE order_id = '${o6}'`))[0]?.is_seed === true, "a test order's address is seed data");
-ok(one(await svc(`SELECT count(*)::int FROM public.shop_order_delivery_addresses WHERE buyer_id = '${BUYER}'`)) === 3, "three of the buyer's orders carry an address");
+ok(one(await svc(`SELECT count(*)::int FROM public.shop_order_delivery_addresses WHERE buyer_id = '${BUYER}'`)) === 5, "five of the buyer's orders carry an address");
 // Account deletion (the buyer's auth row goes; the order outlives its buyer): the addresses go with the account.
 await svc(`DELETE FROM auth.users WHERE id = '${BUYER}'`);
 ok(one(await svc(`SELECT count(*)::int FROM public.shop_order_delivery_addresses`)) === 0, "deleting the buyer leaves none of their addresses");

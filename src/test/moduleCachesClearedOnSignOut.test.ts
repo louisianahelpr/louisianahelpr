@@ -31,6 +31,7 @@ const CLASSIFIED: Record<string, Kind> = {
   "src/components/sections/useSectionPrefs.ts:pulled": { kind: "not-user-data", why: "which account ids already read their Customize row this app run (Q2199), so each account reads its own once; holds no choice or other data" },
   "src/lib/proofPhotoStorage.ts:signed": { kind: "cleared-on-sign-out", reset: "resetProofPhotoSignCache" },
   "src/lib/declutter/itemViewsSent.ts:sent": { kind: "cleared-on-sign-out", reset: "resetSentItemViews" },
+  "src/lib/activityCoreContinueDays.ts:kept": { kind: "cleared-on-sign-out", reset: "resetActiveContinueDays" },
   "src/lib/helprTasks/onlineHandoff.ts:answers": { kind: "cleared-on-sign-out", reset: "resetOnlineHandoff" },
   "src/lib/helprTasks/onlineHandoff.ts:done": { kind: "cleared-on-sign-out", reset: "resetOnlineHandoff" },
   "src/lib/helprTasks/onlineHandoff.ts:expected": { kind: "cleared-on-sign-out", reset: "resetOnlineHandoff" },

@@ -53,7 +53,7 @@ export function continueDaysFromCores(jobIds: readonly string[]): { days: Record
   return { days, at };
 }
 
-/** Tests only: a fresh page load. */
-export function __resetActiveContinueDays(): void {
+/** Sign-out (authSignOut.ts, Q724) and tests: forget every kept core, so the next account on this device never gets the last one's days as a first answer. */
+export function resetActiveContinueDays(): void {
   kept.clear();
 }

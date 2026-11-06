@@ -56,7 +56,11 @@ describe("the web build's own scripts ship when they change", () => {
 
   it("every build script and every file it imports is in scripts/deploy-paths.sh", () => {
     const paths = deployPaths();
-    const missing = withImports(buildScripts()).filter((f) => !covered(f, paths));
+    const files = withImports(buildScripts());
+    // Floor (vacuity class a): measured 2026-11-06: 6 files (5 build scripts + 1 import), 20 deploy paths.
+    expect(files.length).toBeGreaterThan(5);
+    expect(paths.length).toBeGreaterThan(19);
+    const missing = files.filter((f) => !covered(f, paths));
     expect(missing, `add these to scripts/deploy-paths.sh, or a change to them never reaches prod`).toEqual([]);
   });
 });

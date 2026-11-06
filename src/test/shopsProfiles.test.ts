@@ -160,7 +160,8 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
     raised.add("pickup_address_unusable");
     raised.add("service_address_unusable");
     // H8: shop-checkout's own checks of the at-home address, before the order freezes.
-    for (const code of ["service_address_needed", "invalid_service_address"]) {
+    // Restack (l106 + delivery): an at-home order asks for no delivery (at_buyer_no_delivery), checked there too.
+    for (const code of ["service_address_needed", "invalid_service_address", "at_buyer_no_delivery"]) {
       expect(CHECKOUT).toContain(`error: "${code}"`);
       raised.add(code);
     }

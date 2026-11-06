@@ -879,6 +879,8 @@ export const RPC_ERROR_COPY = {
   },
   // 20261106211136: a shop delivery's answer (the shop is "the shop", not "the seller").
   shop_helpr_answer_no_show: {
+    // 20261106211136: reached through helpr_task_lock (declutter_lock_order on a Declutter task).
+    item_not_found: DC.item_not_found,
     account_restricted: DC.account_restricted,
     already_answered: DC.already_answered,
     feature_disabled: "Shops isn't open for your account yet.",
@@ -1288,10 +1290,14 @@ export const RPC_ERROR_COPY = {
   },
   // The delivery chat (BUY-36, 20261031231948).
   helpr_task_talk_view: {
+    // Shops (20261106203016): a shop task checks its own switch (helpr_task_source_require_feature).
+    feature_disabled: DC.feature_disabled,
     not_authenticated: DC.not_authenticated,
     task_not_found: "We couldn't find that delivery.",
   },
   helpr_task_send_message: {
+    // Shops (20261106203016): a shop task checks its own switch (helpr_task_source_require_feature).
+    feature_disabled: DC.feature_disabled,
     // BUY-36 (20261031231150): reached through the steps it runs (the close, the confirm, the debt take, the lock).
     item_not_found: DC.item_not_found,
     account_restricted: DC.account_restricted,

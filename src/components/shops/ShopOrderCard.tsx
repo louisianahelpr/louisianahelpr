@@ -11,7 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { MapPin } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { cancelPolicyText, formatCents, orderStatusLabel, type ShopOrder } from "@/lib/shops/orders";
-import { fetchOrderPickupAddress } from "@/lib/shops/pickupAddress";
+import { fetchOrderPickupAddress, fetchOrderServiceAddress } from "@/lib/shops/pickupAddress";
 import { ShopOrderMessageButton } from "./ShopTalk";
 import { ShopOrderReview } from "./ShopReviews";
 
@@ -43,6 +43,40 @@ function PickupAddress({ orderId }: { orderId: string }) {
         <br />
         {a.line1}
         {a.line2 ? `, ${a.line2}` : ""}
+        <br />
+        {a.city}, {a.state} {a.postal_code}
+      </p>
+    </div>
+  );
+}
+
+/** H8 (b): the statuses in which the SHOP may read an at-home cleaning's address (shops_order_service_address). */
+const SERVICE_VISIBLE_TO_SHOP = new Set(["accepted", "handed_over"]);
+
+function ServiceAddress({ orderId }: { orderId: string }) {
+  const q = useQuery({
+    queryKey: ["shops", "order-service-address", orderId],
+    queryFn: () => fetchOrderServiceAddress(orderId),
+    staleTime: 5 * 60_000,
+  });
+  if (q.isLoading) return <p className="text-sm text-muted-foreground">Loading the work address…</p>;
+  if (q.isError) {
+    return (
+      <p className="text-sm">
+        We couldn't load the work address.{" "}
+        <InlineTextButton className="underline" onClick={() => void q.refetch()}>Try again</InlineTextButton>
+      </p>
+    );
+  }
+  const a = q.data;
+  if (!a) return null;
+  return (
+    <div className="flex items-start gap-2 rounded-xl bg-muted/60 p-3 text-sm" data-testid="shop-order-service-address">
+      <MapPin className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+      <p className="min-w-0 [overflow-wrap:anywhere]">
+        <span className="font-semibold">Work done at</span>
+        <br />
+        {a.line1}
         <br />
         {a.city}, {a.state} {a.postal_code}
       </p>
@@ -84,6 +118,9 @@ export function ShopOrderCard({
       {order.note && <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">Note: {order.note}</p>}
       {order.decline_reason && <p className="text-sm [overflow-wrap:anywhere]">Shop's reason: {order.decline_reason}</p>}
       {side === "buyer" && PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />}
+      {order.shop_order_lines.some((l) => l.at_buyer) && (side === "buyer" || SERVICE_VISIBLE_TO_SHOP.has(order.status)) && (
+        <ServiceAddress orderId={order.id} />
+      )}
       {side === "buyer" ? (
         <p className="text-xs text-muted-foreground">
           Items {formatCents(order.items_cents)} + service fee {formatCents(order.premium_cents)}

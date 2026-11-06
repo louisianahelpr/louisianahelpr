@@ -198,6 +198,18 @@ export const SHOPS_RPC_ERROR_COPY = {
     shop_strikes_blocked: SC.shop_strikes_blocked,
     under_18: SC.under_18,
   },
+  shops_set_item_at_buyer: {
+    account_restricted: SC.account_restricted,
+    at_buyer_not_allowed: SC.at_buyer_not_allowed,
+    feature_disabled: SC.feature_disabled,
+    item_not_editable: SC.item_not_editable,
+    item_not_found: SC.item_not_found,
+    not_authenticated: SC.not_authenticated,
+    payout_setup_incomplete: SC.payout_setup_incomplete,
+    shop_hidden: SC.shop_hidden,
+    shop_strikes_blocked: SC.shop_strikes_blocked,
+    under_18: SC.under_18,
+  },
   shops_set_item_stock: {
     account_restricted: SC.account_restricted,
     feature_disabled: SC.feature_disabled,

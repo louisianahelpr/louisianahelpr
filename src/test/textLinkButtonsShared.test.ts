@@ -21,7 +21,8 @@
  * @mutate src/components/series/SeriesDatesPanel.tsx | <InlineTextButton\n                disabled={busy \|\| pickedMine.length === 0} | <button type="button"\n                disabled={busy \|\| pickedMine.length === 0}
  * @mutate src/components/schedule/ScheduleChangeControl.tsx | <InlineTextButton\n          onClick={() => setAsking(true)} | <button type="button"\n          onClick={() => setAsking(true)}
  * @mutate src/components/shops/ShopDailyCap.tsx | <InlineTextButton className="underline" onClick={() => void cap.refetch()}> | <button type="button" className="underline" onClick={() => void cap.refetch()}>
- * @mutate src/components/shops/ShopOrderCard.tsx | <InlineTextButton className="underline" onClick={() => void q.refetch()}> | <button type="button" className="underline" onClick={() => void q.refetch()}>
+ * @mutate src/components/shops/ShopOrderCard.tsx | pickup address.{" "}\n        <InlineTextButton className="underline" onClick={() => void q.refetch()}> | pickup address.{" "}\n        <button type="button" className="underline" onClick={() => void q.refetch()}>
+ * @mutate src/components/shops/ShopOrderCard.tsx | work address.{" "}\n        <InlineTextButton className="underline" onClick={() => void q.refetch()}> | work address.{" "}\n        <button type="button" className="underline" onClick={() => void q.refetch()}>
  * @mutate src/pages/user/ReviewsSection.tsx | <InlineTextButton\n                onClick={() => {\n                  onSetReviewCategoryFilter(null); | <button\n                onClick={() => {\n                  onSetReviewCategoryFilter(null);
  * @mutate src/components/rentals/LeasePanel.tsx | <InlineTextButton className="underline" onClick={() => setStep( | <button type="button" className="underline" onClick={() => setStep(
  * @mutate src/components/job-card/NudgeConfirmLink.tsx | <InlineTextButton\n          disabled={busy} | <button type="button"\n          disabled={busy}

@@ -459,7 +459,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
-| `src/components/shops/ShopOrderSheet.tsx` | textarea×1 |  |  | Loading ordering · shop-order-date · shop-order-date-help · shop-order-note · shop-order-cancel-policy · shop-order-total |
+| `src/components/shops/ShopOrderSheet.tsx` | input×3, textarea×1 | text | 120, 60, 5 | Loading ordering · shop-order-date · shop-order-date-help · shop-order-service-address · shop-order-svc-line1 · shop-order-svc-city · shop-order-svc-zip · shop-order-note |
 | `src/components/shops/ShopReviews.tsx` | textarea×1 |  | 1000 | shop-reviews |
 
 ## /shops/dashboard
@@ -475,7 +475,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/shops/ShopDailyCap.tsx` | input×1 | number |  | shop-daily-cap |
 | `src/components/shops/ShopEditView.tsx` | input×6, textarea×1, checkbox/switch/radio×5, date/calendar×2 | file, text, time | 60, 2000, 80, 20 | Loading your shop · shop-name · shop-category · shop-about · shop-area · Broussard · shop-storefront · shop-selling |
 | `src/components/shops/ShopFaqsEditor.tsx` | input×1, textarea×1 | text |  | shop-faqs-editor · shop-faqs-heading · Loading your questions · Do you deliver? |
-| `src/components/shops/ShopItemEditor.tsx` | input×5, textarea×1, checkbox/switch/radio×3 | text, number, file | 80, 2000 | item-editor-title · item-kind · item-type · item-title · item-description · item-price · 18 · item-lead |
+| `src/components/shops/ShopItemEditor.tsx` | input×5, textarea×1, checkbox/switch/radio×3 | text, number, file | 80, 2000 | item-editor-title · item-kind · item-type · item-where · item-title · item-description · item-price · 18 |
 | `src/components/shops/ShopPickupAddressSection.tsx` | input×4 | text | 120, 60, 5 | shop-pickup-address · shop-pickup-heading · Loading your pickup address · pickup-line1 · pickup-line2 · pickup-city · pickup-zip |
 
 ## /shops/orders, /shops/dashboard

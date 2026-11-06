@@ -33,6 +33,8 @@ import {
   requestShopItemAiCheck,
   requestShopItemAiDraft,
   requiredStatements,
+  serviceTypeHint,
+  setShopItemAtBuyer,
   setShopItemStock,
   SHOP_ITEM_KIND_LABEL,
   SHOP_ITEM_STATEMENTS,
@@ -146,6 +148,16 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });
 
+  // H8 (b): carpet or furniture cleaning done at the customer's place is taxed there; saved on its own, like stock.
+  const atBuyer = useMutation({
+    mutationFn: (v: boolean) => setShopItemAtBuyer(id as string, v),
+    onSuccess: () => {
+      toast.success("Saved where you do this work.");
+      refresh();
+    },
+    onError: (err) => toast.error(shopsErrorMessage(err)),
+  });
+
   const addPhoto = useMutation({
     mutationFn: (file: File) => addShopItemPhoto(ownerId, id as string, file),
     onSuccess: () => refresh(),
@@ -251,12 +263,32 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone }: {
             <option key={t} value={t}>{SHOP_ITEM_TYPE_LABEL[t] ?? t}</option>
           ))}
         </NativeSelect>
+        {serviceTypeHint(d.kind, d.subtype) && (
+          <p className="text-xs text-muted-foreground">{serviceTypeHint(d.kind, d.subtype)}</p>
+        )}
         {d.kind === "home_food" && (
           <p className="text-xs text-muted-foreground">
             Only foods Louisiana allows from a home kitchen, with no meat or fish. Plate lunches and other foods that need a health permit can't be listed yet.
           </p>
         )}
       </div>
+      {id && item?.kind === "service" && item.subtype === "fabric_cleaning" && d.subtype === "fabric_cleaning" && (
+        <div className="space-y-1.5">
+          <Label htmlFor="item-where">Where do you do this work?</Label>
+          <NativeSelect
+            id="item-where"
+            value={item.at_buyer ? "buyer" : "shop"}
+            disabled={atBuyer.isPending}
+            onChange={(e) => atBuyer.mutate(e.target.value === "buyer")}
+          >
+            <option value="shop">At my place (they bring it to me)</option>
+            <option value="buyer">At the customer's place</option>
+          </NativeSelect>
+          <p className="text-xs text-muted-foreground">
+            At the customer's place, they give the address when they order, and sales tax is figured there. It is ordered on its own.
+          </p>
+        </div>
+      )}
       <div className="space-y-1.5">
         <Label htmlFor="item-title">Title</Label>
         <Input id="item-title" value={d.title} maxLength={80} onChange={(e) => set("title", e.target.value)} />

@@ -6,12 +6,14 @@
  * hand-made one, the input stays type=file and focusable, and every caller keeps its own accept / capture /
  * multiple / tabIndex / handlers (uploadMimeParity still reads each accept= at the call site).
  * Post a job (packet 2, same day): the photo grid, first-photo tile and video tile pickers.
+ * Profile (packet 3): Edit profile photo and the profile gate (CompleteProfile) required photo.
  *
  * @mutate src/components/ui/HiddenFileInput.tsx | className={peer ? "peer sr-only" : "sr-only"} | className={peer ? "peer hidden" : "hidden"}
  * @mutate src/components/ui/HiddenFileInput.tsx | <input ref={ref} type="file" | <input ref={ref}
  * @mutate src/components/declutter/DeclutterBunchPhotos.tsx | <HiddenFileInput id={addId} accept="image/*" multiple peer | <HiddenFileInput id={addId} accept="image/*" multiple
  * @mutate src/components/declutter/DeclutterSellPhotos.tsx | <HiddenFileInput id="sell-files" accept="image/*" multiple | <HiddenFileInput id="sell-files" accept="image/*"
  * @mutate src/components/postjob/detailsSection/VideoScope.tsx | <HiddenFileInput accept="video/*" | <HiddenFileInput accept="image/*"
+ * @mutate src/pages/auth/CompleteProfile.tsx |                   id="avatar"\n                  accept="image/*" |                   accept="image/*"
  */
 import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
@@ -52,6 +54,17 @@ describe("Declutter's hidden photo pickers are the shared HiddenFileInput, class
       expect(tags.some((t) => /\speer\s/.test(t)), f).toBe(Boolean(peer));
     }
     expect(readFileSync("src/components/declutter/DeclutterSellPhotos.tsx", "utf8")).toContain('<HiddenFileInput id="sell-files" accept="image/*" multiple ');
+  });
+
+  it("Profile (packet 3): the Edit profile photo and the profile gate's required photo use it, input named on the gate", () => {
+    const edit = readFileSync("src/components/profile/profileEditForm/PhotoNameSection.tsx", "utf8");
+    expect(edit).not.toMatch(/type="file"/);
+    expect(edit).toContain('<HiddenFileInput accept="image/*" onChange={handlePick} disabled={avatarUploading} />');
+    const gate = readFileSync("src/pages/auth/CompleteProfile.tsx", "utf8");
+    expect(gate).not.toMatch(/type="file"/);
+    const tag = gate.slice(gate.indexOf("<HiddenFileInput"), gate.indexOf("/>", gate.indexOf("<HiddenFileInput")));
+    expect(tag).toContain('id="avatar"');
+    expect(tag).toContain("aria-label={avatarPreview");
   });
 
   it("Post a job (packet 2): the photo and video pickers inside their dashed tiles use it too", () => {

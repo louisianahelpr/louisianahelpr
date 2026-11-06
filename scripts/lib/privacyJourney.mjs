@@ -140,6 +140,8 @@ export const EXPORT_SECTIONS = [
   // Bundle requests and their items (Q2268, 20261104123305).
   "declutter_bundle_requests", "declutter_bundle_request_items",
   "declutter_swap_offers",
+  // Homes messages (20261106182837; exported by 20261106191100).
+  "home_talks", "home_talk_messages",
   // Porch days (20261029161347; exported by 20261029223949).
   "declutter_seller_porch_days",
   // A seller's own meet spots (20261101194608; exported by 20261101210500).

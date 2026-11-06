@@ -23,7 +23,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 const rpc = vi.fn();
 const who = vi.hoisted(() => ({ profile: { phone: "5045550199" } as { phone: string | null } | null }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: (...a: unknown[]) => rpc(...a) } }));
-vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true }));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => true, useFeatureStatus: () => ({ on: true, settled: true, lastAnswer: true }) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, ready: true }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: who.profile }) }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));

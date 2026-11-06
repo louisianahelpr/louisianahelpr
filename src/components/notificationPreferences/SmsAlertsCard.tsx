@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MessageSquareText } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useFeature } from "@/hooks/useFeature";
+import { useFeatureStatus } from "@/hooks/useFeature";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -43,7 +43,9 @@ import { fetchSmsConsent, smsConsentLoadErrorMessage, smsConsentQueryKey } from 
  * with `alreadyOn` true when they were on from the first read.
  */
 export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = false, prefillPhone = null }: { inPrompt?: boolean; onAllSet?: (alreadyOn: boolean) => void; atTop?: boolean; prefillPhone?: string | null } = {}) {
-  const enabled = useFeature("sms_alerts");
+  // Q2708: `settled` too. While the switch read is out the card holds its loading frame (never null): it used to
+  // render nothing, then pop in at the top of Notifications and push every switch below it down (CLS 0.19).
+  const { on: enabled, settled: switchSettled } = useFeatureStatus("sms_alerts");
   const { user } = useAuthReady();
   const queryClient = useQueryClient();
   const phoneId = useId();
@@ -103,7 +105,9 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
   }, [pendingPhone, optedIn]);
   if (!user) return null;
   // Switch off: only someone with texts on (or a request waiting) sees the card.
-  if (!enabled && !optedIn && !pendingPhone) return null;
+  if (switchSettled && !enabled && !optedIn && !pendingPhone) return null;
+  // The switch decides what a member may see: until it answers, only the loading frame shows (no form, no pill).
+  const loading = isPending || (!switchSettled && !optedIn && !pendingPhone);
 
   const stoppedByReply = !optedIn && (consent?.opt_out_source === "sms_stop" || consent?.opt_out_source === "carrier_21610");
   // A STOPped number is blocked at the carrier until the phone texts START,
@@ -199,7 +203,7 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
         <h2 id={`${consentId}-title`} className="font-sans font-semibold text-ds-14 flex-1 min-w-0" style={{ color: "hsl(var(--ink-deep))" }}>
           Text alerts
         </h2>
-        {!isPending && !isError && (
+        {!loading && !isError && (
           <span
             className="shrink-0 rounded-full px-2 py-0.5 font-sans text-ds-12 font-semibold"
             style={optedIn
@@ -219,8 +223,26 @@ export default function SmsAlertsCard({ inPrompt = false, onAllSet, atTop = fals
             </p>
             <Button variant="outline" size="sm" onClick={() => { void refetch(); }}>Try again</Button>
           </div>
-        ) : isPending ? (
-          <div className="h-24 rounded-xl animate-pulse" style={{ background: "hsl(var(--ink-deep) / 0.05)" }} role="status" aria-label="Loading text alert settings" />
+        ) : loading ? (
+          // Q2708: the loading box is the Off form's own size (a hidden copy under the pulse), so the card does not
+          // grow when the read answers. Off is what most members see; the box used to be 96 px against the form's
+          // ~280 px at 375, and the switches below jumped 185 px (CLS 0.16). No ids, no handlers: nothing to reach.
+          <div className="relative" role="status" aria-label="Loading text alert settings" data-testid="sms-alerts-loading">
+            <div className="invisible space-y-3" aria-hidden="true">
+              <div className="space-y-1.5">
+                <Label className="text-ds-13 font-semibold">Mobile number</Label>
+                <Input type="tel" tabIndex={-1} disabled readOnly value="" />
+              </div>
+              <label className="flex min-h-11 items-start gap-3">
+                <Checkbox tabIndex={-1} disabled className="mt-0.5" />
+                <span className="block min-h-11 flex-1 text-ds-13 leading-snug">
+                  {SMS_CONSENT_TEXT_BEFORE_LINKS} Terms and Privacy Policy.
+                </span>
+              </label>
+              <Button variant="primary" className="w-full" tabIndex={-1} disabled>Turn on text alerts</Button>
+            </div>
+            <div className="absolute inset-0 rounded-xl animate-pulse" style={{ background: "hsl(var(--ink-deep) / 0.05)" }} />
+          </div>
         ) : pendingPhone && !optedIn ? (
           <>
             <p className="text-ds-14" style={{ color: "hsl(var(--ink-deep))" }}>

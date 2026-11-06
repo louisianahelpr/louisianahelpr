@@ -377,7 +377,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/money/MoneyHelp.tsx` | textarea×1 |  | 500 | How does this work? · money-help-question |
 | `src/components/notificationPreferences/constants.tsx` | input×1, date/calendar×1 | time |  |  |
 | `src/components/notificationPreferences/QuietTimeInput.tsx` | input×1, date/calendar×1 | time |  |  |
-| `src/components/notificationPreferences/SmsAlertsCard.tsx` | input×2, checkbox/switch/radio×1 | text, tel | 4 | sms-alerts-card · Loading text alert settings · 1234 · Stop text alerts? · (225) 555-0123 |
+| `src/components/notificationPreferences/SmsAlertsCard.tsx` | input×3, checkbox/switch/radio×2 | tel, text | 4 | sms-alerts-card · Loading text alert settings · sms-alerts-loading · 1234 · Stop text alerts? · (225) 555-0123 |
 | `src/components/notificationPreferences/SwitchSlot.tsx` | checkbox/switch/radio×1 |  |  | Saving |
 | `src/components/payouts/PayoutBusinessFields.tsx` | input×1, checkbox/switch/radio×1 | text | 120 | payout-is-business · payout-business-name |
 | `src/components/profile/AccessibilityTab.tsx` | checkbox/switch/radio×1 |  |  | a11y-bigger-text |

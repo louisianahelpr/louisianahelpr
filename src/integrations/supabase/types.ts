@@ -13792,8 +13792,11 @@ export type Database = {
           balance_cents: number | null
           balance_checkout_session_id: string | null
           balance_failed_at: string | null
+          balance_customer_id: string | null
           balance_last_error: string | null
+          balance_lapsed_at: string | null
           balance_payment_intent_id: string | null
+          balance_payment_method_id: string | null
           buyer_id: string | null
           cancel_policy: string
           capture_attempts: number
@@ -13818,6 +13821,7 @@ export type Database = {
           id: string
           is_seed: boolean
           items_cents: number
+          lapse_tax_done_at: string | null
           note: string
           payment_livemode: boolean | null
           payment_plan: string
@@ -13843,8 +13847,11 @@ export type Database = {
           balance_cents?: number | null
           balance_checkout_session_id?: string | null
           balance_failed_at?: string | null
+          balance_customer_id?: string | null
           balance_last_error?: string | null
+          balance_lapsed_at?: string | null
           balance_payment_intent_id?: string | null
+          balance_payment_method_id?: string | null
           buyer_id?: string | null
           cancel_policy: string
           capture_attempts?: number
@@ -13869,6 +13876,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           items_cents: number
+          lapse_tax_done_at?: string | null
           note?: string
           payment_livemode?: boolean | null
           payment_plan?: string
@@ -13894,8 +13902,11 @@ export type Database = {
           balance_cents?: number | null
           balance_checkout_session_id?: string | null
           balance_failed_at?: string | null
+          balance_customer_id?: string | null
           balance_last_error?: string | null
+          balance_lapsed_at?: string | null
           balance_payment_intent_id?: string | null
+          balance_payment_method_id?: string | null
           buyer_id?: string | null
           cancel_policy?: string
           capture_attempts?: number
@@ -13920,6 +13931,7 @@ export type Database = {
           id?: string
           is_seed?: boolean
           items_cents?: number
+          lapse_tax_done_at?: string | null
           note?: string
           payment_livemode?: boolean | null
           payment_plan?: string

@@ -8,7 +8,7 @@
  * @mutate src/lib/declutter/tradesOnPost.ts |   if (saved?.acceptsTrades !== true) return "off"; |
  * @mutate src/lib/declutter/sellerDefaults.ts |   const trades = d.acceptsTrades === undefined ? {} : { accepts_trades: d.acceptsTrades }; |   const trades = { accepts_trades: d.acceptsTrades === true };
  * @mutate src/components/declutter/DeclutterManageListing.tsx |               <DeclutterTradeRules itemId={item.id} rowClassName={ROW} />\n |
- * @mutate src/components/declutter/DeclutterItemView.tsx |     {canAct && user && !free && it.status === "live" && <OfferTradeButton item={it} userId={user.id} />}\n |
+ * @mutate src/components/declutter/DeclutterItemView.tsx |     {canAct && user && !free && it.status === "live" && <Suspense fallback={null}><OfferTradeButton item={it} userId={user.id} /></Suspense>}\n |
  */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -112,7 +112,7 @@ describe("Declutter trades, client (slice 2)", () => {
   it("the switches and the picker are wired in (Settings default, Manage listing, item page, new listing)", () => {
     expect(src("src/components/declutter/DeclutterListingDefaults.tsx")).toMatch(/change\(\{ acceptsTrades: v === true \}\)/);
     expect(src("src/components/declutter/DeclutterManageListing.tsx")).toMatch(/<DeclutterTradeRules itemId=\{item\.id\}/);
-    expect(src("src/components/declutter/DeclutterItemView.tsx")).toMatch(/canAct && user && !free && it\.status === "live" && <OfferTradeButton/);
+    expect(src("src/components/declutter/DeclutterItemView.tsx")).toMatch(/canAct && user && !free && it\.status === "live" && <Suspense fallback=\{null\}><OfferTradeButton/);
     expect(src("src/components/declutter/useSellFlowState.ts")).toMatch(/tradesOnFromDefault\(user\.id, id\)/);
     // A save that leaves the choice out (Sell a bunch) never turns trades off.
     expect(src("src/lib/declutter/sellerDefaults.ts")).toMatch(/d\.acceptsTrades === undefined \? \{\} : \{ accepts_trades: d\.acceptsTrades \}/);

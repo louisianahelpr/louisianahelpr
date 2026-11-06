@@ -321,9 +321,10 @@ $fn$;
 REVOKE ALL ON FUNCTION public.shop_delivery_refund(uuid, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_delivery_refund(uuid, text) TO service_role;
 
--- What the app itself has refunded on the order's charge without closing the order (a delivery refund), so a payout
--- from that charge (the shop's items, the Helpr's trip) still finds it whole (declutter-money wholeCharge). A
--- shop_refunds row closes the order, and nobody is paid from a refunded order, so it is not counted.
+-- Every refund the app itself made on the order's charge (Stripe confirmed it), so a payout from that charge still
+-- finds it whole (declutter-money wholeCharge) and only an unrecorded refund (by hand, a dispute) stops it: a delivery
+-- refund (shop_delivery_refunds), and the order's own refund (shop_refunds). A refund AFTER the Helpr picked the order
+-- up leaves the Helpr's trip in the charge (shop_refund_amounts reserves it), and the Helpr is still paid from it.
 CREATE OR REPLACE FUNCTION public.shop_order_refunds_recorded_cents(p_order_id uuid)
 RETURNS integer
 LANGUAGE sql
@@ -331,10 +332,13 @@ STABLE
 SECURITY DEFINER
 SET search_path TO 'public', 'pg_temp'
 AS $fn$
-  SELECT COALESCE(sum(d.refund_cents), 0)::integer
-    FROM public.shop_delivery_refunds d
-    JOIN public.shop_orders o ON o.id = d.order_id
-   WHERE d.order_id = p_order_id AND d.status = 'succeeded' AND d.stripe_payment_intent_id = o.stripe_payment_intent_id;
+  SELECT (COALESCE((SELECT sum(d.refund_cents) FROM public.shop_delivery_refunds d
+                     WHERE d.order_id = o.id AND d.stripe_payment_intent_id = o.stripe_payment_intent_id
+                       AND d.status = 'succeeded'), 0)
+        + COALESCE((SELECT sum(r.refund_cents) FROM public.shop_refunds r
+                     WHERE r.order_id = o.id AND r.stripe_payment_intent_id = o.stripe_payment_intent_id
+                       AND r.status = 'succeeded'), 0))::integer
+    FROM public.shop_orders o WHERE o.id = p_order_id;
 $fn$;
 REVOKE ALL ON FUNCTION public.shop_order_refunds_recorded_cents(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_order_refunds_recorded_cents(uuid) TO service_role;

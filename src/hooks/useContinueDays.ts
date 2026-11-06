@@ -2,6 +2,7 @@ import { useContext } from "react";
 import { QueryClient, QueryClientContext, useQuery } from "@tanstack/react-query";
 import { fetchContinueDay, fetchContinueDays } from "@/lib/continueDayReads";
 import type { ContinueDay } from "@/lib/continueDayWords";
+import { continueDaysFromCores } from "@/lib/activityCoreContinueDays";
 
 const NONE: Readonly<Record<string, ContinueDay>> = Object.freeze({});
 
@@ -15,11 +16,17 @@ export function inProgressJobIds(jobs: readonly ({ id: string; status?: string |
  * Home and the to-do list share this read (one key), so Next up, Live now, Waiting and Coming up read the same day.
  */
 export function useContinueDays(jobIds: readonly string[]): Readonly<Record<string, ContinueDay>> {
+  // The first answer of the key comes with the activity cores the same load read (get_my_activity_cores
+  // 'active_continue_days', src/lib/activityCoreContinueDays.ts), dated by when they answered; every later read
+  // (an invalidation, staleness) is fetchContinueDays, so an older cores answer never overwrites a newer one.
+  const first = jobIds.length > 0 ? continueDaysFromCores(jobIds) : undefined;
   const q = useQuery({
     queryKey: ["job-continue-days", jobIds.join(",")],
     queryFn: () => fetchContinueDays(jobIds),
     enabled: jobIds.length > 0,
     staleTime: 30_000,
+    initialData: first?.days,
+    initialDataUpdatedAt: first?.at,
   });
   return q.data ?? NONE;
 }

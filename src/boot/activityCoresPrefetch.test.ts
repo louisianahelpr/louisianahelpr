@@ -9,7 +9,7 @@
 // @mutate src/lib/activityCores.ts |   const boot = takeActivityCoresPrefetch(userId); |   const boot = null as ReturnType<typeof takeActivityCoresPrefetch>;
 // @mutate src/lib/activityCores.ts |     return hasKeys(early, PART_KEYS[which]) ? early : readWhole(); |     return early ? (early as ActivityCoresPayload) : readWhole();
 // @mutate src/lib/activityCores.ts |     return hasKeys(early, PART_KEYS[which]) ? early : readWhole(); |     return isPayload(early) ? early : readWhole();
-// @mutate src/lib/activityCores.ts |  return { ...applied, ...posted, ...(days ? { open_continue_days: days } : {}) } as ActivityCoresPayload; |  return { ...applied, ...posted } as ActivityCoresPayload;
+// @mutate src/lib/activityCores.ts |  const merged = { ...applied, ...posted, ...(days ? { open_continue_days: days } : {}) } as ActivityCoresPayload; |  const merged = { ...applied, ...posted } as ActivityCoresPayload;
 // @mutate src/lib/activityCores.ts |       return part ? inFlight.parts[part] : inFlight.whole; |       return inFlight.whole;
 // @mutate src/boot/activityCoresPrefetch.ts |     answers = { posted: read(["posted"]), applied: read(["applied"]) }; |     answers = { posted: read(), applied: read() };
 // @mutate src/boot/activityCoresPrefetch.ts |   return path === "/posts" \|\| (path === "/jobs" && new URLSearchParams(search).get("tab") === "posted"); |   return path === "/posts";

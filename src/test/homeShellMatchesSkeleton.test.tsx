@@ -13,7 +13,7 @@
  * that the build inlines its CSS.
  *
  * @mutate src/pages/home/HomeDashboard.tsx |   useEffect(() => removeShellOncePainted(HOME_SHELL_ID), []); |
- * @mutate src/components/landing/HomeShellLeaves.tsx | !== "/home") dropHomeShell(); | === "/x") dropHomeShell();
+ * @mutate src/components/landing/HomeShellLeaves.tsx | !== "/home") document.getElementById(HOME_SHELL_ID)?.remove(); | === "/x") document.getElementById(HOME_SHELL_ID)?.remove();
  * @mutate src/components/DashboardRouteSkeleton.tsx | <Skeleton className="h-8 w-56 max-w-full rounded-ds-md" /> | <Skeleton className="h-9 w-56 max-w-full rounded-ds-md" />
  * @mutate index.html |         if (!stored) return; |
  * @mutate index.html | window.innerWidth >= 900) return; | window.innerWidth >= 9000) return;
@@ -114,7 +114,7 @@ describe("a signed-in phone's /home paints Home's own skeleton from the HTML (Q2
     expect(run("/home", []).shown, "a guest is sent to sign in").toBeNull();
     expect(run("/home", ["helpr_lang", "sb-abc-auth-token-code-verifier"]).shown, "not a session").toBeNull();
     expect(run("/home", [], { throws: true }).shown, "storage blocked").toBeNull();
-    for (const p of ["/", "/jobs", "/login", "/homes", "/home/x"]) expect(run(p).shown, p).toBeNull();
+    for (const p of ["/", "/login", "/homes", "/home/x"]) expect(run(p).shown, p).toBeNull();
     expect(run("/home", undefined, { width: 900 }).shown, "the desktop website has its rail and bar").toBeNull();
     expect(run("/home", undefined, { width: 899 }).shown).toBe("home");
     expect(run("/home", undefined, { search: "?job=1" }).shown, "a query can forward to the feed").toBeNull();
@@ -134,7 +134,7 @@ describe("a signed-in phone's /home paints Home's own skeleton from the HTML (Q2
     const home = blankComments(readFileSync(join(ROOT, "src/pages/home/HomeDashboard.tsx"), "utf8"));
     expect(home).toContain("useEffect(() => removeShellOncePainted(HOME_SHELL_ID), []);");
     const leaves = blankComments(readFileSync(join(ROOT, "src/components/landing/HomeShellLeaves.tsx"), "utf8"));
-    expect(leaves).toContain('if ((pathname.replace(/\\/+$/, "") || "/") !== "/home") dropHomeShell();');
+    expect(leaves).toContain('if ((pathname.replace(/\\/+$/, "") || "/") !== "/home") document.getElementById(HOME_SHELL_ID)?.remove();');
     const helper = blankComments(readFileSync(join(ROOT, "src/components/landing/homeShell.ts"), "utf8"));
     expect(helper).toContain('export const HOME_SHELL_ID = "lh-home-shell";');
     const app = blankComments(readFileSync(join(ROOT, "src/App.tsx"), "utf8"));

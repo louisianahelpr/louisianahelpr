@@ -2166,6 +2166,15 @@ body[data-scroll-locked] .preview-dock {
   z-index: 2147483000;
   overflow: hidden;
 }
+/* Q2705 B: and its /jobs skeleton (index.html #lh-jobs-shell). JobsSection removes it once mounted.
+   Guard: src/test/jobsShellMatchesSkeleton.test.tsx. */
+[data-lh-app-shell="jobs"] #lh-jobs-shell {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 2147483000;
+  overflow: hidden;
+}
 
 /* ── IN-PAGE SECTION RHYTHM (Q191, owner 2026-09-23) ────────────────────────
    "Update the spacing on every other phone width. Like all the profile tabs

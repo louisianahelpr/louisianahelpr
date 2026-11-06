@@ -42,6 +42,8 @@ export const SHELLS = [
   { id: "lh-signup-shell", htmlAttr: 'data-lh-auth-shell="signup"', show: `[data-lh-auth-shell="signup"] #lh-signup-shell${FIXED}` },
   // Q2705 B: a signed-in phone's /home (src/test/homeShellMatchesSkeleton.test.tsx).
   { id: "lh-home-shell", htmlAttr: 'data-lh-app-shell="home"', show: `[data-lh-app-shell="home"] #lh-home-shell${FIXED}` },
+  // Q2705 B: and its /jobs (src/test/jobsShellMatchesSkeleton.test.tsx).
+  { id: "lh-jobs-shell", htmlAttr: 'data-lh-app-shell="jobs"', show: `[data-lh-app-shell="jobs"] #lh-jobs-shell${FIXED}` },
 ];
 /**
  * Ceiling on the inlined block, gzip bytes; the build fails above it. This is a cap on what every page's HTML

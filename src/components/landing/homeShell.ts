@@ -5,7 +5,14 @@
  * so the error boundaries can import it. Guard: src/test/homeShellMatchesSkeleton.test.tsx.
  */
 export const HOME_SHELL_ID = "lh-home-shell";
+/** Q2705 B: the signed-in /jobs skeleton (#lh-jobs-shell). dropHomeShell takes it away too (every error card). */
+export const JOBS_SHELL_ID = "lh-jobs-shell";
 
 export function dropHomeShell(doc: Document = document): void {
   doc.getElementById(HOME_SHELL_ID)?.remove();
+  dropJobsShell(doc);
+}
+
+export function dropJobsShell(doc: Document = document): void {
+  doc.getElementById(JOBS_SHELL_ID)?.remove();
 }

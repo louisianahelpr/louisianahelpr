@@ -15,6 +15,7 @@ import { BUNDLE_RPC_ERROR_COPY } from "@/lib/declutter/bundleErrors";
 import { PROFILE_RPC_ERROR_COPY } from "@/lib/declutter/profileErrors";
 import { PROFILE_LINK_RPC_ERROR_COPY } from "@/lib/profileLink/errorCopy";
 import { HIRE_ME_RPC_ERROR_COPY } from "@/lib/hireMe";
+import { HOME_TALK_RPC_ERROR_COPY } from "@/lib/rentals/talkRpcErrorCopy";
 import {
   anonExecuteRevoked,
   clientRpcCalls,
@@ -75,6 +76,12 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 const UNREACHABLE: Allowlist = {
   // B112 (20261101200929): markTalkRead (src/lib/declutter/talkRead.ts) runs in the background when a Declutter chat
   // opens; any error is console.warn()ed and no message exists at that site.
+  // Q2209 (20261106182837): markHomeTalkRead (src/lib/rentals/talk.ts) runs in the background when a Homes chat
+  // loads; a failure only leaves the thread bold in Messages and the next poll tries again (HomeTalk.tsx).
+  rentals_mark_talk_read: {
+    feature_disabled: { reason: "no message exists at this site: markHomeTalkRead runs in the background and a failure only re-arms the next try" },
+    talk_not_found: { reason: "no message exists at this site: markHomeTalkRead runs in the background and a failure only re-arms the next try" },
+  },
   declutter_mark_talk_read: {
     invalid_kind: { reason: "no message exists at this site: markTalkRead sends a fixed kind ('order' or 'handover') and only warns on error" },
     item_not_found: { reason: "no message exists at this site: markTalkRead only warns on error (a chat the caller is not party to)" },
@@ -374,7 +381,9 @@ const PROFILE = PROFILE_RPC_ERROR_COPY as CopyTable;
 const PROFILE_LINK = PROFILE_LINK_RPC_ERROR_COPY as CopyTable;
 // "Hire me" on a Helpr's public page, likewise (src/lib/hireMe.ts, 20261104143437).
 const HIRE_ME = HIRE_ME_RPC_ERROR_COPY as CopyTable;
-const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...REFUND, ...SELLER_DELIVERY, ...GUARANTEE, ...MEETUP, ...DONATE, ...BUNDLE, ...PROFILE, ...PROFILE_LINK, ...HIRE_ME };
+// Homes messages (Q2209), likewise (src/lib/rentals/talkRpcErrorCopy.ts, 20261106182837).
+const HOME_TALK = HOME_TALK_RPC_ERROR_COPY as CopyTable;
+const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...REFUND, ...SELLER_DELIVERY, ...GUARANTEE, ...MEETUP, ...DONATE, ...BUNDLE, ...PROFILE, ...PROFILE_LINK, ...HIRE_ME, ...HOME_TALK };
 /** An RPC that checks the admin role, read from its latest definition. */
 const ADMIN_GATE = /\bhas_role\s*\([^;]*?'admin'/i;
 /**

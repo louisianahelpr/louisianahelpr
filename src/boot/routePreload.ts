@@ -63,6 +63,8 @@ const jobsListRoute = () => import("@/boot/jobsListRoute");
 // postJobRoute keeps PostJob's preload list out of the entry (see that file).
 const postJobRoute = () => import("@/boot/postJobRoute");
 const declutterItemRoute = () => import("@/boot/declutterItemRoute");
+// Q2705 (11-06): Help center and the /hire town pages (infoPageRoute.ts picks the page by path).
+const infoPageRoute = () => import("@/boot/infoPageRoute");
 
 /** Path -> the chunks that route cannot paint without. Exported for tests. */
 export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unknown>>; signedIn: Array<() => Promise<unknown>> }> = {
@@ -124,10 +126,18 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
     guest: [declutterItemRoute],
     signedIn: [declutterItemRoute],
   },
+  // Q2705 (11-06): public pages a guest opens cold from search, the footer or a support reply. Their page chunk
+  // waited for App.tsx to run (/help: frame 3.1 s, topic list 4.9 s live, Slow 4G + 4x). Not the policy pages
+  // (/legal, /rules, ...): measured, Legal already drew with the app (2.8 s), and starting it here drew it at 3.7 s.
+  "/help": { guest: [infoPageRoute], signedIn: [infoPageRoute] },
+  // Every /hire/<service>/<town> path reads this row (HIRE_TOWN_PATH).
+  "/hire/:service/:town": { guest: [infoPageRoute], signedIn: [infoPageRoute] },
 };
 
 /** App.tsx's /declutter/item/:id paths, which all read the one row above. */
 const DECLUTTER_ITEM_PATH = /^\/declutter\/item\/[^/]+$/;
+/** App.tsx's /hire/:service/:town paths, which all read the one row above. */
+const HIRE_TOWN_PATH = /^\/hire\/[^/]+\/[^/]+$/;
 
 /** Set on every <link rel="modulepreload"> the page preload adds; index.html's watchdog skips them. */
 const PAGE_PRELOAD_ATTR = "data-lh-page-preload";
@@ -149,7 +159,9 @@ const PAGE_PRELOAD_ATTR = "data-lh-page-preload";
  */
 export function preloadEntryRoute(pathname: string): void {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
-  const entry = ENTRY_ROUTE_CHUNKS[path] ?? (DECLUTTER_ITEM_PATH.test(path) ? ENTRY_ROUTE_CHUNKS["/declutter/item/:id"] : undefined);
+  const entry =
+    ENTRY_ROUTE_CHUNKS[path] ??
+    (DECLUTTER_ITEM_PATH.test(path) ? ENTRY_ROUTE_CHUNKS["/declutter/item/:id"] : HIRE_TOWN_PATH.test(path) ? ENTRY_ROUTE_CHUNKS["/hire/:service/:town"] : undefined);
   if (!entry) return;
   const before = new Set(document.querySelectorAll('link[rel="modulepreload"]'));
   for (const load of hasToken() ? entry.signedIn : entry.guest) {

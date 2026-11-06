@@ -21,10 +21,12 @@
 // @mutate supabase/migrations/20261018210400_shops_pickup_address.sql |              AND o.status = 'accepted'\n | \n
 // @mutate supabase/migrations/20261018210400_shops_pickup_address.sql |              AND public.shop_local_today() <= o.ready_date + 7\n | \n
 // @mutate supabase/migrations/20261018210400_shops_pickup_address.sql |              AND NOT public.is_caller_banned())); | ));
-// @mutate supabase/migrations/20261103052255_declutter_wanted_homes_admin_not_found_is_404.sql |   PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN | IF public.is_caller_banned() THEN
+// @mutate supabase/migrations/20261106180540_shops_pickup_zip_louisiana_only.sql |   PERFORM public.require_feature('shops');\n  IF public.is_caller_banned() THEN | IF public.is_caller_banned() THEN
 // @mutate supabase/migrations/20261018210400_shops_pickup_address.sql |   BEFORE INSERT ON public.shop_orders\n | BEFORE INSERT ON public.shop_order_lines\n
+// @mutate supabase/migrations/20261106180540_shops_pickup_zip_louisiana_only.sql |   IF p_postal_code IS NULL OR btrim(p_postal_code) !~ '^(70[013-8]\|71[0-4])[0-9]{2}$' THEN |   IF p_postal_code IS NULL OR btrim(p_postal_code) !~ '^7[01][0-9]{3}$' THEN
+// @mutate supabase/migrations/20261106180540_shops_pickup_zip_louisiana_only.sql | CHECK (postal_code ~ '^(70[013-8]\|71[0-4])[0-9]{2}$'); | CHECK (postal_code ~ '^7[01][0-9]{3}$');
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { blankSqlComments } from "./helpers/blankNonCode";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -80,5 +82,25 @@ describe("Shops pickup address stays private (20261018210400)", () => {
   it("5. a new order needs the pickup address", () => {
     expect(MIG).toMatch(/CREATE\s+TRIGGER\s+trg_shop_orders_need_pickup_address\s+BEFORE\s+INSERT\s+ON\s+public\.shop_orders\s+FOR\s+EACH\s+ROW\s+EXECUTE\s+FUNCTION\s+public\.shop_orders_need_pickup_address\(\)/i);
     expect(body("shop_orders_need_pickup_address")).toMatch(/RAISE\s+EXCEPTION\s+'pickup_address_missing'/i);
+  });
+
+  // Money (11-06): '^7[01][0-9]{3}$' let in Arkansas (715-719) and the unassigned 702xx/709xx, and a
+  // pickup sale is taxed where it is picked up. The newest save body and the newest CHECK on the
+  // column both use the shared Louisiana rule (src/lib/shipping/policy.ts isLouisianaZip).
+  it("6. the pickup ZIP is a Louisiana ZIP by the shared rule, at the save and in the CHECK", () => {
+    const LA = "'^(70[013-8]|71[0-4])[0-9]{2}$'";
+    expect(body("shops_save_my_pickup_address")).toContain(`btrim(p_postal_code) !~ ${LA}`);
+    expect(body("shops_save_my_pickup_address")).not.toContain("7[01][0-9]{3}");
+    // The newest migration that adds a postal_code CHECK on the table.
+    const files = readdirSync(MIG_DIR).filter((f) => f.endsWith(".sql")).sort();
+    let newest = "";
+    for (const f of files) {
+      const sql = blankSqlComments(readFileSync(join(MIG_DIR, f), "utf8"));
+      const m = sql.match(/ALTER\s+TABLE\s+public\.shop_pickup_addresses\s+ADD\s+CONSTRAINT\s+\w+\s+CHECK\s*\(\s*postal_code\s*~\s*('[^']*')\s*\)/gi);
+      if (m) newest = m[m.length - 1];
+      if (/ALTER\s+TABLE\s+public\.shop_pickup_addresses\s+DROP\s+CONSTRAINT\s+IF\s+EXISTS\s+shop_pickup_addresses_postal_code_check/i.test(sql)) expect(m, f).toBeTruthy();
+    }
+    expect(newest).toContain(LA);
+    expect(files.length).toBeGreaterThan(1000);
   });
 });

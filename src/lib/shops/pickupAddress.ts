@@ -9,6 +9,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { isLouisianaZip } from "@/lib/shipping/policy";
 import { rpcErrorMessage } from "./rpcErrorCopy";
 
 export interface PickupAddress {
@@ -19,8 +20,15 @@ export interface PickupAddress {
   postal_code: string;
 }
 
-/** Louisiana ZIP codes run 70001-71497; the server checks the same pattern. */
-export const LOUISIANA_ZIP = /^7[01][0-9]{3}$/;
+/**
+ * A 5-digit Louisiana ZIP: the shared rule (src/lib/shipping/policy.ts isLouisianaZip,
+ * USPS areas 700-701, 703-708, 710-714; 702/709 are unassigned and 715-719 are
+ * Arkansas). The server's CHECK and shops_save_my_pickup_address use the same rule
+ * (20261106180540); the column holds 5 digits, so a ZIP+4 is refused here too.
+ */
+export function isLouisianaZip5(zip: string): boolean {
+  return /^[0-9]{5}$/.test(zip) && isLouisianaZip(zip);
+}
 
 /** The owner's own shop's pickup address, or null when none is saved yet. */
 export async function fetchMyPickupAddress(): Promise<PickupAddress | null> {

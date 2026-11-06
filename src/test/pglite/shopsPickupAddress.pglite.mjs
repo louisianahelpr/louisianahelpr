@@ -185,6 +185,12 @@ const PICKUP = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261018210
 if (!skip) {
   for (let i = 0; i < 3; i++) await db.exec(PICKUP);
 }
+// 20261106180540: Louisiana ZIPs only (the old '^7[01][0-9]{3}$' let in Arkansas 715-719 and the
+// unassigned 702xx/709xx). ZIP_MIGRATION=skip leaves it out (RED on the section 2 ZIP checks).
+const ZIP_FIX = readFileSync(process.env.ZIP_MIGRATION_PATH ?? `${MIG_DIR}20261106180540_shops_pickup_zip_louisiana_only.sql`, "utf8");
+if (!skip && process.env.ZIP_MIGRATION !== "skip") {
+  for (let i = 0; i < 3; i++) await db.exec(ZIP_FIX);
+}
 
 async function as(role, uid, sql) {
   try {
@@ -243,6 +249,15 @@ ok(refused(await request(BUYER, lines([itemA, 1]), D1), /pickup_address_missing/
 
 // --- 2. saving it: the shop's owner only, Louisiana only
 ok(refused(await addr(OWNER, "12 Main St", null, "Broussard", "90210"), /pickup_address_not_in_louisiana/, "22023"), "a ZIP outside Louisiana is refused");
+for (const z of ["71601", "70200", "70999", "71500"]) {
+  ok(refused(await addr(OWNER, "12 Main St", null, "Pine Bluff", z), /pickup_address_not_in_louisiana/, "22023"), `${z} (Arkansas or unassigned) is refused by the save`);
+}
+// The table's own CHECK refuses them too (a service-role write that skips the RPC).
+for (const z of ["71601", "70200"]) {
+  ok(refused(await svc(`INSERT INTO public.shop_pickup_addresses (shop_id, owner_id, line1, city, postal_code) VALUES ('${shopA}', '${OWNER}', '12 Main St', 'Pine Bluff', '${z}')`), /shop_pickup_addresses_postal_code_louisiana/),
+    `the CHECK refuses ${z} on a direct write`);
+}
+ok((await svc(`SELECT count(*)::int AS n FROM public.shop_pickup_addresses WHERE shop_id = '${shopA}'`))[0]?.n === 0, "no refused ZIP left a row");
 ok(refused(await addr(OWNER, "x", null, "Broussard", "70518"), /invalid_pickup_address/, "22023"), "a one-letter street line is refused");
 ok(refused(await addr(OWNER, "12 Main St", null, null, "70518"), /invalid_pickup_address/, "22023"), "a missing city is refused");
 const noShop = await addr(BUYER, "12 Main St", null, "Broussard", "70518");

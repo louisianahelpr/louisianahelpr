@@ -12,6 +12,7 @@
  *   6. the newest get_my_activity_cores definition builds the key the client keeps (effective definition, not a file).
  * PGlite proof of the key: src/test/pglite/activityCoresActiveContinueDays.pglite.mjs.
  *
+ * @mutate src/lib/authSignOut.ts |     .then((m) => m?.resetActiveContinueDays()) |     .then(() => undefined)
  * @mutate src/hooks/useActivityData.ts |   if (cores) keepActiveContinueDays(userId, "posted", | if (false) keepActiveContinueDays(userId, "posted",
  * @mutate src/hooks/useActivityData.ts |   if (cores) keepActiveContinueDays(userId, "applied", | if (false) keepActiveContinueDays(userId, "applied",
  * @mutate src/hooks/useContinueDays.ts |     initialData: first?.days, |     initialData: undefined,
@@ -26,6 +27,7 @@ import { createElement, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { join } from "node:path";
+import { readFileSync } from "node:fs";
 import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "@/test/helpers/blankNonCode";
 
@@ -60,7 +62,7 @@ import { fetchPostedActivity, fetchAppliedActivity } from "@/hooks/useActivityDa
 import { forgetActivityCoresRead } from "@/lib/activityCores";
 import { forgetMyOpenContinueDaysRead } from "@/lib/continueDayReads";
 import { useContinueDays } from "@/hooks/useContinueDays";
-import { __resetActiveContinueDays } from "@/lib/activityCoreContinueDays";
+import { resetActiveContinueDays } from "@/lib/activityCoreContinueDays";
 
 const DAY = { id: "d1", job_id: "j1", proposed_by: "u1", new_date: "2099-01-02", new_start_time: "09:00:00", note: null, status: "set", helper_confirmed_at: null, proposer: "poster" };
 const JOB = (id: string, customer: string) => ({ id, customer_id: customer, helper_id: "h1", status: "in_progress", date_needed: "2099-01-01", start_time: "09:00" });
@@ -86,7 +88,7 @@ beforeEach(() => {
   rig.responses = {};
   forgetActivityCoresRead();
   forgetMyOpenContinueDaysRead();
-  __resetActiveContinueDays();
+  resetActiveContinueDays();
 });
 afterEach(() => {
   cleanup();
@@ -125,7 +127,7 @@ describe("Home's continue days come with the activity cores", () => {
     expect(dayReads()).toBe(1);
     a.unmount();
 
-    __resetActiveContinueDays();
+    resetActiveContinueDays();
     forgetActivityCoresRead();
     rig.issued = [];
     await loadCores(cores());
@@ -161,5 +163,16 @@ describe("Home's continue days come with the activity cores", () => {
     expect(body).toContain("'active_continue_days', (");
     expect(body).toMatch(/WHERE d\.status IN \('proposed', 'set'\)/);
     expect(body).toMatch(/STABLE SECURITY INVOKER/);
+  });
+
+  it("sign-out forgets the kept cores: the next account on the device gets no first answer from them", async () => {
+    await loadCores(cores());
+    const { continueDaysFromCores, resetActiveContinueDays: reset } = await import("@/lib/activityCoreContinueDays");
+    expect(continueDaysFromCores(["j1"])).toBeDefined();
+    reset(); // what signOutWithPushCleanup calls (src/lib/authSignOut.ts)
+    expect(continueDaysFromCores(["j1"])).toBeUndefined();
+    const src = readFileSync("src/lib/authSignOut.ts", "utf8");
+    const body = src.slice(src.indexOf("export async function signOutWithPushCleanup"));
+    expect(body.slice(0, body.indexOf("\n}\n"))).toMatch(/\bresetActiveContinueDays\(\)/);
   });
 });

@@ -143,7 +143,9 @@ CREATE TABLE public.rental_properties (id uuid PRIMARY KEY, owner_id uuid, label
   zip_code text, ownership_status text);
 CREATE TABLE public.rental_units (id uuid PRIMARY KEY, property_id uuid, owner_id uuid, label text);
 CREATE TABLE public.rental_tenancies (id uuid PRIMARY KEY, unit_id uuid, property_id uuid, landlord_id uuid, tenant_id uuid,
-  status text, invite_token_sha256 text, invite_expires_at timestamptz, accepted_at timestamptz);
+  status text, invite_token_sha256 text, invite_expires_at timestamptz, accepted_at timestamptz,
+  -- Q2058: rentals_request_tenant_window_open reads when an ended tenancy ended.
+  ended_at timestamptz);
 -- Homes listings (20261019043000): rentals_listing_visible reads rental_listings (+ rental_properties, profiles);
 -- the class SQL's fixture inserts one live listing (the columns it writes).
 CREATE TABLE public.rental_listings (id uuid PRIMARY KEY, unit_id uuid, property_id uuid, owner_id uuid, status text,
@@ -335,10 +337,16 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "rentals_public_listing_visible", "rentals_listing_photo_access", "rentals_listing_photo_deletable",
   // Homes rent tracker read policies (20261019073106).
   "rentals_tenancy_party",
+<<<<<<< HEAD
   // Homes messages (20261106182837): are a listing's threads open (reads rental_listings and profiles).
   "home_talk_listing_ok",
   // Q2058 (20261106215556): the tenant's repair-photo read; after feature_enabled_for_user and the photo list it calls.
   "is_tenant_repair_photo",
+=======
+  // Q2058 (20261106215556): the tenant's repair-photo read; after feature_enabled_for_user, the photo list and the
+  // tenant's window, which its SQL body calls.
+  "rentals_request_tenant_window_open", "is_tenant_repair_photo",
+>>>>>>> b41f49f0ad (feat(homes): Q2058 the tenant's photo access ends 90 days after the tenancy)
   // Payout setup only after a hire (20261025162003); after feature_enabled_for_user and job_payment_is_funded, which its SQL body calls.
   "payout_setup_hire_allowed", "referral_member_has_completed_job",
   // Card hold at post (Q2399, 20261027185146): listed = funded or the card held; job_is_funded's SQL body calls it.

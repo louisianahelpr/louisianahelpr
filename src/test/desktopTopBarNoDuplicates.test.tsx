@@ -17,6 +17,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const desktop = { on: false };
 vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => desktop.on }));
@@ -30,7 +31,9 @@ import { registerDesktopTitleSlot } from "@/components/header/PageTitleBar";
 
 afterEach(() => { cleanup(); desktop.on = false; });
 const labels = () => screen.queryAllByRole("button").map((b) => b.getAttribute("aria-label"));
-const draw = (el: JSX.Element) => render(<MemoryRouter>{el}</MemoryRouter>);
+// The phone "+" asks which sections are open to the viewer (useSectionTabs), as inside the app's own provider.
+const draw = (el: JSX.Element) =>
+  render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}><MemoryRouter>{el}</MemoryRouter></QueryClientProvider>);
 
 describe("the section top bar never repeats the desktop header (Q2221)", () => {
   it("phone: a section and Dashboard both show the bell, Messages, the + and the avatar (Dashboard: the logo too)", () => {

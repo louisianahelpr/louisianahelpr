@@ -337,16 +337,13 @@
       "button": 1
     },
     "src/components/postjob/detailsSection/PhotoReorderGrid.tsx": {
-      "button": 1,
-      "input": 1
+      "button": 1
     },
     "src/components/postjob/detailsSection/PhotoUpload.tsx": {
-      "button": 1,
-      "input": 1
+      "button": 1
     },
     "src/components/postjob/detailsSection/VideoScope.tsx": {
-      "button": 1,
-      "input": 1
+      "button": 1
     },
     "src/components/profile/AvatarCropDialog.tsx": {
       "input": 1

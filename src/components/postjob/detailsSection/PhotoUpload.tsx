@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { ImagePlus, X, Plus } from "lucide-react";
 import { useReducedMotion } from "@/lib/accessibility";
 import { createLazyModule } from "@/lib/lazyModule";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 
 /**
  * Drag-to-reorder (framer-motion's Reorder) lives in PhotoReorderGrid and is
@@ -153,11 +154,9 @@ export function PhotoUpload({
                 className="w-7 h-7"
                 style={{ color: "hsl(var(--bark))" }}
               />
-              <input
-                type="file"
+              <HiddenFileInput
                 accept="image/*"
                 multiple
-                className="sr-only"
                 aria-label={imageFiles.length === 0 ? "Add a photo (optional)" : "Add another photo"}
                 onChange={onImageSelect}
               />

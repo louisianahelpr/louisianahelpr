@@ -877,6 +877,18 @@ export const RPC_ERROR_COPY = {
     photo_not_uploaded: DC.photo_not_uploaded,
     task_not_found: DC.task_not_found,
   },
+  // 20261106211136: a shop delivery's answer (the shop is "the shop", not "the seller").
+  shop_helpr_answer_no_show: {
+    account_restricted: DC.account_restricted,
+    already_answered: DC.already_answered,
+    feature_disabled: "Shops isn't open for your account yet.",
+    no_show_answer_late: DC.no_show_answer_late,
+    no_show_not_reported: "The shop hasn't reported anything on this delivery.",
+    not_authenticated: DC.not_authenticated,
+    note_required: DC.note_required,
+    photo_not_uploaded: DC.photo_not_uploaded,
+    task_not_found: DC.task_not_found,
+  },
   declutter_report_no_show: {
     refund_payment_unknown: DC.refund_payment_unknown,
     // BUY-36 (20261031231150): reached through the steps it runs (the close, the confirm, the debt take, the lock).

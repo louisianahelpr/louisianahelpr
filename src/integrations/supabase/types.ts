@@ -21703,6 +21703,10 @@ export type Database = {
         Args: { p_order: string; p_reason: string; p_side: string; p_user: string }
         Returns: string
       }
+      shop_helpr_answer_no_show: {
+        Args: { p_note: string; p_photo_path?: string; p_task_id: string }
+        Returns: string
+      }
       shop_hand_refund_failed: {
         Args: { p_stripe_refund_id: string }
         Returns: string

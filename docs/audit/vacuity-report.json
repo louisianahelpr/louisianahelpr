@@ -1,12 +1,12 @@
 {
-  "generated": "2026-11-06T06:48:03.918Z",
-  "guards": 3627,
-  "registered": 3627,
+  "generated": "2026-11-06T11:56:51.262Z",
+  "guards": 3634,
+  "registered": 3634,
   "unregistered": [],
   "classA_noInventoryFloor": [
-    "e2e/happy-path/rail-css-cascade.spec.ts",
     "e2e/happy-path/state-matrix/state-sweep.spec.ts",
-    "src/test/buildScriptsAreDeployPaths.test.ts"
+    "src/test/fieldClearButtonShared.test.tsx",
+    "src/test/onlinePillTakesBadgeRow.test.tsx"
   ],
   "classD_selfReferential": [
     {

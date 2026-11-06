@@ -25,6 +25,8 @@
  * @mutate src/components/JobsSectionSkeleton.tsx |       {header}\n      <StatusBoxBones />\n | {header}\n
  * @mutate src/components/JobsSectionSkeleton.tsx |       titleCard={header} | titleCard={<div className="flex flex-col gap-4">{header}<Skeleton className="h-10 w-full rounded-full" aria-hidden /></div>}
  * @mutate src/components/JobsSectionSkeleton.tsx |       {!titleInBar && <h1 className="sr-only">Jobs</h1>} |
+ * @mutate src/components/JobsSectionSkeleton.tsx |               <Skeleton className="h-11 w-11 shrink-0 rounded-full" />\n |
+ * @mutate src/components/JobsSectionSkeleton.tsx |           <div className="app-top-bar flex items-center justify-between gap-2 h-16"> |           <div className="app-top-bar flex items-center justify-between gap-2 h-12">
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
@@ -76,15 +78,16 @@ describe("the /jobs placeholder draws the tab the URL opens on", () => {
 });
 
 describe("the placeholder's header is the loaded header's shape", () => {
-  it.each(["/jobs", "/jobs?tab=posted"])("%s: the phone Explore header's top row (chips, bell, photo), the tabs row, and a single h1", (url) => {
-    // The Explore header (owner, 2026-10-22): on a phone the top row is the section chips with the bell and the
-    // photo, 48px (no "+", owner 2026-10-28). Then the thin underline tabs, 44px.
+  it.each(["/jobs", "/jobs?tab=posted"])("%s: the phone header's top row (the Jobs title, bell, Messages, +, photo), the tabs row, and a single h1", (url) => {
+    // Nav redesign (owner, 2026-11-06): on a phone the top row is the visible section title, then the bell, Messages,
+    // the round "+" and the photo, 64px (AppTopBar's own h-16 row; the Explore chips row is gone). Then the thin
+    // underline tabs, 44px.
     const { container } = at(url);
-    const bar = container.querySelector(".app-top-bar.h-12");
-    expect(bar, "the top row's own h-12 box").not.toBeNull();
-    expect(bar!.querySelectorAll(".explore-switcher-bone"), "the chips' bone").toHaveLength(1);
-    expect(bar!.querySelectorAll(".top-bar-add-bone, .top-bar-title-bone"), "no + or title bone (phone)").toHaveLength(0);
-    expect(bar!.querySelectorAll(":scope > span"), "the bell and the photo").toHaveLength(2);
+    const bar = container.querySelector(".app-top-bar.h-16");
+    expect(bar, "the top row's own h-16 box").not.toBeNull();
+    expect(bar!.querySelectorAll(".explore-switcher-bone"), "no chips' bone").toHaveLength(0);
+    expect(bar!.firstElementChild?.textContent, "the visible title").toBe("Jobs");
+    expect(bar!.lastElementChild?.children.length, "the bell, Messages, the +, the photo").toBe(4);
     expect(container.querySelectorAll(".h-11.w-full"), "the 44px tabs row").toHaveLength(1);
     expect(container.querySelectorAll("h1")).toHaveLength(1);
   });
@@ -100,6 +103,7 @@ describe("Q1695: the status row's bones are the loaded chips' row", () => {
     expect(bones.length).toBe(4);
     for (const b of bones) expect(b.className.split(/\s+/)).toContain("h-11");
     expect(CHIP.split(/\s+/)).toContain("min-h-11");
-    expect(container.querySelectorAll(".h-16").length).toBe(0);
+    // No old 64px status tile anywhere (the top bar's own h-16 row is AppTopBar's, nav redesign 2026-11-06).
+    expect(container.querySelectorAll(".h-16:not(.app-top-bar)").length).toBe(0);
   });
 });

@@ -112,15 +112,15 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
     for (const t of tabs) expect((t.textContent ?? "").trim().split(/\s+/)).toHaveLength(1);
   });
 
-  it("on a phone the bar is the section chips, the bell, then the profile avatar: no + (the bottom bar's center + creates, 2026-10-20); the Jobs settings gear ends the tabs row (the Explore header, owner 2026-10-22)", () => {
+  it("on a phone the bar is the title Jobs, the bell, Messages, the + (Post a job) and the avatar (nav redesign, owner 2026-11-06); the Jobs settings gear ends the tabs row", () => {
     open("/jobs");
     const bar = screen.getByTestId("app-top-bar");
-    // The page's one h1 still names the section, for a screen reader; the chips say it on screen.
-    expect(within(bar).getByRole("heading", { level: 1 }).textContent).toBe("Jobs");
+    const h1 = within(bar).getByRole("heading", { level: 1 });
+    expect(h1.textContent).toBe("Jobs");
+    expect(h1.className.split(/\s+/)).not.toContain("sr-only");
     const labels = within(bar).getAllByRole("button").map((b) => b.getAttribute("aria-label"));
-    expect(labels).toEqual(["Help", "Notifications", "Profile, TP"]); // the avatar initials are in its name (WCAG 2.5.3, Q1816)
-    expect(within(bar).getByTestId("explore-switcher")).toBeTruthy();
-    expect(within(screen.getByTestId("explore-switcher")).getByRole("radio", { name: "Jobs" }).getAttribute("aria-checked")).toBe("true");
+    expect(labels).toEqual(["Notifications", "Messages", "Post a job", "Profile, TP"]); // the avatar initials are in its name (WCAG 2.5.3, Q1816)
+    expect(within(bar).queryByTestId("explore-switcher")).toBeNull();
     expect(within(screen.getByTestId("section-tabs")).getByRole("button", { name: "Jobs settings" })).toBeTruthy();
   });
 

@@ -19,7 +19,7 @@
  * @mutate src/pages/auth/Login.tsx | {t("login.passwordMissing")} | Add your password
  * @mutate src/pages/auth/Login.tsx | aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")} | aria-label={showPassword ? "Hide password" : "Show password"}
  * @mutate src/lib/i18n/enScreens.ts | "hero.subhead": "Hire help or find work. One account, real neighbors.", | "hero.subhead": "Hire help or find work.",
- * @mutate src/components/MobileNav.tsx |           {shown}\n        </span> |           {label}\n        </span>
+ * @mutate src/components/MobileNav.tsx |     const shown = shownKey ? tr(shownKey) : label; |     const shown = label;
  * @mutate src/lib/i18n/navLabels.ts |   "/messages": "nav.messages",\n | \n
  */
 import { describe, it, expect } from "vitest";
@@ -143,7 +143,8 @@ describe("the main nav (rail + phone dock) shows its words in the member's langu
   it("the dock and rail render the translated word, not the config label", () => {
     const dock = blankComments(readFileSync(join(ROOT, "src/components/MobileNav.tsx"), "utf8"));
     const rail = blankComments(readFileSync(join(ROOT, "src/components/DesktopSidebarNav.tsx"), "utf8"));
-    expect(dock.match(/<span\s+data-dock-label[\s\S]*?<\/span>/)?.[0] ?? "").toMatch(/\{shown\}/);
+    // The dock is icons only since 2026-11-06: the translated word is each tab's name (its aria-label).
+    expect(dock.match(/<TabButton[\s\S]*?<\/TabButton>/)?.[0] ?? "").toMatch(/ariaLabel=\{[^\n]*\bshown\b/);
     expect(dock).toMatch(/const shown = shownKey \? tr\(shownKey\) : label;/);
     expect(rail).toMatch(/const shown = shownKey \? tr\(shownKey\) : label;/);
     expect(rail).toMatch(/style=\{\{ fontWeight: active \? 700 : 500 \}\}\s*>\s*\{shown\}/);

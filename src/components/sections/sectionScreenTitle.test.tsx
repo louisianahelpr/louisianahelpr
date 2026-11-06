@@ -8,7 +8,7 @@
  * themselves (SectionScreen: the section, or Home; AppPage: the page's title),
  * and a page's own, more specific title still wins.
  *
- * @mutate src/components/sections/SectionScreen.tsx |   usePageTitle(`${title ?? "Home"} — Helpr`); |   void title;
+ * @mutate src/components/sections/SectionScreen.tsx |   usePageTitle(`${title ?? "Dashboard"} — Helpr`); |   void title;
  * @mutate src/components/AppPage.tsx |   usePageTitle(`${title} — Helpr`); |   void title;
  */
 import { describe, it, expect, vi } from "vitest";
@@ -38,9 +38,10 @@ describe("D12: every in-app screen names the browser tab", () => {
     expect(document.title).toBe(`${t} — Helpr`);
   });
 
-  it("Home (no title on screen: the logo shows)", () => {
+  // "Home" is "Dashboard" since the nav redesign (owner 2026-11-06: not to be confused with Homes).
+  it("Dashboard (no title on screen: the logo shows)", () => {
     render(<MemoryRouter><SectionScreen><p>x</p></SectionScreen></MemoryRouter>);
-    expect(document.title).toBe("Home — Helpr");
+    expect(document.title).toBe("Dashboard — Helpr");
   });
 
   it("an AppPage screen: its own title", () => {

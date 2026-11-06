@@ -6,9 +6,11 @@
  *   boxes: the most urgent to-do with its action), the To do list COLLAPSED on
  *   load and opened by Next up's "See all", the member's sections as boxes,
  *   Coming up. No "+" and no row of category pills.
- * - Bottom nav (owner-approved mock-up, 2026-10-20, superseding 10-19's six
- *   tabs): Home, Explore, the center "+", MESSAGES (unread badge), You. The
- *   sections live in Explore (src/test/centerCreateNav.test.tsx).
+ * - Bottom nav (owner nav redesign, 2026-11-06, superseding 10-20's center "+"
+ *   bar): Dashboard, Jobs, Declutter, Shops, Homes, icons only; each section
+ *   tab carries its share of the to-do count and is lit anywhere inside its
+ *   section. Messages and You moved to the top bar
+ *   (src/test/centerCreateNav.test.tsx).
  * - Every section opens on Browse, and Browse is the leftmost segment.
  * - Status boxes filter: tap = only that group (pressed), tap again = all.
  * - Customize hides a section from Explore AND Home; the last one cannot be
@@ -27,7 +29,7 @@
  * @mutate src/pages/home/homeDashboard/needsYouTodos.ts |         title: n > 0 ? (n === 1 ? "Review 1 applicant" |         title: j.title, _t: n > 0 ? (n === 1 ? "Review 1 applicant"
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |     const liveNow = derive ? derive.deriveLiveNow(pj, aa, posted.helperNames ?? {}, continueDays) : null; |     const liveNow = null;
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       waiting: todos.length \|\| !derive ? null : derive.deriveWaiting( |       waiting: true ? null : derive?.deriveWaiting(
- * @mutate src/components/mobileNav/dockItems.ts |     right: [{ path: messages.path, icon: messages.icon, label: messages.label, badgeKey: "messages" }, youItem], |     right: [youItem],
+ * @mutate src/components/mobileNav/dockItems.ts |     { path: jobs.path, icon: jobs.icon, label: jobs.label, badgeKey: "todoJobs" }, |     { path: jobs.path, icon: jobs.icon, label: jobs.label },
  * @mutate src/components/sections/ExploreSwitcher.tsx |   const options = visible.filter(isListed).map((s) => { |   const options = [...visible].reverse().filter(isListed).map((s) => {
  * @mutate src/components/sections/SectionTabs.tsx |   const options = [{ value: BROWSE as string, label: "Browse" }, ...tabs.map( |   const options = [...tabs.map(
  * @mutate src/components/sections/StatusBoxes.tsx |           if (p.get("status") === k) p.delete("status"); |           if (false) p.delete("status");
@@ -35,7 +37,10 @@
  * @mutate src/components/sections/useSectionPrefs.ts |   if (next.size >= ALL.length) return true; |   if (next.size > ALL.length) return true;
  * @mutate src/pages/home/HomeDashboard.tsx |               ) : summary.todosLoading ? ( |               ) : false ? (
  * @mutate src/pages/home/homeDashboard/useHomeSummary.ts |       todosLoading: todosLoading && !(posted.loadError \|\| applied.loadError), |       todosLoading: false,
- * @mutate src/components/mobileNav/mobileNavHelpers.ts |   "/explore": ["/jobs", "/posts", "/declutter", "/shops", "/rentals", "/quotes"], |   "/explore": [],
+ * @mutate src/components/mobileNav/mobileNavHelpers.ts |   "/jobs": ["/jobs/", "/posts", "/quotes"], |   "/jobs": ["/jobs/"],
+ * @mutate src/components/mobileNav/mobileNavHelpers.ts |   "/declutter": ["/declutter/"], |   "/declutter": [],
+ * @mutate src/components/mobileNav/mobileNavHelpers.ts |   "/shops": ["/shops/"], |   "/shops": [],
+ * @mutate src/components/mobileNav/mobileNavHelpers.ts |   "/rentals": ["/rentals/"], |   "/rentals": [],
  */
 import { saveReservedHeight } from "@/pages/home/homeDashboard/reservedHeight";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
@@ -184,22 +189,31 @@ const exploreLabels = () =>
   [...document.querySelectorAll('[data-testid="explore-switcher"] [role="radio"]')].map((b) => b.getAttribute("aria-label") || b.textContent);
 
 describe("the bottom nav", () => {
-  it("is Home, Explore, the center +, Messages (with its unread badge), You", () => {
+  it("is Dashboard, Jobs (with its to-do share as a badge), Declutter, Shops, Homes", () => {
     wrap(<MobileNav />);
     // A tab with a badge is named with its visible count first (WCAG 2.5.3, axe label-content-name-mismatch, Q1816).
-    expect(dockLabels()).toEqual(["Home", "3 Explore", "Create", "3 Messages", "You"]);
-    const msgs = screen.getByRole("button", { name: "3 Messages" });
-    expect(msgs.textContent).toContain("3");
+    expect(dockLabels()).toEqual(["Dashboard", "3 Jobs", "Declutter", "Shops", "Homes"]);
+    const jobs = screen.getByRole("button", { name: "3 Jobs" });
+    expect(jobs.textContent).toBe("3");
+    // Messages left the dock for the top bar (its badge is the top bar's now).
+    expect(screen.queryByRole("button", { name: /Messages$/ })).toBeNull();
   });
 
-  it.each(["/jobs", "/jobs/settings", "/jobs/00000000-0000-4000-8000-000000000001", "/posts", "/declutter", "/shops/mine", "/rentals"])(
-    "%s lights Explore, not Home (every section lives in Explore)",
-    (at) => {
-      wrap(<MobileNav />, at);
-      expect(screen.getByRole("button", { name: /^(\d+\+? )?Explore$/ }).getAttribute("aria-current")).toBe("page");
-      expect(screen.getByRole("button", { name: "Home" }).getAttribute("aria-current")).toBeNull();
-    },
-  );
+  it.each([
+    ["/jobs", "Jobs"],
+    ["/jobs/settings", "Jobs"],
+    ["/jobs/00000000-0000-4000-8000-000000000001", "Jobs"],
+    ["/posts", "Jobs"],
+    ["/declutter", "Declutter"],
+    ["/declutter/settings", "Declutter"],
+    ["/shops/mine", "Shops"],
+    ["/rentals", "Homes"],
+    ["/rentals/requests/r1", "Homes"],
+  ])("%s lights %s, not Dashboard (a section tab is lit anywhere inside its section)", (at, tab) => {
+    wrap(<MobileNav />, at);
+    const lit = [...document.querySelectorAll('nav[aria-label="Bottom navigation"] button[aria-current="page"]')].map((b) => b.getAttribute("aria-label")?.replace(/^\d+\+? /, ""));
+    expect(lit).toEqual([tab]);
+  });
 
   it("Customize: a hidden section leaves Explore; the rest keep their order", () => {
     localStorage.setItem(PREFS, JSON.stringify({ hidden: ["declutter", "shops"] }));
@@ -360,7 +374,8 @@ describe("Home", () => {
   it("Next up's See all is the ONLY control for the list: no second collapsed bar", async () => {
     wrap(<HomeDashboard />);
     await screen.findByTestId("next-up-see-all");
-    const controls = [...document.querySelectorAll("[aria-expanded]")];
+    // The top bar's "+" (it opens the Create sheet, nav redesign 2026-11-06) is not a control for the list.
+    const controls = [...document.querySelectorAll("[aria-expanded]")].filter((e) => !e.closest('[data-testid="app-top-bar"]'));
     expect(controls.map((e) => e.getAttribute("data-testid"))).toEqual(["next-up-see-all"]);
     expect(screen.queryByTestId("todo-collapsed")).toBeNull();
     expect(screen.queryByText(/^To do \(\d+\)$/)).toBeNull();

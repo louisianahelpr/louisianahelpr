@@ -1,15 +1,18 @@
 /**
  * UX-6 (owner approved 2026-10-29): one Help entry on every signed-in screen. It opens Get help now with the shared
  * "within a few hours" promise and goes to the same /support form as the job page's GetHelpNow. Renders the REAL
- * HelpEntry and follows its navigation; pins the three shared mounts.
+ * HelpEntry and follows its navigation; pins the shared mounts.
+ *
+ * Nav redesign (owner, 2026-11-06 ~11:35 AM: "Help moves into the You menu"): the phone top bar no longer carries
+ * the Help button; You (the top bar's photo) > "Talk to a real person" (captioned Help) opens the Help screen in ONE
+ * tap. The desktop top nav and the sub-screen PageHeader keep their Help entry.
  *
  * @mutate src/components/help/HelpEntry.tsx | const SUPPORT_PATH = "/support?topic=message"; | const SUPPORT_PATH = "/support";
  * @mutate src/components/help/HelpEntryPanel.tsx | <p className="text-ds-13 text-muted-foreground">{SUPPORT_REPLY_PROMISE}</p> | <p className="text-ds-13 text-muted-foreground">We'll get back to you.</p>
  * @mutate src/components/DesktopTopNav.tsx | <HelpEntry /> | {null}
- * @mutate src/components/sections/AppTopBar.tsx | <HelpEntry /> | {null}
- * @mutate src/components/sections/AppTopBar.tsx | className="inline-flex max-[369px]:hidden" | className="inline-flex"
- * @mutate src/components/sections/AppTopBar.tsx | <HelpEntry triggerClassName="h-11 w-10" /> | <HelpEntry />
- * @mutate src/components/sections/AppTopBar.tsx | gap-1 min-[360px]:gap-0 shrink-0 | gap-1 shrink-0
+ * @mutate src/components/profile/profileLanding/YouMenu.tsx |   { key: "support", label: "Talk to a real person" },\n |
+ * @mutate src/components/profile/profileLanding/YouMenu.tsx | onSelect={(key) => (key === ADMIN_ROW.key ? navigate("/admin") : onSelectTab(key))} | onSelect={(key) => (key === ADMIN_ROW.key ? navigate("/admin") : key === "support" ? undefined : onSelectTab(key))}
+ * @mutate src/components/profile/profileLanding/YouMenu.tsx |   support: "Help",\n}; |   support: "",\n};
  * @mutate src/components/PageHeader.tsx | <HelpEntry /> | {null}
  * @mutate src/components/help/HelpEntry.tsx | if (!user \|\| pathname.startsWith("/admin")) return null; | if (pathname.startsWith("/admin")) return null;
  * @mutate src/components/help/HelpEntry.tsx | if (!user \|\| pathname.startsWith("/admin")) return null; | if (!user) return null;
@@ -19,11 +22,14 @@ import { readFileSync } from "node:fs";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { HelpEntry } from "@/components/help/HelpEntry";
+import { YouMenu } from "@/components/profile/profileLanding/YouMenu";
+import { TAB_TITLES } from "@/pages/profile/types";
 import { SUPPORT_REPLY_PROMISE } from "@/lib/supportTopics";
 import { blankComments } from "./helpers/blankNonCode";
 
 const auth = vi.hoisted(() => ({ user: { id: "u1" } as { id: string } | null }));
-vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: auth.user, profile: null }) }));
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: auth.user, profile: null, isAdmin: false }) }));
+vi.mock("@/pages/home/homeDashboard/homeMoney", () => ({ useHomeMoney: () => ({ coming: null, held: null }) }));
 
 const read = (p: string) => blankComments(readFileSync(p, "utf8")).replace(/\s+/g, " ");
 
@@ -75,16 +81,25 @@ describe("the one Help entry", () => {
     expect(entry).not.toContain("@/lib/supportTopics");
   });
 
-  it("on Explore's chip row, stays out of the way: hidden below 360px, narrower and with no gaps above it", () => {
-    const bar = read("src/components/sections/AppTopBar.tsx");
-    expect(bar).toContain('className="inline-flex max-[369px]:hidden"');
-    expect(bar).toContain('<HelpEntry triggerClassName="h-11 w-10" />');
-    expect(bar).toContain("gap-1 min-[360px]:gap-0 shrink-0");
+  it("You > Help is one tap: the You menu's 'Talk to a real person' row (captioned Help) opens the Help screen", () => {
+    const opened: string[] = [];
+    render(
+      <MemoryRouter>
+        <YouMenu onSelectTab={(k) => opened.push(k)} onRequestLogout={() => {}} onRequestDelete={() => {}} />
+      </MemoryRouter>,
+    );
+    const row = document.querySelector('[data-you-row="support"]') as HTMLElement;
+    expect(row, "no Help row in the You menu").toBeTruthy();
+    expect(row.textContent).toContain("Talk to a real person");
+    expect(row.querySelector('[data-you-caption="support"]')?.textContent).toBe("Help");
+    fireEvent.click(row);
+    expect(opened).toEqual(["support"]);
+    expect(TAB_TITLES.support).toBe("Help");
   });
 
-  it("is mounted from the shared bars", () => {
+  it("is mounted from the shared bars (the desktop top nav, a sub-screen's header), and no longer from the phone top bar", () => {
     expect(read("src/components/DesktopTopNav.tsx")).toContain("<HelpEntry />");
-    expect(read("src/components/sections/AppTopBar.tsx")).toContain("<HelpEntry />");
     expect(read("src/components/PageHeader.tsx")).toContain("<HelpEntry />");
+    expect(read("src/components/sections/AppTopBar.tsx")).not.toContain("<HelpEntry");
   });
 });

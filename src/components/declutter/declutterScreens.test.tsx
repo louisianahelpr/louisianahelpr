@@ -275,12 +275,15 @@ describe("Declutter screens", () => {
     expect(screen.queryByRole("button", { name: "Sell an item" })).toBeNull();
   });
 
-  it("switch on: Browse (on a phone, selling starts from the bottom bar's center +), and an empty state in plain words", async () => {
+  it("switch on: Browse (on a phone, selling starts from the top bar's +), and an empty state in plain words", async () => {
     at("/declutter", <DeclutterPage />);
-    // A phone's bar is the section chips (the Explore header, owner 2026-10-22); the page's one h1 names the section.
+    // A phone's bar names the section (nav redesign, owner 2026-11-06: the bottom bar switches sections, no chips row).
     expect(screen.getByRole("heading", { level: 1, name: "Declutter" })).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "Declutter" }).getAttribute("aria-checked")).toBe("true");
-    expect(screen.queryByRole("button", { name: "Sell an item" })).toBeNull();
+    expect(screen.queryByRole("radio", { name: "Declutter" })).toBeNull();
+    // ONE way to sell on Browse: the top bar's "+" (Sell an item), no second pill in the page.
+    const sell = screen.getAllByRole("button", { name: "Sell an item" });
+    expect(sell).toHaveLength(1);
+    expect(sell[0].getAttribute("data-testid")).toBe("top-bar-create");
     expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
   });
 

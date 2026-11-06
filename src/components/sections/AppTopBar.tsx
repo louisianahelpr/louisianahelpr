@@ -1,5 +1,5 @@
-import { Plus, Settings } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { MessageSquare, Plus, Settings } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import HelprMark from "@/components/HelprMark";
 import NotificationPanel from "@/components/notificationPanel/NotificationBell";
 import { UserAvatar } from "@/components/UserAvatar";
@@ -8,15 +8,19 @@ import { useAgeGate } from "@/hooks/useAgeGate";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { Button } from "@/components/ui/button";
 import { PageTitleBar } from "@/components/header/PageTitleBar";
-import { HelpEntry } from "@/components/help/HelpEntry";
-import { ExploreSwitcher } from "./ExploreSwitcher";
 import { sectionByKey, type SectionKey } from "./sectionsConfig";
+import { useSharedUnreadCount } from "@/components/mobileNav/navUnreadStore";
+import { setCreateSheetOpen, useCreateSheetOpen } from "@/components/mobileNav/createSheetStore";
+import { hapticMedium } from "@/lib/haptics";
 import { useLanguage } from "@/lib/i18n/language";
 import type { MsgKey } from "@/lib/i18n/en";
 import { avatarButtonLabel } from "@/lib/avatarImage";
 
 /** The tabs row's icon controls (search, filters, map, gear): 40px ghost squares with a 20px glyph, centred on the 44px tabs. */
 const TABS_ROW_ICON_CLASS = "h-10 w-10 shrink-0 self-center btn-press text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&>svg]:w-5 [&>svg]:h-5";
+
+/** The soft create look (the light olive tint, the olive glyph) the desktop "+ Post a job" and the phone "+" share. */
+const SECTION_ADD_TINT = "rounded-full shadow-none bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] ctl-tint-on-tint";
 
 /** The section's soft "+ Post a job" (etc.) for the DESKTOP bar; the /jobs loading frame draws the same one so the bar
  *  does not change when the page settles (src/test/sectionLoadingHeaderIsSettled.test.tsx). */
@@ -40,7 +44,7 @@ export function SectionAddButton({ section }: { section: SectionKey }) {
       data-testid="section-add"
       onClick={isPost ? gate.gate("post", go) : go}
       {...(isPost ? gate.gatedProps("post") : {})}
-      className="rounded-full px-4 gap-1.5 font-semibold shadow-none bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))] ctl-tint-on-tint [&>svg]:w-[18px] [&>svg]:h-[18px]"
+      className={`${SECTION_ADD_TINT} px-4 gap-1.5 font-semibold [&>svg]:w-[18px] [&>svg]:h-[18px]`}
     >
       <Plus aria-hidden />
       {add.cta ?? add.label}
@@ -48,13 +52,97 @@ export function SectionAddButton({ section }: { section: SectionKey }) {
   );
 }
 
+/** What the phone top bar's "+" makes, read from the route: a section's own create, or ("sheet") the Create sheet,
+ *  which is Dashboard's and every screen's outside a section (owner 11-06: the + is on every screen). */
+function phoneCreateTarget(pathname: string): SectionKey | "sheet" {
+  if (pathname.startsWith("/jobs") || pathname.startsWith("/posts")) return "jobs";
+  if (pathname.startsWith("/declutter")) return "declutter";
+  if (pathname.startsWith("/shops")) return "shops";
+  if (pathname.startsWith("/rentals")) return "homes";
+  return "sheet";
+}
+
 /**
- * The phone top bar (owner final decisions, 2026-10-19). Right side: the
- * NOTIFICATIONS bell, then the PROFILE avatar at the far right. Left: the logo
- * on Home, the section title elsewhere. Messages lives in the bottom nav.
+ * THE PHONE "+" (owner, nav redesign 2026-11-06): it left the bottom bar's centre for the top bar, per section. On
+ * Jobs it posts a job, on Declutter it sells, on Shops and Homes it is their own create (sectionsConfig `add`), and on
+ * Dashboard and every other screen it opens the Create sheet ("What are we doing?"). It wears the desktop bar's soft "+ Post a job" look
+ * (SECTION_ADD_TINT: the light olive tint with the olive glyph; owner 2026-11-06: "light green background with the
+ * primary green plus"), so the one create control looks the same on both. Guard: src/test/centerCreateNav.test.tsx.
+ */
+function PhoneCreateButton() {
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const gate = useAgeGate();
+  const { t: tr } = useLanguage();
+  const target = phoneCreateTarget(pathname);
+  const add = target === "sheet" ? null : sectionByKey(target).add;
+  const isPost = add?.path === "/post-job";
+  const sheetOpen = useCreateSheetOpen();
+  const make = () => {
+    hapticMedium();
+    if (add) navigate(add.path);
+    else setCreateSheetOpen((o) => !o);
+  };
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="iconCompact"
+      aria-label={add ? add.label : tr("nav.create")}
+      {...(add ? {} : { "aria-haspopup": "dialog" as const, "aria-expanded": sheetOpen })}
+      data-testid="top-bar-create"
+      data-create-target={target}
+      onClick={isPost ? gate.gate("post", make) : make}
+      {...(isPost ? gate.gatedProps("post") : {})}
+      className={`${SECTION_ADD_TINT} [&>svg]:w-[22px] [&>svg]:h-[22px]`}
+    >
+      <Plus aria-hidden strokeWidth={2.5} />
+    </Button>
+  );
+}
+
+/** Messages, with its unread badge, beside You (owner, nav redesign 2026-11-06: it left the bottom bar). */
+function PhoneMessagesButton() {
+  const navigate = useNavigate();
+  const { user } = useCurrentUser();
+  // READ ONLY: MobileNav (on every phone page with this bar) fills the shared store; this never opens one.
+  const unreadCount = useSharedUnreadCount(user?.id);
+  const { t: tr } = useLanguage();
+  const n = unreadCount > 9 ? "9+" : String(unreadCount);
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="iconCompact"
+      // WCAG 2.5.3: the count first, then the word, as the dock's badge did ("3 Messages").
+      aria-label={unreadCount > 0 ? `${n} ${tr("nav.messages")}` : tr("nav.messages")}
+      data-testid="top-bar-messages"
+      onClick={() => navigate("/messages")}
+      className="relative text-muted-foreground hover:text-foreground [&>svg]:w-[22px] [&>svg]:h-[22px]"
+    >
+      <MessageSquare aria-hidden />
+      {unreadCount > 0 && (
+        <span
+          data-top-bar-badge="messages"
+          aria-hidden
+          className="absolute top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full text-ds-10 flex items-center justify-center font-bold px-1"
+          // Count badges are --alert, never rust (spec v2 §1.1), as the dock's were.
+          style={{ background: "hsl(var(--alert))", color: "#fff" }}
+        >
+          {n}
+        </span>
+      )}
+    </Button>
+  );
+}
+
+/**
+ * The phone top bar (owner, nav redesign 2026-11-06, order 11:42 AM). Right side: the NOTIFICATIONS bell,
+ * MESSAGES (with its unread badge), the "+" (PhoneCreateButton: the section's own create, else the Create sheet),
+ * then the PROFILE avatar (You) at the far right. Left: the logo on Dashboard, the section title elsewhere. Help is
+ * inside You, not on the bar. Guard: src/test/centerCreateNav.test.tsx.
  *
- * NO SECTION "+" ON A PHONE: the bottom bar's center "+" creates. The desktop
- * website's section bar carries the section's soft "+ Post a job" / "+ Sell an
+ * The desktop website's section bar carries the section's soft "+ Post a job" / "+ Sell an
  * item" / "+ Open a shop" / "+ Add a property" beside the bell (owner 2026-10-28,
  * reversing the same morning's removal). Guard: src/test/topBarAddMatchesBell.test.tsx.
  *
@@ -72,20 +160,14 @@ export function AppTopBar({
   showProfile = true,
   desktopGap = true,
 }: {
-  /** Omit on Home: the logo shows instead. */
+  /** Omit on Dashboard: the logo shows instead. */
   title?: string;
   /**
-   * One of Explore's four sections (2026-10-20, mock-up 6 + HELPR-DESIGN-SPEC
-   * §3): on a PHONE the bar reads "Explore" (the switcher under it names the
-   * section). The desktop website keeps the section's title. Guard:
-   * src/test/centerCreateNav.test.tsx.
+   * Marks one of the four section screens. Since the nav redesign (owner 2026-11-06) it changes nothing on its own:
+   * the phone bar shows the section's own title (the bottom bar switches sections, so the Explore chips row left).
    */
   explore?: boolean;
-  /**
-   * The Explore section this bar heads (owner, 2026-10-22, the Explore header): on a PHONE the bar is the four
-   * section chips (ExploreSwitcher) on one line with the bell and the photo, and no visible title (the section's
-   * name stays the page's one h1, for a screen reader). The section's gear moves to its tabs row (SectionTabs `end`).
-   */
+  /** The section this bar heads: on the desktop website it draws the section's soft "+ Post a job" (etc.). */
   section?: SectionKey;
   /** False on You itself (board 18): the bar keeps only the bell, since you are already on your profile. */
   showProfile?: boolean;
@@ -95,31 +177,25 @@ export function AppTopBar({
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
   const isWebDesktop = useIsWebDesktop();
-  const phoneExplore = explore && !isWebDesktop;
-  const chipsRow = phoneExplore && !!section;
   const { t: tr } = useLanguage();
-  const title = chipsRow ? sectionTitle : phoneExplore ? tr("nav.explore") : sectionTitle;
+  // Nav redesign (owner 2026-11-06): the phone's section bars name their section; the Explore chips row left with
+  // Explore (the bottom bar switches sections now). `explore` and `section` stay for the desktop bar.
+  void explore;
+  const title = sectionTitle;
   if (isWebDesktop && !title) return null;
   const actions = isWebDesktop && section && sectionByKey(section).add ? <SectionAddButton section={section} /> : undefined;
-  // Help (UX-6), the bell and the photo: the same controls on every phone bar.
+  // The phone bar's right side, in the owner's order (2026-11-06): the bell, Messages, the "+", You.
+  // Help moved INTO You (You > Help, one tap); it is no longer on the bar.
   const personal = (
     <>
-      {!isWebDesktop && (chipsRow ? (
-        // EXPLORE'S ROW (lead, 2026-10-30, UX-6): the four chips come first. Below 360px, where Help would push a chip
-        // off the row, it is hidden here (You > Help and every sub-screen still have it). At 375 Help is 40px wide and
-        // the row drops its 4px gaps, so the three narrower chips stay even. Guard: src/test/oneHelpEntry.test.tsx.
-        <span data-testid="explore-row-help" className="inline-flex max-[369px]:hidden">
-          <HelpEntry triggerClassName="h-11 w-10" />
-        </span>
-      ) : (
-        <HelpEntry />
-      ))}
       {/* AUD31-74: a guest (Declutter Browse is open to them) has no notifications: no bell, as no photo. */}
       {user && !isWebDesktop && (
       <span data-testid="top-bar-bell">
         <NotificationPanel triggerClassName="h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px] [&>span]:top-0.5 [&>span]:-right-0.5" />
       </span>
       )}
+      {user && !isWebDesktop && <PhoneMessagesButton />}
+      {user && !isWebDesktop && <PhoneCreateButton />}
       {user && !isWebDesktop && showProfile && (
         <Button
           type="button"
@@ -142,7 +218,6 @@ export function AppTopBar({
       actions={actions}
       desktopGap={desktopGap}
       phone={
-        !(chipsRow && section) ? (
         <header className="app-top-bar flex items-center justify-between gap-2 h-16" data-testid="app-top-bar">
           {title ? (
             <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1>
@@ -153,17 +228,6 @@ export function AppTopBar({
             {personal}
           </div>
         </header>
-        ) : (
-          // THE EXPLORE HEADER'S TOP ROW (owner, 2026-10-22): no "Explore" title; the section chips on one line with
-          // the bell and the photo, 48px (the chips' own height). Guard: src/test/exploreHeaderSteady.test.ts.
-          <header className="app-top-bar explore-top-row flex items-center gap-1 h-12" data-testid="app-top-bar">
-            <h1 className="sr-only">{title}</h1>
-            <div className="min-w-0 flex-1">
-              <ExploreSwitcher current={section} />
-            </div>
-            <div className="flex items-center gap-1 min-[360px]:gap-0 shrink-0">{personal}</div>
-          </header>
-        )
       }
     />
   );

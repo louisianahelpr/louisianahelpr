@@ -39,7 +39,7 @@ export function SectionScreen({
 }) {
   // D12 (Cowork audit 2026-10-20): every section screen names itself in the browser tab; a page that sets a more
   // specific title (its own usePageTitle) still wins, because a parent's effect runs after this child's.
-  usePageTitle(`${title ?? "Home"} — Helpr`);
+  usePageTitle(`${title ?? "Dashboard"} — Helpr`);
   return (
     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top">
       <div className="container mx-auto px-5 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">

@@ -31,10 +31,10 @@ export function CustomizeSheet({ open, onOpenChange }: { open: boolean; onOpenCh
             measured 730px of content in a 600px box at a 700px-tall window. Home and
             Messages, which have no control, are one line instead of two rows. */}
         <p className="text-ds-14 text-muted-foreground">
-          Use the arrows to reorder. Hidden sections leave Home, Explore and the + menu. Nothing is deleted.
+          Use the arrows to reorder. Hidden sections leave Dashboard, Explore and the + menu. Nothing is deleted.
         </p>
         <p className="mt-2 text-ds-14 text-muted-foreground">
-          <span className="font-semibold text-foreground" data-always-on="Home">Home</span> and{" "}
+          <span className="font-semibold text-foreground" data-always-on="Dashboard">Dashboard</span> and{" "}
           <span className="font-semibold text-foreground" data-always-on="Messages">Messages</span> are always on.
         </p>
 

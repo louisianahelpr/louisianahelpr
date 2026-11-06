@@ -10,7 +10,8 @@
  *     they change.
  *  2. The four sections draw the header OUTSIDE their scroll column (SectionScreen; Jobs' title card already is),
  *     with the tabs inside it, in the owner's order: chips row, tabs, search.
- *  3. The chips row is the top bar: no visible title, the section's name kept as the page's one h1 (sr-only).
+ *  3. (Nav redesign, owner 2026-11-06: the bottom bar switches sections, so the chips row left the phone top bar.)
+ *     The top bar is the section's own visible title, the page's one h1, then the bell, Messages, "+", You.
  *  4. "Coming soon" for everyone (owner, 2026-10-22): the chips never say "Preview"; a tester inside a preview
  *     section sees its empty Browse say "Opens soon", and NO "Coming soon – early preview" banner over the
  *     content (owner, 2026-10-28: "remove coming soon early preview. the bottom stuff already says that. same for
@@ -23,7 +24,7 @@
  * @mutate src/index.css | .page-title-card:has(.explore-header) { padding: 0 !important; border-width: 0 !important; } | .page-title-card:has(.explore-header) { border-width: 0 !important; }
  * @mutate src/index.css | :root.page-scrolled[data-theme] .page-title-card:has(.explore-header) {\n  transition: none !important; | :root.page-scrolled[data-theme] .page-title-card:has(.explore-header) {
  * @mutate src/components/sections/SectionScreen.tsx |         {section && (\n          // py/gap | {false && (\n          // py/gap
- * @mutate src/components/sections/AppTopBar.tsx |             <h1 className="sr-only">{title}</h1> |             <h1 className="text-page-title">{title}</h1>
+ * @mutate src/components/sections/AppTopBar.tsx |             <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1> |             <h1 className="sr-only">{title}</h1>
  * @mutate src/components/sections/ExploreSwitcher.tsx |     const soon = !unknown && (!on \|\| isPreview(s)); |     const soon = !unknown && (!on);
  * @mutate src/components/sections/SectionScreen.tsx |           <div className="flex min-h-full flex-col gap-4 pt-1 pb-6">\n |           <div className="flex flex-col gap-4 pt-1 pb-6">\n            {section && <p role="status">Coming soon – early preview</p>}\n
  */
@@ -99,9 +100,10 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
     expect(head).not.toContain("<ExploreSearchEntry");
   });
 
-  it("3. on a phone the chips row is the top bar: no visible title, the section's name is the sr-only h1", () => {
+  it("3. on a phone the top bar is the section's visible title (the page's one h1), with no chips row", () => {
     const bar = code("src/components/sections/AppTopBar.tsx");
-    expect(bar).toMatch(/<header className="app-top-bar explore-top-row[^"]*"[^>]*>\s*<h1 className="sr-only">\{title\}<\/h1>\s*<div className="min-w-0 flex-1">\s*<ExploreSwitcher current=\{section\} \/>/);
+    expect(bar).toMatch(/<header className="app-top-bar [^"]*"[^>]*>\s*\{title \? \(\s*<h1 className="min-w-0 truncate text-page-title text-foreground" title=\{title\}>\{title\}<\/h1>/);
+    expect(bar).not.toMatch(/<ExploreSwitcher|className="sr-only">\{title\}/);
   });
 
   it("3b. four chips that do not fit scroll sideways: the open section's chip is brought into view and the edge fades (measured 278px of chips in a 237px track at 375)", () => {

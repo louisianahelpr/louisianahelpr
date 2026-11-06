@@ -12,7 +12,9 @@
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |         {isLandlord && r.status === "approved" && job.booking === "none" && ( |         {isLandlord && r.status === "approved" && !job.jobId && (
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |               onClick={ageGate("post", () => navigate(`/post-job?maintenance=${r.id}`))} |               onClick={() => navigate(`/post-job?maintenance=${r.id}`)}
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |         {isTenant && r.status === "approved" && workStarted && ( |         {isTenant && r.status === "approved" && !!job.jobId && (
- * @mutate src/components/rentals/rentalsUi.tsx |   return settled ? <NotFound /> : <>{skeleton}</>; |   return settled ? <NotFound /> : null;
+ * @mutate src/components/rentals/rentalsUi.tsx |   if (!settled) return <>{skeleton}</>; |   if (!settled) return null;
+ * @mutate src/components/rentals/rentalsUi.tsx |   return sectionRoot ? <HomesOpensSoon /> : <NotFound />; |   return <NotFound />;
+ * @mutate src/pages/rentals/RentalsPage.tsx | <RentalsGate sectionRoot skeleton= | <RentalsGate skeleton=
  * @mutate src/pages/rentals/MaintenanceRequestPage.tsx | : <MaintenanceRequestUnavailable />}> | : <RentalsGateFrame title="Repair request" backTo="/rentals" label="Loading the request" />}>
  * @mutate src/components/rentals/MaintenanceRequestView.tsx |     enabled: validId && !!uid, |     enabled: !!id && !!uid,
  * @mutate src/components/rentals/RentalsHomeView.tsx |   if (!data.isError && !data.data) return <RentalsHomeSkeleton />; |   if (!data.isError && !data.data) return null;
@@ -178,6 +180,7 @@ vi.mock("@/lib/rentals/listings", () => ({
 import { cancelRequestJob, confirmVisit, createProperty, endTenancy, inviteTenant, submitLandlordId, submitOwnershipProof } from "@/lib/rentals/api";
 import { RentalsCopyError } from "@/lib/rentals/copy";
 import RentalsPage from "@/pages/rentals/RentalsPage";
+import { HOMES_OPENS_SOON_BODY } from "@/components/rentals/rentalsUi";
 import MaintenanceRequestPage from "@/pages/rentals/MaintenanceRequestPage";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 
@@ -232,10 +235,20 @@ beforeEach(() => {
 });
 
 describe("Rentals screens", () => {
-  it("the hidden switch off: /rentals is the 404", async () => {
+  it("the hidden switch off: /rentals (the phone dock's Homes tab, nav redesign 11-06) says Opens soon under its section title, never the 404", async () => {
     state.feature = false;
     renderAt("/rentals");
+    expect(await screen.findByText("Opens soon")).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Homes" })).toBeTruthy();
+    expect(screen.getByText(HOMES_OPENS_SOON_BODY)).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Go to Dashboard" }).getAttribute("href")).toBe("/home");
+    expect(screen.queryByText("Page not found")).toBeNull();
+  });
+  it("the hidden switch off: a Homes sub-screen link (/rentals/requests/:id) stays the 404", async () => {
+    state.feature = false;
+    renderAt("/rentals/requests/r1");
     expect(await screen.findByText("Page not found")).toBeTruthy();
+    expect(screen.queryByText("Opens soon")).toBeNull();
   });
 
   describe("loading frames: the page's own shell, never a blank page (measure-loading-states, 2026-10-15)", () => {

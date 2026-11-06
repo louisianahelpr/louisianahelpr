@@ -8,7 +8,7 @@
  * @mutate supabase/migrations/20261103130123_money_card_rent_seller_delivery_setup_fee_not_found_is_404.sql | RETURN public.declutter_close_paid_order(o.id, 'buyer_cancelled', NULL, NULL, NULL); | RETURN public.declutter_close_paid_order(o.id, 'admin_no_fault', NULL, NULL, NULL);
  * @mutate supabase/migrations/20261031133938_declutter_no_helpr_buyer_refund.sql |   v_fee := least(v_fee, v_paid - 1); |   v_fee := 0;
  * @mutate supabase/migrations/20261103215645_q2390_landlord_id_handover_talk_delivery_time_no_show_delivered_not_found_is_404.sql | SET seller_no_show_reported_at = now(), seller_no_show_answer_by = now() + interval '24 hours', updated_at = now() | SET seller_no_show_reported_at = now(), seller_no_show_answer_by = now() + interval '72 hours', updated_at = now()
- * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql |           PERFORM public.helpr_task_give_job_strike(t.helpr_id, 'delivery_no_show', t.id,\n            'The seller said | PERFORM public.helpr_task_log(t.id, 'helpr_no_show', t.helpr_id,\n            'The seller said
+ * @mutate supabase/migrations/20261106211136_shops_report_helpr_no_show.sql |           PERFORM public.helpr_task_give_job_strike(t.helpr_id, 'delivery_no_show', t.id,\n            'The seller said | PERFORM public.helpr_task_log(t.id, 'helpr_no_show', t.helpr_id,\n            'The seller said
  * @mutate supabase/migrations/20261103222939_q2390_helpr_answer_take_item_report_problem_answer_no_show_fault_report_copy_not_found_is_404.sql | VALUES (o.id, v_uid, 'helpr', 'no_show', btrim(p_note), | VALUES (o.id, v_uid, 'seller', 'no_show', btrim(p_note),
  * LEAD-BUY44 (20261031140431): the seller is told Delivered. Behaviour: src/test/pglite/helprDeliverySellerToldDelivered.pglite.mjs.
  * @mutate supabase/migrations/20261031170803_declutter_no_helpr_notice_offers_refund.sql |     PERFORM public.declutter_notify(o.seller_id, 'payment', 'Delivered', |     PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Delivered',
@@ -58,7 +58,9 @@ describe("soldstates-5: the seller's 'The Helpr didn't come'", () => {
     expect(flat("helpr_task_source_held")).toContain("x.seller_no_show_reported_at IS NOT NULL AND x.seller_no_show_answered_at IS NULL AND x.seller_no_show_settled_at IS NULL");
     const sweep = flat("helpr_task_sweep");
     // BUY-36 (20261031231150) restated the sweep with its can't-finish steps; the no-show strike below is kept.
-    expect(newestFunction("helpr_task_sweep").file).toContain("20261031231150");
+    // Shops (20261106211136) restated it byte-for-byte plus one line: it also steps aside while a shop handover problem is open.
+    expect(newestFunction("helpr_task_sweep").file).toContain("20261106211136");
+    expect(sweep).toContain("AND NOT (t.source_kind = 'shop_delivery' AND EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = t.source_id AND h.problem_at IS NOT NULL)) THEN");
     expect(sweep).toContain("PERFORM public.helpr_task_give_job_strike(t.helpr_id, 'delivery_no_show', t.id, 'The seller said");
   });
 

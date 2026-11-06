@@ -13423,6 +13423,53 @@ export type Database = {
         }
         Relationships: []
       }
+      shop_item_variants: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          is_seed: boolean
+          item_id: string
+          option_values: string[]
+          position: number
+          price_cents: number
+          stock_count: number | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          item_id: string
+          option_values: string[]
+          position?: number
+          price_cents: number
+          stock_count?: number | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          is_seed?: boolean
+          item_id?: string
+          option_values?: string[]
+          position?: number
+          price_cents?: number
+          stock_count?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_item_variants_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_items: {
         Row: {
           admin_approved_at: string | null
@@ -13433,6 +13480,7 @@ export type Database = {
           kind: string
           lead_time_days: number
           live_at: string | null
+          option_names: string[]
           owner_id: string
           price_cents: number
           shop_id: string
@@ -13452,6 +13500,7 @@ export type Database = {
           kind: string
           lead_time_days?: number
           live_at?: string | null
+          option_names?: string[]
           owner_id: string
           price_cents: number
           shop_id: string
@@ -13471,6 +13520,7 @@ export type Database = {
           kind?: string
           lead_time_days?: number
           live_at?: string | null
+          option_names?: string[]
           owner_id?: string
           price_cents?: number
           shop_id?: string
@@ -13511,6 +13561,7 @@ export type Database = {
           title: string
           tax_kind: string | null
           unit_cents: number
+          variant_label: string | null
           variant_id: string | null
         }
         Insert: {
@@ -13525,6 +13576,7 @@ export type Database = {
           title: string
           tax_kind?: string | null
           unit_cents: number
+          variant_label?: string | null
           variant_id?: string | null
         }
         Update: {
@@ -13539,6 +13591,7 @@ export type Database = {
           title?: string
           tax_kind?: string | null
           unit_cents?: number
+          variant_label?: string | null
           variant_id?: string | null
         }
         Relationships: [
@@ -16875,6 +16928,11 @@ export type Database = {
       section_keys_ok: {
         Args: { keys: string[]; max_len: number }
         Returns: boolean
+      }
+      shops_item_variants: { Args: { p_shop_id: string }; Returns: Json }
+      shops_set_item_variants: {
+        Args: { p_item_id: string; p_option_names: string[]; p_variants: Json }
+        Returns: Json
       }
       sweep_chat_unread_reminders: {
         Args: { p_now?: string }

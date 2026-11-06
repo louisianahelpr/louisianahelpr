@@ -7,7 +7,7 @@ import { JobHelprsChip } from "@/components/job-card/JobHelprsChip";
 import { JobCategoryTab } from "@/components/job/JobCategoryTab";
 import { listingChip, listingDeadline } from "@/lib/listingDeadline";
 import { useExpiryClock } from "@/lib/useExpiryClock";
-import { formatPrice, formatPriceFloor, formatRecurrenceInterval, seriesSummary } from "@/lib/format";
+import { formatRecurrenceInterval, seriesSummary } from "@/lib/format";
 import { earlyAccessDelayMs } from "@/lib/earlyAccess";
 import { jobStartTimeLabel } from "@/lib/jobDate";
 import { getCity } from "@/lib/locationUtils";
@@ -17,8 +17,7 @@ import { usePrefetchOnTouch } from "@/lib/usePrefetchOnTouch";
 import { useDrivingTime } from "@/hooks/useDrivingTime";
 import { prefetchJobDialog } from "./prefetchJobDialog";
 import { formatDistanceLabel, formatDrivingLabel } from "./jobCardDistance";
-import { JobPrice, computeNet } from "./JobPrice";
-import { useFirstPayoutFeeDollars } from "@/hooks/useFirstPayoutFee";
+import { JobPrice } from "./JobPrice";
 import { JobCardHeroBand } from "./JobCardHeroBand";
 import { JobCardSecondaryChip, JobCardStatusCorner } from "./JobCardBadges";
 import { jobCardInteractiveProps } from "./jobCardInteractiveProps";
@@ -59,16 +58,6 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   const showBudget = guestPricing || isOwnJob;
   // Per-helpr split count for JobPrice, the single money component (card and detail never disagree).
   const helpersCount = job.is_group_job && job.helpers_needed ? job.helpers_needed : 1;
-  const firstPayoutFee = useFirstPayoutFeeDollars();
-  // Announce the SAME figure the visible JobPrice chip shows: net take-home by
-  // default, gross budget only on guest/poster surfaces. Reusing computeNet
-  // keeps the label from drifting to the gross budget (and, Q753, takes off
-  // the same one-time setup fee the chip does).
-  // formatPriceFloor on the net branch, matching the chip: this said
-  // formatPriceExact while the visible chip floored, so a screen-reader user
-  // heard "$57.66" where a sighted one read "$57". The chip is the authority.
-  const netAria = formatPriceFloor(computeNet(job.budget, effectiveFee, job.urgent_fee ?? 0, helpersCount, firstPayoutFee, job).netEarnings);
-  const priceAria = showBudget ? `$${formatPrice(job.budget)}` : `$${netAria}`;
 
   // Freshness signal — ONE chip, "Just in", living on the badge rail below.
   //
@@ -202,7 +191,7 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
   );
 
   // Guest vs signed-in tap/keyboard props (jobCardInteractiveProps.ts, with the guest branch's a11y note).
-  const interactiveProps = jobCardInteractiveProps({ isGuest, job, onSelect, handleTap, priceAria, prefetchHandlers });
+  const interactiveProps = jobCardInteractiveProps({ isGuest, job, onSelect, handleTap, prefetchHandlers });
 
   return (
     <div data-feed-card=""
@@ -220,6 +209,8 @@ const JobCard = ({ job, effectiveFee, currentUserId: _currentUserId, showApply: 
       }
       {...interactiveProps}
     >
+      {/* The card's words are its name (no aria-label, WCAG 2.5.3); this says what a tap does. */}
+      {!isGuest && <span className="sr-only">View </span>}
       {/* Clipped inner surface — rounds the rail, body, and guest CTA to
           the card shape. The category tab + rail both live inside this clip
           so they share the card's rounded top-left corner and read as one

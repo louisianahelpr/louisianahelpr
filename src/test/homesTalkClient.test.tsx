@@ -73,7 +73,9 @@ describe("Homes messages, client (Q2209)", () => {
     expect([...codes].filter((c) => !(c in HOME_TALK_ERROR_COPY) && !(c in RENTALS_ERROR_COPY)).sort()).toEqual([]);
     expect(Object.keys(HOME_TALK_ERROR_COPY).filter((c) => !codes.has(c)).sort()).toEqual([]);
     expect(homeTalkErrorMessage({ message: "talk_closed" })).toBe("This chat is closed. You can still read it.");
-    expect(homeTalkErrorMessage({ message: "own_listing" })).toBe(RENTALS_ERROR_COPY.own_listing);
+    // Not the Save button's "nothing to save" (RENTALS_ERROR_COPY.own_listing).
+    expect(homeTalkErrorMessage({ message: "own_listing" })).toBe(HOME_TALK_ERROR_COPY.own_listing);
+    expect(HOME_TALK_ERROR_COPY.own_listing).not.toBe(RENTALS_ERROR_COPY.own_listing);
   });
 
   it("the contact-leak refusal is shown in the trigger's own words", () => {

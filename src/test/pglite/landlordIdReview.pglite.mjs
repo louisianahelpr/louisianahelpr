@@ -7,6 +7,7 @@
  *
  *   node src/test/pglite/landlordIdReview.pglite.mjs
  *   LID=skip node src/test/pglite/landlordIdReview.pglite.mjs     # RED: the old behaviour (every landlord-ID check fails)
+ *   Q2203=skip node src/test/pglite/landlordIdReview.pglite.mjs   # RED: a failed admin alert leaves no error_logs row
  *
  * pglite is not a dependency (CLAUDE.md): loaded from ~/.lh-pglite (PGLITE_DIR).
  * Prod-shaped stubs as src/test/pglite/rentalsMaintenance.pglite.mjs (its SCHEMA
@@ -27,6 +28,10 @@ const BEFORE = ["20261012031120_hidden_feature_switches.sql", "20261017205605_re
   "20261017220911_rentals_link_one_live_job.sql", "20261017221621_rentals_visit_time.sql",
   "20261017223352_rentals_ownership_review_alert.sql"];
 const LID = process.env.LID === "skip" ? "SELECT 1" : read(`${SELF}_rentals_landlord_id_review.sql`);
+// Q2203: the alert handlers also write an error_logs row (log_cron_defect). Applied after LID (3x).
+const Q2203_FILE = "20261106223223_rentals_admin_alert_failure_logged.sql";
+const Q2203 = process.env.Q2203 === "skip" ? "SELECT 1"
+  : process.env.Q2203_PATH ? readFileSync(process.env.Q2203_PATH, "utf8") : read(Q2203_FILE);
 
 /** The newest CREATE [OR REPLACE] FUNCTION public.<name>( statement OLDER than this migration, any dollar tag. */
 function newestDefinition(name) {
@@ -80,6 +85,9 @@ CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), custome
   payment_status text, stripe_session_id text, helper_id uuid, helper_confirmed_at timestamptz);
 CREATE TABLE public.notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, title text, message text,
   type text, link text, created_at timestamptz NOT NULL DEFAULT now());
+-- Q2203: log_cron_defect writes here (the columns it reads and writes).
+CREATE TABLE public.error_logs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), severity text, message text, tags jsonb,
+  context jsonb, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE public.notification_logs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid, category text, channel text,
   status text, subject text, job_id uuid, error_message text);
 -- poster_cancel_job: the real one (12 KB, fees/strike ladder) is out of scope here; a stub that cancels the
@@ -140,6 +148,10 @@ const ok = (cond, label) => {
   console.log(`${cond ? "PASS" : "FAIL"}  ${label}`);
 };
 for (let i = 0; i < 3; i++) await db.exec(LID);
+// Q2203: log_cron_defect and is_test_member, their newest definitions (any version), then the restatement 3x.
+const { newestFunction } = await import("./lib/fixedClock.mjs");
+for (const name of ["log_cron_defect", "is_test_member"]) await db.exec(newestFunction(name).stmt);
+for (let i = 0; i < 3; i++) await db.exec(Q2203);
 
 async function as(role, uid, sql) {
   try {
@@ -299,6 +311,28 @@ await upload(LANDLORD, "3-front.jpg");
 ok(await verified(LANDLORD) === false && Array.isArray(await submit(LANDLORD, `${LANDLORD}/landlord-id/3-front.jpg`))
   && await status(LANDLORD) === "pending_review",
   "an 'approved' review whose verdict was revoked: the landlord sends a new photo and it waits again");
+
+// --- Q2203: a failed admin alert leaves a durable trace, and the submit still goes through
+{
+  const NEWL = U(8);
+  await db.exec(`INSERT INTO auth.users (id) VALUES ('${NEWL}');
+    INSERT INTO public.profiles (user_id, idv_status, date_of_birth) VALUES ('${NEWL}', NULL, '1985-01-01');
+    INSERT INTO public.test_accounts (user_id) VALUES ('${NEWL}');`);
+  await upload(NEWL, "front.jpg");
+  // Any insert into notifications now fails: the admin alert is what breaks.
+  await svc(`ALTER TABLE public.notifications ADD CONSTRAINT q2203_alert_breaks CHECK (false) NOT VALID`);
+  const before = one(await svc(`SELECT count(*)::int FROM public.error_logs`));
+  const r = await submit(NEWL, `${NEWL}/landlord-id/front.jpg`);  ok(Array.isArray(r) && await status(NEWL) === "pending_review",
+    "Q2203: the admin alert fails, and the landlord's ID still waits for review (the submit is not refused)");
+  const logged = rows(await svc(`SELECT tags->>'source' AS src, tags->>'ref' AS ref, message FROM public.error_logs ORDER BY created_at DESC`));
+  ok(one(await svc(`SELECT count(*)::int FROM public.error_logs`)) === before + 1
+    && logged[0]?.src === "rentals_submit_landlord_id-seed" && logged[0]?.ref === "admin-alert" && /q2203_alert_breaks/.test(logged[0]?.message ?? ""),
+    `Q2203: the failure is one error_logs row, seed-tagged for a test landlord (${JSON.stringify(logged[0] ?? null)})`);
+  const src = one(await svc(`SELECT prosrc FROM pg_proc WHERE proname = 'rentals_submit_ownership_proof'`)) ?? "";
+  ok(/admin alert failed[\s\S]*PERFORM public\.log_cron_defect\(\s*'rentals_submit_ownership_proof'/.test(src),
+    "Q2203: the ownership-proof alert handler writes the same durable row");
+  await svc(`ALTER TABLE public.notifications DROP CONSTRAINT q2203_alert_breaks`);
+}
 
 // --- grants
 for (const sig of ["rentals_submit_landlord_id(text, text)", "rentals_admin_review_landlord_id(uuid, boolean, text, timestamptz)", "rentals_my_identity()"]) {

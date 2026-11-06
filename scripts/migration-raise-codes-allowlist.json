@@ -222,6 +222,12 @@
       "function": "public.declutter_lock_buyable_item",
       "code": "card_required",
       "reason": "Not dropped: the 2-argument declutter_lock_buyable_item(uuid, uuid) is now a shim that calls the new 3-argument form declutter_lock_buyable_item(uuid, uuid, p_need_card boolean) with p_need_card = true, defined later in the same migration, and that form keeps every RAISE ('item_not_found', 'own_item', 'sale_mode_unavailable', 'item_not_available', 'card_required'). The checker matches by function name, so it reads the shim's body. Lander, 2026-11-07."
+    },
+    {
+      "migration": "20261106221300_shops_custom_balance_edge.sql",
+      "function": "public.shops_order_custom_quote",
+      "code": "deposit_not_ready",
+      "reason": "Shops custom orders slice 2b (lead order 11-06): the refusal was a placeholder until the rest of a 50% deposit order could be charged. 2b builds the off-session charge (_shared/shopBalance.ts via declutter-money), the pay-the-rest page (shop-checkout pay_balance), the 7-day lapse (shop_balance_lapse_sweep) and the unpaid-close tax step, so a deposit price is now taken on purpose. Proof: src/test/pglite/shopsCustomRequests.pglite.mjs + shopsCustomBalance.pglite.mjs."
     }
   ]
 }

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-06T00:29Z",
+  "measured_at": "2026-11-06T03:47Z",
   "issues": {
     "readable": true,
     "open": [
@@ -120,6 +120,13 @@
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42120720415",
         "runTruncated": false
+      },
+      {
+        "number": 4166,
+        "title": "nightly-red: main: Vitest",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42151534447",
+        "runTruncated": false
       }
     ]
   },
@@ -149,6 +156,14 @@
         "status": "open",
         "title": "nightly-red: press-every-control",
         "issue": 2353
+      },
+      {
+        "fingerprint": "f22e3275d50ddd1256e44f7f38d27ba8",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: main: vitest",
+        "issue": null
       },
       {
         "fingerprint": "db0fb15c4ec3c26e3384fa0ff595f797",
@@ -284,7 +299,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": null
+        "issue": 4151
       },
       {
         "fingerprint": "f1bfed973a2a75d4ef5bb8ce2a1785df",
@@ -349,14 +364,6 @@
         "status": "open",
         "title": "error: unexpected sign-out",
         "issue": null
-      },
-      {
-        "fingerprint": "341247bd75499ca81fbf89df6319f75f",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: scoreboard",
-        "issue": 4111
       },
       {
         "fingerprint": "3c0d6b003e080de5479e1faf4a1df45a",
@@ -467,6 +474,7 @@
     "issue #4062": "Q1816",
     "issue #4149": "Q1816",
     "issue #4151": "Q1816",
+    "issue #4166": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",
@@ -476,7 +484,6 @@
     "ledger 16e6e91f6701": "Q1816",
     "ledger 18539240a894": "Q1816",
     "ledger 2e4f3e726722": "Q1816",
-    "ledger 341247bd7549": "Q1816",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 3712b62a9839": "Q2510",
     "ledger 3a3460b71be7": "Q1816",
@@ -485,7 +492,6 @@
     "ledger 41f88aeb227f": "Q1777",
     "ledger 43d77e26f272": "Q1816",
     "ledger 4aa239aefeb6": "Q1816",
-    "ledger 54ef0bfdcec3": "Q2762",
     "ledger 5a28db44e912": "Q2410",
     "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 60298a019ea3": "Q1776",
@@ -514,6 +520,7 @@
     "ledger d1f8391b44ec": "Q1631",
     "ledger db0fb15c4ec3": "Q1816",
     "ledger e49f68d9cbd6": "Q1475",
-    "ledger f1bfed973a2a": "Q2734"
+    "ledger f1bfed973a2a": "Q2734",
+    "ledger f22e3275d50d": "Q1816"
   }
 }

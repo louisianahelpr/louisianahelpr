@@ -416,6 +416,9 @@ export const SHOPS_RPC_ERROR_COPY = {
   // M2 (20261018211820): the handover and the shop's handover choice.
   // Delivery (20261106180902): the shop's own delivery offer, and one order's drop-off address.
   shops_set_delivery: {
+    // Reached through shops_assert_owner_eligible.
+    shop_strikes_blocked: SC.shop_strikes_blocked,
+    under_18: SC.under_18,
     account_restricted: SC.account_restricted,
     feature_disabled: SC.feature_disabled,
     invalid_delivery: SC.invalid_delivery,

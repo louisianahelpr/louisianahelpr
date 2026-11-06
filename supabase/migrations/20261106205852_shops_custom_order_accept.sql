@@ -10,7 +10,11 @@
 --      code (shopTaxCode) and a home-food order counts toward the cottage limit.
 --   2. shop_order_lines.custom_request_id: the line a custom order is made of (item_id NULL; every stock step joins
 --      shop_items on item_id, so a custom line takes and returns no stock; the cottage steps read ol.kind).
---   3. shops_quote_custom_request(request, cents, note, subtype): REPLACES slice 1a's 3-argument version (dropped). Also
+--   3. shops_quote_custom_request(request, cents, note, subtype, statements): REPLACES slice 1a's 3-argument version
+--      (dropped). Lead decision 11-06: the shop ticks the same seller statements as listing that kind of item
+--      (shop_item_required_statements(kind, subtype), e.g. the cottage-food statements for home food), checked exactly
+--      as shops_attest_item checks them, and stored on the request (statements, statements_at); a quote without every
+--      one is refused (attestation_incomplete). shops_order_custom_quote re-checks them. Also
 --      re-checks the shop still takes custom orders and is not paused (authz review note b on 6888a63602). A home-food
 --      price needs this year's cottage confirmation and the limit not reached, as listing a home-food item does.
 --   4. shops_decline_custom_request RESTATED from 20261106202917 (authz review note a): a banned caller is refused, and
@@ -35,7 +39,9 @@
 -- 1-2. Columns.
 ALTER TABLE public.shop_custom_requests
   ADD COLUMN IF NOT EXISTS subtype text REFERENCES public.shop_item_subtypes(slug),
-  ADD COLUMN IF NOT EXISTS order_id uuid REFERENCES public.shop_orders(id) ON DELETE SET NULL;
+  ADD COLUMN IF NOT EXISTS order_id uuid REFERENCES public.shop_orders(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS statements text[],
+  ADD COLUMN IF NOT EXISTS statements_at timestamptz;
 ALTER TABLE public.shop_order_lines
   ADD COLUMN IF NOT EXISTS custom_request_id uuid REFERENCES public.shop_custom_requests(id) ON DELETE SET NULL;
 CREATE INDEX IF NOT EXISTS shop_order_lines_custom_request_idx ON public.shop_order_lines (custom_request_id)
@@ -44,7 +50,7 @@ CREATE INDEX IF NOT EXISTS shop_order_lines_custom_request_idx ON public.shop_or
 -- 3. The shop's price names what is being made.
 DROP FUNCTION IF EXISTS public.shops_quote_custom_request(uuid, integer, text);
 CREATE OR REPLACE FUNCTION public.shops_quote_custom_request(p_request_id uuid, p_quote_cents integer, p_note text,
-  p_subtype text)
+  p_subtype text, p_statements text[])
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -55,6 +61,7 @@ DECLARE
   r public.shop_custom_requests%ROWTYPE;
   s public.shops%ROWTYPE;
   v_kind text;
+  v_need text[];
   v_note text := NULLIF(btrim(COALESCE(p_note, '')), '');
   v_leak text;
   v_now timestamptz := now();
@@ -89,6 +96,15 @@ BEGIN
   IF v_kind IS NULL OR v_kind NOT IN ('made', 'home_food', 'farm', 'service') THEN
     RAISE EXCEPTION 'invalid_subtype' USING ERRCODE = '22023', HINT = 'Pick what you are making for this order.';
   END IF;
+  -- Lead decision 11-06: the same seller statements as listing this kind, checked as shops_attest_item checks them.
+  v_need := public.shop_item_required_statements(v_kind, p_subtype);
+  IF v_need IS NULL OR p_statements IS NULL
+     OR EXISTS (SELECT 1 FROM unnest(p_statements) x WHERE x IS NULL)
+     OR (SELECT array_agg(DISTINCT x ORDER BY x) FROM unnest(p_statements) x)
+        IS DISTINCT FROM (SELECT array_agg(DISTINCT y ORDER BY y) FROM unnest(v_need) y) THEN
+    RAISE EXCEPTION 'attestation_incomplete' USING ERRCODE = '22023',
+      HINT = 'Tick every statement for this kind of order.';
+  END IF;
   IF v_kind = 'home_food' THEN
     IF NOT EXISTS (SELECT 1 FROM public.shop_cottage_confirmations c
                     WHERE c.owner_id = v_uid AND c.limit_year = public.shop_cottage_year()) THEN
@@ -109,6 +125,7 @@ BEGIN
 
   UPDATE public.shop_custom_requests
      SET status = 'quoted', quote_cents = p_quote_cents, quote_note = v_note, subtype = p_subtype,
+         statements = (SELECT array_agg(DISTINCT y ORDER BY y) FROM unnest(v_need) y), statements_at = v_now,
          quoted_at = v_now, expires_at = v_now + interval '7 days', updated_at = v_now
    WHERE id = r.id;
   PERFORM public.declutter_notify(r.buyer_id, 'info', 'Your custom order has a price',
@@ -119,8 +136,8 @@ BEGIN
     'subtype', p_subtype, 'expires_at', v_now + interval '7 days');
 END;
 $fn$;
-REVOKE ALL ON FUNCTION public.shops_quote_custom_request(uuid, integer, text, text) FROM PUBLIC, anon;
-GRANT EXECUTE ON FUNCTION public.shops_quote_custom_request(uuid, integer, text, text) TO authenticated, service_role;
+REVOKE ALL ON FUNCTION public.shops_quote_custom_request(uuid, integer, text, text, text[]) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.shops_quote_custom_request(uuid, integer, text, text, text[]) TO authenticated, service_role;
 
 -- 4. RESTATED from 20261106202917_shops_custom_requests.sql (the ban check and the blocked-pair notice change).
 CREATE OR REPLACE FUNCTION public.shops_decline_custom_request(p_request_id uuid)
@@ -219,6 +236,11 @@ BEGIN
   END IF;
   SELECT st.kind INTO v_kind FROM public.shop_item_subtypes st WHERE st.slug = r.subtype;
   IF v_kind IS NULL OR v_kind NOT IN ('made', 'home_food', 'farm', 'service') THEN
+    RAISE EXCEPTION 'quote_not_open' USING ERRCODE = '55000', HINT = 'This price is no longer open. Ask the shop again.';
+  END IF;
+  -- The shop's statements for this kind, as a listed item needs them at publish (lead decision 11-06).
+  IF r.statements IS DISTINCT FROM (SELECT array_agg(DISTINCT y ORDER BY y)
+                                      FROM unnest(public.shop_item_required_statements(v_kind, r.subtype)) y) THEN
     RAISE EXCEPTION 'quote_not_open' USING ERRCODE = '55000', HINT = 'This price is no longer open. Ask the shop again.';
   END IF;
 

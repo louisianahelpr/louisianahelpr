@@ -24,6 +24,17 @@ const RAIL_CLASSES = /data-desktop-sidebar="left"\s+className=\{`([^`$]+)\$\{sid
 const LG = Number(/screens:\s*\{\s*lg:\s*"(\d+)px"/.exec(readFileSync("tailwind.config.ts", "utf8"))?.[1]);
 const PROBE = "/__rail-css-probe";
 
+/** Our own built head with every script element dropped (any case; repeated until nothing is left to drop). */
+function withoutScripts(html: string): string {
+  let prev: string;
+  let out = html;
+  do {
+    prev = out;
+    out = out.replace(/<script\b[\s\S]*?<\/script\s*>/gi, "").replace(/<script\b[^>]*>/gi, "");
+  } while (out !== prev);
+  return out;
+}
+
 test("the rail's own classes read from the component (the parser works)", () => {
   expect(RAIL_CLASSES).toMatch(/\bhidden\b/);
   expect(RAIL_CLASSES).toMatch(/\blg:flex\b/);
@@ -35,9 +46,7 @@ for (const [width, display] of [[LG - 1, "none"], [LG, "flex"], [1024, "flex"], 
     const built = await (await page.request.get(`${baseURL ?? ""}/`)).text();
     expect(built, "the built head carries the inlined first-screen CSS").toContain('<style id="lh-shell-css">');
     expect(built, "the built head carries the async app sheet").toMatch(/<link rel="stylesheet" href="\/assets\/[^"]+\.css" media="print" data-async-css>/);
-    const head = built
-      .slice(0, built.indexOf("</head>"))
-      .replace(/<script\b[\s\S]*?<\/script>/g, "")
+    const head = withoutScripts(built.slice(0, built.indexOf("</head>")))
       // What vite.config.ts's swap script does once the sheet loads: same element, same place in the head.
       .replace(/ media="print" data-async-css>/g, ' media="all" data-async-css>');
     const probe = `${head}</head><body><nav data-probe class="${RAIL_CLASSES} visible" style="width:var(--desktop-sidebar-w, 248px)"></nav></body></html>`;

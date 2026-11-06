@@ -13,9 +13,10 @@
  *   read again, so an older badge answer never overwrites a newer one. GoOnlineCard ends the handoff when the member
  *   switches, for the same reason.
  *
- * No Supabase import here: both chunks import this file. Guard: src/test/onlinePillTakesBadgeRow.test.tsx.
+ * No Supabase import here: both chunks import this file (visibleDeadline is plain DOM). Guard: src/test/onlinePillTakesBadgeRow.test.tsx.
  */
 import type { OnlineStatus } from "./online";
+import { raceVisibleDeadline } from "@/lib/visibleDeadline";
 
 /** How long the pill's first read waits for the badge read before reading on its own. */
 const ONLINE_HANDOFF_CAP_MS = 10_000;
@@ -66,18 +67,18 @@ export function endOnlineHandoff(uid: string): void {
 export async function takeOnlineFromBadge(uid: string, capMs = ONLINE_HANDOFF_CAP_MS): Promise<{ row: OnlineStatus | null } | null> {
   if (!uid || done.has(uid) || !expected.has(uid)) return null;
   if (!answers.has(uid)) {
-    await new Promise<void>((resolve) => {
-      const set = waiters.get(uid) ?? new Set<() => void>();
-      const t = setTimeout(() => {
-        set.delete(finish);
-        resolve();
-      }, capMs);
-      function finish() {
-        clearTimeout(t);
-        resolve();
-      }
-      set.add(finish);
-      waiters.set(uid, set);
+    let finish!: () => void;
+    const woken = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const set = waiters.get(uid) ?? new Set<() => void>();
+    set.add(finish);
+    waiters.set(uid, set);
+    // The cap counts VISIBLE time only (readDeadlinesCountVisibleTime): a phone put away mid-wait must not come back
+    // to a cap that "ran out" while the page was frozen and the badge read was still on its way.
+    await raceVisibleDeadline(woken, capMs, "online handoff cap").catch(() => {
+      // Not an error: the badge read did not answer within the cap, so the pill makes its own read (null below).
+      set.delete(finish);
     });
   }
   const a = answers.get(uid);

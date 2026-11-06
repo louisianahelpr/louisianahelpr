@@ -171,8 +171,15 @@ export function inlineShellCss(html, css) {
   const present = SHELLS.map((s) => ({ ...s, html: shellBlock(html, s.id) })).filter((s) => s.html !== null);
   const critical = shellCriticalCss(present, css);
   const block = `<style id="${STYLE_ID}">${critical}${present.map((s) => s.show).join("")}</style>`;
-  const at = html.indexOf("</head>");
-  if (at < 0) throw new Error("inline-shell-css: no </head>");
+  const head = html.indexOf("</head>");
+  if (head < 0) throw new Error("inline-shell-css: no </head>");
+  // BEFORE the app stylesheet, never after it (live 11-05: the desktop rail vanished on every page). The block is a
+  // subset of that sheet, so the sheet must come LATER and repeat every rule in its own order. Placed after it, the
+  // block's `.hidden{display:none}` (the landing and auth shells use `hidden`) out-ranked the sheet's
+  // `@media (min-width:1024px){.lg\:flex{display:flex}}`, so the rail (`hidden lg:flex`) stayed display:none.
+  // Guard: src/test/inlineShellCssBeforeAppSheet.test.ts.
+  const sheet = html.indexOf('<link rel="stylesheet" href="/assets/');
+  const at = sheet >= 0 && sheet < head ? sheet : head;
   return { html: html.slice(0, at) + block + html.slice(at), bytes: block.length };
 }
 
@@ -187,7 +194,8 @@ if (isMain) {
   const css = hrefs.map((h) => readFileSync(path.join(dist, h), "utf8")).join("\n");
   const { html: out, bytes } = inlineShellCss(html, css);
   const { gzipSync } = await import("node:zlib");
-  const gz = gzipSync(out.slice(out.indexOf(`<style id="${STYLE_ID}">`), out.indexOf("</head>"))).length;
+  const from = out.indexOf(`<style id="${STYLE_ID}">`);
+  const gz = gzipSync(out.slice(from, out.indexOf("</style>", from) + "</style>".length)).length;
   if (gz > MAX_INLINE_BYTES) throw new Error(`inline-shell-css: inlined block is ${gz} B gz, over ${MAX_INLINE_BYTES}`);
   writeFileSync(indexPath, out);
   console.log(`inline-shell-css: ${bytes} B (${gz} B gz) of the app sheet inlined for the HTML-drawn first screen`);

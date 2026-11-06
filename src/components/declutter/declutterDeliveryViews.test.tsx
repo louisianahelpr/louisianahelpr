@@ -12,7 +12,7 @@
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |   } else if (v.status === "cancelled") { |   } else if (v.status === "cancelled_never") {
  * @mutate src/components/declutter/DeclutterDeliveryViews.tsx |           {v.status === "picked_up" && !v.stuck_stage && toRoute} |           {null}
  * @mutate src/components/declutter/DeliveryCantFinish.tsx |  ariaLabel="The right address" plainWithoutMapKit keepListInView /> |  ariaLabel="The right address" />
- * @mutate src/components/declutter/DeliveryCantFinish.tsx | <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" | <input type="radio"
+ * @mutate src/components/ui/NativeRadio.tsx | className={`h-4 w-4 min-h-0 min-w-0 | className={`h-4 w-4
  * @mutate src/components/declutter/DeliveryCantFinish.tsx |       {!chosen && ( |       {false && (
  * @mutate src/components/declutter/DeliveryCantFinish.tsx | text: "Waiting on the buyer to fix it", by: v.stuck_fix_by ? `by ${when(v.stuck_fix_by)}` : null | text: "Waiting on the buyer to fix it", by: null
  * @mutate src/components/declutter/DeliveryCantFinish.tsx | text: `Tell ${who} how to finish the delivery`, | text: "",

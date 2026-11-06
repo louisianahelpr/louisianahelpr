@@ -15,6 +15,7 @@ import {
   chooseSellerPorchPlace, fetchOrderPorchPlace, fetchSellerPorchPlaces, PORCH_PLACES_NOT_DEPLOYED, type SellerPorchPlace,
 } from "@/lib/declutter/porchPlaces";
 import { shortDays } from "@/lib/declutter/pickupTimesText";
+import { NativeRadio } from "@/components/ui/NativeRadio";
 
 const placesKey = (sellerId: string, cartKey: number) => ["declutter", "seller-porch-places", sellerId, cartKey] as const;
 
@@ -139,14 +140,12 @@ export function PorchPlacePicker({ sellerId, cartKey, places, loadError, onRetry
       {refused && !places.some((p) => p.chosen) && <p role="alert" className="text-sm font-semibold">{refusal}</p>}
       {places.map((p) => (
         <label key={p.id} className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border px-3 py-2.5 ${p.chosen ? "border-2 border-primary" : "border-border"}`}>
-          <input
-            type="radio"
-            className="mt-1 h-4 w-4 min-h-0 min-w-0 shrink-0"
+          <NativeRadio
+            className="mt-1"
             name={`porch-place-${sellerId}`}
             checked={p.chosen}
             disabled={choose.isPending}
             onChange={() => choose.mutate(p.id)}
-            style={{ accentColor: "hsl(var(--primary))" }}
           />
           <span className="min-w-0 flex-1">
             <span className="block text-ds-14 font-semibold [overflow-wrap:anywhere]">{p.area}</span>

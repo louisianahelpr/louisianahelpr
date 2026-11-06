@@ -28,6 +28,7 @@ import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { NextStep } from "@/components/ui/NextStep";
 import { invalidateTasks } from "./useTaskSteps";
 import { Textarea } from "@/components/ui/textarea";
+import { NativeRadio } from "@/components/ui/NativeRadio";
 
 const input = "w-full rounded-2xl border border-input glass-field px-3 py-2 text-ds-15";
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
@@ -163,7 +164,7 @@ export function HelprCantFinish({ taskId, userId }: { taskId: string; userId: st
             <legend className="sr-only">What's stopping you?</legend>
             {REASONS.map((r) => (
               <label key={r.value} className="flex min-h-11 items-center gap-2 text-sm">
-                <input type="radio" className="h-4 w-4 min-h-0 min-w-0 shrink-0" style={{ accentColor: "hsl(var(--primary))" }}
+                <NativeRadio
                   name={`${id}-reason`} checked={reason === r.value} onChange={() => setReason(r.value)} />
                 {r.label}
               </label>

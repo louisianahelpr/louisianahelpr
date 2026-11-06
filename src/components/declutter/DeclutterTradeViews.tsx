@@ -69,6 +69,7 @@ import { fetchCheckoutPorchDays, onPorchDays } from "@/lib/declutter/porchDays";
 import { fetchCheckoutSize } from "@/lib/declutter/checkoutSize";
 import { useSpendableGiftCards } from "@/hooks/useSpendableGiftCards";
 import { DeclutterGiftPicker, giftPayErrorMessage, giftSplit, giftsForCheckout, refusalRetiresGift } from "./DeclutterGiftPicker";
+import { NativeRadio } from "@/components/ui/NativeRadio";
 
 export { dollarsInputToCents } from "@/lib/declutter/money";
 export { PaidOrders, SectionHeading, useDeclutterTodo } from "./DeclutterTabParts";
@@ -270,7 +271,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             // Q2637: not bg-card, whose T2 rule hid the chosen way's 2px primary border (measured transparent at 1440).
             className={`flex min-h-11 cursor-pointer items-start gap-3 rounded-[20px] border bg-[hsl(var(--card))] px-4 py-3.5 ${chosen === h ? "border-2 border-primary" : "border-border"}`}
           >
-            <input type="radio" className="mt-1 h-4 w-4 min-h-0 min-w-0 shrink-0" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setPicked(h)} style={{ accentColor: "hsl(var(--primary))" }} />
+            <NativeRadio className="mt-1" name={`handover-${sellerId}`} value={h} checked={chosen === h} onChange={() => setPicked(h)} />
             <span className="min-w-0 flex-1">
               <span className="block text-ds-15 font-semibold text-foreground">{HANDOVER_TITLE[h]}</span>
               <span className="block text-ds-13 text-muted-foreground">{HANDOVER_WORDS[h]}</span>

@@ -327,6 +327,8 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "rentals_public_listing_visible", "rentals_listing_photo_access", "rentals_listing_photo_deletable",
   // Homes rent tracker read policies (20261019073106).
   "rentals_tenancy_party",
+  // Homes messages (20261106182837): are a listing's threads open (reads rental_listings and profiles).
+  "home_talk_listing_ok",
   // Payout setup only after a hire (20261025162003); after feature_enabled_for_user and job_payment_is_funded, which its SQL body calls.
   "payout_setup_hire_allowed", "referral_member_has_completed_job",
   // Card hold at post (Q2399, 20261027185146): listed = funded or the card held; job_is_funded's SQL body calls it.

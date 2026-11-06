@@ -49,6 +49,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('dispute_evidence_url_ok',       'allow',    'evidence URL is the uploader''s own object for this job'),
   ('feature_enabled_for',           'allow',    'hidden feature switch is on for the caller (20261012031120)'),
   ('rentals_caller_is_active_tenant_of','allow', 'is the caller an active tenant of this property (Rentals S1 read policies, 20261017205605)'),
+  ('home_talk_listing_ok',          'allow',    'Homes messages (20261106182837): TRUE = the listing''s threads are open (live, paused or leased; owner in good standing)'),
   ('rentals_listing_visible',       'allow',    'may this Homes listing show in the browse (live, not expired, ownership approved, owner not banned; 20261019043000)'),
   ('referral_member_has_completed_job','allow', 'referral bonus (20261027201034): TRUE = this member has a completed job, one of the two conditions for paying a referral'),
   ('declutter_item_link_visible',   'allow',    'Q2426 share card (20261027194426): may a public link card show this Declutter item (live/reserved, seller not out, Declutter not off)'),
@@ -273,6 +274,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('rentals_caller_is_active_tenant_of', '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000301''::uuid'], ARRAY[1]),
   -- D's listing L on unit U of P is live for 30 days, so the non-NULL call is TRUE.
   ('rentals_listing_visible',       NULL, ARRAY['''00000000-0000-4000-8140-000000000304''::uuid'], ARRAY[1]),
+  -- The same live listing L: its threads are open, so the non-NULL call is TRUE.
+  ('home_talk_listing_ok',          NULL, ARRAY['''00000000-0000-4000-8140-000000000304''::uuid'], ARRAY[1]),
   -- A is the tenant of tenancy T (the 'rentals' fixture step), so the non-NULL call is TRUE for A.
   ('rentals_tenancy_party',         '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000303''::uuid'], ARRAY[1]),
   ('feature_enabled_for_user',      NULL, ARRAY['''switch_canary''', '''00000000-0000-4000-8140-00000000000d''::uuid'], ARRAY[1,2]),

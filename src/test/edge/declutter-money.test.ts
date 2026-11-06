@@ -64,7 +64,7 @@
  * @mutate supabase/functions/declutter-money/index.ts |        await skipRow("declutter", p.payout_id, p.seller_id, p.amount_cents, 15, "record_failed", `transfer ${transfer.id} not recorded`); |
  * @mutate supabase/functions/declutter-money/index.ts |    if (stuck) await waitRpc("payout_hold_for_review", { p_kind: kind, p_id: payoutId, p_category: category, p_reason: reason }); |    if (false) await waitRpc("payout_hold_for_review", { p_kind: kind, p_id: payoutId, p_category: category, p_reason: reason });
  * @mutate supabase/functions/declutter-money/index.ts |        if (!(await stillPayableNow("declutter", p.payout_id, p.seller_id, p.amount_cents))) continue; |
- * @mutate supabase/functions/declutter-money/index.ts |    if (h.source_kind !== "declutter_delivery" \|\| !h.transfer_group \|\| (!h.payment_intent_id && !(hGiftCents > 0))) { |    if (!h.transfer_group) {
+ * @mutate supabase/functions/declutter-money/index.ts |     if (!payableKind \|\| !h.transfer_group \|\| (!h.payment_intent_id && !(hGiftCents > 0))) { |     if (!h.transfer_group) {
  * @mutate supabase/functions/declutter-money/index.ts |      await skipRow("declutter_refund", r.refund_id, r.buyer_id, rowTotal, 60, "ban_review", "a party is under ban review"); |      await deferRow("declutter_refund", r.refund_id, 60);
  * @mutate supabase/functions/_shared/connectReadiness.ts |      if (status === 403 \|\| status === 401 \|\| code === "account_invalid" \|\| /does not have access/i.test(message)) { |      if (false) {
  * @mutate supabase/functions/declutter-money/index.ts |      kind: "payout_wait", severity: "warning", | kind: "custom", severity: "warning",

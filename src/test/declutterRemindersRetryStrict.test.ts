@@ -11,7 +11,7 @@
  * @mutate supabase/migrations/20261102084222_a3_stack_reconcile.sql |         PERFORM public.declutter_notify_strict(r.seller_id, 'payment', 'Delivery coming up', |         PERFORM public.declutter_notify(r.seller_id, 'payment', 'Delivery coming up',
  * @mutate supabase/migrations/20261102084222_a3_stack_reconcile.sql |         PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', 'Delivery coming up', |         PERFORM public.declutter_notify(r.buyer_id, 'payment', 'Delivery coming up',
  * @mutate supabase/migrations/20261031181404_declutter_notices_name_the_item_sweep_remind_task.sql |   PERFORM public.declutter_notify_strict(p_user, 'declutter_pickups', p_title, p_message, p_link, p_other); |   PERFORM public.declutter_notify(p_user, 'declutter_pickups', p_title, p_message, p_link, p_other);
- * @mutate supabase/migrations/20261031014011_helpr_delivery_still_in_hand_nudge.sql |       RETURN public.declutter_delivery_still_in_hand(t.source_id, t.id); |       BEGIN PERFORM public.declutter_delivery_still_in_hand(t.source_id, t.id); EXCEPTION WHEN OTHERS THEN NULL; END; RETURN NULL;
+ * @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql |       RETURN public.declutter_delivery_still_in_hand(t.source_id, t.id); |       BEGIN PERFORM public.declutter_delivery_still_in_hand(t.source_id, t.id); EXCEPTION WHEN OTHERS THEN NULL; END; RETURN NULL;
  *
  * Re-read 2026-11-01 (builder 140, the item's other sweep lines): the held-sale nudge in declutter_handover_sweep and
  * helpr_task_sweep's still-in-hand nudge (BUY-37) send through declutter_pickup_remind, which is strict, inside the

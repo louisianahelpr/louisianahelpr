@@ -40,6 +40,18 @@ export type ShopRefundRow = {
 
 export type ShopRefundOutcome = "sent" | "reconciled" | "failed";
 
+/**
+ * Which table the row is in. "order": a shop_refunds row (the whole order). "delivery": a shop_delivery_refunds row
+ * (Helpr delivery, 20261106194913: the delivery price alone, after no Helpr took it or the order closed before the
+ * pickup), recorded with shop_delivery_refund_executed under key shop-delivery-refund-<id>. Both carry
+ * metadata.kind "shop_refund", so stripe-webhook treats either as the app's own refund, never a hand refund.
+ */
+export type ShopRefundTable = "order" | "delivery";
+const TABLE = {
+  order: { rpc: "shop_refund_executed", meta: "shop_refund_id", key: "shop-refund" },
+  delivery: { rpc: "shop_delivery_refund_executed", meta: "shop_delivery_refund_id", key: "shop-delivery-refund" },
+} as const;
+
 /** The most tries before the money step stops and ops refunds it by hand. */
 const SHOP_REFUND_MAX_ATTEMPTS = 12;
 
@@ -49,14 +61,15 @@ const SHOP_REFUND_MAX_ATTEMPTS = 12;
  * (shop_refund_reversed resets attempts to 0 and adds a reversal, /code-review
  * of shops-m3-v1 #4), so a re-send never replays the reversed refund's key.
  */
-function shopRefundKey(refundId: string, attempts: number, reversals = 0): string {
+function shopRefundKey(refundId: string, attempts: number, reversals = 0, prefix = "shop-refund"): string {
   const n = Number.isInteger(attempts) && attempts > 0 ? attempts : 0;
   const v = Number.isInteger(reversals) && reversals > 0 ? reversals : 0;
-  return `shop-refund-${refundId}${v === 0 ? "" : `-v${v}`}${n === 0 ? "" : `-r${n}`}`;
+  return `${prefix}-${refundId}${v === 0 ? "" : `-v${v}`}${n === 0 ? "" : `-r${n}`}`;
 }
 
 /** Send (or find) one Shops refund and record it. */
-export async function sendShopRefund(stripe: Stripe, admin: Db, row: ShopRefundRow): Promise<ShopRefundOutcome> {
+export async function sendShopRefund(stripe: Stripe, admin: Db, row: ShopRefundRow, table: ShopRefundTable = "order"): Promise<ShopRefundOutcome> {
+  const t = TABLE[table];
   if (!Number.isInteger(row.refund_cents) || row.refund_cents <= 0) {
     throw new Error(`shop refund ${row.refund_id}: no amount to send`);
   }
@@ -65,7 +78,7 @@ export async function sendShopRefund(stripe: Stripe, admin: Db, row: ShopRefundR
   let why = "";
   try {
     const existing = await stripe.refunds.list({ payment_intent: row.payment_intent_id, limit: 100 });
-    const mine = existing.data.find((r) => r.metadata?.shop_refund_id === row.refund_id && r.status !== "failed" && r.status !== "canceled");
+    const mine = existing.data.find((r) => r.metadata?.[t.meta] === row.refund_id && r.status !== "failed" && r.status !== "canceled");
     if (mine) {
       refundId = mine.id;
       reconciled = true;
@@ -74,9 +87,9 @@ export async function sendShopRefund(stripe: Stripe, admin: Db, row: ShopRefundR
         {
           payment_intent: row.payment_intent_id,
           amount: row.refund_cents,
-          metadata: { kind: "shop_refund", shop_refund_id: row.refund_id, order_id: row.order_id },
+          metadata: { kind: "shop_refund", [t.meta]: row.refund_id, order_id: row.order_id },
         },
-        { idempotencyKey: shopRefundKey(row.refund_id, row.attempts, Number(row.reversals ?? 0)) },
+        { idempotencyKey: shopRefundKey(row.refund_id, row.attempts, Number(row.reversals ?? 0), t.key) },
       );
       if (made.status === "failed" || made.status === "canceled") why = `refund ${made.id} is ${made.status}`;
       else refundId = made.id;
@@ -85,13 +98,13 @@ export async function sendShopRefund(stripe: Stripe, admin: Db, row: ShopRefundR
     why = String((e as { message?: string })?.message ?? e).slice(0, 300);
   }
   if (refundId) {
-    const { error } = await admin.rpc("shop_refund_executed", {
+    const { error } = await admin.rpc(t.rpc, {
       p_refund_id: row.refund_id, p_stripe_refund_id: refundId, p_succeeded: true, p_error: null,
     });
     if (error) throw new Error(`shop refund ${row.refund_id}: Stripe refund ${refundId} not recorded: ${error.message}`);
     return reconciled ? "reconciled" : "sent";
   }
-  const { error } = await admin.rpc("shop_refund_executed", {
+  const { error } = await admin.rpc(t.rpc, {
     p_refund_id: row.refund_id, p_stripe_refund_id: null, p_succeeded: false, p_error: why || "refund failed",
   });
   if (error) throw new Error(`shop refund ${row.refund_id}: failure not recorded: ${error.message}`);

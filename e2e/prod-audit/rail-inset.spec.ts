@@ -20,8 +20,10 @@
  *      document-scroll pages) is measured by its content box, since that
  *      padding IS the inset;
  *   4. zero horizontal overflow;
- *   5. the h1's column is centred in the post-rail area (left and right gaps
- *      within 2px), measured on the column, not on <main>.
+ *   5. the page's column is centred in the post-rail area (left and right gaps
+ *      within 2px), measured on the column, not on <main>: the h1's column, or,
+ *      when the h1 sits in the desktop bar's title slot (every PageTitleBar page
+ *      since 2026-10-21), the content's column just under the bar.
  * Routes the rail does not serve (isDesktopRailRoute false) are printed as
  * "no rail on"; at least two thirds of the route x width cells must carry it.
  *
@@ -114,8 +116,25 @@ function readRail([rail, tol]: [number, number]): RailRow {
   const railed = document.documentElement.classList.contains("desktop-rail");
   const areaW = railed ? vw - rail : vw;
   const areaX = railed ? rail : 0;
-  if (h1) {
-    let c: HTMLElement | null = h1;
+  // Since 2026-10-21 (owner: ONE header row) PageTitleBar portals the page's h1 into the desktop bar's title slot
+  // (DesktopTopNav [data-desktop-title-slot]): the h1's widest ancestor there is the bar's title cell (bar padding on
+  // the left, the Help/bell/photo cluster on the right), never the page's column. Then the column is read from the
+  // page itself: the first content under the fixed bar at the area's centre (2026-11-06; it measured the title cell,
+  // "left 24 vs right 172", on every route while the page column was centred 24/24).
+  let start: HTMLElement | null = h1 ?? null;
+  if (h1?.closest("[data-desktop-title-slot]")) {
+    const barBottom = h1.closest("header")?.getBoundingClientRect().bottom ?? 0;
+    start = null;
+    for (const dy of [24, 80, 160, 260]) {
+      const hit = document.elementFromPoint(areaX + areaW / 2, barBottom + dy) as HTMLElement | null;
+      if (hit && hit !== document.documentElement && hit !== document.body && !hit.closest("header") && !(nav && nav.contains(hit))) {
+        start = hit;
+        break;
+      }
+    }
+  }
+  if (start) {
+    let c: HTMLElement | null = start;
     // The column is the widest ancestor of the title that is still narrower
     // than the area it sits in; if none is, the column fills the area.
     let best: HTMLElement | null = null;
@@ -125,7 +144,7 @@ function readRail([rail, tol]: [number, number]): RailRow {
       else break;
       c = c.parentElement;
     }
-    const r = (best ?? h1).getBoundingClientRect();
+    const r = (best ?? start).getBoundingClientRect();
     col = best
       ? { left: Math.round(r.left - areaX), right: Math.round(areaX + areaW - r.right), area: areaW, what: best.tagName.toLowerCase() + "." + String(best.className).split(/\s+/).slice(0, 3).join(".") }
       : { left: 0, right: 0, area: areaW, what: "fills the area" };

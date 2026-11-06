@@ -1,4 +1,5 @@
 import React from "react";
+import { dropHomeShell } from "@/components/landing/homeShell";
 import { isConfirmedOffline } from "@/lib/connectivity";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -81,6 +82,8 @@ class RouteErrorBoundaryInner extends React.Component<InnerProps, InnerState> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Q2705 B: an error card at /home must not sit under the HTML-drawn Home skeleton.
+    dropHomeShell();
     // A recovery reload is already on its way out of this page. Whatever broke
     // in the meantime — including the TypeError a prevented preload leaves
     // behind (see isRecoveryReloadInFlight) — is a symptom of the stale chunk

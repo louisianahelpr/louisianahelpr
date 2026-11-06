@@ -1,5 +1,6 @@
 import { Children, isValidElement, useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
+import { dropHomeShell } from "@/components/landing/homeShell";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { RouteSuspenseFallback } from "@/components/RouteSuspenseFallback";
 import { ErrorState } from "@/components/ui/ErrorState";
@@ -336,6 +337,10 @@ const ProtectedRoute = ({
   // caps at 30s so a genuinely dead or 4xx connection is polled gently (≤2/min),
   // never hammered.
   const showingProfileError = !!user && isError && !profile;
+  // Q2705 B: the account error card and the under-13 screen render at /home without leaving it, so they take the
+  // HTML-drawn Home skeleton away themselves (HomeShellLeaves only sees route changes).
+  const ownScreenInstead = showingProfileError || !!profile?.under_13_blocked_at;
+  useEffect(() => { if (ownScreenInstead) dropHomeShell(); }, [ownScreenInstead]);
   useEffect(() => {
     if (!showingProfileError) return;
     let cancelled = false;

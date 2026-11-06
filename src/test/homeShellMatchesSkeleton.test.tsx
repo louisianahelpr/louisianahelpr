@@ -13,23 +13,30 @@
  * that the build inlines its CSS.
  *
  * @mutate src/pages/home/HomeDashboard.tsx |   useEffect(() => removeShellOncePainted(HOME_SHELL_ID), []); |
- * @mutate src/components/landing/HomeShellLeaves.tsx | !== "/home") document.getElementById(HOME_SHELL_ID)?.remove(); | === "/x") document.getElementById(HOME_SHELL_ID)?.remove();
+ * @mutate src/components/landing/HomeShellLeaves.tsx | !== "/home") dropHomeShell(); | === "/x") dropHomeShell();
  * @mutate src/components/DashboardRouteSkeleton.tsx | <Skeleton className="h-8 w-56 max-w-full rounded-ds-md" /> | <Skeleton className="h-9 w-56 max-w-full rounded-ds-md" />
  * @mutate index.html |         if (!stored) return; |
  * @mutate index.html | window.innerWidth >= 900) return; | window.innerWidth >= 9000) return;
  * @mutate index.html |         if (location.search \|\| location.hash \|\| window.Capacitor |         if (window.Capacitor
  * @mutate src/index.css | [data-lh-app-shell="home"] #lh-home-shell {\n  display: block; | [data-lh-app-shell="home"] #lh-home-shell {\n  display: none;
+ * @mutate src/components/RouteErrorBoundary.tsx |     dropHomeShell();\n |\n
+ * @mutate src/components/ErrorBoundary.tsx |     dropHomeShell();\n |\n
+ * @mutate src/components/ProtectedRoute.tsx |   useEffect(() => { if (ownScreenInstead) dropHomeShell(); }, [ownScreenInstead]); |
  * @mutate src/main.tsx | if (document.documentElement.getAttribute("data-lh-app-shell") !== "home") document.getElementById("lh-home-shell")?.remove(); |
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { render } from "@testing-library/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { LucideProvider } from "lucide-react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import DashboardRouteSkeleton from "@/components/DashboardRouteSkeleton";
+import RouteErrorBoundary from "@/components/RouteErrorBoundary";
+
+vi.mock("@/lib/errorLogger", () => ({ report: vi.fn(), logError: vi.fn() }));
 import { blankComments } from "./helpers/blankNonCode";
 import { inlineShellCss, SHELL_END } from "../../scripts/inline-shell-css.mjs";
 
@@ -127,8 +134,9 @@ describe("a signed-in phone's /home paints Home's own skeleton from the HTML (Q2
     const home = blankComments(readFileSync(join(ROOT, "src/pages/home/HomeDashboard.tsx"), "utf8"));
     expect(home).toContain("useEffect(() => removeShellOncePainted(HOME_SHELL_ID), []);");
     const leaves = blankComments(readFileSync(join(ROOT, "src/components/landing/HomeShellLeaves.tsx"), "utf8"));
-    expect(leaves).toContain('export const HOME_SHELL_ID = "lh-home-shell";');
-    expect(leaves).toContain('if ((pathname.replace(/\\/+$/, "") || "/") !== "/home") document.getElementById(HOME_SHELL_ID)?.remove();');
+    expect(leaves).toContain('if ((pathname.replace(/\\/+$/, "") || "/") !== "/home") dropHomeShell();');
+    const helper = blankComments(readFileSync(join(ROOT, "src/components/landing/homeShell.ts"), "utf8"));
+    expect(helper).toContain('export const HOME_SHELL_ID = "lh-home-shell";');
     const app = blankComments(readFileSync(join(ROOT, "src/App.tsx"), "utf8"));
     expect(app).toContain("<HomeShellLeaves />");
   });
@@ -141,5 +149,35 @@ describe("a signed-in phone's /home paints Home's own skeleton from the HTML (Q2
     expect(css, "Home's frame, absent from the landing and auth shells").toContain(".page-measure{max-width:40rem}");
     expect(css).not.toContain("unused-anywhere-xyz");
     expect(css).toContain('[data-lh-app-shell="home"] #lh-home-shell{display:block;position:fixed;inset:0;');
+  });
+
+  it("an error card at /home takes the skeleton away (the route boundary, the app boundary, ProtectedRoute's own screens)", () => {
+    const shell = document.createElement("div");
+    shell.id = "lh-home-shell";
+    document.body.appendChild(shell);
+    const Boom = () => {
+      throw new Error("boom");
+    };
+    const spy = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      render(
+        <MemoryRouter initialEntries={["/home"]}>
+          <RouteErrorBoundary>
+            <Boom />
+          </RouteErrorBoundary>
+        </MemoryRouter>,
+      );
+    } finally {
+      spy.mockRestore();
+    }
+    expect(document.getElementById("lh-home-shell"), "RouteErrorBoundary's card is not covered by the bones").toBeNull();
+
+    const app = blankComments(readFileSync(join(ROOT, "src/components/ErrorBoundary.tsx"), "utf8"));
+    expect(app).toMatch(/componentDidCatch\(error: Error, errorInfo: React\.ErrorInfo\) \{\s*dropHomeShell\(\);/);
+    const route = blankComments(readFileSync(join(ROOT, "src/components/RouteErrorBoundary.tsx"), "utf8"));
+    expect(route).toMatch(/componentDidCatch\(error: Error, errorInfo: React\.ErrorInfo\) \{\s*dropHomeShell\(\);/);
+    const guard = blankComments(readFileSync(join(ROOT, "src/components/ProtectedRoute.tsx"), "utf8"));
+    expect(guard).toContain("const ownScreenInstead = showingProfileError || !!profile?.under_13_blocked_at;");
+    expect(guard).toContain("useEffect(() => { if (ownScreenInstead) dropHomeShell(); }, [ownScreenInstead]);");
   });
 });

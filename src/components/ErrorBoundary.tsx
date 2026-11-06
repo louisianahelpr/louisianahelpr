@@ -1,4 +1,5 @@
 import React from "react";
+import { dropHomeShell } from "@/components/landing/homeShell";
 import { isConfirmedOffline } from "@/lib/connectivity";
 import { Button } from "@/components/ui/button";
 import { report } from "@/lib/errorLogger";
@@ -60,6 +61,8 @@ class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    // Q2705 B: an error card at /home must not sit under the HTML-drawn Home skeleton.
+    dropHomeShell();
     // A recovery reload is already leaving this page: whatever broke meanwhile
     // is a symptom of it. No card, no report.
     if (isRecoveryReloadInFlight()) {

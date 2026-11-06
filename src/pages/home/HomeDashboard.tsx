@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { removeShellOncePainted } from "@/components/landing/landingShell";
-import { HOME_SHELL_ID } from "@/components/landing/HomeShellLeaves";
+import { HOME_SHELL_ID } from "@/components/landing/homeShell";
 import { YourPageLink } from "@/components/profile/YourPageLink";
 import { FirstRun } from "@/components/firstRun/FirstRunHost";
 import { useQueryClient } from "@tanstack/react-query";

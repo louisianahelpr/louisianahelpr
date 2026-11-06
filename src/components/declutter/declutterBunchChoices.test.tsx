@@ -4,7 +4,7 @@
  * are remembered; pickup times already saved are not written over.
  *
  * @mutate src/components/declutter/DeclutterBunchView.tsx |   const ready = bunchListable(items, feeDue != null); |   const ready = bunchListable(items, false);
- * @mutate src/components/declutter/BunchChoices.tsx |     if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct, acceptsOffers: row.acceptsOffers, freeAfterDays: row.freeAfterDays }); |     void row;
+ * @mutate src/components/declutter/BunchChoices.tsx |     if (row) setChoices({ keepUp: row.keepUp, drops: row.drops, dropPct: row.dropPct, floorPct: row.floorPct, acceptsOffers: row.acceptsOffers, freeAfterDays: row.freeAfterDays, acceptsTrades: row.acceptsTrades }); |     void row;
  * @mutate src/components/declutter/BunchChoices.tsx |     if (ways.length > 0) setWays((w) => (w.length === 1 && w[0] === "porch" ? ways : w)); |     void ways;
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (!samePickupWindows(windows, savedWindows.data ?? [])) await setPickupWindows(windows); |       await setPickupWindows(windows);
  * @mutate src/components/declutter/DeclutterBunchView.tsx |       if (result.out.some((o) => "status" in o)) void choices.remember(savedWays); |       void result.out;
@@ -140,6 +140,37 @@ describe("Sell a bunch: listing choices", () => {
     await listIt();
     expect(state.listed[0].choices?.acceptsOffers).toBe(false);
     expect(state.listed[0].items.map((it) => it.acceptsOffers)).toEqual([true]);
+  });
+
+  // Declutter trades item 4 (lead 11-06): each priced item has its own Open to trades under Accept offers, starting
+  // from the saved default; the flip is what that item lists with, and it never becomes the saved default.
+  // @mutate src/components/declutter/DeclutterBunchView.tsx |                   tradesDefault={choices.choices.acceptsTrades} |
+  // @mutate src/components/declutter/DeclutterBunchCard.tsx | onCheckedChange={(v) => onChange({ acceptsTrades: v === true })} | onCheckedChange={() => {}}
+  // @mutate src/components/declutter/BunchChoices.tsx | freeAfterDays: row.freeAfterDays, acceptsTrades: row.acceptsTrades }); | freeAfterDays: row.freeAfterDays });
+  // @mutate src/components/declutter/BunchChoices.tsx | acceptsTrades: saved.data?.acceptsTrades }); | });
+  it("each item's Open to trades starts from the saved default, the flip is what lists, and Settings keep theirs", async () => {
+    state.saved = { keepUp: false, drops: false, dropPct: 15, floorPct: 70, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true, acceptsTrades: true };
+    await open();
+    fireEvent.change(screen.getByLabelText("Price ($)"), { target: { value: "40" } });
+    openRows();
+    const sw = await screen.findByRole("switch", { name: /^Open to trades for / });
+    await waitFor(() => expect(sw).toHaveAttribute("aria-checked", "true"));
+    fireEvent.click(sw);
+    expect(sw).toHaveAttribute("aria-checked", "false");
+    await listIt();
+    expect(state.listed[0].choices?.acceptsTrades).toBe(true);
+    expect(state.listed[0].items.map((it) => it.acceptsTrades)).toEqual([false]);
+    await waitFor(() => expect(state.remembered).toHaveLength(1));
+    expect(state.remembered[0].acceptsTrades).toBe(true);
+  });
+
+  it("nothing saved: Open to trades starts off, and a free item has no trades switch", async () => {
+    await open();
+    openRows();
+    const sw = await screen.findByRole("switch", { name: /^Open to trades for / });
+    expect(sw).toHaveAttribute("aria-checked", "false");
+    fireEvent.click(screen.getByRole("checkbox", { name: /away free$/ }));
+    expect(screen.queryByRole("switch", { name: /^Open to trades for / })).toBeNull();
   });
 
   it("saved choices start the switches and the ways, and a switch the seller flips is what lists", async () => {

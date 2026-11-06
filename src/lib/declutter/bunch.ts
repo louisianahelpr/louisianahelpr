@@ -28,6 +28,7 @@ import { isNetworkFailure } from "@/lib/networkFailure";
 import { pageAwayCount, whenPageIsBack, withRetries } from "@/lib/declutter/steadyRetry";
 import { addPhotoSteadily, AlreadyPosted, createDraft, fetchItemStatuses, invokeAiBody, removePhoto, setAutoFreeDays, setDropPct, setHandovers, setKeepUp, setOfferRules, updateDraft, withdrawItem, type AiHintPoint, type DeliverySize, type SellerHandover } from "@/lib/declutter/api";
 import { offersOffAfterPublish, offersOffOnDraft } from "@/lib/declutter/offersOnPost";
+import { setTradeRules } from "@/lib/declutter/trades";
 import { AI_CHECK_GAP_MS, createMoveDraft, moveRowProblem, publishMany, type PickupPlace, type PublishOutcome } from "@/lib/declutter/moves";
 import { DECLUTTER_MAX_PHOTOS, DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { floorFromPct } from "@/lib/declutter/sellerDefaults";
@@ -123,6 +124,8 @@ export interface BunchItem {
   sortReason?: string;
   /** LEAD-OFFERS-CHOICE part (2): this item's own "Accept offers"; unset, it follows the seller's saved default. */
   acceptsOffers?: boolean;
+  /** Declutter trades item 4: this item's own "Open to trades"; unset, it follows the seller's saved default (off). */
+  acceptsTrades?: boolean;
   /** The item this may be the same thing as, when the check across two batches couldn't run. The screen offers to merge. */
   mergeHint?: string;
 }
@@ -660,7 +663,7 @@ export function listingProgressLine(done: number, total: number, names: readonly
 export type BunchOutcome =
   /** `offersFailed`: listed, but taking offers although the seller turned them off (they can, from Manage listing). */
   /** `keepUpFailed`: it is listed, but "Keep it up" could not be turned on (the seller can, from Manage listing). `id`: its listing. */
-  | { key: string; title: string; status: "live" | "pending_review"; keepUpFailed?: boolean; offersFailed?: boolean; id?: string }
+  | { key: string; title: string; status: "live" | "pending_review"; keepUpFailed?: boolean; offersFailed?: boolean; tradesFailed?: boolean; id?: string }
   /**
    * `draftId` set: the draft was made but a later step failed. `stays`: it failed getting ready (an upload, the phone
    * locking), so it stays on the list with its photos to try again; otherwise it is finished under Selling.
@@ -691,10 +694,15 @@ export interface ListDeps {
   setKeepUp: typeof setKeepUp;
   setAutoFreeDays: typeof setAutoFreeDays;
   setOfferRules: typeof setOfferRules;
+  /**
+   * "Open to trades" on a draft (declutter_set_trade_rules takes drafts). Absent (deps built before trades): an item
+   * that should take trades is reported as not turned on, never sent anywhere else.
+   */
+  setTradeRules?: typeof setTradeRules;
   publishMany: (ids: string[], onProgress: (done: number, total: number, index: number) => void) => Promise<PublishOutcome[]>;
 }
 
-const realDeps: ListDeps = { createDraft, createMoveDraft, updateDraft, addPhoto: addPhotoSteadily, removePhoto, itemStatuses: fetchItemStatuses, withdrawItem, setHandovers, setDropPct, setKeepUp, setAutoFreeDays, setOfferRules, publishMany: (ids, p) => publishMany(ids, p) };
+const realDeps: ListDeps = { createDraft, createMoveDraft, updateDraft, addPhoto: addPhotoSteadily, removePhoto, itemStatuses: fetchItemStatuses, withdrawItem, setHandovers, setDropPct, setKeepUp, setAutoFreeDays, setOfferRules, setTradeRules, publishMany: (ids, p) => publishMany(ids, p) };
 
 /** The single form's listing choices, once for the batch (they start from the seller's remembered ones). */
 export interface BunchChoices {
@@ -713,11 +721,18 @@ export interface BunchChoices {
    * each priced item now gets it, as the single form does (useSellFlowState: not for an item that is already free).
    */
   freeAfterDays?: number | null;
+  /** The seller's saved "Open to trades" (Settings > Listing defaults): an item with no choice of its own follows it. Absent: off. */
+  acceptsTrades?: boolean;
 }
 
 /** Whether this item goes up taking offers: its own switch, else the saved default. A free item is claimed, never offered on. */
 export function bunchItemTakesOffers(it: Pick<BunchItem, "free" | "acceptsOffers">, choices: Pick<BunchChoices, "acceptsOffers">): boolean {
   return !it.free && (it.acceptsOffers ?? choices.acceptsOffers ?? true);
+}
+
+/** Whether this item goes up open to trades: its own switch, else the saved default (off). A free item is never traded. */
+export function bunchItemTakesTrades(it: Pick<BunchItem, "free" | "acceptsTrades">, choices: Pick<BunchChoices, "acceptsTrades">): boolean {
+  return !it.free && (it.acceptsTrades ?? choices.acceptsTrades ?? false);
 }
 
 /** Taking a photo off a draft. Already gone (a run cut off after this step, before it was saved) is what was asked for. */
@@ -858,7 +873,7 @@ export async function listBunch(
   }, 0);
   let photosStarted = 0;
   const out = new Map<string, BunchOutcome>();
-  const prepared: { at: number; key: string; title: string; id: string; keepUpFailed: boolean; offersAfter: boolean; offersFailed: boolean }[] = [];
+  const prepared: { at: number; key: string; title: string; id: string; keepUpFailed: boolean; offersAfter: boolean; offersFailed: boolean; tradesFailed: boolean }[] = [];
   // A run cut off by a crash or a reload may have listed a draft before it could save that. Asked first, not refused later.
   const held = keptItemIds(items);
   let statuses: Map<string, string> | null = null;
@@ -1028,16 +1043,30 @@ export async function listBunch(
           return "failed";
         }
       };
+      // "Open to trades" (item 4): a new item takes no trades (accepts_trades DEFAULT false), so only ON is sent, on the
+      // draft beside the other settings. Not a blocker: a refusal is named on the results screen (true = failed).
+      const tradesOn = async (): Promise<boolean> => {
+        if (!bunchItemTakesTrades(it, choices)) return false;
+        try {
+          if (!deps.setTradeRules) throw new Error("trades_not_wired");
+          await deps.setTradeRules(draftId, true);
+          return false;
+        } catch (err) {
+          console.warn("[declutter] could not turn on Open to trades", err);
+          return true;
+        }
+      };
       // allSettled, never all: a setting refused first must not end this item while its photos are still being
       // attached, or a quick Try again finds a photo not yet marked as sent and attaches it a second time. All of them
       // finish, then the first failure is the item's.
-      const [sent, settled, kept, offers] = await Promise.allSettled([sendPhotos(), settle(), keepUp(), offersOff(), autoFree()]);
+      const [sent, settled, kept, offers, , trades] = await Promise.allSettled([sendPhotos(), settle(), keepUp(), offersOff(), autoFree(), tradesOn()]);
       const failed = [sent, settled, kept, offers].find((r): r is PromiseRejectedResult => r.status === "rejected");
       if (failed) throw failed.reason;
       const keepUpFailed = kept.status === "fulfilled" && kept.value;
       const offersAfter = offers.status === "fulfilled" && offers.value === "after";
       const offersFailed = offers.status === "fulfilled" && offers.value === "failed";
-      prepared.push({ at: i, key: it.key, title: it.title, id: draftId, keepUpFailed, offersAfter, offersFailed });
+      const tradesFailed = trades.status === "fulfilled" && trades.value;
+      prepared.push({ at: i, key: it.key, title: it.title, id: draftId, keepUpFailed, offersAfter, offersFailed, tradesFailed });
     } catch (error) {
       // Kept for the screen: which item, why, and whether its draft exists to finish by hand.
       out.set(it.key, { key: it.key, title: it.title, error, draftId: id, stays: true });
@@ -1080,7 +1109,7 @@ export async function listBunch(
           offersFailed = true;
         }
       }
-      out.set(p.key, { key: p.key, title: p.title, status: r.status, id: p.id, ...(p.keepUpFailed ? { keepUpFailed: true } : {}), ...(offersFailed ? { offersFailed: true } : {}) });
+      out.set(p.key, { key: p.key, title: p.title, status: r.status, id: p.id, ...(p.keepUpFailed ? { keepUpFailed: true } : {}), ...(offersFailed ? { offersFailed: true } : {}), ...(p.tradesFailed ? { tradesFailed: true } : {}) });
     }
   }
   onProgress(total, total);

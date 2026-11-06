@@ -38,6 +38,7 @@ export function BunchResults({ results, userId, inSale, onFix, onListMore }: {
   const review = listed.length - live;
   const keepUpFailed = listed.filter((r) => r.keepUpFailed).length;
   const offersFailed = listed.filter((r) => r.offersFailed).length;
+  const tradesFailed = listed.filter((r) => r.tradesFailed).length;
   const shareable = live > 0;
   const next: NextStepValue | null = live > 0
     ? { who: "you", text: "Wait for buyers. We tell you when someone buys or makes an offer." }
@@ -84,6 +85,11 @@ export function BunchResults({ results, userId, inSale, onFix, onListMore }: {
       {offersFailed > 0 && (
         <p className="text-sm" data-bunch-offers-failed="">
           Offers are still on for {offersFailed} {offersFailed === 1 ? "item" : "items"}. You can turn them off from Manage listing.
+        </p>
+      )}
+      {tradesFailed > 0 && (
+        <p className="text-sm" data-bunch-trades-failed="">
+          "Open to trades" didn't turn on for {tradesFailed} {tradesFailed === 1 ? "item" : "items"}. You can turn it on from Manage listing.
         </p>
       )}
       {/* A3-69: what comes next, and ONE green primary on the right (owner rule), the others outline. */}

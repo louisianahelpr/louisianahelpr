@@ -10,6 +10,8 @@
  * @mutate src/components/shops/ShopOrderSheet.tsx |         lines: chosen.map((l) => (l.variantId ? { item_id: l.item.id, variant_id: l.variantId, quantity: l.n } : { item_id: l.item.id, quantity: l.n })), |         lines: chosen.map((l) => ({ item_id: l.item.id, quantity: l.n })),
  * @mutate src/components/shops/ShopOrderSheet.tsx |       .map((v) => ({ item: i, variantId: v.id as string \| null, unit: v.price_cents, n: qty[lineKey(i.id, v.id)] })); |       .map((v) => ({ item: i, variantId: v.id as string \| null, unit: i.price_cents, n: qty[lineKey(i.id, v.id)] }));
  * @mutate src/components/shops/ShopOrderOptions.tsx |         {variant && inStock && ( |         {variant && (
+ * @mutate src/components/shops/ShopProfile.tsx | {withOptions?.has(item.id) ? `From ${formatItemPrice(item.price_cents)}` : formatItemPrice(item.price_cents)} | {formatItemPrice(item.price_cents)}
+ * @mutate src/components/shops/ShopItemsList.tsx | withOptions={options.data} /> | />
  * @mutate src/components/shops/ShopItemOptionsEditor.tsx |     rows[variantLabel(values)] ?? { price: String(basePriceCents / 100), stock: "", active: true }; |     rows[variantLabel(values)] ?? { price: "", stock: "", active: true };
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -40,6 +42,7 @@ vi.mock("@/lib/shops/variants", async (orig) => ({ ...(await orig<typeof import(
 vi.mock("@/lib/shops/handover", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/handover")>()), fetchHandoverMode: async () => "in_person" }));
 
 import ShopOrderSheet from "./ShopOrderSheet";
+import ShopItemsList from "./ShopItemsList";
 import ShopItemOptionsEditor, { splitChoices } from "./ShopItemOptionsEditor";
 
 const item = (over: Partial<ShopItem>): ShopItem => ({
@@ -108,6 +111,16 @@ describe("the order sheet with option lists", () => {
       { item_id: "c1", variant_id: "v-lv", quantity: 1 },
       { item_id: "p1", quantity: 1 },
     ]);
+  });
+});
+
+// Variants follow-up (11-06): an item with option lists shows "From" its lowest combination's price on its card.
+describe("the item cards", () => {
+  it("say From $X for an item with options, and the plain price otherwise", async () => {
+    renderIt(<ShopItemsList shopId="s1" />);
+    expect(await screen.findByText("From $15")).toBeTruthy();
+    expect(screen.getByText("$12")).toBeTruthy();
+    expect(screen.queryByText("From $12")).toBeNull();
   });
 });
 

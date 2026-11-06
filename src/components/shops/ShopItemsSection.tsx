@@ -23,6 +23,7 @@ import {
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import ShopItemEditor from "./ShopItemEditor";
 import ShopItemOptionsEditor from "./ShopItemOptionsEditor";
+import { fetchItemOptions } from "@/lib/shops/variants";
 import ShopDailyCap from "./ShopDailyCap";
 
 const STATUS_LABEL: Record<ShopItemStatus, string> = {
@@ -60,6 +61,8 @@ function ItemRow({ item, onEdit, onTakeDown, busy }: { item: ShopItem; onEdit: (
 export default function ShopItemsSection({ shopId, ownerId, startAdding = false }: { shopId: string; ownerId: string; startAdding?: boolean }) {
   const qc = useQueryClient();
   const items = useQuery({ queryKey: ["shops", "items", shopId], queryFn: () => fetchShopItems(shopId) });
+  // Which items have option lists (the Options section below the editor reads the same query).
+  const options = useQuery({ queryKey: ["shops", "item-options", shopId], queryFn: () => fetchItemOptions(shopId) });
   const [editing, setEditing] = useState<string | "new" | null>(startAdding ? "new" : null);
   const sectionRef = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -128,6 +131,7 @@ export default function ShopItemsSection({ shopId, ownerId, startAdding = false 
             key={editing}
             ownerId={ownerId}
             item={open}
+            hasOptions={!!open && !!options.data?.has(open.id)}
             onCreated={(itemId) => setEditing(itemId)}
             onDone={() => setEditing(null)}
           />

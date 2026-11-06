@@ -25,6 +25,9 @@
  * @mutate src/components/shops/ShopItemsSection.tsx |             <p className="text-sm">This item isn't available any more.</p> |             <p className="text-sm">Loading…</p>
  * @mutate src/components/shops/ShopItemsSection.tsx |         ) : items.isError ? (\n          // A reload that failed | ) : false ? (\n          // A reload that failed
  * @mutate src/components/shops/ShopItemsSection.tsx |           {items.isError ? (\n            // The list on screen | {false ? (\n            // The list on screen
+ * @mutate src/components/shops/ShopItemEditor.tsx |         {d.readyNow && !hasOptions && ( |         {d.readyNow && (
+ * @mutate src/components/shops/ShopItemEditor.tsx |         {hasOptions ? ( |         {false ? (
+ * @mutate src/components/shops/ShopItemsSection.tsx |             hasOptions={!!open && !!options.data?.has(open.id)} |             hasOptions={false}
  * @mutate src/components/shops/ShopItemsList.tsx |           <Button type="button" variant="outline" size="sm" onClick={() => void items.refetch()} disabled={items.isFetching}> |           <Button type="button" variant="outline" size="sm" onClick={() => undefined} disabled={items.isFetching}>
  * @mutate src/components/admin/settings/ShopItemsReviewCard.tsx |     mutationFn: (approve: boolean) => reviewShopItem(row.item_id, row.submitted_at, approve, approve ? null : note.trim()), |     mutationFn: (approve: boolean) => reviewShopItem(row.item_id, null, approve, approve ? null : note.trim()),
  * @mutate src/components/admin/settings/ShopItemsReviewCard.tsx |       // item_changed / item_not_pending: show the version waiting now.\n      void qc.invalidateQueries | void 0;\n      void qc.getQueryData
@@ -83,6 +86,10 @@ vi.mock("@/lib/shops/items", async (orig) => ({
   itemPhotoUrl: (p: string) => `https://cdn/${p}`,
 }));
 
+// Variants (20261106165310): which items have option lists. None unless a test says so.
+const variantsApi = vi.hoisted(() => ({ fetchItemOptions: vi.fn() }));
+vi.mock("@/lib/shops/variants", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/variants")>()), ...variantsApi }));
+
 import ShopItemsSection from "./ShopItemsSection";
 import ShopItemsList from "./ShopItemsList";
 import ShopItemEditor from "./ShopItemEditor";
@@ -102,6 +109,8 @@ function renderWith(ui: ReactNode) {
 
 beforeEach(() => {
   for (const f of Object.values(api)) f.mockReset();
+  variantsApi.fetchItemOptions.mockReset();
+  variantsApi.fetchItemOptions.mockResolvedValue(new Map());
   toast.success.mockReset();
   toast.error.mockReset();
   api.fetchDailyOrderCap.mockResolvedValue(null);
@@ -119,6 +128,15 @@ describe("ShopItemsSection (/shops/mine items)", () => {
     fireEvent.click(within(alert).getByRole("button", { name: "Try again" }));
     expect(await screen.findByText("Fig candle")).toBeTruthy();
     expect(api.fetchShopItems).toHaveBeenCalledTimes(2);
+  });
+
+  it("opening an item that has option lists hides How many are ready (stock is per option)", async () => {
+    api.fetchShopItems.mockResolvedValue([item({ stock_count: 4 })]);
+    variantsApi.fetchItemOptions.mockResolvedValue(new Map([["it1", { item_id: "it1", option_names: ["Size"], variants: [] }]]));
+    renderWith(<ShopItemsSection shopId="s1" ownerId="u1" />);
+    fireEvent.click(await screen.findByRole("button", { name: "Edit" }));
+    expect(await screen.findByTestId("item-stock-per-option")).toBeTruthy();
+    expect(screen.queryByLabelText("How many are ready")).toBeNull();
   });
 
   it("a failed background reload keeps the open editor and its unsaved words", async () => {
@@ -315,6 +333,22 @@ describe("ShopItemEditor", () => {
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Set how many days you need, from 0 (same day) to 60."));
     expect(api.updateShopItem).not.toHaveBeenCalled();
     expect(api.createShopItem).not.toHaveBeenCalled();
+  });
+
+  // Variants follow-up (11-06): an item with option lists keeps its stock per combination (the server's rollup
+  // overrides the item's own stock), so the editor does not offer "How many are ready" for it.
+  it("an item with options hides How many are ready and says stock is set per option", async () => {
+    renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "live", stock_count: 4 })} hasOptions onCreated={() => {}} onDone={() => {}} />);
+    expect(screen.getByTestId("item-stock-per-option").textContent).toBe("How many are ready is set for each option below.");
+    expect(screen.queryByLabelText("How many are ready")).toBeNull();
+    expect(screen.queryByLabelText("I have some ready now")).toBeNull();
+    expect(screen.getByRole("button", { name: "Save ready time" })).toBeTruthy();
+  });
+
+  it("an item without options still offers How many are ready", async () => {
+    renderWith(<ShopItemEditor ownerId="u1" item={item({ status: "live", stock_count: 4 })} onCreated={() => {}} onDone={() => {}} />);
+    expect(screen.getByLabelText("How many are ready")).toBeTruthy();
+    expect(screen.queryByTestId("item-stock-per-option")).toBeNull();
   });
 
   // Shops H3 (owner 2026-11-05, answer 2): a live item's edit stays live, and

@@ -45,6 +45,11 @@ import { trackedFiles } from "@/test/helpers/trackedFiles";
 const state = vi.hoisted(() => ({ switches: {} as Record<string, boolean>, underAge: false }));
 
 // The one-time setup in front of posting is proved in sellerSetup.test.tsx; here, the form behind it.
+// Declutter trades (20261106163703): the listing's "Open to trades" read is the trade module's; off here.
+vi.mock("@/lib/declutter/trades", async (orig) => ({
+  ...(await orig<typeof import("@/lib/declutter/trades")>()),
+  fetchAcceptsTrades: async () => false,
+}));
 vi.mock("@/hooks/useMapKitJs", () => ({ useMapKitJs: () => "missing-token" }));
 vi.mock("@/components/declutter/SellerSetup", () => ({ SellerSetupGate: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock("@/hooks/useFeature", () => ({

@@ -4,6 +4,7 @@ import UserAvatar from "@/components/UserAvatar";
 import type { AvatarPhotoRejection } from "@/lib/avatarImage";
 import type { Profile } from "./types";
 import { formatName } from "@/lib/utils";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 
 /**
  * What to say under the name, given `<UserAvatar>`'s verdict on the photo.
@@ -137,7 +138,7 @@ export function PhotoNameSection({
                 A <label> names the control it wraps, so an sr-only child names
                 the file input properly and works everywhere. */}
             <span className="sr-only focus-within:ring-2 focus-within:ring-[hsl(var(--bark)/0.45)]">Change profile photo</span>
-            <input type="file" accept="image/*" className="sr-only" onChange={handlePick} disabled={avatarUploading} />
+            <HiddenFileInput accept="image/*" onChange={handlePick} disabled={avatarUploading} />
           </label>
         </div>
         <div className="min-w-0 flex-1">

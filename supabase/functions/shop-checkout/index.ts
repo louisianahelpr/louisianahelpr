@@ -80,6 +80,7 @@ import { storedStripeCustomer, withStoredWalletCustomer } from "../_shared/strip
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { captureShopHold, releaseShopHold, shopOrderMode } from "../_shared/shopHolds.ts";
 import { sendShopRefund, type ShopRefundRow } from "../_shared/shopRefunds.ts";
+import { chargeShopBalance } from "../_shared/shopBalance.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { isLouisianaZip5 } from "../_shared/easypostRates.ts";
 import { geocodeDropoff, type AppleMapsAccess } from "../_shared/geocodeDropoff.ts";
@@ -549,6 +550,17 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       },
     });
   }
+  // Custom orders slice 2b: a 50% deposit order's page saves the card for the rest (charged off-session from the
+  // ready date, _shared/shopBalance.ts). The webhook records it on the order (shop_order_record_saved_card); a
+  // Customer is needed to save it, so a buyer with no stored wallet customer gets one made by Checkout. Column not
+  // deployed yet (42703): every order is a full hold, as before.
+  const { data: planRow, error: planErr } = await admin.from("shop_orders").select("payment_plan").eq("id", o.id).maybeSingle();
+  if (planErr && (planErr as { code?: string }).code !== "42703") {
+    console.error(`[shop-checkout] payment plan read failed: ${planErr.message}`);
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  const depositPlan = !planErr && (planRow as { payment_plan?: string | null } | null)?.payment_plan === "deposit_50";
+  if (depositPlan) meta.payment_plan = "deposit_50";
   const chargedCents = o.items_cents + o.premium_cents + deliveryCents + setupFeeCents + tax.cents;
   const expiresAt = Math.floor(Date.now() / 1000) + PAGE_LIFETIME_S;
   // Q2140: a stored customer Stripe no longer has is replaced once and the page retried (":new-wallet" key).
@@ -561,9 +573,16 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       // committed to Stripe Tax only when the hold is captured (stripe-webhook, payment_intent.succeeded).
       billing_address_collection: "required",
       ...(payer ? { customer: payer, customer_update: { address: "auto" } } : { customer_email: user.email ?? undefined }),
+      ...(depositPlan && !payer ? { customer_creation: "always" as const } : {}),
       client_reference_id: o.id,
       metadata: meta,
-      payment_intent_data: { metadata: meta, capture_method: "manual", transfer_group: `shop_order_${o.id}` },
+      payment_intent_data: {
+        metadata: meta, capture_method: "manual", transfer_group: `shop_order_${o.id}`,
+        ...(depositPlan ? { setup_future_usage: "off_session" as const } : {}),
+      },
+      ...(depositPlan ? {
+        custom_text: { submit: { message: "Half is charged when the shop accepts. The rest is charged to this card on the ready date." } },
+      } : {}),
       // Q202: 3D Secure from $300 up (the whole charge, tax included).
       payment_method_options: threeDSecureOptions(chargedCents),
       expires_at: expiresAt,
@@ -643,6 +662,121 @@ async function cancel(body: Record<string, unknown>, asBuyer: Db, admin: Db) {
  * order for that price ('superseded'); its Stripe page is expired here, so the buyer cannot even start paying. A page
  * that still completes is answered cancel_hold by shop_mark_order_held (the order is closed), so nothing is charged.
  */
+type BalanceRow = {
+  id: string; buyer_id: string | null; seller_id: string | null; status: string; payment_plan: string | null;
+  balance_cents: number | null; balance_payment_intent_id: string | null; captured_at: string | null;
+  balance_customer_id: string | null; balance_payment_method_id: string | null; balance_attempts: number | null;
+  balance_failed_at: string | null; balance_checkout_session_id: string | null; ready_date: string;
+  stripe_checkout_session_id: string | null; stripe_payment_intent_id: string | null; payment_livemode: boolean | null;
+  items_cents: number; premium_cents: number; capture_attempts: number | null; shop_id: string | null;
+};
+
+/** A deposit order whose deposit was captured and whose rest is still owed (null: anything else, or no row). */
+async function readOwedRest(admin: Db, orderId: string): Promise<BalanceRow | null> {
+  const { data, error } = await admin.from("shop_orders")
+    .select("id, buyer_id, seller_id, status, payment_plan, balance_cents, balance_payment_intent_id, captured_at, balance_customer_id, balance_payment_method_id, balance_attempts, balance_failed_at, balance_checkout_session_id, ready_date, stripe_checkout_session_id, stripe_payment_intent_id, payment_livemode, items_cents, premium_cents, capture_attempts, shop_id")
+    .eq("id", orderId).maybeSingle();
+  if (error) throw new Error(`shop order read failed: ${error.message}`);
+  const o = data as BalanceRow | null;
+  if (!o || o.payment_plan !== "deposit_50" || o.status !== "accepted" || !o.captured_at || o.balance_payment_intent_id
+      || !Number.isInteger(o.balance_cents) || Number(o.balance_cents) <= 0) return null;
+  return o;
+}
+
+/**
+ * Custom orders slice 2b: the buyer's pay-the-rest page (OWNER rule: the card on file did not take it, or none was
+ * saved). The BUYER of a deposit order whose rest is owed; one line, the rest (its tax share is inside it: the tax was
+ * figured for the whole order at the deposit's page), charged at once. Its payment lands through the webhook's
+ * payment_intent.succeeded (_shared/shopBalance.ts recordShopBalance); a second payment is refunded, never kept.
+ */
+async function payBalance(body: Record<string, unknown>, user: { id: string; email?: string }, admin: Db) {
+  const orderId = typeof body.order_id === "string" ? body.order_id : "";
+  if (!UUID_RE.test(orderId)) return json({ error: "order_not_found" }, 404);
+  const o = await readOwedRest(admin, orderId);
+  if (o && o.buyer_id !== user.id) return json({ error: "order_not_found" }, 404);
+  if (!o) {
+    const { data: own } = await admin.from("shop_orders").select("buyer_id").eq("id", orderId).maybeSingle();
+    if ((own as { buyer_id?: string | null } | null)?.buyer_id !== user.id) return json({ error: "order_not_found" }, 404);
+    return json({ error: "nothing_owed", hint: "Nothing more is owed on this order." }, 409);
+  }
+  const stripe = await stripeForOrder(admin, o, "new");
+  let customerId: string | undefined;
+  try {
+    customerId = (await storedStripeCustomer(admin, user.id, shopOrderMode({ livemode: o.payment_livemode, checkout_session_id: o.stripe_checkout_session_id }) ?? "live")) ?? undefined;
+  } catch (e) {
+    console.error(`[shop-checkout] ${caughtMessage(e)}`);
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  const meta: Record<string, string> = { kind: "shop_balance", order_id: o.id, buyer_id: user.id, payer_id: user.id, seller_id: o.seller_id ?? "" };
+  const native = isNativeRequest(body);
+  const cents = Number(o.balance_cents);
+  const session = await stripe.checkout.sessions.create(
+    {
+      mode: "payment",
+      payment_method_types: ["card"],
+      line_items: [{
+        quantity: 1,
+        price_data: {
+          currency: "usd", unit_amount: cents, tax_behavior: "exclusive",
+          // The rest already carries its share of the order's sales tax (figured once, on the deposit's page).
+          product_data: { name: "Rest of your custom order", description: "Sales tax included", tax_code: NONTAXABLE_TAX_CODE },
+        },
+      }],
+      ...(customerId ? { customer: customerId } : { customer_email: user.email ?? undefined }),
+      client_reference_id: o.id,
+      metadata: meta,
+      payment_intent_data: { metadata: meta, transfer_group: `shop_order_${o.id}` },
+      payment_method_options: threeDSecureOptions(cents),
+      expires_at: Math.floor(Date.now() / 1000) + PAGE_LIFETIME_S,
+      success_url: buildRedirectUrl("/shops/orders?paid=1", native),
+      cancel_url: buildRedirectUrl("/shops/orders", native),
+    },
+    // One page per order and the page it replaces: a double tap opens one, a new tap after it closed opens a new one.
+    { idempotencyKey: `shop-balance-page-${o.id}-${o.balance_checkout_session_id ?? "first"}` },
+  );
+  if (session.amount_total !== cents) {
+    await expirePage(session.id);
+    console.error(`[shop-checkout] rest page ${session.amount_total} != owed ${cents}`);
+    return json({ error: TRY_AGAIN }, 500);
+  }
+  const { data: att, error: attErr } = await admin.rpc("shop_attach_balance_session", { p_order_id: o.id, p_session_id: session.id });
+  if (attErr) {
+    await expirePage(session.id);
+    return rpcRefusal(attErr);
+  }
+  const replaced = (att as { replaced?: string | null } | null)?.replaced;
+  if (replaced && replaced !== session.id) await expirePage(replaced);
+  return json({ url: session.url, order_id: o.id });
+}
+
+/**
+ * Custom orders slice 2b: the shop's "Handed over" tap on a deposit order whose rest is due. The handover RPC refuses
+ * while the rest is unpaid (balance_not_paid); the app then calls this, which tries the saved card at once (the same
+ * charge, key and recording as declutter-money's), and taps again only when it is paid.
+ */
+async function chargeRest(body: Record<string, unknown>, user: { id: string }, admin: Db) {
+  const orderId = typeof body.order_id === "string" ? body.order_id : "";
+  if (!UUID_RE.test(orderId)) return json({ error: "order_not_found" }, 404);
+  const o = await readOwedRest(admin, orderId);
+  if (o && o.seller_id !== user.id) return json({ error: "order_not_found" }, 404);
+  if (!o) {
+    const { data: own } = await admin.from("shop_orders").select("seller_id").eq("id", orderId).maybeSingle();
+    if ((own as { seller_id?: string | null } | null)?.seller_id !== user.id) return json({ error: "order_not_found" }, 404);
+    return json({ paid: true });
+  }
+  // Waiting on the buyer (the card did not take it, or none was saved): the shop waits; no new charge from the tap.
+  if (o.balance_failed_at || !o.balance_customer_id || !o.balance_payment_method_id) return json({ paid: false, waiting_on_buyer: true });
+  const { data: today, error: todayErr } = await admin.rpc("shop_local_today");
+  if (todayErr || typeof today !== "string") return json({ error: TRY_AGAIN }, 503);
+  if (o.ready_date > today) return json({ paid: false, not_due: true });
+  const done = await chargeShopBalance(await stripeForOrder(admin, o, "new"), admin, {
+    order_id: o.id, buyer_id: o.buyer_id, seller_id: o.seller_id, balance_cents: Number(o.balance_cents),
+    customer_id: o.balance_customer_id, payment_method_id: o.balance_payment_method_id,
+    attempts: Number(o.balance_attempts ?? 0), livemode: o.payment_livemode, checkout_session_id: o.stripe_checkout_session_id,
+  });
+  return json({ paid: done === "paid" || done === "already_paid", waiting_on_buyer: done === "buyer_pays" });
+}
+
 async function closeRequest(body: Record<string, unknown>, asMember: Db, admin: Db) {
   const requestId = typeof body.request_id === "string" ? body.request_id : "";
   if (!UUID_RE.test(requestId)) return json({ error: "request_not_found" }, 404);
@@ -864,6 +998,8 @@ serve(async (req) => {
     if (body.action === "decline") return await decline(body, asMember, admin);
     if (body.action === "cancel") return await cancel(body, asMember, admin);
     if (body.action === "close_request") return await closeRequest(body, asMember, admin);
+    if (body.action === "pay_balance") return await payBalance(body, user, admin);
+    if (body.action === "charge_rest") return await chargeRest(body, user, admin);
     if (body.action === "buyer_cancel") return await buyerCancel(body, asMember, admin);
     if (body.action === "shop_cancel") return await shopCancel(body, asMember, admin);
     if (body.action === "no_show") return await noShow(body, asMember);

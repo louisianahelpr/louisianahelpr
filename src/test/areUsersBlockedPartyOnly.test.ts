@@ -185,6 +185,12 @@ const EXPECTED_CALLERS = [
   // payment as service_role); it gets the real answer through the
   // pg_trigger_depth() > 0 arm, and a NULL would only hold the notice back.
   "quote_job_funded_hires_quoter",
+  // Homes A-H1 (20261106182837): open_talk passes v_uid := auth.uid() vs the listing's owner; talk_view and
+  // send_talk_message pass (the talk's member, the listing's owner) only after home_talk_side(talk, auth.uid())
+  // refused a caller who is neither, so the caller is always one of the two.
+  "rentals_open_talk",
+  "rentals_send_talk_message",
+  "rentals_talk_view",
   "respond_to_direct_offer",
   "respond_to_job_quote",
   // Shops M1 (20261018164442): each passes v_uid := auth.uid() as one

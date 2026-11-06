@@ -6239,6 +6239,82 @@ export type Database = {
         Relationships: [
         ]
       }
+      home_talk_messages: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          sender_id: string | null
+          sender_side: string
+          talk_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_side: string
+          talk_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          sender_id?: string | null
+          sender_side?: string
+          talk_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "home_talk_messages_talk_id_fkey"
+            columns: ["talk_id"]
+            isOneToOne: false
+            referencedRelation: "home_talks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      home_talks: {
+        Row: {
+          created_at: string
+          id: string
+          listing_id: string
+          member_id: string
+          member_notified_at: string | null
+          member_read_at: string | null
+          owner_notified_at: string | null
+          owner_read_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          listing_id: string
+          member_id: string
+          member_notified_at?: string | null
+          member_read_at?: string | null
+          owner_notified_at?: string | null
+          owner_read_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          listing_id?: string
+          member_id?: string
+          member_notified_at?: string | null
+          member_read_at?: string | null
+          owner_notified_at?: string | null
+          owner_read_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "home_talks_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "rental_listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       identity_soft_fingerprints: {
         Row: {
           nodoc_sha256: string
@@ -20319,6 +20395,13 @@ export type Database = {
         Args: { _job_id: string; _token?: string }
         Returns: boolean
       }
+      home_talk_listing_ok: { Args: { p_listing_id: string }; Returns: boolean }
+      home_talk_side: { Args: { p_talk_id: string; p_uid: string }; Returns: string }
+      rentals_open_talk: { Args: { p_listing_id: string }; Returns: string }
+      rentals_talk_view: { Args: { p_talk_id: string }; Returns: Json }
+      rentals_send_talk_message: { Args: { p_talk_id: string; p_body: string }; Returns: string }
+      rentals_my_talks: { Args: never; Returns: Json }
+      rentals_mark_talk_read: { Args: { p_talk_id: string }; Returns: undefined }
       rentals_accept_invite: {
         Args: { p_token: string }
         Returns: string

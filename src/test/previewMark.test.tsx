@@ -27,7 +27,9 @@
  * @mutate src/components/landing/useSectionsOpen.ts |   return q.isSuccess && q.data !== null ? new Set(q.data) : null; |   return q.isError ? new Set() : q.data ? new Set(q.data) : null;
  * @mutate src/components/landing/useSectionsOpen.ts |   return q.isSuccess && q.data !== null ? new Set(q.data) : null; |   return q.isSuccess ? new Set(q.data ?? []) : null;
  * @mutate src/components/landing/useSectionsOpen.ts |   return q.isSuccess && q.data !== null ? new Set(q.data) : null; |   return q.data ? new Set(q.data) : null;
- * @mutate src/components/mobileNav/useSectionTabs.ts |   const openToEveryone = useOpenToEveryoneAnswer(declutter \|\| shops \|\| rentals \|\| guest); |   const openToEveryone = useOpenToEveryoneAnswer(true);
+ * @mutate src/components/mobileNav/useSectionTabs.ts |   const openToEveryone = useOpenToEveryoneAnswer(mayBePreview \|\| guest); |   const openToEveryone = useOpenToEveryoneAnswer(true);
+ * Q104 (loading-states-refresh 42123572431, features_open_to_everyone x114): a member with only Declutter live never asks.
+ * @mutate src/components/mobileNav/useSectionTabs.ts | live[f] && !OPEN_FOR_THOSE_WHO_HAVE_IT.has(f) | live[f]
  * @mutate src/components/DesktopSidebarNav.tsx |                   {preview && <PreviewPill variant="rail" />} |
  * @mutate src/components/sections/PreviewPill.tsx |       {t("soon.full")}\n    </span>\n  );\n}\n | Preview\n    </span>\n  );\n}\n
  * @mutate src/components/sections/PreviewPill.tsx |         {t("soon.full")}\n      </span> |         Coming soon\n      </span>
@@ -185,6 +187,22 @@ describe("(b) useSectionTabs `preview`", () => {
     expect(previews(a.result.current)).toEqual({ declutter: false, shops: false, rentals: false });
     expect(previews(b.result.current)).toEqual({ declutter: false, shops: false, rentals: false });
     expect(a.result.current.find((t) => t.feature === "declutter")?.on).toBe(false);
+  });
+});
+
+describe("(b2) Q104: asked only when the answer can draw a mark", () => {
+  it("a member with only Declutter live never asks; a tester with Shops live asks once", async () => {
+    serve({ declutter: true, shops: false, rentals: false }, () => ({ data: ["declutter"], error: null }));
+    const a = renderHook(() => useSectionTabs(), { wrapper });
+    await waitFor(() => expect(ons(a.result.current).declutter).toBe(true));
+    await tick();
+    expect(askedOpen()).toBe(0);
+    expect(previews(a.result.current)).toEqual({ declutter: false, shops: false, rentals: false });
+    client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    serve({ declutter: true, shops: true, rentals: false }, () => ({ data: ["declutter"], error: null }));
+    const b = renderHook(() => useSectionTabs(), { wrapper });
+    await waitFor(() => expect(previews(b.result.current).shops).toBe(true));
+    expect(askedOpen()).toBe(1);
   });
 });
 

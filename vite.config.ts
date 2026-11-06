@@ -1217,7 +1217,7 @@ export default defineConfig(({ mode, command }) => ({
             // signed-in-shared: that put them on /home's first screen (378 -> 387 KB gz, B77).
             {
               name: "signed-in-chrome",
-              test: /[\\/]src[\\/](lib[\\/](capturedPayment|consent|helprTasks[\\/]online)\.ts|hooks[\\/](useInstantQuery\.ts|use-mobile\.tsx))$/,
+              test: /[\\/]src[\\/](lib[\\/](capturedPayment|consent|helprTasks[\\/]online|helprTasks[\\/]onlineHandoff)\.ts|hooks[\\/](useInstantQuery\.ts|use-mobile\.tsx))$/,
               priority: 16.5, // above signed-in-deep (16)
               minSize: 0,
               includeDependenciesRecursively: false /* deps stay where they are, as in signed-in-deep */,

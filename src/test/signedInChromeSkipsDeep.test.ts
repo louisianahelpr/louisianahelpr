@@ -10,8 +10,9 @@
  * module those roots reach must match the signed-in-chrome group's test.
  *
  * @mutate vite.config.ts |               priority: 16.5, // above signed-in-deep (16) |               priority: 15.9, // above signed-in-deep (16)
- * @mutate vite.config.ts | (capturedPayment\|consent\|helprTasks[\\/]online) | (capturedPayment\|helprTasks[\\/]online)
- * @mutate vite.config.ts | (capturedPayment\|consent\|helprTasks[\\/]online) | (capturedPayment\|consent)
+ * @mutate vite.config.ts | (capturedPayment\|consent\|helprTasks[\\/]online\|helprTasks[\\/]onlineHandoff) | (capturedPayment\|helprTasks[\\/]online\|helprTasks[\\/]onlineHandoff)
+ * @mutate vite.config.ts | (capturedPayment\|consent\|helprTasks[\\/]online\|helprTasks[\\/]onlineHandoff) | (capturedPayment\|consent\|helprTasks[\\/]onlineHandoff)
+ * @mutate vite.config.ts | (capturedPayment\|consent\|helprTasks[\\/]online\|helprTasks[\\/]onlineHandoff) | (capturedPayment\|consent\|helprTasks[\\/]online)
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";

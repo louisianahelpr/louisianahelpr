@@ -24,6 +24,9 @@ const H8 = readFileSync(`${MIG_DIR}20261105235833_shops_every_category_sells.sql
 const MIGRATION = readFileSync(process.env.MIGRATION_PATH ?? `${MIG_DIR}20261106165310_shops_item_variants.sql`, "utf8");
 // Option words pass the item word check (Builder 4, 11-06): WORDS_MIGRATION=skip leaves section 8b RED.
 const WORDS = readFileSync(process.env.WORDS_PATH ?? `${MIG_DIR}20261106194243_shops_option_words_checked.sql`, "utf8");
+// Review follow-ups (11-06): option words hold an item the same way a live title edit does. FOLLOWUP_MIGRATION=skip
+// leaves section 8c RED.
+const FOLLOWUP = readFileSync(process.env.FOLLOWUP_PATH ?? `${MIG_DIR}20261106201659_shops_option_words_hold_like_edits.sql`, "utf8");
 const SLICE1 = readFileSync(`${MIG_DIR}20261017061155_shops_profiles.sql`, "utf8");
 const SWITCHES = readFileSync(`${MIG_DIR}20261012031120_hidden_feature_switches.sql`, "utf8");
 const DECLUTTER = readFileSync(`${MIG_DIR}20261014193955_declutter_foundation.sql`, "utf8");
@@ -198,6 +201,8 @@ if (!skip) for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
 if (!skip) for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
 const skipWords = skip || process.env.WORDS_MIGRATION === "skip";
 if (!skipWords) for (let i = 0; i < 3; i++) await db.exec(WORDS);
+const skipFollowup = skipWords || process.env.FOLLOWUP_MIGRATION === "skip";
+if (!skipFollowup) for (let i = 0; i < 3; i++) await db.exec(FOLLOWUP);
 
 async function as(role, uid, sql) {
   try {
@@ -411,6 +416,55 @@ wr = await wordsRow(draft2);
 ok(one(pub) === "pending_review" && /alcohol/i.test(wr.flag ?? ""), `listing a draft whose option fails the check waits for an admin (${JSON.stringify(pub)} ${JSON.stringify(wr)})`);
 ok(refused(await member(OWNER, `SELECT public.shop_item_option_words('${gift}')`), /permission denied/), "members cannot call the option-words helper");
 
+// --- 8c. review follow-ups (11-06): the same rule as a live title edit (shops_update_item)
+const holdRow = async (id) => (await svc(`SELECT i.status, i.live_at, i.submitted_at, i.admin_approved_at,
+  p.ai_checked_at, p.ai_flag_reason, p.text_flag_reason AS flag
+  FROM public.shop_items i JOIN public.shop_item_private p ON p.item_id = i.id WHERE i.id = '${id}'`))[0] ?? {};
+const OLD = "2026-01-02 03:04:05+00";
+const aged = async (id, approved) => {
+  await svc(`UPDATE public.shop_items SET live_at = '${OLD}', submitted_at = '${OLD}',
+    admin_approved_at = ${approved ? `'${OLD}'` : "NULL"} WHERE id = '${id}'`);
+  await svc(`UPDATE public.shop_item_private SET ai_checked_at = '${OLD}', ai_flag_reason = NULL WHERE item_id = '${id}'`);
+};
+// 1. New option words that hold a live item: submitted_at moves to now, live_at and the AI verdict clear.
+const basket = await withPrivate(await item(shopA, OWNER, "made", "crafts", "Basket", 2000, 0, "NULL"));
+await setVariants(OWNER, basket, ["Fill"], [{ values: ["Pralines"], price_cents: 2000 }]);
+await aged(basket, false);
+const held = await setVariants(OWNER, basket, ["Fill"], [{ values: ["Rum pralines"], price_cents: 2000 }]);
+let hr = await holdRow(basket);
+ok(one(held)?.held_for_review === true && hr.status === "pending_review", `new option words that fail the check hold a live item (${JSON.stringify(held)})`);
+ok(hr.live_at === null, `a held item is no longer live: live_at clears (${JSON.stringify(hr)})`);
+ok(hr.submitted_at instanceof Date && hr.submitted_at.getTime() > new Date(OLD).getTime(), `a held item's submitted_at moves to now (${JSON.stringify(hr)})`);
+ok(hr.ai_checked_at === null && hr.ai_flag_reason === null, `the AI verdict on the old words is cleared (${JSON.stringify(hr)})`);
+// Clean new words keep a live item live with its live_at, and still clear the old AI verdict and approval.
+const crate = await withPrivate(await item(shopA, OWNER, "made", "crafts", "Crate", 2000, 0, "NULL"));
+await setVariants(OWNER, crate, ["Wood"], [{ values: ["Pine"], price_cents: 2000 }]);
+await aged(crate, true);
+await setVariants(OWNER, crate, ["Wood"], [{ values: ["Cypress"], price_cents: 2000 }]);
+hr = await holdRow(crate);
+ok(hr.status === "live" && hr.live_at instanceof Date && hr.live_at.getTime() === new Date(OLD).getTime(),
+  `clean new words keep a live item live, live_at unchanged (${JSON.stringify(hr)})`);
+ok(hr.ai_checked_at === null && hr.admin_approved_at === null, `new words clear the AI verdict and the approval (${JSON.stringify(hr)})`);
+// 2. An item an admin approved with its words is not re-held by a price-only option save.
+const approved = await withPrivate(await item(shopA, OWNER, "made", "crafts", "Cake stand", 2000, 0, "NULL"));
+await setVariants(OWNER, approved, ["Finish"], [{ values: ["Bourbon brown"], price_cents: 2000 }]);
+await svc(`UPDATE public.shop_items SET status = 'live', live_at = '${OLD}', admin_approved_at = '${OLD}' WHERE id = '${approved}'`);
+const priceOnly = await setVariants(OWNER, approved, ["Finish"], [{ values: ["Bourbon brown"], price_cents: 2600, stock_count: 4 }]);
+hr = await holdRow(approved);
+ok(one(priceOnly)?.held_for_review === false && hr.status === "live" && hr.admin_approved_at instanceof Date,
+  `a price-only option save leaves an admin-approved item live and approved (${JSON.stringify(priceOnly)} ${JSON.stringify(hr)})`);
+const reworded = await setVariants(OWNER, approved, ["Finish"], [{ values: ["Bourbon brown"], price_cents: 2600 }, { values: ["Whiskey oak"], price_cents: 2600 }]);
+ok(one(reworded)?.held_for_review === true && (await holdRow(approved)).status === "pending_review",
+  `new option words on an approved item run the check again (${JSON.stringify(reworded)})`);
+// A live item with new words waits after a rejection in the last 30 days, as a live title edit does.
+const tray = await withPrivate(await item(shopA, OWNER, "made", "crafts", "Tray", 2000, 0, "NULL"));
+await setVariants(OWNER, tray, ["Color"], [{ values: ["Blue"], price_cents: 2000 }]);
+const rej = one(await svc(`INSERT INTO public.admin_audit_log (admin_id, action, details)
+  VALUES ('${ADMIN}', 'shop_item_rejected', jsonb_build_object('owner_id', '${OWNER}')) RETURNING id`));
+await setVariants(OWNER, tray, ["Color"], [{ values: ["Green"], price_cents: 2000 }]);
+ok((await holdRow(tray)).status === "pending_review", "after a recent rejection, new option words on a live item wait for an admin");
+await svc(`DELETE FROM public.admin_audit_log WHERE id = '${rej}'`);
+
 // --- 9. grants and seed
 const gr = await svc(`SELECT has_table_privilege('authenticated', 'public.shop_item_variants', 'SELECT') AS a,
   has_table_privilege('anon', 'public.shop_item_variants', 'SELECT') AS b,
@@ -426,5 +480,5 @@ const del = await svc(`DELETE FROM public.shop_items WHERE id = '${candle}' RETU
 ok(Array.isArray(del) && del.length === 1 && one(await svc(`SELECT count(*)::int FROM public.shop_item_variants WHERE item_id = '${candle}'`)) === 0, `deleting the item purges its combinations (${JSON.stringify(del)})`);
 ok(one(await svc(`SELECT variant_label FROM public.shop_order_lines WHERE order_id = '${o1}' AND unit_cents = 2400`)) === "Large / Fig", "the order line keeps its label after the purge");
 
-console.log(`\n${pass} PASS, ${fail} FAIL${skip ? " (NEW_MIGRATION=skip)" : skipWords ? " (WORDS_MIGRATION=skip)" : ""}`);
+console.log(`\n${pass} PASS, ${fail} FAIL${skip ? " (NEW_MIGRATION=skip)" : skipWords ? " (WORDS_MIGRATION=skip)" : skipFollowup ? " (FOLLOWUP_MIGRATION=skip)" : ""}`);
 process.exit(fail === 0 ? 0 : 1);

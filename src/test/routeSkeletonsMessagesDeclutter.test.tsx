@@ -84,8 +84,11 @@ describe("/messages and /declutter route skeletons (Q2705 B)", () => {
     expect(body).toMatch(/\[1, 2, 3, 4, 5, 6\]\.map\(\(i\) => \(\s*<MessageThreadSkeleton/);
     // The phone header's rows: AppTopBar's h-16 bar, the h-11 search pill in pb-1.5, the chips in pt-1 pb-1.5.
     expect(code("src/components/sections/AppTopBar.tsx")).toContain('className="app-top-bar flex items-center justify-between gap-2 h-16"');
-    expect(list).toContain('data-testid="messages-search-row" className="shrink-0 pb-1.5"');
-    expect(list).toContain('className="flex h-11 items-center gap-1 rounded-full');
+    // The search row moved to MessagesSearchRow.tsx (Q806); ConversationList mounts it.
+    const searchRow = code("src/components/messages/MessagesSearchRow.tsx");
+    expect(list).toContain("<MessagesSearchRow ");
+    expect(searchRow).toContain('data-testid="messages-search-row" className="shrink-0 pb-1.5"');
+    expect(searchRow).toContain('className="flex h-11 items-center gap-1 rounded-full');
     expect(list).toContain('className="shrink-0 pt-1 pb-1.5" data-testid="messages-section-tabs"');
   });
 

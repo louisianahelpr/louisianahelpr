@@ -13,7 +13,8 @@
  *     closes the field;
  *   - e2e/prod-audit/search-keeps-title.spec.ts — the open field never
  *     covers or removes the page title.
- * Both run at 375 and 1440, Chromium and WebKit.
+ * Both run at 375 and 1440, Chromium and WebKit, and at 1024 (BAND_VW) for a
+ * surface that renders only inside a width band neither reaches (BAND_ONLY).
  *
  * Before this file, the press spec named six surfaces by hand and nothing
  * tied that list to the app: BrowseSearchBar's PHONE bar on /home (a separate
@@ -40,6 +41,9 @@
 // @mutate src/index.css | input[type="search"]::-webkit-search-cancel-button, | input[type="search"]::-webkit-search-cancelled,
 // @mutate src/components/admin/AdminUsers.tsx | aria-label="Clear search" | aria-label="Clear"
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: `[data-browse-phone-controls] ${CLOSE}`,\n    maxWidth: 899, | close: `[data-browse-phone-controls] ${CLOSE}`,
+// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: CLOSE,\n    minWidth: 900,\n    maxWidth: 1139, | close: CLOSE,\n    minWidth: 900,
+// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | if ((vw === BAND_VW) !== bandOnly(s)) continue; | if (vw === BAND_VW && !bandOnly(s)) continue;
+// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | name: "messages-one-pane", file: "src/components/messages/ConversationList.tsx", | name: "messages-one-pane", file: "src/components/messages/MessagesSearchRow.tsx",
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | name: "admin-command-palette", file: "src/components/admin/AdminCommandPalette.tsx", | name: "admin-command-palette", file: "src/components/admin/AdminCommandPalette.ts",
 import { describe, expect, it } from "vitest";
 import { readFileSync, statSync } from "node:fs";
@@ -82,6 +86,16 @@ const DESKTOP_ONLY: Record<string, string> = {
   // left with the old Home feed; its one caller is Jobs > Browse's desktop feed
   // strip (Dashboard renders the strip only when isWebDesktop).
   "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx": "desktop feed strip only; phone uses the compact row",
+};
+
+/** ✕ files that render ONLY inside a width band that neither 375 nor 1440 reaches, so the press spec drives them at
+ * BAND_VW (1024) alone (lead, 2026-11-06). Exact: a stale entry fails, and each one's surface must say exactly this
+ * band. */
+const BAND_VW = 1024;
+const BAND_ONLY: Record<string, { minWidth: number; maxWidth: number; why: string }> = {
+  // Board 38 / Q2231: the phone and the two-pane list (1140+, TWO_PANE_MIN_WIDTH) wear the permanent
+  // MessagesSearchRow; only the one-pane web desktop keeps the magnifier that opens a field with a "Close search" ✕.
+  "src/components/messages/ConversationList.tsx": { minWidth: 900, maxWidth: 1139, why: "one-pane web desktop only (900-1139)" },
 };
 
 function walk(dir: string): string[] {
@@ -170,12 +184,20 @@ function specSurfaces(spec: string): Surface[] {
   });
 }
 
-const runsAt = (s: Surface, vw: number) => (s.minWidth ?? 0) <= vw && (s.maxWidth ?? Infinity) >= vw;
+/** The specs run a surface that names BOTH bounds at BAND_VW alone, and every other surface at 375 / 1440 alone. */
+const bandSurface = (s: Surface) => !!s.minWidth && !!s.maxWidth;
+const runsAt = (s: Surface, vw: number) =>
+  (bandSurface(s) ? vw === BAND_VW : vw !== BAND_VW) && (s.minWidth ?? 0) <= vw && (s.maxWidth ?? Infinity) >= vw;
 
 function specRunsBothWidthsAndEngines(spec: string) {
   const src = blankComments(readFileSync(path.join(ROOT, spec), "utf8"));
   expect(src, `${spec} must loop both engines`).toMatch(/for \(const engine of \["chromium", "webkit"\]/);
-  expect(src, `${spec} must loop 375 and 1440`).toMatch(/for \(const vw of \[375, 1440\]/);
+  expect(src, `${spec} must loop 375, the band width and 1440`).toMatch(/for \(const vw of \[375, BAND_VW, 1440\]/);
+  expect(src, `${spec}: BAND_VW must be ${BAND_VW}`).toContain(`const BAND_VW = ${BAND_VW};`);
+  expect(src, `${spec}: band surfaces must run at BAND_VW alone, the rest never there`).toMatch(
+    /if \(\(vw === BAND_VW\) !== bandOnly\(s\)\) continue;/,
+  );
+  expect(src, `${spec}: bandOnly must mean both bounds`).toContain("const bandOnly = (s: { minWidth?: number; maxWidth?: number }) => !!s.minWidth && !!s.maxWidth;");
 }
 
 describe("every search field is driven in a real browser (inventory minus checked = empty)", () => {
@@ -194,7 +216,9 @@ describe("every search field is driven in a real browser (inventory minus checke
     // 2026-11-02 (Q2260): JobCategoryGroups moved from NO_X to the ✕ files (count unchanged).
     // 2026-10-27: +1, Jobs > Posted / Working's in-place search (InlineListSearch), an opening field with a "Close search" ✕.
     // 2026-11-04: -1, AdminSubscriptions retired with memberships.
-    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(14);
+    // 2026-11-06 (Q806): +1, the inbox's permanent search row moved out of ConversationList into MessagesSearchRow
+    // (ConversationList keeps its one-pane desktop field, so both files count).
+    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(15);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/admin/AdminCommandPalette.tsx",
       "src/components/admin/AdminNotificationLogs.tsx",
@@ -203,6 +227,7 @@ describe("every search field is driven in a real browser (inventory minus checke
       "src/components/admin/settings/AdminUserSearchField.tsx",
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
       "src/components/messages/ConversationList.tsx",
+      "src/components/messages/MessagesSearchRow.tsx",
       "src/components/postjob/JobCategoryGroups.tsx",
       "src/components/profile/SavedHelpersTab.tsx",
       "src/components/sections/InlineListSearch.tsx",
@@ -238,8 +263,17 @@ describe("every search field is driven in a real browser (inventory minus checke
       expect(own.length, `${f}: no press-spec surface`).toBeGreaterThan(0);
       for (const s of own) expect(s.minWidth, `${s.name}: a DESKTOP_ONLY surface must say minWidth: 900`).toBe(900);
     }
+    for (const [f, band] of Object.entries(BAND_ONLY)) {
+      expect(X_FILES, `BAND_ONLY entry ${f} renders no search ✕ — remove it`).toContain(f);
+      expect(PHONE_ONLY[f] ?? DESKTOP_ONLY[f], `${f} cannot be band-only and phone- or desktop-only`).toBeUndefined();
+      const own = surfaces.filter((s) => s.file === f);
+      expect(own.length, `${f}: no press-spec surface`).toBeGreaterThan(0);
+      for (const s of own) expect([s.minWidth, s.maxWidth], `${s.name}: a BAND_ONLY surface must say its band`).toEqual([band.minWidth, band.maxWidth]);
+      expect(band.minWidth <= BAND_VW && BAND_VW <= band.maxWidth, `${f}: BAND_VW ${BAND_VW} is outside its band`).toBe(true);
+    }
+    for (const s of surfaces.filter(bandSurface)) expect(BAND_ONLY[s.file], `${s.name} names a band but its file is not on BAND_ONLY`).toBeDefined();
     for (const f of X_FILES) {
-      for (const vw of PHONE_ONLY[f] ? [375] : DESKTOP_ONLY[f] ? [1440] : [375, 1440]) {
+      for (const vw of PHONE_ONLY[f] ? [375] : DESKTOP_ONLY[f] ? [1440] : BAND_ONLY[f] ? [BAND_VW] : [375, 1440]) {
         if (!surfaces.some((s) => s.file === f && runsAt(s, vw))) missing.push(`${f} @${vw}`);
       }
     }

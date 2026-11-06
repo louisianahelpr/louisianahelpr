@@ -154,7 +154,6 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
   const atBuyer = useMutation({
     mutationFn: (v: boolean) => setShopItemAtBuyer(id as string, v),
     onSuccess: () => {
-      toast.success("Saved where you do this work.");
       refresh();
     },
     onError: (err) => toast.error(shopsErrorMessage(err)),

@@ -63,6 +63,8 @@ export default function ShopItemsSection({ shopId, ownerId, startAdding = false 
   const items = useQuery({ queryKey: ["shops", "items", shopId], queryFn: () => fetchShopItems(shopId) });
   // Which items have option lists (the Options section below the editor reads the same query).
   const options = useQuery({ queryKey: ["shops", "item-options", shopId], queryFn: () => fetchItemOptions(shopId) });
+  // One gate (oneLoadingGatePerScreen): the rows and which of them have options paint together.
+  const listLoading = items.isLoading || options.isLoading;
   const [editing, setEditing] = useState<string | "new" | null>(startAdding ? "new" : null);
   const sectionRef = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -85,7 +87,7 @@ export default function ShopItemsSection({ shopId, ownerId, startAdding = false 
     <section ref={sectionRef} className="space-y-4 pb-8" aria-labelledby="shop-my-items">
       <h2 id="shop-my-items" className="text-base font-semibold">Items</h2>
       <ShopDailyCap shopId={shopId} />
-      {items.isLoading ? (
+      {listLoading ? (
         <div role="status" aria-label="Loading your items" className="space-y-2">
           <Skeleton className="h-16 w-full rounded-xl" />
           <Skeleton className="h-16 w-full rounded-xl" />

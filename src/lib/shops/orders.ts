@@ -261,6 +261,12 @@ export async function requestOrder(args: {
   return data.url;
 }
 
+/** Custom orders (50% deposit): the shop's tap tries the rest on the saved card first. paid=false: the buyer must pay it. */
+export async function chargeOrderRest(orderId: string): Promise<{ paid: boolean; waitingOnBuyer: boolean }> {
+  const data = await invokeShopCheckout({ action: "charge_rest", order_id: orderId });
+  return { paid: data.paid === true, waitingOnBuyer: data.waiting_on_buyer === true };
+}
+
 /** The shop accepts: the hold is charged. charged=false means the charge finishes within minutes. */
 export async function acceptOrder(orderId: string): Promise<{ charged: boolean }> {
   const data = await invokeShopCheckout({ action: "accept", order_id: orderId });

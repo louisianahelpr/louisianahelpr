@@ -20,7 +20,7 @@ import { serverNow } from "@/lib/messagingLockout";
 import { isThreadAgedOut } from "./threadAgeOut";
 // The Active tab's predicate and its job states (LIVE_JOB_STATUSES) live there.
 import { isLiveThread } from "./liveThread";
-import type { ConversationListProps } from "./ConversationList";
+import type { ConversationListProps } from "./conversationListProps";
 
 // Cap the rendered list; "Show all" reveals the rest. The virtualizer
 // keeps long lists cheap, but a default cap keeps first paint trivial.

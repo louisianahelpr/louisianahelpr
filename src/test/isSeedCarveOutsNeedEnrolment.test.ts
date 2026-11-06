@@ -108,6 +108,10 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   // Q2268 (20261104103528): a bundle ask over test listings is marked is_seed (its tables' cleanup rule); the items
   // themselves pass declutter_lock_buyable_item's seed rule first, so it hides nothing and gates no money.
   declutter_request_bundle: "tags",
+  // Declutter trades (20261106163703): a trade over a test listing is marked is_seed (its table's cleanup rule); the
+  // items pass declutter_swap_items_ok's seed rule (seed_hidden_for the buyer) first, which hides a test listing as not found.
+  declutter_offer_swap: "tags",
+  declutter_swap_items_ok: "hides",
   // The Free change (Q2487): the ask carries the old claim's test-listing rule (declutter_claim_free just calls it).
   declutter_request_free: "hides",
   declutter_delivery_dropoffs_seed: "tags",

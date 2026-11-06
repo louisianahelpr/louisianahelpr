@@ -50,6 +50,28 @@ export async function handleChargeRefundUpdated(
   // recorded this refund is reopened (failed, due now) so declutter-money sends
   // a new one under a new key (shop_refund_reversed); a Shops charge is not a
   // job, so nothing below applies.
+  // Helpr delivery (20261106194913): a Shops delivery-only refund (shop_delivery_refunds) reversed no tax when it was
+  // made (chargeRefunded's taxRefunds), so there is no reversal to undo; its row reopens (failed, due now, a new key)
+  // as Declutter's delivery refund does (shop_delivery_refund_reversed).
+  if (meta.kind === "shop_refund" && meta.shop_delivery_refund_id) {
+    const { data: reopened, error: sdErr } = await supabase.rpc("shop_delivery_refund_reversed", {
+      p_id: meta.shop_delivery_refund_id,
+      p_stripe_refund_id: refund.id,
+      p_why: `${refund.status}: ${refund.failure_reason ?? "no reason given"}`,
+    });
+    if (sdErr) throw new Error(`shop_delivery_refund_reversed failed for ${refund.status} refund ${refund.id}: ${sdErr.message}`);
+    const lastTry = reopened === "gave_up";
+    await postSlackOpsAlert({
+      kind: "stripe_webhook_error",
+      severity: reopened === "reopened" || lastTry ? "critical" : "warning",
+      oncePerDayKey: `shop-delivery-refund-reversed-${refund.id}`,
+      title: lastTry ? "Shops delivery refund failed after Stripe took it: GAVE UP, refund it by hand"
+        : reopened === "reopened" ? "Shops delivery refund failed after Stripe took it: retrying" : "Shops delivery refund failed (row not reopened)",
+      message: `Stripe moved delivery refund ${refund.id} ($${(Number(refund.amount ?? 0) / 100).toFixed(2)}) to ${refund.status} (${refund.failure_reason ?? "no reason given"}). ${lastTry ? "The buyer has NOT been repaid and that was the last try. Refund it by hand." : reopened === "reopened" ? "The buyer has NOT been repaid; declutter-money sends a new refund within 10 minutes." : "The row did not record this refund: nothing changed."}`,
+      fields: { "Delivery refund row": meta.shop_delivery_refund_id, Order: meta.order_id ?? "?" },
+    });
+    return;
+  }
   if (meta.kind === "shop_refund" && meta.shop_refund_id) {
     // H6: the share of the order's pickup-address tax this refund reversed (charge.refunded) stands no more: the
     // money stayed. Undone before the row reopens (a re-sent refund then reverses its own share). Never throws.

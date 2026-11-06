@@ -73,6 +73,8 @@ const NO_TEST_ROWS: Record<string, string> = {
   [`${A}RestrictApplicationsDialog.tsx`]: "acts on the one person the admin opened",
   [`${A}helprFault/BillHelprFaultButton.tsx`]: "acts on the one job already on screen",
   [`${A}helprFault/helprFault.ts`]: "acts on the one Helpr of a job already on screen",
+  [`${A}adminReports/reportedHomes.ts`]: "hydrates the listings of the reports fetchReports.ts already lists; fetchReports drops a report whose listing owner is a test account (seedIds)",
+  [`${A}adminReports/HomeReportPanel.tsx`]: "takes down the one reported listing already on screen (rentals_admin_remove_listing)",
   [`${A}adminHealth/useCronHealth.ts`]: "scheduled-job runs and system errors; no member rows",
   [`${A}adminHealth/useOpenAlerts.ts`]: "the ops alert ledger; each detector declares its own test-data policy (alertingDetectorsDeclareSeedPolicy.test.ts)",
 };

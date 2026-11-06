@@ -902,6 +902,13 @@ async function main() {
         const r = await measureOne(ctx, t).finally(() => ctx.close().catch(() => {}));
         r.requests = sent;
         results.push(r);
+        // Q104 (lead 11-05 7:10 PM, the Q1374 unit fix): the budget is per
+        // SURFACE (requests / surfaces), so the meter's `tests` is the
+        // surfaces measured so far; kept current for the exit-time flush. The
+        // whole-run total grows with the surface list (139 on 10-01, 232 on
+        // 11-05), so a whole-run budget went red on a list that grew while
+        // requests per surface fell (15.1 -> 14.5).
+        requestMeter.tests = results.length;
         const tag = r.status === "measured"
           ? `cl=${String(r.clustersMeasured ?? 0)}/${String(r.clusters?.length ?? 0)}  worstΔrow=${String(r.worstDeltaRowPx ?? "?").padStart(7)}px  ` +
             `ΔrowH=${String(r.worstDeltaRowH ?? "-").padStart(5)}  Δrows=${String(r.worstDeltaRows ?? "-").padStart(4)}  shapeBad=${r.shapeMismatches}  ` +

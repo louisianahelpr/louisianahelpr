@@ -106,6 +106,14 @@ jobs:
         with:
           access-token: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           project-ref: ${{ vars.E2E_SUPABASE_PROJECT_REF || 'fncmgoasalhdgfwzhsqa' }}
+      - name: Detach the test accounts' piled-up TEST saved cards (Q1816, #4151)
+        # "Customer has maximum number of payment methods attached" turned the
+        # checkout start red. TEST key only (sk_test_, refused otherwise); the
+        # customers are read from stripe_customers for test/is_seed accounts.
+        env:
+          STRIPE_TEST_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          SUPABASE_URL: ${{ vars.E2E_SUPABASE_URL || 'https://fncmgoasalhdgfwzhsqa.supabase.co' }}
+        run: node scripts/stripe-test-detach-cards.mjs
       - name: sign in, browse, open, apply, message, checkout start, clean up
         run: npx playwright test --project=canary --workers=1 --reporter=list,./e2e/reporters/skipReporter.ts
       - name: Backend request budget (Q104)

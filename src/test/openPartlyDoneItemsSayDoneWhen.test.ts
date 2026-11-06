@@ -1,4 +1,4 @@
-// @mutate docs/OPEN.md | - [ ] **Q1481 LOW Speed Insights | - [~] **Q1481 LOW Speed Insights
+// @mutate docs/OPEN.md | - [ ] **Q806 MEDIUM Q184 residue | - [~] **Q806 MEDIUM Q184 residue
 // @mutate scripts/open-done-when.mjs |     .filter((name) => appFns.has(name)); |     .filter((name) => !appFns.has(name));
 // @mutate scripts/open-done-when.mjs | const PARTLY = /^- \[~\] /; | const PARTLY = /^- \[x\] /;
 // @mutate scripts/open-done-when.mjs | { kind: "issue", re: /^issue\s+#(\d+)\s+closed\b/ } | { kind: "issue", re: /^issue\s+#(\d+)\s+opened\b/ }

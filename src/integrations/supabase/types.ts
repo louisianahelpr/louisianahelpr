@@ -22063,7 +22063,8 @@ export type Database = {
       shops_set_delivery: { Args: { p_delivers: boolean; p_fee_cents: number; p_radius_miles: number }; Returns: Json }
       shops_set_custom_orders: { Args: { p_mode: string }; Returns: string }
       shops_send_custom_request: { Args: { p_shop_id: string; p_description: string; p_wanted_date?: string | null }; Returns: string }
-      shops_quote_custom_request: { Args: { p_request_id: string; p_quote_cents: number; p_note?: string | null }; Returns: Json }
+      shops_quote_custom_request: { Args: { p_request_id: string; p_quote_cents: number; p_note?: string | null; p_subtype: string }; Returns: Json }
+      shops_order_custom_quote: { Args: { p_request_id: string; p_shop_id: string; p_ready_date: string; p_note?: string | null }; Returns: Json }
       shops_decline_custom_request: { Args: { p_request_id: string }; Returns: string }
       shops_my_custom_requests: { Args: never; Returns: Json }
       shops_order_delivery_address: {

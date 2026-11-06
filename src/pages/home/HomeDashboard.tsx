@@ -1,4 +1,6 @@
-import { lazy, Suspense, useMemo, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { removeShellOncePainted } from "@/components/landing/landingShell";
+import { HOME_SHELL_ID } from "@/components/landing/HomeShellLeaves";
 import { YourPageLink } from "@/components/profile/YourPageLink";
 import { FirstRun } from "@/components/firstRun/FirstRunHost";
 import { useQueryClient } from "@tanstack/react-query";
@@ -67,6 +69,8 @@ export default function HomeDashboard() {
 const NEXT_UP_MAX_DOTS = 5;
 
 function HomeDashboardScreen() {
+  // Q2705 B: index.html drew this page's skeleton first (#lh-home-shell); take it away once the greeting is painted.
+  useEffect(() => removeShellOncePainted(HOME_SHELL_ID), []);
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
   const summary = useHomeSummary(user);

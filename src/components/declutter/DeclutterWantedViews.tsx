@@ -66,6 +66,7 @@ import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { focusSheetItself } from "./focusSheetItself";
 import { EXPIRED_WORD } from "@/lib/dateUtils";
 import { Input } from "@/components/ui/input";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 
 const EMPTY: WantedForm = { what: "", category: "", maxPrice: "", radius: 10 };
 const FORM_ID = "wanted-form";
@@ -372,7 +373,7 @@ function WantedPostPhotos({ post, userId }: { post: WantedPost; userId: string }
       ))}
       {open && post.photo_paths.length < WANTED_PHOTO_MAX && (
         <li>
-          <input id={inputId} type="file" accept="image/*" className="sr-only" tabIndex={-1} disabled={busy}
+          <HiddenFileInput id={inputId} accept="image/*" tabIndex={-1} disabled={busy}
             onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f && f.type.startsWith("image/")) add.mutate(f); }} />
           <AddPhotoTile disabled={busy} onClick={() => document.getElementById(inputId)?.click()}
             className="gap-1 text-ds-12 font-semibold text-[hsl(var(--bark))] dark:text-foreground">

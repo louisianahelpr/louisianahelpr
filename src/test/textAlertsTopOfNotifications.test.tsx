@@ -13,7 +13,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { blankComments } from "@/test/helpers/blankNonCode";
 
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: "u1" }, isReady: true }) }));
-vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false }));
+vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false, useFeatureStatus: () => ({ on: false, settled: true, lastAnswer: false }) }));
 let TOKENS = 0;
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {

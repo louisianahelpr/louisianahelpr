@@ -12,7 +12,7 @@
  * @mutate supabase/migrations/20261030225143_declutter_wanted_report_block_photo_check.sql |       PERFORM public.declutter_wanted_hold_photos(h.id, NULL, 'The automatic photo check did not finish.'); |       NULL;
  * @mutate src/components/declutter/DeclutterWantedViews.tsx |       if (files.length > failed) checkPhotosInBackground(id); |       void id;
  * @mutate src/components/admin/adminReports/fetchReports.ts |         \|\| (r.reported_type === WANTED_REPORT && wantedPosts.get(r.reported_id)?.is_seed === true)\n |
- * @mutate src/components/admin/adminReports/fetchReports.ts |  && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type) && !isShopReport(r.reported_type) && r.reported_type !== HOME_LISTING_REPORT; |  && !isQuestionReport(r.reported_type) && !isShopReport(r.reported_type) && r.reported_type !== HOME_LISTING_REPORT;
+ * @mutate src/components/admin/adminReports/fetchReports.ts |  && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type) && !isShopReport(r.reported_type) && r.reported_type !== HOME_LISTING_REPORT && r.reported_type !== HOME_TALK_MESSAGE_REPORT; |  && !isQuestionReport(r.reported_type) && !isShopReport(r.reported_type) && r.reported_type !== HOME_LISTING_REPORT && r.reported_type !== HOME_TALK_MESSAGE_REPORT;
  * @mutate supabase/functions/declutter-ai-draft/index.ts |     if (!shopItem && body?.mode === "wanted_check") return await wantedCheck(req, admin, authData.user, body);\n |
  */
 import { readFileSync } from "node:fs";
@@ -51,7 +51,7 @@ describe("the admin half of a Wanted report", () => {
   const queue = code("src/components/admin/adminReports/fetchReports.ts") + code("src/components/admin/AdminReports.tsx");
 
   it("reads the post, never its id as a person", () => {
-    expect(queue).toContain("r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type) && !isShopReport(r.reported_type) && r.reported_type !== HOME_LISTING_REPORT;");
+    expect(queue).toContain("r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type) && !isShopReport(r.reported_type) && r.reported_type !== HOME_LISTING_REPORT && r.reported_type !== HOME_TALK_MESSAGE_REPORT;");
     expect(queue).toContain("wantedSubject(wantedPosts.get(r.reported_id), wantedFailed)");
     expect(queue).toContain("<WantedReportPanel ");
     const panel = code("src/components/admin/adminReports/WantedReportPanel.tsx");

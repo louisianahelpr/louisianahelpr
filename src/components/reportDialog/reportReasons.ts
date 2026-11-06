@@ -1,6 +1,6 @@
 
 // Moved out of ReportDialog.tsx unchanged (component-size ratchet, Q806).
-export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item" | "declutter_wanted" | "declutter_question" | "declutter_answer" | "declutter_review" | "shop" | "shop_item" | "shop_talk_message" | "home_listing";
+export type ReportedType = "job" | "message" | "user" | "review" | "application" | "declutter_item" | "declutter_wanted" | "declutter_question" | "declutter_answer" | "declutter_review" | "shop" | "shop_item" | "shop_talk_message" | "home_listing" | "home_talk_message";
 
 interface Reason {
   label: string;
@@ -137,6 +137,16 @@ export const REASONS: Record<ReportedType, readonly Reason[]> = {
     { label: "Shares contact info" },
     { label: "Something else" },
   ],
+  // Homes messages (audit 11-05 A-H1): a message in a Homes chat, reported by the other side of that chat only
+  // (report_message_party_and_copy, 20261106191100). Fair housing first, as on the listing; then wire and deposit scams.
+  home_talk_message: [
+    { label: "Discriminates (fair housing)" },
+    { label: "Spam or scam" },
+    { label: "Payment requested off Helpr" },
+    { label: "Harassment or abuse" },
+    { label: "Threats or violence" },
+    { label: "Something else" },
+  ],
 };
 
 /**
@@ -160,6 +170,7 @@ export const REPORTED_NOUN: Record<ReportedType, string> = {
   shop_item: "Item",
   shop_talk_message: "Message",
   home_listing: "Listing",
+  home_talk_message: "Message",
 };
 
 /**
@@ -183,6 +194,7 @@ export const REPORTED_NOUN_INLINE: Record<ReportedType, string> = {
   shop_item: "item",
   shop_talk_message: "message",
   home_listing: "listing",
+  home_talk_message: "message",
 };
 
 /**
@@ -205,4 +217,5 @@ export const REASON_PROMPT: Record<ReportedType, string> = {
   shop_item: "What's wrong with this item?",
   shop_talk_message: "What's wrong with this message?",
   home_listing: "What's wrong with this listing?",
+  home_talk_message: "What's wrong with this message?",
 };

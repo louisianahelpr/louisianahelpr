@@ -78,7 +78,6 @@ import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { storedStripeCustomer, withStoredWalletCustomer } from "../_shared/stripeCustomer.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
-import { requireFeature } from "../_shared/featureSwitch.ts";
 import { isLockedOut } from "../_shared/banStatus.ts";
 import { captureShopHold, releaseShopHold, shopOrderMode } from "../_shared/shopHolds.ts";
 import { sendShopRefund, type ShopRefundRow } from "../_shared/shopRefunds.ts";
@@ -900,8 +899,8 @@ async function chargeRest(body: Record<string, unknown>, user: { id: string }, a
   }
   // 11-07 money review: the tap moves money, so it takes the Shops switch and the shop owner's standing like every
   // other Shops action (the SQL gates are not on this path: the charge is the service role's).
-  const off = await requireFeature(admin, "shops", user, corsHeaders);
-  if (off) return off;
+  const switchedOff = await requireFeature(admin, "shops", user, corsHeaders);
+  if (switchedOff) return switchedOff;
   const { data: me, error: meErr } = await admin.from("profiles").select("ban_status, auto_suspended_until").eq("user_id", user.id).maybeSingle();
   if (meErr) return json({ error: TRY_AGAIN }, 503);
   const standing = me as { ban_status?: string | null; auto_suspended_until?: string | null } | null;

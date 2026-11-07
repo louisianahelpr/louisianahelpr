@@ -93,7 +93,8 @@ describe("Shops M3: refunds and cancels decide under the row lock, Stripe after 
     expect(table).toMatch(/CONSTRAINT shop_refunds_tax_kept CHECK \(tax_kept_cents = public\.shop_refund_tax_kept\(kept_cents, tax_cents, paid_cents\)\)/);
     const policy = body("shop_refund_fee_policy");
     expect(policy).toMatch(/WHEN p_reason IN \('shop_cancelled', 'no_ready_photo', 'shop_removed', 'problem_shop_fault'\) THEN 'full_shop_pays_fee'/);
-    expect(policy).toMatch(/WHEN p_reason IN \('buyer_cancelled', 'problem_no_fault'\) THEN 'keep_card_fee'/);
+    // Custom orders 2b (20261106221300): + unpaid_close_tax, the deposit's tax back on the buyer's own close (keep_card_fee).
+    expect(policy).toMatch(/WHEN p_reason IN \('buyer_cancelled', 'problem_no_fault', 'unpaid_close_tax'\) THEN 'keep_card_fee'/);
     // Only our mistake is left for the platform to carry (any other reason has no policy, so no row).
     expect(policy).toMatch(/WHEN p_reason = 'problem_our_mistake' THEN 'full_platform_absorbs'\s+END/);
     expect(table).toMatch(/kept_cents = CASE WHEN fee_policy = 'keep_card_fee' THEN card_fee_cents ELSE 0 END/);

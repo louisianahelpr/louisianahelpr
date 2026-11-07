@@ -1,3 +1,4 @@
+import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { ChevronUp } from "lucide-react";
 import { useLocation, useNavigationType } from "react-router-dom";
@@ -196,8 +197,7 @@ const ScrollToTop = () => {
 
   if (!rendered) return null;
   return (
-    <button
-      type="button"
+    <RoundIconButton
       onClick={scrollToTop}
       aria-label="Scroll to top"
       aria-hidden={shown ? undefined : true}
@@ -205,7 +205,7 @@ const ScrollToTop = () => {
       // Sit above the floating MobileNav dock + home indicator, hugging
       // the right edge. z below the nav (which is z-40+) so it never
       // overlaps the dock's controls.
-      className="fixed right-4 z-30 inline-flex h-11 w-11 items-center justify-center rounded-full active:scale-[0.94]"
+      className="fixed right-4 z-30 active:scale-[0.94]"
       style={{
         bottom: "calc(var(--safe-area-bottom, 0px) + 112px)",
         background: "var(--surface-premium)",
@@ -224,7 +224,7 @@ const ScrollToTop = () => {
       }}
     >
       <ChevronUp className="h-5 w-5" />
-    </button>
+    </RoundIconButton>
   );
 };
 

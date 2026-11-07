@@ -86,6 +86,7 @@ function dsFont(token: string): { px: number; trackingEm: number } {
 const spacing = (n: string) => Number(n) * 4;
 
 const CHIPS = read("src/components/ui/chipClasses.ts");
+const CHOICE_CHIP = read("src/components/ui/ChoiceChip.tsx");
 
 /** The chip's type and side padding, parsed from the shared chip class. */
 function chipGeometry() {
@@ -105,7 +106,9 @@ describe("the Jobs status chips fit a phone", () => {
 
   it("the row scrolls sideways and a chip never shrinks or truncates", () => {
     expect(BOXES).toMatch(/flex min-w-0 flex-1 gap-2 overflow-x-auto/);
-    expect(BOXES).toMatch(/\$\{CHIP\} shrink-0 whitespace-nowrap/);
+    // The chip is the shared ChoiceChip (Q2709, 2026-11-07), which draws ${CHIP} first; the row adds shrink-0 + nowrap.
+    expect(BOXES).toMatch(/<ChoiceChip\b[\s\S]*?className="shrink-0 whitespace-nowrap"/);
+    expect(CHOICE_CHIP).toMatch(/className=\{`\$\{CHIP\}/);
     expect(BOXES).not.toMatch(/\btruncate\b[^\n]*data-chip-label|data-chip-label[^\n]*\btruncate\b/);
     expect(CHIPS).not.toMatch(/\btruncate\b/);
   });

@@ -30,6 +30,7 @@ import { wayAllowed } from "@/lib/declutter/handovers";
 import { NoWayWorks } from "./DeclutterHandoverTalk";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { freeClaimGateRefusal } from "@/lib/declutter/setupFee";
+import { FIRST_PICK_STEPS } from "@/lib/declutter/freePickSteps";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { DeclutterNotice } from "./declutterUi";
 import { HoldChecking, myHoldOn, ReservedForYou } from "./DeclutterYourOffer";
@@ -76,8 +77,11 @@ function freeAskLine(offered: FreeHandover[] | undefined, oneTimeCheckAhead = fa
     : "; agree with them how you'll get it";
   // Asking is free (owner 2026-10-30). "Nothing is charged" would overpromise to a member whose first pick carries the one-time ID check.
   // Owner 11-01 (Mockup 3): the asker picks the pickup time when they ask, and the giver's pick books it
-  // (declutter_pick_free_request, 20261101181129).
-  return `${oneTimeCheckAhead ? "Asking is free." : "Free, nothing is charged."} When you ask, you pick a pickup time from the giver's times. The giver picks who gets it; if it's you, that time is already set and you'll get the address${how}. You can ask for up to 3 free items at a time.`;
+  // (declutter_pick_free_request, 20261101181129). That booking happens only for a member already verified: a
+  // first-timer the giver picks gets the item held instead, does the one-time ID check, then chooses the time, so
+  // "that time is already set" was false for them (11-07 free-claim trace).
+  const ifYou = oneTimeCheckAhead ? `${FIRST_PICK_STEPS}${how}` : `that time is already set and you'll get the address${how}`;
+  return `${oneTimeCheckAhead ? "Asking is free." : "Free, nothing is charged."} When you ask, you pick a pickup time from the giver's times. The giver picks who gets it; if it's you, ${ifYou}. You can ask for up to 3 free items at a time.`;
 }
 
 export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
@@ -174,7 +178,7 @@ export function FreeClaimPanel({ item }: { item: DeclutterItem }) {
       </p>
       {asking && (
         <Suspense fallback={null}>
-          <FreeAskSheet item={item} giverFirstName={giverFirstName} open={asking} onClose={() => setAsking(false)} />
+          <FreeAskSheet item={item} giverFirstName={giverFirstName} open={asking} onClose={() => setAsking(false)} oneTimeCheckAhead={oneTimeCheckAhead} />
         </Suspense>
       )}
       {/* The long rules sit behind the link (owner mockup 11-01). */}

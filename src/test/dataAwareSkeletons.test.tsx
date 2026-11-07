@@ -144,9 +144,10 @@ describe("cold visits draw the zero state, warm visits the list", () => {
 });
 
 describe("Notifications draws its icon rows (owner, 2026-10-07, Q201 a)", () => {
-  it("one round icon bone per preference row: 17, the count measured on prod", () => {
-    expect(NOTIFICATION_ROWS).toBe(17);
+  // Q2773: 39 preference icons plus the Text alerts card's one (run 42302309191, 2026-11-07; was 17 on 10-07).
+  it("one round icon bone per preference row: 39, the count measured on prod, plus the Text alerts card's", () => {
+    expect(NOTIFICATION_ROWS).toBe(39);
     const r = render(<ProfileTabBodyReserve tab="notifications" />);
-    expect(r.container.querySelectorAll(".rounded-full.h-9.w-9").length).toBe(17);
+    expect(r.container.querySelectorAll(".rounded-full.h-9.w-9").length).toBe(40);
   });
 });

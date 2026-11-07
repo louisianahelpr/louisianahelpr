@@ -8,6 +8,7 @@ import { currentSearch, profileTabTitle, type Tab } from "@/pages/profile/types"
 import { SCHEDULE_LAYOUT_CLASS } from "@/components/profile/scheduleLayout";
 import { queryClient } from "@/lib/queryClient";
 import { FEATURE_SWITCH_PREFIX } from "@/lib/featureSwitchQuery";
+import { MEMBERSHIPS_HIDDEN_IN_THIS_APP } from "@/hooks/useMembershipsOn";
 
 /**
  * ProfileTabFallback — what a Profile tab looks like before its chunk lands.
@@ -116,7 +117,10 @@ import { FEATURE_SWITCH_PREFIX } from "@/lib/featureSwitchQuery";
  */
 type Block = { h: number | "fill"; media?: number; /** The real block is a centred card this wide (px). */ maxW?: number };
 export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
-  availability: [{ h: 85 }, { h: 768 }],
+  // Q2773 (loading-states refresh 2026-11-07 00:57Z, run 42302309191, 375, both test accounts): Available right now
+  // 86, Show me in Helprs near you 102, Your weekly hours 636 (rowRect.h 915.6; landmarks show-near-you-row 165.9,
+  // weekly h2 279.7). It drew two blocks, 85 and 768: "3 placeholder rows -> 4", "row 85px -> 102px".
+  availability: [{ h: 86 }, { h: 102 }, { h: 636 }],
   // Email, password, two-factor, sign-in methods (Q446 added it after
   // two-factor; loading-states-refresh 37408930852 caught the missing bone:
   // 5 placeholder rows -> 6 real), active sessions. The sign-in methods card
@@ -135,7 +139,11 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
     ...(SOCIAL_SIGN_IN_ENABLED ? [{ h: 229, media: 1 }] : []),
     { h: 261, media: 3 },
   ],
-  subscription: [{ h: 66 }, { h: 51 }, { h: 1081 }, { h: 30 }],
+  // Q2773: memberships are hidden in this app (MEMBERSHIPS_HIDDEN_IN_THIS_APP), so the tab arrives as the one
+  // "not available" line (testid memberships-unavailable at y 68, rowRect.h 86.8: 19px; run 42302309191, both test
+  // accounts). It drew the four-block plans table: "5 placeholder rows -> 2 real". A member who may still be billed
+  // gets the plans and grows below the line.
+  subscription: MEMBERSHIPS_HIDDEN_IN_THIS_APP ? [{ h: 19 }] : [{ h: 66 }, { h: 51 }, { h: 1081 }, { h: 30 }],
   // + "Take the tour again" (2026-10-20, FirstRun replay).
   support: [{ h: 469 }, { h: 43 }, { h: 43 }],
   warnings: [{ h: 243, media: 1 }],
@@ -147,7 +155,8 @@ export const TAB_SHAPES: Partial<Record<Exclude<Tab, "landing">, Block[]>> = {
   home_history: [{ h: 375, media: 1 }],
   str_settings: [{ h: 508, media: 1 }],
   // Q1695: 288px in the 2026-11-02 01:07Z refresh (both test accounts; Instant Release copy changed 10-30).
-  auto_tip: [{ h: 288 }],
+  // Q2773: 241px in the 2026-11-07 00:57Z refresh (run 42302309191, both test accounts; rowRect.h 309.2).
+  auto_tip: [{ h: 241 }],
   saved_helpers: [{ h: 344, media: 1 }],
   // Q2275 (board 91): intro line, the list, Pause all alerts (375, poster-e2e with one saved search, 2026-10-21).
   saved_searches: [{ h: 36 }, { h: 72 }, { h: 60 }],
@@ -296,7 +305,17 @@ const ShapeBlock = ({ block, first }: { block: Block; first: boolean }) => {
  * mean (the card is 1251-1323px with 17 rows plus the label strip; Quiet Hours
  * and the digest row run taller, the toggles-only rows shorter).
  */
-export const NOTIFICATION_ROWS = 17;
+export const NOTIFICATION_ROWS = 39;
+/**
+ * Q2773 (loading-states refresh 2026-11-07 00:57Z, run 42302309191, 375, both test accounts): the tab is now TWO
+ * cards: Text alerts first (owner 11-01; testid sms-alerts-card at y 68, push-device-hint at 436: 355px with one
+ * icon, then mb-4), and the switches card below it, 39 icons over about 3898px (rowRect.h 4336.8; the job-reminder
+ * rows alone are 108px apart). The reserve drew one 17-row card: "2 placeholder rows -> 3", "17 media -> 40". It now
+ * draws the Text alerts card's box and the switches card at 39 rows of 99px (the measured card less its label strip,
+ * over its 39 rows), so the row count, the median row and the icons all match.
+ */
+export const SMS_CARD_RESERVE_PX = 355;
+export const NOTIFICATION_ROW_PX = 99;
 /**
  * Reviews' placeholder (owner, 2026-11-02, superseding Q722 for loading): one neutral review row, the shape of a
  * review in the list (stars, a date, two lines), not the "No reviews yet" card, so the loading frame claims
@@ -332,13 +351,24 @@ const ReviewRowReserve = () => (
 );
 
 const NotificationsReserve = () => (
-  <div aria-hidden data-testid="profile-tab-fallback" className="rounded-2xl liquid-glass overflow-hidden">
+  <>
+  <div aria-hidden data-testid="profile-tab-fallback" data-sms-card-reserve="" style={{ height: SMS_CARD_RESERVE_PX }}
+    className="mb-4 rounded-2xl liquid-glass overflow-hidden p-card space-y-3">
+    <div className="flex items-center gap-3">
+      <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
+      <Skeleton className="h-4 w-1/3 rounded" />
+    </div>
+    <Skeleton className="h-12 w-full rounded-full" />
+    <Skeleton className="h-4 w-5/6 rounded" />
+    <Skeleton className="h-4 w-2/3 rounded" />
+  </div>
+  <div aria-hidden className="rounded-2xl liquid-glass overflow-hidden">
     <div className="flex justify-end gap-4 px-card py-2">
       <Skeleton className="h-3 w-10 rounded" />
       <Skeleton className="h-3 w-12 rounded" />
     </div>
     {Array.from({ length: NOTIFICATION_ROWS }, (_, i) => (
-      <div key={i} className="flex h-[74px] items-center gap-3 border-t border-border/40 px-card">
+      <div key={i} style={{ height: NOTIFICATION_ROW_PX }} className="flex items-center gap-3 border-t border-border/40 px-card">
         <Skeleton className="h-9 w-9 shrink-0 rounded-full" />
         <Skeleton className="h-4 w-1/3 rounded" />
         <div className="ml-auto flex gap-4">
@@ -348,6 +378,7 @@ const NotificationsReserve = () => (
       </div>
     ))}
   </div>
+  </>
 );
 
 /**

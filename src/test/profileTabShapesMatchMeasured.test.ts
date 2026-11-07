@@ -22,7 +22,7 @@
 // @mutate src/components/profile/ProfileTabFallback.tsx | settings: [{ h: 235 }, { h: 301 }, { h: 166 }, { h: 626 }, { h: 313 }, { h: 58 }], | settings: [{ h: 166 }, { h: 295 }, { h: 101 }, { h: 397 }, { h: 378 }, { h: 58 }],
 // @mutate src/components/profile/ProfileTabFallback.tsx | settings: [{ h: 235 }, { h: 301 }, { h: 166 }, { h: 626 }, { h: 313 }, { h: 58 }], | settings: [{ h: 235 }, { h: 301 }, { h: 166 }, { h: 626 }, { h: 313 }],
 // @mutate src/components/profile/ProfileTabFallback.tsx | instant_book: [{ h: 122 }, | instant_book: [{ h: 101 },
-// @mutate src/components/profile/ProfileTabFallback.tsx | auto_tip: [{ h: 288 }], | auto_tip: [{ h: 527 }],
+// @mutate src/components/profile/ProfileTabFallback.tsx | auto_tip: [{ h: 241 }], | auto_tip: [{ h: 527 }],
 // @mutate src/components/profile/ProfileTabFallback.tsx | analytics: [{ h: 370 }], | analytics: [{ h: 481 }],
 // @mutate src/components/profile/ProfileTabFallback.tsx |     { h: 89, media: 1 },\n    { h: 71, media: 1 },\n    { h: 86, media: 1 }, |     { h: 74, media: 1 },\n    { h: 74, media: 1 },\n    { h: 74, media: 1 },
 // @mutate src/components/profile/ProfileTabFallback.tsx |     { h: 261, media: 3 }, |     { h: 196, media: 2 },
@@ -42,7 +42,8 @@ const MEASURED: Partial<Record<keyof typeof TAB_SHAPES, Measured>> = {
   // h1 header 0-57 (same landmark as Settings); rows 6, rowH 122, rowRect.h 795.1.
   instant_book: { header: 57, rows: 6, rowH: 122, total: 795.1 },
   // One block under the header: rowH is that block; rowRect.h 355.8 and 438.2.
-  auto_tip: { header: 57, rows: 2, rowH: 288, total: 355.8 },
+  // Q2773: the 2026-11-07 00:57Z refresh (run 42302309191) measured 241 (rowRect.h 309.2).
+  auto_tip: { header: 57, rows: 2, rowH: 241, total: 309.2 },
   analytics: { header: 57, rows: 2, rowH: 370, total: 438.2 },
   // B164: h1 at y 12, h 49.3 (the title wraps), so the header row is 61; cards' h2 landmarks 88.3, 189.6, 272.1,
   // 370, 610.9; rows 6, rowH 86, rowRect.h 856.9. Sign-in methods is on (SOCIAL_SIGN_IN_ENABLED).

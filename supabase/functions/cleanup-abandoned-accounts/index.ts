@@ -29,7 +29,13 @@ import { verifyCronSecret } from "../_shared/cron-auth.ts";
 import { cronError, cronResult, defectTracker } from "../_shared/cron-result.ts";
 import { purgeAccount } from "../_shared/accountPurge.ts";
 import { drainPreVerificationWipes, type WipeSweepClient } from "../_shared/preVerificationWipeSweep.ts";
-import { LANDLORD_ID_RETENTION_DAYS, sweepLandlordIdImages, type LandlordIdSweepClient } from "../_shared/landlordIdRetention.ts";
+import {
+  LANDLORD_ID_RETENTION_DAYS,
+  sweepLandlordIdImages,
+  sweepOrphanLandlordIdImages,
+  type LandlordIdOrphanClient,
+  type LandlordIdSweepClient,
+} from "../_shared/landlordIdRetention.ts";
 import { serve } from "../_shared/buildStamp.ts";
 
 /**
@@ -292,6 +298,9 @@ serve(async (req) => {
     // after the admin's decision, through the Storage API.
     const landlordId = await sweepLandlordIdImages(supabase as unknown as LandlordIdSweepClient, { dryRun });
     for (const f of landlordId.failures) defects.record(`landlord ID retention: ${f}`);
+    // Q2202: a photo uploaded but never submitted (the app died in between) is named by no review row.
+    const landlordIdOrphans = await sweepOrphanLandlordIdImages(supabase as unknown as LandlordIdOrphanClient, { dryRun });
+    for (const f of landlordIdOrphans.failures) defects.record(`landlord ID orphan photos: ${f}`);
 
     return cronResult(
       "cleanup-abandoned-accounts",
@@ -299,6 +308,7 @@ serve(async (req) => {
         dryRun,
         preVerificationWipes: { pending: takeover.wipes, objectsRemoved: takeover.removed, done: takeover.done, failed: takeover.failedWipes },
         landlordIdRetention: { days: LANDLORD_ID_RETENTION_DAYS, due: landlordId.due, objectsRemoved: landlordId.removed, stamped: landlordId.stamped },
+        landlordIdOrphans: { found: landlordIdOrphans.found, objectsRemoved: landlordIdOrphans.removed },
         cutoff,
         scanned: candidates.length,
         // In dryRun this is the WOULD-DELETE count; nothing was touched.

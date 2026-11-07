@@ -37,7 +37,8 @@ describe("messages-thread controls are named by content (Q1816)", () => {
     const src = blankComments(readFileSync(resolve(__dirname, "..", "components/messages/ChatHeader.tsx"), "utf8"));
     const at = src.indexOf("onClick={noProfile ? undefined : onViewProfile}");
     expect(at).toBeGreaterThan(0);
-    const button = src.slice(src.lastIndexOf("<button", at), src.indexOf("</button>", at));
+    // The shared ListRow since 2026-11-07 (Q2709).
+    const button = src.slice(src.lastIndexOf("<ListRow", at), src.indexOf("</ListRow>", at));
     const openTag = button.slice(0, button.indexOf("\n      >"));
     expect(openTag.length).toBeGreaterThan(50);
     expect(openTag).not.toMatch(/\saria-label=/);

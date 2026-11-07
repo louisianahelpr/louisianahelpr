@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { useState, type ReactNode } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -346,11 +347,10 @@ export function EntryChoice({ form }: EntryChoiceProps) {
           <ul className="space-y-2">
             {recentPosted!.map((job) => (
               <li key={job.id}>
-                <button
-                  type="button"
+                <ListRow variant="flush"
                   onClick={() => handleRepost(job.id)}
                   aria-label={`Repost ${job.title}`}
-                  className="flex w-full items-center gap-3 rounded-[20px] border border-border bg-card p-3 text-left transition-transform active:scale-[0.98]"
+                  className="min-h-11 flex w-full items-center gap-3 rounded-[20px] border border-border bg-card p-3 text-left transition-transform active:scale-[0.98]"
                 >
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[hsl(var(--bark)/0.12)] text-[hsl(var(--bark))]">
                     <CategoryIcon category={job.category} aria-hidden className="h-4 w-4" />
@@ -362,7 +362,7 @@ export function EntryChoice({ form }: EntryChoiceProps) {
                     </span>
                   </span>
                   <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                </button>
+                </ListRow>
               </li>
             ))}
           </ul>

@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { ChevronRight, SearchCheck } from "lucide-react";
 import { whenPageSettled } from "@/lib/routePrefetch";
@@ -288,8 +289,7 @@ export function BrowseTasksToolbar({
                 // exactly as the bookmark icon was: saved searches are rows in
                 // a per-user table.
                 savedSearchesButton: user ? (
-                  <button
-                    type="button"
+                  <ListRow variant="flush"
                     onClick={() => {
                       hapticLight();
                       // Close the sheet FIRST — this row lives inside it, and
@@ -297,7 +297,7 @@ export function BrowseTasksToolbar({
                       filters.setFiltersOpen(false);
                       setSavedSearchesOpen(true);
                     }}
-                    className="w-full flex items-center gap-2 h-11 px-3 rounded-ds-md squircle border border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur text-left btn-press transition-all duration-200 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"
+                    className="min-h-11 py-0 w-full flex items-center gap-2 h-11 px-3 rounded-ds-md squircle border border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur text-left btn-press transition-all duration-200 hover:border-primary/50 hover:bg-white/90 dark:hover:bg-card/90"
                   >
                     {/* SearchCheck, not Bookmark — the "Only Saved Jobs" toggle row
                         right above this one already uses Bookmark for a saved
@@ -308,7 +308,7 @@ export function BrowseTasksToolbar({
                       Saved searches
                     </span>
                     <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" aria-hidden />
-                  </button>
+                  </ListRow>
                 ) : undefined,
               }),
             ]}

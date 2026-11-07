@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { Pencil } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -55,15 +56,14 @@ export function ApplicantPrivateNote({
             </button>
           </div>
         ) : (
-          <button
-            type="button"
+          <ListRow variant="flush"
             onClick={onEdit}
-            className="text-left w-full text-ds-12 flex items-start gap-1.5"
+            className="min-h-11 px-0 py-0 text-left w-full text-ds-12 flex items-start gap-1.5"
             style={{ color: "hsl(var(--olivewood) / 0.8)" }}
           >
             <Pencil className="w-3 h-3 mt-0.5 shrink-0" />
             {note}
-          </button>
+          </ListRow>
         )}
       </div>
     </div>

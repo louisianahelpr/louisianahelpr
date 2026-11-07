@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { DarkGroundCloseButton } from "@/components/ui/DarkGroundCloseButton";
 import { useEffect, useRef, useState } from "react";
@@ -400,10 +401,9 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
   if (isPdfMime(mime)) {
     const sizeKb = size ? `${(size / 1024).toFixed(0)} KB` : null;
     return (
-      <button
-        type="button"
+      <ListRow variant="flush"
         onClick={handleOpenExternal}
-        className="flex items-center gap-2 rounded-2xl px-3 py-2 transition-all active:scale-[0.98]"
+        className="w-auto min-h-11 text-center flex items-center gap-2 rounded-2xl px-3 py-2 transition-all active:scale-[0.98]"
         style={
           mine
             ? {
@@ -422,7 +422,7 @@ export function MessageAttachment({ path, mime, size, duration, mine }: MessageA
         <span title={filename} className="truncate max-w-[180px] font-sans font-semibold text-ds-12">{filename}</span>
         {sizeKb && <span className="text-ds-10 opacity-70 shrink-0 font-sans tabular-nums">{sizeKb}</span>}
         <ExternalLink className="w-3 h-3 shrink-0 opacity-70" />
-      </button>
+      </ListRow>
     );
   }
 

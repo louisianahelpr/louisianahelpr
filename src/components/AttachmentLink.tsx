@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { useState } from "react";
 import { FileText, ExternalLink as ExternalLinkIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -65,14 +66,13 @@ export function AttachmentLink({ url, index = 0, variant = "chip", className }: 
   }
 
   return (
-    <button
-      type="button"
+    <ListRow variant="flush"
       onClick={handleOpen}
-      className={`flex items-center gap-1.5 text-ds-11 text-primary hover:underline bg-secondary/30 rounded-ds-sm px-2.5 py-1.5 ${className ?? ""}`}
+      className={`w-auto min-h-11 text-center flex items-center gap-1.5 text-ds-11 text-primary hover:underline bg-secondary/30 rounded-ds-sm px-2.5 py-1.5 ${className ?? ""}`}
     >
       <FileText className="w-3.5 h-3.5" />
       <span title={filename} className="truncate max-w-[120px]">{filename.length > 20 ? filename.slice(-20) : filename}</span>
       <ExternalLinkIcon className="w-3 h-3 text-muted-foreground" />
-    </button>
+    </ListRow>
   );
 }

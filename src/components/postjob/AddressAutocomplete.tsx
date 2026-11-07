@@ -13,6 +13,7 @@
 //     before the input blurs
 //   - free-typed values are still accepted on blur
 
+import { ListRow } from "@/components/ui/ListRow";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -287,12 +288,11 @@ export function AddressAutocomplete({
         >
           {suggestions.map((s, i) => (
             <li key={`${s.displayLines.join("|")}-${i}`}>
-              <button
-                type="button"
+              <ListRow variant="flush"
                 {...getOptionProps(i)}
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => pick(s)}
-                className={`w-full text-left px-3 py-2.5 text-ds-13 flex items-start gap-2 hover:bg-secondary/70 active:bg-secondary transition-colors ${COMBOBOX_ACTIVE_OPTION_CLASS}`}
+                className={`min-h-11 w-full text-left px-3 py-2.5 text-ds-13 flex items-start gap-2 hover:bg-secondary/70 active:bg-secondary transition-colors ${COMBOBOX_ACTIVE_OPTION_CLASS}`}
               >
                 <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0 mt-0.5" />
                 <span className="min-w-0 flex-1">
@@ -305,7 +305,7 @@ export function AddressAutocomplete({
                     </span>
                   )}
                 </span>
-              </button>
+              </ListRow>
             </li>
           ))}
         </ul>

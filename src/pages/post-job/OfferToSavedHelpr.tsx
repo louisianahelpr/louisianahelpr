@@ -137,11 +137,10 @@ export function OfferToSavedHelpr({
               // probe harness, 2026-08-31.
               const name = h.full_name?.trim() || "Helpr";
               return (
-                <button
+                <ListRow variant="flush"
                   key={h.helper_id}
-                  type="button"
                   onClick={() => pick(h.helper_id)}
-                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-ds-md squircle border border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur text-left btn-press transition-all duration-200 hover:border-primary/50 min-h-11"
+                  className="w-auto flex items-center gap-2.5 px-3 py-2.5 rounded-ds-md squircle border border-border/60 bg-white/70 dark:bg-card/60 backdrop-blur text-left btn-press transition-all duration-200 hover:border-primary/50 min-h-11"
                 >
                   {/* Migrated onto the shared `<UserAvatar>` (2026-08-31).
                       The `<img>` this replaces had no error path at ALL — not
@@ -164,7 +163,7 @@ export function OfferToSavedHelpr({
                   <span title={name} className="text-ds-13 font-semibold text-foreground truncate">
                     {name}
                   </span>
-                </button>
+                </ListRow>
               );
             })
           )}

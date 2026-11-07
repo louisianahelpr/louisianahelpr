@@ -10,6 +10,7 @@
 // (the same lightweight pattern the signup skill picker uses) — no
 // cmdk / Command primitive dependency.
 
+import { ListRow } from "@/components/ui/ListRow";
 import { useEffect, useMemo, useState } from "react";
 import { MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -127,19 +128,18 @@ export function CityAutocomplete({ id, value, onChange, className, required = fa
         >
           {matches.map((c, i) => (
             <li key={c}>
-              <button
-                type="button"
+              <ListRow variant="flush"
                 {...getOptionProps(i)}
                 // mousedown-preventDefault stops the input from blurring
                 // before this click registers. Pointer behaviour is
                 // unchanged by the keyboard model.
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => pick(c)}
-                className={`w-full text-left px-3 py-2.5 text-ds-13 flex items-center gap-2 hover:bg-secondary/70 active:bg-secondary transition-colors ${COMBOBOX_ACTIVE_OPTION_CLASS}`}
+                className={`min-h-11 w-full text-left px-3 py-2.5 text-ds-13 flex items-center gap-2 hover:bg-secondary/70 active:bg-secondary transition-colors ${COMBOBOX_ACTIVE_OPTION_CLASS}`}
               >
                 <MapPin className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                 {c}
-              </button>
+              </ListRow>
             </li>
           ))}
         </ul>

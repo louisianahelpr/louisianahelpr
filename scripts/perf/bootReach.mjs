@@ -309,6 +309,22 @@ export function profileFirstScreenModules(root, split = signedInSplit(root)) {
   };
 }
 
+/** Signed-in /jobs' page (Q1158): it opens on Browse; the Posted / Working lists are its lazy chunk (JOB_LISTS_ROOT). */
+export const JOBS_BROWSE_ROOT = "src/pages/jobs/JobsSection.tsx";
+
+/**
+ * The signed-in-pages modules (homeOff) signed-in /jobs' Browse screen statically reaches (Q1158, 11-06): the save
+ * toast, the work-lands nudge, useJobRef, the pending-save consumer, the keyboard inset, the apply flow's rate limit
+ * and upload checks. In signed-in-pages these few made every cold /jobs fetch that whole chunk (19.8 KB gz of the job
+ * lists', Messages' and Post a job's code) and, only through it, signed-in-late (4.0 KB gz), before the first job card
+ * could draw (lab, 375: the cards draw when the JS is done). Their own chunk; the other screens that use them fetch it
+ * beside signed-in-pages, in the same round. Closed under static imports (a reach intersected with homeOff).
+ */
+export function jobsBrowseFirstScreenModules(root, split = signedInSplit(root)) {
+  const reach = staticReach(root, [path.join(root, JOBS_BROWSE_ROOT)]);
+  return new Set([...split.homeOff].filter((f) => reach.has(f)));
+}
+
 /**
  * Home's PAGE roots (B88, 11-01): homeFirstScreenRoots without EVERY_PAGE_ROOTS. App mounts those (the dock, Legal,
  * the ID sheet, ...) lazily beside every page, after Home's first paint, so their shared code is not Home's first

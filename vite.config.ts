@@ -6,7 +6,7 @@ import { createRequire } from "module";
 import { execSync } from "node:child_process";
 import { VitePWA } from "vite-plugin-pwa";
 import { visualizer } from "rollup-plugin-visualizer";
-import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, bootModules, bootIconFiles, declutterItemSplit, guestIconSplit, guestBrowseSplit, homeIconFiles, homePageRoots, itemIconFiles, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
+import { ITEM_PAGES_PINNED_RE, SHARED_DIR_RE, bootModules, bootIconFiles, declutterItemSplit, guestIconSplit, guestBrowseSplit, homeIconFiles, homePageRoots, itemIconFiles, jobsBrowseFirstScreenModules, profileFirstScreenModules, signedInOnlyModules, signedInSplit, staticReach } from "./scripts/perf/bootReach.mjs";
 
 const require = createRequire(import.meta.url);
 
@@ -189,6 +189,7 @@ const { signedInOnly } = signedInOnlyModules(process.cwd());
 const { deep: signedInDeep, declutterOnly, homeOff, homeLate } = signedInSplit(process.cwd());
 const { itemDeep: declutterItemDeep, itemPages: declutterItemPages, itemShared: declutterItemShared } = declutterItemSplit(process.cwd(), { deep: signedInDeep, homeOff });
 const { own: profileFirstScreen, shared: profileSharedLeaves } = profileFirstScreenModules(process.cwd(), { deep: signedInDeep, homeOff });
+const jobsBrowseFirstScreen = jobsBrowseFirstScreenModules(process.cwd(), { homeOff });
 const homeIcons = homeIconFiles(process.cwd());
 const bootIcons = bootIconFiles(process.cwd());
 const itemIcons = itemIconFiles(process.cwd());
@@ -1283,6 +1284,17 @@ export default defineConfig(({ mode, command }) => ({
               test: (id: string) => declutterItemPages.has(id.split("?")[0].replace(/\\/g, "/")) || ITEM_PAGES_PINNED_RE.test(id.split("?")[0]),
               minShareCount: 2,
               priority: 15.7,
+              minSize: 0,
+              includeDependenciesRecursively: false
+            },
+            // Q1158 (11-06): the signed-in-pages modules /jobs' Browse screen reaches (bootReach.mjs
+            // jobsBrowseFirstScreenModules: the save toast, useJobRef, the keyboard inset, the apply flow's checks). In
+            // signed-in-pages they put that whole chunk and signed-in-late on a cold /jobs before its first job card.
+            // Above signed-in-pages, below declutter-item-pages (15.7), which keeps what the item page shares.
+            {
+              name: "jobs-browse",
+              test: (id: string) => jobsBrowseFirstScreen.has(id.split("?")[0].replace(/\\/g, "/")),
+              priority: 15.6,
               minSize: 0,
               includeDependenciesRecursively: false
             },

@@ -37,7 +37,8 @@ const app = blankComments(readFileSync(resolve(process.cwd(), "src/App.tsx"), "u
 
 /** App's beside-the-routes region: from the app shell's first mount to </AppLockGate>. */
 const shell = app.slice(app.indexOf("<OfflineBannerLayoutProvider>"), app.indexOf("</OfflineBannerLayoutProvider>"));
-const lazyNames = [...app.matchAll(/^const (\w+) = lazy\(/gm)].map((m) => m[1]);
+// optionalLazy too (Q1816: the pieces beside the routes fail quietly).
+const lazyNames = [...app.matchAll(/^const (\w+) = (?:lazy|optionalLazy)\(/gm)].map((m) => m[1]);
 const mounted = lazyNames.filter((n) => new RegExp(`<${n}\\s*/>`).test(shell));
 const gated = [...shell.matchAll(/<(SignedInChrome|SignedInOnly)>([\s\S]*?)<\/\1>/g)].map((m) => m[2]).join("\n");
 

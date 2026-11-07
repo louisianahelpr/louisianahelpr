@@ -88,7 +88,8 @@ describe("bootReach: what a signed-out cold load can reach", () => {
  */
 describe("bootReach: the lazy chrome a guest mounts at once is public reach", () => {
   const app = blankComments(readFileSync(join(ROOT, "src/App.tsx"), "utf8"));
-  const lazySpec = new Map([...app.matchAll(/const (\w+) = lazy\(\s*\(\)\s*=>\s*(?:\([^)]*\)\s*,\s*)?import\(\s*["']([^"']+)["']/g)].map((m) => [m[1], m[2]]));
+  // optionalLazy too (Q1816: the pieces beside the routes fail quietly).
+  const lazySpec = new Map([...app.matchAll(/const (\w+) = (?:lazy|optionalLazy)\(\s*\(\)\s*=>\s*(?:\([^)]*\)\s*,\s*)?import\(\s*["']([^"']+)["']/g)].map((m) => [m[1], m[2]]));
   const toFile = (spec: string) => {
     const rel = spec.startsWith("@/") ? `src/${spec.slice(2)}` : `src/${spec.replace(/^\.\//, "")}`;
     return [".tsx", ".ts"].map((ext) => rel + ext).find((f) => { try { readFileSync(join(ROOT, f)); return true; } catch { return false; } }) ?? rel;

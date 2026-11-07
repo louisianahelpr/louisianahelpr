@@ -57,7 +57,7 @@ export function guestPhotosUrl(base: string, itemIds: string[]): string {
 }
 
 /** declutter_guest_preview's answer (see startGuestDeclutterPrefetch). */
-export type GuestPreview = { items: unknown[]; photos: unknown[]; more: boolean };
+type GuestPreview = { items: unknown[]; photos: unknown[]; more: boolean };
 
 const json = (r: Response) => (r.ok ? (r.json() as Promise<unknown>) : null);
 const list = (v: unknown) => (Array.isArray(v) ? (v as unknown[]) : null);

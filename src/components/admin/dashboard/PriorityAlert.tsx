@@ -1,12 +1,15 @@
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ListRow } from "@/components/ui/ListRow";
 
 export const PriorityAlert = ({ label, count, color, onClick }: {
   label: string; count: number; color: "destructive" | "accent"; onClick: () => void;
 }) => (
-  <button
+  <ListRow
+    variant="flush"
     onClick={onClick}
     className={cn(
+      "min-h-11",
       "flex items-center gap-2.5 rounded-ds-md border p-2.5 sm:p-3.5 text-left transition-all w-full hover:shadow-sm",
       color === "destructive"
         ? "border-destructive/30 bg-destructive/5 hover:bg-destructive/10"
@@ -21,5 +24,5 @@ export const PriorityAlert = ({ label, count, color, onClick }: {
     </span>
     <span className="text-ds-11 sm:text-ds-13 font-semibold text-foreground flex-1 leading-tight">{label}</span>
     <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-  </button>
+  </ListRow>
 );

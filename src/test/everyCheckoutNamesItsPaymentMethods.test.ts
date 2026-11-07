@@ -51,7 +51,7 @@ const SESSION_OPENERS: Record<string, number> = {
   "supabase/functions/declutter-card/index.ts": 1,
   "supabase/functions/declutter-checkout/index.ts": 3,
   "supabase/functions/pay-onboarding-fee/index.ts": 1,
-  "supabase/functions/shop-checkout/index.ts": 1,
+  "supabase/functions/shop-checkout/index.ts": 2, // 2: + the pay-the-rest Checkout of a 50% deposit order (Shops custom orders 2b)
 };
 
 /** The five older checkouts (Q2084): card only, dollars only. */

@@ -155,10 +155,10 @@ export default function ShopCustomQuoteForm({ requestId, onDone }: { requestId: 
         )}
       </fieldset>
       <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" disabled={send.isPending} onClick={onDone}>Cancel</Button>
         <Button type="button" className="btn-grad-primary" disabled={!canSend} onClick={() => send.mutate()}>
           {send.isPending ? "Sending…" : "Send price"}
         </Button>
-        <Button type="button" variant="outline" disabled={send.isPending} onClick={onDone}>Cancel</Button>
       </div>
     </div>
   );

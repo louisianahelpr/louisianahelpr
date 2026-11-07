@@ -1445,6 +1445,7 @@ export type Database = {
           price_cents: number
           reminded_24h_at: string | null
           reminded_2h_at: string | null
+          reminded_last_call_at: string | null
           seller_id: string | null
           source: string
           status: string
@@ -1464,6 +1465,7 @@ export type Database = {
           price_cents: number
           reminded_24h_at?: string | null
           reminded_2h_at?: string | null
+          reminded_last_call_at?: string | null
           seller_id?: string | null
           source: string
           status?: string
@@ -1483,6 +1485,7 @@ export type Database = {
           price_cents?: number
           reminded_24h_at?: string | null
           reminded_2h_at?: string | null
+          reminded_last_call_at?: string | null
           seller_id?: string | null
           source?: string
           status?: string
@@ -17280,6 +17283,7 @@ export type Database = {
         Args: { p_expected_price_cents: number; p_item_id: string }
         Returns: string
       }
+      declutter_buy_now_last_call_sweep: { Args: { p_now?: string }; Returns: number }
       declutter_buyer_fee_cents: { Args: { p_items_cents: number }; Returns: number }
       declutter_buyer_cancel_delivery: { Args: { p_order_id: string }; Returns: Json }
       declutter_buyer_fee_cents_seller_delivery: { Args: { p_delivery_cents: number; p_items_cents: number }; Returns: number }

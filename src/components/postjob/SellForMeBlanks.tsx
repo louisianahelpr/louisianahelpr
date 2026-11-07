@@ -5,7 +5,7 @@
  * (fillSellForMeBlank), so the description stays the one thing that is posted, and Continue still refuses a blank
  * left as its [placeholder] (detailsBlocker). Shown only while the description still has its blank lines.
  */
-import { CHIP, CHIP_OFF, CHIP_ON } from "@/components/ui/chipClasses";
+import { ChoiceChip } from "@/components/ui/ChoiceChip";
 import { Input } from "@/components/ui/input";
 import { FieldError } from "@/components/ui/FieldError";
 import { Button } from "@/components/ui/button";
@@ -45,10 +45,10 @@ export function SellForMeBlanks({ description, setDescription, refused = false }
               {b.choices.map((c) => {
                 const on = value === c;
                 return (
-                  <button key={c} type="button" aria-pressed={on} className={`${CHIP} ${on ? CHIP_ON : CHIP_OFF}`}
+                  <ChoiceChip key={c} pressed={on}
                     onClick={() => setDescription(fillSellForMeBlank(description, b, on ? "" : c))}>
                     {c}
-                  </button>
+                  </ChoiceChip>
                 );
               })}
             </div>

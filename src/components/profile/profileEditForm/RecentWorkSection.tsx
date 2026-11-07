@@ -1,3 +1,4 @@
+import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { Loader2, ImagePlus, X } from "lucide-react";
 import { MAX_PORTFOLIO } from "./usePortfolio";
 
@@ -62,11 +63,11 @@ export function RecentWorkSection({
               alt={`Work sample ${i + 1}`}
               className="w-full h-full object-cover"
             />
-            <button
-              type="button"
+            <RoundIconButton
+              size="sm"
               onClick={() => removePortfolioAt(i)}
               aria-label="Remove this photo"
-              className="absolute top-0.5 right-0.5 w-9 h-9 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+              className="absolute top-0.5 right-0.5"
               style={{
                 background: "hsla(0, 0%, 0%, 0.55)",
                 backdropFilter: "blur(6px)",
@@ -74,7 +75,7 @@ export function RecentWorkSection({
               }}
             >
               <X className="w-3.5 h-3.5 text-white" />
-            </button>
+            </RoundIconButton>
           </div>
         ))}
         {portfolioUrls.length < MAX_PORTFOLIO && (

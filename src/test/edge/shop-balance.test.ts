@@ -16,7 +16,7 @@
  * @mutate supabase/functions/_shared/shopBalance.ts |  return buyer \|\| (failed as { result?: string } \| null)?.result === "buyer_pays" ? "buyer_pays" : "will_retry"; |  return buyer ? "buyer_pays" : "will_retry";
  * @mutate supabase/functions/_shared/shopBalance.ts |    p_amount_cents: Number(pi.amount_received ?? 0) > 0 ? Number(pi.amount_received) : Number(pi.amount ?? 0), |    p_amount_cents: 0,
  * @mutate supabase/functions/_shared/shopBalance.ts |  if (opts.fromTap && !buyer) { |  if (false) {
- * @mutate supabase/functions/shop-checkout/index.ts |  if (off) return off; |
+ * @mutate supabase/functions/shop-checkout/index.ts |  if (switchedOff) return switchedOff; |
  * @mutate supabase/functions/shop-checkout/index.ts |  if (isLockedOut(standing?.ban_status, standing?.auto_suspended_until)) return json({ error: "account_restricted" }, 403); |
  * @mutate supabase/functions/shop-checkout/index.ts |    return json({ accepted: true, charged: false });\n  } | throw e;\n  }
  * @mutate supabase/functions/_shared/shopBalance.ts |   return err.type === "StripeCardError" \|\| err.rawType === "card_error"; |   return false;

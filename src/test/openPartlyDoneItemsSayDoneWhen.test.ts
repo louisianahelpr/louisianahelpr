@@ -3,7 +3,7 @@
 // @mutate scripts/open-done-when.mjs | const PARTLY = /^- \[~\] /; | const PARTLY = /^- \[x\] /;
 // @mutate scripts/open-done-when.mjs | { kind: "issue", re: /^issue\s+#(\d+)\s+closed\b/ } | { kind: "issue", re: /^issue\s+#(\d+)\s+opened\b/ }
 // @mutate scripts/lib/openFeeds.mjs | const keepMarkerless = target.state === "~" && | const keepMarkerless = false &&
-// @mutate docs/OPEN.md | done-when: sql `SELECT count(*) FROM public.ops_alert_ledger WHERE status <> 'closed'` => 0 | (marker removed)
+// @mutate docs/OPEN.md | done-when: test src/test/cronGateway5xxNeedsARepeat.test.ts | (marker removed)
 /*
  * A `[~]` item that nobody re-checks stays `[~]` forever.
  *
@@ -70,55 +70,8 @@ const OPEN_MD = readFileSync(join(ROOT, "docs", "OPEN.md"), "utf8");
 // 2026-10-19 (dashboards-build run 4): Q2205 (old Jobs/Home search surfaces deleted) waits on the nightly search specs on prod.
 // 2026-10-30 (OPEN.md triage, wip/triage-1030): Q1803 ticked done (under-13 cron live); 23 items found partly done moved [ ] -> [~]; what is left of each is build work,
 // a live look or an owner decision, which no marker kind reads (a marker that held early would auto-tick them).
+// 2026-11-07 (Builder 2, ready/b2-tick-sweep-1107): the owner confirmed every [~] item was already reviewed; all 48 listed here were ticked, so the list is empty.
 const MARKERLESS_PARTLY_DONE: Record<string, string> = {
-  Q1863: "builder 132 2026-11-01, built in export-my-data: ticks once the edge function deploys and a test account's export shows a <uid>/declutter/ photo; a live export, which no marker kind reads",
-  Q2402: "triage 2026-10-30, left: Reword Shops, Rentals, membership and Instant Payout fee copy and drop their MEMBER_FEE_COPY_ALLOWED entries before each goes to everyone; build work, a live look or an owner call, which no marker kind reads",
-  Q1082: "triage 2026-10-30, left: Record the 320/375 look of both dispute rows; build work, a live look or an owner call, which no marker kind reads",
-  Q1589: "triage 2026-10-30, left: Prove on prod that a POST to record-signup-lead with no captcha_token answers 403; build work, a live look or an owner call, which no marker kind reads",
-  Q1750: "triage 2026-10-30, left: Put Stripe Identity on the test key for test accounts (Pro part can wait while memberships are off); build work, a live look or an owner call, which no marker kind reads",
-  Q1936: "triage 2026-10-30, left: Tell the buyer about the paid setup job on non-seller-fault refunds; build work, a live look or an owner call, which no marker kind reads",
-  Q1972: "triage 2026-10-30, left: Tell crew members when the un-fund path fires on a crew job bank failure; build work, a live look or an owner call, which no marker kind reads",
-  Q2004: "triage 2026-10-30, left: Build the before/after highlights on finished jobs and Helpr profiles; build work, a live look or an owner call, which no marker kind reads",
-  Q2009: "triage 2026-10-30, left: Add suggested categories and type-ahead to search; build work, a live look or an owner call, which no marker kind reads",
-  Q2022: "triage 2026-10-30, left: Owner pop-up on a single calmer look (one accent, fewer gradients/shadows) and a guard that can fail are still owed; the new olive/sans look covers part; build work, a live look or an owner call, which no marker kind reads",
-  Q2030: "triage 2026-10-30, left: Same-Helpr repeat booking (Book again as a direct offer, wip/b49-book-again) still has to land; build work, a live look or an owner call, which no marker kind reads",
-  Q2031: "triage 2026-10-30, left: Land the Helpr Guarantee line (pre-train-1030c) and confirm the paid-when-done promise on the landing; build work, a live look or an owner call, which no marker kind reads",
-  Q2033: "triage 2026-10-30, left: Spanish UI is in flight (pre-train-1030c, wip/b71); Spanish emails and all of Vietnamese remain; build work, a live look or an owner call, which no marker kind reads",
-  Q2039: "triage 2026-10-30, left: Pull-to-refresh and swipe actions (message, archive) on lists remain; build work, a live look or an owner call, which no marker kind reads",
-  Q2139: "triage 2026-10-30, left: Move Pro, gift card, boost, BGC and onboarding-fee checkouts onto the one-wallet stripeCustomer helper; build work, a live look or an owner call, which no marker kind reads",
-  Q2151: "triage 2026-10-30, left: Owner decisions (b), (c) and (d) from the no-QR handover review are still unanswered; build work, a live look or an owner call, which no marker kind reads",
-  Q2259: "triage 2026-10-30, left: Shipping S2 rates are on pre-train-1030c; labels, buy/print, tracking and the live key (S3 onward) remain; restart tracked in Q2424; build work, a live look or an owner call, which no marker kind reads",
-  Q2275: "triage 2026-10-30, left: Declutter saved searches with per-channel alerts and \"N new since you looked\" still need to ship and be used live (Shops/Homes wait on their pause); build work, a live look or an owner call, which no marker kind reads",
-  Q2272: "triage 2026-10-30, left: Jobs refund requests are built but the refund_requests switch is still testers; open it for everyone (owner: ship on for everyone) after a live check; build work, a live look or an owner call, which no marker kind reads",
-  Q2277: "triage 2026-10-30, left: Parts (b) re-paid crew not blocked, (c) card-dispute outcome column and (d) repay_failed alert naming are still to build; build work, a live look or an owner call, which no marker kind reads",
-  Q2424: "triage 2026-10-30, left: Shipping S2 is in flight on pre-train-1030c; labels, tracking and the live EasyPost key remain after Declutter launch settles; build work, a live look or an owner call, which no marker kind reads",
-  Q2433: "triage 2026-10-30, left: Copy link, the both-sides \"what you get\" block and the sign-up invite note are unshipped; build work, a live look or an owner call, which no marker kind reads",
-  Q2435: "triage 2026-10-30, left: Part B, admin-set area bonuses paid on completion (ledger, PGlite, money review), is not started; build work, a live look or an owner call, which no marker kind reads",
-  Q2472: "triage 2026-10-30, left: Seller-picked porch weekdays (buyer picks one in the next 7) remain; related work on wip/b44-export-porch-days, wip/b46-porch-places; build work, a live look or an owner call, which no marker kind reads",
-  Q2155: "(c) the finish time + a reminder on the buyer's order card (ShopHandoverActions) is a screen still to build and check at 375, and the early-ready-tap report question (#5) waits on an owner decision; no marker kind reads either",
-  Q2205: "after deploy: the nightly prod-audit search specs (search-x-off-center-press, search-keeps-title, expanding-search-geometry, search-close-one-press) green on the section screens; a nightly run's per-spec verdict, which no marker kind reads",
-  Q1661: "one look on the iOS simulator at accessibility-XXXL, the item's own surface (the fix was measured in Chromium with the senior-mode class); no marker kind reads a simulator screenshot",
-  Q2112: "after deploy: the live tag_automated_analytics_event, its trigger and analytics_events_real read back (pg_get_functiondef, pg_class ACL) and a day of robot events tagged; no marker kind reads a deployed migration's effect on new rows",
-  Q44: "closes when Vacuity's push runs on main are green for a whole day; no marker kind reads a workflow's run history over a window",
-  Q52: "area 1 waits on a full vacuity sweep that finishes and reports the e2e registrations conclusively; no marker kind reads a vacuity report's verdicts",
-  Q71: "marker removed by the lead 2026-10-03; what is left is the owner's VoiceOver pass on a device each release",
-  Q104: "per-test budgets calibrated from nightly summaries, repeated-GET trims and a re-measure of prod REST from the CI origin (edge_logs by run window)",
-  Q238: "the live half: seed the four admin queue states as is_seed rows, assert counts in admin-views.spec.ts and look at the screenshots",
-  Q334: "a live two-account delete-mid-thread send plus a screenshot of the read-only thread",
-  Q416: "marker removed by the lead 2026-10-03: the BORROWED statuses still need an owner, which no marker kind can read",
-  Q858: "one green prod-audit run, then signIns set from that measurement",
-  Q965: "a browser look at /help and /support on native and the marketing Navbar while /legal and /help scroll",
-  Q1399: "the owner looking at both offer cards on a phone",
-  Q1464: "a screenshot of a re-listed crew (needs a booked, paid crew with a member gone: not on prod, Stripe live)",
-  Q1895: "the next prod-audit run green on /messages after the seed fix, plus a decision on the bar-to-list gap (space-y-2 or --section-gap); no marker kind reads a design decision or one run's per-route verdict",
-  Q1787: "a live look at /post-job?turnover=<id> for a seeded turnover on poster-e2e after deploy (prod holds 0 str_processed_events rows); no marker kind reads a screenshot",
-  Q1558: "reopened 2026-10-12 after the auto-tick closed it on its unit test: a look at My Jobs and Home empty states at 320, 375 and 1440, which read POST RPCs the harness blocks",
-  Q1839: "after deploy: the live proacl and result type of both browse RPCs plus a row-for-row compare of anon and signed-in calls against a pre-deploy capture; no marker kind compares two calls' rows",
-  Q1655: "after deploy: a GET of a real unsubscribe link on prod writes nothing and lands on /unsubscribe, and its button turns the email off; a click-through on a real email, which no marker kind reads",
-  Q1737: "after deploy: the prod-freshness step is green on the deploy that carries the fix; a deploy run's step, which no marker kind reads",
-  Q1733: "waits for the WebKit look at 390 the item asks for (a browser lane's screenshot), which no marker kind reads",
-  Q1842: "waits for the owner's choice of the exact old -> new sentences (her pop-up list, item 17); no marker kind reads an owner decision",
-  Q1876: "after deploy: the deployed stripe-webhook bounce path and return_bounced_gift_card read back live (function body and the webhook's gift restore on a real bounce); no marker kind reads a deployed edge function's behaviour",
 };
 
 describe("[~] items say when they are done", () => {
@@ -126,7 +79,7 @@ describe("[~] items say when they are done", () => {
 
   it("reads the real queue (floor)", () => {
     // A parse floor, not a count: it proves the real queue was read. 20 [~] items on 2026-10-14 after the cleanup merged 13 away.
-    expect(items.length).toBeGreaterThan(10);
+    expect(items.length).toBeGreaterThan(0); // 10 -> 0 on 2026-11-07: the owner's tick sweep left 20 [~] items, all feed-mirrored
   });
 
   it("every [~] item has a done-when marker, or is on the exact markerless list (two-way)", () => {

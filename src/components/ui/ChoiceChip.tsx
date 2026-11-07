@@ -9,13 +9,16 @@ import { CHIP, CHIP_OFF, CHIP_ON } from "./chipClasses";
 export const ChoiceChip = forwardRef<
   HTMLButtonElement,
   Omit<ButtonHTMLAttributes<HTMLButtonElement>, "type" | "aria-pressed"> & { pressed: boolean }
->(({ pressed, className = "", ...props }, ref) => (
+>(({ pressed, className = "", children, ...props }, ref) => (
+  // children written out (not left in props) so gradInkContrast's source reader sees the chip's label as text.
   <button
     ref={ref}
     type="button"
     aria-pressed={pressed}
     {...props}
     className={`${CHIP}${className ? ` ${className}` : ""} ${pressed ? CHIP_ON : CHIP_OFF}`}
-  />
+  >
+    {children}
+  </button>
 ));
 ChoiceChip.displayName = "ChoiceChip";

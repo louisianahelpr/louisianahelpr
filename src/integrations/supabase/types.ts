@@ -17730,6 +17730,13 @@ export type Database = {
         Returns: undefined
       }
       declutter_is_porch_day: { Args: { p_dow: number; p_seller: string }; Returns: boolean }
+      declutter_item_save_counts: {
+        Args: { p_item_ids: string[] }
+        Returns: {
+          item_id: string
+          saves: number
+        }[]
+      }
       declutter_in_agreed_sale: { Args: { p_item_id: string; p_user_id: string }; Returns: boolean }
       declutter_item_address: {
         Args: { p_item_id: string }

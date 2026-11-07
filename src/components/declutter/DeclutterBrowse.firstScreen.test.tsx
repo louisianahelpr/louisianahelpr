@@ -25,6 +25,7 @@ const state: {
   photoReads: string[][];
 } = { origin: { status: "none", zipOnFile: false } as never, finishFull: () => undefined, photoReads: [] };
 
+vi.mock("@/lib/declutter/saveCounts", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/saveCounts")>()), fetchSaveCounts: async () => new Map<string, number>() }));
 vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/api")>()),
   fetchLiveItems: () => new Promise((resolve) => { state.finishFull = resolve; }),

@@ -1,7 +1,7 @@
 {
-  "generated": "2026-11-07T15:13:31.407Z",
-  "guards": 3661,
-  "registered": 3661,
+  "generated": "2026-11-07T19:34:53.452Z",
+  "guards": 3675,
+  "registered": 3675,
   "unregistered": [],
   "classA_noInventoryFloor": [
     "e2e/happy-path/state-matrix/state-sweep.spec.ts"
@@ -22,6 +22,16 @@
     }
   ],
   "classB_mountWiring": [
+    {
+      "module": "src/components/rentals/listings/HomeTalk.tsx",
+      "tests": [
+        "src/test/homesTalkClient.test.tsx"
+      ],
+      "parents": [
+        "src/components/rentals/listings/ListingView.tsx",
+        "src/components/messages/HomeTalkInbox.tsx"
+      ]
+    },
     {
       "module": "src/pages/post-job/CheckoutStepView.tsx",
       "tests": [

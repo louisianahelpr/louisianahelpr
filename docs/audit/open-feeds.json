@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-07T15:23Z",
+  "measured_at": "2026-11-07T19:34Z",
   "issues": {
     "readable": true,
     "open": [
@@ -78,47 +78,40 @@
         "number": 3784,
         "title": "nightly-red: staleness-watch",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42267766594",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42393628693",
         "runTruncated": false
       },
       {
         "number": 3813,
         "title": "nightly-red: e2e-real-backend",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42206493836",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42393309936",
         "runTruncated": false
       },
       {
         "number": 3823,
-        "title": "🔴 5 scheduled workflow(s) have stopped running",
+        "title": "🔴 3 scheduled workflow(s) have stopped running",
         "label": "schedule-stalled"
       },
       {
         "number": 3824,
         "title": "nightly-red: schedule-heartbeat",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42267217530",
-        "runTruncated": false
-      },
-      {
-        "number": 4062,
-        "title": "nightly-red: nightly-webkit",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41680707961",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42393478258",
         "runTruncated": false
       },
       {
         "number": 4149,
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42333880707",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42399172516",
         "runTruncated": false
       },
       {
         "number": 4202,
         "title": "nightly-red: feature-switch-audience",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42268985095",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42393839202",
         "runTruncated": false
       }
     ]
@@ -175,6 +168,14 @@
         "issue": null
       },
       {
+        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
+        "source_kind": "workflow",
+        "source": "db-deploy",
+        "status": "open",
+        "title": "db-deploy failed on main",
+        "issue": null
+      },
+      {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -189,14 +190,6 @@
         "status": "open",
         "title": "nightly-red: nightly-red-age",
         "issue": 2244
-      },
-      {
-        "fingerprint": "6572319b20aeb17420c5dab32f4216c9",
-        "source_kind": "error_logs",
-        "source": "db-saturation",
-        "status": "open",
-        "title": "database saturation",
-        "issue": null
       },
       {
         "fingerprint": "8018e82cb1674eba274a494805d751d1",
@@ -245,14 +238,6 @@
         "status": "open",
         "title": "nightly-red: a11y-webkit-prod",
         "issue": 2375
-      },
-      {
-        "fingerprint": "70e7b0decb9a9e19db5e1f2de4e52559",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: nightly-webkit",
-        "issue": 4062
       },
       {
         "fingerprint": "0bebf0385b3e217facd52bb36536de1f",
@@ -415,19 +400,19 @@
         "issue": null
       },
       {
-        "fingerprint": "aeedd249577285330a97e04195cee7d8",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: refund-request-sweep returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: declutter-money returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "aeedd249577285330a97e04195cee7d8",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: refund-request-sweep returned 502",
         "issue": null
       },
       {
@@ -437,19 +422,10 @@
         "status": "open",
         "title": "typeerror: cannot read properties of undefined (reading 'fetchsupporttickets')",
         "issue": null
-      },
-      {
-        "fingerprint": "52e797b0d01f2ad7f670509b8a9e0d03",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: prod-freshness",
-        "issue": 4207
       }
     ]
   },
   "mirrored": {
-    "issue #1794": "Q416",
     "issue #2244": "Q1816",
     "issue #2245": "Q1816",
     "issue #2353": "Q1816",
@@ -464,7 +440,6 @@
     "issue #3813": "Q1816",
     "issue #3823": "Q2498",
     "issue #3824": "Q1816",
-    "issue #4062": "Q1816",
     "issue #4149": "Q1816",
     "issue #4202": "Q1816",
     "ledger 0411d219f410": "Q1810",
@@ -483,14 +458,12 @@
     "ledger 41f88aeb227f": "Q1777",
     "ledger 43d77e26f272": "Q1816",
     "ledger 4aa239aefeb6": "Q1816",
-    "ledger 52e797b0d01f": "Q1816",
+    "ledger 54ef0bfdcec3": "Q2772",
     "ledger 5a28db44e912": "Q2410",
-    "ledger 5b3c79ac5eb7": "Q1581",
     "ledger 60298a019ea3": "Q1776",
     "ledger 6205197429d4": "Q1816",
     "ledger 6389f98a9f66": "Q1816",
     "ledger 6572319b20ae": "Q2771",
-    "ledger 70e7b0decb9a": "Q1816",
     "ledger 7e141f206640": "Q1816",
     "ledger 7f88b9cc45df": "Q1816",
     "ledger 8018e82cb167": "Q1816",
@@ -512,7 +485,6 @@
     "ledger cae29df0662b": "Q2351",
     "ledger d1f8391b44ec": "Q1631",
     "ledger db0fb15c4ec3": "Q1816",
-    "ledger e49f68d9cbd6": "Q1475",
     "ledger f1bfed973a2a": "Q2734"
   }
 }

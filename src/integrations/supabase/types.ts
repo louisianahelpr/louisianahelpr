@@ -17633,6 +17633,7 @@ export type Database = {
         Returns: number
       }
       declutter_guest_first_screen: { Args: never; Returns: Json }
+      declutter_guest_preview: { Args: never; Returns: Json }
       declutter_guest_seller_first_name: {
         Args: { p_item_id: string }
         Returns: string

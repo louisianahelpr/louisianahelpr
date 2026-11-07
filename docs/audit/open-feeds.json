@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-07T01:14Z",
+  "measured_at": "2026-11-07T15:12Z",
   "issues": {
     "readable": true,
     "open": [
@@ -22,7 +22,7 @@
         "number": 2353,
         "title": "nightly-red: press-every-control",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/41817058240",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42362289081",
         "runTruncated": false
       },
       {
@@ -111,26 +111,7 @@
         "number": 4149,
         "title": "nightly-red: db-drift-detect",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42284047569",
-        "runTruncated": false
-      },
-      {
-        "number": 4151,
-        "title": "nightly-red: core-loop-canary",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42120720415",
-        "runTruncated": false
-      },
-      {
-        "number": 4199,
-        "title": "🔴 Migration drift: 4 unapplied / 0 unrecorded",
-        "label": "migration-drift"
-      },
-      {
-        "number": 4201,
-        "title": "nightly-red: main: Supabase DB Deploy",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42299568950",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42333880707",
         "runTruncated": false
       },
       {
@@ -194,14 +175,6 @@
         "issue": null
       },
       {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
-        "issue": null
-      },
-      {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
         "source_kind": "nightly_red",
         "source": "nightly-red",
@@ -216,6 +189,14 @@
         "status": "open",
         "title": "nightly-red: nightly-red-age",
         "issue": 2244
+      },
+      {
+        "fingerprint": "6572319b20aeb17420c5dab32f4216c9",
+        "source_kind": "error_logs",
+        "source": "db-saturation",
+        "status": "open",
+        "title": "database saturation",
+        "issue": null
       },
       {
         "fingerprint": "8018e82cb1674eba274a494805d751d1",
@@ -298,14 +279,6 @@
         "issue": null
       },
       {
-        "fingerprint": "18539240a894224e952b88b2b21bb927",
-        "source_kind": "nightly_red",
-        "source": "nightly-red",
-        "status": "open",
-        "title": "nightly-red: core-loop-canary",
-        "issue": 4151
-      },
-      {
         "fingerprint": "f1bfed973a2a75d4ef5bb8ce2a1785df",
         "source_kind": "error_logs",
         "source": "cron-http",
@@ -328,14 +301,6 @@
         "status": "open",
         "title": "error: error screen shown: we couldn't load jobs.",
         "issue": null
-      },
-      {
-        "fingerprint": "747845433253c079b579d26e780481bc",
-        "source_kind": "nightly_red",
-        "source": "migration-drift",
-        "status": "open",
-        "title": "🔴 migration drift: # unapplied / # unrecorded",
-        "issue": 4199
       },
       {
         "fingerprint": "8a2e802edbe7bd772cfe6fec1ea6488b",
@@ -479,7 +444,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: prod-freshness",
-        "issue": 4197
+        "issue": 4207
       }
     ]
   },
@@ -501,9 +466,7 @@
     "issue #3824": "Q1816",
     "issue #4062": "Q1816",
     "issue #4149": "Q1816",
-    "issue #4151": "Q1816",
     "issue #4199": "Q2769",
-    "issue #4201": "Q1816",
     "issue #4202": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
@@ -512,7 +475,6 @@
     "ledger 11f46545733f": "Q2409",
     "ledger 15cc2d7f63f3": "Q2347",
     "ledger 16e6e91f6701": "Q1816",
-    "ledger 18539240a894": "Q1816",
     "ledger 2e4f3e726722": "Q1816",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 3712b62a9839": "Q2510",
@@ -529,6 +491,7 @@
     "ledger 60298a019ea3": "Q1776",
     "ledger 6205197429d4": "Q1816",
     "ledger 6389f98a9f66": "Q1816",
+    "ledger 6572319b20ae": "Q2771",
     "ledger 70e7b0decb9a": "Q1816",
     "ledger 747845433253": "Q2769",
     "ledger 7e141f206640": "Q1816",

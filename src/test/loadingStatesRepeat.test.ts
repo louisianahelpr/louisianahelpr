@@ -27,7 +27,7 @@
  * @mutate scripts/audit/measure-loading-states.mjs | if (moving > 0 \|\| quietFor < settleMs) return "wait"; | if (moving > 0) return "wait";
  * @mutate scripts/audit/measure-loading-states.mjs | if (step === "capture") { | if (step === "capture" \|\| scr?.count) {
  * @mutate scripts/audit/measure-loading-states.mjs | const seeded = await seedInboxMessage(poster, helper, process.env.GITHUB_RUN_ID ?? String(Date.now())); | const seeded = { id: null, note: "off" };
- * @mutate scripts/check-loading-state-shape.mjs | url.replace(/^\/jobs\/[^/?#]+/, "/jobs/:id") | url
+ * @mutate scripts/lib/loadingStateRules.mjs | url.replace(new RegExp(`^${JOB_ID_PATH.source}`), "/jobs/:id") | url
  * @mutate scripts/audit/measure-loading-states.mjs | const el = document.elementsFromPoint(pr.px, pr.py).find((e) => !e.closest("[data-sonner-toaster]") && !e.closest(".sticky-title-row")); | const el = document.elementFromPoint(pr.px, pr.py);
  * @mutate docs/audit/loading-states/baseline.json | "key": "customer /profile?tab=work_record #1", | "key": "customer /jobs/c9b3bd7a-9db4-48bf-a2d8-0477f6746524 #1",
  */

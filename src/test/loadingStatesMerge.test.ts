@@ -22,6 +22,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { mergeMeasurements } from "../../scripts/audit/measure-loading-states.mjs";
 import { blankComments } from "./helpers/blankNonCode";
+import { JOB_ID_PATH } from "../../scripts/lib/loadingStateRules.mjs";
 
 const REPO = resolve(__dirname, "..", "..");
 const settings = { viewport: { width: 375, height: 812 }, capture: "staged-gate", settleMs: 600, chunkDelay: 400 };
@@ -97,7 +98,7 @@ describe("loading-state evidence: a narrowed run merges into the catalog", () =>
       merged?: { surfaces: string[] }[];
     };
     expect(ev.results.length).toBeGreaterThan(100);
-    const ids = ev.results.map((x) => `${x.persona} ${x.url.replace(/^\/jobs\/[^/?#]+/, "/jobs/:id")}`);
+    const ids = ev.results.map((x) => `${x.persona} ${x.url.replace(new RegExp(`^${JOB_ID_PATH.source}`), "/jobs/:id")}`);
     expect(new Set(ids).size, "a surface appears twice in measurements.json").toBe(ids.length);
     for (const m of ev.merged ?? []) for (const s of m.surfaces) expect(ids).toContain(s);
   });

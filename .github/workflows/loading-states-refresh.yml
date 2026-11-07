@@ -25,8 +25,14 @@ name: Loading states refresh
 # .github/actions/refresh-pr (one bot branch, one PR, auto-merge on green). A
 # red one cannot auto-merge (loadingStateShape.test.ts grades it against
 # main's baseline); it waits on bot/refresh/loading-states for the baseline fix.
-# Only measurements.json: the screenshots are re-taken every run and stay in
-# the artifact, and baseline.json is a two-way ratchet a person lowers.
+# measurements.json, plus baseline.json SHRUNK by
+# scripts/audit/prune-loading-baseline.mjs (Q1695): an `allow` entry the fresh
+# measurement shows fixed is deleted on the bot branch, by the check's own
+# staleEntries rule. Before that every fixed skeleton turned the bot PR red
+# until a person edited the baseline, and no refresh landed from 2026-10-07 to
+# 2026-11-07 (#2627 .. #4152). The prune never adds an entry or touches
+# byDesign, so a NEW breach still holds the PR for a fix. The screenshots are
+# re-taken every run and stay in the artifact.
 
 on:
   schedule:
@@ -258,11 +264,18 @@ jobs:
           id: loading-states
           hold-for-trains: "true"
           title: "chore(refresh): loading-state measurements re-measured on prod"
-          paths: docs/audit/loading-states/measurements.json
+          paths: |
+            docs/audit/loading-states/measurements.json
+            docs/audit/loading-states/baseline.json
           measured-dir: ${{ runner.temp }}/measured
+          # Q1695: the fresh measurement onto latest main, then the baseline's
+          # fixed `allow` entries deleted (shrink only; dependency-free node).
+          regenerate: |
+            cp "$MEASURED/docs/audit/loading-states/measurements.json" docs/audit/loading-states/measurements.json
+            node scripts/audit/prune-loading-baseline.mjs
           body: |
             Measured from `${{ github.ref_name }}` at ${{ github.sha }}; the measure job ended `${{ needs.measure.result }}`.
-            If that is not `success`, this file is the evidence for the baseline fix: fetch `bot/refresh/loading-states`, delete the stale entries and fix the new breaches it shows, and land them with it. If it was measured from a branch other than main, it describes that branch's code: merge the branch first.
+            Fixed `allow` entries are already deleted from baseline.json on this branch. If the job is not `success`, the measurement shows a NEW breach: fetch `bot/refresh/loading-states`, fix the skeleton it names, and land the fix with it. If it was measured from a branch other than main, it describes that branch's code: merge the branch first.
           github-token: ${{ secrets.REFRESH_PR_TOKEN || github.token }}
           check-workflows: ${{ vars.REFRESH_PR_CHECK_WORKFLOWS }}
 

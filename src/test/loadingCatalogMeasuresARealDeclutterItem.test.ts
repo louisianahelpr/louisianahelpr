@@ -12,7 +12,7 @@
  * anything without the press marker or not a draft).
  *
  * @mutate scripts/audit/press-every-control.mjs |       push(`/declutter/item/${declutterItemId}`, r, ["helper"]); |
- * @mutate scripts/check-loading-state-shape.mjs | .replace(/^\/declutter\/item\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i, "/declutter/item/:id") |
+ * @mutate scripts/lib/loadingStateRules.mjs | .replace(/^\/declutter\/item\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i, "/declutter/item/:id") |
  * @mutate scripts/audit/measure-loading-states.mjs |       declutterItemId,\n      seedJobId, |       seedJobId,
  * @mutate scripts/audit/measure-loading-states.mjs |       const gone = await removeLoadingDeclutterItem(declutterSeller, declutterItemId); |       const gone = { ok: true, note: "skipped" };
  * @mutate scripts/audit/measure-loading-states.mjs |         const seller = await mintLoadingSeller(); |         const seller = helper;

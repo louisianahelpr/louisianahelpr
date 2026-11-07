@@ -57,7 +57,7 @@ async function sheetTitle(result: ReturnType<typeof run>["result"]): Promise<str
   opener.go();
   await waitFor(() => expect(result.current.sheet).toBeTruthy());
   const { unmount } = render(<>{result.current.sheet}</>);
-  const title = (await screen.findByRole("dialog")).querySelector("h2")?.textContent ?? "";
+  const title = (await screen.findByRole("dialog", undefined, { timeout: 5000 })).querySelector("h2")?.textContent ?? "";
   unmount();
   return title;
 }

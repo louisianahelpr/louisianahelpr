@@ -8,8 +8,11 @@
  * @mutate src/components/declutter/DeclutterNoHelpr.tsx |   if (Date.now() < new Date(slotStart).getTime() + 15 * 60_000) return null; |   if (false) return null;
  * @mutate src/components/declutter/DeclutterNoHelpr.tsx |   if (!r \|\| r.settled_at) return null; |   if (!r) return null;
  * Shops (20261106211136): a shop delivery's answer goes to shop_helpr_answer_no_show and names "the shop".
- * @mutate src/components/declutter/DeclutterNoHelpr.tsx |     mutationFn: () => answerHelprNoShow(taskId, note.trim(), sourceKind), |     mutationFn: () => answerHelprNoShow(taskId, note.trim()),
+ * @mutate src/components/declutter/DeclutterNoHelpr.tsx |       return answerHelprNoShow(taskId, note.trim(), sourceKind, photoPath); |       return answerHelprNoShow(taskId, note.trim(), undefined, photoPath);
  * @mutate src/components/declutter/DeclutterNoHelpr.tsx | {sourceKind === "shop_delivery" ? "The shop" : "The seller"} says | The seller says
+ * The Helpr's optional answer photo (live camera, uploaded once per file) goes with the answer (20261107035259).
+ * @mutate src/components/declutter/DeclutterNoHelpr.tsx |       return answerHelprNoShow(taskId, note.trim(), sourceKind, photoPath); |       return answerHelprNoShow(taskId, note.trim(), sourceKind, null);
+ * @mutate src/components/declutter/DeclutterNoHelpr.tsx |       if (photo && userId && uploaded.current?.file !== photo) uploaded | if (photo && userId) uploaded
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -20,6 +23,7 @@ const state = vi.hoisted(() => ({
   choice: null as null | { refund_cents: number; card_fee_cents: number; delivery_refunded_cents: number; pickup_by: string },
   report: null as null | { reported_at: string; answer_by: string; answered_at: string | null; settled_at: string | null },
   calls: [] as string[],
+  refuseAnswer: false,
 }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/lib/declutter/noHelpr", () => ({
@@ -27,14 +31,21 @@ vi.mock("@/lib/declutter/noHelpr", () => ({
   cancelAfterNoHelpr: async (id: string) => { state.calls.push(`cancel:${id}`); return { result: "refunding" }; },
   fetchHelprNoShowReport: async () => state.report,
   reportHelprNoShow: async (id: string) => { state.calls.push(`report:${id}`); return { result: "helpr_told", answer_by: "" }; },
-  answerHelprNoShow: async (id: string, note: string, kind?: string) => { state.calls.push(`answer:${id}:${note}${kind ? `:${kind}` : ""}`); return "p1"; },
+  answerHelprNoShow: async (id: string, note: string, kind?: string, photo?: string | null) => {
+    state.calls.push(`answer:${id}:${note}${kind ? `:${kind}` : ""}${photo ? `:${photo}` : ""}`);
+    if (state.refuseAnswer) { state.refuseAnswer = false; throw new Error("too_early"); }
+    return "p1";
+  },
+}));
+vi.mock("@/lib/helprTasks/api", () => ({
+  uploadTaskPhoto: async (uid: string, task: string) => { state.calls.push(`upload:${uid}:${task}`); return `${uid}/task/${task}/a.jpg`; },
 }));
 
 import { HelprNoShowAnswer, HelprNoShowReportButton, NoHelprChoice } from "./DeclutterNoHelpr";
 
 const wrap = (ui: ReactNode) => render(<QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>{ui}</QueryClientProvider>);
 
-beforeEach(() => { state.choice = null; state.report = null; state.calls = []; });
+beforeEach(() => { state.choice = null; state.report = null; state.calls = []; state.refuseAnswer = false; });
 
 describe("BUY-2: the buyer's choice after no Helpr", () => {
   it("shows nothing for an order that isn't one", async () => {
@@ -95,5 +106,31 @@ describe("soldstates-5: the seller's report and the Helpr's answer", () => {
     fireEvent.change(screen.getByLabelText(/What happened\?/), { target: { value: "Knocked at 2" } });
     fireEvent.click(screen.getByRole("button", { name: "I was there" }));
     await waitFor(() => expect(state.calls).toEqual(["answer:t2:Knocked at 2:shop_delivery"]));
+  });
+
+  it("the answer can carry a photo taken there; a retry after a refusal does not upload it again", async () => {
+    state.report = { reported_at: "2026-10-31T15:00:00Z", answer_by: "2026-11-01T15:00:00Z", answered_at: null, settled_at: null };
+    state.refuseAnswer = true;
+    wrap(<HelprNoShowAnswer taskId="t3" sourceKind="shop_delivery" userId="u9" />);
+    fireEvent.change(await screen.findByLabelText(/What happened\?/), { target: { value: "At the door at 2" } });
+    const file = new File(["x"], "door.jpg", { type: "image/jpeg" });
+    fireEvent.change(screen.getByLabelText(/A photo taken where you are/), { target: { files: [file] } });
+    fireEvent.click(screen.getByRole("button", { name: "I was there" }));
+    await waitFor(() => expect(state.calls).toEqual(["upload:u9:t3", "answer:t3:At the door at 2:shop_delivery:u9/task/t3/a.jpg"]));
+    fireEvent.click(screen.getByRole("button", { name: "I was there" }));
+    await waitFor(() => expect(state.calls).toEqual([
+      "upload:u9:t3",
+      "answer:t3:At the door at 2:shop_delivery:u9/task/t3/a.jpg",
+      "answer:t3:At the door at 2:shop_delivery:u9/task/t3/a.jpg",
+    ]));
+  });
+
+  it("no photo field without a signed-in Helpr id, and no photo sent when none was taken", async () => {
+    state.report = { reported_at: "2026-10-31T15:00:00Z", answer_by: "2026-11-01T15:00:00Z", answered_at: null, settled_at: null };
+    wrap(<HelprNoShowAnswer taskId="t4" />);
+    fireEvent.change(await screen.findByLabelText(/What happened\?/), { target: { value: "Here" } });
+    expect(screen.queryByLabelText(/A photo taken where you are/)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "I was there" }));
+    await waitFor(() => expect(state.calls).toEqual(["answer:t4:Here"]));
   });
 });

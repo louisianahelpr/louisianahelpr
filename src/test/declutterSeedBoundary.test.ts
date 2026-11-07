@@ -1,6 +1,6 @@
 // @mutate supabase/migrations/20261102022901_declutter_items_hidden_from_blocked.sql |         AND (NOT is_seed OR NOT (SELECT public.seed_hidden_in_discovery()))\n |         AND true\n
 // @mutate supabase/migrations/20261031060656_declutter_guest_read.sql |     AND NOT is_seed\n  ); |     AND true\n  );
-// @mutate supabase/migrations/20261103112014_money_records_and_buy_lock_not_found_is_404.sql |      OR (v_seed AND public.seed_hidden_for(p_buyer)) THEN |      THEN
+// @mutate supabase/migrations/20261107174801_declutter_buy_now_one_page.sql |      OR (v_seed AND public.seed_hidden_for(p_buyer)) THEN |      THEN
 // @mutate supabase/migrations/20261104124645_declutter_bundle_take_quiet.sql |      AND public.seed_hidden_for(p_buyer) THEN\n    RAISE EXCEPTION 'item_not_found' |      AND false THEN\n    RAISE EXCEPTION 'item_not_found'
 //
 // Cowork design audit 2026-10-20, D1: the owner (an admin, not a test account)

@@ -117,19 +117,23 @@ describe("Q2140: withWalletCustomer replaces a customer Stripe no longer has, on
     expect(w.calls.rpc).toEqual([["replace_stripe_customer", { p_user: USER.id, p_mode: "test", p_old: "cus_dead", p_new: "cus_fresh" }]]);
   });
 
-  it("every pre-fill page (declutter order, raise, tip; shop order) runs through withStoredWalletCustomer with a ':new-wallet' retry key", () => {
-    const pages: Record<string, number> = { "declutter-checkout": 3, "shop-checkout": 1 };
+  // Owner 11-07 (ONE Stripe page): the Declutter ORDER page left this list for withWalletCustomer (it saves the card,
+  // so it needs the wallet customer made); the raise and tip pages still only pre-fill. Every page keeps its retry key.
+  it("every pre-fill page (declutter raise, tip; shop order) runs through withStoredWalletCustomer with a ':new-wallet' retry key", () => {
+    const pages: Record<string, { stored: number; keys: number }> = {
+      "declutter-checkout": { stored: 2, keys: 3 }, "shop-checkout": { stored: 1, keys: 1 },
+    };
     for (const [fn, n] of Object.entries(pages)) {
       const src = blankComments(readFileSync(`supabase/functions/${fn}/index.ts`, "utf8"));
-      expect(src.match(/storedStripeCustomer\(/g)?.length, fn).toBe(n);
-      expect(src.match(/withStoredWalletCustomer\(admin, stripe, user, mode, /g)?.length, fn).toBe(n);
-      expect(src.match(/\$\{walletRetry \? ":new-wallet" : ""\}`/g)?.length, fn).toBe(n);
+      expect(src.match(/storedStripeCustomer\(/g)?.length, fn).toBe(n.stored);
+      expect(src.match(/withStoredWalletCustomer\(admin, stripe, user, mode, /g)?.length, fn).toBe(n.stored);
+      expect(src.match(/\$\{walletRetry \? ":new-wallet" : ""\}`/g)?.length, fn).toBe(n.keys);
     }
     expect(Object.keys(pages).length).toBeGreaterThan(1);
   });
 
   it("every wallet Checkout caller goes through withWalletCustomer, none resolves the id itself", () => {
-    const callers = ["create-payment", "declutter-card", "create-bgc-payment", "create-boost-payment", "create-gift-card-checkout", "pay-onboarding-fee"];
+    const callers = ["create-payment", "declutter-card", "declutter-checkout", "create-bgc-payment", "create-boost-payment", "create-gift-card-checkout", "pay-onboarding-fee"];
     for (const fn of callers) {
       const src = blankComments(readFileSync(`supabase/functions/${fn}/index.ts`, "utf8"));
       expect(src, fn).toMatch(/withWalletCustomer\(/);

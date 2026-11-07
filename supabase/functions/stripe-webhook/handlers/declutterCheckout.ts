@@ -12,7 +12,9 @@
 //                   everywhere: the most recently saved card, any section;
 //                   _walletDefaultCard.ts, Q2139).
 //   declutter_order (declutter-checkout, mode=payment) the buyer paid an
-//                   order. declutter_mark_order_paid decides, from the order's
+//                   order (owner 11-07: ONE page; it also saves the card,
+//                   setup_future_usage, and saveOrderCard stores it with
+//                   declutter_save_card for later offers). declutter_mark_order_paid decides, from the order's
 //                   own state and the payment's OWN Stripe time (event.created,
 //                   B41), whether the payment stands ('paid') or goes back
 //                   ('refund', with a reason that fixes who bears the card fee,
@@ -39,7 +41,8 @@ import type { WebhookContext } from "../context.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { queueEmail } from "../../_shared/resend.ts";
 import { declutterEmailParts, emailSeller } from "../../_shared/declutterSellerEmail.ts";
-import { recordDeclutterCardAsWalletDefault } from "./_walletDefaultCard.ts";
+import { recordDeclutterCardAsWalletDefault, recordDeclutterOrderCardAsWalletDefault } from "./_walletDefaultCard.ts";
+import { storedStripeCustomer } from "../../_shared/stripeCustomer.ts";
 import { tipChargeBreakdown } from "../../_shared/tipFees.ts";
 import { holdBackPaidTip } from "../../_shared/heldTipRepay.ts";
 
@@ -282,6 +285,73 @@ async function saveCard(
 }
 
 /**
+ * Owner 11-07 (ONE Stripe page for Buy now, replacing the 10-28 two-page choice): declutter-checkout's order page sets
+ * setup_future_usage=off_session on the buyer's wallet customer, so Stripe attaches the card the buyer paid with. Here
+ * it is stored with declutter_save_card (exactly as the card page's SetupIntent is), so a later offer, which is charged
+ * off the page, has a card; then it becomes the wallet's default card (one wallet card, Q2139).
+ *
+ * Saved ONLY when every fact agrees: the PaymentIntent asked to save (a page from before 11-07 did not), a card
+ * attached to the PaymentIntent's customer, and that customer IS the buyer's stored wallet customer in the event's
+ * mode (the buyer was checked against the order before this runs). Anything else is logged and skipped.
+ *
+ * Idempotent: the same card already saved for the buyer in this mode writes nothing (a redelivery, or a payment with
+ * the card that was already saved), so the "Card saved" notice is sent once. A card saved AFTER this payment (the
+ * card page, a later order) is never replaced by a late redelivery of this one. A read or write failure THROWS, so
+ * Stripe redelivers (the order answers already_paid and comes back here).
+ */
+async function saveOrderCard(
+  event: Stripe.Event,
+  sessionId: string,
+  paymentIntentId: string,
+  buyerId: string | undefined,
+  ctx: WebhookContext,
+): Promise<void> {
+  const { stripe, supabase, logStep } = ctx;
+  if (!buyerId) return;
+  const pi = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ["payment_method"] });
+  if (pi?.setup_future_usage !== "off_session") return;
+  const mode = event.livemode === true ? "live" : "test";
+  const customer = typeof pi.customer === "string" ? pi.customer : pi.customer?.id ?? null;
+  const pm = pi.payment_method as Stripe.PaymentMethod | string | null;
+  const card = pm && typeof pm === "object" && pm.type === "card" ? pm : null;
+  const cardOwner = card ? (typeof card.customer === "string" ? card.customer : card.customer?.id ?? null) : null;
+  if (!customer || !card?.id || cardOwner !== customer) {
+    logStep("Declutter order card not saved: no card attached to the page's customer", { sessionId });
+    return;
+  }
+  const stored = await storedStripeCustomer(supabase, buyerId, mode);
+  if (stored !== customer) {
+    logStep("Declutter order card not saved: the page's customer is not the buyer's wallet customer", { sessionId });
+    return;
+  }
+  const { data: savedRow, error: savedErr } = await supabase.from("declutter_buyer_cards")
+    .select("payment_method_id, card_mode, saved_at").eq("user_id", buyerId).maybeSingle();
+  if (savedErr) throw new Error(`declutter_buyer_cards read failed: ${savedErr.message}`);
+  const saved = savedRow as { payment_method_id?: string | null; card_mode?: string | null; saved_at?: string | null } | null;
+  if (saved?.payment_method_id === card.id && saved.card_mode === mode) {
+    logStep("Declutter order card already saved", { sessionId });
+    return;
+  }
+  const savedAt = saved?.saved_at ? Date.parse(saved.saved_at) : NaN;
+  if (Number.isFinite(savedAt) && savedAt > event.created * 1000) {
+    logStep("Declutter order card kept: a card was saved after this payment", { sessionId });
+    return;
+  }
+  const { error } = await supabase.rpc("declutter_save_card", {
+    p_user: buyerId,
+    p_customer: customer,
+    p_payment_method: card.id,
+    p_brand: card.card?.brand ?? null,
+    p_last4: card.card?.last4 ?? null,
+    p_mode: mode,
+  });
+  if (error) throw new Error(`declutter_save_card failed: ${error.message}`);
+  logStep("Declutter order card saved", { user: buyerId });
+  // After the save, never throws (a failure pages; the card stays saved).
+  await recordDeclutterOrderCardAsWalletDefault(event, sessionId, buyerId, customer, card, ctx);
+}
+
+/**
  * The card fee Stripe kept on this payment (null: the SQL then estimates
  * 2.9% + 30c) and the charge's own time (null: the event's time is used).
  */
@@ -419,11 +489,15 @@ async function settleOrder(
     return;
   }
   // A held payment cannot be partly refunded (nothing was taken): a setup fee owed back is settled at capture (S5).
-  if (answer.result === "already_paid" && shipHeld) return;
+  if (answer.result === "already_paid" && shipHeld) {
+    await saveOrderCard(event, session.id, paymentIntentId, meta.buyer_id, ctx);
+    return;
+  }
   if (answer.result === "paid" && shipHeld) {
     await sendMoneyEmail(ctx, meta.buyer_id, "declutter_receipt", "Your Declutter order",
       `We're holding ${dollars(amount)} on your card for your Declutter order. You're charged once the shipping label is made; if it can't be made, the hold is released and you pay nothing. You'll get tracking in the app.`);
     await emailSeller(supabase, parties?.seller_id, orderId, "sold", parties?.items_cents, logStep, 0);
+    await saveOrderCard(event, session.id, paymentIntentId, meta.buyer_id, ctx);
     return;
   }
   if (answer.result === "paid") {
@@ -461,6 +535,10 @@ async function settleOrder(
     // Q2352: a sale that stands may owe its buyer the setup fee back, after the receipt (a failed refund throws
     // for a redelivery, which answers already_paid and lands here again).
     await settleSetupFee(ctx, paymentIntentId, orderId);
+    // Owner 11-07: the card this page saved is stored for later offers. LAST (lead, money review of bede94b117): a
+    // stuck card save never holds up the setup-fee refund above. A failure throws, and the redelivery (already_paid)
+    // comes back here; the refund and the save are both idempotent.
+    await saveOrderCard(event, session.id, paymentIntentId, meta.buyer_id, ctx);
     return;
   }
   // The payment's Stripe mode goes on the refund row (money review 3.6), so a

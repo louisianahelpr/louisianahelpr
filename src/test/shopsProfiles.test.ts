@@ -152,8 +152,18 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
     const PICKUP_ZIP = blankSqlComments(readFileSync(join(MIG_DIR, "20261106180540_shops_pickup_zip_louisiana_only.sql"), "utf8"));
     // Shops delivery (20261106180902).
     const DELIVERY = blankSqlComments(readFileSync(join(MIG_DIR, "20261106180902_shops_delivery.sql"), "utf8"));
-    const raised = new Set([...(MIG + ITEMS + ORDERS + PICKUP + HANDOVER + READY_TAP + FAQS + REFUNDS + HANDOVER_RULE + TALK + REVIEWS + VARIANTS + AT_BUYER + PICKUP_ZIP + DELIVERY).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
+    // Shops custom orders: requests (20261106202917), the shop's price and the buyer's order (20261106205852), the
+    // deposit plan (20261106212437, 20261106215722, 20261106221300).
+    const CUSTOM = ["20261106202917_shops_custom_requests.sql", "20261106205852_shops_custom_order_accept.sql",
+      "20261106212437_shops_custom_deposit_split.sql", "20261106215722_shops_custom_deposit_balance.sql",
+      "20261106221300_shops_custom_balance_edge.sql"].map((f) => blankSqlComments(readFileSync(join(MIG_DIR, f), "utf8"))).join("\n");
+    const raised = new Set([...(MIG + ITEMS + ORDERS + PICKUP + HANDOVER + READY_TAP + FAQS + REFUNDS + HANDOVER_RULE + TALK + REVIEWS + VARIANTS + AT_BUYER + PICKUP_ZIP + DELIVERY + CUSTOM).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
     raised.add("feature_disabled"); // require_feature's code
+    // A buyer's under_18 (shops_send_custom_request, shops_request_order) has its own words: SHOPS_RPC_ERROR_COPY maps
+    // under_18 -> under_18_to_order for those calls, so the key is a word set, not a raised code.
+    raised.add("under_18_to_order");
+    // The shop owner's custom_orders_off (shops_quote_custom_request) has its own words too.
+    raised.add("custom_orders_off_shop");
     // shop-checkout's own answer when Stripe refuses the pickup address (M1b part 2), not a SQL code.
     const CHECKOUT = readFileSync(join(process.cwd(), "supabase/functions/shop-checkout/index.ts"), "utf8");
     expect(CHECKOUT).toMatch(/error: atHome \? "service_address_unusable" : "pickup_address_unusable"/);

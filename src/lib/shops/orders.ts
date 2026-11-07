@@ -279,6 +279,24 @@ export async function requestOrder(args: {
   return data.url;
 }
 
+/**
+ * Custom orders (20261106205852): the buyer orders the shop's price. No lines: shops_order_custom_quote freezes the one
+ * line at the quoted price; the rest (terms check, tax, the Stripe page) is the ordinary order path. The ready date is
+ * from tomorrow (CUSTOM_ORDER_LEAD_DAYS) to 90 days out, on an open, not full day; the server checks the same.
+ */
+export const CUSTOM_ORDER_LEAD_DAYS = 1;
+export async function requestCustomOrder(args: {
+  requestId: string; shopId: string; readyDate: string; note: string;
+  terms: Pick<OrderTerms, "cancel_policy" | "ready_tap_cancel">;
+}): Promise<string> {
+  const data = await invokeShopCheckout({
+    action: "order", shop_id: args.shopId, custom_request_id: args.requestId, ready_date: args.readyDate, note: args.note,
+    terms: { cancel_policy: args.terms.cancel_policy, ready_tap_cancel: args.terms.ready_tap_cancel ?? "from_day_before" },
+  });
+  if (typeof data.url !== "string" || !data.url) throw new Error("payment_unavailable");
+  return data.url;
+}
+
 /** Custom orders (50% deposit): the shop's tap tries the rest on the saved card first. paid=false: the buyer must pay it. */
 export async function chargeOrderRest(orderId: string): Promise<{ paid: boolean; waitingOnBuyer: boolean }> {
   const data = await invokeShopCheckout({ action: "charge_rest", order_id: orderId });

@@ -5,7 +5,7 @@
 //
 // Red first: on origin/main d76ecc310b the window case below fails (the row reads "Thu, Nov 5").
 //
-// @mutate src/components/postjob/CheckoutStep.tsx | jobDayLabel({ date_needed: whenDate, date_window_end: dateWindowEnd }) | formatJobDate(whenDate)
+// @mutate src/components/postjob/CheckoutGlanceCard.tsx | jobDayLabel({ date_needed: whenDate, date_window_end: dateWindowEnd }) | formatJobDate(whenDate)
 // @mutate src/pages/post-job/CheckoutStepView.tsx |         dateWindowEnd={form.dateWindowEnd} |         dateWindowEnd={null}
 // Same walk: the shared card meta row (My Posts' PostedJobMetaRow, the Helpr's HelperJobMetaRow) printed
 // formatJobDate(dateNeeded) itself, so an open window job's card read its first day too.

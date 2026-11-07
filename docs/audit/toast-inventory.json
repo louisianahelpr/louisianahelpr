@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1177,
-    "files": 333,
-    "rendering": 1094,
-    "suppressedByPolicy": 83,
+    "calls": 1179,
+    "files": 334,
+    "rendering": 1095,
+    "suppressedByPolicy": 84,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 225,
-      "toast.error": 794,
+      "toast.error": 795,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 89,
+      "toast.success": 90,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
       "literal": 496,
       "template": 106,
-      "dynamic": 627,
+      "dynamic": 629,
       "jsx": 0
     }
   },
@@ -10598,6 +10598,36 @@
       "renders": true
     },
     {
+      "file": "src/components/shops/ShopCustomRequestsList.tsx",
+      "line": 34,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "side === \"buyer\" ? \"Request withdrawn.\" : \"Request declined. The buyer is told.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Request withdrawn."
+          },
+          {
+            "form": "literal",
+            "text": "Request declined. The buyer is told."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopCustomRequestsList.tsx",
+      "line": 35,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/shops/ShopDailyCap.tsx",
       "line": 33,
       "kind": "toast.success",
@@ -10629,7 +10659,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 91,
+      "line": 92,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -10649,7 +10679,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 96,
+      "line": 97,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10659,7 +10689,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 104,
+      "line": 105,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10669,7 +10699,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 110,
+      "line": 111,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11069,7 +11099,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 56,
+      "line": 57,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11079,7 +11109,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 66,
+      "line": 67,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11089,7 +11119,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 71,
+      "line": 72,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

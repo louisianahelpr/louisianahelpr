@@ -62,6 +62,8 @@ const profileRoute = () => import("@/boot/profileRoute");
 const jobsListRoute = () => import("@/boot/jobsListRoute");
 // postJobRoute keeps PostJob's preload list out of the entry (see that file).
 const postJobRoute = () => import("@/boot/postJobRoute");
+// declutterRoute: /declutter's page, gate and first tab, for members and guests alike (see that file).
+const declutterRoute = () => import("@/boot/declutterRoute");
 // Q2705 (11-06): a Declutter item page, Help center and the /hire town pages, matched by PATH_PAGE_PATH below;
 // pathPageRoute.ts picks the page by path and keeps their preload lists out of the entry.
 const pathPageRoute = () => import("@/boot/pathPageRoute");
@@ -114,11 +116,13 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
     guest: [protectedRoute],
     signedIn: [profileRoute, protectedRoute],
   },
-  // A signed-out visitor is sent to /login by ProtectedRoute, so Login is the page they will see.
-  // declutterRoute keeps Declutter's long preload list out of the entry (see that file).
+  // declutterRoute keeps Declutter's long preload list out of the entry (see that file). A signed-out visitor sees
+  // the same page as a guest (DeclutterGuestRoute, BUY-16), so it starts the same chunks (Q2705, 11-07: a guest's
+  // page chunks started only once App.tsx had rendered the route, at 4.0 s, and Browse's a round later, at 6.5 s,
+  // while the entry fetched Login, a page the guest never saw).
   "/declutter": {
-    guest: [login, protectedRoute],
-    signedIn: [() => import("@/boot/declutterRoute"), protectedRoute],
+    guest: [declutterRoute, protectedRoute],
+    signedIn: [declutterRoute, protectedRoute],
   },
 };
 

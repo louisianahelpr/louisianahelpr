@@ -82,18 +82,7 @@ export function startDeclutterPrefetch(pathname: string): void {
   // DeclutterHomeView's rule); another tab never draws these cards, so their photos would only take its bandwidth.
   const q = new URLSearchParams(location.search);
   const opensOnBrowse = (q.get("tab") ?? "browse") === "browse" && (q.get("view") ?? "browse") === "browse";
-  if (opensOnBrowse) void answer.then((a) => {
-    for (const p of firstCardPhotoPreloads(base, a, session.userId)) {
-      const link = document.createElement("link");
-      link.rel = "preload";
-      link.setAttribute("as", "image");
-      link.href = p.href;
-      link.setAttribute("imagesrcset", p.srcset);
-      link.setAttribute("imagesizes", CARD_SIZES);
-      link.setAttribute("fetchpriority", "high");
-      document.head.appendChild(link);
-    }
-  });
+  if (opensOnBrowse) void answer.then((a) => preloadFirstCardPhotos(firstCardPhotoPreloads(base, a, session.userId)));
   // B81: the tab row's three reads (every tab waits on them), beside this one.
   startDeclutterMinePrefetch(base, key, session);
 }
@@ -103,31 +92,72 @@ const BUCKET = "job-photos";
 const CARD_PX = 480;
 const SMALL_PX = 340;
 export const CARD_SIZES = "(min-width: 640px) 250px, calc(50vw - 26px)";
-/** The first row of Browse's grid at 375 (two cards); the card asks for these with loading eager + fetchpriority high. */
-const FIRST_ROW = 2;
 
 /**
- * The photos of the first cards Browse draws from this answer: its items in order, less the member's own (the grid
- * leaves them out), each with its first photo (the answer's photos come by position, as DeclutterItemCard's firstPhotos
- * picks). The URLs are the card's own src and srcSet (photoCardUrl, cardPhotoSrcSet), so the browser picks the same
- * candidate and the card's request is answered from the preload. Anything not in the expected shape: none.
+ * COPY of declutterAboveFoldCount and declutterFirstRowCount (src/components/declutter/DeclutterSkeletons.tsx) for the
+ * map-shown grid (the entry cannot know the desktop map choice; a wider map-hidden grid only preloads fewer than it
+ * draws). The test holds the copy equal to the original at every width and height it tries.
  */
-export function firstCardPhotoPreloads(supabaseUrl: string, answer: unknown, userId: string): { href: string; srcset: string }[] {
+export function bootFirstRowCount(width: number): number {
+  return width < 640 ? 2 : width < 1536 ? 3 : 4;
+}
+export function bootAboveFoldCount(width: number, height: number): number {
+  const photo = width < 640 ? (width - 52) / 2 : 250;
+  let rows = 1;
+  while (rows < 4 && 338 + rows * (photo + 99) + photo / 2 < height) rows++;
+  return bootFirstRowCount(width) * rows;
+}
+
+export type CardPhotoPreload = { href: string; srcset: string; high: boolean };
+
+/**
+ * The photos of the cards Browse draws above the fold from this answer (Q2705, 11-07: the 3rd card, on the second row
+ * at 375x812, was the largest paint and waited until the grid rendered, 8.6 s live). Its items in order, less the
+ * member's own (the grid leaves them out), one grid slot each; a slot whose item has a photo gives its first photo (the
+ * answer's photos come by position, as DeclutterItemCard's firstPhotos picks). `high`: the first row, which the card
+ * asks for with fetchpriority high. The URLs are the card's own src and srcSet (photoCardUrl, cardPhotoSrcSet), so the
+ * browser picks the same candidate and the card's request is answered from the preload. Anything not in the expected
+ * shape: none.
+ */
+export function firstCardPhotoPreloads(
+  supabaseUrl: string,
+  answer: unknown,
+  userId: string,
+  view: { width: number; height: number } = { width: window.innerWidth, height: window.innerHeight },
+): CardPhotoPreload[] {
   const a = answer as { items?: unknown; photos?: unknown } | null;
   if (!a || !Array.isArray(a.items) || !Array.isArray(a.photos)) return [];
   const first = new Map<string, string>();
   for (const p of a.photos as { item_id?: unknown; storage_path?: unknown }[]) {
     if (typeof p?.item_id === "string" && typeof p.storage_path === "string" && !first.has(p.item_id)) first.set(p.item_id, p.storage_path);
   }
+  const slots = bootAboveFoldCount(view.width, view.height);
+  const firstRow = bootFirstRowCount(view.width);
   const root = `${supabaseUrl.replace(/\/$/, "")}/storage/v1/render/image/public/${BUCKET}/`;
-  const out: { href: string; srcset: string }[] = [];
+  const out: CardPhotoPreload[] = [];
+  let slot = 0;
   for (const i of a.items as { id?: unknown; seller_id?: unknown }[]) {
-    if (out.length >= FIRST_ROW) break;
+    if (slot >= slots) break;
     if (typeof i?.id !== "string" || i.seller_id === userId) continue;
+    const at = slot++;
     const path = first.get(i.id);
     if (!path || path.includes("?")) continue;
-    const at = (px: number) => `${root}${path}?width=${px}&height=${px}&resize=cover&quality=70`;
-    out.push({ href: at(CARD_PX), srcset: `${at(SMALL_PX)} ${SMALL_PX}w, ${at(CARD_PX)} ${CARD_PX}w` });
+    const url = (px: number) => `${root}${path}?width=${px}&height=${px}&resize=cover&quality=70`;
+    out.push({ href: url(CARD_PX), srcset: `${url(SMALL_PX)} ${SMALL_PX}w, ${url(CARD_PX)} ${CARD_PX}w`, high: at < firstRow });
   }
   return out;
+}
+
+/** Adds the image preloads, the first row's at high priority (the rest at the browser's own). */
+export function preloadFirstCardPhotos(preloads: CardPhotoPreload[]): void {
+  for (const p of preloads) {
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.setAttribute("as", "image");
+    link.href = p.href;
+    link.setAttribute("imagesrcset", p.srcset);
+    link.setAttribute("imagesizes", CARD_SIZES);
+    if (p.high) link.setAttribute("fetchpriority", "high");
+    document.head.appendChild(link);
+  }
 }

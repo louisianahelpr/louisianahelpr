@@ -21,7 +21,7 @@
  * budget, see guestJobsPrefetch.ts). The columns are a COPY of src/lib/declutter/myReads.ts ITEM_COLUMNS, and
  * src/boot/guestDeclutterPrefetch.test.ts holds the two equal.
  */
-import { CARD_SIZES, firstCardPhotoPreloads } from "./declutterPrefetch";
+import { firstCardPhotoPreloads, preloadFirstCardPhotos } from "./declutterPrefetch";
 
 /** Same string as the lib side's KEY (the test pins it). */
 export const GUEST_DECLUTTER_PREFETCH_KEY = "__lhGuestDeclutterPrefetch";
@@ -95,21 +95,12 @@ export function startGuestDeclutterPrefetch(base: string, key: string, search: s
     }))
     .catch(() => null);
   (window as unknown as Record<string, unknown>)[GUEST_DECLUTTER_PREFETCH_KEY] = { at: Date.now(), open, items, photos };
-  // The first row's photos, as for a member (B96), only when the link opens on Browse and the guest will see it.
+  // The photos above the fold, as for a member (B96), only when the link opens on Browse and the guest will see it.
   const q = new URLSearchParams(search);
   const opensOnBrowse = (q.get("tab") ?? "browse") === "browse" && (q.get("view") ?? "browse") === "browse";
   if (!opensOnBrowse) return;
   void Promise.all([open, items, photos]).then(([o, i, p]) => {
     if (!o?.includes("declutter")) return;
-    for (const pre of firstCardPhotoPreloads(base, { items: i, photos: p }, "")) {
-      const link = document.createElement("link");
-      link.rel = "preload";
-      link.setAttribute("as", "image");
-      link.href = pre.href;
-      link.setAttribute("imagesrcset", pre.srcset);
-      link.setAttribute("imagesizes", CARD_SIZES);
-      link.setAttribute("fetchpriority", "high");
-      document.head.appendChild(link);
-    }
+    preloadFirstCardPhotos(firstCardPhotoPreloads(base, { items: i, photos: p }, ""));
   });
 }

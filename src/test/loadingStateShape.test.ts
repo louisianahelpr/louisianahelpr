@@ -138,20 +138,24 @@ describe("loading states: a baselined entry that was not measured is not 'fixed'
 describe("loading states: a by-design entry covers only the decided jump", () => {
   // @mutate scripts/lib/loadingStateRules.mjs | if (e.path && e.path !== b.path) return false; | // path ignored
   // @mutate scripts/lib/loadingStateRules.mjs | b.delta > 0 && b.delta <= e.maxDeltaPx | b.delta !== 0
-  // @mutate docs/audit/loading-states/baseline.json | "maxDeltaPx": 130, | "maxDeltaPx": 1300,
-  type Entry = { key: string; kind: string; path?: string; maxDeltaPx?: number; ruling?: string };
+  // @mutate scripts/lib/loadingStateRules.mjs | if (e.growsBelow && !(typeof b.delta === "number" && b.delta > 0)) return false; | // growsBelow ignored
+  type Entry = { key: string; kind: string; path?: string; maxDeltaPx?: number; growsBelow?: boolean; ruling?: string };
   type Mod = { byDesignCovers: (b: { key: string; kind: string; path?: string; delta?: number }, e: Entry[]) => boolean };
   const load = async () => (await import(/* @vite-ignore */ resolve(__dirname, "../../scripts/check-loading-state-shape.mjs"))) as Mod;
   const base = JSON.parse(readFileSync(resolve(__dirname, "../../docs/audit/loading-states/baseline.json"), "utf8")) as { byDesign: Entry[] };
   const PATH = "main#main-content > div > div > div > div";
   const jump = (delta: number, path = PATH) => ({ key: "customer /post-job #0", kind: "jump", path, delta });
 
-  it("the entry exists, is bounded, and cites its ruling", () => {
+  // Q2773 (lead 2026-11-07): the growth is all below the fold, so the entry covers growth of any size (growsBelow),
+  // never a shrink, and still only this element.
+  it("the entry exists, covers growth only, and cites its ruling", () => {
     const e = base.byDesign.filter((x) => x.key === "customer /post-job #0" && x.kind === "jump");
     expect(e).toHaveLength(1);
     expect(e[0].path).toBe(PATH);
-    expect(e[0].maxDeltaPx).toBe(130);
+    expect(e[0].growsBelow).toBe(true);
+    expect(e[0].maxDeltaPx).toBeUndefined();
     expect(e[0].ruling).toMatch(/2026-10-17/);
+    expect(e[0].ruling).toMatch(/GROWS BELOW|grows below/i);
     expect(base.byDesign.length).toBeGreaterThan(20);
   });
 
@@ -160,10 +164,17 @@ describe("loading states: a by-design entry covers only the decided jump", () =>
     expect(byDesignCovers(jump(122), base.byDesign)).toBe(true);
   });
 
-  it("does not cover a bigger growth, a shrink, or another element at #0", async () => {
+  it("covers a bigger growth below the fold, but not a shrink or another element at #0", async () => {
     const { byDesignCovers } = await load();
-    expect(byDesignCovers(jump(250), base.byDesign)).toBe(false);
+    expect(byDesignCovers(jump(203), base.byDesign)).toBe(true);
     expect(byDesignCovers(jump(-122), base.byDesign)).toBe(false);
+    expect(byDesignCovers(jump(-9), base.byDesign)).toBe(false);
+    // A bounded entry (maxDeltaPx) still covers only growth up to its bound.
+    const bounded = [{ key: "customer /x #0", kind: "jump", path: PATH, maxDeltaPx: 130, ruling: "test" }];
+    const x = (delta: number) => ({ key: "customer /x #0", kind: "jump", path: PATH, delta });
+    expect(byDesignCovers(x(122), bounded)).toBe(true);
+    expect(byDesignCovers(x(250), bounded)).toBe(false);
+    expect(byDesignCovers(x(-122), bounded)).toBe(false);
     expect(byDesignCovers(jump(122, "div#root > nav > div:nth-of-type(3)"), base.byDesign)).toBe(false);
     expect(byDesignCovers({ ...jump(122), kind: "rows" }, base.byDesign)).toBe(false);
   });

@@ -53,9 +53,9 @@ if (hasToken() && /^\/(declutter(\/item\/[\w-]+)?|home|jobs|posts)?\/?$/.test(wi
     .catch(() => {
       /* speculative: the page reads for itself */
     });
-} else if (/^\/declutter\/item\/[\w-]+\/?$/.test(window.location.pathname)) {
+} else if (/^\/declutter(\/item\/[\w-]+)?\/?$/.test(window.location.pathname)) {
   // Q2707: a GUEST's item page reaches the same door (a shared item link is how most guests arrive; only the item
-  // prefetch acts for a guest, see declutterItemPrefetch.ts).
+  // prefetch acts for a guest, see declutterItemPrefetch.ts). Q2705: and a guest's /declutter (guestDeclutterPrefetch.ts).
   void signedInPrefetch()
     .then((m) => m?.startSignedInPrefetch(window.location.pathname))
     .catch(() => {

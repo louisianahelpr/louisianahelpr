@@ -152,6 +152,7 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   applicant_blocked: "This order can't be accepted any more. Decline it so the buyer's card hold is released.",
   invalid_cancel_policy: "Pick one of the three cancel policies.",
   invalid_ready_tap_cancel: "Pick one of the three choices for marking an order ready early.",
+  invalid_custom_orders: "Pick one of the three choices for custom orders.",
   ready_tap_cancel_frozen: "An order keeps the cancel rule it was placed under.",
   // M2 (20261018211820): the handover.
   invalid_handover_mode: "Pick how buyers get their orders: in person or left out.",

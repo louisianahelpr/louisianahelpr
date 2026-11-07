@@ -476,7 +476,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/shops/ShopDashboardView.tsx` | textarea×1 |  |  | Loading your shop · shop-waiting · shop-order-time-left · shop-accepted · shop-earlier · shop-decline-reason · Booked up that day · shops-shop-tab |
-| `src/components/shops/ShopDeliveryPicker.tsx` | input×2 | text |  | shop-delivery-offer · Do you deliver? · shop-delivery-price · shop-delivery-price-help · shop-delivery-radius · shop-delivery-radius-help |
+| `src/components/shops/ShopDeliveryPicker.tsx` | input×2 | text |  | shop-delivery-offer · Do you deliver? · shop-delivery-price · shop-delivery-price-help · shop-delivery-radius · shop-delivery-radius-help · shop-helpr-delivery · Helpr delivery |
 
 ## /shops/mine
 

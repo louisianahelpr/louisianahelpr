@@ -8,14 +8,17 @@
  * instead, to the buyer always and to the shop once it has accepted (the
  * server returns nothing to the shop earlier or after the handover).
  */
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
+import { Button } from "@/components/ui/button";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { MapPin } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { cancelPolicyText, formatCents, orderStatusLabel, type ShopOrder } from "@/lib/shops/orders";
 import { fetchOrderPickupAddress, fetchOrderServiceAddress } from "@/lib/shops/pickupAddress";
-import { fetchOrderDeliveryAddress, formatDeliveryAddress } from "@/lib/shops/delivery";
+import { fetchOrderDeliveryAddress, formatDeliveryAddress, reportHelprNoShow } from "@/lib/shops/delivery";
+import { toast } from "sonner";
+import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopOrderMessageButton } from "./ShopTalk";
 import { ShopOrderReview } from "./ShopReviews";
 
@@ -132,9 +135,13 @@ export function ShopOrderCard({
   children?: ReactNode;
 }) {
   const delivered = order.fulfillment === "shop_delivers";
-  // The shop is paid its items and its own delivery fee (shop_complete_handover, 20261106180902).
+  // Helpr delivery (20261106194913): a Helpr picks up at the shop; if none took it, it became a pickup.
+  const byHelpr = order.fulfillment === "helpr_delivers" && !order.helpr_unfilled_at;
+  // The shop is paid its items and its own delivery fee (shop_complete_handover, 20261106180902); a Helpr
+  // delivery's price is the Helpr's, never the shop's.
   const deliveryCents = order.delivery_cents ?? 0;
-  const shopGets = order.items_cents + deliveryCents;
+  const shopDeliveryCents = delivered ? deliveryCents : 0;
+  const shopGets = order.items_cents + shopDeliveryCents;
   return (
     <li className="space-y-2 rounded-2xl border border-border bg-card p-4" data-testid="shop-order-card">
       <div className="flex items-start justify-between gap-2">
@@ -152,15 +159,17 @@ export function ShopOrderCard({
       </ul>
       {order.note && <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">Note: {order.note}</p>}
       {order.decline_reason && <p className="text-sm [overflow-wrap:anywhere]">Shop's reason: {order.decline_reason}</p>}
-      {side === "buyer" && !delivered && PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />}
+      {side === "buyer" && !delivered && !byHelpr && PICKUP_VISIBLE.has(order.status) && <PickupAddress orderId={order.id} />}
       {order.shop_order_lines.some((l) => l.at_buyer) && (side === "buyer" || SERVICE_VISIBLE_TO_SHOP.has(order.status)) && (
         <ServiceAddress orderId={order.id} />
       )}
       {delivered && (side === "buyer" || order.status === "accepted") && <DeliveryAddress orderId={order.id} side={side} />}
+      {byHelpr && side === "buyer" && <DeliveryAddress orderId={order.id} side={side} />}
       {side === "buyer" ? (
         <p className="text-xs text-muted-foreground">
           Items {formatCents(order.items_cents)} + service fee {formatCents(order.premium_cents)}
           {delivered ? ` + delivery ${deliveryCents > 0 ? formatCents(deliveryCents) : "(free)"}` : ""}
+          {byHelpr ? ` + Helpr delivery ${formatCents(deliveryCents)}` : ""}
           {order.tax_cents > 0 ? ` + tax ${formatCents(order.tax_cents)}` : ""}. {cancelPolicyText(order.cancel_policy, order.ready_tap_cancel).label}.
         </p>
       ) : (
@@ -169,14 +178,54 @@ export function ShopOrderCard({
             ? `You get the item price in full plus what the buyer paid for delivery: ${formatCents(shopGets)}. You deliver this order.`
             : delivered
               ? `You get the item price in full: ${formatCents(shopGets)}. You deliver this order.`
-              : `You get the item price in full: ${formatCents(shopGets)}.`}
+              : byHelpr
+                ? `You get the item price in full: ${formatCents(shopGets)}. A Helpr picks it up at your pickup address.`
+                : `You get the item price in full: ${formatCents(shopGets)}.`}
         </p>
       )}
+      {side === "shop" && byHelpr && order.status === "accepted" && !order.handed_over_at && <HelprNoShowButton orderId={order.id} />}
       {/* Q1947: the chat with the other side, from the order (an order whose buyer deleted their account has none). */}
       {order.buyer_id && <ShopOrderMessageButton orderId={order.id} side={side} />}
       {/* Shops H9: after the handover, either side reviews the other once. */}
       <ShopOrderReview orderId={order.id} handedOver={!!order.handed_over_at} />
       {children}
     </li>
+  );
+}
+
+/**
+ * The shop says the booked Helpr didn't come (shop_report_helpr_no_show, 20261106211136). Shown on an accepted Helpr
+ * delivery not yet handed over; the server answers too_early before 15 minutes after the pickup time and
+ * no_helpr_booked when no Helpr is booked, in words. Two taps: the first asks, the second sends.
+ */
+function HelprNoShowButton({ orderId }: { orderId: string }) {
+  const [asking, setAsking] = useState(false);
+  const report = useMutation({
+    mutationFn: () => reportHelprNoShow(orderId),
+    onSuccess: () => {
+      setAsking(false);
+      toast("We told the Helpr. They have 24 hours to answer, and the money waits until this is sorted out.");
+    },
+    onError: (err) => toast.error(shopsErrorMessage(err)),
+  });
+  if (!asking) {
+    return (
+      <InlineTextButton onClick={() => setAsking(true)} data-testid="shop-helpr-no-show">
+        The Helpr didn't come
+      </InlineTextButton>
+    );
+  }
+  return (
+    <div className="space-y-2 rounded-xl bg-muted/60 p-3" role="group" aria-label="The Helpr didn't come">
+      <p className="text-sm">Tell us the Helpr didn't come for the pickup? They get 24 hours to answer.</p>
+      <div className="flex gap-2">
+        <Button type="button" size="sm" variant="outline" disabled={report.isPending} onClick={() => report.mutate()}>
+          {report.isPending ? "Sending…" : "Yes, tell them"}
+        </Button>
+        <Button type="button" size="sm" variant="ghost" disabled={report.isPending} onClick={() => setAsking(false)}>
+          Not now
+        </Button>
+      </div>
+    </div>
   );
 }

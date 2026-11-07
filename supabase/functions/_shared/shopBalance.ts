@@ -12,6 +12,7 @@
 // Never charged twice: ONE key per order (shop-balance-<order>, every try), shop_balances_due never lists a
 // paid order, and a second payment is answered 'refund' by the SQL and refunded here under one key per PaymentIntent.
 import type Stripe from "https://esm.sh/stripe@18.5.0";
+import { sendRefundNotice } from "./refundNotice.ts";
 
 // deno-lint-ignore no-explicit-any
 type Db = any;
@@ -80,10 +81,28 @@ export async function recordShopBalance(
   if (result === "refund") {
     // own-mistake full refund (owner, 2026-10-14): a payment the order no longer owed (a second one, or one that landed
     // after the order closed) is a payment we could not use; it goes back whole, card fee included.
-    await stripe.refunds.create(
+    const refund = await stripe.refunds.create(
       { payment_intent: pi.id, metadata: { kind: "shop_balance_refund", order_id: orderId } },
       { idempotencyKey: `shop-balance-refund-${pi.id}` },
     );
+    // Q1714 (m1 guard, 11-07): the buyer is told their money is back. stripe-webhook's charge.refunded skips this
+    // refund kind ("nothing to record"), so nobody else announces it. One notice per refund (key refund:<id>; a retry
+    // gets the same refund from the idempotency key and the notice's claim). Never throws; a failure is logged.
+    const buyerId = ((pi.metadata ?? {}) as Record<string, string>).buyer_id || null;
+    const told = await sendRefundNotice(admin, {
+      key: `refund:${refund.id}`,
+      kind: "refund",
+      paymentIntentId: pi.id,
+      amountCents: Number(refund.amount ?? 0) > 0 ? Number(refund.amount) : Number(pi.amount_received ?? pi.amount ?? 0),
+      keptCents: 0,
+      recipientId: buyerId,
+      jobByPayment: false,
+      link: "/shops/orders",
+      extra: "This payment for the rest of your custom order was not needed, so all of it comes back.",
+    });
+    if (told.status !== "sent") {
+      console.error(JSON.stringify({ event: "shop_balance_refund_notice", order: orderId, refund: refund.id, status: told.status, error: told.error ?? null }));
+    }
     return "refunded";
   }
   throw new Error(`shop_balance_paid answered ${String(result)} for ${orderId}`);

@@ -58,7 +58,10 @@ describe("tips are final", () => {
     // shop_refunds row (Shops M3, 20261019071055); a tip is never a Shops order.
     // 12 (2026-10-25, Q2399): _shared/cardHold.ts refundCaptureForNobody refunds only the job's own card-hold
     // capture (the hold's PaymentIntent, or the off-session charge it just created); a tip is its own PaymentIntent.
-    expect(refunders.length, "a new refund path: check it cannot reach a tip, then raise this").toBe(12);
+    // 13 (m1, 11-07, custom orders slice 2b): _shared/shopBalance.ts recordShopBalance refunds only the PaymentIntent of
+    // a Shops custom order's rest (metadata.kind shop_balance, created by chargeShopBalance or the pay-the-rest page)
+    // that the order no longer owed; a tip is never a Shops order.
+    expect(refunders.length, "a new refund path: check it cannot reach a tip, then raise this").toBe(13);
   });
 
   it("no refund path reads the tips table", () => {

@@ -117,8 +117,10 @@ describe("Q2140: withWalletCustomer replaces a customer Stripe no longer has, on
     expect(w.calls.rpc).toEqual([["replace_stripe_customer", { p_user: USER.id, p_mode: "test", p_old: "cus_dead", p_new: "cus_fresh" }]]);
   });
 
-  it("every pre-fill page (declutter order, raise, tip; shop order) runs through withStoredWalletCustomer with a ':new-wallet' retry key", () => {
-    const pages: Record<string, number> = { "declutter-checkout": 3, "shop-checkout": 1 };
+  // m1 (11-07): the Shops custom order's pay-the-rest page (shop-checkout payBalance) is the second shop page; it now
+  // replaces a dead stored customer like the order's own page.
+  it("every pre-fill page (declutter order, raise, tip; shop order, shop rest) runs through withStoredWalletCustomer with a ':new-wallet' retry key", () => {
+    const pages: Record<string, number> = { "declutter-checkout": 3, "shop-checkout": 2 };
     for (const [fn, n] of Object.entries(pages)) {
       const src = blankComments(readFileSync(`supabase/functions/${fn}/index.ts`, "utf8"));
       expect(src.match(/storedStripeCustomer\(/g)?.length, fn).toBe(n);

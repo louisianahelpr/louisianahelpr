@@ -27,6 +27,7 @@ const state: {
   withPhotos: boolean;
 } = { origin: { status: "none", zipOnFile: false }, fullAsked: 0, finishFull: () => undefined, withPhotos: true };
 
+vi.mock("@/lib/declutter/saveCounts", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/saveCounts")>()), fetchSaveCounts: async () => new Map<string, number>() }));
 vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/api")>()),
   fetchLiveItems: () => { state.fullAsked++; return new Promise((resolve) => { state.finishFull = resolve; }); },

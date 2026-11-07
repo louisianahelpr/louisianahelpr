@@ -33,6 +33,7 @@ const item = (n: number) => ({
 const reads: string[] = [];
 const state = { desktop: true, items: [item(1), item(2)] };
 
+vi.mock("@/lib/declutter/saveCounts", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/saveCounts")>()), fetchSaveCounts: async () => new Map<string, number>() }));
 vi.mock("@/lib/declutter/api", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/api")>()),
   fetchLiveItems: async () => state.items,

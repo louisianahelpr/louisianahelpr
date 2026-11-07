@@ -108,6 +108,7 @@ vi.mock("@/lib/declutter/trades", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/trades")>()),
   fetchAcceptsTrades: async () => false,
 }));
+vi.mock("@/lib/declutter/saveCounts", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/saveCounts")>()), fetchSaveCounts: async () => new Map<string, number>() }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchHasAgreedSales: async () => false,
   // The Buying / Selling badges (DeclutterHome reads them with the tab row).
@@ -370,10 +371,10 @@ describe("Declutter location ask", () => {
     delete dropStates.i1;
   });
 
-  it("categories live ONLY in the filter sheet (owner 2026-10-21: no chip row under Search items); in the sheet a tap shows only that category and marks it, a second tap shows everything", async () => {
+  it("category chips at the top of Browse (owner 11-07, replacing 10-21's sheet-only rule) and in the filter sheet set ONE category; a tap shows only that category and marks it, a second tap shows everything", async () => {
     // @mutate src/lib/declutter/browseFilters.ts |     if (f.category && item.category !== f.category) return false; |
     // @mutate src/components/declutter/DeclutterFilterPanel.tsx | <Chip key={key} on={filters.category === key} onClick={() => onChange({ ...filters, category: filters.category === key ? null : key })}> | <Chip key={key} on={filters.category === key} onClick={() => onChange({ ...filters, category: key })}>
-    // @mutate src/components/declutter/DeclutterBrowseView.tsx | <div className={rows.length === 0 ? "flex min-h-0 min-w-0 flex-1 flex-col gap-4" : "min-w-0 space-y-4"}> | <div className="min-w-0 space-y-4"><div data-chip-row=""><button type="button">Kitchen</button></div>
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx | onChange={(category) => setFilters((f) => ({ ...f, category }))} /> | onChange={() => undefined} />
     const item = (id: string, title: string, category: string) => ({
       id, seller_id: "u2", status: "live", title, category, condition_stars: 4,
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
@@ -385,9 +386,16 @@ describe("Declutter location ask", () => {
     // @mutate src/components/declutter/DeclutterBrowseView.tsx | globalSearch={false} tabs={tabs(header)} | globalSearch tabs={tabs(header)}
     expect(screen.queryByTestId("explore-search-entry")).toBeNull();
     expect(screen.getAllByRole("button", { name: "Search items" })).toHaveLength(1);
-    // No chip row on the page: no category, porch-pickup or price-drop chip outside the sheet.
-    expect(document.querySelector("[data-chip-row], [data-category-tiles]")).toBeNull();
-    expect(screen.queryByRole("button", { name: "Kitchen" })).toBeNull();
+    // The chip row: All, then the categories on the list (never one with nothing for sale), each one tap.
+    const chipRow = screen.getByRole("group", { name: "Categories" });
+    expect(within(chipRow).getAllByRole("button").map((b) => b.textContent)).toEqual(["All", "Furniture", "Kitchen"]);
+    expect(within(chipRow).getByRole("button", { name: "All" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(within(chipRow).getByRole("button", { name: "Kitchen" }));
+    expect(screen.queryByText("Oak rocking chair")).toBeNull();
+    expect(screen.getByText("Stand mixer")).toBeInTheDocument();
+    expect(within(chipRow).getByRole("button", { name: "Kitchen" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(within(chipRow).getByRole("button", { name: "Kitchen" }));
+    expect(screen.getByText("Oak rocking chair")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Filters" }));
     const sheet = await screen.findByRole("dialog");
     const kitchen = within(sheet).getByRole("button", { name: "Kitchen" });
@@ -590,7 +598,7 @@ describe("Declutter location ask", () => {
 
   it("a heart on each Browse card (slice 4): over the photo, beside the card link (never inside it), and a tap watches the item", async () => {
     // @mutate src/components/declutter/DeclutterBrowseView.tsx |                   toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }), |                   toggle: () => undefined,
-    // @mutate src/components/declutter/DeclutterItemCard.tsx |   if (!save) return card; |   return card;
+    // @mutate src/components/declutter/DeclutterItemCard.tsx |   if (!save) { |   if (true) {
     live.items = [{
       id: "i1", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,

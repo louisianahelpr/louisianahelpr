@@ -120,14 +120,65 @@ export function useConversationListState({
 
   /* THE PHONE FILTER STRIP STARTS FOLDED ON THE DEFAULT FILTER.
      Same behaviour as PostsHeader and JobsHeader (see the note at their
-     `tabsOpenPhone`, and the one above
-     MESSAGES_HEADER_PADDING for why this screen has a chevron again). Not
+     `tabsOpenPhone`, and the one on
+     isDefaultInboxFilter below for why this screen has a chevron again). Not
      lifted into a shared hook: the two headers differ in their whole row
      composition (select-mode takeover, overflow menu, a different search
      contract), and the shared part is three lines of state plus one effect —
      forking a hook for that would be the bigger divergence, not the smaller.
      What IS shared is the real chrome: ScreenHeaderRow, UnderlineTabs and the
      icon-button class, all imported, and the parity test that pins the rest. */
+  /**
+   * The tab the inbox LANDS on, and the tab that means UNFILTERED — since
+   * 2026-09-19 these are two different values and the difference matters.
+   *
+   * The owner asked Messages to open on a slice with something in it and, shown
+   * the 2026-08-30 "the default view moved around depending on read state"
+   * history, chose Active over Unread (see lib/inboxDefault.ts for the full
+   * reasoning). So:
+   *
+   *   DEFAULT_INBOX_TAB    = "all" (spec v2, 2026-10-20; was "active") — where a visit starts.
+   *   UNFILTERED_INBOX_TAB = "all"    — where "show me everything" goes; kept separate so "Show All" always widens.
+   *
+   * Before today these were the same constant, and every "Show All" affordance
+   * was wired to the default. Leaving them conflated would have turned the
+   * empty-state button into a no-op that sets the tab it is already on.
+   *
+   * The argument to `defaultInboxTab` is the unread count; the rule ignores it
+   * (deliberately — that is what makes the landing tab stable), so 0 is a
+   * truthful stand-in for "whatever the rule says".
+   *
+   * There is no `DEFAULT_INBOX_TAB` constant here any more. `defaultInboxTab`
+   * itself is still read, once, by the seeding effect below — and again by
+   * `isDefaultInboxFilter`, which is what darkens the disclosure chevron's ink
+   * while a non-default slice is on.
+   *
+   * ── THE PHONE DISCLOSURE: REMOVED 2026-09-19, RESTORED 2026-09-22 ─────────
+   * This block used to state as FACT that there was "no control to label and
+   * no panel to point at". That sentence is false as of 2026-09-22, and the
+   * history has to read straight or the next reader will "fix" it back:
+   *
+   *   2026-09-19 (owner) — the chevron was DELETED at every width. The desktop
+   *     website showed `Active · All` inline in the header row while phone hid
+   *     the SAME control behind a chevron, and the one the reader had to
+   *     discover was the phone's. `INBOX_TABS_ID` and `isDefaultInboxFilter`
+   *     went with it, having no remaining purpose.
+   *   2026-09-22 (owner, three messages) — asked for it BACK, by name and by
+   *     reference to the two screens it has to match: "message shouod be
+   *     collapsed like post and jobs on a smaller view" / "post jobs and
+   *     messagess hould collpase and expand all the same" / "no it needs to be
+   *     a drop down like post an djobs to show active and all".
+   *
+   * The phone strip starts FOLDED on the default filter and OPEN on any other
+   * (owner, 2026-09-25: "This should open with the chevrons collapsed. Not
+   * expanded."), exactly as My Posts' and My Jobs' do, so an active filter is
+   * never hidden.
+   *
+   * My Posts and My Jobs each own their header (src/pages/posts/PostsHeader.tsx,
+   * src/pages/jobs/JobsHeader.tsx); read the note at their `tabsOpenPhone`
+   * before changing anything here. The three screens are held together by
+   * src/test/filterDisclosureParity.test.ts.
+   */
   const isDefaultInboxFilter = inboxTab === defaultInboxTab(0);
   // ALWAYS FOLDED ON OPEN, like PostsHeader / JobsHeader (owner, 2026-10-08:
   // "Post and job at the top should open collapsed for their top panels").

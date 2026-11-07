@@ -17,8 +17,11 @@
  * Pure: no Deno, no Stripe import, so vitest reads it directly.
  */
 
-/** A Louisiana 5-digit ZIP: 70000-71499 (USPS prefixes 700-714). */
-const LA_ZIP_RE = /^(?:70\d|71[0-4])\d{2}$/;
+/**
+ * A Louisiana 5-digit ZIP: the USPS prefixes 700, 701, 703-708 and 710-714 (702 and 709 are unassigned).
+ * Q2768: the same rule as src/lib/shipping/policy.ts isLouisianaZip and easypostRates LA_ZIP.
+ */
+const LA_ZIP_RE = /^(?:70[013-8]|71[0-4])\d{2}$/;
 
 /**
  * The address shape every job-tax `tax.calculations` call sends. "billing" is

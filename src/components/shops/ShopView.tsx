@@ -35,6 +35,7 @@ import { ShopMessageButton, ShopTalkFromLink, ShopTalksCard } from "./ShopTalk";
 import { ShopReportShop } from "./ShopReport";
 import { ShopReviewsCard } from "./ShopReviews";
 import ShopOrderSheet from "./ShopOrderSheet";
+import ShopCustomRequestSheet from "./ShopCustomRequestSheet";
 
 function ShopSkeleton() {
   return (
@@ -192,6 +193,8 @@ export default function ShopView() {
         )}
         {s.offers_selling && !ownerEmpty && <ShopItemsList shopId={s.id} reportable={!s.mine} />}
         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />}
+        {/* Custom orders: shown only while the shop takes them (its own setting, read by the sheet). */}
+        {!s.mine && !s.paused && <ShopCustomRequestSheet shopId={s.id} />}
         {/* Shops H9: the buyers' reviews and the shop's own rating (shown at 3 or more). */}
         {s.offers_selling && <ShopReviewsCard shopId={s.id} />}
         <ShopHoursCard hours={s.hours} />

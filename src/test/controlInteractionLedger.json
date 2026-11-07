@@ -31,7 +31,6 @@
     "adhocTint  src/components/admin/adminJobs/JobDetailDialog.tsx:206 <Button>  hover:bg-destructive/5",
     "adhocTint  src/components/admin/adminJobs/StatusOverrideDialog.tsx:65 <button>  hover:bg-secondary/30",
     "adhocTint  src/components/admin/adminPayoutBatches/BatchRow.tsx:123 <Button>  hover:bg-destructive/10",
-    "adhocTint  src/components/admin/dashboard/PriorityAlert.tsx:7 <button>  hover:bg-destructive/10 hover:bg-accent/10",
     "adhocTint  src/components/admin/dashboard/TaxReserveCard.tsx:106 <button>  hover:bg-muted",
     "adhocTint  src/components/admin/userDetail/ActionsTab.tsx:200 <Button>  hover:bg-destructive/10",
     "adhocTint  src/components/admin/userDetail/ActionsTab.tsx:215 <Button>  hover:bg-destructive/10",
@@ -44,7 +43,6 @@
     "adhocTint  src/components/profile/HelperStreakBadge.tsx:104 <button>  hover:bg-[hsl(var(--gold-warm)/0.22)]",
     "adhocTint  src/components/profile/MonthlyGoalCard.tsx:205 <button>  hover:bg-foreground/10",
     "adhocTint  src/components/profile/MonthlyGoalCard.tsx:212 <button>  hover:bg-foreground/10",
-    "adhocTint  src/components/profile/ReviewsTab.tsx:254 <button>  hover:bg-secondary/70",
     "adhocTint  src/components/profile/SavedHelpersTab.tsx:160 <button>  hover:bg-secondary/60",
     "adhocTint  src/components/profile/SavedHelpersTab.tsx:220 <button>  hover:bg-secondary/70",
     "adhocTint  src/components/profile/SavedHelpersTab.tsx:230 <button>  hover:bg-secondary/70",
@@ -70,7 +68,6 @@
     "notTint  src/components/admin/AdminAnalyticsCards.tsx:42 <button>  hover:border-primary/30 hover:shadow-md",
     "notTint  src/components/admin/adminDisputes/DisputeCard.tsx:167 <a>  hover:border-primary",
     "notTint  src/components/admin/dashboard/KpiCard.tsx:36 <button>  hover:border-primary/30 hover:shadow-md",
-    "notTint  src/components/admin/dashboard/PriorityAlert.tsx:7 <button>  hover:shadow-sm",
     "notTint  src/components/admin/userDetail/DocumentsTab.tsx:101 <a>  hover:border-primary",
     "notTint  src/components/admin/userDetail/DocumentsTab.tsx:105 <a>  hover:border-primary",
     "notTint  src/components/dashboard/filterSheet/FilterSheetRows.tsx:38 <Link>  hover:border-primary/50",
@@ -104,6 +101,9 @@
     "adhocTint  src/components/postjob/AddressAutocomplete.tsx:291 <ListRow>  hover:bg-secondary/70",
     "adhocTint  src/components/postjob/CityAutocomplete.tsx:131 <ListRow>  hover:bg-secondary/70",
     "adhocTint  src/components/ui/ReasonRow.tsx:14 <button>  hover:bg-secondary/70",
-    "press  src/components/dashboard/CompactJobCard.tsx:72 <ListRow>  active:opacity-75"
+    "press  src/components/dashboard/CompactJobCard.tsx:72 <ListRow>  active:opacity-75",
+    "notTint  src/components/admin/dashboard/PriorityAlert.tsx:8 <ListRow>  hover:shadow-sm",
+    "adhocTint  src/components/admin/dashboard/PriorityAlert.tsx:8 <ListRow>  hover:bg-destructive/10 hover:bg-accent/10",
+    "adhocTint  src/components/profile/ReviewsTab.tsx:284 <ListRow>  hover:bg-secondary/70"
   ]
 }

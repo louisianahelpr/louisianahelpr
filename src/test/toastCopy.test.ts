@@ -49,7 +49,7 @@
  * @mutate src/components/admin/AdminExport.tsx | toast.error(userFacingError(queryErr, "Couldn't export that — try again.")); | toast.error("Export failed: " + queryErr.message);
  * @mutate src/components/profile/SubscriptionTab.tsx | toast.error(err.message); | toast.error("Couldn't start checkout — try again?");
  * @mutate src/components/admin/AdminUserNotes.tsx | "Couldn't save that note — try again." | "Couldn't save that note — try again"
- * @mutate src/pages/profile/AutoTip.tsx | "Couldn't save these settings — try again?" | "Couldn't save these settings."
+ * @mutate src/pages/profile/AutoTip.tsx | "Couldn't save these settings — try again?" | "Couldn't save these settings — try again"
  * @mutate src/pages/messages/logViolation.ts | "Sharing contact info or taking business off-platform isn't allowed. | "⚠️ Warning: Sharing contact info or taking business off-platform isn't allowed.
  * @mutate src/components/BlockUserDialog.tsx | "Sign in to continue." | "You must be logged in."
  * @mutate src/lib/fileExport.ts | download it from Louisiana Helpr on the web. | download it from helpr on the web.
@@ -59,7 +59,8 @@
  * @mutate scripts/toast-inventory.mjs | return own ? { fn: own, sf } : importedFunction(sf, local, hops + 1); | return own ? { fn: own, sf } : null;
  * @mutate scripts/toast-inventory.mjs | if (i === node.templateSpans.length - 1 && s.literal.text === "" && phrases.length) endings = phrases.map((l) => l.text); | if (false) endings = phrases.map((l) => l.text);
  * @mutate scripts/toast-inventory.mjs | return [...fallback, ...own]; | return fallback;
- * @mutate src/lib/mutationResult.ts | Sign in to that account instead. | Log in to that account instead.
+ * (PHONE_IN_USE_MESSAGE reaches the member through saveMyPhone's answer, not a toast literal: its wording is pinned in
+ *  src/lib/mutationResult.phoneInUse.test.ts.)
  * @mutate src/lib/cancelRefundCopy.ts | Job cancelled. Most of your payment comes back | Job cancelled! Most of your payment comes back
  * @mutate src/lib/declutter/errors.ts | const GENERIC = "Couldn't do that just now. Check your connection and try again."; | const GENERIC = "Something went wrong. Please try again.";
  * @mutate src/lib/shops/errors.ts | const GENERIC = "Couldn't do that just now. Check your connection and try again."; | const GENERIC = "Something went wrong. Please try again.";

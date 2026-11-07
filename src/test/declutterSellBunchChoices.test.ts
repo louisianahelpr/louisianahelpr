@@ -8,7 +8,7 @@
  * the seller's saved day count, a free one does not, Never sets nothing, and a refusal never stops the listing.
  * @mutate src/lib/declutter/bunch.ts |           await deps.setAutoFreeDays(draftId, choices.freeAfterDays); |           void choices.freeAfterDays;
  * @mutate src/lib/declutter/bunch.ts |         if (it.free \|\| choices.freeAfterDays == null) return; |         if (choices.freeAfterDays == null) return;
- * @mutate src/components/declutter/BunchChoices.tsx | acceptsOffers: row.acceptsOffers, freeAfterDays: row.freeAfterDays, acceptsTrades: row.acceptsTrades }); | acceptsOffers: row.acceptsOffers, acceptsTrades: row.acceptsTrades });
+ * (BunchChoices carrying the saved free-after days to the run: its @mutate lives in declutterBunchChoices.test.tsx.)
  * @mutate src/lib/declutter/bunch.ts |         if (!it.free) await deps.setDropPct(draftId, choice.dropPct); |         void choice.dropPct;
  * @mutate src/lib/declutter/bunch.ts |         if (!choices.keepUp) return false; |         if (true) return false;
  * @mutate src/lib/declutter/bunch.ts |         await deps.setHandovers(draftId, it.free ? ["porch"] : ways); |         await deps.setHandovers(draftId, ways);

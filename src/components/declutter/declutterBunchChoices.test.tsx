@@ -11,6 +11,9 @@
  * @mutate src/components/declutter/DeclutterBunchView.tsx | undefined, onStep, { ...choices.choices, moveOutOn: moveDate \|\| null }, | undefined, onStep,
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |           {!item.free && (\n            <div> |           {(\n            <div>
  * @mutate src/components/declutter/DeclutterBunchCard.tsx |             <Checkbox aria-label={`Give ${name} away free`} checked={!!item.free} onCheckedChange={(v) => onChange({ free: v === true })} /> |             <Checkbox checked={!!item.free} />
+ * Moved here 11-07 (vacuity: their old guards could not see the listing run):
+ * @mutate src/lib/declutter/bunch.ts |   return items.filter((it) => !bunchItemProblem(it) && (!feeDue \|\| !!it.free)); |   return items.filter((it) => !bunchItemProblem(it));
+ * @mutate src/components/declutter/BunchChoices.tsx | acceptsOffers: row.acceptsOffers, freeAfterDays: row.freeAfterDays, acceptsTrades: row.acceptsTrades }); | acceptsOffers: row.acceptsOffers, acceptsTrades: row.acceptsTrades });
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -147,7 +150,9 @@ describe("Sell a bunch: listing choices", () => {
   // @mutate src/components/declutter/DeclutterBunchView.tsx |                   tradesDefault={choices.choices.acceptsTrades} |
   // @mutate src/components/declutter/DeclutterBunchCard.tsx | onCheckedChange={(v) => onChange({ acceptsTrades: v === true })} | onCheckedChange={() => {}}
   // @mutate src/components/declutter/BunchChoices.tsx | freeAfterDays: row.freeAfterDays, acceptsTrades: row.acceptsTrades }); | freeAfterDays: row.freeAfterDays });
-  // @mutate src/components/declutter/BunchChoices.tsx | acceptsTrades: saved.data?.acceptsTrades }); | });
+  // Vacuity 11-07: dropping the field was an equivalent mutant (choices already carries the saved value); the break it
+  // stood for is the bunch writing over Settings' choice.
+  // @mutate src/components/declutter/BunchChoices.tsx | acceptsTrades: saved.data?.acceptsTrades }); | acceptsTrades: false });
   it("each item's Open to trades starts from the saved default, the flip is what lists, and Settings keep theirs", async () => {
     state.saved = { keepUp: false, drops: false, dropPct: 15, floorPct: 70, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true, acceptsTrades: true };
     await open();

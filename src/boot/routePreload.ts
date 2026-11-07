@@ -62,7 +62,9 @@ const profileRoute = () => import("@/boot/profileRoute");
 const jobsListRoute = () => import("@/boot/jobsListRoute");
 // postJobRoute keeps PostJob's preload list out of the entry (see that file).
 const postJobRoute = () => import("@/boot/postJobRoute");
-const declutterItemRoute = () => import("@/boot/declutterItemRoute");
+// Q2705 (11-06): a Declutter item page, Help center and the /hire town pages, matched by PATH_PAGE_PATH below;
+// pathPageRoute.ts picks the page by path and keeps their preload lists out of the entry.
+const pathPageRoute = () => import("@/boot/pathPageRoute");
 
 /** Path -> the chunks that route cannot paint without. Exported for tests. */
 export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unknown>>; signedIn: Array<() => Promise<unknown>> }> = {
@@ -118,16 +120,19 @@ export const ENTRY_ROUTE_CHUNKS: Record<string, { guest: Array<() => Promise<unk
     guest: [login, protectedRoute],
     signedIn: [() => import("@/boot/declutterRoute"), protectedRoute],
   },
-  // Q2708 (11-05): an item link (how most guests arrive) starts the gate and the page beside the app. Every
-  // /declutter/item/<id> path reads this row (DECLUTTER_ITEM_PATH); declutterItemRoute keeps the lists out of the entry.
-  "/declutter/item/:id": {
-    guest: [declutterItemRoute],
-    signedIn: [declutterItemRoute],
-  },
 };
 
-/** App.tsx's /declutter/item/:id paths, which all read the one row above. */
-const DECLUTTER_ITEM_PATH = /^\/declutter\/item\/[^/]+$/;
+/**
+ * The routes the table above cannot key by exact path, all started by one boot chunk (pathPageRoute.ts):
+ * - every /declutter/item/<id> (Q2708, 11-05): an item link, how most guests arrive, starts the gate and the page
+ *   beside the app;
+ * - /help and every /hire/<service>/<town> (Q2705, 11-06): public pages a guest opens cold from search, the footer or
+ *   a support reply; their page chunk waited for App.tsx (/help: frame 3.1 s, topic list 4.9 s live, Slow 4G + 4x).
+ *   Not the policy pages (/legal, /rules, ...): measured, Legal already drew with the app (2.8 s), and starting it
+ *   here drew it at 3.7 s.
+ * One pattern and one loader: separate rows and loaders put the entry chunk +69 B gz, over its band (lander l108).
+ */
+const PATH_PAGE_PATH = /^\/(?:declutter\/item\/[^/]+|help|hire\/[^/]+\/[^/]+)$/;
 
 /** Set on every <link rel="modulepreload"> the page preload adds; index.html's watchdog skips them. */
 const PAGE_PRELOAD_ATTR = "data-lh-page-preload";
@@ -149,7 +154,9 @@ const PAGE_PRELOAD_ATTR = "data-lh-page-preload";
  */
 export function preloadEntryRoute(pathname: string): void {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
-  const entry = ENTRY_ROUTE_CHUNKS[path] ?? (DECLUTTER_ITEM_PATH.test(path) ? ENTRY_ROUTE_CHUNKS["/declutter/item/:id"] : undefined);
+  const entry =
+    ENTRY_ROUTE_CHUNKS[path] ??
+    (PATH_PAGE_PATH.test(path) ? { guest: [pathPageRoute], signedIn: [pathPageRoute] } : undefined);
   if (!entry) return;
   const before = new Set(document.querySelectorAll('link[rel="modulepreload"]'));
   for (const load of hasToken() ? entry.signedIn : entry.guest) {

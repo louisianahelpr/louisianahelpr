@@ -75,7 +75,13 @@ describe("Shops pickup address stays private (20261018210400)", () => {
       expect(["shops_save_my_pickup_address", "shops_my_pickup_address", "shops_order_pickup_address",
         "shop_orders_need_pickup_address", "shop_pickup_addresses_owner_is_shop_owner",
         // Download My Data: the owner's own row only (proven in the PGlite file, section 4b).
-        "export_my_data"], name).toContain(name);
+        "export_my_data",
+        // Shops Helpr delivery (20261106194913): a BEFORE UPDATE trigger that drops a stale pickup point when the
+        // address changes (no read, no grant), and the service-only point writer the edge function calls.
+        "shop_pickup_addresses_clear_point", "shop_set_pickup_point",
+        // The owner's own "is my pickup point saved" test before Helpr delivery turns on (answers only a refusal), and
+        // the service-only order/task/quote writers that copy the shop's own point onto its own order's task.
+        "shops_set_helpr_delivery", "shop_set_order_helpr_delivery", "shop_delivery_open_task", "shop_helpr_delivery_quote"], name).toContain(name);
     }
   });
 

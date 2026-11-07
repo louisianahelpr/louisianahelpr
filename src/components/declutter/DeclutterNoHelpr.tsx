@@ -6,7 +6,7 @@
  * soldstates-5 (owner 10-31): the seller's "The Helpr didn't come" on a Helpr delivery, and the Helpr's answer. The
  * buyer's money stays held; the Helpr has 24 hours to answer, or gets a strike and the delivery goes to another Helpr.
  */
-import { useState } from "react";
+import { useId, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
@@ -15,6 +15,8 @@ import { answerHelprNoShow, cancelAfterNoHelpr, fetchHelprNoShowReport, fetchNoH
 import { ConfirmSheet } from "./DeclutterConfirmSheet";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { PhotoPickButton } from "@/components/ui/PhotoPickButton";
+import { uploadTaskPhoto } from "@/lib/helprTasks/api";
 
 const when = (iso: string) => new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
@@ -93,13 +95,22 @@ export function HelprNoShowReportButton({ orderId, taskId, slotStart, who }: { o
 }
 
 /** The Helpr's side: the seller's report and the 24 hours to answer. */
-export function HelprNoShowAnswer({ taskId, sourceKind }: { taskId: string; sourceKind?: string }) {
+export function HelprNoShowAnswer({ taskId, sourceKind, userId }: { taskId: string; sourceKind?: string; userId?: string }) {
   const qc = useQueryClient();
+  const photoId = useId();
   const report = useQuery({ queryKey: ["helpr-tasks", "no-show", taskId], queryFn: () => fetchHelprNoShowReport(taskId) });
   const [note, setNote] = useState("");
   const [failed, setFailed] = useState<string | null>(null);
+  // An optional photo taken here (live camera, like every task photo), uploaded once per file so a retry after a
+  // refused answer does not upload it again. It reaches the admin who decides (shops: 20261107035259).
+  const [photo, setPhoto] = useState<File | null>(null);
+  const uploaded = useRef<{ file: File; path: string } | null>(null);
   const answer = useMutation({
-    mutationFn: () => answerHelprNoShow(taskId, note.trim(), sourceKind),
+    mutationFn: async () => {
+      if (photo && userId && uploaded.current?.file !== photo) uploaded.current = { file: photo, path: await uploadTaskPhoto(userId, taskId, photo) };
+      const photoPath = photo && uploaded.current?.file === photo ? uploaded.current.path : null;
+      return answerHelprNoShow(taskId, note.trim(), sourceKind, photoPath);
+    },
     onSuccess: () => { setFailed(null); void qc.invalidateQueries({ queryKey: ["helpr-tasks"] }); },
     // On the card, beside the button: it is a deadline with a strike behind it.
     onError: (err) => setFailed(declutterErrorMessage(err)),
@@ -119,6 +130,12 @@ export function HelprNoShowAnswer({ taskId, sourceKind }: { taskId: string; sour
       </p>
       <label htmlFor={noteId} className="block text-xs font-medium">What happened? Say when you got there.</label>
       <Textarea id={noteId} rows={3} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} className="w-full rounded-2xl border border-input glass-field px-3 py-2 text-ds-15" />
+      {userId && (
+        <>
+          <label htmlFor={photoId} className="block text-xs font-medium">A photo taken where you are (optional)</label>
+          <PhotoPickButton id={photoId} picked={photo} disabled={answer.isPending} onPick={setPhoto} />
+        </>
+      )}
       {failed && <p role="alert" className="text-sm text-destructive-ink">{failed}</p>}
       <Button type="button" variant="primary" size="sm" className="text-sm font-semibold" disabled={answer.isPending || !note.trim()} onClick={() => answer.mutate()}>
         I was there

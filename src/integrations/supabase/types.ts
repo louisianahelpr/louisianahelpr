@@ -16759,6 +16759,7 @@ export type Database = {
         Returns: undefined
       }
       declutter_delivery_gave_up_check: { Args: never; Returns: number }
+      declutter_free_hold_charge_words: { Args: { p_buyer: string }; Returns: string }
       declutter_delivery_still_in_hand: {
         Args: { p_order_id: string; p_task: string }
         Returns: Json

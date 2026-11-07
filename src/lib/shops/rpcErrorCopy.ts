@@ -413,6 +413,17 @@ export const SHOPS_RPC_ERROR_COPY = {
     shop_strikes_blocked: SC.shop_strikes_blocked,
     under_18: SC.under_18,
   },
+  // Custom orders (20261106202917): the shop's setting.
+  shops_set_custom_orders: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    invalid_custom_orders: SC.invalid_custom_orders,
+    not_authenticated: SC.not_authenticated,
+    payout_setup_incomplete: SC.payout_setup_incomplete,
+    shop_not_found: SC.shop_not_found,
+    shop_strikes_blocked: SC.shop_strikes_blocked,
+    under_18: SC.under_18,
+  },
   // M2 (20261018211820): the handover and the shop's handover choice.
   // Delivery (20261106180902): the shop's own delivery offer, and one order's drop-off address.
   shops_set_delivery: {

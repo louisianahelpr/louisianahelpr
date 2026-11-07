@@ -186,6 +186,8 @@ const READERS: Record<string, string> = {
   "src/lib/signedInRequestGuard.ts": "waits: awaits the auth client's own storage adapter (getItem), the store auth-js reads; it only names the key",
   // Read only through the waiting helpers above:
   "src/pages/home/useGuestSessionCheck.ts": "via definitelyGuest()",
+  "src/components/declutter/declutterUi.tsx": "via definitelyGuest(): before the restore it is not certain, so DeclutterGate waits for auth as before (Q2705)",
+  "src/lib/declutter/guestBootPrefetch.ts": "via definitelyGuest(): before the restore no guest answer is handed out, and the page reads for itself (Q2705)",
   "src/components/AppShell.tsx": "via useStoredSessionHint(): the desktop top bar's 70px room follows the same hint the bar draws on (owner request 11-05), and is read again when the restore lands",
   "src/components/MobileNav.tsx": "via useStoredSessionHint()",
   "src/components/SignedInChrome.tsx": "via useStoredSessionHint(): before the restore the chrome waits, and the hint is read again when it lands",

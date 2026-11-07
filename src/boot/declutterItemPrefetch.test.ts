@@ -10,7 +10,7 @@
 // @mutate src/boot/declutterItemPrefetch.ts |   const guest = !session && !anyStoredSession(); |   const guest = !session;
 // @mutate src/boot/declutterItemPrefetch.ts |   if (!base \|\| !key \|\| (!session && !guest)) return; |   if (!base \|\| !key \|\| !session) return;
 // @mutate src/boot/storedSession.ts | (the page reads for itself).\n    return true; | (the page reads for itself).\n    return false;
-// @mutate src/entry.ts | } else if (/^\/declutter\/item\/[\w-]+\/?$/.test(window.location.pathname)) { | } else if (false) {
+// @mutate src/entry.ts | } else if (/^\/declutter(\/item\/[\w-]+)?\/?$/.test(window.location.pathname)) { | } else if (false) {
 // @mutate src/lib/declutter/itemPrefetchTake.ts | s.itemId !== itemId \|\| | false \|\|
 // @mutate src/lib/declutter/api.ts |   const prefetched = await takeItemPrefetch(itemId, sessionUserId); |   const prefetched = undefined;
 // @mutate src/lib/declutter/api.ts |   if (bootItem) return bootItem as DeclutterPhoto[]; |
@@ -106,12 +106,14 @@ describe("a cold item page's reads and first photo start from the entry (B100)",
     expect(re.test("/declutter")).toBe(true);
     expect(re.test("/messages")).toBe(false);
     // Q2707: a GUEST's item page reaches the door too (no token), and only that route.
-    const guestGate = /\} else if \((\/\^\\\/declutter\\\/item\\\/.*\/)\.test\(window\.location\.pathname\)\) \{\s*void signedInPrefetch\(\)\s*\.then\(\(m\) => m\?\.startSignedInPrefetch\(window\.location\.pathname\)\)/.exec(code("src/entry.ts"))?.[1];
+    // Q2705: and a guest's bare /declutter (src/boot/guestDeclutterPrefetch.ts), nothing else.
+    const guestGate = /\} else if \((\/\^\\\/declutter.*\/)\.test\(window\.location\.pathname\)\) \{\s*void signedInPrefetch\(\)\s*\.then\(\(m\) => m\?\.startSignedInPrefetch\(window\.location\.pathname\)\)/.exec(code("src/entry.ts"))?.[1];
     expect(guestGate, "the entry's guest item test").toBeTruthy();
     const g = new Function(`return ${guestGate}`)() as RegExp;
     expect(g.test(PATH)).toBe(true);
     expect(g.test(PATH + "/")).toBe(true);
-    for (const p of ["/declutter", "/home", "/jobs", "/declutter/item/" + ITEM + "/edit"]) expect(g.test(p), p).toBe(false);
+    expect(g.test("/declutter")).toBe(true);
+    for (const p of ["/home", "/jobs", "/declutter/item/" + ITEM + "/edit", "/declutter/sell"]) expect(g.test(p), p).toBe(false);
     expect(code("src/lib/declutter/itemPrefetchTake.ts")).toContain(`const KEY = "${DECLUTTER_ITEM_PREFETCH_KEY}";`);
     const importers = walkSource([resolve(ROOT, "src")])
       .filter((f) => !/\.test\.tsx?$/.test(f))

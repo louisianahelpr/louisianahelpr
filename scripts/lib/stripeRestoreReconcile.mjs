@@ -65,6 +65,8 @@ export const DB_ID_COLUMNS = {
     { table: "shop_orders", column: "stripe_payment_intent_id" },
     { table: "shop_refunds", column: "stripe_payment_intent_id" },
     { table: "shop_hand_refunds", column: "stripe_payment_intent_id", orderBy: "stripe_refund_id" },
+    // Shops Helpr delivery (20261106194913, CHECK '^pi_'): a delivery-only refund from the order's own charge.
+    { table: "shop_delivery_refunds", column: "stripe_payment_intent_id" },
   ],
   transfer: [
     { table: "payout_transfers", column: "stripe_transfer_id" },
@@ -102,6 +104,8 @@ export const DB_ID_COLUMNS = {
     { table: "declutter_delivery_refunds", column: "stripe_refund_ref" },
     { table: "shop_refunds", column: "stripe_refund_id" },
     { table: "shop_hand_refunds", column: "stripe_refund_id", orderBy: "stripe_refund_id" },
+    // Shops Helpr delivery (20261106194913, CHECK '^(re|pyr)_').
+    { table: "shop_delivery_refunds", column: "stripe_refund_id" },
     { table: "declutter_delivery_raises", column: "stripe_refund_ref" },
     // Q2352 (20261026154738): a Declutter setup fee sent back once (setup_fee_state 'refunded').
     { table: "declutter_orders", column: "setup_fee_refund_id" },
@@ -174,6 +178,7 @@ export const NOT_MATCHED = {
   "declutter_refunds.refund_cents": "an amount, not a Stripe id",
   "declutter_order_jobs.seller_fault_refund_id": "a uuid pointing at our own declutter_refunds row (Add a Helpr A10, 20261017073146), not a Stripe id; the Stripe refund it stands for is declutter_refunds.stripe_refund_ref",
   "shop_refunds.refund_cents": "an amount, not a Stripe id",
+  "shop_delivery_refunds.refund_cents": "an amount, not a Stripe id",
   "shop_hand_refunds.shop_refund_id": "our own shop_refunds row id, not a Stripe id",
   "declutter_seller_fee_debts.shop_refund_id": "our own shop_refunds row id, not a Stripe id",
   "declutter_seller_fee_debts.refund_id": "our own declutter_refunds row id, not a Stripe id",

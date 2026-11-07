@@ -83,6 +83,7 @@ const EXEMPT: Record<string, string> = {
   "20261022002144_under_13_birthday_blocks_and_deletes.sql": "in build 7601 (3c21370); shipped with the submitted build, live before it was frozen",
   "20261102082018_phone_save_rpc_rate_limited.sql": "in build 7601 (3c21370); shipped with the submitted build, live before it was frozen",
   "20261103014109_crew_share_held_reason.sql": "in build 7601 (3c21370); shipped with the submitted build, live before it was frozen",
+  "20261106194913_shops_helpr_delivery.sql": "REVOKEs SELECT only on shop_pickup_addresses.lat, lng and point_at, columns this same migration adds; build 7601 has never read them (Shops is testers-only), so nothing it uses narrows",
 };
 
 /** The floor value a migration's last client_compat_floor() definition returns, or null. */

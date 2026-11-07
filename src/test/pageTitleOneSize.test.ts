@@ -37,6 +37,9 @@ const REPO = resolve(__dirname, "../..");
 const EXEMPT: Record<string, string> = {
   // LOCKED landing hero (CLAUDE.md): font, colour and copy are off-limits.
   "src/components/landing/HeroSection.tsx": "locked landing hero",
+  // The /home greeting shares its class with the HTML shell (q1158 dash greeting): GREETING_TITLE_CLASS is
+  // "font-moment text-page-title text-foreground" in src/components/landing/homeGreetingShell.mjs, the one title size.
+  "src/pages/home/HomeDashboard.tsx": "title size via GREETING_TITLE_CLASS (text-page-title), shared with the HTML shell",
   // The decorative "404" numeral, not a page title.
 };
 

@@ -211,6 +211,14 @@ type ShopPayoutDue = {
   attempts: number;
   /** Helpr delivery (20261106194913): the refunds the app made on this charge, Stripe-confirmed (shop_order_refunds_recorded_cents). */
   refunds_recorded_cents?: number | null;
+  /**
+   * 11-07 (20261107162454): a 50% deposit order whose rest was paid is paid out from BOTH charges: this is the rest's
+   * PaymentIntent (null for every other order), and deposit_shop_cents the most the deposit charge pays (the shop's
+   * part of it, from the split frozen at the hold). The deposit leg is min(amount, deposit_shop_cents), the rest leg
+   * what is left, each from its own charge (Stripe refuses a transfer above its source charge).
+   */
+  balance_payment_intent_id?: string | null;
+  deposit_shop_cents?: number | null;
 };
 /** What a declutter_delivery_refunds row gives back, in an ops page ("shipping refund", "delivery-fee refund"). */
 function refundPartWord(reason: string): string {
@@ -916,16 +924,31 @@ serve(async (req) => {
         // Already found not payable this run, and no try used (no transfer can exist): defer now.
         if (!maybeSent_shop(p) && (await unpayableNow("shop", p.payout_id, p.seller_id, p.stripe_account_id, p.amount_cents, resolved.mode))) continue;
         const listed = await stripe.transfers.list({ transfer_group: group, limit: 100 });
-        const existing = listed.data.find((t) => {
+        // 11-07 (20261107162454): an order paid in two charges is paid in two legs, each found by its own metadata.leg
+        // (a one-charge order's transfer carries no leg and is the deposit leg).
+        const restPi = p.balance_payment_intent_id ?? null;
+        const legOf = (leg: "deposit" | "rest") => listed.data.find((t) => {
           const meta = (t.metadata ?? {}) as Record<string, string>;
-          return meta.kind === "shop_payout" && meta.payout_id === p.payout_id && !t.reversed;
+          return meta.kind === "shop_payout" && meta.payout_id === p.payout_id && !t.reversed
+            && (leg === "rest" ? meta.leg === "rest" : meta.leg !== "rest");
         });
-        let shopTransfer = existing;
-        if (!shopTransfer) {
+        let shopTransfer = legOf("deposit");
+        let restTransfer = restPi ? legOf("rest") : undefined;
+        // Whole when the deposit leg exists and, for two charges, the rest leg too (or the deposit leg alone is the
+        // whole amount: no rest leg is owed).
+        const existing = shopTransfer && (!restPi || restTransfer || Number(shopTransfer.amount ?? 0) >= p.amount_cents)
+          ? shopTransfer : undefined;
+        if (!existing) {
           if (await unpayableNow("shop", p.payout_id, p.seller_id, p.stripe_account_id, p.amount_cents, resolved.mode)) continue;
           // From the order's OWN charge, only while it is whole (paid, nothing refunded but what the app recorded
           // (Helpr delivery, 20261106194913: a delivery refund), not disputed).
           const charge = await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents ?? 0);
+          // 11-07: the rest's charge must be whole too (the app never refunds it: option B refunds by hand, which holds
+          // the order), and the deposit's share must be known; otherwise nothing moves.
+          const restCharge = restPi ? await wholeCharge(stripe, restPi, 0) : null;
+          if (restPi && !(Number.isInteger(p.deposit_shop_cents) && Number(p.deposit_shop_cents) > 0)) {
+            throw new Error(`the order was paid in two charges but its deposit share is unknown (${p.deposit_shop_cents ?? "null"})`);
+          }
           // Readiness only after the reconcile and the charge check.
           if (!(await payeeReadyNow(stripe, resolved.mode, "shop", p.payout_id, p.seller_id, p.stripe_account_id as string, p.amount_cents))) continue;
           if (!(await stillPayableNow("shop", p.payout_id, p.seller_id, p.amount_cents))) continue;
@@ -945,20 +968,50 @@ serve(async (req) => {
               p.amount_cents = shopToSend;
             }
           }
+          // The legs come from frozen numbers only (the row's amount, fixed once a send may have started, and the
+          // split frozen at the hold), so a retry rebuilds the same amounts under the same keys.
+          const depositLeg = restPi ? Math.min(p.amount_cents, Number(p.deposit_shop_cents)) : p.amount_cents;
+          const restLeg = p.amount_cents - depositLeg;
           if (!(await markSending("shop", p.payout_id, p.seller_id, p.amount_cents))) continue;
           beforeSend = false;
-          shopTransfer = await stripe.transfers.create(
-            {
-              amount: p.amount_cents,
-              currency: "usd",
-              destination: p.stripe_account_id as string,
-              transfer_group: group,
-              source_transaction: charge,
-              metadata: { kind: "shop_payout", payout_id: p.payout_id, order_id: p.order_id },
-            },
-            { idempotencyKey: `shop-payout-${p.payout_id}` },
-          );
+          if (!shopTransfer) {
+            shopTransfer = await stripe.transfers.create(
+              {
+                amount: depositLeg,
+                currency: "usd",
+                destination: p.stripe_account_id as string,
+                transfer_group: group,
+                source_transaction: charge,
+                metadata: { kind: "shop_payout", payout_id: p.payout_id, order_id: p.order_id, ...(restPi ? { leg: "deposit" } : {}) },
+              },
+              { idempotencyKey: `shop-payout-${p.payout_id}` },
+            );
+          }
+          if (restPi && restCharge && restLeg > 0 && !restTransfer) {
+            restTransfer = await stripe.transfers.create(
+              {
+                amount: restLeg,
+                currency: "usd",
+                destination: p.stripe_account_id as string,
+                transfer_group: group,
+                source_transaction: restCharge,
+                metadata: { kind: "shop_payout", payout_id: p.payout_id, order_id: p.order_id, leg: "rest" },
+              },
+              { idempotencyKey: `shop-payout-${p.payout_id}-rest` },
+            );
+          }
         }
+        if (restTransfer) {
+          // The rest leg is recorded first; the row is marked sent (with the deposit leg) only after it.
+          const { error: restErr } = await admin.rpc("shop_payout_rest_sent", { p_payout_id: p.payout_id, p_transfer_id: restTransfer.id });
+          if (restErr) {
+            await onceADay(`payout-unrecorded-shop-${p.payout_id}`, "A sent payout could not be recorded",
+              `shop payout ${p.payout_id}: rest transfer ${restTransfer.id} not recorded: ${restErr.message}`.slice(0, 300));
+            await skipRow("shop", p.payout_id, p.seller_id, p.amount_cents, 15, "record_failed", `rest transfer ${restTransfer.id} not recorded`);
+            continue;
+          }
+        }
+        if (!shopTransfer) throw new Error("the deposit leg's transfer is missing after the send");
         const { error } = await admin.rpc("shop_payout_executed", {
           p_payout_id: p.payout_id, p_transfer_id: shopTransfer.id, p_succeeded: true, p_error: null,
         });

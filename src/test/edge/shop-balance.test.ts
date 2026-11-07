@@ -15,6 +15,7 @@
  * @mutate supabase/functions/_shared/shopBalance.ts |  if (!row.customer_id \|\| !row.payment_method_id) { |  if (false) {
  * @mutate supabase/functions/_shared/shopBalance.ts |  return buyer \|\| (failed as { result?: string } \| null)?.result === "buyer_pays" ? "buyer_pays" : "will_retry"; |  return buyer ? "buyer_pays" : "will_retry";
  * @mutate supabase/functions/_shared/shopBalance.ts |    p_amount_cents: Number(pi.amount_received ?? 0) > 0 ? Number(pi.amount_received) : Number(pi.amount ?? 0), |    p_amount_cents: 0,
+ * @mutate supabase/functions/_shared/shopBalance.ts |  if (opts.fromTap && !buyer) { |  if (false) {
  * @mutate supabase/functions/shop-checkout/index.ts |  if (off) return off; |
  * @mutate supabase/functions/shop-checkout/index.ts |  if (isLockedOut(standing?.ban_status, standing?.auto_suspended_until)) return json({ error: "account_restricted" }, 403); |
  * @mutate supabase/functions/shop-checkout/index.ts |    return json({ accepted: true, charged: false });\n  } | throw e;\n  }
@@ -210,15 +211,31 @@ describe("shop-checkout charge_rest: the shop's Handed-over tap tries the saved 
     expect(rpcs("shop_balance_paid")).toHaveLength(0);
   });
 
-  it("a Stripe outage is NOT the buyer's: counted for a retry, the buyer is not told", async () => {
+  it("a Stripe outage is NOT the buyer's, and a tap never uses up one of the buyer's tries (11-07): nothing counted", async () => {
     const fn = await as(MAKER);
     scenario.reads.shop_orders = { rows: [owed()] };
     scenario.rpc.shop_local_today = "2026-11-06";
-    scenario.rpc.shop_balance_failed = null;
     stripeMock.paymentIntents.create.mockRejectedValue(Object.assign(new Error("api down"), { type: "StripeAPIError" }));
-    const res = await tap(fn, { action: "charge_rest", order_id: ORDER });
-    expect(await json(res)).toEqual({ paid: false, waiting_on_buyer: false });
-    expect(rpcs("shop_balance_failed")[0]?.args).toMatchObject({ p_order_id: ORDER, p_buyer: false });
+    for (let i = 0; i < 4; i++) {
+      const res = await tap(fn, { action: "charge_rest", order_id: ORDER });
+      expect(await json(res)).toEqual({ paid: false, waiting_on_buyer: false });
+    }
+    expect(rpcs("shop_balance_failed")).toHaveLength(0);
+  });
+
+  it("the 10-minute clock DOES count a non-card failure (the 3rd is the buyer's)", async () => {
+    env();
+    const fn = await loadEdgeFunction("declutter-money");
+    scenario.rpc.shop_balances_due = [{
+      order_id: ORDER, buyer_id: BUYER, seller_id: MAKER, balance_cents: 3385, customer_id: "cus_buyer",
+      payment_method_id: "pm_saved", attempts: 2, livemode: true, checkout_session_id: "cs_live_dep",
+    }];
+    scenario.rpc.shop_balance_failed = { result: "buyer_pays" };
+    scenario.rpc.shop_balance_lapse_sweep = [];
+    scenario.rpc.shop_lapse_tax_due = [];
+    stripeMock.paymentIntents.create.mockRejectedValue(Object.assign(new Error("api down"), { type: "StripeAPIError" }));
+    await fn.fetch(fn.request({ headers: { Authorization: "Bearer cron-secret" } }));
+    expect(rpcs("shop_balance_failed")[0]?.args).toEqual({ p_order_id: ORDER, p_error: "api down", p_buyer: false });
   });
 
   it("11-07: no card saved at Checkout: the rest is the buyer's to pay at once (notice + Pay button), with no Stripe call", async () => {
@@ -232,15 +249,15 @@ describe("shop-checkout charge_rest: the shop's Handed-over tap tries the saved 
     expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
   });
 
-  it("11-07: the 3rd failed try of any kind is the buyer's (the SQL answers buyer_pays); the same key every try", async () => {
+  it("11-07: every try uses the same key (a retry gets the same PaymentIntent back)", async () => {
     const fn = await as(MAKER);
     scenario.reads.shop_orders = { rows: [owed({ balance_attempts: 2 })] };
     scenario.rpc.shop_local_today = "2026-11-06";
-    scenario.rpc.shop_balance_failed = { result: "buyer_pays" };
     stripeMock.paymentIntents.create.mockRejectedValue(Object.assign(new Error("api down"), { type: "StripeAPIError" }));
-    const res = await tap(fn, { action: "charge_rest", order_id: ORDER });
-    expect(await json(res)).toEqual({ paid: false, waiting_on_buyer: true });
-    expect(stripeMock.paymentIntents.create.mock.calls[0][1]).toEqual({ idempotencyKey: `shop-balance-${ORDER}` });
+    await tap(fn, { action: "charge_rest", order_id: ORDER });
+    await tap(fn, { action: "charge_rest", order_id: ORDER });
+    expect(stripeMock.paymentIntents.create.mock.calls.map((c) => c[1])).toEqual([
+      { idempotencyKey: `shop-balance-${ORDER}` }, { idempotencyKey: `shop-balance-${ORDER}` }]);
   });
 
   it("11-07: the tap takes the Shops switch and the shop owner's standing; neither charges anything", async () => {

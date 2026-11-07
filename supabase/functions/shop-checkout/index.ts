@@ -916,7 +916,7 @@ async function chargeRest(body: Record<string, unknown>, user: { id: string }, a
     order_id: o.id, buyer_id: o.buyer_id, seller_id: o.seller_id, balance_cents: Number(o.balance_cents),
     customer_id: o.balance_customer_id, payment_method_id: o.balance_payment_method_id,
     attempts: Number(o.balance_attempts ?? 0), livemode: o.payment_livemode, checkout_session_id: o.stripe_checkout_session_id,
-  });
+  }, { fromTap: true });
   return json({ paid: done === "paid" || done === "already_paid", waiting_on_buyer: done === "buyer_pays" });
 }
 

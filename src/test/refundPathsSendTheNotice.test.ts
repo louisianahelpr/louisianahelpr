@@ -87,7 +87,7 @@ const RELEASE_EXEMPT: Record<string, string> = {
   "supabase/functions/stripe-webhook/handlers/declutterCheckout.ts":
     "Shipping S3 (testers only): a shipped order's card hold that the order does not take (closed, wrong amount, a second page) is cancelled while still only AUTHORIZED: nothing was captured, so there is no refund to announce; its refund row is closed as settled at 0 (closeReleasedHoldRefund, 20261101221604) and ops are paged",
   "supabase/functions/_shared/shopHolds.ts":
-    "Shops M1 (20261018164442): releases the never-captured hold of a Shops order that already ended unpaid; nothing was charged, so there is no refund to announce, and the SQL that closed the order told the buyer the hold is released (shops_decline_order 'Order declined', shop_order_sweep 'Order not answered', shop_mark_order_held 'That day filled up' / 'Order could not go through'), or the buyer withdrew or replaced the order themselves; the one silent case is shop_mark_order_held's order_missing (a paid page with no order row)",
+    "Shops M1 (20261018164442): releases the never-captured hold of a Shops order that already ended unpaid; nothing was charged, so there is no refund to announce, and the SQL that closed the order told the buyer the hold is released (shops_decline_order 'Order declined', shop_order_sweep 'Order not answered', shop_mark_order_held 'That day filled up' / 'Order could not go through'), or the buyer withdrew or replaced the order themselves; the one silent case is shop_mark_order_held's order_missing (a paid page with no order row) Custom orders slice 2 (m1, 11-07): captureShopHold captures ONLY the frozen 50% deposit of a deposit order (amount_to_capture); the other half was only ever AUTHORIZED, never charged, so no money comes back; the deposit page told the buyer 'Half is charged when the shop accepts. The rest is charged to this card on the ready date.'",
 };
 
 /**
@@ -162,7 +162,10 @@ describe("Q1714: every refund path tells the person their money is back", () => 
     // Helpr's accept captured while the job closed with nobody hired; charge.refunded announces it (REFUND_OWN_NOTICE).
     // 22 since CMP-4 instant book (2026-11-01): _shared/instantBookRefund.ts refunds in full an instant booking charged
     // with nobody hired (holder instant_book_refund); charge.refunded announces it (REFUND_OWN_NOTICE).
-    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(22);
+    // 23 since custom orders slice 2b (m1, 11-07): _shared/shopBalance.ts recordShopBalance refunds in full the rest of a
+    // deposit order paid when the order no longer owed it (metadata.kind shop_balance_refund). charge.refunded skips
+    // that kind, so it calls sendRefundNotice itself (key refund:<id>); it is NOT on REFUND_OWN_NOTICE.
+    expect(refundSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(23);
     {
       const v = blankComments(readFileSync(join(FN, "void-cancelled-payments/index.ts"), "utf8"));
       const fn = v.slice(v.indexOf("const returnShareToPoster"), v.indexOf("for (const share of owed)"));
@@ -173,7 +176,9 @@ describe("Q1714: every refund path tells the person their money is back", () => 
     // 12 since Q2399 card hold (2026-10-25): 3 in _shared/cardHold.ts, 3 in card-hold-sweep, 1 in cardHoldCheckout
     // (each releases an authorization that was never charged: RELEASE_EXEMPT). 14 since 2026-10-30: 2 in
     // cardHoldPlan partialCaptureParams (its return type and its value), the capture without the setup fee.
-    expect(releaseSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(17); // 17 since Shipping S3/S6 (B145 11-01): 2 in _shared/shipLabelRun.ts (the hold capture without an already-paid setup fee; the release when no label could be bought) and 1 in declutterCheckout.ts (a hold the order does not take), each RELEASE_EXEMPT; 4 since Shops M1: _shared/shopHolds.ts releases an ended order's hold (RELEASE_EXEMPT); 5 since lane-b-money-1: paymentIntentPaymentFailed cancels a failed bank debit (RELEASE_EXEMPT)
+    // 18 since custom orders slice 2 (m1, 11-07): _shared/shopHolds.ts captureShopHold captures only a deposit order's
+    // 50% deposit (amount_to_capture); the rest was only authorized (RELEASE_EXEMPT, the shopHolds reason).
+    expect(releaseSites.map((s) => `${s.file}:${s.line}`)).toHaveLength(18); // 17 since Shipping S3/S6 (B145 11-01): 2 in _shared/shipLabelRun.ts (the hold capture without an already-paid setup fee; the release when no label could be bought) and 1 in declutterCheckout.ts (a hold the order does not take), each RELEASE_EXEMPT; 4 since Shops M1: _shared/shopHolds.ts releases an ended order's hold (RELEASE_EXEMPT); 5 since lane-b-money-1: paymentIntentPaymentFailed cancels a failed bank debit (RELEASE_EXEMPT)
     // Floors, so a parser that silently reads nothing cannot pass.
     expect(refundSites.length).toBeGreaterThan(8);
     expect(new Set(refundSites.map((s) => s.file)).size).toBeGreaterThan(5);

@@ -833,9 +833,10 @@ async function payBalance(body: Record<string, unknown>, user: { id: string; ema
     return json({ error: "nothing_owed", hint: "Nothing more is owed on this order." }, 409);
   }
   const stripe = await stripeForOrder(admin, o, "new");
-  let customerId: string | undefined;
+  let restCustomer: string | undefined;
+  const mode = shopOrderMode({ livemode: o.payment_livemode, checkout_session_id: o.stripe_checkout_session_id }) ?? "live";
   try {
-    customerId = (await storedStripeCustomer(admin, user.id, shopOrderMode({ livemode: o.payment_livemode, checkout_session_id: o.stripe_checkout_session_id }) ?? "live")) ?? undefined;
+    restCustomer = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined;
   } catch (e) {
     console.error(`[shop-checkout] ${caughtMessage(e)}`);
     return json({ error: TRY_AGAIN }, 503);
@@ -843,7 +844,9 @@ async function payBalance(body: Record<string, unknown>, user: { id: string; ema
   const meta: Record<string, string> = { kind: "shop_balance", order_id: o.id, buyer_id: user.id, payer_id: user.id, seller_id: o.seller_id ?? "" };
   const native = isNativeRequest(body);
   const cents = Number(o.balance_cents);
-  const session = await stripe.checkout.sessions.create(
+  // Q2140 (m1 guard, 11-07): a stored customer Stripe no longer has is replaced once and the page retried
+  // (":new-wallet" key), as on the order's own page.
+  const session = await withStoredWalletCustomer(admin, stripe, user, mode, restCustomer, (payer, walletRetry) => stripe.checkout.sessions.create(
     {
       mode: "payment",
       payment_method_types: ["card"],
@@ -855,7 +858,7 @@ async function payBalance(body: Record<string, unknown>, user: { id: string; ema
           product_data: { name: "Rest of your custom order", description: "Sales tax included", tax_code: NONTAXABLE_TAX_CODE },
         },
       }],
-      ...(customerId ? { customer: customerId } : { customer_email: user.email ?? undefined }),
+      ...(payer ? { customer: payer } : { customer_email: user.email ?? undefined }),
       client_reference_id: o.id,
       metadata: meta,
       payment_intent_data: { metadata: meta, transfer_group: `shop_order_${o.id}` },
@@ -865,8 +868,8 @@ async function payBalance(body: Record<string, unknown>, user: { id: string; ema
       cancel_url: buildRedirectUrl("/shops/orders", native),
     },
     // One page per order and the page it replaces: a double tap opens one, a new tap after it closed opens a new one.
-    { idempotencyKey: `shop-balance-page-${o.id}-${o.balance_checkout_session_id ?? "first"}` },
-  );
+    { idempotencyKey: `shop-balance-page-${o.id}-${o.balance_checkout_session_id ?? "first"}${walletRetry ? ":new-wallet" : ""}` },
+  ));
   if (session.amount_total !== cents) {
     await expirePage(session.id);
     console.error(`[shop-checkout] rest page ${session.amount_total} != owed ${cents}`);

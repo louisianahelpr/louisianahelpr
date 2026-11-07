@@ -159,9 +159,12 @@ test(incompleteTitle, async ({ browser, request, journey }) => {
     await expect(page.getByTestId("complete-profile-names"), "the seed has a full name; Complete Profile must not ask it again").toHaveCount(0);
     await page.locator("#zipCode").fill("70528");
     await page.locator("#zipCode").blur();
-    await page.waitForTimeout(600);
+    // As on signup step 2: the ZIP's ✓ draws only once the parish read answers, which on the "slow" rotation outlasted
+    // the fixed 600 ms this used (e2e-journeys 42221289461 and 42074601478, both "slow": 0 icons found). Wait for it.
+    await expect
+      .poll(async () => (await trailingIconRows(page)).length, { message: "/complete-profile has ✓ icons on its fields; none were found", timeout: 20_000 })
+      .toBeGreaterThan(0);
     const rows = await trailingIconRows(page);
-    expect(rows.length, "/complete-profile has ✓ icons on its fields; none were found").toBeGreaterThan(0);
     await page.locator("#zipCode").scrollIntoViewIfNeeded();
     await journey.milestone(page, "complete-profile-fields");
     expect(judge(rows, "/complete-profile")).toEqual([]);

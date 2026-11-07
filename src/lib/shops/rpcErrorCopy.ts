@@ -430,6 +430,12 @@ export const SHOPS_RPC_ERROR_COPY = {
   shops_order_delivery_address: {
     not_authenticated: SC.not_authenticated,
   },
+  // The order's Helpr task, for the shop owner or the buyer (20261107164311).
+  shops_order_helpr_task: {
+    feature_disabled: SC.feature_disabled,
+    not_authenticated: SC.not_authenticated,
+    order_not_found: SC.order_not_found,
+  },
   // The shop reports "the Helpr didn't come" (20261106211136).
   shop_report_helpr_no_show: {
     account_restricted: SC.account_restricted,

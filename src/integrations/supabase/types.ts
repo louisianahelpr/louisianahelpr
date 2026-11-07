@@ -17364,6 +17364,7 @@ export type Database = {
         Args: { p_on: boolean }
         Returns: Json
       }
+      shops_order_helpr_task: { Args: { p_order_id: string }; Returns: string }
       shops_set_item_variants: {
         Args: { p_item_id: string; p_option_names: string[]; p_variants: Json }
         Returns: Json

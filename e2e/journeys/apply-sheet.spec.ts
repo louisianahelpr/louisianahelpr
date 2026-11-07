@@ -239,7 +239,9 @@ function helpr(slug: string, body: (o: Opened) => Promise<void>) {
 async function openFixtureSheet(page: Page, width: number, height: number) {
   await page.setViewportSize({ width, height });
   await page.goto("/jobs");
-  const card = page.getByRole("button", { name: new RegExp(`^View ${BROWSE_FIXTURE_TITLE} — \\$`) }).first();
+  // The signed-in card's words are its name since 11-06 (c06c6c38e9: no aria-label, WCAG 2.5.3), so the old
+  // "View <title> — $" label no longer matches: find the feed card by its title, as 01-browse does.
+  const card = page.locator('[data-feed-card][role="button"]').filter({ hasText: BROWSE_FIXTURE_TITLE }).first();
   await expect(card, "the browse fixture is on the test Helpr's feed").toBeVisible({ timeout: 60_000 });
   await card.click();
 }

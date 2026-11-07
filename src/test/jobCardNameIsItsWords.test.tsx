@@ -10,9 +10,15 @@
  *
  * @mutate src/components/dashboard/jobCardInteractiveProps.ts |         tabIndex: 0,\n |         tabIndex: 0,\n        "aria-label": `View ${job.title}`,\n
  * @mutate src/components/dashboard/JobCard.tsx |       {!isGuest && <span className="sr-only">View </span>} | {null}
+ * e2e follows the name (Q1816, e2e-journeys #2436: apply-sheet still looked for "View <title> — $" and timed out on 5
+ * journeys): no e2e spec selects a job card by the old label.
+ * @mutate e2e/journeys/apply-sheet.spec.ts |   const card = page.locator('[data-feed-card][role="button"]').filter({ hasText: BROWSE_FIXTURE_TITLE }).first(); |   const card = page.getByRole("button", { name: new RegExp(`^View ${BROWSE_FIXTURE_TITLE} — \\$`) }).first();
  * @mutate src/components/dashboard/JobPrice.tsx |   const { netEarnings } = computeNet(budget, effectiveFee, urgentFee, helpersNeeded, firstPayoutFee, feeStamp); |   const { netEarnings } = computeNet(budget, effectiveFee, urgentFee, helpersNeeded, 0, feeStamp);
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { readdirSync } from "./helpers/trackedFiles";
 import { render, cleanup, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import JobCard from "@/components/dashboard/JobCard";
@@ -99,5 +105,15 @@ describe("a signed-in job card's accessible name is its own words (WCAG 2.5.3)",
     const card = draw("guest").querySelector("[data-feed-card]")!;
     expect(card.getAttribute("role")).toBeNull();
     expect(card.querySelector(".sr-only")?.textContent ?? "").not.toBe("View ");
+  });
+
+  it("no e2e spec looks for a job card by the old 'View <title> — $' label", () => {
+    const root = resolve(__dirname, "../..");
+    const specs = readdirSync(join(root, "e2e"), { recursive: true }).filter((f) => /\.(ts|tsx)$/.test(f) && !f.includes("node_modules")).map((f) => join("e2e", f));
+    expect(specs.length).toBeGreaterThan(100);
+    // A name pattern that ends in "— $" is the old aria-label (the card's words have no " — $" after the title).
+    const OLD = /name:[^\n]*\^View [^\n]*— \\*\$/;
+    const bad = specs.filter((f) => OLD.test(readFileSync(join(root, f), "utf8")));
+    expect(bad).toEqual([]);
   });
 });

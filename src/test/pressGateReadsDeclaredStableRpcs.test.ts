@@ -18,13 +18,16 @@
  * @mutate scripts/audit/declaredReadRpcs.mjs | .filter(([, v]) => !v.includes("v")) | .filter(([, v]) => v.length > 0)
  * @mutate scripts/audit/press-every-control.mjs | isNotificationOpen({ label, chain: entry.chain }) | isNotificationOpen({ label })
  * @mutate scripts/audit/pressProdSafety.mjs | Array.isArray(chain) && chain.length ? chain.join( | false ? chain.join(
- * @mutate scripts/audit/press-every-control.mjs | connect (?:google\|apple)\|watch\|unwatch)\b/i; | connect (?:google\|apple))\b/i;
+ * @mutate scripts/audit/pressProdSafety.mjs | /^Notifications(?:, [^\u203a]*? unread)? \u203a /; | /^Notifications \u203a /;
+ * @mutate scripts/audit/pressProdSafety.mjs | \|suggest a reply\|check twilio\|health alerts)\b/i; | \|suggest a reply)\b/i;
+ * @mutate scripts/audit/press-every-control.mjs | \|watch\|unwatch\|notify me)\b/i; | \|watch\|unwatch)\b/i;
+ * @mutate scripts/audit/press-every-control.mjs | connect (?:google\|apple)\|watch\|unwatch\|notify me)\b/i; | connect (?:google\|apple)\|notify me)\b/i;
  * @mutate scripts/audit/press-every-control.mjs |   if (rpc) return !(READ_RPC_RX.test(rpc[1]) \|\| isDeclaredReadRpcPath(path)); |   if (rpc) return !READ_RPC_RX.test(rpc[1]);
  */
 import { describe, expect, it } from "vitest";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { declaredReadRpcSet, declaredReadRpcs } from "../../scripts/audit/declaredReadRpcs.mjs";
 // @ts-expect-error - plain .mjs tool script, no types
 import * as safety from "../../scripts/audit/pressProdSafety.mjs";
@@ -95,6 +98,28 @@ describe("a bell-panel row is gated by its chain, not its own words", () => {
     expect(isNotificationOpen({ label: row, chain: ["Notifications", row] })).toBe(true);
     expect(isNotificationOpen({ label: "Notifications", chain: ["Notifications"] })).toBe(false);
     expect(isNotificationOpen({ label: row, chain: [row] })).toBe(false);
+  });
+
+  it("a bell with unread rows names its count, and its rows are still notification opens (Q1816)", () => {
+    const row = "Repost";
+    for (const bell of ["Notifications, 99+ unread", "Notifications, 3 unread"]) {
+      expect(isNotificationOpen({ label: row, chain: [bell, row] }), bell).toBe(true);
+      expect(isNotificationOpen({ label: bell, chain: [bell] }), `${bell} alone`).toBe(false);
+    }
+    // The words the app's bell actually carries.
+    const trigger = readFileSync(resolve(__dirname, "../components/notificationPanel/NotificationTrigger.tsx"), "utf8");
+    expect(trigger).toContain("`Notifications, ${formatUnreadBadge(count)} unread`");
+  });
+
+  it("the other writes run 42362289081 pressed ungated are mutating now (Q1816)", () => {
+    const { DESTRUCTIVE_RX } = harness as unknown as { DESTRUCTIVE_RX: RegExp };
+    const { isAdminWrite } = safety as unknown as { isAdminWrite: (a: { persona: string; label: string }) => boolean };
+    // /jobs (customer): POST /rest/v1/notification_preferences.
+    expect(DESTRUCTIVE_RX.test("Notify me when one lands")).toBe(true);
+    // Admin: POST /functions/v1/sms-provider-check and /functions/v1/health-check.
+    expect(isAdminWrite({ persona: "admin", label: "Check Twilio" })).toBe(true);
+    expect(isAdminWrite({ persona: "admin", label: "20 Health alerts" })).toBe(true);
+    expect(isAdminWrite({ persona: "helper", label: "Check Twilio" })).toBe(false);
   });
 
   it("the main loop hands it the press's chain", () => {

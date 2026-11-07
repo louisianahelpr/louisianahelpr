@@ -28,8 +28,8 @@ export default function ShopDeliveryPicker({ shopId }: { shopId: string }) {
   }, [offer.data]);
   const save = useMutation({
     mutationFn: (o: DeliveryOffer) => setDeliveryOffer(o),
+    // No success toast: the app-wide toast policy drops toast.success without an action (declutterHandoverConfirmationsShow ceiling).
     onSuccess: () => {
-      toast.success("Saved. New orders use it.");
       void qc.invalidateQueries({ queryKey: ["shops", "delivery-offer", shopId] });
     },
     onError: (err) => toast.error(shopsErrorMessage(err)),

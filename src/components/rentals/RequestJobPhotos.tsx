@@ -43,7 +43,7 @@ function Row({ label, photos }: { label: string; photos: SignedPhoto[] }) {
 export default function RequestJobPhotos({ requestId }: { requestId: string }) {
   const q = useQuery({ queryKey: ["rentals-request-job-photos", requestId], queryFn: () => loadPhotos(requestId) });
   if (q.isError) {
-    return <ErrorState variant="inline" title="The Helpr's photos didn't load." onRetry={() => void q.refetch()} />;
+    return <ErrorState variant="inline" title="We couldn't load the Helpr's photos." onRetry={() => void q.refetch()} />;
   }
   const photos = q.data ?? [];
   if (photos.length === 0) return null;

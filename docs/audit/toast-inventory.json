@@ -1,10 +1,10 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1181,
+    "calls": 1180,
     "files": 334,
     "rendering": 1099,
-    "suppressedByPolicy": 82,
+    "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
@@ -13,11 +13,11 @@
       "toast.error": 795,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 88,
+      "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 496,
+      "literal": 495,
       "template": 106,
       "dynamic": 631,
       "jsx": 0
@@ -10772,16 +10772,6 @@
         "text": "shopsErrorMessage(err)"
       },
       "renders": true
-    },
-    {
-      "file": "src/components/shops/ShopDeliveryPicker.tsx",
-      "line": 32,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Saved. New orders use it."
-      },
-      "renders": false
     },
     {
       "file": "src/components/shops/ShopDeliveryPicker.tsx",

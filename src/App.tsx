@@ -3,6 +3,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { RoutedBoundary } from "@/components/RoutedBoundary";
 import { lazyWithPreload } from "@/lib/lazyWithPreload";
+// Q1816: every lazy piece mounted beside the routes (outside RoutedBoundary) fails quietly; guard chromeLaziesFailQuietly.
+import { optionalLazy } from "@/lib/optionalLazy";
 import { whenPageSettled } from "@/lib/routePrefetch";
 import { SpeedInsightsRouted } from "@/components/SpeedInsightsRouted";
 import { HomeShellLeaves } from "@/components/landing/HomeShellLeaves";
@@ -81,27 +83,25 @@ const PageTransition = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
   return <PageTransitionPick key={location.key}>{children}</PageTransitionPick>;
 };
-const ScrollToTop = lazy(() => import("@/components/ScrollToTop"));
-const MobileNav = lazy(() => import("./components/MobileNav"));
-const DesktopSidebarNav = lazy(() => import("./components/DesktopSidebarNav"));
-const DesktopTopNav = lazy(() => import("./components/DesktopTopNav"));
+const ScrollToTop = optionalLazy(() => import("@/components/ScrollToTop"), "ScrollToTop");
+const MobileNav = optionalLazy(() => import("./components/MobileNav"), "MobileNav");
+const DesktopSidebarNav = optionalLazy(() => import("./components/DesktopSidebarNav"), "DesktopSidebarNav");
+const DesktopTopNav = optionalLazy(() => import("./components/DesktopTopNav"), "DesktopTopNav");
 // Q2440: "Online for deliveries" chip above the dock while a Helpr is online (phone web and the app).
-const DeliveryOnlinePill = lazy(() => import("./components/declutter/DeliveryOnlinePill").then((m) => ({ default: () => <m.DeliveryOnlinePill placement="dock" /> })));
+const DeliveryOnlinePill = optionalLazy(() => import("./components/declutter/DeliveryOnlinePill").then((m) => ({ default: () => <m.DeliveryOnlinePill placement="dock" /> })), "DeliveryOnlinePill");
 // Badge = To-do (owner, 2026-10-20): publishes Home's to-do count for the navs.
-const NeedsYouMount = lazy(() => import("./components/NeedsYouMount"));
+const NeedsYouMount = optionalLazy(() => import("./components/NeedsYouMount"), "NeedsYouMount");
 import { SidePanelProvider } from "./components/sidePanelOpen";
 import { LucideProvider } from "lucide-react";
 import { ICON_STROKE_PX } from "@/lib/iconWeight";
 // /quotes is retired (owner 2026-10-19): old hub links redirect to Posts, Jobs or My Jobs (src/lib/quotes/homes.ts).
 // A thin host: the dialog's chunk loads on the first ask or once the page settles (B86).
-const PermissionRationaleMount = lazy(() =>
-  import("@/components/PermissionRationaleMount").then((m) => ({ default: m.PermissionRationaleMount }))
-);
+const PermissionRationaleMount = optionalLazy(() => import("@/components/PermissionRationaleMount").then((m) => ({ default: m.PermissionRationaleMount })), "PermissionRationaleMount");
 // Terms re-consent and the one Stripe Identity sheet (owner 2026-10-21): small
 // always-mounted parts that fetch their dialog only when it has to show
 // (src/components/TermsReconsentMount.tsx, identity/IdentityCheckMount.tsx).
-const TermsReconsentMount = lazy(() => import("@/components/TermsReconsentMount").then((m) => ({ default: m.TermsReconsentMount })));
-const IdentityCheckMount = lazy(() => import("@/components/identity/IdentityCheckMount").then((m) => ({ default: m.IdentityCheckMount })));
+const TermsReconsentMount = optionalLazy(() => import("@/components/TermsReconsentMount").then((m) => ({ default: m.TermsReconsentMount })), "TermsReconsentMount");
+const IdentityCheckMount = optionalLazy(() => import("@/components/identity/IdentityCheckMount").then((m) => ({ default: m.IdentityCheckMount })), "IdentityCheckMount");
 
 // Lazy load all pages including landing
 const Index = lazyWithPreload(() => import("./pages/info/Index"));
@@ -190,7 +190,7 @@ const Support = lazyWithPreload(() => import("./pages/info/Support"));
 
 // Lazy load less-critical global components
 
-const StrikeBanner = lazy(() => import("./components/StrikeBanner"));
+const StrikeBanner = optionalLazy(() => import("./components/StrikeBanner"), "StrikeBanner");
 
 // Lazy load route wrappers
 const ProtectedRoute = lazy(() => import("./components/ProtectedRoute"));

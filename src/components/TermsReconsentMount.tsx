@@ -1,10 +1,15 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { LATEST_TERMS_VERSION, termsAcceptanceIsCurrent } from "@/lib/consent";
 
-const TermsReconsentDialog = lazy(() =>
-  import("@/components/TermsReconsentDialog").then((m) => ({ default: m.TermsReconsentDialog })),
+import { optionalLazy } from "@/lib/optionalLazy";
+
+// Mounted beside the routes (App.tsx), outside every route boundary: a failed chunk draws nothing (reported as a
+// warning) instead of replacing the whole app with "Something went sideways" (Q1816). It asks again on the next load.
+const TermsReconsentDialog = optionalLazy(
+  () => import("@/components/TermsReconsentDialog").then((m) => ({ default: m.TermsReconsentDialog })),
+  "TermsReconsentDialog",
 );
 
 /**

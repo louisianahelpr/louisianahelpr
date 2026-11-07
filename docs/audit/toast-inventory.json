@@ -2,7 +2,7 @@
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
     "calls": 1185,
-    "files": 335,
+    "files": 336,
     "rendering": 1104,
     "suppressedByPolicy": 81,
     "byKind": {
@@ -14548,83 +14548,7 @@
     },
     {
       "file": "src/pages/profile/GiftCard.tsx",
-      "line": 172,
-      "kind": "toast",
-      "title": {
-        "form": "literal",
-        "text": "Gift cancelled"
-      },
-      "description": {
-        "form": "literal",
-        "text": "No charge was made."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/profile/GiftCard.tsx",
-      "line": 180,
-      "kind": "toast",
-      "title": {
-        "form": "literal",
-        "text": "Gift sent"
-      },
-      "description": {
-        "form": "literal",
-        "text": "We've emailed your recipient a link to claim it. It'll appear below in a moment."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/profile/GiftCard.tsx",
-      "line": 222,
-      "kind": "toast",
-      "title": {
-        "form": "dynamic",
-        "text": "data.already_claimed ? \"Already yours\" : \"Gift claimed\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Already yours"
-          },
-          {
-            "form": "literal",
-            "text": "Gift claimed"
-          }
-        ]
-      },
-      "description": {
-        "form": "dynamic",
-        "text": "data.already_claimed ? \"This gift is already attached to your account.\" : \"It's attached to your account and ready to use.\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "This gift is already attached to your account."
-          },
-          {
-            "form": "literal",
-            "text": "It's attached to your account and ready to use."
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/profile/GiftCard.tsx",
-      "line": 240,
-      "kind": "errorToast",
-      "title": {
-        "form": "literal",
-        "text": "Couldn't claim gift card"
-      },
-      "description": {
-        "form": "dynamic",
-        "text": "userFacingError(e, \"Try again?\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/profile/GiftCard.tsx",
-      "line": 359,
+      "line": 220,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -14898,6 +14822,82 @@
       "description": {
         "form": "literal",
         "text": "Use Share record (PDF) to send this record instead."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/giftCards/useGiftClaimAndReturn.ts",
+      "line": 33,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Gift cancelled"
+      },
+      "description": {
+        "form": "literal",
+        "text": "No charge was made."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/giftCards/useGiftClaimAndReturn.ts",
+      "line": 41,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Gift sent"
+      },
+      "description": {
+        "form": "literal",
+        "text": "We've emailed your recipient a link to claim it. It'll appear below in a moment."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/giftCards/useGiftClaimAndReturn.ts",
+      "line": 83,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "data.already_claimed ? \"Already yours\" : \"Gift claimed\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Already yours"
+          },
+          {
+            "form": "literal",
+            "text": "Gift claimed"
+          }
+        ]
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "data.already_claimed ? \"This gift is already attached to your account.\" : \"It's attached to your account and ready to use.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "This gift is already attached to your account."
+          },
+          {
+            "form": "literal",
+            "text": "It's attached to your account and ready to use."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/giftCards/useGiftClaimAndReturn.ts",
+      "line": 101,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't claim gift card"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"Try again?\")"
       },
       "renders": true
     },

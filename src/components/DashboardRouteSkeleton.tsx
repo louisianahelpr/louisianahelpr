@@ -49,8 +49,9 @@ const DashboardRouteSkeleton = () => (
           </div>
           <div className="flex min-h-full flex-col gap-4 pt-1 pb-6">
             <div className="flex flex-col gap-section">
-              {/* Greeting (text-page-title) + the date line. */}
-              <div>
+              {/* Greeting (text-page-title) + the date line. On a cold signed-in phone /home, index.html's inline script
+                  draws the real greeting into this slot of the HTML copy (#lh-home-shell; homeGreetingShell.mjs, Q1158). */}
+              <div data-skeleton-part="greeting">
                 <Skeleton className="h-8 w-56 max-w-full rounded-ds-md" />
                 <Skeleton className="h-4 w-32 mt-1.5 rounded-ds-md" />
               </div>

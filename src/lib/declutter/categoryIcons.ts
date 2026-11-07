@@ -29,6 +29,7 @@ import {
   Gift,
   Guitar,
   HeartPulse,
+  Home,
   Hourglass,
   Lamp,
   Package,
@@ -43,7 +44,9 @@ import {
   Sofa,
   Sparkles,
   Tent,
+  Trees,
   Tv,
+  Users,
   Wrench,
   type LucideIcon,
 } from "lucide-react";
@@ -108,6 +111,18 @@ export const CATEGORY_GROUPS: { heading: CategoryGroupHeading; values: string[] 
   heading,
   values: CATEGORIES.filter((c) => c.group === heading).map((c) => c.key),
 }));
+
+/**
+ * The icon beside each heading in the Sell form's category drill-down (owner 11-07, after reviewing Vinted: "an
+ * icon per top-level category"). Every heading has one; src/test/declutterCategoryDrillDown.test.tsx checks it.
+ */
+export const CATEGORY_GROUP_ICON: Record<CategoryGroupHeading, LucideIcon> = {
+  Home,
+  Outdoors: Trees,
+  Family: Users,
+  "Hobbies and fun": Palette,
+  More: Package,
+};
 
 /** CATEGORY_GROUPS in the shape of the shared TwoStepCategoryPicker: a short form's category control (no <optgroup>). */
 export const CATEGORY_PICKER_GROUPS = CATEGORY_GROUPS.map((g) => ({

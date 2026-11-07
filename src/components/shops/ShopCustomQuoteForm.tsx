@@ -28,7 +28,7 @@ import { quoteCustomRequest } from "@/lib/shops/customRequests";
 import { SHOP_ITEM_MAX_PRICE_CENTS, shopsErrorMessage } from "@/lib/shops/errors";
 
 /** The kinds a price can be for (shops_quote_custom_request refuses a rental: S5). */
-export const CUSTOM_QUOTE_KINDS: readonly ShopItemKind[] = ["made", "home_food", "farm", "service"];
+const CUSTOM_QUOTE_KINDS: readonly ShopItemKind[] = ["made", "home_food", "farm", "service"];
 const NOTE_MAX = 500;
 const dollars = (c: number) => `$${(c / 100).toLocaleString("en-US")}`;
 

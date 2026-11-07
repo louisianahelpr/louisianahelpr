@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1179,
-    "files": 334,
-    "rendering": 1095,
-    "suppressedByPolicy": 84,
+    "calls": 1182,
+    "files": 336,
+    "rendering": 1097,
+    "suppressedByPolicy": 85,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 225,
-      "toast.error": 795,
+      "toast.error": 797,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 90,
+      "toast.success": 91,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 496,
+      "literal": 497,
       "template": 106,
-      "dynamic": 629,
+      "dynamic": 631,
       "jsx": 0
     }
   },
@@ -10568,6 +10568,16 @@
       "renders": true
     },
     {
+      "file": "src/components/shops/ShopCustomOrderForm.tsx",
+      "line": 78,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/shops/ShopCustomOrdersPicker.tsx",
       "line": 20,
       "kind": "toast.success",
@@ -10588,6 +10598,26 @@
       "renders": true
     },
     {
+      "file": "src/components/shops/ShopCustomQuoteForm.tsx",
+      "line": 66,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Price sent. The buyer has 7 days to order it."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopCustomQuoteForm.tsx",
+      "line": 69,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/shops/ShopCustomRequestSheet.tsx",
       "line": 27,
       "kind": "toast.error",
@@ -10599,7 +10629,7 @@
     },
     {
       "file": "src/components/shops/ShopCustomRequestsList.tsx",
-      "line": 34,
+      "line": 41,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -10619,7 +10649,7 @@
     },
     {
       "file": "src/components/shops/ShopCustomRequestsList.tsx",
-      "line": 35,
+      "line": 42,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

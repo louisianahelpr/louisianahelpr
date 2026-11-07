@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import { createPortal } from "react-dom";
-import { X, ChevronLeft, ChevronRight, Grid3x3 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Grid3x3 } from "lucide-react";
+import { RoundIconButton } from "@/components/ui/RoundIconButton";
+import { DarkGroundCloseButton } from "@/components/ui/DarkGroundCloseButton";
 import { useOverlayFocus } from "@/hooks/useOverlayFocus";
 
 interface PhotoLightboxProps {
@@ -370,34 +372,12 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
         </button>
       )}
 
-      {/* Close X — top-right */}
-      <button
-        type="button"
+      {/* Close X — top-right. The shared DarkGroundCloseButton (Q2709): no `hover:scale-105` (it grew the target
+          under a cursor still arriving at it, owner 2026-09-19), and its rest fill is a class so the hover tint
+          lands (an inline backgroundColor beats every stylesheet rule). */}
+      <DarkGroundCloseButton
         onClick={(e) => { e.stopPropagation(); setLightboxIndex(null); }}
-        aria-label="Close photo viewer"
-        // NO `hover:scale-105`. It grew the target under a cursor that was
-        // still arriving at it — the "some move on hover" half of the owner's
-        // 2026-09-19 report. The disc now tints instead, like every other way
-        // out of a surface.
-        //
-        // The rest fill moved OFF `style` and onto a class for a reason that
-        // is not cosmetic: an inline `backgroundColor` beats every stylesheet
-        // rule, so a hover tint declared in CSS could never land. That is the
-        // same latent bug MessageAttachment's copy of this button had — it
-        // already carried `.ctl-tint` and painted nothing, because its own
-        // inline fill was overriding it. Same computed value, now overridable.
-        // `.ctl-tint-invert` is the tone for chrome on a permanently dark
-        // ground (src/index.css).
-        className="absolute top-3 right-3 w-10 h-10 ctl-exit bg-white/[0.12] ctl-tint-invert flex items-center justify-center transition-all active:scale-95"
-        style={{
-          backdropFilter: "blur(20px) saturate(150%)",
-          WebkitBackdropFilter: "blur(20px) saturate(150%)",
-          border: "0.5px solid rgba(255, 255, 255, 0.2)",
-          color: "white",
-        }}
-      >
-        <X className="w-5 h-5" />
-      </button>
+      />
 
       {mode === "single" && (
         <>
@@ -405,11 +385,10 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
               over an earlier positioned sibling (a phone-wide photo covered the arrow: presses hit the IMG). Both
               arrows sit on a dark backing so they show on a light photo. */}
           {lightboxIndex > 0 && zoom <= 1 && (
-            <button
-              type="button"
+            <RoundIconButton
               onClick={(e) => { e.stopPropagation(); setLightboxIndex((i) => Math.max((i ?? 0) - 1, 0)); }}
               aria-label="Previous photo"
-              className="absolute z-10 left-3 sm:left-6 w-11 h-11 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+              className="absolute z-10 left-3 sm:left-6 hover:scale-110 active:scale-95"
               style={{
                 backgroundColor: "rgba(0, 0, 0, 0.45)",
                 backdropFilter: "blur(20px) saturate(150%)",
@@ -419,7 +398,7 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
               }}
             >
               <ChevronLeft className="w-6 h-6" />
-            </button>
+            </RoundIconButton>
           )}
 
           {/* Image — pinch-zoomable + pan-while-zoomed. */}
@@ -449,11 +428,10 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
 
           {/* Next arrow */}
           {lightboxIndex < photos.length - 1 && zoom <= 1 && (
-            <button
-              type="button"
+            <RoundIconButton
               onClick={(e) => { e.stopPropagation(); setLightboxIndex((i) => Math.min((i ?? 0) + 1, photos.length - 1)); }}
               aria-label="Next photo"
-              className="absolute z-10 right-3 sm:right-6 w-11 h-11 rounded-full flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+              className="absolute z-10 right-3 sm:right-6 hover:scale-110 active:scale-95"
               style={{
                 backgroundColor: "rgba(0, 0, 0, 0.45)",
                 backdropFilter: "blur(20px) saturate(150%)",
@@ -463,7 +441,7 @@ export function PhotoLightbox({ photos, lightboxIndex, setLightboxIndex, openInG
               }}
             >
               <ChevronRight className="w-6 h-6" />
-            </button>
+            </RoundIconButton>
           )}
 
           {/* Thumbnail strip — bottom, only when multiple photos and not zoomed in. */}

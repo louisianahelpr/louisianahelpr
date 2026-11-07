@@ -1,3 +1,4 @@
+import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { Button } from "@/components/ui/button";
 import { Bookmark, MessageSquare, ChevronRight, ShieldCheck, Check } from "lucide-react";
 import { IconActionButton } from "../IconActionButton";
@@ -41,14 +42,13 @@ export const JobDetailFooter = ({
           PENDING SAVE (tracked storage, survives the email round-trip) and
           walks them into signup; the authed bounce consumes it, saves the
           job, and says so. */}
-      <button
-        type="button"
+      <RoundIconButton
         aria-label="Save this job — sign up to keep it"
         onClick={() => {
           rememberPendingSave(job.id);
           navigate(signupUrlFor(`/jobs/${job.id}`));
         }}
-        className="shrink-0 w-11 h-11 sm:h-12 sm:w-12 rounded-full inline-flex items-center justify-center btn-press"
+        className="sm:h-12 sm:w-12 btn-press"
         style={{
           background: "hsl(var(--bark) / 0.08)",
           border: "0.5px solid hsl(var(--bark) / 0.28)",
@@ -56,7 +56,7 @@ export const JobDetailFooter = ({
         }}
       >
         <Bookmark className="w-4 h-4" />
-      </button>
+      </RoundIconButton>
       <Button
         size="lg"
         // See the note on `Get verified` below: navigate() alone, never

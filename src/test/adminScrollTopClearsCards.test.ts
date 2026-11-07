@@ -9,7 +9,8 @@
  * 2. The Declutter cards render next to each other, the stage preview with them.
  *
  * @mutate src/pages/admin/AdminFrame.tsx | lg:p-8 lg:pr-[4.5rem] | lg:p-8
- * @mutate src/components/ScrollToTop.tsx | fixed right-4 z-30 inline-flex h-11 w-11 | fixed right-12 z-30 inline-flex h-11 w-11
+ * @mutate src/components/ScrollToTop.tsx | fixed right-4 z-30 active:scale-[0.94] | fixed right-12 z-30 active:scale-[0.94]
+ * @mutate src/components/ui/RoundIconButton.tsx | md: "w-11 h-11" | md: "w-20 h-20"
  * @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |     <DonationPartnersCard />\n    <DeclutterPreviewCard />\n    <ShopItemsReviewCard />\n | <ShopItemsReviewCard />\n    <DonationPartnersCard />\n    <DeclutterPreviewCard />\n
  * @mutate src/components/admin/settings/FeatureSwitchesCard.tsx |     <DeclutterProblemsCard includeTest={declutterShowTest} />\n    <MeetupSpotsCard />\n | <MeetupSpotsCard />\n    <CategorySuggestionsCard />\n    <DeclutterProblemsCard includeTest={declutterShowTest} />\n
  */
@@ -34,7 +35,15 @@ describe("Q2583 admin scroll-to-top clears card actions; Declutter cards grouped
     const cls = btn.match(/className="(fixed [^"]*)"/)?.[1] ?? "";
     expect(cls).not.toBe("");
     const right = px(cls.match(/(?:^| )right-(\S+)/)?.[1] ?? "x");
-    const width = px(cls.match(/(?:^| )w-(\S+)/)?.[1] ?? "x");
+    // Since 2026-11-07 (Q2709) the button is the shared RoundIconButton: with no w- of its own, its width is that
+    // primitive's size (md unless a size is passed), read from its source.
+    let widthClass = cls.match(/(?:^| )w-(\S+)/)?.[1];
+    if (!widthClass && /<RoundIconButton\b/.test(btn)) {
+      const size = btn.match(/<RoundIconButton\b[^>]*?\bsize="(\w+)"/)?.[1] ?? "md";
+      const sizes = read("src/components/ui/RoundIconButton.tsx");
+      widthClass = sizes.match(new RegExp(`\\b${size}: "[^"]*?\\bw-(\\S+?)[ "]`))?.[1];
+    }
+    const width = px(widthClass ?? "x");
     // A breakpoint-prefixed right/w on the button would escape this check.
     expect(cls).not.toMatch(/(?:sm|md|lg|xl):(?:right|w)-/);
 

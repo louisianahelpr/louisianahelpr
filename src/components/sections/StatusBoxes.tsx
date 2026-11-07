@@ -3,7 +3,7 @@ import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useSearchParams } from "react-router-dom";
 import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
-import { CHIP, CHIP_ON, CHIP_OFF } from "@/components/ui/chipClasses";
+import { ChoiceChip } from "@/components/ui/ChoiceChip";
 
 export interface StatusBoxDef<K extends string> {
   key: K;
@@ -114,18 +114,17 @@ export function StatusBoxes<K extends string>({
     return () => ro?.disconnect();
   }, [value, endFade, boxes.length]);
   const chip =(key: string, label: string, count: number, on: boolean, onClick: () => void) => (
-    <button
+    <ChoiceChip
       key={key}
-      type="button"
-      aria-pressed={on}
+      pressed={on}
       {...(key === ALL ? { "data-status-all": "" } : { "data-status-box": key })}
       data-count={count}
       onClick={onClick}
-      className={`${CHIP} shrink-0 whitespace-nowrap ${on ? CHIP_ON : CHIP_OFF}`}
+      className="shrink-0 whitespace-nowrap"
     >
       <span data-chip-label="">{label}</span>
       {count > 0 && <span className="tabular-nums" data-chip-count="">{`\u00a0· ${count}`}</span>}
-    </button>
+    </ChoiceChip>
   );
   return (
     <div className="flex flex-col gap-2">

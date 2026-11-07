@@ -100,7 +100,11 @@ describe("/declutter's tab-row reads start from the entry (B81)", () => {
     vi.stubEnv("VITE_SUPABASE_URL", BASE);
     vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "pk");
     startDeclutterPrefetch("/declutter");
-    expect(f, "guest").not.toHaveBeenCalled();
+    // A guest gets only the guest page's own reads (Q2705, guestDeclutterPrefetch.ts), never the tab row's.
+    const guestPaths = (f.mock.calls as unknown as [string][]).map(([u]) => new URL(u).pathname);
+    expect(guestPaths.every((p) => ["/rest/v1/rpc/features_open_to_everyone", "/rest/v1/declutter_items", "/rest/v1/declutter_item_photos"].includes(p)), `guest: ${guestPaths.join(", ")}`).toBe(true);
+    f.mockClear();
+    (window as unknown as Record<string, unknown>).__lhGuestDeclutterPrefetch = undefined;
     signIn(30);
     startDeclutterPrefetch("/declutter");
     expect(f, "a token with under a minute left is supabase-js's to refresh").not.toHaveBeenCalled();

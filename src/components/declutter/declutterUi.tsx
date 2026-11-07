@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useFeature } from "@/hooks/useFeature";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { definitelyGuest } from "@/lib/persistedAuthToken";
 import { featureSwitchSettled } from "@/lib/featureSwitchQuery";
 import NotFound from "@/pages/info/NotFound";
 import { DeclutterGuestGate } from "./DeclutterGuest";
@@ -166,7 +167,9 @@ export function DeclutterGate({ children, skeleton, agreedSales }: { children: R
     queryFn: fetchHasAgreedSales,
   });
   if (enabled) return <>{children}</>;
-  if (!isReady) return <>{skeleton}</>;
+  // Q2705: a provable guest (no stored session, readable storage) does not wait for auth to settle (the Supabase chunk
+  // and its session read, ~2.3 s on Slow 4G): the guest gate starts at once, on the entry's own answer.
+  if (!isReady && !definitelyGuest()) return <>{skeleton}</>;
   // BUY-16: a guest reads Declutter while it is open to everyone; otherwise the login wall, as before.
   if (!user) return <DeclutterGuestGate skeleton={skeleton}>{children}</DeclutterGuestGate>;
   if (!settled) return <>{skeleton}</>;

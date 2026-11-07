@@ -155,9 +155,13 @@ describe("the press sweep's network gate aborts every write an ungated press set
       // A read-named RPC is a read by the convention src/test/readNamedRpcsAreNotVolatile.test.ts holds to pg_proc;
       // one every migration declares STABLE / IMMUTABLE is a read by what Postgres enforces
       // (scripts/audit/declaredReadRpcs.mjs, src/test/pressGateReadsDeclaredStableRpcs.test.ts).
-      if (!isReadRpcPath(`/rest/v1/rpc/${name}`) && !isDeclaredReadRpcPath(`/rest/v1/rpc/${name}`) && kind("POST", `/rest/v1/rpc/${name}`) === "read") leaks.push(`rpc ${name}`);
+      // PRESS_PASS_THROUGH_RPCS names each VOLATILE one that passes, with its measured reason.
+      const path = `/rest/v1/rpc/${name}`;
+      if (!isReadRpcPath(path) && !isDeclaredReadRpcPath(path) && !(path in safety.PRESS_PASS_THROUGH_RPCS) && kind("POST", path) === "read") leaks.push(`rpc ${name}`);
     }
     expect(leaks).toEqual([]);
+    // Exact: the one pass-through RPC (run 42362289081, 2026-11-07). A new entry needs its own measured reason.
+    expect(Object.keys(safety.PRESS_PASS_THROUGH_RPCS)).toEqual(["/rest/v1/rpc/rpc_ensure_my_handle"]);
   });
 
   it("the exception lists are exact: each names something the app really calls", () => {

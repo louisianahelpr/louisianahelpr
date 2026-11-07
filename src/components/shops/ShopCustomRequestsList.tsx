@@ -1,0 +1,68 @@
+/**
+ * Custom orders (20261106202917): the member's requests, on their side. The buyer (My orders) reads each ask, the
+ * shop's price when it comes, and can withdraw an open one; the shop (dashboard) reads each ask and can decline it.
+ * Withdraw and decline go through shop-checkout close_request (it also closes the buyer's unpaid page for a price).
+ * Nothing shows while the member has no request on that side.
+ */
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { parseLocalDate } from "@/lib/dateUtils";
+import { fetchMyCustomRequests, type CustomRequest } from "@/lib/shops/customRequests";
+import { closeCustomRequest, formatCents } from "@/lib/shops/orders";
+import { shopsErrorMessage } from "@/lib/shops/errors";
+
+const STATUS_WORDS: Record<CustomRequest["status"], { buyer: string; shop: string }> = {
+  requested: { buyer: "Waiting for the shop's price", shop: "New request" },
+  quoted: { buyer: "The shop sent a price", shop: "Price sent" },
+  accepted: { buyer: "Ordered", shop: "Ordered" },
+  declined: { buyer: "The shop declined", shop: "Declined" },
+  withdrawn: { buyer: "You withdrew it", shop: "The buyer withdrew it" },
+  expired: { buyer: "The price expired", shop: "The price expired" },
+};
+const OPEN = new Set<CustomRequest["status"]>(["requested", "quoted"]);
+
+function dayText(iso: string): string {
+  return parseLocalDate(iso.slice(0, 10)).toLocaleDateString(undefined, { month: "long", day: "numeric" });
+}
+
+export default function ShopCustomRequestsList({ side }: { side: "buyer" | "shop" }) {
+  const qc = useQueryClient();
+  const list = useQuery({ queryKey: ["shops", "custom-requests"], queryFn: fetchMyCustomRequests });
+  const close = useMutation({
+    mutationFn: (id: string) => closeCustomRequest(id),
+    onSuccess: () => toast.success(side === "buyer" ? "Request withdrawn." : "Request declined. The buyer is told."),
+    onError: (err) => toast.error(shopsErrorMessage(err)),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["shops", "custom-requests"] }),
+  });
+  const rows = (list.data ?? []).filter((r) => r.role === side);
+  // A failed or empty read shows nothing: the orders around it stand on their own.
+  if (rows.length === 0) return null;
+  return (
+    <section className="space-y-2" aria-labelledby={`shop-custom-requests-${side}`}>
+      <h2 id={`shop-custom-requests-${side}`} className="text-sm font-semibold">Custom requests</h2>
+      <ul className="space-y-3">
+        {rows.map((r) => (
+          <li key={r.id} className="space-y-1 rounded-2xl border border-border bg-card p-4" data-testid="shop-custom-request">
+            <div className="flex items-start justify-between gap-2">
+              <p className="min-w-0 font-semibold [overflow-wrap:anywhere]">{side === "buyer" ? (r.shop_name ?? "A shop") : "A buyer's request"}</p>
+              {r.quote_cents !== null && <p className="shrink-0 text-sm font-semibold">{formatCents(r.quote_cents)}</p>}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {STATUS_WORDS[r.status][side]}
+              {r.status === "quoted" && r.expires_at ? `, good until ${dayText(r.expires_at)}` : ""}
+            </p>
+            <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">{r.description}</p>
+            {r.wanted_date && <p className="text-sm">Wanted by {dayText(r.wanted_date)}</p>}
+            {r.quote_note && <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">Shop's note: {r.quote_note}</p>}
+            {OPEN.has(r.status) && (
+              <Button type="button" size="sm" variant="outline" disabled={close.isPending} onClick={() => close.mutate(r.id)}>
+                {side === "buyer" ? "Withdraw request" : "Decline"}
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}

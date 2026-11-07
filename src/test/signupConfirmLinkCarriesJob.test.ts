@@ -9,10 +9,10 @@
  *
  * @mutate supabase/functions/_shared/confirmLink.ts |  if (jobId && JOB_ID.test(jobId)) url.searchParams.set("job", jobId);\n |
  * @mutate supabase/functions/_shared/confirmLink.ts |    return url.pathname === CONFIRM_LINK_PATH && JOB_ID.test(job) ? job.toLowerCase() : null; |    return job \|\| null;
- * @mutate supabase/functions/auth-email-hook/index.ts | confirmLinkUrl(getAppUrl(), emailData.token_hash, 'signup', confirmLinkJobFromRedirect(emailData.redirect_to)) | confirmLinkUrl(getAppUrl(), emailData.token_hash, 'signup')
+ * @mutate supabase/functions/auth-email-hook/index.ts | confirmLinkUrl(getAppUrl(), emailData.token_hash, 'signup', confirmLinkJobFromRedirect(emailData.redirect_to), | confirmLinkUrl(getAppUrl(), emailData.token_hash, 'signup', null,
  * @mutate src/lib/jobIntent.ts |  const job = id ?? linkJobId; |  const job = id;
- * @mutate src/pages/auth/Signup.tsx | emailRedirectTo: getSignupConfirmRedirect(peekJobIntent()), | emailRedirectTo: getSignupConfirmRedirect(),
- * @mutate src/pages/auth/SignupPending.tsx | navigate(postAuthDestination("/home", confirmLinkJob(location.search)), { replace: true }) | navigate(postAuthDestination(), { replace: true })
+ * @mutate src/pages/auth/Signup.tsx | emailRedirectTo: getSignupConfirmRedirect(peekJobIntent(), peekSignupRedirectItem()), | emailRedirectTo: getSignupConfirmRedirect(null, peekSignupRedirectItem()),
+ * @mutate src/pages/auth/SignupPending.tsx | onConfirmed={() => navigate(postAuthDestination("/home", confirmLinkJob(location.search), confirmLinkItem(location.search)), { replace: true })} | onConfirmed={() => navigate(postAuthDestination(), { replace: true })}
  */
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it } from "vitest";
@@ -58,9 +58,10 @@ describe("a sign-up finished in another browser keeps the shared job (Q2496)", (
   });
 
   it("the sign-up, the resend and the hook all pass the job along", () => {
-    expect(code("src/pages/auth/Signup.tsx")).toContain("emailRedirectTo: getSignupConfirmRedirect(peekJobIntent()),");
-    expect(code("src/pages/auth/SignupPending.tsx")).toContain("emailRedirectTo: getSignupConfirmRedirect(peekJobIntent() ?? confirmLinkJob(location.search)),");
-    expect(code("src/pages/auth/SignupPending.tsx")).toContain('navigate(postAuthDestination("/home", confirmLinkJob(location.search)), { replace: true })');
-    expect(code("supabase/functions/auth-email-hook/index.ts")).toContain("confirmLinkUrl(getAppUrl(), emailData.token_hash, 'signup', confirmLinkJobFromRedirect(emailData.redirect_to))");
+    // 11-07: each now also passes the Declutter item (signupConfirmLinkCarriesItem.test.ts); the job is unchanged.
+    expect(code("src/pages/auth/Signup.tsx")).toContain("emailRedirectTo: getSignupConfirmRedirect(peekJobIntent(), peekSignupRedirectItem()),");
+    expect(code("src/pages/auth/SignupPending.tsx")).toContain("emailRedirectTo: getSignupConfirmRedirect(peekJobIntent() ?? confirmLinkJob(location.search),");
+    expect(code("src/pages/auth/SignupPending.tsx")).toContain('onConfirmed={() => navigate(postAuthDestination("/home", confirmLinkJob(location.search), confirmLinkItem(location.search)), { replace: true })}');
+    expect(code("supabase/functions/auth-email-hook/index.ts")).toContain("confirmLinkUrl(getAppUrl(), emailData.token_hash, 'signup', confirmLinkJobFromRedirect(emailData.redirect_to),");
   });
 });

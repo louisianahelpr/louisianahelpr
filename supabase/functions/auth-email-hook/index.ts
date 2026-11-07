@@ -17,7 +17,7 @@ import { publicErrorMessage } from "../_shared/publicError.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { carriesStandardWebhookHeaders } from "../_shared/standardWebhookHeaders.ts";
 import { HOOK_ANSWER_BY_MS, answerBudgetMs, answerOrFinishInBackground } from "../_shared/answerWithin.ts";
-import { confirmLinkJobFromRedirect, confirmLinkUrl } from "../_shared/confirmLink.ts";
+import { confirmLinkItemFromRedirect, confirmLinkJobFromRedirect, confirmLinkUrl } from "../_shared/confirmLink.ts";
 
 
 // ED-002: every failure branch here blocks a signup confirmation, password
@@ -303,7 +303,8 @@ async function deliver(user: any, emailData: any, emailType: string, EmailTempla
     }
   }
   const confirmationUrl = scannerSafe
-    ? confirmLinkUrl(getAppUrl(), emailData.token_hash, 'signup', confirmLinkJobFromRedirect(emailData.redirect_to))
+    ? confirmLinkUrl(getAppUrl(), emailData.token_hash, 'signup', confirmLinkJobFromRedirect(emailData.redirect_to),
+        confirmLinkItemFromRedirect(emailData.redirect_to))
     : verifyUrl.toString()
 
   const templateProps = {

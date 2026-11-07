@@ -69,7 +69,7 @@ export function peekJobIntent(): string | null {
   return safeStorage.getItem(KEY) || null;
 }
 
-export function postAuthDestination(fallback = "/home", linkJobId: string | null = null): string {
+export function postAuthDestination(fallback = "/home", linkJobId: string | null = null, linkItemId: string | null = null): string {
   // A full destination path (`?redirect=`) is more specific than a bare job
   // id, so it wins. Both reads are destructive, so a session only ever spends
   // one of them and neither can fire again on an unrelated later sign-in.
@@ -79,7 +79,22 @@ export function postAuthDestination(fallback = "/home", linkJobId: string | null
   // Q2496: no intent in THIS browser (the email opened elsewhere): the job the
   // confirm link carried.
   const job = id ?? linkJobId;
-  return job ? `/home?quickApply=${encodeURIComponent(job)}` : fallback;
+  if (job) return `/home?quickApply=${encodeURIComponent(job)}`;
+  // 11-07: else the Declutter item the confirm link carried (a uuid only, checked again here).
+  return linkItemId && ITEM_UUID.test(linkItemId) ? `/declutter/item/${linkItemId.toLowerCase()}` : fallback;
+}
+
+const ITEM_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * 11-07: the Declutter item this browser's pending `?redirect=` names (`/declutter/item/<uuid>`), NOT cleared, so
+ * Signup and the resend can put it in the confirm link (getSignupConfirmRedirect). Null for any other redirect.
+ */
+export function peekSignupRedirectItem(): string | null {
+  const safe = safeInternalRedirect(safeStorage.getItem(REDIRECT_KEY));
+  if (!safe) return null;
+  const m = /^\/declutter\/item\/([^/?#]+)/.exec(new URL(safe, "https://x.invalid").pathname);
+  return m && ITEM_UUID.test(m[1]) ? m[1].toLowerCase() : null;
 }
 
 /**

@@ -7,6 +7,7 @@
 // recenter button) stays a component. The behaviour, geometry and colour
 // tokens are unchanged.
 
+import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { Crosshair } from "lucide-react";
 import { LA_STATE_BOUNDS, MAP_DOCK_CLEARANCE, type MapJob } from "./config";
 import type { BusyCircle } from "@/lib/busyAreas";
@@ -138,15 +139,14 @@ export function fitToPins(
 // sheet when one is open. 44x44 (w-11 h-11) meets the project tap-target floor.
 function MyLocationControl({ onLocate, busy = false }: { onLocate: () => void; busy?: boolean }) {
   return (
-    <button
-      type="button"
+    <RoundIconButton
       onClick={onLocate}
       disabled={busy}
       aria-label="Show my location"
       aria-busy={busy || undefined}
       title="Show my location"
       data-testid="browse-map-my-location"
-      className="pointer-events-auto w-11 h-11 rounded-full flex items-center justify-center active:scale-[0.94] transition-all"
+      className="pointer-events-auto active:scale-[0.94]"
       style={{
         // TOKENS, not a literal white (fixed 2026-08-31). This was
         // `hsla(0,0%,100%,0.85)` with `color: hsl(var(--olivewood))`. In light
@@ -167,7 +167,7 @@ function MyLocationControl({ onLocate, busy = false }: { onLocate: () => void; b
       }}
     >
       <Crosshair className="w-4 h-4" />
-    </button>
+    </RoundIconButton>
   );
 }
 

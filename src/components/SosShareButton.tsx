@@ -1,3 +1,4 @@
+import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { useState } from "react";
 import type React from "react";
 import { useInRouterContext, useNavigate } from "react-router-dom";
@@ -163,12 +164,11 @@ export function SafetyShieldButton({
   if (!sosOffered(job)) return null;
   return (
     <>
-      <button
-        type="button"
+      <RoundIconButton
         aria-label="SOS — are you safe?"
         data-sos-shield=""
         onClick={() => setOpen(true)}
-        className="shrink-0 inline-flex items-center justify-center w-11 h-11 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
+        className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background"
         style={{
           border: "1.5px solid hsl(var(--destructive))",
           background: "hsl(var(--card))",
@@ -176,7 +176,7 @@ export function SafetyShieldButton({
         }}
       >
         <ShieldAlert className="w-5 h-5" aria-hidden />
-      </button>
+      </RoundIconButton>
       <SosShareSheet jobId={job.id} open={open} onOpenChange={setOpen} />
     </>
   );

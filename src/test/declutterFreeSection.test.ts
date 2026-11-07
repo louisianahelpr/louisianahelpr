@@ -44,7 +44,9 @@ describe("the Declutter Free section", () => {
     // Q2659 (20261102113853): verbatim plus the notices' subject lines (declutterNoticeRefCallersVerbatim.test.ts).
     // Q2390 p37 (20261103222939): restated verbatim with its not-found as PT404 only.
     // Q2731 (20261104124645): restated verbatim with its notice block skipped while a bundle answer takes the items.
-    expect(newestFunction("declutter_take_item").file).toContain("20261104124645_declutter_bundle_take_quiet.sql");
+    // 11-07 (20261107185819): restated verbatim with only the free hold notice's last sentence changed (a first-timer
+    // is told about the one-time ID check); the free claim is kept (asserted below).
+    expect(newestFunction("declutter_take_item").file).toContain("20261107185819_declutter_free_pick_notice_first_timer.sql");
     // declutter_checkout_free: restated by #26 (20261028204431, its notice line), #37 (20261028223036, its seller link)
     // and the ways the giver ticked (20261028235247_declutter_handover_choices.sql: handover_not_offered).
     // Then D-NEW14 porch places (20261030164712: porch_place_needed and the frozen place, insertion only).

@@ -911,6 +911,9 @@ serve(async (req) => {
         continue;
       }
       let beforeSend = true;
+      // 11-07 (lh-silent-failure): the deposit leg of a two-charge payout that is already in Stripe, so a failure of the
+      // rest leg is never reported as the whole amount owed (paying that by hand would pay the deposit leg twice).
+      let depositLegSent: { id: string; amount: number } | null = null;
       try {
         const mode = shopOrderMode({ livemode: p.livemode, checkout_session_id: p.checkout_session_id });
         if (mode) {
@@ -934,6 +937,7 @@ serve(async (req) => {
         });
         let shopTransfer = legOf("deposit");
         let restTransfer = restPi ? legOf("rest") : undefined;
+        if (restPi && shopTransfer) depositLegSent = { id: shopTransfer.id, amount: Number(shopTransfer.amount ?? 0) };
         // Whole when the deposit leg exists and, for two charges, the rest leg too (or the deposit leg alone is the
         // whole amount: no rest leg is owed).
         const existing = shopTransfer && (!restPi || restTransfer || Number(shopTransfer.amount ?? 0) >= p.amount_cents)
@@ -986,6 +990,7 @@ serve(async (req) => {
               },
               { idempotencyKey: `shop-payout-${p.payout_id}` },
             );
+            if (restPi) depositLegSent = { id: shopTransfer.id, amount: depositLeg };
           }
           if (restPi && restCharge && restLeg > 0 && !restTransfer) {
             restTransfer = await stripe.transfers.create(
@@ -1043,7 +1048,12 @@ serve(async (req) => {
           await skipRow("shop", p.payout_id, p.seller_id, p.amount_cents, 15, "transient", caughtMessage(e, "failed"));
           continue;
         }
-        const msg = caughtMessage(e, "transfer failed");
+        // A rest leg that failed after the deposit leg went out names the deposit leg and owes only the rest.
+        const leftOwed = depositLegSent ? Math.max(0, p.amount_cents - depositLegSent.amount) : p.amount_cents;
+        const sentNote = depositLegSent
+          ? `deposit leg ${depositLegSent.id} (${dollars(depositLegSent.amount)}) already sent; only the rest leg (${dollars(leftOwed)}) is owed: `
+          : "";
+        const msg = sentNote + caughtMessage(e, "transfer failed");
         defects.record(`shop payout ${p.payout_id}: ${msg}`.slice(0, 200));
         const { error } = await admin.rpc("shop_payout_executed", {
           p_payout_id: p.payout_id, p_transfer_id: null, p_succeeded: false, p_error: msg.slice(0, 500),
@@ -1057,7 +1067,9 @@ serve(async (req) => {
             title: "Shops payout gave up",
             message: /charge is not whole/.test(msg)
               ? `Shop payout ${p.payout_id} (${dollars(p.amount_cents)}, order ${p.order_id}) gave up: the order's charge was refunded or disputed. Do NOT pay the shop by hand; decide the order first. Last reason: ${msg.slice(0, 200)}.`
-              : `Shop payout ${p.payout_id} (${dollars(p.amount_cents)}, order ${p.order_id}) failed 12 times. Last reason: ${msg.slice(0, 200)}. Pay it by hand.`,
+              : depositLegSent
+                ? `Shop payout ${p.payout_id} (order ${p.order_id}) failed 12 times on its REST leg. The deposit leg ${depositLegSent.id} (${dollars(depositLegSent.amount)}) already went out: pay ONLY the rest, ${dollars(leftOwed)}, by hand, never the whole ${dollars(p.amount_cents)}. Last reason: ${msg.slice(0, 200)}.`
+                : `Shop payout ${p.payout_id} (${dollars(p.amount_cents)}, order ${p.order_id}) failed 12 times. Last reason: ${msg.slice(0, 200)}. Pay it by hand.`,
             fields: { Group: group },
           });
         }

@@ -66,6 +66,8 @@ async function recordShopHandRefunds(
   logStep: WebhookContext["logStep"],
   /** Always added to the page of a newly recorded refund (11-07: the rest's charge, whose tax is reversed by hand). */
   alwaysSay?: string,
+  /** 11-07: the rest's charge pages under its own daily key, so its tax page is never swallowed by the deposit's. */
+  keySuffix = "",
 ): Promise<void> {
   const hand = refunds.filter((r) => Boolean(r?.id) && r.status !== "failed" && r.status !== "canceled"
     && (r.metadata as Record<string, string> | null)?.kind !== "shop_refund");
@@ -97,7 +99,7 @@ async function recordShopHandRefunds(
       await postSlackOpsAlert({
         seed: orderIsSeed,
         // Once per order (rule A of the v2 review): the order is held as a whole; one page carries its history.
-        kind: "money_at_risk", severity: "critical", oncePerDayKey: `shop-hand-refund-${orderId ?? paymentIntentId}`,
+        kind: "money_at_risk", severity: "critical", oncePerDayKey: `shop-hand-refund-${orderId ?? paymentIntentId}${keySuffix}`,
         title: "Shops: a charge was refunded outside the app",
         message: `Refund ${r.id} ($${formatExactDollars(Number(r.amount ?? 0) / 100)}) on ${paymentIntentId} was made in Stripe, not by the app. ${why} Refunds on this charge: ${history}.`,
         fields: { Charge: charge.id, Order: orderId ?? "?", Outcome: error ? "not recorded" : String(data) },
@@ -225,7 +227,8 @@ export async function handleChargeRefunded(
     await recordShopHandRefunds(event, charge, refundPiId,
       allRefunds.filter((r) => (r?.metadata as Record<string, string> | null)?.kind !== "shop_balance_refund"),
       restMeta.order_id ?? null, supabase, logStep,
-      "This was the REST of a 50% deposit order (its second charge). Its sales-tax share was NOT reversed: reverse that share in Stripe Tax on the order's transaction (the deposit PaymentIntent's metadata.tax_transaction_id).");
+      "This was the REST of a 50% deposit order (its second charge). Its sales-tax share was NOT reversed: reverse that share in Stripe Tax on the order's transaction (the deposit PaymentIntent's metadata.tax_transaction_id).",
+      "-rest");
     return;
   }
   // Shops (M3, 20261019071055): its refunds are decided, recorded (shop_refunds)

@@ -166,7 +166,7 @@ AS $fn$
                    -- 11-07 (money review change 1): a deposit order whose rest is paid was charged twice, and each
                    -- charge took its own card fee: the deposit's (recorded, else estimated on the deposit charge) plus
                    -- the rest's (recorded by shop_balance_paid, else estimated on the rest).
-                   CASE WHEN so.payment_plan = 'deposit_50' AND so.balance_captured_at IS NOT NULL
+                   CASE WHEN public.shop_order_two_charges(so)
                         THEN COALESCE(so.card_fee_cents, public.declutter_card_fee_estimate(so.deposit_cents))
                              + COALESCE(so.balance_card_fee_cents, public.declutter_card_fee_estimate(so.balance_cents))
                         ELSE so.card_fee_cents END AS card_fee_cents

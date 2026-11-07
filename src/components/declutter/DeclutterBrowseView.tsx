@@ -27,6 +27,8 @@ import { useFeature } from "@/hooks/useFeature";
 import { safeStorage } from "@/lib/safeStorage";
 import { fetchDropStates, fetchDroppedIntoBudget, fetchItemWays, fetchLiveItems, fetchMapPins, fetchPhotos, fetchWatching } from "@/lib/declutter/api";
 import { useWatchToggle } from "./useWatchToggle";
+import { DeclutterCategoryChips } from "./DeclutterCategoryChips";
+import { fetchSaveCounts, shownSaves } from "@/lib/declutter/saveCounts";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DISTANCE_CHOICES, nearestFirst } from "@/lib/declutter/distance";
 import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParams, browseStateInParams, dropOutlook, droppedQueryFromParams, isNewSince, newSinceFromParams, type DeclutterFilters } from "@/lib/declutter/browseFilters";
@@ -300,6 +302,28 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
   // A guest's full list not asked yet (it waits on the preview, above) is loading too, never "Nothing for sale".
   const fullListWaiting = !fullListNow && !fullListAsked && items.data === undefined;
   const listLoading = ((items.isLoading || fullListWaiting) && !preview) || photos.isLoading || drops.isLoading || watching.isLoading || origin.status === "pending";
+  // Owner 11-07 (Vinted review): each heart shows how many saved the item. Read only AFTER the cards have painted,
+  // never inside the gate above (a guest from Facebook waits for nothing extra), for guests and members alike.
+  const [cardsPainted, setCardsPainted] = useState(false);
+  useEffect(() => {
+    if (listLoading || cardsPainted) return;
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const raf = requestAnimationFrame(() => { t = setTimeout(() => setCardsPainted(true), 0); });
+    return () => { cancelAnimationFrame(raf); if (t) clearTimeout(t); };
+  }, [listLoading, cardsPainted]);
+  const saveCounts = useQuery({
+    queryKey: ["declutter", "save-counts", others.map((i) => i.id).join(",")],
+    // The viewer's own saves at read time, so a heart tap moves the number at once (shownSaves) without a new read.
+    queryFn: async () => ({ counts: await fetchSaveCounts(others.map((i) => i.id)), mine: new Set(watching.data ?? []) }),
+    enabled: cardsPainted && others.length > 0,
+    placeholderData: keepPreviousData,
+    staleTime: 60_000,
+  });
+  const savesOf = (id: string): number | null => {
+    const read = saveCounts.data;
+    if (!read?.counts) return null;
+    return shownSaves(read.counts.get(id) ?? 0, read.mine.has(id), watching.data?.has(id) ?? false);
+  };
   // Offline with nothing loaded is never "Nothing for sale yet" (Q571).
   const itemsPhase = useFeedPhase(items);
   const ask = { origin, asked, asking, canAskAgain, deviceNote, askDevice, zip, guest: !member };
@@ -377,8 +401,11 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
   } else {
     const list = (
       <div className={rows.length === 0 ? "flex min-h-0 min-w-0 flex-1 flex-col gap-4" : "min-w-0 space-y-4"}>
-        {/* No chip row under "Search items" (owner 2026-10-21): category, porch pickup and price drops live only in
-            the filter sheet. Guard: src/test/browseCategoryGroups.test.tsx. */}
+        {/* Owner 11-07 (Vinted review; replaces 10-21's "no chip row"): the category chips at the top of the list. Porch
+            pickup, price drops and the rest stay in the filter sheet. Guard: src/test/declutterBrowseChipsAndSaves.test.tsx. */}
+        {itemsPhase !== "offline-empty" && others.length > 0 && (
+          <DeclutterCategoryChips items={others} value={filters.category} onChange={(category) => setFilters((f) => ({ ...f, category }))} />
+        )}
         {/* The filters a saved search keeps: words, category, price, distance and (BUY-13) Free, porch pickup, price
             drops and condition; the sheet shows them. Sort is how the list is ordered, not what it alerts on. */}
         {member && (q || filters.category || filters.minDollars !== null || filters.maxDollars !== null || (from && maxMiles !== null) || hasExtras(saveExtras)) && (
@@ -423,6 +450,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
                   aboveFold={index < declutterAboveFoldCount(desktop && !mapVisible, window.innerWidth, window.innerHeight)}
                   tag={isNewSince(item, newSince, droppedIn.data) ? "new" : outlook.get(item.id)?.tonight ? "drop" : item.delivery_size !== "small" ? "delivery" : null}
                   bundle={bundles.data?.has(item.seller_id) ?? false}
+                  saves={savesOf(item.id)}
                   save={member ? {
                     on: watching.data?.has(item.id) ?? false,
                     toggle: () => toggleWatch.mutate({ id: item.id, on: !(watching.data?.has(item.id) ?? false) }),

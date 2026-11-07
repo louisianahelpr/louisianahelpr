@@ -6,7 +6,7 @@
 // row held "$40" twice, and the switch label read "Save Card for Next Time".
 //
 // @mutate src/components/postjob/CheckoutBudgetLine.tsx |   if (!(budgetNum > 0 && (hasGift \|\| Math.round(totalWithTax * 100) !== Math.round(budgetNum * 100)))) return crewLine; |   if (!(budgetNum > 0)) return crewLine;
-// @mutate src/components/postjob/CheckoutStep.tsx |           {/* No money row here (audit 11-01 JA-45) | <span><DollarSign />Total ${formatPriceExact(totalWithTax)}</span>{/* No money row here (audit 11-01 JA-45)
+// @mutate src/components/postjob/CheckoutStep.tsx |       <CheckoutGlanceCard {...{ | <span>Total ${formatPriceExact(totalWithTax)}</span><CheckoutGlanceCard {...{
 // @mutate src/components/postjob/CheckoutStep.tsx | I've checked the details above, and they're right. | I understand the Helpr's payout will be released after both parties confirm job completion.
 // @mutate src/components/postjob/CheckoutStep.tsx | <span className="font-semibold block">Save card for next time</span> | <span className="font-semibold block">Save Card for Next Time</span>
 import { describe, it, expect, vi } from "vitest";

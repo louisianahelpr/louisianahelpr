@@ -11,14 +11,20 @@
  * @mutate supabase/functions/_shared/landlordIdRetention.ts |         if (!Number.isFinite(created) \|\| created <= decidedAt) doomed.push(`${prefix}/${o.name}`); |         doomed.push(`${prefix}/${o.name}`);
  * @mutate supabase/functions/_shared/landlordIdRetention.ts |       if (rmErr) {\n        out.failures.push(`${row.user_id}: remove ${rmErr.message}`);\n        continue;\n      } |       if (rmErr) {\n        out.failures.push(`${row.user_id}: remove ${rmErr.message}`);\n      }
  * @mutate supabase/functions/_shared/landlordIdRetention.ts |       if (removed !== doomed.length) { |       if (false) {
+ * @mutate supabase/functions/_shared/landlordIdRetention.ts |   const paths = data.map((r) => r.name).filter((n) => typeof n === "string" && n.split("/")[1] === LANDLORD_ID_FOLDER); |   const paths = data.map((r) => r.name);
+ * @mutate supabase/functions/_shared/landlordIdRetention.ts |     if (removed !== batch.length) out.failures.push | if (false) out.failures.push
+ * @mutate supabase/functions/cleanup-abandoned-accounts/index.ts |     const landlordIdOrphans = await sweepOrphanLandlordIdImages(supabase as unknown as LandlordIdOrphanClient, { dryRun }); |     const landlordIdOrphans = { found: 0, removed: 0, failures: [] as string[] };
  * @mutate supabase/functions/cleanup-abandoned-accounts/index.ts |     const landlordId = await sweepLandlordIdImages(supabase as unknown as LandlordIdSweepClient, { dryRun }); |     const landlordId = { due: 0, removed: 0, stamped: 0, failures: [] as string[] };
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  LANDLORD_ID_ORPHAN_MIN_AGE_HOURS,
   LANDLORD_ID_RETENTION_DAYS,
   sweepLandlordIdImages,
+  sweepOrphanLandlordIdImages,
+  type LandlordIdOrphanClient,
   type LandlordIdSweepClient,
 } from "../../../supabase/functions/_shared/landlordIdRetention";
 import { blankComments } from "../helpers/blankNonCode";
@@ -120,5 +126,60 @@ describe("landlord ID retention sweep", () => {
     expect(src.length).toBeGreaterThan(1000);
     expect(src).toContain("const landlordId = await sweepLandlordIdImages(supabase as unknown as LandlordIdSweepClient, { dryRun });");
     expect(src).toContain("for (const f of landlordId.failures) defects.record(`landlord ID retention: ${f}`);");
+    expect(src).toContain("const landlordIdOrphans = await sweepOrphanLandlordIdImages(supabase as unknown as LandlordIdOrphanClient, { dryRun });");
+    expect(src).toContain("for (const f of landlordIdOrphans.failures) defects.record(`landlord ID orphan photos: ${f}`);");
+  });
+});
+
+// Q2202: a photo uploaded but never submitted (the app died between the upload and the submit RPC) is named by no
+// review row; the SQL half that finds it is landlord_id_orphan_photos (src/test/pglite/landlordIdOrphanPhotos.pglite.mjs).
+function orphanFake(opts: { readErr?: string; removeErr?: string; removesOnly?: number; names?: string[] } = {}) {
+  const calls = { read: [] as unknown[], removed: [] as string[][] };
+  const names = opts.names ?? ["u1/landlord-id/9-front-crash.jpg", "u2/landlord-id/3-back-crash.jpg"];
+  const client = {
+    rpc: (_fn: string, args: Record<string, unknown>) => {
+      calls.read.push(args);
+      return Promise.resolve(opts.readErr ? { data: null, error: { message: opts.readErr } } : { data: names.map((name) => ({ name })), error: null });
+    },
+    storage: {
+      from: (bucket: string) => ({
+        remove: (paths: string[]) => {
+          calls.removed.push(paths.map((p) => `${bucket}:${p}`));
+          if (opts.removeErr) return Promise.resolve({ data: null, error: { message: opts.removeErr } });
+          return Promise.resolve({ data: paths.slice(0, opts.removesOnly ?? paths.length).map((name) => ({ name })), error: null });
+        },
+      }),
+    },
+  } as unknown as LandlordIdOrphanClient;
+  return { client, calls };
+}
+
+describe("Q2202: landlord ID photos no review names are deleted after a day", () => {
+  it("asks for uploads at least a day old and removes each from the private bucket", async () => {
+    expect(LANDLORD_ID_ORPHAN_MIN_AGE_HOURS).toBe(24);
+    const { client, calls } = orphanFake();
+    const r = await sweepOrphanLandlordIdImages(client);
+    expect(calls.read).toEqual([{ p_min_age_hours: 24, p_limit: 500 }]);
+    expect(calls.removed).toEqual([["user-documents:u1/landlord-id/9-front-crash.jpg", "user-documents:u2/landlord-id/3-back-crash.jpg"]]);
+    expect(r).toEqual({ found: 2, removed: 2, failures: [] });
+  });
+
+  it("never removes a path outside a landlord-id folder, whatever the read returns", async () => {
+    const { client, calls } = orphanFake({ names: ["u1/ownership/deed.pdf", "u1/landlord-id/1.jpg"] });
+    await sweepOrphanLandlordIdImages(client);
+    expect(calls.removed).toEqual([["user-documents:u1/landlord-id/1.jpg"]]);
+  });
+
+  it("a failed read, a failed removal, or a short removal is a failure, never a clean run", async () => {
+    expect((await sweepOrphanLandlordIdImages(orphanFake({ readErr: "rpc missing" }).client)).failures).toEqual(["orphan read: rpc missing"]);
+    expect((await sweepOrphanLandlordIdImages(orphanFake({ removeErr: "storage down" }).client)).failures).toEqual(["orphan remove: storage down"]);
+    expect((await sweepOrphanLandlordIdImages(orphanFake({ removesOnly: 1 }).client)).failures).toEqual(["orphan remove: removed 1 of 2 photos"]);
+  });
+
+  it("dry run removes nothing", async () => {
+    const { client, calls } = orphanFake();
+    const r = await sweepOrphanLandlordIdImages(client, { dryRun: true });
+    expect(calls.removed).toEqual([]);
+    expect(r.found).toBe(2);
   });
 });

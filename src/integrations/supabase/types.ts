@@ -20357,6 +20357,12 @@ export type Database = {
           user_id: string
         }[]
       }
+      landlord_id_orphan_photos: {
+        Args: { p_limit?: number; p_min_age_hours?: number }
+        Returns: {
+          name: string
+        }[]
+      }
       lift_ban_settlement_review: {
         Args: { p_admin_id: string; p_ban_status?: string; p_user_id: string }
         Returns: Json

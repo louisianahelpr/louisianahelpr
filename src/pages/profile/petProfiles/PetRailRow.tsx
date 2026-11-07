@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { Pencil, Trash2 } from "lucide-react";
 import type { PetProfile } from "./types";
 import { SPECIES_OPTIONS, speciesEmoji } from "./petProfilesHelpers";
@@ -41,11 +42,10 @@ export function PetRailRow({
       className="group/row w-full flex items-center gap-1 pr-2 transition-colors"
       style={{ background: active ? "hsl(var(--bark) / 0.10)" : "transparent" }}
     >
-      <button
-        type="button"
+      <ListRow variant="flush"
         onClick={onSelect}
         aria-current={active ? "true" : undefined}
-        className="flex-1 min-w-0 flex items-center gap-3 pl-4 pr-1 py-2.5 text-left transition-colors active:bg-secondary/40"
+        className="flex-1 min-w-0 flex items-center gap-3 pl-4 pr-1 py-2.5 text-left transition-colors active:bg-secondary/40 min-h-11 w-auto"
       >
         <div
           className="w-9 h-9 rounded-full flex items-center justify-center text-lg shrink-0"
@@ -76,7 +76,7 @@ export function PetRailRow({
             {pet.age_years != null ? ` · ${pet.age_years}yr` : ""}
           </p>
         </div>
-      </button>
+      </ListRow>
 
       {/* Edit + delete. Named per-pet, because "Edit" alone in a list of five
           pets tells a screen-reader user nothing about which one. Kept at the

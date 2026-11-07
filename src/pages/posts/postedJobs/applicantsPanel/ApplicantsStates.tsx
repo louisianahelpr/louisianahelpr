@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { AlertCircle, CalendarClock, Pencil, Rocket, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
@@ -162,8 +163,7 @@ function LeverRow({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <ListRow variant="flush"
       onClick={onClick}
       className="w-full min-h-[52px] rounded-ds-md px-3.5 py-2.5 flex items-center gap-3 text-left btn-press motion-safe:transition-colors"
       style={{
@@ -190,7 +190,7 @@ function LeverRow({
           {detail}
         </span>
       </span>
-    </button>
+    </ListRow>
   );
 }
 

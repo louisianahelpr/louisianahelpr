@@ -17,6 +17,7 @@ import { identityCheckOn } from "@/lib/identityCheckSwitch";
 import { supabase } from "@/integrations/supabase/client";
 import { hasIdBadge } from "@/lib/awardGate";
 import { report } from "@/lib/errorLogger";
+import { toast } from "sonner";
 
 /** Why the sheet opened: picks the first sentence, never the rule. */
 // "shop_buy" / "shop_list": Shops reuses Declutter's gate and codes (20261105174853), with its own words.
@@ -31,15 +32,60 @@ let state: SheetState = { open: false, reason: "general" };
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
+/** What a member hears when the sheet's code could not load on this page. */
+export const IDENTITY_SHEET_UNAVAILABLE = "We couldn't open the ID check. Reload the page and try again.";
+
+// The sheet's code failed to load on this page (IdentityCheckMount / IdentityCheckHost through optionalLazy, Q1816;
+// lh-silent-failure review of 46b7b91713): opening it would draw nothing, so openIdentityCheck says false instead.
+let sheetUnavailable = false;
+// App.tsx cannot import this module (it would put the Supabase client on the boot path), so its IdentityCheckMount
+// failure sets a window flag and fires this event; the flag also covers a failure before this module loaded.
+export const IDENTITY_SHEET_UNAVAILABLE_EVENT = "lh:identity-sheet-unavailable";
+type WithFlag = Window & { __lhIdentitySheetUnavailable?: boolean };
+const appSaysUnavailable = () => typeof window !== "undefined" && (window as WithFlag).__lhIdentitySheetUnavailable === true;
+if (typeof window !== "undefined") window.addEventListener(IDENTITY_SHEET_UNAVAILABLE_EVENT, () => markIdentitySheetUnavailable());
+
+/**
+ * IdentityCheckMount / App.tsx only: the sheet cannot be drawn on this page. A press already waiting on it hears so,
+ * and so does a visit through an entry link (`entryLink`: ?verify_id=1 or Stripe's ?idv=complete), which asked for it.
+ */
+export function markIdentitySheetUnavailable(opts: { entryLink?: boolean } = {}): void {
+  sheetUnavailable = true;
+  const waiting = state.open;
+  if (waiting) {
+    state = { ...state, open: false };
+    emit();
+  }
+  if (waiting || opts.entryLink) toast.error(IDENTITY_SHEET_UNAVAILABLE);
+}
+
+/** Tests only. */
+export function __resetIdentitySheetUnavailable(): void {
+  sheetUnavailable = false;
+  if (typeof window !== "undefined") delete (window as WithFlag).__lhIdentitySheetUnavailable;
+}
+
 /** Open the one Identity sheet (mounted once, IdentityCheckHost). */
 export function openIdentityCheck(reason: IdentityCheckReason = "general"): boolean {
   // ID check off (switch `identity_check`, owner 2026-10-23): nothing to open.
   // Returns false so a caller handling a server refusal falls through to its
   // own error message instead of stopping in silence (lh-silent-failure #1).
   if (!identityCheckOn()) return false;
+  // The sheet's code did not load on this page: false too, so the caller says something.
+  if (sheetUnavailable || appSaysUnavailable()) return false;
   state = { open: true, reason };
   emit();
   return true;
+}
+
+/**
+ * For a button whose only job is to open the sheet (Verify my ID, the Settings row, the prompt card, the award
+ * gate, the free-claim step): when the sheet cannot open on this page, say so, never a dead press. A switched-off
+ * check stays silent (there is nothing to verify).
+ */
+export function openIdentityCheckOrSay(reason: IdentityCheckReason = "general"): void {
+  if (openIdentityCheck(reason) || !identityCheckOn()) return;
+  toast.error(IDENTITY_SHEET_UNAVAILABLE);
 }
 
 export function closeIdentityCheck(): void {

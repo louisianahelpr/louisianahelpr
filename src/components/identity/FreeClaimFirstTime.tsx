@@ -16,7 +16,7 @@ import {
   DialogSecondaryAction,
 } from "@/components/ui/dialog";
 import { formatFeeLabel, useOnboardingFeeCents } from "@/hooks/useOnboardingFee";
-import { openIdentityCheck } from "@/lib/identityCheck";
+import { openIdentityCheckOrSay } from "@/lib/identityCheck";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import {
   closeFreeClaimFirstTime,
@@ -45,7 +45,7 @@ function FreeClaimFirstTimeOpen() {
       if (outcome === "failed") return;
       closeFreeClaimFirstTime();
       // Paid already (a read that lagged the webhook): the next step is the ID check itself.
-      if (outcome === "already_paid") openIdentityCheck("claim");
+      if (outcome === "already_paid") openIdentityCheckOrSay("claim");
     } finally {
       setOpening(false);
     }

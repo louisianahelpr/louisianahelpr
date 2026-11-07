@@ -4,7 +4,7 @@ import { useFeature } from "@/hooks/useFeature";
 import { useIdentityCheckStatus } from "@/hooks/useIdentityCheckOn";
 import { setIdentityCheckOn } from "@/lib/identityCheckSwitch";
 import { setPayoutAfterHireOn } from "@/lib/payoutAfterHireSwitch";
-import { useIdentityCheckSheet } from "@/lib/identityCheck";
+import { markIdentitySheetUnavailable, useIdentityCheckSheet } from "@/lib/identityCheck";
 import { loadModule, untilReload } from "@/lib/loadModule";
 import { optionalLazy } from "@/lib/optionalLazy";
 
@@ -12,7 +12,7 @@ import { optionalLazy } from "@/lib/optionalLazy";
 // host then waits on the recovery reload instead of reading `undefined.IdentityCheckHost` (B85, 11-01).
 const loadSheet = () => loadModule(() => import("@/components/identity/IdentityCheckSheet"));
 // Mounted beside the routes: a chunk that fails outright draws nothing (warning) instead of taking the app down (Q1816).
-const IdentityCheckHost = optionalLazy(() => loadSheet().then((m) => (m ? { default: m.IdentityCheckHost } : untilReload())), "IdentityCheckHost");
+const IdentityCheckHost = optionalLazy(() => loadSheet().then((m) => (m ? { default: m.IdentityCheckHost } : untilReload())), "IdentityCheckHost", () => markIdentitySheetUnavailable({ entryLink: hasIdentityEntryParam(new URLSearchParams(window.location.search)) }));
 
 /** The two links that open the sheet on arrival (the notice, and Stripe's return). */
 export function hasIdentityEntryParam(params: URLSearchParams): boolean {

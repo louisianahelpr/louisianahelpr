@@ -101,7 +101,7 @@ const PermissionRationaleMount = optionalLazy(() => import("@/components/Permiss
 // always-mounted parts that fetch their dialog only when it has to show
 // (src/components/TermsReconsentMount.tsx, identity/IdentityCheckMount.tsx).
 const TermsReconsentMount = optionalLazy(() => import("@/components/TermsReconsentMount").then((m) => ({ default: m.TermsReconsentMount })), "TermsReconsentMount");
-const IdentityCheckMount = optionalLazy(() => import("@/components/identity/IdentityCheckMount").then((m) => ({ default: m.IdentityCheckMount })), "IdentityCheckMount");
+const IdentityCheckMount = optionalLazy(() => import("@/components/identity/IdentityCheckMount").then((m) => ({ default: m.IdentityCheckMount })), "IdentityCheckMount", () => { (window as Window & { __lhIdentitySheetUnavailable?: boolean }).__lhIdentitySheetUnavailable = true; window.dispatchEvent(new Event("lh:identity-sheet-unavailable")); });
 
 // Lazy load all pages including landing
 const Index = lazyWithPreload(() => import("./pages/info/Index"));

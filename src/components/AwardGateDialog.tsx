@@ -21,7 +21,7 @@ import { getPublicReturnUrl } from "@/lib/authRedirects";
 import { track, AhaEvent } from "@/lib/analytics";
 import { acceptPendingCopy, awardBlockCopy, type AcceptMissing, type AwardBlockReason } from "@/lib/awardGate";
 import { userFacingError } from "@/lib/userFacingError";
-import { openIdentityCheck } from "@/lib/identityCheck";
+import { openIdentityCheckOrSay } from "@/lib/identityCheck";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
 import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedNotice";
 
@@ -73,7 +73,7 @@ export function AwardGateDialog({
   // setup (owner 2026-10-21): with payouts done, the one CTA opens it.
   const openIdCheck = () => {
     onOpenChange(false);
-    openIdentityCheck("accept");
+    openIdentityCheckOrSay("accept");
   };
   const handleFix = async () => {
     if ((!payoutMissing || payoutPaused) && idMissing) {

@@ -165,6 +165,19 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
       expect(CHECKOUT).toContain(`error: "${code}"`);
       raised.add(code);
     }
+    // Helpr delivery (20261106194913) and the shop's "the Helpr didn't come" (20261106211136): only the codes a shop
+    // member meets through the Shops screens (those migrations also raise service-only codes with no member copy).
+    const HELPR_FILES: Record<string, string[]> = {
+      "20261106194913_shops_helpr_delivery.sql": ["shop_no_helpr_delivery", "pickup_point_missing", "invalid_choice"],
+      "20261106211136_shops_report_helpr_no_show.sql": ["not_a_helpr_delivery", "no_helpr_booked", "already_handed_over", "too_early"],
+    };
+    for (const [file, codes] of Object.entries(HELPR_FILES)) {
+      const sql = blankSqlComments(readFileSync(join(MIG_DIR, file), "utf8"));
+      for (const code of codes) {
+        expect(sql).toContain(`RAISE EXCEPTION '${code}'`);
+        raised.add(code);
+      }
+    }
     expect(raised.size).toBeGreaterThan(20);
     expect([...raised].filter((c) => !(c in SHOPS_ERROR_COPY)).sort()).toEqual([]);
     expect(Object.keys(SHOPS_ERROR_COPY).filter((c) => !raised.has(c)).sort()).toEqual([]);

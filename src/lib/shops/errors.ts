@@ -187,6 +187,15 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   delivery_outside_louisiana: "Enter a Louisiana address. Shops deliver in Louisiana only.",
   at_buyer_no_delivery: "Work done at your place has nothing to deliver. Choose pickup.",
   delivery_frozen: "This order's delivery can't change now. Start a new order to change it.",
+  // Helpr delivery (20261106194913, 20261106223244): a Helpr delivers at Declutter's price for the road miles.
+  shop_no_helpr_delivery: "This shop doesn't offer Helpr delivery. Choose pickup.",
+  pickup_point_missing: "Save your pickup address first, so a Helpr knows where to pick up.",
+  invalid_choice: "Choose on or off.",
+  // The shop reports "the Helpr didn't come" (20261106211136).
+  not_a_helpr_delivery: "A Helpr isn't delivering this order.",
+  no_helpr_booked: "No Helpr is booked for this pickup now.",
+  already_handed_over: "You said you handed it over to this Helpr. If something is wrong, report a problem.",
+  too_early: "Wait 15 minutes after the pickup time, then tell us.",
   // Service steps: a member only meets these through shop-checkout, which answers "try again".
   invalid_payment: "We couldn't open the payment page just now. Please try again.",
   invalid_session: "We couldn't open the payment page just now. Please try again.",
@@ -247,6 +256,12 @@ const SHOP_CHECKOUT_COPY: Record<string, string> = {
   invalid_address: "Enter the street, city and 5-digit ZIP code to deliver to.",
   address_not_found: "We couldn't find that address. Check the street, city and ZIP code.",
   geocode_unavailable: "We couldn't look up that address just now. Nothing was charged. Try again in a minute.",
+  // Helpr delivery (slice 2): the price the buyer saw must be the price charged.
+  invalid_delivery_choice: "Choose pickup or a delivery, then look again at the price.",
+  delivery_rate_changed: "The Helpr delivery price changed. Look at the new price, then send the order again. Nothing was charged.",
+  // The pickup point a Helpr goes to, looked up when the shop saves its pickup address.
+  address_changed: "Your pickup address changed while we looked it up. Save it again.",
+  pickup_outside_louisiana: "We found that address outside Louisiana. Check the street, city and ZIP code.",
 };
 
 /** The AI helper's own answers (the declutter-ai-draft edge function, target 'shop_item'): not RPC codes. */

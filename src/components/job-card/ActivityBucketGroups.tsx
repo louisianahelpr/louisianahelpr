@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { useMemo, useState, type ReactNode } from "react";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { ChevronRight } from "lucide-react";
@@ -76,16 +77,15 @@ export function ActivityBucketGroups<T>({
         const open = !!expanded[b];
         return (
           <section key={b} aria-label={labels[b]} data-group={b} className="flex flex-col gap-2">
-            <button
-              type="button"
+            <ListRow variant="flush"
               aria-expanded={open}
               onClick={() => toggle(b)}
-              className="btn-press liquid-glass w-full flex items-center gap-3 px-3.5 py-2.5 text-left"
+              className="min-h-11 btn-press liquid-glass w-full flex items-center gap-3 px-3.5 py-2.5 text-left"
             >
               <span className="flex-1 min-w-0 text-ds-15 font-semibold">{labels[b]}</span>
               <span className="text-ds-13 text-muted-foreground">{list.length}</span>
               <ChevronRight className={`w-4 h-4 text-muted-foreground transition-transform ${open ? "rotate-90" : ""}`} aria-hidden />
-            </button>
+            </ListRow>
             {open && (
               <div className="space-y-list">
                 {list.map((it) => (

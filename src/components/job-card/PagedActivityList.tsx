@@ -6,6 +6,7 @@
  * orders by created_at desc; activityFilters only lifts overdue/needs-action
  * rows to the top, a stable partition), so the tail is the older work.
  */
+import { ListRow } from "@/components/ui/ListRow";
 import { useEffect, useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 
@@ -41,15 +42,14 @@ export function PagedActivityList<TItem>({
       {items.length > shown && (
         // Same control as the profile's review list: a full-width button,
         // not a content card.
-        <button
-          type="button"
+        <ListRow variant="flush"
           onClick={() => setShown((n) => n + ACTIVITY_PAGE_SIZE)}
-          className="mt-3 w-full rounded-2xl liquid-glass p-3 text-ds-13 font-medium text-foreground ctl-tint flex items-center justify-center gap-1.5"
+          className="min-h-11 text-center mt-3 w-full rounded-2xl liquid-glass p-3 text-ds-13 font-medium text-foreground ctl-tint flex items-center justify-center gap-1.5"
         >
           <ChevronDown className="w-4 h-4" aria-hidden="true" />
           Show older
           <span className="text-muted-foreground">({shown} of {items.length})</span>
-        </button>
+        </ListRow>
       )}
     </>
   );

@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { removeShellOncePainted } from "@/components/landing/landingShell";
 import { HOME_SHELL_ID } from "@/components/landing/homeShell";
+import { greetingDate, greetingFor, readGreetingName, saveGreetingName } from "@/lib/homeGreetingShell.mjs";
 import { YourPageLink } from "@/components/profile/YourPageLink";
 import { FirstRun } from "@/components/firstRun/FirstRunHost";
 import { useQueryClient } from "@tanstack/react-query";
@@ -36,10 +37,8 @@ import { GlassTileButton } from "@/components/ui/GlassTileButton";
 const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
 const SmsPhonePrompt = optionalLazy(() => import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })), "SmsPhonePrompt");
 
-function greeting(d = new Date()) {
-  const h = d.getHours();
-  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
-}
+// The hours rule and the date line are shared with index.html's HTML-drawn greeting (homeGreetingShell.mjs, Q1158).
+const greeting = () => greetingFor();
 
 /** "Sat, Oct 24 2:00 PM": when, for a phone Coming up row (board 7). */
 function whenLine(c: ComingUpItem) {
@@ -106,8 +105,14 @@ function HomeDashboardScreen() {
     if (open) setCustomizeMounted(true);
     if (!open && params.has("customize")) setParams((p) => { const n = new URLSearchParams(p); n.delete("customize"); return n; }, { replace: true });
   };
-  const first = profile?.full_name?.split(" ")[0];
-  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+  const profileFirst = profile ? profile.full_name?.split(" ")[0] ?? "" : null;
+  // Q1158: until the profile is read, the name this device kept for THIS account (the one index.html's greeting drew),
+  // so the greeting never drops the name and grows it back; once read, the profile's name is kept for the next cold load.
+  const first = profileFirst ?? readGreetingName(user?.id);
+  useEffect(() => {
+    if (user?.id && profileFirst !== null) saveGreetingName(user.id, profileFirst);
+  }, [user?.id, profileFirst]);
+  const today = greetingDate();
   const todoCount = summary.todos.length;
 
   // Next up is a carousel over the to-dos (mock-up 7: "Next up · 1 of 5"); it opens on the most urgent.

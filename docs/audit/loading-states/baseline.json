@@ -219,18 +219,6 @@
       "was": "row 137px → 22771px (+22634px), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
     },
     {
-      "key": "helper /post-job #0",
-      "kind": "jump",
-      "path": "main#main-content > div > div > div > div",
-      "was": "row 974px → 1038px (+64px), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
-      "key": "customer /post-job #0",
-      "kind": "jump",
-      "path": "main#main-content > div > div > div > div",
-      "was": "row 974px → 1177px (+203px), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
       "key": "helper /jobs #0",
       "kind": "media",
       "path": "main#main-content > div > div > div",
@@ -253,12 +241,6 @@
       "kind": "jump",
       "path": "main#main-content > div > div > div > div > section > div > div > div > div:nth-of-type(1)",
       "was": "row 82px → 60px (-22px), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
-    },
-    {
-      "key": "helper /declutter/item/:id #0",
-      "kind": "jump",
-      "path": "main#main-content > div > div > div > div",
-      "was": "row 744px → 1004px (+260px), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07 (Q1695: open skeleton debt; fix the skeleton and the next refresh deletes this line)"
     },
     {
       "key": "customer /shops/mine #0",
@@ -314,9 +296,9 @@
       "key": "helper /declutter/item/:id #0",
       "kind": "jump",
       "path": "main#main-content > div > div > div > div",
-      "maxDeltaPx": 237,
       "was": "row 744px → 973px (+229px), rows equal (Δrows 0), loading-states-refresh 41956417981 on ready/b1-q1837-item-skeleton @449651c140 (the skeleton now on main), 2026-11-05",
-      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\"; lead 11-04 (Builder 1 handoff, 8:36 PM): the Declutter item page's skeleton is the page's own shape (one photo bone in the gallery's frame) and its details bone reserves ONE SCREENFUL (src/hooks/useScreenfulBelow.ts), so a listing taller than the screen grows below it. Bounded: only this element (path) and only a growth of at most the measured 229px + the 8px ROW_BUDGET = 237px, as the /post-job entry does; any other /declutter/item jump is still a breach."
+      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\"; lead 11-04 (Builder 1 handoff, 8:36 PM): the Declutter item page's skeleton is the page's own shape (one photo bone in the gallery's frame) and its details bone reserves ONE SCREENFUL (src/hooks/useScreenfulBelow.ts), so a listing taller than the screen grows below it. Bounded: only this element (path) and only a growth of at most the measured 229px + the 8px ROW_BUDGET = 237px, as the /post-job entry does; any other /declutter/item jump is still a breach. Lead 2026-11-07 (Q2773, Builder 5 measured): the growth is all below the fold (loading frame and loaded frame identical above it; CI run 42302309191 screenshots), so under the owner's 09-19 ruling (\"SKELETON FILLS THE SCREEN, GROWS BELOW\") the cap that tracked one fixture's length is replaced by growsBelow: any growth of this element, never a shrink.",
+      "growsBelow": true
     },
     {
       "key": "customer /profile?tab=schedule #0",
@@ -503,9 +485,17 @@
       "key": "customer /post-job #0",
       "kind": "jump",
       "path": "main#main-content > div > div > div > div",
-      "maxDeltaPx": 130,
       "was": "row 452px → 574px (+122px), loading-states-refresh 39020198289 on bba7b6005, 2026-10-17",
-      "ruling": "Two decisions, 2026-10-17. OWNER (relayed by the lead, recorded in 5aa1097dc): the Post a Job loading column draws 5 cards when the poster has past jobs and 4 otherwise, from the job-history read, or before it lands from what this device learned on its last visit. LEAD (recorded in bba7b6005): when the device has never asked (a new device, a cleared cache), draw the first-time 4, never an empty column. The robot always visits with a cold browser context, which is exactly that never-asked case, and poster-e2e has past jobs, so its column grows by the one Repost card (+122px); helper-e2e, with no posts, does not jump. Bounded: only this element (path) and only a growth of at most one entry card (122px measured + the 8px ROW_BUDGET = 130px) is covered, so any other /post-job jump is still a breach (byDesignCovers in scripts/check-loading-state-shape.mjs)."
+      "ruling": "Two decisions, 2026-10-17. OWNER (relayed by the lead, recorded in 5aa1097dc): the Post a Job loading column draws 5 cards when the poster has past jobs and 4 otherwise, from the job-history read, or before it lands from what this device learned on its last visit. LEAD (recorded in bba7b6005): when the device has never asked (a new device, a cleared cache), draw the first-time 4, never an empty column. The robot always visits with a cold browser context, which is exactly that never-asked case, and poster-e2e has past jobs, so its column grows by the one Repost card (+122px); helper-e2e, with no posts, does not jump. Bounded: only this element (path) and only a growth of at most one entry card (122px measured + the 8px ROW_BUDGET = 130px) is covered, so any other /post-job jump is still a breach (byDesignCovers in scripts/check-loading-state-shape.mjs). Lead 2026-11-07 (Q2773, Builder 5 measured): the growth is all below the fold (loading frame and loaded frame identical above it; CI run 42302309191 screenshots), so under the owner's 09-19 ruling (\"SKELETON FILLS THE SCREEN, GROWS BELOW\") the cap that tracked one fixture's length is replaced by growsBelow: any growth of this element, never a shrink.",
+      "growsBelow": true
+    },
+    {
+      "key": "helper /post-job #0",
+      "kind": "jump",
+      "path": "main#main-content > div > div > div > div",
+      "growsBelow": true,
+      "was": "row 974px -> 1038px (+64px), loading-states-refresh 42302309191 on main 2bd5c0a86, 2026-11-07",
+      "ruling": "Owner pop-up ruling, 2026-09-19: \"SKELETON FILLS THE SCREEN, GROWS BELOW\". The loading frame already draws the real category grid above the fold; the growth is the entry-choice links below it (CI run 42302309191 screenshots). Lead 2026-11-07 (Q2773): growsBelow, any growth of this element, never a shrink."
     },
     {
       "key": "customer /declutter #0",

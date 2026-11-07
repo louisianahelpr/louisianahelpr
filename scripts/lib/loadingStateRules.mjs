@@ -62,6 +62,8 @@ export function breaches(results) {
  * entry may narrow itself further (loading-states run 39020198289, 2026-10-17):
  *   path        — only the element measured at that key (keys are by index,
  *                 so on another run `#0` can be a different element);
+ *   growsBelow  — only a jump where the real row is TALLER than its placeholder, of any size: the page runs past
+ *                 the screenful the placeholder fills (owner 09-19 ruling); a shrink is still reported;
  *   maxDeltaPx  — only a jump where the real row is TALLER than its placeholder
  *                 by at most this many px, the size the decision accepts. A
  *                 bigger jump, or a placeholder taller than what replaces it,
@@ -73,6 +75,10 @@ export function byDesignCovers(b, entries) {
     if (e.key !== b.key || e.kind !== b.kind) return false;
     if (e.path && e.path !== b.path) return false;
     if (e.maxDeltaPx != null && !(typeof b.delta === "number" && b.delta > 0 && b.delta <= e.maxDeltaPx)) return false;
+    // growsBelow (lead 2026-11-07, Q2773): the owner's 09-19 "skeleton fills the screen, grows below" ruling for one
+    // element. Any growth is the page running past the screenful, below the fold; a placeholder TALLER than its
+    // content (a shrink) is still a jump and still reported.
+    if (e.growsBelow && !(typeof b.delta === "number" && b.delta > 0)) return false;
     return true;
   });
 }

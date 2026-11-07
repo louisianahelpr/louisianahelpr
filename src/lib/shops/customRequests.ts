@@ -48,3 +48,21 @@ export async function fetchMyCustomRequests(): Promise<CustomRequest[]> {
   }
   return Array.isArray(data) ? (data as unknown as CustomRequest[]) : [];
 }
+
+/**
+ * The shop's price (shops_quote_custom_request, 20261106205852): what is being made (a kind's type, never a rental)
+ * and the same seller statements as listing that kind (lead 11-06, requiredStatements); the server refuses a price
+ * without every one (attestation_incomplete). cents is $1 to $5,000; the note is optional (under 500 characters).
+ */
+export async function quoteCustomRequest(args: {
+  requestId: string; cents: number; note: string; subtype: string; statements: string[];
+}): Promise<void> {
+  const { error } = await supabase.rpc("shops_quote_custom_request", {
+    p_request_id: args.requestId, p_quote_cents: args.cents, p_note: args.note.trim() || null,
+    p_subtype: args.subtype, p_statements: args.statements,
+  });
+  if (error) {
+    const words = rpcErrorMessage("shops_quote_custom_request", error);
+    throw Object.assign(new Error(error.message), error, words ? { userMessage: words } : {});
+  }
+}

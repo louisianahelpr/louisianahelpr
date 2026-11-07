@@ -1,7 +1,7 @@
 // @mutate src/pages/jobs/AppliedJobCard.tsx | export const AppliedJobCard = memo(AppliedJobCardInner); | export const AppliedJobCard = memo(AppliedJobCardInner);\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n
-// @mutate src/components/postjob/CheckoutStep.tsx | import { Switch } from "@/components/ui/switch";\n |
+// @mutate src/pages/profile/GiftCard.tsx | import { toast } from "sonner";\n |
 // @mutate src/components/RichMessageInput.tsx | import { useCallback, useEffect, useState, useRef } from "react"; | import { useCallback, useEffect, useState, useRef } from "react";\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n
-// @mutate src/components/postjob/CheckoutStep.tsx | import { Switch } from "@/components/ui/switch";\n | import { Switch } from "@/components/ui/switch";\n\n
+// @mutate src/pages/profile/GiftCard.tsx | import { toast } from "sonner";\n | import { toast } from "sonner";\n\n
 /*
  * God components may only SHRINK, file by file (OPEN.md Q184).
  *
@@ -43,10 +43,10 @@ describe("god components (non-test .tsx over the line threshold) only shrink, pe
   it("scans the real source tree", () => {
     // A walker that read nothing would report no oversized files and "pass".
     expect(scanned).toBeGreaterThan(400);
-    // Floors lowered as god components are split (Q806; 20 left 2026-11-04, Legal.tsx out; CredentialsTab + AdminDisputes + DashboardGuest + BrowseMap + Dashboard + Profile + UserProfile + JobDetailDialog out 11-04 Builder 1; JobTracking + AppliedJobCard out 11-05 Builder 1; ConversationList out 11-06 Builder 2).
-    expect(Object.keys(oversized(sizes)).length).toBeGreaterThan(3); // 4 on 2026-11-06 (ConversationList left, Q806)
-    expect(Object.keys(baseline.files).length).toBeGreaterThan(3);
-    expect(sizes["src/components/postjob/CheckoutStep.tsx"]).toBeGreaterThan(THRESHOLD); // ConversationList was the sample until it fell to 570 (Q806, 2026-11-06)
+    // Floors lowered as god components are split (Q806; 20 left 2026-11-04, Legal.tsx out; CredentialsTab + AdminDisputes + DashboardGuest + BrowseMap + Dashboard + Profile + UserProfile + JobDetailDialog out 11-04 Builder 1; JobTracking + AppliedJobCard out 11-05 Builder 1; ConversationList + CheckoutStep out 11-06 Builder 2).
+    expect(Object.keys(oversized(sizes)).length).toBeGreaterThan(2); // 3 on 2026-11-06 (ConversationList + CheckoutStep left, Q806)
+    expect(Object.keys(baseline.files).length).toBeGreaterThan(2);
+    expect(sizes["src/pages/profile/GiftCard.tsx"]).toBeGreaterThan(THRESHOLD); // ConversationList, then CheckoutStep, were the sample until they fell to 570 and 591 (Q806, 2026-11-06)
     expect(Object.keys(sizes).filter(isTestFile), "test files must not be counted").toEqual([]);
     expect(baseline._threshold, "baseline was generated at a different threshold").toBe(THRESHOLD);
   });

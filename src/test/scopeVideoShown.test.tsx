@@ -18,7 +18,7 @@
  * @mutate src/pages/jobs/jobPage/useJobPage.ts | const BASE_COLUMNS =\n  "id, title, description, scope_video_url, | const BASE_COLUMNS =\n  "id, title, description,
  * @mutate src/lib/scopeVideo.ts | return protocol === "https:" \|\| protocol === "blob:" ? url : null; | return url;
  * @mutate src/components/jobs/ScopeVideo.tsx | preload="metadata" | preload="none"
- * @mutate src/components/postjob/CheckoutStep.tsx | <ReviewMediaRows imagePreviews={imagePreviews} scopeVideoUrl={scopeVideoUrl} /> | <ReviewMediaRows imagePreviews={imagePreviews} />
+ * @mutate src/components/postjob/CheckoutGlanceCard.tsx | <ReviewMediaRows imagePreviews={imagePreviews} scopeVideoUrl={scopeVideoUrl} /> | <ReviewMediaRows imagePreviews={imagePreviews} />
  * @mutate src/pages/post-job/CheckoutStepView.tsx |         scopeVideoUrl={form.scopeVideoPreviewUrl}\n |
  * @mutate src/components/dashboard/JobDetailDialog.tsx |             <ScopeVideo url={job.scope_video_url} /> |
  */

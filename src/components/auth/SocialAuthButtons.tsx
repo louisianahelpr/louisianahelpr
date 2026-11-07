@@ -74,6 +74,7 @@ export function useAccountChoiceDialog(needed: boolean, onLoadFailed: () => void
 }
 import { userFacingError } from "@/lib/userFacingError";
 import { useLanguage } from "@/lib/i18n/language";
+import { isSocialInAppBrowser } from "@/lib/inAppBrowser";
 import { loadModule, ModuleUnavailableError, untilReload } from "@/lib/loadModule";
 import "@/lib/i18n/enScreens"; // registers the screen words t() reads here
 
@@ -137,7 +138,9 @@ export function SocialAuthButtons({
       )}
       <div className="flex flex-col gap-4">
         <SocialAuthButton provider="apple" redirectTo={redirectTo} onChoose={setChoice} />
-        <SocialAuthButton provider="google" redirectTo={redirectTo} onChoose={setChoice} />
+        {/* 11-07: Google refuses sign-in inside Facebook's and Instagram's built-in browser (a shared post opens
+            there), so the button would only fail; say how to use Google instead. */}
+        {isSocialInAppBrowser() ? <GoogleInAppNote /> : <SocialAuthButton provider="google" redirectTo={redirectTo} onChoose={setChoice} />}
         {choice && AccountChoiceDialog && (
           <AccountChoiceDialog choice={choice} onDone={() => setChoice(null)} onChoice={setChoice} redirectTo={redirectTo} />
         )}
@@ -238,6 +241,15 @@ function SocialAuthButton({ provider, redirectTo, onChoose }: SocialAuthButtonPr
         </>
       )}
     </Button>
+  );
+}
+
+function GoogleInAppNote() {
+  const { t } = useLanguage();
+  return (
+    <p data-google-in-app="" className="text-center text-ds-13 font-sans text-muted-foreground">
+      {t("auth.googleInApp")}
+    </p>
   );
 }
 

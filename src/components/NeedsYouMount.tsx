@@ -1,10 +1,16 @@
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { usePageReadsSettled } from "@/hooks/usePageReadsSettled";
 import { expectOnlineFromBadge } from "@/lib/helprTasks/onlineHandoff";
 
+import { optionalLazy } from "@/lib/optionalLazy";
+
 // The activity reads load only for a signed-in member (badge = To-do, owner 2026-10-20).
-const NeedsYouBridge = lazy(() => import("./NeedsYouBridge"));
+// Optional (the nav badges only): it mounts beside the app's routes, outside every route boundary, so a plain lazy()
+// whose chunk failed threw into the app-wide boundary and replaced the whole app, nav and route error card included,
+// with "Something went sideways" (Q1816, e2e-journeys stale-deploy /home, reproduced locally 11-07: on /home the page
+// reads count as settled at once, so the bridge loads right beside the broken route).
+const NeedsYouBridge = optionalLazy(() => import("./NeedsYouBridge"), "NeedsYouBridge");
 
 function WhenPageReadsSettle({ children }: { children: React.ReactNode }) {
   return usePageReadsSettled() ? <>{children}</> : null;

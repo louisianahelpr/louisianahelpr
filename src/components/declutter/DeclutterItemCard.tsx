@@ -14,6 +14,7 @@ import { cardPhotoSrcSet, CARD_PHOTO_SIZES } from "@/lib/declutter/photoSizes";
 import { useLoadPhotoAhead } from "./useLoadPhotoAhead";
 import { holdForFirstRowPhoto, useLaterPhotosOpen } from "./firstRowPhotoGate";
 import { formatPrice, milesLabel, itemPriceLabel } from "@/lib/declutter/distance";
+import { PriceInclFee } from "./PriceInclFee";
 
 export function firstPhotos(photos: DeclutterPhoto[]): Map<string, string> {
   const out = new Map<string, string>();
@@ -132,6 +133,8 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundl
             </span>
           )}
         </span>
+        {/* Owner 11-07 (Vinted review): what the buyer pays with the fee, under the price. */}
+        <PriceInclFee priceCents={item.current_price_cents} />
         <span data-card-title className="mt-0.5 block truncate text-sm font-semibold leading-snug" title={item.title}>{item.title}</span>
         {/* Deep audit 2026-10-28 #45: at 390 the one truncating line cut the distance off ("Mid City, Baton Ro…").
             The town has its own line and may truncate; the distance sits on the next line and always shows whole. */}

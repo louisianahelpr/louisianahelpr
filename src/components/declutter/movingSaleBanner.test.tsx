@@ -74,7 +74,9 @@ describe("board 164: the moving sale, as a buyer sees it", () => {
     expect(await screen.findByText("Delcambre · Moving out Nov 1. 2 items for sale.")).toBeInTheDocument();
     const price = screen.getByText("$120");
     expect(price.className).toContain("--burnt-sienna");
-    expect(price.nextElementSibling?.textContent).toBe("Sofa, 3 seat");
+    // Owner 11-07: the buyer's price incl. fee sits between the price and the title.
+    expect(price.nextElementSibling?.textContent).toBe("$126.70 incl. fee");
+    expect(price.nextElementSibling?.nextElementSibling?.textContent).toBe("Sofa, 3 seat");
     fireEvent.click(screen.getByRole("button", { name: "Share sale" }));
     await waitFor(() => expect(shared).toEqual([expect.objectContaining({ url: "https://louisianahelpr.com/user/s1" })]));
   });

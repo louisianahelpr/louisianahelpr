@@ -43,6 +43,7 @@ import { blankComments } from "./helpers/blankNonCode";
 import { featureSwitchBatchKey } from "@/lib/featureSwitchQuery";
 import { SECTIONS_OPEN_QUERY_KEY } from "@/components/landing/useSectionsOpen";
 import { SHELL_END, SHELLS } from "../../scripts/inline-shell-css.mjs";
+import { scopeShellIds } from "../../scripts/shell-ids.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const INDEX = join(ROOT, "index.html");
@@ -90,7 +91,7 @@ const showScript = (html: string) =>
 describe("a signed-in phone's /messages and /declutter paint their own route skeleton from the HTML (Q2705 B)", () => {
   for (const { page, path, el, testid } of PAGES) {
     it(`index.html's ${page} block is byte-for-byte what its route skeleton renders on a phone's bare ${path}`, () => {
-      const want = rendered(path, el);
+      const want = scopeShellIds(rendered(path, el), page);
       let html = readFileSync(INDEX, "utf8");
       if (process.env.LH_WRITE_MD_SHELLS === "1") {
         const a = html.indexOf(start(page)) + start(page).length;

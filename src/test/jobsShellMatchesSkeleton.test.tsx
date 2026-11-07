@@ -30,6 +30,7 @@ import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import JobsSectionSkeleton from "@/components/JobsSectionSkeleton";
 import { blankComments } from "./helpers/blankNonCode";
 import { SHELL_END, SHELLS } from "../../scripts/inline-shell-css.mjs";
+import { scopeShellIds } from "../../scripts/shell-ids.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const INDEX = join(ROOT, "index.html");
@@ -69,7 +70,7 @@ const showScript = (html: string) =>
 
 describe("a signed-in phone's /jobs paints the Jobs section's own skeleton from the HTML (Q2705 B)", () => {
   it("index.html's jobs block is byte-for-byte what JobsSectionSkeleton renders on a phone's bare /jobs", () => {
-    const want = rendered();
+    const want = scopeShellIds(rendered(), "jobs");
     let html = readFileSync(INDEX, "utf8");
     if (process.env.LH_WRITE_JOBS_SHELL === "1") {
       const a = html.indexOf(START) + START.length;

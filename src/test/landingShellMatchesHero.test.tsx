@@ -25,6 +25,7 @@ import { ICON_STROKE_PX } from "@/lib/iconWeight";
 import PublicLayout from "@/components/marketing/PublicLayout";
 import HeroSection from "@/components/landing/HeroSection";
 import { removeLandingShellOncePainted } from "@/components/landing/landingShell";
+import { scopeShellIds } from "../../scripts/shell-ids.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const INDEX = join(ROOT, "index.html");
@@ -58,7 +59,7 @@ const showScript = (html: string) =>
 
 describe("the guest landing's HTML-drawn first screen is the app's own hero (B100)", () => {
   it("index.html's block is byte-for-byte what React renders for a guest on /", () => {
-    const want = rendered();
+    const want = scopeShellIds(rendered(), "landing");
     let html = readFileSync(INDEX, "utf8");
     if (process.env.LH_WRITE_LANDING_SHELL === "1") {
       html = html.slice(0, html.indexOf(START) + START.length) + want + html.slice(html.indexOf(END));

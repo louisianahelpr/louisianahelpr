@@ -10,7 +10,7 @@
  * them as the right person, with the right numbers, and moves money once.
  *
  * Registered mutations - each turns this file RED on its own:
- * @mutate supabase/functions/shop-checkout/index.ts |       payment_intent_data: { metadata: meta, capture_method: "manual", transfer_group: `shop_order_${o.id}` }, |       payment_intent_data: { metadata: meta, transfer_group: `shop_order_${o.id}` },
+ * @mutate supabase/functions/shop-checkout/index.ts |        metadata: meta, capture_method: "manual", transfer_group: `shop_order_${o.id}`, |        metadata: meta, transfer_group: `shop_order_${o.id}`,
  * @mutate supabase/functions/shop-checkout/index.ts |       billing_address_collection: "required", |       automatic_tax: { enabled: true },\n      billing_address_collection: "required",
  * @mutate supabase/functions/shop-checkout/index.ts |     { idempotencyKey: `shop-order-${o.id}${walletRetry ? ":new-wallet" : ""}` }, |     {},
  * @mutate supabase/functions/shop-checkout/index.ts |   if (session.amount_subtotal !== chargedCents) { |   if (false) {
@@ -20,7 +20,7 @@
  * @mutate supabase/functions/shop-checkout/index.ts |     return json({ error: TRY_AGAIN }, 503);\n  }\n\n  /** The order sheet's own name | }\n\n  /** The order sheet's own name
  * @mutate supabase/functions/_shared/shopHolds.ts |       { idempotencyKey: shopCaptureKey(orderId, attempt) }); |       );
  * @mutate supabase/functions/shop-checkout/index.ts |        if (pg.stripe_checkout_session_id) await expirePage(pg.stripe_checkout_session_id); |        if (pg.stripe_checkout_session_id) void 0;
- * @mutate supabase/functions/_shared/shopHolds.ts | amountToCapture === null ? {} : { amount_to_capture: amountToCapture }, | {},
+ * @mutate supabase/functions/_shared/shopHolds.ts | amountToCapture === null ? {} : { amount_to_capture: amountToCapture, metadata: { [SHOP_DEPOSIT_CAPTURE_KEY]: String(amountToCapture) } }, | {},
  * @mutate supabase/functions/_shared/shopHolds.ts |   if (row.payment_plan !== "deposit_50" \|\| typeof cents !== "number" | if (row.payment_plan !== "deposit_50" \|\| typeof cents === "symbol"
  * @mutate supabase/functions/_shared/shopHolds.ts |   return `shop-capture-${orderId}-${Number.isInteger(attempt) && attempt >= 0 ? attempt : 0}`; |   return `shop-capture-${orderId}`;
  * @mutate supabase/functions/_shared/shopHolds.ts |       await recordReleaseFailure(admin, row.order_id, "payment captured on a closed order"); |
@@ -202,6 +202,35 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     expect(res.status).toBe(200);
     expect(stripeMock.tax.calculations.create.mock.calls[0][0].customer_details.address.postal_code).toBe("70506");
     expect(scenario.writes.filter((w) => w.table === "shop_order_service_addresses")).toHaveLength(0);
+  });
+
+  // Custom orders slice 2b (20261106215722): a 50% deposit order's page saves the card for the rest (charged off-session
+  // from the ready date, _shared/shopBalance.ts); a buyer with no stored customer gets one made by Checkout.
+  it("a deposit order's page saves the card off-session (a Customer is made) and says when the rest is charged", async () => {
+    const fn = await load();
+    frozen();
+    scenario.reads.shop_orders = { rows: [orderRow({ payment_plan: "deposit_50" })] };
+    scenario.reads.shop_items = { rows: [{ id: ITEM, subtype: "baked_goods", at_buyer: false }] };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://checkout.stripe.test/shop", amount_subtotal: 6625 });
+    const res = await fn.fetch(ask(fn));
+    expect(res.status).toBe(200);
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+    expect(params.payment_intent_data).toMatchObject({ capture_method: "manual", setup_future_usage: "off_session", metadata: { payment_plan: "deposit_50" } });
+    expect(params.customer_creation).toBe("always");
+    expect(params.metadata.payment_plan).toBe("deposit_50");
+    expect(params.custom_text?.submit?.message).toMatch(/rest is charged to this card on the ready date/);
+  });
+
+  it("a full-hold order's page saves no card", async () => {
+    const fn = await load();
+    frozen();
+    scenario.reads.shop_items = { rows: [{ id: ITEM, subtype: "baked_goods", at_buyer: false }] };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://checkout.stripe.test/shop", amount_subtotal: 6625 });
+    await fn.fetch(ask(fn));
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+    expect(params.payment_intent_data.setup_future_usage).toBeUndefined();
+    expect(params.customer_creation).toBeUndefined();
+    expect(params.metadata.payment_plan).toBeUndefined();
   });
 
   it("H8 (b): an at-home cleaning with no address, or with other items, is refused before the order freezes", async () => {

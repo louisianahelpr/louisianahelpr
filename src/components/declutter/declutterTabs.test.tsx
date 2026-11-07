@@ -947,7 +947,9 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // started 4px under the rule while Browse's first line sits 12px into its 44px Miles from row. jsdom draws no
   // layout, so the guard reads the two causes: (1) every tab but Browse sits in the one tab body that carries pt-3;
   // (2) nowhere in a tab does a space-y parent start with a base-hidden child (the stray margin).
-  // @mutate src/components/declutter/DeclutterHomeView.tsx |     <div className="flex flex-col gap-6">\n      {/* Owner 2026-11-04: the seller's page link |     <div className="space-y-6">\n      {/* Owner 2026-11-04: the seller's page link
+  // Vacuity 11-07: since the page link leads Selling (owner 11-04), space-y-6 alone no longer starts with a hidden child,
+  // so the old mutant was equivalent; this one puts the defect back as it was (a space-y root led by a hidden row).
+  // @mutate src/components/declutter/DeclutterHomeView.tsx |     <div className="flex flex-col gap-6">\n      {/* Owner 2026-11-04: the seller's page link |     <div className="space-y-6">\n      <div className="hidden" />\n      {/* Owner 2026-11-04: the seller's page link
   // @mutate src/components/declutter/DeclutterHomeView.tsx | <div data-declutter-tab-body="" className="flex flex-1 flex-col gap-4 pt-3"> | <div data-declutter-tab-body="" className="flex flex-1 flex-col gap-4 pt-1">
   it("Q2562: every tab but Browse starts at Browse's line under the tabs, and no hidden first child pushes one lower", async () => {
     state.mine = [ITEM];

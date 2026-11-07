@@ -62,13 +62,16 @@ describe("an item with no words", () => {
     const onRewrite = vi.fn();
     card({ onRewrite });
     expect(document.querySelector("[data-bunch-no-words]")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: /^Write it with AI/ }));
+    const btn = screen.getByRole("button", { name: /^Write it with AI/ });
+    // The words on the button, not only its aria-label (vacuity 11-07: the label alone kept a "Write it again" face green).
+    expect(btn.textContent).toBe("Write it with AI");
+    fireEvent.click(btn);
     expect(onRewrite).toHaveBeenCalledTimes(1);
   });
 
   it("with words, it is Write it again, and says nothing about being blank", () => {
     card({ item: { ...blankItem(["a"]), title: "Oak chair" } });
-    expect(screen.getByRole("button", { name: /^Write it again/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Write it again/ }).textContent).toBe("Write it again");
     expect(document.querySelector("[data-bunch-no-words]")).toBeNull();
   });
 

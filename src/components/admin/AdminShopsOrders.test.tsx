@@ -16,6 +16,8 @@
  *     shop-checkout admin_record_hand_refund with the order, the re_ id, the
  *     cents and a note (the edge checks it in Stripe); a held-for-review payout
  *     says why (#6).
+ *  8. The Helpr's answer photo (20261107035259): a problem with problem_photo_path shows the photo through a
+ *     signed helpr-tasks URL; a problem without one shows none.
  *  7. PGRST202 (#8): the queue says "not on the server yet" instead of an
  *     error or an empty queue; an action says so in its toast.
  *
@@ -28,6 +30,7 @@
  * @mutate src/components/admin/AdminShopsOrders.tsx |     await adminRefundOrder(a.orderId, reason, note); |     await adminRefundOrder(a.orderId, "problem_our_mistake", note);
  * @mutate src/components/admin/AdminShopsOrders.tsx |         primaryDisabled={act.isPending \|\| !note.trim() \|\| note.length > 500 \|\| (needsReason && !reason)} |         primaryDisabled={act.isPending}
  * @mutate src/components/admin/AdminShopsOrders.tsx |     const { error } = await supabase.rpc("shops_admin_give_strike", { p_order_id: a.orderId, p_side: a.side, p_note: note }); |     const { error } = await supabase.rpc("shops_admin_give_strike", { p_order_id: a.orderId, p_side: "shop", p_note: note });
+ * @mutate src/components/admin/AdminShopsOrders.tsx |                     <HelprPhoto path={p.problem_photo_path} alt="The Helpr's photo with their answer" /> |
  * @mutate src/pages/admin/Admin.tsx |       case "shops": return <AdminShopsOrders />; |
  */
 import { readFileSync } from "node:fs";
@@ -40,7 +43,9 @@ import type { ReactNode } from "react";
 const rpc = vi.hoisted(() => vi.fn());
 const invoke = vi.hoisted(() => vi.fn(async () => ({ data: { refunded: true }, error: null })));
 const from = vi.hoisted(() => vi.fn(() => ({ select: async () => ({ data: [], error: null }) })));
-vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc, functions: { invoke }, from } }));
+const createSignedUrl = vi.hoisted(() => vi.fn(async (path: string) => ({ data: { signedUrl: `https://signed.example/${path}` }, error: null })));
+const storageFrom = vi.hoisted(() => vi.fn(() => ({ createSignedUrl })));
+vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc, functions: { invoke }, from, storage: { from: storageFrom } } }));
 vi.mock("@/lib/nativeInit", () => ({ isNativePlatform: false }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "admin1" }, profile: {}, isLoading: false }) }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));
@@ -193,6 +198,20 @@ describe("Admin > Shops Orders (M4)", () => {
     });
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith(expect.stringMatching(/shop is not paid/)));
     expect(rpcCall("shops_admin_record_hand_refund")).toBeUndefined();
+  });
+
+  it("shows the Helpr's answer photo through a signed helpr-tasks URL (20261107035259)", async () => {
+    const path = "h1/task/00000000-0000-0000-0000-000000000081/proof.jpg";
+    const withPhoto = { ...QUEUE, problems: [{ ...QUEUE.problems[0], problem_photo_path: path },
+      { ...QUEUE.problems[0], order_id: "o-nophoto", problem_note: "No photo here", problem_photo_path: null }] };
+    rpc.mockImplementation(async (name: string) => (name === "shops_admin_queue" ? { data: withPhoto, error: null } : { data: null, error: null }));
+    renderView();
+    const img = await screen.findByAltText("The Helpr's photo with their answer");
+    expect(img.getAttribute("src")).toBe(`https://signed.example/${path}`);
+    expect(storageFrom).toHaveBeenCalledWith("helpr-tasks");
+    expect(createSignedUrl).toHaveBeenCalledWith(path, 600);
+    expect(screen.getAllByTestId("admin-shops-problem")).toHaveLength(2);
+    expect(screen.getAllByTestId("admin-shops-problem-photo")).toHaveLength(1);
   });
 
   it("the queue not on the server yet (PGRST202) says so, never an error or an empty queue", async () => {

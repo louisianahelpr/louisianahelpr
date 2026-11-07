@@ -126,7 +126,7 @@ function staleExemptions(entries: string[], queueLines: string[]): string[] {
 
 describe("review findings carry one stable tag, so a finding cannot be filed twice", () => {
   it("every review item filed after the rule carries a finding tag", () => {
-    expect(ITEMS.length).toBeGreaterThan(100); // reads a real queue (196 open on 2026-10-07; the list is shrinking)
+    expect(ITEMS.length).toBeGreaterThan(0); // reads a real queue (196 open on 2026-10-07; 32 on 2026-11-07 after the owner's tick sweep)
     expect(untaggedNew(), "file review findings with `finding: <reviewer>@<sha>#<n>`").toEqual([]);
   });
 

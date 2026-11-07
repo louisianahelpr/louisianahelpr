@@ -76,7 +76,7 @@ describe("open-renumber: main keeps the number, the branch's copy moves", () => 
 
   it("is a no-op on a tree without duplicates (floor: the real queue has items)", () => {
     const real = readFileSync(join(ROOT, "docs/OPEN.md"), "utf8");
-    expect(real.split("\n").filter((l) => /^- \[[ x~]\] \*\*Q\d+/.test(l)).length).toBeGreaterThan(50);
+    expect(real.split("\n").filter((l) => /^- \[[ x~]\] \*\*Q\d+/.test(l)).length).toBeGreaterThan(0); // 50 -> 0 on 2026-11-07: the owner's tick sweep left 32 open items
     expect(renumberPlan([{ path: "docs/OPEN.md", text: base }], base, 9).renames).toEqual([]);
   });
 });

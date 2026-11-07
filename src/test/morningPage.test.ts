@@ -145,6 +145,6 @@ describe("the real docs/OPEN.md", () => {
     for (const t of ticked) expect(items.some((i) => i.text.startsWith(t.replace(/\*\*/g, "").trim().slice(0, 30)))).toBe(false);
   });
   it("names queue titles for commit groups", () => {
-    expect(mp.queueTitles(open).size).toBeGreaterThan(100);
+    expect(mp.queueTitles(open).size).toBeGreaterThan(0); // 32 open items on 2026-11-07 after the owner's tick sweep (was > 100)
   });
 });

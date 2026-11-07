@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { PawPrint, Plus, Check } from "lucide-react";
@@ -94,12 +95,11 @@ export function PetPicker({
             {pets.map((p) => {
               const on = selectedIds.includes(p.id);
               return (
-                <button
+                <ListRow variant="flush"
                   key={p.id}
-                  type="button"
                   aria-pressed={on}
                   onClick={() => { hapticLight(); onToggle(p.id); }}
-                  className="flex items-center gap-2.5 px-3 py-2.5 rounded-ds-md squircle border text-left btn-press transition-all duration-200 min-h-11"
+                  className="w-auto flex items-center gap-2.5 px-3 py-2.5 rounded-ds-md squircle border text-left btn-press transition-all duration-200 min-h-11"
                   style={
                     on
                       ? {
@@ -147,7 +147,7 @@ export function PetPicker({
                       aria-hidden
                     />
                   )}
-                </button>
+                </ListRow>
               );
             })}
           </div>

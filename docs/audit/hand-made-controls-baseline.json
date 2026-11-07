@@ -2,7 +2,7 @@
   "_about": "src/test/noNewHandMadeControls.test.ts: hand-made JSX controls per file, exact both ways (OWN-SHARED).",
   "files": {
     "src/components/AttachmentLink.tsx": {
-      "button": 2
+      "button": 1
     },
     "src/components/AwardGateDialog.tsx": {
       "button": 1
@@ -29,10 +29,10 @@
       "button": 1
     },
     "src/components/MessageAttachment.tsx": {
-      "button": 2
+      "button": 1
     },
     "src/components/NotificationPanelView.tsx": {
-      "button": 2
+      "button": 1
     },
     "src/components/PayoutSetupForm.tsx": {
       "button": 1
@@ -155,9 +155,6 @@
     "src/components/create/CreateSheet.tsx": {
       "button": 2
     },
-    "src/components/dashboard/BrowseTasksToolbar.tsx": {
-      "button": 1
-    },
     "src/components/dashboard/PhotoLightbox.tsx": {
       "button": 3
     },
@@ -168,7 +165,7 @@
       "input": 2
     },
     "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx": {
-      "button": 3,
+      "button": 2,
       "input": 1
     },
     "src/components/dashboard/filterSheet/FilterSheetFooter.tsx": {
@@ -225,9 +222,6 @@
     "src/components/job-card/ActivityBucketGroups.tsx": {
       "button": 1
     },
-    "src/components/job-card/JobCardMetaRow.tsx": {
-      "button": 1
-    },
     "src/components/job-card/JobCardShell.tsx": {
       "button": 1
     },
@@ -243,9 +237,6 @@
     "src/components/landing/LandingAppleButton.tsx": {
       "button": 1
     },
-    "src/components/messages/ChatHeader.tsx": {
-      "button": 1
-    },
     "src/components/messages/ConversationList.tsx": {
       "button": 2,
       "input": 1
@@ -254,7 +245,7 @@
       "button": 2
     },
     "src/components/messages/InboxMenus.tsx": {
-      "button": 2
+      "button": 1
     },
     "src/components/messages/MessagesSearchRow.tsx": {
       "button": 1,
@@ -269,13 +260,7 @@
     "src/components/mobileNav/TabButton.tsx": {
       "button": 1
     },
-    "src/components/postjob/AddressAutocomplete.tsx": {
-      "button": 1
-    },
     "src/components/postjob/BudgetSection.tsx": {
-      "button": 1
-    },
-    "src/components/postjob/CityAutocomplete.tsx": {
       "button": 1
     },
     "src/components/postjob/CurrentLocationPill.tsx": {
@@ -287,9 +272,6 @@
     },
     "src/components/postjob/LogisticsSection.tsx": {
       "button": 2
-    },
-    "src/components/postjob/PetPicker.tsx": {
-      "button": 1
     },
     "src/components/postjob/PostJobStepHeader.tsx": {
       "button": 1
@@ -462,10 +444,7 @@
       "button": 1
     },
     "src/pages/post-job/EntryChoice.tsx": {
-      "button": 3
-    },
-    "src/pages/post-job/OfferToSavedHelpr.tsx": {
-      "button": 1
+      "button": 2
     },
     "src/pages/posts/BulkDismissBar.tsx": {
       "button": 1
@@ -480,7 +459,7 @@
       "input": 1
     },
     "src/pages/posts/postedJobs/applicantsPanel/ApplicantPrivateNote.tsx": {
-      "button": 2
+      "button": 1
     },
     "src/pages/profile/GiftCard.tsx": {
       "button": 1,

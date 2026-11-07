@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { t } from "@/lib/i18n/language";
 import "@/lib/i18n/enScreens";
 import { useId } from "react";
@@ -163,8 +164,7 @@ export function ChatHeader({
           index.css outranks `min-w-0` (0,3,1 beats 0,1,0), so the block
           shrinks to 44px and no further, which is the behaviour we want
           anyway. Measured at 320/375/1440: one line each, zero overflow. */}
-      <button
-        type="button"
+      <ListRow variant="flush"
         // Q262: the other party deleted their account, so there is no profile
         // to open. The block stays in place (same layout) but is inert.
         onClick={noProfile ? undefined : onViewProfile}
@@ -173,7 +173,7 @@ export function ChatHeader({
         // avatar and lines are aria-hidden, the sr-only line is the same name the aria-label gave, and the subtitle
         // still reads as the description (aria-describedby reaches hidden text).
         aria-describedby={subtitleId}
-        className="min-w-0 flex-1 flex items-center gap-2 py-1 pr-1 rounded-ds-sm text-left btn-press disabled:opacity-100"
+        className="w-auto min-h-11 px-0 min-w-0 flex-1 flex items-center gap-2 py-1 pr-1 rounded-ds-sm text-left btn-press disabled:opacity-100"
       >
         {/* The shared primitive, not a hand-rolled <img>. The old <img> had
             no onError path, so a truthy-but-dead `avatar_url` (prod row
@@ -259,7 +259,7 @@ export function ChatHeader({
             </span>
           </span>
         </span>
-      </button>
+      </ListRow>
 
       <div className="flex items-center gap-0.5 shrink-0">
       {safetyJob && <SafetyShieldButton job={safetyJob} />}

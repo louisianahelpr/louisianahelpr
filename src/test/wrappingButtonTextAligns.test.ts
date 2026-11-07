@@ -64,7 +64,9 @@ describe("a <button> with wrapping text says how its lines align (Q252)", () => 
   const found = wrappingButtons();
 
   it("finds the buttons from source (inventory floor)", () => {
-    expect(found.size).toBeGreaterThan(3);
+    // > 2 since 2026-11-07 (Q2709): the applicant's private note became the shared ListRow, whose base carries
+    // text-left (3 hand-made wrapping buttons are left).
+    expect(found.size).toBeGreaterThan(2);
   });
 
   it("every one declares a text alignment or is a known centred chip", () => {

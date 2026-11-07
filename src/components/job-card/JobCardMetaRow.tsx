@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { useCallback, useRef, type ReactNode } from "react";
 import { Calendar, Clock, MapPin, Timer } from "lucide-react";
 import { JobHelprsChip } from "./JobHelprsChip";
@@ -329,8 +330,7 @@ export function JobCardMetaRow({
            to the real anchor below, which is where the map action actually
            lives for both the gesture and assistive tech. */
         <span className={`flex items-center min-w-0 ${cityFlex}`}>
-          <button
-            type="button"
+          <ListRow variant="flush"
             {...longPress}
             onClick={(e) => {
               if (pressOpenedMapRef.current) {
@@ -365,7 +365,7 @@ export function JobCardMetaRow({
                the opposite end. */
             /* text-left: a wrapped address (long, or at large Dynamic Type) drew centred,
                apart from the pin (Q252; guard src/test/wrappingButtonTextAligns.test.ts). */
-            className="flex items-center gap-1 min-[360px]:gap-1.5 py-2 -my-2 px-1 -mx-1 rounded-ds-sm hover:bg-[hsl(var(--olivewood)/0.12)] hover:text-primary active:bg-[hsl(var(--olivewood)/0.20)] active:scale-[0.97] transition-all duration-150 min-w-0 shrink text-left"
+            className="w-auto min-h-11 flex items-center gap-1 min-[360px]:gap-1.5 py-2 -my-2 px-1 -mx-1 rounded-ds-sm hover:bg-[hsl(var(--olivewood)/0.12)] hover:text-primary active:bg-[hsl(var(--olivewood)/0.20)] active:scale-[0.97] transition-all duration-150 min-w-0 shrink text-left"
             /* DISCOVERABILITY, part 2 — say it in words, for everyone.
                `aria-label` states BOTH actions so a screen-reader user is told
                the tap expands (which is not guessable) and `aria-describedby`
@@ -380,7 +380,7 @@ export function JobCardMetaRow({
                 address read aloud with no label is a string of digits. */}
             {fullAddress && <span className="sr-only">Job address: </span>}
             <span className={wrapAddress ? "whitespace-normal break-words" : "truncate"}>{shown}</span>
-          </button>
+          </ListRow>
           {/* THE ACCESSIBLE MAP ACTION, and the thing the hold actually clicks.
 
               A gesture is invisible to assistive tech and unreachable from a

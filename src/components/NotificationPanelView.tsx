@@ -3,6 +3,7 @@
  * store read, the loads, the realtime feed, push and the handlers in useNotificationPanelModel). Every value it reads
  * comes in as the model; it holds no state of its own.
  */
+import { ListRow } from "@/components/ui/ListRow";
 import { type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { prefetchOnIntent } from "@/components/notificationPanel/notificationFeed";
@@ -511,17 +512,16 @@ export function NotificationPanelView({
             whether or not the list is empty, and it is the one thing here
             that changes what lands in this panel in future. */}
         {showPushRow && (
-          <button
-            type="button"
+          <ListRow variant="flush"
             onClick={enablePush}
-            className="shrink-0 w-full h-11 inline-flex items-center justify-center gap-1.5 text-ds-12 font-sans font-semibold border-t border-[hsl(var(--olivewood)/0.12)] ctl-tint"
+            className="min-h-11 px-0 py-0 text-center shrink-0 w-full h-11 inline-flex items-center justify-center gap-1.5 text-ds-12 font-sans font-semibold border-t border-[hsl(var(--olivewood)/0.12)] ctl-tint"
             style={{
               color: "hsl(var(--bark))",
               marginBottom: "var(--safe-area-bottom, 0px)",
             }}
           >
             <BellRing className="w-4 h-4" /> Turn on push notifications
-          </button>
+          </ListRow>
         )}
         </div>
       </PopoverContent>

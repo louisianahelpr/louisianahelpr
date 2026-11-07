@@ -1063,7 +1063,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shop_refund_to_send: "20261019071055_shops_refunds_cancels_strikes.sql b349bdd3f8d3b813",
       shop_refunds_due: "20261019071055_shops_refunds_cancels_strikes.sql bbfc70978e922056",
       shop_write_refund: "20261019071055_shops_refunds_cancels_strikes.sql 8e2784ad6a3144e8",
-      shops_admin_queue: "20261019071055_shops_refunds_cancels_strikes.sql 45af68a4538108a7",
+      shops_admin_queue: "20261107035259_shops_admin_answer_photo.sql 535ebf837daa5341", // Shops admin answer photo (lh-authz-rls owed): only h.problem_photo_path added to the read-only queue; records no refund
       shops_admin_record_hand_refund: "20261103142625_q2390_deposit_wanted_dispute_sold_elsewhere_hand_refund_fault_fee_not_found_is_404.sql 7cde81860e51c366",
       shops_admin_refund_order: "20261019071055_shops_refunds_cancels_strikes.sql a7df4ee33cc5ef18",
       shops_admin_settle_held_refund: "20261019071055_shops_refunds_cancels_strikes.sql 6d0001f095b1ff76",

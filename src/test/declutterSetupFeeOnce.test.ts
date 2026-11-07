@@ -180,7 +180,7 @@ describe("Q2352 the setup fee is charged once per account", () => {
     expect(checkout).toContain("const fullChargeCents = order.total_cents + setupFeeCents;");
     expect(checkout).toContain("if (session.amount_total !== chargeCents) {");
     const hook = code("supabase/functions/stripe-webhook/handlers/declutterCheckout.ts");
-    expect(hook).toContain('if (answer.result === "paid" || answer.result === "already_paid") { await settleSetupFee(ctx, paymentIntentId, orderId); return; }');
+    expect(hook).toContain('if (answer.result === "paid" || answer.result === "already_paid") { await settleSetupFee(ctx, paymentIntentId, orderId); await saveOrderCard(event, session.id, paymentIntentId, meta.buyer_id, ctx); return; }');
     expect(hook).toContain('if (!row || row.setup_fee_state !== "refund_due") return;');
   });
 });

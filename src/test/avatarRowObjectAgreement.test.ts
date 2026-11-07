@@ -526,7 +526,7 @@ describe("profiles.avatar_url ⇄ avatars bucket agreement (class check)", () =>
 
   it("inventory is live: finds the app, edge, seed and journey writers", () => {
     const files = new Set(writes.map((w) => w.src.file));
-    for (const f of ["src/pages/profile/Profile.tsx", "src/pages/auth/CompleteProfile.tsx", "supabase/functions/complete-signup/index.ts", "scripts/audit/prod-seed.mjs"]) {
+    for (const f of ["src/pages/profile/Profile.tsx", "src/pages/auth/completeProfile/saveCompletedProfile.ts", "supabase/functions/complete-signup/index.ts", "scripts/audit/prod-seed.mjs"]) {
       expect(files, `the writer inventory lost ${f} — the matcher is broken`).toContain(f);
     }
   });

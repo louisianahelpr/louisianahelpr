@@ -15,7 +15,7 @@
  * @mutate src/components/declutter/DeclutterBunchPhotos.tsx | <HiddenFileInput id={addId} accept="image/*" multiple peer | <HiddenFileInput id={addId} accept="image/*" multiple
  * @mutate src/components/declutter/DeclutterSellPhotos.tsx | <HiddenFileInput id="sell-files" accept="image/*" multiple | <HiddenFileInput id="sell-files" accept="image/*"
  * @mutate src/components/postjob/detailsSection/VideoScope.tsx | <HiddenFileInput accept="video/*" | <HiddenFileInput accept="image/*"
- * @mutate src/pages/auth/CompleteProfile.tsx |                   id="avatar"\n                  accept="image/*" |                   accept="image/*"
+ * @mutate src/pages/auth/completeProfile/CompleteProfileAvatar.tsx |           id="avatar"\n          accept="image/*" |                   accept="image/*"
  * @mutate src/pages/jobs/appliedJobCard/PendingApplicationSection.tsx |             <HiddenFileInput |             <input type="file" className="sr-only"
  * @mutate src/components/DisputeDialog.tsx | <HiddenFileInput accept="image/*" multiple onChange={handleFileChange} /> | <input type="file" accept="image/*" multiple onChange={handleFileChange} className="sr-only" />
  */
@@ -64,7 +64,8 @@ describe("Declutter's hidden photo pickers are the shared HiddenFileInput, class
     const edit = readFileSync("src/components/profile/profileEditForm/PhotoNameSection.tsx", "utf8");
     expect(edit).not.toMatch(/type="file"/);
     expect(edit).toContain('<HiddenFileInput accept="image/*" onChange={handlePick} disabled={avatarUploading} />');
-    const gate = readFileSync("src/pages/auth/CompleteProfile.tsx", "utf8");
+    // The gate's photo picker moved to src/pages/auth/completeProfile/CompleteProfileAvatar.tsx (Q806, 2026-11-07).
+    const gate = readFileSync("src/pages/auth/completeProfile/CompleteProfileAvatar.tsx", "utf8");
     expect(gate).not.toMatch(/type="file"/);
     const tag = gate.slice(gate.indexOf("<HiddenFileInput"), gate.indexOf("/>", gate.indexOf("<HiddenFileInput")));
     expect(tag).toContain('id="avatar"');

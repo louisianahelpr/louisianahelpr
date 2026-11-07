@@ -24,7 +24,7 @@
  *
  * @mutate src/components/ProtectedRoute.tsx |   return filled(profile.age_attested_at) \|\| filled(profile.date_of_birth); |   return true;
  * @mutate src/pages/auth/CompleteProfile.tsx |       ...(ageBoxShown ? [{ label: t("profileGate.needAge"), step: t("profileGate.stepAge"), done: ageConfirmed }] : []), |
- * @mutate src/pages/auth/CompleteProfile.tsx |         ...(ageBoxShown && !profile?.age_attested_at ? { age_attested_at: nowIso } : {}), |
+ * @mutate src/pages/auth/completeProfile/saveCompletedProfile.ts |     ...(ageBoxShown && !profile?.age_attested_at ? { age_attested_at: nowIso } : {}), |
  * @mutate src/pages/auth/CompleteProfile.tsx |                   {t("profileGate.ageConfirm")} <span | <span
  * @mutate src/pages/auth/CompleteProfile.tsx |   const ageBoxShown = user?.app_metadata?.provider !== "email"; |   const ageBoxShown = false;
  * @mutate src/pages/auth/CompleteProfile.tsx |   const ageBoxShown = user?.app_metadata?.provider !== "email"; |   const ageBoxShown = true;
@@ -238,7 +238,8 @@ describe("Complete Profile: an empty optional City never blocks Enter App", () =
 // The exact list of code that touches the record.
 // ---------------------------------------------------------------------------
 const TOUCHES_AGE_ATTESTED_AT: Record<string, string> = {
-  "src/pages/auth/CompleteProfile.tsx": "the box: the only writer",
+  "src/pages/auth/CompleteProfile.tsx": "the box: reads it to pre-tick the 18+ box",
+  "src/pages/auth/completeProfile/saveCompletedProfile.ts": "the box: the only writer (CompleteProfile's save path, Q806)",
   "src/pages/auth/completeProfile/types.ts": "Complete Profile's update type",
   "src/components/ProtectedRoute.tsx": "the gate: the only reader that lets an account in",
   "src/integrations/supabase/types.ts": "generated column types",

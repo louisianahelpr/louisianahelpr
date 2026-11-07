@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { supabase } from "@/integrations/supabase/client";
 import { useSignOutAction } from "@/hooks/useSignOutAction";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { useQueryClient } from "@tanstack/react-query";
@@ -13,35 +12,26 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { toast } from "sonner";
 import { contactLeakFieldError, contactLeakRejectionMessage } from "@/lib/contactLeakField";
 import { FieldError } from "@/components/ui/FieldError";
-import { AlertCircle, Camera, Check, Circle, Loader2, ShieldCheck, Trash2, X } from "lucide-react";
+import { AlertCircle, Check, Loader2, ShieldCheck, Trash2, X } from "lucide-react";
 import { HelprSpinner } from "@/components/ui/HelprSpinner";
 import { CityAutocomplete } from "@/components/postjob/CityAutocomplete";
 import { cn } from "@/lib/utils";
 import { isProfileComplete } from "@/components/ProtectedRoute";
 import { splitName } from "@/lib/splitName";
-import { queryKeys } from "@/lib/queryKeys";
-import { unwrapMutationRow, isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
+import { isWriteRejected, mutationErrorMessage } from "@/lib/mutationResult";
 import { hapticSuccess, hapticError } from "@/lib/haptics";
 import AuthShell from "@/components/auth/AuthShell";
 import { safeInternalRedirect } from "@/lib/authRedirects";
-import { LATEST_PRIVACY_VERSION, LATEST_TERMS_VERSION } from "@/lib/consent";
-import { report } from "@/lib/errorLogger";
-import { uploadProfileFiles } from "./completeProfile/uploadProfileFiles";
+import { recoverCompletedProfile, saveCompletedProfile } from "./completeProfile/saveCompletedProfile";
 import { CompleteProfileIntro } from "./completeProfile/CompleteProfileIntro";
 import { useParishForZip, UNKNOWN_ZIP_MESSAGE } from "@/hooks/useParishForZip";
 import { parishForCity } from "@/lib/parishes";
-import { useAvatarCrop } from "@/components/profile/AvatarCropDialog";
-import type { ProfileCompletionUpdates } from "./completeProfile/types";
-import {
-  ALLOWED_IMAGE_TYPES,
-  fileProblemKey,
-  withTimeout,
-} from "./completeProfile/constants";
 import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 import { userFacingError } from "@/lib/userFacingError";
 import { useLanguage } from "@/lib/i18n/language";
-import { ProfileNextStep } from "./completeProfile/ProfileNextStep";
-import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
+import { StillNeededList } from "./completeProfile/StillNeededList";
+import { CheckingProfileCard } from "./completeProfile/CheckingProfileCard";
+import { CompleteProfileAvatar, useCompleteProfileAvatar } from "./completeProfile/CompleteProfileAvatar";
 
 // Q292: an incomplete account cannot reach /profile (the gate sends it here),
 // so in-app deletion (Apple 5.1.1(v), GDPR Art. 17) has to be offered here.
@@ -112,13 +102,9 @@ const CompleteProfile = () => {
   // simply refreshed the page) don't have to re-tick the box.
   const [acceptedPolicies, setAcceptedPolicies] = useState(false);
 
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  // A remote avatar_url can 404 (a deleted Storage object, a dead dicebear
-  // URL). Falling back to the camera placeholder on `onError` is what lets us
-  // render the real photo optimistically instead of refusing to render any
-  // non-blob: URL at all — see the preview block below.
-  const [avatarBroken, setAvatarBroken] = useState(false);
+  // The photo: picked file, preview, pick + crop (completeProfile/CompleteProfileAvatar.tsx).
+  const { avatarFile, avatarPreview, avatarBroken, setAvatarBroken, handleAvatarChange, avatarCropDialog } =
+    useCompleteProfileAvatar(profile?.avatar_url, t);
 
   const [submitting, setSubmitting] = useState(false);
 
@@ -166,37 +152,7 @@ const CompleteProfile = () => {
   // the gate when the logged-in user changes (e.g. in a shared-device test).
   }, [profile?.user_id]);
 
-  // Keeps the avatar THUMBNAIL in step with the avatar the GATE reads.
-  // A locally-picked file always wins (its blob: URL is the freshest truth);
-  // otherwise mirror whatever `profile.avatar_url` currently is, including a
-  // value that arrives on a later refetch.
-  useEffect(() => {
-    if (avatarFile) return;
-    const url = profile?.avatar_url ?? null;
-    setAvatarPreview((prev) => (prev === url ? prev : url));
-    setAvatarBroken(false);
-  }, [profile?.avatar_url, avatarFile]);
 
-  const validateFile = (file: File, allowedTypes: string[], label: string): boolean => {
-    const problem = fileProblemKey(file, allowedTypes);
-    if (problem) toast.error(t(problem, { label }));
-    return !problem;
-  };
-
-  const { requestCrop: requestAvatarCrop, dialog: avatarCropDialog } = useAvatarCrop();
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const picked = e.target.files?.[0];
-    // Reset so picking the same file again after a cancel still fires onChange.
-    e.target.value = "";
-    if (!picked || !validateFile(picked, ALLOWED_IMAGE_TYPES, t("profileGate.photoLabel"))) return;
-    // Frame it before it becomes the preview — the circle crops anything left to chance.
-    const file = await requestAvatarCrop(picked);
-    if (file) {
-      setAvatarFile(file);
-      setAvatarBroken(false);
-      setAvatarPreview(URL.createObjectURL(file));
-    }
-  };
 
   // Live checklist: name, the 18+ box (Google/Apple) and the policies. City
   // and ZIP are optional here and on sign-up step 2 (owner 2026-10-26), so
@@ -245,27 +201,8 @@ const CompleteProfile = () => {
      
   }, [user?.id, Boolean(profile), isLoading]);
 
-  const recoverCompletedProfile = async () => {
-    if (!user?.id) return false;
-    try {
-      const { data, error } = await withTimeout(
-        Promise.resolve(supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle()),
-        t("profileGate.checkLabel"),
-        12000,
-      );
-      if (error || !data || !(data.is_legacy_user === true || isProfileComplete(data, user))) return false;
-
-      queryClient.setQueryData(queryKeys.currentUser.byId(user.id), (current: { isAdmin?: boolean } | undefined) => ({
-        ...(current ?? {}),
-        profile: data,
-        isAdmin: current?.isAdmin ?? false,
-      }));
-      navigate(nextDestination, { replace: true });
-      return true;
-    } catch {
-      return false;
-    }
-  };
+  // After a failed save: a profile complete anyway is read back and the member goes on (completeProfile/saveCompletedProfile.ts).
+  const recover = () => recoverCompletedProfile({ user, t, queryClient, navigate, nextDestination });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -287,143 +224,14 @@ const CompleteProfile = () => {
 
     setSubmitting(true);
     try {
-      const fullName = `${firstName.trim()} ${lastName.trim()}`;
-      const nowIso = new Date().toISOString();
-
-      // Note: full_name is persisted to the profiles table below. We intentionally
-      // skip supabase.auth.updateUser() here because it grabs the auth lock and can
-      // collide with the session's autoRefreshToken loop, producing
-      // "Acquiring an exclusive Navigator LockManager lock ... lock stolen" errors.
-
-      // Single, lightweight DB update — no large JSON over the wire
-      const updates: ProfileCompletionUpdates = {
-        full_name: fullName,
-        bio: bio.trim(),
-        // Optional: an empty field never overwrites what the profile has.
-        ...(location.trim() ? { location: location.trim() } : {}),
-        ...(zipCode.trim() ? { zip_code: zipCode.trim() } : {}),
-        ...(resolvedZipParish ? { parish: resolvedZipParish } : {}), // the live effect's value
-        // The 18+ box (checked above): the record ProtectedRoute's gate reads
-        // for a Google/Apple sign-up. The first tick's moment is kept.
-        ...(ageBoxShown && !profile?.age_attested_at ? { age_attested_at: nowIso } : {}),
-        // Stamp the moment the user accepted the rules / terms / privacy.
-        // Persisting this means the checklist won't ask again on refresh.
-        //
-        // Written into the SAME three places the signup path uses, so consent
-        // has one shape no matter which screen collected it:
-        //   accepted_terms_at      — first-ever consent (immutable server-side)
-        //   terms_accepted_at      — acceptance of the version below
-        //   terms_version_accepted — which version that was
-        // plus an append-only `legal_acceptances` row after the save.
-        // Before this, `accepted_terms_at` was the only one this screen wrote
-        // and `terms_version_accepted` stayed '' — which meant a user who
-        // completed their profile here was left permanently "stale" to
-        // TermsReconsentDialog's version check.
-        accepted_terms_at: nowIso,
-        terms_accepted_at: nowIso,
-        terms_version_accepted: LATEST_TERMS_VERSION,
-      };
-
-      // Upload files directly to Storage (much faster than base64-through-
-      // edge-function), and SAVE THE ROW INSIDE the upload: `uploadProfileFiles`
-      // calls this after the photo is stored and before the photo it replaces
-      // is deleted. It used to hand back a URL with the old object already
-      // gone, so the save below failing (a contact-leak bio, a timeout, a
-      // zero-row update) left `avatar_url` on a deleted object.
-      // Government ID upload was removed from this page — Stripe Identity
-      // (triggered from the first job post) collects the real ID now.
-      //
-      // Read the persisted row back in the same round-trip. ProtectedRoute's
-      // Big-7 completeness gate re-evaluates the instant we navigate to
-      // /home, so the cache MUST hold the authoritative saved row — not
-      // an optimistic guess that a stale background refetch could clobber.
-      //
-      // Guarded through unwrapMutation because a null `error` does NOT mean
-      // the write happened: an UPDATE matching zero rows (RLS refusing the
-      // row, a session whose auth.uid() no longer matches) returns
-      // `{ data: [], error: null }`. The previous shape read that as success
-      // and fell back to an OPTIMISTIC merge — writing a profile the database
-      // does not have into the cache, letting the gate pass, and dropping the
-      // user on /home until the next real fetch bounced them back here
-      // with nothing to show for the attempt. This is the one write on the
-      // screen, and it is the screen's only exit, so a silent rejection has to
-      // surface as a failure.
-      const userId = user.id;
-      const { saved: savedRow, staleAvatarObjects } = await uploadProfileFiles(
-        userId,
-        avatarFile,
-        async ({ avatarUrl }) => {
-          if (avatarUrl) updates.avatar_url = avatarUrl;
-          return unwrapMutationRow<Record<string, unknown>>(
-            await withTimeout(
-              Promise.resolve(
-                supabase.from("profiles").update(updates).eq("user_id", userId).select("*"),
-              ),
-              t("profileGate.saveLabel"),
-            ),
-            {
-              action: "save your profile",
-              context: { userId },
-            },
-          );
-        },
-      );
-
-      // A superseded photo that survived the replace is STILL PUBLIC. Do not
-      // fail the submit over it — the new photo is live and the profile points
-      // at it — but never let it pass silently either: if the member was
-      // replacing a photo they wanted retracted (the licence / passport case
-      // this bucket has already seen), silence is the failure.
-      if (staleAvatarObjects.length > 0) {
-        toast.error(
-          t("photo.staleAvatar"),
-        );
-      }
-
-      // Append the acceptance EVENT to the audit trail. `legal_acceptances` is
-      // append-only (INSERT + SELECT policies only, no UPDATE/DELETE), so a
-      // version bump adds a record instead of replacing one — which is the
-      // whole point of having it alongside the two profile columns. This
-      // screen never wrote to it before, so a consent collected here left no
-      // audit row at all; only the signup path did.
-      //
-      // Non-fatal and explicitly checked: a missed audit row must not strand a
-      // user on the one screen they cannot leave, but the error is never
-      // dropped — a consent trail that silently stops being written is exactly
-      // the failure this table exists to prevent.
-      const { error: legalErr } = await supabase.from("legal_acceptances").insert({
-        user_id: user.id,
-        terms_version: LATEST_TERMS_VERSION,
-        privacy_version: LATEST_PRIVACY_VERSION,
+      // The one write: the row, the photo, the consent trail and the cache (completeProfile/saveCompletedProfile.ts).
+      await saveCompletedProfile({
+        user, profile, firstName, lastName, bio, location, zipCode, resolvedZipParish, ageBoxShown, avatarFile, t, queryClient,
       });
-      if (legalErr) {
-        report(legalErr, {
-          severity: "warning",
-          tags: { source: "CompleteProfile.legalAcceptances" },
-          context: { userId: user.id },
-        });
-      }
-
-      // There used to be a follow-up here: when the saved row still read
-      // approval_status 'pending', invoke complete-signup to flip it. The
-      // approval step is retired (Q193/Q205b) — nothing reads the column —
-      // so the save above IS the completion.
-      queryClient.setQueryData(queryKeys.currentUser.byId(user.id), (current: { isAdmin?: boolean } | undefined) => ({
-        ...(current ?? {}),
-        // The row Postgres actually persisted — guaranteed non-null by the
-        // guard above.
-        profile: savedRow,
-        isAdmin: current?.isAdmin ?? false,
-      }));
-      // No invalidate + sleep here: that triggered a background refetch that
-      // could resolve the pre-update row mid-navigation (read-after-write
-      // race), failing the completeness gate and bouncing the user straight
-      // back to /complete-profile (LH-29). The authoritative row above is the
-      // single source of truth; staleTime keeps it from refetching on arrival.
       hapticSuccess();
       navigate(nextDestination, { replace: true });
     } catch (err: unknown) {
-      const recovered = await recoverCompletedProfile();
+      const recovered = await recover();
       if (!recovered) {
         hapticError();
         // A silently-rejected write gets its own sentence (the row wasn't
@@ -455,25 +263,7 @@ const CompleteProfile = () => {
   if (user && !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-premium-page px-5">
-        <div className="w-full max-w-sm rounded-2xl border border-border/60 bg-card p-6 text-center shadow-[var(--card-shadow)]">
-          <div className="flex justify-center mb-4">
-            <HelprSpinner size={24} />
-          </div>
-          <h1 className="text-headline-hero font-display font-bold text-foreground">{t("profileGate.checking")}</h1>
-          <p className="mt-2 text-ds-11 text-muted-foreground">
-            {t("profileGate.checkingBody")}
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            onClick={() => { void signOut({ after: () => navigate("/login", { replace: true }) }); }}
-            disabled={signingOut}
-            className="mt-5 w-full"
-          >
-            <X className="w-4 h-4 mr-2" /> {signingOut ? t("profileGate.loggingOut") : t("profileGate.signOut")}
-          </Button>
-        </div>
+        <CheckingProfileCard signingOut={signingOut} onSignOut={() => { void signOut({ after: () => navigate("/login", { replace: true }) }); }} t={t} />
         {deleteDialog}
       </div>
     );
@@ -540,69 +330,13 @@ const CompleteProfile = () => {
                 already has this from SignupStep2; Google/Apple never
                 collected it) — so the person can double-check what came
                 over from the provider instead of it disappearing silently. */}
-            <div className="flex flex-col items-center gap-2 -mt-1">
-              <label
-                htmlFor="avatar"
-                className="group relative cursor-pointer"
-              >
-                <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-border bg-muted flex items-center justify-center transition-all group-hover:ring-primary/50 group-focus-within:ring-primary">
-                  {/* Renders ANY preview URL, not just a freshly-picked
-                      `blob:`. The old `startsWith("blob:")` guard meant a user
-                      who already had an avatar on file saw an empty camera
-                      placeholder under the caption "Tap to change" — the
-                      screen implying the photo was missing on the one screen
-                      that will not let them leave until it isn't. A remote URL
-                      that 404s falls back to the placeholder via onError. */}
-                  {avatarPreview && !avatarBroken ? (
-                    <img
-                      loading="lazy"
-                      decoding="async"
-                      src={avatarPreview}
-                      alt={t("profileGate.photoPreview")}
-                      className="w-full h-full object-cover"
-                      onError={() => setAvatarBroken(true)}
-                    />
-                  ) : (
-                    <Camera className="w-7 h-7 text-muted-foreground" />
-                  )}
-                </div>
-                <div className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md ring-2 ring-card">
-                  <Camera className="w-3.5 h-3.5" />
-                </div>
-                {/* `sr-only`, not `hidden`, and the name on the INPUT. With
-                    `hidden` (display:none) the only way to add the required
-                    photo was a pointer: keyboard and screen-reader users could
-                    not reach it on the one screen they cannot leave without
-                    one. The aria-label sat on the <label>, where axe flags it
-                    as prohibited (aria-prohibited-attr) and AT ignores it.
-                    Found the first time the sweep rendered this gate. */}
-                <HiddenFileInput
-                  id="avatar"
-                  accept="image/*"
-                  aria-label={avatarPreview ? t("profileGate.photoChange") : t("profileGate.photoUpload")}
-                  onChange={handleAvatarChange}
-                />
-              </label>
-              <p className="text-ds-11 text-muted-foreground">
-                {avatarPreview && !avatarBroken
-                  ? t("profileGate.photoTapChange")
-                  : t("profileGate.photoTapAdd")}
-              </p>
-              {/* WHERE THIS FILE GOES, said at the moment the file is chosen.
-                  The `avatars` bucket is PUBLIC — anonymously fetchable at a
-                  guessable URL — and identity documents have twice been
-                  uploaded into it from a picker that looked exactly like this
-                  one and said nothing. "Photo of a document" cannot be
-                  detected client-side (the licence found in prod was
-                  2502×1407, the passport 1093×1491 — no dimension or
-                  aspect-ratio test separates either from a selfie), so making
-                  the CONSEQUENCE legible is the entire defence. One quiet
-                  line, in the muted token, next to the control it describes —
-                  not a warning banner, which people learn to skip. */}
-              <p className="text-ds-11" style={{ color: "hsl(var(--olivewood) / 0.75)" }}>
-                {t("profileGate.photoPublic")}
-              </p>
-            </div>
+            <CompleteProfileAvatar
+              avatarPreview={avatarPreview}
+              avatarBroken={avatarBroken}
+              setAvatarBroken={setAvatarBroken}
+              handleAvatarChange={handleAvatarChange}
+              t={t}
+            />
 
             {/* Asked only when the provider gave no full name (owner 2026-10-26:
                 "Apple/Google: ask first+last only if the provider gave no full
@@ -771,47 +505,7 @@ const CompleteProfile = () => {
               </label>
             )}
 
-            {/* WHAT IS STILL MISSING — the whole point of this screen.
-                The `checklist` above has existed since the gate shipped and was
-                never rendered: the only signal a blocked user got was a
-                DISABLED button reading "Complete required fields", with every
-                field on the form wearing an identical red asterisk whether it
-                was satisfied or not. Because the button is disabled whenever
-                `allComplete` is false, the per-field `fail()` toasts in
-                handleSubmit are unreachable too — so a user missing exactly one
-                field (four accounts in prod on 2026-08-31, two of them missing
-                only City) had nothing anywhere on the page naming it.
-                This is a redirect the app will not let them out of, so naming
-                the remaining fields is not a nicety.
-                Shown only while incomplete: once every item is done the list
-                is noise and the enabled "Enter App" button says it better. */}
-            {!allComplete && (
-              <div
-                className="rounded-ds-md border p-3.5"
-                style={{
-                  borderColor: "hsl(var(--burnt-sienna) / 0.28)",
-                  background: "hsl(var(--burnt-sienna) / 0.06)",
-                }}
-              >
-                {/* NOT `text-display-eyebrow` — that utility was `display: none`
-                    app-wide ("all eyebrows gone", 2026-07-25; rule deleted
-                    2026-10-12, Q1288), so a label written with it rendered nothing.
-                    Caught here by reading the computed page text, not the
-                    class name — same trap as asserting gloss by class. */}
-                <ProfileNextStep checklist={checklist} t={t} />
-                <p className="mt-2 text-ds-11 font-semibold" style={{ color: "hsl(var(--sienna-ink))" }}>{t("profileGate.stillNeeded")}</p>
-                <ul className="mt-2 space-y-1.5" aria-live="polite">
-                  {checklist
-                    .filter((c) => !c.done)
-                    .map((c) => (
-                      <li key={c.label} className="flex items-center gap-2 text-ds-11" style={{ color: "hsl(var(--ink-deep))" }}>
-                        <Circle className="w-3 h-3 shrink-0" style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} aria-hidden />
-                        {c.label}
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            )}
+            <StillNeededList checklist={checklist} allComplete={allComplete} t={t} />
 
             <Button
               type="submit"

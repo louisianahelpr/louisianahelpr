@@ -24,6 +24,7 @@
     "handle_for_user(uuid)": "client",
     "declutter_manager_message_labels(text, uuid[])": "client",
     "declutter_record_item_view(uuid, uuid)": "client",
+    "declutter_item_save_counts(uuid[])": "client",
     "public_profile_work_photos(text)": "client"
   },
   "authenticated": {
@@ -662,6 +663,7 @@
     "declutter_respond_swap(uuid, text)": "reviewed 2026-11-06 (Q14): Declutter trades slice 1, Builder 3, lh-authz-rls review owed before landing. Behind require_feature('declutter') and the ban gate; only a side of the trade finds it (trade_not_found otherwise); only the buyer withdraws, only the seller accepts or declines; accept re-checks both items and holds each for the other side at $0 through declutter_take_item; nothing is charged.",
     "rpc_hire_target_by_handle(text)": "reviewed 2026-11-04 (Q14): Builder 113, Hire me on /u/<handle> (owner 2026-11-04), lh-authz-rls approved by the lead 11-04 ~9:00 AM. Signed-in only (anon revoked); returns one user id, only for a member public_profile_by_handle shows, never your own, never across a block either way, refused to a banned caller; no write.",
     "declutter_record_item_view(uuid, uuid)": "client",
+    "declutter_item_save_counts(uuid[])": "client",
     "declutter_my_item_view_counts()": "client",
     "shops_admin_reported(uuid[])": "client",
     "shops_admin_take_down_item(uuid, text, uuid)": "client",

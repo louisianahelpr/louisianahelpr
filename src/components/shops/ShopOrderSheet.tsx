@@ -9,6 +9,10 @@
  * paying, and is sent to Stripe's page, where the card is HELD, not charged.
  * The shop has 24 hours to accept; only then is the card charged.
  *
+ * Delivery (20261106180902): when the shop delivers, the buyer picks pickup or
+ * delivery and types the drop-off address; shop-checkout geocodes it, the SQL
+ * refuses one past the shop's radius and adds the shop's fee.
+ *
  * The server re-checks every rule (shops_request_order): nothing here is the
  * protection. Styling is today's shared components only (no visual pass yet).
  */
@@ -17,14 +21,15 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { DatePickerField } from "@/components/DatePickerField";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { fetchShopItems, formatItemPrice, type ShopItem } from "@/lib/shops/items";
 import { fetchItemOptions } from "@/lib/shops/variants";
+import { deliveryAddressProblem, fetchDeliveryOffer } from "@/lib/shops/delivery";
 import {
   buyerFeeCents,
   cancelPolicyText,
@@ -64,6 +69,10 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   const [opening, setOpening] = useState(false);
   // H8 (b): where an at-home carpet or furniture cleaning is done (taxed there).
   const [svc, setSvc] = useState({ line1: "", city: "", postal_code: "" });
+  // Delivery: the shop's offer (its own query; a failed read just offers pickup), the buyer's choice and address.
+  const offer = useQuery({ queryKey: ["shops", "delivery-offer", shopId], queryFn: () => fetchDeliveryOffer(shopId), enabled: !!shopId });
+  const [wantsDelivery, setWantsDelivery] = useState(false);
+  const [addr, setAddr] = useState({ line1: "", line2: "", city: "", postal_code: "" });
 
   const orderable = useMemo(
     () => (items.data ?? []).filter((i) => i.status === "live" && (i.stock_count == null || i.stock_count > 0)),
@@ -119,7 +128,12 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   // One address per calculation: an at-home cleaning is ordered on its own (the server refuses a mix too).
   const atHomeMixed = atHome && chosen.length > 1;
   const svcOk = svc.line1.trim().length >= 3 && svc.city.trim().length >= 2 && /^[0-9]{5}$/.test(svc.postal_code.trim()) && isLouisianaZip(svc.postal_code);
-  const canSend = chosen.length > 0 && !!readyDate && dateProblem === null && note.length <= NOTE_MAX && !opening
+  // Restack (l106 + delivery): work done at the buyer's place has nothing to deliver (the server refuses it too).
+  const delivers = offer.data?.delivers === true && !atHome;
+  const delivering = delivers && wantsDelivery;
+  const deliveryCents = delivering ? offer.data?.fee_cents ?? 0 : 0;
+  const addrProblem = delivering ? deliveryAddressProblem(addr) : null;
+  const canSend = chosen.length > 0 && !!readyDate && dateProblem === null && note.length <= NOTE_MAX && !opening && addrProblem === null
     && (!atHome || (svcOk && !atHomeMixed));
 
   const send = async () => {
@@ -133,6 +147,9 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
         // The cancel terms shown above: shop-checkout refuses (terms_changed) if the shop changed them since.
         terms: { cancel_policy: t.cancel_policy, ready_tap_cancel: t.ready_tap_cancel },
         ...(atHome ? { serviceAddress: { line1: svc.line1.trim(), city: svc.city.trim(), postal_code: svc.postal_code.trim() } } : {}),
+        ...(delivering
+          ? { delivery: { line1: addr.line1.trim(), ...(addr.line2.trim() ? { line2: addr.line2.trim() } : {}), city: addr.city.trim(), postal_code: addr.postal_code.trim() } }
+          : {}),
       });
       await openExternalUrl(url, () => {
         setOpening(false);
@@ -239,7 +256,51 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
         <p className="text-xs text-muted-foreground">{note.length}/{NOTE_MAX}. No phone numbers, emails or links.</p>
       </div>
 
-      <HandoverModeNote shopId={shopId} />
+      {delivers ? (
+        <div className="space-y-2" data-testid="shop-order-delivery">
+          <p className="text-sm font-semibold">How you'll get it</p>
+          <div className="grid grid-cols-2 gap-2" role="group" aria-label="How you'll get it">
+            {[false, true].map((d) => (
+              <Button key={String(d)} type="button" variant={wantsDelivery === d ? "default" : "outline"}
+                className={`${wantsDelivery === d ? "btn-grad-primary " : ""}h-auto whitespace-normal py-2`}
+                aria-pressed={wantsDelivery === d} onClick={() => setWantsDelivery(d)}>
+                {d ? `Delivery, ${offer.data && offer.data.fee_cents > 0 ? formatCents(offer.data.fee_cents) : "free"}` : "Pickup"}
+              </Button>
+            ))}
+          </div>
+          {wantsDelivery ? (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                The shop delivers within {offer.data?.radius_miles} miles. It sees your address only after it accepts the order.
+              </p>
+              <div className="space-y-1">
+                <Label htmlFor="shop-order-addr1">Street address</Label>
+                <Input id="shop-order-addr1" autoComplete="address-line1" value={addr.line1} onChange={(e) => setAddr((a) => ({ ...a, line1: e.target.value }))} />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="shop-order-addr2">Apt, suite (optional)</Label>
+                <Input id="shop-order-addr2" autoComplete="address-line2" value={addr.line2} onChange={(e) => setAddr((a) => ({ ...a, line2: e.target.value }))} />
+              </div>
+              <div className="grid grid-cols-[1fr_8rem] gap-2">
+                <div className="space-y-1">
+                  <Label htmlFor="shop-order-city">City</Label>
+                  <Input id="shop-order-city" autoComplete="address-level2" value={addr.city} onChange={(e) => setAddr((a) => ({ ...a, city: e.target.value }))} />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="shop-order-zip">ZIP</Label>
+                  <Input id="shop-order-zip" inputMode="numeric" autoComplete="postal-code" maxLength={5} value={addr.postal_code}
+                    onChange={(e) => setAddr((a) => ({ ...a, postal_code: e.target.value }))} />
+                </div>
+              </div>
+              {addrProblem && (addr.line1 || addr.city || addr.postal_code) ? (
+                <p className="text-xs text-muted-foreground">{addrProblem}</p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {delivering ? null : <HandoverModeNote shopId={shopId} />}
       <div className="space-y-1 rounded-xl bg-muted/60 p-3" data-testid="shop-order-cancel-policy">
         <p className="text-sm font-semibold">{policy.label}</p>
         <p className="text-xs text-muted-foreground">{policy.detail}</p>
@@ -248,7 +309,8 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
       <dl className="space-y-1 text-sm">
         <div className="flex justify-between"><dt>Items</dt><dd>{formatCents(itemsCents)}</dd></div>
         <div className="flex justify-between"><dt>Service fee (5% + $0.70)</dt><dd>{formatCents(feeCents)}</dd></div>
-        <div className="flex justify-between font-semibold"><dt>Total</dt><dd data-testid="shop-order-total">{formatCents(itemsCents + feeCents)}</dd></div>
+        {delivering ? <div className="flex justify-between"><dt>Shop delivery</dt><dd>{deliveryCents > 0 ? formatCents(deliveryCents) : "Free"}</dd></div> : null}
+        <div className="flex justify-between font-semibold"><dt>Total</dt><dd data-testid="shop-order-total">{formatCents(itemsCents + feeCents + deliveryCents)}</dd></div>
         <p className="text-xs text-muted-foreground">Sales tax is added at checkout.</p>
       </dl>
 

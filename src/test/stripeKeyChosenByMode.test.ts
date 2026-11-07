@@ -140,6 +140,8 @@ const LENIENT_PARTY_CALLS = [
   'declutter-money/index.ts: const byParties = await modes.modeForParties([r.buyer_id, r.seller_id], "refund");',
   'declutter-money/index.ts: const done = await releaseShopHold(await shopClient(r, "refund"), admin, r);',
   'declutter-money/index.ts: const stripe = mode ? modes.clientFor(mode) : (await modes.clientForParties([r.buyer_id, r.seller_id], "refund")).stripe;',
+  // Shops Helpr delivery (20261106194913): the shop_delivery_refunds_due loop, the same refund client as shop refunds.
+  'declutter-money/index.ts: const stripe = mode ? modes.clientFor(mode) : (await modes.clientForParties([r.buyer_id, r.seller_id], "refund")).stripe;',
   'declutter-money/index.ts: return await modes.clientForParties([r.buyer_id, r.seller_id], "refund");',
   'declutter-money/index.ts: return mode ? modes.clientFor(mode) : (await modes.clientForParties([r.buyer_id, r.seller_id], kind)).stripe;',
   'payout-hold-stripe-sync/index.ts: port = portFor((await stripes.clientForParties([id], "read")).stripe);',

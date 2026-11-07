@@ -26,6 +26,7 @@ import { purgeApiCache, purgeApiCacheOnControllerChange } from "./lib/apiCachePu
 import { hasPersistedAuthToken as tokenProbeAtBoot } from "./lib/persistedAuthToken";
 import { installLargeTitles } from "./lib/largeTitles";
 import { adoptBrowseShell } from "./boot/browseShellHandoff";
+import { clearGreetingName } from "./components/landing/homeGreetingShell.mjs";
 
 // Build identifier — exposed on window so a deploy with only doc/cosmetic
 // changes still produces a new bundle hash, evicting stale CacheFirst
@@ -219,7 +220,7 @@ if (import.meta.env.PROD && typeof navigator !== "undefined" && "serviceWorker" 
 // lands. See prePaintShellClasses for the full reasoning.
 applyPrePaintShellClasses();
 // /browse's server-drawn cards leave #boot-loader before React's first commit removes it (PERF-SHELL, Q652).
-adoptBrowseShell(window.location.pathname, tokenProbeAtBoot());
+adoptBrowseShell(window.location.pathname, tokenProbeAtBoot(), document, window.location.search);
 
 // If this page is a Stripe return being shown inside the app's in-app browser
 // sheet, hand control back to the app instead of rendering a web page the user
@@ -305,7 +306,11 @@ void hydrateStorage();
             backgroundImport(() => import("./lib/queryClient"), "boot-teardown-query-client"),
             backgroundImport(() => import("./lib/queryPersister"), "boot-teardown-persister"),
           ]);
-        supabase.auth.onAuthStateChange((event) => {
+        supabase.auth.onAuthStateChange((event, session) => {
+          // Q1158: the cached first name the HTML-drawn Dashboard greeting reads (homeGreetingShell.mjs) belongs to one
+          // account: gone on any sign-out (expiry, another tab), and on a sign-in kept only if it is that account's.
+          if (event === "SIGNED_OUT") clearGreetingName();
+          else if (event === "SIGNED_IN" && session?.user) clearGreetingName(session.user.id);
           // A TOAST IS SESSION STATE, AND NOTHING WAS CLEARING IT.
           //
           // External QA, 2026-09-06: an error toast survived a route change, a

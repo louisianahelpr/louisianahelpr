@@ -57,6 +57,8 @@ const LISTED = [
   "notify_helper_on_direct_offer", "restart_direct_offer_clock_on_funding", "expire_pending_direct_offers",
   "get_my_pending_direct_offers", "jobs_offer_target_gone_retires_offer", "record_backout_notice", "direct_accept_block_reason",
   "enforce_group_roster_award_gate", "link_str_turnover_job", "rentals_request_job_state",
+  // Q2058 (20261106215556): the tenant sees the Helpr's photos of a BOOKED repair job, the same set as the line above.
+  "rentals_request_photo_rows",
   // CMP-4 (20261101065105): a held card can be instantly booked (the capture comes at the 2-hour mark)
   "instant_book_block_reason", "instant_book_tell_helpr_on_close",
   // both: an offer is answered on a listed job, the hire completes on captured money

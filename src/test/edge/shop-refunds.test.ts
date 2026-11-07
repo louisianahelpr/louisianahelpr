@@ -10,11 +10,11 @@
  * lock) and only THEN calls Stripe, once, with the refund's own key.
  *
  * Registered mutations - each turns this file RED on its own:
- * @mutate supabase/functions/_shared/shopRefunds.ts |         { idempotencyKey: shopRefundKey(row.refund_id, row.attempts, Number(row.reversals ?? 0)) }, |         {},
- * @mutate supabase/functions/_shared/shopRefunds.ts |   return `shop-refund-${refundId}${v === 0 ? "" : `-v${v}`}${n === 0 ? "" : `-r${n}`}`; |   return `shop-refund-${refundId}`;
- * @mutate supabase/functions/_shared/shopRefunds.ts |         { idempotencyKey: shopRefundKey(row.refund_id, row.attempts, Number(row.reversals ?? 0)) }, |         { idempotencyKey: shopRefundKey(row.refund_id, row.attempts) },
+ * @mutate supabase/functions/_shared/shopRefunds.ts |         { idempotencyKey: shopRefundKey(row.refund_id, row.attempts, Number(row.reversals ?? 0), t.key) }, |         {},
+ * @mutate supabase/functions/_shared/shopRefunds.ts |   return `${prefix}-${refundId}${v === 0 ? "" : `-v${v}`}${n === 0 ? "" : `-r${n}`}`; |   return `${prefix}-${refundId}`;
+ * @mutate supabase/functions/_shared/shopRefunds.ts |         { idempotencyKey: shopRefundKey(row.refund_id, row.attempts, Number(row.reversals ?? 0), t.key) }, |         { idempotencyKey: shopRefundKey(row.refund_id, row.attempts, 0, t.key) },
  * @mutate supabase/functions/_shared/shopRefunds.ts |     if (mine) { |     if (false) {
- * @mutate supabase/functions/_shared/shopRefunds.ts |           metadata: { kind: "shop_refund", shop_refund_id: row.refund_id, order_id: row.order_id }, |           metadata: { kind: "shop_refund", order_id: row.order_id },
+ * @mutate supabase/functions/_shared/shopRefunds.ts |           metadata: { kind: "shop_refund", [t.meta]: row.refund_id, order_id: row.order_id }, |           metadata: { kind: "shop_refund", order_id: row.order_id },
  * @mutate supabase/functions/shop-checkout/index.ts |   if (typeof refundId !== "string" \|\| !UUID_RE.test(refundId)) return null; |   if (false) return null;
  * @mutate supabase/functions/shop-checkout/index.ts |     if (ft.cancel_policy !== terms.cancel_policy \|\| ft.ready_tap_cancel !== terms.ready_tap_cancel) { |     if (false) {
  * @mutate supabase/functions/shop-checkout/index.ts |     return json({ error: "invalid_terms" }, 400); |

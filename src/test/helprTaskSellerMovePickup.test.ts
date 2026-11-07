@@ -4,10 +4,10 @@
  * This guard pins the rules on the newest definition: seller only, booked and not handed over, not held, before the
  * booked time, once per booking, the accept's slot rules plus 2 hours' notice, the Helpr and buyer told, grants.
  *
- * @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |     RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  t := public.helpr_task_lock(p_task_id);\n  IF t.pickup_contact_id IS DISTINCT FROM v_uid THEN |     RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  t := public.helpr_task_lock(p_task_id);\n  IF t.customer_id IS DISTINCT FROM v_uid THEN
- * @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql | AND e.created_at >= t.accepted_at) THEN | ) THEN
- * @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql | p_pickup_slot_start < now() + interval '2 hours' | p_pickup_slot_start < now()
- * @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql |      OR (t.handed_over_at IS NOT NULL AND t.handed_over_to = t.helpr_id) THEN\n    RAISE EXCEPTION 'task_not_active' USING ERRCODE = '55000';\n  END IF;\n  IF public.helpr_task_source_held(t.source_kind, t.source_id) THEN |      OR (t.handed_over_at IS NOT NULL AND t.handed_over_to = t.helpr_id) THEN\n    RAISE EXCEPTION 'task_not_active' USING ERRCODE = '55000';\n  END IF;\n  IF false THEN
+ * @mutate supabase/migrations/20261106203016_shops_helpr_delivery_reads.sql |     RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  t := public.helpr_task_lock(p_task_id);\n  IF t.pickup_contact_id IS DISTINCT FROM v_uid THEN |     RAISE EXCEPTION 'account_restricted' USING ERRCODE = '42501';\n  END IF;\n  t := public.helpr_task_lock(p_task_id);\n  IF t.customer_id IS DISTINCT FROM v_uid THEN
+ * @mutate supabase/migrations/20261106203016_shops_helpr_delivery_reads.sql | AND e.created_at >= t.accepted_at) THEN | ) THEN
+ * @mutate supabase/migrations/20261106203016_shops_helpr_delivery_reads.sql | p_pickup_slot_start < now() + interval '2 hours' | p_pickup_slot_start < now()
+ * @mutate supabase/migrations/20261106203016_shops_helpr_delivery_reads.sql |      OR (t.handed_over_at IS NOT NULL AND t.handed_over_to = t.helpr_id) THEN\n    RAISE EXCEPTION 'task_not_active' USING ERRCODE = '55000';\n  END IF;\n  IF public.helpr_task_source_held(t.source_kind, t.source_id) THEN |      OR (t.handed_over_at IS NOT NULL AND t.handed_over_to = t.helpr_id) THEN\n    RAISE EXCEPTION 'task_not_active' USING ERRCODE = '55000';\n  END IF;\n  IF false THEN
  * @mutate supabase/migrations/20261104175521_q2390_last_member_not_found_is_404.sql | REVOKE ALL ON FUNCTION public.helpr_task_seller_move_pickup(p_task_id uuid, p_pickup_slot_start timestamp with time zone) FROM PUBLIC, anon; | REVOKE ALL ON FUNCTION public.helpr_task_seller_move_pickup(p_task_id uuid, p_pickup_slot_start timestamp with time zone) FROM PUBLIC;
  * @mutate supabase/migrations/20261031231150_helpr_delivery_cant_finish.sql | 'cancelled', 'failed', 'pickup_no_show', 'handed_over', 'pickup_moved', 'seller_no_show_report' | 'cancelled', 'failed', 'pickup_no_show', 'handed_over', 'seller_no_show_report'
  */
@@ -25,8 +25,9 @@ describe("BUY-42: helpr_task_seller_move_pickup", () => {
   const body = flat(fn.body);
 
   it("reads the newest definition", () => {
-    // Q2390 (20261104175521) restated 20261031095846's copy verbatim but ERRCODE 'P0002' -> 'PT404'.
-    expect(fn.file).toContain("20261104175521");
+    // Q2390 (20261104175521) restated 20261031095846's copy verbatim but ERRCODE 'P0002' -> 'PT404'; Shops Helpr
+    // delivery (20261106203016) restated it again only to tell a shop order's buyer too.
+    expect(fn.file).toContain("20261106203016");
     expect(body.length).toBeGreaterThan(1000);
   });
 

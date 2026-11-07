@@ -150,7 +150,9 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
     // Shops H8 at-home cleaning (20261106164313) and Louisiana-only pickup ZIPs (20261106180540).
     const AT_BUYER = blankSqlComments(readFileSync(join(MIG_DIR, "20261106164313_shops_service_at_buyer.sql"), "utf8"));
     const PICKUP_ZIP = blankSqlComments(readFileSync(join(MIG_DIR, "20261106180540_shops_pickup_zip_louisiana_only.sql"), "utf8"));
-    const raised = new Set([...(MIG + ITEMS + ORDERS + PICKUP + HANDOVER + READY_TAP + FAQS + REFUNDS + HANDOVER_RULE + TALK + REVIEWS + VARIANTS + AT_BUYER + PICKUP_ZIP).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
+    // Shops delivery (20261106180902).
+    const DELIVERY = blankSqlComments(readFileSync(join(MIG_DIR, "20261106180902_shops_delivery.sql"), "utf8"));
+    const raised = new Set([...(MIG + ITEMS + ORDERS + PICKUP + HANDOVER + READY_TAP + FAQS + REFUNDS + HANDOVER_RULE + TALK + REVIEWS + VARIANTS + AT_BUYER + PICKUP_ZIP + DELIVERY).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
     raised.add("feature_disabled"); // require_feature's code
     // shop-checkout's own answer when Stripe refuses the pickup address (M1b part 2), not a SQL code.
     const CHECKOUT = readFileSync(join(process.cwd(), "supabase/functions/shop-checkout/index.ts"), "utf8");
@@ -158,7 +160,8 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
     raised.add("pickup_address_unusable");
     raised.add("service_address_unusable");
     // H8: shop-checkout's own checks of the at-home address, before the order freezes.
-    for (const code of ["service_address_needed", "invalid_service_address"]) {
+    // Restack (l106 + delivery): an at-home order asks for no delivery (at_buyer_no_delivery), checked there too.
+    for (const code of ["service_address_needed", "invalid_service_address", "at_buyer_no_delivery"]) {
       expect(CHECKOUT).toContain(`error: "${code}"`);
       raised.add(code);
     }

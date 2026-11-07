@@ -52,6 +52,11 @@
  * never reports tax it never collected. A refund reverses its share
  * (_visitTaxReversal.ts). This also retires the tax/locations call (Q2153).
  * The money stays on the platform until handover (M2): no transfer_data here.
+ * Delivery (migration 20261106180902): 'order' may carry delivery {line1, line2?, city, postal_code}. The address
+ * is geocoded HERE, before the order freezes (never a point the buyer typed), then shop_set_order_delivery
+ * measures it from the shop's public pin, refuses one past the shop's radius and freezes the shop's fee into
+ * total_cents. The fee is its own non-taxable "Shop delivery" line (as Declutter's "Seller delivery"), and the
+ * tax is figured at the drop-off address, where the buyer takes the order (tax memo Q3).
  *
  * L91: order and accept need the 'shops' switch (in SQL); decline and cancel
  * only let a buyer's money go, so they work with the switch off.
@@ -74,6 +79,8 @@ import { captureShopHold, releaseShopHold, shopOrderMode } from "../_shared/shop
 import { sendShopRefund, type ShopRefundRow } from "../_shared/shopRefunds.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { isLouisianaZip5 } from "../_shared/easypostRates.ts";
+import { geocodeDropoff, type AppleMapsAccess } from "../_shared/geocodeDropoff.ts";
+import { mapkitKeyFromEnv, signMapkitJwt } from "../_shared/mapkitJwt.ts";
 import {
   sessionIdMode,
   stripeModeForParties,
@@ -221,13 +228,43 @@ async function shopOrderTax(
   return { calculationId: calc.id, cents };
 }
 
+/** Apple Maps for the drop-off lookup, exactly as declutter-checkout's (Q2413); null when the key is not set. */
+function appleMapsAccess(): AppleMapsAccess | null {
+  const key = mapkitKeyFromEnv((name) => Deno.env.get(name));
+  return key ? { developerToken: () => signMapkitJwt(key, 300) } : null;
+}
+
+type DeliveryAddress = { line1: string; line2: string | null; city: string; postal_code: string };
+/** The typed drop-off address, or null when the body asks for none; "invalid" when it is malformed. */
+function deliveryAddressFrom(raw: unknown): DeliveryAddress | null | "invalid" {
+  if (raw === undefined || raw === null) return null;
+  if (typeof raw !== "object") return "invalid";
+  const r = raw as Record<string, unknown>;
+  const str = (v: unknown, min: number, max: number) =>
+    typeof v === "string" && v.trim().length >= min && v.trim().length <= max ? v.trim() : null;
+  const line1 = str(r.line1, 3, 120);
+  const city = str(r.city, 2, 60);
+  const zip = typeof r.postal_code === "string" && /^\d{5}$/.test(r.postal_code.trim()) ? r.postal_code.trim() : null;
+  const line2 = r.line2 === undefined || r.line2 === null || r.line2 === "" ? null : str(r.line2, 1, 120);
+  if (!line1 || !city || !zip || (r.line2 && !line2)) return "invalid";
+  return { line1, line2, city, postal_code: zip };
+}
+
 async function order(body: Record<string, unknown>, user: { id: string; email?: string }, asBuyer: Db, admin: Db) {
   const shopId = typeof body.shop_id === "string" ? body.shop_id : "";
   const readyDate = typeof body.ready_date === "string" ? body.ready_date : "";
   if (!UUID_RE.test(shopId)) return json({ error: "shop_not_found" }, 404);
   if (!DATE_RE.test(readyDate)) return json({ error: "ready_date_too_soon" }, 400);
-  if (!Array.isArray(body.lines)) return json({ error: "invalid_order_lines" }, 400);
+  // Custom orders (20261106205852): a price the shop sent becomes the order's one line, so the buyer sends no lines.
+  // shop_id is still sent (the terms, the Stripe mode and the tax address read it); the SQL refuses a request of
+  // another shop, so those can never come from a different shop than the order's.
+  const customRequestId = body.custom_request_id === undefined ? null
+    : typeof body.custom_request_id === "string" && UUID_RE.test(body.custom_request_id) ? body.custom_request_id : "invalid";
+  if (customRequestId === "invalid") return json({ error: "request_not_found" }, 404);
+  if (!customRequestId && !Array.isArray(body.lines)) return json({ error: "invalid_order_lines" }, 400);
   const note = typeof body.note === "string" ? body.note : "";
+  const delivery = deliveryAddressFrom(body.delivery);
+  if (delivery === "invalid") return json({ error: "invalid_address" }, 400);
   const native = isNativeRequest(body);
   const serviceAddress = parseServiceAddress(body.service_address);
   if (serviceAddress === "invalid") return json({ error: "invalid_service_address" }, 400);
@@ -270,7 +307,9 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   // H8 (b): an at-home cleaning is ordered on its own and needs the buyer's address, answered BEFORE the order
   // freezes (shops_request_order retires the buyer's previous page). The frozen line below is the truth; this is
   // the early, plain answer.
-  const itemIds = (body.lines as unknown[]).map((l) => (l && typeof l === "object" ? (l as { item_id?: unknown }).item_id : null))
+  // A custom order sends no lines (its one line is the shop's price); only ordinary lines are read here.
+  const askedLines: unknown[] = Array.isArray(body.lines) ? body.lines : [];
+  const itemIds = askedLines.map((l) => (l && typeof l === "object" ? (l as { item_id?: unknown }).item_id : null))
     .filter((id): id is string => typeof id === "string" && UUID_RE.test(id));
   if (itemIds.length > 0) {
     const { data: atRows, error: atErr } = await admin.from("shop_items").select("id, subtype, at_buyer").in("id", itemIds);
@@ -279,13 +318,31 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       return json({ error: TRY_AGAIN }, 503);
     }
     const atHome = ((atRows ?? []) as Array<{ subtype: string; at_buyer: boolean }>).some((r) => r.at_buyer && r.subtype === "fabric_cleaning");
-    if (atHome && body.lines.length > 1) return json({ error: "service_at_buyer_alone" }, 409);
+    if (atHome && askedLines.length > 1) return json({ error: "service_at_buyer_alone" }, 409);
     if (atHome && !serviceAddress) return json({ error: "service_address_needed" }, 400);
+    // Restack (l106 + delivery): work done at the buyer's place has nothing to deliver.
+    if (atHome && delivery) return json({ error: "at_buyer_no_delivery" }, 409);
+  }
+  // Delivery: the drop-off is geocoded BEFORE the order freezes (shops_request_order retires the buyer's previous
+  // page, so nothing that can fail on the address may run after it), and on the server, never from the client.
+  let dropoff: { lat: number; lng: number } | null = null;
+  if (delivery) {
+    const point = await geocodeDropoff(`${delivery.line1}, ${delivery.city}, LA ${delivery.postal_code}`, fetch, appleMapsAccess());
+    if ("miss" in point) {
+      if (point.miss === "not_found") return json({ error: "address_not_found" }, 422);
+      console.error(JSON.stringify({ event: "shop_dropoff_geocode_unavailable", status: point.status, detail: point.detail }));
+      return json({ error: "geocode_unavailable" }, 503);
+    }
+    dropoff = { lat: point.lat, lng: point.lng };
   }
 
-  const { data, error } = await asBuyer.rpc("shops_request_order", {
-    p_shop_id: shopId, p_lines: body.lines, p_ready_date: readyDate, p_note: note,
-  });
+  const { data, error } = customRequestId
+    ? await asBuyer.rpc("shops_order_custom_quote", {
+      p_request_id: customRequestId, p_shop_id: shopId, p_ready_date: readyDate, p_note: note,
+    })
+    : await asBuyer.rpc("shops_request_order", {
+      p_shop_id: shopId, p_lines: body.lines, p_ready_date: readyDate, p_note: note,
+    });
   if (error) return rpcRefusal(error);
   const frozen = data as { order_id?: string; items_cents?: number; premium_cents?: number; superseded_session_id?: string | null } | null;
   if (!frozen?.order_id) return json({ error: TRY_AGAIN }, 500);
@@ -310,8 +367,41 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
     }
   }
 
+  // Delivery: measured, checked against the shop's radius and its fee frozen in SQL (service role, row lock).
+  // A refusal (too far, the shop stopped delivering) closes the just-frozen order before any page opens.
+  if (delivery && dropoff) {
+    const { error: delErr } = await admin.rpc("shop_set_order_delivery", {
+      p_order_id: frozen.order_id, p_buyer: user.id, p_line1: delivery.line1, p_line2: delivery.line2,
+      p_city: delivery.city, p_postal_code: delivery.postal_code, p_lat: dropoff.lat, p_lng: dropoff.lng,
+    });
+    if (delErr) {
+      const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });
+      if (closeErr) console.error(`[shop-checkout] order ${frozen.order_id} not closed after its delivery was refused: ${closeErr.message}`);
+      return rpcRefusal(delErr);
+    }
+    // The tax follows the order to where the buyer takes it: the drop-off (tax memo Q3).
+    taxAddress = { line1: delivery.line1, ...(delivery.line2 ? { line2: delivery.line2 } : {}), city: delivery.city, state: "LA",
+                   postal_code: delivery.postal_code, country: "US" };
+  }
+
   const o = await readOrder(admin, frozen.order_id);
   if (!o || o.status !== "awaiting_hold" || !o.seller_id) return json({ error: TRY_AGAIN }, 500);
+  // The delivery the order froze. Columns not deployed yet (42703): a pickup order, as before; a delivery asked for
+  // then already failed above (shop_set_order_delivery does not exist either).
+  const { data: delRow, error: delReadErr } = await admin.from("shop_orders")
+    .select("fulfillment, delivery_cents").eq("id", o.id).maybeSingle();
+  if (delReadErr && (delReadErr as { code?: string }).code !== "42703") {
+    console.error(`[shop-checkout] delivery read failed: ${delReadErr.message}`);
+    await asBuyer.rpc("shops_cancel_order_request", { p_order_id: o.id });
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  const fulfillment = delReadErr ? "pickup" : String((delRow as { fulfillment?: string } | null)?.fulfillment ?? "pickup");
+  const deliveryCents = delReadErr ? 0 : Number((delRow as { delivery_cents?: number } | null)?.delivery_cents ?? 0);
+  if ((delivery !== null) !== (fulfillment === "shop_delivers") || !Number.isInteger(deliveryCents) || deliveryCents < 0) {
+    console.error(`[shop-checkout] order ${o.id} delivery does not match what was asked`);
+    await asBuyer.rpc("shops_cancel_order_request", { p_order_id: o.id });
+    return json({ error: TRY_AGAIN }, 500);
+  }
   const { data: lineRows, error: linesErr } = await admin.from("shop_order_lines")
     .select("title, kind, tax_kind, at_buyer, unit_cents, quantity, line_cents").eq("order_id", o.id);
   if (linesErr) {
@@ -333,6 +423,15 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   // H8 (b): an at-home cleaning (frozen on its line) is taxed where the work is done: the buyer's address, kept
   // for this order only (service role; the shop reads it after accepting). Stripe gets only what the tax needs.
   const atHome = lines.some((l) => l.at_buyer === true);
+  // The frozen line is the truth (the early check above read live shop_items): at-home work takes no delivery.
+  if (atHome && fulfillment === "shop_delivers") {
+    const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: o.id });
+    if (closeErr) console.error(`[shop-checkout] order ${o.id} not closed after at-home work came with a delivery: ${closeErr.message}`);
+    // The closed order keeps no copy of the drop-off (as the at-home tax failure purges its address).
+    const { error: purgeErr } = await admin.from("shop_order_delivery_addresses").delete().eq("order_id", o.id);
+    if (purgeErr) console.error(`[shop-checkout] order ${o.id} delivery address not purged: ${purgeErr.message}`);
+    return json({ error: "at_buyer_no_delivery" }, 409);
+  }
   let calcAddress: PickupTaxAddress = taxAddress;
   if (atHome) {
     if (!serviceAddress) {
@@ -439,16 +538,26 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       },
     });
   }
+  // Delivery: the shop's own fee, frozen on the order; non-taxable, as Declutter's "Seller delivery" line.
+  if (deliveryCents > 0) {
+    lineItems.push({
+      quantity: 1,
+      price_data: {
+        currency: "usd", unit_amount: deliveryCents, tax_behavior: "exclusive",
+        product_data: taxed("Shop delivery", NONTAXABLE_TAX_CODE),
+      },
+    });
+  }
   if (tax.cents > 0) {
     lineItems.push({
       quantity: 1,
       price_data: {
         currency: "usd", unit_amount: tax.cents, tax_behavior: "exclusive",
-        product_data: { name: "Sales tax", description: atHome ? "Louisiana sales tax where the work is done" : "Louisiana sales tax where you pick up the order", tax_code: NONTAXABLE_TAX_CODE },
+        product_data: { name: "Sales tax", description: atHome ? "Louisiana sales tax where the work is done" : fulfillment === "shop_delivers" ? "Louisiana sales tax where the order is delivered" : "Louisiana sales tax where you pick up the order", tax_code: NONTAXABLE_TAX_CODE },
       },
     });
   }
-  const chargedCents = o.items_cents + o.premium_cents + setupFeeCents + tax.cents;
+  const chargedCents = o.items_cents + o.premium_cents + deliveryCents + setupFeeCents + tax.cents;
   const expiresAt = Math.floor(Date.now() / 1000) + PAGE_LIFETIME_S;
   // Q2140: a stored customer Stripe no longer has is replaced once and the page retried (":new-wallet" key).
   const session = await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (payer, walletRetry) => stripe.checkout.sessions.create(

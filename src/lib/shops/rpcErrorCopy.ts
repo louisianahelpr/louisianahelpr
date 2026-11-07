@@ -414,6 +414,22 @@ export const SHOPS_RPC_ERROR_COPY = {
     under_18: SC.under_18,
   },
   // M2 (20261018211820): the handover and the shop's handover choice.
+  // Delivery (20261106180902): the shop's own delivery offer, and one order's drop-off address.
+  shops_set_delivery: {
+    // Reached through shops_assert_owner_eligible.
+    shop_strikes_blocked: SC.shop_strikes_blocked,
+    under_18: SC.under_18,
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    invalid_delivery: SC.invalid_delivery,
+    invalid_delivery_fee: SC.invalid_delivery_fee,
+    invalid_delivery_radius: SC.invalid_delivery_radius,
+    not_authenticated: SC.not_authenticated,
+    shop_not_found: SC.shop_not_found,
+  },
+  shops_order_delivery_address: {
+    not_authenticated: SC.not_authenticated,
+  },
   shops_set_handover_mode: {
     account_restricted: SC.account_restricted,
     feature_disabled: SC.feature_disabled,

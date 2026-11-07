@@ -122,6 +122,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('rentals_public_listing_visible','allow',    'may anyone with the link see this Homes listing (visible, Homes open to everyone, not a test or seed owner; 20261019062540)'),
   ('rentals_listing_photo_access',  'allow',    'TRUE = the caller may upload into / read this listing-photos object (own folder, own open listing, not taken down; 20261019071203)'),
   ('rentals_listing_photo_deletable','allow',   'TRUE = the caller may delete this listing-photos object (own folder, readable, attached to nothing; 20261019071203)'),
+  ('rentals_request_tenant_window_open','allow', 'TRUE = this member is the tenant of this repair request and its tenancy is active or ended under 90 days ago (Q2058, 20261106215556)'),
+  ('is_tenant_repair_photo',        'allow',    'TRUE = the caller may read this proof-photos object as the tenant of a repair request linked to its booked job (Q2058, 20261106215556)'),
   ('application_email_should_wait', 'action',   'VOLATILE: paces a poster''s applicant emails (counts or stamps); a NULL user answers false = send now, never a held email (20261025182522)'),
   ('job_match_email_should_wait',   'action',   'VOLATILE: paces a member''s job-match emails to one a day; a NULL user answers false = send now (20261025182522)'),
   ('scanner_safe_confirm_link_for', 'deny',     'TRUE = send the scanner-safe link; a NULL user answers FALSE, so the email keeps GoTrue''s own link (20261025190000)'),
@@ -136,6 +138,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_set_keep_up',         'action',   'VOLATILE: the seller turns "keep it up until it sells" on/off on their own listing and gets the stored value back; a NULL choice raises invalid_choice, a NULL item item_not_found (20261029154323)'),
   ('declutter_i_reviewed',          'classify', 'TRUE = the CALLER''s own side of this order already left its review (hides Leave a review); FALSE for no order, not a party or NULL; no access decision (A3-76; 20261102015451)'),
   ('declutter_keep_up_state',       'classify', 'reads the seller''s own "keep it up until it sells" switch for one own listing; a NULL item raises item_not_found (20261029154323)'),
+  ('shop_delivery_slot_ok',         'classify', 'service only, called through helpr_task_source_slot_ok (whose allow case covers the slot rule): one SQL EXISTS over the order and its task, so a NULL order or time matches no row and answers exactly FALSE, never NULL or TRUE (Shops Helpr delivery, 20261106194913)'),
   ('declutter_keeps_up',            'classify', 'service only: does the listing-rounds sweep keep this listing up (its private keep-up switch); a NULL item matches no row and COALESCE makes it FALSE, the normal rounds (20261029154323)'),
   ('declutter_set_listing_drops',   'action',   'VOLATILE: the seller turns price drops on/off on their own listing and gets the stored value back (board 158; 20261020064354)'),
   ('declutter_set_wanted_public',   'action',   'VOLATILE: the poster opens or closes public answers on their own Wanted post and gets the stored value back (a NULL choice is stored as false; 20261021031757)'),
@@ -325,6 +328,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('rentals_public_listing_visible', NULL, ARRAY['''00000000-0000-4000-8140-000000000304''::uuid'], ARRAY[1]),
   -- D reads an object in D's own folder for D's listing L (not taken down), so TRUE for D.
   ('rentals_listing_photo_access',  '00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000d/rental-listings/00000000-0000-4000-8140-000000000304/x.jpg''', '''select'''], ARRAY[1,2]),
+  ('rentals_request_tenant_window_open', NULL, ARRAY['''00000000-0000-4000-8140-000000000305''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]),
+  ('is_tenant_repair_photo',        '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000101/00000000-0000-4000-8140-00000000000b/q140.jpg'''], ARRAY[1]),
   -- The same object is attached to nothing, so D may delete it.
   ('rentals_listing_photo_deletable','00000000-0000-4000-8140-00000000000d', ARRAY['''00000000-0000-4000-8140-00000000000d/rental-listings/00000000-0000-4000-8140-000000000304/x.jpg'''], ARRAY[1]),
   -- Slice 5 (the 'delivery' fixture step): O is B's paid delivery order from seller A, whose windows cover
@@ -597,6 +602,21 @@ BEGIN
                    VALUES ('00000000-0000-4000-8140-000000000304', '00000000-0000-4000-8140-000000000302',
                            '00000000-0000-4000-8140-000000000301', '00000000-0000-4000-8140-00000000000d', 'live',
                            'q140 listing', 100000, 1, 1, current_date, now(), now() + interval '30 days')$q$;
+        END IF;
+        -- Q2058 (20261106215556): A's repair request on that tenancy is linked to the funded job J, which carries B's
+        -- before photo, so is_tenant_repair_photo(that path) is TRUE for A.
+        IF to_regprocedure('public.is_tenant_repair_photo(text)') IS NOT NULL THEN
+          EXECUTE $q$INSERT INTO public.maintenance_requests (id, tenancy_id, unit_id, property_id, tenant_id, landlord_id,
+                                                             property_label, unit_label, property_address, category,
+                                                             description, urgency, status, job_id)
+                   VALUES ('00000000-0000-4000-8140-000000000305', '00000000-0000-4000-8140-000000000303',
+                           '00000000-0000-4000-8140-000000000302', '00000000-0000-4000-8140-000000000301',
+                           '00000000-0000-4000-8140-00000000000a', '00000000-0000-4000-8140-00000000000d',
+                           'q140 home', 'Unit A', '1 Fixture Street', 'plumbing', 'q140 the kitchen sink leaks', 'soon',
+                           'approved', '00000000-0000-4000-8140-000000000101')$q$;
+          EXECUTE $q$UPDATE public.jobs
+                        SET proof_before_urls = ARRAY['00000000-0000-4000-8140-000000000101/00000000-0000-4000-8140-00000000000b/q140.jpg']
+                      WHERE id = '00000000-0000-4000-8140-000000000101'$q$;
         END IF;
         -- Homes public link (20261019062540): visible to anyone only once Homes is open to everyone.
         IF to_regclass('public.feature_switches') IS NOT NULL THEN

@@ -13213,6 +13213,136 @@ export type Database = {
         }
         Relationships: []
       }
+      shop_custom_requests: {
+        Row: {
+          buyer_id: string
+          closed_at: string | null
+          order_id: string | null
+          created_at: string
+          description: string
+          expires_at: string | null
+          id: string
+          is_seed: boolean
+          payment_plan: string
+          quote_cents: number | null
+          quote_note: string | null
+          quoted_at: string | null
+          shop_id: string
+          statements: string[] | null
+          statements_at: string | null
+          status: string
+          subtype: string | null
+          updated_at: string
+          wanted_date: string | null
+        }
+        Insert: {
+          buyer_id: string
+          closed_at?: string | null
+          order_id?: string | null
+          created_at?: string
+          description: string
+          expires_at?: string | null
+          id?: string
+          is_seed?: boolean
+          payment_plan: string
+          quote_cents?: number | null
+          quote_note?: string | null
+          quoted_at?: string | null
+          shop_id: string
+          statements?: string[] | null
+          statements_at?: string | null
+          status?: string
+          subtype?: string | null
+          updated_at?: string
+          wanted_date?: string | null
+        }
+        Update: {
+          buyer_id?: string
+          closed_at?: string | null
+          order_id?: string | null
+          created_at?: string
+          description?: string
+          expires_at?: string | null
+          id?: string
+          is_seed?: boolean
+          payment_plan?: string
+          quote_cents?: number | null
+          quote_note?: string | null
+          quoted_at?: string | null
+          shop_id?: string
+          statements?: string[] | null
+          statements_at?: string | null
+          status?: string
+          subtype?: string | null
+          updated_at?: string
+          wanted_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_custom_requests_shop_id_fkey"
+            columns: ["shop_id"]
+            isOneToOne: false
+            referencedRelation: "shops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shop_delivery_refunds: {
+        Row: {
+          attempts: number
+          created_at: string
+          executed_at: string | null
+          id: string
+          is_seed: boolean
+          last_error: string | null
+          next_attempt_at: string
+          order_id: string
+          reason: string
+          refund_cents: number
+          status: string
+          stripe_payment_intent_id: string
+          stripe_refund_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          executed_at?: string | null
+          id?: string
+          is_seed?: boolean
+          last_error?: string | null
+          next_attempt_at?: string
+          order_id: string
+          reason: string
+          refund_cents: number
+          status?: string
+          stripe_payment_intent_id: string
+          stripe_refund_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          executed_at?: string | null
+          id?: string
+          is_seed?: boolean
+          last_error?: string | null
+          next_attempt_at?: string
+          order_id?: string
+          reason?: string
+          refund_cents?: number
+          status?: string
+          stripe_payment_intent_id?: string
+          stripe_refund_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_delivery_refunds_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "shop_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_faqs: {
         Row: {
           answer: string
@@ -13656,10 +13786,58 @@ export type Database = {
           },
         ]
       }
+      shop_order_delivery_addresses: {
+        Row: {
+          buyer_id: string
+          city: string
+          created_at: string
+          is_seed: boolean
+          lat: number
+          line1: string
+          line2: string | null
+          lng: number
+          order_id: string
+          postal_code: string
+        }
+        Insert: {
+          buyer_id: string
+          city: string
+          created_at?: string
+          is_seed?: boolean
+          lat: number
+          line1: string
+          line2?: string | null
+          lng: number
+          order_id: string
+          postal_code: string
+        }
+        Update: {
+          buyer_id?: string
+          city?: string
+          created_at?: string
+          is_seed?: boolean
+          lat?: number
+          line1?: string
+          line2?: string | null
+          lng?: number
+          order_id?: string
+          postal_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_order_delivery_addresses_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "shop_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_order_lines: {
         Row: {
           at_buyer: boolean
           created_at: string
+          custom_request_id: string | null
           id: string
           is_seed: boolean
           item_id: string | null
@@ -13676,6 +13854,7 @@ export type Database = {
         Insert: {
           at_buyer?: boolean
           created_at?: string
+          custom_request_id?: string | null
           id?: string
           is_seed?: boolean
           item_id?: string | null
@@ -13692,6 +13871,7 @@ export type Database = {
         Update: {
           at_buyer?: boolean
           created_at?: string
+          custom_request_id?: string | null
           id?: string
           is_seed?: boolean
           item_id?: string | null
@@ -13778,9 +13958,13 @@ export type Database = {
           closed_at: string | null
           created_at: string
           decline_reason: string | null
+          delivery_cents: number
+          delivery_miles: number | null
+          fulfillment: string
           handed_over_at: string | null
           handover_mode: string
           held_at: string | null
+          helpr_unfilled_at: string | null
           hold_release_attempts: number
           hold_release_last_error: string | null
           hold_released_at: string | null
@@ -13816,9 +14000,13 @@ export type Database = {
           closed_at?: string | null
           created_at?: string
           decline_reason?: string | null
+          delivery_cents?: number
+          delivery_miles?: number | null
+          fulfillment?: string
           handed_over_at?: string | null
           handover_mode?: string
           held_at?: string | null
+          helpr_unfilled_at?: string | null
           hold_release_attempts?: number
           hold_release_last_error?: string | null
           hold_released_at?: string | null
@@ -13854,9 +14042,13 @@ export type Database = {
           closed_at?: string | null
           created_at?: string
           decline_reason?: string | null
+          delivery_cents?: number
+          delivery_miles?: number | null
+          fulfillment?: string
           handed_over_at?: string | null
           handover_mode?: string
           held_at?: string | null
+          helpr_unfilled_at?: string | null
           hold_release_attempts?: number
           hold_release_last_error?: string | null
           hold_released_at?: string | null
@@ -14011,9 +14203,12 @@ export type Database = {
           city: string
           created_at: string
           is_seed: boolean
+          lat: number | null
           line1: string
           line2: string | null
+          lng: number | null
           owner_id: string
+          point_at: string | null
           postal_code: string
           shop_id: string
           state_code: string
@@ -14025,9 +14220,12 @@ export type Database = {
           city: string
           created_at?: string
           is_seed?: boolean
+          lat?: number | null
           line1: string
           line2?: string | null
+          lng?: number | null
           owner_id: string
+          point_at?: string | null
           postal_code: string
           shop_id: string
           state_code?: string
@@ -14039,9 +14237,12 @@ export type Database = {
           city?: string
           created_at?: string
           is_seed?: boolean
+          lat?: number | null
           line1?: string
           line2?: string | null
+          lng?: number | null
           owner_id?: string
+          point_at?: string | null
           postal_code?: string
           shop_id?: string
           state_code?: string
@@ -14339,8 +14540,13 @@ export type Database = {
           cancel_policy: string
           category: string
           created_at: string
+          custom_orders: string
           daily_order_cap: number | null
+          delivers: boolean
+          delivery_fee_cents: number
+          delivery_radius_miles: number
           handover_mode: string
+          helpr_delivery: boolean
           hidden_at: string | null
           hidden_by: string | null
           hidden_reason: string | null
@@ -14367,8 +14573,13 @@ export type Database = {
           cancel_policy?: string
           category: string
           created_at?: string
+          custom_orders?: string
           daily_order_cap?: number | null
+          delivers?: boolean
+          delivery_fee_cents?: number
+          delivery_radius_miles?: number
           handover_mode?: string
+          helpr_delivery?: boolean
           hidden_at?: string | null
           hidden_by?: string | null
           hidden_reason?: string | null
@@ -14395,8 +14606,13 @@ export type Database = {
           cancel_policy?: string
           category?: string
           created_at?: string
+          custom_orders?: string
           daily_order_cap?: number | null
+          delivers?: boolean
+          delivery_fee_cents?: number
+          delivery_radius_miles?: number
           handover_mode?: string
+          helpr_delivery?: boolean
           hidden_at?: string | null
           hidden_by?: string | null
           hidden_reason?: string | null
@@ -17081,7 +17297,70 @@ export type Database = {
         Args: { keys: string[]; max_len: number }
         Returns: boolean
       }
+      shop_delivery_on_task_event: {
+        Args: { p_by: string; p_event: string; p_order_id: string; p_task: string }
+        Returns: Json
+      }
+      shop_delivery_open_task: {
+        Args: { p_order_id: string }
+        Returns: string
+      }
+      shop_delivery_refund: {
+        Args: { p_order_id: string; p_reason: string }
+        Returns: string
+      }
+      shop_delivery_refund_executed: {
+        Args: { p_error: string; p_refund_id: string; p_stripe_refund_id: string; p_succeeded: boolean }
+        Returns: string
+      }
+      shop_delivery_refund_reversed: {
+        Args: { p_id: string; p_stripe_refund_id: string; p_why: string }
+        Returns: string
+      }
+      shop_delivery_refunds_due: {
+        Args: { p_limit: number }
+        Returns: {
+            attempts: number
+            buyer_id: string
+            checkout_session_id: string
+            livemode: boolean
+            order_id: string
+            payment_intent_id: string
+            refund_cents: number
+            refund_id: string
+            reversals: number
+            seller_id: string
+          }[]
+      }
+      shop_delivery_reserved_cents: {
+        Args: { p_order_id: string }
+        Returns: number
+      }
+      shop_delivery_slot_ok: {
+        Args: { p_order_id: string; p_start: string }
+        Returns: boolean
+      }
+      shop_order_refunds_recorded_cents: {
+        Args: { p_order_id: string }
+        Returns: number
+      }
+      shop_report_helpr_no_show: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
+      shop_set_order_helpr_delivery: {
+        Args: { p_buyer: string; p_city: string; p_lat: number; p_line1: string; p_line2: string; p_lng: number; p_order_id: string; p_postal_code: string }
+        Returns: Json
+      }
+      shop_set_pickup_point: {
+        Args: { p_expect_line1: string; p_expect_postal_code: string; p_lat: number; p_lng: number; p_owner: string; p_shop_id: string }
+        Returns: Json
+      }
       shops_item_variants: { Args: { p_shop_id: string }; Returns: Json }
+      shops_set_helpr_delivery: {
+        Args: { p_on: boolean }
+        Returns: Json
+      }
       shops_set_item_variants: {
         Args: { p_item_id: string; p_option_names: string[]; p_variants: Json }
         Returns: Json
@@ -19881,6 +20160,7 @@ export type Database = {
       helpr_task_pickup_windows: {
         Args: { p_task_id: string }
         Returns: {
+          earliest_pickup_at: string
           ends: string
           latest_pickup_at: string
           starts: string
@@ -20005,6 +20285,7 @@ export type Database = {
         Args: { p_name: string }
         Returns: boolean
       }
+      is_tenant_repair_photo: { Args: { object_name: string }; Returns: boolean }
       is_test_member: { Args: { p_user_id: string }; Returns: boolean }
       is_test_subject: { Args: { p_user_id: string }; Returns: boolean }
       is_thread_muted: {
@@ -21078,6 +21359,13 @@ export type Database = {
       }
       rentals_rent_side: { Args: { p_tenancy_id: string; p_uid: string }; Returns: string }
       rentals_rent_sweep: { Args: never; Returns: Json }
+      rentals_request_job_photos: {
+        Args: { p_request_id: string }
+        Returns: {
+          kind: string
+          photo_path: string
+        }[]
+      }
       rentals_request_job_state: {
         Args: { p_request_id: string }
         Returns: {
@@ -21085,6 +21373,17 @@ export type Database = {
           job_id: string
           job_status: string
         }[]
+      }
+      rentals_request_photo_rows: {
+        Args: { p_request_id: string }
+        Returns: {
+          kind: string
+          photo_path: string
+        }[]
+      }
+      rentals_request_tenant_window_open: {
+        Args: { p_request_id: string; p_uid: string }
+        Returns: boolean
       }
       rentals_save_listing: {
         Args: { p_fields: Json; p_listing_id: string; p_unit_id: string }
@@ -21637,6 +21936,10 @@ export type Database = {
         Args: { p_order: string; p_reason: string; p_side: string; p_user: string }
         Returns: string
       }
+      shop_helpr_answer_no_show: {
+        Args: { p_note: string; p_photo_path?: string; p_task_id: string }
+        Returns: string
+      }
       shop_hand_refund_failed: {
         Args: { p_stripe_refund_id: string }
         Returns: string
@@ -21925,6 +22228,21 @@ export type Database = {
         Returns: Json
       }
       shops_set_handover_mode: { Args: { p_mode: string }; Returns: string }
+      shops_set_delivery: { Args: { p_delivers: boolean; p_fee_cents: number; p_radius_miles: number }; Returns: Json }
+      shops_set_custom_orders: { Args: { p_mode: string }; Returns: string }
+      shops_send_custom_request: { Args: { p_shop_id: string; p_description: string; p_wanted_date?: string | null }; Returns: string }
+      shops_quote_custom_request: { Args: { p_request_id: string; p_quote_cents: number; p_note?: string | null; p_subtype: string; p_statements: string[] }; Returns: Json }
+      shops_order_custom_quote: { Args: { p_request_id: string; p_shop_id: string; p_ready_date: string; p_note?: string | null }; Returns: Json }
+      shops_decline_custom_request: { Args: { p_request_id: string }; Returns: string }
+      shops_my_custom_requests: { Args: never; Returns: Json }
+      shops_order_delivery_address: {
+        Args: { p_order_id: string }
+        Returns: { city: string; line1: string; line2: string; postal_code: string }[]
+      }
+      shop_set_order_delivery: {
+        Args: { p_buyer: string; p_city: string; p_lat: number; p_line1: string; p_line2: string; p_lng: number; p_order_id: string; p_postal_code: string }
+        Returns: Json
+      }
       shops_order_cancel_quote: { Args: { p_order_id: string }; Returns: Json }
       shops_admin_queue: { Args: never; Returns: Json }
       shops_admin_pay_shop: { Args: { p_note: string; p_order_id: string }; Returns: Json }

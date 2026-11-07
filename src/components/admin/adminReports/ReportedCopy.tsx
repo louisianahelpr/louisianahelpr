@@ -18,6 +18,8 @@ const LABEL: Record<string, string> = {
   declutter_question: "Reported question: ",
   declutter_answer: "Reported answer: ",
   declutter_review: "Reported review: ",
+  // Q2209: a Homes chat message (20261106191100 keeps the listing headline and the words, never a name).
+  home_talk_message: "Reported Homes message: ",
 };
 
 type Part = "question" | "answer" | "review";
@@ -38,6 +40,8 @@ export function ReportedCopy({ report, onDone, gone = false }: {
   if (!label || !report.reported_content) return null;
   const open = report.status !== "resolved" && report.status !== "dismissed";
   const isReview = report.reported_type === "declutter_review";
+  // Only a Declutter question, answer or review can be taken down from here; a message's copy is read-only.
+  const removable = report.reported_type.startsWith("declutter_");
   const remove = async (part: Part) => {
     setBusy(true);
     try {
@@ -59,8 +63,8 @@ export function ReportedCopy({ report, onDone, gone = false }: {
   return (
     <div className="space-y-2 rounded-ds-sm bg-muted/50 p-3 text-ds-11" data-reported-copy={report.reported_type}>
       <p className="whitespace-pre-wrap [overflow-wrap:anywhere]"><span className="font-semibold">{label}</span>{report.reported_content}</p>
-      {gone && report.reported_type !== "message" && <p className="font-semibold">{isReview ? "This review was removed." : "This question was removed."}</p>}
-      {report.reported_type !== "message" && open && !gone && (
+      {gone && removable && <p className="font-semibold">{isReview ? "This review was removed." : "This question was removed."}</p>}
+      {removable && open && !gone && (
         <div className="flex flex-wrap gap-2">
           {isReview ? removeButton("review", "Remove Review") : (
             <>

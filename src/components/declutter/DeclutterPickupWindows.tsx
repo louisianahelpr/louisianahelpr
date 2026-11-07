@@ -51,10 +51,15 @@ export function PickupSlotPicker({ orderId, taskId, value, onPick, fallback, ena
     ? { queryKey: ["helpr-tasks", "task-pickup-windows", taskId], queryFn: () => fetchTaskPickupWindows(taskId), enabled }
     : { queryKey: ["declutter", "order-pickup-windows", orderId], queryFn: () => fetchOrderPickupWindows(orderId ?? "") });
   // Slots are worked out once per read: a long-open card keeps the same chips (the server re-checks on Book).
-  const days = useMemo(
-    () => (q.data ? (porch ? porchWindowDays : pickupDays)(q.data.windows, Date.now(), q.data.latestPickupAt ? Date.parse(q.data.latestPickupAt) : null) : []),
-    [q.data, porch],
-  );
+  // A shop order's slots start no earlier than its ready date at 8 AM (earliestPickupAt, the bound accept checks):
+  // a slot AT that instant is bookable, so the floor sits 1 ms before it (the slot builders keep starts > floor).
+  const days = useMemo(() => {
+    if (!q.data) return [];
+    // Only the task read carries it (fetchTaskPickupWindows); the order read has no ready-date bound.
+    const earliestIso = (q.data as { earliestPickupAt?: string | null }).earliestPickupAt;
+    const earliest = earliestIso ? Date.parse(earliestIso) - 1 : 0;
+    return (porch ? porchWindowDays : pickupDays)(q.data.windows, Math.max(Date.now(), earliest), q.data.latestPickupAt ? Date.parse(q.data.latestPickupAt) : null);
+  }, [q.data, porch]);
   const [dayPick, setDayPick] = useState<string | null>(null);
   if (q.isError) return <ErrorState variant="inline" title="We couldn't load the seller's pickup times." body={declutterErrorMessage(q.error)} onRetry={() => void q.refetch()} />;
   if (q.isLoading) return <p className="text-sm text-muted-foreground" role="status">Loading the seller's pickup times…</p>;

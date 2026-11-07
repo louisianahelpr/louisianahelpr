@@ -208,6 +208,8 @@ type ShopPayoutDue = {
   livemode: boolean | null;
   checkout_session_id: string | null;
   attempts: number;
+  /** Helpr delivery (20261106194913): the refunds the app made on this charge, Stripe-confirmed (shop_order_refunds_recorded_cents). */
+  refunds_recorded_cents?: number | null;
 };
 /** What a declutter_delivery_refunds row gives back, in an ops page ("shipping refund", "delivery-fee refund"). */
 function refundPartWord(reason: string): string {
@@ -768,6 +770,27 @@ serve(async (req) => {
         defects.record(`shop refund ${r.refund_id}: ${caughtMessage(e, "refund failed")}`.slice(0, 200));
       }
     }
+    // Helpr delivery (20261106194913): the delivery price alone (no Helpr took it, or the order closed before the
+    // pickup), decided in SQL (shop_delivery_refunds), sent by the same sender under key shop-delivery-refund-<id>.
+    const dueDelivery = await admin.rpc("shop_delivery_refunds_due", { p_limit: BATCH });
+    if (dueDelivery.error && (dueDelivery.error as { code?: string }).code !== "PGRST202") {
+      defects.record(`shop_delivery_refunds_due failed: ${dueDelivery.error.message}`);
+    }
+    for (const r of (dueDelivery.error ? [] : (dueDelivery.data ?? [])) as ShopRefundRow[]) {
+      try {
+        const mode = shopOrderMode({ livemode: r.livemode, checkout_session_id: r.checkout_session_id });
+        const stripe = mode ? modes.clientFor(mode) : (await modes.clientForParties([r.buyer_id, r.seller_id], "refund")).stripe;
+        const done = await sendShopRefund(stripe, admin, r, "delivery");
+        if (done === "sent") out.shop_refunds_sent++;
+        else if (done === "reconciled") out.shop_refunds_reconciled++;
+        else {
+          out.shop_refunds_failed++;
+          defects.record(`shop delivery refund ${r.refund_id}: Stripe refused it (try ${Number(r.attempts ?? 0) + 1})`);
+        }
+      } catch (e) {
+        defects.record(`shop delivery refund ${r.refund_id}: ${caughtMessage(e, "refund failed")}`.slice(0, 200));
+      }
+    }
   } catch (e) {
     defects.record(`shop refunds step: ${caughtMessage(e, "failed")}`.slice(0, 200));
   }
@@ -865,8 +888,9 @@ serve(async (req) => {
         let shopTransfer = existing;
         if (!shopTransfer) {
           if (await unpayableNow("shop", p.payout_id, p.seller_id, p.stripe_account_id, p.amount_cents, resolved.mode)) continue;
-          // From the order's OWN charge, only while it is whole (paid, nothing refunded, not disputed).
-          const charge = await wholeCharge(stripe, p.payment_intent_id, 0);
+          // From the order's OWN charge, only while it is whole (paid, nothing refunded but what the app recorded
+          // (Helpr delivery, 20261106194913: a delivery refund), not disputed).
+          const charge = await wholeCharge(stripe, p.payment_intent_id, p.refunds_recorded_cents ?? 0);
           // Readiness only after the reconcile and the charge check.
           if (!(await payeeReadyNow(stripe, resolved.mode, "shop", p.payout_id, p.seller_id, p.stripe_account_id as string, p.amount_cents))) continue;
           if (!(await stillPayableNow("shop", p.payout_id, p.seller_id, p.amount_cents))) continue;
@@ -1461,8 +1485,11 @@ serve(async (req) => {
     }
     // Q2106: a delivery order the gift paid in full has no PaymentIntent; its order part goes under giftCovers.
     const hGiftCents = Math.max(0, Number(h.gift_cents ?? 0));
-    if (h.source_kind !== "declutter_delivery" || !h.transfer_group || (!h.payment_intent_id && !(hGiftCents > 0))) {
-      // A source this money step cannot pay from (not a Declutter delivery, or no charge / group):
+    // Helpr delivery for Shops (20261106194913): a shop_delivery task pays from the shop order's charge (group
+    // shop_order_<id>, the shop's own payout's group); a shop order has no gift part (gift_cents is 0).
+    const payableKind = h.source_kind === "declutter_delivery" || (h.source_kind === "shop_delivery" && !(hGiftCents > 0));
+    if (!payableKind || !h.transfer_group || (!h.payment_intent_id && !(hGiftCents > 0))) {
+      // A source this money step cannot pay from (not a Declutter or Shops delivery, or no charge / group):
       // a data defect, held for review at once; it never "pays itself".
       defects.record(`helpr payout ${h.payout_id}: source ${h.source_kind} names no payable charge or transfer group`);
       await skipRow("helpr_task", h.payout_id, h.helpr_id, h.amount_cents, 1440, "data_defect", `source ${h.source_kind} has no payable charge / transfer group`);

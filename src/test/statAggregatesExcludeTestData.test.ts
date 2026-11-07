@@ -106,6 +106,7 @@ const ALLOWED: Record<string, string> = {
   declutter_mark_order_paid: MONEY,
   declutter_notice_names_item: "logic: names the first item of one order in its notice (\"and N more\")",
   declutter_order_refunds_recorded_cents: MONEY,
+  shop_order_refunds_recorded_cents: MONEY, // Helpr delivery (20261106194913): one order's own recorded refunds
   // Q2106 S3b (20261105030604): one order's gift paid less what was already restored to the gift balance; refund arithmetic.
   declutter_order_gift_net_cents: MONEY,
   declutter_reopen_wanted: "logic: counts the caller's own open wanted posts for the limit of 10, the same whether or not they are a test account",
@@ -197,6 +198,7 @@ const ALLOWED: Record<string, string> = {
   shops_accept_order: MONEY,
   shops_create_item: LIMIT,
   shops_set_item_variants: LIMIT, // 20261106165310: counts one item's own option choices (at most 10 a list)
+  shops_send_custom_request: LIMIT, // 20261106202917: 3 open custom requests per shop and 10 a day per buyer
   shops_get_shop: REVIEW,
   shops_order_terms: LIMIT,
   shops_publish_item: VALID,

@@ -52,6 +52,9 @@
  * @mutate src/components/rentals/RentalsHomeView.tsx |               !adding && !underAge && data.data.properties.length > 0 && ( |               !adding && !underAge && (
  * @mutate src/components/rentals/LandlordIdReview.tsx |           setName(f?.name ?? null); |           setName(null);
  * @mutate src/components/rentals/LandlordIdReview.tsx |       <HiddenFileInput\n        accept={accept} |       <input type="file" className=""\n        accept={accept}
+ * Q2058 (owner Q42): the Helpr's before/after photos on the request, both sides, once booked:
+ * @mutate src/components/rentals/MaintenanceRequestView.tsx |         {job.booking === "booked" && <RequestJobPhotos requestId={r.id} />} |         {null}
+ * @mutate src/components/rentals/RequestJobPhotos.tsx |       <Row label="After" photos={photos.filter((p) => p.kind === "after")} /> |       {null}
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -80,6 +83,9 @@ const state = {
   ended: [] as unknown[],
   request: null as unknown,
   job: { jobId: null as string | null, booking: "none", jobStatus: null as string | null },
+  /** Q2058: the Helpr's proof photos of the request's booked job (rentals_request_job_photos). */
+  jobPhotos: [] as Array<{ kind: "before" | "after"; photo_path: string }>,
+  jobPhotoReads: 0,
   identity: { verified: true, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null } as {
     verified: boolean; idStatus: string | null; reviewNote: string | null; submittedAt: string | null; reviewedAt: string | null;
   },
@@ -143,6 +149,10 @@ vi.mock("@/lib/rentals/api", () => ({
   },
   fetchRequestPhotos: async () => [],
   fetchRequestJobState: async () => state.job,
+  fetchRequestJobPhotos: async () => {
+    state.jobPhotoReads++;
+    return state.jobPhotos;
+  },
   signedFileUrl: async () => "https://signed/x",
   fileRequest: vi.fn(async () => "r1"),
   approveRequest: vi.fn(async () => undefined),
@@ -158,6 +168,10 @@ vi.mock("@/lib/rentals/api", () => ({
   inviteTenant: vi.fn(),
 }));
 
+// Q2058: signing is the shared proof-photo signer's (its own tests); here every path signs.
+vi.mock("@/lib/proofPhotoStorage", () => ({
+  signProofPhotoUrls: async (paths: string[]) => paths.map((p) => `https://signed/${p}`),
+}));
 vi.mock("@/lib/rentals/savedHomes", () => ({
   fetchSavedHomeIds: async () => new Set(state.savedIds),
   setSavedHome: vi.fn(async (_id: string, saved: boolean) => saved),
@@ -231,6 +245,8 @@ beforeEach(() => {
   state.ended = [];
   state.request = null;
   state.job = { jobId: null, booking: "none", jobStatus: null };
+  state.jobPhotos = [];
+  state.jobPhotoReads = 0;
   state.identity = { verified: true, idStatus: null, reviewNote: null, submittedAt: null, reviewedAt: null };
 });
 
@@ -702,6 +718,48 @@ describe("Rentals screens", () => {
       renderAt(`/rentals/requests/${RID}`);
       expect(await screen.findByText("A Helpr job is booked for this repair.")).toBeTruthy();
       expect(screen.getByText("Was it fixed?")).toBeTruthy();
+    });
+  });
+
+  describe("the Helpr's before/after photos (Q2058, owner Q42)", () => {
+    const booked = { ...REQ, status: "approved", decided_at: "2026-10-15T07:00:00Z", job_id: "j1", landlord_id: "l1", tenant_id: "u1" };
+    const PHOTOS = [
+      { kind: "before" as const, photo_path: "j1/h1/before.jpg" },
+      { kind: "after" as const, photo_path: "j1/h1/after.jpg" },
+    ];
+    it("tenant: the booked job's before and after photos show on the request", async () => {
+      state.request = booked;
+      state.job = { jobId: "j1", booking: "booked", jobStatus: "completed" };
+      state.jobPhotos = PHOTOS;
+      renderAt(`/rentals/requests/${RID}`);
+      expect(await screen.findByText("The Helpr's photos")).toBeTruthy();
+      expect((screen.getByAltText("Before photo") as HTMLImageElement).src).toBe("https://signed/j1/h1/before.jpg");
+      expect((screen.getByAltText("After photo") as HTMLImageElement).src).toBe("https://signed/j1/h1/after.jpg");
+    });
+    it("landlord: the same photos", async () => {
+      state.request = { ...booked, landlord_id: "u1", tenant_id: "t9" };
+      state.job = { jobId: "j1", booking: "booked", jobStatus: "completed" };
+      state.jobPhotos = PHOTOS;
+      renderAt(`/rentals/requests/${RID}`);
+      expect(await screen.findByAltText("After photo")).toBeTruthy();
+      expect(screen.getByAltText("Before photo")).toBeTruthy();
+    });
+    it("not booked: no photo read and no card", async () => {
+      state.request = booked;
+      state.job = { jobId: "j1", booking: "unpaid", jobStatus: "open" };
+      state.jobPhotos = PHOTOS;
+      renderAt(`/rentals/requests/${RID}`);
+      expect(await screen.findByText("Approved, not booked yet.")).toBeTruthy();
+      expect(screen.queryByText("The Helpr's photos")).toBeNull();
+      expect(state.jobPhotoReads).toBe(0);
+    });
+    it("booked but no photos yet: no empty card", async () => {
+      state.request = booked;
+      state.job = { jobId: "j1", booking: "booked", jobStatus: "accepted" };
+      renderAt(`/rentals/requests/${RID}`);
+      expect(await screen.findByText("A Helpr job is booked for this repair.")).toBeTruthy();
+      await vi.waitFor(() => expect(state.jobPhotoReads).toBe(1));
+      expect(screen.queryByText("The Helpr's photos")).toBeNull();
     });
   });
 

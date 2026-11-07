@@ -13,6 +13,8 @@ import { fmtDate } from "./rentalsUi";
  * from no request, before the tenant answers, while the 'rentals' switch is
  * off, and on a failed read (the decision does not depend on it, and it is
  * never wired into release).
+ * Q2069: an answer given before the landlord's latest revision request is about the work before the rework, so it is
+ * labelled as the earlier answer, never shown as the current one.
  */
 export default function TenantFixedAnswer({ jobId, userId }: { jobId: string; userId: string }) {
   const on = useFeature("rentals");
@@ -27,11 +29,14 @@ export default function TenantFixedAnswer({ jobId, userId }: { jobId: string; us
     <div
       role="status"
       className="rounded-xl border p-3 mt-3 font-sans text-ds-13 leading-snug"
-      style={{ borderColor: a.saysFixed ? "hsl(var(--border))" : "hsl(var(--destructive) / 0.5)" }}
+      style={{ borderColor: a.saysFixed || a.beforeRework ? "hsl(var(--border))" : "hsl(var(--destructive) / 0.5)" }}
     >
       <p className="font-semibold" style={{ color: "hsl(var(--ink-deep))" }}>
-        {a.saysFixed ? "Your tenant says it's fixed" : "Your tenant says it's NOT fixed"}
+        {a.beforeRework
+          ? `Before the rework, your tenant said it was ${a.saysFixed ? "fixed" : "NOT fixed"}`
+          : a.saysFixed ? "Your tenant says it's fixed" : "Your tenant says it's NOT fixed"}
       </p>
+      {a.beforeRework && <p style={{ color: "hsl(var(--olivewood))" }}>They haven't answered since the Helpr redid the work.</p>}
       <p style={{ color: "hsl(var(--olivewood))" }}>
         Answered {fmtDate(a.answeredAt)}{a.note ? `: "${a.note}"` : "."}{" "}
         <Link className="underline" to={`/rentals/requests/${a.requestId}`}>See the request</Link>

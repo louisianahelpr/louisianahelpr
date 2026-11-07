@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1179,
-    "files": 333,
-    "rendering": 1098,
-    "suppressedByPolicy": 81,
+    "calls": 1181,
+    "files": 334,
+    "rendering": 1099,
+    "suppressedByPolicy": 82,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 229,
-      "toast.error": 794,
+      "toast.error": 795,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 87,
+      "toast.success": 88,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 495,
+      "literal": 496,
       "template": 106,
-      "dynamic": 630,
+      "dynamic": 631,
       "jsx": 0
     }
   },
@@ -3179,7 +3179,7 @@
     },
     {
       "file": "src/components/admin/adminReports/ReportedCopy.tsx",
-      "line": 46,
+      "line": 50,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -3189,7 +3189,7 @@
     },
     {
       "file": "src/components/admin/adminReports/ReportedCopy.tsx",
-      "line": 49,
+      "line": 53,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9761,7 +9761,7 @@
     },
     {
       "file": "src/components/rentals/MaintenanceRequestView.tsx",
-      "line": 73,
+      "line": 74,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10725,7 +10725,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 101,
+      "line": 102,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -10745,7 +10745,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 106,
+      "line": 107,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10755,7 +10755,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 114,
+      "line": 115,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10765,7 +10765,27 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 120,
+      "line": 121,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopDeliveryPicker.tsx",
+      "line": 32,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Saved. New orders use it."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopDeliveryPicker.tsx",
+      "line": 35,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11235,7 +11255,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderSheet.tsx",
-      "line": 144,
+      "line": 161,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

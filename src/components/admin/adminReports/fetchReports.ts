@@ -8,7 +8,7 @@ import { hydrateReportedListings, listingCanComeDown, listingSubject, LISTING_RE
 import { hydrateReportedWanted, wantedSubject, WANTED_REPORT } from "@/components/admin/adminReports/reportedWanted";
 import { hydrateReportedQuestions, isQuestionReport, questionAuthor, questionSubject } from "@/components/admin/adminReports/reportedQuestions";
 import { hydrateReportedShops, isShopReport, shopSubject } from "@/components/admin/adminReports/reportedShops";
-import { hydrateReportedHomes, homeSubject, HOME_LISTING_REPORT } from "@/components/admin/adminReports/reportedHomes";
+import { hydrateReportedHomes, homeSubject, HOME_LISTING_REPORT, HOME_TALK_MESSAGE_REPORT } from "@/components/admin/adminReports/reportedHomes";
 import type { Report } from "@/components/admin/adminReports/reportType";
 
 // The moderation queue's read, moved out of AdminReports.tsx unchanged (Q806, componentSizeRatchet). The list AND
@@ -42,7 +42,7 @@ export async function fetchReports(filter: ReportQueueFilter): Promise<Report[]>
   // fallback exists to distinguish — gone vs. unreadable — were both wrong
   // for every job report.
   // Item B: a listing report holds a declutter_items id; its person is the seller (reportedListings.ts).
-  const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application" && r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type) && !isShopReport(r.reported_type) && r.reported_type !== HOME_LISTING_REPORT;
+  const isUserSubject = (r: Report) => r.reported_type !== "job" && r.reported_type !== "application" && r.reported_type !== LISTING_REPORT && r.reported_type !== WANTED_REPORT && !isQuestionReport(r.reported_type) && !isShopReport(r.reported_type) && r.reported_type !== HOME_LISTING_REPORT && r.reported_type !== HOME_TALK_MESSAGE_REPORT;
   const { listings, failed: listingsFailed } = await hydrateReportedListings(reportRows);
   const [{ posts: wantedPosts, failed: wantedFailed }, { questions, failed: questionsFailed }, { shops, failed: shopsFailed }, { homes, failed: homesFailed }] =
     await Promise.all([hydrateReportedWanted(reportRows), hydrateReportedQuestions(reportRows), hydrateReportedShops(reportRows), hydrateReportedHomes(reportRows)]);
@@ -149,6 +149,7 @@ export async function fetchReports(filter: ReportQueueFilter): Promise<Report[]>
       if (isQuestionReport(r.reported_type)) return questionSubject(r.reported_type, questions.get(r.reported_id), questionsFailed);
       if (isShopReport(r.reported_type)) return shopSubject(r.reported_type, shops.get(r.reported_id), shopsFailed);
       if (r.reported_type === HOME_LISTING_REPORT) return homeSubject(homes.get(r.reported_id), homesFailed);
+      if (r.reported_type === HOME_TALK_MESSAGE_REPORT) return "Homes message";
       return isUserSubject(r) ? nameFor(r.reported_id) : (jobTitles.get(r.reported_id) ?? "Deleted job");
     };
 

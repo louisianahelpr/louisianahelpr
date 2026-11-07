@@ -123,6 +123,14 @@ export interface RequestJobState {
   booking: "booked" | "paying" | "refunding" | "unpaid" | "none";
   jobStatus: string | null;
 }
+/** Q2058: the Helpr's proof photos of the request's booked job (proof-photos bucket paths), for both sides. */
+export interface RequestJobPhoto {
+  kind: "before" | "after";
+  photo_path: string;
+}
+export async function fetchRequestJobPhotos(requestId: string): Promise<RequestJobPhoto[]> {
+  return (unwrap(await supabase.rpc("rentals_request_job_photos", { p_request_id: requestId })) ?? []) as RequestJobPhoto[];
+}
 /** The linked job's state (rentals_request_job_state): "a job id is set" is not "booked". */
 export async function fetchRequestJobState(requestId: string): Promise<RequestJobState> {
   const row = (unwrap(await supabase.rpc("rentals_request_job_state", { p_request_id: requestId })) ?? [])[0];
@@ -359,6 +367,11 @@ interface FixedAnswer {
   saysFixed: boolean;
   note: string | null;
   answeredAt: string;
+  /**
+   * Q2069: the answer was given before the landlord's latest revision request (jobs.revision_requested_at), so it is
+   * about the work before the rework, not the work now waiting for release.
+   */
+  beforeRework: boolean;
 }
 /**
  * The tenant's latest "Was it fixed?" answer on the request this job was
@@ -377,5 +390,9 @@ export async function fetchFixedAnswerForJob(jobId: string, uid: string): Promis
       .maybeSingle(),
   ) as Pick<MaintenanceRequest, "id" | "tenant_says_fixed" | "tenant_fixed_note" | "tenant_answered_at"> | null;
   if (!row || row.tenant_says_fixed == null || !row.tenant_answered_at) return null;
-  return { requestId: row.id, saysFixed: row.tenant_says_fixed, note: row.tenant_fixed_note, answeredAt: row.tenant_answered_at };
+  // The poster reads their own job (jobs RLS). A failed read throws, and the card then shows nothing (display only).
+  const job = unwrap(await supabase.from("jobs").select("revision_requested_at").eq("id", jobId).maybeSingle()) as { revision_requested_at: string | null } | null;
+  const reworkAt = job?.revision_requested_at ? Date.parse(job.revision_requested_at) : NaN;
+  const beforeRework = Number.isFinite(reworkAt) && Date.parse(row.tenant_answered_at) < reworkAt;
+  return { requestId: row.id, saysFixed: row.tenant_says_fixed, note: row.tenant_fixed_note, answeredAt: row.tenant_answered_at, beforeRework };
 }

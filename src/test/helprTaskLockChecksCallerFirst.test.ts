@@ -5,9 +5,9 @@
  * Backend proof: src/test/pglite/helprTaskLockChecksCallerFirst.pglite.mjs (3x; red on the 20261017055505 version and
  * on its planted defects).
  *
- * @mutate supabase/migrations/20261103072510_declutter_checkout_reach_not_found_is_404.sql | AND v_uid IS DISTINCT FROM t.pickup_contact_id |
- * @mutate supabase/migrations/20261103072510_declutter_checkout_reach_not_found_is_404.sql | IF NOT public.is_server_context() AND t.status IS DISTINCT FROM 'open' | IF NOT public.is_server_context() AND false
- * @mutate supabase/migrations/20261103072510_declutter_checkout_reach_not_found_is_404.sql | AND NOT public.has_role(v_uid, 'admin') THEN | THEN
+ * @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql |      AND v_uid IS DISTINCT FROM t.pickup_contact_id\n     AND NOT public.has_role | \n     AND NOT public.has_role
+ * @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql | IF NOT public.is_server_context() AND t.status IS DISTINCT FROM 'open' | IF NOT public.is_server_context() AND false
+ * @mutate supabase/migrations/20261106194913_shops_helpr_delivery.sql | AND NOT public.has_role(v_uid, 'admin') THEN | THEN
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
@@ -35,7 +35,8 @@ describe("helpr_task_lock refuses a stranger before it locks anything", () => {
     // page / webhook; the raise checks its own order party).
     const nonParty = new Set(["helpr_task_sweep", "helpr_task_accept", "declutter_delivery_raise_start", "declutter_delivery_raise_paid"]);
     for (const n of callers.filter((c) => !nonParty.has(c))) {
-      expect(body(n), n).toMatch(/helpr_task_lock\(p_task_id\); (?:IF t\.(?:helpr_id|customer_id|pickup_contact_id) IS DISTINCT FROM v_uid|v_side := CASE WHEN t\.helpr_id = v_uid)/);
+      // Shops (20261106203016): helpr_task_send_message checks the task kind's switch first, then the party.
+      expect(body(n), n).toMatch(/helpr_task_lock\(p_task_id\); (?:PERFORM public\.helpr_task_source_require_feature\(t\.source_kind\); )?(?:IF t\.(?:helpr_id|customer_id|pickup_contact_id) IS DISTINCT FROM v_uid|v_side := CASE WHEN t\.helpr_id = v_uid)/);
     }
   });
 });

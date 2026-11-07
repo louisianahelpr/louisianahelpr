@@ -39,23 +39,34 @@
  * @mutate supabase/functions/shop-checkout/index.ts |    const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: o.id });\n    if (closeErr) console.error(`[shop-checkout] order ${o.id} not closed after its tax failed | const closeErr = null;\n    if (closeErr) console.error(`[shop-checkout] order ${o.id} not closed after its tax failed
  * @mutate supabase/functions/shop-checkout/index.ts |  return err.code === "customer_tax_location_invalid" \|\| | return true \|\|
  * @mutate supabase/functions/shop-checkout/index.ts |      ...feeParts.map((p, i) => ({ amount: p.cents, | ...feeParts.slice(1).map((p, i) => ({ amount: p.cents,
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |   const taxRefunds = ordinaryRefunds.filter((r) => !(r?.metadata as Record<string, string> \| null)?.shop_delivery_refund_id); |   const taxRefunds = ordinaryRefunds;
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |   if (meta.kind === "shop_refund" && meta.shop_delivery_refund_id) { |   if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/shopCheckout.ts |  const taxCents = sessionJobTaxCents(session) ?? 0; |  const taxCents = session.total_details?.amount_tax ?? 0;
  * @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |  const subjectId = md.job_id \|\| (md.kind === "shop_order" ? md.order_id : ""); |  const subjectId = md.job_id;
- * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |  if (isShopCharge && !isOnboardingCorrectionOnly(liveRefunds, ordinaryRefunds)) { |  if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |  if (isShopCharge && !isOnboardingCorrectionOnly(liveRefunds, ordinaryRefunds)\n      && (taxRefunds.length > 0 \|\| ordinaryRefunds.length === 0)) { |  if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefundUpdated.ts |    // money stayed. Undone before the row reopens (a re-sent refund then reverses its own share). Never throws.\n    await undoVisitTaxForFailedRefund({ |    // money stayed.\n    void ({
  * @mutate supabase/functions/shop-checkout/index.ts |   if (termsErr) return rpcRefusal(termsErr); |
  * H8 (b) (at-home cleaning taxed at the buyer's address):
  * @mutate supabase/functions/shop-checkout/index.ts |     calcAddress = { line1: serviceAddress.line1, | void { line1: serviceAddress.line1,
  * @mutate supabase/functions/shop-checkout/index.ts | \|\| !isLouisianaZip5(zip)) return "invalid"; | \|\| !/^7[01][0-9]{3}$/.test(zip)) return "invalid";
  * @mutate supabase/functions/shop-checkout/index.ts | description: atHome ? "Louisiana sales tax where the work is done" : | description: atHome ? "Louisiana sales tax where you pick up the order" :
- * @mutate supabase/functions/shop-checkout/index.ts |     if (atHome && body.lines.length > 1) return json({ error: "service_at_buyer_alone" }, 409); |
+ * @mutate supabase/functions/shop-checkout/index.ts |     if (atHome && askedLines.length > 1) return json({ error: "service_at_buyer_alone" }, 409); |
+ * @mutate supabase/functions/shop-checkout/index.ts |     if (atHome && delivery) return json({ error: "at_buyer_no_delivery" }, 409); |
  * @mutate supabase/functions/shop-checkout/index.ts |     if (atHome && !serviceAddress) return json({ error: "service_address_needed" }, 400); |
  * @mutate supabase/functions/shop-checkout/index.ts |   const atHome = lines.some((l) => l.at_buyer === true); |   const atHome = false;
  * @mutate supabase/functions/shop-checkout/index.ts |   if (serviceAddress === "invalid") return json({ error: "invalid_service_address" }, 400); |
  * @mutate supabase/functions/shop-checkout/index.ts |     if (unusable) return json({ error: atHome ? "service_address_unusable" : "pickup_address_unusable" }, 409); |     if (unusable) return json({ error: "pickup_address_unusable" }, 409);
  * @mutate supabase/functions/shop-checkout/index.ts |      const { error: purgeErr } = await admin.from("shop_order_service_addresses").delete().eq("order_id", o.id); |      const purgeErr = null;
+ * Delivery (migration 20261106180902, "Shop delivers"):
+ * @mutate supabase/functions/shop-checkout/index.ts |  const chargedCents = o.items_cents + o.premium_cents + deliveryCents + setupFeeCents + tax.cents; |  const chargedCents = o.items_cents + o.premium_cents + setupFeeCents + tax.cents;
+ * @mutate supabase/functions/shop-checkout/index.ts |  if (deliveryCents > 0) {\n    lineItems.push({ |  if (false) {\n    lineItems.push({
+ * @mutate supabase/functions/shop-checkout/index.ts |    taxAddress = { line1: delivery.line1, | void { line1: delivery.line1,
+ * @mutate supabase/functions/shop-checkout/index.ts |      p_city: delivery.city, p_postal_code: delivery.postal_code, p_lat: dropoff.lat, p_lng: dropoff.lng, |      p_city: delivery.city, p_postal_code: delivery.postal_code, p_lat: 30.22, p_lng: -92.02,
+ * @mutate supabase/functions/shop-checkout/index.ts |      const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });\n      if (closeErr) console.error(`[shop-checkout] order ${frozen.order_id} not closed after its delivery | const closeErr = null;\n      if (closeErr) console.error(`[shop-checkout] order ${frozen.order_id} not closed after its delivery
+ * @mutate supabase/functions/shop-checkout/index.ts |  if (atHome && fulfillment === "shop_delivers") { |  if (false) {
+ * @mutate supabase/functions/shop-checkout/index.ts |    const { error: purgeErr } = await admin.from("shop_order_delivery_addresses").delete().eq("order_id", o.id); |    const purgeErr = null;
  */
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction } from "./harness";
 import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
@@ -200,6 +211,10 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     const mixed = await fn.fetch(askAtHome(fn, { lines: [{ item_id: ITEM, quantity: 1 }, { item_id: SHOP, quantity: 1 }] }));
     expect(mixed.status).toBe(409);
     expect((await json(mixed)).error).toBe("service_at_buyer_alone");
+    // Restack (l106 + delivery): work done at the buyer's place has nothing to deliver.
+    const delivered = await fn.fetch(askAtHome(fn, { delivery: { line1: "100 Main St", city: "Lafayette", postal_code: "70501" } }));
+    expect(delivered.status).toBe(409);
+    expect((await json(delivered)).error).toBe("at_buyer_no_delivery");
     const bad = await fn.fetch(askAtHome(fn, { service_address: { ...SERVICE, postal_code: "77002" } }));
     expect(bad.status).toBe(400);
     expect((await json(bad)).error).toBe("invalid_service_address");
@@ -265,6 +280,34 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     const attach = rpcs("shop_attach_checkout_session")[0];
     expect(attach?.args).toEqual({ p_order_id: ORDER, p_session_id: "cs_live_shop" });
     expect(clientOf(attach)?.key).toBe("service-key");
+  });
+
+  // @mutate supabase/functions/shop-checkout/index.ts |       p_request_id: customRequestId, p_shop_id: shopId, p_ready_date: readyDate, p_note: note, |       p_request_id: customRequestId, p_ready_date: readyDate, p_note: note,
+  // @mutate supabase/functions/shop-checkout/index.ts |   if (customRequestId === "invalid") return json({ error: "request_not_found" }, 404); |   if (customRequestId === "invalid") return json({ error: "request_not_found" }, 200);
+  it("custom orders (20261106205852): a price the shop sent is ordered AS THE BUYER for its own shop, with no lines, then the ordinary page", async () => {
+    const fn = await load();
+    frozen();
+    scenario.rpc.shops_order_custom_quote = { order_id: ORDER, items_cents: 6100, premium_cents: 375, superseded_session_id: null };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://checkout.stripe.test/shop", amount_subtotal: 6625 });
+    const REQ = "00000000-0000-4000-8000-00000000c0de";
+    const res = await fn.fetch(fn.request({
+      headers: { Authorization: "Bearer buyer-jwt" },
+      body: { action: "order", shop_id: SHOP, custom_request_id: REQ, ready_date: "2026-10-30", note: "No nuts",
+        terms: { cancel_policy: "until_24h_before_ready", ready_tap_cancel: "from_day_before" } },
+    }));
+    expect(res.status).toBe(200);
+    expect(rpcs("shops_request_order")).toHaveLength(0);
+    const req = rpcs("shops_order_custom_quote")[0];
+    expect(req?.args).toEqual({ p_request_id: REQ, p_shop_id: SHOP, p_ready_date: "2026-10-30", p_note: "No nuts" });
+    expect(JSON.stringify(clientOf(req)?.options)).toContain("Bearer buyer-jwt");
+    expect(stripeMock.checkout.sessions.create).toHaveBeenCalledTimes(1);
+    // A malformed request id is refused before anything is asked of Stripe or the SQL.
+    const bad = await fn.fetch(fn.request({
+      headers: { Authorization: "Bearer buyer-jwt" },
+      body: { action: "order", shop_id: SHOP, custom_request_id: "nope", ready_date: "2026-10-30" },
+    }));
+    expect(bad.status).toBe(404);
+    expect(rpcs("shops_order_custom_quote")).toHaveLength(1);
   });
 
   it("H6: the tax is figured ONCE at the shop's pickup address, from exactly the taxed lines; no tax/locations call (Q2153)", async () => {
@@ -461,6 +504,113 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
     expect(res.status).toBe(503);
     expect((await json(res)).error).toMatch(/try again/i);
     expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+  });
+
+  describe("delivery: the shop delivers (migration 20261106180902)", () => {
+    const geocoder = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify([
+      { lat: "30.2400", lon: "-92.0600", address: { house_number: "100", road: "Main St", city: "Lafayette", state: "Louisiana" } },
+    ]), { status: 200 }));
+    beforeEach(() => { geocoder.mockClear(); vi.stubGlobal("fetch", geocoder); });
+    afterEach(() => { vi.unstubAllGlobals(); });
+    const DROP = { line1: "100 Main St", city: "Lafayette", postal_code: "70501" };
+    const askDelivered = (fn: Awaited<ReturnType<typeof load>>, delivery: unknown = DROP) => fn.request({
+      headers: { Authorization: "Bearer buyer-jwt" },
+      body: { action: "order", shop_id: SHOP, lines: [{ item_id: ITEM, quantity: 2 }], ready_date: "2026-10-30", note: "",
+        terms: { cancel_policy: "until_24h_before_ready", ready_tap_cancel: "from_day_before" }, delivery },
+    });
+    function delivered() {
+      frozen();
+      scenario.rpc.shop_set_order_delivery = { order_id: ORDER, delivery_cents: 800, delivery_miles: 4, total_cents: 7275 };
+      scenario.reads.shop_orders = { rows: [orderRow({ fulfillment: "shop_delivers", delivery_cents: 800 })] };
+    }
+
+    it("geocodes ON THE SERVER, sets the delivery as the service, adds a non-taxable Shop delivery line and taxes at the drop-off", async () => {
+      const fn = await load();
+      delivered();
+      stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6100 + 375 + 800 + 150 });
+      const res = await fn.fetch(askDelivered(fn));
+      expect(res.status).toBe(200);
+      expect(geocoder).toHaveBeenCalled();
+      const set = rpcs("shop_set_order_delivery")[0];
+      expect(clientOf(set)?.key).toBe("service-key");
+      expect(set?.args).toEqual({ p_order_id: ORDER, p_buyer: BUYER, p_line1: "100 Main St", p_line2: null, p_city: "Lafayette",
+        p_postal_code: "70501", p_lat: 30.24, p_lng: -92.06 });
+      const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+      const line = params.line_items.find((l: any) => l.price_data.product_data.name === "Shop delivery");
+      expect(line?.price_data.unit_amount).toBe(800);
+      expect(line?.price_data.product_data.tax_code).toBe("txcd_00000000");
+      const sum = params.line_items.reduce((t: number, l: any) => t + l.price_data.unit_amount * l.quantity, 0);
+      expect(sum).toBe(6100 + 375 + 800 + 150);
+      const [calc] = stripeMock.tax.calculations.create.mock.calls[0];
+      expect(calc.customer_details.address).toMatchObject({ line1: "100 Main St", city: "Lafayette", postal_code: "70501", state: "LA" });
+      // The delivery is not in the tax calculation (only the items and the fee).
+      expect(calc.line_items.reduce((t: number, l: any) => t + l.amount, 0)).toBe(6100 + 375);
+    });
+
+    it("a drop-off the SQL refuses (too far) closes the just-frozen order and opens no page", async () => {
+      const fn = await load();
+      delivered();
+      scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), shop_set_order_delivery: { message: "delivery_too_far", code: "22023" } };
+      const res = await fn.fetch(askDelivered(fn));
+      expect(res.status).toBeGreaterThanOrEqual(400);
+      expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    });
+
+    it("an address the geocoder cannot find never freezes an order", async () => {
+      const fn = await load();
+      delivered();
+      geocoder.mockImplementation(async () => new Response("[]", { status: 200 }));
+      const res = await fn.fetch(askDelivered(fn));
+      expect(res.status).toBe(422);
+      expect((await json(res)).error).toBe("address_not_found");
+      expect(rpcs("shops_request_order")).toHaveLength(0);
+    });
+
+    it("a malformed address is a bad request", async () => {
+      const fn = await load();
+      delivered();
+      const res = await fn.fetch(askDelivered(fn, { line1: "1", city: "", postal_code: "7050" }));
+      expect(res.status).toBe(400);
+      expect(rpcs("shops_request_order")).toHaveLength(0);
+    });
+
+    it("a frozen at-home line on a delivered order closes the order (the item changed after the early check)", async () => {
+      const fn = await load();
+      delivered();
+      // An earlier case leaves the geocoder answering "not found" (mockClear keeps an implementation).
+      geocoder.mockImplementation(async () => new Response(JSON.stringify([
+        { lat: "30.2400", lon: "-92.0600", address: { house_number: "100", road: "Main St", city: "Lafayette", state: "Louisiana" } },
+      ]), { status: 200 }));
+      // The live item read says in-shop; the frozen line says at the buyer's place.
+      scenario.reads.shop_items = { rows: [{ id: ITEM, subtype: "fabric_cleaning", at_buyer: false }] };
+      scenario.reads.shop_order_lines = { rows: [
+        { title: "Couch cleaning at your home", kind: "service", tax_kind: "fabric_cleaning", at_buyer: true, unit_cents: 3050, quantity: 2, line_cents: 6100 },
+      ] };
+      const res = await fn.fetch(fn.request({
+        headers: { Authorization: "Bearer buyer-jwt" },
+        body: { action: "order", shop_id: SHOP, lines: [{ item_id: ITEM, quantity: 2 }], ready_date: "2026-10-30", note: "",
+          terms: { cancel_policy: "until_24h_before_ready", ready_tap_cancel: "from_day_before" }, delivery: DROP,
+          service_address: { line1: "12 Oak St", city: "Lafayette", postal_code: "70501" } },
+      }));
+      expect(res.status).toBe(409);
+      expect((await json(res)).error).toBe("at_buyer_no_delivery");
+      expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
+      // The closed order keeps no copy of the drop-off (lead + authz review of 551ea68e0c).
+      expect(scenario.writes.filter((w) => w.table === "shop_order_delivery_addresses").map((w) => w.op)).toEqual(["delete"]);
+      expect(stripeMock.tax.calculations.create).not.toHaveBeenCalled();
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    });
+
+    it("a pickup order carries no delivery line", async () => {
+      const fn = await load();
+      frozen();
+      stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6625 });
+      expect((await fn.fetch(ask(fn))).status).toBe(200);
+      expect(rpcs("shop_set_order_delivery")).toHaveLength(0);
+      const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+      expect(params.line_items.some((l: any) => l.price_data.product_data.name === "Shop delivery")).toBe(false);
+    });
   });
 });
 
@@ -717,6 +867,48 @@ describe("stripe-webhook: H6, a shop order's tax is recorded at CAPTURE and reve
     // The whole order: a partial flat reversal of the whole total (never mode full: it could not be undone).
     expect(stripeMock.tax.transactions.createReversal.mock.calls[0][0]).toMatchObject({ mode: "partial", flat_amount: -6625, reference: "refund:re_hand" });
     expect(rpcs("shop_record_hand_refund")).toHaveLength(1);
+  });
+
+  // Helpr delivery (20261106194913, money review BLOCK on 85549dc06a): the delivery line is untaxed, so a
+  // delivery-only refund reverses no tax, and beside an order refund only the order refund's share is reversed.
+  const DELIVERY_REFUND = { id: "re_dlv", amount: 1200, created: 50, status: "succeeded", charge: "ch_shop",
+    metadata: { kind: "shop_refund", shop_delivery_refund_id: "d1", order_id: ORDER } };
+  it("a delivery-only refund reverses no tax and pages nobody", async () => {
+    stripeMock.refunds.list.mockResolvedValue({ data: [DELIVERY_REFUND], has_more: false });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_shop", metadata: { ...TAXED, tax_transaction_id: "tax_txn_shop" } });
+    stripeMock.tax.transactions.listLineItems.mockResolvedValue({ data: [{ amount: 6475, amount_tax: 150, tax_behavior: "exclusive" }], has_more: false });
+    const res = await deliver({ id: "evt_ref_dlv", type: "charge.refunded",
+      data: { object: { id: "ch_shop", payment_intent: "pi_shop", amount: 6625, amount_captured: 6625, amount_refunded: 1200, metadata: { kind: "shop_order", order_id: ORDER } } } });
+    expect(res.status).toBe(200);
+    expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+    expect((slackAlerts as Array<{ title: string }>).filter((a) => /tax/i.test(a.title))).toEqual([]);
+  });
+
+  it("a delivery refund beside the order's refund: only the order refund's share is reversed", async () => {
+    stripeMock.refunds.list.mockResolvedValue({ data: [
+      { id: "re_shop", amount: 3000, created: 60, status: "succeeded", charge: "ch_shop", metadata: { kind: "shop_refund", shop_refund_id: "r1", order_id: ORDER } },
+      DELIVERY_REFUND,
+    ], has_more: false });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_shop", metadata: { ...TAXED, tax_transaction_id: "tax_txn_shop" } });
+    stripeMock.tax.transactions.listLineItems.mockResolvedValue({ data: [{ amount: 6475, amount_tax: 150, tax_behavior: "exclusive" }], has_more: false });
+    stripeMock.tax.transactions.createReversal.mockResolvedValue({ id: "taxrev_shop" });
+    const res = await deliver({ id: "evt_ref_both", type: "charge.refunded",
+      data: { object: { id: "ch_shop", payment_intent: "pi_shop", amount: 6625, amount_captured: 6625, amount_refunded: 4200, metadata: { kind: "shop_order", order_id: ORDER } } } });
+    expect(res.status).toBe(200);
+    expect(stripeMock.tax.transactions.createReversal.mock.calls).toEqual([[
+      { mode: "partial", flat_amount: -3000, original_transaction: "tax_txn_shop", reference: "refund:re_shop", metadata: { refund_id: "re_shop", charge_id: "ch_shop" } },
+      { idempotencyKey: "visit-tax-reversal:re_shop" },
+    ]]);
+  });
+
+  it("a delivery refund that later FAILS reopens its row and undoes no tax reversal", async () => {
+    scenario.rpc.shop_delivery_refund_reversed = "reopened";
+    const res = await deliver({ id: "evt_ref_dlv_fail", type: "charge.refund.updated",
+      data: { object: { ...DELIVERY_REFUND, status: "failed", payment_intent: "pi_shop" } } });
+    expect(res.status).toBe(200);
+    expect(rpcs("shop_delivery_refund_reversed")).toHaveLength(1);
+    expect(rpcs("shop_refund_reversed")).toHaveLength(0);
+    expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
   });
 
   it("a Shops refund that later FAILS undoes its own tax reversal before the row reopens", async () => {

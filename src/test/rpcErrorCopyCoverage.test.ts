@@ -16,6 +16,7 @@ import { TRADE_RPC_ERROR_COPY } from "@/lib/declutter/tradeErrors";
 import { PROFILE_RPC_ERROR_COPY } from "@/lib/declutter/profileErrors";
 import { PROFILE_LINK_RPC_ERROR_COPY } from "@/lib/profileLink/errorCopy";
 import { HIRE_ME_RPC_ERROR_COPY } from "@/lib/hireMe";
+import { HOME_TALK_RPC_ERROR_COPY } from "@/lib/rentals/talkRpcErrorCopy";
 import {
   anonExecuteRevoked,
   clientRpcCalls,
@@ -92,6 +93,12 @@ const UNREACHABLE: Allowlist = {
   },
   // B112 (20261101200929): markTalkRead (src/lib/declutter/talkRead.ts) runs in the background when a Declutter chat
   // opens; any error is console.warn()ed and no message exists at that site.
+  // Q2209 (20261106182837): markHomeTalkRead (src/lib/rentals/talk.ts) runs in the background when a Homes chat
+  // loads; a failure only leaves the thread bold in Messages and the next poll tries again (HomeTalk.tsx).
+  rentals_mark_talk_read: {
+    feature_disabled: { reason: "no message exists at this site: markHomeTalkRead runs in the background and a failure only re-arms the next try" },
+    talk_not_found: { reason: "no message exists at this site: markHomeTalkRead runs in the background and a failure only re-arms the next try" },
+  },
   declutter_mark_talk_read: {
     invalid_kind: { reason: "no message exists at this site: markTalkRead sends a fixed kind ('order' or 'handover') and only warns on error" },
     item_not_found: { reason: "no message exists at this site: markTalkRead only warns on error (a chat the caller is not party to)" },
@@ -314,6 +321,11 @@ const UNREACHABLE: Allowlist = {
     feature_disabled: { reason: RENTALS_READ },
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
   },
+  // Q2058 (20261106215556): the Helpr's photos on the request screen (RequestJobPhotos).
+  rentals_request_job_photos: {
+    feature_disabled: { reason: "no code's words at this site: RequestJobPhotos shows its own load-error line with a retry, and RentalsGate shows the 404 while the switch is off." },
+    not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
+  },
   rentals_visit_for_job: {
     feature_disabled: { reason: RENTALS_READ },
     not_authenticated: { reason: ANON_REVOKED, anonRevoked: true },
@@ -393,7 +405,9 @@ const PROFILE_LINK = PROFILE_LINK_RPC_ERROR_COPY as CopyTable;
 const HIRE_ME = HIRE_ME_RPC_ERROR_COPY as CopyTable;
 // Declutter trades, likewise (src/lib/declutter/tradeErrors.ts, 20261106163703).
 const TRADE = TRADE_RPC_ERROR_COPY as CopyTable;
-const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...REFUND, ...SELLER_DELIVERY, ...GUARANTEE, ...MEETUP, ...DONATE, ...BUNDLE, ...PROFILE, ...PROFILE_LINK, ...HIRE_ME, ...TRADE };
+// Homes messages (Q2209), likewise (src/lib/rentals/talkRpcErrorCopy.ts, 20261106182837).
+const HOME_TALK = HOME_TALK_RPC_ERROR_COPY as CopyTable;
+const COPY: CopyTable = { ...SHARED, ...ADMIN, ...HELPR, ...SHOPS, ...HAUL, ...REFUND, ...SELLER_DELIVERY, ...GUARANTEE, ...MEETUP, ...DONATE, ...BUNDLE, ...PROFILE, ...PROFILE_LINK, ...HIRE_ME, ...TRADE, ...HOME_TALK };
 /** An RPC that checks the admin role, read from its latest definition. */
 const ADMIN_GATE = /\bhas_role\s*\([^;]*?'admin'/i;
 /**

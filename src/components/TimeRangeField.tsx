@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { useState } from "react";
 import { Clock } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -110,10 +111,9 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
           />
         )}
 
-        <button
-          type="button"
+        <ListRow variant="flush"
           onClick={() => setOpen(false)}
-          className="w-full h-11 rounded-ds-md text-ds-15"
+          className="min-h-11 px-0 py-0 gap-0 justify-center text-center w-full h-11 rounded-ds-md text-ds-15"
           style={{
             background: "hsl(var(--bark))",
             color: "hsl(var(--parchment))",
@@ -125,7 +125,7 @@ export function TimeRangeField({ start, end, onChange, disabled, className }: Ti
           }}
         >
           Done
-        </button>
+        </ListRow>
       </PopoverContent>
     </Popover>
   );

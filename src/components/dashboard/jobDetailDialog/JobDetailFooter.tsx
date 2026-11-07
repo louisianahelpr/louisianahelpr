@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { Button } from "@/components/ui/button";
 import { Bookmark, MessageSquare, ChevronRight, ShieldCheck, Check } from "lucide-react";
@@ -189,15 +190,14 @@ export const JobDetailFooter = ({
         // Equal-height branches make the swap free — whichever branch wins, and
         // however late the tier resolves, the slot is the same box. Do not give
         // any branch of this slot a height of its own.
-        <button
-          type="button"
+        <ListRow variant="flush"
           // Navigating AWAY unmounts this dialog with the route, so onClose() must NOT
           // follow. It used to. The close handler on the guest feed clears ?job= via
           // setSearchParams(..., { replace: true }), and setSearchParams acts on the
           // CURRENT location — so it replaced the entry navigate() had just pushed and
           // dropped the visitor back on the guest feed.
           onClick={() => navigate("/profile")}
-          className="flex-1 min-w-0 rounded-full h-11 sm:h-12 px-3 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+          className="w-auto min-h-11 py-0 text-center flex-1 min-w-0 rounded-full h-11 sm:h-12 px-3 flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           style={{
             background: "hsl(var(--bark) / 0.08)",
             border: "0.5px solid hsl(var(--bark) / 0.2)",
@@ -214,7 +214,7 @@ export const JobDetailFooter = ({
             {(job.credential_tier ?? 0) === 2 ? "Licensed pros only" : "Licensed & Insured Only"}
           </span>
           <ChevronRight className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--burnt-sienna))" }} />
-        </button>
+        </ListRow>
       ) : (
         <Button
           size="lg"

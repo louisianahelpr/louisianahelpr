@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -126,14 +127,13 @@ export function CreateSheet({ open, onOpenChange }: { open: boolean; onOpenChang
                   <span className={`flex-1 min-w-0 text-ds-16 font-bold truncate ${on ? "text-foreground" : "text-muted-foreground"}`}>{s.label}</span>
                   {on && isPreview(s) && <PreviewPill data-create-preview={s.key} />}
                   {!on && (
-                    <button
-                      type="button"
+                    <ListRow variant="flush"
                       data-create-soon={s.key}
                       onClick={() => sayComingSoon(s.label)}
-                      className="min-h-11 -my-2.5 px-1 flex items-center"
+                      className="w-auto py-0 gap-0 text-center min-h-11 -my-2.5 px-1 flex items-center"
                     >
                       <SoonPill />
-                    </button>
+                    </ListRow>
                   )}
                 </div>
                 {on && (

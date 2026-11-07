@@ -8,7 +8,7 @@
  * instead, to the buyer always and to the shop once it has accepted (the
  * server returns nothing to the shop earlier or after the handover).
  */
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -16,7 +16,8 @@ import { MapPin } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
 import { cancelPolicyText, formatCents, orderStatusLabel, type ShopOrder } from "@/lib/shops/orders";
 import { fetchOrderPickupAddress, fetchOrderServiceAddress } from "@/lib/shops/pickupAddress";
-import { fetchOrderDeliveryAddress, formatDeliveryAddress, reportHelprNoShow } from "@/lib/shops/delivery";
+import { fetchOrderDeliveryAddress, fetchOrderHelprTask, formatDeliveryAddress, reportHelprNoShow } from "@/lib/shops/delivery";
+import { fetchTaskView } from "@/lib/helprTasks/api";
 import { toast } from "sonner";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopOrderMessageButton } from "./ShopTalk";
@@ -183,7 +184,7 @@ export function ShopOrderCard({
                 : `You get the item price in full: ${formatCents(shopGets)}.`}
         </p>
       )}
-      {side === "shop" && byHelpr && order.status === "accepted" && !order.handed_over_at && <HelprNoShowButton orderId={order.id} />}
+      {side === "shop" && byHelpr && order.status === "accepted" && !order.handed_over_at && <HelprPickup orderId={order.id} />}
       {/* Q1947: the chat with the other side, from the order (an order whose buyer deleted their account has none). */}
       {order.buyer_id && <ShopOrderMessageButton orderId={order.id} side={side} />}
       {/* Shops H9: after the handover, either side reviews the other once. */}
@@ -193,10 +194,60 @@ export function ShopOrderCard({
   );
 }
 
+/** The server's "didn't come" opens 15 minutes after the booked pickup time (shop_report_helpr_no_show: too_early). */
+const NO_SHOW_AFTER_MS = 15 * 60_000;
+const pickupWhen = (iso: string) =>
+  new Date(iso).toLocaleString([], { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+
 /**
- * The shop says the booked Helpr didn't come (shop_report_helpr_no_show, 20261106211136). Shown on an accepted Helpr
- * delivery not yet handed over; the server answers too_early before 15 minutes after the pickup time and
- * no_helpr_booked when no Helpr is booked, in words. Two taps: the first asks, the second sends.
+ * The shop's view of the Helpr pickup (lead 11-07): who is booked and when (shops_order_helpr_task, 20261107164311,
+ * then helpr_task_view as the task's pickup contact), and the "didn't come" button only from 15 minutes after the
+ * booked time, while it is still booked, not handed over and no problem holds the order. Before that the server
+ * answered too_early to a button that showed all along.
+ */
+function HelprPickup({ orderId }: { orderId: string }) {
+  const task = useQuery({ queryKey: ["shops", "order-helpr-task", orderId], queryFn: () => fetchOrderHelprTask(orderId) });
+  const taskId = task.data ?? null;
+  const view = useQuery({
+    queryKey: ["helpr-tasks", "view", taskId],
+    queryFn: () => fetchTaskView(taskId as string),
+    enabled: !!taskId,
+    meta: { persist: false },
+  });
+  const slot = view.data?.status === "accepted" ? view.data.pickup_slot_start : null;
+  const opensAt = slot ? new Date(slot).getTime() + NO_SHOW_AFTER_MS : null;
+  // The button appears on its own when the time comes, without a reload.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (opensAt === null || opensAt <= now) return;
+    const timer = window.setTimeout(() => setNow(Date.now()), Math.min(opensAt - now + 500, 2_147_000_000));
+    return () => window.clearTimeout(timer);
+  }, [opensAt, now]);
+  if (task.isError || view.isError) {
+    return (
+      <p className="text-sm">
+        We couldn't load the Helpr's pickup time.{" "}
+        <InlineTextButton className="underline" onClick={() => { void task.refetch(); if (taskId) void view.refetch(); }}>Try again</InlineTextButton>
+      </p>
+    );
+  }
+  const v = view.data;
+  if (!taskId || !v) return null;
+  if (v.status === "open") return <p className="text-sm" data-testid="shop-helpr-pickup">No Helpr has taken this delivery yet.</p>;
+  if (!slot) return null;
+  const canReport = opensAt !== null && now >= opensAt && !v.problem_open && !v.handed_over_at;
+  return (
+    <>
+      <p className="text-sm" data-testid="shop-helpr-pickup">{v.helpr_first_name ?? "Your Helpr"} picks it up {pickupWhen(slot)}.</p>
+      {canReport && <HelprNoShowButton orderId={orderId} />}
+    </>
+  );
+}
+
+/**
+ * The shop says the booked Helpr didn't come (shop_report_helpr_no_show, 20261106211136). Shown by HelprPickup from
+ * 15 minutes after the booked pickup time; the server still checks the time and the booking and answers in words.
+ * Two taps: the first asks, the second sends.
  */
 function HelprNoShowButton({ orderId }: { orderId: string }) {
   const [asking, setAsking] = useState(false);

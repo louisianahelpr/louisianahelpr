@@ -7,6 +7,7 @@
  * has accepted the order. Every rule is in SQL; nothing here is the protection.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "./rpcErrorCopy";
 import { invokeShopCheckoutAction } from "./orders";
@@ -114,6 +115,20 @@ export async function savePickupPoint(): Promise<void> {
 export async function reportHelprNoShow(orderId: string): Promise<void> {
   const { error } = await supabase.rpc("shop_report_helpr_no_show", { p_order_id: orderId });
   if (error) rpcFail(error, rpcErrorMessage("shop_report_helpr_no_show", error));
+}
+
+/**
+ * The order's Helpr task (shops_order_helpr_task, 20261107164311), for the shop owner or the buyer: NULL while there is
+ * none, and NULL before that migration is live (the card then shows no pickup time and no "didn't come" button). The
+ * card reads the booked slot through helpr_task_view, which answers the shop as the task's pickup contact.
+ */
+export async function fetchOrderHelprTask(orderId: string): Promise<string | null> {
+  const { data, error } = await supabase.rpc("shops_order_helpr_task", { p_order_id: orderId });
+  if (error) {
+    if (isMissingRpcNamed(error, "shops_order_helpr_task")) return null;
+    rpcFail(error, rpcErrorMessage("shops_order_helpr_task", error));
+  }
+  return typeof data === "string" ? data : null;
 }
 
 /** The shop turns Helpr delivery on or off (needs a looked-up pickup point; the server checks). */

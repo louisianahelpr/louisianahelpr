@@ -15,7 +15,13 @@
  * @mutate src/components/shops/ShopPickupAddressSection.tsx |        await savePickupPoint(); |        void 0;
  * @mutate src/components/shops/ShopOrderCard.tsx |   const shopDeliveryCents = delivered ? deliveryCents : 0; |   const shopDeliveryCents = deliveryCents;
  * @mutate src/components/shops/ShopOrderCard.tsx |   const byHelpr = order.fulfillment === "helpr_delivers" && !order.helpr_unfilled_at; |   const byHelpr = false;
- * @mutate src/components/shops/ShopOrderCard.tsx |       {side === "shop" && byHelpr && order.status === "accepted" && !order.handed_over_at && <HelprNoShowButton orderId={order.id} />} |
+ * @mutate src/components/shops/ShopOrderCard.tsx |       {side === "shop" && byHelpr && order.status === "accepted" && !order.handed_over_at && <HelprPickup orderId={order.id} />} |
+ * 4. The shop sees the booked Helpr and the pickup time (shops_order_helpr_task, 20261107164311, then helpr_task_view);
+ *    "The Helpr didn't come" shows only from 15 minutes after that time, and appears on its own when the time comes.
+ * @mutate src/components/shops/ShopOrderCard.tsx |   const canReport = opensAt !== null && now >= opensAt && !v.problem_open && !v.handed_over_at; |   const canReport = !v.problem_open && !v.handed_over_at;
+ * @mutate src/components/shops/ShopOrderCard.tsx |   const canReport = opensAt !== null && now >= opensAt && !v.problem_open && !v.handed_over_at; |   const canReport = opensAt !== null && now >= opensAt && !v.handed_over_at;
+ * @mutate src/components/shops/ShopOrderCard.tsx |     const timer = window.setTimeout(() => setNow(Date.now()), | const timer = window.setTimeout(() => undefined,
+ * @mutate src/components/shops/ShopOrderCard.tsx |   if (v.status === "open") return <p | if (false) return <p
  * @mutate src/lib/shops/orders.ts |    ...(args.delivery && args.helprCents ? { delivery_by: "helpr", delivery_cents: args.helprCents } : {}), |
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -44,7 +50,10 @@ vi.mock("@/lib/shops/variants", async (orig) => ({ ...(await orig<typeof import(
 vi.mock("@/lib/shops/handover", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/handover")>()), fetchHandoverMode: async () => "in_person" }));
 const delivery = vi.hoisted(() => ({
   fetchDeliveryOffer: vi.fn(), savePickupPoint: vi.fn(), setHelprDelivery: vi.fn(), reportHelprNoShow: vi.fn(), fetchOrderDeliveryAddress: vi.fn(),
+  fetchOrderHelprTask: vi.fn(),
 }));
+const tasks = vi.hoisted(() => ({ fetchTaskView: vi.fn() }));
+vi.mock("@/lib/helprTasks/api", async (orig) => ({ ...(await orig<typeof import("@/lib/helprTasks/api")>()), ...tasks }));
 vi.mock("@/lib/shops/delivery", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/delivery")>()), ...delivery }));
 const pickup = vi.hoisted(() => ({ fetchMyPickupAddress: vi.fn(), saveMyPickupAddress: vi.fn(), fetchOrderPickupAddress: vi.fn() }));
 vi.mock("./ShopTalk", () => ({ ShopOrderMessageButton: () => null }));
@@ -195,7 +204,13 @@ describe("the order card for a Helpr delivery", () => {
     captured_at: null, closed_at: null, handover_mode: "in_person", fulfillment: "helpr_delivers", delivery_cents: 1050,
     helpr_unfilled_at: null, handed_over_at: null, shop_order_lines: [], ...over,
   } as unknown as ShopOrder);
+  const booked = (minutesAgo: number, over: Record<string, unknown> = {}) => ({
+    task_id: "t1", status: "accepted", helpr_first_name: "Sam", problem_open: false, handed_over_at: null,
+    pickup_slot_start: new Date(Date.now() - minutesAgo * 60_000).toISOString(), ...over,
+  });
   beforeEach(() => {
+    delivery.fetchOrderHelprTask.mockResolvedValue("t1");
+    tasks.fetchTaskView.mockResolvedValue(booked(20));
     delivery.fetchOrderDeliveryAddress.mockResolvedValue({ line1: "100 Main St", city: "Lafayette", postal_code: "70501" });
     pickup.fetchOrderPickupAddress.mockResolvedValue({ line1: "705 W University Ave", city: "Lafayette", postal_code: "70506" });
   });
@@ -218,7 +233,8 @@ describe("the order card for a Helpr delivery", () => {
   it("the shop says the Helpr didn't come: asks once, then sends", async () => {
     delivery.reportHelprNoShow.mockResolvedValue(undefined);
     renderIt(<ul><ShopOrderCard order={order({})} heading="Order" side="shop" /></ul>);
-    fireEvent.click(screen.getByTestId("shop-helpr-no-show"));
+    expect((await screen.findByTestId("shop-helpr-pickup")).textContent).toMatch(/^Sam picks it up /);
+    fireEvent.click(await screen.findByTestId("shop-helpr-no-show"));
     expect(delivery.reportHelprNoShow).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Yes, tell them" }));
     await waitFor(() => expect(delivery.reportHelprNoShow).toHaveBeenCalledWith("o1"));
@@ -234,6 +250,43 @@ describe("the order card for a Helpr delivery", () => {
     r2.unmount();
     renderIt(<ul><ShopOrderCard order={order({})} heading="Order" side="buyer" /></ul>);
     expect(screen.queryByTestId("shop-helpr-no-show")).toBeNull();
+  });
+
+  it("before 15 minutes past the pickup time: the time shows, the button does not", async () => {
+    tasks.fetchTaskView.mockResolvedValue(booked(5));
+    renderIt(<ul><ShopOrderCard order={order({})} heading="Order" side="shop" /></ul>);
+    expect((await screen.findByTestId("shop-helpr-pickup")).textContent).toMatch(/^Sam picks it up /);
+    expect(delivery.fetchOrderHelprTask).toHaveBeenCalledWith("o1");
+    expect(tasks.fetchTaskView).toHaveBeenCalledWith("t1");
+    expect(screen.queryByTestId("shop-helpr-no-show")).toBeNull();
+  });
+
+  it("the button appears on its own when the 15 minutes are up", async () => {
+    tasks.fetchTaskView.mockResolvedValue(booked(15 - 1 / 60));
+    renderIt(<ul><ShopOrderCard order={order({})} heading="Order" side="shop" /></ul>);
+    await screen.findByTestId("shop-helpr-pickup");
+    expect(screen.queryByTestId("shop-helpr-no-show")).toBeNull();
+    expect(await screen.findByTestId("shop-helpr-no-show", {}, { timeout: 4000 })).toBeTruthy();
+  });
+
+  it("no Helpr yet: says so; a problem holding the order: no button", async () => {
+    tasks.fetchTaskView.mockResolvedValue(booked(20, { status: "open", pickup_slot_start: null }));
+    const { unmount } = renderIt(<ul><ShopOrderCard order={order({})} heading="Order" side="shop" /></ul>);
+    expect((await screen.findByTestId("shop-helpr-pickup")).textContent).toBe("No Helpr has taken this delivery yet.");
+    expect(screen.queryByTestId("shop-helpr-no-show")).toBeNull();
+    unmount();
+    tasks.fetchTaskView.mockResolvedValue(booked(20, { problem_open: true }));
+    renderIt(<ul><ShopOrderCard order={order({})} heading="Order" side="shop" /></ul>);
+    await screen.findByTestId("shop-helpr-pickup");
+    expect(screen.queryByTestId("shop-helpr-no-show")).toBeNull();
+  });
+
+  it("no task (or the read not live yet): nothing shows", async () => {
+    delivery.fetchOrderHelprTask.mockResolvedValue(null);
+    renderIt(<ul><ShopOrderCard order={order({})} heading="Order" side="shop" /></ul>);
+    await waitFor(() => expect(delivery.fetchOrderHelprTask).toHaveBeenCalled());
+    expect(screen.queryByTestId("shop-helpr-pickup")).toBeNull();
+    expect(tasks.fetchTaskView).not.toHaveBeenCalled();
   });
 });
 

@@ -49,6 +49,8 @@ import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones, declutterAbo
 import { fetchBundleSellers } from "@/lib/declutter/bundle";
 import { SELL_CHOOSER_PATH, wantedAskHref } from "@/lib/declutter/sellChooser";
 import { previewIsTopOfList, readFirstScreenPreview, type FirstScreenAnswer } from "@/lib/declutter/bootPrefetch";
+import { readGuestPreview } from "@/lib/declutter/guestBootPrefetch";
+import { useFirstRowPhotosSettled } from "./firstRowPhotoGate";
 import { toastWatching } from "./declutterLightActions";
 
 // The map (and the MapKit script it asks for) loads only when a map is shown.
@@ -141,6 +143,8 @@ function NothingForSaleActions({ guest }: { guest: boolean }) {
 }
 
 const BROWSE_URL_WAIT_MS = 300;
+/** Q2705 (11-07): the longest a guest's full list waits for the preview's first photos (see DeclutterBrowse). */
+const GUEST_FULL_LIST_WAIT_MS = 3000;
 
 /**
  * userId null: a guest (BUY-16, owner 10-30 "Guests see Declutter Browse and item pages; sign up to buy or offer"). A
@@ -196,7 +200,6 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
   // "Use my location" button (in the filters, and on the miles line above the cards, DA-10).
   const { origin, askDevice, asked, asking, canAskAgain, deviceNote, zip } = useDeclutterOrigin();
   const from = origin.status === "ready" ? { lat: origin.lat, lng: origin.lng } : null;
-  const items = useQuery({ queryKey: ["declutter", "live"], queryFn: fetchLiveItems });
   const droppedIn = useQuery({
     queryKey: ["declutter", "dropped-into-budget", droppedAsk?.since, droppedAsk?.maxDollars],
     queryFn: () => fetchDroppedIntoBudget(droppedAsk?.since ?? "", droppedAsk?.maxDollars ?? 0),
@@ -204,20 +207,40 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
   });
   // More listings than a cold load's first answer holds (declutter_first_screen): its cards show while the full read
   // runs, ONLY when they are exactly the top of the final list, so nothing moves when the rest arrive. Searching,
-  // filtering, a distance or another sort needs the whole list, so each of those waits for it.
-  const [capped, setCapped] = useState<Pick<FirstScreenAnswer, "items" | "near"> | null>(null);
+  // filtering, a distance or another sort needs the whole list, so each of those waits for it. A guest's preview
+  // (Q2705, 11-07): declutter_guest_preview's top 24, read the same way. `undefined`: not known yet.
+  const [capped, setCapped] = useState<Pick<FirstScreenAnswer, "items" | "near"> | null | undefined>(undefined);
   useEffect(() => {
     let alive = true;
-    void readFirstScreenPreview().then((p) => {
-      if (alive) setCapped(p);
-    });
+    void readFirstScreenPreview()
+      .then((p) => p ?? (member ? null : readGuestPreview()))
+      .then((p) => {
+        if (alive) setCapped(p);
+      });
     return () => {
       alive = false;
     };
-  }, []);
-  const preview =
-    !items.data && !!capped && origin.status !== "pending" &&
-    previewIsTopOfList(capped.near, from, query.trim() === "" && filters.sort === "closest" && activeFilterCount(filters, maxMiles) === 0);
+  }, [member]);
+  const defaultView = query.trim() === "" && filters.sort === "closest" && activeFilterCount(filters, maxMiles) === 0;
+  const previewFits = !!capped && origin.status !== "pending" && previewIsTopOfList(capped.near, from, defaultView);
+  // A guest's full list (67 KB gz on 11-07, with every description) waits until the preview's first photos are in
+  // (firstRowPhotoGate) or GUEST_FULL_LIST_WAIT_MS has passed, so on a slow link it does not share the line with the
+  // photos the guest is waiting for. Without a preview that fits, it reads at once. A member reads at once, as before.
+  const firstPhotosIn = useFirstRowPhotosSettled();
+  const [waitedForPhotos, setWaitedForPhotos] = useState(false);
+  useEffect(() => {
+    if (member || !previewFits) return;
+    const t = setTimeout(() => setWaitedForPhotos(true), GUEST_FULL_LIST_WAIT_MS);
+    return () => clearTimeout(t);
+  }, [member, previewFits]);
+  const fullListNow = member || capped === null || (capped !== undefined && origin.status !== "pending" && (!previewFits || firstPhotosIn || waitedForPhotos));
+  const [fullListAsked, setFullListAsked] = useState(false);
+  useEffect(() => {
+    if (fullListNow) setFullListAsked(true);
+  }, [fullListNow]);
+  // Once asked, it stays asked (a later search or filter never turns the read off).
+  const items = useQuery({ queryKey: ["declutter", "live"], queryFn: fetchLiveItems, enabled: fullListNow || fullListAsked });
+  const preview = !items.data && previewFits;
   const listed = (items.data ?? (preview ? capped?.items : undefined)) as typeof items.data;
   const others = useMemo(() => (listed ?? []).filter((i) => i.seller_id !== userId), [listed, userId]);
   // keepPreviousData: when the full list replaces the preview the ids change, and the cards on screen keep their photos
@@ -274,7 +297,9 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
   // ONE gate for the list and its cover photos, so the cards arrive in one paint instead of the list first and its
   // photos in a second wave (oneLoadingGatePerScreen.test.ts). The photos query is disabled (never loading) when
   // there is nothing to show.
-  const listLoading = (items.isLoading && !preview) || photos.isLoading || drops.isLoading || watching.isLoading || origin.status === "pending";
+  // A guest's full list not asked yet (it waits on the preview, above) is loading too, never "Nothing for sale".
+  const fullListWaiting = !fullListNow && !fullListAsked && items.data === undefined;
+  const listLoading = ((items.isLoading || fullListWaiting) && !preview) || photos.isLoading || drops.isLoading || watching.isLoading || origin.status === "pending";
   // Offline with nothing loaded is never "Nothing for sale yet" (Q571).
   const itemsPhase = useFeedPhase(items);
   const ask = { origin, asked, asking, canAskAgain, deviceNote, askDevice, zip, guest: !member };

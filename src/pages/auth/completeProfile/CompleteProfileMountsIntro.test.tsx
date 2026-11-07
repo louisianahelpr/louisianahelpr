@@ -9,7 +9,8 @@
  *
  * @mutate src/pages/auth/CompleteProfile.tsx |             <CompleteProfileIntro />\n |             \n
  * A3-30 (audit 11-01): the page names the next step and how far along it is.
- * @mutate src/pages/auth/CompleteProfile.tsx |                 <ProfileNextStep checklist={checklist} t={t} />\n |
+ * @mutate src/pages/auth/completeProfile/StillNeededList.tsx |       <ProfileNextStep checklist={checklist} t={t} />\n |
+ * @mutate src/pages/auth/CompleteProfile.tsx |             <StillNeededList checklist={checklist} allComplete={allComplete} t={t} />\n |
  * @mutate src/pages/auth/completeProfile/ProfileNextStep.tsx |   return { step: next.step, n: checklist.filter((c) => c.done).length + 1, total: checklist.length }; |   return { step: next.step, n: 1, total: checklist.length };
  */
 import { describe, it, expect, vi } from "vitest";

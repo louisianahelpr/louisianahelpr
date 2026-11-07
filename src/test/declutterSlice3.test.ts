@@ -9,8 +9,8 @@
  * Concurrency (two real sessions, 6 races x 20 rounds, red on a planted
  * unlocked copy): scripts/declutter/race-accept.mjs.
  *
- * @mutate supabase/migrations/20261104124645_declutter_bundle_take_quiet.sql |    WHERE id = p_item_id AND status = 'live'\n  RETURNING seller_id, title INTO v_seller, v_title; |    WHERE id = p_item_id\n  RETURNING seller_id, title INTO v_seller, v_title;
  * @mutate supabase/migrations/20261107174801_declutter_buy_now_one_page.sql |    WHERE i.id = p_item_id\n   FOR UPDATE; |    WHERE i.id = p_item_id;
+ * @mutate supabase/migrations/20261107185819_declutter_free_pick_notice_first_timer.sql |    WHERE id = p_item_id AND status = 'live'\n  RETURNING seller_id, title INTO v_seller, v_title; |    WHERE id = p_item_id\n  RETURNING seller_id, title INTO v_seller, v_title;
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | CREATE UNIQUE INDEX IF NOT EXISTS declutter_offers_one_accepted | CREATE INDEX IF NOT EXISTS declutter_offers_one_accepted
  * @mutate supabase/migrations/20261014210518_declutter_slice3_offers_checkout.sql | CREATE UNIQUE INDEX IF NOT EXISTS declutter_cart_one_active | CREATE INDEX IF NOT EXISTS declutter_cart_one_active
  * @mutate supabase/migrations/20261105030604_declutter_gift_cards.sql |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id FOR UPDATE;\n  v_found := FOUND; |   SELECT * INTO o FROM public.declutter_orders WHERE id = p_order_id;\n  v_found := FOUND;

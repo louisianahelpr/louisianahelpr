@@ -64,6 +64,8 @@ async function recordShopHandRefunds(
   orderId: string | null,
   supabase: WebhookContext["supabase"],
   logStep: WebhookContext["logStep"],
+  /** Always added to the page of a newly recorded refund (11-07: the rest's charge, whose tax is reversed by hand). */
+  alwaysSay?: string,
 ): Promise<void> {
   const hand = refunds.filter((r) => Boolean(r?.id) && r.status !== "failed" && r.status !== "canceled"
     && (r.metadata as Record<string, string> | null)?.kind !== "shop_refund");
@@ -88,6 +90,7 @@ async function recordShopHandRefunds(
     } else {
       logStep("Shops refund made outside the app", { refund: r.id, result: data });
       why = SHOP_HAND_REFUND_PAGES[String(data)];
+      if (alwaysSay && String(data) !== "already") why = `${why ?? ""} ${alwaysSay}`.trim();
     }
     if (why) {
       orderIsSeed ??= await shopOrderIsSeed(orderId, supabase, logStep);
@@ -211,6 +214,18 @@ export async function handleChargeRefunded(
   if ((((charge as { metadata?: Record<string, string> | null }).metadata ?? {}) as Record<string, string>).kind === "shop_balance"
       && allRefunds.every((r) => (r?.metadata as Record<string, string> | null)?.kind === "shop_balance_refund")) {
     logStep("Shop rest payment refunded (not owed); nothing to record", { chargeId: charge.id });
+    return;
+  }
+  // 11-07 (option B, 20261107162454): any OTHER refund of the rest's charge was made by hand (the app never refunds a
+  // two-charge order itself). It is recorded against the order like a hand refund of the deposit (shop_record_hand_refund
+  // finds the order by the rest's PaymentIntent), which holds the order, and it never goes down the jobs path. The rest's
+  // charge carries no Stripe Tax transaction, so its tax share is NOT reversed here: the page says so.
+  if ((((charge as { metadata?: Record<string, string> | null }).metadata ?? {}) as Record<string, string>).kind === "shop_balance") {
+    const restMeta = ((charge as { metadata?: Record<string, string> | null }).metadata ?? {}) as Record<string, string>;
+    await recordShopHandRefunds(event, charge, refundPiId,
+      allRefunds.filter((r) => (r?.metadata as Record<string, string> | null)?.kind !== "shop_balance_refund"),
+      restMeta.order_id ?? null, supabase, logStep,
+      "This was the REST of a 50% deposit order (its second charge). Its sales-tax share was NOT reversed: reverse that share in Stripe Tax on the order's transaction (the deposit PaymentIntent's metadata.tax_transaction_id).");
     return;
   }
   // Shops (M3, 20261019071055): its refunds are decided, recorded (shop_refunds)

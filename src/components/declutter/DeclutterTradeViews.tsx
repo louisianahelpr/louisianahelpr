@@ -65,6 +65,7 @@ import { squarePhotoUrl, THUMB_PHOTO_PX } from "@/lib/declutter/photoSizes";
 import { fetchItemPickupWindows } from "@/lib/declutter/handover";
 import { pickupDays, porchWindowDays } from "@/lib/declutter/pickupSlots";
 import { CheckoutPickupTime } from "./CheckoutPickupTime";
+import { CheckoutPriceSummary } from "./DeclutterCheckoutSummary";
 import { fetchCheckoutPorchDays, onPorchDays } from "@/lib/declutter/porchDays";
 import { fetchCheckoutSize } from "@/lib/declutter/checkoutSize";
 import { useSpendableGiftCards } from "@/hooks/useSpendableGiftCards";
@@ -107,7 +108,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   itemId?: string | null;
   /** A3-53: every item of this checkout, to mark the size the delivery is priced at before any quote. Shipping S3: and to ask whether all of them can ship. */
   itemIds?: string[];
-  /** Board 161: how many items this one checkout covers. The bill shows the items and what the buyer pays, never a fee line (owner 2026-10-25, issue #3672). */
+  /** Board 161: how many items this one checkout covers (one service fee for all of them; owner 11-07 shows it as a line). */
   itemCount?: number;
 }) {
   const qc = useQueryClient();
@@ -230,10 +231,10 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
   // Shipping: the server's fee rule f1_ship (5% of items + shipping, + 70c) on the discounted items, plus the postage.
   const payCents = (shipRate !== null ? netItemsCents + buyerFeeCentsShip(netItemsCents, shipRate) + shipRate
     : delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents;
-  // #20 (owner 2026-10-28, "Words only"): when the total holds more than the lines above it (the buyer's service fee),
-  // one quiet line says so, with no number. A free claim never reaches this sheet with a fee.
+  // Owner 11-07 ~5:10 PM (replaces #20 "Words only" for Declutter): the service fee is its own summary line, the total
+  // less every other line (items after the discount, the way's price, the setup fee). Tax is $0: declutter-checkout
+  // refuses an order with tax_cents != 0.
   const listedCents = netItemsCents + (delivering && liveQuote ? liveQuote.delivery_cents : 0) + (sdRate ?? 0) + (shipRate ?? 0) + setupFeeCents;
-  const includesServiceFee = payCents > listedCents;
   const sdReady = sellerDelivering && sdState === "pick" && !!slot && !!handoff && sdChecked !== null;
   // BUY-8 (audit 10-30): Pay was grey with nothing saying why, and at 375 the choice it waited on was far above it,
   // past the bill. The first thing it waits on, in the buyer's words, right above it.
@@ -260,7 +261,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
     // BUY-15 (audit 10-30): at 1440 this was one stretched column (Pay 1110 px wide, far down the page). From lg the
     // choices sit on the left and the bill with Pay beside them; a phone keeps the one column in the same order.
     <div className="space-y-3 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] lg:items-start lg:gap-6 lg:space-y-0" data-checkout-columns="">
-    <div className="min-w-0 space-y-3" data-checkout-choices="">
+    <div className="min-w-0 space-y-3 max-lg:mb-3" data-checkout-choices="">
       {/* Board 30: "How you'll get it" as radio cards; each price from the real rule (pickups are free; delivery is
           the server's quote, or "Get a price" until there is one). */}
       <fieldset className="space-y-2">
@@ -282,7 +283,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
                 : h === "seller_delivery" ? (sdState === "no_times"
                   ? <span className="font-semibold text-muted-foreground">{sellerDeliveryPriceWords(sdOffer.data, sdState)}</span>
                   : sellerDeliveryPriceWords(sdOffer.data, sdState))
-                : "Free"}
+                : <span className="rounded-full bg-[hsl(var(--primary)/0.12)] px-2.5 py-0.5 text-ds-13 font-bold text-primary" data-way-free="">Free</span>}
             </span>
           </label>
           {/* Owner 2026-11-01: the seller's pickup places sit UNDER the way that uses them (porch pickup, the default,
@@ -332,7 +333,9 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
         {offered.length === 0 && <NoWayWorks sellerId={sellerId} />}
       </fieldset>
     </div>
-    <div className="min-w-0 space-y-3 lg:sticky lg:top-4" data-checkout-summary="">
+    {/* max-lg:contents: on a phone this column has no box of its own, so the sticky Pay bar below sticks within the whole
+        checkout (choices included), not only within the summary's own height. */}
+    <div className="min-w-0 space-y-3 max-lg:contents lg:sticky lg:top-4" data-checkout-summary="">
       <DeclutterGiftPicker gifts={gifts} refused={giftRefused} value={gift?.id ?? null} split={split} error={giftError}
         onChange={(id) => { setGiftPick(id); setGiftError(null); }} />
       {/* BUY-34: the notes sit beside the <dl>; a <p> inside one fails axe's definition-list rule. */}
@@ -340,37 +343,12 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
           transparent, so this white box on the white checkout card had no top edge (no clip: every clipping parent
           starts above it). The card colour without the bg-card class keeps the hairline on every side. */}
       <div className="space-y-1.5 rounded-[20px] border border-border bg-[hsl(var(--card))] p-4 text-ds-14" data-checkout-breakdown="">
-      <dl className="space-y-1.5">
-        <div className="flex justify-between gap-3"><dt>{itemCount > 1 ? `${itemCount} items` : "Item"}</dt><dd className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{formatPrice(itemsTotalCents)}</dd></div>
-        {discountCents > 0 && (
-          <div className="flex justify-between gap-3" data-bundle-discount=""><dt>Bundle discount</dt><dd className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">−{formatPrice(discountCents)}</dd></div>
-        )}
-        {delivering && liveQuote && (
-          <div className="flex justify-between gap-3"><dt>Helpr delivery</dt><dd className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{formatPrice(liveQuote.delivery_cents)}</dd></div>
-        )}
-        {shipRate !== null && (
-          <div className="flex justify-between gap-3" data-ship-line=""><dt>Shipping</dt><dd className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{formatPrice(shipRate)}</dd></div>
-        )}
-        {sdRate !== null && (
-          <div className="flex justify-between gap-3"><dt>Seller delivery</dt><dd className="font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{sdRate === 0 ? "Free" : formatPrice(sdRate)}</dd></div>
-        )}
-        <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2">
-          <dt className="text-ds-16 font-bold text-foreground">You pay</dt>
-          <dd className="text-ds-24 font-bold tabular-nums text-[hsl(var(--accent-ink))]">
-            {formatPrice(payCents)}
-            {/* Delivery chosen but not priced yet: the total is not complete, so say so (money review #4). */}
-            {delivering && !liveQuote && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground">+ delivery</span>}
-            {shipping && !shipQuote && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground">+ shipping</span>}
-            {!setupFeeKnown && <span className="ml-1 text-ds-14 font-semibold text-muted-foreground" data-setup-fee-pending="">+ any setup fee</span>}
-          </dd>
-        </div>
-      </dl>
-        {setupFeeCents > 0 && (
-          <p className="text-ds-12 text-muted-foreground" data-checkout-setup-fee="">Includes the one-time {formatPrice(setupFeeCents)} account setup fee.</p>
-        )}
-        {includesServiceFee && (
-          <p className="text-ds-12 text-muted-foreground" data-service-fee-words="">Includes a small Louisiana Helpr service fee.</p>
-        )}
+      {/* Owner 11-07 (Vinted review): every line with a small info tip, the service fee on its own line (Declutter
+          only, owner 11-07 ~5:10 PM), then the Total. The fee is the total less every other line, so they add up. */}
+      <CheckoutPriceSummary itemCount={itemCount} itemsCents={itemsTotalCents} discountCents={discountCents} way={chosen}
+        wayCents={delivering ? liveQuote?.delivery_cents ?? null : shipping ? shipRate : sellerDelivering ? sdRate : 0}
+        serviceFeeCents={payCents - listedCents} setupFeeCents={setupFeeCents} setupFeeKnown={setupFeeKnown} taxCents={0} payCents={payCents}
+        gift={split && !split.cardPartTooSmall ? split : null} />
         {/* Spec v2 §9.11: Declutter buyer screens may say what the seller keeps; sellers keep the whole price. */}
       </div>
       {/* lh-money-escrow review (2026-10-20): the seller can be paid without a buyer step (home pickup marked by the
@@ -387,8 +365,12 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
             ? "It's paid to the seller when you have your items, or about 48 hours after they mark it delivered unless you report a problem."
             : "It's paid to the seller when you say you have it, or about 48 hours after the seller says you do, unless you report a problem."}
       </p>
+      {/* Owner 11-07 (Vinted review): ONE Pay button; on a phone it stays in reach at the bottom of the screen while the
+          buyer scrolls the choices, above the floating dock (AppShell's own bottom clearance; measured 11-07: a bottom-3
+          bar sat under the dock at 375). lg: it sits in the summary column on the right. */}
+      <div className="max-lg:sticky max-lg:bottom-[calc(var(--safe-area-bottom,0px)+var(--bottom-nav-h,96px))] max-lg:z-20 max-lg:space-y-2 max-lg:rounded-2xl max-lg:border max-lg:border-border max-lg:bg-[hsl(var(--card))] max-lg:p-2 max-lg:shadow-md lg:space-y-3" data-pay-bar="">
       {!held && !opening && payWaitsOn && (
-        <p id={`${addressId}-pay-waits`} className="text-ds-14 font-semibold text-foreground" data-pay-waits-on="">{payWaitsOn}</p>
+        <p id={`${addressId}-pay-waits`} className="text-ds-14 font-semibold text-foreground max-lg:px-2" data-pay-waits-on="">{payWaitsOn}</p>
       )}
       <Button
         type="button"
@@ -452,6 +434,7 @@ function PayForSeller({ sellerId, itemsTotalCents, discountCents = 0, totalCents
       >
         {held ? "Confirming your payment…" : opening ? "Opening…" : split?.onCardCents === 0 ? "Pay with gift card" : `Pay ${formatPrice(split ? split.onCardCents : payCents)}`}
       </Button>
+      </div>
       {/* Q2633 (owner rule: no line under the buttons): Pay is the last thing in the bill. The secure-page line went, and
           the Add a Helpr offer is on the paid order card (DeclutterAddHelpr), so it no longer sits under Pay. */}
     </div>

@@ -7,14 +7,27 @@
 import { describe, it, expect } from "vitest";
 import { jobTaxAddress, sessionJobTaxCents, JOB_TAX_ADDRESS_SOURCE } from "../../supabase/functions/_shared/jobTaxAddress";
 
-// @mutate supabase/functions/_shared/jobTaxAddress.ts | const LA_ZIP_RE = /^(?:70\d\|71[0-4])\d{2}$/; | const LA_ZIP_RE = /^\d{5}$/;
+// @mutate supabase/functions/_shared/jobTaxAddress.ts | const LA_ZIP_RE = /^(?:70[013-8]\|71[0-4])\d{2}$/; | const LA_ZIP_RE = /^\d{5}$/;
+// @mutate supabase/functions/_shared/jobTaxAddress.ts | const LA_ZIP_RE = /^(?:70[013-8]\|71[0-4])\d{2}$/; | const LA_ZIP_RE = /^(?:70\d\|71[0-4])\d{2}$/;
 // @mutate supabase/functions/_shared/jobTaxAddress.ts | calc.startsWith("taxcalc_") && typeof raw | true && typeof raw
 describe("jobTaxAddress", () => {
-  it("accepts every Louisiana ZIP prefix (700-714) and refuses the rest", () => {
+  it("accepts every assigned Louisiana ZIP prefix (700-714 less 702 and 709) and refuses the rest", () => {
     const accepted: string[] = [];
     for (let p = 690; p <= 720; p++) if (jobTaxAddress(`${p}01`)) accepted.push(String(p));
     expect(accepted.length).toBeGreaterThan(10);
-    expect(accepted).toEqual(["700", "701", "702", "703", "704", "705", "706", "707", "708", "709", "710", "711", "712", "713", "714"]);
+    expect(accepted).toEqual(["700", "701", "703", "704", "705", "706", "707", "708", "710", "711", "712", "713", "714"]);
+  });
+
+  it("Q2768: the unassigned 702xx and 709xx are not Louisiana, as in the shared isLouisianaZip rule", async () => {
+    const { isLouisianaZip } = await import("@/lib/shipping/policy");
+    for (const z of ["70200", "70299", "70900", "70999", "71500", "71999"]) {
+      expect(jobTaxAddress(z), z).toBeNull();
+      expect(isLouisianaZip(z), z).toBe(false);
+    }
+    for (let p = 690; p <= 720; p++) {
+      const z = `${p}01`;
+      expect(jobTaxAddress(z) !== null, z).toBe(isLouisianaZip(z));
+    }
   });
 
   it("returns the one address shape, and a ZIP+4 as its five digits", () => {

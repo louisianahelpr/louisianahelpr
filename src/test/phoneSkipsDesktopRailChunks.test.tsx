@@ -25,7 +25,8 @@ vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => gate.desktop 
 import { WebDesktopOnly } from "@/components/WebDesktopOnly";
 
 const app = blankComments(readFileSync(resolve(process.cwd(), "src/App.tsx"), "utf8"));
-const desktopLazies = [...app.matchAll(/^const (\w+) = lazy\(\(\) => import\("\.\/components\/Desktop\w*"\)\)/gm)].map((m) => m[1]);
+// lazy() or optionalLazy(() => import(...), "Name") (Q1816: chrome beside the routes fails quietly).
+const desktopLazies = [...app.matchAll(/^const (\w+) = (?:lazy|optionalLazy)\(\(\) => import\("\.\/components\/Desktop\w*"\)(?:, "\w+")?\)/gm)].map((m) => m[1]);
 const gated = [...app.matchAll(/<WebDesktopOnly>([\s\S]*?)<\/WebDesktopOnly>/g)].map((m) => m[1]).join("\n");
 const ungated = app.replace(/<WebDesktopOnly>[\s\S]*?<\/WebDesktopOnly>/g, "");
 

@@ -14,6 +14,7 @@
  * carries `user_id` forward; the edge function resolves the real email
  * server-side with its service-role client.
  */
+import { ListRow } from "@/components/ui/ListRow";
 import { useEffect, useRef, useState } from "react";
 import { Search, X as XIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -264,15 +265,14 @@ export function RecipientPicker({
                     </div>
                   ) : (
                     results.map((r) => (
-                      <button
+                      <ListRow variant="flush"
                         key={r.user_id}
-                        type="button"
                         onClick={() => {
                           onSelect(r);
                           setText("");
                           setResults([]);
                         }}
-                        className="w-full flex items-center gap-2.5 py-2 px-3 text-left transition-colors"
+                        className="w-full flex items-center gap-2.5 py-2 px-3 text-left transition-colors min-h-11"
                         style={{ background: "hsl(var(--parchment) / 0.5)" }}
                       >
                         {/* Same migration as the selected-recipient chip
@@ -294,7 +294,7 @@ export function RecipientPicker({
                         <p className="font-sans text-ds-13" style={{ color: "hsl(var(--ink-deep))" }}>
                           {formatName(r.full_name)}
                         </p>
-                      </button>
+                      </ListRow>
                     ))
                   )}
                 </div>

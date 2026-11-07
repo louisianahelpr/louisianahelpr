@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { useCallback, useLayoutEffect, useRef } from "react";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useSearchParams } from "react-router-dom";
@@ -203,10 +204,9 @@ export function GroupRow({
   leading?: ReactNode;
 }) {
   return (
-    <button
-      type="button"
+    <ListRow variant="flush"
       onClick={onClick}
-      className={`btn-press w-full text-left flex items-center gap-3 px-4 py-3 ${last ? "" : "border-b border-border/70"}`}
+      className={`btn-press w-full text-left flex items-center gap-3 px-4 py-3 ${last ? "" : "border-b border-border/70"} min-h-11`}
     >
       {leading}
       <span className="min-w-0 flex-1">
@@ -215,7 +215,7 @@ export function GroupRow({
         {note && <span className="block text-ds-13 text-[hsl(var(--accent-ink))] truncate mt-0.5" title={full(note)}>{note}</span>}
       </span>
       {right ?? <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" aria-hidden />}
-    </button>
+    </ListRow>
   );
 }
 

@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ChevronDown, Heart, Search, UserCheck } from "lucide-react";
@@ -183,11 +184,10 @@ export function OfferToSavedHelpr({
 
   return (
     <div className="rounded-2xl liquid-glass p-card flex flex-col justify-center" style={{ minHeight: "104px" }}>
-      <button
-        type="button"
+      <ListRow variant="flush"
         onClick={toggle}
         aria-expanded={open}
-        className="w-full flex items-center gap-4 text-left active:scale-[0.99] transition-transform"
+        className="w-full flex items-center gap-4 text-left active:scale-[0.99] transition-transform min-h-11 px-0 py-0"
       >
         <span
           className="inline-flex items-center justify-center w-11 h-11 rounded-full shrink-0"
@@ -218,7 +218,7 @@ export function OfferToSavedHelpr({
           }}
           aria-hidden
         />
-      </button>
+      </ListRow>
 
       {open && list}
     </div>

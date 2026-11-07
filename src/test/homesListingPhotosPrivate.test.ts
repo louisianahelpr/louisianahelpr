@@ -68,6 +68,25 @@ describe("listing photos: private bucket, refs only", () => {
     expect(readdirSync(MIG).length).toBeGreaterThan(100);
   });
 
+  // Q2223: an upload that commits while a take-down runs is missed by the take-down's scan; the purge run queues it.
+  // @mutate supabase/migrations/20261107034330_rentals_purge_sweeps_late_uploads.sql | FROM storage.objects o | FROM public.rental_listing_photos o
+  // @mutate supabase/migrations/20261107034330_rentals_purge_sweeps_late_uploads.sql | now() + interval '1 day') | now())
+  it("the purge run queues a late upload under a taken-down listing, never handed out in the run that queued it", () => {
+    const def = defs.get("rentals_photo_purge_due");
+    expect(def, "rentals_photo_purge_due is defined").toBeTruthy();
+    const body = blankSqlComments(def!.stmt);
+    const insert = body.match(/INSERT\s+INTO\s+public\.rental_photo_purge_queue[\s\S]*?ON\s+CONFLICT[^;]*;/i)?.[0] ?? "";
+    expect(insert, `${def!.file}: the purge queues objects from storage.objects`).toMatch(/FROM\s+storage\.objects\s+o\b/i);
+    expect(insert).toMatch(/l\.removed_by_admin/);
+    expect(insert, "the take-down's owner-folder rule").toMatch(/split_part\(\s*o\.name\s*,\s*'\/'\s*,\s*1\s*\)\s*=\s*l\.owner_id::text/);
+    expect(insert, "never due in the run that queues it (a concurrent lift cannot see it yet)").toMatch(/GREATEST\([\s\S]*now\(\)\s*\+\s*interval\s*'1 day'\s*\)/i);
+    expect(insert).toMatch(/DO\s+NOTHING/i);
+    // The queue step runs before the claim.
+    expect(body.indexOf(insert)).toBeLessThan(body.search(/RETURN\s+QUERY/i));
+    expect(readFileSync(join(ROOT, "src/test/pglite/homesPurgeLateUploads.pglite.mjs"), "utf8")).toMatch(/_rentals_purge_sweeps_late_uploads\.sql/);
+    expect(body.length).toBeGreaterThan(500);
+  });
+
   it("the newest declaration of the listing-photos bucket is private", () => {
     let last: string | null = null;
     for (const f of readdirSync(MIG).filter((x) => x.endsWith(".sql")).sort()) {

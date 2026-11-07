@@ -13,6 +13,7 @@ import { ConversationListBody } from "./ConversationListBody";
 import { FieldClearButton } from "@/components/ui/FieldClearButton";
 import { CONVO_LIMIT, useConversationListState } from "./useConversationListState";
 import type { ConversationListProps } from "./conversationListProps";
+import { HEADER_ICON_BUTTON_BASE_CLASS, HEADER_ICON_BUTTON_CLASS, HEADER_ICON_BUTTON_DESKTOP_CLASS, HEADER_ICON_BUTTON_INK_CLASS, INBOX_TABS_ID } from "./conversationListHeaderClasses";
 
 /**
  * Title-card padding. The SAME value as PostsHeader's POSTS_HEADER_PADDING
@@ -23,99 +24,6 @@ import type { ConversationListProps } from "./conversationListProps";
  * rather than merges. If one moves, move the other.
  */
 const MESSAGES_HEADER_PADDING = "!py-1.5 lg:!py-2";
-
-/**
- * The tab the inbox LANDS on, and the tab that means UNFILTERED — since
- * 2026-09-19 these are two different values and the difference matters.
- *
- * The owner asked Messages to open on a slice with something in it and, shown
- * the 2026-08-30 "the default view moved around depending on read state"
- * history, chose Active over Unread (see lib/inboxDefault.ts for the full
- * reasoning). So:
- *
- *   DEFAULT_INBOX_TAB    = "all" (spec v2, 2026-10-20; was "active") — where a visit starts.
- *   UNFILTERED_INBOX_TAB = "all"    — where "show me everything" goes; kept separate so "Show All" always widens.
- *
- * Before today these were the same constant, and every "Show All" affordance
- * was wired to the default. Leaving them conflated would have turned the
- * empty-state button into a no-op that sets the tab it is already on.
- *
- * The argument to `defaultInboxTab` is the unread count; the rule ignores it
- * (deliberately — that is what makes the landing tab stable), so 0 is a
- * truthful stand-in for "whatever the rule says".
- *
- * There is no `DEFAULT_INBOX_TAB` constant here any more. `defaultInboxTab`
- * itself is still read, once, by the seeding effect below — and again by
- * `isDefaultInboxFilter`, which is what darkens the disclosure chevron's ink
- * while a non-default slice is on.
- *
- * ── THE PHONE DISCLOSURE: REMOVED 2026-09-19, RESTORED 2026-09-22 ─────────
- * This block used to state as FACT that there was "no control to label and
- * no panel to point at". That sentence is false as of 2026-09-22, and the
- * history has to read straight or the next reader will "fix" it back:
- *
- *   2026-09-19 (owner) — the chevron was DELETED at every width. The desktop
- *     website showed `Active · All` inline in the header row while phone hid
- *     the SAME control behind a chevron, and the one the reader had to
- *     discover was the phone's. `INBOX_TABS_ID` and `isDefaultInboxFilter`
- *     went with it, having no remaining purpose.
- *   2026-09-22 (owner, three messages) — asked for it BACK, by name and by
- *     reference to the two screens it has to match: "message shouod be
- *     collapsed like post and jobs on a smaller view" / "post jobs and
- *     messagess hould collpase and expand all the same" / "no it needs to be
- *     a drop down like post an djobs to show active and all".
- *
- * The phone strip starts FOLDED on the default filter and OPEN on any other
- * (owner, 2026-09-25: "This should open with the chevrons collapsed. Not
- * expanded."), exactly as My Posts' and My Jobs' do, so an active filter is
- * never hidden.
- *
- * My Posts and My Jobs each own their header (src/pages/posts/PostsHeader.tsx,
- * src/pages/jobs/JobsHeader.tsx); read the note at their `tabsOpenPhone`
- * before changing anything here. The three screens are held together by
- * src/test/filterDisclosureParity.test.ts.
- */
-
-/**
- * The header row's icon buttons — search, the tab disclosure, the overflow
- * menu — as ONE class, copied verbatim from PostsHeader's / JobsHeader's
- * non-inline buttons.
- *
- * Cross-screen: My Posts / My Jobs put the same search + chevron pair in the
- * same corner of the same card, and two identical clusters in two different
- * inks is the kind of difference a reader feels without being able to name it.
- * Within the row: the chevron must not be a different weight of grey from the
- * magnifier eight pixels away.
- *
- * `h-11` is 44px, the HIG target index.css already floors every button at.
- */
-const HEADER_ICON_BUTTON_BASE_CLASS =
-  "rounded-ds-md flex items-center justify-center btn-press transition " +
-  "hover:bg-secondary/60 h-11 w-11";
-/** The resting ink. Split out ONLY so the disclosure chevron can darken to
- *  `--bark` while a non-default slice is on without two `text-*` utilities
- *  fighting in one class string (the loser is decided by CSS order, not by
- *  which one you wrote last — the trap documented on `btn-grad-primary`). */
-const HEADER_ICON_BUTTON_INK_CLASS = "text-muted-foreground hover:text-foreground";
-const HEADER_ICON_BUTTON_CLASS =
-  `${HEADER_ICON_BUTTON_BASE_CLASS} ${HEADER_ICON_BUTTON_INK_CLASS}`;
-/**
- * The desktop website's row, copied from PostsHeader's `inlineFilters` buttons
- * (`h-7 w-7 !min-h-0 !min-w-0`, a 3.5 glyph). Q1558 (owner 2026-10-08: "same
- * positioning, box sizes"): looked at on prod 2026-10-12 at 1440, the Messages
- * tab row was 53px tall around 44px buttons while My Posts / My Jobs' was 43px
- * around 28px ones, so the Messages panel and its empty state sat 5-10px lower.
- */
-const HEADER_ICON_BUTTON_DESKTOP_CLASS =
-  "rounded-ds-md flex items-center justify-center btn-press transition " +
-  `hover:bg-secondary/60 h-7 w-7 !min-h-0 !min-w-0 ${HEADER_ICON_BUTTON_INK_CLASS}`;
-
-/** `aria-controls` target for the phone disclosure chevron — restored with the
- *  chevron on 2026-09-22. Only ONE of the two placements (desktop header-row
- *  `meta`, phone line below) ever renders, so the id stays unique and the
- *  reference resolves on both surfaces — the same arrangement, and the same
- *  reason, as PostsHeader's "posts-status-tabs" and JobsHeader's "jobs-status-tabs". */
-const INBOX_TABS_ID = "inbox-filter-tabs";
 
 /**
  * ConversationList — the inbox surface of the Messages page: the

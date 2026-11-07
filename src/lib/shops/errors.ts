@@ -153,6 +153,12 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   invalid_cancel_policy: "Pick one of the three cancel policies.",
   invalid_ready_tap_cancel: "Pick one of the three choices for marking an order ready early.",
   invalid_custom_orders: "Pick one of the three choices for custom orders.",
+  // Custom orders (20261106202917): a buyer's ask.
+  custom_orders_off: "This shop isn't taking custom orders right now.",
+  invalid_description: "Describe what you'd like in 1 to 1,000 characters.",
+  invalid_wanted_date: "Pick a date from tomorrow to 6 months out.",
+  too_many_custom_requests: "You already have 3 open requests with this shop, or sent a lot of requests today. Wait for an answer, withdraw one, or try again tomorrow.",
+  under_18_to_order: "You must be 18 or older to order from Shops.",
   ready_tap_cancel_frozen: "An order keeps the cancel rule it was placed under.",
   // M2 (20261018211820): the handover.
   invalid_handover_mode: "Pick how buyers get their orders: in person or left out.",

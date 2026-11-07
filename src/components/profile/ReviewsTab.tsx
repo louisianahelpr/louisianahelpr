@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { useState, useMemo } from "react";
 import { Star, Info, ArrowDownAZ, ArrowUpAZ, CalendarClock } from "lucide-react";
 import ProfileTabHeader from "@/components/profile/ProfileTabHeader";
@@ -280,18 +281,17 @@ export function ReviewsTab({ reviews, loading: jobsLoading, avgRating, reviewCou
                   const active = opt.value === sortBy;
                   const OptIcon = opt.icon;
                   return (
-                    <button
+                    <ListRow variant="flush"
                       aria-pressed={active}
                       key={opt.value}
-                      type="button"
                       onClick={() => setSortBy(opt.value)}
-                      className={`w-full flex items-center gap-2 px-2.5 h-9 rounded-md text-ds-13 font-sans font-medium transition-colors ${
+                      className={`min-h-11 py-0 text-center w-full flex items-center gap-2 px-2.5 h-9 rounded-md text-ds-13 font-sans font-medium transition-colors ${
                         active ? "btn-grad-primary text-[hsl(var(--parchment))]" : "text-foreground hover:bg-secondary/70"
                       }`}
                     >
                       <OptIcon className="w-3.5 h-3.5" />
                       {opt.label}
-                    </button>
+                    </ListRow>
                   );
                 })}
               </PopoverContent>

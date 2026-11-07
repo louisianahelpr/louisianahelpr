@@ -82,3 +82,9 @@ END;
 $fn$;
 REVOKE ALL ON FUNCTION public.shop_lapse_tax_done(uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_lapse_tax_done(uuid) TO service_role;
+
+-- 3. What the buyer and the shop read on the order card (slice 4 UI): the plan, the deposit, the rest, and whether
+-- the rest was paid or is waiting on the buyer. Row access is the table's own policies (buyer or seller of the row).
+-- The saved card (balance_customer_id, balance_payment_method_id), the rest's Stripe ids, attempts and errors stay
+-- server-only.
+GRANT SELECT (payment_plan, deposit_cents, balance_cents, balance_captured_at, balance_failed_at) ON TABLE public.shop_orders TO authenticated;

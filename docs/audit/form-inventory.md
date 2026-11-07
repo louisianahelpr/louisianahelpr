@@ -469,6 +469,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
+| `src/components/shops/ShopCustomRequestSheet.tsx` | textarea×1 |  |  | shop-custom-request · shop-custom-request-text |
 | `src/components/shops/ShopOrderSheet.tsx` | input×7, textarea×1 | text | 120, 60, 5 | Loading ordering · shop-order-date · shop-order-date-help · shop-order-service-address · shop-order-svc-line1 · shop-order-svc-city · shop-order-svc-zip · shop-order-note |
 | `src/components/shops/ShopReviews.tsx` | textarea×1 |  | 1000 | shop-reviews |
 

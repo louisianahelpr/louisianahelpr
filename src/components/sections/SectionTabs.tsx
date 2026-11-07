@@ -105,6 +105,15 @@ export function SectionTabs<T extends string>({
   // Q2563: how many tabs the end of the row hides, for the "N more" pill.
   const [aheadTabs, setAheadTabs] = useState(0);
   const [behindCount, setBehindCount] = useState(0);
+  // SENIOR MODE AT 320 (prod-audit 11-05, re-measured 11-07 ~/.lh-shots/b5-senior): Browse Posted Working at 16px are
+  // 206px in a 192px track, so the chevron (44px) and the "1 more" pill (90px) both came in and left a 46px track for
+  // the 57px selected tab: it read "osted". When the selected tab cannot be whole beside the worded pill, the pill drops
+  // its words (chevron and to-do count stay; its spoken name still says how many tabs it hides), and takes them back
+  // once the track would hold the selected tab with them.
+  const [compactMore, setCompactMore] = useState(false);
+  const compactRef = useRef(false);
+  const moreRef = useRef<HTMLButtonElement>(null);
+  const fullMoreW = useRef(0);
   const memberMoved = useRef(false);
   useLayoutEffect(() => {
     const list = listRef.current;
@@ -118,8 +127,25 @@ export function SectionTabs<T extends string>({
         if (t.right > box.right) list.scrollLeft += t.right - box.right;
         else if (t.left < box.left) list.scrollLeft -= box.left - t.left;
       }
-      setMore(list.scrollWidth - list.clientWidth - list.scrollLeft > 2);
+      const hasMore = list.scrollWidth - list.clientWidth - list.scrollLeft > 2;
+      setMore(hasMore);
       setLess(list.scrollLeft > 2);
+      const moreBtn = moreRef.current;
+      if (selected && moreBtn && !memberMoved.current) {
+        const selW = selected.getBoundingClientRect().width;
+        const btnW = moreBtn.getBoundingClientRect().width;
+        let compact = compactRef.current;
+        if (!compact) {
+          fullMoreW.current = btnW;
+          compact = list.clientWidth + 1 < selW;
+        } else if (list.clientWidth - (fullMoreW.current - btnW) >= selW) {
+          compact = false;
+        }
+        if (compact !== compactRef.current) { compactRef.current = compact; setCompactMore(compact); }
+      } else if (!hasMore && compactRef.current && !moreBtn) {
+        compactRef.current = false;
+        setCompactMore(false);
+      }
       const box = list.getBoundingClientRect();
       let ahead = 0;
       let behind = 0;
@@ -248,7 +274,7 @@ export function SectionTabs<T extends string>({
       {/* Q2563 (owner 11-02): the bare chevron read as decoration, so a buyer never saw Free or Wanted. It is a
           labelled pill, "4 more ›", naming how many tabs it hides (its spoken name starts with the same words). */}
       {more && !onlySelected && (
-        <button type="button" aria-label={aheadCount > 0 ? tr("tabs.nMoreToDo", { n: aheadTabs, m: aheadCount }) : tr("tabs.nMoreTabs", { n: aheadTabs })} data-tabs-more-button="" onClick={showNext}
+        <button type="button" aria-label={aheadCount > 0 ? tr("tabs.nMoreToDo", { n: aheadTabs, m: aheadCount }) : tr("tabs.nMoreTabs", { n: aheadTabs })} ref={moreRef} data-tabs-more-compact={compactMore ? "" : undefined} data-tabs-more-button="" onClick={showNext}
           className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center">
           <span data-tabs-more-pill="" className="inline-flex h-8 items-center gap-1 whitespace-nowrap rounded-full bg-muted pl-2.5 pr-1.5 text-ds-13 font-semibold text-foreground">
             {aheadCount > 0 && <span data-testid="tabs-more-count" aria-hidden className="segmented-count-attention tabular-nums text-ds-11 font-bold rounded-full px-1.5 min-w-[1.25rem] leading-5 text-center">{aheadCount}</span>}

@@ -5088,6 +5088,14 @@ html.page-scrolled .page-title-card:has(.explore-header),
     font-size: clamp(11px, 3.3vw, 13px);
   }
 }
+/* SectionTabs `compactMore` (senior mode at 320, 11-07): the selected tab cannot be whole beside the worded "N more"
+   pill, so the pill shows only its chevron (and to-do count). Its spoken name still says how many tabs it hides. */
+[data-tabs-more-compact] [data-testid="tabs-more-label"] {
+  display: none;
+}
+[data-tabs-more-compact] [data-tabs-more-pill] {
+  padding-left: 0.375rem;
+}
 .section-tab-selected::after {
   content: "";
   position: absolute;

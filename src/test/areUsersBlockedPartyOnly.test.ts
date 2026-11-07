@@ -201,6 +201,11 @@ const EXPECTED_CALLERS = [
   // owner (order terms, request order).
   "rpc_hire_target_by_handle", // B113 Hire me (20261104143437): are_users_blocked(v_me := auth.uid(), v_target)
   "shops_accept_order",
+  // Shops custom orders (20261106202917, 20261106205852): send/quote/order pass v_uid := auth.uid() vs the
+  // shop's owner or the request's buyer; decline and my_custom_requests pass (the request's buyer, its shop's
+  // owner) only for a caller who is one of the two (decline refuses anyone else; the list filters on the caller).
+  "shops_decline_custom_request",
+  "shops_my_custom_requests",
   "shops_my_order_buyer_names",
   // Q1947 (20261105225245): open_order_talk passes (the order's buyer, the shop's owner) only after refusing a caller
   // who is neither (order_not_found), so the caller is always one of the two.
@@ -209,8 +214,11 @@ const EXPECTED_CALLERS = [
   // send_talk_message pass (the talk's buyer, the shop's owner) only after shop_talk_side(talk, auth.uid())
   // refused a caller who is neither, so the caller is always one of the two.
   "shops_open_talk",
+  "shops_order_custom_quote",
   "shops_order_terms",
+  "shops_quote_custom_request",
   "shops_request_order",
+  "shops_send_custom_request",
   "shops_send_talk_message",
   "shops_talk_view",
   "submit_job_quote",

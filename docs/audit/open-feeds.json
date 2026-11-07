@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-07T19:34Z",
+  "measured_at": "2026-11-07T23:22Z",
   "issues": {
     "readable": true,
     "open": [
@@ -44,13 +44,6 @@
         "title": "nightly-red: e2e-journeys",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42221289461",
-        "runTruncated": false
-      },
-      {
-        "number": 2601,
-        "title": "nightly-red: loading-states-refresh",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42302309191",
         "runTruncated": false
       },
       {
@@ -113,6 +106,13 @@
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42393839202",
         "runTruncated": false
+      },
+      {
+        "number": 4222,
+        "title": "nightly-red: core-loop-canary",
+        "label": "nightly-red",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42411515910",
+        "runTruncated": false
       }
     ]
   },
@@ -165,14 +165,6 @@
         "source": "slack-ops-alert:custom",
         "status": "open",
         "title": "# cron http failure(s) in the last hour",
-        "issue": null
-      },
-      {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
-        "status": "open",
-        "title": "db-deploy failed on main",
         "issue": null
       },
       {
@@ -261,6 +253,14 @@
         "source": "sentry:assets/app-shared",
         "status": "open",
         "title": "error: zip # resolved to no louisiana parish",
+        "issue": null
+      },
+      {
+        "fingerprint": "18539240a894224e952b88b2b21bb927",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: core-loop-canary",
         "issue": null
       },
       {
@@ -432,7 +432,6 @@
     "issue #2366": "Q1816",
     "issue #2375": "Q1816",
     "issue #2436": "Q1816",
-    "issue #2601": "Q1816",
     "issue #2894": "Q1816",
     "issue #3454": "Q1816",
     "issue #3491": "Q1816",
@@ -442,6 +441,7 @@
     "issue #3824": "Q1816",
     "issue #4149": "Q1816",
     "issue #4202": "Q1816",
+    "issue #4222": "Q1816",
     "ledger 0411d219f410": "Q1810",
     "ledger 07e2a58f38a2": "Q2502",
     "ledger 0bebf0385b3e": "Q1615",
@@ -449,6 +449,7 @@
     "ledger 11f46545733f": "Q2409",
     "ledger 15cc2d7f63f3": "Q2347",
     "ledger 16e6e91f6701": "Q1816",
+    "ledger 18539240a894": "Q1816",
     "ledger 2e4f3e726722": "Q1816",
     "ledger 36bcfb8c2391": "Q1696",
     "ledger 3712b62a9839": "Q2510",
@@ -463,7 +464,6 @@
     "ledger 60298a019ea3": "Q1776",
     "ledger 6205197429d4": "Q1816",
     "ledger 6389f98a9f66": "Q1816",
-    "ledger 6572319b20ae": "Q2771",
     "ledger 7e141f206640": "Q1816",
     "ledger 7f88b9cc45df": "Q1816",
     "ledger 8018e82cb167": "Q1816",

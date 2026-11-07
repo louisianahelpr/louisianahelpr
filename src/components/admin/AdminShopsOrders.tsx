@@ -47,10 +47,13 @@ import { rpcErrorMessage } from "./adminRpcErrorCopy";
 import { usePayoutHolds } from "./adminPayoutBatches/usePayoutHolds";
 import { adminRecordHandRefund, adminRefundOrder, formatCents, type AdminRefundReason } from "@/lib/shops/orders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
+import { HelprPhoto } from "./settings/DeclutterProblemCase";
 
 interface Problem {
   order_id: string; seller_id: string | null; shop_name: string | null; ready_date: string; total_cents: number;
   card_fee_cents: number | null; handover_mode: string; problem_at: string; problem_note: string; ready_at: string | null; is_seed: boolean;
+  /** The Helpr's answer photo (helpr-tasks bucket) when the Helpr answered a shop's "didn't come" with one (20261107035259). */
+  problem_photo_path?: string | null;
 }
 interface RefundRow {
   refund_id: string; order_id: string; reason: string; refund_cents: number; status: string; attempts: number;
@@ -251,6 +254,11 @@ export default function AdminShopsOrders() {
               <li key={p.order_id} className="space-y-1 rounded-xl border border-border p-3" data-testid="admin-shops-problem">
                 <p className="text-sm font-semibold">{p.shop_name ?? "A shop"} · {formatCents(p.total_cents)} · ready {p.ready_date}</p>
                 <p className="text-sm [overflow-wrap:anywhere]">"{p.problem_note}"</p>
+                {p.problem_photo_path && (
+                  <div data-testid="admin-shops-problem-photo">
+                    <HelprPhoto path={p.problem_photo_path} alt="The Helpr's photo with their answer" />
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground">
                   Reported {when(p.problem_at)}. {p.handover_mode === "porch" ? "Left out" : "In person"}; {p.ready_at ? "the shop marked it ready" : "never marked ready"}.
                 </p>

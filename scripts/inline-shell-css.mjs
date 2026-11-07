@@ -24,6 +24,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import postcss from "postcss";
 import { JSDOM } from "jsdom";
+import { GREETING_SHELL_MARKUP } from "../src/lib/homeGreetingShell.mjs";
 
 export const SHELL_START = '<div id="lh-landing-shell"';
 export const SHELL_END = '<span data-lh-shell="end" hidden></span>';
@@ -41,7 +42,8 @@ export const SHELLS = [
   { id: "lh-login-shell", htmlAttr: 'data-lh-auth-shell="login"', show: `[data-lh-auth-shell="login"] #lh-login-shell${FIXED}` },
   { id: "lh-signup-shell", htmlAttr: 'data-lh-auth-shell="signup"', show: `[data-lh-auth-shell="signup"] #lh-signup-shell${FIXED}` },
   // Q2705 B: a signed-in phone's /home (src/test/homeShellMatchesSkeleton.test.tsx).
-  { id: "lh-home-shell", htmlAttr: 'data-lh-app-shell="home"', show: `[data-lh-app-shell="home"] #lh-home-shell${FIXED}` },
+  // Its greeting slot is filled by index.html's inline script (Q1158), so the drawn h1 and date line count as markup.
+  { id: "lh-home-shell", htmlAttr: 'data-lh-app-shell="home"', show: `[data-lh-app-shell="home"] #lh-home-shell${FIXED}`, extra: GREETING_SHELL_MARKUP },
   // Q2705 B: and its /jobs (src/test/jobsShellMatchesSkeleton.test.tsx).
   { id: "lh-jobs-shell", htmlAttr: 'data-lh-app-shell="jobs"', show: `[data-lh-app-shell="jobs"] #lh-jobs-shell${FIXED}` },
   // Q2705 B: its /messages and /declutter (src/test/messagesDeclutterShellsMatchSkeletons.test.tsx).
@@ -171,7 +173,9 @@ export function shellCriticalCss(shellHtml, css) {
 export function inlineShellCss(html, css) {
   if (shellBlock(html, SHELLS[0].id) === null) throw new Error("inline-shell-css: index.html has no #lh-landing-shell block");
   if (html.includes(`<style id="${STYLE_ID}">`)) throw new Error("inline-shell-css: already inlined (run once per build)");
-  const present = SHELLS.map((s) => ({ ...s, html: shellBlock(html, s.id) })).filter((s) => s.html !== null);
+  const present = SHELLS.map((s) => ({ ...s, html: shellBlock(html, s.id) }))
+    .filter((s) => s.html !== null)
+    .map((s) => (s.extra ? { ...s, html: s.html + s.extra } : s));
   const critical = shellCriticalCss(present, css);
   const block = `<style id="${STYLE_ID}">${critical}${present.map((s) => s.show).join("")}</style>`;
   const head = html.indexOf("</head>");

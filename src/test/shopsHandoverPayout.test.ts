@@ -177,7 +177,10 @@ describe("Shops M2: the handover and the shop's payout keep their gates (2026101
     // The shop is also owed on a late cancel or a no-show (Shops M3, 20261019071055: shop_owe_shop),
     // reached ONLY from the buyer's late cancel and the shop's no-show report, never a handover.
     expect(writers(/INSERT\s+INTO\s+public\.shop_payouts\b/i)).toEqual(["shop_complete_handover", "shop_owe_shop"]);
-    expect(writers(/\bshop_owe_shop\s*\(/i).filter((n) => n !== "shop_owe_shop")).toEqual(["shops_buyer_cancel_order", "shops_report_no_show"]);
+    // Custom orders 2b (20261106215722, OWNER 11-06 ~3:40 PM): a 50% deposit order whose rest is still unpaid 7 days after
+    // the ready date closes as the BUYER's late cancel (shop_balance_lapse_sweep), paid like one on the deposit only.
+    expect(writers(/\bshop_owe_shop\s*\(/i).filter((n) => n !== "shop_owe_shop")).toEqual(["shop_balance_lapse_sweep", "shops_buyer_cancel_order", "shops_report_no_show"]);
+    expect(body("shop_balance_lapse_sweep")).toMatch(/close_reason\s*=\s*'buyer_cancelled_late'/i);
     expect(MIG).toMatch(/DROP\s+FUNCTION\s+IF\s+EXISTS\s+public\.shops_mark_picked_up\(uuid\)/i);
     // "I got it" acts only for the order's BUYER, and the clock passes 'auto'.
     const got = body("shops_confirm_pickup");

@@ -29,7 +29,7 @@
  * @mutate src/components/shops/ShopDashboardView.tsx |                       <ShopCancelOrder order={o} />\n | \n
  * @mutate src/lib/shops/orders.ts |   if (closed && (o.status === "refunded" \|\| o.status === "cancelled")) return closed[side]; |   if (false) return closed[side];
  * @mutate src/lib/shops/orders.ts |   const data = await invokeShopCheckout({ action: "buyer_cancel", order_id: orderId, expect }); |   const data = await invokeShopCheckout({ action: "buyer_cancel", order_id: orderId });
- * @mutate src/lib/shops/orders.ts |     terms: { cancel_policy: args.terms.cancel_policy, ready_tap_cancel: args.terms.ready_tap_cancel ?? "from_day_before" }, |     terms: undefined,
+ * @mutate src/lib/shops/orders.ts |  return { cancel_policy: terms.cancel_policy, ready_tap_cancel: terms.ready_tap_cancel ?? "from_day_before" }; |  return undefined;
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";

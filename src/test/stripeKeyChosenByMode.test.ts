@@ -35,7 +35,7 @@
  * @mutate supabase/functions/_shared/stripeMode.ts |   return e.endsWith("@mailinator.com") \|\| e.endsWith("@helpr.test") \|\| e.startsWith("eli.test."); |   return e.endsWith("@mailinator.com") \|\| e.endsWith("@helpr.test");
  * @mutate supabase/functions/declutter-money/index.ts |       const { stripe, mode } = await modes.clientForParties([p.buyer_id, p.seller_id], "payout", [p.seller_id]); |       const { stripe, mode } = await modes.clientForParties([p.buyer_id, p.seller_id], "read", [p.seller_id]);
  * @mutate supabase/functions/declutter-money/index.ts |       const { stripe, mode } = await modes.clientForParties([h.customer_id, h.pickup_contact_id, h.helpr_id], "payout", [h.helpr_id]); |       const { stripe, mode } = await modes.clientForParties([h.customer_id, h.pickup_contact_id, h.helpr_id], "payout", []);
- * @mutate supabase/functions/shop-checkout/index.ts |   const outcome = await captureShopHold(await stripeForOrder(admin, o, "new"), admin |   const outcome = await captureShopHold(await stripeForOrder(admin, o, "refund"), admin
+ * @mutate supabase/functions/shop-checkout/index.ts |    outcome = await captureShopHold(await stripeForOrder(admin, o, "new"), admin |    outcome = await captureShopHold(await stripeForOrder(admin, o, "refund"), admin
  */
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -139,6 +139,8 @@ const LENIENT_PARTY_CALLS = [
   'charge-recurring-visits/index.ts: : (await stripes.modeForParties([row.payer_id as string | null], "refund")) === "live" ? "live" : stored ?? "test";',
   'declutter-money/index.ts: const byParties = await modes.modeForParties([r.buyer_id, r.seller_id], "refund");',
   'declutter-money/index.ts: const done = await releaseShopHold(await shopClient(r, "refund"), admin, r);',
+  // Custom orders 2b (unpaid close): the Stripe Tax full reversal + the deposit-tax refund give money back, never take it.
+  'declutter-money/index.ts: const stripe = await shopClient(t, "refund");',
   'declutter-money/index.ts: const stripe = mode ? modes.clientFor(mode) : (await modes.clientForParties([r.buyer_id, r.seller_id], "refund")).stripe;',
   // Shops Helpr delivery (20261106194913): the shop_delivery_refunds_due loop, the same refund client as shop refunds.
   'declutter-money/index.ts: const stripe = mode ? modes.clientFor(mode) : (await modes.clientForParties([r.buyer_id, r.seller_id], "refund")).stripe;',

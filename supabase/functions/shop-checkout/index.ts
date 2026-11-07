@@ -78,6 +78,8 @@ import { threeDSecureOptions } from "../_shared/threeDSecure.ts";
 import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
 import { storedStripeCustomer, withStoredWalletCustomer } from "../_shared/stripeCustomer.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
+import { requireFeature } from "../_shared/featureSwitch.ts";
+import { isLockedOut } from "../_shared/banStatus.ts";
 import { captureShopHold, releaseShopHold, shopOrderMode } from "../_shared/shopHolds.ts";
 import { sendShopRefund, type ShopRefundRow } from "../_shared/shopRefunds.ts";
 import { chargeShopBalance } from "../_shared/shopBalance.ts";
@@ -736,7 +738,15 @@ async function accept(body: Record<string, unknown>, asMaker: Db, admin: Db) {
   if ((data as { captured?: boolean } | null)?.captured === true) return json({ accepted: true, charged: true });
   const o = await readOrder(admin, orderId);
   if (!o?.stripe_payment_intent_id) return json({ error: TRY_AGAIN }, 503);
-  const outcome = await captureShopHold(await stripeForOrder(admin, o, "new"), admin, o.id, o.stripe_payment_intent_id, o.capture_attempts ?? 0);
+  // 11-07 money review: the order IS accepted (the RPC committed). A capture step that throws (the plan read, Stripe, a
+  // record) is not the shop's error: logged, and declutter-money's 10-minute run captures it (shop_captures_due).
+  let outcome: Awaited<ReturnType<typeof captureShopHold>>;
+  try {
+    outcome = await captureShopHold(await stripeForOrder(admin, o, "new"), admin, o.id, o.stripe_payment_intent_id, o.capture_attempts ?? 0);
+  } catch (e) {
+    console.error(JSON.stringify({ event: "shop_capture_deferred", order: o.id, detail: caughtMessage(e, "capture failed").slice(0, 200) }));
+    return json({ accepted: true, charged: false });
+  }
   if (outcome === "hold_lost") return json({ error: "hold_lost" }, 409);
   // will_retry: the order IS accepted; declutter-money finishes the charge.
   return json({ accepted: true, charged: outcome === "captured" });
@@ -888,8 +898,17 @@ async function chargeRest(body: Record<string, unknown>, user: { id: string }, a
     if ((own as { seller_id?: string | null } | null)?.seller_id !== user.id) return json({ error: "order_not_found" }, 404);
     return json({ paid: true });
   }
-  // Waiting on the buyer (the card did not take it, or none was saved): the shop waits; no new charge from the tap.
-  if (o.balance_failed_at || !o.balance_customer_id || !o.balance_payment_method_id) return json({ paid: false, waiting_on_buyer: true });
+  // 11-07 money review: the tap moves money, so it takes the Shops switch and the shop owner's standing like every
+  // other Shops action (the SQL gates are not on this path: the charge is the service role's).
+  const off = await requireFeature(admin, "shops", user, corsHeaders);
+  if (off) return off;
+  const { data: me, error: meErr } = await admin.from("profiles").select("ban_status, auto_suspended_until").eq("user_id", user.id).maybeSingle();
+  if (meErr) return json({ error: TRY_AGAIN }, 503);
+  const standing = me as { ban_status?: string | null; auto_suspended_until?: string | null } | null;
+  if (isLockedOut(standing?.ban_status, standing?.auto_suspended_until)) return json({ error: "account_restricted" }, 403);
+  // Waiting on the buyer (the card did not take it, or the tries ran out): the shop waits; no new charge from the tap.
+  // No saved card: chargeShopBalance below makes it the buyer's to pay at once (no Stripe call).
+  if (o.balance_failed_at) return json({ paid: false, waiting_on_buyer: true });
   const { data: today, error: todayErr } = await admin.rpc("shop_local_today");
   if (todayErr || typeof today !== "string") return json({ error: TRY_AGAIN }, 503);
   if (o.ready_date > today) return json({ paid: false, not_due: true });

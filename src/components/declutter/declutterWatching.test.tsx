@@ -99,7 +99,8 @@ describe("Watching under Buying (SS-5)", () => {
   it("A3-98: the heart is named Save, on the card and on the item page", () => {
     // The card's heart (ItemCard) and the item page's control carry the one word the toast and the Saved list use.
     const card = blankComments(readFileSync("src/components/declutter/DeclutterItemCard.tsx", "utf8"));
-    expect(card).toContain("aria-label={save.on ? `Remove ${item.title} from saved` : `Save ${item.title}`}");
+    // Owner 11-07: the name may end ", saved by N" when the heart shows its count; the word stays Save.
+    expect(card).toContain("aria-label={`${save.on ? `Remove ${item.title} from saved` : `Save ${item.title}`}");
     const page = blankComments(readFileSync("src/components/declutter/DeclutterItemView.tsx", "utf8"));
     expect(page).toContain(': "Save this item"}');
   });

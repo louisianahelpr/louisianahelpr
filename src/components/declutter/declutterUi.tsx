@@ -13,6 +13,7 @@ import NotFound from "@/pages/info/NotFound";
 import { DeclutterGuestGate } from "./DeclutterGuest";
 import { fetchHasAgreedSales, type DeclutterStatus, type DeliverySize } from "@/lib/declutter/api";
 import type { ReactNode } from "react";
+import { CONDITION_LABEL } from "@/lib/declutter/conditionLabels";
 
 const STATUS_LABEL: Record<DeclutterStatus, string> = {
   draft: "Not listed yet",
@@ -61,13 +62,8 @@ export const SIZE_LABEL: Record<DeliverySize, string> = {
 // The one category-name map (src/lib/declutter/categoryIcons.ts), re-exported for the screens that import it here.
 export { CATEGORY_GROUPS, CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 
-export const CONDITION_LABEL: Record<number, string> = {
-  5: "Like new",
-  4: "Lightly used",
-  3: "Used, some wear",
-  2: "Heavy wear or a fault",
-  1: "For parts or repair",
-};
+// The one condition-name map (src/lib/declutter/conditionLabels.ts), re-exported likewise; read here below too.
+export { CONDITION_LABEL };
 
 /** The four sales-tax confirmations (row 54), asked before every listing. */
 export const TAX_STATEMENTS = [

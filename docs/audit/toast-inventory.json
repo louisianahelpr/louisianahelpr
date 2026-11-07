@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1185,
-    "files": 335,
-    "rendering": 1104,
-    "suppressedByPolicy": 81,
+    "calls": 1194,
+    "files": 340,
+    "rendering": 1110,
+    "suppressedByPolicy": 84,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 230,
-      "toast.error": 799,
+      "toast.error": 805,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 87,
+      "toast.success": 90,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 496,
+      "literal": 498,
       "template": 107,
-      "dynamic": 634,
+      "dynamic": 641,
       "jsx": 0
     }
   },
@@ -10815,7 +10815,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 102,
+      "line": 104,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -10835,7 +10835,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 107,
+      "line": 109,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10845,7 +10845,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 115,
+      "line": 117,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10855,7 +10855,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 121,
+      "line": 123,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11345,7 +11345,17 @@
     },
     {
       "file": "src/components/shops/ShopOrderCard.tsx",
-      "line": 207,
+      "line": 141,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopOrderCard.tsx",
+      "line": 254,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -11355,7 +11365,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCard.tsx",
-      "line": 209,
+      "line": 256,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11365,7 +11375,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderSheet.tsx",
-      "line": 161,
+      "line": 162,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

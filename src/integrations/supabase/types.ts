@@ -22002,6 +22002,79 @@ export type Database = {
         Args: { p_description: string; p_kind: string; p_title: string }
         Returns: string
       }
+      shop_attach_balance_session: {
+        Args: { p_order_id: string; p_session_id: string }
+        Returns: Json
+      }
+      shop_balance_failed: {
+        Args: { p_buyer: boolean; p_error: string; p_order_id: string }
+        Returns: Json
+      }
+      shop_balance_lapse_sweep: {
+        Args: never
+        Returns: {
+          buyer_id: string
+          order_id: string
+          owed_cents: number
+          payment_intent_id: string
+          seller_id: string
+        }[]
+      }
+      shop_balance_paid: {
+        Args: {
+          p_amount_cents: number
+          p_card_fee_cents: number
+          p_order_id: string
+          p_payment_intent_id: string
+        }
+        Returns: Json
+      }
+      shop_balances_due: {
+        Args: { p_limit: number }
+        Returns: {
+          attempts: number
+          balance_cents: number
+          buyer_id: string
+          checkout_session_id: string
+          customer_id: string
+          livemode: boolean
+          order_id: string
+          payment_method_id: string
+          seller_id: string
+        }[]
+      }
+      shop_lapse_tax_done: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
+      shop_lapse_tax_due: {
+        Args: { p_limit: number }
+        Returns: {
+          buyer_id: string
+          checkout_session_id: string
+          deposit_tax_cents: number
+          livemode: boolean
+          order_id: string
+          payment_intent_id: string
+          seller_id: string
+        }[]
+      }
+      shop_order_balance_open: {
+        Args: { o: Database["public"]["Tables"]["shop_orders"]["Row"] }
+        Returns: boolean
+      }
+      shop_order_record_saved_card: {
+        Args: {
+          p_customer_id: string
+          p_order_id: string
+          p_payment_method_id: string
+        }
+        Returns: Json
+      }
+      shop_order_shop_cents: {
+        Args: { o: Database["public"]["Tables"]["shop_orders"]["Row"] }
+        Returns: number
+      }
       shop_attach_checkout_session: {
         Args: { p_order_id: string; p_session_id: string }
         Returns: undefined

@@ -20,17 +20,17 @@ reports coverage against THIS file, not against the route list.
 | `?view=` variants | variant | 26 |
 | Overlay surfaces | **instance** | 228 |
 | — of which hand-rolled, no dialog primitive | instance | 12 (across 9 files) |
-| Toast messages | **call site** | 1185 (across 336 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
+| Toast messages | **call site** | 1195 (across 344 files; itemised with their copy in `docs/audit/toast-inventory.json`) |
 | Multi-step flows — confirmed | flow | 52 |
 | Multi-step flows — probable | flow | 33 |
 | Back/next navigation only | flow | 67 |
-| Forms (submittable) | form | 128 |
+| Forms (submittable) | form | 130 |
 | Admin components (components/admin + pages/admin/Admin*) | **file** | 186 |
 | Email templates | **exported template** | 23 |
 | Notification types (defined in notification_type_pref_map) | type | 26 |
-| **Navigable surfaces** (places a person can stand) | mixed | **816** |
-| **Copy surfaces** (strings a person may read) | mixed | **1234** |
-| **Total auditable surface** | mixed | **2050** |
+| **Navigable surfaces** (places a person can stand) | mixed | **818** |
+| **Copy surfaces** (strings a person may read) | mixed | **1244** |
+| **Total auditable surface** | mixed | **2062** |
 
 **Two totals, because they are two different jobs.** A route, a dialog, a form
 step is somewhere a person can *be*, and auditing it means opening it and forcing
@@ -71,7 +71,7 @@ they differ, the reason is understood:
 | Redirect-only routes | 1 | 14 | agree |
 | Admin `?view=` | 26 | 24 | agree |
 | Overlay surfaces | 228 | 130 | agree within method (script counts every menu instance) |
-| Forms | 128 | ~38 | agree |
+| Forms | 130 | ~38 | agree |
 | Confirmed multi-step flows | 52 | 9 | agree; the agent excluded section routers this script still counts |
 | Toast messages | 517 | "21 files, not itemised" | **script wins** — the agent undercounted by ~6x |
 
@@ -689,6 +689,8 @@ testing, validation-message quality, and interrupted-submit behaviour.
 - [ ] `src/components/SavedSearches.tsx` (dialog/mutation)
 - [ ] `src/components/sections/InlineListSearch.tsx` (form tag)
 - [ ] `src/components/sections/SectionSearchRow.tsx` (form tag)
+- [ ] `src/components/shops/ShopCustomQuoteForm.tsx` (dialog/mutation)
+- [ ] `src/components/shops/ShopCustomRequestSheet.tsx` (dialog/mutation)
 - [ ] `src/components/shops/ShopDailyCap.tsx` (dialog/mutation)
 - [ ] `src/components/shops/ShopDashboardView.tsx` (dialog/mutation)
 - [ ] `src/components/shops/ShopDeliveryPicker.tsx` (dialog/mutation)

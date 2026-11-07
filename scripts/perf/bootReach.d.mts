@@ -36,6 +36,8 @@ export const HOME_DERIVE_ROOT: string;
 export const JOB_LISTS_ROOT: string;
 export const PROFILE_FIRST_SCREEN_ROOTS: string[];
 export const PROFILE_SHARING_PAGE_ROOTS: string[];
+export const JOBS_BROWSE_ROOT: string;
+export function jobsBrowseFirstScreenModules(root: string, split?: { homeOff: Set<string> }): Set<string>;
 export function profileFirstScreenModules(root: string, split?: { deep: Set<string>; homeOff: Set<string> }): { own: Set<string>; shared: Set<string> };
 export function namedLoaders(src: string): Map<string, string>;
 export function loaderSpecs(text: string, loaders: Map<string, string>): string[];

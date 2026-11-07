@@ -9,6 +9,7 @@
 // @mutate src/boot/guestDeclutterPrefetch.ts |     if (!o?.includes("declutter")) return; |
 // @mutate src/boot/guestDeclutterPrefetch.ts |     .then((a) => a?.items ?? fetch(guestItemsUrl(base), { headers }).then(json).then(list)) |     .then(() => fetch(guestItemsUrl(base), { headers }).then(json).then(list))
 // @mutate src/boot/guestDeclutterPrefetch.ts |       return a && Array.isArray(a.items) && Array.isArray(a.photos) ? | return a && Array.isArray(a.items) ?
+// @mutate src/boot/guestDeclutterPrefetch.ts |     preloadFirstCardPhotos(firstCardPhotoPreloads(base, { items: i, photos: p }, "")); |
 // @mutate supabase/migrations/20261107172400_declutter_guest_first_screen.sql | STABLE\nSECURITY INVOKER | STABLE\nSECURITY DEFINER
 // @mutate supabase/migrations/20261107172400_declutter_guest_first_screen.sql |            i.porch_ok, i.accepts_offers |            i.porch_ok
 // @mutate src/lib/declutter/guestBootPrefetch.ts |   if (!s \|\| now - s.at > GUEST_PREFETCH_MAX_AGE_MS \|\| !definitelyGuest()) return null; |   if (!s) return null;

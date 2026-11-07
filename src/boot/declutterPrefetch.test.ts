@@ -29,6 +29,9 @@ import {
 // @mutate src/lib/declutter/bootPrefetch.ts |   if (!defaultView) return false; |
 // @mutate src/lib/declutter/bootPrefetch.ts |   return known?.zip === zip && known.parish ? known.parish : null; |   return known?.parish ?? null;
 // @mutate src/boot/signedInPrefetch.ts |   startDeclutterPrefetch(pathname); |
+// @mutate src/boot/declutterPrefetch.ts |   while (rows < 4 && 338 + rows * (photo + 99) + photo / 2 < height) rows++; |
+// @mutate src/boot/declutterPrefetch.ts |     if (p.high) link.setAttribute("fetchpriority", "high"); |     link.setAttribute("fetchpriority", "high");
+// @mutate src/boot/declutterPrefetch.ts |     const at = slot++; |     const at = slot;
 
 const BASE = "https://x.supabase.co";
 const session = (expiresInS: number) =>
@@ -221,7 +224,7 @@ describe("the entry's /declutter first screen", () => {
 });
 
 describe("the first cards' photos start from the entry's answer (B96, Q2705/Q2708)", () => {
-  it("are the card's own src and srcSet, for the first two items not the member's own, each by its first photo", async () => {
+  it("are the card's own src and srcSet, for the grid slots above the fold (not the member's own), each by its first photo", async () => {
     const { photoCardUrl, photoPublicUrl, CARD_PHOTO_PX } = await import("@/lib/declutter/api");
     const { cardPhotoSrcSet, CARD_PHOTO_SIZES } = await import("@/lib/declutter/photoSizes");
     const { firstCardPhotoPreloads, CARD_SIZES } = await import("./declutterPrefetch");
@@ -237,10 +240,28 @@ describe("the first cards' photos start from the entry's answer (B96, Q2705/Q270
         { item_id: "c", storage_path: "u/declutter/c/1.jpg" },
       ],
     };
-    const got = firstCardPhotoPreloads(base, answer, "me");
-    const card = (path: string) => ({ href: photoCardUrl(path), srcset: cardPhotoSrcSet(photoPublicUrl(path), photoCardUrl(path), CARD_PHOTO_PX) });
-    expect(got).toEqual([card("u/declutter/a/first.jpg"), card("u/declutter/b/first.jpg")]);
+    const card = (path: string, high: boolean) => ({ href: photoCardUrl(path), srcset: cardPhotoSrcSet(photoPublicUrl(path), photoCardUrl(path), CARD_PHOTO_PX), high });
+    // 375x812: four slots (two rows). "nophoto" takes slot 2 (the grid draws its card), so b is the second row's first.
+    expect(firstCardPhotoPreloads(base, answer, "me", { width: 375, height: 812 })).toEqual([
+      card("u/declutter/a/first.jpg", true), card("u/declutter/b/first.jpg", false), card("u/declutter/c/1.jpg", false),
+    ]);
+    // 375x667: the first row only.
+    expect(firstCardPhotoPreloads(base, answer, "me", { width: 375, height: 667 })).toEqual([card("u/declutter/a/first.jpg", true)]);
     for (const bad of [null, {}, { items: "x", photos: [] }, { items: [], photos: [] }]) expect(firstCardPhotoPreloads(base, bad, "me")).toEqual([]);
+  });
+
+  it("the entry's above-the-fold count is Browse's own (a copy, held equal here)", async () => {
+    const { bootAboveFoldCount, bootFirstRowCount } = await import("./declutterPrefetch");
+    const { declutterAboveFoldCount, declutterFirstRowCount } = await import("@/components/declutter/DeclutterSkeletons");
+    let tried = 0;
+    for (let width = 320; width <= 1920; width += 7) {
+      for (let height = 480; height <= 1400; height += 13) {
+        expect(bootAboveFoldCount(width, height), `${width}x${height}`).toBe(declutterAboveFoldCount(false, width, height));
+        tried++;
+      }
+      expect(bootFirstRowCount(width), `${width}`).toBe(declutterFirstRowCount(false, width));
+    }
+    expect(tried).toBeGreaterThan(10000);
   });
 
   it("the entry adds them as image preloads once the answer is in", async () => {
@@ -254,6 +275,24 @@ describe("the first cards' photos start from the entry's answer (B96, Q2705/Q270
     try {
       expect(links.map((l) => l.href)).toEqual([`${BASE}/storage/v1/render/image/public/job-photos/u/a.jpg?width=480&height=480&resize=cover&quality=70`, `${BASE}/storage/v1/render/image/public/job-photos/u/b.jpg?width=480&height=480&resize=cover&quality=70`]);
       for (const l of links) expect([l.getAttribute("imagesizes"), l.getAttribute("fetchpriority")]).toEqual(["(min-width: 640px) 250px, calc(50vw - 26px)", "high"]);
+    } finally {
+      links.forEach((l) => l.remove());
+    }
+  });
+
+  it("on a 375x812 phone it preloads both rows above the fold, only the first at high priority", async () => {
+    const body = { ...ANSWER, items: ["a", "b", "c", "d", "e"].map((id) => ({ id, seller_id: "s" })), photos: ["a", "b", "c", "d", "e"].map((id) => ({ item_id: id, storage_path: `u/${id}.jpg` })) };
+    vi.stubGlobal("innerWidth", 375);
+    vi.stubGlobal("innerHeight", 812);
+    stubAnswer(body);
+    start();
+    await (window as unknown as Record<string, { answer: Promise<unknown> }>)[DECLUTTER_PREFETCH_KEY].answer;
+    await new Promise((r) => setTimeout(r, 0));
+    const links = [...document.head.querySelectorAll<HTMLLinkElement>('link[rel="preload"][as="image"]')];
+    try {
+      expect(links.map((l) => [l.href.replace(/^.*\/job-photos\/|\?.*$/g, ""), l.getAttribute("fetchpriority")])).toEqual([
+        ["u/a.jpg", "high"], ["u/b.jpg", "high"], ["u/c.jpg", null], ["u/d.jpg", null],
+      ]);
     } finally {
       links.forEach((l) => l.remove());
     }

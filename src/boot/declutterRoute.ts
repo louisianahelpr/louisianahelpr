@@ -4,8 +4,8 @@
  * Its own tiny chunk because a dynamic import's preload list lives in the file
  * that holds the import: in the entry, Declutter's list (97 files, 26 of them
  * nobody else names) cost every visitor about 0.6 KB gz of entry on every page.
- * Here only a signed-in /declutter load fetches it, at the price of one network
- * round before the page's chunks start.
+ * Here only a /declutter load (a member's or a guest's) fetches it, at the price of
+ * one network round before the page's chunks start.
  *
  * Same rules as routePreload.ts: no static imports. The links it adds are this
  * page's own, so they carry the mark index.html's boot watchdog skips (the
@@ -14,6 +14,11 @@
  */
 const before = new Set(document.querySelectorAll('link[rel="modulepreload"]'));
 import("@/pages/declutter/DeclutterPage").catch(() => {
+  /* App.tsx's lazy import of the same module owns the failure */
+});
+// The route's gate: App.tsx renders /declutter inside DeclutterGuestOrMember for members and guests alike, so it
+// starts here too instead of a round later, once App.tsx has rendered the route (Q2705, 11-07).
+import("@/components/declutter/DeclutterGuestRoute").catch(() => {
   /* App.tsx's lazy import of the same module owns the failure */
 });
 // B77 (2026-11-01): each tab's code is its own chunk (DeclutterHomeView's lazy tabs), so the URL's tab starts here,

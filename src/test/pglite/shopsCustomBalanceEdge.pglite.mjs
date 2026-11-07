@@ -178,5 +178,15 @@ const grants = await svc(`SELECT p.proname, has_function_privilege('authenticate
   WHERE p.proname IN ('shop_refund_fee_policy', 'shop_lapse_tax_done')`);
 ok(Array.isArray(grants) && grants.length === 2 && grants.every((x) => !x.m && !x.a), `service only (${JSON.stringify(grants)})`);
 
+// --- 8. the order card's columns (slice 4): members read the plan, deposit, rest and its state; never the saved card
+const cols = await svc(`SELECT c, has_column_privilege('authenticated', 'public.shop_orders', c, 'SELECT') AS m,
+  has_column_privilege('anon', 'public.shop_orders', c, 'SELECT') AS a
+  FROM unnest(ARRAY['payment_plan', 'deposit_cents', 'balance_cents', 'balance_captured_at', 'balance_failed_at',
+                    'balance_customer_id', 'balance_payment_method_id', 'balance_payment_intent_id', 'balance_last_error',
+                    'balance_checkout_session_id', 'balance_attempts']) AS c`);
+const shown = new Set(["payment_plan", "deposit_cents", "balance_cents", "balance_captured_at", "balance_failed_at"]);
+ok(Array.isArray(cols) && cols.length === 11 && cols.every((x) => x.m === shown.has(x.c) && !x.a),
+  `members read only the card's five columns (${JSON.stringify(Array.isArray(cols) ? cols.filter((x) => x.m).map((x) => x.c) : cols)})`);
+
 console.log(`\n${pass} PASS, ${fail} FAIL${skip ? " (EDGE_MIGRATION=skip)" : ""}`);
 process.exit(fail ? 1 : 0);

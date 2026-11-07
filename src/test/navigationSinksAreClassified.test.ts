@@ -181,6 +181,8 @@ const CLASSIFIED: Record<string, string> = {
   "components/profile/SubscriptionTab.tsx::data.url": STRIPE_EDGE_URL,
   // Shops M1: requestOrder() returns shop-checkout's Checkout session url (server-built).
   "components/shops/ShopOrderSheet.tsx::url": STRIPE_EDGE_URL,
+  // Custom orders (50% deposit): payOrderRest() returns shop-checkout's pay-the-rest Checkout session url (server-built).
+  "components/shops/ShopOrderCard.tsx::url": STRIPE_EDGE_URL,
   "pages/profile/GiftCard.tsx::data.url": STRIPE_EDGE_URL,
   "pages/posts/postedJobs/RecurringVisitPayments.tsx::url": STRIPE_EDGE_URL,
   // startCardSave() returns declutter-card's Checkout (setup) session url (server-built).

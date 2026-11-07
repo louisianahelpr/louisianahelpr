@@ -105,8 +105,9 @@ describe("Shops tax codes: one table, every kind mapped (owner O1, lead 2026-10-
       'product_data: taxed("One-time account setup fee", NONTAXABLE_TAX_CODE),',
       // Shops H6 (lh-money-escrow PASS d9f38cc9f7): the sales tax line itself is not taxed again.
       // Delivery (20261106180902): the shop's own fee, non-taxable as Declutter's "Seller delivery".
-      'product_data: taxed("Shop delivery", NONTAXABLE_TAX_CODE),',
-      'product_data: { name: "Sales tax", description: atHome ? "Louisiana sales tax where the work is done" : fulfillment === "shop_delivers" ? "Louisiana sales tax where the order is delivered" : "Louisiana sales tax where you pick up the order", tax_code: NONTAXABLE_TAX_CODE },',
+      // Helpr delivery (20261106223244): Declutter's Helpr price, non-taxable as Declutter's "Helpr delivery".
+      'product_data: taxed(fulfillment === "helpr_delivers" ? "Helpr delivery" : "Shop delivery", NONTAXABLE_TAX_CODE),',
+      'product_data: { name: "Sales tax", description: atHome ? "Louisiana sales tax where the work is done" : fulfillment !== "pickup" ? "Louisiana sales tax where the order is delivered" : "Louisiana sales tax where you pick up the order", tax_code: NONTAXABLE_TAX_CODE },',
     ]);
     expect(src).toMatch(/splitBuyerFeeByTaxCode\(lines, o\.premium_cents\)/);
   });

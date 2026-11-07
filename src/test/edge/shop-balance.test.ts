@@ -9,7 +9,15 @@
  * it in full exactly once (no refund on that charge reverses again).
  *
  * Registered mutations - each turns this file RED on its own:
- * @mutate supabase/functions/_shared/shopBalance.ts |       { idempotencyKey: shopBalanceKey(row.order_id, Number(row.attempts ?? 0)) }, |       {},
+ * @mutate supabase/functions/_shared/shopBalance.ts |       { idempotencyKey: shopBalanceKey(row.order_id) }, |       {},
+ * 11-07 money review of 2b (each RED on its own):
+ * @mutate supabase/functions/_shared/shopBalance.ts |  return `shop-balance-${orderId}`; |  return `shop-balance-${orderId}-${Date.now()}`;
+ * @mutate supabase/functions/_shared/shopBalance.ts |  if (!row.customer_id \|\| !row.payment_method_id) { |  if (false) {
+ * @mutate supabase/functions/_shared/shopBalance.ts |  return buyer \|\| (failed as { result?: string } \| null)?.result === "buyer_pays" ? "buyer_pays" : "will_retry"; |  return buyer ? "buyer_pays" : "will_retry";
+ * @mutate supabase/functions/_shared/shopBalance.ts |    p_amount_cents: Number(pi.amount_received ?? 0) > 0 ? Number(pi.amount_received) : Number(pi.amount ?? 0), |    p_amount_cents: 0,
+ * @mutate supabase/functions/shop-checkout/index.ts |  if (off) return off; |
+ * @mutate supabase/functions/shop-checkout/index.ts |  if (isLockedOut(standing?.ban_status, standing?.auto_suspended_until)) return json({ error: "account_restricted" }, 403); |
+ * @mutate supabase/functions/shop-checkout/index.ts |    return json({ accepted: true, charged: false });\n  } | throw e;\n  }
  * @mutate supabase/functions/_shared/shopBalance.ts |   return err.type === "StripeCardError" \|\| err.rawType === "card_error"; |   return false;
  * @mutate supabase/functions/_shared/shopBalance.ts |   if (result === "refund") { |   if (result === "never") {
  * @mutate supabase/functions/_shared/shopBalance.ts |     if (md[SHOP_UNPAID_CLOSE_TAX_REV_KEY]) { |     if (false) {
@@ -77,6 +85,8 @@ beforeEach(() => {
   resetSharedMocks();
   resetEmailMocks();
   scenario.reads.test_accounts = { rows: [] };
+  // The Shops switch is on for these accounts (11-07: the shop's charge-the-rest tap checks it).
+  scenario.rpc.feature_enabled_for_user = true;
 });
 
 async function as(uid: string) {
@@ -145,7 +155,7 @@ describe("shop-checkout pay_balance: the buyer's pay-the-rest page", () => {
 });
 
 describe("shop-checkout charge_rest: the shop's Handed-over tap tries the saved card", () => {
-  it("on or after the ready date: ONE off-session charge for the rest, keyed on the order and attempt, then recorded", async () => {
+  it("on or after the ready date: ONE off-session charge for the rest, keyed on the order (one key for every try), then recorded", async () => {
     const fn = await as(MAKER);
     scenario.reads.shop_orders = { rows: [owed({ balance_attempts: 2 })] };
     scenario.rpc.shop_local_today = "2026-11-06";
@@ -160,8 +170,8 @@ describe("shop-checkout charge_rest: the shop's Handed-over tap tries the saved 
       amount: 3385, currency: "usd", customer: "cus_buyer", payment_method: "pm_saved", off_session: true, confirm: true,
       transfer_group: `shop_order_${ORDER}`, metadata: { kind: "shop_balance", order_id: ORDER },
     });
-    expect(opts).toEqual({ idempotencyKey: `shop-balance-${ORDER}-2` });
-    expect(rpcs("shop_balance_paid")[0]?.args).toEqual({ p_order_id: ORDER, p_payment_intent_id: "pi_rest", p_card_fee_cents: 128 });
+    expect(opts).toEqual({ idempotencyKey: `shop-balance-${ORDER}` });
+    expect(rpcs("shop_balance_paid")[0]?.args).toEqual({ p_order_id: ORDER, p_payment_intent_id: "pi_rest", p_card_fee_cents: 128, p_amount_cents: 3385 });
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
   });
 
@@ -209,6 +219,49 @@ describe("shop-checkout charge_rest: the shop's Handed-over tap tries the saved 
     const res = await tap(fn, { action: "charge_rest", order_id: ORDER });
     expect(await json(res)).toEqual({ paid: false, waiting_on_buyer: false });
     expect(rpcs("shop_balance_failed")[0]?.args).toMatchObject({ p_order_id: ORDER, p_buyer: false });
+  });
+
+  it("11-07: no card saved at Checkout: the rest is the buyer's to pay at once (notice + Pay button), with no Stripe call", async () => {
+    const fn = await as(MAKER);
+    scenario.reads.shop_orders = { rows: [owed({ balance_customer_id: null, balance_payment_method_id: null })] };
+    scenario.rpc.shop_local_today = "2026-11-06";
+    scenario.rpc.shop_balance_failed = { result: "buyer_pays" };
+    const res = await tap(fn, { action: "charge_rest", order_id: ORDER });
+    expect(await json(res)).toEqual({ paid: false, waiting_on_buyer: true });
+    expect(rpcs("shop_balance_failed")[0]?.args).toEqual({ p_order_id: ORDER, p_error: "no card was saved at Checkout", p_buyer: true });
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
+  });
+
+  it("11-07: the 3rd failed try of any kind is the buyer's (the SQL answers buyer_pays); the same key every try", async () => {
+    const fn = await as(MAKER);
+    scenario.reads.shop_orders = { rows: [owed({ balance_attempts: 2 })] };
+    scenario.rpc.shop_local_today = "2026-11-06";
+    scenario.rpc.shop_balance_failed = { result: "buyer_pays" };
+    stripeMock.paymentIntents.create.mockRejectedValue(Object.assign(new Error("api down"), { type: "StripeAPIError" }));
+    const res = await tap(fn, { action: "charge_rest", order_id: ORDER });
+    expect(await json(res)).toEqual({ paid: false, waiting_on_buyer: true });
+    expect(stripeMock.paymentIntents.create.mock.calls[0][1]).toEqual({ idempotencyKey: `shop-balance-${ORDER}` });
+  });
+
+  it("11-07: the tap takes the Shops switch and the shop owner's standing; neither charges anything", async () => {
+    let fn = await as(MAKER);
+    scenario.reads.shop_orders = { rows: [owed()] };
+    scenario.rpc.shop_local_today = "2026-11-06";
+    scenario.rpc.feature_enabled_for_user = false;
+    let res = await tap(fn, { action: "charge_rest", order_id: ORDER });
+    expect(res.status).toBe(403);
+    expect(await json(res)).toEqual({ error: "feature_disabled" });
+    resetSupabaseMock();
+    scenario.reads.test_accounts = { rows: [] };
+    scenario.rpc.feature_enabled_for_user = true;
+    fn = await as(MAKER);
+    scenario.reads.shop_orders = { rows: [owed()] };
+    scenario.rpc.shop_local_today = "2026-11-06";
+    scenario.reads.profiles = { rows: [{ ban_status: "banned", auto_suspended_until: null }] };
+    res = await tap(fn, { action: "charge_rest", order_id: ORDER });
+    expect(res.status).toBe(403);
+    expect(await json(res)).toEqual({ error: "account_restricted" });
+    expect(stripeMock.paymentIntents.create).not.toHaveBeenCalled();
   });
 
   it("an order already waiting on the buyer is never charged again from the tap", async () => {
@@ -270,7 +323,7 @@ describe("stripe-webhook: the saved card and the rest's payment", () => {
     const res = await deliver({ id: "evt_rest", type: "payment_intent.succeeded",
       data: { object: { id: "pi_rest", amount: 3385, amount_received: 3385, livemode: true, metadata: { kind: "shop_balance", order_id: ORDER } } } });
     expect(res.status).toBe(200);
-    expect(rpcs("shop_balance_paid").map((c) => c.args)).toEqual([{ p_order_id: ORDER, p_payment_intent_id: "pi_rest", p_card_fee_cents: 128 }]);
+    expect(rpcs("shop_balance_paid").map((c) => c.args)).toEqual([{ p_order_id: ORDER, p_payment_intent_id: "pi_rest", p_card_fee_cents: 128, p_amount_cents: 3385 }]);
     expect(stripeMock.tax.transactions.createFromCalculation).not.toHaveBeenCalled();
     expect(stripeMock.refunds.create).not.toHaveBeenCalled();
   });
@@ -359,8 +412,8 @@ describe("declutter-money: the rest and the unpaid-close tax step", () => {
     const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer cron-secret" } }));
     expect(res.status).toBe(200);
     expect(stripeMock.paymentIntents.create).toHaveBeenCalledTimes(1);
-    expect(stripeMock.paymentIntents.create.mock.calls[0][1]).toEqual({ idempotencyKey: `shop-balance-${ORDER}-1` });
-    expect(rpcs("shop_balance_paid")[0]?.args).toEqual({ p_order_id: ORDER, p_payment_intent_id: "pi_rest", p_card_fee_cents: 128 });
+    expect(stripeMock.paymentIntents.create.mock.calls[0][1]).toEqual({ idempotencyKey: `shop-balance-${ORDER}` });
+    expect(rpcs("shop_balance_paid")[0]?.args).toEqual({ p_order_id: ORDER, p_payment_intent_id: "pi_rest", p_card_fee_cents: 128, p_amount_cents: 3385 });
     expect(rpcs("shop_balance_lapse_sweep")).toHaveLength(1);
     expect(stripeMock.tax.transactions.createReversal.mock.calls).toEqual([[
       { mode: "full", original_transaction: "tax_txn_closed", reference: `unpaid_close:${CLOSED}`, metadata: { order_id: CLOSED, reason: "unpaid_close" } },
@@ -382,5 +435,19 @@ describe("declutter-money: the rest and the unpaid-close tax step", () => {
     await fn.fetch(fn.request({ headers: { Authorization: "Bearer cron-secret" } }));
     expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
     expect(rpcs("shop_lapse_tax_done")[0]?.args).toEqual({ p_order_id: CLOSED });
+  });
+});
+
+describe("shop-checkout accept: the order is accepted even when the capture step throws (11-07 money review)", () => {
+  it("a capture step that throws answers accepted, not charged (declutter-money captures it), never an error", async () => {
+    const fn = await as(MAKER);
+    scenario.rpc.shops_accept_order = { result: "accepted", order_id: ORDER, captured: false };
+    scenario.reads.shop_orders = { rows: [owed({ status: "accepted", captured_at: null, payment_plan: "deposit_50", deposit_cents: 3385 })] };
+    stripeMock.paymentIntents.capture.mockRejectedValue(Object.assign(new Error("api down"), { type: "StripeAPIError" }));
+    stripeMock.paymentIntents.retrieve.mockRejectedValue(new Error("still down"));
+    scenario.rpcErrors = { shop_order_capture_failed: { message: "db down" } };
+    const res = await tap(fn, { action: "accept", order_id: ORDER });
+    expect(res.status).toBe(200);
+    expect(await json(res)).toEqual({ accepted: true, charged: false });
   });
 });

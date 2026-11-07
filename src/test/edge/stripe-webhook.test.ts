@@ -1757,7 +1757,7 @@ describe("stripe-webhook edge function", () => {
       });
 
       // Re-review of 49a8653d81 (C, HIGH): a hold captured only in part (the late fee) must not commit the full tax.
-      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |   if (!recordCapturedPart && (cancelFeeCapture \|\| (shortfall !== 0 && shortfall !== setupFeeLeftOutCents))) { |   if (!recordCapturedPart && cancelFeeCapture) {
+      // @mutate supabase/functions/stripe-webhook/handlers/_jobTaxCommit.ts |   if (!recordCapturedPart && !depositCapture && (cancelFeeCapture \|\| (shortfall !== 0 && shortfall !== setupFeeLeftOutCents))) { |   if (!recordCapturedPart && !depositCapture && cancelFeeCapture) {
       it("a hold captured only in part commits no tax and pages ops", async () => {
         stripeMock.tax.transactions.createFromCalculation.mockResolvedValue({ id: "tax_txn_site" });
         await deliverPi(SITE, { amount_received: 2000 });

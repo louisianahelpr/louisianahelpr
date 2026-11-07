@@ -9,6 +9,7 @@
 // control over how to apply the generated values (it can ignore some,
 // merge into existing user input, etc.).
 
+import { ListRow } from "@/components/ui/ListRow";
 import { useCallback, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
@@ -201,10 +202,9 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
     // (The old markup also put `<div>`/`<p>` inside a `<button>`, which is
     // invalid content for a button; the sibling's all-`<span>` shape isn't.)
     <div className="rounded-2xl liquid-glass overflow-hidden p-card min-h-[104px] flex flex-col justify-center">
-      <button
-        type="button"
+      <ListRow variant="flush"
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-4 text-left min-h-[72px] active:scale-[0.99] transition-transform"
+        className="w-full flex items-center gap-4 text-left min-h-[72px] active:scale-[0.99] transition-transform px-0 py-0"
         aria-expanded={open}
       >
         <span
@@ -233,7 +233,7 @@ export function AiJobBuilder({ locationContext = "", onGenerated, open: controll
           style={{ color: "hsl(var(--olivewood) / 0.8)", transform: open ? "rotate(180deg)" : undefined }}
           aria-hidden
         />
-      </button>
+      </ListRow>
       {open && body}
     </div>
   );

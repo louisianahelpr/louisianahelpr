@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 /**
  * One tappable row inside a NavQuickMenu. Its own file so MobileNav can render
  * the rows without importing NavQuickMenu, which carries framer-motion
@@ -15,10 +16,10 @@ export function NavQuickMenuItem({
   onSelect: () => void;
 }) {
   return (
-    <button
+    <ListRow variant="flush"
       role="menuitem"
       onClick={onSelect}
-      className="flex items-center gap-2.5 px-3.5 py-2 text-left transition-colors active:bg-[hsl(var(--bark)/0.08)]"
+      className="flex items-center gap-2.5 px-3.5 py-2 text-left transition-colors active:bg-[hsl(var(--bark)/0.08)] min-h-11 w-auto"
     >
       {Icon && <Icon className="h-4 w-4 shrink-0" style={{ color: "hsl(var(--bark))" }} />}
       <span className="min-w-0 flex-1">
@@ -31,6 +32,6 @@ export function NavQuickMenuItem({
           </span>
         )}
       </span>
-    </button>
+    </ListRow>
   );
 }

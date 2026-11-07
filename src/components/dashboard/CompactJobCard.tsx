@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { formatDistanceToNow } from "date-fns";
 import { Star } from "lucide-react";
 import { categoryColors } from "@/components/job-card/activityConstants";
@@ -68,12 +69,11 @@ export function CompactJobCard({
 
   return (
     <li>
-      <button
-        type="button"
+      <ListRow variant="flush"
         onClick={() => onSelect(job)}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
-        className="w-full h-12 px-4 flex items-center gap-3 text-left transition-colors active:opacity-75"
+        className="w-full h-12 px-4 flex items-center gap-3 text-left transition-colors active:opacity-75 min-h-11 py-0"
         style={{
           background: isHighlighted ? "hsl(var(--bark) / 0.07)" : "transparent",
           borderBottom: "0.5px solid hsl(var(--olivewood) / 0.08)",
@@ -140,7 +140,7 @@ export function CompactJobCard({
             {timeAgo}
           </span>
         )}
-      </button>
+      </ListRow>
     </li>
   );
 }

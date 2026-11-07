@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { ChevronRight } from "lucide-react";
 import { ShareJobButton } from "@/components/jobs/ShareJobButton";
 import { formatPrice } from "@/lib/format";
@@ -36,13 +37,13 @@ export function NoApplicantsYet({ job, onManage }: { job: JobPageRow; onManage: 
         <ul className="divide-y divide-border rounded-2xl border border-border bg-card">
           {rows.map((r) => (
             <li key={r.key}>
-              <button type="button" onClick={onManage} className="flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left">
+              <ListRow variant="flush" onClick={onManage} className="flex min-h-11 w-full items-center gap-3 px-4 py-3 text-left">
                 <span className="min-w-0 flex-1">
                   <span className="block text-ds-15 font-semibold">{r.title}</span>
                   <span className="block text-ds-13 text-muted-foreground">{r.detail}</span>
                 </span>
                 <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-              </button>
+              </ListRow>
             </li>
           ))}
         </ul>

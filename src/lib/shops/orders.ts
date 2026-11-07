@@ -275,6 +275,11 @@ export const invokeShopCheckoutAction = invokeShopCheckout;
 /** H8 (b): the buyer's service address as the order sheet sends it (Louisiana only; the server checks the same). */
 export interface ServiceAddressInput { line1: string; city: string; postal_code: string }
 
+/** The cancel terms the buyer read, as shop-checkout compares them (one copy for both order kinds). */
+function termsSent(terms: Pick<OrderTerms, "cancel_policy" | "ready_tap_cancel">) {
+  return { cancel_policy: terms.cancel_policy, ready_tap_cancel: terms.ready_tap_cancel ?? "from_day_before" };
+}
+
 export async function requestOrder(args: {
   shopId: string; lines: { item_id: string; variant_id?: string; quantity: number }[]; readyDate: string; note: string;
   /** The cancel terms the buyer read (shops_order_terms): shop-checkout answers terms_changed if the shop changed them since. */
@@ -288,7 +293,7 @@ export async function requestOrder(args: {
 }): Promise<string> {
   const data = await invokeShopCheckout({
     action: "order", shop_id: args.shopId, lines: args.lines, ready_date: args.readyDate, note: args.note,
-    terms: { cancel_policy: args.terms.cancel_policy, ready_tap_cancel: args.terms.ready_tap_cancel ?? "from_day_before" },
+    terms: termsSent(args.terms),
     ...(args.serviceAddress ? { service_address: args.serviceAddress } : {}),
     ...(args.delivery ? { delivery: args.delivery } : {}),
     ...(args.delivery && args.helprCents ? { delivery_by: "helpr", delivery_cents: args.helprCents } : {}),
@@ -309,7 +314,7 @@ export async function requestCustomOrder(args: {
 }): Promise<string> {
   const data = await invokeShopCheckout({
     action: "order", shop_id: args.shopId, custom_request_id: args.requestId, ready_date: args.readyDate, note: args.note,
-    terms: { cancel_policy: args.terms.cancel_policy, ready_tap_cancel: args.terms.ready_tap_cancel ?? "from_day_before" },
+    terms: termsSent(args.terms),
   });
   if (typeof data.url !== "string" || !data.url) throw new Error("payment_unavailable");
   return data.url;

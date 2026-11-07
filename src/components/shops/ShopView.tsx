@@ -36,6 +36,7 @@ import { ShopReportShop } from "./ShopReport";
 import { ShopReviewsCard } from "./ShopReviews";
 import ShopOrderSheet from "./ShopOrderSheet";
 import ShopCustomRequestSheet from "./ShopCustomRequestSheet";
+import { fetchCustomOrders } from "@/lib/shops/orders";
 
 function ShopSkeleton() {
   return (
@@ -61,6 +62,9 @@ export default function ShopView() {
   const titleInDesktopBar = useHeaderInDesktopBar();
   const categories = useShopCategories();
   const shop = useQuery({ queryKey: ["shops", "page", id], queryFn: () => fetchShop(id), enabled: !!id });
+  // Custom orders (lead 11-06): once the shop takes them, the request sheet IS how to ask it for work, so the
+  // "Quotes open here soon" line goes. Same cache key as ShopCustomRequestSheet (one read).
+  const customOrders = useQuery({ queryKey: ["shops", "custom-orders", id], queryFn: () => fetchCustomOrders(id), enabled: !!id });
   // The owner's own items (ShopItemsList reads the same query): an owner whose shop lists nothing yet
   // gets the empty state and "Add an item" FIRST, ahead of Share and Print (audit 2026-10-28 P5-2).
   const ownItems = useQuery({
@@ -213,7 +217,7 @@ export default function ShopView() {
         <ShopCard id="shop-offers" title="What this shop offers">
           <p className="text-sm text-muted-foreground">
             {s.offers_selling && s.offers_quotes ? "Sells items and gives quotes." : s.offers_selling ? "Sells items." : "Gives quotes."}
-            {s.offers_quotes ? " Quotes open here soon." : ""}
+            {s.offers_quotes && customOrders.data === "off" ? " Quotes open here soon." : ""}
           </p>
         </ShopCard>
         {!s.mine && <ShopReportShop shopId={s.id} />}

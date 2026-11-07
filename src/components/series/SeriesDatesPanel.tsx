@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { useState } from "react";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { usePayoutSetupPaused } from "@/hooks/usePayoutSetupPaused";
@@ -195,9 +196,8 @@ export function SeriesDatesPanel({
     <>
     {step && <NextStep value={step} className="!text-ds-14 mb-1" />}
     <div className={`${inset ? "mx-4 mb-2 " : ""}rounded-ds-md`} style={{ border: "0.5px solid hsl(var(--bark) / 0.18)" }} data-series-dates>
-      <button
-        type="button"
-        className="w-full min-h-[44px] px-3 flex items-center gap-1.5 text-ds-11 font-semibold text-left"
+      <ListRow variant="flush"
+        className="w-full min-h-[44px] px-3 flex items-center gap-1.5 text-ds-11 font-semibold text-left py-0"
         style={{ color: "hsl(var(--bark))" }}
         aria-expanded={open}
         onClick={(e) => {
@@ -208,7 +208,7 @@ export function SeriesDatesPanel({
         <CalendarDays className="w-3.5 h-3.5 shrink-0" aria-hidden />
         <span className="truncate flex-1 min-w-0" title={`Visit dates · ${summary}`}>Visit dates · {summary}</span>
         <ChevronDown className={`w-3.5 h-3.5 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
-      </button>
+      </ListRow>
 
       {open && (
         <div className="px-3 pb-3 space-y-3" onClick={(e) => e.stopPropagation()}>

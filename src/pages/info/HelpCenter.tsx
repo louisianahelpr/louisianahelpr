@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -146,15 +147,14 @@ const TopicSection = ({
       // topic's border turns olive, so the state is never only the chevron.
       className={`scroll-mt-24 rounded-[20px] border bg-card transition-colors duration-200 ${open ? "border-[hsl(var(--bark)/0.45)]" : "border-border"}`}
     >
-      <button
-        type="button"
+      <ListRow variant="flush"
         aria-expanded={open}
         aria-controls={`faq-panel-${topicSlug(section.topic)}`}
         onClick={() => {
           setManualOpen((v) => !(v || (targeted && !dismissed)));
           if (targeted) setDismissed(true);
         }}
-        className="w-full flex items-center justify-between gap-6 py-4 sm:py-5 px-5 sm:px-6 text-left transition-opacity hover:opacity-80"
+        className="w-full flex items-center justify-between gap-6 py-4 sm:py-5 px-5 sm:px-6 text-left transition-opacity hover:opacity-80 min-h-11"
       >
         <span className="inline-flex flex-col gap-0.5 min-w-0">
           <span className="font-sans font-bold text-ds-15 text-foreground leading-snug">
@@ -177,7 +177,7 @@ const TopicSection = ({
           }}
           aria-hidden
         />
-      </button>
+      </ListRow>
       {open && (
         <div id={`faq-panel-${topicSlug(section.topic)}`} className="px-5 sm:px-6 pb-2">
           {section.items.map((item) => (

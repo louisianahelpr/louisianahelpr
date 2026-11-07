@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { useState } from "react";
 import type React from "react";
@@ -366,8 +367,7 @@ function SafetyRow({
   sub: string;
 }) {
   return (
-    <button
-      type="button"
+    <ListRow variant="flush"
       onClick={onClick}
       disabled={disabled}
       aria-busy={busy || undefined}
@@ -381,6 +381,6 @@ function SafetyRow({
         <span className="block text-ds-12 text-muted-foreground mt-0.5 leading-snug">{sub}</span>
       </span>
       <ChevronRight aria-hidden className="shrink-0 w-4 h-4 text-muted-foreground" />
-    </button>
+    </ListRow>
   );
 }

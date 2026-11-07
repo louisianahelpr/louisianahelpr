@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { useState } from "react";
 import {
   ShoppingCart,
@@ -70,10 +71,9 @@ export function MaterialsPanel({ category, className }: MaterialsPanelProps) {
       }}
     >
       {/* Header — always visible, tapping toggles body */}
-      <button
-        type="button"
+      <ListRow variant="flush"
         onClick={() => setOpen((prev) => !prev)}
-        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left"
+        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left min-h-11"
         aria-expanded={open}
       >
         <span className="flex items-center gap-2">
@@ -110,7 +110,7 @@ export function MaterialsPanel({ category, className }: MaterialsPanelProps) {
         ) : (
           <ChevronDown className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--muted-foreground))" }} />
         )}
-      </button>
+      </ListRow>
 
       {/* Collapsible body */}
       {open && (

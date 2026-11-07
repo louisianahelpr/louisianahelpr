@@ -1153,7 +1153,7 @@
     },
     {
       "file": "src/components/SosShareButton.tsx",
-      "line": 235,
+      "line": 236,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8374,7 +8374,7 @@
     },
     {
       "file": "src/components/postjob/AiJobBuilder.tsx",
-      "line": 77,
+      "line": 78,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8384,7 +8384,7 @@
     },
     {
       "file": "src/components/postjob/AiJobBuilder.tsx",
-      "line": 81,
+      "line": 82,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -8394,7 +8394,7 @@
     },
     {
       "file": "src/components/postjob/AiJobBuilder.tsx",
-      "line": 110,
+      "line": 111,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8404,7 +8404,7 @@
     },
     {
       "file": "src/components/postjob/AiJobBuilder.tsx",
-      "line": 115,
+      "line": 116,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9782,7 +9782,7 @@
     },
     {
       "file": "src/components/rentals/RentPanel.tsx",
-      "line": 103,
+      "line": 104,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -9792,7 +9792,7 @@
     },
     {
       "file": "src/components/rentals/RentPanel.tsx",
-      "line": 106,
+      "line": 107,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9823,7 +9823,7 @@
     },
     {
       "file": "src/components/rentals/RentPanel.tsx",
-      "line": 182,
+      "line": 183,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -9843,7 +9843,7 @@
     },
     {
       "file": "src/components/rentals/RentPanel.tsx",
-      "line": 185,
+      "line": 186,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9874,7 +9874,7 @@
     },
     {
       "file": "src/components/rentals/RentPanel.tsx",
-      "line": 221,
+      "line": 222,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -9894,7 +9894,7 @@
     },
     {
       "file": "src/components/rentals/RentPanel.tsx",
-      "line": 224,
+      "line": 225,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9915,7 +9915,7 @@
     },
     {
       "file": "src/components/rentals/RentPanel.tsx",
-      "line": 269,
+      "line": 270,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -9935,7 +9935,7 @@
     },
     {
       "file": "src/components/rentals/RentPanel.tsx",
-      "line": 272,
+      "line": 273,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9966,7 +9966,7 @@
     },
     {
       "file": "src/components/rentals/RentPanel.tsx",
-      "line": 299,
+      "line": 300,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -9976,7 +9976,7 @@
     },
     {
       "file": "src/components/rentals/RentPanel.tsx",
-      "line": 302,
+      "line": 303,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -9997,7 +9997,7 @@
     },
     {
       "file": "src/components/rentals/RentPanel.tsx",
-      "line": 378,
+      "line": 379,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -10007,7 +10007,7 @@
     },
     {
       "file": "src/components/rentals/RentPanel.tsx",
-      "line": 381,
+      "line": 382,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10655,7 +10655,7 @@
     },
     {
       "file": "src/components/series/SeriesDatesPanel.tsx",
-      "line": 130,
+      "line": 131,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -10665,7 +10665,7 @@
     },
     {
       "file": "src/components/series/SeriesDatesPanel.tsx",
-      "line": 134,
+      "line": 135,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12890,7 +12890,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 111,
+      "line": 112,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12900,7 +12900,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 121,
+      "line": 122,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12910,7 +12910,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 124,
+      "line": 125,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12920,7 +12920,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 151,
+      "line": 152,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12930,7 +12930,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 163,
+      "line": 164,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12947,7 +12947,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 164,
+      "line": 165,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12957,7 +12957,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 172,
+      "line": 173,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12967,7 +12967,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 185,
+      "line": 186,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12977,7 +12977,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 205,
+      "line": 206,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -12987,7 +12987,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 214,
+      "line": 215,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -12997,7 +12997,7 @@
     },
     {
       "file": "src/pages/jobs/AppliedJobsTab.tsx",
-      "line": 226,
+      "line": 227,
       "kind": "toast.error",
       "title": {
         "form": "literal",

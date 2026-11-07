@@ -14,6 +14,7 @@
  *   After the tenancy ends both sides can still record, confirm and dispute
  *   for 90 days; then the record is read-only (lead review #3).
  */
+import { ListRow } from "@/components/ui/ListRow";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -386,15 +387,14 @@ function History({ l, onDone }: { l: RentLedger; onDone: () => void }) {
   if (charges.length === 0 && payments.length === 0) return null;
   return (
     <div className="text-sm">
-      <button
-        type="button"
-        className="flex min-h-[44px] w-full items-center justify-between gap-2 text-left font-medium"
+      <ListRow variant="flush"
+        className="flex min-h-[44px] w-full items-center justify-between gap-2 text-left font-medium px-0 py-0"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
       >
         <span>History and receipts</span>
         <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} aria-hidden />
-      </button>
+      </ListRow>
       {open && (
       <ul className="mt-1 space-y-1.5" aria-label="Rent history">
         {payments.map((p) => (

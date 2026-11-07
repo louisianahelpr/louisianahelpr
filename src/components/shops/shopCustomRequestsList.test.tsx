@@ -4,7 +4,7 @@
  * directly, so the buyer's unpaid page for a price is closed too); a closed one offers nothing.
  *
  * @mutate src/components/shops/ShopCustomRequestsList.tsx |   const rows = (list.data ?? []).filter((r) => r.role === side); |   const rows = list.data ?? [];
- * @mutate src/components/shops/ShopCustomRequestsList.tsx |             {OPEN.has(r.status) && ( |             {true && (
+ * @mutate src/components/shops/ShopCustomRequestsList.tsx |             {OPEN.has(r.status) && openId !== r.id && ( |             {openId !== r.id && (
  * @mutate src/lib/shops/orders.ts |   await invokeShopCheckout({ action: "close_request", request_id: requestId }); |   await invokeShopCheckout({ action: "close_request", order_id: requestId });
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";

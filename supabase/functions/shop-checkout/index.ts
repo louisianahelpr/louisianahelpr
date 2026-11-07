@@ -154,7 +154,9 @@ async function readOrder(admin: Db, orderId: string): Promise<OrderMoneyRow | nu
  * `kind`: a capture takes the money ("new"), so an unenrolled test-looking party refuses; a release,
  * refund or refund read gives back or reads ("refund"/"read"), and still runs (Q4).
  */
-async function stripeForOrder(admin: Db, o: OrderMoneyRow, kind: MoneyKind): Promise<Stripe> {
+async function stripeForOrder(
+  admin: Db, o: Pick<OrderMoneyRow, "buyer_id" | "seller_id" | "payment_livemode" | "stripe_checkout_session_id">, kind: MoneyKind,
+): Promise<Stripe> {
   const mode = shopOrderMode({ livemode: o.payment_livemode, checkout_session_id: o.stripe_checkout_session_id })
     ?? await stripeModeForParties(admin, [o.buyer_id, o.seller_id], { kind });
   return stripeFor(mode);

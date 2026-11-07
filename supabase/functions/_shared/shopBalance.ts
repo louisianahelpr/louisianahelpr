@@ -36,12 +36,12 @@ export type ShopBalanceDueRow = {
 export type BalanceOutcome = "paid" | "already_paid" | "refunded" | "buyer_pays" | "will_retry";
 
 /** The off-session key of one attempt (the order's balance_attempts as read). */
-export function shopBalanceKey(orderId: string, attempt: number): string {
+function shopBalanceKey(orderId: string, attempt: number): string {
   return `shop-balance-${orderId}-${Number.isInteger(attempt) && attempt >= 0 ? attempt : 0}`;
 }
 
 /** A card error that only the buyer can fix (declined, or the bank wants them to confirm): OWNER rule, the buyer pays. */
-export function isBuyerCardError(e: unknown): boolean {
+function isBuyerCardError(e: unknown): boolean {
   const err = e as { type?: string; code?: string; rawType?: string } | null;
   if (!err) return false;
   if (err.code === "authentication_required" || err.code === "card_declined" || err.code === "expired_card"

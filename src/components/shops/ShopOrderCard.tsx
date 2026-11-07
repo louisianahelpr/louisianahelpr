@@ -14,7 +14,8 @@ import { InlineTextButton } from "@/components/ui/InlineTextButton";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { MapPin } from "lucide-react";
 import { parseLocalDate } from "@/lib/dateUtils";
-import { cancelPolicyText, formatCents, orderStatusLabel, type ShopOrder } from "@/lib/shops/orders";
+import { cancelPolicyText, formatCents, orderStatusLabel, payOrderRest, type ShopOrder } from "@/lib/shops/orders";
+import { openExternalUrl } from "@/lib/openExternalUrl";
 import { fetchOrderPickupAddress, fetchOrderServiceAddress } from "@/lib/shops/pickupAddress";
 import { fetchOrderDeliveryAddress, fetchOrderHelprTask, formatDeliveryAddress, reportHelprNoShow } from "@/lib/shops/delivery";
 import { fetchTaskView } from "@/lib/helprTasks/api";
@@ -120,6 +121,51 @@ function DeliveryAddress({ orderId, side }: { orderId: string; side: "buyer" | "
   );
 }
 
+/**
+ * Custom orders (50% deposit, slice 2b): half is charged when the shop accepts, the rest on the ready date to the card
+ * saved at checkout. When that card did not take it (balance_failed_at), the buyer pays it here (shop-checkout
+ * pay_balance); the shop waits, and the order cannot be handed over until it is paid.
+ */
+function DepositRest({ order, side }: { order: ShopOrder; side: "buyer" | "shop" }) {
+  const [opening, setOpening] = useState(false);
+  const rest = order.balance_cents ?? null;
+  if (order.payment_plan !== "deposit_50" || rest === null || rest <= 0) return null;
+  if (order.status !== "accepted" && order.status !== "handed_over") return null;
+  const paid = !!order.balance_captured_at;
+  const owedNow = !paid && !!order.balance_failed_at && order.status === "accepted";
+  const pay = async () => {
+    setOpening(true);
+    try {
+      const url = await payOrderRest(order.id);
+      await openExternalUrl(url, () => setOpening(false));
+    } catch (err) {
+      toast.error(shopsErrorMessage(err));
+      setOpening(false);
+    }
+  };
+  return (
+    <div className="space-y-2 rounded-xl bg-muted/60 p-3 text-sm" data-testid="shop-order-deposit">
+      <p>
+        {side === "buyer" ? "Paid when the shop accepted" : "The buyer paid when you accepted"}: {formatCents(order.deposit_cents ?? 0)}.{" "}
+        {paid
+          ? `The rest, ${formatCents(rest)}, is paid.`
+          : owedNow
+            ? side === "buyer"
+              ? `The rest, ${formatCents(rest)}, didn't go through on your card. Pay it to get your order.`
+              : `The rest, ${formatCents(rest)}, didn't go through on the buyer's card. We asked them to pay it; hand over the order once it's paid.`
+            : side === "buyer"
+              ? `The rest, ${formatCents(rest)}, is charged to your card on the ready date.`
+              : `The rest, ${formatCents(rest)}, is charged to the buyer's card on the ready date.`}
+      </p>
+      {side === "buyer" && owedNow && (
+        <Button type="button" className="btn-grad-primary w-full" disabled={opening} onClick={() => void pay()}>
+          {opening ? "Opening…" : `Pay the rest (${formatCents(rest)})`}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function readyDateText(iso: string): string {
   return parseLocalDate(iso).toLocaleDateString(undefined, { weekday: "short", month: "long", day: "numeric" });
 }
@@ -185,6 +231,7 @@ export function ShopOrderCard({
         </p>
       )}
       {side === "shop" && byHelpr && order.status === "accepted" && !order.handed_over_at && <HelprPickup orderId={order.id} />}
+      <DepositRest order={order} side={side} />
       {/* Q1947: the chat with the other side, from the order (an order whose buyer deleted their account has none). */}
       {order.buyer_id && <ShopOrderMessageButton orderId={order.id} side={side} />}
       {/* Shops H9: after the handover, either side reviews the other once. */}

@@ -19,7 +19,7 @@ import { useDataExport } from "@/hooks/useDataExport";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrapMutation, mutationErrorMessage } from "@/lib/mutationResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { identityView, openIdentityCheck, type IdentityView } from "@/lib/identityCheck";
+import { identityView, openIdentityCheckOrSay, type IdentityView } from "@/lib/identityCheck";
 import { SHARE_JOB_PHOTOS_LABEL } from "@/lib/jobPhotosConsent";
 import { SoonPill } from "@/components/sections/SoonPill";
 import { PreviewPill } from "@/components/sections/PreviewPill";
@@ -231,7 +231,7 @@ export function SettingsTab({
         {/* Stripe Identity: the row says where a check stands, only once there is one to report.
             Settings never asks an unverified member (owner 2026-10-30). A test account has no check. */}
         {idOn && profile && profile.is_seed !== true && ["verified", "checking", "with_team"].includes(identityView(profile.idv_status)) && (
-          <Row testId="id" label="ID" sub={ID_ROW_SUB[identityView(profile.idv_status)]} onClick={() => openIdentityCheck("general")} />
+          <Row testId="id" label="ID" sub={ID_ROW_SUB[identityView(profile.idv_status)]} onClick={() => openIdentityCheckOrSay("general")} />
         )}
         {/* A3-I4: downloads here, through the same export as the Privacy policy's card (useDataExport), instead of opening the whole policy. */}
         <Row

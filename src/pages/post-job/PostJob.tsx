@@ -15,7 +15,7 @@ import { ShieldCheck } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { needsIdentityCheck, openIdentityCheck } from "@/lib/identityCheck";
+import { needsIdentityCheck, openIdentityCheckOrSay } from "@/lib/identityCheck";
 
 const PostJob = () => {
   usePageTitle("Post a job — Helpr");
@@ -99,7 +99,7 @@ const PostJob = () => {
           icon={ShieldCheck}
           title="Verify your ID to post"
           body="Stripe checks a photo ID and a selfie before you post a job. It takes about 2 minutes, and you only do it once."
-          action={<BarkPillButton onClick={() => openIdentityCheck("post")}>Verify my ID</BarkPillButton>}
+          action={<BarkPillButton onClick={() => openIdentityCheckOrSay("post")}>Verify my ID</BarkPillButton>}
         />
       ) : form.step === "entry" ? (
         <div className="space-y-section">

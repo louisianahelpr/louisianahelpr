@@ -54,7 +54,8 @@ vi.mock("@/lib/analytics", () => ({
   AhaEvent: { PayoutSetupStarted: "payout_setup_started", PayoutSetupCompleted: "payout_setup_completed" },
 }));
 const openIdentityCheckMock = vi.fn();
-vi.mock("@/lib/identityCheck", () => ({ openIdentityCheck: (...a: unknown[]) => openIdentityCheckMock(...a) }));
+// AwardGateDialog opens the sheet through openIdentityCheckOrSay (a sheet that cannot load is said, Q1816).
+vi.mock("@/lib/identityCheck", () => ({ openIdentityCheckOrSay: (...a: unknown[]) => openIdentityCheckMock(...a) }));
 const toastError = vi.fn();
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: (...a: unknown[]) => toastError(...a), success: vi.fn(), warning: vi.fn() }) }));
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn() }));

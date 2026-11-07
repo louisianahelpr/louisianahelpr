@@ -1,7 +1,7 @@
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { Button } from "@/components/ui/button";
 import { ShieldCheck } from "lucide-react";
-import { identityView, openIdentityCheck, type IdentityCheckReason } from "@/lib/identityCheck";
+import { identityView, openIdentityCheckOrSay, type IdentityCheckReason } from "@/lib/identityCheck";
 
 /** The prompt's line, honest about where the check stands (the sheet's states). */
 const LINE: Record<string, { title: string; body: string; cta: string | null }> = {
@@ -41,7 +41,7 @@ export function IdentityPromptCard({
   const view = identityView(idvStatus);
   if (!idOn || view === "verified") return null;
   const line = LINE[view];
-  const open = () => openIdentityCheck(reason);
+  const open = () => openIdentityCheckOrSay(reason);
   if (compact) {
     return (
       <div data-testid="identity-prompt-line" className="flex items-center gap-2 text-ds-13 text-foreground">

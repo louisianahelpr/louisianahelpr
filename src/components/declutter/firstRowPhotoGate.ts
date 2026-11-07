@@ -58,6 +58,14 @@ export function useLaterPhotosOpen(enabled: boolean): boolean {
   return !enabled || isOpen;
 }
 
+/**
+ * Whether the gate has opened (the first photos are in, or MAX_WAIT_MS passed), WITHOUT opening it: Browse holds a
+ * guest's full list read until then (Q2705, 11-07). Unlike useLaterPhotosOpen, asking never opens the gate.
+ */
+export function useFirstRowPhotosSettled(): boolean {
+  return useSyncExternalStore(subscribe, () => open, () => false);
+}
+
 /** Tests only: back to a fresh visit. */
 export function resetFirstRowPhotoGate() {
   pending = 0;

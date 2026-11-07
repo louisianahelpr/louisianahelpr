@@ -108,9 +108,9 @@ describe("the entry's /declutter first screen", () => {
     expect(await takeFirstScreenWatching("me")).toBeNull();
   });
 
-  it("does nothing signed out, on another page, or with a session near expiry, malformed or nameless", () => {
+  // Signed out (no session stored at all) now gets the guest reads instead: src/boot/guestDeclutterPrefetch.test.ts (Q2705).
+  it("does nothing on another page, or with a session near expiry, malformed or nameless", () => {
     const f = stubAnswer();
-    startDeclutterPrefetch("/declutter");
     localStorage.setItem("sb-x-auth-token", session(3600));
     startDeclutterPrefetch("/home");
     localStorage.setItem("sb-x-auth-token", session(10));

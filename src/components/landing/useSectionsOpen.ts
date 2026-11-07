@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { unwrap } from "@/lib/supabaseResult";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
 import { report } from "@/lib/errorLogger";
+import { takeGuestSectionsOpen } from "@/lib/declutter/guestBootPrefetch";
 
 /**
  * Which section switches are open to EVERYONE (owner, 2026-10-19: the landing
@@ -42,6 +43,10 @@ export function reportSectionsOpenFailureOnce(error: unknown): boolean {
 /** null = the RPC is not deployed yet: no answer (the landing reads it as empty, the Preview mark as unknown). */
 async function fetchSectionsOpen(): Promise<string[] | null> {
   try {
+    // Q2705: a guest's cold /declutter asked this from the entry (src/boot/guestDeclutterPrefetch.ts); taken once,
+    // before the Supabase chunk is even imported.
+    const fromBoot = await takeGuestSectionsOpen();
+    if (fromBoot) return fromBoot;
     const { supabase } = await import("@/integrations/supabase/client");
     const res = await supabase.rpc("features_open_to_everyone");
     if (isMissingRpcNamed(res.error, "features_open_to_everyone")) return null;

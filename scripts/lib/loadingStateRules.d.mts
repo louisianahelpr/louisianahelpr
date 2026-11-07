@@ -6,7 +6,7 @@ export declare function clusterKey(r: { persona: string; url: string }, i: numbe
 export declare function breaches(results: unknown[]): { key: string; kind: string; path?: string; delta?: number; detail: string }[];
 export declare function byDesignCovers(
   b: { key: string; kind: string; path?: string; delta?: number },
-  entries: { key: string; kind: string; path?: string; maxDeltaPx?: number }[],
+  entries: { key: string; kind: string; path?: string; maxDeltaPx?: number; growsBelow?: boolean }[],
 ): boolean;
 export declare function staleEntries(
   results: unknown[],

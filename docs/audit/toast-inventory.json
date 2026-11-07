@@ -10724,6 +10724,36 @@
       "renders": true
     },
     {
+      "file": "src/components/shops/ShopCustomRequestsList.tsx",
+      "line": 34,
+      "kind": "toast.success",
+      "title": {
+        "form": "dynamic",
+        "text": "side === \"buyer\" ? \"Request withdrawn.\" : \"Request declined. The buyer is told.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Request withdrawn."
+          },
+          {
+            "form": "literal",
+            "text": "Request declined. The buyer is told."
+          }
+        ]
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopCustomRequestsList.tsx",
+      "line": 35,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/shops/ShopDailyCap.tsx",
       "line": 33,
       "kind": "toast.success",
@@ -11195,7 +11225,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 56,
+      "line": 57,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11205,7 +11235,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 66,
+      "line": 67,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11215,7 +11245,7 @@
     },
     {
       "file": "src/components/shops/ShopMyOrdersView.tsx",
-      "line": 71,
+      "line": 72,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

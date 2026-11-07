@@ -44,6 +44,7 @@ const CONVERTED = [
   "src/pages/auth/signup/SignupStep2.tsx",
   "src/pages/auth/CompleteProfile.tsx",
   "src/pages/auth/completeProfile/CompleteProfileIntro.tsx",
+  "src/pages/auth/completeProfile/saveCompletedProfile.ts", // CompleteProfile's save path (Q806)
   "src/components/profile/DeleteAccountDialog.tsx",
   "src/components/profile/DeleteAccountReauth.tsx",
   "src/pages/jobs/JobsSection.tsx",
@@ -58,8 +59,8 @@ const CONVERTED = [
 const ALLOWED: Record<string, string[]> = {
   // Report tags and a thrown Error the member never reads (userFacingError shows the t() fallback).
   "src/pages/auth/Signup.tsx": ["Account creation failed", "Signup.completeProfile", "Signup.createAccountAndFinish"],
-  // A report tag.
-  "src/pages/auth/CompleteProfile.tsx": ["CompleteProfile.legalAcceptances"],
+  // A report tag (CompleteProfile's save path, moved out of CompleteProfile.tsx, Q806).
+  "src/pages/auth/completeProfile/saveCompletedProfile.ts": ["CompleteProfile.legalAcceptances"],
   // Keyboard key names (e.key / getModifierState), not words.
   "src/pages/auth/signup/SignupStep1.tsx": ["CapsLock", "Enter", "Enter", "Enter", "Enter"],
   // English config names (tests and the @mutate lines read them); the member sees each tab's labelKey and

@@ -104,7 +104,7 @@ describe("Terms re-acceptance after the 2026-09-23 Terms change (Q210(d))", () =
   it("acceptances record the Privacy version, not the Terms version (Q289)", () => {
     const edge = /export const LEGAL_PRIVACY_VERSION = "([^"]+)";/.exec(read("supabase/functions/_shared/legalVersions.ts"))?.[1];
     expect(LATEST_PRIVACY_VERSION).toBe(edge);
-    for (const f of ["src/components/TermsReconsentDialog.tsx", "src/pages/auth/CompleteProfile.tsx"]) {
+    for (const f of ["src/components/TermsReconsentDialog.tsx", "src/pages/auth/completeProfile/saveCompletedProfile.ts"]) {
       const src = blankComments(read(f));
       expect(src, f).toMatch(/privacy_version: LATEST_PRIVACY_VERSION,/);
       expect(src, f).not.toMatch(/privacy_version: LATEST_TERMS_VERSION/);

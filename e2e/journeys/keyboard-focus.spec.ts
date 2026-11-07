@@ -227,7 +227,15 @@ test(authedTitle, async ({ browser, request, journey }) => {
       )
       .catch(() => null);
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("button", { name: "Back to conversations" })).toBeVisible({ timeout: 30_000 });
+    // The thread is open when the URL names it. "Back to conversations" exists only in the one-pane layout: on a wide
+    // web desktop the list and the chat sit side by side (board 38, useMessagesTwoPane) with no back control, and the
+    // desktop-1440 rotation timed out waiting for it with the thread already open (e2e-journeys 42221289461, URL
+    // /messages?chat=...&with=...).
+    await expect(page).toHaveURL(/[?&]chat=/, { timeout: 30_000 });
+    // One pane: the chat with its back control. Two panes: the inbox (its search box) stays beside the chat.
+    await expect(
+      page.getByRole("button", { name: "Back to conversations" }).or(page.getByRole("searchbox", { name: "Search conversations" })).first(),
+    ).toBeVisible({ timeout: 30_000 });
     const markReadReq = await markRead;
     if (markReadReq) await markReadReq.response();
     await expect.poll(() => focusDescription(page), { timeout: 5_000 }).not.toBe("body");

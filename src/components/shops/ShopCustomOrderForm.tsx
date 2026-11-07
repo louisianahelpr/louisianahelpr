@@ -119,10 +119,10 @@ export default function ShopCustomOrderForm({ request, onDone }: { request: Cust
       </div>
       <p className="text-xs text-muted-foreground">{CUSTOM_ORDER_PAY_TEXT[request.payment_plan]}</p>
       <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" disabled={opening} onClick={onDone}>Cancel</Button>
         <Button type="button" className="btn-grad-primary" disabled={!canSend} onClick={() => void send()}>
           {opening ? "Opening the payment page…" : "Go to payment"}
         </Button>
-        <Button type="button" variant="outline" disabled={opening} onClick={onDone}>Cancel</Button>
       </div>
     </div>
   );

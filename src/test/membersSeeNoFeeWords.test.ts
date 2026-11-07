@@ -144,9 +144,17 @@ export function allHits(): string[] {
  * Exact both ways: remove an entry when its literal goes; never add member
  * copy here (say what they get or pay).
  */
+/**
+ * Owner 11-07 ~5:10 PM (after reviewing Vinted's flow): "SHOW THE FEE like Vinted, for Declutter only." Cards and the
+ * item page show "$3.85 incl. fee" (no fee word this guard matches) and the checkout summary has a "Service fee $0.85"
+ * line with an info tip. It replaces the 10-25 rule for DECLUTTER ONLY: an entry citing it must be a Declutter file
+ * (the scope test below), so Jobs, Shops and Homes still cannot show fee words.
+ */
+const OWNER_1107_DECLUTTER_FEE = "owner 2026-11-07 ~5:10 PM (Vinted review): Declutter shows its service fee, Declutter only";
 // @two-way src/test/membersSeeNoFeeWords.test.ts:the allowlist is exact: no entry nobody hits any more
 export const MEMBER_FEE_COPY_ALLOWED: Record<string, string> = {
-  "src/components/declutter/DeclutterTradeViews.tsx::Includes a small Louisiana Helpr service fee.": "owner decision 2026-10-28 (#20, \"Words only\"): the checkout total says it includes a service fee, with no name of a rate and no number",
+  "src/components/declutter/DeclutterCheckoutSummary.tsx::Service fee": `${OWNER_1107_DECLUTTER_FEE}: the checkout summary's "Service fee" line with its amount and an info tip`,
+  "src/components/declutter/DeclutterCheckoutSummary.tsx::It keeps Declutter running and pays for card processing. You pay it once per checkout, however many items you buy from this seller.": `${OWNER_1107_DECLUTTER_FEE}: the info tip on the checkout summary's "Service fee" line`,
   "src/pages/profile/Receipts.tsx::Includes a small Louisiana Helpr service fee.": "owner decision 2026-10-28 (#20, \"Words only\"; DB-13, audit 2026-10-30): a Declutter receipt's total says it includes the same service fee the checkout total said, with no name of a rate and no number",
   "src/components/TipCostBreakdown.tsx::Includes a small Louisiana Helpr service fee.": "owner decision 2026-10-28 (#20, \"Words only\"; F30, lead): the tip's You pay total says it includes a service fee, with no name of a rate and no number",
   "src/components/reviewPanel/ReviewForm.tsx::Your Helpr gets the whole tip. Includes a small Louisiana Helpr service fee. Most people tip 10–15% for great work.": "owner decision 2026-10-28 (#20, \"Words only\"; F30, lead): the tip prompt says a service fee is included, with no number (10–15% is a tip suggestion, not a fee)",
@@ -260,6 +268,13 @@ describe("members see no fee words (owner 2026-10-25)", () => {
   it("every literal that names a fee is admin, staff, paused or dormant text with a reason", () => {
     const unlisted = hits.filter((h) => !allowed.has(h));
     expect(unlisted, `member copy names a fee: say what they get or pay instead (or, for staff text, add it to the allowlist with why)`).toEqual([]);
+  });
+
+  it("owner 11-07: the Declutter fee allowance is used only by Declutter files", () => {
+    const scoped = Object.entries(MEMBER_FEE_COPY_ALLOWED).filter(([, why]) => why.startsWith(OWNER_1107_DECLUTTER_FEE));
+    expect(scoped.length).toBeGreaterThan(0);
+    const outside = scoped.map(([k]) => k.split("::")[0]).filter((f) => !f.startsWith("src/components/declutter/"));
+    expect(outside, "the 11-07 fee allowance is for Declutter only").toEqual([]);
   });
 
   it("the allowlist is exact: no entry nobody hits any more", () => {

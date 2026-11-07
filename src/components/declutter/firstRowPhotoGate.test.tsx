@@ -4,7 +4,7 @@
  * 26 KB. A later card asks for its photo only once every first-row photo has loaded or failed, or MAX_WAIT_MS passed;
  * with no first-row photo in flight it asks at once.
  *
- * @mutate src/components/declutter/DeclutterItemCard.tsx | {photoPath && photoStage !== "failed" && (firstRow \|\| laterOpen) && ( | {photoPath && photoStage !== "failed" && (
+ * @mutate src/components/declutter/DeclutterItemCard.tsx | {photoPath && photoStage !== "failed" && (early \|\| laterOpen) && ( | {photoPath && photoStage !== "failed" && (
  * @mutate src/components/declutter/firstRowPhotoGate.ts |     if (pending <= 0) openGate();\n  }; |   };
  * @mutate src/components/declutter/firstRowPhotoGate.ts |   if (!timer) timer = setTimeout(openGate, MAX_WAIT_MS); |
  * @mutate src/components/declutter/firstRowPhotoGate.ts |       if (pending <= 0) openGate();\n    }, 0); |     }, 0);

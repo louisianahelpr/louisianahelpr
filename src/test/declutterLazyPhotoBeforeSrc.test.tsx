@@ -13,7 +13,7 @@
  * Two checks: the rendered Browse card <img> carries `loading` before `src` (lazy and eager); and every JSX <img>
  * in src/ that passes `loading` passes it before `src`.
  *
- * @mutate src/components/declutter/DeclutterItemCard.tsx | {...(firstRow ? FIRST_ROW_PHOTO : LATER_PHOTO)}\n            src={photoStage === "card" ? photoCardUrl(photoPath) : photoPublicUrl(photoPath)} | src={photoStage === "card" ? photoCardUrl(photoPath) : photoPublicUrl(photoPath)}\n            {...(firstRow ? FIRST_ROW_PHOTO : LATER_PHOTO)}
+ * @mutate src/components/declutter/DeclutterItemCard.tsx | {...(firstRow ? FIRST_ROW_PHOTO : aboveFold ? ABOVE_FOLD_PHOTO : LATER_PHOTO)}\n            src={photoStage === "card" ? photoCardUrl(photoPath) : photoPublicUrl(photoPath)} | src={photoStage === "card" ? photoCardUrl(photoPath) : photoPublicUrl(photoPath)}\n            {...(firstRow ? FIRST_ROW_PHOTO : aboveFold ? ABOVE_FOLD_PHOTO : LATER_PHOTO)}
  * @mutate src/components/ui/optimized-image.tsx |         loading={resolvedLoading}\n        ref={ref}\n        src={finalSrc} |         ref={ref}\n        src={finalSrc}\n        loading={resolvedLoading}
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";

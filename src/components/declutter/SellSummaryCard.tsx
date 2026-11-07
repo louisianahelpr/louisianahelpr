@@ -14,6 +14,7 @@ import { ChipGroup } from "./DeclutterSellSteps";
 import PriceHint from "./DeclutterPriceHint";
 import { AiPriceLine } from "./SellAiDraft";
 import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
+import { CategoryDrillDown } from "./CategoryDrillDown";
 import { FieldLabel, SELL_INPUT, SellPriceInput } from "./SellFormParts";
 import type { SellFlow } from "./useSellFlowState";
 import { Textarea } from "@/components/ui/textarea";
@@ -48,10 +49,11 @@ function Row({ field, title, value, empty, open, onToggle, busy, children, extra
 }) {
   const verb = open ? "Done" : empty ? "Add" : "Edit";
   // Opening a row puts the cursor in it (audit posting 1030 #8): Edit, tap the box, type, Done was one tap too many.
+  // Not the category search box (11-07): a phone keyboard would cover the headings the seller came to tap.
   const li = useRef<HTMLLIElement>(null);
   useEffect(() => {
     if (!open) return;
-    li.current?.querySelector<HTMLElement>("input:not([type=checkbox]), textarea, [role=radio][aria-checked=true]")?.focus();
+    li.current?.querySelector<HTMLElement>("input:not([type=checkbox]):not([type=search]), textarea, [role=radio][aria-checked=true]")?.focus();
   }, [open]);
   return (
     <li ref={li} className="space-y-3 px-4 py-3.5" data-summary-row={field} data-sell-row={field}>
@@ -123,7 +125,7 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems, setti
           {!form.free && <SellPriceInput s={s} />}
         </Row>
         <Row {...row("category")} title="Category" value={CATEGORY_LABEL[form.category] ?? form.category} empty={false}>
-          <ChipGroup label="Category" options={Object.entries(CATEGORY_LABEL).map(([k, v]) => ({ value: k, label: v }))} groups={CATEGORY_GROUPS} value={form.category} onChange={(v) => set("category", v)} />
+          <CategoryDrillDown label="Category" groups={CATEGORY_GROUPS} value={form.category} onChange={(v) => { set("category", v); setOpen(() => null); }} />
           {/* I1 (Q1836 a): "Other" always works; this sends a missing category to the admin queue (hidden switch suggest_category). */}
           <SuggestCategory area="declutter" />
         </Row>

@@ -32,6 +32,7 @@ import { ChipGroup, LISTING_LIFETIME, LISTING_LIFETIME_KEEP_UP, ReviewRow, StepH
 import { KeepUpSwitch } from "./KeepUpRow";
 import { AutoFreeRow } from "./AutoFreeRow";
 import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, DeclutterNotice, SIZE_LABEL } from "./declutterUi";
+import { CategoryDrillDown } from "./CategoryDrillDown";
 import { DECLUTTER_MIN_PHOTOS, photosWord } from "@/lib/declutter/photoRules";
 import { pickupWindowsProblem } from "./DeclutterPickupTimes";
 import PriceHint from "./DeclutterPriceHint";
@@ -140,7 +141,7 @@ function SellSteps({ itemId }: { itemId: string }) {
             <FieldLabel htmlFor="sell-title" text="Title" />
             <Input look="card" id="sell-title" maxLength={80} value={form.title} onChange={(e) => set("title", e.target.value)} placeholder="e.g. Oak rocking chair" />
           </div>
-          <ChipGroup label="Category" options={Object.entries(CATEGORY_LABEL).map(([k, v]) => ({ value: k, label: v }))} groups={CATEGORY_GROUPS} value={form.category} onChange={(v) => set("category", v)} />
+          <CategoryDrillDown label="Category" groups={CATEGORY_GROUPS} value={form.category} onChange={(v) => set("category", v)} />
           {/* I1 (Q1836 a): same link as the one-screen form (SellSummaryCard). */}
           <SuggestCategory area="declutter" />
           <ChipGroup label="Condition" options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: CONDITION_LABEL[n] }))} value={String(form.conditionStars)} onChange={(v) => set("conditionStars", Number(v))} />

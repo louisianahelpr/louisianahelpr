@@ -198,7 +198,7 @@ describe("all red overnight checks are ONE OPEN.md item", () => {
     const md = readFileSync(join(ROOT, "docs/OPEN.md"), "utf8");
     const snap = JSON.parse(readFileSync(join(ROOT, SNAPSHOT), "utf8")) as Snap;
     const items = queueItems(md);
-    expect(items.length).toBeGreaterThan(100);
+    expect(items.length).toBeGreaterThan(0); // 100 -> 0 on 2026-11-07: the owner's tick sweep left 32 open items
     const robotItems = items.filter((it) => it.state !== "x" && isRobotsItem(it.text));
     expect(robotItems.length).toBeLessThanOrEqual(1);
     const robotKeys = robotSourceKeys(snap);

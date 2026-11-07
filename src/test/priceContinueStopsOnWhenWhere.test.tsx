@@ -33,11 +33,15 @@ import type { usePostJobForm } from "@/pages/post-job/usePostJobForm";
 if (!Element.prototype.scrollTo) Element.prototype.scrollTo = function scrollTo() {};
 afterEach(cleanup);
 
+// A day 30 days ahead, so the fixture's 9:00 AM is never in the past (a fixed 2026-11-07 went red on that day).
+const AHEAD = new Date(Date.now() + 30 * 86_400_000);
+const DAY_AHEAD = `${AHEAD.getFullYear()}-${String(AHEAD.getMonth() + 1).padStart(2, "0")}-${String(AHEAD.getDate()).padStart(2, "0")}`;
+
 // Every screen complete, the way the AI path, a Repost or a template leaves it: a day, a time, an address.
 const FIELDS = {
   category: "yard_work", title: "Mow the front lawn", description: "Mow and edge the front lawn, bag the clippings.",
   budget: "100", isUrgent: false, urgentFee: "0", onboardingFeePaid: true, onboardingFeeCents: 0,
-  streetAddress: "1 Main St", city: "Houma", addrState: "LA", zipCode: "70360", dateNeeded: "2026-11-07", parish: "Terrebonne",
+  streetAddress: "1 Main St", city: "Houma", addrState: "LA", zipCode: "70360", dateNeeded: DAY_AHEAD, parish: "Terrebonne",
   startTime: "09:00", isFlexibleSchedule: false,
 };
 

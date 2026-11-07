@@ -651,7 +651,9 @@ export function useJobSubmit(params: UseJobSubmitParams) {
         recurrenceDays,
         recurrenceWeeks,
         seriesSplitOk,
-        isGroupJob,
+        // Q2081: a job posted from a tenant's repair request is never a crew job, even
+        // from a draft that carried Group (link_maintenance_request_job refuses one).
+        isGroupJob: isGroupJob && !maintenanceRequestId,
         helpersNeeded,
         isUrgent,
         urgentFee,

@@ -57,14 +57,13 @@ const JOB_TYPE_OPTIONS: SegmentedOption<"once" | "recurring" | "group">[] = [
   ...(GROUP_JOBS_ENABLED ? ([{ value: "group", label: "Group" }] as const) : []),
 ];
 
+/** Q2081 (lead 11-06): a job posted from a tenant's repair request is never a crew
+ *  job, so Group is left out of the choice there. */
+const JOB_TYPE_OPTIONS_NO_CREW = JOB_TYPE_OPTIONS.filter((o) => o.value !== "group");
+
 // Tailwind needs the whole class name as a literal to emit it, so these are
 // spelled out rather than built as `grid-cols-${n}`.
-const JOB_TYPE_COLS =
-  1 + (RECURRING_ENABLED ? 1 : 0) + (GROUP_JOBS_ENABLED ? 1 : 0) === 3
-    ? "grid-cols-3"
-    : 1 + (RECURRING_ENABLED ? 1 : 0) + (GROUP_JOBS_ENABLED ? 1 : 0) === 2
-      ? "grid-cols-2"
-      : "grid-cols-1";
+const jobTypeCols = (n: number) => (n === 3 ? "grid-cols-3" : n === 2 ? "grid-cols-2" : "grid-cols-1");
 
 
 interface LogisticsSectionProps {
@@ -110,6 +109,8 @@ interface LogisticsSectionProps {
   setSeriesSplitOk: (v: boolean) => void;
   isGroupJob: boolean;
   setIsGroupJob: (v: boolean) => void;
+  /** Q2081: false on a post opened from a tenant's repair request (`?maintenance=`): no Group. */
+  crewAllowed?: boolean;
   helpersNeeded: string;
   setHelpersNeeded: (v: string) => void;
   budgetNum: number;
@@ -166,8 +167,9 @@ export function LogisticsSection({
   setRecurrenceWeeks,
   seriesSplitOk,
   setSeriesSplitOk,
-  isGroupJob,
+  isGroupJob: isGroupJobProp,
   setIsGroupJob,
+  crewAllowed = true,
   helpersNeeded,
   setHelpersNeeded,
   budgetNum,
@@ -221,6 +223,9 @@ export function LogisticsSection({
   // Any time of day, so it rides on the flexible start (the time stays optional). Not for a repeating job.
   // Lead review 11-04: a single job only. A crew shares one day and a quote keeps its agreed day
   // (jobs_date_window_single_job_only refuses the window on either).
+  // Q2081: on a repair-request post a draft's Group reads as One-time everywhere below.
+  const isGroupJob = crewAllowed && isGroupJobProp;
+  const jobTypeOptions = crewAllowed ? JOB_TYPE_OPTIONS : JOB_TYPE_OPTIONS_NO_CREW;
   const windowOk = !isRecurring && windowAllowed && !(GROUP_JOBS_ENABLED && isGroupJob);
   const weekWindow = windowOk && !!dateWindowEnd;
   const chooseWeek = () => {
@@ -319,8 +324,8 @@ export function LogisticsSection({
         <SegmentedControl
           ariaLabel="Job type"
           layout="grid"
-          gridClassName={JOB_TYPE_COLS}
-          options={JOB_TYPE_OPTIONS}
+          gridClassName={jobTypeCols(jobTypeOptions.length)}
+          options={jobTypeOptions}
           value={
             isRecurring ? "recurring" : GROUP_JOBS_ENABLED && isGroupJob ? "group" : "once"
           }

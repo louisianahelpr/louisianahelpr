@@ -87,7 +87,7 @@ const SINGLE_HELPER_ONLY: Record<string, string> = {
   rpc_admin_end_recurring_series: "reads helper_id only to REFUSE an admin who worked the series (admin_is_party); it grants nothing, and a recurring series is a one-Helpr booking",
   nudge_confirm: "one-Helpr booking by design (owner 2026-10-08): a crew's members confirm on their roster rows (rpc_group_member_confirm)",
   record_backout_notice: "returns at once for a group job (crew back-outs have their own notices, Q1409)",
-  rentals_propose_visit: "Rentals S3 (20261017221621): only the job's single CONFIRMED Helpr may offer a visit time; a crew member is refused (job_not_found), never granted. A crew job linked to a maintenance request offers no visit time yet (Q2081)",
+  rentals_propose_visit: "Rentals S3 (20261017221621): only the job's single CONFIRMED Helpr may offer a visit time; a crew member is refused (job_not_found), never granted. No crew job is ever linked to a maintenance request: link_maintenance_request_job refuses a group job (Q2081, 20261107031822)",
   rentals_visit_for_job: "Rentals S3: reads the visit for the single confirmed Helpr or the poster; a crew member gets no rows, never another member's access",
   rpc_answer_refund_request: "Board 141 (20261021102943): reads helper_id only to check the request's Helpr is still the job's Helpr; refund requests refuse a crew job outright (refund_request_assert_job_open: refund_request_crew_job), so a crew member is never granted anything",
   get_closed_application_job_labels: "JOBS-12 (20261031021424): keys on applications.helper_id, the caller's OWN application, never jobs.helper_id; returns only the title and date of a job the caller applied to, so a crew member reads their own applications and is granted nothing else",

@@ -41,8 +41,8 @@
 // @mutate supabase/migrations/20261103150842_q2390_returns_withdraw_fee_waiver_visit_lease_not_found_is_404.sql |   IF v_last IS NULL OR v_was_ok OR v_other_job OR | IF v_last IS NULL OR
 // @mutate supabase/migrations/20261106223223_rentals_admin_alert_failure_logged.sql | a test landlord never pages a real admin (Q137).\n         AND NOT public.notification_crosses_seed_boundary(ur.user_id, NULL, NULL, v_uid); | a test landlord never pages a real admin (Q137).\n         ;
 // @mutate supabase/migrations/20261030221720_support_ticket_alert_closes_itself.sql |                     WHERE rp.ownership_status = 'pending_review' AND p.is_seed IS NOT TRUE); |                     WHERE rp.ownership_status = 'pending_review');
-// @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                        AND (cur.stripe_session_id IS NULL OR cur.payment_status = 'abandoned'))) |                        )) 
-// @mutate supabase/migrations/20261017220911_rentals_link_one_live_job.sql |                    OR (cur.status = 'cancelled' |                    OR (true
+// @mutate supabase/migrations/20261107031822_rentals_no_crew_job_from_repair.sql |                        AND (cur.stripe_session_id IS NULL OR cur.payment_status = 'abandoned'))) |                        )) 
+// @mutate supabase/migrations/20261107031822_rentals_no_crew_job_from_repair.sql |                    OR (cur.status = 'cancelled' |                    OR (true
 // @mutate supabase/migrations/20261103103000_refund_mode_rent_waive_payout_deny_repair_cancel_not_found_is_404.sql | AND COALESCE(j.payment_status, 'unpaid') IN ('unpaid', 'failed', 'abandoned')\n     AND (j.stripe_session_id IS NULL OR j.payment_status = 'abandoned')\n   FOR UPDATE; | FOR UPDATE;
 // @mutate supabase/migrations/20261019062540_rentals_public_link_takedown.sql |     IF v_photos < 5 THEN |     IF v_photos < 0 THEN
 // @mutate supabase/migrations/20261019061241_rentals_sale_listings.sql | REVOKE ALL ON FUNCTION public.rentals_listing_visible(uuid) FROM PUBLIC, anon, authenticated; | REVOKE ALL ON FUNCTION public.rentals_listing_visible(uuid) FROM PUBLIC, anon;

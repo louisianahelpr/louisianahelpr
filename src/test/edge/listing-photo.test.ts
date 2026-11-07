@@ -238,6 +238,69 @@ describe("listing-photo handler", () => {
     expect((rateLimitCalls[0] as { ipMaxRequests?: number }).ipMaxRequests).toBeGreaterThan(rateLimitCalls[0].maxRequests ?? 0);
   });
 
+  // Q2217: one lookup per photo per 5 minutes per isolate (lead 2026-11-06: 5 min, not an hour, so a take-down
+  // stops showing within minutes), never past the ref's expiry, and a refusal is never cached.
+  // @mutate supabase/functions/listing-photo/index.ts | let path = cachedPath(ref, now); | let path: string \| null = null;
+  // @mutate supabase/functions/listing-photo/index.ts | const LOOKUP_TTL_MS = 5 * 60_000; | const LOOKUP_TTL_MS = 60 * 60_000;
+  // @mutate supabase/functions/listing-photo/index.ts | Math.min(now + LOOKUP_TTL_MS, Number(ref.split(".")[2]) * 1000) | now + LOOKUP_TTL_MS
+  describe("Q2217: the ref lookup cache", () => {
+    const EXP_MS = Number(REF.split(".")[2]) * 1000;
+    const lookups = () => (scenario.rpcCalls ?? []).filter((c) => c.name === "rentals_listing_photo_object").length;
+
+    it("a browse page of 30 loads of one photo makes one lookup; a second photo gets its own", async () => {
+      const clock = vi.spyOn(Date, "now").mockReturnValue(EXP_MS - 3_600_000);
+      scenario.rpc.rentals_listing_photo_object = PATH;
+      storage(() => jpegResponse(REAL));
+      const fn = await load();
+      for (let i = 0; i < 30; i++) expect((await get(fn, `r=${REF}`)).status).toBe(200);
+      expect(lookups()).toBe(1);
+      expect(calls).toHaveLength(30); // the image itself is still rendered per fetch
+      const other = REF.replace("11111111-", "22222222-");
+      expect((await get(fn, `r=${other}`)).status).toBe(200);
+      expect(lookups()).toBe(2);
+      clock.mockRestore();
+    });
+
+    it("looks the ref up again after 5 minutes, so a take-down stops showing within minutes", async () => {
+      const t0 = EXP_MS - 3_600_000;
+      const clock = vi.spyOn(Date, "now").mockReturnValue(t0);
+      scenario.rpc.rentals_listing_photo_object = PATH;
+      storage(() => jpegResponse(REAL));
+      const fn = await load();
+      await get(fn, `r=${REF}`);
+      clock.mockReturnValue(t0 + 5 * 60_000 - 1);
+      await get(fn, `r=${REF}`);
+      expect(lookups()).toBe(1);
+      clock.mockReturnValue(t0 + 5 * 60_000);
+      scenario.rpc.rentals_listing_photo_object = null; // taken down meanwhile
+      expect((await get(fn, `r=${REF}`)).status).toBe(404);
+      expect(lookups()).toBe(2);
+      clock.mockRestore();
+    });
+
+    it("never keeps a ref past its own expiry", async () => {
+      const clock = vi.spyOn(Date, "now").mockReturnValue(EXP_MS - 60_000);
+      scenario.rpc.rentals_listing_photo_object = PATH;
+      storage(() => jpegResponse(REAL));
+      const fn = await load();
+      await get(fn, `r=${REF}`);
+      clock.mockReturnValue(EXP_MS);
+      await get(fn, `r=${REF}`);
+      expect(lookups()).toBe(2);
+      clock.mockRestore();
+    });
+
+    it("a refused ref is looked up every time (a refusal is never cached)", async () => {
+      const clock = vi.spyOn(Date, "now").mockReturnValue(EXP_MS - 3_600_000);
+      scenario.rpc.rentals_listing_photo_object = null;
+      storage(() => jpegResponse(REAL));
+      const fn = await load();
+      for (let i = 0; i < 3; i++) expect((await get(fn, `r=${REF}`)).status).toBe(404);
+      expect(lookups()).toBe(3);
+      clock.mockRestore();
+    });
+  });
+
   it("answers only GET and HEAD", async () => {
     const fn = await load();
     expect((await fn.fetch(fn.request({ method: "POST", url: `https://edge.test/listing-photo?r=${REF}` }))).status).toBe(405);

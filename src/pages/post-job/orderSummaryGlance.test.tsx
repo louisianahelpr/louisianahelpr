@@ -1,4 +1,4 @@
-// @mutate src/components/postjob/CheckoutStep.tsx | className="flex-1 text-ds-13 text-foreground leading-relaxed line-clamp-3 text-right" | className="flex-1 text-ds-13 text-foreground leading-relaxed line-clamp-3"
+// @mutate src/components/postjob/CheckoutGlanceCard.tsx | className="flex-1 text-ds-13 text-foreground leading-relaxed line-clamp-3 text-right" | className="flex-1 text-ds-13 text-foreground leading-relaxed line-clamp-3"
 /**
  * Owner, 2026-10-01, on the Post a job "Order Summary" (review) screen:
  * "Remove detail and review and pay at the top. Category should be seperate

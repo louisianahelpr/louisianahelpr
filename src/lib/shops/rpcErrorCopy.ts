@@ -413,6 +413,21 @@ export const SHOPS_RPC_ERROR_COPY = {
     shop_strikes_blocked: SC.shop_strikes_blocked,
     under_18: SC.under_18,
   },
+  // Custom orders (20261106202917): a buyer's ask (ShopCustomRequestSheet).
+  shops_send_custom_request: {
+    account_restricted: SC.account_restricted,
+    custom_orders_off: SC.custom_orders_off,
+    feature_disabled: SC.feature_disabled,
+    invalid_description: SC.invalid_description,
+    invalid_wanted_date: SC.invalid_wanted_date,
+    not_authenticated: SC.not_authenticated,
+    own_shop: SC.own_shop,
+    shop_not_found: SC.shop_not_found,
+    shop_paused: SC.shop_paused,
+    shop_strikes_blocked: SC.shop_strikes_blocked,
+    too_many_custom_requests: SC.too_many_custom_requests,
+    under_18: SC.under_18_to_order,
+  },
   // Custom orders (20261106202917): the shop's setting.
   shops_set_custom_orders: {
     account_restricted: SC.account_restricted,

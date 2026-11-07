@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1193,
-    "files": 341,
-    "rendering": 1112,
+    "calls": 1195,
+    "files": 344,
+    "rendering": 1114,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
       "toast": 232,
-      "toast.error": 805,
+      "toast.error": 807,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 497,
       "template": 107,
-      "dynamic": 641,
+      "dynamic": 643,
       "jsx": 0
     }
   },
@@ -4694,7 +4694,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 116,
+      "line": 120,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4704,7 +4704,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 119,
+      "line": 123,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4714,7 +4714,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 204,
+      "line": 208,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4724,7 +4724,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 207,
+      "line": 211,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4734,7 +4734,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 346,
+      "line": 350,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4744,7 +4744,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterFreeClaim.tsx",
-      "line": 352,
+      "line": 356,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -6372,7 +6372,7 @@
     },
     {
       "file": "src/components/declutter/FreeAskSheet.tsx",
-      "line": 68,
+      "line": 72,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -6382,7 +6382,7 @@
     },
     {
       "file": "src/components/declutter/FreeAskSheet.tsx",
-      "line": 72,
+      "line": 76,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10255,7 +10255,7 @@
     },
     {
       "file": "src/components/rentals/listings/RentBrowse.tsx",
-      "line": 145,
+      "line": 146,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12216,6 +12216,26 @@
       "renders": true
     },
     {
+      "file": "src/lib/identityCheck.ts",
+      "line": 59,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "IDENTITY_SHEET_UNAVAILABLE"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/lib/identityCheck.ts",
+      "line": 88,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "IDENTITY_SHEET_UNAVAILABLE"
+      },
+      "renders": true
+    },
+    {
       "file": "src/lib/nativePush.ts",
       "line": 332,
       "kind": "toast",
@@ -12458,17 +12478,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 182,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "t(problem, { label })"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 274,
+      "line": 211,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12478,17 +12488,7 @@
     },
     {
       "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 378,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "t(\"photo.staleAvatar\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/auth/CompleteProfile.tsx",
-      "line": 434,
+      "line": 242,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12723,6 +12723,26 @@
       "title": {
         "form": "literal",
         "text": "Too many requests — try again in a minute."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/completeProfile/CompleteProfileAvatar.tsx",
+      "line": 37,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "t(problem, { label })"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/auth/completeProfile/saveCompletedProfile.ts",
+      "line": 132,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "t(\"photo.staleAvatar\")"
       },
       "renders": true
     },

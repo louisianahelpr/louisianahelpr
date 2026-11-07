@@ -121,6 +121,13 @@ export interface ShopOrder {
   fulfillment?: "pickup" | "shop_delivers";
   delivery_cents?: number;
   handed_over_at: string | null;
+  /** Custom orders (20261106212437/20261106221300): half when the shop accepts, the rest from the ready date. */
+  payment_plan?: "full_hold" | "deposit_50";
+  deposit_cents?: number | null;
+  balance_cents?: number | null;
+  balance_captured_at?: string | null;
+  /** The saved card did not take the rest (or none was saved): the buyer pays it from the order. */
+  balance_failed_at?: string | null;
   shop_order_lines: OrderLine[];
   /** The shop's name (buyer list only); null once the shop is gone or hidden from the buyer. */
   shops?: { name: string } | null;
@@ -141,6 +148,7 @@ export interface OrderTerms {
 const ORDER_COLUMNS =
   "id, buyer_id, seller_id, shop_id, status, close_reason, ready_date, cancel_policy, ready_tap_cancel, note, decline_reason, items_cents, " +
   "premium_cents, tax_cents, total_cents, created_at, held_at, accept_by, accepted_at, captured_at, closed_at, handover_mode, fulfillment, delivery_cents, handed_over_at, " +
+  "payment_plan, deposit_cents, balance_cents, balance_captured_at, balance_failed_at, " +
   "shop_order_lines (id, item_id, title, kind, unit_cents, quantity, line_cents, at_buyer)";
 
 /** The member's orders as a buyer (newest first); a page that was never paid is not an order to show. */
@@ -247,6 +255,13 @@ export async function requestOrder(args: {
 export async function chargeOrderRest(orderId: string): Promise<{ paid: boolean; waitingOnBuyer: boolean }> {
   const data = await invokeShopCheckout({ action: "charge_rest", order_id: orderId });
   return { paid: data.paid === true, waitingOnBuyer: data.waiting_on_buyer === true };
+}
+
+/** Custom orders (50% deposit): the buyer's page for the rest (the Stripe page's URL). */
+export async function payOrderRest(orderId: string): Promise<string> {
+  const data = await invokeShopCheckout({ action: "pay_balance", order_id: orderId });
+  if (typeof data.url !== "string" || !data.url) throw new Error("payment_unavailable");
+  return data.url;
 }
 
 /** The shop accepts: the hold is charged. charged=false means the charge finishes within minutes. */

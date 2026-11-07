@@ -243,6 +243,8 @@ const SHOP_CHECKOUT_COPY: Record<string, string> = {
   hold_lost: "The buyer's card could not be charged, so this order is cancelled. Don't make it; nothing was charged.",
   payment_unavailable: "Payments aren't available right now. Nothing was charged. Please try again in a few minutes.",
   invalid_action: "That action isn't available. Reload the page and try again.",
+  // Custom orders (50% deposit): the buyer's page for the rest.
+  nothing_owed: "Nothing more is owed on this order.",
   // Delivery (shop-checkout geocodes the drop-off address before the order freezes).
   invalid_address: "Enter the street, city and 5-digit ZIP code to deliver to.",
   address_not_found: "We couldn't find that address. Check the street, city and ZIP code.",

@@ -8,7 +8,7 @@ Generated from findings.jsonl as of its newest entry: 2026-11-05T02:21:25.579Z
 
 - **Lanes:** 46 total — **38 reported**, 1 ran without filing a report, **7 not started**
 - **Findings:** 0 open (0 open launch blockers), 357 fixed, 4 wontfix, 22 obsolete, 14 retracted, 32 duplicate, 429 filed all time — same fold and definitions as ROLLUP.md
-- **Surface:** 2041 auditable surfaces (813 navigable, 1228 copy) per SURFACE.md
+- **Surface:** 2050 auditable surfaces (816 navigable, 1234 copy) per SURFACE.md
 
 **A lane that filed nothing either found nothing or never ran, and those are
 very different.** `RAN — no report` means findings exist in the bus with no
@@ -63,7 +63,7 @@ lane report on disk — treat it as incomplete, not as covered.
 | — | `lh-mkt-instagram` | NOT STARTED | – | – | – |
 | — | `lh-mkt-orchestrator` | NOT STARTED | – | – | – |
 
-## Surface coverage — 2041 auditable surfaces, not 46 lanes
+## Surface coverage — 2050 auditable surfaces, not 46 lanes
 
 Routes are 3% of the surface. Coverage is measured against SURFACE.md classes,
 each naming the lane accountable for it.
@@ -74,12 +74,12 @@ each naming the lane accountable for it.
 | Redirect-only routes | 1 | `lh-route-walker` | COVERED |
 | `?tab=` variants | 35 | `lh-route-walker` · `lh-state-matrix` | COVERED |
 | `?view=` variants | 26 | `lh-route-walker` · `lh-state-matrix` | COVERED |
-| Overlay surfaces | 227 | `lh-state-matrix` · `lh-visual-critic` | COVERED |
-| Toast messages | 1179 | `lh-copy-content` | COVERED |
+| Overlay surfaces | 228 | `lh-state-matrix` · `lh-visual-critic` | COVERED |
+| Toast messages | 1185 | `lh-copy-content` | COVERED |
 | Multi-step flows — confirmed | 52 | `lh-e2e-journeys` | COVERED |
 | Multi-step flows — probable | 33 | `lh-e2e-journeys` | COVERED |
 | Back/next navigation only | 67 | `lh-e2e-journeys` · `lh-state-matrix` | COVERED |
-| Forms (submittable) | 126 | `lh-input-boundary` | COVERED |
+| Forms (submittable) | 128 | `lh-input-boundary` | COVERED |
 | Admin components (components/admin + pages/admin/Admin*) | 186 | `lh-admin-moderation` | COVERED |
 | Email templates | 23 | `lh-email-delivery` | COVERED |
 | Notification types (defined in notification_type_pref_map) | 26 | `lh-notifications` | COVERED |

@@ -916,13 +916,13 @@ describe("Declutter slice 3 screens", () => {
   });
 
   // Q2352 (owner 2026-10-22, terms #9): an account that never paid the one-time setup fee is told it and has it in
-  // "You pay", exactly as declutter-checkout charges it; an account that paid it sees neither.
-  // Audit 1a #6 (2026-10-29): "Item $12, setup fee $2, You pay $15.30" did not add up. Board 161: the bill is the items
-  // and what you pay, never a fee line, so the setup fee is said in words under the total, like the service fee.
+  // the Total, exactly as declutter-checkout charges it; an account that paid it sees neither.
+  // Audit 1a #6 (2026-10-29): "Item $12, setup fee $2, You pay $15.30" did not add up. Owner 11-07 (Vinted review):
+  // every line is shown, the service fee and the setup fee included, so the lines add up to the Total.
   // @mutate src/components/declutter/DeclutterTradeViews.tsx |     : delivering && liveQuote ? totalCents + liveQuote.delivery_cents : sdAmounts ? sdAmounts.totalCents : totalCents) + setupFeeCents; |     : delivering && liveQuote ? totalCents + liveQuote.delivery_cents : totalCents);
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx |         {setupFeeCents > 0 && ( |         {false && (
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx |         <div className="flex items-baseline justify-between gap-3 border-t border-border pt-2"> |         {setupFeeCents > 0 && <div className="flex justify-between gap-3"><dt>One-time account setup fee</dt><dd>{formatPrice(setupFeeCents)}</dd></div>}<div className="flex items-baseline justify-between gap-3 border-t border-border pt-2">
-  it("Q2352 + audit 1a #6: the first purchase's setup fee is in the total and said in words, never a fee line", async () => {
+  // @mutate src/components/declutter/DeclutterCheckoutSummary.tsx |       {setupFeeCents > 0 && <Line data="setup-fee" |       {false && <Line data="setup-fee"
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |         serviceFeeCents={payCents - listedCents} |         serviceFeeCents={payCents - listedCents + setupFeeCents}
+  it("Q2352 + audit 1a #6 + owner 11-07: the first purchase's setup fee is its own line, and the lines add up to the Total", async () => {
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
       checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
     state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", price_cents: 400 }];
@@ -930,30 +930,32 @@ describe("Declutter slice 3 screens", () => {
     show(<CartView />);
     expect(await screen.findByText("One checkout for 2 items")).toBeInTheDocument();
     const bill = document.querySelector("[data-checkout-breakdown]")!;
-    expect(bill.textContent).toMatch(/You pay\$10\.05/);
-    expect(document.querySelector("[data-checkout-setup-fee]")?.textContent).toBe("Includes the one-time $2 account setup fee.");
-    expect(document.querySelector("[data-service-fee-words]")?.textContent).toBe("Includes a small Louisiana Helpr service fee.");
+    expect(bill.textContent).toMatch(/Total\$10\.05/);
     // BUY-34: a <dl> holds only its rows (axe definition-list); the notes sit beside it.
     expect(bill.querySelector("dl")?.querySelector("p")).toBeNull();
     expect(bill.querySelector("dl dd")).not.toBeNull();
-    // Every priced line above "You pay" is something bought (items, a discount, a delivery), never a fee.
     const rows = Array.from(bill.querySelectorAll("dt")).map((dt) => dt.textContent ?? "");
-    expect(rows).toEqual(["2 items", "You pay"]);
-    expect(rows.filter((r) => /fee/i.test(r))).toEqual([]);
+    expect(rows).toEqual(["2 items", "Service fee", "Pickup", "One-time setup fee", "Sales tax", "Total"]);
+    const cents = (k: string) => Math.round(Number((bill.querySelector(`[data-summary-line="${k}"] dd`)?.textContent ?? "").replace(/[^0-9.]/g, "") || "0") * 100);
+    expect(cents("setup-fee")).toBe(200);
+    expect(cents("service-fee")).toBe(105);
+    expect(cents("items") + cents("service-fee") + cents("setup-fee") + cents("tax")).toBe(cents("total"));
     expect(screen.getByRole("button", { name: "Pay $10.05" })).toBeInTheDocument();
     expect(document.querySelector("[data-setup-fee-pending]")).toBeNull();
     state.setupFeeCents = 0;
   });
 
-  // #20: a total that is only the item and the one-time setup fee carries no service-fee words.
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx |   const includesServiceFee = payCents > listedCents; |   const includesServiceFee = false;
-  it("#20: the service-fee words show only when the total holds the buyer's fee", async () => {
+  // Owner 11-07 ~5:10 PM (replaces #20 "Words only" for Declutter): the service fee is its own line, with its amount.
+  // @mutate src/components/declutter/DeclutterCheckoutSummary.tsx | value={exact(serviceFeeCents)} | value={exact(0)}
+  it("owner 11-07: the service fee is its own line: 5% + 70c on a $3 item is $0.85", async () => {
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
       checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
     state.cart = [line];
     show(<CartView />);
     await screen.findByRole("button", { name: /^Pay \$/ });
-    expect(document.querySelector("[data-service-fee-words]")?.textContent).toBe("Includes a small Louisiana Helpr service fee.");
+    expect(document.querySelector('[data-summary-line="service-fee"]')?.textContent).toBe("Service fee$0.85");
+    expect(screen.getByRole("button", { name: "About Service fee" })).toBeInTheDocument();
+    expect(document.querySelector("[data-service-fee-words]")).toBeNull();
   });
 
   // A2-8 (audit 2 B2-4): a buyer could not take an item out of the cart. Each line has Remove; it asks in the app first.
@@ -978,7 +980,7 @@ describe("Declutter slice 3 screens", () => {
   });
 
   // lh-money-escrow review of Q2352 #5: until the fee answer is in, the total never reads $2 low without saying so.
-  // @mutate src/components/declutter/DeclutterTradeViews.tsx |             {!setupFeeKnown && <span | {false && <span
+  // @mutate src/components/declutter/DeclutterCheckoutSummary.tsx |           {!setupFeeKnown && <span | {false && <span
   it("Q2352: while the setup fee answer is not in, the total says '+ any setup fee'", async () => {
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
       checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
@@ -986,7 +988,7 @@ describe("Declutter slice 3 screens", () => {
     state.setupFeeKnown = false;
     show(<CartView />);
     expect(await screen.findByRole("heading", { name: "Checkout", level: 3 })).toBeInTheDocument();
-    expect(document.querySelector("[data-checkout-breakdown]")!.textContent).toMatch(/You pay\$[0-9.]+\+ any setup fee/);
+    expect(document.querySelector("[data-checkout-breakdown]")!.textContent).toMatch(/Total\$[0-9.]+\+ any setup fee/);
     state.setupFeeKnown = true;
   });
 
@@ -1056,27 +1058,26 @@ describe("Declutter slice 3 screens", () => {
     }
   });
 
-  it("cart: one checkout per seller, the items and what you pay with no fee line (F1 total, issue #3672), delivery later, and a Pay button for the total (rows 22, 24, 38)", async () => {
+  it("cart: one checkout per seller, the items, the service fee line (owner 11-07), delivery later, and a Pay button for the total (rows 22, 24, 38)", async () => {
     const line = { line_id: "l1", item_id: "i1", item_title: "Lamp", my_side: "buyer", seller_id: "s2", price_cents: 300, status: "in_cart",
       checkout_by: new Date(Date.now() + 20 * 3_600_000).toISOString(), order_id: null, order_status: null, handover: null, premium_cents: null, total_cents: null };
     state.cart = [line, { ...line, line_id: "l2", item_id: "i2", item_title: "Rug", price_cents: 400 }];
     show(<CartView />);
     expect(await screen.findByText("One checkout for 2 items")).toBeInTheDocument();
-    expect(screen.getByText("$7")).toBeInTheDocument();
-    expect(screen.queryByText("$1.05")).toBeNull();
+    expect(screen.getByText("$7.00")).toBeInTheDocument();
+    expect(screen.getByText("$1.05")).toBeInTheDocument();
     expect(screen.getByText("$8.05")).toBeInTheDocument();
-    // Board 30: the breakdown ends in "You pay" = the real checkout total, the seller keeps the whole item price,
+    // Board 30: the breakdown ends in the Total = the real checkout total, the seller keeps the whole item price,
     // and no vendor is named (spec §1.7).
-    // @mutate src/components/declutter/DeclutterTradeViews.tsx |             {formatPrice(payCents)}\n |             {formatPrice(itemsTotalCents)}\n
+    // @mutate src/components/declutter/DeclutterCheckoutSummary.tsx |           {formatPrice(payCents)}\n |           {formatPrice(itemsCents)}\n
     const bill = document.querySelector("[data-checkout-breakdown]")!;
-    expect(bill.textContent).toMatch(/You pay\$8\.05/);
+    expect(bill.textContent).toMatch(/Total\$8\.05/);
     // Q2352: an account that already paid the setup fee is never shown it.
     expect(document.querySelector("[data-checkout-setup-fee]")).toBeNull();
-    // Board 161: two items, one checkout. Owner 2026-10-25 (issue #3672): the bill is the items and what you pay,
-    // never a fee line, name or number.
-    // @mutate src/components/declutter/DeclutterTradeViews.tsx |         {setupFeeCents > 0 && ( |         <div><dt>Buyer's fee (5% + 70¢, once)</dt><dd>{formatPrice(totalCents - itemsTotalCents)}</dd></div>{setupFeeCents > 0 && (
-    // #20 (owner 2026-10-28, "Words only"): the total says it holds a service fee, never how much.
-    expect(bill.textContent).toMatch(/^2 items\$7You pay\$8\.05Includes a small Louisiana Helpr service fee\.$/);
+    // Board 161: two items, one checkout, ONE service fee. Owner 11-07 ~5:10 PM (Vinted review, Declutter only): every
+    // line shown, the service fee named "Service fee" with its amount, pickup Free, sales tax $0.00, then the Total.
+    // @mutate src/components/declutter/DeclutterCheckoutSummary.tsx |       <Line data="tax" label="Sales tax" tip={SUMMARY_TIPS.tax} value={exact(taxCents)} /> | {null}
+    expect(bill.textContent).toMatch(/^2 items\$7\.00Service fee\$1\.05PickupFreeSales tax\$0\.00Total\$8\.05$/);
     // Lead 2026-10-28: the card says it once, the heading the checkout, the line what the items share.
     // @mutate src/components/declutter/DeclutterCartWords.tsx | shared: "From the same seller: one pickup, one payment." }; | shared: "One checkout, one pickup, one payment." };
     expect(screen.getByText("From the same seller: one pickup, one payment.")).toBeInTheDocument();
@@ -1231,18 +1232,17 @@ describe("Declutter slice 3 screens", () => {
     // No price yet: Pay waits for the server's quote.
     expect(screen.getByRole("button", { name: "Pay $3.85" })).toBeDisabled();
     // ...and the bill says the total is not complete yet (money review #4).
-    // @mutate src/components/declutter/DeclutterTradeViews.tsx |             {delivering && !liveQuote && <span | {false && <span
-    expect(document.querySelector("[data-checkout-breakdown]")!.textContent).toMatch(/You pay\$3\.85\+ delivery/);
+    // @mutate src/components/declutter/DeclutterCheckoutSummary.tsx |           {unpriced && <span | {false && <span
+    expect(document.querySelector("[data-checkout-breakdown]")!.textContent).toMatch(/Total\$3\.85\+ delivery/);
     fireEvent.change(screen.getByLabelText(/Deliver to/), { target: { value: "900 Far Rd, Baker, LA" } });
     fireEvent.click(screen.getByRole("button", { name: "Get price" }));
     // Owner 2026-11-01: the price list by size, then the priced total under it (DeliveryPriceList).
     expect(await screen.findByText(/About 5 miles · \$40/)).toBeInTheDocument();
-    // The quote joins the bill as its own line: $3 item + $40 delivery, $43.85 in all (no fee line, issue #3672).
-    // @mutate src/components/declutter/DeclutterTradeViews.tsx |         {delivering && liveQuote && ( |         {false && (
+    // The quote joins the bill as its own line: $3 item + $0.85 service fee + $40 delivery, $43.85 in all.
+    // @mutate src/components/declutter/DeclutterTradeViews.tsx |         wayCents={delivering ? liveQuote?.delivery_cents ?? null : | wayCents={delivering ? null :
     const bill = document.querySelector("[data-checkout-breakdown]")!;
-    expect(bill.textContent).toMatch(/Helpr delivery\$40/);
-    expect(bill.textContent!.replace("Includes a small Louisiana Helpr service fee.", "")).not.toMatch(/fee|%|¢|\$0\.85/i);
-    expect(bill.textContent).toMatch(/You pay\$43\.85/);
+    expect(bill.textContent).toMatch(/Service fee\$0\.85Helpr delivery\$40\.00/);
+    expect(bill.textContent).toMatch(/Total\$43\.85/);
     expect(state.quotes).toEqual([{ sellerId: "s2", address: "900 Far Rd, Baker, LA" }]);
     fireEvent.click(screen.getByRole("button", { name: "Pay $43.85" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "delivery" }]));
@@ -1434,10 +1434,11 @@ describe("Declutter slice 3 screens", () => {
     // @mutate src/components/declutter/useBundleDiscount.ts | totalCents: checkoutAmounts([itemsCents - discountCents]).totalCents | totalCents: checkoutAmounts([itemsCents]).totalCents
     const bill = await screen.findByText("Bundle discount");
     const rows = bill.closest("[data-checkout-breakdown]")!.textContent!;
-    expect(rows).toMatch(/2 items\$65/);
+    expect(rows).toMatch(/2 items\$65\.00/);
     expect(rows).toMatch(/Bundle discount−\$6\.50/);
     // $58.50 after the discount, plus the fee on $58.50 (5% + 70¢ = $3.63): $62.13.
-    expect(rows).toMatch(/You pay\$62\.13/);
+    expect(rows).toMatch(/Service fee\$3\.63/);
+    expect(rows).toMatch(/Total\$62\.13/);
     expect(document.querySelector("[data-checkout-note]")!.textContent).toMatch(/keeps the whole \$58\.50/);
   });
 
@@ -1485,13 +1486,11 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click(screen.getByRole("button", { name: "Check" }));
     // Pay waits for a time AND the door choice.
     fireEvent.click((await screen.findAllByRole("radio", { name: /AM|PM/ }))[0]);
-    // $3 item + $20 rate: the server's premium is 5% of $23 + 70c = $1.85, folded into the $24.85 total (never its own line, issue #3672).
+    // $3 item + $20 rate: the server's premium is 5% of $23 + 70c = $1.85: the Service fee line (owner 11-07), $24.85 in all.
     expect(screen.getByRole("button", { name: "Pay $24.85" })).toBeDisabled();
     fireEvent.click(screen.getByRole("radio", { name: /Leave it at my door/ }));
     const bill = document.querySelector("[data-checkout-breakdown]")!;
-    expect(bill.textContent).toMatch(/Seller delivery\$20/);
-    expect(bill.textContent).toMatch(/^Item\$3Seller delivery\$20You pay\$24\.85Includes a small Louisiana Helpr service fee\.$/);
-    expect(bill.textContent!.replace("Includes a small Louisiana Helpr service fee.", "")).not.toMatch(/fee|%|¢|\$1\.85/i);
+    expect(bill.textContent).toMatch(/^Item\$3\.00Service fee\$1\.85Seller delivery\$20\.00Sales tax\$0\.00Total\$24\.85$/);
     fireEvent.click(screen.getByRole("button", { name: "Pay $24.85" }));
     await waitFor(() => expect(state.paid).toEqual([{ sellerId: "s2", handover: "seller_delivery", slot: slots[0], handoff: "leave" }]));
   });
@@ -1543,12 +1542,12 @@ describe("Declutter slice 3 screens", () => {
     expect(state.shipAsked).toEqual([{ sellerId: "s2", shipTo: { street1: "12 Oak St", city: "Baton Rouge", state: "LA", zip: "70801" } }]);
     // $20 item + $7.33 postage: fee 5% of $27.33 = $1.37 (rounded) + 70c = $2.07; You pay $29.40.
     const bill = document.querySelector("[data-checkout-breakdown]")!;
-    expect(bill.textContent).toMatch(/Shipping\$7\.33/);
-    expect(bill.textContent).toMatch(/You pay\$29\.40/);
+    expect(bill.textContent).toMatch(/Service fee\$2\.07Shipping\$7\.33/);
+    expect(bill.textContent).toMatch(/Total\$29\.40/);
     expect(document.querySelector("[data-checkout-note]")!.textContent).toMatch(/about 48 hours after the carrier delivers it/);
     fireEvent.click(screen.getByRole("radio", { name: /UPS Ground/ }));
     // $20 + $11.05: fee 5% of $31.05 = $1.55 + 70c = $2.25; You pay $33.30.
-    expect(bill.textContent).toMatch(/You pay\$33\.30/);
+    expect(bill.textContent).toMatch(/Total\$33\.30/);
     // A changed address drops the old prices.
     fireEvent.change(screen.getByLabelText("ZIP"), { target: { value: "70802" } });
     expect(screen.queryByText("UPS Ground")).toBeNull();
@@ -1793,7 +1792,11 @@ describe("B-1: the return from the payment page never offers Pay again for what 
 // NIGHT-BUYINGpresse-3: the line's title link was 20 px tall on a phone; it is a 44 px tap now.
 // jsdom has no layout: the case pins the structure the lg grid lays out (the 375/1440 look is in the commit).
 // @mutate src/components/declutter/DeclutterTradeViews.tsx | lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,22rem)] | lg:block
-// @mutate src/components/declutter/DeclutterTradeViews.tsx |     </div>\n    <div className="min-w-0 space-y-3 lg:sticky lg:top-4" data-checkout-summary=""> |     <div className="min-w-0 space-y-3 lg:sticky lg:top-4" data-checkout-summary="">
+// @mutate src/components/declutter/DeclutterTradeViews.tsx |       </fieldset>\n    </div>\n    {/* max-lg:contents: | {/* max-lg:contents:
+// Owner 11-07 (Vinted review): on a phone Pay is sticky at the bottom, within the whole checkout (the summary column
+// has no box of its own there), above the floating dock; from lg it sits in the right column.
+// @mutate src/components/declutter/DeclutterTradeViews.tsx | min-w-0 space-y-3 max-lg:contents lg:sticky lg:top-4 | min-w-0 space-y-3 lg:sticky lg:top-4
+// @mutate src/components/declutter/DeclutterTradeViews.tsx | max-lg:sticky max-lg:bottom-[calc(var(--safe-area-bottom,0px)+var(--bottom-nav-h,96px))] | max-lg:bottom-3
 // @mutate src/components/declutter/DeclutterTradeViews.tsx |                     <CartThumb path={l.item_id ? cover.get(l.item_id) : undefined} />\n |
 // @mutate src/components/declutter/DeclutterTradeViews.tsx |       {path && stage !== "failed" && <img | {false && <img
 // @mutate src/components/declutter/DeclutterTradeViews.tsx | className="flex min-h-11 min-w-0 items-center" title={l.item_title}> | className="line-clamp-2" title={l.item_title}>
@@ -1819,6 +1822,12 @@ describe("BUY-15: checkout is two columns from lg, and each cart line shows its 
     expect(summary.querySelector("[data-checkout-note]")).not.toBeNull();
     // A phone keeps the old order: the choices come before the bill and Pay.
     expect(choices.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    // Owner 11-07: the phone's Pay bar is sticky above the dock, and its column lets it stick through the whole checkout.
+    const bar = summary.querySelector("[data-pay-bar]")!;
+    expect(bar.contains(pay)).toBe(true);
+    expect(bar.className.split(/\s+/)).toEqual(expect.arrayContaining(["max-lg:sticky", "max-lg:bottom-[calc(var(--safe-area-bottom,0px)+var(--bottom-nav-h,96px))]"]));
+    expect(summary.className.split(/\s+/)).toContain("max-lg:contents");
+    expect(document.querySelectorAll("[data-pay-bar] button")).toHaveLength(1);
   });
   // Q2633 (audit 1102c R8; owner rule: no line under the buttons): Pay is the last thing in the bill, and the seller's
   // payout promise is neutral, never the rust warning box.
@@ -1930,6 +1939,7 @@ describe("Q2106 S5: paying with a gift card", () => {
     expect(state.giftSent).toEqual([null]);
   });
 
+  // @mutate src/components/declutter/DeclutterTradeViews.tsx |         gift={split && !split.cardPartTooSmall ? split : null} /> |         gift={null} />
   it("offers only the buyer's claimed gifts, shows the split, and pays the card part with the gift", async () => {
     state.gifts = [gift("g1", 500), gift("g-email-only", 2000, false)];
     show(<CartView />);
@@ -1938,6 +1948,9 @@ describe("Q2106 S5: paying with a gift card", () => {
     expect(within(group).getByRole("radio", { name: "Pay by card only" })).toBeChecked();
     fireEvent.click(within(group).getByRole("radio", { name: "Use my $5 gift card" }));
     expect(screen.getByText("$5 from your gift card, $3.05 on your card.")).toBeTruthy();
+    // Lead money review 11-07: the summary takes the gift's part off and ends with what goes on the card.
+    expect(document.querySelector('[data-summary-line="gift"]')?.textContent).toBe("Gift card−$5.00");
+    expect(document.querySelector('[data-summary-line="pay-by-card"]')?.textContent).toBe("Pay by card$3.05");
     await waitFor(() => expect(screen.getByRole("button", { name: "Pay $3.05" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Pay $3.05" }));
     await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.test/pay"]));

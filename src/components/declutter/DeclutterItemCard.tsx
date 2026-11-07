@@ -14,6 +14,7 @@ import { cardPhotoSrcSet, CARD_PHOTO_SIZES } from "@/lib/declutter/photoSizes";
 import { useLoadPhotoAhead } from "./useLoadPhotoAhead";
 import { holdForFirstRowPhoto, useLaterPhotosOpen } from "./firstRowPhotoGate";
 import { formatPrice, milesLabel, itemPriceLabel } from "@/lib/declutter/distance";
+import { CONDITION_LABEL } from "@/lib/declutter/conditionLabels";
 
 export function firstPhotos(photos: DeclutterPhoto[]): Map<string, string> {
   const out = new Map<string, string>();
@@ -34,6 +35,11 @@ export interface CardSave {
   on: boolean;
   toggle: () => void;
   pending?: boolean;
+}
+
+/** "3" beside the heart, or nothing for none or a count not read yet (owner 11-07: the heart shows the save count). */
+function savesWord(n: number | null | undefined): string | null {
+  return n && n > 0 ? (n > 999 ? "999+" : String(n)) : null;
 }
 
 /**
@@ -57,7 +63,7 @@ const LATER_PHOTO: Record<string, string> = { loading: "lazy" };
 /** The card's photo source, in order: the card-sized thumbnail, then the full photo if the thumbnail fails, then none. */
 type PhotoStage = "card" | "full" | "failed";
 
-export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundle, firstRow, aboveFold }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; tag?: CardTag | null; bundle?: boolean; firstRow?: boolean; aboveFold?: boolean }) {
+export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag, bundle, firstRow, aboveFold }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; saves?: number | null; tag?: CardTag | null; bundle?: boolean; firstRow?: boolean; aboveFold?: boolean }) {
   const away = milesLabel(miles, approximate);
   // A photo that fails to load drops out, leaving the icon under it (never a blank tile). The card-sized thumbnail
   // comes first (owner 10-31: pictures were slow while scrolling); if it fails, the full photo; then the icon.
@@ -133,6 +139,10 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundl
           )}
         </span>
         <span data-card-title className="mt-0.5 block truncate text-sm font-semibold leading-snug" title={item.title}>{item.title}</span>
+        {/* Owner 11-07 (Vinted review): the condition under the title, in the item page's own words. */}
+        {CONDITION_LABEL[item.condition_stars] && (
+          <span data-card-condition={item.condition_stars} className="block truncate text-xs text-foreground/80" title={CONDITION_LABEL[item.condition_stars]}>{CONDITION_LABEL[item.condition_stars]}</span>
+        )}
         {/* Deep audit 2026-10-28 #45: at 390 the one truncating line cut the distance off ("Mid City, Baton Ro…").
             The town has its own line and may truncate; the distance sits on the next line and always shows whole. */}
         <span data-card-place className="block min-w-0 text-xs text-muted-foreground" title={`${item.area_label}${away ? ` · ${away}` : ""}`}>
@@ -151,7 +161,21 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundl
       {bundle && <Badge variant="sienna" data-card-bundle="" className="ml-0.5 mt-1 w-fit text-ds-11 leading-none">Bundle deal</Badge>}
     </Link>
   );
-  if (!save) return card;
+  const savesText = savesWord(saves);
+  if (!save) {
+    if (!savesText) return card;
+    // A guest sees how many saved it (no heart to press: saving needs an account), over the photo like a member's.
+    return (
+      <div className="relative">
+        {card}
+        <span data-card-saves={saves ?? 0} className="pointer-events-none absolute right-1.5 top-1.5 flex h-8 items-center gap-1 rounded-full bg-background/90 px-2.5 text-ds-13 font-semibold tabular-nums text-foreground shadow-sm">
+          <Heart className="h-3.5 w-3.5" aria-hidden />
+          <span aria-hidden>{savesText}</span>
+          <span className="sr-only">{`Saved by ${saves} ${saves === 1 ? "person" : "people"}`}</span>
+        </span>
+      </div>
+    );
+  }
   // The heart sits OVER the photo as the card link's sibling (a button inside a link is not allowed).
   return (
     <div className="relative">
@@ -163,13 +187,15 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundl
         data-card-heart=""
         aria-pressed={save.on}
         // A3-98 (audit 7, 11-01): one word for keeping something for later, app-wide: Save (the owner's word; Jobs' "Save job").
-        aria-label={save.on ? `Remove ${item.title} from saved` : `Save ${item.title}`}
+        aria-label={`${save.on ? `Remove ${item.title} from saved` : `Save ${item.title}`}${savesText ? `, saved by ${saves}` : ""}`}
+        data-card-saves={saves ?? undefined}
         disabled={save.pending}
         onClick={save.toggle}
         className="absolute right-0.5 top-0.5 disabled:opacity-100 [&_svg]:size-4"
       >
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-background/90 shadow-sm">
+        <span className={`flex h-8 items-center justify-center gap-1 rounded-full bg-background/90 shadow-sm ${savesText ? "px-2.5" : "w-8"}`}>
           <Heart className={`h-4 w-4 ${save.on ? "text-[hsl(var(--burnt-sienna))]" : "text-foreground"}`} fill={save.on ? "currentColor" : "none"} aria-hidden />
+          {savesText && <span aria-hidden className="text-ds-13 font-semibold tabular-nums text-foreground">{savesText}</span>}
         </span>
       </Button>
     </div>

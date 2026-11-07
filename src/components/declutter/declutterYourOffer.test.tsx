@@ -48,6 +48,8 @@ const state = {
   setupFeeCents: 0,
   /** useFirstPayoutFeeKnown: false while that answer is not in. */
   setupFeeKnown: true,
+  /** useCurrentUser's profile (11-07): undefined = not read; onboarding_fee_paid false = a first-timer. */
+  profile: undefined as { onboarding_fee_paid?: boolean } | undefined,
 };
 
 // The porch places reads (D-NEW14; proved in porchPlacesUi.test.tsx): none saved.
@@ -62,7 +64,9 @@ vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({
   }],
 }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }));
-vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" } }) }));
+vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: state.profile }) }));
+// The ID check is on (prod 11-07: identity_check is 'everyone'); with no profile read the panel reads as before.
+vi.mock("@/lib/identityCheckSwitch", () => ({ useIdentityCheckOnStore: () => true }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => state.setupFeeCents, useFirstPayoutFeeKnown: () => state.setupFeeKnown }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/components/mobileNav/useDockYield", () => ({ useDockYield: () => undefined }));
@@ -136,6 +140,7 @@ function show(ui: React.ReactNode) {
 }
 
 beforeEach(() => {
+  state.profile = undefined;
   state.ticks = null;
   state.cart = [];
   state.offers = [];
@@ -218,6 +223,45 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     // Porch comes first; it is picked by a time in the place's hours (LEAD-PLACE-TIMES; was a day, BUY-18).
     expect(screen.getByRole("button", { name: "Confirm and pick a time" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Ask for it" })).toHaveLength(1);
+  });
+
+  // 11-07 free-claim trace (owner posting free items in local groups): a first-timer's ask sheet said "Free, nothing is
+  // charged" and "If it's you, <time> is already set, and you'll get the address". For them the pick holds the item and
+  // the one-time ID check comes first (declutter_free_claim_gate), then they choose the time (the asked time is booked
+  // only for a verified member, declutter_pick_free_request). The sheet and How it works now say so.
+  // @mutate src/components/declutter/FreeAskSheet.tsx |           {oneTimeCheckAhead ? ( |           {false ? (
+  // @mutate src/components/declutter/DeclutterFreeClaim.tsx |   const ifYou = oneTimeCheckAhead ? `${FIRST_PICK_STEPS}${how}` : | const ifYou =
+  // @mutate src/components/declutter/DeclutterFreeClaim.tsx | open={asking} onClose={() => setAsking(false)} oneTimeCheckAhead={oneTimeCheckAhead} /> | open={asking} onClose={() => setAsking(false)} />
+  it("a first-timer's ask sheet and How it works never say nothing is charged or that the time is already set", async () => {
+    state.profile = { onboarding_fee_paid: false };
+    state.ticks = ["porch"];
+    show(<FreeClaimPanel item={{ ...ITEM, current_price_cents: 0, price_cents: 0 }} />);
+    fireEvent.click(await screen.findByRole("button", { name: "How it works" }));
+    const rules = (await waitFor(() => { const el = document.querySelector("[data-free-rules]"); expect(el).not.toBeNull(); return el!; })).textContent!;
+    expect(rules).toMatch(/if it's you, your first free item has a one-time ID check first \(we show you the cost before you pay\), then you choose your pickup time and get the address to collect it from their porch\./);
+    expect(rules).not.toMatch(/nothing is charged|already set/i);
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
+    const ask = screen.getAllByRole("button", { name: "Ask for it" })[0];
+    await waitFor(() => expect(ask).not.toBeDisabled());
+    fireEvent.click(ask);
+    const times = await screen.findByRole("group", { name: /^Pickup time on / });
+    fireEvent.click(within(times).getAllByRole("button")[0]);
+    const note = document.querySelector("[data-sheet-note]")!;
+    expect(note.textContent).toBe("Asking is free. Lexi picks who gets it. If it's you, your first free item has a one-time ID check first (we show you the cost before you pay), then you choose your pickup time and get the address.");
+    // Asking itself is unchanged: the time still rides the ask.
+    fireEvent.click(screen.getByRole("button", { name: /^Ask for it · / }));
+    await waitFor(() => expect(state.claimed).toBe(1));
+  });
+
+  it("a member who already paid the one-time fee still reads that the time is set and nothing is charged", async () => {
+    state.profile = { onboarding_fee_paid: true };
+    show(<FreeClaimPanel item={{ ...ITEM, current_price_cents: 0, price_cents: 0 }} />);
+    const ask = await screen.findByRole("button", { name: "Ask for it" });
+    await waitFor(() => expect(ask).not.toBeDisabled());
+    fireEvent.click(ask);
+    const times = await screen.findByRole("group", { name: /^Pickup time on / });
+    fireEvent.click(within(times).getAllByRole("button")[0]);
+    expect(document.querySelector("[data-sheet-note]")!.textContent).toMatch(/^Free, nothing is charged\. Lexi picks who gets it\. If it's you, .+ is already set, and you'll get the address\.$/);
   });
 
   // B106 (item page shots 11-01): the note under Ask for it had a tall gap between its two lines (noteH 60 for two

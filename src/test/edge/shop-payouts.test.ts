@@ -12,7 +12,12 @@
  * @mutate supabase/functions/_shared/connectReadiness.ts |const cacheKey = (mode: string, accountId: string) => `${mode}:${accountId}`; |const cacheKey = (_mode: string, accountId: string) => accountId;
  * @mutate supabase/functions/declutter-money/index.ts |          if (!(await payeeReadyNow(stripe, resolved.mode, "shop", p.payout_id, p.seller_id, p.stripe_account_id as string, p.amount_cents))) continue; |
  * @mutate supabase/functions/declutter-money/index.ts |             { idempotencyKey: `shop-payout-${p.payout_id}` }, |             {},
- * @mutate supabase/functions/declutter-money/index.ts |           return meta.kind === "shop_payout" && meta.payout_id === p.payout_id && !t.reversed; |           return false;
+ * @mutate supabase/functions/declutter-money/index.ts |            && (leg === "rest" ? meta.leg === "rest" : meta.leg !== "rest"); |            && false;
+ * @mutate supabase/functions/declutter-money/index.ts |          const depositLeg = restPi ? Math.min(p.amount_cents, Number(p.deposit_shop_cents)) : p.amount_cents; |          const depositLeg = p.amount_cents;
+ * @mutate supabase/functions/declutter-money/index.ts |          const restCharge = restPi ? await wholeCharge(stripe, restPi, 0) : null; |          const restCharge = restPi ? "ch_rest_any" : null;
+ * @mutate supabase/functions/declutter-money/index.ts |              { idempotencyKey: `shop-payout-${p.payout_id}-rest` }, |              { idempotencyKey: `shop-payout-${p.payout_id}` },
+ * @mutate supabase/functions/declutter-money/index.ts |          if (restPi && !(Number.isInteger(p.deposit_shop_cents) && Number(p.deposit_shop_cents) > 0)) { |          if (false) {
+ * @mutate supabase/functions/declutter-money/index.ts |          const { error: restErr } = await admin.rpc("shop_payout_rest_sent", { p_payout_id: p.payout_id, p_transfer_id: restTransfer.id }); |          const restErr = null;
  * @mutate supabase/functions/declutter-money/index.ts |       if (shopHold.kind === "held") { |       if (false) {
  * @mutate supabase/functions/declutter-money/index.ts |       if ((p.seller_id && underReview.has(p.seller_id)) \|\| (p.buyer_id && underReview.has(p.buyer_id))) { |       if (false) {
  * @mutate supabase/functions/declutter-money/index.ts |           if (byParties !== mode) throw new Error(`shop order says ${mode} but its parties are ${byParties}`); |
@@ -198,5 +203,90 @@ describe("declutter-money: Shops M2 handovers and payouts", () => {
     await run({ shopPayouts: [shopPayoutRow({ attempts: 11 })] });
     expect(slackAlerts.length).toBe(1);
     expect(JSON.stringify(slackAlerts[0])).toContain("Shops payout gave up");
+  });
+
+  describe("a 50% deposit order paid in two charges (20261107162454)", () => {
+    const REST_PI = "pi_rest1";
+    const twoCharge = (over: Record<string, unknown> = {}) => shopPayoutRow({
+      amount_cents: 4001, balance_payment_intent_id: REST_PI, deposit_shop_cents: 2001, ...over,
+    });
+    const charges = (rest: Record<string, unknown> = {}) => stripeMock.paymentIntents.retrieve.mockImplementation(async (id: string) => (
+      id === REST_PI
+        ? { id, status: "succeeded", latest_charge: { id: "ch_rest1", amount_refunded: 0, disputed: false, ...rest } }
+        : { id, status: "succeeded", latest_charge: { id: "ch_shop1", amount_refunded: 0, disputed: false } }));
+    beforeEach(() => {
+      charges();
+      stripeMock.transfers.create.mockImplementation(async (params: { metadata?: Record<string, string> }) => (
+        { id: params.metadata?.leg === "rest" ? "tr_rest1" : "tr_dep1", destination: "acct_shop1" }));
+      scenario.rpc.shop_payout_rest_sent = "recorded";
+    });
+
+    it("pays in two legs, each from its own charge and never above the shop's share of it; the rest leg is recorded first", async () => {
+      const { status, body } = await run({ shopPayouts: [twoCharge()] });
+      expect(status).toBe(200);
+      expect(body.shop_payouts_sent).toBe(1);
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(2);
+      const [[dep, depOpts], [rest, restOpts]] = stripeMock.transfers.create.mock.calls;
+      expect(dep).toMatchObject({ amount: 2001, source_transaction: "ch_shop1", destination: "acct_shop1",
+        transfer_group: `shop_order_${ORDER}`, metadata: { kind: "shop_payout", payout_id: PAYOUT, order_id: ORDER, leg: "deposit" } });
+      expect(depOpts).toEqual({ idempotencyKey: `shop-payout-${PAYOUT}` });
+      expect(rest).toMatchObject({ amount: 2000, source_transaction: "ch_rest1", destination: "acct_shop1",
+        transfer_group: `shop_order_${ORDER}`, metadata: { kind: "shop_payout", payout_id: PAYOUT, order_id: ORDER, leg: "rest" } });
+      expect(restOpts).toEqual({ idempotencyKey: `shop-payout-${PAYOUT}-rest` });
+      expect(rpcs("shop_payout_rest_sent")[0]?.args).toEqual({ p_payout_id: PAYOUT, p_transfer_id: "tr_rest1" });
+      expect(rpcs("shop_payout_executed")[0]?.args).toEqual({ p_payout_id: PAYOUT, p_transfer_id: "tr_dep1", p_succeeded: true, p_error: null });
+      const order = (scenario.rpcCalls ?? []).map((c) => c.name);
+      expect(order.indexOf("shop_payout_rest_sent")).toBeLessThan(order.indexOf("shop_payout_executed"));
+    });
+
+    it("an amount the deposit's share covers (debt or the setup fee taken out) is one leg from the deposit, and no rest leg", async () => {
+      const { body } = await run({ shopPayouts: [twoCharge({ amount_cents: 1500 })] });
+      expect(body.shop_payouts_sent).toBe(1);
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+      expect(stripeMock.transfers.create.mock.calls[0][0]).toMatchObject({ amount: 1500, source_transaction: "ch_shop1" });
+      expect(rpcs("shop_payout_rest_sent")).toHaveLength(0);
+    });
+
+    it("a retry after the deposit leg went out sends ONLY the rest leg (same amounts, same keys)", async () => {
+      stripeMock.transfers.list.mockResolvedValue({ data: [
+        { id: "tr_dep_old", amount: 2001, reversed: false, metadata: { kind: "shop_payout", payout_id: PAYOUT, leg: "deposit" } }] });
+      const { body } = await run({ shopPayouts: [twoCharge({ attempts: 1 })] });
+      expect(body.shop_payouts_sent).toBe(1);
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(1);
+      const [params, opts] = stripeMock.transfers.create.mock.calls[0];
+      expect(params).toMatchObject({ amount: 2000, source_transaction: "ch_rest1", metadata: { leg: "rest" } });
+      expect(opts).toEqual({ idempotencyKey: `shop-payout-${PAYOUT}-rest` });
+      expect(rpcs("shop_payout_executed")[0]?.args).toMatchObject({ p_transfer_id: "tr_dep_old", p_succeeded: true });
+    });
+
+    it("both legs already in Stripe: recorded, nothing sent", async () => {
+      stripeMock.transfers.list.mockResolvedValue({ data: [
+        { id: "tr_dep_old", amount: 2001, reversed: false, metadata: { kind: "shop_payout", payout_id: PAYOUT, leg: "deposit" } },
+        { id: "tr_rest_old", amount: 2000, reversed: false, metadata: { kind: "shop_payout", payout_id: PAYOUT, leg: "rest" } }] });
+      const { body } = await run({ shopPayouts: [twoCharge({ attempts: 2 })] });
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(body.shop_payouts_reconciled).toBe(1);
+      expect(rpcs("shop_payout_rest_sent")[0]?.args).toEqual({ p_payout_id: PAYOUT, p_transfer_id: "tr_rest_old" });
+    });
+
+    it("a refunded or disputed rest charge moves nothing (the try is recorded as failed)", async () => {
+      charges({ amount_refunded: 50 });
+      await run({ shopPayouts: [twoCharge()] });
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(rpcs("shop_payout_executed")[0]?.args).toMatchObject({ p_succeeded: false });
+    });
+
+    it("two charges with no deposit share moves nothing (fails closed)", async () => {
+      await run({ shopPayouts: [twoCharge({ deposit_shop_cents: null })] });
+      expect(stripeMock.transfers.create).not.toHaveBeenCalled();
+      expect(rpcs("shop_payout_executed")[0]?.args).toMatchObject({ p_succeeded: false });
+    });
+
+    it("the rest leg could not be recorded: the row is NOT marked sent (reconciled next run)", async () => {
+      scenario.rpcErrors = { ...scenario.rpcErrors, shop_payout_rest_sent: { message: "boom" } };
+      await run({ shopPayouts: [twoCharge()] });
+      expect(stripeMock.transfers.create).toHaveBeenCalledTimes(2);
+      expect(rpcs("shop_payout_executed")).toHaveLength(0);
+    });
   });
 });

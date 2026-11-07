@@ -13973,6 +13973,7 @@ export type Database = {
           next_attempt_at: string
           order_id: string
           review_held_at: string | null
+          rest_transfer_id: string | null
           review_reason: string | null
           settled_by_hand_cents: number | null
           settled_by_hand_note: string | null
@@ -13996,6 +13997,7 @@ export type Database = {
           next_attempt_at?: string
           order_id: string
           review_held_at?: string | null
+          rest_transfer_id?: string | null
           review_reason?: string | null
           settled_by_hand_cents?: number | null
           settled_by_hand_note?: string | null
@@ -14019,6 +14021,7 @@ export type Database = {
           next_attempt_at?: string
           order_id?: string
           review_held_at?: string | null
+          rest_transfer_id?: string | null
           review_reason?: string | null
           settled_by_hand_cents?: number | null
           settled_by_hand_note?: string | null
@@ -21795,6 +21798,14 @@ export type Database = {
         Args: { p_error: string; p_final: boolean; p_order_id: string }
         Returns: Json
       }
+      shop_order_deposit_shop_cents: {
+        Args: { o: Database["public"]["Tables"]["shop_orders"]["Row"] }
+        Returns: number
+      }
+      shop_order_two_charges: {
+        Args: { o: Database["public"]["Tables"]["shop_orders"]["Row"] }
+        Returns: boolean
+      }
       shop_order_captured: {
         Args: { p_card_fee_cents: number; p_order_id: string }
         Returns: Json
@@ -21979,17 +21990,24 @@ export type Database = {
         }
         Returns: string
       }
+      shop_payout_rest_sent: {
+        Args: { p_payout_id: string; p_transfer_id: string }
+        Returns: string
+      }
       shop_payouts_due: {
         Args: { p_limit: number }
         Returns: {
           amount_cents: number
           attempts: number
+          balance_payment_intent_id: string
           buyer_id: string
           checkout_session_id: string
+          deposit_shop_cents: number
           livemode: boolean
           order_id: string
           payment_intent_id: string
           payout_id: string
+          refunds_recorded_cents: number
           seller_id: string
           stripe_account_id: string
         }[]

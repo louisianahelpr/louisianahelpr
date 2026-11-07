@@ -814,7 +814,13 @@ async function sendRefundNow(admin: Db, orderId: string, refundId: unknown): Pro
     const { data, error } = await admin.rpc("shop_refund_to_send", { p_refund_id: refundId });
     if (error) throw new Error(`shop_refund_to_send failed: ${error.message}`);
     const row = ((data ?? []) as ShopRefundRow[])[0];
-    if (!row) return "sent";
+    if (!row) {
+      // 11-07 (option B, 20261107162454): a refund of an order paid in two charges is held for a person, never sent
+      // here; the member is not told it was sent.
+      const { data: held, error: heldErr } = await admin.from("shop_refunds").select("status").eq("id", refundId).maybeSingle();
+      if (heldErr) throw new Error(`shop refund status read failed: ${heldErr.message}`);
+      return (held as { status?: string } | null)?.status === "held_for_review" ? "pending" : "sent";
+    }
     const o = await readOrder(admin, orderId);
     if (!o) throw new Error("order vanished");
     const outcome = await sendShopRefund(await stripeForOrder(admin, o, "refund"), admin, row);
@@ -948,6 +954,8 @@ async function adminSettleHeldRefund(body: Record<string, unknown>, userId: stri
   const refund = await retrieveRefund(await stripeForOrder(admin, o, "read"), refundId);
   if (!refund) return json({ error: "refund_not_found" }, 404);
   const refundPi = typeof refund.payment_intent === "string" ? refund.payment_intent : refund.payment_intent?.id ?? null;
+  // 11-07 (option B): a two-charge order's refund made on the rest's payment is settled with "other: <the refund ids>"
+  // (admin_payout_settle_by_hand), never here: this settles one refund on the row's own payment.
   if (refundPi !== row.stripe_payment_intent_id) return json({ error: "refund_not_on_this_order" }, 409);
   if (refund.status === "failed" || refund.status === "canceled") return json({ error: "refund_not_live" }, 409);
   // Only a refund Stripe has FINISHED settles a row (run-3 review L3): a pending one can still fail.

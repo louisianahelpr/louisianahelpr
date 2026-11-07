@@ -13287,6 +13287,62 @@ export type Database = {
           },
         ]
       }
+      shop_delivery_refunds: {
+        Row: {
+          attempts: number
+          created_at: string
+          executed_at: string | null
+          id: string
+          is_seed: boolean
+          last_error: string | null
+          next_attempt_at: string
+          order_id: string
+          reason: string
+          refund_cents: number
+          status: string
+          stripe_payment_intent_id: string
+          stripe_refund_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          executed_at?: string | null
+          id?: string
+          is_seed?: boolean
+          last_error?: string | null
+          next_attempt_at?: string
+          order_id: string
+          reason: string
+          refund_cents: number
+          status?: string
+          stripe_payment_intent_id: string
+          stripe_refund_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          executed_at?: string | null
+          id?: string
+          is_seed?: boolean
+          last_error?: string | null
+          next_attempt_at?: string
+          order_id?: string
+          reason?: string
+          refund_cents?: number
+          status?: string
+          stripe_payment_intent_id?: string
+          stripe_refund_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_delivery_refunds_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "shop_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_faqs: {
         Row: {
           answer: string
@@ -13908,6 +13964,7 @@ export type Database = {
           handed_over_at: string | null
           handover_mode: string
           held_at: string | null
+          helpr_unfilled_at: string | null
           hold_release_attempts: number
           hold_release_last_error: string | null
           hold_released_at: string | null
@@ -13949,6 +14006,7 @@ export type Database = {
           handed_over_at?: string | null
           handover_mode?: string
           held_at?: string | null
+          helpr_unfilled_at?: string | null
           hold_release_attempts?: number
           hold_release_last_error?: string | null
           hold_released_at?: string | null
@@ -13990,6 +14048,7 @@ export type Database = {
           handed_over_at?: string | null
           handover_mode?: string
           held_at?: string | null
+          helpr_unfilled_at?: string | null
           hold_release_attempts?: number
           hold_release_last_error?: string | null
           hold_released_at?: string | null
@@ -14144,9 +14203,12 @@ export type Database = {
           city: string
           created_at: string
           is_seed: boolean
+          lat: number | null
           line1: string
           line2: string | null
+          lng: number | null
           owner_id: string
+          point_at: string | null
           postal_code: string
           shop_id: string
           state_code: string
@@ -14158,9 +14220,12 @@ export type Database = {
           city: string
           created_at?: string
           is_seed?: boolean
+          lat?: number | null
           line1: string
           line2?: string | null
+          lng?: number | null
           owner_id: string
+          point_at?: string | null
           postal_code: string
           shop_id: string
           state_code?: string
@@ -14172,9 +14237,12 @@ export type Database = {
           city?: string
           created_at?: string
           is_seed?: boolean
+          lat?: number | null
           line1?: string
           line2?: string | null
+          lng?: number | null
           owner_id?: string
+          point_at?: string | null
           postal_code?: string
           shop_id?: string
           state_code?: string
@@ -14478,6 +14546,7 @@ export type Database = {
           delivery_fee_cents: number
           delivery_radius_miles: number
           handover_mode: string
+          helpr_delivery: boolean
           hidden_at: string | null
           hidden_by: string | null
           hidden_reason: string | null
@@ -14510,6 +14579,7 @@ export type Database = {
           delivery_fee_cents?: number
           delivery_radius_miles?: number
           handover_mode?: string
+          helpr_delivery?: boolean
           hidden_at?: string | null
           hidden_by?: string | null
           hidden_reason?: string | null
@@ -14542,6 +14612,7 @@ export type Database = {
           delivery_fee_cents?: number
           delivery_radius_miles?: number
           handover_mode?: string
+          helpr_delivery?: boolean
           hidden_at?: string | null
           hidden_by?: string | null
           hidden_reason?: string | null
@@ -17226,7 +17297,70 @@ export type Database = {
         Args: { keys: string[]; max_len: number }
         Returns: boolean
       }
+      shop_delivery_on_task_event: {
+        Args: { p_by: string; p_event: string; p_order_id: string; p_task: string }
+        Returns: Json
+      }
+      shop_delivery_open_task: {
+        Args: { p_order_id: string }
+        Returns: string
+      }
+      shop_delivery_refund: {
+        Args: { p_order_id: string; p_reason: string }
+        Returns: string
+      }
+      shop_delivery_refund_executed: {
+        Args: { p_error: string; p_refund_id: string; p_stripe_refund_id: string; p_succeeded: boolean }
+        Returns: string
+      }
+      shop_delivery_refund_reversed: {
+        Args: { p_id: string; p_stripe_refund_id: string; p_why: string }
+        Returns: string
+      }
+      shop_delivery_refunds_due: {
+        Args: { p_limit: number }
+        Returns: {
+            attempts: number
+            buyer_id: string
+            checkout_session_id: string
+            livemode: boolean
+            order_id: string
+            payment_intent_id: string
+            refund_cents: number
+            refund_id: string
+            reversals: number
+            seller_id: string
+          }[]
+      }
+      shop_delivery_reserved_cents: {
+        Args: { p_order_id: string }
+        Returns: number
+      }
+      shop_delivery_slot_ok: {
+        Args: { p_order_id: string; p_start: string }
+        Returns: boolean
+      }
+      shop_order_refunds_recorded_cents: {
+        Args: { p_order_id: string }
+        Returns: number
+      }
+      shop_report_helpr_no_show: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
+      shop_set_order_helpr_delivery: {
+        Args: { p_buyer: string; p_city: string; p_lat: number; p_line1: string; p_line2: string; p_lng: number; p_order_id: string; p_postal_code: string }
+        Returns: Json
+      }
+      shop_set_pickup_point: {
+        Args: { p_expect_line1: string; p_expect_postal_code: string; p_lat: number; p_lng: number; p_owner: string; p_shop_id: string }
+        Returns: Json
+      }
       shops_item_variants: { Args: { p_shop_id: string }; Returns: Json }
+      shops_set_helpr_delivery: {
+        Args: { p_on: boolean }
+        Returns: Json
+      }
       shops_set_item_variants: {
         Args: { p_item_id: string; p_option_names: string[]; p_variants: Json }
         Returns: Json

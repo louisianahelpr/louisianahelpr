@@ -387,7 +387,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/referral/EnterReferralCodeCard.tsx` | input×1 | text |  | referral-claim-answer · enter-referral-code-card · claimReferralCode · e.g. FUHNW3 |
 | `src/components/TimeRangeField.tsx` | input×1, date/calendar×1 | time |  | Choose start and end time |
 | `src/pages/profile/AutoTip.tsx` | input×2, checkbox/switch/radio×2 | number |  | auto-tip-heading · auto-tip-desc · auto-tip-amount-label · Tip as · auto-tip-custom · Type an amount · auto-tip-cap · No maximum |
-| `src/pages/profile/GiftCard.tsx` | input×2, textarea×1 | text, number |  | gift-form · gift-occasion-label · gift-amount-label · gift-custom-amount · gift-amount-help · gift-note |
+| `src/pages/profile/GiftCard.tsx` | input×2, textarea×1 | text, number |  | gift-form · gift-amount-label · gift-custom-amount · gift-amount-help · gift-note |
 | `src/pages/profile/giftCards/RecipientPicker.tsx` | input×1 | text |  | Clear selected recipient · Name or email address… · Recipient — name or email |
 | `src/pages/profile/HomeHistory.tsx` | date/calendar×1 |  |  |  |
 | `src/pages/profile/InstantBookTab.tsx` | select×1 |  |  | instant-book-tab · Your instant book work · instant-book-category · Choose one · instant-book-amount · 50.00 |

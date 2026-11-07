@@ -37,15 +37,14 @@
  *     redemption + $0/difference math happens server-side at checkout).
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Gift, Sparkles } from "lucide-react";
-import { toast } from "sonner";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useMutation } from "@tanstack/react-query";
+import { Gift } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { functionErrorMessage } from "@/lib/supabaseResult";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { hapticMedium, hapticSuccess } from "@/lib/haptics";
+import { hapticMedium } from "@/lib/haptics";
 import { posterCardCostFeeCents } from "@/lib/posterFees";
 import { giftChargeSentence } from "./giftCards/giftChargeSentence";
 import { formatName } from "@/lib/utils";
@@ -59,10 +58,13 @@ import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { AMOUNT_PRESETS, MAX_NOTE_LENGTH } from "./giftCards/constants";
 import { GIFT_OCCASIONS, DEFAULT_OCCASION } from "./giftCards/giftCardDesigns";
+import { OccasionChips } from "./giftCards/OccasionChips";
+import { ClaimingBanner, WhatIsThis } from "./giftCards/WhatIsThis";
+import { useGiftClaimAndReturn } from "./giftCards/useGiftClaimAndReturn";
+import { useGiftCardLists } from "./giftCards/useGiftCardLists";
 import { GiftCardPreview } from "./giftCards/GiftCardPreview";
 import { CreditCard } from "./giftCards/CreditCard";
 import { EmptyState } from "./giftCards/EmptyState";
-import { fetchReceivedGiftCards, fetchSentGiftCards } from "./giftCards/giftCardQueries";
 import { ReceivedListSkeleton, SentListSkeleton } from "./giftCards/ListSkeleton";
 import { RecipientPicker, type RecipientMatch } from "./giftCards/RecipientPicker";
 import { GIFT_RECEIVED_ID, useShowReceivedGifts } from "./giftCards/useShowReceivedGifts";
@@ -82,17 +84,9 @@ const MAX_GIFT = 500; // matches MAX_GIFT_CENTS (50000) in create-gift-card-chec
 // ─── Main page ────────────────────────────────────────────────────────────────
 export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
 
   const { user, profile, isLoading: authLoading } = useCurrentUser();
   const myEmail = user?.email?.toLowerCase() ?? "";
-  const queryClient = useQueryClient();
-
-  // ── Claim state (?claim=<token> cold-start from the emailed gift link) ─────
-  const [claiming, setClaiming] = useState(false);
-  // Fire the claim exactly once per token — the effect re-runs as auth settles
-  // and as we strip the param, so a ref (not just the param) gates it.
-  const claimedTokenRef = useRef<string | null>(null);
 
   // ── Give a gift form state ────────────────────────────────────────────────
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
@@ -165,148 +159,15 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
   const hasValidRecipient =
     recipientMode === "email" ? emailValid && !isSelfGiftEmail : !!selectedRecipient && !isSelfGiftSelected;
 
-  // ── Stripe return handling (?gift=success | ?gift=cancelled) ───────────────
-  useEffect(() => {
-    const gift = searchParams.get("gift");
-    if (gift === "cancelled") {
-      toast("Gift cancelled", { description: "No charge was made." });
-    }
-    // `success` had no branch at all: the donor came back from Stripe having
-    // been charged, the param was silently stripped, and nothing on the page
-    // acknowledged it. Nothing invalidated the sent list either, so the gift
-    // they had just bought was usually still missing from "Gift cards you've
-    // sent" — the row is minted asynchronously by the webhook.
-    if (gift === "success") {
-      toast("Gift sent", {
-        description: "We've emailed your recipient a link to claim it. It'll appear below in a moment.",
-      });
-      void queryClient.invalidateQueries({ queryKey: ["gift-cards-sent"] });
-    }
-    if (gift) {
-      searchParams.delete("gift");
-      setSearchParams(searchParams, { replace: true });
-    }
-    // Only react to the param on mount / when it changes.
-  }, [searchParams, setSearchParams, queryClient]);
+  // The Stripe return and the gift claim (?gift= / ?claim=): giftCards/useGiftClaimAndReturn.ts.
+  const { claiming, claimGift } = useGiftClaimAndReturn({ authLoading, userId: user?.id });
 
-  // ── Claim a directed gift (?claim=<token>) ────────────────────────────────
-  // The donor's email carried a claim link. This route is ProtectedRoute-
-  // wrapped, so an unauthenticated visitor is bounced to /login?redirect=…
-  // and returns here signed in — by the time this fires, `user` is the caller
-  // who should own the gift. The edge function is the authority: it enforces
-  // the email-match guard, idempotency, and the race-safe atomic bind; we just
-  // surface its verdict.
-  // Extracted from the ?claim= effect so the SAME path serves the emailed link
-  // and the in-app "Claim This Gift" button on an unclaimed card. Before this
-  // there was no claim affordance anywhere in the UI: claiming fired only from
-  // the URL, so a recipient who arrived via the dashboard teaser instead of the
-  // email had no way to bind their gift, and a transient 500 on the link burned
-  // the token for the session with no retry.
-  const claimGift = useCallback(
-    async (claimToken: string) => {
-      setClaiming(true);
-      try {
-        const { data, error } = await supabase.functions.invoke("claim-gift-card", {
-          body: { claim_token: claimToken },
-        });
-        if (error) {
-          throw new Error(await functionErrorMessage(error, "Couldn't claim this gift. Please try again."));
-        }
-        if (data?.error) throw new Error(data.error);
-        if (!data?.ok) throw new Error("Couldn't claim this gift. Please try again.");
-
-        hapticSuccess();
-        // Claiming used to be entirely silent — same haptic, no words. The
-        // server already tells us whether this was the real bind or a repeat
-        // click, and `already_claimed` was read and thrown away.
-        toast(
-          data.already_claimed ? "Already yours" : "Gift claimed",
-          {
-            description: data.already_claimed
-              ? "This gift is already attached to your account."
-              : "It's attached to your account and ready to use.",
-          },
-        );
-        // Surface the freshly-attached credit in the received list, and clear
-        // the gift card banner's 5-minute cache (useSpendableGiftCards, top of
-        // Post a Job) so its count and dismissal key follow the claim.
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: ["gift-cards-received"] }),
-          queryClient.invalidateQueries({ queryKey: ["gift-card-count"] }),
-        ]);
-        return true;
-      } catch (e) {
-        report(e, { tags: { source: "GiftCard.claim" } });
-        errorToast("Couldn't claim gift card", {
-          description: userFacingError(e, "Try again?"),
-        });
-        return false;
-      } finally {
-        setClaiming(false);
-      }
-    },
-    [queryClient],
-  );
-
-  useEffect(() => {
-    const claimToken = searchParams.get("claim");
-    if (!claimToken) return;
-    // Wait for the session to resolve — on a cold start `user` is briefly null
-    // while ProtectedRoute settles; acting now would misread "not signed in".
-    if (authLoading || !user?.id) return;
-    // Exactly-once per token.
-    if (claimedTokenRef.current === claimToken) return;
-    claimedTokenRef.current = claimToken;
-
-    void (async () => {
-      const ok = await claimGift(claimToken);
-      // A FAILED claim must not burn the token. The ref exists to stop the
-      // effect double-firing, not to make one transient 500 permanent — and
-      // because the URL is stripped below, clearing it cannot re-trigger the
-      // effect. The card's own "Claim This Gift" button is the real retry.
-      if (!ok) claimedTokenRef.current = null;
-      // Strip ?claim so a refresh / back-nav doesn't replay it — and so the
-      // bearer token stops riding in the URL (and in analytics pageviews).
-      searchParams.delete("claim");
-      setSearchParams(searchParams, { replace: true });
-    })();
-  }, [searchParams, setSearchParams, authLoading, user?.id, claimGift]);
-
-  // ── Queries ───────────────────────────────────────────────────────────────
-  // isError is load-bearing on both lists: these are real, paid gift cards.
-  // A failed fetch collapses to [] and would otherwise render the "nothing
-  // here yet" empty state — telling someone their unredeemed money doesn't
-  // exist. A failure must read as a failure, with a way back.
+  // The two lists (isError is load-bearing on both: a failed read must never read as no gift cards):
+  // giftCards/useGiftCardLists.ts.
   const {
-    data: myDonated = [],
-    isLoading: loadingDonated,
-    isError: donatedFailed,
-    isFetching: donatedFetching,
-    refetch: refetchDonated,
-    status: donatedStatus,
-    fetchStatus: donatedFetchStatus,
-  } = useQuery({
-    queryKey: ["gift-cards-sent", user?.id],
-    queryFn: () => (user?.id ? fetchSentGiftCards(user.id) : Promise.resolve([])),
-    enabled: !!user?.id,
-  });
-
-  // Gifts sent TO me — matched by resolved recipient_id OR my named email, since
-  // a gift I haven't claimed yet has recipient_id = null but is visible to my
-  // email via RLS. Newest first.
-  const {
-    data: myReceived = [],
-    isLoading: loadingReceived,
-    isError: receivedFailed,
-    isFetching: receivedFetching,
-    refetch: refetchReceived,
-    status: receivedStatus,
-    fetchStatus: receivedFetchStatus,
-  } = useQuery({
-    queryKey: ["gift-cards-received", user?.id, myEmail],
-    queryFn: () => (user?.id ? fetchReceivedGiftCards(user.id, myEmail) : Promise.resolve([])),
-    enabled: !!user?.id,
-  });
+    myDonated, loadingDonated, donatedFailed, donatedFetching, refetchDonated, donatedStatus, donatedFetchStatus,
+    myReceived, loadingReceived, receivedFailed, receivedFetching, refetchReceived, receivedStatus, receivedFetchStatus,
+  } = useGiftCardLists(user, myEmail);
 
   // ONE gate for both lists (Q1754, prod-audit page-settle 1440, 2026-09-30):
   // "sent" is one request, "sent to you" is two (rows, then donor names), so
@@ -396,19 +257,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
         {/* ── Claiming a gift (from the emailed claim link) ─────────────────── */}
         {/* Spans full width above the split so the status is visible regardless
             of which column the eye lands on first. */}
-        {claiming && (
-          <div
-            className="rounded-[20px] border border-border bg-card p-4 flex items-center gap-3 mb-6"
-          >
-            <div
-              className="w-4 h-4 shrink-0 rounded-full border-2 border-t-transparent motion-safe:animate-spin"
-              style={{ borderColor: "hsl(var(--bark))", borderTopColor: "transparent" }}
-            />
-            <p className="font-sans text-ds-13 text-foreground">
-              Claiming your gift card…
-            </p>
-          </div>
-        )}
+        {claiming && <ClaimingBanner />}
 
         {/* SINGLE COLUMN on desktop (owner). Was a 12-col split; both halves
             carry content, so they stack instead of one being dropped. The
@@ -423,29 +272,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
         <div className="space-y-section">
           {/* ── Left rail: context + primary action ─────────────────────────── */}
           <aside className="space-y-section">
-            {/* What is this? */}
-            {/* Card radius + padding are the canonical profile-card values
-                (`rounded-2xl … p-5`). Only the FILL stays gift-tinted — the
-                bespoke `rounded-ds-md p-4` box these used made the screen read
-                as a different app than the tabs it is opened from. */}
-            {/* Spec v2 rebuild (2026-10-21): a hint row on --subtle with an
-                olive icon, not a green box. */}
-            <div className="rounded-[20px] bg-muted p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-4 h-4 shrink-0" style={{ color: "hsl(var(--bark))" }} />
-                <p className="font-sans font-semibold text-ds-14 text-foreground">
-                  What is this?
-                </p>
-              </div>
-              <p
-                className="font-sans text-ds-13 leading-relaxed"
-                style={{ color: "hsl(var(--ink-deep) / 0.75)" }}
-              >
-                Send a Helpr gift card to someone you know. Find them by name or type their email,
-                choose an amount, and we'll send them a link to claim it — they can put it toward
-                any job they need done.
-              </p>
-            </div>
+            <WhatIsThis />
 
             {/* Give a gift form */}
             <div
@@ -472,67 +299,7 @@ export default function GiftCard({ onBack }: { onBack?: () => void } = {}) {
                 isSelfGiftEmail={isSelfGiftEmail}
               />
 
-              {/* Occasion — picking one swaps the card design and the note
-                  placeholder, so the choice does real work rather than just
-                  tagging the gift.
-
-                  WRAPS at every width. It used to be a masked scroll-rail
-                  below `sm`, un-scrollbarred, with the fade its only "there's
-                  more" hint — on a 320/375 phone that clipped a chip mid-word
-                  at the right edge and hid up to three of the six occasions
-                  behind a gesture nothing announced. The desktop half of this
-                  component already argued the case ("a hidden one is hidden
-                  product") and wrapped from `sm` up; the argument holds on a
-                  phone too, and six short labels cost two or three rows. The
-                  rail, the mask and the negative gutter go together. */}
-              <div>
-                <p
-                  id="gift-occasion-label"
-                  className="font-sans text-ds-12 mb-2"
-                  style={{ color: "hsl(var(--olivewood) / 0.8)" }}
-                >
-                  Occasion
-                </p>
-                <div role="group" aria-labelledby="gift-occasion-label" className="flex flex-wrap gap-2">
-                  {GIFT_OCCASIONS.map((o) => {
-                    const active = o.id === occasionId;
-                    return (
-                      <button
-                        key={o.id}
-                        type="button"
-                        aria-pressed={active}
-                        onClick={() => setOccasionId(o.id)}
-                        // SELECTED = GLOSSY. `btn-grad-primary` is the app's one
-                        // primary surface; this chip painted a flat 15%-bark
-                        // tint, the same rule break the review tags and the
-                        // withdraw-reason rows already had fixed. The active
-                        // `style` sets COLOR ONLY — a `background` shorthand
-                        // here would wipe the class's background-image.
-                        // px-3 is the app's chip padding (ReviewForm's quick
-                        // tags, the filter pills). It also buys a row back at
-                        // 320: with px-4 only "Congratulations" and
-                        // "Just because" fit alone, giving five rows.
-                        className={`min-h-11 px-3 rounded-ds-pill text-ds-12 font-sans font-semibold transition-all duration-150 ease-ds-spring active:scale-[0.97] ${
-                          active
-                            ? "btn-grad-primary border border-[hsl(var(--bark))] shadow-[inset_0_1px_0_hsl(var(--parchment)/0.22),0_1px_1px_hsl(var(--ink-deep)/0.10),0_2px_6px_hsl(var(--ink-deep)/0.12)]"
-                            : ""
-                        }`}
-                        style={
-                          active
-                            ? { color: "hsl(var(--parchment))" }
-                            : {
-                                background: "var(--surface-premium)",
-                                border: "1px solid hsl(var(--bark) / 0.18)",
-                                color: "hsl(var(--bark))",
-                              }
-                        }
-                      >
-                        {o.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
+              <OccasionChips occasionId={occasionId} setOccasionId={setOccasionId} />
 
               {/* Live preview — the sender is choosing an artifact, not filling
                   in a form, so they see exactly what lands in the inbox.

@@ -14,10 +14,10 @@
  */
 import { buyNowTotalCents } from "@/lib/declutter/money";
 
-export const INCL_FEE_WORDS = "incl. fee";
+const INCL_FEE_WORDS = "incl. fee";
 
 /** Exact cents, always two decimals ("$3.85", "$21.70"). */
-export function exactDollars(cents: number): string {
+function exactDollars(cents: number): string {
   return `$${(cents / 100).toFixed(2)}`;
 }
 

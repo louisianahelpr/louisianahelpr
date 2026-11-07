@@ -217,6 +217,7 @@ const KNOWN_NETWORK_POLLERS: Record<string, { ms: number; why: string }> = {
   "components/declutter/DeclutterOrderTalk.tsx refetchInterval": { ms: 15_000, why: "the paid-order chat (D2-1, 20261030004216): re-reads the open chat so the other side's message shows; on only while the chat sheet is open (?order_talk=<order id>), at the floor, never in the background" },
   "components/declutter/DeclutterOfferPanel.tsx refetchInterval": { ms: 1_500, why: "back from saving a card for Buy now / Make an offer: re-reads the saved card until Stripe's webhook files it; on only while resuming, and CARD_WAIT_MS (10 s) ends it, so at most ~7 reads" },
 };
+// @two-way src/test/hotQueryLoad.test.ts:stale below-floor entry
 const BELOW_FLOOR_ALLOWED = new Set(["pages/auth/SignupPending.tsx setInterval", "pages/auth/CompleteProfile.tsx setInterval", "components/declutter/DeclutterOfferPanel.tsx refetchInterval", "components/declutter/DeclutterPaySettling.tsx refetchInterval", "components/notificationPreferences/SmsAlertsCard.tsx refetchInterval"]);
 
 describe("hot-query load (Q53)", () => {
@@ -232,6 +233,9 @@ describe("hot-query load (Q53)", () => {
     expect(seen).toEqual(Object.fromEntries(Object.entries(KNOWN_NETWORK_POLLERS).map(([k, v]) => [k, v.ms])));
     for (const [k, ms] of Object.entries(seen)) {
       if (!BELOW_FLOOR_ALLOWED.has(k)) expect(ms, `${k} polls every ${ms} ms, below the ${POLL_FLOOR_MS} ms floor`).toBeGreaterThanOrEqual(POLL_FLOOR_MS);
+    }
+    for (const k of BELOW_FLOOR_ALLOWED) {
+      expect(seen[k] ?? POLL_FLOOR_MS, `stale below-floor entry ${k} — remove it from BELOW_FLOOR_ALLOWED`).toBeLessThan(POLL_FLOOR_MS);
     }
   });
 

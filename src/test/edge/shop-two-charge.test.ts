@@ -9,6 +9,7 @@
  * Registered mutations - each turns this file RED on its own:
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |  if ((((charge as { metadata?: Record<string, string> \| null }).metadata ?? {}) as Record<string, string>).kind === "shop_balance") { |  if (false) {
  * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |      if (alwaysSay && String(data) !== "already") why = `${why ?? ""} ${alwaysSay}`.trim(); |
+ * @mutate supabase/functions/stripe-webhook/handlers/chargeRefunded.ts |      "-rest"); |      "");
  * @mutate supabase/functions/shop-checkout/index.ts |      return (held as { status?: string } \| null)?.status === "held_for_review" ? "pending" : "sent"; |      return "sent";
  */
 import { describe, it, expect, beforeEach } from "vitest";
@@ -75,6 +76,16 @@ describe("stripe-webhook: a refund made by hand on the rest's charge", () => {
     expect(page?.message).toMatch(/REST of a 50% deposit order/);
     expect(page?.message).toMatch(/NOT reversed/);
     expect(stripeMock.tax.transactions.createReversal).not.toHaveBeenCalled();
+  });
+
+  it("the rest charge's page has its OWN daily key, so the deposit charge's page never swallows its tax step", async () => {
+    scenario.rpc.shop_record_hand_refund = "recorded_refund_held";
+    await deliver(restCharge([{ id: "re_rest_hand", amount: 1000, status: "succeeded", metadata: {} }]));
+    await deliver({ id: "ch_dep", payment_intent: "pi_dep", amount: 3385, amount_refunded: 500, currency: "usd",
+      metadata: { kind: "shop_order", order_id: ORDER }, refunds: { has_more: false, data: [{ id: "re_dep_hand", amount: 500, status: "succeeded", metadata: {} }] } });
+    const keys = (slackAlerts as Array<{ title?: string; oncePerDayKey?: string }>)
+      .filter((a) => /refunded outside the app/.test(String(a.title))).map((a) => a.oncePerDayKey);
+    expect(keys).toEqual([`shop-hand-refund-${ORDER}-rest`, `shop-hand-refund-${ORDER}`]);
   });
 
   it("a hand refund already recorded is not paged again", async () => {

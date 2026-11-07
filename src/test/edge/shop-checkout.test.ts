@@ -948,12 +948,14 @@ describe("shop-checkout: the maker answers", () => {
     expect(stripeMock.checkout.sessions.expire).not.toHaveBeenCalled();
   });
 
-  it("accept: a deposit order with no frozen deposit is never captured (the cron retries)", async () => {
+  it("accept: a deposit order with no frozen deposit is never captured (the cron retries); the shop is told it is accepted", async () => {
     const fn = await load();
     scenario.rpc.shops_accept_order = { result: "accepted", order_id: ORDER, captured: false };
     scenario.reads.shop_orders = { rows: [{ ...held, payment_plan: "deposit_50", deposit_cents: null }] };
     const res = await fn.fetch(fn.request({ headers: { Authorization: "Bearer maker-jwt" }, body: { action: "accept", order_id: ORDER } }));
-    expect(res.status).toBeGreaterThanOrEqual(500);
+    // 11-07 money review: the order IS accepted; the capture step failing is not the shop's error.
+    expect(res.status).toBe(200);
+    expect(await json(res)).toEqual({ accepted: true, charged: false });
     expect(stripeMock.paymentIntents.capture).not.toHaveBeenCalled();
   });
 

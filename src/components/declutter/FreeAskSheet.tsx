@@ -18,6 +18,7 @@ import { pickupDays, type SellerWindow } from "@/lib/declutter/pickupSlots";
 import { fetchItemPickupPlaces } from "@/lib/declutter/porchPlaces";
 import { Chip } from "./DeclutterFilterPanel";
 import { focusSheetItself } from "./focusSheetItself";
+import { FIRST_PICK_STEPS } from "@/lib/declutter/freePickSteps";
 
 const ZONE = "America/Chicago";
 
@@ -32,8 +33,11 @@ function askTimeLabel(iso: string, nowMs = Date.now()): string {
   return `${wd}, ${time}`;
 }
 
-export default function FreeAskSheet({ item, giverFirstName, open, onClose }: {
+export default function FreeAskSheet({ item, giverFirstName, open, onClose, oneTimeCheckAhead = false }: {
   item: DeclutterItem; giverFirstName: string; open: boolean; onClose: () => void;
+  /** 11-07: a member whose first pick carries the one-time ID check (FreeClaimPanel's reading): no "nothing is charged",
+   *  and their asked time is not booked at the pick (declutter_pick_free_request books it only for a verified member). */
+  oneTimeCheckAhead?: boolean;
 }) {
   const qc = useQueryClient();
   const webDesktop = useIsWebDesktop();
@@ -116,9 +120,16 @@ export default function FreeAskSheet({ item, giverFirstName, open, onClose }: {
           )}
         </section>
         <p className="mt-4 rounded-xl px-3 py-2 text-ds-14 text-foreground" style={{ background: "hsl(var(--burnt-sienna) / 0.08)" }} data-sheet-note="">
-          {/* Owner mockup 11-01: the pick books this time (declutter_pick_free_request, 20261101181129). */}
-          Free, nothing is charged. {giverFirstName} picks who gets it. If it's you,{" "}
-          {slot ? <strong>{askTimeLabel(slot)}</strong> : "the time you pick"} is already set, and you'll get the address.
+          {/* Owner mockup 11-01: the pick books this time (declutter_pick_free_request, 20261101181129), for a verified
+              member only; a first-timer is told the steps they will really see (11-07 free-claim trace). */}
+          {oneTimeCheckAhead ? (
+            <>Asking is free. {giverFirstName} picks who gets it. If it's you, {FIRST_PICK_STEPS}.</>
+          ) : (
+            <>
+              Free, nothing is charged. {giverFirstName} picks who gets it. If it's you,{" "}
+              {slot ? <strong>{askTimeLabel(slot)}</strong> : "the time you pick"} is already set, and you'll get the address.
+            </>
+          )}
         </p>
         <SheetFooter className="mt-4">
           <SheetPrimaryAction onClick={() => slot && ask.mutate(slot)} disabled={!slot || ask.isPending}>

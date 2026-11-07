@@ -19,6 +19,10 @@
  * @mutate src/index.css | [data-lh-auth-shell="signup"] #lh-signup-shell {\n  display: block; | [data-lh-auth-shell="signup"] #lh-signup-shell {\n  display: none;
  * @mutate src/main.tsx | !== page) document.getElementById(`lh-${page}-shell`)?.remove(); | === "x") document.getElementById(`lh-${page}-shell`)?.remove();
  * @mutate scripts/inline-shell-css.mjs |   const present = SHELLS.map( |   const present = SHELLS.slice(0, 1).map(
+ * The shells carry no id of their page (duplicate #email / #password while both were in the document; e2e-real-backend
+ * red 11-06/11-07): every id and id reference in a block takes the lh-shell- prefix (scripts/shell-ids.mjs).
+ * @mutate scripts/shell-ids.mjs | (_, sp, attr, v) => `${sp}${attr}="${SHELL_ID_PREFIX}${v}"` | (_, sp, attr, v) => `${sp}${attr}="${v}"`
+ * @mutate index.html | id="lh-shell-password" enterKeyHint="done" | id="password" enterKeyHint="done"
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -33,6 +37,7 @@ import Login from "@/pages/auth/Login";
 import Signup from "@/pages/auth/Signup";
 import { blankComments } from "./helpers/blankNonCode";
 import { inlineShellCss, SHELL_END } from "../../scripts/inline-shell-css.mjs";
+import { scopeShellIds, SHELL_ID_PREFIX } from "../../scripts/shell-ids.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const INDEX = join(ROOT, "index.html");
@@ -68,7 +73,7 @@ const showScript = (html: string) =>
 
 describe("/login and /signup paint from the HTML, as the pages themselves (Q2705 A)", () => {
   it.each(PAGES)("index.html's $page block is byte-for-byte what React renders on $path", ({ page, path, Page, words }) => {
-    const want = rendered(path, Page);
+    const want = scopeShellIds(rendered(path, Page));
     let html = readFileSync(INDEX, "utf8");
     if (process.env.LH_WRITE_AUTH_SHELLS === "1") {
       const a = html.indexOf(start(page)) + start(page).length;
@@ -78,6 +83,21 @@ describe("/login and /signup paint from the HTML, as the pages themselves (Q2705
     expect(block(html, page)).toBe(want);
     expect(want.length).toBeGreaterThan(5000);
     expect(want).toContain(words);
+  });
+
+  it.each(PAGES)("no id in the $page shell repeats one the page renders, and each is used once", ({ page, path, Page }) => {
+    const ids = (h: string) => [...h.matchAll(/\sid="([^"]+)"/g)].map((m) => m[1]);
+    const pageIds = new Set(ids(rendered(path, Page)));
+    const shellIds = ids(block(readFileSync(INDEX, "utf8"), page));
+    expect(pageIds.size, "the page has ids to collide with (floor)").toBeGreaterThan(1);
+    expect(shellIds.length).toBe(pageIds.size);
+    expect(shellIds.filter((id) => pageIds.has(id)), "an id both in the shell and on the page").toEqual([]);
+    expect(shellIds.filter((id) => !id.startsWith(SHELL_ID_PREFIX))).toEqual([]);
+    expect(new Set(shellIds).size, "an id twice in one shell").toBe(shellIds.length);
+    // Every label and aria reference in the shell points at an id the shell has.
+    const refs = [...block(readFileSync(INDEX, "utf8"), page).matchAll(/\s(?:for|aria-labelledby|aria-describedby|aria-controls)="([^"]+)"/g)]
+      .flatMap((m) => m[1].split(/\s+/));
+    expect(refs.filter((r) => !shellIds.includes(r)), "a reference to an id the shell lacks").toEqual([]);
   });
 
   it("is shown only on the bare page, for a guest on the web in English, and removed after 10 s at most", () => {

@@ -16,6 +16,8 @@
  * @mutate supabase/functions/declutter-money/index.ts |          const depositLeg = restPi ? Math.min(p.amount_cents, Number(p.deposit_shop_cents)) : p.amount_cents; |          const depositLeg = p.amount_cents;
  * @mutate supabase/functions/declutter-money/index.ts |          const restCharge = restPi ? await wholeCharge(stripe, restPi, 0) : null; |          const restCharge = restPi ? "ch_rest_any" : null;
  * @mutate supabase/functions/declutter-money/index.ts |              { idempotencyKey: `shop-payout-${p.payout_id}-rest` }, |              { idempotencyKey: `shop-payout-${p.payout_id}` },
+ * @mutate supabase/functions/declutter-money/index.ts |        if (restPi && shopTransfer) depositLegSent = { id: shopTransfer.id, amount: Number(shopTransfer.amount ?? 0) }; |
+ * @mutate supabase/functions/declutter-money/index.ts |            if (restPi) depositLegSent = { id: shopTransfer.id, amount: depositLeg }; |
  * @mutate supabase/functions/declutter-money/index.ts |          if (restPi && !(Number.isInteger(p.deposit_shop_cents) && Number(p.deposit_shop_cents) > 0)) { |          if (false) {
  * @mutate supabase/functions/declutter-money/index.ts |          const { error: restErr } = await admin.rpc("shop_payout_rest_sent", { p_payout_id: p.payout_id, p_transfer_id: restTransfer.id }); |          const restErr = null;
  * @mutate supabase/functions/declutter-money/index.ts |       if (shopHold.kind === "held") { |       if (false) {
@@ -280,6 +282,28 @@ describe("declutter-money: Shops M2 handovers and payouts", () => {
       await run({ shopPayouts: [twoCharge({ deposit_shop_cents: null })] });
       expect(stripeMock.transfers.create).not.toHaveBeenCalled();
       expect(rpcs("shop_payout_executed")[0]?.args).toMatchObject({ p_succeeded: false });
+    });
+
+    it("a rest leg that keeps failing after the deposit leg went out names that leg and pages only the rest as owed", async () => {
+      stripeMock.transfers.list.mockResolvedValue({ data: [
+        { id: "tr_dep_old", amount: 2001, reversed: false, metadata: { kind: "shop_payout", payout_id: PAYOUT, leg: "deposit" } }] });
+      stripeMock.transfers.create.mockRejectedValue(new Error("insufficient funds in source transaction"));
+      await run({ shopPayouts: [twoCharge({ attempts: 11 })] });
+      const failed = rpcs("shop_payout_executed")[0]?.args as { p_succeeded: boolean; p_error: string };
+      expect(failed.p_succeeded).toBe(false);
+      expect(failed.p_error).toMatch(/deposit leg tr_dep_old \(\$20\.01\) already sent; only the rest leg \(\$20\.00\) is owed/);
+      const page = (slackAlerts as Array<{ title?: string; message?: string }>).find((a) => a.title === "Shops payout gave up");
+      expect(page?.message).toMatch(/deposit leg tr_dep_old \(\$20\.01\) already went out: pay ONLY the rest, \$20\.00, by hand, never the whole \$40\.01/);
+    });
+
+    it("the same when the deposit leg was sent in THIS run and the rest leg then failed", async () => {
+      stripeMock.transfers.create.mockImplementation(async (params: { metadata?: Record<string, string> }) => {
+        if (params.metadata?.leg === "rest") throw new Error("insufficient funds in source transaction");
+        return { id: "tr_dep_now", destination: "acct_shop1" };
+      });
+      await run({ shopPayouts: [twoCharge({ attempts: 11 })] });
+      const page = (slackAlerts as Array<{ title?: string; message?: string }>).find((a) => a.title === "Shops payout gave up");
+      expect(page?.message).toMatch(/deposit leg tr_dep_now \(\$20\.01\) already went out: pay ONLY the rest, \$20\.00/);
     });
 
     it("the rest leg could not be recorded: the row is NOT marked sent (reconciled next run)", async () => {

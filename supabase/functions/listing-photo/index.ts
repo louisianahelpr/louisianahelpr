@@ -117,6 +117,36 @@ async function readCapped(res: Response, max: number): Promise<Uint8Array | null
 
 const storageHeaders = () => ({ Authorization: `Bearer ${SERVICE_KEY}`, apikey: SERVICE_KEY });
 
+// Q2217: a short in-isolate cache of ref -> object path, so a browse page (30 covers) does not cost 30 database
+// lookups per visitor on every load. 5 minutes, NOT an hour (lead 2026-11-06): every lookup re-checks the ref's
+// rule, and a taken-down or paused listing must stop showing within minutes; the browser already keeps an image
+// for 5 minutes (Cache-Control below), so this adds no staleness beyond what a visitor can already see. Never past
+// the ref's own expiry, and only for a lookup that found the photo (a refusal is never cached). Bounded: when full,
+// the oldest entry goes first.
+const LOOKUP_TTL_MS = 5 * 60_000;
+const LOOKUP_CACHE_MAX = 2000;
+const lookups = new Map<string, { path: string; until: number }>();
+
+function cachedPath(ref: string, now: number): string | null {
+  const hit = lookups.get(ref);
+  if (!hit) return null;
+  if (hit.until <= now) {
+    lookups.delete(ref);
+    return null;
+  }
+  return hit.path;
+}
+
+function rememberPath(ref: string, path: string, now: number): void {
+  const until = Math.min(now + LOOKUP_TTL_MS, Number(ref.split(".")[2]) * 1000);
+  if (!(until > now)) return;
+  if (lookups.size >= LOOKUP_CACHE_MAX) {
+    const oldest = lookups.keys().next().value;
+    if (oldest !== undefined) lookups.delete(oldest);
+  }
+  lookups.set(ref, { path, until });
+}
+
 serve(async (req: Request) => {
   if (req.method !== "GET" && req.method !== "HEAD") return new Response("Method not allowed", { status: 405 });
   const url = new URL(req.url);
@@ -135,14 +165,19 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { data, error } = await admin.rpc("rentals_listing_photo_object", { p_ref: ref });
-    if (error) {
-      // A lookup failure is ours, not the visitor's: logged, 503 (never a silent 404).
-      console.error("listing-photo: lookup failed", error.code, error.message);
-      return new Response("Unavailable", { status: 503, headers: { "Cache-Control": "no-store" } });
+    const now = Date.now();
+    let path = cachedPath(ref, now);
+    if (!path) {
+      const { data, error } = await admin.rpc("rentals_listing_photo_object", { p_ref: ref });
+      if (error) {
+        // A lookup failure is ours, not the visitor's: logged, 503 (never a silent 404).
+        console.error("listing-photo: lookup failed", error.code, error.message);
+        return new Response("Unavailable", { status: 503, headers: { "Cache-Control": "no-store" } });
+      }
+      path = typeof data === "string" ? data : null;
+      if (!path) return notFound();
+      rememberPath(ref, path, now);
     }
-    const path = typeof data === "string" ? data : null;
-    if (!path) return notFound();
     const encoded = path.split("/").map(encodeURIComponent).join("/");
 
     // Re-encoded by the image-transform endpoint (the authenticated route: the

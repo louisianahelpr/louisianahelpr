@@ -13,6 +13,10 @@
  * delivery and types the drop-off address; shop-checkout geocodes it, the SQL
  * refuses one past the shop's radius and adds the shop's fee.
  *
+ * Helpr delivery (slice 3; shop-checkout 'helpr_quote', 20261106223244): when the shop offers it, the buyer can
+ * have a Helpr deliver instead. The price ($6 + $1.50 a road mile from the shop) is looked up on the server for
+ * the typed address BEFORE the order; the order sends that price and the server refuses it if it moved.
+ *
  * The server re-checks every rule (shops_request_order): nothing here is the
  * protection. Styling is today's shared components only (no visual pass yet).
  */
@@ -29,7 +33,7 @@ import { DatePickerField } from "@/components/DatePickerField";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { fetchShopItems, formatItemPrice, type ShopItem } from "@/lib/shops/items";
 import { fetchItemOptions } from "@/lib/shops/variants";
-import { deliveryAddressProblem, fetchDeliveryOffer } from "@/lib/shops/delivery";
+import { deliveryAddressProblem, fetchDeliveryOffer, fetchHelprDeliveryQuote, type HelprQuote } from "@/lib/shops/delivery";
 import {
   buyerFeeCents,
   cancelPolicyText,
@@ -73,6 +77,10 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   const offer = useQuery({ queryKey: ["shops", "delivery-offer", shopId], queryFn: () => fetchDeliveryOffer(shopId), enabled: !!shopId });
   const [wantsDelivery, setWantsDelivery] = useState(false);
   const [addr, setAddr] = useState({ line1: "", line2: "", city: "", postal_code: "" });
+  // Helpr delivery: the buyer's choice and the server's price for ONE address (a changed address needs a new price).
+  const [wantsHelpr, setWantsHelpr] = useState(false);
+  const [quote, setQuote] = useState<{ for: string; q: HelprQuote } | null>(null);
+  const [quoting, setQuoting] = useState(false);
 
   const orderable = useMemo(
     () => (items.data ?? []).filter((i) => i.status === "live" && (i.stock_count == null || i.stock_count > 0)),
@@ -130,11 +138,32 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   const svcOk = svc.line1.trim().length >= 3 && svc.city.trim().length >= 2 && /^[0-9]{5}$/.test(svc.postal_code.trim()) && isLouisianaZip(svc.postal_code);
   // Restack (l106 + delivery): work done at the buyer's place has nothing to deliver (the server refuses it too).
   const delivers = offer.data?.delivers === true && !atHome;
+  const helprOffered = offer.data?.helpr_delivery === true && !atHome;
   const delivering = delivers && wantsDelivery;
+  const helpring = helprOffered && wantsHelpr;
   const deliveryCents = delivering ? offer.data?.fee_cents ?? 0 : 0;
-  const addrProblem = delivering ? deliveryAddressProblem(addr) : null;
+  const addrProblem = delivering || helpring ? deliveryAddressProblem(addr) : null;
+  const dropoff = { line1: addr.line1.trim(), ...(addr.line2.trim() ? { line2: addr.line2.trim() } : {}), city: addr.city.trim(), postal_code: addr.postal_code.trim() };
+  const addrKey = JSON.stringify(dropoff);
+  // The price shown is the price sent: only a quote for the address as typed now counts.
+  const helprCents = helpring && quote && quote.for === addrKey ? quote.q.delivery_cents : null;
   const canSend = chosen.length > 0 && !!readyDate && dateProblem === null && note.length <= NOTE_MAX && !opening && addrProblem === null
-    && (!atHome || (svcOk && !atHomeMixed));
+    && (!atHome || (svcOk && !atHomeMixed)) && (!helpring || helprCents !== null);
+  const choose = (how: "pickup" | "shop" | "helpr") => {
+    setWantsDelivery(how === "shop");
+    setWantsHelpr(how === "helpr");
+  };
+  const lookUpHelprPrice = async () => {
+    setQuoting(true);
+    try {
+      const q = await fetchHelprDeliveryQuote(shopId, dropoff);
+      setQuote({ for: addrKey, q });
+    } catch (err) {
+      toast.error(shopsErrorMessage(err));
+    } finally {
+      setQuoting(false);
+    }
+  };
 
   const send = async () => {
     setOpening(true);
@@ -148,8 +177,9 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
         terms: { cancel_policy: t.cancel_policy, ready_tap_cancel: t.ready_tap_cancel },
         ...(atHome ? { serviceAddress: { line1: svc.line1.trim(), city: svc.city.trim(), postal_code: svc.postal_code.trim() } } : {}),
         ...(delivering
-          ? { delivery: { line1: addr.line1.trim(), ...(addr.line2.trim() ? { line2: addr.line2.trim() } : {}), city: addr.city.trim(), postal_code: addr.postal_code.trim() } }
+          ? { delivery: dropoff }
           : {}),
+        ...(helpring && helprCents !== null ? { delivery: dropoff, helprCents } : {}),
       });
       await openExternalUrl(url, () => {
         setOpening(false);
@@ -159,6 +189,8 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
     } catch (err) {
       // terms_changed included: the toast says so and the terms above reload before the buyer pays.
       toast.error(shopsErrorMessage(err));
+      // delivery_rate_changed: the old Helpr price is gone; the buyer looks it up again before sending.
+      if ((err as { message?: unknown } | null)?.message === "delivery_rate_changed") setQuote(null);
       setOpening(false);
       void qc.invalidateQueries({ queryKey: ["shops", "order-terms", shopId] });
     }
@@ -256,22 +288,36 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
         <p className="text-xs text-muted-foreground">{note.length}/{NOTE_MAX}. No phone numbers, emails or links.</p>
       </div>
 
-      {delivers ? (
+      {delivers || helprOffered ? (
         <div className="space-y-2" data-testid="shop-order-delivery">
           <p className="text-sm font-semibold">How you'll get it</p>
-          <div className="grid grid-cols-2 gap-2" role="group" aria-label="How you'll get it">
-            {[false, true].map((d) => (
-              <Button key={String(d)} type="button" variant={wantsDelivery === d ? "default" : "outline"}
-                className={`${wantsDelivery === d ? "btn-grad-primary " : ""}h-auto whitespace-normal py-2`}
-                aria-pressed={wantsDelivery === d} onClick={() => setWantsDelivery(d)}>
-                {d ? `Delivery, ${offer.data && offer.data.fee_cents > 0 ? formatCents(offer.data.fee_cents) : "free"}` : "Pickup"}
+          <div className={`grid gap-2 ${delivers && helprOffered ? "grid-cols-3" : "grid-cols-2"}`} role="group" aria-label="How you'll get it">
+            <Button type="button" variant={!wantsDelivery && !wantsHelpr ? "default" : "outline"}
+              className={`${!wantsDelivery && !wantsHelpr ? "btn-grad-primary " : ""}h-auto whitespace-normal py-2`}
+              aria-pressed={!wantsDelivery && !wantsHelpr} onClick={() => choose("pickup")}>
+              Pickup
+            </Button>
+            {delivers ? (
+              <Button type="button" variant={wantsDelivery ? "default" : "outline"}
+                className={`${wantsDelivery ? "btn-grad-primary " : ""}h-auto whitespace-normal py-2`}
+                aria-pressed={wantsDelivery} onClick={() => choose("shop")}>
+                {`Delivery, ${offer.data && offer.data.fee_cents > 0 ? formatCents(offer.data.fee_cents) : "free"}`}
               </Button>
-            ))}
+            ) : null}
+            {helprOffered ? (
+              <Button type="button" variant={wantsHelpr ? "default" : "outline"}
+                className={`${wantsHelpr ? "btn-grad-primary " : ""}h-auto whitespace-normal py-2`}
+                aria-pressed={wantsHelpr} onClick={() => choose("helpr")}>
+                Helpr delivery
+              </Button>
+            ) : null}
           </div>
-          {wantsDelivery ? (
+          {delivering || helpring ? (
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground">
-                The shop delivers within {offer.data?.radius_miles} miles. It sees your address only after it accepts the order.
+                {helpring
+                  ? "A Helpr picks it up at the shop and brings it to you: $6 plus $1.50 a mile, within 50 miles. The shop and the Helpr see your address only after the shop accepts."
+                  : `The shop delivers within ${offer.data?.radius_miles} miles. It sees your address only after it accepts the order.`}
               </p>
               <div className="space-y-1">
                 <Label htmlFor="shop-order-addr1">Street address</Label>
@@ -295,12 +341,25 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
               {addrProblem && (addr.line1 || addr.city || addr.postal_code) ? (
                 <p className="text-xs text-muted-foreground">{addrProblem}</p>
               ) : null}
+              {helpring ? (
+                <div className="flex items-center justify-between gap-2" data-testid="shop-order-helpr-price">
+                  <p className="text-sm" aria-live="polite">
+                    {helprCents !== null && quote
+                      ? `Helpr delivery: ${formatCents(helprCents)} for ${quote.q.delivery_miles} ${quote.q.delivery_miles === 1 ? "mile" : "miles"}`
+                      : "See the price for this address before you send the order."}
+                  </p>
+                  <Button type="button" variant="outline" size="sm" disabled={addrProblem !== null || quoting || helprCents !== null}
+                    onClick={() => void lookUpHelprPrice()}>
+                    {quoting ? "Looking…" : "See the price"}
+                  </Button>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </div>
       ) : null}
 
-      {delivering ? null : <HandoverModeNote shopId={shopId} />}
+      {delivering || helpring ? null : <HandoverModeNote shopId={shopId} />}
       <div className="space-y-1 rounded-xl bg-muted/60 p-3" data-testid="shop-order-cancel-policy">
         <p className="text-sm font-semibold">{policy.label}</p>
         <p className="text-xs text-muted-foreground">{policy.detail}</p>
@@ -310,7 +369,8 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
         <div className="flex justify-between"><dt>Items</dt><dd>{formatCents(itemsCents)}</dd></div>
         <div className="flex justify-between"><dt>Service fee (5% + $0.70)</dt><dd>{formatCents(feeCents)}</dd></div>
         {delivering ? <div className="flex justify-between"><dt>Shop delivery</dt><dd>{deliveryCents > 0 ? formatCents(deliveryCents) : "Free"}</dd></div> : null}
-        <div className="flex justify-between font-semibold"><dt>Total</dt><dd data-testid="shop-order-total">{formatCents(itemsCents + feeCents + deliveryCents)}</dd></div>
+        {helpring && helprCents !== null ? <div className="flex justify-between"><dt>Helpr delivery</dt><dd>{formatCents(helprCents)}</dd></div> : null}
+        <div className="flex justify-between font-semibold"><dt>Total</dt><dd data-testid="shop-order-total">{formatCents(itemsCents + feeCents + deliveryCents + (helprCents ?? 0))}</dd></div>
         <p className="text-xs text-muted-foreground">Sales tax is added at checkout.</p>
       </dl>
 

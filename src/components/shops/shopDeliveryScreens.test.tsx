@@ -9,7 +9,7 @@
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const deliveryCents = delivering ? offer.data?.fee_cents ?? 0 : 0; |   const deliveryCents = 0;
  * @mutate src/components/shops/ShopOrderSheet.tsx |         ...(delivering\n          ? { delivery: | ...(false\n          ? { delivery:
  * @mutate src/components/shops/ShopOrderCard.tsx |       {delivered && (side === "buyer" \|\| order.status === "accepted") && | {delivered &&
- * @mutate src/components/shops/ShopOrderCard.tsx |   const shopGets = order.items_cents + deliveryCents; |   const shopGets = order.items_cents;
+ * @mutate src/components/shops/ShopOrderCard.tsx |   const shopDeliveryCents = delivered ? deliveryCents : 0; |   const shopDeliveryCents = 0;
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";

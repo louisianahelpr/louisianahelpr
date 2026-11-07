@@ -21896,6 +21896,14 @@ export type Database = {
         Args: { p_lat: number; p_lng: number; p_shop_id: string }
         Returns: Json
       }
+      shop_report_helpr_no_show: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
+      shops_set_helpr_delivery: {
+        Args: { p_on: boolean }
+        Returns: Json
+      }
       shops_order_cancel_quote: { Args: { p_order_id: string }; Returns: Json }
       shops_admin_queue: { Args: never; Returns: Json }
       shops_admin_pay_shop: { Args: { p_note: string; p_order_id: string }; Returns: Json }

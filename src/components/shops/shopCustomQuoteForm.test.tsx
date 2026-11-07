@@ -16,7 +16,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 const db = vi.hoisted(() => ({ rpc: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { rpc: db.rpc } }));
-const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+const toast = vi.hoisted(() => Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }));
 vi.mock("sonner", () => ({ toast }));
 
 import ShopCustomQuoteForm, { quoteCents } from "./ShopCustomQuoteForm";
@@ -71,7 +71,7 @@ describe("the shop's price form", () => {
     const subtype = (screen.queryByLabelText("Type") as HTMLSelectElement | null)?.value;
     expect(call?.[1]).toEqual({ p_request_id: "req-1", p_quote_cents: 4000, p_note: "Two weeks.", p_subtype: subtype,
       p_statements: requiredStatements("made", subtype as string) });
-    expect(toast.success).toHaveBeenCalledWith("Price sent. The buyer has 7 days to order it.");
+    expect(toast).toHaveBeenCalledWith("Price sent. The buyer has 7 days to order it.");
   });
 
   it("a price under $1, over $5,000 or with 3 decimals never sends", () => {

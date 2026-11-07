@@ -1,23 +1,23 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1194,
-    "files": 340,
-    "rendering": 1110,
-    "suppressedByPolicy": 84,
+    "calls": 1193,
+    "files": 341,
+    "rendering": 1112,
+    "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 230,
+      "toast": 232,
       "toast.error": 805,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 90,
+      "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 498,
+      "literal": 497,
       "template": 107,
       "dynamic": 641,
       "jsx": 0
@@ -2359,7 +2359,7 @@
     },
     {
       "file": "src/components/admin/AdminShopsOrders.tsx",
-      "line": 159,
+      "line": 162,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -2369,7 +2369,7 @@
     },
     {
       "file": "src/components/admin/AdminShopsOrders.tsx",
-      "line": 163,
+      "line": 166,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2379,7 +2379,7 @@
     },
     {
       "file": "src/components/admin/AdminShopsOrders.tsx",
-      "line": 218,
+      "line": 221,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -2389,7 +2389,7 @@
     },
     {
       "file": "src/components/admin/AdminShopsOrders.tsx",
-      "line": 221,
+      "line": 224,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5189,7 +5189,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterNoHelpr.tsx",
-      "line": 30,
+      "line": 32,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -5199,7 +5199,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterNoHelpr.tsx",
-      "line": 33,
+      "line": 35,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -5209,7 +5209,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterNoHelpr.tsx",
-      "line": 66,
+      "line": 68,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -8224,7 +8224,7 @@
     },
     {
       "file": "src/components/messages/useConversationListState.ts",
-      "line": 368,
+      "line": 419,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -8234,7 +8234,7 @@
     },
     {
       "file": "src/components/messages/useConversationListState.ts",
-      "line": 374,
+      "line": 425,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -10705,16 +10705,6 @@
     },
     {
       "file": "src/components/shops/ShopCustomOrdersPicker.tsx",
-      "line": 20,
-      "kind": "toast.success",
-      "title": {
-        "form": "literal",
-        "text": "Saved. New asks use it."
-      },
-      "renders": false
-    },
-    {
-      "file": "src/components/shops/ShopCustomOrdersPicker.tsx",
       "line": 23,
       "kind": "toast.error",
       "title": {
@@ -10726,12 +10716,12 @@
     {
       "file": "src/components/shops/ShopCustomQuoteForm.tsx",
       "line": 66,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Price sent. The buyer has 7 days to order it."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopCustomQuoteForm.tsx",
@@ -10756,7 +10746,7 @@
     {
       "file": "src/components/shops/ShopCustomRequestsList.tsx",
       "line": 41,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "dynamic",
         "text": "side === \"buyer\" ? \"Request withdrawn.\" : \"Request declined. The buyer is told.\"",
@@ -10771,7 +10761,7 @@
           }
         ]
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopCustomRequestsList.tsx",
@@ -11345,7 +11335,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCard.tsx",
-      "line": 141,
+      "line": 142,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11355,7 +11345,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCard.tsx",
-      "line": 254,
+      "line": 305,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -11365,7 +11355,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCard.tsx",
-      "line": 256,
+      "line": 307,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -14648,83 +14638,7 @@
     },
     {
       "file": "src/pages/profile/GiftCard.tsx",
-      "line": 172,
-      "kind": "toast",
-      "title": {
-        "form": "literal",
-        "text": "Gift cancelled"
-      },
-      "description": {
-        "form": "literal",
-        "text": "No charge was made."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/profile/GiftCard.tsx",
-      "line": 180,
-      "kind": "toast",
-      "title": {
-        "form": "literal",
-        "text": "Gift sent"
-      },
-      "description": {
-        "form": "literal",
-        "text": "We've emailed your recipient a link to claim it. It'll appear below in a moment."
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/profile/GiftCard.tsx",
-      "line": 222,
-      "kind": "toast",
-      "title": {
-        "form": "dynamic",
-        "text": "data.already_claimed ? \"Already yours\" : \"Gift claimed\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "Already yours"
-          },
-          {
-            "form": "literal",
-            "text": "Gift claimed"
-          }
-        ]
-      },
-      "description": {
-        "form": "dynamic",
-        "text": "data.already_claimed ? \"This gift is already attached to your account.\" : \"It's attached to your account and ready to use.\"",
-        "branches": [
-          {
-            "form": "literal",
-            "text": "This gift is already attached to your account."
-          },
-          {
-            "form": "literal",
-            "text": "It's attached to your account and ready to use."
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/profile/GiftCard.tsx",
-      "line": 240,
-      "kind": "errorToast",
-      "title": {
-        "form": "literal",
-        "text": "Couldn't claim gift card"
-      },
-      "description": {
-        "form": "dynamic",
-        "text": "userFacingError(e, \"Try again?\")"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/profile/GiftCard.tsx",
-      "line": 359,
+      "line": 220,
       "kind": "errorToast",
       "title": {
         "form": "literal",
@@ -14998,6 +14912,82 @@
       "description": {
         "form": "literal",
         "text": "Use Share record (PDF) to send this record instead."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/giftCards/useGiftClaimAndReturn.ts",
+      "line": 33,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Gift cancelled"
+      },
+      "description": {
+        "form": "literal",
+        "text": "No charge was made."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/giftCards/useGiftClaimAndReturn.ts",
+      "line": 41,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "Gift sent"
+      },
+      "description": {
+        "form": "literal",
+        "text": "We've emailed your recipient a link to claim it. It'll appear below in a moment."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/giftCards/useGiftClaimAndReturn.ts",
+      "line": 83,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "data.already_claimed ? \"Already yours\" : \"Gift claimed\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Already yours"
+          },
+          {
+            "form": "literal",
+            "text": "Gift claimed"
+          }
+        ]
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "data.already_claimed ? \"This gift is already attached to your account.\" : \"It's attached to your account and ready to use.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "This gift is already attached to your account."
+          },
+          {
+            "form": "literal",
+            "text": "It's attached to your account and ready to use."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/profile/giftCards/useGiftClaimAndReturn.ts",
+      "line": 101,
+      "kind": "errorToast",
+      "title": {
+        "form": "literal",
+        "text": "Couldn't claim gift card"
+      },
+      "description": {
+        "form": "dynamic",
+        "text": "userFacingError(e, \"Try again?\")"
       },
       "renders": true
     },

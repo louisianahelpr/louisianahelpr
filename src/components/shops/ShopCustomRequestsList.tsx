@@ -38,7 +38,7 @@ export default function ShopCustomRequestsList({ side }: { side: "buyer" | "shop
   const list = useQuery({ queryKey: ["shops", "custom-requests"], queryFn: fetchMyCustomRequests });
   const close = useMutation({
     mutationFn: (id: string) => closeCustomRequest(id),
-    onSuccess: () => toast.success(side === "buyer" ? "Request withdrawn." : "Request declined. The buyer is told."),
+    onSuccess: () => toast(side === "buyer" ? "Request withdrawn." : "Request declined. The buyer is told."),
     onError: (err) => toast.error(shopsErrorMessage(err)),
     onSettled: () => void qc.invalidateQueries({ queryKey: ["shops", "custom-requests"] }),
   });

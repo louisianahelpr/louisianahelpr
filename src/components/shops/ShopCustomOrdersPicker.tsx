@@ -16,8 +16,8 @@ export default function CustomOrdersPicker({ shopId }: { shopId: string }) {
   const choice = useQuery({ queryKey: ["shops", "custom-orders", shopId], queryFn: () => fetchCustomOrders(shopId) });
   const save = useMutation({
     mutationFn: (m: CustomOrderMode) => setCustomOrders(m),
+    // No success toast: the app-wide toast policy drops toast.success without an action (declutterHandoverConfirmationsShow ceiling).
     onSuccess: () => {
-      toast.success("Saved. New asks use it.");
       void qc.invalidateQueries({ queryKey: ["shops", "custom-orders", shopId] });
     },
     onError: (err) => toast.error(shopsErrorMessage(err)),

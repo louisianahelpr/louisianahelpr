@@ -67,6 +67,8 @@ export const DB_ID_COLUMNS = {
     { table: "shop_hand_refunds", column: "stripe_payment_intent_id", orderBy: "stripe_refund_id" },
     // Shops Helpr delivery (20261106194913, CHECK '^pi_'): a delivery-only refund from the order's own charge.
     { table: "shop_delivery_refunds", column: "stripe_payment_intent_id" },
+    // Shops custom-order deposit (20261106212437, CHECK '^pi_'): the rest of a 50% deposit order is its own charge.
+    { table: "shop_orders", column: "balance_payment_intent_id" },
   ],
   transfer: [
     { table: "payout_transfers", column: "stripe_transfer_id" },
@@ -92,6 +94,8 @@ export const DB_ID_COLUMNS = {
     // Q2453 (owner #3706): a HELD delivery tip's own transfer, sent with the Helpr's delivery pay (CHECK '^tr_').
     { table: "helpr_task_tips", column: "payout_transfer_id" },
     { table: "shop_payouts", column: "stripe_transfer_id" },
+    // Shops two-charge payout (20261107162454, CHECK '^tr_'): the transfer sent from the rest's own charge.
+    { table: "shop_payouts", column: "rest_transfer_id" },
     // An admin's hand settlement of a held payout or refund (20261019070737, CHECK '^(tr|re|pyr|po)_'):
     // listed under each kind it can hold; collectDbIds skips the other kinds quietly.
     { table: "payout_settlements", column: "stripe_ref" },
@@ -175,6 +179,7 @@ export const NOT_MATCHED = {
   "declutter_orders.stripe_checkout_session_id": "a Checkout Session; its PaymentIntent is declutter_orders.stripe_payment_intent_id",
   "declutter_orders.stripe_paid_at": "a timestamp (the charge's own time, B41), not a Stripe id",
   "shop_orders.stripe_checkout_session_id": "a Checkout Session; its PaymentIntent is shop_orders.stripe_payment_intent_id",
+  "shop_orders.balance_checkout_session_id": "the pay-the-rest Checkout Session of a deposit order; its PaymentIntent is shop_orders.balance_payment_intent_id",
   "declutter_refunds.refund_cents": "an amount, not a Stripe id",
   "declutter_order_jobs.seller_fault_refund_id": "a uuid pointing at our own declutter_refunds row (Add a Helpr A10, 20261017073146), not a Stripe id; the Stripe refund it stands for is declutter_refunds.stripe_refund_ref",
   "shop_refunds.refund_cents": "an amount, not a Stripe id",

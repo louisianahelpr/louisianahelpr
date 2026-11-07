@@ -56,7 +56,7 @@ describe("the shop's custom orders setting", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Custom orders, half up front/ }));
     expect(db.rpc).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: /Custom orders, paid in full/ }));
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Saved. New asks use it."));
+    await waitFor(() => expect(db.rpc).toHaveBeenCalledTimes(1));
     expect(db.rpc.mock.calls).toEqual([["shops_set_custom_orders", { p_mode: "full_hold" }]]);
   });
 

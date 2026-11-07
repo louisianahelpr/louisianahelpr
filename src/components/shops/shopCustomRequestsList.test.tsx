@@ -19,7 +19,7 @@ vi.mock("@/integrations/supabase/client", () => ({
     functions: { invoke: sb.invoke },
   },
 }));
-const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+const toast = vi.hoisted(() => Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }));
 vi.mock("sonner", () => ({ toast }));
 
 import ShopCustomRequestsList from "./ShopCustomRequestsList";
@@ -37,7 +37,7 @@ function show(side: "buyer" | "shop") {
 beforeEach(() => {
   sb.rows = [];
   sb.invoke.mockReset();
-  toast.success.mockClear();
+  toast.mockClear();
 });
 
 describe("custom requests, each side", () => {
@@ -62,7 +62,7 @@ describe("custom requests, each side", () => {
     show("shop");
     const card = await screen.findByTestId("shop-custom-request");
     fireEvent.click(within(card).getByRole("button", { name: "Decline" }));
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Request declined. The buyer is told."));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith("Request declined. The buyer is told."));
     expect(sb.invoke.mock.calls[0][0]).toBe("shop-checkout");
     expect(sb.invoke.mock.calls[0][1].body).toMatchObject({ action: "close_request", request_id: "r9" });
   });

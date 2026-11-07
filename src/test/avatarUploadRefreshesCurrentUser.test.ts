@@ -23,7 +23,8 @@ const rel = (f: string) => f.slice(ROOT.length + 1);
 
 /** Helper modules that upload for a caller which owns the cache refresh: helper -> caller. */
 const HELPER_CALLER: Record<string, string> = {
-  "src/pages/auth/completeProfile/uploadProfileFiles.ts": "src/pages/auth/CompleteProfile.tsx",
+  // CompleteProfile's save path (and its cache write) moved to src/pages/auth/completeProfile/saveCompletedProfile.ts (Q806, 2026-11-07).
+  "src/pages/auth/completeProfile/uploadProfileFiles.ts": "src/pages/auth/completeProfile/saveCompletedProfile.ts",
 };
 /** Where the function is defined, not a caller. */
 const DEFINITION = "src/lib/avatarStorage.ts";

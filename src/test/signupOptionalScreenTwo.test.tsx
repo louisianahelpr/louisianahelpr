@@ -46,6 +46,8 @@ const SIGNUP = read("src/pages/auth/Signup.tsx");
 const STEP1 = read("src/pages/auth/signup/SignupStep1.tsx");
 const STEP2 = read("src/pages/auth/signup/SignupStep2.tsx");
 const COMPLETE = read("src/pages/auth/CompleteProfile.tsx");
+// Its save path, where the row's fields are written (moved out of CompleteProfile.tsx, Q806).
+const COMPLETE_SAVE = read("src/pages/auth/completeProfile/saveCompletedProfile.ts");
 
 function Step1({ onContinue }: { onContinue: () => void }) {
   const [first, setFirst] = useState("");
@@ -182,7 +184,7 @@ describe("Complete Profile (Apple/Google)", () => {
     expect(COMPLETE).not.toMatch(/label: "City"|label: "ZIP code"/);
     expect(COMPLETE).not.toContain('return fail("Tell us your city to continue.")');
     expect(COMPLETE).toContain('{ const zip = zipCode.replace(/\\D/g, ""); if (zip && zip.length !== 5) return fail(');
-    expect(COMPLETE).toContain("...(location.trim() ? { location: location.trim() } : {}),");
-    expect(COMPLETE).toContain("...(zipCode.trim() ? { zip_code: zipCode.trim() } : {}),");
+    expect(COMPLETE_SAVE).toContain("...(location.trim() ? { location: location.trim() } : {}),");
+    expect(COMPLETE_SAVE).toContain("...(zipCode.trim() ? { zip_code: zipCode.trim() } : {}),");
   });
 });

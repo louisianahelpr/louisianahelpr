@@ -35,7 +35,7 @@
  *
  * @mutate supabase/migrations/20261023213857_identity_check_switch.sql |     NOT public.feature_enabled_for_user('identity_check', p_user_id)\n    OR COALESCE(( |     COALESCE((
  * @mutate supabase/migrations/20261025162003_payout_after_hire.sql |             CASE WHEN public.feature_enabled_for_user('identity_check', p.user_id)\n                       AND NOT public.identity_is_verified | CASE WHEN NOT public.identity_is_verified
- * @mutate src/lib/identityCheck.ts |   if (!identityCheckOn()) return false;\n  state = { open: true, reason }; |   state = { open: true, reason };
+ * @mutate src/lib/identityCheck.ts |   if (!identityCheckOn()) return false;\n  // The sheet's code did not load on this page: false too, so the caller says something. |   // The sheet's code did not load on this page: false too, so the caller says something.
  * @mutate src/lib/awardGate.ts |   if (identityCheckOn() && !hasIdBadge(profile.idv_status)) missing.push("stripe_id"); |   if (!hasIdBadge(profile.idv_status)) missing.push("stripe_id");
  * @mutate src/pages/posts/PostedJobsTab.tsx | we'll match you with Louisiana Helprs nearby. | we'll match you with ID-verified Louisiana Helprs nearby.
  * @mutate src/pages/info/helpCenter/helpCenterContent.ts | Other categories are open to any Helpr. | Other categories are open to any verified Helpr.
@@ -153,7 +153,8 @@ describe("ID verification off: every gate, prompt and claim reads the identity_c
   it("(c1) the shared entry functions return early while the switch is off", () => {
     const code = srcCode();
     const idc = code.get("src/lib/identityCheck.ts") ?? "";
-    expect(fnBody(idc, "openIdentityCheck")).toMatch(/if \(!identityCheckOn\(\)\) return false;\s*state = \{ open: true/);
+    // The switch is read first; then the sheet-could-not-load answer (Q1816), then the open.
+    expect(fnBody(idc, "openIdentityCheck")).toMatch(/if \(!identityCheckOn\(\)\) return false;\s*if \(sheetUnavailable \|\| appSaysUnavailable\(\)\) return false;\s*state = \{ open: true/);
     expect(fnBody(idc, "needsIdentityCheck")).toMatch(/if \(!identityCheckOn\(\)\) return false;/);
     expect(fnBody(code.get("src/lib/awardGate.ts") ?? "", "acceptMissingFromProfile")).toMatch(/identityCheckOn\(\) && !hasIdBadge\(profile\.idv_status\)\) missing\.push\("stripe_id"\)/);
   });

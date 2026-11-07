@@ -13220,6 +13220,7 @@ export type Database = {
           order_id: string
           problem_at: string | null
           problem_note: string | null
+          problem_photo_path: string | null
           ready_at: string | null
           ready_photo_path: string | null
           shop_confirmed_at: string | null
@@ -13234,6 +13235,7 @@ export type Database = {
           order_id: string
           problem_at?: string | null
           problem_note?: string | null
+          problem_photo_path?: string | null
           ready_at?: string | null
           ready_photo_path?: string | null
           shop_confirmed_at?: string | null
@@ -13248,6 +13250,7 @@ export type Database = {
           order_id?: string
           problem_at?: string | null
           problem_note?: string | null
+          problem_photo_path?: string | null
           ready_at?: string | null
           ready_photo_path?: string | null
           shop_confirmed_at?: string | null

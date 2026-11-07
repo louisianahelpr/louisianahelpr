@@ -9,11 +9,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { rpcErrorMessage } from "./rpcErrorCopy";
+import { invokeShopCheckoutAction } from "./orders";
 
 export interface DeliveryOffer {
   delivers: boolean;
   fee_cents: number;
   radius_miles: number;
+  /** Helpr delivery (20261106194913): a Helpr delivers at Declutter's price for the road miles. Read-only here. */
+  helpr_delivery?: boolean;
 }
 
 export interface DeliveryAddress {
@@ -50,9 +53,12 @@ function rpcFail(error: { message: string }, words: string | null | undefined): 
 /** The shop's offer, from the column grant on shops. */
 export async function fetchDeliveryOffer(shopId: string): Promise<DeliveryOffer> {
   const row = unwrap(await supabase.from("shops")
-    .select("delivers, delivery_fee_cents, delivery_radius_miles").eq("id", shopId).maybeSingle()) as
-    { delivers?: boolean; delivery_fee_cents?: number; delivery_radius_miles?: number } | null;
-  return { delivers: row?.delivers === true, fee_cents: row?.delivery_fee_cents ?? 0, radius_miles: row?.delivery_radius_miles ?? 10 };
+    .select("delivers, delivery_fee_cents, delivery_radius_miles, helpr_delivery").eq("id", shopId).maybeSingle()) as
+    { delivers?: boolean; delivery_fee_cents?: number; delivery_radius_miles?: number; helpr_delivery?: boolean } | null;
+  return {
+    delivers: row?.delivers === true, fee_cents: row?.delivery_fee_cents ?? 0, radius_miles: row?.delivery_radius_miles ?? 10,
+    helpr_delivery: row?.helpr_delivery === true,
+  };
 }
 
 export async function setDeliveryOffer(offer: DeliveryOffer): Promise<DeliveryOffer> {
@@ -75,4 +81,44 @@ export async function fetchOrderDeliveryAddress(orderId: string): Promise<Delive
 /** "100 Main St, Apt 2, Lafayette, LA 70501". */
 export function formatDeliveryAddress(a: DeliveryAddress): string {
   return [a.line1, a.line2, a.city].filter(Boolean).join(", ") + `, LA ${a.postal_code}`;
+}
+
+/**
+ * Helpr delivery (slice 2, shop-checkout 'helpr_quote'; 20261106223244): the price a Helpr delivers this drop-off for,
+ * BEFORE the order. The server geocodes the address and measures the road miles from the shop's private pickup point;
+ * the order then freezes the same figure (a different one is refused as delivery_rate_changed, nothing charged).
+ */
+export interface HelprQuote { delivery_cents: number; delivery_miles: number }
+
+export async function fetchHelprDeliveryQuote(shopId: string, address: DeliveryAddress): Promise<HelprQuote> {
+  const data = await invokeShopCheckoutAction({ action: "helpr_quote", shop_id: shopId, delivery: address });
+  const cents = Number(data.delivery_cents);
+  const miles = Number(data.delivery_miles);
+  if (!Number.isInteger(cents) || cents <= 0 || !Number.isInteger(miles) || miles < 1) throw new Error("geocode_unavailable");
+  return { delivery_cents: cents, delivery_miles: miles };
+}
+
+/**
+ * After the shop saves its pickup address: the server looks the address up and keeps the point a Helpr goes to
+ * (shop-checkout 'pickup_point' -> shop_set_pickup_point). Private: the answer never carries the point.
+ */
+export async function savePickupPoint(): Promise<void> {
+  const data = await invokeShopCheckoutAction({ action: "pickup_point" });
+  if (data.saved !== true) throw new Error("geocode_unavailable");
+}
+
+/**
+ * The shop says the booked Helpr didn't come (shop_report_helpr_no_show, 20261106211136): the Helpr has 24 hours to
+ * answer and the money waits. The server checks the timing (15 minutes after the pickup time) and the booking.
+ */
+export async function reportHelprNoShow(orderId: string): Promise<void> {
+  const { error } = await supabase.rpc("shop_report_helpr_no_show", { p_order_id: orderId });
+  if (error) rpcFail(error, rpcErrorMessage("shop_report_helpr_no_show", error));
+}
+
+/** The shop turns Helpr delivery on or off (needs a looked-up pickup point; the server checks). */
+export async function setHelprDelivery(on: boolean): Promise<boolean> {
+  const { data, error } = await supabase.rpc("shops_set_helpr_delivery", { p_on: on });
+  if (error) rpcFail(error, rpcErrorMessage("shops_set_helpr_delivery", error));
+  return (data as { helpr_delivery?: boolean } | null)?.helpr_delivery === true;
 }

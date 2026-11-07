@@ -2,6 +2,9 @@
  * The shop's own delivery offer (Shops delivery slice 1, migration 20261106180902; owner 11-05 answer 3). Its own
  * file and query so the dashboard keeps one loading gate, as ShopHandoverModePicker does.
  * Free, or a whole-dollar fee from $5 to $150, within 1 to 50 miles of the shop's pin. The server re-checks it.
+ *
+ * Helpr delivery (slice 3; shops_set_helpr_delivery, 20261106194913): the shop can also let a Helpr deliver, at
+ * Declutter's price for the road miles (the buyer pays it). Needs the pickup address found on the map first.
  */
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -11,7 +14,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { deliveryFeeProblem, DELIVERY_RADIUS_MAX_MILES, fetchDeliveryOffer, setDeliveryOffer, type DeliveryOffer } from "@/lib/shops/delivery";
+import { deliveryFeeProblem, DELIVERY_RADIUS_MAX_MILES, fetchDeliveryOffer, setDeliveryOffer, setHelprDelivery, type DeliveryOffer } from "@/lib/shops/delivery";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 
 export default function ShopDeliveryPicker({ shopId }: { shopId: string }) {
@@ -30,6 +33,15 @@ export default function ShopDeliveryPicker({ shopId }: { shopId: string }) {
     mutationFn: (o: DeliveryOffer) => setDeliveryOffer(o),
     onSuccess: () => {
       toast.success("Saved. New orders use it.");
+      void qc.invalidateQueries({ queryKey: ["shops", "delivery-offer", shopId] });
+    },
+    onError: (err) => toast.error(shopsErrorMessage(err)),
+  });
+
+  const helpr = useMutation({
+    mutationFn: (on: boolean) => setHelprDelivery(on),
+    onSuccess: (on) => {
+      toast.success(on ? "Helpr delivery is on for new orders." : "Helpr delivery is off for new orders.");
       void qc.invalidateQueries({ queryKey: ["shops", "delivery-offer", shopId] });
     },
     onError: (err) => toast.error(shopsErrorMessage(err)),
@@ -79,6 +91,24 @@ export default function ShopDeliveryPicker({ shopId }: { shopId: string }) {
             onClick={() => save.mutate({ delivers, fee_cents: delivers ? feeCents : offer.data?.fee_cents ?? 0, radius_miles: delivers ? miles : offer.data?.radius_miles ?? 10 })}>
             {save.isPending ? "Saving…" : "Save delivery"}
           </Button>
+          <div className="space-y-2 border-t border-border pt-3" data-testid="shop-helpr-delivery">
+            <p className="text-sm font-semibold">Helpr delivery</p>
+            <p className="text-xs text-muted-foreground">
+              A Helpr picks the order up at your pickup address and delivers it within 50 miles. The buyer pays $6 plus $1.50 a mile; you get your items' price as usual.
+            </p>
+            <div className="grid grid-cols-2 gap-2" role="group" aria-label="Helpr delivery">
+              {[false, true].map((on) => {
+                const active = (offer.data?.helpr_delivery === true) === on;
+                return (
+                  <Button key={String(on)} type="button" variant={active ? "default" : "outline"}
+                    className={active ? "btn-grad-primary" : ""} aria-pressed={active} disabled={helpr.isPending}
+                    onClick={() => { if (!active) helpr.mutate(on); }}>
+                    {on ? "Offer it" : "Don't offer"}
+                  </Button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       )}
     </section>

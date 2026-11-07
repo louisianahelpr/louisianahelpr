@@ -7,6 +7,10 @@
  * tax on a pickup is worked out at this address (tax memo Q3).
  *
  * Saves on its own, outside the shop form (like the items below it).
+ *
+ * Helpr delivery (slice 3): right after a save, the server looks the address up and keeps the point a Helpr goes to
+ * (savePickupPoint; private, never returned). The address is saved either way; a failed lookup only means Helpr
+ * delivery waits until the next save, and the shop is told so.
  */
 import { useEffect, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -18,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { fetchMyPickupAddress, isLouisianaZip5, saveMyPickupAddress } from "@/lib/shops/pickupAddress";
 import { shopsErrorMessage } from "@/lib/shops/errors";
+import { savePickupPoint } from "@/lib/shops/delivery";
 
 const KEY = ["shops", "my-pickup-address"] as const;
 
@@ -45,9 +50,15 @@ export default function ShopPickupAddressSection() {
 
   const save = useMutation({
     mutationFn: () => saveMyPickupAddress({ line1, line2, city, postal_code: zip.trim() }),
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Pickup address saved.");
       void qc.invalidateQueries({ queryKey: KEY });
+      try {
+        await savePickupPoint();
+      } catch (err) {
+        // The address is saved; only the Helpr pickup point is missing (Helpr delivery stays off until it is found).
+        toast.error(`Saved, but we couldn't find it on the map for Helpr delivery. ${shopsErrorMessage(err)}`);
+      }
     },
     onError: (err) => toast.error(shopsErrorMessage(err)),
   });

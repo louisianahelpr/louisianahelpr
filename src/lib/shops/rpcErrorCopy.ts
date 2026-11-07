@@ -430,6 +430,27 @@ export const SHOPS_RPC_ERROR_COPY = {
   shops_order_delivery_address: {
     not_authenticated: SC.not_authenticated,
   },
+  // The shop reports "the Helpr didn't come" (20261106211136).
+  shop_report_helpr_no_show: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    not_authenticated: SC.not_authenticated,
+    order_not_found: SC.order_not_found,
+    not_a_helpr_delivery: SC.not_a_helpr_delivery,
+    problem_open: SC.problem_open,
+    no_helpr_booked: SC.no_helpr_booked,
+    already_handed_over: SC.already_handed_over,
+    too_early: SC.too_early,
+  },
+  // Helpr delivery (20261106194913): the shop turns it on (needs a looked-up pickup point) or off.
+  shops_set_helpr_delivery: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    invalid_choice: SC.invalid_choice,
+    not_authenticated: SC.not_authenticated,
+    pickup_point_missing: SC.pickup_point_missing,
+    shop_not_found: SC.shop_not_found,
+  },
   shops_set_handover_mode: {
     account_restricted: SC.account_restricted,
     feature_disabled: SC.feature_disabled,

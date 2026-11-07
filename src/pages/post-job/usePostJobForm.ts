@@ -701,6 +701,8 @@ export function usePostJobForm() {
     setRecurrenceEndDate,
     isGroupJob,
     setIsGroupJob,
+    /** Q2081 (lead 11-06): no crew (Group) job from a tenant's repair request. */
+    crewAllowed: !searchParams.get("maintenance"),
     helpersNeeded,
     setHelpersNeeded,
     // budget fields

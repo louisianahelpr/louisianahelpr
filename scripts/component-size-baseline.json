@@ -3,7 +3,6 @@
   "_threshold": 600,
   "files": {
     "src/components/profile/SubscriptionTab.tsx": 869,
-    "src/pages/auth/CompleteProfile.tsx": 891,
-    "src/pages/profile/GiftCard.tsx": 828
+    "src/pages/auth/CompleteProfile.tsx": 891
   }
 }

@@ -532,8 +532,11 @@
       "button": 1
     },
     "src/pages/profile/GiftCard.tsx": {
-      "button": 2,
+      "button": 1,
       "input": 1
+    },
+    "src/pages/profile/giftCards/OccasionChips.tsx": {
+      "button": 1
     },
     "src/pages/profile/giftCards/RecipientPicker.tsx": {
       "button": 2,

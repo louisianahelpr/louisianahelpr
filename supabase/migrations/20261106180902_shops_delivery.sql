@@ -502,3 +502,12 @@ $fn$;
 
 REVOKE ALL ON FUNCTION public.shops_report_no_show(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.shops_report_no_show(uuid) TO authenticated, service_role;
+
+-- Q807: an unconfirmed email cannot write the new table either (the same guarded call as 20261106163703).
+DO $gate$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gate$;

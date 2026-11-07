@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-07T01:03Z",
+  "measured_at": "2026-11-07T01:14Z",
   "issues": {
     "readable": true,
     "open": [
@@ -119,13 +119,6 @@
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
         "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42120720415",
-        "runTruncated": false
-      },
-      {
-        "number": 4197,
-        "title": "nightly-red: prod-freshness",
-        "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42293432612",
         "runTruncated": false
       },
       {
@@ -509,7 +502,6 @@
     "issue #4062": "Q1816",
     "issue #4149": "Q1816",
     "issue #4151": "Q1816",
-    "issue #4197": "Q1816",
     "issue #4199": "Q2769",
     "issue #4201": "Q1816",
     "issue #4202": "Q1816",

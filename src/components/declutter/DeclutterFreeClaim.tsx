@@ -30,7 +30,7 @@ import { wayAllowed } from "@/lib/declutter/handovers";
 import { NoWayWorks } from "./DeclutterHandoverTalk";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { freeClaimGateRefusal } from "@/lib/declutter/setupFee";
-import { FIRST_PICK_STEPS } from "@/lib/declutter/freePickSteps";
+import { firstPickSteps } from "@/lib/declutter/freePickSteps";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { DeclutterNotice } from "./declutterUi";
 import { HoldChecking, myHoldOn, ReservedForYou } from "./DeclutterYourOffer";
@@ -80,7 +80,7 @@ function freeAskLine(offered: FreeHandover[] | undefined, oneTimeCheckAhead = fa
   // (declutter_pick_free_request, 20261101181129). That booking happens only for a member already verified: a
   // first-timer the giver picks gets the item held instead, does the one-time ID check, then chooses the time, so
   // "that time is already set" was false for them (11-07 free-claim trace).
-  const ifYou = oneTimeCheckAhead ? `${FIRST_PICK_STEPS}${how}` : `that time is already set and you'll get the address${how}`;
+  const ifYou = oneTimeCheckAhead ? `${firstPickSteps()}${how}` : `that time is already set and you'll get the address${how}`;
   return `${oneTimeCheckAhead ? "Asking is free." : "Free, nothing is charged."} When you ask, you pick a pickup time from the giver's times. The giver picks who gets it; if it's you, ${ifYou}. You can ask for up to 3 free items at a time.`;
 }
 

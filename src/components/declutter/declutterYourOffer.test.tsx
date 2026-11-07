@@ -66,7 +66,7 @@ vi.mock("@/lib/declutter/porchPlaces", async (orig) => ({
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: false }) }));
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: "u1" }, profile: state.profile }) }));
 // The ID check is on (prod 11-07: identity_check is 'everyone'); with no profile read the panel reads as before.
-vi.mock("@/lib/identityCheckSwitch", () => ({ useIdentityCheckOnStore: () => true }));
+vi.mock("@/lib/identityCheckSwitch", () => ({ useIdentityCheckOnStore: () => true, identityCheckOn: () => true }));
 vi.mock("@/hooks/useFirstPayoutFee", () => ({ useFirstPayoutFeeCents: () => state.setupFeeCents, useFirstPayoutFeeKnown: () => state.setupFeeKnown }));
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/components/mobileNav/useDockYield", () => ({ useDockYield: () => undefined }));
@@ -230,7 +230,7 @@ describe("the item page knows the buyer's own hold (#3)", () => {
   // the one-time ID check comes first (declutter_free_claim_gate), then they choose the time (the asked time is booked
   // only for a verified member, declutter_pick_free_request). The sheet and How it works now say so.
   // @mutate src/components/declutter/FreeAskSheet.tsx |           {oneTimeCheckAhead ? ( |           {false ? (
-  // @mutate src/components/declutter/DeclutterFreeClaim.tsx |   const ifYou = oneTimeCheckAhead ? `${FIRST_PICK_STEPS}${how}` : | const ifYou =
+  // @mutate src/components/declutter/DeclutterFreeClaim.tsx |   const ifYou = oneTimeCheckAhead ? `${firstPickSteps()}${how}` : | const ifYou =
   // @mutate src/components/declutter/DeclutterFreeClaim.tsx | open={asking} onClose={() => setAsking(false)} oneTimeCheckAhead={oneTimeCheckAhead} /> | open={asking} onClose={() => setAsking(false)} />
   it("a first-timer's ask sheet and How it works never say nothing is charged or that the time is already set", async () => {
     state.profile = { onboarding_fee_paid: false };
@@ -251,6 +251,15 @@ describe("the item page knows the buyer's own hold (#3)", () => {
     // Asking itself is unchanged: the time still rides the ask.
     fireEvent.click(screen.getByRole("button", { name: /^Ask for it · / }));
     await waitFor(() => expect(state.claimed).toBe(1));
+  });
+
+  // identityCheckOffEntryPoints (c2): the ID check is named only while the identity_check switch is on.
+  // @mutate src/lib/declutter/freePickSteps.ts |     : "you choose your pickup time and get the address"; |     : "your first free item has a one-time ID check first, then you choose your pickup time and get the address";
+  it("with the ID check switch off, the first-pick steps never name an ID check", async () => {
+    const { firstPickSteps } = await import("@/lib/declutter/freePickSteps");
+    expect(firstPickSteps(false)).toBe("you choose your pickup time and get the address");
+    expect(firstPickSteps(false)).not.toMatch(/ID check/i);
+    expect(firstPickSteps(true)).toMatch(/one-time ID check/);
   });
 
   it("a member who already paid the one-time fee still reads that the time is set and nothing is charged", async () => {

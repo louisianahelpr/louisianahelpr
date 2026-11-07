@@ -122,3 +122,61 @@ export async function sweepLandlordIdImages(
   }
   return out;
 }
+
+/** Q2202: an upload older than this that no review row names is an orphan (the app died before the submit). */
+export const LANDLORD_ID_ORPHAN_MIN_AGE_HOURS = 24;
+
+export interface LandlordIdOrphanClient {
+  rpc(
+    fn: "landlord_id_orphan_photos",
+    args: { p_min_age_hours: number; p_limit: number },
+  ): PromiseLike<{ data: { name: string }[] | null; error: { message: string } | null }>;
+  storage: {
+    from(bucket: string): {
+      remove(paths: string[]): PromiseLike<{ data: { name: string }[] | null; error: { message: string } | null }>;
+    };
+  };
+}
+
+export interface LandlordIdOrphanResult {
+  found: number;
+  removed: number;
+  failures: string[];
+}
+
+/** Q2202: delete every landlord ID photo no review row names, once it is a day old. Never throws. */
+export async function sweepOrphanLandlordIdImages(
+  client: LandlordIdOrphanClient,
+  opts: { dryRun?: boolean; maxRows?: number } = {},
+): Promise<LandlordIdOrphanResult> {
+  const out: LandlordIdOrphanResult = { found: 0, removed: 0, failures: [] };
+  const { data, error } = await client.rpc("landlord_id_orphan_photos", {
+    p_min_age_hours: LANDLORD_ID_ORPHAN_MIN_AGE_HOURS,
+    p_limit: opts.maxRows ?? 500,
+  });
+  if (error) {
+    out.failures.push(`orphan read: ${error.message}`);
+    return out;
+  }
+  if (!Array.isArray(data)) {
+    out.failures.push("orphan read: no rows array");
+    return out;
+  }
+  // Only a landlord-id path, whatever the read returned: this never removes another folder's object.
+  const paths = data.map((r) => r.name).filter((n) => typeof n === "string" && n.split("/")[1] === LANDLORD_ID_FOLDER);
+  out.found = paths.length;
+  if (opts.dryRun || paths.length === 0) return out;
+  const bucket = client.storage.from(LANDLORD_ID_BUCKET);
+  for (let i = 0; i < paths.length; i += PAGE) {
+    const batch = paths.slice(i, i + PAGE);
+    const { data: gone, error: rmErr } = await bucket.remove(batch);
+    if (rmErr) {
+      out.failures.push(`orphan remove: ${rmErr.message}`);
+      continue;
+    }
+    const removed = Array.isArray(gone) ? gone.length : 0;
+    out.removed += removed;
+    if (removed !== batch.length) out.failures.push(`orphan remove: removed ${removed} of ${batch.length} photos`);
+  }
+  return out;
+}

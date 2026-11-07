@@ -69,8 +69,6 @@
     "move  src/components/dashboard/IconActionButton.tsx:108 <Button>  hover:scale-105",
     "move  src/components/dashboard/jobDetailDialog/JobDetailPhotoCover.tsx:51 <button>  hover:scale-105",
     "move  src/components/dashboard/PhotoLightbox.tsx:346 <button>  hover:scale-105",
-    "move  src/components/dashboard/PhotoLightbox.tsx:402 <button>  hover:scale-110",
-    "move  src/components/dashboard/PhotoLightbox.tsx:446 <button>  hover:scale-110",
     "notTint  src/components/DisputeTimelineDialog.tsx:373 <a>  hover:border-primary",
     "notTint  src/components/ForceUpdateGate.tsx:126 <a>  hover:opacity-80",
     "notTint  src/pages/jobs/AppliedJobsTab.tsx:422 <button>  hover:border-border",

@@ -5,8 +5,8 @@
  * app makes no &manage=1 link at all. JobsSection redirects before the Posted list mounts: a redirect from inside the list raced
  * the list's own deep-link URL write (filter=scheduled), which put the list back (headless Chromium, 2026-10-31).
  *
- * @mutate src/components/job-card/useManageDeepLink.ts |   return id ? `/jobs/${encodeURIComponent(id)}` : null; |   return id && id.length > 5 ? `/jobs/${encodeURIComponent(id)}` : null;
- * @mutate src/components/job-card/useManageDeepLink.ts |   const id = params.get("manage") === "1" ? params.get("highlight") : null; |   const id = params.get("highlight");
+ * @mutate src/components/job-card/manageLinkOpensJobPage.ts |   return id ? `/jobs/${encodeURIComponent(id)}` : null; |   return id && id.length > 5 ? `/jobs/${encodeURIComponent(id)}` : null;
+ * @mutate src/components/job-card/manageLinkOpensJobPage.ts |   const id = params.get("manage") === "1" ? params.get("highlight") : null; |   const id = params.get("highlight");
  * @mutate src/pages/jobs/JobsSection.tsx |   if (jobPage) return <Navigate replace to={jobPage} />; |   void jobPage;
  * @mutate src/components/messages/chatView/DealCard.tsx |         ? `/jobs/${job.id}` |         ? `/jobs?tab=posted&highlight=${job.id}&manage=1`
  */

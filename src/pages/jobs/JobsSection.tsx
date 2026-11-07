@@ -20,6 +20,7 @@ import { JobsListLoadingFrame } from "@/components/JobsSectionSkeleton";
 import { removeShellOncePainted } from "@/components/landing/landingShell";
 import { JOBS_SHELL_ID } from "@/components/landing/homeShell";
 import { manageLinkOpensJobPage } from "@/components/job-card/manageLinkOpensJobPage";
+import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
 import { AppTopBar, SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
@@ -35,12 +36,6 @@ import { JOB_LISTS_PREFETCH_KEY, prefetchRoutesWhenIdle } from "@/lib/routePrefe
 // share one module instance. Through loadModule (dynamicImportThenDoesNoWork): a prevented preload resolves null.
 const JobListPage = lazy(() =>
   loadModule(() => import("@/components/job-card/JobListPage")).then((m) => (m ? { default: m.default } : untilReload())),
-);
-// Q1158 (11-06): Board 141's refund_requests switch provider, which only the lists mount. Static, its chunk
-// (job-lifecycle: the arrival rule, the card-hold capture) rode on Browse's first round; the lists' chunk imports it
-// statically, so on a list this resolves from the same download.
-const RefundsSwitchProvider = lazy(() =>
-  loadModule(() => import("@/components/refund/RefundsSwitch")).then((m) => (m ? { default: m.RefundsSwitchProvider } : untilReload())),
 );
 
 const JOBS_SETTINGS = { label: "Jobs settings", labelKey: "jobs.settings", path: "/jobs/settings" } as const;
@@ -132,11 +127,11 @@ const JobsSection = () => {
   if (tab === "posted" || tab === "working") {
     const list = tab === "posted" ? "posted" : "applied";
     return (
-      <Suspense fallback={<JobsListLoadingFrame header={makeHeader()} tab={list} />}>
-        <RefundsSwitchProvider>
+      <RefundsSwitchProvider>
+        <Suspense fallback={<JobsListLoadingFrame header={makeHeader()} tab={list} />}>
           <JobListPage key={tab} defaultTab={list} embeddedHeader={makeHeader} />
-        </RefundsSwitchProvider>
-      </Suspense>
+        </Suspense>
+      </RefundsSwitchProvider>
     );
   }
   return <Dashboard embeddedHeader={makeHeader} />;

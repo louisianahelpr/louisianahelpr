@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
@@ -231,14 +232,14 @@ const DesktopSidebarRail = () => {
           const count = soon ? 0 : badgeFor(badgeKey);
           return (
             <li key={path}>
-              <button
+              <ListRow variant="flush"
                 onClick={() => { if (soon) return sayComingSoon(label); if (location.pathname === path) announceTabReselect(path); navigate(path); }}
                 onMouseEnter={() => !soon && prefetchRoute(path)}
                 aria-current={active ? "page" : undefined}
                 aria-disabled={soon ? true : undefined}
                 aria-label={soon ? tr("nav.comingSoon", { label: shown }) : undefined}
                 data-sidebar-item={path}
-                className={`group relative flex w-full items-center gap-3 rounded-full ${item.nested ? "pl-9 pr-3 py-2" : "px-3 py-2.5"} text-left transition-colors${soon ? " cursor-not-allowed" : ""}`}
+                className={`min-h-11 group relative flex w-full items-center gap-3 rounded-full ${item.nested ? "pl-9 pr-3 py-2" : "px-3 py-2.5"} text-left transition-colors${soon ? " cursor-not-allowed" : ""}`}
                 style={{
                   // Only the current page gets the pill; Explore is bold when one of its sections is open.
                   background: active && (item.nested || path !== "/explore" || location.pathname === "/explore") ? "hsl(var(--bark) / 0.10)" : "transparent",
@@ -276,7 +277,7 @@ const DesktopSidebarRail = () => {
                   {/* A2-L17: a tester's open section says "Coming soon" too (olive), as the phone's chips do. */}
                   {preview && <PreviewPill variant="rail" />}
                 </span>
-              </button>
+              </ListRow>
             </li>
           );
         })}
@@ -316,11 +317,11 @@ const AdminNavGroup = () => {
 
   return (
     <li className="mt-1">
-      <button
+      <ListRow variant="flush"
         onClick={toggleAdminOpen}
         aria-expanded={adminOpen}
         aria-controls="side-panel-admin-sections"
-        className="group relative flex w-full items-center gap-3 rounded-ds-md px-3 py-2.5 text-left transition-colors"
+        className="min-h-11 group relative flex w-full items-center gap-3 rounded-ds-md px-3 py-2.5 text-left transition-colors"
         style={{
           background: adminActive ? "hsl(var(--bark) / 0.08)" : "transparent",
           color: adminActive ? "hsl(var(--bark))" : "hsl(var(--ink-deep))",
@@ -345,7 +346,7 @@ const AdminNavGroup = () => {
           className={`h-4 w-4 shrink-0 transition-transform duration-200 ${adminOpen ? "rotate-180" : ""}`}
           aria-hidden
         />
-      </button>
+      </ListRow>
 
       {adminOpen && (
         <ul id="side-panel-admin-sections" className="mt-1 space-y-2 pb-1">
@@ -370,13 +371,13 @@ const AdminNavGroup = () => {
                   const on = adminActive && currentAdminView === id;
                   return (
                     <li key={id}>
-                      <button
+                      <ListRow variant="flush"
                         onClick={() => navigate(`/admin?view=${id}`)}
                         aria-current={on ? "page" : undefined}
                         // Indented to the parent's icon column, so the
                         // nesting reads structurally rather than needing
                         // a rule or a box.
-                        className="flex w-full items-center gap-2.5 rounded-ds-md py-1.5 pl-11 pr-3 text-left text-ds-12 ctl-tint"
+                        className="min-h-11 flex w-full items-center gap-2.5 rounded-ds-md py-1.5 pl-11 pr-3 text-left text-ds-12 ctl-tint"
                         style={{
                           background: on ? "hsl(var(--bark) / 0.08)" : "transparent",
                           color: on ? "hsl(var(--bark))" : "hsl(var(--ink-deep) / 0.78)",
@@ -402,7 +403,7 @@ const AdminNavGroup = () => {
                             </>
                           );
                         })()}
-                      </button>
+                      </ListRow>
                     </li>
                   );
                 })}

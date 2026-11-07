@@ -155,10 +155,22 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   invalid_custom_orders: "Pick one of the three choices for custom orders.",
   // Custom orders (20261106202917): a buyer's ask.
   custom_orders_off: "This shop isn't taking custom orders right now.",
+  // The same code met by the shop owner sending a price (shops_quote_custom_request).
+  custom_orders_off_shop: "Turn custom orders on, and your shop back on if it is paused, before you send a price.",
   invalid_description: "Describe what you'd like in 1 to 1,000 characters.",
   invalid_wanted_date: "Pick a date from tomorrow to 6 months out.",
   too_many_custom_requests: "You already have 3 open requests with this shop, or sent a lot of requests today. Wait for an answer, withdraw one, or try again tomorrow.",
   under_18_to_order: "You must be 18 or older to order from Shops.",
+  // Custom orders (20261106205852): the shop's price and the buyer's order of it.
+  request_not_found: "This request is no longer here. Reload the page.",
+  request_not_open: "This request has already been answered or closed.",
+  quote_not_open: "This price is no longer open. Ask the shop again.",
+  deposit_not_ready: "Paying a deposit opens soon. Ask the shop to send the price again with full payment.",
+  // Custom orders, 50% deposit (20261106212437, 20261106215722).
+  balance_not_paid: "The rest of this order is not paid yet, so it can't be handed over. We've asked the buyer to pay it.",
+  nothing_owed: "Nothing more is owed on this order.",
+  payment_plan_frozen: "An order keeps the payment plan it was placed under.",
+  deposit_split_frozen: "An order keeps the deposit it was placed with.",
   ready_tap_cancel_frozen: "An order keeps the cancel rule it was placed under.",
   // M2 (20261018211820): the handover.
   invalid_handover_mode: "Pick how buyers get their orders: in person or left out.",

@@ -428,6 +428,24 @@ export const SHOPS_RPC_ERROR_COPY = {
     too_many_custom_requests: SC.too_many_custom_requests,
     under_18: SC.under_18_to_order,
   },
+  // Custom orders (20261106205852): the shop's price (ShopCustomQuoteForm).
+  shops_quote_custom_request: {
+    account_restricted: SC.account_restricted,
+    attestation_incomplete: SC.attestation_incomplete,
+    cottage_cap_reached: SC.cottage_cap_reached,
+    cottage_confirmation_required: SC.cottage_confirmation_required,
+    custom_orders_off: SC.custom_orders_off_shop,
+    feature_disabled: SC.feature_disabled,
+    invalid_note: SC.invalid_note,
+    invalid_price: SC.invalid_price,
+    invalid_subtype: SC.invalid_subtype,
+    not_authenticated: SC.not_authenticated,
+    request_not_found: SC.request_not_found,
+    request_not_open: SC.request_not_open,
+    shop_hidden: SC.shop_hidden,
+    shop_strikes_blocked: SC.shop_strikes_blocked,
+    under_18: SC.under_18,
+  },
   // Custom orders (20261106202917): each side's list of requests (ShopCustomRequestsList).
   shops_my_custom_requests: {
     feature_disabled: SC.feature_disabled,

@@ -63,8 +63,19 @@
  * @mutate supabase/functions/shop-checkout/index.ts |    taxAddress = { line1: delivery.line1, | void { line1: delivery.line1,
  * @mutate supabase/functions/shop-checkout/index.ts |      p_city: delivery.city, p_postal_code: delivery.postal_code, p_lat: dropoff.lat, p_lng: dropoff.lng, |      p_city: delivery.city, p_postal_code: delivery.postal_code, p_lat: 30.22, p_lng: -92.02,
  * @mutate supabase/functions/shop-checkout/index.ts |      const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });\n      if (closeErr) console.error(`[shop-checkout] order ${frozen.order_id} not closed after its delivery | const closeErr = null;\n      if (closeErr) console.error(`[shop-checkout] order ${frozen.order_id} not closed after its delivery
- * @mutate supabase/functions/shop-checkout/index.ts |  if (atHome && fulfillment === "shop_delivers") { |  if (false) {
+ * @mutate supabase/functions/shop-checkout/index.ts |  if (atHome && fulfillment !== "pickup") { |  if (false) {
  * @mutate supabase/functions/shop-checkout/index.ts |    const { error: purgeErr } = await admin.from("shop_order_delivery_addresses").delete().eq("order_id", o.id); |    const purgeErr = null;
+ * Helpr delivery, slice 2 (20261106223244):
+ * @mutate supabase/functions/shop-checkout/index.ts |    if (!delErr && byHelpr && frozenHelprCents !== shownHelprCents) { |    if (false) {
+ * @mutate supabase/functions/shop-checkout/index.ts |    const { data: setRow, error: delErr } = await admin.rpc(byHelpr ? "shop_set_order_helpr_delivery" : "shop_set_order_delivery", { |    const { data: setRow, error: delErr } = await admin.rpc("shop_set_order_delivery", {
+ * @mutate supabase/functions/shop-checkout/index.ts |  const askedFulfillment = !delivery ? "pickup" : byHelpr ? "helpr_delivers" : "shop_delivers"; |  const askedFulfillment = fulfillment;
+ * @mutate supabase/functions/shop-checkout/index.ts |  if (byHelpr && (!delivery \|\| !Number.isInteger(shownHelprCents) \|\| shownHelprCents <= 0)) { |  if (false) {
+ * @mutate supabase/functions/shop-checkout/index.ts |  const { error: gateErr } = await asBuyer.rpc("shops_order_terms", { p_shop_id: shopId });\n  if (gateErr) return rpcRefusal(gateErr);\n  const apple | const apple
+ * @mutate supabase/functions/shop-checkout/index.ts |      else ({ data: q, error: qErr } = await ask()); |      else void 0;
+ * @mutate supabase/functions/shop-checkout/index.ts |      const { error: pauseErr } = await admin.rpc("declutter_route_outage", { p_minutes: 10 }); |      const pauseErr = null;
+ * @mutate supabase/functions/shop-checkout/index.ts |  return json({ delivery_cents: cents, delivery_miles: miles }); |  return json({ delivery_cents: cents, delivery_miles: miles, route: (q as { route?: unknown }).route });
+ * @mutate supabase/functions/shop-checkout/index.ts |  const off = await requireFeature(admin, "shops", user, corsHeaders);\n  if (off) return off; |
+ * @mutate supabase/functions/shop-checkout/index.ts |    p_lat: point.lat, p_lng: point.lng,\n  });\n  if (setErr) return rpcRefusal(setErr); |    p_lat: 30.22, p_lng: -92.02,\n  });\n  if (setErr) return rpcRefusal(setErr);
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -602,6 +613,79 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
       expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
     });
 
+    // Slice 2 (20261106223244): a Helpr delivers, at Declutter's price for the road miles from the shop's point.
+    const askHelpr = (fn: Awaited<ReturnType<typeof load>>, over: Record<string, unknown> = {}) => fn.request({
+      headers: { Authorization: "Bearer buyer-jwt" },
+      body: { action: "order", shop_id: SHOP, lines: [{ item_id: ITEM, quantity: 2 }], ready_date: "2026-10-30", note: "",
+        terms: { cancel_policy: "until_24h_before_ready", ready_tap_cancel: "from_day_before" }, delivery: DROP,
+        delivery_by: "helpr", delivery_cents: 1200, ...over },
+    });
+    function helprDelivered(frozenCents = 1200) {
+      frozen();
+      scenario.rpc.shop_set_order_helpr_delivery = { order_id: ORDER, delivery_cents: frozenCents, delivery_miles: 4, total_cents: 6475 + frozenCents };
+      scenario.reads.shop_orders = { rows: [orderRow({ fulfillment: "helpr_delivers", delivery_cents: frozenCents })] };
+    }
+    const resetGeocoder = () => geocoder.mockImplementation(async () => new Response(JSON.stringify([
+      { lat: "30.2400", lon: "-92.0600", address: { house_number: "100", road: "Main St", city: "Lafayette", state: "Louisiana" } },
+    ]), { status: 200 }));
+
+    it("a Helpr delivery freezes through the Helpr setter as the service, adds a non-taxable Helpr delivery line and taxes at the drop-off", async () => {
+      const fn = await load();
+      resetGeocoder();
+      helprDelivered();
+      stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_shop", url: "https://x", amount_subtotal: 6100 + 375 + 1200 + 150 });
+      const res = await fn.fetch(askHelpr(fn));
+      expect(res.status).toBe(200);
+      const set = rpcs("shop_set_order_helpr_delivery")[0];
+      expect(clientOf(set)?.key).toBe("service-key");
+      expect(set?.args).toEqual({ p_order_id: ORDER, p_buyer: BUYER, p_line1: "100 Main St", p_line2: null, p_city: "Lafayette",
+        p_postal_code: "70501", p_lat: 30.24, p_lng: -92.06 });
+      expect(rpcs("shop_set_order_delivery")).toHaveLength(0);
+      const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+      const line = params.line_items.find((l: any) => l.price_data.product_data.name === "Helpr delivery");
+      expect(line?.price_data.unit_amount).toBe(1200);
+      expect(line?.price_data.product_data.tax_code).toBe("txcd_00000000");
+      expect(params.line_items.some((l: any) => l.price_data.product_data.name === "Shop delivery")).toBe(false);
+      const taxLine = params.line_items.find((l: any) => l.price_data.product_data.name === "Sales tax");
+      expect(taxLine?.price_data.product_data.description).toBe("Louisiana sales tax where the order is delivered");
+      expect(stripeMock.tax.calculations.create.mock.calls[0][0].customer_details.address.postal_code).toBe("70501");
+    });
+
+    it("a Helpr price that moved since the buyer's quote closes the order, keeps no drop-off copy and says the new price", async () => {
+      const fn = await load();
+      resetGeocoder();
+      helprDelivered(1500);
+      const res = await fn.fetch(askHelpr(fn));
+      expect(res.status).toBe(409);
+      expect(await json(res)).toEqual({ error: "delivery_rate_changed", delivery_cents: 1500 });
+      expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
+      expect(scenario.writes.filter((w) => w.table === "shop_order_delivery_addresses").map((w) => w.op)).toEqual(["delete"]);
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    });
+
+    it("a Helpr delivery without the shown price, or a delivery choice the app does not know, is a bad request", async () => {
+      const fn = await load();
+      resetGeocoder();
+      helprDelivered();
+      for (const over of [{ delivery_cents: undefined }, { delivery_cents: 0 }, { delivery: undefined }, { delivery_by: "drone" }]) {
+        const res = await fn.fetch(askHelpr(fn, over));
+        expect([JSON.stringify(over), res.status]).toEqual([JSON.stringify(over), 400]);
+        expect((await json(res)).error).toBe("invalid_delivery_choice");
+      }
+      expect(rpcs("shops_request_order")).toHaveLength(0);
+    });
+
+    it("a Helpr order the SQL froze as a shop delivery (or the reverse) closes before any page", async () => {
+      const fn = await load();
+      resetGeocoder();
+      helprDelivered();
+      scenario.reads.shop_orders = { rows: [orderRow({ fulfillment: "shop_delivers", delivery_cents: 1200 })] };
+      const res = await fn.fetch(askHelpr(fn));
+      expect(res.status).toBe(500);
+      expect(rpcs("shops_cancel_order_request")).toHaveLength(1);
+      expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
+    });
+
     it("a pickup order carries no delivery line", async () => {
       const fn = await load();
       frozen();
@@ -611,6 +695,161 @@ describe("shop-checkout: the buyer asks for an order (a card HOLD, Stripe Tax on
       const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
       expect(params.line_items.some((l: any) => l.price_data.product_data.name === "Shop delivery")).toBe(false);
     });
+  });
+});
+
+describe("shop-checkout: the Helpr delivery quote and the shop's pickup point (slice 2, 20261106223244)", () => {
+  async function load() {
+    env();
+    scenario.authUser = { id: BUYER, email: "buyer@test.dev", email_confirmed_at: "2026-10-01T00:00:00Z" };
+    return loadEdgeFunction("shop-checkout");
+  }
+  const DROP = { line1: "100 Main St", city: "Lafayette", postal_code: "70501" };
+  const nominatim = () => new Response(JSON.stringify([
+    { lat: "30.2400", lon: "-92.0600", address: { house_number: "100", road: "Main St", city: "Lafayette", state: "Louisiana" } },
+  ]), { status: 200 });
+  const net = vi.fn(async (_url: string, _init?: RequestInit) => nominatim());
+  beforeEach(() => { net.mockReset(); net.mockImplementation(async () => nominatim()); vi.stubGlobal("fetch", net); });
+  afterEach(() => { vi.unstubAllGlobals(); });
+  const quoteReq = (fn: Awaited<ReturnType<typeof load>>, delivery: unknown = DROP) => fn.request({
+    headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "helpr_quote", shop_id: SHOP, delivery },
+  });
+  const ROUTE = { o_lat: 30.22412, o_lng: -92.01987, d_lat: 30.24, d_lng: -92.06 };
+  async function withMapkit() {
+    const { generateKeyPairSync } = await import("node:crypto");
+    const pem = generateKeyPairSync("ec", { namedCurve: "P-256" }).privateKey.export({ type: "pkcs8", format: "pem" }).toString();
+    setEnv({ APPLE_MAPKIT_PRIVATE_KEY: pem, APPLE_MAPKIT_KEY_ID: "KEY1234567", APPLE_MAPKIT_TEAM_ID: "TEAM123456" });
+    net.mockImplementation(async (u: string) => {
+      const url = String(u);
+      if (url.endsWith("/v1/token")) return new Response(JSON.stringify({ accessToken: "apple-access" }), { status: 200 });
+      if (url.includes("/v1/geocode")) return new Response(JSON.stringify({ results: [{ coordinate: { latitude: 30.24, longitude: -92.06 },
+        structuredAddress: { locality: "Lafayette", administrativeAreaCode: "LA" } }] }), { status: 200 });
+      if (url.includes("/v1/etas")) return new Response(JSON.stringify({ etas: [
+        { destination: { latitude: 30.24, longitude: -92.06 }, transportType: "Automobile", distanceMeters: 9000, expectedTravelTimeSeconds: 900 },
+      ] }), { status: 200 });
+      return new Response("unexpected", { status: 500 });
+    });
+  }
+
+  it("answers the price and miles only, after the buyer's own gates, from a server-side lookup", async () => {
+    const fn = await load();
+    scenario.rpc.shops_order_terms = { cancel_policy: "until_24h_before_ready" };
+    scenario.rpc.shop_helpr_delivery_quote = { delivery_cents: 1200, delivery_miles: 4, route: null };
+    const res = await fn.fetch(quoteReq(fn));
+    expect(res.status).toBe(200);
+    expect(await json(res)).toEqual({ delivery_cents: 1200, delivery_miles: 4 });
+    expect(clientOf(rpcs("shops_order_terms")[0])?.key).toBe("anon-key");
+    const q = rpcs("shop_helpr_delivery_quote")[0];
+    expect(clientOf(q)?.key).toBe("service-key");
+    expect(q?.args).toEqual({ p_shop_id: SHOP, p_lat: 30.24, p_lng: -92.06 });
+  });
+
+  it("a buyer the SQL refuses gets no lookup", async () => {
+    const fn = await load();
+    scenario.rpcErrors = { shops_order_terms: { message: "feature_disabled", code: "42501" } };
+    const res = await fn.fetch(quoteReq(fn));
+    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect(net).not.toHaveBeenCalled();
+    expect(rpcs("shop_helpr_delivery_quote")).toHaveLength(0);
+  });
+
+  it("an unrouted pair is routed by Apple, stored under the SQL's exact key, and the routed price answers (Q1930)", async () => {
+    const fn = await load();
+    await withMapkit();
+    scenario.rpc.shops_order_terms = {};
+    let asked = 0;
+    scenario.rpc.shop_helpr_delivery_quote = () => (++asked === 1
+      ? { delivery_cents: 1200, delivery_miles: 4, route: ROUTE }
+      : { delivery_cents: 1500, delivery_miles: 6, route: null });
+    const res = await fn.fetch(quoteReq(fn));
+    expect(res.status).toBe(200);
+    const body = await json(res);
+    expect(body).toEqual({ delivery_cents: 1500, delivery_miles: 6 });
+    expect(JSON.stringify(body)).not.toContain("30.22412");
+    const stored = scenario.writes.filter((w) => w.table === "declutter_route_miles");
+    expect(stored).toHaveLength(1);
+    // 9000 m = 5.59 mi -> 6; 900 s -> 15 min.
+    expect(stored[0].payload).toMatchObject({ ...ROUTE, miles: 6, minutes: 15, source: "apple" });
+    expect(net.mock.calls.some((c) => String(c[0]).includes("/v1/etas"))).toBe(true);
+    expect(rpcs("shop_helpr_delivery_quote")).toHaveLength(2);
+  });
+
+  it("an Apple routing miss pauses routing and the estimate answers", async () => {
+    const fn = await load();
+    await withMapkit();
+    const base = net.getMockImplementation()!;
+    net.mockImplementation(async (u: string, i?: RequestInit) =>
+      String(u).includes("/v1/etas") ? new Response("busy", { status: 503 }) : base(u, i));
+    scenario.rpc.shops_order_terms = {};
+    scenario.rpc.declutter_route_outage = null;
+    scenario.rpc.shop_helpr_delivery_quote = { delivery_cents: 1200, delivery_miles: 4, route: ROUTE };
+    const res = await fn.fetch(quoteReq(fn));
+    expect(res.status).toBe(200);
+    expect(await json(res)).toEqual({ delivery_cents: 1200, delivery_miles: 4 });
+    expect(rpcs("declutter_route_outage")[0]?.args).toEqual({ p_minutes: 10 });
+    expect(scenario.writes.filter((w) => w.table === "declutter_route_miles")).toHaveLength(0);
+  });
+
+  it("the SQL's refusal (too far, no Helpr delivery) is the buyer's answer", async () => {
+    const fn = await load();
+    scenario.rpc.shops_order_terms = {};
+    scenario.rpcErrors = { shop_helpr_delivery_quote: { message: "delivery_too_far", code: "22023" } };
+    const res = await fn.fetch(quoteReq(fn));
+    expect(res.status).toBeGreaterThanOrEqual(400);
+    expect((await json(res)).error).toBe("delivery_too_far");
+  });
+
+  it("a malformed drop-off is a bad request", async () => {
+    const fn = await load();
+    const res = await fn.fetch(quoteReq(fn, { line1: "1", city: "", postal_code: "7050" }));
+    expect(res.status).toBe(400);
+    expect(rpcs("shop_helpr_delivery_quote")).toHaveLength(0);
+  });
+
+  const pointReq = (fn: Awaited<ReturnType<typeof load>>) => fn.request({
+    headers: { Authorization: "Bearer buyer-jwt" }, body: { action: "pickup_point" },
+  });
+
+  it("the pickup point is looked up from the owner's saved address and stored by the service, never returned", async () => {
+    const fn = await load();
+    scenario.rpc.feature_enabled_for_user = true;
+    scenario.rpc.shops_my_pickup_address = [{ line1: "705 W University Ave", line2: null, city: "Lafayette", state: "LA", postal_code: "70506" }];
+    scenario.reads.shops = { rows: [{ id: SHOP }] };
+    scenario.rpc.shop_set_pickup_point = { shop_id: SHOP, result: "point_saved" };
+    const res = await fn.fetch(pointReq(fn));
+    expect(res.status).toBe(200);
+    expect(await json(res)).toEqual({ saved: true });
+    expect(clientOf(rpcs("shops_my_pickup_address")[0])?.key).toBe("anon-key");
+    const set = rpcs("shop_set_pickup_point")[0];
+    expect(clientOf(set)?.key).toBe("service-key");
+    expect(set?.args).toEqual({ p_shop_id: SHOP, p_owner: BUYER, p_expect_line1: "705 W University Ave",
+      p_expect_postal_code: "70506", p_lat: 30.24, p_lng: -92.06 });
+  });
+
+  it("the pickup point is refused while the switch is off, with no lookup", async () => {
+    const fn = await load();
+    scenario.rpc.feature_enabled_for_user = false;
+    const res = await fn.fetch(pointReq(fn));
+    expect(res.status).toBe(403);
+    expect((await json(res)).error).toBe("feature_disabled");
+    expect(net).not.toHaveBeenCalled();
+    expect(rpcs("shop_set_pickup_point")).toHaveLength(0);
+  });
+
+  it("no saved address: nothing to look up; an address changed meanwhile: the SQL's refusal", async () => {
+    const fn = await load();
+    scenario.rpc.feature_enabled_for_user = true;
+    scenario.rpc.shops_my_pickup_address = [];
+    const none = await fn.fetch(pointReq(fn));
+    expect(none.status).toBe(409);
+    expect((await json(none)).error).toBe("pickup_address_missing");
+    expect(net).not.toHaveBeenCalled();
+    scenario.rpc.shops_my_pickup_address = [{ line1: "705 W University Ave", city: "Lafayette", postal_code: "70506" }];
+    scenario.reads.shops = { rows: [{ id: SHOP }] };
+    scenario.rpcErrors = { shop_set_pickup_point: { message: "address_changed", code: "55000" } };
+    const changed = await fn.fetch(pointReq(fn));
+    expect(changed.status).toBeGreaterThanOrEqual(400);
+    expect((await json(changed)).error).toBe("address_changed");
   });
 });
 

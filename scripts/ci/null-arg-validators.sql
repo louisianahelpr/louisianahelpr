@@ -204,6 +204,8 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('cancel_fee_payee_frozen',       'classify', 'labels a hired Helpr as banned or under open ban review, so the poster''s late-cancel fee is waived (Q1415e, 20261102074317); NULL user = false'),
   ('declutter_seller_can_ship',     'classify', 'display read: whether checkout offers Ship it to me for a seller with no open shipping debt (S6 2e, 20261102054848; a NULL seller answers FALSE since 20261102095838, PGlite shippingSellerCanShipNull.pglite.mjs); the BEFORE INSERT trigger is the gate'),
   ('section_keys_ok',               'classify', 'CHECK helper: the member''s section list is known keys, no NULL, no repeats, within max_len (20261102074244); NULL keys = false'),
+  ('shop_order_balance_open',       'classify', 'labels a Shops order as a 50% deposit order whose rest is not captured yet (20261106212437); service_role only; called only with a real shop_orders row (NEW, o, so), on which it is never NULL (payment_plan is NOT NULL, the other term is IS NULL); no access decision'),
+  ('shop_order_two_charges',        'classify', 'labels a Shops deposit order paid in two charges (rest captured, rest PaymentIntent set; 20261107162454); service_role only; called only with a real shop_orders row (o, so), on which it is never NULL (payment_plan is NOT NULL, the other terms are IS NOT NULL); no access decision'),
   ('is_caller_banned',              'noarg',    'reads auth.uid() only'),
   ('is_server_context',             'noarg',    'reads the session only'),
   ('session_email_unconfirmed',     'noarg',    'reads the JWT only (Q807): TRUE refuses the write, so it fails safe'),

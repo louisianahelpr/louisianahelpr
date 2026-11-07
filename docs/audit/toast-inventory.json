@@ -2359,7 +2359,7 @@
     },
     {
       "file": "src/components/admin/AdminShopsOrders.tsx",
-      "line": 159,
+      "line": 162,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -2369,7 +2369,7 @@
     },
     {
       "file": "src/components/admin/AdminShopsOrders.tsx",
-      "line": 163,
+      "line": 166,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -2379,7 +2379,7 @@
     },
     {
       "file": "src/components/admin/AdminShopsOrders.tsx",
-      "line": 218,
+      "line": 221,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -2389,7 +2389,7 @@
     },
     {
       "file": "src/components/admin/AdminShopsOrders.tsx",
-      "line": 221,
+      "line": 224,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

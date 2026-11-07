@@ -10694,6 +10694,16 @@
       "renders": true
     },
     {
+      "file": "src/components/shops/ShopCustomOrderForm.tsx",
+      "line": 78,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/shops/ShopCustomOrdersPicker.tsx",
       "line": 20,
       "kind": "toast.success",
@@ -10714,6 +10724,26 @@
       "renders": true
     },
     {
+      "file": "src/components/shops/ShopCustomQuoteForm.tsx",
+      "line": 66,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Price sent. The buyer has 7 days to order it."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopCustomQuoteForm.tsx",
+      "line": 69,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/shops/ShopCustomRequestSheet.tsx",
       "line": 27,
       "kind": "toast.error",
@@ -10725,7 +10755,7 @@
     },
     {
       "file": "src/components/shops/ShopCustomRequestsList.tsx",
-      "line": 34,
+      "line": 41,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -10745,7 +10775,7 @@
     },
     {
       "file": "src/components/shops/ShopCustomRequestsList.tsx",
-      "line": 35,
+      "line": 42,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

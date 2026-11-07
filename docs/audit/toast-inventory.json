@@ -1,25 +1,25 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1180,
-    "files": 334,
-    "rendering": 1099,
+    "calls": 1185,
+    "files": 335,
+    "rendering": 1104,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 229,
-      "toast.error": 795,
+      "toast": 230,
+      "toast.error": 799,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
-      "literal": 495,
-      "template": 106,
-      "dynamic": 631,
+      "literal": 496,
+      "template": 107,
+      "dynamic": 634,
       "jsx": 0
     }
   },
@@ -10775,7 +10775,17 @@
     },
     {
       "file": "src/components/shops/ShopDeliveryPicker.tsx",
-      "line": 35,
+      "line": 38,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopDeliveryPicker.tsx",
+      "line": 46,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11244,8 +11254,38 @@
       "renders": true
     },
     {
+      "file": "src/components/shops/ShopOrderCard.tsx",
+      "line": 207,
+      "kind": "toast",
+      "title": {
+        "form": "literal",
+        "text": "We told the Helpr. They have 24 hours to answer, and the money waits until this is sorted out."
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopOrderCard.tsx",
+      "line": 209,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/shops/ShopOrderSheet.tsx",
-      "line": 161,
+      "line": 162,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopOrderSheet.tsx",
+      "line": 191,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11255,7 +11295,7 @@
     },
     {
       "file": "src/components/shops/ShopPickupAddressSection.tsx",
-      "line": 49,
+      "line": 54,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11265,7 +11305,17 @@
     },
     {
       "file": "src/components/shops/ShopPickupAddressSection.tsx",
-      "line": 52,
+      "line": 60,
+      "kind": "toast.error",
+      "title": {
+        "form": "template",
+        "text": "Saved, but we couldn't find it on the map for Helpr delivery. ${shopsErrorMessage(err)}"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopPickupAddressSection.tsx",
+      "line": 63,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-06T22:44Z",
+  "measured_at": "2026-11-07T01:03Z",
   "issues": {
     "readable": true,
     "open": [
@@ -50,7 +50,7 @@
         "number": 2601,
         "title": "nightly-red: loading-states-refresh",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42123572431",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42302309191",
         "runTruncated": false
       },
       {
@@ -337,6 +337,14 @@
         "issue": null
       },
       {
+        "fingerprint": "747845433253c079b579d26e780481bc",
+        "source_kind": "nightly_red",
+        "source": "migration-drift",
+        "status": "open",
+        "title": "🔴 migration drift: # unapplied / # unrecorded",
+        "issue": 4199
+      },
+      {
         "fingerprint": "8a2e802edbe7bd772cfe6fec1ea6488b",
         "source_kind": "nightly_red",
         "source": "schedule-stalled",
@@ -375,6 +383,14 @@
         "status": "open",
         "title": "error: unexpected sign-out",
         "issue": null
+      },
+      {
+        "fingerprint": "a13c4edc69832354d5e579c068462874",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: feature-switch-audience",
+        "issue": 4202
       },
       {
         "fingerprint": "3c0d6b003e080de5479e1faf4a1df45a",
@@ -441,19 +457,19 @@
         "issue": null
       },
       {
-        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
-        "source_kind": "error_logs",
-        "source": "cron-http",
-        "status": "open",
-        "title": "cron http failure: declutter-money returned 502",
-        "issue": null
-      },
-      {
         "fingerprint": "aeedd249577285330a97e04195cee7d8",
         "source_kind": "error_logs",
         "source": "cron-http",
         "status": "open",
         "title": "cron http failure: refund-request-sweep returned 502",
+        "issue": null
+      },
+      {
+        "fingerprint": "11f46545733f7f4efb332aea0fb6f0d4",
+        "source_kind": "error_logs",
+        "source": "cron-http",
+        "status": "open",
+        "title": "cron http failure: declutter-money returned 502",
         "issue": null
       },
       {
@@ -463,6 +479,14 @@
         "status": "open",
         "title": "typeerror: cannot read properties of undefined (reading 'fetchsupporttickets')",
         "issue": null
+      },
+      {
+        "fingerprint": "52e797b0d01f2ad7f670509b8a9e0d03",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
+        "status": "open",
+        "title": "nightly-red: prod-freshness",
+        "issue": 4197
       }
     ]
   },
@@ -506,6 +530,7 @@
     "ledger 41f88aeb227f": "Q1777",
     "ledger 43d77e26f272": "Q1816",
     "ledger 4aa239aefeb6": "Q1816",
+    "ledger 52e797b0d01f": "Q1816",
     "ledger 54ef0bfdcec3": "Q2770",
     "ledger 5a28db44e912": "Q2410",
     "ledger 5b3c79ac5eb7": "Q1581",
@@ -513,6 +538,7 @@
     "ledger 6205197429d4": "Q1816",
     "ledger 6389f98a9f66": "Q1816",
     "ledger 70e7b0decb9a": "Q1816",
+    "ledger 747845433253": "Q2769",
     "ledger 7e141f206640": "Q1816",
     "ledger 7f88b9cc45df": "Q1816",
     "ledger 8018e82cb167": "Q1816",
@@ -522,6 +548,7 @@
     "ledger 8f6eb3360000": "Q2507",
     "ledger 9078a39b3304": "Q1615",
     "ledger 99390a68ded7": "Q1615",
+    "ledger a13c4edc6983": "Q1816",
     "ledger a8ceee56bbd5": "Q1816",
     "ledger ab6fdbe8c882": "Q1816",
     "ledger aeedd2495772": "Q2409",

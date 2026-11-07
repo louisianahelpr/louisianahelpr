@@ -500,7 +500,9 @@ const WorkRecord = ({ onBack }: { onBack?: () => void }) => {
                 onClick={() => { void handleShare(); }}
                 disabled={isSharing}
                 aria-busy={isSharing}
-                className="flex-1"
+                // sm:flex-1, not flex-1: in the phone's column a 0 flex-basis let the button shrink to the 44px floor,
+                // below its own h-12 and the Print button under it (a11y-prod buttonGeometry, Q1816).
+                className="sm:flex-1"
               >
                 {isSharing ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

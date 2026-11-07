@@ -11,7 +11,8 @@
  * So, for a visitor with no stored session, the entry fires the guest page's own reads at once, with the public key
  * (exactly the requests the page would make: the anon row policies decide what comes back):
  *   - features_open_to_everyone (STABLE): the guest gate's answer (DeclutterGuestGate, useSectionsOpen);
- *   - the live list (fetchLiveItems' read), then its photo rows (fetchPhotos' read);
+ *   - the live list (fetchLiveItems' read) and its photo rows (fetchPhotos' read): in one read,
+ *     declutter_guest_first_screen (option B, 20261107172400), else the two REST reads, the photos after the list;
  *   - and, when the link opens on Browse and Declutter is open to everyone, the first row's card photos.
  * The page takes each answer ONCE (src/lib/declutter/guestBootPrefetch.ts). A failed, missing or old answer: the page
  * reads for itself, as before.
@@ -68,17 +69,30 @@ export function startGuestDeclutterPrefetch(base: string, key: string, search: s
     .then(json)
     .then((v) => (list(v)?.every((x) => typeof x === "string") ? (v as string[]) : null))
     .catch(() => null);
-  const items = fetch(guestItemsUrl(base), { headers })
+  // Option B: the list and its photo rows in ONE read (declutter_guest_first_screen, SECURITY INVOKER: anon's row
+  // policies decide, as for the two REST reads), so the photos do not wait a round for the list. Not deployed yet
+  // (404), refused or malformed: the two REST reads below, as in option A.
+  const one = fetch(`${rest(base)}/rpc/declutter_guest_first_screen`, {
+    method: "POST",
+    headers: { ...headers, "Content-Type": "application/json" },
+    body: "{}",
+  })
     .then(json)
-    .then(list)
+    .then((v) => {
+      const a = v as { items?: unknown; photos?: unknown } | null;
+      return a && Array.isArray(a.items) && Array.isArray(a.photos) ? { items: a.items as unknown[], photos: a.photos as unknown[] } : null;
+    })
     .catch(() => null);
-  const photos = items
-    .then((rows) => {
+  const items = one
+    .then((a) => a?.items ?? fetch(guestItemsUrl(base), { headers }).then(json).then(list))
+    .catch(() => null);
+  const photos = one
+    .then((a) => a?.photos ?? items.then((rows) => {
       if (!rows) return null;
       const ids = rows.map((r) => (r as { id?: unknown }).id).filter((id): id is string => typeof id === "string");
       if (ids.length === 0) return [];
       return fetch(guestPhotosUrl(base, ids), { headers }).then(json).then(list);
-    })
+    }))
     .catch(() => null);
   (window as unknown as Record<string, unknown>)[GUEST_DECLUTTER_PREFETCH_KEY] = { at: Date.now(), open, items, photos };
   // The first row's photos, as for a member (B96), only when the link opens on Browse and the guest will see it.

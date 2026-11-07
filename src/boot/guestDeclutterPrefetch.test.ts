@@ -7,6 +7,10 @@
 // @mutate src/boot/declutterPrefetch.ts |     if (!anyStoredSession()) startGuestDeclutterPrefetch(base, key, location.search); |     void 0;
 // @mutate src/boot/guestDeclutterPrefetch.ts |   u.searchParams.set("status", "in.(live,reserved)"); |   u.searchParams.set("status", "eq.live");
 // @mutate src/boot/guestDeclutterPrefetch.ts |     if (!o?.includes("declutter")) return; |
+// @mutate src/boot/guestDeclutterPrefetch.ts |     .then((a) => a?.items ?? fetch(guestItemsUrl(base), { headers }).then(json).then(list)) |     .then(() => fetch(guestItemsUrl(base), { headers }).then(json).then(list))
+// @mutate src/boot/guestDeclutterPrefetch.ts |       return a && Array.isArray(a.items) && Array.isArray(a.photos) ? | return a && Array.isArray(a.items) ?
+// @mutate supabase/migrations/20261107172400_declutter_guest_first_screen.sql | STABLE\nSECURITY INVOKER | STABLE\nSECURITY DEFINER
+// @mutate supabase/migrations/20261107172400_declutter_guest_first_screen.sql |            i.porch_ok, i.accepts_offers |            i.porch_ok
 // @mutate src/lib/declutter/guestBootPrefetch.ts |   if (!s \|\| now - s.at > GUEST_PREFETCH_MAX_AGE_MS \|\| !definitelyGuest()) return null; |   if (!s) return null;
 // @mutate src/lib/declutter/guestBootPrefetch.ts |   if (s.taken.has(part)) return null; |
 // @mutate src/lib/declutter/guestBootPrefetch.ts |   if (!itemIds.every((id) => covered.has(id))) return null; |
@@ -18,7 +22,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { createClient } from "@supabase/supabase-js";
-import { blankComments } from "@/test/helpers/blankNonCode";
+import { blankComments, blankSqlComments } from "@/test/helpers/blankNonCode";
+import { effectiveDefs } from "@/test/helpers/effectiveFunctionDefs";
 import { ITEM_COLUMNS } from "@/lib/declutter/myReads";
 import { startDeclutterPrefetch } from "./declutterPrefetch";
 import { GUEST_DECLUTTER_PREFETCH_KEY, GUEST_ITEM_COLUMNS, GUEST_ITEMS_LIMIT, guestItemsUrl, guestPhotosUrl } from "./guestDeclutterPrefetch";
@@ -29,10 +34,13 @@ const ITEMS = [{ id: "a", seller_id: "s1" }, { id: "b", seller_id: "s2" }];
 const PHOTOS = [{ id: "p1", item_id: "a", storage_path: "u/a.jpg", position: 0 }, { id: "p2", item_id: "b", storage_path: "u/b.jpg", position: 0 }];
 const code = (p: string) => blankComments(readFileSync(p, "utf8"));
 
-/** Answers each guest read by its URL; records every request. */
-function stubGuest({ open = ["declutter"] as unknown, items = ITEMS as unknown, photos = PHOTOS as unknown } = {}) {
+/** Answers each guest read by its URL; records every request. `one` = the option B read's answer (absent: a 404, not deployed). */
+function stubGuest({ open = ["declutter"] as unknown, items = ITEMS as unknown, photos = PHOTOS as unknown, one = undefined as unknown } = {}) {
   const f = vi.fn((url: string, init?: RequestInit) => {
     void init;
+    if (url.includes("/rpc/declutter_guest_first_screen")) {
+      return Promise.resolve(one === undefined ? new Response("{}", { status: 404 }) : new Response(JSON.stringify(one), { status: 200 }));
+    }
     const body = url.includes("/rpc/features_open_to_everyone") ? open : url.includes("/declutter_item_photos") ? photos : items;
     return Promise.resolve(new Response(JSON.stringify(body), { status: 200 }));
   });
@@ -57,17 +65,46 @@ afterEach(() => {
 });
 
 describe("a guest's cold /declutter starts its reads from the entry (Q2705)", () => {
-  it("asks the page's own three reads with the public key: the gate's answer, the live list, then its photo rows", async () => {
-    const f = stubGuest();
+  it("option B: the gate's answer and ONE read for the list and its photo rows, with the public key", async () => {
+    const f = stubGuest({ one: { items: ITEMS, photos: PHOTOS } });
     startDeclutterPrefetch("/declutter");
     await settle();
     const urls = f.mock.calls.map((c) => c[0] as string);
-    expect(urls).toHaveLength(3);
-    expect(urls[0]).toBe(`${BASE}/rest/v1/rpc/features_open_to_everyone`);
-    expect(f.mock.calls[0][1]?.method).toBe("POST");
-    expect(urls[1]).toBe(guestItemsUrl(BASE));
-    expect(urls[2]).toBe(guestPhotosUrl(BASE, ["a", "b"]));
-    for (const [, init] of f.mock.calls) expect((init?.headers as Record<string, string>).Authorization).toBe("Bearer k");
+    expect(urls).toEqual([`${BASE}/rest/v1/rpc/features_open_to_everyone`, `${BASE}/rest/v1/rpc/declutter_guest_first_screen`]);
+    for (const [, init] of f.mock.calls) {
+      expect(init?.method).toBe("POST");
+      expect((init?.headers as Record<string, string>).Authorization).toBe("Bearer k");
+    }
+    expect(await takeGuestItems()).toEqual(ITEMS);
+    expect(await takeGuestPhotos(["a", "b"])).toEqual(PHOTOS);
+  });
+
+  it("not deployed (404) or malformed: the page's own REST reads, the photo rows after the list (option A)", async () => {
+    for (const one of [undefined, { items: ITEMS }]) {
+      (window as unknown as Record<string, unknown>)[GUEST_DECLUTTER_PREFETCH_KEY] = undefined;
+      const f = stubGuest({ one });
+      startDeclutterPrefetch("/declutter");
+      await settle();
+      const urls = f.mock.calls.map((c) => c[0] as string);
+      expect(urls).toEqual([
+        `${BASE}/rest/v1/rpc/features_open_to_everyone`,
+        `${BASE}/rest/v1/rpc/declutter_guest_first_screen`,
+        guestItemsUrl(BASE),
+        guestPhotosUrl(BASE, ["a", "b"]),
+      ]);
+      for (const [, init] of f.mock.calls) expect((init?.headers as Record<string, string>).Authorization).toBe("Bearer k");
+      expect(await takeGuestItems()).toEqual(ITEMS);
+    }
+  });
+
+  it("the one read answers fetchLiveItems' columns and fetchPhotos' columns, from its newest definition", () => {
+    const sql = blankSqlComments(effectiveDefs("supabase/migrations").get("declutter_guest_first_screen")?.stmt ?? "");
+    expect(sql).toContain("SECURITY INVOKER");
+    const selected = (sql.match(/SELECT (i\.id,[\s\S]*?)\s+FROM public\.declutter_items i/)?.[1] ?? "").split(",").map((c) => c.trim().replace(/^i\./, ""));
+    expect(selected.length).toBeGreaterThan(10);
+    expect(selected).toEqual(ITEM_COLUMNS.split(", "));
+    expect(sql).toMatch(/WHERE i\.status IN \('live', 'reserved'\)\s+ORDER BY i\.live_at DESC\s+LIMIT 500/);
+    expect(sql).toMatch(/jsonb_build_object\('id', p\.id, 'item_id', p\.item_id, 'storage_path', p\.storage_path, 'position', p\.position\)/);
   });
 
   it("asks exactly what fetchLiveItems and fetchPhotos ask (same table, filters, order, limit and columns)", () => {

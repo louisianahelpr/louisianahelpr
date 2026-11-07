@@ -18,7 +18,7 @@ import { pickupDays, type SellerWindow } from "@/lib/declutter/pickupSlots";
 import { fetchItemPickupPlaces } from "@/lib/declutter/porchPlaces";
 import { Chip } from "./DeclutterFilterPanel";
 import { focusSheetItself } from "./focusSheetItself";
-import { FIRST_PICK_STEPS } from "@/lib/declutter/freePickSteps";
+import { firstPickSteps } from "@/lib/declutter/freePickSteps";
 
 const ZONE = "America/Chicago";
 
@@ -123,7 +123,7 @@ export default function FreeAskSheet({ item, giverFirstName, open, onClose, oneT
           {/* Owner mockup 11-01: the pick books this time (declutter_pick_free_request, 20261101181129), for a verified
               member only; a first-timer is told the steps they will really see (11-07 free-claim trace). */}
           {oneTimeCheckAhead ? (
-            <>Asking is free. {giverFirstName} picks who gets it. If it's you, {FIRST_PICK_STEPS}.</>
+            <>Asking is free. {giverFirstName} picks who gets it. If it's you, {firstPickSteps()}.</>
           ) : (
             <>
               Free, nothing is charged. {giverFirstName} picks who gets it. If it's you,{" "}

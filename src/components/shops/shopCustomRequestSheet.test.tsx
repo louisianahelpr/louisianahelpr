@@ -1,0 +1,71 @@
+/**
+ * Custom orders (20261106202917): the buyer's "Ask for a custom order" card on a shop's page. Shown only while the
+ * shop takes custom orders; sends the trimmed description through shops_send_custom_request; a refusal reads in the
+ * shop's plain words (rpcErrorCopy), never the code.
+ *
+ * @mutate src/components/shops/ShopCustomRequestSheet.tsx |   if (!mode.data \|\| mode.data === "off") return null; |   if (!mode.data) return null;
+ * @mutate src/lib/shops/customRequests.ts |     p_shop_id: shopId, p_description: description.trim(), p_wanted_date: wantedDate \|\| null, |     p_shop_id: shopId, p_description: description, p_wanted_date: wantedDate \|\| null,
+ * @mutate src/components/shops/ShopCustomRequestSheet.tsx |           <Button type="button" className="btn-grad-primary w-full" disabled={!trimmed \|\| send.isPending} onClick={() => send.mutate()}> |           <Button type="button" className="btn-grad-primary w-full" disabled={send.isPending} onClick={() => send.mutate()}>
+ */
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+const db = vi.hoisted(() => ({ row: { custom_orders: "full_hold" } as Record<string, unknown> | null, rpc: vi.fn() }));
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    from: () => ({ select: () => ({ eq: () => ({ maybeSingle: async () => ({ data: db.row, error: null }) }) }) }),
+    rpc: db.rpc,
+  },
+}));
+const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+vi.mock("sonner", () => ({ toast }));
+
+import ShopCustomRequestSheet from "./ShopCustomRequestSheet";
+
+function show() {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={qc}><ShopCustomRequestSheet shopId="sh1" /></QueryClientProvider>);
+}
+
+beforeEach(() => {
+  db.row = { custom_orders: "full_hold" };
+  db.rpc.mockReset();
+  toast.error.mockClear();
+});
+
+describe("asking a shop for a custom order", () => {
+  it("is not offered while the shop has custom orders off", async () => {
+    db.row = { custom_orders: "off" };
+    const { container } = show();
+    await waitFor(() => expect(db.row).not.toBeNull());
+    await new Promise((r) => setTimeout(r, 20));
+    expect(container.textContent).toBe("");
+  });
+
+  it("sends the trimmed description to this shop, then says what happens next", async () => {
+    db.rpc.mockResolvedValue({ data: "req-1", error: null });
+    show();
+    const box = await screen.findByLabelText("What you'd like");
+    const send = screen.getByRole("button", { name: "Send to the shop" });
+    expect((send as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.change(box, { target: { value: "  A blue birthday cake for 12  " } });
+    fireEvent.click(send);
+    await screen.findByText("Sent. The shop will answer with a price, and you can order it from there.");
+    expect(db.rpc.mock.calls).toEqual([["shops_send_custom_request", { p_shop_id: "sh1", p_description: "A blue birthday cake for 12", p_wanted_date: null }]]);
+  });
+
+  it("a half-up-front shop says how the price is paid before the buyer asks", async () => {
+    db.row = { custom_orders: "deposit_50" };
+    show();
+    expect(await screen.findByText(/half is charged when the shop accepts and the rest on the ready date/)).toBeTruthy();
+  });
+
+  it("a refusal reads in plain words, never the code", async () => {
+    db.rpc.mockResolvedValue({ data: null, error: { message: "custom_orders_off", code: "55000" } });
+    show();
+    fireEvent.change(await screen.findByLabelText("What you'd like"), { target: { value: "A cake" } });
+    fireEvent.click(screen.getByRole("button", { name: "Send to the shop" }));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith("This shop isn't taking custom orders right now."));
+  });
+});

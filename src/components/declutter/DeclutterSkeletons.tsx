@@ -86,6 +86,29 @@ export function declutterFirstRowCount(full: boolean, width: number): number {
 }
 
 /**
+ * Where the grids above put their first photo row on a phone, and the card's text and row gap under each photo
+ * (measured 11-07, guest Browse at 375x812, live: photo rows at 338 and 599 px, 162 px photos). From sm up a card's photo
+ * is about 250 px (CARD_PHOTO_SIZES).
+ */
+const GRID_TOP_PX = 338;
+const CARD_BELOW_PHOTO_PX = 99;
+/** At most this many rows count as above the fold, so a very tall window never starts a screenful of photos at once. */
+const MAX_FOLD_ROWS = 4;
+
+/**
+ * How many cards the grid draws above the fold at this window size (Q2705, 11-07): every row whose photo is at least
+ * half on screen. Their photos load at once and the entry preloads them (src/boot/declutterPrefetch.ts holds a copy,
+ * bootAboveFoldCount); only the first row's also ask for high priority. 375x812: 4 (live, the 3rd card on the second
+ * row was the largest paint, at 10.9 s on Slow 4G); 375x667: 2.
+ */
+export function declutterAboveFoldCount(full: boolean, width: number, height: number): number {
+  const photo = width < 640 ? (width - 52) / 2 : 250;
+  let rows = 1;
+  while (rows < MAX_FOLD_ROWS && GRID_TOP_PX + rows * (photo + CARD_BELOW_PHOTO_PX) + photo / 2 < height) rows++;
+  return declutterFirstRowCount(full, width) * rows;
+}
+
+/**
  * The Browse view's body while it loads: the first cards, and on desktop with the map shown the map column beside
  * them (Browse's list | map). Shared by the page skeleton above and Browse itself, which shows it until where you
  * are AND the items are both in, then paints everything at once (Q?declutter-settle: the distance row used to land

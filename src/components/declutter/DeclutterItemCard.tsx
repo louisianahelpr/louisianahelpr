@@ -50,28 +50,32 @@ const TAG_WORDS: Record<CardTag, string> = { drop: "May drop tonight", delivery:
 
 /** The first row's photo is usually the page's largest paint: it does not wait for the browser's lazy-load check. */
 const FIRST_ROW_PHOTO: Record<string, string> = { loading: "eager", fetchpriority: "high" };
+/** A later row still above the fold (Q2705, 11-07): loads at once, at the browser's own priority (the entry preloads it). */
+const ABOVE_FOLD_PHOTO: Record<string, string> = { loading: "eager" };
 const LATER_PHOTO: Record<string, string> = { loading: "lazy" };
 
 /** The card's photo source, in order: the card-sized thumbnail, then the full photo if the thumbnail fails, then none. */
 type PhotoStage = "card" | "full" | "failed";
 
-export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundle, firstRow }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; tag?: CardTag | null; bundle?: boolean; firstRow?: boolean }) {
+export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundle, firstRow, aboveFold }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; tag?: CardTag | null; bundle?: boolean; firstRow?: boolean; aboveFold?: boolean }) {
   const away = milesLabel(miles, approximate);
   // A photo that fails to load drops out, leaving the icon under it (never a blank tile). The card-sized thumbnail
   // comes first (owner 10-31: pictures were slow while scrolling); if it fails, the full photo; then the icon.
   const [photoStage, setPhotoStage] = useState<PhotoStage>("card");
   const photoRef = useRef<HTMLImageElement>(null);
   // B77: a later card's photo waits for the first row's (firstRowPhotoGate.ts), so the largest paint loads alone.
-  const laterOpen = useLaterPhotosOpen(!firstRow && !!photoPath);
+  // Q2705 (11-07): every card above the fold counts as first (on a tall phone the largest paint is on the second row).
+  const early = !!firstRow || !!aboveFold;
+  const laterOpen = useLaterPhotosOpen(!early && !!photoPath);
   const firstRowDone = useRef<(() => void) | null>(null);
   useEffect(() => {
-    if (!firstRow || !photoPath) return;
+    if (!early || !photoPath) return;
     const done = holdForFirstRowPhoto();
     firstRowDone.current = done;
     return done;
-  }, [firstRow, photoPath]);
+  }, [early, photoPath]);
   const photoSettled = () => firstRowDone.current?.();
-  useLoadPhotoAhead(photoRef, laterOpen && !firstRow && !!photoPath && photoStage !== "failed");
+  useLoadPhotoAhead(photoRef, laterOpen && !early && !!photoPath && photoStage !== "failed");
   const card = (
     <Link
       to={`/declutter/item/${item.id}`}
@@ -84,7 +88,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundl
             loading, one that fails, or one with nothing opaque in it (prod's E2E
             fixture photos are 1x1 transparent PNGs) shows the icon, never a blank box. */}
         <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" />
-        {photoPath && photoStage !== "failed" && (firstRow || laterOpen) && (
+        {photoPath && photoStage !== "failed" && (early || laterOpen) && (
           // width/height: the photo's own square, so the browser knows its shape before a byte arrives (the tile is
           // aspect-square, so nothing moves either way); decoding="async" keeps decoding off the scroll.
           // `loading` comes BEFORE src/srcSet on purpose: React 18 writes attributes in prop order, and WebKit starts
@@ -93,7 +97,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, tag, bundl
           // load in WebKit vs 14 in Chromium). Guard: src/test/declutterLazyPhotoBeforeSrc.test.tsx.
           <img
             ref={photoRef}
-            {...(firstRow ? FIRST_ROW_PHOTO : LATER_PHOTO)}
+            {...(firstRow ? FIRST_ROW_PHOTO : aboveFold ? ABOVE_FOLD_PHOTO : LATER_PHOTO)}
             src={photoStage === "card" ? photoCardUrl(photoPath) : photoPublicUrl(photoPath)}
             srcSet={photoStage === "card" ? cardPhotoSrcSet(photoPublicUrl(photoPath), photoCardUrl(photoPath), CARD_PHOTO_PX) : undefined}
             sizes={photoStage === "card" ? CARD_PHOTO_SIZES : undefined}

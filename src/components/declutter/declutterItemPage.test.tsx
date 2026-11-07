@@ -714,7 +714,11 @@ describe("the photo-first Declutter item page", () => {
     expect(document.body.textContent).not.toContain("1 Main St");
     // Pressing Buy only says whose listing it is: nothing reaches the checkout.
     fireEvent.click(buy);
+    // After the click has had time to reach a checkout (vacuity 11-07: read at once, a click that got through still read 0).
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
     expect(state.buys).toBe(0);
+    // Nor does it start the buy (its card step): the capture stops the click before the button's own handler.
+    expect(document.querySelector("[data-card-step-title]")).toBeNull();
     // On the page itself: toast.info renders nothing in the app (toastPolicy), so a spy on it proved nothing.
     expect((await screen.findByText(/^This is your listing\./)).closest("[data-preview-note]")).toBeTruthy();
     // LEAD-PREVIEW-ASK (owner 2026-10-31): the Ask box shows, greyed out, saying how it works; nothing can be sent.

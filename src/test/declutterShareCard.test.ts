@@ -17,7 +17,8 @@
  * @mutate api/share.ts |     url: `${SUPABASE_URL}/functions/v1/shop-photo?id=${id}&kind=declutter&w=1200&og=1`, |     url: `${SUPABASE_URL}/storage/v1/object/public/job-photos/${id}`,
  * @mutate supabase/functions/shop-photo/index.ts |       kind === "declutter"\n        ? await admin.rpc("declutter_public_photo_path", { p_photo_id: id }) |       false\n        ? await admin.rpc("declutter_public_photo_path", { p_photo_id: id })
  * @mutate supabase/migrations/20261027194426_declutter_share_card.sql |           AND NOT i.seller_hidden\n |
- * @mutate src/components/declutter/DeclutterManageListing.tsx |             <ShareListingRow item={item} /> |
+ * (The row on the seller's own listing: its @mutate lives in src/components/declutter/declutterShareRow.test.tsx,
+ *  which renders that panel.)
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";

@@ -55,6 +55,7 @@ const NOT_A_PAGE_HEADER: Record<string, string> = {
   "src/pages/auth/AccountBanned.tsx": "account-state screen (AuthShell)",
   "src/components/auth/Under13Blocked.tsx": "account-state screen (AuthShell): the under-13 block, Q1803",
   "src/pages/auth/CompleteProfile.tsx": "signup completion (auth flow)",
+  "src/pages/auth/completeProfile/CheckingProfileCard.tsx": "signup completion (auth flow): the wait card before the profile row exists (moved out of CompleteProfile.tsx, Q806)",
   "src/pages/auth/Login.tsx": "signed out",
   "src/pages/auth/Unsubscribe.tsx": "email unsubscribe landing (signed out)",
   "src/pages/auth/signup/SignupStep1.tsx": "signed out",

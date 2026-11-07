@@ -72,7 +72,7 @@ const ACCEPTED = new Map<string, number>([
   ["src/components/BrowseMap.tsx --bark/0.6", 2], //                     2.47:1 — two Loader2 spinners
   ["src/components/declutter/DeclutterMap.tsx --bark/0.6", 1], //      2.47:1 — the map's Loader2 spinner in an aria-hidden overlay (BrowseMap's twin)
   ["src/components/postjob/detailsSection/VideoScope.tsx --bark/0.5", 1], // 2.08:1 — Video glyph above its label
-  ["src/pages/auth/CompleteProfile.tsx --burnt-sienna/0.7", 1], //             2.87:1 — Circle bullet, aria-hidden, decorative
+  ["src/pages/auth/completeProfile/StillNeededList.tsx --burnt-sienna/0.7", 1], //             2.87:1 — Circle bullet, aria-hidden, decorative
   ["src/components/messages/ChatHeader.tsx --olivewood/0.65", 1], //      4.24:1 — ChevronRight affordance
   // Reclassified 2026-09-20 — each was on the "21 failing text declarations"
   // list, and each turned out to be a glyph, not a word.
@@ -175,7 +175,7 @@ describe("low-alpha foreground contrast", () => {
   // must then be reported stale. (It was HelprWrapped's gift ornament until the
   // 2026-10-21 spec-v2 rebuild made that icon full olive, and the landing's
   // step numerals before that.)
-  // @mutate src/pages/auth/CompleteProfile.tsx | style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} aria-hidden | style={{ color: "hsl(var(--burnt-sienna))" }} aria-hidden
+  // @mutate src/pages/auth/completeProfile/StillNeededList.tsx | style={{ color: "hsl(var(--burnt-sienna) / 0.7)" }} aria-hidden | style={{ color: "hsl(var(--burnt-sienna))" }} aria-hidden
   it("the accepted list does not rot", () => {
     const counts = new Map<string, number>();
     for (const r of failing) counts.set(keyOf(r), (counts.get(keyOf(r)) ?? 0) + 1);

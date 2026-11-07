@@ -48,7 +48,7 @@ const body = (keys: string[]) => JSON.stringify(Object.fromEntries(keys.map((k) 
 
 describe("prod-audit consent firewall", () => {
   const dialog = read("../components/TermsReconsentDialog.tsx");
-  const completeProfile = read("../pages/auth/CompleteProfile.tsx");
+  const completeProfile = read("../pages/auth/completeProfile/saveCompletedProfile.ts"); // CompleteProfile's save path (Q806)
   const pinKeys = objectKeys(dialog, /\.from\("profiles"\)\s*\.update\(/);
   const saveKeys = objectKeys(completeProfile, /const updates: ProfileCompletionUpdates = /);
 

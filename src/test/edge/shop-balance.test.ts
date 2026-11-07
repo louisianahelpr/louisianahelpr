@@ -121,6 +121,27 @@ describe("shop-checkout pay_balance: the buyer's pay-the-rest page", () => {
     expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_live_old");
   });
 
+  // m1 guard walletCustomerReplaced (Q2140, 11-07): a stored customer Stripe no longer has is replaced once and the page
+  // retried on a ':new-wallet' key, as on the order's own page (it answered 500 every time before).
+  // @mutate supabase/functions/shop-checkout/index.ts |   const session = await withStoredWalletCustomer(admin, stripe, user, mode, restCustomer, (payer, walletRetry) => stripe.checkout.sessions.create(\n    {\n      mode: "payment",\n      payment_method_types: ["card"],\n      line_items: [{ |   const session = await ((_a: unknown, _b: unknown, _c: unknown, _d: unknown, c: string \| undefined, f: (c: string \| undefined, r: boolean) => Promise<Stripe.Checkout.Session>) => f(c, false))(admin, stripe, user, mode, restCustomer, (payer, walletRetry) => stripe.checkout.sessions.create(\n    {\n      mode: "payment",\n      payment_method_types: ["card"],\n      line_items: [{
+  it("Q2140: a stored customer Stripe no longer has is replaced once and the rest page retried on a ':new-wallet' key", async () => {
+    const fn = await as(BUYER);
+    scenario.reads.shop_orders = { rows: [owed()] };
+    scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_dead" }] };
+    scenario.rpc.replace_stripe_customer = "cus_fresh";
+    stripeMock.customers.create.mockResolvedValue({ id: "cus_fresh" });
+    stripeMock.checkout.sessions.create
+      .mockRejectedValueOnce(Object.assign(new Error("No such customer: 'cus_dead'"), { code: "resource_missing", param: "customer" }))
+      .mockResolvedValue({ id: "cs_live_rest", url: "https://checkout.stripe.com/rest", amount_total: 3385 });
+    scenario.rpc.shop_attach_balance_session = { replaced: null };
+    const res = await tap(fn, { action: "pay_balance", order_id: ORDER });
+    expect(res.status).toBe(200);
+    const calls = stripeMock.checkout.sessions.create.mock.calls;
+    expect([calls[0][0].customer, calls[1][0].customer]).toEqual(["cus_dead", "cus_fresh"]);
+    expect(calls[1][1].idempotencyKey).toBe(`${calls[0][1].idempotencyKey}:new-wallet`);
+    expect(rpcs("replace_stripe_customer")[0]?.args).toMatchObject({ p_user: BUYER, p_old: "cus_dead", p_new: "cus_fresh" });
+  });
+
   it("another member (even the shop) is told the order does not exist, and nothing is opened", async () => {
     for (const who of [MAKER, OTHER]) {
       resetStripeMock();
@@ -355,6 +376,22 @@ describe("stripe-webhook: the saved card and the rest's payment", () => {
       { payment_intent: "pi_rest2", metadata: { kind: "shop_balance_refund", order_id: ORDER } },
       { idempotencyKey: "shop-balance-refund-pi_rest2" },
     ]]);
+  });
+
+  // m1 guard refundPathsSendTheNotice (11-07): charge.refunded skips a shop_balance_refund ("nothing to record"), so
+  // the buyer was never told this money came back. recordShopBalance now sends the one refund notice itself.
+  // @mutate supabase/functions/_shared/shopBalance.ts |     const told = await sendRefundNotice(admin, { |     const told = await Promise.resolve({ status: "sent" as const, error: "" }); void ({
+  // @mutate supabase/functions/_shared/shopBalance.ts |       recipientId: buyerId, |       recipientId: null,
+  it("the buyer is told the not-owed rest is coming back, once, under the refund's own key", async () => {
+    stripeMock.paymentIntents.retrieve.mockResolvedValue(paidPi("pi_rest3", { metadata: { kind: "shop_balance", order_id: ORDER, buyer_id: BUYER } }));
+    scenario.rpc.shop_balance_paid = { result: "refund" };
+    stripeMock.refunds.create.mockResolvedValue({ id: "re_rest3", amount: 3385, status: "succeeded" });
+    scenario.reads.profiles = { rows: [{ user_id: BUYER, email: "buyer@test.dev", full_name: "Bea Buyer" }] };
+    await deliver({ id: "evt_rest3", type: "payment_intent.succeeded",
+      data: { object: { id: "pi_rest3", amount: 3385, amount_received: 3385, livemode: true, metadata: { kind: "shop_balance", order_id: ORDER, buyer_id: BUYER } } } });
+    const claims = scenario.writes.filter((w) => w.table === "refund_notices" && w.op === "insert")
+      .map((w) => w.payload as { notice_key: string; user_id: string });
+    expect(claims.map((c) => [c.notice_key, c.user_id])).toEqual([["refund:re_rest3", BUYER]]);
   });
 });
 

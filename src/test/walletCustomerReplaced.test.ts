@@ -119,9 +119,11 @@ describe("Q2140: withWalletCustomer replaces a customer Stripe no longer has, on
 
   // Owner 11-07 (ONE Stripe page): the Declutter ORDER page left this list for withWalletCustomer (it saves the card,
   // so it needs the wallet customer made); the raise and tip pages still only pre-fill. Every page keeps its retry key.
-  it("every pre-fill page (declutter raise, tip; shop order) runs through withStoredWalletCustomer with a ':new-wallet' retry key", () => {
+  // m1 (11-07): the Shops custom order's pay-the-rest page (shop-checkout payBalance) is the second shop page; it now
+  // replaces a dead stored customer like the order's own page.
+  it("every pre-fill page (declutter raise, tip; shop order, shop rest) runs through withStoredWalletCustomer with a ':new-wallet' retry key", () => {
     const pages: Record<string, { stored: number; keys: number }> = {
-      "declutter-checkout": { stored: 2, keys: 3 }, "shop-checkout": { stored: 1, keys: 1 },
+      "declutter-checkout": { stored: 2, keys: 3 }, "shop-checkout": { stored: 2, keys: 2 },
     };
     for (const [fn, n] of Object.entries(pages)) {
       const src = blankComments(readFileSync(`supabase/functions/${fn}/index.ts`, "utf8"));

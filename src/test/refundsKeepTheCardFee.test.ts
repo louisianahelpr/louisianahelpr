@@ -1076,7 +1076,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shop_refund_fee_policy: "20261106221300_shops_custom_balance_edge.sql 58284415e4ba9704", // Custom orders 2b (money review owed): + unpaid_close_tax under keep_card_fee; every other reason unchanged
       // Custom orders 2b (money review owed): writes the deposit's tax back as the order's unpaid_close_tax row (keep_card_fee, card fee 0: the
       // deposit's whole card fee is already kept), once, after Stripe Tax's full reversal.
-      shop_lapse_tax_done: "20261106221300_shops_custom_balance_edge.sql f996f858f561f5a1",
+      // 11-07 (20261107170121, money review owed): + the deposit's half of a shop-delivers order's delivery (LEAD 11-07); still
+      // keep_card_fee with card fee 0 and nothing kept (the deposit's card fee is already kept).
+      shop_lapse_tax_done: "20261107170121_shops_custom_balance_buyer_pays.sql b9b0df1cfc175a8c",
       shop_refund_reversed: "20261019071055_shops_refunds_cancels_strikes.sql df880e58ddff9ccd",
       // 20261030150104 (lead lh-authz-rls approve "refunds ... unchanged"): only the admin alert skips test accounts.
       shop_refund_sweep: "20261030150104_admin_alerts_skip_test_gaps.sql 073f789da078c7c4",

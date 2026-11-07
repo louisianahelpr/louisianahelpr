@@ -35,9 +35,14 @@ export type ShopBalanceDueRow = {
 
 export type BalanceOutcome = "paid" | "already_paid" | "refunded" | "buyer_pays" | "will_retry";
 
-/** The off-session key of one attempt (the order's balance_attempts as read). */
-function shopBalanceKey(orderId: string, attempt: number): string {
-  return `shop-balance-${orderId}-${Number.isInteger(attempt) && attempt >= 0 ? attempt : 0}`;
+/**
+ * The off-session key: ONE per order (11-07 money review). A retry after a failure that is not the card's (a Stripe
+ * outage, a payment left processing) reuses it, so Stripe answers with the same PaymentIntent and the rest can never be
+ * charged twice; the 3rd failed try makes the rest the buyer's to pay (shop_balance_failed), so it is not retried for
+ * ever. A card error is the buyer's at once. Stripe keeps a key 24 hours; the tries are 10 minutes apart.
+ */
+function shopBalanceKey(orderId: string): string {
+  return `shop-balance-${orderId}`;
 }
 
 /** A card error that only the buyer can fix (declined, or the bank wants them to confirm): OWNER rule, the buyer pays. */
@@ -63,8 +68,10 @@ function feeOf(pi: Stripe.PaymentIntent): number | null {
 export async function recordShopBalance(
   stripe: Stripe, admin: Db, orderId: string, pi: Stripe.PaymentIntent,
 ): Promise<Exclude<BalanceOutcome, "buyer_pays" | "will_retry">> {
+  // 11-07: the amount paid goes with it; the SQL records only exactly the rest owed (otherwise 'refund').
   const { data, error } = await admin.rpc("shop_balance_paid", {
     p_order_id: orderId, p_payment_intent_id: pi.id, p_card_fee_cents: feeOf(pi),
+    p_amount_cents: Number(pi.amount_received ?? 0) > 0 ? Number(pi.amount_received) : Number(pi.amount ?? 0),
   });
   if (error) throw new Error(`shop_balance_paid failed for ${orderId}: ${error.message}`);
   const result = (data as { result?: string } | null)?.result;
@@ -84,8 +91,17 @@ export async function recordShopBalance(
 
 /** Charge the rest off-session on the card saved at Checkout, and record what happened. */
 export async function chargeShopBalance(stripe: Stripe, admin: Db, row: ShopBalanceDueRow): Promise<BalanceOutcome> {
-  if (!row.customer_id || !row.payment_method_id || !Number.isInteger(row.balance_cents) || row.balance_cents <= 0) {
-    throw new Error(`shop order ${row.order_id}: no saved card or no rest to charge`);
+  if (!Number.isInteger(row.balance_cents) || row.balance_cents <= 0) {
+    throw new Error(`shop order ${row.order_id}: no rest to charge`);
+  }
+  // 11-07 (money review BLOCKER): no card was saved at Checkout, so there is nothing to charge: the rest is the buyer's
+  // to pay now (the notice and the Pay button), never a silent wait until the order lapses.
+  if (!row.customer_id || !row.payment_method_id) {
+    const { error: noCardErr } = await admin.rpc("shop_balance_failed", {
+      p_order_id: row.order_id, p_error: "no card was saved at Checkout", p_buyer: true,
+    });
+    if (noCardErr) throw new Error(`shop_balance_failed failed for ${row.order_id}: ${noCardErr.message}`);
+    return "buyer_pays";
   }
   let pi: Stripe.PaymentIntent | null = null;
   let why = "";
@@ -101,7 +117,7 @@ export async function chargeShopBalance(stripe: Stripe, admin: Db, row: ShopBala
         metadata: { kind: SHOP_BALANCE_KIND, order_id: row.order_id, buyer_id: row.buyer_id ?? "", seller_id: row.seller_id ?? "" },
         expand: ["latest_charge.balance_transaction"],
       },
-      { idempotencyKey: shopBalanceKey(row.order_id, Number(row.attempts ?? 0)) },
+      { idempotencyKey: shopBalanceKey(row.order_id) },
     );
     if (pi.status !== "succeeded") why = `the payment is ${pi.status}`;
   } catch (e) {
@@ -111,10 +127,10 @@ export async function chargeShopBalance(stripe: Stripe, admin: Db, row: ShopBala
   }
   if (pi && pi.status === "succeeded") return await recordShopBalance(stripe, admin, row.order_id, pi);
   // Not taken (processing, or an error). A processing payment that succeeds later lands through stripe-webhook's
-  // payment_intent.succeeded (recordShopBalance); a second one is answered 'refund'. Counted, so the next try has a new key.
-  const { error } = await admin.rpc("shop_balance_failed", { p_order_id: row.order_id, p_error: why, p_buyer: buyer });
+  // payment_intent.succeeded (recordShopBalance); a second one is answered 'refund'. Counted: the 3rd is the buyer's.
+  const { data: failed, error } = await admin.rpc("shop_balance_failed", { p_order_id: row.order_id, p_error: why, p_buyer: buyer });
   if (error) throw new Error(`shop_balance_failed failed for ${row.order_id}: ${error.message}`);
-  return buyer ? "buyer_pays" : "will_retry";
+  return buyer || (failed as { result?: string } | null)?.result === "buyer_pays" ? "buyer_pays" : "will_retry";
 }
 
 export type UnpaidCloseTaxRow = {

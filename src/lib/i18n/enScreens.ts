@@ -189,6 +189,7 @@ export const enScreens = {
   "auth.continueWith": "Continue with {provider}",
   "auth.connecting": "Connecting…",
   "auth.socialFailed": "Couldn't sign in with {provider} — try again?",
+  "auth.googleInApp": "To continue with Google, open this page in your browser (Safari or Chrome). Google sign-in doesn't work inside Facebook or Instagram.",
 
   // Shared helpers on Sign up / Finish your profile (password, photo file, timeout, notify, ZIP)
   "pw.stillNeeds": "Your password still needs {needs}.",

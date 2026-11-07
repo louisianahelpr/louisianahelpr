@@ -46,6 +46,27 @@ export function confirmLinkJobFromRedirect(redirectTo: unknown): string | null {
   }
 }
 
+/**
+ * 11-07 (the Q2496 pattern for Declutter): the Declutter item a guest came for, from the sign-up's redirect_to
+ * (`<app>/signup-pending?item=<id>`). Only a uuid, only on the confirm page's own path. Null when there is none.
+ */
+export function confirmLinkItemFromRedirect(redirectTo: unknown): string | null {
+  if (typeof redirectTo !== "string" || !redirectTo) return null;
+  try {
+    const url = new URL(redirectTo);
+    const item = url.searchParams.get("item") ?? "";
+    return url.pathname === CONFIRM_LINK_PATH && JOB_ID.test(item) ? item.toLowerCase() : null;
+  } catch {
+    return null; // not a URL: no item
+  }
+}
+
+/** 11-07: the Declutter item id the confirm link carries (`?item=`), or null. */
+export function confirmLinkItem(search: string): string | null {
+  const item = new URLSearchParams(search.replace(/^\?/, "")).get("item") ?? "";
+  return JOB_ID.test(item) ? item.toLowerCase() : null;
+}
+
 /** Q2496: the job id the confirm link carries (`?job=`), or null. */
 export function confirmLinkJob(search: string): string | null {
   const job = new URLSearchParams(search.replace(/^\?/, "")).get("job") ?? "";
@@ -57,11 +78,15 @@ export function confirmLinkJob(search: string): string | null {
  * Q2496: the job a guest came for rides along, so a sign-up finished in another
  * browser (the email opened in Safari, not the in-app browser) still lands on it.
  */
-export function confirmLinkUrl(appUrl: string, tokenHash: string, type: ConfirmLinkType, jobId: string | null = null): string {
+export function confirmLinkUrl(appUrl: string, tokenHash: string, type: ConfirmLinkType, jobId: string | null = null,
+  itemId: string | null = null): string {
   const url = new URL(CONFIRM_LINK_PATH, appUrl);
   url.searchParams.set("token_hash", tokenHash);
   url.searchParams.set("type", type);
   if (jobId && JOB_ID.test(jobId)) url.searchParams.set("job", jobId);
+  // 11-07: the Declutter item a guest came for (a shared Facebook post opens Facebook's own browser; the email opens
+  // in Safari or Chrome, where the stored ?redirect= is not).
+  if (itemId && JOB_ID.test(itemId)) url.searchParams.set("item", itemId);
   return url.toString();
 }
 

@@ -4275,7 +4275,7 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 110,
+      "line": 111,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4285,7 +4285,7 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 197,
+      "line": 200,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -4313,7 +4313,7 @@
     },
     {
       "file": "src/components/auth/SocialAuthButtons.tsx",
-      "line": 202,
+      "line": 205,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12618,7 +12618,7 @@
     },
     {
       "file": "src/pages/auth/SignupPending.tsx",
-      "line": 183,
+      "line": 189,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -12628,7 +12628,7 @@
     },
     {
       "file": "src/pages/auth/SignupPending.tsx",
-      "line": 188,
+      "line": 194,
       "kind": "toast.error",
       "title": {
         "form": "literal",

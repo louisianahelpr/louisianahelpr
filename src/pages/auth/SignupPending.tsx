@@ -12,12 +12,12 @@ import { recognizedAuthError } from "@/lib/authErrors";
 import { usePageMeta } from "@/hooks/usePageMeta";
 import { NOINDEX_PAGE_META } from "@/lib/publicPageMeta.mjs";
 import { getSignupConfirmRedirect } from "@/lib/authRedirects";
-import { peekJobIntent, postAuthDestination } from "@/lib/jobIntent";
+import { peekJobIntent, peekSignupRedirectItem, postAuthDestination } from "@/lib/jobIntent";
 import { report } from "@/lib/errorLogger";
 import { useIdentityCheckOnStore } from "@/lib/identityCheckSwitch";
 import { Button } from "@/components/ui/button";
 import { ConfirmLinkPanel } from "./signupPending/ConfirmLinkPanel";
-import { confirmLinkJob, readConfirmLink } from "../../../supabase/functions/_shared/confirmLink";
+import { confirmLinkItem, confirmLinkJob, readConfirmLink } from "../../../supabase/functions/_shared/confirmLink";
 
 // How long to disable the resend button after each send. Supabase's own
 // rate limit is at least this strict on the server; this just sets user
@@ -120,7 +120,9 @@ const SignupPending = () => {
         // signing up) and otherwise returns /home; ProtectedRoute there
         // sends an incomplete profile on to /complete-profile. This hop used
         // to live on /account-pending, which the email link opened (Q193).
-        navigate(postAuthDestination(), { replace: true });
+        // 11-07: GoTrue's own link (switch off) lands here with the sign-up's redirect_to query, so the job or the
+        // Declutter item it carried is read here too.
+        navigate(postAuthDestination("/home", confirmLinkJob(location.search), confirmLinkItem(location.search)), { replace: true });
         return;
       }
       // Signed in but unconfirmed: `email_confirmed_at` is baked into the
@@ -173,7 +175,11 @@ const SignupPending = () => {
     const { error } = await runWithCaptcha(turnstileRef.current, (captchaToken) => supabase.auth.resend({
       type: "signup",
       email: prefillEmail.trim(),
-      options: { emailRedirectTo: getSignupConfirmRedirect(peekJobIntent() ?? confirmLinkJob(location.search)), captchaToken },
+      options: {
+        emailRedirectTo: getSignupConfirmRedirect(peekJobIntent() ?? confirmLinkJob(location.search),
+          peekSignupRedirectItem() ?? confirmLinkItem(location.search)),
+        captchaToken,
+      },
     }));
     setResending(false);
     if (error) {
@@ -242,7 +248,7 @@ const SignupPending = () => {
             token={confirmLink.kind === "token" ? { tokenHash: confirmLink.tokenHash, type: confirmLink.type } : null}
             email={prefillEmail}
             setEmail={setPrefillEmail}
-            onConfirmed={() => navigate(postAuthDestination("/home", confirmLinkJob(location.search)), { replace: true })}
+            onConfirmed={() => navigate(postAuthDestination("/home", confirmLinkJob(location.search), confirmLinkItem(location.search)), { replace: true })}
             onResend={handleResend}
             resending={resending}
             resendCooldown={resendCooldown}

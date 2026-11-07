@@ -116,14 +116,14 @@ BEGIN
        WHERE id = ANY (r.ids) AND status = 'in_cart' AND reminded_last_call_at IS NULL;
       IF FOUND THEN
         PERFORM public.declutter_notice_ref(r.ids[1]);
-        PERFORM public.declutter_notify_strict(r.buyer_id, 'payment', 'Pay soon to keep your item',
+        PERFORM public.declutter_notify_strict(r.buyer_id, 'declutter_sales', 'Pay soon to keep your item',
           format('%s %s held for you until %s. Pay by then or it goes back up for sale. Your card is charged only when you pay.',
                  CASE WHEN r.title IS NULL THEN 'Your item'
                       WHEN r.n > 1 THEN format('"%s" and %s more', r.title, r.n - 1)
                       ELSE format('"%s"', r.title) END,
                  CASE WHEN r.n > 1 THEN 'are' ELSE 'is' END,
                  to_char(r.ends_at AT TIME ZONE 'America/Chicago', 'FMHH12:MI AM')),
-          '/declutter?view=cart', r.seller_id);
+          '/declutter?tab=buying', r.seller_id);
         v_sent := v_sent + 1;
       END IF;
     EXCEPTION WHEN OTHERS THEN

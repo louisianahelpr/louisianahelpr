@@ -193,7 +193,7 @@ await q(`SELECT set_config('test.refuse', 'on', false)`);
 const run1 = await sweep();
 const mine = await bells(NOCARD);
 check(mine.length === 1 && mine[0].title === "Pay soon to keep your item", `[fix] the buyer gets ONE reminder for the hold ending soon (${JSON.stringify(mine)})`);
-check(mine[0]?.message?.includes('"Chair" and 1 more are held for you until') && mine[0]?.link === "/declutter?view=cart", `[fix] it names the item and opens checkout (${mine[0]?.message})`);
+check(mine[0]?.message?.includes('"Chair" and 1 more are held for you until') && mine[0]?.link === "/declutter?tab=buying", `[fix] it names the item and opens checkout (${mine[0]?.message})`);
 check((await bells(CARDED)).length === 0, "no reminder for a hold 20 minutes out, a seed item or an offer hold");
 check((await bells(LATE)).length === 0, "no reminder with under 2 minutes left");
 check((await bells(SEEDBUYER)).length === 0, "[fix] a seed (test) account is never reminded");

@@ -56,6 +56,7 @@ import { useWatchToggle } from "./useWatchToggle";
 import { pagePhoto } from "@/lib/declutter/pagePhoto";
 import { recordItemView } from "@/lib/declutter/itemViews";
 import { ItemViewsCount } from "./ItemViewsCount";
+import { PriceInclFee } from "./PriceInclFee";
 
 // B67 (DECL-ITEM-SPEED): only the seller sees the manage panel, so its edit flow (sell steps, handover choices)
 // loads when it shows, not on every buyer's and guest's cold item page.
@@ -244,6 +245,8 @@ export default function ItemView({ itemId }: { itemId: string }) {
               </p>
               <ConditionChip stars={it.condition_stars} />
             </div>
+            {/* Owner 11-07 (Vinted review): what the buyer pays with the fee, under the price. */}
+            <PriceInclFee priceCents={it.current_price_cents} className="-mt-1 block text-ds-14 font-medium tabular-nums text-muted-foreground" />
             <p data-item-where="" className="text-sm text-muted-foreground [overflow-wrap:anywhere]">
               {[it.area_label, away, it.porch_ok !== false ? "Porch pickup" : null].filter(Boolean).join(" · ")}
             </p>

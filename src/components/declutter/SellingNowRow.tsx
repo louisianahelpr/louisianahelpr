@@ -15,6 +15,7 @@ import { useFeature } from "@/hooks/useFeature";
 import { fetchPhotos, fetchSellerItems, photoPublicUrl } from "@/lib/declutter/api";
 import { fetchSellerMovingSale } from "@/lib/declutter/movingSale";
 import { itemPriceLabel } from "@/lib/declutter/distance";
+import { PriceInclFee } from "./PriceInclFee";
 import { PhotoPlaceholder } from "@/components/ui/PhotoPlaceholder";
 import { categoryIcon } from "@/lib/declutter/categoryIcons";
 import { FallbackImg } from "./FallbackImg";
@@ -68,6 +69,7 @@ export function SellingNowRow({ sellerId }: { sellerId: string }) {
               </div>
               <div className="min-w-0">
                 <p className="text-ds-14 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(it.current_price_cents)}</p>
+                <PriceInclFee priceCents={it.current_price_cents} />
                 <p className="text-ds-13 truncate" title={it.title}>{it.title}</p>
               </div>
             </Link>

@@ -6758,7 +6758,7 @@
     },
     {
       "file": "src/components/declutter/MovingSaleBanner.tsx",
-      "line": 65,
+      "line": 66,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6768,7 +6768,7 @@
     },
     {
       "file": "src/components/declutter/MovingSaleBanner.tsx",
-      "line": 66,
+      "line": 67,
       "kind": "toast",
       "title": {
         "form": "template",
@@ -6778,7 +6778,7 @@
     },
     {
       "file": "src/components/declutter/MovingSaleBanner.tsx",
-      "line": 67,
+      "line": 68,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -6788,7 +6788,7 @@
     },
     {
       "file": "src/components/declutter/MovingSaleBanner.tsx",
-      "line": 69,
+      "line": 70,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

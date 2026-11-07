@@ -53,7 +53,7 @@
  * @mutate supabase/functions/shop-checkout/index.ts |     calcAddress = { line1: serviceAddress.line1, | void { line1: serviceAddress.line1,
  * @mutate supabase/functions/shop-checkout/index.ts | \|\| !isLouisianaZip5(zip)) return "invalid"; | \|\| !/^7[01][0-9]{3}$/.test(zip)) return "invalid";
  * @mutate supabase/functions/shop-checkout/index.ts | description: atHome ? "Louisiana sales tax where the work is done" : | description: atHome ? "Louisiana sales tax where you pick up the order" :
- * @mutate supabase/functions/shop-checkout/index.ts |     if (atHome && body.lines.length > 1) return json({ error: "service_at_buyer_alone" }, 409); |
+ * @mutate supabase/functions/shop-checkout/index.ts |     if (atHome && (body.lines as unknown[]).length > 1) return json({ error: "service_at_buyer_alone" }, 409); |
  * @mutate supabase/functions/shop-checkout/index.ts |     if (atHome && delivery) return json({ error: "at_buyer_no_delivery" }, 409); |
  * @mutate supabase/functions/shop-checkout/index.ts |     if (atHome && !serviceAddress) return json({ error: "service_address_needed" }, 400); |
  * @mutate supabase/functions/shop-checkout/index.ts |   const atHome = lines.some((l) => l.at_buyer === true); |   const atHome = false;

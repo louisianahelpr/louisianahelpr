@@ -428,6 +428,11 @@ export const SHOPS_RPC_ERROR_COPY = {
     too_many_custom_requests: SC.too_many_custom_requests,
     under_18: SC.under_18_to_order,
   },
+  // Custom orders (20261106202917): each side's list of requests (ShopCustomRequestsList).
+  shops_my_custom_requests: {
+    feature_disabled: SC.feature_disabled,
+    not_authenticated: SC.not_authenticated,
+  },
   // Custom orders (20261106202917): the shop's setting.
   shops_set_custom_orders: {
     account_restricted: SC.account_restricted,

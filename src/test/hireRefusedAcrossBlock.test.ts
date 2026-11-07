@@ -86,6 +86,10 @@ const NOT_HIRES: Record<string, string> = {
   // 20261106163703 (Declutter trades): accepts a TRADE offer (an item-for-item swap, not a job hire); the
   // block is checked first, in declutter_swap_items_ok (are_users_blocked(seller, buyer) -> item_not_found).
   declutter_respond_swap: "accepts a Declutter trade offer (an item swap); hires no one",
+  // 20261106205852 (Shops custom orders 1b): an AFTER UPDATE trigger on shop_orders marks the custom request
+  // accepted when its order's hold is placed; no application or roster row. The order itself was refused across a
+  // block by shops_order_custom_quote (are_users_blocked(v_uid, s.owner_id) -> shop_hidden) before it existed.
+  shop_orders_custom_request_accepted: "marks a Shops custom request accepted when its order is held; hires no one",
   helpr_task_accept: "a Helpr takes a delivery task; no application, the block is checked first (task_not_found)",
   settle_job_detail_change: "applies an agreed detail-change REQUEST (Q1500); hires no one",
   // 20260925154606 (Q407): an under-filled crew whose every HIRED member is

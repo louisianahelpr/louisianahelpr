@@ -25,7 +25,7 @@ import { takeMinePrefetch, takeMineQuestions } from "@/lib/declutter/minePrefetc
 import { readItems, type ItemRead } from "@/lib/declutter/myReads";
 import { takeItemPhotosPrefetch, takeItemPrefetch } from "@/lib/declutter/itemPrefetchTake";
 import { takeFirstScreenDropStates, takeFirstScreenItems, takeFirstScreenPhotos, takeFirstScreenWatching } from "@/lib/declutter/bootPrefetch";
-import { takeGuestItems, takeGuestPhotos } from "@/lib/declutter/guestBootPrefetch";
+import { takeGuestDropStates, takeGuestItems, takeGuestPhotos } from "@/lib/declutter/guestBootPrefetch";
 
 /** Row 24 handover choices open at launch (row 63: Helpr delivery comes later). */
 /** Slice 5 adds "delivery": a Helpr picks it up and brings it (rows 24, 29-30, 40-43). */
@@ -314,7 +314,8 @@ export async function setDropPct(itemId: string, pct: number): Promise<number> {
 export async function fetchDropStates(itemIds: string[]): Promise<Map<string, DropStateRow>> {
   const out = new Map<string, DropStateRow>();
   if (itemIds.length === 0) return out;
-  const prefetched = await takeFirstScreenDropStates(itemIds);
+  // Q2705 (11-07): a guest preview carries the drop columns of its items (declutter_guest_preview).
+  const prefetched = (await takeFirstScreenDropStates(itemIds)) ?? ((await takeGuestDropStates(itemIds)) as (DropStateRow & { id: string })[] | null);
   const rows = prefetched ?? (await readDropColumns((cols) => supabase.from("declutter_items").select(cols).in("id", itemIds), "id, ")) as
     (DropStateRow & { id: string })[] | null;
   for (const r of rows ?? []) out.set(r.id, { sale_mode: r.sale_mode, last_price_drop_on: r.last_price_drop_on, drop_pct: r.drop_pct, drops_stopped: r.drops_stopped });

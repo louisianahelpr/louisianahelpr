@@ -110,7 +110,7 @@ export default function ShopCustomOrderForm({ request, onDone }: { request: Cust
       </div>
       <dl className="space-y-1 text-sm">
         <div className="flex justify-between gap-2"><dt>Price</dt><dd>{formatCents(price)}</dd></div>
-        <div className="flex justify-between gap-2"><dt>Buyer fee</dt><dd>{formatCents(buyerFeeCents(price))}</dd></div>
+        <div className="flex justify-between gap-2"><dt>Service fee (5% + $0.70)</dt><dd>{formatCents(buyerFeeCents(price))}</dd></div>
         <p className="text-xs text-muted-foreground">Any sales tax is added on the payment page.</p>
       </dl>
       <div className="space-y-1">

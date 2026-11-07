@@ -1,3 +1,4 @@
+import { ListRow } from "@/components/ui/ListRow";
 import { Check } from "lucide-react";
 import { Sheet, SheetContent, SheetHero } from "@/components/ui/sheet";
 import { focusSheetItself } from "@/components/declutter/focusSheetItself";
@@ -39,16 +40,15 @@ export function ChoiceSheet<T extends string>({
             const on = r.value === value;
             return (
               <li key={r.value ?? "all"}>
-                <button
-                  type="button"
+                <ListRow variant="flush"
                   role="radio"
                   aria-checked={on}
                   onClick={() => pick(r.value)}
-                  className={`w-full flex items-center justify-between px-4 py-3 text-left text-ds-15 ${i === rows.length - 1 ? "" : "border-b border-border/70"} ${on ? "font-semibold" : ""}`}
+                  className={`w-full flex items-center justify-between px-4 py-3 text-left text-ds-15 ${i === rows.length - 1 ? "" : "border-b border-border/70"} ${on ? "font-semibold" : ""} min-h-11 gap-0`}
                 >
                   {r.label}
                   {on && <Check className="w-4 h-4 text-primary" aria-hidden />}
-                </button>
+                </ListRow>
               </li>
             );
           })}

@@ -25,6 +25,7 @@ import { takeMinePrefetch, takeMineQuestions } from "@/lib/declutter/minePrefetc
 import { readItems, type ItemRead } from "@/lib/declutter/myReads";
 import { takeItemPhotosPrefetch, takeItemPrefetch } from "@/lib/declutter/itemPrefetchTake";
 import { takeFirstScreenDropStates, takeFirstScreenItems, takeFirstScreenPhotos, takeFirstScreenWatching } from "@/lib/declutter/bootPrefetch";
+import { takeGuestItems, takeGuestPhotos } from "@/lib/declutter/guestBootPrefetch";
 
 /** Row 24 handover choices open at launch (row 63: Helpr delivery comes later). */
 /** Slice 5 adds "delivery": a Helpr picks it up and brings it (rows 24, 29-30, 40-43). */
@@ -137,6 +138,9 @@ export async function fetchLiveItems(): Promise<DeclutterItem[]> {
   // a list longer than the answer: ask as before. It leaves out the member's own listings; every caller drops them.
   const prefetched = await takeFirstScreenItems();
   if (prefetched) return prefetched as unknown as DeclutterItem[];
+  // Q2705: a guest's cold /declutter asked this same read from the entry (src/boot/guestDeclutterPrefetch.ts).
+  const guest = await takeGuestItems();
+  if (guest) return guest as DeclutterItem[];
   const rows = await readItems((cols) =>
     supabase
       .from("declutter_items")
@@ -345,6 +349,8 @@ export async function fetchPhotos(itemIds: string[]): Promise<DeclutterPhoto[]> 
   if (itemIds.length === 0) return [];
   const prefetched = await takeFirstScreenPhotos(itemIds);
   if (prefetched) return prefetched as DeclutterPhoto[];
+  const guest = await takeGuestPhotos(itemIds); // Q2705: the guest list's photo rows, asked from the entry
+  if (guest) return guest as DeclutterPhoto[];
   const bootItem = itemIds.length === 1 ? await takeItemPhotosPrefetch(itemIds[0], sessionUserId) : undefined;
   if (bootItem) return bootItem as DeclutterPhoto[];
   const rows = unwrap(

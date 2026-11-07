@@ -12,7 +12,8 @@
  * NOTHING outside the entry may import this file (see guestJobsPrefetch.ts). So the switch keys are a COPY of
  * FEATURE_SWITCH_KEYS, and src/boot/declutterPrefetch.test.ts holds the two equal.
  */
-import { storedSession } from "./storedSession";
+import { anyStoredSession, storedSession } from "./storedSession";
+import { startGuestDeclutterPrefetch } from "./guestDeclutterPrefetch";
 import { startDeclutterMinePrefetch } from "./declutterMinePrefetch";
 
 /** Copy of FEATURE_SWITCH_KEYS in src/config/featureSwitches.ts (see above). */
@@ -53,14 +54,20 @@ export const FIRST_SCREEN_SWITCH_KEYS = [
 ];
 export const DECLUTTER_PREFETCH_KEY = "__lhDeclutterPrefetch";
 
-/** Called by the entry. No-op unless this is a cold load of /declutter with a live session. */
+/** Called by the entry. No-op unless this is a cold load of /declutter; a visitor with no live session gets the guest reads. */
 export function startDeclutterPrefetch(pathname: string): void {
   const path = pathname.length > 1 ? pathname.replace(/\/+$/, "") : pathname;
   if (path !== "/declutter" || typeof fetch !== "function") return;
   const base = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined;
+  if (!base || !key) return;
   const session = storedSession(Date.now() / 1000);
-  if (!base || !key || !session) return;
+  if (!session) {
+    // Q2705: a guest's first screen from the entry too (guestDeclutterPrefetch.ts). Only a provable guest (no session
+    // stored at all, readable storage): an expiring member's page waits for its refresh and reads as the member.
+    if (!anyStoredSession()) startGuestDeclutterPrefetch(base, key, location.search);
+    return;
+  }
   const answer = fetch(`${base.replace(/\/$/, "")}/rest/v1/rpc/declutter_first_screen`, {
     method: "POST",
     headers: { apikey: key, Authorization: `Bearer ${session.token}`, "Content-Type": "application/json" },

@@ -751,7 +751,7 @@ serve(async (req) => {
       }
     }
     // Custom orders slice 2b (20261106215722 + 20261106221300): a 50% deposit order's rest, from the ready date, on the
-    // card saved at Checkout (_shared/shopBalance.ts; one key per order and attempt). Then the 7-day lapse (OWNER rule:
+    // card saved at Checkout (_shared/shopBalance.ts; one key per order, every try). Then the 7-day lapse (OWNER rule:
     // the buyer's late cancel on the deposit only), then the tax step every close with the rest unpaid owes (LEAD
     // 11-06: Stripe Tax reversed in full, the deposit's tax queued back to the buyer). PGRST202: not deployed yet.
     const notDeployed = (err: unknown) => (err as { code?: string } | null)?.code === "PGRST202";

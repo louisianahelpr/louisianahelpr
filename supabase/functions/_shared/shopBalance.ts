@@ -9,7 +9,7 @@
 //   recordShopBalance  -> shop_balance_paid; an answer of 'refund' (paid twice, or the order closed) gives it back in full
 //   settleUnpaidCloseTax -> Stripe Tax FULL reversal of the order's transaction, then shop_lapse_tax_done (which queues
 //                          the deposit's tax refund as the order's unpaid_close_tax shop_refunds row)
-// Never charged twice: one key per order and attempt (shop-balance-<order>-<attempt>), shop_balances_due never lists a
+// Never charged twice: ONE key per order (shop-balance-<order>, every try), shop_balances_due never lists a
 // paid order, and a second payment is answered 'refund' by the SQL and refunded here under one key per PaymentIntent.
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 
@@ -90,7 +90,14 @@ export async function recordShopBalance(
 }
 
 /** Charge the rest off-session on the card saved at Checkout, and record what happened. */
-export async function chargeShopBalance(stripe: Stripe, admin: Db, row: ShopBalanceDueRow): Promise<BalanceOutcome> {
+/**
+ * `fromTap`: the shop's Handed-over tap (11-07 money review). A tap's failure that is not the card's is NOT counted:
+ * a shop tapping again during a Stripe outage must never use up the buyer's 3 tries; the 10-minute clock counts them.
+ * A card error (or no saved card) is the buyer's either way.
+ */
+export async function chargeShopBalance(
+  stripe: Stripe, admin: Db, row: ShopBalanceDueRow, opts: { fromTap?: boolean } = {},
+): Promise<BalanceOutcome> {
   if (!Number.isInteger(row.balance_cents) || row.balance_cents <= 0) {
     throw new Error(`shop order ${row.order_id}: no rest to charge`);
   }
@@ -128,6 +135,10 @@ export async function chargeShopBalance(stripe: Stripe, admin: Db, row: ShopBala
   if (pi && pi.status === "succeeded") return await recordShopBalance(stripe, admin, row.order_id, pi);
   // Not taken (processing, or an error). A processing payment that succeeds later lands through stripe-webhook's
   // payment_intent.succeeded (recordShopBalance); a second one is answered 'refund'. Counted: the 3rd is the buyer's.
+  if (opts.fromTap && !buyer) {
+    console.log(JSON.stringify({ event: "shop_balance_tap_not_counted", order: row.order_id, detail: why.slice(0, 200) }));
+    return "will_retry";
+  }
   const { data: failed, error } = await admin.rpc("shop_balance_failed", { p_order_id: row.order_id, p_error: why, p_buyer: buyer });
   if (error) throw new Error(`shop_balance_failed failed for ${row.order_id}: ${error.message}`);
   return buyer || (failed as { result?: string } | null)?.result === "buyer_pays" ? "buyer_pays" : "will_retry";

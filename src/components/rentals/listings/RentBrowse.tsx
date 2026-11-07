@@ -1,3 +1,4 @@
+import { RoundIconButton } from "@/components/ui/RoundIconButton";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -6,6 +7,7 @@ import { toast } from "sonner";
 import { userFacingError } from "@/lib/userFacingError";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { FilterChip } from "@/components/ui/FilterChip";
 import { LISTING_GRID, ListingCardBone } from "./listingBones";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { BrowseEmptyState } from "@/components/ui/BrowseEmptyState";
@@ -100,8 +102,7 @@ export function ListingCard({ l, kind, saved, onSave }: { l: CardRow; kind: "ren
 /** The heart over a card's photo: 44px to tap, a 36px circle to see. */
 function SaveHomeButton({ saved, onSave }: { saved: boolean; onSave: (saved: boolean) => void }) {
   return (
-    <button
-      type="button"
+    <RoundIconButton
       data-save-home=""
       aria-pressed={saved}
       aria-label={saved ? "Saved. Tap to remove from Saved homes" : "Save this home"}
@@ -109,7 +110,7 @@ function SaveHomeButton({ saved, onSave }: { saved: boolean; onSave: (saved: boo
         hapticLight();
         onSave(!saved);
       }}
-      className="absolute right-1 top-1 flex h-11 w-11 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className="absolute right-1 top-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       <span className="flex h-9 w-9 items-center justify-center rounded-full bg-card/90 shadow-sm">
         <Heart
@@ -118,7 +119,7 @@ function SaveHomeButton({ saved, onSave }: { saved: boolean; onSave: (saved: boo
           aria-hidden
         />
       </span>
-    </button>
+    </RoundIconButton>
   );
 }
 
@@ -296,18 +297,16 @@ function ListingsBrowse({ kind, onKind, intro }: { kind: BrowseKind; onKind: (k:
             content: (
               <div role="group" aria-label="Rent or buy" className={chipStyles.chipRow}>
                 {KINDS.map((k) => (
-                  <button
+                  <FilterChip
                     key={k.value}
-                    type="button"
-                    aria-pressed={(buy ? "buy" : "rent") === k.value}
+                    pressed={(buy ? "buy" : "rent") === k.value}
                     onClick={() => {
                       hapticLight();
                       onKind(k.value);
                     }}
-                    className={`${chipStyles.chipBase} ${(buy ? "buy" : "rent") === k.value ? chipStyles.chipActive : chipStyles.chipIdle}`}
                   >
                     {k.label}
-                  </button>
+                  </FilterChip>
                 ))}
               </div>
             ),
@@ -318,18 +317,16 @@ function ListingsBrowse({ kind, onKind, intro }: { kind: BrowseKind; onKind: (k:
             content: (
               <div role="group" aria-label="Bedrooms" className={chipStyles.chipRow}>
                 {BEDS.map((b) => (
-                  <button
+                  <FilterChip
                     key={b.label}
-                    type="button"
-                    aria-pressed={minBeds === b.value}
+                    pressed={minBeds === b.value}
                     onClick={() => {
                       hapticLight();
                       setMinBeds(b.value);
                     }}
-                    className={`${chipStyles.chipBase} ${minBeds === b.value ? chipStyles.chipActive : chipStyles.chipIdle}`}
                   >
                     {b.label}
-                  </button>
+                  </FilterChip>
                 ))}
               </div>
             ),

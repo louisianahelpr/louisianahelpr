@@ -73,7 +73,7 @@ describe("owner 11-07: Declutter prices show the buyer's price incl. fee", () =>
     for (const s of all) {
       if (s.file in NOT_A_BUYER_PRICE) { hitExempt.add(s.file); continue; }
       const after = s.src.slice(s.at, s.at + 900);
-      const esc = s.who.replace(/\./g, "\\.");
+      const esc = s.who.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       if (new RegExp(`<PriceInclFee\\s+priceCents=\\{${esc}\\.current_price_cents\\}`).test(after)) covered.add(s.file);
       else missing.push(`${s.file}: ${s.who}.current_price_cents has no <PriceInclFee> after it`);
     }

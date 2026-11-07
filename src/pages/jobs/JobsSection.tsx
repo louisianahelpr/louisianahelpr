@@ -19,7 +19,7 @@ import Dashboard from "@/pages/home/Dashboard";
 import { JobsListLoadingFrame } from "@/components/JobsSectionSkeleton";
 import { removeShellOncePainted } from "@/components/landing/landingShell";
 import { JOBS_SHELL_ID } from "@/components/landing/homeShell";
-import { manageLinkOpensJobPage } from "@/components/job-card/useManageDeepLink";
+import { manageLinkOpensJobPage } from "@/components/job-card/manageLinkOpensJobPage";
 import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
 import { AppTopBar, SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";

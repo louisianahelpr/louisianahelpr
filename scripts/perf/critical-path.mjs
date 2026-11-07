@@ -41,6 +41,8 @@ export const ROUTES = [
   { path: "/posts", chunk: "PostsPage" },
   // Where every signed-in visitor lands (AUD31-60/66): Home's own first screen.
   { path: "/home", chunk: "HomeDashboard" },
+  // Q1158 (11-06): signed-in /jobs opens on Browse, and its first job card draws when this closure has run (lab, 375).
+  { path: "/jobs", chunk: "JobsSection" },
   // The public Declutter item page (DECL-ITEM-SPEED, B67): every shared listing link lands here, cold. Lazy from App
   // after the boot graph (round 3), so its budget is the bytes its closure carries.
   { path: "/declutter/item/:id", chunk: "DeclutterItemPage" },

@@ -1,9 +1,8 @@
-import { Suspense, type Dispatch, type SetStateAction } from "react";
-import { ApplicationSentDialog } from "@/components/dashboard/ApplicationSentDialog";
+import { Suspense, useState, type Dispatch, type SetStateAction } from "react";
 import type { EnrichedJob } from "@/components/dashboard/types";
 import type { useDashboardData } from "@/hooks/useDashboardData";
 import type { useDashboardFilters } from "@/hooks/useDashboardFilters";
-import { ApplyBody, ApplyConfirmDialog, BirthdayPopup, JobDetailDialog, ReportDialog } from "./dashboardLazyParts";
+import { ApplicationSentDialog, ApplyBody, ApplyConfirmDialog, BirthdayPopup, JobDetailDialog, ReportDialog } from "./dashboardLazyParts";
 import { QuickApplyHandler } from "./QuickApplyHandler";
 import type { useApplyFlow } from "./useApplyFlow";
 import type { useDetailJob } from "./useDetailJob";
@@ -182,6 +181,10 @@ export function DashboardDialogs({
   applyFieldProps: ApplyFieldProps;
   handleApplyConfirm: ApplyFlow["handleApplyConfirm"];
 }) {
+  // Q1158 (11-06): the "Application sent" sheet is lazy (its WhatNextSheet and sheet primitives rode on /jobs' first
+  // round). Mounted from the first send on and kept mounted, so its close still animates.
+  const [sentMounted, setSentMounted] = useState(false);
+  if (applicationSent && !sentMounted) setSentMounted(true);
   return (
     <>
     {reportJobId && (
@@ -222,7 +225,11 @@ export function DashboardDialogs({
         (`?apply=<jobId>`), where no detail sheet is open to host the step.
         When the detail sheet IS open it renders the apply step itself, and
         mounting this too would stack a second surface over it. */}
-    <ApplicationSentDialog sent={applicationSent} onClose={closeApplicationSent} onView={viewApplication} platformFee={platformFee} />
+    {sentMounted && (
+      <Suspense fallback={null}>
+        <ApplicationSentDialog sent={applicationSent} onClose={closeApplicationSent} onView={viewApplication} platformFee={platformFee} />
+      </Suspense>
+    )}
     {confirmApplyJobId && confirmApplyJobId !== detailJobId && (
       <Suspense fallback={null}>
         <ApplyConfirmDialog

@@ -109,7 +109,7 @@ describe("main-tab empty pages put their circle, title and button in one place",
   // Re-pointed 2026-10-19 (Q2205): My Posts' header (PostsHeader), the box this was matched TO, left with the old
   // screen; Messages keeps the same compact 28px geometry on its own, pinned as literal values.
   it("Messages' desktop header buttons are the inline 28px box, and its search slot reserves 28px", () => {
-    const msgs = code("src/components/messages/ConversationList.tsx") + "\n" + code("src/components/messages/ConversationListBody.tsx");
+    const msgs = code("src/components/messages/ConversationList.tsx") + "\n" + code("src/components/messages/ConversationListBody.tsx") + "\n" + code("src/components/messages/conversationListHeaderClasses.ts");
     const desktopClass = /const HEADER_ICON_BUTTON_DESKTOP_CLASS =([\s\S]*?);/.exec(msgs)?.[1] ?? "";
     expect(desktopClass).toContain("h-7 w-7 !min-h-0 !min-w-0");
     // The BUTTON carrying the label (the search field's input shares it).

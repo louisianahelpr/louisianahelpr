@@ -418,6 +418,7 @@ export function FormStep({ form }: FormStepProps) {
             setSeriesSplitOk={form.setSeriesSplitOk}
             isGroupJob={form.isGroupJob}
             setIsGroupJob={form.setIsGroupJob}
+            crewAllowed={form.crewAllowed}
             helpersNeeded={form.helpersNeeded}
             setHelpersNeeded={form.setHelpersNeeded}
             budgetNum={form.budgetNum}

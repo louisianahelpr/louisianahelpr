@@ -307,7 +307,9 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   // H8 (b): an at-home cleaning is ordered on its own and needs the buyer's address, answered BEFORE the order
   // freezes (shops_request_order retires the buyer's previous page). The frozen line below is the truth; this is
   // the early, plain answer.
-  const itemIds = (body.lines as unknown[]).map((l) => (l && typeof l === "object" ? (l as { item_id?: unknown }).item_id : null))
+  // A custom order sends no lines (its one line is the shop's price); only ordinary lines are read here.
+  const askedLines: unknown[] = Array.isArray(body.lines) ? body.lines : [];
+  const itemIds = askedLines.map((l) => (l && typeof l === "object" ? (l as { item_id?: unknown }).item_id : null))
     .filter((id): id is string => typeof id === "string" && UUID_RE.test(id));
   if (itemIds.length > 0) {
     const { data: atRows, error: atErr } = await admin.from("shop_items").select("id, subtype, at_buyer").in("id", itemIds);
@@ -316,7 +318,7 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       return json({ error: TRY_AGAIN }, 503);
     }
     const atHome = ((atRows ?? []) as Array<{ subtype: string; at_buyer: boolean }>).some((r) => r.at_buyer && r.subtype === "fabric_cleaning");
-    if (atHome && body.lines.length > 1) return json({ error: "service_at_buyer_alone" }, 409);
+    if (atHome && askedLines.length > 1) return json({ error: "service_at_buyer_alone" }, 409);
     if (atHome && !serviceAddress) return json({ error: "service_address_needed" }, 400);
     // Restack (l106 + delivery): work done at the buyer's place has nothing to deliver.
     if (atHome && delivery) return json({ error: "at_buyer_no_delivery" }, 409);

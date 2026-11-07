@@ -43,7 +43,11 @@ const session = (expiresInS: number, id = UID) =>
 /** A fetch answering every read with `body` (the first-screen read included; it is not under test here). */
 const answering = (body: (url: string) => unknown, ok = true) =>
   vi.fn(async (url: string) => ({ ok, json: async () => body(url) }) as unknown as Response);
-const rows = (url: string) => (url.includes("declutter_my_cart") ? [{ line: "c" }] : url.includes("declutter_my_offers") ? [{ offer: "o" }] : url.includes("declutter_items") ? [{ id: "i" }] : {});
+// The guest's one read (Q2705 option B, declutter_guest_first_screen) answers the list and its photo rows, so the
+// guest path makes no later REST read that could outlive this test's fetch stub.
+const rows = (url: string) =>
+  url.includes("declutter_guest_first_screen") ? { items: [{ id: "i" }], photos: [] }
+  : url.includes("declutter_my_cart") ? [{ line: "c" }] : url.includes("declutter_my_offers") ? [{ offer: "o" }] : url.includes("declutter_items") ? [{ id: "i" }] : {};
 
 afterEach(() => {
   const w = window as unknown as Record<string, unknown>;
@@ -102,7 +106,7 @@ describe("/declutter's tab-row reads start from the entry (B81)", () => {
     startDeclutterPrefetch("/declutter");
     // A guest gets only the guest page's own reads (Q2705, guestDeclutterPrefetch.ts), never the tab row's.
     const guestPaths = (f.mock.calls as unknown as [string][]).map(([u]) => new URL(u).pathname);
-    expect(guestPaths.every((p) => ["/rest/v1/rpc/features_open_to_everyone", "/rest/v1/declutter_items", "/rest/v1/declutter_item_photos"].includes(p)), `guest: ${guestPaths.join(", ")}`).toBe(true);
+    expect(guestPaths.every((p) => ["/rest/v1/rpc/features_open_to_everyone", "/rest/v1/rpc/declutter_guest_first_screen", "/rest/v1/declutter_items", "/rest/v1/declutter_item_photos"].includes(p)), `guest: ${guestPaths.join(", ")}`).toBe(true);
     f.mockClear();
     (window as unknown as Record<string, unknown>).__lhGuestDeclutterPrefetch = undefined;
     signIn(30);

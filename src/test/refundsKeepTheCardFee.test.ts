@@ -113,7 +113,7 @@
  * @mutate supabase/migrations/20261106221300_shops_custom_balance_edge.sql |     WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault', 'unpaid_close_tax') THEN 'keep_card_fee' |     WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault', 'unpaid_close_tax') THEN 'full_platform_absorbs'
  * @mutate supabase/migrations/20261106221300_shops_custom_balance_edge.sql |     WHEN p_reason = 'problem_our_mistake' THEN 'full_platform_absorbs' |     WHEN p_reason IN ('problem_our_mistake', 'shop_removed') THEN 'full_platform_absorbs'
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |   CONSTRAINT shop_refunds_policy CHECK (fee_policy = public.shop_refund_fee_policy(reason)), |   CONSTRAINT shop_refunds_policy CHECK (fee_policy IN ('keep_card_fee', 'full_shop_pays_fee', 'full_platform_absorbs')),
- * @mutate supabase/migrations/20261106212437_shops_custom_deposit_split.sql |     SELECT o.*, CASE WHEN o.policy = 'keep_card_fee' THEN o.fee ELSE 0 END AS kept FROM o |     SELECT o.*, 0 AS kept FROM o
+ * @mutate supabase/migrations/20261107162454_shops_custom_two_charge_payout.sql |     SELECT o.*, CASE WHEN o.policy = 'keep_card_fee' THEN o.fee ELSE 0 END AS kept FROM o |     SELECT o.*, 0 AS kept FROM o
  * @mutate supabase/migrations/20261019071055_shops_refunds_cancels_strikes.sql |     'buyer_cancelled', 'shop_cancelled', 'no_ready_photo', 'shop_removed', |     'buyer_cancelled', 'shop_cancelled', 'no_ready_photo', 'shop_removed', 'goodwill',
  * @mutate supabase/functions/_shared/shopRefunds.ts |           amount: row.refund_cents, |           amount: row.refund_cents + 30,
  * @mutate supabase/functions/declutter-money/index.ts |         const done = await sendShopRefund(stripe, admin, r); |         r.refund_cents = r.refund_cents + 30;\n        const done = await sendShopRefund(stripe, admin, r);
@@ -931,7 +931,7 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // Shops M3: the ONE refund formula for a Shops order (quote, write and CHECKs read it): keep_card_fee keeps the
       // card fee and its tax for buyer_cancelled / problem_no_fault; full otherwise (the shop is billed the fee as debt
       // for its own faults; the platform carries it only for problem_our_mistake).
-      shop_refund_amounts: "20261106212437_shops_custom_deposit_split.sql 8f31a451803d4743", // Helpr delivery (money review owed): the delivery already refunded or earned by the Helpr is left out, the card fee prorated (declutter_card_fee_left). Custom orders slice 2a (20261106212437, money review owed): "paid" is the deposit while a deposit order's rest is unpaid; the fee policy per reason is unchanged
+      shop_refund_amounts: "20261107162454_shops_custom_two_charge_payout.sql 92ba0ca91ff8656a", // Helpr delivery (money review owed): the delivery already refunded or earned by the Helpr is left out, the card fee prorated (declutter_card_fee_left). Custom orders slice 2a (20261106212437, money review owed): "paid" is the deposit while a deposit order's rest is unpaid; the fee policy per reason is unchanged. 11-07 (20261107162454, money review change 1): once the rest is paid the card fee is BOTH charges' fees (more kept, never less)
       // the payout run holds a pending / failed row for review (status + reason); no amount.
       payout_hold_for_review: "20261101233256_declutter_manager_payout_kind.sql a620256e1b71a72e",
       // deletes wait / send-mark bookkeeping rows of ended payouts; reads declutter_refunds status only.
@@ -1011,8 +1011,9 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
     migration: "20261106221300_shops_custom_balance_edge.sql",
     // Helpr delivery (money review owed): restated to leave out the delivery already refunded or earned.
     // Custom orders slice 2a (money review owed): restated so "paid" is the deposit while a deposit order's rest is unpaid.
-    functionMigration: "20261106212437_shops_custom_deposit_split.sql",
-    proofs: ["src/test/pglite/shopsRefunds.pglite.mjs", "src/test/pglite/shopsHelprDelivery.pglite.mjs", "src/test/pglite/shopsCustomBalanceEdge.pglite.mjs"],
+    // 11-07 (20261107162454): both charges' card fees once a deposit order's rest is paid.
+    functionMigration: "20261107162454_shops_custom_two_charge_payout.sql",
+    proofs: ["src/test/pglite/shopsRefunds.pglite.mjs", "src/test/pglite/shopsHelprDelivery.pglite.mjs", "src/test/pglite/shopsCustomBalanceEdge.pglite.mjs", "src/test/pglite/shopsCustomTwoCharge.pglite.mjs"],
     reasonCheck: "shop_refunds_reason_check",
     policySources: [
       { where: "shop_refund_fee_policy", kind: "function", name: "shop_refund_fee_policy", pattern: /\bSELECT\s+(CASE\b.*?\bEND)\s*;/i, subject: "p_reason",
@@ -1064,8 +1065,13 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       shop_hold_order_for_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 1e75907ab8fb3269",
       shop_money_rows_seed: "20261018211820_shops_handover_payout.sql 55e7c11ee19013d2",
       shop_order_captured: "20261106194913_shops_helpr_delivery.sql f3f3d453bb758291", // Shops H4 setup fee (lh-money-escrow PASS on 0a306f59cb): the card fee it records is Stripe's estimate on total + the one-time setup fee, capped at the order total; it records no refund. Helpr delivery (20261106194913, money review owed): it also opens the Helpr task; still no refund
-      shop_record_hand_refund: "20261019071055_shops_refunds_cancels_strikes.sql 57f661acd2c47d64",
-      shop_refund_amounts: "20261106212437_shops_custom_deposit_split.sql 8f31a451803d4743", // Helpr delivery (money review owed): the delivery already refunded or earned by the Helpr is left out, the card fee prorated (declutter_card_fee_left). Custom orders slice 2a (20261106212437, money review owed): "paid" is the deposit while a deposit order's rest is unpaid; the fee policy per reason is unchanged
+      // 11-07 (20261107162454, option B): the order is found by the rest's PaymentIntent too; records a hand refund, no amount.
+      shop_record_hand_refund: "20261107162454_shops_custom_two_charge_payout.sql fa8034d933a81b13",
+      // 11-07 (20261107162454, option B): a two-charge order's refund row is held for a person (status + reason only; the
+      // amount is shop_refund_amounts', unchanged), and releasing it to the queue is refused.
+      shop_refunds_two_charge_hold: "20261107162454_shops_custom_two_charge_payout.sql 746e06a19382376b",
+      shop_orders_two_charge_hold_refunds: "20261107162454_shops_custom_two_charge_payout.sql 4efec5d23992ab63",
+      shop_refund_amounts: "20261107162454_shops_custom_two_charge_payout.sql 92ba0ca91ff8656a", // Helpr delivery (money review owed): the delivery already refunded or earned by the Helpr is left out, the card fee prorated (declutter_card_fee_left). Custom orders slice 2a (20261106212437, money review owed): "paid" is the deposit while a deposit order's rest is unpaid; the fee policy per reason is unchanged. 11-07 (20261107162454, money review change 1): once the rest is paid the card fee is BOTH charges' fees (more kept, never less)
       shop_refund_executed: "20261103111244_money_webhooks_not_found_is_404.sql e33914e554c0bfea", // Q2390 p25: ERRCODE-only restatement (md5-verified); records Stripe's answer, writes no amount
       shop_refund_fee_policy: "20261106221300_shops_custom_balance_edge.sql 58284415e4ba9704", // Custom orders 2b (money review owed): + unpaid_close_tax under keep_card_fee; every other reason unchanged
       // Custom orders 2b (money review owed): writes the deposit's tax back as the order's unpaid_close_tax row (keep_card_fee, card fee 0: the
@@ -1092,6 +1098,8 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       "shop_refunds 20261019071055_shops_refunds_cancels_strikes.sql": ["75ac5d08aa20b56e", "3b8b9ce1c7e3e63c", "a5b2dee5e1716c6e", "e11df43619a2b9ad"],
       // Custom orders 2b: the reason check restated with unpaid_close_tax (its fee policy is the one function's).
       "shop_refunds 20261106221300_shops_custom_balance_edge.sql": ["f816e6c9fcdfc078", "1c8b11ccbbdb5465"],
+      // 11-07 option B: the hold trigger (status only, never an amount).
+      "shop_refunds 20261107162454_shops_custom_two_charge_payout.sql": ["3bf5c5b4f495a505"],
     },
     bodies: {
       shop_refund_amounts: [

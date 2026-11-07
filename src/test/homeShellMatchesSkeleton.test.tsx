@@ -39,6 +39,7 @@ import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 vi.mock("@/lib/errorLogger", () => ({ report: vi.fn(), logError: vi.fn() }));
 import { blankComments } from "./helpers/blankNonCode";
 import { inlineShellCss, SHELL_END } from "../../scripts/inline-shell-css.mjs";
+import { scopeShellIds } from "../../scripts/shell-ids.mjs";
 
 const ROOT = join(__dirname, "..", "..");
 const INDEX = join(ROOT, "index.html");
@@ -76,7 +77,7 @@ const showScript = (html: string) =>
 
 describe("a signed-in phone's /home paints Home's own skeleton from the HTML (Q2705 B)", () => {
   it("index.html's home block is byte-for-byte what DashboardRouteSkeleton renders at a phone width", () => {
-    const want = rendered();
+    const want = scopeShellIds(rendered(), "home");
     let html = readFileSync(INDEX, "utf8");
     if (process.env.LH_WRITE_HOME_SHELL === "1") {
       const a = html.indexOf(START) + START.length;

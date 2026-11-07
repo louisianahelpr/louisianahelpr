@@ -21,8 +21,8 @@
  * @mutate scripts/inline-shell-css.mjs |   const present = SHELLS.map( |   const present = SHELLS.slice(0, 1).map(
  * The shells carry no id of their page (duplicate #email / #password while both were in the document; e2e-real-backend
  * red 11-06/11-07): every id and id reference in a block takes the lh-shell- prefix (scripts/shell-ids.mjs).
- * @mutate scripts/shell-ids.mjs | (_, sp, attr, v) => `${sp}${attr}="${SHELL_ID_PREFIX}${v}"` | (_, sp, attr, v) => `${sp}${attr}="${v}"`
- * @mutate index.html | id="lh-shell-password" enterKeyHint="done" | id="password" enterKeyHint="done"
+ * @mutate scripts/shell-ids.mjs |     .replace(ONE, (_, sp, attr, v) => `${sp}${attr}="${p}${v}"`) |     .replace(ONE, (_, sp, attr, v) => `${sp}${attr}="${v}"`)
+ * @mutate index.html | id="lh-shell-login-password" | id="password"
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -73,7 +73,7 @@ const showScript = (html: string) =>
 
 describe("/login and /signup paint from the HTML, as the pages themselves (Q2705 A)", () => {
   it.each(PAGES)("index.html's $page block is byte-for-byte what React renders on $path", ({ page, path, Page, words }) => {
-    const want = scopeShellIds(rendered(path, Page));
+    const want = scopeShellIds(rendered(path, Page), page);
     let html = readFileSync(INDEX, "utf8");
     if (process.env.LH_WRITE_AUTH_SHELLS === "1") {
       const a = html.indexOf(start(page)) + start(page).length;
@@ -92,7 +92,7 @@ describe("/login and /signup paint from the HTML, as the pages themselves (Q2705
     expect(pageIds.size, "the page has ids to collide with (floor)").toBeGreaterThan(1);
     expect(shellIds.length).toBe(pageIds.size);
     expect(shellIds.filter((id) => pageIds.has(id)), "an id both in the shell and on the page").toEqual([]);
-    expect(shellIds.filter((id) => !id.startsWith(SHELL_ID_PREFIX))).toEqual([]);
+    expect(shellIds.filter((id) => !id.startsWith(`${SHELL_ID_PREFIX}${page}-`))).toEqual([]);
     expect(new Set(shellIds).size, "an id twice in one shell").toBe(shellIds.length);
     // Every label and aria reference in the shell points at an id the shell has.
     const refs = [...block(readFileSync(INDEX, "utf8"), page).matchAll(/\s(?:for|aria-labelledby|aria-describedby|aria-controls)="([^"]+)"/g)]

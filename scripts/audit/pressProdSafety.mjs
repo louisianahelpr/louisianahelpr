@@ -1093,9 +1093,21 @@ export const PRESS_SIDE_EFFECT_WRITES = {
   // as the form changes (src/lib/jobPostDraftAccount.ts saveDraftToAccount, one private row per member); picking a
   // tile is a form change, and the draft is nobody else's and posts nothing.
   "/rest/v1/rpc/save_my_job_post_draft": "the member's own unfinished Post a job draft, kept as the form changes (src/lib/jobPostDraftAccount.ts); posts nothing",
-  // Same run, 6 MISSes: Settings' "Your profile link" row makes the member's handle from their name when they have
-  // none (src/lib/profileLink/api.ts ensureMyHandle, 20261101034834); the referral code's shape, made on first look.
-  "/rest/v1/rpc/rpc_ensure_my_handle": "the member's own profile-link handle, made from their name on first look when they have none (src/lib/profileLink/api.ts)",
+};
+
+/**
+ * VOLATILE RPCs that write only in a state no account is in, so they pass like a read. Aborting one is not
+ * harmless: the screen shows the call's error, and the press fails on the error copy.
+ *
+ * rpc_ensure_my_handle: press-every-control 41817058240 counted 6 GATE MISSes on it, and it was then aborted as a
+ * side effect. Run 42362289081 (11-07) then failed 7 presses on the error that abort put up: Settings' "Your profile
+ * link" x5 and /user/<own id>'s "Share your page link" x2 ("We couldn't load your profile link."). The live body
+ * (pg_get_functiondef, prod 2026-11-07) returns profiles.handle at once when it is set, and updates only when it is
+ * NULL. Every member gets a handle at sign-up (20261104142602). Read-only SQL on prod 2026-11-07: 0 of 347 profiles
+ * have a NULL handle, the seed accounts included. Even then, the one write would be the test account's own handle.
+ */
+export const PRESS_PASS_THROUGH_RPCS = {
+  "/rest/v1/rpc/rpc_ensure_my_handle": "returns the member's handle; writes only when it is NULL (0 of 347 profiles on prod, 2026-11-07); src/lib/profileLink/api.ts",
 };
 
 /**
@@ -1146,7 +1158,7 @@ const isStorageListPath = (pathname) => /^\/storage\/v1\/object\/list\//.test(pa
  * (e2e/readRpc.ts, held to pg_proc.provolatile by its own test), an RPC every
  * migration declares STABLE / IMMUTABLE (declaredReadRpcs.mjs), a storage
  * sign or list, a stripe-connect read action and PRESS_READ_FUNCTIONS read;
- * PRESS_SIDE_EFFECT_WRITES are side effects; every other POST / PATCH / PUT /
+ * PRESS_PASS_THROUGH_RPCS read; PRESS_SIDE_EFFECT_WRITES are side effects; every other POST / PATCH / PUT /
  * DELETE writes. An unparseable URL writes (fail closed).
  */
 export function pressWriteKind({ method, url, body = null }) {
@@ -1161,6 +1173,7 @@ export function pressWriteKind({ method, url, body = null }) {
   }
   if (safeMethod) return "read";
   if (!PRESS_WRITE_SURFACE_RX.test(pathname)) return "read";
+  if (Object.hasOwn(PRESS_PASS_THROUGH_RPCS, pathname)) return "read";
   if (Object.hasOwn(PRESS_SIDE_EFFECT_WRITES, pathname)) return "side-effect";
   if (PRESS_SIDE_EFFECT_BODY_WRITES.some((e) => e.method === m && e.path === pathname && bodyHasExactlyKeys(body, e.keys))) return "side-effect";
   if (isReadRpcPath(pathname) || isDeclaredReadRpcPath(pathname) || isStorageSignPath(pathname) || isStorageListPath(pathname)) return "read";

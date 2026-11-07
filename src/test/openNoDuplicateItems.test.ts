@@ -127,8 +127,10 @@ describe("no item is counted under two numbers", () => {
   it("docs/OPEN.md holds no two OPEN items for one problem (exact zero)", () => {
     const md = readFileSync(join(ROOT, "docs/OPEN.md"), "utf8");
     const open = md.split("\n").filter((l) => /^- \[[ ~]\] \*\*Q\d+/.test(l));
-    expect(open.length).toBeGreaterThan(100);
-    expect(open.filter((l) => itemTitleKey(l)).length).toBeGreaterThan(100);
+    // Floor 100 -> 0 on 2026-11-07: the owner's tick sweep of every reviewed [~] item left 32 open
+    // items (12 [ ] + 20 feed-mirrored [~]). The test above reads the whole queue (> 500 items).
+    expect(open.length).toBeGreaterThan(0);
+    expect(open.filter((l) => itemTitleKey(l)).length).toBeGreaterThan(0);
     expect(openTitleDuplicates(md), "merge the later item into the earlier one (tick it 'merged into Qn' and move its feed: tags)").toEqual([]);
   });
 

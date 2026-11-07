@@ -6,7 +6,7 @@
  *
  * @mutate src/components/declutter/BunchFeeGate.tsx |   if (idCheckOn \|\| !profile \|\| profile.onboarding_fee_paid === true \|\| isAdmin \|\| profile.is_seed === true) return null; |   if (true) return null;
  * @mutate src/components/declutter/BunchFeeGate.tsx |   if (idCheckOn \|\| !profile \|\| profile.onboarding_fee_paid === true \|\| isAdmin \|\| profile.is_seed === true) return null; |   if (idCheckOn \|\| !profile) return null;
- * @mutate src/lib/declutter/bunch.ts |   return items.filter((it) => !bunchItemProblem(it) && (!feeDue \|\| !!it.free)); |   return items.filter((it) => !bunchItemProblem(it));
+ * (bunchListable's fee-first filter: its @mutate lives in declutterBunchChoices.test.tsx, whose listing run sees it.)
  * @mutate src/components/declutter/DeclutterBunchView.tsx |   const blocked = busy; |   const blocked = busy \|\| feeDue != null;
  * @mutate src/components/declutter/BunchDraftsSection.tsx |   const drafts = feeDue ? saved.filter((i) => i.current_price_cents === 0) : saved; |   const drafts = saved;
  * @mutate src/components/declutter/BunchDraftsSection.tsx |     if (!attested) { |     if (false) {

@@ -2,6 +2,9 @@
  * The duplicate-phone refusal (trg_guard_profile_phone) is said in words on
  * every screen that saves a phone, never as a generic "couldn't save".
  */
+/*
+ * @mutate src/lib/mutationResult.ts | Sign in to that account instead. | Log in to that account instead.
+ */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { PHONE_IN_USE_MESSAGE, phoneInUseMessage } from "./mutationResult";
@@ -11,6 +14,10 @@ describe("phoneInUseMessage", () => {
     const pg = { code: "23505", hint: "phone_in_use", message: PHONE_IN_USE_MESSAGE };
     expect(phoneInUseMessage(pg)).toBe(PHONE_IN_USE_MESSAGE);
     expect(phoneInUseMessage({ message: "wrapped", cause: pg })).toBe(PHONE_IN_USE_MESSAGE);
+  });
+  it("says what to do in the app's words: sign in, never log in", () => {
+    expect(PHONE_IN_USE_MESSAGE).toBe("This phone number is already on another account. Sign in to that account instead.");
+    expect(PHONE_IN_USE_MESSAGE).not.toMatch(/\blog ?in\b/i);
   });
   it("leaves every other error alone", () => {
     expect(phoneInUseMessage({ code: "23505", message: "duplicate key value violates unique constraint applications_pkey" })).toBeNull();

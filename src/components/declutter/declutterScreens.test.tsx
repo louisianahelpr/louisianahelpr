@@ -354,7 +354,7 @@ describe("Declutter screens", () => {
     expect(screen.queryByRole("button", { name: /offer/i })).toBeNull();
   });
 
-  it("a buyer sees area + miles wording, the watch heart, and (no saved card) Buy now and Make an offer, which ask for a card first", async () => {
+  it("a buyer sees area + miles wording, the watch heart, and (no saved card) Buy now and Make an offer; an offer asks for a card at Send", async () => {
     state.item = { ...ITEM, seller_id: "u2", status: "live" };
     at("/declutter/item/0f0e0d0c-0b0a-4908-8706-050403020100", <DeclutterItemPage />, "/declutter/item/:id");
     // Owner mockup 11-01 / A3-47: ONE pickup block, the way and the town once, the address note once at the end.
@@ -368,8 +368,13 @@ describe("Declutter screens", () => {
     // LEAD-ITEM-PAGE-LAYOUT (owner 2026-10-31): no reassurance lines under the buttons.
     expect(screen.queryByText("You're only charged when you buy.")).toBeNull();
     await waitFor(() => expect(buyNow).toBeEnabled());
-    fireEvent.click(buyNow);
-    expect(await screen.findByText("To buy, add a card first.")).toBeInTheDocument();
+    // Owner 11-07 (ONE Stripe page): only an offer asks for a card first; Buy now's pay page saves it.
+    const panelEl = document.querySelector<HTMLElement>("[aria-label='Buy or make an offer']")!;
+    fireEvent.click(within(panelEl).getByRole("button", { name: "Make an offer" }));
+    fireEvent.change(await screen.findByLabelText("Your offer"), { target: { value: "30" } });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Send offer" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
+    expect(await screen.findByText("To send your offer, add a card first.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add a card" })).toBeInTheDocument();
     // Audit #47: ONE filled primary at a time; while the card is asked for, Buy now steps back to an outline.
     // @mutate src/components/declutter/DeclutterOfferPanel.tsx |           variant={showCardStep ? "outline" : undefined} |           variant={undefined}

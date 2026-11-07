@@ -4,12 +4,13 @@
  * API module is stubbed; the backend proof is
  * src/test/pglite/declutterSlice3.pglite.mjs and scripts/declutter/race-accept.mjs.
  *
- * Owner 2026-10-19: Buy now and Make an offer always show; with no saved card either one asks for a
- * card (AddCardStep) and comes back to itself (src/lib/declutter/afterCard.ts).
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (card.data) {\n      setNeedCard(null); |     if (true) {\n      setNeedCard(null);
+ * Owner 2026-10-19: Buy now and Make an offer always show; with no saved card an offer asks for a
+ * card (AddCardStep) and comes back to itself (src/lib/declutter/afterCard.ts). Owner 11-07 (ONE Stripe page):
+ * Buy now never asks for a card first; it holds the item and opens checkout, whose one pay page saves the card.
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     run(action);\n  }; |     if (card.data) run(action);\n    else setNeedCard(action);\n  };
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |               rememberAfterCard(itemId, action, undefined, offerAmount);\n | \n
  * DA-11 (Declutter audit 2026-10-30): the amount first, the card at Send, and the typed amount survives the trip.
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (action === "offer") {\n      setNeedCard(null);\n      setOpen(true);\n      return;\n    } |     void 0;
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (action === "offer") {\n      setOpen(true);\n      return;\n    } |     if (action === "offer") {\n      setNeedCard("offer");\n      return;\n    }
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     else setNeedCard("offer"); |     else send.mutate();
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | offerAmount={action === "offer" ? amount.trim() : undefined} | offerAmount={undefined}
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | useState(() => offerAmountFromState(location.state) ?? ""); | useState("");
@@ -20,9 +21,9 @@
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (item.status === "live" && !underAge) { |     if (false) {
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | useState<AfterCardAction \| null>(() => afterCardFromState(location.state)); | useState<AfterCardAction \| null>(() => null);
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |     refetchInterval: resume ? CARD_POLL_MS : false, |     refetchInterval: false,
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setNeedCard(resume);\n      showPanel();\n    }, CARD_WAIT_MS); |       showPanel();\n    }, CARD_WAIT_MS);
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setNeedCard(resume === "offer" ? resume : null);\n      showPanel();\n    }, CARD_WAIT_MS); |       showPanel();\n    }, CARD_WAIT_MS);
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |   useEffect(() => { if (resume) showPanel(); }, [resume]); |   useEffect(() => {}, [resume]);
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setNeedCard(resume);\n      showPanel(); |       setNeedCard(resume);
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       setNeedCard(resume === "offer" ? resume : null);\n      showPanel(); |       setNeedCard(resume === "offer" ? resume : null);
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |         setCardSaved(true); |         setCardSaved(false);
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx |       navigate({ pathname: location.pathname, search: location.search }, { replace: true, state: null }); |       void navigate;
  * @mutate src/components/declutter/DeclutterOfferPanel.tsx | {offersOff && !myOffer && <p | <p className="text-xs">You're only charged when you buy.</p>{offersOff && !myOffer && <p
@@ -73,6 +74,8 @@ const state = {
   cardReadFails: false,
   /** NIGHT-BUYING0-6: declutter_buy_now refuses with this message (e.g. card_required). */
   buyRefusal: null as string | null,
+  /** NIGHT-BUYING0-6 (owner 11-07: offers only): declutter_make_offer refuses with this message (e.g. card_required). */
+  offerRefusal: null as string | null,
   bought: 0,
   /** When set, the next openExternalUrl comes straight back (the in-app browser sheet closing) with this card saved. */
   returnWithCard: null as unknown,
@@ -182,6 +185,7 @@ vi.mock("@/lib/declutter/api", () => ({
   photoPublicUrl: (path: string) => `https://photos.test/${path}`, photoCardUrl: (path: string) => `https://photos.test/${path}`, CARD_PHOTO_PX: 480,
   makeOffer: async (itemId: string, cents: number) => {
     state.sent.push({ itemId, cents });
+    if (state.offerRefusal) throw new Error(state.offerRefusal);
     return "o1";
   },
   respondOffer: async (_id: string, action: string) => { state.responded.push(action); return "declined"; },
@@ -292,6 +296,7 @@ describe("Declutter slice 3 screens", () => {
     state.card = null;
     state.cardReadFails = false;
     state.buyRefusal = null;
+    state.offerRefusal = null;
     state.bought = 0;
     state.returnWithCard = null;
     sessionStorage.clear();
@@ -323,30 +328,33 @@ describe("Declutter slice 3 screens", () => {
   // the dock. They open right under the buttons, before the panel's footer, and are brought into view.
   // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       </div>\n      {footer}\n      {myOffer && <YourOfferBox |       </div>\n      {myOffer && <YourOfferBox
   // @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (stepOpen) stepArea.current?.scrollIntoView?.({ behavior: "smooth", block: "nearest" }); |     void stepOpen;
-  it("Buy and Offer open their step right under the buttons, above the footer, and scroll it into view (Q2564)", async () => {
+  it("the offer box and its card step open right under the buttons, above the footer, and scroll into view (Q2564)", async () => {
     const scrolled: Element[] = [];
     const original = Element.prototype.scrollIntoView;
     Element.prototype.scrollIntoView = function (this: Element) { scrolled.push(this); };
     try {
       show(<OfferPanel item={ITEM} userId="u1" footer={<div data-testid="panel-footer">Helpr delivery table</div>} />);
-      const buy = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
-      await waitFor(() => expect(buy).toBeEnabled());
-      fireEvent.click(buy);
-      const step = await screen.findByText("To buy, add a card first.");
+      const offer = await screen.findByRole("button", { name: "Make an offer" });
+      await waitFor(() => expect(offer).toBeEnabled());
+      fireEvent.click(offer);
+      const box = await screen.findByLabelText("Your offer");
       const foot = screen.getByTestId("panel-footer");
-      expect(step.compareDocumentPosition(foot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-      const area = step.closest("[data-offer-step-area]");
+      expect(box.compareDocumentPosition(foot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      const area = box.closest("[data-offer-step-area]");
       expect(area).not.toBeNull();
       await waitFor(() => expect(scrolled).toContain(area));
-      fireEvent.click(screen.getByRole("button", { name: "Make an offer" }));
-      const box = await screen.findByLabelText("Your offer");
-      expect(box.compareDocumentPosition(foot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      fireEvent.change(box, { target: { value: "30" } });
+      await waitFor(() => expect(screen.getByRole("button", { name: "Send offer" })).toBeEnabled());
+      fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
+      const step = await screen.findByText("To send your offer, add a card first.");
+      expect(step.compareDocumentPosition(foot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+      expect(step.closest("[data-offer-step-area]")).toBe(area);
     } finally {
       Element.prototype.scrollIntoView = original;
     }
   });
 
-  it("no saved card: Buy now and Make an offer still show; Buy asks for a card first and remembers where to come back (row 36)", async () => {
+  it("owner 11-07, no saved card: Buy now and Make an offer still show; Buy goes straight to checkout, no card page first", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
     const buy = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
     expect(screen.getByRole("button", { name: "Make an offer" })).toBeInTheDocument();
@@ -355,22 +363,18 @@ describe("Declutter slice 3 screens", () => {
     expect(screen.queryByText("You're only charged when you buy.")).toBeNull();
     expect(screen.queryByText("You see one total before you pay. The seller keeps the whole price.")).toBeNull();
     expect(screen.queryByText("Save a card to buy or make offers.")).toBeNull();
-    await waitFor(() => expect(buy).toBeEnabled());
+    // The Buy button never waits on the card read (owner 11-07: the card is not needed to buy).
+    // @mutate src/components/declutter/DeclutterOfferPanel.tsx |           disabled={buy.isPending}\n          onClick={() => tap("buy")} |           disabled={buy.isPending \|\| !card.data}\n          onClick={() => tap("buy")}
+    expect(buy).toBeEnabled();
     fireEvent.click(buy);
-    expect(await screen.findByText("To buy, add a card first.")).toBeInTheDocument();
-    // #21 (owner chose C, 2026-10-28): two Stripe pages stay; before the first, one line says what it is for.
-    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | We save your card now; you're only charged when you check out. | You're only charged when you buy.
-    // NIGHT-BUYING0-4: after the card is saved the app holds the item and opens checkout (run("buy")); no confirm press.
-    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | "Then checkout opens." | "Then you confirm the buy."
-    expect(screen.getByText("We save your card now; you're only charged when you check out. Then checkout opens.")).toBeInTheDocument();
-    // Said once, by the card step (the line under the buttons is gone, LEAD-ITEM-PAGE-LAYOUT).
-    expect(screen.getAllByText(/only charged when/)).toHaveLength(1);
+    // One tap holds the item and opens that seller's checkout, whose ONE pay page saves the card (the 10-28 card page
+    // first is gone: the owner's dad saved a card there and thought he had bought).
+    await waitFor(() => expect(state.bought).toBe(1));
+    await waitFor(() => expect(screen.getByTestId("router-path")).toHaveTextContent("/declutter?tab=buying&checkout=s1"));
+    expect(screen.queryByText(/add a card/i)).toBeNull();
+    expect(state.opened).toEqual([]);
+    expect(sessionStorage.getItem("declutter.afterCard")).toBeNull();
     expect(window.confirm).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Add a card" }));
-    await waitFor(() => expect(state.opened).toEqual(["https://checkout.stripe.test/setup"]));
-    // The web returns to /declutter?card=saved: this is how it finds the way back.
-    expect(JSON.parse(sessionStorage.getItem("declutter.afterCard") ?? "{}")).toMatchObject({ itemId: "i1", action: "buy" });
-    expect(state.bought).toBe(0);
   });
 
   it("DA-11, no saved card: Make an offer opens the amount box first; the card is asked for at Send and the amount stays", async () => {
@@ -387,8 +391,12 @@ describe("Declutter slice 3 screens", () => {
     fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
     expect(await screen.findByText(/Then you send your offer\./)).toBeInTheDocument();
     // Q2573 (audit 1102a): the step names what it is for, never "to finish" on the first tap.
-    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | {action === "buy" ? "To buy, add a card first." : "To send your offer, add a card first."} | Add a card to finish.
+    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | data-card-step-title="">To send your offer, add a card first.</p> | data-card-step-title="">Add a card to finish.</p>
     expect(screen.getByText("To send your offer, add a card first.")).toBeInTheDocument();
+    // Owner 11-07: an offer is charged only if the seller says yes; the step says so.
+    // @mutate src/components/declutter/DeclutterOfferPanel.tsx | you're only charged if the seller says yes and you check out. | you're only charged when you check out.
+    expect(screen.getByText("We save your card now; you're only charged if the seller says yes and you check out. Then you send your offer.")).toBeInTheDocument();
+    expect(screen.getAllByText(/only charged/)).toHaveLength(1);
     // Nothing went to the server, the amount is still there, and "Add a card" is the one primary.
     expect(state.sent).toEqual([]);
     expect(screen.getByLabelText("Your offer")).toHaveValue("30");
@@ -438,14 +446,13 @@ describe("Declutter slice 3 screens", () => {
     await waitFor(() => expect(screen.getByTestId("router-state")).toHaveTextContent("null"));
   });
 
-  it("back from saving a card in the app (the sheet closes): Buy goes straight to that seller's checkout (DB-5)", async () => {
-    state.returnWithCard = { brand: "visa", last4: "4242" };
+  it("owner 11-07 in the app, no saved card: Buy goes straight to that seller's checkout, no card sheet (DB-5)", async () => {
     show(<OfferPanel item={ITEM} userId="u1" />);
     const buy = await screen.findByRole("button", { name: "Buy now · $42.70 total" });
     await waitFor(() => expect(buy).toBeEnabled());
     fireEvent.click(buy);
-    fireEvent.click(await screen.findByRole("button", { name: "Add a card" }));
     await waitFor(() => expect(state.bought).toBe(1));
+    expect(state.opened).toEqual([]);
     // No reserve sheet and no strike warning in between (owner 2026-10-30): the next screen is the checkout.
     await waitFor(() => expect(screen.getByTestId("router-path")).toHaveTextContent("/declutter?tab=buying&checkout=s1"));
     expect(screen.queryByRole("dialog")).toBeNull();
@@ -530,10 +537,9 @@ describe("Declutter slice 3 screens", () => {
     }
   });
 
-  // NIGHT-BUYING0-2 (audit 1030 night, d-375-31-webhook-late): the card filed after the 10-second wait; Buy now
-  // still showed the Add a card step and never called declutter_buy_now.
-  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |     void card.refetch().then((r) => {\n      if (r.data \|\| r.isError) { |     void card.refetch().then((r) => {\n      if (false) {
-  it("a card filed after the wait is noticed: Buy now goes on, not to a second card page", async () => {
+  // NIGHT-BUYING0-2 (audit 1030 night) is gone with the card step for Buy (owner 11-07): an old "buy" card trip whose
+  // card never arrives opens no card step, and the next tap on Buy now goes on to the server.
+  it("owner 11-07: an old Buy card trip with no card after the wait opens no card step; Buy now still goes on", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "buy" } });
@@ -541,42 +547,63 @@ describe("Declutter slice 3 screens", () => {
       await act(async () => {
         vi.advanceTimersByTime(10_001);
       });
-      expect(await screen.findByRole("button", { name: "Add a card" })).toBeInTheDocument();
-      // The webhook lands late; no poll is running now.
-      state.card = { brand: "visa", last4: "4242" };
+      expect(screen.queryByText("Checking for your card…")).toBeNull();
+      expect(screen.queryByRole("button", { name: "Add a card" })).toBeNull();
       fireEvent.click(screen.getAllByRole("button", { name: "Buy now · $42.70 total" })[0]);
       await waitFor(() => expect(state.bought).toBe(1));
-      expect(screen.queryByRole("button", { name: "Add a card" })).toBeNull();
     } finally {
       vi.useRealTimers();
     }
   });
 
-  // NIGHT-BUYING0-5: with the card read failing, Buy now did nothing (no step, no call, no toast). The server decides.
-  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       if (r.data \|\| r.isError) { |       if (r.data) {
-  // NIGHT-BUYING0-6: the server's card_required left a toast and no way forward; its card step opens.
-  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |     onError: (err) => { if (!askCardIfRefused(err, "buy")) toast.error(declutterErrorMessage(err)); }, |     onError: (err) => toast.error(declutterErrorMessage(err)),
-  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const showCardStep = !!needCard && !resume && (!card.isError \|\| serverNoCard); |   const showCardStep = !!needCard && !resume && !card.isError;
-  it("0-5/0-6: a failed card read lets Buy now go to the server, and its card_required opens the card step", async () => {
+  // NIGHT-BUYING0-5: with the card read failing, Buy now still goes to the server (owner 11-07: it needs no card).
+  it("0-5: a failed card read never blocks Buy now; no card step opens for a buy", async () => {
     state.cardReadFails = true;
-    state.buyRefusal = "card_required";
     show(<OfferPanel item={ITEM} userId="u1" />);
     expect(await screen.findByText("We couldn't check your saved card.")).toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: "Buy now · $42.70 total" })[0]);
     await waitFor(() => expect(state.bought).toBe(1));
+    expect(screen.queryByRole("button", { name: "Add a card" })).toBeNull();
+  });
+
+  // NIGHT-BUYING0-6: the server's card_required on an OFFER (the read failed, so Send went to the server) opens the card step.
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |     onError: (err) => { if (!askCardIfRefused(err)) toast.error(declutterErrorMessage(err)); }, |     onError: (err) => toast.error(declutterErrorMessage(err)),
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |   const showCardStep = !!needCard && !resume && (!card.isError \|\| serverNoCard); |   const showCardStep = !!needCard && !resume && !card.isError;
+  it("0-6: an offer the server refuses for want of a card opens the card step, even with the card read failing", async () => {
+    state.cardReadFails = true;
+    state.offerRefusal = "card_required";
+    show(<OfferPanel item={ITEM} userId="u1" />);
+    expect(await screen.findByText("We couldn't check your saved card.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Make an offer" }));
+    fireEvent.change(await screen.findByLabelText("Your offer"), { target: { value: "30" } });
+    await waitFor(() => expect(screen.getByRole("button", { name: "Send offer" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Send offer" }));
+    await waitFor(() => expect(state.sent).toEqual([{ itemId: "i1", cents: 3000 }]));
     expect(await screen.findByRole("button", { name: "Add a card" })).toBeInTheDocument();
+    expect(screen.getByText("To send your offer, add a card first.")).toBeInTheDocument();
   });
 
   // NIGHT-BUYING0-7: cancelling on the card page came back with no words and the buy dropped.
   // @mutate src/lib/declutter/afterCard.ts |   return { cardCancelled: next.action, ...amount }; |   return next.offerAmount ? amount : null;
   // @mutate src/components/declutter/DeclutterOfferPanel.tsx |       note={cardCancelled === action ? CARD_NOT_SAVED : undefined} |       note={undefined}
-  it("0-7: back from the card page with none saved, the card step opens again and says so", async () => {
-    show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: afterCardReturnState(false, { action: "buy" }) });
+  // @mutate src/components/declutter/DeclutterOfferPanel.tsx |     if (!cardCancelled \|\| cardCancelled === "buy") return; |     if (!cardCancelled) return;
+  it("0-7: back from the card page with none saved, the offer's card step opens again and says so; a buy opens nothing", async () => {
+    show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: afterCardReturnState(false, { action: "offer", offerAmount: "30" }) });
     expect(await screen.findByText("No card was saved, so nothing happened yet.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add a card" })).toBeInTheDocument();
-    expect(state.bought).toBe(0);
+    expect(state.sent).toEqual([]);
     fireEvent.click(screen.getByRole("button", { name: "Not now" }));
     expect(screen.queryByText("No card was saved, so nothing happened yet.")).toBeNull();
+  });
+  it("owner 11-07: an old Buy card trip cancelled on the card page opens no card step", async () => {
+    show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: afterCardReturnState(false, { action: "buy" }) });
+    expect(await screen.findByRole("button", { name: "Buy now · $42.70 total" })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId("router-state")).toHaveTextContent("null"));
+    expect(screen.queryByText("No card was saved, so nothing happened yet.")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Add a card" })).toBeNull();
+    // No hidden card step either: Buy now stays the one filled primary (a waiting "buy" step would turn it to outline).
+    expect(document.querySelector("[aria-label='Buy or make an offer'] [data-buy-label]")?.closest("button")).toHaveClass("btn-grad-primary");
+    expect(state.bought).toBe(0);
   });
 
   // NIGHT-BUYING0-1 (audit 1030 night, d-375-30-checking.png): back from the card page the panel sat below a phone's
@@ -586,7 +613,7 @@ describe("Declutter slice 3 screens", () => {
     const spy = vi.spyOn(Element.prototype, "scrollIntoView").mockImplementation(function (this: Element) { seen.push(this); });
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
-      show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "buy" } });
+      show(<OfferPanel item={ITEM} userId="u1" />, { pathname: "/declutter/item/i1", state: { afterCard: "offer", offerAmount: "30" } });
       expect(await screen.findByText("Checking for your card…")).toBeInTheDocument();
       const panelEl = screen.getByRole("region", { name: "Buy or make an offer" });
       await waitFor(() => expect(seen).toContain(panelEl));

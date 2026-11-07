@@ -26,7 +26,7 @@
  * @mutate supabase/functions/_shared/stripeMode.ts |     if (meta.kind === "declutter_card") return true; |     return meta.kind === "declutter_card";
  * @mutate supabase/functions/_shared/stripeMode.ts |       && meta.card_hold_plan === "schedule" && typeof meta.job_id | && typeof meta.job_id
  * @mutate supabase/functions/declutter-checkout/index.ts |     { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}${walletRetry ? ":new-wallet" : ""}` }, |     {},
- * @mutate supabase/functions/declutter-checkout/index.ts | await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (payer, walletRetry) => | await ((_a: unknown, _b: unknown, _c: unknown, _d: unknown, c: string \| undefined, f: (c: string \| undefined, r: boolean) => unknown) => f(c, false))(admin, stripe, user, mode, customerId, (payer, walletRetry) =>
+ * @mutate supabase/functions/declutter-checkout/index.ts | session = await withWalletCustomer(admin, stripe, user, mode, (payer, walletRetry) => | session = await ((_a: unknown, _b: unknown, _c: unknown, _d: unknown, f: (c: string, r: boolean) => Promise<Stripe.Checkout.Session>) => f("cus_dead", false))(admin, stripe, user, mode, (payer, walletRetry) =>
  * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "complete") return json({ paid: true, order_id: open.id }); |
  * @mutate supabase/functions/declutter-checkout/index.ts |     if (page.status === "open" && (open.handover !== handover \|\| slotChanged \|\| spotChanged \|\| bundleChanged \|\| pickupChanged \|\| feeChanged \|\| quoteChanged \|\| deliveryChanged)) { |     if (false) {
  * @mutate supabase/functions/declutter-checkout/index.ts |     bundleChanged = Number(off ?? 0) !== Number(open.bundle_discount_cents ?? 0); |     bundleChanged = false; void off;
@@ -100,7 +100,7 @@ beforeEach(() => {
 });
 
 describe("stripe-webhook: Declutter order paid", () => {
-  async function deliver(answer: unknown, opts: { created?: number; fee?: number | null; chargedAt?: number; orderRow?: Record<string, unknown>; meta?: Record<string, string>; sellerEmail?: string } = {}) {
+  async function deliver(answer: unknown, opts: { created?: number; fee?: number | null; chargedAt?: number; orderRow?: Record<string, unknown>; meta?: Record<string, string>; sellerEmail?: string; pi?: Record<string, unknown> } = {}) {
     env();
     const fn = await loadEdgeFunction("stripe-webhook");
     stripeMock.webhooks.constructEventAsync.mockResolvedValue({
@@ -116,6 +116,7 @@ describe("stripe-webhook: Declutter order paid", () => {
     });
     stripeMock.paymentIntents.retrieve.mockResolvedValue({
       id: "pi_dc", latest_charge: { created: opts.chargedAt, balance_transaction: { fee: opts.fee === undefined ? 163 : opts.fee } },
+      ...opts.pi,
     });
     scenario.rpc.declutter_mark_order_paid = answer;
     scenario.reads.profiles = { rows: [{ email: "buyer@test.dev", user_id: BUYER }],
@@ -124,6 +125,96 @@ describe("stripe-webhook: Declutter order paid", () => {
     const res = await fn.fetch(fn.request({ rawBody: "{}", headers: { "stripe-signature": "t=1,v1=x" } }));
     return res;
   }
+
+  // Owner 11-07 (ONE Stripe page for Buy now): the order page saved the card it was paid with (setup_future_usage);
+  // the webhook stores it with declutter_save_card, so a later offer has a card. Idempotent, never a stranger's card.
+  describe("owner 11-07: the card the order page saved is stored for later offers", () => {
+    const savedPm = { id: "pm_paid", type: "card", customer: "cus_wallet", created: 1_759_999_000, card: { brand: "visa", last4: "4242" } };
+    const savingPi = { setup_future_usage: "off_session", customer: "cus_wallet", payment_method: savedPm };
+    beforeEach(() => {
+      scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_wallet" }] };
+      scenario.reads.declutter_buyer_cards = { rows: [] };
+    });
+
+    // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     await saveOrderCard(event, session.id, paymentIntentId, meta.buyer_id, ctx);\n    return;\n  }\n  // The payment's Stripe mode |     return;\n  }\n  // The payment's Stripe mode
+    // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     p_payment_method: card.id,\n    p_brand: card.card?.brand ?? null, |     p_payment_method: paymentIntentId,\n    p_brand: card.card?.brand ?? null,
+    it("a paid order saves the card on the buyer's wallet customer, in the event's mode", async () => {
+      const res = await deliver({ result: "paid" }, { pi: savingPi });
+      expect(res.status).toBe(200);
+      expect(stripeMock.paymentIntents.retrieve).toHaveBeenCalledWith("pi_dc", { expand: ["payment_method"] });
+      expect(rpcs("declutter_save_card").map((c) => c.args)).toEqual([{
+        p_user: BUYER, p_customer: "cus_wallet", p_payment_method: "pm_paid", p_brand: "visa", p_last4: "4242", p_mode: "live",
+      }]);
+      expect(clientOf(rpcs("declutter_save_card")[0])?.key).toBe("service-key");
+    });
+
+    it("a redelivery (already_paid) saves a card the first delivery did not", async () => {
+      await deliver({ result: "already_paid" }, { pi: savingPi });
+      expect(rpcs("declutter_save_card")).toHaveLength(1);
+    });
+
+    // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (saved?.payment_method_id === card.id && saved.card_mode === mode) { |   if (false) {
+    it("idempotent: the same card already saved writes nothing (no second 'Card saved' notice)", async () => {
+      scenario.reads.declutter_buyer_cards = { rows: [{ payment_method_id: "pm_paid", card_mode: "live", saved_at: "2025-10-09T00:00:00Z" }] };
+      await deliver({ result: "already_paid" }, { pi: savingPi });
+      expect(rpcs("declutter_save_card")).toHaveLength(0);
+    });
+
+    // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (Number.isFinite(savedAt) && savedAt > event.created * 1000) { |   if (false) {
+    it("a card saved AFTER this payment is never replaced by a late redelivery", async () => {
+      scenario.reads.declutter_buyer_cards = { rows: [{ payment_method_id: "pm_newer", card_mode: "live", saved_at: new Date((1_760_000_000 + 60) * 1000).toISOString() }] };
+      await deliver({ result: "already_paid" }, { pi: savingPi, created: 1_760_000_000 });
+      expect(rpcs("declutter_save_card")).toHaveLength(0);
+    });
+
+    // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (pi?.setup_future_usage !== "off_session") return; |
+    it("a page that did not ask to save (opened before 11-07) saves nothing", async () => {
+      await deliver({ result: "paid" }, { pi: { ...savingPi, setup_future_usage: null } });
+      expect(rpcs("declutter_save_card")).toHaveLength(0);
+    });
+
+    // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (stored !== customer) { |   if (false) {
+    it("a card on a customer that is not the buyer's wallet customer is never saved", async () => {
+      await deliver({ result: "paid" }, { pi: { ...savingPi, customer: "cus_other", payment_method: { ...savedPm, customer: "cus_other" } } });
+      expect(rpcs("declutter_save_card")).toHaveLength(0);
+    });
+
+    it("a card not attached to the page's customer is never saved", async () => {
+      await deliver({ result: "paid" }, { pi: { ...savingPi, payment_method: { ...savedPm, customer: null } } });
+      expect(rpcs("declutter_save_card")).toHaveLength(0);
+    });
+
+    it("a refused payment (refund answer) saves no card", async () => {
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_x", status: "succeeded" });
+      await deliver({ result: "refund", refund_id: "rf-x", reason: "order_closed", fee_policy: "full_platform_absorbs", refund_cents: 4600, refund_status: "pending" }, { pi: savingPi });
+      expect(rpcs("declutter_save_card")).toHaveLength(0);
+    });
+
+    // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |   if (error) throw new Error(`declutter_save_card failed: ${error.message}`);\n  logStep("Declutter order card saved" |   logStep("Declutter order card saved"
+    // Lead (money review of bede94b117): the card save runs AFTER the setup-fee refund, so a stuck save never delays it.
+    // @mutate supabase/functions/stripe-webhook/handlers/declutterCheckout.ts |     await settleSetupFee(ctx, paymentIntentId, orderId);\n    // Owner 11-07: the card this page saved | await saveOrderCard(event, session.id, paymentIntentId, meta.buyer_id, ctx);\n    await settleSetupFee(ctx, paymentIntentId, orderId);\n    // Owner 11-07: the card this page saved
+    it("a card save that fails never holds up the setup-fee refund: the fee goes back first, then it throws", async () => {
+      stripeMock.refunds.create.mockResolvedValue({ id: "re_fee", status: "succeeded" });
+      scenario.rpc.declutter_setup_fee_refunded = "recorded";
+      scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), declutter_save_card: { message: "boom" } };
+      const res = await deliver({ result: "paid" }, {
+        pi: savingPi,
+        orderRow: { buyer_id: BUYER, seller_id: SELLER, setup_fee_cents: 200, setup_fee_state: "refund_due", stripe_payment_intent_id: "pi_dc" },
+      });
+      expect(res.status).not.toBe(200);
+      expect(stripeMock.refunds.create).toHaveBeenCalledWith(expect.objectContaining({ payment_intent: "pi_dc", amount: 200 }),
+        { idempotencyKey: `declutter-setup-fee-${ORDER}` });
+      expect(rpcs("declutter_setup_fee_refunded")[0]?.args).toEqual({ p_order_id: ORDER, p_stripe_refund_id: "re_fee" });
+      expect(rpcs("declutter_save_card")).toHaveLength(1);
+    });
+
+    it("a save that fails throws, so Stripe redelivers (the receipt went out first)", async () => {
+      scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), declutter_save_card: { message: "boom" } };
+      const res = await deliver({ result: "paid" }, { pi: savingPi });
+      expect(res.status).not.toBe(200);
+      expect(queuedEmails.some((e: any) => /receipt/i.test(String(e.subject ?? e.props?.title ?? "")))).toBe(true);
+    });
+  });
 
   // Q2307 (lh-money-escrow review 2026-10-21 #3): a payment on an order a party has left (deleted account, column NULL)
   // is refunded automatically and never applied, instead of a "wrong people, refund by hand" page.
@@ -820,7 +911,7 @@ describe("declutter-checkout: pay", () => {
     expect(rpcs("declutter_attach_checkout_session")).toHaveLength(0);
   });
 
-  it("one wallet: the buyer's stored customer (this mode) pre-fills the page; none stored -> email only, no customer made", async () => {
+  it("one wallet: the buyer's stored customer (this mode) pays the page; none stored -> the wallet customer is made and claimed (owner 11-07)", async () => {
     const fn = await load();
     scenario.rpc.declutter_start_checkout = order();
     scenario.rpc.declutter_attach_checkout_session = null;
@@ -842,11 +933,54 @@ describe("declutter-checkout: pay", () => {
     scenario.reads.stripe_customers = { rows: [] };
     stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_new", url: "https://x/new", amount_total: 4600 });
     await fn2.fetch(payReq(fn2));
+    // Owner 11-07 (one page): the page saves the card, so it needs the buyer's wallet customer even with none stored:
+    // their old Jobs customer adopted by its exact tag, else a new one, claimed with claim_stripe_customer; never by
+    // email, never a guest page.
+    scenario.rpc.claim_stripe_customer = "cus_walletnew";
+    await fn2.fetch(payReq(fn2));
     const [p2] = stripeMock.checkout.sessions.create.mock.calls[stripeMock.checkout.sessions.create.mock.calls.length - 1];
-    expect(p2.customer).toBeUndefined();
-    expect(p2.customer_email).toBe("buyer@test.dev");
-    expect(stripeMock.customers.create).not.toHaveBeenCalled();
+    expect(p2.customer).toBe("cus_walletnew");
+    expect(p2.customer_email).toBeUndefined();
+    expect(stripeMock.customers.create).toHaveBeenCalledWith(
+      expect.objectContaining({ metadata: { supabase_user_id: BUYER, wallet_mode: "live" } }),
+      { idempotencyKey: `lh-wallet-customer-${BUYER}-live` });
+    expect(stripeMock.customers.search).toHaveBeenCalledWith(expect.objectContaining({ query: `metadata['supabase_user_id']:'${BUYER}'` }));
+    expect(rpcs("claim_stripe_customer")[0]?.args).toEqual({ p_user: BUYER, p_mode: "live", p_customer: "cus_walletnew" });
     expect(stripeMock.customers.list).not.toHaveBeenCalled();
+  });
+
+  // Owner 11-07 (replaces the 10-28 two-page choice, audit #21 option C): Buy now goes straight to this ONE page, which
+  // shows a card already saved and saves the card it is paid with, for later offers (stripe-webhook stores it).
+  // @mutate supabase/functions/declutter-checkout/index.ts |         setup_future_usage: "off_session" as const,\n | \n
+  // @mutate supabase/functions/declutter-checkout/index.ts |       saved_payment_method_options: { allow_redisplay_filters: ["always", "limited", "unspecified"] },\n | \n
+  // @mutate supabase/functions/declutter-checkout/index.ts |       customer: payer,\n      // Owner 11-07 | customer_email: user.email ?? undefined,\n      // Owner 11-07
+  it("owner 11-07: the one pay page saves the card off-session on the wallet customer and shows a saved card", async () => {
+    const fn = await load();
+    scenario.rpc.declutter_start_checkout = order();
+    scenario.rpc.declutter_attach_checkout_session = null;
+    scenario.reads.stripe_customers = { rows: [{ stripe_customer_id: "cus_wallet" }] };
+    stripeMock.checkout.sessions.create.mockResolvedValue({ id: "cs_live_one", url: "https://x/one", amount_total: 4600 });
+    expect((await fn.fetch(payReq(fn))).status).toBe(200);
+    const [params] = stripeMock.checkout.sessions.create.mock.calls[0];
+    expect(params.mode).toBe("payment");
+    expect(params.customer).toBe("cus_wallet");
+    expect(params.payment_intent_data.setup_future_usage).toBe("off_session");
+    // A card saved on the card page has allow_redisplay 'limited': without the filter Checkout would hide it.
+    expect(params.saved_payment_method_options).toEqual({ allow_redisplay_filters: ["always", "limited", "unspecified"] });
+    // The page still charges exactly the order and holds the money on the platform.
+    expect(params.payment_intent_data.transfer_data).toBeUndefined();
+    expect(params.payment_intent_data.transfer_group).toBe(`declutter_order_${ORDER}`);
+  });
+
+  // @mutate supabase/functions/declutter-checkout/index.ts |     if (!(e instanceof StripeCustomerUnavailable)) throw e; |     throw e;
+  it("owner 11-07: a wallet customer that cannot be claimed opens no page (503, try again)", async () => {
+    const fn = await load();
+    scenario.rpc.declutter_start_checkout = order();
+    scenario.reads.stripe_customers = { rows: [] };
+    scenario.rpcErrors = { ...(scenario.rpcErrors ?? {}), claim_stripe_customer: { message: "boom" } };
+    const res = await fn.fetch(payReq(fn));
+    expect(res.status).toBe(503);
+    expect(stripeMock.checkout.sessions.create).not.toHaveBeenCalled();
   });
 
   it("Q2140: a stored customer Stripe no longer has is replaced once and the page retried on a ':new-wallet' key", async () => {

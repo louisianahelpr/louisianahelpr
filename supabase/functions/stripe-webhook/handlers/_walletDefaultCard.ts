@@ -16,7 +16,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  *   - Jobs: "Save card for next time" on a job checkout (create-payment sets
  *     setup_future_usage=off_session): recordWalletDefaultCard.
  *   - Declutter: the card page (declutter-card, mode=setup), after
- *     declutter_save_card stored it: recordDeclutterCardAsWalletDefault.
+ *     declutter_save_card stored it: recordDeclutterCardAsWalletDefault; and
+ *     the order page (owner 11-07, setup_future_usage), after saveOrderCard
+ *     stored it: recordDeclutterOrderCardAsWalletDefault.
  * Both go through setWalletDefaultCard, the ONE place our code sets a default.
  *
  * Set ONLY when every fact agrees: a member's uuid, a customer that IS that
@@ -143,13 +145,40 @@ export async function recordDeclutterCardAsWalletDefault(
   });
 }
 
+/**
+ * Declutter, owner 11-07: the order page saved the card it was paid with (setup_future_usage) and saveOrderCard
+ * stored it with declutter_save_card. `card` is the PaymentIntent's payment method, read with expand.
+ */
+export async function recordDeclutterOrderCardAsWalletDefault(
+  event: Stripe.Event,
+  sessionId: string,
+  member: string,
+  customer: string,
+  card: Stripe.PaymentMethod,
+  ctx: WebhookContext,
+): Promise<void> {
+  if (!UUID_RE.test(member)) {
+    ctx.logStep("Wallet default card skipped: not a member's card", { sessionId });
+    return;
+  }
+  const mode = event.livemode === true ? "live" : "test";
+  await setWalletDefaultCard(ctx, {
+    sessionId,
+    member,
+    mode,
+    customer,
+    paymentMethod: card,
+    section: "declutter",
+  });
+}
+
 async function page(sessionId: string, member: string | null, section: "jobs" | "declutter", why: string): Promise<void> {
   try {
     await postSlackOpsAlert({
       kind: "custom",
       severity: "warning",
       title: "Saved card did not become the wallet's default card",
-      message: `A member saved a card (${section === "jobs" ? "job checkout" : "Declutter card page"}), but ${why}. Nothing was charged; auto-tip will ask them to tip by hand until a card is saved again.`,
+      message: `A member saved a card (${section === "jobs" ? "job checkout" : "Declutter card or pay page"}), but ${why}. Nothing was charged; auto-tip will ask them to tip by hand until a card is saved again.`,
       fields: { session_id: sessionId, user_id: member ?? "(unknown)", section },
     });
   } catch (err) {

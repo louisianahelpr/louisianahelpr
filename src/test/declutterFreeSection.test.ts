@@ -16,7 +16,7 @@
  * @mutate supabase/migrations/20261103220428_q2390_publish_manager_takedown_return_problem_free_request_not_found_is_404.sql |   IF v_open >= (public.declutter_free_rules() ->> 'max_open_claims')::integer THEN |   IF false THEN
  * @mutate supabase/migrations/20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql |   IF p_handover IS NULL OR p_handover NOT IN ('pickup_home', 'porch') THEN |   IF p_handover IS NULL THEN
  * @mutate supabase/migrations/20261101230509_declutter_manager_share_split.sql |   IF o.paid_with = 'free' THEN\n    PERFORM public.declutter_notify(o.seller_id | IF false THEN\n    PERFORM public.declutter_notify(o.seller_id
- * @mutate supabase/migrations/20261027170717_declutter_free_section.sql |   IF v_item.o_price_cents = 0 THEN | IF false THEN
+ * @mutate supabase/migrations/20261107174801_declutter_buy_now_one_page.sql |   IF v_item.o_price_cents = 0 THEN | IF false THEN
  * @mutate supabase/migrations/20261031214749_seller_setup_fee_from_payout_restated.sql |     IF NEW.current_price_cents = 0 THEN | IF false THEN
  * @mutate src/components/declutter/DeclutterItemView.tsx | (free ? <FreeClaimPanel item={it} /> : <OfferPanel item={it} userId={user.id} askSignal={offerAsk} footer={deliveredLine} />) | <OfferPanel item={it} userId={user.id} askSignal={offerAsk} />
  * @mutate src/components/declutter/DeclutterTradeViews.tsx |               {allFree ? ( |               {false ? (
@@ -69,13 +69,15 @@ describe("the Declutter Free section", () => {
     // Q2259 lost sweep (20261103203204): verbatim plus ship_lost in v_seller_fault (the free-claim branch unchanged).
     // Q2106 S3b step 5 (20261105052751): verbatim plus the gift-share wrap of the buyer's refund notice.
     expect(newestFunction("declutter_close_paid_order").file).toContain("20261105052751_declutter_gift_delivery_refunds.sql");
+    // declutter_buy_now: owner 11-07 (20261107174801, ONE Stripe page) restated it with only its lock call changed (no
+    // saved card needed); the free-item refusal below still reads that newest definition.
+    expect(newestFunction("declutter_buy_now").file).toContain("20261107174801_declutter_buy_now_one_page.sql");
     const names = ["declutter_free_rules",
-      "declutter_buy_now",
       "payout_setup_hire_allowed"];
     for (const n of names) expect(newestFunction(n).file, n).toContain(FILE);
     // declutter_update_draft: Q2390 p38 (20261103224137) restated it verbatim with its not-found as PT404 only.
     expect(newestFunction("declutter_update_draft").file).toContain("20261103224137");
-    expect(names.length).toBeGreaterThan(2);
+    expect(names.length).toBeGreaterThan(1);
     // declutter_setup_fee_before_list: LEAD-B49-REBUILD (20261031214749) restated it from 20261027170717 with one early
     // return while the ID check is on (the fee then comes out of the payout); the free rule is asserted below.
     expect(newestFunction("declutter_setup_fee_before_list").file).toContain("20261031214749_seller_setup_fee_from_payout_restated.sql");

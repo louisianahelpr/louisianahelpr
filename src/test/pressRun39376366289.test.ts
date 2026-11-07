@@ -9,10 +9,10 @@
  * Plus three mutating labels no word named: "Unsave Helpr", "Reverse",
  * "Connect Google / Apple".
  *
- * @mutate scripts/audit/pressProdSafety.mjs | export const NOTIFICATION_OPEN_RX = /^Notifications \u203a /; | export const NOTIFICATION_OPEN_RX = /^$/;
+ * @mutate scripts/audit/pressProdSafety.mjs | export const NOTIFICATION_OPEN_RX = /^Notifications(?:, [^\u203a]*? unread)? \u203a /; | export const NOTIFICATION_OPEN_RX = /^$/;
  * @mutate scripts/audit/pressProdSafety.mjs | if (isReadRpcPath(pathname) \|\| isDeclaredReadRpcPath(pathname) \|\| isStorageSignPath | if (isStorageSignPath
  * @mutate scripts/audit/pressProdSafety.mjs |   "stripe-payouts": "reads | "stripe-payouts-x": "reads
- * @mutate scripts/audit/press-every-control.mjs | got it\|unsave\|reverse\|connect (?:google\|apple)\|watch\|unwatch)\b/i; | got it\|watch\|unwatch)\b/i;
+ * @mutate scripts/audit/press-every-control.mjs | got it\|unsave\|reverse\|connect (?:google\|apple)\|watch\|unwatch\|notify me)\b/i; | got it\|watch\|unwatch\|notify me)\b/i;
  * @mutate scripts/audit/press-every-control.mjs | \|\| isNotificationOpen({ label, chain: entry.chain }) \|\| isAdminWrite | \|\| isAdminWrite
  */
 import { describe, expect, it } from "vitest";

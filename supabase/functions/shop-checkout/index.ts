@@ -311,7 +311,8 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   // H8 (b): an at-home cleaning is ordered on its own and needs the buyer's address, answered BEFORE the order
   // freezes (shops_request_order retires the buyer's previous page). The frozen line below is the truth; this is
   // the early, plain answer.
-  const itemIds = (body.lines as unknown[]).map((l) => (l && typeof l === "object" ? (l as { item_id?: unknown }).item_id : null))
+  // A custom order (custom_request_id) sends no lines: its one line is frozen by shops_order_custom_quote.
+  const itemIds = (Array.isArray(body.lines) ? (body.lines as unknown[]) : []).map((l) => (l && typeof l === "object" ? (l as { item_id?: unknown }).item_id : null))
     .filter((id): id is string => typeof id === "string" && UUID_RE.test(id));
   if (itemIds.length > 0) {
     const { data: atRows, error: atErr } = await admin.from("shop_items").select("id, subtype, at_buyer").in("id", itemIds);

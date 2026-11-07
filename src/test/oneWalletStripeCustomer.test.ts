@@ -16,7 +16,7 @@
  * drive both to empty).
  *
  * @mutate supabase/functions/declutter-card/index.ts | withWalletCustomer(admin, stripe, user, mode, (customerId) => | withWalletCustomer(admin, stripe.customers.create({ email: user.email ?? undefined }) && stripe, user, mode, (customerId) =>
- * @mutate supabase/functions/declutter-checkout/index.ts | customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined; | customerId = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id;
+ * @mutate supabase/functions/declutter-checkout/index.ts | session = await withWalletCustomer(admin, stripe, user, mode, (payer, walletRetry) => | session = await withWalletCustomer(admin, stripe.customers.list({ email: user.email, limit: 1 }) && stripe, user, mode, (payer, walletRetry) =>
  * @mutate supabase/functions/shop-checkout/index.ts | customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined; | customerId = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id;
  * @mutate supabase/functions/_shared/stripeCustomer.ts | .eq("wallet_mode", mode) | .eq("user_id", userId)
  * @mutate supabase/migrations/20261103100800_stripe_customer_not_found_is_404.sql | RETURNS text\nLANGUAGE plpgsql\nSECURITY INVOKER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_id text; | RETURNS text\nLANGUAGE plpgsql\nSECURITY DEFINER\nSET search_path TO 'public', 'pg_temp'\nAS $fn$\nDECLARE\n  v_id text;
@@ -25,7 +25,7 @@
  * @mutate supabase/functions/pro-customer-portal/index.ts |     let customerId: string \| null = null; |     let customerId: string \| null = (await stripe.customers.list({ email: user.email, limit: 1 })).data[0]?.id ?? null;
  * @mutate supabase/functions/pro-customer-portal/index.ts |     const portalSession = await stripe.billingPortal.sessions.create({ |     await stripe.customers.update(customerId, { invoice_settings: { default_payment_method: "pm_x" } });\n    const portalSession = await stripe.billingPortal.sessions.create({
  * @mutate supabase/migrations/20261103130123_money_card_rent_seller_delivery_setup_fee_not_found_is_404.sql | 'Your card is saved. It is charged only when you buy, or automatically where you turned on automatic charges.' | 'Your card is saved for Declutter. It is never charged until you check out and pay.'
- * @mutate src/components/declutter/DeclutterOfferPanel.tsx | We save your card now; you're only charged when you check out. | We save your card now; your card is never charged until you check out and pay.
+ * @mutate src/components/declutter/DeclutterOfferPanel.tsx | We save your card now; you're only charged if the seller says yes and you check out. | We save your card now; your card is never charged until you check out and pay.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -124,6 +124,10 @@ describe("one wallet: a member's Stripe customer comes from ONE place", () => {
     expect(card).not.toMatch(/declutter_buyer_cards/);
     const checkout = code("supabase/functions/declutter-checkout/index.ts");
     expect(checkout).toMatch(/storedStripeCustomer\(admin, user\.id, mode\)/);
+    // Owner 11-07 (ONE Stripe page): the order page saves the card, so it resolves the wallet customer (adopting a
+    // tagged Jobs customer, never by email) exactly as the card page does.
+    expect(checkout).toMatch(/withWalletCustomer\(admin, stripe, user, mode, \(payer, walletRetry\) => stripe\.checkout\.sessions\.create\(/);
+    expect(checkout).toMatch(/\), \{ adoptTagged: true \}\);/);
     expect(checkout).not.toMatch(/from\("declutter_buyer_cards"\)/);
   });
 

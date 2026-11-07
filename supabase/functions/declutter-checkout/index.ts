@@ -82,7 +82,7 @@ import { geocodeDropoff, plausibleAddress, type AppleMapsAccess } from "../_shar
 import { type RouteStore, routeInBackground, storeRoutedMiles } from "../_shared/appleRoutes.ts";
 import { mapkitKeyFromEnv, signMapkitJwt } from "../_shared/mapkitJwt.ts";
 import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
-import { storedStripeCustomer, withStoredWalletCustomer } from "../_shared/stripeCustomer.ts";
+import { storedStripeCustomer, StripeCustomerUnavailable, withStoredWalletCustomer, withWalletCustomer } from "../_shared/stripeCustomer.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
 import { declutterCheckoutLineName } from "../_shared/declutterCheckoutName.ts";
 import { TIP_MAX_CENTS, TIP_MIN_CENTS, TIP_PAYMENT_METHOD_TYPES, tipChargeBreakdown } from "../_shared/tipFees.ts";
@@ -568,18 +568,6 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
     giftCents = applied;
   }
 
-  // One wallet: the buyer's ONE stored customer (in this mode) pre-fills the
-  // page. Today it holds the cards saved through Declutter's card page; Jobs'
-  // saved cards join it when Jobs moves onto the wallet (Q2139). A failed read
-  // stops here rather than opening a page on a guessed customer.
-  let customerId: string | undefined;
-  try {
-    customerId = (await storedStripeCustomer(admin, user.id, mode)) ?? undefined;
-  } catch (e) {
-    console.error(`[declutter-checkout] ${caughtMessage(e)}`);
-    return json({ error: TRY_AGAIN }, 503);
-  }
-
   const meta = {
     kind: "declutter_order",
     order_id: order.order_id,
@@ -642,18 +630,29 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   // second share one page through the idempotency key, and a second page from
   // another second is expired when it loses the attach below.
   const expiresAt = Math.floor(Date.now() / 1000) + PAGE_LIFETIME_S;
+  // One wallet, ONE page (owner 11-07, replacing the 10-28 two-page choice): the buyer's ONE wallet customer in this
+  // mode (stored, else their old Jobs customer adopted by its exact tag, else made and claimed; never found by email),
+  // so the page shows a card already saved and SAVES the card it is paid with (setup_future_usage below):
+  // stripe-webhook stores it with declutter_save_card, so a later offer has it. Buy now no longer needs a card first.
+  // A wallet that cannot be read or made stops here rather than opening a page on a guessed customer.
   // Q2140: a stored customer Stripe no longer has is replaced once and the page retried (":new-wallet" key).
-  const session = await withStoredWalletCustomer(admin, stripe, user, mode, customerId, (payer, walletRetry) => stripe.checkout.sessions.create(
+  let session: Stripe.Checkout.Session;
+  try {
+    session = await withWalletCustomer(admin, stripe, user, mode, (payer, walletRetry) => stripe.checkout.sessions.create(
     {
       mode: "payment",
       payment_method_types: ["card"],
       // Link hidden (audit 2026-10-28 #22): card-only still pre-ticked Link and asked for a phone.
       wallet_options: { link: { display: "never" } },
       line_items: lineItems,
-      ...(payer ? { customer: payer } : { customer_email: user.email ?? undefined }),
+      customer: payer,
+      // Owner 11-07: a card saved on the card page (allow_redisplay 'limited') or an earlier pay page shows here too.
+      saved_payment_method_options: { allow_redisplay_filters: ["always", "limited", "unspecified"] },
       client_reference_id: order.order_id,
       metadata: meta,
       payment_intent_data: { metadata: meta, transfer_group: `declutter_order_${order.order_id}`,
+        // Owner 11-07: the one page also saves the card for later offers (charged off the page).
+        setup_future_usage: "off_session" as const,
         ...(handover === "ship" ? { capture_method: "manual" as const } : {}) },
       // Q202: 3D Secure from $300 up (card-fraud disputes move to the issuer).
       payment_method_options: threeDSecureOptions(chargeCents),
@@ -664,7 +663,12 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       cancel_url: buildRedirectUrl("/declutter?view=cart", native),
     },
     { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}${walletRetry ? ":new-wallet" : ""}` },
-  ));
+    ), { adoptTagged: true });
+  } catch (e) {
+    if (!(e instanceof StripeCustomerUnavailable)) throw e;
+    console.error(`[declutter-checkout] ${caughtMessage(e)}`);
+    return json({ error: TRY_AGAIN }, 503);
+  }
   if (session.amount_total !== chargeCents) {
     await expirePage(stripe, session.id);
     console.error(`[declutter-checkout] Stripe total ${session.amount_total} != order total ${chargeCents}`);

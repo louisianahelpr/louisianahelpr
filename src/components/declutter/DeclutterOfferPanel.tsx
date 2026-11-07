@@ -1,8 +1,11 @@
 /**
  * The buy / offer panel on someone else's live Declutter item and its card
  * step (rows 36, 53, 56-59; owner 2026-10-19: Buy now and Make an offer always
- * show, and with no saved card either one asks for a card and comes back to
- * itself; DA-11: an offer asks at Send, after the amount is typed). Moved out of DeclutterTradeViews.tsx unchanged (component size limit).
+ * show; DA-11: an offer asks for a card at Send, after the amount is typed).
+ * Owner 11-07 (ONE Stripe page, replacing the 10-28 two-page choice): Buy now
+ * never asks for a card first. It holds the item and opens checkout, whose one
+ * pay page also saves the card for later offers. Only an offer asks for a card,
+ * because it is charged later. Moved out of DeclutterTradeViews.tsx unchanged (component size limit).
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -33,11 +36,11 @@ import { Input } from "@/components/ui/input";
 import { OfferSuggestion } from "./OfferSuggestion";
 
 /**
- * Row 36, as the step INSIDE a buy or an offer (owner, 2026-10-19): a buyer
- * with no saved card still sees Buy now and Make an offer; tapping either asks
- * for a card here, then carries on with that same action (see afterCard.ts:
- * on the web via the return from Stripe's page, in the app on return from the
- * in-app browser). Nothing is charged by saving a card.
+ * Row 36, as the step INSIDE an offer (owner, 2026-10-19; owner 11-07: offers
+ * only, Buy now pays on one page that saves the card): Send with no saved card
+ * asks for a card here, then carries on with the offer (see afterCard.ts: on the
+ * web via the return from Stripe's page, in the app on return from the in-app
+ * browser). Nothing is charged by saving a card.
  */
 /** NIGHT-BUYING0-7: the step's line when the member came back from the card page without saving one. */
 const CARD_NOT_SAVED = "No card was saved, so nothing happened yet.";
@@ -57,10 +60,10 @@ function AddCardStep({ action, itemId, offerAmount, onReturned, onCancel, note }
     <div className="rounded-2xl border border-border bg-muted/40 p-4 space-y-2" role="group" aria-label="Add a card">
       {note && <p className="text-sm text-foreground" role="status" data-card-not-saved="">{note}</p>}
       {/* Q2573 (audit 1102a): "Add a card to finish." on the first tap, before anything had started. */}
-      <p className="text-sm font-semibold" data-card-step-title="">{action === "buy" ? "To buy, add a card first." : "To send your offer, add a card first."}</p>
+      {/* Owner 11-07: only an offer asks for a card first (Buy now's one pay page saves it), so the step names the offer. */}
+      <p className="text-sm font-semibold" data-card-step-title="">To send your offer, add a card first.</p>
       <p className="text-xs text-muted-foreground">
-        {/* #21 (owner chose C, 2026-10-28): two Stripe pages stay; this line says what the first one is for. */}
-        We save your card now; you're only charged when you check out. {action === "buy" ? "Then checkout opens." : "Then you send your offer."}
+        We save your card now; you're only charged if the seller says yes and you check out. Then you send your offer.
       </p>
       <div className="grid gap-2 sm:grid-cols-2">
         <Button
@@ -182,16 +185,16 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
   }, [stepOpen, needCard]);
   useEffect(() => { if (resume) showPanel(); }, [resume]);
   useEffect(() => {
-    if (!cardCancelled) return;
+    // Owner 11-07: Buy now never asks for a card, so a "buy" brought back from an older card trip opens nothing.
+    if (!cardCancelled || cardCancelled === "buy") return;
     setNeedCard(cardCancelled);
     showPanel();
   }, [cardCancelled]);
-  /** The server refused for want of a card: ask for one for this action, at the panel. True when it did. */
-  const askCardIfRefused = (err: unknown, action: AfterCardAction) => {
+  /** The server refused an offer for want of a card: ask for one at the panel. True when it did. */
+  const askCardIfRefused = (err: unknown) => {
     if (String((err as { message?: unknown } | null)?.message ?? "").trim() !== "card_required") return false;
     setServerNoCard(true);
-    if (action === "buy") setOpen(false);
-    setNeedCard(action);
+    setNeedCard("offer");
     showPanel();
     return true;
   };
@@ -231,19 +234,20 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
       setSentCents(cents);
       invalidateTrades(qc);
     },
-    onError: (err) => { if (!askCardIfRefused(err, "offer")) toast.error(declutterErrorMessage(err)); },
+    onError: (err) => { if (!askCardIfRefused(err)) toast.error(declutterErrorMessage(err)); },
   });
   // DB-5 (owner 2026-10-30): "Buy now goes straight to checkout, with no strike for backing out before paying." No
   // reserve sheet: the tap holds the item (the server's 48-hour line, needed for checkout) and opens this seller's
   // checkout in Buying, where Pay is its own press and nothing is charged before it. The button already shows the
   // pickup total; a buyer who backs out gets no strike (declutter_deadline_sweep, 20261030064929) and can Remove it.
+  // Owner 11-07: no card is needed first (declutter_buy_now, 20261107174801); checkout's one pay page saves the card.
   const buy = useMutation({
     mutationFn: () => buyNow(item.id, item.current_price_cents),
     onSuccess: () => {
       invalidateTrades(qc);
       navigate(checkoutLinkFor(item.seller_id));
     },
-    onError: (err) => { if (!askCardIfRefused(err, "buy")) toast.error(declutterErrorMessage(err)); },
+    onError: (err) => toast.error(declutterErrorMessage(err)),
   });
 
   const confirmBuy = () => {
@@ -255,30 +259,14 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
   };
   const tap = (action: AfterCardAction) => {
     setResume(null);
+    setNeedCard(null);
     // DA-11: the amount comes first; the card is asked for at Send (sendOffer).
     if (action === "offer") {
-      setNeedCard(null);
       setOpen(true);
       return;
     }
-    if (card.data) {
-      setNeedCard(null);
-      run(action);
-      return;
-    }
-    // NIGHT-BUYING0-2: a card Stripe's webhook filed after the CARD_WAIT_MS wait was never noticed (polling had
-    // stopped), so Buy now kept asking for a card. With no card in the last answer, read it again before asking.
-    // NIGHT-BUYING0-5: a card read that fails does not block, as at Send: the server checks the card itself, and
-    // its card_required opens the step (askCardIfRefused).
-    void card.refetch().then((r) => {
-      if (r.data || r.isError) {
-        setNeedCard(null);
-        run(action);
-      } else {
-        setOpen(false);
-        setNeedCard(action);
-      }
-    });
+    // Owner 11-07 (ONE Stripe page): Buy now holds the item and opens checkout with or without a saved card.
+    run(action);
   };
   // DA-11: Send with no saved card asks for one here and keeps the typed amount. A failed card read does not block:
   // the server checks the card itself and says so.
@@ -325,7 +313,8 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
     if (!resume) return;
     const t = window.setTimeout(() => {
       setResume(null);
-      setNeedCard(resume);
+      // Owner 11-07: only an offer has a card step to open again.
+      setNeedCard(resume === "offer" ? resume : null);
       showPanel();
     }, CARD_WAIT_MS);
     return () => window.clearTimeout(t);
@@ -390,8 +379,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
           size="wrap"
           variant={showCardStep ? "outline" : undefined}
           className="w-full min-w-0 rounded-full px-3"
-          disabled={buy.isPending || card.isLoading}
-          aria-busy={card.isLoading || undefined}
+          disabled={buy.isPending}
           onClick={() => tap("buy")}
         >
           <BuyNowLabel priceCents={item.current_price_cents} way={way} size={item.delivery_size} />
@@ -402,7 +390,6 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
           panel's footer (the delivery line) right after them, as before; at 375 they used to open below that table, behind the
           dock, so a press on Buy or Offer showed nothing. A tap also brings the opened step into view. */}
       <div ref={stepArea} className="space-y-3 scroll-mb-28" data-offer-step-area="">
-      {showCardStep && needCard === "buy" && cardStep("buy")}
       {open && (
         <form
           className="space-y-2"
@@ -506,11 +493,8 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
                 type="button"
                 size="wrap"
                 className="flex-[1.3] min-w-0 rounded-full px-3"
-                disabled={buy.isPending || card.isLoading}
-                onClick={() => {
-                  tap("buy");
-                  if (!card.data) panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                }}
+                disabled={buy.isPending}
+                onClick={() => tap("buy")}
               >
                 <BuyNowLabel priceCents={item.current_price_cents} way={way} size={item.delivery_size} />
               </Button>

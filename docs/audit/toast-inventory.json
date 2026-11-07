@@ -10694,6 +10694,36 @@
       "renders": true
     },
     {
+      "file": "src/components/shops/ShopCustomOrdersPicker.tsx",
+      "line": 20,
+      "kind": "toast.success",
+      "title": {
+        "form": "literal",
+        "text": "Saved. New asks use it."
+      },
+      "renders": false
+    },
+    {
+      "file": "src/components/shops/ShopCustomOrdersPicker.tsx",
+      "line": 23,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopCustomRequestSheet.tsx",
+      "line": 27,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/shops/ShopDailyCap.tsx",
       "line": 33,
       "kind": "toast.success",
@@ -11275,7 +11305,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderSheet.tsx",
-      "line": 162,
+      "line": 161,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11373,7 +11403,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 73,
+      "line": 74,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11383,7 +11413,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 78,
+      "line": 79,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -11403,7 +11433,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 81,
+      "line": 82,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11413,7 +11443,7 @@
     },
     {
       "file": "src/components/shops/ShopView.tsx",
-      "line": 173,
+      "line": 174,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

@@ -81,6 +81,8 @@ import { postSlackOpsAlert } from "../_shared/slack-alerts.ts";
 import { isLouisianaZip5 } from "../_shared/easypostRates.ts";
 import { geocodeDropoff, type AppleMapsAccess } from "../_shared/geocodeDropoff.ts";
 import { mapkitKeyFromEnv, signMapkitJwt } from "../_shared/mapkitJwt.ts";
+import { appleEtas } from "../_shared/appleRoutes.ts";
+import { requireFeature } from "../_shared/featureSwitch.ts";
 import {
   sessionIdMode,
   stripeModeForParties,
@@ -259,6 +261,16 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   const note = typeof body.note === "string" ? body.note : "";
   const delivery = deliveryAddressFrom(body.delivery);
   if (delivery === "invalid") return json({ error: "invalid_address" }, 400);
+  // Slice 2 (20261106223244): delivery_by "helpr" asks a Helpr to deliver at Declutter's price for the road miles;
+  // the price the buyer was shown ('helpr_quote') comes with it, and a different frozen price refuses.
+  const byHelpr = body.delivery_by === "helpr";
+  if (body.delivery_by !== undefined && body.delivery_by !== "helpr" && body.delivery_by !== "shop") {
+    return json({ error: "invalid_delivery_choice" }, 400);
+  }
+  const shownHelprCents = Number(body.delivery_cents);
+  if (byHelpr && (!delivery || !Number.isInteger(shownHelprCents) || shownHelprCents <= 0)) {
+    return json({ error: "invalid_delivery_choice" }, 400);
+  }
   const native = isNativeRequest(body);
   const serviceAddress = parseServiceAddress(body.service_address);
   if (serviceAddress === "invalid") return json({ error: "invalid_service_address" }, 400);
@@ -358,10 +370,19 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   // Delivery: measured, checked against the shop's radius and its fee frozen in SQL (service role, row lock).
   // A refusal (too far, the shop stopped delivering) closes the just-frozen order before any page opens.
   if (delivery && dropoff) {
-    const { error: delErr } = await admin.rpc("shop_set_order_delivery", {
+    const { data: setRow, error: delErr } = await admin.rpc(byHelpr ? "shop_set_order_helpr_delivery" : "shop_set_order_delivery", {
       p_order_id: frozen.order_id, p_buyer: user.id, p_line1: delivery.line1, p_line2: delivery.line2,
       p_city: delivery.city, p_postal_code: delivery.postal_code, p_lat: dropoff.lat, p_lng: dropoff.lng,
     });
+    // A Helpr price that moved since the buyer's quote (routed miles landed in between) is never charged unseen.
+    const frozenHelprCents = Number((setRow as { delivery_cents?: unknown } | null)?.delivery_cents);
+    if (!delErr && byHelpr && frozenHelprCents !== shownHelprCents) {
+      const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });
+      if (closeErr) console.error(`[shop-checkout] order ${frozen.order_id} not closed after its Helpr price moved: ${closeErr.message}`);
+      const { error: purgeErr } = await admin.from("shop_order_delivery_addresses").delete().eq("order_id", frozen.order_id);
+      if (purgeErr) console.error(`[shop-checkout] order ${frozen.order_id} delivery address not purged: ${purgeErr.message}`);
+      return json({ error: "delivery_rate_changed", delivery_cents: Number.isInteger(frozenHelprCents) ? frozenHelprCents : null }, 409);
+    }
     if (delErr) {
       const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: frozen.order_id });
       if (closeErr) console.error(`[shop-checkout] order ${frozen.order_id} not closed after its delivery was refused: ${closeErr.message}`);
@@ -385,7 +406,8 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   }
   const fulfillment = delReadErr ? "pickup" : String((delRow as { fulfillment?: string } | null)?.fulfillment ?? "pickup");
   const deliveryCents = delReadErr ? 0 : Number((delRow as { delivery_cents?: number } | null)?.delivery_cents ?? 0);
-  if ((delivery !== null) !== (fulfillment === "shop_delivers") || !Number.isInteger(deliveryCents) || deliveryCents < 0) {
+  const askedFulfillment = !delivery ? "pickup" : byHelpr ? "helpr_delivers" : "shop_delivers";
+  if (fulfillment !== askedFulfillment || !Number.isInteger(deliveryCents) || deliveryCents < 0) {
     console.error(`[shop-checkout] order ${o.id} delivery does not match what was asked`);
     await asBuyer.rpc("shops_cancel_order_request", { p_order_id: o.id });
     return json({ error: TRY_AGAIN }, 500);
@@ -412,7 +434,7 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   // for this order only (service role; the shop reads it after accepting). Stripe gets only what the tax needs.
   const atHome = lines.some((l) => l.at_buyer === true);
   // The frozen line is the truth (the early check above read live shop_items): at-home work takes no delivery.
-  if (atHome && fulfillment === "shop_delivers") {
+  if (atHome && fulfillment !== "pickup") {
     const { error: closeErr } = await asBuyer.rpc("shops_cancel_order_request", { p_order_id: o.id });
     if (closeErr) console.error(`[shop-checkout] order ${o.id} not closed after at-home work came with a delivery: ${closeErr.message}`);
     // The closed order keeps no copy of the drop-off (as the at-home tax failure purges its address).
@@ -532,7 +554,7 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       quantity: 1,
       price_data: {
         currency: "usd", unit_amount: deliveryCents, tax_behavior: "exclusive",
-        product_data: taxed("Shop delivery", NONTAXABLE_TAX_CODE),
+        product_data: taxed(fulfillment === "helpr_delivers" ? "Helpr delivery" : "Shop delivery", NONTAXABLE_TAX_CODE),
       },
     });
   }
@@ -541,7 +563,7 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       quantity: 1,
       price_data: {
         currency: "usd", unit_amount: tax.cents, tax_behavior: "exclusive",
-        product_data: { name: "Sales tax", description: atHome ? "Louisiana sales tax where the work is done" : fulfillment === "shop_delivers" ? "Louisiana sales tax where the order is delivered" : "Louisiana sales tax where you pick up the order", tax_code: NONTAXABLE_TAX_CODE },
+        product_data: { name: "Sales tax", description: atHome ? "Louisiana sales tax where the work is done" : fulfillment !== "pickup" ? "Louisiana sales tax where the order is delivered" : "Louisiana sales tax where you pick up the order", tax_code: NONTAXABLE_TAX_CODE },
       },
     });
   }
@@ -579,6 +601,95 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
     return json({ error: TRY_AGAIN }, 409);
   }
   return json({ url: session.url, order_id: o.id });
+}
+
+/**
+ * Slice 2 (20261106194913 shop_set_pickup_point): the shop's pickup point, looked up on the SERVER from the address
+ * the shop just saved, right after the save (the app calls this next). The point is private: it goes to SQL and
+ * nowhere else, and this answer never carries it. The 'shops' switch first (shops_my_pickup_address has no switch
+ * check of its own), then the owner's own address as the owner, so a refused caller makes no Apple call.
+ */
+async function pickupPoint(user: { id: string }, asOwner: Db, admin: Db) {
+  const off = await requireFeature(admin, "shops", user, corsHeaders);
+  if (off) return off;
+  const { data: mine, error: mineErr } = await asOwner.rpc("shops_my_pickup_address");
+  if (mineErr) return rpcRefusal(mineErr);
+  const a = (Array.isArray(mine) ? mine[0] : null) as { line1?: string; city?: string; postal_code?: string } | null;
+  if (!a?.line1 || !a.postal_code) return json({ error: "pickup_address_missing" }, 409);
+  const { data: shopRow, error: shopErr } = await admin.from("shops").select("id").eq("owner_id", user.id).maybeSingle();
+  if (shopErr) {
+    console.error(`[shop-checkout] pickup point shop read failed: ${shopErr.message}`);
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  const shopId = (shopRow as { id?: string } | null)?.id;
+  if (!shopId) return json({ error: "shop_not_found" }, 404);
+  const point = await geocodeDropoff(`${a.line1}, ${a.city ?? ""}, LA ${a.postal_code}`, fetch, appleMapsAccess());
+  if ("miss" in point) {
+    if (point.miss === "not_found") return json({ error: "address_not_found" }, 422);
+    console.error(JSON.stringify({ event: "shop_pickup_geocode_unavailable", status: point.status, detail: point.detail }));
+    return json({ error: "geocode_unavailable" }, 503);
+  }
+  // The SQL refuses a point for an address changed since it was read (address_changed).
+  const { error: setErr } = await admin.rpc("shop_set_pickup_point", {
+    p_shop_id: shopId, p_owner: user.id, p_expect_line1: a.line1, p_expect_postal_code: a.postal_code,
+    p_lat: point.lat, p_lng: point.lng,
+  });
+  if (setErr) return rpcRefusal(setErr);
+  return json({ saved: true });
+}
+
+/**
+ * Slice 2 (20261106223244 shop_helpr_delivery_quote): the Helpr delivery price for a drop-off, BEFORE the order.
+ * Declutter's price ($6 + $1.50/mi, declutter_delivery_price_cents) for the road miles from the shop's pickup point.
+ * Road miles Declutter's way (Q1930): when the SQL names a pair with no fresh routed row, Apple /v1/etas routes it,
+ * the row is stored under the SQL's exact key (declutter_route_miles), and the SQL is asked again. An Apple miss
+ * pauses routing (declutter_route_outage) and the estimate answers. The order then freezes the same figure.
+ */
+async function helprQuote(body: Record<string, unknown>, asBuyer: Db, admin: Db) {
+  const shopId = typeof body.shop_id === "string" ? body.shop_id : "";
+  if (!UUID_RE.test(shopId)) return json({ error: "shop_not_found" }, 404);
+  const delivery = deliveryAddressFrom(body.delivery);
+  if (!delivery || delivery === "invalid") return json({ error: "invalid_address" }, 400);
+  // The SQL's gates as the buyer first (switch, ban, the shop visible to them): no Apple call for a refused caller.
+  const { error: termsErr } = await asBuyer.rpc("shops_order_terms", { p_shop_id: shopId });
+  if (termsErr) return rpcRefusal(termsErr);
+  const apple = appleMapsAccess();
+  const point = await geocodeDropoff(`${delivery.line1}, ${delivery.city}, LA ${delivery.postal_code}`, fetch, apple);
+  if ("miss" in point) {
+    if (point.miss === "not_found") return json({ error: "address_not_found" }, 422);
+    console.error(JSON.stringify({ event: "shop_dropoff_geocode_unavailable", status: point.status, detail: point.detail }));
+    return json({ error: "geocode_unavailable" }, 503);
+  }
+  const ask = () => admin.rpc("shop_helpr_delivery_quote", { p_shop_id: shopId, p_lat: point.lat, p_lng: point.lng });
+  let { data: q, error: qErr } = await ask();
+  if (qErr) return rpcRefusal(qErr);
+  const route = (q as { route?: { o_lat: number; o_lng: number; d_lat: number; d_lng: number } | null } | null)?.route ?? null;
+  if (route && apple) {
+    const legs = await appleEtas({ lat: Number(route.o_lat), lng: Number(route.o_lng) },
+      [{ lat: Number(route.d_lat), lng: Number(route.d_lng) }], apple);
+    const leg = Array.isArray(legs) ? legs[0] : null;
+    if (!Array.isArray(legs)) {
+      console.error(JSON.stringify({ event: "route_etas_miss", status: legs.status, detail: legs.detail }));
+      const { error: pauseErr } = await admin.rpc("declutter_route_outage", { p_minutes: 10 });
+      if (pauseErr) console.error(JSON.stringify({ event: "route_outage_record_failed", detail: String(pauseErr.message).slice(0, 200) }));
+    } else if (leg && leg.miles >= 1 && leg.miles <= 2000) {
+      const { error: upErr } = await admin.from("declutter_route_miles").upsert({
+        o_lat: route.o_lat, o_lng: route.o_lng, d_lat: route.d_lat, d_lng: route.d_lng, miles: leg.miles,
+        minutes: leg.minutes === null ? null : Math.min(leg.minutes, 6000), source: "apple", routed_at: new Date().toISOString(),
+      }, { onConflict: "o_lat,o_lng,d_lat,d_lng" });
+      if (upErr) console.error(JSON.stringify({ event: "route_miles_store_failed", detail: String(upErr.message).slice(0, 200) }));
+      else ({ data: q, error: qErr } = await ask());
+      if (qErr) return rpcRefusal(qErr);
+    }
+  }
+  const cents = Number((q as { delivery_cents?: unknown } | null)?.delivery_cents);
+  const miles = Number((q as { delivery_miles?: unknown } | null)?.delivery_miles);
+  if (!Number.isInteger(cents) || cents <= 0 || !Number.isInteger(miles) || miles < 1) {
+    console.error(`[shop-checkout] Helpr quote for shop ${shopId} returned no usable figure`);
+    return json({ error: TRY_AGAIN }, 503);
+  }
+  // Only the price and miles: never the shop's point or the drop-off's.
+  return json({ delivery_cents: cents, delivery_miles: miles });
 }
 
 async function accept(body: Record<string, unknown>, asMaker: Db, admin: Db) {
@@ -826,6 +937,8 @@ serve(async (req) => {
   try {
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
     if (body.action === "order") return await order(body, user, asMember, admin);
+    if (body.action === "helpr_quote") return await helprQuote(body, asMember, admin);
+    if (body.action === "pickup_point") return await pickupPoint(user, asMember, admin);
     if (body.action === "accept") return await accept(body, asMember, admin);
     if (body.action === "decline") return await decline(body, asMember, admin);
     if (body.action === "cancel") return await cancel(body, asMember, admin);

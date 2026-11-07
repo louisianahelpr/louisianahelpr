@@ -52,8 +52,14 @@ export const getPublicOrigin = (): string => {
  * hook copies it into the confirm link), because the job intent in this
  * browser's storage is gone when the email is opened in another browser.
  */
-export const getSignupConfirmRedirect = (jobId: string | null = null): string =>
-  `${getPublicOrigin()}/signup-pending${jobId ? `?job=${encodeURIComponent(jobId)}` : ""}`;
+export const getSignupConfirmRedirect = (jobId: string | null = null, itemId: string | null = null): string => {
+  // 11-07: the Declutter item a guest came for rides along as `?item=` the same way (the hook copies a uuid only).
+  const q = new URLSearchParams();
+  if (jobId) q.set("job", jobId);
+  if (itemId) q.set("item", itemId);
+  const qs = q.toString();
+  return `${getPublicOrigin()}/signup-pending${qs ? `?${qs}` : ""}`;
+};
 
 export const getPublicReturnUrl = (): string => {
   if (typeof window === "undefined") return getPublicSiteUrl();

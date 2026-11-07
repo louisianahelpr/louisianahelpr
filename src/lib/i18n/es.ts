@@ -206,6 +206,7 @@ export const es: Record<MsgKey, string> = {
   "auth.continueWith": "Continuar con {provider}",
   "auth.connecting": "Conectando…",
   "auth.socialFailed": "No pudimos iniciar sesión con {provider}. ¿Lo intenta de nuevo?",
+  "auth.googleInApp": "Para continuar con Google, abra esta página en su navegador (Safari o Chrome). El inicio de sesión con Google no funciona dentro de Facebook ni de Instagram.",
 
   // Shared helpers on Sign up / Finish your profile (password, photo file, timeout, notify, ZIP)
   "pw.stillNeeds": "Su contraseña todavía necesita {needs}.",

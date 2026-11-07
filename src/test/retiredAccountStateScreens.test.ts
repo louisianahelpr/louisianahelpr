@@ -35,7 +35,7 @@
  *
  * @mutate src/components/ProtectedRoute.tsx | return <Navigate to="/signup-pending" replace />; | return <Navigate to="/account-pending" replace />;
  * @mutate src/lib/authRedirects.ts |   `${getPublicOrigin()}/signup-pending${ |   `${getPublicOrigin()}/account-pending${
- * @mutate src/pages/auth/Signup.tsx | emailRedirectTo: getSignupConfirmRedirect(peekJobIntent()), | emailRedirectTo: `${window.location.origin}/signup-pending`,
+ * @mutate src/pages/auth/Signup.tsx | emailRedirectTo: getSignupConfirmRedirect(peekJobIntent(), peekSignupRedirectItem()), | emailRedirectTo: `${window.location.origin}/signup-pending`,
  * @mutate supabase/functions/stripe-idv-webhook/index.ts | idv_failure_reason: "Identity matched a previously removed account.", | idv_failure_reason: "Identity matched a previously removed account.", approval_status: "denied",
  *   (Q288: the mutation that re-admitted 'denied' to 20260923153703's CHECK
  *   is retired; 20260923205943 drops the column, so that CHECK no longer
@@ -120,8 +120,8 @@ describe("Q193: the pending and denied account screens stay deleted", () => {
 
   it("the signup email link and both resends land on /signup-pending through one helper", () => {
     expect(code("src/lib/authRedirects.ts")).toMatch(
-      // Q2496: the job a guest came for may ride along as ?job=, on the same page.
-      /export const getSignupConfirmRedirect = \(jobId: string \| null = null\): string =>\s*`\$\{getPublicOrigin\(\)\}\/signup-pending\$\{jobId \? `\?job=\$\{encodeURIComponent\(jobId\)\}` : ""\}`;/,
+      // Q2496: the job a guest came for may ride along as ?job=, and (11-07) the Declutter item as ?item=, on the same page.
+      /export const getSignupConfirmRedirect = \(jobId: string \| null = null, itemId: string \| null = null\): string => \{[\s\S]*?return `\$\{getPublicOrigin\(\)\}\/signup-pending\$\{qs \? `\?\$\{qs\}` : ""\}`;\s*\};/,
     );
     const signup = code("src/pages/auth/Signup.tsx");
     expect(signup).toMatch(/emailRedirectTo:\s*getSignupConfirmRedirect\(/);

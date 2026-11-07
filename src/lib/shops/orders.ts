@@ -198,6 +198,34 @@ export async function fetchReadyTapCancel(shopId: string): Promise<ReadyTapCance
   return ((row as { ready_tap_cancel?: ReadyTapCancel } | null)?.ready_tap_cancel ?? "from_day_before");
 }
 
+/** Custom orders (20261106202917): whether buyers may ask this shop for something made to order, and how it is paid. */
+export const CUSTOM_ORDER_MODES = ["off", "full_hold", "deposit_50"] as const;
+export type CustomOrderMode = (typeof CUSTOM_ORDER_MODES)[number];
+export const CUSTOM_ORDER_TEXT: Record<CustomOrderMode, { label: string; hint: string }> = {
+  off: { label: "No custom orders", hint: "Buyers order only what you list." },
+  full_hold: {
+    label: "Custom orders, paid in full",
+    hint: "Buyers can ask you for something made to order. When they order your price, their card is held, and it is charged in full when you accept.",
+  },
+  deposit_50: {
+    label: "Custom orders, half up front",
+    hint: "Buyers can ask you for something made to order. Half is charged when you accept and the rest on the ready date. If the rest doesn't go through, the buyer pays it before you hand the order over.",
+  },
+};
+
+export async function fetchCustomOrders(shopId: string): Promise<CustomOrderMode> {
+  const row = unwrap(await supabase.from("shops").select("custom_orders").eq("id", shopId).maybeSingle());
+  const v = (row as { custom_orders?: string } | null)?.custom_orders;
+  return (CUSTOM_ORDER_MODES as readonly string[]).includes(v ?? "") ? (v as CustomOrderMode) : "off";
+}
+
+/** Sets it for the caller's OWN shop only (shops_set_custom_orders: WHERE owner_id = the caller). */
+export async function setCustomOrders(mode: CustomOrderMode): Promise<CustomOrderMode> {
+  const { data, error } = await supabase.rpc("shops_set_custom_orders", { p_mode: mode });
+  if (error) rpcFail(error, rpcErrorMessage("shops_set_custom_orders", error));
+  return data as CustomOrderMode;
+}
+
 /** Sets it for the caller's OWN shop only (shops_set_ready_tap_cancel: WHERE owner_id = the caller). */
 export async function setReadyTapCancel(choice: ReadyTapCancel): Promise<ReadyTapCancel> {
   const { data, error } = await supabase.rpc("shops_set_ready_tap_cancel", { p_choice: choice });

@@ -23,6 +23,7 @@ import { ShopHandoverActions } from "./ShopHandoverActions";
 import { StatusBoxes, useStatusFilter } from "@/components/sections/StatusBoxes";
 import { OrderGroup } from "./shopsUi";
 import { BuyerCancelOrder } from "./ShopOrderCancel";
+import ShopCustomRequestsList from "./ShopCustomRequestsList";
 
 /** The buyer's order groups under Shops > Orders (owner, 2026-10-19). */
 const BUYER_GROUPS = ["waiting", "accepted", "done"] as const;
@@ -125,6 +126,8 @@ export default function ShopMyOrdersView({ embedded = false }: { embedded?: bool
           <ul className="space-y-3">{(orders.data ?? []).map((o) => renderOrder(o, user.id))}</ul>
         )
       )}
+      {/* Custom orders: the member's asks to shops (shown only when there are some). */}
+      <ShopCustomRequestsList side="buyer" />
       {/* Q1947: the chat an order card's Message opens (?talk=). */}
       <ShopTalkFromLink />
       <BrandConfirmDialog

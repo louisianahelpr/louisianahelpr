@@ -21,3 +21,30 @@ export async function sendCustomRequest(shopId: string, description: string, wan
   if (typeof data !== "string" || !data) throw new Error("request_not_sent");
   return data;
 }
+
+type CustomRequestStatus = "requested" | "quoted" | "declined" | "withdrawn" | "expired" | "accepted";
+/** One row of shops_my_custom_requests (the caller's asks as a buyer and as a shop owner). */
+export interface CustomRequest {
+  id: string;
+  shop_id: string;
+  shop_name: string | null;
+  role: "buyer" | "shop";
+  description: string;
+  wanted_date: string | null;
+  payment_plan: "full_hold" | "deposit_50";
+  status: CustomRequestStatus;
+  quote_cents: number | null;
+  quote_note: string | null;
+  quoted_at: string | null;
+  expires_at: string | null;
+  created_at: string;
+}
+
+export async function fetchMyCustomRequests(): Promise<CustomRequest[]> {
+  const { data, error } = await supabase.rpc("shops_my_custom_requests");
+  if (error) {
+    const words = rpcErrorMessage("shops_my_custom_requests", error);
+    throw Object.assign(new Error(error.message), error, words ? { userMessage: words } : {});
+  }
+  return Array.isArray(data) ? (data as unknown as CustomRequest[]) : [];
+}

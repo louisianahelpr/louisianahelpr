@@ -285,6 +285,14 @@ export async function chargeOrderRest(orderId: string): Promise<{ paid: boolean;
   return { paid: data.paid === true, waitingOnBuyer: data.waiting_on_buyer === true };
 }
 
+/**
+ * Custom orders: the shop declines a request (or its own price), or the buyer withdraws theirs. Through shop-checkout
+ * (close_request), never the RPC directly: it also closes the buyer's unpaid page for that price.
+ */
+export async function closeCustomRequest(requestId: string): Promise<void> {
+  await invokeShopCheckout({ action: "close_request", request_id: requestId });
+}
+
 /** Custom orders (50% deposit): the buyer's page for the rest (the Stripe page's URL). */
 export async function payOrderRest(orderId: string): Promise<string> {
   const data = await invokeShopCheckout({ action: "pay_balance", order_id: orderId });

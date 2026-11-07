@@ -2,8 +2,11 @@
  * Custom orders (20261106202917): the member's requests, on their side. The buyer (My orders) reads each ask, the
  * shop's price when it comes, and can withdraw an open one; the shop (dashboard) reads each ask and can decline it.
  * Withdraw and decline go through shop-checkout close_request (it also closes the buyer's unpaid page for a price).
+ * The shop sends its price from here (ShopCustomQuoteForm, 20261106205852) and the buyer orders a price from here
+ * (ShopCustomOrderForm: the ready date, then Stripe's page).
  * Nothing shows while the member has no request on that side.
  */
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -11,6 +14,8 @@ import { parseLocalDate } from "@/lib/dateUtils";
 import { fetchMyCustomRequests, type CustomRequest } from "@/lib/shops/customRequests";
 import { closeCustomRequest, formatCents } from "@/lib/shops/orders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
+import ShopCustomQuoteForm from "./ShopCustomQuoteForm";
+import ShopCustomOrderForm from "./ShopCustomOrderForm";
 
 const STATUS_WORDS: Record<CustomRequest["status"], { buyer: string; shop: string }> = {
   requested: { buyer: "Waiting for the shop's price", shop: "New request" },
@@ -28,6 +33,8 @@ function dayText(iso: string): string {
 
 export default function ShopCustomRequestsList({ side }: { side: "buyer" | "shop" }) {
   const qc = useQueryClient();
+  // The one request whose price form (shop) or order form (buyer) is open.
+  const [openId, setOpenId] = useState<string | null>(null);
   const list = useQuery({ queryKey: ["shops", "custom-requests"], queryFn: fetchMyCustomRequests });
   const close = useMutation({
     mutationFn: (id: string) => closeCustomRequest(id),
@@ -55,10 +62,24 @@ export default function ShopCustomRequestsList({ side }: { side: "buyer" | "shop
             <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">{r.description}</p>
             {r.wanted_date && <p className="text-sm">Wanted by {dayText(r.wanted_date)}</p>}
             {r.quote_note && <p className="text-sm whitespace-pre-line [overflow-wrap:anywhere]">Shop's note: {r.quote_note}</p>}
-            {OPEN.has(r.status) && (
-              <Button type="button" size="sm" variant="outline" disabled={close.isPending} onClick={() => close.mutate(r.id)}>
-                {side === "buyer" ? "Withdraw request" : "Decline"}
-              </Button>
+            {openId === r.id && side === "shop" && r.status === "requested" && (
+              <ShopCustomQuoteForm requestId={r.id} onDone={() => setOpenId(null)} />
+            )}
+            {openId === r.id && side === "buyer" && r.status === "quoted" && (
+              <ShopCustomOrderForm request={r} onDone={() => setOpenId(null)} />
+            )}
+            {OPEN.has(r.status) && openId !== r.id && (
+              <div className="flex flex-wrap gap-2">
+                {side === "shop" && r.status === "requested" && (
+                  <Button type="button" size="sm" className="btn-grad-primary" onClick={() => setOpenId(r.id)}>Send a price</Button>
+                )}
+                {side === "buyer" && r.status === "quoted" && (
+                  <Button type="button" size="sm" className="btn-grad-primary" onClick={() => setOpenId(r.id)}>Order at this price</Button>
+                )}
+                <Button type="button" size="sm" variant="outline" disabled={close.isPending} onClick={() => close.mutate(r.id)}>
+                  {side === "buyer" ? "Withdraw request" : "Decline"}
+                </Button>
+              </div>
             )}
           </li>
         ))}

@@ -136,8 +136,8 @@ describe("loading states: a baselined entry that was not measured is not 'fixed'
  * four.
  */
 describe("loading states: a by-design entry covers only the decided jump", () => {
-  // @mutate scripts/check-loading-state-shape.mjs | if (e.path && e.path !== b.path) return false; | // path ignored
-  // @mutate scripts/check-loading-state-shape.mjs | b.delta > 0 && b.delta <= e.maxDeltaPx | b.delta !== 0
+  // @mutate scripts/lib/loadingStateRules.mjs | if (e.path && e.path !== b.path) return false; | // path ignored
+  // @mutate scripts/lib/loadingStateRules.mjs | b.delta > 0 && b.delta <= e.maxDeltaPx | b.delta !== 0
   // @mutate docs/audit/loading-states/baseline.json | "maxDeltaPx": 130, | "maxDeltaPx": 1300,
   type Entry = { key: string; kind: string; path?: string; maxDeltaPx?: number; ruling?: string };
   type Mod = { byDesignCovers: (b: { key: string; kind: string; path?: string; delta?: number }, e: Entry[]) => boolean };

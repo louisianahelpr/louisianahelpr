@@ -97,7 +97,7 @@ describe("loading-state evidence: a narrowed run merges into the catalog", () =>
       merged?: { surfaces: string[] }[];
     };
     expect(ev.results.length).toBeGreaterThan(100);
-    const ids = ev.results.map((x) => `${x.persona} ${x.url.replace(/^\/jobs\/[^/?#]+/, "/jobs/:id")}`);
+    const ids = ev.results.map((x) => `${x.persona} ${x.url.replace(/^\/jobs\/(?!settings(?:[/?#]|$))[^/?#]+/, "/jobs/:id")}`);
     expect(new Set(ids).size, "a surface appears twice in measurements.json").toBe(ids.length);
     for (const m of ev.merged ?? []) for (const s of m.surfaces) expect(ids).toContain(s);
   });

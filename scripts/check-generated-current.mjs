@@ -298,6 +298,7 @@ export const WRITES_NOT_COMMITTED = {
   "scripts/perf/inp-lab.mjs": "Q1157 INP lab medians as inp-<label>.json to ~/.lh-shots/perf (evidence outside the repo, --out overrides); nothing committed",
   "scripts/perf/cwv-lab.mjs":"Q1157/Q1158 Web Vitals lab tables, filmstrips and screenshots to ~/.lh-shots/perf (evidence outside the repo) and a throwaway TLS certificate in the OS temp dir; the CI budget is e2e/web-vitals/first-screens.spec.ts",
   "scripts/audit/walk-every-control.mjs": "~/.lh-shots/lh-audit",
+  "scripts/audit/prune-loading-baseline.mjs": "a SHRINK of a TWO_WAY baseline, not a generator: deletes only the docs/audit/loading-states/baseline.json `allow` entries a fresh measurement shows fixed (the check's own staleEntries rule), run by loading-states-refresh.yml's land job on the bot branch (Q1695)",
   "scripts/audit/measurement-from-log.mjs": "a TRANSPORT, not a generator: rebuilds the loading-states EVIDENCE output (docs/audit/loading-states/measurements.json, produced by measure-loading-states.mjs) byte-for-byte from a loading-states-refresh branch run's log, sha256-checked, for a session that cannot reach the artifact host (#1773)",
   "scripts/build-og-shell.mjs": "dist/ (build output)",
   "scripts/inline-shell-css.mjs": "dist/index.html (build output: the landing shell's own CSS inlined in its head, Q2705)",

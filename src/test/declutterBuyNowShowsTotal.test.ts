@@ -100,6 +100,9 @@ describe("D6: Buy now names what checkout will charge", () => {
     for (const f of files) {
       const rel = relative(REPO, f);
       if (rel === join("src", "components", "declutter", "BuyerTotal.tsx")) continue;
+      // Owner 11-07: the cards' "$X.XX incl. fee" line is the one-item total WITHOUT the per-account setup fee (lead
+      // 11-07), on purpose; guarded by src/test/declutterPriceInclFee.test.tsx. It is not a Buy-now figure.
+      if (rel === join("src", "components", "declutter", "PriceInclFee.tsx")) continue;
       const src = blankComments(readSource(f) ?? "");
       if (/\bbuyNowTotalCents\(/.test(src)) bare.push(rel);
     }

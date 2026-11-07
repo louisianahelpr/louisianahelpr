@@ -19,6 +19,7 @@ import { report } from "@/lib/errorLogger";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { photoPublicUrl, type DeclutterItem, type DeclutterMapPin } from "@/lib/declutter/api";
 import { itemPriceLabel, milesLabel } from "@/lib/declutter/distance";
+import { PriceInclFee } from "./PriceInclFee";
 import { LA_BOUNDS, readIsDark } from "@/components/browseMap/config";
 import { clusterElement, pinElement, PIN_HEIGHT } from "@/components/browseMap/mapMarkers";
 import { fitToPins, laRegion } from "@/components/browseMap/MapLayers";
@@ -221,6 +222,7 @@ export default function DeclutterMap({
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block text-ds-15 font-bold tabular-nums text-[hsl(var(--burnt-sienna))]">{itemPriceLabel(selected.item.current_price_cents)}</span>
+                <PriceInclFee priceCents={selected.item.current_price_cents} />
                 <span className="block truncate text-ds-15 font-semibold text-foreground" title={selected.item.title}>{selected.item.title}</span>
                 {/* NIGHT-BUYINGrealma-2: "Mid-City, Baton Rouge · 2 ..." cut the miles, the one number that matters on a map.
                     The place may be cut; the miles have their own line and never are. */}

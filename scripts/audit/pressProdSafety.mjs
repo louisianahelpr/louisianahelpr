@@ -388,7 +388,7 @@ function isStateToggle({ meta = {}, label = "" }) {
  * "Clear $X" (Q1928, DeclutterAmountsOwed) waives what a member still owes; "Clear search" stays a plain press.
  * "Check this id in Stripe" (held payout settle, HeldForReview) writes an admin_audit_log row via admin-settle-ref-lookup.
  */
-export const ADMIN_WRITE_RX = /\b(dismiss|investigat\w*|assign\w*|unassign|add|grant|escalate|reopen|archive|unarchive|verify|reject|warn|freeze|unfreeze|override|flag|unflag|retry|resend|end series|set to|bill|clear(?! search\b)|check this id|record claim|request a return label|suggest a reply)\b/i;
+export const ADMIN_WRITE_RX = /\b(dismiss|investigat\w*|assign\w*|unassign|add|grant|escalate|reopen|archive|unarchive|verify|reject|warn|freeze|unfreeze|override|flag|unflag|retry|resend|end series|set to|bill|clear(?! search\b)|check this id|record claim|request a return label|suggest a reply|check twilio|health alerts)\b/i;
 /**
  * THE APP SAYS IT IS THE COMMIT (2026-10-17). DialogPrimaryAction inside a
  * confirm (role="alertdialog": every BrandConfirmDialog) and every
@@ -407,7 +407,10 @@ export function isCommitControl(meta = {}) {
  * bell panel marks it read before it navigates, so the row is a mutating
  * control: it goes through the mutation gate like any other, never ungated.
  */
-export const NOTIFICATION_OPEN_RX = /^Notifications \u203a /;
+// The bell's name carries its unread count when there is one (NotificationTrigger: "Notifications, 99+ unread"),
+// so the chain step reads "Notifications, 99+ unread" (press-every-control 42362289081, Q1816: 40+ GATE MISSes on
+// PATCH /rest/v1/notifications, every one behind a bell with unread rows).
+export const NOTIFICATION_OPEN_RX = /^Notifications(?:, [^\u203a]*? unread)? \u203a /;
 /*
  * Read the CHAIN, not the control's own words (Declutter audit 2026-10-28,
  * audit2 press.log: 23 GATE MISSes on PATCH /rest/v1/notifications). The main

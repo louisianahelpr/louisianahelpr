@@ -1064,6 +1064,7 @@ export const GAPS: Record<string, string> = {
   "src/components/dashboard/JobCard.tsx": "false positive — displays a date, no control",
   "src/hooks/useComboboxKeyboard.ts": "false positive — a keyboard hook; the scanner matched `<input type=\"search\">` in a comment, it renders nothing",
   "src/components/postjob/CheckoutStep.tsx": "checkboxes only (save-card, confirm-details) — the 'input×1' is a comment naming the raw `<input type=\"checkbox\">` it replaced; no typed text",
+  "src/components/postjob/CheckoutGlanceCard.tsx": "false positive — a read-only summary card (moved out of CheckoutStep, Q806); the 'date/calendar' is the Calendar icon beside the When row, no control",
   "src/components/DisputeTimelineDialog.tsx": "file input only (evidence upload) — no typed text",
   "src/components/series/SeriesDatesPanel.tsx": "checkboxes only (visit dates to pick up or give up, Q407 5/6) — no typed text",
   "src/components/guarantee/HelprGuaranteePanel.tsx": "Helpr Guarantee (owner 2026-10-27): shown only on a COMPLETED job with its payout waiting (payout_pending, a paid live Stripe checkout, none on the test accounts), within 48 h of done; the note (15 to 1000 letters), the photos (own uploads, at most 6) and the fix day (today to 3 days out) are checked server-side in rpc_guarantee_open / rpc_guarantee_helpr_answer / rpc_guarantee_poster_answer, helprGuarantee.pglite.mjs; FORMS sweep owed once a test job can be funded",

@@ -11,6 +11,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { unwrap } from "@/lib/supabaseResult";
 import { bandMap, type ActiveBand } from "@/lib/activeBand";
 
 /** Listings for sale (this one included) from which "Lists often" shows. */
@@ -65,13 +66,11 @@ export function sellerBadges(s: { othersForSale: number | null; onTime: boolean 
 export async function fetchOnTimeHandovers(sellerId: string): Promise<boolean | null> {
   const res = await supabase.rpc("declutter_seller_on_time_handovers", { p_seller_id: sellerId });
   if (res.error && isMissingRpcNamed(res.error, "declutter_seller_on_time_handovers")) return null;
-  if (res.error) throw res.error;
-  return res.data === true;
+  return unwrap(res) === true;
 }
 
 /** The seller's activity band (get_user_last_active, members only); null when the server gave none. */
 export async function fetchActiveBand(sellerId: string): Promise<ActiveBand | null> {
   const res = await supabase.rpc("get_user_last_active", { user_ids: [sellerId] });
-  if (res.error) throw res.error;
-  return bandMap(res.data).get(sellerId) ?? null;
+  return bandMap(unwrap(res)).get(sellerId) ?? null;
 }

@@ -8,6 +8,7 @@
  * when the seller has other items that can still be bought (status live), and
  * never for the member's own items. Tapping it jumps to "More from this seller".
  */
+import { endSentence } from "@/lib/endSentence";
 import { useQuery } from "@tanstack/react-query";
 import { Layers } from "lucide-react";
 import { ListRow } from "@/components/ui/ListRow";
@@ -76,12 +77,12 @@ export function BundleSaveBox({ summary }: { summary: BundleSummary }) {
   if (!summary.offer) return null;
   return (
     <section data-bundle-save="" aria-labelledby="bundle-save-head" className="space-y-2 rounded-[20px] border border-[hsl(var(--bark)/0.25)] bg-[hsl(var(--bark)/0.06)] p-4">
-      <h2 id="bundle-save-head" className="flex items-center gap-2 text-base font-semibold">
+      <h2 id="bundle-save-head" className="text-base font-semibold flex items-center gap-2">
         <Layers className="h-5 w-5 shrink-0 text-primary" aria-hidden />
         Bundle and save
       </h2>
       <p className="text-sm text-foreground">
-        {summary.offer} from {summary.firstName}. {summary.count}{summary.capped ? "+" : ""} more {summary.count === 1 ? "item" : "items"} for sale,{" "}
+        {summary.offer} from {endSentence(summary.firstName)} {summary.count}{summary.capped ? "+" : ""} more {summary.count === 1 ? "item" : "items"} for sale,{" "}
         {summary.pickup ? "one pickup and one payment." : "one payment."}
       </p>
       <ListRow

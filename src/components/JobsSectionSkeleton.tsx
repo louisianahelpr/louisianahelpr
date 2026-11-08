@@ -25,8 +25,11 @@ import type { AppliedActivity, PostedActivity } from "@/hooks/useActivityData";
  * purpose: no Supabase, no NotificationPanel (the bell is a bone here).
  */
 
-/** Top bar (phone: search, bell, profile; desktop: title, "+") + (desktop) the Browse | Posted | Working tabs, as bones. */
-function JobsHeaderBones() {
+/**
+ * Top bar (phone: search, bell, profile; desktop: title, "+") + (desktop) the Browse | Posted | Working tabs, as bones.
+ * `list` (phone, Posted / Working): the loaded screen's back row under the bar (SectionListBack, 44px) as a bone.
+ */
+function JobsHeaderBones({ list = false }: { list?: boolean }) {
   const desktop = useIsWebDesktop();
   return (
     <div className="explore-header flex flex-col gap-1" aria-hidden>
@@ -55,6 +58,13 @@ function JobsHeaderBones() {
       />
       {/* SectionTabs (desktop): thin underline tabs, 44px. */}
       {desktop && <Skeleton className="h-11 w-full rounded-ds-md" />}
+      {/* SectionListBack (phone, Posted / Working): the back chevron and the list's name, 44px. */}
+      {!desktop && list && (
+        <div data-list-back-bone="" className="flex h-11 items-center gap-2">
+          <Skeleton className="h-5 w-5 rounded-full" />
+          <Skeleton className="h-5 w-24 rounded-ds-sm" />
+        </div>
+      )}
     </div>
   );
 }
@@ -195,7 +205,7 @@ const JobsSectionSkeleton = () => {
       {tab === "browse" ? (
         <BrowseFrame header={<JobsHeaderBones />} />
       ) : (
-        <JobsListLoadingFrame header={<JobsHeaderBones />} tab={tab === "posted" ? "posted" : "applied"} />
+        <JobsListLoadingFrame header={<JobsHeaderBones list />} tab={tab === "posted" ? "posted" : "applied"} />
       )}
     </div>
   );

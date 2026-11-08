@@ -86,7 +86,7 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
     expect(header).toBeGreaterThan(0);
     expect(scroll).toBeGreaterThan(header);
     // The header's own block closes before the scroll column opens.
-    expect(screen.slice(header, scroll)).toMatch(/<AppTopBar title=\{title\} explore section=\{section\} search=\{search\} mine=\{mine\} \/>\s*\{tabs\}\s*\{globalSearch && <ExploreSearchEntry \/>\}\s*<\/div>/);
+    expect(screen.slice(header, scroll)).toMatch(/<AppTopBar title=\{title\} explore section=\{section\} search=\{barSearch\} mine=\{mine\} \/>\s*\{tabs\}\s*\{globalSearch && <ExploreSearchEntry \/>\}\s*<\/div>/);
     for (const f of ["src/components/declutter/DeclutterHomeView.tsx", "src/components/shops/ShopsHomeView.tsx", "src/components/rentals/RentalsHomeView.tsx"]) {
       expect({ f, tabsProp: /<SectionScreen[^>]*\btabs=\{/.test(code(f)) }).toEqual({ f, tabsProp: true });
     }
@@ -101,10 +101,10 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
   });
 
   // Owner 11-08 (the Vinted header): a bar that carries the section's search names the page with a visually hidden h1
-  // instead (still the page's one h1); every other bar keeps the visible title.
+  // instead (still the page's one h1); every other bar keeps the visible title, Dashboard's `search={null}` included.
   it("3. on a phone the top bar is the section's visible title (the page's one h1), or a hidden h1 beside the search, with no chips row", () => {
     const bar = code("src/components/sections/AppTopBar.tsx");
-    expect(bar).toMatch(/<header className="app-top-bar [^"]*"[^>]*>\s*\{slim \? \(\s*<>\s*\{title && <h1 className="sr-only">\{title\}<\/h1>\}\s*<div className="min-w-0 flex-1">\{search\}<\/div>\s*<\/>\s*\) : title \? \(\s*<h1 className="min-w-0 truncate text-page-title text-foreground" title=\{title\}>\{title\}<\/h1>/);
+    expect(bar).toMatch(/<header className="app-top-bar [^"]*"[^>]*>\s*\{slim && search \? \(\s*<>\s*\{title && <h1 className="sr-only">\{title\}<\/h1>\}\s*<div className="min-w-0 flex-1">\{search\}<\/div>\s*<\/>\s*\) : title \? \(\s*<h1 className="min-w-0 truncate text-page-title text-foreground" title=\{title\}>\{title\}<\/h1>/);
     expect(bar).not.toMatch(/<ExploreSwitcher/);
   });
 

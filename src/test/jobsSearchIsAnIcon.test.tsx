@@ -20,10 +20,11 @@
  *
  * @mutate src/components/job-card/embeddedActivity.tsx | <InlineListSearch value={search} onChange={onSearch} label={tab === "posted" ? "Search posted jobs" : "Search jobs you're working"} onOpenChange={setSearchOpen} fill /> | {null}
  * @mutate src/components/sections/InlineListSearch.tsx |   const [open, setOpen] = useState(() => value.trim().length > 0); |   const [open, setOpen] = useState(() => true);
- * @mutate src/pages/home/Dashboard.tsx |       <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" onOpenChange={setPhoneSearchOpen} fill />\n      {phoneSearchOpen && <SearchTriggerSlot width="40px" />}\n      <BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} /> |       <BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />\n      <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" onOpenChange={setPhoneSearchOpen} fill />
- * @mutate src/pages/home/Dashboard.tsx | : { end: phoneBrowseEnd, onlySelected: phoneSearchOpen }) | : undefined)
- * @mutate src/pages/home/Dashboard.tsx |       <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" onOpenChange={setPhoneSearchOpen} fill /> |       <SectionSearchRow value={filters.searchQuery} onChange={filters.setSearchQuery} placeholder="Search jobs" />
- * @mutate src/components/job-card/embeddedActivity.tsx | header({ end: searchEnd, onlySelected: searchOpen && !desktop }) : header} | header() : header}
+ * @mutate src/pages/home/Dashboard.tsx |       filter={<BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />} /> | />\n      <BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />
+ * @mutate src/pages/home/Dashboard.tsx | : { search: phoneBrowseSearch }) | : undefined)
+ * @mutate src/pages/home/Dashboard.tsx |     <SectionSearchBar noun="jobs" home="/jobs" value={filters.searchQuery} onChange={filters.setSearchQuery} |     <SectionSearchRow value={filters.searchQuery} onChange={filters.setSearchQuery} placeholder="Search jobs"
+ * @mutate src/components/job-card/embeddedActivity.tsx | header(desktop ? { end: searchEnd } : { search: <SectionSearchBar | header(desktop ? {} : { search: <SectionSearchBar
+ * @mutate src/components/job-card/embeddedActivity.tsx | : { search: <SectionSearchBar noun={tab === "posted" ? "posted jobs" : "jobs you're working"} home="/jobs" value={search} onChange={onSearch} /> }) | : { end: searchEnd })
  * @mutate src/pages/jobs/JobsSection.tsx | <JobListPage key={tab} defaultTab={list} embeddedHeader={makeHeader} /> | <JobListPage key={tab} defaultTab={list} embeddedHeader={makeHeader()} />
  * @mutate src/pages/jobs/JobsSection.tsx | <JobListPage key={tab} defaultTab={list} embeddedHeader={makeHeader} /> | <JobListPage key={tab} defaultTab={list} embeddedHeader={() => makeHeader()} />
  * @mutate src/components/sections/StatusBoxes.tsx |       {end}\n |
@@ -75,13 +76,17 @@ vi.mock("@/hooks/useAgeGate", () => ({
 vi.mock("@/lib/haptics", () => ({ hapticLight: () => {}, hapticMedium: () => {} }));
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false, useFeatureStatus: () => ({ on: false, settled: true }) }));
+// The icon-by-the-gear rule is the desktop website's (the tabs row); a phone's search is the top bar's field (the
+// Vinted header, owner 11-08). Each test picks its width.
+const desktop = vi.hoisted(() => ({ on: true }));
+vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => desktop.on }));
 
 import JobsSection from "@/pages/jobs/JobsSection";
 import { EmbeddedActivityHeader } from "@/components/job-card/embeddedActivity";
 import { StatusBoxes } from "@/components/sections/StatusBoxes";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); desktop.on = true; });
 
 const wrap = (ui: ReactNode, url = "/jobs") =>
   render(
@@ -104,7 +109,7 @@ function expandedSearchFields(root: HTMLElement): HTMLElement[] {
 }
 
 describe("Jobs: the search is an icon, never an expanded field", () => {
-  it("no Jobs tab's header (above the list) draws an expanded search field", () => {
+  it("desktop website: no Jobs tab's header (above the list) draws an expanded search field", () => {
     let checked = 0;
     for (const tab of ["browse", "posted", "working"]) {
       const { container } = wrap(<JobsSection />, tab === "browse" ? "/jobs" : `/jobs?tab=${tab}`);
@@ -141,6 +146,26 @@ describe("Jobs: the search is an icon, never an expanded field", () => {
       expect(chipRow, "the status chip row").not.toBeNull();
       expect(chipRow.querySelector("[data-jobs-search]"), "nothing searches from the chip row").toBeNull();
       expect(expandedSearchFields(container)).toEqual([]);
+    });
+  }
+
+  // The Vinted header (owner 11-08): on a phone the tab's search IS the top bar's rounded field ("Search posted jobs"),
+  // beside the bell and the photo; no icon, no tabs row, and still nothing searches from the chip row.
+  for (const tab of ["posted", "working"] as const) {
+    it(`phone, ${tab}: the search is the top bar's field, never an icon, never in the status chip row (owner 11-08)`, async () => {
+      desktop.on = false;
+      const { container } = wrap(<JobsSection />, `/jobs?tab=${tab}`);
+      await waitFor(() => expect(container.querySelector("[data-jobs-toolbar]")).not.toBeNull());
+      const bar = within(container).getByTestId("app-top-bar");
+      const field = bar.querySelector<HTMLElement>("[data-section-search-bar]");
+      expect(field, "the bar's search").not.toBeNull();
+      const label = tab === "posted" ? "Search posted jobs" : "Search jobs you're working";
+      expect(field!.getAttribute("role")).toBe("search");
+      expect(within(field!).getByRole("searchbox", { name: label })).toBeInTheDocument();
+      expect(container.querySelectorAll("[data-section-search-bar]"), "one search").toHaveLength(1);
+      expect(container.querySelector("[data-jobs-search]"), "no icon").toBeNull();
+      expect(within(container).queryByTestId("section-tabs"), "no tabs row").toBeNull();
+      expect(container.querySelector("[data-jobs-toolbar]")!.querySelector("[data-section-search-bar], [data-jobs-search]")).toBeNull();
     });
   }
 
@@ -183,19 +208,24 @@ describe("Jobs: the search is an icon, never an expanded field", () => {
 // ── Card spacing: the mine card face is no looser than Browse's card ──────────────────────────────────────────
 const read = (p: string) => blankComments(readFileSync(resolve(__dirname, "..", p), "utf8"));
 
-describe("Jobs > Browse on a phone: search and filters end the tabs row, before the gear (owner 2026-10-28)", () => {
+describe("Jobs > Browse on a phone: the top bar's search field, with Filters inside it (owner 11-08, the Vinted header)", () => {
   const dash = read("pages/home/Dashboard.tsx");
-  const phoneEnd = dash.slice(dash.indexOf("const phoneBrowseEnd = isWebDesktop ? undefined : ("), dash.indexOf("const embeddedTitle = ("));
+  const phoneEnd = dash.slice(dash.indexOf("const phoneBrowseSearch = isWebDesktop ? undefined : ("), dash.indexOf("const embeddedTitle = ("));
 
-  it("Dashboard hands the tabs row, on a phone, the search ICON (opens in place) then Filters", () => {
+  // Owner 2026-10-28 put search then Filters at the end of the tabs row; the Vinted header (owner 11-08) moved both
+  // into the top bar: "Search jobs" is the bar's field and Filters sits inside its right end.
+  it("Dashboard hands the phone bar the 'Search jobs' field with Filters inside it", () => {
     expect(phoneEnd.length).toBeGreaterThan(100);
-    const search = phoneEnd.indexOf('<InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" onOpenChange={setPhoneSearchOpen} fill />');
-    const filtersAt = phoneEnd.indexOf("<BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />");
-    expect(search, "the search icon").toBeGreaterThan(-1);
-    expect(filtersAt, "the Filters button").toBeGreaterThan(search);
-    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes || feedShowingLoadError ? undefined : headerCount } : { end: phoneBrowseEnd, onlySelected: phoneSearchOpen })");
-    // JobsSection puts whatever Browse hands it BEFORE the gear (profileIsAccountMoneyHelp renders the order).
-    expect(read("pages/jobs/JobsSection.tsx")).toContain("end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>}");
+    const search = phoneEnd.indexOf('<SectionSearchBar noun="jobs" home="/jobs" value={filters.searchQuery} onChange={filters.setSearchQuery}');
+    const filtersAt = phoneEnd.indexOf("filter={<BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />}");
+    expect(search, "the search field").toBeGreaterThan(-1);
+    expect(filtersAt, "the Filters button, inside the field").toBeGreaterThan(search);
+    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes || feedShowingLoadError ? undefined : headerCount } : { search: phoneBrowseSearch })");
+    // JobsSection draws what Browse hands it in the phone bar, and the desktop end controls BEFORE the gear
+    // (profileIsAccountMoneyHelp renders the order).
+    const jobs = read("pages/jobs/JobsSection.tsx");
+    expect(jobs).toContain('search={browse?.search ?? <SectionSearchBar noun="jobs" home="/jobs" />} mine={mine} />');
+    expect(jobs).toContain("end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>}");
   });
 
   it("no separate 'Search jobs' row and no always-open field on Browse", () => {

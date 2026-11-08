@@ -20,6 +20,7 @@
  * @mutate src/pages/jobs/JobsSection.tsx | const JOBS_SETTINGS = { label: "Jobs settings", labelKey: "jobs.settings", path: "/jobs/settings" } as const; | const JOBS_SETTINGS = { label: "Jobs settings", labelKey: "jobs.settings", path: "/jobs" } as const;
  * @mutate src/pages/jobs/JobsSection.tsx | end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>} | end={browse?.end}
  * @mutate src/pages/jobs/JobsSection.tsx | end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>} | end={<><SectionSettingsButton settings={JOBS_SETTINGS} />{browse?.end}</>}
+ * @mutate src/pages/jobs/JobsSection.tsx |     settings: { label: tr(JOBS_SETTINGS.labelKey), to: JOBS_SETTINGS.path },\n |
  * @mutate src/components/sections/AppTopBar.tsx |       onClick={() => navigate(settings.path, { replace: false })} |       onClick={() => navigate("/profile")}
  * @mutate src/App.tsx |       <Route path="/jobs/settings" element= |       <Route path="/jobs/settings-old" element=
  * @mutate src/components/profile/profileLanding/YouMenu.tsx |           className="w-full px-0 text-ds-13 font-semibold tracking-normal text-muted-foreground" |           className="w-full px-0 rounded-ds-lg py-3.5 border text-ds-13 font-semibold tracking-normal text-muted-foreground"
@@ -33,7 +34,7 @@ vi.mock("@/lib/sectionPrefsRow", () => ({
   fetchSectionPrefsRow: async () => ({ data: null, error: null }),
   saveSectionPrefsRow: async () => ({ error: null }),
 }));
-import { cleanup, fireEvent, render, renderHook, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, renderHook, screen, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { blankComments } from "./helpers/blankNonCode";
@@ -109,12 +110,8 @@ describe("Jobs settings", () => {
   });
 
   // Owner 2026-10-28, desktop /jobs: "move gear down with the other icons"; on Posted / Working it sits in the same
-  // place, so it never jumps between tabs. On a phone it already ended the tabs row (owner 2026-10-22).
-  it.each([
-    ["phone", "/jobs", false], ["phone", "/jobs?tab=posted", false], ["phone", "/jobs?tab=working", false],
-    ["desktop", "/jobs", true], ["desktop", "/jobs?tab=posted", true], ["desktop", "/jobs?tab=working", true],
-  ] as const)("%s, %s: the gear is the LAST control at the tabs row's right end, never in the top bar, and opens /jobs/settings", async (_w, url, onDesktop) => {
-    desktop.on = onDesktop;
+  // place, so it never jumps between tabs.
+  function renderJobs(url: string) {
     function Where() {
       return <output data-testid="where">{useLocation().pathname}</output>;
     }
@@ -127,6 +124,10 @@ describe("Jobs settings", () => {
         </MemoryRouter>
       </QueryClientProvider>,
     );
+  }
+  it.each(["/jobs", "/jobs?tab=posted", "/jobs?tab=working"])("desktop, %s: the gear is the LAST control at the tabs row's right end, never in the top bar, and opens /jobs/settings", async (url) => {
+    desktop.on = true;
+    renderJobs(url);
     // Posted / Working are JobsSection's lazy chunk (B52): wait for the list's own search before reading the row.
     if (url !== "/jobs") await screen.findByRole("button", { name: "Search this list" });
     const gear = screen.getByRole("button", { name: "Jobs settings" });
@@ -139,6 +140,24 @@ describe("Jobs settings", () => {
     expect(screen.queryByTestId("app-top-bar")?.contains(gear) ?? false).toBe(false);
     expect(screen.queryByTestId("section-add")).toBeNull();
     fireEvent.click(gear);
+    expect(screen.getByTestId("where").textContent).toBe("/jobs/settings");
+  });
+
+  // The Vinted header (owner 11-08): on a phone the tabs row and its gear left the top; Jobs settings is the settings
+  // row of "My Jobs", the sheet the photo opens (MySectionSheet), never a control in the bar itself.
+  it.each(["/jobs", "/jobs?tab=posted", "/jobs?tab=working"])("phone, %s: no gear and no tabs row; the photo's My Jobs sheet holds Jobs settings, which opens /jobs/settings", async (url) => {
+    renderJobs(url);
+    if (url !== "/jobs") await screen.findByTestId("app-top-bar");
+    expect(screen.queryByTestId("section-tabs")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Jobs settings" })).toBeNull();
+    const bar = screen.getByTestId("app-top-bar");
+    expect(within(bar).queryByText("Jobs settings")).toBeNull();
+    fireEvent.click(within(bar).getByTestId("top-bar-profile"));
+    const sheet = await screen.findByRole("dialog");
+    const row = sheet.querySelector<HTMLAnchorElement>("[data-mine-settings]");
+    expect(row?.textContent).toContain("Jobs settings");
+    expect(row?.getAttribute("href")).toBe("/jobs/settings");
+    fireEvent.click(row!);
     expect(screen.getByTestId("where").textContent).toBe("/jobs/settings");
   });
 });

@@ -193,11 +193,15 @@ describe("ONE search on every section's Browse (owner 2026-10-21)", () => {
   it("Shops and Homes Browse turn off Explore's \"Search all sections\"; their own search is the one", () => {
     // Declutter is behavioural (declutterGateAndLocation.test.tsx); Jobs Browse draws its own row too.
     const shops = code("src/components/shops/ShopsHomeView.tsx");
-    expect(shops).toMatch(/<SectionScreen section="shops"[^>]*globalSearch=\{tab !== "browse"\}>/);
+    // Explore's search only off Browse on the desktop website; a phone's bar holds the section's own search (the Vinted
+    // header, owner 11-08), and on Browse the "Search shops" row draws itself in it (searchSlot).
+    expect(shops).toMatch(/<SectionScreen section="shops"[^>]*globalSearch=\{desktop && tab !== "browse"\}/);
+    expect(shops).toMatch(/<SectionScreen section="shops"[^>]*searchSlot=\{tab === "browse"\}/);
     expect(shops).toContain('placeholder="Search shops"');
     const homes = code("src/components/rentals/RentalsHomeView.tsx");
     const browse = homes.slice(homes.indexOf('if (tab === "browse")'), homes.indexOf("<HomesBrowse />"));
-    expect(browse).toMatch(/<SectionScreen section="homes"[^>]*globalSearch=\{false\}>/);
+    expect(browse).toMatch(/<SectionScreen section="homes"[^>]*globalSearch=\{false\}[^>]*>/);
+    expect(homes).toContain('searchSlot: tab === "browse"');
     expect(code("src/components/rentals/listings/RentBrowse.tsx")).toContain("<SectionSearchRow");
   });
 });

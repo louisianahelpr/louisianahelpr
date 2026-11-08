@@ -395,12 +395,12 @@ describe("Explore", () => {
     expect(where()).toBe("/jobs");
   });
 
-  it("each section screen hands its bar the section, and the phone bar draws its title, not the chips", () => {
+  it("each section screen hands its bar the section, and the phone bar draws its title (or the section's search beside a hidden h1, the Vinted header, owner 11-08), not the chips", () => {
     const screens = ["src/components/declutter/DeclutterHomeView.tsx", "src/components/shops/ShopsHomeView.tsx", "src/components/rentals/RentalsHomeView.tsx"];
     expect(screens.length).toBe(3); // vacuity floor (#2894)
     for (const f of screens) expect(code(f), f).toMatch(/<SectionScreen section="(declutter|shops|homes)"/);
     expect(code("src/pages/jobs/JobsSection.tsx")).toMatch(/<AppTopBar [^>]*\bexplore section="jobs"/);
-    expect(code("src/components/sections/SectionScreen.tsx")).toContain("<AppTopBar title={title} explore section={section} search={search} mine={mine} />");
+    expect(code("src/components/sections/SectionScreen.tsx")).toContain("<AppTopBar title={title} explore section={section} search={barSearch} mine={mine} />");
     expect(code("src/components/sections/AppTopBar.tsx")).not.toContain("<ExploreSwitcher");
   });
 });

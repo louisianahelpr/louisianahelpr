@@ -58,6 +58,10 @@ vi.mock("@/lib/haptics", () => ({ hapticLight: () => {}, hapticMedium: () => {} 
 // The "Preview" mark's read (useSectionTabs) stubbed as not loaded: no section is marked here (src/test/previewMark.test.tsx owns it).
 vi.mock("@/components/landing/useSectionsOpen", async (orig) => ({ ...(await orig<object>()), useOpenToEveryoneAnswer: () => null }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: () => false, useFeatureStatus: () => ({ on: false, settled: true }) }));
+// The Browse | Posted | Working tabs row is the desktop website's; a phone reaches Posted and Working from "My Jobs"
+// under the photo (the Vinted header, owner 11-08). Each test picks its width; phone by default.
+const desktop = vi.hoisted(() => ({ on: false }));
+vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => desktop.on }));
 
 import JobsSection from "@/pages/jobs/JobsSection";
 import { useDetailJob } from "@/pages/home/useDetailJob";
@@ -81,7 +85,7 @@ const open = (url: string) =>
   );
 const segments = () => within(screen.getByTestId("section-tabs")).getAllByRole("tab");
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); desktop.on = false; });
 
 describe("one search bar per screen (owner 2026-10-21: two were stacked on Browse)", () => {
   it("no tab's header draws 'Search all sections': Browse's own 'Search jobs' row is its search, and Posted / Working carry their own list search as an icon beside the gear (owner 2026-10-25 / 2026-10-27 / 2026-10-31, src/test/jobsSearchIsAnIcon.test.tsx)", () => {
@@ -93,6 +97,7 @@ describe("one search bar per screen (owner 2026-10-21: two were stacked on Brows
       cleanup();
     }
     expect(n).toBe(3);
+    desktop.on = true; // the icon beside the gear is the desktop tabs row's; a phone's is the bar's field (jobsSearchIsAnIcon)
     const { container } = render(<MemoryRouter><EmbeddedActivityHeader header={(row) => <div>{row?.end}</div>} tab="posted" statusFilter="all" counts={{ all: 1 }} onFilter={() => {}} search="" onSearch={() => {}} /></MemoryRouter>);
     expect(screen.queryByTestId("explore-search-entry")).toBeNull();
     const icon = container.querySelector<HTMLElement>("[data-jobs-search]")!;
@@ -102,7 +107,8 @@ describe("one search bar per screen (owner 2026-10-21: two were stacked on Brows
 });
 
 describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () => {
-  it("a plain /jobs shows the feed with Browse selected and leftmost", () => {
+  it("desktop website: a plain /jobs shows the feed with Browse selected and leftmost", () => {
+    desktop.on = true;
     open("/jobs");
     expect(screen.getByTestId("feed")).toBeTruthy();
     const tabs = segments();
@@ -112,20 +118,50 @@ describe("Jobs & Posts opens on Browse, Browse leftmost, one-word labels", () =>
     for (const t of tabs) expect((t.textContent ?? "").trim().split(/\s+/)).toHaveLength(1);
   });
 
-  it("on a phone the bar is the title Jobs, the bell, Messages, the + (Post a job) and the avatar (nav redesign, owner 2026-11-06); the Jobs settings gear ends the tabs row", () => {
+  // The Vinted header (owner 11-08): a plain /jobs opens on the feed (Browse) on a phone too, with no tabs row.
+  it("phone: a plain /jobs shows the feed, with no tabs row and no back row", () => {
+    open("/jobs");
+    expect(screen.getByTestId("feed")).toBeTruthy();
+    expect(screen.queryByTestId("section-tabs")).toBeNull();
+    expect(document.querySelector("[data-section-list-back]")).toBeNull();
+  });
+
+  it("on a phone the bar is the 'Search jobs' field, the bell and the photo, with a hidden h1 (the Vinted header, owner 11-08); '+ Post a job' floats; Posted, Working and Jobs settings are in My Jobs", async () => {
     open("/jobs");
     const bar = screen.getByTestId("app-top-bar");
     const h1 = within(bar).getByRole("heading", { level: 1 });
     expect(h1.textContent).toBe("Jobs");
-    expect(h1.className.split(/\s+/)).not.toContain("sr-only");
-    const labels = within(bar).getAllByRole("button").map((b) => b.getAttribute("aria-label"));
-    expect(labels).toEqual(["Notifications", "Messages", "Post a job", "Profile, TP"]); // the avatar initials are in its name (WCAG 2.5.3, Q1816)
+    expect(h1.className.split(/\s+/)).toContain("sr-only");
+    const buttons = within(bar).getAllByRole("button");
+    expect(buttons[0].hasAttribute("data-section-search-bar"), "the bar's search comes first").toBe(true);
+    expect(buttons[0].getAttribute("aria-label")).toBe("Search jobs");
+    expect(buttons.slice(1).map((b) => b.getAttribute("data-testid") ?? b.getAttribute("aria-label"))).toEqual([expect.stringMatching(/^Notifications/), "top-bar-profile"]);
+    expect(within(bar).queryByTestId("top-bar-messages")).toBeNull();
+    expect(within(bar).queryByTestId("top-bar-create")).toBeNull();
     expect(within(bar).queryByTestId("explore-switcher")).toBeNull();
-    expect(within(screen.getByTestId("section-tabs")).getByRole("button", { name: "Jobs settings" })).toBeTruthy();
+    const fab = screen.getByTestId("section-create-fab");
+    expect(fab.textContent).toContain("Post a job");
+    expect(bar.contains(fab)).toBe(false);
+    fireEvent.click(within(bar).getByTestId("top-bar-profile"));
+    const sheet = await screen.findByRole("dialog");
+    expect(within(sheet).getAllByRole("link").map((r) => r.getAttribute("href"))).toEqual(["/jobs?tab=posted", "/jobs?tab=working", "/jobs/settings", "/profile"]);
   });
 
   // The lists are JobsSection's lazy chunk (B52): the first draw after a tab or link may be its loading frame.
-  it("tapping Posted shows the posted list; Browse brings the feed back", async () => {
+  it("phone: My Jobs' Posted shows the posted list under a back row named Posted; its back arrow brings the feed back", async () => {
+    open("/jobs");
+    fireEvent.click(within(screen.getByTestId("app-top-bar")).getByTestId("top-bar-profile"));
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("link", { name: /^Posted/ }));
+    expect(await screen.findByTestId("list-posted")).toBeTruthy();
+    const back = document.querySelector<HTMLElement>("[data-section-list-back]")!;
+    expect(back, "the back row").not.toBeNull();
+    expect(within(back).getByRole("heading", { level: 2 }).textContent).toBe("Posted");
+    fireEvent.click(within(back).getByRole("button", { name: "Back to Browse" }));
+    expect(await screen.findByTestId("feed")).toBeTruthy();
+  });
+
+  it("desktop website: tapping Posted shows the posted list; Browse brings the feed back", async () => {
+    desktop.on = true;
     open("/jobs");
     fireEvent.click(segments()[1]);
     expect(await screen.findByTestId("list-posted")).toBeTruthy();

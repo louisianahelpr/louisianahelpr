@@ -10,6 +10,9 @@
  * @mutate supabase/functions/shop-checkout/index.ts |       payment_intent_data: { metadata: meta, capture_method: "manual", transfer_group: `shop_order_${o.id}` },\n      custom_text: { submit: { message: "Your download | payment_intent_data: { metadata: meta, transfer_group: `shop_order_${o.id}` },\n      custom_text: { submit: { message: "Your download
  * @mutate supabase/functions/shop-checkout/index.ts |   if (chargedCents !== session.amount_subtotal) { |   if (false) {
  * @mutate supabase/functions/shop-checkout/index.ts | o.is_digital !== true \|\| o.status !== "awaiting_hold" | o.status !== "awaiting_hold"
+ * stripe-webhook: a digital page is marked paid (shop_digital_mark_paid, never shop_mark_order_held) and captured at once.
+ * @mutate supabase/functions/stripe-webhook/handlers/shopCheckout.ts |   if (meta.digital === "1") { |   if (false) {
+ * @mutate supabase/functions/stripe-webhook/handlers/shopCheckout.ts |       if (ans.captured \|\| !ans.order_id) return; |       return;
  */
 import { describe, it, expect, beforeEach } from "vitest";
 import { loadEdgeFunction } from "./harness";
@@ -119,5 +122,55 @@ describe("shop-checkout buy_digital", () => {
     expect(res.status).toBe(500);
     expect(stripeMock.checkout.sessions.expire).toHaveBeenCalledWith("cs_live_dl");
     expect((scenario.rpcCalls ?? []).filter((c) => c.name === "shop_attach_checkout_session")).toHaveLength(0);
+  });
+});
+
+describe("stripe-webhook: a download's hold lands", () => {
+  const rpcs = (name: string) => (scenario.rpcCalls ?? []).filter((c) => c.name === name);
+  async function deliver(answer: unknown) {
+    setEnv({
+      SUPABASE_URL: "https://x.supabase.co", SUPABASE_ANON_KEY: "anon-key", SUPABASE_SERVICE_ROLE_KEY: "service-key",
+      STRIPE_SECRET_KEY: "sk_live_shops", STRIPE_TEST_SECRET_KEY: "sk_test_shops", STRIPE_WEBHOOK_SECRET: "whsec_live", CRON_SECRET: "cron-secret",
+    });
+    const fn = await loadEdgeFunction("stripe-webhook");
+    stripeMock.webhooks.constructEventAsync.mockResolvedValue({
+      id: "evt_dl_1", type: "checkout.session.completed", livemode: true, created: 1_760_000_000,
+      data: { object: {
+        id: "cs_live_dl", mode: "payment", payment_status: "unpaid", payment_intent: "pi_dl", amount_total: 1438,
+        total_details: { amount_tax: 0 }, client_reference_id: ORDER,
+        metadata: { kind: "shop_order", digital: "1", order_id: ORDER, buyer_id: BUYER, payer_id: BUYER, seller_id: MAKER,
+          tax_calculation_id: "taxcalc_dl", job_tax_cents: "108" },
+      } },
+    });
+    stripeMock.paymentIntents.retrieve.mockResolvedValue({ id: "pi_dl", status: "requires_capture" });
+    stripeMock.paymentIntents.capture.mockResolvedValue({ id: "pi_dl", status: "succeeded" });
+    stripeMock.paymentIntents.cancel.mockResolvedValue({ id: "pi_dl", status: "canceled" });
+    scenario.rpc.shop_digital_mark_paid = answer;
+    scenario.rpc.shop_order_captured = { result: "captured", order_id: ORDER, digital: true };
+    scenario.rpc.shop_hold_released = null;
+    scenario.reads.shop_orders = { rows: [{ payment_plan: "full_hold", deposit_cents: null }] };
+    return fn.fetch(fn.request({ rawBody: "{}", headers: { "stripe-signature": "t=1,v1=x" } }));
+  }
+
+  it("marks it paid with the page's total and tax, then captures it at once and records the capture", async () => {
+    const res = await deliver({ result: "accepted", order_id: ORDER, captured: false, capture_attempts: 0 });
+    expect(res.status).toBe(200);
+    expect(rpcs("shop_mark_order_held")).toHaveLength(0);
+    expect(rpcs("shop_digital_mark_paid")[0]?.args).toEqual({
+      p_session_id: "cs_live_dl", p_payment_intent_id: "pi_dl", p_amount_total: 1438, p_tax_cents: 108, p_livemode: true,
+    });
+    expect(stripeMock.paymentIntents.capture).toHaveBeenCalledWith("pi_dl", {}, { idempotencyKey: `shop-capture-${ORDER}-0` });
+    expect(rpcs("shop_order_captured")[0]?.args).toMatchObject({ p_order_id: ORDER });
+  });
+
+  it("a redelivered event for a download already captured captures nothing again", async () => {
+    await deliver({ result: "already_accepted", order_id: ORDER, captured: true, capture_attempts: 1 });
+    expect(stripeMock.paymentIntents.capture).not.toHaveBeenCalled();
+  });
+
+  it("a 'cancel_hold' answer releases the hold and never captures", async () => {
+    await deliver({ result: "cancel_hold", reason: "amount_mismatch", order_id: ORDER });
+    expect(stripeMock.paymentIntents.capture).not.toHaveBeenCalled();
+    expect(stripeMock.paymentIntents.cancel).toHaveBeenCalledWith("pi_dl", {}, { idempotencyKey: `shop-release-${ORDER}` });
   });
 });

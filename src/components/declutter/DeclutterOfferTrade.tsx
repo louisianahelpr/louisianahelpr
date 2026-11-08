@@ -4,8 +4,9 @@
  * 20261106163703); the seller accepts or declines within 48 hours. Free: no money changes hands, and each side then
  * picks up the other's item like a free item.
  *
- * Shown only when the listing takes trades (fetchAcceptsTrades) and the viewer can act on it; the buyer's own listings
- * load only when the sheet opens, so the item page reads nothing extra for a listing that takes no trades.
+ * Shown only when the listing takes trades (the item read's accepts_trades; trades audit 11-08 #22 folded the extra
+ * read into it) and the viewer can act on it; the buyer's own listings load only when the sheet opens, so the item page
+ * reads nothing extra.
  */
 import { useState } from "react";
 import { Link } from "react-router-dom";
@@ -17,15 +18,13 @@ import { Sheet, SheetContent, SheetFooter, SheetHero, SheetPrimaryAction, SheetS
 import type { DeclutterItem } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
-import { fetchAcceptsTrades, offerSwap, tradeableListings } from "@/lib/declutter/trades";
-import { tradesKey } from "./DeclutterTradeRules";
+import { offerSwap, tradeableListings } from "@/lib/declutter/trades";
 import { focusSheetItself } from "./focusSheetItself";
 import { myItemsQuery } from "./myItemsQuery";
 import { SELL_CHOOSER_PATH } from "@/lib/declutter/sellChooser";
 
-export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "id" | "title">; userId: string }) {
+export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "id" | "title" | "accepts_trades">; userId: string }) {
   const qc = useQueryClient();
-  const takes = useQuery({ queryKey: tradesKey(item.id), queryFn: () => fetchAcceptsTrades(item.id) });
   const [open, setOpen] = useState(false);
   const [picked, setPicked] = useState("");
   const mine = useQuery({ ...myItemsQuery(userId), enabled: open });
@@ -40,7 +39,7 @@ export function OfferTradeButton({ item, userId }: { item: Pick<DeclutterItem, "
     },
     onError: (err) => toast.error(declutterErrorMessage(err)),
   });
-  if (takes.data !== true) return null;
+  if (item.accepts_trades !== true) return null;
 
   return (
     <div data-offer-trade="">

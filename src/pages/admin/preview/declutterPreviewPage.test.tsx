@@ -21,8 +21,8 @@ import { declutterPreviewChecks } from "./declutterPreviewBackend";
 const ADMIN = "00000000-0000-4000-a000-000000000001";
 // Q2268: the bundle-request reads (no request here).
 vi.mock("@/lib/declutter/bundleRequest", async (orig) => ({ ...(await orig<object>()), fetchBundleRequests: async () => [] }));
-// Declutter trades slice 3: the trade cards' read (none here).
-vi.mock("@/lib/declutter/trades", async (orig) => ({ ...(await orig<object>()), fetchMyTrades: async () => [] }));
+// Trades audit 11-08 #12: the trade cards read declutter_swap_offers through the preview backend like every other
+// table (the trade stages carry a row; the order stages answer none), so there is no mock of fetchMyTrades here.
 vi.mock("@/hooks/useCurrentUser", () => ({ useCurrentUser: () => ({ user: { id: ADMIN }, profile: {}, isLoading: false }) }));
 vi.mock("@/hooks/useAuthReady", () => ({ useAuthReady: () => ({ user: { id: ADMIN }, isReady: true }) }));
 vi.mock("@/lib/userRealtimeBus", () => ({ subscribeUserRealtime: () => () => {} }));
@@ -291,6 +291,28 @@ describe("Q2585: /admin/preview/declutter", () => {
     expect(within(days).getAllByRole("button").length).toBeGreaterThan(0);
     expect(screen.queryByTestId("declutter-no-pickup-slots")).toBeNull();
     expect(unlisted).not.toContain("rpc declutter_order_pickup_windows");
+    await new Promise((res) => setTimeout(res, 20));
+    expect(supabaseCalls()).toEqual([]);
+  });
+
+  // Trades audit 11-08 #12: the trade stages draw the REAL trade cards from the sample's trade row, on both sides.
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts |     tables: { ...base.tables, declutter_swap_offers: [trade], | tables: { ...base.tables, declutter_swap_offers: [],
+  // @mutate src/pages/admin/preview/declutterPreviewSamples.ts |     buyer_line: lineRef(buyerGets, ORDER_ID), | buyer_line: null,
+  it("the trade stages draw the trade cards on both sides, with the trade's one chat once a side has checked out", async () => {
+    for (const side of ["buyer", "seller"] as const) {
+      const r = open(`?stage=trade_offer_open&side=${side}`);
+      const card = await waitFor(() => { const el = document.querySelector('[data-trade-card][data-trade-status="open"]'); expect(el, side).not.toBeNull(); return el as HTMLElement; });
+      expect(card.textContent).toContain(side === "seller" ? "Oak rocking chair (sample)" : "Brass floor lamp (sample)");
+      expect(within(card).queryByRole("button", { name: side === "seller" ? "Accept trade" : "Take it back" })).not.toBeNull();
+      r.unmount();
+      const r2 = open(`?stage=trade_one_checked_out&side=${side}`);
+      const talk = await waitFor(() => { const el = document.querySelector("[data-trade-talk]"); expect(el, side).not.toBeNull(); return el as HTMLElement; });
+      expect(talk.textContent).toBe("Message about the trade");
+      await new Promise((res) => setTimeout(res, 20));
+      r2.unmount();
+    }
+    open("?stage=trade_completed&side=buyer");
+    expect(await screen.findByText(/Done\. You both have your items\./)).toBeTruthy();
     await new Promise((res) => setTimeout(res, 20));
     expect(supabaseCalls()).toEqual([]);
   });

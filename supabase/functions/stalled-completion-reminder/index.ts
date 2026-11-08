@@ -71,7 +71,7 @@ import { serve } from "../_shared/buildStamp.ts";
 import { louisianaToday } from "../_shared/louisianaDate.ts";
 import { fetchFunction, invocationDeadline } from "../_shared/functionFetch.ts";
 import { caughtMessage } from "../_shared/caughtMessage.ts";
-import { heldByContinueDay, loadContinuingJobs } from "../_shared/continueDay.ts";
+import { heldByContinueDay, lapsedContinueDay, loadContinuingJobs } from "../_shared/continueDay.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -229,13 +229,17 @@ serve(async (req) => {
 
     // Continue another day (owner 2026-11-01): a job set to finish on a later day is not stalled; it is neither
     // nudged nor sent to the admin queue while that day is active. Fails closed: an unread check holds every job.
-    const continuing = await loadContinuingJobs(supabase, ids);
+    // Owner 11-08 (audit F1): the hold ends at the day's start + a grace (_shared/continueDay.ts). A LAPSED day takes
+    // the job's place in the ladder, so every stage is measured from the day the work moved to, not day 1.
+    const continuing = await loadContinuingJobs(supabase, ids, now);
     if (!continuing.ok) defects.record(`continue day read: ${continuing.message}`);
 
     const counts = { first: 0, second: 0, escalate: 0, errors: 0 };
     await forEachBounded(scan.rows, SWEEP_CONCURRENCY, async (job) => {
       if (heldByContinueDay(continuing, job.id)) return;
-      const stage = stalledCompletionStage(job, ledgers.get(job.id) ?? null, now);
+      const moved = lapsedContinueDay(continuing, job.id);
+      const evidence = moved ? { ...job, date_needed: moved.new_date, start_time: moved.new_start_time } : job;
+      const stage = stalledCompletionStage(evidence, ledgers.get(job.id) ?? null, now);
       if (!stage) return;
       try {
         if (!(await claim(job.id, stage))) return;
@@ -267,7 +271,7 @@ serve(async (req) => {
           // The ledger row claimed above IS the queue item: escalated_at set,
           // resolved_at null, read by admin_stalled_job_queue(). No
           // admin_audit_log row is written — no admin has acted yet.
-          const hours = hoursPastScheduledEnd(job, now);
+          const hours = hoursPastScheduledEnd(evidence, now);
           const { data: admins, error: adminsErr } = await supabase
             .from("user_roles")
             .select("user_id")

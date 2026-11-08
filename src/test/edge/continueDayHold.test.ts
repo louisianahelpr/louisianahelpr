@@ -7,7 +7,9 @@
  * src/test/edge/stalled-completion-reminder.test.ts ("continue another day").
  *
  * @mutate supabase/functions/auto-release-payment/index.ts |         if (heldByContinueDay(continuing, job.id)) { |         if (false) {
- * @mutate supabase/functions/auto-release-payment/index.ts |       if (instantIds.has(job.id) && !job.poster_completed_at && heldByContinueDay(continuing, job.id)) { |       if (false) {
+ * @mutate supabase/functions/auto-release-payment/index.ts |       if (instantIds.has(job.id) && !job.poster_completed_at && heldForInstantRelease(continuing, job.id)) { |       if (false) {
+ * @mutate supabase/functions/_shared/continueDay.ts |     if (Number.isFinite(startMs) && now.getTime() >= startMs + graceMs) { |     if (false) {
+ * @mutate supabase/functions/_shared/continueDay.ts |   return heldByContinueDay(read, jobId) \|\| lapsedContinueDay(read, jobId)?.status === "proposed"; |   return heldByContinueDay(read, jobId);
  * @mutate supabase/functions/_shared/continueDay.ts |   return !read.ok \|\| read.jobs.has(jobId); |   return read.ok && read.jobs.has(jobId);
  * @mutate supabase/functions/_shared/continueDay.ts | const CONTINUE_DAY_ACTIVE_STATUSES = ["proposed", "set"] as const; | const CONTINUE_DAY_ACTIVE_STATUSES = ["set"] as const;
  */
@@ -17,7 +19,7 @@ import { setEnv, resetEnv } from "./mocks/deno-runtime";
 import { stripeMock, resetStripeMock } from "./mocks/stripe";
 import { scenario, resetSupabaseMock } from "./mocks/supabase";
 import { resetSharedMocks } from "./mocks/shared";
-import { heldByContinueDay, loadContinuingJobs } from "../../../supabase/functions/_shared/continueDay";
+import { CONTINUE_DAY_HOLD_GRACE_HOURS, heldByContinueDay, heldForInstantRelease, lapsedContinueDay, loadContinuingJobs } from "../../../supabase/functions/_shared/continueDay";
 
 const CRON_SECRET = "test-only-cron";
 const POSTER = "poster-1";
@@ -147,5 +149,85 @@ describe("_shared/continueDay.ts", () => {
     expect(heldByContinueDay(bad, "zzz")).toBe(true);
     const missing = await loadContinuingJobs(db({ data: null, error: { message: "no table", code: "PGRST205" } }), ["a"]);
     expect(missing.ok && missing.jobs.size).toBe(0);
+  });
+});
+
+/** A Central date + time `hoursAgo` in the past, as job_continue_days stores it. */
+function dayHoursAgo(hoursAgo: number): { new_date: string; new_start_time: string } {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })
+    .formatToParts(new Date(Date.now() - hoursAgo * 3600e3));
+  const g = (t: string) => parts.find((p) => p.type === t)?.value ?? "00";
+  return { new_date: `${g("year")}-${g("month")}-${g("day")}`, new_start_time: `${g("hour") === "24" ? "00" : g("hour")}:${g("minute")}:00` };
+}
+
+describe("owner 11-08 (audit F1): the hold ends with the day", () => {
+  it("a SET day whose start + grace has passed no longer holds: the unanswered job is escalated to Helpr support", async () => {
+    seedDoneJob(false);
+    scenario.reads.job_continue_days = { rows: [{ job_id: "job-1", status: "set", ...dayHoursAgo(CONTINUE_DAY_HOLD_GRACE_HOURS + 1) }] };
+    await autoRelease();
+    expect(escalations().length).toBeGreaterThan(0);
+    expect(toPayoutPending()).toHaveLength(0);
+  });
+
+  it("a set day still inside its grace holds as before", async () => {
+    seedDoneJob(false);
+    scenario.reads.job_continue_days = { rows: [{ job_id: "job-1", status: "set", ...dayHoursAgo(1) }] };
+    await autoRelease();
+    expect(escalations()).toHaveLength(0);
+  });
+
+  it("a lapsed day that was only PROPOSED: escalation runs, the instant release still waits (no money without a person)", async () => {
+    seedDoneJob(false);
+    (scenario.reads.jobs as { rows: Array<Record<string, unknown>> }).rows[0].helper_completed_at = new Date(Date.now() - 3600e3).toISOString();
+    scenario.reads.profiles = { rows: [{ user_id: POSTER }] };
+    scenario.reads.job_continue_days = { rows: [{ job_id: "job-1", status: "proposed", ...dayHoursAgo(CONTINUE_DAY_HOLD_GRACE_HOURS + 1) }] };
+    const body = await json(await autoRelease());
+    expect(toPayoutPending()).toHaveLength(0);
+    expect(JSON.stringify(body)).toContain("continuing");
+  });
+
+  it("_shared: lapsed vs held, by the day's start in Central time", async () => {
+    const db = (res: unknown) => ({ from: () => ({ select: () => ({ in: () => ({ in: async () => res }) }) }) });
+    const r = await loadContinuingJobs(db({ data: [
+      { job_id: "old", status: "set", ...dayHoursAgo(CONTINUE_DAY_HOLD_GRACE_HOURS + 2) },
+      { job_id: "today", status: "set", ...dayHoursAgo(CONTINUE_DAY_HOLD_GRACE_HOURS - 2) },
+      { job_id: "asked", status: "proposed", ...dayHoursAgo(CONTINUE_DAY_HOLD_GRACE_HOURS + 2) },
+      { job_id: "noday", status: "set" },
+    ], error: null }), ["old", "today", "asked", "noday"]);
+    expect(heldByContinueDay(r, "old")).toBe(false);
+    expect(lapsedContinueDay(r, "old")?.status).toBe("set");
+    expect(heldByContinueDay(r, "today")).toBe(true);
+    expect(heldByContinueDay(r, "noday")).toBe(true);
+    expect(heldForInstantRelease(r, "asked")).toBe(true);
+    expect(heldForInstantRelease(r, "old")).toBe(false);
+  });
+});
+
+describe("lead 11-08: a done on a continue day without a new-day photo is never instant-released", () => {
+  it("the poster's instant release waits; the run says why", async () => {
+    seedDoneJob(false);
+    const stamp = new Date(Date.now() - 3600e3).toISOString();
+    (scenario.reads.jobs as { rows: Array<Record<string, unknown>> }).rows[0].helper_completed_at = stamp;
+    scenario.reads.profiles = { rows: [{ user_id: POSTER }] };
+    scenario.reads.job_continue_days = { rows: [{ job_id: "job-1", status: "finished", done_without_new_photo_at: stamp }] };
+    const body = await json(await autoRelease());
+    expect(toPayoutPending()).toHaveLength(0);
+    expect(JSON.stringify(body)).toContain("no_new_day_photo");
+  });
+
+  it("a mark from an EARLIER completion does not hold this one (inventory floor: it releases)", async () => {
+    seedDoneJob(false);
+    (scenario.reads.jobs as { rows: Array<Record<string, unknown>> }).rows[0].helper_completed_at = new Date(Date.now() - 3600e3).toISOString();
+    scenario.reads.profiles = { rows: [{ user_id: POSTER }] };
+    scenario.reads.job_continue_days = { rows: [{ job_id: "job-1", status: "finished", done_without_new_photo_at: new Date(Date.now() - 50 * 3600e3).toISOString() }] };
+    await autoRelease();
+    expect(toPayoutPending().length).toBeGreaterThan(0);
+  });
+
+  it("an unreadable mark holds the instant release (fail closed)", async () => {
+    const { loadNoNewPhotoCompletions } = await import("../../../supabase/functions/_shared/continueDay");
+    const db = { from: () => ({ select: () => ({ in: () => ({ not: async () => ({ data: null, error: { message: "reset", code: "08006" } }) }) }) }) };
+    const r = await loadNoNewPhotoCompletions(db, [{ id: "a", helper_completed_at: new Date().toISOString() }]);
+    expect(r.ok).toBe(false);
   });
 });

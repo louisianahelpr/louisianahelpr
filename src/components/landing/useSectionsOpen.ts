@@ -31,6 +31,13 @@ export function sectionIsComingSoon(feature: string | null, open: ReadonlySet<st
 /** Exported so FeatureSwitchesCard re-reads it after an admin changes a switch. */
 export const SECTIONS_OPEN_QUERY_KEY = ["features-open-to-everyone"] as const;
 
+/** Retries after the first failed read (H2, audit 11-08). Exported for the guard. */
+export const SECTIONS_OPEN_RETRIES = 2;
+/** Backoff before retry n (0-based): 600 ms, then 1200 ms. */
+export function sectionsOpenRetryDelay(attempt: number): number {
+  return 600 * 2 ** attempt;
+}
+
 let reported = false;
 /** One report per page session, whatever the failure count. Exported for the guard. */
 export function reportSectionsOpenFailureOnce(error: unknown): boolean {
@@ -64,17 +71,25 @@ function useSectionsOpenQuery(start: boolean) {
     queryFn: fetchSectionsOpen,
     enabled: start,
     staleTime: 5 * 60_000,
-    retry: false,
+    // H2 (Declutter buy audit 11-08): one dropped request (Facebook's in-app browser on a phone signal) sent a guest
+    // on a public item link to the login wall. Two retries with backoff (0.6 s, then 1.2 s) before it settles failed.
+    retry: SECTIONS_OPEN_RETRIES,
+    retryDelay: sectionsOpenRetryDelay,
     meta: { persist: false, reportsItself: true },
   });
 }
 
-/** `open` is null until settled; a failed read settles EMPTY (every switched section "coming soon"). */
-export function useSectionsOpen(start: boolean): { open: ReadonlySet<string> | null; settled: boolean } {
+/**
+ * `open` is null until settled; a failed read settles EMPTY (every switched section "coming soon"). `failed` says the
+ * read failed (after its retries), so a caller that must FAIL OPEN can tell "not open" from "no answer": the Declutter
+ * guest gate shows the public item rather than the login wall (H2, audit 11-08; the server still refuses a guest read
+ * while Declutter is not open to everyone).
+ */
+export function useSectionsOpen(start: boolean): { open: ReadonlySet<string> | null; settled: boolean; failed: boolean } {
   const q = useSectionsOpenQuery(start);
-  if (q.isSuccess) return { open: new Set(q.data ?? []), settled: true };
-  if (q.isError) return { open: new Set(), settled: true };
-  return { open: null, settled: false };
+  if (q.isSuccess) return { open: new Set(q.data ?? []), settled: true, failed: false };
+  if (q.isError) return { open: new Set(), settled: true, failed: true };
+  return { open: null, settled: false, failed: false };
 }
 
 /**

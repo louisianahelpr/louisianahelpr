@@ -15,12 +15,19 @@ export const CARD_FIELD_CLS =
   "w-full h-[52px] rounded-[14px] border border-border bg-card px-4 text-ds-15 text-foreground focus:border-primary focus:outline-none placeholder:text-muted-foreground";
 
 type InputProps = React.ComponentProps<"input"> & {
-  /** "card": the Sell form's field look (CARD_FIELD_CLS), class for class; the default is the shared glass field. */
-  look?: "field" | "card";
+  /**
+   * "card": the Sell form's field look (CARD_FIELD_CLS), class for class; the default is the shared glass field.
+   * "bare": no surface of its own, for a field drawn inside a composed surface that already is the field's box (the
+   * section search bar, owner 11-08: its rounded bar holds the magnifier, the words, the clear and Filters).
+   */
+  look?: "field" | "card" | "bare";
 };
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, look = "field", ...props }, ref) => {
+    if (look === "bare") {
+      return <input type={type} className={cn("w-full min-w-0 bg-transparent outline-none", className)} ref={ref} {...props} />;
+    }
     if (look === "card") {
       return <input type={type} className={`${CARD_FIELD_CLS} ${className ?? ""}`.trim()} ref={ref} {...props} />;
     }

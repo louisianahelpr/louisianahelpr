@@ -180,12 +180,11 @@ export function NotificationPanelView({
         </AnchoredPanelHeader>
         {withMessages && (
           // Messages, one tap from the bell (owner 11-08: the Declutter bar keeps only the bell and the photo).
-          <button
-            type="button"
+          <ListRow
             data-testid="bell-messages-row"
             onClick={() => { setOpen(false); navigate("/messages"); }}
             aria-label={messagesUnread > 0 ? `Messages, ${formatUnreadBadge(messagesUnread)} unread` : "Messages"}
-            className="mx-4 my-2 flex shrink-0 items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="mx-4 my-2 w-auto shrink-0 gap-3 rounded-2xl border border-border bg-card px-4 py-3 focus-visible:ring-offset-0"
           >
             <MessageSquare className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
             <span className="min-w-0 flex-1 text-ds-15 font-semibold text-foreground">Messages</span>
@@ -195,7 +194,7 @@ export function NotificationPanelView({
               </span>
             )}
             <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-          </button>
+          </ListRow>
         )}
 
         <PullToRefreshWrapper

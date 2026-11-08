@@ -1,6 +1,8 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Search, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 /** Router state that asks a section's Browse field to take focus (a tap on another tab's bar). */
 const FOCUS_SEARCH_STATE = { focusSectionSearch: true } as const;
@@ -38,16 +40,18 @@ export function SectionSearchBar(props: { noun: string; home: string } & (FieldP
 
   if (props.onChange === undefined) {
     return (
-      <button
+      // The shared Button (OWN-SHARED), worn as the bar: left-aligned, regular weight, no focus offset.
+      <Button
         type="button"
+        variant="ghost"
         aria-label={label}
         data-section-search-bar=""
         onClick={() => navigate(home, { state: FOCUS_SEARCH_STATE })}
-        className={`${BAR} pr-4 text-left text-muted-foreground ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
+        className={`${BAR} pr-4 justify-start py-0 text-left text-ds-16 font-normal tracking-normal text-muted-foreground focus-visible:ring-offset-0`}
       >
         <Search className="h-[18px] w-[18px] shrink-0" aria-hidden />
         <span aria-hidden className="min-w-0 whitespace-nowrap text-ds-16"><Words noun={noun} /></span>
-      </button>
+      </Button>
     );
   }
   const { value, onChange, filter } = props;
@@ -57,7 +61,8 @@ export function SectionSearchBar(props: { noun: string; home: string } & (FieldP
       <Search className="h-[18px] w-[18px] shrink-0 text-muted-foreground" aria-hidden />
       <span className="relative flex min-w-0 flex-1 items-center">
       {!value && <span aria-hidden className="pointer-events-none absolute left-0 top-1/2 -translate-y-1/2 whitespace-nowrap text-ds-16 text-muted-foreground"><Words noun={noun} /></span>}
-      <input
+      <Input
+        look="bare"
         ref={inputRef}
         type="search"
         value={value}
@@ -65,14 +70,14 @@ export function SectionSearchBar(props: { noun: string; home: string } & (FieldP
         onKeyDown={(e) => { if (e.key === "Escape" && value) { e.preventDefault(); onChange(""); } }}
         aria-label={label}
         enterKeyHint="search"
-        className="w-full min-w-0 bg-transparent text-ds-16 text-foreground outline-none [&::-webkit-search-cancel-button]:hidden"
+        className="text-ds-16 text-foreground [&::-webkit-search-cancel-button]:hidden"
       />
       </span>
       {value && (
-        <button type="button" aria-label="Clear search" onClick={() => { onChange(""); inputRef.current?.focus(); }}
-          className="ctl-exit flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground">
+        <Button type="button" variant="ghost" size="iconCompact" aria-label="Clear search" onClick={() => { onChange(""); inputRef.current?.focus(); }}
+          className="ctl-exit -my-px shrink-0 text-muted-foreground hover:text-foreground [&_svg]:size-4">
           <X className="h-4 w-4" aria-hidden />
-        </button>
+        </Button>
       )}
       {filter && <span data-search-bar-filter="" className="flex shrink-0 items-center border-l border-border/60 pl-1">{filter}</span>}
     </form>

@@ -103,7 +103,9 @@ describe("Q2426: the link preview (api/share.ts + vercel.json)", () => {
     expect(html).toContain(`<meta property="og:url" content="https://www.louisianahelpr.com/declutter/item/${ITEM}"`);
     expect(html).toContain(`<link rel="canonical" href="https://www.louisianahelpr.com/declutter/item/${ITEM}"`);
     expect(html).toContain(`<meta property="og:image" content="https://example.supabase.co/functions/v1/shop-photo?id=${PHOTO}&amp;kind=declutter&amp;w=1200&amp;og=1"`);
-    expect(html).not.toMatch(/job-photos|storage\/v1/);
+    // A concrete storage path (bucket, then a path: it starts with the owner's user id). index.html's guest /declutter
+    // script names only the bucket's URL prefix, which carries no one's path (Q2705, 11-08).
+    expect(html).not.toMatch(/job-photos(?:\/|%2F)[\w-]|storage\/v1\/object\/(?:public|sign|authenticated)\/[\w-]+\/[\w-]|storage\/v1\/render\/image\/(?:public|sign|authenticated)\/[\w-]+\/[\w-]/i);
     // Values only: still exactly one og:image tag (owner 10-31: no second, square one).
     expect(html.match(/<meta property="og:image" /g)?.length).toBe(1);
     // Members never see fee numbers anywhere (owner rule): the card names no fee.

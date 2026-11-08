@@ -279,6 +279,8 @@ export const es: Record<MsgKey, string> = {
   "jobs.tabPosted": "Publicados",
   "jobs.tabWorking": "Trabajando",
   "jobs.tabsLabel": "Trabajos y publicaciones",
+  "jobs.myJobs": "Mis trabajos",
+  "jobs.postAJob": "Publicar un trabajo",
 
   // Jobs browse header (Explore chips, Soon, settings gear)
   "jobs.settings": "Ajustes de trabajos",

@@ -45,6 +45,9 @@ export const enCore = {
   "jobs.tabPosted": "Posted",
   "jobs.tabWorking": "Working",
   "jobs.tabsLabel": "Jobs & Posts",
+  // The Vinted header (owner 11-08): the photo's menu and the floating create pill.
+  "jobs.myJobs": "My Jobs",
+  "jobs.postAJob": "Post a job",
 
   // Jobs browse header (Explore chips, Soon, settings gear)
   "jobs.settings": "Jobs settings",

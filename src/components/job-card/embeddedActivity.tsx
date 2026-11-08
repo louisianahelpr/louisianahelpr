@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { StatusBoxes } from "@/components/sections/StatusBoxes";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
+import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { JOBS_TOOLBAR_ROW } from "@/components/sections/jobsToolbar";
 import { POSTED_GROUP_LABEL, WORKING_GROUP_LABEL } from "@/components/job-card/ActivityBucketGroups";
@@ -35,7 +36,7 @@ export function nextBoxFilter(current: string, tapped: string): string {
  * The section's top bar + tabs. Jobs hands a function (JobsSection's makeHeader) so the tab's search can ride in the
  * tabs row; a plain node (component tests) is drawn as is, with no search in it.
  */
-export type EmbeddedHeader = ReactNode | ((row?: { end?: ReactNode; onlySelected?: boolean }) => ReactNode);
+export type EmbeddedHeader = ReactNode | ((row?: { end?: ReactNode; onlySelected?: boolean; search?: ReactNode }) => ReactNode);
 
 /** The section's top bar + tabs (with this tab's search icon beside the gear), then the status boxes that filter the list. */
 export function EmbeddedActivityHeader({
@@ -76,7 +77,10 @@ export function EmbeddedActivityHeader({
   );
   return (
     <div className="flex flex-col gap-4">
-      {typeof header === "function" ? header({ end: searchEnd, onlySelected: searchOpen && !desktop }) : header}
+      {/* Phone (owner 11-08, the Vinted header): the tab's search is the top bar's field. Desktop: the icon by the gear. */}
+      {typeof header === "function"
+        ? header(desktop ? { end: searchEnd } : { search: <SectionSearchBar noun={tab === "posted" ? "posted jobs" : "jobs you're working"} home="/jobs" value={search} onChange={onSearch} /> })
+        : header}
       {/* The same row box as Browse's "N jobs" row (jobsToolbar.ts, owner 2026-10-27).
           Q2610: no chips over a tab with nothing in any bucket (the empty card says what to do); they cut off at
           375 ("Upcomi") over an empty list. */}

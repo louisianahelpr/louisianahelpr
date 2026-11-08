@@ -27,7 +27,7 @@ import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { fetchMyPayouts } from "@/lib/declutter/handover";
 import { listingNextStep } from "./listingStatusLine";
-import { ChevronLeft, ChevronRight, Settings, Tags } from "lucide-react";
+import { ChevronRight, Settings, Tags } from "lucide-react";
 import { ListingShareButton } from "./DeclutterShareCard";
 import { SellChooserEntry } from "./SellChooserEntry";
 import type { DeclutterItem } from "@/lib/declutter/api";
@@ -48,6 +48,7 @@ import { SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
+import { SectionListBack } from "@/components/sections/SectionListBack";
 import type { DeclutterBrowseHeader, DeclutterChrome } from "./DeclutterBrowseView";
 import type { SectionMineMenu } from "@/components/sections/sectionMine";
 import { DeclutterGuestBrowseJoin } from "./DeclutterGuest";
@@ -420,21 +421,6 @@ function SellingSettingsEntry() {
 
 const DECLUTTER_SETTINGS = { label: "Declutter settings", path: "/declutter/settings" } as const;
 
-/**
- * A phone's way back from one of My Declutter's lists (owner 11-08, the Vinted header: Buying, Selling and the rest left
- * the top for the photo's "My Declutter" sheet): the row under the search names the list and goes back to Browse.
- */
-function DeclutterListBack({ label, onBack }: { label: string; onBack: () => void }) {
-  return (
-    <div data-declutter-list-back="" className="flex h-11 items-center gap-1">
-      <Button type="button" variant="ghost" size="iconCompact" aria-label="Back to Browse" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground">
-        <ChevronLeft className="h-5 w-5" aria-hidden />
-      </Button>
-      <h2 className="min-w-0 truncate text-ds-18 font-semibold text-foreground">{label}</h2>
-    </div>
-  );
-}
-
 const MINE_TABS = ["buying", "selling", "deliver"] as const; // Deliver tab: owner 2026-10-28
 // The Wanted tab (owner 2026-10-28, "Both": the tab AND Browse's bottom link), only while 'declutter_wanted' is on.
 // The Free tab, last, next to Wanted (OWN-FREE, owner via the lead 2026-10-30): for everyone, as the Free section is.
@@ -562,7 +548,7 @@ function DeclutterMemberHome() {
   } : {
     search: browse?.search ?? <SectionSearchBar noun="Declutter" home="/declutter" />,
     mine,
-    tabs: browse ? browse.chips : <DeclutterListBack label={lists.find((l) => l.value === view)?.label ?? "Declutter"} onBack={() => goTab("browse")} />,
+    tabs: browse ? browse.chips : <SectionListBack label={lists.find((l) => l.value === view)?.label ?? "Declutter"} onBack={() => goTab("browse")} />,
   };
   const fab = desktop ? undefined : <SectionCreateFab section="declutter" text="Sell" />;
   // Browse draws its own section screen, so its header can carry its search, filters, chips, map toggle and count.

@@ -81,7 +81,7 @@ export default function ShopItemPreorderEditor({ shopId, item, hasOptions }: { s
   const push = useMutation({
     mutationFn: () => pushPreorderDate(item.id, pushTo),
     onSuccess: (n) => {
-      toast(n > 0 ? `Date moved. We told ${n} ${n === 1 ? "buyer" : "buyers"}.` : "Date moved.");
+      toast(n > 0 ? `Date moved. ${n === 1 ? "1 buyer was" : `${n} buyers were`} told.` : "Date moved.");
       setConfirmPush(false);
       setPushTo("");
       refresh();
@@ -167,12 +167,10 @@ export default function ShopItemPreorderEditor({ shopId, item, hasOptions }: { s
             />
             <p className="text-xs text-muted-foreground">{`Up to ${PREORDER_MAX_DAYS} days out.`}</p>
           </div>
-          <div className="flex items-start gap-2">
+          <Label htmlFor={`${headId}-goal-on`} className="flex min-h-11 items-start gap-2 font-normal leading-snug">
             <Checkbox id={`${headId}-goal-on`} checked={f.withGoal} onCheckedChange={(v) => set("withGoal", v === true)} />
-            <Label htmlFor={`${headId}-goal-on`} className="block min-h-11 flex-1 font-normal leading-snug">
-              Only make it if enough people order (a goal)
-            </Label>
-          </div>
+            <span className="flex-1">Only make it if enough people order (a goal)</span>
+          </Label>
           {f.withGoal && (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
@@ -193,10 +191,10 @@ export default function ShopItemPreorderEditor({ shopId, item, hasOptions }: { s
               </div>
             </div>
           )}
-          <div className="flex items-start gap-2">
+          <Label htmlFor={`${headId}-cap-on`} className="flex min-h-11 items-start gap-2 font-normal leading-snug">
             <Checkbox id={`${headId}-cap-on`} checked={f.withCap} onCheckedChange={(v) => set("withCap", v === true)} />
-            <Label htmlFor={`${headId}-cap-on`} className="block min-h-11 flex-1 font-normal leading-snug">Limit how many I take</Label>
-          </div>
+            <span className="flex-1">Limit how many I take</span>
+          </Label>
           {f.withCap && (
             <div className="space-y-1.5">
               <Label htmlFor={`${headId}-cap`}>Most I'll take</Label>

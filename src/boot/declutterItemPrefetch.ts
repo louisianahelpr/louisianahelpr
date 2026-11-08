@@ -21,7 +21,7 @@ export const DECLUTTER_ITEM_PREFETCH_KEY = "__lhDeclutterItemPrefetch";
 
 /** Copy of ITEM_COLUMNS (src/lib/declutter/myReads.ts; the test holds them equal). */
 export const ITEM_SELECT =
-  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok, accepts_offers";
+  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok, accepts_offers, accepts_trades";
 /** Copies of DECLUTTER_PHOTO_BUCKET (api.ts), PAGE_PHOTO_WIDTHS (pagePhoto.ts) and the gallery's sizes (DeclutterGallery.tsx). */
 const BUCKET = "job-photos";
 const WIDTHS = [720, 1080] as const;

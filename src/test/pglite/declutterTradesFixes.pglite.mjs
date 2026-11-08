@@ -3,7 +3,7 @@
  * PGlite proof for 20261108195151_declutter_trades_fixes.sql (trades audit 11-08 #1, #2, #4-#9, #11).
  *
  *   node src/test/pglite/declutterTradesFixes.pglite.mjs
- *   NEW_MIGRATION=skip node src/test/pglite/declutterTradesFixes.pglite.mjs   # RED (slices 1 and 4 only)
+ *   NEW_MIGRATION=skip node src/test/pglite/declutterTradesFixes.pglite.mjs   # RED (slices 1 and 4 and the old bodies only)
  *
  * Applies slice 1 (20261106163703) and slice 4 (20261106184913) verbatim, then this migration 3x. Executes:
  *   - accept stamps swap_id on both $0 lines (#2);
@@ -18,13 +18,18 @@
  *   - an offered item paused closes the trade; a wanted item paused keeps it (#7); an item made free closes its
  *     trades and its switch (#6);
  *   - a meetup-only item cannot be traded (#9);
- *   - the internal helpers stay service_role only.
+ *   - the internal helpers stay service_role only;
+ *   - cart "Remove" on a trade line ends the whole trade at once (lead 11-08), with no "Back on sale" notice;
+ *   - #3: a guest (anon) can read accepts_trades, and declutter_guest_preview / declutter_guest_first_screen answer it.
  */
 import { PGlite, U, makeCheck, readMigration } from "./messageAlertsWorld.mjs";
 
 const SLICE1 = "20261106163703_declutter_trades.sql";
 const SLICE4 = "20261106184913_declutter_trades_handover.sql";
 const NEW = "20261108195151_declutter_trades_fixes.sql";
+const GUEST_PREVIEW = "20261107212823_declutter_guest_preview.sql";
+const GUEST_FIRST_SCREEN = "20261107172400_declutter_guest_first_screen.sql";
+const REMOVE_CART = "20261103173728_q2390_haul_price_withdraw_guarantee_raise_refund_admin_delivery_cart_shops_rent_not_found_is_404.sql";
 const SKIP = process.env.NEW_MIGRATION === "skip";
 const { check, state } = makeCheck();
 
@@ -76,13 +81,22 @@ CREATE TABLE public.declutter_items (
   id uuid PRIMARY KEY, seller_id uuid NOT NULL, title text NOT NULL, status text NOT NULL,
   price_cents integer NOT NULL, current_price_cents integer NOT NULL, is_seed boolean NOT NULL DEFAULT false,
   seller_hidden boolean NOT NULL DEFAULT false, porch_ok boolean NOT NULL DEFAULT true, handovers text[],
-  updated_at timestamptz);
+  updated_at timestamptz,
+  -- declutter_guest_preview's card columns (20261107212823); anon holds SELECT on each of them on prod (not on accepts_trades).
+  description text, category text, condition_stars int, delivery_size text, area_label text, area_lat float8, area_lng float8,
+  created_at timestamptz DEFAULT now(), live_at timestamptz DEFAULT now(), accepts_offers boolean DEFAULT true,
+  sale_mode text, last_price_drop_on date, drop_pct int, drops_stopped boolean);
+CREATE TABLE public.declutter_item_photos (id uuid PRIMARY KEY, item_id uuid, storage_path text, position int);
+GRANT SELECT (id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents,
+  area_label, area_lat, area_lng, created_at, live_at, porch_ok, accepts_offers, sale_mode, last_price_drop_on, drop_pct,
+  drops_stopped) ON public.declutter_items TO anon;
+GRANT SELECT ON public.declutter_item_photos TO anon;
 CREATE TABLE public.declutter_seller_defaults (member_id uuid PRIMARY KEY);
 CREATE TABLE public.declutter_orders (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), buyer_id uuid, seller_id uuid, status text NOT NULL DEFAULT 'awaiting_payment',
   paid_with text NOT NULL DEFAULT 'card', handover text, items_cents int, premium_cents int, tax_cents int, delivery_cents int,
   total_cents int, setup_fee_cents int, card_fee_cents int, paid_at timestamptz, stripe_checkout_session_id text,
-  stripe_payment_intent_id text, close_reason text, closed_at timestamptz);
+  stripe_payment_intent_id text, close_reason text, closed_at timestamptz, created_at timestamptz DEFAULT now());
 CREATE TABLE public.declutter_cart_items (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), item_id uuid, buyer_id uuid, seller_id uuid, price_cents integer NOT NULL DEFAULT 0,
   status text NOT NULL DEFAULT 'in_cart', order_id uuid, closed_at timestamptz,
@@ -106,6 +120,17 @@ INSERT INTO public.profiles VALUES ('${A}', 'Ann'), ('${B}', 'Bea');
 `);
 try { await db.exec(readMigration(SLICE1)); await db.exec(readMigration(SLICE4)); check("slices 1 and 4 apply", true); }
 catch (e) { check("slices 1 and 4 apply", false, e.message); }
+// The prod bodies this migration restates beyond the trade slices (md5(prosrc) equal on prod 11-08), verbatim:
+// declutter_guest_preview (its whole migration) and declutter_remove_cart_item (cut from 20261103173728).
+try {
+  await db.exec(readMigration(GUEST_PREVIEW));
+  await db.exec(readMigration(GUEST_FIRST_SCREEN));
+  const q2390 = readMigration(REMOVE_CART);
+  const at = q2390.indexOf("CREATE OR REPLACE FUNCTION public.declutter_remove_cart_item(");
+  const end = q2390.indexOf("TO authenticated, service_role;", at) + "TO authenticated, service_role;".length;
+  await db.exec(q2390.slice(at, end));
+  check("the restated prod bodies apply", true);
+} catch (e) { check("the restated prod bodies apply", false, e.message); }
 // The restated bodies are only CREATEd here (plpgsql checks a body when it runs); the RPCs below that they would
 // need beyond this world (my_cart, deadline_sweep) are pinned by declutterTradesFixes.test.ts instead.
 if (!SKIP) {
@@ -242,6 +267,48 @@ check("#9 a meetup-only item cannot be traded", /trade_needs_pickup/.test(om1?.e
 const m2 = await items({ wantHandovers: ["porch", "meetup"] });
 const om2 = await as(B, `SELECT public.declutter_offer_swap('${m2.ia}', '${m2.ib}') AS id`);
 check("#9 control: an item with porch pickup can be traded", om2?.id && !om2.error, JSON.stringify(om2));
+
+// Lead 11-08: the buyer's cart "Remove" on a trade line ends the whole trade at once (not at the next :47 sweep).
+// B has made 10 offers today above (the daily cap): age them, so this one is not refused trade_rate_limited.
+await db.exec(`UPDATE public.declutter_swap_offers SET created_at = created_at - interval '2 days'`);
+const tx = await accepted();
+await db.exec(`DELETE FROM public.notices; DELETE FROM public.reopened; DELETE FROM public.emails`);
+const rm = await as(B, `SELECT public.declutter_remove_cart_item('${tx.lb}') AS r`);
+check("Remove on a trade line works", rm?.r === "removed", JSON.stringify(rm) + JSON.stringify(tx.off));
+check("Remove ends the trade at once", (await st("declutter_swap_offers", tx.s)) === "lapsed", await st("declutter_swap_offers", tx.s));
+check("Remove releases the other side's line too", (await st("declutter_cart_items", tx.la)) === "missed", await st("declutter_cart_items", tx.la));
+check("Remove puts both items back up", (await st("declutter_items", tx.ia)) === "live" && (await st("declutter_items", tx.ib)) === "live");
+check("Remove reopens held-back money offers on both items", (await count(`SELECT DISTINCT line FROM public.reopened WHERE line IN ('${tx.lb}', '${tx.la}')`)) === 2);
+check("Remove on a trade line sends trade wording, never 'Back on sale'",
+  (await count(`SELECT 1 FROM public.notices WHERE title = 'Trade cancelled'`)) === 2
+  && (await count(`SELECT 1 FROM public.notices WHERE title = 'Back on sale'`)) === 0);
+check("Remove on a trade line: the other side is emailed", (await count(`SELECT 1 FROM public.emails WHERE user_id = '${A}' AND title = 'Trade cancelled'`)) === 1);
+check("Remove on a trade line gives no strike", (await count(`SELECT 1 FROM public.strikes`)) === 0);
+// Control: a plain Buy-now line still sends "Back on sale" and touches no trade.
+const [plainItem, plainLine] = [U(970), U(971)];
+await db.exec(`INSERT INTO public.declutter_items (id, seller_id, title, status, price_cents, current_price_cents) VALUES ('${plainItem}', '${A}', 'Stool', 'reserved', 2000, 2000);
+  INSERT INTO public.declutter_cart_items (id, item_id, buyer_id, seller_id, price_cents) VALUES ('${plainLine}', '${plainItem}', '${B}', '${A}', 2000);
+  DELETE FROM public.notices;`);
+const rmPlain = await as(B, `SELECT public.declutter_remove_cart_item('${plainLine}') AS r`);
+check("control: Remove on a plain line still says 'Back on sale'", rmPlain?.r === "removed"
+  && (await count(`SELECT 1 FROM public.notices WHERE title = 'Back on sale'`)) === 1
+  && (await count(`SELECT 1 FROM public.notices WHERE title = 'Trade cancelled'`)) === 0, JSON.stringify(rmPlain));
+
+// #3: a guest can read accepts_trades (the badge), and the guest preview names it.
+const anonCol = await one(`SELECT has_column_privilege('anon', 'public.declutter_items', 'accepts_trades', 'SELECT') AS ok`);
+check("#3 anon may read accepts_trades", anonCol?.ok === true, JSON.stringify(anonCol));
+let gp;
+try { await db.exec(`SET ROLE anon`); gp = (await db.query(`SELECT public.declutter_guest_preview() AS p`)).rows[0]; }
+catch (e) { gp = { error: e.message }; }
+finally { await db.exec(`RESET ROLE`); }
+const firstGuestItem = gp?.p?.items?.[0];
+check("#3 the guest preview runs as anon and answers accepts_trades", !!firstGuestItem && "accepts_trades" in firstGuestItem, JSON.stringify(gp).slice(0, 300));
+let gf;
+try { await db.exec(`SET ROLE anon`); gf = (await db.query(`SELECT public.declutter_guest_first_screen() AS p`)).rows[0]; }
+catch (e) { gf = { error: e.message }; }
+finally { await db.exec(`RESET ROLE`); }
+const firstListItem = gf?.p?.items?.[0];
+check("#3 the guest's whole list (no preview) runs as anon and answers accepts_trades", !!firstListItem && "accepts_trades" in firstListItem, JSON.stringify(gf).slice(0, 300));
 
 for (const fn of ["declutter_end_swap(uuid, uuid)", "declutter_swap_tell(uuid, text, text, text, text, uuid, boolean)", "declutter_swap_sweep()"]) {
   const priv = await one(`SELECT has_function_privilege('authenticated', 'public.${fn}', 'EXECUTE') AS a, has_function_privilege('anon', 'public.${fn}', 'EXECUTE') AS n`);

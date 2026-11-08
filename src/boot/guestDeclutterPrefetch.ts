@@ -30,7 +30,7 @@ export const GUEST_DECLUTTER_PREFETCH_KEY = "__lhGuestDeclutterPrefetch";
 
 /** COPY of ITEM_COLUMNS (src/lib/declutter/myReads.ts). */
 export const GUEST_ITEM_COLUMNS =
-  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok, accepts_offers";
+  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok, accepts_offers, accepts_trades";
 /** fetchLiveItems' limit. */
 export const GUEST_ITEMS_LIMIT = 500;
 

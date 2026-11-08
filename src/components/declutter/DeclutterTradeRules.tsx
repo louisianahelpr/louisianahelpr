@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { fetchAcceptsTrades, setTradeRules, TRADES_TITLE, tradesSettingLine } from "@/lib/declutter/trades";
 
-export const tradesKey = (itemId: string) => ["declutter", "accepts-trades", itemId] as const;
+const tradesKey = (itemId: string) => ["declutter", "accepts-trades", itemId] as const;
 
 export function DeclutterTradeRules({ itemId, rowClassName }: { itemId: string; rowClassName: string }) {
   const qc = useQueryClient();

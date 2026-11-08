@@ -67,7 +67,7 @@ export async function respondSwap(swapId: string, action: SwapAction): Promise<s
 }
 
 type TradeItem = { id: string; title: string; current_price_cents: number };
-type TradeLine = { status: string } | null;
+type TradeLine = { status: string; order_id: string | null } | null;
 
 /** One trade offer as a side reads it (RLS: the two sides read their own rows). */
 export interface MyTrade {
@@ -82,12 +82,21 @@ export interface MyTrade {
   offered: TradeItem | null;
   /** Once accepted: this member's own $0 line for the item they get ('in_cart' until they check out, then 'paid'). */
   my_line_status: string | null;
+  /**
+   * Trades audit 11-08 #10: the ONE order chat both sides use for this trade (no new chat): the checked-out $0 order of
+   * the wanted item's line, else of the offered item's line. Both members are the two sides of both orders, so either
+   * reads and writes it (declutter_order_talk_view). Null until a side has checked out.
+   */
+  talk_order_id: string | null;
 }
 
 const TRADE_COLUMNS =
-  "id, status, respond_by, created_at, item:declutter_items!declutter_swap_offers_item_id_fkey(id, title, current_price_cents), offered:declutter_items!declutter_swap_offers_offered_item_id_fkey(id, title, current_price_cents), buyer_line:declutter_cart_items!declutter_swap_offers_buyer_line_id_fkey(status), seller_line:declutter_cart_items!declutter_swap_offers_seller_line_id_fkey(status)";
+  "id, status, respond_by, created_at, item:declutter_items!declutter_swap_offers_item_id_fkey(id, title, current_price_cents), offered:declutter_items!declutter_swap_offers_offered_item_id_fkey(id, title, current_price_cents), buyer_line:declutter_cart_items!declutter_swap_offers_buyer_line_id_fkey(status, order_id), seller_line:declutter_cart_items!declutter_swap_offers_seller_line_id_fkey(status, order_id)";
 
-type TradeRow = Omit<MyTrade, "my_side" | "my_line_status"> & { buyer_line: TradeLine; seller_line: TradeLine };
+type TradeRow = Omit<MyTrade, "my_side" | "my_line_status" | "talk_order_id"> & { buyer_line: TradeLine; seller_line: TradeLine };
+
+/** A checked-out line's order (its chat), or null. */
+const checkedOutOrder = (l: TradeLine) => (l && l.status === "paid" && l.order_id ? l.order_id : null);
 
 /**
  * Selling (side "seller"): the open trade offers to answer and the accepted ones. Buying (side "buyer"): the member's
@@ -104,6 +113,7 @@ export async function fetchMyTrades(side: "buyer" | "seller", userId: string): P
     ...r,
     my_side: side,
     my_line_status: (side === "seller" ? seller_line : buyer_line)?.status ?? null,
+    talk_order_id: r.status === "accepted" || r.status === "completed" ? checkedOutOrder(buyer_line) ?? checkedOutOrder(seller_line) : null,
   }));
 }
 

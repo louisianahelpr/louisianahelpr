@@ -61,7 +61,7 @@ function BuyerFiles({ order }: { order: ShopOrder }) {
   const report = useMutation({
     mutationFn: () => reportDigitalProblem(order.id, reason, note),
     onSuccess: () => {
-      toast.success("Reported. Louisiana Helpr will look at it before the shop is paid.");
+      toast("Reported. Louisiana Helpr will look at it before the shop is paid.");
       setReporting(false);
       void qc.invalidateQueries({ queryKey: ["shops", "orders"] });
     },
@@ -112,10 +112,10 @@ function BuyerFiles({ order }: { order: ShopOrder }) {
             <Textarea id={`dl-note-${order.id}`} rows={3} maxLength={500} value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button type="button" size="sm" variant="ghost" onClick={() => setReporting(false)}>Cancel</Button>
             <Button type="button" size="sm" disabled={report.isPending || note.trim().length === 0} onClick={() => report.mutate()}>
               Send report
             </Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setReporting(false)}>Cancel</Button>
           </div>
         </div>
       )}

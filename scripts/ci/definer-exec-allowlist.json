@@ -692,6 +692,10 @@
     "shops_cancel_preorder(uuid)": "reviewed 2026-11-08 (Q14): Shops preorders (20261108184654): no client caller; shop-checkout (preorder_cancel) calls it with the buyer's token; refuses a NULL caller; only the caller's own preorder (o.buyer_id = auth.uid()) before the shop marks it ready; it only refunds",
     "shops_item_preorders(uuid)": "client",
     "declutter_funnel_counts(integer)": "client",
+    "shops_my_digital_files(uuid)": "client",
+    "shops_report_digital_problem(uuid, text, text)": "client",
+    "shops_digital_file_begin(uuid, text, text, bigint)": "reviewed 2026-11-08 (Q14): Shops digital downloads (20261108182917; lh-authz-rls PASS-with-notes 11-08): no client caller; shop-digital (upload_url) calls it with the seller's token; behind switch 'shops', refuses a banned caller, shops_assert_owner_eligible + shops_lock_own_item make it the item owner's only; writes one waiting file row at a path SQL chooses",
+    "shops_request_digital_order(uuid)": "reviewed 2026-11-08 (Q14): Shops digital downloads (20261108185110): no client caller; shop-checkout (buy_digital) calls it with the buyer's token; behind switch 'shops'; refuses a NULL caller, a banned one, 3 strikes, under 18, 30 orders an hour, a hidden or blocked shop (404), own shop, paused or not selling, already bought; writes only the caller's own awaiting order and its one line",
     "public_profile_work_photos(text)": "client",
     "my_job_photos()": "client",
     "set_job_photo_shown(uuid, text, boolean)": "client"

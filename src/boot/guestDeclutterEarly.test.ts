@@ -43,13 +43,17 @@ const KEY = "anon.key";
 
 /** The inline script that names the early slot (comments in the HTML are not part of any script). */
 function earlyScript(html: string): string {
-  // Comments dropped until none are left (a single pass can leave a "<!--" behind), script tags matched case-blind.
+  // Plain string scanning, no regex (CodeQL js/bad-tag-filter): comments first, then each bare <script> element.
   let bare = html;
-  for (let prev = ""; prev !== bare; ) {
-    prev = bare;
-    bare = bare.replace(/<!--[\s\S]*?-->/g, "");
+  for (let at = bare.indexOf("<!--"); at !== -1; at = bare.indexOf("<!--")) {
+    const close = bare.indexOf("-->", at + 4);
+    bare = bare.slice(0, at) + (close === -1 ? "" : bare.slice(close + 3));
   }
-  const scripts = [...bare.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script\s*>/gi)].map((m) => m[1]);
+  const scripts: string[] = [];
+  for (let at = bare.indexOf("<script>"); at !== -1; at = bare.indexOf("<script>", at + 1)) {
+    const close = bare.indexOf("</script>", at);
+    if (close !== -1) scripts.push(bare.slice(at + "<script>".length, close));
+  }
   const hits = scripts.filter((s) => s.includes(GUEST_DECLUTTER_EARLY_KEY));
   expect(hits).toHaveLength(1);
   return hits[0];

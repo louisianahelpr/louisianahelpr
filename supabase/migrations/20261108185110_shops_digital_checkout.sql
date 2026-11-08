@@ -15,8 +15,9 @@
 --   3. shop_order_captured (restated): a digital order's buyer is told the download is ready, the shop is told of the
 --      sale. From that moment shop_digital_download_path (restated from slice 1) lets the buyer download.
 --   4. 72 hours after the capture with no problem reported, shop_handover_sweep (restated) finishes the order with
---      shop_digital_complete: handed_over, the seller's card-fee debt first, then one shop_payouts row due now, sent
---      by the existing shop payout sender. The sweep's "did you get it" nudges skip downloads.
+--      shop_complete_handover(order, 'auto') (restated: still the one writer of a finished order and its payout):
+--      handed_over, the seller's card-fee debt first, then one shop_payouts row due now, sent by the existing shop
+--      payout sender. The sweep's "did you get it" nudges, and its 48-hour finish after a shop's tap, skip downloads.
 --   5. shops_report_digital_problem(order, reason, note), AS THE BUYER, within those 72 hours: only "the file is
 --      broken" or "not as described" (lead default). It opens the order's problem (shop_handovers.problem_at), which
 --      already holds the payout (shop_payouts_due) and the 72-hour finish, and the admin decides with the existing
@@ -197,9 +198,10 @@ $fn$;
 REVOKE ALL ON FUNCTION public.shop_digital_mark_paid(text, text, integer, integer, boolean) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_digital_mark_paid(text, text, integer, integer, boolean) TO service_role;
 
--- 4. A download paid 72 hours ago with no problem open: final, and the shop is paid (the steps of
---    shop_complete_handover, 20261106194913, with a download's own words). Service role only (the sweep).
-CREATE OR REPLACE FUNCTION public.shop_digital_complete(p_order_id uuid)
+-- 4. RESTATED from 20261106194913_shops_helpr_delivery.sql: shop_complete_handover stays the ONE writer of a finished
+--    order and its payout (src/test/shopsHandoverPayout.test.ts); a download is finished by the sweep ('auto') only
+--    72 hours after its charge, or by an admin, and its buyer gets no pickup notice.
+CREATE OR REPLACE FUNCTION public.shop_complete_handover(p_order_id uuid, p_how text)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -210,55 +212,80 @@ DECLARE
   v_debt integer;
   v_payout uuid;
 BEGIN
+  -- Never 'shop': the shop cannot complete its own order (owner 2026-10-18 ~21:00Z).
+  IF p_how IS NULL OR p_how NOT IN ('buyer', 'auto', 'admin') THEN
+    RAISE EXCEPTION 'invalid_method' USING ERRCODE = '22023';
+  END IF;
   SELECT * INTO o FROM public.shop_orders WHERE id = p_order_id FOR UPDATE;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'order_not_found' USING ERRCODE = 'P0002';
-  END IF;
-  IF NOT o.is_digital THEN
-    RAISE EXCEPTION 'not_digital' USING ERRCODE = '22023';
   END IF;
   IF o.status = 'handed_over' THEN
     RETURN jsonb_build_object('result', 'already_handed_over', 'order_id', o.id);
   END IF;
   IF o.status <> 'accepted' OR o.captured_at IS NULL THEN
-    RAISE EXCEPTION 'order_not_charged_yet' USING ERRCODE = '55000';
+    RAISE EXCEPTION 'order_not_charged_yet' USING ERRCODE = '55000',
+      HINT = 'This order is not charged yet, so it cannot be handed over.';
   END IF;
-  IF o.captured_at + interval '72 hours' > now() THEN
+  -- CHANGED (digital, owner 11-08): a download is final 72 hours after its charge (the sweep, 'auto'), or by an admin.
+  -- The buyer's "I got it" and the shop's taps do not apply to a file.
+  IF o.is_digital AND p_how = 'buyer' THEN
+    RAISE EXCEPTION 'digital_no_pickup' USING ERRCODE = '55000', HINT = 'A download has no pickup to confirm.';
+  END IF;
+  IF o.is_digital AND p_how = 'auto' AND o.captured_at + interval '72 hours' > now() THEN
     RAISE EXCEPTION 'too_soon' USING ERRCODE = '55000', HINT = 'A download is paid out 72 hours after the sale.';
   END IF;
-  IF EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.problem_at IS NOT NULL) THEN
+  IF p_how <> 'admin' AND EXISTS (SELECT 1 FROM public.shop_handovers h WHERE h.order_id = o.id AND h.problem_at IS NOT NULL) THEN
     RAISE EXCEPTION 'problem_open' USING ERRCODE = '55000',
       HINT = 'A problem was reported on this order. Louisiana Helpr decides before anyone is paid.';
   END IF;
   INSERT INTO public.shop_handovers (order_id) VALUES (o.id) ON CONFLICT (order_id) DO NOTHING;
-  UPDATE public.shop_handovers SET confirmed_at = now(), confirmed_how = 'auto' WHERE order_id = o.id AND confirmed_at IS NULL;
+  UPDATE public.shop_handovers SET confirmed_at = now(), confirmed_how = p_how WHERE order_id = o.id AND confirmed_at IS NULL;
   UPDATE public.shop_orders
      SET status = 'handed_over', close_reason = 'handed_over', handed_over_at = now(), closed_at = now()
    WHERE id = o.id AND status = 'accepted';
-  -- The seller's card-fee debt (one ledger across Declutter and Shops) comes out first. No delivery on a download.
-  v_debt := public.declutter_consume_fee_debt(o.seller_id, 'shop_order_' || o.id::text, o.items_cents);
+  -- Delivery (20261106180902, 20261106194913): the shop is paid its items, and its own delivery fee only when IT
+  -- delivered (shop_delivers); a Helpr's pay comes from helpr_task_payouts. shop_payouts.items_cents carries what
+  -- the shop is owed, so shop_payouts_amount (amount = items - debt) is unchanged.
+  -- The seller's card-fee debt (Declutter and Shops share one ledger) comes out first.
+  v_debt := public.declutter_consume_fee_debt(o.seller_id, 'shop_order_' || o.id::text, (o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END));
   INSERT INTO public.shop_payouts (order_id, items_cents, debt_cents, amount_cents, status, next_attempt_at)
-  VALUES (o.id, o.items_cents, v_debt, o.items_cents - v_debt,
-          CASE WHEN o.items_cents - v_debt = 0 THEN 'nothing_due' ELSE 'pending' END, now())
+  VALUES (o.id, (o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END), v_debt, (o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END) - v_debt,
+          CASE WHEN (o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END) - v_debt = 0 THEN 'nothing_due' ELSE 'pending' END,
+          now())
   ON CONFLICT (order_id) DO NOTHING
   RETURNING id INTO v_payout;
-  PERFORM public.declutter_notify(o.seller_id, 'payment', 'Download sale final',
+  -- The clock finishing an order is not a pickup anybody saw: say so (money review of 201265b4c).
+  PERFORM public.declutter_notify(o.seller_id, 'payment', CASE WHEN o.is_digital THEN 'Download sale final' WHEN p_how = 'buyer' THEN 'Order picked up' ELSE 'Order finished' END,
     CASE
-      WHEN o.items_cents - v_debt = 0 THEN
-        format('This sale paid off the $%s card fee you owed, so there is nothing to send.', to_char(v_debt / 100.0, 'FM999990.00'))
+      WHEN (o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END) - v_debt = 0 THEN
+        format('This order paid off the $%s card fee you owed, so there is nothing to send.', to_char(v_debt / 100.0, 'FM999990.00'))
       WHEN NOT EXISTS (SELECT 1 FROM public.profiles pr WHERE pr.user_id = o.seller_id AND pr.stripe_account_id IS NOT NULL) THEN
-        format('Set up payouts in Settings to get your $%s. We send it as soon as you do.', to_char((o.items_cents - v_debt) / 100.0, 'FM999990.00'))
+        format('Set up payouts in Settings to get your $%s. We send it as soon as you do.', to_char(((o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END) - v_debt) / 100.0, 'FM999990.00'))
       WHEN v_debt > 0 THEN
         format('$%s is on its way to your payout account ($%s card fee you owed was taken out).',
-               to_char((o.items_cents - v_debt) / 100.0, 'FM999990.00'), to_char(v_debt / 100.0, 'FM999990.00'))
-      ELSE format('$%s is on its way to your payout account.', to_char((o.items_cents - v_debt) / 100.0, 'FM999990.00'))
+               to_char(((o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END) - v_debt) / 100.0, 'FM999990.00'), to_char(v_debt / 100.0, 'FM999990.00'))
+      ELSE format('$%s is on its way to your payout account.', to_char(((o.items_cents + CASE WHEN o.fulfillment = 'shop_delivers' THEN o.delivery_cents ELSE 0 END) - v_debt) / 100.0, 'FM999990.00'))
     END,
     '/shops/dashboard', o.buyer_id);
-  RETURN jsonb_build_object('result', 'handed_over', 'order_id', o.id, 'payout_id', v_payout, 'by', 'auto');
+  -- CHANGED (digital): the buyer already has the download (told at the charge); nothing more to say.
+  IF o.is_digital THEN
+    RETURN jsonb_build_object('result', 'handed_over', 'order_id', o.id, 'payout_id', v_payout, 'by', p_how);
+  END IF;
+  PERFORM public.declutter_notify(o.buyer_id, 'payment', CASE WHEN p_how = 'buyer' THEN 'Enjoy your order' ELSE 'Order finished' END,
+    CASE p_how
+      WHEN 'buyer' THEN 'The pickup is done and the order is final. Thank you for buying local.'
+      -- H5: the clock only runs after the shop said it was handed over (or left out with a photo).
+      WHEN 'auto' THEN 'Nobody reported a problem in the 48 hours after the shop said your order was handed over, so the order is final and the shop is paid.'
+      ELSE 'Louisiana Helpr finished this order, and the shop is paid.'
+    END,
+    '/shops/orders', o.seller_id);
+  RETURN jsonb_build_object('result', 'handed_over', 'order_id', o.id, 'payout_id', v_payout, 'by', p_how);
 END;
 $fn$;
-REVOKE ALL ON FUNCTION public.shop_digital_complete(uuid) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.shop_digital_complete(uuid) TO service_role;
+
+REVOKE ALL ON FUNCTION public.shop_complete_handover(uuid, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.shop_complete_handover(uuid, text) TO service_role;
 
 -- 5. The buyer says the file is broken or not as described, within the 72 hours. The payout waits for an admin.
 CREATE OR REPLACE FUNCTION public.shops_report_digital_problem(p_order_id uuid, p_reason text, p_note text)
@@ -476,17 +503,20 @@ DECLARE
 BEGIN
   -- (a) The shop said it is done and the buyer said nothing for 48 hours: the shop is paid. In person: the
   -- "Handed over" tap. Left out: the ready photo, counted from the later of the photo and the ready date's start.
+  -- CHANGED (digital, owner 11-08): a download paid 72 hours ago with no problem reported is final and its shop is
+  -- paid; a shop's "handed over" tap never shortens those 72 hours. A download has no handover row until it is
+  -- finished, so the join is a LEFT JOIN (a made order still needs the shop's tap, which needs the row).
   FOR r IN
     SELECT o.id FROM public.shop_orders o
-      JOIN public.shop_handovers h ON h.order_id = o.id
+      LEFT JOIN public.shop_handovers h ON h.order_id = o.id
      WHERE o.status = 'accepted' AND o.captured_at IS NOT NULL
        AND h.problem_at IS NULL AND h.confirmed_at IS NULL
-       -- CHANGED (digital): a shop's "handed over" tap never shortens a download's 72 hours (finished below).
-       AND NOT o.is_digital
-       AND ((o.handover_mode = 'in_person' AND h.shop_confirmed_at IS NOT NULL
+       AND ((NOT o.is_digital
+             AND ((o.handover_mode = 'in_person' AND h.shop_confirmed_at IS NOT NULL
              AND h.shop_confirmed_at + interval '48 hours' <= now())
          OR (o.handover_mode = 'porch' AND h.ready_photo_path IS NOT NULL
-             AND greatest(h.ready_at, (o.ready_date::timestamp AT TIME ZONE 'America/Chicago')) + interval '48 hours' <= now()))
+             AND greatest(h.ready_at, (o.ready_date::timestamp AT TIME ZONE 'America/Chicago')) + interval '48 hours' <= now())))
+         OR (o.is_digital AND o.captured_at + interval '72 hours' <= now()))
      ORDER BY o.ready_date, o.id LIMIT 200
   LOOP
     BEGIN
@@ -496,24 +526,6 @@ BEGIN
       END IF;
     EXCEPTION WHEN OTHERS THEN
       -- One bad order never stops the rest; it is logged and retried next run.
-      PERFORM public.log_cron_defect('shop_handover_sweep', r.id::text, SQLERRM);
-    END;
-  END LOOP;
-  -- CHANGED (digital, owner 11-08): a download paid 72 hours ago with no problem reported is final and its shop is
-  -- paid (shop_digital_complete). No handover tap exists for a file.
-  FOR r IN
-    SELECT o.id FROM public.shop_orders o
-      LEFT JOIN public.shop_handovers h ON h.order_id = o.id
-     WHERE o.is_digital AND o.status = 'accepted' AND o.captured_at IS NOT NULL
-       AND o.captured_at + interval '72 hours' <= now()
-       AND h.problem_at IS NULL
-     ORDER BY o.captured_at, o.id LIMIT 200
-  LOOP
-    BEGIN
-      IF (public.shop_digital_complete(r.id) ->> 'result') = 'handed_over' THEN
-        v_auto := v_auto + 1;
-      END IF;
-    EXCEPTION WHEN OTHERS THEN
       PERFORM public.log_cron_defect('shop_handover_sweep', r.id::text, SQLERRM);
     END;
   END LOOP;

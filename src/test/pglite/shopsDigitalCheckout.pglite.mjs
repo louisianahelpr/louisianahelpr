@@ -250,7 +250,7 @@ await db.exec(`
   CREATE OR REPLACE FUNCTION public.is_test_subject(p uuid) RETURNS boolean LANGUAGE sql STABLE AS
     $s$ SELECT EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p) $s$;`);
 // The money bodies this migration restates, at their newest before it.
-for (const name of ["shop_order_captured", "shop_handover_sweep", "shop_lock_open_charged_order"]) await db.exec(newestDefinition(name, "20261108185110").stmt);
+for (const name of ["shop_order_captured", "shop_handover_sweep", "shop_lock_open_charged_order", "shop_complete_handover"]) await db.exec(newestDefinition(name, "20261108185110").stmt);
 const skip = process.env.NEW_MIGRATION === "skip";
 if (!skip) for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
 
@@ -357,7 +357,8 @@ ok(Array.isArray(await svc(`SELECT public.shop_lock_open_charged_order('${o2}', 
 ok(one(await svc(`SELECT public.shop_day_count('${OWNER}', public.shop_local_today(), ARRAY['held', 'accepted', 'handed_over'])`)) === 0, "a download takes no order-day slot");
 
 // --- 6. 72 hours, then final and paid
-ok(refused(await svc(`SELECT public.shop_digital_complete('${o2}')`), /too_soon/), "not final before 72 hours");
+ok(refused(await svc(`SELECT public.shop_complete_handover('${o2}', 'auto')`), /too_soon/), "not final before 72 hours");
+ok(refused(await svc(`SELECT public.shop_complete_handover('${o2}', 'buyer')`), /digital_no_pickup/), "no \"I got it\" finish for a download");
 await svc(`UPDATE public.shop_orders SET captured_at = now() - interval '71 hours' WHERE id = '${o2}'`);
 await svc(`SELECT public.shop_handover_sweep()`);
 ok((await ord(o2)).status === "accepted", "the sweep leaves a download paid 71 hours ago");
@@ -409,7 +410,7 @@ void digOrder;
 // --- 9. grants
 const g = await svc(`SELECT
   has_function_privilege('authenticated', 'public.shop_digital_mark_paid(text, text, integer, integer, boolean)', 'EXECUTE') AS a,
-  has_function_privilege('authenticated', 'public.shop_digital_complete(uuid)', 'EXECUTE') AS b,
+  has_function_privilege('authenticated', 'public.shop_complete_handover(uuid, text)', 'EXECUTE') AS b,
   has_function_privilege('anon', 'public.shops_request_digital_order(uuid)', 'EXECUTE') AS c,
   has_function_privilege('anon', 'public.shops_report_digital_problem(uuid, text, text)', 'EXECUTE') AS d,
   has_function_privilege('anon', 'public.shops_my_digital_files(uuid)', 'EXECUTE') AS e,

@@ -10,11 +10,20 @@
  * @mutate supabase/functions/shop-digital/index.ts |   else refusal = await refusalFor(admin, row.storage_path, row.ext as DigitalExt, size); |   else refusal = null;
  * @mutate supabase/functions/shop-digital/index.ts |   const off = await requireFeature(admin, "shops", user, corsHeaders);\n  if (off) return off;\n |
  * @mutate supabase/migrations/20261108182917_shops_digital_downloads.sql | VALUES ('shop-digital', 'shop-digital', false, 104857600, | VALUES ('shop-digital', 'shop-digital', true, 104857600,
+ * @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |   IF o.is_digital AND NOT COALESCE(p_allow_problem, false) THEN |   IF false THEN
+ * @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |   IF o.is_digital AND p_how = 'auto' AND o.captured_at + interval '72 hours' > now() THEN |   IF false THEN
+ * @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |          OR (o.is_digital AND o.captured_at + interval '72 hours' <= now())) |          OR (o.is_digital AND o.captured_at + interval '24 hours' <= now()))
+ * @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |                AND o.status IN ('accepted', 'handed_over')\n               AND o.captured_at IS NOT NULL)); |                AND o.status IN ('accepted', 'handed_over', 'refunded')\n               AND o.captured_at IS NOT NULL));
+ *
+ * Slice 2 (checkout) behaviour: src/test/pglite/shopsDigitalCheckout.pglite.mjs (3x; NEW_MIGRATION=skip RED; planted
+ * "a member cancel refunds a download", "a download takes a day slot", "a refund keeps the download" and "nudge a
+ * download buyer" each RED). This file pins the newest definitions so a later restatement cannot drop them.
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
+import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
 
 const ROOT = resolve(__dirname, "../..");
 const EDGE = blankComments(readFileSync(resolve(ROOT, "supabase/functions/shop-digital/index.ts"), "utf8"));
@@ -56,5 +65,34 @@ describe("Shops digital downloads: private files, short links, checked bytes", (
     const grant = /GRANT SELECT \(([^)]*)\)\s+ON TABLE public\.shop_item_files TO authenticated/.exec(SQL);
     expect(grant?.[1].split(",").map((c) => c.trim()).length).toBeGreaterThan(5);
     expect(grant?.[1]).not.toMatch(/storage_path/);
+  });
+});
+
+describe("Shops digital downloads: buying one (the newest definitions)", () => {
+  const DEFS = effectiveDefs(resolve(ROOT, "supabase/migrations"));
+  const flat = (name: string) => blankSqlComments(DEFS.get(name)?.stmt ?? "").replace(/\s+/g, " ");
+
+  it("reads the real definitions (floor)", () => {
+    expect([...DEFS.keys()].filter((n) => /digital/.test(n)).length).toBeGreaterThan(4);
+  });
+
+  it("no member cancel, shop cancel or no-show refunds a download; the admin's refund still can", () => {
+    expect(flat("shop_lock_open_charged_order")).toContain("IF o.is_digital AND NOT COALESCE(p_allow_problem, false) THEN RAISE EXCEPTION 'digital_not_cancellable'");
+  });
+
+  it("a download is final 72 hours after its charge, through the one transition, and never by a pickup tap", () => {
+    const done = flat("shop_complete_handover");
+    expect(done).toContain("IF o.is_digital AND p_how = 'auto' AND o.captured_at + interval '72 hours' > now() THEN RAISE EXCEPTION 'too_soon'");
+    expect(done).toContain("IF o.is_digital AND p_how = 'buyer' THEN RAISE EXCEPTION 'digital_no_pickup'");
+    const sweep = flat("shop_handover_sweep");
+    expect(sweep).toContain("OR (o.is_digital AND o.captured_at + interval '72 hours' <= now()))");
+    expect(sweep).toContain("AND NOT o.is_digital");
+  });
+
+  it("the download is open from the charge until a refund", () => {
+    const path = flat("shop_digital_download_path");
+    expect(path).toContain("AND o.status IN ('accepted', 'handed_over') AND o.captured_at IS NOT NULL");
+    expect(path).not.toMatch(/refunded/);
+    expect(flat("shops_my_digital_files")).toContain("o.buyer_id = (SELECT auth.uid())");
   });
 });

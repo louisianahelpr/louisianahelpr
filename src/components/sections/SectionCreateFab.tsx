@@ -8,6 +8,7 @@ import { sectionByKey, type SectionKey } from "@/components/sections/sectionsCon
 import { Button } from "@/components/ui/button";
 import { useLanguage } from "@/lib/i18n/language";
 import { setCreateSheetOpen, useCreateSheetOpen } from "@/components/mobileNav/createSheetStore";
+import { useSectionCreateFabHidden } from "./createFabHidden";
 
 /**
  * THE SECTION'S CREATE PILL (owner 11-08, the Vinted header): the top bar's green "+" became this floating pill,
@@ -25,7 +26,9 @@ export function SectionCreateFab({ section, text: given }: { section?: SectionKe
   const desktop = useIsWebDesktop();
   const gate = useAgeGate();
   const sheetOpen = useCreateSheetOpen();
-  if (desktop || typeof document === "undefined") return null;
+  // An empty state showing its own create button hides the pill, so the action is never on screen twice (createFabHidden).
+  const hidden = useSectionCreateFabHidden();
+  if (desktop || hidden || typeof document === "undefined") return null;
   // No section (Dashboard): the pill opens the Create sheet ("What are we doing?"), as the bar's "+" did there.
   const add = section ? sectionByKey(section).add : null;
   if (section && !add) return null;

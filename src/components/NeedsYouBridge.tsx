@@ -14,13 +14,16 @@ export default function NeedsYouBridge({ user }: { user: SupaUser }) {
   const { todos, loading } = useNeedsYouTodos(user, { live: true });
   const uid = user.id;
   const jobs = todos.filter((t) => t.section === "jobs").length;
+  // My Jobs' rows (owner 11-08): a Jobs to-do is about a job I posted (id "p-") or one I'm working (id "a-", needsYouTodos).
+  const jobsPosted = todos.filter((t) => t.section === "jobs" && t.id.startsWith("p-")).length;
+  const jobsWorking = jobs - jobsPosted;
   const shops = todos.filter((t) => t.section === "shops").length;
   const declutter = todos.filter((t) => t.section === "declutter").length;
   useEffect(() => {
     // Nothing read yet: publish nothing, rather than a "0" that is not a fact.
     if (loading) return;
-    publishNeedsYou(uid, { total: jobs + shops + declutter, jobs, shops, declutter });
-  }, [uid, loading, jobs, shops, declutter]);
+    publishNeedsYou(uid, { total: jobs + shops + declutter, jobs, shops, declutter, jobsPosted, jobsWorking });
+  }, [uid, loading, jobs, shops, declutter, jobsPosted, jobsWorking]);
   useEffect(() => () => clearNeedsYou(), [uid]);
   return null;
 }

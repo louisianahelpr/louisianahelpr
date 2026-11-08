@@ -29,6 +29,8 @@ import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
 import { SectionListBack } from "@/components/sections/SectionListBack";
 import type { SectionMineMenu } from "@/components/sections/sectionMine";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useNeedsYouCounts } from "@/lib/needsYouStore";
 import { useLanguage } from "@/lib/i18n/language";
 import { navKey } from "@/lib/i18n/navLabels";
 import { loadModule, untilReload } from "@/lib/loadModule";
@@ -78,6 +80,9 @@ const JobsSection = () => {
   useEffect(() => removeShellOncePainted(JOBS_SHELL_ID), []);
   const { t: tr } = useLanguage();
   const desktop = useIsWebDesktop();
+  // My Jobs' to-do counts (and the photo's dot): Home's to-do list, split by side (needsYouStore, the navs' source).
+  const todo = useNeedsYouCounts(useCurrentUser().user?.id);
+  const todoFor = { posted: todo.jobsPosted, working: todo.jobsWorking } as const;
 
   const onTab = useCallback(
     (next: string) => {
@@ -117,7 +122,7 @@ const JobsSection = () => {
   // back to Browse. "+ Post a job" is the floating pill. DESKTOP keeps the tabs row with the gear last.
   const mine: SectionMineMenu = {
     title: tr("jobs.myJobs"),
-    items: JOBS_TABS.map((t) => ({ key: t.value, label: tr(t.labelKey), to: `/jobs?tab=${t.value}` })),
+    items: JOBS_TABS.map((t) => ({ key: t.value, label: tr(t.labelKey), to: `/jobs?tab=${t.value}`, count: todoFor[t.value] })),
     settings: { label: tr(JOBS_SETTINGS.labelKey), to: JOBS_SETTINGS.path },
   };
   const listLabel = JOBS_TABS.find((t) => t.value === tab);

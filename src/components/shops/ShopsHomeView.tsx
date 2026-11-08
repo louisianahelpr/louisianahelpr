@@ -29,6 +29,8 @@ import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
 import { SectionListBack } from "@/components/sections/SectionListBack";
 import type { SectionMineMenu } from "@/components/sections/sectionMine";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useNeedsYouCounts } from "@/lib/needsYouStore";
 import { useSectionPreview } from "@/components/sections/ExploreSwitcher";
 import ShopMyOrdersView from "./ShopMyOrdersView";
 import ShopDashboardView from "./ShopDashboardView";
@@ -111,11 +113,16 @@ function ShopSettings() {
   );
 }
 
-const MY_SHOPS: SectionMineMenu = { title: "My Shops", items: SHOPS_TABS.map((t) => ({ key: t.value, label: t.label, to: `/shops?tab=${t.value}` })) };
+/** "My Shops" (owner 11-08): Shop carries my shop's orders waiting for its answer (Home's to-dos, needsYouStore). */
+const myShops = (shopToDo: number): SectionMineMenu => ({
+  title: "My Shops",
+  items: SHOPS_TABS.map((t) => ({ key: t.value, label: t.label, to: `/shops?tab=${t.value}`, count: t.value === "shop" ? shopToDo : undefined })),
+});
 
 export default function ShopsHomeView() {
   const [tab, setTab] = useSectionTab(SHOPS_TAB_VALUES);
   const desktop = useIsWebDesktop();
+  const shopToDo = useNeedsYouCounts(useCurrentUser().user?.id).shops;
   // PHONE (owner 11-08, the Vinted header): Browse's "Search shops" row draws itself in the bar (searchSlot) beside
   // the bell and the photo; Orders and Shop live in "My Shops" under the photo, and a list names itself with the way
   // back to Browse; "+ Open a shop" floats. DESKTOP keeps its tabs row.
@@ -127,7 +134,7 @@ export default function ShopsHomeView() {
     // ONE search on Browse ("Search shops"); Explore's "Search all sections" only on the other tabs on desktop (owner 2026-10-21).
     <SectionScreen section="shops" title="Shops" tabs={tabs} globalSearch={desktop && tab !== "browse"}
       searchSlot={tab === "browse"} search={desktop || tab === "browse" ? undefined : <SectionSearchBar noun="shops" home="/shops" />}
-      mine={desktop ? undefined : MY_SHOPS} fab={desktop ? undefined : <SectionCreateFab section="shops" text="Open a shop" />}>
+      mine={desktop ? undefined : myShops(shopToDo)} fab={desktop ? undefined : <SectionCreateFab section="shops" text="Open a shop" />}>
       {tab === "orders" ? (
         <ShopMyOrdersView embedded />
       ) : tab === "shop" ? (

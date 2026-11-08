@@ -159,7 +159,10 @@ describe("Shops slice 1: hidden, gated, no contact details (20261017061155)", ()
       "20261106221300_shops_custom_balance_edge.sql"].map((f) => blankSqlComments(readFileSync(join(MIG_DIR, f), "utf8"))).join("\n");
     // Shops preorders (20261108184654): the shop's settings, the buyer's preorder and cancel, the two guards.
     const PREORDERS = blankSqlComments(readFileSync(join(MIG_DIR, "20261108184654_shops_preorders.sql"), "utf8"));
-    const raised = new Set([...(MIG + ITEMS + ORDERS + PICKUP + HANDOVER + READY_TAP + FAQS + REFUNDS + HANDOVER_RULE + TALK + REVIEWS + VARIANTS + AT_BUYER + PICKUP_ZIP + DELIVERY + CUSTOM + PREORDERS).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
+    // Digital downloads: files and the download rule (20261108182917), buying one (20261108185110).
+    const DIGITAL = ["20261108182917_shops_digital_downloads.sql", "20261108185110_shops_digital_checkout.sql"]
+      .map((f) => blankSqlComments(readFileSync(join(MIG_DIR, f), "utf8"))).join("\n");
+    const raised = new Set([...(MIG + ITEMS + ORDERS + PICKUP + HANDOVER + READY_TAP + FAQS + REFUNDS + HANDOVER_RULE + TALK + REVIEWS + VARIANTS + AT_BUYER + PICKUP_ZIP + DELIVERY + CUSTOM + PREORDERS + DIGITAL).matchAll(/RAISE EXCEPTION '([a-z0-9_]+)'/g)].map((m) => m[1]));
     raised.add("feature_disabled"); // require_feature's code
     // A buyer's under_18 (shops_send_custom_request, shops_request_order) has its own words: SHOPS_RPC_ERROR_COPY maps
     // under_18 -> under_18_to_order for those calls, so the key is a word set, not a raised code.

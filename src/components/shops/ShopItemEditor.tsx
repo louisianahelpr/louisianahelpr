@@ -46,6 +46,7 @@ import {
 } from "@/lib/shops/items";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopsNotice } from "./shopsUi";
+import ShopDigitalFiles from "./ShopDigitalFiles";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { NativeSelect } from "@/components/ui/select";
 
@@ -104,6 +105,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
   const [ticked, setTicked] = useState<string[]>([]);
   const [underCap, setUnderCap] = useState(false);
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD((x) => ({ ...x, [k]: v }));
+  const digital = d.kind === "digital";
   const refresh = () => void qc.invalidateQueries({ queryKey: ["shops", "items"] });
 
   const cottage = useQuery({ queryKey: ["shops", "cottage"], queryFn: fetchCottageStatus, enabled: d.kind === "home_food" });
@@ -122,8 +124,9 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
     title: d.title,
     description: d.description,
     priceCents: cents(d.price),
-    leadTimeDays: wholeNumber(d.lead, "invalid_lead_time"),
-    stockCount: d.readyNow ? wholeNumber(d.stock, "invalid_stock") : null,
+    // A download is ready at once and never runs out (20261108182917).
+    leadTimeDays: digital ? 0 : wholeNumber(d.lead, "invalid_lead_time"),
+    stockCount: !digital && d.readyNow ? wholeNumber(d.stock, "invalid_stock") : null,
   });
 
   const save = useMutation({
@@ -304,11 +307,14 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
           <Label htmlFor="item-price">Price (dollars)</Label>
           <Input id="item-price" inputMode="decimal" value={d.price} placeholder="18" onChange={(e) => set("price", e.target.value)} />
         </div>
+        {!digital && (
         <div className="space-y-1.5">
           <Label htmlFor="item-lead">Days you need to make it</Label>
           <Input id="item-lead" type="number" min={0} max={60} value={d.lead} onChange={(e) => set("lead", e.target.value)} />
         </div>
+        )}
       </div>
+      {!digital && (
       <div className="space-y-2">
         {hasOptions ? (
           <p className="text-sm text-muted-foreground" data-testid="item-stock-per-option">How many are ready is set for each option below.</p>
@@ -326,6 +332,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
         )}
         <p className="text-xs text-muted-foreground">Every order still comes to you to accept.</p>
       </div>
+      )}
       {d.kind === "home_food" && (
         <p className="rounded-lg bg-muted/70 px-3 py-2 text-xs">Shown on this item: “{HOME_KITCHEN_NOTICE}”</p>
       )}
@@ -333,7 +340,7 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
         <Button type="button" variant="outline" disabled={busy} onClick={() => save.mutate()}>
           {save.isPending ? "Saving…" : status === "live" ? "Save changes" : "Save draft"}
         </Button>
-        {id && !draft && status !== "rejected" && (
+        {id && !draft && status !== "rejected" && !digital && (
           <Button type="button" variant="outline" disabled={stock.isPending} onClick={() => stock.mutate()}>
             {hasOptions ? "Save ready time" : "Save stock and ready time"}
           </Button>
@@ -388,6 +395,8 @@ export default function ShopItemEditor({ ownerId, item, onCreated, onDone, hasOp
           )}
         </section>
       )}
+
+      {id && digital && item?.kind === "digital" && status !== "rejected" && <ShopDigitalFiles itemId={id} />}
 
       {id && draft && (
         <fieldset className="space-y-2">

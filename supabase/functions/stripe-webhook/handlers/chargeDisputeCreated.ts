@@ -6,6 +6,7 @@
 // balance, Q3). Seed-only noise is routed in the detectors, not here (docs/OPEN.md Q2).
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
+import { shopDigitalDisputeEvent } from "./_shopDigitalDispute.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 import { loadAdminIds } from "../../_shared/adminIds.ts";
 import {
@@ -78,6 +79,11 @@ async function applyCardDispute(
     } catch (e) {
       logStep("Could not retrieve charge for dispute", { error: String(e) });
     }
+  }
+
+  // Shops digital downloads (20261108185110): a real chargeback (not an inquiry) stops the download until it is decided.
+  if (!(typeof dispute.status === "string" && dispute.status.startsWith("warning_"))) {
+    await shopDigitalDisputeEvent(supabase, disputePiId, "opened", logStep);
   }
 
   // A GIFT CARD donation's PaymentIntent never reaches `jobs`, so the lookup

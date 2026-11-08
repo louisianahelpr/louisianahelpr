@@ -33,6 +33,7 @@ import {
   reportNotReceived,
   uploadReadyPhoto,
 } from "@/lib/shops/handover";
+import { preorderReadyFrom, shortDate } from "@/lib/shops/preorders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 
 const NOTE_MAX = 500;
@@ -139,6 +140,9 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
   const porch = order.handover_mode === "porch";
   const today = louisianaToday();
   const due = today >= order.ready_date;
+  // Preorders (money review 11-08): the ready tap counts only from 14 days before ready-by (the server refuses earlier).
+  const readyFrom = order.preorder_item_id && !h?.ready_at ? preorderReadyFrom(order.ready_date) : null;
+  const tooEarly = readyFrom !== null && today < readyFrom;
 
   if (side === "shop" && order.status === "handed_over") {
     const p = (payouts.data ?? []).find((x) => x.order_id === order.id);
@@ -166,7 +170,11 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
           ? " The shop says you have it. If you didn't get it, tell us within 48 hours."
           : ""}
       </p>
-      {side === "shop" ? (
+      {side === "shop" && tooEarly && readyFrom ? (
+        <p className="text-xs text-muted-foreground" data-testid="shop-preorder-ready-from">
+          {`This is a preorder. You can mark it ready from ${shortDate(readyFrom)}.`}
+        </p>
+      ) : side === "shop" ? (
         <div className="flex flex-wrap gap-2">
           <Label htmlFor={fileId} className="sr-only">Photo of the order, ready</Label>
           <input

@@ -23,6 +23,7 @@ import {
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import ShopItemEditor from "./ShopItemEditor";
 import ShopItemOptionsEditor from "./ShopItemOptionsEditor";
+import ShopItemPreorderEditor from "./ShopItemPreorderEditor";
 import { fetchItemOptions } from "@/lib/shops/variants";
 import ShopDailyCap from "./ShopDailyCap";
 
@@ -139,6 +140,8 @@ export default function ShopItemsSection({ shopId, ownerId, startAdding = false 
           />
           {/* Variants (20261106165310): option lists for a saved item. */}
           {open && <ShopItemOptionsEditor shopId={shopId} itemId={open.id} basePriceCents={open.price_cents} />}
+          {/* Preorders (20261108184654): sell a made, home-food or farm item before it is made. */}
+          {open && <ShopItemPreorderEditor shopId={shopId} item={open} hasOptions={!!options.data?.has(open.id)} />}
         </>
       ) : (
         <>

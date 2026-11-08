@@ -131,6 +131,9 @@ export interface ShopOrder {
   /** The saved card did not take the rest (or none was saved): the buyer pays it from the order. */
   balance_failed_at?: string | null;
   shop_order_lines: OrderLine[];
+  /** Preorders (20261108184654): the item this order preorders (paid in full at order), and when its date was pushed. */
+  preorder_item_id?: string | null;
+  preorder_moved_at?: string | null;
   /** The shop's name (buyer list only); null once the shop is gone or hidden from the buyer. */
   shops?: { name: string } | null;
 }
@@ -150,7 +153,7 @@ export interface OrderTerms {
 const ORDER_COLUMNS =
   "id, buyer_id, seller_id, shop_id, status, close_reason, ready_date, cancel_policy, ready_tap_cancel, note, decline_reason, items_cents, " +
   "premium_cents, tax_cents, total_cents, created_at, held_at, accept_by, accepted_at, captured_at, closed_at, handover_mode, fulfillment, delivery_cents, helpr_unfilled_at, handed_over_at, " +
-  "payment_plan, deposit_cents, balance_cents, balance_captured_at, balance_failed_at, " +
+  "payment_plan, deposit_cents, balance_cents, balance_captured_at, balance_failed_at, preorder_item_id, preorder_moved_at, " +
   "shop_order_lines (id, item_id, title, kind, unit_cents, quantity, line_cents, at_buyer)";
 
 /** The member's orders as a buyer (newest first); a page that was never paid is not an order to show. */
@@ -440,10 +443,18 @@ const CLOSE_WORDS: Record<string, { buyer: string; shop: string }> = {
   admin_refunded: { buyer: "Refunded by Louisiana Helpr", shop: "Refunded to the buyer by Louisiana Helpr" },
   // A refund Louisiana Helpr made by hand in Stripe (the shop is not paid until an admin decides).
   refunded_by_hand: { buyer: "Refunded by Louisiana Helpr", shop: "Refunded to the buyer by Louisiana Helpr" },
+  // Preorders (20261108184654).
+  preorder_cancelled: { buyer: "Preorder cancelled by you (refunded, less the card-processing cost)", shop: "Preorder cancelled by the buyer" },
+  preorder_date_moved: { buyer: "Preorder cancelled after the date moved (refunded in full)", shop: "Cancelled after you moved the date (buyer refunded in full)" },
+  preorder_goal_missed: { buyer: "Preorder didn't reach its goal (refunded in full)", shop: "Goal not reached (buyer refunded in full)" },
+  preorder_shop_late: { buyer: "Not ready in time (refunded in full)", shop: "Not marked ready in time (buyer refunded in full)" },
 };
 
 /** "Waiting for the shop", "Accepted", ... in the buyer's (or the shop's) words. */
-export function orderStatusLabel(o: Pick<ShopOrder, "status" | "close_reason" | "captured_at">, side: "buyer" | "shop" = "buyer"): string {
+export function orderStatusLabel(
+  o: Pick<ShopOrder, "status" | "close_reason" | "captured_at"> & Partial<Pick<ShopOrder, "preorder_item_id">>,
+  side: "buyer" | "shop" = "buyer",
+): string {
   const closed = o.close_reason ? CLOSE_WORDS[o.close_reason] : undefined;
   if (closed && o.status === "partially_refunded") {
     return side === "buyer" ? "Partly refunded by Louisiana Helpr" : "Partly refunded to the buyer by Louisiana Helpr";
@@ -451,7 +462,9 @@ export function orderStatusLabel(o: Pick<ShopOrder, "status" | "close_reason" | 
   if (closed && (o.status === "refunded" || o.status === "cancelled")) return closed[side];
   switch (o.status) {
     case "held": return "Waiting for the shop (card held, not charged)";
-    case "accepted": return o.captured_at ? "Accepted and paid" : "Accepted (charging your card)";
+    case "accepted":
+      if (o.preorder_item_id) return o.captured_at ? (side === "buyer" ? "Preorder, paid in full" : "Preorder, paid") : "Preorder (charging the card)";
+      return o.captured_at ? "Accepted and paid" : "Accepted (charging your card)";
     case "declined": return "Declined (nothing charged)";
     case "expired": return o.close_reason === "no_answer" ? "Not answered in time (nothing charged)" : "Closed (nothing charged)";
     case "cancelled": return o.close_reason === "buyer_cancelled" ? "Withdrawn (nothing charged)" : "Cancelled (nothing charged)";

@@ -47,6 +47,9 @@ const REVIEW = "REVIEW: a displayed number that still counts test data (b62 phas
 
 // @two-way src/test/statAggregatesExcludeTestData.test.ts:Object.keys(ALLOWED).filter((n) => !inventory.has(n)
 const ALLOWED: Record<string, string> = {
+  // Preorders (20261108184654): the units one preorder item holds (its cap and its goal); a cap on one item, not a stat.
+  shop_preorder_units: "logic: the units ordered of ONE preorder item, read for its own cap and goal; every order of that item counts, as every order takes a place",
+  shop_mark_order_held: "logic: sums ONE order's own line quantities against its preorder item's cap; a cap check, not a stat",
   // 20261105172514 (share-profile H4): counts which of ONE job's own people allow photo sharing (all must); a consent check, not a stat.
   job_photos_withheld: "logic: a consent check on one job: counts that job's own poster and Helprs who allow photo sharing, never a total shown to anyone",
   // Q2247 (20261102230059): the caller's own future holds on one series, capped at 1 while their setup is unfinished; a cap, not a stat.

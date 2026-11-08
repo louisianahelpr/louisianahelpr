@@ -16,7 +16,7 @@
 // THROWS, so stripe-webhook rolls back its dedupe row and Stripe redelivers.
 import type Stripe from "https://esm.sh/stripe@18.5.0";
 import type { WebhookContext } from "../context.ts";
-import { releaseShopHold } from "../../_shared/shopHolds.ts";
+import { captureShopHold, releaseShopHold } from "../../_shared/shopHolds.ts";
 import { sessionJobTaxCents } from "../../_shared/jobTaxAddress.ts";
 import { postSlackOpsAlert } from "../../_shared/slack-alerts.ts";
 
@@ -26,7 +26,7 @@ export function isShopSession(session: { metadata?: unknown } | null | undefined
 }
 
 type HeldAnswer =
-  | { result: "held"; order_id: string }
+  | { result: "held"; order_id: string; preorder?: boolean }
   | { result: "already_held"; order_id: string }
   | { result: "cancel_hold"; reason: string; order_id?: string | null };
 
@@ -85,6 +85,20 @@ export async function settleShopSession(
   if (!answer) throw new Error(`shop_mark_order_held returned nothing for ${session.id}`);
   if (answer.result === "held" || answer.result === "already_held") {
     logStep("Shop order held", { order: answer.order_id, result: answer.result });
+    // Preorders (20261108184654): shop_mark_order_held accepted the order at the hold (the buyer pays in full at
+    // order), so it is captured now. A capture that does not answer is retried by declutter-money (shop_captures_due,
+    // the same key for the same attempt), so a failure here never throws (Stripe would redeliver a settled event).
+    if (answer.result === "held" && answer.preorder === true && answer.order_id) {
+      try {
+        const done = await captureShopHold(stripe, supabase, answer.order_id, piId, 0);
+        logStep("Preorder captured at the hold", { order: answer.order_id, done });
+      } catch (e) {
+        // Not rethrown on purpose: the hold is recorded and the order accepted, so declutter-money's shop_captures_due
+        // captures it within 10 minutes; throwing would only make Stripe redeliver an event that is already applied.
+        console.error(JSON.stringify({ event: "shop_preorder_capture_deferred", order: answer.order_id, detail: String((e as Error)?.message ?? e).slice(0, 200) }));
+        logStep("Preorder capture deferred to the 10-minute retry", { order: answer.order_id, detail: String((e as Error)?.message ?? e).slice(0, 200) });
+      }
+    }
     // Custom orders slice 2b: a 50% deposit order's page saved the card for the rest (setup_future_usage off_session,
     // shop-checkout). It is recorded on the order once (shop_order_record_saved_card answers not_deposit for any other
     // order). A page that saved no card leaves none: the rest then goes to the buyer's pay-the-rest page.

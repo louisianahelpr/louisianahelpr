@@ -25,6 +25,8 @@ export type OrderFacts = {
   side: OrderSide;
   /** Every item in the order was free: the first step reads "Claimed". */
   free?: boolean;
+  /** Lead 11-08: the order is one side of a trade (cart line source "swap"): the first step reads "Trade", never "Claimed". */
+  trade?: boolean;
   /** A pickup day (porch) or time is booked; for Helpr delivery, a Helpr has taken it. */
   booked: boolean;
   /** Ship: the seller tapped Packed (shipments.packed_at). */
@@ -90,9 +92,9 @@ export function gotItOpen(slotStart: string | null | undefined, now: number = Da
 }
 
 /** The step words for this order (free: "Claimed" first). */
-export function orderStepWords(f: Pick<OrderFacts, "handover" | "free">): readonly string[] {
+export function orderStepWords(f: Pick<OrderFacts, "handover" | "free" | "trade">): readonly string[] {
   const s = STEPS[f.handover];
-  return f.free ? ["Claimed", ...s.slice(1)] : s;
+  return f.trade ? ["Trade", ...s.slice(1)] : f.free ? ["Claimed", ...s.slice(1)] : s;
 }
 
 /** The current step (0-based; the ones before it are done). */

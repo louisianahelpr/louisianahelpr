@@ -169,7 +169,7 @@ describe("What do you want to sell?", () => {
     at(SELL_CHOOSER_PATH);
     await screen.findByRole("heading", { name: "Sell something" });
     // Q2576 (audit 1102a): Post a Wanted is no way to sell, so the row is "More ways", never "More ways to sell".
-    // @mutate src/components/declutter/DeclutterSellChooser.tsx | <span className="font-semibold">More ways:</span> | <span className="font-semibold">More ways to sell:</span>
+    // @mutate src/components/declutter/DeclutterSellChooser.tsx | <span className="w-full font-semibold">More ways:</span> | <span className="w-full font-semibold">More ways to sell:</span>
     expect(document.querySelector("[data-sell-other]")!.textContent).toMatch(/^More ways:/);
     expect(document.querySelector('[data-sell-choice="wanted"]')!.textContent).toContain("Post a Wanted");
     fireEvent.click(document.querySelector('[data-sell-choice="helpr"]')!);

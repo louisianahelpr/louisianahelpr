@@ -88,7 +88,7 @@ const ASK = {
  * paid. The panel then offers no "I got it" (the server refuses it: problem_open), no "Tap I got it ... 24 hours" line
  * and no second "Report a problem"; the card's own note says a problem is open.
  */
-export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOpen = false }: { orderId: string; userId: string; onProblem: () => void; problemOpen?: boolean }) {
+export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOpen = false, trade = false }: { orderId: string; userId: string; onProblem: () => void; problemOpen?: boolean; trade?: boolean }) {
   const qc = useQueryClient();
   const key = ["declutter", "seller-delivery-booking", orderId] as const;
   const booking = useQuery({ queryKey: key, queryFn: () => fetchSellerDeliveryBooking(orderId) });
@@ -199,7 +199,7 @@ export function SellerDeliveryOrderPanel({ orderId, userId, onProblem, problemOp
           {ASK[ask].words}
         </ConfirmSheet>
       )}
-      {moving && can.askNewTime && <NewTimePicker orderId={orderId} current={b} onDone={() => { setMoving(false); refresh(); }} />}
+      {moving && can.askNewTime && <NewTimePicker orderId={orderId} current={b} trade={trade} onDone={() => { setMoving(false); refresh(); }} />}
     </div>
   );
 }
@@ -226,7 +226,7 @@ function DeliveredPhoto({ path, hand, at, mine }: { path: string; hand: boolean;
   );
 }
 
-function NewTimePicker({ orderId, current, onDone }: { orderId: string; current: SellerDeliveryBooking; onDone: () => void }) {
+function NewTimePicker({ orderId, current, onDone, trade = false }: { orderId: string; current: SellerDeliveryBooking; onDone: () => void; trade?: boolean }) {
   const times = useQuery({ queryKey: ["declutter", "seller-delivery-times", orderId], queryFn: () => fetchDeliveryOpenTimes(orderId) });
   const [slot, setSlot] = useState<string | null>(null);
   const days = groupSlotsByDay((times.data?.slots ?? []).filter((s) => !sameSlot(s, current.slot_start)));
@@ -244,7 +244,7 @@ function NewTimePicker({ orderId, current, onDone }: { orderId: string; current:
     return (
       <div className="space-y-2" role="status" data-no-open-times="">
         <p className="text-sm">The seller has no open delivery times right now. Message them to ask for one, or report a problem.</p>
-        <OrderTalkButton orderId={orderId} side="buyer" />
+        <OrderTalkButton orderId={orderId} side="buyer" trade={trade} />
       </div>
     );
   }

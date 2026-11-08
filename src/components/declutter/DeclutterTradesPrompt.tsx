@@ -26,12 +26,12 @@ export function DeclutterTradesPrompt({ userId }: { userId: string }) {
   return (
     <section className="space-y-3 rounded-[20px] border border-border bg-card p-4" aria-labelledby="trades-prompt-head" data-trades-prompt="">
       <div className="space-y-1">
-        <h2 id="trades-prompt-head" className="text-ds-17 font-semibold text-foreground">Turn on trades for all your listings?</h2>
+        <h2 id="trades-prompt-head" className="text-base font-semibold">Turn on trades for all your listings?</h2>
         <p className="text-ds-14 text-muted-foreground">Buyers can offer one of their listings instead of cash. You choose yes or no on each offer.</p>
       </div>
       <div className="flex flex-wrap gap-2">
-        <Button type="button" size="sm" className="rounded-full" disabled={answer.isPending} onClick={() => answer.mutate(true)}>Turn on</Button>
         <Button type="button" size="sm" variant="outline" className="rounded-full" disabled={answer.isPending} onClick={() => answer.mutate(false)}>Not now</Button>
+        <Button type="button" size="sm" className="rounded-full" disabled={answer.isPending} onClick={() => answer.mutate(true)}>Turn on</Button>
       </div>
     </section>
   );

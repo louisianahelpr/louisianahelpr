@@ -3,39 +3,61 @@
  *
  * While a job has an ACTIVE continue day (public.job_continue_days, status 'proposed' or 'set'), the work is not
  * done, so the approval clock does not run: auto-release-payment neither escalates the job to Helpr support nor
- * releases it on the poster's instant-release opt-in. The money is untouched; the release just waits. A poster's
- * own approval still releases (their approval closes the continue day, trigger close_continue_day_on_job_change).
+ * releases it on the poster's instant-release opt-in, stalled-completion-reminder does not nudge it, and
+ * payment-confirm-reminder does not ask the poster to approve. The money is untouched; the release just waits. A
+ * poster's own approval still releases (their approval closes the continue day, trigger close_continue_day_on_job_change).
+ *
+ * THE HOLD ENDS WITH THE DAY (owner 11-08, audit F1): a row stays 'set' until done, approval or a status change, so
+ * Yusef's job (day 11/06 3:15 PM) was held with no nudge to anyone for days. A continue day now holds only until its
+ * start + CONTINUE_DAY_HOLD_GRACE_HOURS. After that it is LAPSED: the stalled ladder runs again measured from that day
+ * (the caller swaps the day in, lapsedContinueDay), and auto-release may escalate it to Helpr support. One thing
+ * stays held after the day: an INSTANT release on a lapsed day that was only proposed (nobody agreed the work moved,
+ * and the Helpr's earlier done is still on), heldForInstantRelease; a person decides that one.
  *
  * FAIL CLOSED: a read error is `ok: false`, and the caller holds every candidate. A missing table (42P01 /
  * PGRST205, the deploy window before the migration) holds no job: a database without the table has no continue day.
+ * A row without a readable day holds its job.
  *
- * One import, caughtMessage (itself import-free); the caller passes its service-role client, so the edge test harness
- * runs the REAL module.
+ * Imports: caughtMessage (itself import-free) and jobLocalStartMs (cancellationFee.ts, pure); the caller passes its
+ * service-role client, so the edge test harness runs the REAL module.
  * Guard: src/test/edge/continueDayHold.test.ts.
  */
 import { caughtMessage } from "./caughtMessage.ts";
+import { jobLocalStartMs } from "./cancellationFee.ts";
 
 /** The statuses that hold a job: a day proposed by the Helpr and not answered, or a day the poster set. */
 const CONTINUE_DAY_ACTIVE_STATUSES = ["proposed", "set"] as const;
+
+/** Hours past a continue day's start that it still holds the job: the working day it was set for. */
+export const CONTINUE_DAY_HOLD_GRACE_HOURS = 6;
 
 const tableMissing = (error: unknown) => {
   const code = String((error as { code?: string } | null)?.code ?? "");
   return code === "42P01" || code === "PGRST205";
 };
 
-/** Which of `jobIds` have an active continue day. Fails closed. */
+/** A continue day whose start + grace has passed, still open. Its day replaces the job's in the stalled ladder. */
+export type LapsedContinueDay = { status: "proposed" | "set"; new_date: string; new_start_time: string };
+
+export type ContinuingRead =
+  | { ok: true; jobs: Set<string>; lapsed: Map<string, LapsedContinueDay> }
+  | { ok: false; message: string };
+
+/** Which of `jobIds` an active continue day still holds (`jobs`), and which have one that has lapsed. Fails closed. */
 export async function loadContinuingJobs(
   db: { from: (t: string) => any },
   jobIds: ReadonlyArray<string | null | undefined>,
-): Promise<{ ok: true; jobs: Set<string> } | { ok: false; message: string }> {
+  now: Date = new Date(),
+): Promise<ContinuingRead> {
   const ids = [...new Set(jobIds.filter((x): x is string => typeof x === "string" && x.length > 0))];
   const jobs = new Set<string>();
-  if (ids.length === 0) return { ok: true, jobs };
-  let res: { data: Array<{ job_id: string; status: string }> | null; error: { message?: string; code?: string } | null };
+  const lapsed = new Map<string, LapsedContinueDay>();
+  if (ids.length === 0) return { ok: true, jobs, lapsed };
+  let res: { data: Array<{ job_id: string; status: string; new_date?: string | null; new_start_time?: string | null }> | null; error: { message?: string; code?: string } | null };
   try {
     res = await db
       .from("job_continue_days")
-      .select("job_id, status")
+      .select("job_id, status, new_date, new_start_time")
       .in("job_id", ids)
       .in("status", [...CONTINUE_DAY_ACTIVE_STATUSES]);
   } catch (err) {
@@ -43,19 +65,35 @@ export async function loadContinuingJobs(
     return { ok: false, message: caughtMessage(err) };
   }
   if (res.error) {
-    if (tableMissing(res.error)) return { ok: true, jobs };
+    if (tableMissing(res.error)) return { ok: true, jobs, lapsed };
     return { ok: false, message: res.error.message ?? "continue day read failed" };
   }
+  const graceMs = CONTINUE_DAY_HOLD_GRACE_HOURS * 3_600_000;
   for (const row of res.data ?? []) {
-    if (row && ids.includes(row.job_id) && (CONTINUE_DAY_ACTIVE_STATUSES as readonly string[]).includes(row.status)) jobs.add(row.job_id);
+    if (!row || !ids.includes(row.job_id) || !(CONTINUE_DAY_ACTIVE_STATUSES as readonly string[]).includes(row.status)) continue;
+    const startMs = typeof row.new_date === "string" && row.new_date
+      ? jobLocalStartMs(row.new_date, typeof row.new_start_time === "string" ? row.new_start_time : null)
+      : Number.NaN;
+    if (Number.isFinite(startMs) && now.getTime() >= startMs + graceMs) {
+      lapsed.set(row.job_id, { status: row.status as LapsedContinueDay["status"], new_date: row.new_date!, new_start_time: row.new_start_time ?? "00:00:00" });
+    } else {
+      jobs.add(row.job_id); // not yet over, or no readable day: held
+    }
   }
-  return { ok: true, jobs };
+  return { ok: true, jobs, lapsed };
 }
 
 /** Is this job held by a continue day? An unread check holds it (fail closed). */
-export function heldByContinueDay(
-  read: { ok: true; jobs: Set<string> } | { ok: false; message: string },
-  jobId: string,
-): boolean {
+export function heldByContinueDay(read: ContinuingRead, jobId: string): boolean {
   return !read.ok || read.jobs.has(jobId);
+}
+
+/** The job's lapsed continue day, if it has one (null when held, unread, or none). */
+export function lapsedContinueDay(read: ContinuingRead, jobId: string): LapsedContinueDay | null {
+  return read.ok ? read.lapsed.get(jobId) ?? null : null;
+}
+
+/** An instant release (not the poster's approval) also waits on a lapsed day that was only proposed, never agreed. */
+export function heldForInstantRelease(read: ContinuingRead, jobId: string): boolean {
+  return heldByContinueDay(read, jobId) || lapsedContinueDay(read, jobId)?.status === "proposed";
 }

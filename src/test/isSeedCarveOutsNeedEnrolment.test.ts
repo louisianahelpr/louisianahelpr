@@ -283,6 +283,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   shop_state_ok: "hides",
   shops_admin_queue: "tags",
   shops_request_order: "tags",
+  shops_request_preorder: "tags",
   shops_save_my_shop: "tags",
   sms_claim_confirmation: "hides",
   sms_claim_due: "hides",

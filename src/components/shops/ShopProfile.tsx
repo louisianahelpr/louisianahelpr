@@ -10,6 +10,8 @@ import { ShopReportItem } from "./ShopReport";
 import type { ReactNode } from "react";
 import { Clock, House, MapPin, ShoppingBag, Store } from "lucide-react";
 import { shopPhotoUrl, type ShopBadges, type ShopHour, type ShopPhotoKind } from "@/lib/shops/api";
+import type { ItemPreorder } from "@/lib/shops/preorders";
+import { PreorderCardLines } from "./ShopPreorderBits";
 import { formatItemPrice, HOME_KITCHEN_CARD_LINE, HOME_KITCHEN_NOTICE, itemPhotoUrl, readinessLabel, SHOP_ITEM_TYPE_LABEL, type ShopItem } from "@/lib/shops/items";
 import { publicPhotoUrl } from "@/lib/shops/publicShop";
 import { ShopBadgeList, ShopRating, WEEKDAYS } from "./shopsUi";
@@ -137,10 +139,12 @@ export function ShopHoursCard({ hours }: { hours: ShopHour[] }) {
  * `withOptions`: the items that have option lists (variants, 20261106165310), keyed by id; their price is the lowest
  * offered combination's (shop_items_variant_rollup), so the card says "From $X".
  */
-export function ShopItemsGrid({ items, reportable = false, withOptions }: {
+export function ShopItemsGrid({ items, reportable = false, withOptions, preorders }: {
   items: (Omit<ShopItem, "photos"> & { photos: ItemPhoto[] })[];
   reportable?: boolean;
   withOptions?: ReadonlyMap<string, unknown>;
+  /** Preorder items (20261108184654), keyed by id: the card says "Preorder · ready by ..." and its goal progress. */
+  preorders?: ReadonlyMap<string, ItemPreorder>;
 }) {
   if (items.length === 0) return <p className="text-sm text-muted-foreground">No items listed yet.</p>;
   const anyHomeKitchen = items.some((i) => i.home_kitchen);
@@ -168,7 +172,14 @@ export function ShopItemsGrid({ items, reportable = false, withOptions }: {
               <div className="space-y-0.5 p-2.5">
                 <p className="line-clamp-2 text-sm font-semibold leading-snug [overflow-wrap:anywhere]">{item.title}</p>
                 <p className="text-sm font-bold text-foreground">{withOptions?.has(item.id) ? `From ${formatItemPrice(item.price_cents)}` : formatItemPrice(item.price_cents)}</p>
-                <p className="text-ds-11 text-muted-foreground">{SHOP_ITEM_TYPE_LABEL[item.subtype] ?? "Item"} · {readinessLabel(item)}</p>
+                {preorders?.get(item.id) ? (
+                  <>
+                    <p className="text-ds-11 text-muted-foreground">{SHOP_ITEM_TYPE_LABEL[item.subtype] ?? "Item"}</p>
+                    <PreorderCardLines preorder={preorders.get(item.id) as ItemPreorder} />
+                  </>
+                ) : (
+                  <p className="text-ds-11 text-muted-foreground">{SHOP_ITEM_TYPE_LABEL[item.subtype] ?? "Item"} · {readinessLabel(item)}</p>
+                )}
                 {item.home_kitchen && (
                   // L7 on EVERY home-food card, as one compact line; the full words for screen readers.
                   <p className="flex items-center gap-0.5 text-ds-10 tracking-normal text-muted-foreground" data-testid="home-kitchen-notice">

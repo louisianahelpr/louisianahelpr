@@ -556,6 +556,36 @@ export const SHOPS_RPC_ERROR_COPY = {
     order_not_found: SC.order_not_found,
     order_not_open: "You can report an order from its ready date until you tap \"I got it\" or it finishes on its own.",
   },
+  // Preorders (20261108184654): the shop's settings and its one date push, and the product page's read.
+  shops_set_item_preorder: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    item_not_found: SC.item_not_found,
+    not_authenticated: SC.not_authenticated,
+    preorder_cap: SC.preorder_cap,
+    preorder_goal_by: SC.preorder_goal_by,
+    preorder_goal: SC.preorder_goal,
+    preorder_kind: SC.preorder_kind,
+    preorder_options: SC.preorder_options,
+    preorder_ready_by: SC.preorder_ready_by,
+    preorder_running: SC.preorder_running,
+    preorder_stock: SC.preorder_stock,
+  },
+  shops_push_preorder_date: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    item_not_found: SC.item_not_found,
+    not_a_preorder: SC.not_a_preorder,
+    not_authenticated: SC.not_authenticated,
+    preorder_already_moved: SC.preorder_already_moved,
+    preorder_push_range: SC.preorder_push_range,
+    preorder_too_late: SC.preorder_too_late,
+  },
+  shops_item_preorders: {
+    feature_disabled: SC.feature_disabled,
+    not_authenticated: SC.not_authenticated,
+    shop_not_found: SC.shop_not_found,
+  },
 } as const;
 
 export type ShopsRpc = keyof typeof SHOPS_RPC_ERROR_COPY;

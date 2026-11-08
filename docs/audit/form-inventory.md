@@ -492,6 +492,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | `src/components/shops/ShopFaqsEditor.tsx` | input×1, textarea×1 | text |  | shop-faqs-editor · shop-faqs-heading · Loading your questions · Do you deliver? |
 | `src/components/shops/ShopItemEditor.tsx` | input×5, textarea×1, checkbox/switch/radio×3 | text, number, file | 80, 2000 | item-editor-title · item-kind · item-type · item-where · item-title · item-description · item-price · 18 |
 | `src/components/shops/ShopItemOptionsEditor.tsx` | input×4, checkbox/switch/radio×1 | text, number | 30 | item-options-title · Size · Small, Medium, Large · Combinations · Any |
+| `src/components/shops/ShopItemPreorderEditor.tsx` | input×2, checkbox/switch/radio×2 | number |  | shop-item-preorder · Pick the new date · shop-item-preorder-blocked · Pick the day it will be ready · 20 · Goal date · 30 · shop-item-preorder-rules |
 | `src/components/shops/ShopPickupAddressSection.tsx` | input×4 | text | 120, 60, 5 | shop-pickup-address · shop-pickup-heading · Loading your pickup address · pickup-line1 · pickup-line2 · pickup-city · pickup-zip |
 
 ## /shops/orders, /shops/dashboard
@@ -499,7 +500,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|
 | `src/components/shops/ShopCustomQuoteForm.tsx` | input×1, textarea×1, checkbox/switch/radio×2 | text |  | shop-custom-quote-form · 40 · What |
-| `src/components/shops/ShopHandoverActions.tsx` | input×1, textarea×1 | file |  | Nobody was there at pickup · shop-handover-problem · shop-payout-line · shop-handover-actions · shop-handover-wait |
+| `src/components/shops/ShopHandoverActions.tsx` | input×1, textarea×1 | file |  | Nobody was there at pickup · shop-handover-problem · shop-payout-line · shop-handover-actions · shop-preorder-ready-from · shop-handover-wait |
 | `src/components/shops/ShopOrderCancel.tsx` | textarea×1 |  |  | shop-cancel-terms-changed · shop-cancel-actions · Our oven broke |
 
 ## /shops/orders, /shops/dashboard, /shops/:id

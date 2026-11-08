@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { fetchShopItems } from "@/lib/shops/items";
 import { fetchItemOptions } from "@/lib/shops/variants";
+import { fetchItemPreorders } from "@/lib/shops/preorders";
 import { ShopItemsGrid } from "./ShopProfile";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 
@@ -17,8 +18,11 @@ export default function ShopItemsList({ shopId, reportable = false }: { shopId: 
   const items = useQuery({ queryKey: ["shops", "items", shopId], queryFn: () => fetchShopItems(shopId), enabled: !!shopId });
   // The same query the order sheet reads (one fetch); a failed read only drops the "From" word.
   const options = useQuery({ queryKey: ["shops", "item-options", shopId], queryFn: () => fetchItemOptions(shopId), enabled: !!shopId });
-  // One gate (oneLoadingGatePerScreen): the items and their "From" words paint together.
-  const listLoading = items.isLoading || options.isLoading;
+  // Preorders (20261108184654): the same query the order sheet reads; a failed read only drops the preorder words
+  // (the order sheet refuses to order while it can't tell which items are preorders).
+  const preorders = useQuery({ queryKey: ["shops", "item-preorders", shopId], queryFn: () => fetchItemPreorders(shopId), enabled: !!shopId });
+  // One gate (oneLoadingGatePerScreen): the items, their "From" words and their preorder lines paint together.
+  const listLoading = items.isLoading || options.isLoading || preorders.isLoading;
   const live = (items.data ?? []).filter((i) => i.status === "live");
   return (
     <section className="space-y-2 rounded-2xl border border-border bg-card p-4 shadow-sm" aria-labelledby="shop-items">
@@ -36,7 +40,7 @@ export default function ShopItemsList({ shopId, reportable = false }: { shopId: 
           </Button>
         </div>
       ) : (
-        <ShopItemsGrid items={live} reportable={reportable} withOptions={options.data} />
+        <ShopItemsGrid items={live} reportable={reportable} withOptions={options.data} preorders={preorders.data} />
       )}
     </section>
   );

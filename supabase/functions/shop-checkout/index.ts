@@ -37,6 +37,10 @@
  *   no_show      { order_id }  THE SHOP (O3): a late cancel + a buyer strike
  *           (no Stripe call: the shop is paid by the payout step).
  *   admin_refund { order_id, reason, note }  AN ADMIN (M4, L43/L75).
+ *   preorder_cancel { order_id }  THE BUYER of a preorder (20261108184654), before the shop marks it ready:
+ *           shops_cancel_preorder decides (a full refund after the shop pushed the date; otherwise everything back but
+ *           Stripe's card fee and its tax), then the refund is sent as above. 'order' with preorder: true and ONE line
+ *           asks for a preorder (shops_request_preorder); its hold is accepted at once and captured by the webhook.
  * 'order' may carry the cancel terms the buyer read (terms: {cancel_policy,
  * ready_tap_cancel}); an order frozen under other terms is closed before any
  * Stripe page opens (409 terms_changed; money review of the M2 ready-tap choice).
@@ -143,6 +147,18 @@ type OrderMoneyRow = {
   stripe_payment_intent_id: string | null; payment_livemode: boolean | null; captured_at: string | null;
   capture_attempts: number;
 };
+/** The Stripe page's words for a preorder: charged now, in full. */
+const PREORDER_PAGE_TEXT = "This is a preorder. You're charged now, in full. If it is refunded, you get your money back on this card.";
+
+/** A preorder is ONE item: [{ item_id, quantity }]. */
+function preorderLineFrom(raw: unknown): { item_id: string; quantity: number } | null {
+  if (!Array.isArray(raw) || raw.length !== 1) return null;
+  const l = raw[0] as { item_id?: unknown; quantity?: unknown } | null;
+  if (!l || typeof l.item_id !== "string" || !UUID_RE.test(l.item_id)) return null;
+  const q = Number(l.quantity);
+  return Number.isInteger(q) && q >= 1 && q <= 20 ? { item_id: l.item_id, quantity: q } : null;
+}
+
 async function readOrder(admin: Db, orderId: string): Promise<OrderMoneyRow | null> {
   const { data, error } = await admin.from("shop_orders")
     .select("id, buyer_id, seller_id, status, items_cents, premium_cents, stripe_checkout_session_id, stripe_payment_intent_id, payment_livemode, captured_at, capture_attempts")
@@ -356,9 +372,17 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
     dropoff = { lat: point.lat, lng: point.lng };
   }
 
+  // Preorders (20261108184654): one item on the preorder's own ready-by date (the SQL sets it; readyDate is not used),
+  // accepted at the hold and captured at once, so the buyer pays in full at order (owner 11-08).
+  const preorderLine = body.preorder === true ? preorderLineFrom(body.lines) : null;
+  if (body.preorder === true && (!preorderLine || customRequestId)) return json({ error: "invalid_order_lines" }, 400);
   const { data, error } = customRequestId
     ? await asBuyer.rpc("shops_order_custom_quote", {
       p_request_id: customRequestId, p_shop_id: shopId, p_ready_date: readyDate, p_note: note,
+    })
+    : preorderLine
+    ? await asBuyer.rpc("shops_request_preorder", {
+      p_shop_id: shopId, p_item_id: preorderLine.item_id, p_quantity: preorderLine.quantity, p_note: note,
     })
     : await asBuyer.rpc("shops_request_order", {
       p_shop_id: shopId, p_lines: body.lines, p_ready_date: readyDate, p_note: note,
@@ -598,6 +622,7 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
   }
   const depositPlan = !planErr && (planRow as { payment_plan?: string | null } | null)?.payment_plan === "deposit_50";
   if (depositPlan) meta.payment_plan = "deposit_50";
+  if (preorderLine) meta.preorder = "1";
   const chargedCents = o.items_cents + o.premium_cents + deliveryCents + setupFeeCents + tax.cents;
   const expiresAt = Math.floor(Date.now() / 1000) + PAGE_LIFETIME_S;
   // Q2140: a stored customer Stripe no longer has is replaced once and the page retried (":new-wallet" key).
@@ -620,6 +645,7 @@ async function order(body: Record<string, unknown>, user: { id: string; email?: 
       ...(depositPlan ? {
         custom_text: { submit: { message: "Half is charged when the shop accepts. The rest is charged to this card on the ready date." } },
       } : {}),
+      ...(preorderLine ? { custom_text: { submit: { message: PREORDER_PAGE_TEXT } } } : {}),
       // Q202: 3D Secure from $300 up (the whole charge, tax included).
       payment_method_options: threeDSecureOptions(chargedCents),
       expires_at: expiresAt,
@@ -988,6 +1014,17 @@ async function buyerCancel(body: Record<string, unknown>, asBuyer: Db, admin: Db
   return json({ cancelled: true, result: d?.result ?? null, refund_cents: d?.refund_cents ?? 0, refund });
 }
 
+/** Preorders: the buyer cancels a paid preorder before it is marked ready (shops_cancel_preorder decides the amount). */
+async function preorderCancel(body: Record<string, unknown>, asBuyer: Db, admin: Db) {
+  const orderId = typeof body.order_id === "string" && UUID_RE.test(body.order_id) ? body.order_id : "";
+  if (!orderId) return json({ error: "order_not_found" }, 404);
+  const { data, error } = await asBuyer.rpc("shops_cancel_preorder", { p_order_id: orderId });
+  if (error) return rpcRefusal(error);
+  const d = data as { refund_id?: string; refund_cents?: number } | null;
+  const refund = await sendRefundNow(admin, orderId, d?.refund_id);
+  return json({ result: "cancelled", order_id: orderId, refund_cents: d?.refund_cents ?? null, refund });
+}
+
 async function shopCancel(body: Record<string, unknown>, asShop: Db, admin: Db) {
   const orderId = typeof body.order_id === "string" ? body.order_id : "";
   if (!UUID_RE.test(orderId)) return json({ error: "order_not_found" }, 404);
@@ -1167,6 +1204,7 @@ serve(async (req) => {
     if (body.action === "charge_rest") return await chargeRest(body, user, admin);
     if (body.action === "buyer_cancel") return await buyerCancel(body, asMember, admin);
     if (body.action === "shop_cancel") return await shopCancel(body, asMember, admin);
+    if (body.action === "preorder_cancel") return await preorderCancel(body, asMember, admin);
     if (body.action === "no_show") return await noShow(body, asMember);
     if (body.action === "admin_refund") return await adminRefund(body, asMember, admin);
     if (body.action === "admin_record_hand_refund") return await adminRecordHandRefund(body, user.id, admin);

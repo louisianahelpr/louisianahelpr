@@ -80,7 +80,8 @@ export function DeclutterItemRows({ item, viewerId, from }: { item: DeclutterIte
     <div className="space-y-6" data-item-rows="">
       {moreRows.length > 0 && <Row id="declutter-more-from-seller" title="More from this seller" items={moreRows} cover={cover} from={from} />}
       {/* Q2268: one ask for several of this seller's items (Accept all / Pick some on their side). */}
-      {moreRows.length > 0 && (
+      {/* A guest (owner 11-07: guests see the rows too) has no ask to send: sign-up comes first. */}
+      {moreRows.length > 0 && viewerId && (
         <Suspense fallback={null}>
           <BundleAsk item={item} others={moreRows} viewerId={viewerId} />
         </Suspense>

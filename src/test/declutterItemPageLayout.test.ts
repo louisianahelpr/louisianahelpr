@@ -5,7 +5,7 @@
  * "About this item", then ONE pickup block, then Questions, then Report at the bottom. The pickup block never repeats
  * "Pickup in <town>" (ItemPickupBlock says the cities once).
  *
- * @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && <DeclutterSellerCard sellerId={it.seller_id} extra={bundle && canAct ? <BundleLine summary={bundle} /> : null} />} |           {!isSeller && user && <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={false} preview={preview} free={free} />}
+ * @mutate src/components/declutter/DeclutterItemView.tsx |           {!isSeller && user && (\n            <DeclutterSellerCard | {!isSeller && user && <DeclutterQuestions itemId={itemId} sellerId={it.seller_id} isSeller={isSeller} canAsk={false} preview={preview} free={free} />}{false && (\n            <DeclutterSellerCard
  * @mutate src/components/declutter/ItemPickupBlock.tsx | title: `${HANDOVER_TITLE.porch} · ${orList(cities)}` | title: `${HANDOVER_TITLE.porch} · Pickup in ${orList(cities)}`
  */
 import { describe, expect, it } from "vitest";

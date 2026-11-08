@@ -17,7 +17,7 @@
  *      the cap, the goal and the refunds); a buyer's cancel after the goal-missed stamp or after ready-by + 7 is filed
  *      as the sweep would file it (the shop pays the card fee).
  *
- * Behaviour (red/green, 3x replay): src/test/pglite/shopsPreorders.pglite.mjs (59 checks; red without the migration).
+ * Behaviour (red/green, 3x replay): src/test/pglite/shopsPreorders.pglite.mjs (59 checks, measured 2026-11-08; red without the migration).
  *
  * @mutate supabase/migrations/20261108184654_shops_preorders.sql |   preorder_ready_by IS NULL OR preorder_ready_by - preorder_set_on <= 150); |   preorder_ready_by IS NULL OR preorder_ready_by - preorder_set_on <= 200);
  * @mutate supabase/migrations/20261108184654_shops_preorders.sql |     WHEN p_reason IN ('preorder_shop_late', 'preorder_date_moved', 'preorder_goal_missed') THEN 'full_shop_pays_fee' |     WHEN p_reason IN ('preorder_shop_late', 'preorder_date_moved', 'preorder_goal_missed') THEN 'keep_card_fee'

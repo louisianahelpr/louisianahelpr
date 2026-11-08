@@ -4,12 +4,15 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { LATEST_TERMS_VERSION, termsAcceptanceIsCurrent } from "@/lib/consent";
 
 import { optionalLazy } from "@/lib/optionalLazy";
+import { listenForTermsRequests, settleTermsRequest } from "@/lib/termsGate";
 
 // Mounted beside the routes (App.tsx), outside every route boundary: a failed chunk draws nothing (reported as a
 // warning) instead of replacing the whole app with "Something went sideways" (Q1816). It asks again on the next load.
 const TermsReconsentDialog = optionalLazy(
   () => import("@/components/TermsReconsentDialog").then((m) => ({ default: m.TermsReconsentDialog })),
   "TermsReconsentDialog",
+  // A server refusal waiting on this dialog (src/lib/termsGate.ts) must not wait on a chunk that is not coming.
+  () => settleTermsRequest(false),
 );
 
 /**
@@ -47,13 +50,29 @@ export function termsReconsentEligible(
  * fail-closed choice the dialog makes. Once fetched it stays mounted, so it
  * can close by itself after I agree.
  *
- * Guard: src/test/chromeWaitsOnlyForItsOwnCode.test.tsx.
+ * The server also refuses a commitment from a member behind on the Terms
+ * (20261108154435_terms_accepted_before_commitments). While the member may be
+ * asked, this listens for those refusals (src/lib/termsGate.ts): one fetches
+ * and opens the dialog even when the profile read here looked current, and
+ * the refused request is sent again once they agree.
+ *
+ * Guard: src/test/chromeWaitsOnlyForItsOwnCode.test.tsx, src/test/termsGate.test.ts.
  */
 export function TermsReconsentMount() {
   const { user, profile } = useCurrentUser();
   const eligible = termsReconsentEligible(user, profile);
   const accepted = (profile as { terms_version_accepted?: string | null } | null)?.terms_version_accepted ?? "";
   const [behind, setBehind] = useState(false);
+  // Bumped by each server refusal, so the dialog reads the column again.
+  const [requestSeq, setRequestSeq] = useState(0);
+
+  useEffect(() => {
+    if (!eligible) return;
+    return listenForTermsRequests(() => {
+      setBehind(true);
+      setRequestSeq((n) => n + 1);
+    });
+  }, [eligible]);
 
   useEffect(() => {
     if (!eligible || behind) return;
@@ -63,7 +82,7 @@ export function TermsReconsentMount() {
   if (!behind) return null;
   return (
     <Suspense fallback={null}>
-      <TermsReconsentDialog />
+      <TermsReconsentDialog requestSeq={requestSeq} />
     </Suspense>
   );
 }

@@ -26,6 +26,8 @@ const JOB_INSERT_REFUSAL_COPY: ReadonlyArray<{ match: RegExp; copy: string }> = 
   { match: /^job_address_not_louisiana\b/, copy: "Helpr is in Louisiana only for now. Use a Louisiana address." },
   // 20261030063902 (Q1755): a test account is never offered, hired on or joined to a real job (the quote's offer names the Helpr).
   { match: /^test_account_real_job\b/, copy: "This Helpr can't be booked on a real job right now. Pick another Helpr." },
+  // 20261108154435: a member behind on the Terms (src/lib/termsGate.ts normally opens the re-agree dialog and retries first).
+  { match: /^terms_not_accepted\b/, copy: "Agree to the updated Terms of Service first, then book again." },
 ];
 
 /** The member-facing words for a quote RPC failure (or the escrow checkout's refusal). */

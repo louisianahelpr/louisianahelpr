@@ -1,5 +1,6 @@
 import { serve } from "../_shared/buildStamp.ts";
 import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
+import { refuseStaleTerms } from "../_shared/requireCurrentTerms.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeadersFull as corsHeaders } from "../_shared/cors.ts";
@@ -84,6 +85,12 @@ serve(async (req) => {
 
     const body = await req.json().catch(() => ({}));
     const action = body?.action === undefined ? "quote" : body.action; // "quote" | "execute"
+    // Sending the money is the commitment (a quote is a read): the caller must
+    // have accepted the current Terms (_shared/requireCurrentTerms.ts).
+    if (action === "execute") {
+      const staleTerms = await refuseStaleTerms(supabaseAdmin, user, corsHeaders);
+      if (staleTerms) return staleTerms;
+    }
 
     // Look up helper's Stripe Connect account
     const { data: profile, error: profileErr } = await supabaseAdmin

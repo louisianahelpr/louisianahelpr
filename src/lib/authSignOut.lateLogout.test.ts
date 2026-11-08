@@ -131,7 +131,7 @@ describe("a capped sign-out cannot wipe the next sign-in", () => {
     expect(seen[seen.length - 1]).toBeUndefined();
     const src = blankComments(readFileSync(resolve(process.cwd(), "src/integrations/supabase/client.ts"), "utf8"));
     // signOutAwareFetch sits under the signed-in request guard (signedInRequestGuard.ts).
-    expect(src).toMatch(/global:\s*\{\s*fetch:\s*guardSignedInRequests\(\{[^}]*fetchImpl:\s*noteReachableFetch\(signOutAwareFetch\),/);
+    expect(src).toMatch(/global:\s*\{\s*fetch:\s*termsGateFetch\(guardSignedInRequests\(\{[^}]*fetchImpl:\s*noteReachableFetch\(signOutAwareFetch\),/);
   });
 
   it("keeps the caller's own signal when AbortSignal.any is missing (older WebKit): either one aborts", async () => {

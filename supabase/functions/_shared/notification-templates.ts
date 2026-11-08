@@ -273,7 +273,8 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
       return {
         title: `${who} asked for a fix`,
         message: `${who} asked for a small fix on "${jobTitle(f)}": "${d.slice(0, 80)}${d.length > 80 ? "…" : ""}". Next: fix it, then mark the job done again.`,
-        type: "warning",
+        // Jobs audit 11-08 #5: Work status, not System alerts (a member who turns System alerts off still hears it).
+        type: "work_status",
         link: jobPage(f),
       };
     },

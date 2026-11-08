@@ -511,7 +511,7 @@ export default function JobPage({ id, userId }: { id: string; userId: string }) 
               </RefundsSwitchProvider>
             )}
             {isPoster && posterActions.row(continueDay.posterLead ?? posterStep, continueDay.posterExtras, { noCardSteps: continueDay.doneAhead })}
-            {continueDay.sheet}
+            {continueDay.sheet}{continueDay.missedSheet}
             {isPoster && posterActions.panel}
             {hiredRow}
             {/* A3-8 (audit 11-01): at the approve step the poster's complaint is a visible text button under the pair

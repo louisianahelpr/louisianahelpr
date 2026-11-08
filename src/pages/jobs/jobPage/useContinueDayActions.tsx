@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { userFacingError } from "@/lib/userFacingError";
 import { ContinueDaySheet } from "@/components/jobs/ContinueDaySheet";
+import { MissedReturnSheet } from "@/components/jobs/MissedReturnSheet";
+import { MISSED_LABEL_HELPR, MISSED_LABEL_POSTER, continueDayMissedOpen, fetchOpenMissedReturn } from "@/lib/continueDayMissed";
 import { CONTINUE_DAY_LABEL, answerContinueDay, continueDayAnswer, confirmContinueDay, continueDayAhead, continueDayDoneNote, continueDayLabel, continueDayNextStep, fetchContinueDay, type ContinueDay } from "@/lib/continueDay";
 import type { NextStepValue } from "@/components/ui/NextStep";
 import type { RowAction } from "./JobPageActionRow";
@@ -42,6 +44,8 @@ export function useContinueDayActions({
   /** "Not finished? Set a day" (both sides): a visible text button under the row (null: none). */
   setDay: RowAction | null;
   sheet: React.ReactNode;
+  /** Owner #4 (11-08): the "Didn't come back" / "Can't come back" sheet (null: none). */
+  missedSheet: React.ReactNode;
   /**
    * A SET day still ahead (Auditor 11, 11-01): the server refuses "done" until then (continue_day_ahead), so the
    * Helpr's row never leads with "Mark job complete", and the poster's row drops the card's on-site actions (SOS):
@@ -61,16 +65,28 @@ export function useContinueDayActions({
     enabled: live,
     staleTime: 30_000,
   });
+  // Owner #4 (11-08): an open "Didn't come back" / "Can't come back" report (Louisiana Helpr is reviewing the job).
+  const missedQ = useQuery({
+    queryKey: ["job-missed-return", job?.id ?? ""],
+    queryFn: () => fetchOpenMissedReturn(job!.id),
+    enabled: live,
+    staleTime: 30_000,
+  });
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [missedOpen, setMissedOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   // Work started on day 1 (the Working card's own rule): before that, there is no "another day" to ask for (B118
   // follow-up, lead 11-01). An active continue day keeps its "different day" button whatever the stamps say.
   const workStarted = !!job && helperProgress(job as unknown as Job, trackingStatus).workUnderway;
-  const none = { row: null, step: null, posterLead: undefined, posterExtras: [], helprLead: null, helprExtras: [], setDay: null, sheet: null, doneAhead: false, doneAheadNote: null };
+  const none = { row: null, step: null, posterLead: undefined, posterExtras: [], helprLead: null, helprExtras: [], setDay: null, sheet: null, missedSheet: null, doneAhead: false, doneAheadNote: null };
   if (!live || !job || !side) return none;
 
   const row = q.data ?? null;
-  const refresh = () => { void q.refetch(); onChanged(); };
+  const refresh = () => { void q.refetch(); void missedQ.refetch(); onChanged(); };
+  if (missedQ.data) {
+    // Sent to Louisiana Helpr: no new day (the server refuses continue_day_missed_open), nothing else to tap.
+    return { ...none, step: { who: "info", text: "Sent to Louisiana Helpr", by: "reviewing the job and the payment" } };
+  }
   const run = (fn: () => Promise<void>, done: string) => async () => {
     setBusy(true);
     try {
@@ -121,6 +137,13 @@ export function useContinueDayActions({
     if (offerSetDay && !job.helper_completed_at) setDay = { key: "continue-ask", label: row ? "Ask for a different day" : CONTINUE_DAY_LABEL, go: open };
   }
 
+  // Owner #4 (11-08): the agreed day passed (start + 6 h) without "Mark done": the poster's "Didn't come back", the
+  // Helpr's "Can't come back". In the row's extras, so they sit in More options beside Change day / Message.
+  if (continueDayMissedOpen(row, job.helper_completed_at)) {
+    const extras = side === "poster" ? posterExtras : helprExtras;
+    extras.push({ key: "continue-missed", label: side === "poster" ? MISSED_LABEL_POSTER : MISSED_LABEL_HELPR, go: () => setMissedOpen(true) });
+  }
+
   // Q2679 (audit 1102e row 16): the sheet carries the name of the button that opened it.
   // No day yet: undefined, the sheet's own "Set a day to finish".
   const sheetTitle = !row
@@ -142,5 +165,6 @@ export function useContinueDayActions({
     sheet: (
       <ContinueDaySheet open={sheetOpen} onOpenChange={setSheetOpen} jobId={job.id} side={side} otherFirst={otherFirst} onSaved={refresh} helprMarkedDone={!!job.helper_completed_at} title={sheetTitle} />
     ),
+    missedSheet: <MissedReturnSheet open={missedOpen} onOpenChange={setMissedOpen} jobId={job.id} side={side} otherFirst={otherFirst} onSent={refresh} />,
   };
 }

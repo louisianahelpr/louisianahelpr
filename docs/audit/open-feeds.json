@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-08T03:20Z",
+  "measured_at": "2026-11-08T06:55Z",
   "issues": {
     "readable": true,
     "open": [
@@ -111,7 +111,7 @@
         "number": 4222,
         "title": "nightly-red: core-loop-canary",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42427677170",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42455946140",
         "runTruncated": false
       },
       {
@@ -167,12 +167,12 @@
         "issue": null
       },
       {
-        "fingerprint": "54ef0bfdcec3bbc35e6f8e9764306afc",
-        "source_kind": "workflow",
-        "source": "db-deploy",
+        "fingerprint": "42a784cb226e506d814a710c96d26487",
+        "source_kind": "nightly_red",
+        "source": "nightly-red",
         "status": "open",
-        "title": "db-deploy failed on main",
-        "issue": null
+        "title": "nightly-red: main: supabase db deploy",
+        "issue": 4232
       },
       {
         "fingerprint": "88ecf6e765df5c05f1ec82d9e93bb1e4",
@@ -465,6 +465,7 @@
     "ledger 3c0d6b003e08": "Q1810",
     "ledger 3c528ace98fd": "Q2350",
     "ledger 41f88aeb227f": "Q1777",
+    "ledger 42a784cb226e": "Q1816",
     "ledger 43d77e26f272": "Q1816",
     "ledger 4aa239aefeb6": "Q1816",
     "ledger 54ef0bfdcec3": "Q2774",

@@ -93,6 +93,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('shop_state_ok',                 'allow',    'SH2b (20261019042744): the shared shop-state rule (not hidden, no seed shop while seeds hidden, owner in good standing)'),
   ('shop_link_visible',             'allow',    'SH2b (20261019042744): anyone with the link may see this shop (shop_state_ok, not paused, Shops not switched off)'),
   ('shop_extras_readable',          'allow',    'SH12 (20261019072541): this caller may read the shop FAQs and policies (owner, admin, or shop_link_visible)'),
+  ('shop_digital_access_ok',        'allow',    'Shops digital downloads (20261108182917): this buyer may download what this order bought (charged, not refunded by hand, no chargeback); service_role only'),
   ('shop_visible_to',               'allow',    'Shops slice 1: this viewer may see this shop (owner, or publicly visible)'),
   ('shop_review_public',            'allow',    'Shops H9 (20261105230819): TRUE = this shop review may be shown (not removed; handed over 14+ days ago or both sides reviewed; no test review while test data is hidden)'),
   ('job_is_funded',                 'allow',    'job is listed: funded or its card held (applications WITH CHECK; Q2399 20261027185146)'),
@@ -384,6 +385,7 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('shop_link_visible',             NULL, ARRAY['''00000000-0000-4000-8140-000000000401''::uuid'], ARRAY[1]),
   -- SH12: S is link-visible (above), so even a caller with no uid reads it.
   ('shop_extras_readable',          NULL, ARRAY['''00000000-0000-4000-8140-000000000401''::uuid'], ARRAY[1]),
+  ('shop_digital_access_ok',        NULL, ARRAY['''00000000-0000-4000-8140-000000000404''::uuid', '''00000000-0000-4000-8140-00000000000b''::uuid'], ARRAY[1,2]),
   -- A owns S, so the non-NULL call is TRUE (the owner branch).
   ('shop_visible_to',               NULL, ARRAY['''00000000-0000-4000-8140-000000000401''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]),
   -- Shops H9: B's review 0403 of order 0402 (handed over 20 days ago, the 'shop' fixture step) is public.
@@ -665,6 +667,17 @@ BEGIN
                    VALUES ('00000000-0000-4000-8140-000000000403', '00000000-0000-4000-8140-000000000402',
                            '00000000-0000-4000-8140-000000000401', '00000000-0000-4000-8140-00000000000b',
                            '00000000-0000-4000-8140-00000000000a', 'buyer', 5)$q$;
+        END IF;
+        -- Shops digital downloads (20261108182917): download order 0404 from S to B, charged and final, so
+        -- shop_digital_access_ok(0404, B) is TRUE.
+        IF EXISTS (SELECT 1 FROM information_schema.columns
+                    WHERE table_schema = 'public' AND table_name = 'shop_orders' AND column_name = 'digital_access_revoked_at') THEN
+          EXECUTE $q$INSERT INTO public.shop_orders (id, buyer_id, seller_id, shop_id, status, ready_date, cancel_policy,
+                     items_cents, premium_cents, tax_cents, total_cents, stripe_payment_intent_id, captured_at, handed_over_at, is_digital)
+                   VALUES ('00000000-0000-4000-8140-000000000404', '00000000-0000-4000-8140-00000000000b',
+                           '00000000-0000-4000-8140-00000000000a', '00000000-0000-4000-8140-000000000401', 'handed_over',
+                           CURRENT_DATE - 5, 'until_accept', 1000, 120, 0, 1120, 'pi_q140digital',
+                           now() - interval '4 days', now() - interval '1 day', true)$q$;
         END IF;
       WHEN 'availability' THEN
         -- Instant book (20261101063725): B is free a week from today, 09:00-17:00, so

@@ -3,7 +3,7 @@
  * must clear Pay's "Opening…" state. The hook runs its callback on exactly that event, and the checkout uses it.
  *
  * @mutate src/hooks/usePageRestored.ts |       if (e.persisted) latest.current(); |       if (!e.persisted) latest.current();
- * @mutate src/components/declutter/DeclutterTradeViews.tsx |   usePageRestored(() => { setOpening(false); invalidateTrades(qc); }); |   usePageRestored(() => { invalidateTrades(qc); });
+ * @mutate src/components/declutter/DeclutterTradeViews.tsx |   usePageRestored(() => { setOpening(false); invalidateTrades(qc); |   usePageRestored(() => { invalidateTrades(qc);
  */
 import { describe, expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
@@ -32,6 +32,6 @@ describe("Back from Stripe's page recovers the Pay button (M2)", () => {
 
   it("the checkout's Pay clears Opening… and re-reads the order on that restore", () => {
     const src = blankComments(readFileSync("src/components/declutter/DeclutterTradeViews.tsx", "utf8"));
-    expect(src).toMatch(/usePageRestored\(\(\) => \{ setOpening\(false\); invalidateTrades\(qc\); \}\);/);
+    expect(src).toMatch(/usePageRestored\(\(\) => \{ setOpening\(false\); invalidateTrades\(qc\);/);
   });
 });

@@ -131,6 +131,8 @@ const state = {
 };
 
 // Q2471: the offer box asks declutter-ai-reply for a suggested amount; no suggestion here (the box works without it).
+// H3 (audit 11-08): the buy funnel is fire-and-forget telemetry; this spec never reaches Supabase for it.
+vi.mock("@/lib/declutter/funnel", () => ({ trackFunnel: () => {} }));
 vi.mock("@/lib/declutter/aiReply", async (orig) => ({ ...(await orig<object>()), requestSuggestedOffer: async () => null }));
 vi.mock("@/hooks/useAgeGate", () => ({ useAgeGate: () => ({ underAge: state.underAge }) }));
 vi.mock("@/hooks/useFeature", () => ({ useFeature: (key: string) => (key === "declutter_seller_delivery" ? state.sellerDeliveryOn

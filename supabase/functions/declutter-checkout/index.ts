@@ -674,7 +674,8 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
       // B48 live check 2026-10-29: the return names the order just paid, so "What happens next" opens for it even
       // when the buyer has other paid orders in their handover (BoughtWhatNext, justPaidOrder).
       success_url: buildRedirectUrl(`/declutter?view=cart&paid=1&order=${order.order_id}`, native),
-      cancel_url: buildRedirectUrl("/declutter?view=cart", native),
+      // H3 (audit 11-08): back=1 lets the app record a return from Stripe's page that did not pay (funnel).
+      cancel_url: buildRedirectUrl("/declutter?view=cart&back=1", native),
     },
     { idempotencyKey: `declutter-order-${order.order_id}-${expiresAt}${walletRetry ? ":new-wallet" : ""}` },
     ), { adoptTagged: true });

@@ -14,6 +14,16 @@
 import { SHOPS_ERROR_COPY as SC } from "./errors";
 
 export const SHOPS_RPC_ERROR_COPY = {
+  // Digital downloads (20261108185110): the buyer reports a broken or not-as-described file.
+  shops_report_digital_problem: {
+    account_restricted: SC.account_restricted,
+    feature_disabled: SC.feature_disabled,
+    invalid_note: "Say what is wrong with the file, in under 500 characters.",
+    invalid_reason: "Choose what is wrong with the file.",
+    not_authenticated: SC.not_authenticated,
+    order_not_found: SC.order_not_found,
+    order_not_open: "A problem with a download can be reported in the 72 hours after you buy it. After that, contact support.",
+  },
   // Shops H1 (20261105185006): messages with a shop.
   shops_open_talk: {
     account_restricted: SC.account_restricted,
@@ -133,6 +143,7 @@ export const SHOPS_RPC_ERROR_COPY = {
   shops_create_item: {
     account_restricted: SC.account_restricted,
     description_too_long: SC.description_too_long,
+    digital_no_stock: SC.digital_no_stock,
     feature_disabled: SC.feature_disabled,
     invalid_kind: SC.invalid_kind,
     invalid_lead_time: SC.invalid_lead_time,
@@ -164,6 +175,7 @@ export const SHOPS_RPC_ERROR_COPY = {
     cottage_cap_reached: SC.cottage_cap_reached,
     cottage_confirmation_required: SC.cottage_confirmation_required,
     feature_disabled: SC.feature_disabled,
+    files_required: SC.files_required,
     invalid_kind: SC.invalid_kind,
     item_not_a_draft: SC.item_not_a_draft,
     item_not_found: SC.item_not_found,
@@ -259,6 +271,7 @@ export const SHOPS_RPC_ERROR_COPY = {
     account_restricted: SC.account_restricted,
     description_too_long: SC.description_too_long,
     feature_disabled: SC.feature_disabled,
+    digital_no_stock: SC.digital_no_stock,
     invalid_kind: SC.invalid_kind,
     invalid_lead_time: SC.invalid_lead_time,
     invalid_price: SC.invalid_price,
@@ -536,6 +549,7 @@ export const SHOPS_RPC_ERROR_COPY = {
   },
   shops_confirm_pickup: {
     account_restricted: SC.account_restricted,
+    digital_no_pickup: SC.digital_no_pickup,
     invalid_method: SC.invalid_method,
     // declutter_consume_fee_debt's guard (a NULL seller): an accepted order always keeps its seller.
     invalid_payout: "Something went wrong finishing this order. Please try again.",
@@ -543,6 +557,8 @@ export const SHOPS_RPC_ERROR_COPY = {
     order_not_charged_yet: SC.order_not_charged_yet,
     order_not_found: SC.order_not_found,
     problem_open: SC.problem_open,
+    // A download's 'buyer' finish is refused first (digital_no_pickup), so the 72-hour check never answers here.
+    too_soon: SC.digital_no_pickup,
   },
   // M3 (20261019071055): what a buyer's cancel would do now (read only).
   shops_order_cancel_quote: {

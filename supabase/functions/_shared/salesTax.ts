@@ -185,6 +185,19 @@ export const GARMENT_ALTERATIONS_TAX_CODE = "txcd_20090002";
 export const CLOTHES_CLEANING_TAX_CODE = "txcd_20090004";
 
 /**
+ * Shops DIGITAL DOWNLOADS (owner 11-08; migration 20261108182917): Louisiana taxes digital products from 2025-01-01
+ * (Acts 2024, 3rd Ex. Sess., No. 10 (HB 8); the definition in La. R.S. 47:301, cited by LDR's Digital Products
+ * Guidance rev. 11-20-2025 as 47:301(31)-(32), which lists digital books and digital artwork). Sourced to the buyer's
+ * address like every Shops sale (shop-checkout's billing-address tax path). Both codes read in Stripe's tax code list
+ * (docs.stripe.com/tax/tax-codes, 2026-11-08); a download is bought once and kept, so "permanent rights":
+ * txcd_10302000 "Digital Books - downloaded - non subscription - with permanent rights" (coloring books, e-books,
+ * printables, patterns: the owner's coloring-book PDFs), and
+ * txcd_10505001 "Digital Finished Artwork - downloaded - non subscription - with permanent rights" (digital art).
+ */
+export const DIGITAL_BOOK_TAX_CODE = "txcd_10302000";
+export const DIGITAL_ART_TAX_CODE = "txcd_10505001";
+
+/**
  * The Stripe tax code for a job's labor line: a taxed category keeps the
  * measured repair code; otherwise a taxed kind picks its own; else nontaxable.
  */

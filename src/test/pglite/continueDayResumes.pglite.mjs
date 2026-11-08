@@ -109,8 +109,8 @@ await db.exec(`
 if (!MODE) for (let i = 0; i < 3; i++) await db.exec(mig); // replay-safe: applied 3x
 
 // Jobs, all $40, Helpr A hired, money held, under way since yesterday, arrival confirmed, day-1 photos in.
-//  1 Yusef's: A marked done on day 1      2 a day agreed, photos not required      3 a day 3 days out (stays out)
-//  4 the evening check-in                 5 a fresh accepted job (on the way / done notices)
+//  J(1) Yusef's: A marked done on day 1    J(2) a day agreed, photos not required    J(3) a day agreed for later
+//  J(4) the evening check-in              J(5) a fresh accepted job (on the way / done notices)
 await db.exec(`
   insert into public.jobs (id, title, budget, customer_id, helper_id, status, payment_status, date_needed, start_time,
                            helper_confirmed_at, poster_confirmed_arrival_at, helper_arrived_at, proof_before_urls, proof_after_urls,

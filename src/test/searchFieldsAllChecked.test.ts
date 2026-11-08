@@ -232,7 +232,9 @@ describe("every search field is driven in a real browser (inventory minus checke
     // 2026-11-04: -1, AdminSubscriptions retired with memberships.
     // 2026-11-06 (Q806): +1, the inbox's permanent search row moved out of ConversationList into MessagesSearchRow
     // (ConversationList keeps its one-pane desktop field, so both files count).
-    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(15);
+    // 2026-11-07 (owner, Vinted review): +1, the Sell form's category drill-down (CategoryDrillDown), a permanent
+    // field with a "Clear search" ✕.
+    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(16);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/admin/AdminCommandPalette.tsx",
       "src/components/admin/AdminNotificationLogs.tsx",
@@ -240,6 +242,7 @@ describe("every search field is driven in a real browser (inventory minus checke
       "src/components/admin/AdminUsers.tsx",
       "src/components/admin/settings/AdminUserSearchField.tsx",
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
+      "src/components/declutter/CategoryDrillDown.tsx",
       "src/components/messages/ConversationList.tsx",
       "src/components/messages/MessagesSearchRow.tsx",
       "src/components/postjob/JobCategoryGroups.tsx",

@@ -218,6 +218,11 @@ export async function fetchReadyTapCancel(shopId: string): Promise<ReadyTapCance
 /** Custom orders (20261106202917): whether buyers may ask this shop for something made to order, and how it is paid. */
 export const CUSTOM_ORDER_MODES = ["off", "full_hold", "deposit_50"] as const;
 export type CustomOrderMode = (typeof CUSTOM_ORDER_MODES)[number];
+/**
+ * What a shop can pick today. "Half up front" stays hidden while the server refuses it (deposit_not_ready, owner
+ * 11-07 "Deposit orders stay off"; shops audit 11-08 #1). A shop already on it was moved to paid in full.
+ */
+export const PICKABLE_CUSTOM_ORDER_MODES: readonly CustomOrderMode[] = ["off", "full_hold"];
 export const CUSTOM_ORDER_TEXT: Record<CustomOrderMode, { label: string; hint: string }> = {
   off: { label: "No custom orders", hint: "Buyers order only what you list." },
   full_hold: {

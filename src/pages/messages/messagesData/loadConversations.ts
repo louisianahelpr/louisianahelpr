@@ -23,6 +23,7 @@ import {
 } from "@/lib/teamThread";
 import { groupThreads, inboxShowsRow, threadUnread, unreadRowsQuery } from "@/lib/unreadConversations";
 import { loadModule, untilReload } from "@/lib/loadModule";
+import { fetchActiveBands } from "@/lib/activeBand";
 
 // Loaded alone, then called: work chained straight onto import() runs inside Vite's preload wrapper, where a
 // failure reads as a broken chunk (dynamicImportThenDoesNoWork).
@@ -64,7 +65,7 @@ function teamConversation({
     lastMessageAttachmentSignedUrl: null,
     isMuted: false,
     muteUntil: null,
-    otherUserLastActiveAt: null,
+    otherUserActiveBand: null,
     teamThread: { userId: teamUser, viewerIsStaff },
   };
 }
@@ -291,11 +292,10 @@ export async function fetchConversations(
   const mutePairs = [...convoMap.values()].flatMap((v) =>
     v.otherUserId === null || isTeamThreadKey(v.jobId) ? [] : [{ jobId: v.jobId, otherUserId: v.otherUserId }],
   );
-  // Bulk last-active lookup runs alongside the other inbox RPCs so
-  // every row's "Active now" / "Active 2h ago" pill is resolved in a
-  // single round-trip instead of N. The RPC was shipped in
-  // `20260609090000_user_last_active_rpc.sql` (handoff item #28); we
-  // degrade silently when the function isn't deployed (PGRST202).
+  // Bulk activity-band lookup runs alongside the other inbox RPCs so
+  // every row's "Active today" label is resolved in one round-trip per
+  // 200 people instead of N (get_user_last_active, coarse band only,
+  // 20261108001932); a failed read just shows no label.
   const [profilesRes, jobsRes, thumbUrlMap, mutedMap, lastActiveRes, closesAtMap, offerTargets, staffSideRes, threadTitles] = await Promise.all([
     supabase.rpc("get_safe_profiles", { user_ids: otherIds }),
     // No offered_to_helper_id here: it is not selectable (20260915045110,
@@ -304,7 +304,7 @@ export async function fetchConversations(
     supabase.from("jobs").select("id, title, status, customer_id, helper_id, cancelled_by, cancellation_reason").in("id", jobIds),
     getMessageAttachmentSignedUrls(imageThumbPaths),
     getMutedThreadMap(uid, mutePairs),
-    supabase.rpc("get_user_last_active", { user_ids: otherIds }),
+    fetchActiveBands(otherIds),
     // 24h post-completion lockout: when each thread closes, from the server.
     // Degrades to "no lockout shown" on PGRST202 (see messagingLockout.ts).
     fetchMessagingClosesAt(jobIds),
@@ -315,18 +315,7 @@ export async function fetchConversations(
     // NOID-20: the title for a thread whose job row security now hides from me (a participant only).
     fetchMessageThreadJobTitles(jobIds),
   ]);
-  const lastActiveMap = new Map<string, string>();
-  if (
-    lastActiveRes &&
-    !lastActiveRes.error &&
-    Array.isArray(lastActiveRes.data)
-  ) {
-    for (const row of lastActiveRes.data as Array<{ user_id: string; last_active_at: string }>) {
-      if (row?.user_id && row?.last_active_at) {
-        lastActiveMap.set(row.user_id, row.last_active_at);
-      }
-    }
-  }
+  const activeBands = lastActiveRes.bands;
 
   // If we asked for image thumbs but some paths didn't resolve, the
   // inbox degrades to text-only for those rows. Surface a one-time,
@@ -429,11 +418,9 @@ export async function fetchConversations(
     // the chat header can render "Muted for 8h" without a follow-up read.
     isMuted: muteKey !== null && mutedMap.has(muteKey),
     muteUntil: muteKey === null ? null : mutedMap.get(muteKey)?.until ?? null,
-    // Pre-resolved last-active ISO timestamp from the batched RPC
-    // above. The row renders "Active now" / "Active 2h ago" / hides
-    // beyond 7d so a stale signal never masquerades as live presence.
-    otherUserLastActiveAt:
-      v.otherUserId === null ? null : lastActiveMap.get(v.otherUserId) ?? null,
+    // Pre-resolved activity band from the batched read above.
+    otherUserActiveBand:
+      v.otherUserId === null ? null : activeBands.get(v.otherUserId) ?? null,
   };
   });
 

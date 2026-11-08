@@ -48,10 +48,10 @@ type Props = {
    */
   recognition?: ReactNode;
   /**
-   * PRESENCE — "active 10 min ago" / "last seen 3d". Owner, 2026-09-11: this
-   * is live state, not an achievement, so it left the badge row and renders
-   * as a status dot on the identity line beside place and tenure. NULL when
-   * the member has not been seen inside the window the label covers.
+   * PRESENCE — "Active today" / "Active this week" (a coarse band, never a
+   * time; 20261108001932). Owner, 2026-09-11: this is live state, not an
+   * achievement, so it left the badge row and renders as a status dot on the
+   * identity line beside place and tenure. NULL when there is no band.
    */
   lastActiveLabel?: LastActiveLabel | null;
   /** The "At a glance" metric grid, rendered inside this same card. */

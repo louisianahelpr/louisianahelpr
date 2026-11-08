@@ -73,7 +73,7 @@ vi.mock("@/pages/user/useUserProfileData", () => ({
     mutualJobsCount: 0,
     onTimeArrivalRate: null,
     revisionFrequency: null,
-    lastActiveAt: null,
+    lastActiveBand: null,
     isIdVerified: true,
     backgroundCheckStatus: null,
     tierProfile: null,

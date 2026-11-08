@@ -103,7 +103,7 @@ const UserProfile = () => {
     mutualJobsCount,
     onTimeArrivalRate,
     revisionFrequency,
-    lastActiveAt,
+    lastActiveBand,
     isIdVerified,
     backgroundCheckStatus,
     tierProfile,
@@ -314,7 +314,7 @@ const UserProfile = () => {
   // (<SubscriptionTierBadge>). `computeBadges` itself survives only for
   // JobPosterCard, which is a different surface.
 
-  const lastActiveLabel = computeLastActiveLabel(lastActiveAt);
+  const lastActiveLabel = computeLastActiveLabel(lastActiveBand);
 
   return wrap(
     <>

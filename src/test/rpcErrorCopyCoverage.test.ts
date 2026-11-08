@@ -82,6 +82,12 @@ const UNREACHABLE: Allowlist = {
   },
   // Owner 11-07 (20261107235110): fetchOnTimeHandovers feeds one seller-card badge; a failed read shows no badge
   // (SellerTrustBadges: a missing badge is never a claim), so no code's words exist at that site.
+  // 20261108001932 (lead 11-07): get_user_last_active answers a coarse "Active today" band; every caller (profile,
+  // Messages list, seller card) shows no line on a failed read, so no code's words exist at those sites.
+  get_user_last_active: {
+    not_authenticated: { reason: ANON_REVOKED },
+    too_many_ids: { reason: "unreachable: fetchActiveBands asks in pages of 200 (ACTIVE_BAND_MAX_IDS); the profile and seller card ask for one id" },
+  },
   declutter_seller_on_time_handovers: {
     feature_disabled: { reason: "no code's words at this site: a failed read shows no badge on the seller card" },
     not_authenticated: { reason: ANON_REVOKED },

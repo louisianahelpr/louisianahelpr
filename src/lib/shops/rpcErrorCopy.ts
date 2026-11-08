@@ -469,6 +469,7 @@ export const SHOPS_RPC_ERROR_COPY = {
     account_restricted: SC.account_restricted,
     feature_disabled: SC.feature_disabled,
     invalid_custom_orders: SC.invalid_custom_orders,
+    deposit_orders_closed: SC.deposit_orders_closed,
     not_authenticated: SC.not_authenticated,
     payout_setup_incomplete: SC.payout_setup_incomplete,
     shop_not_found: SC.shop_not_found,

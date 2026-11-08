@@ -30,7 +30,7 @@ import { PageScaffold } from "@/components/ui/PageScaffold";
 // @mutate src/index.css | .page-panel--one-blur .liquid-glass .ctl-tint.backdrop-blur-md {\n    backdrop-filter: none; | .page-panel--one-blur .liquid-glass .ctl-tint.backdrop-blur-md {\n    backdrop-filter: blur(4px);
 // @mutate src/components/ui/PageScaffold.tsx | (oneBlur ? " page-panel--one-blur" : "") | ""
 // @mutate src/components/job-card/JobListPage.tsx | titleCardClassName="" oneBlur | titleCardClassName=""
-// @mutate src/components/JobsSectionSkeleton.tsx | <PageScaffold animate oneBlur titleCard= | <PageScaffold animate titleCard=
+// @mutate src/components/JobsSectionSkeleton.tsx | <PageScaffold animate oneBlur tightGutter titleCard= | <PageScaffold animate tightGutter titleCard=
 // @mutate src/components/ui/button.tsx | "ctl-tint border border-border/60 bg-background/70 backdrop-blur-md " + | "ctl-tint border border-border/60 bg-background/70 backdrop-blur-lg " +
 
 const ROOT = process.cwd();

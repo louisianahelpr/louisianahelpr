@@ -4934,7 +4934,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 187,
+      "line": 188,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4954,7 +4954,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 190,
+      "line": 191,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4964,7 +4964,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 195,
+      "line": 196,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4974,7 +4974,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 210,
+      "line": 211,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4984,7 +4984,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 213,
+      "line": 214,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10049,7 +10049,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 86,
+      "line": 91,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10059,28 +10059,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 89,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "rentalsErrorMessage(e)",
-        "from": "src/lib/rentals/copy.ts",
-        "branches": [
-          {
-            "form": "dynamic",
-            "text": "err.words"
-          },
-          {
-            "form": "dynamic",
-            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
-          }
-        ]
-      },
-      "renders": true
-    },
-    {
-      "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 204,
+      "line": 94,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10102,6 +10081,27 @@
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
       "line": 209,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "rentalsErrorMessage(e)",
+        "from": "src/lib/rentals/copy.ts",
+        "branches": [
+          {
+            "form": "dynamic",
+            "text": "err.words"
+          },
+          {
+            "form": "dynamic",
+            "text": "RENTALS_ERROR_COPY[code] ?? RENTALS_FALLBACK_COPY"
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/rentals/RentalsHomeView.tsx",
+      "line": 214,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -10121,7 +10121,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 212,
+      "line": 217,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10142,7 +10142,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 218,
+      "line": 223,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10163,7 +10163,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 296,
+      "line": 301,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10173,7 +10173,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 296,
+      "line": 301,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10183,7 +10183,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 332,
+      "line": 337,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11513,7 +11513,7 @@
     },
     {
       "file": "src/components/shops/ShopsHomeView.tsx",
-      "line": 66,
+      "line": 71,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11523,7 +11523,7 @@
     },
     {
       "file": "src/components/shops/ShopsHomeView.tsx",
-      "line": 68,
+      "line": 73,
       "kind": "toast.error",
       "title": {
         "form": "literal",

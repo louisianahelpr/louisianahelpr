@@ -1,7 +1,7 @@
 /**
  * Q2677 (audit 1102e row 15): a recurring job's "Cancel job" opened the single-job sheet with no word on
  * whether it cancels this visit or the whole series. poster_cancel_job cancels ONLY the row it is given
- * (newest definition: supabase/migrations/20261102074317_cancel_fee_waived_payee_under_review.sql, its one
+ * (newest definition: supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql, its one
  * `UPDATE public.jobs ... WHERE id = v_job.id`); a booked visit is its own jobs row (parent_job_id set), and
  * charge-recurring-visits counts a visit row of ANY status on a date as booked and never scans a cancelled
  * parent. So: a visit sheet says only that visit is cancelled and the series goes on; a series sheet says
@@ -80,7 +80,7 @@ describe("Q2677 the recurring cancel sheet says what it cancels", () => {
   });
 
   it("the copy matches poster_cancel_job: one UPDATE, on the given row only", () => {
-    const sql = readFileSync("supabase/migrations/20261102074317_cancel_fee_waived_payee_under_review.sql", "utf8");
+    const sql = readFileSync("supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql", "utf8");
     const body = sql.slice(sql.indexOf("CREATE OR REPLACE FUNCTION public.poster_cancel_job"), sql.indexOf("REVOKE ALL ON FUNCTION public.poster_cancel_job"));
     const updates = body.match(/UPDATE public\.jobs[\s\S]*?WHERE[^;]*;/g) ?? [];
     expect(updates.length).toBe(1);

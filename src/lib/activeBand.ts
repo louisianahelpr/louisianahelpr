@@ -11,7 +11,7 @@ export type ActiveBand = "today" | "this_week";
 /** The server's cap on ids per call. */
 export const ACTIVE_BAND_MAX_IDS = 200;
 
-export function parseActiveBand(v: unknown): ActiveBand | null {
+function parseActiveBand(v: unknown): ActiveBand | null {
   return v === "today" || v === "this_week" ? v : null;
 }
 

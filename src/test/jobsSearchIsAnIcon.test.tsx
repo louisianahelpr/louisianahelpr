@@ -21,7 +21,7 @@
  * @mutate src/components/job-card/embeddedActivity.tsx | <InlineListSearch value={search} onChange={onSearch} label={tab === "posted" ? "Search posted jobs" : "Search jobs you're working"} onOpenChange={setSearchOpen} fill /> | {null}
  * @mutate src/components/sections/InlineListSearch.tsx |   const [open, setOpen] = useState(() => value.trim().length > 0); |   const [open, setOpen] = useState(() => true);
  * @mutate src/pages/home/Dashboard.tsx |       filter={<BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />} /> | />\n      <BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />
- * @mutate src/pages/home/Dashboard.tsx | : { search: phoneBrowseSearch }) | : undefined)
+ * @mutate src/pages/home/Dashboard.tsx | : { search: phoneBrowseSearch, chips: phoneBrowseChips }) | : undefined)
  * @mutate src/pages/home/Dashboard.tsx |     <SectionSearchBar noun="jobs" home="/jobs" value={filters.searchQuery} onChange={filters.setSearchQuery} |     <SectionSearchRow value={filters.searchQuery} onChange={filters.setSearchQuery} placeholder="Search jobs"
  * @mutate src/components/job-card/embeddedActivity.tsx | header(desktop ? { end: searchEnd } : { search: <SectionSearchBar | header(desktop ? {} : { search: <SectionSearchBar
  * @mutate src/components/job-card/embeddedActivity.tsx | : { search: <SectionSearchBar noun={tab === "posted" ? "posted jobs" : "jobs you're working"} home="/jobs" value={search} onChange={onSearch} /> }) | : { end: searchEnd })
@@ -220,7 +220,7 @@ describe("Jobs > Browse on a phone: the top bar's search field, with Filters ins
     const filtersAt = phoneEnd.indexOf("filter={<BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />}");
     expect(search, "the search field").toBeGreaterThan(-1);
     expect(filtersAt, "the Filters button, inside the field").toBeGreaterThan(search);
-    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes || feedShowingLoadError ? undefined : headerCount } : { search: phoneBrowseSearch })");
+    expect(dash).toContain("embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes || feedShowingLoadError ? undefined : headerCount } : { search: phoneBrowseSearch, chips: phoneBrowseChips })");
     // JobsSection draws what Browse hands it in the phone bar, and the desktop end controls BEFORE the gear
     // (profileIsAccountMoneyHelp renders the order).
     const jobs = read("pages/jobs/JobsSection.tsx");

@@ -248,8 +248,8 @@ describe("a guest's cold /declutter starts its reads from the entry (Q2705)", ()
     await settle();
     const hrefs = () => [...document.head.querySelectorAll<HTMLLinkElement>('link[rel="preload"][as="image"]')].map((l) => l.href);
     expect(hrefs()).toEqual([
-      `${BASE}/storage/v1/render/image/public/job-photos/u/a.jpg?width=480&height=480&resize=cover&quality=70`,
-      `${BASE}/storage/v1/render/image/public/job-photos/u/b.jpg?width=480&height=480&resize=cover&quality=70`,
+      `${BASE}/storage/v1/render/image/public/job-photos/u/a.jpg?width=480&height=480&resize=cover&quality=55`,
+      `${BASE}/storage/v1/render/image/public/job-photos/u/b.jpg?width=480&height=480&resize=cover&quality=55`,
     ]);
     document.head.querySelectorAll('link[rel="preload"][as="image"]').forEach((l) => l.remove());
     stubGuest({ open: [] }); // not open to everyone: the guest gets the login wall, no cards

@@ -65,7 +65,7 @@ export const FIRST_ROW = 2;
 /** The card's src and srcset for this storage path. */
 export function cardPhotoUrls(supabaseUrl, path) {
   const root = `${String(supabaseUrl).replace(/\/$/, "")}/storage/v1/render/image/public/${BUCKET}/`;
-  const url = (px) => `${root}${path}?width=${px}&height=${px}&resize=cover&quality=70`;
+  const url = (px) => `${root}${path}?width=${px}&height=${px}&resize=cover&quality=55`;
   return { href: url(CARD_PX), srcset: `${url(SMALL_PX)} ${SMALL_PX}w, ${url(CARD_PX)} ${CARD_PX}w` };
 }
 

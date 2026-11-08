@@ -26,7 +26,7 @@ export const CARD_PHOTO_SIZES = "(min-width: 640px) 250px, calc(50vw - 26px)";
 export function squarePhotoUrl(publicUrl: string, px: number): string | null {
   const at = publicUrl.indexOf(PUBLIC_OBJECT);
   if (at < 0 || publicUrl.includes("?")) return null;
-  return `${publicUrl.slice(0, at)}/storage/v1/render/image/public/${publicUrl.slice(at + PUBLIC_OBJECT.length)}?width=${px}&height=${px}&resize=cover&quality=70`;
+  return `${publicUrl.slice(0, at)}/storage/v1/render/image/public/${publicUrl.slice(at + PUBLIC_OBJECT.length)}?width=${px}&height=${px}&resize=cover&quality=55`;
 }
 
 /** The card's srcSet: the small square, then the 480 card photo it already asks for (`cardUrl`, photoCardUrl). */

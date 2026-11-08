@@ -11,7 +11,7 @@
  * (d) the item page keeps the full photo (photoPublicUrl, not photoCardUrl).
  *
  * @mutate src/components/declutter/DeclutterItemCard.tsx |             src={photoStage === "card" ? photoCardUrl(photoPath) : photoPublicUrl(photoPath)} |             src={photoPublicUrl(photoPath)}
- * @mutate src/lib/declutter/api.ts |     .getPublicUrl(path, { transform: { width: CARD_PHOTO_PX, height: CARD_PHOTO_PX, resize: "cover", quality: 70 } }).data.publicUrl; |     .getPublicUrl(path).data.publicUrl;
+ * @mutate src/lib/declutter/api.ts |     .getPublicUrl(path, { transform: { width: CARD_PHOTO_PX, height: CARD_PHOTO_PX, resize: "cover", quality: 55 } }).data.publicUrl; |     .getPublicUrl(path).data.publicUrl;
  * @mutate src/components/declutter/DeclutterItemCard.tsx | setPhotoStage((s) => (s === "card" ? "full" : "failed")); }} | setPhotoStage("failed"); }}
  * @mutate src/components/declutter/DeclutterItemCard.tsx | decoding="async"\n            onLoad={photoSettled} | onLoad={photoSettled}
  * @mutate src/components/declutter/useLoadPhotoAhead.ts |         img.setAttribute("loading", "eager"); |

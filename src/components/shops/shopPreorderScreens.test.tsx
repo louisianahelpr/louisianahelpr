@@ -27,7 +27,7 @@ const invoke = vi.hoisted(() => vi.fn(async (_fn: string, _opts: { body: Record<
 const rpc = vi.hoisted(() => vi.fn(async (_name: string, _args?: Record<string, unknown>) => ({ data: null as unknown, error: null as unknown })));
 vi.mock("@/integrations/supabase/client", () => ({ supabase: { functions: { invoke }, rpc } }));
 vi.mock("@/lib/nativeInit", () => ({ isNativePlatform: false }));
-const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
+const toast = vi.hoisted(() => Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }));
 vi.mock("sonner", () => ({ toast }));
 vi.mock("@/components/ui/BrandConfirmDialog", () => ({
   BrandConfirmDialog: ({ open, title, description, primaryLabel, onPrimary }: {
@@ -99,7 +99,7 @@ describe("the shop's preorder settings", () => {
     expect(screen.getByText("12 of 20 ordered · ends Dec 1")).toBeTruthy();
     fireEvent.change(screen.getByLabelText(/^date .*-push$/), { target: { value: "2026-12-20" } });
     fireEvent.click(screen.getByRole("button", { name: "Move the date" }));
-    fireEvent.click(screen.getByRole("button", { name: "confirm Move the date" }));
+    fireEvent.click(screen.getByRole("button", { name: "confirm Save the new date" }));
     await waitFor(() => expect(rpc).toHaveBeenCalledWith("shops_push_preorder_date", { p_item_id: "i1", p_new_ready_by: "2026-12-20" }));
   });
 
@@ -129,7 +129,7 @@ describe("the buyer's preorder", () => {
     expect(screen.getByText("You get back $21.70, less the card-processing cost and the sales tax on it. The shop is told.")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "confirm Cancel preorder" }));
     await waitFor(() => expect(invoke).toHaveBeenCalledWith("shop-checkout", { body: { action: "preorder_cancel", order_id: "o1", native: false } }));
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Preorder cancelled. $20.81 is on its way back to your card."));
+    await waitFor(() => expect(toast).toHaveBeenCalledWith("Preorder cancelled. $20.81 is on its way back to your card.")); // bare toast(): a confirmation always renders
   });
 
   it("after the shop moved the date: everything back; marked ready: no cancel", async () => {

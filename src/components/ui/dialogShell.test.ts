@@ -1065,6 +1065,9 @@ describe("Popup grammar — footer", () => {
       "It's gone",
       // AUD31-71 (TwoFactorCard, f2aaec89f6): turning two-step off is a security downgrade; the dismiss names what stays.
       "Keep it on",
+      // Shops preorders (ShopItemPreorderEditor, 20261108184654): moving the ready-by date is once-only and tells every
+      // buyer; the dismiss names what stays, as "Keep it on" does.
+      "Keep the date",
       // Declutter handover sheets (Builder 3c s3, DeclutterHandoverSheets.tsx):
       // "Retake" takes the porch photo again (an action, not a dismissal);
       // "Something's not right" opens the problem report instead of confirming;

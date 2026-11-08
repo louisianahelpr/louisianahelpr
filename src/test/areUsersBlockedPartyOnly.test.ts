@@ -200,6 +200,9 @@ const EXPECTED_CALLERS = [
   // argument: the maker vs the order's buyer (accept), the buyer vs the shop's
   // owner (order terms, request order).
   "rpc_hire_target_by_handle", // B113 Hire me (20261104143437): are_users_blocked(v_me := auth.uid(), v_target)
+  // Shops preorders (20261108184654): the checkout webhook's mark_order_held asks about (the order's buyer, its seller);
+  // EXECUTE is service_role only (stripe-webhook), so is_server_context() is true and a blocked pair cancels the hold.
+  "shop_mark_order_held",
   "shops_accept_order",
   // Shops custom orders (20261106202917, 20261106205852): send/quote/order pass v_uid := auth.uid() vs the
   // shop's owner or the request's buyer; decline and my_custom_requests pass (the request's buyer, its shop's
@@ -218,6 +221,8 @@ const EXPECTED_CALLERS = [
   "shops_order_terms",
   "shops_quote_custom_request",
   "shops_request_order",
+  // Shops preorders (20261108184654): request_preorder passes v_uid := auth.uid() vs the shop's owner, as request_order.
+  "shops_request_preorder",
   "shops_send_custom_request",
   "shops_send_talk_message",
   "shops_talk_view",

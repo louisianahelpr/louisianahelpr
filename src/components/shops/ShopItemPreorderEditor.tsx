@@ -72,7 +72,7 @@ export default function ShopItemPreorderEditor({ shopId, item, hasOptions }: { s
       cap: f.withCap ? whole(f.cap, "preorder_cap") : null,
     }),
     onSuccess: (_v, off) => {
-      toast.success(off ? "Preorder turned off." : "Preorder saved. Buyers can preorder it now.");
+      toast(off ? "Preorder turned off." : "Preorder saved. Buyers can preorder it now.");
       setEditing(false);
       refresh();
     },
@@ -81,7 +81,7 @@ export default function ShopItemPreorderEditor({ shopId, item, hasOptions }: { s
   const push = useMutation({
     mutationFn: () => pushPreorderDate(item.id, pushTo),
     onSuccess: (n) => {
-      toast.success(n > 0 ? `Date moved. We told ${n} ${n === 1 ? "buyer" : "buyers"}.` : "Date moved.");
+      toast(n > 0 ? `Date moved. We told ${n} ${n === 1 ? "buyer" : "buyers"}.` : "Date moved.");
       setConfirmPush(false);
       setPushTo("");
       refresh();
@@ -211,10 +211,10 @@ export default function ShopItemPreorderEditor({ shopId, item, hasOptions }: { s
             <p>On those refunds, what the card company keeps comes out of your next payout.</p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="ghost" disabled={busy} onClick={() => setEditing(false)}>Cancel</Button>
             <Button type="button" className="btn-grad-primary" disabled={busy || !f.readyBy} onClick={() => save.mutate(false)}>
               {save.isPending ? "Saving…" : "Save preorder"}
             </Button>
-            <Button type="button" variant="ghost" disabled={busy} onClick={() => setEditing(false)}>Cancel</Button>
           </div>
         </div>
       )}
@@ -223,7 +223,7 @@ export default function ShopItemPreorderEditor({ shopId, item, hasOptions }: { s
         onOpenChange={(o) => { if (!o) setConfirmPush(false); }}
         title={pushTo ? `Move ready-by to ${shortDate(pushTo)}?` : "Move ready-by?"}
         description="You can do this only once. Every buyer is told and can cancel for a full refund; what the card company keeps on those refunds comes out of your next payout."
-        primaryLabel={push.isPending ? "Moving…" : "Move the date"}
+        primaryLabel={push.isPending ? "Moving…" : "Save the new date"}
         primaryDisabled={push.isPending}
         onPrimary={(e) => {
           e.preventDefault();

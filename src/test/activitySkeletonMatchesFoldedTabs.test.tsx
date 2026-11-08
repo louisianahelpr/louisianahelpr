@@ -11,9 +11,9 @@
  *     since owner 2026-10-28, its search is an icon in the tabs row;
  *     Posted / Working: the four status boxes; /posts lands on Posted; an old
  *     My Jobs link such as /jobs?filter= lands on Working);
- *   - the header is the loaded header's shape: on a phone the chips row with
- *     the bell and the profile (no "+" since owner 2026-10-28), then the tab
- *     toggle; on the desktop website the real title in the bar
+ *   - the header is the loaded header's shape: on a phone the search bar with
+ *     the bell and the profile (the Vinted header, owner 11-08), no tabs row,
+ *     and Posted / Working's back row; on the desktop website the real title in the bar
  *     (src/test/sectionLoadingHeaderIsSettled.test.tsx);
  *   - ONE h1 while pending.
  *
@@ -25,7 +25,8 @@
  * @mutate src/components/JobsSectionSkeleton.tsx |       {header}\n      <StatusBoxBones />\n | {header}\n
  * @mutate src/components/JobsSectionSkeleton.tsx |       titleCard={header} | titleCard={<div className="flex flex-col gap-4">{header}<Skeleton className="h-10 w-full rounded-full" aria-hidden /></div>}
  * @mutate src/components/JobsSectionSkeleton.tsx |       {!titleInBar && <h1 className="sr-only">Jobs</h1>} |
- * @mutate src/components/JobsSectionSkeleton.tsx |               <Skeleton className="h-11 w-11 shrink-0 rounded-full" />\n |
+ * @mutate src/components/JobsSectionSkeleton.tsx |             <Skeleton className="h-11 min-w-0 flex-1 rounded-full" />\n |
+ * @mutate src/components/JobsSectionSkeleton.tsx | <JobsListLoadingFrame header={<JobsHeaderBones list />} | <JobsListLoadingFrame header={<JobsHeaderBones />}
  * @mutate src/components/JobsSectionSkeleton.tsx |           <div className="app-top-bar flex items-center justify-between gap-2 h-16"> |           <div className="app-top-bar flex items-center justify-between gap-2 h-12">
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
@@ -78,17 +79,19 @@ describe("the /jobs placeholder draws the tab the URL opens on", () => {
 });
 
 describe("the placeholder's header is the loaded header's shape", () => {
-  it.each(["/jobs", "/jobs?tab=posted"])("%s: the phone header's top row (the Jobs title, bell, Messages, +, photo), the tabs row, and a single h1", (url) => {
-    // Nav redesign (owner, 2026-11-06): on a phone the top row is the visible section title, then the bell, Messages,
-    // the round "+" and the photo, 64px (AppTopBar's own h-16 row; the Explore chips row is gone). Then the thin
-    // underline tabs, 44px.
+  it.each([["/jobs", false], ["/jobs?tab=posted", true], ["/jobs?tab=working", true]] as const)("%s: the phone header's top row (the search bar, then the bell and the photo), no tabs row, the list's back row on Posted / Working, and a single h1", (url, list) => {
+    // The Vinted header (owner 11-08): on a phone the top row is the section's search bar, then the bell (which holds
+    // Messages) and the photo, 64px (AppTopBar's own h-16 row). No visible title (the page's h1 is visually hidden),
+    // no "+" (it floats: SectionCreateFab), no tabs row (Posted, Working and Jobs settings live in "My Jobs" under the
+    // photo). Posted / Working draw the 44px back row under the bar (SectionListBack) as a bone.
     const { container } = at(url);
     const bar = container.querySelector(".app-top-bar.h-16");
     expect(bar, "the top row's own h-16 box").not.toBeNull();
     expect(bar!.querySelectorAll(".explore-switcher-bone"), "no chips' bone").toHaveLength(0);
-    expect(bar!.firstElementChild?.textContent, "the visible title").toBe("Jobs");
-    expect(bar!.lastElementChild?.children.length, "the bell, Messages, the +, the photo").toBe(4);
-    expect(container.querySelectorAll(".h-11.w-full"), "the 44px tabs row").toHaveLength(1);
+    expect(bar!.querySelectorAll(".h-11.flex-1.rounded-full"), "the search bar's bone").toHaveLength(1);
+    expect(bar!.lastElementChild?.children.length, "the bell, the photo").toBe(2);
+    expect(container.querySelectorAll(".h-11.w-full"), "no tabs row on a phone").toHaveLength(0);
+    expect(container.querySelectorAll("[data-list-back-bone].h-11"), "the list's back row").toHaveLength(list ? 1 : 0);
     expect(container.querySelectorAll("h1")).toHaveLength(1);
   });
 });

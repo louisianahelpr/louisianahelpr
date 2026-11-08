@@ -374,8 +374,9 @@ describe("Home", () => {
   it("Next up's See all is the ONLY control for the list: no second collapsed bar", async () => {
     wrap(<HomeDashboard />);
     await screen.findByTestId("next-up-see-all");
-    // The top bar's "+" (it opens the Create sheet, nav redesign 2026-11-06) is not a control for the list.
-    const controls = [...document.querySelectorAll("[aria-expanded]")].filter((e) => !e.closest('[data-testid="app-top-bar"]'));
+    // The top bar's controls and the floating "+ Create" pill (it opens the Create sheet; the Vinted header, owner
+    // 11-08) are not controls for the list.
+    const controls = [...document.querySelectorAll("[aria-expanded]")].filter((e) => !e.closest('[data-testid="app-top-bar"]') && e.getAttribute("data-testid") !== "section-create-fab");
     expect(controls.map((e) => e.getAttribute("data-testid"))).toEqual(["next-up-see-all"]);
     expect(screen.queryByTestId("todo-collapsed")).toBeNull();
     expect(screen.queryByText(/^To do \(\d+\)$/)).toBeNull();

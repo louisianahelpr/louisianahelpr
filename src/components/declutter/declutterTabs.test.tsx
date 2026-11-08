@@ -500,13 +500,13 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // someone claimed read as a sale on both sides ("Sold, waiting for the buyer to pay", "Cancel sale", "To be paid",
   // "Sold: pickup and payout"; the claimer's "Your cart · 1 to check out" over a "Checkout" card). Free lines now use
   // give-away words; a paid line beside them keeps the sale words (the class: every waiting kind on both tabs).
-  // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |     ["free", waiting.filter((l) => l.price_cents === 0)], |     ["paid", waiting.filter((l) => l.price_cents === 0)],
+  // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |     ["free", waiting.filter((l) => l.price_cents === 0 && l.source !== "swap")], |     ["paid", waiting.filter((l) => l.price_cents === 0 && l.source !== "swap")],
   // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |   return free === waiting.length ? "Claimed" : "Waiting"; |   return "To be paid";
   // @mutate src/components/declutter/DeclutterTabParts.tsx | sold.every((l) => l.price_cents === 0) ? "Given away: pickup" | false ? "Given away: pickup"
   // @mutate src/components/declutter/DeclutterCartWords.tsx |   return claimsOnly ? { title: "Claimed", todoWords: "to choose a pickup" } : | return false ? { title: "Claimed", todoWords: "to choose a pickup" } :
   // @mutate src/components/declutter/DeclutterCartWords.tsx |   if (allFree) { |   if (false) {
   // @mutate src/components/declutter/DeclutterSalesWaiting.tsx |     body: "No strike for a free item. | body: "You'll get a Declutter strike. No strike for a free item.
-  // @mutate src/components/declutter/DeclutterSalesWaiting.tsx | kind === "free" ? WORDS.free.done : | false ? WORDS.free.done :
+  // @mutate src/components/declutter/DeclutterSalesWaiting.tsx | toast(kind === "paid" ? | toast(kind !== "never" ?
   it("DA-3/DA-4: a free claim reads as a give-away on Selling and on Buying, never as a sale", async () => {
     const FREE = { ...LINE, price_cents: 0, porch_ok: true };
     state.mine = [ITEM];

@@ -8,8 +8,8 @@
  * every definition before 20261102235342 has no start_time case. Behaviour (real Postgres):
  * src/test/pglite/noTimeJobNoticeDayEnded.pglite.mjs (8 PASS; 4 FAIL with NEW_MIGRATION=skip; 3 plants red).
  *
- * @mutate supabase/migrations/20261102235342_no_time_job_notice_says_the_day_ended.sql |       IF NEW.start_time IS NULL THEN |       IF NEW.start_time IS NOT NULL THEN
- * @mutate supabase/migrations/20261102235342_no_time_job_notice_says_the_day_ended.sql | v_title := 'Job day ended'; | v_title := 'Start time passed';
+ * @mutate supabase/migrations/20261108160000_continue_day_resumes_checks_in_and_new_photos.sql |       IF NEW.start_time IS NULL THEN |       IF NEW.start_time IS NOT NULL THEN
+ * @mutate supabase/migrations/20261108160000_continue_day_resumes_checks_in_and_new_photos.sql | v_title := 'Job day ended'; | v_title := 'Start time passed';
  */
 import { describe, expect, it } from "vitest";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

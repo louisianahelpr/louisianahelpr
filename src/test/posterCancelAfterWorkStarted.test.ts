@@ -11,8 +11,9 @@
  *   - the app has words for work_started (pointing at Report a problem), and the cancel quote offers no cancel then;
  *   - the no-money cancel notice and the last chance to approve are not System alerts ('warning').
  *
- * @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |        v_job.status::text IN ('in_progress', 'revision_requested')\n       OR v_job.helper_arrived_at |        false\n       OR v_job.helper_arrived_at
- * @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |        OR EXISTS (SELECT 1 FROM public.job_continue_days c WHERE c.job_id = v_job.id AND c.status IN ('proposed', 'set'))\n |
+ * @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql | WHERE t.job_id = p_job_id AND t.status IN ('arrived', 'working', 'done')) | WHERE false)
+ * @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql | OR j.status::text = 'revision_requested')) | OR j.status::text IN ('revision_requested', 'in_progress')))
+ * @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |     IF public.job_work_started(v_job.id) THEN\n      INSERT INTO public.notifications |     IF false THEN\n      INSERT INTO public.notifications
  * @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql | CASE WHEN v_helper_cut > 0 THEN 'payment' ELSE 'job_updates' END,\n      '/jobs?job=' | CASE WHEN v_helper_cut > 0 THEN 'payment' ELSE 'warning' END,\n      '/jobs?job='
  * @mutate src/lib/lifecycleErrorCopy.ts |     work_started:\n | 
  * @mutate supabase/functions/_shared/notification-templates.ts |         type: "work_status",\n        link: jobPage(f),\n      };\n    },\n  },\n  arrival_confirmed | type: "warning",\n        link: jobPage(f),\n      };\n    },\n  },\n  arrival_confirmed
@@ -34,17 +35,24 @@ describe("a poster cannot cancel a job the Helpr started (Jobs audit 11-08 #1)",
   it("the newest poster_cancel_job is the 20261108200000 one", () => {
     expect(defs.get("poster_cancel_job")?.file).toMatch(/^20261108200000_/);
   });
-  it("refuses work_started for every started state of a single job", () => {
-    const m = /IF v_job\.is_group_job IS NOT TRUE AND \((.*?)\) THEN RAISE EXCEPTION 'work_started'/.exec(pcj);
-    expect(m, "single-job work_started refusal").not.toBeNull();
-    const cond = m![1];
-    expect(cond).toContain("v_job.status::text IN ('in_progress', 'revision_requested')");
-    expect(cond).toContain("v_job.helper_arrived_at IS NOT NULL");
-    expect(cond).toContain("v_job.poster_confirmed_arrival_at IS NOT NULL");
-    expect(cond).toMatch(/job_continue_days c WHERE c\.job_id = v_job\.id AND c\.status IN \('proposed', 'set'\)/);
+  it("work = real evidence (on site, tracker step, being fixed, agreed continue day), never in_progress alone", () => {
+    const w = flat(body("job_work_started"));
+    expect(w).toContain("j.helper_arrived_at IS NOT NULL OR j.poster_confirmed_arrival_at IS NOT NULL OR j.status::text = 'revision_requested'");
+    expect(w).toContain("t.status IN ('arrived', 'working', 'done')");
+    expect(w).toContain("c.status = 'set'");
+    expect(w).not.toMatch(/in_progress/);
+    expect(pcj).toContain("IF v_job.is_group_job IS NOT TRUE AND public.job_work_started(v_job.id) THEN RAISE EXCEPTION 'work_started'");
   });
-  it("refuses a crew under way with anyone on it (an empty roster still cancels)", () => {
-    expect(pcj).toMatch(/g\.helper_id IS NOT NULL AND \(g\.helper_arrived_at IS NOT NULL OR v_job\.status::text IN \('in_progress', 'revision_requested'\)\) \) THEN RAISE EXCEPTION 'work_started'/);
+  it("refuses a crew with a member on site or being fixed (an empty roster still cancels)", () => {
+    expect(pcj).toMatch(/g\.helper_id IS NOT NULL AND \(g\.helper_arrived_at IS NOT NULL OR g\.poster_confirmed_arrival_at IS NOT NULL OR v_job\.status::text = 'revision_requested'\) \) THEN RAISE EXCEPTION 'work_started'/);
+  });
+  it("a block never settles a worked-on job: the admins decide", () => {
+    const b = flat(body("block_user_and_settle"));
+    expect(defs.get("block_user_and_settle")?.file).toMatch(/^20261108200000_/);
+    const held = b.indexOf("IF public.job_work_started(v_job.id) THEN");
+    expect(held).toBeGreaterThan(0);
+    expect(held).toBeLessThan(b.indexOf("UPDATE public.jobs SET status = 'cancelled'"));
+    expect(b.slice(held, held + 900)).toContain("'admin_review'");
   });
   it("refuses before anything is written", () => {
     const refuse = pcj.indexOf("RAISE EXCEPTION 'work_started'");
@@ -69,7 +77,7 @@ describe("a poster cannot cancel a job the Helpr started (Jobs audit 11-08 #1)",
   it("the cancel quote offers no cancel for a started single job", () => {
     const cp = blankComments(readFileSync("supabase/functions/create-payment/index.ts", "utf8"));
     expect(cp).toContain('return quoteJson({ can_cancel: false, reason: "work_started", quoted_at: nowIso });');
-    expect(cp).toMatch(/from\("job_continue_days"\)[\s\S]{0,200}\.in\("status", \["proposed", "set"\]\)/);
+    expect(cp).toContain(`supabaseAdmin.rpc("job_work_started", { p_job_id: jobId })`);
   });
   it("the fix ask is Work status, not a System alert (#5)", () => {
     const b = NOTIFICATION_TEMPLATES.revision_requested.build({

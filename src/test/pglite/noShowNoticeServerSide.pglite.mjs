@@ -32,6 +32,8 @@ const MUTANTS = {
   words: ["'You received a no-show warning for \"'", "'You got a no-show warning for \"'"],
   noRelease: ["  IF v_parent_job_id IS NOT NULL THEN\n    v_released", "  IF false THEN\n    v_released"],
   wrongHelper: ["public.series_release_dates(v_parent_job_id, v_helper_id,", "public.series_release_dates(v_parent_job_id, auth.uid(),"],
+  // The no-show release reads as "gave up".
+  gaveUp: ["                    WHEN p_reason = 'no_show'\n", "                    WHEN false\n"],
 };
 if (MUTANT && !MUTANTS[MUTANT]) throw new Error(`unknown MUTANT ${MUTANT}`);
 
@@ -63,13 +65,17 @@ create function public.apply_consequence_ladder(p_user uuid, p_violation_type te
 create table public.notifications (id uuid primary key default gen_random_uuid(), user_id uuid, title text not null, message text not null, type text, link text,
   job_id uuid, created_at timestamptz not null default now());
 create table public.notification_dedupe_suppressions (user_id uuid, type text, title text, link text);
-create table public.released (parent uuid, helper uuid, dates date[], reason text, job_status text);
-create function public.series_release_dates(p_parent uuid, p_helper uuid, p_dates date[], p_reason text, p_title text, p_customer uuid)
- returns date[] language sql as $$ insert into public.released select p_parent, p_helper, p_dates, p_reason, (select status from public.jobs where parent_job_id = p_parent limit 1); select p_dates $$;
+create table public.profiles (user_id uuid primary key, full_name text);
+insert into public.profiles values ('${A}', 'Eli Robichaux');
+create function public.member_display_name(n text, f text) returns text language sql immutable as $$ select coalesce(split_part(n, ' ', 1) || ' ' || left(split_part(n, ' ', 2), 1) || '.', f) $$;
+create table public.series_visit_holds (parent_job_id uuid, helper_id uuid, visit_date date);
+create table public.recurring_visit_releases (parent_job_id uuid, helper_id uuid, visit_date date, reason text, created_at timestamptz default now(),
+  unique (parent_job_id, visit_date));
 `);
 await db.exec(cutFn("20260912045624_suppress_exact_duplicate_notifications.sql", "suppress_exact_duplicate_notification"));
 await db.exec(`create trigger suppress_dup before insert on public.notifications for each row execute function public.suppress_exact_duplicate_notification();`);
 await db.exec(cutFn("20261102100421_no_start_time_job_is_due_at_the_end_of_its_day.sql", "report_helper_no_show"));
+await db.exec(cutFn("20261104050109_notices_name_the_person.sql", "series_release_dates"));
 if (!skip) {
   let sql = mig(THIS);
   if (MUTANT) {
@@ -85,7 +91,8 @@ let failed = 0;
 const ok = (name, cond, extra = "") => { console.log(`${cond ? "PASS" : "FAIL"}  ${name}${cond ? "" : `  ${extra}`}`); if (!cond) failed++; };
 const rows = async (q) => (await db.query(q)).rows;
 const seed = (parent = null, title = "Mow and Weed Eat") => db.exec(`
-  delete from public.notifications; delete from public.released; delete from public.applications; delete from public.user_violations; delete from public.jobs;
+  delete from public.notifications; delete from public.recurring_visit_releases; delete from public.series_visit_holds;
+  insert into public.series_visit_holds values ('${SERIES}', '${A}', current_date - 2); delete from public.applications; delete from public.user_violations; delete from public.jobs;
   insert into public.jobs (id, customer_id, helper_id, title, payment_status, date_needed, start_time, helper_confirmed_at, status, parent_job_id)
     values ('${J}','${P}','${A}','${title}','escrow',current_date - 2,'09:00', now() - interval '3 days','in_progress', ${parent ? `'${parent}'` : "null"});
   insert into public.applications (job_id, helper_id, status) values ('${J}','${A}','accepted');`);
@@ -117,11 +124,13 @@ await db.exec(`update public.rung set action = 'warning'`);
 // N4: series.
 await seed(SERIES);
 await call(P);
-const r4 = await rows(`select parent, helper, dates::text as dates, reason, job_status from public.released`);
-ok("N4 a recurring visit's date is released for the no-show Helpr, after the reopen", r4.length === 1 && r4[0].parent === SERIES && r4[0].helper === A && r4[0].job_status === "open", JSON.stringify(r4));
+const r4 = await rows(`select helper_id, reason from public.recurring_visit_releases`);
+ok("N4 a recurring visit's date is released for the no-show Helpr (after the reopen: a vacated visit)", r4.length === 1 && r4[0].helper_id === A && r4[0].reason === "no_show" && (await rows(`select 1 from public.series_visit_holds`)).length === 0, JSON.stringify(r4));
+const n4 = await rows(`select message from public.notifications where user_id = '${P}' and job_id = '${SERIES}'`);
+ok("N4 the poster reads that the Helpr didn't show up, not that they gave the date up", n4.length === 1 && /Eli R\. didn't show up for /.test(n4[0].message) && !/gave up/.test(n4[0].message), JSON.stringify(n4));
 await seed();
 await call(P);
-ok("N4 a one-off job releases nothing", (await rows(`select 1 from public.released`)).length === 0);
+ok("N4 a one-off job releases nothing", (await rows(`select 1 from public.recurring_visit_releases`)).length === 0);
 
 // N5: a non-poster.
 await seed();

@@ -6,9 +6,9 @@
  *    helper_cancel_booking: fee 0, and the Helpr's strike (apply_job_denial_consequence) inside 24 hours only.
  * Behaviour, red then green with planted defects: src/test/pglite/blockStrikeInside24h.pglite.mjs.
  *
- * @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql | AND v_committed AND public.is_late_cancellation(v_committed, v_hours) THEN | AND v_committed THEN
- * @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |       WHEN v_helpr_blocks THEN 0\n |
- * @mutate supabase/migrations/20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql |     v_helpr_blocks := v_job.helper_id = v_user; |     v_helpr_blocks := false;
+ * @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql | AND v_committed AND public.is_late_cancellation(v_committed, v_hours) THEN | AND v_committed THEN
+ * @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |       WHEN v_helpr_blocks THEN 0\n |
+ * @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |     v_helpr_blocks := v_job.helper_id = v_user; |     v_helpr_blocks := false;
  */
 import { describe, expect, it } from "vitest";
 import { resolve } from "node:path";
@@ -21,7 +21,7 @@ const body = blankSqlComments(def?.stmt ?? "");
 
 describe("a block strikes and charges like a cancel (Q2675, Q2692)", () => {
   it("reads the newest definition", () => {
-    expect(def?.file).toBe("20261102131745_block_strike_inside_24h_helpr_block_no_fee.sql");
+    expect(def?.file).toBe("20261108200000_poster_cancel_refused_once_work_started.sql");
     expect(body.length).toBeGreaterThan(5000);
   });
 

@@ -113,6 +113,8 @@ export const REASONS: Record<ReportedType, readonly Reason[]> = {
     { label: "Not allowed to be sold" },
     { label: "Scam or fake" },
     { label: "Wrong category or misleading" },
+    // Digital downloads (owner 11-08): a file copied from someone else's book or art.
+    { label: "Copyright problem" },
     { label: "Offensive" },
     { label: "Shares contact info" },
     { label: "Something else" },

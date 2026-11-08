@@ -10,9 +10,10 @@
 --      shop_items_preorder_card_age holds ready-by within 150 days of preorder_set_on, so every automatic refund is
 --      inside Stripe's window (also asserted in src/test/shopsPreorders.test.ts).
 --   2. shop_day_count skips preorders (a preorder never fills a day; its ready-by is not a picked day).
---   3. Refund reasons: preorder_goal_missed (full, Helpr absorbs Stripe's kept card fee: lead 11-08), preorder_shop_late
---      and preorder_date_moved (full, the shop pays the card fee: the shop's own lateness or date change, owner 10-14
---      "we never absorb any fee" and the seller-fault refund rule). A buyer's own cancel stays buyer_cancelled
+--   3. Refund reasons: preorder_goal_missed, preorder_shop_late and preorder_date_moved: the buyer gets every cent back
+--      (items, buyer fee, tax) and the card fee becomes the shop's fee debt (owner 10-14 "we never absorb any fee": only
+--      our own mistake is ours; this replaces the lead's 11-08 default of Helpr absorbing it on a missed goal, which the
+--      card-fee guard src/test/refundsKeepTheCardFee.test.ts refuses). A buyer's own cancel stays buyer_cancelled
 --      (keep_card_fee, as every other Shops buyer cancel).
 --   4. The old buyer cancel (free window / late cancel that pays the shop) never applies to a preorder: refused by
 --      trigger; a preorder is cancelled through shops_cancel_preorder.
@@ -108,10 +109,10 @@ AS $fn$
     -- unpaid_close_tax: the buyer's own close (late cancel, lapse, no-show). The card fee stays kept: the deposit's
     -- whole card fee was already kept (nothing else of the deposit comes back), so the row keeps 0 more of it.
     WHEN p_reason IN ('buyer_cancelled', 'problem_no_fault', 'unpaid_close_tax') THEN 'keep_card_fee'
-    -- Preorders (20261108184654): the shop's lateness or its pushed date is the shop's (it pays the card fee); a missed
-    -- goal is nobody's fault and the buyer gets every cent back, so Louisiana Helpr carries Stripe's kept fee (lead 11-08).
-    WHEN p_reason IN ('preorder_shop_late', 'preorder_date_moved') THEN 'full_shop_pays_fee'
-    WHEN p_reason = 'preorder_goal_missed' THEN 'full_platform_absorbs'
+    -- Preorders (20261108184654): the buyer gets every cent back on each automatic preorder refund, and the card fee
+    -- is the shop's: its own lateness, its pushed date, or the goal it set and did not reach (owner 10-14 "we never
+    -- absorb any fee"; only our own mistake is ours).
+    WHEN p_reason IN ('preorder_shop_late', 'preorder_date_moved', 'preorder_goal_missed') THEN 'full_shop_pays_fee'
     WHEN p_reason = 'problem_our_mistake' THEN 'full_platform_absorbs'
   END;
 $fn$;
@@ -452,7 +453,7 @@ BEGIN
   PERFORM public.declutter_notify(o.buyer_id, 'payment', 'Preorder cancelled',
     format('$%s is on its way back to your card%s. Card refunds usually show up in 5 to 10 business days.',
            to_char(r.refund_cents / 100.0, 'FM999999990.00'),
-           CASE WHEN r.kept_cents > 0 THEN ', less the card-processing cost' ELSE '' END
+           CASE WHEN r.kept_cents > 0 THEN ', less what the card company kept' ELSE '' END
            || CASE WHEN r.tax_kept_cents > 0 THEN ' and the sales tax on it' ELSE '' END),
     '/shops/orders', o.seller_id);
   RETURN jsonb_build_object('result', 'cancelled', 'order_id', o.id, 'refund_id', r.id, 'refund_cents', r.refund_cents);
@@ -500,7 +501,7 @@ GRANT EXECUTE ON FUNCTION public.shops_item_preorders(uuid) TO authenticated, se
 --   goal met    -> stamped once; every buyer with a paid preorder and the shop are told. Later cancels never undo it.
 --   goal missed -> at the end of the goal date with the goal not met, stamped once; then (this run and every later
 --                  run, so an order captured after the stamp is caught too) every paid preorder of the item is
---                  refunded IN FULL (preorder_goal_missed: buyer fee included, Helpr carries Stripe's card fee) and
+--                  refunded IN FULL (preorder_goal_missed: buyer fee included; the shop carries Stripe's card fee) and
 --                  its buyer told; the shop is told once.
 --   late warning-> 3 days before the late refunds (ready-by + 4 days) with an open preorder not marked ready: the shop
 --                  is told once (again after a push).
@@ -614,7 +615,7 @@ BEGIN
     BEGIN
       UPDATE public.shop_items SET preorder_late_warned_at = now() WHERE id = it.id AND preorder_late_warned_at IS NULL;
       PERFORM public.declutter_notify(it.owner_id, 'warning', 'Preorder is late',
-        format('"%s" was due by %s. Mark each order ready by %s, or those buyers are refunded automatically and you pay the card fees.',
+        format('"%s" was due by %s. Mark each order ready by %s, or those buyers are refunded automatically and what the card company keeps on each refund comes out of your next payout.',
                it.title, to_char(it.preorder_ready_by, 'FMMonth FMDD'), to_char(it.preorder_ready_by + 7, 'FMMonth FMDD')),
         '/shops/dashboard', NULL);
       v_warned := v_warned + 1;
@@ -645,7 +646,7 @@ BEGIN
                to_char(o.ready_date, 'FMMonth FMDD'), to_char(r.refund_cents / 100.0, 'FM999999990.00')),
         '/shops/orders', o.seller_id);
       PERFORM public.declutter_notify(o.seller_id, 'warning', 'Preorder refunded',
-        format('The preorder due by %s was not marked ready within 7 days, so the buyer was refunded in full. The $%s card fee comes out of your next payout.',
+        format('The preorder due by %s was not marked ready within 7 days, so the buyer was refunded in full. $%s the card company kept comes out of your next payout.',
                to_char(o.ready_date, 'FMMonth FMDD'), to_char(r.card_fee_cents / 100.0, 'FM999990.00')),
         '/shops/dashboard', o.buyer_id);
       v_late_refunds := v_late_refunds + 1;

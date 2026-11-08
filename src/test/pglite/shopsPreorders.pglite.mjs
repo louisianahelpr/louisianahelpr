@@ -221,7 +221,7 @@ ok((await as(B[0], `SELECT public.shops_cancel_preorder('${b.id}')`))?.error?.in
 await svc(`INSERT INTO public.shop_handovers (order_id, ready_at) VALUES ('${a.id}', now())`);
 ok((await as(B[0], `SELECT public.shops_cancel_preorder('${a.id}')`))?.error?.includes("preorder_ready"), "no cancel once the shop marked it ready");
 
-// --- 4. goal missed: every paid preorder refunded IN FULL (buyer fee included, Helpr absorbs the card fee), once
+// --- 4. goal missed: every paid preorder refunded IN FULL (buyer fee included; the shop carries the card fee), once
 const it2 = await newItem();
 await as(SELLER, `SELECT public.shops_set_item_preorder('${it2}', '${plus(40)}', 5, '${plus(2)}', NULL)`);
 const m1 = await preorder(B[0], it2, 1);
@@ -235,8 +235,10 @@ const s2 = one(await svc(`SELECT public.shop_preorder_sweep() AS r`));
 const rm1 = await refundOf(m1.id);
 const om1 = await row(m1.id);
 ok(s2?.goal_missed === 1 && s2?.goal_missed_refunds === 2, `goal missed: the 2 paid preorders refunded (${JSON.stringify(s2)})`);
-ok(rm1?.reason === "preorder_goal_missed" && rm1.fee_policy === "full_platform_absorbs" && rm1.refund_cents === om1.total_cents && rm1.kept_cents === 0,
-  `a FULL refund: ${rm1?.refund_cents} = total ${om1.total_cents} (items + buyer fee + tax), nothing kept`);
+ok(rm1?.reason === "preorder_goal_missed" && rm1.fee_policy === "full_shop_pays_fee" && rm1.refund_cents === om1.total_cents && rm1.kept_cents === 0,
+  `a FULL refund: ${rm1?.refund_cents} = total ${om1.total_cents} (items + buyer fee + tax), nothing kept from the buyer`);
+ok(one(await svc(`SELECT count(*)::int FROM public.declutter_seller_fee_debts WHERE shop_refund_id = '${rm1?.id}'`)) === 1,
+  "the card fee is the shop's (owner 10-14: we never absorb a fee)");
 ok(om1.status === "refunded" && om1.close_reason === "preorder_goal_missed", "the order is closed refunded");
 ok(await notes(B[1], "Preorder refunded") === 1 && await notes(SELLER, "Preorder goal not reached") === 1, "buyer and shop told");
 ok((await refundOf(m3.id)) === undefined, "a preorder not captured yet is not refunded yet...");

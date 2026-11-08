@@ -47,6 +47,7 @@ import {
 } from "@/lib/shops/orders";
 import { isLouisianaZip } from "@/lib/shipping/policy";
 import { shopsErrorMessage } from "@/lib/shops/errors";
+import { useFirstPayoutFeeCents, useFirstPayoutFeeKnown } from "@/hooks/useFirstPayoutFee";
 import { ShopsNotice } from "./shopsUi";
 import { HandoverModeNote } from "./ShopHandoverModePicker";
 import ShopOrderOptions, { lineKey, QuantityStepper } from "./ShopOrderOptions";
@@ -66,6 +67,9 @@ function preorderMax(p: ItemPreorder): number {
 }
 
 export default function ShopOrderSheet({ shopId }: { shopId: string }) {
+  // The first-time account setup fee shop-checkout adds (20261105181603 B; Declutter's BuyerTotal reads the same hook).
+  const setupFeeOwed = useFirstPayoutFeeCents();
+  const setupFeeKnown = useFirstPayoutFeeKnown();
   const navigate = useNavigate();
   const qc = useQueryClient();
   // One heading id per instance (A0-L1), for whichever state is showing.
@@ -147,6 +151,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
 
   const policy = cancelPolicyText(t.cancel_policy, t.ready_tap_cancel);
   const feeCents = itemsCents > 0 ? buyerFeeCents(itemsCents) : 0;
+  const setupFeeCents = itemsCents > 0 ? setupFeeOwed : 0;
   const atHome = chosen.some((l) => l.item.at_buyer === true);
   // One address per calculation: an at-home cleaning is ordered on its own (the server refuses a mix too).
   const atHomeMixed = atHome && chosen.length > 1;
@@ -402,8 +407,10 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
         <div className="flex justify-between"><dt>Service fee (5% + $0.70)</dt><dd>{formatCents(feeCents)}</dd></div>
         {delivering ? <div className="flex justify-between"><dt>Shop delivery</dt><dd>{deliveryCents > 0 ? formatCents(deliveryCents) : "Free"}</dd></div> : null}
         {helpring && helprCents !== null ? <div className="flex justify-between"><dt>Helpr delivery</dt><dd>{formatCents(helprCents)}</dd></div> : null}
-        <div className="flex justify-between font-semibold"><dt>Total</dt><dd data-testid="shop-order-total">{formatCents(itemsCents + feeCents + deliveryCents + (helprCents ?? 0))}</dd></div>
-        <p className="text-xs text-muted-foreground">Sales tax is added at checkout.</p>
+        {/* Shops audit 11-08 #8: shop-checkout adds the first-time setup fee as its own line (Declutter's BuyerTotal rule). */}
+        {setupFeeCents > 0 ? <div className="flex justify-between"><dt>One-time account setup fee</dt><dd data-testid="shop-order-setup-fee">{formatCents(setupFeeCents)}</dd></div> : null}
+        <div className="flex justify-between font-semibold"><dt>Total before tax</dt><dd data-testid="shop-order-total">{formatCents(itemsCents + feeCents + deliveryCents + (helprCents ?? 0) + setupFeeCents)}</dd></div>
+        <p className="text-xs text-muted-foreground">{setupFeeKnown ? "Sales tax is added at checkout." : "Sales tax and any one-time setup fee are added at checkout."}</p>
       </dl>
 
       <Button type="button" className="btn-grad-primary w-full" disabled={!canSend} onClick={() => void send()}>

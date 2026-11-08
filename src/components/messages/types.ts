@@ -140,12 +140,12 @@ export type Conversation = {
       ("snoozed"). Used to render "Muted for 8h" copy and to flip
       `isMuted` back to false once the snooze expires locally. */
   muteUntil?: string | null;
-  /** ISO timestamp of the other user's most recent login (from the
-      `get_user_last_active` RPC). Drives a quiet "Active now" / "Active
-      2h ago" inline label on the conversation row so a poster can
-      gauge how likely a helpr is to reply soon. Absent when the RPC is
-      undeployed (PGRST202) or older than the 7-day staleness cutoff. */
-  otherUserLastActiveAt?: string | null;
+  /** The other user's activity band from `get_user_last_active`
+      (20261108001932: a coarse band, never a sign-in time). "today" drives
+      the quiet "Active today" label on the row so a member can gauge how
+      likely a reply is soon. Null when the RPC is undeployed (PGRST202) or
+      gave no band (no sign-in in 7 days, blocked, suspended, test user). */
+  otherUserActiveBand?: import("@/lib/activeBand").ActiveBand | null;
   /** Present only on a "Louisiana Helpr Team" thread (no job; `jobId` is the
       `team:<user>` sentinel). Job-scoped features (status, lockout, mute, pin,
       archive, reactions, attachments, report/block) are off there.

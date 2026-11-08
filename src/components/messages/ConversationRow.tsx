@@ -185,25 +185,18 @@ const ConversationRowBase = ({
     ? "Photo"
     : (c.lastMessage || "—");
 
-  // Live-presence label — quiet trust signal that lets a poster see a
-  // helpr is online *right now* (drives the green "Active now" dot).
+  // Presence label — quiet trust signal that the other person was around
+  // today (drives the olive "Active today" dot).
   //
-  // We intentionally only surface the LIVE state and never a numeric
+  // We intentionally only surface "today" and never a numeric
   // "Xm/Xh/Xd ago" presence age: the far-right `when` already shows a
   // relative last-message time, and a second relative-vs-absolute age
   // sitting beside it read as two conflicting timestamps for one moment
   // ("6h ago" presence next to "May 30" last-message). One timestamp per
   // row — `when` — plus the live dot, no stale presence age.
-  // Pulled from the batched `get_user_last_active` RPC in `loadConversations`.
-  const lastActiveLabel = (() => {
-    if (!c.otherUserLastActiveAt) return null;
-    const at = new Date(c.otherUserLastActiveAt);
-    const ms = Date.now() - at.getTime();
-    if (!Number.isFinite(ms) || ms < 0) return null;
-    const m = Math.floor(ms / 60_000);
-    if (m < 10) return { text: "Active now", isLive: true };
-    return null;
-  })();
+  // Pulled from the batched `get_user_last_active` read in `loadConversations`:
+  // a coarse band, never a time (20261108001932). Only "today" shows here.
+  const lastActiveLabel = c.otherUserActiveBand === "today" ? { text: "Active today", isLive: true } : null;
   return (
     <div
       className={`${CONVERSATION_ROW_FRAME} transition-colors`}
@@ -458,11 +451,9 @@ const ConversationRowBase = ({
                   aria-label="Muted"
                 />
               )}
-              {/* Last-active pill — quiet trust signal so a poster knows
-                  whether the helpr is online right now. Live presence
-                  ("Active now") flips the dot to sage-green; older labels
-                  drop the dot and read as a muted timestamp. Hidden
-                  beyond 7d so a stale signal can't masquerade as live. */}
+              {/* Last-active pill — quiet trust signal so a member knows
+                  whether the other person was around today ("Active
+                  today", olive dot). Nothing for an older or unknown band. */}
               {lastActiveLabel && (
                 <span role="img"
                   aria-label={`Last active ${lastActiveLabel.text}`}

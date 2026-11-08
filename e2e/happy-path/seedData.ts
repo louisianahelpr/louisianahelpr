@@ -1942,7 +1942,7 @@ export const SEED_RPCS: Record<string, RpcAnswer> = {
     }));
   },
   get_user_last_active: (a) =>
-    idList(a.user_ids).map((uid, i) => ({ user_id: uid, last_active_at: AGO(i % 3 === 0 ? 0 : i) })),
+    idList(a.user_ids).map((uid, i) => ({ user_id: uid, active_band: i % 3 === 0 ? "today" : "this_week" })),
   get_user_repeat_hire_percent: () => 40,
   get_user_credential_tier: () => 2,
   get_my_reply_latency: () => [{ median_reply_minutes: 12, reply_sample: 38 }],

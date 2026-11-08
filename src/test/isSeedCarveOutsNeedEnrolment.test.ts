@@ -99,6 +99,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   report_message_party_and_copy: "hides", // posting audit #8: a member can't report a test post they can't see
   declutter_admin_reported_items: "tags", // B77 (20261030071816): the admin's reported-listings read returns is_seed so a test listing is labelled; admin-only, it hides nothing and gates no money
   shops_admin_reported: "tags", // Shops H2 (20261105182210): the admin's reported shops/items read returns is_seed so the queue drops test shops and items; admin-only, gates no money
+  declutter_seller_on_time_handovers: "hides",
   declutter_seller_sold_count: "hides",
   declutter_guest_seller_first_name: "hides", // BUY-16 (20261031062900): a seed listing or seed seller gives a guest no name
   declutter_apply_seller_fault: "alerts",
@@ -201,6 +202,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   // Q2480 (20261030031223): the reply bucket skips test jobs and hides test posters by seed_hidden_from_caller
   get_reply_speed: "hides",
   get_safe_profiles: "hides",
+  get_user_last_active: "hides",
   guard_profile_phone: "safety-skip",
   // The ID/payout step at accept: an enrolled, fixture-shaped account only (20261020043346).
   helper_accept_missing: "money-gate",

@@ -4,17 +4,17 @@
  *   - "Lists often": 5 or more of the seller's listings are for sale now (this one and 4+ in "More from this seller").
  *   - "On-time handovers": 5+ handovers in the last year and no standing missed-handover strike
  *     (declutter_seller_on_time_handovers, 20261107235110: one boolean, never counts).
- *   - "Active N min ago": the seller signed in within the last 24 hours (get_user_last_active reads sign-ins only,
- *     so an older sign-in says nothing about when they were last here: no badge, never "Last seen 3 weeks ago").
+ *   - "Active today": the seller signed in today (get_user_last_active answers a coarse band, never a time, and no
+ *     band for a seller the viewer has a block with or who is suspended: 20261108001932). "this_week" shows no badge:
+ *     a sign-in is not a visit, so an older one says nothing, never "Last seen 3 weeks ago".
  * The rating stays where it already is, the stars on the seller card (only when the seller has reviews).
  */
 import { supabase } from "@/integrations/supabase/client";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { bandMap, type ActiveBand } from "@/lib/activeBand";
 
 /** Listings for sale (this one included) from which "Lists often" shows. */
 const LISTS_OFTEN_FROM = 5;
-/** How recent a sign-in must be to say "Active ...". */
-const ACTIVE_WITHIN_MS = 24 * 60 * 60 * 1000;
 
 const MIN = 60 * 1000;
 const HOUR = 60 * MIN;
@@ -44,23 +44,19 @@ export function listedAgo(liveAt: string | null | undefined, now: Date = new Dat
   return a ? `Listed ${a}` : null;
 }
 
-/** "Active 20 min ago" for a sign-in in the last 24 hours, else null (thin data: no badge). */
-export function activeAgo(lastSignIn: string | null | undefined, now: Date = new Date()): string | null {
-  if (!lastSignIn) return null;
-  const t = new Date(lastSignIn).getTime();
-  if (Number.isNaN(t) || now.getTime() - t > ACTIVE_WITHIN_MS) return null;
-  const a = ago(lastSignIn, now);
-  return a ? `Active ${a}` : null;
+/** "Active today" for the "today" band, else null (an older or unknown band is thin data: no badge). */
+export function activeToday(band: ActiveBand | null | undefined): "Active today" | null {
+  return band === "today" ? "Active today" : null;
 }
 
 export type SellerBadge = { key: "lists_often" | "on_time" | "active"; label: string };
 
 /** The badges to show, in order; an empty list when nothing clears its bar. */
-export function sellerBadges(s: { othersForSale: number | null; onTime: boolean | null; lastSignIn: string | null; now?: Date }): SellerBadge[] {
+export function sellerBadges(s: { othersForSale: number | null; onTime: boolean | null; activeBand: ActiveBand | null }): SellerBadge[] {
   const out: SellerBadge[] = [];
   if (s.othersForSale !== null && s.othersForSale + 1 >= LISTS_OFTEN_FROM) out.push({ key: "lists_often", label: "Lists often" });
   if (s.onTime === true) out.push({ key: "on_time", label: "On-time handovers" });
-  const active = activeAgo(s.lastSignIn, s.now ?? new Date());
+  const active = activeToday(s.activeBand);
   if (active) out.push({ key: "active", label: active });
   return out;
 }
@@ -73,9 +69,9 @@ export async function fetchOnTimeHandovers(sellerId: string): Promise<boolean | 
   return res.data === true;
 }
 
-/** The seller's newest sign-in (get_user_last_active, members only); null when none is on file. */
-export async function fetchLastSignIn(sellerId: string): Promise<string | null> {
+/** The seller's activity band (get_user_last_active, members only); null when the server gave none. */
+export async function fetchActiveBand(sellerId: string): Promise<ActiveBand | null> {
   const res = await supabase.rpc("get_user_last_active", { user_ids: [sellerId] });
   if (res.error) throw res.error;
-  return (res.data ?? [])[0]?.last_active_at ?? null;
+  return bandMap(res.data).get(sellerId) ?? null;
 }

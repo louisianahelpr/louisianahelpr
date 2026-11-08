@@ -27,7 +27,7 @@
  * @mutate src/lib/declutter/myReads.ts | const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: true, accepts_trades: false }; | const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: false, accepts_trades: false };
  * @mutate src/lib/declutter/myReads.ts | const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: true, accepts_trades: false }; | const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: true, accepts_trades: true };
  * @mutate src/lib/declutter/myReads.ts |       : res.error?.code === "42501" |       : res.error?.code === "42999"
- * @mutate src/lib/declutter/myReads.ts | live_at, porch_ok, accepts_offers"; | live_at, porch_ok";
+ * @mutate src/lib/declutter/myReads.ts | live_at, porch_ok, accepts_offers, accepts_trades"; | live_at, porch_ok, accepts_trades";
  * @mutate src/lib/declutter/api.ts | { body, timeout: timeoutMs } | { body }
  * @mutate src/lib/declutter/api.ts |   for (const f of list) photos.push(await blobToBase64(await cleanListingPhoto(f, 1280, 0.75))); |   for (const f of list) photos.push(await blobToBase64(f));
  * @mutate src/lib/declutter/api.ts |   const list = files.slice(0, AI_DRAFT_PHOTOS); |   const list = files;

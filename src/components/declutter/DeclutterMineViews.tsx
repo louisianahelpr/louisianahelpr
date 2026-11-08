@@ -55,6 +55,7 @@ import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
 import { BundleRequestsSection, useBundleAsksToAnswer } from "./DeclutterBundleRequests";
 import { TradeOffersSection, useTradeOffersToAnswer } from "./DeclutterTradeOffers";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useMyTrades } from "./useMyTrades";
 
 const BUCKET_KEYS = ORDER_BUCKETS.map((b) => b.key);
 
@@ -99,6 +100,7 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
   // "Nothing bought yet." above "Free items you asked for". The notice waits for the asks read and needs none.
   const freeAsks = useMyFreeAsks();
   const { user } = useCurrentUser();
+  const buyerTrades = useMyTrades("buyer", user?.id ?? null);
   return (
     <div className="space-y-6">
       {/* The Free change (Q2487): a missed free pickup pauses free asks for 30 days; the date shows here. */}
@@ -109,7 +111,8 @@ export function BuyingDash({ todo: _todo }: { todo: DeclutterTodo | null }) {
       {/* Q2569 (audit 1102a): with every order in one group the row read "All · 2" "Cancelled · 2", the chip only
           repeating All; the chips show once there are two groups to choose between. */}
       {chips.length > 1 && <StatusBoxes boxes={chips} value={only} onToggle={toggle} allCount={chips.reduce((n, c) => n + c.count, 0)} />}
-      {t.ready && !orders && offers.has === false && !settling.settling && freeAsks.data?.length === 0 && (
+      {/* Lead 11-08: never "Nothing bought yet." above the buyer's own trade offers. */}
+      {t.ready && !orders && offers.has === false && !settling.settling && freeAsks.data?.length === 0 && !buyerTrades.isLoading && !buyerTrades.data?.length && (
         <DeclutterNotice title="Nothing bought yet.">
           When a seller accepts your offer, or you tap Buy, the item comes here. Buy now holds it 30 minutes; an accepted offer gives you 24 hours to check out.
         </DeclutterNotice>

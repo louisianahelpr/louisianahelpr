@@ -31,12 +31,12 @@ const OrderTalkStep = lazy(() => import("./OrderTalkStep"));
 const when = (iso: string) => talkTime(iso);
 
 /** "Message the seller" / "Message the buyer" on a paid order card: puts ?order_talk=<order id> on the address. */
-export function OrderTalkButton(props: { orderId: string; side: "buyer" | "seller" }) {
+export function OrderTalkButton(props: { orderId: string; side: "buyer" | "seller"; trade?: boolean }) {
   // The app always renders cards inside the router; a card rendered alone (unit tests of other card parts) has none.
   return useInRouterContext() ? <OrderTalkLinkButton {...props} /> : null;
 }
 
-function OrderTalkLinkButton({ orderId, side }: { orderId: string; side: "buyer" | "seller" }) {
+function OrderTalkLinkButton({ orderId, side, trade = false }: { orderId: string; side: "buyer" | "seller"; trade?: boolean }) {
   const [params, setParams] = useSearchParams();
   const open = () => {
     const next = new URLSearchParams(params);
@@ -46,7 +46,8 @@ function OrderTalkLinkButton({ orderId, side }: { orderId: string; side: "buyer"
   return (
     // Q2634 (audit 1102c R9): the card's other secondary button, Get help now, is the small outline; this matches it.
     <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={open}>
-      {side === "buyer" ? "Message the seller" : "Message the buyer"}
+      {/* Lead 11-08: a trade has no buyer or seller to speak of; both sides talk about the trade. */}
+      {trade ? "Message about the trade" : side === "buyer" ? "Message the seller" : "Message the buyer"}
     </Button>
   );
 }

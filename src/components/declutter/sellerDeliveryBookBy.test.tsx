@@ -7,7 +7,7 @@
  *
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         {b.status === "needs_time" && bookBy && b.order_status === "paid" && ( |         {false && (
  * @mutate src/components/declutter/SellerDeliveryOrder.tsx |   if (!shown && current.status === "needs_time" && current.side === "buyer") { |   if (false) {
- * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         <OrderTalkButton orderId={orderId} side="buyer" /> |         {null}
+ * @mutate src/components/declutter/SellerDeliveryOrder.tsx |         <OrderTalkButton orderId={orderId} side="buyer" trade={trade} /> |         {null}
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx |   const by = bookBy ? bookByWords(bookBy) : null; |   const by = null;
  * @mutate src/components/declutter/DeclutterPorchHandover.tsx |   return needsTime ? (q.data?.find((t) => t.id === orderId)?.book_by ?? null) : null; |   return null;
  */

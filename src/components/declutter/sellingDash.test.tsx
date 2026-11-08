@@ -41,7 +41,7 @@
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   const cents = SOLD.has(item.status) ? sold : item.current_price_cents; |   const cents = item.current_price_cents;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |                 <ListingPrice item={item} sold={sales.data?.get(item.id)?.cents} /> |                 <ListingPrice item={item} sold={item.current_price_cents} />
  * @mutate src/components/declutter/DeclutterHomeView.tsx |   if (cents === undefined) return null; |   if (cents === undefined) return <span data-listing-price="">{itemPriceLabel(item.current_price_cents)}</span>;
- * @mutate src/components/declutter/DeclutterHomeView.tsx |   return paid ? `${base} · ${paid}` : base; |   return base;
+ * @mutate src/components/declutter/listingStatusLine.ts |   return paid ? `${base} · ${paid}` : base; |   return base;
  * @mutate src/components/declutter/DeclutterHomeView.tsx |     return orderId ? (payouts.data ?? []).find((p) => p.order_id === orderId) ?? null : null; |     return (payouts.data ?? [])[0] ?? null;
  * @mutate src/lib/declutter/soldPayout.ts |   if (saleCents === undefined \|\| saleCents === 0) return null; |   if (saleCents === undefined) return null;
  * @mutate src/lib/declutter/soldPayout.ts |       return payout.executed_at ? `Paid out ${formatDay(payout.executed_at)}` : "Paid out"; |       return "Paid out";
@@ -315,7 +315,7 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
   });
 
   // B48 live check 2026-10-29: a porch + meetup listing read only "For sale · Porch pickup".
-  // @mutate src/components/declutter/DeclutterHomeView.tsx |   if (item.status === "live" && ways.length) return | if (false) return
+  // @mutate src/components/declutter/listingStatusLine.ts |   if (item.status === "live" && ways.length) return | if (false) return
   it("a live listing's line names every way the seller ticked, in checkout's order", async () => {
     state.mine = [{ ...ITEM, handovers: ["meetup", "porch"] }, { ...ITEM, id: "i9", title: "Old radio", handovers: null }];
     const { container } = at("/declutter?tab=selling");
@@ -326,7 +326,7 @@ describe("Selling tab (owner 2026-10-28: make this more polished)", () => {
 
   // Next-step line (owner 2026-11-01: "people aren't told what to do next"): a row that waits on the seller (a draft,
   // a rejected listing) says "Next: …" in the shared NextStep words; a live, paused or checked one says where it stands.
-  // @mutate src/components/declutter/DeclutterHomeView.tsx |   rejected: "Open it to see why it wasn't approved", |
+  // @mutate src/components/declutter/listingStatusLine.ts |   rejected: "Open it to see why it wasn't approved", |
   // @mutate src/components/declutter/DeclutterHomeView.tsx | : next.who === "you" ? "font-medium text-foreground" : "text-muted-foreground" | : "text-muted-foreground"
   // @mutate src/components/declutter/DeclutterHomeView.tsx | const statusLine = drop ? "May drop tonight" : nextStepWords(next); | const statusLine = drop ? "May drop tonight" : next.text;
   it("Next-step line: a row that waits on the seller says 'Next: …'; the rest say where they stand", async () => {

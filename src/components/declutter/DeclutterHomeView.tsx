@@ -25,9 +25,8 @@ import { BoughtWhatNext } from "./BoughtWhatNext";
 import { fetchMySales, fetchOpenFreeRequestCounts, fetchPhotos, fetchDropStates, photoPublicUrl, withdrawItem } from "@/lib/declutter/api";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { itemPriceLabel } from "@/lib/declutter/distance";
-import { fetchMyPayouts, type MyPayout } from "@/lib/declutter/handover";
-import { soldPayoutWords } from "@/lib/declutter/soldPayout";
-import { sellerStatusLabel } from "./declutterUi";
+import { fetchMyPayouts } from "@/lib/declutter/handover";
+import { listingNextStep } from "./listingStatusLine";
 import { ChevronLeft, ChevronRight, Settings, Tags } from "lucide-react";
 import { ListingShareButton } from "./DeclutterShareCard";
 import { SellChooserEntry } from "./SellChooserEntry";
@@ -42,7 +41,6 @@ import { BuyingDash, SellingDash, useWarmMineViews } from "./DeclutterMineLazy";
 import { OrdersUpdating } from "./OrdersUpdating";
 import { useUnansweredQuestions } from "./SellerQuestionsToAnswer";
 import { liveListingCount } from "@/lib/declutter/liveListingCount";
-import { HANDOVER_TITLE } from "./handoverCopy";
 import { DeliverEntry } from "./DeclutterDeliverEntry";
 import { TabletSellRow } from "./TabletSellRow";
 import { ItemViewsCount } from "./ItemViewsCount";
@@ -79,7 +77,7 @@ import { myItemsQuery, PAST_LISTING, useMyItemsFollowNotices } from "./myItemsQu
 import { useOpenProblems } from "./useOpenProblems";
 import { TAKE_DOWN_WORDS } from "./takeDownWords";
 import { loadModule, untilReload } from "@/lib/loadModule";
-import { nextStepWords, type NextStepValue } from "@/components/ui/NextStep";
+import { nextStepWords } from "@/components/ui/NextStep";
 
 /** The haul-away server calls load with My listings' first haul-away read, never on another route's path (Q178). */
 const haulLib = () => loadModule(() => import("@/lib/declutter/haulAway"));
@@ -96,46 +94,6 @@ const WantedView = lazy(() => import("./DeclutterWantedViews").then((m) => ({ de
 // Opened from a listing's Manage button (or a price-drop notice), never part of the first screen.
 const ManageListingSheet = lazy(() => import("./DeclutterManageListing").then((m) => ({ default: m.ManageListingSheet })));
 const FreeView = lazy(() => import("./DeclutterFreeView").then((m) => ({ default: m.FreeView })));
-
-/**
- * A listing row's ONE status line (owner 2026-10-28: "Not listed yet" + "Finish the listing to put it up for sale."
- * read as two statuses). Where the old help line said what to do, its few words ride on the same line.
- */
-const SELLER_STATUS_LINE: Partial<Record<DeclutterItem["status"], string>> = {
-  // NIGHT-SELL-Sellinglist-5: only a failed automatic check holds a listing (owner); "Waiting for a review" read as a person.
-  pending_review: "Being checked. We'll send you a notice when it's done.",
-  paused: "Paused. Hidden from buyers.",
-};
-
-const WAY_ORDER = ["porch", "meetup", "seller_delivery", "delivery"] as const;
-
-/**
- * The next-step line on a listing row (owner 2026-11-01: "people aren't told what to do next"): a listing that waits on
- * the seller reads "Next: <step>" (finish it, approve it, see why it was not approved), in the shared NextStep words
- * (nextStepWords) and the row's own size; every other row says where it stands, as before.
- */
-const SELLER_MOVE: Partial<Record<DeclutterItem["status"], string>> = {
-  draft: "Finish it to sell it",
-  rejected: "Open it to see why it wasn't approved",
-  pending_seller_approval: "Approve it above to sell it",
-};
-
-function listingNextStep(item: DeclutterItem, saleCents?: number, payout?: MyPayout | null, problemOpen = false): NextStepValue {
-  const move = SELLER_MOVE[item.status];
-  if (move) return { who: "you", text: move };
-  return { who: item.status === "pending_review" ? "them" : "info", text: listingStatusLine(item, saleCents, payout, problemOpen) };
-}
-
-function listingStatusLine(item: DeclutterItem, saleCents?: number, payout?: MyPayout | null, problemOpen = false): string {
-  // B48 live check 2026-10-29: porch + meetup read only "Porch pickup". Every ticked way, in checkout's order and words.
-  const ways = WAY_ORDER.filter((w) => item.handovers?.includes(w));
-  if (item.status === "live" && ways.length) return ["For sale", ...ways.map((w) => HANDOVER_TITLE[w])].join(" · ");
-  if (item.status === "live" && item.porch_ok) return "For sale · Porch pickup";
-  const base = SELLER_STATUS_LINE[item.status] ?? sellerStatusLabel(item);
-  // Deep audit #60: a sold listing's line also says where its payout stands (soldPayout.ts); D2-2: held while a problem is open.
-  const paid = item.status === "sold" || item.status === "completed" ? soldPayoutWords(item.status, saleCents, payout, undefined, problemOpen) : null;
-  return paid ? `${base} · ${paid}` : base;
-}
 
 const SOLD = new Set<DeclutterItem["status"]>(["sold", "completed"]);
 

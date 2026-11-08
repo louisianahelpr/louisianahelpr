@@ -34,6 +34,7 @@ import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { signupUrlFor } from "@/lib/jobIntent";
 import { jobCategoryLabel } from "@/lib/jobCategories";
 import { itemPriceLabel } from "@/lib/declutter/distance";
+import { PriceInclFee } from "@/components/declutter/PriceInclFee";
 import {
   fetchPublicProfile,
   handleFromPath,
@@ -256,8 +257,9 @@ function ProfileBody({ p, signedIn, isMe, ctaReady, viewerId = null }: { p: Publ
                   <div className="p-2">
                     <p className="truncate text-ds-14 font-semibold text-foreground" title={l.title}>{l.title}</p>
                     <p className="text-ds-13 text-muted-foreground">
-                      {itemPriceLabel(l.price_cents)}{l.area_label ? ` · ${l.area_label}` : ""}
+                      {itemPriceLabel(l.current_price_cents)}{l.area_label ? ` · ${l.area_label}` : ""}
                     </p>
+                    <PriceInclFee priceCents={l.current_price_cents} />
                   </div>
                 </Link>
               </li>

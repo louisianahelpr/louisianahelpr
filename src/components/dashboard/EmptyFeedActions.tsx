@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { EmptyStateActions } from "@/components/ui/EmptyStateActions";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
 
 /**
  * The empty Browse feed's two ways out: Post a job, then Notify me when one
@@ -25,10 +26,14 @@ export function EmptyFeedActions({ onNotify }: { onNotify: () => void }) {
   const { gate, gatedProps } = useAgeGate();
   // Owner 11-02 (1.0.4): the same layout as Declutter's empty Browse (EmptyStateActions).
   return (
+    <>
+    {/* Its own "+ Post a job" is here, so the floating one steps aside (owner via the lead, 11-08). */}
+    <HideSectionCreateFab />
     <EmptyStateActions
       primary={{ label: "Post a job", onClick: gate("post", () => navigate("/post-job")), buttonProps: gatedProps("post") }}
       secondary={{ label: "Notify me when one lands", onClick: onNotify }}
       secondaryIcon={Bell}
     />
+    </>
   );
 }

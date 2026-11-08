@@ -16,7 +16,8 @@ import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
 import { SectionListBack } from "@/components/sections/SectionListBack";
-import { HOMES_TABS, HOMES_TAB_VALUES, MY_HOMES, OWN_GROUPS, RENT_GROUPS, requestGroup } from "./homesTabs";
+import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
+import { HOMES_TABS, HOMES_TAB_VALUES, myHomes, OWN_GROUPS, RENT_GROUPS, requestGroup } from "./homesTabs";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { StatusBoxes, useStatusFilter } from "@/components/sections/StatusBoxes";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -411,7 +412,7 @@ export default function RentalsHomeView() {
   const phone = desktop ? {} : {
     search: tab === "browse" ? undefined : <SectionSearchBar noun="homes" home="/rentals" />,
     searchSlot: tab === "browse",
-    mine: MY_HOMES,
+    mine: myHomes(data.data?.requests, uid),
     fab: <SectionCreateFab section="homes" text="Add a property" />,
   };
   if (tab === "browse") {
@@ -549,9 +550,12 @@ export default function RentalsHomeView() {
                 body="Add it, invite your tenants, and turn their repair requests into Helpr jobs."
                 action={
                   !underAge && (
-                    <Button type="button" size="sm" onClick={() => setAdding(true)}>
-                      Add a property
-                    </Button>
+                    <>
+                      <HideSectionCreateFab />
+                      <Button type="button" size="sm" onClick={() => setAdding(true)}>
+                        Add a property
+                      </Button>
+                    </>
                   )
                 }
               />

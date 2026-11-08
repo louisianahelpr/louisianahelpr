@@ -5,6 +5,7 @@ import { BarkPillButton } from "@/components/ui/BarkPillButton";
 import { Button } from "@/components/ui/button";
 import type { Tab } from "@/components/job-card/activityConstants";
 import { useAgeGate } from "@/hooks/useAgeGate";
+import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
 
 /**
  * ActivityEmptyState — the empty / error / no-matches panel shown when the
@@ -213,7 +214,8 @@ export function ActivityEmptyState({
               Show {jumpTo.label} ({statusCounts?.[jumpTo.key] ?? 0})
             </BarkPillButton>
           ) : (
-            ctaButton
+            // Posted's own "Post a job" is the create: the floating one steps aside (owner via the lead, 11-08).
+            <>{isPosted && <HideSectionCreateFab />}{ctaButton}</>
           )
         }
       />

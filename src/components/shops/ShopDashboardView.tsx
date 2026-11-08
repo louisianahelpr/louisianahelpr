@@ -8,6 +8,7 @@
  * order (ShopHandoverActions), the payout line on handed-over ones and the
  * handover choice (ShopHandoverModePicker). No visual pass yet.
  */
+import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SectionActionPill } from "@/components/ui/SectionActionPill";
@@ -149,6 +150,8 @@ export default function ShopDashboardView({ embedded = false, header, footer }: 
         {embedded ? (
           <ShopsNotice title="You don't have a shop yet.">
             <p>Open a free shop for your business or the things you make. Its orders show here.</p>
+            {/* Its own "Open a shop" is here: the floating one steps aside (owner via the lead, 11-08). */}
+            <HideSectionCreateFab />
             <SectionActionPill className="mt-3" onClick={() => navigate("/shops/mine")}>Open a shop</SectionActionPill>
           </ShopsNotice>
         ) : (

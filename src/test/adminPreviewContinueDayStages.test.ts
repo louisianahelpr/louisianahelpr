@@ -31,7 +31,7 @@ describe("the preview has every continue-day stage (Jobs audit 11-08 #8)", () =>
   }
   it("an agreed day restarts the tracker, and the new photo is owed while it is set", () => {
     for (const k of ["continue_day", "continue_day_today", "continue_day_lapsed"] as const) expect(previewSample(k, "helpr").trackingStatus).toBe("job_confirmed");
-    const row = previewSample("continue_day_photo_owed", "helpr").tables.job_continue_days[0] as { status: string; new_after_photo_at: string | null };
+    const row = previewSample("continue_day_photo_owed", "helpr").tables.job_continue_days[0] as Parameters<typeof continueDayOwesAfterPhoto>[0];
     expect(continueDayOwesAfterPhoto(row, true)).toBe(true);
   });
 });

@@ -142,7 +142,7 @@ export function firstCardPhotoPreloads(
     const at = slot++;
     const path = first.get(i.id);
     if (!path || path.includes("?")) continue;
-    const url = (px: number) => `${root}${path}?width=${px}&height=${px}&resize=cover&quality=70`;
+    const url = (px: number) => `${root}${path}?width=${px}&height=${px}&resize=cover&quality=55`;
     out.push({ href: url(CARD_PX), srcset: `${url(SMALL_PX)} ${SMALL_PX}w, ${url(CARD_PX)} ${CARD_PX}w`, high: at < firstRow });
   }
   return out;

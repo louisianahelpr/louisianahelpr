@@ -55,6 +55,7 @@ INSERT INTO q140_class (fn, kind, why) VALUES
   ('declutter_item_link_visible',   'allow',    'Q2426 share card (20261027194426): may a public link card show this Declutter item (live/reserved, seller not out, Declutter not off)'),
   ('rentals_tenancy_party',         'allow',    'is the caller the landlord or tenant of this tenancy (Homes rent tracker read policies, 20261019073106)'),
   ('feature_enabled_for_user',      'allow',    'hidden feature switch is on for this user (service_role, edge functions)'),
+  ('terms_accepted_is_current',     'allow',    'Terms check (20261108154435): TRUE = this member accepted the current Terms, so a commitment may go ahead (service_role, edge functions)'),
   ('sell_for_me_listings_sent',     'allow',    'may a Have a Helpr list it job be marked done: TRUE = its Helpr sent at least one listing for approval (create-payment release path, LEAD-LIST-FOR-SELLER, 20261101034159)'),
   ('declutter_payout_unsent',       'allow',    'may a refund after the handover still rebook this sale''s seller payout (never tried, marked or sent; board 141, 20261026155251)'),
   ('declutter_problem_window_open', 'allow',    'may the buyer still report a problem on this handed-over sale (board 141, 20261026155251)'),
@@ -298,6 +299,8 @@ INSERT INTO q140_case (fn, sub, args, null_at) VALUES
   ('identity_is_verified',          NULL, ARRAY['''verified''', 'false'], ARRAY[1,2]),
   -- D's profile carries idv_status = 'verified' (profiles fixture step), so the non-NULL call is TRUE.
   ('is_identity_verified',          NULL, ARRAY['''00000000-0000-4000-8140-00000000000d''::uuid'], ARRAY[1]),
+  -- D's profile holds the current Terms version (profiles fixture step), so the non-NULL call is TRUE.
+  ('terms_accepted_is_current',     NULL, ARRAY['''00000000-0000-4000-8140-00000000000d''::uuid'], ARRAY[1]),
   ('is_party_to_job',               NULL, ARRAY['''00000000-0000-4000-8140-000000000101''::uuid', '''00000000-0000-4000-8140-00000000000a''::uuid'], ARRAY[1,2]),
   ('is_party_to_job_folder',        '00000000-0000-4000-8140-00000000000a', ARRAY['''00000000-0000-4000-8140-000000000101/x.png'''], ARRAY[1]),
   -- B is on J's crew (the 'roster' fixture step), so the non-NULL call is TRUE.
@@ -428,6 +431,7 @@ BEGIN
         INSERT INTO public.profiles (user_id) VALUES (A), (B), (D) ON CONFLICT (user_id) DO NOTHING;
         UPDATE public.profiles SET subscription_tier = 'pro', subscription_expires_at = NULL WHERE user_id = B;
         UPDATE public.profiles SET idv_status = 'verified' WHERE user_id = D;  -- is_identity_verified's TRUE case
+        UPDATE public.profiles SET terms_version_accepted = public.current_terms_version() WHERE user_id = D;  -- terms_accepted_is_current's TRUE case
         -- Q1844 (20261017085012): helper_has_advanced_analytics also asks the 'memberships' switch, so turn it
         -- on for everyone here (rolled back with the rest), or B's baseline call is false and proves nothing.
         IF to_regclass('public.feature_switches') IS NOT NULL THEN

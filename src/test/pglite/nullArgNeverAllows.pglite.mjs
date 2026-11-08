@@ -92,7 +92,9 @@ CREATE TABLE public.profiles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), use
   -- is_identity_verified (20261019051407) reads the two identity verdict columns.
   idv_status text, stripe_identity_verified boolean DEFAULT false,
   -- Q1803 (20261022002144): the newest is_caller_banned also refuses an under-13 block.
-  under_13_blocked_at timestamptz);
+  under_13_blocked_at timestamptz,
+  -- Terms check (20261108154435): terms_accepted_is_current reads the accepted version.
+  terms_version_accepted text);
 CREATE TABLE public.user_roles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL, role public.app_role NOT NULL,
   UNIQUE (user_id, role));
 CREATE TABLE public.jobs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), title text NOT NULL, description text NOT NULL,
@@ -367,7 +369,9 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   // Free ask's confirmed time (20261101174857), after declutter_slot_in_windows which it calls; live position (20261101184555).
   "declutter_seller_slot_open", "helpr_task_position_viewer",
   // Shops H9 (20261105230819): may this shop review be shown (loaded after the stubs: see AFTER_STUBS).
-  "shop_review_public"];
+  "shop_review_public",
+  // Terms check (20261108154435): has this member accepted the current Terms; after its two helpers (HELPERS).
+  "terms_accepted_is_current"];
 // Loaded after the stubs below: their SQL bodies call seed_jobs_hidden_publicly(), a stubbed noarg
 // (shop_visible_to calls shop_publicly_visible, which calls shop_state_ok, as does shop_link_visible:
 // each comes after its callee).
@@ -388,7 +392,9 @@ const HELPERS = ["job_offer_cutoff", "job_legacy_completed_at", "job_messaging_c
   // Q2462: declutter_pair_needs_talk's SQL body calls it (validated at CREATE).
   "declutter_pair_shared_ways",
   // Q2058: is_tenant_repair_photo's SQL body calls it (validated at CREATE).
-  "rentals_request_photo_rows"];
+  "rentals_request_photo_rows",
+  // Terms check (20261108154435): terms_accepted_is_current's SQL body calls both (validated at CREATE).
+  "current_terms_version", "terms_version_rank"];
 // Load order: a SQL body is validated at CREATE, so a callee comes first.
 // declutter_order_slot_in_windows (20261031145652): declutter_delivery_slot_ok's SQL body calls it.
 // BUY-43 (20261101051951): declutter_delivery_tip_open's SQL body calls payout_waits_on_identity, whose SQL body calls

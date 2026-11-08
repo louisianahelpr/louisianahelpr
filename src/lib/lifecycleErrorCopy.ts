@@ -427,6 +427,9 @@ export const RPC_ERROR_COPY = {
     not_authenticated: "Please sign in again to cancel this job.",
     // Boards 66/172 slice 2 (20261021130723): the fee moved a tier since the dialog quoted it; nothing was cancelled.
     quote_changed: "The amount for your Helpr's time changed while this was open, so nothing was cancelled. Check the new amount and confirm again.",
+    // Jobs audit 11-08 #1 (20261108200000): the Helpr already started (in progress, on site, or a continue day).
+    work_started:
+      "Your Helpr already started this job, so it can't be cancelled. If something's wrong, use Report a problem on the job to open a dispute. Your payment stays on hold until it's sorted.",
   },
   // EndSeriesControl — the poster ends a recurring series; a Helpr on it leaves.
   end_recurring_series: {

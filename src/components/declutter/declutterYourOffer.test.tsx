@@ -104,6 +104,7 @@ vi.mock("@/lib/declutter/api", () => ({
 import { OfferPanel } from "./DeclutterOfferPanel";
 import { FreeCheckoutForSeller, FreeClaimPanel, FreeRequestsForGiver } from "./DeclutterFreeClaim";
 import type { DeclutterItem } from "@/lib/declutter/api";
+import { minOfferCents, offerChipCents } from "@/lib/declutter/money";
 
 const ITEM = {
   id: "i1", seller_id: "s1", title: "Oak desk", status: "live", current_price_cents: 4000, price_cents: 4000,
@@ -410,16 +411,16 @@ describe("Buy now names the charge, setup fee included (A1-B2)", () => {
   });
 });
 
-// Owner 11-01 (app-wide): side-by-side buttons are ONE line with short labels. At 375 "Make an offer" took 2 lines
-// and Buy now 4 ("Buy now / $37.45 total + any one-time setup fee"). Now "Offer" (outline, left) and "Buy · $37.45"
-// (filled, right), each nowrap, the setup-fee words a small line UNDER the pair. Screen readers keep the full names.
-// The pixel half (each label inside its button at 320 and 375, one line tall) is measured in WebKit by
-// ~/.lh-shots/b109/shots.mjs (measure-*.json).
-// @mutate src/components/declutter/DeclutterOfferPanel.tsx |       <span aria-hidden>Buy ·</span> |       <span aria-hidden>Buy now ·</span>
+// Owner 11-01 (app-wide): buttons are ONE line each, the setup-fee words a small line UNDER them, never inside.
+// Owner 11-07 (Vinted review): on the item page the actions are three full-width buttons STACKED under the price:
+// "Buy now · $42.70" (the one filled button) first, then "Make an offer", then "Ask the seller" (the public
+// Questions box). Each nowrap. The phone's bottom bar keeps its short side-by-side pair ("Offer", "Buy · $42.70").
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx |       {long ? <>Buy now ·</> : |       {long ? <>Buy ·</> :
 // @mutate src/components/declutter/DeclutterOfferPanel.tsx |     <span className="whitespace-nowrap font-semibold" data-buy-label=""> |     <span className="font-semibold" data-buy-label="">
 // @mutate src/components/declutter/DeclutterOfferPanel.tsx |         pendingClassName="sr-only" |         pendingClassName="block text-xs"
-// @mutate src/components/declutter/DeclutterOfferPanel.tsx |             <span aria-hidden className="whitespace-nowrap" data-offer-label="">Offer</span> |             <span aria-hidden className="whitespace-nowrap" data-offer-label="">Make an offer</span>
-describe("Offer and Buy are one line each, the setup fee under them (owner 11-01)", () => {
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx | <span className="whitespace-nowrap" data-offer-label="">Make an offer</span> | <span className="whitespace-nowrap" data-offer-label="">Offer</span>
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx |       <div ref={buttons} className="grid gap-2" data-offer-buttons=""> |       <div ref={buttons} className="grid grid-cols-3 gap-2" data-offer-buttons="">
+describe("Buy now, Make an offer, Ask the seller: stacked, one line each, the setup fee under them (owner 11-01, 11-07)", () => {
   /** What a sighted buyer reads on a button: its text without the screen-reader-only spans. */
   const seen = (el: Element) => {
     const c = el.cloneNode(true) as Element;
@@ -429,23 +430,26 @@ describe("Offer and Buy are one line each, the setup fee under them (owner 11-01
   for (const known of [true, false]) {
     it(`short nowrap labels, setup fee ${known ? "known" : "not yet known"}`, async () => {
       state.setupFeeKnown = known;
-      show(<OfferPanel item={ITEM} userId="u1" />);
+      const asked: number[] = [];
+      show(<OfferPanel item={ITEM} userId="u1" onAskSeller={() => asked.push(1)} />);
       const region = await screen.findByRole("region", { name: "Buy or make an offer" });
       const buy = await within(region).findByRole("button", { name: /^Buy now · \$42\.70 total/ });
       const offer = within(region).getByRole("button", { name: "Make an offer" });
-      expect(seen(offer)).toBe("Offer");
-      expect(seen(buy)).toBe("Buy · $42.70");
-      // Fits the narrow column at 320 up to $999.99 ("Buy · $999.99", 13 characters).
-      expect(seen(buy).length).toBeLessThanOrEqual(13);
+      const ask = within(region).getByRole("button", { name: "Ask the seller" });
+      expect(seen(offer)).toBe("Make an offer");
+      expect(seen(buy)).toBe("Buy now · $42.70");
+      fireEvent.click(ask);
+      expect(asked).toEqual([1]);
       for (const b of [buy, offer]) {
         const label = b.querySelector("[data-buy-label], [data-offer-label]");
         expect(label?.className, seen(b)).toMatch(/whitespace-nowrap/);
         expect(seen(b)).not.toMatch(/setup fee|total/);
       }
-      // Offer left, Buy right, in one row; the fee words are a line UNDER the row, never inside a button.
+      // Stacked: Buy now first, then Make an offer, then Ask the seller, one column; the fee words UNDER them.
       const row = region.querySelector("[data-offer-buttons]")!;
-      expect([...row.querySelectorAll("button")]).toEqual([offer, buy]);
-      expect(row.className).toMatch(/grid-cols-\[/);
+      expect([...row.querySelectorAll("button")]).toEqual([buy, offer, ask]);
+      expect(row.className).not.toMatch(/grid-cols-/);
+      for (const b of [buy, offer, ask]) expect(b.className.split(/\s+/)).toContain("w-full");
       const note = region.querySelector("[data-setup-fee-note]");
       if (known) expect(note).toBeNull();
       else {
@@ -472,5 +476,45 @@ describe("offers off = Buy only (smart offers)", () => {
     show(<OfferPanel item={{ ...ITEM, accepts_offers: true }} userId="u1" />);
     expect((await screen.findAllByRole("button", { name: "Make an offer" })).length).toBeGreaterThan(0);
     expect(screen.queryByText("The seller isn't taking offers on this one.")).toBeNull();
+  });
+});
+
+// Owner 11-07 (Vinted review, item 3): the offer sheet has quick chips "10% off" and "20% off" the price and Custom
+// (the amount field), the buyer's total incl. fee under them, and ONE Send offer button. A chip shows only where the
+// server's offer rule would take it (at least half the price, under the price; declutter_make_offer checks again).
+// @mutate src/lib/declutter/money.ts |   return cents >= minOfferCents(currentPriceCents) && cents < currentPriceCents ? cents : null; |   return cents;
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx | onClick={() => setAmount(centsToDollars(chip))} | onClick={() => setAmount(centsToDollars(item.current_price_cents))}
+// @mutate src/components/declutter/DeclutterOfferPanel.tsx | data-offer-chip="custom" className="justify-center px-2" onClick={() => { setAmount(""); offerBox.current?.focus(); }}> | data-offer-chip="custom" className="justify-center px-2" onClick={() => undefined}>
+describe("owner 11-07: offer chips, the total incl. fee, one Send offer", () => {
+  it("offerChipCents: N% off to the cent, only inside the offer rule", () => {
+    expect(offerChipCents(4000, 10)).toBe(3600);
+    expect(offerChipCents(4000, 20)).toBe(3200);
+    expect(offerChipCents(1999, 10)).toBe(1799);
+    // $1.10: 10% off is 99c, under the $1 lowest offer: no chip.
+    expect(minOfferCents(110)).toBe(100);
+    expect(offerChipCents(110, 10)).toBeNull();
+    expect(offerChipCents(100, 10)).toBeNull();
+  });
+
+  it("10% off fills $36 and shows $38.50 incl. fee; Custom clears and focuses the field; one Send offer", async () => {
+    show(<OfferPanel item={ITEM} userId="u1" />);
+    const region = await screen.findByRole("region", { name: "Buy or make an offer" });
+    const offerBtn = within(region).getByRole("button", { name: "Make an offer" });
+    await waitFor(() => expect(offerBtn).toBeEnabled());
+    fireEvent.click(offerBtn);
+    const chips = await within(region).findByRole("radiogroup", { name: "Quick offer amounts" });
+    expect(within(chips).getAllByRole("radio").map((r) => r.getAttribute("aria-label") ?? r.textContent)).toEqual(["10% off, $36", "20% off, $32", "Custom"]);
+    fireEvent.click(within(chips).getByRole("radio", { name: "10% off, $36" }));
+    const box = screen.getByLabelText("Your offer") as HTMLInputElement;
+    expect(box.value).toBe("36");
+    expect(within(chips).getByRole("radio", { name: "10% off, $36" })).toHaveAttribute("aria-checked", "true");
+    // $36 + round($36 x 5%) + 70c = $38.50, from the same rule as checkout.
+    expect(region.querySelector("[data-offer-bill]")?.textContent).toMatch(/You pay if the seller says yes\$38\.50incl\. fee/);
+    expect(within(region).getAllByRole("button", { name: "Send offer" })).toHaveLength(1);
+    fireEvent.click(within(chips).getByRole("radio", { name: "Custom" }));
+    expect(box.value).toBe("");
+    expect(document.activeElement).toBe(box);
+    fireEvent.change(box, { target: { value: "30" } });
+    expect(within(chips).getByRole("radio", { name: "Custom" })).toHaveAttribute("aria-checked", "true");
   });
 });

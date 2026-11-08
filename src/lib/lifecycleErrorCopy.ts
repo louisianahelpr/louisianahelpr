@@ -356,6 +356,22 @@ export const RPC_ERROR_COPY = {
     // Jobs audit 11-08 #11 (20261108203000).
     continue_day_refund_open: "A refund request on this job is still open. Answer or withdraw it before setting another day.",
   },
+  // Owner #4 (11-08): "Didn't come back" (poster) / "Can't come back" (Helpr), 20261108214605.
+  report_continue_day_missed: {
+    not_authenticated: "Sign in again to send this.",
+    account_restricted: "Your account is restricted right now, so you can't change this job.",
+    job_not_found: "This job is no longer available.",
+    not_a_party: "Only the person who posted this job or its Helpr can send this.",
+    continue_day_missed_not_live: "This job isn't in progress any more. Refresh the page.",
+    continue_day_missed_marked_done: "The Helpr marked it done. Approve it, ask for a fix, or open a dispute instead.",
+    continue_day_missed_already_reported: "This was already sent. Louisiana Helpr is reviewing the job.",
+    continue_day_missed_no_day: "There's no agreed day to report. Refresh the page.",
+    continue_day_missed_too_soon: "You can send this once the day you agreed has passed.",
+    continue_day_missed_photos_poster_only: "Only the person who posted the job can add photos here.",
+    continue_day_missed_too_many_photos: "Add up to 5 photos.",
+    continue_day_missed_bad_photo: "One photo didn't upload properly. Remove it and try again.",
+    continue_day_missed_note_too_long: "Keep the note under 1,000 characters.",
+  },
   answer_job_continue_day: {
     not_authenticated: "Sign in again to answer.",
     account_restricted: "Your account is restricted right now, so you can't change this job.",

@@ -19,7 +19,7 @@
  * @mutate src/lib/signedInRequestGuard.ts |         if (holdsRefreshableSession(stored)) { |         if (false) {
  * @mutate src/lib/signedInRequestGuard.ts |       const carriesNoMemberToken = authorization === null \|\| authorization === anonBearer; |       const carriesNoMemberToken = authorization === null;
  * @mutate src/lib/signedInRequestGuard.ts |     if (path.startsWith(`/${surface}/v1/`)) return surface; |     if (path.startsWith(`/${surface}/v2/`)) return surface;
- * @mutate src/integrations/supabase/client.ts |     fetch: guardSignedInRequests({ |     fetch: signOutAwareFetch, unused: ({
+ * @mutate src/integrations/supabase/client.ts |     fetch: termsGateFetch(guardSignedInRequests({ |     fetch: termsGateFetch(signOutAwareFetch), unused: (({
  * @mutate src/lib/signedInRequestGuard.ts |           heldSinceRefresh = true; |
  * @mutate src/lib/signedInRequestGuard.ts |   const base = normalisedBase(opts.supabaseUrl) ?? opts.supabaseUrl.replace(/\/+$/, ""); |   const base = opts.supabaseUrl.replace(/\/+$/, "");
  * @mutate src/integrations/supabase/client.ts |   if (!takeHeldSinceRefresh()) return; |   if (takeHeldSinceRefresh() \|\| true) return;
@@ -172,7 +172,8 @@ describe("a signed-in request is never sent as anon", () => {
     ];
     for (const surface of GUARDED_SURFACES) expect(built.some((u) => u.includes(`/${surface}/v1`)), surface).toBe(true);
     const src = blankComments(readFileSync(resolve(process.cwd(), "src/integrations/supabase/client.ts"), "utf8"));
-    expect(src).toMatch(/global:\s*\{\s*fetch:\s*guardSignedInRequests\(\{/);
+    // termsGateFetch (src/lib/termsGate.ts) wraps it on the outside: a retry after I agree passes the guard again.
+    expect(src).toMatch(/global:\s*\{\s*fetch:\s*termsGateFetch\(guardSignedInRequests\(\{/);
     // Recovery (review of the hold): after a hold, the next refresh refetches the failed active queries.
     // Q1596 clears the session-loss mark on SIGNED_IN first, in the same listener (errorLoggerSessionLossNoise pins it).
     expect(src).toMatch(/onAuthStateChange\(\(event\) => \{\s*(?:if \(event === 'SIGNED_IN'\) clearSessionLost\(\);\s*)?(?:if \(event === 'SIGNED_OUT'\) markSignedOut\(\);\s*)?if \(event !== 'TOKEN_REFRESHED' && event !== 'SIGNED_IN'\) return;\s*if \(!takeHeldSinceRefresh\(\)\) return;/);

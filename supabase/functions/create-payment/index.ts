@@ -6,6 +6,7 @@
 // balance, Q3). Seed-only noise is routed in the detectors, not here (docs/OPEN.md Q2).
 import { serve } from "../_shared/buildStamp.ts";
 import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
+import { refuseStaleTerms } from "../_shared/requireCurrentTerms.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
@@ -241,6 +242,9 @@ const FUNDING_CLOSED_JOB_STATUSES = new Set(["completed", "cancelled"]);
  * literal buildRedirectUrl path (src/test/deepLinkOneRouter.test.ts proves
  * every literal is a route App.tsx serves).
  */
+/** The actions that make a new commitment; each needs the current Terms (see the check after `const { action } = body`). */
+const TERMS_GATED_ACTIONS: ReadonlySet<unknown> = new Set(["escrow", "capture_hold", "tip", "recurring_visit"]);
+
 const QUOTE_REQUEST_RETURN_PATH = /^\/quotes\/request\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/;
 
 function escrowCancelQuoteRequestId(returnPath: unknown): string | null {
@@ -381,6 +385,15 @@ serve(async (req) => {
     const body = await req.json();
     const isNative = isNativeRequest(body);
     const { action } = body;
+
+    // Funding a job, a Helpr accepting a hire or offer, a tip and a series
+    // visit are commitments: the caller must have accepted the current Terms
+    // (_shared/requireCurrentTerms.ts). Release, cancel, quotes and admin
+    // actions settle what was already agreed and are not refused.
+    if (TERMS_GATED_ACTIONS.has(action)) {
+      const staleTerms = await refuseStaleTerms(supabaseAdmin, user, corsHeaders);
+      if (staleTerms) return staleTerms;
+    }
 
     // Stripe mode (owner 2026-10-12, "Test mode for test accounts"): TEST when
     // every party to this payment is a test account, LIVE when none is, and

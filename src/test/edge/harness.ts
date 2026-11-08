@@ -261,6 +261,14 @@ function rewriteExternalImports(src: string): string {
     `import {$1} from "../../../supabase/functions/_shared/requireConfirmedEmail.ts";`,
   );
 
+  // Current-Terms gate (owner 2026-11-08): `_shared/requireCurrentTerms.ts` has
+  // ZERO imports. The real module, so gated functions run the real refusal
+  // against the mock's `terms_accepted_is_current` answer (true by default).
+  out = out.replace(
+    /import\s+\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/requireCurrentTerms\.ts["'];?/g,
+    `import {$1} from "../../../supabase/functions/_shared/requireCurrentTerms.ts";`,
+  );
+
   // Hidden feature switch (Declutter): `_shared/featureSwitch.ts` imports only
   // caughtMessage, so the REAL fail-closed gate serves; the decision itself is
   // the `feature_enabled_for_user` rpc the scenario answers.

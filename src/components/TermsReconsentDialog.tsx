@@ -22,6 +22,7 @@ import { hapticSuccess, hapticError } from "@/lib/haptics";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
+import { noteTermsDialogShown, settleTermsRequest, termsRequestPending } from "@/lib/termsGate";
 
 // The dialog's own Terms/Privacy links open these in a new tab, and the dialog
 // is mounted app-wide, so without this it covers the very page it asks the
@@ -29,12 +30,20 @@ import { queryKeys } from "@/lib/queryKeys";
 // @two-way src/test/termsReconsentOnBump.test.tsx:exempt path is no longer a route
 export const RECONSENT_EXEMPT_PATHS = ["/legal", "/terms", "/privacy", "/terms/full", "/privacy/full"];
 
-export function TermsReconsentDialog() {
+/**
+ * `requestSeq` changes each time the server refused a commitment for stale
+ * Terms (src/lib/termsGate.ts): the accepted version is read again, and the
+ * waiting request is answered — sent again after I agree, or handed back
+ * refused at once when this build does not see the member as behind.
+ */
+export function TermsReconsentDialog({ requestSeq = 0 }: { requestSeq?: number } = {}) {
   const { pathname } = useLocation();
   const { user, profile, refresh } = useCurrentUser();
   const qc = useQueryClient();
   const [acceptedVersion, setAcceptedVersion] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
+  // Which refusal the last finished read answers (requestSeq at its start).
+  const [loadedSeq, setLoadedSeq] = useState(-1);
   const [submitting, setSubmitting] = useState(false);
 
   const userId = user?.id ?? null;
@@ -71,15 +80,25 @@ export function TermsReconsentDialog() {
         setAcceptedVersion((data?.terms_version_accepted as string | null) ?? "");
       }
       setLoaded(true);
+      setLoadedSeq(requestSeq);
     };
     void load();
     return () => {
       cancelled = true;
     };
-  }, [isEligible, userId]);
+  }, [isEligible, userId, requestSeq]);
 
   const isStale = loaded && !termsAcceptanceIsCurrent(acceptedVersion, LATEST_TERMS_VERSION);
   const open = !!isEligible && !!isStale && !RECONSENT_EXEMPT_PATHS.includes(pathname);
+
+  // A refused request waits on this dialog: once the column is read, either
+  // the dialog is up (wait for I agree) or it will not open for this member
+  // here, and the refusal goes back to the screen that asked.
+  useEffect(() => {
+    if (!loaded || loadedSeq !== requestSeq || !termsRequestPending()) return;
+    if (open) noteTermsDialogShown();
+    else settleTermsRequest(false);
+  }, [loaded, loadedSeq, open, requestSeq]);
 
   const handleAccept = async () => {
     if (!userId) return;
@@ -134,6 +153,8 @@ export function TermsReconsentDialog() {
       }
       hapticSuccess();
       setAcceptedVersion(LATEST_TERMS_VERSION);
+      // A request the server refused for stale Terms is sent again now.
+      settleTermsRequest(true);
       // Refresh so any downstream consumer of the profile sees the change.
       await refresh();
       qc.invalidateQueries({ queryKey: queryKeys.currentUser.byId(userId) });

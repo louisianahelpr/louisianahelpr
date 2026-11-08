@@ -7,6 +7,7 @@ import { withDeviceClockExpiry } from '@/lib/sessionClockSkew';
 import { withEntryAuthHandoff } from '@/lib/entryAuthHandoff';
 import { signOutAwareFetch } from '@/lib/signOutAbort';
 import { noteReachableFetch } from '@/lib/connectivity';
+import { termsGateFetch } from '@/lib/termsGate';
 import { defaultAuthStorageKey, guardSignedInRequests, noteAuthState, sessionVanishedPending, storedSessionIsRefreshable, takeHeldSinceRefresh } from '@/lib/signedInRequestGuard';
 import { loadModule, untilReload } from '@/lib/loadModule';
 import { clearSessionLost, markSignedIn, markSignedOut } from '@/lib/permissionDenied';
@@ -121,8 +122,10 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   // publishable key while a session is still stored (a refresh failed on the
   // network) is held instead of being sent as anon (2026-10-09: "permission
   // denied" on signed-in screens; src/lib/signedInRequestGuard.ts).
+  // termsGateFetch: a commitment the server refused for stale Terms opens the
+  // re-agree dialog and is sent once more after I agree (src/lib/termsGate.ts).
   global: {
-    fetch: guardSignedInRequests({
+    fetch: termsGateFetch(guardSignedInRequests({
       supabaseUrl: SUPABASE_URL,
       publishableKey: SUPABASE_PUBLISHABLE_KEY,
       storage: authStorage,
@@ -131,7 +134,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       fetchImpl: noteReachableFetch(signOutAwareFetch),
       onHeld: reportHeld,
       onVanished: () => finishVanishedSignOut(),
-    }),
+    })),
   },
 });
 

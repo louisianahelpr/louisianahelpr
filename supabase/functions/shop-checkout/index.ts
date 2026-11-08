@@ -71,6 +71,7 @@ import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
+import { refuseStaleTerms } from "../_shared/requireCurrentTerms.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { SHOP_KIND_TAX_CODE, shopTaxCode, splitBuyerFeeByTaxCode } from "../_shared/shopTaxCodes.ts";
@@ -1146,6 +1147,15 @@ serve(async (req) => {
 
   try {
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+    // Ordering and a shop accepting an order are commitments: the caller must
+    // have accepted the current Terms (_shared/requireCurrentTerms.ts).
+    // pay_balance and charge_rest collect on an order already agreed (like
+    // create-payment's settlement actions) and are not refused, so a deposit
+    // order is never stranded.
+    if (body.action === "order" || body.action === "accept") {
+      const staleTerms = await refuseStaleTerms(admin, user, corsHeaders);
+      if (staleTerms) return staleTerms;
+    }
     if (body.action === "order") return await order(body, user, asMember, admin);
     if (body.action === "helpr_quote") return await helprQuote(body, asMember, admin);
     if (body.action === "pickup_point") return await pickupPoint(user, asMember, admin);

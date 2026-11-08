@@ -73,6 +73,7 @@ import { serve } from "../_shared/buildStamp.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { refuseUnconfirmedEmail } from "../_shared/requireConfirmedEmail.ts";
+import { refuseStaleTerms } from "../_shared/requireCurrentTerms.ts";
 import { checkRateLimit, rateLimitResponse } from "../_shared/rate-limit.ts";
 import { buildRedirectUrl, isNativeRequest } from "../_shared/appUrl.ts";
 import { NONTAXABLE_TAX_CODE } from "../_shared/salesTax.ts";
@@ -1129,6 +1130,12 @@ serve(async (req) => {
 
   try {
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>;
+    // Paying for an item, raising a pay offer and tipping are commitments: the
+    // caller must have accepted the current Terms (_shared/requireCurrentTerms.ts).
+    if (body.action === "pay" || body.action === "raise_pay" || body.action === "delivery_tip") {
+      const staleTerms = await refuseStaleTerms(admin, user, corsHeaders);
+      if (staleTerms) return staleTerms;
+    }
     if (body.action === "pay") return await pay(body, user, asMember, admin);
     if (body.action === "cancel_sale") return await cancelSale(body, user, asMember, admin);
     if (body.action === "delivery_quote") return await deliveryQuote(body, user, asMember, admin);

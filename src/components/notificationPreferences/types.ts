@@ -63,6 +63,14 @@ export interface Prefs {
   email_declutter_offers: boolean;
   declutter_questions: boolean;
   email_declutter_questions: boolean;
+  /** Shops (20261108201153, shops audit 11-08 #6): orders, shop chat messages, the shop's own updates. All default
+      true; shown as the "Shops" group. */
+  shops_orders: boolean;
+  email_shops_orders: boolean;
+  shops_messages: boolean;
+  email_shops_messages: boolean;
+  shops_updates: boolean;
+  email_shops_updates: boolean;
   declutter_sales: boolean;
   email_declutter_sales: boolean;
   declutter_pickups: boolean;

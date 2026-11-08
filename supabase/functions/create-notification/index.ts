@@ -54,6 +54,10 @@ const ALLOWED_TYPES = new Set([
   "declutter_price_drops",
   "declutter_wanted",
   "declutter_questions",
+  // Shops (20261108201153)
+  "shops_orders",
+  "shops_messages",
+  "shops_updates",
 ]);
 
 // Same-origin path check: link must be a server-relative path (starts with `/`,

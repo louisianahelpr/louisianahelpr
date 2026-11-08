@@ -420,7 +420,7 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       }
       // RPC returns a Json blob (typed as `Json` in the generated types);
       // narrow to the shape the RPC emits before reading fields.
-      const { action: actionTaken = "warning", helper_id: helperId } = (rpcData ?? {}) as { action?: string; helper_id?: string };
+      const { action: actionTaken = "warning" } = (rpcData ?? {}) as { action?: string };
 
       // Which rung did the RPC actually reach? Migration 20260831183302 moved
       // the top rung: a second no-show (from a DIFFERENT poster) is now a
@@ -433,10 +433,8 @@ export function createLifecycleHandlers(deps: LifecycleHandlersDeps) {
       // would be the worse lie, so each string says exactly what happened.
       const restricted = actionTaken === "pending_ban_review";
       const legacyBanned = actionTaken === "permanent_ban";
-      // Notifications (best-effort) — shared by every path.
-      // Server-built copy (Q223): the rung is read from the user_violations
-      // row report_helper_no_show just wrote, never from this client.
-      if (helperId) await notifyJobParty({ user_id: helperId, job_id: jobId, template: "no_show_reported" });
+      // Jobs audit 11-08 #7: report_helper_no_show (20261108202000) tells the Helpr itself, in the same transaction;
+      // this client sends nothing (a closed tab used to mean no notice).
       // No client admin fan-out (Q308): create-notification refuses a
       // non-admin sending to an admin, so the old per-admin loop here never
       // delivered. report_helper_no_show pages the ban review itself.

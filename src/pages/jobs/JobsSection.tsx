@@ -24,6 +24,11 @@ import { RefundsSwitchProvider } from "@/components/refund/RefundsSwitch";
 import { AppTopBar, SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
 import { sectionByKey } from "@/components/sections/sectionsConfig";
+import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
+import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
+import { SectionListBack } from "@/components/sections/SectionListBack";
+import type { SectionMineMenu } from "@/components/sections/sectionMine";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useLanguage } from "@/lib/i18n/language";
 import { navKey } from "@/lib/i18n/navLabels";
 import { loadModule, untilReload } from "@/lib/loadModule";
@@ -72,6 +77,7 @@ const JobsSection = () => {
   // Q2705 B: index.html drew this section's skeleton first (#lh-jobs-shell); take it away once this is painted.
   useEffect(() => removeShellOncePainted(JOBS_SHELL_ID), []);
   const { t: tr } = useLanguage();
+  const desktop = useIsWebDesktop();
 
   const onTab = useCallback(
     (next: string) => {
@@ -105,18 +111,36 @@ const JobsSection = () => {
   // with the other icons"), then the search. It sits in the scaffold's title card, above the
   // scrolling list, and never changes while the list scrolls (exploreHeaderSteady).
   /** Browse puts its count beside the tab and its search, filters and map at the row's end on desktop. */
-  const makeHeader = (browse?: { end?: ReactNode; count?: number; onlySelected?: boolean }) => (
+  // PHONE (owner 11-08, the Vinted header): the bar is the tab's search ("Search jobs", Filters inside it on Browse)
+  // with the bell (which holds Messages) and the photo; no visible title (a hidden h1). Posted, Working and Jobs
+  // settings live in "My Jobs" under the photo; on Posted or Working the row under the bar names the list and goes
+  // back to Browse. "+ Post a job" is the floating pill. DESKTOP keeps the tabs row with the gear last.
+  const mine: SectionMineMenu = {
+    title: tr("jobs.myJobs"),
+    items: JOBS_TABS.map((t) => ({ key: t.value, label: tr(t.labelKey), to: `/jobs?tab=${t.value}` })),
+    settings: { label: tr(JOBS_SETTINGS.labelKey), to: JOBS_SETTINGS.path },
+  };
+  const listLabel = JOBS_TABS.find((t) => t.value === tab);
+  const makeHeader = (browse?: { end?: ReactNode; count?: number; onlySelected?: boolean; search?: ReactNode }) => (
     <div data-explore-header="" className="explore-header flex flex-col gap-1">
-      <AppTopBar title={tr(navKey(section.path, section.label) ?? "nav.jobs")} explore section="jobs" desktopGap={false} />
-      <SectionTabs label={tr("jobs.tabsLabel")} tabs={JOBS_TABS} value={tab} onChange={onTab} browseCount={browse?.count} onlySelected={browse?.onlySelected} end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>} />
-      {/* ONE search per screen (owner 2026-10-21), and never an expanded field (owner 2026-10-25: "i prefer
-          the search not expanded"): every tab's search is an ICON at the end of the tabs row, before the gear
-          (Browse: owner 2026-10-28; Posted / Working: owner 2026-10-31, "move it up into the tab row next to the
-          gear"), and it opens IN PLACE, leftward (owner 2026-10-27; InlineListSearch). Posted / Working hand it in
-          through makeHeader (EmbeddedActivityHeader). Guards: src/test/jobsSearchIsAnIcon.test.tsx,
-          src/test/jobsToolbarRowIsOneRow.test.tsx. */}
+      {desktop ? (
+        <>
+          <AppTopBar title={tr(navKey(section.path, section.label) ?? "nav.jobs")} explore section="jobs" desktopGap={false} />
+          <SectionTabs label={tr("jobs.tabsLabel")} tabs={JOBS_TABS} value={tab} onChange={onTab} browseCount={browse?.count} onlySelected={browse?.onlySelected} end={<>{browse?.end}<SectionSettingsButton settings={JOBS_SETTINGS} /></>} />
+        </>
+      ) : (
+        <>
+          <AppTopBar title={tr(navKey(section.path, section.label) ?? "nav.jobs")} explore section="jobs" desktopGap={false}
+            search={browse?.search ?? <SectionSearchBar noun="jobs" home="/jobs" />} mine={mine} />
+          {listLabel && <SectionListBack label={tr(listLabel.labelKey)} onBack={() => onTab("browse")} />}
+        </>
+      )}
+      {/* ONE search per screen (owner 2026-10-21). Desktop: every tab's search is an ICON at the end of the tabs row,
+          before the gear, opening IN PLACE (InlineListSearch). Phone (owner 11-08): the top bar's field. Guards:
+          src/test/jobsSearchIsAnIcon.test.tsx, src/test/jobsToolbarRowIsOneRow.test.tsx. */}
     </div>
   );
+  const fab = desktop ? null : <SectionCreateFab section="jobs" text={tr("jobs.postAJob")} />;
 
   // An old Manage job link opens the job page, before the list mounts (manageLinkOpensJobPage).
   const jobPage = tab === "posted" ? manageLinkOpensJobPage(params) : null;
@@ -131,10 +155,11 @@ const JobsSection = () => {
         <Suspense fallback={<JobsListLoadingFrame header={makeHeader()} tab={list} />}>
           <JobListPage key={tab} defaultTab={list} embeddedHeader={makeHeader} />
         </Suspense>
+        {fab}
       </RefundsSwitchProvider>
     );
   }
-  return <Dashboard embeddedHeader={makeHeader} />;
+  return <><Dashboard embeddedHeader={makeHeader} />{fab}</>;
 };
 
 export default JobsSection;

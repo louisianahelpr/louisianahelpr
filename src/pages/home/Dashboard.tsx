@@ -11,8 +11,7 @@ import { usePageTitle } from "@/hooks/usePageTitle";
 import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/BrowseSearchBar";
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseFiltersButton, BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
-import { InlineListSearch } from "@/components/sections/InlineListSearch";
-import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
+import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { useWantsQuotes } from "@/pages/home/useWantsQuotes";
 import { WantsQuotesSlot } from "@/components/quotes/WantsQuotesSlot";
@@ -47,7 +46,7 @@ import { useClearQuickApplyParam } from "./useClearQuickApplyParam";
 /** Jobs > Browse (owner, 2026-10-19): `embeddedHeader` is the section's top bar + tabs; the feed adds ONE compact
  *  search row under it on phone. The old standalone phone title card (DashboardTitleBar + BrowseSearchBar) is gone:
  *  no route rendered it once /home became the Home dashboard (Q2205). */
-const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: ReactNode; count?: number; onlySelected?: boolean }) => ReactNode }) => {
+const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: ReactNode; count?: number; onlySelected?: boolean; search?: ReactNode }) => ReactNode }) => {
   const navigate = useNavigate();
   // Names the section this feed is the Browse tab of (Jobs; its top bar's h1).
   usePageTitle("Jobs — Helpr");
@@ -127,7 +126,6 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
   } = useDashboardSideQueries({ userId: user?.id, allJobs });
   const [savedOnly, setSavedOnly] = useState(false);
   // A phone's open search takes the tabs row beside the selected tab, which stays whole (tester T10, 10-30).
-  const [phoneSearchOpen, setPhoneSearchOpen] = useState(false);
   const toggleSavedOnly = useCallback(() => setSavedOnly((v) => !v), []);
   const { quotesOn, wantsQuotes, toggleWantsQuotes, showAllJobs } = useWantsQuotes();
 
@@ -316,16 +314,15 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
     </div>
   ) : undefined;
 
-  /* Phone: search + filters end the tabs row, before the gear (owner 2026-10-28). Guard: jobsSearchIsAnIcon.test.tsx */
-  const phoneBrowseEnd = isWebDesktop ? undefined : (<div data-browse-phone-controls="" className={`flex items-center gap-0 self-center ${phoneSearchOpen ? "ml-2 min-w-0 flex-1" : "-ml-1 shrink-0"}`}>
-      <InlineListSearch value={filters.searchQuery} onChange={filters.setSearchQuery} label="Search jobs" onOpenChange={setPhoneSearchOpen} fill />
-      {phoneSearchOpen && <SearchTriggerSlot width="40px" />}
-      <BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />
-    </div>);
+  /* Phone (owner 11-08, the Vinted header): "Search jobs" is the top bar's field, with Filters inside its right end. */
+  const phoneBrowseSearch = isWebDesktop ? undefined : (
+    <SectionSearchBar noun="jobs" home="/jobs" value={filters.searchQuery} onChange={filters.setSearchQuery}
+      filter={<BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />} />
+  );
 
   const embeddedTitle = (
     <div className="flex flex-col gap-4">
-      {embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes || feedShowingLoadError ? undefined : headerCount } : { end: phoneBrowseEnd, onlySelected: phoneSearchOpen })}
+      {embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes || feedShowingLoadError ? undefined : headerCount } : { search: phoneBrowseSearch })}
     </div>
   );
 

@@ -27,6 +27,7 @@ export const SHOP_ITEM_KIND_LABEL: Record<ShopItemKind, string> = {
   farm: "From my farm or yard",
   service: "A service I do",
   rental: "Something I rent out",
+  digital: "Digital download",
 };
 
 export const SHOP_ITEM_TYPE_LABEL: Record<string, string> = {
@@ -62,6 +63,11 @@ export const SHOP_ITEM_TYPE_LABEL: Record<string, string> = {
   clothing_alterations: "Clothing alterations",
   equipment_rental: "Equipment and tools",
   party_rental: "Tables, chairs and tents",
+  digital_coloring: "Coloring books and pages",
+  digital_book: "E-books and guides",
+  digital_printable: "Printables and planners",
+  digital_pattern: "Patterns and templates",
+  digital_art: "Digital art and prints",
 };
 
 /**
@@ -91,6 +97,8 @@ export const SHOP_ITEM_STATEMENTS: Record<string, string> = {
   i_own_it: "I own what I rent out.",
   safe_to_use: "It is clean, works and is safe to use, and I show the renter how to use it.",
   not_inflatable: "It is not a bounce house or another inflatable (those need state inspection papers, coming later).",
+  i_own_the_rights: "I made this, or I have the right to sell it (it is not copied from someone else's book, art or pattern).",
+  file_matches_listing: "The files are what this listing describes, and they open.",
 };
 
 /**
@@ -113,6 +121,7 @@ export function requiredStatements(kind: ShopItemKind, subtype: string): string[
   }
   if (kind === "service") return ["i_do_this_work", "licensed_if_needed", "not_banned"];
   if (kind === "rental") return ["i_own_it", "safe_to_use", "not_inflatable", "not_banned"];
+  if (kind === "digital") return ["i_own_the_rights", "file_matches_listing", "not_banned"];
   if (subtype === "eggs") return ["own_hens", "kept_cold", "no_cracked_dirty", "not_banned"];
   return ["home_grown", "whole_uncut", "not_banned"];
 }

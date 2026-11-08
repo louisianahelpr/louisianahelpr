@@ -13650,6 +13650,56 @@ export type Database = {
           },
         ]
       }
+      shop_item_files: {
+        Row: {
+          byte_size: number
+          checked_at: string | null
+          created_at: string
+          ext: string
+          file_name: string
+          id: string
+          is_seed: boolean
+          item_id: string
+          owner_id: string
+          position: number
+          storage_path: string
+        }
+        Insert: {
+          byte_size: number
+          checked_at?: string | null
+          created_at?: string
+          ext: string
+          file_name: string
+          id?: string
+          is_seed?: boolean
+          item_id: string
+          owner_id: string
+          position: number
+          storage_path: string
+        }
+        Update: {
+          byte_size?: number
+          checked_at?: string | null
+          created_at?: string
+          ext?: string
+          file_name?: string
+          id?: string
+          is_seed?: boolean
+          item_id?: string
+          owner_id?: string
+          position?: number
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shop_item_files_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shop_item_private: {
         Row: {
           admin_rejected_at: string | null
@@ -14065,6 +14115,7 @@ export type Database = {
           hold_release_last_error: string | null
           hold_released_at: string | null
           id: string
+          is_digital: boolean
           is_seed: boolean
           items_cents: number
           lapse_tax_done_at: string | null
@@ -14123,6 +14174,7 @@ export type Database = {
           hold_release_last_error?: string | null
           hold_released_at?: string | null
           id?: string
+          is_digital?: boolean
           is_seed?: boolean
           items_cents: number
           lapse_tax_done_at?: string | null
@@ -14181,6 +14233,7 @@ export type Database = {
           hold_release_last_error?: string | null
           hold_released_at?: string | null
           id?: string
+          is_digital?: boolean
           is_seed?: boolean
           items_cents?: number
           lapse_tax_done_at?: string | null
@@ -22601,6 +22654,16 @@ export type Database = {
       shops_leave_review: { Args: { p_order_id: string; p_stars: number; p_comment: string }; Returns: string }
       shops_shop_reviews: { Args: { p_shop_id: string }; Returns: Json }
       shops_my_order_review: { Args: { p_order_id: string }; Returns: Json }
+      shops_my_digital_files: {
+        Args: { p_order_id: string }
+        Returns: { byte_size: number; ext: string; file_id: string; file_name: string }[]
+      }
+      shops_report_digital_problem: { Args: { p_note: string; p_order_id: string; p_reason: string }; Returns: Json }
+      shops_request_digital_order: { Args: { p_item_id: string }; Returns: Json }
+      shops_digital_file_begin: {
+        Args: { p_byte_size: number; p_ext: string; p_file_name: string; p_item_id: string }
+        Returns: Json
+      }
       shops_my_order_buyer_names: {
         Args: { p_order_ids: string[] }
         Returns: { first_name: string; order_id: string }[]

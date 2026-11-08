@@ -277,6 +277,22 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   preorder_use_preorder_checkout: "This item is a preorder. Order it on its own as a preorder.",
   preorder_ready: "The shop already marked this order ready, so it can't be cancelled.",
   use_preorder_cancel: "This is a preorder. Cancel it with Cancel preorder on the order.",
+  // Digital downloads (20261108182917 + 20261108185110).
+  already_bought: "You already bought this. It is in Shops > My orders.",
+  digital_not_cancellable: "A download can't be cancelled. If the file is broken or not as described, report a problem on the order.",
+  digital_no_pickup: "A download has no pickup to confirm.",
+  digital_no_stock: "A download has no stock count and no wait.",
+  files_required: "Add 1 to 5 files for buyers to download.",
+  file_type_not_allowed: "Upload a PDF, ZIP, PNG or JPG file.",
+  file_too_big: "Each file can be up to 100 MB.",
+  too_many_files: "An item can have up to 5 files.",
+  last_file: "Add the new file first, then remove this one.",
+  item_not_digital: "Files can only be added to a digital download.",
+  file_not_found: "We couldn't find that file. Reload the page and try again.",
+  not_digital: "That order isn't a download.",
+  too_soon: "A download is paid out 72 hours after the sale.",
+  // shop_digital_dispute_event (stripe-webhook only): never reaches a member.
+  invalid_event: "Something went wrong. Please try again.",
 };
 
 /** shop-checkout's own answers (not RPC codes). */
@@ -304,6 +320,18 @@ const SHOP_CHECKOUT_COPY: Record<string, string> = {
   // The pickup point a Helpr goes to, looked up when the shop saves its pickup address.
   address_changed: "Your pickup address changed while we looked it up. Save it again.",
   pickup_outside_louisiana: "We found that address outside Louisiana. Check the street, city and ZIP code.",
+  // Digital downloads (20261108185110).
+  digital_on_website: "Downloads are bought on louisianahelpr.com. Open the shop there to buy it.",
+  invalid_billing_address: "Enter your billing street, city, two-letter state and 5-digit ZIP code.",
+  billing_address_unusable: "We couldn't figure the sales tax for that address. Check the street, city, state and ZIP code.",
+  // shop-digital's own answers (a download's files).
+  upload_missing: "The upload didn't finish. Try adding the file again.",
+  file_unreadable: "We couldn't read that file. Try adding it again.",
+  file_does_not_match_type: "That file isn't really the type its name says. Upload a real PDF, ZIP, PNG or JPG.",
+  zip_unreadable: "We couldn't read that ZIP file. Make it again and upload it.",
+  zip_empty: "That ZIP file is empty. Add the files to it and upload it again.",
+  zip_has_program: "That ZIP file has a program or script inside. Take it out and upload the ZIP again.",
+  file_not_allowed: "Upload a PDF, ZIP, PNG or JPG file up to 100 MB.",
 };
 
 /** The AI helper's own answers (the declutter-ai-draft edge function, target 'shop_item'): not RPC codes. */

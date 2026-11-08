@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopOrderMessageButton } from "./ShopTalk";
 import { ShopOrderReview } from "./ShopReviews";
+import ShopDigitalOrder from "./ShopDigitalOrder";
 
 /** The order statuses in which the buyer may read the shop's pickup address (shops_order_pickup_address). */
 const PICKUP_VISIBLE = new Set(["accepted"]);
@@ -189,6 +190,7 @@ export function ShopOrderCard({
   const deliveryCents = order.delivery_cents ?? 0;
   const shopDeliveryCents = delivered ? deliveryCents : 0;
   const shopGets = order.items_cents + shopDeliveryCents;
+  if (order.is_digital) return <DigitalOrderCard order={order} heading={heading} side={side} />;
   return (
     <li className="space-y-2 rounded-2xl border border-border bg-card p-4" data-testid="shop-order-card">
       <div className="flex items-start justify-between gap-2">
@@ -242,6 +244,30 @@ export function ShopOrderCard({
       {/* Shops H9: after the handover, either side reviews the other once. */}
       <ShopOrderReview orderId={order.id} handedOver={!!order.handed_over_at} />
       {children}
+    </li>
+  );
+}
+
+/**
+ * A digital download's card (20261108185110): no ready date, pickup, delivery or handover taps, and no cancel (a
+ * download can only be refunded through a problem report an admin decides). The chat and the review stay.
+ */
+function DigitalOrderCard({ order, heading, side }: { order: ShopOrder; heading: string; side: "buyer" | "shop" }) {
+  return (
+    <li className="space-y-2 rounded-2xl border border-border bg-card p-4" data-testid="shop-order-card">
+      <div className="flex items-start justify-between gap-2">
+        <p className="min-w-0 font-semibold [overflow-wrap:anywhere]">{heading}</p>
+        <p className="shrink-0 text-sm font-semibold">{formatCents(side === "buyer" ? order.total_cents : order.items_cents)}</p>
+      </div>
+      <p className="text-xs text-muted-foreground">{orderStatusLabel(order, side)}</p>
+      <ul className="text-sm text-muted-foreground">
+        {order.shop_order_lines.map((l) => (
+          <li key={l.id} className="[overflow-wrap:anywhere]">{l.title} (download, {formatCents(l.line_cents)})</li>
+        ))}
+      </ul>
+      <ShopDigitalOrder order={order} side={side} />
+      {order.buyer_id ? <ShopOrderMessageButton orderId={order.id} side={side} /> : null}
+      <ShopOrderReview handedOver={!!order.handed_over_at} orderId={order.id} />
     </li>
   );
 }

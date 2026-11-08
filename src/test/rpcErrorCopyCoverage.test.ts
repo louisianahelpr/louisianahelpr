@@ -80,6 +80,12 @@ const UNREACHABLE: Allowlist = {
   declutter_item_save_counts: {
     invalid_request: { reason: "fetchSaveCounts chunks the ids at PER_READ = 200, the RPC's own limit, so no call sends more" },
   },
+  // Owner 11-07 (20261107235110): fetchOnTimeHandovers feeds one seller-card badge; a failed read shows no badge
+  // (SellerTrustBadges: a missing badge is never a claim), so no code's words exist at that site.
+  declutter_seller_on_time_handovers: {
+    feature_disabled: { reason: "no code's words at this site: a failed read shows no badge on the seller card" },
+    not_authenticated: { reason: ANON_REVOKED },
+  },
   // Q2104 (20261106170629): fetchShopOrderBuyerNames feeds the Shop dashboard's card headings ("New order from Ana");
   // a failed read leaves the plain heading ("New order") and the orders still show, so no code's words exist there.
   shops_my_order_buyer_names: {

@@ -66,6 +66,35 @@ export function BundleLine({ summary }: { summary: BundleSummary }) {
   );
 }
 
+/**
+ * Owner 11-07 (Vinted review; our own look): a "Bundle and save" box on the item page when the seller has a bundle
+ * discount that can apply here (summary.offer, the same rule and checks as the line above). It points at the bundle
+ * flow that already exists: "More from this seller", where the buyer adds items or sends one ask for several.
+ * Guard: src/test/declutterItemTrust.test.tsx.
+ */
+export function BundleSaveBox({ summary }: { summary: BundleSummary }) {
+  if (!summary.offer) return null;
+  return (
+    <section data-bundle-save="" aria-labelledby="bundle-save-head" className="space-y-2 rounded-[20px] border border-[hsl(var(--bark)/0.25)] bg-[hsl(var(--bark)/0.06)] p-4">
+      <h2 id="bundle-save-head" className="flex items-center gap-2 text-base font-semibold">
+        <Layers className="h-5 w-5 shrink-0 text-primary" aria-hidden />
+        Bundle and save
+      </h2>
+      <p className="text-sm text-foreground">
+        {summary.offer} from {summary.firstName}. {summary.count}{summary.capped ? "+" : ""} more {summary.count === 1 ? "item" : "items"} for sale,{" "}
+        {summary.pickup ? "one pickup and one payment." : "one payment."}
+      </p>
+      <ListRow
+        data-bundle-save-go=""
+        onClick={() => document.getElementById("declutter-more-from-seller")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        className="min-h-11 w-auto justify-start px-0 text-sm font-semibold text-primary"
+      >
+        See {summary.firstName}'s items
+      </ListRow>
+    </section>
+  );
+}
+
 export function DeclutterBundleRow({ item, viewerId }: { item: DeclutterItem; viewerId: string | null }) {
   const b = useBundleSummary(item, viewerId);
   if (!b) return null;

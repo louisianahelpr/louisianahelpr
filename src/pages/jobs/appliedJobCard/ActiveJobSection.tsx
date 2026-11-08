@@ -25,6 +25,8 @@ import { SubmittedStep } from "./steps/SubmittedStep";
 import { RevisionStep } from "./steps/RevisionStep";
 import type { AppliedApp, Job } from "../../../components/job-card/activityConstants";
 import { beforePhotoIsThePrimary } from "@/components/job-card/primaryPhotoAsk";
+import { useContinueDay } from "@/hooks/useContinueDays";
+import { continueDayOwesAfterPhoto } from "@/lib/continueDayWords";
 
 /** The floor a job has to sit above before its payout can be requested. Same
  *  30 minutes JobTracking's Done gate and completeJob's re-check enforce. */
@@ -123,6 +125,12 @@ export function ActiveJobSection({
   // helperProgress (steps/helperProgress.ts) is the same derivation the
   // collapsed line reads, so the card's two halves name one step.
   const { workUnderway, hasArrived, onTheWay, hasConfirmed } = helperProgress(job, initialTracking?.status);
+  // Owner 11-08: on a SET continue day the done asks for an after photo from that day first (the server marks one without it).
+  // Read only when it can change the answer: a job under way with its photos already on file.
+  const owesNewDayAfter = continueDayOwesAfterPhoto(
+    useContinueDay(job.id, job.status === "in_progress" && hasRequiredProof(job, job.proof_before_urls, job.proof_after_urls)),
+    job.require_photo_proof,
+  );
 
   // Server owns every part of this decision (helper_abort_job, migration
   // 20260825190000): which settlement path the job takes, and what the strike
@@ -308,7 +316,8 @@ export function ActiveJobSection({
     hasPhotos:
       !job.helper_completed_at &&
       !!job.helper_arrived_at &&
-      hasRequiredProof(job, job.proof_before_urls, job.proof_after_urls),
+      hasRequiredProof(job, job.proof_before_urls, job.proof_after_urls) &&
+      !owesNewDayAfter,
     busy: completingJobId === app.job_id,
     // `now`, not `Date.now()` — the state the minute timer drives, which is
     // what makes the button re-enable itself while the helper is looking at it.

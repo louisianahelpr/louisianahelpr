@@ -5,10 +5,11 @@
  * the Helpr on this job". handleNoShow (useLifecycleHandlers.ts) looked the job up in `postedJobs` and refused
  * before the RPC when it was not there; from the plain Posted list it worked.
  * The fix: the RPC is the authority. It runs whatever the list holds, the server refuses a job with no Helpr, and the
- * notice goes to the helper_id the RPC returns.
+ * notice goes to the helper_id the RPC returns. Since 20261108202000 (Jobs audit 11-08 #7) the RPC writes that notice
+ * itself, so the client sends none (a second one would be a duplicate the server drops).
  *
  * @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts |       const { data: rpcData, error: rpcError } = await supabase.rpc("report_helper_no_show", { |       if (!postedJobs.some((j) => j.id === jobId)) { toast.error("We couldn't find the Helpr on this job — pull to refresh and try again."); return; }\n      const { data: rpcData, error: rpcError } = await supabase.rpc("report_helper_no_show", {
- * @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts |       if (helperId) await notifyJobParty({ user_id: helperId, job_id: jobId, template: "no_show_reported" }); |       if (helperId) await Promise.resolve();
+ * @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts |       const { action: actionTaken = "warning" } = (rpcData ?? {}) as { action?: string }; |       const { action: actionTaken = "warning", helper_id: helperId } = (rpcData ?? {}) as { action?: string; helper_id?: string };\n      if (helperId) await notifyJobParty({ user_id: helperId, job_id: jobId, template: "no_show_reported" });
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
@@ -75,13 +76,13 @@ function setup() {
 describe("Confirm No-Show from the job page (A2-B13)", () => {
   beforeEach(() => { rpcMock.mockReset(); notifyMock.mockReset(); toastError.mockReset(); });
 
-  it("a job missing from the Posted list still reaches the server, and the notice goes to the Helpr it names", async () => {
+  it("a job missing from the Posted list still reaches the server; the client sends no notice of its own", async () => {
     rpcMock.mockResolvedValue({ data: { action: "warning", prior_count: 0, helper_id: "eli-1", job_title: "Mow" }, error: null });
     const { result } = setup();
     await act(async () => { await result.current.handleNoShow("job-1"); });
     expect(rpcMock).toHaveBeenCalledWith("report_helper_no_show", { p_job_id: "job-1" });
     expect(toastError).not.toHaveBeenCalled();
-    expect(notifyMock).toHaveBeenCalledWith({ user_id: "eli-1", job_id: "job-1", template: "no_show_reported" });
+    expect(notifyMock).not.toHaveBeenCalled();
   });
 
   it("a job with no Helpr is refused by the server in its own words, and no notice goes out", async () => {

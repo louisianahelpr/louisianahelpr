@@ -28,7 +28,7 @@ export default function ShopDigitalFiles({ itemId }: { itemId: string }) {
 
   const add = useMutation({
     mutationFn: (f: File) => uploadDigitalFile(itemId, f),
-    onSuccess: () => toast.success("File added."),
+    onSuccess: () => toast("File added."),
     onError: (err) => toast.error(shopsErrorMessage(err)),
     onSettled: refresh,
   });

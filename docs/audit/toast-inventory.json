@@ -3,17 +3,17 @@
   "summary": {
     "calls": 1213,
     "files": 349,
-    "rendering": 1130,
-    "suppressedByPolicy": 83,
+    "rendering": 1132,
+    "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 236,
+      "toast": 238,
       "toast.error": 819,
       "toast.loading": 1,
       "toast.message": 1,
-      "toast.success": 89,
+      "toast.success": 87,
       "toast.warning": 26
     },
     "copyPiecesByForm": {
@@ -10936,12 +10936,12 @@
     {
       "file": "src/components/shops/ShopDigitalFiles.tsx",
       "line": 31,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "File added."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopDigitalFiles.tsx",
@@ -10986,12 +10986,12 @@
     {
       "file": "src/components/shops/ShopDigitalOrder.tsx",
       "line": 64,
-      "kind": "toast.success",
+      "kind": "toast",
       "title": {
         "form": "literal",
         "text": "Reported. Louisiana Helpr will look at it before the shop is paid."
       },
-      "renders": false
+      "renders": true
     },
     {
       "file": "src/components/shops/ShopDigitalOrder.tsx",

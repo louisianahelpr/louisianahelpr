@@ -4,7 +4,7 @@ import { PayoutSetupPausedNotice } from "@/components/payouts/PayoutSetupPausedN
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ListRow } from "@/components/ui/ListRow";
-import { Check } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
 import { getCachedUserLocation } from "@/hooks/useUserLocation";
@@ -140,9 +140,8 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
 
   return (
     <div className="flex flex-col gap-section" data-testid="first-job-home">
-      <section aria-label="Get your first job" className="liquid-glass p-card flex flex-col gap-1">
-        <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1">Get your first job</h2>
-        <ChecklistSteps steps={steps} />
+      <section aria-label="Get your first job" className="flex flex-col gap-1 px-1">
+        <ChecklistProgress title="Get your first job" steps={steps} />
         {payoutStepPaused && <PayoutSetupPausedNotice compact className="mt-2" />}
       </section>
 
@@ -189,38 +188,48 @@ export function FirstJobHome({ profile, alertsOff }: { profile: Profile | null; 
         </section>
       )}
 
-      <section aria-label="How you get paid" className="liquid-glass p-card flex flex-col gap-1">
-        <h2 className="text-ds-15 font-semibold text-foreground">How you get paid</h2>
-        <p className="text-ds-13 text-muted-foreground">
+      {/* Design audit A D2 (owner 11-08): one row with "Read more", the full words (unchanged) one tap away. */}
+      <details aria-label="How you get paid" data-how-paid="" className="group px-1">
+        <summary className="min-h-11 flex cursor-pointer list-none items-center gap-2 [&::-webkit-details-marker]:hidden">
+          <h2 className="text-ds-15 font-semibold text-foreground">How you get paid</h2>
+          <span className="ml-auto text-ds-13 font-semibold text-primary group-open:hidden">Read more</span>
+          <span className="ml-auto hidden text-ds-13 font-semibold text-primary group-open:inline">Hide</span>
+        </summary>
+        <p className="text-ds-13 text-muted-foreground pb-2">
           The person who posts the job pays when they hire you. It's held, and released only when they approve the work:
           it reaches your Helpr account {STANDARD_PAYOUT_PHRASE}, and your bank {STANDARD_PAYOUT_WINDOW} after that. Every job shows what you'll take home before you apply, and tips are paid in full.
         </p>
-      </section>
+      </details>
     </div>
   );
 }
 
-/** One checklist row per step: a tick when done, the label, and the whole row goes to where the step is done. Shared by
- *  the first-job card and the poster's first-job card (UX-5) so the two look alike. */
-export function ChecklistSteps({ steps }: { steps: { key: string; label: string; done: boolean; go: () => void }[] }) {
+/**
+ * A first-week checklist as ONE progress line (design audit A D2, owner approved 11-08): "<title> · 1 of 3", a segmented
+ * bar (one segment per step, olive when done), then "Next: <the first step not done>" which goes where that step is
+ * done. Shared by the first-job card and the poster's first-job card (UX-5) so the two look alike.
+ * Guards: src/test/posterFirstJobCard.test.tsx, src/test/homeChecklistOneLine.test.tsx.
+ */
+export function ChecklistProgress({ title, steps }: { title: string; steps: { key: string; label: string; done: boolean; go: () => void }[] }) {
+  const doneCount = steps.filter((s) => s.done).length;
+  const next = steps.find((s) => !s.done);
   return (
-    <ul className="flex flex-col">
-      {steps.map((s) => (
-        <li key={s.key}>
-          <button type="button" onClick={s.go} className="w-full min-h-11 flex items-center gap-3 text-left" data-step={s.key} data-done={s.done ? "" : undefined}>
-            <span
-              className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center ${s.done ? "bg-primary text-primary-foreground" : "border-2 border-border"}`}
-              aria-hidden
-            >
-              {s.done && <Check className="w-3.5 h-3.5" />}
-            </span>
-            <span className={`text-ds-14 font-semibold ${s.done ? "text-muted-foreground" : "text-foreground"}`}>
-              {s.label}
-              <span className="sr-only">{s.done ? " (done)" : " (to do)"}</span>
-            </span>
-          </button>
-        </li>
-      ))}
-    </ul>
+    <div data-checklist-progress="" className="flex flex-col">
+      <div className="flex items-baseline gap-1.5">
+        <h2 className="text-ds-15 font-semibold text-foreground">{title}</h2>
+        <span className="text-ds-13 text-muted-foreground">· {doneCount} of {steps.length}</span>
+      </div>
+      <div role="progressbar" aria-label={`${title}: ${doneCount} of ${steps.length} done`} aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={doneCount} className="mt-2 flex gap-1">
+        {steps.map((s) => (
+          <span key={s.key} data-step={s.key} data-done={s.done ? "" : undefined} className={`h-1.5 flex-1 rounded-full ${s.done ? "bg-primary" : "bg-border"}`} />
+        ))}
+      </div>
+      {next && (
+        <button type="button" onClick={next.go} data-checklist-next={next.key} className="min-h-11 w-full flex items-center gap-1.5 text-left text-ds-13 text-muted-foreground">
+          <span className="min-w-0 flex-1">Next: <span className="font-semibold text-foreground">{next.label}</span></span>
+          <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
+        </button>
+      )}
+    </div>
   );
 }

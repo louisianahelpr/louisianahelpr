@@ -48,6 +48,9 @@ vi.mock("@/components/PhotoProof", async () => {
   };
 });
 
+// The job's continue-day read (owner 11-08: a set day asks for a new after photo) is not under test: no day.
+vi.mock("@/lib/continueDayReads", async (orig) => ({ ...(await orig<typeof import("@/lib/continueDayReads")>()), fetchContinueDay: async () => null }));
+
 afterEach(cleanup);
 
 const HELPER = "helper-1";

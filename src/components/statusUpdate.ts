@@ -359,9 +359,10 @@ export function statusUpdate(d: StatusUpdateDeps) {
         // Stripe Identity first (20261021081258): nothing was written; the ID sheet, not a toast.
         hapticError(); setUpdating(false); setTracking(trackingBeforeWrite); return; // a sheet that cannot open falls to the branch below, which reports and toasts
       } else if (!isMissingRpcNamed(otwErr, "helper_mark_on_the_way")) {
-        report(otwErr, { tags: { source: "JobTracking.markOnTheWay" } });
+        if (!isExpectedLifecycleRefusal(otwErr)) report(otwErr, { tags: { source: "JobTracking.markOnTheWay" } });
         hapticError();
-        toast.error(rpcErrorMessage("helper_mark_on_the_way", otwErr) ?? "Couldn't mark you on the way — try again?");
+        // lifecycleErrorMessage: a refusal from the tracking row's own trigger (continue_day_not_yet, 20261108160000).
+        toast.error(rpcErrorMessage("helper_mark_on_the_way", otwErr) ?? lifecycleErrorMessage(otwErr) ?? "Couldn't mark you on the way — try again?");
         setUpdating(false);
         setTracking(trackingBeforeWrite);
         loadTracking();
@@ -401,7 +402,7 @@ export function statusUpdate(d: StatusUpdateDeps) {
         },
       );
     } catch (writeErr) {
-      if (!isWriteRejected(writeErr)) {
+      if (!isWriteRejected(writeErr) && !isExpectedLifecycleRefusal(writeErr)) {
         report(writeErr, { tags: { source: "JobTracking.updateStatus" } });
       }
       hapticError();

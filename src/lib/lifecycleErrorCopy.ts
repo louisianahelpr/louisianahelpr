@@ -547,8 +547,6 @@ export const RPC_ERROR_COPY = {
     // 20261008203441 (Q1570): the Helpr's own day-before tap, then 2 h before the start.
     helper_not_dayof_confirmed: "Tap Confirm first, then you can head out.",
     on_the_way_too_early: "I'm on my way turns on 2 hours before the job starts.",
-    // 20261108160000: the day set to finish opens 2 hours before its start (trg_continue_day_check_in).
-    continue_day_not_yet: "I'm on my way turns on 2 hours before the day you set to finish.",
   },
   nudge_confirm: {
     job_not_found: JOB_GONE,

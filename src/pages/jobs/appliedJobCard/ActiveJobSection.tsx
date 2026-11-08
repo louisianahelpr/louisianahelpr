@@ -126,7 +126,11 @@ export function ActiveJobSection({
   // collapsed line reads, so the card's two halves name one step.
   const { workUnderway, hasArrived, onTheWay, hasConfirmed } = helperProgress(job, initialTracking?.status);
   // Owner 11-08: on a SET continue day the done needs an after photo from that day (continue_day_needs_new_after_photo).
-  const owesNewDayAfter = continueDayOwesAfterPhoto(useContinueDay(job.id, job.status === "in_progress"), job.require_photo_proof);
+  // Read only when it can change the answer: a job under way with its photos already on file.
+  const owesNewDayAfter = continueDayOwesAfterPhoto(
+    useContinueDay(job.id, job.status === "in_progress" && hasRequiredProof(job, job.proof_before_urls, job.proof_after_urls)),
+    job.require_photo_proof,
+  );
 
   // Server owns every part of this decision (helper_abort_job, migration
   // 20260825190000): which settlement path the job takes, and what the strike

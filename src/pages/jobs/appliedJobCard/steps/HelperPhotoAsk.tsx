@@ -143,7 +143,8 @@ export function HelperPhotoAsk({
 
   // Owner 11-08 (20261108160000): on a SET continue day the done needs an after photo from that day, so the after ask
   // comes back as if none were filed (day 1's stay on the job; the upload appends to them, saveProofPaths).
-  const continueDay = useContinueDay(jobId, !crew && job.status === "in_progress");
+  // Read only when it can change the ask: a one-Helpr job under way that already has an after photo on file.
+  const continueDay = useContinueDay(jobId, !crew && proofRequired && job.status === "in_progress" && (job.proof_after_urls?.length ?? 0) > 0);
   const owesNewDayAfter = !crew && continueDayOwesAfterPhoto(continueDay, job.require_photo_proof);
 
   if (!proofRequired) return null;

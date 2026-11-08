@@ -103,8 +103,9 @@ export const rows: Row[] = [
   // and it greys out when this switch is off.
   { key: "job_matches", emailKey: "email_job_matches", label: "New matches", icon: <Sparkles className="w-3.5 h-3.5" /> },
   { key: "messages", emailKey: "email_messages", label: "Messages", description: "New messages, plus a reminder at 15 min and 2 h if a job message is still unread. Texts follow Text alerts.", icon: <MessageSquare className="w-3.5 h-3.5" /> },
-  // Owner 11-08 (20261108160000): these switches pick push and email; the notice is always kept in your list.
-  { key: "transit_updates", emailKey: "email_transit_updates", label: "Helpr on the way", description: "When your Helpr heads out and arrives. Always kept in your notifications list.", icon: <Navigation className="w-3.5 h-3.5" /> },
+  // Owner 11-08 (20261108160000): this row's switches pick push and email (both real now); the notice is always
+  // kept in the notifications list.
+  { key: "transit_updates", emailKey: "email_transit_updates", label: "Helpr on the way", icon: <Navigation className="w-3.5 h-3.5" /> },
   { key: "work_status", emailKey: "email_work_status", label: "Work status", icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
   { key: "payments", emailKey: "email_payments", label: "Job payments", description: "Finished jobs, refunds and saved cards.", icon: <Receipt className="w-3.5 h-3.5" /> },
   { key: "financial_alerts", emailKey: "email_financial_alerts", label: "Payments and tips", description: "Money held for a job, payout setup, payouts and tips.", icon: <DollarSign className="w-3.5 h-3.5" /> },

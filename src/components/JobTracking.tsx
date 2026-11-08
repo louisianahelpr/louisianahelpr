@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { doneFloorStart, useDoneFloorActive } from "@/components/job-card/useDoneFloor";
 import { useContinueDay } from "@/hooks/useContinueDays";
-import { CONTINUE_DAY_PHOTO_NOTE, continueDayDoneNote, continueDayOwesAfterPhoto, jobOnContinueDay, onContinueDay } from "@/lib/continueDayWords";
+import { CONTINUE_DAY_PHOTO_NOTE, continueDayAhead, continueDayDoneNote, continueDayOwesAfterPhoto, jobOnContinueDay, onContinueDay } from "@/lib/continueDayWords";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { subscribeJobRealtime } from "@/lib/jobRealtimeBus";
@@ -224,7 +224,11 @@ function useJobTrackingModel({
   // timed by that day, and its done needs an after photo from that day (continue_day_needs_new_after_photo).
   const newDay = onContinueDay(continueDay);
   const continueDayPhotoNote = continueDayOwesAfterPhoto(continueDay, requirePhotoProof) ? CONTINUE_DAY_PHOTO_NOTE : null;
-  const stepDay = jobOnContinueDay({ date_needed: jobDateNeeded, start_time: jobStartTime }, continueDay);
+  // On the day itself the steps open 2 hours before its start (as the server's continue_day_not_yet does). Before
+  // that day, Mark it done keeps its own note ("You can mark it done on Thu 11/6"), and day 1's timing stands.
+  const stepDay = continueDayAhead(continueDay)
+    ? { date_needed: jobDateNeeded, start_time: jobStartTime }
+    : jobOnContinueDay({ date_needed: jobDateNeeded, start_time: jobStartTime }, continueDay);
   const { request: requestPermission } = usePermissionRationale();
   /** Mounted inside a job step card, the next-step CTA is THAT card's primary
    *  and renders in its one action row (owner, 2026-09-14, VN-21). */

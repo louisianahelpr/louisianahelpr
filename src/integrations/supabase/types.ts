@@ -20329,6 +20329,17 @@ export type Database = {
       }
       is_helper_shadowbanned: { Args: { _helper_id: string }; Returns: boolean }
       is_identity_verified: { Args: { p_user_id: string }; Returns: boolean }
+      send_notice_email: {
+        Args: {
+          p_job_id: string
+          p_link: string
+          p_message: string
+          p_title: string
+          p_type: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       identity_check_exempt: { Args: { p_user_id: string }; Returns: boolean }
       idv_review_waiting_since: { Args: { p_user_id: string }; Returns: string }
       is_late_cancellation: {

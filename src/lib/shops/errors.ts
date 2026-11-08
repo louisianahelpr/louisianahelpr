@@ -256,6 +256,17 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   comment_too_long: "Keep the review to 1,000 characters.",
   review_contact_info: "Reviews can't include phone numbers, emails or links.",
   already_reviewed: "You already reviewed this order.",
+  // Digital downloads (20261108182917 + 20261108185110).
+  already_bought: "You already bought this. It is in Shops > My orders.",
+  digital_not_cancellable: "A download can't be cancelled. If the file is broken or not as described, report a problem on the order.",
+  digital_no_pickup: "A download has no pickup to confirm.",
+  digital_no_stock: "A download has no stock count and no wait.",
+  files_required: "Add 1 to 5 files for buyers to download.",
+  file_type_not_allowed: "Upload a PDF, ZIP, PNG or JPG file.",
+  file_too_big: "Each file can be up to 100 MB.",
+  too_many_files: "An item can have up to 5 files.",
+  last_file: "Add the new file first, then remove this one.",
+  item_not_digital: "Files can only be added to a digital download.",
 };
 
 /** shop-checkout's own answers (not RPC codes). */
@@ -283,6 +294,10 @@ const SHOP_CHECKOUT_COPY: Record<string, string> = {
   // The pickup point a Helpr goes to, looked up when the shop saves its pickup address.
   address_changed: "Your pickup address changed while we looked it up. Save it again.",
   pickup_outside_louisiana: "We found that address outside Louisiana. Check the street, city and ZIP code.",
+  // Digital downloads (20261108185110).
+  digital_on_website: "Downloads are bought on louisianahelpr.com. Open the shop there to buy it.",
+  invalid_billing_address: "Enter your billing street, city, two-letter state and 5-digit ZIP code.",
+  billing_address_unusable: "We couldn't figure the sales tax for that address. Check the street, city, state and ZIP code.",
 };
 
 /** The AI helper's own answers (the declutter-ai-draft edge function, target 'shop_item'): not RPC codes. */

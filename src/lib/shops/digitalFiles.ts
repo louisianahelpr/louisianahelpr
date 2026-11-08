@@ -96,3 +96,56 @@ export async function digitalDownloadUrl(fileId: string): Promise<string> {
   if (!url) throw new Error("Something went wrong. Please try again.");
   return url;
 }
+
+/** The buyer's billing address for a download's sales tax (sourced to where the buyer lives). */
+export interface BillingAddress {
+  line1: string;
+  city: string;
+  state: string;
+  postal_code: string;
+}
+
+/** Why the typed billing address would be refused, or null. The server checks again. */
+export function billingAddressProblem(a: BillingAddress): string | null {
+  if (a.line1.trim().length < 3) return "Type your street address.";
+  if (a.city.trim().length < 2) return "Type your city.";
+  if (!/^[A-Za-z]{2}$/.test(a.state.trim())) return "Type your state as two letters, like LA.";
+  if (!/^\d{5}$/.test(a.postal_code.trim())) return "Type your 5-digit ZIP code.";
+  return null;
+}
+
+/**
+ * The website page where a download is bought. The iPhone app never shows a card page for a download: its Buy button
+ * opens this page on louisianahelpr.com (App Review Guideline 3.1.1(a) and 3.1.3, as revised after the 2025 Epic v.
+ * Apple injunction: apps on the United States storefront may include buttons and links to other purchase methods).
+ */
+export const DIGITAL_BUY_ORIGIN = "https://www.louisianahelpr.com";
+export function digitalBuyUrl(shopId: string, itemId: string): string {
+  return `${DIGITAL_BUY_ORIGIN}/shops/${encodeURIComponent(shopId)}?buy=${encodeURIComponent(itemId)}`;
+}
+
+export interface BuyerDigitalFile {
+  file_id: string;
+  file_name: string;
+  ext: string;
+  byte_size: number;
+}
+
+/** The files of a download the buyer paid for (empty once refunded). Names only; links are minted per tap. */
+export async function fetchOrderDigitalFiles(orderId: string): Promise<BuyerDigitalFile[]> {
+  const res = await supabase.rpc("shops_my_digital_files", { p_order_id: orderId });
+  return (unwrap(res) ?? []) as BuyerDigitalFile[];
+}
+
+/** The buyer says the file is broken or not as described (within 72 hours of buying; the payout waits). */
+export async function reportDigitalProblem(orderId: string, reason: "broken" | "not_as_described", note: string): Promise<void> {
+  const res = await supabase.rpc("shops_report_digital_problem", { p_order_id: orderId, p_reason: reason, p_note: note.trim() });
+  unwrap(res);
+}
+
+/** Hours left to report a problem (72 after the charge), or 0. */
+export function digitalReportHoursLeft(capturedAt: string | null, now = Date.now()): number {
+  if (!capturedAt) return 0;
+  const left = new Date(capturedAt).getTime() + 72 * 3_600_000 - now;
+  return left > 0 ? Math.ceil(left / 3_600_000) : 0;
+}

@@ -83,7 +83,8 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   const [quoting, setQuoting] = useState(false);
 
   const orderable = useMemo(
-    () => (items.data ?? []).filter((i) => i.status === "live" && (i.stock_count == null || i.stock_count > 0)),
+    // Digital downloads are bought on their own (ShopDigitalBuy), never in a dated order.
+    () => (items.data ?? []).filter((i) => i.status === "live" && i.kind !== "digital" && (i.stock_count == null || i.stock_count > 0)),
     [items.data],
   );
   // Each chosen line: a plain item, or one combination of an item with option lists (keyed item:variant).

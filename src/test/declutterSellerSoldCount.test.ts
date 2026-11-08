@@ -6,8 +6,8 @@
  * without the migration; RED on 5 planted defects: paid-not-handed counted, free counted, seed shown, no switch
  * gate, anon granted).
  */
-// @mutate supabase/migrations/20261028202132_declutter_seller_sold_count.sql | o.status = 'handed_over' AND c.price_cents > 0 | o.status IN ('handed_over', 'paid')
-// @mutate supabase/migrations/20261028202132_declutter_seller_sold_count.sql |      AND public.seed_hidden_for(v_uid) THEN |      AND false THEN
+// @mutate supabase/migrations/20261108001932_last_active_band_and_seller_badge_blocks.sql | o.status = 'handed_over' AND c.price_cents > 0 | o.status IN ('handed_over', 'paid')
+// @mutate supabase/migrations/20261108001932_last_active_band_and_seller_badge_blocks.sql |      AND public.seed_hidden_for(v_uid) THEN\n    RETURN 0; |      AND false THEN\n    RETURN 0;
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";

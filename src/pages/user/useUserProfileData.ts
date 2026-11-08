@@ -19,6 +19,7 @@ import {
 } from "@/lib/helperBadgeStats";
 import type { ProfileReview, ProfileJob, ReplyLatency } from "./types";
 import { isMissingRpcNamed } from "@/lib/missingRpc";
+import { bandMap } from "@/lib/activeBand";
 import { toast } from "sonner";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -232,10 +233,10 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         // The posted-cancelled, worked-total and worked-cancelled counts that sat here are gone (Q946,
         // 2026-11-04): nothing rendered them (statSamples.jobs and postedCancelledCount had no reader),
         // and they were three of the ten jobs reads /user/:id sent on every load.
-        // Last-active timestamp (#28) — separate RPC because login_history
-        // is RLS-locked to owner/admin. Returns max(created_at) only. Wrap
-        // in a soft fetch so PGRST202 ("RPC not deployed yet") just hides
-        // the badge instead of bricking the whole profile load.
+        // "Active today" / "Active this week" (#28): a coarse band, never a
+        // sign-in time (20261108001932). No row for a blocked, suspended or
+        // hidden test user, or no sign-in in 7 days. Soft fetch: PGRST202
+        // ("RPC not deployed yet") just hides the line.
         supabase.rpc("get_user_last_active", { user_ids: [userId!] }),
         // Mutual jobs (#1) — viewer has worked with this user before?
         // Counts every job where the two of them are paired in either
@@ -490,10 +491,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         }
       }
 
-      const lastActiveAt =
-        lastActiveRes.data?.[0]?.last_active_at
-          ? new Date(lastActiveRes.data[0].last_active_at)
-          : null;
+      const lastActiveBand = lastActiveRes.error ? null : bandMap(lastActiveRes.data).get(userId!) ?? null;
 
       // Fire-and-forget — don't await; PGRST202 is silently swallowed inside
       // record_profile_view (returns false on any error). Self-view guard is
@@ -811,9 +809,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
         canMessage,
         onTimeArrivalRate,
         revisionFrequency,
-        // Serialize so React Query's cache survives a window reload (Date
-        // objects don't round-trip JSON). Re-hydrate at the call site.
-        lastActiveIso: lastActiveAt ? lastActiveAt.toISOString() : null,
+        lastActiveBand,
         // Was `!!id_document_url` — i.e. merely HAVING UPLOADED A FILE earned
         // a public "Verified Helpr" ribbon shown to strangers, even though
         // nobody reviews the upload. Now it is Stripe's identity verdict.
@@ -1008,7 +1004,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
   const canMessage = data?.canMessage ?? false;
   const onTimeArrivalRate = data?.onTimeArrivalRate ?? null;
   const revisionFrequency = data?.revisionFrequency ?? null;
-  const lastActiveAt = data?.lastActiveIso ? new Date(data.lastActiveIso) : null;
+  const lastActiveBand = data?.lastActiveBand ?? null;
   const isIdVerified = data?.isIdVerified ?? false;
   const backgroundCheckStatus = data?.backgroundCheckStatus ?? "none";
   const tierProfile = data?.tierProfile ?? null;
@@ -1045,7 +1041,7 @@ export function useUserProfileData(userId: string | undefined, currentUserId: st
     canMessage,
     onTimeArrivalRate,
     revisionFrequency,
-    lastActiveAt,
+    lastActiveBand,
     isIdVerified,
     backgroundCheckStatus,
     tierProfile,

@@ -131,7 +131,7 @@ export function messagesPreviewSample(stage: MessagesPreviewStage, side: Message
       },
       get_user_last_active: (body: Record<string, unknown>) => {
         const ids = Array.isArray(body.user_ids) ? (body.user_ids as string[]) : [];
-        return ids.filter((id) => people.some((p) => p.id === id)).map((id) => ({ user_id: id, last_active_at: ago(5) }));
+        return ids.filter((id) => people.some((p) => p.id === id)).map((id) => ({ user_id: id, active_band: "today" }));
       },
       are_users_blocked: stage === "blocked",
       get_public_profile_stats: (body: Record<string, unknown>) => {

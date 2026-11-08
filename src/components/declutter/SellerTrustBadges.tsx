@@ -8,19 +8,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { CalendarClock, Clock, Layers } from "lucide-react";
 import { fetchSellerItems } from "@/lib/declutter/api";
-import { fetchLastSignIn, fetchOnTimeHandovers, sellerBadges, type SellerBadge } from "@/lib/declutter/sellerBadges";
+import { fetchActiveBand, fetchOnTimeHandovers, sellerBadges, type SellerBadge } from "@/lib/declutter/sellerBadges";
 
 const ICON: Record<SellerBadge["key"], typeof Clock> = { lists_often: Layers, on_time: CalendarClock, active: Clock };
 
 export function SellerTrustBadges({ sellerId, itemId, after }: { sellerId: string; itemId: string; after: boolean }) {
   const more = useQuery({ queryKey: ["declutter", "more-from-seller", sellerId, itemId], queryFn: () => fetchSellerItems(sellerId, itemId), enabled: after });
   const onTime = useQuery({ queryKey: ["declutter", "seller-on-time", sellerId], queryFn: () => fetchOnTimeHandovers(sellerId), enabled: after, staleTime: 10 * 60_000 });
-  const seen = useQuery({ queryKey: ["declutter", "seller-last-sign-in", sellerId], queryFn: () => fetchLastSignIn(sellerId), enabled: after, staleTime: 60_000 });
+  const seen = useQuery({ queryKey: ["declutter", "seller-active-band", sellerId], queryFn: () => fetchActiveBand(sellerId), enabled: after, staleTime: 60_000 });
   // A failed or unfinished read shows no badge (a missing badge is never a claim).
   const badges = sellerBadges({
     othersForSale: more.data ? more.data.filter((r) => r.status === "live" || r.status === "reserved").length : null,
     onTime: onTime.data ?? null,
-    lastSignIn: seen.data ?? null,
+    activeBand: seen.data ?? null,
   });
   if (badges.length === 0) return null;
   return (

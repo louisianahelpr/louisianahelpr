@@ -1216,6 +1216,26 @@ export default defineConfig(({ mode, command }) => ({
             // every page fetch that whole chunk, and through it rentals, declutter and signed-in-pages, ~4 s
             // into a Slow 4G load (B75's late 26.5 KB). Above signed-in-deep so it wins them. Not in
             // signed-in-shared: that put them on /home's first screen (378 -> 387 KB gz, B77).
+            // The Vinted header's shared pieces (owner 11-08). Every section screen imports them, so rolldown split each
+            // into its own file, and each name in the entry's preload list pushed the entry over its 5 KB budget (5.3 KB
+            // on #4239). Two chunks by reach, not one: Home runs the create pill and its step-aside rule, but not the
+            // search bar, whose icons in one chunk with the pill put icons-guest-shared on /home (282 -> 289 KB gz).
+            {
+              name: "section-create",
+              test: /[\\/]src[\\/]components[\\/]sections[\\/](createFabHidden|SectionCreateFab)\.tsx$/,
+              minShareCount: 2,
+              priority: 16.6,
+              minSize: 0,
+              includeDependenciesRecursively: false /* the modules alone, as signed-in-chrome */,
+            },
+            {
+              name: "section-search",
+              test: /[\\/]src[\\/]components[\\/]sections[\\/](searchPill\.ts|SectionSearchBar\.tsx)$/,
+              minShareCount: 2,
+              priority: 16.6,
+              minSize: 0,
+              includeDependenciesRecursively: false /* the modules alone, as signed-in-chrome */,
+            },
             {
               name: "signed-in-chrome",
               test: /[\\/]src[\\/](lib[\\/](capturedPayment|consent|helprTasks[\\/]online|helprTasks[\\/]onlineHandoff)\.ts|hooks[\\/](useInstantQuery\.ts|use-mobile\.tsx))$/,

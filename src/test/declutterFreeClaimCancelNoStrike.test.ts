@@ -9,10 +9,10 @@
  * Reads the EFFECTIVE definition (helpers/effectiveFunctionDefs). Backend proof on a real database:
  * src/test/pglite/declutterFreeClaimCancelNoStrike.pglite.mjs (3x; 8 FAIL without the migration).
  */
-// @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql |   IF v_line.price_cents = 0 THEN |   IF v_line.price_cents = -1 THEN
-// @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql |     RETURN public.declutter_active_strike_count(v_uid); |     RETURN public.declutter_give_strike(v_uid, 'seller', 'cancelled_after_offers', p_item_id, 'x', v_line.id);
-// @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql |       UPDATE public.declutter_items SET status = 'live', updated_at = now() |       UPDATE public.declutter_items SET status = 'withdrawn', updated_at = now()
-// @mutate supabase/migrations/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404.sql | , so it went back up. Nothing was charged | . Nothing was charged
+// @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql | told so.\n  IF v_line.price_cents = 0 THEN | told so.\n  IF v_line.price_cents = -1 THEN
+// @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |     END IF;\n    RETURN public.declutter_active_strike_count(v_uid); |     END IF;\n    RETURN public.declutter_give_strike(v_uid, 'seller', 'cancelled_after_offers', p_item_id, 'x', v_line.id);
+// @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |     ELSE\n      UPDATE public.declutter_items SET status = 'live', updated_at = now()\n       WHERE id = p_item_id AND status = 'reserved'; |     ELSE\n      UPDATE public.declutter_items SET status = 'withdrawn', updated_at = now()\n       WHERE id = p_item_id AND status = 'reserved';
+// @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql | , so it went back up. Nothing was charged | . Nothing was charged
 import { describe, it, expect } from "vitest";
 import { resolve } from "node:path";
 import { effectiveDefs } from "./helpers/effectiveFunctionDefs";
@@ -34,7 +34,8 @@ describe("Declutter: cancelling a free claim gives no strike and puts it back up
   it("reads the newest definition (floor)", () => {
     expect(flat.length).toBeGreaterThan(2500);
     // Q2390 p36 (20261103221614) restated it verbatim with its not-found as PT404 only.
-    expect(def?.file).toMatch(/20261103221614_q2390_review_refund_withdraw_no_show_cancel_book_not_found_is_404\.sql$/);
+    // Trades fixes (20261108195151) restated it with a trade-line branch ahead of B100; the rest verbatim.
+    expect(def?.file).toMatch(/20261108195151_declutter_trades_fixes\.sql$/);
   });
 
   it("a free line returns before any strike, with the unchanged count", () => {

@@ -13,7 +13,7 @@
  *
  * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && !slim && <PhoneMessagesButton />} |       {user && !isWebDesktop && <PhoneMessagesButton />}
  * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && !slim && <PhoneCreateButton />} |       {user && !isWebDesktop && <PhoneCreateButton />}
- * @mutate src/components/sections/AppTopBar.tsx | <NotificationPanel withMessages={slim} | <NotificationPanel
+ * @mutate src/components/sections/AppTopBar.tsx |  withMessages={slim} /> |  />
  * @mutate src/components/sections/AppTopBar.tsx |               {title && <h1 className="sr-only">{title}</h1>}\n |
  * @mutate src/components/sections/AppTopBar.tsx |           onClick={() => { if (mine) { setMineAsked(true); setMineOpen(true); } else navigate("/profile"); }} |           onClick={() => navigate("/profile")}
  * @mutate src/components/sections/AppTopBar.tsx |           {mineToDo > 0 && <span data-top-bar-badge="mine" | {false && <span data-top-bar-badge="mine"

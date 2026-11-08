@@ -5832,19 +5832,19 @@
     },
     {
       "file": "src/components/declutter/DeclutterSalesWaiting.tsx",
-      "line": 70,
+      "line": 83,
       "kind": "toast",
       "title": {
         "form": "dynamic",
-        "text": "kind === \"free\" ? WORDS.free.done : `${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes.`",
+        "text": "kind === \"paid\" ? `${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes.` : WORDS[kind].done",
         "branches": [
-          {
-            "form": "dynamic",
-            "text": "WORDS.free.done"
-          },
           {
             "form": "template",
             "text": "${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes."
+          },
+          {
+            "form": "dynamic",
+            "text": "WORDS[kind].done"
           }
         ]
       },
@@ -5852,7 +5852,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterSalesWaiting.tsx",
-      "line": 74,
+      "line": 87,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

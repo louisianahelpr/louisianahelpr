@@ -220,6 +220,9 @@ const EXPECTED_CALLERS = [
   "shops_order_custom_quote",
   "shops_order_terms",
   "shops_quote_custom_request",
+  // Shops digital downloads (20261108185110): request_digital_order passes v_uid := auth.uid() vs the shop's owner, as
+  // request_order.
+  "shops_request_digital_order",
   "shops_request_order",
   // Shops preorders (20261108184654): request_preorder passes v_uid := auth.uid() vs the shop's owner, as request_order.
   "shops_request_preorder",

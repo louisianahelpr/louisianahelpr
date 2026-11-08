@@ -606,6 +606,8 @@ export function helperReadableViaJob(tables = publicTables()): Map<string, strin
  */
 // @two-way src/test/dataExportCoversEveryUserTable.test.ts:no stale entry: every EXPORTED/EXEMPT column is a live person column
 export const EXEMPT: Record<string, { reason: string; stripped?: true }> = {
+  // Shops digital downloads (20261108182917; Shops is testers only).
+  "shop_item_files.owner_id": { reason: "A seller's download files (name, type, size). Not in export_my_data yet, the same way as shop_reviews above: it is added with the next export_my_data restatement (its newest body, 20261106191100, is pinned by about 90 @mutate registrations), and then this entry moves to EXPORTED. The item each file belongs to is already exported (shop_items by owner_id), and a buyer's purchases are exported as shop_orders and shop_order_lines" },
   "shop_reviews.reviewer_id": { reason: "Shop reviews (20261105230819, Shops H9; Shops is testers only). Not in export_my_data yet: added with the shop chats on top of Builder 1's job-photos v3 restatement of export_my_data (lead 11-05); then this entry moves to EXPORTED" },
   "shop_reviews.reviewee_id": { reason: "Shop reviews (20261105230819, Shops H9; Shops is testers only). Not in export_my_data yet: added with the shop chats on top of Builder 1's job-photos v3 restatement of export_my_data (lead 11-05); then this entry moves to EXPORTED" },
   // CMP-4 instant book (20261101063725, 20261101065105); lead 11-01.

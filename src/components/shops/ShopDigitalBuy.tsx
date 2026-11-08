@@ -116,10 +116,10 @@ export default function ShopDigitalBuy({ shopId }: { shopId: string }) {
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="ghost" onClick={() => setPicked(null)} disabled={opening}>Cancel</Button>
             <Button type="button" className="btn-grad-primary" onClick={() => void pay()} disabled={opening}>
               {opening ? "Opening…" : "Continue to payment"}
             </Button>
-            <Button type="button" variant="ghost" onClick={() => setPicked(null)} disabled={opening}>Cancel</Button>
           </div>
         </div>
       )}

@@ -384,7 +384,7 @@ BEGIN
     v_label || '. Louisiana Helpr will look at it before anyone is paid. You can add your side on the order.',
     '/shops/dashboard', o.buyer_id);
   -- Every admin is told; test data never reaches one (owner rule).
-  IF NOT (public.is_test_subject(o.buyer_id) OR public.is_test_subject(o.seller_id)) THEN
+  IF NOT (o.is_seed OR public.is_test_subject(o.buyer_id) OR public.is_test_subject(o.seller_id)) THEN
     FOR a IN SELECT DISTINCT ur.user_id FROM public.user_roles ur WHERE ur.role = 'admin' LOOP
       PERFORM public.declutter_notify(a.user_id, 'warning', 'Shops download problem reported',
         'A buyer says a paid Shops download is broken or not as described. The shop''s payout is held until you decide it.', '/admin');
@@ -479,11 +479,8 @@ BEGIN
                THEN format(', including the one-time $%s account setup fee (charged once per account)', to_char(v_fee / 100.0, 'FM999990.00'))
                ELSE '' END),
       '/shops/orders', o.seller_id);
-    -- And an email (lead default): a link into the app or site, never a file link. send-notification-email reads the
-    -- buyer's payments email switch and refuses test and seed recipients (send_notice_email, 20261108160000).
-    PERFORM public.send_notice_email(o.buyer_id, 'Your download is ready',
-      'Your download is paid for and ready. Open Shops > My orders and tap Download. It stays there for as long as you have an account.',
-      'payment', '/shops/orders', NULL);
+    -- The email (lead default) rides on this notifications row: trg_email_shop_download_ready (below) mails it after
+    -- the row passes notifications_seed_boundary, so a seed or test subject never emails a real person.
     PERFORM public.declutter_notify(o.seller_id, 'payment', 'You sold a download',
       'A buyer bought one of your downloads. You are paid 72 hours after the sale unless the buyer reports a problem with the file.',
       '/shops/dashboard', o.buyer_id);
@@ -670,3 +667,14 @@ $fn$;
 
 REVOKE ALL ON FUNCTION public.shop_lock_open_charged_order(uuid, boolean) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.shop_lock_open_charged_order(uuid, boolean) TO service_role;
+
+-- 3b. The buyer's "Your download is ready" email (lead default: a link into the app or site, never a file link). It is
+--     sent by the same AFTER INSERT path as the continue-day notices (email_continue_day_notice -> send_notice_email,
+--     20261108160000): the trigger fires only for a notifications row notifications_seed_boundary (BEFORE INSERT) let
+--     through, and send-notification-email reads the payments email switch and refuses test and seed recipients.
+DROP TRIGGER IF EXISTS trg_email_shop_download_ready ON public.notifications;
+CREATE TRIGGER trg_email_shop_download_ready
+  AFTER INSERT ON public.notifications
+  FOR EACH ROW
+  WHEN (NEW.type = 'payment' AND NEW.title = 'Your download is ready' AND NEW.link = '/shops/orders')
+  EXECUTE FUNCTION public.email_continue_day_notice();

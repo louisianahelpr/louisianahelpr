@@ -47,6 +47,7 @@ const REVIEW = "REVIEW: a displayed number that still counts test data (b62 phas
 
 // @two-way src/test/statAggregatesExcludeTestData.test.ts:Object.keys(ALLOWED).filter((n) => !inventory.has(n)
 const ALLOWED: Record<string, string> = {
+  shop_digital_file_remove: "logic: counts ONE item's own checked files so a live download keeps its last file (20261108182917); not a stat",
   // Preorders (20261108184654): the units one preorder item holds (its cap and its goal); a cap on one item, not a stat.
   shop_preorder_units: "logic: the units ordered of ONE preorder item, read for its own cap and goal; every order of that item counts, as every order takes a place",
   shop_mark_order_held: "logic: sums ONE order's own line quantities against its preorder item's cap; a cap check, not a stat",

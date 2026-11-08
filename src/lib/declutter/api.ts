@@ -1262,9 +1262,10 @@ export interface CartLine {
   delivery_task_id?: string | null;
   /**
    * DB-5 (20261030064929): how the line got here. "buy" = Buy now or a free claim (no strike when its 48 hours run
-   * out), "offer" = an accepted offer (a strike). Absent before that deploy: read as "may carry a strike".
+   * out), "offer" = an accepted offer (a strike), "swap" = one side of an accepted trade (20261108195151; no strike, no
+   * money). Absent before that deploy: read as "may carry a strike".
    */
-  source?: "buy" | "offer" | null;
+  source?: "buy" | "offer" | "swap" | null;
   /** DC-18 (20261030131715): when an ended line ended (null while in the cart). Absent before that deploy. */
   closed_at?: string | null;
 }

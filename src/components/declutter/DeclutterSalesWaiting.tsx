@@ -41,6 +41,17 @@ const WORDS = {
     // Owner 2026-10-30 (B100, 20261030132149): no strike for cancelling a free claim; the item goes back up.
     body: "No strike for a free item. The person who claimed it is told, and it goes back up so others can ask for it.",
   },
+  // Trades audit 11-08 #2/#5: a trade line (source 'swap', 20261108195151) is not a give-away. Backing out ends the
+  // whole trade at once on the server (declutter_end_swap), with no strike.
+  swap: {
+    heading: "Traded, they're choosing a pickup",
+    line: "They're choosing how to pick up your item",
+    cancel: "Back out of trade",
+    sheetTitle: "Back out of this trade?",
+    keep: "Keep the trade",
+    done: "Trade cancelled. Both items are back up.",
+    body: "The trade ends for both of you and both items go back up. The other person is told. No strike.",
+  },
 } as const;
 type Kind = keyof typeof WORDS;
 
@@ -52,8 +63,10 @@ type Kind = keyof typeof WORDS;
 export function useWaitingChipLabel(): string {
   const cart = useQuery({ queryKey: ["declutter", "my-cart"], queryFn: fetchMyCart });
   const waiting = (cart.data ?? []).filter((l) => l.my_side === "seller" && l.status === "in_cart");
-  const free = waiting.filter((l) => l.price_cents === 0).length;
-  if (free === 0) return "To be paid";
+  const free = waiting.filter((l) => l.price_cents === 0 && l.source !== "swap").length;
+  const swaps = waiting.filter((l) => l.source === "swap").length;
+  if (swaps === waiting.length && swaps > 0) return "Traded";
+  if (free === 0 && swaps === 0) return "To be paid";
   return free === waiting.length ? "Claimed" : "Waiting";
 }
 
@@ -67,7 +80,7 @@ export function SalesWaiting({ emptyNotice = false }: { emptyNotice?: boolean } 
     onSettled: () => setAsking(null),
     onSuccess: (n, { kind }) => {
       // A free claim gives no strike (20261030132149), so its toast names no strike count.
-      toast(kind === "free" ? WORDS.free.done : `${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes.`);
+      toast(kind === "paid" ? `${WORDS[kind].done} You have ${Math.min(n, 3)} of 3 strikes.` : WORDS[kind].done);
       // The same as DeclutterTradeViews' invalidateTrades (not imported: that file imports this one).
       void qc.invalidateQueries({ queryKey: ["declutter"] });
     },
@@ -81,7 +94,8 @@ export function SalesWaiting({ emptyNotice = false }: { emptyNotice?: boolean } 
   if (waiting.length === 0) return emptyNotice && cart.isSuccess ? <DeclutterNotice title="Nothing waiting to be paid right now." /> : null;
   const groups: [Kind, CartLine[]][] = [
     ["paid", waiting.filter((l) => l.price_cents !== 0)],
-    ["free", waiting.filter((l) => l.price_cents === 0)],
+    ["swap", waiting.filter((l) => l.source === "swap")],
+    ["free", waiting.filter((l) => l.price_cents === 0 && l.source !== "swap")],
   ];
   const w = asking ? WORDS[asking.kind] : WORDS.paid;
   return (
@@ -94,7 +108,7 @@ export function SalesWaiting({ emptyNotice = false }: { emptyNotice?: boolean } 
           <ul className="space-y-3">
             {lines.map((l) => (
               <li key={l.line_id} className="rounded-2xl border border-border bg-card p-4 space-y-2">
-                <p className="font-semibold">{l.item_title} · {itemPriceLabel(l.price_cents)}</p>
+                <p className="font-semibold">{l.item_title}{kind === "swap" ? " · Trade" : ` · ${itemPriceLabel(l.price_cents)}`}</p>
                 {/* A3-24 (audit 11-01): the shared next-step line with the hold's end ("by 7:45 PM": 30 minutes for Buy
                     now, 24 hours after an accepted offer, the line's checkout_by); the button below is the way out. */}
                 <NextStep className="!text-sm" value={{ who: "them", text: WORDS[kind].line, by: kind === "paid" ? byClock(l.checkout_by) : timeLeft(l.checkout_by) }} />

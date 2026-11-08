@@ -61,7 +61,7 @@ import { RemoveFromCart } from "./DeclutterCartRemove";
 import { invalidateTrades } from "./declutterLightActions";
 import { usePageRestored } from "@/hooks/usePageRestored";
 import { trackFunnel } from "@/lib/declutter/funnel";
-import { cartSectionWords, CheckoutCardHead } from "./DeclutterCartWords";
+import { cartSectionWords, CheckoutCardHead, isTradeLine } from "./DeclutterCartWords";
 import { firstPhotos } from "./DeclutterItemCard";
 import { squarePhotoUrl, THUMB_PHOTO_PX } from "@/lib/declutter/photoSizes";
 import { fetchItemPickupWindows } from "@/lib/declutter/handover";
@@ -492,7 +492,14 @@ export function CartView() {
   const waiting = mine.filter((l) => l.status === "in_cart" && new Date(l.checkout_by).getTime() > now);
   const bySeller = new Map<string, CartLine[]>();
   // A line still waiting for checkout always has its seller (an account with a line in flight cannot be deleted).
-  for (const l of waiting) if (l.seller_id) bySeller.set(l.seller_id, [...(bySeller.get(l.seller_id) ?? []), l]);
+  // Trades audit 11-08 #8: a seller's $0 lines check out apart (declutter_checkout_free takes only them) when one of
+  // them is a trade; a priced line from the same seller is its own card checkout, after the trade pickup.
+  const tradeSellers = new Set(waiting.filter(isTradeLine).map((l) => l.seller_id));
+  for (const l of waiting) {
+    if (!l.seller_id) continue;
+    const key = tradeSellers.has(l.seller_id) ? `${l.seller_id}:${l.price_cents === 0 ? "trade" : "paid"}` : l.seller_id;
+    bySeller.set(key, [...(bySeller.get(key) ?? []), l]);
+  }
   return (
     <section className="space-y-3" aria-label={cartSectionWords(waiting).title /* DA-4: "Claimed" when all free */}>
       <SectionHeading title={cartSectionWords(waiting).title} todo={waiting.length} todoWords={cartSectionWords(waiting).todoWords} />
@@ -500,16 +507,18 @@ export function CartView() {
       {waiting.length === 0 ? (
         <DeclutterNotice title="Your cart is empty.">When a seller accepts your offer, or you tap Buy, the item comes here. Buy now holds it 30 minutes; an accepted offer gives you 24 hours to check out.</DeclutterNotice>
       ) : (
-        [...bySeller.entries()].map(([sellerId, lines], i) => {
+        [...bySeller.entries()].map(([key, lines], i) => {
+          const sellerId = key.split(":")[0];
+          const trade = lines.some(isTradeLine);
           const soonest = lines.map((l) => l.checkout_by).sort()[0];
           // The Free section (20261027170717): an all-free group never reaches a payment page.
           const allFree = lines.every((l) => l.price_cents === 0);
           return (
-            <section key={sellerId} className="rounded-2xl border border-border bg-card p-4 space-y-3 scroll-mt-4" aria-label={`Checkout ${i + 1}`} data-checkout-seller={sellerId}>
+            <section key={key} className="rounded-2xl border border-border bg-card p-4 space-y-3 scroll-mt-4" aria-label={`Checkout ${i + 1}`} data-checkout-seller={sellerId}>
               {/* Board 161: several items from one seller are one checkout, one pickup and ONE buyer fee on the total. */}
               {/* Said once (lead 2026-10-28: the card read "From one seller · one checkout" then "One checkout, one pickup,
                   one payment."): the heading names the checkout, the line under it (2+ items) what they share. */}
-              <CheckoutCardHead allFree={allFree} count={lines.length} />
+              <CheckoutCardHead allFree={allFree} count={lines.length} trade={trade} />
               <ul className="space-y-2">
                 {lines.map((l) => (
                   <li key={l.line_id} className="flex items-center justify-between gap-3 text-sm min-w-0" data-cart-line="">
@@ -521,7 +530,7 @@ export function CartView() {
                     ) : (
                       <span className="line-clamp-2 min-w-0 break-words" title={l.item_title}>{l.item_title}</span>
                     )}
-                    <span className="ml-auto shrink-0 font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{itemPriceLabel(l.price_cents)}</span>
+                    <span className="ml-auto shrink-0 font-semibold tabular-nums text-[hsl(var(--accent-ink))]">{isTradeLine(l) ? "Trade" : itemPriceLabel(l.price_cents)}</span>
                     <RemoveFromCart line={l} />
                   </li>
                 ))}

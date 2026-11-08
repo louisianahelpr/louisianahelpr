@@ -18,7 +18,8 @@
  * @mutate scripts/audit/declaredReadRpcs.mjs | .filter(([, v]) => !v.includes("v")) | .filter(([, v]) => v.length > 0)
  * @mutate scripts/audit/press-every-control.mjs | isNotificationOpen({ label, chain: entry.chain }) | isNotificationOpen({ label })
  * @mutate scripts/audit/pressProdSafety.mjs | Array.isArray(chain) && chain.length ? chain.join( | false ? chain.join(
- * @mutate scripts/audit/pressProdSafety.mjs | /^Notifications(?:, [^\u203a]*? unread)? \u203a /; | /^Notifications \u203a /;
+ * @mutate scripts/audit/pressProdSafety.mjs | /^Notifications(?: and messages)?(?:, [^\u203a]*? unread)? \u203a /; | /^Notifications \u203a /;
+ * @mutate scripts/audit/pressProdSafety.mjs | /^Notifications(?: and messages)?(?:, [^\u203a]*? unread)? \u203a /; | /^Notifications(?:, [^\u203a]*? unread)? \u203a /;
  * @mutate scripts/audit/pressProdSafety.mjs | \|suggest a reply\|check twilio\|health alerts)\b/i; | \|suggest a reply)\b/i;
  * @mutate scripts/audit/press-every-control.mjs | \|watch\|unwatch\|notify me)\b/i; | \|watch\|unwatch)\b/i;
  * @mutate scripts/audit/press-every-control.mjs | connect (?:google\|apple)\|watch\|unwatch\|notify me)\b/i; | connect (?:google\|apple)\|notify me)\b/i;
@@ -102,13 +103,16 @@ describe("a bell-panel row is gated by its chain, not its own words", () => {
 
   it("a bell with unread rows names its count, and its rows are still notification opens (Q1816)", () => {
     const row = "Repost";
-    for (const bell of ["Notifications, 99+ unread", "Notifications, 3 unread"]) {
+    // The slim bar's bell holds Messages too (the Vinted header, owner 11-08): "Notifications and messages", same tail.
+    const bells = ["Notifications", "Notifications, 99+ unread", "Notifications, 3 unread", "Notifications and messages", "Notifications and messages, 3 unread"];
+    for (const bell of bells) {
       expect(isNotificationOpen({ label: row, chain: [bell, row] }), bell).toBe(true);
       expect(isNotificationOpen({ label: bell, chain: [bell] }), `${bell} alone`).toBe(false);
     }
-    // The words the app's bell actually carries.
+    // The words the app's bell actually carries: both names, then the unread tail.
     const trigger = readFileSync(resolve(__dirname, "../components/notificationPanel/NotificationTrigger.tsx"), "utf8");
-    expect(trigger).toContain("`Notifications, ${formatUnreadBadge(count)} unread`");
+    expect(trigger).toContain('const name = withMessages ? "Notifications and messages" : "Notifications";');
+    expect(trigger).toContain("`${name}, ${formatUnreadBadge(count)} unread`");
   });
 
   it("the other writes run 42362289081 pressed ungated are mutating now (Q1816)", () => {

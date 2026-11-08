@@ -447,7 +447,8 @@ export const FORMS: FormSpec[] = [
   // Q2437: Find a Helpr's town box (find_helprs matches it literally and refuses over 60 characters).
   { name: "find-helprs", url: "/helprs", as: "helper", covers: ["src/pages/helprs/FindHelprs.tsx"] },
   // Declutter > Browse (2026-10-19): the same shared SectionSearchRow as Jobs > Browse (every test account is a tester).
-  { name: "declutter-search", url: "/declutter", as: "helper", prepare: openSearch, covers: ["src/components/sections/SectionSearchRow.tsx", "src/components/declutter/DeclutterBrowseBar.tsx"] },
+  // Owner 11-08 (the Vinted header): on a phone Browse's field is the top bar's "Search Declutter" (DeclutterSearchBar).
+  { name: "declutter-search", url: "/declutter", as: "helper", prepare: openSearch, covers: ["src/components/sections/SectionSearchRow.tsx", "src/components/declutter/DeclutterBrowseBar.tsx", "src/components/declutter/DeclutterSearchBar.tsx"] },
   { name: "complete-profile", url: "/complete-profile", as: "incomplete", covers: ["src/pages/auth/CompleteProfile.tsx", "src/components/postjob/CityAutocomplete.tsx"] },
   { name: "profile-edit", url: "/profile?tab=profile", as: "helper", covers: ["src/components/profile/ProfileEditForm.tsx", "src/components/profile/profileEditForm/PhotoNameSection.tsx"] },
   { name: "profile-support", url: "/profile?tab=support", as: "helper", covers: ["src/components/profile/SupportInline.tsx"] },

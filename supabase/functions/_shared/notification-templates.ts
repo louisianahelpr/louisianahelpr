@@ -354,7 +354,9 @@ export const NOTIFICATION_TEMPLATES: Record<string, NotificationTemplate> = {
           : restricted
             ? "A second no-show was reported against you. Your account is restricted for 7 days while an admin reviews it. If you think this is wrong, email admin@louisianahelpr.com."
             : `You received a no-show warning for "${jobTitle(f)}".`,
-        type: "warning",
+        // Jobs audit 11-08 #5/#7: a warning is a Jobs notice; a ban or restriction is about the account. The same row
+        // report_helper_no_show (20261108202000) now writes itself, so an older app's call is an exact duplicate.
+        type: legacyBanned || restricted ? "warning" : "job_updates",
         link: "/profile?tab=warnings",
       };
     },

@@ -10,7 +10,8 @@
  * Guard: src/test/declutterCategoryDrillDown.test.tsx.
  */
 import { useId, useMemo, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Search } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { FieldClearButton } from "@/components/ui/FieldClearButton";
 import { Input } from "@/components/ui/input";
 import { ListRow } from "@/components/ui/ListRow";
 import { CATEGORY_GROUP_ICON, CATEGORY_LABEL, categoryIcon, type CategoryGroupHeading } from "@/lib/declutter/categoryIcons";
@@ -57,8 +58,8 @@ export function CategoryDrillDown({ label, groups, value, onChange }: Props) {
           <span className="flex min-w-0 items-center gap-3">
             <Icon className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
             <span className="min-w-0">
-              <span className={`block truncate ${on ? "font-semibold text-foreground" : "text-foreground"}`}>{CATEGORY_LABEL[k] ?? k}</span>
-              {heading && <span className="block truncate text-ds-13 text-muted-foreground">{heading}</span>}
+              <span className={`block truncate ${on ? "font-semibold text-foreground" : "text-foreground"}`} title={CATEGORY_LABEL[k] ?? k}>{CATEGORY_LABEL[k] ?? k}</span>
+              {heading && <span className="block truncate text-ds-13 text-muted-foreground" title={heading}>{heading}</span>}
             </span>
           </span>
         </ListRow>
@@ -83,8 +84,14 @@ export function CategoryDrillDown({ label, groups, value, onChange }: Props) {
           enterKeyHint="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="pl-10"
+          className="pl-10 pr-11 [&::-webkit-search-cancel-button]:hidden"
         />
+        {/* Q913: every search field has its own clear; the shared ✕ (FieldClearButton). */}
+        {query && (
+          <FieldClearButton aria-label="Clear search" onClick={() => setQuery("")} className="right-2.5 rounded-full">
+            <X className="h-4 w-4" aria-hidden />
+          </FieldClearButton>
+        )}
       </div>
       <div className="rounded-2xl border border-border bg-card p-1">
         {q ? (
@@ -123,8 +130,8 @@ export function CategoryDrillDown({ label, groups, value, onChange }: Props) {
                         <Icon className="h-5 w-5" aria-hidden />
                       </span>
                       <span className="min-w-0">
-                        <span className="block truncate font-semibold text-foreground">{g.heading}</span>
-                        <span className="block truncate text-ds-13 text-muted-foreground">
+                        <span className="block truncate font-semibold text-foreground" title={g.heading}>{g.heading}</span>
+                        <span className="block truncate text-ds-13 text-muted-foreground" title={chosenHere ? `Chosen: ${chosenHere}` : g.values.map((k) => CATEGORY_LABEL[k]).join(", ")}>
                           {chosenHere ? `Chosen: ${chosenHere}` : g.values.slice(0, 3).map((k) => CATEGORY_LABEL[k]).join(", ")}
                         </span>
                       </span>

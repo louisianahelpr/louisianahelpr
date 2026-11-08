@@ -9,6 +9,7 @@
 // @mutate src/components/declutter/CategoryDrillDown.tsx | .filter((k) => words(`${CATEGORY_LABEL[k] ?? k} ${g.heading}`).includes(q)) | .filter(() => false)
 // @mutate src/components/declutter/CategoryDrillDown.tsx | onClick={() => setOpen(g.heading)} | onClick={() => setOpen(null)}
 // @mutate src/components/declutter/CategoryDrillDown.tsx |               const Icon = CATEGORY_GROUP_ICON[g.heading]; |               const Icon = () => null;
+// @mutate src/components/declutter/CategoryDrillDown.tsx | <FieldClearButton aria-label="Clear search" onClick={() => setQuery("")} | <FieldClearButton aria-label="Clear search" onClick={() => undefined}
 // @mutate src/components/declutter/SellSummaryCard.tsx | <CategoryDrillDown label="Category" | <ChipGroup options={[]} label="Category"
 // @mutate src/components/declutter/DeclutterSellView.tsx | <CategoryDrillDown label="Category" | <ChipGroup options={[]} label="Category"
 import { readFileSync } from "node:fs";
@@ -66,6 +67,11 @@ describe("Sell form category drill-down", () => {
     // "&" reads as "and"; a heading word finds its categories.
     fireEvent.change(screen.getByRole("searchbox", { name: "Search categories" }), { target: { value: "toys & games" } });
     expect(container.querySelector('[data-category-leaf="toys_games"]')).not.toBeNull();
+    // Q913: the field's own ✕ clears it and the headings come back; no ✕ on an empty field.
+    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+    expect((screen.getByRole("searchbox", { name: "Search categories" }) as HTMLInputElement).value).toBe("");
+    expect(container.querySelectorAll("[data-category-heading]").length).toBe(CATEGORY_GROUPS.length);
+    expect(screen.queryByRole("button", { name: "Clear search" })).toBeNull();
   });
 
   it("a search with no match says so and points at Other", () => {

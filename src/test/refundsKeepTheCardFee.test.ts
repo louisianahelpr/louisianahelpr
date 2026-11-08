@@ -651,7 +651,10 @@ const SQL_POLICIES: Record<"declutter_record_refund" | "shop_refund_amounts", Sq
       // LEAD-B49-REBUILD (20261031211922, Builder 28, for verdict): only the free-claim gate call added, before any order;
       // it raises or returns, and still records no refund.
       // Q2390 p39 (20261103224955): restated with its not-found as PT404 only (ERRCODE only); no refund logic changed.
-      declutter_checkout_free: "20261103224955_q2390_move_drafts_haul_away_free_pick_ai_check_checkout_not_found_is_404.sql 9c02ae4e05056074",
+      // Trades fixes (20261108195151, Builder 3, lh-money-escrow verdict owed): an all-trade checkout skips the fee half
+      // of the free-claim gate (keeps the ID check); priced lines beside a trade line stay in the cart; trade notice words.
+      // Still $0, paid_with free, and still records no refund. Was 20261103224955 9c02ae4e05056074.
+      declutter_checkout_free: "20261108195151_declutter_trades_fixes.sql f158cbe68eca2a71",
       // Q1929 (20261021185418), reviewed: a delivery-pay raise is its OWN charge and never a declutter_refunds row.
       // _start writes an unpaid raise row (its card fee is the buyer's to pay, grossed up); _status reads the
       // buyer's own raises; the close trigger moves applied raises to refunding: everything paid, except a sale

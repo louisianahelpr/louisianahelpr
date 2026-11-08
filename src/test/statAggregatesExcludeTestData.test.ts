@@ -68,7 +68,6 @@ const ALLOWED: Record<string, string> = {
   declutter_helpr_job_listings: "counts one listing's own photos for the Helpr writing it, not a stat over members",
   // 20261101230519 (A3-18/A3-50): count(*) - 1 over ONE order's own cart lines, for "<item> and N more" in that
   // order's own book-by reminder; a service_role cron sweep, not a number over members.
-  declutter_swap_sweep: "counts one trade's own two cart lines (buyer_line_id, seller_line_id) to see both were handed over (20261106184913), not a stat over members",
   declutter_book_by_reminder_sweep: "counts one order's own cart lines for the words of that order's own reminder, not a stat over members",
   // 20261102002217 (A3-81): count(*) over ONE order's own cart lines (item_count on the caller's own refund step);
   // every row is an order where the caller is the buyer or the seller (lh-authz-rls, lead verdict b124).

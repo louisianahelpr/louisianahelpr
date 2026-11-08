@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NativeRadio } from "@/components/ui/NativeRadio";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -98,11 +99,11 @@ function BuyerFiles({ order }: { order: ShopOrder }) {
           <fieldset className="space-y-1">
             <legend className="text-sm font-medium">What's wrong? ({hoursLeft} hours left to report)</legend>
             <label className="flex min-h-11 items-center gap-2 text-sm">
-              <input type="radio" name={`dl-reason-${order.id}`} checked={reason === "broken"} onChange={() => setReason("broken")} />
+              <NativeRadio name={`dl-reason-${order.id}`} checked={reason === "broken"} onChange={() => setReason("broken")} />
               The file is broken or won't open
             </label>
             <label className="flex min-h-11 items-center gap-2 text-sm">
-              <input type="radio" name={`dl-reason-${order.id}`} checked={reason === "not_as_described"} onChange={() => setReason("not_as_described")} />
+              <NativeRadio name={`dl-reason-${order.id}`} checked={reason === "not_as_described"} onChange={() => setReason("not_as_described")} />
               It's not what the listing described
             </label>
           </fieldset>

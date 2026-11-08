@@ -14115,6 +14115,7 @@ export type Database = {
           hold_release_last_error: string | null
           hold_released_at: string | null
           id: string
+          digital_access_revoked_at: string | null
           is_digital: boolean
           is_seed: boolean
           items_cents: number
@@ -14174,6 +14175,7 @@ export type Database = {
           hold_release_last_error?: string | null
           hold_released_at?: string | null
           id?: string
+          digital_access_revoked_at?: string | null
           is_digital?: boolean
           is_seed?: boolean
           items_cents: number
@@ -14233,6 +14235,7 @@ export type Database = {
           hold_release_last_error?: string | null
           hold_released_at?: string | null
           id?: string
+          digital_access_revoked_at?: string | null
           is_digital?: boolean
           is_seed?: boolean
           items_cents?: number
@@ -22654,6 +22657,22 @@ export type Database = {
       shops_leave_review: { Args: { p_order_id: string; p_stars: number; p_comment: string }; Returns: string }
       shops_shop_reviews: { Args: { p_shop_id: string }; Returns: Json }
       shops_my_order_review: { Args: { p_order_id: string }; Returns: Json }
+      shop_digital_access_ok: { Args: { p_order_id: string; p_user: string }; Returns: boolean }
+      shop_digital_dispute_event: { Args: { p_event: string; p_payment_intent_id: string }; Returns: string }
+      shop_digital_download_path: { Args: { p_file_id: string; p_user: string }; Returns: Json }
+      shop_digital_file_checked: { Args: { p_byte_size: number; p_file_id: string; p_owner: string }; Returns: undefined }
+      shop_digital_file_remove: { Args: { p_file_id: string; p_owner: string }; Returns: string }
+      shop_digital_mark_paid: {
+        Args: {
+          p_amount_total: number
+          p_billing_matches: boolean
+          p_livemode: boolean
+          p_payment_intent_id: string
+          p_session_id: string
+          p_tax_cents: number
+        }
+        Returns: Json
+      }
       shops_my_digital_files: {
         Args: { p_order_id: string }
         Returns: { byte_size: number; ext: string; file_id: string; file_name: string }[]

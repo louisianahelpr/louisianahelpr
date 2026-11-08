@@ -285,6 +285,9 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   shop_state_ok: "hides",
   shops_admin_queue: "tags",
   shops_request_order: "tags",
+  shops_request_digital_order: "tags", // 20261108185110 (Shops digital downloads): the order line copies its order's is_seed
+  shops_report_digital_problem: "alerts", // 20261108185110 (Shops digital downloads): a test order's problem report reaches no admin; no money moves
+  shop_item_files_guard: "tags", // 20261108182917 (Shops digital downloads): a file row is seed data with its item
   shops_request_preorder: "tags",
   shops_save_my_shop: "tags",
   sms_claim_confirmation: "hides",

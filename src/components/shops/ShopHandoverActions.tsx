@@ -11,6 +11,10 @@
  *   Buyer: "I got it" (the shop is paid), "I didn't get it" (the money waits
  *         for Louisiana Helpr), and the shop's ready photo.
  *
+ * Services and at-home work (shops audit 11-08 #3): always in person on the
+ * server; the shop taps "Mark done" (no ready photo), the buyer "It's done" or
+ * "Something's wrong", and the 48-hour auto-confirm runs from the shop's tap.
+ *
  * Loads its own handover row (one small query per card), so the screens keep
  * their one loading gate.
  */
@@ -35,6 +39,7 @@ import {
 } from "@/lib/shops/handover";
 import { preorderReadyFrom, shortDate } from "@/lib/shops/preorders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
+import { handoverIntro, handoverWords, isServiceOrder } from "@/lib/shops/handoverWords";
 
 const NOTE_MAX = 500;
 
@@ -52,6 +57,9 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
   const [note, setNote] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const open = order.status === "accepted" && !!order.captured_at;
+  // Services and at-home work: "Mark done", never a ready photo (shops audit 11-08 #3; the server keeps them in person).
+  const service = isServiceOrder(order);
+  const w = handoverWords(order);
   const handover = useQuery({
     queryKey: ["shops", "handover", order.id],
     queryFn: async () => (await fetchHandovers([order.id])).get(order.id) ?? null,
@@ -80,7 +88,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
   const handedOver = useMutation({
     mutationFn: () => markHandedOver(order.id),
     onSuccess: () => {
-      toast("Marked handed over. The buyer has 48 hours to report a problem.");
+      toast(w.shopDoneToast);
       setHandingOver(false);
       refresh();
     },
@@ -119,7 +127,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
     <BrandConfirmDialog
       open={reporting}
       onOpenChange={(o) => { if (!o) setReporting(false); }}
-      title="Didn't get your order?"
+      title={service ? "Problem with the work?" : "Didn't get your order?"}
       description="Nobody is paid until Louisiana Helpr looks at it."
       primaryLabel={report.isPending ? "Sending…" : "Report it"}
       primaryDisabled={report.isPending || !note.trim()}
@@ -131,7 +139,7 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
     >
       <div className="space-y-1">
         <Label htmlFor={`${fileId}-note`}>What happened?</Label>
-        <Textarea id={`${fileId}-note`} value={note} maxLength={NOTE_MAX} onChange={(e) => setNote(e.target.value)} placeholder="Nobody was there at pickup" />
+        <Textarea id={`${fileId}-note`} value={note} maxLength={NOTE_MAX} onChange={(e) => setNote(e.target.value)} placeholder={w.buyerProblemPlaceholder} />
       </div>
     </BrandConfirmDialog>
   );
@@ -164,16 +172,25 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
   return (
     <div className="space-y-2" data-testid="shop-handover-actions">
       <p className="text-xs text-muted-foreground">
-        {porch ? "Left out for pickup." : "Pick up in person."}{" "}
+        {handoverIntro(order)}{" "}
         {h?.ready_at ? (side === "buyer" ? "The shop marked it ready." : "You marked it ready.") : ""}
-        {side === "buyer" && h?.shop_confirmed_at
-          ? " The shop says you have it. If you didn't get it, tell us within 48 hours."
-          : ""}
+        {side === "buyer" && h?.shop_confirmed_at ? w.buyerShopSaysDone : ""}
       </p>
       {side === "shop" && tooEarly && readyFrom ? (
         <p className="text-xs text-muted-foreground" data-testid="shop-preorder-ready-from">
           {`This is a preorder. You can mark it ready from ${shortDate(readyFrom)}.`}
         </p>
+      ) : side === "shop" && service ? (
+        <div className="flex flex-wrap gap-2">
+          {due && !h?.shop_confirmed_at && (
+            <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setHandingOver(true)}>
+              {w.shopDone}
+            </Button>
+          )}
+          <p className="w-full text-xs text-muted-foreground" data-testid="shop-handover-wait">
+            {h?.shop_confirmed_at ? w.shopMarkedWait : w.shopOpenWait}
+          </p>
+        </div>
       ) : side === "shop" ? (
         <div className="flex flex-wrap gap-2">
           <Label htmlFor={fileId} className="sr-only">Photo of the order, ready</Label>
@@ -200,15 +217,15 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
           )}
           {!porch && due && !h?.shop_confirmed_at && (
             <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setHandingOver(true)}>
-              Handed over
+              {w.shopDone}
             </Button>
           )}
           <p className="w-full text-xs text-muted-foreground" data-testid="shop-handover-wait">
             {porch
               ? "The buyer taps \"I got it\". With your photo in, you're paid 48 hours after it (or after the ready day starts, if that is later) unless the buyer reports a problem."
               : h?.shop_confirmed_at
-                ? "You marked it handed over. You're paid 48 hours after that unless the buyer reports a problem."
-                : "The buyer taps \"I got it\", or you tap \"Handed over\" once they have it. Until one of you does, the money stays held."}
+                ? w.shopMarkedWait
+                : w.shopOpenWait}
           </p>
         </div>
       ) : (
@@ -219,11 +236,11 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
             </Button>
           )}
           <Button type="button" size="sm" className="btn-grad-primary" disabled={busy} onClick={() => setConfirming(true)}>
-            I got it
+            {w.buyerGotIt}
           </Button>
           {(due || !!h?.ready_at || !!h?.shop_confirmed_at) && (
             <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => { setNote(""); setReporting(true); }}>
-              I didn't get it
+              {w.buyerProblem}
             </Button>
           )}
         </div>
@@ -231,9 +248,9 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
       <BrandConfirmDialog
         open={handingOver}
         onOpenChange={(o) => { if (!o) setHandingOver(false); }}
-        title="Handed over?"
-        description="Only tap this once the buyer has the order. They have 48 hours to report a problem; then you're paid."
-        primaryLabel={handedOver.isPending ? "Saving…" : "Handed over"}
+        title={service ? "Work done?" : "Handed over?"}
+        description={w.shopDoneBody}
+        primaryLabel={handedOver.isPending ? "Saving…" : w.shopDone}
         primaryDisabled={handedOver.isPending}
         onPrimary={(e) => {
           e.preventDefault();
@@ -244,9 +261,9 @@ export function ShopHandoverActions({ order, side, userId }: { order: ShopOrder;
       <BrandConfirmDialog
         open={confirming}
         onOpenChange={(o) => { if (!o) setConfirming(false); }}
-        title="Got your order?"
-        description="The shop is paid now and the order is final. Only tap this once you have it."
-        primaryLabel={finish.isPending ? "Saving…" : "I got it"}
+        title={service ? "Is the work done?" : "Got your order?"}
+        description={w.buyerGotItBody}
+        primaryLabel={finish.isPending ? "Saving…" : w.buyerGotIt}
         primaryDisabled={finish.isPending}
         onPrimary={(e) => {
           e.preventDefault();

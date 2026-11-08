@@ -130,6 +130,15 @@ DROP POLICY IF EXISTS "shop item files: the seller reads their own" ON public.sh
 CREATE POLICY "shop item files: the seller reads their own" ON public.shop_item_files
   FOR SELECT TO authenticated USING (owner_id = (SELECT auth.uid()));
 
+-- Q807: an unconfirmed email cannot write the new table either (the same guarded call as 20261106202917).
+DO $gate$
+BEGIN
+  IF to_regprocedure('public.attach_unconfirmed_email_gate()') IS NOT NULL THEN
+    PERFORM public.attach_unconfirmed_email_gate();
+  END IF;
+END
+$gate$;
+
 -- A file only on a digital item, and only on the item's owner; seed like its item.
 CREATE OR REPLACE FUNCTION public.shop_item_files_guard()
 RETURNS trigger

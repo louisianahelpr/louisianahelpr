@@ -59,6 +59,9 @@ const GATED = [
   "declutter-photo-purge",
   "geocode-address",
   "shop-checkout",
+  // Shops digital downloads (20261108182917): shop-digital resolves its caller with getUser() and refuses an unconfirmed
+  // one (refuseUnconfirmedEmail) before any file is begun, checked, removed or signed.
+  "shop-digital",
   // B54 S2 (20261030012052): ship-rates resolves its caller with getUser() and refuses an unconfirmed one.
   "ship-rates",
   "sms-provider-check",

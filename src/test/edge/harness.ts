@@ -452,6 +452,13 @@ function rewriteExternalImports(src: string): string {
     `$1 $2{$3} from "../../../supabase/functions/_shared/cardHoldPlan.ts";`,
   );
 
+  // Shops digital downloads (20261108182917): `_shared/digitalFileCheck.ts` has ZERO imports (pure byte checks), so the
+  // REAL module serves shop-digital.
+  out = out.replace(
+    /import\s+(type\s+)?\{([^}]*)\}\s+from\s+["'](?:\.\.\/)+_shared\/digitalFileCheck\.ts["'];?/g,
+    `import $1{$2} from "../../../supabase/functions/_shared/digitalFileCheck.ts";`,
+  );
+
   // Refund notice (Q1714): `_shared/refundNotice.ts` imports only zero-import
   // modules (caughtMessage, functionFetch; the email goes through the global
   // `fetch` at call time), so

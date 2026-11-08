@@ -149,6 +149,8 @@ const PICKERS: Record<string, { bucket: string; constSrc?: string }> = {
   "src/components/ui/PhotoPickButton.tsx": { bucket: "helpr-tasks" },
   "src/components/shops/ShopEditView.tsx": { bucket: "job-photos" },
   "src/components/shops/ShopItemEditor.tsx": { bucket: "job-photos" },
+  // Shops digital downloads (20261108182917): the seller's download files go to the private shop-digital bucket.
+  "src/components/shops/ShopDigitalFiles.tsx": { bucket: "shop-digital", constSrc: "src/lib/shops/digitalFiles.ts" },
   "src/components/shops/ShopHandoverActions.tsx": { bucket: "shop-handover" },
   "src/components/rentals/listings/editorParts.tsx": { bucket: "job-photos" }, // the shared Photos card (Rent and Buy editors)
   "src/components/rentals/LandlordIdReview.tsx": { bucket: "user-documents" }, // ownership proof + landlord ID photo (owner 2026-10-19)
@@ -200,6 +202,7 @@ const EXT_MIME: Record<string, string> = {
   ".webp": "image/webp",
   ".heic": "image/heic",
   ".gif": "image/gif",
+  ".zip": "application/zip",
   ".doc": "application/msword",
   ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 };

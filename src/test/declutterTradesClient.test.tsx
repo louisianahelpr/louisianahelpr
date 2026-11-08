@@ -5,7 +5,7 @@
  *
  * @mutate src/components/declutter/DeclutterOfferTrade.tsx |   if (takes.data !== true) return null; |   if (takes.data === undefined) return null;
  * @mutate src/lib/declutter/trades.ts | it.status === "live" && it.current_price_cents > 0 && it.id !== excludeId | it.status === "live" && it.id !== excludeId
- * @mutate src/lib/declutter/tradesOnPost.ts |   if (saved?.acceptsTrades !== true) return "off"; |
+ * @mutate src/lib/declutter/tradesOnPost.ts |   if (!wanted) return "off"; |
  * @mutate src/lib/declutter/sellerDefaults.ts |   const trades = d.acceptsTrades === undefined ? {} : { accepts_trades: d.acceptsTrades }; |   const trades = { accepts_trades: d.acceptsTrades === true };
  * @mutate src/components/declutter/DeclutterManageListing.tsx |               <DeclutterTradeRules itemId={item.id} rowClassName={ROW} />\n |
  * @mutate src/components/declutter/DeclutterItemView.tsx |     {canAct && user && !free && it.status === "live" && <Suspense fallback={null}><OfferTradeButton item={it} userId={user.id} /></Suspense>}\n |
@@ -17,8 +17,7 @@ import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { blankComments } from "./helpers/blankNonCode";
 import { tradeableListings } from "@/lib/declutter/trades";
-import { tradesOnFromDefault } from "@/lib/declutter/tradesOnPost";
-import type { SellerDefaults } from "@/lib/declutter/sellerDefaults";
+import { tradesOnIfChosen } from "@/lib/declutter/tradesOnPost";
 
 const state = {
   takes: true,
@@ -74,13 +73,11 @@ describe("Declutter trades, client (slice 2)", () => {
     expect(tradeableListings(mine, "want").map((m) => m.id)).toEqual(["a"]);
   });
 
-  it("a new listing is opened to trades only when the saved default is on", async () => {
+  it("a new listing is opened to trades only when the posting row is on", async () => {
     const set = vi.fn(async () => {});
-    const base: SellerDefaults = { keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true };
-    expect(await tradesOnFromDefault("u1", "i1", { defaults: async () => null, set })).toBe("off");
-    expect(await tradesOnFromDefault("u1", "i1", { defaults: async () => ({ ...base, acceptsTrades: false }), set })).toBe("off");
+    expect(await tradesOnIfChosen("i1", false, set)).toBe("off");
     expect(set).not.toHaveBeenCalled();
-    expect(await tradesOnFromDefault("u1", "i1", { defaults: async () => ({ ...base, acceptsTrades: true }), set })).toBe("on");
+    expect(await tradesOnIfChosen("i1", true, set)).toBe("on");
     expect(set).toHaveBeenCalledWith("i1", true);
   });
 
@@ -120,7 +117,7 @@ describe("Declutter trades, client (slice 2)", () => {
     expect(src("src/components/declutter/DeclutterListingDefaults.tsx")).toMatch(/change\(\{ acceptsTrades: v === true \}\)/);
     expect(src("src/components/declutter/DeclutterManageListing.tsx")).toMatch(/<DeclutterTradeRules itemId=\{item\.id\}/);
     expect(src("src/components/declutter/DeclutterItemView.tsx")).toMatch(/canAct && user && !free && it\.status === "live" && <Suspense fallback=\{null\}><OfferTradeButton/);
-    expect(src("src/components/declutter/useSellFlowState.ts")).toMatch(/tradesOnFromDefault\(user\.id, id\)/);
+    expect(src("src/components/declutter/useSellFlowState.ts")).toMatch(/tradesOnIfChosen\(id, tradesWanted\)/);
     // A save that leaves the choice out (Sell a bunch) never turns trades off.
     expect(src("src/lib/declutter/sellerDefaults.ts")).toMatch(/d\.acceptsTrades === undefined \? \{\} : \{ accepts_trades: d\.acceptsTrades \}/);
   });

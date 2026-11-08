@@ -84,6 +84,7 @@ beforeEach(() => { localStorage.setItem("helpr.declutterMapVisible", "0"); scree
 vi.mock("@/components/profile/YourPageLink", () => ({ YourPageLink: () => null }));
 vi.mock("@/lib/declutter/bundleRequest", async (orig) => ({ ...(await orig<object>()), fetchBundleRequests: async () => [] }));
 // Declutter trades slice 3: the trade cards' read (none here).
+vi.mock("@/lib/declutter/tradesPrompt", async (orig) => ({ ...(await orig<object>()), fetchTradesPromptDue: async () => false })); // owner 11-08 card
 vi.mock("@/lib/declutter/trades", async (orig) => ({ ...(await orig<object>()), fetchMyTrades: async () => [] }));
 vi.mock("@/lib/declutter/handover", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/handover")>()),

@@ -48,6 +48,7 @@ import { useEndedSales } from "./DeclutterEndedSales";
 import { SellerPayoutPrompt } from "./SellerPayoutPrompt";
 import { DeclutterNotice } from "./declutterUi";
 import { QuestionsToAnswer, useUnansweredQuestions } from "./SellerQuestionsToAnswer";
+import { DeclutterTradesPrompt } from "./DeclutterTradesPrompt";
 import { FreePauseLine, MyFreeAsks, useMyFreeAsks } from "./DeclutterFreeClaim";
 import { WatchingList } from "./DeclutterWatching";
 import { useSellerReportsToAnswer } from "./useSellerReportsToAnswer";
@@ -192,6 +193,8 @@ export function SellingDash({ todo, userId, listings, settings }: { todo: Declut
           ...(history > 0 ? [{ key: "taken" as const, label: "History", count: history }] : []),
         ]}
       />
+      {/* Owner 11-08: the one-time "Turn on trades for all your listings?" card, until answered (on the account). */}
+      {only === null && <DeclutterTradesPrompt userId={userId} />}
       {soldFirst && sold}
       {only === "offers" && toAnswer === 0 && todo && <DeclutterNotice title="Nothing to answer right now." />}
       {only === "offers" && reports.size > 0 && <PaidOrders side="seller" show={(id) => reports.has(id)} />}

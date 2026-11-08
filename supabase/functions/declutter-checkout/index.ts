@@ -109,6 +109,13 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 /** Stripe's minimum Checkout lifetime is 30 minutes; one more for clock skew. */
 const PAGE_LIFETIME_S = 31 * 60;
 const TRY_AGAIN = "We couldn't open the payment page just now. Please try again.";
+/**
+ * M4 (Declutter buy audit 11-08): shown above Pay on every Declutter order page, a first buy included (Stripe
+ * custom_text), since the page saves the card (setup_future_usage). The "Card saved" notice says the same in the past tense
+ * (declutter_save_card, 20261108202546). Guard: src/test/declutterNoticesEmail.test.ts.
+ */
+const CARD_SAVE_CONSENT =
+  "We'll save this card for your next Declutter buy. It's charged only when you press Pay, or automatically where you turned on automatic charges.";
 
 type OrderRow = {
   order_id: string;
@@ -637,6 +644,11 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
   // stripe-webhook stores it with declutter_save_card, so a later offer has it. Buy now no longer needs a card first.
   // A wallet that cannot be read or made stops here rather than opening a page on a guessed customer.
   // Q2140: a stored customer Stripe no longer has is replaced once and the page retried (":new-wallet" key).
+  // M4 (Declutter buy audit 11-08): every order page saves the card it is paid with (setup_future_usage below), so
+  // every page, a first buy included, says so above Pay, in the words the "Card saved" notice repeats
+  // (declutter_save_card). Shown on every page, not only the first: the wallet is read through withWalletCustomer,
+  // never declutter_buyer_cards here (oneWalletStripeCustomer), and the line is true on each page.
+  const consentText = { custom_text: { submit: { message: CARD_SAVE_CONSENT } } };
   let session: Stripe.Checkout.Session;
   try {
     session = await withWalletCustomer(admin, stripe, user, mode, (payer, walletRetry) => stripe.checkout.sessions.create(
@@ -657,6 +669,7 @@ async function pay(body: Record<string, unknown>, user: { id: string; email?: st
         ...(handover === "ship" ? { capture_method: "manual" as const } : {}) },
       // Q202: 3D Secure from $300 up (card-fraud disputes move to the issuer).
       payment_method_options: threeDSecureOptions(chargeCents),
+      ...consentText,
       expires_at: expiresAt,
       // B48 live check 2026-10-29: the return names the order just paid, so "What happens next" opens for it even
       // when the buyer has other paid orders in their handover (BoughtWhatNext, justPaidOrder).

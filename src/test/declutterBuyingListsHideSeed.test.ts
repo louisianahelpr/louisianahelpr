@@ -6,7 +6,7 @@
 // under RLS with the item required (an inner join).
 //
 // @mutate supabase/migrations/20261101175510_declutter_buying_lists_hide_seed.sql |      AND (NOT i.is_seed OR i.seller_id = v_uid OR NOT public.seed_hidden_in_discovery()) |      AND true
-// @mutate supabase/migrations/20261101175510_declutter_buying_lists_hide_seed.sql |      AND (i.id IS NULL OR NOT i.is_seed OR c.seller_id = v_uid OR NOT public.seed_hidden_in_discovery()) |      AND true
+// @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |      AND (i.id IS NULL OR NOT i.is_seed OR c.seller_id = v_uid OR NOT public.seed_hidden_in_discovery()) |      AND true
 // @mutate src/lib/declutter/api.ts | status, created_at, declutter_items!inner(title) | status, created_at, declutter_items(title)
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";

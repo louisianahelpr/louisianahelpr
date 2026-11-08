@@ -19,7 +19,7 @@ import type { FormState } from "./sellForm";
 
 export function useSellerDefaultsPrefill(
   userId: string | undefined,
-  { form, setForm, ways, setWays, setKeepUpWanted, setAutoFreeWanted, offersWanted, setOffersWanted, keptFor }: {
+  { form, setForm, ways, setWays, setKeepUpWanted, setAutoFreeWanted, offersWanted, setOffersWanted, tradesWanted, setTradesWanted, keptFor }: {
     form: FormState;
     setForm: (u: (f: FormState) => FormState) => void;
     ways: SellerHandover[];
@@ -29,6 +29,9 @@ export function useSellerDefaultsPrefill(
     /** LEAD-OFFERS-CHOICE part (2): the form's own "Accept offers", started from the saved default and saved at Post. */
     offersWanted?: boolean;
     setOffersWanted?: (on: boolean) => void;
+    /** Owner 11-08: the form's own "Open to trades?", started from the saved default (OFF unless set) and saved at Post. */
+    tradesWanted?: boolean;
+    setTradesWanted?: (on: boolean) => void;
     /**
      * LEAD-BUNCH-DROPS-IGNORED (owner 2026-10-31, prod c87b7de4): a listing brought back from this device is not
      * prefilled again, but the choices made in Settings still win over what was kept: the kept form held price drops
@@ -56,6 +59,7 @@ export function useSellerDefaultsPrefill(
     setKeepUpWanted(row ? row.keepUp : SELLER_DEFAULTS.keepUp);
     setAutoFreeWanted(row ? row.freeAfterDays : SELLER_DEFAULTS.freeAfterDays);
     setOffersWanted?.(row ? row.acceptsOffers : SELLER_DEFAULTS.acceptsOffers);
+    setTradesWanted?.(row?.acceptsTrades === true);
     if (row) {
       floorPct.current = row.floorPct;
       setForm((f) => ({ ...f, drops: row.drops, dropPct: row.dropPct }));
@@ -63,7 +67,7 @@ export function useSellerDefaultsPrefill(
     } else {
       setForm((f) => ({ ...f, drops: SELLER_DEFAULTS.drops }));
     }
-  }, [userId, saved.isFetched, saved.isError, saved.data, last.isFetched, last.isError, setForm, setWays, setKeepUpWanted, setAutoFreeWanted, setOffersWanted]);
+  }, [userId, saved.isFetched, saved.isError, saved.data, last.isFetched, last.isError, setForm, setWays, setKeepUpWanted, setAutoFreeWanted, setOffersWanted, setTradesWanted]);
 
   // A kept listing: the saved row's drop choices, keep-up and free-after replace the kept ones, once, after the restore.
   const keptApplied = useRef(false);
@@ -77,8 +81,9 @@ export function useSellerDefaultsPrefill(
     setKeepUpWanted(row.keepUp);
     setAutoFreeWanted(row.freeAfterDays);
     setOffersWanted?.(row.acceptsOffers);
+    setTradesWanted?.(row.acceptsTrades === true);
     setForm((f) => ({ ...f, drops: row.drops, dropPct: row.dropPct }));
-  }, [keptFor, userId, saved.isFetched, saved.isError, saved.data, setForm, setKeepUpWanted, setAutoFreeWanted, setOffersWanted]);
+  }, [keptFor, userId, saved.isFetched, saved.isError, saved.data, setForm, setKeepUpWanted, setAutoFreeWanted, setOffersWanted, setTradesWanted]);
 
   // The lowest price is the saved share of the asking price: a new listing has no box for it (owner 2026-10-30); one
   // listing's is changed in Manage after it's posted.
@@ -100,6 +105,8 @@ export function useSellerDefaultsPrefill(
       handovers: ways,
       // LEAD-OFFERS-CHOICE: the form's own Accept offers switch, or the saved choice for a caller without one.
       acceptsOffers: offersWanted ?? saved.data?.acceptsOffers ?? SELLER_DEFAULTS.acceptsOffers,
+      // Owner 11-08: the posting row's "Open to trades?"; a caller without one leaves the saved choice as it is.
+      ...(tradesWanted === undefined ? {} : { acceptsTrades: tradesWanted }),
     };
     try {
       await saveSellerDefaults(userId, d);

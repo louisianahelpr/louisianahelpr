@@ -66,6 +66,8 @@ function tableRows(table: string, s: DeclutterPreviewSample): unknown[] | undefi
     case "declutter_manager_payouts": return [];
     // Q2106 gift picker: no sample buyer holds a gift card, so Pay offers card only.
     case "gift_cards": return [];
+    // Owner 11-08 trades card: no sample seller has saved listing defaults (or answered the card), so the app's defaults.
+    case "declutter_seller_defaults": return [];
     default: return undefined;
   }
 }

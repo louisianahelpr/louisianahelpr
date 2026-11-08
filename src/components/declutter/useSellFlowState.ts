@@ -62,7 +62,7 @@ import { FULL_LISTING_COPY } from "@/lib/declutter/photoRules";
 import { useSellerDefaultsPrefill } from "./useSellerDefaultsPrefill";
 import { useSellSaved } from "./useSellSaved";
 import { offersOffAfterPublish, offersOffOnDraft } from "@/lib/declutter/offersOnPost";
-import { tradesOnFromDefault } from "@/lib/declutter/tradesOnPost";
+import { tradesOnIfChosen } from "@/lib/declutter/tradesOnPost";
 import { DEFAULT_DROP_PCT, dropPctOf } from "@/lib/declutter/priceDrop";
 import { EMPTY, formProblem, priceChoiceToSave, type FormState } from "./sellForm";
 
@@ -258,8 +258,10 @@ export function useSellFlowState(urlItemId: string | null) {
   const [autoFreeWanted, setAutoFreeWanted] = useState<number | null>(null);
   // LEAD-OFFERS-CHOICE part (2) (owner 2026-10-31): a new listing's "Accept offers", from the saved default.
   const [offersWanted, setOffersWanted] = useState(true);
+  // Owner 11-08: a new priced listing's "Open to trades?", from the saved default (OFF unless turned on).
+  const [tradesWanted, setTradesWanted] = useState(false);
   // The seller's remembered choices pre-fill a NEW listing and are saved again at Post (owner 2026-10-30).
-  const prefs = useSellerDefaultsPrefill(prefillFor, { form, setForm, ways, setWays, setKeepUpWanted, setAutoFreeWanted, offersWanted, setOffersWanted, keptFor: !urlItemId && broughtBack !== "no" ? user?.id : undefined });
+  const prefs = useSellerDefaultsPrefill(prefillFor, { form, setForm, ways, setWays, setKeepUpWanted, setAutoFreeWanted, offersWanted, setOffersWanted, tradesWanted, setTradesWanted, keptFor: !urlItemId && broughtBack !== "no" ? user?.id : undefined });
   const set = <K extends keyof FormState>(k: K, v: FormState[K]) => setForm((f) => ({ ...f, [k]: v }));
   // Audit posting 1030 #1: a new listing is kept on this device from the first photo. Not one answering a Wanted post
   // (it belongs to that answer).
@@ -542,9 +544,9 @@ export function useSellFlowState(urlItemId: string | null) {
       void requestAiCheckWithRetry(id);
       // A server without 20261031201036 refuses a draft: offers go off now that it is up.
       if (offersAfter.current) await notBlocking(() => offersOffAfterPublish(id, status), "offers");
-      // Declutter trades (owner 10-31): a new priced listing is "Open to trades" when the seller's saved default says so
-      // (Settings > Listing defaults; OFF unless turned on). After it is up, not awaited: the seller is already on Selling.
-      if (!urlItemId && !form.free && user) void notBlocking(() => tradesOnFromDefault(user.id, id), "trades");
+      // Declutter trades (owner 10-31, 11-08): a new priced listing is "Open to trades" when the seller left the posting
+      // row on (it starts from Settings > Listing defaults; OFF unless turned on). After it is up, not awaited.
+      if (!urlItemId && !form.free) void notBlocking(() => tradesOnIfChosen(id, tradesWanted), "trades");
       void keptWork.finish();
       if (!urlItemId) void prefs.rememberChoices(keepUpWanted, autoFreeWanted);
       void qc.invalidateQueries({ queryKey: ["declutter"] });
@@ -582,7 +584,7 @@ export function useSellFlowState(urlItemId: string | null) {
   return {
     saved, sizeKnown, setSizePicked, user, underAge, itemId, item, photos, form, setForm, set, coords, place, saving, uploading, windows, setWindows,
     attested, setAttested, publishing, ways, setWays, savedWays, sellerDeliveryOpen, held, setHeld, hintAt,
-    aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, offersWanted, setOffersWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
+    aiAsk, ai, usedLastSetup, problem, keepUp, keepUpWanted, setKeepUpWanted, offersWanted, setOffersWanted, tradesWanted, setTradesWanted, autoFreeWanted, setAutoFreeWanted, photoCount, photoTotal, priceCents,
     floorCents, saveDetails, onFiles, onRemovePhoto, onPublish, postStep, failedHeld, photoFailure, keptWork, refusedNote, makeCover, reorderHeld, coverUndo, undoCover,
   };
 }

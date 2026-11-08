@@ -224,8 +224,9 @@ describe("photo-first selling, one screen", () => {
     expect(rowValue("size")).toBe("Add a size");
     expect(screen.queryByRole("heading", { name: "How buyers get it" })).toBeNull();
     expect(screen.queryByLabelText("Pickup address")).toBeNull();
-    // The one switch is the Price row's Accept offers (LEAD-OFFERS-CHOICE part (2), owner 2026-10-31); no other setting is here.
-    expect(screen.queryAllByRole("switch").map((s) => s.id)).toEqual(["sell-offers"]);
+    // The switches are the Price row's Accept offers (LEAD-OFFERS-CHOICE part (2), owner 2026-10-31) and "Open to trades?"
+    // below Condition (owner 11-08, a deliberate exception); no other setting is here.
+    expect(screen.queryAllByRole("switch").map((s) => s.id)).toEqual(["sell-offers", "sell-trades"]);
     expect(document.querySelector("[data-auto-free]")).toBeNull();
     expect(document.querySelector("[data-selling-settings]")).not.toBeNull();
     expect(document.querySelector("[data-sell-tax]")).not.toBeNull();

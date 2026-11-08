@@ -16,6 +16,7 @@ import { AiPriceLine } from "./SellAiDraft";
 import { CATEGORY_GROUPS, CATEGORY_LABEL, CONDITION_LABEL, SIZE_LABEL } from "./declutterUi";
 import { CategoryDrillDown } from "./CategoryDrillDown";
 import { FieldLabel, SELL_INPUT, SellPriceInput } from "./SellFormParts";
+import { SellTradesRow } from "./SellTradesRow";
 import type { SellFlow } from "./useSellFlowState";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -132,6 +133,8 @@ export function SellSummaryCard({ s, open, setOpen, priceExtras, problems, setti
         <Row {...row("condition")} title="Condition" value={CONDITION_LABEL[form.conditionStars] ?? ""} empty={false}>
           <ChipGroup label="Condition" options={[5, 4, 3, 2, 1].map((n) => ({ value: String(n), label: CONDITION_LABEL[n] }))} value={String(form.conditionStars)} onChange={(v) => set("conditionStars", Number(v))} />
         </Row>
+        {/* Owner 11-08: "Open to trades?", one compact row below Condition (priced listings only). */}
+        <SellTradesRow s={s} />
         {/* Not one of the owner's six: asked only when the photo tool didn't answer it (and while it is writing, never guessed). */}
         {!sizeKnown && !busy && (
           <Row {...row("size")} title="Size" value="" empty>

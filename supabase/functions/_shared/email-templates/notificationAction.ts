@@ -13,6 +13,9 @@ export function notificationActionLabel(link: string | null | undefined): string
     return "Open Declutter";
   }
   if (path.startsWith("/messages")) return "Read the message";
+  // Shops emails (shops audit 11-08 #7): the buyer's orders and the shop's dashboard.
+  if (path.startsWith("/shops/orders")) return "See your order";
+  if (path.startsWith("/shops/dashboard")) return "See your shop's orders";
   if (path.startsWith("/jobs") || path.startsWith("/posts")) return "See the job";
   if (path.startsWith("/profile") && /[?&]tab=earnings\b/.test(link ?? "")) return "See your earnings";
   return "Open Louisiana Helpr";

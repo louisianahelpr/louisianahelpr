@@ -75,6 +75,11 @@ const SILENT_PET_READ = "no message exists at this site: JobPetCareSheet's query
 
 /** Codes a client cannot reach from the place it calls the RPC. Each says why. */
 const UNREACHABLE: Allowlist = {
+  // Owner 11-07 (20261107232700): fetchSaveCounts (src/lib/declutter/saveCounts.ts) sends at most PER_READ = 200 ids a
+  // call (it chunks), which is exactly the RPC's limit, so its 'invalid_request' (more than 200) cannot come from there.
+  declutter_item_save_counts: {
+    invalid_request: { reason: "fetchSaveCounts chunks the ids at PER_READ = 200, the RPC's own limit, so no call sends more" },
+  },
   // Q2104 (20261106170629): fetchShopOrderBuyerNames feeds the Shop dashboard's card headings ("New order from Ana");
   // a failed read leaves the plain heading ("New order") and the orders still show, so no code's words exist there.
   shops_my_order_buyer_names: {

@@ -14,11 +14,13 @@
  */
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Boxes, Gift, HandHelping, History, Images, Package, Search } from "lucide-react";
+import { Gift, History, Images, Package } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { savedSellWork } from "@/lib/declutter/bunchSaved";
 import AppPage from "@/components/AppPage";
 import { ChoiceCard } from "@/components/ui/ChoiceCard";
+import { SPACE } from "@/components/ui/designScale";
 import { useAgeGate } from "@/hooks/useAgeGate";
 import { useFeature } from "@/hooks/useFeature";
 import { SELL_BUNCH_PATH, SELL_FREE_PATH, SELL_MOVE_PATH, SELL_ONE_PATH, WANTED_POST_PATH } from "@/lib/declutter/sellChooser";
@@ -30,6 +32,8 @@ import { Sheet, SheetContent, SheetFooter, SheetHero, SheetSecondaryAction } fro
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 
 const ICON = "h-5 w-5";
+/** A "More ways" link: tertiary text (underlined, 44 px tap height), never a card. */
+const MORE_LINK = "inline-flex min-h-11 items-center font-semibold text-foreground underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm";
 
 /** Both kinds of kept work: which one to go back to (the chooser's one Continue row opens this). */
 function KeptWorkSheet({ open, onClose, bunchTo, bunchLine }: { open: boolean; onClose: () => void; bunchTo: string; bunchLine: string }) {
@@ -73,29 +77,27 @@ export default function DeclutterSellChooser() {
             You can still look around. Selling opens when your birthday on file says you're 18.
           </DeclutterNotice>
         ) : (
-          // Audit 10-30 #17 / POST-H17: the cards are shorter here and the two under "Other ways" (neither is a way to sell it
-          // yourself) are compact rows, so all six reach a 375x812 screen (measured b18 10-31: Wanted's top was at 859px).
-          <section className="flex flex-col gap-2.5 [&_[data-sell-choice]:not([data-compact])]:!min-h-[80px] [&_[data-sell-choice]:not([data-compact])]:!py-3" aria-labelledby="sell-step">
-            {/* LEAD chooser fit (10-31): kept work is ONE compact row in place of the helper line, so every choice still
-                reaches a 375x812 screen (two Continue cards put Wanted's bottom at 980px). Both kinds kept: it opens a
-                small choice. */}
-            <StepHead title="What would you like to do?" sub={continueTo ? undefined : "Pick one. You can come back for another."} />
+          // Owner pick 5 (11-08; lead decision, NOT camera-first because of bulk upload): + Sell opens a SHORT chooser of
+          // three: One item (photos first), Several at once (the bunch flow) and Give away free. Moving sale, a Helpr
+          // listing it and a Wanted post sit in one small "More ways" row under them (they were three more cards).
+          <section className={`flex flex-col ${SPACE.cardGap}`} aria-labelledby="sell-step">
+            <StepHead title="Sell something" sub={continueTo ? undefined : "How many things?"} />
+            {/* LEAD-BUNCH-DRAFT-KEEP (owner 10-31): kept work is ONE compact row first; both kinds kept, it opens a small choice. */}
             {continueTo && (
               <ChoiceCard slim data-sell-choice="continue" to={continueTo.to} onClick={continueTo.to ? undefined : () => setChoosingKept(true)}
                 icon={<History className="h-4 w-4" />} title="Continue where you left off" />
             )}
-            <ChoiceCard data-sell-choice="one" to={SELL_ONE_PATH} icon={<Package className={ICON} />} title="One item" line="Add photos and we write the listing for you." />
-            <ChoiceCard data-sell-choice="bunch" to={SELL_BUNCH_PATH} icon={<Images className={ICON} />} title="Sell a bunch" line="Add photos of everything. We write each listing." />
-            {movingOut && (
-              <ChoiceCard data-sell-choice="move" to={SELL_MOVE_PATH} icon={<Boxes className={ICON} />} title="Moving out sale" line="Your move date groups everything as one sale." />
-            )}
-            <ChoiceCard data-sell-choice="free" to={SELL_FREE_PATH} icon={<Gift className={ICON} />} title="Give it away free" line="Someone nearby picks it up for free." />
-            {/* Q2576 (audit 1102a): "Post a Wanted" (a buying action) sat under "Other ways" to sell. */}
-            <h3 className="pt-1 text-ds-13 font-semibold text-muted-foreground" data-sell-other="">Other things</h3>
-            <ChoiceCard compact data-sell-choice="helpr" onClick={() => setExplaining(true)} icon={<HandHelping className={ICON} />} title="Have a Helpr list it for me" line="A Helpr photographs and lists it." />
-            {wanted && (
-              <ChoiceCard compact data-sell-choice="wanted" to={WANTED_POST_PATH} icon={<Search className={ICON} />} title="Post a Wanted" line="Tell sellers what you're after." />
-            )}
+            <ChoiceCard data-sell-choice="one" to={SELL_ONE_PATH} icon={<Package className={ICON} />} title="One item" line="Photos first; we write the listing." />
+            <ChoiceCard data-sell-choice="bunch" to={SELL_BUNCH_PATH} icon={<Images className={ICON} />} title="Several at once" line="Photos of everything; we write each one." />
+            <ChoiceCard data-sell-choice="free" to={SELL_FREE_PATH} icon={<Gift className={ICON} />} title="Give away free" line="Someone nearby picks it up." />
+            <nav aria-label="More ways" data-sell-other="" className="flex flex-wrap items-center gap-x-1 gap-y-1 pt-1 text-ds-13 text-muted-foreground">
+              <span className="font-semibold">More ways:</span>
+              {movingOut && <Link data-sell-choice="move" to={SELL_MOVE_PATH} className={MORE_LINK}>Moving sale</Link>}
+              {movingOut && <span aria-hidden>·</span>}
+              <button type="button" data-sell-choice="helpr" onClick={() => setExplaining(true)} className={MORE_LINK}>A Helpr lists it</button>
+              {wanted && <span aria-hidden>·</span>}
+              {wanted && <Link data-sell-choice="wanted" to={WANTED_POST_PATH} className={MORE_LINK}>Post a Wanted</Link>}
+            </nav>
             <HelprListExplainSheet open={explaining} onClose={() => setExplaining(false)} />
             <KeptWorkSheet open={choosingKept} onClose={() => setChoosingKept(false)} bunchTo={bunchTo} bunchLine={bunchLine} />
           </section>

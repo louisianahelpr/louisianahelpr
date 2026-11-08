@@ -7,13 +7,15 @@
  * seller's free lines into one order; then only the trade line is released); the order is locked and re-read as paid
  * first; a trade whose two orders were handed over is 'completed'.
  *
- * @mutate supabase/migrations/20261106184913_declutter_trades_handover.sql |       JOIN public.declutter_orders o ON o.id = k.order_id AND o.status = 'paid' AND o.paid_with = 'free' |       JOIN public.declutter_orders o ON o.id = k.order_id AND o.status = 'paid'
- * @mutate supabase/migrations/20261106184913_declutter_trades_handover.sql |     PERFORM public.declutter_close_paid_order(r.order_id, 'trade_lapsed', NULL, NULL, NULL); |     PERFORM public.declutter_close_paid_order(r.order_id, 'trade_lapsed', 'buyer', 'trade_lapsed', NULL);
- * @mutate supabase/migrations/20261106184913_declutter_trades_handover.sql |   UPDATE public.declutter_swap_offers s SET status = 'completed', updated_at = now() |   UPDATE public.declutter_swap_offers s SET status = 'lapsed', updated_at = now()
+ * The trades fixes (20261108195151) moved the release into declutter_end_swap (one trade notice, offers reopen on
+ * both items): the checks below read the NEWEST declutter_end_swap for the release and the newest sweep for the
+ * completed rule. Behaviour: src/test/pglite/declutterTradesFixes.pglite.mjs.
+ *
+ * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |     ELSIF c.status = 'paid' AND c.order_status = 'paid' AND c.paid_with = 'free' THEN |     ELSIF c.status = 'paid' AND c.order_status = 'paid' THEN
+ * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |       IF NOT EXISTS (SELECT 1 FROM public.declutter_cart_items z WHERE z.order_id = c.order_id AND z.status = 'paid') THEN |       IF true THEN
+ * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |       UPDATE public.declutter_cart_items SET status = 'missed', closed_at = now() WHERE id = c.id AND status = 'paid'; |       UPDATE public.declutter_cart_items SET status = 'missed', closed_at = now() WHERE order_id = c.order_id AND status = 'paid';
+ * @mutate supabase/migrations/20261108195151_declutter_trades_fixes.sql |   UPDATE public.declutter_swap_offers s SET status = 'completed', updated_at = now() |   UPDATE public.declutter_swap_offers s SET status = 'lapsed', updated_at = now()
  * @mutate supabase/migrations/20261106184913_declutter_trades_handover.sql |   'completed'   -- both items handed over (slice 4) |   'lapsed_'
- * @mutate supabase/migrations/20261106184913_declutter_trades_handover.sql |                     WHERE z.order_id = r.order_id AND z.id <> r.line_id AND z.status = 'paid') THEN |                     WHERE z.order_id = r.order_id AND z.status = 'paid') THEN
- * @mutate supabase/migrations/20261106184913_declutter_trades_handover.sql |      WHERE o.id = r.order_id AND o.status = 'paid' AND o.paid_with = 'free' FOR UPDATE; |      WHERE o.id = r.order_id;
- * @mutate supabase/migrations/20261106184913_declutter_trades_handover.sql |       UPDATE public.declutter_cart_items SET status = 'missed', closed_at = now() WHERE id = r.line_id AND status = 'paid'; |       UPDATE public.declutter_cart_items SET status = 'missed', closed_at = now() WHERE order_id = r.order_id AND status = 'paid';
  */
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
@@ -21,6 +23,12 @@ import { effectiveDefs, migrationFiles } from "./helpers/effectiveFunctionDefs";
 import { blankSqlComments } from "./helpers/blankNonCode";
 
 const DIR = "supabase/migrations";
+
+const endSwap = (): string => {
+  const def = effectiveDefs(DIR).get("declutter_end_swap");
+  expect(def, "declutter_end_swap is gone").toBeTruthy();
+  return blankSqlComments(def!.stmt);
+};
 
 const sweep = (): string => {
   const def = effectiveDefs(DIR).get("declutter_swap_sweep");
@@ -39,20 +47,17 @@ const newestStatusCheck = (): string => {
 };
 
 describe("Declutter trades (slice 4, handover end)", () => {
-  it("a checked-out side's order is closed only when free, and never with a strike", () => {
-    const b = sweep();
-    const closes = b.match(/declutter_close_paid_order\([^;]*\);/gi) ?? [];
-    expect(closes.length).toBeGreaterThan(0);
-    for (const c of closes) expect(c).toMatch(/declutter_close_paid_order\(r\.order_id,\s*'trade_lapsed',\s*NULL,\s*NULL,\s*NULL\)/i);
-    expect(b).toMatch(/JOIN public\.declutter_orders o ON o\.id = k\.order_id AND o\.status\s*=\s*'paid'\s+AND\s+o\.paid_with\s*=\s*'free'/i);
+  it("a checked-out side's order is released only when free, and never with a strike", () => {
+    const e = endSwap();
+    expect(e).toMatch(/ELSIF c\.status = 'paid' AND c\.order_status = 'paid' AND c\.paid_with = 'free' THEN/i);
+    expect(e).not.toMatch(/declutter_give_strike|declutter_close_paid_order\([^)]*'(buyer|seller)'/i);
+    expect(sweep()).toMatch(/declutter_end_swap\(r\.id,\s*NULL\)/i);
   });
 
-  it("a bundled free order loses only the trade line, and the order is locked and re-read first", () => {
-    const b = sweep();
-    expect(b).toMatch(/FROM public\.declutter_orders o\s+WHERE o\.id = r\.order_id AND o\.status = 'paid' AND o\.paid_with = 'free' FOR UPDATE;\s*IF NOT FOUND THEN CONTINUE; END IF;/i);
-    expect(b).toMatch(/IF NOT EXISTS \(SELECT 1 FROM public\.declutter_cart_items z\s+WHERE z\.order_id = r\.order_id AND z\.id <> r\.line_id AND z\.status = 'paid'\) THEN\s+PERFORM public\.declutter_close_paid_order/i);
-    expect(b).toMatch(/ELSE\s+UPDATE public\.declutter_cart_items SET status = 'missed', closed_at = now\(\) WHERE id = r\.line_id AND status = 'paid';/i);
-    expect((b.match(/Trade item taken off/g) ?? []).length).toBeGreaterThan(1);
+  it("a bundled free order loses only the trade line; the order closes only when nothing else is paid on it", () => {
+    const e = endSwap();
+    expect(e).toMatch(/UPDATE public\.declutter_cart_items SET status = 'missed', closed_at = now\(\) WHERE id = c\.id AND status = 'paid';/i);
+    expect(e).toMatch(/IF NOT EXISTS \(SELECT 1 FROM public\.declutter_cart_items z WHERE z\.order_id = c\.order_id AND z\.status = 'paid'\) THEN\s+UPDATE public\.declutter_orders SET status = 'refunded'[^;]*AND paid_with = 'free';/i);
   });
 
   it("two handed-over orders complete the trade, and 'completed' is an allowed status", () => {

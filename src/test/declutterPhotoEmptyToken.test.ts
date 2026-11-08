@@ -5,7 +5,7 @@
  * exposed to Tailwind, and every Declutter photo frame (an <img> or an
  * aspect-ratio photo box, incl. skeletons) wears it.
  * @mutate src/index.css |   --photo-empty: 40 23% 82%; |   --photo-empty: 220 13% 91%;
- * @mutate src/components/declutter/DeclutterItemCard.tsx | overflow-hidden rounded-2xl bg-photo-empty"> | overflow-hidden rounded-2xl bg-muted">
+ * @mutate src/components/declutter/DeclutterItemCard.tsx | overflow-hidden rounded-xl bg-photo-empty"> | overflow-hidden rounded-xl bg-muted">
  * @mutate src/components/declutter/itemPhotoFrame.ts | item: "aspect-square max-h-[52dvh] sm:max-h-none sm:aspect-[4/3] bg-photo-empty" | item: "aspect-square max-h-[52dvh] sm:max-h-none sm:aspect-[4/3] bg-muted"
  */
 import { describe, expect, it } from "vitest";

@@ -107,6 +107,7 @@ describe("/browse's raw HTML carries its first job cards", () => {
       const html = await (await get(`_og=page&_id=${id}`)).text();
       expect(html, id).not.toContain("lh-browse-shell");
     }
-    expect(asked).toEqual([]);
+    // /declutter reads only its photo preload's preview (Q2705, 11-08: api/share.ts's Link header), never jobs.
+    expect(asked.filter((u) => !u.includes("/rest/v1/rpc/declutter_guest_preview"))).toEqual([]);
   });
 });

@@ -74,7 +74,7 @@
          (scripts/check-csp-inline-scripts.mjs). Never add inline on*= handlers
          or javascript: URLs; use addEventListener. -->
 
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-duvv7l/N2Dk2UPVHhqWrbfpf01OVN8op3f3mHhD90C4=' 'sha256-8ResmvAlqJIkotjIexMrzdSTRI2p2ctScRGsQnm1sPs=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-yUtNpiPXGeAc38WuKK8biiH5mrbfvvi5W7woqMMWHcA=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' 'sha256-AXm2TLBv4U1d/F/T3/dcAbe1QntzVJRWEySfKMS4y9o=' 'sha256-4MuTiLIkqRi1pnJ8C/PEYCMacyyBNy6I6F+KF3qIo5k=' 'sha256-ldDEb7cz2Q5EmRdHpOg+df/dED81vDhVRuFf5p38GOM=' 'sha256-mTnxF+2o2IOA+O6CdKvNm9CyJlzgk3lwnFgCnXpeBq8=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' capacitor: ionic:; script-src 'self' 'sha256-duvv7l/N2Dk2UPVHhqWrbfpf01OVN8op3f3mHhD90C4=' 'sha256-8ResmvAlqJIkotjIexMrzdSTRI2p2ctScRGsQnm1sPs=' 'sha256-NByppv3yJ4WvvZjmskCWAVrj9sFQjiiM8c8DsK/1x3c=' 'sha256-yUtNpiPXGeAc38WuKK8biiH5mrbfvvi5W7woqMMWHcA=' 'sha256-2S0qe1zQ/nQ/QDhyix/ub0TbuJHtjeNaYGWKovqksiQ=' 'sha256-CbEGrNu6BDtMCiQLuKHO44H53X3Ni5Dhhjg6qhZnPok=' 'sha256-AXm2TLBv4U1d/F/T3/dcAbe1QntzVJRWEySfKMS4y9o=' 'sha256-4MuTiLIkqRi1pnJ8C/PEYCMacyyBNy6I6F+KF3qIo5k=' 'sha256-ldDEb7cz2Q5EmRdHpOg+df/dED81vDhVRuFf5p38GOM=' 'sha256-mTnxF+2o2IOA+O6CdKvNm9CyJlzgk3lwnFgCnXpeBq8=' 'sha256-FbgU4CX/hiYUGrnrAvHy5PEhMgeeB81Wvt7ckXLXHu4=' https://cdn.apple-mapkit.com https://js.stripe.com https://*.stripe.com https://challenges.cloudflare.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https: capacitor: ionic:; media-src 'self' blob: https:; connect-src 'self' https://*.apple-mapkit.com https://nominatim.openstreetmap.org https://api.pwnedpasswords.com https://*.supabase.co wss://*.supabase.co https://api.stripe.com https://*.stripe.com https://*.ingest.us.sentry.io https://*.sentry.io https://us.i.posthog.com https://us-assets.i.posthog.com https://va.vercel-scripts.com; frame-src https://challenges.cloudflare.com https://js.stripe.com https://*.stripe.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self';">
 
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
@@ -807,6 +807,154 @@
           var el = document.getElementById("lh-" + page + "-shell");
           if (el) el.remove();
         }, 10000);
+      })();
+    </script>
+    <!-- Q2705 (lead 11-08): a GUEST's /declutter starts its first reads and its first photos from the HTML, before any
+         JavaScript file arrives (live 11-07: the reads started at ~2.7 s, when the entry had downloaded and run, and the
+         first card photo painted at 6.4 s).
+         1. It fires features_open_to_everyone and declutter_guest_preview with the public key, as the entry would
+            (src/boot/guestDeclutterPrefetch.ts), and leaves both answers on window.__lhGuestDeclutterEarly; the entry
+            takes them instead of asking again. Each is a plain GET with the key in the query (both functions are
+            STABLE, so PostgREST answers a GET; no custom header means no CORS preflight, one round trip less on a
+            slow phone than the entry's POST).
+         2. On a phone, for the bare URL, in English, with no saved section order (the signed-in /declutter shell's
+            own tests), it puts the first four items' photos into #lh-declutter-shell's photo slots, the first row
+            first (the second row waits for it, or 3 s: every request shares a slow link), from the preview read. The
+            URLs are the card's own (src/boot/declutterPrefetch.ts firstCardPhotoPreloads), so the card reuses the
+            download, and so does this script: api/share.ts already asked for the first row's photos in the response's
+            Link header (src/lib/declutterFirstPhotos.mjs), so they arrive while the preview read is still out.
+         3. Only once the answer says Declutter is open to everyone, it shows the shell. Nothing is shown when the
+            app has already started (it removed the shell). DeclutterPage removes it once painted; capped at 10 s.
+         Only for a provable guest (no stored session, readable storage), on the web. The Supabase address and key
+         come from the build (the lh-supabase-url / lh-supabase-key meta tags at the top), so the script's bytes, and its CSP hash, are the same in every
+         build. Guard: src/boot/guestDeclutterEarly.test.ts. -->
+    <script>
+      (function () {
+        if ((location.pathname.replace(/\/+$/, "") || "/") !== "/declutter" || window.Capacitor || location.protocol === "capacitor:") return;
+        if (typeof fetch !== "function" || typeof Promise !== "function") return;
+        function m(n) {
+          var el = document.querySelector('meta[name="' + n + '"]');
+          return (el && el.getAttribute("content")) || "";
+        }
+        var base = m("lh-supabase-url").replace(/\/$/, "");
+        var key = m("lh-supabase-key");
+        if (!/^https?:\/\/[^%]+$/.test(base) || !key || key.indexOf("%") !== -1) return;
+        var prefs = false;
+        try {
+          for (var n = 0; n < localStorage.length; n++) {
+            var name = localStorage.key(n) || "";
+            if (name.slice(0, 3) === "sb-" && /-auth-token$/.test(name)) return;
+            if (name.indexOf("helpr_section_prefs:") === 0) prefs = true;
+          }
+          var lang = localStorage.getItem("helpr_lang");
+        } catch (e) {
+          return;
+        }
+        function rpc(fn) {
+          return fetch(base + "/rest/v1/rpc/" + fn + "?apikey=" + encodeURIComponent(key))
+            .then(function (r) {
+              return r.ok ? r.json() : null;
+            })
+            .catch(function () {
+              return null;
+            });
+        }
+        var open = rpc("features_open_to_everyone");
+        var preview = rpc("declutter_guest_preview");
+        window.__lhGuestDeclutterEarly = { at: Date.now(), open: open, preview: preview };
+        if (location.search || location.hash || window.innerWidth >= 900 || prefs) return;
+        if (lang === "es" || (lang !== "en" && /^es/i.test(navigator.language || ""))) return;
+        var root = base + "/storage/v1/render/image/public/job-photos/";
+        function url(path, px) {
+          return root + path + "?width=" + px + "&height=" + px + "&resize=cover&quality=70";
+        }
+        function usable(path) {
+          return typeof path === "string" && path.indexOf("/") > 0 && path.indexOf("..") === -1 && /^[A-Za-z0-9_.\/-]+$/.test(path);
+        }
+        var slots = [];
+        function startPhotos(paths) {
+          var row = [];
+          var later = [];
+          for (var s = 0; s < paths.length && s < 4; s++) {
+            if (!usable(paths[s])) continue;
+            var img = document.createElement("img");
+            img.setAttribute("alt", "");
+            img.setAttribute("width", "480");
+            img.setAttribute("height", "480");
+            img.setAttribute("decoding", "async");
+            img.className = "relative h-full w-full object-cover";
+            slots.push({ at: s, img: img });
+            (s < 2 ? row : later).push({ img: img, path: paths[s] });
+          }
+          var waiting = row.length;
+          var started = false;
+          function load(x, high) {
+            x.img.setAttribute("loading", "eager");
+            if (high) x.img.setAttribute("fetchpriority", "high");
+            x.img.setAttribute("sizes", "(min-width: 640px) 250px, calc(50vw - 26px)");
+            x.img.setAttribute("srcset", url(x.path, 340) + " 340w, " + url(x.path, 480) + " 480w");
+            x.img.setAttribute("src", url(x.path, 480));
+          }
+          function rest() {
+            if (started) return;
+            started = true;
+            for (var j = 0; j < later.length; j++) load(later[j], false);
+          }
+          function done() {
+            if (--waiting <= 0) rest();
+          }
+          for (var r = 0; r < row.length; r++) {
+            row[r].img.addEventListener("load", done);
+            row[r].img.addEventListener("error", done);
+            load(row[r], true);
+          }
+          if (!waiting) rest();
+          setTimeout(rest, 3000);
+        }
+        function placeAndShow() {
+          var tries = 0;
+          (function place() {
+            var shell = document.getElementById("lh-declutter-shell");
+            if (!shell) {
+              if (document.readyState === "loading" && tries++ < 400) setTimeout(place, 25);
+              return;
+            }
+            var html = document.documentElement;
+            var mark = html.getAttribute("data-lh-app-shell");
+            if (mark && mark !== "declutter") return;
+            var tiles = shell.querySelectorAll("ul > li");
+            for (var i = 0; i < slots.length; i++) {
+              var li = tiles[slots[i].at];
+              var tile = li && li.firstElementChild;
+              if (!tile || slots[i].img.parentNode) continue;
+              tile.className = "relative overflow-hidden aspect-square w-full rounded-2xl bg-photo-empty";
+              tile.removeAttribute("data-skeleton");
+              tile.appendChild(slots[i].img);
+            }
+            if (mark === "declutter") return;
+            html.setAttribute("data-lh-app-shell", "declutter");
+            setTimeout(function () {
+              var el = document.getElementById("lh-declutter-shell");
+              if (el) el.remove();
+            }, 10000);
+          })();
+        }
+        function isOpen(o) {
+          return !!o && typeof o.indexOf === "function" && o.indexOf("declutter") !== -1;
+        }
+        Promise.all([open, preview]).then(function (a) {
+          var p = a[1];
+          if (!isOpen(a[0]) || !p || !p.items || !p.photos || !p.items.length || typeof p.photos.length !== "number") return;
+          var first = {};
+          for (var i = 0; i < p.photos.length; i++) {
+            var ph = p.photos[i] || {};
+            if (typeof ph.item_id === "string" && typeof ph.storage_path === "string" && !first.hasOwnProperty(ph.item_id)) first[ph.item_id] = ph.storage_path;
+          }
+          var list = [];
+          for (var s = 0; s < p.items.length && s < 4; s++) list.push(typeof (p.items[s] || {}).id === "string" ? first[p.items[s].id] : "");
+          startPhotos(list);
+          placeAndShow();
+        });
       })();
     </script>
 

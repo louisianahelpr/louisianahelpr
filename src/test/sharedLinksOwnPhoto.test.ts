@@ -69,7 +69,9 @@ describe("GROW-6: job and Helpr links preview with their own photo (api/share.ts
     expect(h).toContain('<meta property="og:image:type" content="image/jpeg"');
     expect(h).toContain('<meta name="twitter:image" content="' + `${SB}/functions/v1/shop-photo?id=${JOB}&amp;kind=job`);
     expect(h).not.toContain(POSTER);
-    expect(h).not.toMatch(/job-photos/);
+    // A concrete storage path (bucket, then a path: it starts with the owner's user id). index.html's guest /declutter
+    // script names only the bucket's URL prefix, which carries no one's path (Q2705, 11-08).
+    expect(h).not.toMatch(/job-photos(?:\/|%2F)[\w-]|storage\/v1\/object\/(?:public|sign|authenticated)\/[\w-]+\/[\w-]|storage\/v1\/render\/image\/(?:public|sign|authenticated)\/[\w-]+\/[\w-]/i);
     expect(h.match(/<meta property="og:image" /g)?.length).toBe(1);
   });
 

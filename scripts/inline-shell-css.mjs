@@ -37,6 +37,9 @@ export const SHOW_RULE = `[data-lh-landing-shell] #lh-landing-shell${FIXED}`;
  * on <html> when it is shown, and its show rule (src/index.css carries the same rules). The landing comes first and
  * must be there; the /login and /signup shells (src/test/authShellsMatchPages.test.tsx) are read when present.
  */
+/** What index.html's guest /declutter script draws into a photo slot (same classes; src/boot/guestDeclutterEarly.test.ts). */
+export const DECLUTTER_PHOTO_MARKUP =
+  '<div class="relative overflow-hidden aspect-square w-full rounded-2xl bg-photo-empty"><img class="relative h-full w-full object-cover"></div>';
 export const SHELLS = [
   { id: "lh-landing-shell", htmlAttr: 'data-lh-landing-shell=""', show: SHOW_RULE },
   { id: "lh-login-shell", htmlAttr: 'data-lh-auth-shell="login"', show: `[data-lh-auth-shell="login"] #lh-login-shell${FIXED}` },
@@ -48,7 +51,9 @@ export const SHELLS = [
   { id: "lh-jobs-shell", htmlAttr: 'data-lh-app-shell="jobs"', show: `[data-lh-app-shell="jobs"] #lh-jobs-shell${FIXED}` },
   // Q2705 B: its /messages and /declutter (src/test/messagesDeclutterShellsMatchSkeletons.test.tsx).
   { id: "lh-messages-shell", htmlAttr: 'data-lh-app-shell="messages"', show: `[data-lh-app-shell="messages"] #lh-messages-shell${FIXED}` },
-  { id: "lh-declutter-shell", htmlAttr: 'data-lh-app-shell="declutter"', show: `[data-lh-app-shell="declutter"] #lh-declutter-shell${FIXED}` },
+  // Q2705 (11-08): a guest's /declutter shell gets the first card photos drawn into its photo slots by index.html's
+  // inline script (src/boot/guestDeclutterEarly.test.ts), so those <img>s and their bare tiles count as markup.
+  { id: "lh-declutter-shell", htmlAttr: 'data-lh-app-shell="declutter"', show: `[data-lh-app-shell="declutter"] #lh-declutter-shell${FIXED}`, extra: DECLUTTER_PHOTO_MARKUP },
 ];
 /**
  * Ceiling on the inlined block, gzip bytes; the build fails above it. This is a cap on what every page's HTML

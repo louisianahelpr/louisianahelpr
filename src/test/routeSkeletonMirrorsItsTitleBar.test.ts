@@ -46,28 +46,27 @@ const classOf = (el: string) => el.match(/className="([^"]*)"/)?.[1] ?? "";
 describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
   it("is not vacuous: every file was read", () => {
     for (const s of [skeleton, bar, frame, home]) expect(s.length).toBeGreaterThan(500);
-    expect(home).toMatch(/<SectionScreen search=\{null\} fab=\{<SectionCreateFab \/>\}>/);
+    expect(home).toMatch(/<SectionScreen search=\{<SectionSearchBar noun="jobs and items" home="\/search" \/>\} fab=\{<SectionCreateFab \/>\}>/);
   });
 
   it("wears SectionScreen's frame: the same AppShell props and column classes", () => {
     expect(call(skeleton, "AppShell")).toBe(call(frame, "AppShell"));
-    expect(skeleton).toContain('className="container mx-auto px-5 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden"');
-    // The frame's gutter: 16px only beside a bar that holds a search; Dashboard's bar has none (search={null}), so 20px.
+    expect(skeleton).toContain('className="container mx-auto px-4 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden"');
+    // The frame's gutter: 16px beside a bar that holds a search; Dashboard's bar holds one since 11-08 (design audit A D1).
     expect(frame).toContain('className={`container mx-auto ${barSearch ? "px-4" : "px-5"} lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden`}');
     // Dashboard's floating "+ Create" (owner 11-08) adds room under the last row (pb-20); the skeleton does not scroll.
     expect(frame).toContain('<div className={`flex min-h-full flex-col gap-4 pt-1 ${fab ? "pb-20" : "pb-6"}`}>');
     expect(skeleton).toContain('<div className="flex min-h-full flex-col gap-4 pt-1 pb-6">');
   });
 
-  it("draws Dashboard's top bar: the same box, the same emblem size, then the bell (which holds Messages) and the avatar", () => {
+  it("draws Dashboard's top bar: the same box, the search bar (no crest), then the bell (which holds Messages) and the avatar", () => {
     expect(classOf(call(skeleton, "div className=\"app-top-bar"))).toBe(classOf(call(bar, "header")));
-    const size = (s: string) => call(s, "HelprMark").match(/size="(\w+)"/)?.[1];
-    expect(size(bar)).toBeTruthy();
-    expect(size(skeleton)).toBe(size(bar));
-    expect(call(skeleton, "HelprMark")).toContain("emblemOnly");
-    // The right cluster: the bar's slim gap (Dashboard's bar is search={null}, the Vinted header, owner 11-08), and two
-    // 44px controls: the bell (which holds Messages) and the avatar ("+ Create" floats over the page).
-    expect(home).toContain("<SectionScreen search={null}");
+    // Design audit A D1 (owner 11-08): the crest left Dashboard's phone bar; the search bar (44px, full) took its place.
+    expect(skeleton).not.toContain("HelprMark");
+    expect(skeleton).toMatch(/app-top-bar[^>]*>\s*<Skeleton className="h-11 min-w-0 flex-1 rounded-full" \/>/);
+    // The right cluster: the bar's slim gap (the Vinted header, owner 11-08), and two 44px controls: the bell (which
+    // holds Messages) and the avatar ("+ Create" floats over the page).
+    expect(home).toContain("<SectionScreen search={<SectionSearchBar");
     expect(bar).toContain('const slim = search !== undefined;');
     expect(bar).toContain('className={`flex items-center shrink-0 ${slim ? "gap-0.5" : "gap-1 min-[360px]:gap-1.5"}`}');
     const cluster = skeleton.slice(skeleton.indexOf('className="flex items-center gap-0.5 shrink-0"'));
@@ -110,7 +109,7 @@ describe("DashboardRouteSkeleton mirrors the Home dashboard (Q2214)", () => {
 });
 
 // Proof this is able to fail: each restores a real way the two drift.
-// @mutate src/components/DashboardRouteSkeleton.tsx | <HelprMark to={null} size="sm" emblemOnly className="shrink-0" /> | <HelprMark to={null} size="md" emblemOnly className="shrink-0" />
+// @mutate src/components/DashboardRouteSkeleton.tsx | <Skeleton className="h-11 min-w-0 flex-1 rounded-full" /> | <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
 // @mutate src/components/DashboardRouteSkeleton.tsx | data-skeleton-part="next-up"> | data-skeleton-part="stats">
 // @mutate src/components/DashboardRouteSkeleton.tsx |                 <Skeleton className="h-11 w-36 mt-2 rounded-full" /> |
 // @mutate src/components/DashboardRouteSkeleton.tsx |               <span className="h-11 w-11 flex items-center justify-center">\n                <Skeleton className="h-6 w-6 rounded-full" />\n              </span>\n |

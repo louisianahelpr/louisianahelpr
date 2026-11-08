@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
+import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { GroupSection, GroupRow } from "@/components/sections/StatusBoxes";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useSectionTabs, openingSoonLine } from "@/components/mobileNav/useSectionTabs";
@@ -128,11 +129,12 @@ function HomeDashboardScreen() {
   const moneyReserve = useReservedHeight(user ? `money-main:${user.id}` : null, !!money.pending, () => document.querySelector<HTMLElement>('[data-home-money="main"]'));
 
   return (
-    // The Vinted header (owner 11-08): no search on Dashboard, so the bar keeps the logo with only the bell (which holds
-    // Messages) and the photo; "+ Create" floats over the page and opens the Create sheet.
-    <SectionScreen search={null} fab={<SectionCreateFab />}>
+    // The Vinted header on Dashboard too (owner 11-08, design audit A D1, approved 11-08): "Search jobs and items" (a link
+    // to /search, which searches every open section), the bell (which holds Messages) and the photo; no crest. "+ Create"
+    // floats over the page and opens the Create sheet.
+    <SectionScreen search={<SectionSearchBar noun="jobs and items" home="/search" />} fab={<SectionCreateFab />}>
       <div data-testid="home-dashboard" className="flex flex-col gap-section">
-        {/* The H logo sits in the top bar above this (owner, 2026-10-20 08:30Z: keep it on phone Home). */}
+        {/* The search bar sits in the top bar above this (design audit A D1, owner 11-08: it replaced the H crest). */}
         {/* ONE header row (owner 2026-10-21): on the desktop website the greeting is the bar's title
             (spec v2: Home's greeting in the same slot as every title) and the date opens the page. */}
         <PageTitleBar
@@ -141,8 +143,10 @@ function HomeDashboardScreen() {
           title={first ? `${greeting()}, ${first}` : greeting()}
           phone={
             <div>
-              <h1 className="font-moment text-page-title text-foreground">{first ? `${greeting()}, ${first}` : greeting()}</h1>
-              <p className="text-ds-14 text-muted-foreground mt-0.5">{today}</p>
+              {/* Design audit A D1 (owner 11-08): one 20px line under the search bar; the date line is gone. The bar is
+                  the Vinted header, so the page's name is a hidden h1 like every section's (one page-title size, Q236e). */}
+              <h1 className="sr-only">Dashboard</h1>
+              <p data-home-greeting="" className="text-ds-20 font-bold leading-tight text-foreground">{first ? `${greeting()}, ${first}` : greeting()}</p>
             </div>
           }
         />

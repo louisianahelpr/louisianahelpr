@@ -102,7 +102,8 @@ test.describe("section tab rows stay put when the page scrolls (owner 2026-10-30
   });
 
   for (const screen of SECTION_TAB_SCREENS) {
-    for (const v of VIEWPORTS) {
+    // A desktop-only row (Declutter, owner 11-08: no tab row on a phone) is checked at desktop widths only.
+    for (const v of VIEWPORTS.filter((w) => !screen.desktopOnly || w.width >= 900)) {
       test(`${screen.name} (${v.tag})`, async ({ browser }) => {
         test.skip(!poster, "poster session unavailable (secrets not set)");
         const page = await open(browser, poster!, v, screen.path);

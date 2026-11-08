@@ -220,7 +220,7 @@ export function AppTopBar({
       {/* AUD31-74: a guest (Declutter Browse is open to them) has no notifications: no bell, as no photo. */}
       {user && !isWebDesktop && (
       <span data-testid="top-bar-bell">
-        <NotificationPanel withMessages={slim} triggerClassName="h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px] [&>span]:top-0.5 [&>span]:-right-0.5" />
+        <NotificationPanel triggerClassName="h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px] [&>span]:top-0.5 [&>span]:-right-0.5" withMessages={slim} />
       </span>
       )}
       {user && !isWebDesktop && !slim && <PhoneMessagesButton />}

@@ -29,7 +29,7 @@ import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
 import { SectionListBack } from "@/components/sections/SectionListBack";
 import type { SectionMineMenu } from "@/components/sections/sectionMine";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { useNeedsYouCounts } from "@/lib/needsYouStore";
 import { useLanguage } from "@/lib/i18n/language";
 import { navKey } from "@/lib/i18n/navLabels";
@@ -81,7 +81,7 @@ const JobsSection = () => {
   const { t: tr } = useLanguage();
   const desktop = useIsWebDesktop();
   // My Jobs' to-do counts (and the photo's dot): Home's to-do list, split by side (needsYouStore, the navs' source).
-  const todo = useNeedsYouCounts(useCurrentUser().user?.id);
+  const todo = useNeedsYouCounts(useAuthReady().user?.id);
   const todoFor = { posted: todo.jobsPosted, working: todo.jobsWorking } as const;
 
   const onTab = useCallback(

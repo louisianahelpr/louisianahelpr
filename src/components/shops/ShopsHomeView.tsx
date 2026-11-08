@@ -29,7 +29,7 @@ import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
 import { SectionListBack } from "@/components/sections/SectionListBack";
 import type { SectionMineMenu } from "@/components/sections/sectionMine";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
-import { useCurrentUser } from "@/hooks/useCurrentUser";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { useNeedsYouCounts } from "@/lib/needsYouStore";
 import { useSectionPreview } from "@/components/sections/ExploreSwitcher";
 import ShopMyOrdersView from "./ShopMyOrdersView";
@@ -122,7 +122,7 @@ const myShops = (shopToDo: number): SectionMineMenu => ({
 export default function ShopsHomeView() {
   const [tab, setTab] = useSectionTab(SHOPS_TAB_VALUES);
   const desktop = useIsWebDesktop();
-  const shopToDo = useNeedsYouCounts(useCurrentUser().user?.id).shops;
+  const shopToDo = useNeedsYouCounts(useAuthReady().user?.id).shops;
   // PHONE (owner 11-08, the Vinted header): Browse's "Search shops" row draws itself in the bar (searchSlot) beside
   // the bell and the photo; Orders and Shop live in "My Shops" under the photo, and a list names itself with the way
   // back to Browse; "+ Open a shop" floats. DESKTOP keeps its tabs row.

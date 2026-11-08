@@ -96,7 +96,7 @@ describe("row 1: the search, the bell and the photo; the page's name is a hidden
   it("the photo opens My Declutter: every list with its to-do count, the settings and the profile; a dot while any has a count", async () => {
     render(<MemoryRouter><AppTopBar title="Declutter" explore section="declutter" search={<span />} mine={MINE} /><Routes><Route path="*" element={<Where />} /></Routes></MemoryRouter>);
     const photo = screen.getByTestId("top-bar-profile");
-    expect(photo).toHaveAccessibleName("My Declutter, 3 to do");
+    expect(photo).toHaveAccessibleName("My Declutter, 3 to do, TP"); // the initials the bare photo shows are part of its name (WCAG 2.5.3)
     expect(photo.querySelector('[data-top-bar-badge="mine"]')).not.toBeNull();
     fireEvent.click(photo);
     const sheet = await screen.findByRole("dialog");
@@ -112,7 +112,7 @@ describe("row 1: the search, the bell and the photo; the page's name is a hidden
   it("nothing to do: no dot, and the photo is named after the menu", () => {
     render(<MemoryRouter><AppTopBar title="Declutter" explore section="declutter" search={<span />} mine={{ ...MINE, items: MINE.items.map((i) => ({ ...i, count: 0 })) }} /></MemoryRouter>);
     const photo = screen.getByTestId("top-bar-profile");
-    expect(photo).toHaveAccessibleName("My Declutter");
+    expect(photo).toHaveAccessibleName("My Declutter, TP");
     expect(photo.querySelector('[data-top-bar-badge="mine"]')).toBeNull();
   });
 

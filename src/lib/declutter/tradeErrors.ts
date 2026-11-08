@@ -21,6 +21,8 @@ const TRADE_ERROR_COPY: Record<string, string> = {
   trade_not_found: "That trade offer isn't available anymore.",
   trade_not_open: "This trade offer is already closed.",
   trade_expired: "This trade offer ran out of time.",
+  // Trades audit 11-08 #9 (20261108195151): a trade is only ever a free pickup.
+  trade_needs_pickup: "Trades are picked up from the porch or at home. One of these items isn't set up for pickup.",
 };
 
 const MEMBER = {
@@ -54,6 +56,7 @@ export const TRADE_RPC_ERROR_COPY = {
     other_side_unavailable: DC.other_side_unavailable,
     own_item: DC.own_item,
     trade_already_open: TRADE_ERROR_COPY.trade_already_open,
+    trade_needs_pickup: TRADE_ERROR_COPY.trade_needs_pickup,
     trade_rate_limited: TRADE_ERROR_COPY.trade_rate_limited,
     trades_off: TRADE_ERROR_COPY.trades_off,
   },
@@ -68,6 +71,7 @@ export const TRADE_RPC_ERROR_COPY = {
     other_side_unavailable: DC.other_side_unavailable,
     own_item: DC.own_item,
     trade_expired: TRADE_ERROR_COPY.trade_expired,
+    trade_needs_pickup: TRADE_ERROR_COPY.trade_needs_pickup,
     trade_not_found: TRADE_ERROR_COPY.trade_not_found,
     trade_not_open: TRADE_ERROR_COPY.trade_not_open,
     // declutter_take_item's (the accept holds both items through it): the trade reads as closed.

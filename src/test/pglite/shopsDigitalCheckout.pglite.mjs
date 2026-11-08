@@ -213,7 +213,8 @@ await db.exec(SLICE1_DIGITAL);
 //   handover_mode); profiles' setup-fee flag; the shop_orders status and close_reason lists from 20261019071055;
 //   shop_handovers + shop_payouts with the columns and CHECKs these functions touch (20261018211820, 20261105190034).
 // Stubbed, and said so: declutter_consume_fee_debt (no debt), shop_order_unaccounted_hand_refund (none),
-//   shop_delivery_open_task (no Helpr delivery on a download), is_test_subject (reads test_accounts, as prod's does).
+//   shop_delivery_open_task (no Helpr delivery on a download), is_test_subject (reads test_accounts, as prod's does),
+//   send_notice_email (records the call; prod's posts to send-notification-email, 20261108160000).
 await db.exec(`
   ALTER TABLE public.shop_orders ADD COLUMN IF NOT EXISTS handed_over_at timestamptz,
     ADD COLUMN IF NOT EXISTS setup_fee_cents integer NOT NULL DEFAULT 0, ADD COLUMN IF NOT EXISTS setup_fee_state text,
@@ -247,6 +248,9 @@ await db.exec(`
   CREATE FUNCTION public.declutter_consume_fee_debt(p_seller uuid, p_ref text, p_max int) RETURNS int LANGUAGE sql AS $s$ SELECT 0 $s$;
   CREATE FUNCTION public.shop_order_unaccounted_hand_refund(p_order uuid) RETURNS boolean LANGUAGE sql STABLE AS $s$ SELECT false $s$;
   CREATE FUNCTION public.shop_delivery_open_task(p_order uuid) RETURNS void LANGUAGE sql AS $s$ SELECT $s$;
+  CREATE TABLE public.emails_sent (user_id uuid, title text, message text, type text, link text);
+  CREATE FUNCTION public.send_notice_email(p_user_id uuid, p_title text, p_message text, p_type text, p_link text, p_job_id uuid)
+    RETURNS void LANGUAGE sql AS $s$ INSERT INTO public.emails_sent VALUES (p_user_id, p_title, p_message, p_type, p_link) $s$;
   CREATE OR REPLACE FUNCTION public.is_test_subject(p uuid) RETURNS boolean LANGUAGE sql STABLE AS
     $s$ SELECT EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p) $s$;`);
 // The money bodies this migration restates, at their newest before it.
@@ -344,6 +348,9 @@ ok((await path(BUYER))?.storage_path?.endsWith(".pdf"), "the buyer may download 
 const told = await svc(`SELECT title FROM public.notifications WHERE user_id = '${BUYER}' ORDER BY created_at DESC LIMIT 1`);
 ok(Array.isArray(told) && told[0]?.title === "Your download is ready", `the buyer is told it is ready (${JSON.stringify(told)})`);
 ok(refused(await buy(BUYER), /already_bought/, "22023"), "a second purchase of the same download is refused");
+const mails = await svc(`SELECT * FROM public.emails_sent WHERE user_id = '${BUYER}'`);
+ok(Array.isArray(mails) && mails.length === 1 && mails[0].link === "/shops/orders" && mails[0].type === "payment" && !/https?:|storage|\.pdf/i.test(mails[0].message),
+  `one email to the buyer, linking into Shops > My orders, never a file (${JSON.stringify(mails)})`);
 const files = await rows(BUYER, `SELECT file_name FROM public.shops_my_digital_files('${o2}')`);
 ok(Array.isArray(files) && files.length === 1 && files[0].file_name === "Bayou.pdf", "the buyer's order lists the file names (never a path)");
 const notMine = await rows(BUYER2, `SELECT file_name FROM public.shops_my_digital_files('${o2}')`);

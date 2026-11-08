@@ -12,8 +12,8 @@
 --      calls shop_digital_mark_paid (the amount and setup-fee checks of shop_mark_order_held, then straight to
 --      'accepted': nobody has to accept a download) and captures at once with the existing captureShopHold. A capture
 --      that does not answer is retried by declutter-money (shop_captures_due reads 'accepted' orders, unchanged).
---   3. shop_order_captured (restated): a digital order's buyer is told the download is ready, the shop is told of the
---      sale. From that moment shop_digital_download_path (restated from slice 1) lets the buyer download.
+--   3. shop_order_captured (restated): a digital order's buyer is told the download is ready (in the app and by email,
+--      a link to Shops > My orders, never a file link), the shop is told of the sale. From that moment shop_digital_download_path (restated from slice 1) lets the buyer download.
 --   4. 72 hours after the capture with no problem reported, shop_handover_sweep (restated) finishes the order with
 --      shop_complete_handover(order, 'auto') (restated: still the one writer of a finished order and its payout):
 --      handed_over, the seller's card-fee debt first, then one shop_payouts row due now, sent by the existing shop
@@ -463,6 +463,11 @@ BEGIN
                THEN format(', including the one-time $%s account setup fee (charged once per account)', to_char(v_fee / 100.0, 'FM999990.00'))
                ELSE '' END),
       '/shops/orders', o.seller_id);
+    -- And an email (lead default): a link into the app or site, never a file link. send-notification-email reads the
+    -- buyer's payments email switch and refuses test and seed recipients (send_notice_email, 20261108160000).
+    PERFORM public.send_notice_email(o.buyer_id, 'Your download is ready',
+      'Your download is paid for and ready. Open Shops > My orders and tap Download. It stays there for as long as you have an account.',
+      'payment', '/shops/orders', NULL);
     PERFORM public.declutter_notify(o.seller_id, 'payment', 'You sold a download',
       'A buyer bought one of your downloads. You are paid 72 hours after the sale unless the buyer reports a problem with the file.',
       '/shops/dashboard', o.buyer_id);

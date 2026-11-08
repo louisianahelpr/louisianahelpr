@@ -5,13 +5,15 @@ import { formatUnreadBadge } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 /** WCAG 2.5.3 (axe label-content-name-mismatch, Q1816): the badge's visible count is part of the bell's name. */
-function bellLabel(count: number): string {
-  return count > 0 ? `Notifications, ${formatUnreadBadge(count)} unread` : "Notifications";
+function bellLabel(count: number, withMessages: boolean): string {
+  const name = withMessages ? "Notifications and messages" : "Notifications";
+  return count > 0 ? `${name}, ${formatUnreadBadge(count)} unread` : name;
 }
 
-export const NotificationTrigger = forwardRef<HTMLButtonElement, { unreadCount: number } & React.ComponentPropsWithoutRef<typeof Button>>(
-  ({ unreadCount, className, ...props }, ref) => (
-    <Button ref={ref} variant="ghost" size="icon" className={cn("relative", className)} aria-label={bellLabel(unreadCount)} {...props}>
+/** `withMessages` (Declutter's slim bar, owner 11-08): the bell also holds Messages, so its badge counts both. */
+export const NotificationTrigger = forwardRef<HTMLButtonElement, { unreadCount: number; withMessages?: boolean } & React.ComponentPropsWithoutRef<typeof Button>>(
+  ({ unreadCount, withMessages = false, className, ...props }, ref) => (
+    <Button ref={ref} variant="ghost" size="icon" className={cn("relative", className)} aria-label={bellLabel(unreadCount, withMessages)} data-bell-with-messages={withMessages ? "" : undefined} {...props}>
       <Bell className="w-4 h-4" />
       {unreadCount > 0 && (
         <span

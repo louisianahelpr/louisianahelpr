@@ -7,7 +7,9 @@ import { ListRow } from "@/components/ui/ListRow";
 import { type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { prefetchOnIntent } from "@/components/notificationPanel/notificationFeed";
-import { AlertTriangle, BellRing, CheckCheck, Loader2 } from "lucide-react";
+import { AlertTriangle, BellRing, CheckCheck, ChevronRight, Loader2, MessageSquare } from "lucide-react";
+import { useBellMessagesUnread } from "@/components/notificationPanel/useBellMessagesUnread";
+import { formatUnreadBadge } from "@/lib/format";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { Popover, PopoverTrigger, PopoverContent, PopoverPortal, PopoverAnchor, PopoverDismissLayer } from "@/components/ui/popover";
 import { AnchoredPanelHeader, AnchoredPanelSegmented, screenPanelContentClass, screenPanelContentProps } from "@/components/ui/anchoredPanel";
@@ -72,7 +74,10 @@ export function NotificationPanelView({
   unreadCount,
   unreadTotal,
   visibleNotifications,
+  withMessages,
 }: NotificationPanelModel) {
+  // Owner 11-08 (Declutter's slim bar): the bell is also the way to Messages; its badge counts both.
+  const messagesUnread = useBellMessagesUnread(withMessages);
   return (
     /* `modal` is load-bearing, not decoration — and it is KEPT even though the
        scrim is gone. It is what locks the page (so the FEED can't scroll under
@@ -83,7 +88,7 @@ export function NotificationPanelView({
        for touch. */
     <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
-        <NotificationTrigger ref={triggerRef} unreadCount={unreadCount} className={triggerClassName} {...prefetchOnIntent} />
+        <NotificationTrigger ref={triggerRef} unreadCount={unreadCount + messagesUnread} withMessages={withMessages} className={triggerClassName} {...prefetchOnIntent} />
       </PopoverTrigger>
       {/* On phone/native, positioned against a measured SCREEN BAND, not
           against the bell: a zero-height rect spanning the viewport at the
@@ -173,6 +178,25 @@ export function NotificationPanelView({
             ]}
           />
         </AnchoredPanelHeader>
+        {withMessages && (
+          // Messages, one tap from the bell (owner 11-08: the Declutter bar keeps only the bell and the photo).
+          <button
+            type="button"
+            data-testid="bell-messages-row"
+            onClick={() => { setOpen(false); navigate("/messages"); }}
+            aria-label={messagesUnread > 0 ? `Messages, ${formatUnreadBadge(messagesUnread)} unread` : "Messages"}
+            className="mx-4 my-2 flex shrink-0 items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left ctl-tint focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <MessageSquare className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+            <span className="min-w-0 flex-1 text-ds-15 font-semibold text-foreground">Messages</span>
+            {messagesUnread > 0 && (
+              <span aria-hidden className="min-w-[20px] h-5 rounded-full px-1.5 text-ds-11 font-bold leading-5 text-center" style={{ background: "hsl(var(--alert))", color: "#fff" }}>
+                {formatUnreadBadge(messagesUnread)}
+              </span>
+            )}
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+          </button>
+        )}
 
         <PullToRefreshWrapper
           ref={containerRef}

@@ -11,8 +11,8 @@
  * @mutate src/components/sections/AppTopBar.tsx |   if (isWebDesktop && !title) return null; |
  * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && (\n      <span data-testid="top-bar-bell"> |       {user && true && (\n      <span data-testid="top-bar-bell">
  * @mutate src/components/sections/AppTopBar.tsx |         {user && !isWebDesktop && showProfile && ( |         {user && showProfile && (
- * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && <PhoneMessagesButton />} |       {user && <PhoneMessagesButton />}
- * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && <PhoneCreateButton />} |       {user && <PhoneCreateButton />}
+ * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && !slim && <PhoneMessagesButton />} |       {user && !slim && <PhoneMessagesButton />}
+ * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && !slim && <PhoneCreateButton />} |       {user && !slim && <PhoneCreateButton />}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";

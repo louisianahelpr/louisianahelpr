@@ -30,7 +30,7 @@
  *    Every icon button's name holds its visible words, in order (axe's own token rule, read from textContent: jsdom
  *    lays nothing out, so this cannot see visibility; the e2e axe sweeps do).
  * @mutate src/lib/avatarImage.ts |   return initials ? `${word}, ${initials}` : word; |   return word;
- * @mutate src/components/notificationPanel/NotificationTrigger.tsx |   return count > 0 ? `Notifications, ${formatUnreadBadge(count)} unread` : "Notifications"; |   return "Notifications";
+ * @mutate src/components/notificationPanel/NotificationTrigger.tsx |   return count > 0 ? `${name}, ${formatUnreadBadge(count)} unread` : name; |   return name;
  * @mutate src/components/MobileNav.tsx | : showBadge ? `${dockBadgeText(badgeCount)} ${shown}` : shown} | : shown}
  * @mutate src/components/sections/AppTopBar.tsx |           style={{ background: "hsl(var(--alert))", color: "#fff" }}\n        >\n          {n} |           style={{ background: "hsl(var(--burnt-sienna))", color: "#fff" }}\n        >\n          {n}
  * @mutate src/components/sections/AppTopBar.tsx |       aria-label={unreadCount > 0 ? `${n} ${tr("nav.messages")}` : tr("nav.messages")} |       aria-label={tr("nav.messages")}

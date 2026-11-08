@@ -35,7 +35,6 @@ import { NO_FILTERS, activeFilterCount, applyBrowseFilters, browseStateFromParam
 import { CATEGORY_LABEL } from "@/lib/declutter/categoryIcons";
 import { BrowseEndCard } from "@/components/sections/BrowseEndCard";
 import { InlineListSearch } from "@/components/sections/InlineListSearch";
-import { SearchTriggerSlot } from "@/components/ui/ScreenHeaderRow";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { SaveSearchButton } from "@/components/savedSearches/SaveSearchButton";
 import { hasExtras } from "@/lib/savedSearches";
@@ -45,6 +44,8 @@ import { ItemCard, firstPhotos } from "./DeclutterItemCard";
 import { DeclutterMilesFrom } from "./DeclutterMilesFrom";
 import { declutterFilterSections } from "./DeclutterFilterPanel";
 import { DeclutterFilterSheet } from "./DeclutterBrowseBar";
+import { DeclutterSearchBar } from "./DeclutterSearchBar";
+import type { SectionMineMenu } from "@/components/sections/sectionMine";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { mapFillHeight } from "@/lib/declutter/mapFillHeight";
 import { DECLUTTER_GRID, DECLUTTER_GRID_FULL, DeclutterBrowseBones, declutterAboveFoldCount, declutterFirstRowCount } from "./DeclutterSkeletons";
@@ -64,6 +65,17 @@ export interface DeclutterBrowseHeader {
   count?: number;
   /** A phone's open search takes the row, so only the selected tab stays beside it. */
   onlySelected?: boolean;
+  /** Phone (owner 11-08, the Vinted header): Browse's own search bar, with Filters inside it, in the top bar. */
+  search?: ReactNode;
+  /** Phone (owner 11-08): the category chips, the row under the bar; the grid starts right under them. */
+  chips?: ReactNode;
+}
+
+/** What the page hands Browse's section screen: the row under the bar, and on a phone the bar's search and "My …". */
+export interface DeclutterChrome {
+  tabs: ReactNode;
+  search?: ReactNode;
+  mine?: SectionMineMenu;
 }
 
 /** Persisted like Jobs' "helpr.jobsMapVisible", default ON (the split view is the desktop layout). */
@@ -154,7 +166,7 @@ const GUEST_FULL_LIST_WAIT_MS = 3000;
  * searches, bundle chips and the map read member-only data (declutter_watchlist, saved searches, and the
  * declutter_bundle_sellers / declutter_map_pins RPCs granted to authenticated only), so a guest gets none of them.
  */
-export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; tabs: (browse: DeclutterBrowseHeader) => ReactNode; top?: ReactNode }) {
+export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string | null; chrome: (browse: DeclutterBrowseHeader) => DeclutterChrome; top?: ReactNode; fab?: ReactNode }) {
   const desktop = useIsWebDesktop();
   const member = userId !== null;
   const [params, setParams] = useSearchParams();
@@ -328,7 +340,11 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
   const itemsPhase = useFeedPhase(items);
   const ask = { origin, asked, asking, canAskAgain, deviceNote, askDevice, zip, guest: !member };
 
-  const [searchOpen, setSearchOpen] = useState(false);
+  // Owner 11-07 (Vinted review; replaces 10-21's "no chip row"): the category chips; on a phone (owner 11-08) they
+  // are the steady row under the search bar, on desktop the top of the list.
+  const chipRow = itemsPhase !== "offline-empty" && others.length > 0
+    ? <DeclutterCategoryChips items={others} value={filters.category} onChange={(category) => setFilters((f) => ({ ...f, category }))} />
+    : null;
   const header: DeclutterBrowseHeader = desktop
     ? {
         count: listLoading || preview || items.isError ? undefined : rows.length,
@@ -341,15 +357,14 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
         ),
       }
     : {
-        onlySelected: searchOpen,
-        // Phone: search + filters end the tabs row, before the gear, as Jobs' (Dashboard's phoneBrowseEnd; owner 10-30).
-        end: (
-          <div data-browse-phone-controls="" className={`flex items-center gap-0 self-center ${searchOpen ? "ml-2 min-w-0 flex-1" : "-ml-1 shrink-0"}`}>
-            <InlineListSearch value={query} onChange={setQuery} label="Search items" onOpenChange={setSearchOpen} fill />
-            {searchOpen && <SearchTriggerSlot width="40px" />}
-            <FiltersIconButton open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen(true)} />
-          </div>
+        // Phone (owner 11-08, the Vinted header): "Search Declutter" is its own full-width bar with Filters inside its
+        // right end; the tabs row under it carries only the tabs.
+        search: (
+          <DeclutterSearchBar value={query} onChange={setQuery}
+            filter={<FiltersIconButton open={filtersOpen} count={filterCount} buttonRef={filtersButtonRef} onClick={() => setFiltersOpen(true)} />} />
         ),
+        // 8px under the chips + the column's 4px = 12px to the first cards.
+        chips: chipRow && <div data-declutter-chips-row="" className="pb-2">{chipRow}</div>,
       };
 
   const sheet = (
@@ -403,9 +418,7 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
       <div className={rows.length === 0 ? "flex min-h-0 min-w-0 flex-1 flex-col gap-4" : "min-w-0 space-y-4"}>
         {/* Owner 11-07 (Vinted review; replaces 10-21's "no chip row"): the category chips at the top of the list. Porch
             pickup, price drops and the rest stay in the filter sheet. Guard: src/test/declutterBrowseChipsAndSaves.test.tsx. */}
-        {itemsPhase !== "offline-empty" && others.length > 0 && (
-          <DeclutterCategoryChips items={others} value={filters.category} onChange={(category) => setFilters((f) => ({ ...f, category }))} />
-        )}
+        {desktop && chipRow}
         {/* The filters a saved search keeps: words, category, price, distance and (BUY-13) Free, porch pickup, price
             drops and condition; the sheet shows them. Sort is how the list is ordered, not what it alerts on. */}
         {member && (q || filters.category || filters.minDollars !== null || filters.maxDollars !== null || (from && maxMiles !== null) || hasExtras(saveExtras)) && (
@@ -415,7 +428,9 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
           />
         )}
         {/* Where the miles are measured from, and "Use my location", in sight above the cards (DA-10). */}
-        {itemsPhase !== "offline-empty" && rows.length > 0 && <DeclutterMilesFrom ask={ask} />}
+        {/* Owner 11-08 (the Vinted header): on a phone the grid starts right under the chips; the same line and "Use my
+            location" stay in the filter sheet. */}
+        {desktop && itemsPhase !== "offline-empty" && rows.length > 0 && <DeclutterMilesFrom ask={ask} />}
         {itemsPhase === "offline-empty" ? (
           <OfflineEmptyState body="Items for sale will show here once you're back online." onRetry={() => void items.refetch()} />
         ) : rows.length === 0 ? (
@@ -481,8 +496,9 @@ export function DeclutterBrowse({ userId, tabs, top }: { userId: string | null; 
     ) : list;
   }
 
+  const head = chrome(header);
   return (
-    <SectionScreen section="declutter" title="Declutter" globalSearch={false} tabs={tabs(header)}>
+    <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search} mine={head.mine} fab={fab} tabs={head.tabs}>
       <div ref={fill.ref} className="contents" />
       {top}
       {body}

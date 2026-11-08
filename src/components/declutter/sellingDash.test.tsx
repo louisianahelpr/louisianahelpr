@@ -15,9 +15,9 @@
  * The Declutter API module and the account hooks are stubbed (what each STATE renders), as in declutterTabs.test.tsx.
  *
  * @mutate src/components/ui/ToggleChip.tsx | : "border border-foreground/25 bg-background text-foreground", | : "btn-grad-primary",
- * @mutate src/components/declutter/DeclutterHomeView.tsx | title="Declutter" globalSearch={false} tabs={tabsFor({ | title="Declutter" globalSearch={view === "deliver"} tabs={tabsFor({
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | title="Declutter" globalSearch={false} search={head.search} | title="Declutter" globalSearch={view === "deliver"} search={head.search}
  * LEAD-SEARCH-ALL-TABS (owner 2026-10-31): the icon is on Buying and Selling too, matching Jobs.
- * @mutate src/components/declutter/DeclutterHomeView.tsx | tabs={tabsFor({ end: <ExploreSearchEntry variant="icon" /> })}> | tabs={tabsFor(view === "buying" \|\| view === "selling" ? undefined : { end: <ExploreSearchEntry variant="icon" /> })}>
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | const head = chrome(desktop ? { end: <ExploreSearchEntry variant="icon" /> } : undefined); | const head = chrome(desktop \&\& view !== "buying" \&\& view !== "selling" ? { end: <ExploreSearchEntry variant="icon" /> } : desktop ? {} : undefined);
  * @mutate src/components/declutter/DeclutterHomeView.tsx | { end: <ExploreSearchEntry variant="icon" /> } | { end: <ExploreSearchEntry /> }
  * @mutate src/components/declutter/DeclutterHomeView.tsx | { end: <ExploreSearchEntry variant="icon" /> } | undefined
  * @mutate src/components/declutter/DeclutterBrowseView.tsx | <SectionScreen section="declutter" title="Declutter" globalSearch={false} | <SectionScreen section="declutter" title="Declutter"
@@ -75,6 +75,12 @@ const state = {
 
 // Q2268: the bundle-request reads (no request here).
 // The Selling tab's "Your page" link reads the member's handle (its own test: src/test/yourPageLink.test.tsx).
+// The tab row is the desktop website's since the Vinted header (owner 11-08): a phone opens Buying, Selling and the
+// rest from the photo's "My Declutter" (src/test/declutterHeaderVinted.test.tsx). These tests read the row.
+const screenMode = vi.hoisted(() => ({ desktop: true }));
+vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => screenMode.desktop }));
+// Desktop Browse opens its map by default; these tests never need it (no MapKit token read).
+beforeEach(() => { localStorage.setItem("helpr.declutterMapVisible", "0"); screenMode.desktop = true; });
 vi.mock("@/components/profile/YourPageLink", () => ({ YourPageLink: () => null }));
 vi.mock("@/lib/declutter/bundleRequest", async (orig) => ({ ...(await orig<object>()), fetchBundleRequests: async () => [] }));
 // Declutter trades slice 3: the trade cards' read (none here).

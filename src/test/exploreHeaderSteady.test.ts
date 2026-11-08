@@ -26,7 +26,7 @@
  * @mutate src/components/sections/SectionScreen.tsx |         {section && (\n          // py/gap | {false && (\n          // py/gap
  * @mutate src/components/sections/AppTopBar.tsx |             <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1> |             <h1 className="sr-only">{title}</h1>
  * @mutate src/components/sections/ExploreSwitcher.tsx |     const soon = !unknown && (!on \|\| isPreview(s)); |     const soon = !unknown && (!on);
- * @mutate src/components/sections/SectionScreen.tsx |           <div className="flex min-h-full flex-col gap-4 pt-1 pb-6">\n |           <div className="flex flex-col gap-4 pt-1 pb-6">\n            {section && <p role="status">Coming soon – early preview</p>}\n
+ * @mutate src/components/sections/SectionScreen.tsx |           <div className={`flex min-h-full flex-col gap-4 pt-1 ${fab ? "pb-20" : "pb-6"}`}>\n |           <div className={`flex flex-col gap-4 pt-1 ${fab ? "pb-20" : "pb-6"}`}>\n            {section && <p role="status">Coming soon – early preview</p>}\n
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -86,7 +86,7 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
     expect(header).toBeGreaterThan(0);
     expect(scroll).toBeGreaterThan(header);
     // The header's own block closes before the scroll column opens.
-    expect(screen.slice(header, scroll)).toMatch(/<AppTopBar title=\{title\} explore section=\{section\} \/>\s*\{tabs\}\s*\{globalSearch && <ExploreSearchEntry \/>\}\s*<\/div>/);
+    expect(screen.slice(header, scroll)).toMatch(/<AppTopBar title=\{title\} explore section=\{section\} search=\{search\} mine=\{mine\} \/>\s*\{tabs\}\s*\{globalSearch && <ExploreSearchEntry \/>\}\s*<\/div>/);
     for (const f of ["src/components/declutter/DeclutterHomeView.tsx", "src/components/shops/ShopsHomeView.tsx", "src/components/rentals/RentalsHomeView.tsx"]) {
       expect({ f, tabsProp: /<SectionScreen[^>]*\btabs=\{/.test(code(f)) }).toEqual({ f, tabsProp: true });
     }
@@ -100,10 +100,12 @@ describe("the Explore header is steady (owner 2026-10-22/23)", () => {
     expect(head).not.toContain("<ExploreSearchEntry");
   });
 
-  it("3. on a phone the top bar is the section's visible title (the page's one h1), with no chips row", () => {
+  // Owner 11-08 (the Vinted header): a bar that carries the section's search names the page with a visually hidden h1
+  // instead (still the page's one h1); every other bar keeps the visible title.
+  it("3. on a phone the top bar is the section's visible title (the page's one h1), or a hidden h1 beside the search, with no chips row", () => {
     const bar = code("src/components/sections/AppTopBar.tsx");
-    expect(bar).toMatch(/<header className="app-top-bar [^"]*"[^>]*>\s*\{title \? \(\s*<h1 className="min-w-0 truncate text-page-title text-foreground" title=\{title\}>\{title\}<\/h1>/);
-    expect(bar).not.toMatch(/<ExploreSwitcher|className="sr-only">\{title\}/);
+    expect(bar).toMatch(/<header className="app-top-bar [^"]*"[^>]*>\s*\{slim \? \(\s*<>\s*\{title && <h1 className="sr-only">\{title\}<\/h1>\}\s*<div className="min-w-0 flex-1">\{search\}<\/div>\s*<\/>\s*\) : title \? \(\s*<h1 className="min-w-0 truncate text-page-title text-foreground" title=\{title\}>\{title\}<\/h1>/);
+    expect(bar).not.toMatch(/<ExploreSwitcher/);
   });
 
   it("3b. four chips that do not fit scroll sideways: the open section's chip is brought into view and the edge fades (measured 278px of chips in a 237px track at 375)", () => {

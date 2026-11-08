@@ -282,15 +282,16 @@ describe("Declutter screens", () => {
     expect(screen.queryByRole("button", { name: "Sell an item" })).toBeNull();
   });
 
-  it("switch on: Browse (on a phone, selling starts from the top bar's +), and an empty state in plain words", async () => {
+  it("switch on: Browse (on a phone, selling starts from the floating + Sell pill), and an empty state in plain words", async () => {
     at("/declutter", <DeclutterPage />);
     // A phone's bar names the section (nav redesign, owner 2026-11-06: the bottom bar switches sections, no chips row).
     expect(screen.getByRole("heading", { level: 1, name: "Declutter" })).toBeInTheDocument();
     expect(screen.queryByRole("radio", { name: "Declutter" })).toBeNull();
-    // ONE way to sell on Browse: the top bar's "+" (Sell an item), no second pill in the page.
-    const sell = screen.getAllByRole("button", { name: "Sell an item" });
+    // ONE way to sell on Browse: the floating "+ Sell" pill (owner 11-08, the Vinted header), no "+" in the bar.
+    const sell = await screen.findAllByRole("button", { name: "Sell an item" });
     expect(sell).toHaveLength(1);
-    expect(sell[0].getAttribute("data-testid")).toBe("top-bar-create");
+    expect(sell[0].getAttribute("data-testid")).toBe("declutter-sell-fab");
+    expect(screen.queryByTestId("top-bar-create")).toBeNull();
     expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
   });
 

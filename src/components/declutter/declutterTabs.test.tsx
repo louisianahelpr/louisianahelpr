@@ -63,6 +63,12 @@ const state = {
 // Audit 1028 D1-8: My listings listens for new notices (the shared realtime bus); no socket in a unit test.
 // Q2268: the bundle-request reads (no request here).
 // The Selling tab's "Your page" link reads the member's handle (its own test: src/test/yourPageLink.test.tsx).
+// The tab row is the desktop website's since the Vinted header (owner 11-08): a phone opens Buying, Selling and the
+// rest from the photo's "My Declutter" (src/test/declutterHeaderVinted.test.tsx). These tests read the row.
+const screenMode = vi.hoisted(() => ({ desktop: true }));
+vi.mock("@/hooks/useIsWebDesktop", () => ({ useIsWebDesktop: () => screenMode.desktop }));
+// Desktop Browse opens its map by default; these tests never need it (no MapKit token read).
+beforeEach(() => { localStorage.setItem("helpr.declutterMapVisible", "0"); screenMode.desktop = true; });
 vi.mock("@/components/profile/YourPageLink", () => ({ YourPageLink: () => null }));
 vi.mock("@/lib/declutter/bundleRequest", async (orig) => ({ ...(await orig<object>()), fetchBundleRequests: async () => [] }));
 // Declutter trades slice 3: the trade cards' read (none here).
@@ -330,7 +336,8 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     const tabs = screen.getAllByRole("tab");
     // Deliver is a tab again (owner 2026-10-28: Helprs couldn't find it under Selling); Wanted (owner 2026-10-28, "Both");
     // Free next to Wanted (OWN-FREE, owner via the lead 2026-10-30).
-    expect(tabs.map((t) => t.textContent)).toEqual(["Browse", "Buying", "Selling", "Deliver", "Wanted", "Free"]);
+    // (Desktop: Browse carries its quiet count, "Browse0".)
+    expect(tabs.map((t) => t.textContent?.replace(/\d+$/, ""))).toEqual(["Browse", "Buying", "Selling", "Deliver", "Wanted", "Free"]);
     for (const t of tabs) expect(t.textContent).toMatch(/^\S+$/);
     expect(tabs[0]).toHaveAttribute("aria-selected", "true");
     expect(tabs.length).toBeGreaterThan(2);
@@ -371,7 +378,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
     state.wantedOn = false;
     at("/declutter?tab=wanted");
     await screen.findByRole("tablist", { name: "Declutter view" });
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Browse", "Buying", "Selling", "Deliver", "Free"]);
+    expect(screen.getAllByRole("tab").map((t) => t.textContent?.replace(/\d+$/, ""))).toEqual(["Browse", "Buying", "Selling", "Deliver", "Free"]);
     expect(tab(/^Browse/)).toHaveAttribute("aria-selected", "true");
     expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
     expect(screen.queryByTestId("declutter-wanted-link")).toBeNull();
@@ -769,7 +776,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
 
   // Audit DC-9 (lead 2026-10-30): the Selling badge counts what "To answer" counts, so a question waiting on a live
   // listing shows on the tab too; the tab row waits for that read (no late re-wrap).
-  // @mutate src/components/declutter/DeclutterHomeView.tsx | count: todo ? todo.selling + questions.count : undefined, countAsDot: true }, | count: todo?.selling, countAsDot: true },
+  // @mutate src/components/declutter/DeclutterHomeView.tsx | const sellingToDo = todo ? todo.selling + questions.count : undefined; | const sellingToDo = todo?.selling;
   // @mutate src/components/declutter/SellerQuestionsToAnswer.tsx |     enabled: mine.isSuccess && ids.length > 0, |     enabled: mine.isSuccess,
   it("DC-9: the Selling badge counts unanswered questions too, and the read is made only with a listing on sale", async () => {
     everything();

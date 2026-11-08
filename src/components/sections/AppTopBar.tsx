@@ -1,4 +1,6 @@
+import { lazy, Suspense, useState, type ReactNode } from "react";
 import { MessageSquare, Plus, Settings } from "lucide-react";
+import { mineToDoCount, type SectionMineMenu } from "./sectionMine";
 import { useLocation, useNavigate } from "react-router-dom";
 import HelprMark from "@/components/HelprMark";
 import NotificationPanel from "@/components/notificationPanel/NotificationBell";
@@ -16,6 +18,9 @@ import { useLanguage } from "@/lib/i18n/language";
 import { useSectionIsOn } from "./ExploreSwitcher";
 import type { MsgKey } from "@/lib/i18n/en";
 import { avatarButtonLabel } from "@/lib/avatarImage";
+
+// "My Declutter" (etc.) loads on the photo's first tap, never on the first screen.
+const MySectionSheet = lazy(() => import("./MySectionSheet"));
 
 /** The tabs row's icon controls (search, filters, map, gear): 40px ghost squares with a 20px glyph, centred on the 44px tabs. */
 const TABS_ROW_ICON_CLASS = "h-10 w-10 shrink-0 self-center btn-press text-muted-foreground hover:text-foreground hover:!bg-[hsl(var(--bark)/0.06)] focus-visible:ring-2 focus-visible:ring-[hsl(var(--ring))] [&>svg]:w-5 [&>svg]:h-5";
@@ -168,6 +173,8 @@ export function AppTopBar({
   section,
   showProfile = true,
   desktopGap = true,
+  search,
+  mine,
 }: {
   /** Omit on Dashboard: the logo shows instead. */
   title?: string;
@@ -182,10 +189,23 @@ export function AppTopBar({
   showProfile?: boolean;
   /** False inside PageScaffold's title card (Jobs, Messages), which pads itself. */
   desktopGap?: boolean;
+  /**
+   * THE SEARCH BAR (owner 11-08, the Vinted header): on a phone the bar IS the section's search, with only the bell
+   * and the photo beside it. No visible title (the page keeps a visually hidden h1 for screen readers). Messages moves
+   * INTO the bell (its panel opens on a Messages row; its badge counts both) and the section's create is a floating
+   * pill (DeclutterSellFab). Guard: src/test/declutterHeaderVinted.test.tsx.
+   */
+  search?: ReactNode;
+  /** The section's "My …" menu, opened from the photo (which wears a dot while any row has a to-do). */
+  mine?: SectionMineMenu;
 }) {
   const navigate = useNavigate();
   const { user, profile } = useCurrentUser();
   const isWebDesktop = useIsWebDesktop();
+  const slim = search !== undefined;
+  const [mineOpen, setMineOpen] = useState(false);
+  const [mineAsked, setMineAsked] = useState(false);
+  const mineToDo = mineToDoCount(mine);
   const { t: tr } = useLanguage();
   // Nav redesign (owner 2026-11-06): the phone's section bars name their section; the Explore chips row left with
   // Explore (the bottom bar switches sections now). `explore` and `section` stay for the desktop bar.
@@ -200,21 +220,24 @@ export function AppTopBar({
       {/* AUD31-74: a guest (Declutter Browse is open to them) has no notifications: no bell, as no photo. */}
       {user && !isWebDesktop && (
       <span data-testid="top-bar-bell">
-        <NotificationPanel triggerClassName="h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px] [&>span]:top-0.5 [&>span]:-right-0.5" />
+        <NotificationPanel withMessages={slim} triggerClassName="h-11 w-11 [&>svg]:w-[22px] [&>svg]:h-[22px] [&>span]:top-0.5 [&>span]:-right-0.5" />
       </span>
       )}
-      {user && !isWebDesktop && <PhoneMessagesButton />}
-      {user && !isWebDesktop && <PhoneCreateButton />}
+      {user && !isWebDesktop && !slim && <PhoneMessagesButton />}
+      {user && !isWebDesktop && !slim && <PhoneCreateButton />}
       {user && !isWebDesktop && showProfile && (
         <Button
           type="button"
           variant="ghost"
           size="iconCompact"
-          aria-label={avatarButtonLabel(tr("nav.profile"), profile?.full_name)}
+          aria-label={mine ? (mineToDo > 0 ? `${mine.title}, ${mineToDo} to do` : mine.title) : avatarButtonLabel(tr("nav.profile"), profile?.full_name)}
+          {...(mine ? { "aria-haspopup": "dialog" as const, "aria-expanded": mineOpen } : {})}
           data-testid="top-bar-profile"
-          onClick={() => navigate("/profile")}
+          onClick={() => { if (mine) { setMineAsked(true); setMineOpen(true); } else navigate("/profile"); }}
+          className="relative"
         >
           <UserAvatar userId={user.id} src={profile?.avatar_url} name={profile?.full_name} pixelSize={72} alt="" className="w-9 h-9" />
+          {mineToDo > 0 && <span data-top-bar-badge="mine" aria-hidden className="absolute top-0.5 right-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-background" style={{ background: "hsl(var(--alert))" }} />}
         </Button>
       )}
     </>
@@ -227,15 +250,23 @@ export function AppTopBar({
       actions={actions}
       desktopGap={desktopGap}
       phone={
-        <header className="app-top-bar flex items-center justify-between gap-2 h-16" data-testid="app-top-bar">
-          {title ? (
+        <header className="app-top-bar flex items-center justify-between gap-2 h-16" data-testid="app-top-bar" data-top-bar-search={slim ? "" : undefined}>
+          {slim ? (
+            <>
+              {title && <h1 className="sr-only">{title}</h1>}
+              <div className="min-w-0 flex-1">{search}</div>
+            </>
+          ) : title ? (
             <h1 className="min-w-0 truncate text-page-title text-foreground" title={title}>{title}</h1>
           ) : (
             <HelprMark size="sm" emblemOnly to="/home" />
           )}
-          <div className="flex items-center gap-1 min-[360px]:gap-1.5 shrink-0">
+          <div className={`flex items-center shrink-0 ${slim ? "gap-0.5" : "gap-1 min-[360px]:gap-1.5"}`}>
             {personal}
           </div>
+          {mine && mineAsked && (
+            <Suspense fallback={null}><MySectionSheet menu={mine} open={mineOpen} onOpenChange={setMineOpen} /></Suspense>
+          )}
         </header>
       }
     />

@@ -10,13 +10,13 @@
  * @mutate src/components/sections/SectionTabs.tsx |     memberMoved.current = true;\n    const edge = list.getBoundingClientRect().right; |     const edge = list.getBoundingClientRect().right;
  * @mutate src/components/sections/SectionTabs.tsx | if (next) list.scrollLeft += next.getBoundingClientRect().right - edge; | if (next) list.scrollLeft += 0;
  * @mutate src/components/sections/SectionTabs.tsx |           if (onlySelected && !active) return null;\n |
- * @mutate src/components/declutter/DeclutterBrowseView.tsx |         onlySelected: searchOpen,\n |
+ * @mutate src/pages/home/Dashboard.tsx | phoneSearchOpen ? "ml-2 min-w-0 flex-1" | "ml-2 min-w-0 flex-1"
  * @mutate src/pages/home/Dashboard.tsx | { end: phoneBrowseEnd, onlySelected: phoneSearchOpen } | { end: phoneBrowseEnd }
  * @mutate src/pages/jobs/JobsSection.tsx | onlySelected={browse?.onlySelected} |
  * T12: the way back, and room between the tab and an open search.
  * @mutate src/components/sections/SectionTabs.tsx | {less && !onlySelected && ( | {false && (
  * @mutate src/components/sections/SectionTabs.tsx | list.scrollLeft = previous ? list.scrollLeft - (edge - previous.getBoundingClientRect().left) : 0; | list.scrollLeft = list.scrollLeft;
- * @mutate src/components/declutter/DeclutterBrowseView.tsx | ${searchOpen ? "ml-2 min-w-0 flex-1" : "-ml-1 shrink-0"} | ${searchOpen ? "-ml-1 min-w-0 flex-1" : "-ml-1 shrink-0"}
+ * @mutate src/pages/home/Dashboard.tsx | {phoneSearchOpen && <SearchTriggerSlot width="40px" />} | {null}
  * @mutate src/pages/home/Dashboard.tsx | ${phoneSearchOpen ? "ml-2 min-w-0 flex-1" : "-ml-1 shrink-0"} | ${phoneSearchOpen ? "-ml-1 min-w-0 flex-1" : "-ml-1 shrink-0"}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -151,23 +151,20 @@ describe("a tab row that doesn't fit", () => {
 describe("Declutter Browse follows Jobs' row", () => {
   const code = (f: string) => blankComments(readFileSync(join(process.cwd(), f), "utf8"));
 
-  it("reuses the same search and has no search row of its own", () => {
-    const browse = code("src/components/declutter/DeclutterBrowseView.tsx");
+  it("Jobs' Browse reuses the same search and has no search row of its own", () => {
     expect(code("src/pages/home/Dashboard.tsx")).toMatch(/data-browse-phone-controls[\s\S]{0,200}<InlineListSearch/);
-    expect(browse).toMatch(/data-browse-phone-controls[\s\S]{0,200}<InlineListSearch/);
-    expect(browse).not.toContain("SectionSearchRow");
+    expect(code("src/components/declutter/DeclutterBrowseView.tsx")).not.toContain("SectionSearchRow");
     expect(code("src/components/declutter/DeclutterBrowseBar.tsx")).not.toContain("SectionSearchRow");
     expect(TABS.length).toBeGreaterThan(4);
   });
 
-  it("Jobs and Declutter both give the row to an open search, with the slot held and the field filling it", () => {
-    for (const f of ["src/pages/home/Dashboard.tsx", "src/components/declutter/DeclutterBrowseView.tsx"]) {
-      expect(code(f), f).toMatch(/<InlineListSearch[^>]*onOpenChange=\{[^}]+\} fill \/>\s*\{\w+ && <SearchTriggerSlot width="40px" \/>\}/);
-    }
+  // Owner 11-08 (the Vinted header): Declutter's phone search left the tabs row for its own bar (DeclutterSearchBar,
+  // src/test/declutterHeaderVinted.test.tsx); Jobs keeps the search that opens in the row.
+  it("Jobs gives the row to an open search, with the slot held and the field filling it", () => {
+    expect(code("src/pages/home/Dashboard.tsx")).toMatch(/<InlineListSearch[^>]*onOpenChange=\{[^}]+\} fill \/>\s*\{\w+ && <SearchTriggerSlot width="40px" \/>\}/);
     expect(code("src/pages/home/Dashboard.tsx")).toContain("onlySelected: phoneSearchOpen");
     expect(code("src/pages/jobs/JobsSection.tsx")).toContain("onlySelected={browse?.onlySelected}");
     // The row's gap-1 is cancelled by -ml-1 when closed; open, the field keeps 8px from the tab.
     expect(code("src/pages/home/Dashboard.tsx")).toContain('phoneSearchOpen ? "ml-2 min-w-0 flex-1"');
-    expect(code("src/components/declutter/DeclutterBrowseView.tsx")).toContain('searchOpen ? "ml-2 min-w-0 flex-1"');
   });
 });

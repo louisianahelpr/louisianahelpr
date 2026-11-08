@@ -27,7 +27,7 @@
  * @mutate src/components/sections/AppTopBar.tsx |     else setCreateSheetOpen((o) => !o); |     else navigate("/post-job");
  * @mutate src/components/sections/AppTopBar.tsx |       onClick={isPost ? gate.gate("post", make) : make} |       onClick={make}
  * @mutate src/components/sections/AppTopBar.tsx |   if (pathname.startsWith("/declutter")) return "declutter"; |
- * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && <PhoneMessagesButton />}\n      {user && !isWebDesktop && <PhoneCreateButton />} |       {user && !isWebDesktop && <PhoneCreateButton />}\n      {user && !isWebDesktop && <PhoneMessagesButton />}
+ * @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && !slim && <PhoneMessagesButton />}\n      {user && !isWebDesktop && !slim && <PhoneCreateButton />} |       {user && !isWebDesktop && !slim && <PhoneCreateButton />}\n      {user && !isWebDesktop && !slim && <PhoneMessagesButton />}
  * @mutate src/components/sections/AppTopBar.tsx | "aria-haspopup": "dialog" as const, "aria-expanded": sheetOpen | "aria-haspopup": "dialog" as const
  * @mutate src/components/create/CreateSheet.tsx |                 {on && ( |                 {true && (
  * @mutate src/components/create/CreateSheet.tsx |                         onClick={a.gated ? gate.gate("post", () => go(a.path)) : () => go(a.path)} |                         onClick={() => go(a.path)}
@@ -400,7 +400,7 @@ describe("Explore", () => {
     expect(screens.length).toBe(3); // vacuity floor (#2894)
     for (const f of screens) expect(code(f), f).toMatch(/<SectionScreen section="(declutter|shops|homes)"/);
     expect(code("src/pages/jobs/JobsSection.tsx")).toMatch(/<AppTopBar [^>]*\bexplore section="jobs"/);
-    expect(code("src/components/sections/SectionScreen.tsx")).toContain("<AppTopBar title={title} explore section={section} />");
+    expect(code("src/components/sections/SectionScreen.tsx")).toContain("<AppTopBar title={title} explore section={section} search={search} mine={mine} />");
     expect(code("src/components/sections/AppTopBar.tsx")).not.toContain("<ExploreSwitcher");
   });
 });
@@ -446,7 +446,7 @@ describe("a section's phone top bar (nav redesign 2026-11-06)", () => {
   // AUD31-74 (Guests on Declutter): a guest on Declutter Browse tapped the bell and got a panel stuck on "Loading
   // notifications..." asking to turn on push. A guest has no notifications: no bell, as no photo (nor Messages or +).
   // @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && (\n      <span data-testid="top-bar-bell"> |       {!isWebDesktop && (\n      <span data-testid="top-bar-bell">
-  // @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && <PhoneCreateButton />} |       {!isWebDesktop && <PhoneCreateButton />}
+  // @mutate src/components/sections/AppTopBar.tsx |       {user && !isWebDesktop && !slim && <PhoneCreateButton />} |       {!isWebDesktop && !slim && <PhoneCreateButton />}
   it("a guest on Declutter gets no bell, Messages, + or photo; the title stays", () => {
     who.guest = true;
     try {

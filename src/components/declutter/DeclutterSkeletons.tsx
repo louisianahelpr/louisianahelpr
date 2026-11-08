@@ -43,9 +43,17 @@ export function DeclutterHomeSkeleton() {
       section="declutter"
       title="Declutter"
       globalSearch={false}
-      tabs={
+      // Phone (owner 11-08, the Vinted header): the search bar's bone in the bar, the chips' bones under it.
+      search={desktop ? undefined : <Skeleton className="h-11 w-full rounded-full" aria-hidden />}
+      tabs={desktop ? (
         <Skeleton className="h-11 w-full rounded-ds-md" aria-hidden />
-      }
+      ) : (
+        <div className="flex gap-2 overflow-hidden" aria-hidden>
+          <Skeleton className="h-11 w-14 shrink-0 rounded-full" />
+          <Skeleton className="h-11 w-32 shrink-0 rounded-full" />
+          <Skeleton className="h-11 w-36 shrink-0 rounded-full" />
+        </div>
+      )}
     >
       <DeclutterBrowseBones map={map} full={desktop && !map} />
     </SectionScreen>

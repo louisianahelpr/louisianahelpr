@@ -28,7 +28,7 @@ import { itemPriceLabel } from "@/lib/declutter/distance";
 import { fetchMyPayouts, type MyPayout } from "@/lib/declutter/handover";
 import { soldPayoutWords } from "@/lib/declutter/soldPayout";
 import { sellerStatusLabel } from "./declutterUi";
-import { ChevronRight, Settings, Tags } from "lucide-react";
+import { ChevronLeft, ChevronRight, Settings, Tags } from "lucide-react";
 import { ListingShareButton } from "./DeclutterShareCard";
 import { SellChooserEntry } from "./SellChooserEntry";
 import type { DeclutterItem } from "@/lib/declutter/api";
@@ -47,7 +47,11 @@ import { DeliverEntry } from "./DeclutterDeliverEntry";
 import { TabletSellRow } from "./TabletSellRow";
 import { ItemViewsCount } from "./ItemViewsCount";
 import { SectionSettingsButton } from "@/components/sections/AppTopBar";
-import type { DeclutterBrowseHeader } from "./DeclutterBrowseView";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
+import { DeclutterSearchBar } from "./DeclutterSearchBar";
+import { DeclutterSellFab } from "./DeclutterSellFab";
+import type { DeclutterBrowseHeader, DeclutterChrome } from "./DeclutterBrowseView";
+import type { SectionMineMenu } from "@/components/sections/sectionMine";
 import { DeclutterGuestBrowseJoin } from "./DeclutterGuest";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { ExploreSearchEntry } from "@/components/sections/ExploreSearchEntry";
@@ -458,6 +462,21 @@ function SellingSettingsEntry() {
 
 const DECLUTTER_SETTINGS = { label: "Declutter settings", path: "/declutter/settings" } as const;
 
+/**
+ * A phone's way back from one of My Declutter's lists (owner 11-08, the Vinted header: Buying, Selling and the rest left
+ * the top for the photo's "My Declutter" sheet): the row under the search names the list and goes back to Browse.
+ */
+function DeclutterListBack({ label, onBack }: { label: string; onBack: () => void }) {
+  return (
+    <div data-declutter-list-back="" className="flex h-11 items-center gap-1">
+      <Button type="button" variant="ghost" size="iconCompact" aria-label="Back to Browse" onClick={onBack} className="-ml-2 text-muted-foreground hover:text-foreground">
+        <ChevronLeft className="h-5 w-5" aria-hidden />
+      </Button>
+      <h2 className="min-w-0 truncate text-ds-18 font-semibold text-foreground">{label}</h2>
+    </div>
+  );
+}
+
 const MINE_TABS = ["buying", "selling", "deliver"] as const; // Deliver tab: owner 2026-10-28
 // The Wanted tab (owner 2026-10-28, "Both": the tab AND Browse's bottom link), only while 'declutter_wanted' is on.
 // The Free tab, last, next to Wanted (OWN-FREE, owner via the lead 2026-10-30): for everyone, as the Free section is.
@@ -476,22 +495,25 @@ export default function DeclutterHome() {
 }
 
 function DeclutterGuestHome() {
-  const tabsFor = (browse: DeclutterBrowseHeader) => (
-    <SectionTabs<DeclutterTab>
-      label="Declutter view"
-      browseCount={browse.count}
-      onlySelected={browse.onlySelected}
-      end={browse.end}
-      value="browse"
-      onChange={() => undefined}
-      tabs={[]}
-    />
-  );
-  return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={null} tabs={tabsFor} top={<DeclutterGuestBrowseJoin />} /></Suspense>;
+  const desktop = useIsWebDesktop();
+  const chrome = (browse: DeclutterBrowseHeader): DeclutterChrome => desktop ? {
+    tabs: (
+      <SectionTabs<DeclutterTab>
+        label="Declutter view"
+        browseCount={browse.count}
+        end={browse.end}
+        value="browse"
+        onChange={() => undefined}
+        tabs={[]}
+      />
+    ),
+  } : { search: browse.search, tabs: browse.chips };
+  return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={null} chrome={chrome} top={<DeclutterGuestBrowseJoin />} /></Suspense>;
 }
 
 function DeclutterMemberHome() {
   const { user } = useCurrentUser();
+  const desktop = useIsWebDesktop();
   const [params, setParams] = useSearchParams();
   const location = useLocation();
   // W14: "Wanted" exists only while its own switch is on for this member.
@@ -542,44 +564,57 @@ function DeclutterMemberHome() {
   useWarmMineViews(view === "buying" || view === "selling");
   if (!user) return null;
   if (!tabsReady) return <DeclutterHomeSkeleton />;
-  // Browse adds its search and filters at the row's end, and on desktop its count and map: Jobs' layout (owner 10-30,
-  // DeclutterBrowseView).
-  const tabsFor = (browse?: DeclutterBrowseHeader) => (
-    <SectionTabs
-      label="Declutter view"
-      browseCount={browse?.count}
-      onlySelected={browse?.onlySelected}
-      // The gear is LAST at the row's right end on every tab and width, as in Jobs (owner 2026-10-30).
-      end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>}
-      value={view}
-      onChange={(v) =>
-        setParams((p) => {
-          const next = new URLSearchParams(p);
-          next.delete("view");
-          next.delete("status");
-          if (v === "browse") next.delete("tab");
-          else next.set("tab", v);
-          return next;
-        }, { replace: true })
-      }
-      tabs={[
-        { value: "buying", label: "Buying", count: todo?.buying },
-        { value: "selling", label: "Selling", quiet: forSale, count: todo ? todo.selling + questions.count : undefined, countAsDot: true },
-        { value: "deliver", label: "Deliver" },
-        ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []),
-        { value: "free", label: "Free" },
-      ]}
-    />
-  );
-  // Browse draws its own section screen, so its tabs row can carry its search, filters, map toggle and count.
-  if (view === "browse") return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={user.id} tabs={tabsFor} top={<StrikeCount userId={user.id} />} /></Suspense>;
+  const goTab = (v: string) =>
+    setParams((p) => {
+      const next = new URLSearchParams(p);
+      next.delete("view");
+      next.delete("status");
+      if (v === "browse") next.delete("tab");
+      else next.set("tab", v);
+      return next;
+    }, { replace: true });
+  const sellingToDo = todo ? todo.selling + questions.count : undefined;
+  const lists: Array<{ value: Exclude<DeclutterTab, "browse">; label: string; count?: number; quiet?: number }> = [
+    { value: "buying", label: "Buying", count: todo?.buying },
+    { value: "selling", label: "Selling", quiet: forSale, count: sellingToDo },
+    { value: "deliver", label: "Deliver" },
+    ...(wantedOn ? [{ value: "wanted" as const, label: "Wanted" }] : []),
+    { value: "free", label: "Free" },
+  ];
+  // PHONE (owner 11-08, the Vinted header): the bar is "Search Declutter" (Filters inside it on Browse) with the bell
+  // and the photo; under it Browse's category chips, or a list's name and the way back. Buying, Selling and the rest,
+  // with their to-do counts, and the settings live in "My Declutter" under the photo; Sell is the floating pill.
+  // DESKTOP keeps its row: the tabs, then Browse's search, filters and map, and the gear last (Jobs, owner 2026-10-30).
+  const mine: SectionMineMenu = {
+    title: "My Declutter",
+    items: lists.map((l) => ({ key: l.value, label: l.label, to: `/declutter?tab=${l.value}`, count: l.count, quiet: l.quiet })),
+    settings: { label: DECLUTTER_SETTINGS.label, to: DECLUTTER_SETTINGS.path },
+  };
+  const chrome = (browse?: DeclutterBrowseHeader): DeclutterChrome => desktop ? {
+    tabs: (
+      <SectionTabs
+        label="Declutter view"
+        browseCount={browse?.count}
+        end={<>{browse?.end}<SectionSettingsButton settings={DECLUTTER_SETTINGS} /></>}
+        value={view}
+        onChange={goTab}
+        tabs={lists.map((l) => l.value === "selling" ? { ...l, countAsDot: true } : l)}
+      />
+    ),
+  } : {
+    search: browse?.search ?? <DeclutterSearchBar />,
+    mine,
+    tabs: browse ? browse.chips : <DeclutterListBack label={lists.find((l) => l.value === view)?.label ?? "Declutter"} onBack={() => goTab("browse")} />,
+  };
+  const fab = desktop ? undefined : <DeclutterSellFab />;
+  // Browse draws its own section screen, so its header can carry its search, filters, chips, map toggle and count.
+  if (view === "browse") return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={user.id} chrome={chrome} top={<StrikeCount userId={user.id} />} fab={fab} /></Suspense>;
+  const head = chrome(desktop ? { end: <ExploreSearchEntry variant="icon" /> } : undefined);
   return (
-    // LEAD-DECL-SEARCHBAR (owner 2026-10-31, Deliver at 375): no full-width "Search all sections" bar under the tabs
-    // on any tab. Every tab carries the same search as Jobs' 40px icon square, right before the gear (Browse's own
-    // "Search items" icon sits there too). LEAD-SEARCH-ALL-TABS (owner 2026-10-31): Buying and Selling too, matching
-    // Jobs (this replaces the 2026-10-28 call that left it off a member's own lists). Guard:
-    // src/components/declutter/sellingDash.test.tsx.
-    <SectionScreen section="declutter" title="Declutter" globalSearch={false} tabs={tabsFor({ end: <ExploreSearchEntry variant="icon" /> })}>
+    // LEAD-DECL-SEARCHBAR / LEAD-SEARCH-ALL-TABS (owner 2026-10-31): no "Search all sections" bar on any tab. Desktop:
+    // Jobs' 40px search square right before the gear. Phone (owner 11-08): the "Search Declutter" bar, which opens
+    // Browse's field. Guard: src/components/declutter/sellingDash.test.tsx.
+    <SectionScreen section="declutter" title="Declutter" globalSearch={false} search={head.search} mine={head.mine} fab={fab} tabs={head.tabs}>
       {/* Q2562 (lead 11-02): pt-3 = Browse's first line, 12px into its 44px Miles-from row; guard declutterTabs.test.tsx. */}
       <div data-declutter-tab-body="" className="flex flex-1 flex-col gap-4 pt-3">
       <StrikeCount userId={user.id} />

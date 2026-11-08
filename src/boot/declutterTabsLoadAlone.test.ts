@@ -13,7 +13,7 @@
  *     costs no extra network round; critical-path.mjs's /declutter rows walk those preload lists.
  *
  * @mutate src/components/declutter/DeclutterHomeView.tsx | import { useArrivalGate } from "@/hooks/useArrivalGate"; | import { useArrivalGate } from "@/hooks/useArrivalGate";\nimport { BuyingDash as _B } from "./DeclutterMineViews";
- * @mutate src/components/declutter/DeclutterHomeView.tsx | import type { DeclutterBrowseHeader } from "./DeclutterBrowseView"; | import { type DeclutterBrowseHeader } from "./DeclutterBrowseView";
+ * @mutate src/components/declutter/DeclutterHomeView.tsx | import type { DeclutterBrowseHeader, DeclutterChrome } from "./DeclutterBrowseView"; | import { type DeclutterBrowseHeader, type DeclutterChrome } from "./DeclutterBrowseView";
  * @mutate src/pages/declutter/DeclutterPage.tsx | import { lazy, Suspense, useEffect } from "react"; | import { lazy, Suspense, useEffect } from "react";\nimport "@/components/declutter/DeclutterTradeViews";
  * @mutate src/components/declutter/DeclutterHomeView.tsx | import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTabHeads"; | import { SectionHeading, StrikeCount, useDeclutterTodo } from "./DeclutterTabParts";
  * @mutate src/boot/declutterRoute.ts |   if (tab === "free") return () => import("@/components/declutter/DeclutterFreeView"); |

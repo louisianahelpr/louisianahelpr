@@ -9,6 +9,7 @@ import {
 import { whenPageSettled } from "@/lib/routePrefetch";
 import { prefetchNotificationList, prefetchOnIntent } from "./notificationFeed";
 import { report } from "@/lib/errorLogger";
+import { useBellMessagesUnread } from "./useBellMessagesUnread";
 
 /**
  * THE BELL, WITHOUT THE PANEL ON THE FIRST LOAD (B65, Home speed).
@@ -24,7 +25,7 @@ import { report } from "@/lib/errorLogger";
  * the panel is about to open (Q104): a hover, focus or touch on either bell
  * starts it, and so does the tap, before the panel's chunk has arrived.
  */
-type Panel = ComponentType<{ triggerClassName?: string; defaultOpen?: boolean }>;
+type Panel = ComponentType<{ triggerClassName?: string; defaultOpen?: boolean; withMessages?: boolean }>;
 
 let loaded: Panel | null = null;
 let pending: Promise<Panel | null> | null = null;
@@ -48,7 +49,11 @@ function loadPanel(): Promise<Panel | null> {
   return pending;
 }
 
-export default function NotificationBell({ triggerClassName }: { triggerClassName?: string }) {
+/**
+ * `withMessages` (owner 11-08, Declutter's Vinted top bar: only the bell and the photo): the bell is also the way to
+ * Messages, so its badge is notifications + messages unread, and the panel opens with a Messages row on top.
+ */
+export default function NotificationBell({ triggerClassName, withMessages = false }: { triggerClassName?: string; withMessages?: boolean }) {
   const [panel, setPanel] = useState<Panel | null>(() => loaded);
   const [openOnLoad, setOpenOnLoad] = useState(false);
   const { notifications, unreadTotal } = useSyncExternalStore(
@@ -56,6 +61,8 @@ export default function NotificationBell({ triggerClassName }: { triggerClassNam
     getNotificationSnapshot,
     getNotificationServerSnapshot,
   );
+
+  const messagesUnread = useBellMessagesUnread(withMessages);
 
   useEffect(() => {
     if (panel) return;
@@ -70,11 +77,12 @@ export default function NotificationBell({ triggerClassName }: { triggerClassNam
 
   if (panel) {
     const Loaded = panel;
-    return <Loaded triggerClassName={triggerClassName} defaultOpen={openOnLoad} />;
+    return <Loaded triggerClassName={triggerClassName} defaultOpen={openOnLoad} withMessages={withMessages} />;
   }
   return (
     <NotificationTrigger
-      unreadCount={bellUnreadCount({ notifications, unreadTotal })}
+      unreadCount={bellUnreadCount({ notifications, unreadTotal }) + messagesUnread}
+      withMessages={withMessages}
       className={triggerClassName}
       // What PopoverTrigger adds to the loaded panel's trigger, so the bell reads the same before and after.
       aria-haspopup="dialog"

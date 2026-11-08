@@ -4,6 +4,7 @@ import { AppTopBar } from "./AppTopBar";
 import { usePageTitle } from "@/hooks/usePageTitle";
 import { ExploreSearchEntry } from "./ExploreSearchEntry";
 import type { SectionKey } from "./sectionsConfig";
+import type { SectionMineMenu } from "./sectionMine";
 
 /**
  * A section's screen frame (owner, 2026-10-19): the shared top bar over a scrolling column. Same fixed-shell
@@ -21,6 +22,9 @@ export function SectionScreen({
   section,
   tabs,
   globalSearch = true,
+  search,
+  mine,
+  fab,
   children,
 }: {
   /** A section screen (not Home): draws the Explore header (chips row, tabs, search) above the scroll column. */
@@ -35,6 +39,16 @@ export function SectionScreen({
    * only where there is no section search.
    */
   globalSearch?: boolean;
+  /**
+   * THE VINTED HEADER (owner 11-08): on a phone the bar is this search (Filters inside it) with the bell (which holds
+   * Messages) and the photo beside it; no visible title (a visually hidden h1 keeps the page's name). `tabs` is then
+   * the row under it (Declutter: the category chips).
+   */
+  search?: ReactNode;
+  /** The section's "My …" menu under the photo (its lists, their to-do counts, its settings). */
+  mine?: SectionMineMenu;
+  /** A floating action (Declutter's "+ Sell"): drawn over the screen, with room under the last row so it covers none. */
+  fab?: ReactNode;
   children: ReactNode;
 }) {
   // D12 (Cowork audit 2026-10-20): every section screen names itself in the browser tab; a page that sets a more
@@ -42,20 +56,22 @@ export function SectionScreen({
   usePageTitle(`${title ?? "Dashboard"} — Helpr`);
   return (
     <AppShell scrollable={false} contentClassName="overflow-hidden" className="bg-premium-page pt-safe-top">
-      <div className="container mx-auto px-5 lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden">
+      {/* Declutter's Vinted header (owner 11-08) sits on 16px gutters; every other section keeps 20px. */}
+      <div className={`container mx-auto ${search !== undefined ? "px-4" : "px-5"} lg:px-6 xl:px-6 pb-0 flex-1 min-h-0 flex flex-col overflow-hidden`}>
         {section && (
           // py/gap = JobsSection's header stack (section-shell-alignment): the bar, 4px, the tabs, 4px, the search.
           <div data-explore-header="" className="explore-header page-measure w-full shrink-0 flex flex-col gap-1">
-            <AppTopBar title={title} explore section={section} />
+            <AppTopBar title={title} explore section={section} search={search} mine={mine} />
             {tabs}
             {globalSearch && <ExploreSearchEntry />}
           </div>
         )}
         <div data-app-page-scroll="" className="page-measure w-[calc(100%+1.5rem)] flex-1 min-h-0 overflow-y-auto px-3 -mx-3 pb-safe-nav">
           {!section && <AppTopBar title={title} />}
-          <div className="flex min-h-full flex-col gap-4 pt-1 pb-6">
+          <div className={`flex min-h-full flex-col gap-4 pt-1 ${fab ? "pb-20" : "pb-6"}`}>
             {children}
           </div>
+          {fab}
         </div>
       </div>
     </AppShell>

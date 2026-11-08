@@ -130,7 +130,7 @@ export function JobsListLoadingFrame({ header, tab }: { header: ReactNode; tab: 
     </div>
   );
   return (
-    <PageScaffold animate oneBlur titleCard={isWebDesktop ? undefined : head} titleCardClassName="">
+    <PageScaffold animate oneBlur tightGutter titleCard={isWebDesktop ? undefined : head} titleCardClassName="">
       {isWebDesktop && (
         <div className="shrink-0 -ml-px -mt-px pb-1" style={{ borderBottom: "1px solid hsl(var(--olivewood) / 0.12)" }}>
           {/* Same corner as Browse and JobListPage (tabs never move, owner 2026-10-25). */}
@@ -150,6 +150,7 @@ function BrowseFrame({ header }: { header: ReactNode }) {
   return (
     <PageScaffold
       animate
+      tightGutter
       panelElevation="raised"
       // No search row under the tabs on any width (owner 2026-10-28): Browse's search is an icon in the tabs row.
       titleCard={header}

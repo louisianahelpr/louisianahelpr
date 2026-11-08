@@ -370,7 +370,7 @@ const Activity = ({ defaultTab = "posted", embeddedHeader }: { defaultTab?: "pos
       <PageScaffold
         animate={!skeletonShownRef.current}
         titleCard={isWebDesktop ? undefined : headerEl}
-        titleCardClassName="" oneBlur
+        titleCardClassName="" oneBlur tightGutter
       >
           {isWebDesktop && (
             <div

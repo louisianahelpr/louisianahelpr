@@ -17,6 +17,11 @@ export type ContinueDay = {
   status: "proposed" | "set";
   helper_confirmed_at: string | null;
   /**
+   * Owner 11-08 (20261108160000): the first after photo added once the day's check-in window opened (2 hours before its
+   * start). Mark it done on a set day needs it when the job needs photos. Absent: an older read (no column yet).
+   */
+  new_after_photo_at?: string | null;
+  /**
    * Q2606 (owner): who asked for the day, read with the row (proposed_by against the job's poster). Every new day is
    * a proposal the OTHER side answers (answer_job_continue_day, 20261102102402). Absent (an older read, a gone
    * proposer) reads as the Helpr, the server's own fallback: the poster answers.
@@ -123,6 +128,29 @@ export function continueDayDoneNote(row: ContinueDay | null | undefined, now: Da
   if (!row || !continueDayAhead(row, now)) return null;
   return `You can mark it done on ${continueDayLabel(row.new_date, row.new_start_time).replace(/ at .*$/, "")}, the day you set to finish.`;
 }
+
+/**
+ * Owner 11-08: a SET day turns the tracker into the new day's (On my way, I've arrived, Start working, Mark it done
+ * again; day 1's stamps stay as history). The server reset the tracking row when the day was agreed.
+ */
+export function onContinueDay(row: Pick<ContinueDay, "status"> | null | undefined): boolean {
+  return row?.status === "set";
+}
+
+/**
+ * Owner 11-08 (20261108160000): on a SET day the job's done asks for an after photo
+ * from that day; day 1's photos stay on the job but no longer count. True while that photo is owed. An older read
+ * without the column (undefined) owes nothing here: the server still marks a done without the photo for the poster.
+ */
+export function continueDayOwesAfterPhoto(
+  row: Pick<ContinueDay, "status" | "new_after_photo_at"> | null | undefined,
+  requirePhotoProof: boolean | null | undefined,
+): boolean {
+  return row?.status === "set" && requirePhotoProof !== false && row.new_after_photo_at === null;
+}
+
+/** The sentence under a greyed Mark it done while the new day's after photo is owed. */
+export const CONTINUE_DAY_PHOTO_NOTE = "Add an after photo from today, then mark it done. Your earlier photos stay on the job.";
 
 /**
  * The job page's first line on a SET day: "Continuing Thu 11/5 at 9 AM" (null: day 1's line stands), the owner's own

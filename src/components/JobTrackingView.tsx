@@ -38,6 +38,7 @@ export function JobTrackingView(m: JobTrackingModel) {
     arrivalRefusal,
     confirmDoneOpen,
     continueDayNote,
+    continueDayPhotoNote,
     currentArrivalEvidence,
     currentArrivalState,
     currentStatusIdx,
@@ -406,6 +407,9 @@ export function JobTrackingView(m: JobTrackingModel) {
         // Greyed for the first 30 minutes (useDoneFloor); PayoutUnlockNote says when.
         const doneTooEarly = isDoneStep && doneFloorActive;
         const doneBeforeContinueDay = isDoneStep && !!continueDayNote;
+        // Owner 11-08: on the new day, Mark it done waits for an after photo from that day (the server's
+        // the server marks a done without one for the poster to check, 20261108160000); the photo chip beside it asks for one.
+        const doneNeedsNewDayPhoto = isDoneStep && !!continueDayPhotoNote;
 
         const needsBeforePhoto =
           nextStatus.key === "working" &&
@@ -425,7 +429,8 @@ export function JobTrackingView(m: JobTrackingModel) {
               // photograph "as it was when you got there" anyway.
               ?? (needsBeforePhoto ? BEFORE_PHOTO_GATE_REASON : null)
               ?? (needsProof ? requiredProof({ require_photo_proof: requirePhotoProof ?? true }).reason : null)
-              ?? (doneBeforeContinueDay ? continueDayNote : null);
+              ?? (doneBeforeContinueDay ? continueDayNote : null)
+              ?? (doneNeedsNewDayPhoto ? continueDayPhotoNote : null);
         // Amber, like the arrival gate: both are the helper being told what
         // blocks the next step, not a neutral status. The before-photo gate is
         // amber for the same reason and not the muted grey of a wait — it is
@@ -495,7 +500,7 @@ export function JobTrackingView(m: JobTrackingModel) {
          * twice. `JobStepPrimaryButton` is that one object; nothing about the
          * gates, the busy state or the confirm dialog moves. */
         const runNext = () => { if (isDoneStep) setConfirmDoneOpen(true); else void updateStatus(nextStatus.key); };
-        const ctaDisabled = updating || isLocked || needsArrival || needsBeforePhoto || needsProof || doneTooEarly || doneBeforeContinueDay;
+        const ctaDisabled = updating || isLocked || needsArrival || needsBeforePhoto || needsProof || doneTooEarly || doneBeforeContinueDay || doneNeedsNewDayPhoto;
         // Boards 62/64: the face (or an after-photo upload, afterPhotosLeadToDone) asked for THIS step; a greyed draw keeps it.
         // AUD31-79: only once the tracking row has settled; a first draw from the job row alone dropped the request.
         if (trackingSettled && !ctaDisabled && takeHelperStepRequest(jobId, nextStatus.key)) queueMicrotask(runNext);

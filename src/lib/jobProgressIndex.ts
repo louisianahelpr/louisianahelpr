@@ -52,6 +52,13 @@ export type JobProgressEvidence = {
   helperArrivalNearMissAt?: string | null;
   helperCompletedAt?: string | null;
   posterCompletedAt?: string | null;
+  /**
+   * Owner 11-08 (audit F2/F3): the job continues on a SET day. That day runs the steps again from On my way: day 1's
+   * departure and arrival stamps stay on the jobs row (first claim wins) but are history, not the new day's progress,
+   * and a tracking row still saying 'done' from day 1 (the server resets it when the day is agreed, 20261108160000)
+   * is not a completion while nobody has marked the job done.
+   */
+  onContinueDay?: boolean;
 };
 
 /**
@@ -75,17 +82,25 @@ export function deriveCurrentStatusIdx({
   helperConfirmedAt,
   helperDayofConfirmedAt,
   posterConfirmedAt,
-  helperOnTheWayAt,
-  helperArrivedAt,
-  posterConfirmedArrivalAt,
+  helperOnTheWayAt: onTheWayStamp,
+  helperArrivedAt: arrivedStamp,
+  posterConfirmedArrivalAt: posterArrivalStamp,
   helperCompletedAt,
   posterCompletedAt,
+  onContinueDay = false,
 }: JobProgressEvidence): number {
   // An unrecognised tracking status yields -1 from findIndex — treat that as
   // "no evidence" rather than letting it blank out the whole tracker.
-  const trackingIdx = trackingStatus
+  let trackingIdx = trackingStatus
     ? ((STATUS_IDX as Record<string, number>)[trackingStatus] ?? -1)
     : -1;
+  // The new day's guard (owner 11-08): a stale 'done' is not a completion, and day 1's stamps are history.
+  if (onContinueDay && trackingIdx === STATUS_IDX.done && !helperCompletedAt && !posterCompletedAt && jobStatus !== "completed") {
+    trackingIdx = STATUS_IDX.job_confirmed;
+  }
+  const helperOnTheWayAt = onContinueDay ? null : onTheWayStamp;
+  const helperArrivedAt = onContinueDay ? null : arrivedStamp;
+  const posterConfirmedArrivalAt = onContinueDay ? null : posterArrivalStamp;
 
   let jobIdx = -1;
   const atLeast = (idx: number) => { if (idx > jobIdx) jobIdx = idx; };

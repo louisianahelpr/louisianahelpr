@@ -111,6 +111,8 @@ CREATE TABLE public.jobs (
   helper_on_the_way_at timestamptz, helper_fee_percent numeric, helper_fee_flat_cents integer,
   cancelled_by uuid, cancelled_at timestamptz, cancellation_reason text, late_cancellation boolean,
   cancellation_fee numeric, cancellation_fee_status text);
+-- 20261108200000: poster_cancel_job reads a live continue day (a single job only; planned for every call).
+CREATE TABLE public.job_continue_days (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid, status text);
 CREATE TABLE public.group_job_helpers (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid NOT NULL REFERENCES public.jobs(id) ON DELETE CASCADE,
   helper_id uuid, status text NOT NULL DEFAULT 'accepted', joined_at timestamptz DEFAULT now(), slot_no integer, share_cents integer,

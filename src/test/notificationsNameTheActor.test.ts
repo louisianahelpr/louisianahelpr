@@ -17,7 +17,7 @@
  * Behaviour (the trigger, a block, the backfill, 3x replay): src/test/pglite/applicationNoticeNamesTheApplicant.pglite.mjs.
  *
  * @mutate supabase/migrations/20261102043115_job_notices_say_the_next_step.sql | v_message := COALESCE(v_applicant, 'Someone') \|\| ' applied to "' | v_message := 'Someone applied to "'
- * @mutate supabase/migrations/20261102045334_paid_tip_tells_the_helpr_once.sql | v_title := COALESCE(v_tipper, 'Someone') \|\| ' tipped you ' \|\| v_amount; | v_title := 'Someone tipped you ' \|\| v_amount;
+ * @mutate supabase/migrations/20261108201000_jobs_notices_email.sql | v_title := COALESCE(v_tipper, 'Someone') \|\| ' tipped you ' \|\| v_amount; | v_title := 'Someone tipped you ' \|\| v_amount;
  * @mutate supabase/functions/_shared/heldTipRepay.ts | message: `${tipperName} tipped you for a completed job. Thanks for the great work!`, | message: `Someone tipped you for a completed job. Thanks for the great work!`,
  */
 import { describe, it, expect } from "vitest";
@@ -192,7 +192,7 @@ describe("a notification with a known actor names them, never 'Someone' (owner 2
   });
 
   // Q2328 (owner 2026-10-21, issue #3515): the held notice names the reviewer too; the rating stays out of it.
-  // @mutate supabase/migrations/20261102230737_review_held_notice_names_reviewer.sql |     v_msg := v_reviewer_name \|\| ' reviewed you for "' | v_msg := 'Someone reviewed you for "'
+  // @mutate supabase/migrations/20261108201000_jobs_notices_email.sql |     v_msg := v_reviewer_name \|\| ' reviewed you for "' | v_msg := 'Someone reviewed you for "'
   it("both review notices name the reviewer; the held one gives no rating", () => {
     const body = blankSqlComments(defs.get("notify_user_on_review")!.stmt);
     expect(sqlSomeoneOffences(body)).toEqual([]);

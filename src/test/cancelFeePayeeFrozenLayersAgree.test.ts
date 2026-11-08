@@ -10,7 +10,7 @@
  * Behaviour: src/test/pglite/cancelFeeWaivedPayeeUnderReview.pglite.mjs and
  * src/test/edge/posterCancelQuoteMatchesRefund.test.ts (quote == sweep refund for a frozen Helpr).
  *
- * @mutate supabase/migrations/20261102074317_cancel_fee_waived_payee_under_review.sql |     INSERT INTO public.job_cancel_id_waivers (job_id, reason) VALUES (v_job.id, 'payee_frozen') ON CONFLICT (job_id) DO NOTHING; |     NULL;
+ * @mutate supabase/migrations/20261108200000_poster_cancel_refused_once_work_started.sql |     INSERT INTO public.job_cancel_id_waivers (job_id, reason) VALUES (v_job.id, 'payee_frozen') ON CONFLICT (job_id) DO NOTHING; |     NULL;
  * @mutate supabase/functions/create-payment/index.ts | await supabaseAdmin.rpc("cancel_fee_payee_frozen", { p_user: qJob.helper_id }) | { data: false, error: null }
  * @mutate supabase/functions/void-cancelled-payments/index.ts |         .from("job_cancel_id_waivers") |         .from("job_cancel_waivers_gone")
  * @mutate supabase/functions/_shared/crewShares.ts |   const pct = cancellationFeePercent(committed, hoursUntilStart); |   const pct = cancellationFeePercent(true, hoursUntilStart);

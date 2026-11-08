@@ -172,11 +172,6 @@ function HomeDashboardScreen() {
             {/* Q2008: faces of opted-in members in your parish, "active now" dot; nothing until one opts in. */}
             <HelprsNearYou userId={user?.id} />
 
-            {/* Board 189: before a member's first job (never applied), the first-job checklist and jobs near them. */}
-            {/* A3-82: not for a member who came to sell or buy on Declutter (a Jobs checklist above Next up is noise). */}
-            {firstJob?.isNew && !summary.usesDeclutter && <FirstJobHome profile={profile} alertsOff={firstJob.alertsOff} />}
-            {/* UX-5: the poster's first week (posted, hired, approved) until a posted job is finished. */}
-            {firstJob && !firstJob.isNew && <PosterFirstJobCard userId={user?.id} />}
 
             {/* LIVE NOW (board 165, spec v2 §5.1): only while a job of mine, either side, is happening. */}
             {summary.liveNow && (() => {
@@ -381,6 +376,13 @@ function HomeDashboardScreen() {
               )}
             </GroupSection>
             )}
+
+            {/* Design audit A D2 (owner approved 11-08): "Needs you" comes first, the first-week checklist after it as one
+                progress line. Board 189: before a member's first job, the first-job checklist and jobs near them.
+                A3-82: not for a member who came to sell or buy on Declutter. */}
+            {firstJob?.isNew && !summary.usesDeclutter && <FirstJobHome profile={profile} alertsOff={firstJob.alertsOff} />}
+            {/* UX-5: the poster's first week (posted, hired, approved) until a posted job is finished. */}
+            {firstJob && !firstJob.isNew && <PosterFirstJobCard userId={user?.id} />}
             </>}
           </div>
 

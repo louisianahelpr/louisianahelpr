@@ -86,6 +86,10 @@ export const NOTIFICATION_TYPE_MAP: Record<string, { prefCol: string; category: 
   declutter_price_drops: { prefCol: 'email_declutter_price_drops', category: 'declutter_price_drops' },
   declutter_wanted:      { prefCol: 'email_declutter_wanted',      category: 'declutter_wanted' },
   declutter_questions:   { prefCol: 'email_declutter_questions',   category: 'declutter_questions' },
+  // Shops (20261108201153, shops audit 11-08 #6): orders, shop chat messages, the shop's own updates.
+  shops_orders:          { prefCol: 'email_shops_orders',          category: 'shops_orders' },
+  shops_messages:        { prefCol: 'email_shops_messages',        category: 'shops_messages' },
+  shops_updates:         { prefCol: 'email_shops_updates',         category: 'shops_updates' },
 }
 
 /** The route for a type nobody mapped: the platform-alerts switch, logged as System. */

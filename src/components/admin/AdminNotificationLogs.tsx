@@ -61,6 +61,9 @@ const CATEGORY_LABEL: Record<string, string> = {
   declutter_price_drops: "Declutter Price Drops",
   declutter_wanted: "Declutter Wanted",
   declutter_questions: "Declutter Questions",
+  shops_orders: "Shops Orders",
+  shops_messages: "Shops Messages",
+  shops_updates: "Shops Updates",
   system: "System",
 };
 

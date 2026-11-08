@@ -22,6 +22,7 @@
  * the page replaces it).
  */
 import AppPage from "@/components/AppPage";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RentalsCard } from "./rentalsUi";
@@ -34,11 +35,14 @@ import { LISTING_GRID, ListingCardBone } from "./listings/listingBones";
  * their real titles, each with one card bone where its first card lands.
  */
 export function RentalsHomeSkeleton() {
+  const desktop = useIsWebDesktop();
+  // Phone (owner 11-08, the Vinted header): the search row's bone sits in the bar; no tabs bone (they live in My Homes).
   return (
-    <SectionScreen section="homes" title="Homes" tabs={<Skeleton className="h-11 w-full rounded-ds-md" aria-hidden />}>
+    <SectionScreen section="homes" title="Homes" search={desktop ? undefined : <Skeleton className="h-11 w-full rounded-full" aria-hidden />}
+      tabs={desktop ? <Skeleton className="h-11 w-full rounded-ds-md" aria-hidden /> : undefined}>
       <div className="space-y-4" role="status" aria-label="Loading Homes">
         <div className="space-y-4">
-          <Skeleton className="h-10 w-full rounded-full" aria-hidden />
+          {desktop && <Skeleton className="h-10 w-full rounded-full" aria-hidden />}
           <div className={LISTING_GRID}>
             <ListingCardBone />
             <ListingCardBone />

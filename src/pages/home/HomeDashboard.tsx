@@ -9,6 +9,7 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Button } from "@/components/ui/button";
 import { Navigate, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { SectionScreen } from "@/components/sections/SectionScreen";
+import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
 import { GroupSection, GroupRow } from "@/components/sections/StatusBoxes";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useSectionTabs, openingSoonLine } from "@/components/mobileNav/useSectionTabs";
@@ -127,7 +128,9 @@ function HomeDashboardScreen() {
   const moneyReserve = useReservedHeight(user ? `money-main:${user.id}` : null, !!money.pending, () => document.querySelector<HTMLElement>('[data-home-money="main"]'));
 
   return (
-    <SectionScreen>
+    // The Vinted header (owner 11-08): no search on Dashboard, so the bar keeps the logo with only the bell (which holds
+    // Messages) and the photo; "+ Create" floats over the page and opens the Create sheet.
+    <SectionScreen search={null} fab={<SectionCreateFab />}>
       <div data-testid="home-dashboard" className="flex flex-col gap-section">
         {/* The H logo sits in the top bar above this (owner, 2026-10-20 08:30Z: keep it on phone Home). */}
         {/* ONE header row (owner 2026-10-21): on the desktop website the greeting is the bar's title

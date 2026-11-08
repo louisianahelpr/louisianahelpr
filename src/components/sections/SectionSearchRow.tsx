@@ -1,4 +1,6 @@
 import type { FormEvent, RefObject } from "react";
+import { createPortal } from "react-dom";
+import { useHeaderSearchSlot } from "./headerSearchSlot";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 
 /**
@@ -52,18 +54,21 @@ export function SectionSearchRow({
   testId?: string;
 }) {
   const active = filterCount > 0;
+  // Owner 11-08 (the Vinted header): on a phone section screen that opened its bar's search slot, the row draws there.
+  const slot = useHeaderSearchSlot();
   const submit = (e: FormEvent) => {
     e.preventDefault();
     onSubmit?.();
   };
-  return (
+  const row = (
     <form
       role="search"
       aria-label={searchLabel ?? placeholder}
       onSubmit={submit}
       data-section-search=""
       data-testid={testId}
-      className="flex items-center gap-2 h-10 pl-3.5 pr-1 rounded-full border border-border bg-card focus-within:outline focus-within:outline-2 focus-within:outline-offset-0 focus-within:outline-[hsl(var(--ring))]"
+      data-in-header={slot ? "" : undefined}
+      className="flex items-center gap-2 h-10 data-[in-header]:h-11 pl-3.5 pr-1 rounded-full border border-border bg-card focus-within:outline focus-within:outline-2 focus-within:outline-offset-0 focus-within:outline-[hsl(var(--ring))]"
     >
       <Search className="w-[18px] h-[18px] text-muted-foreground shrink-0" aria-hidden />
       <input
@@ -98,4 +103,5 @@ export function SectionSearchRow({
       </button>}
     </form>
   );
+  return slot ? createPortal(row, slot) : row;
 }

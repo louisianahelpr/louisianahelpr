@@ -6,7 +6,6 @@
  *
  * @mutate src/components/ui/GlassTileButton.tsx | const GLASS_TILE = "btn-press liquid-glass text-left flex flex-col min-w-0"; | const GLASS_TILE = "btn-press liquid-glass text-left flex flex-col min-w-0 rounded-xl";
  * @mutate src/components/ui/GlassTileButton.tsx |     <button ref={ref} type="button" {...props} | <button ref={ref} {...props}
- * @mutate src/pages/home/HomeDashboard.tsx |                     className="p-card lg:p-4 gap-1 lg:gap-0.5" |                     className="p-card lg:p-4 gap-1"
  * @mutate src/components/profile/profileLanding/YourActivity.tsx |                 className="px-4 py-3" |                 className="px-4"
  * @mutate src/pages/home/homeDashboard/HomeMoneyTiles.tsx |       className={`p-card lg:p-4 gap-0.5 ${span}`} |       className={`p-card gap-0.5 ${span}`}
  */
@@ -25,11 +24,11 @@ const classOf = (className: string) => {
 const literal = (file: string, re: RegExp) => readFileSync(file, "utf8").match(re)?.[1] ?? "<missing>";
 
 describe("Home's glass tiles are the shared GlassTileButton, class for class the hand-made look", () => {
-  it("section tile: the same class set as the hand-made button", () => {
-    const own = literal("src/pages/home/HomeDashboard.tsx", /data-section-tile=\{s\.key\}[\s\S]*?className="([^"]+)"/);
-    const { cls, type } = classOf(own);
-    expect(set(cls)).toEqual(set("btn-press liquid-glass text-left p-card lg:p-4 flex flex-col gap-1 lg:gap-0.5 min-w-0"));
-    expect(type).toBe("button");
+  // The section tiles became a chip row (design audit A D4, owner approved 11-08): no glass tile on HomeDashboard now.
+  it("Dashboard's sections are chips, not glass tiles, and keep no hand-made one", () => {
+    const home = readFileSync("src/pages/home/HomeDashboard.tsx", "utf8");
+    expect(home).toContain('<div data-section-chips="" className="flex flex-wrap gap-2">');
+    expect(home).not.toMatch(/<button[^>]*>?[^<]*liquid-glass/);
   });
 
   it("money tile: the same class set as the hand-made button (span passed through)", () => {
@@ -44,7 +43,7 @@ describe("Home's glass tiles are the shared GlassTileButton, class for class the
   });
 
   it("no file keeps a hand-made glass tile", () => {
-    for (const f of ["src/pages/home/HomeDashboard.tsx", "src/pages/home/homeDashboard/HomeMoneyTiles.tsx", "src/components/profile/profileLanding/YourActivity.tsx"]) {
+    for (const f of ["src/pages/home/homeDashboard/HomeMoneyTiles.tsx", "src/components/profile/profileLanding/YourActivity.tsx"]) {
       expect(readFileSync(f, "utf8")).not.toMatch(/<button[^>]*>?[^<]*liquid-glass/);
       expect(readFileSync(f, "utf8")).toContain("<GlassTileButton");
     }

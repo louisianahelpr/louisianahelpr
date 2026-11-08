@@ -24,6 +24,11 @@ import { BrowseEmptyState } from "@/components/ui/BrowseEmptyState";
 import { OfflineEmptyState } from "@/components/ui/OfflineEmptyState";
 import { useFeedPhase } from "@/hooks/useFeedPhase";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
+import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
+import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
+import { SectionListBack } from "@/components/sections/SectionListBack";
+import type { SectionMineMenu } from "@/components/sections/sectionMine";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { useSectionPreview } from "@/components/sections/ExploreSwitcher";
 import ShopMyOrdersView from "./ShopMyOrdersView";
 import ShopDashboardView from "./ShopDashboardView";
@@ -106,12 +111,23 @@ function ShopSettings() {
   );
 }
 
+const MY_SHOPS: SectionMineMenu = { title: "My Shops", items: SHOPS_TABS.map((t) => ({ key: t.value, label: t.label, to: `/shops?tab=${t.value}` })) };
+
 export default function ShopsHomeView() {
   const [tab, setTab] = useSectionTab(SHOPS_TAB_VALUES);
-  const tabs = <SectionTabs label="Shops" tabs={SHOPS_TABS} value={tab} onChange={setTab} />;
+  const desktop = useIsWebDesktop();
+  // PHONE (owner 11-08, the Vinted header): Browse's "Search shops" row draws itself in the bar (searchSlot) beside
+  // the bell and the photo; Orders and Shop live in "My Shops" under the photo, and a list names itself with the way
+  // back to Browse; "+ Open a shop" floats. DESKTOP keeps its tabs row.
+  const listLabel = SHOPS_TABS.find((t) => t.value === tab)?.label;
+  const tabs = desktop
+    ? <SectionTabs label="Shops" tabs={SHOPS_TABS} value={tab} onChange={setTab} />
+    : listLabel ? <SectionListBack label={listLabel} onBack={() => setTab("browse")} /> : undefined;
   return (
-    // ONE search on Browse ("Search shops"); Explore's "Search all sections" only on the other tabs (owner 2026-10-21).
-    <SectionScreen section="shops" title="Shops" tabs={tabs} globalSearch={tab !== "browse"}>
+    // ONE search on Browse ("Search shops"); Explore's "Search all sections" only on the other tabs on desktop (owner 2026-10-21).
+    <SectionScreen section="shops" title="Shops" tabs={tabs} globalSearch={desktop && tab !== "browse"}
+      searchSlot={tab === "browse"} search={desktop || tab === "browse" ? undefined : <SectionSearchBar noun="shops" home="/shops" />}
+      mine={desktop ? undefined : MY_SHOPS} fab={desktop ? undefined : <SectionCreateFab section="shops" text="Open a shop" />}>
       {tab === "orders" ? (
         <ShopMyOrdersView embedded />
       ) : tab === "shop" ? (

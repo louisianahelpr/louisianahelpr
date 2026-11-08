@@ -13,6 +13,11 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { SectionScreen } from "@/components/sections/SectionScreen";
 import { SectionTabs, useSectionTab } from "@/components/sections/SectionTabs";
+import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
+import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
+import { SectionListBack } from "@/components/sections/SectionListBack";
+import type { SectionMineMenu } from "@/components/sections/sectionMine";
+import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { StatusBoxes, useStatusFilter } from "@/components/sections/StatusBoxes";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -361,12 +366,14 @@ const HOMES_TABS = [
   { value: "own", label: "Owning" },
 ] as const;
 const HOMES_TAB_VALUES = HOMES_TABS.map((t) => t.value);
+const MY_HOMES: SectionMineMenu = { title: "My Homes", items: HOMES_TABS.map((t) => ({ key: t.value, label: t.label, to: `/rentals?tab=${t.value}` })) };
 const RENT_GROUPS = ["waiting", "approved", "closed"] as const;
 const OWN_GROUPS = ["needs", "repairs", "properties"] as const;
 const requestGroup = (r: MaintenanceRequest) => (r.status === "submitted" ? "waiting" : r.status === "approved" ? "approved" : "closed");
 
 export default function RentalsHomeView() {
   const [tab, setTab] = useSectionTab(HOMES_TAB_VALUES);
+  const desktop = useIsWebDesktop();
   const [params, setParams] = useSearchParams();
   const [rentStatus, toggleRent] = useStatusFilter(RENT_GROUPS);
   const [ownStatus, toggleOwn] = useStatusFilter(OWN_GROUPS);
@@ -405,11 +412,23 @@ export default function RentalsHomeView() {
   const refresh = () => qc.invalidateQueries({ queryKey: ["rentals-home", uid] });
 
   // The page's own loading state is the gate's frame (RentalsSkeletons.tsx), so nothing moves between them.
-  const tabs = <SectionTabs label="Homes" tabs={HOMES_TABS} value={tab} onChange={setTab} />;
+  // PHONE (owner 11-08, the Vinted header): Browse's "City or ZIP" row draws itself in the bar (searchSlot) beside the
+  // bell and the photo; Renting and Owning live in "My Homes" under the photo, a list names itself with the way back
+  // to Browse, and "+ Add a property" floats. DESKTOP keeps its tabs row.
+  const listLabel = HOMES_TABS.find((t) => t.value === tab)?.label;
+  const tabs = desktop
+    ? <SectionTabs label="Homes" tabs={HOMES_TABS} value={tab} onChange={setTab} />
+    : listLabel ? <SectionListBack label={listLabel} onBack={() => setTab("browse")} /> : undefined;
+  const phone = desktop ? {} : {
+    search: tab === "browse" ? undefined : <SectionSearchBar noun="homes" home="/rentals" />,
+    searchSlot: tab === "browse",
+    mine: MY_HOMES,
+    fab: <SectionCreateFab section="homes" text="Add a property" />,
+  };
   if (tab === "browse") {
     return (
       // ONE search on Browse (the listings' "City or ZIP" row), never Explore's above it (owner 2026-10-21).
-      <SectionScreen section="homes" title="Homes" tabs={tabs} globalSearch={false}>
+      <SectionScreen section="homes" title="Homes" tabs={tabs} globalSearch={false} {...phone}>
         <HomesBrowse />
       </SectionScreen>
     );
@@ -421,7 +440,7 @@ export default function RentalsHomeView() {
   const landlordOther = mineAsLandlord.filter((r) => r.status !== "submitted");
   const showOwn = (g: (typeof OWN_GROUPS)[number]) => ownStatus === null || ownStatus === g;
   return (
-    <SectionScreen section="homes" title="Homes" tabs={tabs}>
+    <SectionScreen section="homes" title="Homes" tabs={tabs} globalSearch={desktop} {...phone}>
       {data.isError || !data.data ? (
         <ErrorState onRetry={() => data.refetch()} />
       ) : (

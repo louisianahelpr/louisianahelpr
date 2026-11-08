@@ -196,6 +196,7 @@ export function AppTopBar({
    * pill (SectionCreateFab). Guard: src/test/declutterHeaderVinted.test.tsx.
    */
   search?: ReactNode;
+  // `search={null}` (Dashboard, which has no search): the same slim right side, with the title or logo on the left.
   /** The section's "My …" menu, opened from the photo (which wears a dot while any row has a to-do). */
   mine?: SectionMineMenu;
 }) {
@@ -251,7 +252,7 @@ export function AppTopBar({
       desktopGap={desktopGap}
       phone={
         <header className="app-top-bar flex items-center justify-between gap-2 h-16" data-testid="app-top-bar" data-top-bar-search={slim ? "" : undefined}>
-          {slim ? (
+          {slim && search ? (
             <>
               {title && <h1 className="sr-only">{title}</h1>}
               <div className="min-w-0 flex-1">{search}</div>

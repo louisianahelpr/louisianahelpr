@@ -39,7 +39,7 @@ export const HOMES_OPENS_SOON_BODY = "Homes opens here soon. Until then, hire he
  */
 function HomesOpensSoon() {
   return (
-    <SectionScreen section="homes" title="Homes" globalSearch={false}>
+    <SectionScreen section="homes" title="Homes" globalSearch={false} search={null}>
       <BrowseEmptyState
         icon={KeyRound}
         title="Opens soon"

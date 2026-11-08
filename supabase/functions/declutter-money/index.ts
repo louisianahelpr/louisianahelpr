@@ -396,7 +396,7 @@ serve(async (req) => {
     shop_expired: 0, shop_holds_released: 0, shop_captures: 0, shop_capture_retries: 0, shop_holds_lost: 0,
     shop_balances_paid: 0, shop_balances_to_buyer: 0, shop_balance_retries: 0, shop_balances_lapsed: 0, shop_unpaid_close_tax: 0,
     shop_handed_over: 0, shop_payouts_sent: 0, shop_payouts_reconciled: 0, shop_payouts_failed: 0,
-    shop_no_photo_refunded: 0, shop_refunds_sent: 0, shop_refunds_reconciled: 0, shop_refunds_failed: 0,
+    shop_no_photo_refunded: 0, shop_preorder_refunded: 0, shop_refunds_sent: 0, shop_refunds_reconciled: 0, shop_refunds_failed: 0,
   };
 
   // Payouts a payee cannot receive yet (/code-review of f6551863a, 20261019070737). Every row a
@@ -796,6 +796,15 @@ serve(async (req) => {
     const noPhoto = await admin.rpc("shop_refund_sweep", {});
     if (noPhoto.error) defects.record(`shop_refund_sweep failed: ${noPhoto.error.message}`);
     else out.shop_no_photo_refunded = Number((noPhoto.data as { no_ready_photo_refunded?: number } | null)?.no_ready_photo_refunded ?? 0);
+    // Preorders (20261108184654): goal met / goal missed (every paid preorder refunded in full) / late warning / 7 days
+    // late (refunded). The SQL writes the refund rows under each order's lock; shop_refunds_due below sends them.
+    const preorders = await admin.rpc("shop_preorder_sweep", {});
+    if (preorders.error && (preorders.error as { code?: string }).code !== "PGRST202") {
+      defects.record(`shop_preorder_sweep failed: ${preorders.error.message}`);
+    } else if (!preorders.error) {
+      const p = (preorders.data ?? {}) as { goal_missed_refunds?: number; late_refunds?: number };
+      out.shop_preorder_refunded = Number(p.goal_missed_refunds ?? 0) + Number(p.late_refunds ?? 0);
+    }
     const dueRefunds = await admin.rpc("shop_refunds_due", { p_limit: BATCH });
     if (dueRefunds.error) defects.record(`shop_refunds_due failed: ${dueRefunds.error.message}`);
     for (const r of (dueRefunds.data ?? []) as ShopRefundRow[]) {

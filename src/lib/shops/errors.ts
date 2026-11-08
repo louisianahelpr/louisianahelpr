@@ -256,6 +256,27 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   comment_too_long: "Keep the review to 1,000 characters.",
   review_contact_info: "Reviews can't include phone numbers, emails or links.",
   already_reviewed: "You already reviewed this order.",
+  // Preorders (20261108184654): the shop's settings.
+  preorder_running: "This item has open preorders. You can move the ready-by date once, or change the preorder after they're done.",
+  preorder_kind: "Only things you make, home-kitchen food and farm items can be preordered.",
+  preorder_options: "Items with options (like sizes) can't be preordered yet.",
+  preorder_stock: "Turn off \"I have some ready now\" first. A preorder uses its own limit instead.",
+  preorder_ready_by: "Pick a ready-by date from tomorrow to 120 days out.",
+  preorder_goal: "A goal needs both a number (2 to 1,000) and a date.",
+  preorder_goal_by: "Pick a goal date between today and the ready-by date.",
+  preorder_cap: "Set a limit from 1 to 1,000, and at least the goal.",
+  not_a_preorder: "This item has no running preorder.",
+  preorder_already_moved: "The ready-by date can be moved only once.",
+  preorder_too_late: "It's too late to move this date. Buyers whose orders aren't marked ready get refunded automatically.",
+  preorder_push_range: "Move the date later, by 30 days at most.",
+  // The shop's ready tap opens 14 days before ready-by (money review 11-08).
+  preorder_not_ready_yet: "You can mark a preorder ready from 14 days before its ready-by date.",
+  // The buyer's preorder and its cancel.
+  preorder_closed: "This preorder is closed.",
+  preorder_full: "Not that many are left to preorder. Lower the number and try again.",
+  preorder_use_preorder_checkout: "This item is a preorder. Order it on its own as a preorder.",
+  preorder_ready: "The shop already marked this order ready, so it can't be cancelled.",
+  use_preorder_cancel: "This is a preorder. Cancel it with Cancel preorder on the order.",
 };
 
 /** shop-checkout's own answers (not RPC codes). */

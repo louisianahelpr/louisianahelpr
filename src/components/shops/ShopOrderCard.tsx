@@ -196,7 +196,12 @@ export function ShopOrderCard({
         <p className="shrink-0 text-sm font-semibold">{formatCents(side === "buyer" ? order.total_cents : shopGets)}</p>
       </div>
       <p className="text-xs text-muted-foreground">{orderStatusLabel(order, side)}</p>
-      <p className="text-sm">Ready {readyDateText(order.ready_date)}</p>
+      <p className="text-sm">{order.preorder_item_id ? "Preorder, ready by" : "Ready"} {readyDateText(order.ready_date)}</p>
+      {order.preorder_item_id && order.preorder_moved_at && order.status === "accepted" && (
+        <p className="text-xs font-semibold" data-testid="shop-preorder-moved">
+          {side === "buyer" ? "The shop moved the date. If it doesn't work for you, cancel for a full refund." : "You moved this date. The buyer can cancel for a full refund."}
+        </p>
+      )}
       <ul className="text-sm text-muted-foreground">
         {order.shop_order_lines.map((l) => (
           <li key={l.id} className="[overflow-wrap:anywhere]">
@@ -217,7 +222,7 @@ export function ShopOrderCard({
           Items {formatCents(order.items_cents)} + service fee {formatCents(order.premium_cents)}
           {delivered ? ` + delivery ${deliveryCents > 0 ? formatCents(deliveryCents) : "(free)"}` : ""}
           {byHelpr ? ` + Helpr delivery ${formatCents(deliveryCents)}` : ""}
-          {order.tax_cents > 0 ? ` + tax ${formatCents(order.tax_cents)}` : ""}. {cancelPolicyText(order.cancel_policy, order.ready_tap_cancel).label}.
+          {order.tax_cents > 0 ? ` + tax ${formatCents(order.tax_cents)}` : ""}. {order.preorder_item_id ? "You can cancel until the shop marks it ready" : cancelPolicyText(order.cancel_policy, order.ready_tap_cancel).label}.
         </p>
       ) : (
         <p className="text-xs text-muted-foreground">

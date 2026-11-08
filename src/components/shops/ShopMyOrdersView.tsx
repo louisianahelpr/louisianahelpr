@@ -22,7 +22,7 @@ import { ShopTalkFromLink } from "./ShopTalk";
 import { ShopHandoverActions } from "./ShopHandoverActions";
 import { StatusBoxes, useStatusFilter } from "@/components/sections/StatusBoxes";
 import { OrderGroup } from "./shopsUi";
-import { BuyerCancelOrder } from "./ShopOrderCancel";
+import { BuyerCancelOrder, BuyerCancelPreorder } from "./ShopOrderCancel";
 import ShopCustomRequestsList from "./ShopCustomRequestsList";
 
 /** The buyer's order groups under Shops > Orders (owner, 2026-10-19). */
@@ -82,7 +82,7 @@ export default function ShopMyOrdersView({ embedded = false }: { embedded?: bool
         </Button>
       )}
       {(o.status === "accepted" || o.status === "handed_over") && <ShopHandoverActions order={o} side="buyer" userId={uid} />}
-      {o.status === "accepted" && <BuyerCancelOrder order={o} />}
+      {o.status === "accepted" && (o.preorder_item_id ? <BuyerCancelPreorder order={o} /> : <BuyerCancelOrder order={o} />)}
     </ShopOrderCard>
   );
   const Frame = embedded ? EmbeddedFrame : StandaloneFrame;

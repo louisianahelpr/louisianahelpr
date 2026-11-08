@@ -1,7 +1,6 @@
 /** Types for src/lib/homeGreetingShell.mjs (HomeDashboard, sign-out, scripts/inline-shell-css.mjs). */
 export const GREETING_NAME_KEY: string;
 export const GREETING_TITLE_CLASS: string;
-export const GREETING_DATE_CLASS: string;
 export const GREETING_SHELL_MARKUP: string;
 export function greetingFor(d?: Date): string;
 export function greetingDate(d?: Date): string;

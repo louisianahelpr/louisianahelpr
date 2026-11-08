@@ -17,12 +17,14 @@
 /** localStorage key: JSON {"u": <user id>, "n": <first name>}. One entry, so an account switch overwrites it. */
 export const GREETING_NAME_KEY = "helpr_greeting_name";
 
-/** HomeDashboard's phone greeting: the h1 and the date line under it. */
-export const GREETING_TITLE_CLASS = "font-moment text-page-title text-foreground";
-export const GREETING_DATE_CLASS = "text-ds-14 text-muted-foreground mt-0.5";
+/**
+ * HomeDashboard's phone greeting (a <p>; the page's h1 is hidden, as on every Vinted-header screen): ONE 20px line under the search bar (design audit A D1, owner 11-08: the big Bodoni
+ * greeting and its date line gave way to the Vinted header). The desktop website still shows the date (greetingDate).
+ */
+export const GREETING_TITLE_CLASS = "text-ds-20 font-bold leading-tight text-foreground";
 
 /** The markup the inline script draws (empty text), for the CSS inliner's first-frame inventory. */
-export const GREETING_SHELL_MARKUP = `<div><h1 class="${GREETING_TITLE_CLASS}"></h1><p class="${GREETING_DATE_CLASS}"></p></div>`;
+export const GREETING_SHELL_MARKUP = `<div><p class="${GREETING_TITLE_CLASS}"></p></div>`;
 
 /** "Good morning" before noon, "Good afternoon" before 5 PM, else "Good evening" (local time). */
 export function greetingFor(d = new Date()) {

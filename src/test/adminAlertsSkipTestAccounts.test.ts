@@ -35,6 +35,7 @@
 // @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |   IF NOT (public.is_test_subject(_uid) OR public.is_test_subject(_customer) OR public.is_test_subject(_helper)) THEN |   IF true THEN
 // @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |                     WHERE NOT d.is_seed AND d.status = 'handed_over'\n                      AND NOT public.is_test_subject(d.buyer_id) AND NOT public.is_test_subject(d.seller_id) |                     WHERE NOT d.is_seed AND d.status = 'handed_over'
 // @mutate supabase/migrations/20261030150104_admin_alerts_skip_test_gaps.sql |     OR public.is_test_subject(_opener_id); |     OR false;
+// @mutate supabase/migrations/20261108185110_shops_digital_checkout.sql |   IF NOT (o.is_seed OR public.is_test_subject(o.buyer_id) OR public.is_test_subject(o.seller_id)) THEN\n    FOR a IN SELECT DISTINCT ur.user_id FROM public.user_roles ur WHERE ur.role = 'admin' LOOP\n      PERFORM public.declutter_notify(a.user_id, 'warning', 'Shops download problem reported', |   IF NOT (o.is_seed) THEN\n    FOR a IN SELECT DISTINCT ur.user_id FROM public.user_roles ur WHERE ur.role = 'admin' LOOP\n      PERFORM public.declutter_notify(a.user_id, 'warning', 'Shops download problem reported',
 import { describe, it, expect } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -79,6 +80,9 @@ const ADMIN_NOTIFIERS: Record<string, Kind> = {
   settle_one_off_jobs_for_banned_account: "link",
   shop_refund_sweep: "explicit",
   shop_helpr_answer_no_show: "explicit", // 20261106211136 (Shops Helpr delivery): the Helpr answers a shop's "didn't come"; is_seed on the order, is_test_subject on buyer, shop and caller
+  // 20261108185110 (Shops digital downloads): a buyer reports a broken file; o.is_seed and is_test_subject on buyer and
+  // seller before the admin notice.
+  shops_report_digital_problem: "explicit",
   shop_handover_sweep: "explicit", // 20261105182903 (Shops H5): the held-order nudge and 60-day admin alert; is_seed, test_accounts and is_test_subject on buyer and seller
   shops_report_not_received: "caller",
   sweep_idv_review_waiting: "link",

@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { HiddenFileInput } from "@/components/ui/HiddenFileInput";
 import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import {
@@ -80,10 +81,8 @@ export default function ShopDigitalFiles({ itemId }: { itemId: string }) {
       {!full && (
         <label className="inline-flex">
           <span className="sr-only">Add a file</span>
-          <input
-            type="file"
+          <HiddenFileInput
             accept={DIGITAL_FILE_ACCEPT}
-            className="sr-only"
             disabled={busy}
             onChange={(e) => {
               const f = e.target.files?.[0];

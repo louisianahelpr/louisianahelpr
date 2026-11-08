@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { InlineTextButton } from "@/components/ui/InlineTextButton";
@@ -69,6 +70,7 @@ function BuyerFiles({ order }: { order: ShopOrder }) {
   if (files.isError) {
     return (
       <div role="alert" className="space-y-1">
+        <ReportErrorScreen source="ShopDigitalOrder.files" title="We couldn't load your download." />
         <p className="text-sm">We couldn't load your download.</p>
         <Button type="button" size="sm" variant="outline" onClick={() => void files.refetch()}>Try again</Button>
       </div>

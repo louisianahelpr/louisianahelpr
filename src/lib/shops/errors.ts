@@ -267,6 +267,9 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   too_many_files: "An item can have up to 5 files.",
   last_file: "Add the new file first, then remove this one.",
   item_not_digital: "Files can only be added to a digital download.",
+  file_not_found: "We couldn't find that file. Reload the page and try again.",
+  not_digital: "That order isn't a download.",
+  too_soon: "A download is paid out 72 hours after the sale.",
 };
 
 /** shop-checkout's own answers (not RPC codes). */
@@ -306,7 +309,6 @@ const SHOP_CHECKOUT_COPY: Record<string, string> = {
   zip_empty: "That ZIP file is empty. Add the files to it and upload it again.",
   zip_has_program: "That ZIP file has a program or script inside. Take it out and upload the ZIP again.",
   file_not_allowed: "Upload a PDF, ZIP, PNG or JPG file up to 100 MB.",
-  file_not_found: "We couldn't find that file. Reload the page and try again.",
 };
 
 /** The AI helper's own answers (the declutter-ai-draft edge function, target 'shop_item'): not RPC codes. */

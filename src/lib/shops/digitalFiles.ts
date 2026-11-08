@@ -8,6 +8,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
+import { rpcErrorMessage } from "./rpcErrorCopy";
 import { DIGITAL_MAX_BYTES, DIGITAL_MAX_FILES, digitalExtFromName } from "../../../supabase/functions/_shared/digitalFileCheck";
 
 export { DIGITAL_MAX_FILES };
@@ -146,7 +147,16 @@ export async function fetchOrderDigitalFiles(orderId: string): Promise<BuyerDigi
 /** The buyer says the file is broken or not as described (within 72 hours of buying; the payout waits). */
 export async function reportDigitalProblem(orderId: string, reason: "broken" | "not_as_described", note: string): Promise<void> {
   const res = await supabase.rpc("shops_report_digital_problem", { p_order_id: orderId, p_reason: reason, p_note: note.trim() });
-  unwrap(res);
+  if (!res.error) return;
+  try {
+    unwrap(res);
+  } catch (thrown) {
+    // The RPC's own words for its refusal (SHOPS_RPC_ERROR_COPY), read by shopsErrorMessage as userMessage.
+    const e = thrown as Error & { userMessage?: string };
+    const words = rpcErrorMessage("shops_report_digital_problem", thrown);
+    if (words && Object.isExtensible(e)) e.userMessage = words;
+    throw e;
+  }
 }
 
 /** Hours left to report a problem (72 after the charge), or 0. */

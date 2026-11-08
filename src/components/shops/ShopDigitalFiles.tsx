@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ReportErrorScreen } from "@/components/ui/ReportErrorScreen";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 import {
   DIGITAL_FILE_ACCEPT,
@@ -52,7 +53,13 @@ export default function ShopDigitalFiles({ itemId }: { itemId: string }) {
         PDF, ZIP, PNG or JPG, up to 100 MB each. Buyers can download them as soon as they pay, for as long as they have
         an account. Your photos above are the preview; the files stay private.
       </p>
-      {files.isError && <p className="text-sm text-destructive">We couldn't load your files. Please try again.</p>}
+      {files.isError && (
+        <div role="alert" className="space-y-1">
+          <ReportErrorScreen source="ShopDigitalFiles.list" title="We couldn't load your files." />
+          <p className="text-sm text-destructive">We couldn't load your files.</p>
+          <Button type="button" size="sm" variant="outline" onClick={() => void files.refetch()}>Try again</Button>
+        </div>
+      )}
       {list.length > 0 && (
         <ul className="space-y-2">
           {list.map((f) => (

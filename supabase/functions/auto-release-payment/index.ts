@@ -24,7 +24,7 @@ const TEST_ACCOUNT_REFUSALS: ReadonlySet<string> = new Set([
 ]);
 import { frozenByBanReview, loadBanReviewUsers } from "../_shared/banReview.ts";
 import { loadComeBackJobs, loadRefundHeldJobs } from "../_shared/refundRequestHold.ts";
-import { heldByContinueDay, loadContinuingJobs } from "../_shared/continueDay.ts";
+import { heldByContinueDay, heldForInstantRelease, loadContinuingJobs, loadNoNewPhotoCompletions } from "../_shared/continueDay.ts";
 import { createStripeModeResolver, StripeModeRefused } from "../_shared/stripeMode.ts";
 
 const corsHeaders = {
@@ -432,10 +432,19 @@ serve(async (req) => {
     // ── Continue another day (owner 2026-11-01): the work is not done yet ──
     // A job with an active continue day (proposed or set) waits: no escalation and no instant release while the
     // Helpr is coming back. A poster's own approval still releases (it closes the continue day). Fails closed.
+    // Owner 11-08 (audit F1): the hold ends at the day's start + a grace; after it, escalation to Helpr support runs
+    // again (no money moves). An instant release still waits on a lapsed day that was only proposed.
     const continuing = await loadContinuingJobs(supabaseAdmin, [...approvedJobs, ...escalate.map((e) => e.job)].map((j) => j.id));
     if (!continuing.ok) {
       console.error("[auto-release-payment] continue-day read failed; no escalation or instant release this run:", continuing.message);
       defects.record(`continue day read: ${continuing.message}`);
+    }
+    // Lead 11-08: a done on a continue day with no after photo from that day is never instant-released; the poster or
+    // Helpr support decides. Fails closed: unread, no instant release this run.
+    const noNewPhoto = await loadNoNewPhotoCompletions(supabaseAdmin, approvedJobs);
+    if (!noNewPhoto.ok) {
+      console.error("[auto-release-payment] new-day photo read failed; no instant release this run:", noNewPhoto.message);
+      defects.record(`continue day photo read: ${noNewPhoto.message}`);
     }
 
     // ── Helpr support steps in (no money moves) ──
@@ -536,8 +545,12 @@ serve(async (req) => {
         continue;
       }
       // An instant release (not the poster's own approval) waits while a continue day is active.
-      if (instantIds.has(job.id) && !job.poster_completed_at && heldByContinueDay(continuing, job.id)) {
+      if (instantIds.has(job.id) && !job.poster_completed_at && heldForInstantRelease(continuing, job.id)) {
         results.push({ job_id: job.id, status: "continuing", skipped: true });
+        continue;
+      }
+      if (instantIds.has(job.id) && !job.poster_completed_at && (!noNewPhoto.ok || noNewPhoto.jobs.has(job.id))) {
+        results.push({ job_id: job.id, status: "no_new_day_photo", skipped: true });
         continue;
       }
       // ── Step 0: Gift card detection ──

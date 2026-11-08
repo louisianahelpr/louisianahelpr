@@ -17,7 +17,7 @@
  * @mutate src/components/declutter/SellSummaryCard.tsx |         <SellTradesRow s={s} />\n |
  */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, waitForElementToBeRemoved } from "@testing-library/react";
 import { readFileSync } from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { blankComments, blankSqlComments } from "./helpers/blankNonCode";
@@ -114,13 +114,13 @@ describe("Declutter trades prompt (owner 11-08)", () => {
   it("Turn on answers yes and the card goes; Not now answers no and the card goes", async () => {
     const first = renderCard();
     fireEvent.click(await screen.findByRole("button", { name: "Turn on" }));
-    await waitFor(() => expect(screen.queryByText("Turn on trades for all your listings?")).toBeNull());
+    await waitForElementToBeRemoved(() => screen.queryByText("Turn on trades for all your listings?")); // removed, not merely absent (waitForEmptyIsVacuous)
     expect(db.rpc).toEqual([["declutter_trades_prompt_answer", { p_turn_on: true }]]);
     first.unmount();
     db.answered = null;
     renderCard();
     fireEvent.click(await screen.findByRole("button", { name: "Not now" }));
-    await waitFor(() => expect(screen.queryByText("Turn on trades for all your listings?")).toBeNull());
+    await waitForElementToBeRemoved(() => screen.queryByText("Turn on trades for all your listings?")); // removed, not merely absent (waitForEmptyIsVacuous)
     expect(db.rpc[1]).toEqual(["declutter_trades_prompt_answer", { p_turn_on: false }]);
   });
 

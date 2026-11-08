@@ -55,7 +55,9 @@ async function sheetTitle(result: ReturnType<typeof run>["result"]): Promise<str
   await waitFor(() => expect(result.current.setDay ?? result.current.posterExtras.find((a) => a.key === "continue-change")).toBeTruthy());
   const opener = result.current.setDay ?? result.current.posterExtras.find((a) => a.key === "continue-change")!;
   opener.go();
-  await waitFor(() => expect(result.current.sheet).toBeTruthy());
+  // Wait for the OPEN sheet, not just a sheet: the hook returns the element from its first answer with open={false},
+  // and under CI load a snapshot taken before go()'s state update rendered a closed sheet (no dialog, twice 11-07).
+  await waitFor(() => expect((result.current.sheet as { props?: { open?: boolean } } | null)?.props?.open).toBe(true));
   const { unmount } = render(<>{result.current.sheet}</>);
   const title = (await screen.findByRole("dialog", undefined, { timeout: 5000 })).querySelector("h2")?.textContent ?? "";
   unmount();

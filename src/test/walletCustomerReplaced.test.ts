@@ -123,7 +123,7 @@ describe("Q2140: withWalletCustomer replaces a customer Stripe no longer has, on
   // replaces a dead stored customer like the order's own page.
   it("every pre-fill page (declutter raise, tip; shop order, shop rest) runs through withStoredWalletCustomer with a ':new-wallet' retry key", () => {
     const pages: Record<string, { stored: number; keys: number }> = {
-      "declutter-checkout": { stored: 2, keys: 3 }, "shop-checkout": { stored: 2, keys: 2 },
+      "declutter-checkout": { stored: 2, keys: 3 }, "shop-checkout": { stored: 3, keys: 2 }, // + buy_digital (20261108185110), keyed by digitalPageKey (":new-wallet" on retry)
     };
     for (const [fn, n] of Object.entries(pages)) {
       const src = blankComments(readFileSync(`supabase/functions/${fn}/index.ts`, "utf8"));

@@ -7966,6 +7966,7 @@ export type Database = {
           id: string
           job_id: string
           new_after_photo_at: string | null
+          done_without_new_photo_at: string | null
           new_date: string
           new_start_time: string
           note: string | null
@@ -7982,6 +7983,7 @@ export type Database = {
           id?: string
           job_id: string
           new_after_photo_at?: string | null
+          done_without_new_photo_at?: string | null
           new_date: string
           new_start_time: string
           note?: string | null
@@ -7998,6 +8000,7 @@ export type Database = {
           id?: string
           job_id?: string
           new_after_photo_at?: string | null
+          done_without_new_photo_at?: string | null
           new_date?: string
           new_start_time?: string
           note?: string | null

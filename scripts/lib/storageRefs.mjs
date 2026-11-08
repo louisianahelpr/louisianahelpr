@@ -80,6 +80,8 @@ export const STORAGE_REFERENCE_COLUMNS = [
 export const NOT_STORAGE_COLUMNS = {
   "profile_job_photos.photo_path": "a copy of one path in jobs.proof_after_urls or group_job_helpers.proof_after_urls (both checked above): a Helpr's pick for their public page (20261105172514), shown only while it is still one of that job's after photos, so a missing file is already found through the job",
   "declutter_wanted.photo_added_at": "a timestamp: when the newest photo was added (20261030225143), not a file reference",
+  "job_continue_days.done_without_new_photo_at": "a timestamp: when a continue day was marked done without a new after photo (20261108160000), not a file reference",
+  "job_continue_days.new_after_photo_at": "a timestamp: when the Helpr added the new day's after photo (20261108160000), not a file reference (the photo is in the job's proof list)",
   "declutter_wanted.photos_cleared": "a subset of declutter_wanted.photo_paths, the checked column and the whole list: marks which of its paths a check passed (20261030225143); never read as a file to serve on its own",
   "declutter_wanted.photos_held": "a subset of declutter_wanted.photo_paths, the checked column and the whole list: marks which of its paths a check flagged (20261030225143); never read as a file to serve on its own",
   "shipping_return_labels.label_url": "train 7 (20261103212046): the EasyPost-hosted https URL of a bought test-mode return label (CHECK label_url LIKE 'https://%'), not an object in our storage",

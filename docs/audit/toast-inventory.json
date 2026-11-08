@@ -1,16 +1,16 @@
 {
   "what": "Every toast call in src/ (TypeScript AST). Regenerate: node scripts/toast-inventory.mjs. Guarded by src/test/toastCopy.test.ts.",
   "summary": {
-    "calls": 1197,
-    "files": 345,
-    "rendering": 1116,
+    "calls": 1203,
+    "files": 346,
+    "rendering": 1122,
     "suppressedByPolicy": 81,
     "byKind": {
       "confirmConsequential": 33,
       "errorToast": 6,
       "successToast": 2,
-      "toast": 233,
-      "toast.error": 808,
+      "toast": 236,
+      "toast.error": 811,
       "toast.loading": 1,
       "toast.message": 1,
       "toast.success": 87,
@@ -19,7 +19,7 @@
     "copyPiecesByForm": {
       "literal": 497,
       "template": 107,
-      "dynamic": 645,
+      "dynamic": 651,
       "jsx": 0
     }
   },
@@ -11005,7 +11005,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 70,
+      "line": 71,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11015,7 +11015,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 76,
+      "line": 77,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11025,7 +11025,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 82,
+      "line": 83,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -11035,7 +11035,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 91,
+      "line": 92,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11045,7 +11045,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 100,
+      "line": 101,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11055,7 +11055,7 @@
     },
     {
       "file": "src/components/shops/ShopHandoverActions.tsx",
-      "line": 114,
+      "line": 115,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11254,8 +11254,68 @@
       "renders": true
     },
     {
+      "file": "src/components/shops/ShopItemPreorderEditor.tsx",
+      "line": 75,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "off ? \"Preorder turned off.\" : \"Preorder saved. Buyers can preorder it now.\"",
+        "branches": [
+          {
+            "form": "literal",
+            "text": "Preorder turned off."
+          },
+          {
+            "form": "literal",
+            "text": "Preorder saved. Buyers can preorder it now."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopItemPreorderEditor.tsx",
+      "line": 79,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopItemPreorderEditor.tsx",
+      "line": 84,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "n > 0 ? `Date moved. ${n === 1 ? \"1 buyer was\" : `${n} buyers were`} told.` : \"Date moved.\"",
+        "branches": [
+          {
+            "form": "template",
+            "text": "Date moved. ${n === 1 ? \"1 buyer was\" : `${n} buyers were`} told."
+          },
+          {
+            "form": "literal",
+            "text": "Date moved."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopItemPreorderEditor.tsx",
+      "line": 90,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
       "file": "src/components/shops/ShopItemsSection.tsx",
-      "line": 78,
+      "line": 79,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11265,7 +11325,7 @@
     },
     {
       "file": "src/components/shops/ShopItemsSection.tsx",
-      "line": 81,
+      "line": 82,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11305,7 +11365,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCancel.tsx",
-      "line": 87,
+      "line": 88,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -11325,7 +11385,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCancel.tsx",
-      "line": 99,
+      "line": 100,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11335,7 +11395,37 @@
     },
     {
       "file": "src/components/shops/ShopOrderCancel.tsx",
-      "line": 148,
+      "line": 146,
+      "kind": "toast",
+      "title": {
+        "form": "dynamic",
+        "text": "refundCents != null ? `Preorder cancelled. ${formatCents(refundCents)} is on its way back to your card.` : \"Preorder cancelled. Your refund is on its way back to your card.\"",
+        "branches": [
+          {
+            "form": "template",
+            "text": "Preorder cancelled. ${formatCents(refundCents)} is on its way back to your card."
+          },
+          {
+            "form": "literal",
+            "text": "Preorder cancelled. Your refund is on its way back to your card."
+          }
+        ]
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopOrderCancel.tsx",
+      "line": 153,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "shopsErrorMessage(err)"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/components/shops/ShopOrderCancel.tsx",
+      "line": 194,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -11355,7 +11445,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCancel.tsx",
-      "line": 152,
+      "line": 198,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11375,7 +11465,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCard.tsx",
-      "line": 305,
+      "line": 310,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -11385,7 +11475,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderCard.tsx",
-      "line": 307,
+      "line": 312,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11395,7 +11485,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderSheet.tsx",
-      "line": 162,
+      "line": 178,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11405,7 +11495,7 @@
     },
     {
       "file": "src/components/shops/ShopOrderSheet.tsx",
-      "line": 191,
+      "line": 210,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",

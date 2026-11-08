@@ -176,7 +176,9 @@ describe("every pop-up title is sentence case", () => {
     // 228: +3 Shops preorders (20261108184654): "Move ready-by to ${shortDate(pushTo)}?" / "Move ready-by?" (ShopItemPreorderEditor
     // push confirm) and "Cancel this preorder?" (ShopOrderCancel).
     // 229: +1 "Log out?" (DesktopTopNav, the top bar photo's Profile / Settings / Log out menu confirms, F086 b3-jobs-2 11-09).
-    expect(all.length).toBe(229);
+    // 232: +3 the service words of the Shops handover (ShopHandoverActions, shops audit 11-08 #3): "Work done?",
+    // "Is the work done?" and "Problem with the work?" beside the goods titles.
+    expect(all.length).toBe(232);
   });
 
   it("the rule itself: catches Title Case and a lower-case start, allows names and acronyms", () => {

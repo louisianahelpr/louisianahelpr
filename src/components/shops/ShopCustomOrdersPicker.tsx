@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CUSTOM_ORDER_MODES, CUSTOM_ORDER_TEXT, fetchCustomOrders, setCustomOrders, type CustomOrderMode } from "@/lib/shops/orders";
+import { PICKABLE_CUSTOM_ORDER_MODES, CUSTOM_ORDER_TEXT, fetchCustomOrders, setCustomOrders, type CustomOrderMode } from "@/lib/shops/orders";
 import { shopsErrorMessage } from "@/lib/shops/errors";
 
 export default function CustomOrdersPicker({ shopId }: { shopId: string }) {
@@ -32,8 +32,14 @@ export default function CustomOrdersPicker({ shopId }: { shopId: string }) {
         <ErrorState variant="inline" title="We couldn't load this setting." body={shopsErrorMessage(choice.error)} onRetry={() => void choice.refetch()} />
       ) : (
         <div className="space-y-2" role="group" aria-label="Custom orders">
-          {CUSTOM_ORDER_MODES.map((m) => {
-            const on = choice.data === m;
+          {choice.data === "deposit_50" ? (
+            <p className="text-xs text-muted-foreground" role="note">
+              Half up front isn't open yet, so your custom orders are paid in full for now.
+            </p>
+          ) : null}
+          {PICKABLE_CUSTOM_ORDER_MODES.map((m) => {
+            // A shop still on the hidden half-up-front choice is paid in full (the server moved it).
+            const on = (choice.data === "deposit_50" ? "full_hold" : choice.data) === m;
             return (
               <Button
                 key={m}

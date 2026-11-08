@@ -16,6 +16,11 @@ export interface PaidOrder {
   deliveryTaskId: string | null;
 }
 
+/** Lead 11-08: an order from a trade (its $0 line's source is "swap", trades 20261108195151), worded as a trade. */
+export function isTradeOrder(order: Pick<PaidOrder, "lines">): boolean {
+  return order.lines.some((l) => l.source === "swap");
+}
+
 /** Group the cart's paid lines into orders. */
 export function paidOrdersFromCart(cart: CartLine[]): PaidOrder[] {
   const byOrder = new Map<string, PaidOrder>();

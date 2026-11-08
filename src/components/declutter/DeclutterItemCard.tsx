@@ -57,9 +57,6 @@ export type CardTag = "drop" | "delivery" | "new";
 
 const TAG_WORDS: Record<CardTag, string> = { drop: "May drop tonight", delivery: "Helpr delivery", new: "New" };
 
-/** Owner pick 4 (11-08): the card photo is 4:5 (Vinted's taller tile), so the img states that shape up front. */
-const CARD_PHOTO_H = Math.round((CARD_PHOTO_PX * 5) / 4);
-
 /** The first row's photo is usually the page's largest paint: it does not wait for the browser's lazy-load check. */
 const FIRST_ROW_PHOTO: Record<string, string> = { loading: "eager", fetchpriority: "high" };
 /** A later row still above the fold (Q2705, 11-07): loads at once, at the browser's own priority (the entry preloads it). */
@@ -116,7 +113,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
             sizes={photoStage === "card" ? CARD_PHOTO_SIZES : undefined}
             alt=""
             width={CARD_PHOTO_PX}
-            height={CARD_PHOTO_H}
+            height={CARD_PHOTO_PX}
             decoding="async"
             onLoad={photoSettled}
             onError={() => { photoSettled(); setPhotoStage((s) => (s === "card" ? "full" : "failed")); }}

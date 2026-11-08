@@ -581,7 +581,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // made any offers." sat above a purchase. Under "All" an empty list is left out; with nothing at all the tab says so
   // ONCE; a chosen chip still shows its own list's empty state.
   // @mutate src/components/declutter/DeclutterMineViews.tsx |   const showCart = t.ready && (only === null \|\| only === "needs_you") && (t.checkouts > 0 \|\| settling.settling); |   const showCart = t.ready;
-  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {t.ready && !orders && offers.has === false && !settling.settling && freeAsks.data?.length === 0 && ( |       {false && (
+  // @mutate src/components/declutter/DeclutterMineViews.tsx |       {t.ready && !orders && offers.has === false && !settling.settling && freeAsks.data?.length === 0 && !buyerTrades.isLoading | {false && !buyerTrades.isLoading
   it("lead 10-28: Buying shows no empty list beside a purchase, and one empty state when there is nothing at all", async () => {
     state.cart = [{ ...LINE, line_id: "l3", item_id: "i10", item_title: "Vase", status: "paid", order_id: "ord-bought", order_status: "paid", handover: "pickup_home" }];
     // ?status=done with nothing done (a group that just emptied): every order shows, never a blank tab.
@@ -613,7 +613,7 @@ describe("Declutter tabs: Browse · Buying · Selling · Wanted · Deliver", () 
   // Builder 187 (seen by Builder 185 in the stage preview; the same views run in the app): a member whose only Buying
   // was an open free ask read "Nothing bought yet. When a seller accepts your offer..." above "Free items you asked
   // for", and a live free listing nobody had asked for showed a "Requests (0)" button.
-  // @mutate src/components/declutter/DeclutterMineViews.tsx | && !settling.settling && freeAsks.data?.length === 0 && ( | && !settling.settling && (
+  // @mutate src/components/declutter/DeclutterMineViews.tsx | && !settling.settling && freeAsks.data?.length === 0 && !buyerTrades.isLoading | && !settling.settling && !buyerTrades.isLoading
   // @mutate src/components/declutter/DeclutterHomeView.tsx | freeAsks.data && (freeAsks.data.get(item.id) ?? 0) > 0 ? ( | freeAsks.data ? (
   it("Q2693 Q2694: an open free ask is not 'Nothing bought yet', and a free listing shows Requests only once someone asked", async () => {
     state.freeAsks = [{ id: "fr1", item_id: "i9", status: "open", created_at: "2026-11-01", declutter_items: { title: "Free lamp" } }];

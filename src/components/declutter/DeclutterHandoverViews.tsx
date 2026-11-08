@@ -32,7 +32,8 @@ import { useFeature } from "@/hooks/useFeature";
 import { FailedPayoutLink } from "./FailedPayoutLink";
 import type { CartLine } from "@/lib/declutter/api";
 import { BookedTimeLine, usePorchWindowWords } from "./DeclutterBookedTimeLine";
-import { invalidate, liveSalesFirst, localInputToIso, paidOrdersFromCart, when, type PaidOrder } from "./paidOrders";
+import { invalidate, isTradeOrder, liveSalesFirst, localInputToIso, paidOrdersFromCart, when, type PaidOrder } from "./paidOrders";
+import { OrderCardHead } from "./OrderCardHead";
 import {
   bookPickup,
   confirmHandover,
@@ -65,7 +66,6 @@ import { BuyerOrderHead, byBucket, refundStanding, type BuyerOrderView } from ".
 import { fetchRefundRequestView, refundedInFull, refundHoldsTheItem, refundTookItBack } from "@/lib/declutter/refundRequests";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { DoorPickupTips, PickupAddresses, SellerAfterActions } from "./DeclutterOrderBits";
-import { itemPriceLabel } from "@/lib/declutter/distance";
 import { currentPosition } from "@/lib/declutter/position";
 import { useLinkedOrder, useScrollToLinkedOrder } from "./useLinkedOrder";
 // The delivery screens load on their own (Q178, 2026-10-17): imported statically from two Declutter screens, the shared
@@ -148,6 +148,8 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
   const title = order.lines.map((l) => l.item_title).join(", ");
   const items = order.lines.reduce((sum, l) => sum + l.price_cents, 0);
   const done = order.status === "handed_over";
+  // Lead 11-08: an order from a trade is worded as a trade ("Trade", "Your trade: <item>", "Message about the trade").
+  const trade = isTradeOrder(order);
   // Boards 159/160: the other person by first name in the handover sheets; the problem form opens from "Something's not right".
   const { who } = useOrderOtherPerson(order.orderId, userId, order.side);
   // The same row and key HandoverPanel, NoShowButton and NoShowAnswer read: a buyer's no-show report and its 24 hours.
@@ -187,16 +189,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
   useScrollToLinkedOrder(cardRef, linked, () => setOpen(true));
   return (
     <article ref={cardRef} tabIndex={linked ? -1 : undefined} data-linked-order={linked ? "" : undefined} className="rounded-[20px] border border-border bg-card p-4 space-y-3">
-      {/* Board 47 / 26: title, price in money ink, ONE line on how it's coming; no "You're buying" (lead 2026-10-28). */}
-      <div className="flex items-start justify-between gap-3 min-w-0" data-order-head="">
-        <div className="min-w-0">
-          <p className="truncate text-ds-15 font-semibold" title={title}>{title}</p>
-          <p className="text-ds-13 text-muted-foreground">
-            {order.handover === "ship" ? (order.side === "buyer" ? "Shipped to you" : "You ship it") : order.handover === "porch" ? "Porch pickup" : order.handover === "delivery" ? "Helpr delivery" : order.handover === "seller_delivery" ? "Seller delivers" : order.handover === "meetup" ? "Meet at a safe spot" : "Pickup at the seller's home"}{order.side === "seller" ? (items === 0 ? " · You're giving" : " · You're selling") : ""}
-          </p>
-        </div>
-        <span className="shrink-0 text-ds-15 font-bold tabular-nums text-[hsl(var(--accent-ink))]">{itemPriceLabel(items)}</span>
-      </div>
+      <OrderCardHead order={order} userId={userId} />
       {/* Boards 71/72: one tracker, where it stands and the money note, from the real handover row
           (delivery has its own, in OrderDeliveryPanel). */}
       {view && <BuyerOrderHead view={view} standing={problem ? null : refundStanding(refundStatus, fullRefund, refund.data?.request)} open={open} onOpen={() => setOpen(true)} onClose={() => { setOpen(false); setAskGot(false); }}
@@ -208,7 +201,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
       {done && order.side === "buyer" && order.handover === "delivery" && order.deliveryTaskId && <Suspense fallback={null}><OrderDeliveryPanel taskId={order.deliveryTaskId} side="buyer" orderId={order.orderId} tipOnly /></Suspense>}
       {body && <div ref={bodyRef} className="space-y-3" data-order-body="">
       {/* DC-16: ONE sale card: every handover kind shows the tracker, where it stands and the money note (Helpr delivery's is in OrderDeliveryPanel). */}
-      {!sellerNextFirst && !problem && <OrderTalkButton orderId={order.orderId} side={order.side} />}
+      {!sellerNextFirst && !problem && <OrderTalkButton orderId={order.orderId} side={order.side} trade={trade} />}
       {!view && order.handover === "seller_delivery" && <SellerDeliveryStatus orderId={order.orderId} side={order.side} itemsCents={items} problemOpen={!!problem} refunded={fullRefund} />}
       {!view && (order.handover === "porch" || order.handover === "pickup_home" || order.handover === "meetup") && (
         <PickupStatus
@@ -228,7 +221,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
       <Suspense fallback={null}><DeclutterProblemSides orderId={order.orderId} side={order.side} /></Suspense>
       {/* D2-1: the paid order's chat with the other side (DeclutterOrderTalk, ?order_talk=). On a held order it comes after
           the tracker, the note and each side (openpr-8); otherwise above the tracker (soldstates-3). */}
-      {!sellerNextFirst && problem && <OrderTalkButton orderId={order.orderId} side={order.side} />}
+      {!sellerNextFirst && problem && <OrderTalkButton orderId={order.orderId} side={order.side} trade={trade} />}
       {done ? (
         <>
           {/* BUY-31: said once (the buyer's head line; SellerDeliveryStatus to the seller). NIGHT-SELL-soldstates-7: a finished delivery shows the tracker at its end too. */}
@@ -247,7 +240,7 @@ function OrderCard({ order, userId, booking, payout, view, problem, linked }: { 
         <>
           {/* 20261027153244: the seller brings it at the time the buyer picked. */}
           <Suspense fallback={<HelprSpinner />}>
-            <SellerDeliveryOrderPanel orderId={order.orderId} userId={userId} onProblem={() => setProblemOpen(true)} problemOpen={!!problem && problem.reporter_side !== "system"} />
+            <SellerDeliveryOrderPanel orderId={order.orderId} userId={userId} trade={trade} onProblem={() => setProblemOpen(true)} problemOpen={!!problem && problem.reporter_side !== "system"} />
           </Suspense>
           {!problem && <NoShowAnswer orderId={order.orderId} side={order.side} delivery free={order.lines.every((l) => l.price_cents === 0)} />}
           {!problem && <ProblemForm orderId={order.orderId} side={order.side} stage="delivery" open={problemOpen} onOpenChange={setProblemOpen} trigger={false} />}

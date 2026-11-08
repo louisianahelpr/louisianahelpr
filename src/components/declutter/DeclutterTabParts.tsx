@@ -86,7 +86,9 @@ export function PaidOrders({ side, views, show, scope, ended = false }: {
   }
   // DA-3: a giver whose orders are all free items sold nothing and is paid nothing.
   const sold = lines.filter((l) => l.status === "paid" && l.order_id);
-  const sellerTitle = sold.every((l) => l.price_cents === 0) ? "Given away: pickup" : "Sold: pickup and payout";
+  // Lead 11-08: sales that are all trades are "Traded", never "Given away" (a trade line is $0 too).
+  const sellerTitle = sold.length > 0 && sold.every((l) => l.source === "swap") ? "Traded: handover"
+    : sold.every((l) => l.price_cents === 0) ? "Given away: pickup" : "Sold: pickup and payout";
   // NIGHT-SELL-soldstates-2: Selling's finished sales (handed over, refunded) fold under one button, as Buying folds
   // Done, so the sales still to hand over are the list. A chip's own `show` (To answer's reports) is never folded.
   const done = new Set(side === "seller" && !show ? sold.filter((l) => (l.order_status === "handed_over" || l.order_status === "refunded") && !awaiting.has(l.order_id as string)).map((l) => l.order_id as string) : []);

@@ -33,6 +33,10 @@
 --       * an OFFERED item that is paused closes the trade (the seller could not see or accept it); a paused WANTED
 --         item still keeps its offers, as before;
 --       * the "trade offer closed" notice is emailed too.
+--   declutter_remove_cart_item                  RESTATED: cart "Remove" on a trade line ends the whole trade at once.
+--   GRANT SELECT (accepts_trades) TO anon + declutter_guest_preview / declutter_guest_first_screen /
+--       declutter_first_screen RESTATED (+ accepts_trades): guests and members see
+--       "Trades OK" (#3).
 --
 -- EMAIL: every trade email goes through send_notice_email (the send-notification-email function reads the member's
 -- email_declutter_offers / email_declutter_sales preference and the seed boundary). A trade between test accounts
@@ -1161,3 +1165,329 @@ BEGIN
                             'offers_reopened', v_reopened);  -- BUY-1
 END;
 $function$;
+
+-- ---------------------------------------------------------------------------
+-- Trades audit 11-08, last items (lead 11-08):
+--   Cart "Remove" on a trade line ends the WHOLE trade at once (declutter_end_swap, as "Back out of trade" does), not
+--   at the next :47 sweep. declutter_remove_cart_item RESTATED from 20261103173728 (prod md5(prosrc) equal to it,
+--   measured 11-08). CHANGED: a trade line locks both trade items in id order first (end_swap's own order, so a
+--   remove and a back-out never deadlock), and sends no "Back on sale" notice (end_swap says it once, as a trade).
+--   #3 "Trades OK" for guests: anon may read accepts_trades (a public listing fact, like accepts_offers, which anon
+--   already reads) and declutter_guest_preview names it. declutter_guest_preview RESTATED from 20261107212823 (prod
+--   md5(prosrc) equal to it, measured 11-08). CHANGED: + i.accepts_trades. The GRANT comes first: the function is
+--   SECURITY INVOKER, so anon must hold the column before it names it.
+GRANT SELECT (accepts_trades) ON public.declutter_items TO anon;
+
+CREATE OR REPLACE FUNCTION public.declutter_guest_preview()
+RETURNS jsonb
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  WITH ranked AS (
+    SELECT i.id, i.seller_id, i.status, i.title, i.category, i.condition_stars, i.delivery_size,
+           i.price_cents, i.current_price_cents, i.area_label, i.area_lat, i.area_lng, i.created_at, i.live_at,
+           i.porch_ok, i.accepts_offers, i.accepts_trades, i.sale_mode, i.last_price_drop_on, i.drop_pct, i.drops_stopped
+      FROM public.declutter_items i
+     WHERE i.status IN ('live', 'reserved')
+     ORDER BY i.live_at DESC
+     LIMIT 25
+  ),
+  items AS (
+    SELECT * FROM ranked ORDER BY live_at DESC LIMIT 24
+  )
+  SELECT jsonb_build_object(
+    'items', COALESCE((SELECT jsonb_agg(to_jsonb(t) ORDER BY t.live_at DESC) FROM items t), '[]'::jsonb),
+    'more', (SELECT count(*) FROM ranked) > 24,
+    'photos', COALESCE((
+      SELECT jsonb_agg(jsonb_build_object('id', p.id, 'item_id', p.item_id, 'storage_path', p.storage_path, 'position', p.position)
+                       ORDER BY p.position)
+        FROM public.declutter_item_photos p
+       WHERE p.item_id IN (SELECT id FROM items)
+    ), '[]'::jsonb)
+  );
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_guest_preview() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_guest_preview() TO anon, service_role;
+
+-- declutter_guest_first_screen RESTATED from 20261107172400 (prod md5(prosrc) equal to it, measured 11-08): the
+-- guest's whole list when there is no preview, taken as the list itself, so it names accepts_trades too. CHANGED:
+-- + i.accepts_trades (its columns stay a copy of ITEM_COLUMNS, src/boot/guestDeclutterPrefetch.test.ts).
+CREATE OR REPLACE FUNCTION public.declutter_guest_first_screen()
+RETURNS jsonb
+LANGUAGE sql
+STABLE
+SECURITY INVOKER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+  WITH items AS (
+    SELECT i.id, i.seller_id, i.status, i.title, i.description, i.category, i.condition_stars, i.delivery_size,
+           i.price_cents, i.current_price_cents, i.area_label, i.area_lat, i.area_lng, i.created_at, i.live_at,
+           i.porch_ok, i.accepts_offers, i.accepts_trades
+      FROM public.declutter_items i
+     WHERE i.status IN ('live', 'reserved')
+     ORDER BY i.live_at DESC
+     LIMIT 500
+  )
+  SELECT jsonb_build_object(
+    'items', COALESCE((SELECT jsonb_agg(to_jsonb(t) ORDER BY t.live_at DESC) FROM items t), '[]'::jsonb),
+    'photos', COALESCE((
+      SELECT jsonb_agg(jsonb_build_object('id', p.id, 'item_id', p.item_id, 'storage_path', p.storage_path, 'position', p.position)
+                       ORDER BY p.position)
+        FROM public.declutter_item_photos p
+       WHERE p.item_id IN (SELECT id FROM items)
+    ), '[]'::jsonb)
+  );
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_guest_first_screen() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.declutter_guest_first_screen() TO anon, service_role;
+
+-- declutter_first_screen RESTATED from 20261101092004 (prod md5(prosrc) equal to it, measured 11-08): a member's cold
+-- /declutter answer names every ITEM_COLUMNS column (src/boot/declutterPrefetch.test.ts), so + i.accepts_trades.
+-- Nothing else changed; it stays SECURITY INVOKER (the member's own row policies) and authenticated-only.
+CREATE OR REPLACE FUNCTION public.declutter_first_screen(p_switch_keys text[])
+ RETURNS jsonb
+ LANGUAGE plpgsql
+ STABLE
+ SET search_path TO 'public', 'pg_temp'
+AS $function$
+DECLARE
+  v_cap constant integer := 24;
+  v_me uuid := (SELECT auth.uid());
+  v_switches jsonb;
+  v_lat double precision;
+  v_lng double precision;
+  v_zip text;
+  v_parish text;
+  v_zip_parish text;
+  v_has_position boolean;
+  v_rows jsonb[];
+  v_items jsonb;
+  v_ids uuid[];
+  v_sellers uuid[];
+BEGIN
+  IF v_me IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  v_switches := public.feature_switches_for_me(COALESCE(p_switch_keys, '{}'::text[]));
+
+  -- The profile's own position; both or neither, as deriveFallbackLocation reads it.
+  SELECT CASE WHEN p.longitude IS NOT NULL THEN p.latitude::double precision END,
+         CASE WHEN p.latitude IS NOT NULL THEN p.longitude::double precision END,
+         left(regexp_replace(COALESCE(p.zip_code, ''), '[^0-9]', '', 'g'), 5),
+         p.parish
+    INTO v_lat, v_lng, v_zip, v_parish
+    FROM public.profiles p
+   WHERE p.user_id = v_me;
+  v_has_position := v_lat IS NOT NULL;
+
+  -- B82: no position on file. The browser then measures from the ZIP's parish, else the profile's parish
+  -- (deriveFallbackLocation's rungs 2 and 3), at src/lib/parishCentroids.ts's point for it (getParishCentroid: a
+  -- trailing " Parish" dropped, the name matched exactly). Sort from that same point, so the capped answer is the top
+  -- of the list the browser draws and Browse can show it before the full read. The table is a COPY of
+  -- PARISH_CENTROIDS; src/test/declutterFirstScreenParishOrigin.test.ts holds the two equal.
+  IF NOT v_has_position THEN
+    IF length(v_zip) = 5 THEN
+      v_zip_parish := public.get_parish_for_zip(v_zip);
+    END IF;
+    SELECT c.lat, c.lng INTO v_lat, v_lng
+      FROM (VALUES
+        ('Orleans', 29.9511, -90.0715),
+        ('Jefferson', 29.9494, -90.1486),
+        ('St. Tammany', 30.4218, -89.9986),
+        ('East Baton Rouge', 30.4583, -91.1403),
+        ('Lafayette', 30.2241, -92.0198),
+        ('Caddo', 32.5776, -93.8773),
+        ('Calcasieu', 30.2266, -93.2174),
+        ('Ouachita', 32.4807, -92.1193),
+        ('Rapides', 31.2911, -92.4451),
+        ('Bossier', 32.5232, -93.6629),
+        ('Tangipahoa', 30.6260, -90.4290),
+        ('St. Bernard', 29.7574, -89.7892),
+        ('Plaquemines', 29.4716, -89.6553),
+        ('Livingston', 30.4441, -90.7301),
+        ('Ascension', 30.2046, -90.9046),
+        ('Iberia', 30.0085, -91.8276),
+        ('Lafourche', 29.4513, -90.3085),
+        ('Terrebonne', 29.5833, -90.7050),
+        ('St. Charles', 29.9358, -90.3661),
+        ('Vermilion', 29.8732, -92.2987),
+        ('St. Landry', 30.6905, -92.0123),
+        ('Acadia', 30.2775, -92.4111),
+        ('Natchitoches', 31.7232, -93.0860),
+        ('Webster', 32.7184, -93.3360),
+        ('Beauregard', 30.6477, -93.3500),
+        ('Allen', 30.6486, -92.8294),
+        ('St. Mary', 29.6377, -91.4490),
+        ('Pointe Coupee', 30.7088, -91.5969),
+        ('St. Martin', 30.1271, -91.6021),
+        ('St. James', 30.0289, -90.7929),
+        ('St. John the Baptist', 30.1247, -90.4892),
+        ('Washington', 30.8478, -90.0411),
+        ('Avoyelles', 31.0658, -92.0061),
+        ('Evangeline', 30.7349, -92.4142),
+        ('Vernon', 31.1080, -93.1834),
+        ('Sabine', 31.5650, -93.5520),
+        ('DeSoto', 32.0596, -93.7397),
+        ('Bienville', 32.3504, -92.9899),
+        ('Jackson', 32.2989, -92.5595),
+        ('Lincoln', 32.6053, -92.6629),
+        ('Union', 32.8323, -92.3713),
+        ('Morehouse', 32.8156, -91.7929),
+        ('West Carroll', 32.7951, -91.4489),
+        ('East Carroll', 32.7333, -91.2358),
+        ('Madison', 32.3633, -91.2275),
+        ('Tensas', 32.0036, -91.3433),
+        ('Concordia', 31.4424, -91.6379),
+        ('Catahoula', 31.6628, -91.8551),
+        ('LaSalle', 31.6747, -92.1597),
+        ('Grant', 31.5949, -92.5638),
+        ('Winn', 31.9460, -92.6402),
+        ('Caldwell', 32.0921, -92.1225),
+        ('Franklin', 32.1304, -91.6749),
+        ('Richland', 32.4131, -91.7654),
+        ('West Baton Rouge', 30.4661, -91.3145),
+        ('Iberville', 30.3164, -91.3469),
+        ('West Feliciana', 30.8772, -91.4044),
+        ('East Feliciana', 30.8442, -91.0429),
+        ('St. Helena', 30.8175, -90.7068),
+        ('Assumption', 29.9101, -91.0628),
+        ('Cameron', 29.8324, -93.1700),
+        ('Jefferson Davis', 30.2649, -92.8127),
+        ('Red River', 32.0950, -93.3360),
+        ('Claiborne', 32.8221, -92.9963)
+      ) AS c(name, lat, lng)
+     WHERE c.name IN (trim(regexp_replace(COALESCE(v_zip_parish, ''), '\s+Parish\s*$', '', 'i')),
+                      trim(regexp_replace(COALESCE(v_parish, ''), '\s+Parish\s*$', '', 'i')))
+     ORDER BY (c.name = trim(regexp_replace(COALESCE(v_zip_parish, ''), '\s+Parish\s*$', '', 'i'))) DESC
+     LIMIT 1;
+  END IF;
+
+  SELECT array_agg(to_jsonb(t) ORDER BY t.miles NULLS LAST, t.live_at DESC) INTO v_rows
+    FROM (
+      SELECT i.id, i.seller_id, i.status, i.title, i.description, i.category, i.condition_stars, i.delivery_size,
+             i.price_cents, i.current_price_cents, i.area_label, i.area_lat, i.area_lng, i.created_at, i.live_at,
+             i.porch_ok, i.accepts_offers, i.accepts_trades, i.sale_mode, i.last_price_drop_on, i.drop_pct, i.drops_stopped,
+             CASE WHEN v_lat IS NOT NULL THEN
+               2 * 3958.8 * asin(least(1, sqrt(
+                 sin(radians(COALESCE(i.area_lat, 0)::double precision - v_lat) / 2) ^ 2
+                 + cos(radians(v_lat)) * cos(radians(COALESCE(i.area_lat, 0)::double precision))
+                   * sin(radians(COALESCE(i.area_lng, 0)::double precision - v_lng) / 2) ^ 2)))
+             END AS miles
+        FROM public.declutter_items i
+       WHERE i.status IN ('live', 'reserved') AND i.seller_id IS DISTINCT FROM v_me
+       ORDER BY miles NULLS LAST, i.live_at DESC
+       LIMIT v_cap + 1
+    ) t;
+
+  SELECT COALESCE(jsonb_agg(r.v - 'miles' ORDER BY r.n), '[]'::jsonb),
+         array_agg((r.v ->> 'id')::uuid),
+         array_agg(DISTINCT (r.v ->> 'seller_id')::uuid) FILTER (WHERE r.v ->> 'seller_id' IS NOT NULL)
+    INTO v_items, v_ids, v_sellers
+    FROM unnest(v_rows) WITH ORDINALITY AS r(v, n)
+   WHERE r.n <= v_cap;
+
+  RETURN jsonb_build_object(
+    'switches', v_switches,
+    'items', v_items,
+    'more', COALESCE(cardinality(v_rows), 0) > v_cap,
+    'near', CASE WHEN v_lat IS NOT NULL THEN jsonb_build_object('lat', v_lat, 'lng', v_lng) END,
+    'zip_parish', CASE WHEN NOT v_has_position AND length(v_zip) = 5
+      THEN jsonb_build_object('zip', v_zip, 'parish', v_zip_parish) END,
+    'photos', COALESCE((
+      SELECT jsonb_agg(jsonb_build_object('id', p.id, 'item_id', p.item_id, 'storage_path', p.storage_path, 'position', p.position)
+                       ORDER BY p.position)
+        FROM public.declutter_item_photos p
+       WHERE p.item_id = ANY (COALESCE(v_ids, '{}'::uuid[]))
+    ), '[]'::jsonb),
+    'watching', COALESCE((
+      SELECT jsonb_agg(w.item_id) FROM public.declutter_watchlist w WHERE w.user_id = v_me
+    ), '[]'::jsonb),
+    'bundle_sellers', CASE
+      WHEN COALESCE(v_switches ->> 'declutter', 'false') = 'true' AND COALESCE(cardinality(v_sellers), 0) > 0
+        THEN to_jsonb(public.declutter_bundle_sellers(v_sellers))
+      ELSE '[]'::jsonb
+    END
+  );
+END;
+$function$;
+REVOKE ALL ON FUNCTION public.declutter_first_screen(text[]) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_first_screen(text[]) TO authenticated, service_role;
+
+CREATE OR REPLACE FUNCTION public.declutter_remove_cart_item(p_line_id uuid)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public', 'pg_temp'
+AS $fn$
+DECLARE
+  v_uid uuid := (SELECT auth.uid());
+  v_item uuid;
+  v_swap uuid;
+  l record;
+  o public.declutter_orders;  -- a row type, so o.id reads NULL when the line has no order
+  v_status text;
+BEGIN
+  PERFORM public.require_feature('declutter');
+  IF v_uid IS NULL THEN
+    RAISE EXCEPTION 'not_authenticated' USING ERRCODE = '42501';
+  END IF;
+  SELECT c.item_id, c.swap_id INTO v_item, v_swap FROM public.declutter_cart_items c WHERE c.id = p_line_id AND c.buyer_id = v_uid;
+  IF v_item IS NULL THEN
+    RAISE EXCEPTION 'item_not_found' USING ERRCODE = 'PT404';
+  END IF;
+  -- Lock order: items (id order; a trade line takes both of the trade's items, end_swap's order) -> orders -> lines.
+  PERFORM 1 FROM public.declutter_items i
+   WHERE i.id = v_item
+      OR i.id IN (SELECT f.item_id FROM public.declutter_swap_offers f WHERE f.id = v_swap
+                  UNION ALL SELECT f.offered_item_id FROM public.declutter_swap_offers f WHERE f.id = v_swap)
+   ORDER BY i.id FOR UPDATE;
+  SELECT c.*, i.title INTO l
+    FROM public.declutter_cart_items c JOIN public.declutter_items i ON i.id = c.item_id
+   WHERE c.id = p_line_id AND c.buyer_id = v_uid;
+  IF l.order_id IS NOT NULL THEN
+    SELECT x.* INTO o FROM public.declutter_orders x WHERE x.id = l.order_id FOR UPDATE;
+  END IF;
+  PERFORM 1 FROM public.declutter_cart_items c WHERE c.id = p_line_id FOR UPDATE;
+  SELECT c.status INTO v_status FROM public.declutter_cart_items c WHERE c.id = p_line_id;
+  IF v_status = 'removed' THEN
+    RETURN 'already';
+  END IF;
+  IF v_status <> 'in_cart' THEN
+    RAISE EXCEPTION 'not_in_cart' USING ERRCODE = '55000', HINT = 'This item is not in your cart any more.';
+  END IF;
+  IF o.id IS NOT NULL AND o.status = 'awaiting_payment' AND o.stripe_checkout_session_id IS NOT NULL
+     AND o.created_at > now() - interval '35 minutes' THEN
+    RAISE EXCEPTION 'checkout_open' USING ERRCODE = '55000',
+      HINT = 'You opened checkout for this. Close the payment page, then try again in a few minutes.';
+  END IF;
+
+  UPDATE public.declutter_cart_items SET status = 'removed', closed_at = now()
+   WHERE id = p_line_id AND status = 'in_cart';
+  IF o.id IS NOT NULL AND o.status = 'awaiting_payment' THEN
+    UPDATE public.declutter_orders SET status = 'superseded', close_reason = 'superseded', closed_at = now()
+     WHERE id = o.id AND status = 'awaiting_payment';
+    UPDATE public.declutter_cart_items SET order_id = NULL
+     WHERE order_id = o.id AND status = 'in_cart';
+  END IF;
+  IF public.declutter_seller_out(l.seller_id) THEN
+    UPDATE public.declutter_items SET status = 'ended', updated_at = now() WHERE id = l.item_id AND status = 'reserved';
+  ELSE
+    UPDATE public.declutter_items SET status = 'live', updated_at = now() WHERE id = l.item_id AND status = 'reserved';
+    IF l.swap_id IS NULL THEN
+      PERFORM public.declutter_notify(l.seller_id, 'new_offers', 'Back on sale',
+        format('The buyer let "%s" go before checking out. It''s back on sale.', l.title),
+        '/declutter?tab=selling', v_uid);
+    END IF;
+  END IF;
+  -- CHANGED (trades, lead 11-08): removing a trade line backs out of the whole trade now: the other side's line is
+  -- released, money offers the holds voided reopen on both items, and both sides get one "Trade cancelled" notice.
+  IF l.swap_id IS NOT NULL THEN
+    PERFORM public.declutter_end_swap(l.swap_id, v_uid);
+  END IF;
+  RETURN 'removed';
+END;
+$fn$;
+REVOKE ALL ON FUNCTION public.declutter_remove_cart_item(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.declutter_remove_cart_item(uuid) TO authenticated, service_role;

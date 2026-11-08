@@ -156,6 +156,8 @@ export function declutterFilterSections({
           {/* The Free section (20261027170717): items given away, $0. */}
           <Row>
             <Chip on={filters.freeOnly} onClick={() => onChange({ ...filters, freeOnly: !filters.freeOnly })}>Free</Chip>
+            {/* Trades audit 11-08 #3: listings that take one of the buyer's own listings in trade. */}
+            <Chip on={filters.tradesOnly} onClick={() => onChange({ ...filters, tradesOnly: !filters.tradesOnly })}>Open to trades</Chip>
           </Row>
           <div className="flex items-center gap-2">
             <DollarBox label="Lowest price" value={filters.minDollars} onCommit={(v) => onChange({ ...filters, minDollars: v })} />

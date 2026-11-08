@@ -3,7 +3,7 @@
  * listing, a new listing taking the default, and "Offer a trade" with its picker on the item page.
  * The server side: src/test/declutterTrades.test.ts and src/test/pglite/declutterTrades.pglite.mjs.
  *
- * @mutate src/components/declutter/DeclutterOfferTrade.tsx |   if (takes.data !== true) return null; |   if (takes.data === undefined) return null;
+ * @mutate src/components/declutter/DeclutterOfferTrade.tsx |   if (item.accepts_trades !== true) return null; |   if (item.accepts_trades === undefined) return null;
  * @mutate src/lib/declutter/trades.ts | it.status === "live" && it.current_price_cents > 0 && it.id !== excludeId | it.status === "live" && it.id !== excludeId
  * @mutate src/lib/declutter/tradesOnPost.ts |   if (!wanted) return "off"; |
  * @mutate src/lib/declutter/sellerDefaults.ts |   const trades = d.acceptsTrades === undefined ? {} : { accepts_trades: d.acceptsTrades }; |   const trades = { accepts_trades: d.acceptsTrades === true };
@@ -28,7 +28,6 @@ const state = {
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }));
 vi.mock("@/lib/declutter/trades", async (orig) => ({
   ...(await orig<typeof import("@/lib/declutter/trades")>()),
-  fetchAcceptsTrades: async () => state.takes,
   offerSwap: async (item: string, offered: string) => {
     state.sent.push([item, offered]);
     return "swap-1";
@@ -42,14 +41,12 @@ vi.mock("@/lib/declutter/api", async (orig) => ({
 const { OfferTradeButton } = await import("@/components/declutter/DeclutterOfferTrade");
 
 let client: QueryClient;
-/** Every query this render started has settled: the "nothing shows" asserts below wait for the DATA, not first paint. */
-const settled = (c: QueryClient) => c.getQueryCache().getAll().some((q) => q.state.status === "success") && c.getQueryCache().getAll().every((q) => q.state.fetchStatus === "idle");
 
 const renderButton = () =>
   render(
     <QueryClientProvider client={(client = new QueryClient({ defaultOptions: { queries: { retry: false } } }))}>
       <MemoryRouter>
-        <OfferTradeButton item={{ id: "want", title: "Lamp" }} userId="u1" />
+        <OfferTradeButton item={{ id: "want", title: "Lamp", accepts_trades: state.takes }} userId="u1" />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -83,12 +80,11 @@ describe("Declutter trades, client (slice 2)", () => {
 
   it("no Offer a trade on a listing that is not open to trades", async () => {
     state.takes = false;
+    // Trades audit 11-08 #22: no read of its own any more; the item read's accepts_trades decides at once.
     const { container } = renderButton();
-    await waitFor(() => {
-      expect(settled(client)).toBe(true);
-      expect(container.querySelector("[data-offer-trade]")).toBeNull();
-    });
+    expect(container.querySelector("[data-offer-trade]")).toBeNull();
     expect(screen.queryByRole("button", { name: "Offer a trade" })).toBeNull();
+    expect(client.getQueryCache().getAll().filter((q) => q.state.fetchStatus !== "idle")).toEqual([]);
   });
 
   it("the buyer picks one of their listings and sends it", async () => {

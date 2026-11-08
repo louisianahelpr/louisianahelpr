@@ -9,7 +9,7 @@
  * server the read is empty and nothing shows.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,20 @@ function Pair({ t }: { t: MyTrade }) {
   );
 }
 
+/**
+ * Trades audit 11-08 #10: the trade's one order chat, on both trade cards (DeclutterPage opens ?order_talk=, the same
+ * chat as the order card's "Message ..." button). No new chat: it is the existing Declutter order chat.
+ */
+function TradeTalkButton({ orderId }: { orderId: string }) {
+  const [params, setParams] = useSearchParams();
+  const open = () => {
+    const next = new URLSearchParams(params);
+    next.set("order_talk", orderId);
+    setParams(next);
+  };
+  return <Button type="button" variant="outline" size="sm" className="rounded-full" data-trade-talk={orderId} onClick={open}>Message about the trade</Button>;
+}
+
 function TradeCard({ t }: { t: MyTrade }) {
   const qc = useQueryClient();
   const open = t.status === "open" && new Date(t.respond_by).getTime() > Date.now();
@@ -88,6 +102,7 @@ function TradeCard({ t }: { t: MyTrade }) {
           Choose your pickup
         </Link>
       )}
+      {t.talk_order_id && <TradeTalkButton orderId={t.talk_order_id} />}
     </li>
   );
 }

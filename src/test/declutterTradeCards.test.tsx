@@ -10,6 +10,8 @@
  * @mutate src/components/declutter/DeclutterTradeOffers.tsx |   return (useMyTrades("seller", userId).data ?? []).filter((t) => t.status === "open").length; |   return 0;
  * @mutate src/components/declutter/DeclutterMineViews.tsx | + bundleAsks + tradeAsks; | + bundleAsks;
  * @mutate src/lib/declutter/trades.ts |     my_line_status: (side === "seller" ? seller_line : buyer_line)?.status ?? null, |     my_line_status: (side === "seller" ? buyer_line : seller_line)?.status ?? null,
+ * @mutate src/components/declutter/DeclutterTradeOffers.tsx |       {t.talk_order_id && <TradeTalkButton orderId={t.talk_order_id} />}\n |
+ * @mutate src/components/declutter/DeclutterTradeOffers.tsx |     next.set("order_talk", orderId); |     next.set("talk", orderId);
  */
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -23,7 +25,7 @@ const later = new Date(Date.now() + 10 * 3_600_000).toISOString();
 const lamp = { id: "lamp", title: "Lamp", current_price_cents: 2000 };
 const chair = { id: "chair", title: "Chair", current_price_cents: 3000 };
 const row = (over: Partial<MyTrade>): MyTrade => ({
-  id: "t1", status: "open", respond_by: later, created_at: later, my_side: "seller", item: lamp, offered: chair, my_line_status: null, ...over,
+  id: "t1", status: "open", respond_by: later, created_at: later, my_side: "seller", item: lamp, offered: chair, my_line_status: null, talk_order_id: null, ...over,
 });
 
 const state = { rows: [] as MyTrade[], sent: [] as [string, string][] };
@@ -38,7 +40,19 @@ vi.mock("@/lib/declutter/trades", async (orig) => ({
   },
 }));
 
+// fetchMyTrades' own mapping (the talk test below): the Supabase read answers these rows.
+const supa = { rows: [] as unknown[], select: "" };
+vi.mock("@/integrations/supabase/client", () => {
+  const chain = { eq: () => chain, in: () => chain, gte: () => chain, order: () => chain, limit: async () => ({ data: supa.rows, error: null }) };
+  return { supabase: { from: () => ({ select: (cols: string) => { supa.select = cols; return chain; } }) } };
+});
+
 const { TradeOffersSection } = await import("@/components/declutter/DeclutterTradeOffers");
+const { useLocation } = await import("react-router-dom");
+function Where() {
+  const l = useLocation();
+  return <span data-testid="where">{l.search}</span>;
+}
 
 let client: QueryClient;
 /** Every query this render started has settled: the "nothing shows" asserts below wait for the DATA, not first paint. */
@@ -100,6 +114,44 @@ describe("Declutter trade cards (slice 3)", () => {
     const links = container.querySelectorAll("[data-trade-pickup]");
     expect(links.length).toBe(1);
     expect(links[0].closest("[data-trade-card]")?.getAttribute("data-trade-card")).toBe("a");
+  });
+
+  // Trades audit 11-08 #10: both trade cards open the trade's one existing order chat (?order_talk=, DeclutterPage).
+  it("both trade cards open the trade's one order chat once a side has checked out; none before", async () => {
+    state.rows = [row({ id: "a", status: "accepted", my_line_status: "in_cart", talk_order_id: null }),
+      row({ id: "b", status: "accepted", my_line_status: "paid", talk_order_id: "order-1" })];
+    for (const side of ["seller", "buyer"] as const) {
+      const r = render(
+        <QueryClientProvider client={(client = new QueryClient({ defaultOptions: { queries: { retry: false } } }))}>
+          <MemoryRouter initialEntries={["/declutter?tab=selling"]}>
+            <TradeOffersSection side={side} userId="u1" />
+            <Where />
+          </MemoryRouter>
+        </QueryClientProvider>,
+      );
+      const buttons = await screen.findAllByRole("button", { name: "Message about the trade" });
+      expect(buttons).toHaveLength(1);
+      expect(buttons[0].closest("[data-trade-card]")?.getAttribute("data-trade-card")).toBe("b");
+      fireEvent.click(buttons[0]);
+      expect(screen.getByTestId("where").textContent).toBe("?tab=selling&order_talk=order-1");
+      r.unmount();
+    }
+  });
+
+  it("the chat is the checked-out line's order, the wanted item's first, and only on an accepted or done trade", async () => {
+    const { fetchMyTrades } = await vi.importActual<typeof import("@/lib/declutter/trades")>("@/lib/declutter/trades");
+    const line = (status: string, order_id: string | null) => ({ status, order_id });
+    const base = { id: "t", respond_by: later, created_at: later, item: lamp, offered: chair };
+    supa.rows = [
+      { ...base, id: "both", status: "accepted", buyer_line: line("paid", "o-want"), seller_line: line("paid", "o-offered") },
+      { ...base, id: "second", status: "accepted", buyer_line: line("in_cart", null), seller_line: line("paid", "o-offered") },
+      { ...base, id: "none", status: "accepted", buyer_line: line("in_cart", null), seller_line: line("in_cart", null) },
+      { ...base, id: "ended", status: "lapsed", buyer_line: line("missed", "o-old"), seller_line: line("paid", "o-old2") },
+      { ...base, id: "open", status: "open", buyer_line: null, seller_line: null },
+    ];
+    const got = await fetchMyTrades("seller", "u1");
+    expect(Object.fromEntries(got.map((t) => [t.id, t.talk_order_id]))).toEqual({ both: "o-want", second: "o-offered", none: null, ended: null, open: null });
+    expect(supa.select).toMatch(/buyer_line:declutter_cart_items!declutter_swap_offers_buyer_line_id_fkey\(status, order_id\)/);
   });
 
   it("Selling's To answer counts the open trade offers, and both tabs show the section", () => {

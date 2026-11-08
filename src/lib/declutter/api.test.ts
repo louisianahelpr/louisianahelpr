@@ -24,7 +24,9 @@
  * @mutate src/lib/declutter/api.ts |     throw new Error(code \|\| "ai_unavailable"); |     throw new Error(code);
  * @mutate src/lib/declutter/api.ts |     if (ctx?.status === 429) throw new Error("ai_rate_limited"); |     if (false) throw new Error("ai_rate_limited");
  * @mutate src/lib/declutter/myReads.ts |     const missing = res.error?.code === "42703" |     const missing = res.error?.code === "42501"
- * @mutate src/lib/declutter/myReads.ts | const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: true }; | const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: false };
+ * @mutate src/lib/declutter/myReads.ts | const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: true, accepts_trades: false }; | const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: false, accepts_trades: false };
+ * @mutate src/lib/declutter/myReads.ts | const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: true, accepts_trades: false }; | const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: true, accepts_trades: true };
+ * @mutate src/lib/declutter/myReads.ts |       : res.error?.code === "42501" |       : res.error?.code === "42999"
  * @mutate src/lib/declutter/myReads.ts | live_at, porch_ok, accepts_offers"; | live_at, porch_ok";
  * @mutate src/lib/declutter/api.ts | { body, timeout: timeoutMs } | { body }
  * @mutate src/lib/declutter/api.ts |   for (const f of list) photos.push(await blobToBase64(await cleanListingPhoto(f, 1280, 0.75))); |   for (const f of list) photos.push(await blobToBase64(f));
@@ -142,7 +144,7 @@ const ok = (data: unknown): Result => ({ data, error: null });
 const refused = (message: string, extra: Record<string, unknown> = {}): Result => ({ data: null, error: { message, ...extra } });
 
 const COLUMNS =
-  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok, accepts_offers";
+  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok, accepts_offers, accepts_trades";
 
 const FIELDS: DraftFields = {
   title: "Oak desk",
@@ -255,7 +257,8 @@ describe("reads", () => {
         ],
       },
     ]);
-    h.queue.push(refused("permission denied", { code: "42501" }));
+    // Twice: the first 42501 is retried once without accepts_trades (trades #3 deploy window).
+    h.queue.push(refused("permission denied", { code: "42501" }), refused("permission denied", { code: "42501" }));
     await expect(fetchSimilarItems("furniture", "item-a", "seller-1")).rejects.toBeTruthy();
   });
 
@@ -342,7 +345,7 @@ describe("reads", () => {
   });
 
   it("smart offers deploy window: accepts_offers missing (42703) reads again without it, offers on; both missing too", async () => {
-    expect(COLUMNS).toMatch(/, accepts_offers$/);
+    expect(COLUMNS).toMatch(/, accepts_offers, accepts_trades$/);
     h.queue.push({ data: null, error: { code: "42703", message: "column declutter_items.accepts_offers does not exist" }, status: 400 });
     h.queue.push(ok({ id: "i1", porch_ok: false }));
     await expect(fetchItem("i1")).resolves.toEqual({ id: "i1", porch_ok: false, accepts_offers: true });
@@ -354,10 +357,21 @@ describe("reads", () => {
     expect(h.queries[h.queries.length - 1].ops[0]).toEqual(["select", [COLUMNS.replace(", porch_ok", "").replace(", accepts_offers", "")]]);
   });
 
-  it("any other read refusal still throws (no second read)", async () => {
+  it("trades #3 deploy window: a guest refused 42501 (no grant on accepts_trades yet) reads again without it, trades off", async () => {
+    h.queue.push({ data: null, error: { code: "42501", message: "permission denied for table declutter_items" }, status: 403 });
+    h.queue.push(ok([{ id: "a", accepts_offers: true }]));
+    await expect(fetchLiveItems()).resolves.toEqual([{ id: "a", accepts_offers: true, accepts_trades: false }]);
+    expect(h.queries.map((q) => q.ops[0])).toEqual([["select", [COLUMNS]], ["select", [COLUMNS.replace(", accepts_trades", "")]]]);
+  });
+
+  it("any other read refusal still throws (a second 42501 is not retried)", async () => {
+    h.queue.push({ data: null, error: { code: "42501", message: "permission denied for table declutter_items" }, status: 403 });
     h.queue.push({ data: null, error: { code: "42501", message: "permission denied for table declutter_items" }, status: 403 });
     await expect(fetchItem("i1")).rejects.toThrow(/permission denied/);
-    expect(h.queries).toHaveLength(1);
+    expect(h.queries).toHaveLength(2);
+    h.queue.push({ data: null, error: { code: "PGRST116", message: "boom" }, status: 400 });
+    await expect(fetchItem("i2")).rejects.toThrow(/boom/);
+    expect(h.queries).toHaveLength(3);
   });
 
   it("fetchPhotos sends no query at all for an empty id list", async () => {
@@ -507,6 +521,8 @@ describe("reads", () => {
   ];
 
   it.each(readers)("%s surfaces a Supabase error (with its status) instead of an empty result", async (_name, call) => {
+    // Twice: an item read retries a 42501 once without accepts_trades (trades #3 deploy window), then throws.
+    h.queue.push({ data: null, error: { message: "permission denied", code: "42501" }, status: 403 });
     h.queue.push({ data: null, error: { message: "permission denied", code: "42501" }, status: 403 });
     const e = await rejection(call());
     expect(e).toBeInstanceOf(Error);

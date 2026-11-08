@@ -13,11 +13,16 @@ import { takeMinePrefetch } from "@/lib/declutter/minePrefetchTake";
 import type { CartLine, DeclutterItem } from "@/lib/declutter/api";
 
 export const ITEM_COLUMNS =
-  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok, accepts_offers";
+  "id, seller_id, status, title, description, category, condition_stars, delivery_size, price_cents, current_price_cents, area_label, area_lat, area_lng, created_at, live_at, porch_ok, accepts_offers, accepts_trades";
 
 export type ItemRead = { data: unknown; error: { message: string; code?: string } | null; status?: number };
 /** Columns a newer migration adds, with the default an item has before it is live (each column's own DEFAULT). */
-const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: true };
+const NEWER_ITEM_COLUMNS: Record<string, boolean> = { porch_ok: true, accepts_offers: true, accepts_trades: false };
+/**
+ * Columns a guest (anon) is granted by a newer migration (trades #3, 20261108195151: accepts_trades). Until db-deploy
+ * runs, a guest's read is refused with 42501, which names the table, not the column: read again without it.
+ */
+const NEWER_GUEST_GRANTS = ["accepts_trades"];
 
 /**
  * Row 101's column, porch_ok (20261017055504), and smart offers' accepts_offers
@@ -35,7 +40,9 @@ export async function readItems(run: (columns: string) => PromiseLike<ItemRead>)
     const res = await run(columns);
     const missing = res.error?.code === "42703"
       ? Object.keys(NEWER_ITEM_COLUMNS).find((c) => !(c in defaults) && res.error!.message.includes(c))
-      : undefined;
+      : res.error?.code === "42501"
+        ? NEWER_GUEST_GRANTS.find((c) => !(c in defaults) && columns.includes(`, ${c}`))
+        : undefined;
     if (!missing) {
       const data = unwrap(res);
       if (Object.keys(defaults).length === 0) return data;

@@ -141,14 +141,14 @@ describe("BUY-16: guests browse Declutter", () => {
     expect(screen.queryByRole("link", { name: "Post what you're looking for" })).toBeNull();
     expect(screen.queryByRole("link", { name: "Sell something" })).toBeNull();
     g.unmount();
-    show(<DeclutterBrowse userId="me" tabs={(h) => <div>{h.end}</div>} />);
+    show(<DeclutterBrowse userId="me" chrome={(h) => ({ tabs: <div>{h.end}{h.search}</div> })} />);
     expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Sell something" })).toHaveAttribute("href", "/declutter/sell?mode=choose");
     expect(screen.queryByRole("link", { name: "Sign up to sell" })).toBeNull();
   });
 
   it("a member still gets the hearts, the map and their reads (the same screen, so the guest test can fail)", async () => {
-    show(<DeclutterBrowse userId="me" tabs={(h) => <div>{h.end}</div>} />);
+    show(<DeclutterBrowse userId="me" chrome={(h) => ({ tabs: <div>{h.end}{h.search}</div> })} />);
     expect(await screen.findByRole("button", { name: "Save Thing 1" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /the map/ })).toBeInTheDocument();
     // The map is a lazy chunk: on a loaded CI runner it can land after the first heart (#3864 shard 1).

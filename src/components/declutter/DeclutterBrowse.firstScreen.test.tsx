@@ -70,7 +70,7 @@ function show(url = "/declutter") {
   render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[url]}>
-        <DeclutterBrowse userId="me" tabs={() => null} />
+        <DeclutterBrowse userId="me" chrome={() => ({ tabs: null })} />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -128,18 +128,18 @@ describe("Browse's first cards when the list is longer than the first answer", (
         <MemoryRouter initialEntries={["/declutter?tab=browse"]}>
           <Where />
           <Routes>
-            <Route path="/declutter" element={<><Link to="/item">to item</Link><DeclutterBrowse userId="me" tabs={(b) => <>{b.end}</>} /></>} />
+            <Route path="/declutter" element={<><Link to="/item">to item</Link><DeclutterBrowse userId="me" chrome={(b) => ({ tabs: <>{b.end}{b.search}</> })} /></>} />
             <Route path="/item" element={<BackButton />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Search items" }));
-    fireEvent.change(screen.getByRole("searchbox", { name: "Search items" }), { target: { value: "oak chair" } });
+    // Owner 11-08 (the Vinted header): a phone's search is the "Search Declutter" field, always open.
+    fireEvent.change(screen.getByRole("searchbox", { name: "Search Declutter" }), { target: { value: "oak chair" } });
     await waitFor(() => expect(path).toBe("/declutter?tab=browse&q=oak+chair"));
     fireEvent.click(screen.getByRole("link", { name: "to item" }));
     fireEvent.click(await screen.findByRole("button", { name: "back" }));
-    expect(((await screen.findByRole("searchbox", { name: "Search items" })) as HTMLInputElement).value).toBe("oak chair");
+    expect(((await screen.findByRole("searchbox", { name: "Search Declutter" })) as HTMLInputElement).value).toBe("oak chair");
     expect(path).toBe("/declutter?tab=browse&q=oak+chair");
   });
 

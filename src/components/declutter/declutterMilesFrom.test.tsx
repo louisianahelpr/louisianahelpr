@@ -11,7 +11,7 @@
 // @mutate src/components/declutter/DeclutterMilesFrom.tsx | ) : offerAsk(ask) ? ( | ) : false ? (
 // @mutate src/components/declutter/DeclutterMilesFrom.tsx | variant="link" size="sm" className="shrink-0 px-1 text-ds-13 font-semibold" | variant="outline" size="sm" className="rounded-full"
 // @mutate src/components/declutter/DeclutterBrowseBar.tsx |   return !fromDevice && (!ask.asked \|\| ask.canAskAgain); |   return !ask.asked \|\| ask.canAskAgain;
-// @mutate src/components/declutter/DeclutterBrowseView.tsx | {itemsPhase !== "offline-empty" && rows.length > 0 && <DeclutterMilesFrom ask={ask} />} | {null}
+// @mutate src/components/declutter/DeclutterBrowseView.tsx | {desktop && itemsPhase !== "offline-empty" && rows.length > 0 && <DeclutterMilesFrom ask={ask} />} | {null}
 // @mutate src/components/declutter/DeclutterFreeView.tsx | <DeclutterMilesFrom ask={{ origin, askDevice, asked, asking, canAskAgain, deviceNote, zip }} /> | {null}
 // @mutate src/components/declutter/useDeclutterOrigin.ts | canAskAgain, deviceNote, zip }; | canAskAgain, deviceNote, zip: null };
 import { readFileSync } from "node:fs";

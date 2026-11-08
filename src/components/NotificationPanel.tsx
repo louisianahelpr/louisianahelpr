@@ -33,7 +33,7 @@ const LOAD_TIMEOUT_MS = 15_000;
 const withLoadTimeout = <T,>(pending: PromiseLike<T>): Promise<T> =>
   raceVisibleDeadline(pending, LOAD_TIMEOUT_MS, "Loading notifications timed out");
 
-function useNotificationPanelModel({ triggerClassName, defaultOpen = false }: { triggerClassName?: string; defaultOpen?: boolean } = {}) { // sizes the bell (Home: 44px); defaultOpen: NotificationBell swapped this in on a tap
+function useNotificationPanelModel({ triggerClassName, defaultOpen = false, withMessages = false }: { triggerClassName?: string; defaultOpen?: boolean; withMessages?: boolean } = {}) { // sizes the bell (Home: 44px); defaultOpen: NotificationBell swapped this in on a tap
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
   const titleId = useId();
@@ -444,6 +444,7 @@ function useNotificationPanelModel({ triggerClassName, defaultOpen = false }: { 
     unreadCount,
     unreadTotal,
     visibleNotifications,
+    withMessages,
   };
 }
 

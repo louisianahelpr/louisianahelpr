@@ -64,7 +64,7 @@ function show(previewAnswer: Promise<unknown> = Promise.resolve({ items: preview
   render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={["/declutter"]}>
-        <DeclutterBrowse userId={null} tabs={() => null} />
+        <DeclutterBrowse userId={null} chrome={() => ({ tabs: null })} />
       </MemoryRouter>
     </QueryClientProvider>,
   );

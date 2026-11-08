@@ -72,9 +72,9 @@ export default function FreshDeclutterStrip({ items }: { items: FreshItem[] }) {
                   )}
                 </span>
                 <span className="flex flex-col gap-0.5 p-3 min-w-0">
-                  <span className="text-ds-16 font-bold">{itemPriceLabel(it.current_price_cents)}</span>
-                  {/* Owner 11-07 (Vinted review): what the buyer pays with the fee. */}
-                  <PriceInclFee priceCents={it.current_price_cents} className="text-ds-12 font-medium tabular-nums" />
+                  {/* Owner pick 2 (11-08): what the buyer pays with the fee is the bold price; the base price small under it. */}
+                  <PriceInclFee priceCents={it.current_price_cents} className="text-ds-16 font-bold tabular-nums" />
+                  <span className="text-ds-12 font-medium tabular-nums">{itemPriceLabel(it.current_price_cents)}</span>
                   <span className="text-ds-14 font-semibold line-clamp-2 break-words" title={it.title}>{it.title}</span>
                   {it.area_label && (
                     <span className="text-ds-13 truncate" title={it.area_label} style={{ color: "var(--lp-body)" }}>{it.area_label}</span>

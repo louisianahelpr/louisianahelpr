@@ -387,7 +387,7 @@ describe("Declutter location ask", () => {
   it("category chips at the top of Browse (owner 11-07, replacing 10-21's sheet-only rule) and in the filter sheet set ONE category; a tap shows only that category and marks it, a second tap shows everything", async () => {
     // @mutate src/lib/declutter/browseFilters.ts |     if (f.category && item.category !== f.category) return false; |
     // @mutate src/components/declutter/DeclutterFilterPanel.tsx | <Chip key={key} on={filters.category === key} onClick={() => onChange({ ...filters, category: filters.category === key ? null : key })}> | <Chip key={key} on={filters.category === key} onClick={() => onChange({ ...filters, category: key })}>
-    // @mutate src/components/declutter/DeclutterBrowseView.tsx | onChange={(category) => setFilters((f) => ({ ...f, category }))} /> | onChange={() => undefined} />
+    // @mutate src/components/declutter/DeclutterBrowseView.tsx | onChange={(category) => setFilters((f) => ({ ...f, category }))} free= | onChange={() => undefined} free=
     const item = (id: string, title: string, category: string) => ({
       id, seller_id: "u2", status: "live", title, category, condition_stars: 4,
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,

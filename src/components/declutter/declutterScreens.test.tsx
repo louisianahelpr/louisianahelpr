@@ -290,7 +290,7 @@ describe("Declutter screens", () => {
     // ONE way to sell on Browse: the floating "+ Sell" pill (owner 11-08, the Vinted header), no "+" in the bar.
     const sell = await screen.findAllByRole("button", { name: "Sell an item" });
     expect(sell).toHaveLength(1);
-    expect(sell[0].getAttribute("data-testid")).toBe("declutter-sell-fab");
+    expect(sell[0].getAttribute("data-testid")).toBe("section-create-fab");
     expect(screen.queryByTestId("top-bar-create")).toBeNull();
     expect(await screen.findByText("Nothing for sale near you yet.")).toBeInTheDocument();
   });

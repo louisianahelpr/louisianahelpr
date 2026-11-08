@@ -268,7 +268,7 @@ describe("a new listing starts from the seller's remembered choices", () => {
     fireEvent.click(document.getElementById("sell-tax")!);
     fireEvent.click(screen.getByRole("button", { name: "Post it" }));
     await waitFor(() => expect(remembered.saves).toHaveLength(1));
-    expect(remembered.saves[0]).toEqual({ keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true });
+    expect(remembered.saves[0]).toEqual({ keepUp: true, drops: true, dropPct: 5, floorPct: 50, freeAfterDays: null, handovers: ["porch"], acceptsOffers: true, acceptsTrades: false });
     expect(drafts[0]).toMatchObject({ priceCents: 4500, floorPriceCents: 2300 });
   });
 

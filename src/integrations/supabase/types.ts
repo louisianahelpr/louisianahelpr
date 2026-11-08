@@ -4283,6 +4283,7 @@ export type Database = {
           handovers: string[]
           keep_up: boolean
           member_id: string
+          trades_prompt_answered_at: string | null
           updated_at: string
         }
         Insert: {
@@ -4295,6 +4296,7 @@ export type Database = {
           handovers?: string[]
           keep_up?: boolean
           member_id: string
+          trades_prompt_answered_at?: string | null
           updated_at?: string
         }
         Update: {
@@ -4307,6 +4309,7 @@ export type Database = {
           handovers?: string[]
           keep_up?: boolean
           member_id?: string
+          trades_prompt_answered_at?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -18928,6 +18931,10 @@ export type Database = {
         }[]
       }
       declutter_swap_sweep: { Args: never; Returns: Json }
+      declutter_trades_prompt_answer: {
+        Args: { p_turn_on: boolean }
+        Returns: number
+      }
       declutter_void_swaps: {
         Args: { p_item_id: string; p_why: string }
         Returns: number

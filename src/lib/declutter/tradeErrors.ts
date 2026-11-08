@@ -74,6 +74,11 @@ export const TRADE_RPC_ERROR_COPY = {
     offer_not_open: TRADE_ERROR_COPY.trade_not_open,
     trades_off: TRADE_ERROR_COPY.trades_off,
   },
+  // The one-time "Turn on trades for all your listings?" card (20261108193632).
+  declutter_trades_prompt_answer: {
+    ...MEMBER,
+    invalid_trade_rules: TRADE_ERROR_COPY.invalid_trade_rules,
+  },
 } satisfies Record<string, Record<string, string>>;
 
 export type TradeRpc = keyof typeof TRADE_RPC_ERROR_COPY;

@@ -130,7 +130,7 @@ export interface PublicProfile {
   wanted: { id: string; what: string; category: string; max_price_cents: number; created_at: string }[];
 }
 
-export type PublicListing = { id: string; title: string; current_price_cents: number; area_label: string | null; photo_id: string | null; live_at: string };
+type PublicListing = { id: string; title: string; current_price_cents: number; area_label: string | null; photo_id: string | null; live_at: string };
 /** One listing as public_profile_by_handle sends it: `price_cents` IS the item's current price (i.current_price_cents). */
 type WireListing = Omit<PublicListing, "current_price_cents"> & { price_cents: number };
 

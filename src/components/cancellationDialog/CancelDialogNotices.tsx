@@ -4,7 +4,6 @@
  * (src/test/componentSizeRatchet.test.ts). They compute nothing: every figure
  * is passed in by the dialog, which owns the quote, the fee and the cancel.
  */
-import { DollarSign, ShieldCheck } from "lucide-react";
 import type { PosterCancelQuote } from "@/lib/posterCancelQuote";
 // formatPriceExact, not formatPrice: these show the fee arithmetic, and
 // whole-dollar rounding made the lines stop adding up.
@@ -66,31 +65,18 @@ export function CancelSeriesNotice({ scope, jobDate }: { scope: Exclude<CancelSe
  * fee applies (hasHelper + late).
  */
 export function CancelFeeCallout({ fee, crew, feeTier, helperName, strike }: { fee: number; crew: boolean; feeTier: string; helperName?: string; strike: boolean }) {
+  // Design audit A CS1 (owner approved 11-08): a plain money ROW (label left, amount right, one meta line), not a
+  // coloured box. The words are unchanged (owner 2026-10-25: no fee names, percentages or maths to members).
   return (
-    <div
-      className="flex items-start gap-2.5 rounded-ds-md p-3.5"
-      style={{
-        background: "hsl(var(--destructive) / 0.07)",
-        border: "1px solid hsl(var(--destructive) / 0.28)",
-      }}
-    >
-      <DollarSign
-        className="w-4 h-4 shrink-0 mt-0.5"
-        style={{ color: "hsl(var(--destructive-ink))" }}
-      />
-      <div>
-        <p
-          className="font-sans font-bold text-ds-13"
-          style={{ color: "hsl(var(--destructive-ink))", letterSpacing: "-0.01em" }}
-        >
-          <span className="tabular-nums text-[hsl(var(--sienna-ink))]">${formatPrice(fee)}</span> for {crew ? "your hired Helprs'" : `${helperName || "your Helpr"}'s`} time
-        </p>
-        {/* Owner 2026-10-25: no fee names, percentages or maths to members. Q2674 (audit 1102e row 7): the ONE box
-            that says the amount for the Helpr's time and the strike; what comes back is Back to you, said once. */}
-        <p className="text-ds-11 text-muted-foreground mt-0.5">
-          {feeTier}{strike ? " · counts as a strike" : ""}
-        </p>
-      </div>
+    <div data-cancel-money-row="helpr-time" className="border-b border-border py-3">
+      <p className="font-sans font-semibold text-ds-13 text-foreground">
+        <span className="font-bold text-ds-15 tabular-nums">${formatPrice(fee)}</span> for {crew ? "your hired Helprs'" : `${helperName || "your Helpr"}'s`} time
+      </p>
+      {/* Q2674 (audit 1102e row 7): the ONE row that says the amount for the Helpr's time and the strike; what comes
+          back is Back to you, said once. */}
+      <p className="text-ds-12 text-muted-foreground mt-0.5">
+        {feeTier}{strike ? " · counts as a strike" : ""}
+      </p>
     </div>
   );
 }
@@ -105,8 +91,9 @@ export function CancelFeeCallout({ fee, crew, feeTier, helperName, strike }: { f
 export function CancelBackToYou({ quote, quoteLoading, backToYouCents }: { quote: PosterCancelQuote | null; quoteLoading: boolean; backToYouCents: number | null }) {
   return (
     <div
-      className="rounded-ds-md border border-border bg-card p-3.5"
+      className="border-b border-border py-3"
       data-testid="cancel-back-to-you"
+      data-cancel-money-row="back-to-you"
       aria-live="polite"
     >
       <div className="flex items-baseline justify-between gap-3">
@@ -151,29 +138,11 @@ export function CancelBackToYou({ quote, quoteLoading, backToYouCents }: { quote
  * where the Helpr has already given up their day.
  */
 export function CancelHelprToldAndPaid({ helperName }: { helperName?: string }) {
+  // Design audit A CS1 (owner approved 11-08): one quiet line under the money rows, not a green box. Words unchanged.
   return (
-    <div
-      className="rounded-ds-md p-3"
-      style={{
-        background: "hsl(var(--success-ink) / 0.08)",
-        border: "0.5px solid hsl(var(--success-ink) / 0.20)",
-      }}
-    >
-      <div className="flex items-center gap-2 mb-1">
-        <ShieldCheck className="w-3.5 h-3.5 shrink-0" style={{ color: "hsl(var(--success-ink))" }} />
-        <p
-          className="font-sans font-semibold text-ds-13"
-          style={{ color: "hsl(var(--success-ink))" }}
-        >
-          Your Helpr is told, and paid
-        </p>
-      </div>
-      <p
-        className="font-sans text-ds-12"
-        style={{ color: "hsl(var(--success-ink))" }}
-      >
-        {helperName || "Your Helpr"} is notified the moment you confirm, and their pay for their time comes out of that amount and is sent to them automatically within the hour.
-      </p>
-    </div>
+    <p data-cancel-helpr-told="" className="font-sans text-ds-12 text-muted-foreground">
+      <span className="font-semibold text-foreground">Your Helpr is told, and paid.</span>{" "}
+      {helperName || "Your Helpr"} is notified the moment you confirm, and their pay for their time comes out of that amount and is sent to them automatically within the hour.
+    </p>
   );
 }

@@ -122,7 +122,16 @@ describe("Q1674: a first job's $2 setup fee is kept on every refund", () => {
       hasHelper: false, wasFunded: true, open: true, onClose: () => {}, onCancelled: () => {},
     };
     const { unmount } = render(<CancellationDialog {...props} setupFeeKept={2} />);
-    expect(screen.getByText(/The one-time \$2\.00 account setup fee is kept: it is paid once and never refunded\./)).toBeInTheDocument();
+    const kept = screen.getByText(/The one-time \$2\.00 account setup fee is kept: it is paid once and never refunded\./);
+    expect(kept).toBeInTheDocument();
+    // lh-money-escrow review 11-08: seen BEFORE confirming, without opening anything. jsdom renders a closed
+    // <details> body, so getByText alone cannot tell; the line must sit outside every <details> and right after
+    // the "Back to you" row.
+    expect(kept.closest("details")).toBeNull();
+    expect(kept.closest("[hidden]")).toBeNull();
+    const backRow = document.querySelector('[data-cancel-money-row="back-to-you"]');
+    expect(backRow).not.toBeNull();
+    expect(backRow!.nextElementSibling).toBe(kept);
     unmount();
     render(<CancellationDialog {...props} setupFeeKept={null} />);
     expect(screen.queryByText(/account setup fee is kept/)).toBeNull();
@@ -160,7 +169,7 @@ describe("Q1674: a first job's $2 setup fee is kept on every refund", () => {
 });
 
 // @mutate supabase/functions/_shared/posterFees.ts |   return Number.isFinite(dollars) && dollars > 0 ? Math.round(dollars * 100) : 0; |   return 0;
-// @mutate src/components/CancellationDialog.tsx |                   {keptFeeSentence}\n                </p> |                 </p>
+// @mutate src/components/CancellationDialog.tsx |           {!nobodyLeft && keptFeeSentence && ( |           {false && keptFeeSentence && (
 // @mutate src/lib/posterSpend.ts |   if (!(refundedCents > 0)) return ` · includes ${amount} one-time setup fee`; |   if (!(refundedCents > 0)) return "";
 // @mutate src/components/profile/earningsTab/SpentSection.tsx |                   {r.job ? setupFeeReceiptNote(r.job, r.refundedCents, r.adminRefunded) : ""} |
 // @mutate src/lib/disputeSplitPreview.ts |   const posterGross = Math.round(Math.max(0, capturedCents - keptSetupFeeCents) * posterShare) / 100; |   const posterGross = Math.round(capturedCents * posterShare) / 100;

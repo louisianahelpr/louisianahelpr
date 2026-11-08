@@ -8,7 +8,7 @@
  * crewNobodyLeft; ActivityDialogs passes it on. A roster map is not used: it reads {} before it has loaded.
  *
  * @mutate src/components/CancellationDialog.tsx |           {nobodyLeft && ( |           {false && (
- * @mutate src/components/CancellationDialog.tsx |           {!nobodyLeft && (<> |           {true && (<>
+ * @mutate src/components/CancellationDialog.tsx |           {!nobodyLeft && (\n          <details data-cancel-policy | {true && (\n          <details data-cancel-policy
  * @mutate src/components/job-card/ActivityDialogs.tsx |           nobodyLeft={(props.cancelDialogJob as { crewNobodyLeft?: boolean }).crewNobodyLeft === true} |           nobodyLeft={false}
  * @mutate src/components/job-card/activityActions/useLifecycleHandlers.ts |         setCancelDialogJob({ ...job, crewNobodyLeft: crewNobodyLeft(job.status, [], true, hasJobStarted(job.date_needed, job.start_time)) } as Job); |         setCancelDialogJob(job);
  */

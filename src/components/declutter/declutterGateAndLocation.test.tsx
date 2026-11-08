@@ -496,7 +496,8 @@ describe("Declutter location ask", () => {
       // Typing filters the feed.
       fireEvent.change(within(bar).getByRole("searchbox", { name: "Search Declutter" }), { target: { value: "lamp" } });
       expect(await screen.findByText("Brass lamp")).toBeInTheDocument();
-      await waitFor(() => expect(screen.queryByText("Oak rocking chair")).toBeNull());
+      // The filter applies on the change (the chair was on screen above), so its absence is checked at once, not waited for (waitForEmptyIsVacuous).
+      expect(screen.queryByText("Oak rocking chair")).toBeNull();
       fireEvent.click(within(bar).getByRole("button", { name: "Clear search" }));
       expect(await screen.findByText("Oak rocking chair")).toBeInTheDocument();
       expect(container.querySelector("[data-feed-strip]")).toBeNull();

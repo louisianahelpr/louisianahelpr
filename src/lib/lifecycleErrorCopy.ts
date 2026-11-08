@@ -353,6 +353,8 @@ export const RPC_ERROR_COPY = {
     continue_day_note_too_long: "Keep the note under 300 characters.",
     continue_day_too_far: "Pick a day within the next 30 days.",
     continue_day_too_soon: "Pick a time at least an hour from now.",
+    // Jobs audit 11-08 #11 (20261108203000).
+    continue_day_refund_open: "A refund request on this job is still open. Answer or withdraw it before setting another day.",
   },
   answer_job_continue_day: {
     not_authenticated: "Sign in again to answer.",

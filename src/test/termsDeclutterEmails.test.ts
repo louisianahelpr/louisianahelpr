@@ -4,8 +4,8 @@
  * Terms now name what is emailed, from the same switch table Settings shows (declutterRows): the rows with no email
  * switch are app only; Sales and Refunds receipts are always emailed; the rest email unless turned off.
  *
- * @mutate src/pages/info/legal/TermsSection.tsx | Pickup reminders, price drops and Wanted matches are emailed too | Pickup reminders are emailed too
- * @mutate src/pages/info/legal/TermsSection.tsx | Listings, offers and questions come only | Listings and offers come only
+ * @mutate src/pages/info/legal/TermsSection.tsx | pickups, refunds, price drops and Wanted matches are emailed too | pickups are emailed too
+ * @mutate src/pages/info/legal/TermsSection.tsx | Listings and questions come only | Listings, offers and questions come only
  */
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
@@ -24,10 +24,11 @@ describe("AUD31-25: the Terms say which Declutter notices are emailed", () => {
     expect(sentence).not.toBe("");
     const appOnly = declutterRows.filter((r) => r.noEmailSwitch === APP_ONLY).map((r) => r.label.toLowerCase());
     const optional = declutterRows.filter((r) => !r.noEmailSwitch).map((r) => r.label.toLowerCase());
-    expect(appOnly).toEqual(["listings", "offers", "questions"]);
-    expect(sentence).toContain("Listings, offers and questions come only as a push notification and in-app alert.");
-    expect(optional).toEqual(["pickups", "price drops", "wanted matches"]);
-    expect(sentence).toContain("Pickup reminders, price drops and Wanted matches are emailed too unless you turn their email off in Settings.");
+    // H1 (Declutter buy audit 11-08, 20261108202546): offers, buying & selling, pickups and refunds notices email too.
+    expect(appOnly).toEqual(["listings", "questions"]);
+    expect(sentence).toContain("Listings and questions come only as a push notification and in-app alert.");
+    expect(optional).toEqual(["offers", "buying & selling", "pickups", "refunds", "price drops", "wanted matches"]);
+    expect(sentence).toContain("Offers, buying and selling updates, pickups, refunds, price drops and Wanted matches are emailed too unless you turn their email off in Settings.");
     expect(sentence).toContain("always emails your sale, payout and refund receipts");
   });
 });

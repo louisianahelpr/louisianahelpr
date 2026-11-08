@@ -131,16 +131,18 @@ describe("the Declutter group", () => {
         expect(screen.getByLabelText(`${r.label} email`), `${r.key} email`).toBeTruthy();
       }
     }
-    expect(declutterRows.filter((r) => !r.noEmailSwitch).map((r) => r.key).sort()).toEqual(["declutter_pickups", "declutter_price_drops", "declutter_wanted"]);
+    expect(declutterRows.filter((r) => !r.noEmailSwitch).map((r) => r.key).sort()).toEqual(["declutter_offers", "declutter_pickups", "declutter_price_drops", "declutter_refunds", "declutter_sales", "declutter_wanted"]);
   });
 
   // NIGHT-SET-Declutterse-3 (night audit 10-30, settings #3): the Sales row said "In the app only, no email for this",
   // but a seller is emailed "You sold" and "Your payout is on its way" every time (_shared/declutterSellerEmail.ts reads
   // no preference). The dash now says the receipts always go; if the sender ever reads a preference, this fails.
-  // @mutate src/components/notificationPreferences/constants.tsx | noEmailSwitch: "Sale and payout receipts are always emailed" | noEmailSwitch: NO_EMAIL
-  it("the Sales dash says the sale and payout receipts are always emailed, as the sender does", () => {
+  // H1 (Declutter buy audit 11-08): Buying & selling notices now email under their switch; the row's description keeps
+  // saying the receipts always go.
+  // @mutate src/components/notificationPreferences/constants.tsx | order messages. Sale and payout receipts are always emailed." | order messages."
+  it("the Sales row says the sale and payout receipts are always emailed, as the sender does", () => {
     const sales = declutterRows.find((r) => r.key === "declutter_sales");
-    expect(sales?.noEmailSwitch).toBe("Sale and payout receipts are always emailed");
+    expect(sales?.description).toContain("Sale and payout receipts are always emailed.");
     const sender = readFileSync(join(process.cwd(), "supabase/functions/_shared/declutterSellerEmail.ts"), "utf8");
     expect(sender).toMatch(/"sold"/);
     expect(sender).toMatch(/"payout_sent"/);

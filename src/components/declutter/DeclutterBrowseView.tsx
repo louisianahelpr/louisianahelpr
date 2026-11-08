@@ -346,7 +346,7 @@ export function DeclutterBrowse({ userId, chrome, top, fab }: { userId: string |
   // Owner 11-07 (Vinted review; replaces 10-21's "no chip row"): the category chips; on a phone (owner 11-08) they
   // are the steady row under the search bar, on desktop the top of the list.
   const chipRow = itemsPhase !== "offline-empty" && others.length > 0
-    ? <DeclutterCategoryChips items={others} value={filters.category} onChange={(category) => setFilters((f) => ({ ...f, category }))} />
+    ? <DeclutterCategoryChips items={others} value={filters.category} onChange={(category) => setFilters((f) => ({ ...f, category }))} free={filters.freeOnly} onFree={(freeOnly) => setFilters((f) => ({ ...f, freeOnly }))} />
     : null;
   const header: DeclutterBrowseHeader = desktop
     ? {

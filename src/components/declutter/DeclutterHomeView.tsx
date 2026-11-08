@@ -48,6 +48,7 @@ import { SectionSettingsButton } from "@/components/sections/AppTopBar";
 import { useIsWebDesktop } from "@/hooks/useIsWebDesktop";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
 import { SectionCreateFab } from "@/components/sections/SectionCreateFab";
+import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
 import { SectionListBack } from "@/components/sections/SectionListBack";
 import type { DeclutterBrowseHeader, DeclutterChrome } from "./DeclutterBrowseView";
 import type { SectionMineMenu } from "@/components/sections/sectionMine";
@@ -228,7 +229,7 @@ export function MyListingsView({ userId, haulOn }: { userId: string; haulOn: boo
             the section's own pill, to the same path as the "+". */}
         {/* Q2639 (audit 1102c R14): the same dashed, iconed empty card as "No offers yet" and "Nothing sold yet". */}
         <DeclutterEmptyCard icon={Tags} title="You haven't listed anything yet." data-seller-empty=""
-          action={<SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}>{sectionByKey("declutter").add.label}</SectionActionPill>}>
+          action={<><HideSectionCreateFab /><SectionActionPill className="mt-3" onClick={() => navigate(sectionByKey("declutter").add.path)}>{sectionByKey("declutter").add.label}</SectionActionPill></>}>
           Take a few photos and set your price. Listing is free.
         </DeclutterEmptyCard>
         {/* Q2667: a donation that took the last item still shows its receipt (HaulAwayCard, below, is not drawn here). */}

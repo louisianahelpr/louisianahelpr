@@ -24,9 +24,13 @@ export interface NeedsYouCounts {
   readonly shops: number;
   /** A3-81: Declutter to-dos (offers to answer, checkouts due, handovers), both sides. */
   readonly declutter: number;
+  /** The Jobs to-dos split by side, for "My Jobs" under the photo (the Vinted header, owner 11-08): jobs I posted... */
+  readonly jobsPosted: number;
+  /** ...and jobs I'm working. jobsPosted + jobsWorking === jobs. */
+  readonly jobsWorking: number;
 }
 
-export const NO_TODOS: NeedsYouCounts = Object.freeze({ total: 0, jobs: 0, shops: 0, declutter: 0 });
+export const NO_TODOS: NeedsYouCounts = Object.freeze({ total: 0, jobs: 0, shops: 0, declutter: 0, jobsPosted: 0, jobsWorking: 0 });
 
 let owner: string | null = null;
 let counts: NeedsYouCounts = NO_TODOS;
@@ -35,9 +39,10 @@ const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
 export function publishNeedsYou(userId: string, next: NeedsYouCounts): void {
-  if (owner === userId && counts.total === next.total && counts.jobs === next.jobs && counts.shops === next.shops && counts.declutter === next.declutter) return;
+  if (owner === userId && counts.total === next.total && counts.jobs === next.jobs && counts.shops === next.shops && counts.declutter === next.declutter
+    && counts.jobsPosted === next.jobsPosted && counts.jobsWorking === next.jobsWorking) return;
   owner = userId;
-  counts = { total: next.total, jobs: next.jobs, shops: next.shops, declutter: next.declutter };
+  counts = { total: next.total, jobs: next.jobs, shops: next.shops, declutter: next.declutter, jobsPosted: next.jobsPosted, jobsWorking: next.jobsWorking };
   emit();
 }
 

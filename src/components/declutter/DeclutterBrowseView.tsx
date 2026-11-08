@@ -45,6 +45,7 @@ import { DeclutterMilesFrom } from "./DeclutterMilesFrom";
 import { declutterFilterSections } from "./DeclutterFilterPanel";
 import { DeclutterFilterSheet } from "./DeclutterBrowseBar";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
+import { HideSectionCreateFab } from "@/components/sections/createFabHidden";
 import type { SectionMineMenu } from "@/components/sections/sectionMine";
 import { useDeclutterOrigin } from "./useDeclutterOrigin";
 import { mapFillHeight } from "@/lib/declutter/mapFillHeight";
@@ -145,6 +146,8 @@ function NothingForSaleActions({ guest }: { guest: boolean }) {
   // "Post what you're looking for" link. A guest can't sell yet (lead 10-31): Sign up to sell, back to the chooser after.
   return (
     <div data-nothing-for-sale="">
+      {/* A member's own "+ Sell something" is here: the floating "+ Sell" steps aside (owner via the lead, 11-08). */}
+      <HideSectionCreateFab active={!guest} />
       <EmptyStateActions
         primary={guest
           ? { label: "Sign up to sell", to: `/signup?redirect=${encodeURIComponent(SELL_CHOOSER_PATH)}` }

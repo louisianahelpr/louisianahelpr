@@ -24,15 +24,19 @@ function exactDollars(cents: number): string {
 export function PriceInclFee({
   priceCents,
   className = "block text-ds-12 font-medium leading-snug tabular-nums text-muted-foreground",
+  wordsClassName,
 }: {
   /** The item's current price in cents, before the fee. */
   priceCents: number;
   className?: string;
+  /** Owner pick 2 (11-08): where the incl. price is the loud one, "incl. fee" is its own small label (primary colour). */
+  wordsClassName?: string;
 }) {
   if (!(priceCents > 0)) return null;
   return (
     <span data-price-incl-fee="" className={className}>
-      {exactDollars(buyNowTotalCents(priceCents))} {INCL_FEE_WORDS}
+      {exactDollars(buyNowTotalCents(priceCents))}{" "}
+      {wordsClassName ? <span data-incl-fee-words="" className={wordsClassName}>{INCL_FEE_WORDS}</span> : INCL_FEE_WORDS}
     </span>
   );
 }

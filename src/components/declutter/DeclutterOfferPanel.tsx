@@ -8,21 +8,20 @@
  * because it is charged later. Moved out of DeclutterTradeViews.tsx unchanged (component size limit).
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { useAgeGate } from "@/hooks/useAgeGate";
-import { useDockYield } from "@/components/mobileNav/useDockYield";
+import { StickyActionBar } from "@/components/ui/StickyActionBar";
 import { buyNow, fetchItemHandovers, fetchMyCard, fetchMyCart, fetchMyOffers, makeOffer, startCardSave, type DeclutterItem, type DeliverySize } from "@/lib/declutter/api";
 import { noDeliveryWay, totalPhrase, type NoDeliveryWay } from "@/lib/declutter/pickupWords";
 import { deliveryPriceCents } from "@/lib/declutter/delivery";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { formatPrice } from "@/lib/declutter/distance";
 import { centsToDollars, minOfferCents, OFFER_CHIP_PERCENTS, offerChipCents } from "@/lib/declutter/money";
-import { BuyerTotal, SetupFeeNote } from "./BuyerTotal";
+import { BuyerTotal } from "./BuyerTotal";
 import { openExternalUrl } from "@/lib/openExternalUrl";
 import { afterCardFromState, cardCancelledFromState, offerAmountFromState, rememberAfterCard, type AfterCardAction } from "@/lib/declutter/afterCard";
 import { DeclutterNotice } from "./declutterUi";
@@ -31,7 +30,6 @@ import { checkoutLinkFor } from "@/lib/declutter/buyNowHold";
 import { HoldChecking, myHoldOn, myOpenOfferOn, ReservedForYou, YourOfferBox } from "./DeclutterYourOffer";
 import { dollarsInputToCents } from "@/lib/declutter/money";
 import { invalidateTrades } from "./declutterLightActions";
-import { useOffScreen } from "./useOffScreen";
 import { Input } from "@/components/ui/input";
 import { OfferSuggestion } from "./OfferSuggestion";
 import { ChoicePill } from "@/components/ui/ChoicePill";
@@ -110,36 +108,35 @@ const CARD_POLL_MS = 1_500;
  */
 /**
  * Owner 11-01 (app-wide): side-by-side buttons are ONE line with short labels. So "Buy · $37.45", not "Buy now" over
- * "$37.45 total + any one-time setup fee" (four lines at 375); the setup-fee words are a SetupFeeNote under the
+ * "$37.45 total + any one-time setup fee" (four lines at 375); the setup-fee words were a small note under the
  * buttons. The figure is the checkout total (buyNowTotalCents = checkoutAmounts, the rule declutter_start_checkout
  * freezes), never the bare price (D6), PLUS the one-time account setup fee a first purchase carries (A1-B2: the
  * button said $32.20 while Stripe charged $34.20). Screen readers hear "Buy now · $37.45 total" (and the setup-fee words while they apply).
  */
-function BuyNowLabel({ priceCents, way, size, long = false }: { priceCents: number; way: NoDeliveryWay; size: DeliverySize;
-  /** Owner 11-07: the item page's full-width stacked button has room for "Buy now" in full. */
-  long?: boolean }) {
-  // Audit BUY-3: on an item the seller offers only delivered (way "none"), the pickup total is a figure nobody can
-  // pay. The label names the least it costs delivered instead, the least a Helpr delivery can cost (one road mile).
-  const delivered = way === "none";
+function BuyNowLabel({ priceCents, way, size }: { priceCents: number; way: NoDeliveryWay; size: DeliverySize }) {
+  // Owner pick 2 (11-08, one price story): the item's "$X incl. fee" right above is the price; the button says
+  // "Buy now" and names no second figure. The one-time setup fee is its own line in the checkout summary
+  // (DeclutterCheckoutSummary "One-time setup fee"), never folded into a button a first-time buyer compares to the card.
+  // Audit BUY-3 stays: on an item the seller offers only delivered (way "none"), the pickup price is a figure nobody can
+  // pay, so the label names the least it costs delivered (the least a Helpr delivery can cost, one road mile).
+  if (way !== "none") return <span className="whitespace-nowrap font-semibold" data-buy-label="">Buy now</span>;
   return (
     <span className="whitespace-nowrap font-semibold" data-buy-label="">
       {/* Text nodes carry the spaces: a space at a span's edge is dropped from the accessible name. */}
-      {long ? <>Buy now ·</> : <><span aria-hidden>Buy ·</span><span className="sr-only">Buy now ·</span></>}{" "}
-      {delivered && "from "}
+      <span aria-hidden>Buy ·</span><span className="sr-only">Buy now ·</span>{" "}
+      from{" "}
       <BuyerTotal
         priceCents={priceCents}
-        addCents={delivered ? deliveryPriceCents(1, [size]) : 0}
-        suffix={<>{" "}<span className="sr-only">{delivered ? "delivered" : "total"}</span></>}
+        addCents={deliveryPriceCents(1, [size])}
+        suffix={<>{" "}<span className="sr-only">delivered</span></>}
         pendingClassName="sr-only"
       />
     </span>
   );
 }
 
-export function OfferPanel({ item, userId, askSignal = 0, footer = null, onAskSeller = null }: {
+export function OfferPanel({ item, userId, askSignal = 0, footer = null }: {
   item: DeclutterItem; userId: string;
-  /** Owner 11-07 (lead: no new messaging path): "Ask the seller" jumps to the public Questions box. Null hides it. */
-  onAskSeller?: (() => void) | null;
   /** AUD31-15: the Questions hint's "Make an offer" counts up; each new count opens the offer box, as the button does. */
   askSignal?: number;
   /** Owner mockup 11-01: the delivery line sits under the two buttons, inside this card. */
@@ -156,12 +153,6 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null, onAskSe
   const offerBox = useRef<HTMLInputElement>(null);
   useEffect(() => { if (open) offerBox.current?.focus(); }, [open]);
   const panel = useRef<HTMLElement>(null);
-  const buttons = useRef<HTMLDivElement>(null);
-  // Phone (owner, 2026-10-19): while the in-page buttons are scrolled out of
-  // view, the same two actions ride in a bar above the bottom dock.
-  const barShown = useOffScreen(buttons);
-  // The bar owns the bottom strip while it shows; the dock steps aside (Q1646).
-  useDockYield(barShown && !underAge && item.status === "live");
   /** The action waiting for a card: shown as AddCardStep, then resumed once a card is on file. */
   const [needCard, setNeedCard] = useState<AfterCardAction | null>(null);
   /**
@@ -356,44 +347,43 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null, onAskSe
     return <DeclutterNotice tone="warn" title="You must be 18 or older to buy on Declutter." />;
   }
   return (
-    <section ref={panel} tabIndex={-1} className="rounded-2xl border border-border bg-card p-4 space-y-3 scroll-mt-4 focus:outline-none" aria-label="Buy or make an offer">
-      {/* Owner 11-07 (Vinted review): three full-width buttons stacked under the price: Buy now (the one primary,
-          with the total) first, then Make an offer, then Ask the seller (the public Questions box; Declutter has no
-          messaging before a sale). Offers off or an offer already sent: no Make an offer. The phone bar below keeps
-          its side-by-side pair (owner 11-01). */}
-      <div ref={buttons} className="grid gap-2" data-offer-buttons="">
+    <section ref={panel} tabIndex={-1} className="space-y-3 scroll-mt-4 focus:outline-none" aria-label="Buy or make an offer">
+      {/* Owner pick 1 (11-08, replacing 11-07's stacked buttons): ONE sticky bar with Make offer and Buy now, the one
+          primary on the right. Fixed on the bottom edge of a phone (the dock yields), in the page on a wider screen.
+          Message moved to the seller row (DeclutterItemView). Offers off: Buy now alone; an offer already sent: "Your
+          offer" in Make offer's place. */}
+      <StickyActionBar label="Buy or make an offer" data-declutter-buybar="" spacer={false}>
+        {myOffer ? (
+          <Button type="button" variant="outline" size="wrap" className="whitespace-nowrap rounded-full px-3 font-semibold"
+            onClick={() => panel.current?.querySelector("[data-your-offer]")?.scrollIntoView({ behavior: "smooth", block: "center" })}>
+            Your offer
+          </Button>
+        ) : offersOff ? null : (
+          <Button
+            type="button"
+            variant="outline"
+            size="wrap"
+            className="whitespace-nowrap rounded-full px-3 font-semibold"
+            aria-expanded={open}
+            disabled={offers.isLoading}
+            onClick={() => (open ? setOpen(false) : tap("offer"))}
+          >
+            <span data-offer-label="">Make offer</span>
+          </Button>
+        )}
         {/* ONE primary at a time (audit #47): while the card step asks for a card, "Add a card" is the primary
             and Buy now steps back to an outline. */}
         <Button
           type="button"
           size="wrap"
           variant={showCardStep ? "outline" : undefined}
-          className="w-full min-w-0 rounded-full px-3"
+          className="rounded-full px-3"
           disabled={buy.isPending}
           onClick={() => tap("buy")}
         >
-          <BuyNowLabel priceCents={item.current_price_cents} way={way} size={item.delivery_size} long />
+          <BuyNowLabel priceCents={item.current_price_cents} way={way} size={item.delivery_size} />
         </Button>
-        {!myOffer && !offersOff && (
-          <Button
-            type="button"
-            variant="outline"
-            size="wrap"
-            className="w-full min-w-0 rounded-full px-3"
-            aria-expanded={open}
-            disabled={offers.isLoading}
-            onClick={() => (open ? setOpen(false) : tap("offer"))}
-          >
-            <span className="whitespace-nowrap" data-offer-label="">Make an offer</span>
-          </Button>
-        )}
-        {onAskSeller && (
-          <Button type="button" variant="outline" size="wrap" className="w-full min-w-0 rounded-full px-3" data-ask-seller="" onClick={onAskSeller}>
-            <span className="whitespace-nowrap">Ask the seller</span>
-          </Button>
-        )}
-      </div>
-      <SetupFeeNote className="-mt-1 text-center text-ds-12 text-muted-foreground" />
+      </StickyActionBar>
       {/* Q2564 (Auditor 1, audit 1102a): the card step and the offer box open HERE, right under the buttons, and the
           panel's footer (the delivery line) right after them, as before; at 375 they used to open below that table, behind the
           dock, so a press on Buy or Offer showed nothing. A tap also brings the opened step into view. */}
@@ -472,7 +462,7 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null, onAskSe
       {showCardStep && needCard === "offer" && cardStep("offer")}
       </div>
       {footer}
-      {myOffer && <YourOfferBox offer={myOffer} onChange={() => setOpen(true)} />}
+      {myOffer && <div data-your-offer=""><YourOfferBox offer={myOffer} onChange={() => setOpen(true)} /></div>}
       {offersOff && !myOffer && <p className="text-xs text-muted-foreground" data-offers-off="">The seller isn't taking offers on this one.</p>}
       {/* LEAD-ITEM-PAGE-LAYOUT (owner 2026-10-31): no reassurance lines under the buttons; the card step says when the card is charged. */}
       {card.isError && (
@@ -481,53 +471,6 @@ export function OfferPanel({ item, userId, askSignal = 0, footer = null, onAskSe
       {checkingCard && (
         <p role="status" className="text-sm text-muted-foreground">Checking for your card…</p>
       )}
-      {barShown && typeof document !== "undefined" &&
-        createPortal(
-          // Portaled to <body>: a fixed bar inside the page would be placed by its transformed ancestor, not the screen.
-          // Flush on the bottom edge while the dock yields (useDockYield), as on Marketplace's item page.
-          <div data-declutter-buybar="" data-rail-inset="" className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card px-4 pt-2 pb-[calc(var(--safe-area-bottom,0px)+0.5rem)] shadow-[0_-4px_16px_rgb(0_0_0/0.06)] sm:hidden">
-            <div role="group" aria-label="Buy or make an offer" className="mx-auto flex max-w-xl gap-2">
-              {myOffer ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="wrap"
-                  className="flex-1 min-w-0 whitespace-nowrap rounded-full px-3 font-semibold"
-                  onClick={() => panel.current?.scrollIntoView({ behavior: "smooth", block: "center" })}
-                >
-                  Your offer
-                </Button>
-              ) : offersOff ? null : (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="wrap"
-                  className="flex-1 min-w-0 whitespace-nowrap rounded-full px-3 font-semibold"
-                  disabled={offers.isLoading}
-                  onClick={() => {
-                    tap("offer");
-                    panel.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-                  }}
-                >
-                  {/* The same word as the panel's button (audit 3 A3-7); owner 11-01: short labels, one line. */}
-                  <span aria-hidden data-offer-label="">Offer</span>
-                  <span className="sr-only">Make an offer</span>
-                </Button>
-              )}
-              <Button
-                type="button"
-                size="wrap"
-                className="flex-[1.3] min-w-0 rounded-full px-3"
-                disabled={buy.isPending}
-                onClick={() => tap("buy")}
-              >
-                <BuyNowLabel priceCents={item.current_price_cents} way={way} size={item.delivery_size} />
-              </Button>
-            </div>
-            <SetupFeeNote className="mx-auto mt-1 max-w-xl text-center text-ds-11 text-muted-foreground" />
-          </div>,
-          document.body,
-        )}
       <OfferSentWhatNext way={way} cents={sentCents} returnFocusTo={panel} onClose={() => setSentCents(null)} onBrowse={() => { setSentCents(null); navigate("/declutter"); }} />
     </section>
   );

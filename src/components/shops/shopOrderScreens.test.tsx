@@ -28,7 +28,7 @@
  * @mutate src/components/shops/ShopOrderSheet.tsx |         ...(atHome ? { serviceAddress: | ...(false ? { serviceAddress:
  * @mutate src/components/shops/ShopOrderCard.tsx | const SERVICE_VISIBLE_TO_SHOP = new Set(["accepted", "handed_over"]); | const SERVICE_VISIBLE_TO_SHOP = new Set(["accepted", "handed_over", "held"]);
  * @mutate src/components/shops/ShopView.tsx |         {s.offers_selling && !s.mine && !s.paused && <ShopOrderSheet shopId={s.id} />} |         {s.offers_selling && !s.mine && <ShopOrderSheet shopId={s.id} />}
- * @mutate src/components/shops/ShopOrderSheet.tsx |     () => (items.data ?? []).filter((i) => i.status === "live" && (i.stock_count == null \|\| i.stock_count > 0)), |     () => (items.data ?? []).filter((i) => i.status === "live"),
+ * @mutate src/components/shops/ShopOrderSheet.tsx |     () => (items.data ?? []).filter((i) => i.status === "live" && (i.stock_count == null \|\| i.stock_count > 0) |     () => (items.data ?? []).filter((i) => i.status === "live"
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const leadDays = chosen.reduce((m, l) => Math.max(m, l.item.lead_time_days), 0); |   const leadDays = 0;
  * @mutate src/components/shops/ShopOrderSheet.tsx |   const feeCents = itemsCents > 0 ? buyerFeeCents(itemsCents) : 0; |   const feeCents = 0;
  * @mutate src/components/shops/ShopOrderSheet.tsx |         <p className="text-sm font-semibold">{policy.label}</p> |         <p className="text-sm font-semibold"></p>
@@ -43,7 +43,7 @@
  * @mutate src/components/shops/ShopMyOrdersView.tsx |               {o.status === "held" && ( |               {o.status !== "declined" && (
  * @mutate src/components/shops/ShopMyOrdersView.tsx |     if (params.get("sent") !== "1") return; |     return;
  * @mutate src/components/shops/ShopHandoverActions.tsx | onClick={() => ready.mutate(null)}>Mark ready</Button> | onClick={() => finish.mutate()}>Mark ready</Button>
- * @mutate src/components/shops/ShopHandoverActions.tsx |       {side === "shop" ? ( |       {side === "shop" && false ? (
+ * @mutate src/components/shops/ShopHandoverActions.tsx |       ) : side === "shop" ? ( |       ) : side === "shop" && false ? (
  * @mutate src/components/shops/ShopDashboardView.tsx |           if (declining) decline.mutate({ id: declining.id, why: reason }); |           if (declining) decline.mutate({ id: declining.id, why: "" });
  * @mutate src/components/shops/ShopDashboardView.tsx |           if (accepting) accept.mutate(accepting.id); |           void accepting;
  * @mutate src/pages/shops/ShopOrdersPage.tsx |         <ShopMyOrdersView embedded />\n | \n
@@ -144,6 +144,9 @@ const orders = vi.hoisted(() => ({
 vi.mock("@/lib/shops/orders", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/orders")>()), ...orders }));
 // Variants (20261106165310): no item here has option lists (shopVariantsScreens.test.tsx covers those).
 vi.mock("@/lib/shops/variants", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/variants")>()), fetchItemOptions: async () => new Map() }));
+// Preorders (20261108184654): none unless a case answers.
+const pre = vi.hoisted(() => ({ fetchItemPreorders: vi.fn(async () => new Map()), requestPreorder: vi.fn() }));
+vi.mock("@/lib/shops/preorders", async (orig) => ({ ...(await orig<typeof import("@/lib/shops/preorders")>()), ...pre }));
 // Shops M2: the handover parts load on their own; answered here so the order screens stay offline.
 const handover = vi.hoisted(() => ({
   fetchHandoverMode: vi.fn(async () => "in_person"), setHandoverMode: vi.fn(), fetchHandovers: vi.fn(async () => new Map()),
@@ -266,6 +269,38 @@ describe("the order sheet", () => {
       terms: { cancel_policy: "until_accept", ready_tap_cancel: undefined },
     });
     expect(ext.openExternalUrl.mock.calls[0][0]).toBe("https://checkout.stripe.com/c/pay/test");
+  });
+
+  it("a preorder: ordered on its own, no day to pick, the charge and refund words, and sent as a preorder", async () => {
+    items.fetchShopItems.mockResolvedValue([
+      item({ id: "a", title: "Candle", price_cents: 1000, lead_time_days: 0 }),
+      item({ id: "p", title: "King cake", price_cents: 2000, lead_time_days: 0 }),
+    ]);
+    pre.fetchItemPreorders.mockResolvedValue(new Map([["p", {
+      item_id: "p", ready_by: "2026-12-15", goal: 20, goal_by: "2026-12-01", cap: 30, ordered: 12,
+      goal_met: false, goal_missed: false, moved: false, open: true,
+    }]]));
+    pre.requestPreorder.mockResolvedValue("https://checkout.stripe.com/c/pay/pre");
+    renderAt("/shops/s1", "/shops/:id", <ShopPage />);
+    expect(await screen.findByText("$20 each · Preorder · ready by Dec 15")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "One more King cake" }));
+    // No day picker; the plain words before paying.
+    expect(screen.queryByRole("button", { name: "day 2026-10-21" })).toBeNull();
+    const terms = screen.getByTestId("shop-order-preorder-terms").textContent ?? "";
+    expect(terms).toContain("You're charged now, in full.");
+    expect(terms).toContain("If it doesn't reach 20 by Dec 1, you get a full refund automatically.");
+    expect(terms).toContain("If the shop doesn't have it ready by Dec 22, you get a full refund automatically.");
+    expect(screen.queryByTestId("shop-order-cancel-policy")).toBeNull();
+    // Ordered on its own: the other item's stepper is locked while the preorder is chosen.
+    expect(screen.getByText("Order this separately from your preorder.")).toBeTruthy();
+    expect((screen.getByRole("button", { name: "One more Candle" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Pay now and preorder" }));
+    await waitFor(() => expect(ext.openExternalUrl).toHaveBeenCalled());
+    expect(pre.requestPreorder).toHaveBeenCalledWith({
+      shopId: "s1", itemId: "p", quantity: 1, readyBy: "2026-12-15", note: "",
+      terms: { cancel_policy: "until_accept", ready_tap_cancel: undefined },
+    });
+    expect(orders.requestOrder).not.toHaveBeenCalled();
   });
 
   it("H8 (b): an at-home cleaning asks where the work is done, alone, and sends that address", async () => {

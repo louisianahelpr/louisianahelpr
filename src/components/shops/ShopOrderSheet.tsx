@@ -50,12 +50,19 @@ import { shopsErrorMessage } from "@/lib/shops/errors";
 import { ShopsNotice } from "./shopsUi";
 import { HandoverModeNote } from "./ShopHandoverModePicker";
 import ShopOrderOptions, { lineKey, QuantityStepper } from "./ShopOrderOptions";
+import { fetchItemPreorders, preorderLabel, requestPreorder, type ItemPreorder } from "@/lib/shops/preorders";
+import { PreorderChargeBox } from "./ShopPreorderBits";
 
 const MAX_PER_LINE = 20;
 const NOTE_MAX = 500;
 
 function maxFor(item: ShopItem): number {
   return item.stock_count == null ? MAX_PER_LINE : Math.min(MAX_PER_LINE, item.stock_count);
+}
+
+/** A preorder's most per order: 20, or what its limit has left (paid items; the server counts unpaid pages too). */
+function preorderMax(p: ItemPreorder): number {
+  return p.cap == null ? MAX_PER_LINE : Math.max(0, Math.min(MAX_PER_LINE, p.cap - p.ordered));
 }
 
 export default function ShopOrderSheet({ shopId }: { shopId: string }) {
@@ -67,6 +74,8 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   const terms = useQuery({ queryKey: ["shops", "order-terms", shopId], queryFn: () => fetchOrderTerms(shopId), enabled: !!shopId });
   // Items with option lists (variants): their combinations, prices and stock.
   const options = useQuery({ queryKey: ["shops", "item-options", shopId], queryFn: () => fetchItemOptions(shopId), enabled: !!shopId });
+  // Preorders (20261108184654): ordered one item at a time, paid in full now, ready on the shop's ready-by date.
+  const preorders = useQuery({ queryKey: ["shops", "item-preorders", shopId], queryFn: () => fetchItemPreorders(shopId), enabled: !!shopId });
   const [qty, setQty] = useState<Record<string, number>>({});
   const [readyDate, setReadyDate] = useState("");
   const [note, setNote] = useState("");
@@ -83,8 +92,10 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   const [quoting, setQuoting] = useState(false);
 
   const orderable = useMemo(
-    () => (items.data ?? []).filter((i) => i.status === "live" && (i.stock_count == null || i.stock_count > 0)),
-    [items.data],
+    // A closed or full preorder can't be ordered (its card says so).
+    () => (items.data ?? []).filter((i) => i.status === "live" && (i.stock_count == null || i.stock_count > 0)
+      && preorders.data?.get(i.id)?.open !== false),
+    [items.data, preorders.data],
   );
   // Each chosen line: a plain item, or one combination of an item with option lists (keyed item:variant).
   const chosen = orderable.flatMap((i) => {
@@ -94,13 +105,16 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
       .filter((v) => v.active && (qty[lineKey(i.id, v.id)] ?? 0) > 0)
       .map((v) => ({ item: i, variantId: v.id as string | null, unit: v.price_cents, n: qty[lineKey(i.id, v.id)] }));
   });
+  // A preorder is ordered on its own: one item, no day to pick, pickup only (v1).
+  const preorder = chosen.length === 1 ? preorders.data?.get(chosen[0].item.id) ?? null : null;
+  const preorderChosen = chosen.some((l) => preorders.data?.has(l.item.id));
   const leadDays = chosen.reduce((m, l) => Math.max(m, l.item.lead_time_days), 0);
   const itemsCents = chosen.reduce((sum, l) => sum + l.unit * l.n, 0);
   const t = terms.data;
   const dateProblem = t && readyDate ? readyDateProblem(readyDate, t, leadDays) : null;
   const firstDate = t ? firstOpenReadyDate(t, leadDays) : null;
 
-  if (items.isLoading || terms.isLoading || options.isLoading) {
+  if (items.isLoading || terms.isLoading || options.isLoading || preorders.isLoading) {
     return (
       <section className="space-y-2" aria-labelledby={headId} role="status" aria-label="Loading ordering">
         <h2 id={headId} className="text-sm font-semibold">Order</h2>
@@ -108,13 +122,13 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
       </section>
     );
   }
-  if (terms.isError || !t || options.isError) {
+  if (terms.isError || !t || options.isError || preorders.isError) {
     return (
       <section className="space-y-2" aria-labelledby={headId}>
         <h2 id={headId} className="text-sm font-semibold">Order</h2>
         <div role="alert" className="space-y-2">
-          <p className="text-sm">{shopsErrorMessage(terms.error ?? options.error)}</p>
-          <Button type="button" variant="outline" size="sm" onClick={() => { void terms.refetch(); void options.refetch(); }} disabled={terms.isFetching || options.isFetching}>
+          <p className="text-sm">{shopsErrorMessage(terms.error ?? options.error ?? preorders.error)}</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => { void terms.refetch(); void options.refetch(); void preorders.refetch(); }} disabled={terms.isFetching || options.isFetching || preorders.isFetching}>
             Try again
           </Button>
         </div>
@@ -137,8 +151,8 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   const atHomeMixed = atHome && chosen.length > 1;
   const svcOk = svc.line1.trim().length >= 3 && svc.city.trim().length >= 2 && /^[0-9]{5}$/.test(svc.postal_code.trim()) && isLouisianaZip(svc.postal_code);
   // Restack (l106 + delivery): work done at the buyer's place has nothing to deliver (the server refuses it too).
-  const delivers = offer.data?.delivers === true && !atHome;
-  const helprOffered = offer.data?.helpr_delivery === true && !atHome;
+  const delivers = offer.data?.delivers === true && !atHome && !preorderChosen;
+  const helprOffered = offer.data?.helpr_delivery === true && !atHome && !preorderChosen;
   const delivering = delivers && wantsDelivery;
   const helpring = helprOffered && wantsHelpr;
   const deliveryCents = delivering ? offer.data?.fee_cents ?? 0 : 0;
@@ -147,8 +161,10 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   const addrKey = JSON.stringify(dropoff);
   // The price shown is the price sent: only a quote for the address as typed now counts.
   const helprCents = helpring && quote && quote.for === addrKey ? quote.q.delivery_cents : null;
-  const canSend = chosen.length > 0 && !!readyDate && dateProblem === null && note.length <= NOTE_MAX && !opening && addrProblem === null
-    && (!atHome || (svcOk && !atHomeMixed)) && (!helpring || helprCents !== null);
+  const canSend = preorder
+    ? note.length <= NOTE_MAX && !opening
+    : !preorderChosen && chosen.length > 0 && !!readyDate && dateProblem === null && note.length <= NOTE_MAX && !opening && addrProblem === null
+      && (!atHome || (svcOk && !atHomeMixed)) && (!helpring || helprCents !== null);
   const choose = (how: "pickup" | "shop" | "helpr") => {
     setWantsDelivery(how === "shop");
     setWantsHelpr(how === "helpr");
@@ -168,7 +184,10 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
   const send = async () => {
     setOpening(true);
     try {
-      const url = await requestOrder({
+      const url = preorder ? await requestPreorder({
+        shopId, itemId: preorder.item_id, quantity: chosen[0].n, readyBy: preorder.ready_by, note,
+        terms: { cancel_policy: t.cancel_policy, ready_tap_cancel: t.ready_tap_cancel },
+      }) : await requestOrder({
         shopId,
         lines: chosen.map((l) => (l.variantId ? { item_id: l.item.id, variant_id: l.variantId, quantity: l.n } : { item_id: l.item.id, quantity: l.n })),
         readyDate,
@@ -193,6 +212,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
       if ((err as { message?: unknown } | null)?.message === "delivery_rate_changed") setQuote(null);
       setOpening(false);
       void qc.invalidateQueries({ queryKey: ["shops", "order-terms", shopId] });
+      void qc.invalidateQueries({ queryKey: ["shops", "item-preorders", shopId] });
     }
   };
 
@@ -200,7 +220,9 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
     <section className="space-y-4 rounded-2xl border border-border bg-card p-4" aria-labelledby={headId}>
       <div className="space-y-1">
         <h2 id={headId} className="text-sm font-semibold">Order</h2>
-        <p className="text-xs text-muted-foreground">{ORDER_HOLD_TEXT}</p>
+        {preorder ? <p className="text-xs text-muted-foreground">This is a preorder: you pay in full now.</p> : (
+          <p className="text-xs text-muted-foreground">{ORDER_HOLD_TEXT}</p>
+        )}
       </div>
 
       <ul className="space-y-3">
@@ -212,18 +234,24 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
                 onQty={(key, n) => setQty((q) => ({ ...q, [key]: n }))} />
             );
           }
+          const pre = preorders.data?.get(i.id);
+          // A preorder is ordered on its own: while one kind is chosen, the other kind's steppers stay at 0.
+          const locked = (qty[i.id] ?? 0) === 0 && chosen.length > 0 && (pre ? true : preorderChosen);
           return (
             <li key={i.id} className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-sm font-semibold [overflow-wrap:anywhere]">{i.title}</p>
-                <p className="text-xs text-muted-foreground">{formatItemPrice(i.price_cents)} each</p>
+                <p className="text-xs text-muted-foreground">{formatItemPrice(i.price_cents)} each{pre ? ` · ${preorderLabel(pre)}` : ""}</p>
+                {locked && <p className="text-xs text-muted-foreground">{pre ? "Preorders are ordered on their own." : "Order this separately from your preorder."}</p>}
               </div>
-              <QuantityStepper label={i.title} max={maxFor(i)} value={qty[i.id] ?? 0} onChange={(n) => setQty((q) => ({ ...q, [i.id]: n }))} />
+              <QuantityStepper label={i.title} max={locked ? 0 : pre ? preorderMax(pre) : maxFor(i)} value={qty[i.id] ?? 0}
+                onChange={(n) => setQty((q) => ({ ...q, [i.id]: n }))} />
             </li>
           );
         })}
       </ul>
 
+      {preorder ? null : (
       <div className="space-y-1">
         <Label htmlFor="shop-order-date">Ready date</Label>
         <DatePickerField
@@ -248,6 +276,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
                   : "Greyed-out days are closed, full or too soon."}
         </p>
       </div>
+      )}
 
       {atHome && (
         <fieldset className="space-y-2" data-testid="shop-order-service-address">
@@ -360,10 +389,12 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
       ) : null}
 
       {delivering || helpring ? null : <HandoverModeNote shopId={shopId} />}
-      <div className="space-y-1 rounded-xl bg-muted/60 p-3" data-testid="shop-order-cancel-policy">
-        <p className="text-sm font-semibold">{policy.label}</p>
-        <p className="text-xs text-muted-foreground">{policy.detail}</p>
-      </div>
+      {preorder ? <PreorderChargeBox preorder={preorder} /> : (
+        <div className="space-y-1 rounded-xl bg-muted/60 p-3" data-testid="shop-order-cancel-policy">
+          <p className="text-sm font-semibold">{policy.label}</p>
+          <p className="text-xs text-muted-foreground">{policy.detail}</p>
+        </div>
+      )}
 
       <dl className="space-y-1 text-sm">
         <div className="flex justify-between"><dt>Items</dt><dd>{formatCents(itemsCents)}</dd></div>
@@ -375,7 +406,7 @@ export default function ShopOrderSheet({ shopId }: { shopId: string }) {
       </dl>
 
       <Button type="button" className="btn-grad-primary w-full" disabled={!canSend} onClick={() => void send()}>
-        {opening ? "Opening…" : "Hold my card and send the order"}
+        {opening ? "Opening…" : preorder ? "Pay now and preorder" : "Hold my card and send the order"}
       </Button>
     </section>
   );

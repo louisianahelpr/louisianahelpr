@@ -285,7 +285,10 @@ CREATE FUNCTION public.shop_active_strike_count(p_user_id uuid) RETURNS integer 
 CREATE TABLE public.shop_orders (id uuid PRIMARY KEY, buyer_id uuid, seller_id uuid, status text NOT NULL, captured_at timestamptz,
   -- Shops H9 (20261105230819): the columns the 'shop' fixture step writes for order 0402 and shop_review_public reads.
   shop_id uuid, handed_over_at timestamptz, ready_date date, cancel_policy text, items_cents integer, premium_cents integer,
-  tax_cents integer, total_cents integer, stripe_payment_intent_id text);
+  tax_cents integer, total_cents integer, stripe_payment_intent_id text,
+  -- Shops digital downloads (20261108182917): the columns shop_digital_access_ok reads and the fixture's order 0404 writes.
+  is_digital boolean NOT NULL DEFAULT false, digital_access_revoked_at timestamptz);
+CREATE TABLE public.shop_hand_refunds (stripe_refund_id text PRIMARY KEY, order_id uuid NOT NULL, failed_at timestamptz);
 CREATE TABLE public.shop_reviews (id uuid PRIMARY KEY, order_id uuid NOT NULL, shop_id uuid NOT NULL, reviewer_id uuid, reviewee_id uuid,
   reviewer_side text NOT NULL, stars smallint NOT NULL, is_seed boolean NOT NULL DEFAULT false, removed_at timestamptz);
 -- 20261027163240 (payout setup only when owed): payout_setup_hire_allowed also reads a shop's payouts.
@@ -329,6 +332,7 @@ const ALLOW = ["can_message_in_job", "can_review_job", "can_send_message_in_job"
   "shop_state_ok", "shop_link_visible",
   // SH12 shop FAQs/policies (20261019072541); after has_role and shop_link_visible, which it calls.
   "shop_extras_readable",
+  "shop_digital_access_ok",
   // Rentals S1 (20261017205605).
   "rentals_caller_is_active_tenant_of",
   // Rentals identity either verdict (20261019051407); after identity_is_verified, which its SQL body calls.

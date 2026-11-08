@@ -66,6 +66,8 @@ export const STORAGE_REFERENCE_COLUMNS = [
   { table: "helpr_vehicles", column: "photo_path", array: false, bucket: "helpr-tasks", writer: "helpr_set_vehicle RPC, the Helpr's truck photo (src/lib/helprTasks/api.ts uploads it; path <uid>/vehicle/<file>)" },
   { table: "shop_photos", column: "storage_path", array: false, bucket: "job-photos", writer: "src/lib/shops/api.ts addShopPhoto -> shops_attach_photo RPC (path <uid>/shops/<file>)" },
   { table: "shop_item_photos", column: "storage_path", array: false, bucket: "job-photos", writer: "src/lib/shops/items.ts addShopItemPhoto -> shops_add_item_photo RPC (path <uid>/shop-items/<item id>/<file>)" },
+  // Shops digital downloads (20261108182917): the private shop-digital bucket; the row's path is written by SQL.
+  { table: "shop_item_files", column: "storage_path", array: false, bucket: "shop-digital", writer: "supabase/functions/shop-digital upload_url -> shops_digital_file_begin RPC (path <uid>/<item id>/<file id>.<ext>)" },
   { table: "maintenance_request_photos", column: "storage_path", array: false, bucket: "user-documents", writer: "rentals_file_request RPC (path <uid>/rentals/requests/<batch>/<file>; src/lib/rentals/api.ts uploads it)" },
   { table: "rental_properties", column: "ownership_proof_path", array: false, bucket: "user-documents", writer: "rentals_submit_ownership_proof RPC (path <uid>/rentals/<property>/<file>; src/lib/rentals/api.ts uploads it)" },
   { table: "rental_listing_photos", column: "storage_path", array: false, bucket: "listing-photos", writer: "rentals_add_listing_photo RPC (PRIVATE bucket since 20261019071203, path <uid>/rental-listings/<listing>/<file>; src/lib/rentals/listings.ts uploads it)" },
@@ -78,6 +80,7 @@ export const STORAGE_REFERENCE_COLUMNS = [
  * object, each with the reason. Two-way with types.ts in the test.
  */
 export const NOT_STORAGE_COLUMNS = {
+  "shop_item_files.file_name": "the name a buyer's download is saved as (Content-Disposition), not a storage path: the object is at shop_item_files.storage_path",
   "profile_job_photos.photo_path": "a copy of one path in jobs.proof_after_urls or group_job_helpers.proof_after_urls (both checked above): a Helpr's pick for their public page (20261105172514), shown only while it is still one of that job's after photos, so a missing file is already found through the job",
   "declutter_wanted.photo_added_at": "a timestamp: when the newest photo was added (20261030225143), not a file reference",
   "job_continue_days.done_without_new_photo_at": "a timestamp: when a continue day was marked done without a new after photo (20261108160000), not a file reference",

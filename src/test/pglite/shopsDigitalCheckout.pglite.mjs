@@ -261,9 +261,12 @@ await db.exec(`
   CREATE TABLE public.emails_sent (user_id uuid, title text, message text, type text, link text);
   CREATE FUNCTION public.send_notice_email(p_user_id uuid, p_title text, p_message text, p_type text, p_link text, p_job_id uuid)
     RETURNS void LANGUAGE sql AS $s$ INSERT INTO public.emails_sent VALUES (p_user_id, p_title, p_message, p_type, p_link) $s$;
+  ALTER TABLE public.notifications ADD COLUMN IF NOT EXISTS job_id uuid;
   CREATE OR REPLACE FUNCTION public.is_test_subject(p uuid) RETURNS boolean LANGUAGE sql STABLE AS
     $s$ SELECT EXISTS (SELECT 1 FROM public.test_accounts t WHERE t.user_id = p) $s$;`);
 // The money bodies this migration restates, at their newest before it.
+// The continue-day email trigger function (20261108160000), which the download-ready email trigger reuses.
+await db.exec(newestDefinition("email_continue_day_notice", "20261108185110").stmt);
 for (const name of ["shop_order_captured", "shop_handover_sweep", "shop_lock_open_charged_order", "shop_complete_handover"]) await db.exec(newestDefinition(name, "20261108185110").stmt);
 const skip = process.env.NEW_MIGRATION === "skip";
 if (!skip) for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
@@ -369,7 +372,8 @@ ok(Array.isArray(told) && told[0]?.title === "Your download is ready", `the buye
 ok(refused(await buy(BUYER), /already_bought/, "22023"), "a second purchase of the same download is refused");
 const mails = await svc(`SELECT * FROM public.emails_sent WHERE user_id = '${BUYER}'`);
 ok(Array.isArray(mails) && mails.length === 1 && mails[0].link === "/shops/orders" && mails[0].type === "payment" && !/https?:|storage|\.pdf/i.test(mails[0].message),
-  `one email to the buyer, linking into Shops > My orders, never a file (${JSON.stringify(mails)})`);
+  `one email to the buyer, from the notifications row, linking into Shops > My orders, never a file (${JSON.stringify(mails)})`);
+ok(one(await svc(`SELECT count(*)::int FROM public.emails_sent WHERE user_id = '${OWNER}'`)) === 0, "the shop's sale notice sends no download email");
 const files = await rows(BUYER, `SELECT file_name FROM public.shops_my_digital_files('${o2}')`);
 ok(Array.isArray(files) && files.length === 1 && files[0].file_name === "Bayou.pdf", "the buyer's order lists the file names (never a path)");
 const notMine = await rows(BUYER2, `SELECT file_name FROM public.shops_my_digital_files('${o2}')`);

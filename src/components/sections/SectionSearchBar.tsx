@@ -47,7 +47,7 @@ export function SectionSearchBar(props: { noun: string; home: string } & (FieldP
         aria-label={label}
         data-section-search-bar=""
         onClick={() => navigate(home, { state: FOCUS_SEARCH_STATE })}
-        className={`${BAR} pr-4 justify-start py-0 text-left text-ds-16 font-normal tracking-normal text-muted-foreground focus-visible:ring-offset-0`}
+        className={`${BAR} pr-4 justify-start py-0 text-left text-ds-16 font-normal tracking-normal text-muted-foreground`}
       >
         <Search className="h-[18px] w-[18px] shrink-0" aria-hidden />
         <span aria-hidden className="min-w-0 whitespace-nowrap text-ds-16"><Words noun={noun} /></span>

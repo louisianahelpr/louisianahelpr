@@ -1406,12 +1406,16 @@ describe("D2-9: no Report a problem while the order waits for pickup", () => {
 
   it("each pickup kind and side: hidden before booking and during the booked time, shown once it is over", async () => {
     // Q2627: the porch SELLER's moment is the end of the porch window (no "out until": the end of the slot's day).
-    const s16 = new Date(Date.now() - 16 * 60_000);
-    const slotDayOver = key(s16) !== today;
+    // A slot that began on the device's previous day has its porch window over at midnight, so within 16 minutes after
+    // midnight even the "5 min in" slot is over for the porch seller (CI, UTC, 00:03Z on 2026-11-08). Read "today" now,
+    // not when the file loaded, and give both slots the same day test.
+    const todayNow = key(new Date());
+    const slotDayOver = key(new Date(Date.now() - 16 * 60_000)) !== todayNow;
+    const slot5DayOver = key(new Date(Date.now() - 5 * 60_000)) !== todayNow;
     const cases: { name: string; handover: string; booking: unknown; offered: boolean; sellerOffered?: boolean }[] = [];
     for (const handover of ["pickup_home", "porch"]) {
       cases.push({ name: `${handover}, not booked`, handover, booking: null, offered: false });
-      cases.push({ name: `${handover}, booked time 5 min in`, handover, booking: slot(5), offered: false });
+      cases.push({ name: `${handover}, booked time 5 min in`, handover, booking: slot(5), offered: false, sellerOffered: handover === "porch" ? slot5DayOver : false });
       cases.push({ name: `${handover}, booked time in an hour`, handover, booking: slot(-60), offered: false });
       cases.push({ name: `${handover}, booked time 16 min in`, handover, booking: slot(16), offered: true, sellerOffered: handover === "porch" ? slotDayOver : true });
     }

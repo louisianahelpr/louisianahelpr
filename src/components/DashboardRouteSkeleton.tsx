@@ -9,8 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
  * mirrors Jobs (Q2214): the same SectionScreen frame (AppShell, the container,
  * the page-measure scroll column), the same top bar on Home (AppTopBar: the
  * search bar on the left, the bell, the profile avatar at the far right; no "+"),
- * then the one-line greeting, the Next up card, the "Your sections" 2x2 tiles and
- * Coming up, so a cold /home goes bones -> content with nothing moving. The
+ * then the one-line greeting, the Next up card, Coming up and the "Your
+ * sections" chips, so a cold /home goes bones -> content with nothing moving. The
  * old version drew the retired feed's title bar (emblem + search, filters,
  * bell), so a cold /home showed one shape and then another.
  *
@@ -73,19 +73,15 @@ const DashboardRouteSkeleton = () => (
                   ))}
                 </div>
               </div>
-              {/* Your sections: header row, then the 2x2 tiles. */}
+              {/* Your sections: header row, then the row of section chips (44px pills; design audit A D4, 11-08). */}
               <div className="flex flex-col gap-2">
                 <div className="flex items-baseline justify-between px-1">
                   <Skeleton className="h-4 w-28 rounded-ds-md" />
                   <Skeleton className="h-4 w-16 rounded-ds-md" />
                 </div>
-                <div className="grid grid-cols-2 gap-3" data-skeleton-part="tiles">
-                  {[0, 1, 2, 3].map((i) => (
-                    <div key={i} className="liquid-glass p-card flex flex-col gap-1 min-w-0">
-                      <Skeleton className="w-6 h-6 rounded-ds-md" />
-                      <Skeleton className="h-5 w-20 mt-2 rounded-ds-md" />
-                      <Skeleton className="h-4 w-28 max-w-full rounded-ds-md" />
-                    </div>
+                <div className="flex flex-wrap gap-2" data-skeleton-part="tiles">
+                  {[0, 1].map((i) => (
+                    <Skeleton key={i} className="h-11 w-32 rounded-full" />
                   ))}
                 </div>
               </div>

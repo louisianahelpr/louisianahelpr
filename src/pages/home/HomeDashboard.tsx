@@ -15,7 +15,7 @@ import { GroupSection, GroupRow } from "@/components/sections/StatusBoxes";
 import { useSectionPrefs } from "@/components/sections/useSectionPrefs";
 import { useSectionTabs, openingSoonLine } from "@/components/mobileNav/useSectionTabs";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { useHomeSummary, SECTION_INVITE } from "./homeDashboard/useHomeSummary";
+import { useHomeSummary } from "./homeDashboard/useHomeSummary";
 import { todoTarget } from "./homeDashboard/useNeedsYouTodos";
 import { requestHelperStep } from "@/components/job-card/helperStepRequest";
 import { COMING_UP_ROLE, type ComingUpItem } from "./homeDashboard/comingUp";
@@ -34,7 +34,6 @@ import { PosterFirstJobCard } from "./homeDashboard/PosterFirstJobCard";
 import { HelprsNearYou } from "./homeDashboard/HelprsNearYou";
 import { useHomeTopSettled, useHoldWhileFirstVisitReads } from "./homeDashboard/homeTopSettled";
 import { optionalLazy } from "@/lib/optionalLazy";
-import { GlassTileButton } from "@/components/ui/GlassTileButton";
 // Loaded the first time it opens, never with Home's first screen (AUD31-60, B61): it brings Sheet and Switch.
 const CustomizeSheet = lazy(() => import("@/components/sections/CustomizeSheet").then((m) => ({ default: m.CustomizeSheet })));
 const SmsPhonePrompt = optionalLazy(() => import("@/components/notificationPreferences/SmsPhonePrompt").then((m) => ({ default: m.SmsPhonePrompt })), "SmsPhonePrompt");
@@ -389,34 +388,35 @@ function HomeDashboardScreen() {
           {!holdBelowNextUp && <section data-home-side className="flex flex-col gap-2 min-w-0" aria-label="Your sections">
             <HomeMoneyTiles money={money} placement="side" />
             <div className="flex items-baseline justify-between px-1">
-              <h2 className="text-ds-13 font-bold uppercase tracking-[0.06em] text-muted-foreground">Your sections</h2>
+              <h2 className="text-ds-15 font-semibold text-foreground">Your sections</h2>
               <Button type="button" variant="link" size="sm" data-testid="open-customize" onClick={() => setCustomize(true)} className="px-0 text-ds-13 font-semibold tracking-normal text-primary">
                 Customize
               </Button>
             </div>
-            {/* Only OPEN sections get a box; the rest share ONE compact line (owner, 2026-10-21: no full
-                "Opening soon" cards). */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Design audit A D4 (owner approved 11-08): the member's OPEN sections as one row of chips, each with its real
+                count line when there is one ("Jobs · 1 needs you"); the bottom bar already holds every section, so the
+                old 2x2 boxes repeated it. The rest share ONE compact line (owner, 2026-10-21: no "Opening soon" cards). */}
+            <div data-section-chips="" className="flex flex-wrap gap-2">
               {visible.filter(isLive).map((s) => {
-                // One real line, or the both-sides invitation: never a "0" (spec v2 §1.5, §5.5; board 19).
-                const line = summary.tiles[s.key] ?? SECTION_INVITE[s.key];
+                // Only a real line (spec v2 §1.5: never a "0"); with none the chip is the section's name alone.
+                const line = summary.tiles[s.key];
                 const Icon = s.icon;
                 return (
-                  <GlassTileButton
+                  <Button
                     key={s.key}
+                    type="button"
+                    variant="outline"
+                    size="sm"
                     data-section-tile={s.key}
-                    aria-label={`${s.label}: ${line}`}
                     onClick={() => navigate(s.path)}
-                    className="p-card lg:p-4 gap-1 lg:gap-0.5"
+                    className="max-w-full gap-1.5 rounded-full px-3.5 text-ds-13 font-semibold tracking-normal"
                   >
-                    <Icon className="w-6 h-6 lg:w-5 lg:h-5 text-primary" aria-hidden />
-                    <span className="text-ds-16 lg:text-ds-15 font-bold mt-2 lg:mt-1.5 truncate text-foreground">{s.label}</span>
-                    {/* Keeps the name and the line two words apart for axe's label-content-name-mismatch (Q1816). */}
-                    {" "}
-                    {/* Two lines' room always (leading-snug x 2): the live "near you" count replaces the line after
-                        first paint, and a shorter line must not shrink the card under the reader (owner 2026-11-01). */}
-                    <span data-tile-line className="text-ds-14 lg:text-ds-13 text-muted-foreground leading-snug min-h-[2.75em]">{line}</span>
-                  </GlassTileButton>
+                    <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                    <span className="truncate">
+                      {s.label}
+                      {line && <span data-tile-line className="font-normal text-muted-foreground"> · {line}</span>}
+                    </span>
+                  </Button>
                 );
               })}
             </div>

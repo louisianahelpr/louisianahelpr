@@ -1,6 +1,6 @@
 {
   "note": "written by scripts/open-sync-trackers.mjs; read by src/test/openFeedsMirrored.test.ts",
-  "measured_at": "2026-11-08T07:13Z",
+  "measured_at": "2026-11-08T16:20Z",
   "issues": {
     "readable": true,
     "open": [
@@ -15,7 +15,7 @@
         "number": 2245,
         "title": "nightly-red: prod-audit",
         "label": "nightly-red",
-        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42088200102",
+        "run": "https://github.com/louisianahelpr/louisianahelpr/actions/runs/42458143529",
         "runTruncated": false
       },
       {
@@ -268,7 +268,7 @@
         "source": "nightly-red",
         "status": "open",
         "title": "nightly-red: core-loop-canary",
-        "issue": null
+        "issue": 4222
       },
       {
         "fingerprint": "f1bfed973a2a75d4ef5bb8ce2a1785df",

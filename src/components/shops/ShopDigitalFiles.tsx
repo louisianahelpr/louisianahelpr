@@ -57,7 +57,7 @@ export default function ShopDigitalFiles({ itemId }: { itemId: string }) {
       {files.isError && (
         <div role="alert" className="space-y-1">
           <ReportErrorScreen source="ShopDigitalFiles.list" title="We couldn't load your files." />
-          <p className="text-sm text-destructive">We couldn't load your files.</p>
+          <p className="text-sm text-destructive-ink">We couldn't load your files.</p>
           <Button type="button" size="sm" variant="outline" onClick={() => void files.refetch()}>Try again</Button>
         </div>
       )}

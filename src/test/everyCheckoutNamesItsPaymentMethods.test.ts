@@ -51,7 +51,7 @@ const SESSION_OPENERS: Record<string, number> = {
   "supabase/functions/declutter-card/index.ts": 1,
   "supabase/functions/declutter-checkout/index.ts": 3,
   "supabase/functions/pay-onboarding-fee/index.ts": 1,
-  "supabase/functions/shop-checkout/index.ts": 2, // 2: + the pay-the-rest Checkout of a 50% deposit order (Shops custom orders 2b)
+  "supabase/functions/shop-checkout/index.ts": 3, // 2: + the pay-the-rest Checkout of a 50% deposit order (Shops custom orders 2b); 3: + a digital download's page (buy_digital, 20261108185110), payment_method_types ["card"]
 };
 
 /** The five older checkouts (Q2084): card only, dollars only. */

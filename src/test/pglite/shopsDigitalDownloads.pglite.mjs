@@ -214,6 +214,10 @@ await db.exec(newestDefinition("shop_order_line_snapshot_tax_kind", "20261108182
 // storage.buckets as prod has it (the columns this migration writes).
 await db.exec(`CREATE TABLE IF NOT EXISTS storage.buckets (id text PRIMARY KEY, name text NOT NULL, public boolean DEFAULT false,
   file_size_limit bigint, allowed_mime_types text[]);`);
+// Q807's gate (20260927234313): the real attach function; the refusal itself is stubbed to a no-op trigger here (its
+// own proof is src/test/pglite/unconfirmedEmailGateLive.pglite.mjs), so every table this migration makes must get it.
+await db.exec(`CREATE OR REPLACE FUNCTION public.refuse_unconfirmed_email_write() RETURNS trigger LANGUAGE plpgsql AS $s$ BEGIN RETURN NULL; END $s$;`);
+await db.exec(newestDefinition("attach_unconfirmed_email_gate", "20261108182917").stmt);
 const skip = process.env.NEW_MIGRATION === "skip";
 if (!skip) for (let i = 0; i < 3; i++) await db.exec(MIGRATION);
 
@@ -381,6 +385,15 @@ const atHome = await svc(`INSERT INTO public.shop_order_lines (order_id, item_id
   VALUES ('${order}', '${cleaning}', 'Couch cleaning', 'service', 9000, 1, 9000) RETURNING tax_kind, at_buyer`);
 ok(Array.isArray(atHome) && atHome[0].tax_kind === "fabric_cleaning" && atHome[0].at_buyer === true,
   `an at-home cleaning line keeps at_buyer (${JSON.stringify(atHome)})`);
+
+// --- 5c. the unconfirmed-email gate is on the new table (the CI catalog check, scripts/ci/unconfirmed-email-gate.sql)
+{
+  const { readFileSync: rf } = await import("node:fs");
+  const gateSql = rf(new URL("../../../scripts/ci/unconfirmed-email-gate.sql", import.meta.url).pathname, "utf8");
+  const gateRows = await svc(gateSql);
+  const filesRow = Array.isArray(gateRows) ? gateRows.filter((r) => JSON.stringify(r).includes("shop_item_files")) : gateRows;
+  ok(Array.isArray(filesRow) && filesRow.length === 0, `shop_item_files has its email gate (${JSON.stringify(filesRow)})`);
+}
 
 // --- 6. grants
 const g = await svc(`SELECT

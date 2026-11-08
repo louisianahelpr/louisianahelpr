@@ -69,14 +69,14 @@ describe("Button", () => {
       expect(className).toContain("active:scale-[0.97]");
     };
 
+    // Design audit 11-08 B §4.4 [shared] (owner picks 11-08): outlines are FLAT. No drop shadow and no inner
+    // highlight; the 1.5 px ink outline and the press are the whole treatment.
     const expectOutlineElevation = (className: string) => {
-      // 3-layer drop shadow — outline family uses softer alphas
-      expect(className).toContain("0_1px_1px_hsl(var(--ink-deep)/0.08)");
-      expect(className).toContain("0_2px_6px_hsl(var(--ink-deep)/0.10)");
-      expect(className).toContain("0_4px_12px_-2px_hsl(var(--ink-deep)/0.06)");
-      // outline uses a white inner highlight, NOT the cream/parchment one
-      expect(className).not.toContain("inset_0_1px_0_hsl(var(--parchment)/0.22)");
-      expect(className).toContain("inset_0_1px_0_rgba(255,255,255,0.55)");
+      expect(className).toContain("shadow-none");
+      expect(className).not.toContain("0_2px_6px_hsl(var(--ink-deep)/0.10)");
+      expect(className).not.toContain("inset_0_1px_0_rgba(255,255,255,0.55)");
+      expect(className).toContain("border-[1.5px]");
+      expect(className).toContain("border-foreground/70");
       // active press
       expect(className).toContain("active:scale-[0.97]");
     };
@@ -116,7 +116,7 @@ describe("Button", () => {
       expect(cls).not.toContain("linear-gradient");
     });
 
-    it("outline gets ONLY the 2-layer shadow + press (no inner highlight, no gradient)", () => {
+    it("outline is flat: ink outline + press only (no shadow, no highlight, no gradient)", () => {
       render(<Button variant="outline">Back</Button>);
       const cls = screen.getByRole("button").className;
       expectOutlineElevation(cls);
@@ -147,7 +147,7 @@ describe("Button", () => {
       expect(cls).toContain("btn-grad-primary");
     });
 
-    it("outline gets outline-family elevation (shadow + press only)", () => {
+    it("outline gets the flat outline family (outline + press only)", () => {
       render(<Button variant="outline">Browse</Button>);
       const cls = screen.getByRole("button").className;
       expectOutlineElevation(cls);

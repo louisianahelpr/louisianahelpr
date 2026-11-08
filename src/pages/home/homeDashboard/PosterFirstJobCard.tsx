@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { unwrap } from "@/lib/supabaseResult";
-import { ChecklistSteps } from "./FirstJobHome";
+import { ChecklistProgress } from "./FirstJobHome";
 
 /** The poster's side of the first week (UX-5, owner approved 10-29): read from the member's own posted jobs. */
 export interface PosterFirstJobState {
@@ -55,9 +55,8 @@ export function PosterFirstJobCard({ userId }: { userId: string | undefined }) {
     { key: "approve", label: "Approve the work when it's done", done: false, go: () => navigate("/posts") },
   ];
   return (
-    <section aria-label="Your first job posted" data-testid="poster-first-job" className="liquid-glass p-card flex flex-col gap-1">
-      <h2 className="text-ds-12 font-semibold uppercase tracking-[0.08em] text-muted-foreground mb-1">Your first job posted</h2>
-      <ChecklistSteps steps={steps} />
+    <section aria-label="Your first job posted" data-testid="poster-first-job" className="flex flex-col gap-1 px-1">
+      <ChecklistProgress title="Your first job posted" steps={steps} />
     </section>
   );
 }

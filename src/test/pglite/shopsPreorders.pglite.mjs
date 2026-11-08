@@ -373,7 +373,7 @@ const grants = await svc(`SELECT p.proname, has_function_privilege('authenticate
   WHERE p.proname IN ('shop_preorder_sweep', 'shop_preorder_units', 'shops_set_item_preorder', 'shops_push_preorder_date',
                       'shops_request_preorder', 'shops_cancel_preorder', 'shops_item_preorders')`);
 const g = (n) => (Array.isArray(grants) ? grants.find((x) => x.proname === n) : null);
-ok(Array.isArray(grants) && grants.length === 7, `7 functions (${Array.isArray(grants) ? grants.length : JSON.stringify(grants)})`);
+ok(Array.isArray(grants) && grants.length === 7, `7 functions (${Array.isArray(grants) ? grants.length : grants?.error ?? "no rows"})`);
 ok(g("shop_preorder_sweep") && !g("shop_preorder_sweep").m && !g("shop_preorder_units").m && grants.every((x) => !x.a),
   "the sweep and the count are service-only; nothing for anon");
 ok(["shops_set_item_preorder", "shops_push_preorder_date", "shops_request_preorder", "shops_cancel_preorder", "shops_item_preorders"].every((n) => g(n)?.m),

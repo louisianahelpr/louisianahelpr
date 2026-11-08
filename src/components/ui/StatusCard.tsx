@@ -14,6 +14,7 @@
 import type { ReactNode } from "react";
 import { StepTracker } from "@/components/tracker/StepTracker";
 import { ItemThumb } from "./ItemThumb";
+import { PRICE_PAID, SPACE, TYPE } from "./designScale";
 
 export function StatusCard({ thumb, thumbPlaceholder, title, money, steps, next, when, action, details, corner, children, ...rest }: {
   /** The photo element (fills a 56 px ItemThumb), or nothing. */
@@ -39,12 +40,12 @@ export function StatusCard({ thumb, thumbPlaceholder, title, money, steps, next,
   children?: ReactNode;
 } & Record<`data-${string}`, string | undefined>) {
   return (
-    <article {...rest} data-status-card="" className="rounded-2xl border border-border bg-card p-4">
+    <article {...rest} data-status-card="" className={`rounded-2xl border border-border bg-card ${SPACE.cardPad}`}>
       <div className="flex items-start gap-3">
         <ItemThumb placeholder={thumbPlaceholder}>{thumb}</ItemThumb>
         <div className="min-w-0 flex-1">
-          <div data-status-card-title="" className="truncate text-ds-13 font-semibold leading-snug">{title}</div>
-          {money != null && <div data-status-card-money="" className="mt-0.5 text-ds-16 font-bold tabular-nums text-foreground">{money}</div>}
+          <div data-status-card-title="" className={`truncate ${TYPE.sm} font-semibold leading-snug`}>{title}</div>
+          {money != null && <div data-status-card-money="" className={`mt-0.5 ${TYPE.md} ${PRICE_PAID}`}>{money}</div>}
         </div>
         {corner != null && <div className="-mr-2 -mt-2 shrink-0">{corner}</div>}
       </div>

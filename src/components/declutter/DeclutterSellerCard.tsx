@@ -26,8 +26,10 @@ function joinedLabel(iso: string | null | undefined): string | null {
 }
 
 /** `noun`: who the card is about, for its accessible name (the job page reuses this card for the poster). */
-export function DeclutterSellerCard({ sellerId, noun = "seller", extra = null }: {
+export function DeclutterSellerCard({ sellerId, noun = "seller", extra = null, action = null }: {
   sellerId: string; noun?: "seller" | "poster" | "Helpr";
+  /** Owner pick 1 (11-08): the item page's Message button sits on the seller row, beside the card (never inside its link). */
+  action?: ReactNode;
   /** Owner mockup 11-01: the item page folds "12+ more items · check out together" into the card (BundleLine). */
   extra?: ReactNode;
 }) {
@@ -45,14 +47,14 @@ export function DeclutterSellerCard({ sellerId, noun = "seller", extra = null }:
   const name = formatName(card.data?.name, "A neighbor");
   const joined = joinedLabel(card.data?.joinedAt);
   // DA-18: the rating is in the link's name: the card's words read "4.0 stars from 1 review" (the sr-only words below).
-  return (
+  const link = (
     <Link
       to={memberProfilePath(sellerId)}
       data-seller-card=""
       // Loaded, the card's own words are its name ("See the Helpr, " is read before them), so the visible text is in
       // the accessible name (axe label-content-name-mismatch, WCAG 2.5.3; ui-sweep #3491). The skeleton has no words.
       aria-label={loading ? `See the ${noun}` : undefined}
-      className="flex min-h-[72px] items-center gap-3 rounded-2xl border border-border bg-card p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className={`flex min-h-[72px] items-center gap-3 rounded-2xl border border-border bg-card p-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${action ? "min-w-0 flex-1" : ""}`}
     >
       {loading ? (
         <>
@@ -95,4 +97,6 @@ export function DeclutterSellerCard({ sellerId, noun = "seller", extra = null }:
       )}
     </Link>
   );
+  if (!action) return link;
+  return <div data-seller-row="" className="flex items-center gap-2">{link}{action}</div>;
 }

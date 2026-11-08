@@ -41,7 +41,7 @@
 // @mutate src/index.css | input[type="search"]::-webkit-search-cancel-button, | input[type="search"]::-webkit-search-cancelled,
 // @mutate src/components/admin/AdminUsers.tsx | aria-label="Clear search" | aria-label="Clear"
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: `[data-browse-phone-controls] ${CLOSE}`,\n    maxWidth: 899, | close: `[data-browse-phone-controls] ${CLOSE}`,
-// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | field: '[data-browse-phone-controls] input[aria-label="Search items"]',\n    maxWidth: 899, | field: '[data-browse-phone-controls] input[aria-label="Search items"]',
+// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | field: '[data-declutter-search-bar] input[aria-label="Search Declutter"]',\n    maxWidth: 899, | field: '[data-declutter-search-bar] input[aria-label="Search Declutter"]',
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: CLOSE,\n    minWidth: 900,\n    maxWidth: 1139, | close: CLOSE,\n    minWidth: 900,
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | if ((vw === BAND_VW) !== bandOnly(s)) continue; | if (vw === BAND_VW && !bandOnly(s)) continue;
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | name: "messages-one-pane", file: "src/components/messages/ConversationList.tsx", | name: "messages-one-pane", file: "src/components/messages/MessagesSearchRow.tsx",
@@ -77,7 +77,10 @@ const NO_X: Record<string, string> = {
  * surface must say `maxWidth: 899`. */
 // Empty since 2026-10-19: Jobs > Browse's phone-only compact row became the shared SectionSearchRow,
 // whose ✕ is also pressed at 1440 (Declutter, Shops, Homes show it at every width).
-const PHONE_ONLY: Record<string, string> = {};
+const PHONE_ONLY: Record<string, string> = {
+  // Owner 11-08 (the Vinted header): the phone's "Search Declutter" bar; the desktop website keeps its row's search.
+  "src/components/declutter/DeclutterSearchBar.tsx": "Declutter's phone header only; desktop keeps the tabs row's search",
+};
 
 /** ✕ files that render ONLY at the desktop breakpoint, so the press spec
  * drives them at 1440 alone. Exact: a stale entry fails, and each one's
@@ -97,7 +100,7 @@ const SURFACE_BOUNDS: Record<string, { minWidth?: number; maxWidth?: number; why
   // Owner 2026-10-28: Jobs > Browse's and Declutter's phone search sits at the tabs row's end
   // ([data-browse-phone-controls]); at 900+ the desktop feed strip / section row carries search instead.
   "jobs-browse-phone": { maxWidth: 899, why: "phone tabs row search only below 900" },
-  "declutter-browse-phone": { maxWidth: 899, why: "phone tabs row search only below 900" },
+  "declutter-browse-phone": { maxWidth: 899, why: "phone header's Search Declutter bar only below 900 (owner 11-08)" },
   "browse-desktop-strip": { minWidth: 900, why: "desktop feed strip only (isWebDesktop)" },
   "messages-one-pane": { minWidth: 900, maxWidth: 1139, why: "one-pane web desktop only (TWO_PANE_MIN_WIDTH 1140)" },
 };
@@ -234,7 +237,9 @@ describe("every search field is driven in a real browser (inventory minus checke
     // (ConversationList keeps its one-pane desktop field, so both files count).
     // 2026-11-07 (owner, Vinted review): +1, the Sell form's category drill-down (CategoryDrillDown), a permanent
     // field with a "Clear search" ✕.
-    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(16);
+    // 2026-11-08 (owner, Vinted header): +1, Declutter's phone "Search Declutter" bar (DeclutterSearchBar), a permanent
+    // field with a "Clear search" ✕ (Declutter's phone InlineListSearch left; the file still serves desktop and Jobs).
+    expect(SEARCH_FIELD_FILES.length, SEARCH_FIELD_FILES.join("\n")).toBe(17);
     expect(X_FILES, "files rendering a search ✕").toEqual([
       "src/components/admin/AdminCommandPalette.tsx",
       "src/components/admin/AdminNotificationLogs.tsx",
@@ -243,6 +248,7 @@ describe("every search field is driven in a real browser (inventory minus checke
       "src/components/admin/settings/AdminUserSearchField.tsx",
       "src/components/dashboard/browseTasksToolbar/BrowseSearchBar.tsx",
       "src/components/declutter/CategoryDrillDown.tsx",
+      "src/components/declutter/DeclutterSearchBar.tsx",
       "src/components/messages/ConversationList.tsx",
       "src/components/messages/MessagesSearchRow.tsx",
       "src/components/postjob/JobCategoryGroups.tsx",

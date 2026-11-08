@@ -60,7 +60,11 @@ describe("Q2606 the row says who asked", () => {
   it("both reads ask for the job's poster with the row", () => {
     const src = blankComments(readFileSync("src/lib/continueDayReads.ts", "utf8"));
     expect(src).toContain('job:jobs(customer_id)"');
-    expect(src.match(/\.select\(CONTINUE_DAY_COLUMNS\)/g)?.length).toBe(2);
+    // The job's own read (fetchContinueDay) also asks for new_after_photo_at (owner 11-08), and falls back to the same
+    // columns while that column is not deployed: every path still carries the poster.
+    expect(src.match(/\.select\(CONTINUE_DAY_COLUMNS\)/g)?.length).toBe(1);
+    expect(src).toContain("read(`${CONTINUE_DAY_COLUMNS}, new_after_photo_at`)");
+    expect(src).toContain("read(CONTINUE_DAY_COLUMNS)");
     expect(src.match(/withProposer\(/g)?.length).toBeGreaterThanOrEqual(3);
   });
 });

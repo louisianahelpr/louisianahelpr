@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { doneFloorStart, useDoneFloorActive } from "@/components/job-card/useDoneFloor";
 import { useContinueDay } from "@/hooks/useContinueDays";
-import { continueDayDoneNote } from "@/lib/continueDayWords";
+import { CONTINUE_DAY_PHOTO_NOTE, continueDayAhead, continueDayDoneNote, continueDayOwesAfterPhoto, jobOnContinueDay, onContinueDay } from "@/lib/continueDayWords";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { subscribeJobRealtime } from "@/lib/jobRealtimeBus";
@@ -218,7 +218,17 @@ function useJobTrackingModel({
   const doneFloorActive = useDoneFloorActive(doneFloorStart(posterConfirmedWorkingAt, jobStamps.arrivedAt));
   // A day set to finish still ahead (Auditor 11, 11-01): the server refuses "done" until then
   // (continue_day_ahead), so the Done step is greyed with the note, as on the job page and the card face.
-  const continueDayNote = continueDayDoneNote(useContinueDay(jobId, jobStatus === "in_progress"));
+  const continueDay = useContinueDay(jobId, jobStatus === "in_progress");
+  const continueDayNote = continueDayDoneNote(continueDay);
+  // Owner 11-08 (audit F2/F3): a SET day runs the steps again (On my way, I've arrived, Start working, Mark it done),
+  // timed by that day, and its done asks for an after photo from that day first (without one the server marks the done for the poster).
+  const newDay = onContinueDay(continueDay);
+  const continueDayPhotoNote = continueDayOwesAfterPhoto(continueDay, requirePhotoProof) ? CONTINUE_DAY_PHOTO_NOTE : null;
+  // On the day itself the steps open 2 hours before its start (as the server's continue_day_not_yet does). Before
+  // that day, Mark it done keeps its own note ("You can mark it done on Thu 11/6"), and day 1's timing stands.
+  const stepDay = continueDayAhead(continueDay)
+    ? { date_needed: jobDateNeeded, start_time: jobStartTime }
+    : jobOnContinueDay({ date_needed: jobDateNeeded, start_time: jobStartTime }, continueDay);
   const { request: requestPermission } = usePermissionRationale();
   /** Mounted inside a job step card, the next-step CTA is THAT card's primary
    *  and renders in its one action row (owner, 2026-09-14, VN-21). */
@@ -426,7 +436,7 @@ function useJobTrackingModel({
     }
   };
 
-  const runStatusUpdate = statusUpdate({ jobId, helperId, isHelper, tracking, setTracking, setUpdating, setArrivalRefusal, setJobStamps, loadTracking, getLocation, getLocationOutcome, applyArrivalVerdict });
+  const runStatusUpdate = statusUpdate({ jobId, helperId, isHelper, onContinueDay: newDay, tracking, setTracking, setUpdating, setArrivalRefusal, setJobStamps, loadTracking, getLocation, getLocationOutcome, applyArrivalVerdict });
 
   // Determine current status index from every signal available — see
   // `deriveCurrentStatusIdx` for why the jobs row has to be read too.
@@ -466,6 +476,7 @@ function useJobTrackingModel({
     helperArrivalNearMissAt: jobStamps.nearMissAt,
     helperCompletedAt: jobStamps.helperCompletedAt,
     posterCompletedAt: jobStamps.posterCompletedAt,
+    onContinueDay: newDay,
   });
 
   // What the STEP ROW draws. Without the posting steps this is exactly the old
@@ -522,6 +533,7 @@ function useJobTrackingModel({
     arrivalRefusal,
     confirmDoneOpen,
     continueDayNote,
+    continueDayPhotoNote,
     currentArrivalEvidence,
     currentArrivalState,
     currentStatusIdx,
@@ -536,12 +548,13 @@ function useJobTrackingModel({
     helperName,
     inStepRow,
     isHelper,
-    jobDateNeeded,
+    // The new day times On my way (it opens 2 hours before that day's start), not day 1.
+    jobDateNeeded: stepDay.date_needed ?? jobDateNeeded,
     jobId,
     jobLatitude,
     jobLongitude,
     jobStamps,
-    jobStartTime,
+    jobStartTime: stepDay.start_time ?? jobStartTime,
     jobStatus,
     mapShown,
     posterConfirmedAt,

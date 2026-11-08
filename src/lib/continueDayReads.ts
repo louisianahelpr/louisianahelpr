@@ -21,14 +21,14 @@ export function withProposer(r: ContinueDayRead): ContinueDay {
 
 /** The job's active continue day, or null. */
 export async function fetchContinueDay(jobId: string): Promise<ContinueDay | null> {
-  const rows = unwrap(
-    await supabase
-      .from("job_continue_days")
-      .select(CONTINUE_DAY_COLUMNS)
-      .eq("job_id", jobId)
-      .in("status", ["proposed", "set"])
-      .limit(1),
-  ) as ContinueDayRead[] | null;
+  const read = (columns: string) =>
+    supabase.from("job_continue_days").select(columns).eq("job_id", jobId).in("status", ["proposed", "set"]).limit(1);
+  // Owner 11-08: the job's own read also carries new_after_photo_at (20261108160000), which gates Mark it done on the
+  // new day. In the deploy window before that migration the column is missing (42703): read without it, and the
+  // server's refusal still has its own sentence.
+  let res = await read(`${CONTINUE_DAY_COLUMNS}, new_after_photo_at`);
+  if (res.error && String((res.error as { code?: string }).code ?? "") === "42703") res = await read(CONTINUE_DAY_COLUMNS);
+  const rows = unwrap(res) as unknown as ContinueDayRead[] | null;
   return rows?.[0] ? withProposer(rows[0]) : null;
 }
 

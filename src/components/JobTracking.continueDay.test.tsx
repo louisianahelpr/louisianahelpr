@@ -4,6 +4,12 @@
  *
  * @mutate src/components/JobTrackingView.tsx |         const doneBeforeContinueDay = isDoneStep && !!continueDayNote; |         const doneBeforeContinueDay = false;
  * @mutate src/hooks/useContinueDays.ts |     enabled: enabled && !!jobId && !!client, |     enabled: false,
+ *
+ * Owner 11-08 (20261108160000): on the day itself the tracker runs the new day's steps again (the server reset the
+ * tracking row to 'job_confirmed'; a stale 'done' reads the same), and Mark it done waits for an after photo from that
+ * day. Guard: src/test/continueDayResumes.test.ts.
+ * @mutate src/components/JobTracking.tsx |     onContinueDay: newDay,\n  }); |   });
+ * @mutate src/components/JobTrackingView.tsx |         const doneNeedsNewDayPhoto = isDoneStep && !!continueDayPhotoNote; |         const doneNeedsNewDayPhoto = false;
  */
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
@@ -82,18 +88,18 @@ import { JobTracking } from "./JobTracking";
 const AGO_MIN = (m: number) => new Date(Date.now() - m * 60e3).toISOString();
 const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 const ahead = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date(Date.now() + 3 * 86_400_000));
-function renderDoneStep() {
+function renderDoneStep(trackingStatus = "working") {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
       <JobTracking
         jobId="job-1" helperId="helper-1" isHelper isOwner={false}
         jobDateNeeded={today} jobStatus="in_progress"
-        helperConfirmedAt={AGO_MIN(600)} posterConfirmedAt={AGO_MIN(600)}
+        helperConfirmedAt={AGO_MIN(600)} helperDayofConfirmedAt={AGO_MIN(590)} posterConfirmedAt={AGO_MIN(600)}
         helperOnTheWayAt={AGO_MIN(200)} helperArrivedAt={AGO_MIN(180)}
         helperArrivalVerifiedAt={AGO_MIN(180)} posterConfirmedArrivalAt={AGO_MIN(180)} posterConfirmedWorkingAt={AGO_MIN(170)}
         proofBeforeUrls={["b.jpg"]} proofAfterUrls={["a.jpg"]} requirePhotoProof
-        initialTracking={{ id: "t-1", status: "working", latitude: null, longitude: null, eta_minutes: null, updated_at: AGO_MIN(170) }}
+        initialTracking={{ id: "t-1", status: trackingStatus, latitude: null, longitude: null, eta_minutes: null, updated_at: AGO_MIN(170) }}
       />
     </QueryClientProvider>,
   );
@@ -112,5 +118,33 @@ describe("the open card's Mark it done before a day set to finish", () => {
     renderDoneStep();
     expect(await screen.findByText(/You can mark it done on \w{3} \d+\/\d+, the day you set to finish\./)).toBeTruthy();
     expect((screen.getByRole("button", { name: /mark it done/i }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  // The day has come: it started 30 minutes ago (Central), today.
+  const nowDay = () => {
+    const d = new Date(Date.now() - 30 * 60e3);
+    const f = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago", ...o }).format(d);
+    return { new_date: f({ year: "numeric", month: "2-digit", day: "2-digit" }), new_start_time: `${f({ hour: "2-digit", hour12: false }).replace("24", "00")}:${f({ minute: "2-digit" }).padStart(2, "0")}:00` };
+  };
+
+  it("owner 11-08: on the new day a tracker left on 'done' from day 1 offers I'm on my way again", async () => {
+    day.row = { id: "c2", job_id: "job-1", proposed_by: "poster", ...nowDay(), note: null, status: "set", helper_confirmed_at: AGO_MIN(60), new_after_photo_at: null };
+    renderDoneStep("done");
+    const btn = await screen.findByRole("button", { name: /i'm on my way/i });
+    expect((btn as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it("owner 11-08: at work on the new day, Mark it done waits for an after photo from today", async () => {
+    day.row = { id: "c3", job_id: "job-1", proposed_by: "poster", ...nowDay(), note: null, status: "set", helper_confirmed_at: AGO_MIN(60), new_after_photo_at: null };
+    renderDoneStep("working");
+    expect(await screen.findByText("Add an after photo from today, then mark it done. Your earlier photos stay on the job.")).toBeTruthy();
+    expect((screen.getByRole("button", { name: /mark it done/i }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("owner 11-08: with today's after photo in, Mark it done is enabled", async () => {
+    day.row = { id: "c4", job_id: "job-1", proposed_by: "poster", ...nowDay(), note: null, status: "set", helper_confirmed_at: AGO_MIN(60), new_after_photo_at: AGO_MIN(5) };
+    renderDoneStep("working");
+    await screen.findByRole("button", { name: /mark it done/i });
+    expect((screen.getByRole("button", { name: /mark it done/i }) as HTMLButtonElement).disabled).toBe(false);
   });
 });

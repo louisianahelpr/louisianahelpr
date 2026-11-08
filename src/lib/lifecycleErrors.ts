@@ -185,7 +185,8 @@ export function loadAdminRpcErrorCopy(): Promise<typeof import("@/components/adm
  * progress is the lock working, not a bug — round-4 review, LOW).
  */
 // continue_day_ahead (A3-115): "done" before the day set to finish is the trigger working, not a defect.
-const EXPECTED_REFUSALS = ["dispute_settlement_in_progress", "continue_day_ahead"] as const;
+// continue_day_not_yet (20261108160000): the new day's check-in window working, not a defect.
+const EXPECTED_REFUSALS = ["dispute_settlement_in_progress", "continue_day_ahead", "continue_day_not_yet"] as const;
 
 export function isExpectedLifecycleRefusal(error: unknown): boolean {
   const raw =

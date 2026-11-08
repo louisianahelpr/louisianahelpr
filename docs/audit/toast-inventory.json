@@ -635,7 +635,7 @@
     },
     {
       "file": "src/components/JobTracking.tsx",
-      "line": 263,
+      "line": 273,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11537,7 +11537,7 @@
     },
     {
       "file": "src/components/statusUpdate.ts",
-      "line": 83,
+      "line": 85,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11547,7 +11547,7 @@
     },
     {
       "file": "src/components/statusUpdate.ts",
-      "line": 93,
+      "line": 95,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11622,7 +11622,7 @@
     },
     {
       "file": "src/components/statusUpdate.ts",
-      "line": 108,
+      "line": 110,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11632,7 +11632,7 @@
     },
     {
       "file": "src/components/statusUpdate.ts",
-      "line": 162,
+      "line": 164,
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",
@@ -11723,7 +11723,7 @@
     },
     {
       "file": "src/components/statusUpdate.ts",
-      "line": 167,
+      "line": 169,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11743,7 +11743,7 @@
     },
     {
       "file": "src/components/statusUpdate.ts",
-      "line": 186,
+      "line": 188,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11753,7 +11753,7 @@
     },
     {
       "file": "src/components/statusUpdate.ts",
-      "line": 200,
+      "line": 202,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -11858,7 +11858,7 @@
     },
     {
       "file": "src/components/statusUpdate.ts",
-      "line": 271,
+      "line": 273,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11868,7 +11868,7 @@
     },
     {
       "file": "src/components/statusUpdate.ts",
-      "line": 285,
+      "line": 287,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11878,7 +11878,7 @@
     },
     {
       "file": "src/components/statusUpdate.ts",
-      "line": 312,
+      "line": 314,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -11888,17 +11888,17 @@
     },
     {
       "file": "src/components/statusUpdate.ts",
-      "line": 362,
+      "line": 365,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
-        "text": "rpcErrorMessage(\"helper_mark_on_the_way\", otwErr) ?? \"Couldn't mark you on the way — try again?\""
+        "text": "rpcErrorMessage(\"helper_mark_on_the_way\", otwErr) ?? lifecycleErrorMessage(otwErr) ?? \"Couldn't mark you on the way — try again?\""
       },
       "renders": true
     },
     {
       "file": "src/components/statusUpdate.ts",
-      "line": 406,
+      "line": 409,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11908,7 +11908,7 @@
     },
     {
       "file": "src/components/statusUpdate.ts",
-      "line": 465,
+      "line": 468,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -11918,7 +11918,7 @@
     },
     {
       "file": "src/components/statusUpdate.ts",
-      "line": 524,
+      "line": 529,
       "kind": "toast.warning",
       "title": {
         "form": "literal",
@@ -13137,26 +13137,6 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
-      "line": 167,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "copy"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
-      "line": 172,
-      "kind": "toast.error",
-      "title": {
-        "form": "dynamic",
-        "text": "copy"
-      },
-      "renders": true
-    },
-    {
-      "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
       "line": 175,
       "kind": "toast.error",
       "title": {
@@ -13167,7 +13147,27 @@
     },
     {
       "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
-      "line": 191,
+      "line": 180,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "copy"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
+      "line": 183,
+      "kind": "toast.error",
+      "title": {
+        "form": "dynamic",
+        "text": "copy"
+      },
+      "renders": true
+    },
+    {
+      "file": "src/pages/jobs/appliedJobCard/ActiveJobSection.tsx",
+      "line": 199,
       "kind": "toast.warning",
       "title": {
         "form": "dynamic",

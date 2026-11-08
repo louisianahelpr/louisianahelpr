@@ -456,6 +456,8 @@ export function previewSample(stage: PreviewStage, viewer: PreviewViewer, now: n
       job_guarantee_claims: [],
       job_schedule_change_requests: [],
       job_continue_days: [],
+      // Owner #4: the job page asks whether a continue day was missed (continueDayMissed.ts); none in the sample.
+      job_missed_returns: [],
       reviews: [],
       tips: [],
       user_violations: [],

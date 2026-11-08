@@ -100,6 +100,7 @@ const SQL_CARVE_OUTS: Record<string, Kind> = {
   declutter_admin_reported_items: "tags", // B77 (20261030071816): the admin's reported-listings read returns is_seed so a test listing is labelled; admin-only, it hides nothing and gates no money
   shops_admin_reported: "tags", // Shops H2 (20261105182210): the admin's reported shops/items read returns is_seed so the queue drops test shops and items; admin-only, gates no money
   declutter_item_save_counts: "hides", // Vinted browse (20261107232700): a seed item counts no saves for a member while test data is hidden (NOT is_seed / seed_hidden_in_discovery); display only
+  declutter_seller_on_time_handovers: "hides", // Vinted item (20261107235110): a seed seller gets no badge while test data is hidden from the caller (seed_hidden_for); display only
   declutter_seller_sold_count: "hides",
   declutter_guest_seller_first_name: "hides", // BUY-16 (20261031062900): a seed listing or seed seller gives a guest no name
   declutter_apply_seller_fault: "alerts",

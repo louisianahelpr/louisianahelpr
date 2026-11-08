@@ -380,5 +380,15 @@ ok(["shops_set_item_preorder", "shops_push_preorder_date", "shops_request_preord
   "the member RPCs are callable by members (each checks auth.uid())");
 ok(one(await svc(`SELECT count(*)::int FROM public.cron_defects`)) === 0, `no cron defects (${JSON.stringify(await svc(`SELECT * FROM public.cron_defects`))})`);
 
+// --- 8. account deletion (Shops audit 11-08 #4): deleting a seller cascades users -> shops -> shop_items, so an item
+// a preorder order points at must be deletable; the order stays (the buyer's record) with preorder_item_id NULL.
+const gone = await newItem();
+const goneOrd = one(await svc(`INSERT INTO public.shop_orders (buyer_id, seller_id, shop_id, items_cents, premium_cents, total_cents, preorder_item_id)
+  VALUES ('${B[2]}', '${SELLER}', '${SHOP}', 2000, 170, 2170, '${gone}') RETURNING id`));
+const del = await svc(`DELETE FROM public.shop_items WHERE id = '${gone}'`);
+ok(typeof goneOrd === "string" && !del?.error, `deleting a preorder's item (a seller's account deletion) succeeds (${del?.error ?? "ok"})`);
+ok(one(await svc(`SELECT preorder_item_id IS NULL AND id IS NOT NULL FROM public.shop_orders WHERE id = '${goneOrd}'`)) === true,
+  "the buyer's order stays, its preorder_item_id set to NULL");
+
 console.log(`\n${pass} PASS, ${fail} FAIL${skip ? " (PREORDER_MIGRATION=skip)" : ""}`);
 process.exit(fail ? 1 : 0);

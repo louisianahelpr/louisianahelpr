@@ -39,9 +39,8 @@ export default function ShopCustomRequestSheet({ shopId }: { shopId: string }) {
       ) : (
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
-            {mode.data === "deposit_50"
-              ? "Describe what you'd like. If you order the shop's price, half is charged when the shop accepts and the rest on the ready date."
-              : "Describe what you'd like. If you order the shop's price, it's paid like any other order."}
+            {/* Half up front is hidden while deposit_not_ready is on (shops audit 11-08 #1): every request is paid in full. */}
+            Describe what you&apos;d like. If you order the shop&apos;s price, it&apos;s paid like any other order.
           </p>
           <Label htmlFor="shop-custom-request-text">What you'd like</Label>
           <Textarea

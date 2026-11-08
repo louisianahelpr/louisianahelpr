@@ -165,7 +165,8 @@ export const SHOPS_ERROR_COPY: Record<string, string> = {
   request_not_found: "This request is no longer here. Reload the page.",
   request_not_open: "This request has already been answered or closed.",
   quote_not_open: "This price is no longer open. Ask the shop again.",
-  deposit_not_ready: "Paying a deposit opens soon. Ask the shop to send the price again with full payment.",
+  deposit_orders_closed: "Half up front isn't open yet. Pick custom orders paid in full for now.",
+  deposit_not_ready: "Paying half up front isn't open yet. Send the shop a new request and it will be paid in full.",
   // Custom orders, 50% deposit (20261106212437, 20261106215722).
   balance_not_paid: "The rest of this order is not paid yet, so it can't be handed over. We've asked the buyer to pay it.",
   nothing_owed: "Nothing more is owed on this order.",

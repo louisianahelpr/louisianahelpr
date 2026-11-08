@@ -55,10 +55,11 @@ describe("asking a shop for a custom order", () => {
     expect(db.rpc.mock.calls).toEqual([["shops_send_custom_request", { p_shop_id: "sh1", p_description: "A blue birthday cake for 12", p_wanted_date: null }]]);
   });
 
-  it("a half-up-front shop says how the price is paid before the buyer asks", async () => {
+  it("a shop still on the hidden half-up-front choice is paid in full, and never promises a deposit (shops audit 11-08 #1)", async () => {
     db.row = { custom_orders: "deposit_50" };
-    show();
-    expect(await screen.findByText(/half is charged when the shop accepts and the rest on the ready date/)).toBeTruthy();
+    const { container } = show();
+    expect(await screen.findByText(/it's paid like any other order/)).toBeTruthy();
+    expect(container.textContent).not.toMatch(/half/i);
   });
 
   it("a refusal reads in plain words, never the code", async () => {

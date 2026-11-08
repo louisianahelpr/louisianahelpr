@@ -173,6 +173,12 @@ vi.mock("@/lib/continueDayReads", async (orig) => ({
   ...(await orig<typeof import("@/lib/continueDayReads")>()),
   fetchContinueDay: async () => continueState.row,
 }));
+// Owner #4 (11-08): the open missed-return report read (Louisiana Helpr reviewing), null unless a test sets one.
+const missedState = vi.hoisted(() => ({ open: null as null | { side: "poster" | "helpr"; created_at: string } }));
+vi.mock("@/lib/continueDayMissed", async (orig) => ({
+  ...(await orig<typeof import("@/lib/continueDayMissed")>()),
+  fetchOpenMissedReturn: async () => missedState.open,
+}));
 vi.mock("@/lib/continueDay", async (orig) => ({
   ...(await orig<typeof import("@/lib/continueDay")>()),
   answerContinueDay: async (id: string, accept: boolean) => { continueCalls.push(`answer:${id}:${accept}`); },
@@ -2117,6 +2123,42 @@ describe("job page: a day set to finish, still ahead (Auditor 11, 11-01)", () =>
     const when = `${formatJobDate(ahead).slice(0, 3)} ${m}/${d} at 9 AM`;
     expect(document.querySelector("[data-job-meta]")?.textContent).toMatch(new RegExp(`^Continuing ${when}`));
     expect(document.querySelector("[data-next-step]")?.textContent).toBe(`Rhonda confirmed ${when}`);
+  });
+});
+
+// Owner #4 (11-08): the agreed day passed (start + 6 h) without "Mark done": the poster's "Didn't come back" sits in
+// More options beside Change day; once sent, the line says Louisiana Helpr is reviewing and no day can be set.
+// @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |   if (continueDayMissedOpen(row, job.helper_completed_at)) { |   if (false) {
+// @mutate src/pages/jobs/jobPage/useContinueDayActions.tsx |   if (missedQ.data) { |   if (false) {
+describe("owner #4: a missed continue day goes to Louisiana Helpr", () => {
+  const lapsedDay = { id: "c1", job_id: "x", proposed_by: ME, new_date: "2026-11-01", new_start_time: "09:00:00", note: null, status: "set", helper_confirmed_at: "2026-11-01T12:00:00Z" };
+  const underWay = () => row({
+    customer_id: ME, helper_id: POSTER, status: "in_progress", helper_confirmed_at: "2026-10-27T12:00:00Z",
+    helper_dayof_confirmed_at: "2026-10-27T12:00:00Z", poster_confirmed_at: "2026-10-27T12:00:00Z",
+    helper_on_the_way_at: "2026-10-28T12:00:00Z", helper_arrived_at: "2026-10-28T12:30:00Z",
+    poster_confirmed_arrival_at: "2026-10-28T12:40:00Z", poster_confirmed_working_at: "2026-10-28T12:45:00Z",
+  });
+  beforeEach(() => { continueState.row = null; missedState.open = null; Element.prototype.scrollTo ??= () => {}; });
+
+  it("a lapsed agreed day: the poster's More options holds Didn't come back and opens its sheet", async () => {
+    continueState.row = lapsedDay;
+    state.job = underWay();
+    state.party = true;
+    state.moreCount = 1;
+    state.leadCount = 0;
+    renderPage();
+    fireEvent.click(await screen.findByRole("button", { name: "More options" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Didn't come back" }));
+    expect(await screen.findByText("Photos of what's left (optional)")).toBeTruthy();
+  });
+
+  it("a report sent: the line says Louisiana Helpr is reviewing; no day to set", async () => {
+    missedState.open = { side: "poster", created_at: "2026-11-02T12:00:00Z" };
+    state.job = underWay();
+    state.party = true;
+    renderPage();
+    await waitFor(() => expect(document.querySelector("[data-next-step]")?.textContent).toMatch(/Sent to Louisiana Helpr/));
+    expect(screen.queryByRole("button", { name: /Set a day|Didn't come back/ })).toBeNull();
   });
 });
 

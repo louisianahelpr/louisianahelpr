@@ -21,6 +21,10 @@ vi.mock("@/lib/continueDay", async (orig) => ({
   ...(await orig<typeof import("@/lib/continueDay")>()),
   fetchContinueDay: async () => state.row,
 }));
+vi.mock("@/lib/continueDayMissed", async (orig) => ({
+  ...(await orig<typeof import("@/lib/continueDayMissed")>()),
+  fetchOpenMissedReturn: async () => null,
+}));
 vi.mock("sonner", async () => (await import("@/test/helpers/sonnerMock")).sonnerMock());
 import { useContinueDayActions } from "@/pages/jobs/jobPage/useContinueDayActions";
 

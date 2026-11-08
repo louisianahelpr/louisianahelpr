@@ -551,7 +551,10 @@ function DeclutterMemberHome() {
     mine,
     tabs: browse ? browse.chips : <SectionListBack label={lists.find((l) => l.value === view)?.label ?? "Declutter"} onBack={() => goTab("browse")} />,
   };
-  const fab = desktop ? undefined : <SectionCreateFab section="declutter" text="Sell" />;
+  // Owner pick 4 (11-08, design audit B #12): no "+ Sell" pill on a screen with its own main button (Wanted's "Post what
+  // you're looking for", Deliver's vehicle form): two filled primaries competed there, and the pill covered "I have a truck".
+  const ownMainButton = view === "wanted" || view === "deliver";
+  const fab = desktop || ownMainButton ? undefined : <SectionCreateFab section="declutter" text="Sell" />;
   // Browse draws its own section screen, so its header can carry its search, filters, chips, map toggle and count.
   if (view === "browse") return <Suspense fallback={<DeclutterHomeSkeleton />}><DeclutterBrowse userId={user.id} chrome={chrome} top={<StrikeCount userId={user.id} />} fab={fab} /></Suspense>;
   const head = chrome(desktop ? { end: <ExploreSearchEntry variant="icon" /> } : undefined);

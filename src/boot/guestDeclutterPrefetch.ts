@@ -63,27 +63,48 @@ const json = (r: Response) => (r.ok ? (r.json() as Promise<unknown>) : null);
 const list = (v: unknown) => (Array.isArray(v) ? (v as unknown[]) : null);
 
 /** Called from startDeclutterPrefetch when there is no usable session (that function checked the route). */
+/** Same string as index.html's inline script uses (the test pins it). */
+export const GUEST_DECLUTTER_EARLY_KEY = "__lhGuestDeclutterEarly";
+/** An early answer older than this is not used (the lib side's GUEST_PREFETCH_MAX_AGE_MS). */
+const EARLY_MAX_AGE_MS = 30_000;
+
+/**
+ * Q2705 (lead 11-08): index.html's inline script already fired features_open_to_everyone and declutter_guest_preview
+ * from the HTML, before this file arrived; their answers (parsed JSON or null, never a rejection) are taken from
+ * window instead of asking again. Null when the script did not run or its answers are old.
+ */
+export function takeEarlyGuestReads(now: number = Date.now()): { at: number; open: Promise<unknown>; preview: Promise<unknown> } | null {
+  const w = window as unknown as Record<string, unknown>;
+  const e = w[GUEST_DECLUTTER_EARLY_KEY] as { at?: unknown; open?: unknown; preview?: unknown } | undefined;
+  delete w[GUEST_DECLUTTER_EARLY_KEY];
+  if (!e || typeof e.at !== "number" || now - e.at > EARLY_MAX_AGE_MS) return null;
+  const isPromise = (v: unknown): v is Promise<unknown> => !!v && typeof (v as Promise<unknown>).then === "function";
+  if (!isPromise(e.open) || !isPromise(e.preview)) return null;
+  return { at: e.at, open: e.open.catch(() => null), preview: e.preview.catch(() => null) };
+}
+
 export function startGuestDeclutterPrefetch(base: string, key: string, search: string): void {
   const headers = { apikey: key, Authorization: `Bearer ${key}` };
+  const early = takeEarlyGuestReads();
   // A failed read is not an error anywhere below: the page reads for itself.
-  const open = fetch(`${rest(base)}/rpc/features_open_to_everyone`, {
+  const open = (early ? early.open : fetch(`${rest(base)}/rpc/features_open_to_everyone`, {
     method: "POST",
     headers: { ...headers, "Content-Type": "application/json" },
     body: "{}",
   })
-    .then(json)
+    .then(json))
     .then((v) => (list(v)?.every((x) => typeof x === "string") ? (v as string[]) : null))
     .catch(() => null);
   // Q2705 (lead 11-07): the PREVIEW first, declutter_guest_preview (20261107212823, SECURITY INVOKER): the top 24 of the
   // list with only the card's columns (no descriptions), their photo rows and `more`. 11-07 the whole list was 67 KB gz
   // and every card photo waited on it; Browse now shows the preview and reads the full list itself once the first
   // photos are in. With a preview, nothing is handed over as the list (`items` null), only its photo rows.
-  const preview = fetch(`${rest(base)}/rpc/declutter_guest_preview`, {
+  const preview = (early ? early.preview : fetch(`${rest(base)}/rpc/declutter_guest_preview`, {
     method: "POST",
     headers: { ...headers, "Content-Type": "application/json" },
     body: "{}",
   })
-    .then(json)
+    .then(json))
     .then((v) => {
       const p = v as { items?: unknown; photos?: unknown; more?: unknown } | null;
       const ok = !!p && Array.isArray(p.items) && Array.isArray(p.photos) && typeof p.more === "boolean";
@@ -115,13 +136,16 @@ export function startGuestDeclutterPrefetch(base: string, key: string, search: s
       return fetch(guestPhotosUrl(base, ids), { headers }).then(json).then(list);
     })))
     .catch(() => null);
-  (window as unknown as Record<string, unknown>)[GUEST_DECLUTTER_PREFETCH_KEY] = { at: Date.now(), open, preview, items, photos };
+  (window as unknown as Record<string, unknown>)[GUEST_DECLUTTER_PREFETCH_KEY] = { at: early?.at ?? Date.now(), open, preview, items, photos };
   // The photos above the fold, as for a member (B96), only when the link opens on Browse and the guest will see it.
   const q = new URLSearchParams(search);
   const opensOnBrowse = (q.get("tab") ?? "browse") === "browse" && (q.get("view") ?? "browse") === "browse";
   if (!opensOnBrowse) return;
   void Promise.all([open, preview, items, photos]).then(([o, pre, i, p]) => {
     if (!o?.includes("declutter")) return;
+    // index.html's script drew these photos into #lh-declutter-shell, first row first (Q2705, 11-08): preloading all of
+    // them now would split the slow link four ways again.
+    if (document.documentElement.getAttribute("data-lh-app-shell") === "declutter") return;
     preloadFirstCardPhotos(firstCardPhotoPreloads(base, { items: pre?.items ?? i, photos: p }, ""));
   });
 }

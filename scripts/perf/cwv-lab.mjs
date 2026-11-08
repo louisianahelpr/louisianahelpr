@@ -58,6 +58,7 @@
 import { chromium, webkit } from "@playwright/test";
 import { allowedRead, mockedRead } from "./readAllowance.mjs";
 import { browseShellRowsUrl, browseShellSeedsHiddenUrl, shellRowsWhenSeedsHidden, withBrowseShell } from "../../src/lib/browseShellCards.mjs";
+import { declutterGuestPreviewUrl, declutterPhotoPreloadHeader, firstPhotoPaths } from "../../src/lib/declutterFirstPhotos.mjs";
 import { execFileSync } from "node:child_process";
 import { createHash, X509Certificate } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -577,6 +578,26 @@ async function browseShellPage(distDir) {
   }
 }
 
+/**
+ * /declutter's Link preload header, as api/share.ts answers it on Vercel (Q2705, 11-08; src/lib/declutterFirstPhotos.mjs),
+ * from the same live anon preview read. LH_LAB_NO_DECLUTTER_PRELOAD=1: served without it, as before.
+ */
+async function declutterPreloadHeader(distDir) {
+  if (process.env.LH_LAB_NO_DECLUTTER_PRELOAD === "1") return null;
+  const html = readFileSync(join(distDir, "index.html"), "utf8");
+  const meta = (name) => html.match(new RegExp(`<meta name="${name}" content="([^"%]+)"`))?.[1];
+  const base = meta("lh-supabase-url");
+  const key = meta("lh-supabase-key");
+  if (!base || !key) return null;
+  try {
+    const res = await fetch(declutterGuestPreviewUrl(base), { headers: { apikey: key, Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(5000) });
+    return res.ok ? declutterPhotoPreloadHeader(base, firstPhotoPaths(await res.json())) : null;
+  } catch (e) {
+    console.warn(`cwv-lab: /declutter served without its photo preload header (${e?.message ?? e})`);
+    return null;
+  }
+}
+
 export async function startDistServer(distDir, port, tls = localCert()) {
   const cache = new Map();
   const load = (file) => {
@@ -605,6 +626,7 @@ export async function startDistServer(distDir, port, tls = localCert()) {
     gz: gzipSync(browseRaw, { level: 9 }),
     br: brotliCompressSync(browseRaw, { params: { [zc.BROTLI_PARAM_QUALITY]: 11 } }),
   };
+  const declutterLink = await declutterPreloadHeader(distDir);
   const server = createSecureServer({ key: tls.key, cert: tls.cert, allowHTTP1: true }, (req, res) => {
     const p = decodeURIComponent(new URL(req.url, "https://x").pathname);
     let file = join(distDir, p);
@@ -620,6 +642,7 @@ export async function startDistServer(distDir, port, tls = localCert()) {
       "cache-control": /^\/(assets|fonts)\//.test(p) ? "public, max-age=31536000, immutable" : "public, max-age=0, must-revalidate",
     };
     if (enc) headers["content-encoding"] = enc;
+    if (declutterLink && p.replace(/\/+$/, "") === "/declutter") headers.link = declutterLink;
     res.writeHead(200, headers);
     res.end(data);
   });

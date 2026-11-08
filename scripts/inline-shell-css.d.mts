@@ -11,3 +11,4 @@ export function shellDocuments(shellHtml: string, htmlAttr?: string): Document[]
 export function selectorNeeded(sel: string, docs: Document[]): boolean;
 export function shellCriticalCss(shellHtml: string | readonly { html: string; htmlAttr: string }[], css: string): string;
 export function inlineShellCss(html: string, css: string): { html: string; bytes: number };
+export const DECLUTTER_PHOTO_MARKUP: string;

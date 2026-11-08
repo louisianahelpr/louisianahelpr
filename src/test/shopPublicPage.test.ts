@@ -237,7 +237,9 @@ describe("SH2b: link preview + search engines", () => {
     expect(html).toContain(`<link rel="canonical" href="https://www.louisianahelpr.com/shops/${SHOP_ID}"`);
     // By photo id through shop-photo, never a storage path (it names the owner).
     expect(html).toContain('<meta property="og:image" content="https://example.supabase.co/functions/v1/shop-photo?id=7c0c9a4e-1111-4222-8333-444455556666&amp;kind=shop&amp;w=1200&amp;og=1"');
-    expect(html).not.toMatch(/job-photos|storage\/v1/);
+    // A concrete storage path (bucket, then a path: it starts with the owner's user id). index.html's guest /declutter
+    // script names only the bucket's URL prefix, which carries no one's path (Q2705, 11-08).
+    expect(html).not.toMatch(/job-photos(?:\/|%2F)[\w-]|storage\/v1\/object\/(?:public|sign|authenticated)\/[\w-]+\/[\w-]|storage\/v1\/render\/image\/(?:public|sign|authenticated)\/[\w-]+\/[\w-]/i);
     // Values only: still exactly one og:image tag (owner 10-31: no second, square one).
     expect(html.match(/<meta property="og:image" /g)?.length).toBe(1);
   });

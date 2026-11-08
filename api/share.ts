@@ -67,6 +67,7 @@ import { STATIC_PAGE_BODIES } from "../scripts/generated/static-pages.js";
 import { noindexPageMetaFor, publicPageMetaFor } from "../src/lib/publicPageMeta.mjs";
 import { OG_PROFILE_HEIGHT, OG_PROFILE_WIDTH, ogProfileImageUrl } from "../src/lib/ogProfileCard.mjs";
 import { browseShellRowsUrl, browseShellSeedsHiddenUrl, shellRowsWhenSeedsHidden, withBrowseShell } from "../src/lib/browseShellCards.mjs";
+import { declutterGuestPreviewUrl, declutterPhotoPreloadHeader, firstPhotoPaths } from "../src/lib/declutterFirstPhotos.mjs";
 
 /**
  * og:url and the canonical link are built from this constant, never from the
@@ -1275,10 +1276,44 @@ function isBrowsePage(url: URL): boolean {
   return !!route && route.kind === "page" && route.id === "browse";
 }
 
-function respond(html: string, cdnCache: string = "public, s-maxage=300, stale-while-revalidate=86400", status = 200, noindex = false): Response {
+/**
+ * /declutter's first-row card photos preloaded from the response's Link header (Q2705, lead 11-08;
+ * src/lib/declutterFirstPhotos.mjs): the photos start with the HTML instead of after index.html's guest script has read
+ * the preview. The same anon preview read a guest's browser makes; the HTML itself is unchanged (no path in the
+ * markup). A slow or failed read serves the page exactly as before (no header). Short budget: this read sits in front
+ * of the HTML on a CDN miss.
+ */
+const DECLUTTER_PHOTOS_TIMEOUT_MS = 700;
+/**
+ * A sold or withdrawn item's photo leaves the header within a minute of traffic; a quiet hour may serve one stale
+ * header while the CDN refreshes (that costs one unused photo download, never a wrong card: the page draws from its own
+ * read). The longer stale-while-revalidate keeps a cold visit from waiting on the preview read before any HTML.
+ */
+const DECLUTTER_PAGE_CDN_CACHE = "public, s-maxage=60, stale-while-revalidate=3600";
+
+async function fetchDeclutterFirstPhotos(): Promise<string[] | null> {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return null;
+  const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, Accept: "application/json" };
+  try {
+    const res = await fetch(declutterGuestPreviewUrl(SUPABASE_URL), { headers, signal: AbortSignal.timeout(DECLUTTER_PHOTOS_TIMEOUT_MS) });
+    if (!res.ok) return null;
+    return firstPhotoPaths(await res.json());
+  } catch {
+    // Timeout, network or a body that is not JSON: the page is served without the tag, exactly as before.
+    return null;
+  }
+}
+
+function isDeclutterPage(url: URL): boolean {
+  const route = resolveRoute(url);
+  return !!route && route.kind === "page" && route.id === "declutter";
+}
+
+function respond(html: string, cdnCache: string = "public, s-maxage=300, stale-while-revalidate=86400", status = 200, noindex = false, extra: Record<string, string> = {}): Response {
   return new Response(html, {
     status,
     headers: {
+      ...extra,
       // Q2393: an unknown URL is the same shell (the app renders its Not Found
       // page) but answers 404 and is never indexed. L7: a /u page unless its member opted in.
       ...(status === 404 || noindex ? { "X-Robots-Tag": "noindex" } : {}),
@@ -1312,6 +1347,10 @@ export default {
       // A Declutter item card likewise: sold or withdrawn stops previewing (Q2426).
       const page = withStaticBody(applyMeta(shell, meta), url);
       if (isBrowsePage(url)) return respond(withBrowseShell(page, await fetchBrowseShellRows()), BROWSE_SHELL_CDN_CACHE);
+      if (isDeclutterPage(url)) {
+        const preload = declutterPhotoPreloadHeader(SUPABASE_URL, await fetchDeclutterFirstPhotos());
+        return respond(page, DECLUTTER_PAGE_CDN_CACHE, 200, meta.noindexHeader === true, preload ? { Link: preload } : {});
+      }
       return respond(page, meta.cdnCache, 200, meta.noindexHeader === true);
     } catch {
       // Silence is the contract here: an OG-meta lookup that fails must

@@ -10,14 +10,13 @@
  * @mutate src/components/sections/SectionTabs.tsx |     memberMoved.current = true;\n    const edge = list.getBoundingClientRect().right; |     const edge = list.getBoundingClientRect().right;
  * @mutate src/components/sections/SectionTabs.tsx | if (next) list.scrollLeft += next.getBoundingClientRect().right - edge; | if (next) list.scrollLeft += 0;
  * @mutate src/components/sections/SectionTabs.tsx |           if (onlySelected && !active) return null;\n |
- * @mutate src/pages/home/Dashboard.tsx | phoneSearchOpen ? "ml-2 min-w-0 flex-1" | "ml-2 min-w-0 flex-1"
- * @mutate src/pages/home/Dashboard.tsx | { end: phoneBrowseEnd, onlySelected: phoneSearchOpen } | { end: phoneBrowseEnd }
- * @mutate src/pages/jobs/JobsSection.tsx | onlySelected={browse?.onlySelected} |
+ * @mutate src/components/job-card/embeddedActivity.tsx | searchOpen ? "ml-2 min-w-0 flex-1" | "ml-2 min-w-0 flex-1"
+ * @mutate src/pages/home/Dashboard.tsx | <SectionSearchBar noun="jobs" home="/jobs" value={filters.searchQuery} | <InlineListSearch label="Search jobs" value={filters.searchQuery}
  * T12: the way back, and room between the tab and an open search.
  * @mutate src/components/sections/SectionTabs.tsx | {less && !onlySelected && ( | {false && (
  * @mutate src/components/sections/SectionTabs.tsx | list.scrollLeft = previous ? list.scrollLeft - (edge - previous.getBoundingClientRect().left) : 0; | list.scrollLeft = list.scrollLeft;
- * @mutate src/pages/home/Dashboard.tsx | {phoneSearchOpen && <SearchTriggerSlot width="40px" />} | {null}
- * @mutate src/pages/home/Dashboard.tsx | ${phoneSearchOpen ? "ml-2 min-w-0 flex-1" : "-ml-1 shrink-0"} | ${phoneSearchOpen ? "-ml-1 min-w-0 flex-1" : "-ml-1 shrink-0"}
+ * @mutate src/components/job-card/embeddedActivity.tsx |       {searchOpen && <SearchTriggerSlot width="40px" />} |       {null}
+ * @mutate src/components/job-card/embeddedActivity.tsx | ${searchOpen ? "ml-2 min-w-0 flex-1" : "-ml-1 shrink-0"} | ${searchOpen ? "-ml-1 min-w-0 flex-1" : "-ml-1 shrink-0"}
  */
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen } from "@testing-library/react";
@@ -151,20 +150,24 @@ describe("a tab row that doesn't fit", () => {
 describe("Declutter Browse follows Jobs' row", () => {
   const code = (f: string) => blankComments(readFileSync(join(process.cwd(), f), "utf8"));
 
+  // Owner 11-08 (the Vinted header): on a phone both Browses search from the SAME bar (SectionSearchBar, Filters inside
+  // it), and neither draws a search row of its own.
   it("Jobs' Browse reuses the same search and has no search row of its own", () => {
-    expect(code("src/pages/home/Dashboard.tsx")).toMatch(/data-browse-phone-controls[\s\S]{0,200}<InlineListSearch/);
-    expect(code("src/components/declutter/DeclutterBrowseView.tsx")).not.toContain("SectionSearchRow");
-    expect(code("src/components/declutter/DeclutterBrowseBar.tsx")).not.toContain("SectionSearchRow");
+    const dash = code("src/pages/home/Dashboard.tsx");
+    expect(dash).toMatch(/<SectionSearchBar noun="jobs" home="\/jobs" value=\{filters\.searchQuery\}[^>]*filter=\{<BrowseFiltersButton/);
+    expect(code("src/components/declutter/DeclutterBrowseView.tsx")).toMatch(/<SectionSearchBar noun="Declutter" home="\/declutter" value=\{query\}/);
+    for (const f of ["src/pages/home/Dashboard.tsx", "src/components/declutter/DeclutterBrowseView.tsx", "src/components/declutter/DeclutterBrowseBar.tsx"]) {
+      expect({ f, row: code(f).includes("SectionSearchRow") }).toEqual({ f, row: false });
+    }
     expect(TABS.length).toBeGreaterThan(4);
   });
 
-  // Owner 11-08 (the Vinted header): Declutter's phone search left the tabs row for its own bar (SectionSearchBar,
-  // src/test/declutterHeaderVinted.test.tsx); Jobs keeps the search that opens in the row.
+  // The desktop website's tabs row (Jobs > Posted / Working): the icon by the gear opens in place, its 40px slot held
+  // after the field and the field's box filling the rest of the row (src/test/searchKeepsLitChip.test.tsx renders it).
   it("Jobs gives the row to an open search, with the slot held and the field filling it", () => {
-    expect(code("src/pages/home/Dashboard.tsx")).toMatch(/<InlineListSearch[^>]*onOpenChange=\{[^}]+\} fill \/>\s*\{\w+ && <SearchTriggerSlot width="40px" \/>\}/);
-    expect(code("src/pages/home/Dashboard.tsx")).toContain("onlySelected: phoneSearchOpen");
-    expect(code("src/pages/jobs/JobsSection.tsx")).toContain("onlySelected={browse?.onlySelected}");
-    // The row's gap-1 is cancelled by -ml-1 when closed; open, the field keeps 8px from the tab.
-    expect(code("src/pages/home/Dashboard.tsx")).toContain('phoneSearchOpen ? "ml-2 min-w-0 flex-1"');
+    const head = code("src/components/job-card/embeddedActivity.tsx");
+    expect(head).toMatch(/<InlineListSearch[^>]*onOpenChange=\{[^}]+\} fill \/>\s*\{\w+ && <SearchTriggerSlot width="40px" \/>\}/);
+    // The row's gap is cancelled by -ml-1 when closed; open, the field keeps 8px from the tab.
+    expect(head).toContain('searchOpen ? "ml-2 min-w-0 flex-1" : "-ml-1 shrink-0"');
   });
 });

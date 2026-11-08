@@ -34,9 +34,10 @@ export function nextBoxFilter(current: string, tapped: string): string {
 
 /**
  * The section's top bar + tabs. Jobs hands a function (JobsSection's makeHeader) so the tab's search can ride in the
- * tabs row; a plain node (component tests) is drawn as is, with no search in it.
+ * tabs row (desktop, `end`) or the top bar (phone, `search`); a plain node (component tests) is drawn as is, with no
+ * search in it.
  */
-export type EmbeddedHeader = ReactNode | ((row?: { end?: ReactNode; onlySelected?: boolean; search?: ReactNode }) => ReactNode);
+export type EmbeddedHeader = ReactNode | ((row?: { end?: ReactNode; search?: ReactNode }) => ReactNode);
 
 /** The section's top bar + tabs (with this tab's search icon beside the gear), then the status boxes that filter the list. */
 export function EmbeddedActivityHeader({
@@ -59,8 +60,8 @@ export function EmbeddedActivityHeader({
 }) {
   const labels = tab === "posted" ? POSTED_GROUP_LABEL : WORKING_GROUP_LABEL;
   const noRows = !search.trim() && Object.values(counts).every((n) => !n);
-  // While the search field is open on a phone the TABS row keeps only its selected tab and the field takes the rest
-  // (Browse's rule, Dashboard's phoneBrowseEnd; audit F20 was the same squeeze in the old chip-row place). Desktop has room.
+  // Desktop: the icon by the gear opens in place and its box fills the tabs row's rest while open. A phone's search is
+  // the top bar's field (owner 11-08, the Vinted header), so it takes no room from a tab or a chip (audit F20).
   const desktop = useIsWebDesktop();
   const [searchOpen, setSearchOpen] = useState(false);
   const value = (BOX_BUCKETS as readonly string[]).includes(statusFilter) ? (statusFilter as (typeof BOX_BUCKETS)[number]) : null;

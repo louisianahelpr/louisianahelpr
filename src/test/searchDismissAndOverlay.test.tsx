@@ -482,14 +482,16 @@ describe("Saved Helprs search — one control, one place", () => {
 /* ─────────────────── Jobs > Posted / Working tabs row ─────────────────── */
 
 /* The search ends the TABS row, beside the gear (owner 2026-10-31; it was the chip row's end until then). The field
-   opens IN that row, out of the magnifier, and the row holds the magnifier's 40px box while it is open. */
+   opens IN that row, out of the magnifier, and the row holds the magnifier's 40px box while it is open. That is the
+   desktop website's row; on a phone the tab's search is the top bar's open field (the Vinted header, owner 11-08),
+   so nothing expands there. */
 describe("Posted / Working search — in flow, the slot held, one dismiss", () => {
   async function mount() {
     const { EmbeddedActivityHeader } = await import("@/components/job-card/embeddedActivity");
     render(
       <MemoryRouter>
         <EmbeddedActivityHeader
-          header={(row) => <div data-testid="tabs-row"><h1>Jobs</h1>{row?.end}</div>}
+          header={(row) => <div data-testid="tabs-row"><h1>Jobs</h1>{row?.search}{row?.end}</div>}
           tab="applied"
           statusFilter="all"
           counts={{ all: 3, needs_you: 1 }}
@@ -501,8 +503,8 @@ describe("Posted / Working search — in flow, the slot held, one dismiss", () =
     );
   }
 
-  it("opening the field holds the magnifier's slot at the row's end, and closing gives it back", async () => {
-    setWebDesktop(false);
+  it("desktop: opening the field holds the magnifier's slot at the row's end, and closing gives it back", async () => {
+    setWebDesktop(true);
     await mount();
     expect(document.querySelector("[data-search-trigger-slot]")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Search jobs you're working" }));
@@ -517,6 +519,14 @@ describe("Posted / Working search — in flow, the slot held, one dismiss", () =
     expect(screen.queryByRole("searchbox", { name: "Search jobs you're working" })).toBeNull();
     expect(document.querySelector("[data-search-trigger-slot]")).toBeNull();
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Search jobs you're working" }));
+  });
+
+  it("phone: no magnifier expands; the tab's search is the bar's open field (owner 11-08)", async () => {
+    setWebDesktop(false);
+    await mount();
+    expect(screen.queryByRole("button", { name: "Search jobs you're working" })).toBeNull();
+    expect(document.querySelector("[data-jobs-search], [data-search-trigger-slot]")).toBeNull();
+    expect(screen.getByRole("searchbox", { name: "Search jobs you're working" }).closest("[data-section-search-bar]")).not.toBeNull();
   });
 });
 

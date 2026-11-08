@@ -143,8 +143,9 @@ describe("(b) useSectionTabs `preview`", () => {
   it("failed: no mark (a failure never reads as 'open to nobody')", async () => {
     serve({ declutter: true, shops: true, rentals: true }, () => ({ data: null, error: { message: "boom", code: "500" } }));
     const { result } = renderHook(() => useSectionTabs(), { wrapper });
-    await waitFor(() => expect(askedOpen()).toBe(1));
-    await waitFor(() => expect(client.getQueryState(SECTIONS_OPEN_QUERY_KEY)?.status).toBe("error"));
+    await waitFor(() => expect(askedOpen()).toBeGreaterThanOrEqual(1));
+    // H2 (audit 11-08): the read retries twice with backoff (0.6 s + 1.2 s) before it settles failed.
+    await waitFor(() => expect(client.getQueryState(SECTIONS_OPEN_QUERY_KEY)?.status).toBe("error"), { timeout: 4000 });
     expect(ons(result.current)).toEqual({ declutter: true, shops: true, rentals: true });
     expect(previews(result.current)).toEqual({ declutter: false, shops: false, rentals: false });
   });
@@ -156,7 +157,7 @@ describe("(b) useSectionTabs `preview`", () => {
     await waitFor(() => expect(previews(result.current).shops).toBe(true));
     fail = true;
     await client.refetchQueries({ queryKey: SECTIONS_OPEN_QUERY_KEY });
-    await waitFor(() => expect(client.getQueryState(SECTIONS_OPEN_QUERY_KEY)?.status).toBe("error"));
+    await waitFor(() => expect(client.getQueryState(SECTIONS_OPEN_QUERY_KEY)?.status).toBe("error"), { timeout: 4000 });
     await waitFor(() => expect(previews(result.current).shops).toBe(false));
   });
 

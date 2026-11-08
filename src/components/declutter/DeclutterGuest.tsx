@@ -3,7 +3,8 @@
  * seller full name or address." Every Declutter link, shared listings and "Post to Facebook" included, went to the
  * login wall. A signed-out visitor now reads a listing while Declutter is open to everyone (features_open_to_everyone,
  * the landing's own answer); the server reads are the anon policies of 20261031060656_declutter_guest_read.sql.
- * While Declutter is not open to everyone, a guest still gets the login wall, as before.
+ * While Declutter is not open to everyone, a guest still gets the login wall, as before. A read that FAILED (H2, audit
+ * 11-08) shows the page: the wall is only for a definite "not open".
  */
 import type { ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -23,9 +24,11 @@ function here(location: { pathname: string; search: string }): string {
 /** DeclutterGate's signed-out branch: the page while Declutter is open to everyone, the login wall otherwise. */
 export function DeclutterGuestGate({ children, skeleton }: { children: ReactNode; skeleton: ReactNode }) {
   const location = useLocation();
-  const { open, settled } = useSectionsOpen(true);
+  const { open, settled, failed } = useSectionsOpen(true);
   if (!settled) return <>{skeleton}</>;
-  if (open?.has("declutter")) return <><DeclutterGuestTopBar />{children}</>;
+  // H2 (audit 11-08): a failed read (after its retries) FAILS OPEN to the public page, never the login wall. The
+  // server's anon reads still refuse anything while Declutter is not open to everyone.
+  if (failed || open?.has("declutter")) return <><DeclutterGuestTopBar />{children}</>;
   return <Navigate to={`/login?redirect=${here(location)}`} replace />;
 }
 

@@ -231,7 +231,8 @@ export function AppTopBar({
           type="button"
           variant="ghost"
           size="iconCompact"
-          aria-label={mine ? (mineToDo > 0 ? `${mine.title}, ${mineToDo} to do` : mine.title) : avatarButtonLabel(tr("nav.profile"), profile?.full_name)}
+          // The initials the photo shows when it has no picture are part of the name (axe label-content-name-mismatch, WCAG 2.5.3).
+          aria-label={avatarButtonLabel(mine ? (mineToDo > 0 ? `${mine.title}, ${mineToDo} to do` : mine.title) : tr("nav.profile"), profile?.full_name)}
           {...(mine ? { "aria-haspopup": "dialog" as const, "aria-expanded": mineOpen } : {})}
           data-testid="top-bar-profile"
           onClick={() => { if (mine) { setMineAsked(true); setMineOpen(true); } else navigate("/profile"); }}

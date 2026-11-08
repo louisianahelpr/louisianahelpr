@@ -4934,7 +4934,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 188,
+      "line": 189,
       "kind": "toast",
       "title": {
         "form": "dynamic",
@@ -4954,7 +4954,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 191,
+      "line": 192,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4964,7 +4964,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 196,
+      "line": 197,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -4974,7 +4974,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 211,
+      "line": 212,
       "kind": "toast",
       "title": {
         "form": "literal",
@@ -4984,7 +4984,7 @@
     },
     {
       "file": "src/components/declutter/DeclutterHomeView.tsx",
-      "line": 214,
+      "line": 215,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10049,7 +10049,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 91,
+      "line": 92,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10059,7 +10059,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 94,
+      "line": 95,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10080,7 +10080,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 209,
+      "line": 210,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10101,7 +10101,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 214,
+      "line": 215,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -10121,7 +10121,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 217,
+      "line": 218,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10142,7 +10142,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 223,
+      "line": 224,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10163,7 +10163,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 301,
+      "line": 302,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10173,7 +10173,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 301,
+      "line": 302,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10183,7 +10183,7 @@
     },
     {
       "file": "src/components/rentals/RentalsHomeView.tsx",
-      "line": 337,
+      "line": 338,
       "kind": "toast.error",
       "title": {
         "form": "literal",
@@ -10805,7 +10805,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 104,
+      "line": 105,
       "kind": "toast.success",
       "title": {
         "form": "dynamic",
@@ -10825,7 +10825,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 109,
+      "line": 110,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -10835,7 +10835,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 117,
+      "line": 118,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -10845,7 +10845,7 @@
     },
     {
       "file": "src/components/shops/ShopDashboardView.tsx",
-      "line": 123,
+      "line": 124,
       "kind": "toast.error",
       "title": {
         "form": "dynamic",
@@ -11513,7 +11513,7 @@
     },
     {
       "file": "src/components/shops/ShopsHomeView.tsx",
-      "line": 71,
+      "line": 73,
       "kind": "toast.success",
       "title": {
         "form": "literal",
@@ -11523,7 +11523,7 @@
     },
     {
       "file": "src/components/shops/ShopsHomeView.tsx",
-      "line": 73,
+      "line": 75,
       "kind": "toast.error",
       "title": {
         "form": "literal",

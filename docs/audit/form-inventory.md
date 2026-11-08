@@ -312,7 +312,7 @@ A file is grouped under the route(s) whose page component reaches it in the fewe
 |---|---|---|---|---|
 | `src/pages/auth/Login.tsx` | input×3 | text, email | 6 | login-card-head · mfa-login-code · email · login-email-error · login-password-field · password · login-password-error |
 
-## /login, /signup, /signup-pending, /forgot-password, /payment-success, /admin, /messages, /quotes, /book/:userId, /u/:handle, /support, /legal, /terms, /privacy, /rules, *
+## /login, /signup, /signup-pending, /forgot-password, /jobs, /payment-success, /admin, /messages, /quotes, /book/:userId, /u/:handle, /support, /legal, /terms, /privacy, /rules, *
 
 | File | Controls | input types | maxLength | hints |
 |---|---|---|---|---|

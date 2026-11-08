@@ -2794,6 +2794,20 @@ serve(async (req) => {
       if (!["open", "accepted", "in_progress", "revision_requested"].includes(String(qJob.status)) || qJob.helper_completed_at) {
         return quoteJson({ can_cancel: false, quoted_at: nowIso });
       }
+      // Jobs audit 11-08 #1 (20261108200000): a single job the Helpr started (in progress or being fixed, on site, or
+      // on a continue day) is refused with work_started; the quote offers no cancel either. A crew is judged per
+      // member under poster_cancel_job's lock (an empty roster still cancels), so it is quoted as before.
+      if (qJob.is_group_job !== true) {
+        const { count: liveDays, error: dayErr } = await supabaseAdmin.from("job_continue_days").select("id", { count: "exact", head: true })
+          .eq("job_id", jobId).in("status", ["proposed", "set"]);
+        if (dayErr) {
+          console.error(`[create-payment] cancel_quote continue-day read failed for ${jobId}: ${dayErr.message}`);
+          return quoteJson({ error: "Couldn't work out the refund right now. Try again." }, 503);
+        }
+        if (["in_progress", "revision_requested"].includes(String(qJob.status)) || qJob.helper_arrived_at || qJob.poster_confirmed_arrival_at || (liveDays ?? 0) > 0) {
+          return quoteJson({ can_cancel: false, reason: "work_started", quoted_at: nowIso });
+        }
+      }
       let feePercent: number | null = null;
       const unquoted = (reason: string, feeCents: number | null) =>
         quoteJson({ can_cancel: true, fee_cents: feeCents, fee_percent: feePercent, back_to_you_cents: null, unquoted_reason: reason, charge_state: null, quoted_at: nowIso });

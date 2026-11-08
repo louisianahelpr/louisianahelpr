@@ -7,6 +7,8 @@ import type { Job } from "../../../../components/job-card/activityConstants";
 import { JobStepRowSlot } from "@/components/job-card/jobStepRow";
 import { photoProofRequired, primaryPhotoAsk } from "@/components/job-card/primaryPhotoAsk";
 import { requestHelperStep } from "@/components/job-card/helperStepRequest";
+import { useContinueDay } from "@/hooks/useContinueDays";
+import { continueDayOwesAfterPhoto } from "@/lib/continueDayWords";
 
 /**
  * ONE photo ask, belonging to the step the card is on — AS A CONTROL ON THE
@@ -111,6 +113,8 @@ export function HelperPhotoAsk({
   const queryClient = useQueryClient();
   const readBack = () => {
     void queryClient.invalidateQueries({ queryKey: queryKeys.activity.all });
+    // The new day's photo stamp lives on the continue-day row (owner 11-08), read under its own key.
+    void queryClient.invalidateQueries({ queryKey: ["job-continue-day", jobId] });
   };
 
   // A CREW HAS NO LEAD (Q407). On a group job each member's proof is their OWN
@@ -137,13 +141,18 @@ export function HelperPhotoAsk({
     },
   });
 
+  // Owner 11-08 (20261108160000): on a SET continue day the done needs an after photo from that day, so the after ask
+  // comes back as if none were filed (day 1's stay on the job; the upload appends to them, saveProofPaths).
+  const continueDay = useContinueDay(jobId, !crew && job.status === "in_progress");
+  const owesNewDayAfter = !crew && continueDayOwesAfterPhoto(continueDay, job.require_photo_proof);
+
   if (!proofRequired) return null;
   // No ask until the member's own photos are known: offering Before on a stale
   // empty array would append to nothing and drop the photos already filed.
   if (crew && !slotProof.isSuccess) return null;
 
   const beforeUrls = (crew ? slotProof.data?.proof_before_urls : job.proof_before_urls) || [];
-  const afterUrls = (crew ? slotProof.data?.proof_after_urls : job.proof_after_urls) || [];
+  const afterUrls = owesNewDayAfter ? [] : (crew ? slotProof.data?.proof_after_urls : job.proof_after_urls) || [];
 
   const beforeAsk = (
     <PhotoProofCaptureChip

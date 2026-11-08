@@ -27,6 +27,10 @@ export const LIFECYCLE_REASONS: Record<string, string> = {
   // Continue another day (20261101231015, Auditor 11 11-01): trg_refuse_done_before_continue_day refuses "done"
   // before the day set to finish, whichever write marks it (the date is on the page beside the toast).
   continue_day_ahead: "You can mark it done on the day you set to finish.",
+  // Owner 11-08 (20261108160000): on a day set to finish, Mark it done needs an after photo from that day; the
+  // earlier photos stay on the job. And the new day's check-ins open 2 hours before its start.
+  continue_day_needs_new_after_photo: "Add an after photo from today, then mark it done. Your earlier photos stay on the job.",
+  continue_day_not_yet: "You can check in from 2 hours before the day you set to finish.",
   // Board 141: a cancel, back-out or no-show report while a refund request on
   // the job waits or is being settled (trg_refuse_job_move_while_refund_requested).
   refund_request_live:
@@ -543,6 +547,8 @@ export const RPC_ERROR_COPY = {
     // 20261008203441 (Q1570): the Helpr's own day-before tap, then 2 h before the start.
     helper_not_dayof_confirmed: "Tap Confirm first, then you can head out.",
     on_the_way_too_early: "I'm on my way turns on 2 hours before the job starts.",
+    // 20261108160000: the day set to finish opens 2 hours before its start (trg_continue_day_check_in).
+    continue_day_not_yet: "I'm on my way turns on 2 hours before the day you set to finish.",
   },
   nudge_confirm: {
     job_not_found: JOB_GONE,

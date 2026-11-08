@@ -181,8 +181,9 @@ describe("owner 11-08 (audit F1): the hold ends with the day", () => {
     (scenario.reads.jobs as { rows: Array<Record<string, unknown>> }).rows[0].helper_completed_at = new Date(Date.now() - 3600e3).toISOString();
     scenario.reads.profiles = { rows: [{ user_id: POSTER }] };
     scenario.reads.job_continue_days = { rows: [{ job_id: "job-1", status: "proposed", ...dayHoursAgo(CONTINUE_DAY_HOLD_GRACE_HOURS + 1) }] };
-    await autoRelease();
+    const body = await json(await autoRelease());
     expect(toPayoutPending()).toHaveLength(0);
+    expect(JSON.stringify(body)).toContain("continuing");
   });
 
   it("_shared: lapsed vs held, by the day's start in Central time", async () => {

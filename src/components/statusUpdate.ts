@@ -24,6 +24,8 @@ export type StatusUpdateDeps = {
   jobId: string;
   helperId: string | null;
   isHelper: boolean;
+  /** Owner 11-08: the job continues on a SET day; the server tells the poster of the new day's check-ins. */
+  onContinueDay?: boolean;
   tracking: TrackingData | null;
   setTracking: Dispatch<SetStateAction<TrackingData | null>>;
   setUpdating: Dispatch<SetStateAction<boolean>>;
@@ -40,7 +42,7 @@ export type StatusUpdateDeps = {
  * change). Lifecycle RPCs and escrow-adjacent writes: money-reviewed before it lands.
  */
 export function statusUpdate(d: StatusUpdateDeps) {
-  const { jobId, helperId, isHelper, tracking, setTracking, setUpdating, setArrivalRefusal, setJobStamps, loadTracking, getLocation, getLocationOutcome, applyArrivalVerdict } = d;
+  const { jobId, helperId, isHelper, onContinueDay = false, tracking, setTracking, setUpdating, setArrivalRefusal, setJobStamps, loadTracking, getLocation, getLocationOutcome, applyArrivalVerdict } = d;
   const runStatusUpdate = async (newStatus: string) => {
     if (!helperId) return;
     setUpdating(true);
@@ -496,7 +498,9 @@ export function statusUpdate(d: StatusUpdateDeps) {
     // helper was told everything was fine. `createNotification` already
     // report()s its own failure, so this only has to tell the person.
     let posterNotified = true;
-    if (isHelper && newStatus === "working" && !statusTransitioned) {
+    // Owner 11-08 (20261108160000): on a SET continue day, trg_continue_day_check_in already told the poster "started
+    // working again" (job_updates), so this one would be a second notice for the same tap.
+    if (isHelper && newStatus === "working" && !statusTransitioned && !onContinueDay) {
       const { data: job, error: notifyErr } = await supabase.from("jobs").select("title, customer_id").eq("id", jobId).single();
       if (notifyErr) report(notifyErr, { tags: { source: "JobTracking.notifyPoster" } });
       if (job?.customer_id) {

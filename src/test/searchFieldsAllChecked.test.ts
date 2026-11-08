@@ -40,7 +40,7 @@
 // @mutate e2e/prod-audit/search-keeps-title.spec.ts | name: "messages", file: "src/components/messages/ConversationList.tsx", | name: "messages", file: "src/components/messages/ConversationList.ts",
 // @mutate src/index.css | input[type="search"]::-webkit-search-cancel-button, | input[type="search"]::-webkit-search-cancelled,
 // @mutate src/components/admin/AdminUsers.tsx | aria-label="Clear search" | aria-label="Clear"
-// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: `[data-browse-phone-controls] ${CLOSE}`,\n    maxWidth: 899, | close: `[data-browse-phone-controls] ${CLOSE}`,
+// @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: `[data-section-search-bar] ${CLEAR}`,\n    maxWidth: 899,\n  },\n  {\n    // Owner 11-08 | close: `[data-section-search-bar] ${CLEAR}`,\n  },\n  {\n    // Owner 11-08
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | field: '[data-section-search-bar] input[aria-label="Search Declutter"]',\n    maxWidth: 899, | field: '[data-section-search-bar] input[aria-label="Search Declutter"]',
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | close: CLOSE,\n    minWidth: 900,\n    maxWidth: 1139, | close: CLOSE,\n    minWidth: 900,
 // @mutate e2e/prod-audit/search-x-off-center-press.spec.ts | if ((vw === BAND_VW) !== bandOnly(s)) continue; | if (vw === BAND_VW && !bandOnly(s)) continue;

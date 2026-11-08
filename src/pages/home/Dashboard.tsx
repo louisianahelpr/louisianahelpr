@@ -12,6 +12,7 @@ import { BrowseSearchBar } from "@/components/dashboard/browseTasksToolbar/Brows
 import { BrowseTasksToolbar } from "@/components/dashboard/BrowseTasksToolbar";
 import { BrowseFiltersButton, BrowseTasksActions } from "@/components/dashboard/browseTasksToolbar/BrowseTasksActions";
 import { SectionSearchBar } from "@/components/sections/SectionSearchBar";
+import { JobCategoryChips } from "@/components/dashboard/JobCategoryChips";
 import { BrowseTasksFeed } from "@/components/dashboard/BrowseTasksFeed";
 import { useWantsQuotes } from "@/pages/home/useWantsQuotes";
 import { WantsQuotesSlot } from "@/components/quotes/WantsQuotesSlot";
@@ -46,7 +47,7 @@ import { useClearQuickApplyParam } from "./useClearQuickApplyParam";
 /** Jobs > Browse (owner, 2026-10-19): `embeddedHeader` is the section's top bar + tabs; the feed adds ONE compact
  *  search row under it on phone. The old standalone phone title card (DashboardTitleBar + BrowseSearchBar) is gone:
  *  no route rendered it once /home became the Home dashboard (Q2205). */
-const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: ReactNode; count?: number; search?: ReactNode }) => ReactNode }) => {
+const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: ReactNode; count?: number; search?: ReactNode; chips?: ReactNode }) => ReactNode }) => {
   const navigate = useNavigate();
   // Names the section this feed is the Browse tab of (Jobs; its top bar's h1).
   usePageTitle("Jobs — Helpr");
@@ -319,9 +320,14 @@ const Dashboard = ({ embeddedHeader }: { embeddedHeader: (browse?: { end?: React
       filter={<BrowseFiltersButton filters={filters} filtersButtonRef={filtersButtonRef} />} />
   );
 
+  /* Phone row 2 (design audit A J1, owner 11-08): the category chips, from the feed in hand (no read of their own). */
+  const phoneBrowseChips = isWebDesktop ? undefined : (
+    <JobCategoryChips jobs={allJobs} value={filters.selectedCategory} onChange={filters.setSelectedCategory} />
+  );
+
   const embeddedTitle = (
     <div className="flex flex-col gap-4">
-      {embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes || feedShowingLoadError ? undefined : headerCount } : { search: phoneBrowseSearch })}
+      {embeddedHeader(isWebDesktop ? { end: desktopBrowseEnd, count: wantsQuotes || feedShowingLoadError ? undefined : headerCount } : { search: phoneBrowseSearch, chips: phoneBrowseChips })}
     </div>
   );
 

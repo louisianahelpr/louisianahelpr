@@ -319,7 +319,8 @@ describe("Declutter location ask", () => {
     }];
     const browse = at("/declutter", <DeclutterPage />);
     await waitFor(() => expect(document.querySelector("[data-card-away]")?.textContent).toBe("About 1 mi away"));
-    expect(document.querySelector("[data-card-area]")?.textContent).toBe("Mid-City, Baton Rouge");
+    // Owner pick 4 (11-08): three text lines; the town line is gone (the distance says how far).
+    expect(document.querySelector("[data-item-card]")?.textContent).not.toContain("Mid-City, Baton Rouge");
     browse.unmount();
     live.items = [];
 
@@ -329,7 +330,7 @@ describe("Declutter location ask", () => {
     expect(screen.queryByText(/About \d+ mi away/)).toBeNull();
   });
 
-  it("a Browse card (board 25, spec v2 §3): square photo or the category tint, price in money ink, ONE-line title, small place line, NO stars, and one real tag", async () => {
+  it("a Browse card (board 25, spec v2 §3; owner pick 4, 11-08): 4:5 photo or the category tint, THREE text lines (title, condition · distance, price), the incl.-fee price bold in ink, NO stars, and real tags only", async () => {
     const card = (id: string, title: string, extra: Record<string, unknown> = {}) => ({
       id, seller_id: "u2", status: "live", title, category: "furniture", condition_stars: 4, delivery_size: "small",
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City, Baton Rouge", area_lat: 30.45, area_lng: -91.15,
@@ -341,20 +342,30 @@ describe("Declutter location ask", () => {
     live.items = [card("i1", "Oak rocking chair"), card("i2", "Brass floor lamp", { delivery_size: "large" }), card("i3", "Cast iron skillet")];
     const browse = at("/declutter", <DeclutterPage />);
     const first = (await screen.findByText("Oak rocking chair")).closest("a")!;
-    // @mutate src/components/declutter/DeclutterItemCard.tsx | mt-0.5 block truncate text-sm | mt-0.5 block line-clamp-2 text-sm
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | className="block truncate text-ds-13 font-semibold leading-snug" title={item.title} | className="block line-clamp-2 text-ds-13 font-semibold leading-snug" title={item.title}
     expect(first.querySelector("[data-card-title]")!.className).toMatch(/\btruncate\b/);
-    // @mutate src/components/declutter/DeclutterItemCard.tsx | leading-tight tabular-nums text-[hsl(var(--burnt-sienna))] | leading-tight tabular-nums
-    expect(first.querySelector("[data-card-price]")!.className).toMatch(/text-\[hsl\(var\(--burnt-sienna\)\)\]/);
-    expect(first.querySelector("[data-card-price]")!.className).toMatch(/\bfont-bold\b/);
+    // Owner pick 2 (11-08), one price story: the incl.-fee price is the bold one, in ink; the base price small and grey.
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | className="text-ds-16 font-bold tabular-nums text-foreground" wordsClassName | className="text-ds-11 tabular-nums text-muted-foreground" wordsClassName
+    const paid = first.querySelector("[data-card-price] [data-price-incl-fee]")!;
+    expect(paid.className).toMatch(/\bfont-bold\b/);
+    expect(paid.className).toMatch(/\btext-foreground\b/);
+    expect(paid.className).not.toMatch(/burnt-sienna/);
+    expect(first.querySelector("[data-card-base-price]")!.className).toMatch(/\btext-muted-foreground\b/);
+    expect(first.querySelector("[data-card-base-price]")!.textContent).toBe("$40");
+    // Three text lines under the photo: title, the meta line, the price.
+    expect(first.querySelectorAll("[data-card-title], [data-card-place], [data-card-price]")).toHaveLength(3);
+    // 4:5 photo (Vinted's taller tile), never square.
+    expect(first.querySelector(".aspect-\\[4\\/5\\]")).not.toBeNull();
     // No photo: the category's icon on a tint, never an empty grey box (PhotoPlaceholder).
     // @mutate src/components/declutter/DeclutterItemCard.tsx | <PhotoPlaceholder icon={categoryIcon(item.category)} seed={item.category} className="absolute inset-0 h-full w-full" /> | {null}
     expect(first.querySelector("[data-photo-placeholder] svg.lucide-sofa")).not.toBeNull();
     expect(first.querySelector("[data-card-price]")!.className).not.toMatch(/\btruncate\b/);
-    // #45 (deep audit 2026-10-28): the town truncates, the distance never does (it sits beside it, shrink-0).
-    // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-area className="block truncate" title={item.area_label}> | <span data-card-area className="block" title={item.area_label}>
+    // #45 (deep audit 2026-10-28): the distance never truncates (shrink-0); the condition beside it gives way first.
     // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-away className="shrink-0 whitespace-nowrap"> | <span data-card-away className="truncate">
-    expect(first.querySelector("[data-card-area]")!.className).toMatch(/\btruncate\b/);
+    expect(first.querySelector("[data-card-condition]")!.className).toMatch(/\btruncate\b/);
     expect(first.querySelector("[data-card-place]")!.className).not.toMatch(/\btruncate\b/);
+    // Porch pickup is a tag on the photo (owner pick 4), not a text line.
+    expect(first.querySelector("[data-photo-tags] [data-card-porch]")?.textContent).toBe("Porch pickup");
     // Stars are for people, never an item card (spec v2 §3).
     for (const a of screen.getAllByText(/Oak rocking chair|Brass floor lamp|Cast iron skillet/).map((e) => e.closest("a")!)) {
       expect(a.querySelector("svg.lucide-star")).toBeNull();
@@ -539,21 +550,20 @@ describe("Declutter location ask", () => {
     }
   });
 
-  it("DA-16: the how-you-get-it line is the same at every width: no breakpoint hides it", async () => {
-    // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-how="" className="flex h-[1lh] min-w-0 flex-wrap overflow-hidden"> | <span data-card-how="" className="hidden lg:flex">
-    // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-porch="" className="min-w-0 whitespace-pre" | <span data-card-porch="" className="hidden lg:inline"
+  it("DA-16: how you get it shows the same at every width: no breakpoint hides the distance or the porch tag", async () => {
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | <span data-card-place="" className="flex min-w-0 text-ds-11 | <span data-card-place="" className="hidden lg:flex min-w-0 text-ds-11
+    // @mutate src/components/declutter/DeclutterItemCard.tsx | {item.porch_ok && <PhotoTag data-card-porch="">Porch pickup</PhotoTag>} | {null}
     const { ItemCard } = await import("./DeclutterItemCard");
     const item = {
       id: "i9", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
       price_cents: 4000, current_price_cents: 4000, area_label: "Mid-City", area_lat: 30.45, area_lng: -91.15, porch_ok: true,
     } as never;
     const r = render(<MemoryRouter><ItemCard item={item} miles={5} approximate={false} /></MemoryRouter>);
-    const how = r.container.querySelector("[data-card-how]")!;
+    const how = r.container.querySelector("[data-card-place]")!;
     const porch = r.container.querySelector("[data-card-porch]")!;
-    expect(how.textContent).toMatch(/mi.* · Porch pickup/);
-    for (const el of [how, porch]) expect(el.className).not.toMatch(/(^|\s)(hidden|lg:|sm:|md:)/);
-    expect(how.className).toMatch(/flex-wrap/);
-    expect(how.className).toMatch(/overflow-hidden/);
+    expect(how.textContent).toBe("Lightly used · 5 mi away");
+    expect(porch.textContent).toBe("Porch pickup");
+    for (const el of [how, porch, porch.closest("[data-photo-tags]")!]) expect(el.className).not.toMatch(/(^|\s)(hidden|lg:|sm:|md:)/);
     r.unmount();
   });
 
@@ -579,7 +589,7 @@ describe("Declutter location ask", () => {
     r.unmount();
   });
 
-  it("#45 (deep audit 2026-10-28): a long town gives way, the distance always shows whole", async () => {
+  it("#45 (deep audit 2026-10-28): a long condition gives way, the distance always shows whole", async () => {
     const { ItemCard } = await import("./DeclutterItemCard");
     const item = {
       id: "i9", seller_id: "u2", status: "live", title: "Oak rocking chair", category: "furniture", condition_stars: 4,
@@ -589,14 +599,15 @@ describe("Declutter location ask", () => {
     const place = r.container.querySelector("[data-card-place]")!;
     const away = place.querySelector("[data-card-away]")!;
     expect(away.textContent).toBe("3 mi away");
-    // The distance is its own piece that never shrinks or truncates; only the town does.
+    // The distance is its own piece that never shrinks or truncates; only the condition does (owner pick 4, 11-08:
+    // the town line is gone).
     expect(away.className).toMatch(/\bshrink-0\b/);
     expect(away.className).not.toMatch(/\btruncate\b/);
     expect(away.closest(".truncate")).toBeNull();
-    expect(place.querySelector("[data-card-area]")!.className).toMatch(/\btruncate\b/);
-    // Never inside the town's truncating line.
-    expect(place.querySelector("[data-card-area]")!.contains(away)).toBe(false);
-    expect(place.querySelector("[data-card-area]")!.textContent).toBe("Mid City, Baton Rouge");
+    const cond = place.querySelector("[data-card-condition]")!;
+    expect(cond.className).toMatch(/\btruncate\b/);
+    expect(cond.contains(away)).toBe(false);
+    expect(r.container.textContent).not.toContain("Mid City, Baton Rouge");
     r.unmount();
   });
 

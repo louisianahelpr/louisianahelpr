@@ -15,6 +15,8 @@ import { useLoadPhotoAhead } from "./useLoadPhotoAhead";
 import { holdForFirstRowPhoto, useLaterPhotosOpen } from "./firstRowPhotoGate";
 import { formatPrice, milesLabel, itemPriceLabel } from "@/lib/declutter/distance";
 import { PriceInclFee } from "./PriceInclFee";
+import { PhotoTag, PhotoTagStack } from "@/components/ui/PhotoTag";
+import { PRICE_BASE, PRICE_DEAL } from "@/components/ui/designScale";
 import { CONDITION_LABEL } from "@/lib/declutter/conditionLabels";
 
 export function firstPhotos(photos: DeclutterPhoto[]): Map<string, string> {
@@ -55,6 +57,9 @@ export type CardTag = "drop" | "delivery" | "new";
 
 const TAG_WORDS: Record<CardTag, string> = { drop: "May drop tonight", delivery: "Helpr delivery", new: "New" };
 
+/** Owner pick 4 (11-08): the card photo is 4:5 (Vinted's taller tile), so the img states that shape up front. */
+const CARD_PHOTO_H = Math.round((CARD_PHOTO_PX * 5) / 4);
+
 /** The first row's photo is usually the page's largest paint: it does not wait for the browser's lazy-load check. */
 const FIRST_ROW_PHOTO: Record<string, string> = { loading: "eager", fetchpriority: "high" };
 /** A later row still above the fold (Q2705, 11-07): loads at once, at the browser's own priority (the entry preloads it). */
@@ -66,6 +71,7 @@ type PhotoStage = "card" | "full" | "failed";
 
 export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag, bundle, firstRow, aboveFold }: { item: DeclutterItem; photoPath?: string; miles: number | null; approximate: boolean; save?: CardSave; saves?: number | null; tag?: CardTag | null; bundle?: boolean; firstRow?: boolean; aboveFold?: boolean }) {
   const away = milesLabel(miles, approximate);
+  const condition = CONDITION_LABEL[item.condition_stars] ?? null;
   // A photo that fails to load drops out, leaving the icon under it (never a blank tile). The card-sized thumbnail
   // comes first (owner 10-31: pictures were slow while scrolling); if it fails, the full photo; then the icon.
   const [photoStage, setPhotoStage] = useState<PhotoStage>("card");
@@ -89,7 +95,7 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
       data-item-card=""
       className="group block rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
-      <span className="relative block aspect-square overflow-hidden rounded-2xl bg-photo-empty">
+      <span className="relative block aspect-[4/5] overflow-hidden rounded-xl bg-photo-empty">
         {/* The category icon is ALWAYS the tile's ground (audit #32, 2026-10-21: a blank
             sand tile read as a failed load). A real photo covers it; a photo still
             loading, one that fails, or one with nothing opaque in it (prod's E2E
@@ -110,64 +116,64 @@ export function ItemCard({ item, photoPath, miles, approximate, save, saves, tag
             sizes={photoStage === "card" ? CARD_PHOTO_SIZES : undefined}
             alt=""
             width={CARD_PHOTO_PX}
-            height={CARD_PHOTO_PX}
+            height={CARD_PHOTO_H}
             decoding="async"
             onLoad={photoSettled}
             onError={() => { photoSettled(); setPhotoStage((s) => (s === "card" ? "full" : "failed")); }}
             className="relative h-full w-full object-cover"
           />
         )}
-        {tag && (
-          // Opaque card under the tint, so the tag reads the same on any photo.
-          <span data-card-tag={tag} className="absolute bottom-2 left-2 max-w-[calc(100%-1rem)] rounded-full bg-card shadow-sm">
-            <span
-              className={`block rounded-full truncate px-2.5 py-1 text-ds-11 font-semibold leading-none ${tag === "delivery" ? "border border-border text-foreground" : "bg-[hsl(var(--burnt-sienna)/0.14)] text-[hsl(var(--sienna-ink))]"}`}
-              title={tag === "new" ? "New since you last looked at this search" : TAG_WORDS[tag]}
-            >
-              {TAG_WORDS[tag]}
-            </span>
-          </span>
+        {/* Owner pick 4 (11-08): "Porch pickup" and "Trades OK" are tags on the photo (one PhotoTag style, shared with
+            Builder 3's trades badge), with the card's one rule tag (drop / delivery / new) under them. */}
+        {(item.porch_ok || item.accepts_trades === true || tag) && (
+          <PhotoTagStack>
+            {item.porch_ok && <PhotoTag data-card-porch="">Porch pickup</PhotoTag>}
+            {item.accepts_trades === true && <PhotoTag data-card-trades="">Trades OK</PhotoTag>}
+            {tag && (
+              <PhotoTag data-card-tag={tag} tone={tag === "delivery" ? "plain" : "deal"} title={tag === "new" ? "New since you last looked at this search" : TAG_WORDS[tag]}>
+                {TAG_WORDS[tag]}
+              </PhotoTag>
+            )}
+          </PhotoTagStack>
         )}
       </span>
+      {/* Owner pick 4 (11-08): THREE text lines. The title; "condition · distance"; the price. The town line is gone
+          (the distance says how far), and porch pickup is a photo tag. */}
       <span className="block min-w-0 px-0.5 pt-2">
-        <span data-card-price className="block min-w-0 text-base font-bold leading-tight tabular-nums text-[hsl(var(--burnt-sienna))]">
-          {itemPriceLabel(item.current_price_cents)}
-          {item.current_price_cents < item.price_cents && (
-            <span className="ml-1.5 text-xs font-medium text-muted-foreground">
-              <span className="sr-only">Price dropped, was </span>
-              <s aria-hidden>{formatPrice(item.price_cents)}</s>
-            </span>
-          )}
-        </span>
-        {/* Owner 11-07 (Vinted review): what the buyer pays with the fee, under the price. */}
-        <PriceInclFee priceCents={item.current_price_cents} />
-        <span data-card-title className="mt-0.5 block truncate text-sm font-semibold leading-snug" title={item.title}>{item.title}</span>
-        {/* Owner 11-07 (Vinted review): the condition under the title, in the item page's own words. */}
-        {CONDITION_LABEL[item.condition_stars] && (
-          <span data-card-condition={item.condition_stars} className="block truncate text-xs text-foreground/80" title={CONDITION_LABEL[item.condition_stars]}>{CONDITION_LABEL[item.condition_stars]}</span>
+        <span data-card-title className="block truncate text-ds-13 font-semibold leading-snug" title={item.title}>{item.title}</span>
+        {(condition || away) && (
+          // "Like new · 16 mi away" on ONE line. #45 (deep audit 2026-10-28): the distance always shows whole (it never
+          // shrinks); the condition gives way first.
+          <span data-card-place="" className="flex min-w-0 text-ds-11 text-muted-foreground" title={[condition, away].filter(Boolean).join(" · ")}>
+            {condition && <span data-card-condition={item.condition_stars} className="min-w-0 truncate">{condition}</span>}
+            {condition && away && <span className="shrink-0 whitespace-pre"> · </span>}
+            {away && <span data-card-away className="shrink-0 whitespace-nowrap">{away}</span>}
+          </span>
         )}
-        {/* Deep audit 2026-10-28 #45: at 390 the one truncating line cut the distance off ("Mid City, Baton Ro…").
-            The town has its own line and may truncate; the distance sits on the next line and always shows whole. */}
-        <span data-card-place className="block min-w-0 text-xs text-muted-foreground" title={`${item.area_label}${away ? ` · ${away}` : ""}`}>
-          <span data-card-area className="block truncate" title={item.area_label}>{item.area_label}</span>
-          {(away || item.porch_ok) && (
-            // DA-16: the same line at every width, one line tall. "Porch pickup" wraps out of sight when it can't fit whole
-            // (it gives way first, board 39), so a narrow card never shows half of it and the distance always shows.
-            <span data-card-how="" className="flex h-[1lh] min-w-0 flex-wrap overflow-hidden">
-              {away && <span data-card-away className="shrink-0 whitespace-nowrap">{away}</span>}
-              {item.porch_ok && <span data-card-porch="" className="min-w-0 whitespace-pre" title="Porch pickup">{away ? " · " : ""}Porch pickup</span>}
-            </span>
+        {/* Owner pick 2 (11-08), one price story: the incl.-fee price is the bold one, the base price small and grey
+            beside it (11-07 rule: the card keeps both numbers). Free stays in burnt sienna. */}
+        <span data-card-price="" className="mt-0.5 flex min-w-0 flex-wrap items-baseline gap-x-1.5 leading-tight">
+          {item.current_price_cents > 0 ? (
+            <>
+              <PriceInclFee priceCents={item.current_price_cents} className="text-ds-16 font-bold tabular-nums text-foreground" wordsClassName="text-ds-11 font-semibold text-primary" />
+              <span data-card-base-price="" className={`text-ds-11 ${PRICE_BASE}`}>
+                {itemPriceLabel(item.current_price_cents)}
+                {item.current_price_cents < item.price_cents && (
+                  <span className="ml-1">
+                    <span className="sr-only">Price dropped, was </span>
+                    <s aria-hidden>{formatPrice(item.price_cents)}</s>
+                  </span>
+                )}
+              </span>
+            </>
+          ) : (
+            <span data-card-free="" className={`text-ds-16 ${PRICE_DEAL}`}>{itemPriceLabel(item.current_price_cents)}</span>
           )}
         </span>
       </span>
       {/* D-NEW12 (lead 2026-10-30): the seller has a bundle discount on. Under the text, never a second photo tag.
-          Trades audit 11-08 #3: a listing Open to trades says "Trades OK" on the same line (guests see it too). */}
-      {(bundle || item.accepts_trades === true) && (
-        <span className="ml-0.5 mt-1 flex flex-wrap gap-1">
-          {bundle && <Badge variant="sienna" data-card-bundle="" className="w-fit text-ds-11 leading-none">Bundle deal</Badge>}
-          {item.accepts_trades === true && <Badge variant="outline" data-card-trades="" className="w-fit text-ds-11 leading-none">Trades OK</Badge>}
-        </span>
-      )}
+          Trades audit 11-08 #3 ("Trades OK", guests too) is a PhotoTag on the photo since owner pick 4 (11-08). */}
+      {bundle && <Badge variant="sienna" data-card-bundle="" className="ml-0.5 mt-1 w-fit text-ds-11 leading-none">Bundle deal</Badge>}
     </Link>
   );
   const savesText = savesWord(saves);

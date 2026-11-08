@@ -6,12 +6,13 @@
  *
  * The class, from source: every place in src that prints a live item's price for a buyer
  * (`itemPriceLabel(<x>.current_price_cents)` in JSX) renders <PriceInclFee priceCents={<x>.current_price_cents}/>
- * right after it, unless the file is in NOT_A_BUYER_PRICE below with why (seller's own screens, share text, a
+ * beside it (right after it, or, since owner pick 2 of 11-08 made the incl.-fee price the bold one on Browse cards,
+ * right before it with the base price small and grey after), unless the file is in NOT_A_BUYER_PRICE below with why (seller's own screens, share text, a
  * screen-reader label). That list is exact both ways.
  *
  * @mutate src/components/declutter/PriceInclFee.tsx | {exactDollars(buyNowTotalCents(priceCents))} {INCL_FEE_WORDS} | {exactDollars(priceCents)} {INCL_FEE_WORDS}
  * @mutate src/components/declutter/PriceInclFee.tsx |   if (!(priceCents > 0)) return null; |   if (priceCents < 0) return null;
- * @mutate src/components/declutter/DeclutterItemCard.tsx |         <PriceInclFee priceCents={item.current_price_cents} /> |         <PriceInclFee priceCents={item.price_cents} />
+ * @mutate src/components/declutter/DeclutterItemCard.tsx | <PriceInclFee priceCents={item.current_price_cents} className="text-ds-16 | <PriceInclFee priceCents={item.price_cents} className="text-ds-16
  * @mutate src/components/declutter/DeclutterItemView.tsx |             <PriceInclFee priceCents={it.current_price_cents} | {null}            <PriceInclFee priceCents={0}
  * @mutate src/components/declutter/MovingSaleBanner.tsx |                 <PriceInclFee priceCents={it.current_price_cents} /> | {null}
  */
@@ -64,7 +65,7 @@ describe("owner 11-07: Declutter prices show the buyer's price incl. fee", () =>
     expect(free.container.innerHTML).toBe("");
   });
 
-  it("inventory: every buyer-facing live price renders <PriceInclFee> for the same item right after it", () => {
+  it("inventory: every buyer-facing live price renders <PriceInclFee> for the same item beside it", () => {
     const all = sites();
     expect(all.length).toBeGreaterThan(8);
     const missing: string[] = [];
@@ -72,10 +73,11 @@ describe("owner 11-07: Declutter prices show the buyer's price incl. fee", () =>
     const covered = new Set<string>();
     for (const s of all) {
       if (s.file in NOT_A_BUYER_PRICE) { hitExempt.add(s.file); continue; }
-      const after = s.src.slice(s.at, s.at + 900);
+      // Beside it: within 900 characters after the price, or before it (owner pick 2, 11-08: the card leads with it).
+      const after = s.src.slice(Math.max(0, s.at - 900), s.at + 900);
       const esc = s.who.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       if (new RegExp(`<PriceInclFee\\s+priceCents=\\{${esc}\\.current_price_cents\\}`).test(after)) covered.add(s.file);
-      else missing.push(`${s.file}: ${s.who}.current_price_cents has no <PriceInclFee> after it`);
+      else missing.push(`${s.file}: ${s.who}.current_price_cents has no <PriceInclFee> beside it`);
     }
     expect(missing, missing.join("\n")).toEqual([]);
     expect([...hitExempt].sort(), "NOT_A_BUYER_PRICE has an entry nobody hits").toEqual(Object.keys(NOT_A_BUYER_PRICE).sort());

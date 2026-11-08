@@ -146,7 +146,7 @@ vi.mock("@/lib/declutter/trades", async (orig) => ({
   fetchAcceptsTrades: async () => false,
   fetchMyTrades: async () => [],
 }));
-vi.mock("@/lib/declutter/sellerBadges", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/sellerBadges")>()), fetchOnTimeHandovers: async () => null, fetchLastSignIn: async () => null }));
+vi.mock("@/lib/declutter/sellerBadges", async (orig) => ({ ...(await orig<typeof import("@/lib/declutter/sellerBadges")>()), fetchOnTimeHandovers: async () => null, fetchActiveBand: async () => null }));
 vi.mock("@/lib/declutter/api", () => ({
   fetchLiveItems: async () => [],
   fetchMapPins: async () => new Map(),

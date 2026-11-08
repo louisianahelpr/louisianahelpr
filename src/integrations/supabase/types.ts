@@ -20092,7 +20092,7 @@ export type Database = {
       get_user_last_active: {
         Args: { user_ids: string[] }
         Returns: {
-          last_active_at: string
+          active_band: string
           user_id: string
         }[]
       }

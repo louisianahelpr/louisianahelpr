@@ -8,21 +8,17 @@
  * Nothing is charged on any of these screens: an item-for-item trade moves no money. Before 20261106163703 is on the
  * server the read is empty and nothing shows.
  */
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { ArrowLeftRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
+import { useMyTrades } from "./useMyTrades";
 import { itemPriceLabel } from "@/lib/declutter/distance";
 import { timeLeft } from "@/lib/declutter/timeLeft";
-import { fetchMyTrades, respondSwap, tradeStatusWords, type MyTrade, type SwapAction } from "@/lib/declutter/trades";
+import { respondSwap, tradeStatusWords, type MyTrade, type SwapAction } from "@/lib/declutter/trades";
 
-const KEY = ["declutter", "trades"] as const;
-
-function useMyTrades(side: "buyer" | "seller", userId: string | null) {
-  return useQuery({ queryKey: [...KEY, side, userId], queryFn: () => fetchMyTrades(side, userId as string), enabled: !!userId });
-}
 
 /** Selling's "To answer" chip counts the open trade offers too (the same read and key the section uses). */
 export function useTradeOffersToAnswer(userId: string | null): number {

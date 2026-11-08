@@ -52,7 +52,7 @@ const kindOf = (h: string | null): OrderHandover => (KINDS as readonly string[])
 
 /** What the order's rows say, per handover kind. Pure: the rule is tested apart from the screen. */
 export function buyerOrderFacts(
-  order: { handover: string | null; status: string | null; lines: Pick<CartLine, "price_cents">[] },
+  order: { handover: string | null; status: string | null; lines: Pick<CartLine, "price_cents" | "source">[] },
   rows: { slotStart?: string | null; handover?: Pick<MyHandover, "set_out_at" | "picked_up_at" | "confirmed_at"> | null;
     sellerDelivery?: Pick<SellerDeliveryBooking, "status" | "slot_start" | "delivered_at">
       & Partial<Pick<SellerDeliveryBooking, "proposed_start" | "proposed_by" | "not_delivered_from">> | null;
@@ -65,6 +65,7 @@ export function buyerOrderFacts(
     handover,
     side: "buyer",
     free: order.lines.length > 0 && order.lines.every((l) => l.price_cents === 0),
+    trade: order.lines.some((l) => l.source === "swap"),
     booked: false,
     done: order.status === "handed_over",
     // A paid order that was refunded in full (declutter_orders.status 'refunded') did not go ahead.
@@ -426,7 +427,7 @@ export function EndedLine({ line }: { line: CartLine }) {
       {/* DB-19: the price and the day it ended, as on the seller's ended rows. */}
       <div className="flex items-baseline gap-3">
         <p className="min-w-0 flex-1 truncate text-ds-15 font-semibold" title={line.item_title}>{line.item_title}</p>
-        <span className="shrink-0 text-ds-15 font-bold tabular-nums text-muted-foreground">{itemPriceLabel(line.price_cents)}</span>
+        <span className="shrink-0 text-ds-15 font-bold tabular-nums text-muted-foreground">{line.source === "swap" ? "Trade" : itemPriceLabel(line.price_cents)}</span>
       </div>
       <p className="text-ds-13 text-muted-foreground">{endedOnPrefix(line.closed_at)}{endedWords(line)}</p>
     </li>

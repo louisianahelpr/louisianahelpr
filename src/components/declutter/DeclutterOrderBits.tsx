@@ -6,7 +6,7 @@ import { fetchItemAddress } from "@/lib/declutter/handover";
 import { declutterErrorMessage } from "@/lib/declutter/errors";
 import { OrderTalkButton } from "@/components/declutter/DeclutterOrderTalk";
 import { PickupStatus } from "./DeclutterPorchHandover";
-import type { PaidOrder } from "./paidOrders";
+import { isTradeOrder, type PaidOrder } from "./paidOrders";
 
 /**
  * The exact address is stored per ITEM, so a multi-item order can have more
@@ -74,7 +74,7 @@ export function SellerAfterActions({ order, booking, itemsCents, problemOpen, re
     <div className="space-y-3" data-seller-after-actions="">
       <PickupStatus orderId={order.orderId} handover={order.handover as "porch" | "pickup_home" | "meetup"} side="seller" slot={booking?.slot_start ?? null}
         day={booking?.pickup_day ?? null} itemsCents={itemsCents} problemOpen={problemOpen} refunded={refunded} part="money" />
-      <OrderTalkButton orderId={order.orderId} side={order.side} />
+      <OrderTalkButton orderId={order.orderId} side={order.side} trade={isTradeOrder(order)} />
     </div>
   );
 }

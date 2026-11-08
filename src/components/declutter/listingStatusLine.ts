@@ -32,18 +32,20 @@ const SELLER_MOVE: Partial<Record<DeclutterItem["status"], string>> = {
   pending_seller_approval: "Approve it above to sell it",
 };
 
-export function listingNextStep(item: DeclutterItem, saleCents?: number, payout?: MyPayout | null, problemOpen = false): NextStepValue {
+export function listingNextStep(item: DeclutterItem, saleCents?: number, payout?: MyPayout | null, problemOpen = false, tradedFor: string | null = null): NextStepValue {
   const move = SELLER_MOVE[item.status];
   if (move) return { who: "you", text: move };
-  return { who: item.status === "pending_review" ? "them" : "info", text: listingStatusLine(item, saleCents, payout, problemOpen) };
+  return { who: item.status === "pending_review" ? "them" : "info", text: listingStatusLine(item, saleCents, payout, problemOpen, tradedFor) };
 }
 
-function listingStatusLine(item: DeclutterItem, saleCents?: number, payout?: MyPayout | null, problemOpen = false): string {
+function listingStatusLine(item: DeclutterItem, saleCents?: number, payout?: MyPayout | null, problemOpen = false, tradedFor: string | null = null): string {
   // B48 live check 2026-10-29: porch + meetup read only "Porch pickup". Every ticked way, in checkout's order and words.
   const ways = WAY_ORDER.filter((w) => item.handovers?.includes(w));
   if (item.status === "live" && ways.length) return ["For sale", ...ways.map((w) => HANDOVER_TITLE[w])].join(" · ");
   if (item.status === "live" && item.porch_ok) return "For sale · Porch pickup";
-  const base = SELLER_STATUS_LINE[item.status] ?? sellerStatusLabel(item);
+  const base = SELLER_STATUS_LINE[item.status] ?? sellerStatusLabel(item, tradedFor);
+  // Lead 11-08: a trade moves no money, so no payout words follow "Traded for <item>".
+  if (tradedFor && base.startsWith("Traded for ")) return base;
   // Deep audit #60: a sold listing's line also says where its payout stands (soldPayout.ts); D2-2: held while a problem is open.
   const paid = item.status === "sold" || item.status === "completed" ? soldPayoutWords(item.status, saleCents, payout, undefined, problemOpen) : null;
   return paid ? `${base} · ${paid}` : base;

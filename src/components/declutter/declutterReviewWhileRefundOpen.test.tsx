@@ -33,7 +33,8 @@ vi.mock("@/lib/declutter/refundRequests", async (orig) => ({
 
 import { DeclutterReviewForm } from "./DeclutterReviewForm";
 
-const OUTLINE = "border-border/60";
+// The outline Button variant (flat since the 11-08 design foundation: 1.5px ink outline, no shadow).
+const OUTLINE = "border-foreground/70";
 
 function show(refundPanel: boolean) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
